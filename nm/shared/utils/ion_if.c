@@ -357,7 +357,6 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
 
     Object newBundle;
     int sdrDataLength; // Space allocated in SDR
-    int ctrlZco = 0;
 
     uint8_t *data = NULL;
     uint32_t len;
@@ -409,7 +408,7 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     }
         
     /* Step 3 - Great ZCO in an SDR transaction.*/
-    Object content = ionCreateZco(ZcoSdrSource, extent, 0, len, &ctrlZco);
+    Object content = ionCreateZco(ZcoSdrSource, extent, 0, len, 0, 0, 0, NULL);
 
     //Object content = zco_create(sdr, ZcoSdrSource, sdrObj, 0, len);
     if(!content)

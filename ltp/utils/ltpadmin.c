@@ -84,6 +84,7 @@ See man(5) for ltprc.");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
 	PUTS("\t   m screening { y | n }");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
+	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s '<LSI command>'");
 	PUTS("\tx\tStop");
@@ -530,6 +531,36 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxBER(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	ltpdbObj = getLtpDbObject();
+	LtpDB	ltpdb;
+	double	newMaxBER;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newMaxBER = atof(tokens[2]);
+	if (newMaxBER < 0.0)
+	{
+		writeMemoNote("Max BER invalid", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.errorsPerByte = newMaxBER * 8;
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maximum bit error rate.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -553,6 +584,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "ownqtime") == 0)
 	{
 		manageOwnqtime(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxber") == 0)
+	{
+		manageMaxBER(tokenCount, tokens);
 		return;
 	}
 

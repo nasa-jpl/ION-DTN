@@ -64,6 +64,7 @@ typedef struct dtnperf_options
 	char*							ip_addr;							// daemon ip address [127.0.0.1]
 	short 							ip_port;							// daemon port [5010]
 	char 							eid_format_forced;					// is the format of the eid (U = URI, C = CBHE, N = None) [N]
+	int								ipn_local_num;						// local ipn eid number (Used only if dtnperf server or monitor must register with ipn scheme on DTN2) [0]
 	boolean_t 						daemon;								// run as daemon (server and monitor) [FALSE]
 	char*							server_output_file;					// stdout and stderr redirect here if daemon is TRUE [SERVER_OUTPUT_FILE]
 	char*							monitor_output_file;				// stdout and stderr redirect here if daemon is TRUE [MONITOR_OUTPUT_FILE]
@@ -88,14 +89,17 @@ typedef struct dtnperf_options
 	al_bp_bundle_payload_location_t payload_type;						// the type of data source for the bundle [DTN_PAYLOAD_FILE]
 	boolean_t 						create_log;							// create log file [FALSE]
 	char*						 	log_filename;						// log filename [LOG_FILENAME]
+	boolean_t						no_bundle_stop;						// do not send bundle stop and force stop to the monitor [FALSE]
 	//server options
 	char* 							dest_dir;							// destination dir of bundles [~/dtnperf/bundles]
-	char* 							file_dir;							// destination dir of transfered files [~/dtnperf/files]
+	char* 							file_dir;							// destination dir of transferred files [~/dtnperf/files]
 	boolean_t 						acks_to_mon;						// send ACKs to both source and monitor (if monitor is not the source) [FALSE]
 	boolean_t 						no_acks;							// do not send ACKs (for retro-compatibility purpose)
 	//monitor options
 	char* 							logs_dir;							// dir where are saved monitor logs [LOGS_DIR_DEFAULT]
-	int 							expiration_session; 				// expiration time of session log file [60]
+	int 							expiration_session; 				// expiration time of session log file [120]
+	boolean_t						oneCSVonly;							// monitor opens an unique session and an unique csv log file [FALSE]
+	char*							uniqueCSVfilename;					// filename of the unique csv log file [MONITOR_UNIQUE_CSV_FILENAME]
 	// block options
 	u16_t 							num_blocks;  	  				 	// number of extension and metadata blocks
 	u64_t 							metadata_type;   					// metadata type code

@@ -71,6 +71,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 	char* pl_filename = NULL;
 	size_t pl_filename_len = 0;
 	char* pl_buffer = NULL;
+	char temp[256];
 	size_t pl_buffer_size = 0;
 	boolean_t is_file_transfer_bundle;
 	int indicator; // for file transfer functions purposes
@@ -144,8 +145,8 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 	// command should be: mkdir -p "dest_dir"
 	if(debug && debug_level > 0)
 		printf("[debug] initializing shell command...");
-	command = malloc(sizeof(char) * (10 + strlen(perf_opt->dest_dir)));
-	sprintf(command, "mkdir -p %s", perf_opt->dest_dir);
+	command = malloc(sizeof(char) * (30 + strlen(perf_opt->dest_dir)));
+	sprintf(command, "mkdir -p %s && rm /tmp/ion_*", perf_opt->dest_dir);
 	if(debug && debug_level > 0)
 		printf("done. Shell command = %s\n", command);
 
@@ -175,7 +176,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 		printf("[debug] executing shell command...");
 	if (system(command) < 0)
 	{
-		perror("[DTNperf error] in opening transfered files destination dir");
+		perror("[DTNperf error] in opening transferred files destination dir");
 		exit(-1);
 	}
 	free(command);
@@ -203,32 +204,44 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 		printf("done\n");
 
 	//build a local eid
-	if( perf_opt->eid_format_forced == 'D' || perf_opt->eid_format_forced == 'I')
+	if(debug && debug_level > 0)
 	{
-		if(debug && debug_level > 0)
-		{
-			printf("[debug] building local eid in format ");
-			perf_opt->eid_format_forced == 'D' ? printf("DTN...") : printf("IPN...");
-		}
-		if(perf_opt->eid_format_forced == 'I')
-			al_bp_build_local_eid(handle, &local_eid, SERV_EP_NUM_SERVICE,"Server-CBHE",NULL);
+		printf("[debug] building a local eid in format ");
+		if (perf_opt->eid_format_forced == 'D')
+			printf("forced DTN...");
+		else if (perf_opt->eid_format_forced == 'I')
+			printf("forced IPN...");
 		else
-			al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING,"Server-DTN",NULL);
+			printf("standard...");
 	}
-	else
+
+	if(perf_opt->bp_implementation == BP_ION && perf_opt->eid_format_forced == 'N')
+		// Use ION implementation with standard eid scheme
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_NUM_SERVICE,CBHE_SCHEME);
+	else if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'N')
+		// Use DTN2 implementation with standard eid scheme
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING,DTN_SCHEME);
+	else if(perf_opt->bp_implementation == BP_ION && perf_opt->eid_format_forced == 'D')
+		// Use ION implementation with forced DTN scheme
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING,DTN_SCHEME);
+	else if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'I')
+		// Use DTN2 implementation with forced IPN scheme
 	{
-		if(debug && debug_level > 0)
-			printf("[debug] building a local eid...");
-		if(perf_opt->bp_implementation == BP_ION)
-			al_bp_build_local_eid(handle, &local_eid, SERV_EP_NUM_SERVICE,"Server-CBHE",NULL);
-		else if(perf_opt->bp_implementation == BP_DTN)
-			al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING,"Server-DTN",NULL);
+		//in this case the api al_bp_build_local_eid() wants ipn_local_number.service_number
+		sprintf(temp, "%d.%s", perf_opt->ipn_local_num, SERV_EP_NUM_SERVICE);
+		error = al_bp_build_local_eid(handle, &local_eid, temp, CBHE_SCHEME);
 	}
 
 	if(debug && debug_level > 0)
 		printf("done\n");
 	if (debug)
 		printf("local_eid = %s\n", local_eid.uri);
+	if (error != BP_SUCCESS)
+	{
+		fflush(stdout);
+		fprintf(stderr, "[DTNperf fatal error] in building local EID: '%s'\n", al_bp_strerror(error));
+		server_clean_exit(1);
+	}
 
 	// checking if there is already a registration
 	if(debug && debug_level > 0)
@@ -494,41 +507,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				printf("\n");
 			}
 
-			// process file transfer bundle
-			if(is_file_transfer_bundle)
-			{
-				if ((debug) && (debug_level > 0))
-					printf("[debug]\tprocessing file transfer bundle...");
-
-				pthread_mutex_lock(&mutexdata);
-				indicator = process_incoming_file_transfer_bundle(&file_transfer_info_list,
-						&bundle_object,perf_opt->file_dir, (bundle_ack_options.crc_enabled == TRUE ? &bundle_object.payload->buf.buf_crc : (uint32_t *) NULL));
-
-				pthread_mutex_unlock(&mutexdata);
-				sched_yield();
-
-				// WRONG CRC
-				if (indicator == -2)
-				{
-					if (debug)
-						printf("CRC differs from the received one.\n");
-					bundle_ack_options.crc_enabled=TRUE;
-				}
-				else
-					bundle_ack_options.crc_enabled=FALSE;
-
-				if (indicator < 0) // error in processing bundle
-				{
-					fprintf(stderr, "[DTNperf warning] in processing file transfer bundle: %s\n", strerror(errno));
-				}
-				if ((debug) && (debug_level > 0))
-				{
-					printf("done.\n");
-					if (indicator == 1)
-						printf("Transfer Completed\n");
-				}
-			}
-			
+			int crc_ok = 1;
 			if (bundle_ack_options.crc_enabled==TRUE)
 			{
 
@@ -539,6 +518,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				uint32_t local_crc;
 
 				local_crc = 0;
+				crc_ok = 0;
 
 				// get info about bundle size
 				al_bp_bundle_get_payload_size(bundle_object, &pl_size);
@@ -586,10 +566,51 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				else
 					bundle_ack_options.crc_enabled=FALSE;
 
+				if (bundle_ack_options.crc_enabled==FALSE)
+				{
+					crc_ok = 1;
+				}
+
 				free(transfer);
 				close_payload_stream_read(pl_stream);
 
 			}
+
+			// process file transfer bundle
+			if(is_file_transfer_bundle && crc_ok == 1)
+			{
+				if ((debug) && (debug_level > 0))
+					printf("[debug]\tprocessing file transfer bundle...");
+
+				pthread_mutex_lock(&mutexdata);
+				indicator = process_incoming_file_transfer_bundle(&file_transfer_info_list,
+						&bundle_object,perf_opt->file_dir, (bundle_ack_options.crc_enabled == TRUE ? &bundle_object.payload->buf.buf_crc : (uint32_t *) NULL));
+
+				pthread_mutex_unlock(&mutexdata);
+				sched_yield();
+
+				// WRONG CRC
+				//if (indicator == -2)
+				//{
+				//	if (debug)
+				//		printf("CRC differs from the received one.\n");
+				//	bundle_ack_options.crc_enabled=TRUE;
+				//}
+				//else
+				//	bundle_ack_options.crc_enabled=FALSE;
+
+				if (indicator < 0) // error in processing bundle
+				{
+					fprintf(stderr, "[DTNperf warning] in processing file transfer bundle: %s\n", strerror(errno));
+				}
+				if ((debug) && (debug_level > 0))
+				{
+					printf("done.\n");
+					if (indicator == 1)
+						printf("Transfer Completed\n");
+				}
+			}
+			
 
 			// get bundle expiration time
 			if (bundle_ack_options.set_ack_expiration)
@@ -673,45 +694,36 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				else if(perf_opt->bp_implementation == BP_ION)
 				{
 					char filename_ack[256];
-					int fd_ack;
-					char * tmp,* tmp_eid;
+					FILE * fd_ack;
 					u32_t filename_ack_len;
-					tmp_eid = (char *) malloc(sizeof(char) * strlen(bundle_source_addr.uri)+1);
-					strcpy(tmp_eid,bundle_source_addr.uri);
-
-					if( strncmp(bundle_source_addr.uri,"ipn",3) == 0)
-					{
-						strtok(tmp_eid,":");
-						tmp = strtok(NULL,":");
-					}
-					else
-					{
-						strtok(tmp_eid, "/");
-						tmp = strtok(NULL, "/");
-					}
-
-					sprintf(filename_ack,"%s_%s_%d",SOURCE_FILE_ACK,tmp,num_ack);
+					sprintf(filename_ack,"%s_%d",SOURCE_FILE_ACK,num_ack);
 					filename_ack_len = strlen(filename_ack)+1;
-					fd_ack = open(filename_ack,O_WRONLY|O_CREAT,0777);
-					if(fd_ack < 0)
+					fd_ack = fopen(filename_ack,"w");
+					if(fd_ack == NULL)
 					{
 						fflush(stdout);
-						fprintf(stderr, "[DTNperf fatal error] in creating the payload of the bundle ack: %s\n", al_bp_strerror(error));
+						fprintf(stderr, "[DTNperf fatal error] in creating the payload of the bundle ack: %s\n", strerror(errno));
 						server_clean_exit(1);
 					}
-					if(write(fd_ack, pl_buffer, pl_buffer_size)<0){
+					if(fwrite(pl_buffer, pl_buffer_size, 1, fd_ack)<0){
 						fflush(stdout);
-						fprintf(stderr, "[DTNperf fatal error] in writing the payload of the bundle ack: %s\n", al_bp_strerror(error));
+						fprintf(stderr, "[DTNperf fatal error] in writing the payload of the bundle ack: %s\n", strerror(errno));
+						//server_clean_exit(1);
+					}
+					if (fclose(fd_ack) != 0){
+						fflush(stdout);
+						fprintf(stderr, "[DTNperf fatal error] in closing the payload file of the bundle ack: %s\n", strerror(errno));
 						server_clean_exit(1);
 					}
-					close(fd_ack);
+
 					if (debug && debug_level > 0)
 					{
 						printf("\n[debug] bundle payload ack saved in: %s ... ", filename_ack);
 					}
 					num_ack++;
+					if (num_ack == 10000) //reset ack counter when it arrives at 10000
+						num_ack = 0;
 					error = al_bp_bundle_set_payload_file(&bundle_ack_object,filename_ack,filename_ack_len);
-					free(tmp_eid);
 				}
 				if (error != BP_SUCCESS)
 				{
@@ -849,14 +861,11 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 					if ((debug) && (debug_level > 0))
 						printf(" bundle ack sent to monitor\n");
 				}
-
 				//free memory for bundle ack
 				al_bp_bundle_free(&bundle_ack_object);
 				free(pl_buffer);
 				pl_buffer_size = 0;
 			}
-
-
 			// free memory for bundle
 			al_bp_bundle_free(&bundle_object);
 
@@ -903,6 +912,7 @@ void * file_expiration_timer(void * opt)
 		}
 		pthread_mutex_unlock(&mutexdata);
 		sched_yield();
+		sleep(1);
 	}
 	pthread_exit(NULL);
 }
@@ -919,7 +929,8 @@ void print_server_usage(char * progname)
 			" -s, --stop                   Stop the server daemon.\n"
 			"     --ip-addr <addr>         IP address of the BP daemon api. Default: 127.0.0.1\n"
 			"     --ip-port <port>         IP port of the BP daemon api. Default: 5010\n"
-			"     --force-eid <[DTN|IPN]>  Force scheme of registration EID (ION only).\n"
+			"     --force-eid <[DTN|IPN]>  Force scheme of registration EID.\n"
+			"     --ipn-local <num>        Set ipn local number (Use only with --force-eid IPN on DTN2\n"
 			"     --fdir <dir>             Destination directory of files transferred. Default is %s .\n"
 			"     --debug[=level]          Debug messages [1-2], if level is not indicated level = 2.\n"
 			" -M, --memory         	       Save received bundles into memory.\n"
@@ -959,6 +970,7 @@ void parse_server_options(int argc, char ** argv, dtnperf_global_options_t * per
 				{"ip-addr", required_argument, 0, 37},
 				{"ip-port", required_argument, 0, 38},
 				{"force-eid", required_argument, 0, 50},
+				{"ipn-local", required_argument, 0, 51},
 				{"daemon", no_argument, 0, 'a'},
 				{"output", required_argument, 0, 'o'},
 				{"stop", no_argument, 0, 's'},
@@ -1058,12 +1070,6 @@ void parse_server_options(int argc, char ** argv, dtnperf_global_options_t * per
 			break;
 
 		case 50:
-			if(perf_opt->bp_implementation != BP_ION)
-			{
-				fprintf(stderr, "[DTNperf error] --force-eid supported only in ION\n");
-				exit(1);
-				return;
-			}
 			switch( find_forced_eid(strdup(optarg)) )
 			{
 				case 'D':
@@ -1075,6 +1081,15 @@ void parse_server_options(int argc, char ** argv, dtnperf_global_options_t * per
 				case '?':
 					fprintf(stderr, "[DTNperf syntax error] wrong --force-eid argument\n");
 					exit(1);
+			}
+			break;
+
+		case 51:
+			perf_opt->ipn_local_num = atoi(optarg);
+			if (perf_opt->ipn_local_num <= 0)
+			{
+				fprintf(stderr, "[DTNperf syntax error] wrong --ipn_local argument\n");
+				exit(1);
 			}
 			break;
 
@@ -1120,8 +1135,15 @@ void parse_server_options(int argc, char ** argv, dtnperf_global_options_t * per
 	}
 	if (output_set && !perf_opt->daemon)
 	{
-		fprintf(stderr, "\n[DTNperf syntax error] -o option can be used only with -a option\n");   \
-		print_server_usage(argv[0]);                                               \
+		fprintf(stderr, "\n[DTNperf syntax error] -o option can be used only with -a option\n");
+		print_server_usage(argv[0]);
+		exit(1);
+	}
+	if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'I' &&
+			perf_opt->ipn_local_num == 0)
+	{
+		fprintf(stderr, "\n[DTNperf syntax error] must indicate ipn local number (--ipn-local option)\n");
+		print_server_usage(argv[0]);
 		exit(1);
 	}
 }

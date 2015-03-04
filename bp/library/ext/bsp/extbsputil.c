@@ -73,6 +73,57 @@
  */
 char	gMsg[GMSG_BUFLEN];
 
+int	bspTypeToString(int bspType, char *s, int buflen)
+{
+	CHKERR(s);
+	switch (bspType)
+	{
+	case BSP_BAB_TYPE:
+		istrcat(s, "BAB", buflen);
+		break;
+
+	case BSP_PIB_TYPE:
+		istrcat(s, "PIB", buflen);
+		break;
+
+	case BSP_PCB_TYPE:
+		istrcat(s, "PCB", buflen);
+		break;
+
+	case BSP_ESB_TYPE:
+		istrcat(s, "ESB", buflen);
+		break;
+
+	default:
+		istrcat(s, " ", buflen);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bspTypeToInt(char *bspType)
+{
+	CHKERR(bspType);
+	if (strncmp(bspType, "BAB", 3) == 0)
+		return BSP_BAB_TYPE;
+	else if (strncmp(bspType, "bab", 3) == 0)
+		return BSP_BAB_TYPE;
+	else if (strncmp(bspType, "PIB", 3) == 0)
+		return BSP_PIB_TYPE;
+	else if (strncmp(bspType, "pib", 3) == 0)
+		return BSP_PIB_TYPE;
+	else if (strncmp(bspType, "PCB", 3) == 0)
+		return BSP_PCB_TYPE;
+	else if (strncmp(bspType, "pcb", 3) == 0)
+		return BSP_PCB_TYPE;
+	else if (strncmp(bspType, "ESB", 3) == 0)
+		return BSP_ESB_TYPE;
+	else if (strncmp(bspType, "esb", 3) == 0)
+		return BSP_ESB_TYPE;
+	return -1;
+}
+
 int	extensionBlockTypeToInt(char *blockType)
 {
 	ExtensionDef	*extensions;
@@ -82,7 +133,7 @@ int	extensionBlockTypeToInt(char *blockType)
 
 	CHKERR(blockType);
 	if (strcmp("payload", blockType) == 0)
-		return PAYLOAD_BLOCK_TYPE;
+		return BLOCK_TYPE_PAYLOAD;
 	getExtensionDefs(&extensions, &extensionsCt);
 	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
 	{
@@ -105,7 +156,7 @@ int	extensionBlockTypeToString(unsigned char blockType, char *s,
 
 	if (blockType == 0) return -1;
 	CHKERR(s);
-	if (blockType == PAYLOAD_BLOCK_TYPE)
+	if (blockType == BLOCK_TYPE_PAYLOAD)
 	{
 		istrcat(s, "payload", buflen);
 		return 0;
@@ -728,11 +779,10 @@ void bsp_getSecurityInfo(Bundle *bundle,
 		if(bspType == BSP_BAB_TYPE)
 		{
 			OBJ_POINTER(BspBabRule, babRule);
-			int result;
 
-			result = sec_get_bspBabRule(eidSourceString, eidDestString, &ruleAddr, &eltp);
+			sec_get_bspBabRule(eidSourceString, eidDestString, &ruleAddr, &eltp);
 
-			if((result == -1) || (eltp == 0))
+			if (eltp == 0)
 			{
 				BSP_DEBUG_INFO("i bsp_getSecurityInfo: No TX/RX entry for EID %s.", eidSourceString);
 			}
@@ -1163,7 +1213,7 @@ int     transferToZcoFileSource(Sdr sdr, Object *resultZco, Object *acqFileRef, 
         CHKERR(sdr_begin_xn(sdr));
         if (*resultZco == 0)     /*      First extent of acquisition.    */
         {
-                *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0);
+                *resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
                 if (*resultZco == (Object) ERROR)
                 {
                         putErrmsg("extbsputil: Can't start file source ZCO.",
@@ -1199,7 +1249,8 @@ name.", NULL);
                 }
 
                 fileLength = 0;
-                *acqFileRef = zco_create_file_ref(sdr, fileName, "");
+                *acqFileRef = zco_create_file_ref(sdr, fileName, "",
+				ZcoInbound);
         }
 	else				/*	Writing more to file.	*/
 	{

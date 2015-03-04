@@ -74,8 +74,18 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 cd 1.ipn.bp.udp
 ./ionstart > node.stdout
+
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
 cd ../
-sleep 10
 
 
 #Test 1---default TTL (300sec)

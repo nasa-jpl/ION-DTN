@@ -13,11 +13,13 @@ TCP = ../tcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
+DCCP = ../dccp
+BIBE = ../bibe
 
 OPT = -g -Wall -Dmingw -DENABLE_IMC
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/bae -I$(API)/ext/meb -I$(API)/ext/bsp -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(TCP) -I$(IPN) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -36,19 +38,21 @@ BPINCLS = \
 	$(UDP)/udpcla.h \
 	$(TCP)/tcpcla.h \
 	$(LTP)/ltpcla.h
+#	$(DCCP)/dccpcla.h
 #	$(API)/acs/acs.h
 
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o phn.o ecos.o bae.o meb.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o libimcfw.o
-# snid.o
+BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
+# snid.o extbsputil.o extbsbpab.o extbsppcb.o extbsppib.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
-LBP = -lbp
+LBP = -lbp -limcfw -lipnfw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw bsspcli bsspclo bpnmtest
-# acsadmin acslist 
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
+# dccpcli dccpclo
+# acsadmin acslist
 # bping bpstats2 bpchat
 
 ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libtcpcla.dll libudpcla.dll $(RUNTIMES)
@@ -77,6 +81,10 @@ install:
 bpclock:	bpclock.o $(BPLIBS)
 		$(CC) -o bpclock bpclock.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp bpclock ./bin
+
+bptransit:	bptransit.o $(BPLIBS)
+		$(CC) -o bptransit bptransit.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp bptransit ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
@@ -220,6 +228,16 @@ bsspclo:	bsspclo.o $(BPLIBS)
 		$(CC) -o bsspclo bsspclo.o -L./lib -L$(ROOT)/lib $(LBP) -lbssp -lici -lpthread
 		cp bsspclo ./bin
 
+#	-	-	DCCP executables	-	-	-	-
+
+dccpcli:	dccpcli.o $(BPLIBS)
+		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp dccpcli ./bin
+
+dccpclo:	dccpclo.o $(BPLIBS)
+		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp dccpclo ./bin
+
 #	-	-	DGR executable	-	-	-	-	-
 
 dgrcla:		dgrcla.o $(BPLIBS)
@@ -235,6 +253,12 @@ brsscla:	brsscla.o $(BPLIBS) libtcpcla.dll
 brsccla:	brsccla.o $(BPLIBS) libtcpcla.dll
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
 		cp brsccla ./bin
+
+#	-	-	BIBE executable	-	-	-	-	-
+
+bibeclo:	bibeclo.o $(BPLIBS)
+		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
+		cp bibeclo ./bin
 
 #	-	-	Test executables	-	-	-	-
 
@@ -272,20 +296,20 @@ bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o
-		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
+libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o
+		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbp.dll ./lib
 
 libcgr.dll:	libcgr.o
-		$(LD) -o libcgr.dll libcgr.o -Wl,--output-def,libcgr.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libcgr.dll libcgr.o -Wl,--output-def,libcgr.def -L./lib -L$(ROOT)/lib -lbp -lici -lpthread
 		cp libcgr.dll ./lib
 
 libipnfw.dll:	libipnfw.o
-		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib -lici -lpthread
 		cp libipnfw.dll ./lib
 
 libimcfw.dll:	libimcfw.o
-		$(LD) -o libimcfw.dll libimcfw.o -Wl,--output-def,libimcfw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libimcfw.dll libimcfw.o -Wl,--output-def,libimcfw.def -L./lib -L$(ROOT)/lib -lbp -lici -lpthread
 		cp libimcfw.dll ./lib
 
 libdtn2fw.dll:	libdtn2fw.o
@@ -311,13 +335,16 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/ext/ecos/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/bae/%.c
-		$(CC) -c $<
-
 %.o:		$(API)/ext/meb/%.c
 		$(CC) -c $<
 
+%.o:		$(API)/ext/bae/%.c
+		$(CC) -c $<
+
 %.o:		$(API)/ext/bsp/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/bsp/ciphersuites/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/phn/%.c
@@ -356,14 +383,20 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(UDP)/%.c
 		$(CC) -c $<
 
+#%.o:		$(DCCP)/%.c
+#		$(CC) -c $<
+
 %.o:		$(BRS)/%.c
 		$(CC) -c $<
 
 %.o:		$(DGR)/%.c
 		$(CC) -c $<
 
+%.o:		$(BIBE)/%.c
+		$(CC) -c $<
+
 #%.o:		$(API)/acs/%.c
 #		$(CC) -c $<
 
-%.o:		$(API)/ext/cteb/%.c
-		$(CC) -c $<
+#%.o:		$(API)/ext/cteb/%.c
+#		$(CC) -c $<

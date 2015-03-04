@@ -151,8 +151,9 @@ int	main(int argc, char **argv)
 		return -1;
 	}
 
-	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize, NULL);
-	if (bundleZco == 0)
+	bundleZco = ionCreateZco(ZcoSdrSource, adu, 0, fileSize,
+			BP_EXPEDITED_PRIORITY, 0, ZcoOutbound, NULL);
+	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("lgsend: can't create application data unit.", NULL);
 	}

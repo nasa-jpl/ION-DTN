@@ -4,10 +4,10 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
-CRYPTO = ../crypto
+CRYPTO = ../crypto/NULL_SUITES
 
 OPT = -g -Wall -Dmingw
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO)
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -179,7 +179,7 @@ libici.dll:	$(LIBICIOBJS) libicinm.o
 %.o:		$(SDR)/%.c
 		$(CC) -c $<
 
-%.o:		$(CRYPTO)/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

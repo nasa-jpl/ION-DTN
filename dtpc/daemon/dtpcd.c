@@ -224,7 +224,7 @@ int	main(int argc, char **argv)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
 			getOwnNodeNbr(), DTPC_SEND_SVC_NBR);
-	if (bp_open(ownEid, &txSap) < 0)
+	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("DTPC can't open own 'send' endpoint.", ownEid);
 		return 0;
@@ -246,7 +246,7 @@ int	main(int argc, char **argv)
 	parms.mainThread = pthread_self();
 	parms.running = 1;
 	parms.txSap = txSap;
-	if (pthread_create(&rxThread, NULL, getBundles, &parms))
+	if (pthread_begin(&rxThread, NULL, getBundles, &parms))
 	{
 		bp_close(txSap);
 		putSysErrmsg("dtpcd can't create receiver thread", NULL);
@@ -271,12 +271,8 @@ terminating.");
 		sm_TaskYield();
 	}
 	
-	if (rxThread)
-	{
-		bp_interrupt(parms.rxSap);
-		pthread_join(rxThread, NULL);
-	}
-
+	bp_interrupt(parms.rxSap);
+	pthread_join(rxThread, NULL);
 	bp_close(txSap);
 	writeErrmsgMemos();
 	writeMemo("[i] dtpcd has ended.");

@@ -74,7 +74,7 @@ extern PsmPartition	sptrace_join(int key, int size, char *region,
 
 extern void		sptrace_log_alloc(PsmPartition trace,
 					unsigned long addr, int size,
-					char *fileName, int lineNbr);
+					const char *fileName, int lineNbr);
 			/*	Causes sptrace to log a space allocation
 				event in the indicated sptrace episode.
 				addr and size are the address and size
@@ -84,7 +84,7 @@ extern void		sptrace_log_alloc(PsmPartition trace,
 				activity being logged was initiated.	*/
 
 extern void		sptrace_log_free(PsmPartition trace, unsigned long addr,
-					char *fileName, int lineNbr);
+					const char *fileName, int lineNbr);
 			/*	Causes sptrace to log a space release
 				event.  addr is the address of the newly
 				freed object.  fileName and lineNbr
@@ -93,7 +93,8 @@ extern void		sptrace_log_free(PsmPartition trace, unsigned long addr,
 				was initiated.				*/
 
 extern void		sptrace_log_memo(PsmPartition trace, unsigned long addr,
-					char *msg, char *fileName, int lineNbr);
+					char *msg, const char *fileName,
+					int lineNbr);
 			/*	Causes sptrace to log a heap management
 				memo.  addr is the address to which the
 				memo refers; msg is the memo text.

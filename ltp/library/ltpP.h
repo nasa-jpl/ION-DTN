@@ -41,6 +41,8 @@ extern "C" {
 
 #define LTP_MAX_NBR_OF_CLIENTS	8
 
+#define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
+
 #ifndef LTP_MEAN_SEARCH_LENGTH
 #define	LTP_MEAN_SEARCH_LENGTH	4
 #endif
@@ -49,12 +51,17 @@ extern "C" {
 #define	LTP_SERIAL_NBR_LIMIT	(16384)
 #endif
 
-#define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
-#define	MAX_RETRANSMISSIONS	9
-#define MAX_NBR_OF_CHECKPOINTS	(1 + MAX_RETRANSMISSIONS)
-#define MAX_NBR_OF_REPORTS	(MAX_NBR_OF_CHECKPOINTS)
+#ifndef DEFAULT_MAX_BER
+#define	DEFAULT_MAX_BER		(.000001)
+#endif
+
+#ifndef MAX_CLAIMS_PER_RS
 #define MAX_CLAIMS_PER_RS	20
-#define	MAX_TIMEOUTS		2
+#endif
+
+#ifndef MAX_TIMEOUTS
+#define	MAX_TIMEOUTS		3
+#endif
 
 /*	LTP segment structure definitions.				*/
 
@@ -216,6 +223,15 @@ typedef struct
 	Object		sessionListElt;
 } LtpSegmentRef;
 
+/*	While the LTP specification permits a single report to
+ *	comprise multiple report segments, it provides no mechanism
+ *	for matching a report acknowledgment to a particular report
+ *	segment (enabling that report segment's retransmission timer
+ *	to be disabled).  So instead we send (as necessary) multiple
+ *	reports in response to each checkpoint, each report comprising
+ *	only a single report segment.  The terms "report" and "report
+ *	segment" may therefore be used interchangeably.			*/
+
 typedef struct
 {
 	unsigned int	sessionNbr;	/*	Assigned by source.	*/
@@ -228,11 +244,12 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	unsigned int	nextRptSerialNbr;
 	unsigned int	lastRptSerialNbr;
+	int		maxReports;	/*	Limits # of reports.	*/
 	int		reportsCount;
 	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
 	Object		svcData;	/*	The acquisition ZCO.	*/
-	int		congestive;	/*	Boolean: no ZCO space.	*/
 
 	/*	Backward reference.					*/
 
@@ -284,6 +301,7 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObjects;	/*	SDR list of ZCOs	*/
 	Object		claims;		/*	reception claims list	*/
+	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	unsigned int	lastCkptSerialNbr;
 
@@ -518,6 +536,7 @@ typedef struct
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
+	float		errorsPerByte;	/*	Max. byte error rate.	*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;
 	Object		exportSessionsHash;
@@ -613,6 +632,9 @@ extern int		enqueueNotice(LtpVclient *client,
 				unsigned char reasonCode,
 				unsigned char endOfBlock,
 				Object data);
+
+extern int		getMaxReports(int redPartLength,
+				unsigned int maxSegmentSize);
 
 extern int		ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf);
 extern int		ltpHandleInboundSegment(char *buf, int length);

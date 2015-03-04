@@ -8,6 +8,7 @@ MANFILES = \
 	./man/man1/acslist.1 \
 	./man/man1/bpadmin.1 \
 	./man/man1/bpclock.1 \
+	./man/man1/bptransit.1 \
 	./man/man1/bpcounter.1 \
 	./man/man1/bpdriver.1 \
 	./man/man1/bpecho.1 \
@@ -16,6 +17,7 @@ MANFILES = \
 	./man/man1/bpsink.1 \
 	./man/man1/bpsource.1 \
 	./man/man1/bpstats.1 \
+	./man/man1/bpnmtest.1 \
 	./man/man1/bplist.1 \
 	./man/man1/bpcancel.1 \
 	./man/man1/bptrace.1 \
@@ -31,8 +33,6 @@ MANFILES = \
 	./man/man1/ipnfw.1 \
 	./man/man1/imcadmin.1 \
 	./man/man1/imcfw.1 \
-	./man/man1/bssadmin.1 \
-	./man/man1/bssfw.1 \
 	./man/man1/lgagent.1 \
 	./man/man1/lgsend.1 \
 	./man/man1/hmackeys.1 \
@@ -44,6 +44,7 @@ MANFILES = \
 	./man/man1/tcpclo.1 \
 	./man/man1/udpcli.1 \
 	./man/man1/udpclo.1 \
+	./man/man1/bibeclo.1 \
 	./man/man1/dccpcli.1 \
 	./man/man1/dccpclo.1 \
 	./man/man1/cgrfetch.1 \
@@ -62,6 +63,7 @@ HTMLFILES = \
 	./html/man1/acslist.html \
 	./html/man1/bpadmin.html \
 	./html/man1/bpclock.html \
+	./html/man1/bptransit.html \
 	./html/man1/bpcounter.html \
 	./html/man1/bpdriver.html \
 	./html/man1/bpecho.html \
@@ -70,6 +72,7 @@ HTMLFILES = \
 	./html/man1/bpsink.html \
 	./html/man1/bpsource.html \
 	./html/man1/bpstats.html \
+	./html/man1/bpnmtest.html \
 	./html/man1/bplist.html \
 	./html/man1/bpcancel.html \
 	./html/man1/bptrace.html \
@@ -85,8 +88,6 @@ HTMLFILES = \
 	./html/man1/ipnfw.html \
 	./html/man1/imcadmin.html \
 	./html/man1/imcfw.html \
-	./html/man1/bssadmin.html \
-	./html/man1/bssfw.html \
 	./html/man1/lgagent.html \
 	./html/man1/lgsend.html \
 	./html/man1/hmackeys.html \
@@ -98,6 +99,7 @@ HTMLFILES = \
 	./html/man1/tcpclo.html \
 	./html/man1/udpcli.html \
 	./html/man1/udpclo.html \
+	./html/man1/bibeclo.html \
 	./html/man1/dccpcli.html \
 	./html/man1/dccpclo.html \
 	./html/man1/cgrfetch.html \

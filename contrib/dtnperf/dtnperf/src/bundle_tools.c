@@ -460,6 +460,7 @@ int get_bundle_header_and_options(al_bp_bundle_object_t * bundle, HEADER_TYPE * 
 		// skip option
 		fseek(pl_stream, BUNDLE_OPT_SIZE, SEEK_SET);
 	}
+	close_payload_stream_read(pl_stream);
 
 	return 0;
 }
@@ -586,9 +587,14 @@ al_bp_error_t prepare_server_ack_payload(dtnperf_server_ack_payload_t ack, dtnpe
 	uint16_t eid_len;
 	uint32_t timestamp_secs;
 	uint32_t timestamp_seqno;
-	uint32_t extension_header;
 
+	// THESE ARE THE LAST 4 BYTES OF THE HEADER THAT CONTAINS ALL THE INFORMATION ABOUT EXTENSIONS
+	uint32_t extension_header;
 	extension_header = 0;
+
+	// THIS FLAG IS = 1 IF EXTENSION IS USED AND THEN IT HAS TO BE ATTACHED AT THE END 
+	// OF THE PAYLOAD
+	uint8_t  extension=0;
 
 	buf_stream = open_memstream(&buf, &buf_size);
 	fwrite(&header, 1, HEADER_SIZE, buf_stream);
@@ -599,9 +605,20 @@ al_bp_error_t prepare_server_ack_payload(dtnperf_server_ack_payload_t ack, dtnpe
 	timestamp_seqno = (uint32_t) ack.bundle_creation_ts.seqno;
 	fwrite(&timestamp_secs, 1, sizeof(uint32_t), buf_stream);
 	fwrite(&timestamp_seqno, 1, sizeof(uint32_t), buf_stream);
+	// CHECK IF THE CRC EXTENSION HAS TO BE ENABLED
 	if (bundle_ack_options->crc_enabled == TRUE)
 	{
 		extension_header |= BO_CRC_ENABLED;
+		extension=1;
+	}
+	// IF OTHER EXTENSIONS NEED TO BE USED, PUT THE 
+	// CODE TO ENABLE THEM HERE...
+	// [..]
+	
+	// CHECK IF ONE (OR MORE) EXTENSION HAS BEEN SET AND THEN WRITE IT
+	// AT THE END OF THE PAYLOAD
+	if (extension==1)
+	{
 		fwrite(&extension_header, sizeof(uint32_t), 1, buf_stream);
 	}
 	fclose(buf_stream);
@@ -644,7 +661,13 @@ al_bp_error_t get_info_from_ack(al_bp_bundle_object_t * ack, al_bp_endpoint_id_t
 
 		if (feof(pl_stream)==0)
 		{
-			if(fread(extension_ack, sizeof(uint32_t), 1, pl_stream) != 1){ return  BP_EINVAL;}
+			// READ THE LAST 4 BYTES OF THE HEADER THAT CONTAIN ALL THE INFORMATION
+			// ABOUT ETENSION
+			uint32_t extension_bytes = fread(extension_ack, sizeof(uint32_t), 1, pl_stream);
+			if(extension_bytes != 1)
+			{
+				*extension_ack = 0;
+			}
 		}
 		else
 			*extension_ack = 0;

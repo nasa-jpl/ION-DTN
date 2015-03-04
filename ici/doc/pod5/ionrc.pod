@@ -86,12 +86,17 @@ used for interpreting relative time values from now until the next revision
 of reference time.  Note that the new reference time can be a relative time,
 i.e., an offset beyond the current reference time.
 
-=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate>
+=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<probability>]
 
 The B<add contact> command.  This command schedules a period of data
 transmission from I<source_node> to I<dest_node>.  The period of
 transmission will begin at I<start_time> and end at I<stop_time>,
 and the rate of data transmission will be I<xmit_data_rate> bytes/second.
+The probability of the contact defaults to 1.0, indicating that the contact
+is scheduled - not that non-occurrence of the contact is impossible, just
+that occurrence of the contact is planned and scheduled rather than merely
+imputed from past node behavior.  In the latter case, I<probability>
+indicates our estimation of the likelihood of this potential contact.
 
 =item B<d contact> I<start_time> I<source_node> I<dest_node>
 
@@ -184,13 +189,21 @@ default, indicates that the rate of local data consumption is unknown; in
 that case local data consumption is not considered in the computation of
 congestion forecasts.
 
-=item B<m occupancy> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
+=item B<m inbound> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
 
 This management command sets the maximum number of megabytes of storage space
 in ION's SDR non-volatile heap, and/or in the local file system, that can be
-used for the storage of zero-copy objects.  A value of -1 for either limit
-signifies "leave unchanged".  The default heap limit is 60% of the SDR data
-space's total heap size.  The default file system limit is 1 Terabyte.
+used for the storage of inbound zero-copy objects.  A value of -1 for either
+limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
+data space's total heap size.  The default file system limit is 1 Terabyte.
+
+=item B<m outbound> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
+
+This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of outbound zero-copy objects.  A value of -1 for either
+limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
+data space's total heap size.  The default file system limit is 1 Terabyte.
 
 =item B<m horizon> { 0 | I<end_time_for_congestion_forecasts> }
 
@@ -211,7 +224,8 @@ at some future time.  By default, there is no alarm command.
 
 This management command simply prints ION's current data space occupancy
 (the number of megabytes of space in the SDR non-volatile heap and file system
-that are occupied by bundles), the limit on occupancy, and the maximum level
+that are occupied by inbound and outbound zero-copy objects), the total
+zero-copy-object space occupancy ceiling, and the maximum level
 of occupancy predicted by the most recent I<ionadmin> congestion forecast
 computation.
 

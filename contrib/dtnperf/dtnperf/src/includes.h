@@ -11,6 +11,8 @@
 #ifndef INCLUDES_H_
 #define INCLUDES_H_
 
+#define _GNU_SOURCE
+#include <features.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>

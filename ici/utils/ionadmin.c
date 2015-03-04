@@ -102,7 +102,7 @@ static void	printUsage()
 relative times (+ss) are computed.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
-<xmit rate in bytes per second>");
+<xmit rate in bytes per second> [probability of occurrence; default is 1.0]");
 	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
@@ -121,8 +121,10 @@ relative times (+ss) are computed.");
 	PUTS("\t   m clocksync [ { 0 | 1 } ]");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
 	PUTS("\t   m consumption <new planned consumption rate, in bytes/sec>");
-	PUTS("\t   m occupancy <new ZCO heap occupancy limit, in MB; -1 means \
-\"unchanged\"> [<new ZCO file occupancy limit, in MB>]");
+	PUTS("\t   m inbound <new inbound ZCO heap occupancy limit, in MB; \
+-1 means \"unchanged\"> [<new inbound ZCO file occupancy limit, in MB>]");
+	PUTS("\t   m outbound <new outbound ZCO heap occupancy limit, in MB; \
+-1 means \"unchanged\"> [<new outbound ZCO file occupancy limit, in MB>]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
@@ -170,6 +172,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	uvast		fromNodeNbr;
 	uvast		toNodeNbr;
 	unsigned int	xmitRate;
+	float		prob;
 	unsigned int	owlt;
 
 	if (tokenCount < 2)
@@ -178,8 +181,17 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount != 7)
+	switch (tokenCount)
 	{
+	case 8:
+		prob = atof(tokens[7]);
+		break;
+
+	case 7:
+		prob = 1.0;
+		break;
+
+	default:
 		SYNTAX_ERROR;
 		return;
 	}
@@ -199,7 +211,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	{
 		xmitRate = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, xmitRate));
+				toNodeNbr, xmitRate, prob));
 		oK(_forecastNeeded(1));
 		return;
 	}
@@ -538,7 +550,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	oK(_forecastNeeded(1));
 }
 
-static void	manageOccupancy(int tokenCount, char **tokens)
+static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 {
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
@@ -584,7 +596,7 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 
 		/*	Convert from MB to bytes.			*/
 
-		zco_set_max_file_occupancy(sdr, fileLimit);
+		zco_set_max_file_occupancy(sdr, fileLimit, acct);
 		writeMemo("[i] ZCO max file space changed.");
 	}
 
@@ -602,24 +614,38 @@ static void	manageOccupancy(int tokenCount, char **tokens)
 
 			/*	Convert from MB to bytes.		*/
 
-			zco_set_max_heap_occupancy(sdr, heapLimit);
+			zco_set_max_heap_occupancy(sdr, heapLimit, acct);
 			writeMemo("[i] ZCO max heap changed.");
 		}
 	}
 
 	/*	Revise occupancy ceiling and reserve as needed.		*/
 
-	fileLimit = zco_get_max_file_occupancy(sdr);
-	heapLimit = zco_get_max_heap_occupancy(sdr);
-	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	iondb.occupancyCeiling = fileLimit + heapLimit;
-	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (acct == ZcoOutbound)
+	{
+		fileLimit = zco_get_max_file_occupancy(sdr, ZcoOutbound);
+		heapLimit = zco_get_max_heap_occupancy(sdr, ZcoOutbound);
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.occupancyCeiling = fileLimit + heapLimit;
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	}
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change bundle storage occupancy limit.", NULL);
 	}
 
 	oK(_forecastNeeded(1));
+}
+
+static void	manageInbound(int tokenCount, char **tokens)
+{
+	manageOccupancy(tokenCount, tokens, ZcoInbound);
+}
+
+static void	manageOutbound(int tokenCount, char **tokens)
+{
+	manageOccupancy(tokenCount, tokens, ZcoOutbound);
 }
 
 static void	manageHorizon(int tokenCount, char **tokens)
@@ -700,11 +726,15 @@ static void	manageUsage(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
-	char	buffer[128];
-	vast	heapOccupancy;
-	double	heapSpaceMBInUse;
-	vast	fileOccupancy;
-	double	fileSpaceMBInUse;
+	char	buffer[256];
+	vast	heapOccupancyInbound;
+	double	heapSpaceMBInUseInbound;
+	vast	fileOccupancyInbound;
+	double	fileSpaceMBInUseInbound;
+	vast	heapOccupancyOutbound;
+	double	heapSpaceMBInUseOutbound;
+	vast	fileOccupancyOutbound;
+	double	fileSpaceMBInUseOutbound;
 	double	occupancyCeiling;	/*	In MBytes.		*/
 	double	maxForecastOccupancy;	/*	In MBytes.		*/
 
@@ -715,18 +745,24 @@ static void	manageUsage(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	heapOccupancy = zco_get_heap_occupancy(sdr);
-	fileOccupancy = zco_get_file_occupancy(sdr);
-	heapSpaceMBInUse = heapOccupancy / 1000000;
-	fileSpaceMBInUse = fileOccupancy / 1000000;
+	heapOccupancyInbound = zco_get_heap_occupancy(sdr, ZcoInbound);
+	fileOccupancyInbound = zco_get_file_occupancy(sdr, ZcoInbound);
+	heapSpaceMBInUseInbound = heapOccupancyInbound / 1000000;
+	fileSpaceMBInUseInbound = fileOccupancyInbound / 1000000;
+	heapOccupancyOutbound = zco_get_heap_occupancy(sdr, ZcoOutbound);
+	fileOccupancyOutbound = zco_get_file_occupancy(sdr, ZcoOutbound);
+	heapSpaceMBInUseOutbound = heapOccupancyOutbound / 1000000;
+	fileSpaceMBInUseOutbound = fileOccupancyOutbound / 1000000;
 	GET_OBJ_POINTER(sdr, IonDB, iondb, getIonDbObject());
 	occupancyCeiling = iondb->occupancyCeiling / 1000000;
 	maxForecastOccupancy = iondb->maxForecastOccupancy / 1000000;
 	sdr_exit_xn(sdr);
-	isprintf(buffer, sizeof buffer, "current heap %.2f MB, \
-current file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
-			heapSpaceMBInUse, fileSpaceMBInUse, occupancyCeiling,
-			maxForecastOccupancy);
+	isprintf(buffer, sizeof buffer, "current inbound heap %.2f MB, \
+current inbound file space %.2f MB, current outbound heap %.2f MB, \
+current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
+			heapSpaceMBInUseInbound, fileSpaceMBInUseInbound,
+			heapSpaceMBInUseOutbound, fileSpaceMBInUseOutbound,
+			occupancyCeiling, maxForecastOccupancy);
 	printText(buffer);
 }
 
@@ -770,10 +806,17 @@ static void	executeManage(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "occupancy") == 0
-	|| strcmp(tokens[1], "occ") == 0)
+	if (strcmp(tokens[1], "inbound") == 0
+	|| strcmp(tokens[1], "in") == 0)
 	{
-		manageOccupancy(tokenCount, tokens);
+		manageInbound(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outbound") == 0
+	|| strcmp(tokens[1], "out") == 0)
+	{
+		manageOutbound(tokenCount, tokens);
 		return;
 	}
 

@@ -262,6 +262,7 @@ void init_dtnperf_options(dtnperf_options_t *opt)
 	opt->ip_addr = "127.0.0.1";
 	opt->ip_port = 5010;
 	opt->eid_format_forced = 'N';
+	opt->ipn_local_num = 0;
 	opt->daemon = FALSE;
 	opt->server_output_file = SERVER_OUTPUT_FILE;
 	opt->monitor_output_file = MONITOR_OUTPUT_FILE;
@@ -287,6 +288,7 @@ void init_dtnperf_options(dtnperf_options_t *opt)
 	opt->file_dir = FILE_DIR_DEFAULT;
 	opt->create_log = FALSE;
 	opt->log_filename = LOG_FILENAME;
+	opt->no_bundle_stop = FALSE;
 	opt->acks_to_mon = FALSE;
 	opt->no_acks = FALSE;
 	opt->logs_dir = LOGS_DIR_DEFAULT;
@@ -295,6 +297,8 @@ void init_dtnperf_options(dtnperf_options_t *opt)
 	opt->bundle_ack_options.set_ack_expiration = FALSE;
 	opt->bundle_ack_options.set_ack_priority = FALSE;
 	opt->expiration_session = 120;
+	opt->oneCSVonly = FALSE;
+	opt->uniqueCSVfilename = MONITOR_UNIQUE_CSV_FILENAME;
 	opt->num_blocks = 0;
 	opt->crc = FALSE;
 }

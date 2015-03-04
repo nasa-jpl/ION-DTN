@@ -73,26 +73,14 @@ extern "C" {
 #define	MAX_SCHEME_NAME_LEN		(15)
 #define	MAX_NSS_LEN			(63)
 #define	MAX_EID_LEN			(MAX_SCHEME_NAME_LEN + MAX_NSS_LEN + 2)
-#define MAX_CBHE_NODE_NBR		(16777215)
-#define MAX_CBHE_SERVICE_NBR		(32767)
 
 #ifndef	BP_MAX_BLOCK_SIZE
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
-/*	We hitchhike on the ZCO heap space management system to 
- *	manage the space occupied by Bundle objects.  In effect,
- *	the Bundle overhead objects compete with ZCOs for available
- *	SDR heap space.  We don't want this practice to become
- *	widespread, which is why these functions are declared
- *	privately here rather than publicly in the zco.h header.	*/
-
-extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta);
-extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta);
-
-/*	A BP "node" is a set of cooperating state machines that
+/*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
- *	residing in a single SDR database, in a DTN-based network.
+ *	residing in a single SDR heap, in a DTN-based network.
  *
  *	A single node may be equipped to send and receive bundles
  *	to and from endpoints whose IDs are formed under one or
@@ -197,6 +185,7 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
+#define	BP_ENCAPSULATED_BUNDLE	(7)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -334,6 +323,7 @@ typedef struct
 
 	/*	Internal housekeeping stuff.				*/
 
+	char		detained;	/*	Boolean.		*/
 	char		custodyTaken;	/*	Boolean.		*/
 	char		delivered;	/*	Boolean.		*/
 	char		suspended;	/*	Boolean.		*/
@@ -343,6 +333,7 @@ typedef struct
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
+	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
@@ -355,6 +346,7 @@ typedef struct
 	Object		timelineElt;	/*	TTL expire list ref.	*/
 	Object		overdueElt;	/*	Xmit overdue ref.	*/
 	Object		ctDueElt;	/*	CT deadline ref.	*/
+	Object		transitElt;	/*	Transit queue ref.	*/
 	Object		fwdQueueElt;	/*	Scheme's queue ref.	*/
 	Object		fragmentElt;	/*	Incomplete's list ref.	*/
 	Object		dlvQueueElt;	/*	Endpoint's queue ref.	*/
@@ -611,8 +603,16 @@ typedef struct
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
+
+	/*	The Transit queues are lists of received in-transit
+	 *	Bundles that are awaiting presentation to forwarder
+	 *	daemons, so that they can be enqueued for transmission.	*/
+
+	Object		confirmedTransit;
+	Object		provisionalTransit;
 	Object		limboQueue;	/*	SDR list of Bundles	*/
-	Object		clockCmd; 	/*	For starting clock.	*/
+	Object		clockCmd; 	/*	For starting bpclock.	*/
+	Object		transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
@@ -719,7 +719,10 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	unsigned int	creationTimeSec;
 	int		bundleCounter;
-	int		clockPid;	/*	For stopping clock.	*/
+	int		clockPid;	/*	For stopping bpclock.	*/
+	int		transitPid;	/*	For stopping bptransit.	*/
+	sm_SemId	confirmedTransitSemaphore;
+	sm_SemId	provisionalTransitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
 
 	/*	For finding structures in database.			*/
@@ -744,6 +747,7 @@ typedef struct
 
 	/*	Per-bundle state variables.				*/
 
+	Object		rawBundle;
 	Bundle		bundle;
 	int		headerLength;
 	int		trailerLength;
@@ -852,13 +856,17 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 			 *	returns -1.				*/
 
 extern int		bpAbandon(	Object bundleObj,
-					Bundle *bundle);
+					Bundle *bundle,
+					int reason);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
 			 *	cannot accept for forwarding.  It 
 			 *	sends any applicable status reports
 			 *	and then deletes the bundle from
 			 *	local storage.
+			 *
+			 *	Reason code s/b BP_REASON_DEPLETION
+			 *	or BP_REASON_NO_ROUTE.
 			 *
 			 *	Call this function at most once per
 			 *	bundle.	 Returns 0 on success, -1 on
@@ -1165,7 +1173,8 @@ extern int		bpLoadAcq(	AcqWorkArea *workArea,
 
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
 					char *bytes,
-					int length);
+					int length,
+					ReqAttendant *attendant);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1185,9 +1194,31 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	does not already exist, and appends
 			 *	"bytes" to the source data of that
 			 *	ZCO.
+			 *
+			 * 	The behavior of bpContinueAcq when
+			 *	currently available space for zero-
+			 *	copy objects is insufficient to
+			 *	contain this increment of bundle
+			 *	source data depends on the value of
+			 *	"attendant".  If "attendant" is NULL,
+			 *	then bpContinueAcq will return 0 but
+			 *	will flag the acquisition work area
+			 *	for refusal of the bundle due to
+			 *	resource exhaustion (congestion).
+			 *	Otherwise, (i.e., "attendant" points
+			 *	to a ReqAttendant structure, which 
+			 *	MUST have already been initialized by
+			 *	ionStartAttendant()), bpContinueAcq
+			 *	will block until sufficient space
+			 *	is available or the attendant is
+			 *	paused or the function fails,
+			 *	whichever occurs first.
 			 *	
-			 *	Returns 0 on success, -1 on any
-			 *	failure.				*/
+			 *	Returns 0 on success (even if
+			 *	"attendant" was paused or the
+			 *	acquisition work area is flagged
+			 *	for refusal due to congestion), -1
+			 *	on any failure.				*/
 
 extern void		bpCancelAcq(	AcqWorkArea *workArea);
 			/*	Cancels acquisition of a new
@@ -1260,8 +1291,8 @@ extern void		getCurrentDtnTime(DtnTime *dt);
 
 extern int		guessBundleSize(Bundle *bundle);
 extern int		computeECCC(int bundleSize, ClProtocol *protocol);
-extern void		computePriorClaims(Outduct *, Bundle *, Scalar *,
-				Scalar *);
+extern void		computePriorClaims(ClProtocol *, Outduct *, Bundle *,
+				Scalar *, Scalar *);
 
 extern int		putBpString(BpString *bpString, char *string);
 extern char		*getBpString(BpString *bpString);
@@ -1298,6 +1329,11 @@ extern int		updateEndpoint(char *endpointName,
 				BpRecvRule recvAction, char *recvScript);
 /*	Removing an endpoint is also called "unregistering".		*/
 extern int		removeEndpoint(char *endpointName);
+
+extern void		lookUpEidScheme(EndpointId eid, char *dictionary,
+				VScheme **vscheme);
+extern void		lookUpEndpoint(EndpointId eid, char *dictionary,
+				VScheme *vscheme, VEndpoint **vpoint);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
@@ -1343,7 +1379,7 @@ extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,
 				Object *bundleAddr);
-extern int		retrieveInTransitBundle(Object bundleZco, Object *obj);
+extern int		retrieveSerializedBundle(Object bundleZco, Object *obj);
 
 extern int		deliverBundle(Object bundleObj, Bundle *bundle,
 				VEndpoint *vpoint);
@@ -1367,6 +1403,7 @@ typedef struct bpsap_st
 	VEndpoint	*vpoint;
 	MetaEid		endpointMetaEid;
 	sm_SemId	recvSemaphore;
+	int		detain;		/*	Boolean.		*/
 } Sap;
 
 extern int		_handleAdminBundles(char *adminEid,

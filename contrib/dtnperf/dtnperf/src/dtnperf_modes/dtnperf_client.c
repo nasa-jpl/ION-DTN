@@ -12,7 +12,6 @@
  * dtnperf_client.c
  */
 
-#define _GNU_SOURCE
 
 #include "dtnperf_client.h"
 #include "dtnperf_monitor.h"
@@ -73,11 +72,11 @@ boolean_t bp_handle_open;
 boolean_t log_open;
 boolean_t source_file_created;
 
-boolean_t dedicated_monitor; // if client must start a dedicated monitor
+boolean_t dedicated_monitor; 	// if client must start a dedicated monitor
 
 // buffer settings
 char* buffer = NULL;        	    // buffer containing data to be transmitted
-size_t bufferLen;                   // lenght of buffer
+size_t bufferLen;                   // length of buffer
 
 
 // BP variables
@@ -109,14 +108,16 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	/* ------------------------
 	 * variables
 	 * ------------------------ */
-	char * client_demux_string;
+	char * client_demux_string = "";
 	int pthread_status;
 
 	char temp1[256]; // buffer for various purpose
 	char temp2[256];
+	unsigned long int temp;
 //	FILE * stream; // stream for preparing payolad
 	al_bp_bundle_object_t bundle_stop;
 	monitor_parameters_t mon_params;
+	char eid_format; // N=default, D=DTN, I=IPN
 
 	void * ext_buf;
 	void * meta_buf;
@@ -137,6 +138,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	source_file_created = FALSE;
 	tot_bundles = 0;
 	process_interrupted = FALSE;
+	eid_format = 'N';
 
 	wrong_crc = 0;
 
@@ -184,10 +186,6 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	 *   initialize and parse bundle src/dest/replyto EIDs
 	 * ----------------------------------------------------- */
 
-	// append process id to the client demux string
-	client_demux_string = malloc (strlen(CLI_EP_STRING) + 10);
-	sprintf(client_demux_string, "%s_%d", CLI_EP_STRING, getpid());
-
 	// parse SERVER EID
 	//  if the scheme is not "ipn" append server demux string to destination eid
 	if(strncmp(perf_opt->dest_eid,"ipn",3) != 0)
@@ -213,21 +211,65 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		fprintf(log_file, "Destination: %s\n", dest_eid.uri);
 
 	//build a local EID
-			if(debug && debug_level > 0)
-				printf("[debug] building a local eid...");
-			al_bp_build_local_eid(handle, &local_eid,client_demux_string,"Client",dest_eid.uri);
-			if(debug && debug_level > 0)
-				printf("done\n");
-			if (debug)
-				printf("Source     : %s\n", local_eid.uri);
+	if(debug && debug_level > 0)
+		printf("[debug] building a local eid...");
+	//checking scheme to use
+	if (perf_opt->eid_format_forced != 'N')
+		eid_format = perf_opt->eid_format_forced;
+	else if (al_bp_get_implementation() == BP_ION)
+		eid_format = 'I';
+	else if (al_bp_get_implementation() == BP_DTN)
+		eid_format = 'D';
+	else {
+		fprintf(stderr, "[DTNperf fatal error] Don't know what eid scheme to use with this BP implementation");
+		if (create_log)
+			fprintf(log_file, "\n[DTNperf fatal error] Don't know what eid scheme to use with this BP implementation");
+		client_clean_exit(1);
+	}
+	//build a local EID
+	//client will register with IPN scheme
+	if(eid_format == 'I')
+	{
+		client_demux_string = malloc (5 + 1);
+		temp = getpid();
+		if (getpid()<10000)
+			temp = temp + 10000;
+		sprintf(client_demux_string,"%lu",temp);
+		//if using a DTN2 implementation, al_bp_build_local_eid() wants ipn_local_number.service_number
+		if (al_bp_get_implementation() == BP_DTN)
+			sprintf(temp1, "%d.%s", perf_opt->ipn_local_num, client_demux_string);
+		else
+			strcpy(temp1, client_demux_string);
+		error = al_bp_build_local_eid(handle, &local_eid, temp1, CBHE_SCHEME);
+	}
+	//client will register with DTN scheme
+	else if(eid_format == 'D')
+	{
+		// append process id to the client demux string
+		client_demux_string = malloc (strlen(CLI_EP_STRING) + 10);
+		sprintf(client_demux_string, "%s_%d", CLI_EP_STRING, getpid());
+		error = al_bp_build_local_eid(handle, &local_eid,client_demux_string,DTN_SCHEME);
+	}
+
+	if(debug && debug_level > 0)
+		printf("done\n");
+	if (debug)
+		printf("Source     : %s\n", local_eid.uri);
+	if (create_log)
+		fprintf(log_file, "\nSource     : %s\n", local_eid.uri);
+	if (error != BP_SUCCESS)
+		{
+			fprintf(stderr, "[DTNperf fatal error] in building local EID: '%s'\n", al_bp_strerror(error));
 			if (create_log)
-				fprintf(log_file, "\nSource     : %s\n", local_eid.uri);
+				fprintf(log_file, "\n[DTNperf fatal error] in building local EID: '%s'", al_bp_strerror(error));
+			client_clean_exit(1);
+		}
 
 	// parse REPLY-TO (if not specified, the same as the source)
 	if (strlen(perf_opt->mon_eid) == 0)
 	{
-		//if the scheme is not "ipn" copy from local EID only the URI (not the demux string)
-		if(strncmp(dest_eid.uri,"ipn",3) != 0 || perf_opt->bp_implementation == BP_DTN){
+		//if the scheme is "dtn" copy from local EID only the URI (not the demux string)
+		if(eid_format == 'D'){
 			perf_opt->eid_format_forced = 'D';
 			char * ptr;
 			ptr = strstr(local_eid.uri, CLI_EP_STRING);
@@ -235,6 +277,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			strncpy(perf_opt->mon_eid, local_eid.uri, ptr - local_eid.uri);
 		}
 		else
+		//if the scheme is "ipn"
 		{
 			perf_opt->eid_format_forced = 'I';
 			char * ptr, * temp;
@@ -390,10 +433,10 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			fprintf(log_file, "Working in Time_mode\n");
 
 		if (verbose)
-			printf("requested Tx lenght %d (s) \n", perf_opt->transmission_time);
+			printf("requested Tx length %d (s) \n", perf_opt->transmission_time);
 
 		if (create_log)
-			fprintf(log_file, "requested Tx lenght %d (s)\n", perf_opt->transmission_time);
+			fprintf(log_file, "requested Tx length %d (s)\n", perf_opt->transmission_time);
 	}
 	else if (perf_opt->op_mode == 'D') // Data mode
 	{
@@ -591,7 +634,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			printf(" done\n");
 	}
 
-	// Open File Transfered
+	// Open File Transferred
 	if(perf_opt->op_mode == 'F') // File mode
 	{
 		// open file to transfer in read mode
@@ -670,6 +713,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	if(perf_opt->create_log)
 		print_final_report(log_file);
 
+	if (!perf_opt->no_bundle_stop)
+	{
 		// fill the stop bundle
 		prepare_stop_bundle(&bundle_stop, mon_eid, conn_opt->expiration, conn_opt->priority, sent_bundles);
 		al_bp_bundle_set_source(&bundle_stop, local_eid);
@@ -686,6 +731,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		}
 		if (debug)
 			printf("done.\n");
+	}
 
 	// waiting monitor stops
 	if (dedicated_monitor)
@@ -1327,6 +1373,7 @@ void * congestion_window_expiration_timer(void * opt)
 			return NULL;
 		}
 		sched_yield();
+		sleep(1);
 	}
 
 	pthread_exit(NULL);
@@ -1374,8 +1421,8 @@ void * wait_for_sigint(void * arg)
 		// wait for monitor to terminate
 		wait(&monitor_status);
 	}
-	else
-	{
+	else if (!perf_opt->no_bundle_stop)
+	{ // prepare and send bundle force-stop to the monitor
 
 		al_bp_bundle_object_t bundle_force_stop;
 
@@ -1504,7 +1551,7 @@ void print_client_usage(char* progname)
 			" -T, --time <seconds>        Time-mode: seconds of transmission.\n"
 			" -D, --data <num[B|k|M]>     Data-mode: amount data to transmit; B = Byte, k = kByte, M = MByte. Default 'M' (MB). According to the SI and the IEEE standards 1 MB=10^6 bytes\n"
 			" -F, --file <filename>       File-mode: file to transfer\n"
-			" -W, --window <size>         Window-based congestion control: size of DTNperf transmission window, i.e. max number "
+			" -W, --window <size>         Window-based congestion control: size of DTNperf transmission window, i.e. max number\n"
 			"								of bundles \"in flight\" (not still confirmed by a server ACK). Default: 1.\n"
 			" -R, --rate <rate[k|M|b]>    Rate-based congestion control: Tx rate. k = kbit/s, M = Mbit/s, b = bundle/s. Default is kb/s\n"
 			" -m, --monitor <eid>         External monitor EID (without this option an internal dedicated monitor is started).\n"
@@ -1526,6 +1573,9 @@ void print_client_usage(char* progname)
 			"     --no-ack-to-mon         Force server not to send  ACKs in cc to the monitor (independently of server settings).\n"
 			"     --ack-lifetime <time>   ACK lifetime (value given to the server). Default is the same as bundle lifetime\n"
             "     --ack-priority <val>    ACK priority (value given to the server) [bulk|normal|expedited|reserved]. Default is the same as bundle priority\n"
+			"     --no-bundle-stop        Do not send bundles stop and force-stop to the monitor. Use it only if you know what you are doing\n"
+			"     --force-eid <[DTN|IPN]  Force scheme of registration EID.\n"
+			"     --ipn-local <num>       Set ipn local number (Use only on DTN2)\n"
 			"     --ordinal <num>         ECOS \"ordinal priority\" [0-254]. Default: 0 (ION Only).\n"
 			"     --unreliable            Set ECOS \"unreliable flag\" to True. Default: False (ION Only).\n"
 			"     --critical              Set ECOS \"critical flag\" to True. Default: False (ION Only).\n"
@@ -1533,7 +1583,7 @@ void print_client_usage(char* progname)
 //			" -n  --num-ext-blocks <val>  Number of extension/metadata blocks\n"
 			"     --mb-type <type>        Include metadata block and specify type (DTN2 Only).\n"
 			"     --mb-string <string>    Extension/metadata block content (DTN2 Only).\n"
-			"     --crc		      Calculate (and check on the Server) CRC of bundles.\n"
+			"     --crc                   Calculate (and check on the Server) CRC of bundles.\n"
 			" -v, --verbose               Print some information messages during execution.\n"
 			" -h, --help                  This help.\n",
 			LOG_FILENAME, LOGS_DIR_DEFAULT);
@@ -1575,7 +1625,6 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 				{"nofragment", no_argument, 0, 'N'},
 				{"received", no_argument, 0, 'r'},
 				{"forwarded", no_argument, 0, 'f'},
-				{"del", no_argument,0,48},					//request of bundle status deleted report
 				{"log", optional_argument, 0, 'L'},				// create log file
 				{"ldir", required_argument, 0, 40},
 				{"ip-addr", required_argument, 0, 37},
@@ -1584,6 +1633,10 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 				{"no-ack-to-mon", no_argument, 0, 45},		// force server to NOT send acks to monitor
 				{"ack-lifetime", required_argument, 0, 46}	,			// set server ack expiration equal to client bundles
 				{"ack-priority", required_argument, 0, 47},	// set server ack priority as indicated or equal to client bundles
+				{"del", no_argument,0,48},					//request of bundle status deleted report
+				{"no-bundle-stop", no_argument, 0, 49},		// do not send bundle stop and force stop to the monitor
+				{"force-eid", required_argument, 0, 50},   // force client to register with a different scheme
+				{"ipn-local", required_argument, 0, 51},   // ipn local number (DTN2 only)
 				{"ordinal", required_argument, 0, 52},
 				{"unreliable", no_argument, 0, 53},
 				{"critical", no_argument, 0, 54},
@@ -1836,6 +1889,34 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 			conn_opt->deleted_receipts = TRUE;
 			break;
 
+		case 49:
+			perf_opt->no_bundle_stop = TRUE;
+			break;
+
+		case 50:
+			switch( find_forced_eid(strdup(optarg)) )
+			{
+			case 'D':
+				perf_opt->eid_format_forced = 'D';
+				break;
+			case 'I':
+				perf_opt->eid_format_forced = 'I';
+				break;
+			case '?':
+				fprintf(stderr, "[DTNperf syntax error] wrong --force-eid argument\n");
+				exit(1);
+			}
+			break;
+
+		case 51:
+			perf_opt->ipn_local_num = atoi(optarg);
+			if (perf_opt->ipn_local_num <= 0)
+			{
+				fprintf(stderr, "[DTNperf syntax error] wrong --ipn_local argument\n");
+				exit(1);
+			}
+			break;
+
 		case 52:
 			if( perf_opt->bp_implementation != BP_ION){
 				fprintf(stderr, "[DTNperf error] --ordinal supported only in ION\n");
@@ -2075,6 +2156,15 @@ void check_options(dtnperf_global_options_t * global_options)
 	if (perf_opt->window <= 0)
 	{
 		fprintf(stderr, "\n[DTNperf syntax error] (-W option) the window must be set to a posotive integer value \n\n");
+		exit(2);
+	}
+
+	//if underlying implementation is DTN2 and forced scheme is "ipn", ipn-local must be set
+	if (al_bp_get_implementation() == BP_DTN && perf_opt->eid_format_forced == 'I'
+			&& perf_opt->ipn_local_num <= 0)
+	{
+		fprintf(stderr, "\n[DTNperf syntax error] (--force-eid option) To use ipn registration in DTN2 implementation,"
+				"you must set the local ipn number with the option --ipn-local\n\n");
 		exit(2);
 	}
 

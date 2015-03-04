@@ -12,6 +12,18 @@
 									*/
 #include "tcpcla.h"
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
@@ -87,7 +99,8 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer))
+		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer,
+					_attendant(NULL)))
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -284,7 +297,7 @@ int	main(int argc, char *argv[])
 	unsigned int		hostNbr;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
-	char			*tcpDelayString;
+	ReqAttendant		attendant;
 	pthread_t		accessThread;
 	int			fd;
 
@@ -369,21 +382,16 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	tcpDelayString = getenv("TCP_DELAY_NSEC_PER_BYTE");
-	if (tcpDelayString == NULL)
+	/*	Set up blocking acquisition of data via TCP.		*/
+
+	if (ionStartAttendant(&attendant) < 0)
 	{
-		tcpDelayEnabled = 0;
+		closesocket(atp.ductSocket);
+		putErrmsg("Can't initialize blocking TCP reception.", NULL);
+		return 1;
 	}
-	else	/*	Artificial TCP delay, for testing purposes.	*/
-	{
-		tcpDelayEnabled = 1;
-		tcpDelayNsecPerByte = strtol(tcpDelayString, NULL, 0);
-		if (tcpDelayNsecPerByte < 0
-		|| tcpDelayNsecPerByte > 16384)
-		{
-			tcpDelayNsecPerByte = 0;
-		}
-	}
+
+	oK(_attendant(&attendant));
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
@@ -417,6 +425,7 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	atp.running = 0;
+	ionPauseAttendant(&attendant);
 
 	/*	Wake up the access thread by connecting to it.		*/
 
@@ -431,6 +440,7 @@ int	main(int argc, char *argv[])
 	}
 
 	pthread_join(accessThread, NULL);
+	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] stcpcli duct has ended.");
 	ionDetach();

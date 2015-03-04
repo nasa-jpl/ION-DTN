@@ -37,25 +37,23 @@ static BpSAP	_bpsap(BpSAP *newSap)
 	return sap;
 }
 
-static void	_zcoControl(int *controlPtr)
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 {
-	static int	*ptr = NULL;
+	static ReqAttendant	*attendant = NULL;
 
-	if (controlPtr)	/*	Initializing ZCO request cancellation.	*/
+	if (newAttendant)
 	{
-		ptr = controlPtr;
+		attendant = newAttendant;
 	}
-	else		/*	Canceling ZCO request.			*/
-	{
-		ionCancelZcoSpaceRequest(ptr);
-	}
+
+	return attendant;
 }
 
 static void	handleQuit()
 {
 	isignal(SIGINT, handleQuit);
 	bp_interrupt(_bpsap(NULL));
-	_zcoControl(NULL);
+	ionPauseAttendant(_attendant(NULL));
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
@@ -73,8 +71,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	int		bytesToWrite;
 	Object		pilotAduString;
 	Object		fileRef;
+	ReqAttendant	attendant;
 	Object		bundleZco;
-	int		controlZco;
 	Object		newBundle;
 	double		bytesSent = 0.0;
 	struct timeval	startTime;
@@ -191,7 +189,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 	close(aduFile);
 	CHKZERO(sdr_begin_xn(sdr));
-	fileRef = zco_create_file_ref(sdr, "bpdriverAduFile", NULL);
+	fileRef = zco_create_file_ref(sdr, "bpdriverAduFile", NULL,
+			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || fileRef == 0)
 	{
 		putErrmsg("bpdriver can't create file ref.", NULL);
@@ -199,9 +198,17 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		return 0;
 	}
 
-	/*	Send pilot bundle to start bpcounter's timer.		*/
+	if (ionStartAttendant(&attendant))
+	{
+		putErrmsg("Can't initialize blocking transmission.", NULL);
+		bp_close(sap);
+		return 0;
+	}
 
-	_zcoControl(&controlZco);
+	_attendant(&attendant);
+
+	/*	Send pilot bundle to start bpcounter's timer.		*/
+		
 	CHKZERO(sdr_begin_xn(sdr));
 	pilotAduString = sdr_string_create(sdr, "Go.");
 	if (sdr_end_xn(sdr) < 0)
@@ -212,8 +219,9 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
-			sdr_string_length(sdr, pilotAduString), &controlZco);
-	if (bundleZco == 0)
+			sdr_string_length(sdr, pilotAduString),
+			BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
+	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("bpdriver can't create pilot ADU.", NULL);
 		bp_close(sap);
@@ -274,8 +282,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		}
 
 		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
-				&controlZco);
-		if (bundleZco == 0)
+				BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
+		if (bundleZco == 0 || bundleZco == (Object) ERROR)
 		{
 			putErrmsg("bpdriver can't create ZCO.", NULL);
 			running = 0;
@@ -373,6 +381,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		PUTS("Interval is too short to measure rate.");
 	}
 
+	ionStopAttendant(&attendant);
 	bp_detach();
 	return 0;
 }

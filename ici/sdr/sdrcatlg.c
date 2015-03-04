@@ -43,7 +43,7 @@ static int	compareCatalogueEntries(Sdr sdrv, Address entryAddr, void *arg)
 	return strcmp(oldEntry.name, newEntry->name);
 }
 
-void	Sdr_catlg(char *file, int line, Sdr sdrv, char *name, int type,
+void	Sdr_catlg(const char *file, int line, Sdr sdrv, char *name, int type,
 		Object object)
 {
 	SdrMap		*map = _mapImage(sdrv);
@@ -169,7 +169,7 @@ Object	sdr_find(Sdr sdrv, char *name, int *type)
 	return 0;
 }
 
-void	Sdr_uncatlg(char *file, int line, Sdr sdrv, char *name)
+void	Sdr_uncatlg(const char *file, int line, Sdr sdrv, char *name)
 {
 	Object	elt;
 

@@ -64,6 +64,13 @@ extern "C" {
 
 typedef enum
 {
+	ZcoInbound = 0,
+	ZcoOutbound = 1,
+	ZcoUnknown = 2
+} ZcoAcct;
+
+typedef enum
+{
 	ZcoFileSource = 1,
 	ZcoSdrSource = 2,
 	ZcoZcoSource = 3
@@ -82,7 +89,7 @@ typedef struct
 /*	Commonly used functions for building, accessing, managing,
  	and destroying a ZCO.						*/
 
-typedef void	(*ZcoCallback)();
+typedef void	(*ZcoCallback)(ZcoAcct);
 
 extern void	zco_register_callback(ZcoCallback notify);
 			/*	Provides the callback function that
@@ -96,7 +103,8 @@ extern void	zco_unregister_callback();
 
 extern Object	zco_create_file_ref(Sdr sdr,
 				char *pathName,
-				char *cleanupScript);
+				char *cleanupScript,
+				ZcoAcct acct);
 			/*	cleanupScript, if not NULL, is invoked
 			 *	at the time that the last ZCO that
 			 *	cites this file reference is destroyed
@@ -149,67 +157,123 @@ extern void	zco_destroy_file_ref(Sdr sdr,
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
 
-extern vast	zco_get_file_occupancy(Sdr sdr);
+extern void	zco_status(Sdr sdr);
+			/*	Writes a report of the current contents
+ 			 *	of the ZCO database to ion.log.		*/
+
+extern vast	zco_get_file_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the total number of file
 			 *	system space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_file_occupancy(Sdr sdr,
-				vast occupancy);
+				vast occupancy,
+				ZcoAcct acct);
 			/*	Sets the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_file_occupancy(Sdr sdr);
+extern vast	zco_get_max_file_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
 extern int	zco_enough_file_space(Sdr sdr,
-				vast length);
+				vast length,
+				ZcoAcct acct);
 			/*	Returns 1 if the total remaining file
 			 *	system space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
-extern vast	zco_get_heap_occupancy(Sdr sdr);
+extern vast	zco_get_heap_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the total number of SDR
 			 *	heap space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_heap_occupancy(Sdr sdr,
-				vast occupancy);
+				vast occupancy,
+				ZcoAcct acct);
 			/*	Sets the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_heap_occupancy(Sdr sdr);
+extern vast	zco_get_max_heap_occupancy(Sdr sdr,
+				ZcoAcct acct);
 			/*	Returns the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
 extern int	zco_enough_heap_space(Sdr sdr,
-				vast length);
+				vast length,
+				ZcoAcct acct);
 			/*	Returns 1 if the total remaining SDR
 			 *	heap space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
+
+extern int	zco_extent_too_large(Sdr sdr,
+				ZcoMedium sourceMedium,
+				vast length,
+				ZcoAcct acct);
+			/*	Returns 1 if the total remaining space
+			 *	(heap and file) available for ZCOs is
+			 *	NOT enough to contain a new extent of
+			 *	the indicated length in the indicated
+			 *	source medium.  Returns 0 otherwise.	*/
+
+extern void	zco_get_aggregate_length(Sdr sdr,
+				Object location,
+				vast offset,
+				vast length,
+				vast *fileSpaceOccupied,
+				vast *heapSpaceOccupied);
+			/*	Populates *fileSpaceOccupied and
+			 *	*heapSpaceOccupied with the total
+			 *	number of ZCO space bytes occupied by
+			 *	the extents of the zco at "location",
+			 *	from "offset" to offset + length.  If
+			 *	offset isn't the start of an extent
+			 *	or offset + length isn't the end of an
+			 *	extent, returns -1 in both "Occupied"
+			 *	fields.					*/
 
 extern Object	zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
 				Object firstExtentLocation,
 				vast firstExtentOffset,
-				vast firstExtentLength);
+				vast firstExtentLength,
+				ZcoAcct acct,
+				unsigned char provisional);
 			/*	The parameters "firstExtentLocation"
 			 *	and "firstExtentLength" must either
 			 *	both be zero (indicating that
 			 *	zco_append_extent will be used to
 			 *	insert the first source data extent
 			 *	later) or else both be non-zero.
+			 *	A negative value for firstExtentLength
+			 *	indicates that the extent is already
+			 *	known not to be too large for the
+			 *	available ZCO space, and the actual
+			 *	length of the extent is the additive
+			 *	inverse of this value.
+			 *
+			 *	A non-zero value of "provisional"
+			 *	indicates that this ZCO will occupy
+			 *	non-Restricted Inbound ZCO space.
+			 *	This space is a critical resource,
+			 *	so provisional ZCOs are subject
+			 *	to defensive destruction if they
+			 *	cannot immediately be migrated
+			 *	into the Outbound ZCO space pool.
+			 *
 			 *	Returns SDR location of a new ZCO
 			 *	object on success, 0 if there is
 			 *	currently too little available ZCO
-			 *	space to accommodate the proposed
-			 *	first extent, ((Object) -1) on any
-			 *	error.					*/
+			 *	space in the indicated account to
+			 *	accommodate the proposed first
+			 *	extent, ((Object) -1) on any error.	*/
 
 extern vast	zco_append_extent(Sdr sdr,
 				Object zco,
@@ -218,11 +282,17 @@ extern vast	zco_append_extent(Sdr sdr,
 				vast offset,
 				vast length);
 			/*	Both location and length must be non-
-			 *	zero.  Returns length on success, 0
-			 *	if there is currently too little
-			 *	available ZCO space to accommodate
-			 *	the proposed first extent, -1 on any
-			 *	error.					*/
+			 *	zero.  A negative value for length
+			 *	indicates that the extent is already
+			 *	known not to be too large for the
+			 *	available ZCO space, and the actual
+			 *	length of the extent is the additive
+			 *	inverse of this value.
+			 *
+			 *	Returns length on success, 0 if there
+			 *	is currently too little available ZCO
+			 *	space to accommodate the proposed
+			 *	extent, -1 on any error.		*/
 
 extern int	zco_prepend_header(Sdr sdr,
 				Object zco,
@@ -239,6 +309,26 @@ extern int	zco_append_trailer(Sdr sdr,
 
 extern void	zco_discard_last_trailer(Sdr sdr,
 				Object zco);
+
+extern Object	zco_header_text(Sdr sdr,
+				Object zco,
+				int skip,
+				vast *length);
+			/*	Skips over the first "skip" headers
+			 *	of the indicated ZCO and returns the
+			 *	address of the text of the next one,
+			 *	placing the length of that text in
+			 *	*length.  Returns 0 on any error.	*/
+
+extern Object	zco_trailer_text(Sdr sdr,
+				Object zco,
+				int skip,
+				vast *length);
+			/*	Skips over the first "skip" trailers
+			 *	of the indicated ZCO and returns the
+			 *	address of the text of the next one,
+			 *	placing the length of that text in
+			 *	*length.  Returns 0 on any error.	*/
 
 extern void	zco_destroy(	Sdr sdr,
 				Object zco);
@@ -286,7 +376,8 @@ extern vast	zco_clone_source_data(Sdr sdr,
 			 *	cloned source data extents are appended
 			 *	to an existing ZCO ("toZco") rather
 			 *	than to a newly created ZCO.  Returns
-			 *	length on success, -1 on any error.	*/
+			 *	total data length cloned, or -1 on
+			 *	any error.				*/
 
 extern vast	zco_length(	Sdr sdr,
 				Object zco);
@@ -297,7 +388,18 @@ extern vast	zco_length(	Sdr sdr,
 extern vast	zco_source_data_length(Sdr sdr,
 				Object zco);
 			/*	Returns current presumptive length of
-			 *	the ZCO's encapsulated source data.	*/
+			 *	this ZCO's encapsulated source data.	*/
+
+extern ZcoAcct	zco_acct(	Sdr sdr,
+				Object zco);
+			/*	Returns an indicator as to whether
+			 *	this ZCO is inbound or outbound.	*/
+
+extern int	zco_is_provisional(Sdr sdr,
+				Object zco);
+			/*	Returns 1 if this ZCO is "provisional"
+			 *	(occupies non-Restricted Inbound ZCO
+			 *	space), zero if it is not.		*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 

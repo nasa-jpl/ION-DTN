@@ -25,13 +25,13 @@ terminated by B<bsspadmin> in response to an 'x' (STOP) command.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<udpbsi> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bsspadmin> to restart B<udpbsi>.
 
-=item 1
+=item "1"
 
 B<udpbsi> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use

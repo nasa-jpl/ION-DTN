@@ -72,7 +72,7 @@ MY_DGRSOURCES :=     \
 
 #	NOTE: can't include BSSP in bionic build until duplication
 #	of function and variable names between bp/tcp/libtcpcla.c
-#	and bssp/tcp/libtcpbsa.c is resolve.  Best approach is to
+#	and bssp/tcp/libtcpbsa.c is resolved.  Best approach is to
 #	abstract this common TCP stuff out of BP and move it to ici.
 
 #	MY_BSSP		:= ../../../bssp
@@ -94,6 +94,7 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/library/libbp.c      \
 	$(MY_BP)/library/libbpP.c     \
 	$(MY_BP)/daemon/bpclock.c     \
+	$(MY_BP)/daemon/bptransit.c   \
 	$(MY_BP)/utils/bpadmin.c      \
 	$(MY_BP)/utils/bpstats.c      \
 	$(MY_BP)/utils/bptrace.c      \
@@ -109,6 +110,7 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/imc/libimcfw.c       \
 	$(MY_BP)/udp/udpcli.c         \
 	$(MY_BP)/udp/udpclo.c         \
+	$(MY_BP)/bibe/bibeclo.c       \
 	$(MY_BP)/udp/libudpcla.c      \
 	$(MY_BP)/tcp/tcpcli.c         \
 	$(MY_BP)/tcp/tcpclo.c         \
@@ -125,11 +127,15 @@ MY_BPSOURCES :=      \
 
 MY_BSP		:= $(MY_BP)/library/ext/bsp
 
-MY_BSPSOURCES :=                      \
-	$(MY_BSP)/extbsputil.c        \
-	$(MY_BSP)/extbspbab.c         \
-	$(MY_BSP)/extbsppib.c         \
-	$(MY_BSP)/extbsppcb.c
+MY_BSPSOURCES :=                     \
+	$(MY_BSP)/ciphersuites.c     \
+	$(MY_BSP)/ciphersuites/bab_hmac_sha1.c    \
+	$(MY_BSP)/ciphersuites/bib_hmac_sha256.c  \
+	$(MY_BSP)/ciphersuites/bcb_arc4.c         \
+	$(MY_BSP)/bsputil.c          \
+	$(MY_BSP)/bspbab.c           \
+	$(MY_BSP)/bspbib.c           \
+	$(MY_BSP)/bspbcb.c
 
 MY_DTN2		:= $(MY_BP)/dtn2
 
@@ -161,7 +167,7 @@ MY_BSSSOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BSS)/include $(MY_BSS)/library
+LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/bsp/ciphersuites $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BSS)/include $(MY_BSS)/library
 
 #	$(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 

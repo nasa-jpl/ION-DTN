@@ -84,10 +84,11 @@ static void	*sendItems(void *parm)
 		extent = sdr_insert(sdr, buffer, length);
 		if (extent)
 		{
-			item = zco_create(sdr, ZcoSdrSource, extent, 0, length);
+			item = ionCreateZco(ZcoSdrSource, extent, 0, length,
+					0, 0, ZcoOutbound, NULL);
 		}
 
-		if (sdr_end_xn(sdr) < 0 || item == 0)
+		if (sdr_end_xn(sdr) < 0 || item == 0 || item == (Object) ERROR)
 		{
 			putErrmsg("Service data item insertion failed.", NULL);
 			sda_interrupt();

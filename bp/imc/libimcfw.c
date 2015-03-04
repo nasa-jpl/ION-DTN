@@ -102,7 +102,6 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	Object		sourceData;
 	Object		payloadZco;
 	char		destEid[32];
-	Object		bundleObj;
 
 	isprintf(sourceEid, sizeof sourceEid, "ipn:%u.0", getOwnNodeNbr());
 	oK(parseEidString(sourceEid, &sourceMetaEid, &vscheme, &vschemeElt));
@@ -116,7 +115,14 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	}
 
 	sdr_write(sdr, sourceData, buffer, length);
-	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, length);
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for IMC petitions, allocation of ZCO
+	 *	space can never be denied or delayed.			*/
+
+	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - length,
+			ZcoOutbound, 0);
 	if (sdr_end_xn(sdr) < 0 || payloadZco == (Object) ERROR
 	|| payloadZco == 0)
 	{
@@ -127,7 +133,7 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
-			payloadZco, &bundleObj, BP_MULTICAST_PETITION))
+			payloadZco, NULL, BP_MULTICAST_PETITION))
 	{
 	case -1:
 		putErrmsg("Can't send IMC petition.", NULL);

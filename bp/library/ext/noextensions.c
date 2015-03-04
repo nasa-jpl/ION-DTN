@@ -23,9 +23,16 @@
  * 				extension(s).
  *
  * 			4.	Add one or more ExtensionDef structure
- * 				initialization lines to the extensions[]
- *				array, referencing those declared
- *				functions.
+ * 				initialization lines to the extensionDefs[]
+ * 				array, referencing the declared extension
+ * 				block callback functions, and add one or
+ * 				more ExtensionSpec structure initialization
+ * 				lines to the extensionSpecs[] array
+ * 				(referencing the new extension definition)
+ * 				indication the location within the bundle
+ * 				at which each instance of the newly
+ * 				defined extension block should be
+ * 				inserted.
  *
  * 			5.	Develop the implementations of those
  * 				functions in one or more new source
@@ -47,14 +54,19 @@
 
 /*	... and here.							*/
 
-static ExtensionDef	extensions[] =
+static ExtensionDef	extensionDefs[] =
 			{
-				{ "unknown",0,0,0,0,0,0,0,0,0,{0,0,0,0,0} }
+				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0 }
 			};
 
 /*	NOTE: the order of appearance of extension definitions in the
- *	extensions array determines the order in which pre-payload
+ *	extensionSpecs array determines the order in which pre-payload
  *	extension blocks will be inserted into locally sourced bundles
  *	prior to the payload block and the order in which post-payload
  *	extension blocks will be inserted into locally sourced bundles
  *	after the payload block.					*/
+
+static ExtensionSpec	extensionSpecs[] =
+			{
+				{ 0,0,0,0,0 }
+			};

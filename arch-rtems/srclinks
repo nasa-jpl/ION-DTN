@@ -46,15 +46,24 @@ ln -s ../bp/library/ext/bae/bae.c
 ln -s ../bp/library/ext/bae/bae.h
 ln -s ../bp/library/ext/phn/phn.c
 ln -s ../bp/library/ext/phn/phn.h
-ln -s ../bp/library/ext/bsp/extbspbab.c
-ln -s ../bp/library/ext/bsp/extbspbab.h
-ln -s ../bp/library/ext/bsp/extbsppib.c
-ln -s ../bp/library/ext/bsp/extbsppib.h
-ln -s ../bp/library/ext/bsp/extbsppcb.c
-ln -s ../bp/library/ext/bsp/extbsppcb.h
-ln -s ../bp/library/ext/bsp/extbsputil.c
-ln -s ../bp/library/ext/bsp/extbsputil.h
+ln -s ../bp/library/ext/bsp/bspbab.c
+ln -s ../bp/library/ext/bsp/bspbab.h
+ln -s ../bp/library/ext/bsp/bspbib.c
+ln -s ../bp/library/ext/bsp/bspbib.h
+ln -s ../bp/library/ext/bsp/bspbcb.c
+ln -s ../bp/library/ext/bsp/bspbcb.h
+ln -s ../bp/library/ext/bsp/bsputil.c
+ln -s ../bp/library/ext/bsp/bsputil.h
+ln -s ../bp/library/ext/bsp/ciphersuites.c
+ln -s ../bp/library/ext/bsp/ciphersuites.h
+ln -s ../bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c
+ln -s ../bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h
+ln -s ../bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c
+ln -s ../bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h
+ln -s ../bp/library/ext/bsp/ciphersuites/bcb_arc4.c
+ln -s ../bp/library/ext/bsp/ciphersuites/bcb_arc4.h
 ln -s ../bp/daemon/bpclock.c
+ln -s ../bp/daemon/bptransit.c
 ln -s ../bp/utils/bpadmin.c
 ln -s ../bp/utils/bpstats.c
 ln -s ../bp/utils/bptrace.c
@@ -73,6 +82,7 @@ ln -s ../bp/cgr/libcgr.c
 ln -s ../bp/ltp/ltpcli.c
 ln -s ../bp/ltp/ltpclo.c
 ln -s ../bp/ltp/ltpcla.h
+ln -s ../bp/bibe/bibeclo.c
 ln -s ../ltp/library/libltp.c
 ln -s ../ltp/library/libltpP.c
 ln -s ../ltp/library/libltpnm.c
@@ -103,7 +113,7 @@ ln -s ../cfdp/daemon/cfdpclock.c
 ln -s ../cfdp/utils/cfdpadmin.c
 fi
 
-# Optional features: multicast, aggregate custody signaling, previous-hop node
+# Optional features: multicast, aggregate custody signaling, sender node number
 #
 # ln -s ../bp/imc/imcadmin.c
 # ln -s ../bp/imc/libimcfw.c
@@ -137,5 +147,6 @@ fi
 # ln -s ../bp/test/bpcounter.c
 # ln -s ../bp/test/bpsource.c
 # ln -s ../bp/test/bpsink.c
+# ln -s ../bp/test/bpnmtest.c
 # ln -s ../bp/utils/bpsendfile.c
 # ln -s ../bp/utils/bprecvfile.c

@@ -38,14 +38,14 @@ extern "C" {
 
 #define sdr_catlg(sdr, name, type, object) \
 Sdr_catlg(__FILE__, __LINE__, sdr, name, type, object)
-extern void		Sdr_catlg(char *file, int line,
+extern void		Sdr_catlg(const char *file, int line,
 				Sdr sdr, char *name, int type, Object object);
 
 extern Object		sdr_find(Sdr sdr, char *name, int *type);
 
 #define sdr_uncatlg(sdr, name) \
 Sdr_uncatlg(__FILE__, __LINE__, sdr, name)
-extern void		Sdr_uncatlg(char *file, int line,
+extern void		Sdr_uncatlg(const char *file, int line,
 				Sdr sdr, char *name);
 
 extern Object		sdr_read_catlg(Sdr sdr, char *name, int *type,

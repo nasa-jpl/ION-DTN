@@ -60,7 +60,7 @@
  */
 
    #define PIB_DEBUG(level, format,...) if(level >= PIB_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); printf("%s\n", gMsg);}
 
    #define PIB_DEBUG_PROC(format,...) \
            PIB_DEBUG(PIB_DEBUG_LVL_PROC,format, __VA_ARGS__)

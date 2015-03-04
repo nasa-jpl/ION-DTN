@@ -2,8 +2,6 @@
 #!/bin/bash
 cfdpadmin	.
 sleep 1
-ipnadmin	.
-sleep 1
 bpadmin		.
 sleep 1
 ltpadmin	.

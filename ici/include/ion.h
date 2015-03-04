@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2014-10-11 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.2.2"
+/* As of 2015-02-20 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.3.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -85,6 +85,7 @@ typedef struct
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	float		prob;		/*	Contact probability.	*/
 } IonContact;
 
 typedef struct
@@ -120,7 +121,7 @@ typedef struct
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
  *	contains objects representing all nodes in the network other
- *	than the local node.  Each IonNode has a list of "snubs"
+ *	than the local node.  Each IonNode has a list of "embargoes"
  *	(described below), plus a "routing object" that points to
  *	data that has structure and function specific to the routing
  *	system established for the bundle protocol agent.
@@ -136,30 +137,32 @@ typedef struct
  *	node's neighbors, characterizing the current state of
  *	communications between the local node and each neighbor.
  *
- *	An IonSnub object identifies a neighboring node that has
- *	refused custody of bundles destined for the associated
- *	IonNode, possibly because it wasn't able to compute a route
- *	to that destination node.  The existence of the snub generally
- *	prevents consideration of this neighbor as proximate
- *	destination when routing to the affected destination node.
- *	However, once each RTLT (between the local node and the
- *	snubbing neighbor), one custodial bundle may be routed to
- *	the snubbing neighbor as a "probe", to determine whether or
- *	not the neighbor is still refusing bundles destined for the
- *	associated IonNode.  Probe activity is initiated by scheduling
- *	IonProbe event objects.  A list of all scheduled probes is
- *	included in the IonVdb.						*/
+ *	An Embargo object identifies a neighboring node to which we
+ *	no longer forward bundles destined for some destination node,
+ *	because that neighboring node has recently refused custody of
+ *	such bundles.  This refusal might have occurred because the
+ *	neighboring node was short of storage capacity or wasn't
+ *	able to compute a route to that destination node.  The
+ *	existence of the embargo generally prevents consideration
+ *	of this neighbor as proximate destination when routing to
+ *	the affected destination node.  However, once each RTLT
+ *	(between the local node and the embargoed neighbor), one
+ *	custodial bundle may be routed to the embargoed neighbor as
+ *	a "probe", to determine whether or not the neighbor is still
+ *	refusing bundles destined for the associated IonNode.  Probe
+ *	activity is initiated by scheduling IonProbe event objects.
+ *	A list of all scheduled probes is included in the IonVdb.	*/
 
 typedef struct
 {
-	uvast		nodeNbr;	/*	Of the snubbing node.	*/
+	uvast		nodeNbr;	/*	Of the embargoed node.	*/
 	int		probeIsDue;	/*	Boolean.		*/
-} IonSnub;		/*	An uncooperative neighboring node.	*/
+} Embargo;		/*	An uncooperative neighboring node.	*/
 
 typedef struct
 {
 	uvast		nodeNbr;	/*	As from IonContact.	*/
-	PsmAddress	snubs;		/*	SM list: IonSnub	*/
+	PsmAddress	embargoes;	/*	SM list: Embargo	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 } IonNode;		/*	A potential bundle destination node.	*/
 
@@ -206,6 +209,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	float		prob;		/*	Contact probability.	*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
 	time_t		startFire;	/*	Computed when inserted.	*/
@@ -239,6 +243,26 @@ typedef struct
 	PsmAddress	ref;		/*	A CXref or RXref addr.	*/
 } IonEvent;
 
+/*	These structures are used to implement flow-controlled ZCO
+ *	space management for ION.					*/
+
+typedef struct
+{
+	sm_SemId	semaphore;
+} ReqAttendant;
+
+typedef PsmAddress	ReqTicket;
+
+typedef struct
+{
+	vast		fileSpaceNeeded;
+	vast		heapSpaceNeeded;
+	sm_SemId	semaphore;
+	int		secondsUnclaimed;
+	unsigned char	coarsePriority;
+	unsigned char	finePriority;
+} Requisition;
+
 /*	The volatile database object encapsulates the current volatile
  *	state of the database.						*/
 
@@ -246,9 +270,6 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
-	sm_SemId	zcoSemaphore;	/*	Signals availability.	*/
-	int		zcoClaimants;	/*	# of waiting tasks.	*/
-	int		zcoClaims;	/*	# of demands on ZCO.	*/
 	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -256,6 +277,7 @@ typedef struct
 	PsmAddress	rangeIndex;	/*	SM RB tree: IonRXref	*/
 	PsmAddress	timeline;	/*	SM RB tree: IonEvent	*/
 	PsmAddress	probes;		/*	SM list: IonProbe	*/
+	PsmAddress	requisitions[2];/*	SM list: Requisition	*/
 } IonVdb;
 
 typedef struct
@@ -277,8 +299,8 @@ typedef struct
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
 #endif
 
-extern void		*allocFromIonMemory(char *, int, size_t);
-extern void		releaseToIonMemory(char *, int, void *);
+extern void		*allocFromIonMemory(const char *, int, size_t);
+extern void		releaseToIonMemory(const char *, int, void *);
 extern void		*ionMemAtoP(unsigned long);
 extern unsigned long	ionMemPtoA(void *);
 
@@ -292,18 +314,34 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
+extern int		ionStartAttendant(ReqAttendant *attendant);
+extern void		ionPauseAttendant(ReqAttendant *attendant);
+extern void		ionResumeAttendant(ReqAttendant *attendant);
+extern void		ionStopAttendant(ReqAttendant *attendant);
+extern int		ionRequestZcoSpace(ZcoAcct acct,
+					vast fileSpaceNeeded,
+					vast heapSpaceNeeded,
+					unsigned char coarsePriority,
+					unsigned char finePriority,
+					ReqAttendant *attendant,
+					ReqTicket *ticket);
+extern void		ionShred(	ReqTicket ticket);
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					int *control);
+					unsigned char coarsePriority,
+					unsigned char finePriority,
+					ZcoAcct acct,
+					ReqAttendant *attendant);
 extern vast		ionAppendZcoExtent(Object zco,
 					ZcoMedium source,
 					Object location,
 					vast offset,
 					vast length,
-					int *control);
-extern void		ionCancelZcoSpaceRequest(int *control);
+					unsigned char coarsePriority,
+					unsigned char finePriority,
+					ReqAttendant *attendant);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();

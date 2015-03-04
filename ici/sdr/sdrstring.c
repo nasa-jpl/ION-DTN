@@ -37,7 +37,7 @@ typedef unsigned char	SdrStringBuffer[SDRSTRING_BUFSZ];
 
 /*	*	*	String management functions	*	*	*/
 
-Object	Sdr_string_create(char *file, int line, Sdr sdrv, char *from)
+Object	Sdr_string_create(const char *file, int line, Sdr sdrv, char *from)
 {
 	long		length = 0;
 	Object		string;
@@ -70,7 +70,7 @@ Object	Sdr_string_create(char *file, int line, Sdr sdrv, char *from)
 	return string;
 }
 
-Object	Sdr_string_dup(char *file, int line, Sdr sdrv, Object from)
+Object	Sdr_string_dup(const char *file, int line, Sdr sdrv, Object from)
 {
 	Address		addr = (Address) from;
 	unsigned char	length;

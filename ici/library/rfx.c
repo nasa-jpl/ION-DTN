@@ -346,45 +346,45 @@ IonNode	*addNode(IonVdb *ionvdb, uvast nodeNbr)
 		return NULL;
 	}
 
-	node->snubs = sm_list_create(ionwm);
+	node->embargoes = sm_list_create(ionwm);
 	return node;
 }
 
-int	addSnub(IonNode *node, uvast neighborNodeNbr)
+int	addEmbargo(IonNode *node, uvast neighborNodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	nextElt;
 	PsmAddress	elt;
-	IonSnub		*snub;
+	Embargo		*embargo;
 	PsmAddress	addr;
 
-	/*	Find insertion point in snubs list.			*/
+	/*	Find insertion point in embargoes list.			*/
 
 	CHKERR(node);
 	nextElt = 0;
-	for (elt = sm_list_first(ionwm, node->snubs); elt;
+	for (elt = sm_list_first(ionwm, node->embargoes); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
-		snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm, elt));
-		CHKERR(snub);
-		if (snub->nodeNbr < neighborNodeNbr)
+		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, elt));
+		CHKERR(embargo);
+		if (embargo->nodeNbr < neighborNodeNbr)
 		{
 			continue;
 		}
 
-		if (snub->nodeNbr > neighborNodeNbr)
+		if (embargo->nodeNbr > neighborNodeNbr)
 		{
 			nextElt = elt;
 			break;	/*	Have found insertion point.	*/
 		}
 
-		return 0;	/*	Snub has already been added.	*/
+		return 0;	/*	Embargo has already been added.	*/
 	}
 
-	addr = psm_zalloc(ionwm, sizeof(IonSnub));
+	addr = psm_zalloc(ionwm, sizeof(Embargo));
 	if (addr == 0)
 	{
-		putErrmsg("Can't add snub.", NULL);
+		putErrmsg("Can't add embargo.", NULL);
 		return -1;
 	}
 
@@ -394,61 +394,61 @@ int	addSnub(IonNode *node, uvast neighborNodeNbr)
 	}
 	else
 	{
-		elt = sm_list_insert_last(ionwm, node->snubs, addr);
+		elt = sm_list_insert_last(ionwm, node->embargoes, addr);
 	}
 
 	if (elt == 0)
 	{
 		psm_free(ionwm, addr);
-		putErrmsg("Can't add snub.", NULL);
+		putErrmsg("Can't add embargo.", NULL);
 		return -1;
 	}
 
-	snub = (IonSnub *) psp(ionwm, addr);
-	CHKERR(snub);
-	snub->nodeNbr = neighborNodeNbr;
-	snub->probeIsDue = 0;
-	postProbeEvent(node, snub);	/*	Initial probe event.	*/
+	embargo = (Embargo *) psp(ionwm, addr);
+	CHKERR(embargo);
+	embargo->nodeNbr = neighborNodeNbr;
+	embargo->probeIsDue = 0;
+	postProbeEvent(node, embargo);	/*	Initial probe event.	*/
 	return 0;
 }
 
-void	removeSnub(IonNode *node, uvast neighborNodeNbr)
+void	removeEmbargo(IonNode *node, uvast neighborNodeNbr)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	PsmAddress	addr;
-	IonSnub		*snub;
+	Embargo		*embargo;
 
 	CHKVOID(node);
-	for (elt = sm_list_first(ionwm, node->snubs); elt;
+	for (elt = sm_list_first(ionwm, node->embargoes); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		addr = sm_list_data(ionwm, elt);
-		snub = (IonSnub *) psp(ionwm, addr);
-		CHKVOID(snub);
-		if (snub->nodeNbr < neighborNodeNbr)
+		embargo = (Embargo *) psp(ionwm, addr);
+		CHKVOID(embargo);
+		if (embargo->nodeNbr < neighborNodeNbr)
 		{
 			continue;
 		}
 
-		if (snub->nodeNbr > neighborNodeNbr)
+		if (embargo->nodeNbr > neighborNodeNbr)
 		{
-			return;	/*	Snub not found.			*/
+			return;	/*	Embargo not found.		*/
 		}
 
-		break;		/*	Found the snub to remove.	*/
+		break;		/*	Found the embargo to remove.	*/
 	}
 
 	if (elt == 0)
 	{
-		return;			/*	Snub not found.		*/
+		return;		/*	Embargo not found.		*/
 	}
 
 	oK(sm_list_delete(ionwm, elt, NULL, NULL));
 	psm_free(ionwm, addr);
 }
 
-PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
+PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
@@ -462,7 +462,7 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	IonProbe	*pr;
 
 	CHKZERO(node);
-	CHKZERO(snub);
+	CHKZERO(embargo);
 	addr = psm_zalloc(ionwm, sizeof(IonProbe));
 	if (addr == 0)
 	{
@@ -474,15 +474,15 @@ PsmAddress	postProbeEvent(IonNode *node, IonSnub *snub)
 	CHKZERO(probe);
 	probe->time = getUTCTime();
 	probe->destNodeNbr = node->nodeNbr;
-	probe->neighborNodeNbr = snub->nodeNbr;
+	probe->neighborNodeNbr = embargo->nodeNbr;
 
-	/*	Schedule next probe of this snubbing neighbor for the
+	/*	Schedule next probe of this embargoed neighbor for the
 	 *	time that is the current time plus 2x the round-trip
 	 *	light time from the local node to the neighbor (but
 	 *	at least 6 seconds).					*/
 	 
 	ionvdb = getIonVdb();
-	neighbor = findNeighbor(ionvdb, snub->nodeNbr, &nextElt);
+	neighbor = findNeighbor(ionvdb, embargo->nodeNbr, &nextElt);
 	if (neighbor)
 	{
 		rtlt = (neighbor->owltOutbound + neighbor->owltInbound) << 1;
@@ -702,7 +702,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, unsigned int xmitRate)
+			uvast fromNode, uvast toNode, unsigned int xmitRate,
+			float prob)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -724,6 +725,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	CHKZERO(toTime > fromTime);
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
+	CHKZERO(prob > 0.0 && prob <= 1.0);
 	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing
@@ -801,6 +803,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	contact.fromNode = fromNode;
 	contact.toNode = toNode;
 	contact.xmitRate = xmitRate;
+	contact.prob = prob;
 	obj = sdr_malloc(sdr, sizeof(IonContact));
 	if (obj)
 	{
@@ -840,9 +843,10 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->fromTime, fromTimeBuffer);
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
-node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec.",
+node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec, \
+probability %f.",
 			fromTimeBuffer, toTimeBuffer, contact->fromNode,
-			contact->toNode, contact->xmitRate);
+			contact->toNode, contact->xmitRate, contact->prob);
 	return buffer;
 }
 
@@ -1675,6 +1679,7 @@ static int	loadContact(Object elt)
 	cxref.fromTime = contact.fromTime;
 	cxref.toTime = contact.toTime;
 	cxref.xmitRate = contact.xmitRate;
+	cxref.prob = contact.prob;
 	cxref.contactElt = elt;
 	cxref.routingObject = 0;
 	if (insertCXref(&cxref) == 0)
@@ -1698,9 +1703,10 @@ int	rfx_start()
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 
-	/* Destroy and re-create volatile contact and range databases.
-	 * This prevents contact/range duplication as a result of adds
-	 * before starting ION. */
+	/*	Destroy and re-create volatile contact and range
+	 *	databases.  This prevents contact/range duplication
+	 *	as a result of adds before starting ION.		*/
+
 	sm_rbt_destroy(ionwm, vdb->contactIndex, rfx_erase_data, NULL);
 	sm_rbt_destroy(ionwm, vdb->rangeIndex, rfx_erase_data, NULL);
 	vdb->contactIndex = sm_rbt_create(ionwm);
@@ -1754,12 +1760,29 @@ void	rfx_stop()
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
+	int		i;
+	PsmAddress	elt;
+	PsmAddress	nextElt;
+	PsmAddress	addr;
+	Requisition	*req;
 
-	/*	Clear ZCO availability information.			*/
+	/*	Safely shut down the ZCO flow control system.		*/
 
-	sm_SemEnd(vdb->zcoSemaphore);
-	vdb->zcoClaimants = 0;
-	vdb->zcoClaims = 0;
+	for (i = 0; i < 1; i++)
+	{
+		for (elt = sm_list_first(ionwm, vdb->requisitions[i]); elt;
+				elt = nextElt)
+		{
+			nextElt = sm_list_next(ionwm, elt);
+			addr = sm_list_data(ionwm, elt);
+			req = (Requisition *) psp(ionwm, addr);
+			sm_SemEnd(req->semaphore);
+			psm_free(ionwm, addr);
+			sm_list_delete(ionwm, elt, NULL, NULL);
+		}
+	}
+
+	zco_unregister_callback();
 
 	/*	Stop the rfx clock if necessary.			*/
 

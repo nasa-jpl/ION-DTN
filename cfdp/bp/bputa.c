@@ -140,7 +140,6 @@ int	main(int argc, char **argv)
 	char		ownEid[64];
 	BpSAP		txSap;
 	RxThreadParms	parms;
-	Sdr		sdr;
 	pthread_t	rxThread;
 	int		haveRxThread = 0;
 	Object		pduZco;
@@ -153,6 +152,7 @@ int	main(int argc, char **argv)
 	char		reportToEidBuf[64];
 	char		*reportToEid;
 	Object		newBundle;
+	Sdr		sdr;
 	Object		pduElt;
 
 	if (bp_attach() < 0)
@@ -163,7 +163,7 @@ int	main(int argc, char **argv)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
 			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
-	if (bp_open(ownEid, &txSap) < 0)
+	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
 		return 0;
@@ -182,7 +182,6 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	sdr = bp_get_sdr();
 	parms.mainThread = pthread_self();
 	parms.running = 1;
 	if (pthread_begin(&rxThread, NULL, receivePdus, &parms))
@@ -199,7 +198,7 @@ int	main(int argc, char **argv)
 		/*	Get an outbound CFDP PDU for transmission.	*/
 
 		if (cfdpDequeueOutboundPdu(&pduZco, &fduBuffer, &fpdu,
-					&direction) < 0)
+				&direction) < 0 || pduZco == 0)
 		{
 			writeMemo("[?] bputa can't dequeue outbound CFDP PDU; \
 terminating.");
@@ -270,7 +269,6 @@ terminating.");
 
 		/*	Send PDU in a bundle.				*/
 
-		newBundle = 0;
 		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
 				utParms.classOfService, utParms.custodySwitch,
 				utParms.srrFlags, utParms.ackRequested,
@@ -279,24 +277,14 @@ terminating.");
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);
 			parms.running = 0;
-		}
-
-		if (newBundle == 0)
-		{
-			if (deletePdu(pduZco) < 0)
-			{
-				putErrmsg("bputa can't ditch PDU; terminated.",
-						NULL);
-				parms.running = 0;
-			}
-
-			continue;	/*	Must have stopped.	*/
+			continue;
 		}
 
 		if (direction == 0)	/*	Toward file receiver.	*/
 		{
 			/*	Enable cancellation of this PDU.	*/
 
+			sdr = bp_get_sdr();
 			if (sdr_begin_xn(sdr) == 0)
 			{
 				parms.running = 0;
@@ -315,8 +303,15 @@ terminating.");
 				putErrmsg("bputa can't track PDU; terminated.",
 						NULL);
 				parms.running = 0;
+				continue;
 			}
 		}
+
+		/*	Bundle has been detained long enough for us
+		 *	to track it if necessary, so we can now
+		 *	release it for normal processing.		*/
+
+		bp_release(newBundle);
 
 		/*	Make sure other tasks have a chance to run.	*/
 

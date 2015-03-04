@@ -90,8 +90,8 @@ cov-clean:
 
 cov-report:
 	@mkdir -p coverage
-	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info  
-	@genhtml -o coverage/ coverage/app.info 
+	@lcov --compat-libtool --directory . -b . --capture --output-file coverage/app.info
+	@genhtml -o coverage/ coverage/app.info
 
 cov:
 	@make cov-report
@@ -197,6 +197,7 @@ noinst_HEADERS+= \
 	$(cfdpnoinst)
 endif
 
+if ENABLE_MANPAGES
 man_MANS = \
 	build-man-directories \
 	$(icimans) \
@@ -208,9 +209,10 @@ man_MANS = \
 	$(bsspmans)
 
 if !ION_NASA_B
-man_MANS+= \
+man_MANS += \
 	$(amsmans) \
 	$(cfdpmans)
+endif
 endif
 
 #################
@@ -329,7 +331,7 @@ node10_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ipnrc \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ltprc 
+	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/node10.ltprc
 
 #############
 #
@@ -358,6 +360,7 @@ icibin = \
 	sdr2file \
 	psmshell \
 	smlistsh \
+	smrbtsh \
 	rfxclock \
 	owlttb \
 	owltsim
@@ -409,6 +412,7 @@ iciextra = \
 	ici/doc/pod1/sdr2file.pod \
 	ici/doc/pod1/sm2file.pod \
 	ici/doc/pod1/smlistsh.pod \
+	ici/doc/pod1/smrbtsh.pod \
 	ici/doc/pod1/owltsim.pod \
 	ici/doc/pod1/owlttb.pod \
 	ici/doc/pod5/ionconfig.pod \
@@ -441,6 +445,7 @@ icimans = \
 	$(top_builddir)/ici/doc/sdr2file.1 \
 	$(top_builddir)/ici/doc/sm2file.1 \
 	$(top_builddir)/ici/doc/smlistsh.1 \
+	$(top_builddir)/ici/doc/smrbtsh.1 \
 	$(top_builddir)/ici/doc/owltsim.1 \
 	$(top_builddir)/ici/doc/owlttb.1 \
 	$(top_builddir)/ici/doc/ionconfig.5 \
@@ -541,6 +546,10 @@ smlistsh_SOURCES = ici/test/smlistsh.c
 smlistsh_LDADD = libici.la $(LIBOBJS)
 smlistsh_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+smrbtsh_SOURCES = ici/test/smrbtsh.c
+smrbtsh_LDADD = libici.la $(LIBOBJS)
+smrbtsh_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
 file2sm_SOURCES = ici/test/file2sm.c
 file2sm_LDADD = libici.la $(LIBOBJS)
 file2sm_CFLAGS = $(icicflags) $(AM_CFLAGS)
@@ -638,7 +647,7 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/dccplsi.1 \
 	$(top_builddir)/ltp/doc/dccplso.1 \
 	$(top_builddir)/ltp/doc/ltprc.5 \
-	$(top_builddir)/ltp/doc/ltp.3 
+	$(top_builddir)/ltp/doc/ltp.3
 
 ltpclean-local:
 	rm -f $(top_builddir)/ltp/doc/*.1
@@ -753,18 +762,18 @@ dgrinclude = \
 dgrnoinst = \
 	dgr/test/file2dgr.h \
 	dgr/test/file2tcp.h \
-	dgr/test/file2udp.h 
+	dgr/test/file2udp.h
 
 dgrextra = \
 	dgr/README.txt \
 	dgr/doc/pod1/dgr2file.pod \
 	dgr/doc/pod1/file2dgr.pod \
-	dgr/doc/pod3/dgr.pod 
+	dgr/doc/pod3/dgr.pod
 
 dgrmans = \
 	$(top_builddir)/dgr/doc/dgr2file.1 \
 	$(top_builddir)/dgr/doc/file2dgr.1 \
-	$(top_builddir)/dgr/doc/dgr.3 
+	$(top_builddir)/dgr/doc/dgr.3
 
 dgrclean-local:
 	rm -f $(top_builddir)/dgr/doc/*.1
@@ -819,7 +828,7 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/ici/include/ -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/bsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/ici/include/ -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -833,6 +842,7 @@ bpbin = \
 	bpsendfile \
 	bprecvfile \
 	bpclock \
+	bptransit \
 	ipnadmin \
 	ipnfw \
 	bsspcli \
@@ -849,6 +859,7 @@ bpbin = \
 	brsccla \
 	udpcli \
 	udpclo \
+	bibeclo \
 	dccpcli \
 	dccpclo	\
 	dgrcla \
@@ -858,6 +869,7 @@ bpbin = \
 	lgagent \
 	bptrace \
 	bping \
+	bpnmtest \
 	bpstats \
 	bpstats2 \
 	bpchat \
@@ -900,11 +912,12 @@ bpnoinst = \
 	bp/ltp/ltpcla.h \
 	bp/tcp/tcpcla.h \
 	bp/dccp/dccpcla.h
-#	bp/library/ext/phn/phn.h 
+#	bp/library/ext/phn/phn.h
 
 bpextra = \
 	bp/doc/pod1/bpadmin.pod \
 	bp/doc/pod1/bpclock.pod \
+	bp/doc/pod1/bptransit.pod \
 	bp/doc/pod1/bpcounter.pod \
 	bp/doc/pod1/bpcancel.pod \
 	bp/doc/pod1/bplist.pod \
@@ -924,9 +937,7 @@ bpextra = \
 	bp/doc/pod1/dtn2fw.pod \
 	bp/doc/pod1/ipnadminep.pod \
 	bp/doc/pod1/ipnadmin.pod \
-	bp/doc/pod1/bssadmin.pod \
 	bp/doc/pod1/ipnfw.pod \
-	bp/doc/pod1/bssfw.pod \
 	bp/doc/pod1/lgagent.pod \
 	bp/doc/pod1/lgsend.pod \
 	bp/doc/pod1/ltpcli.pod \
@@ -937,9 +948,11 @@ bpextra = \
 	bp/doc/pod1/tcpclo.pod \
 	bp/doc/pod1/udpcli.pod \
 	bp/doc/pod1/udpclo.pod \
+	bp/doc/pod1/bibeclo.pod \
 	bp/doc/pod1/dccpcli.pod \
 	bp/doc/pod1/dccpclo.pod \
 	bp/doc/pod1/bping.pod \
+	bp/doc/pod1/bpnmtest.pod \
 	bp/doc/pod1/bpstats2.pod \
 	bp/doc/pod1/bpchat.pod \
 	bp/doc/pod1/hmackeys.pod \
@@ -961,15 +974,32 @@ bpextra = \
 	bp/library/bei.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bsp/extbsputil.h \
-	bp/library/ext/bsp/extbsputil.c \
-	bp/library/ext/bsp/extbspbab.h \
-	bp/library/ext/bsp/extbspbab.c \
-	bp/library/ext/bsp/extbsppcb.h \
-	bp/library/ext/bsp/extbsppcb.c \
-	bp/library/ext/bsp/extbsppib.h \
-	bp/library/ext/bsp/extbsppib.c \
+	bp/library/ext/bsp/bspbab.h \
+	bp/library/ext/bsp/bspbab.c \
+	bp/library/ext/bsp/bspbcb.h \
+	bp/library/ext/bsp/bspbcb.c \
+	bp/library/ext/bsp/bspbib.h \
+	bp/library/ext/bsp/bspbib.c \
+	bp/library/ext/bsp/bsputil.h \
+	bp/library/ext/bsp/bsputil.c \
+	bp/library/ext/bsp/ciphersuites.h \
+	bp/library/ext/bsp/ciphersuites.c \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	ici/include/crypto.h
+# Removed in 3.3.0 per the new BSP rule structure
+#	bp/library/ext/bsp/extbsputil.h \
+#	bp/library/ext/bsp/extbsputil.c \
+#	bp/library/ext/bsp/extbspbab.h \
+#	bp/library/ext/bsp/extbspbab.c \
+#	bp/library/ext/bsp/extbsppcb.h \
+#	bp/library/ext/bsp/extbsppcb.c \
+#	bp/library/ext/bsp/extbsppib.h \
+#	bp/library/ext/bsp/extbsppib.c
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -980,6 +1010,7 @@ bpextra = \
 bpmans = \
 	$(top_builddir)/bp/doc/bpadmin.1 \
 	$(top_builddir)/bp/doc/bpclock.1 \
+	$(top_builddir)/bp/doc/bptransit.1 \
 	$(top_builddir)/bp/doc/bpcounter.1 \
 	$(top_builddir)/bp/doc/bpcancel.1 \
 	$(top_builddir)/bp/doc/bplist.1 \
@@ -999,9 +1030,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/dtn2fw.1 \
 	$(top_builddir)/bp/doc/ipnadminep.1 \
 	$(top_builddir)/bp/doc/ipnadmin.1 \
-	$(top_builddir)/bp/doc/bssadmin.1 \
 	$(top_builddir)/bp/doc/ipnfw.1 \
-	$(top_builddir)/bp/doc/bssfw.1 \
 	$(top_builddir)/bp/doc/lgagent.1 \
 	$(top_builddir)/bp/doc/lgsend.1 \
 	$(top_builddir)/bp/doc/ltpcli.1 \
@@ -1012,10 +1041,12 @@ bpmans = \
 	$(top_builddir)/bp/doc/tcpclo.1 \
 	$(top_builddir)/bp/doc/udpcli.1 \
 	$(top_builddir)/bp/doc/udpclo.1 \
+	$(top_builddir)/bp/doc/bibeclo.1 \
 	$(top_builddir)/bp/doc/dccpcli.1 \
 	$(top_builddir)/bp/doc/dccpclo.1 \
 	$(top_builddir)/bp/doc/cgrfetch.1 \
 	$(top_builddir)/bp/doc/bping.1 \
+	$(top_builddir)/bp/doc/bpnmtest.1 \
 	$(top_builddir)/bp/doc/bpstats2.1 \
 	$(top_builddir)/bp/doc/bpchat.1 \
 	$(top_builddir)/bp/doc/hmackeys.1 \
@@ -1085,11 +1116,28 @@ libbp_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bsp/extbsputil.c \
-	bp/library/ext/bsp/extbspbab.c \
-	bp/library/ext/bsp/extbsppcb.c \
-	bp/library/ext/bsp/extbsppib.c \
+	bp/library/ext/bsp/bspbab.h \
+	bp/library/ext/bsp/bspbab.c \
+	bp/library/ext/bsp/bspbcb.h \
+	bp/library/ext/bsp/bspbcb.c \
+	bp/library/ext/bsp/bspbib.h \
+	bp/library/ext/bsp/bspbib.c \
+	bp/library/ext/bsp/bsputil.h \
+	bp/library/ext/bsp/bsputil.c \
+	bp/library/ext/bsp/ciphersuites.h \
+	bp/library/ext/bsp/ciphersuites.c \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
+	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
+	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
+	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	bp/library/ext/snid/snid.c
+# Removed in 3.3.0 per the new BSP rule structure
+#	bp/library/ext/bsp/extbsputil.c \
+#	bp/library/ext/bsp/extbspbab.c \
+#	bp/library/ext/bsp/extbsppcb.c \
+#	bp/library/ext/bsp/extbsppib.c
 
 if CRYPTO
 libbp_la_SOURCES+= \
@@ -1254,6 +1302,12 @@ udpclo_SOURCES = bp/udp/udpclo.c
 udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+# --- UDP Executables --- #
+
+bibeclo_SOURCES = bp/bibe/bibeclo.c
+bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) 
+bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 # --- DCCP Executables --- #
 
 dccpcli_SOURCES = bp/dccp/dccpcli.c
@@ -1314,6 +1368,10 @@ bping_SOURCES = bp/test/bping.c
 bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+bpnmtest_SOURCES = bp/test/bpnmtest.c
+bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
+bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1331,6 +1389,10 @@ cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpclock_SOURCES = bp/daemon/bpclock.c
 bpclock_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bptransit_SOURCES = bp/daemon/bptransit.c
+bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
+bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ##########################
 #
@@ -2081,8 +2143,9 @@ endif
 
 if ENABLE_AUTODOC
 
-ION.pdf: doc/ION-beginning.ps doc/ION-manpages.ps
-	$(PSJOIN) $^ | $(PS2PDF) - $@
+ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
+	$(PS2PDF) doc/ION-manpages.ps
+	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --outfile ION.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)

@@ -42,6 +42,15 @@ rm -f ./ion_nodes
 
 # Start node 9.
 ./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
 
 echo "Issuing erroneous screening and ownqtime mgt commands in ltpadmin."
 ltpadmin test.ltprc

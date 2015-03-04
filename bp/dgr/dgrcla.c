@@ -244,13 +244,23 @@ static void	*receiveBundles(void *parm)
 				break;		/*	Out of loop.	*/
 			}
 
+			/*	Note: we use zco_create to obtain ZCO
+			 *	space here, because we know that these
+			 *	allocations are strictly temporary; the
+			 *	ZCOs are destroyed immediately after
+			 *	creation.  We pass additive inverse of
+			 *	length to zco_create to indicate that
+			 *	this allocation is not subject to flow
+			 *	control and must always be honored.	*/
+
 			switch (rc)
 			{
 				case DgrDatagramAcknowledged:
 					CHKNULL(sdr_begin_xn(sdr));
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
-						buffer, length), 0, length);
+						buffer, length), 0, 0 - length,
+						ZcoOutbound, 0);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -296,7 +306,8 @@ bundle ZCO.", NULL);
 					CHKNULL(sdr_begin_xn(sdr));
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
-						buffer, length), 0, length);
+						buffer, length), 0, 0 - length,
+						ZcoOutbound, 0);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -374,7 +385,7 @@ bundle ZCO.", NULL);
 
 		printDottedString(fromHostNbr, hostName);
 		if (bpBeginAcq(work, 0, NULL) < 0
-		|| bpContinueAcq(work, buffer, length) < 0
+		|| bpContinueAcq(work, buffer, length, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);

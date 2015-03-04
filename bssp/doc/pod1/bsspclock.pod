@@ -56,13 +56,13 @@ but no acknowledgment has yet been received.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<bsspclock> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bsspadmin> to restart B<bsspclock>.
 
-=item 1
+=item "1"
 
 B<bsspclock> was unable to attach to BSSP protocol operations, probably because
 B<bsspadmin> has not yet been run.

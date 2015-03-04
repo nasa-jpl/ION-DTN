@@ -59,8 +59,8 @@ int	phn_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	int		nameLength;
-	char		*adminEid;
+	int		phnDataLength;
+	char		*phnData;
 	int		result;
 
 	suppressExtensionBlock(blk);	/*	Default.		*/
@@ -81,19 +81,27 @@ int	phn_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	}
 
 	restoreExtensionBlock(blk);
-	nameLength = vscheme->nameLength + 1 + vscheme->adminNSSLength;
-	blk->dataLength = nameLength + 1;
-	adminEid = MTAKE(blk->dataLength);
-	if (adminEid == NULL)
+	phnDataLength = vscheme->nameLength + 1 + vscheme->adminNSSLength;
+	blk->dataLength = phnDataLength + 1;
+	phnData = MTAKE(blk->dataLength);
+	if (phnData == NULL)
 	{
 		putErrmsg("Can't construct phn text.", itoa(blk->dataLength));
 		return -1;
 	}
 
-	memcpy(adminEid, vscheme->adminEid, nameLength);
-	*(adminEid + nameLength) = '\0';
-	result = serializeExtBlk(blk, NULL, adminEid);
-	MRELEASE(adminEid);
+	memcpy(phnData, vscheme->adminEid, phnDataLength);
+
+	/*	For PHN we don't actually send the EID itself; we
+	 *	send the EID's scheme name and NSS as two NULL-
+	 *	terminated strings, concatenated.  To do this, we
+	 *	simply copy the adminEid and change the colon to
+	 *	a NULL.							*/
+
+	*(phnData + vscheme->nameLength) = '\0';
+	*(phnData + phnDataLength) = '\0';
+	result = serializeExtBlk(blk, NULL, phnData);
+	MRELEASE(phnData);
 	return result;
 }
 
@@ -127,11 +135,12 @@ static int	getSenderEidFromDictionary(AcqExtBlock *blk, AcqWorkArea *wk)
 	return 1;
 }
 
-int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	phn_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	int	blkHeaderLen;
+	char	*phnData;
 	char	*lastByte;
-	int	eidLen;
-	char	*eid;
+	size_t	schemeNameLen;
 
 	/*	Data parsed out of the phn byte array go directly into
 	 *	the work area structure, not into a block-specific
@@ -149,29 +158,44 @@ int	phn_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 		return getSenderEidFromDictionary(blk, wk);
 	}
 
-	lastByte = ((char *) (blk->bytes)) + (blk->length - 1);
+	blkHeaderLen = blk->length - blk->dataLength;
+	phnData = ((char *) (blk->bytes)) + blkHeaderLen;
+	lastByte = phnData + (blk->dataLength - 1);
 	if (*lastByte != '\0')		/*	S/b null-terminated.	*/
 	{
 		return 0;		/*	Malformed.		*/
 	}
 
-	eid = ((char *) (blk->bytes)) + (blk->length - blk->dataLength);
-	eidLen = blk->dataLength;
-	wk->senderEid = MTAKE(eidLen);
+	/*	PHN data comprises two NULL-terminated strings, the
+	 *	scheme name and scheme-specific part of the previous
+	 *	hop node's endpoint ID.  To change the PHN data to an
+	 *	EID we just replace the scheme name's terminal NULL
+	 *	with a colon.						*/
+
+	schemeNameLen = istrlen(phnData, blk->dataLength);
+	if (schemeNameLen >= (blk->dataLength - 1))
+	{
+		/*	Scheme name is not NULL-terminated.		*/
+
+		return 0;		/*	Malformed.		*/
+	}
+
+	*(phnData + schemeNameLen) = ':';
+	wk->senderEid = MTAKE(blk->dataLength);
 	if (wk->senderEid == NULL)
 	{
 		putErrmsg("No space for sender EID.", NULL);
 		return -1;
 	}
 
-	istrcpy(wk->senderEid, eid, eidLen);
+	memcpy(wk->senderEid, phnData, blk->dataLength);
 	return 1;
 }
 
 int	phn_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	discardExtensionBlock(blk);
-	return 0;
+	return 1;
 }
 
 void	phn_clear(AcqExtBlock *blk)

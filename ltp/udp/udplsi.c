@@ -138,13 +138,14 @@ int	main(int argc, char *argv[])
 			return -1;
 		}
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = LtpUdpDefaultPortNbr;
 	}
+
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
-
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
 	inetName->sin_family = AF_INET;

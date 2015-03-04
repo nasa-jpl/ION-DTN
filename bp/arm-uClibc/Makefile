@@ -14,10 +14,11 @@ DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
+BIBE = ../bibe
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc -DENABLE_BPACS -DENABLE_IMC
-CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/cteb -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(TCP) -I$(IPN) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
@@ -41,12 +42,12 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o phn.o ecos.o meb.o bae.o bei.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o libimcfw.o
-# snid.o
+BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
+# snid.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
 
-LBP = -lbp
+LBP = -lbp -limcfw -lipnfw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep bsspcli bsspclo dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bpnmtest
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
@@ -75,6 +76,10 @@ install:
 bpclock:	bpclock.o $(BPLIBS)
 		$(CC) -o bpclock bpclock.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp bpclock ./bin
+
+bptransit:	bptransit.o $(BPLIBS)
+		$(CC) -o bptransit bptransit.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp bptransit ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
@@ -244,6 +249,12 @@ brsccla:	brsccla.o $(BPLIBS) libtcpcla.so
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
 		cp brsccla ./bin
 
+#	-	-	BIBE executable	-	-	-	-	-
+
+bibeclo:	bibeclo.o $(BPLIBS)
+		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp bibeclo ./bin
+
 #	-	-	Test executables	-	-	-	-
 
 bpsource:	bpsource.o libbp.so $(BPLIBS)
@@ -328,6 +339,9 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/ext/bsp/%.c
 		$(CC) -c $<
 
+%.o:		$(API)/ext/bsp/ciphersuites/%.c
+		$(CC) -c $<
+
 %.o:		$(API)/ext/phn/%.c
 		$(CC) -c $<
 
@@ -371,6 +385,9 @@ libudpcla.so:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(DGR)/%.c
+		$(CC) -c $<
+
+%.o:		$(BIBE)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/acs/%.c

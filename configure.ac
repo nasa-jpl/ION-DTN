@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.2.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.3.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -152,6 +152,17 @@ AC_ARG_ENABLE(
     [AC_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
     [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
     [])
+
+#
+# allow the user running configure to disable manpage creation
+#
+AC_ARG_ENABLE(
+    manpages,
+    [AC_HELP_STRING([--disable-manpages], [disable manpage creation])],
+    [],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"
+     ENABLE_MANPAGES=yes])
+AM_CONDITIONAL(ENABLE_MANPAGES, test "x$ENABLE_MANPAGES" = "xyes")
 
 #
 # Control building /contrib utlities
@@ -314,6 +325,7 @@ fi
 AC_PATH_PROG([PS2PDF], [ps2pdf])
 AC_PATH_PROG([PDF2PS], [pdf2ps])
 AC_PATH_PROG([PSJOIN], [psjoin])
+AC_PATH_PROG([PDFJOIN], [pdfjoin])
 AC_MSG_CHECKING([for fallback included psjoin])
 if test -x "$PWD/doc/psjoin"; then
     PSJOIN="$PWD/doc/psjoin"

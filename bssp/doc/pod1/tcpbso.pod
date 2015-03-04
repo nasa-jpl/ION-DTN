@@ -24,13 +24,13 @@ BSSP protocol, and they are all terminated by B<bsspadmin> in response to an
 
 =over 4
 
-=item 0
+=item "0"
 
 B<tcpbso> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
 in the log file and use B<bsspadmin> to restart B<tcpbso>.
 
-=item 1
+=item "1"
 
 B<tcpbso> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use

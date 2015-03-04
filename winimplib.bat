@@ -27,6 +27,12 @@ lib /machine:i386 /def:libbss.def
 copy *.lib ..\..\winimplib
 cd ../..
 
+cd bssp/i86-mingw
+lib /machine:i386 /def:libbssp.def
+lib /machine:i386 /def:libtcpbsa.def
+copy *.lib ..\..\winimplib
+cd ../..
+
 cd cfdp/i86-mingw
 lib /machine:i386 /def:libcfdp.def
 copy *.lib ..\..\winimplib
@@ -34,6 +40,11 @@ cd ../..
 
 cd dgr/i86-mingw
 lib /machine:i386 /def:libdgr.def
+copy *.lib ..\..\winimplib
+cd ../..
+
+cd dtpc/i86-mingw
+lib /machine:i386 /def:libdtpc.def
 copy *.lib ..\..\winimplib
 cd ../..
 

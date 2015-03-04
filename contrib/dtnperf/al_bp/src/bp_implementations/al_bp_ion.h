@@ -46,8 +46,7 @@ al_bp_error_t bp_ion_errno(al_bp_handle_t handle);
  * */
 al_bp_error_t bp_ion_build_local_eid(al_bp_endpoint_id_t* local_eid,
 								const char* service_tag,
-								const char * type,
-								char * eid_destination);
+								al_bp_scheme_t type);
 
 /* This API register the eid and open the connection initializing the handle*/
 al_bp_error_t bp_ion_register(al_bp_handle_t * handle,

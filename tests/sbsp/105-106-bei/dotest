@@ -1,0 +1,77 @@
+#!/bin/bash
+
+echo "Cleaning up old ION..."
+rm -f rcv snd tmp
+killm
+sleep 1
+
+srcdir=`pwd`
+configdir="config"
+
+echo "ionstart -I ${configdir}/host1.rc"
+"ionstart" -I "${configdir}/host1.rc"
+
+echo "Starting message listener..."
+bpsink ipn:1.2 > tmp &
+
+bpsink_pid=$!
+
+bpsource ipn:1.2 <<BPS
+test_1
+!
+BPS
+
+sleep 1
+
+grep "test_1" tmp > rcv
+echo "'test_1'" > snd
+
+PASS=1
+if diff -w snd rcv
+then
+	echo "SUCCESS (1/2)"
+else
+	echo "FAIL (1/2)"
+	PASS=0
+fi 
+
+
+kill -9 $bpsink_pid
+
+sleep 1
+
+rm -f tmp rcv
+
+bpsink ipn:1.2 > tmp &
+bpsink_pid=$!
+
+ionsecadmin <<SAC
+a bspbabrule ipn:1.* ipn:1.* 'BAB_HMAC_SHA1' testkey
+SAC
+
+bpsource ipn:1.2 <<BPS
+test_2
+!
+BPS
+
+sleep 1
+
+grep "test_2" tmp > rcv
+echo "'test_2'" > snd
+
+if diff -w snd rcv
+then
+	echo "SUCCESS (2/2)"
+else
+	echo "FAIL (2/2)"
+	PASS=0
+fi
+
+rm -f tmp rcv tmp
+
+if [ $PASS -eq 0 ]
+then
+	exit 1
+else
+	exit 0
+fi

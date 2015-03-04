@@ -114,7 +114,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             aduLength = statbuf.st_size;
             sdr = bp_get_sdr();
             CHKZERO(sdr_begin_xn(sdr));
-            fileRef = zco_create_file_ref(sdr, fileName, NULL);
+            fileRef = zco_create_file_ref(sdr, fileName, NULL, ZcoOutbound);
             if (sdr_end_xn(sdr) < 0 || fileRef == 0)
             {
                     bp_close(sap);
@@ -122,7 +122,8 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
                     return 0;
             }
 
-            traceZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength, NULL);
+            traceZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
+			    priority, extendedCOS.ordinal, ZcoOutbound, NULL);
             if (traceZco == 0)
             {
                     putErrmsg("bptrace can't create ZCO.", fileName);
@@ -166,8 +167,9 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
                     return 0;
             }
 
-            traceZco = ionCreateZco(ZcoSdrSource, msg, 0, msgLength, NULL);
-            if (traceZco == 0)
+            traceZco = ionCreateZco(ZcoSdrSource, msg, 0, msgLength, priority,
+			    extendedCOS.ordinal, ZcoOutbound, NULL);
+            if (traceZco == 0 || traceZco == (Object) ERROR)
             {
                     putErrmsg("bptrace can't create ZCO", NULL);
             }

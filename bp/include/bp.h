@@ -89,7 +89,7 @@ typedef struct
 	unsigned int	timeToLive;
 	int		ackRequested;	/*	(By app.)  Boolean.	*/
 	int		adminRecord;	/*	Boolean: 0 = non-admin.	*/
-	Object		adu;		/*	Zero-copy object ref.	*/
+	Object		adu;		/*	Zero-copy object.	*/
 
 	unsigned char	metadataType;	/*	See RFC 6258.		*/
 	unsigned char	metadataLen;
@@ -137,6 +137,35 @@ extern int		bp_open(	char *eid,
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
+extern int		bp_open_source(	char *eid,
+					BpSAP *ionsapPtr,
+					int detain);
+			/*	Arguments are:
+		 	 *  		name of the endpoint 
+			 *		pointer to variable in which
+			 *			address of BP service
+			 *			access point will be
+			 *			returned
+			 *		indicator as to whether or
+			 *			not bundles sourced
+			 *			using this BpSAP
+			 *			should be detained
+			 *			in storage until
+			 *			explicitly released
+			 *
+			 * 	Initiates ability to send bundles whose
+			 *	source is the indicated endpoint.  If
+			 *	"detain" is non-zero then each bundle
+			 *	address returned when this BpSAP is
+			 *	passed to bp_send will remain valid and
+			 *	usable (i.e., the bundle object will
+			 *	continue to occupy storage resources)
+			 *	until the bundle is explicitly released 
+			 *	by an invocation of bp_release OR
+			 *	the bundle's time to live expires.
+			 *
+			 *	Returns 0 on success, -1 on any error.	*/
+
 #define BP_PARSE_CLASS_OF_SERVICE_USAGE				\
 	"<custody-requested>.<priority>[.<ordinal>" 	\
 	"[.<unreliable>.<critical>[.<flow-label>]]]"
@@ -179,14 +208,24 @@ extern int		bp_send(	BpSAP sap,
 			 *	label.
 			 *
 			 *	adu must be a "zero-copy object" as
-			 *	returned by zco_create().
+			 *	returned by ionCreateZco().
 			 *
 			 *	Returns 1 on success, 0 on user error
 			 *	(an invalid argument value), -1 on
 			 *	system error.  If 1 is returned, then
-			 *	the ADU has been accepted and queued
-			 *	for transmission in a bundle and its
-			 *	ID has been placed in newBundle.	*/
+			 *	the ADU has been accepted.  If the
+			 *	destination EID is "dtn:none" then
+			 *	the ADU has been notionally encap-
+			 *	sulated in a bundle but the bundle
+			 *	has simply been discarded.  Otherwise
+			 *	the ADU has been encapsulated in a
+			 *	bundle that has been queued for
+			 *	forwarding and - if and only if
+			 *	"sap" was returned from a call to
+			 *	bp_open_source with the "detain"
+			 *	flag set to a non-zero value - the
+			 *	new bundle's address has been placed
+			 *	in newBundle.				*/
 
 extern int		bp_track(	Object bundleObj,
 					Object trackingElt);
@@ -224,6 +263,12 @@ extern int		bp_resume(	Object bundleObj);
 
 extern int		bp_cancel(	Object bundleObj);
 			/*	Cancels transmission of this bundle.	*/
+
+extern int		bp_release(	Object bundleObj);
+			/*	Terminates detention of this bundle,
+			 *	enabling it to be deleted from
+			 *	storage when all other retention
+			 *	constraints have been removed.		*/
 
 extern int		bp_receive(	BpSAP sap,
 					BpDelivery *dlvBuffer,

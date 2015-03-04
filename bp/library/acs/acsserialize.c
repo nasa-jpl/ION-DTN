@@ -62,12 +62,13 @@ static void serializeFill(Sdr sdr, Object fillAddr, void *argsAsVoid)
 unsigned long serializeAcs(Object signalAddr, Object *serializedZco,
 		unsigned long lastSerializedSize)
 {
-	SdrAcsSignal			signal;
+	SdrAcsSignal		signal;
 	SerializeForeachArgs_t	args;
 	Object                  serializedSdrAddr;
 	Object                  serializedZcoAddr;
-	Sdr						bpSdr = getIonsdr();
-	Sdr						acsSdr = getAcssdr();
+	Sdr			bpSdr = getIonsdr();
+	Sdr			acsSdr = getAcssdr();
+	vast			extentLength;
 
 	/* We rely on incremental updates (reserialization) to serializedZco
 	 * to determine the right size of buffer to allocate:
@@ -125,11 +126,19 @@ unsigned long serializeAcs(Object signalAddr, Object *serializedZco,
 	}
 	sdr_write(bpSdr, serializedSdrAddr, (char *)(args.buf), args.iBuf);
 	MRELEASE(args.buf);
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for custody signals, allocation of ZCO
+	 *	space can never be denied or delayed.			*/
+
+	extentLength = args.iBuf;
 	serializedZcoAddr = zco_create(bpSdr, ZcoSdrSource,
-				serializedSdrAddr, 0, args.iBuf);
+			serializedSdrAddr, 0, 0 - extentLength, ZcoOutbound, 0);
 	if (serializedZcoAddr == (Object) ERROR || serializedZcoAddr == 0)
 	{
-		putErrmsg("Can't put ACS payload into a ZCO", itoa(serializedZcoAddr));
+		putErrmsg("Can't put ACS payload into a ZCO",
+				itoa(serializedZcoAddr));
 		return 0;
 	}
 

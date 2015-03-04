@@ -61,7 +61,7 @@ data tagged with the indicated I<clientId> as received at the remote LTP
 engine identified by I<destinationEngineId>.
 
 I<clientServiceData> must be a "zero-copy object" reference as returned
-by zco_create().  Note that LTP will privately make and destroy its own
+by ionCreateZco().  Note that LTP will privately make and destroy its own
 reference to the client service data object; the application is free to
 destroy its reference at any time.
 
@@ -135,7 +135,8 @@ obtained from a static variable.
 
 =item void ltp_release_data(Object data)
 
-Releases the resources allocated to hold I<data>, a client service data ZCO.
+Releases the resources allocated to hold I<data>, which must be a B<received>
+client service data ZCO.
 
 =item void ltp_close(unsigned int clientId)
 

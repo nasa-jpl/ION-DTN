@@ -23,8 +23,10 @@ extern int	pmqlsi(int, int, int, int, int, int, int, int, int, int);
 extern int	pmqlso(int, int, int, int, int, int, int, int, int, int);
 extern int	bpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclock(int, int, int, int, int, int, int, int, int, int);
+extern int	bptransit(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
+extern int	bibeclo(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnfw(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
@@ -67,8 +69,10 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "pmqlso",	(FUNCPTR) pmqlso,	ICI_PRIORITY,	32768 },
 		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
 		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
+		{ "bptransit",	(FUNCPTR) bptransit,	ICI_PRIORITY,	4096  },
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
+		{ "bibeclo",	(FUNCPTR) bibeclo,	ICI_PRIORITY,	32768 },
 		{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },
 		{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
 		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },

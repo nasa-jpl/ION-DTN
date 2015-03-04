@@ -14,7 +14,9 @@ LIBBSSOBJS = \
 PUBINCLS = \
 	$(INCL)/bss.h
 
-RUNTIMES = bssrecv bssStreamingApp
+LBP = -lbp -limcfw -lipnfw
+
+RUNTIMES = bssrecv bssStreamingApp bsscounter bssdriver
 
 ALL = check libbss.dll $(RUNTIMES)
 
@@ -40,17 +42,25 @@ install:
 #	-	-	Test executables	-	-	-	-
 
 bssrecv:	bssrecv.o libbss.dll
-		$(CC) -o bssrecv bssrecv.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread -lws2_32
+		$(CC) -o bssrecv bssrecv.o -L./lib -L$(ROOT)/lib -lbss $(LBP) -lici -lpthread -lws2_32
 		cp bssrecv ./bin
 
 bssStreamingApp:	bssStreamingApp.o libbss.dll
-		$(CC) -o bssStreamingApp bssStreamingApp.o -L./lib -L$(ROOT)/lib -lbss -lbp -lici -lpthread -lws2_32
+		$(CC) -o bssStreamingApp bssStreamingApp.o -L./lib -L$(ROOT)/lib -lbss $(LBP) -lici -lpthread -lws2_32
 		cp bssStreamingApp ./bin
+
+bsscounter:	bsscounter.o libbss.dll
+		$(CC) -o bsscounter bsscounter.o -L./lib -L$(ROOT)/lib -lbss $(LBP) -lici -lpthread -lws2_32
+		cp bsscounter ./bin
+
+bssdriver:	bssdriver.o libbss.dll
+		$(CC) -o bssdriver bssdriver.o -L./lib -L$(ROOT)/lib -lbss $(LBP) -lici -lpthread -lws2_32
+		cp bssdriver ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
 libbss.dll:	$(LIBBSSOBJS) $(API)/bssP.h
-		$(LD) -o libbss.dll $(LIBBSSOBJS) -Wl,--output-def,libbss.def -L$(ROOT)/lib -lbp -lici -lpthread -lws2_32
+		$(LD) -o libbss.dll $(LIBBSSOBJS) -Wl,--output-def,libbss.def -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
 		cp libbss.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

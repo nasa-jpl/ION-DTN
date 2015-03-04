@@ -21,6 +21,6 @@ extern int	ecos_processOnFwd(ExtensionBlock *, Bundle *, void *);
 extern int	ecos_processOnAccept(ExtensionBlock *, Bundle *, void *);
 extern int	ecos_processOnEnqueue(ExtensionBlock *, Bundle *, void *);
 extern int	ecos_processOnDequeue(ExtensionBlock *, Bundle *, void *);
-extern int	ecos_acquire(AcqExtBlock *, AcqWorkArea *);
+extern int	ecos_parse(AcqExtBlock *, AcqWorkArea *);
 extern int	ecos_check(AcqExtBlock *, AcqWorkArea *);
 extern void	ecos_clear(AcqExtBlock *);

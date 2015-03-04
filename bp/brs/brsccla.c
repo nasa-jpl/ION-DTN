@@ -12,6 +12,18 @@
 									*/
 #include "brscla.h"
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 {
 	long		temp;
@@ -42,6 +54,7 @@ static void	killMainThread()
 static void	interruptThread()	/*	Commands termination.	*/
 {
 	isignal(SIGTERM, killMainThread);
+	ionPauseAttendant(_attendant(NULL));
 	killMainThread();
 }
 
@@ -114,9 +127,17 @@ static void	*receiveBundles(void *parm)
 	 *	terminating when connection is lost.			*/
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
+	ReqAttendant		attendant;
 	AcqWorkArea		*work;
 	char			*buffer;
 
+	if (ionStartAttendant(&attendant) < 0)
+	{
+		putErrmsg("Can't initialize blocking TCP reception.", NULL);
+		return NULL;
+	}
+
+	oK(_attendant(&attendant));
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
@@ -143,7 +164,8 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByTcp(*(parms->ductSocket), work, buffer))
+		switch (receiveBundleByTcp(*(parms->ductSocket), work, buffer,
+				&attendant))
 		{
 		case -1:
 			putErrmsg("can't acquire bundle.", NULL);
@@ -176,6 +198,7 @@ static void	*receiveBundles(void *parm)
 
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
+	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] brsccla receiver thread stopping.");
 	return NULL;

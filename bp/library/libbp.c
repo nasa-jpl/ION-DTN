@@ -50,42 +50,33 @@ void	bp_detach()
 	ionDetach();
 }
 
-int	bp_open(char *eidString, BpSAP *bpsapPtr)
+static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
+			VEndpoint **vpoint)
 {
-	Sdr		sdr;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Sap		sap;
-	VEndpoint	*vpoint;
 	PsmAddress	vpointElt;
-
-	CHKERR(eidString && *eidString && bpsapPtr);
-	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
-	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	First validate the endpoint ID.				*/
 
 	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		sdr_exit_xn(sdr);
 		putErrmsg("Malformed EID.", eidString);
 		return -1;
 	}
 
 	if (vschemeElt == 0)
 	{
-		sdr_exit_xn(sdr);
 		putErrmsg("Scheme not known.", metaEid.schemeName);
 		restoreEidString(&metaEid);
 		return -1;
 	}
 
-	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &vpointElt);
+	findEndpoint(NULL, metaEid.nss, vscheme, vpoint, &vpointElt);
 	if (vpointElt == 0)
 	{
-		sdr_exit_xn(sdr);
 		putErrmsg("Endpoint not known.", metaEid.nss);
 		restoreEidString(&metaEid);
 		return -1;
@@ -94,60 +85,57 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	/*	Endpoint exists; make sure it's not already opened
 	 *	by some application.					*/
 
-	if (vpoint->appPid != ERROR)	/*	Endpoint not closed.	*/
+	if ((*vpoint)->appPid != ERROR)	/*	Endpoint not closed.	*/
 	{
-		if (sm_TaskExists(vpoint->appPid))
+		if (sm_TaskExists((*vpoint)->appPid))
 		{
-			sdr_exit_xn(sdr);
-			if (vpoint->appPid == sm_TaskIdSelf())
+			restoreEidString(&metaEid);
+			if ((*vpoint)->appPid == sm_TaskIdSelf())
 			{
 				return 0;
 			}
 
-			restoreEidString(&metaEid);
 			putErrmsg("Endpoint is already open.",
-					itoa(vpoint->appPid));
+					itoa((*vpoint)->appPid));
 			return -1;
 		}
 
 		/*	Application terminated without closing the
 		 *	endpoint, so simply close it now.		*/
 
-		vpoint->appPid = ERROR;
+		(*vpoint)->appPid = ERROR;
 	}
 
 	/*	Construct the service access point.			*/
 
-	sap.vpoint = vpoint;
+	memset((char *) &sap, 0, sizeof(Sap));
+	sap.vpoint = (*vpoint);
 	memcpy(&sap.endpointMetaEid, &metaEid, sizeof(MetaEid));
 	sap.endpointMetaEid.colon = NULL;
 	sap.endpointMetaEid.schemeName = MTAKE(metaEid.schemeNameLength + 1);
 	if (sap.endpointMetaEid.schemeName == NULL)
 	{
-		sdr_exit_xn(sdr);
-		putErrmsg("Can't create BpSAP.", NULL);
 		restoreEidString(&metaEid);
+		putErrmsg("Can't create BpSAP.", NULL);
 		return -1;
 	}
 
 	sap.endpointMetaEid.nss = MTAKE(metaEid.nssLength + 1);
 	if (sap.endpointMetaEid.nss == NULL)
 	{
-		sdr_exit_xn(sdr);
 		MRELEASE(sap.endpointMetaEid.schemeName);
-		putErrmsg("Can't create BpSAP.", NULL);
 		restoreEidString(&metaEid);
+		putErrmsg("Can't create BpSAP.", NULL);
 		return -1;
 	}
 
 	*bpsapPtr = MTAKE(sizeof(Sap));
 	if (*bpsapPtr == NULL)
 	{
-		sdr_exit_xn(sdr);
 		MRELEASE(sap.endpointMetaEid.nss);
 		MRELEASE(sap.endpointMetaEid.schemeName);
-		putErrmsg("Can't create BpSAP.", NULL);
 		restoreEidString(&metaEid);
+		putErrmsg("Can't create BpSAP.", NULL);
 		return -1;
 	}
 
@@ -155,16 +143,56 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 			metaEid.schemeNameLength + 1);
 	istrcpy(sap.endpointMetaEid.nss, metaEid.nss,
 			metaEid.nssLength + 1);
+	memcpy((char *) (*bpsapPtr), (char *) &sap, sizeof(Sap));
 	restoreEidString(&metaEid);
-	sap.recvSemaphore = vpoint->semaphore;
-	memcpy((char *) *bpsapPtr, (char *) &sap, sizeof(Sap));
-
-	/*	Having created the SAP, give its owner exclusive
-	 *	access to the endpoint.					*/
-
-	vpoint->appPid = sm_TaskIdSelf();
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 	return 0;
+}
+
+int	bp_open(char *eidString, BpSAP *bpsapPtr)
+{
+	Sdr		sdr;
+	VEndpoint	*vpoint;
+	int		result;
+
+	CHKERR(eidString && *eidString && bpsapPtr);
+	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
+	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	result = createBpSAP(sdr, eidString, bpsapPtr, &vpoint);
+	if (result == 0)
+	{
+		(*bpsapPtr)->recvSemaphore = vpoint->semaphore;
+		(*bpsapPtr)->detain = 0;
+
+		/*	Give owner of this SAP exclusive reception
+		 *	access on the endpoint.				*/
+
+		vpoint->appPid = sm_TaskIdSelf();
+	}
+
+	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
+	return result;
+}
+
+int	bp_open_source(char *eidString, BpSAP *bpsapPtr, int detain)
+{
+	Sdr		sdr;
+	VEndpoint	*vpoint;	/*	createBpSAP work area.	*/
+	int		result;
+
+	CHKERR(eidString && *eidString && bpsapPtr);
+	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
+	sdr = getIonsdr();
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	result = createBpSAP(sdr, eidString, bpsapPtr, &vpoint);
+	if (result == 0)
+	{
+		(*bpsapPtr)->recvSemaphore = SM_SEM_NONE;
+		(*bpsapPtr)->detain = detain;
+	}
+
+	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
+	return result;
 }
 
 void	bp_close(BpSAP sap)
@@ -279,9 +307,12 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 	BpExtendedCOS	defaultECOS = { 0, 0, 0 };
 	MetaEid		*sourceMetaEid;
 
-	CHKERR(bundleObj);
-	*bundleObj = 0;
-	CHKERR(adu);
+	if (adu == 0)
+	{
+		writeMemo("[?] No application data unit to send.");
+		return 0;
+	}
+
 	if (ecos == NULL)
 	{
 		ecos = &defaultECOS;
@@ -297,10 +328,31 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 	if (sap)
 	{
 		sourceMetaEid = &(sap->endpointMetaEid);
+		if (sap->detain)
+		{
+			if (bundleObj == NULL)
+			{
+				writeMemo("[?] Can't return bundle address.");
+				return 0;
+			}
+		}
+		else
+		{
+			if (bundleObj)
+			{
+				*bundleObj = 0;
+				bundleObj = NULL;
+			}
+		}
 	}
-	else
+	else					/*	Anonymous.	*/
 	{
 		sourceMetaEid = NULL;
+		if (bundleObj)
+		{
+			*bundleObj = 0;
+			bundleObj = NULL;
+		}
 	}
 
 	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan,
@@ -384,7 +436,7 @@ int	bp_suspend(Object bundleObj)
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
-		writeMemo("[?] Attempt to suspend a 'critical' object.");
+		writeMemo("[?] Attempt to suspend a 'critical' bundle.");
 		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
 		return 0;
 	}
@@ -424,7 +476,7 @@ int	bp_suspend(Object bundleObj)
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't suspend bundle.", NULL);
+		putErrmsg("Failure in bundle suspension.", NULL);
 		return -1;
 	}
 
@@ -445,7 +497,20 @@ int	bp_resume(Object bundleObj)
 		return 0;
 	}
 
-	return releaseFromLimbo(bundle.ductXmitElt, 1);
+	if (releaseFromLimbo(bundle.ductXmitElt, 1) < 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't resume transmission of bundle.", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failure in bundle resumption.", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 int	bp_cancel(Object bundleObj)
@@ -464,6 +529,25 @@ int	bp_cancel(Object bundleObj)
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Failure in bundle cancellation.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	bp_release(Object bundleObj)
+{
+	Sdr	sdr = getIonsdr();
+	Bundle	bundle;
+
+	CHKERR(bundleObj);
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	bundle.detained = 0;
+	sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failure in bundle release.", NULL);
 		return -1;
 	}
 

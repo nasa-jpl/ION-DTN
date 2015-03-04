@@ -362,7 +362,7 @@ void	sdr_stop_trace(Sdr sdrv)
 #endif
 }
 
-void	joinTrace(Sdr sdrv, char *sourceFileName, int lineNbr)
+void	joinTrace(Sdr sdrv, const char *sourceFileName, int lineNbr)
 {
 #ifndef SDR_TRACE
 	return;
@@ -730,7 +730,7 @@ Object	_sdrmalloc(Sdr sdrv, unsigned long nbytes)
 	return object;
 }
 
-Object	Sdr_malloc(char *file, int line, Sdr sdrv, unsigned long nbytes)
+Object	Sdr_malloc(const char *file, int line, Sdr sdrv, unsigned long nbytes)
 {
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -742,7 +742,7 @@ Object	Sdr_malloc(char *file, int line, Sdr sdrv, unsigned long nbytes)
 	return _sdrmalloc(sdrv, nbytes);
 }
 
-Object	Sdr_insert(char *file, int line, Sdr sdrv, char *from,
+Object	Sdr_insert(const char *file, int line, Sdr sdrv, char *from,
 		unsigned long size)
 {
 	Object	obj;
@@ -936,7 +936,7 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 #endif
 }
 
-void	Sdr_free(char *file, int line, Sdr sdrv, Object object)
+void	Sdr_free(const char *file, int line, Sdr sdrv, Object object)
 {
 	if (!(sdr_in_xn(sdrv)))
 	{

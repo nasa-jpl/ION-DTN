@@ -37,6 +37,9 @@ extern "C" {
 #ifndef linux
 #define linux
 #endif
+#ifndef __UCLIBC__
+#define __UCLIBC__
+#endif
 #endif
 
 #define	MAX_POSIX_TIME	2147483644
@@ -84,7 +87,7 @@ extern "C" {
 #define	LONG_LONG_OKAY		0	/*	Default value.		*/
 #endif
 
-#else
+#else					/*	Not RTEMS or uClibc.	*/
 
 #define	LONG_LONG_OKAY		1
 #endif	/*	RTEMS or uClibc						*/
@@ -185,6 +188,8 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #define	ECONNREFUSED		WSAECONNREFUSED
 #define ECONNRESET		WSAECONNRESET
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#define ENETUNREACH		WSAENETUNREACH
+#define EHOSTUNREACH		WSAEHOSTUNREACH
 #define	O_LARGEFILE		0
 
 #else				/****	not Windows		*********/
@@ -741,8 +746,8 @@ extern uvast			htonv(uvast hostvast);
 extern uvast			ntohv(uvast netvast);
 
 extern int			_isprintf(char *, int, char *, ...);
-extern size_t			istrlen(char *, size_t);
-extern char			*istrcpy(char *, char *, size_t);
+extern size_t			istrlen(const char *, size_t);
+extern char			*istrcpy(char *, const char *, size_t);
 extern char			*istrcat(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));

@@ -52,55 +52,15 @@ al_bp_error_t bp_ion_errno(al_bp_handle_t handle)
 
 al_bp_error_t bp_ion_build_local_eid(al_bp_endpoint_id_t* local_eid,
 								const char* service_tag,
-								const char * type,
-								char * eid_destination)
+								al_bp_scheme_t  type)
 {
 	char * eidString, * hostname;
 	int result;
 	VScheme * scheme;
 	PsmAddress psmAddress;
 	eidString = (char *)malloc(sizeof(char)*AL_BP_MAX_ENDPOINT_ID);
-/*Client*/
-	if(strcmp(type,"Client") == 0)
-	{
-		if(strncmp(eid_destination,CBHESCHEMENAME,3) == 0)
-		{
-			findScheme(CBHESCHEMENAME,&scheme,&psmAddress);
-			if(psmAddress == 0)
-			{
-				/*Unknow scheme*/
-				result = addScheme(CBHESCHEMENAME,"ipnfw","ipnadmin");
-				if(result == 0)
-					return BP_EBUILDEID;
-			}
-			unsigned long int service_num = getpid();
-			sprintf(eidString, "%s:%lu",
-							CBHESCHEMENAME,(unsigned long int)getOwnNodeNbr());
-			sprintf(eidString, "%s.%lu",
-							eidString,service_num);
-			(*local_eid) = ion_al_endpoint_id(eidString);
-		}
-		else
-		{
-			findScheme(DTN2SCHEMENAME,&scheme,&psmAddress);
-			if(psmAddress == 0)
-			{
-				/*Unknow scheme*/
-				result = addScheme(DTN2SCHEMENAME,"dtn2fw","dtn2admin");
-				if(result == 0)
-					return BP_EBUILDEID;
-			}
-			hostname = (char *)malloc(sizeof(char)*50);
-			result = gethostname(hostname, sizeof(hostname));
-			if(result == -1)
-				return BP_EBUILDEID;
-			sprintf(eidString,"%s://%s.dtn%s",DTN2SCHEMENAME,hostname,service_tag);
-			(*local_eid) = ion_al_endpoint_id(eidString);
-			free(hostname);
-		}
-	}
-/* Server and Monitor CBHE*/
-	else if(strcmp(type,"Server-CBHE")==0 || strcmp(type,"Monitor-CBHE") == 0)
+
+	if(type == CBHE_SCHEME)
 	{
 		findScheme(CBHESCHEMENAME,&scheme,&psmAddress);
 		if(psmAddress == 0)
@@ -117,8 +77,7 @@ al_bp_error_t bp_ion_build_local_eid(al_bp_endpoint_id_t* local_eid,
 				eidString,service_num);
 		(*local_eid) = ion_al_endpoint_id(eidString);
 	}
-/* Server and Monitor DTN*/
-	else if(strcmp(type,"Server-DTN")==0 || strcmp(type,"Monitor-DTN") == 0)
+	else if(type == DTN_SCHEME)
 	{
 		findScheme(DTN2SCHEMENAME,&scheme,&psmAddress);
 		if(psmAddress == 0)
@@ -128,8 +87,9 @@ al_bp_error_t bp_ion_build_local_eid(al_bp_endpoint_id_t* local_eid,
 			if(result == 0)
 				return BP_EBUILDEID;
 		}
-		hostname = (char *)malloc(sizeof(char)*50);
-		result = gethostname(hostname, sizeof(hostname));
+
+		hostname = (char *)malloc(sizeof(char)*100);
+		result = gethostname(hostname, 100);
 		if(result == -1)
 			return BP_EBUILDEID;
 		sprintf(eidString,"%s://%s.dtn%s",DTN2SCHEMENAME,hostname,service_tag);
@@ -239,11 +199,7 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	custodySwitch = NoCustodyRequested;
 	srrFlags = al_ion_bundle_srrFlags(spec->dopts);
 	ackRequested = 0;
-	Payload ion_payload = al_ion_bundle_payload((*payload));
-	Object adu = ion_payload.content;
-	Object newBundleObj;
-	/* Create String for parse class of service */
-	
+	/* Create String for parse class of service */	
 	if(spec->dopts & BP_DOPTS_CUSTODY)
 	{
 			tmpCustody = 1;
@@ -264,6 +220,10 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	result = bp_parse_class_of_service(tokenClassOfService,&extendedCOS,&custodySwitch,&tmpPriority);
 	if(result == 0)
 		return BP_EINVAL;
+	Payload ion_payload = al_ion_bundle_payload((*payload), tmpPriority, extendedCOS);
+	Object adu = ion_payload.content;
+	Object newBundleObj;
+
 	/* Send Bundle*/
 	result = bp_send(bpSap,destEid,reportEid,lifespan,tmpPriority,
 			custodySwitch,srrFlags,ackRequested,&extendedCOS,adu,&newBundleObj);
@@ -273,17 +233,36 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 			return BP_ESEND;
 
 	/* Set Id Bundle Sent*/
+//dz debug --- It is not safe to use the newBundleObj "address" to access SDR because it may
+//dz debug --- have been released (or worse: reallocated) before bp_send returns. ION 3.3 should 
+//dz debug --- have a new feature bp_open_source() which will preserve the sent bundle until
+//dz debug --- it is released or expires. I am commenting out retrieving the dictionary because
+//dz debug --- that can lead to allocating 4GB of memory if the newBundleObj data was overwritten.
+//dz debug --- This should be updated after the new feature is available. 
+//dz debug
 	Bundle bundleION;
 	Sdr bpSdr = bp_get_sdr();
 	sdr_begin_xn(bpSdr);
 	sdr_read(bpSdr,(char*)&bundleION,(SdrAddress) newBundleObj,sizeof(Bundle));
 	sdr_end_xn(bpSdr);
-	char * tmpEidSource;
-	printEid(&(bundleION.id.source),retrieveDictionary(&bundleION),&tmpEidSource);
-	id->source = ion_al_endpoint_id(tmpEidSource);
+//dz debug	char * tmpEidSource;
+//dz debug	printEid(&(bundleION.id.source),retrieveDictionary(&bundleION),&tmpEidSource);
+//dz debug             --- Note that calling retrieveDictionary without releasing it results in
+//dz debug             --- an SDR "memory leak"
+//dz debug	id->source = ion_al_endpoint_id(tmpEidSource);
+	id->source = ion_al_endpoint_id("<TBD>");  //dz debug
+
+//dz debug --- Note that the following values may not always be valid by the time they are read here
+//dz debug --- but most of the time they should be okay and reading invalid values will not cause 
+//dz debug --- a crash. Just setting these values to zeroes prevents the client Window option from working
+//dz debug --- because ACKs from the server would never match. This compromise should work until invalid
+//dz debug --- values fill up the window.
 	id->creation_ts = ion_al_timestamp(bundleION.id.creationTime);
 	id->frag_offset = bundleION.id.fragmentOffset;
 	id->orig_length = bundleION.totalAduLength;
+
+
+
 	//
 	handle = ion_al_handle(bpSap);
 	//Free resource
@@ -330,33 +309,21 @@ al_bp_error_t bp_ion_recv(al_bp_handle_t handle,
 	ion_payload.content = dlv.adu;
 	ion_payload.length = zco_source_data_length(bpSdr, dlv.adu);
 	/* File Name if payload is saved in a file */
+	char * filename_base = "/tmp/ion_";
 	char * filename = (char *) malloc(sizeof(char)*256);
-	char * tmp_eid = (char *) malloc(sizeof(char) * (strlen(dlv.bundleSourceEid)+1));
-	strcpy(tmp_eid,dlv.bundleSourceEid);
-	/* Take EID from Source*/
-	if(strncmp(dlv.bundleSourceEid,"ipn",3) != 0)
+	//check for existing files
+	int i = 0;
+	boolean_t stop = FALSE;
+	while (!stop)
 	{
-		strtok(tmp_eid, "/");
-		tmp = strtok(NULL, "/");
-		/* tmp_eid = "dtn://vm1.dtn/src_2222"
-		 * after
-		 * tmp_eid = "vm1.dtn"
-		 * */
+		sprintf(filename, "%s%d_%d", filename_base, getpid(), i);
+		if (access(filename,F_OK) != 0)
+			// if filename doesn't exist, exit
+			stop = TRUE;
+		i++;
 	}
-	else
-	{
-		strtok(tmp_eid,":");
-		tmp = strtok(NULL,":");
-		/* tmp_eid = "ipn:1.2222"
-		 * after
-		 * tmp_eid = "1.2222"
-		 * */
-	}
-	sprintf(filename,"/tmp/ion%s_%u_%u",tmp,
-			dlv.bundleCreationTime.seconds,dlv.bundleCreationTime.count);
 	(*payload)  = ion_al_bundle_payload(ion_payload,location,filename);
 	free(filename);
-	free(tmp_eid);
 	/* Status Report */
 	BpStatusRpt statusRpt;
 	BpCtSignal ctSignal;
@@ -448,7 +415,14 @@ void bp_ion_free_payload(al_bp_bundle_payload_t* payload)
 		sdr_begin_xn(bpSdr);
 		Object fileRef = sdr_find(bpSdr, payload->filename.filename_val, &type);
 		if(fileRef != 0)
+		{
 			zco_destroy_file_ref(bpSdr, fileRef);
+//by David Zoller remove filename from catalog 
+                        sdr_uncatlg(bpSdr, payload->filename.filename_val);
+		}
+		else
+		//delete the payload file
+			unlink(payload->filename.filename_val);
 		sdr_end_xn(bpSdr);
 	}
 }
@@ -614,8 +588,7 @@ al_bp_error_t bp_ion_errno(al_bp_handle_t handle)
 
 al_bp_error_t bp_ion_build_local_eid(al_bp_endpoint_id_t* local_eid,
 								const char* service_tag,
-								const char * type,
-								char * eid_destination)
+								al_bp_scheme_t type)
 {
 	return BP_ENOTIMPL;
 }

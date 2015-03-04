@@ -90,7 +90,7 @@ int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	return serializeExtBlk(blk, NULL, dataBuffer);
 }
 
-int	bae_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
@@ -120,7 +120,7 @@ int	bae_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	bae_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	return 0;
+	return 1;
 }
 
 void	bae_clear(AcqExtBlock *blk)

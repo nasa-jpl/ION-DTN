@@ -16,11 +16,31 @@
 #define	CFDPDEBUG	0
 #endif
 
-static int	*_zcoControl()
+static ReqAttendant	*_attendant()
 {
-	static int	controlValue;
+	ReqAttendant	*attendant;
+	void		*value;
 
-	return &controlValue;
+	attendant = (ReqAttendant *) sm_TaskVar(NULL);
+	if (attendant == NULL)
+	{
+		attendant = (ReqAttendant *) MTAKE(sizeof(ReqAttendant));
+		if (attendant == NULL)
+		{
+			return NULL;
+		}
+
+		if (ionStartAttendant(attendant) < 0)
+		{
+			MRELEASE(attendant);
+			return NULL;
+		}
+
+		value = (void *) attendant;
+		attendant = (ReqAttendant *) sm_TaskVar(&value);
+	}
+
+	return attendant;
 }
 
 /*	*	*	Helpful utility functions	*	*	*/
@@ -691,12 +711,22 @@ int	_cfdpStart(char *utaCmd)
 
 void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 {
-	Sdr	sdr = getIonsdr();
-	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
+	Sdr		sdr = getIonsdr();
+	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
+	ReqAttendant	*attendant;
 
 	/*	Tell all CFDP processes to stop.			*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+
+	/*	Disable blocking ZCO buffer space access.		*/
+
+	attendant = _attendant();
+	if (attendant)
+	{
+		ionStopAttendant(attendant);
+		MRELEASE(attendant);
+	}
 
 	/*	Stop user application input thread.			*/
 
@@ -706,10 +736,9 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	}
 
 	/*	Stop UTA task.						*/
-
+	
 	if (cfdpvdb->fduSemaphore != SM_SEM_NONE)
 	{
-		ionCancelZcoSpaceRequest(_zcoControl());
 		sm_SemEnd(cfdpvdb->fduSemaphore);
 	}
 
@@ -2659,6 +2688,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 			int *haveMetadata)
 {
 	Sdr		sdr = getIonsdr();
+	vast		length;
 	Object		elt;
 	Object		pduObj;
 			OBJ_POINTER(FileDataPdu, seg);
@@ -2671,17 +2701,22 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 
 	if (fdu->metadataPdu)
 	{
-		*pdu = ionCreateZco(ZcoSdrSource, fdu->metadataPdu, 0,
-				fdu->mpduLength, _zcoControl());
-		if (*pdu == (Object) ERROR)
+		length = fdu->mpduLength;
+
+		/*	Pass additive inverse of length to zco_create
+		 *	to note that space has already been awarded.	*/
+
+		*pdu = zco_create(sdr, ZcoSdrSource, fdu->metadataPdu, 0,
+				0 - length, ZcoOutbound, 0);
+		switch (*pdu)
 		{
+		case (Object) ERROR:
+		case 0:
 			putErrmsg("Can't create Metadata PDU ZCO.", NULL);
 			return -1;
-		}
 
-		if (*pdu == 0)		/*	No ZCO space for PDU.	*/
-		{
-			return 0;
+		default:
+			break;
 		}
 
 		fdu->metadataPdu = 0;
@@ -2694,7 +2729,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		if (fdu->fileRef == 0)
 		{
 			fdu->fileRef = zco_create_file_ref(sdr,
-					fdu->sourceFileName, NULL);
+					fdu->sourceFileName, NULL, ZcoOutbound);
 			if (fdu->fileRef == 0)
 			{
 				putErrmsg("No space for file ZCO ref.", NULL);
@@ -2756,22 +2791,33 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 
 			sdr_write(sdr, header, (char *) headerBuf,
 					headerLength);
-			*pdu = ionCreateZco(ZcoSdrSource, header, 0,
-					headerLength, _zcoControl());
-			if (*pdu == (Object) ERROR)
+			length = headerLength;
+
+			/*	Pass additive inverse of length to
+			 *	zco_create to note that space has
+			 *	already been awarded.			*/
+
+			*pdu = zco_create(sdr, ZcoSdrSource, header, 0,
+					0 - length, ZcoOutbound, 0);
+			switch (*pdu)
 			{
-				putErrmsg("Can't create file PDU ZCO.", NULL);
+			case (Object) ERROR:
+			case 0:
+				putErrmsg("Can't create data PDU ZCO.", NULL);
 				return -1;
+
+			default:
+				break;
 			}
 
-			if (*pdu == 0)	/*	No ZCO space for PDU.	*/
-			{
-				return 0;
-			}
+			length = seg->length;
 
-			if (ionAppendZcoExtent(*pdu, ZcoFileSource,
-					fdu->fileRef, seg->offset, seg->length,
-					_zcoControl()) <= 0)
+			/*	Pass additive inverse of length to
+			 *	zco_append_extent to note that space
+			 *	has already been awarded.		*/
+
+			if (zco_append_extent(sdr, *pdu, ZcoFileSource,
+				fdu->fileRef, seg->offset, 0 - length) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return -1;
@@ -2785,17 +2831,22 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		}
 	}
 
-	*pdu = ionCreateZco(ZcoSdrSource, fdu->eofPdu, 0, fdu->epduLength,
-			_zcoControl());
-	if (*pdu == (Object) ERROR)
+	length = fdu->epduLength;
+
+	/*	Pass additive inverse of length to zco_create to note
+	 *	that space has already been awarded.			*/
+
+	*pdu = zco_create(sdr, ZcoSdrSource, fdu->eofPdu, 0, 0 - length,
+			ZcoOutbound, 0);
+	switch (*pdu)
 	{
+	case (Object) ERROR:
+	case 0:
 		putErrmsg("Can't create EOF PDU ZCO.", NULL);
 		return -1;
-	}
 
-	if (*pdu == 0)			/*	No ZCO space for PDU.	*/
-	{
-		return 0;
+	default:
+		break;
 	}
 
 	fdu->eofPdu = 0;
@@ -2810,23 +2861,29 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	obj;
+	vast	length;
 
 	elt = sdr_list_first(sdr, db->finishPdus);
 	if (elt)	/*	Have got a Finished PDU to send.	*/
 	{
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) fpdu, obj, sizeof(FinishPdu));
-		*pdu = ionCreateZco(ZcoSdrSource, fpdu->pdu, 0, fpdu->length,
-				_zcoControl());
-		if (*pdu == (Object) ERROR)
+		length = fpdu->length;
+
+		/*	Pass additive inverse of length to zco_create
+		 *	to note that space has already been awarded.	*/
+
+		*pdu = zco_create(sdr, ZcoSdrSource, fpdu->pdu, 0,
+				0 - length, ZcoOutbound, 0);
+		switch (*pdu)
 		{
+		case (Object) ERROR:
+		case 0:
 			putErrmsg("Can't create Finish PDU ZCO.", NULL);
 			return -1;
-		}
 
-		if (*pdu == 0)		/*	No ZCO space for PDU.	*/
-		{
-			return 0;
+		default:
+			break;
 		}
 
 		sdr_free(sdr, obj);
@@ -2859,6 +2916,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	Sdr			sdr = getIonsdr();
 	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB			cfdpdb;
+	ReqAttendant		*attendant = _attendant();
+	ReqTicket		ticket;
 	Object			fdu = 0;
 	int			pduIsFileData = 0;	/*	Boolean.*/
 	int			haveMetadata = 0;	/*	Boolean.*/
@@ -2886,6 +2945,47 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	*pdu = 0;
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	crcRequired = cfdpdb.crcRequired;
+
+	/*	Reserve one PDU's worth of ZCO space.  Assume file
+	 *	data segment size limit is maximum PDU size; reserve
+	 *	it in both file and heap, because we don't know which
+	 *	will be needed.  (Only one or the other will actually
+	 *	be allocated, when the ZCO is finally created.)		*/
+
+	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength,
+		cfdpdb.maxFileDataLength, 1, 0, attendant, &ticket) < 0)
+	{
+		putErrmsg("Failed trying to reserve ZCO space.", NULL);
+		return -1;
+	}
+
+	if (ticket)	/*	Space is not currently available.	*/
+	{
+		/*	Ticket is request list element for the request.
+		 *	Wait until space is available.			*/
+
+		if (sm_SemTake(attendant->semaphore) < 0)
+		{
+			putErrmsg("Failed taking semaphore.", NULL);
+			ionShred(ticket);
+			return -1;
+		}
+
+		if (sm_SemEnded(attendant->semaphore))
+		{
+			writeMemo("[i] CFDP UTO ZCO request interrupted.");
+			ionShred(ticket);
+			return -1;
+		}
+
+		/*	ZCO space has now been reserved.		*/
+	
+		ionShred(ticket);
+	}
+
+	/*	At this point it is known that there's sufficient
+	 *	ZCO space for the next outbound PDU, so create it.	*/
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (selectOutPdu(&cfdpdb, pdu, &fdu, fduBuffer, fpdu, direction,
 			&pduIsFileData, &haveMetadata) < 0)
@@ -4154,7 +4254,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	fdu->inactivityDeadline = getUTCTime()
-					+ cfdpdb.transactionInactivityLimit;
+			+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = ((*cursor) >> 4) & 0x0f;
 	fdu->ckType = (*cursor) & 0x01;
@@ -4271,7 +4371,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
 	fdu->inactivityDeadline = getUTCTime()
-					+ cfdpdb.transactionInactivityLimit;
+			+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->closureRequested = ((*cursor) >> 6) & 0x01;
 	cursor++;

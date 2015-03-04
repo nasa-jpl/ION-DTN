@@ -47,9 +47,17 @@ rm -f ./ion_nodes
 # Start node 9, loading large contact plan.
 ./ionstart
 
-sleep 5
+../../system_up -i "p 30" -l "p 30" -b "p 30"
 
-echo "Send a bundle from ipn:9.1 destined for (noexistent) node ipn:1.1..."
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
+
+echo "Send a bundle from ipn:9.1 destined for (nonexistent) node ipn:1.1..."
 bptrace ipn:9.1 ipn:1.1 ipn:9.0 200000 1.1 "Hi"
 
 # Route should be computed quickly.

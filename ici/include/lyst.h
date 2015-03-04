@@ -36,13 +36,13 @@ typedef void (*LystCallback)(LystElt,void *);
  */
 
 #define lyst_create_using(idx)	Lyst_create_using(__FILE__, __LINE__, idx)
-Lyst Lyst_create_using(char*,int,int);
+Lyst Lyst_create_using(const char*,int,int);
 #define lyst_create()		Lyst_create(__FILE__, __LINE__)
-Lyst Lyst_create(char*,int);
+Lyst Lyst_create(const char*,int);
 #define lyst_clear(list)	Lyst_clear(__FILE__, __LINE__, list)
-void Lyst_clear(char*,int,Lyst);
+void Lyst_clear(const char*,int,Lyst);
 #define lyst_destroy(list)	Lyst_destroy(__FILE__, __LINE__, list)
-void Lyst_destroy(char*,int,Lyst);
+void Lyst_destroy(const char*,int,Lyst);
 
 void lyst_compare_set(Lyst,LystCompareFn);
 LystCompareFn lyst_compare_get(Lyst);
@@ -54,17 +54,21 @@ void lyst_insert_get(Lyst,LystCallback *,void **);
 unsigned long lyst_length(Lyst);
 
 #define lyst_insert(list, data)	Lyst_insert(__FILE__, __LINE__, list, data)
-LystElt Lyst_insert(char*,int,Lyst,void *);
-#define lyst_insert_first(list, data)	Lyst_insert_first(__FILE__, __LINE__, list, data)
-LystElt Lyst_insert_first(char*,int,Lyst,void *);
-#define lyst_insert_last(list, data)	Lyst_insert_last(__FILE__, __LINE__, list, data)
-LystElt Lyst_insert_last(char*,int,Lyst,void *);
-#define lyst_insert_before(elt, data)	Lyst_insert_before(__FILE__, __LINE__, elt, data)
-LystElt Lyst_insert_before(char*,int,LystElt,void *);
-#define lyst_insert_after(elt, data)	Lyst_insert_after(__FILE__, __LINE__, elt, data)
-LystElt Lyst_insert_after(char*,int,LystElt,void *);
+LystElt Lyst_insert(const char*,int,Lyst,void *);
+#define lyst_insert_first(list, data)	Lyst_insert_first(__FILE__, __LINE__, \
+list, data)
+LystElt Lyst_insert_first(const char*,int,Lyst,void *);
+#define lyst_insert_last(list, data)	Lyst_insert_last(__FILE__, __LINE__, \
+list, data)
+LystElt Lyst_insert_last(const char*,int,Lyst,void *);
+#define lyst_insert_before(elt, data)	Lyst_insert_before(__FILE__, __LINE__, \
+elt, data)
+LystElt Lyst_insert_before(const char*,int,LystElt,void *);
+#define lyst_insert_after(elt, data)	Lyst_insert_after(__FILE__, __LINE__, \
+elt, data)
+LystElt Lyst_insert_after(const char*,int,LystElt,void *);
 #define lyst_delete(elt)	Lyst_delete(__FILE__, __LINE__, elt)
-void Lyst_delete(char*,int,LystElt);
+void Lyst_delete(const char*,int,LystElt);
 
 LystElt lyst_first(Lyst);
 LystElt lyst_last(Lyst);

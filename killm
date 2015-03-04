@@ -12,6 +12,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
 	aoslsi lt-aoslsi \
 	aoslso lt-aoslso \
+	bibeclo lt-bibeclo \
 	bpadmin lt-bpadmin \
 	bpcancel lt-bpcancel \
 	bpchat lt-bpchat \
@@ -28,14 +29,18 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpstats lt-bpstats \
 	bpstats2 lt-bpstats2 \
 	bptrace lt-bptrace \
+	bptransit lt-bptransit \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \
-	bssadmin lt-bssadmin \
 	bsscounter lt-bsscounter \
 	bssdriver lt-bssdriver \
-	bssfw lt-bssfw \
+	bsspadmin lt-bsspadmin \
+	bsspcli lt-bsspcli \
+	bsspclo lt-bsspclo \
+	bsspclock lt-bsspclock \
 	bssrecv lt-bssrecv \
 	bssStreamingApp lt-bssStreamingApp \
+	cgrfetch lt-cgrfetch \
 	dccpcli lt-dccpcli \
 	dccpclo lt-dccpclo \
 	dccplsi lt-dccplsi \
@@ -45,6 +50,9 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	dtn2admin lt-dtn2admin \
 	dtn2adminep lt-dtn2adminep \
 	dtn2fw lt-dtn2fw \
+	dtpcadmin lt-dtpcadmin \
+	dtpcclock lt-dtpcclock \
+	dtpcd lt-dtpcd \
 	dtpcreceive lt-dtpcreceive \
 	dtpcsend lt-dtpcsend \
 	dtpcadmin lt-dtpcadmin \
@@ -57,6 +65,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	imcadmin lt-imcadmin \
 	imcfw lt-imcfw \
 	ionadmin lt-ionadmin \
+	ionexit lt-ionexit \
+	ionrestart lt-ionrestart \
 	ionsecadmin lt-ionsecadmin \
 	ionwarn lt-ionwarn \
 	ipnadmin lt-ipnadmin \
@@ -71,6 +81,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ltpcounter lt-ltpcounter \
 	ltpdriver lt-ltpdriver \
 	ltpmeter lt-ltpmeter \
+	nm_agent lt-nm_agent \
+	nm_mgr lt-nm_mgr \
 	owltsim lt-owltsim \
 	owlttb lt-owlttb \
 	psmshell lt-psmshell \
@@ -83,17 +95,21 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	sdrwatch lt-sdrwatch \
 	sm2file lt-sm2file \
 	smlistsh lt-smlistsh \
+	smrbtsh lt-smrbtsh \
 	stcpcli lt-stcpcli \
 	stcpclo lt-stcpclo \
 	tcp2file lt-tcp2file \
+	tcpbsi lt-tcpbsi \
+	tcpbso lt-tcpbso \
 	tcpcli lt-tcpcli \
 	tcpclo lt-tcpclo \
 	udp2file lt-udp2file \
+	udpbsi lt-udpbsi \
+	udpbso lt-udpbso \
 	udpcli lt-udpcli \
 	udpclo lt-udpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
-	ionrestart lt-ionrestart \
 	"
 
 if [ "$ION_OPEN_SOURCE" == "1" ];then

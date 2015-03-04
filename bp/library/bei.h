@@ -61,17 +61,17 @@
 
 /**
  *  \struct ExtensionBlock
- *  \brief Definition of an SDR-contained Bundle Extension Block.
+ *  \brief Definition of an outbound Bundle Extension Block.
  *
  * This structure holds any RFC5050-compliant extension block that is being
- * constructed for sending out from the BPA.  This structure is stored in the
- * SDR and may be persistently stored until the block is ready to be sent and/
- * or the containing bundle may be removed.
+ * constructed for transmission from the BPA.  This structure is stored in the
+ * notionally non-volatile SDR heap until the block is ready to be sent and/
+ * or the containing bundle may be destroyed.
  */
 typedef struct
 {
-	unsigned char	rank;		/**	Order within def array.	*/
 	unsigned char	type;		/**	Per definitions array.	*/
+	unsigned char	occurrence;	/**	Sequential count.	*/
 	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
@@ -79,20 +79,31 @@ typedef struct
 	Object		object;		/**	Opaque scratchpad.	*/
 	Object		eidReferences;	/**	SDR list (may be 0).	*/
 	Object		bytes;		/**	Array in SDR heap.	*/
+
+	/*	Internally significant data for block production.	*/
+
+	unsigned char	tag1;		/**	Extension-specific.	*/
+	unsigned char	tag2;		/**	Extension-specific.	*/
+	unsigned char	tag3;		/**	Extension-specific.	*/
+	unsigned short	rank;		/**	Order within spec array.*/
 	int		suppressed;	/**	If suppressed.          */
 } ExtensionBlock;
 
 /**
  *  \struct AcqExtBlock
- *  \brief Definition of a memory-only Bundle Extension Block.
+ *  \brief Definition of an inbound Bundle Extension Block.
  *
  * This structure holds any RFC5050-compliant extension block that is being
- * acquired from an underlying convergence layer. These blocks are stored in
- * memory as sent from the personal space manager (PSM).
+ * acquired from an underlying convergence layer.  Since the bundle
+ * containing the block has not yet been committed to SDR heap storage
+ * but exists only in the transient bundle acquisition work area stored in
+ * volatile ION working memory, this block likewise is stored in ION working
+ * memory.
  */
 typedef struct
 {
-	unsigned char	type;		/**	Per extensions array.	*/
+	unsigned char	type;		/**	Per definitions array.	*/
+	unsigned char	occurrence;	/**	Sequential count.	*/
 	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
@@ -102,58 +113,78 @@ typedef struct
 	unsigned char	bytes[1];	/**	Variable-length array.	*/
 } AcqExtBlock;
 
-/** Functions used on the creation/send side of an extension block. */
+/** Functions used in creating and transmitting an outbound extension block. */
 typedef int		(*BpExtBlkOfferFn)(ExtensionBlock *, Bundle *);
-typedef void		(*BpExtBlkReleaseFn)(ExtensionBlock *);
-typedef int		(*BpExtBlkRecordFn)(ExtensionBlock *, AcqExtBlock *);
-typedef int		(*BpExtBlkCopyFn)(ExtensionBlock *, ExtensionBlock *);
 typedef int		(*BpExtBlkProcessFn)(ExtensionBlock *, Bundle *, void*);
+typedef void		(*BpExtBlkReleaseFn)(ExtensionBlock *);
+typedef int		(*BpExtBlkCopyFn)(ExtensionBlock *, ExtensionBlock *);
 
-/** Functions used on the receive side of an extension block. */
+/** Functions used in acquiring an inbound extension block. */
 typedef int		(*BpAcqExtBlkAcquireFn)(AcqExtBlock *, AcqWorkArea *);
+typedef int		(*BpAcqExtBlkDecryptFn)(AcqExtBlock *, AcqWorkArea *);
+typedef int		(*BpAcqExtBlkParseFn)(AcqExtBlock *, AcqWorkArea *);
 typedef int		(*BpAcqExtBlkCheckFn)(AcqExtBlock *, AcqWorkArea *);
+typedef int		(*BpExtBlkRecordFn)(ExtensionBlock *, AcqExtBlock *);
 typedef void		(*BpAcqExtBlkClearFn)(AcqExtBlock *);
 
 /**
  *  \struct ExtensionDef
  *  \brief Defines the callbacks used to process extension blocks.
  *
- * ExtensionDefs hold the callbacks, type, and position of the meta-data
- * used to define and process extension blocks within the bundle.
+ * ExtensionDef defines the callbacks for production and acquisition
+ * of a single type of extension block, identified by block type name
+ * and number and occurrence number (0 for First or Only occurrence,
+ * 1 for Last occurrence).
  */
 typedef struct
 {
 	char			name[32];	/** Name of extension	*/
 	unsigned char		type;		/** Block type		*/
-	unsigned char		listIdx;	/** Extension location	*/
+
+	/*	Production callbacks.					*/
+
 	BpExtBlkOfferFn		offer;		/** Offer 		*/
+	BpExtBlkProcessFn	process[5];	/** Process		*/
 	BpExtBlkReleaseFn	release;	/** Release 		*/
+	BpExtBlkCopyFn		copy;		/** Copy		*/
+
+	/*	Acquisition callbacks.					*/
+
 	BpAcqExtBlkAcquireFn	acquire;	/** Acquire 		*/
+	BpAcqExtBlkDecryptFn	decrypt;	/** Decrypt 		*/
+	BpAcqExtBlkParseFn	parse;		/** Parse 		*/
 	BpAcqExtBlkCheckFn	check;		/** Check 		*/
 	BpExtBlkRecordFn	record;		/** Record 		*/
 	BpAcqExtBlkClearFn	clear;		/** Clear 		*/
-	BpExtBlkCopyFn		copy;		/** Copy		*/
-	BpExtBlkProcessFn	process[5];	/** ProcessingDirectives*/
 } ExtensionDef;
 
+/**
+ *  \struct ExtensionSpec
+ *  \brief Defines the canonical extension block production order.
+ *
+ * ExtensionSpec provides the specification for producing an outbound
+ * extension block: block definition (identified by block type number),
+ * three discriminator tags whose semantics are block-type-specific,
+ * and list index, indicating whether the extension block is to be
+ * inserted before or after the Payload block.
+ */
 typedef struct
 {
-	unsigned char	type;	/** The type of correlator block	*/
-	unsigned char	id;	/** Identifier of this block.		*/
-	unsigned int	size;	/** The size of the allocated block.	*/
-} CollabBlockHdr;
+	unsigned char		type;		/** Block type		*/
+	unsigned char		tag1;		/** Extension-specific	*/
+	unsigned char		tag2;		/** Extension-specific	*/
+	unsigned char		tag3;		/** Extension-specific	*/
+	unsigned char		listIdx;	/** Location in bundle	*/
+} ExtensionSpec;
 
 /*****************************************************************************
  *                             FUNCTION PROTOTYPES                           *
  *****************************************************************************/
 
-/* Functions that operate on Bundle objects */
+/*	Functions that operate on outbound extension blocks		*/
 
-extern int 	addCollaborationBlock(Bundle *bundle, CollabBlockHdr *blkHdr);
-extern int	attachExtensionBlock(ExtensionDef *def, ExtensionBlock *blk,
+extern int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 			Bundle *bundle);
-extern int 	copyCollaborationBlocks(Bundle *newBundle, Bundle *oldBundle);
-
 /**
  * \par Function Name: copyExtensionBlock
  * \par Purpose:
@@ -166,12 +197,10 @@ extern int 	copyCollaborationBlocks(Bundle *newBundle, Bundle *oldBundle);
  *  --------  ------------  ------ ----------------------------------------
  *            S. Burleigh		   Initial Implementation
  */
+
 extern int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle);
-void		deleteExtensionBlock(Object elt, unsigned int listIdx);
-void 		destroyCollaborationBlocks(Bundle *bundle);
+void		deleteExtensionBlock(Object elt, int *lengthsTotal);
 void		destroyExtensionBlocks(Bundle *bundle);
-Object 		findCollaborationBlock(Bundle *bundle, unsigned char type,
-			unsigned int id);
 
 /**
  * \par Function Name: findExtensionBlock
@@ -179,7 +208,9 @@ Object 		findCollaborationBlock(Bundle *bundle, unsigned char type,
  * \retval Object - The discovered block.
  * \param[in]  bundle  - The bundle holding the desired block.
  * \param[in]  type    - The block identifier desired.
- * \param[in]  idx 	   - Search before or after the payload.
+ * \param[in]  tag1    - A discriminator indicating the role of the block.
+ * \param[in]  tag2    - A discriminator indicating the role of the block.
+ * \param[in]  tag3    - A discriminator indicating the role of the block.
  * \par Notes:
  * \par Revision History:
  *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
@@ -187,9 +218,9 @@ Object 		findCollaborationBlock(Bundle *bundle, unsigned char type,
  *            S. Burleigh		   Initial Implementation
  */
 extern Object	findExtensionBlock(Bundle *bundle, unsigned int type,
-			unsigned int idx);
-extern int	insertExtensionBlock(ExtensionDef *def, ExtensionBlock *newBlk,
-			Object blkAddr, Bundle *bundle, unsigned char listIdx);
+			unsigned char tag1, unsigned char tag2,
+			unsigned char tag3);
+
 extern int	patchExtensionBlocks(Bundle *bundle);
 extern int	processExtensionBlocks(Bundle *bundle, int fnIdx,
 			void *context);
@@ -248,25 +279,23 @@ extern int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
  *            S. Burleigh		   Initial Implementation
  */
 extern void	suppressExtensionBlock(ExtensionBlock *blk);
-extern int 	updateCollaborationBlock(Object collabAddr,
-			CollabBlockHdr *blkHdr);
 
-/* Functions that operate on Acquisition Work Area objects */
+/*	Functions that operate on inbound extension blocks		*/
 
-extern int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
+extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned int blockLength,
 			unsigned char blkType, unsigned int blkProcFlags,
 			Lyst *eidReferences, unsigned int dataLength);
-extern int 	addAcqCollabBlock(AcqWorkArea *work, CollabBlockHdr *blkHdr);
-extern int	checkExtensionBlocks(AcqWorkArea *work);
-extern void	deleteAcqExtBlock(LystElt elt, unsigned int listIdx);
-extern void 	destroyAcqCollabBlocks(AcqWorkArea *work);
+extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);
+extern int	parseExtensionBlocks(AcqWorkArea *wk);
+extern int	checkPerExtensionBlocks(AcqWorkArea *wk);
+extern void	deleteAcqExtBlock(LystElt elt);
 
 /**
  * \par Function Name: discardExtensionBlock
  * \par Purpose:
  * \retval void
- * \param[in]  blk  The block being discarded.
+ * \param[in]  blk  The inbound block being discarded.
  * \par Notes:
  * \par Revision History:
  *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
@@ -274,14 +303,45 @@ extern void 	destroyAcqCollabBlocks(AcqWorkArea *work);
  *            S. Burleigh		   Initial Implementation
  */
 extern void	discardExtensionBlock(AcqExtBlock *blk);
-extern LystElt	findAcqCollabBlock(AcqWorkArea *work, unsigned char type,
-			unsigned int id);
-extern int	recordExtensionBlocks(AcqWorkArea *work);
+extern LystElt	findAcqExtensionBlock(AcqWorkArea *wk, unsigned int type,
+			unsigned int occurrence);
+extern int	recordExtensionBlocks(AcqWorkArea *wk);
 
-/* Extension definitions access functions */
+/*	Functions that operate on extension block definitions		*/
 
 extern void	getExtensionDefs(ExtensionDef **array, int *count);
 extern
-ExtensionDef	*findExtensionDef(unsigned char type, unsigned char idx);
+ExtensionDef	*findExtensionDef(unsigned char type);
 
-#endif // _BEI_H_
+/*	Functions that operate on extension block specifications	*/
+
+extern void	getExtensionSpecs(ExtensionSpec **array, int *count);
+extern
+ExtensionSpec	*findExtensionSpec(unsigned char type, unsigned char tag1,
+			unsigned char tag2, unsigned char tag3);
+
+/*	Functions that operate on collaboration blocks			*/
+
+#ifdef ORIGINAL_BSP
+typedef struct
+{
+	unsigned char	type;	/** The type of correlator block	*/
+	unsigned char	id;	/** Identifier of this block.		*/
+	unsigned int	size;	/** The size of the allocated block.	*/
+} CollabBlockHdr;
+
+extern int 	addCollaborationBlock(Bundle *bundle, CollabBlockHdr *blkHdr);
+extern int 	copyCollaborationBlocks(Bundle *newBundle, Bundle *oldBundle);
+void 		destroyCollaborationBlocks(Bundle *bundle);
+Object 		findCollaborationBlock(Bundle *bundle, unsigned char type,
+			unsigned int id);
+extern int 	updateCollaborationBlock(Object collabAddr,
+			CollabBlockHdr *blkHdr);
+
+extern int 	addAcqCollabBlock(AcqWorkArea *work, CollabBlockHdr *blkHdr);
+extern void 	destroyAcqCollabBlocks(AcqWorkArea *work);
+extern LystElt	findAcqCollabBlock(AcqWorkArea *work, unsigned char type,
+			unsigned int id);
+#endif /* ORIGINAL_BSP */
+
+#endif /* _BEI_H_ */

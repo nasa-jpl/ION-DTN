@@ -61,8 +61,27 @@ rm -f ./ion_nodes
 # Start nodes.
 cd 2.ipn.ltp
 ./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
+
 cd ../3.ipn.ltp
 ./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
 
 echo "Starting bpcounter on node 3..."
 sleep 1

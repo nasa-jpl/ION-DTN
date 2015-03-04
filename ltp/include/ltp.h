@@ -44,7 +44,7 @@ extern int	ltp_send(uvast destinationEngineId,
 			unsigned int redLength,
 			LtpSessionId *sessionId);
 		/*	clientServiceData must be a "zero-copy object"
-	 	 *	reference as returned by zco_create().  Note
+	 	 *	reference as returned by ionCreateZco().  Note
 		 *	that LTP will privately make and destroy its
 		 *	own reference to the client service data; the
 		 *	application is free to destroy its reference

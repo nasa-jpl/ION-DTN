@@ -133,12 +133,14 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		sdr_write(sdr, bundlePayload, framePayload,
 				sizeof(framePayload));
 
-		/*	Note: we don't use ionCreateZco here because
-		 *	we don't want to block in admission control.
-		 *	The transmission loop is metered by time.	*/
+		/*	Note: we don't use blocking ionCreateZco here
+		 *	because we don't want to block in admission
+		 *	control.  The transmission loop is metered by
+		 *	time.						*/
 
-		bundleZco = zco_create(sdr, ZcoSdrSource, bundlePayload, 0, 
-				sizeof(framePayload));
+		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
+				sizeof(framePayload), priority,
+				extendedCOS.ordinal, ZcoOutbound, NULL);
 		switch (bundleZco)
 		{
 		case 0:

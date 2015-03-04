@@ -84,6 +84,28 @@ cd 1.ipn.bssp
 cd ../2.ipn.bssp
 ./ionstart >& node2.stdout
 
+cd ../1.ipn.bssp
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../2.ipn.bssp
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
+
 # Start BSS receiver on node 2.
 cd ../2.ipn.bssp
 echo

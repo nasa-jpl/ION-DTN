@@ -1,6 +1,6 @@
-= Release Notes for ION 3.2.2 =
+= Release Notes for ION 3.3.0 =
 
-Nov 5, 2014
+Mar 3, 2015
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,180 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.3.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #47: ION's LTP implementation now computes limits on
+     "report" segment generation dynamically, based on block size, segment
+     size, and anticipated bit error rate.  This enables LTP to "try
+     harder" to complete block transmission when rates of data loss are
+     high.  See the notes below on configuration interface changes.
+
+- SourceForge Bug #54: Fixed bug that could cause multithreaded applications
+     under VxWorks to refuse bundles with the error message:
+        "Can't receive: not owner of endpoint."
+
+     For this purpose, a thread that will only send (never receive) bundles
+     can use a BpSAP created by calling bp_open_source rather than bp_open;
+     in this circumstance, sending and receiving threads may use different
+     bpSAPs tagged with the same endpoint ID.
+
+     IMPORTANT: see the notes below on application interface changes!
+
+- SourceForge Bug #62: Fixed several miscellaneous implementation bugs in the
+     Contact Graph Routing (CGR) engine dealing with Earliest Transmission
+     Opportunities (ETO) and Overbooking management (OB).
+
+- SourceForge Bug #63: Removed restrictions on possible CBHE node and
+     service numbers.
+     MAX_CBHE_NODE_NBR may now be any unsigned long number (2^64-1).
+     MAX_CBHE_SERVICE_NBR may now be any unsigned int number (2^32-1).
+
+- SourceForge Bug #65: Removed duct-level support for LTP "green" transmission.
+     "Green" transmission is now selected on a bundle-by-bundle basis via the
+     bundle's extended class of service options.
+
+- SourceForge Bug #67: Updated the Previous Hop Node extension block (PHN)
+     implementation to be compliant with the specification in RFC 6259.
+     The sending node's EID is now represented by two distinct NULL-terminated
+     strings (Scheme Name and SSP) rather than one NULL-terminated EID.
+
+- SourceForge Bug #68: Fixed bug where the sockets of links utilizing STCP
+     could prematurely close if the other side did not respond for several
+     hours. ION now respects the EHOSTUNREACH errno value and periodically
+     attempts to reconnect rather than closes the socket.
+
+- SourceForge Bug #70: Fixed bug with ION's uClibC macros that caused ION
+     compilation to fail in environments that use uClibC.
+
+- SourceForge Feature Request #13: Optimizations have been made to improve
+     ION's reactive forwarding implementation:
+     - When a bundle is reforwarded due to expiration of its xmitOverdue timer
+       ION now considers the possibility that forwarding the bundle back to the
+       node it received the bundle from may now actually be the optimal route.
+     - ION now sends Custody Refused signals back to the sending nodes when
+       forwarding the bundle is not possible, even when custody transfer was
+       not requested.  This enables a mechanism for backtracking the bundle
+       through the network when forward progress through a route is blocked.
+
+- SourceForge Feature Request #19: ION now supports Bundle-in-Bundle
+     Encapsulation (bibe) per the draft-irtf-burleigh-bibe Internet Draft.
+     Bundle-in-Bundle Encapsulation enables the Streamlined Bundle Security
+     Protocol (SBSP), which omits security destinations from the security
+     extension blocks, to function in cross-domain solutions by encapsulating
+     bundles whose destination is the selected security destination.
+
+- SourceForge Feature Request #29: Optimizations have been applied to the ION
+     test suite to reduce the amount of time needed to initialize each test.
+
+- SourceForge Feature Request #31: ION's public API is now more "const-correct"
+     which enables better interopability with C++ interfaces.
+
+- SourceForge Feature Request #32: zero-copy-object space allocation has been
+     enhanced to enable bidirectional flow control on convergence-layer
+     protocols that back-propagate blocking on buffer space requests.
+
+- SourceForge Feature Request #33: ION now supports probabilistic contacts.
+     These are contacts with probabilities less than 1.0 that could potentially
+     be handled by the CGR algorithms to enable the possibility for more
+     efficient routing decisions to be made by the CGR engine.
+
+- ION now supports the Streamlined Bundle Security Protocol (SBSP) in place
+     of the Bundle Security Protocol defined in RFC 6257.  For details,
+     see https://datatracker.ietf.org/doc/draft-birrane-dtn-sbsp/.
+
+- Fixes have been applied to the ION.pdf construction procedure to enable
+     proper formatting of the appended man pages.
+
+- Man page creation can now be disabled.
+     Man pages are still built by default.
+     To disable man page creation, use "./configure --disable-manpages".
+
+**Configuration interface changes**
+
+Because buffer space for "zero-copy objects" in ION has been split into
+     separate pools for inbound and outbound data, the ionrc command for
+     managing "occupancy" has been split into two commands, "inbound"
+     and "outbound".  See the ionrc(5) man page for details.
+
+Migrating ION from standard Bundle Security Protocol to the new Streamlined
+     Bundle Security Protocol has entailed changing some of the ionsecrc
+     commands: "bsppibrule" is replaced by "bspbibrule", and "bsppcbrule"
+     is replaced by "bspbcbrule".  See the ionsecrc(5) man page for details.
+
+Limits on retransmission in LTP are now computed dynamically to account
+     for differences in bundle size, segment size, and bit error rate.
+     For this purpose, the default value for maximum bit error rate at a
+     given LTP engine is hard-coded to be 10^-6 (one uncorrected flipped
+     bit per million).  This value can be overridden by the new ltprc
+     command for managing "maxber"; see the ltprc(5) man page for details.
+
+**Application programming interface changes**
+
+Again because of the splitting of ZCO buffer space into two pools, many
+     of the zco library function prototypes have been changed: in most
+     cases, an additional ZcoAcct parameter (ZcoInbound or ZcoOutbound)
+     has been added.  Also:
+
+- A new zco_status function has been added, to print a brief report
+     of the buffer status.
+
+- New zco_extent_too_large and zco_get_aggregate_length functions
+     have been added to aid in resource management.
+
+- Other new functions include zco_acct, zco_header_text, and
+     zco_trailer_text.
+
+- Passing a negative value of extent length to zco_create or
+     zco_append_extent indicates that (a) the actual extent length
+     is the additive inverse of the value provided and (b) it is
+     asserted that this length does not violate the configured limits
+     on ZCO buffer space occupancy.
+
+See the zco(3) man page for details of these changes.
+
+Leveraging these upgrades to enable more flexible resource management,
+     the ionCreateZco and ionAppendZcoExtent function prototypes have
+     been modified and the ion function library now includes several
+     new functions that provide better control of "blocking" behavior
+     in ZCO buffer space allocation: ionStartAttendant,
+     ionPauseAttendant, ionResumeAttendant, ionStopAttendant,
+     ionRequestZcoSpace, ionShred.  See the ion(3) man page for details
+     of these changes.
+
+NOTE: The changes made to address SourceForge Bug #54 (described above)
+     have the potential to BREAK APPLICATIONS!
+
+     If your application code currently makes any use of the bundle
+     address that is returned when bp_send() is called, then YOU MUST
+     MAKE BOTH OF THE FOLLOWING CHANGES IN YOUR CODE:
+
+     1.) Use bp_open_source() with the "detain" flag set to 1 INSTEAD OF
+               bp_open() to obtain the BpSAP handle that you pass to
+               bp_send().
+
+     2.) Call bp_release() as soon as possible (for example, immediately
+               after passing the new bundles address to bp_track()) to
+               end the detention of any bundle created by passing that
+               detaining BpSAP handle to any invocation of bp_send().
+
+     If you need to receive bundles as well as send them, then the BpSAP
+     handle that you pass to bp_receive() must be a different handle that
+     is obtained by calling bp_open() in the usual way.
+
+**Operational changes**
+
+An additional daemon task named "bptransit" has been added to standard
+     ION operations.  bptransit is responsible for presenting to the
+     forwarding daemon(s) bundles that were received from other nodes
+     (i.e., that reside in Inbound ZCO space) and are destined for yet
+     other nodes; in doing so, it migrates these bundles from Inbound
+     buffer space to Outbound buffer space on the same prioritized
+     basis as the insertion of locally sourced outbound bundles.
+     Management of the bptransit daemon is automatic.  See the
+     bptransit(1) man page for details.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.2.2 =

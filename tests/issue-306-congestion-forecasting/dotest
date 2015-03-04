@@ -50,7 +50,15 @@ RETVAL=0
 # Start nodes.
 cd 2.node.tcp
 ./ionstart
-sleep 1
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 0
+fi
 
 echo ""
 ionadmin config1

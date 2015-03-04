@@ -12,6 +12,18 @@
 									*/
 #include "brscla.h"
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
@@ -131,7 +143,7 @@ static void	*sendBundles(void *parm)
 			 *	been destroyed then just lose the ADU.	*/
 
 			CHKNULL(sdr_begin_xn(sdr));
-			if (retrieveInTransitBundle(bundleZco, &bundleAddr) < 0)
+			if (retrieveSerializedBundle(bundleZco, &bundleAddr))
 			{
 				putErrmsg("Can't locate unsent bundle.", NULL);
 				sdr_cancel_xn(sdr);
@@ -465,7 +477,8 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 			continue;
 		}
 
-		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer))
+		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer,
+				_attendant(NULL)))
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -674,6 +687,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	unsigned int		hostNbr = INADDR_ANY;
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
+	ReqAttendant		attendant;
 	SenderThreadParms	senderParms;
 	pthread_t		senderThread;
 	pthread_t		accessThread;
@@ -760,6 +774,17 @@ port 80)", NULL);
 		return 1;
 	}
 
+	/*	Set up blocking acquisition of data via TCP.		*/
+
+	if (ionStartAttendant(&attendant) < 0)
+	{
+		closesocket(atp.ductSocket);
+		putErrmsg("Can't initialize blocking TCP reception.", NULL);
+		return 1;
+	}
+
+	oK(_attendant(&attendant));
+
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("brsscla");
@@ -814,6 +839,7 @@ port 80)", NULL);
 	/*	Time to shut down.					*/
 
 	atp.running = 0;
+	ionPauseAttendant(&attendant);
 
 	/*	Shut down sender thread cleanly.			*/
 
@@ -837,6 +863,7 @@ port 80)", NULL);
 	}
 
 	pthread_join(accessThread, NULL);
+	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] brsscla induct has ended.");
 	return 0;

@@ -915,8 +915,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 
 	/*		Create ZCO and append header			*/
 
-	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, NULL);
-	if (zco == 0 || zco == (Object) -1)
+	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength,
+			profile->classOfService, profile->extendedCOS.ordinal,
+			ZcoOutbound, NULL);
+	if (zco == 0 || zco == (Object) ERROR)
 	{
 		putErrmsg("Can't create aggregated ZCO.", NULL);
 		return -1;
@@ -959,8 +961,9 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		sdr_write(sdr, addr, (char *) buffer, extentLength);
 		MRELEASE(buffer);
 		extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr, 0,
-				extentLength, NULL);
-		if (extent == 0 || extent == (Object) -1)
+				extentLength, profile->classOfService,
+				profile->extendedCOS.ordinal, NULL);
+		if (extent == 0 || extent == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
 			return -1;
@@ -992,8 +995,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 			 * containing the payload itself.		*/
 
 			extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr,
-					0, payloadRec->length.length, NULL);
-			if (extent == 0 || extent == (Object) -1)
+					0, payloadRec->length.length,
+					profile->classOfService,
+					profile->extendedCOS.ordinal, NULL);
+			if (extent == 0 || extent == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				return -1;
@@ -1001,8 +1006,10 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 
 			extent = ionAppendZcoExtent(zco, ZcoSdrSource,
 					payloadRec->payload, 0,
-					payloadDataLength, NULL);
-			if (extent == 0 || extent == (Object) -1)
+					payloadDataLength,
+					profile->classOfService,
+					profile->extendedCOS.ordinal, NULL);
+			if (extent == 0 || extent == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
 				return -1;
@@ -1080,7 +1087,7 @@ int	sendAdu(BpSAP sap)
 			zco_length(sdr, outAdu.aggregatedZCO));
 	if (zco == 0)
 	{
-		sdr_exit_xn(sdr);
+		sdr_cancel_xn(sdr);
 		putErrmsg("Can't clone aggregated ZCO.", NULL);
 		return -1;
 	}
@@ -1099,7 +1106,7 @@ int	sendAdu(BpSAP sap)
 
 	if (elt == 0)
 	{
-		sdr_exit_xn(sdr);
+		sdr_cancel_xn(sdr);
 		putErrmsg("Profile has been removed.", NULL);
 		return -1;
 	}
@@ -1107,64 +1114,21 @@ int	sendAdu(BpSAP sap)
 	if (sdr_string_read(sdr, reportToEid, profile->reportToEid) < 0 ||
 		sdr_string_read(sdr, dstEid, outAggr->dstEid) < 0)
 	{
-		sdr_exit_xn(sdr);
+		sdr_cancel_xn(sdr);
 		putErrmsg("Failed reading endpoint ID.", NULL);
 		return -1;
 	}
 
 	currentTime = getUTCTime();
-	while(1)
-	{
-		switch (bp_send(sap, dstEid, reportToEid,
+	if (bp_send(sap, dstEid, reportToEid,
 			(outAdu.expirationTime - currentTime),
 			profile->classOfService, profile->custodySwitch,
 			profile->srrFlags, 1, &(profile->extendedCOS),
-			zco, &outAdu.bundleObj))
-		{
-		case 0:		/*	No space for bundle.	*/
-			if (errno == EWOULDBLOCK)
-			{
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("DTPC xn failed.",
-							NULL);
-					return -1;
-				}
-				
-				microsnooze(500000);
-				CHKERR(sdr_begin_xn(sdr));
-				currentTime = getUTCTime();
-				if (outAdu.expirationTime < currentTime)
-				{
-					zco_destroy(sdr, zco);
-					sdr_list_delete(sdr, sdrElt, NULL,
-							NULL);
-					deleteAdu(sdr, outAduObj);
-					writeMemo("[i] OutAdu expired before \
-being handed over to BP for transmission.");
-					if (sdr_end_xn(sdr) < 0)
-					{
-						putErrmsg("Can't delete \
-queued outAdu.", NULL);
-						return -1;
-					}
-
-					return 0;
-				}
-
-				continue;
-			}
-
-		case -1:	/*	Intentional fall-through.	*/
-			sdr_exit_xn(sdr);
-			putErrmsg("DTPC can't send adu.", NULL);
-			return -1;
-
-		default:
-			break;	/*	Out of switch.		*/
-		}
-
-		break;	/*	Out of loop.			*/
+			zco, &outAdu.bundleObj) <= 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("DTPC can't send adu.", NULL);
+		return -1;
 	}
 	
 	/*	Track bundle to avoid unnecessary retransmissions.	*/
@@ -1177,6 +1141,11 @@ queued outAdu.", NULL);
 		putErrmsg("Can't track bundle.", NULL);
 		return -1;
 	}
+
+	/*	Bundle has been detained long enough for us to track
+	 *	it, so we can now release it for normal processing.	*/
+
+	oK(bp_release(outAdu.bundleObj));
 
 	/*		Get outAduElt from aggregator.			*/
 
@@ -1311,8 +1280,8 @@ int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
 			OBJ_POINTER(OutAggregator, outAggr);
 			OBJ_POINTER(Profile, profile);
 
-	/*	Check if the adu is still in the bp queue and if
-	 *	that is the case, do not resend.			*/
+	/*	Check if the bundle whose payload is this adu is
+	 *	awaiting transmission.  If so, do not resend the adu.	*/
 
 	aduObj = sdr_list_data(sdr, aduElt);
 	sdr_stage(sdr, (char *) &adu, aduObj, sizeof(OutAdu));
@@ -1332,7 +1301,7 @@ int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
 
 	sdr_list_delete(sdr, adu.rtxEventElt, deleteEltObjContent, NULL);
 	adu.rtxEventElt = 0;
-	if (aduIsQueued == 1)
+	if (aduIsQueued == 1)	/*	Bundle containing adu exists.	*/
 	{
 		for (elt = sdr_list_first(sdr, dtpcConstants->profiles); elt;
 				elt = sdr_list_next(sdr, elt))
@@ -1374,8 +1343,12 @@ event.", NULL);
 	}
 	else
 	{
-		/*	Adu was not found in BP queue, so requeue this
-		 *	adu for transmission.				*/
+		/*	Bundle in which this adu was most recently
+		 *	transmitted no longer exists, so that bundle
+		 *	has been transmitted.  So now we need to
+		 *	requeue this adu for transmission in a new
+		 *	bundle.						*/
+
 		CHKERR(sdr_list_insert_last(sdr, dtpcConstants->outboundAdus,
 				aduObj));
 		sdr_write(sdr, aduObj, (char *) &adu, sizeof(OutAdu));
@@ -2793,45 +2766,27 @@ send ACK.");
 
 	/*		Create ZCO and send ACK.			*/
 
-	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, NULL);
-	if (ackZco == 0 || ackZco == (Object) -1)
+	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, priority,
+			extendedCOS.ordinal, ZcoOutbound, NULL);
+	if (ackZco == 0 || ackZco == (Object) ERROR)
 	{
 		putErrmsg("Can't create ack ZCO.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
-	while (1)
+	if (bp_send(sap, dstEid, NULL, lifetime, priority, custodySwitch,
+			0, 0, &extendedCOS, ackZco, &newBundle) <= 0) 
 	{
-		switch (bp_send(sap, dstEid, NULL, lifetime, priority,
-			custodySwitch, 0, 0, &extendedCOS, ackZco, &newBundle)) 
-		{
-		case 0:		/*	No space for bundle.		*/
-			if (errno == EWOULDBLOCK)
-			{
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("DTPC xn failed.", NULL);
-					return -1;
-				}
-
-				microsnooze(500000);
-				CHKERR(sdr_begin_xn(sdr));
-				continue;
-			}
-
-		case -1:	/*	Intentional fall-through.	*/
-			sdr_exit_xn(sdr);
-			putErrmsg("DTPC can't send ack.", NULL);
-			return -1;
-	
-		default:
-			break;	/*	Out of switch.			*/
-		}
-
-		break;	/*		Out of loop.			*/
+		putErrmsg("DTPC can't send ack.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
 	}
 
+	/*	We don't track acknowledgments, so no need to detain
+	 *	this bundle any further.				*/
+
+	oK(bp_release(newBundle));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("DTPC can't send ack.", NULL);

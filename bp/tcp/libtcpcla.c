@@ -11,8 +11,6 @@
 									*/
 #include "tcpcla.h"
 
-int	tcpDelayEnabled = 0;
-int	tcpDelayNsecPerByte = 0;
 int 	tcpDesiredKeepAlivePeriod = 0;
 
 typedef struct
@@ -143,9 +141,21 @@ int	connectToCLI(struct sockaddr *sn, int *sock)
 
 	if (connect(*sock, sn, sizeof(struct sockaddr)) < 0)
 	{
+		struct sockaddr_in	*sockn;
+		unsigned int		hostNbr;
+		unsigned short		portNbr;
+		char			dottedString[16];
+		char			socketSpec[32];
+
 		closesocket(*sock);
 		*sock = -1;
-		putSysErrmsg("CLO can't connect to TCP socket", NULL);
+		sockn = (struct sockaddr_in *) sn;
+		hostNbr = ntohl(sockn->sin_addr.s_addr);
+		portNbr = ntohs(sockn->sin_port);
+		printDottedString(hostNbr, dottedString);
+		isprintf(socketSpec, sizeof socketSpec, "%s:%hu",
+				dottedString, portNbr);
+		putSysErrmsg("CLO can't connect to TCP socket", socketSpec);
 		return -1;
 	}
 
@@ -182,6 +192,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 			case EBADF:
 			case ETIMEDOUT:
 			case ECONNRESET:
+			case EHOSTUNREACH:
 				closesocket(*bundleSocket);
 				*bundleSocket = -1;
 				bytesWritten = 0;
@@ -560,7 +571,8 @@ int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 	}
 }
 
-int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
+int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer,
+		ReqAttendant *attendant)
 {
 	unsigned int	preamble;
 	unsigned int	bundleLength = 0;
@@ -596,11 +608,6 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 	 *	time.							*/
 
 	totalBytesToReceive = bundleLength;
-	if (tcpDelayEnabled)	/*	Congestion control testing.	*/
-	{
-		microsnooze((totalBytesToReceive * tcpDelayNsecPerByte) / 1000);
-	}
-
 	while (totalBytesToReceive > 0)
 	{
 		bytesToReceive = totalBytesToReceive;
@@ -628,7 +635,7 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer)
 
 		/*	Acquire the received data.			*/
 
-		if (bpContinueAcq(work, buffer, extentSize) < 0)
+		if (bpContinueAcq(work, buffer, extentSize, attendant) < 0)
 		{
 			return -1;
 		}
@@ -767,9 +774,9 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast 
 
 			totalBytesToReceive -= extentSize;
 
-			/*	Acquire the received data.			*/
+			/*	Acquire the received data.		*/
 
-			if (bpContinueAcq(work, buffer, extentSize) < 0)
+			if (bpContinueAcq(work, buffer, extentSize, NULL) < 0)
 			{
 				return -1;
 			}

@@ -47,8 +47,8 @@
 /*	Memory management abstraction.					*/
 #define MTAKE(size)	allocFromSdrMemory(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	releaseToSdrMemory(__FILE__, __LINE__, addr)
-extern void		*allocFromSdrMemory(char *, int, size_t);
-extern void		releaseToSdrMemory(char *, int, void *);
+extern void		*allocFromSdrMemory(const char *, int, size_t);
+extern void		releaseToSdrMemory(const char *, int, void *);
 extern void		*sdrMemAtoP(unsigned long);
 extern unsigned long	sdrMemPtoA(void *);
 
@@ -159,7 +159,7 @@ typedef struct sdrv_str
 
 	PsmView		traceArea;	/*	local access to trace	*/
 	PsmView		*trace;		/*	local access to trace	*/
-	char		*currentSourceFileName;	/*	for tracing	*/
+	const char	*currentSourceFileName;	/*	for tracing	*/
 	int		currentSourceFileLine;	/*	for tracing	*/
 } SdrView;
 
@@ -168,7 +168,7 @@ typedef enum { UserPut = 0, SystemPut } PutSrc;
 extern int		takeSdr(SdrState *sdr);
 extern void		releaseSdr(SdrState *sdr);
 
-extern void		joinTrace(Sdr, char *, int);
+extern void		joinTrace(Sdr, const char *, int);
 
 extern SdrMap		*_mapImage();
 
@@ -183,10 +183,14 @@ extern char		*_violationMsg();
 
 #define ADDRESS_OF(X)	(((char *) &(map->X)) - ((char *) map))
 
-extern void		_sdrput(char*, int, Sdr, Address, char*, long, PutSrc);
-#define	sdrPatch(A,V)	_sdrput(__FILE__, __LINE__, sdrv, (A), (char *) &(V), sizeof (V), SystemPut)
-#define	patchMap(X,V)	_sdrput(__FILE__, __LINE__, sdrv, ADDRESS_OF(X), (char *) &(V), sizeof map->X, SystemPut)
-#define	sdrPut(A,V)	_sdrput(file, line, sdrv, (A), (char *) &(V), sizeof (V), SystemPut)
+extern void		_sdrput(const char*, int, Sdr, Address, char*, long,
+				PutSrc);
+#define	sdrPatch(A,V)	_sdrput(__FILE__, __LINE__, sdrv, (A), (char *) &(V), \
+sizeof (V), SystemPut)
+#define	patchMap(X,V)	_sdrput(__FILE__, __LINE__, sdrv, ADDRESS_OF(X), \
+(char *) &(V), sizeof map->X, SystemPut)
+#define	sdrPut(A,V)	_sdrput(file, line, sdrv, (A), (char *) &(V), \
+sizeof (V), SystemPut)
 
 extern void		_sdrfetch(Sdr, char *, Address, long);
 #define sdrFetch(V,A)	_sdrfetch(sdrv, (char *) &(V), (A), sizeof (V))

@@ -85,8 +85,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	IonNode		*stationNode;
 	PsmAddress	nextElt;
 	PsmPartition	ionwm;
-	PsmAddress	snubElt;
-	IonSnub		*snub;
+	PsmAddress	embElt;
+	Embargo		*embargo;
 
 	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, bundle, &directive) == 0)
 	{
@@ -104,17 +104,17 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	if (stationNode)
 	{
 		ionwm = getIonwm();
-		for (snubElt = sm_list_first(ionwm, stationNode->snubs);
-				snubElt; snubElt = sm_list_next(ionwm, snubElt))
+		for (embElt = sm_list_first(ionwm, stationNode->embargoes);
+				embElt; embElt = sm_list_next(ionwm, embElt))
 		{
-			snub = (IonSnub *) psp(ionwm, sm_list_data(ionwm,
-					snubElt));
-			if (snub->nodeNbr < nodeNbr)
+			embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm,
+					embElt));
+			if (embargo->nodeNbr < nodeNbr)
 			{
 				continue;
 			}
 
-			if (snub->nodeNbr > nodeNbr)
+			if (embargo->nodeNbr > nodeNbr)
 			{
 				break;	/*	Not refusing bundles.	*/
 			}
@@ -165,7 +165,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	/*	No plan for conveying bundle to this neighbor, so
 	 *	must give up on forwarding it.				*/
 
-	return bpAbandon(bundleObj, bundle);
+	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
 #if defined (ION_LWT)
@@ -271,7 +271,7 @@ int	main(int argc, char *argv[])
 			/*	Nobody subscribes to bundles destined
 			 *	for this group.				*/
 
-			oK(bpAbandon(bundleAddr, &bundle));
+			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
 		}
 		else
 		{
@@ -281,7 +281,8 @@ int	main(int argc, char *argv[])
 				/*	Received from unknown node,
 				 *	can't safely forward bundle.	*/
 
-				oK(bpAbandon(bundleAddr, &bundle));
+				oK(bpAbandon(bundleAddr, &bundle,
+						BP_REASON_NO_ROUTE));
 			}
 			else
 			{
@@ -337,7 +338,8 @@ int	main(int argc, char *argv[])
 
 				if (copiesForwarded == 0)
 				{
-					oK(bpAbandon(bundleAddr, &bundle));
+					oK(bpAbandon(bundleAddr, &bundle,
+							BP_REASON_NO_ROUTE));
 				}
 				else	/*	Destroy unused copy.	*/
 				{

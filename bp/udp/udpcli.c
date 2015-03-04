@@ -43,7 +43,7 @@ static void	*handleDatagrams(void *parm)
 	unsigned int		hostNbr;
 	char			hostName[MAXHOSTNAMELEN + 1];
 
-	snooze(1);	/*	Let main thread become interruptable.	*/
+	snooze(1);	/*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
 	if (work == NULL)
 	{
@@ -89,7 +89,7 @@ static void	*handleDatagrams(void *parm)
 		hostNbr = ntohl(hostNbr);
 		printDottedString(hostNbr, hostName);
 		if (bpBeginAcq(work, 0, NULL) < 0
-		|| bpContinueAcq(work, buffer, bundleLength) < 0
+		|| bpContinueAcq(work, buffer, bundleLength, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);

@@ -44,13 +44,15 @@ RETVAL=1
 #Start ION
 echo "Starting ION..."
 ionadmin config.ionrc
-sleep 1
-ionsecadmin config.ionsecrc
-sleep 1
-bpadmin config.bprc
-sleep 1
-ipnadmin config.ipnrc
-sleep 1
+
+ionsecadmin config.ionsecrc &
+
+bpadmin config.bprc &
+
+ipnadmin config.ipnrc &
+
+../../system_up -i "p 30" -b "p 30"
+
 
 echo "Start sending bundles..."
 bpdriver 10 ipn:1.1 ipn:2.1 -1000 t10
