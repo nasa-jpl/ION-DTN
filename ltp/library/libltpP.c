@@ -194,6 +194,62 @@ static void	resetSpan(LtpVspan *vspan)
 	vspan->lsoPid = ERROR;				/*	None.	*/
 }
 
+void	computeRetransmissionLimits(LtpVspan *vspan)
+{
+		OBJ_POINTER(LtpDB, ltpdb);
+	double	maxBER;
+	double	pBitOk;
+	double	pSegmentOk;
+	double	pDlvFailure;
+	char	buf[256];
+
+	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, getLtpDbObject());
+	maxBER = ltpdb->maxBER;
+	if (maxBER <= 0.0	/*	Perfect link.			*/
+	|| maxBER >= 1.0)	/*	No communication at all.	*/
+	{
+		maxBER = .000001;	/*	Default.		*/
+	}
+
+	pBitOk = 1.0 - maxBER;
+	pSegmentOk = pow(pBitOk, (vspan->maxXmitSegSize * 8));
+	vspan->xmitSegLossRate = 1.0 - pSegmentOk;
+	if (vspan->xmitSegLossRate >= .99)
+	{
+		vspan->xmitSegLossRate = .99;
+	}
+
+	pSegmentOk = pow(pBitOk, (vspan->maxRecvSegSize * 8));
+	vspan->recvSegLossRate = 1.0 - pSegmentOk;
+	if (vspan->recvSegLossRate >= .99)
+	{
+		vspan->recvSegLossRate = .99;
+	}
+
+	/*	Compute control segment retransmission limit.		*/
+
+	vspan->maxTimeouts = 0;
+	pDlvFailure = 1.0;
+	while (pDlvFailure > .000001)
+	{
+		pDlvFailure *= vspan->xmitSegLossRate;
+		vspan->maxTimeouts++;
+	}
+
+	if (vspan->maxTimeouts < 3)
+	{
+		vspan->maxTimeouts = 3;
+	}
+
+	sprintf(buf, "[i] Span to engine " UVAST_FIELDSPEC " (max BER %f, \
+max xmit segment size %d, max recv segment size %d): xmit segment loss \
+rate %f, recv segment loss rate %f, max timeouts %d.", vspan->engineId,
+			maxBER, vspan->maxXmitSegSize, vspan->maxRecvSegSize,
+			vspan->xmitSegLossRate, vspan->recvSegLossRate,
+			vspan->maxTimeouts);
+	writeMemo(buf);
+}
+
 static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 {
 	Sdr		sdr = getIonsdr();
@@ -231,6 +287,9 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 	vspan->stats = span.stats;
 	vspan->updateStats = span.updateStats;
 	vspan->engineId = span.engineId;
+	vspan->maxXmitSegSize = span.maxSegmentSize;
+	vspan->maxRecvSegSize = 1;
+	computeRetransmissionLimits(vspan);
 	vspan->segmentBuffer = psm_malloc(ltpwm, span.maxSegmentSize);
 	if (vspan->segmentBuffer == 0)
 	{
@@ -556,7 +615,7 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
 		ltpdbBuf.enforceSchedule = 0;	/*	Default.	*/
-		ltpdbBuf.errorsPerByte = DEFAULT_MAX_BER * 8.0;
+		ltpdbBuf.maxBER = DEFAULT_MAX_BER;
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
 			ltpdbBuf.clients[i].notices = sdr_list_create(sdr);
@@ -1124,9 +1183,11 @@ string too long.", lsoCmd);
 
 	spanBuf.remoteQtime = qTime;
 	spanBuf.purge = purge ? 1 : 0;
-	if (maxSegmentSize)
+	if (maxSegmentSize > 0 && maxSegmentSize != spanBuf.maxSegmentSize)
 	{
 		spanBuf.maxSegmentSize = maxSegmentSize;
+		vspan->maxXmitSegSize = maxSegmentSize;
+		computeRetransmissionLimits(vspan);
 	}
 
 	spanBuf.aggrSizeLimit = aggrSizeLimit;
@@ -2165,7 +2226,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	}
 
 	/*	Schedule removal of this closed-session note from the
-	 *	list after (2 * MAX_TIMEOUTS) times round-
+	 *	list after (2 * max timeouts) times round-
 	 *	trip time (plus 10 seconds of margin to allow for
 	 *	processing delay).
 	 *
@@ -2177,7 +2238,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	 *	An additional checkpoint should never arrive after
 	 *	the removal event -- and thereby resurrect the import
 	 *	session -- unless the sender has a higher value for
-	 *	MAX_TIMEOUTS (or RTT) than the local node.  In
+	 *	max timeouts (or RTT) than the local node.  In
 	 *	that case the export session's timeout sequence will
 	 *	eventually result in re-closure of the reanimated
 	 *	import session; there will be erroneous duplicate
@@ -2187,7 +2248,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	event.parm = elt2;
 	currentTime = getUTCTime();
 	findSpan(span->engineId, &vspan, &vspanElt);
-	event.scheduledTime = currentTime + 10 + (2 * MAX_TIMEOUTS
+	event.scheduledTime = currentTime + 10 + (2 * vspan->maxTimeouts
 			* (vspan->owltOutbound + vspan->owltInbound));
 	event.type = LtpForgetSession;
 	oK(insertLtpTimelineEvent(&event));
@@ -4178,34 +4239,44 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 	return segUpperBound;
 }
 
-int	getMaxReports(int redPartLength, unsigned int maxSegmentSize)
+int	getMaxReports(int redPartLength, LtpVspan *vspan, int asReceiver)
 {
 	/*	The limit on reports is never less than 2: at least
 	 *	one negative report, plus the final positive report.
 	 *	Additional reports may be authorized depending on the
-	 *	size of the transmitted block, the anticipated maximum
-	 *	bit error rate, and the size of the data segments.	*/
+	 *	size of the transmitted block and the rate of segment
+	 *	loss.							*/
 
-	int	maxReportSegments = 2;
-	int	dataGapsPerReport = MAX_CLAIMS_PER_RS - 1;
-	int	xmitBytes = redPartLength;	/*	Initial xmit.	*/
-		OBJ_POINTER(LtpDB, ltpdb);
-	float	errorsPerSegment;
-	int	xmitSegments;
-	float	lostSegments;
-	int	dataGaps;
-	int	reportsIssued;
+	int		dataGapsPerReport = MAX_CLAIMS_PER_RS - 1;
+	float		segmentLossRate;
+	unsigned int	maxSegmentSize;
+	int		maxReportSegments;
+	int		xmitBytes;
+	int		xmitSegments;
+	float		lostSegments;
+	int		dataGaps;
+	int		reportsIssued;
 
-	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, getLtpDbObject());
-	errorsPerSegment = ltpdb->errorsPerByte * maxSegmentSize;
-	CHKZERO(errorsPerSegment < 1.0);
+	if (asReceiver)
+	{
+		segmentLossRate = vspan->recvSegLossRate;
+		maxSegmentSize = vspan->maxRecvSegSize;
+	}
+	else
+	{
+		segmentLossRate = vspan->xmitSegLossRate;
+		maxSegmentSize = vspan->maxXmitSegSize;
+	}
+
+	maxReportSegments = 2;		/*	Minimum value.		*/
+	xmitBytes = redPartLength;	/*	Initial transmission.	*/
 	while (1)
 	{
 		xmitSegments = xmitBytes / maxSegmentSize;
-		lostSegments = errorsPerSegment * xmitSegments;
+		lostSegments = xmitSegments * segmentLossRate;
 		if (lostSegments < 1.0)
 		{
-			break;
+			break;		/*	No more loss expected.	*/
 		}
 
 		/*	Assume segment losses are uncorrelated, so
@@ -4232,8 +4303,8 @@ int	getMaxReports(int redPartLength, unsigned int maxSegmentSize)
 #if LTPDEBUG
 char	buf[256];
 sprintf(buf, "[i] Max report segments = %d for red part length %d, max segment \
-size %d, errors per segment %f.", maxReportSegments, redPartLength,
-maxSegmentSize, errorsPerSegment);
+size %d, segment loss rate %f.", maxReportSegments, redPartLength,
+maxSegmentSize, segmentLossRate);
 writeMemo(buf);
 #endif
 	return maxReportSegments;
@@ -4947,19 +5018,21 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		 *	of the red part.				*/
 
 		sessionBuf.redPartLength = segUpperBound;
-
-		/*	We can now compute an upper limit on the
-		 *	number of report segments we can send back
-		 *	for this session, assuming that the size of
-		 *	the first red segment received for the session
-		 *	closely approximates the sending engine's
-		 *	maximum data segment size on its span to us.	*/
-
 		GET_OBJ_POINTER(sdr, LtpRecvSeg, firstSegment,
 				sdr_list_data(sdr, sdr_list_first(sdr,
 				sessionBuf.redSegments)));
+		if (firstSegment->pdu.length > vspan->maxRecvSegSize)
+		{
+			vspan->maxRecvSegSize = firstSegment->pdu.length;
+			computeRetransmissionLimits(vspan);
+		}
+
+		/*	We can now compute an upper limit on the
+		 *	number of report segments we can send back
+		 *	for this session.				*/
+
 		sessionBuf.maxReports = getMaxReports(sessionBuf.redPartLength,
-				 firstSegment->pdu.length);
+				 vspan, 1);
 	}
 
 	if ((pdu->segTypeCode & LTP_FLAG_1)
@@ -7244,6 +7317,8 @@ int	ltpResendCheckpoint(unsigned int sessionNbr, unsigned int ckptSerialNbr)
 	Object		dsObj;
 	LtpXmitSeg	dsBuf;
 			OBJ_POINTER(LtpSpan, span);
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
 
 #if LTPDEBUG
 putErrmsg("Resending checkpoint.", itoa(sessionNbr));
@@ -7278,7 +7353,16 @@ putErrmsg("Checkpoint is already acknowledged.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	if (dsBuf.pdu.timer.expirationCount == MAX_TIMEOUTS)
+	GET_OBJ_POINTER(sdr, LtpSpan, span, sessionBuf.span);
+	findSpan(span->engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		putErrmsg("Vspan not found.", itoa(span->engineId));
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (dsBuf.pdu.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Cancel by sender.", itoa(sessionNbr));
@@ -7289,7 +7373,6 @@ putErrmsg("Cancel by sender.", itoa(sessionNbr));
 	else
 	{
 		dsBuf.pdu.timer.expirationCount++;
-		GET_OBJ_POINTER(sdr, LtpSpan, span, sessionBuf.span);
 		dsBuf.queueListElt = sdr_list_insert_last(sdr,
 				span->segments, dsObj);
 		sdr_write(sdr, dsObj, (char *) &dsBuf, sizeof(LtpXmitSeg));
@@ -7316,6 +7399,8 @@ int	ltpResendXmitCancel(unsigned int sessionNbr)
 	Object		sessionElt;
 	ExportSession	sessionBuf;
 			OBJ_POINTER(LtpSpan, span);
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
 
 #if LTPDEBUG
 putErrmsg("Resending cancel by sender.", itoa(sessionNbr));
@@ -7333,7 +7418,16 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 
 	sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
 			sizeof(ExportSession));
-	if (sessionBuf.timer.expirationCount == MAX_TIMEOUTS)
+	GET_OBJ_POINTER(sdr, LtpSpan, span, sessionBuf.span);
+	findSpan(span->engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		putErrmsg("Vspan not found.", itoa(span->engineId));
+		sdr_exit_xn(sdr);
+		return -1;
+	}
+
+	if (sessionBuf.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
@@ -7346,7 +7440,6 @@ putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 		sessionBuf.timer.expirationCount++;
 		sdr_write(sdr, sessionObj, (char *) &sessionBuf,
 				sizeof(ExportSession));
-		GET_OBJ_POINTER(sdr, LtpSpan, span, sessionBuf.span);
 		if (constructSourceCancelReqSegment(span,
 			&((_ltpConstants())->ownEngineIdSdnv), sessionNbr,
 			sessionObj, sessionBuf.reasonCode) < 0)
@@ -7418,7 +7511,7 @@ putErrmsg("Report is already acknowledged.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	if (rsBuf.pdu.timer.expirationCount == MAX_TIMEOUTS)
+	if (rsBuf.pdu.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", itoa(sessionNbr));
@@ -7483,7 +7576,7 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 			vspan->spanElt));
 	sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
 			sizeof(ImportSession));
-	if (sessionBuf.timer.expirationCount == MAX_TIMEOUTS)
+	if (sessionBuf.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));

@@ -26,5 +26,5 @@ ionrestart.o:	$(UTILS)/ionrestart.c
 		$(CC) -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(UTILS)/ionrestart.c
 
 ionrestart:	ionrestart.o
-		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/i86-freebsd/lib -L../../ltp/i86-freebsd/lib -L../../bp/i86-freebsd/lib -L../../cfdp/i86-freebsd/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/i86-freebsd/lib -L../../ltp/i86-freebsd/lib -L../../bp/i86-freebsd/lib -L../../cfdp/i86-freebsd/lib -lcfdp -lcgr -lbp -lltp -lltpP -lici -lpthread -lm
 		cp ionrestart ./bin

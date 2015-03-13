@@ -59,10 +59,6 @@ extern "C" {
 #define MAX_CLAIMS_PER_RS	20
 #endif
 
-#ifndef MAX_TIMEOUTS
-#define	MAX_TIMEOUTS		3
-#endif
-
 /*	LTP segment structure definitions.				*/
 
 typedef struct
@@ -419,6 +415,11 @@ typedef struct
 	Object		stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	uvast		engineId;	/*	ID of remote engine.	*/
+	double		xmitSegLossRate;
+	double		recvSegLossRate;
+	unsigned int	maxTimeouts;
+	unsigned int	maxXmitSegSize;
+	unsigned int	maxRecvSegSize;
 	unsigned int	localXmitRate;	/*	Bytes per second.	*/
 	unsigned int	remoteXmitRate;	/*	Bytes per second.	*/
 	unsigned int	receptionRate;	/*	Bytes per second.	*/
@@ -536,7 +537,7 @@ typedef struct
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
-	float		errorsPerByte;	/*	Max. byte error rate.	*/
+	double		maxBER;		/*	Max. bit error rate.	*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;
 	Object		exportSessionsHash;
@@ -633,8 +634,10 @@ extern int		enqueueNotice(LtpVclient *client,
 				unsigned char endOfBlock,
 				Object data);
 
+extern void		computeRetransmissionLimits(LtpVspan *vspan);
 extern int		getMaxReports(int redPartLength,
-				unsigned int maxSegmentSize);
+				LtpVspan *vspan,
+				int asReceiver);
 
 extern int		ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf);
 extern int		ltpHandleInboundSegment(char *buf, int length);

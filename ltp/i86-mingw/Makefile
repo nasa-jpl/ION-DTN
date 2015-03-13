@@ -45,41 +45,41 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 ltpclock:	ltpclock.o libltp.dll
-		$(CC) -o ltpclock ltpclock.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		$(CC) -o ltpclock ltpclock.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpclock ./bin
 
 ltpmeter:	ltpmeter.o libltp.dll
-		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpmeter ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 ltpadmin:	ltpadmin.o libltp.dll
-		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 ltpdriver:	ltpdriver.o libltp.dll
-		$(CC) -o ltpdriver ltpdriver.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		$(CC) -o ltpdriver ltpdriver.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpdriver ./bin
 
 ltpcounter:	ltpcounter.o libltp.dll
-		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpcounter ./bin
 
 sdatest:	sdatest.o libltp.dll
-		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread
+		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp sdatest ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
 
 udplsi:		udplsi.o libltp.dll
-		$(CC) -o udplsi udplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32
+		$(CC) -o udplsi udplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
 		cp udplsi ./bin
 
 udplso:		udplso.o libltp.dll
-		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32
+		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
 		cp udplso ./bin
 
 #	-	-	Libraries	-	-	-	-	-

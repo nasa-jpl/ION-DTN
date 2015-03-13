@@ -160,6 +160,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <ctype.h>
 #include <signal.h>
 #include <errno.h>
+#include <math.h>
 #include <stdarg.h>
 			/* POSIX.1 */
 #ifndef ION4WIN			/*	No POSIX in Visual Studio.	*/
