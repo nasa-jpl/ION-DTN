@@ -7112,9 +7112,9 @@ static int	acquireBlock(AcqWorkArea *work)
 			{
 				bundle->statusRpt.flags |= BP_RECEIVED_RPT;
 				bundle->statusRpt.reasonCode =
-					SrBlockUnintelligible;
+						SrBlockUnintelligible;
 				getCurrentDtnTime(&bundle->
-					statusRpt.receiptTime);
+						statusRpt.receiptTime);
 			}
 		}
 
@@ -7131,6 +7131,14 @@ static int	acquireBlock(AcqWorkArea *work)
 		if (blkProcFlags & BLK_ABORT_IF_NG)
 		{
 			work->mustAbort = 1;
+			if (bundleIsCustodial(bundle))
+			{
+				bundle->statusRpt.flags |= BP_DELETED_RPT;
+				bundle->statusRpt.reasonCode =
+						SrBlockUnintelligible;
+				getCurrentDtnTime(&bundle->
+						statusRpt.deletionTime);
+			}
 		}
 		else
 		{
@@ -7813,9 +7821,9 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 		if (bytesToSkip < fragBuf.payload.length)
 		{
 			bytesToCopy = fragBuf.payload.length - bytesToSkip;
-			if (zco_append_extent(bpSdr,
+			if (zco_clone_source_data(bpSdr,
 					aggregateBundle.payload.content,
-					ZcoZcoSource, fragBuf.payload.content,
+					fragBuf.payload.content,
 					bytesToSkip, bytesToCopy) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
@@ -9974,6 +9982,18 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 			sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
 			bundle->ductXmitElt = 0;
+			if (bundle->custodyTaken)
+			{
+				/*	Means that custody of the
+				 *	two clones is taken instead.	*/
+
+				releaseCustody(*bundleObj, bundle);
+				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
+						firstBundle.payload.length);
+				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
+						secondBundle.payload.length);
+			}
+
 			sdr_write(bpSdr, *bundleObj, (char *) bundle,
 					sizeof(Bundle));
 			if (bpDestroyBundle(*bundleObj, 0) < 0)
