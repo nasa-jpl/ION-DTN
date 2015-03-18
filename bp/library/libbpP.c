@@ -6992,7 +6992,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned long	temp;
 	ExtensionDef	*def;
 
-	if (work->malformed || work->mustAbort || work->lastBlockParsed)
+	if (work->malformed || work->lastBlockParsed)
 	{
 		return 0;
 	}
