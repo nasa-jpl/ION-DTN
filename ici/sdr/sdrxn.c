@@ -516,9 +516,7 @@ void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 	_sdrlock(1);		/*	Delete SDR system semaphore.	*/
 }
 
-int	_xniEnd(const const char *fileName, int lineNbr, const char *arg,
-		Sdr sdrv)
-{
+int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv) {
 	_postErrmsg(fileName, lineNbr,
 			"Assertion failed, SDR transaction canceled.", arg);
 	writeErrmsgMemos();
