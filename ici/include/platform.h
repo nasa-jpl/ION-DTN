@@ -421,6 +421,13 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
 
+/*	IPC tracking operations		*/
+#define WIN_STOP_ION		0
+#define WIN_NOTE_SM		1
+#define WIN_NOTE_SEMAPHORE	2
+#define WIN_FORGET_SM		3
+#define WIN_FORGET_SEMAPHORE	4
+
 extern int	_winsock(int stopping);
 extern int	iopen(const char *fileName, int flags, int pmode);
 extern int	isend(int sockfd, char *buf, int len, int flags);

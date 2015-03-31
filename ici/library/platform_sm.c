@@ -148,11 +148,11 @@ sm_ShmDestroy(int i)
 
 #ifdef MINGW_SHM
 
-static int	retainIpc(int type, int key)
+static int	trackIpc(int type, int key)
 {
 	char	*pipeName = "\\\\.\\pipe\\ion.pipe";
 	DWORD	keyDword = (DWORD) key;
-	char	msg[5];
+	char	msg[1 + sizeof(DWORD)];
 	int	startedWinion = 0;
 	HANDLE	hPipe;
 	DWORD	dwMode;
@@ -219,7 +219,7 @@ static int	retainIpc(int type, int key)
 		return -1;
 	}
  
-	fSuccess = WriteFile(hPipe, msg, 5, &bytesWritten, NULL);
+	fSuccess = WriteFile(hPipe, msg, sizeof msg, &bytesWritten, NULL);
 	if (!fSuccess) 
 	{
 		putErrmsg("Can't write to pipe.", itoa(GetLastError()));
@@ -258,13 +258,14 @@ static void	_smSegment(char *shmPtr, int *key)
 	static int		segmentsNoted = 0;
 	int			i;
 
+	CHKVOID(key);
 	for (i = 0; i < segmentsNoted; i++)
 	{
 		if (segments[i].shmPtr == shmPtr)
 		{
 			/*	Segment previously noted.		*/
 
-			if (key == NULL)	/*	Looking up key.	*/
+			if (*key == SM_NO_KEY)	/*	Lookup.		*/
 			{
 				*key = segments[i].key;
 			}
@@ -275,9 +276,9 @@ static void	_smSegment(char *shmPtr, int *key)
 
 	/*	This is not a previously noted shared memory segment.	*/
 
-	if (key == NULL)			/*	Looking up key.	*/
+	if (*key == SM_NO_KEY)		/*	No key provided.	*/
 	{
-		return;			/*	No luck.		*/
+		return;			/*	Can't record segment.	*/
 	}
 
 	/*	Newly noting a shared memory segment.			*/
@@ -345,9 +346,9 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 			return -1;
 		}
 
-		if (retainIpc(1, key) < 0)
+		if (trackIpc(WIN_NOTE_SM, key) < 0)
 		{
-			putErrmsg("Can't retain shared memory segment.", NULL);
+			putErrmsg("Can't preserve shared memory.", NULL);
 			return -1;
 		}
 
@@ -380,7 +381,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 void
 sm_ShmDetach(char *shmPtr)
 {
-	return;		/*	Closing last handle destroys mapping.	*/
+	return;		/*	Closing last handle detaches segment.	*/
 }
 
 void
@@ -1034,7 +1035,7 @@ int	sm_ipc_init()
 
 	oK(_semTbl(0));
 
-	/*	Create the IPC semaphore and retain a handle to it.	*/
+	/*	Create the IPC semaphore and preserve it.		*/
 
 	sprintf(semName, "%d.event", SM_SEMKEY);
 	ipcSemaphore = CreateEvent(NULL, FALSE, FALSE, semName);
@@ -1048,11 +1049,11 @@ int	sm_ipc_init()
 	{
 		oK(SetEvent(ipcSemaphore));
 
-		/*	Retain the IPC semaphore.			*/
+		/*	Preserve the IPC semaphore.			*/
 
-		if (retainIpc(2, SM_SEMKEY) < 0)
+		if (trackIpc(WIN_NOTE_SEMAPHORE, SM_SEMKEY) < 0)
 		{
-			putErrmsg("Can't retain IPC semaphore.", NULL);
+			putErrmsg("Can't preserve IPC semaphore.", NULL);
 			sm_ipc_stop();
 			return -1;
 		}
@@ -1063,7 +1064,7 @@ int	sm_ipc_init()
 
 void	sm_ipc_stop()
 {
-	oK(retainIpc(0, 0));
+	oK(trackIpc(WIN_STOP_ION, 0));
 }
 
 static HANDLE	getSemaphoreHandle(int key)
@@ -1146,10 +1147,11 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 	if (GetLastError() != ERROR_ALREADY_EXISTS)
 	{
-		if (retainIpc(2, key) < 0)
+		if (trackIpc(WIN_NOTE_SEMAPHORE, key) < 0)
 		{
 			CloseHandle(semId);
-			putErrmsg("Can't retain semaphore.", NULL);
+			giveIpcLock();
+			putErrmsg("Can't preserve semaphore.", NULL);
 			return SM_SEM_NONE;
 		}
 	}
@@ -1167,12 +1169,19 @@ void	sm_SemDelete(sm_SemId i)
 {
 	SemaphoreTable	*semTbl = _semTbl(0);
 	IciSemaphore	*sem;
+	int		key;
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < NUM_SEMAPHORES);
 	sem = semTbl->semaphores + i;
 	takeIpcLock();
+	key = sem->key;
 	sem->key = SM_NO_KEY;
+	if (trackIpc(WIN_FORGET_SEMAPHORE, key) < 0)
+	{
+		putErrmsg("Can't detach from semaphore.", NULL);
+	}
+
 	giveIpcLock();
 }
 
@@ -1210,7 +1219,6 @@ void	sm_SemGive(sm_SemId i)
 	if (semId == NULL)
 	{
 		putSysErrmsg("Can't give semaphore", itoa(i));
-		CloseHandle(semId);
 		return;
 	}
 

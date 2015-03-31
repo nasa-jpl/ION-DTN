@@ -323,11 +323,6 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 
 		/*	Use built-in defaults as needed.		*/
 
-		if (parms->wmSize == 0)
-		{
-			parms->wmSize = 1000000;
-		}
-
 		if (parms->wmKey == SM_NO_KEY)
 		{
 			sdrwmIsPrivate = 1;

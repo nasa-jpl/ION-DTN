@@ -14,7 +14,8 @@
 
 typedef enum
 {
-	IonSmSegment = 1,
+	IonIpcNone = 0,
+	IonSmSegment,
 	IonSemaphore
 } IonIpcType;
 
@@ -25,10 +26,83 @@ typedef struct
 	HANDLE		handle;
 } IonIpc;
 
-static int	noteSmSegmentIpc(IonIpc *ipc, int key)
+static int	scanIpcs(IonIpc *ipcs, IonIpcType type, DWORD key,
+			int *match, int *firstOpening)
 {
+	int	i;
+	IonIpc	*ipc;
+	int	count = 0;
+
+	if (match)
+	{
+		*match = -1;		/*	Default.		*/
+	}
+
+	if (firstOpening)
+	{
+		*firstOpening = -1;	/*	Default.		*/
+	}
+
+	for (ipc = ipcs, i = 0; i < MAX_ION_IPCS; ipc++, i++)
+	{
+		if (match == NULL)	/*	Just counting.		*/
+		{
+			if (ipc->type != IonIpcNone)
+			{
+				count++;
+			}
+
+			continue;
+		}
+
+		/*	Looking for matching IPC.			*/
+
+		if (ipc->type == type && ipc->key == key)
+		{
+			*match = i;
+			return 0;	/*	Found match.		*/
+		}
+
+		/*	Only need to forget existing IPC?		*/
+
+		if (firstOpening == NULL)
+		{
+			continue;	/*	 Not noting new IPC.	*/
+		}
+
+		/*	Will note new IPC if it's not already noted.	*/
+
+		if (ipc->type == IonIpcNone)
+		{
+			if (*firstOpening == -1)
+			{
+				*firstOpening = i;
+			}
+		}
+	}
+
+	return count;
+}
+
+static int	noteSmSegmentIpc(IonIpc *ipcs, int key)
+{
+	int	match;
+	int	firstOpening;
+	IonIpc	*ipc;
 	char	memName[32];
 
+	oK(scanIpcs(ipcs, IonSmSegment, key, &match, &firstOpening));
+	if (match >= 0)		/*	Found it.			*/
+	{
+		return 0;	/*	SM segment already noted.	*/
+	}
+
+	if (firstOpening < 0)	/*	No room for new IPC.		*/
+	{
+		return -1;
+	}
+
+	ipc = ipcs + firstOpening;
 	sprintf(memName, "%d.mmap", key);
 	ipc->handle = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, memName);
 	if (ipc->handle == NULL)	/*	Not found.		*/
@@ -38,13 +112,30 @@ static int	noteSmSegmentIpc(IonIpc *ipc, int key)
 		return -1;
 	}
 
+	ipc->type = IonSmSegment;
+	ipc->key = key;
 	return 0;
 }
 
-static int	noteSemaphoreIpc(IonIpc *ipc, int key)
+static int	noteSemaphoreIpc(IonIpc *ipcs, int key)
 {
+	int	match;
+	int	firstOpening;
+	IonIpc	*ipc;
 	char	semaphoreName[32];
 
+	oK(scanIpcs(ipcs, IonSmSegment, key, &match, &firstOpening));
+	if (match >= 0)		/*	Found it.			*/
+	{
+		return 0;	/*	Semaphore already noted.	*/
+	}
+
+	if (firstOpening < 0)	/*	No room for new IPC.		*/
+	{
+		return -1;
+	}
+
+	ipc = ipcs + firstOpening;
 	sprintf(semaphoreName, "%d.event", key);
 	ipc->handle = OpenEvent(EVENT_ALL_ACCESS, FALSE, semaphoreName);
 	if (ipc->handle == NULL)	/*	Not found.		*/
@@ -54,45 +145,40 @@ static int	noteSemaphoreIpc(IonIpc *ipc, int key)
 		return -1;
 	}
 
+	ipc->type = IonSemaphore;
+	ipc->key = key;
 	return 0;
 }
 
-static int	noteIpc(IonIpc *ipc, IonIpcType type, int key)
+static void	forgetIpc(IonIpc *ipcs, IonIpcType type, int key)
 {
-	int	result;
+	int	match;
+	IonIpc	*ipc;
 
-	if (type == IonSmSegment)
+	oK(scanIpcs(ipcs, type, key, &match, NULL));
+	if (match < 0)		/*	Didn't find the IPC.		*/
 	{
-		result = noteSmSegmentIpc(ipc, key);
-	}
-	else
-	{
-		result = noteSemaphoreIpc(ipc, key);
-	}
-
-	if (result == 0)
-	{
-		ipc->type = type;
-		ipc->key = key;
+		puts("Can't detach from IPC.");
+		return;
 	}
 
-	return result;
+	ipc = ipcs + match;
+	CloseHandle(ipc->handle);
+	ipc->type = IonIpcNone;
 }
 
 int	main(int argc, char *argv[])
 {
 	IonIpc		ipcs[MAX_ION_IPCS];
-	int		ipcsCount = 0;
+	int		ipcsCount;
 	HANDLE		hPipe = INVALID_HANDLE_VALUE;
 	int		ionRunning = 1;
  	BOOL		fConnected = FALSE;
-	char		msg[5];
+	char		msg[1 + sizeof(DWORD)];
 	DWORD		bytesRead;
  	BOOL		fSuccess = FALSE;
-	IonIpcType	type;
 	DWORD		key;
-	int		i;
-	char		reply[1] = { '\0' };
+	char		reply[1];
 	DWORD		bytesWritten;
  
 	hPipe = CreateNamedPipe("\\\\.\\pipe\\ion.pipe", PIPE_ACCESS_DUPLEX,
@@ -118,7 +204,7 @@ int	main(int argc, char *argv[])
 			break;
 		}
 
-		/*	Read one request to retain a handle.		*/
+		/*	Read one request to track an IPC.		*/
 
 		fSuccess = ReadFile(hPipe, msg, sizeof msg, &bytesRead, NULL);
 		if (!fSuccess || bytesRead == 0)
@@ -134,61 +220,49 @@ int	main(int argc, char *argv[])
 			break;
 		}
 
-		/*	Parse the message, open and retain the handle.	*/
+		/*	Parse the message, track the IPC.		*/
 
-		reply[0] = 1;				/*	Okay.	*/
+		memcpy((char *) &key, msg + 1, sizeof(DWORD));
+		reply[0] = 1;		/*	Default: success.	*/
 		switch (msg[0])
 		{
-		case 0:					/*	Stop.	*/
+		case WIN_STOP_ION:
 			ionRunning = 0;
 			continue;
 
-		case 1:
-			type = IonSmSegment;
+		case WIN_NOTE_SM:
+			if (noteSmSegmentIpc(ipcs, key) < 0)
+			{
+				reply[0] = 0;		/*	Fail.	*/
+			}
+
 			break;
 
-		case 2:
-			type = IonSemaphore;
+		case WIN_NOTE_SEMAPHORE:
+			if (noteSemaphoreIpc(ipcs, key) < 0)
+			{
+				reply[0] = 0;		/*	Fail.	*/
+			}
+
+			break;
+
+		case WIN_FORGET_SM:
+			forgetIpc(ipcs, IonSmSegment, key);
+			break;
+
+		case WIN_FORGET_SEMAPHORE:
+			forgetIpc(ipcs, IonSemaphore, key);
 			break;
 
 		case '?':
+			ipcsCount = scanIpcs(ipcs, IonIpcNone, 0, NULL, NULL);
 			printf("winion retaining %d IPCs.\n", ipcsCount);
 			reply[0] = 0;			/*	Dummy.	*/
 			break;
 
 		default:
+			printf("Invalid message type to winion: %d.\n", msg[0]);
 			reply[0] = 0;			/*	Fail.	*/
-		}
-
-		if (reply[0])	/*	Valid IPC type.			*/
-		{
-			memcpy((char *) &key, msg + 1, sizeof(DWORD));
-			for (i = 0; i < ipcsCount; i++)
-			{
-				if (ipcs[i].type == type && ipcs[i].key == key)
-				{
-					break;
-				}
-			}
-
-			if (i == ipcsCount)	/*	New IPC.	*/
-			{
-				if (i == MAX_ION_IPCS)
-				{
-					reply[0] = 0;	/*	Fail.	*/
-				}
-				else
-				{
-					if (noteIpc(&ipcs[i], type, (int) key))
-					{
-						reply[0] = 0;
-					}
-					else
-					{
-						ipcsCount++;
-					}
-				}
-			}
 		}
 
 		/*	Tell the client to continue.			*/
