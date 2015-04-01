@@ -982,13 +982,13 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 typedef struct
 {
 	int	key;
+	int	inUse;
 	int	ended;
 } IciSemaphore;
 
 typedef struct
 {
 	IciSemaphore	semaphores[NUM_SEMAPHORES];
-	int		semaphoreCount;
 } SemaphoreTable;
 
 static SemaphoreTable	*_semTbl(int stop)
@@ -1117,8 +1117,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		return SM_SEM_NONE;
 	}
 
-	for (i = 0, sem = semTbl->semaphores; i < semTbl->semaphoreCount;
-			i++, sem++)
+	for (i = 0, sem = semTbl->semaphores; i < NUM_SEMAPHORES; i++, sem++)
 	{
 		if (sem->key == key)
 		{
@@ -1129,59 +1128,64 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 	/*	No existing semaphore for this key; allocate new one.	*/
 
-	if (semTbl->semaphoreCount == NUM_SEMAPHORES)
+	for (i = 0, sem = semTbl->semaphores; i < NUM_SEMAPHORES; i++, sem++)
 	{
-		giveIpcLock();
-		putErrmsg("Can't add any more semaphores.", NULL);
-		return SM_SEM_NONE;
-	}
-
-	sprintf(semName, "%d.event", key);
-	semId = CreateEvent(NULL, FALSE, FALSE, semName);
-	if (semId == NULL)
-	{
-		giveIpcLock();
-		putErrmsg("Can't create semaphore.", utoa(GetLastError()));
-		return SM_SEM_NONE;
-	}
-
-	if (GetLastError() != ERROR_ALREADY_EXISTS)
-	{
-		if (trackIpc(WIN_NOTE_SEMAPHORE, key) < 0)
+		if (sem->inUse)
 		{
-			CloseHandle(semId);
+			continue;
+		}
+
+		sprintf(semName, "%d.event", key);
+		semId = CreateEvent(NULL, FALSE, FALSE, semName);
+		if (semId == NULL)
+		{
 			giveIpcLock();
-			putErrmsg("Can't preserve semaphore.", NULL);
+			putErrmsg("Can't create semaphore.",
+					utoa(GetLastError()));
 			return SM_SEM_NONE;
 		}
+
+		if (GetLastError() != ERROR_ALREADY_EXISTS)
+		{
+			if (trackIpc(WIN_NOTE_SEMAPHORE, key) < 0)
+			{
+				CloseHandle(semId);
+				giveIpcLock();
+				putErrmsg("Can't preserve semaphore.", NULL);
+				return SM_SEM_NONE;
+			}
+		}
+
+		CloseHandle(semId);
+		sem->inUse = 1;
+		sem->key = key;
+		sem->ended = 0;
+		sm_SemGive(i);		/*	(First taker succeeds.)	*/
+		giveIpcLock();
+		return i;
 	}
 
-	CloseHandle(semId);
-	sem->key = key;
-	sem->ended = 0;
-	semTbl->semaphoreCount++;
-	sm_SemGive(i);			/*	(First taker succeeds.)	*/
 	giveIpcLock();
-	return i;
+	putErrmsg("Can't add any more semaphores.", NULL);
+	return SM_SEM_NONE;
 }
 
 void	sm_SemDelete(sm_SemId i)
 {
 	SemaphoreTable	*semTbl = _semTbl(0);
 	IciSemaphore	*sem;
-	int		key;
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < NUM_SEMAPHORES);
 	sem = semTbl->semaphores + i;
 	takeIpcLock();
-	key = sem->key;
-	sem->key = SM_NO_KEY;
-	if (trackIpc(WIN_FORGET_SEMAPHORE, key) < 0)
+	if (trackIpc(WIN_FORGET_SEMAPHORE, sem->key) < 0)
 	{
 		putErrmsg("Can't detach from semaphore.", NULL);
 	}
 
+	sem->inUse = 0;
+	sem->key = SM_NO_KEY;
 	giveIpcLock();
 }
 
@@ -1575,8 +1579,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 typedef struct
 {
 	int		semid;
-	int		createCount;
-	int		destroyCount;
+	int		numbersAssigned;
 } IciSemaphoreSet;
 
 /*	Note: we can actually always compute a semaphore's semSetIdx
@@ -1590,6 +1593,7 @@ typedef struct
 	int		key;
 	int		semSetIdx;
 	int		semNbr;
+	int		inUse;
 	int		ended;
 } IciSemaphore;
 
@@ -1598,7 +1602,7 @@ typedef struct
 	IciSemaphoreSet	semSets[SEMMNI];
 	int		currSemSet;
 	IciSemaphore	semaphores[SEMMNS];
-	int		semaphoresCount;
+	int		numbersAssigned;
 } SemaphoreBase;
 
 static SemaphoreBase	*_sembase(int stop)
@@ -1641,7 +1645,7 @@ static SemaphoreBase	*_sembase(int stop)
 			break;		/*	SemaphoreBase exists.	*/
 
 		default:		/*	New SemaphoreBase.	*/
-			semaphoreBase->semaphoresCount = 0;
+			semaphoreBase->numbersAssigned = 0;
 			semaphoreBase->currSemSet = 0;
 			for (i = 0; i < SEMMNI; i++)
 			{
@@ -1663,8 +1667,7 @@ static SemaphoreBase	*_sembase(int stop)
 				break;
 			}
 
-			semset->createCount = 0;
-			semset->destroyCount = 0;
+			semset->numbersAssigned = 0;
 		}
 	}
 
@@ -1748,7 +1751,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 {
 	SemaphoreBase	*sembase;
 	int		i;
-	int		semkey;
+	IciSemaphore	*sem;
 	IciSemaphoreSet	*semset;
 	int		semSetIdx;
 	int		semid;
@@ -1771,123 +1774,122 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		return SM_SEM_NONE;
 	}
 
-	for (i = 0; i < sembase->semaphoresCount; i++)
+	for (i = 0, sem = sembase->semaphores; i < sembase->numbersAssigned;
+			i++, sem++)
 	{
-		semkey = sembase->semaphores[i].key;
-		if (semkey == key)
+		if (sem->key == key)
 		{
 			giveIpcLock();
 			return i;	/*	already created		*/
 		}
 	}
 
-	/*	No existing semaphore for this key; allocate new one
-	 *	from next semaphore in current semaphore set.		*/
+	/*	No existing semaphore for this key; allocate one that
+	 *	is unused or a new one from next semaphore in current
+	 *	semaphore set.						*/
 
-	if (!(i < SEMMNS))
-	{
-		giveIpcLock();
-		putErrmsg("Can't add any more semaphores; table full.", NULL);
-		return SM_SEM_NONE;
-	}
-
-	sembase->semaphores[i].key = key;
-	sembase->semaphores[i].ended = 0;
-	sembase->semaphores[i].semSetIdx = sembase->currSemSet;
 	semset = sembase->semSets + sembase->currSemSet;
-	sembase->semaphores[i].semNbr = semset->createCount;
-	sembase->semaphoresCount++;
-
-	/*	Now roll over to next semaphore set if necessary.	*/
-
-	semset->createCount++;
-	if (semset->createCount == SEMMSL)
+	for (i = 0, sem = sembase->semaphores; i < SEMMNS; i++, sem++)
 	{
-		/*	Must acquire another semaphore set.		*/
-
-		semid = semget(sm_GetUniqueKey(), SEMMSL, IPC_CREAT | 0666);
-		if (semid < 0)
+		if (sem->inUse)
 		{
-			giveIpcLock();
-			putSysErrmsg("Can't get semaphore set", NULL);
-			return SM_SEM_NONE;
+			continue;
 		}
 
-		/*	Find a row in the semaphore set table for
-		 *	managing this semaphore set.			*/
+		/*	Found available slot in table.			*/
 
-		semSetIdx = sembase->currSemSet;
-		while (1)
+		sem->inUse = 1;
+		sem->key = key;
+		sem->ended = 0;
+		if (i >= sembase->numbersAssigned)
 		{
-			semSetIdx++;
-			if (semSetIdx == SEMMNI)
-			{
-				semSetIdx = 0;	/*	Roll over.	*/
-			}
+			/*	Must assign a new semaphore number.	*/
 
-			if (semSetIdx == sembase->currSemSet)
+			sem->semSetIdx = sembase->currSemSet;
+			sem->semNbr = semset->numbersAssigned;
+			semset->numbersAssigned++;
+			sembase->numbersAssigned++;
+		}
+
+		sm_SemGive(i);		/*	(First taker succeeds.)	*/
+
+		/*	Acquire next semaphore set if necessary.	*/
+
+		if (semset->numbersAssigned == SEMMSL)
+		{
+			/*	Must acquire another semaphore set.	*/
+
+			semid = semget(sm_GetUniqueKey(), SEMMSL,
+					IPC_CREAT | 0666);
+			if (semid < 0)
 			{
 				giveIpcLock();
-				putErrmsg("Too many semaphore sets, can't \
-manage the new one.", NULL);
+				putSysErrmsg("Can't get semaphore set", NULL);
 				return SM_SEM_NONE;
 			}
 
-			semset = sembase->semSets + semSetIdx;
-			if (semset->semid == -1)
+			/*	Find a row in the semaphore set table
+			 *	for managing this semaphore set.	*/
+
+			semSetIdx = sembase->currSemSet;
+			while (1)
 			{
-				break;	/*	Found unused row.	*/
+				semSetIdx++;
+				if (semSetIdx == SEMMNI)
+				{
+					/*	Roll over.		*/
+	
+					semSetIdx = 0;
+				}
+
+				if (semSetIdx == sembase->currSemSet)
+				{
+					giveIpcLock();
+					putErrmsg("Too many semaphore sets, \
+can't manage the new one.", NULL);
+					return SM_SEM_NONE;
+				}
+
+				semset = sembase->semSets + semSetIdx;
+				if (semset->semid == -1)
+				{
+					break;	/*	Unused row.	*/
+				}
 			}
+
+			sembase->currSemSet = semSetIdx;
+			semset->semid = semid;
+			semset->numbersAssigned = 0;
 		}
 
-		sembase->currSemSet = semSetIdx;
-		semset->semid = semid;
-		semset->createCount = 0;
-		semset->destroyCount = 0;
+		giveIpcLock();
+		return i;
 	}
 
 	giveIpcLock();
-	return i;
+	putErrmsg("Can't add any more semaphores; table full.", NULL);
+	return SM_SEM_NONE;
 }
+
 
 void	sm_SemDelete(sm_SemId i)
 {
 	SemaphoreBase	*sembase = _sembase(0);
 	IciSemaphore	*sem;
-	IciSemaphoreSet	*semset;
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->semaphoresCount);
-	takeIpcLock();
+	CHKVOID(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
-	sem->key = -1;
+	takeIpcLock();
 
-	/*	Note: we don't try to re-use deleted ICI semaphores.
-	 *	This is because we can't guarantee that there isn't
-	 *	some leftover process that thinks some deleted
-	 *	semaphore is still associated with its old key and
-	 *	is still taking (or has taken) it.			*/
+	/*	Note: the semSetIdx and semNbr in the semaphore
+	 *	don't need to be deleted; they constitute a
+	 *	semaphore ID that will be reassigned later when
+	 *	this semaphore object is allocated to a new use.	*/
 
-	semset = sembase->semSets + sem->semSetIdx;
-	semset->destroyCount++;
-	if (semset->destroyCount == SEMMSL)
-	{
-		/*	All semaphores in this set have been deleted,
-		 *	so we can release the entire semaphore set
-		 *	for re-use.					*/
-
-		if (semctl(semset->semid, 0, IPC_RMID, NULL) < 0)
-		{
-			putSysErrmsg("Can't delete semaphore set",
-					itoa(semset->semid));
-		}
-
-		semset->semid = -1;
-		semset->createCount = 0;
-		semset->destroyCount = 0;
-	}
-
+	sem->inUse = 0;
+	sem->key = SM_NO_KEY;
 	giveIpcLock();
 }
 
@@ -1900,7 +1902,7 @@ int	sm_SemTake(sm_SemId i)
 
 	CHKERR(sembase);
 	CHKERR(i >= 0);
-	CHKERR(i < sembase->semaphoresCount);
+	CHKERR(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
@@ -1934,7 +1936,7 @@ void	sm_SemGive(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->semaphoresCount);
+	CHKVOID(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
@@ -1960,7 +1962,7 @@ void	sm_SemEnd(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->semaphoresCount);
+	CHKVOID(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
 	sem->ended = 1;
 	sm_SemGive(i);
@@ -1974,7 +1976,7 @@ int	sm_SemEnded(sm_SemId i)
 
 	CHKZERO(sembase);
 	CHKZERO(i >= 0);
-	CHKZERO(i < sembase->semaphoresCount);
+	CHKZERO(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
 	ended = sem->ended;
 	if (ended)
@@ -1992,7 +1994,7 @@ void	sm_SemUnend(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->semaphoresCount);
+	CHKVOID(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
 	sem->ended = 0;
 }
@@ -2011,7 +2013,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 	CHKERR(sembase);
 	CHKERR(i >= 0);
-	CHKERR(i < sembase->semaphoresCount);
+	CHKERR(i < sembase->numbersAssigned);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
