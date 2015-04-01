@@ -340,11 +340,6 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 				sdrmtake, sdrmrlse, sdrmatop, sdrmptoa) < 0)
 		{
 			putErrmsg("Can't open SDR working memory.", NULL);
-			if (sdrwmIsPrivate)
-			{
-				memmgr_destroy(sdrwmId, &sdrwm);
-			}
-
 			sdrwmId = 0;
 			sdrwm = NULL;
 			memmgrIdx = -1;

@@ -1576,10 +1576,13 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 #define SM_SEMBASEKEY	(0xee02)
 #endif
 
+/*	Note: one semaphore set is consumed by the ipcSemaphore.	*/
+#define MAX_SEM_SETS	(SEMMNI - 1)
+
 typedef struct
 {
 	int		semid;
-	int		numbersAssigned;
+	int		idsAllocated;
 } IciSemaphoreSet;
 
 /*	Note: we can actually always compute a semaphore's semSetIdx
@@ -1599,10 +1602,10 @@ typedef struct
 
 typedef struct
 {
-	IciSemaphoreSet	semSets[SEMMNI];
+	IciSemaphoreSet	semSets[MAX_SEM_SETS];
 	int		currSemSet;
 	IciSemaphore	semaphores[SEMMNS];
-	int		numbersAssigned;
+	int		idsAllocated;
 } SemaphoreBase;
 
 static SemaphoreBase	*_sembase(int stop)
@@ -1618,7 +1621,7 @@ static SemaphoreBase	*_sembase(int stop)
 		if (semaphoreBase != NULL)
 		{
 			semSetIdx = 0;
-			while (semSetIdx < SEMMNI)
+			while (semSetIdx < MAX_SEM_SETS)
 			{
 				semset = semaphoreBase->semSets + semSetIdx;
 				oK(semctl(semset->semid, 0, IPC_RMID, NULL));
@@ -1645,9 +1648,9 @@ static SemaphoreBase	*_sembase(int stop)
 			break;		/*	SemaphoreBase exists.	*/
 
 		default:		/*	New SemaphoreBase.	*/
-			semaphoreBase->numbersAssigned = 0;
+			semaphoreBase->idsAllocated = 0;
 			semaphoreBase->currSemSet = 0;
-			for (i = 0; i < SEMMNI; i++)
+			for (i = 0; i < MAX_SEM_SETS; i++)
 			{
 				semaphoreBase->semSets[i].semid = -1;
 			}
@@ -1667,7 +1670,7 @@ static SemaphoreBase	*_sembase(int stop)
 				break;
 			}
 
-			semset->numbersAssigned = 0;
+			semset->idsAllocated = 0;
 		}
 	}
 
@@ -1774,7 +1777,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		return SM_SEM_NONE;
 	}
 
-	for (i = 0, sem = sembase->semaphores; i < sembase->numbersAssigned;
+	for (i = 0, sem = sembase->semaphores; i < sembase->idsAllocated;
 			i++, sem++)
 	{
 		if (sem->key == key)
@@ -1784,8 +1787,8 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		}
 	}
 
-	/*	No existing semaphore for this key; allocate one that
-	 *	is unused or a new one from next semaphore in current
+	/*	No existing semaphore for this key; repurpose one
+	 *	that is unused or allocate the next one in the current
 	 *	semaphore set.						*/
 
 	semset = sembase->semSets + sembase->currSemSet;
@@ -1801,23 +1804,32 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		sem->inUse = 1;
 		sem->key = key;
 		sem->ended = 0;
-		if (i >= sembase->numbersAssigned)
+		if (i >= sembase->idsAllocated)
 		{
-			/*	Must assign a new semaphore number.	*/
+			/*	Must allocate new semaphore ID in slot.	*/
 
 			sem->semSetIdx = sembase->currSemSet;
-			sem->semNbr = semset->numbersAssigned;
-			semset->numbersAssigned++;
-			sembase->numbersAssigned++;
+			sem->semNbr = semset->idsAllocated;
+			semset->idsAllocated++;
+			sembase->idsAllocated++;
 		}
 
 		sm_SemGive(i);		/*	(First taker succeeds.)	*/
 
 		/*	Acquire next semaphore set if necessary.	*/
 
-		if (semset->numbersAssigned == SEMMSL)
+		if (semset->idsAllocated == SEMMSL)
 		{
 			/*	Must acquire another semaphore set.	*/
+
+			semSetIdx = sembase->currSemSet + 1;
+			if (semSetIdx == MAX_SEM_SETS)
+			{
+				giveIpcLock();
+				putErrmsg("Too many semaphore sets, can't \
+manage the new one.", NULL);
+				return SM_SEM_NONE;
+			}
 
 			semid = semget(sm_GetUniqueKey(), SEMMSL,
 					IPC_CREAT | 0666);
@@ -1828,38 +1840,10 @@ sm_SemId	sm_SemCreate(int key, int semType)
 				return SM_SEM_NONE;
 			}
 
-			/*	Find a row in the semaphore set table
-			 *	for managing this semaphore set.	*/
-
-			semSetIdx = sembase->currSemSet;
-			while (1)
-			{
-				semSetIdx++;
-				if (semSetIdx == SEMMNI)
-				{
-					/*	Roll over.		*/
-	
-					semSetIdx = 0;
-				}
-
-				if (semSetIdx == sembase->currSemSet)
-				{
-					giveIpcLock();
-					putErrmsg("Too many semaphore sets, \
-can't manage the new one.", NULL);
-					return SM_SEM_NONE;
-				}
-
-				semset = sembase->semSets + semSetIdx;
-				if (semset->semid == -1)
-				{
-					break;	/*	Unused row.	*/
-				}
-			}
-
 			sembase->currSemSet = semSetIdx;
+			semset = sembase->semSets + semSetIdx;
 			semset->semid = semid;
-			semset->numbersAssigned = 0;
+			semset->idsAllocated = 0;
 		}
 
 		giveIpcLock();
@@ -1879,7 +1863,7 @@ void	sm_SemDelete(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->numbersAssigned);
+	CHKVOID(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	takeIpcLock();
 
@@ -1902,7 +1886,7 @@ int	sm_SemTake(sm_SemId i)
 
 	CHKERR(sembase);
 	CHKERR(i >= 0);
-	CHKERR(i < sembase->numbersAssigned);
+	CHKERR(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
@@ -1936,7 +1920,7 @@ void	sm_SemGive(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->numbersAssigned);
+	CHKVOID(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
@@ -1962,7 +1946,7 @@ void	sm_SemEnd(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->numbersAssigned);
+	CHKVOID(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	sem->ended = 1;
 	sm_SemGive(i);
@@ -1976,7 +1960,7 @@ int	sm_SemEnded(sm_SemId i)
 
 	CHKZERO(sembase);
 	CHKZERO(i >= 0);
-	CHKZERO(i < sembase->numbersAssigned);
+	CHKZERO(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	ended = sem->ended;
 	if (ended)
@@ -1994,7 +1978,7 @@ void	sm_SemUnend(sm_SemId i)
 
 	CHKVOID(sembase);
 	CHKVOID(i >= 0);
-	CHKVOID(i < sembase->numbersAssigned);
+	CHKVOID(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	sem->ended = 0;
 }
@@ -2013,7 +1997,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 	CHKERR(sembase);
 	CHKERR(i >= 0);
-	CHKERR(i < sembase->numbersAssigned);
+	CHKERR(i < sembase->idsAllocated);
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
