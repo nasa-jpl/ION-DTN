@@ -3575,6 +3575,7 @@ static int	constructReceptionClaim(LtpXmitSeg *rs, int lowerBound,
 	Sdnv			sdnv;
 
 	CHKERR(ionLocked());
+	CHKERR(upperBound > lowerBound);
 	claimObj = sdr_malloc(sdr, sizeof(LtpReceptionClaim));
 	if (claimObj == 0)
 	{
@@ -3767,7 +3768,7 @@ putErrmsg("Too many reports, canceling session.", itoa(session->sessionNbr));
 	if (reportSerialNbr != 0)
 	{
 		/*	Sending report in response to a checkpoint
-		 *	that cites a prior report.  Use thatx
+		 *	that cites a prior report.  Use that
 		 *	report's lower bound as the lower bound
 		 *	for this report.				*/
 
@@ -4010,24 +4011,14 @@ static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 
 	CHKERR(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
-	while (sdr_list_length(sdr, span->importSessions)
-			>= span->maxImportSessions)
+	if (!(sdr_list_length(sdr, span->importSessions)
+			< span->maxImportSessions))
 	{
-		/*	Limit reached.  Must cancel oldest session.	*/
-
-		*sessionObj = sdr_list_data(sdr, sdr_list_first(sdr,
-				span->importSessions));
-		sdr_stage(sdr, (char *) sessionBuf, *sessionObj,
-				sizeof(ImportSession));
+		/*	Limit reached.  Can't start any more sessions.	*/
 #if LTPDEBUG
-putErrmsg("Cancel by receiver.", itoa(sessionBuf->sessionNbr));
+putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 #endif
-		if (cancelSessionByReceiver(sessionBuf, *sessionObj,
-				LtpCancelByEngine) < 0)
-		{
-			putErrmsg("LTP failed canceling oldest session.", NULL);
-			return -1;
-		}
+		return 0;
 	}
 
 	/*	importSessions list element points to the session
@@ -4079,7 +4070,7 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 		return -1;
 	}
 
-	return 0;
+	return 1;	/*	Import session creation okay.		*/
 }
 
 static int	createBlockFile(LtpSpan *span, ImportSession *session)
@@ -4666,12 +4657,22 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 
 		/*	Must start a new import session.		*/
 
-		if (startImportSession(spanObj, sessionNbr, sessionBuf,
+		switch (startImportSession(spanObj, sessionNbr, sessionBuf,
 				sessionObj, pdu->clientSvcId, ltpdb, vspan,
-				&vsession) < 0)
+				&vsession))
 		{
+		case -1:
 			putErrmsg("Can't create reception session.", NULL);
 			return -1;
+
+		case 0:
+			/*	Too many sessions; can't let this
+			 *	segment start a new one, so discard it.	*/
+#if LTPDEBUG
+putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
+#endif
+			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
+			return 0;
 		}
 	}
 
