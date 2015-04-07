@@ -398,6 +398,9 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #undef	SVR4_SEMAPHORES
 #define MINGW_SEMAPHORES
+#ifndef SEMMNS
+#define	SEMMNS			32000	/*	Max. nbr of semaphores	*/
+#endif
 
 #undef	UNIX_TASKS
 #define MINGW_TASKS

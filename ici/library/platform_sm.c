@@ -977,7 +977,6 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 #ifndef SM_SEMTBLKEY
 #define SM_SEMTBLKEY	(0xee02)
 #endif
-#define	NUM_SEMAPHORES	200
 
 typedef struct
 {
@@ -988,7 +987,8 @@ typedef struct
 
 typedef struct
 {
-	IciSemaphore	semaphores[NUM_SEMAPHORES];
+	IciSemaphore	semaphores[SEMMNS];
+	int		semaphoresCreated;
 } SemaphoreTable;
 
 static SemaphoreTable	*_semTbl(int stop)
@@ -1117,7 +1117,8 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		return SM_SEM_NONE;
 	}
 
-	for (i = 0, sem = semTbl->semaphores; i < NUM_SEMAPHORES; i++, sem++)
+	for (i = 0, sem = semTbl->semaphores; i < semTbl->semaphoresCreated;
+			i++, sem++)
 	{
 		if (sem->key == key)
 		{
@@ -1128,7 +1129,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 	/*	No existing semaphore for this key; allocate new one.	*/
 
-	for (i = 0, sem = semTbl->semaphores; i < NUM_SEMAPHORES; i++, sem++)
+	for (i = 0, sem = semTbl->semaphores; i < SEMMNS; i++, sem++)
 	{
 		if (sem->inUse)
 		{
@@ -1160,6 +1161,11 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		sem->inUse = 1;
 		sem->key = key;
 		sem->ended = 0;
+		if (!(i < semTbl->semaphoresCreated))
+		{
+			semTbl->semaphoresCreated++;
+		}
+
 		sm_SemGive(i);		/*	(First taker succeeds.)	*/
 		giveIpcLock();
 		return i;
@@ -1176,16 +1182,20 @@ void	sm_SemDelete(sm_SemId i)
 	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
-	CHKVOID(i < NUM_SEMAPHORES);
+	CHKVOID(i < SEMMNS);
 	sem = semTbl->semaphores + i;
 	takeIpcLock();
-	if (trackIpc(WIN_FORGET_SEMAPHORE, sem->key) < 0)
+	if (sem->inUse)
 	{
-		putErrmsg("Can't detach from semaphore.", NULL);
+		if (trackIpc(WIN_FORGET_SEMAPHORE, sem->key) < 0)
+		{
+			putErrmsg("Can't detach from semaphore.", NULL);
+		}
+
+		sem->inUse = 0;
+		sem->key = SM_NO_KEY;
 	}
 
-	sem->inUse = 0;
-	sem->key = SM_NO_KEY;
 	giveIpcLock();
 }
 
@@ -1196,8 +1206,9 @@ int	sm_SemTake(sm_SemId i)
 	HANDLE		semId;
 
 	CHKERR(i >= 0);
-	CHKERR(i < NUM_SEMAPHORES);
+	CHKERR(i < SEMMNS);
 	sem = semTbl->semaphores + i;
+	CHKERR(sem->inUse);
 	semId = getSemaphoreHandle(sem->key);
 	if (semId == NULL)
 	{
@@ -1217,8 +1228,9 @@ void	sm_SemGive(sm_SemId i)
 	HANDLE		semId;
 
 	CHKVOID(i >= 0);
-	CHKVOID(i < NUM_SEMAPHORES);
+	CHKVOID(i < SEMMNS);
 	sem = semTbl->semaphores + i;
+	CHKVOID(sem->inUse);
 	semId = getSemaphoreHandle(sem->key);
 	if (semId == NULL)
 	{
@@ -1236,8 +1248,9 @@ void	sm_SemEnd(sm_SemId i)
 	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
-	CHKVOID(i < NUM_SEMAPHORES);
+	CHKVOID(i < SEMMNS);
 	sem = semTbl->semaphores + i;
+	CHKVOID(sem->inUse);
 	sem->ended = 1;
 	sm_SemGive(i);
 }
@@ -1246,11 +1259,12 @@ int	sm_SemEnded(sm_SemId i)
 {
 	SemaphoreTable	*semTbl = _semTbl(0);
 	IciSemaphore	*sem;
-	int	ended;
+	int		ended;
 
 	CHKZERO(i >= 0);
-	CHKZERO(i < NUM_SEMAPHORES);
+	CHKZERO(i < SEMMNS);
 	sem = semTbl->semaphores + i;
+	CHKZERO(sem->inUse);
 	ended = sem->ended;
 	if (ended)
 	{
@@ -1266,8 +1280,9 @@ void	sm_SemUnend(sm_SemId i)
 	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
-	CHKVOID(i < NUM_SEMAPHORES);
+	CHKVOID(i < SEMMNS);
 	sem = semTbl->semaphores + i;
+	CHKVOID(sem->inUse);
 	sem->ended = 0;
 }
 
@@ -1279,8 +1294,9 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	DWORD		millisec;
 
 	CHKERR(i >= 0);
-	CHKERR(i < NUM_SEMAPHORES);
+	CHKERR(i < SEMMNS);
 	sem = semTbl->semaphores + i;
+	CHKERR(sem->inUse);
 	semId = getSemaphoreHandle(sem->key);
 	if (semId == NULL)
 	{

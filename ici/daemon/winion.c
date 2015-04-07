@@ -10,7 +10,8 @@
 #include "ion.h"
 #include <signal.h>
 
-#define	MAX_ION_IPCS	200
+#define	MAX_SM_SEGMENTS	100
+#define	MAX_ION_IPCS	(SEMMNS + MAX_SM_SEGMENTS)
 
 typedef enum
 {
@@ -26,7 +27,13 @@ typedef struct
 	HANDLE		handle;
 } IonIpc;
 
-static int	scanIpcs(IonIpc *ipcs, IonIpcType type, DWORD key,
+typedef struct
+{
+	IonIpc		ipcs[MAX_ION_IPCS];
+	int		ipcsCount;
+} IonIpcTable;
+
+static int	scanIpcs(IonIpcTable *ipcTbl, IonIpcType type, DWORD key,
 			int *match, int *firstOpening)
 {
 	int	i;
@@ -43,7 +50,7 @@ static int	scanIpcs(IonIpc *ipcs, IonIpcType type, DWORD key,
 		*firstOpening = -1;	/*	Default.		*/
 	}
 
-	for (ipc = ipcs, i = 0; i < MAX_ION_IPCS; ipc++, i++)
+	for (ipc = ipcTbl->ipcs, i = 0; i < ipcTbl->ipcsCount; ipc++, i++)
 	{
 		if (match == NULL)	/*	Just counting.		*/
 		{
@@ -63,14 +70,15 @@ static int	scanIpcs(IonIpc *ipcs, IonIpcType type, DWORD key,
 			return 0;	/*	Found match.		*/
 		}
 
-		/*	Only need to forget existing IPC?		*/
+		/*	Not a match.  Looking for an empty table slot?	*/
 
-		if (firstOpening == NULL)
+		if (firstOpening == NULL)	/*	Nope.		*/
 		{
-			continue;	/*	 Not noting new IPC.	*/
+			continue;
 		}
 
-		/*	Will note new IPC if it's not already noted.	*/
+		/*	If this slot is empty and no other empty slot
+		 *	has been noted yet, note this one.		*/
 
 		if (ipc->type == IonIpcNone)
 		{
@@ -81,17 +89,29 @@ static int	scanIpcs(IonIpc *ipcs, IonIpcType type, DWORD key,
 		}
 	}
 
+	/*	Now pointing past the last IPC in the table.  If table
+	 *	is not full, and we are looking for an empty table
+	 *	slot and have not yet noted one, note this one.		*/
+
+	if (i < MAX_ION_IPCS)
+	{
+		if (firstOpening != NULL && *firstOpening == -1)
+		{
+			*firstOpening = i;
+		}
+	}
+
 	return count;
 }
 
-static int	noteSmSegmentIpc(IonIpc *ipcs, int key)
+static int	noteSmSegmentIpc(IonIpcTable *ipcTbl, int key)
 {
 	int	match;
 	int	firstOpening;
 	IonIpc	*ipc;
 	char	memName[32];
 
-	oK(scanIpcs(ipcs, IonSmSegment, key, &match, &firstOpening));
+	oK(scanIpcs(ipcTbl, IonSmSegment, key, &match, &firstOpening));
 	if (match >= 0)		/*	Found it.			*/
 	{
 		return 0;	/*	SM segment already noted.	*/
@@ -102,7 +122,7 @@ static int	noteSmSegmentIpc(IonIpc *ipcs, int key)
 		return -1;
 	}
 
-	ipc = ipcs + firstOpening;
+	ipc = ipcTbl->ipcs + firstOpening;
 	sprintf(memName, "%d.mmap", key);
 	ipc->handle = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, memName);
 	if (ipc->handle == NULL)	/*	Not found.		*/
@@ -114,17 +134,22 @@ static int	noteSmSegmentIpc(IonIpc *ipcs, int key)
 
 	ipc->type = IonSmSegment;
 	ipc->key = key;
+	if (firstOpening == ipcTbl->ipcsCount)
+	{
+		ipcTbl->ipcsCount++;
+	}
+
 	return 0;
 }
 
-static int	noteSemaphoreIpc(IonIpc *ipcs, int key)
+static int	noteSemaphoreIpc(IonIpcTable *ipcTbl, int key)
 {
 	int	match;
 	int	firstOpening;
 	IonIpc	*ipc;
 	char	semaphoreName[32];
 
-	oK(scanIpcs(ipcs, IonSmSegment, key, &match, &firstOpening));
+	oK(scanIpcs(ipcTbl, IonSmSegment, key, &match, &firstOpening));
 	if (match >= 0)		/*	Found it.			*/
 	{
 		return 0;	/*	Semaphore already noted.	*/
@@ -135,7 +160,7 @@ static int	noteSemaphoreIpc(IonIpc *ipcs, int key)
 		return -1;
 	}
 
-	ipc = ipcs + firstOpening;
+	ipc = ipcTbl->ipcs + firstOpening;
 	sprintf(semaphoreName, "%d.event", key);
 	ipc->handle = OpenEvent(EVENT_ALL_ACCESS, FALSE, semaphoreName);
 	if (ipc->handle == NULL)	/*	Not found.		*/
@@ -147,30 +172,35 @@ static int	noteSemaphoreIpc(IonIpc *ipcs, int key)
 
 	ipc->type = IonSemaphore;
 	ipc->key = key;
+	if (firstOpening == ipcTbl->ipcsCount)
+	{
+		ipcTbl->ipcsCount++;
+	}
+
 	return 0;
 }
 
-static void	forgetIpc(IonIpc *ipcs, IonIpcType type, int key)
+static void	forgetIpc(IonIpcTable *ipcTbl, IonIpcType type, int key)
 {
 	int	match;
 	IonIpc	*ipc;
 
-	oK(scanIpcs(ipcs, type, key, &match, NULL));
+	oK(scanIpcs(ipcTbl, type, key, &match, NULL));
 	if (match < 0)		/*	Didn't find the IPC.		*/
 	{
 		puts("Can't detach from IPC.");
 		return;
 	}
 
-	ipc = ipcs + match;
+	ipc = ipcTbl->ipcs + match;
 	CloseHandle(ipc->handle);
 	ipc->type = IonIpcNone;
 }
 
 int	main(int argc, char *argv[])
 {
-	IonIpc		ipcs[MAX_ION_IPCS];
-	int		ipcsCount;
+	IonIpcTable	ipcs;
+	int		ipcsInUse;
 	HANDLE		hPipe = INVALID_HANDLE_VALUE;
 	int		ionRunning = 1;
  	BOOL		fConnected = FALSE;
@@ -191,7 +221,7 @@ int	main(int argc, char *argv[])
 		return 0;
 	}
 
-	memset((char *) ipcs, 0, sizeof ipcs);
+	memset((char *) &ipcs, 0, sizeof(IonIpcTable));
 	signal(SIGINT, SIG_IGN);
 	while (ionRunning)
 	{
@@ -231,7 +261,7 @@ int	main(int argc, char *argv[])
 			continue;
 
 		case WIN_NOTE_SM:
-			if (noteSmSegmentIpc(ipcs, key) < 0)
+			if (noteSmSegmentIpc(&ipcs, key) < 0)
 			{
 				reply[0] = 0;		/*	Fail.	*/
 			}
@@ -239,7 +269,7 @@ int	main(int argc, char *argv[])
 			break;
 
 		case WIN_NOTE_SEMAPHORE:
-			if (noteSemaphoreIpc(ipcs, key) < 0)
+			if (noteSemaphoreIpc(&ipcs, key) < 0)
 			{
 				reply[0] = 0;		/*	Fail.	*/
 			}
@@ -247,16 +277,16 @@ int	main(int argc, char *argv[])
 			break;
 
 		case WIN_FORGET_SM:
-			forgetIpc(ipcs, IonSmSegment, key);
+			forgetIpc(&ipcs, IonSmSegment, key);
 			break;
 
 		case WIN_FORGET_SEMAPHORE:
-			forgetIpc(ipcs, IonSemaphore, key);
+			forgetIpc(&ipcs, IonSemaphore, key);
 			break;
 
 		case '?':
-			ipcsCount = scanIpcs(ipcs, IonIpcNone, 0, NULL, NULL);
-			printf("winion retaining %d IPCs.\n", ipcsCount);
+			ipcsInUse = scanIpcs(&ipcs, IonIpcNone, 0, NULL, NULL);
+			printf("winion retaining %d IPCs.\n", ipcsInUse);
 			reply[0] = 0;			/*	Dummy.	*/
 			break;
 
