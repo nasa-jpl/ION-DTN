@@ -50,10 +50,10 @@ BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bsputil.o bspbab.o bs
 
 LBP = -lbp -limcfw -lipnfw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest bping
 # dccpcli dccpclo
 # acsadmin acslist
-# bping bpstats2 bpchat
+# bpstats2 bpchat
 
 ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libtcpcla.dll libudpcla.dll $(RUNTIMES)
 

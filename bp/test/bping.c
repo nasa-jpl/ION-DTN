@@ -362,7 +362,7 @@ static void *sendRequests(void *x)
 
 		++totalsent;    /* Successful send */
 		if(interval > 0 && (count == -1 || totalsent < count)) {
-			usleep(interval * 1e6);
+			snooze(interval);
 		}
 	}
 	if(verbosity) fprintf(stderr, "Sent %d bundles.\n", totalsent);
