@@ -490,6 +490,7 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 {
 	int		pathLen;
 	char		pathBuf[256];
+	char		pathDelimiter;
 	int		cwdLen;
 	int		scriptLen = 0;
 	int		sourceFd;
@@ -500,41 +501,37 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 	CHKZERO(sdr);
 	CHKZERO(pathName);
 	pathLen = strlen(pathName);
-	if (*pathName != ION_PATH_DELIMITER)
+	if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
 	{
-		/*	Might not be an absolute path name.		*/
+		putErrmsg("Can't get cwd.", NULL);
+		return 0;
+	}
 
-		if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
+	if (*pathName != pathBuf[0])
+	{
+		/*	Not an absolute path name; must insert cwd.	*/
+
+		cwdLen = strlen(pathBuf);
+		if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
 		{
-			putErrmsg("Can't get cwd.", NULL);
+			putErrmsg("Absolute path name too long.", pathName);
 			return 0;
 		}
 
-		if (pathBuf[0] == ION_PATH_DELIMITER)
+		if (pathBuf[0] == '/')
 		{
-			/*	Path names *do* start with the path
-			 *	delimiter, so it's a POSIX file system,
-			 *	so pathName is *not* an absolute
-			 *	path name, so the absolute path name
-			 *	must instead be computed by appending
-			 *	the relative path name to the name of
-			 *	the current working directory.		*/
-
-			cwdLen = strlen(pathBuf);
-			if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
-			{
-				putErrmsg("Absolute path name too long.",
-						pathName);
-				return 0;
-			}
-
-			pathBuf[cwdLen] = ION_PATH_DELIMITER;
-			cwdLen++;	/*	cwdname incl. delimiter	*/
-			istrcpy(pathBuf + cwdLen, pathName,
-					sizeof pathBuf - cwdLen);
-			pathName = pathBuf;
-			pathLen += cwdLen;
+			pathDelimiter = '/';
 		}
+		else	/*	Assume Windows.				*/
+		{
+			pathDelimiter = '\\';
+		}
+
+		pathBuf[cwdLen] = pathDelimiter;
+		cwdLen++;		/*	cwdname incl. delimiter	*/
+		istrcpy(pathBuf + cwdLen, pathName, sizeof pathBuf - cwdLen);
+		pathName = pathBuf;
+		pathLen += cwdLen;
 	}
 
 	if (cleanupScript)
