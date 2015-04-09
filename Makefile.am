@@ -2145,7 +2145,7 @@ if ENABLE_AUTODOC
 
 ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
-	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --outfile ION.pdf
+	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --fitpaper true --rotateoversize true --outfile ION.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)
