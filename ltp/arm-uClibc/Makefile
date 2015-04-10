@@ -49,50 +49,50 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 ltpclock:	ltpclock.o libltpP.so
-		$(CC) -o ltpclock ltpclock.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o ltpclock ltpclock.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread -lm
 		cp ltpclock ./bin
 
 ltpmeter:	ltpmeter.o libltpP.so
-		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread -lm
 		cp ltpmeter ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 ltpadmin:	ltpadmin.o libltpP.so
-		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
+		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread -lm
 		cp ltpadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 ltpdriver:	ltpdriver.o libltpP.so libltp.so
-		$(CC) -o ltpdriver ltpdriver.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
+		$(CC) -o ltpdriver ltpdriver.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread -lm
 		cp ltpdriver ./bin
 
 ltpcounter:	ltpcounter.o libltpP.so libltp.so
-		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread
+		$(CC) -o ltpcounter ltpcounter.o -L./lib -L$(ROOT)/lib -lltp -lltpP -lici -lpthread -lm
 		cp ltpcounter ./bin
 
 sdatest:	sdatest.o libltpP.so libltp.so libsda.so
-		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lsda -lltp -lltpP -lici -lpthread
+		$(CC) -o sdatest sdatest.o -L./lib -L$(ROOT)/lib -lsda -lltp -lltpP -lici -lpthread -lm
 		cp sdatest ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
 
 udplsi:		udplsi.o libltpP.so
-		$(CC) -o udplsi udplsi.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o udplsi udplsi.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread -lm
 		cp udplsi ./bin
 
 udplso:		udplso.o libltpP.so
-		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread -lm
 		cp udplso ./bin
 
 #	-	-	DCCP executables-	-	-	-	-
 dccplsi:	dccplsi.o libltpP.so
-		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread -lm
 		cp dccplsi ./bin
 
 dccpplso:	dccplso.o libltpP.so
-		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread
+		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltpP -lici -lpthread -lm
 		cp dccplso ./bin
 
 #	-	-	Libraries	-	-	-	-	-
