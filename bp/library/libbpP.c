@@ -5790,20 +5790,19 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 				= bundle->id.creationTime.seconds;
 		bundle->ctSignal.creationTime.count
 				= bundle->id.creationTime.count;
-		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-		{
-			bundle->ctSignal.isFragment = 1;
-			bundle->ctSignal.fragmentOffset =
-					bundle->id.fragmentOffset;
-			bundle->ctSignal.fragmentLength =
-					bundle->payload.length;
-		}
-		else
-		{
-			bundle->ctSignal.isFragment = 0;
-			bundle->ctSignal.fragmentOffset = 0;
-			bundle->ctSignal.fragmentLength = 0;
-		}
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		bundle->ctSignal.isFragment = 1;
+		bundle->ctSignal.fragmentOffset = bundle->id.fragmentOffset;
+		bundle->ctSignal.fragmentLength = bundle->payload.length;
+	}
+	else
+	{
+		bundle->ctSignal.isFragment = 0;
+		bundle->ctSignal.fragmentOffset = 0;
+		bundle->ctSignal.fragmentLength = 0;
 	}
 
 	ttl = bundle->timeToLive;
@@ -5873,20 +5872,19 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 				= bundle->id.creationTime.seconds;
 		bundle->statusRpt.creationTime.count
 				= bundle->id.creationTime.count;
-		if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-		{
-			bundle->statusRpt.isFragment = 1;
-			bundle->statusRpt.fragmentOffset =
-					bundle->id.fragmentOffset;
-			bundle->statusRpt.fragmentLength =
-					bundle->payload.length;
-		}
-		else
-		{
-			bundle->statusRpt.isFragment = 0;
-			bundle->statusRpt.fragmentOffset = 0;
-			bundle->statusRpt.fragmentLength = 0;
-		}
+	}
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		bundle->statusRpt.isFragment = 1;
+		bundle->statusRpt.fragmentOffset = bundle->id.fragmentOffset;
+		bundle->statusRpt.fragmentLength = bundle->payload.length;
+	}
+	else
+	{
+		bundle->statusRpt.isFragment = 0;
+		bundle->statusRpt.fragmentOffset = 0;
+		bundle->statusRpt.fragmentLength = 0;
 	}
 
 	ttl = bundle->timeToLive;
@@ -6043,6 +6041,35 @@ static int	enqueueForDelivery(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
+static int	sendRequestedStatusReports(Bundle *bundle)
+{
+	char	*dictionary;
+	int	result;
+
+	/*	Send any applicable status report that has been
+	 *	requested, as previously noted.				*/
+
+	if (bundle->statusRpt.flags)
+	{
+		if ((dictionary = retrieveDictionary(bundle))
+				== (char *) bundle)
+		{
+			putErrmsg("Can't retrieve dictionary.", NULL);
+			return -1;
+		}
+
+		result = sendStatusRpt(bundle, dictionary);
+		releaseDictionary(dictionary);
+	       	if (result < 0)
+		{
+			putErrmsg("Can't send status report.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 			Object bundleObj, Bundle *bundle)
 {
@@ -6090,6 +6117,12 @@ static int	extendIncomplete(IncompleteBundle *incomplete, Object incElt,
 	if (bundle->fragmentElt == 0)
 	{
 		putErrmsg("Can't insert bundle into fragments list.", NULL);
+		return -1;
+	}
+
+	if (sendRequestedStatusReports(bundle) < 0)
+	{
+		putErrmsg("Failed sending status reports.", NULL);
 		return -1;
 	}
 
@@ -6145,6 +6178,12 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	if (bundle->fragmentElt == 0)
 	{
 		putErrmsg("No space for fragment list elt.", NULL);
+		return -1;
+	}
+
+	if (sendRequestedStatusReports(bundle) < 0)
+	{
+		putErrmsg("Failed sending status reports.", NULL);
 		return -1;
 	}
 
@@ -7155,7 +7194,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned long	temp;
 	ExtensionDef	*def;
 
-	if (work->malformed || work->mustAbort || work->lastBlockParsed)
+	if (work->malformed || work->lastBlockParsed)
 	{
 		return 0;
 	}
@@ -7275,9 +7314,9 @@ static int	acquireBlock(AcqWorkArea *work)
 			{
 				bundle->statusRpt.flags |= BP_RECEIVED_RPT;
 				bundle->statusRpt.reasonCode =
-					SrBlockUnintelligible;
+						SrBlockUnintelligible;
 				getCurrentDtnTime(&bundle->
-					statusRpt.receiptTime);
+						statusRpt.receiptTime);
 			}
 		}
 
@@ -7294,6 +7333,14 @@ static int	acquireBlock(AcqWorkArea *work)
 		if (blkProcFlags & BLK_ABORT_IF_NG)
 		{
 			work->mustAbort = 1;
+			if (bundleIsCustodial(bundle))
+			{
+				bundle->statusRpt.flags |= BP_DELETED_RPT;
+				bundle->statusRpt.reasonCode =
+						SrBlockUnintelligible;
+				getCurrentDtnTime(&bundle->
+						statusRpt.deletionTime);
+			}
 		}
 		else
 		{
@@ -7944,7 +7991,6 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 	Bundle		fragBuf;
 	unsigned int	bytesToSkip;
 	unsigned int	bytesToCopy;
-	vast		extentLength;
 
 	/*	Check to see if entire ADU has been received.		*/
 
@@ -8019,20 +8065,10 @@ static int	checkIncompleteBundle(Bundle *newFragment, VEndpoint *vpoint)
 		if (bytesToSkip < fragBuf.payload.length)
 		{
 			bytesToCopy = fragBuf.payload.length - bytesToSkip;
-			extentLength = bytesToCopy;
-
-			/*	Providing a negative length to the
-			 *	zco_append_extent function suppresses
-			 *	the check for the extent being too
-			 *	large.  Since we are only cloning an
-			 *	existing extent in the ZcoInbound
-			 *	account, not occupying additional ZCO
-			 *	space, there is no need for this check.	*/
-
-			if (zco_append_extent(bpSdr,
+			if (zco_clone_source_data(bpSdr,
 					aggregateBundle.payload.content,
-					ZcoZcoSource, fragBuf.payload.content,
-					bytesToSkip, 0 - extentLength) < 0)
+					fragBuf.payload.content,
+					bytesToSkip, bytesToCopy) < 0)
 			{
 				putErrmsg("Can't append extent.", NULL);
 				return -1;
@@ -9218,9 +9254,6 @@ static int	takeCustody(Bundle *bundle)
 
 static int	sendAcceptanceAdminRecords(Bundle *bundle)
 {
-	char	*dictionary;
-	int	result;
-
 	if (bundleIsCustodial(bundle))
 	{
 		if (takeCustody(bundle) < 0)
@@ -9230,26 +9263,10 @@ static int	sendAcceptanceAdminRecords(Bundle *bundle)
 		}
 	}
 
-	/*	Send any status report that is requested: custody
-	 *	acceptance, if applicable, and reception as previously
-	 *	noted, if applicable.					*/
-
-	if (bundle->statusRpt.flags)
+	if (sendRequestedStatusReports(bundle) < 0)
 	{
-		if ((dictionary = retrieveDictionary(bundle))
-				== (char *) bundle)
-		{
-			putErrmsg("Can't retrieve dictionary.", NULL);
-			return -1;
-		}
-
-		result = sendStatusRpt(bundle, dictionary);
-		releaseDictionary(dictionary);
-	       	if (result < 0)
-		{
-			putErrmsg("Can't send status report.", NULL);
-			return -1;
-		}
+		putErrmsg("Failed sending status reports.", NULL);
+		return -1;
 	}
 
 	return 0;
@@ -10263,6 +10280,18 @@ static int 	getOutboundBundle(Outflow *flows, VOutduct *vduct,
 
 			sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
 			bundle->ductXmitElt = 0;
+			if (bundle->custodyTaken)
+			{
+				/*	Means that custody of the
+				 *	two clones is taken instead.	*/
+
+				releaseCustody(*bundleObj, bundle);
+				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
+						firstBundle.payload.length);
+				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
+						secondBundle.payload.length);
+			}
+
 			sdr_write(bpSdr, *bundleObj, (char *) bundle,
 					sizeof(Bundle));
 			if (bpDestroyBundle(*bundleObj, 0) < 0)

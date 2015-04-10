@@ -87,7 +87,8 @@ static int	updateAdus(Sdr sdr)
 				return -1;
 			}
 
-			if (initOutAdu(aggrObj, aggrElt, &aduObj, &aduElt) < 0)
+			if (initOutAdu(profile, aggrObj, aggrElt, &aduObj,
+					&aduElt) < 0)
 			{
 				putErrmsg("Can't stop aggregation for adu.",
 						NULL);
@@ -151,7 +152,7 @@ static int	handleEvents(Sdr sdr, time_t currentTime)
 			break;		/*	Out of switch.		*/
 
 		case DeleteGap:
-			deleteGap(sdr, event->aduElt);
+			deletePlaceholder(sdr, event->aduElt);
 			if ((getDtpcVdb())->watching & WATCH_expire)
 			{
 				putchar('*');
