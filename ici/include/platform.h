@@ -399,6 +399,9 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #undef	SVR4_SEMAPHORES
 #define MINGW_SEMAPHORES
+#ifndef SEMMNS
+#define	SEMMNS			32000	/*	Max. nbr of semaphores	*/
+#endif
 
 #undef	UNIX_TASKS
 #define MINGW_TASKS
@@ -421,6 +424,13 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
+
+/*	IPC tracking operations		*/
+#define WIN_STOP_ION		0
+#define WIN_NOTE_SM		1
+#define WIN_NOTE_SEMAPHORE	2
+#define WIN_FORGET_SM		3
+#define WIN_FORGET_SEMAPHORE	4
 
 extern int	_winsock(int stopping);
 extern int	iopen(const char *fileName, int flags, int pmode);

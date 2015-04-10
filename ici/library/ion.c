@@ -647,9 +647,9 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		return -1;
 	}
 
-	if (parms->sdrWmSize < 0)
+	if (parms->sdrWmSize <= 0)
 	{
-		parms->sdrWmSize = 0;		/*	Default.	*/
+		parms->sdrWmSize = 1000000;	/*	Default.	*/
 	}
 
 	if (checkNodeListParms(parms, wdname, ownNodeNbr) < 0)
