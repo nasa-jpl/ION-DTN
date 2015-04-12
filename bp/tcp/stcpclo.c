@@ -17,6 +17,7 @@
 	
 									*/
 #include "tcpcla.h"
+#include "ipnfw.h"
 
 static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 {
@@ -109,6 +110,7 @@ int	main(int argc, char *argv[])
 	unsigned char		*buffer;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
+	DuctExpression		ductExpression;
 	Sdr			sdr;
 	Outduct			duct;
 	ClProtocol		protocol;
@@ -123,6 +125,9 @@ int	main(int argc, char *argv[])
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	parms;
 	pthread_t		keepaliveThread;
+	unsigned int		secRemaining;
+	unsigned int		xmitRate;
+	unsigned int		maxPayloadLength;
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
@@ -167,21 +172,24 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	ipnInit();
 	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));
+	CHKERR(sdr_begin_xn(sdr));		/*	Lock the heap.	*/
+	ductExpression.outductElt = vduct->outductElt;
+	ductExpression.destDuctName = NULL;	/*	Non-promiscuous.*/
+	vduct->neighborNodeNbr = ipn_planNodeNbr(&ductExpression);
+	if (vduct->neighborNodeNbr == 0)
+	{
+		/*	Must be using only dtn-scheme EIDs.		*/
+
+		writeMemoNote("[i] No node number for this duct name",
+				ductName);
+	}
+
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
-	}
-	else
-	{
-		vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
+	sdr_exit_xn(sdr);			/*	Unlock.		*/
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = duct.bulkQueue;
 	outflows[1].outboundBundles = duct.stdQueue;
@@ -256,8 +264,53 @@ int	main(int argc, char *argv[])
 
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
+		if (vduct->neighborNodeNbr)
+		{
+			/*	If neighbor node number is known, we
+			 *	may be able to limit bundle size to
+			 *	the remaining contact capacity.  But
+			 *	we only do this if the contact plan
+			 *	contains contacts for transmission
+			 *	to this node.				*/
+
+			CHKZERO(sdr_begin_xn(sdr));
+			rfx_contact_state(vduct->neighborNodeNbr, &secRemaining,
+					&xmitRate);
+			sdr_exit_xn(sdr);
+			if (secRemaining == 0)
+			{
+				if (xmitRate == 0)
+				{
+					/*	No capacity right now.
+					 *	Try again later.	*/
+
+					snooze(1);
+					continue;
+				}
+				else	/*	(unsigned int) -1	*/
+				{
+					/*	The contact plan
+					 *	contains no contacts
+					 *	for transmission to
+					 *	the neighbor node.
+					 *	Max payload length is
+					 *	unlimited.		*/
+	
+					maxPayloadLength = 0;
+				}
+			}
+			else	/*	Currently in contact.		*/
+			{
+				maxPayloadLength = xmitRate * secRemaining;
+			}
+		}
+		else	/*	Neighbor node number unknown.		*/
+		{
+			maxPayloadLength = 0;	/*	No limit.	*/
+		}
+
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+				destDuctName, maxPayloadLength, -1) < 0)
 		{
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;

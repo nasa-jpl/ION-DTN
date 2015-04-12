@@ -236,16 +236,6 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
 	destEngineNbr = strtovast(ductName);
-
-	if (protocol.nominalRate == 0)
-	{
-		vduct->xmitThrottle.nominalRate = DEFAULT_BSSP_RATE;
-	}
-	else
-	{
-		vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;

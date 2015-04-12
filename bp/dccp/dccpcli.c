@@ -399,14 +399,6 @@ int	main(int argc, char *argv[])
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate <= 0)
-	{
-		vduct->acqThrottle.nominalRate = DEFAULT_DCCP_RATE;
-	}
-	else
-	{
-		vduct->acqThrottle.nominalRate = protocol.nominalRate;
-	}
 
 	/* get my host and port						*/
 	hostName = ductName;

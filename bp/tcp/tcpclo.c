@@ -320,15 +320,6 @@ int	main(int argc, char *argv[])
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
-	}
-	else
-	{
-		vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = duct.bulkQueue;
 	outflows[1].outboundBundles = duct.stdQueue;

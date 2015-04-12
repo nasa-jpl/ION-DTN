@@ -70,7 +70,6 @@ extern "C" {
 #define DCCPCLA_BUFSZ		((256 * 256) - 1)
 #define DCCP_MAX_CON		5
 #define BpDccpDefaultPortNbr	4556
-#define DEFAULT_DCCP_RATE	11250000
 
 #ifdef __cplusplus
 }
