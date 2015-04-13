@@ -4045,6 +4045,59 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 	*vductElt = elt;
 }
 
+int	maxPayloadLengthKnown(VOutduct *vduct, unsigned int *maxPayloadLength)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	secRemaining;
+	unsigned int	xmitRate;
+
+	CHKERR(vduct);
+	CHKERR(maxPayloadLength);
+	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
+	if (vduct->neighborNodeNbr)	/*	Known neighbor node.	*/
+	{
+		/*	If neighbor node number is known, we may be
+		 *	able to limit bundle size to the remaining
+		 *	contact capacity.  But we can only do this
+		 *	if the contact plan contains contacts for
+		 *	transmission to this node.			*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		rfx_contact_state(vduct->neighborNodeNbr, &secRemaining,
+				&xmitRate);
+		sdr_exit_xn(sdr);
+		if (secRemaining == 0)	/*	No current contact.	*/
+		{
+			if (xmitRate == 0)
+			{
+				/*	No capacity right now. Try
+				 *	again later.			*/
+
+				return 0;	/*	Still unknown.	*/
+			}
+
+			/*	Otherwise the returned xmit rate is
+			 *	(unsigned int) -1, i.e., unlimited.
+			 *	This means the contact plan contains
+			 *	no contacts for transmission to the
+			 *	neighbor node.  So max payload length
+			 *	is now known to be unlimited.		*/
+		}
+		else	/*	Currently in contact.			*/
+		{
+			*maxPayloadLength = xmitRate * secRemaining;
+		}
+	}
+
+	/*	If neighbor node number for duct is unknown, then
+	 *	there's no basis for limiting payload length.
+	 *
+	 *	So at this point the maxPayloadLength is now known,
+	 *	one way or another.					*/
+
+	return 1;
+}
+
 int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		unsigned int maxPayloadLength)
 {

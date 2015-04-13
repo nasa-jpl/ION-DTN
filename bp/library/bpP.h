@@ -1348,6 +1348,9 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
+extern int		maxPayloadLengthKnown(VOutduct *vduct,
+				unsigned int *maxPayloadLength);
+
 extern int		addOutduct(char *protocolName, char *name,
 				char *cloCmd, unsigned int maxPayloadLength);
 extern int		updateOutduct(char *protocolName, char *name,

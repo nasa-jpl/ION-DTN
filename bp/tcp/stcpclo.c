@@ -125,8 +125,6 @@ int	main(int argc, char *argv[])
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	parms;
 	pthread_t		keepaliveThread;
-	unsigned int		secRemaining;
-	unsigned int		xmitRate;
 	unsigned int		maxPayloadLength;
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
@@ -182,7 +180,7 @@ int	main(int argc, char *argv[])
 	{
 		/*	Must be using only dtn-scheme EIDs.		*/
 
-		writeMemoNote("[i] No node number for this duct name",
+		writeMemoNote("[i] No node number for this STCP duct name",
 				ductName);
 	}
 
@@ -264,49 +262,18 @@ int	main(int argc, char *argv[])
 
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
-		if (vduct->neighborNodeNbr)
+		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
 		{
-			/*	If neighbor node number is known, we
-			 *	may be able to limit bundle size to
-			 *	the remaining contact capacity.  But
-			 *	we only do this if the contact plan
-			 *	contains contacts for transmission
-			 *	to this node.				*/
+		case -1:
+			sm_SemEnd(stcpcloSemaphore(NULL));
+			continue;
 
-			CHKZERO(sdr_begin_xn(sdr));
-			rfx_contact_state(vduct->neighborNodeNbr, &secRemaining,
-					&xmitRate);
-			sdr_exit_xn(sdr);
-			if (secRemaining == 0)
-			{
-				if (xmitRate == 0)
-				{
-					/*	No capacity right now.
-					 *	Try again later.	*/
+		case 0:			/*	Unknown; try again.	*/
+			snooze(1);
+			continue;
 
-					snooze(1);
-					continue;
-				}
-				else	/*	(unsigned int) -1	*/
-				{
-					/*	The contact plan
-					 *	contains no contacts
-					 *	for transmission to
-					 *	the neighbor node.
-					 *	Max payload length is
-					 *	unlimited.		*/
-	
-					maxPayloadLength = 0;
-				}
-			}
-			else	/*	Currently in contact.		*/
-			{
-				maxPayloadLength = xmitRate * secRemaining;
-			}
-		}
-		else	/*	Neighbor node number unknown.		*/
-		{
-			maxPayloadLength = 0;	/*	No limit.	*/
+		default:		/*	maxPayloadLength known.	*/
+			break;		/*	Out of switch.		*/
 		}
 
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
