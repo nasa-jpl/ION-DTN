@@ -299,6 +299,7 @@ typedef struct
 	Object		claims;		/*	reception claims list	*/
 	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
+	Object		rsSerialNbrs;	/*	SDR list of serial nbrs	*/
 	unsigned int	lastCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the

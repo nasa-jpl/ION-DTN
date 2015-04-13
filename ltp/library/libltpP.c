@@ -1380,6 +1380,7 @@ int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
 	session.greenSegments = sdr_list_create(sdr);
 	session.claims = sdr_list_create(sdr);
 	session.checkpoints = sdr_list_create(sdr);
+	session.rsSerialNbrs = sdr_list_create(sdr);
 	sdr_write(sdr, sessionObj, (char *) &session, sizeof(ExportSession));
 
 	/*	Note session address in span, then finish: unless span
@@ -1686,35 +1687,32 @@ static void	stopExportSession(ExportSession *session)
 	}
 }
 
+static void	destroySdrListData(Sdr sdr, Object elt, void *arg)
+{
+	sdr_free(sdr, sdr_list_data(sdr, elt));
+}
+
 static void	clearExportSession(ExportSession *session)
 {
 	Sdr	sdr = getIonsdr();
-	Object	elt;
+	int	claimCount;
 
-	sdr_list_destroy(sdr, session->checkpoints, NULL, NULL);
+	sdr_list_destroy(sdr, session->checkpoints, destroySdrListData, NULL);
 	session->checkpoints = 0;
+	sdr_list_destroy(sdr, session->rsSerialNbrs, NULL, NULL);
+	session->rsSerialNbrs = 0;
 	sdr_list_destroy(sdr, session->redSegments, NULL, NULL);
 	session->redSegments = 0;
 	sdr_list_destroy(sdr, session->greenSegments, NULL, NULL);
 	session->greenSegments = 0;
-	if (session->redPartLength > 0)
+	claimCount = sdr_list_length(sdr, session->claims);
+	if (session->redPartLength == 0 && claimCount > 0)
 	{
-		for (elt = sdr_list_first(sdr, session->claims); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			sdr_free(sdr, sdr_list_data(sdr, elt));
-		}
-	}
-	else
-	{
-		if (sdr_list_length(sdr, session->claims) > 0)
-		{
-			writeMemoNote("[?] Investigate: LTP all-Green session \
-has reception claims", itoa(sdr_list_length(sdr, session->claims)));
-		}
+		writeMemoNote("[?] Investigate: LTP all-Green session has \
+reception claims", itoa(claimCount));
 	}
 
-	sdr_list_destroy(sdr, session->claims, NULL, NULL);
+	sdr_list_destroy(sdr, session->claims, destroySdrListData, NULL);
 	session->claims = 0;
 }
 
@@ -5597,6 +5595,7 @@ static int	handleRS(LtpDB *ltpdb, unsigned int sessionNbr,
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
 	Object			elt;
+	unsigned int		oldRptSerialNbr;
 	Object			dsObj;
 	LtpXmitSeg		dsBuf;
 	Lyst			claims;
@@ -5633,7 +5632,7 @@ rptSerialNbr, ckptSerialNbr, claimCount, rptLowerBound, rptUpperBound);
 putErrmsg(rsbuf, utoa(sessionNbr));
 #endif
 	newClaims = (LtpReceptionClaim *)
-			MTAKE(claimCount* sizeof(LtpReceptionClaim));
+			MTAKE(claimCount * sizeof(LtpReceptionClaim));
 	if (newClaims == NULL)
 	{
 		/*	Too many claims; could be a DOS attack.		*/
@@ -5739,8 +5738,47 @@ putErrmsg("Discarding report.", NULL);
 		return -1;
 	}
 
-	/*	Now process the report if possible.  First apply the
-	 *	report to the cited checkpoint, if any.			*/
+	/*	Now process the report if possible.  First, discard
+	 *	the report if it is a retransmission of a report that
+	 *	has already been applied.				*/
+
+	for (elt = sdr_list_first(sdr, sessionBuf.rsSerialNbrs); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		oldRptSerialNbr = (unsigned int) sdr_list_data(sdr, elt);
+		if (oldRptSerialNbr < rptSerialNbr)
+		{
+			continue;
+		}
+
+		if (oldRptSerialNbr == rptSerialNbr)
+		{
+#if LTPDEBUG
+putErrmsg("Discarding report.", NULL);
+#endif
+			/*	The report is redundant.		*/
+
+			MRELEASE(newClaims);
+			return sdr_end_xn(sdr);	/*	Ignore.		*/
+		}
+
+		break;
+	}
+	
+	/*	This is a report we have not seen before.  Remember 
+	 *	it for future reference.				*/
+
+	if (elt)
+	{
+		oK(sdr_list_insert_before(sdr, elt, (Object) rptSerialNbr));
+	}
+	else
+	{
+		oK(sdr_list_insert_last(sdr, sessionBuf.rsSerialNbrs,
+				(Object) rptSerialNbr));
+	}
+	
+	/*	Next apply the report to the cited checkpoint, if any.	*/
 
 	if (ckptSerialNbr != 0)	/*	Not an asynchronous report.	*/
 	{
@@ -5754,7 +5792,7 @@ putErrmsg("Discarding report.", NULL);
 			 *	erroneous.				*/
 
 			MRELEASE(newClaims);
-			return sdr_end_xn(sdr);	/*	Ignore.	*/
+			return sdr_end_xn(sdr);	/*	Ignore.		*/
 		}
 
 		/*	Deactivate the checkpoint segment.  It has been
