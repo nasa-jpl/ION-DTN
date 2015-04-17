@@ -2151,6 +2151,26 @@ uvast	ntohv(uvast netvast)
 	return htonv(netvast);
 }
 
+int	fullyQualified(char *fileName)
+{
+	CHKZERO(fileName);
+#if (ION_PATH_DELIMITER == '/')
+	if (*fileName == '/')
+	{
+		return 1;
+	}
+
+	return 0;
+#else
+	if (isalpha(*fileName) && *(fileName + 1) == ':')
+	{
+		return 1;
+	}
+
+	return 0;
+#endif
+}
+
 void	findToken(char **cursorPtr, char **token)
 {
 	char	*cursor;

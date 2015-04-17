@@ -488,9 +488,9 @@ vast	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 		 ZcoAcct acct)
 {
+	char		pathDelimiter = ION_PATH_DELIMITER;
 	int		pathLen;
 	char		pathBuf[256];
-	char		pathDelimiter;
 	int		cwdLen;
 	int		scriptLen = 0;
 	int		sourceFd;
@@ -501,30 +501,21 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 	CHKZERO(sdr);
 	CHKZERO(pathName);
 	pathLen = strlen(pathName);
-	if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
-	{
-		putErrmsg("Can't get cwd.", NULL);
-		return 0;
-	}
-
-	if (*pathName != pathBuf[0])
+	if (!(fullyQualified(pathName)))
 	{
 		/*	Not an absolute path name; must insert cwd.	*/
+
+		if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
+		{
+			putErrmsg("Can't get cwd.", NULL);
+			return 0;
+		}
 
 		cwdLen = strlen(pathBuf);
 		if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
 		{
 			putErrmsg("Absolute path name too long.", pathName);
 			return 0;
-		}
-
-		if (pathBuf[0] == '/')
-		{
-			pathDelimiter = '/';
-		}
-		else	/*	Assume Windows.				*/
-		{
-			pathDelimiter = '\\';
 		}
 
 		pathBuf[cwdLen] = pathDelimiter;

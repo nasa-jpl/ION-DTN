@@ -766,6 +766,7 @@ extern void			iblock(int);
 extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
+extern int			fullyQualified(char *fileName);
 extern void			findToken(char **cursorPtr, char **token);
 extern unsigned int		getAddressOfHost();
 extern char			*addressToString(struct in_addr, char *buf);
