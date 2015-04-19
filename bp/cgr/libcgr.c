@@ -629,7 +629,7 @@ static void	endAnchoredSearch(PsmAddress routeAddr, CgrRoute *route)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	uvast		localNode;
+	uvast		localNode = getOwnNodeNbr();
 	PsmAddress	elt;
 	IonCXref	*contact;
 	CgrContactNote	*work;

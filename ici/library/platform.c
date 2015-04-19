@@ -15,6 +15,34 @@
 
 #define	ABORT_AS_REQD		if (_coreFileNeeded(NULL)) sm_Abort()
 
+void	icopy(char *fromPath, char *toPath)
+{
+#if defined (VXWORKS)
+	oK(copy(fromPath, toPath));
+#elif defined (RTEMS)
+	int	argc = 2;
+	char	*argv[2];
+
+	argv[0] = fromPath;
+	argv[1] = toPath;
+	oK(rtems_shell_main_cp(argc, argv));
+#elif defined (mingw)
+	oK(CopyFile(fromPath, toPath, 0));
+#else
+	int	pid = fork();
+	int	status;
+ 
+	if (pid)	/*	Parent process.				*/
+	{
+		waitpid(pid, &status, 0);
+	}
+	else		/*	Child process.				*/
+	{
+		execlp("cp", "cp", "--", fromPath, toPath, (char *) 0);
+	}
+#endif
+}
+
 #if defined (VXWORKS)
 
 typedef struct rlock_str
@@ -2161,7 +2189,7 @@ int	fullyQualified(char *fileName)
 	}
 
 	return 0;
-#else
+#else			/*	Assume DOS file system.			*/
 	if (isalpha(*fileName) && *(fileName + 1) == ':')
 	{
 		return 1;
@@ -2169,6 +2197,51 @@ int	fullyQualified(char *fileName)
 
 	return 0;
 #endif
+}
+
+int	qualifyFileName(char *fileName, char *buffer, int buflen)
+{
+	char	pathDelimiter = ION_PATH_DELIMITER;
+	int	nameLen;
+	int	cwdLen;
+
+	CHKERR(fileName);
+	CHKERR(buffer);
+	CHKERR(buflen> 0);
+	nameLen = strlen(fileName);
+	if (fullyQualified(fileName))
+	{
+		if (nameLen < buflen)
+		{
+			istrcpy(buffer, fileName, buflen);
+			return 0;
+		}
+
+		writeMemoNote("[?] File name is too long for qual. buffer.",
+				fileName);
+		return -1;
+	}
+
+	/*	This is a relative path name; must insert cwd.		*/
+
+	if (igetcwd(buffer, buflen) == NULL)
+	{
+		putErrmsg("Can't get cwd.", NULL);
+		return -1;
+	}
+
+	cwdLen = strlen(buffer);
+	if ((cwdLen + 1 + nameLen + 1) > buflen)
+	{
+		writeMemoNote("Qualified file name would be too long.",
+				fileName);
+		return -1;
+	}
+
+	*(buffer + cwdLen) = pathDelimiter;
+	cwdLen++;		/*	cwdname including delimiter	*/
+	istrcpy(buffer + cwdLen, fileName, buflen - cwdLen);
+	return 0;
 }
 
 void	findToken(char **cursorPtr, char **token)

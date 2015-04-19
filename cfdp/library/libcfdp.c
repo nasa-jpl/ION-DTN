@@ -1118,6 +1118,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CfdpDB		db;
 	Object		elt;
 			OBJ_POINTER(Entity, entity);
+	char		sourceFileBuf[MAXPATHLEN + 1];
 	int		sourceFile;
 	vast		fileSize;
 	unsigned int	truncatedFileSize;
@@ -1173,10 +1174,18 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 	fdu.closureLatency = closureLatency;
 	CHKZERO(sdr_begin_xn(sdr));
+
+	/*	We build the FDU in SDR heap space, so we check here
+	 *	to make sure there's a good chance that this will
+	 *	succeed.  This is completely separate from the
+	 *	check for insertion into Outbound ZCO space that
+	 *	implements flow control.				*/
+
 	if (sdr_heap_depleted(sdr))
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Low on heap space, can't send FDU.", sourceFileName);
+		writeMemoNote("[?] Low on heap space, can't send FDU.",
+				sourceFileName);
 		return 0;
 	}
 
@@ -1198,37 +1207,48 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		if (destFileName != NULL)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CFDP: dest file name should be NULL.", NULL);
+			writeMemoNote("[?] CFDP: dest file name s/b NULL.",
+					destFileName);
 			return 0;
 		}
 	}
 	else	/*	Construct contents of file data PDUs.		*/
 	{
+		if (qualifyFileName(sourceFileName, sourceFileBuf,
+				sizeof sourceFileBuf) < 0)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("Source file name unusable: length.",
+					sourceFileName);
+			return 0;
+		}
+
+		if (strlen(sourceFileBuf) >= 256)
+		{
+			sdr_exit_xn(sdr);
+			writeMemoNote("[?] CFDP: source file name too long.",
+					sourceFileBuf);
+			return 0;
+		}
+
 		if (destFileName == NULL)
 		{
 			destFileName = sourceFileName;
 		}
 
-		if (strlen(sourceFileName) >= 256)
-		{
-			sdr_exit_xn(sdr);
-			putErrmsg("CFDP: source file name too long.",
-					sourceFileName);
-			return 0;
-		}
-
 		if (strlen(destFileName) >= 256)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CFDP: destination file name too long.",
+			writeMemoNote("[?] CFDP: dest file name too long.",
 					destFileName);
 			return 0;
 		}
 
+		sourceFileName = sourceFileBuf;
 		if (checkFile(sourceFileName) != 1)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CFDP can't find source file.",
+			writeMemoNote("[?] CFDP can't find source file.",
 					sourceFileName);
 			return 0;
 		}
