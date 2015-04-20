@@ -665,13 +665,14 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 
 # -- Libraries --- #
 
+# libltp uses -lm CFLAG for pow() function
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
 	ltp/sda/libsda.c \
 	ltp/library/libltpnm.c
-libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) -lm
 libltp_la_LIBADD = libici.la 
 
 # --- Utility Programs --- #

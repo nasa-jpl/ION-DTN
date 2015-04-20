@@ -30,6 +30,9 @@ AC_PROG_MAKE_SET
 LT_INIT
 
 
+# Check for library functions
+AC_CHECK_FUNCS([pow])
+
 
 # Check Platform and Architecture
 m4_include([./dccp_macro.m4])
