@@ -2404,10 +2404,6 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	char		*delimiter;
 	char		*hostname;
 	char		hostnameBuf[MAXHOSTNAMELEN + 1];
-	unsigned int	d1;
-	unsigned int	d2;
-	unsigned int	d3;
-	unsigned int	d4;
 	unsigned int	i4;
 
 	CHKERR(portNbr);
@@ -2442,16 +2438,6 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 				getNameOfHost(hostnameBuf, sizeof hostnameBuf);
 				hostname = hostnameBuf;
 			}
-			else
-			{
-				if (strcmp(hostname, "localhost") != 0
-				&& sscanf(hostname, "%u.%u.%u.%u", &d1, &d2,
-						&d3, &d4) != 4)
-				{
-					writeMemoNote("[!] Warning: safer to \
-use a dotted string IP address than a possibly aliased host name", hostname);
-				}
-			}
 
 			i4 = getInternetAddress(hostname);
 			if (i4 < 1)	/*	Invalid hostname.	*/
@@ -2460,7 +2446,9 @@ use a dotted string IP address than a possibly aliased host name", hostname);
 						hostname);
 				if (delimiter)
 				{
-					/*	Nondestructive parse.	*/
+					/*	Back out the parsing
+					 *	of the socket spec.	*/
+
 					*delimiter = ':';
 				}
 
@@ -2480,7 +2468,7 @@ use a dotted string IP address than a possibly aliased host name", hostname);
 		return 0;		/*	All done.		*/
 	}
 
-	*delimiter = ':';		/*	Nondestructive parse.	*/
+	*delimiter = ':';		/*	Back out the parsing.	*/
 	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
 	if (i4 != 0)
 	{
