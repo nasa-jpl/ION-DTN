@@ -790,8 +790,11 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 
 				if (firstContact != anchorContact)
 				{
-					anchorContact = NULL;
 					endAnchoredSearch(routeAddr, route);
+					work = (CgrContactNote *) psp(ionwm,
+						anchorContact->routingObject);
+					work->suppressed = 1;
+					anchorContact = NULL;
 					continue;
 				}
 			}
