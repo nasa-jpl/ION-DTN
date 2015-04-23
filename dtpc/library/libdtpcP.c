@@ -1944,12 +1944,11 @@ static int	insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 }
 
 static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
-			Profile *profile, Object aggrElt)
+			Profile *profile, Object aggrElt, InAggregator *inAggr)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	Object		aduElt;
 	Object		sdrElt;
-	InAggregator	inAggr;
 	InAdu		inAdu;
 	Object		inAduObj = 0;		/*	To hush gcc	*/
 	DtpcEvent	event;
@@ -1968,7 +1967,7 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 	 *	somewhere after the start of the list but before
 	 *	the end.						*/
 
-	aduElt = sdr_list_last(sdr, inAggr.inAdus);
+	aduElt = sdr_list_last(sdr, inAggr->inAdus);
 	if (aduElt)
 	{
 		/*	The inAdus list is non-empty, so the last ADU
@@ -1991,7 +1990,7 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 		 *	next expected sequence number (after it is
 		 *	incremented at start of insertAduAtEnd).	*/
 
-		copyScalar(&lastSeqNum, &inAggr.nextExpected);
+		copyScalar(&lastSeqNum, &(inAggr->nextExpected));
 		reduceScalar(&lastSeqNum, 1);
 	}
 
@@ -2003,7 +2002,7 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 		 *	needed.						*/
 
 		result = insertAduAtEnd(sdr, dlv, seqNum, profile, aggrElt,
-				&inAggr, lastSeqNum);
+				inAggr, lastSeqNum);
 		if (result < 0)
 		{
 			putErrmsg("Failed inserting ADU at end of list.",NULL);
@@ -2071,7 +2070,7 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 		 *	gap must be replaced by the newly received
 		 *	ADU.						*/
 
-		return insertAtPlaceholder(sdr, dlv, seqNum, aggrElt, &inAggr,
+		return insertAtPlaceholder(sdr, dlv, seqNum, aggrElt, inAggr,
 				aduElt);
 	}
 
@@ -2400,7 +2399,8 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 	}
 	else			/*	seqNum > inAggr.nextExpected	*/
 	{
-		result = handleOutOfSeq(sdr, dlv, seqNum, profile, aggrElt);
+		result = handleOutOfSeq(sdr, dlv, seqNum, profile, aggrElt,
+				&inAggr);
 		if (result < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -2434,7 +2434,8 @@ void	deletePlaceholder(Sdr sdr, Object aduElt)
 }
 
 static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
-			unsigned char **cursor,	int buflen, int *bytesUnparsed)
+			unsigned char **cursor,	int buflen,
+			unsigned int *bytesUnparsed)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	unsigned char	*buffer;
@@ -2638,8 +2639,8 @@ int	parseInAdus(Sdr sdr)
 	Object		aduElt;
 	Object		aduObj;
 	int		remainingBytes;
-	int		bytesUnparsed;
-	int		bytesReceived;
+	unsigned int	bytesUnparsed;
+	vast		bytesReceived;
 	int		parsedBytes;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
@@ -2704,6 +2705,13 @@ int	parseInAdus(Sdr sdr)
 			zco_start_receiving(inAdu->aggregatedZCO, &reader);
 			bytesReceived = zco_receive_source(sdr, &reader, buflen,
 					(char *) cursor);
+			if (bytesReceived < 0)
+			{
+				putErrmsg("Error receiving adu.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+
 			bytesUnparsed = bytesReceived;
 			while (remainingBytes)
 			{

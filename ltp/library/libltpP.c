@@ -241,9 +241,9 @@ void	computeRetransmissionLimits(LtpVspan *vspan)
 		vspan->maxTimeouts = 3;
 	}
 
-	sprintf(buf, "[i] Span to engine " UVAST_FIELDSPEC " (max BER %f, \
-max xmit segment size %d, max recv segment size %d): xmit segment loss \
-rate %f, recv segment loss rate %f, max timeouts %d.", vspan->engineId,
+	isprintf(buf, sizeof buf, "[i] Span to engine " UVAST_FIELDSPEC " \
+(max BER %f, max xmit segment size %d, max recv segment size %d): xmit segment \
+loss rate %f, recv segment loss rate %f, max timeouts %d.", vspan->engineId,
 			maxBER, vspan->maxXmitSegSize, vspan->maxRecvSegSize,
 			vspan->xmitSegLossRate, vspan->recvSegLossRate,
 			vspan->maxTimeouts);

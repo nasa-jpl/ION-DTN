@@ -159,7 +159,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	result = createBpSAP(sdr, eidString, bpsapPtr, &vpoint);
-	if (result == 0)
+	if (*bpsapPtr)
 	{
 		(*bpsapPtr)->recvSemaphore = vpoint->semaphore;
 		(*bpsapPtr)->detain = 0;
@@ -185,7 +185,7 @@ int	bp_open_source(char *eidString, BpSAP *bpsapPtr, int detain)
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	result = createBpSAP(sdr, eidString, bpsapPtr, &vpoint);
-	if (result == 0)
+	if (*bpsapPtr)
 	{
 		(*bpsapPtr)->recvSemaphore = SM_SEM_NONE;
 		(*bpsapPtr)->detain = detain;
