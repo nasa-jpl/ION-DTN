@@ -183,6 +183,8 @@ int	checkFile(char *fileName)
 		return -1;
 	}
 
+	pthread_attr_destroy(&attr);
+
 	/*	At this point the child might already have finished
 	 *	looking for the file and terminated, in which case
 	 *	we want NOT to wait for a signal from it.		*/
