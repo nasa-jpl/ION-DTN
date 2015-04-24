@@ -291,10 +291,12 @@ keepalives", NULL);
 
 	/*	End of receiver thread; release resources.		*/
 
+	parms->receiveRunning = 0;
 	if (haveKthread)
 	{
 		/*	Wait for keepalive snooze cycle to notice that
-		 *	*(parms->cliRunning) is now zero.		*/
+		 *	*(parms->cliRunning) or *(parms->receiveRunning)
+		 *	is now zero.					*/
 
 		pthread_join(kthread, NULL);
 	}
