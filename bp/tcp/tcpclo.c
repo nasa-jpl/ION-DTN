@@ -345,7 +345,7 @@ int	main(int argc, char *argv[])
 
 	/*	Start the keepalive thread for the eventual connection.	*/
 	
-	tcpDesiredKeepAlivePeriod = KEEPALIVE_PERIOD;
+	keepalivePeriod = tcpDesiredKeepAlivePeriod = KEEPALIVE_PERIOD;
 	parms.cloRunning = &running;
 	pthread_mutex_init(&mutex, NULL);
 	parms.mutex = &mutex;
@@ -424,8 +424,8 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
-	writeMemo("[i] tcpclo done sending");
 
+	writeMemo("[i] tcpclo done sending");
 	if (sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1) < 0)
 	{
 		putErrmsg("Sending Shutdown message failed!!",NULL);
