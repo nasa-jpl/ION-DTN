@@ -197,10 +197,10 @@ static void	resetSpan(LtpVspan *vspan)
 void	computeRetransmissionLimits(LtpVspan *vspan)
 {
 		OBJ_POINTER(LtpDB, ltpdb);
-	double	maxBER;
-	double	pBitOk;
-	double	pSegmentOk;
-	double	pDlvFailure;
+	float	maxBER;
+	float	pBitOk;
+	float	pSegmentOk;
+	float	pDlvFailure;
 	char	buf[256];
 
 	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, getLtpDbObject());

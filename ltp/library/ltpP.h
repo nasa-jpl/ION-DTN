@@ -416,8 +416,8 @@ typedef struct
 	Object		stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	uvast		engineId;	/*	ID of remote engine.	*/
-	double		xmitSegLossRate;
-	double		recvSegLossRate;
+	float		xmitSegLossRate;
+	float		recvSegLossRate;
 	unsigned int	maxTimeouts;
 	unsigned int	maxXmitSegSize;
 	unsigned int	maxRecvSegSize;

@@ -2556,16 +2556,16 @@ void	sm_TaskYield()
 typedef struct
 {
 	FUNCPTR	threadMainFunction;
-	long	arg1;
-	long	arg2;
-	long	arg3;
-	long	arg4;
-	long	arg5;
-	long	arg6;
-	long	arg7;
-	long	arg8;
-	long	arg9;
-	long	arg10;
+	int	arg1;
+	int	arg2;
+	int	arg3;
+	int	arg4;
+	int	arg5;
+	int	arg6;
+	int	arg7;
+	int	arg8;
+	int	arg9;
+	int	arg10;
 } SpawnParms;
 
 static void	*posixDriverThread(void *parm)
@@ -2638,16 +2638,16 @@ private symbol table; must be added to mysymtab.c.", name);
 	}
 
 	parms->threadMainFunction = entryPoint;
-	parms->arg1 = (long) arg1;
-	parms->arg2 = (long) arg2;
-	parms->arg3 = (long) arg3;
-	parms->arg4 = (long) arg4;
-	parms->arg5 = (long) arg5;
-	parms->arg6 = (long) arg6;
-	parms->arg7 = (long) arg7;
-	parms->arg8 = (long) arg8;
-	parms->arg9 = (long) arg9;
-	parms->arg10 = (long) arg10;
+	parms->arg1 = (int) arg1;
+	parms->arg2 = (int) arg2;
+	parms->arg3 = (int) arg3;
+	parms->arg4 = (int) arg4;
+	parms->arg5 = (int) arg5;
+	parms->arg6 = (int) arg6;
+	parms->arg7 = (int) arg7;
+	parms->arg8 = (int) arg8;
+	parms->arg9 = (int) arg9;
+	parms->arg10 = (int) arg10;
 	sm_ConfigurePthread(&attr, stackSize);
 	errno = pthread_create(&threadId, &attr, posixDriverThread,
 			(void *) parms);
@@ -3118,7 +3118,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 int	sm_GetUniqueKey()
 {
 	static int	ipcUniqueKey = 0;
-int		result;
+	int		result;
 
 	/*	Compose unique key: low-order 16 bits of process ID
 		followed by low-order 16 bits of process-specific

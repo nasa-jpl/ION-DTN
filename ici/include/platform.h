@@ -146,6 +146,7 @@ typedef unsigned long		uvast;
 
 #ifdef RTEMS			/****	RTEMS			*********/
 typedef unsigned long		n_long;	/*	long as rec'd from net	*/
+extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #endif
 
 /*
