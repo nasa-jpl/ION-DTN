@@ -2182,15 +2182,15 @@ uvast	ntohv(uvast netvast)
 int	fullyQualified(char *fileName)
 {
 	CHKZERO(fileName);
-#if (ION_PATH_DELIMITER == '/')
-	if (*fileName == '/')
+#if (defined(mingw) || defined(DOS_PATH_DELIMITER))
+	if (isalpha(*fileName) && *(fileName + 1) == ':')
 	{
 		return 1;
 	}
 
 	return 0;
-#else			/*	Assume DOS file system.			*/
-	if (isalpha(*fileName) && *(fileName + 1) == ':')
+#else
+	if (*fileName == '/')
 	{
 		return 1;
 	}
