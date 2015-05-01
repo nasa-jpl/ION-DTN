@@ -1,6 +1,6 @@
-= Release Notes for ION 3.3.0 =
+= Release Notes for ION 3.3.1 =
 
-Mar 3, 2015
+May 1, 2015
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,52 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.3.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #37: The ION tutorial has been updated.
+
+- SourceForge Bug #73: Fixed two bugs introduced by the dynamic generation of
+     LTP reports.  See the SourceForge Bug #47 entry and the ltprc(5) man
+     page for details on dynamic LTP report generation.
+
+     1.) The computation of the segment loss rate (errors per segment) was
+               incorrect and now uses the following corrected formula:
+
+               segmentLossRate = 1.0 - ((1.0 - maxber) ** (maxSegmentSize * 8))
+
+     2.) The retransmission limit on the number of times any single report or
+               checkpoint may be retransmitted is now computed dynamically as a
+               function of segment loss rate rather than a static number.
+
+- SourceForge Bug #74: Obsolete IPCs are now properly reclaimed when running 
+     under Windows and SVr4.
+     - ION now tracks the release of semaphores in winion's array of IPC handles
+       as well as the semaphore tables themselves.
+     - Previously, the release of obsolete semaphores was not tracked by the winion
+       daemon, which could be easily saturated given low semaphore limits and
+       recently-expanded semaphore usage in ION (CGR, ionStartAttendant).
+
+- SourceForge Feature Request #40: The bping ION application has been ported to
+     Windows.  A dtnperf port for Windows is slated for a later release.
+
+- SourceForge Feature Request #42: ION now resolves host names when socket
+     connections are made rather than resolving them all on ION startup.
+
+- Fixed a memory leak in CFDP that could occur when TargetFFS is defined.
+
+- Several fixes have been applied in response to the successful completion of 
+     CCSDS BP interoperability testing.
+
+- Delay Tolerant Payload Conditioning (DTPC) has been updated for conformance
+     the specification.
+
+- The CGR algorithm has been updated to omit downstream contacts that end
+     before initial contact on route.
+
+- ION no longer requires pdfjam to build man pages into the ION documentation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.3.0 =
