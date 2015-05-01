@@ -304,7 +304,7 @@ else
 fi
 AC_MSG_CHECKING([for fallback included pdfjoin])
 if test -x "$PWD/doc/pdfjoin"; then
-    PSJOIN="$PWD/doc/pdfjoin"
+    PDFJOIN="$PWD/doc/pdfjoin"
     AC_MSG_RESULT($PDFJOIN)
 else
     AC_MSG_RESULT([not found])
