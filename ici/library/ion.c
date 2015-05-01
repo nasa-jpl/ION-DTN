@@ -647,9 +647,9 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		return -1;
 	}
 
-	if (parms->sdrWmSize < 0)
+	if (parms->sdrWmSize <= 0)
 	{
-		parms->sdrWmSize = 0;		/*	Default.	*/
+		parms->sdrWmSize = 1000000;	/*	Default.	*/
 	}
 
 	if (checkNodeListParms(parms, wdname, ownNodeNbr) < 0)
@@ -1822,7 +1822,7 @@ void	ionShred(ReqTicket ticket)
 	 *	memory list of requisitions in the IonVdb.		*/
 
 	CHKVOID(ticket);
-	sdr_begin_xn(sdr);	/*	This needs to be atomic.	*/
+	CHKVOID(sdr_begin_xn(sdr));	/*	Must be atomic.		*/
 	psm_free(ionwm, sm_list_data(ionwm, ticket));
 	sm_list_delete(ionwm, ticket, NULL, NULL);
 	sdr_exit_xn(sdr);	/*	End of critical section.	*/

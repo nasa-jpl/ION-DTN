@@ -37,8 +37,8 @@ static DtpcDB   *_dtpcConstants()
 		 *	as a current database image in later
 		 *	processing.					*/
 
-	sdr_read(getIonsdr(), (char *) &buf, _dtpcdbObject(NULL),
-					sizeof(DtpcDB));
+		sdr_read(getIonsdr(), (char *) &buf, _dtpcdbObject(NULL),
+				sizeof(DtpcDB));
 		db = &buf;
 	}
 
@@ -64,7 +64,7 @@ int	raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb)
 	profileObj = sdr_list_data(sdr, sdrElt);
 	GET_OBJ_POINTER(sdr, Profile, profile, profileObj);
 
-	/*	Copy profile to volatile database	*/
+	/*	Copy profile to volatile database			*/
 
 	addr = psm_malloc(wm, sizeof(Profile));
 	if (addr == 0)
@@ -253,7 +253,7 @@ int	dtpcInit()
 	
 	sdr = getIonsdr();
 
-	/* Recover the DTPC database, creating it if necessary.		*/
+	/*	Recover the DTPC database, creating it if necessary.	*/
 
 	CHKERR(sdr_begin_xn(sdr));
 	dtpcdbObject = sdr_find(sdr, _dtpcdbName(), NULL);
@@ -503,8 +503,8 @@ int	dtpcAttach()
 
 }
 
-int	initOutAdu(Object outAggrAddr, Object outAggrElt, Object *outAduObj,
-		Object *outAduElt)
+int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
+		Object *outAduObj, Object *outAduElt)
 {
 	Sdr		sdr = getIonsdr();	
 	OutAggregator	outAggr;
@@ -514,13 +514,20 @@ int	initOutAdu(Object outAggrAddr, Object outAggrElt, Object *outAduObj,
 	memset((char *) &outAduBuf, 0, sizeof(OutAdu));
 	outAduBuf.ageOfAdu = -1;
 	outAduBuf.rtxCount = -1;
-	copyScalar(&outAduBuf.seqNum, &outAggr.aduCounter);
+	if (profile->maxRtx == 0)	/*	No transport service.	*/
+	{
+		loadScalar(&outAduBuf.seqNum, 0);
+	}
+	else
+	{
+		copyScalar(&outAduBuf.seqNum, &outAggr.aduCounter);
+		increaseScalar(&outAggr.aduCounter, 1);
+	}
+
 	outAduBuf.outAggrElt = outAggrElt;
 	outAduBuf.topics = sdr_list_create(sdr);
-
-	*outAduObj = sdr_malloc(sdr, sizeof(OutAdu));
 	*outAduElt = 0;
-
+	*outAduObj = sdr_malloc(sdr, sizeof(OutAdu));
 	if (*outAduObj == 0)
 	{
 		putErrmsg("No space for OutAdu.", NULL);
@@ -529,7 +536,6 @@ int	initOutAdu(Object outAggrAddr, Object outAggrElt, Object *outAduObj,
 
 	sdr_write(sdr, *outAduObj, (char *) &outAduBuf, sizeof(OutAdu)); 
 	*outAduElt = sdr_list_insert_last(sdr, outAggr.outAdus, *outAduObj);
-	increaseScalar(&outAggr.aduCounter, 1);
 	outAggr.inProgressAduElt = *outAduElt;
 	sdr_write(sdr, outAggrAddr, (char *) &outAggr, sizeof(OutAggregator));
 	if ((_dtpcvdb(NULL))->watching & WATCH_newItem)
@@ -640,13 +646,32 @@ static int	estimateLength(OutAdu *outAdu)
 	return totalLength;
 }
 
+static Profile	*findProfileByNumber(unsigned int profNum)
+{
+	DtpcVdb		*vdb = getDtpcVdb();
+	PsmPartition	wm = getIonwm();
+	PsmAddress	psmElt;
+	Profile		*profile;
+
+	for (psmElt = sm_list_first(wm, vdb->profiles); psmElt; 
+			psmElt = sm_list_next(wm, psmElt))
+	{
+		profile = (Profile *) psp(wm, sm_list_data(wm, psmElt));
+		if (profile->profileID == profNum)
+		{
+			return profile;
+		}
+	}
+
+	return NULL;
+}
+
 int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 		unsigned int topicID, Object item, int length)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	Sdr		sdr = getIonsdr();
 	DtpcDB		*dtpcConstants = _dtpcConstants();
-	PsmPartition	wm = getIonwm();
 	PayloadRecord	record;
 	Object		recordObj;
 	OutAdu		outAdu;
@@ -654,7 +679,6 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	Object		outAduElt;
 	OutAggregator	outAggr;
 	Object		outAggrAddr;
-	PsmAddress	elt;
 	Profile		*vprofile;	
 	Object		sdrElt;
 	char		eidBuf[SDRSTRING_BUFSZ];
@@ -678,26 +702,14 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 
 	/*	Load profile parameters		*/
 
-	for (elt = sm_list_first(wm, vdb->profiles); elt; 
-			elt = sm_list_next(wm, elt))
+	vprofile = findProfileByNumber(profileID);
+	if (vprofile == NULL)
 	{
-		vprofile = (Profile *) psp(wm, sm_list_data(wm, elt));
-
-		if (vprofile->profileID == profileID)
-		{	
-			break;
-		}
-	}
-
-	/*	No profile found	*/
-
-	if (elt == 0)
-	{
-		writeMemo("[?] Profile does not exist.");
+		writeMemo("[?] Can't insert DTPC record; no such profile.");
 		return 0;
 	}
 
-	/*      Create payload record   */
+	/*      Create payload record.					*/
 
 	memset((char *) &record, 0, sizeof(PayloadRecord));
 	encodeSdnv(&lengthSdnv, length);
@@ -726,13 +738,22 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 		}
 	}
 
-	/* An outbound payload aggregator was not found - Create one.	*/
+	/*	No outbound payload aggregator was found - Create one.	*/
 
 	if (sdrElt == 0)
 	{
 		memset((char *) &outAggr, 0, sizeof(OutAggregator));
 		outAggr.dstEid = sdr_string_create(sdr, dstEid);
 		outAggr.profileID = profileID;
+		if (vprofile->maxRtx == 0)	/*	No transport.	*/
+		{
+			loadScalar(&outAggr.aduCounter, 0);
+		}
+		else
+		{
+			loadScalar(&outAggr.aduCounter, 1);
+		}
+
 		outAggr.outAdus = sdr_list_create(sdr);
 		outAggr.inProgressAduElt = 0;
 		outAggr.queuedAdus = sdr_list_create(sdr);
@@ -759,8 +780,8 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 
 	if (outAggr.inProgressAduElt == 0)
 	{
-		if (initOutAdu(outAggrAddr, sdrElt, &outAduObj,
-			 &outAduElt) < 0)
+		if (initOutAdu(vprofile, outAggrAddr, sdrElt, &outAduObj,
+				&outAduElt) < 0)
 		{
 			putErrmsg("Can't create new outAdu", NULL);
 			sdr_cancel_xn(sdr);
@@ -791,16 +812,20 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 		return -1;
 	}
 
-	/* Estimate the resulting total length of the aggregated outAdu */
+	/*	Estimate the resulting total length of the aggregated
+	 *	outAdu.							*/
 
 	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
 	totalLength = estimateLength(&outAdu);
 
 	/*	If the estimated length equals or exceeds the
-	 *	aggregation size limit then finish aggregation and
-	 *	create an empty outbound ADU.				*/
+	 *	aggregation size limit (or the aggregation time
+	 *	limit is zero, indicating that no aggregation is
+	 *	requested for this profile) then finish aggregation
+	 *	and create an empty outbound ADU.			*/
 
-	if (totalLength >= vprofile->aggrSizeLimit)
+	if (totalLength >= vprofile->aggrSizeLimit
+	|| vprofile->aggrTimeLimit == 0)
 	{
 		if (createAdu(vprofile, outAduObj, outAduElt) < 0)
 		{
@@ -809,7 +834,8 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 			return -1;
 		}
 
-		if (initOutAdu(outAggrAddr, sdrElt, &outAduObj, &outAduElt) < 0)
+		if (initOutAdu(vprofile, outAggrAddr, sdrElt, &outAduObj,
+				&outAduElt) < 0)
 		{
 			putErrmsg("Can't create new outAdu", NULL);
 			sdr_cancel_xn(sdr);
@@ -1036,20 +1062,21 @@ int	sendAdu(BpSAP sap)
 	Sdr		sdr = getIonsdr();
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	DtpcVdb		*vdb = getDtpcVdb();
-	PsmPartition	wm = getIonwm();
-	DtpcEvent	event;
+	Object		sdrElt;
+	Object		outAduObj;
 	OutAdu		outAdu;
+			OBJ_POINTER(OutAggregator, outAggr);
+	Object		zco;
+	Profile		*profile;
+	DtpcEvent	event;
+	int		secondsConsumed;
+	int		nominalRtt;
+	int		lifetime;
 	time_t		currentTime;
 	Object		bundleElt;
-	Object		sdrElt;
 	Object		outAduElt;
-	Object		zco;
-	Object		outAduObj;
-	PsmAddress	elt;
-	Profile		*profile;
 	char		reportToEid[SDRSTRING_BUFSZ];
 	char		dstEid[SDRSTRING_BUFSZ];
-			OBJ_POINTER(OutAggregator, outAggr);
 
 	CHKERR(sdr_begin_xn(sdr));
 	sdrElt = sdr_list_first(sdr, dtpcConstants->outboundAdus);
@@ -1080,8 +1107,8 @@ int	sendAdu(BpSAP sap)
 	GET_OBJ_POINTER(sdr, OutAggregator, outAggr,
 			sdr_list_data(sdr, outAdu.outAggrElt));
 
-	/*	Create a new reference for the aggregated ZCO
-	 *	and give this to bp.					*/
+	/*	Create a clone of the aggregated ZCO and give it
+	 *	to bp.							*/
 
 	zco = zco_clone(sdr, outAdu.aggregatedZCO, 0,
 			zco_length(sdr, outAdu.aggregatedZCO));
@@ -1094,44 +1121,49 @@ int	sendAdu(BpSAP sap)
 
 	/* 	Find profile	*/
 
-	for (elt = sm_list_first(wm, vdb->profiles); elt;
-				elt = sm_list_next(wm, elt))
-	{
-		profile = (Profile *) psp(wm, sm_list_data(wm, elt));
-		if (profile->profileID == outAggr->profileID)
-		{
-			break;
-		}	
-	}	
-
-	if (elt == 0)
+	profile = findProfileByNumber(outAggr->profileID);
+	if (profile == NULL)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Profile has been removed.", NULL);
 		return -1;
 	}
 
-	if (sdr_string_read(sdr, reportToEid, profile->reportToEid) < 0 ||
-		sdr_string_read(sdr, dstEid, outAggr->dstEid) < 0)
+	if (sdr_string_read(sdr, reportToEid, profile->reportToEid) < 0
+	|| sdr_string_read(sdr, dstEid, outAggr->dstEid) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Failed reading endpoint ID.", NULL);
 		return -1;
 	}
 
-	currentTime = getUTCTime();
-	if (bp_send(sap, dstEid, reportToEid,
-			(outAdu.expirationTime - currentTime),
+	nominalRtt = profile->lifespan / (profile->maxRtx + 1);
+	secondsConsumed = outAdu.rtxCount * nominalRtt;
+	lifetime = profile->lifespan - secondsConsumed;
+	if (lifetime < 1)
+	{
+		lifetime = 1;
+	}
+
+	if (bp_send(sap, dstEid, reportToEid, lifetime,
 			profile->classOfService, profile->custodySwitch,
-			profile->srrFlags, 1, &(profile->extendedCOS),
+			profile->srrFlags, 0, &(profile->extendedCOS),
 			zco, &outAdu.bundleObj) <= 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("DTPC can't send adu.", NULL);
 		return -1;
 	}
-	
-	/*	Track bundle to avoid unnecessary retransmissions.	*/
+
+	if (profile->maxRtx == 0)	/*	No transport service.	*/
+	{
+		deleteAdu(sdr, sdrElt);
+		return 0;
+	}
+
+	/*	Transport service is requested for this ADU.  So
+	 *	first, track bundle to prevent unnecessary
+	 *	retransmissions.					*/
 
 	bundleElt = sdr_list_insert_last(sdr, outAggr->queuedAdus,
 			outAdu.bundleObj);
@@ -1147,10 +1179,10 @@ int	sendAdu(BpSAP sap)
 
 	oK(bp_release(outAdu.bundleObj));
 
-	/*		Get outAduElt from aggregator.			*/
+	/*	Get outAduElt from aggregator.				*/
 
 	for (outAduElt = sdr_list_first(sdr, outAggr->outAdus); outAduElt;
-		outAduElt = sdr_list_next(sdr, outAduElt))
+			outAduElt = sdr_list_next(sdr, outAduElt))
 	{
 		if (outAduObj == sdr_list_data(sdr, outAduElt))
 		{
@@ -1160,18 +1192,18 @@ int	sendAdu(BpSAP sap)
 
 	outAdu.rtxCount++;
 
-	/*		Create retransmission event only if there
-	 *		is time for one.				*/
+	/*	Create retransmission event only if there is time
+	 *	for one.						*/
 
-	if (outAdu.rtxCount < (int) profile->maxRtx && (currentTime +
-	profile->lifespan / (profile->maxRtx + 1)) < outAdu.expirationTime)
+	currentTime = getUTCTime();
+	if (outAdu.rtxCount < (int) profile->maxRtx
+	&& (currentTime + nominalRtt) < outAdu.expirationTime)
 	{
 		event.type = ResendAdu;
-		event.scheduledTime = currentTime + profile->lifespan /
-					(profile->maxRtx + 1);
+		event.scheduledTime = currentTime + nominalRtt;
 		event.aduElt = outAduElt;
 
-		/*		Insert rtx event into list.		*/
+		/*	Insert rtx event into list.			*/
 
 		outAdu.rtxEventElt = insertDtpcTimelineEvent(&event);
 		if (outAdu.rtxEventElt == 0)
@@ -1183,7 +1215,7 @@ int	sendAdu(BpSAP sap)
 		}
 	}
 
-	/*		Create deletion event.				*/
+	/*	Create deletion event if none created yet.		*/
 
 	if (outAdu.delEventElt == 0)
 	{
@@ -1191,7 +1223,7 @@ int	sendAdu(BpSAP sap)
 		event.scheduledTime = outAdu.expirationTime;
 		event.aduElt = outAduElt;
 
-		/*	Insert del event into list.			*/
+		/*	Insert deletion event into list.		*/
 
 		outAdu.delEventElt = insertDtpcTimelineEvent(&event);
 		if (outAdu.delEventElt == 0)
@@ -1279,9 +1311,11 @@ int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
 	DtpcEvent	newEvent;
 			OBJ_POINTER(OutAggregator, outAggr);
 			OBJ_POINTER(Profile, profile);
+	int		nominalRtt;
 
-	/*	Check if the bundle whose payload is this adu is
-	 *	awaiting transmission.  If so, do not resend the adu.	*/
+	/*	Check to see if the adu is still in the applicable
+	 *	Aggregator's queue of ADUs awaiting encapsulation
+	 *	in bundles.  						*/
 
 	aduObj = sdr_list_data(sdr, aduElt);
 	sdr_stage(sdr, (char *) &adu, aduObj, sizeof(OutAdu));
@@ -1292,28 +1326,36 @@ int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
 	{
 		if (adu.bundleObj == sdr_list_data(sdr, elt))
 		{
-			aduIsQueued = 1; /* Adu still in queue.		*/
+			aduIsQueued = 1; /*	Adu still in queue.	*/
 			break;
 		}
 	}
 
-	/*		Delete the old rtxEvent.			*/
+	/*	Delete the retransmission event.			*/
 
 	sdr_list_delete(sdr, adu.rtxEventElt, deleteEltObjContent, NULL);
 	adu.rtxEventElt = 0;
 	if (aduIsQueued == 1)	/*	Bundle containing adu exists.	*/
 	{
+		/*	The ADU is already queued for encapsulation
+		 *	in an outbound bundle, so no need to enqueue
+		 *	it again.  Just post another retransmission
+		 *	event (if transmission is still plausible;
+		 *	otherwise just let deletion event destroy
+		 *	the ADU).					*/
+
 		for (elt = sdr_list_first(sdr, dtpcConstants->profiles); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
 			GET_OBJ_POINTER(sdr, Profile, profile, 
-				sdr_list_data(sdr, elt));
+					sdr_list_data(sdr, elt));
 			if (outAggr->profileID == profile->profileID)
 			{
-				break;	/* Found matching profile.	*/
+				break;	/*	Found matching profile.	*/
 			}
 		}
 
+		CHKERR(elt);	/*	Profile must be in database.	*/
 		adu.rtxCount++;	/* Increase retransmission counter.	*/
 
 		/* If the maxRtx limit defined in the profile being used
@@ -1321,15 +1363,13 @@ int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
 		 * retransmission is before the delEvent, create a new
 		 * rtxEvent.						*/
 
-		if (adu.rtxCount < (int) profile->maxRtx && (currentTime +
-			profile->lifespan / (profile->maxRtx + 1)) <
-			adu.expirationTime)
+		nominalRtt = profile->lifespan / (profile->maxRtx + 1);
+		if (adu.rtxCount < (int) profile->maxRtx
+		&& (currentTime + nominalRtt) < adu.expirationTime)
 		{
 			newEvent.type = ResendAdu;
-			newEvent.scheduledTime = currentTime +
-				(profile->lifespan / (profile->maxRtx + 1));
+			newEvent.scheduledTime = currentTime + nominalRtt;
 			newEvent.aduElt = aduElt;
-
 			adu.rtxEventElt = insertDtpcTimelineEvent(&newEvent);
 			if (adu.rtxEventElt == 0)
 			{
@@ -1471,14 +1511,12 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		char *flags)
 {
 	Sdr		sdr = getIonsdr();
-	PsmPartition	wm = getIonwm();
 	DtpcVdb		*vdb = getDtpcVdb();
 	BpExtendedCOS	extendedCOS = {0, 0, 0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*vprofile;
 	Profile		profile;
 	Object		addr;
-	PsmAddress	elt;
 	Object		elt2;	
 	int		priority = 0;
 	int		srrFlags = 0;
@@ -1501,19 +1539,10 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
-	/*		Check if it is a known  profile.		*/
+	/*	Check if it is a known  profile.			*/
 
-	for (elt = sm_list_first(wm, vdb->profiles); elt;
-			elt = sm_list_next(wm, elt))
-	{
-		vprofile = (Profile *) psp(wm, sm_list_data(wm, elt));
-		if (vprofile->profileID == profileID)
-		{
-			break;
-		}
-	}
-
-	if (elt != 0)
+	vprofile = findProfileByNumber(profileID);
+	if (vprofile != NULL)
 	{
 		sdr_exit_xn(sdr);
 		writeMemo("[?] Duplicate profile.");
@@ -1649,6 +1678,29 @@ int	removeProfile(unsigned int profileID)
 	return 0;
 }
 
+/*	DTPC reception aggregation is based on lists of received
+ *	ADUs, one list per aggregator.  Each list is a sequence of
+ *	ADUs in ascending sequence number order.  Two types of ADUs
+ *	may appear in the list: true ADUs, bearing content, and
+ *	"placeholder" ADUs that represent ADUs that were lost in
+ *	transit and may ultimately be retransmitted, filling in the
+ *	gaps in the sequence of true ADUs.  The last ADU in any
+ *	list must be a true ADU.  The first ADU in a list may be
+ *	either a true ADU or a placeholder.  Each placeholder MUST
+ *	be immediately followed by a true ADU.  Each placeholder
+ *	that is not at the start of the list MUST be immediately
+ *	preceded by a true ADU whose sequence number is exactly 1
+ *	less that that of the placeholder.  Each true ADU that is
+ *	not at the start of the list MUST be immediately preceded
+ *	by either (a) another true ADU, whose sequence number is
+ *	exactly 1 less that that of this ADU, or (b) a placeholder
+ *	ADU whose sequence number must be at least 1 less than
+ *	that of this ADU; the difference between the placeholder's
+ *	sequence number and that of the immediately following
+ *	true ADU is the number of missing true ADUs represented
+ *	by this placeholder.						*/
+
+#if 0
 static int	resetInAggregator(Sdr sdr, Object aggrElt)
 {
 	InAggregator	inAggr;
@@ -1668,7 +1720,7 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 		GET_OBJ_POINTER(sdr, InAdu, inAdu, sdr_list_data(sdr, aduElt));
 		if (inAdu->aggregatedZCO == 0)
 		{	
-			deleteGap(sdr, aduElt);
+			deletePlaceholder(sdr, aduElt);
 		}
 	}
 
@@ -1678,7 +1730,7 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 		return -1;
 	}
 
-	 /*		Reset aggregator.				*/
+	 /*	Reset aggregator.					*/
 
 	loadScalar(&inAggr.nextExpected, 0);
 	loadScalar(&inAggr.resetSeqNum, 0);
@@ -1693,28 +1745,444 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 	
 	return 0;
 }
+#endif
 
-int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
+static int	insertAtPlaceholder(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+			Object aggrElt, InAggregator *inAggr, Object phElt)
+{
+	Object	inAduObj;
+	InAdu	inAdu;
+	Object	sdrElt;
+		OBJ_POINTER(InAdu, nextAdu);
+	Scalar	tempScalar;
+	int	result = 0;
+
+	/*	If the PDU following the placeholder is a true PDU,
+	 *	then we can simply transform the placeholder into the
+	 *	missing ADU by setting its aggregatedZCO.
+	 *
+	 *	Otherwise, we indicate arrival of the missing ADU by
+	 *	incrementing the sequence number of the placeholder
+	 *	(so that it represents 1 fewer missing ADUs).		*/
+
+	inAduObj = sdr_list_data(sdr, phElt);
+	sdr_stage(sdr, (char *) &inAdu, inAduObj, sizeof(InAdu));
+	sdrElt = sdr_list_next(sdr, phElt);
+	GET_OBJ_POINTER(sdr, InAdu, nextAdu, sdr_list_data(sdr, sdrElt));
+	copyScalar(&tempScalar, &seqNum);
+	increaseScalar(&tempScalar, 1);
+	result = compareScalars(&tempScalar, &nextAdu->seqNum);
+
+	/*	Update the placeholder ADU one way or another.		*/
+
+	if (result == 0)	/*	Only 1 missing ADU.		*/
+	{
+		inAdu.aggregatedZCO = dlv->adu;
+		sdr_list_delete(sdr, inAdu.gapEventElt, deleteEltObjContent,
+				NULL);
+		inAdu.gapEventElt = 0;
+		sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+	}
+	else			/*	Still need placeholder.		*/
+	{
+		/*	Increment the placeholder sequence number,
+		 *	reducing the size of the collection gap.	*/
+
+		increaseScalar(&inAdu.seqNum, 1);
+		sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+
+		/*	The new ADU didn't replace the placeholder, so
+		 *	it must be inserted before it.			*/
+
+		inAduObj = sdr_malloc(sdr, sizeof(InAdu));
+		if (inAduObj == 0)
+		{
+			putErrmsg("No space for InAdu.",NULL);
+			return -1;
+		}
+
+		sdr_list_insert_before(sdr, phElt, inAduObj);
+		copyScalar(&inAdu.seqNum, &seqNum);
+		inAdu.aggregatedZCO = dlv->adu;
+		inAdu.inAggrElt = aggrElt;
+		inAdu.gapEventElt = 0;
+		sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+	}
+
+	return 1;
+}
+
+static int	handleNextExpected(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+			Object aggrElt, InAggregator *inAggr)
+{
+	Object	aduElt;
+	Object	inAduObj;
+	InAdu	inAdu;
+
+	/*	If the aggregator's inAdus list is not empty, the
+	 *	first element of the list must be the placeholder
+	 *	for the next expected ADU.				*/
+
+	aduElt = sdr_list_first(sdr, inAggr->inAdus);
+	if (aduElt)
+	{
+		return insertAtPlaceholder(sdr, dlv, seqNum, aggrElt, inAggr,
+				aduElt);
+	}
+
+	/*	The next expected ADU has arrived in order, before
+	 *	any other ADUs with higher sequence number, so there
+	 *	is no placeholder to insert at.  So insert at start
+	 *	of list.						*/
+
+	inAduObj = sdr_malloc(sdr, sizeof(InAdu));
+	if (inAduObj == 0)
+	{
+		putErrmsg("No space for InAdu.",NULL);
+		return -1;
+	}
+
+	sdr_list_insert_first(sdr, inAggr->inAdus, inAduObj);
+	copyScalar(&inAdu.seqNum, &seqNum);
+	inAdu.aggregatedZCO = dlv->adu;
+	inAdu.inAggrElt = aggrElt;
+	inAdu.gapEventElt = 0;
+	sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+	return 1;
+}
+
+static time_t	getPlaceholderDeletionTime(BpDelivery *dlv)
+{
+	time_t	currentTime;
+	time_t	deletionTime;
+
+	currentTime = getUTCTime();
+	deletionTime = (dlv->bundleCreationTime.seconds + EPOCH_2000_SEC
+			+ dlv->timeToLive) - 1;
+	if (deletionTime < currentTime)
+	{
+		deletionTime = currentTime;
+	}
+
+	return deletionTime;
+}
+
+static int	insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+			Profile *profile, Object aggrElt, InAggregator *inAggr,
+			Scalar lastSeqNum)
+{
+	DtpcVdb		*vdb = getDtpcVdb();
+	Object		inAduObj;
+	InAdu		inAdu;
+	Object		aduElt;
+	DtpcEvent	event;
+
+	/*	Append new ADU to end of aggregator's inAdus list,
+	 *	preceded (as needed) by a placeholder for all prior
+	 *	sequence numbers following the current last sequence
+	 *	number.							*/
+
+	increaseScalar(&lastSeqNum, 1);
+
+	/*	We go through this loop at most twice:
+	 *	  1.  Possibly once to append a placeholder.
+	 *	  2.  Once to append the newly received ADU.		*/
+
+	while (1)
+	{
+		inAduObj = sdr_malloc(sdr, sizeof(InAdu));
+		if (inAduObj == 0)
+		{
+			putErrmsg("No space for InAdu.",NULL);
+			return -1;
+		}
+
+		copyScalar(&inAdu.seqNum, &lastSeqNum);
+		inAdu.inAggrElt = aggrElt;
+		aduElt = sdr_list_insert_last(sdr, inAggr->inAdus, inAduObj);
+		if (compareScalars(&seqNum, &lastSeqNum) == 0)
+		{
+			/*	Appending the received ADU.		*/
+
+			inAdu.aggregatedZCO = dlv->adu;
+			inAdu.gapEventElt = 0;
+			sdr_write(sdr, inAduObj, (char *)
+					&inAdu, sizeof(InAdu));
+			break;	/*	Out of the loop.		*/
+		}
+		else
+		{
+			/*	This will be the placeholder ADU.	*/
+
+			inAdu.aggregatedZCO = 0;
+			event.type = DeleteGap;
+			event.scheduledTime = getPlaceholderDeletionTime(dlv);
+			event.aduElt = aduElt;
+			inAdu.gapEventElt = insertDtpcTimelineEvent(&event);
+			if (inAdu.gapEventElt == 0)
+			{
+				putErrmsg("Can't schedule deletion event.",
+						NULL);
+				return -1;
+			}
+
+			sdr_write(sdr, inAduObj, (char *)
+					&inAdu, sizeof(InAdu));
+			if (vdb->watching & WATCH_v)
+			{
+				putchar('v');
+				fflush(stdout);
+			}
+		}
+
+		/*	Ensure that received ADU is appended next time.	*/
+
+		copyScalar(&lastSeqNum, &seqNum);
+	}
+
+	return 1;
+}
+
+static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
+			Profile *profile, Object aggrElt, InAggregator *inAggr)
+{
+	DtpcVdb		*vdb = getDtpcVdb();
+	Object		aduElt;
+	Object		sdrElt;
+	InAdu		inAdu;
+	Object		inAduObj = 0;		/*	To hush gcc	*/
+	DtpcEvent	event;
+	Scalar		lastSeqNum;
+	int		result;
+	Object		newAduElt;
+			OBJ_POINTER(InAdu, nextAdu);
+	Scalar		tempScalar;
+
+	/*	The received ADU can only be inserted at the start
+	 *	of the aggregator's inAdus list -- before or in
+	 *	place of the first ADU in the list (which has to be
+	 *	a placeholder) -- if it is the next expected ADU.
+	 *	Since we know it is not, the received ADU has to be
+	 *	inserted either at the end of the list or else
+	 *	somewhere after the start of the list but before
+	 *	the end.						*/
+
+	aduElt = sdr_list_last(sdr, inAggr->inAdus);
+	if (aduElt)
+	{
+		/*	The inAdus list is non-empty, so the last ADU
+		 *	in the list has got to be a non-placeholder
+		 *	ADU; every placeholder always has to be
+		 *	immediately followed by a non-placeholder ADU.	*/
+
+		inAduObj = sdr_list_data(sdr, aduElt);
+		sdr_stage(sdr, (char *) &inAdu, inAduObj, sizeof(InAdu));
+		copyScalar(&lastSeqNum, &inAdu.seqNum);
+	}
+	else
+	{
+		/*	The inAdus list is empty, so a	placeholder
+		 *	must be inserted at the start of the list,
+		 *	followed by the received ADU.
+		 *
+		 *	Reducing lastSeqNum by 1 forces the new
+		 *	placeholder's sequence number to be the
+		 *	next expected sequence number (after it is
+		 *	incremented at start of insertAduAtEnd).	*/
+
+		copyScalar(&lastSeqNum, &(inAggr->nextExpected));
+		reduceScalar(&lastSeqNum, 1);
+	}
+
+	result = compareScalars(&seqNum, &lastSeqNum);
+	if (result == 1)	/*	seqNum > lastSeqNum		*/
+	{
+		/*	The newly received ADU must go at the end of
+		 *	the inAdus list, preceded by a placeholder as
+		 *	needed.						*/
+
+		result = insertAduAtEnd(sdr, dlv, seqNum, profile, aggrElt,
+				inAggr, lastSeqNum);
+		if (result < 0)
+		{
+			putErrmsg("Failed inserting ADU at end of list.",NULL);
+			return -1;
+		}
+
+		return 1;
+	}
+
+	if (result == 0)	/*	seqNum == lastSeqNum		*/
+	{
+		/*	The last adu in the list can't be a placeholder,
+		 *	so it's an ADU; so the newly received ADU must
+		 *	be a duplicate.					*/
+
+		zco_destroy(sdr, dlv->adu);
+		if (vdb->watching & WATCH_discard)
+		{
+			putchar('?');
+			fflush(stdout);
+		}
+	
+		return 0;
+	}
+
+	/*	seqNum < lastSeqNum.  Must insert the received ADU
+	 *	into the correct location in the inAdus list.		*/
+
+	while (1)
+	{
+		aduElt = sdr_list_prev(sdr, aduElt);
+		inAduObj = sdr_list_data(sdr, aduElt);
+		sdr_stage(sdr, (char *) &inAdu, inAduObj, sizeof(InAdu));
+		result = compareScalars(&seqNum, &inAdu.seqNum);
+		if (result != 2)
+		{
+			/*	inAdu->seqNum <= seqNum, so insert
+			 *	at this point.				*/
+
+			break;
+		}
+	}
+
+	if (result == 0)	/*	Exact match on sequence number.	*/
+	{
+		if (inAdu.aggregatedZCO)
+		{
+			/*	The ADU at the insertion point is
+			 *	a true ADU (not a placeholder), so
+			 *	the newly received ADU must be a
+			 *	duplicate.  Discard it.			*/
+
+			zco_destroy(sdr, dlv->adu);
+			if (vdb->watching & WATCH_discard)
+			{
+				putchar('?');
+				fflush(stdout);
+			}
+
+			return 0;
+		}
+
+		/*	The ADU at the insertion point is a
+		 *	placeholder, the low end of whose collection
+		 *	gap must be replaced by the newly received
+		 *	ADU.						*/
+
+		return insertAtPlaceholder(sdr, dlv, seqNum, aggrElt, inAggr,
+				aduElt);
+	}
+
+	/*	result == 1; this ADU's sequence number is less than
+	 *	the newly received ADU's sequence number, and no ADU
+	 *	in the list has sequence number equal to the received
+	 *	ADU's sequence number.  The ADU must be a placeholder:
+	 *	if it were a true ADU, yet not the last element in
+	 *	the list, then it would have been immediately followed
+	 *	by a true ADU or placeholder whose sequence number
+	 *	was equal to that of the received ADU, and we would
+	 *	not be at this point in the list: the processing for
+	 *	exact match would already have occurred.
+	 *
+	 *	So we must insert the newly arrived ADU immediately
+	 *	after this placeholder, updating that placeholder's
+	 *	deletion event time, and possibly add another
+	 *	placeholder after it.
+	 *
+	 *	First we update the deletion event time of the
+	 *	placeholder.						*/
+
+	sdr_list_delete(sdr, inAdu.gapEventElt, deleteEltObjContent, NULL);
+	event.type = DeleteGap;
+	event.scheduledTime = getPlaceholderDeletionTime(dlv);
+	event.aduElt = aduElt;
+	inAdu.gapEventElt = insertDtpcTimelineEvent(&event);
+	if (inAdu.gapEventElt == 0)
+	{
+		putErrmsg("Can't schedule deletion event.", NULL);
+		return -1;
+	}
+
+	sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+
+	/*	Now we insert the newly received ADU after the
+	 *	placeholder.						*/
+
+	inAduObj = sdr_malloc(sdr, sizeof(InAdu));
+	if (inAduObj == 0)
+	{
+		putErrmsg("No space for InAdu.",NULL);
+		return -1;
+	}
+
+	newAduElt = sdr_list_insert_after(sdr, aduElt, inAduObj);
+	copyScalar(&inAdu.seqNum, &seqNum);
+	inAdu.aggregatedZCO = dlv->adu;
+	inAdu.inAggrElt = aggrElt;
+	inAdu.gapEventElt = 0;
+	sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+		
+	/*	Check to see if another placeholder is needed after
+	 *	the newly inserted ADU, i.e., the sequence number
+	 *	of the true ADU that immediately follows this one
+	 *	is more than 1 greater than that of the newly
+	 *	inserted ADU.						*/
+
+	sdrElt = sdr_list_next(sdr, newAduElt);
+	GET_OBJ_POINTER(sdr, InAdu, nextAdu, sdr_list_data(sdr, sdrElt));
+	copyScalar(&tempScalar, &seqNum);
+	increaseScalar(&tempScalar, 1);
+	if (compareScalars(&tempScalar, &nextAdu->seqNum) == 2)
+	{
+		/*	Create placeholder at this point.		*/
+
+		inAduObj = sdr_malloc(sdr, sizeof(InAdu));
+		if (inAduObj == 0)
+		{
+			putErrmsg("No space for InAdu.",NULL);
+			return -1;
+		}
+
+		sdrElt = sdr_list_insert_after(sdr, newAduElt, inAduObj);
+		copyScalar(&inAdu.seqNum, &tempScalar);
+		inAdu.aggregatedZCO = 0;
+		inAdu.inAggrElt = aggrElt;
+		event.type = DeleteGap;
+		event.scheduledTime = getPlaceholderDeletionTime(dlv);
+		event.aduElt = sdrElt;
+		inAdu.gapEventElt = insertDtpcTimelineEvent (&event);
+		if (inAdu.gapEventElt == 0)
+		{
+			putErrmsg("Can't schedule dtpc gap deletion event.",
+					NULL);
+			return -1;
+		}
+
+		sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
+	}
+
+	return 1;
+}
+
+int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 		Scalar seqNum)
 {
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	DtpcVdb		*vdb = getDtpcVdb();
+#if 0
 	PsmPartition	wm = getIonwm();
 	PsmAddress	psmElt;
-	Object		aggrElt;
-	Object		aduElt;
-	Object		sdrElt;
-	InAggregator	inAggr;
-	InAdu		inAdu;
-	Object		inAggrObj;
-	Object		inAduObj = 0;		/*	To hush gcc	*/
-	DtpcEvent	event;
+#endif
 	Profile		*profile;
-	Scalar		lastSeqNum;
-	Scalar		tempScalar;
+	unsigned int	maxRtx;
+	char		bogusEid[32];
+	Object		aggrElt;
+	Object		inAggrObj;
+	InAggregator	inAggr;
 	char		srcEid[SDRSTRING_BUFSZ];
+	char		bogusReportToEid[SDRSTRING_BUFSZ];
 	int		result;
-			OBJ_POINTER(InAdu, tempAdu);
 
 	CHKERR(sdr_begin_xn(sdr));
 	if (vdb->watching & WATCH_u)
@@ -1723,41 +2191,44 @@ int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 		fflush(stdout);
 	}
 
-	/* Read the profile parameters to get the lifespan,
-	 * as it may be needed.						*/
-
-	for (psmElt = sm_list_first(wm, vdb->profiles); psmElt; 
-			psmElt = sm_list_next(wm, psmElt))
+	profile = findProfileByNumber(profNum);
+	if (profile == NULL)	/*	Must add inferred profile.	*/
 	{
-		profile = (Profile *) psp(wm, sm_list_data(wm, psmElt));
-		if (profile->profileID == profNum)
-		{	
-			break;	/*	Found matching profile.		*/
-		}
-	}
-
-	if (psmElt == 0)
-	{
-		zco_destroy(sdr, dlv->adu);
-		if (sdr_end_xn(sdr) < 0)
+		sdr_exit_xn(sdr);
+		if (seqNum.units == 0 && seqNum.gigs == 0)
 		{
-			putErrmsg("Can't destroy invalid inbound adu.", NULL);
+			maxRtx = 0;	/*	No transport service.	*/
+		}
+		else
+		{
+			maxRtx = 1;	/*	Flag for transport.	*/
+		}
+
+		/*	Need bogus reportTo EID to ensure that the
+ 		 *	profile is added.  Otherwise it might have
+ 		 *	the same parameters as some existing profile
+ 		 *	and therefore be rejected; must be unique.	*/
+
+		isprintf(bogusEid, sizeof bogusEid, "ipn:%u.2097151", profNum);
+		if (addProfile(profNum, maxRtx, 0, 0, dlv->timeToLive, "0.1",
+				bogusReportToEid, "") < 0)
+		{
+			putErrmsg("Can't add profile.", itoa(profNum));
 			return -1;
 		}
 
-		writeMemoNote("[?] Profile not found, discarded adu",
-				utoa(profNum));
-		if (vdb->watching & WATCH_discard)
+		profile = findProfileByNumber(profNum);
+		if (profile == NULL)
 		{
-			putchar('?');
-			fflush(stdout);
-		}		
+			putErrmsg("Didn't add profile.", itoa(profNum));
+			return -1;
+		}
 
-		return 0;
+		CHKERR(sdr_begin_xn(sdr));
 	}
 
-	/* Look for InAggregator with the same ProfileID and srcEid
-	 * as the adu.							*/
+	/*	Look for InAggregator with the same ProfileID and
+	 *	srcEid as the adu.					*/
 
 	for (aggrElt = sdr_list_first(sdr, dtpcConstants->inAggregators);
 		aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
@@ -1765,6 +2236,11 @@ int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 		inAggrObj = sdr_list_data(sdr, aggrElt);
 		sdr_stage(sdr, (char *) &inAggr, inAggrObj,
 				sizeof(InAggregator));
+		if (inAggr.profileID != profNum)
+		{
+			continue;
+		}
+
 		if (sdr_string_read(sdr, srcEid, inAggr.srcEid) < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -1772,8 +2248,7 @@ int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 			return -1;
 		}
 
-		if (profNum == inAggr.profileID &&
-			strcmp(srcEid, dlv->bundleSourceEid) == 0)
+		if (strcmp(srcEid, dlv->bundleSourceEid) == 0)
 		{
 			break;	/*	Found matching aggregator.	*/
 		}
@@ -1781,12 +2256,21 @@ int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 
 	if (aggrElt == 0)
 	{
-		/*	Did not find a suitable aggregator,
-		 *	will create a new one.				*/
+		/*	Did not find a suitable aggregator, must
+		 *	create a new one.				*/
 
 		memset((char *) &inAggr, 0, sizeof(InAggregator));
 		inAggr.srcEid = sdr_string_create(sdr, dlv->bundleSourceEid);
 		inAggr.profileID = profNum;
+		if (profile->maxRtx == 0)	/*	No transport.	*/
+		{
+			loadScalar(&inAggr.nextExpected, 0);
+		}
+		else
+		{
+			loadScalar(&inAggr.nextExpected, 1);
+		}
+
 		inAggr.inAdus = sdr_list_create(sdr);
 		inAggrObj = sdr_malloc(sdr, sizeof(InAggregator));
 		if (inAggrObj == 0)
@@ -1813,7 +2297,7 @@ int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 			fflush(stdout);
 		}	
 	}
-
+#if 0
 	if (seqNum.units < 1000 && seqNum.gigs == 0)
 	{
 		/*	If this is the first item we receive just
@@ -1864,360 +2348,64 @@ int	handleInAdu(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 			break;
 		}
 	}
+#endif
+	if (profile->maxRtx == 0)	/*	No transport service.	*/
+	{
+		return 1;		/*	No more to do.		*/
+	}
+
+	/*	Transport service is requested for this profile.	*/
+
+	if (sendAck(txSap, profNum, seqNum, dlv) < 0)
+	{
+		putErrmsg("DTPC can't send acknowledgment.", NULL);
+		return -1;
+	}
+
+	/*	Insert the Adu into the collection sequence.		*/
 
 	result = compareScalars(&seqNum, &inAggr.nextExpected);
 	if (result == 2)	/*	seqNum < inAggr.nextExpected	*/
 	{
-		/*	We already have this item or it has expired or
-			the sender/receiver have recently reset but we
-			received an item from before the reset.		*/
-
+		/*	We already have this item or it has expired.	*/
+#if 0
+		/*	or the sender/receiver have recently reset but
+		 *	we received an item from before the reset.	*/
+#endif
 		zco_destroy(sdr, dlv->adu);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't destroy duplicate/expired inbound \
-item.", NULL);
-			return -1;
-		}
-
 		if (vdb->watching & WATCH_discard)
 		{
 			putchar('?');
 			fflush(stdout);
 		}
 		
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't discard unusable inbound ADU.", NULL);
+			return -1;
+		}
+
 		return 0;
 	}
-	else if (result == 0)	/* seqNum == inAggr.nextExpected	*/
+	else if (result == 0)	/*	seqNum == inAggr.nextExpected	*/
 	{
-		/* If the inAdus list is not empty, the nextExpected
-		 * seqNum will always be the first element of the list.	*/
-
-		aduElt = sdr_list_first(sdr, inAggr.inAdus);
-		if (aduElt)
+		result = handleNextExpected(sdr, dlv, seqNum, aggrElt, &inAggr);
+		if (result < 0)
 		{
-			inAduObj = sdr_list_data(sdr, aduElt);
-			sdr_stage(sdr, (char *) &inAdu, inAduObj,
-					sizeof(InAdu));
-
-			/*	Check if the next item has the next
-				sequence number and fill gap, else
-				update it.				*/
-
-			sdrElt = sdr_list_next(sdr, aduElt);
-			GET_OBJ_POINTER(sdr, InAdu, tempAdu,
-					sdr_list_data(sdr, sdrElt));
-			copyScalar(&tempScalar, &seqNum);
-			increaseScalar(&tempScalar, 1);
-			result = compareScalars(&tempScalar, &tempAdu->seqNum);
-			if (result == 0)
-			{	/*		Fill Gap		*/
-				inAdu.aggregatedZCO = dlv->adu;
-				sdr_list_delete(sdr, inAdu.gapEventElt,
-						deleteEltObjContent, NULL);
-				inAdu.gapEventElt = 0;
-			}
-			else
-			{	/* Increase gap seqnum since we received
-				   the item for the current seqnum.	*/
-
-				increaseScalar(&inAdu.seqNum, 1);
-			}
-
-			sdr_write(sdr, inAduObj, (char *) &inAdu,
-					sizeof(InAdu));
-		}
-
-		if (aduElt == 0 || (aduElt && result))
-		{	/* Insert item in the beginning of the list.	*/
-
-			inAduObj = sdr_malloc(sdr, sizeof(InAdu));
-			if (inAduObj == 0)
-			{
-				sdr_cancel_xn(sdr);
-				putErrmsg("No space for InAdu.",NULL);
-				return -1;
-			}
-
-			sdr_list_insert_first(sdr, inAggr.inAdus, inAduObj);
-			copyScalar(&inAdu.seqNum, &seqNum);
-			inAdu.aggregatedZCO = dlv->adu;
-			inAdu.inAggrElt = aggrElt;
-			inAdu.gapEventElt = 0;
-			sdr_write(sdr, inAduObj, (char *) &inAdu,
-					sizeof(InAdu));
+			sdr_cancel_xn(sdr);
+			putErrmsg("Failed handling next expected ADU.",NULL);
+			return -1;
 		}
 	}
-	else if (result == 1)	/*	seqNum > inAggr.nextExpected	*/
+	else			/*	seqNum > inAggr.nextExpected	*/
 	{
-		aduElt = sdr_list_last(sdr, inAggr.inAdus);
-		if (aduElt)
+		result = handleOutOfSeq(sdr, dlv, seqNum, profile, aggrElt,
+				&inAggr);
+		if (result < 0)
 		{
-			inAduObj = sdr_list_data(sdr, aduElt);
-			sdr_stage(sdr, (char *) &inAdu, inAduObj,
-					sizeof(InAdu));
-			copyScalar(&lastSeqNum, &inAdu.seqNum);
-		}
-		else
-		{
-			copyScalar(&lastSeqNum, &inAggr.nextExpected);
-
-			/* Note: If nextExpected is zero, the
-			   following reduction will make lastSeqNum
-			   underflow. This is expected behavior.	*/
-
-			reduceScalar(&lastSeqNum, 1);
-		}
-
-		result = compareScalars(&seqNum, &lastSeqNum);
-		if (result == 1)	/* seqNum > lastSeqNum		*/
-		{
-			increaseScalar(&lastSeqNum, 1);
-			while (1)
-			{
-				inAduObj = sdr_malloc(sdr, sizeof(InAdu));
-				if (inAduObj == 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("No space for InAdu.",NULL);
-					return -1;
-				}
-
-				copyScalar(&inAdu.seqNum, &lastSeqNum);
-				inAdu.aggregatedZCO = 0;
-				inAdu.inAggrElt = aggrElt;
-				inAdu.gapEventElt = 0;
-				aduElt = sdr_list_insert_last(sdr,
-						inAggr.inAdus, inAduObj);
-				if (compareScalars(&seqNum, &lastSeqNum) == 0)
-				{
-					inAdu.aggregatedZCO = dlv->adu;
-					sdr_write(sdr, inAduObj, (char *)
-							&inAdu, sizeof(InAdu));
-					break;
-				}
-				else
-				{
-					event.type = DeleteGap;
-					event.scheduledTime =
-						dlv->bundleCreationTime.seconds
-						+ EPOCH_2000_SEC
-						+ profile->lifespan - 1;
-					event.aduElt = aduElt;
-					inAdu.gapEventElt =
-						insertDtpcTimelineEvent(&event);
-					if (inAdu.gapEventElt == 0)
-					{
-						sdr_cancel_xn(sdr);
-						putErrmsg("Can't schedule dtpc \
-gap deletion event.", NULL);
-						return -1;
-					}
-
-					sdr_write(sdr, inAduObj, (char *)
-							&inAdu, sizeof(InAdu));
-					if (vdb->watching & WATCH_v)
-					{
-						putchar('v');
-						fflush(stdout);
-					}
-				}
-
-				copyScalar(&lastSeqNum, &seqNum);
-			}
-		}
-		else if (result == 0)	/* seqNum == lastSeqNum		*/
-		{
-			/* The last adu in the list can't be a gap,
-			 * so this is a duplicate adu.			*/
-
-			zco_destroy(sdr, dlv->adu);
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't destroy duplicate inbound \
-adu.", NULL);
-				return -1;
-			}
-
-			if (vdb->watching & WATCH_discard)
-			{
-				putchar('?');
-				fflush(stdout);
-			}
-		
-			return 0;
-		}
-		else if (result == 2)	/* seqNum < lastSeqNum		*/
-		{
-			while (1)
-			{
-				aduElt = sdr_list_prev(sdr, aduElt);
-				inAduObj = sdr_list_data(sdr, aduElt);
-				sdr_stage(sdr, (char *) &inAdu, inAduObj,
-						sizeof(InAdu));
-				result = compareScalars(&seqNum, &inAdu.seqNum);
-				if (result != 2)
-				{	/*	tempAdu->seqNum<=seqNum	*/
-					break;
-				}
-			}
-
-			if (result == 0)
-			{
-				if (inAdu.aggregatedZCO)
-				{
-					/* We already have this adu.	*/
-
-					zco_destroy(sdr, dlv->adu);
-					if (sdr_end_xn(sdr) < 0)
-					{
-						putErrmsg("Can't destroy \
-duplicate inbound adu.", NULL);
-						return -1;
-					}
-
-					if (vdb->watching & WATCH_discard)
-					{
-						putchar('?');
-						fflush(stdout);
-					}
-
-					return 0;
-				}
-
-				/* Check if the next item has the next
-				   sequence number and fill gap, else
-				   update it.				*/
-
-				sdrElt = sdr_list_next(sdr, aduElt);
-				GET_OBJ_POINTER(sdr, InAdu, tempAdu,
-						sdr_list_data(sdr, sdrElt));
-				copyScalar(&tempScalar, &seqNum);
-				increaseScalar(&tempScalar, 1);
-				result = compareScalars(&tempScalar,
-						&tempAdu->seqNum);
-				if (result == 0)
-				{	/*	Fill gap.		*/
-					inAdu.aggregatedZCO = dlv->adu;
-					sdr_list_delete(sdr, inAdu.gapEventElt,
-							deleteEltObjContent,
-							NULL);
-					inAdu.gapEventElt = 0;
-					sdr_write(sdr, inAduObj, (char *)
-							&inAdu, sizeof(InAdu));
-				}
-				else
-				{	/* Increase gap seqnum since we
-					   received the item for the
-					   current seqnum.		*/
-
-					increaseScalar(&inAdu.seqNum, 1);
-					sdr_write(sdr, inAduObj, (char *)
-							&inAdu, sizeof(InAdu));
-
-					/* Insert item before the gap.	*/
-
-					inAduObj = sdr_malloc(sdr,
-							sizeof(InAdu));
-					if (inAduObj == 0)
-					{
-						sdr_cancel_xn(sdr);
-						putErrmsg("No space for InAdu.",
-								NULL);
-						return -1;
-					}
-
-					sdr_list_insert_before(sdr, aduElt,
-							inAduObj);
-					copyScalar(&inAdu.seqNum, &seqNum);
-					inAdu.aggregatedZCO = dlv->adu;
-					inAdu.inAggrElt = aggrElt;
-					inAdu.gapEventElt = 0;
-					sdr_write(sdr, inAduObj, (char *)
-							&inAdu, sizeof(InAdu));
-				}
-			}
-			else	/*	result == 1			*/
-			{
-				/* Create gap with same seqnum as the
-				   current one, but different event
-				   time.				*/
-
-				inAduObj = sdr_malloc(sdr, sizeof(InAdu));
-				if (inAduObj == 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("No space for InAdu.",NULL);
-					return -1;
-				}
-
-				sdrElt = sdr_list_insert_before(sdr, aduElt,
-						inAduObj);
-
-				/*	Create event for new gap.	*/
-
-				event.type = DeleteGap;
-				event.scheduledTime =
-						dlv->bundleCreationTime.seconds
-						+ EPOCH_2000_SEC
-						+ profile->lifespan - 1;
-				event.aduElt = sdrElt;
-				inAdu.gapEventElt = insertDtpcTimelineEvent
-						(&event);
-				if (inAdu.gapEventElt == 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("Can't schedule dtpc gap \
-deletion event.", NULL);
-					return -1;
-				}
-
-				sdr_write(sdr, inAduObj, (char *) &inAdu,
-						sizeof(InAdu));
-
-				/* Insert item before the original gap.	*/
-
-				inAduObj = sdr_malloc(sdr, sizeof(InAdu));
-				if (inAduObj == 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("No space for InAdu.",NULL);
-					return -1;
-				}
-
-				sdr_list_insert_before(sdr, aduElt, inAduObj);
-				copyScalar(&inAdu.seqNum, &seqNum);
-				inAdu.aggregatedZCO = dlv->adu;
-				inAdu.inAggrElt = aggrElt;
-				inAdu.gapEventElt = 0;
-				sdr_write(sdr, inAduObj, (char *) &inAdu,
-						sizeof(InAdu));
-				
-				/* Check if there should be a gap after
-				   the item and update original gap
-				   seqnum or delete the gap.		*/
-
-				sdrElt = sdr_list_next(sdr, aduElt);
-				GET_OBJ_POINTER(sdr, InAdu, tempAdu,
-						sdr_list_data(sdr, sdrElt));
-				copyScalar(&tempScalar, &seqNum);
-				increaseScalar(&tempScalar, 1);
-				if (compareScalars(&tempScalar,
-						&tempAdu->seqNum))
-				{
-					inAduObj = sdr_list_data(sdr, aduElt);
-					sdr_stage(sdr, (char *) &inAdu,
-						inAduObj, sizeof(InAdu));
-					copyScalar(&inAdu.seqNum, &seqNum);
-					increaseScalar(&inAdu.seqNum, 1);
-					sdr_write(sdr, inAduObj, (char *)
-						&inAdu, sizeof(InAdu));
-				}
-				else
-				{
-					deleteGap(sdr, aduElt);
-				}
-			}
+			sdr_cancel_xn(sdr);
+			putErrmsg("Failed handling out-of-sequence ADU.",NULL);
+			return -1;
 		}
 	}
 	
@@ -2227,13 +2415,13 @@ deletion event.", NULL);
 		return -1;
 	}
 
-	return 1;
+	return result;
 }
 
-void	deleteGap(Sdr sdr, Object aduElt)
+void	deletePlaceholder(Sdr sdr, Object aduElt)
 {
-	Object		aduObj;
-			OBJ_POINTER(InAdu, adu);
+	Object	aduObj;
+		OBJ_POINTER(InAdu, adu);
 
 	aduObj = sdr_list_data(sdr, aduElt);
 	GET_OBJ_POINTER(sdr, InAdu, adu, aduObj);
@@ -2246,7 +2434,8 @@ void	deleteGap(Sdr sdr, Object aduElt)
 }
 
 static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
-			unsigned char **cursor,	int buflen, int *bytesUnparsed)
+			unsigned char **cursor,	int buflen,
+			unsigned int *bytesUnparsed)
 {
 	DtpcVdb		*vdb = getDtpcVdb();
 	unsigned char	*buffer;
@@ -2317,8 +2506,8 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 
 	if (elt == 0 || vsap->appPid < 0 || sm_TaskExists(vsap->appPid) == 0)
 	{
-		/* Skip this topic since there is no application
-		 * on this system to get the payloads.			*/
+		/*	Skip this topic since there is no application
+		 *	on this system to receive the payloads.		*/
 
 		skipTopic = 1;
 	}
@@ -2450,8 +2639,8 @@ int	parseInAdus(Sdr sdr)
 	Object		aduElt;
 	Object		aduObj;
 	int		remainingBytes;
-	int		bytesUnparsed;
-	int		bytesReceived;
+	unsigned int	bytesUnparsed;
+	vast		bytesReceived;
 	int		parsedBytes;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
@@ -2516,6 +2705,13 @@ int	parseInAdus(Sdr sdr)
 			zco_start_receiving(inAdu->aggregatedZCO, &reader);
 			bytesReceived = zco_receive_source(sdr, &reader, buflen,
 					(char *) cursor);
+			if (bytesReceived < 0)
+			{
+				putErrmsg("Error receiving adu.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+
 			bytesUnparsed = bytesReceived;
 			while (remainingBytes)
 			{
@@ -2583,7 +2779,7 @@ int	handleAck(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 		OBJ_POINTER(OutAdu, outAdu);
 
 	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, dlv->adu);	/* The ZCO is not needed.	*/
+	zco_destroy(sdr, dlv->adu);	/*	The ZCO is not needed.	*/
 	if (sscanf(dlv->bundleSourceEid, "%*[^:]:" UVAST_FIELDSPEC ".",
 			&nodeNbr) < 1)
 	{
@@ -2601,14 +2797,18 @@ process ACK.");
 	isprintf(srcEid, sizeof srcEid, "ipn:" UVAST_FIELDSPEC ".%d", nodeNbr,
 			DTPC_RECV_SVC_NBR);
 
-	/* Look for OutAggregator with the same ProfileID and dstEid
-	 * same as the srcEid of the ACK.				*/
+	/*	Look for the OutAggregator, for this Profile, whose
+	 *	dstEid is equal to the srcEid of the ACK.		*/
 
 	for (aggrElt = sdr_list_first(sdr, dtpcConstants->outAggregators);
-		aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
+			aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
 	{
 		GET_OBJ_POINTER(sdr, OutAggregator, outAggr,
 				sdr_list_data(sdr, aggrElt));
+		if (outAggr->profileID != profNum)
+		{
+			continue;
+		}
 
 		if (sdr_string_read(sdr, dstEid, outAggr->dstEid) < 0)
 		{
@@ -2617,8 +2817,7 @@ process ACK.");
 			return -1;
 		}
 
-		if (profNum == outAggr->profileID
-		&& strcmp(dstEid, srcEid) == 0)
+		if (strcmp(dstEid, srcEid) == 0)
 		{
 			break;	/*	Found matching aggregator.	*/
 		}
@@ -2626,8 +2825,8 @@ process ACK.");
 
 	if (aggrElt == 0)
 	{
-		writeMemo("[i] Received an ACK that does not match any \
-				outbound aggregator");
+		writeMemoNote("[i] Received an ACK that does not match any \
+outbound aggregator", srcEid);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't handle ACK.", NULL);
@@ -2642,10 +2841,10 @@ process ACK.");
 	{
 		GET_OBJ_POINTER(sdr, OutAdu, outAdu,
 				sdr_list_data(sdr, aduElt));
-		if (outAdu->seqNum.gigs == seqNum.gigs &&
-			outAdu->seqNum.units == seqNum.units)
+		if (outAdu->seqNum.gigs == seqNum.gigs
+		&& outAdu->seqNum.units == seqNum.units)
 		{
-			break;		/*	Found adu.		*/
+			break;	/*	Found matching ADU.		*/
 		}
 	}
 
@@ -2663,12 +2862,11 @@ process ACK.");
 	return 0;
 }
 
-int	sendAck (BpSAP sap, unsigned int profileID, Scalar seqNum,
+int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 		BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*vdb = getDtpcVdb();
-	PsmPartition	wm = getIonwm();
 	Sdnv		profileIdSdnv;
 	Sdnv		seqNumSdnv;
 	char		type;
@@ -2681,7 +2879,6 @@ int	sendAck (BpSAP sap, unsigned int profileID, Scalar seqNum,
 	BpExtendedCOS	extendedCOS = { 0, 0, 0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*profile;
-	PsmAddress	elt;
 	time_t		currentTime;
 	int		lifetime;
 	int		priority = 0;
@@ -2700,19 +2897,10 @@ send ACK.");
 			DTPC_RECV_SVC_NBR);
 	CHKERR(sdr_begin_xn(sdr));
 
-	/*			Find profile.				*/
+	/*	Find profile.						*/
 
-	for (elt = sm_list_first(wm, vdb->profiles); elt;
-			elt = sm_list_next(wm, elt))
-	{
-		profile = (Profile *) psp(wm, sm_list_data(wm, elt));
-		if (profile->profileID == profileID)
-		{
-			break;
-		}
-	}
-
-	if (elt == 0)
+	profile = findProfileByNumber(profileID);
+	if (profile == NULL)
 	{
 		/*	No profile found - Estimate lifetime.		*/
 
@@ -2733,7 +2921,7 @@ send ACK.");
 		return 0;
 	}
 
-	/*		Construct DTPC acknowledgment.			*/
+	/*	Construct DTPC acknowledgment.				*/
 
 	type = 0x01;	/*	Top 2 bits are version number 00.	*/
 	encodeSdnv(&profileIdSdnv, profileID);
@@ -2764,7 +2952,7 @@ send ACK.");
 	sdr_write(sdr, addr, (char *) buffer, extentLength);
 	MRELEASE(buffer);
 
-	/*		Create ZCO and send ACK.			*/
+	/*	Create ZCO and send ACK.				*/
 
 	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, priority,
 			extendedCOS.ordinal, ZcoOutbound, NULL);

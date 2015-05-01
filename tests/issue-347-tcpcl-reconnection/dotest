@@ -77,7 +77,7 @@ echo ""
 # Now to restart node 1
 echo "Restarting node 1"
 cd ../1.ipn.tcp/
-ionstart -I "node1_restart.rc"
+./ionrestart
 sleep 30
 
 # Send second file from node 1 to node 2.
@@ -86,7 +86,7 @@ echo "Attempting to send a second file from node 1 to node 2..."
 bpsendfile ipn:1.1 ipn:2.1 testfiley
 sleep 5
 
-# Verify that this file has NOT arrived.
+# Verify that this file has also arrived.
 cd ../2.ipn.tcp
 COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]

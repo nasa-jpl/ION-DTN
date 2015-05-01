@@ -137,10 +137,13 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		 *	this session.  We send one initial checkpoint
 		 *	plus one more checkpoint in response to every
 		 *	report except the last, which elicits only a
-		 *	report acknowledgment.				*/
+		 *	report acknowledgment.  So the maximum number
+		 *	of reports that we expect from the receiver
+		 *	determines the maximum number of checkpoints
+		 *	we will send.					*/
 
 		session.maxCheckpoints = getMaxReports(session.redPartLength,
-				span.maxSegmentSize);
+				vspan, 0);
 		if ((extents = lyst_create_using(getIonMemoryMgr())) == NULL
 		|| (extent = (ExportExtent *) MTAKE(sizeof(ExportExtent)))
 				== NULL

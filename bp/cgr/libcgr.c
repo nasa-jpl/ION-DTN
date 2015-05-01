@@ -625,6 +625,47 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 	return 0;
 }
 
+static void	endAnchoredSearch(PsmAddress routeAddr, CgrRoute *route)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	uvast		localNode = getOwnNodeNbr();
+	PsmAddress	elt;
+	IonCXref	*contact;
+	CgrContactNote	*work;
+
+	/*	No more routes through the anchor contact.  All
+	 *	suppressed contacts that are not initial contacts on
+	 *	routes were only temporarily suppressed to enable the
+	 *	discovery of more routes through the anchor contact,
+	 *	so un-suppress them while clearing all work areas for
+	 *	next search.						*/
+
+	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
+		if (contact->fromNode != localNode)
+		{
+			/*	Not an initial contact, so end its
+			 *	temporary suppression.			*/
+
+			work->suppressed = 0;
+		}
+
+		work->arrivalTime = MAX_TIME;
+		work->predecessor = NULL;
+		work->visited = 0;
+	}
+
+	/*	Also, ditch this route because it may not be optimal
+	 *	per downstream contact suppression.			*/
+
+	sm_list_destroy(ionwm, route->hops, NULL, NULL);
+	psm_free(ionwm, routeAddr);
+}
+
 static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 				CgrTrace *trace)
 {
@@ -640,6 +681,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
 	IonCXref	*firstContact;
+	IonCXref	*limitContact;
+	IonCXref	*anchorContact = NULL;
 
 	CHKZERO(ionvdb);
 	CHKZERO(cgrvdb);
@@ -727,6 +770,37 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 			 *	contacts on previously discovered
 			 *	optimal routes.				*/
 
+			route = (CgrRoute *) psp(ionwm, routeAddr);
+			firstContact = (IonCXref *)
+					psp(ionwm, sm_list_data(ionwm,
+					sm_list_first(ionwm, route->hops)));
+			if (anchorContact)
+			{
+				/*	This is a route found while
+				 *	doing a search that is anchored
+				 *	on some initial contact whose
+				 *	expiration time is later than
+				 *	that of some or all relevant
+				 *	downstream contacts.  If the
+				 *	most recently discovered route
+				 *	through this anchor contact was
+				 *	the last, then end the anchored
+				 *	search and try again with the
+				 *	anchor contact now suppressed.	*/
+
+				if (firstContact != anchorContact)
+				{
+					endAnchoredSearch(routeAddr, route);
+					work = (CgrContactNote *) psp(ionwm,
+						anchorContact->routingObject);
+					work->suppressed = 1;
+					anchorContact = NULL;
+					continue;
+				}
+			}
+
+			/*	This is a route that we want to record.	*/
+
 			if (sm_list_insert_last(ionwm,
 				terminusNode->routingObject, routeAddr) == 0)
 			{
@@ -734,15 +808,51 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 				return 0;
 			}
 
-			/*	Now exclude the initial contact in this
-			 *	optimal route, re-clear, and try again.	*/
+			/*	Now exclude the earliest-expiring
+			 *	contact in this optimal route, clear
+			 *	work areas, and try again.		*/
 
 			route = (CgrRoute *) psp(ionwm, routeAddr);
 			firstContact = (IonCXref *)
 					psp(ionwm, sm_list_data(ionwm,
 					sm_list_first(ionwm, route->hops)));
+			if (route->toTime == firstContact->toTime)
+			{
+				limitContact = firstContact;
+			}
+			else
+			{
+				/*	One of more contacts in this
+				 *	route expire before the initial
+				 *	contact expires.  Look for
+				 *	more routes that are "anchored"
+				 *	in this initial contact,
+				 *	excluding the earliest-expiring
+				 *	contact in this route.		*/
+
+				anchorContact = firstContact;
+				for (elt = sm_list_first(ionwm, route->hops);
+					elt; elt = sm_list_next(ionwm, elt))
+				{
+					contact = (IonCXref *) psp(ionwm,
+						sm_list_data(ionwm, elt));
+					if (contact->toTime == route->toTime)
+					{
+						break;
+					}
+				}
+
+				if (elt == 0)
+				{
+					putErrmsg("Bug in hops list!", NULL);
+					return 0;
+				}
+
+				limitContact = contact;
+			}
+
 			work = (CgrContactNote *)
-					psp(ionwm, firstContact->routingObject);
+					psp(ionwm, limitContact->routingObject);
 			work->suppressed = 1;
 			for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex);
 				       	elt; elt = sm_rbt_next(ionwm, elt))

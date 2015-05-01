@@ -55,7 +55,8 @@ typedef struct
 {
 	int		*cloRunning;
 	pthread_mutex_t	*mutex;
-	struct sockaddr	*socketName;
+	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		*ductSocket;
 	int		*keepalivePeriod;
 } KeepaliveThreadParms;
@@ -102,8 +103,9 @@ static void	*sendKeepalives(void *parm)
 
 		keepaliveTimer = 0;
 		pthread_mutex_lock(parms->mutex);
-		bytesSent = sendBundleByTCPCL(parms->socketName,
-				parms->ductSocket, 0, 0, buffer, parms->keepalivePeriod);
+		bytesSent = sendBundleByTCPCL(parms->protocolName,
+				parms->ductName, parms->ductSocket,
+				0, 0, buffer, parms->keepalivePeriod);
 		pthread_mutex_unlock(parms->mutex);
 		/*	if the node is unable to establish a TCP connection,
  		 * 	the connection should be tried only after some delay.
@@ -257,11 +259,6 @@ int	main(int argc, char *argv[])
 	ClProtocol		protocol;
 	Outflow			outflows[3];
 	int			i;
-	char			*hostName;
-	unsigned short		portNbr;
-	unsigned int		hostNbr;
-	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName;
 	int			running = 1;
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	parms;
@@ -338,34 +335,6 @@ int	main(int argc, char *argv[])
 		outflows[i].svcFactor = 1 << i;
 	}
 
-	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
-	if (portNbr == 0)
-	{
-		portNbr = BpTcpDefaultPortNbr;
-	}
-
-	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		MRELEASE(buffer);
-		return 1;
-	}
-
-	hostNbr = htonl(hostNbr);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	if (_tcpOutductId(&socketName, "tcp", ductName) < 0)
-	{
-		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
-		MRELEASE(buffer);
-		return -1;
-	}
-
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	oK(tcpcloSemaphore(&(vduct->semaphore)));
@@ -376,11 +345,12 @@ int	main(int argc, char *argv[])
 
 	/*	Start the keepalive thread for the eventual connection.	*/
 	
-	tcpDesiredKeepAlivePeriod = KEEPALIVE_PERIOD;
+	keepalivePeriod = tcpDesiredKeepAlivePeriod = KEEPALIVE_PERIOD;
 	parms.cloRunning = &running;
 	pthread_mutex_init(&mutex, NULL);
 	parms.mutex = &mutex;
-	parms.socketName = &socketName;
+	istrcpy(parms.protocolName, protocol.name, MAX_CL_PROTOCOL_NAME_LEN);
+	istrcpy(parms.ductName, ductName, MAX_CL_DUCT_NAME_LEN);
 	parms.ductSocket = &ductSocket;
 	parms.keepalivePeriod = &keepalivePeriod;
 	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
@@ -422,16 +392,7 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	{
-		char	txt[500];
-
-		isprintf(txt, sizeof(txt),
-			"[i] tcpclo is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr),
-			ntohs(inetName->sin_port));
-		writeMemo(txt);
-	}
-
+	writeMemo("[i] tcpclo is running....");
 	while (running && !(sm_SemEnded(tcpcloSemaphore(NULL))))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
@@ -450,8 +411,9 @@ int	main(int argc, char *argv[])
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
-		bytesSent = sendBundleByTCPCL(&socketName, &ductSocket,
-			bundleLength, bundleZco, buffer, &keepalivePeriod);
+		bytesSent = sendBundleByTCPCL(protocol.name, ductName,
+				&ductSocket, bundleLength, bundleZco,
+				buffer, &keepalivePeriod);
 		pthread_mutex_unlock(&mutex);
 		if(bytesSent < 0)
 		{
@@ -462,21 +424,16 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
-	writeMemo("[i] tcpclo done sending");
 
-	if (sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1, &socketName) < 0)
+	writeMemo("[i] tcpclo done sending");
+	if (sendShutDownMessage(&ductSocket, SHUT_DN_NO, -1) < 0)
 	{
 		putErrmsg("Sending Shutdown message failed!!",NULL);
 	}
 
-	if (ductSocket != -1)
-	{
-		closesocket(ductSocket);
-		ductSocket=-1;
-	}
-
 	running = 0;
 	pthread_join(keepaliveThread, NULL);
+	closeOutductSocket(&ductSocket);
 	writeMemo("[i] tcpclo keepalive thread killed");
 
 	pthread_join(receiverThread, NULL);
@@ -484,7 +441,6 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpclo duct has ended.");
-	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
 	pthread_mutex_destroy(&mutex);
 	bp_detach();

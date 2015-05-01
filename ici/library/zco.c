@@ -488,9 +488,8 @@ vast	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 		 ZcoAcct acct)
 {
+	char		pathBuf[MAXPATHLEN + 1];
 	int		pathLen;
-	char		pathBuf[256];
-	int		cwdLen;
 	int		scriptLen = 0;
 	int		sourceFd;
 	struct stat	statbuf;
@@ -499,44 +498,14 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 
 	CHKZERO(sdr);
 	CHKZERO(pathName);
-	pathLen = strlen(pathName);
-	if (*pathName != ION_PATH_DELIMITER)
+	if (qualifyFileName(pathName, pathBuf, sizeof pathBuf) < 0)
 	{
-		/*	Might not be an absolute path name.		*/
-
-		if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
-		{
-			putErrmsg("Can't get cwd.", NULL);
-			return 0;
-		}
-
-		if (pathBuf[0] == ION_PATH_DELIMITER)
-		{
-			/*	Path names *do* start with the path
-			 *	delimiter, so it's a POSIX file system,
-			 *	so pathName is *not* an absolute
-			 *	path name, so the absolute path name
-			 *	must instead be computed by appending
-			 *	the relative path name to the name of
-			 *	the current working directory.		*/
-
-			cwdLen = strlen(pathBuf);
-			if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
-			{
-				putErrmsg("Absolute path name too long.",
-						pathName);
-				return 0;
-			}
-
-			pathBuf[cwdLen] = ION_PATH_DELIMITER;
-			cwdLen++;	/*	cwdname incl. delimiter	*/
-			istrcpy(pathBuf + cwdLen, pathName,
-					sizeof pathBuf - cwdLen);
-			pathName = pathBuf;
-			pathLen += cwdLen;
-		}
+		putErrmsg("Path name unusable: length.", pathName);
+		return 0;
 	}
 
+	pathName = pathBuf;
+	pathLen = istrlen(pathName, sizeof pathBuf);
 	if (cleanupScript)
 	{
 		scriptLen = strlen(cleanupScript);
@@ -604,7 +573,6 @@ int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
 {
 	int		pathLen;
 	char		pathBuf[256];
-	int		cwdLen;
 	int		scriptLen = 0;
 	int		sourceFd;
 	struct stat	statbuf;
@@ -614,44 +582,15 @@ int	zco_revise_file_ref(Sdr sdr, Object fileRefObj, char *pathName,
 	CHKERR(fileRefObj);
 	CHKERR(pathName);
 	CHKERR(sdr_in_xn(sdr));
-	pathLen = strlen(pathName);
-	if (*pathName != ION_PATH_DELIMITER)
+	if (qualifyFileName(pathName, pathBuf, sizeof pathBuf) < 0)
 	{
-		/*	Might not be an absolute path name.		*/
-
-		if (igetcwd(pathBuf, sizeof pathBuf) == NULL)
-		{
-			putErrmsg("Can't get cwd.", NULL);
-			return -1;
-		}
-
-		if (pathBuf[0] == ION_PATH_DELIMITER)
-		{
-			/*	Path names *do* start with the path
-			 *	delimiter, so it's a POSIX file system,
-			 *	so pathName is *not* an absolute
-			 *	path name, so the absolute path name
-			 *	must instead be computed by appending
-			 *	the relative path name to the name of
-			 *	the current working directory.		*/
-
-			cwdLen = strlen(pathBuf);
-			if ((cwdLen + 1 + pathLen + 1) > sizeof pathBuf)
-			{
-				putErrmsg("Absolute path name too long.",
-						pathName);
-				return -1;
-			}
-
-			pathBuf[cwdLen] = ION_PATH_DELIMITER;
-			cwdLen++;	/*	cwdname incl. delimiter	*/
-			istrcpy(pathBuf + cwdLen, pathName,
-					sizeof pathBuf - cwdLen);
-			pathName = pathBuf;
-			pathLen += cwdLen;
-		}
+		writeMemoNote("[?] Can't qualify file name of revised ZCO ref.",
+				pathName);
+		return 0;
 	}
 
+	pathName = pathBuf;
+	pathLen = istrlen(pathName, sizeof pathBuf);
 	if (cleanupScript)
 	{
 		scriptLen = strlen(cleanupScript);

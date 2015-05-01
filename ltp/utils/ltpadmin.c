@@ -533,10 +533,14 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 
 static void	manageMaxBER(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	ltpdbObj = getLtpDbObject();
-	LtpDB	ltpdb;
-	double	newMaxBER;
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	double		newMaxBER;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
 
 	if (tokenCount != 3)
 	{
@@ -553,8 +557,15 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
-	ltpdb.errorsPerByte = newMaxBER * 8;
+	ltpdb.maxBER = newMaxBER;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		computeRetransmissionLimits(vspan);
+	}
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change maximum bit error rate.", NULL);

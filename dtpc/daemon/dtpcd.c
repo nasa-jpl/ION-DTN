@@ -129,7 +129,8 @@ static void	*getBundles(void *parm)
 			switch (type)
 			{
 			case 0x00:	/*	Received an adu.	*/
-				switch (handleInAdu(sdr, &dlv, profNum, seqNum))
+				switch (handleInAdu(sdr, parms->txSap, &dlv,
+						profNum, seqNum))
 				{
 				case -1:
 					putErrmsg("dtpcd can't handle inbound \
@@ -146,26 +147,15 @@ adu.", NULL);
 						continue;
 					}
 
+					/*	Intentional fall-through
+					 *	to remaining cases.	*/
+
 				case 0: 
-					/* 	Intentional fall-through to 
-					 *	next case. 		*/				
 				default:
-					if (dlv.ackRequested)
-					{
-						if (sendAck(parms->txSap,
-								profNum, seqNum,
-								&dlv) < 0)
-						{
-							putErrmsg("dtpcd can't \
-send ack.", NULL);
-							parms->running = 0;
-							continue;
-						}
-					} 
-					break;
+					break;	/*	Inner switch.	*/
 				}
 
-				break;
+				break;		/*	Middle switch.	*/
 
 			case 0x01:	/*	Received an ACK.	*/
 				if (handleAck(sdr, &dlv, profNum, seqNum) < 0)
@@ -176,15 +166,15 @@ send ack.", NULL);
 					continue;
 				}
 
-				break;
+				break;		/*	Middle switch.	*/
 			default:
 				writeMemo("[?] Invalid item type. Corrupted \
 item?");
-				break;
+				break;		/*	Middle switch.	*/
 			}
 
 		default:
-			break;
+			break;			/*	Outer switch.	*/
 		}
 
 		bp_release_delivery(&dlv, 0);	/* We manually delete the

@@ -665,13 +665,14 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 
 # -- Libraries --- #
 
+# libltp uses -lm CFLAG for pow() function
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
 	ltp/sda/libsda.c \
 	ltp/library/libltpnm.c
-libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) -lm
 libltp_la_LIBADD = libici.la 
 
 # --- Utility Programs --- #
@@ -2145,7 +2146,7 @@ if ENABLE_AUTODOC
 
 ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
-	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --outfile ION.pdf
+	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --fitpaper true --rotateoversize true --outfile ION.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)

@@ -63,7 +63,8 @@ static void	interruptThread()	/*	Commands termination.	*/
 typedef struct
 {
 	pthread_mutex_t	*mutex;
-	struct sockaddr	*socketName;
+	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		*ductSocket;
 	int		*running;
 } KeepaliveThreadParms;
@@ -87,8 +88,8 @@ static void	*sendKeepalives(void *parm)
 		/*	Time to send a keepalive.			*/
 
 		pthread_mutex_lock(parms->mutex);
-		bytesSent = sendBundleByTCP(parms->socketName,
-				parms->ductSocket, 0, 0, NULL);
+		bytesSent = sendBundleByTCP(parms->protocolName,
+				parms->ductName, parms->ductSocket, 0, 0, NULL);
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent <= 0)
 		{
@@ -235,11 +236,6 @@ int	main(int argc, char *argv[])
 	ClProtocol		protocol;
 	Outflow			outflows[3];
 	int			i;
-	char			hostName[16];
-	unsigned short		portNbr;
-	unsigned int		hostNbr;
-	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName;
 	int			ductSocket;
 	time_t			timeTag;
 	char			registration[REGISTRATION_LEN];
@@ -323,6 +319,7 @@ number>");
 
 	/*	All command-line arguments are now validated.		*/
 
+	*underscore = '\0';	/*	Truncate ductName.		*/
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr,
@@ -351,58 +348,28 @@ number>");
 		outflows[i].svcFactor = 1 << i;
 	}
 
-	/*	Connect to BRS server.					*/
+	/*	Send registration message: duct number (SDNV text),
+	 *	timestamp, and message authentication code.  If the
+	 *	server rejects the signature, it simply closes the
+	 *	connection so that next operation on this socket fails.	*/
 
-	*underscore = '\0';
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
-	if (portNbr == 0)
-	{
-		portNbr = 80;
-	}
-
-	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for server.", ductName);
-		MRELEASE(buffer);
-		return 1;
-	}
-
-	hostNbr = htonl(hostNbr);
-	printDottedString(hostNbr, hostName);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	if (_tcpOutductId(&socketName, "brsc", ductName) < 0)
-	{
-		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
-		MRELEASE(buffer);
-		return -1;
-	}
-
-	if (connectToCLI(&socketName, &ductSocket) < 0 || ductSocket < 0)
+	if (openOutductSocket(protocol.name, ductName, &ductSocket) < 0
+	|| ductSocket < 0)
 	{
 		putErrmsg("Can't connect to server.", ductName);
 		MRELEASE(buffer);
 		return 1;
 	}
 
-	/*	Send registration message: duct number (SDNV text),
-	 *	timestamp, and message authentication code.  If the
-	 *	server rejects the signature, it simply closes the
-	 *	connection so that next operation on this socket fails.	*/
-
 	timeTag = time(NULL);
 	timeTag = htonl(timeTag);
 	memcpy(registration, (char *) &timeTag, 4);
 	oK(hmac_authenticate(registration + 4, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
-	if (sendBytesByTCP(&ductSocket, (char *) ductSdnv.text, ductSdnv.length,
-			&socketName) < ductSdnv.length
-	|| sendBytesByTCP(&ductSocket, registration, REGISTRATION_LEN,
-			&socketName) < REGISTRATION_LEN)
+	if (sendBytesByTCP(&ductSocket, (char *) ductSdnv.text, ductSdnv.length)
+			< ductSdnv.length
+	|| sendBytesByTCP(&ductSocket, registration, REGISTRATION_LEN)
+			< REGISTRATION_LEN)
 	{
 		putErrmsg("Can't register with server.", itoa(ductSocket));
 		MRELEASE(buffer);
@@ -474,7 +441,8 @@ number>");
 
 	pthread_mutex_init(&mutex, NULL);
 	ktparms.mutex = &mutex;
-	ktparms.socketName = &socketName;
+	istrcpy(ktparms.protocolName, protocol.name, MAX_CL_PROTOCOL_NAME_LEN);
+	istrcpy(ktparms.ductName, ductName, MAX_CL_DUCT_NAME_LEN);
 	ktparms.ductSocket = &ductSocket;
 	ktparms.running = &running;
 	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &ktparms))
@@ -487,15 +455,7 @@ number>");
 
 	/*	Can now begin transmitting to server.			*/
 
-	{
-		char	txt[500];
-
-		isprintf(txt, sizeof(txt),
-			"[i] brsccla is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
-		writeMemo(txt);
-	}
-
+	writeMemo("[i] brsccla is running....");
 	while (!(sm_SemEnded(brscclaSemaphore(NULL))))
 	{
 		if (bpDequeue(voutduct, outflows, &bundleZco, &extendedCOS,
@@ -514,8 +474,8 @@ number>");
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
-		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
-				bundleLength, bundleZco, buffer);
+		bytesSent = sendBundleByTCP(protocol.name, ductName,
+				&ductSocket, bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
 		if (bytesSent <= 0)
 		{
@@ -549,15 +509,10 @@ number>");
 	}
 
 	pthread_join(keepaliveThread, NULL);
-	if (ductSocket != -1)
-	{
-		closesocket(ductSocket);
-	}
-
+	closeOutductSocket(&ductSocket);
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
 	writeMemo("[i] brsccla duct has ended.");
-	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
 	ionDetach();
 	return 0;

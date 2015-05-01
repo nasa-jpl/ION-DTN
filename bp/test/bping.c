@@ -7,10 +7,12 @@
  * back (for example, via bpecho), the round-trip time is displayed.
  */
 
-#include <string.h>     /* strtok_r() */
 #include <getopt.h>     /* getopt */
 #include <bp.h>
 #include <lyst.h>
+
+/*	Note: bping originally used strtok_r to parse responses,
+	but neither strtok_r nor strok_s are provided by MinGW.		*/
 
 const char usage[] =
   "Usage: bping [options] <source EID> <destination EID> [report-to EID]\n\n" 
@@ -43,8 +45,9 @@ static int totalsent = 0;     /* Only written by sendRequests thread */
 static int totalreceived = 0; /* Only written by receiveResponses thread */
 static int shutdownnow = 0;      /* 1: Cleanup and shutdown. */
 static pthread_mutex_t sdrmutex;
-static pthread_t receiveResponsesThread = 0;
-static pthread_t sendRequestsThread = 0;
+static pthread_t receiveResponsesThread;
+static pthread_t sendRequestsThread;
+static int sendRequestsThreadRunning = 0;
 static BpCustodySwitch custodySwitch = NoCustodyRequested;
 
 static Sdr      sdr;
@@ -86,7 +89,7 @@ static void handleQuit()
 {
 	shutdownnow = 1;
 	bp_interrupt(recvsap);
-	if(sendRequestsThread
+	if(sendRequestsThreadRunning
 	&& !pthread_equal(sendRequestsThread, pthread_self()))
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
@@ -130,7 +133,7 @@ static void *receiveResponses(void *x)
 	int         contentLength, bytesToRead, result;
 	char        buffer[BPING_PAYLOAD_MAX_LEN];
 	char        respSrcEid[64];
-	char        *saveptr, *countstr, *secstr, *usecstr, *endptr;
+	char        *countstr, *secstr, *usecstr, *endptr;
 	unsigned long respcount;
 	long        diff_in_us;
 
@@ -190,19 +193,19 @@ static void *receiveResponses(void *x)
 		}
 
 		/* Parse out the values in the response */
-		countstr = strtok_r(buffer, " ", &saveptr);
+		countstr = strtok(buffer, " ");
 		if(countstr == NULL) {
 			putErrmsg("Couldn't parse countstr", buffer);
 			fprintf(stderr, "Couldn't parse countstr.\n");
 			continue;
 		}
-		secstr = strtok_r(NULL, " ", &saveptr);
+		secstr = strtok(NULL, " ");
 		if(secstr == NULL) {
 			putErrmsg("Couldn't parse secstr", NULL);
 			fprintf(stderr, "Couldn't parse secstr.\n");
 			continue;
 		}
-		usecstr = strtok_r(NULL, " ", &saveptr);
+		usecstr = strtok(NULL, " ");
 		if(usecstr == NULL) {
 			putErrmsg("Couldn't parse usecstr", NULL);
 			fprintf(stderr, "Couldn't parse usecstr.\n");
@@ -320,6 +323,7 @@ static void *sendRequests(void *x)
 	Object  bundleZco;
 
 	/* Send bundles until we are told to shutdownnow, or we've sent "count". */
+	sendRequestsThreadRunning = 1;
 	while((shutdownnow == 0) && (count == -1 || totalsent < count)) {
 		if(pthread_mutex_lock(&sdrmutex) != 0)
 		{
@@ -358,27 +362,27 @@ static void *sendRequests(void *x)
 
 		++totalsent;    /* Successful send */
 		if(interval > 0 && (count == -1 || totalsent < count)) {
-			usleep(interval * 1e6);
+			snooze(interval);
 		}
 	}
 	if(verbosity) fprintf(stderr, "Sent %d bundles.\n", totalsent);
 	if(waitdelay > 0) {
-		signal(SIGALRM, handleQuit);
-		alarm(waitdelay);
+		snooze(waitdelay);
+		handleQuit();
 	}
 	return NULL;
 }
 
 static void parse_report_flags(int *srrFlags, const char *flags) {
 	char myflags[1024];
-	char *saveptr, *token;
+	char *token;
 
 	/* make a local copy of flags */
 	strncpy(myflags, flags, 1023);
 	myflags[1023] = '\0';
 
 	/* parse flags */
-	token = strtok_r(myflags, ",", &saveptr);
+	token = strtok(myflags, ",");
 	while(token != NULL) {
 		if (strcmp(token, "rcv") == 0)
 			(*srrFlags) |= BP_RECEIVED_RPT;
@@ -393,7 +397,7 @@ static void parse_report_flags(int *srrFlags, const char *flags) {
 		if (strcmp(token, "ctr") == 0)
 			custodySwitch = SourceCustodyRequired;
 
-		token = strtok_r(NULL, ",", &saveptr);
+		token = strtok(NULL, ",");
 	}
 }
 

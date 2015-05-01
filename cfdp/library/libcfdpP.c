@@ -183,6 +183,8 @@ int	checkFile(char *fileName)
 		return -1;
 	}
 
+	pthread_attr_destroy(&attr);
+
 	/*	At this point the child might already have finished
 	 *	looking for the file and terminated, in which case
 	 *	we want NOT to wait for a signal from it.		*/
@@ -2027,8 +2029,10 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 			char *fileName, int newFile)
 {
 	char	*wdname;
+	int	wdnameLen;
+	int	filenameLen;
 
-	if (*fileName == ION_PATH_DELIMITER)	/*	Absolute path.	*/
+	if (fullyQualified(fileName))
 	{
 		istrcpy(pathNameBuf, fileName, bufLen);
 	}
@@ -2039,20 +2043,18 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		 *	is not absolute.				*/
 
 		wdname = getIonWorkingDirectory();
-		if (*wdname == ION_PATH_DELIMITER)
+		istrcpy(pathNameBuf, wdname, bufLen);
+		wdnameLen = strlen(pathNameBuf);
+		filenameLen = strlen(fileName);
+		if ((wdnameLen + 1 + filenameLen + 1) > bufLen)
 		{
-			/*	The cwd path name starts with the path
-			 *	delimiter, so it's a POSIX file system,
-			 *	so stringBuf is *not* an absolute path
-			 *	name, so compute absolute path name.	*/
-
-			isprintf(pathNameBuf, bufLen, "%.255s%c%.255s",
-					wdname, ION_PATH_DELIMITER, fileName);
+			*pathNameBuf = '\0';
+			return;
 		}
-		else	/*	Assume file name is an absolute path.	*/
-		{
-			istrcpy(pathNameBuf, fileName, bufLen);
-		}
+ 
+		*(pathNameBuf + wdnameLen) = ION_PATH_DELIMITER;
+		wdnameLen++;	/*	wdnamelen including delimiter	*/
+		istrcpy(pathNameBuf + wdnameLen, fileName, bufLen - wdnameLen);
 	}
 
 	if (!newFile)
@@ -2156,24 +2158,44 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 #endif
 }
 
+static int	relocateFile(char *fromPath, char *toPath)
+{
+	icopy(fromPath, toPath);
+	if (checkFile(toPath) != 1)	/*	Copy failed.		*/
+	{
+		return -1;
+	}
+
+	unlink(fromPath);
+	return 0;
+}
+
 static void	renameWorkingFile(InFdu *fduBuf)
 {
 	Sdr	sdr = getIonsdr();
 	char	workingFileName[256];
 	char	destFileName[256];
-	char	qualifiedFileName[MAXPATHLEN + 2];
+	char	qualifiedFileName[MAXPATHLEN + 1];
 	char	renameErrBuffer[600];
 
 	sdr_string_read(sdr, workingFileName, fduBuf->workingFileName);
 	sdr_string_read(sdr, destFileName, fduBuf->destFileName);
 	getQualifiedFileName(qualifiedFileName, sizeof qualifiedFileName,
 			destFileName, 1);
+	if (strcmp(qualifiedFileName, destFileName) == 0)
+	{
+		return;		/*	Nothing to do.			*/
+	}
+
 	if (rename(workingFileName, qualifiedFileName) < 0)
 	{
-		isprintf(renameErrBuffer, sizeof renameErrBuffer,
-				"CFDP can't rename '%s' to '%s'",
-				workingFileName, qualifiedFileName);
-		putSysErrmsg(renameErrBuffer, NULL);
+		if (relocateFile(workingFileName, qualifiedFileName) < 0)
+		{
+			isprintf(renameErrBuffer, sizeof renameErrBuffer,
+					"CFDP can't relocate '%s' to '%s'",
+					workingFileName, qualifiedFileName);
+			putSysErrmsg(renameErrBuffer, NULL);
+		}
 	}
 }
 
@@ -3588,7 +3610,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Object		nextElt = 0;
 	unsigned int	bytesToSkip;
 	char		stringBuf[256];
-	char		workingNameBuffer[MAXPATHLEN + 2];
+	char		workingNameBuffer[MAXPATHLEN + 1];
 	off_t		endOfFile;
 	unsigned int	fileLength;
 	Object		nextAddr;

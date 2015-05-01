@@ -13,11 +13,13 @@
 
 int 	tcpDesiredKeepAlivePeriod = 0;
 
+/*	*	*	Sender functions	*	*	*	*/
+
 typedef struct
 {
-	struct sockaddr	socketName;
-	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	char		ductName[MAX_CL_DUCT_NAME_LEN];
+	int	ductSocket;
+	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char	ductName[MAX_CL_DUCT_NAME_LEN + 1];
 } TcpOutductId;
 
 static void	deleteOutductId(LystElt elt, void *userdata)
@@ -25,15 +27,23 @@ static void	deleteOutductId(LystElt elt, void *userdata)
 	MRELEASE(lyst_data(elt));
 }
 
-int	_tcpOutductId(struct sockaddr *socketName, char *protocolName,
-		char *ductName)
+static int	_tcpOutductId(char *protocolName, char *ductName,
+			int ductSocket)
 {
 	static Lyst	tcpOutductIds = NULL;
 	LystElt		elt;
 	TcpOutductId	*id = NULL;
-	int		idNotFound = 1;
+	int		foundIt = 0;
 
-	CHKERR(socketName);
+	/*	To add new outduct ID, provide protocol name, duct
+	 *	name, and socket number.  To query protocol name
+	 *	and duct name for a given socket, provide socket
+	 *	number and provide zero-length string buffers for
+	 *	protocol name and duct name.  To delete an outduct
+	 *	ID, provide socket number and provide NULL pointers
+	 *	for protocol name and duct name.			*/
+
+	CHKZERO(ductSocket > -1);
 	if (tcpOutductIds == NULL)
 	{
 		tcpOutductIds = lyst_create_using(getIonMemoryMgr());
@@ -44,25 +54,22 @@ int	_tcpOutductId(struct sockaddr *socketName, char *protocolName,
 	for (elt = lyst_first(tcpOutductIds); elt; elt = lyst_next(elt))
 	{
 		id = (TcpOutductId *) lyst_data(elt);
-		idNotFound = memcmp(&(id->socketName), socketName,
-				sizeof(struct sockaddr));
-		if (idNotFound < 0)
+		if (id->ductSocket < ductSocket)
 		{
 			continue;
 		}
 
-		/*	The result of memcmp is either 0, indicating
-		 *	matching TcpOutductId was found (that is,
-		 *	idNotFound is false), or greater than 0
-		 *	indicating that no matching TcpOutductId was
-		 *	found (that is, idNotFound is true).		*/
+		if (id->ductSocket == ductSocket)
+		{
+			foundIt = 1;
+		}
 
 		break;
 	}
 
 	if (protocolName == NULL)	/*	Deleting outduct ID.	*/
 	{
-		if (!idNotFound)	/*	Found it.		*/
+		if (foundIt)
 		{
 			lyst_delete(elt);
 		}
@@ -72,7 +79,7 @@ int	_tcpOutductId(struct sockaddr *socketName, char *protocolName,
 
 	if (*protocolName == 0)		/*	Retrieving outduct ID.	*/
 	{
-		if (!idNotFound)	/*	Found it.		*/
+		if (foundIt)
 		{
 			istrcpy(protocolName, id->protocolName,
 					MAX_CL_PROTOCOL_NAME_LEN);
@@ -84,18 +91,18 @@ int	_tcpOutductId(struct sockaddr *socketName, char *protocolName,
 
 	/*	Recording new TCP Outduct ID.				*/
 
-	if (!idNotFound)
+	if (foundIt)
 	{
-		putErrmsg("[?] Socket address is already in TcpOutductSocket \
-list.", ductName);
-		return -1;
+		writeMemoNote("[?] Socket is already in TcpOutductSocket list",
+				ductName);
+		return 0;
 	}
 
 	id = (TcpOutductId *) MTAKE(sizeof(TcpOutductId));
 	CHKERR(id);
-	memcpy(&(id->socketName), socketName, sizeof(struct sockaddr));
 	istrcpy(id->protocolName, protocolName, MAX_CL_PROTOCOL_NAME_LEN);
 	istrcpy(id->ductName, ductName, MAX_CL_DUCT_NAME_LEN);
+	id->ductSocket = ductSocket;
 	if (elt)
 	{
 		elt = lyst_insert_before(elt, id);
@@ -109,8 +116,6 @@ list.", ductName);
 	return 0;
 }
 
-/*	*	*	Sender functions	*	*	*	*/
-
 #ifndef mingw
 void	handleConnectionLoss()
 {
@@ -118,20 +123,52 @@ void	handleConnectionLoss()
 }
 #endif
 
-int	connectToCLI(struct sockaddr *sn, int *sock)
+static int	connectToCLI(char *protocolName, char *ductName, int *sock)
 {
-	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	char	ductName[MAX_CL_DUCT_NAME_LEN];
+	char			*hostName;
+	unsigned short		portNbr;
+	unsigned int		hostNbr;
+	struct sockaddr		socketName;
+	struct sockaddr_in	*inetName;
+	char			dottedString[16];
+	char			socketSpec[32];
 
-	*sock = -1;
-	if (sn == NULL)
+	if (*protocolName == '\0')
 	{
 		/*	E.g., brsscla called sendBundleByTCP but
 		 *	the socket was closed.				*/
 
-		return -1;	/*	Silently give up on connection.	*/
+		return 0;	/*	Silently give up on connection.	*/
 	}
 
+	*sock = -1;		/*	Default value.			*/
+
+	/*	Construct socket name.  Note that parseSocketSpec()
+	 *	will NULL-terminate the host name.			*/
+
+	hostName = ductName;
+	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	if (hostNbr == 0)
+	{
+		putErrmsg("Can't get IP address for host.", hostName);
+		return 0;
+	}
+
+	if (portNbr == 0)
+	{
+		portNbr = BpTcpDefaultPortNbr;
+	}
+
+	printDottedString(hostNbr, dottedString);
+	isprintf(socketSpec, sizeof socketSpec, "%s:%hu", dottedString,
+			portNbr);
+	hostNbr = htonl(hostNbr);
+	portNbr = htons(portNbr);
+	memset((char *) &socketName, 0, sizeof socketName);
+	inetName = (struct sockaddr_in *) &socketName;
+	inetName->sin_family = AF_INET;
+	inetName->sin_port = portNbr;
+	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
 	*sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (*sock < 0)
 	{
@@ -139,42 +176,78 @@ int	connectToCLI(struct sockaddr *sn, int *sock)
 		return -1;
 	}
 
-	if (connect(*sock, sn, sizeof(struct sockaddr)) < 0)
+	if (connect(*sock, &socketName, sizeof(struct sockaddr)) < 0)
 	{
-		struct sockaddr_in	*sockn;
-		unsigned int		hostNbr;
-		unsigned short		portNbr;
-		char			dottedString[16];
-		char			socketSpec[32];
-
+		putSysErrmsg("CLO can't connect to TCP socket", socketSpec);
 		closesocket(*sock);
 		*sock = -1;
-		sockn = (struct sockaddr_in *) sn;
-		hostNbr = ntohl(sockn->sin_addr.s_addr);
-		portNbr = ntohs(sockn->sin_port);
-		printDottedString(hostNbr, dottedString);
-		isprintf(socketSpec, sizeof socketSpec, "%s:%hu",
-				dottedString, portNbr);
-		putSysErrmsg("CLO can't connect to TCP socket", socketSpec);
+		return 0;
+	}
+	else
+	{
+		writeMemoNote("[i] connected to TCP socket", socketSpec);
+	}
+
+	if (_tcpOutductId(protocolName, ductName, *sock) < 0)
+	{
+		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
 		return -1;
 	}
 
-	protocolName[0] = '\0';
-	oK(_tcpOutductId(sn, protocolName, ductName));
-	if (protocolName[0] != '\0')
+	/*	Unblock duct if possible.  N/A for BRS.			*/
+
+	if (strncmp(protocolName, "brs", 3) != 0)
 	{
 		if (bpUnblockOutduct(protocolName, ductName) < 0)
 		{
 			putErrmsg("CLO connected but didn't unblock outduct.",
-				       	NULL);
+					NULL);
+			return -1;
 		}
 	}
 
-	return 0;
+	return 1;	/*	CLO connected to remote CLI.		*/
 }
 
-int	sendBytesByTCP(int *bundleSocket, char *from, int length,
-		struct sockaddr *sn)
+int	openOutductSocket(char *protocolName, char *ductName, int *sock)
+{
+	CHKERR(protocolName);
+	CHKERR(ductName);
+	CHKERR(sock);
+	return connectToCLI(protocolName, ductName, sock);
+}
+
+void	closeOutductSocket(int *ductSocket)
+{
+	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char	ductName[MAX_CL_DUCT_NAME_LEN];
+
+	CHKVOID(ductSocket);
+	if (*ductSocket != -1)
+	{
+		/*	Block the corresponding outduct if possible.	*/
+
+		protocolName[0] = '\0';
+		oK(_tcpOutductId(protocolName, ductName, *ductSocket));
+		if (protocolName[0] != '\0'
+		&& strncmp(protocolName, "brs", 3) != 0)
+		{
+			if (bpBlockOutduct(protocolName, ductName) < 0)
+			{
+				writeMemoNote("[?] Failed blocking outduct",
+						ductName);
+			}
+		}
+
+		/*	Now forget the outduct ID and close the socket.	*/
+
+		oK(_tcpOutductId(NULL, NULL, *ductSocket));
+		closesocket(*ductSocket);
+		*ductSocket = -1;
+	}
+}
+
+int	sendBytesByTCP(int *bundleSocket, char *from, int length)
 {
 	int	bytesWritten;
 
@@ -193,8 +266,7 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 			case ETIMEDOUT:
 			case ECONNRESET:
 			case EHOSTUNREACH:
-				closesocket(*bundleSocket);
-				*bundleSocket = -1;
+				closeOutductSocket(bundleSocket);
 				bytesWritten = 0;
 			}
 
@@ -206,8 +278,8 @@ int	sendBytesByTCP(int *bundleSocket, char *from, int length,
 }
 
 static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
-			Object bundleZco, unsigned char *buffer, unsigned int
-			tcpclSegmentHeaderLength, struct sockaddr *sn)
+			Object bundleZco, unsigned char *buffer,
+			unsigned int tcpclSegmentHeaderLength)
 {
 	Sdr		sdr = getIonsdr();
 	int		totalBytesSent = 0;
@@ -235,7 +307,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 				(char *) buffer + bytesBuffered);
 		if (sdr_end_xn(sdr) < 0 || bytesLoaded != bytesToLoad)
 		{
-			putErrmsg("ZCO length error.", NULL);
+			putErrmsg("Incomplete zco_transmit.", NULL);
 			return -1;
 		}
 
@@ -245,7 +317,7 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 		while (bytesToSend > 0)
 		{
 			bytesSent = sendBytesByTCP(bundleSocket, from,
-					bytesToSend, sn);
+					bytesToSend);
 			if (bytesSent < 0)
 			{
 				/*	Big problem; shut down.		*/
@@ -277,26 +349,11 @@ static int	sendZcoByTCP(int *bundleSocket, unsigned int bundleLength,
 	return totalBytesSent;
 }
 
-static int	handleTcpFailure(struct sockaddr *sn, Object bundleZco)
+static int	handleTcpFailure(Object bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	char	ductName[MAX_CL_DUCT_NAME_LEN];
 
-	/*	First mark the outduct as blocked, if possible.		*/
-
-	protocolName[0] = '\0';
-	oK(_tcpOutductId(sn, protocolName, ductName));
-	if (protocolName[0] != '\0')
-	{
-		if (bpBlockOutduct(protocolName, ductName) < 0)
-		{
-			putErrmsg("Can't block outduct.", NULL);
-			return -1;
-		}
-	}
-
-	/*	Now make sure the bundle isn't dropped on the floor.	*/
+	/*	Make sure the bundle isn't dropped on the floor.	*/
 
 	if (bundleZco == 0)
 	{
@@ -311,6 +368,8 @@ static int	handleTcpFailure(struct sockaddr *sn, Object bundleZco)
 		return -1;
 	}
 
+	/*	Destroy bundle, unless there's stewardship or custody.	*/
+
 	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
@@ -322,9 +381,11 @@ static int	handleTcpFailure(struct sockaddr *sn, Object bundleZco)
 	return 0;
 }
 
-int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
-		unsigned int bundleLength, Object bundleZco,
-		unsigned char *buffer)
+/*	*	*	Send bundle over STCP.	*	*	*	*/
+
+int	sendBundleByTCP(char *protocolName, char *ductName,
+		int *bundleSocket, unsigned int bundleLength,
+		Object bundleZco, unsigned char *buffer)
 {
 	unsigned int	preamble;
 	int		bytesToSend;
@@ -337,11 +398,19 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 
 	if (*bundleSocket < 0)
 	{
-		if (connectToCLI(socketName, bundleSocket) < 0)
+		switch (connectToCLI(protocolName, ductName, bundleSocket))
 		{
+		case -1:
+			putErrmsg("TCP connection failure.", ductName);
+			return -1;
+
+		case 0:
 			/*	Treat I/O error as a transient anomaly.	*/
 
-			return handleTcpFailure(socketName, bundleZco);
+			return handleTcpFailure(bundleZco);
+
+		default:
+			break;	/*	Successful connection.		*/
 		}
 	}
 
@@ -352,8 +421,7 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 	from = (char *) &preamble;
 	while (bytesToSend > 0)
 	{
-		bytesSent = sendBytesByTCP(bundleSocket, from, bytesToSend,
-				socketName);
+		bytesSent = sendBytesByTCP(bundleSocket, from, bytesToSend);
 		if (bytesSent < 0)
 		{
 			/*	Big problem; shut down.			*/
@@ -362,14 +430,14 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 			return -1;
 		}
 
-		if (*bundleSocket == -1)
+		if (*bundleSocket < 0)
 		{
 			/*	Just lost connection; treat as a
 			 *	transient anomaly, note incomplete
 			 *	transmission.				*/
 
 			writeMemo("[?] Lost connection to CLI.");
-			return handleTcpFailure(socketName, bundleZco);
+			return handleTcpFailure(bundleZco);
 		}
 
 		from += bytesSent;
@@ -383,21 +451,20 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 
 	/*	Send the bundle itself.					*/
 
-	result = sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer, 0,
-			socketName);
+	result = sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer, 0);
 	if (result < 0)		/*	Big problem; shut down.		*/
 	{
 		putErrmsg("Failed to send by TCP.", NULL);
 		return -1;
 	}
 
-	if (*bundleSocket == -1)
+	if (*bundleSocket < 0)
 	{
 		/*	Just lost connection; treat as a transient
 		 *	anomaly, note incomplete transmission.		*/
 
 		writeMemo("[?] Lost connection to CLI.");
-		return handleTcpFailure(socketName, bundleZco);
+		return handleTcpFailure(bundleZco);
 	}
 
 	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
@@ -405,6 +472,8 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 		putErrmsg("Can't handle xmit success.", NULL);
 		result = -1;
 	}
+
+	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
 	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
@@ -419,66 +488,64 @@ int	sendBundleByTCP(struct sockaddr *socketName, int *bundleSocket,
 
 /* 	*	*	Send Bundle over TCP Convergence Layer	*	*/
 
-int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
-		unsigned int bundleLength, Object bundleZco,
-		unsigned char *buffer, int *keepalivePeriod)
+int	sendBundleByTCPCL(char *protocolName, char *ductName,
+		int *bundleSocket, unsigned int bundleLength,
+		Object bundleZco, unsigned char *buffer, int *keepalivePeriod)
 {
-	int		bytesToSend;
-	int		bytesSent;
-	uvast		val = bundleLength;
-	Sdnv 		lengthField;
-	int		tempBundleSocket;
-	Sdr		sdr = getIonsdr();
-	int		result;
+	int	bytesToSend;
+	int	bytesSent;
+	uvast	val = bundleLength;
+	Sdnv 	lengthField;
+	int	tempBundleSocket;
+	Sdr	sdr = getIonsdr();
+	int	result;
 
 	/*	Connect to CLI as necessary.				*/
 
 	if (*bundleSocket < 0)
 	{
-		if (connectToCLI(socketName, &tempBundleSocket) < 0)
+		switch (connectToCLI(protocolName, ductName, &tempBundleSocket))
 		{
+		case -1:
+			putErrmsg("TCP connection failure.", ductName);
+			return -1;
+
+		case 0:
 			/*	Treat I/O error as a transient anomaly.	*/
 			if(*keepalivePeriod==0){
 				*keepalivePeriod=KEEPALIVE_PERIOD;
 			}
-			return handleTcpFailure(socketName, bundleZco);
+
+			return handleTcpFailure(bundleZco);
+
+		default:
+			break;
 		}
-		else
+
+		if (sendContactHeader(&tempBundleSocket, buffer) < 0)
 		{
-			if (sendContactHeader(&tempBundleSocket, buffer,
-					socketName) < 0)
-			{
-				closesocket(tempBundleSocket);
-				tempBundleSocket = -1;
-				putErrmsg("Could not send Contact Header.",
-						NULL);			
-				return handleTcpFailure(socketName, bundleZco);
-			}
-
-			if (receiveContactHeader(&tempBundleSocket, buffer,
-					keepalivePeriod) < 0)
-			{
-				closesocket(tempBundleSocket);
-				tempBundleSocket = -1;
-				putErrmsg("Could not receive Contact Header.",
-						NULL);
-				return handleTcpFailure(socketName, bundleZco);
-			}
-
-			/*	The bundle socket is only set to to a
-			 *	positive value after the connection is
-			 *	up.  Until then, the tempBundleSocket
-			 *	is used.				*/  
-
-			*bundleSocket = tempBundleSocket;
+			putErrmsg("Could not send Contact Header.", NULL);
+			return handleTcpFailure(bundleZco);
 		}
+
+		if (receiveContactHeader(&tempBundleSocket, buffer,
+				keepalivePeriod) < 0)
+		{
+			putErrmsg("Could not receive Contact Header.", NULL);
+			return handleTcpFailure(bundleZco);
+		}
+
+		/*	The bundle socket is only set to a positivex
+		 *	value after the connection is up.  Until then,
+		 *	the tempBundleSocket is used.			*/  
+
+		*bundleSocket = tempBundleSocket;
 	}
 
 	if (bundleLength == 0)		/*	Just a keep-alive.	*/
 	{
 		buffer[0] = TCPCLA_TYPE_KEEP_AL << 4;
-		bytesSent = sendBytesByTCP(bundleSocket,(char*) buffer, 1,
-				socketName);
+		bytesSent = sendBytesByTCP(bundleSocket,(char*) buffer, 1);
 		if(bytesSent < 0)
 		{
 			putErrmsg("Failed to send by TCP.", NULL);
@@ -489,7 +556,7 @@ int	sendBundleByTCPCL(struct sockaddr *socketName, int *bundleSocket,
 		{
 			writeMemo("[?] Lost connection to CLI; keep-alive \
 not sent.");
-			return handleTcpFailure(socketName, bundleZco);
+			return handleTcpFailure(bundleZco);
 		}
 			
 		return 1;	/*	Impossible length; means "OK".	*/
@@ -511,7 +578,7 @@ not sent.");
 	/*	Send the bundle itself.					*/
 
 	result = sendZcoByTCP(bundleSocket, bundleLength, bundleZco, buffer,
-			bytesToSend, socketName);
+			bytesToSend);
 	if(result < 0)
 	{
 		putErrmsg("Failed to send by TCP.", NULL);
@@ -521,7 +588,7 @@ not sent.");
 	if(*bundleSocket == -1)
 	{
 		writeMemo("[?] Lost connection to CLI; bundle not sent.");
-		return handleTcpFailure(socketName, bundleZco);
+		return handleTcpFailure(bundleZco);
 	}
 
 	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
@@ -570,6 +637,8 @@ int	receiveBytesByTCP(int bundleSocket, char *into, int length)
 		return bytesRead;
 	}
 }
+
+/*	*	*	Receive bundle over STCP.	*	*	*/
 
 int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer,
 		ReqAttendant *attendant)
@@ -643,6 +712,8 @@ int	receiveBundleByTcp(int bundleSocket, AcqWorkArea *work, char *buffer,
 
 	return bundleLength;
 }
+
+/*	*	*	Receive bundle over TCP convergence layer.	*/
 
 int	receiveBundleByTcpCL(int bundleSocket, AcqWorkArea *work, char *buffer)
 {
@@ -788,8 +859,7 @@ int receiveSegmentByTcpCL(int bundleSocket,AcqWorkArea *work,char *buffer,uvast 
 
 
 /*	*	* Creates and sends the contact header	*	*	*/
-int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
-		struct sockaddr *socketName)
+int	sendContactHeader(int *bundleSocket, unsigned char *buffer)
 {
 	int bytesToSend = 0;
 	int bytesSent;
@@ -839,7 +909,7 @@ int	sendContactHeader(int *bundleSocket, unsigned char *buffer,
 	while(bytesToSend > 0)
 	{
 		bytesSent = sendBytesByTCP(bundleSocket, (char*) buffer,
-				bytesToSend, socketName);
+				bytesToSend);
 		if(bytesSent < 0)
 		{
 			/*	Big problem; shut down.			*/
@@ -998,8 +1068,7 @@ void findVInduct(VInduct ** vduct,char *protocolName)
 }
 
 /*	*	* Sends shut down message	*	*	*	*/
-int	sendShutDownMessage(int *bundleSocket, int reason, int delay,
-		struct sockaddr *socketName)
+int	sendShutDownMessage(int *bundleSocket, int reason, int delay)
 {
 	int 		bytesToSend = 0;
 	int 		bytesSent;
@@ -1050,7 +1119,7 @@ int	sendShutDownMessage(int *bundleSocket, int reason, int delay,
 	while(bytesToSend > 0)
 	{
 		bytesSent = sendBytesByTCP(bundleSocket, (char*) buffer,
-				bytesToSend, socketName);
+				bytesToSend);
 		if(bytesSent < 0)
 		{
 			/*	Big problem; shut down.			*/
@@ -1070,5 +1139,3 @@ Shutdown message", NULL);
 	}
 	return 0;
 }
-	
-

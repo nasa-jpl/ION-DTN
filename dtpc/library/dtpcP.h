@@ -190,8 +190,9 @@ extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
 extern int		raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb);
 extern int		raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb,
 				unsigned int topicID);
-extern int		initOutAdu(Object outAggrAddr, Object outAggrElt,
-				Object *outAduObj, Object *outAduElt);
+extern int		initOutAdu(Profile *profile, Object outAggrAddr,
+				Object outAggrElt, Object *outAduObj,
+				Object *outAduElt);
 extern int		insertRecord (DtpcSAP sap, char *dstEid,
 				unsigned int profileID, unsigned int topicID,
 				Object adu, int length);
@@ -210,11 +211,11 @@ extern int		removeProfile(unsigned int profileID);
 extern Object		getDtpcDbObject();
 extern DtpcDB		*getDtpcConstants();
 extern DtpcVdb		*getDtpcVdb();
-extern int		handleInAdu(Sdr sdr, BpDelivery *dlv,
+extern int		handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv,
 				unsigned int profNum, Scalar seqNum);
 extern int		handleAck(Sdr sdr, BpDelivery *dlv,
 				unsigned int profNum, Scalar seqNum);
-extern void		deleteGap(Sdr sdr, Object aduElt);
+extern void		deletePlaceholder(Sdr sdr, Object aduElt);
 extern int		parseInAdus(Sdr sdr);
 extern int		sendAck(BpSAP sap, unsigned int profileID,
 				Scalar seqNum, BpDelivery *dlv);
