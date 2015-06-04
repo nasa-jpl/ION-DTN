@@ -19,12 +19,14 @@
 
 #include "bpP.h"
 #include "bei.h"
+#include "ipnfw.h"
 #include "sdrhash.h"
 #include "smrbt.h"
 
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
+#define	ION_DEFAULT_XMIT_RATE	125000000
 
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
 
@@ -944,17 +946,6 @@ static void	waitForScheme(VScheme *vscheme)
 
 static void	resetInduct(VInduct *vduct)
 {
-	if (vduct->acqThrottle.semaphore == SM_SEM_NONE)
-	{
-		vduct->acqThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-	}
-	else
-	{
-		sm_SemUnend(vduct->acqThrottle.semaphore);
-	}
-
-	sm_SemTake(vduct->acqThrottle.semaphore);	/*	Lock.	*/
 	vduct->cliPid = ERROR;
 }
 
@@ -998,7 +989,6 @@ static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
 	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
-	vduct->acqThrottle.semaphore = SM_SEM_NONE;
 	resetInduct(vduct);
 	return 0;
 }
@@ -1009,11 +999,6 @@ static void	dropInduct(VInduct *vduct, PsmAddress vductElt)
 	PsmAddress	vductAddr;
 
 	vductAddr = sm_list_data(bpwm, vductElt);
-	if (vduct->acqThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemDelete(vduct->acqThrottle.semaphore);
-	}
-
 	oK(sm_list_delete(bpwm, vductElt, NULL, NULL));
 	psm_free(bpwm, vductAddr);
 }
@@ -1042,11 +1027,6 @@ static void	stopInduct(VInduct *vduct)
 	{
 		sm_TaskKill(vduct->cliPid, SIGTERM);
 	}
-
-	if (vduct->acqThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(vduct->acqThrottle.semaphore);
-	}
 }
 
 static void	waitForInduct(VInduct *vduct)
@@ -1072,17 +1052,6 @@ static void	resetOutduct(VOutduct *vduct)
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
-	if (vduct->xmitThrottle.semaphore == SM_SEM_NONE)
-	{
-		vduct->xmitThrottle.semaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-	}
-	else
-	{
-		sm_SemUnend(vduct->xmitThrottle.semaphore);
-	}
-
-	sm_SemTake(vduct->xmitThrottle.semaphore);	/*	Lock.	*/
 	vduct->cloPid = ERROR;
 }
 
@@ -1127,7 +1096,8 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->semaphore = SM_SEM_NONE;
-	vduct->xmitThrottle.semaphore = SM_SEM_NONE;
+	vduct->xmitThrottle.nominalRate = protocol.nominalRate;
+	vduct->xmitThrottle.capacity = 0;
 	resetOutduct(vduct);
 	return 0;
 }
@@ -1141,11 +1111,6 @@ static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
 	if (vduct->semaphore != SM_SEM_NONE)
 	{
 		sm_SemDelete(vduct->semaphore);
-	}
-
-	if (vduct->xmitThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemDelete(vduct->xmitThrottle.semaphore);
 	}
 
 	oK(sm_list_delete(bpwm, vductElt, NULL, NULL));
@@ -1175,11 +1140,6 @@ static void	stopOutduct(VOutduct *vduct)
 	if (vduct->semaphore != SM_SEM_NONE)	/*	Stop CLO.	*/
 	{
 		sm_SemEnd(vduct->semaphore);
-	}
-
-	if (vduct->xmitThrottle.semaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(vduct->xmitThrottle.semaphore);
 	}
 }
 
@@ -1922,49 +1882,64 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
+static Throttle	*applicableThrottle(VOutduct *vduct)
+{
+	IonNeighbor	*neighbor;
+	PsmAddress	nextElt;
+
+	if (vduct->neighborNodeNbr == 0)	/*	Promiscuous.	*/
+	{
+		return &(vduct->xmitThrottle);
+	}
+
+	neighbor = findNeighbor(getIonVdb(), vduct->neighborNodeNbr, &nextElt);
+	if (neighbor == NULL)	/*	Neighbor isn't in contact plan.	*/
+	{
+		return &(vduct->xmitThrottle);
+	}
+
+	return &(neighbor->xmitThrottle);
+}
+
 void	computePriorClaims(ClProtocol *protocol, Outduct *duct, Bundle *bundle,
 		Scalar *priorClaims, Scalar *totalBacklog)
 {
 	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-	vast		committed;
+	Throttle	*throttle;
+	vast		committed = 0;
 #ifdef ION_BANDWIDTH_RESERVED
 	Scalar		limit;
 	Scalar		increment;
 #endif
 	int		i;
 
-	/*	If the outduct for the directive enabling the route
-	 *	under consideration is currently active and throttled,
-	 *	prior claims on the first contact along this route
+	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
+	CHKVOID(vductElt);
+	throttle = applicableThrottle(vduct);
+
+	/*	Prior claims on the first contact along this route
 	 *	must include however much transmission the outduct
 	 *	itself has already committed to (as per bpDequeue)
 	 *	during the current second of operation, pending
 	 *	capacity replenishment through the rate control
 	 *	mechanism implemented by bpclock.  That commitment
-	 *	is given by the the duct's nominal xmit rate minus
-	 *	its current "capacity" (which may be negative).		*/
+	 *	is given by the applicable throttle's xmit rate
+	 *	(multiplied by 1 second) minus its current "capacity"
+	 *	(which may be negative).
+	 *
+	 *	If the applicable throttle is not rate-controlled,
+	 *	the commitment volume can't be computed.		*/
 
-	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
-	CHKVOID(vductElt);
-	if (vduct->xmitThrottle.nominalRate > 0)
+	if (throttle->nominalRate > 0)
 	{
-		/*	Outduct is active and throttled.		*/
-
-		committed = vduct->xmitThrottle.nominalRate
-				- vduct->xmitThrottle.capacity;
-
-		/*	Since bpclock never increases capacity to
-		 *	a value in excess of the nominalRate,
-		 *	committed can never be negative.		*/
-
-		CHKVOID(committed >= 0);
+		committed = throttle->nominalRate - throttle->capacity;
 	}
-	else	/*	No capacity mgt, so can't compute commitment.	*/
-	{
-		committed = 0;
-	}
+
+	/*	Since bpclock never increases capacity to a value
+	 *	in excess of the nominalRate, committed can never
+	 *	be negative.						*/
 
 	loadScalar(totalBacklog, committed);
 	addToScalar(totalBacklog, &(duct->urgentBacklog));
@@ -3598,10 +3573,13 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
 	clpbuf.payloadBytesPerFrame = payloadPerFrame;
 	clpbuf.overheadPerFrame = ohdPerFrame;
-	if (nominalRate < 0)
+	if (nominalRate == 0)
 	{
-		nominalRate = -1;	/*	Disables rate control.	*/
+		nominalRate = ION_DEFAULT_XMIT_RATE;
 	}
+
+	/*	Note: protocol's nominal transmission rate may be -1
+	 *	indicating "no rate control".				*/
 
 	clpbuf.nominalRate = nominalRate;
 	if (protocolClass == 1 || strcmp(protocolName, "bssp") == 0)
@@ -4065,6 +4043,59 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 	}
 
 	*vductElt = elt;
+}
+
+int	maxPayloadLengthKnown(VOutduct *vduct, unsigned int *maxPayloadLength)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	secRemaining;
+	unsigned int	xmitRate;
+
+	CHKERR(vduct);
+	CHKERR(maxPayloadLength);
+	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
+	if (vduct->neighborNodeNbr)	/*	Known neighbor node.	*/
+	{
+		/*	If neighbor node number is known, we may be
+		 *	able to limit bundle size to the remaining
+		 *	contact capacity.  But we can only do this
+		 *	if the contact plan contains contacts for
+		 *	transmission to this node.			*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		rfx_contact_state(vduct->neighborNodeNbr, &secRemaining,
+				&xmitRate);
+		sdr_exit_xn(sdr);
+		if (secRemaining == 0)	/*	No current contact.	*/
+		{
+			if (xmitRate == 0)
+			{
+				/*	No capacity right now. Try
+				 *	again later.			*/
+
+				return 0;	/*	Still unknown.	*/
+			}
+
+			/*	Otherwise the returned xmit rate is
+			 *	(unsigned int) -1, i.e., unlimited.
+			 *	This means the contact plan contains
+			 *	no contacts for transmission to the
+			 *	neighbor node.  So max payload length
+			 *	is now known to be unlimited.		*/
+		}
+		else	/*	Currently in contact.			*/
+		{
+			*maxPayloadLength = xmitRate * secRemaining;
+		}
+	}
+
+	/*	If neighbor node number for duct is unknown, then
+	 *	there's no basis for limiting payload length.
+	 *
+	 *	So at this point the maxPayloadLength is now known,
+	 *	one way or another.					*/
+
+	return 1;
 }
 
 int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
@@ -6894,56 +6925,6 @@ int	computeECCC(int bundleSize, ClProtocol *protocol)
 	return bundleSize + (protocol->overheadPerFrame * framesNeeded);
 }
 
-static int	applyRecvRateControl(AcqWorkArea *work)
-{
-	Sdr		bpSdr = getIonsdr();
-	Bundle		*bundle = &(work->bundle);
-			OBJ_POINTER(Induct, induct);
-			OBJ_POINTER(ClProtocol, protocol);
-	Throttle	*throttle;
-	int		recvLength;
-
-	CHKERR(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
-	GET_OBJ_POINTER(bpSdr, Induct, induct, sdr_list_data(bpSdr,
-			work->vduct->inductElt));
-	throttle = &(work->vduct->acqThrottle);
-	if (throttle->nominalRate < 0)	/*	No rate control.	*/
-	{
-		sdr_exit_xn(bpSdr);
-		return 0;
-	}
-
-	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, induct->protocol);
-	recvLength = computeECCC(bundle->payload.length
-			+ NOMINAL_PRIMARY_BLKSIZE, protocol);
-	while (throttle->capacity <= 0)
-	{
-		sdr_exit_xn(bpSdr);
-		if (sm_SemTake(throttle->semaphore) < 0)
-		{
-			putErrmsg("CLI can't take throttle semaphore.", NULL);
-			return -1;
-		}
-
-		if (sm_SemEnded(throttle->semaphore))
-		{
-			putErrmsg("Induct has been stopped.", NULL);
-			return -1;
-		}
-
-		CHKERR(sdr_begin_xn(bpSdr));
-	}
-
-	throttle->capacity -= recvLength;
-	if (throttle->capacity > 0)
-	{
-		sm_SemGive(throttle->semaphore);
-	}
-
-	sdr_exit_xn(bpSdr);		/*	Release memory.		*/
-	return 0;
-}
-
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
 {
 	int	bytesRemaining = work->zcoLength - work->zcoBytesReceived;
@@ -8164,17 +8145,6 @@ int	bpEndAcq(AcqWorkArea *work)
 				putErrmsg("Bundle acquisition failed.", NULL);
 				return -1;
 			}
-		}
-
-		/*	Now apply reception rate control: delay
-	 	*	acquisition of the next bundle until we
-		*	have consumed as much time in receiving and
-		*	acquiring this one as we had said we would.	*/
-
-		if (applyRecvRateControl(work) < 0)
-		{
-			putErrmsg("Can't apply reception rate control.", NULL);
-			return -1;
 		}
 
 		/*	Finally, prepare to acquire next bundle.	*/
@@ -10410,6 +10380,8 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	int		stewardshipAccepted;
 	Object		outductObj;
 	Outduct		outduct;
+	Throttle	*throttle;
+	sm_SemId	ductSemaphore;
 			OBJ_POINTER(ClProtocol, protocol);
 	Object		bundleObj;
 	Bundle		bundle;
@@ -10435,27 +10407,24 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		stewardshipAccepted = 0;
 	}
 
+	ductSemaphore = vduct->semaphore;
+	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
+	sdr_read(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	throttle = applicableThrottle(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
 
-	/*	Transmission rate control: wait for capacity.  But
-	 *	no rate control if throttle nominal rate < 0.		*/
+	/*	Rate control: wait for capacity if necessary.		*/
 
-	if (vduct->xmitThrottle.nominalRate >= 0)
+	if (throttle->nominalRate > 0)	/*	Rate-controlled.	*/
 	{
-		while (vduct->xmitThrottle.capacity <= 0)
+		while (throttle->capacity <= 0)
 		{
 			sdr_exit_xn(bpSdr);
-			if (sm_SemTake(vduct->xmitThrottle.semaphore) < 0)
-			{
-				putErrmsg("CLO can't take throttle semaphore.",
-						NULL);
-				return -1;
-			}
-
-			if (sm_SemEnded(vduct->xmitThrottle.semaphore))
+			snooze(1);
+			if (sm_SemEnded(ductSemaphore))
 			{
 				writeMemo("[i] Outduct has been stopped.");
-
+	
 				/*	End task, but without error.	*/
 
 				return -1;
@@ -10465,8 +10434,6 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 		}
 	}
 
-	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
-	sdr_read(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, outduct.protocol);
 
 	/*	Get a transmittable bundle.				*/
@@ -10647,11 +10614,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	xmitLength = computeECCC(bundle.payload.length
 			+ NOMINAL_PRIMARY_BLKSIZE, protocol);
-	vduct->xmitThrottle.capacity -= xmitLength;
-	if (vduct->xmitThrottle.capacity > 0)
-	{
-		sm_SemGive(vduct->xmitThrottle.semaphore);
-	}
+	throttle->capacity -= xmitLength;
 
 	/*	Return the outbound buffer's extended class of service.	*/
 
@@ -11699,7 +11662,6 @@ static int	handleEncapsulatedBundle(BpDelivery *dlv)
 		return -1;
 	}
 
-	vduct->acqThrottle.nominalRate = -1;	/*	No rate control.*/
 	work = bpGetAcqArea(vduct);
 	if (work == NULL)
 	{

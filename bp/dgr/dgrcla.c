@@ -480,17 +480,6 @@ int	main(int argc, char *argv[])
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vinduct->acqThrottle.nominalRate = DEFAULT_DGR_RATE;
-		voutduct->xmitThrottle.nominalRate = DEFAULT_DGR_RATE;
-	}
-	else
-	{
-		vinduct->acqThrottle.nominalRate = protocol.nominalRate;
-		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
 	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
 	{
 		putErrmsg("Can't get IP/port for host.", ductName);

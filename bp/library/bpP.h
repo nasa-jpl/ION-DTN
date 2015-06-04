@@ -110,13 +110,6 @@ typedef struct
 
 typedef struct
 {
-	sm_SemId	semaphore;
-	int		nominalRate;	/*	In bytes per second.	*/
-	vast		capacity;	/*	Bytes, current second.	*/
-} Throttle;
-
-typedef struct
-{
 	Object		text;		/*	Not NULL-terminated.	*/
 	unsigned int	textLength;
 } BpString;
@@ -501,7 +494,6 @@ typedef struct
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cliPid;		/*	For stopping the CLI.	*/
-	Throttle	acqThrottle;	/*	For congestion control.	*/
 } VInduct;
 
 /*	*	*	Outduct structures	*	*	*	*/
@@ -548,6 +540,7 @@ typedef struct
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
+	uvast		neighborNodeNbr;/*	If non-promiscuous.	*/
 	sm_SemId	semaphore;	/*	For transmit notices.	*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } VOutduct;
@@ -956,11 +949,11 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	layer input adapter (induct).
 			 *
 			 *	bpDequeue first blocks until the
-			 *	capacity of the outduct's xmitThrottle
-			 *	is non-negative.  In this way BP imposes
-			 *	rate control on outbound traffic,
-			 *	limiting transmission rate to the
-			 *	nominal data rate of the outduct.
+			 *	capacity of the applicable throttle
+			 *	is non-negative.  In this way BP
+			 *	imposes rate control on outbound
+			 *	traffic, limiting transmission to
+			 *	the applicable nominal rate.
 			 *
 			 *	The function then selects the next
 			 *	outbound bundle from the set of outduct
@@ -1355,6 +1348,9 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
+extern int		maxPayloadLengthKnown(VOutduct *vduct,
+				unsigned int *maxPayloadLength);
+
 extern int		addOutduct(char *protocolName, char *name,
 				char *cloCmd, unsigned int maxPayloadLength);
 extern int		updateOutduct(char *protocolName, char *name,

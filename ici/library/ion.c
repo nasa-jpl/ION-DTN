@@ -797,6 +797,12 @@ static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
 	psm_free(partition, eltData);
 }
 
+static void	destroyNeighbor(PsmPartition partition, PsmAddress nodeData,
+		void *argument)
+{
+	psm_free(partition, nodeData);
+}
+
 static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 {
 	IonVdb		*vdb;
@@ -823,7 +829,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	 *	neighbors themselves can now be deleted.		*/
 
 	sm_rbt_destroy(wm, vdb->nodes, destroyIonNode, NULL);
-	sm_rbt_destroy(wm, vdb->neighbors, rfx_erase_data, NULL);
+	sm_rbt_destroy(wm, vdb->neighbors, destroyNeighbor, NULL);
 
 	/*	Safely shut down the ZCO flow control system.		*/
 

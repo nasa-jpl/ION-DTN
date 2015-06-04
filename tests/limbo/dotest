@@ -52,7 +52,6 @@ function getStatsCounter() {
 	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
 }
 
-
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -277,7 +276,7 @@ echo " -> $START_COUNT fwd bundles"
 
 # Send file from node 5 to verify route through node 2
 cd ../5.ipn.tcp
-echo "Sending sixth file from node 5 to node 2 to node 3 to verify 5 prefers that plan..."
+echo "Sending sixth file from node 5 via node 2 to node 3 to verify 5 prefers that plan..."
 bpsendfile ipn:5.1 ipn:3.1 testfile5a
 sleep 2
 
@@ -316,15 +315,16 @@ fi
 cd ../5.ipn.tcp
 NODE_5_TCPCLO_PID=`echo "i outduct stcp localhost:5001" | bpadmin | grep 'pid:' | sed 's/^.*pid: \([0-9]*\) .*$/\1/'`
 echo ""
-echo "Pausing node 5's stcpclo ($NODE_5_TCPCLO_PID), so it won't dequeue bundles"
+echo "Pausing node 5's stcpclo to node 2 ($NODE_5_TCPCLO_PID), so it won't dequeue bundles."
 kill -STOP $NODE_5_TCPCLO_PID
+echo "Node 5's stcpclo to node 2 has been paused."
 
 echo ""
 # Now break TCP connectivity to node 2.
-echo "Breaking STCP connection to node 2 to test re-routing..."
+echo "Shutting down node 2 to test re-routing..."
 cd ../2.ipn.tcp
 ./ionstop
-echo "Node 2 is stopped."
+echo "Node 2 has been shut down."
 
 # Send file from node 5 to node 3
 cd ../5.ipn.tcp
@@ -332,7 +332,8 @@ echo "Sending seventh file twice from node 5 to node 3 (should try to go through
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 
-echo "Resuming stcpclo..."
+sleep 5
+echo "Resuming node 5's stcpclo to node 2 (which no longer exists)..."
 kill -CONT $NODE_5_TCPCLO_PID
 sleep 30
 
