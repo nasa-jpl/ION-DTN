@@ -1,15 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  **
  ** File Name: adm.c
@@ -35,6 +23,9 @@
 #include "ion.h"
 #include "platform.h"
 
+#include "shared/primitives/def.h"
+#include "shared/primitives/lit.h"
+
 #include "shared/utils/nm_types.h"
 #include "shared/utils/utils.h"
 
@@ -45,10 +36,12 @@
 #include "shared/adm/adm_agent.h"
 
 Lyst gAdmData;
+Lyst gAdmComputed;
 Lyst gAdmCtrls;
 Lyst gAdmLiterals;
 Lyst gAdmOps;
-
+Lyst gAdmRpts;
+Lyst gAdmMacros; // Type def_gen_t
 
 /******************************************************************************
  *
@@ -56,9 +49,12 @@ Lyst gAdmOps;
  *
  * \par Registers a pre-configured ADM data definition with the local DTNMP actor.
  *
- * \param[in] name      Name of the ADM entry.
+ * \retval 0  Failure - The datadef was not added.
+ *         !0 Success - The datadef was added.
+ *
  * \param[in] mid_str   serialized MID value
  * \param[in] num_parms # parms needed for parameterized OIDs.
+ * \param[in] collect   The data collection function.
  * \param[in] to_string The to-string function
  * \param[in] get_size  The sizing function for the ADM entry.
  *
@@ -69,44 +65,33 @@ Lyst gAdmOps;
  *		3. If a NULL to_string is given, we assume it is unsigned long.
  *		4. If a NULL get_size is given, we assume is it unsigned long.
  *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/25/12  E. Birrane     Initial implementation.
- *  07/27/13  E. BIrrane     Updated ADM to use Lysts.
  *****************************************************************************/
 
-void adm_add_datadef(char *name,
-		     	 	 uint8_t *mid_str,
-		     	 	 int num_parms,
-		     	 	 adm_string_fn to_string,
-		     	 	 adm_size_fn get_size)
+int adm_add_datadef(char *mid_str,
+		     	 	int num_parms,
+  		     	 	adm_data_collect_fn collect,
+		     	 	adm_string_fn to_string,
+		     	 	adm_size_fn get_size)
 {
 	uint32_t size = 0;
 	uint32_t used = 0;
 	adm_datadef_t *new_entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("adm_add_datadef","(%llx, %llx, %d, %llx, %llx)",
-			          name, mid_str, num_parms, to_string, get_size);
+	DTNMP_DEBUG_ENTRY("adm_add_datadef","(%llx, %d, %llx, %llx)",
+			          mid_str, num_parms, to_string, get_size);
 
 	/* Step 0 - Sanity Checks. */
-	if((name == NULL) || (mid_str == NULL))
+	if(mid_str == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_add_datadef","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("adm_add_datadef","->.", NULL);
-		return;
+		DTNMP_DEBUG_EXIT("adm_add_datadef","-> 0.", NULL);
+		return 0;
 	}
 	if(gAdmData == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_add_datadef","Global data list not initialized.", NULL);
-		DTNMP_DEBUG_EXIT("adm_add_datadef","->.", NULL);
-		return;
-	}
-
-	/* Step 1 - Check name length. */
-	if(strlen(name) > ADM_MAX_NAME)
-	{
-		DTNMP_DEBUG_WARN("adm_add_datadef","Trunc. %s to %d bytes.", name, ADM_MAX_NAME)
+		DTNMP_DEBUG_EXIT("adm_add_datadef","-> 0.", NULL);
+		return 0;
 	}
 
 	/* Step 2 - Allocate a Data Definition. */
@@ -114,25 +99,22 @@ void adm_add_datadef(char *name,
 	{
 		DTNMP_DEBUG_ERR("adm_add_datadef","Can't allocate new entry of size %d.",
 				        sizeof(adm_datadef_t));
-		DTNMP_DEBUG_EXIT("adm_add_datadef","->.", NULL);
-		return;
+		DTNMP_DEBUG_EXIT("adm_add_datadef","-> 0.", NULL);
+		return 0;
 	}
 
-	/* Step 3 - Copy the ADM information. */
-	strncpy((char *)new_entry->name, name, ADM_MAX_NAME);
-
-	new_entry->mid = mid_deserialize(mid_str, ADM_MID_ALLOC, &used);
+	new_entry->mid = mid_from_string(mid_str);
 
 	new_entry->num_parms = num_parms;
-	new_entry->collect = NULL;
+	new_entry->collect = collect;
 	new_entry->to_string = (to_string == NULL) ? adm_print_uvast : to_string;
 	new_entry->get_size = (get_size == NULL) ? adm_size_uvast : get_size;
 
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmData, new_entry);
 
-	DTNMP_DEBUG_EXIT("adm_add_datadef","->.", NULL);
-	return;
+	DTNMP_DEBUG_EXIT("adm_add_datadef","-> 1.", NULL);
+	return 1;
 }
 
 
@@ -142,7 +124,7 @@ void adm_add_datadef(char *name,
  *
  * \par Registers a collection function to a data definition.
  *
- * \param[in] mid_str   serialized MID value
+ * \param[in] mid_hex   serialized MID value
  * \param[in] collect   The data collection function.
  *
  * \par Notes:
@@ -156,24 +138,24 @@ void adm_add_datadef(char *name,
  *  11/25/12  E. Birrane     Initial implementation.
  *  07/27/13  E. BIrrane     Updated ADM to use Lysts.
  *****************************************************************************/
-void adm_add_datadef_collect(uint8_t *mid_str, adm_data_collect_fn collect)
+void adm_add_datadef_collect(uint8_t *mid_hex, adm_data_collect_fn collect)
 {
 	uint32_t used = 0;
 	mid_t *mid = NULL;
 	adm_datadef_t *entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("adm_add_datadef_collect","(%lld, %lld)", mid_str, collect);
+	DTNMP_DEBUG_ENTRY("adm_add_datadef_collect","(%lld, %lld)", mid_hex, collect);
 
-	if((mid_str == NULL) || (collect == NULL))
+	if((mid_hex == NULL) || (collect == NULL))
 	{
 		DTNMP_DEBUG_ERR("adm_add_datadef_collect","Bad Args.", NULL);
 		DTNMP_DEBUG_EXIT("adm_add_datadef_collect","->.", NULL);
 		return;
 	}
 
-	if((mid = mid_deserialize(mid_str, ADM_MID_ALLOC, &used)) == NULL)
+	if((mid = mid_deserialize(mid_hex, ADM_MID_ALLOC, &used)) == NULL)
 	{
-		char *tmp = utils_hex_to_string(mid_str, ADM_MID_ALLOC);
+		char *tmp = utils_hex_to_string(mid_hex, ADM_MID_ALLOC);
 		DTNMP_DEBUG_ERR("adm_add_datadef_collect","Can't deserialize MID str %s.",tmp);
 		MRELEASE(tmp);
 
@@ -199,82 +181,172 @@ void adm_add_datadef_collect(uint8_t *mid_str, adm_data_collect_fn collect)
 
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_add_computeddef
+ *
+ * \par Registers a pre-configured ADM computed data definition with the local
+ *      DTNMP actor.
+ *
+ * \retval 0  Failure - The computeddef was not added.
+ *         !0 Success - The computeddef was added.
+ *
+ * \param[in] name      Name of the ADM entry.
+ * \param[in] mid_str   serialized MID value
+ * \param[in] num_parms # parms needed for parameterized OIDs.
+ * \param[in] def       The MID Collection defining the computed value.
+ * \param[in] to_string The to-string function
+ * \param[in] get_size  The sizing function for the ADM entry.
+ *
+ * \par Notes:
+ *		1. When working with parameterized OIDs, the given MID should
+ *		   be all information excluding the parameterized portion of the OID.
+ *		2. ADM names will be truncated after ADM_MAX_NAME bytes.
+ *		3. If a NULL to_string is given, we assume it is unsigned long.
+ *		4. If a NULL get_size is given, we assume is it unsigned long.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  03/16/15  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+int adm_add_computeddef(char *mid_str,
+		                int num_parms,
+		                Lyst def,
+		                adm_string_fn to_string,
+		                adm_size_fn get_size)
+{
+	uint32_t size = 0;
+	uint32_t used = 0;
+	adm_computeddef_t *new_entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_add_computeddef","(%llx, %d, %llx, %llx, %llx)",
+			          mid_str, num_parms, def, to_string, get_size);
+
+	/* Step 0 - Sanity Checks. */
+	if((mid_str == NULL) || def == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_computeddef","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		return 0;
+	}
+
+	if(gAdmComputed == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_computeddef","Global data list not initialized.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		return 0;
+	}
+
+	/* Step 2 - Allocate a Data Definition. */
+	if((new_entry = (adm_computeddef_t *) MTAKE(sizeof(adm_computeddef_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_computeddef","Can't allocate new entry of size %d.",
+				        sizeof(adm_datadef_t));
+		DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		return 0;
+	}
+
+	new_entry->mid = mid_from_string(mid_str);
+
+	if(new_entry->mid == NULL)
+	{
+		MRELEASE(new_entry);
+		DTNMP_DEBUG_ERR("adm_add_computeddef","Can't get mid from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		return 0;
+	}
+
+	new_entry->num_parms = num_parms;
+	new_entry->def = midcol_copy(def);
+	new_entry->to_string = (to_string == NULL) ? adm_print_uvast : to_string;
+	new_entry->get_size = (get_size == NULL) ? adm_size_uvast : get_size;
+
+	/* Step 4 - Add the new entry. */
+	lyst_insert_last(gAdmComputed, new_entry);
+
+	DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 1.", NULL);
+	return 1;
+}
+
+
+
+
 /******************************************************************************
  *
  * \par Function Name: adm_add_ctrl
  *
  * \par Registers a pre-configured ADM control with the local DTNMP actor.
  *
- * \param[in] name      Name of the ADM control.
+ * \retval 0  Failure - The control was not added.
+ *         !0 Success - The control was added.
+ *
  * \param[in] mid_str   MID value, as a string.
- * \param[in] num_parms # parms needed for parameterized OIDs.
- * \param[in] control   The control collection function.
+ * \param[in] parm      The parameter conversion function
+ * \param[in] run       The control function.
  *
  * \par Notes:
  *		1. When working with parameterized OIDs, the given MID string should
  *		   be all information excluding the parameterized portion of the OID.
  *		2. ADM names will be truncated after ADM_MAX_NAME bytes.
  *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/25/12  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void adm_add_ctrl(char *name,
-				  uint8_t *mid_str,
-				  int num_parms)
+int adm_add_ctrl(char *mid_str,
+				 adm_ctrl_run_fn run)
 {
 	uint8_t *tmp = NULL;
 	uint32_t size = 0;
 	uint32_t used = 0;
 	adm_ctrl_t *new_entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("adm_add_ctrl","(%#llx, %#llx, %d)",
-			          name, mid_str, num_parms);
+	DTNMP_DEBUG_ENTRY("adm_add_ctrl","(%#llx, %#llx)",
+			          mid_str, run);
 
 	/* Step 0 - Sanity Checks. */
-	if((name == NULL) || (mid_str == NULL))
+	if(mid_str == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_add_ctrl","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("adm_add_ctrl","->.", NULL);
-		return;
+		DTNMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
+		return 0;
 	}
+
 	if(gAdmCtrls == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_add_ctrl","Global Controls list not initialized.", NULL);
-		DTNMP_DEBUG_EXIT("adm_add_ctrl","->.", NULL);
-		return;
-	}
-
-	/* Step 1 - Check name length. */
-	if(strlen(name) > ADM_MAX_NAME)
-	{
-		DTNMP_DEBUG_WARN("adm_add_ctrl","Trunc. %s to %d bytes.", name, ADM_MAX_NAME)
+		DTNMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
+		return 0;
 	}
 
 	/* Step 2 - Allocate a Data Definition. */
 	if((new_entry = (adm_ctrl_t *) MTAKE(sizeof(adm_ctrl_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_add_ctrl","Can't allocate new entry of size %d.",
-				        sizeof(adm_datadef_t));
-		DTNMP_DEBUG_EXIT("adm_add_ctrl","->.", NULL);
-		return;
+				        sizeof(adm_ctrl_t));
+		DTNMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
+		return 0;
 	}
 
-	/* Step 3 - Copy the ADM information. */
-	strncpy((char *)new_entry->name, name, ADM_MAX_NAME);
-	new_entry->mid = mid_deserialize(mid_str, ADM_MID_ALLOC, &used);
+	new_entry->mid = mid_from_string(mid_str);
 
-	//new_entry->mid_len = size;
-	new_entry->num_parms = num_parms;
-	new_entry->run = NULL;
+	if(new_entry->mid == NULL)
+	{
+		MRELEASE(new_entry);
+		DTNMP_DEBUG_ERR("adm_add_ctrl","Can't get mid from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
+		return 0;
+	}
+
+	new_entry->num_parms = mid_get_num_parms(new_entry->mid);
+	new_entry->run = run;
 
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmCtrls, new_entry);
 
-	DTNMP_DEBUG_EXIT("adm_add_ctrl","->.", NULL);
-	return;
+	DTNMP_DEBUG_EXIT("adm_add_ctrl","-> 1.", NULL);
+	return 1;
 }
 
 
@@ -297,7 +369,7 @@ void adm_add_ctrl(char *name,
  *  07/28/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void adm_add_ctrl_run(uint8_t *mid_str, adm_ctrl_fn run)
+void adm_add_ctrl_run(uint8_t *mid_str, adm_ctrl_run_fn run)
 {
 	uint32_t used = 0;
 	mid_t *mid = NULL;
@@ -337,6 +409,250 @@ void adm_add_ctrl_run(uint8_t *mid_str, adm_ctrl_fn run)
 	DTNMP_DEBUG_EXIT("adm_add_ctrl_run","->.",NULL);
 }
 
+int adm_add_lit(char *mid_str, value_t result, lit_val_fn calc)
+{
+	uint32_t used = 0;
+	lit_t *new_entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_add_lit","(0x%lx, (%d,%d,%d), 0x%lx)",
+			          (unsigned long) mid_str, result.type, result.value.as_int, result.length,
+			          (unsigned long) calc);
+
+	/* Step 0 - Sanity Checks. */
+	if(mid_str == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_lit","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
+		return 0;
+	}
+
+	if(gAdmLiterals == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_lit","Global Literals list not initialized.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
+		return 0;
+	}
+
+	/* Step 1 - Build the literal definition. */
+	mid_t *id = mid_from_string(mid_str);
+
+	if(id == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_lit","Can't make mid from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
+		return 0;
+	}
+
+	new_entry = lit_create(id, result, calc);
+
+	if(new_entry == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_lit","Can't allocate new entry of size %d.",
+				        sizeof(lit_t));
+		DTNMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
+		return 0;
+	}
+
+	/* Step 2 - Add the new entry. */
+	lyst_insert_last(gAdmLiterals, new_entry);
+
+	DTNMP_DEBUG_EXIT("adm_add_lit","-> 1.", NULL);
+	return 1;
+}
+
+int adm_add_macro(char *mid_str, Lyst midcol)
+{
+	int success = 0;
+	uint32_t used = 0;
+	mid_t *mid = NULL;
+	def_gen_t *new_entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_add_macro","(%s, 0x%lx)",
+			          mid_str, (unsigned long) midcol);
+
+	/* Step 0 - Sanity Checks. */
+	if((mid_str == NULL) || (midcol == NULL))
+	{
+		DTNMP_DEBUG_ERR("adm_add_macro","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
+		return success;
+	}
+
+	if(gAdmMacros == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_macro","Global Macros list not initialized.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
+		return success;
+	}
+
+	/* Step 1 - Build the MID. */
+	mid = mid_from_string(mid_str);
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_macro","Can't make mid from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
+		return success;
+	}
+
+	Lyst newdefs = midcol_copy(midcol);
+
+	/* Step 2 - Build the definition to hold the macro. */
+	if((new_entry = def_create_gen(mid, newdefs)) == NULL)
+	{
+		MRELEASE(mid);
+		midcol_destroy(&newdefs);
+
+		DTNMP_DEBUG_ERR("adm_add_macro","Can't allocate new macro entry.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
+		return success;
+	}
+
+	/* Step 3 - Add the new entry. */
+	lyst_insert_last(gAdmMacros, new_entry);
+	success = 1;
+
+	DTNMP_DEBUG_EXIT("adm_add_macro","-> 1.", NULL);
+	return success;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_add_op
+ *
+ * \par Registers a pre-configured ADM operator with the local DTNMP actor.
+ *
+ * \retval 0 - Failure - The op was not added.
+ *        !0 - Success - The op was added.
+ *
+ * \param[in] mid_str   MID value, as a string.
+ * \param[in] num_parms # parms needed for parameterized OIDs.
+ * \param[in] apply     Function for applying the operator
+ *
+ *****************************************************************************/
+
+int adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn apply)
+{
+	uint32_t used = 0;
+	adm_op_t *new_entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_add_op","(%#llx, %d, %#llx)",
+			          mid_str, num_parms, apply);
+
+	/* Step 0 - Sanity Checks. */
+	if(mid_str == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_op","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
+		return 0;
+	}
+
+#ifdef AGENT_ROLE
+	if(apply == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_op","Bad Apply Function.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
+		return 0;
+	}
+#endif
+
+	if(gAdmOps == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_op","Global Operators list not initialized.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
+		return 0;
+	}
+
+	/* Step 1 - Allocate an Operator Definition. */
+	if((new_entry = (adm_op_t *) MTAKE(sizeof(adm_op_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_op","Can't allocate new entry of size %d.",
+				        sizeof(adm_op_t));
+		DTNMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
+		return 0;
+	}
+
+	new_entry->mid = mid_from_string(mid_str);
+
+	/* Step 2 - Copy the ADM information. */
+	if(new_entry->mid == NULL)
+	{
+		MRELEASE(new_entry);
+		DTNMP_DEBUG_ERR("adm_add_op","Can't make MID from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
+		return 0;
+	}
+
+
+	new_entry->num_parms = num_parms;
+	new_entry->apply = apply;
+
+	/* Step 4 - Add the new entry. */
+	lyst_insert_last(gAdmOps, new_entry);
+
+	DTNMP_DEBUG_EXIT("adm_add_op","-> 1.", NULL);
+	return 1;
+}
+
+
+int adm_add_rpt(char *mid_str, Lyst midcol)
+{
+	int success = 0;
+	uint32_t used = 0;
+	mid_t *mid = NULL;
+	def_gen_t *new_entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_add_rpt","(%s, 0x%lx)",
+			          mid_str, (unsigned long) midcol);
+
+	/* Step 0 - Sanity Checks. */
+	if((mid_str == NULL) || (midcol == NULL))
+	{
+		DTNMP_DEBUG_ERR("adm_add_rpt","Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		return success;
+	}
+
+	if(gAdmRpts == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_rpt","Global Reports list not initialized.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		return success;
+	}
+
+	/* Step 1 - Build the MID. */
+	mid = mid_from_string(mid_str);
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_add_rpt","Can't make mid from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		return success;
+	}
+
+	Lyst newdefs = midcol_copy(midcol);
+
+	/* Step 2 - Build the definition to hold the macro. */
+	if((new_entry = def_create_gen(mid, newdefs)) == NULL)
+	{
+		MRELEASE(mid);
+		midcol_destroy(&newdefs);
+
+		DTNMP_DEBUG_ERR("adm_add_rpt","Can't allocate new macro entry.", NULL);
+		DTNMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		return success;
+	}
+
+	/* Step 3 - Add the new entry. */
+	lyst_insert_last(gAdmRpts, new_entry);
+	success = 1;
+
+	DTNMP_DEBUG_EXIT("adm_add_rpt","-> 1.", NULL);
+	return success;
+}
+
 
 /******************************************************************************
  *
@@ -374,7 +690,7 @@ void adm_build_mid_str(uint8_t flag, char *nn, int nn_len, int offset, uint8_t *
 
 	encodeSdnv(&len, nn_len + 1);
 	encodeSdnv(&off, offset);
-	tmp = utils_string_to_hex((unsigned char*)nn, &nn_size);
+	tmp = utils_string_to_hex(nn, &nn_size);
 
 	size = 1 + nn_size + len.length + off.length + 1;
 
@@ -436,7 +752,7 @@ void adm_build_mid_str(uint8_t flag, char *nn, int nn_len, int offset, uint8_t *
  *
  *****************************************************************************/
 
-uint8_t *adm_copy_integer(uint8_t *value, uint8_t size, uint64_t *length)
+uint8_t *adm_copy_integer(uint8_t *value, uint8_t size, uint32_t *length)
 {
 	uint8_t *result = NULL;
 
@@ -467,7 +783,7 @@ uint8_t *adm_copy_integer(uint8_t *value, uint8_t size, uint64_t *length)
 	return (uint8_t*)result;
 }
 
-uint8_t* adm_copy_string(char *value, uint64_t *length)
+uint8_t* adm_copy_string(char *value, uint32_t *length)
 {
 	uint8_t *result = NULL;
 	uint32_t size = 0;
@@ -515,6 +831,16 @@ void adm_destroy()
    lyst_destroy(gAdmData);
    gAdmData = NULL;
 
+   for (elt = lyst_first(gAdmComputed); elt; elt = lyst_next(elt))
+   {
+	   adm_computeddef_t *cur = (adm_computeddef_t *) lyst_data(elt);
+	   mid_release(cur->mid);
+	   MRELEASE(cur);
+   }
+   lyst_destroy(gAdmComputed);
+   gAdmComputed = NULL;
+
+
    for (elt = lyst_first(gAdmCtrls); elt; elt = lyst_next(elt))
    {
 	   adm_ctrl_t *cur = (adm_ctrl_t *) lyst_data(elt);
@@ -524,6 +850,14 @@ void adm_destroy()
    lyst_destroy(gAdmCtrls);
    gAdmCtrls = NULL;
 
+   for (elt = lyst_first(gAdmRpts); elt; elt = lyst_next(elt))
+   {
+	   def_gen_t *cur = (def_gen_t *) lyst_data(elt);
+	   def_release_gen(cur);
+   }
+   lyst_destroy(gAdmRpts);
+   gAdmRpts = NULL;
+
    lyst_destroy(gAdmLiterals);
    gAdmLiterals = NULL;
 
@@ -531,6 +865,41 @@ void adm_destroy()
    gAdmOps = NULL;
 
 }
+
+adm_computeddef_t* adm_find_computeddef(mid_t *mid)
+{
+	LystElt elt = 0;
+	adm_computeddef_t *cur = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_find_computeddef","(%llx)", mid);
+
+	/* Step 0 - Sanity Check. */
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_find_computeddef", "Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_find_computeddef", "->NULL.", NULL);
+		return NULL;
+	}
+
+	/* Step 1 - Go lookin'. */
+	for(elt = lyst_first(gAdmComputed); elt; elt = lyst_next(elt))
+	{
+		cur = (adm_computeddef_t*) lyst_data(elt);
+
+		/* Step 1.1 - Determine if we need to account for parameters. */
+		if (mid_compare(mid, cur->mid, 0) == 0)
+		{
+			break;
+		}
+		cur = NULL;
+	}
+
+	/* Step 2 - Return what we found, or NULL. */
+
+	DTNMP_DEBUG_EXIT("adm_find_computeddef", "->%llx.", cur);
+	return cur;
+}
+
 
 /******************************************************************************
  *
@@ -584,32 +953,6 @@ adm_datadef_t *adm_find_datadef(mid_t *mid)
 			break;
 		}
 
-/**
-
-		if(cur->num_parms == 0)
-		{
-			/ * Step 1.1.1 - If no params, straight compare * /
-			if((mid->raw_size == cur->mid_len) &&
-				(memcmp(mid->raw, cur->mid, mid->raw_size) == 0))
-			{
-				break;
-			}
-		}
-		else
-		{
-			uvast tmp;
-			unsigned char *cursor = (unsigned char*) &(cur->mid[1]);
-			/ * Grab size less paramaters. Which is SDNV at [1]. * /
-			/ * \todo: We need a more refined compare here.  For example, the
-			 *        code below will not work if tag values are used.
-			 * /
-			unsigned long byte = decodeSdnv(&tmp, cursor);
-			if(memcmp(mid->raw, cur->mid, tmp + byte + 1) == 0)
-			{
-				break;
-			}
-		}
-	*/
 		cur = NULL;
 	}
 
@@ -640,7 +983,7 @@ adm_datadef_t *adm_find_datadef(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/27/13  E. Birrane     Initial implementation.
- *****************************************************************************/
+ ***************************************************************************** /
 
 adm_datadef_t* adm_find_datadef_by_name(char *name)
 {
@@ -649,7 +992,7 @@ adm_datadef_t* adm_find_datadef_by_name(char *name)
 
 	DTNMP_DEBUG_ENTRY("adm_find_datadef_by_name","(%s)", name);
 
-	/* Step 0 - Sanity Check. */
+	/ * Step 0 - Sanity Check. * /
 	if(name == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_find_datadef_by_name", "Bad Args.", NULL);
@@ -657,7 +1000,7 @@ adm_datadef_t* adm_find_datadef_by_name(char *name)
 		return NULL;
 	}
 
-	/* Step 1 - Go lookin'. */
+	/ * Step 1 - Go lookin'. * /
 	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
 	{
 		cur = (adm_datadef_t*) lyst_data(elt);
@@ -670,11 +1013,12 @@ adm_datadef_t* adm_find_datadef_by_name(char *name)
 		cur = NULL;
 	}
 
-	/* Step 2 - Return what we found, or NULL. */
+	/ * Step 2 - Return what we found, or NULL. * /
 
 	DTNMP_DEBUG_EXIT("adm_find_datadef_by_name", "->%llx.", cur);
 	return cur;
 }
+************/
 
 adm_datadef_t* adm_find_datadef_by_idx(int idx)
 {
@@ -815,7 +1159,7 @@ adm_ctrl_t*  adm_find_ctrl(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/27/13  E. Birrane     Initial implementation.
- *****************************************************************************/
+ ***************************************************************************** /
 
 adm_ctrl_t* adm_find_ctrl_by_name(char *name)
 {
@@ -824,7 +1168,7 @@ adm_ctrl_t* adm_find_ctrl_by_name(char *name)
 
 	DTNMP_DEBUG_ENTRY("adm_find_ctrl_by_name","(%s)", name);
 
-	/* Step 0 - Sanity Check. */
+	/ * Step 0 - Sanity Check. * /
 	if(name == NULL)
 	{
 		DTNMP_DEBUG_ERR("adm_find_ctrl_by_name", "Bad Args.", NULL);
@@ -832,7 +1176,7 @@ adm_ctrl_t* adm_find_ctrl_by_name(char *name)
 		return NULL;
 	}
 
-	/* Step 1 - Go lookin'. */
+	/ * Step 1 - Go lookin'. * /
 	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
 	{
 		cur = (adm_ctrl_t*) lyst_data(elt);
@@ -845,11 +1189,11 @@ adm_ctrl_t* adm_find_ctrl_by_name(char *name)
 		cur = NULL;
 	}
 
-	/* Step 2 - Return what we found, or NULL. */
+	/ * Step 2 - Return what we found, or NULL. * /
 	DTNMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->%llx.", cur);
 	return cur;
 }
-
+*****/
 
 
 adm_ctrl_t* adm_find_ctrl_by_idx(int idx)
@@ -879,6 +1223,115 @@ adm_ctrl_t* adm_find_ctrl_by_idx(int idx)
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_find_lit
+ *
+ * \par Find an ADM literal that corresponds to a received MID.
+ *
+ * \retval NULL Failure
+ *         !NULL The found ADM literal
+ *
+ * \param[in]  mid  The MID whose ADM-match is being queried.
+ *
+ * \par Notes:
+ *		1. The returned entry is a direct pointer to the official ADM lit,
+ *		   it must be treated as read-only.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/25/15  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+lit_t*	   adm_find_lit(mid_t *mid)
+{
+	LystElt elt = 0;
+	lit_t *cur = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_find_lit","(%#llx)", (unsigned long) mid);
+
+	/* Step 0 - Sanity Check. */
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_find_lit", "Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_find_lit", "->NULL.", NULL);
+		return NULL;
+	}
+
+	for(elt = lyst_first(gAdmLiterals); elt; elt = lyst_next(elt))
+	{
+		cur = (lit_t *) lyst_data(elt);
+
+		if (mid_compare(mid, cur->id, 0) == 0)
+		{
+			break;
+		}
+	}
+
+	/* Step 2 - Return what we found, or NULL. */
+
+	DTNMP_DEBUG_EXIT("adm_find_lit", "->%llx.", (unsigned long) cur);
+
+	return cur;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_find_op
+ *
+ * \par Find an ADM operator that corresponds to a received MID.
+ *
+ * \retval NULL Failure
+ *         !NULL The found ADM operator
+ *
+ * \param[in]  mid  The MID whose ADM-match is being queried.
+ *
+ * \par Notes:
+ *		1. The returned entry is a direct pointer to the official ADM op,
+ *		   it must be treated as read-only.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/25/15  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+adm_op_t*  adm_find_op(mid_t *mid)
+{
+	LystElt elt = 0;
+	adm_op_t *cur = NULL;
+
+	DTNMP_DEBUG_ENTRY("adm_find_op","(%#llx)", (unsigned long) mid);
+
+	/* Step 0 - Sanity Check. */
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_find_op", "Bad Args.", NULL);
+		DTNMP_DEBUG_EXIT("adm_find_op", "->NULL.", NULL);
+		return NULL;
+	}
+
+	for(elt = lyst_first(gAdmOps); elt; elt = lyst_next(elt))
+	{
+		cur = (adm_op_t *) lyst_data(elt);
+
+		if (mid_compare(mid, cur->mid, 0) == 0)
+		{
+			break;
+		}
+	}
+
+	/* Step 2 - Return what we found, or NULL. */
+
+	DTNMP_DEBUG_EXIT("adm_find_op", "->%llx.", (unsigned long) cur);
+
+	return cur;
+}
+
+
 /******************************************************************************
  *
  * \par Function Name: adm_init
@@ -898,9 +1351,12 @@ void adm_init()
 	DTNMP_DEBUG_ENTRY("adm_init","()", NULL);
 
 	gAdmData = lyst_create();
+	gAdmComputed = lyst_create();
 	gAdmCtrls = lyst_create();
 	gAdmLiterals = lyst_create();
 	gAdmOps = lyst_create();
+	gAdmRpts = lyst_create();
+	gAdmMacros = lyst_create();
 
 	adm_bp_init();
 
@@ -1526,4 +1982,40 @@ uint32_t adm_size_uvast(uint8_t* buffer, uint64_t buffer_len)
 	return sizeof(uvast);
 }
 
+
+
+/*
+ * Take parameters in the MID and turn them into a MC lyst.
+ */
+Lyst adm_parm_mc(mid_t *mid)
+{
+	Lyst result = NULL;
+	uint32_t bytes = 0;
+	datacol_entry_t *dc = NULL;
+
+	if(mid == NULL)
+	{
+		return NULL;
+	}
+
+	if(mid_get_num_parms(mid) != 1)
+	{
+		DTNMP_DEBUG_ERR("adm_parm_mc","Expected 1 MC parm, not %d.",
+				        mid_get_num_parms(mid));
+		return NULL;
+	}
+
+	if((dc = mid_get_param(mid, 0)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_parm_mc","Can't get parameter.",NULL);
+		return NULL;
+	}
+
+	result = midcol_deserialize(dc->value, dc->length, &bytes);
+
+	MRELEASE(dc->value);
+	MRELEASE(dc);
+
+	return result;
+}
 

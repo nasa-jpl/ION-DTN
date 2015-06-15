@@ -1,15 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  **
  ** File Name: ingest.h
@@ -46,6 +34,7 @@
 #include "shared/msg/msg_ctrl.h"
 #include "shared/primitives/rules.h"
 #include "shared/primitives/instr.h"
+#include "shared/primitives/ctrl.h"
 
 #include "shared/utils/utils.h"
 
@@ -280,6 +269,7 @@ void *rx_thread(void *threadId) {
 
             	switch (hdr->id)
             	{
+            	/**** EJB: We only receive control messages from managers now.
                 	case MSG_TYPE_CTRL_PERIOD_PROD:
                 	{
                 		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Periodic Production Message.\n", NULL);
@@ -293,7 +283,7 @@ void *rx_thread(void *threadId) {
                 		rx_handle_rpt_def(&meta, cursor,size,&bytes);
                 	}
                 	break;
-
+            	 */
                 	case MSG_TYPE_CTRL_EXEC:
                 	{
                 		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Perform Control Message.\n", NULL);
@@ -301,13 +291,14 @@ void *rx_thread(void *threadId) {
                 	}
                 	break;
 
+                	/**** EJB: We only receive control messages from managers now.
                 	case MSG_TYPE_DEF_MACRO:
                 	{
                 		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Macro Definition.\n", NULL);
                 		rx_handle_macro_def(&meta, cursor,size,&bytes);
                 	}
                 	break;
-
+                	***/
                 	default:
                 	{
                 		DTNMP_DEBUG_WARN("rx_thread","Received unknown type: %d.\n", hdr->type);
@@ -426,8 +417,10 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 
 void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-	ctrl_exec_t* ctrl = NULL;
 	uint32_t bytes = 0;
+	time_t time;
+	Lyst ctrls;
+	LystElt elt;
 
 	DTNMP_DEBUG_ENTRY("rx_handle_exec","(0x%#llx, %d, 0x%#llx)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
@@ -441,56 +434,59 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
     	return;
 	}
 
-	/* Step 1: Attempt to deserialize the message. */
-	ctrl = ctrl_deserialize_exec(cursor, size, &bytes);
+	/* Step 1: Get the timestamp associated with these controls. */
+	uvast val;
+    bytes = decodeSdnv(&val, cursor);
+    time = val;
 
-	/* Step 2: If the deserialization failed, complain. */
-    if((ctrl == NULL) || (bytes == 0))
-    {
-    	DTNMP_DEBUG_ERR("rx_handle_exec","Can't deserialize.",NULL);
-    	ctrl_release_exec(ctrl);
-    	*bytes_used = 0;
-    	DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
-    	return;
-    }
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
 
-    /* Step 3: Otherwise, note how many bytes were consumed. */
-    *bytes_used = bytes;
+	/* Step 2: Get the MID Collection for these controls. */
+	/* Grab the list of contents. */
+	if((ctrls = midcol_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("rx_handle_exec","Can't grab Ctrl MC.",NULL);
 
+		*bytes_used = 0;
+		DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
 
-    /*
-     * Step 4: Adjust the countdown ticks based on whether
-     *         we are given a relative or absolute time.
-     */
+	/* Step 3: For each MID representing a control instance... */
+	for(elt = lyst_first(ctrls); elt; elt = lyst_next(elt))
+	{
+		/* Step 3.1: Get the current MID. */
+		mid_t *mid = lyst_data(elt);
+		ctrl_exec_t *ctrl = NULL;
 
-    if(ctrl->time <= DTNMP_RELATIVE_TIME_EPOCH)
-    {
-    	/* Step 4a: If relative time, that is # seconds. */
-    	ctrl->countdown_ticks = ctrl->time;
-    }
-    else
-    {
-    	/*
-    	 * Step 4b: If absolute time, # seconds if difference
-    	 * from now until then.
-    	 */
-    	ctrl->countdown_ticks = (ctrl->time - getUTCTime());
-    }
+		char *str = mid_to_string(mid);
+		DTNMP_DEBUG_ALWAYS("rx_handle_exec","Received control mid %s.\n", str);
+		MRELEASE(str);
 
-    /* Step 5: Populate dynamic parts of the control. */
-	ctrl->desc.state = CONTROL_ACTIVE;
-	strcpy(ctrl->desc.sender.name, meta->senderEid.name);
+		/* Step 3.2: Create a control instance from this MID. */
+		// \todo: Handle cases where we can't create control.
+		ctrl = ctrl_create(time, mid, meta->senderEid);
 
-    /* Step 6: Persist this definition to our SDR. */
-    agent_db_ctrl_persist(ctrl);
+		/* Step 3.3: Persist this control to the SDR. */
+	    agent_db_ctrl_persist(ctrl);
 
-    /* Step 7: Persist this definition to our memory lists. */
-	DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
-	ADD_CTRL(ctrl);
+	    /* Step 3.4: Persist this control to memory. */
+		DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
+		ADD_CTRL(ctrl);
 
-	/* Step 8: Update instrumentation counters. */
-	gAgentInstr.num_ctrls++;
+		/* Step 3.5: Update instrumentation counters. */
+		gAgentInstr.num_ctrls++;
+	}
 
+	/* Step 4: Release the MidCol. */
+	midcol_destroy(&ctrls);
 }
 
 

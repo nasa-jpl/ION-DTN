@@ -30,6 +30,7 @@
 
 #include "shared/adm/adm.h"
 #include "shared/primitives/mid.h"
+#include "shared/primitives/value.h"
 #include "shared/msg/msg_reports.h"
 #include "shared/msg/msg_def.h"
 
@@ -63,7 +64,7 @@
 
 int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
 {
-    int result = 0;
+    int result = -1;
     adm_datadef_t *adm_def = NULL;
     def_gen_t *rpt_def = NULL;
     char *msg = NULL;
@@ -83,31 +84,62 @@ int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry)
     DTNMP_DEBUG_INFO("ldc_fill_report_data","Gathering report data for MID: %s",
     		         msg);
 
-    /* Step 1: Search for this MID... */
+    /* Step 1: Search for this MID...
+     *
+     * Reports can contain information from:
+     *
+     * 1. Atomic data definitions (from ADMs)
+     * 2. Computed data definitions (from ADMs or user-defined)
+     * 3. Report definitions (from ADMs or user-defined)
+     *
+     */
 
-    /* Step 1.1: If this is an atomic data definition...*/
-    if((adm_def = adm_find_datadef(id)) != NULL)
+    switch(MID_GET_FLAG_TYPECAT(id->flags))
     {
-    	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling pre-defined.", NULL);
-    	result = ldc_fill_atomic(adm_def,id,entry);
+
+        /* Step 1.1: If this is an atomic data definition...*/
+    	case MID_ATOMIC:
+    	    if((adm_def = adm_find_datadef(id)) != NULL)
+    	    {
+    	    	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling pre-defined.", NULL);
+    	    	result = ldc_fill_atomic(adm_def,id,entry);
+    	    }
+    		break;
+
+   		/* Step 1.2: If this is a computed definition... */
+    	case MID_COMPUTED:
+    		// \todo: Support computed definitions in reports.
+    		break;
+
+   	    /* Step 1.2: If this is a data report...*/
+    	case MID_REPORT:
+
+    		/* Step 1.3.1: Check if this is an ADM-defined report. */
+    		if((rpt_def = def_find_by_id(gAdmRpts, NULL, id)) != NULL)
+    		{
+    	       	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling ADM Report.", NULL);
+    	       	result = ldc_fill_custom(rpt_def, entry);
+
+    	       	/* \todo: Do we need this? */
+    	       	entry->id = mid_copy(id);
+    		}
+    		/* Step 1.3.2: Check if this is a user-defined report. */
+    		else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), id)) != NULL)
+    	    {
+    	       	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling User Report.", NULL);
+    	       	result = ldc_fill_custom(rpt_def, entry);
+
+    	       	/* \todo: Do we need this? */
+    	       	entry->id = mid_copy(id);
+    	    }
+
+    		break;
     }
 
-    /* Step 1.2: If this is a data report...*/
-    else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), id)) != NULL)
-    {
-       	DTNMP_DEBUG_INFO("ldc_fill_report_data","Filling custom.", NULL);
-       	result = ldc_fill_custom(rpt_def, entry);
-
-       	/* \todo: Do we need this? */
-       	entry->id = mid_copy(id);
-    }
-
-    /* Step 1.3: If this is an unknown data MID. */
-    else
+    if(result == -1)
     {
     	DTNMP_DEBUG_ERR("ldc_fill_report_data","Could not find def for MID %s",
     			        msg);
-    	result = -1;
     }
 
     MRELEASE(msg);
@@ -332,9 +364,10 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt)
     }
 
     /* Step 2: Collect the information for this datum. */
-    expr_result_t result = adm_def->collect(id->oid->params);
-    rpt->contents = result.value;
-    rpt->size = result.length;
+    value_t result = adm_def->collect(id->oid->params);
+    uint32_t result_size = 0;
+    rpt->contents = val_serialize(&result, &result_size);
+    rpt->size = result_size;
 
     /* Step 3: If there was a problem collecting information, bail. */
     if((rpt->size == 0) || (rpt->contents == NULL))

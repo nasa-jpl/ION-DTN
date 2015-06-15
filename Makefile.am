@@ -1864,33 +1864,39 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
 nmbin= nm_agent nm_mgr
 
-nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmagent.c nm/agent/rda.c \
+nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmagent.c nm/agent/rda.c \ 
 					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
 					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
-					nm/shared/msg/pdu.c \
+					nm/shared/msg/pdu.c nm/agent/agent_db.c nm/shared/primitives/ctrl.c \
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
-					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c nm/shared/primitives/dc.c \
+					nm/shared/primitives/value.c nm/shared/primitives/lit.c nm/shared/primitives/nn.c \
 					nm/shared/utils/ion_if.c nm/shared/utils/utils.c nm/shared/utils/db.c \
-nm/agent/adm_agent_priv.c nm/agent/adm_bp_priv.c nm/agent/adm_ion_priv.c \
-nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
-nm/shared/adm/adm_agent.c
+					nm/shared/adm/adm_agent_impl.c nm/shared/adm/adm_bp_impl.c nm/agent/adm_ion_priv.c \
+					nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
+					nm/agent/expr.c \
+					nm/shared/adm/adm_agent.c
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
+nm_agent_LDFLAGS = -lm
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+                  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable \
+                  -DAGENT_ROLE
 					
 					
 nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
-					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
+					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_bp_impl.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
 					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
-					nm/shared/msg/pdu.c \
+					nm/shared/msg/pdu.c nm/mgr/nm_mgr_names.c nm/shared/primitives/ctrl.c \
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
-					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c nm/shared/primitives/dc.c \
+					nm/shared/primitives/value.c nm/shared/primitives/lit.c nm/shared/primitives/nn.c \
 					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
-nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
+					nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c nm/mgr/ui_input.c
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 
 # Use this to build the DTNMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
+nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
 
 # Use this to build the DTNMP Manager WITH DB Support.
 #nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient

@@ -383,7 +383,7 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     }
 
     /* Information on bitstream we are sending. */
-    DTNMP_DEBUG_INFO("iif_send","Sending following data of length %d",len);
+    DTNMP_DEBUG_ALWAYS("iif_send","Sending following data of length %d",len);
     utils_print_hex(data, len);
 
 
@@ -434,7 +434,7 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
 				&newBundle		// New Bundle
 				)) != 1)
     {
-        DTNMP_DEBUG_ERR("iif_send","Send failed (%d).", res);
+        DTNMP_DEBUG_ERR("iif_send","Send failed (%d) to %s.", res, recipient);
         MRELEASE(data);
         DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
     	return 0;

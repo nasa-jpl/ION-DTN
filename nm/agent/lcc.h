@@ -34,7 +34,10 @@
 
 
 int lcc_run_ctrl_mid(mid_t *id);
-int lcc_run_ctrl(ctrl_exec_t *id);
+int lcc_run_ctrl(ctrl_exec_t *ctrl);
+
+int lcc_run_macro_mid(mid_t *id);
+int lcc_run_macro(def_gen_t *macro);
 
 
 #endif // _LCC_H_

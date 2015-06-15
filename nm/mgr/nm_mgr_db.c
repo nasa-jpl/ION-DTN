@@ -39,7 +39,7 @@
 
 #include "nm_mgr.h"
 #include "nm_mgr_db.h"
-
+#include "nm_mgr_names.h"
 
 /* Global conngection to the MYSQL Server. */
 static MYSQL *gConn;
@@ -137,7 +137,7 @@ uint32_t db_add_mid(int attr, uint8_t flag, uvast issuer, char *OID, uvast tag,
 	/* Step 1: Make sure the ID is not already in the DB. */
 	if ((result = db_fetch_mid_idx(attr, flag, issuer, OID, tag)) > 0)
 	{
-		DTNMP_DEBUG_WARN("db_add_mid", "Can't add dup. MID (idx is %d).", result);
+		DTNMP_DEBUG_WARN("db_add_mid", "Can't add dup. Name %s MID (idx is %d).", name, result);
 		DTNMP_DEBUG_EXIT("db_add_mid", "-->0", NULL);
 		return 0;
 	}
@@ -1783,7 +1783,7 @@ int db_mgt_init(char *server, char *user, char *pwd, char *database, int clear)
 	}
 
 	/* Step 2: Make sure the DB knows about the MIDs we need. */
-    db_mgt_verify_mids();
+    //EJBdb_mgt_verify_mids();
 
 	DTNMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
 	return 1;
@@ -1902,7 +1902,14 @@ void db_mgt_verify_mids()
 
 		if(oid_str != NULL)
 		{
-			uint32_t idx = db_add_mid(attr,flags,issuer,&(oid_str[2]),tag,0,0,admData->name,0);
+
+			char *name = names_get_name(mid);
+
+			if(name != NULL)
+			{
+				uint32_t idx = db_add_mid(attr,flags,issuer,&(oid_str[2]),tag,0,0,name,0);
+				MRELEASE(name);
+			}
 			MRELEASE(oid_str);
 		}
 		else

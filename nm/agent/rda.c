@@ -54,7 +54,11 @@
 #include "ldc.h"
 #include "lcc.h"
 
+Lyst g_rda_cur_rpts;
+Lyst g_rda_rules_pend;
 
+ResourceLock g_rda_cur_rpts_mutex;
+ResourceLock g_rda_rules_pend_mutex;
 
 /******************************************************************************
  *
@@ -64,37 +68,47 @@
  *
  * \retval void
  *
- * \param[in,out]  rules_pending - List of rules RDA has been evaluating.
- * \param[in,out]  built_reports - List of reports built during an RDA run.
- *
  * \par Notes:
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
+ *  05/20/15  E. Birrane     Switched to global, mutex-protected lysts.
  *****************************************************************************/
 
-void rda_cleanup(Lyst rules_pending, Lyst built_reports)
+void rda_cleanup()
 {
-    /* rules_pending only holds pointers. Nothing to free. */
-    lyst_destroy(rules_pending);
+	lockResource(&g_rda_rules_pend_mutex);
+
+	/* rules_pending only holds pointers. Nothing to free. */
+    lyst_destroy(g_rda_rules_pend);
+
+    unlockResource(&g_rda_rules_pend_mutex);
     
-    rpt_clear_lyst(&built_reports, NULL, 0);
-    lyst_destroy(built_reports);    
+    killResourceLock(&g_rda_rules_pend_mutex);
+
+
+	lockResource(&g_rda_cur_rpts_mutex);
+
+	rpt_clear_lyst(&g_rda_cur_rpts, NULL, 0);
+    lyst_destroy(g_rda_cur_rpts);
+
+    unlockResource(&g_rda_cur_rpts_mutex);
+
+    killResourceLock(&g_rda_cur_rpts_mutex);
 }
 
 
 
 /******************************************************************************
  *
- * \par Function Name: rda_find_report
+ * \par Function Name: rda_get_report
  *
  * \par Purpose: Find the data report intended for a given recipient. The
  *               agent will, when possible, combine reports for a single
  *               recipient.
  *
- * \param[in]  built_reports - List of reports built during an RDA run.
  * \param[in]  recipient     - The recipient for which we are searching for
  *                             a report.
  *
@@ -107,34 +121,36 @@ void rda_cleanup(Lyst rules_pending, Lyst built_reports)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
+ *  05/20/15  E. Birrane     Switched to using global lyst
  *****************************************************************************/
 
-rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
+rpt_data_t *rda_get_report(eid_t recipient)
 {
     LystElt elt;
     rpt_data_t *cur_report = NULL;
     rpt_data_t *result = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_find_report","(0x%#llx, %s)",
-    		         (unsigned long) built_reports, recipient);
+    DTNMP_DEBUG_ENTRY("rda_get_report","(%s)", recipient.name);
     
     /* Step 0: Sanity check. */
-    if(recipient == NULL)
+    if(strlen(recipient.name) == 0)
     {
-    	DTNMP_DEBUG_ERR("rda_find_report","Bad parms.",NULL);
+    	DTNMP_DEBUG_ERR("rda_get_report","Bad parms.",NULL);
     	return NULL;
     }
 
+    lockResource(&g_rda_cur_rpts_mutex);
+
     /* Step 1: Search the list of reports identified so far. */
-    for (elt = lyst_first(built_reports); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(g_rda_cur_rpts); elt; elt = lyst_next(elt))
     {
         /* Step 1.1: Grab the current report */
         cur_report = (rpt_data_t*) lyst_data(elt);
         
         /* Step 1.2: Check if this report is destined for our recipient. */
-        if(strcmp(cur_report->recipient.name, recipient) == 0)
+        if(strcmp(cur_report->recipient.name, recipient.name) == 0)
         {
-            DTNMP_DEBUG_INFO("rda_find_report",
+            DTNMP_DEBUG_INFO("rda_get_report",
             		         "Found existing report for recipient %s", recipient);
 
             /* Step 1.2.1: Remeber report if it is a match. */
@@ -144,7 +160,7 @@ rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
             break;
         }
     }
-    
+
     /* 
      * Step 2: If there is no matching report, we will need to create a new
      *         one for this recipient.
@@ -152,15 +168,17 @@ rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
     if(result == NULL)
     {
     	eid_t rx;
-    	strcpy(rx.name,recipient);
+    	strcpy(rx.name,recipient.name);
     	result = rpt_create_data((uint32_t)getUTCTime(), lyst_create(), rx);
 
-    	DTNMP_DEBUG_INFO("rda_find_report","New report for recipient %s", recipient);
-        
-        lyst_insert_first(built_reports, result);
-    }        
-    
-    DTNMP_DEBUG_EXIT("rda_find_report","->0x%x", (unsigned long) result);
+    	DTNMP_DEBUG_INFO("rda_get_report","New report for recipient %s", recipient);
+
+        lyst_insert_first(g_rda_cur_rpts, result);
+    }
+
+    unlockResource(&g_rda_cur_rpts_mutex);
+
+    DTNMP_DEBUG_EXIT("rda_get_report","->0x%x", (unsigned long) result);
     
     return result;
 }
@@ -178,27 +196,27 @@ rpt_data_t *rda_find_report(Lyst built_reports, char *recipient)
  * \retval int -  0 : Success
  *               -1 : Failure
  *
- * \param[in,out]  rules_pending - List of rules that should be executed during
- *                                 this execution period.
  * \par Notes:
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
+ *  05/20/15  E. Birrane     Moved to global, mutex-protected lyst
  *****************************************************************************/
 
-int rda_scan_rules(Lyst rules_pending)
+int rda_scan_rules()
 {
     LystElt elt;
     rule_time_prod_t *rule_p = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_scan_rules","(0x%#llx)", (unsigned long)rules_pending);
+    DTNMP_DEBUG_ENTRY("rda_scan_rules","()", NULL);
 
     
     /* Step 0: Start with a fresh list for pending rules */
-    lyst_clear(rules_pending);
-    
+    lockResource(&g_rda_rules_pend_mutex);
+    lyst_clear(g_rda_rules_pend);
+    unlockResource(&g_rda_rules_pend_mutex);
     
     /* 
      * Step 1: Walk through each defined rule and see if it should be
@@ -227,8 +245,12 @@ int rda_scan_rules(Lyst rules_pending)
             	/* Step 1.2.2: If ready, add rule to list of rules pending
             	 *             evaluation in this current tick.
             	 */
-                lyst_insert_first(rules_pending, rule_p);
-                DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
+
+                lockResource(&g_rda_rules_pend_mutex);
+            	lyst_insert_first(g_rda_rules_pend, rule_p);
+                unlockResource(&g_rda_rules_pend_mutex);
+
+            	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
                 		         NULL);
             }
         }
@@ -287,7 +309,7 @@ int rda_scan_ctrls(Lyst exec_defs)
         }
 
         /* Step 1.2: Determine if this rule is ready for possible evaluation. */
-        if(ctrl_p->desc.state == CONTROL_ACTIVE)
+        if(ctrl_p->status == CONTROL_ACTIVE)
         {
         	/* Step 1.3: If the control is ready to execute, run it. */
         	if(ctrl_p->countdown_ticks <= 0)
@@ -295,7 +317,7 @@ int rda_scan_ctrls(Lyst exec_defs)
         		lcc_run_ctrl(ctrl_p);
 
         		/* Step 1.3.1: controls disable after they fire.*/
-        		ctrl_p->desc.state = CONTROL_INACTIVE;
+        		ctrl_p->status = CONTROL_INACTIVE;
         	}
         	/* Step 1.4: If the control is not ready, note a tick elapsed. */
         	else
@@ -352,7 +374,7 @@ int rda_clean_ctrls(Lyst exec_defs)
         }
 
         /* Step 1.2: Determine if this rule should be removed. */
-        if(ctrl_p->desc.state != CONTROL_ACTIVE)
+        if(ctrl_p->status != CONTROL_ACTIVE)
         {
         	/* Step 1.2.1: Remove control from the memory list. */
         	del_elt = elt;
@@ -365,7 +387,7 @@ int rda_clean_ctrls(Lyst exec_defs)
         			  gAgentDB.ctrls);
 
         	/* Step 1.2.3: Release the control object. */
-        	ctrl_release_exec(ctrl_p);
+        	ctrl_release(ctrl_p);
         }
     }
 
@@ -512,45 +534,45 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
  * \retval int -  0 : Success
  *               -1 : Failure
  *
- * \param[in,out]  rules_pending - List of rules that should be executed during
- *                                 this execution period.
- *
- * \param[in,out]  built_reports - List of reports being generted by the rda.
- *
  * \par Notes:
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
+ *  05/20/15  E. Birrane     Updated to use global, mutex-protected lysts
  *****************************************************************************/
 
-int rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
+int rda_eval_pending_rules()
 {
     
     LystElt pending_elt;
     rule_time_prod_t *rule_p = NULL;
     
     
-    DTNMP_DEBUG_ENTRY("rda_eval_pending_rules","(0x%x,0x%x)",
-    		          (unsigned long) rules_pending, (unsigned long) built_reports);
-    
+    DTNMP_DEBUG_ENTRY("rda_eval_pending_rules","()", NULL);
+
+    lockResource(&g_rda_rules_pend_mutex);
+
     DTNMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval%d rules.",
-    		         lyst_length(rules_pending));
-    
-    for (pending_elt = lyst_first(rules_pending); pending_elt; pending_elt = lyst_next(pending_elt))
+    		         lyst_length(g_rda_rules_pend));
+
+    for (pending_elt = lyst_first(g_rda_rules_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
         /* Grab the next rule...*/
         if((rule_p = (rule_time_prod_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_pending_rules",
             		        "Cannot find pending rule from elt 0x%x.", pending_elt);
+
+            unlockResource(&g_rda_rules_pend_mutex);
+
             DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
             return -1;
         }
         
         /* Evaluate the rule */
-        rpt_data_t *rpt = rda_find_report(built_reports, rule_p->desc.sender.name);
+        rpt_data_t *rpt = rda_get_report(rule_p->desc.sender);
 
         rda_eval_rule(rule_p, rpt);
         
@@ -563,7 +585,9 @@ int rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
             rule_p->desc.num_evals--;
         }
     }
-    
+
+    unlockResource(&g_rda_rules_pend_mutex);
+
     DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
     return 0;
 }
@@ -580,8 +604,6 @@ int rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
  * \retval int -  0 : Success
  *               -1 : Failure
  *
- * \param[in,out]  built_reports - List of reports generated by the rda.
- *
  * \par Notes:
  *		- When we construct the reports, we build one compound report
  *		  per recipient. By the time we get to this function, we should have
@@ -593,24 +615,26 @@ int rda_eval_pending_rules(Lyst rules_pending, Lyst built_reports)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
+ *  05/20/15  E. Birrane     Updated to use global, mutex-protected lyst
  *****************************************************************************/
 
-int rda_send_reports(Lyst built_reports)
+int rda_send_reports()
 {
     LystElt report_elt;
     rpt_data_t *report = NULL;
     uint8_t *raw_report = NULL;
     uint32_t raw_report_len = 0;
     
-    DTNMP_DEBUG_ENTRY("rda_send_reports","(0x%#llx)",
-    		         (unsigned long) built_reports);
+    DTNMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
+
+    lockResource(&g_rda_cur_rpts_mutex);
     
     DTNMP_DEBUG_INFO("rda_send_reports","Preparing to send %d reports.",
-    		         lyst_length(built_reports));
+    		         lyst_length(g_rda_cur_rpts));
     
 
     /* Step 1: For each report that has been built... */
-    for (report_elt = lyst_first(built_reports); report_elt; report_elt = lyst_next(report_elt))
+    for (report_elt = lyst_first(g_rda_cur_rpts); report_elt; report_elt = lyst_next(report_elt))
     {
         /*
          * Step 1.1: Grab the report. Bail if the report is bad. It is better to
@@ -621,6 +645,9 @@ int rda_send_reports(Lyst built_reports)
         {
             DTNMP_DEBUG_ERR("rda_send_reports","Can't find report from elt %x.",
             		        report_elt);
+
+            unlockResource(&g_rda_cur_rpts_mutex);
+
             DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
@@ -633,7 +660,10 @@ int rda_send_reports(Lyst built_reports)
         if((raw_report = rpt_serialize_data(report, &raw_report_len)) == NULL)
         {
         	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
-            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+
+            unlockResource(&g_rda_cur_rpts_mutex);
+
+        	DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
@@ -643,7 +673,10 @@ int rda_send_reports(Lyst built_reports)
         {
         	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
         	MRELEASE(raw_report);
-            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+
+            unlockResource(&g_rda_cur_rpts_mutex);
+
+        	DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
@@ -654,7 +687,10 @@ int rda_send_reports(Lyst built_reports)
         	/* This will also release the associated raw_report which was
         	 * shallow-copied into the message. */
         	pdu_release_msg(pdu_msg);
-            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+
+            unlockResource(&g_rda_cur_rpts_mutex);
+
+        	DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
@@ -670,7 +706,9 @@ int rda_send_reports(Lyst built_reports)
         /* Step 1.7: Update statistics. */
         gAgentInstr.num_sent_rpts++;
     }
-    
+
+    unlockResource(&g_rda_cur_rpts_mutex);
+
     DTNMP_DEBUG_EXIT("rda_send_reports","->0", NULL);
     return 0;    
 }
@@ -687,26 +725,26 @@ int rda_send_reports(Lyst built_reports)
  * \retval int -  0 : Success
  *               -1 : Failure
  *
- * \param[in,out]  rules_pending - The list of rules that were pending for
- *                                 evaluation during this period.
- *
  * \par Notes:
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
+ *  05/20/15  E. Birrane     Update to use global, mutex-protected lyst
  *****************************************************************************/
 
-int rda_eval_cleanup(Lyst rules_pending)
+int rda_eval_cleanup()
 {
     LystElt pending_elt;
     rule_time_prod_t *rule_p = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_eval_cleanup","(0x%#llx)", rules_pending);
+    DTNMP_DEBUG_ENTRY("rda_eval_cleanup","()", NULL);
         
+    lockResource(&g_rda_rules_pend_mutex);
+
     /* Step 1: For each pending rule...*/
-    for (pending_elt = lyst_first(rules_pending); pending_elt; pending_elt = lyst_next(pending_elt))
+    for (pending_elt = lyst_first(g_rda_rules_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
         /*
          * Step 1.1: Grab the next rule. If it is NULL, we stop processing
@@ -715,6 +753,9 @@ int rda_eval_cleanup(Lyst rules_pending)
         if((rule_p = (rule_time_prod_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
+
+            unlockResource(&g_rda_rules_pend_mutex);
+
             DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
             return -1;
         }
@@ -761,9 +802,13 @@ int rda_eval_cleanup(Lyst rules_pending)
         }
     }
 
+    unlockResource(&g_rda_rules_pend_mutex);
+
     DTNMP_DEBUG_EXIT("rda_eval_cleanup","->0", NULL);
     return 0;    
 }
+
+
 
 
 /******************************************************************************
@@ -795,14 +840,38 @@ void* rda_thread(void* threadId)
     struct timeval start_time;
     vast delta = 0;
 
-    Lyst rules_pending;
-    Lyst built_reports;
-    
     DTNMP_DEBUG_ENTRY("rda_thread","(0x%x)", threadId);
     
-    rules_pending = lyst_create();
-    built_reports = lyst_create();
-    
+	if((g_rda_cur_rpts = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Rpts Lyst!", NULL);
+		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+		return NULL;
+	}
+
+	if((g_rda_rules_pend = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Pending Rules Lyst!", NULL);
+		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+		return NULL;
+	}
+
+	if(initResourceLock(&g_rda_cur_rpts_mutex))
+	{
+        DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
+        		        strerror(errno));
+        DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+        return NULL;
+	}
+
+	if(initResourceLock(&g_rda_rules_pend_mutex))
+	{
+        DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
+        		        strerror(errno));
+        DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+        return NULL;
+	}
+
     DTNMP_DEBUG_INFO("rda_thread","Running Remote Data Aggregator Thread.", NULL);
    
     /* While the DTNMP Agent is running...*/
@@ -833,39 +902,44 @@ void* rda_thread(void* threadId)
         lockResource(&(gAgentVDB.rules_mutex));
 
         /* Step 1: Collect set of rules to be processed */
-        if(rda_scan_rules(rules_pending) == -1)
+        if(rda_scan_rules() == -1)
         {
             DTNMP_DEBUG_ERR("rda_thread","Problem scanning rule list. Exiting.", NULL);
-            rda_cleanup(rules_pending, built_reports);
+            rda_cleanup();
             pthread_exit(NULL);
         }
         
         /* Step 2: Evaluate each rule. */
-        if(rda_eval_pending_rules(rules_pending, built_reports) == -1)
+        if(rda_eval_pending_rules() == -1)
         {
             DTNMP_DEBUG_ERR("rda_thread","Problem evaluating rules. Exiting.", NULL);
-            rda_cleanup(rules_pending, built_reports);
+            rda_cleanup();
             pthread_exit(NULL);            
         }
         
         /* Step 3: Send out any built reports. */
-        if(rda_send_reports(built_reports) == -1)
+        if(rda_send_reports() == -1)
         {
             DTNMP_DEBUG_ERR("rda_thread","Problem sending built reports. Exiting.", NULL);
-            rda_cleanup(rules_pending, built_reports);
+            rda_cleanup();
             pthread_exit(NULL);
         }
         
         
         /* Step 4: Perform housekeeping for all evaluated rules. */
-        if(rda_eval_cleanup(rules_pending) == -1)
+        if(rda_eval_cleanup() == -1)
         {
             DTNMP_DEBUG_ERR("rda_thread","Problem cleaning up after rules eval. Exiting.", NULL);
-            rda_cleanup(rules_pending, built_reports);
+            rda_cleanup();
             pthread_exit(NULL);            
         }
 
-        rpt_clear_lyst(&built_reports, NULL, 0);
+        lockResource(&g_rda_cur_rpts_mutex);
+
+        rpt_clear_lyst(&g_rda_cur_rpts, NULL, 0);
+
+        unlockResource(&g_rda_cur_rpts_mutex);
+
 
         unlockResource(&(gAgentVDB.rules_mutex));
                 
@@ -879,7 +953,7 @@ void* rda_thread(void* threadId)
         
     } // end while
     
-    rda_cleanup(rules_pending, built_reports);
+    rda_cleanup();
 
     DTNMP_DEBUG_ALWAYS("rda_thread","Shutting Down Agent Data Aggregator Thread.",NULL);
 

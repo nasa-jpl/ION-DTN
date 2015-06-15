@@ -35,6 +35,7 @@
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
 #include "nm_mgr_db.h"
+#include "nm_mgr_names.h"
 #include "shared/primitives/rules.h"
 
 
@@ -557,6 +558,14 @@ int mgr_cleanup()
 	lyst_destroy(known_agents);
 	killResourceLock(&agents_mutex);
 
+	LystElt elt;
+	for(elt = lyst_first(gParmSpec); elt; elt = lyst_next(elt))
+	{
+		ui_parm_spec_t *spec = lyst_data(elt);
+		MRELEASE(spec);
+	}
+	lyst_destroy(gParmSpec);
+
 	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
 	killResourceLock(&macro_defs_mutex);
 
@@ -625,6 +634,8 @@ int mgr_init(char *argv[])
     	return -1;
     }
 
+	gParmSpec = lyst_create();
+
     if((macro_defs = lyst_create()) == NULL)
     {
         DTNMP_DEBUG_ERR("mgr_init","Failed to create macro def list.%s",NULL);
@@ -642,6 +653,7 @@ int mgr_init(char *argv[])
     	return -1;
     }
 
+    names_init();
 
 	adm_init();
 

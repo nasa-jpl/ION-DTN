@@ -1,20 +1,9 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  **
  ** File Name: lcc.c
  **
- ** Description: This implements the NM Agent Local Command and Control (LDC).
+ ** Description: This implements the NM Agent Local Command and Control (LCC).
+ **              This applies controls and macros.
  **
  ** Notes:
  **
@@ -25,12 +14,14 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/22/13  E. Birrane     Update to latest version of DTNMP. Cleanup.
+ **  05/17/15  E. Birrane     Add Macro support, updated to DTNMP v0.1
  *****************************************************************************/
 
 #include "shared/adm/adm.h"
 #include "shared/primitives/mid.h"
 #include "shared/primitives/rules.h"
 #include "shared/primitives/instr.h"
+#include "shared/primitives/ctrl.h"
 
 #include "nmagent.h"
 #include "lcc.h"
@@ -98,35 +89,40 @@ int lcc_run_ctrl_mid(mid_t *id)
     	gAgentInstr.num_ctrls_run++;
 
     }
-
-    /* Step 2: Otherwise, see if this identifies a pre-defined macro. */
-    else if((macro_def = def_find_by_id(gAgentVDB.macros, &(gAgentVDB.macros_mutex), id)) != NULL)
-    {
-    	LystElt elt;
-    	mid_t *mid;
-
-    	/*
-    	 * Step 2.1: This is a macro. Walk through each control running
-    	 *           the controls as we go.
-    	 */
-    	for(elt = lyst_first(macro_def->contents); elt; elt = lyst_next(elt))
-    	{
-    		mid = (mid_t *)lyst_data(elt);
-    		result = lcc_run_ctrl_mid(mid);
-    		if(result != 0)
-    		{
-    			DTNMP_DEBUG_WARN("lcc_run_ctrl_mid","Running MID %s returned %d",
-    					         msg, result);
-    		}
-    	}
-    }
-
-    /* Step 3: Otherwise, give up. */
     else
     {
-    	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Could not find control for MID %s",
-    			        msg);
-    	result = -1;
+    	if((macro_def = def_find_by_id(gAgentVDB.macros, &(gAgentVDB.macros_mutex), id)) == NULL)
+    	{
+    		macro_def = def_find_by_id(gAdmMacros, NULL, id);
+    	}
+
+    	if(macro_def != NULL)
+    	{
+    		LystElt elt;
+    		mid_t *mid;
+
+    		/*
+    		 * Step 2.1: This is a macro. Walk through each control running
+    		 *           the controls as we go.
+    		 */
+    		for(elt = lyst_first(macro_def->contents); elt; elt = lyst_next(elt))
+    		{
+    			mid = (mid_t *)lyst_data(elt);
+    			result = lcc_run_ctrl_mid(mid);
+    			if(result != 0)
+    			{
+    				DTNMP_DEBUG_WARN("lcc_run_ctrl_mid","Running MID %s returned %d",
+    						msg, result);
+    			}
+    		}
+    	}
+        /* Step 3: Otherwise, give up. */
+        else
+        {
+        	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Could not find control for MID %s",
+        			        msg);
+        	result = -1;
+        }
     }
 
     MRELEASE(msg);
@@ -169,32 +165,35 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 	DTNMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) ctrl_p);
 
 	/* Step 0: Sanity Check */
-	if(ctrl_p == NULL)
+	if((ctrl_p == NULL) || (ctrl_p->adm_ctrl == NULL) || (ctrl_p->adm_ctrl->run == NULL))
 	{
 		DTNMP_DEBUG_ERR("lcc_run_ctrl","Bad Args.",NULL);
 		DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> -1",NULL);
 		return -1;
 	}
 
+	result = ctrl_p->adm_ctrl->run(ctrl_p->mid->oid->params);
 
-    /* Step 1: Walk through the macro, running controls as we go. */
-    for (elt = lyst_first(ctrl_p->contents); elt; elt = lyst_next(elt))
-    {
-        /* Step 1.1: Grab the next ctrl...*/
-        if((cur_ctrl = (mid_t *) lyst_data(elt)) == NULL)
-        {
-            DTNMP_DEBUG_ERR("lcc_run_ctrl","Found NULL ctrl. Exiting", NULL);
-            DTNMP_DEBUG_EXIT("lcc_run_ctrl","->-1.", NULL);
-            return -1;
-        }
+	gAgentInstr.num_ctrls_run++;
 
-    	result = lcc_run_ctrl_mid(cur_ctrl);
-    	if(result != 0)
-    	{
-    		DTNMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
-    	}
-    }
+	if(result != 0)
+	{
+		DTNMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
+	}
 
 	DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", result);
 	return result;
 }
+
+// \todo Implement.
+int lcc_run_macro_mid(mid_t *id)
+{
+	return -1;
+}
+
+// \todo Implement.
+int lcc_run_macro(def_gen_t *macro)
+{
+	return -1;
+}
+

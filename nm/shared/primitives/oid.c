@@ -46,9 +46,6 @@
 #include "shared/primitives/oid.h"
 
 
-Lyst nn_db;
-ResourceLock nn_db_mutex;
-
 
 /******************************************************************************
  *
@@ -74,7 +71,6 @@ ResourceLock nn_db_mutex;
  *****************************************************************************/
 int oid_add_param(oid_t *oid, uint8_t *value, uint32_t len)
 {
-	int result = 0;
 	uint8_t *cursor = NULL;
 	Sdnv len_sdnv;
 	datacol_entry_t *entry = NULL;
@@ -149,8 +145,51 @@ int oid_add_param(oid_t *oid, uint8_t *value, uint32_t len)
 
 	lyst_insert_last(oid->params, entry);
 
-	DTNMP_DEBUG_EXIT("oid_add_param","->%d.",result);
-	return result;
+	DTNMP_DEBUG_EXIT("oid_add_param","->%d.",1);
+	return 1;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: oid_add_params
+ *
+ * \par Adds a set of parameters to a parameterized OID.
+ *
+ * \retval 0 Failure
+ *        !0 Success
+ *
+ * \param[in,out] oid     The OID getting a new param.
+ * \param[in]     params  The Lyst of new parameters.
+ *
+ * \par Notes:
+ *		1. The new parameter is allocated into the OID and, upon exit,
+ *		   the passed-in value may be released if necessary.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  05/28/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+int oid_add_params(oid_t *oid, Lyst params)
+{
+	LystElt elt;
+	datacol_entry_t* entry;
+
+	for(elt = lyst_first(params); elt; elt = lyst_next(elt))
+	{
+		entry = (datacol_entry_t*) lyst_data(elt);
+		if(oid_add_param(oid, entry->value, entry->length) == 0)
+		{
+			DTNMP_DEBUG_ERR("oid_add_params","Unable to add a parameter.",NULL);
+			DTNMP_DEBUG_EXIT("oid_add_params","-->0", NULL);
+			return 0;
+		}
+	}
+
+	DTNMP_DEBUG_EXIT("oid_add_params","-->1", NULL);
+	return 1;
 }
 
 
@@ -281,7 +320,7 @@ void oid_clear(oid_t *oid)
     }
 
     /* Step 1: Free parameters list. */
-    utils_datacol_destroy(&(oid->params));
+    dc_destroy(&(oid->params));
 
     /* Step 2: Bzero rest of the OID. */
     memset(oid, 0, sizeof(oid_t));
@@ -314,6 +353,7 @@ void oid_clear(oid_t *oid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
+ *  06/04/15  E. Birrane     Consider NN when comparing.
  *****************************************************************************/
 int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
 {
@@ -327,6 +367,7 @@ int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
 
     if(((oid1 == NULL) || (oid2 == NULL)) ||
        ((oid1->value_size != oid2->value_size)) ||
+       ((oid1->nn_id != oid2->nn_id)) ||
        ((oid1->type != oid2->type)))
     {
         DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
@@ -352,7 +393,7 @@ int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
     {
     	if((result == 0) && (lyst_length(oid1->params) > 0))
     	{
-    		result = utils_datacol_compare(oid1->params, oid2->params);
+    		result = dc_compare(oid1->params, oid2->params);
     	}
     }
 
@@ -405,7 +446,7 @@ oid_t *oid_copy(oid_t *src_oid)
     }
 
     /* Step 2: Deep copy parameters. */
-    result->params = utils_datacol_copy(src_oid->params);
+    result->params = dc_copy(src_oid->params);
 
     /* Step 3: Shallow copies the rest. */
     result->type = src_oid->type;
@@ -844,7 +885,7 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 	 */
 	if(size > 0)
 	{
-		if((new_oid->params = utils_datacol_deserialize(cursor, size, &bytes)) == NULL)
+		if((new_oid->params = dc_deserialize(cursor, size, &bytes)) == NULL)
 		{
 			DTNMP_DEBUG_ERR("oid_deserialize_param","Could not grab params.", NULL);
 
@@ -869,8 +910,88 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 	return new_oid;
 }
 
+uint8_t  oid_get_num_parms(oid_t *oid)
+{
+	DTNMP_DEBUG_ENTRY("oid_get_num_parms","(%#llx)", (unsigned long) oid);
+
+	/* Step 1 - Sanity Check. */
+	if(oid == NULL)
+	{
+		DTNMP_DEBUG_ERR("oid_get_num_parms","NULL OID.",NULL);
+		DTNMP_DEBUG_EXIT("oid_get_num_parms","->NULL.",NULL);
+		return 0;
+	}
+
+	/* Step 2 - Make sure this OID has parameters. */
+	if(oid->params == NULL)
+	{
+		DTNMP_DEBUG_ERR("oid_get_num_parms","OID has no parameters.",NULL);
+		DTNMP_DEBUG_EXIT("oid_get_num_parms","->NULL.",NULL);
+		return 0;
+	}
+
+	return lyst_length(oid->params);
+}
 
 
+/******************************************************************************
+ *
+ * \par Function Name: oid_get_param
+ *
+ * \par Purpose: Retrieves the ith parameter of a parameterized OID.
+ *
+ * \retval  NULL: Could not find parameter.
+ *         !NULL: The datacol entry representing this parameter.
+ *
+ * \param[in]  oid  The OID whose parameter is being queried.
+ * \param[in]  i    Which parameter to retrieve. 0 based.
+ *
+ * \par Notes:
+ *
+ *****************************************************************************/
+
+datacol_entry_t *oid_get_param(oid_t *oid, int i)
+{
+	datacol_entry_t *result = NULL;
+	LystElt elt = 0;
+
+	DTNMP_DEBUG_ENTRY("oid_get_param","(%#llx, %d)", (unsigned long) oid, i);
+
+	/* Step 1 - Sanity Check. */
+	if(oid == NULL)
+	{
+		DTNMP_DEBUG_ERR("oid_get_param","NULL OID.",NULL);
+		DTNMP_DEBUG_EXIT("oid_get_param","->NULL.",NULL);
+		return NULL;
+	}
+
+	/* Step 2 - Make sure this OID has parameters, and enough. */
+	if(oid->params == NULL)
+	{
+		DTNMP_DEBUG_ERR("oid_get_param","OID has no parameters.",NULL);
+		DTNMP_DEBUG_EXIT("oid_get_param","->NULL.",NULL);
+		return NULL;
+	}
+
+	if(lyst_length(oid->params) <= i)
+	{
+		DTNMP_DEBUG_ERR("oid_get_param","OID has %d parameters not %d,",lyst_length(oid->params), i);
+		DTNMP_DEBUG_EXIT("oid_get_param","->NULL.",NULL);
+		return NULL;
+	}
+
+	int cur_idx = 0;
+	for(elt = lyst_first(oid->params); elt != NULL; elt = lyst_next(elt))
+	{
+		if(cur_idx == i)
+		{
+			result = (datacol_entry_t *) lyst_data(elt);
+			break;
+		}
+	}
+
+	return result;
+}
 
 
 
@@ -1200,7 +1321,7 @@ uint8_t *oid_serialize(oid_t *oid, uint32_t *size)
 	/* Step 6: Copy in the parameters portion. */
 	if((oid->type == OID_TYPE_PARAM) || (oid->type == OID_TYPE_COMP_PARAM))
 	{
-		parms = utils_datacol_serialize(oid->params, &parm_size);
+		parms = dc_serialize(oid->params, &parm_size);
 		if((parms == NULL) || (parm_size == 0))
 		{
 			DTNMP_DEBUG_ERR("oid_serialize","Can't serialize parameters.",NULL);
@@ -1278,358 +1399,6 @@ char *oid_to_string(oid_t *oid)
     DTNMP_DEBUG_EXIT("oid_to_string","->%s.", result);
 	return result;
 }
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_add
- *
- * \par Purpose: Adds a nickname to the database.
- *
- * \retval 0 Failure.
- *         !0 Success.
- *
- * \param[in] oid The OID whose string representation is being calculated.
- *
- * \par Notes:
- *		1. We will allocate our own entry on addition, the passed-in structure
- *		   may be deleted or changed after this call.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-int oid_nn_add(oid_nn_t *nn)
-{
-	oid_nn_t *new_nn = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_add","(%#llx)",(unsigned long)nn);
-
-	/* Step 0: Sanity check. */
-	if(nn == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
-		return 0;
-	}
-
-	/* Need to lock early so our uniqueness check (step 1) doesn't change by
-	 * the time we go to insert in step 4. */
-	lockResource(&nn_db_mutex);
-
-	/* Step 1: Make sure entry doesn't already exist. */
-	if(oid_nn_exists(nn->id))
-	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Id 0x%x already exists in db.",
-				         nn->id);
-
-		unlockResource(&nn_db_mutex);
-
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
-		return 0;
-	}
-
-	/* Step 2: Allocate new entry. */
-	if ((new_nn = (oid_nn_t*)MTAKE(sizeof(oid_nn_t))) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Can't take %d bytes for new nn.",
-						sizeof(oid_nn_t));
-
-		unlockResource(&nn_db_mutex);
-
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
-		return 0;
-	}
-
-	/* Step 3: Populate new entry with passed-in data. */
-	memcpy(new_nn, nn, sizeof(oid_nn_t));
-
-
-	/* Step 4: Add new entry to the db. */
-
-	lyst_insert_first(nn_db, new_nn);
-    unlockResource(&nn_db_mutex);
-
-
-	DTNMP_DEBUG_EXIT("oid_nn_add","->1",NULL);
-	return 1;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_cleanup
- *
- * \par Purpose: Breaks down the nickname database.
- *
- * \retval void
- *
- * \par Notes:
- *		1.  We assume there are no other people who will use the nn_db after
- *		    this!
- *		2.  We also kill the mutex around the database.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-void oid_nn_cleanup()
-{
-    LystElt elt;
-    oid_nn_t *entry = NULL;
-
-    DTNMP_DEBUG_ENTRY("oid_nn_cleanup","()",NULL);
-
-    /* Step 0: Sanity Check. */
-    if(nn_db == NULL)
-    {
-    	DTNMP_DEBUG_WARN("oid_nn_cleanup","NN database already cleaned.",NULL);
-    	return;
-    }
-
-
-    /* Step 1: Wait for folks to be done with the database. */
-    lockResource(&nn_db_mutex);
-
-    /* Step 2: Release each entry. */
-    for (elt = lyst_first(nn_db); elt; elt = lyst_next(elt))
-    {
-    	entry = (oid_nn_t*) lyst_data(elt);
-    	if (entry != NULL)
-    	{
-    		MRELEASE(entry);
-    	}
-    	else
-    	{
-    		DTNMP_DEBUG_WARN("oid_nn_cleanup","Found NULL entry in nickname db.",
-    				         NULL);
-    	}
-    }
-    lyst_destroy(nn_db);
-
-    /* Step 3: Clean up locking mechanisms too. */
-    unlockResource(&nn_db_mutex);
-    killResourceLock(&nn_db_mutex);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_delete
- *
- * \par Purpose: Removes a nickname from the database.
- *
- * \retval 0 - Entry not found (or other error)
- * 		   !0 - Success.
- *
- * \param[in] nn_id The ID of the entry to remove.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-int oid_nn_delete(uvast nn_id)
-{
-	oid_nn_t *cur_nn = NULL;
-	LystElt tmp_elt;
-	int result = 0;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_delete","(%#llx)",nn_id);
-
-	/* Step 1: Need to lock to preserve validity of the lookup result. . */
-	lockResource(&nn_db_mutex);
-
-	/* Step 2: If you find it, delete it. */
-	if((tmp_elt = oid_nn_exists(nn_id)) != NULL)
-	{
-    	cur_nn = (oid_nn_t*) lyst_data(tmp_elt);
-		lyst_delete(tmp_elt);
-		MRELEASE(cur_nn);
-		result = 1;
-	}
-
-    unlockResource(&nn_db_mutex);
-
-	DTNMP_DEBUG_EXIT("oid_nn_delete","->%d",result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_exists
- *
- * \par Purpose: Determines if an ID is in the nickname db.
- *
- * \retval NULL - Not found.
- * 		   !NULL - ELT pointing to the found element.
- *
- * \param[in] nn_id The ID of the nickname whose existence is in question.
- *
- * \todo There is probably a smarter way to do this with a lyst find function
- * 	     and a search callback.
- *
- * \par Notes:
- *		1. LystElt is a pointer. Handle this handle with care.
- *		2. We break abstraction here and return a Lyst structure because this
- *		   lookup function is often called in the context of lyst maintenance,
- *		   but if we were to change the underlying nickname database storage
- *		   approach, this function would, clearly, need to change. Those who
- *		   do not like this approach are referred to the much less deprecable
- *		   function: oid_find.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-LystElt oid_nn_exists(uvast nn_id)
-{
-	oid_nn_t *cur_nn = NULL;
-	LystElt tmp_elt = NULL;
-	LystElt result = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_exists","(%#llx)",nn_id);
-
-	/* Step 0: Make sure no +/-'s while we search. */
-	lockResource(&nn_db_mutex);
-
-    for(tmp_elt = lyst_first(nn_db); tmp_elt; tmp_elt = lyst_next(tmp_elt))
-    {
-    	cur_nn = (oid_nn_t*) lyst_data(tmp_elt);
-    	if(cur_nn != NULL)
-    	{
-    		if(cur_nn->id == nn_id)
-    		{
-    			result = tmp_elt;
-    			break;
-    		}
-    	}
-    	else
-    	{
-    		DTNMP_DEBUG_WARN("oid_nn_exists","Encountered NULL nn?",NULL);
-    	}
-    }
-
-    unlockResource(&nn_db_mutex);
-
-	DTNMP_DEBUG_EXIT("oid_nn_delete","->%x",result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_find
- *
- * \par Purpose: Convenience function to grab a nickname entry from its ID.
- *
- * \retval NULL - Item not found.
- *         !NULL - Handle to the found item.
- *
- * \param[in] nn_id  The ID of the nickname to find.
- *
- * \todo There is probably a smarter way to do this with a lyst find function
- * 	     and a search callback.
- *
- * \par Notes:
- *		1. The returned pointer should NOT be released. It points directly into
- *		   the nickname list.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-oid_nn_t* oid_nn_find(uvast nn_id)
-{
-	LystElt tmpElt = NULL;
-	oid_nn_t *result = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_find","(%#llx)",nn_id);
-
-	/* Step 0: Call exists function (exists should block mutex, so we don't. */
-	if((tmpElt = oid_nn_exists(nn_id)) != NULL)
-	{
-		result = (oid_nn_t*) lyst_data(tmpElt);
-	}
-
-	DTNMP_DEBUG_EXIT("oid_nn_find","->%#llx",result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_init
- *
- * \par Purpose: Initialize the nickname database for OIDs.
- *
- * \retval <0 - Failure.
- * 		    0 - Success.
- *
- * \param[in] nn_id  The ID of the nickname to find.
- *
- * \todo Add functions here to read the nickname database from persistent
- *       storage, such as an SDR.
- *
- * \par Notes:
- *		1. nn_db must only hold items that have been dynamically allocated
- *		   from the	memory pool.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-int oid_nn_init()
-{
-	DTNMP_DEBUG_ENTRY("oid_init_nn_db","()",NULL);
-
-	/* Step 0: Sanity Check. */
-	if(nn_db != NULL)
-	{
-		DTNMP_DEBUG_WARN("oid_nn_init","Trying to init existing NN db.",NULL);
-		return 0;
-	}
-
-	if((nn_db = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_nn_init","Can't allocate NN DB!", NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_init","->-1.",NULL);
-		return -1;
-	}
-
-	if(initResourceLock(&nn_db_mutex))
-	{
-        DTNMP_DEBUG_ERR("oid_init_nn_db","Unable to initialize mutex, errno = %s",
-        		        strerror(errno));
-        DTNMP_DEBUG_EXIT("oid_init_nn_db","->-1.",NULL);
-        return -1;
-	}
-
-    DTNMP_DEBUG_EXIT("oid_init_nn_db","->0.",NULL);
-	return 0;
-}
-
-
-
-
-
 
 
 
