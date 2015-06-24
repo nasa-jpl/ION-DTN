@@ -729,13 +729,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int ltp_is_up(int tokenCount, char** tokens)
+static int ltp_is_up(int tokenCount, char** tokens, int count, int max)
 {
 	if (strcmp(tokens[1], "p") == 0) //poll
 	{
 		if (tokenCount < 3) //use default timeout
 		{
-			int count = 1;
 			while (count <= 120 && !ltp_engine_is_started())
 			{
 				microsnooze(250000);
@@ -754,8 +753,6 @@ static int ltp_is_up(int tokenCount, char** tokens)
 		}
 		else //use user supplied timeout
 		{
-			int max = atoi(tokens[2]) * 4;
-			int count = 1;
 			while (count <= max && !ltp_engine_is_started())
 			{
 				microsnooze(250000);
@@ -773,18 +770,10 @@ static int ltp_is_up(int tokenCount, char** tokens)
 			}
 		}
 	}
-	else //check once
+	else
 	{
-		if (ltp_engine_is_started())
-		{
-			printText("LTP engine is started");
-			return 1;
-		}
-		else
-		{
-			printText("LTP engine is not started");
-			return 0;
-		}
+		printText("Error in arguments: exiting");
+		return 0;
 	}
 }
 
@@ -797,6 +786,9 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	int max = 0;
+	int count = 0;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 12; i++)
@@ -967,11 +959,59 @@ command.");
 			return 0;
 
 		case 't':
-			if (attachToLtp() == 0)
+			if (strcmp(tokens[1], "p") == 0) //poll
 			{
-				exit(ltp_is_up(tokenCount, tokens));
+				if (tokenCount < 3) //use default timeout
+				{
+					count = 1;
+					while (count <= max && attachToLtp() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > 120) //ltp engine is not started
+					{
+						printText("LTP engine is not started");
+						return 0;
+					}
+					else //ltp engine is started
+					{
+						exit(ltp_is_up(tokenCount, tokens, count, 120));
+					}
+				}
+				else //use user supplied timeout
+				{
+					max = atoi(tokens[2]) * 4;
+					count = 1;
+					while (count <= max && attachToLtp() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > max) //ltp engine is not started
+					{
+						printText("LTP engine is not started");
+						return 0;
+					}
+					else //ltp engine is started
+					{
+						exit(ltp_is_up(tokenCount, tokens, count, max));
+					}
+				}
 			}
-
+			else //check once
+			{
+				if (ltp_engine_is_started())
+				{
+					printText("LTP engine is started");
+					return 1;
+				}
+				else
+				{
+					printText("LTP engine is not started");
+					return 0;
+				}
+			}
 		case 'q':
 			return -1;	/*	End program.		*/
 
