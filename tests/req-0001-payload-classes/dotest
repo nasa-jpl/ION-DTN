@@ -30,7 +30,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
-./ionstart > node1.stdout 
+./ionstart > node1.stdout
 cd ../2.ipn.ltp
 ./ionstart >& node2.stdout &
 cd ../3.ipn.ltp
@@ -39,7 +39,7 @@ cd ../4.ipn.ltp
 ./ionstart >& node4.stdout &
 
 cd ../1.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
 
 if [ $? -eq 3 ]
 then
@@ -50,7 +50,7 @@ else
 fi
 
 cd ../2.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
 
 if [ $? -eq 3 ]
 then
@@ -61,7 +61,7 @@ else
 fi
 
 cd ../3.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
 
 if [ $? -eq 3 ]
 then
@@ -72,7 +72,7 @@ else
 fi
 
 cd ../4.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
 
 if [ $? -eq 3 ]
 then
@@ -81,8 +81,6 @@ else
 	echo "Node 4 not started: Aborting Test"
 	exit 0
 fi
-
-#sleep 10
 
 echo "Inserting first set of contacts...."
 cd ../1.ipn.ltp
