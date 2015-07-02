@@ -726,8 +726,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	attendant = _attendant();
 	if (attendant)
 	{
-		ionStopAttendant(attendant);
-		MRELEASE(attendant);
+		ionPauseAttendant(attendant);
 	}
 
 	/*	Stop user application input thread.			*/
@@ -774,6 +773,12 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	if (attendant)
+	{
+		ionStopAttendant(attendant);
+		MRELEASE(attendant);
+	}
+
 	cfdpvdb->utaPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
@@ -1136,7 +1141,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	fdubuf->messagesToUser = sdr_list_create(sdr);
 	fdubuf->filestoreRequests = sdr_list_create(sdr);
 	fdubuf->extents = sdr_list_create(sdr);
-	fdubuf->ckType = ModularChecksum;
+	fdubuf->ckType = entity->inCkType;
 	fduObj = sdr_malloc(sdr, sizeof(InFdu));
 	if (fduObj == 0 || fdubuf->messagesToUser == 0
 	|| fdubuf->filestoreRequests == 0 || fdubuf->extents == 0
@@ -1236,7 +1241,7 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 
 	cfdp_decompress_number(&entity.entityId,
 			&transactionId->sourceEntityNbr);
-	entity.ckType = ModularChecksum;
+	entity.inCkType = ModularChecksum;
 	entity.inboundFdus = sdr_list_create(sdr);
 	entityObj = sdr_malloc(sdr, sizeof(Entity));
 	if (entity.inboundFdus == 0 || entityObj == 0
@@ -4279,7 +4284,6 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = ((*cursor) >> 4) & 0x0f;
-	fdu->ckType = (*cursor) & 0x01;
 	cursor++;
 	bytesRemaining--;
 	fdu->eofChecksum = 0;

@@ -101,7 +101,7 @@ typedef struct
 	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
 	char			sourceFileName[256];
-	unsigned int		recordBoundsRespected;	/*	Boolean	*/
+	unsigned int		recordBoundsRespected;	/*	Boolean.*/
 	unsigned int		closureLatency;		/*	Seconds.*/
 	unsigned int		finishReceived;		/*	Boolean.*/
 
@@ -186,7 +186,8 @@ typedef struct
 typedef struct
 {
 	uvast			entityId;
-	CfdpCksumType		ckType;
+	CfdpCksumType		outCkType;
+	CfdpCksumType		inCkType;
 	Object			inboundFdus;	/*	sdrlist: InFdu	*/
 } Entity;
 

@@ -422,6 +422,16 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 	}
 }
 
+int	bp_memo(Object bundleObj, unsigned int interval)
+{
+	if (interval == 0)
+	{
+		return 0;
+	}
+
+	return bpMemo(bundleObj, interval);
+}
+
 int	bp_suspend(Object bundleObj)
 {
 	Sdr		sdr = getIonsdr();

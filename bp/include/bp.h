@@ -255,6 +255,17 @@ extern void		bp_untrack(	Object bundleObj,
 			 *	is in that list.  Does not delete
 			 *	trackingElt itself.			*/
 
+extern int		bp_memo(	Object bundleObj,
+					unsigned int interval); 
+			/*	Inserts a "custody-acceptance due"
+			 *	event into the timeline.  The event
+			 *	causes the indicated bundle to be
+			 *	re-forwarded if it is still in the
+			 *	database (i.e., it has not yet been
+			 *	accepted by another custodian) as of
+			 *	the time computed by adding interval
+			 *	to the current time.			*/
+
 extern int		bp_suspend(	Object bundleObj);
 			/*	Suspends transmission of this bundle.	*/
 
