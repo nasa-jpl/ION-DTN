@@ -15,6 +15,64 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
+static int 	compareNeighbors(PsmPartition partition, PsmAddress eltData,
+			void *argData)
+{
+	NdpNeighbor	 *neighbor = psp(partition, eltData);
+	char		*targetEid = (char *) argData;
+
+	return strncmp(neighbor->eid, targetEid, MAX_EID_LEN);
+}
+
+static int	addNdpNeighbor(char *eid)
+{
+	PsmPartition	wm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	elt;
+	PsmAddress	neighborAddr;
+	NdpNeighbor	*neighbor;
+
+	elt = bp_discover_find_neighbor(eid);
+	if (elt)
+	{
+		return 0;
+	}
+
+	neighborAddr = psm_malloc(wm, sizeof(NdpNeighbor));
+	if (neighborAddr == 0)
+	{
+		putErrmsg("Can't add NdpNeighbor.", eid);
+		return -1;
+	}
+
+	neighbor = (NdpNeighbor *) psp(wm, neighborAddr);
+	istrcpy(neighbor->eid, eid, sizeof neighbor->eid);
+	neighbor->lastContactTime = getUTCTime();
+	if (sm_list_insert(wm, vdb->neighbors, neighborAddr, compareNeighbors,
+			eid) < 0)
+	{
+		putErrmsg("Can't add NdpNeighbor.", eid);
+		return -1;
+	}
+
+	return 0;
+}
+
+static void	deleteNdpNeighbor(char *eid)
+{
+	PsmPartition	wm = getIonwm();
+	PsmAddress	elt;
+	PsmAddress	neighborAddr;
+
+	elt = bp_discover_find_neighbor(eid);
+	if (elt)
+	{
+		neighborAddr = sm_list_data(wm, elt);
+		psm_free(wm, neighborAddr);
+		sm_list_delete(wm, elt, NULL, NULL);
+	}
+}
+
 static int	plansAgree(Object planObj, ClProtocol *claProtocol,
 			char *outductName)
 {
@@ -76,10 +134,10 @@ static int	addOutductToNeighbor(ClProtocol *claProtocol, char *outductName,
 	return 0;
 }
 
-static int	addIpnNeighbor(MetaEid *metaEid, ClProtocol *claProtocol,
-			char *outductName, char *destDuctName,
-			char *outductDaemon, unsigned int xmitRate,
-			unsigned int recvRate)
+static int	addIpnNeighbor(MetaEid *metaEid, char *neighborEid,
+			ClProtocol *claProtocol, char *outductName,
+			char *destDuctName, char *outductDaemon,
+			unsigned int xmitRate, unsigned int recvRate)
 {
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	Object		planObj;
@@ -143,6 +201,12 @@ static int	addIpnNeighbor(MetaEid *metaEid, ClProtocol *claProtocol,
 	if (bpUnblockOutduct(claProtocol->name, outductName) < 0)
 	{
 		putErrmsg("Can't unblock outduct.", outductName);
+		return -1;
+	}
+
+	if (addNdpNeighbor(neighborEid) < 0)
+	{
+		putErrmsg("Can't add discovered Neighbor.", neighborEid);
 		return -1;
 	}
 
@@ -216,6 +280,12 @@ static int	addDtn2Neighbor(char *neighborEid, ClProtocol *claProtocol,
 	if (bpUnblockOutduct(claProtocol->name, outductName) < 0)
 	{
 		putErrmsg("Can't unblock outduct.", outductName);
+		return -1;
+	}
+
+	if (addNdpNeighbor(neighborEid) < 0)
+	{
+		putErrmsg("Can't add discovered Neighbor.", neighborEid);
 		return -1;
 	}
 
@@ -322,8 +392,9 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 	else if (strcmp(metaEid.schemeName, "ipn") == 0)
 	{
 		restoreEidString(&metaEid);
-		return addIpnNeighbor(&metaEid, &protocol, outductName,
-			destDuctName, outductDaemon, xmitRate, recvRate);
+		return addIpnNeighbor(&metaEid, neighborEid, &protocol,
+			outductName, destDuctName, outductDaemon, xmitRate,
+			recvRate);
 	}
 	else
 	{
@@ -355,6 +426,7 @@ int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
+	deleteNdpNeighbor(neighborEid);
 	if (strcmp(claProtocol, "udp") == 0)
 	{
 		return 0;	/*	Nothing to do.			*/
@@ -373,7 +445,6 @@ int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
-
 	if (rfx_remove_contact(0, ownNodeNbr, metaEid.nodeNbr) < 0)
 	{
 		putErrmsg("Can't remove transmission contact.", socketSpec);
@@ -389,3 +460,11 @@ int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
 	return 0;
 }
 
+PsmAddress	bp_discover_find_neighbor(char *eid)
+{
+	PsmPartition	wm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+
+	return sm_list_search(wm, sm_list_first(wm, vdb->neighbors),
+			compareNeighbors, eid);
+}

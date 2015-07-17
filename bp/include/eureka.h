@@ -36,7 +36,7 @@ extern "C" {
 	protocol is tcp, the socketSpec will have
 	the form ipaddress:port or hostname:port.
  * @param  socketSpec      socketSpec for the required CLA.
- * @param  neighborNodeEid Node identification. 
+ * @param  neighborEid     Node identification. 
  * @param  claProtocol     Target CLA.
  * @param  xmitRate        Neighbor's rate of receiving data.
  * @param  recvRate        Neighbor's rate of sending data.
@@ -54,7 +54,7 @@ extern int	bp_discover_contact_acquired(
 	communication contact previously noted
 	by bp_discover_contact_acquired().
  * @param  socketSpec      socketSpec of the terminated contact.
- * @param  neighborNodeEid Node identification. 
+ * @param  neighborEid     Node identification. 
  * @param  claProtocol	   Target CLA.
  * @return                 0 on success, -1 on error.
  */
@@ -62,6 +62,15 @@ extern int	bp_discover_contact_lost(
 				char *socketSpec,
 				char *neighborEid,
 				char *claProtocol);
+
+/**
+ * Locates a neighbor previously noted
+	by bp_discover_contact_acquired().
+ * @param  neighborEid     Node identification. 
+ * @return                 SmList elt on success, 0 if neighbor not found.
+ */
+extern PsmAddress	bp_discover_find_neighbor(
+				char *neighborEid);
 
 #ifdef __cplusplus
 }

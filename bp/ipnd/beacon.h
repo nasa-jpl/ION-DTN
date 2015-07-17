@@ -1,13 +1,14 @@
 /*
- *  beacon.h -- DTN IP Neighbor Discovery (IPND). Beacon related functions.
- *  These functions allow to manage IPND beacons. *
- *  
+ *	beacon.h -- DTN IP Neighbor Discovery (IPND). Beacon related
+ *	functions.  These functions enable management of IPND beacons.
+ *
  *	Copyright (c) 2015, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *	Author: Gerard Garcia, TrePe
  *	Version 1.0 2015/05/09 Gerard Garcia
- *  Version 2.0 DTN Neighbor Discovery - ION IPND Implementation Assembly Part2
+ *	Version 2.0 DTN Neighbor Discovery -
+ *		ION IPND Implementation Assembly Part2
  */
 
 #ifndef _BEACON_H_
@@ -33,22 +34,22 @@ typedef struct
 	unsigned char	flags;
 	unsigned int	sequenceNumber;
 	char		canonicalEid[MAX_EID_LEN];
-	Lyst		services; // list of ServiceDefinitions
+	Lyst		services;	/*	ServiceDefinitions	*/
 	int		period;
 	struct bloom	bloom;
 } Beacon;
 
-char *logBeacon(Beacon *beacon);
-int beaconChanged(Beacon *beacon, const int period);
-int populateBeacon(Beacon *beacon, const int period);
-int serializeBeacon(Beacon *beacon, unsigned char **rawBeacon);
-int deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
-                      Beacon *deserializedBeacon);
-void clearBeacon(Beacon* beacon);
-void copyBeacon(Beacon* dest, Beacon* src);
+extern char	*logBeacon(Beacon *beacon);
+extern int	beaconChanged(Beacon *beacon, const int period);
+extern int	populateBeacon(Beacon *beacon, const int period);
+extern int	serializeBeacon(Beacon *beacon, unsigned char **rawBeacon);
+extern int	deserializeBeacon(unsigned char *rawBeacon,
+			const int rawBeaconLength, Beacon *deserializedBeacon);
+extern void	clearBeacon(Beacon* beacon);
+extern void	copyBeacon(Beacon* dest, Beacon* src);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/* _BEACON_H_ */
+#endif

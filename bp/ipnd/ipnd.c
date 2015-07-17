@@ -1,13 +1,15 @@
 /*
  *	ipnd.c -- DTN IP Neighbor Discovery (IPND). Initializes IPND context,
  *	loads configuration and launches the main threads.
- *	
+ *
  *	Copyright (c) 2015, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *	Author: Gerard Garcia, TrePe
  *	Version 1.0 2015/05/09 Gerard Garcia
- *  Version 2.0 DTN Neighbor Discovery - ION IPND Implementation Assembly Part2
+ *	Version 2.0 DTN Neighbor Discovery
+ *		- ION IPND Implementation Assembly Part2
+ *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  */
 
 #include <stdlib.h>
@@ -19,14 +21,14 @@
 #include "ipndP.h"
 #include "node.h"
 
-#define DEFAULT_EID "dtn://IPNDTestNode"
-#define DEFAULT_ANNOUNCE_EID 1
-#define DEFAULT_ANNOUNCE_PERIOD 1
-#define DEFAULT_PORT 40000
-#define DEFAULT_MULTICAST_TTL 255
-#define DEFAULT_UNICAST_PERIOD 5
-#define DEFAULT_MULTICAST_PERIOD 7
-#define DEFAULT_BROADCAST_PERIOD 11
+#define DEFAULT_EID			""
+#define DEFAULT_ANNOUNCE_EID		1
+#define DEFAULT_ANNOUNCE_PERIOD		1
+#define DEFAULT_PORT			40000
+#define DEFAULT_MULTICAST_TTL		255
+#define DEFAULT_UNICAST_PERIOD		5
+#define DEFAULT_MULTICAST_PERIOD	7
+#define DEFAULT_BROADCAST_PERIOD	11
 
 /**
  * Definition of TAGs, handled as lines from config
@@ -69,7 +71,7 @@ static void	interruptThread()
 /**
  * Handles global IPND context.
  * @param  newCtx New IPNDCtx pointer.
- * @return		  IPNDCtx context.
+ * @return IPNDCtx context.
  */
 static IPNDCtx	*_IPNDCtx(IPNDCtx *newCtx)
 {
@@ -100,8 +102,9 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	isprintf(buffer, sizeof buffer, "Syntax error at line %d of ipnc.c.",
-			 lineNbr);
+	isprintf(buffer, sizeof buffer,
+		"Syntax error in configuration file (line %d of ipnc.c)",
+		lineNbr);
 	printText(buffer);
 }
 
@@ -132,7 +135,7 @@ static void	printUsage()
 	PUTS("\ts\tStart");
 	PUTS("\t   s");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
-	PUTS("\t   e { 0 | 1 }");	
+	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
@@ -142,7 +145,7 @@ static int	processLine(char *line, int lineLength);
 
 /**
  * Initializes IPND context and loads its default values.
- * @return			  0 on succses, -1 on error.
+ * @return 0 on success, -1 on error.
  */
 static int	initializeIpnd()
 {
@@ -195,12 +198,18 @@ static int	initializeIpnd()
 
 	_IPNDCtx(ctx);
 
-	// process tagDefLines
-
+	/* process tagDefLines */
 	int i;
+
 	for (i = 0; i < sizeof(tagDefLines) / sizeof(tagDefLines[0]); i++)
 	{
 		processLine(tagDefLines[i], strlen(tagDefLines[i]));
+	}
+
+	if (ipnInit() < 0)
+	{
+		putErrmsg("Can't load IPN routing database.", NULL);
+		return -1;
 	}
 
 	printText("[i] IPND initialized.");
@@ -211,18 +220,23 @@ static int	initializeIpnd()
 /* Updates ctx->nbf as well as NBF-Bits service in ctx->services if present */
 void updateCtxNbf(char* eid, int eidLen)
 {
-	IPNDCtx			*ctx = getIPNDCtx();
+	IPNDCtx	*ctx = getIPNDCtx();
 
 	if (!ctx) return;
 	bloom_add(&ctx->nbf, eid, eidLen);
 
-	// find service 127 NBF-Bits and update it with bytes
+	/* find service 127 NBF-Bits and update it with bytes */
 
 	LystElt			cur, next;
-	ServiceDefinition* 	def;
-	uvast 			len1, len2;
-	int 			cnt1, cnt2;
-	Sdnv			 sdnvTmp1, sdnvTmp2;
+	ServiceDefinition	*def;
+	uvast			len1, len2;
+	int			cnt1, cnt2;
+	Sdnv			sdnvTmp1, sdnvTmp2;
+
+	if (lyst_length(ctx->services) == 0)
+	{
+		return;
+	}
 
 	for (cur = lyst_first(ctx->services); cur != NULL; cur = next)
 	{
@@ -234,15 +248,13 @@ void updateCtxNbf(char* eid, int eidLen)
 			cnt2 = decodeSdnv(&len2, def->data + 1 + cnt1 + 1);
 			if (len2 == ctx->nbf.bytes)
 			{
-				// just replace bytes
-
+				/* just replace bytes */
 				memcpy(def->data + 1 + cnt1 + 1 + cnt2,
 						ctx->nbf.bf, len2);
 			}
 			else
 			{
-				// we need to reallocate
-
+				/* we need to reallocate */
 				len2 = ctx->nbf.bytes;
 				encodeSdnv(&sdnvTmp2, len2);
 				len1 = 1 + sdnvTmp2.length + len2;
@@ -250,9 +262,8 @@ void updateCtxNbf(char* eid, int eidLen)
 				MRELEASE(def->data);
 				def->dataLength = 1 + sdnvTmp1.length + len1;
 				def->data = MTAKE(def->dataLength);
-				def->data[0] = 127; // NBF-Bits
+				def->data[0] = 127; /* NBF-Bits */
 				def->data[1 + sdnvTmp1.length] = 9;
-					// byte array
 				memcpy(def->data + 1, sdnvTmp1.text,
 						sdnvTmp1.length);
 				memcpy(def->data + 1 + sdnvTmp1.length + 1,
@@ -270,7 +281,7 @@ void updateCtxNbf(char* eid, int eidLen)
 /**
  * Adds a new IPND destination
  * @param  ip Ip of the new destination.
- * @return	  0 on succses, -1 on error.
+ * @return 0 on success, -1 on error.
  */
 static int	addDestination(char *ip)
 {
@@ -280,6 +291,7 @@ static int	addDestination(char *ip)
 	int		addressType = getIpv4AddressType(ip);
 
 	CHKCTX(ctx);
+
 	if (addressType == -1)
 	{
 		putErrmsg("Unsupported address.", NULL);
@@ -289,33 +301,37 @@ static int	addDestination(char *ip)
 	dest = (Destination *) MTAKE(sizeof(Destination));
 	istrcpy(dest->addr.ip, ip, INET_ADDRSTRLEN);
 	dest->addr.port = ctx->port;
+	*dest->eid = '\0';
 	dest->announcePeriod = ctx->announcePeriods[addressType];
 	dest->nextAnnounceTimestamp = time(NULL);
 	dest->fixed = 1;
+
 	lyst_insert(ctx->destinations, dest);
+
 	if (addressType == BROADCAST)
 	{
 		ctx->enabledBroadcastSending = 1;
 	}
 
-	isprintf(buffer, sizeof buffer, "[i] Destination %s:%d added with \
-announcement interval %d.", dest->addr.ip, dest->addr.port,
-			dest->announcePeriod);
+	isprintf(buffer, sizeof buffer,
+		"[i] Destination %s:%d added with announcement interval %d.",
+		dest->addr.ip, dest->addr.port, dest->announcePeriod);
 	printText(buffer);
+
 	return 0;
 }
 
 /**
  * Adds a new address where IPND will listen for beacons.
  * @param  address New address.
- * @return		   0 on succses, -1 on error.
+ * @return 0 on success, -1 on error.
  */
 static int	addListen(char *address)
 {
 	char		buffer[80];
 	IPNDCtx		*ctx = getIPNDCtx();
 	NetAddress	*newlistenAddress;
-	int			addressType = getIpv4AddressType(address);
+	int		addressType = getIpv4AddressType(address);
 
 	CHKCTX(ctx);
 
@@ -333,6 +349,7 @@ static int	addListen(char *address)
 	newlistenAddress = (NetAddress *)MTAKE(sizeof(NetAddress));
 	istrcpy(newlistenAddress->ip, address, INET_ADDRSTRLEN);
 	newlistenAddress->port = ctx->port;
+
 	lyst_insert(ctx->listenAddresses, newlistenAddress);
 
 	if (addressType == BROADCAST)
@@ -341,7 +358,7 @@ static int	addListen(char *address)
 	}
 
 	isprintf(buffer, sizeof buffer, "[i] Listening on address %s:%d.",
-			 newlistenAddress->ip, newlistenAddress->port);
+			newlistenAddress->ip, newlistenAddress->port);
 	printText(buffer);
 
 	return 0;
@@ -350,28 +367,29 @@ static int	addListen(char *address)
 /**
  * Parses service configure command and adds service definition to ctx->tags
  * @param  tokenCount Number of tokens in tokens.
- * @param  tokens	  Command tokens
- * @return			  0 on success, -1 on error.
+ * @param  tokens     Command tokens
+ * @return 0 on success, -1 on error.
  */
 static int	configService(int tokenCount, char** tokens)
 {
 	IPNDCtx		*ctx = getIPNDCtx();
 	int		i, j;
-	char*		p;
-	IpndTagChild*	tagChild;
+	char		*p;
+	IpndTagChild	*tagChild;
 
 	CHKCTX(ctx);
 
-	// first token contains tag id
+	/* first token contains tag id */
 
 	unsigned char id = (unsigned char) atoi(tokens[0]);
+
 	ctx->tags[id].number = id;
 
-	// second token contains tag name
+	/* second token contains tag name */
 
 	istrcpy(ctx->tags[id].name, tokens[1], IPND_MAX_TAG_NAME_LENGTH + 1);
 
-	/* third token contains "fixed", "variable", "explicit" 
+	/* third token contains "fixed", "variable", "explicit"
 	 * or "param1name:param1type" */
 
 	if (strcmp(tokens[2], "fixed") == 0 && tokenCount == 4)
@@ -390,7 +408,7 @@ static int	configService(int tokenCount, char** tokens)
 	{
 		ctx->tags[id].lengthType = 0;
 
-		// process all "paramXname:paramXtype"
+		/* process all "paramXname:paramXtype" */
 
 		for (i = 2; i < tokenCount; i++)
 		{
@@ -400,18 +418,18 @@ static int	configService(int tokenCount, char** tokens)
 				return -1;
 			}
 
-			// find tag with tag name "paramXtype"
+			/* find tag with tag name "paramXtype" */
 
 			for (j = 0; j < 256; j++)
 			{
 				if (strncmp(ctx->tags[j].name, p + 1,
-						IPND_MAX_TAG_NAME_LENGTH) == 0)
+					IPND_MAX_TAG_NAME_LENGTH) == 0)
 				{
 					break;
 				}
 			}
 
-			if (j < 256) // found such tag
+			if (j < 256) /* found such tag */
 			{
 				if (ctx->tags[id].children == NULL)
 				{
@@ -426,6 +444,7 @@ static int	configService(int tokenCount, char** tokens)
 				*p = '\0';
 				istrcpy(tagChild->name, tokens[i],
 						IPND_MAX_TAG_NAME_LENGTH + 1);
+
 				lyst_insert(ctx->tags[id].children,
 						(void*) tagChild);
 			}
@@ -446,22 +465,21 @@ static int	configService(int tokenCount, char** tokens)
 /**
  * Converts previously assigned human readable strings into IPND protocol bytes
  * @param  tags Definitions of known tags.
- * @param  child	  Tag child to convert
- * @param  data 	  Buffer to fill with bytes
- * @param  dataLen	  Current position in buffer filled
- * @param  maxLen	  Buffer limit
- * @return			  read number of bytes, -1 on error.
+ * @param  child    Tag child to convert
+ * @param  data     Buffer to fill with bytes
+ * @param  dataLen  Current position in buffer filled
+ * @param  maxLen   Buffer limit
+ * @return read number of bytes, -1 on error.
  */
-static int constructServiceDefinition(IpndTag* tags, IpndTagChild* child, 
-	char* data, int* dataLen, int maxLen)
+static int constructServiceDefinition(IpndTag *tags, IpndTagChild *child,
+	char *data, int *dataLen, int maxLen)
 {
 	int		ret = 0;
 	int		dataLenBackup = *dataLen;
 	static int	len;
 	static Sdnv	tmpSdnv;
 
-	// primitive type
-
+	/* primitive type */
 	if (child->tag->number < 64)
 	{
 		data[*dataLen] = child->tag->number;
@@ -475,67 +493,70 @@ static int constructServiceDefinition(IpndTag* tags, IpndTagChild* child,
 
 		switch (child->tag->number)
 		{
-#define CSD_CONVERSION_PARAMS child->strVal, data + *dataLen, maxLen - *dataLen
-			case 0:
-				ret = stringToBooleanBytes
+		#define CSD_CONVERSION_PARAMS child->strVal, data + *dataLen, maxLen - *dataLen
+		case 0:
+			ret = stringToBooleanBytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 1:
+			ret = stringToUint64Bytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 2:
+			ret = stringToSint64Bytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 3:
+			ret = stringToFixed16Bytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 4:
+			if (strcmp(child->name, "IP") == 0)
+			{
+				ret = stringIP4ToFixed32Bytes
 					(CSD_CONVERSION_PARAMS);
-				break;
-			case 1:
-				ret = stringToUint64Bytes
+			}
+			else
+			{
+				ret = stringToFixed32Bytes
 					(CSD_CONVERSION_PARAMS);
-				break;
-			case 2:
-				ret = stringToSint64Bytes
+			}
+
+			break;
+
+		case 5:
+			ret = stringToFixed64Bytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 6:
+			ret = stringToFloatBytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 7:
+			ret = stringToDoubleBytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 8:
+			ret = stringToStringBytes(CSD_CONVERSION_PARAMS);
+			break;
+
+		case 9:
+			if (strcmp(child->name, "IP") == 0)
+			{
+				ret = stringIP6ToBytesBytes
 					(CSD_CONVERSION_PARAMS);
-				break;
-			case 3:
-				ret = stringToFixed16Bytes
+			}
+			else
+			{
+				ret = stringToBytesBytes
 					(CSD_CONVERSION_PARAMS);
-				break;
-			case 4:
-				if (strcmp(child->name, "IP") == 0)
-				{
-					ret = stringIP4ToFixed32Bytes
-						(CSD_CONVERSION_PARAMS);
-				}
-				else
-				{
-					ret = stringToFixed32Bytes
-						(CSD_CONVERSION_PARAMS);
-				}
-				break;
-			case 5:
-				ret = stringToFixed64Bytes
-					(CSD_CONVERSION_PARAMS);
-				break;
-			case 6:
-				ret = stringToFloatBytes
-					(CSD_CONVERSION_PARAMS);
-				break;
-			case 7:
-				ret = stringToDoubleBytes
-					(CSD_CONVERSION_PARAMS);
-				break;
-			case 8:
-				ret = stringToStringBytes
-					(CSD_CONVERSION_PARAMS);
-				break;
-			case 9:
-				if (strcmp(child->name, "IP") == 0)
-				{
-					ret = stringIP6ToBytesBytes
-						(CSD_CONVERSION_PARAMS);
-				}
-				else
-				{
-					ret = stringToBytesBytes
-						(CSD_CONVERSION_PARAMS);
-				}
-				break;
-			default:
-				putErrmsg("Unsupported primitive type", NULL);
-				return -1;
-			#undef CSD_CONVERSION_PARAMS
+			}
+			break;
+
+		default:
+			putErrmsg("Unsupported primitive type", NULL);
+			return -1;
+		#undef CSD_CONVERSION_PARAMS
 		}
 
 		if (ret < 0)
@@ -548,13 +569,13 @@ static int constructServiceDefinition(IpndTag* tags, IpndTagChild* child,
 		return ret + 1;
 	}
 
-	// constructed type
+	/* constructed type */
 
-	LystElt cur, next;
+	LystElt	cur, next;
 
-	// first byte is tag id
-	// next bytes are SDNV length. we assume 1 byte,
-	// we will shift the data later if not
+	/* first byte is tag id
+	   next bytes are SDNV length. we assume 1 byte,
+	   we will shift the data later if not. */
 
 	data[*dataLen] = child->tag->number;
 	*dataLen += 2;
@@ -564,39 +585,38 @@ static int constructServiceDefinition(IpndTag* tags, IpndTagChild* child,
 		return -1;
 	}
 
-	// recursively fill children
-
-	for (cur = lyst_first(tags[child->tag->number].children); cur != NULL;
-			cur = next)
+	/* recursively fill children */
+	if (lyst_length(tags[child->tag->number].children) > 0)
 	{
-		next = lyst_next(cur);
-		child = (IpndTagChild*) lyst_data(cur);
-		len = constructServiceDefinition(tags, child, data, dataLen,
-				maxLen);
-		if (len == -1)
+		for (cur = lyst_first(tags[child->tag->number].children);
+				cur != NULL; cur = next)
 		{
-			putErrmsg("Service definition does not fit into beacon",
-					NULL);
-			return -1;
-		}
+			next = lyst_next(cur);
+			child = (IpndTagChild*) lyst_data(cur);
+			len = constructServiceDefinition(tags, child, data,
+					dataLen, maxLen);
+			if (len == -1)
+			{
+				putErrmsg("Service definition does not fit \
+into beacon", NULL);
+				return -1;
+			}
 
-		ret += len;
+			ret += len;
+		}
 	}
 
-	// determine real length
-
+	/* determine real length */
 	encodeSdnv(&tmpSdnv, ret);
 	if (tmpSdnv.length == 1)
 	{
-		// just one byte as assumed
-
+		/* just one byte as assumed */
 		data[dataLenBackup + 1] = tmpSdnv.text[0];
 		ret += 2;
 	}
 	else
 	{
-		// we need to shift everything tmpSdnv.length - 1 bytes right
-
+		/* we need to shift everything tmpSdnv.length - 1 bytes right */
 		*dataLen += tmpSdnv.length - 1;
 		if (*dataLen >= maxLen)
 		{
@@ -605,13 +625,11 @@ static int constructServiceDefinition(IpndTag* tags, IpndTagChild* child,
 			return -1;
 		}
 
-		// memmove() copies from back in this case
-		
+		/* memmove() copies from back in this case */
 		memmove(data + dataLenBackup + 2 + tmpSdnv.length - 1,
-				data + dataLenBackup + 2, ret);
+			data + dataLenBackup + 2, ret);
 
-		// write correct length
-
+		/* write correct length */
 		memcpy(data + dataLenBackup + 1, tmpSdnv.text, tmpSdnv.length);
 		ret += tmpSdnv.length + 1;
 	}
@@ -622,20 +640,20 @@ static int constructServiceDefinition(IpndTag* tags, IpndTagChild* child,
 /**
  * Parses service add command and adds advertized service to ctx->services
  * @param  tokenCount Number of tokens in tokens.
- * @param  tokens	  Command tokens
- * @return			  0 on success, -1 on error.
+ * @param  tokens     Command tokens
+ * @return 0 on success, -1 on error.
  */
 static int	addService(int tokenCount, char** tokens)
 {
 	IPNDCtx		*ctx = getIPNDCtx();
 	int		i, id, curId;
 	char		*pFrom, *pTo;
-	IpndTagChild*	tagChild = 0;
+	IpndTagChild	*tagChild = 0;
 	LystElt		cur, next;
 
 	CHKCTX(ctx);
 
-	// first token contains service name
+	/* first token contains service name */
 	for (id = 0; id < 256; id++)
 	{
 		if (strncmp(ctx->tags[id].name, tokens[0],
@@ -644,6 +662,7 @@ static int	addService(int tokenCount, char** tokens)
 			break;
 		}
 	}
+
 	if (id >= 256)
 	{
 		putErrmsg("Unknown service %s.", tokens[0]);
@@ -657,17 +676,17 @@ static int	addService(int tokenCount, char** tokens)
 		{
 			curId = id;
 			pFrom = tokens[i];
-			// go down tag tree to find the leaf to set value
+			/* go down tag tree to find the leaf to set value */
 			do
 			{
 				*pTo = '\0';
-				for (cur =
-					lyst_first(ctx->tags[curId].children);
-					cur != NULL; cur = next)
+				for (cur = lyst_first
+						(ctx->tags[curId].children);
+						cur != NULL; cur = next)
 				{
 					next = lyst_next(cur);
-					tagChild = (IpndTagChild*)
-							lyst_data(cur);
+					tagChild = (IpndTagChild *)
+						lyst_data(cur);
 					if (strncmp(pFrom, tagChild->name,
 						IPND_MAX_TAG_NAME_LENGTH) == 0)
 					{
@@ -678,12 +697,13 @@ static int	addService(int tokenCount, char** tokens)
 				*pTo = ':';
 				if (cur == NULL)
 				{
-					// this is not child name
+					/* this is not child name */
 					if (curId == id)
 					{
-						// we are still at top level
-						putErrmsg("Unknown param name \
-%s.", pFrom);
+						/* still at top level */
+
+						putErrmsg("Bad param name %s.",
+								pFrom);
 						return -1;
 					}
 
@@ -695,8 +715,8 @@ static int	addService(int tokenCount, char** tokens)
 				curId = tagChild->tag->number;
 			} while ((pTo = strchr(pFrom, ':')) != NULL);
 
-			// we need to go further down the tree of single
-			// children
+			/* we need to go further down the tree of
+			 * single children				*/
 
 			while (lyst_length(ctx->tags[curId].children) == 1)
 			{
@@ -712,26 +732,29 @@ static int	addService(int tokenCount, char** tokens)
 				return -1;
 			}
 
-			// we have tagChild to set its string value
-			// pFrom contains that value from config line
-
+			/* we have tagChild to set its string value
+			 * pFrom contains that value from config line */
 			tagChild->strVal = pFrom;
-		} 
+		}
 		else
 		{
 			putErrmsg("Wrong param format %s.", tokens[i]);
-			return -1;		
+			return -1;
 		}
 	}
 
 	/* service is parsed out, the tagChild->strVals are filled out
-	 * now we need to create service definition, i.e. bytes		*/
+	 * now we need to create service definition, i.e. bytes */
 
-	// create temporary buffer with max size possible 
-	char *data = MTAKE(MAX_BEACON_SIZE);
-	// construct the buffer and get back its length
-	int len = 0;
-	IpndTagChild dummyChild;
+	/* create temporary buffer with max size possible */
+
+	char		*data = MTAKE(MAX_BEACON_SIZE);
+
+	/* construct the buffer and get back its length */
+
+	int		len = 0;
+	IpndTagChild	dummyChild;
+
 	dummyChild.tag = ctx->tags + id;
 	if (constructServiceDefinition(ctx->tags, &dummyChild, data, &len,
 			MAX_BEACON_SIZE) < 0)
@@ -740,17 +763,20 @@ static int	addService(int tokenCount, char** tokens)
 		putErrmsg("Cannot construct service bytes of %s\n", tokens[0]);
 		return -1;
 	}
-	// construct service definition and copy data from temp buffer
-	ServiceDefinition*	def =
+
+	/* construct service definition and copy data from temp buffer */
+	ServiceDefinition	*def =
 		(ServiceDefinition*) MTAKE(sizeof(ServiceDefinition));
+
 	def->number = id;
 	def->dataLength = len;
 	def->data = MTAKE(len);
 	memcpy((char *)def->data, (char *)data, len);
-	// release temp buffer
+
+	/* release temp buffer */
 	MRELEASE(data);
 
-	// insert service definition into list of advertized services
+	/* insert service definition into list of advertized services */
 	if (!ctx->services)
 	{
 		ctx->services = lyst_create_using(getIonMemoryMgr());
@@ -758,27 +784,32 @@ static int	addService(int tokenCount, char** tokens)
 
 	lyst_insert(ctx->services, def);
 
-	// NBF-Hashes (126) implies NBF-Bits initialized with bloom filter bits
-	uvast len1, len2;
-	Sdnv sdnvTmp1, sdnvTmp2;
+	/* NBF-Hashes (126) implies NBF-Bits init. with bloom filter bits */
+
+	uvast	len1, len2;
+	Sdnv	sdnvTmp1, sdnvTmp2;
+
 	if (id == 126)
 	{
 		def = (ServiceDefinition*) MTAKE(sizeof(ServiceDefinition));
 		def->number = 127;
-		// copy bytes from ctx->nbf
+
+		/* copy bytes from ctx->nbf */
+
 		len2 = ctx->nbf.bytes;
 		encodeSdnv(&sdnvTmp2, len2);
 		len1 = 1 + sdnvTmp2.length + len2;
 		encodeSdnv(&sdnvTmp1, len1);
 		def->dataLength = 1 + sdnvTmp1.length + len1;
 		def->data = MTAKE(def->dataLength);
-		def->data[0] = 127; // NBF-Bits
+		def->data[0] = 127; /* NBF-Bits */
 		def->data[1 + sdnvTmp1.length] = 9; // byte array
 		memcpy(def->data + 1, sdnvTmp1.text, sdnvTmp1.length);
-		memcpy(def->data + 1 + sdnvTmp1.length + 1, sdnvTmp2.text,
-				sdnvTmp2.length);
-		memcpy(def->data + 1 + sdnvTmp1.length + 1 + sdnvTmp2.length,
-				ctx->nbf.bf, len2);
+		memcpy(def->data + 1 + sdnvTmp1.length + 1,
+				sdnvTmp2.text, sdnvTmp2.length);
+		memcpy(def->data + 1 + sdnvTmp1.length + 1
+				+ sdnvTmp2.length, ctx->nbf.bf, len2);
+
 		lyst_insert(ctx->services, def);
 	}
 
@@ -790,12 +821,13 @@ static int	addService(int tokenCount, char** tokens)
 /**
  * Parses and add command
  * @param  tokenCount Number of tokens in tokens
- * @param  tokens	  Command tokens
- * @return			  0 on succses, -1 on error.
+ * @param  tokens     Command tokens
+ * @return 0 on success, -1 on error.
  */
 static int	executeAdd(int tokenCount, char **tokens)
 {
-	char buffer[80];
+	char	buffer[80];
+
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
@@ -835,13 +867,14 @@ static int	executeAdd(int tokenCount, char **tokens)
 /**
  * Parses a configure command
  * @param  tokenCount Number of tokens in tokens.
- * @param  tokens	  Command tokens
- * @return			  0 on succses, -1 on error.
+ * @param  tokens     Command tokens
+ * @return 0 on success, -1 on error.
  */
 static int	executeConfigure(int tokenCount, char **tokens)
 {
-	char buffer[80];
-	IPNDCtx *ctx = getIPNDCtx();
+	char	buffer[80], *p;
+	long	intervalValue;
+	IPNDCtx	*ctx = getIPNDCtx();
 
 	if (tokenCount < 2)
 	{
@@ -851,12 +884,41 @@ static int	executeConfigure(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "eid") == 0)
 	{
-		TOKENCHK(3);
+		/* this check eliminates possibility of having white
+		 * space in eid						*/
+
+		if (tokenCount != 3)
+		{
+			printText("Specified EID is empty or contains white \
+space.");
+			return -1;
+		}
 
 		istrcpy(ctx->srcEid, tokens[2], MAX_EID_LEN);
 
-		isprintf(buffer, sizeof buffer, "[i] Eid: %s.",
-				 ctx->srcEid);
+		/* we need exactly one colon */
+		p = strchr(ctx->srcEid, ':');
+		if (p == NULL || strchr(p + 1, ':') != NULL)
+		{
+			printText("Specified EID must contain exactly one \
+colon (:)");
+			return -1;
+		}
+
+		/* only valid ASCII values */
+		for (p = ctx->srcEid; *p; ++p)
+		{
+			if (*p <= 32 || *p >= 127) break;
+		}
+
+		if (*p)
+		{
+			printText("Specified EID must contain only valid \
+ASCII values");
+			return -1;
+		}
+
+		isprintf(buffer, sizeof buffer, "[i] Eid: %s.", ctx->srcEid);
 		printText(buffer);
 
 		return 0;
@@ -867,9 +929,7 @@ static int	executeConfigure(int tokenCount, char **tokens)
 		TOKENCHK(3);
 
 		ctx->port = strtol(tokens[2], NULL, 10);
-
-		isprintf(buffer, sizeof buffer, "[i] Port: %d.",
-				 ctx->port);
+		isprintf(buffer, sizeof buffer, "[i] Port: %d.", ctx->port);
 		printText(buffer);
 
 		return 0;
@@ -904,38 +964,48 @@ static int	executeConfigure(int tokenCount, char **tokens)
 	{
 		TOKENCHK(4);
 
+		/* interval must be non-negative integer without
+		 * extra characters, e.g. "3s" is invalid		*/
+
+		p = buffer;
+		intervalValue = strtol(tokens[3], &p, 10);
+		if (*p != '\0' || intervalValue < 0)
+		{
+			isprintf(buffer, sizeof buffer, "Invalid interval \
+(beacon period) value: %s", tokens[3]);
+			printText(buffer);
+			return -1;
+		}
+
 		if (strcmp(tokens[2], "unicast") == 0)
 		{
-			ctx->announcePeriods[UNICAST] = strtol(tokens[3],
-					NULL, 10);
+			ctx->announcePeriods[UNICAST] = intervalValue;
 
 			isprintf(buffer, sizeof buffer,
-					 "[i] Unicast announce interval: %d.",
-					 ctx->announcePeriods[UNICAST]);
+					"[i] Unicast announce interval: %d.",
+					ctx->announcePeriods[UNICAST]);
 			printText(buffer);
 
 			return 0;
 		}
 		else if (strcmp(tokens[2], "multicast") == 0)
 		{
-			ctx->announcePeriods[MULTICAST] = strtol(tokens[3],
-					NULL, 10);
+			ctx->announcePeriods[MULTICAST] = intervalValue;
 
 			isprintf(buffer, sizeof buffer,
-					 "[i] Multicast announce interval: %d.",
-					 ctx->announcePeriods[MULTICAST]);
+					"[i] Multicast announce interval: %d.",
+					ctx->announcePeriods[MULTICAST]);
 			printText(buffer);
 
 			return 0;
 		}
 		else if (strcmp(tokens[2], "broadcast") == 0)
 		{
-			ctx->announcePeriods[BROADCAST] = strtol(tokens[3],
-					NULL, 10);
+			ctx->announcePeriods[BROADCAST] = intervalValue;
 
 			isprintf(buffer, sizeof buffer,
-					 "[i] Broadcast announce interval: %d.",
-					 ctx->announcePeriods[BROADCAST]);
+					"[i] Broadcast announce interval: %d.",
+					ctx->announcePeriods[BROADCAST]);
 			printText(buffer);
 
 			return 0;
@@ -952,10 +1022,8 @@ static int	executeConfigure(int tokenCount, char **tokens)
 		if (strcmp(tokens[2], "ttl") == 0)
 		{
 			ctx->multicastTTL = strtol(tokens[3], NULL, 10);
-
 			isprintf(buffer, sizeof buffer,
-					"[i] Multicast TTL: %d.",
-					 ctx->multicastTTL);
+				"[i] Multicast TTL: %d.", ctx->multicastTTL);
 			printText(buffer);
 
 			return 0;
@@ -967,12 +1035,12 @@ static int	executeConfigure(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "svcdef") == 0)
 	{
-		if (tokenCount >= 5 && configService(tokenCount - 2, tokens + 2)
-				== 0)
+		if (tokenCount >= 5
+		&& configService(tokenCount - 2, tokens + 2) == 0)
 		{
 			isprintf(buffer, sizeof buffer,
-					"[i] Service definition: %s %s.",
-					 tokens[2], tokens[3]);
+				"[i] Service definition: %s %s.",
+				tokens[2], tokens[3]);
 			printText(buffer);
 			return 0;
 		}
@@ -987,19 +1055,18 @@ static int	executeConfigure(int tokenCount, char **tokens)
 
 /**
  * Processes a command line from the config file.
- * @param  line		  Line.
+ * @param  line       Line.
  * @param  lineLength Line length.
- * @return			  0 on succses, -1 on error.
+ * @return 0 on success, -1 on error.
  */
 static int	processLine(char *line, int lineLength)
 {
-	IPNDCtx *ctx = NULL;
-
+	IPNDCtx		*ctx = NULL;
 	int		tokenCount;
-	char	*cursor;
+	char		*cursor;
 	int		i;
-	const int MAX_TOKENS = 99;
-	char	*tokens[MAX_TOKENS];
+	const int	MAX_TOKENS = 99;
+	char		*tokens[MAX_TOKENS];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < MAX_TOKENS; i++)
@@ -1039,8 +1106,8 @@ static int	processLine(char *line, int lineLength)
 
 	switch (*(tokens[0]))		/*	Command code.		*/
 	{
-	case 0:			/*	Empty line.		*/
-	case '#':		/*	Comment.		*/
+	case 0:				/*	Empty line.		*/
+	case '#':			/*	Comment.		*/
 		break;
 
 	case '1':
@@ -1050,8 +1117,15 @@ static int	processLine(char *line, int lineLength)
 	case 's':
 		/* Start command */
 		ctx = getIPNDCtx();
-		if (pthread_begin(&ctx->sendBeaconsThread, NULL,
-						  sendBeacons, NULL))
+
+		if (ctx->srcEid[0] == '\0')
+		{
+			printText("No valid EID specified in config file.");
+			return -1;
+		}
+
+		if (pthread_begin(&ctx->sendBeaconsThread, NULL, sendBeacons,
+				NULL))
 		{
 			putSysErrmsg("IPND can't start sendBeacons thread.",
 					NULL);
@@ -1059,7 +1133,7 @@ static int	processLine(char *line, int lineLength)
 		}
 
 		if (pthread_begin(&ctx->receiveBeaconsThread, NULL,
-						  receiveBeacons, NULL))
+				receiveBeacons, NULL))
 		{
 			putSysErrmsg("IPND can't start receiveBeacons thread.",
 					NULL);
@@ -1067,7 +1141,7 @@ static int	processLine(char *line, int lineLength)
 		}
 
 		if (pthread_begin(&ctx->expireNeighborsThread, NULL,
-						  expireNeighbors, NULL))
+					expireNeighbors, NULL))
 		{
 			putSysErrmsg("IPND can't start expireNeighbors thread.",
 					NULL);
@@ -1077,11 +1151,19 @@ static int	processLine(char *line, int lineLength)
 		return 0;
 
 	case 'a':
-		executeAdd(tokenCount, tokens);
+		if (executeAdd(tokenCount, tokens) == -1)
+		{
+			return -1;
+		}
+
 		break;
 
 	case 'm':
-		executeConfigure(tokenCount, tokens);
+		if (executeConfigure(tokenCount, tokens) == -1)
+		{
+			return -1;
+		}
+
 		break;
 
 	case 'e':
@@ -1101,7 +1183,7 @@ int	main(int argc, char *argv[])
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 	int	cmdFile, len, processLineResult;
 	char	line[1024];
-	IPNDCtx *ctx = NULL;
+	IPNDCtx	*ctx = NULL;
 
 	/* Block SIGUSR1 signals */
 	iblock(SIGUSR1);
@@ -1127,11 +1209,11 @@ int	main(int argc, char *argv[])
 			{
 				if (len == 0)
 				{
-					break;	/*	Loop.	*/
+					break;	/*	Loop.		*/
 				}
 
 				putErrmsg("igets failed.", NULL);
-				break;		/*	Loop.	*/
+				break;		/*	Loop.		*/
 			}
 
 			if (len == 0 || line[0] == '#')	/*	Comment.*/
@@ -1151,6 +1233,15 @@ int	main(int argc, char *argv[])
 		close(cmdFile);
 	}
 
+	ctx = getIPNDCtx();
+
+	if (ctx == NULL || ctx->sendBeaconsThread == 0)
+	{
+		printText("Configuration script did not issue initialize or \
+start command.");
+		return 1;
+	}
+
 	/* Notify ION that IPND is running*/
 	ionNoteMainThread("ipnd");
 
@@ -1162,7 +1253,6 @@ int	main(int argc, char *argv[])
 	ionPauseMainThread(-1);
 
 	printText("[i] IPND shutting down.");
-	ctx = getIPNDCtx();
 
 	/* Shutdown */
 	pthread_end(ctx->sendBeaconsThread);

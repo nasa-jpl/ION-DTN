@@ -1,17 +1,20 @@
 /*
- *  helper.c -- DTN IP Neighbor Discovery (IPND). IPND miscellaneous helper functions.
- *  Includes functions used in several parts of IPND.
- *  
+ *	helper.c -- DTN IP Neighbor Discovery (IPND). IPND miscellaneous
+ *	helper functions.  Includes functions used in several parts of IPND.
+ *
  *	Copyright (c) 2015, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *	Author: Gerard Garcia, TrePe
  *	Version 1.0 2015/05/09 Gerard Garcia
- *  Version 2.0 DTN Neighbor Discovery - ION IPND Implementation Assembly Part2
+ *	Version 2.0 DTN Neighbor Discovery
+ *		- ION IPND Implementation Assembly Part2
+ *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  */
 
 #include <arpa/inet.h>
 #include "platform.h"
+#include "eureka.h"
 #include "helper.h"
 #include "node.h"
 #include "ipndP.h"
@@ -90,12 +93,26 @@ void	switchEcho(int tokenCount, char **tokens)
 
 /**
  * Checks if a node has an active connection with node eid.
- * @param  eid Eid of node to check.
- * @return     0 if it does not have an active connect, 1 otherwise.
+ * @param  eid    Eid of node to check.
+ * @param  period Beacon period to Eid.
+ * @return 1 if there is an active connection to this node, 0 otherwise.
  */
-int hasAnActiveConnection(const char *eid)
+int	hasAnActiveConnection(char *eid, int period)
 {
-	// TODO: How we know that a node has an active connection with BP?
+	PsmPartition	bpwm = getIonwm();
+	PsmAddress	neighborElt;
+	NdpNeighbor	*neighbor;
+
+	neighborElt = bp_discover_find_neighbor(eid);
+	if (neighborElt)
+	{
+		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
+				neighborElt));
+		if (neighbor->lastContactTime + period > getUTCTime())
+		{
+			return 1;
+		}
+	}
 
 	return 0;
 }
@@ -106,9 +123,9 @@ int hasAnActiveConnection(const char *eid)
  * @return    Address type: UNICAST, BROADCAST, MULTICAST
  *            -1 on unsupported address.
  */
-int getIpv4AddressType(const char *ip)
+int	getIpv4AddressType(const char *ip)
 {
-	unsigned char binaryAddr[4];
+	unsigned char	binaryAddr[4];
 
 	/* Convert address to binary */
 	if (!inet_pton(AF_INET, ip, binaryAddr))
@@ -116,13 +133,13 @@ int getIpv4AddressType(const char *ip)
 		return -1;
 	}
 
-	// 0xFF == 0b11111111
-	// 0xE  == 0b00001110
+	/* 0xFF == 0b1111 */
+	/* 0xE == 0b1110 */
 
 	if (binaryAddr[0] & 0xFF &&
-	        binaryAddr[1] & 0xFF &&
-	        binaryAddr[2] & 0xFF &&
-	        binaryAddr[3] & 0xFF)
+			binaryAddr[1] & 0xFF &&
+			binaryAddr[2] & 0xFF &&
+			binaryAddr[3] & 0xFF)
 	{
 		return BROADCAST;
 	}
@@ -150,12 +167,13 @@ int getIpv4AddressType(const char *ip)
  * @param  addresses lyst of NetAddress structs
  * @return           NetADdress if found, NULL if not found.
  */
-NetAddress *findAddr(const char *ip, Lyst addresses)
+NetAddress	*findAddr(const char *ip, Lyst addresses)
 {
 	int		i;
 	LystElt		addrElt;
 	NetAddress	*addr;
 
+	CHKNULL(addresses);
 	addrElt = lyst_first(addresses);
 	for (i = 0; i < lyst_length(addresses); i++)
 	{
@@ -168,10 +186,12 @@ NetAddress *findAddr(const char *ip, Lyst addresses)
 		addrElt = lyst_next(addrElt);
 	}
 
-	if (addrElt != lyst_last(addresses))
+	if (addrElt != NULL && addrElt != lyst_last(addresses))
+	{
 		return lyst_data(addrElt);
-	else
-		return NULL;
+	}
+
+	return NULL;
 }
 
 /**
@@ -180,9 +200,9 @@ NetAddress *findAddr(const char *ip, Lyst addresses)
  * @param  data2 Sedond IpndNeighbor.
  * @return  1 if nb data1 should be first,
  *          0 if the two neighbors are equal.
- *          -1 if nb data2 should be first.     
+ *          -1 if nb data2 should be first.
  */
-int compareIpndNeighbor(void *data1, void *data2)
+int	compareIpndNeighbor(void *data1, void *data2)
 {
 	IpndNeighbor	*nb1 = data1;
 	IpndNeighbor	*nb2 = data2;
@@ -192,11 +212,17 @@ int compareIpndNeighbor(void *data1, void *data2)
 	if (addrCmp == 0)
 	{
 		if (nb1->addr.port == nb2->addr.port)
+		{
 			return 0;
+		}
 		else if (nb1->addr.port > nb2->addr.port)
+		{
 			return 1;
+		}
 		else
+		{
 			return -1;
+		}
 	}
 
 	return addrCmp;
@@ -210,13 +236,17 @@ int compareIpndNeighbor(void *data1, void *data2)
  * @param  neighbors Lyst of IpndNeighbors structs.
  * @return           LystElt if found, NULL otherwise.
  */
-LystElt findIpndNeighbor(const char *ip, const int port, Lyst neighbors)
+LystElt	findIpndNeighbor(const char *ip, const int port, Lyst neighbors)
 {
-	IpndNeighbor nb;
+	IpndNeighbor	nb;
 
-	strncpy(nb.addr.ip, ip, INET_ADDRSTRLEN);
+	if (lyst_length(neighbors) == 0)
+	{
+		return NULL;
+	}
+
+	istrcpy(nb.addr.ip, ip, INET_ADDRSTRLEN);
 	nb.addr.port = port;
-
 	return lyst_search(lyst_first(neighbors), (void *) &nb);
 }
 
@@ -226,33 +256,41 @@ LystElt findIpndNeighbor(const char *ip, const int port, Lyst neighbors)
  * @param  data2 Sedond Destiantion.
  * @return  1 if Destination data1 should be first,
  *          0 if the two Destination structs are equal.
- *          -1 if Destination data2 should be first.     
+ *          -1 if Destination data2 should be first.
  */
- int compareDestination(void *data1, void *data2)
+int	compareDestination(void *data1, void *data2)
 {
-	Destination *dest1 = (Destination *) data1;
-	Destination *dest2 = (Destination *) data2;
+	Destination	*dest1 = (Destination *) data1;
+	Destination	*dest2 = (Destination *) data2;
 
 	if (dest1->nextAnnounceTimestamp < dest2->nextAnnounceTimestamp)
+	{
 		return -1;
+	}
+
 	if (dest1->nextAnnounceTimestamp > dest2->nextAnnounceTimestamp)
+	{
 		return 1;
+	}
 
 	return 0;
 }
 
+
 /**
  * Finds a Destination with NetAddress <addr> in a lyst
  * of Destination structs.
- * @param  addr      	Netaddr to look for.
+ * @param  addr         Netaddr to look for.
  * @param  destinations Lyst of Destination structs.
- * @return           	LystElt if found, NULL otherwise.
+ * @return LystElt if found, NULL otherwise.
  */
-LystElt findDestinationByAddr(NetAddress *addr, Lyst destinations)
+LystElt	findDestinationByAddr(NetAddress *addr, Lyst destinations)
 {
 	int		i;
 	LystElt		destinationElt;
 	Destination	*dest;
+
+	CHKNULL(destinations);
 
 	destinationElt = lyst_first(destinations);
 	for (i = 0; i < lyst_length(destinations); i++)
@@ -275,10 +313,12 @@ LystElt findDestinationByAddr(NetAddress *addr, Lyst destinations)
  * @param  lyst Lyst to release.
  * @return      0 on success.
  */
-int releaseLystElements(Lyst lyst)
+int	releaseLystElements(Lyst lyst)
 {
 	int	i;
 	LystElt	lystElt;
+
+	CHKZERO(lyst);
 
 	lystElt = lyst_first(lyst);
 	for (i = 0; i < lyst_length(lyst); i++)
@@ -290,26 +330,30 @@ int releaseLystElements(Lyst lyst)
 	return 0;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToBooleanBytes(char* str, char* buf, int maxLen)
+int	stringToBooleanBytes(char *str, char *buf, int maxLen)
 {
-	if (maxLen < 1) return -1;
+	if (maxLen < 1)
+	{
+		return -1;
+	}
+
 	*buf = (strcasecmp(str, "true") == 0 || strtol(str, NULL, 0));
 	return 1;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToUint64Bytes(char* str, char* buf, int maxLen)
+int	stringToUint64Bytes(char *str, char *buf, int maxLen)
 {
 	static Sdnv	sdnvTmp;
 
@@ -319,13 +363,13 @@ int stringToUint64Bytes(char* str, char* buf, int maxLen)
 	return sdnvTmp.length;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToSint64Bytes(char* str, char* buf, int maxLen)
+int	stringToSint64Bytes(char *str, char *buf, int maxLen)
 {
 	static Sdnv	sdnvTmp;
 
@@ -335,13 +379,13 @@ int stringToSint64Bytes(char* str, char* buf, int maxLen)
 	return sdnvTmp.length;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToFixed16Bytes(char* str, char* buf, int maxLen)
+int	stringToFixed16Bytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 2) return -1;
 	uint16_t i = htons(strtouvast(str));
@@ -349,13 +393,13 @@ int stringToFixed16Bytes(char* str, char* buf, int maxLen)
 	return 2;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToFixed32Bytes(char* str, char* buf, int maxLen)
+int	stringToFixed32Bytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 4) return -1;
 	uint32_t i = htonl(strtouvast(str));
@@ -363,13 +407,13 @@ int stringToFixed32Bytes(char* str, char* buf, int maxLen)
 	return 4;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToFixed64Bytes(char* str, char* buf, int maxLen)
+int	stringToFixed64Bytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 8) return -1;
 	uvast i = strtouvast(str);
@@ -379,18 +423,17 @@ int stringToFixed64Bytes(char* str, char* buf, int maxLen)
 	return 8;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToFloatBytes(char* str, char* buf, int maxLen)
+int	stringToFloatBytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 4 || sizeof(float) != 4) return -1;
 
-	double		d = strtod(str, NULL);
-	float		f = d;
+	float		f = (float) strtod(str, NULL);
 	uint32_t	i;
 
 	memcpy(&i, &f, 4);
@@ -399,33 +442,33 @@ int stringToFloatBytes(char* str, char* buf, int maxLen)
 	return 4;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToDoubleBytes(char* str, char* buf, int maxLen)
+int	stringToDoubleBytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 8 || sizeof(double) != 8) return -1;
 
-	double	d = strtod(str, NULL);
+	double	f = strtod(str, NULL);
 	uvast	i;
 
-	memcpy(&i, &d, 8);
+	memcpy(&i, &f, 8);
 	i = (1 == htonl(1) ? (i)
 		: ((uvast)htonl(i & 0xFFFFFFFF) << 32) | htonl(i >> 32));
 	memcpy(buf, &i, 8);
 	return 8;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToStringBytes(char* str, char* buf, int maxLen)
+int	stringToStringBytes(char *str, char *buf, int maxLen)
 {
 	static Sdnv	sdnvTmp;
 	static int	len;
@@ -452,13 +495,13 @@ int stringToStringBytes(char* str, char* buf, int maxLen)
 	return sdnvTmp.length + len;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringToBytesBytes(char* str, char* buf, int maxLen)
+int	stringToBytesBytes(char *str, char *buf, int maxLen)
 {
 	static char	val[] = "0x00";
 	static Sdnv	sdnvTmp;
@@ -484,31 +527,30 @@ int stringToBytesBytes(char* str, char* buf, int maxLen)
 		*(buf + sdnvTmp.length + i) = strtol(val, NULL, 16);
 	}
 
-	return sdnvTmp.length + len;	
+	return sdnvTmp.length + len;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringIP4ToFixed32Bytes(char* str, char* buf, int maxLen)
+int	stringIP4ToFixed32Bytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 4 || inet_pton(AF_INET, str, buf) != 1) return -1;
 	return 4;
 }
 
-/* Parse human readable string into IPND protocol bytes 
+/* Parse human readable string into IPND protocol bytes
  * @param str Human readable string
  * @param buf Where to write bytes
  * @param maxLen Capacity of buf
  * @return number of bytes written or -1 on error
  */
-int stringIP6ToBytesBytes(char* str, char* buf, int maxLen)
+int	stringIP6ToBytesBytes(char *str, char *buf, int maxLen)
 {
-	if (maxLen < 1 + 16 || inet_pton(AF_INET6, str, buf + 1) != 1)
-		return -1;
+	if (maxLen < 1 + 16|| inet_pton(AF_INET6, str, buf + 1) != 1) return -1;
 	buf[0] = 16;
 	return 17;
 }
@@ -519,7 +561,7 @@ int stringIP6ToBytesBytes(char* str, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToBooleanString(unsigned char* data, char* buf, int maxLen)
+int	bytesToBooleanString(unsigned char *data, char *buf, int maxLen)
 {
 	isprintf(buf, maxLen, "%s", (*data) ? "true" : "false");
 	return 1;
@@ -531,7 +573,7 @@ int bytesToBooleanString(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToUint64String(unsigned char* data, char* buf, int maxLen)
+int	bytesToUint64String(unsigned char *data, char *buf, int maxLen)
 {
 	uvast	ret;
 	int	len = decodeSdnv(&ret, data);
@@ -546,7 +588,7 @@ int bytesToUint64String(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToSint64String(unsigned char* data, char* buf, int maxLen)
+int	bytesToSint64String(unsigned char *data, char *buf, int maxLen)
 {
 	uvast	ret;
 	int	len = decodeSdnv(&ret, data);
@@ -561,7 +603,7 @@ int bytesToSint64String(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToFixed16String(unsigned char* data, char* buf, int maxLen)
+int	bytesToFixed16String(unsigned char *data, char *buf, int maxLen)
 {
 	uint16_t	ret;
 
@@ -576,7 +618,7 @@ int bytesToFixed16String(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToFixed32String(unsigned char* data, char* buf, int maxLen)
+int	bytesToFixed32String(unsigned char *data, char *buf, int maxLen)
 {
 	uint32_t	ret;
 
@@ -591,7 +633,7 @@ int bytesToFixed32String(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToFixed64String(unsigned char* data, char* buf, int maxLen)
+int	bytesToFixed64String(unsigned char *data, char *buf, int maxLen)
 {
 	uvast	ret;
 
@@ -608,7 +650,7 @@ int bytesToFixed64String(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToFloatString(unsigned char* data, char* buf, int maxLen)
+int	bytesToFloatString(unsigned char *data, char *buf, int maxLen)
 {
 	uint32_t	i;
 	float		ret;
@@ -626,7 +668,7 @@ int bytesToFloatString(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToDoubleString(unsigned char* data, char* buf, int maxLen)
+int	bytesToDoubleString(unsigned char *data, char *buf, int maxLen)
 {
 	uvast	i;
 	double	ret;
@@ -645,7 +687,7 @@ int bytesToDoubleString(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToStringString(unsigned char* data, char* buf, int maxLen)
+int	bytesToStringString(unsigned char *data, char *buf, int maxLen)
 {
 	uvast	len, sdnvLength;
 
@@ -663,8 +705,8 @@ int bytesToStringString(unsigned char* data, char* buf, int maxLen)
 	sdnvLength = decodeSdnv(&len, data);
 	if (maxLen >= len + 1)
 	{
-	    memcpy(buf, data + sdnvLength, len);
-	    buf[len] = '\0';
+		memcpy(buf, data + sdnvLength, len);
+		buf[len] = '\0';
 	}
 
 	return sdnvLength + len;
@@ -676,7 +718,7 @@ int bytesToStringString(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesToBytesString(unsigned char* data, char* buf, int maxLen)
+int	bytesToBytesString(unsigned char *data, char *buf, int maxLen)
 {
 	uvast		len, sdnvLength;
 	static char	hex[] = "0123456789ABCDEF";
@@ -690,16 +732,16 @@ int bytesToBytesString(unsigned char* data, char* buf, int maxLen)
 	sdnvLength = decodeSdnv(&len, data);
 	if (maxLen >= len * 2 + 1)
 	{
-    		for (i = 0; i < len; i++)
+		for (i = 0; i < len; i++)
 		{
-			buf[2 * i] = hex[data[i+1] >> 4];
-			buf[2 * i + 1] = hex[data[i+1] & 0x0f];
+			buf[2 * i] = hex[data[i+sdnvLength] >> 4];
+			buf[2 * i + 1] = hex[data[i+sdnvLength] & 0x0f];
 		}
 
 		buf[len * 2] = '\0';
 	}
 
-	return sdnvLength + len;	
+	return sdnvLength + len;
 }
 
 /* Change IPND protocol bytes into human readable string
@@ -708,7 +750,7 @@ int bytesToBytesString(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesIP4ToFixed32String(unsigned char* data, char* buf, int maxLen)
+int	bytesIP4ToFixed32String(unsigned char *data, char *buf, int maxLen)
 {
 	inet_ntop(AF_INET, data, buf, maxLen);
 	return 4;
@@ -720,9 +762,10 @@ int bytesIP4ToFixed32String(unsigned char* data, char* buf, int maxLen)
  * @param maxLen Capacity of buf
  * @return number of bytes read
  */
-int bytesIP6ToBytesString(unsigned char* data, char* buf, int maxLen)
+int	bytesIP6ToBytesString(unsigned char *data, char *buf, int maxLen)
 {
-	// IP6 is encoded as byte array
+	/* IP6 is encoded as byte array	*/
+
 	if (data[0] != 16)
 	{
 		return bytesToBytesString(data, buf, maxLen);

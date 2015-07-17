@@ -704,6 +704,17 @@ typedef struct
 	Tally		tallies[BP_DB_STATS];
 } BpDbStats;
 
+/*	Neighbors discovered by IPND, the neighbor discovery protocol.
+ *	These objects are used to remember the time of last contact
+ *	with each discovered neighbor, to prevent unnecessary beacon
+ *	transmission.							*/
+
+typedef struct
+{
+	char		eid[MAX_EID_LEN];
+	time_t		lastContactTime;
+} NdpNeighbor;
+
 /*	Volatile database encapsulates the volatile state of the
  *	database.							*/
 
@@ -730,6 +741,7 @@ typedef struct
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
+	PsmAddress	neighbors;	/*	SM list: NdpNeighbor.	*/
 	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
 } BpVdb;
 

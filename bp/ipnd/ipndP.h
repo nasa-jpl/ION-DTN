@@ -1,13 +1,15 @@
 /*
- *  ipndpP.h -- DTN IP Neighbor Discovery (IPND). Initializes IPND context,
- *  loads configuration and launches the main threads.
- *  
+ *	ipndpP.h -- DTN IP Neighbor Discovery (IPND). Initializes IPND context,
+ *	loads configuration and launches the main threads.
+ *
  *	Copyright (c) 2015, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *	Author: Gerard Garcia, TrePe
  *	Version 1.0 2015/05/09 Gerard Garcia
- *  Version 2.0 DTN Neighbor Discovery - ION IPND Implementation Assembly Part2
+ *	Version 2.0 DTN Neighbor Discovery
+ *		- ION IPND Implementation Assembly Part2
+ *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  */
 
 #ifndef _IPND_H_
@@ -16,6 +18,7 @@
 #include "lyst.h"
 #include "llcv.h"
 #include "bpP.h"
+#include "ipnfw.h"
 #include "platform.h"
 #include "bloom.h"
 
@@ -38,77 +41,94 @@ extern "C" {
 /* IPND Tag definition */
 typedef struct
 {
-	unsigned char number;
-	char name[IPND_MAX_TAG_NAME_LENGTH + 1];
-	// -2: variable, -1: explicit, 0: constructed, 1..127: fixed 1..127
-	char lengthType;
-	// children tags (params)
-	Lyst children;
+	unsigned char	number;
+	char		name[IPND_MAX_TAG_NAME_LENGTH + 1];
+
+	/*	-2: variable,
+	 *	-1: explicit,
+	 *	0: constructed,
+	 *	1..127: fixed 1..127	*/
+
+	char		lengthType;
+
+	/*	children tags (params)	*/
+
+	Lyst		children;
 } IpndTag;
 
 /* IPND Tag children */
 typedef struct
 {
-	IpndTag* tag;
-	char name[IPND_MAX_TAG_NAME_LENGTH + 1];
-	char* strVal; // value in human readable form (from config)
+	IpndTag	*tag;
+	char	name[IPND_MAX_TAG_NAME_LENGTH + 1];
+	char	*strVal; /* value in human readable form (from config) */
 } IpndTagChild;
 
 /* Service definition structure */
 typedef struct
 {
-	unsigned char number;
-	uvast dataLength;
-	unsigned char* data; // will be parsed as needed, contains all the bytes
+	unsigned char	number;
+	uvast		dataLength;
+	unsigned char	*data; /*	will be parsed as needed,
+					contains all the bytes.		*/
 } ServiceDefinition;
 
 /* IPND context. Stores IPND configuration and
-   IPND varibales shared by different threads.
+   IPND variables shared by different threads.
 */
 typedef struct
 {
 	/* IPND structures */
-	pthread_t sendBeaconsThread;
-	pthread_t receiveBeaconsThread;
-	pthread_t expireNeighborsThread;
+	pthread_t	sendBeaconsThread;
+	pthread_t	receiveBeaconsThread;
+	pthread_t	expireNeighborsThread;
 
 	/* Configuration */
-	char srcEid[MAX_EID_LEN];
-	int port;
-	int announceEid;
-	int multicastTTL;
-	int enabledBroadcastSending;
-	int enabledBroadcastReceiving;
-	// Determines if period should be annouced.
-	int announcePeriod;						
-	// Stores epriod os UNICAST,MULTICAST and BROADCAST addresses
-	int announcePeriods[3];	
-	// NetAddress lyst, unsorted.				
-	Lyst listenAddresses;					
-	ResourceLock configurationLock;
-	// Defined tags
-	IpndTag tags[256];
-	// Advertized services
-	Lyst services;
-	// NBF
-	struct bloom nbf;
+	char		srcEid[MAX_EID_LEN];
+	int		port;
+	int		announceEid;
+	int		multicastTTL;
+	int		enabledBroadcastSending;
+	int		enabledBroadcastReceiving;
+
+	/* Determines if period should be announced. */
+	int		announcePeriod;
+
+	/* Stores period as UNICAST,MULTICAST and BROADCAST addresses */
+	int		announcePeriods[3];
+
+	/* NetAddress lyst, unsorted. */
+	Lyst		listenAddresses;
+	ResourceLock	configurationLock;
+
+	/* Defined tags */
+	IpndTag		tags[256];
+
+	/* Advertised services */
+	Lyst		services;
+
+	/* NBF */
+	struct bloom	nbf;
 
 	/* Node structures */
-	// Destination lyst, sorted by nextAnnounceTimestamp.
-	Lyst destinations;						
-	Llcv destinationsCV;
-	struct llcv_str destinationsCV_str;
-	// Neighbor list, sorted by neighbor NetAddress.
-	Lyst neighbors;							
-	ResourceLock neighborsLock;
+
+	/* Destination lyst, sorted by nextAnnounceTimestamp. */
+	Lyst		destinations;
+	Llcv		destinationsCV;
+	struct llcv_str	destinationsCV_str;
+
+	/* Neighbor list, sorted by neighbor NetAddress. */
+	Lyst		neighbors;
+	ResourceLock	neighborsLock;
 } IPNDCtx;
 
 /* Updates ctx->nbf as well as NBF-Bits service in ctx->services if present */
-void updateCtxNbf(char* eid, int len);
+extern void	updateCtxNbf(char *eid, int len);
 
-IPNDCtx	*getIPNDCtx();
+extern IPNDCtx	*getIPNDCtx();
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _IPND_H_ */
+#endif
