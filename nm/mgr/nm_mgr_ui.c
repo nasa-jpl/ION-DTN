@@ -25,6 +25,7 @@
 
 #include "shared/utils/utils.h"
 #include "shared/adm/adm.h"
+#include "shared/adm/adm_agent.h"
 #include "shared/primitives/ctrl.h"
 #include "shared/primitives/rules.h"
 #include "shared/primitives/mid.h"
@@ -35,7 +36,8 @@
 
 #include "nm_mgr_ui.h"
 #include "mgr/ui_input.h"
-
+#include "nm_mgr_print.h"
+#include "mgr_db.h"
 
 int gContext;
 
@@ -170,7 +172,132 @@ void ui_clear_reports(agent_t* agent)
 }
 
 
+/******************************************************************************
+ *
+ * \par Function Name: ui_postprocess_ctrl
+ *
+ * \par Evaluates a control prior to sending it to agents to see if the manager
+ *      needs to perform any postprocessing of the control.
+ *
+ * \par Notes:
+ * 1. Post-processing includes the following activities
+ * 		- Verifying that definitions are unique.
+ * 		- Remembering the definitions of any custom-defined data
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/18/15  E. Birrane      Initial implementation,
+ *****************************************************************************/
 
+void ui_postprocess_ctrl(mid_t *mid)
+{
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("ui_postprocess_ctrl","Bad Args.", NULL);
+		return;
+	}
+
+
+	/* If this is a computed data definition...*/
+	if(ui_test_mid(mid, ADM_AGENT_CTL_ADDCD_MID) == 0)
+	{
+
+	}
+	/* If this is removing a computed data definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELCD_MID) == 0)
+	{
+
+	}
+	/* If this is adding a report definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDRPT_MID) == 0)
+	{
+		def_gen_t *def = def_create_from_rpt_parms(mid->oid->params);
+		if(def != NULL)
+		{
+			mgr_db_report_persist(def);
+			ADD_REPORT(def);
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("ui_postprocess_ctrl", "Adding report definition.",NULL);
+		}
+	}
+	/* If this is removing a report definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELRPT_MID) == 0)
+	{
+		datacol_entry_t *entry = dc_get_entry(mid->oid->params, 1);
+
+		if(entry != NULL)
+		{
+			uint32_t bytes = 0;
+			LystElt elt = NULL;
+			Lyst mc = midcol_deserialize(entry->value, entry->length, &bytes);
+			for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+			{
+				mid_t *mid = (mid_t *)lyst_data(elt);
+				mgr_db_report_forget(mid);
+				mgr_vdb_report_forget(mid);
+			}
+			midcol_destroy(&mc);
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("ui_postprocess_ctrl","Can't get entry.", NULL);
+		}
+	}
+	/* If this is adding a macro definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDMAC_MID) == 0)
+	{
+
+	}
+	/* If this is removing a macro definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELMAC_MID) == 0)
+	{
+
+	}
+	/* If this is adding a TRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDTRL_MID) == 0)
+	{
+
+	}
+	/* If this is removing a TRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELTRL_MID) == 0)
+	{
+
+	}
+	/* If this is adding an SRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDSRL_MID) == 0)
+	{
+
+	}
+	/* If this is removing an SRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELSRL_MID) == 0)
+	{
+
+	}
+
+
+}
+
+int ui_test_mid(mid_t *mid, const char *mid_str)
+{
+	int result = 0;
+	mid_t*  m2 =  NULL;
+
+	if((mid == NULL) || (mid_str == NULL))
+	{
+		DTNMP_DEBUG_ERR("ui_test_mid","Bad args.", NULL);
+		return 0;
+	}
+
+	m2 = mid_from_string((char *)mid_str);
+
+	result = mid_compare(mid, m2,0);
+	mid_release(m2);
+	return result;
+}
 
 void ui_send_control(agent_t* agent)
 {
@@ -190,6 +317,14 @@ void ui_send_control(agent_t* agent)
 
 	ts = ui_input_uint("Control Timestamp");
 	mid = ui_input_mid("Control MID:", ADM_ALL, MID_TYPE_CONTROL, MID_CAT_ATOMIC);
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("ui_send_control","Can't get control MID.",NULL);
+		return;
+	}
+
+	ui_postprocess_ctrl(mid);
 
 	Lyst mc = lyst_create();
 	lyst_insert_first(mc, mid);
@@ -704,97 +839,7 @@ void ui_list_rpts()
 
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_agents
- *
- * \par Prints list of known agents
- *
- * \par Returns number of agents
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  04/18/13  V.Ramachandran Initial Implementation
- *****************************************************************************/
 
-int ui_print_agents()
-{
-  int i = 1;
-  LystElt element;
-
-  DTNMP_DEBUG_ENTRY("ui_print_agents","()",NULL);
-
-  printf("\n------------- Known Agents --------------\n");
-
-  element = lyst_first(known_agents);
-  if(element == NULL)
-  {
-	  printf("[None]\n");
-  }
-  while(element != NULL)
-  {
-	  printf("%d) %s\n", i++, (char *) lyst_data(element));
-	  element = lyst_next(element);
-  }
-
-  printf("\n------------- ************ --------------\n");
-  printf("\n");
-
-  DTNMP_DEBUG_EXIT("ui_print_agents","->%d", (i-1));
-  return i;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_custom_rpt
- *
- * \par Prints a custom report received by a DTNMP Agent.
- *
- * \par Notes:
- *
- * \param[in]  rpt_entry  The entry containing the report data to print.
- * \param[in]  rpt_def    The static definition of the report.
- *
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_custom_rpt(rpt_data_entry_t *rpt_entry, def_gen_t *rpt_def)
-{
-	LystElt elt;
-	uint64_t idx = 0;
-	mid_t *cur_mid = NULL;
-	adm_datadef_t *adu = NULL;
-	uint64_t data_used;
-
-	for(elt = lyst_first(rpt_def->contents); elt; elt = lyst_next(elt))
-	{
-		char *mid_str;
-		cur_mid = (mid_t*)lyst_data(elt);
-		mid_str = mid_to_string(cur_mid);
-		if((adu = adm_find_datadef(cur_mid)) != NULL)
-		{
-			DTNMP_DEBUG_INFO("ui_print_custom_rpt","Printing MID %s", mid_str);
-			ui_print_predefined_rpt(cur_mid, (uint8_t*)&(rpt_entry->contents[idx]),
-					             rpt_entry->size - idx, &data_used, adu);
-			idx += data_used;
-		}
-		else
-		{
-			DTNMP_DEBUG_ERR("ui_print_custom_rpt","Unable to find MID %s", mid_str);
-		}
-
-		MRELEASE(mid_str);
-	}
-}
 
 
 
@@ -886,167 +931,7 @@ void ui_print_menu_rpt()
 
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_predefined_rpt
- *
- * \par Prints a pre-defined report received by a DTNMP Agent.
- *
- * \par Notes:
- *
- * \param[in]  mid        The identifier of the data item being printed.
- * \param[in]  data       The contents of the data item.
- * \param[in]  data_size  The size of the data to be printed.
- * \param[out] data_used  The bytes of the data consumed by printing.
- * \param[in]  adu        The static definition of the report.
- *
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
 
-void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu)
-{
-	uint64_t len;
-	char *mid_str = NULL;
-	char *mid_val = NULL;
-	char *name = NULL;
-	uint32_t bytes = 0;
-
-	value_t* val = val_deserialize(data, data_size, &bytes);  ;
-
-//	uint32_t val_size = adu->get_size(data, data_size);
-	uint32_t str_size = 0;
-
-	mid_str = mid_to_string(mid);
-
-//	if((mid_val = adu->to_string(data, data_size, val_size, &str_size)) == NULL)
-//	{
-//		DTNMP_DEBUG_ERR("ui_print_predefined_rpt","Can't print data value for %s.",
-//				        mid_str);
-//		MRELEASE(mid_str);
-//		return;
-//	}
-
-//	*data_used = str_size;
-	*data_used = bytes;
-	mid_val = val_to_string(val);
-	name = names_get_name(mid);
-
-	printf("Data Name: %s\n", name);
-	printf("MID      : %s\n", mid_str);
-	printf("Value    : %s\n", mid_val);
-	MRELEASE(name);
-	MRELEASE(mid_val);
-	MRELEASE(mid_str);
-	val_release(val);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_reports
- *
- * \par Print all reports in the received reports queue.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_reports(agent_t* agent)
-{
-	 LystElt report_elt;
-	 LystElt entry_elt;
-	 rpt_data_t *cur_report = NULL;
-	 rpt_data_entry_t *cur_entry = NULL;
-
-	 if(agent == NULL)
-	 {
-		 DTNMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
-		 DTNMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
-
-	 }
-	 DTNMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
-
-	 if(lyst_length(agent->reports) == 0)
-	 {
-		 DTNMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
-	 }
-
-	 /* Free any reports left in the reports list. */
-	 for (report_elt = lyst_first(agent->reports); report_elt; report_elt = lyst_next(report_elt))
-	 {
-		 /* Grab the current report */
-	     if((cur_report = (rpt_data_t*)lyst_data(report_elt)) == NULL)
-	     {
-	        DTNMP_DEBUG_ERR("ui_print_reports","Unable to get report from lyst!", NULL);
-	     }
-	     else
-	     {
-	    	 unsigned long mid_sizes = 0;
-	    	 unsigned long data_sizes = 0;
-	    	 adm_datadef_t *adu = NULL;
-	    	 def_gen_t *report = NULL;
-
-	    	 /* Print the Report Header */
-	    	 printf("\n-----------------\nDTNMP DATA REPORT\n-----------------\n");
-	    	 printf("Sent to  : %s\n", cur_report->recipient.name);
-	    	 printf("Rpt. Size: %d\n", cur_report->size);
-	    	 printf("Timestamp: %ld\n", cur_report->time);
-	    	 printf("Num Mids : %ld\n", lyst_length(cur_report->reports));
-	    	 printf("Value(s)\n---------------------------------\n");
-
-
-	    	 /* For each MID in this report, print it. */
-	    	 for(entry_elt = lyst_first(cur_report->reports); entry_elt; entry_elt = lyst_next(entry_elt))
-	    	 {
-	    		 cur_entry = (rpt_data_entry_t*)lyst_data(entry_elt);
-
-	    		 mid_sizes += cur_entry->id->raw_size;
-	    		 data_sizes += cur_entry->size;
-
-	    		 /* See if this is a pre-defined report, or a custom report. */
-	    		 /* Find ADM associated with this entry. */
-	    		 if((adu = adm_find_datadef(cur_entry->id)) != NULL)
-	    		 {
-	    			 uint64_t used;
-	    			 ui_print_predefined_rpt(cur_entry->id, cur_entry->contents, cur_entry->size, &used, adu);
-	    		 }
-	    		 else if((report = def_find_by_id(gAdmRpts, NULL, cur_entry->id)) != NULL)
-	    		 {
-	    			 ui_print_custom_rpt(cur_entry, report);
-	    		 }
-	    		 else if((report = def_find_by_id(agent->custom_defs, &(agent->mutex), cur_entry->id)) != NULL)
-	    		 {
-	    			 ui_print_custom_rpt(cur_entry, report);
-	    		 }
-	    		 else
-	    		 {
-	    			 char *mid_str = mid_to_string(cur_entry->id);
-	    			 DTNMP_DEBUG_ERR("ui_print_reports","Could not print MID %s", mid_str);
-	    			 MRELEASE(mid_str);
-	    		 }
-	    	 }
-	    	 printf("=================\n");
-	    	 printf("STATISTICS:\n");
-	    	 printf("MIDs total %ld bytes\n", mid_sizes);
-	    	 printf("Data total: %ld bytes\n", data_sizes);
-	    	 printf("Efficiency: %.2f%%\n", (double)(((double)data_sizes)/((double)cur_report->size)) * (double)100.0);
-	    	 printf("-----------------\n\n\n");
-	     }
-	 }
-}
 
 
 
@@ -1171,4 +1056,6 @@ void *ui_thread(void * threadId)
 
 	DTNMP_DEBUG_EXIT("ui_thread","->.", NULL);
 	pthread_exit(NULL);
+
+	return NULL;
 }

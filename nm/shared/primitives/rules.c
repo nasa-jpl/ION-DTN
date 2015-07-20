@@ -1,6 +1,6 @@
 /*****************************************************************************
  **
- ** \file msg_reports.c
+ ** \file rules.c
  **
  **
  ** Description:
@@ -19,11 +19,12 @@
  *****************************************************************************/
 #include "platform.h"
 
+#include "rules.h"
+
 #include "shared/utils/utils.h"
 
 #include "shared/msg/pdu.h"
 
-#include "shared/msg/msg_reports.h"
 #include "shared/msg/msg_ctrl.h"
 
 #include "shared/primitives/mid.h"
@@ -32,88 +33,521 @@
 
 
 
-/* Create functions. */
-rule_time_prod_t *rule_create_time_prod_entry(time_t time,
-											  uvast count,
-											  uvast period,
-											  Lyst contents)
+srl_t*   srl_create(mid_t *mid, time_t time, Lyst expr, uvast count, Lyst action)
 {
-	rule_time_prod_t *result = NULL;
+	srl_t *srl = NULL;
 
-	DTNMP_DEBUG_ENTRY("rule_create_time_prod_entry","(%d, %d, %d, 0x%x)",
-			          time, count, period, (unsigned long) contents);
+	DTNMP_DEBUG_ENTRY("srl_create",
+			          "(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC ")",
+			          (uvast) mid, (uvast) time, (uvast) expr, count, (uvast) action);
 
 	/* Step 0: Sanity Check. */
-	if(contents == NULL)
+	if((mid == NULL) || (expr == NULL) || (action == NULL))
 	{
-		DTNMP_DEBUG_ERR("rule_create_time_prod_entry","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("rule_create_time_prod_entry","->NULL",NULL);
+		DTNMP_DEBUG_ERR("srl_create","Bad Args.",NULL);
+		DTNMP_DEBUG_EXIT("srl_create","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the message. */
-	if((result = (rule_time_prod_t*)MTAKE(sizeof(rule_time_prod_t))) == NULL)
+	if((srl = (srl_t*) MTAKE(sizeof(srl_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rule_create_time_prod_entry","Can't alloc %d bytes.",
-				        sizeof(rule_time_prod_t));
-		DTNMP_DEBUG_EXIT("rule_create_time_prod_entry","->NULL",NULL);
+		DTNMP_DEBUG_ERR("srl_create","Can't alloc %d bytes.", sizeof(srl_t));
+		DTNMP_DEBUG_EXIT("srl_create","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the message. */
-	result->time = time;
-	result->period = period;
-	result->count = count;
-	result->mids = contents;
+	srl->mid = mid_copy(mid);
+	srl->time = time;
+	srl->expr = midcol_copy(expr);
+	srl->count = count;
+	srl->action = midcol_copy(action);
 
-	DTNMP_DEBUG_EXIT("rule_create_time_prod_entry","->0x%x",result);
+	if((srl->mid == NULL) || (srl->expr == NULL) || (srl->action == NULL))
+	{
+		srl_release(srl);
+		srl = NULL;
+		DTNMP_DEBUG_ERR("srl_create","Can't alloc SRL.", NULL);
+		DTNMP_DEBUG_EXIT("srl_create","->NULL",NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("srl_create",UVAST_FIELDSPEC,(uvast) srl);
+
+	return srl;
+}
+
+
+srl_t*   srl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
+{
+	srl_t *srl = NULL;
+	uvast tmp = 0;
+	uint32_t bytes = 0;
+
+	DTNMP_DEBUG_ENTRY("srl_deserialize",UVAST_FIELDSPEC ", %d, " UVAST_FIELDSPEC ")",
+			          (uvast)cursor, size, (uvast) bytes_used);
+
+	/* Step 0: Sanity Checks. */
+	if((cursor == NULL) || (bytes_used == 0))
+	{
+		DTNMP_DEBUG_ERR("srl_deserialize","Bad Args.",NULL);
+		DTNMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Step 1: Allocate the new message structure. */
+	if((srl = (srl_t*) MTAKE(sizeof(srl_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_deserialize","Can't Alloc %d Bytes.", sizeof(srl_t));
+		*bytes_used = 0;
+		DTNMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		memset(srl,0,sizeof(srl_t));
+	}
+
+	/* Step 2: Deserialize the SRL MID. */
+	if((srl->mid = mid_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_deserialize","Can't grab MID.",NULL);
+
+		*bytes_used = 0;
+		srl_release(srl);
+		DTNMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	/* Step 3: Grab the time. */
+	bytes = decodeSdnv(&tmp, cursor);
+	srl->time = tmp;
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
+
+    /* Step 4: Grab the expression. */
+	if((srl->expr = midcol_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_deserialize","Can't grab expression.",NULL);
+
+		*bytes_used = 0;
+		srl_release(srl);
+		DTNMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	/* Step 5: Grab the count. */
+	bytes = decodeSdnv(&tmp, cursor);
+	srl->count = tmp;
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
+
+    /* Step 6: Grab the action macro. */
+	if((srl->action = midcol_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_deserialize","Can't grab action.",NULL);
+
+		*bytes_used = 0;
+		srl_release(srl);
+		DTNMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	DTNMP_DEBUG_EXIT("srl_deserialize","->" UVAST_FIELDSPEC, (uvast) srl);
+
+	return srl;
+}
+
+
+/*
+ * NULL mutex OK.
+ */
+void srl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
+{
+	LystElt elt;
+	srl_t *entry = NULL;
+
+	DTNMP_DEBUG_ENTRY("srl_lyst_clear",
+			          "(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ", %d)",
+			          (uvast) list, (uvast) mutex, destroy);
+
+    if((list == NULL) || (*list == NULL))
+    {
+    	DTNMP_DEBUG_ERR("srl_lyst_clear","Bad Params.", NULL);
+    	return;
+    }
+
+	if(mutex != NULL)
+	{
+		lockResource(mutex);
+	}
+
+	/* Free any reports left in the reports list. */
+	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
+	{
+		/* Grab the current item */
+		if((entry = (srl_t *) lyst_data(elt)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("srl_lyst_clear","Can't get SRL from lyst!", NULL);
+		}
+		else
+		{
+			srl_release(entry);
+		}
+	}
+	lyst_clear(*list);
+
+	if(destroy != 0)
+	{
+		lyst_destroy(*list);
+		*list = NULL;
+	}
+
+	if(mutex != NULL)
+	{
+		unlockResource(mutex);
+	}
+
+	DTNMP_DEBUG_EXIT("srl_lyst_clear","->.",NULL);
+
+}
+
+
+
+void     srl_release(srl_t *srl)
+{
+	if(srl == NULL)
+	{
+		return;
+	}
+
+	if(srl->mid != NULL)
+	{
+		mid_release(srl->mid);
+	}
+
+	if(srl->expr != NULL)
+	{
+		midcol_destroy(&(srl->expr));
+	}
+
+	if(srl->action != NULL)
+	{
+		midcol_destroy(&(srl->action));
+	}
+}
+
+
+uint8_t* srl_serialize(srl_t *srl, uint32_t *len)
+{
+	uint8_t *result = NULL;
+	uint8_t *cursor = NULL;
+
+	Sdnv time_sdnv;
+	Sdnv count_sdnv;
+
+	uint8_t *mid = NULL;
+	uint32_t mid_len = 0;
+
+	uint8_t *expr = NULL;
+	uint32_t expr_len = 0;
+
+	uint8_t *action = NULL;
+	uint32_t action_len = 0;
+
+	DTNMP_DEBUG_ENTRY("srl_serialize","(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ")",
+			           (uvast) srl, (uvast) len);
+
+	/* Step 0: Sanity Checks. */
+	if((srl == NULL) || (len == NULL))
+	{
+		DTNMP_DEBUG_ERR("srl_serialize","Bad Args",NULL);
+		DTNMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	*len = 0;
+
+	/* Step 1: Serialize contents individually. */
+	encodeSdnv(&time_sdnv, srl->time);
+	encodeSdnv(&count_sdnv, srl->count);
+
+	if((mid = mid_serialize(srl->mid, &mid_len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_serialize","Can't serialize contents.",NULL);
+
+		DTNMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	if((expr = midcol_serialize(srl->expr, &expr_len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_serialize","Can't serialize contents.",NULL);
+
+		MRELEASE(mid);
+		DTNMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	if((action = midcol_serialize(srl->action, &action_len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_serialize","Can't serialize contents.",NULL);
+
+		MRELEASE(mid);
+		MRELEASE(expr);
+
+		DTNMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+
+	/* Step 2: Figure out the length. */
+	*len = mid_len + time_sdnv.length + count_sdnv.length + expr_len + action_len;
+
+	/* STEP 3: Allocate the serialized message. */
+	if((result = (uint8_t*)MTAKE(*len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("srl_serialize","Can't alloc %d bytes", *len);
+		*len = 0;
+		MRELEASE(mid);
+		MRELEASE(expr);
+		MRELEASE(action);
+
+		DTNMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Step 4: Populate the serialized message. */
+	cursor = result;
+
+	memcpy(cursor, mid, mid_len);
+	cursor += mid_len;
+
+	memcpy(cursor,time_sdnv.text,time_sdnv.length);
+	cursor += time_sdnv.length;
+
+	memcpy(cursor,expr,expr_len);
+	cursor += expr_len;
+
+	memcpy(cursor,count_sdnv.text,count_sdnv.length);
+	cursor += count_sdnv.length;
+
+	memcpy(cursor, action, action_len);
+	cursor += action_len;
+
+	MRELEASE(mid);
+	MRELEASE(expr);
+	MRELEASE(action);
+
+	/* Step 5: Last sanity check. */
+	if((cursor - result) != *len)
+	{
+		DTNMP_DEBUG_ERR("srl_serialize","Wrote %d bytes but allocated %d",
+				(unsigned long) (cursor - result), *len);
+		*len = 0;
+		MRELEASE(result);
+
+		DTNMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("srl_serialize","->" UVAST_FIELDSPEC,(uvast)result);
+
 	return result;
 }
 
 
-rule_pred_prod_t *rule_create_pred_prod_entry(time_t time,
-		   	   	   	   	   	   	   	   	      Lyst predicate,
-		   	   	   	   	   	   	   	   	      uvast count,
-		   	   	   	   	   	   	   	   	      Lyst contents)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+trl_t*   trl_create(mid_t *mid, time_t time, uvast period, uvast count, Lyst action)
 {
-	/* \todo Implement this. */
-	return NULL;
-}
+	trl_t *trl = NULL;
 
+	DTNMP_DEBUG_ENTRY("trl_create",
+			          "(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC ")",
+			          (uvast) mid, (uvast) time, period, count, (uvast) action);
 
-
-
-
-
-/* Release functions.*/
-void rule_release_time_prod_entry(rule_time_prod_t *msg)
-{
-	if(msg != NULL)
+	/* Step 0: Sanity Check. */
+	if((mid == NULL) || (action == NULL))
 	{
-		midcol_destroy(&(msg->mids));
-		MRELEASE(msg);
+		DTNMP_DEBUG_ERR("trl_create","Bad Args.",NULL);
+		DTNMP_DEBUG_EXIT("trl_create","->NULL",NULL);
+		return NULL;
 	}
+
+	/* Step 1: Allocate the message. */
+	if((trl = (trl_t*) MTAKE(sizeof(trl_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_create","Can't alloc %d bytes.", sizeof(trl_t));
+		DTNMP_DEBUG_EXIT("trl_create","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Step 2: Populate the message. */
+	trl->mid = mid_copy(mid);
+	trl->time = time;
+	trl->period = period;
+	trl->count = count;
+	trl->action = midcol_copy(action);
+
+	if((trl->mid == NULL) || (trl->action == NULL))
+	{
+		trl_release(trl);
+		trl = NULL;
+		DTNMP_DEBUG_ERR("trl_create","Can't alloc SRL.", NULL);
+		DTNMP_DEBUG_EXIT("trl_create","->NULL",NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("trl_create",UVAST_FIELDSPEC,(uvast) trl);
+
+	return trl;
 }
 
-void rule_release_pred_prod_entry(rule_pred_prod_t *msg)
+
+trl_t*   trl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-	/* \todo Implement this. */
-	return;
+	trl_t *trl = NULL;
+	uvast tmp = 0;
+	uint32_t bytes = 0;
+
+	DTNMP_DEBUG_ENTRY("trl_deserialize",UVAST_FIELDSPEC ", %d, " UVAST_FIELDSPEC ")",
+			          (uvast)cursor, size, (uvast) bytes_used);
+
+	/* Step 0: Sanity Checks. */
+	if((cursor == NULL) || (bytes_used == 0))
+	{
+		DTNMP_DEBUG_ERR("trl_deserialize","Bad Args.",NULL);
+		DTNMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Step 1: Allocate the new message structure. */
+	if((trl = (trl_t*) MTAKE(sizeof(trl_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_deserialize","Can't Alloc %d Bytes.", sizeof(trl_t));
+		*bytes_used = 0;
+		DTNMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		memset(trl,0,sizeof(trl_t));
+	}
+
+	/* Step 2: Deserialize the TRL MID. */
+	if((trl->mid = mid_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_deserialize","Can't grab MID.",NULL);
+
+		*bytes_used = 0;
+		trl_release(trl);
+		DTNMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	/* Step 3: Grab the time. */
+	bytes = decodeSdnv(&tmp, cursor);
+	trl->time = tmp;
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
+
+    /* Step 4: Grab the period. */
+	bytes = decodeSdnv(&tmp, cursor);
+	trl->period = tmp;
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
+
+    /* Step 5: Grab the count. */
+	bytes = decodeSdnv(&tmp, cursor);
+	trl->count = tmp;
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
+
+    /* Step 6: Grab the action macro. */
+	if((trl->action = midcol_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_deserialize","Can't grab action.",NULL);
+
+		*bytes_used = 0;
+		trl_release(trl);
+		DTNMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	DTNMP_DEBUG_EXIT("trl_deserialize","->" UVAST_FIELDSPEC, (uvast) trl);
+
+	return trl;
 }
 
 
-
-void rule_time_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
+/*
+ * NULL mutex OK.
+ */
+void trl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 {
 	LystElt elt;
-	rule_time_prod_t *entry = NULL;
+	trl_t *entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("rule_time_clear_lyst","(0x%x, 0x%x, %d)",
-			          (unsigned long) list, (unsigned long) mutex, destroy);
+	DTNMP_DEBUG_ENTRY("trl_lyst_clear",
+			          "(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ", %d)",
+			          (uvast) list, (uvast) mutex, destroy);
 
     if((list == NULL) || (*list == NULL))
     {
-    	DTNMP_DEBUG_ERR("rule_time_clear_lyst","Bad Params.", NULL);
+    	DTNMP_DEBUG_ERR("trl_lyst_clear","Bad Params.", NULL);
     	return;
     }
 
@@ -126,13 +560,13 @@ void rule_time_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
 	{
 		/* Grab the current item */
-		if((entry = (rule_time_prod_t *) lyst_data(elt)) == NULL)
+		if((entry = (trl_t *) lyst_data(elt)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("rule_time_clear_lyst","Can't get report from lyst!", NULL);
+			DTNMP_DEBUG_ERR("trl_lyst_clear","Can't get TRL from lyst!", NULL);
 		}
 		else
 		{
-			rule_release_time_prod_entry(entry);
+			trl_release(entry);
 		}
 	}
 	lyst_clear(*list);
@@ -148,54 +582,132 @@ void rule_time_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 		unlockResource(mutex);
 	}
 
-	DTNMP_DEBUG_EXIT("rule_time_clear_lyst","->.",NULL);
+	DTNMP_DEBUG_EXIT("trl_lyst_clear","->.",NULL);
+
 }
 
-void rule_pred_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
+
+
+void     trl_release(trl_t *trl)
 {
-	LystElt elt;
-	rule_pred_prod_t *entry = NULL;
-
-	DTNMP_DEBUG_ENTRY("rule_pred_clear_lyst","(0x%x, 0x%x, %d)",
-			          (unsigned long) list, (unsigned long) mutex, destroy);
-
-    if((list == NULL) || (*list == NULL))
-    {
-    	DTNMP_DEBUG_ERR("rule_pred_clear_lyst","Bad Params.", NULL);
-    	return;
-    }
-
-	if(mutex != NULL)
+	if(trl == NULL)
 	{
-		lockResource(mutex);
+		return;
 	}
 
-	/* Free any reports left in the reports list. */
-	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
+	if(trl->mid != NULL)
 	{
-		/* Grab the current item */
-		if((entry = (rule_pred_prod_t *) lyst_data(elt)) == NULL)
-		{
-			DTNMP_DEBUG_ERR("rule_pred_clear_lyst","Can't get report from lyst!", NULL);
-		}
-		else
-		{
-			rule_release_pred_prod_entry(entry);
-		}
-	}
-	lyst_clear(*list);
-
-	if(destroy != 0)
-	{
-		lyst_destroy(*list);
-		*list = NULL;
+		mid_release(trl->mid);
 	}
 
-	if(mutex != NULL)
+	if(trl->action != NULL)
 	{
-		unlockResource(mutex);
+		midcol_destroy(&(trl->action));
 	}
-
-	DTNMP_DEBUG_EXIT("rule_pred_clear_lyst","->.",NULL);
 }
 
+
+uint8_t* trl_serialize(trl_t *trl, uint32_t *len)
+{
+	uint8_t *result = NULL;
+	uint8_t *cursor = NULL;
+
+	Sdnv time_sdnv;
+	Sdnv period_sdnv;
+	Sdnv count_sdnv;
+
+	uint8_t *mid = NULL;
+	uint32_t mid_len = 0;
+
+	uint8_t *action = NULL;
+	uint32_t action_len = 0;
+
+	DTNMP_DEBUG_ENTRY("trl_serialize","(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ")",
+			           (uvast) trl, (uvast) len);
+
+	/* Step 0: Sanity Checks. */
+	if((trl == NULL) || (len == NULL))
+	{
+		DTNMP_DEBUG_ERR("trl_serialize","Bad Args",NULL);
+		DTNMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	*len = 0;
+
+	/* Step 1: Serialize contents individually. */
+	encodeSdnv(&time_sdnv,   trl->time);
+	encodeSdnv(&period_sdnv, trl->period);
+	encodeSdnv(&count_sdnv,  trl->count);
+
+	if((mid = mid_serialize(trl->mid, &mid_len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_serialize","Can't serialize contents.",NULL);
+
+		DTNMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	if((action = midcol_serialize(trl->action, &action_len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_serialize","Can't serialize contents.",NULL);
+
+		MRELEASE(mid);
+
+		DTNMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+
+	/* Step 2: Figure out the length. */
+	*len = mid_len + time_sdnv.length + period_sdnv.length + count_sdnv.length + action_len;
+
+	/* STEP 3: Allocate the serialized message. */
+	if((result = (uint8_t*)MTAKE(*len)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("trl_serialize","Can't alloc %d bytes", *len);
+		*len = 0;
+		MRELEASE(mid);
+		MRELEASE(action);
+
+		DTNMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Step 4: Populate the serialized message. */
+	cursor = result;
+
+	memcpy(cursor, mid, mid_len);
+	cursor += mid_len;
+
+	memcpy(cursor,time_sdnv.text,time_sdnv.length);
+	cursor += time_sdnv.length;
+
+	memcpy(cursor,period_sdnv.text,period_sdnv.length);
+	cursor += period_sdnv.length;
+
+	memcpy(cursor,count_sdnv.text,count_sdnv.length);
+	cursor += count_sdnv.length;
+
+	memcpy(cursor, action, action_len);
+	cursor += action_len;
+
+	MRELEASE(mid);
+	MRELEASE(action);
+
+	/* Step 5: Last sanity check. */
+	if((cursor - result) != *len)
+	{
+		DTNMP_DEBUG_ERR("trl_serialize","Wrote %d bytes but allocated %d",
+				(unsigned long) (cursor - result), *len);
+		*len = 0;
+		MRELEASE(result);
+
+		DTNMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("trl_serialize","->" UVAST_FIELDSPEC,(uvast)result);
+
+	return result;
+}

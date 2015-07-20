@@ -1,0 +1,576 @@
+/*****************************************************************************
+ **
+ ** \file nm_mgr_print.h
+ **
+ **
+ ** Description: Helper file holding functions for printing DTNMP data to
+ **              the screen.  These functions differ from the "to string"
+ **              functions for individual DTNMP data types as these functions
+ **              "pretty print" directly to stdout and are nly appropriate for
+ **              ground-related applications. We do not anticipate these functions
+ **              being appropriate for use in embedded systems.
+ **
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **  07/10/15  E. Birrane     Initial Implementation
+ *****************************************************************************/
+
+#include "nm_mgr_ui.h"
+#include "nm_mgr_print.h"
+#include "mgr_db.h"
+
+#include "shared/utils/utils.h"
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_print_agents
+ *
+ * \par Prints list of known agents
+ *
+ * \par Returns number of agents
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/18/13  V.Ramachandran Initial Implementation
+ *****************************************************************************/
+
+int ui_print_agents()
+{
+  int i = 1;
+  LystElt element;
+
+  DTNMP_DEBUG_ENTRY("ui_print_agents","()",NULL);
+
+  printf("\n------------- Known Agents --------------\n");
+
+  element = lyst_first(known_agents);
+  if(element == NULL)
+  {
+	  printf("[None]\n");
+  }
+  while(element != NULL)
+  {
+	  printf("%d) %s\n", i++, (char *) lyst_data(element));
+	  element = lyst_next(element);
+  }
+
+  printf("\n------------- ************ --------------\n");
+  printf("\n");
+
+  DTNMP_DEBUG_EXIT("ui_print_agents","->%d", (i-1));
+  return i;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_print_custom_rpt_entry
+ *
+ * \par Prints the Typed Data Collection contained within a report entry.
+ *
+ * \par Notes:
+ *
+ * \param[in]  rpt_entry  The entry containing the report data to print.
+ * \param[in]  rpt_def    The static definition of the report.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/18/13  E. Birrane     Initial Implementation
+ *  07/10/15  E. Birrane     Updated to new reporting structure.
+ *****************************************************************************
+
+void ui_print_custom_rpt_entry(rpt_entry_t *rpt_entry, def_gen_t *rpt_def)
+{
+	LystElt elt;
+	uint64_t idx = 0;
+	mid_t *cur_mid = NULL;
+	adm_datadef_t *adu = NULL;
+	uint64_t data_used;
+
+	for(elt = lyst_first(rpt_def->contents); elt; elt = lyst_next(elt))
+	{
+		char *mid_str;
+		cur_mid = (mid_t*)lyst_data(elt);
+		mid_str = mid_to_string(cur_mid);
+		if((adu = adm_find_datadef(cur_mid)) != NULL)
+		{
+			DTNMP_DEBUG_INFO("ui_print_custom_rpt","Printing MID %s", mid_str);
+			ui_print_predefined_rpt_entry(cur_mid, (uint8_t*)&(rpt_entry->contents[idx]),
+					                rpt_entry->size - idx, &data_used, adu);
+			idx += data_used;
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("ui_print_custom_rpt","Unable to find MID %s", mid_str);
+		}
+
+		MRELEASE(mid_str);
+	}
+}
+*/
+
+void ui_print_dc(Lyst dc)
+{
+
+}
+
+void ui_print_def(def_gen_t *def)
+{
+
+}
+
+/*
+ * We need to find out a description for the entry so we can print it out.
+ * So, if entry is <RPT MID> <int d1><int d2><int d3> we need to match the items
+ * to elements of the report definition.
+ *
+ */
+void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
+{
+	LystElt elt = NULL;
+	def_gen_t *cur_def = NULL;
+
+	if((entry == NULL) || (mid_sizes == NULL) || (data_sizes == NULL))
+	{
+		DTNMP_DEBUG_ERR("ui_print_entry","Bad Args.", NULL);
+		return;
+	}
+
+	/* Step 1: Calculate sizes...*/
+    *mid_sizes = *mid_sizes + entry->id->raw_size;
+
+    for(elt = lyst_first(entry->contents->datacol); elt; elt = lyst_next(elt))
+    {
+    	datacol_entry_t *cur = lyst_data(elt);
+        *data_sizes = *data_sizes + cur->length;
+    }
+    *data_sizes = *data_sizes + entry->contents->hdr.length;
+
+	/* Step 1: Print the MID associated with the Entry. */
+    printf(" (");
+    ui_print_mid(entry->id);
+	printf(") has %d values.", entry->contents->hdr.length);
+
+
+    /*
+     * Step 2: Try and find the metadata associated with each
+     *         value in the TDC. Since the TDC is already typed, the
+     *         needed meta-data information is simply the
+     *         "name" of the data.
+     *
+     *         i Only computed data definitions, reports, and macros
+     *         need names. Literals, controls, and atomic data do
+     *         not (currently) define extra meta-data for their
+     *         definitions.
+     *
+     *         \todo: Consider printing names for each return
+     *         value from a control.
+     */
+
+    cur_def = NULL;
+
+	if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_ATOMIC)
+	{
+    	cur_def = def_find_by_id(gAdmData, NULL, entry->id);
+	}
+	else if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_COMPUTED)
+	{
+	    if(MID_GET_FLAG_ISS(entry->id->flags))
+	    {
+	    	cur_def = def_find_by_id(gAdmComputed, NULL, entry->id);
+	    }
+	    else
+	    {
+	    	cur_def = def_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), entry->id);
+	    }
+	}
+	else if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_REPORT)
+	{
+	    if(MID_GET_FLAG_ISS(entry->id->flags))
+	    {
+	    	cur_def = def_find_by_id(gAdmRpts, NULL, entry->id);
+	    }
+	    else
+	    {
+	    	cur_def = def_find_by_id(gMgrVDB.reports, &(gMgrVDB.reports_mutex), entry->id);
+	    }
+	}
+	else if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_MACRO)
+	{
+	    if(MID_GET_FLAG_ISS(entry->id->flags))
+	    {
+	    	cur_def = def_find_by_id(gAdmMacros, NULL, entry->id);
+	    }
+	    else
+	    {
+	    	cur_def = def_find_by_id(gMgrVDB.macros, &(gMgrVDB.macros_mutex), entry->id);
+	    }
+
+	}
+
+	/* Step 3: Print the TDC holding data for the entry. */
+    ui_print_tdc(entry->contents, cur_def);
+
+
+    return;
+}
+
+void ui_print_expr(Lyst expr)
+{
+
+}
+
+void ui_print_mc(Lyst mc)
+{
+
+}
+
+void ui_print_mid(mid_t *mid)
+{
+	char *result = NULL;
+
+	if(mid == NULL)
+	{
+		printf("NULL");
+		return;
+	}
+
+	result = names_get_name(mid);
+	printf("%s", result);
+	MRELEASE(result);
+
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_print_predefined_rpt
+ *
+ * \par Prints a pre-defined report received by a DTNMP Agent.
+ *
+ * \par Notes:
+ *
+ * \param[in]  mid        The identifier of the data item being printed.
+ * \param[in]  data       The contents of the data item.
+ * \param[in]  data_size  The size of the data to be printed.
+ * \param[out] data_used  The bytes of the data consumed by printing.
+ * \param[in]  adu        The static definition of the report.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/18/13  E. Birrane     Initial Implementation
+ *  07/10/15  E. Birrane     Updated to new report structure.
+ *****************************************************************************/
+
+void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu)
+{
+	uint64_t len;
+	char *mid_str = NULL;
+	char *mid_name = NULL;
+	char *mid_val = NULL;
+	char *name = NULL;
+	uint32_t bytes = 0;
+
+	value_t* val = val_deserialize(data, data_size, &bytes);  ;
+
+	uint32_t str_size = 0;
+
+	mid_str = mid_to_string(mid);
+	mid_name = names_get_name(mid);
+
+	*data_used = bytes;
+	mid_val = val_to_string(val);
+	name = names_get_name(mid);
+
+	printf("Data Name: %s\n", name);
+	printf("MID      : %s\n", mid_str);
+	printf("Value    : %s\n", mid_val);
+	MRELEASE(name);
+	MRELEASE(mid_val);
+	MRELEASE(mid_str);
+	val_release(val);
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_print_reports
+ *
+ * \par Print all reports in the received reports queue.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/18/13  E. Birrane     Initial Implementation
+ *****************************************************************************/
+
+void ui_print_reports(agent_t* agent)
+{
+	 LystElt report_elt;
+	 LystElt entry_elt;
+	 rpt_t *cur_report = NULL;
+	 rpt_entry_t *cur_entry = NULL;
+
+	 if(agent == NULL)
+	 {
+		 DTNMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
+		 DTNMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
+		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
+		 return;
+
+	 }
+	 DTNMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
+
+	 if(lyst_length(agent->reports) == 0)
+	 {
+		 DTNMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
+		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
+		 return;
+	 }
+
+	 /* Free any reports left in the reports list. */
+	 for (report_elt = lyst_first(agent->reports); report_elt; report_elt = lyst_next(report_elt))
+	 {
+		 /* Grab the current report */
+	     if((cur_report = (rpt_t*)lyst_data(report_elt)) == NULL)
+	     {
+	        DTNMP_DEBUG_ERR("ui_print_reports","Unable to get report from lyst!", NULL);
+	     }
+	     else
+	     {
+	    	 uvast mid_sizes = 0;
+	    	 uvast data_sizes = 0;
+	    	 int i = 1;
+
+	    	 /* Print the Report Header */
+	    	 printf("\n----------------------------------------");
+	    	 printf("\n            DTNMP DATA REPORT           ");
+	    	 printf("\n----------------------------------------");
+	    	 printf("\nSent to   : %s", cur_report->recipient.name);
+	    	 printf("\nRpt. Size : %d", cur_report->size);
+	    	 printf("\nTimestamp : %s", ctime(&(cur_report->time)));
+	    	 printf("\n# Entries : %ld", lyst_length(cur_report->entries));
+	    	 printf("\n----------------------------------------");
+
+ 	    	 /* For each MID in this report, print it. */
+	    	 for(entry_elt = lyst_first(cur_report->entries); entry_elt; entry_elt = lyst_next(entry_elt))
+	    	 {
+	    		 printf("\nEntry %d ", i);
+	    		 cur_entry = (rpt_entry_t*)lyst_data(entry_elt);
+	    		 ui_print_entry(cur_entry, &mid_sizes, &data_sizes);
+	    		 i++;
+	    	 }
+
+	    	 printf("\n----------------------------------------");
+	    	 printf("\nSTATISTICS:");
+	    	 printf("\nMIDs total %ld bytes", mid_sizes);
+	    	 printf("\nData total: %ld bytes", data_sizes);
+	    	 printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
+	    	 printf("\n----------------------------------------\n\n\n");
+	     }
+	 }
+}
+
+
+void ui_print_srl(srl_t *srl)
+{
+
+}
+
+// THis is a DC of values? Generally, a typed data collection is a DC of values.
+void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
+{
+	LystElt elt = NULL;
+	LystElt def_elt = NULL;
+	uint32_t i = 0;
+	dtnmp_type_e cur_type;
+	datacol_entry_t *cur_entry = NULL;
+	value_t *cur_val = NULL;
+
+	if(tdc == NULL)
+	{
+		DTNMP_DEBUG_ERR("ui_print_tdc","Bad Args.", NULL);
+		return;
+	}
+
+	if(cur_def != NULL)
+	{
+		if(lyst_length(cur_def->contents) != tdc->hdr.length)
+		{
+			DTNMP_DEBUG_ERR("ui_print_tdc","def and TDC length mismatch: %d != %d. Ignoring.",
+					        lyst_length(cur_def->contents), tdc->hdr.length);
+			cur_def = NULL;
+		}
+	}
+
+
+	elt = lyst_first(tdc->datacol);
+	if(cur_def != NULL)
+	{
+		def_elt = lyst_first(cur_def->contents);
+	}
+
+	for(i = 0; ((i < tdc->hdr.length) && elt); i++)
+	{
+		cur_type = (dtnmp_type_e) tdc->hdr.data[i];
+
+		// \todo: Check return values.
+		cur_entry = lyst_data(elt);
+		cur_val = val_deserialize_one(cur_entry->value, cur_entry->length);
+
+		if(cur_def != NULL)
+		{
+			printf("\n\tValue %d (", i);
+			ui_print_mid((mid_t *) lyst_data(def_elt));
+			printf(") ");
+		}
+
+		if(cur_type != cur_val->type)
+		{
+			DTNMP_DEBUG_WARN("ui_print_tdc","Value type mismatch %d != %d", cur_type, cur_val->type);
+		}
+
+		ui_print_val(cur_val);
+
+		elt = lyst_next(elt);
+
+		if(cur_def != NULL)
+		{
+			def_elt = lyst_next(def_elt);
+		}
+	}
+
+}
+
+
+void ui_print_trl(trl_t *trl)
+{
+
+}
+
+void ui_print_val(value_t *val)
+{
+
+	if(val == NULL)
+	{
+		printf("NULL");
+		return;
+	}
+
+	switch(val->type)
+	{
+		case DTNMP_TYPE_INT:
+			printf("%d", val_cvt_int(val));
+			break;
+
+		case DTNMP_TYPE_TS:
+		case DTNMP_TYPE_UINT:
+			printf("%d", val_cvt_uint(val));
+			break;
+
+		case DTNMP_TYPE_VAST:
+			printf(VAST_FIELDSPEC, val_cvt_vast(val));
+			break;
+
+		case DTNMP_TYPE_SDNV:
+		case DTNMP_TYPE_UVAST:
+			printf(UVAST_FIELDSPEC, val_cvt_uvast(val));
+			break;
+
+		case DTNMP_TYPE_REAL32:
+			printf("%f", val_cvt_real32(val));
+			break;
+
+		case DTNMP_TYPE_REAL64:
+			printf("%f", val_cvt_real64(val));
+			break;
+
+		case DTNMP_TYPE_STRING:
+			printf("%s", (char *)val->value.as_ptr);
+			break;
+
+		case DTNMP_TYPE_BLOB:
+			{
+				char *tmp_str = utils_hex_to_string(val->value.as_ptr, val->length);
+				printf("%s", tmp_str);
+				MRELEASE(tmp_str);
+			}
+			break;
+
+		case DTNMP_TYPE_DC:
+			{
+				uint32_t bytes = 0;
+				Lyst dc = dc_deserialize(val->value.as_ptr, val->length, &bytes);
+				ui_print_dc(dc);
+				dc_destroy(&dc);
+			}
+			break;
+
+		case DTNMP_TYPE_MID:
+			{
+				uint32_t bytes = 0;
+				mid_t *mid = mid_deserialize(val->value.as_ptr, val->length, &bytes);
+				ui_print_mid(mid);
+				mid_release(mid);
+			}
+			break;
+
+			// \todo: Expression has no priority. Need to re-think priority.
+		case DTNMP_TYPE_MC:
+		case DTNMP_TYPE_EXPR:
+			{
+				uint32_t bytes = 0;
+				Lyst mc = midcol_deserialize(val->value.as_ptr, val->length, &bytes);
+				ui_print_mc(mc);
+				midcol_destroy(&mc);
+			}
+			break;
+
+		case DTNMP_TYPE_DEF:
+			{
+				uint32_t bytes = 0;
+				def_gen_t *def = def_deserialize_gen(val->value.as_ptr, val->length, &bytes);
+				ui_print_def(def);
+				def_release_gen(def);
+			}
+			break;
+
+		case DTNMP_TYPE_TRL:
+			{
+				uint32_t bytes = 0;
+				trl_t *trl = trl_deserialize(val->value.as_ptr, val->length, &bytes);
+				ui_print_trl(trl);
+				trl_release(trl);
+			}
+			break;
+
+		case DTNMP_TYPE_SRL:
+			{
+				uint32_t bytes = 0;
+				srl_t *srl = srl_deserialize(val->value.as_ptr, val->length, &bytes);
+				ui_print_srl(srl);
+				srl_release(srl);
+			}
+			break;
+
+		default:
+			printf("Unknown.");
+	}
+}

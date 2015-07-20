@@ -186,7 +186,7 @@ value_t* expr_apply_op(mid_t *op_mid, Lyst *stack)
 
 	tmp = op->apply(*stack);
 
-	if(tmp.type == VAL_TYPE_UNK)
+	if(tmp.type == DTNMP_TYPE_UNK)
 	{
 		DTNMP_DEBUG_ERR("expr_apply_op","Bad Op Value.", NULL);
 		DTNMP_DEBUG_EXIT("expr_apply_op","->NULL",NULL);

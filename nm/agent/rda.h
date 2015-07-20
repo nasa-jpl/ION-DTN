@@ -31,6 +31,7 @@
 #define RDA_H_
 
 #include "shared/primitives/rules.h"
+#include "shared/primitives/report.h"
 
 extern Lyst g_rda_cur_rpts; // Reports being built in the current tao.
 extern Lyst g_rda_rules_pend;
@@ -39,21 +40,18 @@ extern ResourceLock g_rda_cur_rpts_mutex;
 extern ResourceLock g_rda_rules_pend_mutex;
 
 
-void              rda_cleanup();
-rpt_data_t*       rda_get_report(eid_t recipient);
-int               rda_scan_rules(Lyst rules_pending);
-int               rda_scan_ctrls(Lyst exec_defs);
-rpt_data_entry_t* rda_build_report_entry(mid_t *mid);
+void         rda_cleanup();
+rpt_t*       rda_get_report(eid_t recipient);
+int          rda_scan_rules(Lyst rules_pending);
+int          rda_scan_ctrls(Lyst exec_defs);
+rpt_entry_t* rda_build_report_entry(mid_t *mid);
 
-int               rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p);
+int          rda_eval_rule(trl_t *rule_p, rpt_t *report_p);
 
-int               rda_eval_pending_rules(Lyst rules_pending);
-int               rda_send_reports();
-int               rda_eval_cleanup(Lyst rules_pending);
+int          rda_eval_pending_rules(Lyst rules_pending);
+int          rda_send_reports();
+int          rda_eval_cleanup(Lyst rules_pending);
 
-void*             rda_thread(void* threadId);
-
-
-
+void*        rda_thread(void* threadId);
 
 #endif /* RDA_H_ */

@@ -34,7 +34,9 @@
 // Application headers.
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
-#include "nm_mgr_db.h"
+#include "mgr_db.h"
+#include "nm_mgr_sql.h"
+
 #include "nm_mgr_names.h"
 #include "shared/primitives/rules.h"
 
@@ -48,15 +50,16 @@ Object		 agents_hashtable;
 Lyst		 known_agents;
 ResourceLock agents_mutex;
 
-Lyst 		 macro_defs;
-ResourceLock macro_defs_mutex;
-
 eid_t        manager_eid;
 eid_t        agent_eid;
 
 uint32_t	 g_reports_total = 0;
 
 Sdr 		 g_sdr;
+
+MgrDB      gMgrDB;
+MgrVDB     gMgrVDB;
+
 
 // This function looks to be completely unused at this time.
 // To prevent compilation warnings, Josh Schendel commented it out on
@@ -566,8 +569,7 @@ int mgr_cleanup()
 	}
 	lyst_destroy(gParmSpec);
 
-	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
-	killResourceLock(&macro_defs_mutex);
+	mgr_vdb_destroy();
 
 	return 0;
 }
@@ -634,28 +636,19 @@ int mgr_init(char *argv[])
     	return -1;
     }
 
-	gParmSpec = lyst_create();
-
-    if((macro_defs = lyst_create()) == NULL)
+    if((gParmSpec = lyst_create()) == NULL)
     {
-        DTNMP_DEBUG_ERR("mgr_init","Failed to create macro def list.%s",NULL);
+        DTNMP_DEBUG_ERR("mgr_init","Failed to create parmsepc list.%s",NULL);
         //MRELEASE(ion_ptr);
         DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
         return -1;
     }
 
-    if (initResourceLock(&macro_defs_mutex))
-    {
-    	DTNMP_DEBUG_ERR("mgr_init","Cant init macro def list mutex. errno = %s",
-    			        strerror(errno));
-        //MRELEASE(ion_ptr);
-        DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-    	return -1;
-    }
-
     names_init();
-
 	adm_init();
+
+	mgr_db_init();
+	mgr_vdb_init();
 
 #ifdef HAVE_MYSQL
 	db_mgt_init("localhost", "root", "NetworkManagement", "dtnmp", 1);

@@ -82,7 +82,7 @@ lit_t *lit_create(mid_t *id, value_t value, lit_val_fn calc)
 	else
 	{
 		/* Step 1.1: If this is not parameterized, we need a valid value. */
-		if(value.type == VAL_TYPE_UNK)
+		if(value.type == DTNMP_TYPE_UNK)
 		{
 			DTNMP_DEBUG_ERR("lit_create","Unparameterized literal needs valid value.",NULL);
 			DTNMP_DEBUG_EXIT("lit_create","->NULL",NULL);
@@ -222,7 +222,7 @@ value_t lit_get_value(lit_t *lit)
 	DTNMP_DEBUG_ENTRY("lit_get_value","(0x%x)",
 			          (unsigned long) lit);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_int = 0;
 

@@ -17,6 +17,7 @@
  **  --------  ------------   ---------------------------------------------
  **  01/11/13  E. Birrane     Redesign of primitives architecture.
  **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
+ **  07/02/15  E. Birrane     Migrated to Typed Data Collections (TDCs)
  *****************************************************************************/
 
 
@@ -28,6 +29,7 @@
 #include "shared/utils/nm_types.h"
 
 #include "shared/primitives/def.h"
+#include "shared/primitives/tdc.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -52,47 +54,14 @@
 
 
 /**
- * Associated Message Type(s): MSG_TYPE_RPT_DATA_LIST
- *
- * Purpose: Define a data list report.
- *
- * +---------------+
- * | Configured ID |
- * |     (MC)      |
- * +---------------+
- */
-typedef struct {
-    Lyst contents;        /**> The ordered MIDs comprising the data list. */
-} rpt_items_t;
-
-
-
-/**
- * Associated Message Type(s): MSG_TYPE_RPT_DATA_DEFS
- *
- * Purpose: Define a data definition report.
- *
- * +--------+------+----------+     +------+----------+
- * | # Defs | ID 1 |   Def 1  | ... | ID N |   Def N  |
- * | (SDNV) |(MID) |   (MC)   |     |(MID) |    (MC)  |
- * +--------+------+----------+     +------+----------+
- */
-typedef struct {
-    Lyst defs;            /**> The ordered MIDs comprising the data defs. */
-} rpt_defs_t;
-
-
-
-/**
  * Entry in a data report list, comprising a single report.
  */
 typedef struct
 {
 	mid_t *id;		   /**> The report ID. */
 
-	uvast size;     /**> The number of bytes of report data. */
-	uint8_t *contents; /**> The report data. */
-} rpt_data_entry_t;
+	tdc_t *contents;   /**> The typed data collection holding the report. */
+} rpt_entry_t;
 
 
 
@@ -108,30 +77,14 @@ typedef struct
  */
 typedef struct {
 
-	time_t time;        /**> Time the reports were generated. */
-    Lyst reports;         /**> The reports (lyst of rpt_data_entry_t */
+	time_t time;        /**> Time the report entries were generated. */
+    Lyst entries;       /**> The report entries (lyst of rpt_entry_t */
 
-
+    /* Non-serialized portions. */
     eid_t recipient;
-    uint32_t size;
-} rpt_data_t;
+    uint32_t size; /* \todo What is this? */
+} rpt_t;
 
-
-
-/**
- * Associated Message Type(s): MSG_TYPE_RPT_PROD_SCHED
- *
- * Purpose: Define a data definition report.
- * \todo: Support for predicate types as well?
- *
- * +---------+--------+     +--------+
- * | # Rules | Rule 1 | ... | Rule N |
- * |  (SDNV) | (VAR)  |     |  (VAR) |
- * +---------+--------+     +--------+
- */
-typedef struct {
-    Lyst defs;            /**> Report defs (msg_ctrl_period_prod_t). */
-} rpt_prod_t;
 
 
 
@@ -141,22 +94,32 @@ typedef struct {
  * +--------------------------------------------------------------------------+
  */
 
-void         rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
+int      rpt_add_entry(rpt_t *rpt, rpt_entry_t *entry);
+rpt_t*   rpt_create(time_t time, Lyst entries, eid_t recipient);
+void     rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
 
-rpt_items_t* rpt_create_lst(Lyst contents);
-rpt_defs_t*  rpt_create_defs(Lyst defs);
-rpt_data_t*  rpt_create_data(time_t time, Lyst reports, eid_t recipient);
-rpt_prod_t*  rpt_create_prod(Lyst defs);
+rpt_t*   rpt_deserialize_data(uint8_t *cursor,
+		                      uint32_t size,
+		                      uint32_t *bytes_used);
 
-def_gen_t*   rpt_find_custom(Lyst reportLyst, ResourceLock *mutex, mid_t *mid);
+void     rpt_release(rpt_t *msg);
 
-void         rpt_print_data_entry(rpt_data_entry_t *entry);
+uint8_t* rpt_serialize(rpt_t *msg, uint32_t *len);
 
-void         rpt_release_lst(rpt_items_t *msg);
-void         rpt_release_defs(rpt_defs_t *msg);
-void         rpt_release_data_entry(rpt_data_entry_t *entry);
-void         rpt_release_data(rpt_data_t *msg);
-void         rpt_release_prod(rpt_prod_t *msg);
+char*    rpt_to_str(rpt_t *rpt);
+
+
+void         rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
+rpt_entry_t* rpt_entry_create();
+rpt_entry_t* rpt_entry_deserialize(uint8_t *cursor,
+		                           uint32_t size,
+		                           uint32_t *bytes_used);
+char*        rpt_entry_lst_to_str(Lyst entries);
+void         rpt_entry_release(rpt_entry_t *entry);
+uint8_t*     rpt_entry_serialize(rpt_entry_t *entry, uint32_t *len);
+uint8_t*     rpt_entry_serialize_lst(Lyst entries, uint32_t *len);
+char*        rpt_entry_to_str(rpt_entry_t *entry);
+
 
 
 #endif /* _REPORT_H_ */

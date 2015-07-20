@@ -80,6 +80,7 @@ typedef struct
  */
 typedef struct {
     mid_t *id;             /**> The identifier (name) of the report. */
+    uint32_t type;         /**> The result type of the definition. */
     Lyst contents;         /**> The ordered MIDs comprising the definition. */
 
     /* Below items are not serialized with this structure. */
@@ -98,21 +99,30 @@ typedef struct {
 
 /* Create functions. */
 def_gen_t *def_create_gen(mid_t *id,
+						  uint32_t type,
 					      Lyst contents);
+
+def_gen_t *def_create_from_rpt_parms(Lyst parms);
+def_gen_t *def_create_from_cd_parms(Lyst parms);
+def_gen_t *def_create_from_macro_parms(Lyst parms);
+
+def_gen_t *def_deserialize_gen(uint8_t *cursor,
+		                       uint32_t size,
+		                       uint32_t *bytes_used);
 
 def_gen_t *def_duplicate(def_gen_t *);
 
 def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id);
 
-/* Release functions.*/
-void def_release_gen(def_gen_t *def);
-
-
+// \todo: Ren ame defcol like mid...
 void def_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
 
 void def_print_gen(def_gen_t *def);
 
+/* Release functions.*/
+void def_release_gen(def_gen_t *def);
 
+uint8_t *def_serialize_gen(def_gen_t *def, uint32_t *len);
 
 
 #endif /* _DEF_H_ */

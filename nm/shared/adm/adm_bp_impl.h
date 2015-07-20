@@ -88,7 +88,7 @@ value_t bp_endpoint_get_abandon(Lyst params);
  *                              Control Functions                             *
  ******************************************************************************/
 
-uint32_t bp_ctrl_reset(Lyst params);
+tdc_t* bp_ctrl_reset(eid_t *def_mgr, Lyst params, uint8_t *status);
 
 #endif //#ifndef ADM_BP_IMPL_H_
 

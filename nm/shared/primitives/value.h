@@ -25,20 +25,8 @@
 #ifndef VALUE_H_
 #define VALUE_H_
 
-//#include "ion_if.h"
-//#include "nm_types.h"
-
+#include "shared/utils/nm_types.h"
 #include "shared/primitives/mid.h"
-
-#define VAL_TYPE_UNK    0  /* unknown          */
-#define VAL_TYPE_INT    1  /* Fits an int32_t. */
-#define VAL_TYPE_UINT   2  /* Fits a uint32_t. */
-#define VAL_TYPE_VAST   3  /* Fits an int64_t. */
-#define VAL_TYPE_UVAST  4  /* Fits a uin64_t.  */
-#define VAL_TYPE_REAL32 5  /* Fits float.      */
-#define VAL_TYPE_REAL64 6  /* Fits double.   . */
-#define VAL_TYPE_STRING 7  /* Always ptr.    */
-#define VAL_TYPE_BLOB   8  /* ALways ptr.    */
 
 #define VAL_OPTYPE_ARITHMETIC 0
 #define VAL_OPTYPE_LOGICAL    1
@@ -47,18 +35,17 @@
 /*
  * Arithmetic casting matrix.
  *
- * 			 UNK	 INT	 UINT	  VAST	  UVAST	   REAL32	REAL64	 STRING	  BLOB
- *         +-----+--------+--------+--------+--------+--------+--------+--------+------+
- *  UNK	   | UNK | UNK    | UNK    | UNK    | UNK    | UNK    | UNK    | UNK    | UNK  |
- *  INT	   | UNK | INT    | INT	   | VAST   | UNK    | REAL32 | REAL64 | UNK	| UNK  |
- *  UINT   | UNK | INT    | UINT   | VAST   | UVAST  | REAL32 | REAL64 | UNK	| UNK  |
- *  VAST   | UNK | VAST   | VAST   | VAST   | VAST   | REAL32 | REAL64 | UNK	| UNK  |
- *  UVAST  | UNK | UNK    | UVAST  | VAST   | UVAST  | REAL32 | REAL64 | UNK	| UNK  |
- *  REAL32 | UNK | REAL32 |	REAL32 | REAL32 | REAL32 | REAL32 | REAL64 | UNK	| UNK  |
- *  REAL64 | UNK | REAL64 |	REAL64 | REAL64 | REAL64 | REAL64 | REAL64 | UNK	| UNK  |
- *  STRING | UNK | UNK    | UNK	   | UNK    | UNK    | UNK    | UNK	   | UNK	| UNK  |
- *  BLOB   | UNK | UNK    | UNK	   | UNK    | UNK    | UNK    | UNK	   | UNK	| UNK  |
- *         +-----+--------+--------+--------+--------+--------+--------+--------+------+
+ * 			 UNK	 INT	 UINT	  VAST	  UVAST	   REAL32	REAL64	 <other>
+ *         +-----+--------+--------+--------+--------+--------+--------+--------+
+ *  UNK	   | UNK | UNK    | UNK    | UNK    | UNK    | UNK    | UNK    | UNK    |
+ *  INT	   | UNK | INT    | INT	   | VAST   | UNK    | REAL32 | REAL64 | UNK	|
+ *  UINT   | UNK | INT    | UINT   | VAST   | UVAST  | REAL32 | REAL64 | UNK	|
+ *  VAST   | UNK | VAST   | VAST   | VAST   | VAST   | REAL32 | REAL64 | UNK	|
+ *  UVAST  | UNK | UNK    | UVAST  | VAST   | UVAST  | REAL32 | REAL64 | UNK	|
+ *  REAL32 | UNK | REAL32 |	REAL32 | REAL32 | REAL32 | REAL32 | REAL64 | UNK	|
+ *  REAL64 | UNK | REAL64 |	REAL64 | REAL64 | REAL64 | REAL64 | REAL64 | UNK	|
+ *  <other>| UNK | UNK    | UNK	   | UNK    | UNK    | UNK    | UNK	   | UNK	|
+ *         +-----+--------+--------+--------+--------+--------+--------+--------+
  *
  */
 extern int gValResultType[9][9];
@@ -92,7 +79,7 @@ extern int gValResultType[9][9];
  */
 typedef struct
 {
-	uint8_t type;
+	dtnmp_type_e type;
 
 	union {
 		uint8_t *as_ptr;
@@ -128,16 +115,23 @@ float    val_cvt_real32(value_t *val);
 
 double	 val_cvt_real64(value_t *val);
 
-value_t* val_deserialize(unsigned char *buffer,
-		                 uint32_t buffer_size,
-		                 uint32_t *bytes_used);
+value_t* val_deserialize(unsigned char *buffer, uint32_t bytes_left, uint32_t *bytes_used);
 
-value_t* val_deserialize_one(unsigned char *buffer,
-		                     uint32_t buffer_size);
+uint8_t* val_deserialize_blob(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used, uint32_t *len);
+int32_t  val_deserialize_int(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
+value_t* val_deserialize_one(unsigned char *buffer, uint32_t bytes_left);
+float    val_deserialize_real32(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
+double   val_deserialize_real64(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
+char*    val_deserialize_string(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
+uint32_t val_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
+uvast    val_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
+vast     val_deserialize_vast(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used);
 
 value_t  val_from_string(char *str);
 
 int      val_get_result_type(int ltype, int rtype, int optype);
+
+
 
 void     val_init(value_t *val);
 
@@ -145,9 +139,20 @@ int      val_is_int(value_t *val);
 
 int      val_is_real(value_t *val);
 
+// \todo add val_is_numeric?
+
 void     val_release(value_t *val);
 
 uint8_t* val_serialize(value_t *val, uint32_t *size);
+
+uint8_t *val_serialize_blob(uint8_t *value, uint32_t value_size, uint32_t *size);
+uint8_t *val_serialize_int(int32_t value, uint32_t *size);
+uint8_t *val_serialize_real32(float value, uint32_t *size);
+uint8_t *val_serialize_real64(double value, uint32_t *size);
+uint8_t *val_serialize_string(char *value, uint32_t *size);
+uint8_t *val_serialize_uint(uint32_t value, uint32_t *size);
+uint8_t *val_serialize_uvast(uvast value, uint32_t *size);
+uint8_t *val_serialize_vast(vast value, uint32_t *size);
 
 char*    val_to_string(value_t *val);
 

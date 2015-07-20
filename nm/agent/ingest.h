@@ -21,7 +21,7 @@
 
 /* Validation function */
 int rx_validate_mid_mc(Lyst mids, int passEmpty);
-int rx_validate_rule(rule_time_prod_t *rule);
+int rx_validate_rule(trl_t *rule);
 
 
 void *rx_thread(void *threadId);

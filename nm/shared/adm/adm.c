@@ -52,7 +52,8 @@ Lyst gAdmMacros; // Type def_gen_t
  * \retval 0  Failure - The datadef was not added.
  *         !0 Success - The datadef was added.
  *
- * \param[in] mid_str   serialized MID value
+ * \param[in] mid_str   Serialized MID value
+ * \param[in] type      The type of the data definition.
  * \param[in] num_parms # parms needed for parameterized OIDs.
  * \param[in] collect   The data collection function.
  * \param[in] to_string The to-string function
@@ -65,9 +66,14 @@ Lyst gAdmMacros; // Type def_gen_t
  *		3. If a NULL to_string is given, we assume it is unsigned long.
  *		4. If a NULL get_size is given, we assume is it unsigned long.
  *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/15  E. Birrane     Added type information.
  *****************************************************************************/
 
 int adm_add_datadef(char *mid_str,
+		            dtnmp_type_e type,
 		     	 	int num_parms,
   		     	 	adm_data_collect_fn collect,
 		     	 	adm_string_fn to_string,
@@ -105,6 +111,7 @@ int adm_add_datadef(char *mid_str,
 
 	new_entry->mid = mid_from_string(mid_str);
 
+	new_entry->type = type;
 	new_entry->num_parms = num_parms;
 	new_entry->collect = collect;
 	new_entry->to_string = (to_string == NULL) ? adm_print_uvast : to_string;
@@ -192,8 +199,8 @@ void adm_add_datadef_collect(uint8_t *mid_hex, adm_data_collect_fn collect)
  * \retval 0  Failure - The computeddef was not added.
  *         !0 Success - The computeddef was added.
  *
- * \param[in] name      Name of the ADM entry.
  * \param[in] mid_str   serialized MID value
+ * \param[in] type      The type of the computed data definition result.
  * \param[in] num_parms # parms needed for parameterized OIDs.
  * \param[in] def       The MID Collection defining the computed value.
  * \param[in] to_string The to-string function
@@ -210,9 +217,11 @@ void adm_add_datadef_collect(uint8_t *mid_hex, adm_data_collect_fn collect)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  03/16/15  E. Birrane     Initial implementation.
- *****************************************************************************/
+ *  07/04/15  E. Birrane     Added type information.
+  *****************************************************************************/
 
 int adm_add_computeddef(char *mid_str,
+						dtnmp_type_e type,
 		                int num_parms,
 		                Lyst def,
 		                adm_string_fn to_string,
@@ -259,6 +268,7 @@ int adm_add_computeddef(char *mid_str,
 		return 0;
 	}
 
+	new_entry->type = type;
 	new_entry->num_parms = num_parms;
 	new_entry->def = midcol_copy(def);
 	new_entry->to_string = (to_string == NULL) ? adm_print_uvast : to_string;
@@ -498,7 +508,7 @@ int adm_add_macro(char *mid_str, Lyst midcol)
 	Lyst newdefs = midcol_copy(midcol);
 
 	/* Step 2 - Build the definition to hold the macro. */
-	if((new_entry = def_create_gen(mid, newdefs)) == NULL)
+	if((new_entry = def_create_gen(mid, DTNMP_TYPE_MC, newdefs)) == NULL)
 	{
 		MRELEASE(mid);
 		midcol_destroy(&newdefs);
@@ -635,7 +645,7 @@ int adm_add_rpt(char *mid_str, Lyst midcol)
 	Lyst newdefs = midcol_copy(midcol);
 
 	/* Step 2 - Build the definition to hold the macro. */
-	if((new_entry = def_create_gen(mid, newdefs)) == NULL)
+	if((new_entry = def_create_gen(mid, DTNMP_TYPE_MC, newdefs)) == NULL)
 	{
 		MRELEASE(mid);
 		midcol_destroy(&newdefs);

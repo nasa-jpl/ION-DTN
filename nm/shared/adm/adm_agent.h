@@ -443,6 +443,6 @@ value_t adm_agent_user_string(mid_t *id);
 value_t adm_agent_user_blob(mid_t *id);
 
 
-
+uint32_t adm_agent_send_dc(eid_t *rx, mid_t *mid, Lyst dc);
 
 #endif //ADM_AGENT_H_

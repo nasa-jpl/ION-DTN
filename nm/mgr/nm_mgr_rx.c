@@ -43,9 +43,7 @@
 #include "shared/utils/debug.h"
 
 #include "shared/msg/pdu.h"
-#include "shared/msg/msg_reports.h"
 #include "shared/msg/msg_admin.h"
-#include "shared/msg/msg_def.h"
 #include "shared/msg/msg_ctrl.h"
 
 #ifdef HAVE_MYSQL
@@ -107,7 +105,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 	}
 	else
 	{
-		rpt_data_t *report = NULL;
+		rpt_t *report = NULL;
 
 		if((report = rpt_deserialize_data(cursor, size, bytes_used)) == NULL)
 		{

@@ -1,10 +1,10 @@
 /*****************************************************************************
  **
- ** File Name: agent_db.c
+ ** File Name: mgr_db.h
  **
  ** Description: This module captures the functions, structures, and operations
  **              necessary to store and retrieve user-defined content from the
- **              embedded agent on system startup.
+ **              management daemon on system startup.
  **
  ** Notes:
  **
@@ -14,8 +14,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/17/15  E. Birrane     Initial Implementation
- **  06/21/15  E. Birrane     Add support for computed data storage.
+ **  07/18/15  E. Birrane     Initial Implementation from mgr_db.[c|h]
  *****************************************************************************/
 
 // System headers.
@@ -29,35 +28,31 @@
 #include "shared/adm/adm.h"
 #include "shared/utils/db.h"
 
-#include "agent_db.h"
-#include "ingest.h"
-#include "rda.h"
+#include "mgr_db.h"
 
 #include "shared/adm/adm_bp.h"
 #include "shared/adm/adm_agent.h"
-#include "adm_ltp_priv.h"
-#include "adm_ion_priv.h"
 
 #include "shared/primitives/ctrl.h"
+#include "shared/primitives/report.h"
 
 
-
-int  agent_db_compdata_persist(def_gen_t *item)
+int  mgr_db_compdata_persist(def_gen_t *item)
 {
-	return agent_db_defgen_persist(gAgentDB.compdata, item);
+	return mgr_db_defgen_persist(gMgrDB.compdata, item);
 }
 
-int  agent_db_compdata_forget(mid_t *mid)
+int  mgr_db_compdata_forget(mid_t *mid)
 {
-	def_gen_t *item = agent_vdb_compdata_find(mid);
+	def_gen_t *item = mgr_vdb_compdata_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_compdata_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_compdata_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.compdata, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.compdata, item->desc.itemObj, item->desc.descObj);
 }
 
 
@@ -65,9 +60,9 @@ int  agent_db_compdata_forget(mid_t *mid)
 
 /******************************************************************************
  *
- * \par Function Name: agent_db_ctrl_persist
+ * \par Function Name: mgr_db_ctrl_persist
  *
- * \par Persist a control to the agent SDR database.
+ * \par Persist a control to the mgr SDR database.
  *
  * \param[in]  item  The control to persist.
  *
@@ -82,7 +77,7 @@ int  agent_db_compdata_forget(mid_t *mid)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int  agent_db_ctrl_persist(ctrl_exec_t* item)
+int  mgr_db_ctrl_persist(ctrl_exec_t* item)
 {
 	Sdr sdr = getIonsdr();
 
@@ -91,7 +86,7 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 	   ((item->desc.itemObj == 0) && (item->desc.descObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.descObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_ctrl_persist","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_ctrl_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -109,23 +104,23 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = ctrl_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_ctrl_persist",
+			DTNMP_DEBUG_ERR("mgr_db_ctrl_persist",
 					       "Unable to serialize new ctrl.", NULL);
 			return -1;
 		}
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
 				            &(item->desc), sizeof(ctrl_exec_desc_t), &(item->desc.descObj),
-				            gAgentDB.ctrls);
+				            gMgrDB.ctrls);
 
 		MRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_ctrl_persist","Unable to persist def.",NULL);
+			DTNMP_DEBUG_ERR("mgr_db_ctrl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 
-		DTNMP_DEBUG_INFO("agent_db_ctrl_persist","Persisted new ctrl", NULL);
+		DTNMP_DEBUG_INFO("mgr_db_ctrl_persist","Persisted new ctrl", NULL);
 	}
 	else
 	{
@@ -137,7 +132,7 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 		temp = item->desc;
 		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(ctrl_exec_desc_t));
 
-		DTNMP_DEBUG_INFO("agent_db_ctrl_persist","Updated ctrl", NULL);
+		DTNMP_DEBUG_INFO("mgr_db_ctrl_persist","Updated ctrl", NULL);
 
 		sdr_end_xn(sdr);
 	}
@@ -145,20 +140,20 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 	return 1;
 }
 
-int  agent_db_ctrl_forget(mid_t *mid)
+int  mgr_db_ctrl_forget(mid_t *mid)
 {
-	ctrl_exec_t *item = agent_vdb_ctrl_find(mid);
+	ctrl_exec_t *item = mgr_vdb_ctrl_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_ctrl_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_ctrl_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.ctrls, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.ctrls, item->desc.itemObj, item->desc.descObj);
 }
 
-int  agent_db_forget(Object db, Object itemObj, Object descObj)
+int  mgr_db_forget(Object db, Object itemObj, Object descObj)
 {
 	Sdr sdr = getIonsdr();
 
@@ -166,7 +161,7 @@ int  agent_db_forget(Object db, Object itemObj, Object descObj)
 	if(((itemObj == 0) && (descObj != 0)) ||
 	   ((itemObj != 0) && (descObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_Forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_Forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -180,7 +175,7 @@ int  agent_db_forget(Object db, Object itemObj, Object descObj)
 
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_forget","Unable to forget def.",NULL);
+			DTNMP_DEBUG_ERR("mgr_db_forget","Unable to forget def.",NULL);
 			return -1;
 		}
 	}
@@ -189,7 +184,7 @@ int  agent_db_forget(Object db, Object itemObj, Object descObj)
 }
 
 
-int  agent_db_defgen_persist(Object db, def_gen_t* item)
+int  mgr_db_defgen_persist(Object db, def_gen_t* item)
 {
 	Sdr sdr = getIonsdr();
 
@@ -198,7 +193,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_defgen_persist","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_defgen_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -216,7 +211,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = def_serialize_gen(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_defgen_persist",
+			DTNMP_DEBUG_ERR("mgr_db_defgen_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
@@ -228,7 +223,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 		MRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_defgen_persist","Unable to persist def.",NULL);
+			DTNMP_DEBUG_ERR("mgr_db_defgen_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 	}
@@ -251,9 +246,9 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 
 /******************************************************************************
  *
- * \par Function Name: agent_db_init
+ * \par Function Name: mgr_db_init
  *
- * \par Initialize items from the agent SDR database.
+ * \par Initialize items from the mgr SDR database.
  *
  * \par Notes:
  *
@@ -266,59 +261,59 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int  agent_db_init()
+int  mgr_db_init()
 {
 	Sdr sdr;
 
 	sdr = getIonsdr();
 
 	// * Initialize the non-volatile database. * /
-	memset((char*) &gAgentDB, 0, sizeof(AgentDB));
+	memset((char*) &gMgrDB, 0, sizeof(MgrDB));
 
-	/* Recover the Agent database, creating it if necessary. */
+	/* Recover the Mgr database, creating it if necessary. */
 	CHKERR(sdr_begin_xn(sdr));
 
-	gAgentDB.descObj = sdr_find(sdr, "agentdb", NULL);
-	switch(gAgentDB.descObj)
+	gMgrDB.descObj = sdr_find(sdr, "mgrdb", NULL);
+	switch(gMgrDB.descObj)
 	{
 		case -1:  // SDR error. * /
 			sdr_cancel_xn(sdr);
-			DTNMP_DEBUG_ERR("agent_db_init", "Can't search for Agent DB in SDR.", NULL);
+			DTNMP_DEBUG_ERR("mgr_db_init", "Can't search for Mgr DB in SDR.", NULL);
 			return -1;
 
 		case 0: // Not found; Must create new DB. * /
 
-			gAgentDB.descObj = sdr_malloc(sdr, sizeof(AgentDB));
-			if(gAgentDB.descObj == 0)
+			gMgrDB.descObj = sdr_malloc(sdr, sizeof(MgrDB));
+			if(gMgrDB.descObj == 0)
 			{
 				sdr_cancel_xn(sdr);
-				DTNMP_DEBUG_ERR("agent_db_init", "No space for agent database.", NULL);
+				DTNMP_DEBUG_ERR("mgr_db_init", "No space for mgr database.", NULL);
 				return -1;
 			}
-			DTNMP_DEBUG_ALWAYS("agent_db_init", "Creating DB", NULL);
+			DTNMP_DEBUG_ALWAYS("mgr_db_init", "Creating DB", NULL);
 
-			gAgentDB.compdata = sdr_list_create(sdr);
-			gAgentDB.ctrls = sdr_list_create(sdr);
-			gAgentDB.macros = sdr_list_create(sdr);
-			gAgentDB.reports = sdr_list_create(sdr);
-			gAgentDB.trls = sdr_list_create(sdr);
-			gAgentDB.srls = sdr_list_create(sdr);
+			gMgrDB.compdata = sdr_list_create(sdr);
+			gMgrDB.ctrls = sdr_list_create(sdr);
+			gMgrDB.macros = sdr_list_create(sdr);
+			gMgrDB.reports = sdr_list_create(sdr);
+			gMgrDB.trls = sdr_list_create(sdr);
+			gMgrDB.srls = sdr_list_create(sdr);
 
-			sdr_write(sdr, gAgentDB.descObj, (char *) &gAgentDB, sizeof(AgentDB));
-			sdr_catlg(sdr, "agentdb", 0, gAgentDB.descObj);
+			sdr_write(sdr, gMgrDB.descObj, (char *) &gMgrDB, sizeof(MgrDB));
+			sdr_catlg(sdr, "mgrdb", 0, gMgrDB.descObj);
 
 			break;
 
 		default:  /* Found DB in the SDR */
 			/* Read in the Database. */
-			sdr_read(sdr, (char *) &gAgentDB, gAgentDB.descObj, sizeof(AgentDB));
+			sdr_read(sdr, (char *) &gMgrDB, gMgrDB.descObj, sizeof(MgrDB));
 
-			DTNMP_DEBUG_ALWAYS("agent_db_init", "Found DB", NULL);
+			DTNMP_DEBUG_ALWAYS("mgr_db_init", "Found DB", NULL);
 	}
 
 	if(sdr_end_xn(sdr))
 	{
-		DTNMP_DEBUG_ERR("agent_db_init", "Can't create Agent database.", NULL);
+		DTNMP_DEBUG_ERR("mgr_db_init", "Can't create Mgr database.", NULL);
 		return -1;
 	}
 
@@ -326,29 +321,29 @@ int  agent_db_init()
 }
 
 
-int  agent_db_macro_persist(def_gen_t* ctrl)
+int  mgr_db_macro_persist(def_gen_t* ctrl)
 {
-	return agent_db_defgen_persist(gAgentDB.macros, ctrl);
+	return mgr_db_defgen_persist(gMgrDB.macros, ctrl);
 }
 
-int  agent_db_macro_forget(mid_t *mid)
+int  mgr_db_macro_forget(mid_t *mid)
 {
-	def_gen_t *item = agent_vdb_macro_find(mid);
+	def_gen_t *item = mgr_vdb_macro_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_macro_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_macro_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.macros, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.macros, item->desc.itemObj, item->desc.descObj);
 }
 
 /******************************************************************************
  *
- * \par Function Name: agent_db_report_persist
+ * \par Function Name: mgr_db_report_persist
  *
- * \par Persist a custom report definition to the agent SDR database.
+ * \par Persist a custom report definition to the mgr SDR database.
  *
  * \param[in]  item  The definition to persist.
  *
@@ -363,22 +358,22 @@ int  agent_db_macro_forget(mid_t *mid)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int  agent_db_report_persist(def_gen_t* item)
+int  mgr_db_report_persist(def_gen_t* item)
 {
-	return agent_db_defgen_persist(gAgentDB.reports, item);
+	return mgr_db_defgen_persist(gMgrDB.reports, item);
 }
 
-int  agent_db_report_forget(mid_t *mid)
+int  mgr_db_report_forget(mid_t *mid)
 {
-	def_gen_t *item = agent_vdb_report_find(mid);
+	def_gen_t *item = mgr_vdb_report_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_report_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_report_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.reports, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.reports, item->desc.itemObj, item->desc.descObj);
 }
 
 
@@ -386,9 +381,9 @@ int  agent_db_report_forget(mid_t *mid)
 
 /******************************************************************************
  *
- * \par Function Name: agent_db_srl_persist
+ * \par Function Name: mgr_db_srl_persist
  *
- * \par Persist a state-based rule to the agent SDR database.
+ * \par Persist a state-based rule to the mgr SDR database.
  *
  * \param[in]  item  The rule to persist.
  *
@@ -403,7 +398,7 @@ int  agent_db_report_forget(mid_t *mid)
  *  06/26/15  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int  agent_db_srl_persist(srl_t *item)
+int  mgr_db_srl_persist(srl_t *item)
 {
 
 	Sdr sdr = getIonsdr();
@@ -413,7 +408,7 @@ int  agent_db_srl_persist(srl_t *item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_srl_persist","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_srl_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -431,19 +426,19 @@ int  agent_db_srl_persist(srl_t *item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = srl_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_srl_persist",
+			DTNMP_DEBUG_ERR("mgr_db_srl_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
 				            &(item->desc), sizeof(srl_t), &(item->desc.descObj),
-				            gAgentDB.srls);
+				            gMgrDB.srls);
 
 		MRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_srl_persist","Unable to persist def.",NULL);
+			DTNMP_DEBUG_ERR("mgr_db_srl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 	}
@@ -459,7 +454,7 @@ int  agent_db_srl_persist(srl_t *item)
 
 		if(sdr_end_xn(sdr))
 		{
-			DTNMP_DEBUG_ERR("agent_db_srl_persist", "Can't create Agent database.", NULL);
+			DTNMP_DEBUG_ERR("mgr_db_srl_persist", "Can't create Mgr database.", NULL);
 			return -1;
 		}
 	}
@@ -468,25 +463,25 @@ int  agent_db_srl_persist(srl_t *item)
 }
 
 
-int  agent_db_srl_forget(mid_t *mid)
+int  mgr_db_srl_forget(mid_t *mid)
 {
-	srl_t *item = agent_vdb_srl_find(mid);
+	srl_t *item = mgr_vdb_srl_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_srl_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_srl_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.srls, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.srls, item->desc.itemObj, item->desc.descObj);
 }
 
 
 /******************************************************************************
  *
- * \par Function Name: agent_db_trl_persist
+ * \par Function Name: mgr_db_trl_persist
  *
- * \par Persist a time-based rule to the agent SDR database.
+ * \par Persist a time-based rule to the mgr SDR database.
  *
  * \param[in]  item  The rule to persist.
  *
@@ -502,7 +497,7 @@ int  agent_db_srl_forget(mid_t *mid)
  *  06/26/15  E. Birrane     Updated to new TRL structure/def.
  *****************************************************************************/
 
-int  agent_db_trl_persist(trl_t *item)
+int  mgr_db_trl_persist(trl_t *item)
 {
 
 	Sdr sdr = getIonsdr();
@@ -512,7 +507,7 @@ int  agent_db_trl_persist(trl_t *item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_trl_persist","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_trl_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -530,19 +525,19 @@ int  agent_db_trl_persist(trl_t *item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = trl_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_trl_persist",
+			DTNMP_DEBUG_ERR("mgr_db_trl_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
 				            &(item->desc), sizeof(trl_t), &(item->desc.descObj),
-				            gAgentDB.trls);
+				            gMgrDB.trls);
 
 		MRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_trl_persist","Unable to persist def.",NULL);
+			DTNMP_DEBUG_ERR("mgr_db_trl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 	}
@@ -558,7 +553,7 @@ int  agent_db_trl_persist(trl_t *item)
 
 		if(sdr_end_xn(sdr))
 		{
-			DTNMP_DEBUG_ERR("agent_db_trl_persist", "Can't create Agent database.", NULL);
+			DTNMP_DEBUG_ERR("mgr_db_trl_persist", "Can't create Mgr database.", NULL);
 			return -1;
 		}
 	}
@@ -567,23 +562,23 @@ int  agent_db_trl_persist(trl_t *item)
 }
 
 
-int  agent_db_trl_forget(mid_t *mid)
+int  mgr_db_trl_forget(mid_t *mid)
 {
-	trl_t *item = agent_vdb_trl_find(mid);
+	trl_t *item = mgr_vdb_trl_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_trl_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_trl_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.trls, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.trls, item->desc.itemObj, item->desc.descObj);
 }
 
 
 /******************************************************************************
  *
- * \par Function Name: agent_vdb_add
+ * \par Function Name: mgr_vdb_add
  *
  * \par Add an item to a mutex-locked list.
  *
@@ -592,7 +587,7 @@ int  agent_db_trl_forget(mid_t *mid)
  * \param[in]  mutex The mute protecting the list.
  *
  * \par Notes:
- *		- This is a helper function used to add items to various agent
+ *		- This is a helper function used to add items to various mgr
  *		  lists.
  *
  * Modification History:
@@ -601,7 +596,7 @@ int  agent_db_trl_forget(mid_t *mid)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex)
+void mgr_vdb_add(void *item, Lyst list, ResourceLock *mutex)
 {
 	lockResource(mutex);
     lyst_insert_last(list, item);
@@ -609,30 +604,30 @@ void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex)
 }
 
 
-void agent_vdb_compdata_init(Sdr sdr)
+void mgr_vdb_compdata_init(Sdr sdr)
 {
 	uint32_t num = 0;
 
-	num = agent_vdb_defgen_init(sdr, gAgentDB.compdata, gAgentVDB.compdata, &(gAgentVDB.compdata_mutex));
+	num = mgr_vdb_defgen_init(sdr, gMgrDB.compdata, gMgrVDB.compdata, &(gMgrVDB.compdata_mutex));
 
 	DTNMP_DEBUG_ALWAYS("", "Added %d Computed Data Definitions from DB.", num);
 }
 
-def_gen_t *agent_vdb_compdata_find(mid_t *mid)
+def_gen_t *mgr_vdb_compdata_find(mid_t *mid)
 {
-	return agent_vdb_defgen_find(mid, gAgentVDB.compdata, &(gAgentVDB.compdata_mutex));
+	return mgr_vdb_defgen_find(mid, gMgrVDB.compdata, &(gMgrVDB.compdata_mutex));
 }
 
-void agent_vdb_compdata_forget(mid_t *id)
+void mgr_vdb_compdata_forget(mid_t *id)
 {
-	agent_vdb_defgen_forget(id, gAgentVDB.compdata, &(gAgentVDB.compdata_mutex));
+	mgr_vdb_defgen_forget(id, gMgrVDB.compdata, &(gMgrVDB.compdata_mutex));
 }
 
 
 
 /******************************************************************************
  *
- * \par Function Name: agent_vdb_ctrls_init
+ * \par Function Name: mgr_vdb_ctrls_init
  *
  * \par Read controls from the SDR database into memory lists.
  *
@@ -646,7 +641,7 @@ void agent_vdb_compdata_forget(mid_t *id)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void agent_vdb_ctrls_init(Sdr sdr)
+void mgr_vdb_ctrls_init(Sdr sdr)
 {
 	Object elt;
 	Object itemObj;
@@ -660,7 +655,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 	sdr_begin_xn(sdr);
 
 	/* Step 1: Read through SDR list.... */
-	for (elt = sdr_list_first(sdr, gAgentDB.ctrls); elt;
+	for (elt = sdr_list_first(sdr, gMgrDB.ctrls); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		/* Step 1.1: Grab the descriptor. */
@@ -673,7 +668,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 		/* Step 1.3: Allocate space for the item. */
 		if((data = (uint8_t*) MTAKE(cur_desc.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_ctrls_init","Can't allocate %d bytes.",
+			DTNMP_DEBUG_ERR("mgr_vdb_ctrls_init","Can't allocate %d bytes.",
 					        cur_desc.size);
 		}
 		else
@@ -684,7 +679,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 			/* Step 1.5: Deserialize the item. */
 			if((cur_item = ctrl_deserialize(data,cur_desc.size, &bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_ctrls_init","Failed to deserialize ctrl.",NULL);
+				DTNMP_DEBUG_ERR("mgr_vdb_ctrls_init","Failed to deserialize ctrl.",NULL);
 			}
 			else
 			{
@@ -710,14 +705,14 @@ void agent_vdb_ctrls_init(Sdr sdr)
 }
 
 
-ctrl_exec_t* agent_vdb_ctrl_find(mid_t *mid)
+ctrl_exec_t* mgr_vdb_ctrl_find(mid_t *mid)
 {
 	LystElt elt;
 	ctrl_exec_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.ctrls_mutex));
+	lockResource(&(gMgrVDB.ctrls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.ctrls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gMgrVDB.ctrls); elt; elt = lyst_next(elt))
 	{
 		cur = (ctrl_exec_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
@@ -727,19 +722,19 @@ ctrl_exec_t* agent_vdb_ctrl_find(mid_t *mid)
 		cur = NULL;
 	}
 
-	unlockResource(&(gAgentVDB.ctrls_mutex));
+	unlockResource(&(gMgrVDB.ctrls_mutex));
 
 	return cur;
 }
 
-void         agent_vdb_ctrl_forget(mid_t *mid)
+void         mgr_vdb_ctrl_forget(mid_t *mid)
 {
 	LystElt elt;
 	ctrl_exec_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.ctrls_mutex));
+	lockResource(&(gMgrVDB.ctrls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.ctrls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gMgrVDB.ctrls); elt; elt = lyst_next(elt))
 	{
 		cur = (ctrl_exec_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
@@ -750,11 +745,11 @@ void         agent_vdb_ctrl_forget(mid_t *mid)
 		}
 	}
 
-	unlockResource(&(gAgentVDB.ctrls_mutex));
+	unlockResource(&(gMgrVDB.ctrls_mutex));
 }
 
 
-uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mutex)
+uint32_t mgr_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mutex)
 {
 	Object elt;
 	Object defObj;
@@ -781,7 +776,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 		/* Step 1.2: Allocate space for the def. */
 		if((data = (uint8_t*) MTAKE(cur_desc.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_defgen_init","Can't allocate %d bytes.",
+			DTNMP_DEBUG_ERR("mgr_vdb_defgen_init","Can't allocate %d bytes.",
 					        cur_desc.size);
 		}
 		else
@@ -794,7 +789,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 									  cur_desc.size,
 									  &bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_defgen_init","Can't deserialize rpt.", NULL);
+				DTNMP_DEBUG_ERR("mgr_vdb_defgen_init","Can't deserialize rpt.", NULL);
 			}
 			else
 			{
@@ -802,7 +797,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 				cur_item->desc = cur_desc;
 
 				/* Step 1.6: Add report def to list of report defs. */
-				agent_vdb_add(cur_item, list, mutex);
+				mgr_vdb_add(cur_item, list, mutex);
 
 				/* Step 1.7: Note that we have read a new report.*/
 				num++;
@@ -817,7 +812,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 	return num;
 }
 
-def_gen_t *agent_vdb_defgen_find(mid_t *mid, Lyst list, ResourceLock *mutex)
+def_gen_t *mgr_vdb_defgen_find(mid_t *mid, Lyst list, ResourceLock *mutex)
 {
 	LystElt elt;
 	def_gen_t *cur = NULL;
@@ -839,7 +834,7 @@ def_gen_t *agent_vdb_defgen_find(mid_t *mid, Lyst list, ResourceLock *mutex)
 	return cur;
 }
 
-void agent_vdb_defgen_forget(mid_t *id, Lyst list, ResourceLock *mutex)
+void mgr_vdb_defgen_forget(mid_t *id, Lyst list, ResourceLock *mutex)
 {
 	LystElt elt;
 	def_gen_t *cur = NULL;
@@ -862,9 +857,9 @@ void agent_vdb_defgen_forget(mid_t *id, Lyst list, ResourceLock *mutex)
 
 /******************************************************************************
  *
- * \par Function Name: agent_vdb_destroy
+ * \par Function Name: mgr_vdb_destroy
  *
- * \par Cleans up agent memory lists.
+ * \par Cleans up mgr memory lists.
  *
  * \par Notes:
  *
@@ -874,33 +869,33 @@ void agent_vdb_defgen_forget(mid_t *id, Lyst list, ResourceLock *mutex)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void agent_vdb_destroy()
+void mgr_vdb_destroy()
 {
 
 	/* Step 1: Clear out data in lysts. */
-	def_lyst_clear(&(gAgentVDB.compdata),    &(gAgentVDB.compdata_mutex), 1);
-    ctrl_clear_lyst(&(gAgentVDB.ctrls),     &(gAgentVDB.ctrls_mutex),    1);
-    def_lyst_clear(&(gAgentVDB.macros),      &(gAgentVDB.macros_mutex),   1);
-    def_lyst_clear(&(gAgentVDB.reports),    &(gAgentVDB.reports_mutex),  1);
-    trl_lyst_clear(&(gAgentVDB.trls),&(gAgentVDB.trls_mutex),    1);
-    srl_lyst_clear(&(gAgentVDB.srls),&(gAgentVDB.srls_mutex),    1);
+	def_lyst_clear(&(gMgrVDB.compdata),    &(gMgrVDB.compdata_mutex), 1);
+    ctrl_clear_lyst(&(gMgrVDB.ctrls),     &(gMgrVDB.ctrls_mutex),    1);
+    def_lyst_clear(&(gMgrVDB.macros),      &(gMgrVDB.macros_mutex),   1);
+    rpt_clear_lyst(&(gMgrVDB.reports),    &(gMgrVDB.reports_mutex),  1);
+    trl_lyst_clear(&(gMgrVDB.trls),&(gMgrVDB.trls_mutex),    1);
+    srl_lyst_clear(&(gMgrVDB.srls),&(gMgrVDB.srls_mutex),    1);
 
     /* Step 2: Release resource locks. */
-    killResourceLock(&(gAgentVDB.compdata_mutex));
-    killResourceLock(&(gAgentVDB.ctrls_mutex));
-    killResourceLock(&(gAgentVDB.macros_mutex));
-    killResourceLock(&(gAgentVDB.reports_mutex));
-    killResourceLock(&(gAgentVDB.trls_mutex));
-    killResourceLock(&(gAgentVDB.srls_mutex));
+    killResourceLock(&(gMgrVDB.compdata_mutex));
+    killResourceLock(&(gMgrVDB.ctrls_mutex));
+    killResourceLock(&(gMgrVDB.macros_mutex));
+    killResourceLock(&(gMgrVDB.reports_mutex));
+    killResourceLock(&(gMgrVDB.trls_mutex));
+    killResourceLock(&(gMgrVDB.srls_mutex));
 
 }
 
 
 /******************************************************************************
  *
- * \par Function Name: agent_vdb_init
+ * \par Function Name: mgr_vdb_init
  *
- * \par Initializes agent memory lists.
+ * \par Initializes mgr memory lists.
  *
  * \par Notes:
  *
@@ -914,72 +909,72 @@ void agent_vdb_destroy()
  *****************************************************************************/
 
 /* Initialize all of the VDB items. */
-int  agent_vdb_init()
+int  mgr_vdb_init()
 {
 	Sdr sdr = getIonsdr();
 	int result = 1;
 
-	DTNMP_DEBUG_ENTRY("agent_vdb_init","()",NULL);
+	DTNMP_DEBUG_ENTRY("mgr_vdb_init","()",NULL);
 
 	/* Step 0: Clean the memory. */
-	memset(&gAgentVDB, 0, sizeof(gAgentVDB));
+	memset(&gMgrVDB, 0, sizeof(gMgrVDB));
 
 	/* Step 1: Create lysts and associated resource locks. */
 
-	if((gAgentVDB.compdata = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.compdata_mutex))) result = -1;
-    agent_vdb_compdata_init(sdr);
+	if((gMgrVDB.compdata = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gMgrVDB.compdata_mutex))) result = -1;
+    mgr_vdb_compdata_init(sdr);
 
-	if((gAgentVDB.ctrls = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.ctrls_mutex))) result = -1;
-    agent_vdb_ctrls_init(sdr);
+	if((gMgrVDB.ctrls = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gMgrVDB.ctrls_mutex))) result = -1;
+    mgr_vdb_ctrls_init(sdr);
 
-	if((gAgentVDB.macros = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.macros_mutex))) result = -1;
-    agent_vdb_macros_init(sdr);
+	if((gMgrVDB.macros = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gMgrVDB.macros_mutex))) result = -1;
+    mgr_vdb_macros_init(sdr);
 
-	if((gAgentVDB.reports = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.reports_mutex))) result = -1;
-    agent_vdb_reports_init(sdr);
+	if((gMgrVDB.reports = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gMgrVDB.reports_mutex))) result = -1;
+    mgr_vdb_reports_init(sdr);
 
-	if((gAgentVDB.trls = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.trls_mutex))) result = -1;
-    agent_vdb_trls_init(sdr);
+	if((gMgrVDB.trls = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gMgrVDB.trls_mutex))) result = -1;
+    mgr_vdb_trls_init(sdr);
 
-	if((gAgentVDB.srls = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.srls_mutex))) result = -1;
-    agent_vdb_srls_init(sdr);
+	if((gMgrVDB.srls = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gMgrVDB.srls_mutex))) result = -1;
+    mgr_vdb_srls_init(sdr);
 
-    DTNMP_DEBUG_EXIT("agent_vdb_init","-->%d",result);
+    DTNMP_DEBUG_EXIT("mgr_vdb_init","-->%d",result);
 
     return result;
 }
 
 
-void agent_vdb_macros_init(Sdr sdr)
+void mgr_vdb_macros_init(Sdr sdr)
 {
 	int num = 0;
 
-	num = agent_vdb_defgen_init(sdr, gAgentDB.macros, gAgentVDB.macros, &(gAgentVDB.macros_mutex));
+	num = mgr_vdb_defgen_init(sdr, gMgrDB.macros, gMgrVDB.macros, &(gMgrVDB.macros_mutex));
 
 	DTNMP_DEBUG_ALWAYS("", "Added %d Macros from DB.", num);
 }
 
-def_gen_t *agent_vdb_macro_find(mid_t *mid)
+def_gen_t *mgr_vdb_macro_find(mid_t *mid)
 {
-	return agent_vdb_defgen_find(mid, gAgentVDB.macros, &(gAgentVDB.macros_mutex));
+	return mgr_vdb_defgen_find(mid, gMgrVDB.macros, &(gMgrVDB.macros_mutex));
 }
 
-void agent_vdb_macro_forget(mid_t *id)
+void mgr_vdb_macro_forget(mid_t *id)
 {
-	agent_vdb_defgen_forget(id, gAgentVDB.macros, &(gAgentVDB.macros_mutex));
+	mgr_vdb_defgen_forget(id, gMgrVDB.macros, &(gMgrVDB.macros_mutex));
 }
 
 
 
 /******************************************************************************
  *
- * \par Function Name: agent_vdb_reports_init
+ * \par Function Name: mgr_vdb_reports_init
  *
  * \par Read report definitions from the SDR database into memory lists.
  *
@@ -993,27 +988,27 @@ void agent_vdb_macro_forget(mid_t *id)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void agent_vdb_reports_init(Sdr sdr)
+void mgr_vdb_reports_init(Sdr sdr)
 {
 	int num = 0;
 
-	num = agent_vdb_defgen_init(sdr, gAgentDB.reports, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+	num = mgr_vdb_defgen_init(sdr, gMgrDB.reports, gMgrVDB.reports, &(gMgrVDB.reports_mutex));
 
 	DTNMP_DEBUG_ALWAYS("", "Added %d Reports from DB.", num);
 }
 
-def_gen_t *agent_vdb_report_find(mid_t *mid)
+def_gen_t *mgr_vdb_report_find(mid_t *mid)
 {
-	return agent_vdb_defgen_find(mid, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+	return mgr_vdb_defgen_find(mid, gMgrVDB.reports, &(gMgrVDB.reports_mutex));
 }
 
-void agent_vdb_report_forget(mid_t *id)
+void mgr_vdb_report_forget(mid_t *id)
 {
-	agent_vdb_defgen_forget(id, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+	mgr_vdb_defgen_forget(id, gMgrVDB.reports, &(gMgrVDB.reports_mutex));
 }
 
 
-void       agent_vdb_srls_init(Sdr sdr)
+void       mgr_vdb_srls_init(Sdr sdr)
 {
 	Object elt;
 	Object itemObj;
@@ -1027,7 +1022,7 @@ void       agent_vdb_srls_init(Sdr sdr)
 	sdr_begin_xn(sdr);
 
 	/* Step 1: Read in active rules. */
-	for (elt = sdr_list_first(sdr, gAgentDB.srls); elt;
+	for (elt = sdr_list_first(sdr, gMgrDB.srls); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		/* Step 1.1: Grab the descriptor. */
@@ -1039,7 +1034,7 @@ void       agent_vdb_srls_init(Sdr sdr)
 		/* Step 1.2: Allocate space for the rule. */
 		if((data = (uint8_t*) MTAKE(cur_descr.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_srls_init","Can't allocate %d bytes.",
+			DTNMP_DEBUG_ERR("mgr_vdb_srls_init","Can't allocate %d bytes.",
 					        cur_descr.size);
 		}
 		else
@@ -1050,7 +1045,7 @@ void       agent_vdb_srls_init(Sdr sdr)
 			/* Step 1.4: Deserialize into a rule object. */
 			if((cur_item = srl_deserialize(data,cur_descr.size,&bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_srls_init","Can't deserialize rule.", NULL);
+				DTNMP_DEBUG_ERR("mgr_vdb_srls_init","Can't deserialize rule.", NULL);
 			}
 			else
 			{
@@ -1076,14 +1071,14 @@ void       agent_vdb_srls_init(Sdr sdr)
 }
 
 
-srl_t*     agent_vdb_srl_find(mid_t *mid)
+srl_t*     mgr_vdb_srl_find(mid_t *mid)
 {
 	LystElt elt;
 	srl_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.srls_mutex));
+	lockResource(&(gMgrVDB.srls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.srls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gMgrVDB.srls); elt; elt = lyst_next(elt))
 	{
 		cur = (srl_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
@@ -1093,20 +1088,20 @@ srl_t*     agent_vdb_srl_find(mid_t *mid)
 		cur = NULL;
 	}
 
-	unlockResource(&(gAgentVDB.srls_mutex));
+	unlockResource(&(gMgrVDB.srls_mutex));
 
 	return cur;
 }
 
 
-void       agent_vdb_srl_forget(mid_t *mid)
+void       mgr_vdb_srl_forget(mid_t *mid)
 {
 	LystElt elt;
 	srl_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.srls_mutex));
+	lockResource(&(gMgrVDB.srls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.srls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gMgrVDB.srls); elt; elt = lyst_next(elt))
 	{
 		cur = (srl_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
@@ -1117,10 +1112,10 @@ void       agent_vdb_srl_forget(mid_t *mid)
 		}
 	}
 
-	unlockResource(&(gAgentVDB.srls_mutex));
+	unlockResource(&(gMgrVDB.srls_mutex));
 }
 
-void agent_vdb_trls_init(Sdr sdr)
+void mgr_vdb_trls_init(Sdr sdr)
 {
 	Object elt;
 	Object itemObj;
@@ -1134,7 +1129,7 @@ void agent_vdb_trls_init(Sdr sdr)
 	sdr_begin_xn(sdr);
 
 	/* Step 1: Read in active rules. */
-	for (elt = sdr_list_first(sdr, gAgentDB.trls); elt;
+	for (elt = sdr_list_first(sdr, gMgrDB.trls); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		/* Step 1.1: Grab the descriptor. */
@@ -1146,7 +1141,7 @@ void agent_vdb_trls_init(Sdr sdr)
 		/* Step 1.2: Allocate space for the rule. */
 		if((data = (uint8_t*) MTAKE(cur_descr.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_trls_init","Can't allocate %d bytes.",
+			DTNMP_DEBUG_ERR("mgr_vdb_trls_init","Can't allocate %d bytes.",
 					        cur_descr.size);
 		}
 		else
@@ -1157,7 +1152,7 @@ void agent_vdb_trls_init(Sdr sdr)
 			/* Step 1.4: Deserialize into a rule object. */
 			if((cur_item = trl_deserialize(data,cur_descr.size,&bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_trls_init","Can't deserialize rule.", NULL);
+				DTNMP_DEBUG_ERR("mgr_vdb_trls_init","Can't deserialize rule.", NULL);
 			}
 			else
 			{
@@ -1183,14 +1178,14 @@ void agent_vdb_trls_init(Sdr sdr)
 }
 
 
-trl_t*     agent_vdb_trl_find(mid_t *mid)
+trl_t*     mgr_vdb_trl_find(mid_t *mid)
 {
 	LystElt elt;
 	trl_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.trls_mutex));
+	lockResource(&(gMgrVDB.trls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.trls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gMgrVDB.trls); elt; elt = lyst_next(elt))
 	{
 		cur = (trl_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
@@ -1200,20 +1195,20 @@ trl_t*     agent_vdb_trl_find(mid_t *mid)
 		cur = NULL;
 	}
 
-	unlockResource(&(gAgentVDB.trls_mutex));
+	unlockResource(&(gMgrVDB.trls_mutex));
 
 	return cur;
 }
 
 
-void       agent_vdb_trl_forget(mid_t *mid)
+void       mgr_vdb_trl_forget(mid_t *mid)
 {
 	LystElt elt;
 	trl_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.trls_mutex));
+	lockResource(&(gMgrVDB.trls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.trls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gMgrVDB.trls); elt; elt = lyst_next(elt))
 	{
 		cur = (trl_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
@@ -1224,5 +1219,5 @@ void       agent_vdb_trl_forget(mid_t *mid)
 		}
 	}
 
-	unlockResource(&(gAgentVDB.trls_mutex));
+	unlockResource(&(gMgrVDB.trls_mutex));
 }

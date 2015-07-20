@@ -18,6 +18,8 @@
 #include "adm_agent_impl.h"
 #include "shared/primitives/report.h"
 #include "rda.h"
+#include "shared/primitives/ctrl.h"
+#include "agent_db.h"
 
 /******************************************************************************
  *
@@ -56,19 +58,18 @@ value_t agent_get_num_rpt(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_rpt_defs;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
 
-
 value_t agent_get_sent_rpt(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_sent_rpts;
 	result.length = sizeof(uint32_t);
 
@@ -79,20 +80,18 @@ value_t agent_get_num_trl(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_time_rules;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
 
-
-
 value_t agent_get_run_trl(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_time_rules_run;
 	result.length = sizeof(uint32_t);
 
@@ -103,20 +102,18 @@ value_t agent_get_num_srl(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_prod_rules;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
 
-
-
 value_t agent_get_run_srl(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_prod_rules_run;
 	result.length = sizeof(uint32_t);
 
@@ -127,20 +124,18 @@ value_t agent_get_num_lit(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_consts;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
 
-
-
 value_t agent_get_num_cust(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_data_defs;
 	result.length = sizeof(uint32_t);
 
@@ -151,51 +146,44 @@ value_t agent_get_num_mac(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_macros;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
 
-
-
 value_t agent_get_run_mac(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_macros_run;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
 
-
-
 value_t agent_get_num_ctrl(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_ctrls;
 	result.length = sizeof(uint32_t);
 	return result;
 }
 
-
-
 value_t agent_get_run_ctrl(Lyst params)
 {
 	value_t result;
 
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 	result.value.as_uint = gAgentInstr.num_ctrls_run;
 	result.length = sizeof(uint32_t);
 
 	return result;
 }
-
 
 
 /* Control Functions */
@@ -214,59 +202,535 @@ value_t agent_get_run_ctrl(Lyst params)
  * # ADMs - The number of ADMs known to the agent.
  * ADM [x] Name - For each ADM, it’s human readable name.
  */
-uint32_t agent_ctl_adm_lst(Lyst params)
+/* Return a data collection of strings. */
+
+tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	tdc_t *result = NULL;
+	value_t cur_val;
+	uint8_t *data = NULL;
+	uint32_t data_size = 0;
+	Lyst dc = NULL;
+
+	/* Step 1: Construct the values. */
+	if((result = tdc_create(NULL, NULL, 0)) == NULL)
+    {
+    	*status = CTRL_FAILURE;
+    	return NULL;
+    }
+
+	cur_val.type = DTNMP_TYPE_STRING;
+	cur_val.length = strlen("DTNMP_AGENT");
+	cur_val.value.as_ptr = (uint8_t*) "DTNMP AGENT";
+	data = val_serialize(&cur_val, &data_size);
+	tdc_insert(result, cur_val.type, data, data_size);
+	MRELEASE(data);
+	//tdc_insert(result, DTNMP_TYPE_STRING, (uint8_t*) "DTNMP AGENT", strlen("DTNMP AGENT"));
+
+	cur_val.type = DTNMP_TYPE_STRING;
+	cur_val.length = strlen("BP");
+	cur_val.value.as_ptr = (uint8_t*) "BP";
+	data = val_serialize(&cur_val, &data_size);
+	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
+	MRELEASE(data);
+
+#ifdef _HAVE_LTP_ADM_
+	cur_val.type = DTNMP_TYPE_STRING;
+	cur_val.length = strlen("LTP");
+	cur_val.value.as_ptr = (uint8_t*) "LTP";
+	data = val_serialize(&cur_val, &data_size);
+	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
+	MRELEASE(data);
+#endif /* _HAVE_LTP_ADM_ */
+
+#ifdef _HAVE_ION_ADM_
+	cur_val.type = DTNMP_TYPE_STRING;
+	cur_val.length = strlen("ION");
+	cur_val.value.as_ptr = (uint8_t*) "ION";
+	data = val_serialize(&cur_val, &data_size);
+	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
+	MRELEASE(data);
+#endif /* _Have_ION_ADM_ */
+
+    *status = CTRL_SUCCESS;
+    return result;
 }
 
-uint32_t agent_ctl_ad_lst(Lyst params)
+
+
+/*
+ * This control defines a new computed data definition for the agent.
+ *
+ * THe control takes 3 parameters:
+ * 1. The MID for the new computed data item.
+ * 2. The EXPR that describes then new computed data item.
+ * 3. The TYPE of the computed data item.
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+tdc_t *agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	mid_t *mid = NULL;
+	Lyst expr = NULL;
+	uvast def_type = 0;
+	def_gen_t *cd;
+
+	// \todo: CHange OID params to datalist type.
+	// \todo: Consider passing in full mid instead of just mid parms?
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 3)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_cd_add","Bad # params. Need 3, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	elt = lyst_first(params);
+	cur = lyst_data(elt);
+	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Grab the expression capturing the definition. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+	if((expr = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 3: Grab the type of the definition. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if(utils_grab_sdnv(cur->value, cur->length, &def_type) <= 0)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		midcol_destroy(&expr);
+		return NULL;
+	}
+
+	/* Step 4: Add the new definition. */
+
+	if((cd = def_create_gen(mid, def_type, expr)) != NULL)
+	{
+		agent_db_compdata_persist(cd);
+		ADD_COMPDATA(cd);
+	}
+
+	mid_release(mid);
+	midcol_destroy(&expr);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_ad_dsc(Lyst params)
+/*
+ * This control defines a new computed data definition for the agent.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of CDs to remove.
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+tdc_t *agent_ctl_cd_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_cd_del","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		if(mid != NULL)
+		{
+			agent_db_compdata_forget(mid);
+			agent_vdb_compdata_forget(mid);
+		}
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_cd_add(Lyst params)
+
+/*
+ * This control defines a new computed data definition for the agent.
+ *
+ * THe control takes 0 parameters:
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	tdc_t *retval = NULL;
+	Lyst mc = NULL;
+	LystElt elt;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+
+	if(lyst_length(params) != 0)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Bad # params. Need 0, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Build an MC of known compdata. */
+	if((mc = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	lockResource(&(gAgentVDB.compdata_mutex));
+	for(elt = lyst_first(gAgentVDB.compdata); elt; elt = lyst_next(elt))
+	{
+		def_gen_t *cur = (def_gen_t*) lyst_data(elt);
+		lyst_insert_last(mc, mid_copy(cur->id));
+	}
+	unlockResource(&(gAgentVDB.compdata_mutex));
+
+	/* Step 2: Allocate the return value. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 3: Populate the retval. */
+
+	data = midcol_serialize(mc, &data_len);
+	midcol_destroy(&mc);
+
+	if(tdc_insert(retval, DTNMP_TYPE_MC, data, data_len) != DTNMP_TYPE_MC)
+	{
+		tdc_destroy(&retval);
+		MRELEASE(data);
+		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Can't add MC to TDC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	MRELEASE(data);
+
+	*status = CTRL_SUCCESS;
+
+	return retval;
 }
 
-uint32_t agent_ctl_cd_del(Lyst params)
+
+/*
+ * This control defines a new computed data definition for the agent.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of CDs to describe
+ *
+ * The control returns a list of each compdata def.
+ */
+
+tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+	tdc_t *retval = NULL;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_cd_dsc","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the list of MIDs to describe. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Allocate the retval holding the descriptions. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_cd_dsc","Can't make tdc.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		/* do not release cur, it is a direct ptr. */
+		def_gen_t *cur = agent_vdb_compdata_find(mid);
+
+		// \todo: Check for bad return values.
+		data = def_serialize_gen(cur, &data_len);
+		tdc_insert(retval, DTNMP_TYPE_DEF, data, data_len);
+		MRELEASE(data);
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return retval;
 }
 
-uint32_t agent_ctl_cd_lst(Lyst params)
+
+
+/* REPORT-RELATED CONTROLS. */
+
+/*
+ * This control defines a new report definition for the agent.
+ *
+ * THe control takes 2 parameters:
+ * 1. The MID of the new report.
+ * 2. The MC describing the report.
+ *
+ * The control returns no DC.
+ */
+
+tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	def_gen_t *cd = NULL;
+
+	*status = CTRL_FAILURE;
+
+	if((cd = def_create_from_rpt_parms(params)) != NULL)
+	{
+		agent_db_report_persist(cd);
+		ADD_REPORT(cd);
+	}
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_cd_dsc(Lyst params)
+
+/*
+ * This control deletes a report definition for the agent.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of rpts to remove.
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+
+tdc_t *agent_ctl_rpt_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_rpt_del","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		if(mid != NULL)
+		{
+			agent_db_report_forget(mid);
+			agent_vdb_report_forget(mid);
+		}
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
+
 }
 
-uint32_t agent_ctl_rpt_add(Lyst params)
+
+/*
+ * This control lists all reports known by the agent.
+ *
+ * THe control takes 0 parameters:
+ *
+ * The control returns a MC of known report MIDs.
+ */
+
+tdc_t *agent_ctl_rpt_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	tdc_t *retval = NULL;
+	Lyst mc = NULL;
+	LystElt elt;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+
+	if(lyst_length(params) != 0)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_rpt_lst","Bad # params. Need 0, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Build an MC of known reports. */
+	if((mc = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_rpt_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	lockResource(&(gAgentVDB.reports_mutex));
+	for(elt = lyst_first(gAgentVDB.reports); elt; elt = lyst_next(elt))
+	{
+		def_gen_t *cur = (def_gen_t*) lyst_data(elt);
+		lyst_insert_last(mc, mid_copy(cur->id));
+	}
+	unlockResource(&(gAgentVDB.reports_mutex));
+
+	/* Step 2: Allocate the return value. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_rpt_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 3: Populate the retval. */
+	data = midcol_serialize(mc, &data_len);
+	midcol_destroy(&mc);
+
+	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	MRELEASE(data);
+
+	*status = CTRL_SUCCESS;
+
+	return retval;
 }
 
-uint32_t agent_ctl_rpt_del(Lyst params)
-{
-  return 0;
-}
+/*
+ * This control returns a description of each selected report MID.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of reports to describe
+ *
+ * The control returns a list of each report def.
+ */
 
-uint32_t agent_ctl_rpt_lst(Lyst params)
+tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
-}
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+	tdc_t *retval = NULL;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
 
-uint32_t agent_ctl_rpt_dsc(Lyst params)
-{
-  return 0;
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_rpt_dsc","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the list of MIDs to describe. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Allocate the retval holding the descriptions. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_rpt_dsc","Can't make lyst.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		/* do not release cur, it is a direct ptr. */
+		def_gen_t *cur = agent_vdb_report_find(mid);
+
+		data = def_serialize_gen(cur, &data_len);
+		tdc_insert(retval, DTNMP_TYPE_DEF, data, data_len);
+		MRELEASE(data);
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return retval;
 }
 
 
@@ -296,11 +760,12 @@ uint32_t agent_ctl_rpt_dsc(Lyst params)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  05/17/15  E. Birrane     Initial implementation,
+ *  06/21/15  E. Birrane     Updated to new control return code structure.
  *****************************************************************************/
-uint32_t agent_ctl_rpt_gen(Lyst params)
+tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
   datacol_entry_t *dc = NULL; // Each parameter is a DC
-  rpt_data_t *report = NULL;
+  rpt_t *report = NULL;
   LystElt elt;
   eid_t recipient;
   Lyst mids = NULL;
@@ -310,22 +775,23 @@ uint32_t agent_ctl_rpt_gen(Lyst params)
   /* Step 0: Make sure we have the correct parameters. */
   if((params == NULL) || (lyst_length(params) != 2))
   {
-	  return 0;
+	  *status = CTRL_FAILURE;
+	  return NULL;
   }
 
   /* Step 1: Get the MC from the params. */
   elt = lyst_first(params);
   dc = lyst_data(elt);
   mids = midcol_deserialize(dc->value, dc->length, &bytes);
-  MRELEASE(dc->value);
-  MRELEASE(dc);
+  //MRELEASE(dc->value);
+  //MRELEASE(dc);
 
   /* Step 2: Get the recipient for this message. */
   elt = lyst_next(elt);
   dc = lyst_data(elt);
   rx = dc_deserialize(dc->value, dc->length, &bytes);
-  MRELEASE(dc->value);
-  MRELEASE(dc);
+ // \todo verify we should release parms data... MRELEASE(dc->value);
+ // MRELEASE(dc);
 
 
   // \todo: Endian issues.
@@ -342,7 +808,8 @@ uint32_t agent_ctl_rpt_gen(Lyst params)
 	  DTNMP_DEBUG_ERR("agent_ctl_rpt_gen", "Rx length of %d > %d.", dc->length, sizeof(eid_t));
 	  dc_destroy(&rx);
 	  midcol_destroy(&mids);
-	  return 0;
+	  *status = CTRL_FAILURE;
+	  return NULL;
   }
 
   /* Step 2: Build the report.
@@ -362,11 +829,11 @@ uint32_t agent_ctl_rpt_gen(Lyst params)
   {
 	  mid_t *mid = lyst_data(elt);
 
-	  rpt_data_entry_t *entry = rda_build_report_entry(mid);
+	  rpt_entry_t *entry = rda_build_report_entry(mid);
 
 	  if(entry != NULL)
 	  {
-		  lyst_insert_last(report->reports,entry);
+		  lyst_insert_last(report->entries, entry);
 	  }
 	  else
 	  {
@@ -374,93 +841,829 @@ uint32_t agent_ctl_rpt_gen(Lyst params)
 	  }
   }
 
-  return 0;
+  *status = CTRL_SUCCESS;
+
+  return NULL;
 }
 
-uint32_t agent_ctl_op_lst(Lyst params)
+
+/*
+ * This control defines a new macro definition for the agent.
+ *
+ * The control takes 2 parameters:
+ * 1. The MID of the new macro.
+ * 2. The MC describing the macro.
+ *
+ * The control returns no DC.
+ */
+
+tdc_t *agent_ctl_mac_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	mid_t *mid = NULL;
+	Lyst expr = NULL;
+	uvast def_type = 0;
+	def_gen_t *cd;
+
+	*status = CTRL_FAILURE;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 2)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_mac_add","Bad # params. Need 2, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	elt = lyst_first(params);
+	cur = lyst_data(elt);
+	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Grab the expression capturing the definition. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+	if((expr = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 3: Add the new definition. */
+
+	if((cd = def_create_gen(mid, def_type, expr)) != NULL)
+	{
+		agent_db_macro_persist(cd);
+		ADD_MACRO(cd);
+	}
+
+	mid_release(mid);
+	midcol_destroy(&expr);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_op_dsc(Lyst params)
+
+/*
+ * This control deletes a macro definition for the agent.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of macros to remove.
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+tdc_t *agent_ctl_mac_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_mac_del","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		if(mid != NULL)
+		{
+			agent_db_macro_forget(mid);
+			agent_vdb_macro_forget(mid);
+		}
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_ctl_lst(Lyst params)
+
+/*
+ * This control lists all macros known by the agent.
+ *
+ * THe control takes 0 parameters:
+ *
+ * The control returns a MC of known macro MIDs.
+ */
+
+tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	tdc_t *retval = NULL;
+	Lyst mc = NULL;
+	LystElt elt;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+
+	if(lyst_length(params) != 0)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_mac_lst","Bad # params. Need 0, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Build an MC of known reports. */
+	if((mc = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_mac_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	lockResource(&(gAgentVDB.macros_mutex));
+	for(elt = lyst_first(gAgentVDB.macros); elt; elt = lyst_next(elt))
+	{
+		def_gen_t *cur = (def_gen_t*) lyst_data(elt);
+		lyst_insert_last(mc, mid_copy(cur->id));
+	}
+	unlockResource(&(gAgentVDB.macros_mutex));
+
+	/* Step 2: Allocate the return value. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_mac_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 3: Populate the retval. */
+	data = midcol_serialize(mc, &data_len);
+	midcol_destroy(&mc);
+
+	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	MRELEASE(data);
+
+	*status = CTRL_SUCCESS;
+
+	return retval;
 }
 
-uint32_t agent_ctl_ctl_dsc(Lyst params)
+/*
+ * This control returns a description of each selected macro MID.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of macros to describe
+ *
+ * The control returns a list of each macro.
+ */
+
+tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+	tdc_t *retval = NULL;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_mac_dsc","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the list of MIDs to describe. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Allocate the retval holding the descriptions. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_mac_dsc","Can't make lyst.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		/* do not release cur, it is a direct ptr. */
+		def_gen_t *cur = agent_vdb_macro_find(mid);
+
+		data = def_serialize_gen(cur, &data_len);
+		tdc_insert(retval, DTNMP_TYPE_DEF, data, data_len);
+		MRELEASE(data);
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return retval;
 }
 
-uint32_t agent_ctl_mac_add(Lyst params)
+
+/*
+ * This control adds a time-based rule to the agent.
+ *
+ * THe control takes 5 parameters:
+ * 1. The MID of the new control.
+ * 2. The time offset for starting the rule evaluation
+ * 3. The relative time period for the rule.
+ * 4. The number of times to execute the rule.
+ * 5. The macro to run when applying the rule.
+ *
+ * The control returns no data.
+ */
+
+tdc_t *agent_ctl_trl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	mid_t *mid = NULL;
+	Lyst action = NULL;
+	uvast offset = 0;
+	uvast count = 0;
+	uvast period = 0;
+	trl_t *rule = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 5)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_trl_add","Bad # params. Need 5, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new rule. */
+	elt = lyst_first(params);
+	cur = lyst_data(elt);
+	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+
+	/* Step 2: Grab the offset for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if(utils_grab_sdnv(cur->value, cur->length, &offset) <= 0)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 3: Grab the period for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if(utils_grab_sdnv(cur->value, cur->length, &period) <= 0)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 4: Grab the count for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if(utils_grab_sdnv(cur->value, cur->length, &count) <= 0)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 5: Grab the macro action for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if((action = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 6: Create the new rule. */
+	if((rule = trl_create(mid, (time_t) time, count, period, action)) != NULL)
+	{
+		*status = CTRL_SUCCESS;
+		agent_db_trl_persist(rule);
+		ADD_TRL(rule);
+	}
+	else
+	{
+		*status = CTRL_FAILURE;
+	}
+
+	mid_release(mid);
+	midcol_destroy(&action);
+	return NULL;
 }
 
-uint32_t agent_ctl_mac_del(Lyst params)
+
+/*
+ * This control deletes a rule definition for the agent.
+ *
+ * THe control takes 1 parameter:
+ * 1. The MC of rules to remove.
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+tdc_t *agent_ctl_trl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_trl_del","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		if(mid != NULL)
+		{
+			agent_db_trl_forget(mid);
+			agent_vdb_trl_forget(mid);
+		}
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_mac_lst(Lyst params)
+
+
+/*
+ * This control lists all TRLs known by the agent.
+ *
+ * THe control takes 0 parameters:
+ *
+ * The control returns a MC of known TRL MIDs.
+ */
+
+tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	tdc_t *retval = NULL;
+	Lyst mc = NULL;
+	LystElt elt;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+
+	if(lyst_length(params) != 0)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_trl_lst","Bad # params. Need 0, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Build an MC of known reports. */
+	if((mc = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_trl_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	lockResource(&(gAgentVDB.trls_mutex));
+	for(elt = lyst_first(gAgentVDB.trls); elt; elt = lyst_next(elt))
+	{
+		def_gen_t *cur = (def_gen_t*) lyst_data(elt);
+		lyst_insert_last(mc, mid_copy(cur->id));
+	}
+	unlockResource(&(gAgentVDB.trls_mutex));
+
+	/* Step 2: Allocate the return value. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_trl_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 3: Populate the retval. */
+	data = midcol_serialize(mc, &data_len);
+	midcol_destroy(&mc);
+
+	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	MRELEASE(data);
+
+	*status = CTRL_SUCCESS;
+
+	return retval;
 }
 
-uint32_t agent_ctl_mac_dsc(Lyst params)
+
+/*
+ * This control returns a description of each selected TRL.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of TRLs to describe
+ *
+ * The control returns a MC comprising the MID of each TRL.
+ */
+
+tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+	tdc_t *retval = NULL;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_trl_dsc","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the list of MIDs to describe. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Allocate the retval holding the descriptions. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_trl_dsc","Can't make lyst.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		/* do not release cur, it is a direct ptr. */
+		trl_t *trl = agent_vdb_trl_find(mid);
+
+		data = trl_serialize(trl, &data_len);
+		tdc_insert(retval, DTNMP_TYPE_TRL, data, data_len);
+		MRELEASE(data);
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return retval;
 }
 
-uint32_t agent_ctl_trl_add(Lyst params)
+
+/*
+ * This control adds a state-based rule to the agent.
+ *
+ * THe control takes 5 parameters:
+ * 1. The MID of the new control.
+ * 2. The time offset for starting the rule evaluation
+ * 3. The expression triggering the rule.
+ * 4. The number of times to execute the rule.
+ * 5. The macro to run when applying the rule.
+ *
+ * The control returns no data.
+ */
+
+
+tdc_t *agent_ctl_srl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	mid_t *mid = NULL;
+	Lyst action = NULL;
+	Lyst expr = NULL;
+	uvast offset = 0;
+	uvast count = 0;
+	srl_t *rule = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 5)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_srl_add","Bad # params. Need 5, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new rule. */
+	elt = lyst_first(params);
+	cur = lyst_data(elt);
+	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+
+	/* Step 2: Grab the offset for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if(utils_grab_sdnv(cur->value, cur->length, &offset) <= 0)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 3: Grab the expression for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if((expr = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 4: Grab the count for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if(utils_grab_sdnv(cur->value, cur->length, &count) <= 0)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		midcol_destroy(&expr);
+		return NULL;
+	}
+
+	/* Step 5: Grab the macro action for this rule. */
+	elt = lyst_next(elt);
+	cur = lyst_data(elt);
+
+	if((action = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		midcol_destroy(&expr);
+		return NULL;
+	}
+
+	/* Step 6: Create the new rule. */
+	if((rule = srl_create(mid, (time_t) time, expr, count, action)) != NULL)
+	{
+		*status = CTRL_SUCCESS;
+		agent_db_srl_persist(rule);
+		ADD_SRL(rule);
+	}
+	else
+	{
+		*status = CTRL_FAILURE;
+	}
+
+	mid_release(mid);
+	midcol_destroy(&expr);
+	midcol_destroy(&action);
+	return NULL;
+
+
+	return NULL;
 }
 
-uint32_t agent_ctl_trl_del(Lyst params)
+
+
+/*
+ * This control deletes an SRL definition for the agent.
+ *
+ * THe control takes 1 parameter:
+ * 1. The MC of SRLs to remove.
+ *
+ * The control returns success/failure and does not generate a report.
+ */
+
+tdc_t *agent_ctl_srl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_srl_del","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		if(mid != NULL)
+		{
+			agent_db_srl_forget(mid);
+			agent_vdb_srl_forget(mid);
+		}
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return NULL;
 }
 
-uint32_t agent_ctl_trl_lst(Lyst params)
+
+/*
+ * This control lists all SRLs known by the agent.
+ *
+ * THe control takes 0 parameters:
+ *
+ * The control returns a MC of known SRL MIDs.
+ */
+
+tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	tdc_t *retval = NULL;
+	Lyst mc = NULL;
+	LystElt elt;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+
+	if(lyst_length(params) != 0)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_srl_lst","Bad # params. Need 0, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Build an MC of known reports. */
+	if((mc = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_srl_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	lockResource(&(gAgentVDB.srls_mutex));
+	for(elt = lyst_first(gAgentVDB.srls); elt; elt = lyst_next(elt))
+	{
+		def_gen_t *cur = (def_gen_t*) lyst_data(elt);
+		lyst_insert_last(mc, mid_copy(cur->id));
+	}
+	unlockResource(&(gAgentVDB.srls_mutex));
+
+	/* Step 2: Allocate the return value. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_srl_lst","Can't make MC.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 3: Populate the retval. */
+	data = midcol_serialize(mc, &data_len);
+	midcol_destroy(&mc);
+
+	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	MRELEASE(data);
+
+	*status = CTRL_SUCCESS;
+
+	return retval;
 }
 
-uint32_t agent_ctl_trl_dsc(Lyst params)
+
+/*
+ * This control returns a description of each selected SRL.
+ *
+ * THe control takes 1 parameter:
+ * 1. THe MC of SRLs to describe
+ *
+ * The control returns a list of each SRL.
+ */
+
+
+tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  return 0;
+	LystElt elt = NULL;
+	datacol_entry_t *cur = NULL;
+	uint32_t bytes = 0;
+	Lyst mc = NULL;
+	tdc_t *retval = NULL;
+	uint8_t *data = NULL;
+	uint32_t data_len = 0;
+
+	/* Step 0: Sanity Check. */
+	if(lyst_length(params) != 1)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_srl_dsc","Bad # params. Need 1, received %d", lyst_length(params));
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 1: Grab the list of MIDs to describe. */
+	cur = lyst_data(lyst_first(params));
+	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	{
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: Allocate the retval holding the descriptions. */
+	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	{
+		midcol_destroy(&mc);
+		DTNMP_DEBUG_ERR("agent_ctl_srl_dsc","Can't make lyst.", NULL);
+		*status = CTRL_FAILURE;
+		return NULL;
+	}
+
+	/* Step 2: For each MID in the MC... */
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
+
+		/* do not release cur, it is a direct ptr. */
+		srl_t *srl = agent_vdb_srl_find(mid);
+
+		data = srl_serialize(srl, &data_len);
+		tdc_insert(retval, DTNMP_TYPE_SRL, data, data_len);
+		MRELEASE(data);
+	}
+
+	midcol_destroy(&mc);
+
+	*status = CTRL_SUCCESS;
+	return retval;
 }
 
-uint32_t agent_ctl_srl_add(Lyst params)
-{
-  return 0;
-}
-
-uint32_t agent_ctl_srl_del(Lyst params)
-{
-  return 0;
-}
-
-uint32_t agent_ctl_srl_lst(Lyst params)
-{
-  return 0;
-}
-
-uint32_t agent_ctl_srl_dsc(Lyst params)
-{
-  return 0;
-}
-
-uint32_t agent_ctl_lit_lst(Lyst params)
-{
-  return 0;
-}
 
 
 /*
@@ -475,7 +1678,7 @@ value_t adm_agent_op_prep(int num, Lyst parms, value_t **lval, value_t **rval)
 	value_t result;
     LystElt elt = 0;
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.value.as_int = 0;
 	result.length = 0;
 
@@ -518,14 +1721,14 @@ value_t adm_agent_op_plus(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_plus","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_plus","-> Unknown", NULL);
@@ -535,35 +1738,35 @@ value_t adm_agent_op_plus(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) + val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) + val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) + val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) + val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_real32 = val_cvt_real32(lval) + val_cvt_real32(rval);
 		result.length = sizeof(float);
-		result.type = VAL_TYPE_REAL32;
+		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_real64 = val_cvt_real64(lval) + val_cvt_real64(rval);
 		result.length = sizeof(double);
-		result.type = VAL_TYPE_REAL64;
+		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		break;
@@ -579,14 +1782,14 @@ value_t adm_agent_op_minus(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_minus","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_minus","-> Unknown", NULL);
@@ -596,35 +1799,35 @@ value_t adm_agent_op_minus(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) - val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) - val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) - val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) - val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_real32 = val_cvt_real32(lval) - val_cvt_real32(rval);
 		result.length = sizeof(float);
-		result.type = VAL_TYPE_REAL32;
+		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_real64 = val_cvt_real64(lval) - val_cvt_real64(rval);
 		result.length = sizeof(double);
-		result.type = VAL_TYPE_REAL64;
+		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		break;
@@ -640,14 +1843,14 @@ value_t adm_agent_op_mult(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_mult","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_mult","-> Unknown", NULL);
@@ -657,35 +1860,35 @@ value_t adm_agent_op_mult(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) * val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) * val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) * val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) * val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_real32 = val_cvt_real32(lval) * val_cvt_real32(rval);
 		result.length = sizeof(float);
-		result.type = VAL_TYPE_REAL32;
+		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_real64 = val_cvt_real64(lval) * val_cvt_real64(rval);
 		result.length = sizeof(double);
-		result.type = VAL_TYPE_REAL64;
+		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		break;
@@ -701,14 +1904,14 @@ value_t adm_agent_op_div(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_div","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_div","-> Unknown", NULL);
@@ -718,35 +1921,35 @@ value_t adm_agent_op_div(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) / val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) / val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) / val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) / val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_real32 = val_cvt_real32(lval) / val_cvt_real32(rval);
 		result.length = sizeof(float);
-		result.type = VAL_TYPE_REAL32;
+		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_real64 = val_cvt_real64(lval) / val_cvt_real64(rval);
 		result.length = sizeof(double);
-		result.type = VAL_TYPE_REAL64;
+		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		break;
@@ -764,14 +1967,14 @@ value_t adm_agent_op_mod(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_mod","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_mod","-> Unknown", NULL);
@@ -781,25 +1984,25 @@ value_t adm_agent_op_mod(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = val_cvt_int(lval) % val_cvt_int(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) % val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uvast = val_cvt_vast(lval) % val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) % val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
 	default:
 		break;
@@ -815,14 +2018,14 @@ value_t adm_agent_op_exp(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_exp","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_exp","-> Unknown", NULL);
@@ -832,35 +2035,35 @@ value_t adm_agent_op_exp(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = (int32_t) pow(val_cvt_int(lval),val_cvt_int(rval));
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) pow(val_cvt_uint(lval), val_cvt_uint(rval));
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = (vast) pow(val_cvt_vast(lval), val_cvt_vast(rval));
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = (uvast) pow(val_cvt_uvast(lval),val_cvt_uvast(rval));
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_real32 = (float) pow(val_cvt_real32(lval), val_cvt_real32(rval));
 		result.length = sizeof(float);
-		result.type = VAL_TYPE_REAL32;
+		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_real64 = (double) pow(val_cvt_real64(lval), val_cvt_real64(rval));
 		result.length = sizeof(double);
-		result.type = VAL_TYPE_REAL64;
+		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		break;
@@ -876,14 +2079,14 @@ value_t adm_agent_op_bitand(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_bitand","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_bitand","-> Unknown", NULL);
@@ -893,25 +2096,25 @@ value_t adm_agent_op_bitand(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) & val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) & val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) & val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) & val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
 	default:
 		break;
@@ -928,14 +2131,14 @@ value_t adm_agent_op_bitor(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_bitor","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_bitor","-> Unknown", NULL);
@@ -945,25 +2148,25 @@ value_t adm_agent_op_bitor(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) | val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) | val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) | val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) | val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
 	default:
 		break;
@@ -979,14 +2182,14 @@ value_t adm_agent_op_bitxor(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_bitxor","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_bitxor","-> Unknown", NULL);
@@ -996,25 +2199,25 @@ value_t adm_agent_op_bitxor(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = val_cvt_int(lval) ^ val_cvt_int(rval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) ^ val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = val_cvt_vast(lval) ^ val_cvt_vast(rval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = val_cvt_uvast(lval) ^ val_cvt_uvast(rval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
 	default:
 		break;
@@ -1030,14 +2233,14 @@ value_t adm_agent_op_bitnot(Lyst parms)
 {
 	value_t result;
 	value_t *lval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(1, parms, &lval, NULL);
     cvt_type = lval->type;
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_plus","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_plus","-> Unknown", NULL);
@@ -1047,25 +2250,25 @@ value_t adm_agent_op_bitnot(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_int = !val_cvt_int(lval);
 		result.length = sizeof(int32_t);
-		result.type = VAL_TYPE_INT;
+		result.type = DTNMP_TYPE_INT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = !val_cvt_uint(lval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_vast = !val_cvt_vast(lval);
 		result.length = sizeof(vast);
-		result.type = VAL_TYPE_VAST;
+		result.type = DTNMP_TYPE_VAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = !val_cvt_uvast(lval);
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
 	default:
 		break;
@@ -1079,14 +2282,14 @@ value_t adm_agent_op_logand(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_logand","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_logand","-> Unknown", NULL);
@@ -1099,25 +2302,25 @@ value_t adm_agent_op_logand(Lyst parms)
      */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = val_cvt_int(lval) && val_cvt_int(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) && val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = val_cvt_vast(lval) && val_cvt_vast(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = val_cvt_uvast(lval) && val_cvt_uvast(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1131,14 +2334,14 @@ value_t adm_agent_op_logor(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_logor","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_logor","-> Unknown", NULL);
@@ -1151,25 +2354,25 @@ value_t adm_agent_op_logor(Lyst parms)
      */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = val_cvt_int(lval) || val_cvt_int(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) || val_cvt_uint(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = val_cvt_vast(lval) || val_cvt_vast(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = val_cvt_uvast(lval) || val_cvt_uvast(rval);
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1184,7 +2387,7 @@ value_t adm_agent_op_logxor(Lyst parms)
 	value_t result;
 
 	result.length = 0;
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.value.as_ptr = NULL;
 
 	return result;
@@ -1195,7 +2398,7 @@ value_t adm_agent_op_lognot(Lyst parms)
 {
 	value_t result;
 	value_t *lval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(1, parms, &lval, NULL);
@@ -1207,25 +2410,25 @@ value_t adm_agent_op_lognot(Lyst parms)
      */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = val_cvt_int(lval) ? 0 : 1;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = val_cvt_uint(lval) ? 0 : 1;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = val_cvt_vast(lval) ? 0 : 1;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = val_cvt_uvast(lval) ? 0 : 1;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1242,14 +2445,14 @@ value_t adm_agent_op_abs(Lyst parms)
 {
 	value_t result;
 	value_t *lval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(1, parms, &lval, NULL);
 	cvt_type = lval->type;
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_abs","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_abs","-> Unknown", NULL);
@@ -1259,35 +2462,35 @@ value_t adm_agent_op_abs(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (int32_t) abs(val_cvt_int(lval));
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) abs(val_cvt_uint(lval));
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uvast = (uvast) labs(val_cvt_vast(lval));
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uvast = (uvast) labs(val_cvt_uvast(lval));
 		result.length = sizeof(uvast);
-		result.type = VAL_TYPE_UVAST;
+		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_real32 = (float) fabsf(val_cvt_real32(lval));
 		result.length = sizeof(float);
-		result.type = VAL_TYPE_REAL32;
+		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_real64 = (double) fabs(val_cvt_real64(lval));
 		result.length = sizeof(double);
-		result.type = VAL_TYPE_REAL64;
+		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		break;
@@ -1301,14 +2504,14 @@ value_t adm_agent_op_lt(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_lt","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_lt","-> Unknown", NULL);
@@ -1318,35 +2521,35 @@ value_t adm_agent_op_lt(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (uint32_t) (val_cvt_int(lval) < val_cvt_int(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) (val_cvt_uint(lval) < val_cvt_uint(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = (uint32_t) (val_cvt_vast(lval) < val_cvt_vast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = (uint32_t) (val_cvt_uvast(lval) < val_cvt_uvast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_uint = (uint32_t) (val_cvt_real32(lval) < val_cvt_real32(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_uint = (uint32_t) (val_cvt_real64(lval) < val_cvt_real64(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1359,14 +2562,14 @@ value_t adm_agent_op_gt(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_gt","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_gt","-> Unknown", NULL);
@@ -1376,35 +2579,35 @@ value_t adm_agent_op_gt(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (uint32_t) (val_cvt_int(lval) > val_cvt_int(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) (val_cvt_uint(lval) > val_cvt_uint(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = (uint32_t) (val_cvt_vast(lval) > val_cvt_vast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = (uint32_t) (val_cvt_uvast(lval) > val_cvt_uvast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_uint = (uint32_t) (val_cvt_real32(lval) > val_cvt_real32(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_uint = (uint32_t) (val_cvt_real64(lval) > val_cvt_real64(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1418,14 +2621,14 @@ value_t adm_agent_op_lte(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_lte","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_lte","-> Unknown", NULL);
@@ -1435,35 +2638,35 @@ value_t adm_agent_op_lte(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (uint32_t) (val_cvt_int(lval) <= val_cvt_int(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) (val_cvt_uint(lval) <= val_cvt_uint(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = (uint32_t) (val_cvt_vast(lval) <= val_cvt_vast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = (uint32_t) (val_cvt_uvast(lval) <= val_cvt_uvast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_uint = (uint32_t) (val_cvt_real32(lval) <= val_cvt_real32(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_uint = (uint32_t) (val_cvt_real64(lval) <= val_cvt_real64(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1476,14 +2679,14 @@ value_t adm_agent_op_gte(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_gte","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_gte","-> Unknown", NULL);
@@ -1493,35 +2696,35 @@ value_t adm_agent_op_gte(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (uint32_t) (val_cvt_int(lval) >= val_cvt_int(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) (val_cvt_uint(lval) >= val_cvt_uint(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = (uint32_t) (val_cvt_vast(lval) >= val_cvt_vast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = (uint32_t) (val_cvt_uvast(lval) >= val_cvt_uvast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_uint = (uint32_t) (val_cvt_real32(lval) >= val_cvt_real32(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_uint = (uint32_t) (val_cvt_real64(lval) >= val_cvt_real64(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1535,14 +2738,14 @@ value_t adm_agent_op_neq(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_neq","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_neq","-> Unknown", NULL);
@@ -1552,35 +2755,35 @@ value_t adm_agent_op_neq(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (uint32_t) (val_cvt_int(lval) != val_cvt_int(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) (val_cvt_uint(lval) != val_cvt_uint(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = (uint32_t) (val_cvt_vast(lval) != val_cvt_vast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = (uint32_t) (val_cvt_uvast(lval) != val_cvt_uvast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_uint = (uint32_t) (val_cvt_real32(lval) != val_cvt_real32(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_uint = (uint32_t) (val_cvt_real64(lval) != val_cvt_real64(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;
@@ -1593,14 +2796,14 @@ value_t adm_agent_op_eq(Lyst parms)
 {
 	value_t result;
 	value_t *lval, *rval;
-	uint32_t cvt_type = VAL_TYPE_UNK;
+	uint32_t cvt_type = DTNMP_TYPE_UNK;
 
 	/* Step 1 - Prep for the operation. */
     result = adm_agent_op_prep(2, parms, &lval, &rval);
 	cvt_type = val_get_result_type(lval->type, rval->type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == VAL_TYPE_UNK)
+    if(cvt_type == DTNMP_TYPE_UNK)
     {
         DTNMP_DEBUG_ERR("adm_agent_op_eq","Bad params.",NULL);
         DTNMP_DEBUG_EXIT("adm_agent_op_eq","-> Unknown", NULL);
@@ -1610,35 +2813,35 @@ value_t adm_agent_op_eq(Lyst parms)
 	/* Step 3: Based on result type, convert and perform operations. */
 	switch(cvt_type)
 	{
-	case VAL_TYPE_INT:
+	case DTNMP_TYPE_INT:
 		result.value.as_uint = (uint32_t) (val_cvt_int(lval) == val_cvt_int(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UINT:
+	case DTNMP_TYPE_UINT:
 		result.value.as_uint = (uint32_t) (val_cvt_uint(lval) == val_cvt_uint(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_VAST:
+	case DTNMP_TYPE_VAST:
 		result.value.as_uint = (uint32_t) (val_cvt_vast(lval) == val_cvt_vast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_UVAST:
+	case DTNMP_TYPE_UVAST:
 		result.value.as_uint = (uint32_t) (val_cvt_uvast(lval) == val_cvt_uvast(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL32:
+	case DTNMP_TYPE_REAL32:
 		result.value.as_uint = (uint32_t) (val_cvt_real32(lval) == val_cvt_real32(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
-	case VAL_TYPE_REAL64:
+	case DTNMP_TYPE_REAL64:
 		result.value.as_uint = (uint32_t) (val_cvt_real64(lval) == val_cvt_real64(rval)) ? 1 : 0;
 		result.length = sizeof(uint32_t);
-		result.type = VAL_TYPE_UINT;
+		result.type = DTNMP_TYPE_UINT;
 		break;
 	default:
 		break;

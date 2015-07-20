@@ -55,45 +55,36 @@ value_t agent_get_run_ctrl(Lyst params);
 
 /* Control Functions */
 
-uint32_t agent_ctl_adm_lst(Lyst params);
+tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
 
-uint32_t agent_ctl_ad_lst(Lyst params);
-uint32_t agent_ctl_ad_dsc(Lyst params);
+tdc_t* agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_cd_del(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_cd_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_cd_dsc(eid_t *def_mgr, Lyst params, uint8_t *status);
 
-uint32_t agent_ctl_cd_add(Lyst params);
-uint32_t agent_ctl_cd_del(Lyst params);
-uint32_t agent_ctl_cd_lst(Lyst params);
-uint32_t agent_ctl_cd_dsc(Lyst params);
-
-uint32_t agent_ctl_rpt_add(Lyst params);
-uint32_t agent_ctl_rpt_del(Lyst params);
-uint32_t agent_ctl_rpt_lst(Lyst params);
-uint32_t agent_ctl_rpt_dsc(Lyst params);
-uint32_t agent_ctl_rpt_gen(Lyst params);
+tdc_t* agent_ctl_rpt_add(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_rpt_del(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_rpt_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_rpt_dsc(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_rpt_gen(eid_t *def_mgr, Lyst params, uint8_t *status);
 
 
-uint32_t agent_ctl_op_lst(Lyst params);
-uint32_t agent_ctl_op_dsc(Lyst params);
+tdc_t* agent_ctl_mac_add(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_mac_del(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_mac_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_mac_dsc(eid_t *def_mgr, Lyst params, uint8_t *status);
 
-uint32_t agent_ctl_ctl_lst(Lyst params);
-uint32_t agent_ctl_ctl_dsc(Lyst params);
+tdc_t* agent_ctl_trl_add(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_trl_del(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_trl_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_trl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status);
 
-uint32_t agent_ctl_mac_add(Lyst params);
-uint32_t agent_ctl_mac_del(Lyst params);
-uint32_t agent_ctl_mac_lst(Lyst params);
-uint32_t agent_ctl_mac_dsc(Lyst params);
+tdc_t* agent_ctl_srl_add(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_srl_del(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_srl_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
+tdc_t* agent_ctl_srl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status);
 
-uint32_t agent_ctl_trl_add(Lyst params);
-uint32_t agent_ctl_trl_del(Lyst params);
-uint32_t agent_ctl_trl_lst(Lyst params);
-uint32_t agent_ctl_trl_dsc(Lyst params);
-
-uint32_t agent_ctl_srl_add(Lyst params);
-uint32_t agent_ctl_srl_del(Lyst params);
-uint32_t agent_ctl_srl_lst(Lyst params);
-uint32_t agent_ctl_srl_dsc(Lyst params);
-
-uint32_t agent_ctl_lit_lst(Lyst params);
+tdc_t* agent_ctl_lit_lst(eid_t *def_mgr, Lyst params, uint8_t *status);
 
 
 /* OP Functions. */

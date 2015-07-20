@@ -133,7 +133,10 @@ char *names_get_name(mid_t *mid)
 
 	}
 
-	return NULL;
+	/* Last chance... just print the HEX. */
+	result = mid_to_string(mid);
+
+	return result;
 }
 
 

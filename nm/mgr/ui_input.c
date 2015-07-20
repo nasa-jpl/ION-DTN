@@ -679,13 +679,13 @@ Lyst               ui_input_parms(ui_parm_spec_t *spec)
 				dc_add(result, (uint8_t*)&val, sizeof(val));
 			}
 				break;
-			case DTNMP_TYPE_FLOAT:
+			case DTNMP_TYPE_REAL32:
 			{
 				float  val = ui_input_float("Enter Float:");
 				dc_add(result, (uint8_t*)&val, sizeof(val));
 			}
 				break;
-			case DTNMP_TYPE_DOUBLE:
+			case DTNMP_TYPE_REAL64:
 			{
 				double  val = ui_input_double("Enter Double:");
 				dc_add(result, (uint8_t*)&val, sizeof(val));

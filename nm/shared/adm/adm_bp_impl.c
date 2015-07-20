@@ -15,6 +15,7 @@
 
 #include "shared/adm/adm_bp.h"
 #include "shared/utils/utils.h"
+#include "shared/primitives/ctrl.h"
 
 #include "adm_bp_impl.h"
 
@@ -35,7 +36,7 @@ value_t bp_node_get_node_id(Lyst params)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = VAL_TYPE_STRING;
+	result.type = DTNMP_TYPE_STRING;
 	result.value.as_ptr = adm_copy_string((char *) node_state.nodeID, &(result.length));
 	return result;
 }
@@ -46,7 +47,7 @@ value_t bp_node_get_version(Lyst params)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = VAL_TYPE_STRING;
+	result.type = DTNMP_TYPE_STRING;
 
 	result.value.as_ptr = adm_copy_string((char *) node_state.bpVersionNbr, &(result.length));
 
@@ -59,7 +60,7 @@ value_t bp_node_get_storage(Lyst params)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = node_state.avblStorage;
 	result.length = sizeof(uvast);
 
@@ -72,7 +73,7 @@ value_t bp_node_get_last_restart(Lyst params)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = node_state.lastRestartTime;
 	result.length = sizeof(uvast);
 
@@ -85,7 +86,7 @@ value_t bp_node_get_num_reg(Lyst params)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = node_state.nbrOfRegistrations;
 	result.length = sizeof(uvast);
 
@@ -98,7 +99,7 @@ value_t bp_node_get_fwd_pend(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentForwardPending;
 	result.length = sizeof(uvast);
 
@@ -111,7 +112,7 @@ value_t bp_node_get_dispatch_pend(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentDispatchPending;
 	result.length = sizeof(uvast);
 
@@ -124,7 +125,7 @@ value_t bp_node_get_in_cust(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentInCustody;
 	result.length = sizeof(uvast);
 
@@ -137,7 +138,7 @@ value_t bp_node_get_reassembly_pend(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentReassemblyPending;
 	result.length = sizeof(uvast);
 
@@ -150,7 +151,7 @@ value_t bp_node_get_blk_src_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceCount[0];
 	result.length = sizeof(uvast);
 
@@ -163,7 +164,7 @@ value_t bp_node_get_norm_src_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceCount[1];
 	result.length = sizeof(uvast);
 
@@ -176,7 +177,7 @@ value_t bp_node_get_exp_src_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceCount[2];
 	result.length = sizeof(uvast);
 
@@ -190,7 +191,7 @@ value_t bp_node_get_blk_src_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceBytes[0];
 	result.length = sizeof(uvast);
 
@@ -203,7 +204,7 @@ value_t bp_node_get_norm_src_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceBytes[1];
 	result.length = sizeof(uvast);
 
@@ -216,7 +217,7 @@ value_t bp_node_get_exp_src_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceBytes[2];
 	result.length = sizeof(uvast);
 
@@ -229,7 +230,7 @@ value_t bp_node_get_blk_res_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentCount[0];
 	result.length = sizeof(uvast);
 
@@ -242,7 +243,7 @@ value_t bp_node_get_norm_res_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentCount[1];
 	result.length = sizeof(uvast);
 
@@ -255,7 +256,7 @@ value_t bp_node_get_exp_res_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentCount[2];
 	result.length = sizeof(uvast);
 
@@ -269,7 +270,7 @@ value_t bp_node_get_blk_res_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentBytes[0];
 	result.length = sizeof(uvast);
 
@@ -282,7 +283,7 @@ value_t bp_node_get_norm_res_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentBytes[1];
 	result.length = sizeof(uvast);
 
@@ -295,7 +296,7 @@ value_t bp_node_get_exp_res_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentBytes[2];
 	result.length = sizeof(uvast);
 
@@ -308,7 +309,7 @@ value_t bp_node_get_bundles_frag(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundlesFragmented;
 	result.length = sizeof(uvast);
 
@@ -321,7 +322,7 @@ value_t bp_node_get_frag_produced(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.fragmentsProduced;
 	result.length = sizeof(uvast);
 
@@ -335,7 +336,7 @@ value_t bp_node_get_del_none(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delNoneCount;
 	result.length = sizeof(uvast);
 
@@ -348,7 +349,7 @@ value_t bp_node_get_del_expired(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delExpiredCount;
 	result.length = sizeof(uvast);
 
@@ -361,7 +362,7 @@ value_t bp_node_get_del_fwd_uni(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delFwdUnidirCount;
 	result.length = sizeof(uvast);
 
@@ -374,7 +375,7 @@ value_t bp_node_get_del_cancel(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delCanceledCount;
 	result.length = sizeof(uvast);
 
@@ -387,7 +388,7 @@ value_t bp_node_get_del_deplete(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delDepletionCount;
 	result.length = sizeof(uvast);
 
@@ -400,7 +401,7 @@ value_t bp_node_get_del_bad_eid(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delEidMalformedCount;
 	result.length = sizeof(uvast);
 
@@ -414,7 +415,7 @@ value_t bp_node_get_del_no_route(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delNoRouteCount;
 	result.length = sizeof(uvast);
 
@@ -427,7 +428,7 @@ value_t bp_node_get_del_no_contact(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delNoContactCount;
 	result.length = sizeof(uvast);
 
@@ -440,7 +441,7 @@ value_t bp_node_get_del_bad_blk(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.delBlkMalformedCount;
 	result.length = sizeof(uvast);
 
@@ -453,7 +454,7 @@ value_t bp_node_get_del_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bytesDeletedToDate;
 	result.length = sizeof(uvast);
 
@@ -466,7 +467,7 @@ value_t bp_node_get_fail_cust_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.custodyRefusedCount;
 	result.length = sizeof(uvast);
 
@@ -479,7 +480,7 @@ value_t bp_node_get_fail_cust_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.custodyRefusedBytes;
 	result.length = sizeof(uvast);
 
@@ -493,7 +494,7 @@ value_t bp_node_get_fail_fwd_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleFwdFailedCount;
 	result.length = sizeof(uvast);
 
@@ -506,7 +507,7 @@ value_t bp_node_get_fail_fwd_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleFwdFailedBytes;
 	result.length = sizeof(uvast);
 
@@ -520,7 +521,7 @@ value_t bp_node_get_fail_abandon_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleAbandonCount;
 	result.length = sizeof(uvast);
 
@@ -533,7 +534,7 @@ value_t bp_node_get_fail_abandon_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleAbandonBytes;
 	result.length = sizeof(uvast);
 
@@ -547,7 +548,7 @@ value_t bp_node_get_fail_discard_cnt(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleDiscardCount;
 	result.length = sizeof(uvast);
 
@@ -560,7 +561,7 @@ value_t bp_node_get_fail_discard_bytes(Lyst params)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = VAL_TYPE_UVAST;
+	result.type = DTNMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleDiscardBytes;
 	result.length = sizeof(uvast);
 
@@ -575,7 +576,7 @@ value_t bp_endpoint_get_names(Lyst params)
 	int num = 0;
 	Sdnv nm_sdnv;
 	value_t result;
-	result.type = VAL_TYPE_BLOB;
+	result.type = DTNMP_TYPE_BLOB;
 
 	uint8_t *cursor = NULL;
 
@@ -607,7 +608,7 @@ value_t bp_endpoint_get_name(Lyst params)
 	unsigned long val = 0;
 	char name[256];
 	value_t result;
-	result.type = VAL_TYPE_STRING;
+	result.type = DTNMP_TYPE_STRING;
 
 	NmbpEndpoint endpoint;
 	int success = 0;
@@ -634,7 +635,7 @@ value_t bp_endpoint_get_active(Lyst params)
 	datacol_entry_t *entry = (datacol_entry_t*)lyst_data(lyst_first(params));
 	char name[256];
 	value_t result;
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 
 	NmbpEndpoint endpoint;
 	int success = 0;
@@ -659,7 +660,7 @@ value_t bp_endpoint_get_singleton(Lyst params)
 	datacol_entry_t *entry = (datacol_entry_t*)lyst_data(lyst_first(params));
 	char name[256];
 	value_t result;
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 
 	NmbpEndpoint endpoint;
 	int success = 0;
@@ -685,7 +686,7 @@ value_t bp_endpoint_get_abandon(Lyst params)
 	datacol_entry_t *entry = (datacol_entry_t*)lyst_data(lyst_first(params));
 	char name[256];
 	value_t result;
-	result.type = VAL_TYPE_UINT;
+	result.type = DTNMP_TYPE_UINT;
 
 	NmbpEndpoint endpoint;
 	int success = 0;
@@ -708,10 +709,15 @@ value_t bp_endpoint_get_abandon(Lyst params)
 
 
 /* Controls */
-uint32_t bp_ctrl_reset(Lyst params)
+tdc_t *bp_ctrl_reset(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
+	tdc_t result;
+
 	bpnm_disposition_reset();
-	return 0;
+	*status = CTRL_SUCCESS;
+
+	memset(&result, 0, sizeof(tdc_t));
+	return NULL;
 }
 
 

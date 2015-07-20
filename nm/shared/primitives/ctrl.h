@@ -37,6 +37,10 @@
 // Control initialized, but disabled.
 #define CONTROL_INACTIVE (2)
 
+
+#define CTRL_SUCCESS (0)
+#define CTRL_FAILURE (1)
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  	MACROS  								  +

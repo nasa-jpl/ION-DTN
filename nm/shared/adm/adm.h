@@ -25,9 +25,11 @@
 
 #include "lyst.h"
 
+#include "shared/primitives/tdc.h"
 #include "shared/primitives/mid.h"
 #include "shared/primitives/value.h"
 #include "shared/primitives/lit.h"
+#include "shared/utils/nm_types.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -66,8 +68,11 @@
 typedef value_t (*adm_data_collect_fn)(Lyst parms);
 typedef char* (*adm_string_fn)(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
 typedef uint32_t (*adm_size_fn)(uint8_t* buffer, uint64_t buffer_len);
-typedef uint32_t (*adm_ctrl_run_fn)(Lyst params);
+
 typedef value_t (*adm_op_fn)(Lyst parms);
+
+
+typedef tdc_t* (*adm_ctrl_run_fn)(eid_t *def_mgr, Lyst params, uint8_t *status);
 
 
 /*
@@ -89,6 +94,8 @@ typedef struct
 {
     mid_t *mid;					 /**> The MID identifying this def.        */
 
+    dtnmp_type_e type;           /**> The data type of this MID.           */
+
     uint8_t num_parms;           /**> # params needed to complete this MID.*/
 
     adm_size_fn get_size;        /**> Configured sizing function.          */
@@ -107,6 +114,8 @@ typedef struct
     mid_t *mid;					 /**> The MID identifying this def.        */
 
     uint8_t num_parms;           /**> # params needed to complete this MID.*/
+
+    dtnmp_type_e type;           /**> The data type of the CD.             */
 
     Lyst def;					 /**> MC capturing the expression. 		   */
 
@@ -175,14 +184,12 @@ extern Lyst gAdmMacros; // Type def_gen_t
  * +--------------------------------------------------------------------------+
  */
 
-int         adm_add_datadef(char *mid_str, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
-//void         adm_add_datadef_collect(uint8_t *mid_str, adm_data_collect_fn collect);
+int         adm_add_datadef(char *mid_str, dtnmp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
 
-int		 	adm_add_computeddef(char *mid_str, int num_parms, Lyst def, adm_string_fn to_string, adm_size_fn get_size);
+int		 	adm_add_computeddef(char *mid_str, dtnmp_type_e type, int num_parms, Lyst def, adm_string_fn to_string, adm_size_fn get_size);
 
 
 int         adm_add_ctrl(char *mid_str, adm_ctrl_run_fn run);
-//void         adm_add_ctrl_run(uint8_t *mid_str, adm_ctrl_fn run);
 
 int			adm_add_lit(char *mid_str, value_t result, lit_val_fn calc);
 
@@ -202,11 +209,9 @@ void         adm_destroy();
 adm_computeddef_t* adm_find_computeddef(mid_t *mid);
 
 adm_datadef_t* adm_find_datadef(mid_t *mid);
-//adm_datadef_t* adm_find_datadef_by_name(char *name);
 adm_datadef_t* adm_find_datadef_by_idx(int idx);
 
 adm_ctrl_t*    adm_find_ctrl(mid_t *mid);
-//adm_ctrl_t*    adm_find_ctrl_by_name(char *name);
 adm_ctrl_t*    adm_find_ctrl_by_idx(int idx);
 
 lit_t*	       adm_find_lit(mid_t *mid);

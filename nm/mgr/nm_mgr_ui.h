@@ -30,6 +30,8 @@
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
 #include "shared/primitives/mid.h"
+#include "shared/primitives/report.h"
+
 
 
 #define UI_MAIN_MENU  0
@@ -62,11 +64,6 @@ void           ui_add_parmspec(char *mid_str, uint8_t num, uint8_t p1, uint8_t p
 ui_parm_spec_t* ui_get_parmspec(mid_t *mid);
 
 
-/*
- *
- */
-
-
 void ui_clear_reports(agent_t* agent);
 
 agent_t *ui_select_agent();
@@ -76,6 +73,7 @@ agent_t *ui_select_agent();
 
 void ui_send_control(agent_t* agent);
 
+int ui_test_mid(mid_t *mid, const char *mid_str);
 
 void ui_define_mid_params(char *name, int num_parms, mid_t *mid);
 
@@ -101,15 +99,12 @@ void ui_list_mids();
 void ui_list_ops();
 void ui_list_rpts();
 
+void ui_postprocess_ctrl(mid_t *mid);
 
-int ui_print_agents();
-void ui_print_custom_rpt(rpt_data_entry_t *rpt_entry, def_gen_t *rpt_def);
 void ui_print_menu_admin();
 void ui_print_menu_ctrl();
 void ui_print_menu_main();
 void ui_print_menu_rpt();
-void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu);
-void ui_print_reports(agent_t *agent);
 
 void ui_print_nop();
 

@@ -47,7 +47,6 @@
 #include "shared/primitives/mid.h"
 #include "shared/primitives/instr.h"
 
-#include "shared/msg/msg_reports.h"
 #include "shared/utils/db.h"
 
 #include "nmagent.h"
@@ -122,13 +121,14 @@ void rda_cleanup()
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
  *  05/20/15  E. Birrane     Switched to using global lyst
+ *  07/04/15  E. Birrane     Refactored report type and TDC support.
  *****************************************************************************/
 
-rpt_data_t *rda_get_report(eid_t recipient)
+rpt_t *rda_get_report(eid_t recipient)
 {
     LystElt elt;
-    rpt_data_t *cur_report = NULL;
-    rpt_data_t *result = NULL;
+    rpt_t *cur_report = NULL;
+    rpt_t *result = NULL;
     
     DTNMP_DEBUG_ENTRY("rda_get_report","(%s)", recipient.name);
     
@@ -145,7 +145,7 @@ rpt_data_t *rda_get_report(eid_t recipient)
     for (elt = lyst_first(g_rda_cur_rpts); elt; elt = lyst_next(elt))
     {
         /* Step 1.1: Grab the current report */
-        cur_report = (rpt_data_t*) lyst_data(elt);
+        cur_report = (rpt_t*) lyst_data(elt);
         
         /* Step 1.2: Check if this report is destined for our recipient. */
         if(strcmp(cur_report->recipient.name, recipient.name) == 0)
@@ -169,7 +169,7 @@ rpt_data_t *rda_get_report(eid_t recipient)
     {
     	eid_t rx;
     	strcpy(rx.name,recipient.name);
-    	result = rpt_create_data((uint32_t)getUTCTime(), lyst_create(), rx);
+    	result = rpt_create((uint32_t)getUTCTime(), lyst_create(), rx);
 
     	DTNMP_DEBUG_INFO("rda_get_report","New report for recipient %s", recipient);
 
@@ -208,7 +208,7 @@ rpt_data_t *rda_get_report(eid_t recipient)
 int rda_scan_rules()
 {
     LystElt elt;
-    rule_time_prod_t *rule_p = NULL;
+    trl_t *rule_p = NULL;
     
     DTNMP_DEBUG_ENTRY("rda_scan_rules","()", NULL);
 
@@ -222,10 +222,10 @@ int rda_scan_rules()
      * Step 1: Walk through each defined rule and see if it should be
      *         included in the current evaluation scan.
      */    
-    for (elt = lyst_first(gAgentVDB.rules); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(gAgentVDB.trls); elt; elt = lyst_next(elt))
     {
         /* Step 1.1: Grab the next rule...*/
-        if((rule_p = (rule_time_prod_t *) lyst_data(elt)) == NULL)
+        if((rule_p = (trl_t *) lyst_data(elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL rule. Exiting", NULL);
             DTNMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
@@ -416,28 +416,26 @@ int rda_clean_ctrls(Lyst exec_defs)
  *  10/21/11  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-rpt_data_entry_t *rda_build_report_entry(mid_t *mid)
+rpt_entry_t *rda_build_report_entry(mid_t *mid)
 {
-	rpt_data_entry_t *entry = NULL;
+	rpt_entry_t *entry = NULL;
     int result = 0;
     
     DTNMP_DEBUG_ENTRY("rda_build_report_entry","(0x%x)", (unsigned long) mid);
     
     /* Step 1: Make sure we have an entry structure to populate. */
-    if((entry = (rpt_data_entry_t *) MTAKE(sizeof(rpt_data_entry_t))) == NULL)
+    if((entry = rpt_entry_create(mid)) == NULL)
     {
-        DTNMP_DEBUG_ERR("rda_build_report_entry","Can't allocate %d bytes.",
-        		        sizeof(rpt_data_entry_t));
+        DTNMP_DEBUG_ERR("rda_build_report_entry","Can't create new entry.", NULL);
         DTNMP_DEBUG_EXIT("rda_build_report_entry","->NULL.", NULL);
-        return NULL;        
+        return NULL;
     }
 
-    
     /* Step 2: Fill the report with data. */
-    if(ldc_fill_report_data(mid,entry) == -1)
+    if(ldc_fill_report_entry(entry) == -1)
     {
         DTNMP_DEBUG_ERR("rda_build_report_entry","Can't fill report.",NULL);
-        rpt_release_data_entry(entry);
+        rpt_entry_release(entry);
 
         DTNMP_DEBUG_EXIT("rda_build_report_entry","->NULL.", NULL);
         return NULL;
@@ -472,16 +470,16 @@ rpt_data_entry_t *rda_build_report_entry(mid_t *mid)
  *  10/21/11  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
+int rda_eval_rule(trl_t *rule_p, rpt_t *report_p)
 {
-	rpt_data_entry_t *entry = NULL;
+	rpt_entry_t *entry = NULL;
     LystElt elt;
     mid_t *cur_mid = NULL;
     int result = 0;
     Sdnv tmp;
     
-    DTNMP_DEBUG_ENTRY("rda_eval_rule","(0x%#llx 0x%#llx)",
-    		           (unsigned long) rule_p, (unsigned long) report_p);
+    DTNMP_DEBUG_ENTRY("rda_eval_rule","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
+    		           (uvast) rule_p, (uvast) report_p);
     
     /* Step 0: Sanity check.*/
     if((rule_p == NULL) || (report_p == NULL))
@@ -494,8 +492,10 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
 	gAgentInstr.num_time_rules_run++;
 
     /* Step 2: For each MID listed in the evaluating report...*/
-    for (elt = lyst_first(rule_p->mids); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(rule_p->action); elt; elt = lyst_next(elt))
     {
+
+    	// \todo: Run action, these aren't reports anymore.
 
         if((cur_mid = (mid_t*) lyst_data(elt)) == NULL)
         {
@@ -513,7 +513,7 @@ int rda_eval_rule(rule_time_prod_t *rule_p, rpt_data_t *report_p)
         }
         
         /* Step 2.2: Add new entry to the report. */
-        lyst_insert_last(report_p->reports,entry);
+        lyst_insert_last(report_p->entries,entry);
         
         result++;
     }
@@ -547,7 +547,7 @@ int rda_eval_pending_rules()
 {
     
     LystElt pending_elt;
-    rule_time_prod_t *rule_p = NULL;
+    trl_t *rule_p = NULL;
     
     
     DTNMP_DEBUG_ENTRY("rda_eval_pending_rules","()", NULL);
@@ -560,7 +560,7 @@ int rda_eval_pending_rules()
     for (pending_elt = lyst_first(g_rda_rules_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
         /* Grab the next rule...*/
-        if((rule_p = (rule_time_prod_t*) lyst_data(pending_elt)) == NULL)
+        if((rule_p = (trl_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_pending_rules",
             		        "Cannot find pending rule from elt 0x%x.", pending_elt);
@@ -572,7 +572,7 @@ int rda_eval_pending_rules()
         }
         
         /* Evaluate the rule */
-        rpt_data_t *rpt = rda_get_report(rule_p->desc.sender);
+        rpt_t *rpt = rda_get_report(rule_p->desc.sender);
 
         rda_eval_rule(rule_p, rpt);
         
@@ -621,7 +621,7 @@ int rda_eval_pending_rules()
 int rda_send_reports()
 {
     LystElt report_elt;
-    rpt_data_t *report = NULL;
+    rpt_t *report = NULL;
     uint8_t *raw_report = NULL;
     uint32_t raw_report_len = 0;
     
@@ -641,7 +641,7 @@ int rda_send_reports()
          * send no reports than to send potentially garbled reports. If the
          * report here is NULL, something has clearly gone wrong on the system.
          */
-        if((report = (rpt_data_t*) lyst_data(report_elt)) == NULL)
+        if((report = (rpt_t*) lyst_data(report_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_send_reports","Can't find report from elt %x.",
             		        report_elt);
@@ -657,7 +657,7 @@ int rda_send_reports()
        	pdu_group_t *pdu_group = NULL;
 
         /* Step 1.3: Serialize the payload. */
-        if((raw_report = rpt_serialize_data(report, &raw_report_len)) == NULL)
+        if((raw_report = rpt_serialize(report, &raw_report_len)) == NULL)
         {
         	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
 
@@ -737,7 +737,7 @@ int rda_send_reports()
 int rda_eval_cleanup()
 {
     LystElt pending_elt;
-    rule_time_prod_t *rule_p = NULL;
+    trl_t *rule_p = NULL;
     
     DTNMP_DEBUG_ENTRY("rda_eval_cleanup","()", NULL);
         
@@ -750,7 +750,7 @@ int rda_eval_cleanup()
          * Step 1.1: Grab the next rule. If it is NULL, we stop processing
          *           as the system is in a potentially unknown state.
          */
-        if((rule_p = (rule_time_prod_t*) lyst_data(pending_elt)) == NULL)
+        if((rule_p = (trl_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
 
@@ -768,9 +768,9 @@ int rda_eval_cleanup()
         	/* Step 1.2.1: Find and remove the rule in the memory list. */
             LystElt tmp_elt;
             LystElt del_elt;
-            for(tmp_elt = lyst_first(gAgentVDB.rules); tmp_elt; tmp_elt = lyst_next(tmp_elt))
+            for(tmp_elt = lyst_first(gAgentVDB.trls); tmp_elt; tmp_elt = lyst_next(tmp_elt))
             {
-            	rule_time_prod_t *tmp_rule = (rule_time_prod_t*) lyst_data(tmp_elt);
+            	trl_t *tmp_rule = (trl_t*) lyst_data(tmp_elt);
             	if(tmp_rule == rule_p)
             	{
             		del_elt = tmp_elt;
@@ -782,10 +782,10 @@ int rda_eval_cleanup()
             /* Step 1.2.2: Remove the rule from the SDR storage.. */
             db_forget(&(rule_p->desc.itemObj),
          	          &(rule_p->desc.descObj),
-                      gAgentDB.rules);
+                      gAgentDB.trls);
 
             /* Step 1.2.3: Release the rule. */
-            rule_release_time_prod_entry(rule_p);
+            trl_release(rule_p);
             rule_p = NULL;
 
             /* Step 1.2.4: Correct counters. */
@@ -798,7 +798,7 @@ int rda_eval_cleanup()
             rule_p->countdown_ticks = rule_p->desc.interval_ticks;
 
             /* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
-            agent_db_rule_persist(rule_p);
+            agent_db_trl_persist(rule_p);
         }
     }
 
@@ -880,7 +880,7 @@ void* rda_thread(void* threadId)
     	getCurrentTime(&start_time);
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u ctrls.",
-        		        (unsigned long) lyst_length(gAgentVDB.rules));
+        		        (unsigned long) lyst_length(gAgentVDB.trls));
 
         lockResource(&(gAgentVDB.ctrls_mutex));
         if(rda_scan_ctrls(gAgentVDB.ctrls) == -1)
@@ -896,10 +896,10 @@ void* rda_thread(void* threadId)
 
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u rules.",
-        		        (unsigned long) lyst_length(gAgentVDB.rules));
+        		        (unsigned long) lyst_length(gAgentVDB.trls));
                 
         /* Lock the rule list while we are scanning and processinf rules */
-        lockResource(&(gAgentVDB.rules_mutex));
+        lockResource(&(gAgentVDB.trls_mutex));
 
         /* Step 1: Collect set of rules to be processed */
         if(rda_scan_rules() == -1)
@@ -941,7 +941,7 @@ void* rda_thread(void* threadId)
         unlockResource(&g_rda_cur_rpts_mutex);
 
 
-        unlockResource(&(gAgentVDB.rules_mutex));
+        unlockResource(&(gAgentVDB.trls_mutex));
                 
         delta = utils_time_cur_delta(&start_time);
 

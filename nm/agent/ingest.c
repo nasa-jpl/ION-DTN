@@ -29,12 +29,11 @@
 #include "shared/msg/pdu.h"
 
 #include "shared/msg/msg_admin.h"
-#include "shared/msg/msg_reports.h"
-#include "shared/msg/msg_def.h"
 #include "shared/msg/msg_ctrl.h"
 #include "shared/primitives/rules.h"
 #include "shared/primitives/instr.h"
 #include "shared/primitives/ctrl.h"
+#include "shared/primitives/def.h"
 
 #include "shared/utils/utils.h"
 
@@ -150,7 +149,7 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
  *  01/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int rx_validate_rule(rule_time_prod_t *rule)
+int rx_validate_rule(trl_t *rule)
 {
     int result = 1;
     
@@ -181,7 +180,7 @@ int rx_validate_rule(rule_time_prod_t *rule)
     }
 
     /* Is each MID valid and recognized? */
-    if(rx_validate_mid_mc(rule->mids, 0) == 0)
+    if(rx_validate_mid_mc(rule->action, 0) == 0)
     {
     	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown MIDs",NULL);
     	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
@@ -515,7 +514,7 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 
 void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-	rule_time_prod_t *new_rule = NULL;
+	trl_t *new_rule = NULL;
     uint32_t bytes = 0;
 
     DTNMP_DEBUG_INFO("rx_handle_time_prod",
@@ -530,13 +529,13 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	}
 
 	/* Step 1: Attempt to deserialize the message. */
-	new_rule = ctrl_deserialize_time_prod_entry(cursor, size, &bytes);
+	new_rule = trl_deserialize(cursor, size, &bytes);
 
 	/* Step 2: If the deserialization failed, complain. */
 	if((new_rule == NULL) || (bytes == 0))
 	{
 		DTNMP_DEBUG_ERR("rx_handle_time_prod","Can't deserialize.",NULL);
-		rule_release_time_prod_entry(new_rule);
+		trl_release(new_rule);
 		*bytes_used = 0;
 		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
 		return;
@@ -562,7 +561,7 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     if(rx_validate_rule(new_rule) == 0)
     {
 		DTNMP_DEBUG_ERR("rx_handle_time_prod","New rule failed validation.",NULL);
-		rule_release_time_prod_entry(new_rule);
+		trl_release(new_rule);
 		*bytes_used = 0;
 		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
 		return;
@@ -572,10 +571,10 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     			         "Adding new production rule.", NULL);
 
     /* Step 6: Persist this definition to our SDR. */
-    agent_db_rule_persist(new_rule);
+    agent_db_trl_persist(new_rule);
 
     /* Step 7: Persist this definition to our memory lists. */
-	ADD_RULE(new_rule);
+	ADD_TRL(new_rule);
 
 	/* Step 8: Update instrumentation counters. */
 	gAgentInstr.num_time_rules++;

@@ -76,10 +76,14 @@
 //unsigned long utils_atox(char *s);
 unsigned long utils_atox(char *s, int *success);
 
+
 int8_t   utils_grab_byte(unsigned char *cursor, uint32_t size, uint8_t *result);
 uint32_t utils_grab_sdnv(unsigned char *cursor, uint32_t size, uvast *result);
 char*    utils_hex_to_string(uint8_t *buffer, uint32_t size);
 void     utils_print_hex(unsigned char *s, uint32_t len);
+
+
+
 uint8_t* utils_string_to_hex(char *value, uint32_t *size);
 int      utils_time_delta(struct timeval *result, struct timeval *t1, struct timeval *t2);
 vast     utils_time_cur_delta(struct timeval *t1);

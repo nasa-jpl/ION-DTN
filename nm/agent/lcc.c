@@ -22,9 +22,12 @@
 #include "shared/primitives/rules.h"
 #include "shared/primitives/instr.h"
 #include "shared/primitives/ctrl.h"
+#include "shared/primitives/report.h"
 
 #include "nmagent.h"
 #include "lcc.h"
+#include "rda.h"
+
 
 
 /******************************************************************************
@@ -48,7 +51,8 @@
 
 int lcc_run_ctrl_mid(mid_t *id)
 {
-    int result = 0;
+	int result = 0;
+    uint8_t status = 0;
     adm_ctrl_t *adm_ctrl = NULL;
     def_gen_t *macro_def = NULL;
     static int nesting = 0;
@@ -84,10 +88,23 @@ int lcc_run_ctrl_mid(mid_t *id)
     /* Step 1: See if this identifies an atomic control. */
     if((adm_ctrl = adm_find_ctrl(id)) != NULL)
     {
-    	DTNMP_DEBUG_INFO("lcc_run_ctrl_mid","Found control.", NULL);
-    	result = adm_ctrl->run(id->oid->params);
-    	gAgentInstr.num_ctrls_run++;
+        tdc_t *retval = NULL;
 
+    	DTNMP_DEBUG_INFO("lcc_run_ctrl_mid","Found control.", NULL);
+
+    	retval = adm_ctrl->run(&manager_eid, id->oid->params, &status);
+
+    	if(status != CTRL_SUCCESS)
+    	{
+    		DTNMP_DEBUG_WARN("lcc_run_ctrl_mid","Error running control.", NULL);
+    	}
+    	else if(retval != NULL)
+    	{
+    		lcc_send_retval(&manager_eid, retval, id);
+    		tdc_destroy(&retval);
+    	}
+
+    	gAgentInstr.num_ctrls_run++;
     }
     else
     {
@@ -155,10 +172,11 @@ int lcc_run_ctrl_mid(mid_t *id)
 
 int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 {
-	int result = 0;
+	uint8_t status = CTRL_FAILURE;
 	char *msg = NULL;
 	Lyst parms = NULL;
-    LystElt elt;
+    tdc_t* retval = NULL;
+	LystElt elt;
     mid_t *cur_ctrl = NULL;
     char *str = NULL;
 
@@ -172,17 +190,29 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 		return -1;
 	}
 
-	result = ctrl_p->adm_ctrl->run(ctrl_p->mid->oid->params);
+	retval = ctrl_p->adm_ctrl->run(&(ctrl_p->sender), ctrl_p->mid->oid->params, &status);
 
 	gAgentInstr.num_ctrls_run++;
 
-	if(result != 0)
+	if(status != CTRL_SUCCESS)
 	{
 		DTNMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
 	}
+	else if(retval != NULL)
+	{
+		eid_t *recipient = &(ctrl_p->sender);
 
-	DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", result);
-	return result;
+		if(recipient == NULL)
+		{
+			recipient = &manager_eid;
+		}
+
+		lcc_send_retval(recipient, retval, ctrl_p->mid);
+		tdc_destroy(&retval);
+	}
+
+	DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
+	return status;
 }
 
 // \todo Implement.
@@ -195,5 +225,59 @@ int lcc_run_macro_mid(mid_t *id)
 int lcc_run_macro(def_gen_t *macro)
 {
 	return -1;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: lcc_send_retval
+ *
+ * \par Sends back to a manager the return value of a function call. The
+ *      return value is captured as a Data Collection (DC).
+ *
+ * \todo Make the rx a list of managers.
+ *
+ * \param[in]  rx		The Manager to receive this result.
+ * \param[in]  retval	The DC to send back, or NULL.
+ * \param[in]  mid		The control MID generating this retval.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/21/15  E. Birrane     Initial implementation.
+ *  06/28/15  E. Birrane     Implemented TDCs
+ *****************************************************************************/
+
+void lcc_send_retval(eid_t *rx, tdc_t *retval, mid_t *mid)
+{
+	rpt_t *report = NULL;
+	rpt_entry_t *entry = NULL;
+
+	/* Step 0: Sanity Checks. */
+	if((rx == NULL) || (mid == NULL))
+	{
+		DTNMP_DEBUG_ERR("lcc_send_retval","Bad Args.", NULL);
+		return;
+	}
+
+
+	/*
+	 * This function will grab an existing to-be-sent report or
+	 * create a new report and add it to the "built-reports" section.
+	 * Either way, it will be included in the next set of code to send
+	 * out reports built in this time slice.
+	 */
+	if((report = rda_get_report(*rx)) != NULL)
+	{
+		if((entry = (rpt_entry_t*) MTAKE(sizeof(rpt_entry_t))) != NULL)
+		{
+			entry->id = mid_copy(mid);
+			entry->contents = tdc_copy(retval);
+			lyst_insert_last(report->entries, entry);
+		}
+	}
+
 }
 

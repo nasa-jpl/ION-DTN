@@ -25,6 +25,9 @@
 #include "shared/primitives/dc.h"
 #include "shared/utils/nm_types.h"
 
+/*
+ * Value is deep-copied.
+ */
 int dc_add(Lyst dc, uint8_t *value, uint32_t length)
 {
 	datacol_entry_t *entry = NULL;
@@ -49,6 +52,39 @@ int dc_add(Lyst dc, uint8_t *value, uint32_t length)
 	memcpy(entry->value, value, entry->length);
 
 	lyst_insert_last(dc, entry);
+	return 1;
+}
+
+
+int dc_append(Lyst dest, Lyst src)
+{
+	LystElt elt;
+	datacol_entry_t *cur_entry = NULL;
+	datacol_entry_t *new_entry = NULL;
+
+	/* Step 0: Sanity Check. */
+	if((dest == NULL) || (src == NULL))
+	{
+		return 0;
+	}
+
+	/* Step 1: For each item in the source DC... */
+	for(elt = lyst_first(src); elt; elt = lyst_next(elt))
+	{
+		cur_entry = (datacol_entry_t *) lyst_data(elt);
+
+		/* Step 1.1; Copy the item...*/
+		if((new_entry = dc_copy_entry(cur_entry)) == NULL)
+		{
+			DTNMP_DEBUG_ERR("dc_append","Can't copy entry.", NULL);
+			// \todo: Consider removing previously added items.
+			return 0;
+		}
+
+		/* Step 1.2: Insert at the end of the dest. */
+		lyst_insert_last(dest, new_entry);
+	}
+
 	return 1;
 }
 
@@ -214,6 +250,60 @@ Lyst dc_copy(Lyst col)
 	return result;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: dc_copy_entry
+ *
+ * \par Duplicates a Data Collection entry object.
+ *
+ * \retval NULL - Failure
+ *         !NULL - The copied entry
+ *
+ * \param[in] entry  The Data Collection Entry being copied.
+ *
+ * \par Notes:
+ *		1. The returned Data Collection Entry is allocated and must be freed when
+ *		   no longer needed.  This is a deep copy.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  06/27/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+datacol_entry_t* dc_copy_entry(datacol_entry_t *entry)
+{
+	datacol_entry_t *result = NULL;
+
+	/* Step 0: Sanity Checks. */
+	if(entry == NULL)
+	{
+		DTNMP_DEBUG_ERR("dc_copy_entry","Bad Args.", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Allocate the new entry.*/
+	if((result = (datacol_entry_t*) MTAKE(sizeof(datacol_entry_t))) == NULL)
+	{
+		DTNMP_DEBUG_ERR("dc_copy_entry","Can't allocate new entry.", NULL);
+		return NULL;
+	}
+
+	/* Step 2: Allocate the value. */
+	if((result->value = (uint8_t *) MTAKE(entry->length)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("dc_copy_entry","Can't allocate entry value.", NULL);
+		MRELEASE(result);
+		return NULL;
+	}
+
+	memcpy(&(result->value), &(entry->value), entry->length);
+	result->length = entry->length;
+
+	return result;
+}
 
 
 /******************************************************************************
@@ -409,6 +499,61 @@ void dc_destroy(Lyst *datacol)
  *
  * \par Purpose: Generate full, serialized version of a Data Collection. A
  *      serialized Data Collection is of the form:
+ *
+ * \retval NULL - Error
+ * 		   !NULL - The ith entry.
+ *
+ * \param[in]  datacol    The Data Collection whose entry is being queried.
+ * \param[in]  idx        The entry being queried.
+ *
+ * \par Notes:
+ *		1. The result is a direct pointer into the data collection and must
+ *		   not be released.
+ *		2. The index is 1 based.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/19/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+datacol_entry_t* dc_get_entry(Lyst datacol, uint32_t idx)
+{
+	LystElt elt = NULL;
+	datacol_entry_t *entry = NULL;
+	uint32_t cur = 1;
+
+	if(datacol == NULL)
+	{
+		DTNMP_DEBUG_ERR("dc_get_entry","Bad args",NULL);
+		return NULL;
+	}
+
+	if(idx > lyst_length(datacol))
+	{
+		DTNMP_DEBUG_ERR("dc_get_entry","Can't as for %d in list of length %d", idx, lyst_length(datacol));
+		return NULL;
+	}
+
+	for(elt = lyst_first(datacol); elt; elt = lyst_next(elt))
+	{
+		if(cur == idx)
+		{
+			entry = (datacol_entry_t *) lyst_data(elt);
+			return entry;
+		}
+		cur++;
+	}
+
+	return NULL;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: dc_serialize
+ *
+ * \par Purpose: Generate full, serialized version of a Data Collection. A
+ *      serialized Data Collection is of the form:
  * \par +-------+--------+--------+    +--------+--------+
  *      |   #   | Item 1 | Item 1 |    | Item N | Item N |
  *      | Items |  Size  |  Data  |... |  Size  |  Data  |
@@ -522,3 +667,16 @@ uint8_t *dc_serialize(Lyst datacol, uint32_t *size)
 	return result;
 }
 
+
+
+char *dc_entry_to_str(datacol_entry_t *entry)
+{
+	char *result = NULL;
+
+	if(entry == NULL)
+	{
+		return NULL;
+	}
+
+	return utils_hex_to_string(entry->value, entry->length);
+}

@@ -37,8 +37,6 @@
 #include "shared/primitives/rules.h"
 
 #include "shared/msg/pdu.h"
-#include "shared/msg/msg_reports.h"
-#include "shared/msg/msg_def.h"
 #include "shared/msg/msg_ctrl.h"
 #include "shared/msg/msg_admin.h"
 

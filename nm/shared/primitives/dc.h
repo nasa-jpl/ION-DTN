@@ -53,7 +53,6 @@ typedef struct {
 	uint32_t length;  /**> The length of the data in bytes. */
 } datacol_entry_t;
 
-
 /*
  * +--------------------------------------------------------------------------+
  * |						  DATA DEFINITIONS  							  +
@@ -67,12 +66,16 @@ typedef struct {
  * +--------------------------------------------------------------------------+
  */
 
-int      dc_add(Lyst dc, uint8_t *value, uint32_t length);
-int      dc_compare(Lyst col1, Lyst col2);
-Lyst     dc_copy(Lyst col);
-Lyst     dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used);
-void     dc_destroy(Lyst *datacol);
-uint8_t* dc_serialize(Lyst datacol, uint32_t *size);
+int              dc_add(Lyst dc, uint8_t *value, uint32_t length);
+int              dc_append(Lyst dest, Lyst src);
+int              dc_compare(Lyst col1, Lyst col2);
+Lyst             dc_copy(Lyst col);
+datacol_entry_t* dc_copy_entry(datacol_entry_t *entry);
+Lyst             dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used);
+void             dc_destroy(Lyst *datacol);
+datacol_entry_t* dc_get_entry(Lyst datacol, uint32_t idx);
+uint8_t*         dc_serialize(Lyst datacol, uint32_t *size);
+char*            dc_entry_to_str(datacol_entry_t *entry);
 
 
 #endif // DC_H

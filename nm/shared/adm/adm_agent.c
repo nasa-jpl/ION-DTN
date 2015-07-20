@@ -20,9 +20,11 @@
 #include "shared/primitives/instr.h"
 #include "shared/primitives/def.h"
 #include "shared/primitives/nn.h"
+#include "shared/primitives/report.h"
 
 #ifdef AGENT_ROLE
 #include "shared/adm/adm_agent_impl.h"
+#include "rda.h"
 #else
 #include "mgr/nm_mgr_names.h"
 #include "mgr/nm_mgr_ui.h"
@@ -46,53 +48,53 @@ void adm_agent_init_atomic()
 {
 
 #ifdef AGENT_ROLE
-	adm_add_datadef(ADM_AGENT_AD_NUMRPT_MID,  0, agent_get_num_rpt,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_SENTRPT_MID, 0, agent_get_sent_rpt, NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMTRL_MID,  0, agent_get_num_trl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNTRL_MID,  0, agent_get_run_trl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMSRL_MID,  0, agent_get_num_srl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNSRL_MID,  0, agent_get_run_srl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMLIT_MID,  0, agent_get_num_lit,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMCUST_MID, 0, agent_get_num_cust, NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMMAC_MID,  0, agent_get_num_mac,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNMAC_MID,  0, agent_get_run_mac,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMCTRL_MID, 0, agent_get_num_ctrl, NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNCTRL_MID, 0, agent_get_run_ctrl, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMRPT_MID,  DTNMP_TYPE_UINT, 0, agent_get_num_rpt,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_SENTRPT_MID, DTNMP_TYPE_UINT, 0, agent_get_sent_rpt, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMTRL_MID,  DTNMP_TYPE_UINT, 0, agent_get_num_trl,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNTRL_MID,  DTNMP_TYPE_UINT, 0, agent_get_run_trl,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMSRL_MID,  DTNMP_TYPE_UINT, 0, agent_get_num_srl,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNSRL_MID,  DTNMP_TYPE_UINT, 0, agent_get_run_srl,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMLIT_MID,  DTNMP_TYPE_UINT, 0, agent_get_num_lit,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMCUST_MID, DTNMP_TYPE_UINT, 0, agent_get_num_cust, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMMAC_MID,  DTNMP_TYPE_UINT, 0, agent_get_num_mac,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNMAC_MID,  DTNMP_TYPE_UINT, 0, agent_get_run_mac,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMCTRL_MID, DTNMP_TYPE_UINT, 0, agent_get_num_ctrl, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNCTRL_MID, DTNMP_TYPE_UINT, 0, agent_get_run_ctrl, NULL, NULL);
 #else
-	adm_add_datadef(ADM_AGENT_AD_NUMRPT_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMRPT_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMRPT_MID", "# Reports", ADM_AGENT, ADM_AGENT_AD_NUMRPT_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_SENTRPT_MID, 0, NULL, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_SENTRPT_MID, DTNMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_SENTRPT_MID", "# Sent Reports", ADM_AGENT, ADM_AGENT_AD_SENTRPT_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMTRL_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMTRL_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMTRL_MID", "# Time-Based Rules", ADM_AGENT, ADM_AGENT_AD_NUMTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNTRL_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNTRL_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNTRL_MID", "# Time-Based Rules Run", ADM_AGENT, ADM_AGENT_AD_RUNTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMSRL_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMSRL_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMSRL_MID", "# State-Based Rules", ADM_AGENT, ADM_AGENT_AD_NUMSRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNSRL_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNSRL_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNSRL_MID", "# State-Based Rules Run", ADM_AGENT, ADM_AGENT_AD_RUNSRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMLIT_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMLIT_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMLIT_MID", "# Literals", ADM_AGENT, ADM_AGENT_AD_NUMLIT_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMCUST_MID, 0, NULL, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMCUST_MID, DTNMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMCUST_MID", "# Custom Definitions", ADM_AGENT, ADM_AGENT_AD_NUMCUST_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMMAC_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMMAC_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMMAC_MID", "# Macros", ADM_AGENT, ADM_AGENT_AD_NUMMAC_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNMAC_MID,  0, NULL,  NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNMAC_MID,  DTNMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNMAC_MID", "# Macros Run", ADM_AGENT, ADM_AGENT_AD_RUNMAC_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMCTRL_MID, 0, NULL, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_NUMCTRL_MID, DTNMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMCTRL_MID", "# Controls", ADM_AGENT, ADM_AGENT_AD_NUMCTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNCTRL_MID, 0, NULL, NULL, NULL);
+	adm_add_datadef(ADM_AGENT_AD_RUNCTRL_MID, DTNMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNCTRL_MID", "# Controls Run", ADM_AGENT, ADM_AGENT_AD_RUNCTRL_MID);
 
 #endif
@@ -110,7 +112,7 @@ void adm_agent_init_computed()
 	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_AD_NUMSRL_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_OP_PLUS_MID, ADM_MID_ALLOC, &used));
 
-	adm_add_computeddef(ADM_AGENT_CD_NUMRULE_MID, 0, def, NULL, NULL);
+	adm_add_computeddef(ADM_AGENT_CD_NUMRULE_MID, DTNMP_TYPE_UINT, 0, def, NULL, NULL);
 
 	midcol_destroy(&def);
 
@@ -161,7 +163,6 @@ void adm_agent_init_controls()
 	names_add_name("ADM_AGENT_CTL_LSTADM_MID", "List ADMs", ADM_AGENT, ADM_AGENT_CTL_LSTADM_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_LSTADM_MID, 0, 0, 0, 0, 0, 0);
 
-
     adm_add_ctrl(ADM_AGENT_CTL_ADDCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDCD_MID", "Add Computed Definition", ADM_AGENT, ADM_AGENT_CTL_ADDCD_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_ADDCD_MID, 3, DTNMP_TYPE_MID, DTNMP_TYPE_EXPR, DTNMP_TYPE_SDNV, 0, 0);
@@ -178,8 +179,6 @@ void adm_agent_init_controls()
 	names_add_name("ADM_AGENT_CTL_DSCCD_MID", "Describe Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DSCCD_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_DSCCD_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
 
-
-
     adm_add_ctrl(ADM_AGENT_CTL_ADDRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_ADDRPT_MID", "Add Report", ADM_AGENT, ADM_AGENT_CTL_ADDRPT_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_ADDRPT_MID, 2, DTNMP_TYPE_MID, DTNMP_TYPE_MC, 0, 0, 0);
@@ -190,7 +189,7 @@ void adm_agent_init_controls()
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_LSTRPT_MID", "List Report", ADM_AGENT, ADM_AGENT_CTL_LSTRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTRPT_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_LSTRPT_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_DSCRPT_MID", "Describe Report", ADM_AGENT, ADM_AGENT_CTL_DSCRPT_MID);
@@ -199,7 +198,6 @@ void adm_agent_init_controls()
     adm_add_ctrl(ADM_AGENT_CTL_GENRPT_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_GENRPT_MID", "Generate Report", ADM_AGENT, ADM_AGENT_CTL_GENRPT_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_GENRPT_MID, 2, DTNMP_TYPE_MC, DTNMP_TYPE_DC, 0, 0, 0);
-
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDMAC_MID", "Add Macro", ADM_AGENT, ADM_AGENT_CTL_ADDMAC_MID);
@@ -217,8 +215,6 @@ void adm_agent_init_controls()
 	names_add_name("ADM_AGENT_CTL_DSCMAC_MID", "Describe Macro", ADM_AGENT, ADM_AGENT_CTL_DSCMAC_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_DSCMAC_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
 
-
-
 	adm_add_ctrl(ADM_AGENT_CTL_ADDTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDTRL_MID", "Add Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDTRL_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_ADDTRL_MID, 5, DTNMP_TYPE_MID, DTNMP_TYPE_TS, DTNMP_TYPE_SDNV, DTNMP_TYPE_SDNV, DTNMP_TYPE_MC);
@@ -234,8 +230,6 @@ void adm_agent_init_controls()
     adm_add_ctrl(ADM_AGENT_CTL_DSCTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCTRL_MID", "Describe Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCTRL_MID);
 	ui_add_parmspec(ADM_AGENT_CTL_DSCTRL_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
-
-
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDSRL_MID", "Add State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDSRL_MID);
@@ -263,13 +257,13 @@ void adm_agent_init_literals()
 	/* Step 7: Register Literals */
     value_t result;
 
-    result.type = VAL_TYPE_UINT;
+    result.type = DTNMP_TYPE_UINT;
     result.value.as_uint = 1348025776;
     result.length = sizeof(uint32_t);
 
     adm_add_lit(ADM_AGENT_LIT_EPOCH_MID, result, NULL);
 
-    result.type = VAL_TYPE_UNK;
+    result.type = DTNMP_TYPE_UNK;
     result.value.as_uint = 0;
     result.length = 0;
 
@@ -329,13 +323,13 @@ void adm_agent_init_metadata()
 
 	/* Step 2: Register Metadata Information. */
 #ifdef AGENT_ROLE
-	adm_add_datadef(ADM_AGENT_MD_NAME_MID, 0, agent_md_name, adm_print_string, adm_size_string);
-	adm_add_datadef(ADM_AGENT_MD_VER_MID,  0, agent_md_ver,  adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_AGENT_MD_NAME_MID, DTNMP_TYPE_STRING, 0, agent_md_name, adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_AGENT_MD_VER_MID,  DTNMP_TYPE_STRING, 0, agent_md_ver,  adm_print_string, adm_size_string);
 #else
-	adm_add_datadef(ADM_AGENT_MD_NAME_MID, 0, NULL, adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_AGENT_MD_NAME_MID, DTNMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
 	names_add_name("ADM_AGENT_MD_NAME_MID", "Agent Name", ADM_AGENT, ADM_AGENT_MD_NAME_MID);
 
-	adm_add_datadef(ADM_AGENT_MD_VER_MID,  0, NULL, adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_AGENT_MD_VER_MID,  DTNMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
 	names_add_name("ADM_AGENT_MD_VER_MID", "Agent Version", ADM_AGENT, ADM_AGENT_MD_VER_MID);
 #endif
 
@@ -448,7 +442,7 @@ value_t adm_agent_user_int(mid_t *id)
 	value_t result;
 	datacol_entry_t *entry = mid_get_param(id, 0);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_vast = 0;
 
@@ -456,7 +450,7 @@ value_t adm_agent_user_int(mid_t *id)
 	{
 		if(entry->length <= result.length)
 		{
-			result.type = VAL_TYPE_VAST;
+			result.type = DTNMP_TYPE_VAST;
 			result.length = sizeof(vast);
 			/* \todo watch network byte order. */
 			memcpy(&(result.value.as_vast), entry->value, MIN(result.length, entry->length));
@@ -479,7 +473,7 @@ value_t adm_agent_user_uint(mid_t *id)
 	value_t result;
 	datacol_entry_t *entry = mid_get_param(id, 0);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_vast = 0;
 
@@ -487,7 +481,7 @@ value_t adm_agent_user_uint(mid_t *id)
 	{
 		if(entry->length <= result.length)
 		{
-			result.type = VAL_TYPE_UVAST;
+			result.type = DTNMP_TYPE_UVAST;
 			result.length = sizeof(uvast);
 			/* \todo watch network byte order. */
 			memcpy(&(result.value.as_uvast), entry->value, MIN(result.length, entry->length));
@@ -510,7 +504,7 @@ value_t adm_agent_user_float(mid_t *id)
 	value_t result;
 	datacol_entry_t *entry = mid_get_param(id, 0);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_vast = 0;
 
@@ -518,7 +512,7 @@ value_t adm_agent_user_float(mid_t *id)
 	{
 		if(entry->length <= result.length)
 		{
-			result.type = VAL_TYPE_REAL32;
+			result.type = DTNMP_TYPE_REAL32;
 			result.length = sizeof(float);
 			/* \todo watch network byte order. */
 			memcpy(&(result.value.as_real32), entry->value, MIN(result.length, entry->length));
@@ -541,7 +535,7 @@ value_t adm_agent_user_double(mid_t *id)
 	value_t result;
 	datacol_entry_t *entry = mid_get_param(id, 0);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_real64 = 0;
 
@@ -549,7 +543,7 @@ value_t adm_agent_user_double(mid_t *id)
 	{
 		if(entry->length <= result.length)
 		{
-			result.type = VAL_TYPE_REAL64;
+			result.type = DTNMP_TYPE_REAL64;
 			result.length = sizeof(double);
 			/* \todo watch network byte order. */
 			memcpy(&(result.value.as_real64), entry->value, MIN(result.length, entry->length));
@@ -572,7 +566,7 @@ value_t adm_agent_user_string(mid_t *id)
 	value_t result;
 	datacol_entry_t *entry = mid_get_param(id, 0);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_real64 = 0;
 
@@ -586,7 +580,7 @@ value_t adm_agent_user_string(mid_t *id)
 		}
 
 		result.length = entry->length;
-		result.type = VAL_TYPE_STRING;
+		result.type = DTNMP_TYPE_STRING;
 		/* \todo watch network byte order. */
 		memcpy(&(result.value.as_ptr), entry->value, result.length);
 	}
@@ -603,7 +597,7 @@ value_t adm_agent_user_blob(mid_t *id)
 	value_t result;
 	datacol_entry_t *entry = mid_get_param(id, 0);
 
-	result.type = VAL_TYPE_UNK;
+	result.type = DTNMP_TYPE_UNK;
 	result.length = 0;
 	result.value.as_real64 = 0;
 
@@ -617,7 +611,7 @@ value_t adm_agent_user_blob(mid_t *id)
 		}
 
 		result.length = entry->length;
-		result.type = VAL_TYPE_BLOB;
+		result.type = DTNMP_TYPE_BLOB;
 		/* \todo watch network byte order. */
 		memcpy(&(result.value.as_ptr), entry->value, result.length);
 	}
@@ -628,5 +622,4 @@ value_t adm_agent_user_blob(mid_t *id)
 
 	return result;
 }
-
 

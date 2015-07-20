@@ -15,6 +15,7 @@
  **  11/08/12  E. Birrane     Redesign of messaging architecture.
  **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
  **  05/17/15  E. Birrane     Moved controls to ctrl.[h|c]. Updated TRL/SRL to DTNMP v0.1
+ **  06/26/15  E. Birrane     Updated structures/functs to reflect TRL/SRL naming.
  *****************************************************************************/
 
 #ifndef _RULES_H_
@@ -59,29 +60,20 @@ typedef struct
 
     /* Below is not kept in the SDR. */
 	Object descObj;   /** > This descriptor in SDR. */
-} rule_time_prod_desc_t;
+} trl_desc_t;
 
 
-/**
- * Associated Message Type(s): MSG_TYPE_CTRL_PERIOD_PROD
- *
- * Purpose:
- *
- * +--------+------------+--------+---------+
- * | Start  | Period (s) | Count  | Results |
- * | (TS)   | (SDNV)     | (SDNV) |   (MC)  |
- * +--------+------------+--------+---------+
- */
 typedef struct {
-    time_t time;     /**> The time to start the production.   */
+	mid_t *mid;     /**> MID identifier for this TRL.        */
+    time_t time;    /**> The time to start the production.   */
     uvast period;   /**> The delay between productions.      */
     uvast count;    /**> The # times to produce the message. */
-    Lyst     mids; /**> The MIDs to include in the report.  */
+    Lyst  action;   /**> Macro to run when rule triggers  .  */
 
     /* Below is not serialized. */
     uint32_t countdown_ticks; /**> # ticks before next eval.  */
-    rule_time_prod_desc_t desc; /**> SDR descriptor. */
-} rule_time_prod_t;
+    trl_desc_t desc; /**> SDR descriptor. */
+} trl_t;
 
 
 
@@ -97,29 +89,20 @@ typedef struct
 
     /* Below is not kept in the SDR. */
 	Object descObj;           /** > This descriptor in SDR. */
-} rule_pred_prod_descr_t;
+} srl_desc_t;
 
 
-/**
- * Associated Message Type(s): MSG_TYPE_CTRL_PRED_PROD
- *
- * Purpose:
- *
- * +--------+-----------+--------+---------+
- * | Start  | Predicate | Count  | Results |
- * | (TS)   |    (MC)   | (SDNV) |   (MC)  |
- * +--------+-----------+--------+---------+
- */
 typedef struct {
-    time_t time;       /**> The time to start the production. */
-    Lyst predicate;    /**> The predicate driving report production.*/
-    uvast count;       /**> The # times to produce the message. */
-    Lyst contents;     /**> The MIDs to include in the report. */
+	mid_t *mid;    /**> MID identifier for this SRL.            */
+    time_t time;   /**> The time to start the production.       */
+    Lyst expr;     /**> The predicate driving report production.*/
+    uvast count;   /**> The # times to produce the message.     */
+    Lyst action;   /**> Macro to run when the rule triggers.    */
 
     /* Below is not serialized. */
     uint32_t countdown_ticks;       /**> # ticks before next eval.  */
-    rule_pred_prod_descr_t descObj; /**> SDR descriptor */
-} rule_pred_prod_t;
+    srl_desc_t desc; /**> SDR descriptor */
+} srl_t;
 
 
 
@@ -132,28 +115,17 @@ typedef struct {
  */
 
 
-/* Create functions. */
-rule_time_prod_t *rule_create_time_prod_entry(time_t time,
-							   				  uvast count,
-											  uvast period,
-											  Lyst contents);
+srl_t*   srl_create(mid_t *mid, time_t time, Lyst expr, uvast count, Lyst action);
+srl_t*   srl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
+void     srl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
+void     srl_release(srl_t *srl);
+uint8_t* srl_serialize(srl_t *srl, uint32_t *len);
 
-rule_pred_prod_t *rule_create_pred_prod_entry(time_t time,
-		   	   	   	   	   	   	   	   	      Lyst predicate,
-		   	   	   	   	   	   	   	   	      uvast count,
-		   	   	   	   	   	   	   	   	      Lyst contents);
-
-
-
-/* Release functions.*/
-void rule_release_time_prod_entry(rule_time_prod_t *msg);
-void rule_release_pred_prod_entry(rule_pred_prod_t *msg);
-
-
-/* Lyst functions. */
-void rule_time_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
-void rule_pred_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
-
+trl_t*   trl_create(mid_t *mid, time_t time, uvast count, uvast period, Lyst action);
+trl_t*   trl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
+void     trl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
+void     trl_release(trl_t *trl);
+uint8_t* trl_serialize(trl_t *trl, uint32_t *len);
 
 
 #endif // _RULES_H_
