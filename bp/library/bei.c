@@ -1100,7 +1100,7 @@ int	checkPerExtensionBlocks(AcqWorkArea *work)
 			oldLength = blk->length;
 			switch (def->check(blk, work))
 			{
-			case 0:		/*	Block is corrupted.	*/
+			case 0:		/*	BSP Block is invalid.	*/
 				bundle->corrupt = 1;
 				break;
 
@@ -1113,6 +1113,10 @@ int	checkPerExtensionBlocks(AcqWorkArea *work)
 
 			case 3:		/*	Bundle is authentic.	*/
 				bundle->clDossier.authentic = 1;
+				break;
+
+			case 4:		/*	A block is altered.	*/
+				bundle->altered = 1;
 				break;
 
 			default:

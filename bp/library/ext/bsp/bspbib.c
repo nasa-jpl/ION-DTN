@@ -597,8 +597,8 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 
 		/*	Rule is found, but we don't have this CS.
-		 *	We have to assume the block is inauthentic,
-		 *	in which case the bundle is assumed corrupt.	*/
+		 *	We have to conclude that the BIB is invalid,
+		 *	in which case the bundle is judged corrupt.	*/
 
 		discardExtensionBlock(blk);
 	 	BIB_DEBUG_ERR("- bsp_bibCheck - Ciphersuite missing!", NULL);
@@ -615,11 +615,12 @@ int	bsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	result = cs->verify(wk, blk);
 
 	/*	Discard the BIB if the local node is the destination
-	 *	of the bundle or if verification failed (meaning the
-	 *	block is corrupted and therefore the bundle is
-	 *	corrupt); otherwise make sure the BIB is retained.	*/
+	 *	of the bundle or the BIB is invalid or verification
+	 *	failed (meaning the block is altered and therefore
+	 *	the bundle is altered); otherwise make sure the BIB
+	 *	is retained.						*/
 
-	if (result == 0 || bsp_destinationIsLocal(&(wk->bundle)))
+	if (result == 0 || result == 4 || bsp_destinationIsLocal(&(wk->bundle)))
 	{
 		discardExtensionBlock(blk);
 	}

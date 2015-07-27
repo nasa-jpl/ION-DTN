@@ -314,12 +314,13 @@ in BIB: %d.", assertedDigestLen);
 
 	if (memcmp(digest, assertedDigest, BIB_HMAC_SHA256_RESULT_LEN) == 0)
 	{
-		outcome = 1;
+		outcome = 1;	/*	Target block not altered.	*/
 	}
 	else
 	{
-		BIB_DEBUG_WARN("x bsp_hmac_sha256_verify: digests don't match.", NULL);
-		outcome = 0;
+		BIB_DEBUG_WARN("x bsp_hmac_sha256_verify: digests don't match.",
+				NULL);
+		outcome = 4;	/*	Target block was altered.	*/
 	}
 
 	MRELEASE(digest);

@@ -305,7 +305,7 @@ extern unsigned char	*bsp_addSdnvToStream(unsigned char *stream, Sdnv* val);
  *         scratchpad must be freed by the caller iff the method does
  *         not return -1.  Any system error will release the memory.
  *
- *      2.  If we return a 1, the ASB is considered corrupted and not usable.
+ *      2.  If we return a 1, the ASB is considered invalid and not usable.
  *          The block should be discarded. It is still returned, though, so that
  *          the caller may examine it.
  * 
@@ -476,5 +476,7 @@ extern int	bsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 extern int	bsp_destinationIsLocal(Bundle *bundle);
 
 extern char	*bsp_getLocalAdminEid(char *eid);
+
+extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
 
 #endif /* _IONBSP_H_ */
