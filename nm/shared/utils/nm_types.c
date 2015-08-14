@@ -136,3 +136,26 @@ const char *   type_to_str(dtnmp_type_e type)
 	return dtnmp_type_str[type];
 }
 
+uint8_t type_is_numeric(dtnmp_type_e type)
+{
+	uint8_t result = 0;
+
+	switch(type)
+	{
+		case DTNMP_TYPE_BYTE:
+		case DTNMP_TYPE_INT:
+		case DTNMP_TYPE_UINT:
+		case DTNMP_TYPE_VAST:
+		case DTNMP_TYPE_UVAST:
+		case DTNMP_TYPE_REAL32:
+		case DTNMP_TYPE_REAL64:
+			result = 1;
+			break;
+		default:
+			result = 0;
+			break;
+	}
+
+	return result;
+}
+

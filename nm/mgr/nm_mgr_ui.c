@@ -299,7 +299,9 @@ int ui_test_mid(mid_t *mid, const char *mid_str)
 	return result;
 }
 
-void ui_send_control(agent_t* agent)
+
+
+void ui_build_control(agent_t* agent)
 {
 	mid_t *mid = NULL;
 	uint32_t offset = 0;
@@ -308,19 +310,19 @@ void ui_send_control(agent_t* agent)
 
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("ui_send_control","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_send_control", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("ui_send_control","->.",NULL);
+		DTNMP_DEBUG_ENTRY("ui_build_control","(NULL)", NULL);
+		DTNMP_DEBUG_ERR("ui_build_control", "No agent specified.", NULL);
+		DTNMP_DEBUG_EXIT("ui_build_control","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_construct_ctrl_by_idx","(%s)", agent->agent_eid.name);
+	DTNMP_DEBUG_ENTRY("ui_build_control","(%s)", agent->agent_eid.name);
 
 	ts = ui_input_uint("Control Timestamp");
 	mid = ui_input_mid("Control MID:", ADM_ALL, MID_TYPE_CONTROL, MID_CAT_ATOMIC);
 
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_send_control","Can't get control MID.",NULL);
+		DTNMP_DEBUG_ERR("ui_build_control","Can't get control MID.",NULL);
 		return;
 	}
 
@@ -349,9 +351,65 @@ void ui_send_control(agent_t* agent)
 	msg_destroy_perf_ctrl(ctrl);
 	midcol_destroy(&mc); // Also destroys mid.
 
-	DTNMP_DEBUG_EXIT("ui_construct_ctrl_by_idx","->.", NULL);
+	DTNMP_DEBUG_EXIT("ui_build_control","->.", NULL);
 }
 
+
+
+void ui_send_raw(agent_t* agent)
+{
+	mid_t *mid = NULL;
+	uint32_t offset = 0;
+	uint32_t size = 0;
+	time_t ts = 0;
+
+	if(agent == NULL)
+	{
+		DTNMP_DEBUG_ENTRY("ui_send_raw","(NULL)", NULL);
+		DTNMP_DEBUG_ERR("ui_send_raw", "No agent specified.", NULL);
+		DTNMP_DEBUG_EXIT("ui_send_raw","->.",NULL);
+		return;
+	}
+	DTNMP_DEBUG_ENTRY("ui_send_raw","(%s)", agent->agent_eid.name);
+
+	ts = ui_input_uint("Control Timestamp");
+
+	printf("Enter raw MID to send.\n");
+	mid = ui_input_mid_raw();
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("ui_build_cui_send_rawontrol","Can't get control MID.",NULL);
+		return;
+	}
+
+	ui_postprocess_ctrl(mid);
+
+	Lyst mc = lyst_create();
+	lyst_insert_first(mc, mid);
+
+	msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
+
+	/* Step 2: Construct a PDU to hold the primitive. */
+	uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
+
+	char *str = utils_hex_to_string(data, size);
+	printf("Data is %s\n", str);
+	MRELEASE(str);
+
+	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
+	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
+
+	/* Step 4: Send the PDU. */
+	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
+
+	/* Step 5: Release remaining resources. */
+	pdu_release_group(pdu_group);
+	msg_destroy_perf_ctrl(ctrl);
+	midcol_destroy(&mc); // Also destroys mid.
+
+	DTNMP_DEBUG_EXIT("ui_send_raw","->.", NULL);
+}
 
 
 /******************************************************************************
@@ -580,7 +638,8 @@ void ui_eventLoop()
 						case '7' : ui_list_ops();       break; // List Operator MIDs by Index
 						case '8' : ui_list_rpts();      break; // List Reports by Index.
 
-						case '9' : ui_send_control(ui_select_agent()); break;
+						case '9' : ui_build_control(ui_select_agent()); break;
+						case 'A' : ui_send_raw(ui_select_agent()); break;
 
 						case 'Z' : gContext = UI_MAIN_MENU; break;
 						default: printf("Unknown command.\n"); break;
@@ -591,16 +650,16 @@ void ui_eventLoop()
 					switch(cmd)
 					{
 					  // Definitions List
-					  case '1' : ui_print_nop(); //ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
-					  case '2' : ui_print_nop(); //ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
-					  case '3' : ui_print_nop(); //ui_print_agent_macro_defs();    break; // LIst agent macro defs.
+					  case '1' : ui_print_nop(); break; //ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
+					  case '2' : ui_print_nop(); break; //ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
+					  case '3' : ui_print_nop(); break; //ui_print_agent_macro_defs();    break; // LIst agent macro defs.
 
 					  // Report List
 					  case '4' : ui_print_reports(ui_select_agent());   break; // Print received reports.
 					  case '5' : ui_clear_reports(ui_select_agent());	break; // Clear received reports.
 
 					  // Production Schedules.
-					  case '6' : ui_print_nop(); //ui_print_agent_prod_rules();    break; // List agent production rules.
+					  case '6' : ui_print_nop(); break; //ui_print_agent_prod_rules();    break; // List agent production rules.
 
 					  case 'Z' : gContext = UI_MAIN_MENU;				break;
 
@@ -872,7 +931,8 @@ void ui_print_menu_ctrl()
 	printf("8) List Reports MIDs by Index.       (%ld Known)\n", lyst_length(gAdmRpts));
 
 	printf("\n-------------- Perform Control -------------\n");
-	printf("9) Execute Arbitrary Control.\n");
+	printf("9) Build Arbitrary Control.\n");
+	printf("A) Specify Raw Control.\n");
 
 	printf("\n--------------------------------------------\n");
 	printf("Z) Return to Main Menu.\n");

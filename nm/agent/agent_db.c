@@ -581,6 +581,30 @@ int  agent_db_trl_forget(mid_t *mid)
 }
 
 
+
+
+uint32_t agent_db_count(Lyst list, ResourceLock *mutex)
+{
+	uint32_t result = 0;
+
+	if(mutex != NULL)
+	{
+		lockResource(mutex);
+	}
+	if(list != NULL)
+	{
+		result = lyst_length(list);
+	}
+	if(mutex != NULL)
+	{
+		unlockResource(mutex);
+	}
+
+	return result;
+}
+
+
+
 /******************************************************************************
  *
  * \par Function Name: agent_vdb_add

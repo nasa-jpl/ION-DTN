@@ -66,7 +66,7 @@ value_t *expr_get_computed(mid_t *mid)
 {
 	value_t *result = NULL;
 	value_t tmp;
-	adm_computeddef_t *def = NULL;
+	def_gen_t *def = NULL;
 
     DTNMP_DEBUG_ENTRY("expr_get_computed","(0x%x)", (unsigned long) mid);
 
@@ -88,7 +88,7 @@ value_t *expr_get_computed(mid_t *mid)
 
     /* Step 2: Collect the value. */
     /* \todo: We must prevent infinite recursion in definitions. */
-    tmp = expr_eval(def->def);
+    tmp = expr_eval(def->contents);
 
     if((result = val_as_ptr(tmp)) == NULL)
     {
@@ -356,6 +356,10 @@ value_t expr_eval(Lyst expr)
 	tmp = (value_t *) lyst_data(elt);
 
 	result = *tmp;
+
+	val_release(tmp);
+	lyst_destroy(stack);
+
 	return result;
 }
 

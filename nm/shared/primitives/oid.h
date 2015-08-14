@@ -71,7 +71,7 @@
  * WARNING: Changes to these values must be reflected in the associated MID
  *          data types and associated functions.
  */
-#define MAX_OID_SIZE (32)
+#define MAX_OID_SIZE (64)
 #define MAX_OID_PARM (5)
 
 /*

@@ -201,38 +201,29 @@ void adm_add_datadef_collect(uint8_t *mid_hex, adm_data_collect_fn collect)
  *
  * \param[in] mid_str   serialized MID value
  * \param[in] type      The type of the computed data definition result.
- * \param[in] num_parms # parms needed for parameterized OIDs.
  * \param[in] def       The MID Collection defining the computed value.
- * \param[in] to_string The to-string function
- * \param[in] get_size  The sizing function for the ADM entry.
  *
  * \par Notes:
- *		1. When working with parameterized OIDs, the given MID should
- *		   be all information excluding the parameterized portion of the OID.
- *		2. ADM names will be truncated after ADM_MAX_NAME bytes.
- *		3. If a NULL to_string is given, we assume it is unsigned long.
- *		4. If a NULL get_size is given, we assume is it unsigned long.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  03/16/15  E. Birrane     Initial implementation.
  *  07/04/15  E. Birrane     Added type information.
+ *  08/10/15  E. Birrane     Updated to def_gen_t.
   *****************************************************************************/
 
 int adm_add_computeddef(char *mid_str,
 						dtnmp_type_e type,
-		                int num_parms,
-		                Lyst def,
-		                adm_string_fn to_string,
-		                adm_size_fn get_size)
+		                Lyst def)
 {
 	uint32_t size = 0;
 	uint32_t used = 0;
-	adm_computeddef_t *new_entry = NULL;
+	def_gen_t *new_entry = NULL;
+	mid_t *mid = NULL;
 
-	DTNMP_DEBUG_ENTRY("adm_add_computeddef","(%llx, %d, %llx, %llx, %llx)",
-			          mid_str, num_parms, def, to_string, get_size);
+	DTNMP_DEBUG_ENTRY("adm_add_computeddef","("UVAST_FIELDSPEC", %d,"UVAST_FIELDSPEC")",
+			          (uvast) mid_str, type, (uvast) def);
 
 	/* Step 0 - Sanity Checks. */
 	if((mid_str == NULL) || def == NULL)
@@ -249,30 +240,20 @@ int adm_add_computeddef(char *mid_str,
 		return 0;
 	}
 
-	/* Step 2 - Allocate a Data Definition. */
-	if((new_entry = (adm_computeddef_t *) MTAKE(sizeof(adm_computeddef_t))) == NULL)
+	/* Step 2 - Make the MID. */
+	if((mid = mid_from_string(mid_str)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("adm_add_computeddef","Can't allocate new entry of size %d.",
-				        sizeof(adm_datadef_t));
-		DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		DTNMP_DEBUG_ERR("adm_add_computeddef", "Cannot allocate mid.", NULL);
 		return 0;
 	}
 
-	new_entry->mid = mid_from_string(mid_str);
-
-	if(new_entry->mid == NULL)
+	/* Step 3: Make the data definition. */
+	if((new_entry = def_create_gen(mid, type, def)) == NULL)
 	{
-		MRELEASE(new_entry);
-		DTNMP_DEBUG_ERR("adm_add_computeddef","Can't get mid from %s.", mid_str);
-		DTNMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		DTNMP_DEBUG_ERR("adm_add_computeddef", "Canot allocate def.", NULL);
+		mid_release(mid);
 		return 0;
 	}
-
-	new_entry->type = type;
-	new_entry->num_parms = num_parms;
-	new_entry->def = midcol_copy(def);
-	new_entry->to_string = (to_string == NULL) ? adm_print_uvast : to_string;
-	new_entry->get_size = (get_size == NULL) ? adm_size_uvast : get_size;
 
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmComputed, new_entry);
@@ -843,9 +824,8 @@ void adm_destroy()
 
    for (elt = lyst_first(gAdmComputed); elt; elt = lyst_next(elt))
    {
-	   adm_computeddef_t *cur = (adm_computeddef_t *) lyst_data(elt);
-	   mid_release(cur->mid);
-	   MRELEASE(cur);
+	   def_gen_t *cur = (def_gen_t *) lyst_data(elt);
+	   def_release_gen(cur);
    }
    lyst_destroy(gAdmComputed);
    gAdmComputed = NULL;
@@ -876,10 +856,393 @@ void adm_destroy()
 
 }
 
-adm_computeddef_t* adm_find_computeddef(mid_t *mid)
+
+
+uint8_t* adm_extract_blob(Lyst params, uint32_t idx, uint32_t *size, uint8_t *success)
+{
+	datacol_entry_t *entry = NULL;
+	uint8_t *result = NULL;
+	*success = 0;
+
+	if((params == NULL) || (size == NULL))
+	{
+		DTNMP_DEBUG_ERR("adm_extract_blob","Bad Args.", NULL);
+		return NULL;
+	}
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_blob","Can't get item %d", idx);
+		return NULL;
+	}
+
+	*size = entry->length;
+	if((result = (uint8_t *) MTAKE(*size)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_blob","Can't allocate result of size %d", *size);
+		return NULL;
+	}
+
+	memcpy(result, entry->value, *size);
+	*success = 1;
+	return result;
+}
+
+uint8_t adm_extract_byte(Lyst params, uint32_t idx, uint8_t *success)
+{
+	datacol_entry_t *entry = NULL;
+	uint8_t result = 0;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_byte","Can't get item %d", idx);
+		return 0;
+	}
+
+	if(entry->length != sizeof(result))
+	{
+		DTNMP_DEBUG_ERR("adm_extract_byte","Expected length %d and got %d", sizeof(result),entry->length);
+		return 0;
+	}
+
+	result = (uint8_t) entry->value[0];
+	*success = 1;
+	return result;
+}
+
+
+Lyst adm_extract_dc(Lyst params, uint32_t idx, uint8_t *success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	Lyst result = NULL;
+
+	*success = 0;
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_dc","Can't get item %d", idx);
+		return NULL;
+	}
+
+	if((result = dc_deserialize(entry->value, entry->length, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_dc","Can't get DC.", NULL);
+		return NULL;
+	}
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_dc","mismatched deserialize (%d != %d)", bytes, entry->length);
+		dc_destroy(&result);
+		return NULL;
+	}
+
+	*success = 1;
+	return result;
+}
+
+datacol_entry_t* adm_extract_dc_entry(Lyst params, uint32_t idx, uint8_t *success)
+{
+	LystElt elt = NULL;
+	uint32_t i = 1;
+
+	*success = 0;
+	if(params == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_dc_entry","Bad Args.", NULL);
+		return NULL;
+	}
+
+
+	for(elt = lyst_first(params); elt; elt = lyst_next(elt))
+	{
+		if(i == idx)
+		{
+			*success = 1;
+			return (datacol_entry_t *) lyst_data(elt);
+		}
+		i++;
+	}
+
+	return NULL;
+}
+
+
+def_gen_t* adm_extract_def(Lyst params, uint32_t idx, uint8_t *success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	def_gen_t *result = NULL;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_def","Can't get item %d", idx);
+		return NULL;
+	}
+
+	if((result = def_deserialize_gen(entry->value, entry->length, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_def","Can't get def.", NULL);
+		return NULL;
+	}
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_def","mismatched deserialize (%d != %d)", bytes, entry->length);
+		def_release_gen(result);
+		return NULL;
+	}
+
+	*success = 1;
+	return result;
+}
+
+
+int32_t adm_extract_int(Lyst params, uint32_t idx, uint8_t *success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	int32_t result = 0;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_int","Can't get item %d", idx);
+		return 0;
+	}
+
+	result = val_deserialize_int(entry->value, entry->length, &bytes);
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_int","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
+}
+
+Lyst             adm_extract_mc(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	Lyst result = NULL;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_mc","Can't get item %d", idx);
+		return NULL;
+	}
+
+	if((result = midcol_deserialize(entry->value, entry->length, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_mc","Can't get def.", NULL);
+		return NULL;
+	}
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_mc","mismatched deserialize (%d != %d)", bytes, entry->length);
+		midcol_destroy(&result);
+		return NULL;
+	}
+
+	*success = 1;
+	return result;
+}
+
+mid_t* adm_extract_mid(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	mid_t *result = NULL;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_mid","Can't get item %d", idx);
+		return NULL;
+	}
+
+	if((result = mid_deserialize(entry->value, entry->length, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_mid","Can't get def.", NULL);
+		return NULL;
+	}
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_mid","mismatched deserialize (%d != %d)", bytes, entry->length);
+		mid_release(result);
+		return NULL;
+	}
+
+	*success = 1;
+	return result;
+
+}
+
+
+float adm_extract_real32(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	float result = 0;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_real32","Can't get item %d", idx);
+		return 0;
+	}
+
+	result = val_deserialize_real32(entry->value, entry->length, &bytes);
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_real32","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
+}
+
+
+double adm_extract_real64(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	double result = 0;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_real64","Can't get item %d", idx);
+		return 0;
+	}
+
+	result = val_deserialize_real64(entry->value, entry->length, &bytes);
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_real64","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
+}
+
+
+uvast adm_extract_sdnv(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	uvast result = 0;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_sdnv","Can't get item %d", idx);
+		return 0;
+	}
+
+
+	bytes = utils_grab_sdnv((unsigned char *) entry->value, entry->length, &result);
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_sdnv","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
+}
+
+char* adm_extract_string(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	char *result = NULL;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_string","Can't get item %d", idx);
+		return 0;
+	}
+
+	if((result = (char *) MTAKE(entry->length + 1)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_string","Can'tallocate %d bytes.", entry->length + 1);
+		return NULL;
+	}
+
+	memcpy(result, entry->value, entry->length);
+	result[entry->length] = '\0';
+
+	*success = 1;
+	return result;
+}
+
+
+uint32_t adm_extract_uint(Lyst params, uint32_t idx, uint8_t* success)
+{
+	return (uint32_t) adm_extract_int(params, idx, success);
+}
+
+
+uvast adm_extract_uvast(Lyst params, uint32_t idx, uint8_t* success)
+{
+	return (uvast) adm_extract_vast(params, idx, success);
+}
+
+vast adm_extract_vast(Lyst params, uint32_t idx, uint8_t* success)
+{
+	datacol_entry_t *entry = NULL;
+	uint32_t bytes = 0;
+	vast result = 0;
+
+	*success = 0;
+
+	if((entry = adm_extract_dc_entry(params, idx, success)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_vast","Can't get item %d", idx);
+		return 0;
+	}
+
+	result = val_deserialize_vast(entry->value, entry->length, &bytes);
+
+	if(bytes != entry->length)
+	{
+		DTNMP_DEBUG_ERR("adm_extract_vast","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
+}
+
+
+def_gen_t* adm_find_computeddef(mid_t *mid)
 {
 	LystElt elt = 0;
-	adm_computeddef_t *cur = NULL;
+	def_gen_t *cur = NULL;
 
 	DTNMP_DEBUG_ENTRY("adm_find_computeddef","(%llx)", mid);
 
@@ -894,10 +1257,10 @@ adm_computeddef_t* adm_find_computeddef(mid_t *mid)
 	/* Step 1 - Go lookin'. */
 	for(elt = lyst_first(gAdmComputed); elt; elt = lyst_next(elt))
 	{
-		cur = (adm_computeddef_t*) lyst_data(elt);
+		cur = (def_gen_t*) lyst_data(elt);
 
 		/* Step 1.1 - Determine if we need to account for parameters. */
-		if (mid_compare(mid, cur->mid, 0) == 0)
+		if (mid_compare(mid, cur->id, 0) == 0)
 		{
 			break;
 		}

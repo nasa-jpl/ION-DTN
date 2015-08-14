@@ -112,9 +112,9 @@ void adm_agent_init_computed()
 	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_AD_NUMSRL_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_OP_PLUS_MID, ADM_MID_ALLOC, &used));
 
-	adm_add_computeddef(ADM_AGENT_CD_NUMRULE_MID, DTNMP_TYPE_UINT, 0, def, NULL, NULL);
+	adm_add_computeddef(ADM_AGENT_CD_NUMRULE_MID, DTNMP_TYPE_UINT, def);
 
-	midcol_destroy(&def);
+//	midcol_destroy(&def);
 
 #ifndef AGENT_ROLE
 	names_add_name("ADM_AGENT_CD_NUMRULE_MID", "Total # Rules", ADM_AGENT, ADM_AGENT_CD_NUMRULE_MID);
@@ -413,8 +413,11 @@ void adm_agent_init_reports()
 	uint32_t used = 0;
 	Lyst rpt = lyst_create();
 
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_MD_NAME_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_MD_VER_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMRPT_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_SENTRPT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMTRL_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNTRL_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMSRL_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNSRL_MID, ADM_MID_ALLOC, &used));
@@ -424,6 +427,7 @@ void adm_agent_init_reports()
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNMAC_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMCTRL_MID, ADM_MID_ALLOC, &used));
 	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNCTRL_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_CD_NUMRULE_MID, ADM_MID_ALLOC, &used));
 
 	adm_add_rpt(ADM_AGENT_RPT_FULL_MID, rpt);
 

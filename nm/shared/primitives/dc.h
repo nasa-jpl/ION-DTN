@@ -74,6 +74,7 @@ datacol_entry_t* dc_copy_entry(datacol_entry_t *entry);
 Lyst             dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used);
 void             dc_destroy(Lyst *datacol);
 datacol_entry_t* dc_get_entry(Lyst datacol, uint32_t idx);
+void             dc_release_entry(datacol_entry_t *entry);
 uint8_t*         dc_serialize(Lyst datacol, uint32_t *size);
 char*            dc_entry_to_str(datacol_entry_t *entry);
 

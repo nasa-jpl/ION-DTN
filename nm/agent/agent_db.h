@@ -161,6 +161,7 @@ int  agent_db_trl_persist(trl_t* item);
 int  agent_db_trl_forget(mid_t *mid);
 
 
+uint32_t agent_db_count(Lyst list, ResourceLock *mutex);
 
 void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex);
 

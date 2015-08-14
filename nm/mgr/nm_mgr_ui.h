@@ -71,7 +71,8 @@ agent_t *ui_select_agent();
 // \todo: Be able to select multiple agents.
 // \todo: Be able to have multiple commands in a command scratch area.
 
-void ui_send_control(agent_t* agent);
+void ui_build_control(agent_t* agent);
+void ui_send_raw(agent_t* agent);
 
 int ui_test_mid(mid_t *mid, const char *mid_str);
 

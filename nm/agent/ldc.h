@@ -38,6 +38,8 @@
 int ldc_fill_report_entry(rpt_entry_t *entry);
 int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry);
 int ldc_fill_custom(def_gen_t *rpt_def, rpt_entry_t *entry);
+int ldc_fill_computed(def_gen_t *cd_def, rpt_entry_t *entry);
+
 
 #endif // _LDC_H_
 

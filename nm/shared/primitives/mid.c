@@ -1109,7 +1109,6 @@ int mid_sanity_check(mid_t *mid)
 
 	/* Type/Category Checks */
 	if (
-		((mid->type == MID_TYPE_CONTROL) && (mid->category == MID_CAT_COMPUTED)) ||
 		((mid->type == MID_TYPE_LITERAL) && (mid->category != MID_CAT_ATOMIC)) ||
 		((mid->type == MID_TYPE_OPERATOR) && (mid->category != MID_CAT_ATOMIC))
 		)

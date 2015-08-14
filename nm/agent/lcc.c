@@ -222,9 +222,25 @@ int lcc_run_macro_mid(mid_t *id)
 }
 
 // \todo Implement.
-int lcc_run_macro(def_gen_t *macro)
+int lcc_run_macro(Lyst macro)
 {
-	return -1;
+	LystElt elt = NULL;
+	mid_t *cur_mid = NULL;
+
+	if(macro == NULL)
+	{
+		DTNMP_DEBUG_ERR("lcc_run_macro","Bad Args", NULL);
+		return -1;
+	}
+
+	for(elt = lyst_first(macro); elt; elt = lyst_next(elt))
+	{
+		cur_mid = (mid_t *) lyst_data(elt);
+
+		// \todo: What happens if a control in the macro stops?
+		lcc_run_ctrl_mid(cur_mid);
+	}
+	return 0;
 }
 
 

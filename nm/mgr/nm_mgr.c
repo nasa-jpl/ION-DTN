@@ -39,7 +39,7 @@
 
 #include "nm_mgr_names.h"
 #include "shared/primitives/rules.h"
-
+#include "shared/primitives/nn.h"
 
 // Definitions of global data.
 iif_t ion_ptr;
@@ -644,6 +644,7 @@ int mgr_init(char *argv[])
         return -1;
     }
 
+    oid_nn_init();
     names_init();
 	adm_init();
 

@@ -124,12 +124,22 @@ void ui_print_custom_rpt_entry(rpt_entry_t *rpt_entry, def_gen_t *rpt_def)
 
 void ui_print_dc(Lyst dc)
 {
+	printf("ui_print_dc not implements.");
 
 }
 
 void ui_print_def(def_gen_t *def)
 {
-
+	if(def == NULL)
+	{
+		printf("NULL");
+	}
+	else
+	{
+		ui_print_mid(def->id);
+		printf(",%s,", type_to_str(def->type));
+		ui_print_mc(def->contents);
+	}
 }
 
 /*
@@ -188,7 +198,7 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 	else if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_COMPUTED)
 	{
-	    if(MID_GET_FLAG_ISS(entry->id->flags))
+	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
 	    {
 	    	cur_def = def_find_by_id(gAdmComputed, NULL, entry->id);
 	    }
@@ -199,7 +209,7 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 	else if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_REPORT)
 	{
-	    if(MID_GET_FLAG_ISS(entry->id->flags))
+	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
 	    {
 	    	cur_def = def_find_by_id(gAdmRpts, NULL, entry->id);
 	    }
@@ -210,7 +220,7 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 	else if(MID_GET_FLAG_TYPECAT(entry->id->flags) == MID_MACRO)
 	{
-	    if(MID_GET_FLAG_ISS(entry->id->flags))
+	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
 	    {
 	    	cur_def = def_find_by_id(gAdmMacros, NULL, entry->id);
 	    }
@@ -230,11 +240,30 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 
 void ui_print_expr(Lyst expr)
 {
+	printf("ui_print_expr not implements.");
 
 }
 
 void ui_print_mc(Lyst mc)
 {
+	LystElt elt = NULL;
+	int i = 0;
+	mid_t *mid = NULL;
+
+	printf("{ ");
+
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		if(i > 0)
+		{
+			printf(", ");
+		}
+		i++;
+		mid = lyst_data(elt);
+		ui_print_mid(mid);
+	}
+
+	printf(" }");
 
 }
 
@@ -281,7 +310,7 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
 {
 	uint64_t len;
 	char *mid_str = NULL;
-	char *mid_name = NULL;
+	//char *mid_name = NULL;
 	char *mid_val = NULL;
 	char *name = NULL;
 	uint32_t bytes = 0;
@@ -291,7 +320,7 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
 	uint32_t str_size = 0;
 
 	mid_str = mid_to_string(mid);
-	mid_name = names_get_name(mid);
+	//mid_name = names_get_name(mid);
 
 	*data_used = bytes;
 	mid_val = val_to_string(val);
@@ -380,8 +409,8 @@ void ui_print_reports(agent_t* agent)
 
 	    	 printf("\n----------------------------------------");
 	    	 printf("\nSTATISTICS:");
-	    	 printf("\nMIDs total %ld bytes", mid_sizes);
-	    	 printf("\nData total: %ld bytes", data_sizes);
+	    	 printf("\nMIDs total "UVAST_FIELDSPEC" bytes", mid_sizes);
+	    	 printf("\nData total: "UVAST_FIELDSPEC" bytes", data_sizes);
 	    	 printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
 	    	 printf("\n----------------------------------------\n\n\n");
 	     }
@@ -391,6 +420,21 @@ void ui_print_reports(agent_t* agent)
 
 void ui_print_srl(srl_t *srl)
 {
+	char *mid_str = NULL;
+
+	if(srl == NULL)
+	{
+		printf("NULL");
+		return;
+	}
+
+	mid_str = mid_to_string(srl->mid);
+
+	printf("SRL %s: T:%d E:", mid_str, srl->time);
+	ui_print_mc(srl->expr);
+	printf(" C:"UVAST_FIELDSPEC" A:", srl->count);
+	ui_print_mc(srl->action);
+	MRELEASE(mid_str);
 
 }
 
@@ -431,23 +475,24 @@ void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
 	{
 		cur_type = (dtnmp_type_e) tdc->hdr.data[i];
 
-		// \todo: Check return values.
-		cur_entry = lyst_data(elt);
-		cur_val = val_deserialize_one(cur_entry->value, cur_entry->length);
-
+		printf("\n\t");
 		if(cur_def != NULL)
 		{
-			printf("\n\tValue %d (", i);
+			printf("Value %d (", i);
 			ui_print_mid((mid_t *) lyst_data(def_elt));
 			printf(") ");
 		}
 
-		if(cur_type != cur_val->type)
+		// \todo: Check return values.
+		if((cur_entry = lyst_data(elt)) == NULL)
 		{
-			DTNMP_DEBUG_WARN("ui_print_tdc","Value type mismatch %d != %d", cur_type, cur_val->type);
+			printf("NULL\n");
+		}
+		else
+		{
+			ui_print_val(cur_type, cur_entry->value, cur_entry->length);
 		}
 
-		ui_print_val(cur_val);
 
 		elt = lyst_next(elt);
 
@@ -462,62 +507,85 @@ void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
 
 void ui_print_trl(trl_t *trl)
 {
+	char *mid_str = NULL;
 
-}
-
-void ui_print_val(value_t *val)
-{
-
-	if(val == NULL)
+	if(trl == NULL)
 	{
 		printf("NULL");
 		return;
 	}
 
-	switch(val->type)
+	mid_str = mid_to_string(trl->mid);
+
+	printf("TRL %s: T:%d P:"UVAST_FIELDSPEC" C:"UVAST_FIELDSPEC" A:", mid_str, trl->time, trl->period, trl->count);
+	ui_print_mc(trl->action);
+	MRELEASE(mid_str);
+}
+
+void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
+{
+	uint32_t bytes = 0;
+
+	if(data == NULL)
+	{
+		printf("NULL");
+		return;
+	}
+
+
+
+	switch(type)
 	{
 		case DTNMP_TYPE_INT:
-			printf("%d", val_cvt_int(val));
+			printf("%d", val_deserialize_int(data, length, &bytes));
 			break;
 
 		case DTNMP_TYPE_TS:
 		case DTNMP_TYPE_UINT:
-			printf("%d", val_cvt_uint(val));
+			printf("%d", val_deserialize_uint(data, length, &bytes));
 			break;
 
 		case DTNMP_TYPE_VAST:
-			printf(VAST_FIELDSPEC, val_cvt_vast(val));
+			printf(VAST_FIELDSPEC, val_deserialize_vast(data, length, &bytes));
 			break;
 
 		case DTNMP_TYPE_SDNV:
 		case DTNMP_TYPE_UVAST:
-			printf(UVAST_FIELDSPEC, val_cvt_uvast(val));
+			printf(UVAST_FIELDSPEC, val_deserialize_uvast(data, length, &bytes));
 			break;
 
 		case DTNMP_TYPE_REAL32:
-			printf("%f", val_cvt_real32(val));
+			printf("%f", val_deserialize_real32(data, length, &bytes));
 			break;
 
 		case DTNMP_TYPE_REAL64:
-			printf("%f", val_cvt_real64(val));
+			printf("%f", val_deserialize_real64(data, length, &bytes));
 			break;
 
 		case DTNMP_TYPE_STRING:
-			printf("%s", (char *)val->value.as_ptr);
+			{
+				char* tmp = NULL;
+				tmp = val_deserialize_string(data, length, &bytes);
+				printf("%s", tmp);
+				MRELEASE(tmp);
+			}
 			break;
 
 		case DTNMP_TYPE_BLOB:
 			{
-				char *tmp_str = utils_hex_to_string(val->value.as_ptr, val->length);
+				uint32_t len = 0;
+				uint8_t* tmp = val_deserialize_blob(data, length, &bytes, &len);
+				char *tmp_str = utils_hex_to_string(tmp, len);
 				printf("%s", tmp_str);
 				MRELEASE(tmp_str);
+				MRELEASE(tmp);
 			}
 			break;
 
 		case DTNMP_TYPE_DC:
 			{
 				uint32_t bytes = 0;
-				Lyst dc = dc_deserialize(val->value.as_ptr, val->length, &bytes);
+				Lyst dc = dc_deserialize(data, length, &bytes);
 				ui_print_dc(dc);
 				dc_destroy(&dc);
 			}
@@ -526,7 +594,7 @@ void ui_print_val(value_t *val)
 		case DTNMP_TYPE_MID:
 			{
 				uint32_t bytes = 0;
-				mid_t *mid = mid_deserialize(val->value.as_ptr, val->length, &bytes);
+				mid_t *mid = mid_deserialize(data, length, &bytes);
 				ui_print_mid(mid);
 				mid_release(mid);
 			}
@@ -537,7 +605,7 @@ void ui_print_val(value_t *val)
 		case DTNMP_TYPE_EXPR:
 			{
 				uint32_t bytes = 0;
-				Lyst mc = midcol_deserialize(val->value.as_ptr, val->length, &bytes);
+				Lyst mc = midcol_deserialize(data, length, &bytes);
 				ui_print_mc(mc);
 				midcol_destroy(&mc);
 			}
@@ -546,7 +614,7 @@ void ui_print_val(value_t *val)
 		case DTNMP_TYPE_DEF:
 			{
 				uint32_t bytes = 0;
-				def_gen_t *def = def_deserialize_gen(val->value.as_ptr, val->length, &bytes);
+				def_gen_t *def = def_deserialize_gen(data, length, &bytes);
 				ui_print_def(def);
 				def_release_gen(def);
 			}
@@ -555,7 +623,7 @@ void ui_print_val(value_t *val)
 		case DTNMP_TYPE_TRL:
 			{
 				uint32_t bytes = 0;
-				trl_t *trl = trl_deserialize(val->value.as_ptr, val->length, &bytes);
+				trl_t *trl = trl_deserialize(data, length, &bytes);
 				ui_print_trl(trl);
 				trl_release(trl);
 			}
@@ -564,7 +632,7 @@ void ui_print_val(value_t *val)
 		case DTNMP_TYPE_SRL:
 			{
 				uint32_t bytes = 0;
-				srl_t *srl = srl_deserialize(val->value.as_ptr, val->length, &bytes);
+				srl_t *srl = srl_deserialize(data, length, &bytes);
 				ui_print_srl(srl);
 				srl_release(srl);
 			}

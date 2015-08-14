@@ -37,6 +37,7 @@
 #include "adm_ltp_priv.h"
 #include "adm_ion_priv.h"
 
+#include "shared/primitives/nn.h"
 
 static void agent_signal_handler(int);
 
@@ -223,7 +224,9 @@ int	main(int argc, char *argv[])
     	return -1;
     }
    
+
     /* Step 4: Read information from SDR and initialize memory lists.*/
+    oid_nn_init();
     agent_db_init();
 
     if(agent_vdb_init() == -1)
@@ -241,16 +244,7 @@ int	main(int argc, char *argv[])
     /* Step 5: Initialize ADM support. */
     adm_init();
 
-    adm_agent_init();
-
-    adm_bp_init();
-#ifdef _HAVE_LTP_ADM_
-    agent_adm_init_ltp();
-#endif
-
-#ifdef _HAVE_ION_ADM_
-    agent_adm_init_ion();
-#endif
+    agent_instr_init();
 
 
     /* Step 6: Register signal handlers. */

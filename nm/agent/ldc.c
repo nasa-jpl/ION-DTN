@@ -35,7 +35,7 @@
 
 #include "nmagent.h"
 #include "ldc.h"
-
+#include "expr.h"
 
 /******************************************************************************
  *
@@ -63,6 +63,7 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
 {
     int result = -1;
     adm_datadef_t *adm_def = NULL;
+    def_gen_t *cd_def = NULL;
     def_gen_t *rpt_def = NULL;
     char *msg = NULL;
 
@@ -105,7 +106,19 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
 
    		/* Step 1.2: If this is a computed definition... */
     	case MID_COMPUTED:
-    		// \todo: Support computed definitions in reports.
+    		/* Step 1.3.1: Check if this is an ADM-defined report. */
+    		if((cd_def = def_find_by_id(gAdmComputed, NULL, entry->id)) != NULL)
+    		{
+    	       	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling ADM Custom Definition.", NULL);
+    	       	result = ldc_fill_computed(cd_def, entry);
+    		}
+    		/* Step 1.3.2: Check if this is a user-defined report. */
+    		else if((cd_def = def_find_by_id(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex), entry->id)) != NULL)
+    	    {
+    	       	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling User Computed Definition.", NULL);
+    	       	result = ldc_fill_computed(cd_def, entry);
+    	    }
+
     		break;
 
    	    /* Step 1.2: If this is a data report...*/
@@ -331,7 +344,8 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
 
     /* Step 1: Collect the information for this datum. */
     value_t result = adm_def->collect(entry->id->oid->params);
-    val_data = val_serialize(&result, &val_len);
+
+    val_data = val_serialize_raw(&result, &val_len);
 
     tdc_insert(entry->contents, adm_def->type, val_data, val_len);
 
@@ -345,3 +359,60 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
 /*
  * \todo: Add fill computed data.
  */
+/******************************************************************************
+ *
+ * \par Function Name: ldc_fill_computed
+ *
+ * \par Populate a data entry from a computed definition.
+ *
+ * \param[in]  cd_def  The computed definition
+ * \param[out] entry   The report entry being filled in.
+ *
+ * \par Notes:
+ *		- We impose a maximum nesting level of 5. A custom definition may
+ *		  contain no more than 5 other custom definitions.
+ *
+ * \return 0 - Success
+ *        !0 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/31/15  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+int ldc_fill_computed(def_gen_t *cd_def, rpt_entry_t *entry)
+{
+    int i = 0;
+    char *msg = NULL;
+    uint32_t temp = 0;
+    uint8_t *val_data = NULL;
+    uint32_t val_len = 0;
+
+    DTNMP_DEBUG_ENTRY("ldc_fill_computed","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
+    			      (uvast) cd_def, (uvast) entry);
+
+    /* Step 0: Sanity Checks. */
+    if((cd_def == NULL) || (entry == NULL))
+    {
+        DTNMP_DEBUG_ERR("ldc_fill_computed","Bad Args", NULL);
+        DTNMP_DEBUG_EXIT("ldc_fill_computed","-> -1.", NULL);
+        return -1;
+    }
+
+    /* Step 1: Collect the information for this datum. */
+    value_t result;
+    result = expr_eval(cd_def->contents);
+
+    /* Step 2: Convert type if necessary. */
+    val_cvt_type(&result, cd_def->type);
+
+    val_data = val_serialize_raw(&result, &val_len);
+
+    tdc_insert(entry->contents, cd_def->type, val_data, val_len);
+
+    MRELEASE(val_data);
+
+    DTNMP_DEBUG_EXIT("ldc_fill_computed","-> 0", NULL);
+    return 0;
+}

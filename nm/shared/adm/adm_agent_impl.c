@@ -20,6 +20,7 @@
 #include "rda.h"
 #include "shared/primitives/ctrl.h"
 #include "agent_db.h"
+#include "shared/primitives/instr.h"
 
 /******************************************************************************
  *
@@ -222,7 +223,7 @@ tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	cur_val.type = DTNMP_TYPE_STRING;
 	cur_val.length = strlen("DTNMP_AGENT");
 	cur_val.value.as_ptr = (uint8_t*) "DTNMP AGENT";
-	data = val_serialize(&cur_val, &data_size);
+	data = val_serialize(&cur_val, &data_size, 0);
 	tdc_insert(result, cur_val.type, data, data_size);
 	MRELEASE(data);
 	//tdc_insert(result, DTNMP_TYPE_STRING, (uint8_t*) "DTNMP AGENT", strlen("DTNMP AGENT"));
@@ -230,7 +231,7 @@ tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	cur_val.type = DTNMP_TYPE_STRING;
 	cur_val.length = strlen("BP");
 	cur_val.value.as_ptr = (uint8_t*) "BP";
-	data = val_serialize(&cur_val, &data_size);
+	data = val_serialize(&cur_val, &data_size, 0);
 	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
 	MRELEASE(data);
 
@@ -257,7 +258,6 @@ tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 }
 
 
-
 /*
  * This control defines a new computed data definition for the agent.
  *
@@ -271,38 +271,34 @@ tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	mid_t *mid = NULL;
 	Lyst expr = NULL;
 	uvast def_type = 0;
 	def_gen_t *cd;
+	uint8_t success = 0;
 
 	// \todo: CHange OID params to datalist type.
 	// \todo: Consider passing in full mid instead of just mid parms?
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 3)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_cd_add","Bad # params. Need 3, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
-
 	/* Step 1: Grab the MID defining the new computed definition. */
-	elt = lyst_first(params);
-	cur = lyst_data(elt);
-	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
 	{
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
-	/* Step 2: Grab the expression capturing the definition. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-	if((expr = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+
+	/* Step 1.1: Verify this is a good MID for a CD. */
+	if(MID_GET_FLAG_TYPECAT(mid->flags) != MID_COMPUTED)
+	{
+		DTNMP_DEBUG_ERR("agent_ctl_cd_add","MID flags do not match a CD definition.", NULL);
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 2: Grab the expression that defines the MID. */
+	if((expr = adm_extract_mc(params, 2, &success)) == NULL)
 	{
 		*status = CTRL_FAILURE;
 		mid_release(mid);
@@ -310,10 +306,8 @@ tdc_t *agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 	}
 
 	/* Step 3: Grab the type of the definition. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if(utils_grab_sdnv(cur->value, cur->length, &def_type) <= 0)
+	def_type = adm_extract_sdnv(params, 3, &success);
+	if(success == 0)
 	{
 		*status = CTRL_FAILURE;
 		mid_release(mid);
@@ -321,18 +315,26 @@ tdc_t *agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 		return NULL;
 	}
 
-	/* Step 4: Add the new definition. */
+	/* Step 4: Add the new definition.
+	 * NOTE: def_create_gen shallow-copies information. Do not release
+	 * mid or expr!
+	 */
 
-	if((cd = def_create_gen(mid, def_type, expr)) != NULL)
+	if((cd = def_create_gen(mid, def_type, expr)) == NULL)
 	{
-		agent_db_compdata_persist(cd);
-		ADD_COMPDATA(cd);
+		mid_release(mid);
+		midcol_destroy(&expr);
+		return NULL;
 	}
 
-	mid_release(mid);
-	midcol_destroy(&expr);
+	agent_db_compdata_persist(cd);
+	ADD_COMPDATA(cd);
+
+	gAgentInstr.num_data_defs = agent_db_count(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex)) +
+			                    agent_db_count(gAdmData, NULL);
 
 	*status = CTRL_SUCCESS;
+
 	return NULL;
 }
 
@@ -347,10 +349,9 @@ tdc_t *agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_cd_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
+	uint8_t success = 0;
 
 	/* Step 0: Sanity Check. */
 	if(lyst_length(params) != 1)
@@ -361,8 +362,7 @@ tdc_t *agent_ctl_cd_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 	}
 
 	/* Step 1: Grab the MID defining the new computed definition. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
 		*status = CTRL_FAILURE;
 		return NULL;
@@ -381,6 +381,10 @@ tdc_t *agent_ctl_cd_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 	}
 
 	midcol_destroy(&mc);
+
+	gAgentInstr.num_data_defs = agent_db_count(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex)) +
+			                    agent_db_count(gAdmData, NULL);
+
 
 	*status = CTRL_SUCCESS;
 	return NULL;
@@ -404,13 +408,6 @@ tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	uint32_t data_len = 0;
 
 	/* Step 0: Sanity Check. */
-
-	if(lyst_length(params) != 0)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Bad # params. Need 0, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Build an MC of known compdata. */
 	if((mc = lyst_create()) == NULL)
@@ -470,25 +467,16 @@ tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
 	tdc_t *retval = NULL;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_cd_dsc","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Grab the list of MIDs to describe. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
 		*status = CTRL_FAILURE;
 		return NULL;
@@ -539,17 +527,43 @@ tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	def_gen_t *cd = NULL;
+	uint8_t success = 0;
+	def_gen_t *result = NULL;
+	mid_t *mid = NULL;
+	Lyst expr = NULL;
 
 	*status = CTRL_FAILURE;
 
-	if((cd = def_create_from_rpt_parms(params)) != NULL)
+	/* Step 1: Grab the MID defining the new computed definition. */
+	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
 	{
-		agent_db_report_persist(cd);
-		ADD_REPORT(cd);
+		return NULL;
 	}
 
+	/* Step 2: Grab the expression capturing the definition. */
+	if((expr = adm_extract_mc(params, 2, &success)) == NULL)
+	{
+		mid_release(mid);
+		return NULL;
+	}
+
+	/* Step 3: Create the new definition. This is a shallow copy sp
+	 * don't release the mis and expr.  */
+	if((result = def_create_gen(mid, DTNMP_TYPE_DEF, expr)) == NULL)
+	{
+		mid_release(mid);
+		midcol_destroy(&expr);
+		return NULL;
+	}
+
+	agent_db_report_persist(result);
+	ADD_REPORT(result);
+
+	gAgentInstr.num_rpt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
+			                    agent_db_count(gAdmRpts, NULL);
+
 	*status = CTRL_SUCCESS;
+
 	return NULL;
 }
 
@@ -567,22 +581,13 @@ tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 tdc_t *agent_ctl_rpt_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
 
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_del","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	uint8_t success = 0;
 
 	/* Step 1: Grab the MID defining the new computed definition. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params,1,&success)) == NULL)
 	{
 		*status = CTRL_FAILURE;
 		return NULL;
@@ -602,9 +607,11 @@ tdc_t *agent_ctl_rpt_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 	midcol_destroy(&mc);
 
+	gAgentInstr.num_rpt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
+			                    agent_db_count(gAdmRpts, NULL);
+
 	*status = CTRL_SUCCESS;
 	return NULL;
-
 }
 
 
@@ -623,15 +630,6 @@ tdc_t *agent_ctl_rpt_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	LystElt elt;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
-
-	/* Step 0: Sanity Check. */
-
-	if(lyst_length(params) != 0)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_lst","Bad # params. Need 0, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
@@ -681,27 +679,17 @@ tdc_t *agent_ctl_rpt_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
 	tdc_t *retval = NULL;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
-
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_dsc","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	uint8_t success = 0;
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the list of MIDs to describe. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
@@ -710,7 +698,6 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 	{
 		midcol_destroy(&mc);
 		DTNMP_DEBUG_ERR("agent_ctl_rpt_dsc","Can't make lyst.", NULL);
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
@@ -764,84 +751,85 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
  *****************************************************************************/
 tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-  datacol_entry_t *dc = NULL; // Each parameter is a DC
-  rpt_t *report = NULL;
-  LystElt elt;
-  eid_t recipient;
-  Lyst mids = NULL;
-  Lyst rx = NULL;
-  uint32_t bytes = 0;
+	rpt_t *report = NULL;
+	eid_t recipient;
+	Lyst mc = NULL;
+	Lyst rx = NULL;
+	LystElt elt = NULL;
+	uint8_t success = 0;
 
-  /* Step 0: Make sure we have the correct parameters. */
-  if((params == NULL) || (lyst_length(params) != 2))
-  {
-	  *status = CTRL_FAILURE;
-	  return NULL;
-  }
+	*status = CTRL_FAILURE;
+	bzero(&recipient, sizeof(eid_t));
 
-  /* Step 1: Get the MC from the params. */
-  elt = lyst_first(params);
-  dc = lyst_data(elt);
-  mids = midcol_deserialize(dc->value, dc->length, &bytes);
-  //MRELEASE(dc->value);
-  //MRELEASE(dc);
+	/* Step 1: Get the MC from the params. */
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
+	{
+		return NULL;
+	}
 
-  /* Step 2: Get the recipient for this message. */
-  elt = lyst_next(elt);
-  dc = lyst_data(elt);
-  rx = dc_deserialize(dc->value, dc->length, &bytes);
- // \todo verify we should release parms data... MRELEASE(dc->value);
- // MRELEASE(dc);
+	/* Step 2: Get the list of mgrs to receive this report. */
+	if((rx = adm_extract_dc(params,2, &success)) == NULL)
+	{
+		/* Step 2.1: If we don'thave, or can't get the rx list send report back to requester. */
+		memcpy(&recipient, def_mgr, sizeof(eid_t));
+	}
+	else
+	{
+		datacol_entry_t *entry = NULL;
+
+		// \todo: Handle more than 1 recipient.
+		if((entry = lyst_data(lyst_first(rx))) == NULL)
+		{
+			/* Step 2.1: If we don'thave, or can't get the rx list send report back to requester. */
+			memcpy(&recipient, def_mgr, sizeof(eid_t));
+		}
+		else if(entry->length < sizeof(recipient))
+		{
+			memcpy(&recipient, entry->value, entry->length);
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("agent_ctl_rpt_gen", "Rx length of %d > %d.", entry->length, sizeof(eid_t));
+			dc_destroy(&rx);
+			midcol_destroy(&mc);
+			return NULL;
+		}
+
+		dc_destroy(&rx);
+	}
+
+	/* Step 2: Build the report.
+	 *
+	 * This function will grab an existing to-be-sent report or
+	 * create a new report and add it to the "built-reports" section.
+	 * Either way, it will be included in the next set of code to send
+	 * out reports built in this time slice.
+	 */
+	report = rda_get_report(recipient);
 
 
-  // \todo: Endian issues.
-  // \todo: Handle more than 1 recipient.
-  dc = lyst_data(lyst_first(rx));
-  if(dc->length < sizeof(recipient))
-  {
-	  bzero(&recipient, sizeof(eid_t));
-	  memcpy(&recipient, dc->value, dc->length);
-	  dc_destroy(&rx);
-  }
-  else
-  {
-	  DTNMP_DEBUG_ERR("agent_ctl_rpt_gen", "Rx length of %d > %d.", dc->length, sizeof(eid_t));
-	  dc_destroy(&rx);
-	  midcol_destroy(&mids);
-	  *status = CTRL_FAILURE;
-	  return NULL;
-  }
+	/* Step 3: For each MID in the report definition, construct the
+	 * entry and add it to the report.
+	 */
+	for(elt = lyst_first(mc); elt != NULL; elt = lyst_next(elt))
+	{
+		mid_t *mid = lyst_data(elt);
 
-  /* Step 2: Build the report.
-   *
-   * This function will grab an existing to-be-sent report or
-   * create a new report and add it to the "built-reports" section.
-   * Either way, it will be included in the next set of code to send
-   * out reports built in this time slice.
-   */
-  report = rda_get_report(recipient);
+		rpt_entry_t *entry = rda_build_report_entry(mid);
 
+		if(entry != NULL)
+		{
+			lyst_insert_last(report->entries, entry);
+		}
+		else
+		{
+			// \todo: andle the error...
+		}
+	}
 
-  /* Step 3: For each MID in the report definition, construct the
-   * entry and add it to the report.
-   */
-  for(elt = lyst_first(mids); elt != NULL; elt = lyst_next(elt))
-  {
-	  mid_t *mid = lyst_data(elt);
+	midcol_destroy(&mc);
 
-	  rpt_entry_t *entry = rda_build_report_entry(mid);
-
-	  if(entry != NULL)
-	  {
-		  lyst_insert_last(report->entries, entry);
-	  }
-	  else
-	  {
-// \todo: andle the error...
-	  }
-  }
-
-  *status = CTRL_SUCCESS;
+	*status = CTRL_SUCCESS;
 
   return NULL;
 }
@@ -859,55 +847,46 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_mac_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	mid_t *mid = NULL;
 	Lyst expr = NULL;
-	uvast def_type = 0;
-	def_gen_t *cd;
+	def_gen_t *result = NULL;
+	uint8_t success = 0;
 
 	*status = CTRL_FAILURE;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 2)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_mac_add","Bad # params. Need 2, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Grab the MID defining the new computed definition. */
-	elt = lyst_first(params);
-	cur = lyst_data(elt);
-	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
 	/* Step 2: Grab the expression capturing the definition. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-	if((expr = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((expr = adm_extract_mc(params, 2, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 3: Add the new definition. */
+	/* Step 3: Add the new definition.
+	 * This is a shllow-copy so don't release mid and expr.
+	 */
 
-	if((cd = def_create_gen(mid, def_type, expr)) != NULL)
+	if((result = def_create_gen(mid, DTNMP_TYPE_DEF, expr)) == NULL)
 	{
-		agent_db_macro_persist(cd);
-		ADD_MACRO(cd);
+		mid_release(mid);
+		midcol_destroy(&expr);
+		return NULL;
 	}
 
-	mid_release(mid);
-	midcol_destroy(&expr);
+	agent_db_macro_persist(result);
+	ADD_MACRO(result);
+
+	gAgentInstr.num_macros = agent_db_count(gAgentVDB.macros, &(gAgentVDB.macros_mutex)) +
+			                    agent_db_count(gAdmMacros, NULL);
 
 	*status = CTRL_SUCCESS;
+
 	return NULL;
 }
 
@@ -923,24 +902,15 @@ tdc_t *agent_ctl_mac_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_mac_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_mac_del","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the MID defining the new computed definition. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
@@ -957,6 +927,9 @@ tdc_t *agent_ctl_mac_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 	}
 
 	midcol_destroy(&mc);
+
+	gAgentInstr.num_macros = agent_db_count(gAgentVDB.macros, &(gAgentVDB.macros_mutex)) +
+			                    agent_db_count(gAdmMacros, NULL);
 
 	*status = CTRL_SUCCESS;
 	return NULL;
@@ -978,15 +951,6 @@ tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	LystElt elt;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
-
-	/* Step 0: Sanity Check. */
-
-	if(lyst_length(params) != 0)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_mac_lst","Bad # params. Need 0, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
@@ -1036,36 +1000,27 @@ tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
 	tdc_t *retval = NULL;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_mac_dsc","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the list of MIDs to describe. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
 	/* Step 2: Allocate the retval holding the descriptions. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		midcol_destroy(&mc);
 		DTNMP_DEBUG_ERR("agent_ctl_mac_dsc","Can't make lyst.", NULL);
-		*status = CTRL_FAILURE;
+
+		midcol_destroy(&mc);
 		return NULL;
 	}
 
@@ -1104,89 +1059,65 @@ tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_trl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	mid_t *mid = NULL;
 	Lyst action = NULL;
-	uvast offset = 0;
+	uint32_t offset = 0;
 	uvast count = 0;
 	uvast period = 0;
 	trl_t *rule = NULL;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 5)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_trl_add","Bad # params. Need 5, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the MID defining the new rule. */
-	elt = lyst_first(params);
-	cur = lyst_data(elt);
-	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mid = adm_extract_mid(params,1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
-
 	/* Step 2: Grab the offset for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if(utils_grab_sdnv(cur->value, cur->length, &offset) <= 0)
+	offset = adm_extract_uint(params, 2, &success);
+	if(success == 0)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
 	/* Step 3: Grab the period for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if(utils_grab_sdnv(cur->value, cur->length, &period) <= 0)
+	period = adm_extract_sdnv(params, 3, &success);
+	if(success == 0)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
 	/* Step 4: Grab the count for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if(utils_grab_sdnv(cur->value, cur->length, &count) <= 0)
+	count = adm_extract_sdnv(params, 4, &success);
+	if(success == 0)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
 	/* Step 5: Grab the macro action for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if((action = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((action =adm_extract_mc(params, 5, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
 	/* Step 6: Create the new rule. */
-	if((rule = trl_create(mid, (time_t) time, count, period, action)) != NULL)
+	if((rule = trl_create(mid, (time_t) offset, count, period, action)) != NULL)
 	{
 		*status = CTRL_SUCCESS;
+
+		rule->desc.sender = *def_mgr;
 		agent_db_trl_persist(rule);
 		ADD_TRL(rule);
 	}
-	else
-	{
-		*status = CTRL_FAILURE;
-	}
+
+	gAgentInstr.num_time_rules = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
+
 
 	mid_release(mid);
 	midcol_destroy(&action);
@@ -1205,24 +1136,15 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_trl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_trl_del","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the MID defining the new computed definition. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
@@ -1239,6 +1161,8 @@ tdc_t *agent_ctl_trl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 	}
 
 	midcol_destroy(&mc);
+
+	gAgentInstr.num_time_rules = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
 
 	*status = CTRL_SUCCESS;
 	return NULL;
@@ -1262,14 +1186,6 @@ tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
 
-	/* Step 0: Sanity Check. */
-
-	if(lyst_length(params) != 0)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_trl_lst","Bad # params. Need 0, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
@@ -1320,36 +1236,27 @@ tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
 	tdc_t *retval = NULL;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_trl_dsc","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the list of MIDs to describe. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
 	/* Step 2: Allocate the retval holding the descriptions. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		midcol_destroy(&mc);
 		DTNMP_DEBUG_ERR("agent_ctl_trl_dsc","Can't make lyst.", NULL);
-		*status = CTRL_FAILURE;
+
+		midcol_destroy(&mc);
 		return NULL;
 	}
 
@@ -1389,97 +1296,68 @@ tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_srl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	mid_t *mid = NULL;
 	Lyst action = NULL;
 	Lyst expr = NULL;
 	uvast offset = 0;
 	uvast count = 0;
 	srl_t *rule = NULL;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 5)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_srl_add","Bad # params. Need 5, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the MID defining the new rule. */
-	elt = lyst_first(params);
-	cur = lyst_data(elt);
-	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
 
 	/* Step 2: Grab the offset for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if(utils_grab_sdnv(cur->value, cur->length, &offset) <= 0)
+	offset = adm_extract_uint(params, 2, &success);
+	if(success == 0)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
 	/* Step 3: Grab the expression for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if((expr = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((expr = adm_extract_mc(params, 3, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		return NULL;
 	}
 
 	/* Step 4: Grab the count for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if(utils_grab_sdnv(cur->value, cur->length, &count) <= 0)
+	count = adm_extract_sdnv(params, 4, &success);
+	if(success == 0)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		midcol_destroy(&expr);
 		return NULL;
 	}
 
 	/* Step 5: Grab the macro action for this rule. */
-	elt = lyst_next(elt);
-	cur = lyst_data(elt);
-
-	if((action = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((action =adm_extract_mc(params, 5, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		mid_release(mid);
 		midcol_destroy(&expr);
 		return NULL;
 	}
 
 	/* Step 6: Create the new rule. */
-	if((rule = srl_create(mid, (time_t) time, expr, count, action)) != NULL)
+	if((rule = srl_create(mid, offset, expr, count, action)) != NULL)
 	{
 		*status = CTRL_SUCCESS;
 		agent_db_srl_persist(rule);
 		ADD_SRL(rule);
 	}
-	else
-	{
-		*status = CTRL_FAILURE;
-	}
 
 	mid_release(mid);
 	midcol_destroy(&expr);
 	midcol_destroy(&action);
-	return NULL;
 
+	gAgentInstr.num_prod_rules = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
 
 	return NULL;
 }
@@ -1497,24 +1375,15 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_srl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_srl_del","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the MID defining the new computed definition. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params,1,&success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
@@ -1531,6 +1400,8 @@ tdc_t *agent_ctl_srl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 	}
 
 	midcol_destroy(&mc);
+
+	gAgentInstr.num_prod_rules = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
 
 	*status = CTRL_SUCCESS;
 	return NULL;
@@ -1552,15 +1423,6 @@ tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 	LystElt elt;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
-
-	/* Step 0: Sanity Check. */
-
-	if(lyst_length(params) != 0)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_srl_lst","Bad # params. Need 0, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
 
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
@@ -1612,36 +1474,27 @@ tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, Lyst params, uint8_t *status)
 
 tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, Lyst params, uint8_t *status)
 {
-	LystElt elt = NULL;
-	datacol_entry_t *cur = NULL;
-	uint32_t bytes = 0;
 	Lyst mc = NULL;
+	LystElt elt = NULL;
 	tdc_t *retval = NULL;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
+	uint8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(lyst_length(params) != 1)
-	{
-		DTNMP_DEBUG_ERR("agent_ctl_srl_dsc","Bad # params. Need 1, received %d", lyst_length(params));
-		*status = CTRL_FAILURE;
-		return NULL;
-	}
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the list of MIDs to describe. */
-	cur = lyst_data(lyst_first(params));
-	if((mc = midcol_deserialize(cur->value, cur->length, &bytes)) == NULL)
+	if((mc = adm_extract_mc(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
 	/* Step 2: Allocate the retval holding the descriptions. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		midcol_destroy(&mc);
 		DTNMP_DEBUG_ERR("agent_ctl_srl_dsc","Can't make lyst.", NULL);
-		*status = CTRL_FAILURE;
+
+		midcol_destroy(&mc);
 		return NULL;
 	}
 

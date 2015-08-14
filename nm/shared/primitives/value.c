@@ -400,6 +400,54 @@ double  val_cvt_real64(value_t *val)
 }
 
 
+void val_cvt_type(value_t *val, dtnmp_type_e type)
+{
+	if((val == NULL) || (type == DTNMP_TYPE_UNK))
+	{
+		return;
+	}
+
+	if(val->type == type)
+	{
+		return;
+	}
+
+	if((type_is_numeric(type) == 0) ||
+	   (type_is_numeric(val->type) == 0))
+	{
+		DTNMP_DEBUG_ERR("val_cvt_type","Can't cvt from %d to %d.", val->type, type);
+		return;
+	}
+
+	val->type = type;
+	switch(val->type)
+	{
+	case DTNMP_TYPE_INT:
+		val->value.as_int = val_cvt_int(val);
+		break;
+	case DTNMP_TYPE_UINT:
+		val->value.as_uint = val_cvt_uint(val);
+		break;
+	case DTNMP_TYPE_VAST:
+		val->value.as_vast = val_cvt_vast(val);
+		break;
+	case DTNMP_TYPE_UVAST:
+		val->value.as_uvast = val_cvt_uvast(val);
+		break;
+	case DTNMP_TYPE_REAL32:
+		val->value.as_real32 = val_cvt_real32(val);
+		break;
+	case DTNMP_TYPE_REAL64:
+		val->value.as_real64 = val_cvt_real64(val);
+		break;
+	default:
+		DTNMP_DEBUG_ERR("val_cvt_type","Can't convert to non-numeric type.", NULL);
+		break;
+
+	}
+}
+
+
 /******************************************************************************
  *
  * \par Function Name: val_deserialize
@@ -725,7 +773,7 @@ uint32_t val_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *by
 	uint32_t result = 0;
 
 	/* Step 0: Sanity check. */
-	if((buffer == NULL) || (bytes_left < sizeof(uint32_t)) || (bytes_used == NULL))
+	if((buffer == NULL) || (bytes_used == NULL))
 	{
 		DTNMP_DEBUG_ERR("val_deserialize_uint","Bad Args.", NULL);
 		if(bytes_used != NULL)
@@ -735,6 +783,7 @@ uint32_t val_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *by
 		return 0;
 	}
 
+	// + 1 for length byte.
 	if(bytes_left < sizeof(uint32_t))
 	{
 		DTNMP_DEBUG_ERR("val_deserialize_uint","Buffer size %d too small for %d.", bytes_left, sizeof(uint32_t));
@@ -763,7 +812,7 @@ uvast    val_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t *b
 	uvast result = 0;
 
 	/* Step 0: Sanity check. */
-	if((buffer == NULL) || (bytes_left < sizeof(uvast)) || (bytes_used == NULL))
+	if((buffer == NULL) || (bytes_used == NULL))
 	{
 		DTNMP_DEBUG_ERR("val_deserialize_uvast","Bad Args.", NULL);
 		if(bytes_used != NULL)
@@ -809,7 +858,7 @@ uvast    val_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t *b
 	*bytes_used = 8;
 
 	/* Step 2: Check byte order. */
-//	result = ntohl(result);
+	result = ntohv(result);
 
 	return result;
 }
@@ -843,7 +892,7 @@ value_t  val_from_string(char *str)
 	}
 
 	/* Step 2 - Find out length of string. */
-	len = strlen(str);
+	len = strlen(str) + 1;
 
 	/* Step 3 - Allocate storage for the string. */
 	if((result.value.as_ptr = MTAKE(len)) == NULL)
@@ -854,9 +903,9 @@ value_t  val_from_string(char *str)
 	}
 
 	/* Step 4 - Populate the return value. */
-	result.length = strlen(str);
+	result.length = strlen(str) + 1;
 	result.type = DTNMP_TYPE_STRING;
-	memcpy(&(result.value.as_ptr),str,result.length);
+	memcpy(result.value.as_ptr,str,result.length);
 
 	DTNMP_DEBUG_EXIT("val_from_string","-> %s", str);
 	return result;
@@ -1026,9 +1075,10 @@ void val_release(value_t *val)
  *		1. The serialized version of the value exists on the memory pool and must be
  *         released when finished.
  *
+ *8/6/2015 E. Birrane Added use_type
  *****************************************************************************/
 
-uint8_t* val_serialize(value_t *val, uint32_t *size)
+uint8_t* val_serialize(value_t *val, uint32_t *size, int use_type)
 {
 	uint8_t *result = NULL;
 	uint8_t *cursor = NULL;
@@ -1087,10 +1137,9 @@ uint8_t* val_serialize(value_t *val, uint32_t *size)
 			data = val_serialize_real64(val->value.as_real64, &data_size);
 			break;
 
-		case DTNMP_TYPE_STRING:
-			data = val_serialize_string((char *) val->value.as_ptr, &data_size);
-			break;
+    	/* In these cases, we assume the ptr already contains the serialized object. */
 
+		case DTNMP_TYPE_STRING:
 		case DTNMP_TYPE_BLOB:
 		case DTNMP_TYPE_DC:
 		case DTNMP_TYPE_MID:
@@ -1124,6 +1173,12 @@ uint8_t* val_serialize(value_t *val, uint32_t *size)
 	/* Step 2: Calculate the overall length of the serialized value. */
 	*size = 1 + length.length + data_size;
 
+	/* Don't count type is we are not using it. */
+	if(use_type == 0)
+	{
+		*size = *size - 1;
+	}
+
 	/* Step 3: Allocate result. */
 	if((result = (uint8_t*) MTAKE(*size)) == NULL)
 	{
@@ -1133,10 +1188,14 @@ uint8_t* val_serialize(value_t *val, uint32_t *size)
 		return NULL;
 	}
 
-	/* Step 3a: Copy in the value type. */
 	cursor = result;
-	memcpy(cursor, &(val->type), 1);
-	cursor += 1;
+
+	/* Step 3a: Copy in the value type. */
+	if(use_type != 0)
+	{
+		memcpy(cursor, &(val->type), 1);
+		cursor += 1;
+	}
 
 	/* Step 3b: Copy in the value length as an SDNV. */
 	memcpy(cursor, length.text, length.length);
@@ -1193,9 +1252,83 @@ uint8_t *val_serialize_blob(uint8_t *value, uint32_t value_size, uint32_t *size)
 	return result;
 }
 
+uint8_t *val_serialize_byte(uint8_t value, uint32_t *size)
+{
+	uint8_t *result = NULL;
+
+	*size = 1;
+	if((result = (uint8_t *) MTAKE(*size)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("val_serialize_byte","Cannot grab memory.", NULL);
+		return NULL;
+	}
+
+	result[0] = value;
+
+	return result;
+}
+
 uint8_t *val_serialize_int(int32_t value, uint32_t *size)
 {
 	return val_serialize_uint((uint32_t) value, size);
+}
+
+
+uint8_t* val_serialize_raw(value_t *val, uint32_t *size)
+{
+	uint8_t *data = NULL;
+
+	if((val == NULL) || (size == NULL))
+	{
+		return NULL;
+	}
+
+	switch(val->type)
+	{
+		case DTNMP_TYPE_BYTE:
+			data = val_serialize_byte(val->value.as_int, size);
+			break;
+
+		case DTNMP_TYPE_INT:
+			data = val_serialize_int(val->value.as_int, size);
+			break;
+
+		case DTNMP_TYPE_TS:
+		case DTNMP_TYPE_UINT:
+			data = val_serialize_uint(val->value.as_uint, size);
+			break;
+
+		case DTNMP_TYPE_VAST:
+			data = val_serialize_vast(val->value.as_vast, size);
+			break;
+
+		case DTNMP_TYPE_UVAST:
+			data = val_serialize_uvast(val->value.as_uvast, size);
+			break;
+
+		case DTNMP_TYPE_REAL32:
+			data = val_serialize_real32(val->value.as_real32, size);
+			break;
+
+		case DTNMP_TYPE_REAL64:
+			data = val_serialize_real64(val->value.as_real64, size);
+			break;
+
+		case DTNMP_TYPE_STRING:
+			data = val_serialize_string(val->value.as_ptr, size);
+			break;
+
+		case DTNMP_TYPE_SDNV:
+		case DTNMP_TYPE_DC:
+		case DTNMP_TYPE_MID:
+		case DTNMP_TYPE_MC:
+		case DTNMP_TYPE_EXPR:
+		case DTNMP_TYPE_BLOB:
+			data = val_serialize_blob(val->value.as_ptr, val->length, size);
+			break;
+	}
+
+	return data;
 }
 
 uint8_t *val_serialize_real32(float value, uint32_t *size)
@@ -1228,6 +1361,7 @@ uint8_t *val_serialize_string(char *value, uint32_t *size)
 uint8_t *val_serialize_uint(uint32_t value, uint32_t *size)
 {
 	uint8_t *result = NULL;
+	uint32_t tmp;
 
 	if(size == NULL)
 	{
@@ -1241,10 +1375,11 @@ uint8_t *val_serialize_uint(uint32_t value, uint32_t *size)
 		return NULL;
 	}
 
-	result[0] = (value >> 24) & (0xFF);
-	result[1] = (value >> 16) & (0xFF);
-	result[2] = (value >> 8) & (0xFF);
-	result[3] = value & (0xFF);
+	tmp = htonl(value);
+	result[0] = (tmp >> 24) & (0xFF);
+	result[1] = (tmp >> 16) & (0xFF);
+	result[2] = (tmp >> 8) & (0xFF);
+	result[3] = tmp & (0xFF);
 
 	*size = 4;
 
@@ -1255,6 +1390,7 @@ uint8_t *val_serialize_uint(uint32_t value, uint32_t *size)
 uint8_t *val_serialize_uvast(uvast value, uint32_t *size)
 {
 	uint8_t *result = NULL;
+	uvast tmp;
 
 	if(size == NULL)
 	{
@@ -1274,14 +1410,16 @@ uint8_t *val_serialize_uvast(uvast value, uint32_t *size)
 		return NULL;
 	}
 
-	result[0] = (value >> 56) & (0xFF);
-	result[1] = (value >> 48) & (0xFF);
-	result[2] = (value >> 40) & (0xFF);
-	result[3] = (value >> 32) & (0xFF);
-	result[4] = (value >> 24) & (0xFF);
-	result[5] = (value >> 16) & (0xFF);
-	result[6] = (value >> 8) & (0xFF);
-	result[7] = value & (0xFF);
+	tmp = htonv(value);
+
+	result[0] = (tmp >> 56) & (0xFF);
+	result[1] = (tmp >> 48) & (0xFF);
+	result[2] = (tmp >> 40) & (0xFF);
+	result[3] = (tmp >> 32) & (0xFF);
+	result[4] = (tmp >> 24) & (0xFF);
+	result[5] = (tmp >> 16) & (0xFF);
+	result[6] = (tmp >> 8) & (0xFF);
+	result[7] = tmp & (0xFF);
 
 	*size = 8;
 

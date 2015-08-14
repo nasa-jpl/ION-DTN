@@ -482,7 +482,7 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 	/* Step 2: Serialize the report entries list. */
 	if((entries = rpt_entry_serialize_lst(rpt->entries, &entries_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_serialize","Can't serialie entries.",NULL);
+		DTNMP_DEBUG_ERR("rpt_serialize","Can't serialize entries.",NULL);
 		DTNMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
 		return NULL;
 	}
@@ -775,12 +775,13 @@ rpt_entry_t* rpt_entry_deserialize(uint8_t *cursor,
 		return NULL;
 	}
 
+	*bytes_used = 0;
+
 	/* Step 1: Allocate the new entry. */
 	if((result = (rpt_entry_t*)MTAKE(sizeof(rpt_entry_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("rpt_entry_deserialize","Can't alloc %d bytes.",
 				        sizeof(rpt_entry_t));
-		*bytes_used = 0;
 
 		DTNMP_DEBUG_EXIT("rpt_entry_deserialize","->NULL",NULL);
 		return NULL;
@@ -1117,6 +1118,13 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 
 	*len = 0;
 	num_entries = lyst_length(entries);
+
+	if(num_entries == 0)
+	{
+		DTNMP_DEBUG_ERR("rpt_entry_serialize_lst","No entries to serialize.",NULL);
+		DTNMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
+		return NULL;
+	}
 
 	/* Step 1: Allocate individual storage for each entry. */
 	temp_space = (uint8_t**) MTAKE(num_entries * sizeof(uint8_t *));

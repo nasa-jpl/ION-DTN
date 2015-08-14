@@ -25,6 +25,9 @@
 
 #include "lyst.h"
 
+#include "shared/primitives/dc.h"
+#include "shared/primitives/def.h"
+
 #include "shared/primitives/tdc.h"
 #include "shared/primitives/mid.h"
 #include "shared/primitives/value.h"
@@ -107,26 +110,6 @@ typedef struct
 } adm_datadef_t;
 
 
-
-
-typedef struct
-{
-    mid_t *mid;					 /**> The MID identifying this def.        */
-
-    uint8_t num_parms;           /**> # params needed to complete this MID.*/
-
-    dtnmp_type_e type;           /**> The data type of the CD.             */
-
-    Lyst def;					 /**> MC capturing the expression. 		   */
-
-    adm_size_fn get_size;        /**> Configured sizing function.          */
-
-    adm_string_fn to_string;     /**> Configured to-string function.       */
-
-} adm_computeddef_t;
-
-
-
 /**
  * Describes an ADM Control in the system.
  *
@@ -170,7 +153,7 @@ typedef struct
  * Global data collection of supported ADM information.
  */
 extern Lyst gAdmData;
-extern Lyst gAdmComputed;
+extern Lyst gAdmComputed; // Type def_gen_t
 extern Lyst gAdmCtrls;
 extern Lyst gAdmLiterals;
 extern Lyst gAdmOps;
@@ -186,7 +169,7 @@ extern Lyst gAdmMacros; // Type def_gen_t
 
 int         adm_add_datadef(char *mid_str, dtnmp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
 
-int		 	adm_add_computeddef(char *mid_str, dtnmp_type_e type, int num_parms, Lyst def, adm_string_fn to_string, adm_size_fn get_size);
+int		 	adm_add_computeddef(char *mid_str, dtnmp_type_e type, Lyst def);
 
 
 int         adm_add_ctrl(char *mid_str, adm_ctrl_run_fn run);
@@ -206,7 +189,27 @@ uint8_t*     adm_copy_string(char *value, uint32_t *length);
 
 void         adm_destroy();
 
-adm_computeddef_t* adm_find_computeddef(mid_t *mid);
+
+
+/* Helper functions */
+uint8_t*         adm_extract_blob(Lyst params, uint32_t idx, uint32_t *size, uint8_t *success);
+uint8_t          adm_extract_byte(Lyst params, uint32_t idx, uint8_t *success);
+Lyst             adm_extract_dc(Lyst params, uint32_t idx, uint8_t *success);
+datacol_entry_t* adm_extract_dc_entry(Lyst params, uint32_t idx, uint8_t *success);
+def_gen_t*       adm_extract_def(Lyst params, uint32_t idx, uint8_t *success);
+int32_t          adm_extract_int(Lyst params, uint32_t idx, uint8_t *success);
+Lyst             adm_extract_mc(Lyst params, uint32_t idx, uint8_t *success);
+mid_t*           adm_extract_mid(Lyst params, uint32_t idx, uint8_t *success);
+float            adm_extract_real32(Lyst params, uint32_t idx, uint8_t *success);
+double           adm_extract_real64(Lyst params, uint32_t idx, uint8_t *success);
+uvast            adm_extract_sdnv(Lyst params, uint32_t idx, uint8_t *success);
+char*            adm_extract_string(Lyst params, uint32_t idx, uint8_t *success);
+uint32_t         adm_extract_uint(Lyst params, uint32_t idx, uint8_t *success);
+uvast            adm_extract_uvast(Lyst params, uint32_t idx, uint8_t *success);
+vast             adm_extract_vast(Lyst params, uint32_t idx, uint8_t *success);
+
+
+def_gen_t* adm_find_computeddef(mid_t *mid);
 
 adm_datadef_t* adm_find_datadef(mid_t *mid);
 adm_datadef_t* adm_find_datadef_by_idx(int idx);

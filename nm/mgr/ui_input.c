@@ -626,11 +626,15 @@ oid_t* ui_input_oid(uint8_t mid_flags)
 /*
  * Return a DC in lyst format.
  * \todo: Network Byte Order.
+ * \todo: check return values.
  */
-Lyst               ui_input_parms(ui_parm_spec_t *spec)
+Lyst ui_input_parms(ui_parm_spec_t *spec)
 {
 	Lyst result;
-	datacol_entry_t *entry = NULL;
+	uint8_t *data = NULL;
+	uint32_t size = 0;
+
+	//datacol_entry_t *entry = NULL;
 	int i;
 
 	if(spec == NULL)
@@ -645,126 +649,115 @@ Lyst               ui_input_parms(ui_parm_spec_t *spec)
 
 	for(i = 0; i < spec->num_parms; i++)
 	{
-		entry = (datacol_entry_t*) MTAKE(sizeof(datacol_entry_t));
+//		entry = (datacol_entry_t*) MTAKE(sizeof(datacol_entry_t));
+		data = NULL;
+		size = 0;
 
 		switch(spec->parm_type[i])
 		{
 			case DTNMP_TYPE_BYTE:
 			{
 				uint8_t val = ui_input_byte("Enter BYTE:");
-				dc_add(result, &val, 1);
+				data = val_serialize_byte(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_INT:
 			{
 				int32_t  val = ui_input_int("Enter Signed Integer:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_int(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_UINT:
 			{
 				uint32_t  val = ui_input_uint("Enter Unsigned Integer:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_uint(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_VAST:
 			{
 				vast  val = ui_input_vast("Enter Vast:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_vast(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_UVAST:
 			{
 				uvast  val = ui_input_uvast("Enter Uvast:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_uvast(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_REAL32:
 			{
 				float  val = ui_input_float("Enter Float:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_real32(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_REAL64:
 			{
 				double  val = ui_input_double("Enter Double:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_real64(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_STRING:
 			{
 				char *val = ui_input_string("Enter String:");
-				if(val != NULL)
-				{
-					dc_add(result, (uint8_t*)val, strlen(val));
-					MRELEASE(val);
-				}
+				data = val_serialize_string(val, &size);
+				MRELEASE(val);
 			}
 				break;
 			case DTNMP_TYPE_BLOB:
 			{
 				uint32_t len;
 				uint8_t *val = ui_input_blob("Enter BLOB:", &len);
-				if(val != NULL)
-				{
-					dc_add(result, val, len);
-					MRELEASE(val);
-				}
+				data = val_serialize_blob(val, len, &size);
+				MRELEASE(val);
 			}
 				break;
 			case DTNMP_TYPE_SDNV:
 			{
 				Sdnv val = ui_input_sdnv("Enter SDNV (as uint):");
-				dc_add(result, (uint8_t*)&(val.text), val.length);
+				data = (uint8_t *) MTAKE(val.length);
+				size = val.length;
+				memcpy(data, &(val.text), val.length);
 			}
 				break;
 			case DTNMP_TYPE_TS:
 			{
 				uint32_t  val = ui_input_uint("Enter Timestamp:");
-				dc_add(result, (uint8_t*)&val, sizeof(val));
+				data = val_serialize_uint(val, &size);
 			}
 				break;
 			case DTNMP_TYPE_DC:
 			{
 				Lyst user_dc = ui_input_dc("Enter DC:");
-				uint32_t size = 0;
-				uint8_t *val = dc_serialize(user_dc, &size);
+				data = dc_serialize(user_dc, &size);
 				dc_destroy(&user_dc);
-				dc_add(result, val, size);
-				MRELEASE(val);
 			}
 				break;
 			case DTNMP_TYPE_MID:
 			{
 				mid_t *mid = ui_input_mid("Enter MID:", ADM_ALL, MID_TYPE_ANY, MID_CAT_ANY);
-				uint32_t size = 0;
-				uint8_t *val = mid_serialize(mid, &size);
+				data = mid_serialize(mid, &size);
 				mid_release(mid);
-				dc_add(result, val, size);
-				MRELEASE(val);
 			}
 				break;
 			case DTNMP_TYPE_MC:
 			{
 				Lyst mc = ui_input_mc("Enter MID Collection:");
-				uint32_t size = 0;
-				uint8_t *val = midcol_serialize(mc, &size);
+				data = midcol_serialize(mc, &size);
 				midcol_destroy(&mc);
-				dc_add(result, val, size);
-				MRELEASE(val);
 			}
 				break;
 			case DTNMP_TYPE_EXPR:
 			{
 				Lyst mc = ui_input_mc("Enter Expression as MID Collection:");
-				uint32_t size = 0;
-				uint8_t *val = midcol_serialize(mc, &size);
+				data = midcol_serialize(mc, &size);
 				midcol_destroy(&mc);
-				dc_add(result, val, size);
-				MRELEASE(val);
 			}
 				break;
 		}
+
+		dc_add(result, data, size);
+		MRELEASE(data);
 	}
 
 	return result;

@@ -477,11 +477,7 @@ void dc_destroy(Lyst *datacol)
     {
     	entry = (datacol_entry_t *) lyst_data(elt);
 
-    	if(entry != NULL)
-    	{
-    		MRELEASE(entry->value);
-    		MRELEASE(entry);
-    	}
+    	dc_release_entry(entry);
     }
 
     /* Step 2: Destroy and zero out the lyst. */
@@ -492,6 +488,31 @@ void dc_destroy(Lyst *datacol)
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: dc_release_entry
+ *
+ * \par Purpose: Release a data column entry.
+ *
+ * \param[in|out] entry  The entry to be released.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/20/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+void  dc_release_entry(datacol_entry_t *entry)
+{
+	if(entry != NULL)
+	{
+		MRELEASE(entry->value);
+		MRELEASE(entry);
+	}
+}
 
 /******************************************************************************
  *

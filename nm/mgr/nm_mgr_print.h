@@ -51,6 +51,6 @@ void ui_print_reports(agent_t *agent);
 void ui_print_srl(srl_t *srl);
 void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def);
 void ui_print_trl(trl_t *trl);
-void ui_print_val(value_t *val);
+void ui_print_val(uint8_t type, uint8_t *data, uint32_t length);
 
 #endif

@@ -115,6 +115,8 @@ float    val_cvt_real32(value_t *val);
 
 double	 val_cvt_real64(value_t *val);
 
+void	 val_cvt_type(value_t *val, dtnmp_type_e type);
+
 value_t* val_deserialize(unsigned char *buffer, uint32_t bytes_left, uint32_t *bytes_used);
 
 uint8_t* val_deserialize_blob(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used, uint32_t *len);
@@ -143,9 +145,11 @@ int      val_is_real(value_t *val);
 
 void     val_release(value_t *val);
 
-uint8_t* val_serialize(value_t *val, uint32_t *size);
+uint8_t* val_serialize(value_t *val, uint32_t *size, int use_type);
+uint8_t* val_serialize_raw(value_t *val, uint32_t *size);
 
 uint8_t *val_serialize_blob(uint8_t *value, uint32_t value_size, uint32_t *size);
+uint8_t *val_serialize_byte(uint8_t value, uint32_t *size);
 uint8_t *val_serialize_int(int32_t value, uint32_t *size);
 uint8_t *val_serialize_real32(float value, uint32_t *size);
 uint8_t *val_serialize_real64(double value, uint32_t *size);

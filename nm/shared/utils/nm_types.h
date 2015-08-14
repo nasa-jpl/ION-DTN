@@ -67,5 +67,6 @@ dtnmp_type_e type_from_str(char *str);
 const char *   type_get_fieldspec(dtnmp_type_e type);
 size_t   type_get_size(dtnmp_type_e type);
 const char *   type_to_str(dtnmp_type_e type);
+uint8_t type_is_numeric(dtnmp_type_e type);
 
 #endif /* NM_TYPES_H */

@@ -52,12 +52,15 @@
 #include "nmagent.h"
 #include "ldc.h"
 #include "lcc.h"
+#include "expr.h"
 
 Lyst g_rda_cur_rpts;
-Lyst g_rda_rules_pend;
+Lyst g_rda_trls_pend;
+Lyst g_rda_srls_pend;
 
 ResourceLock g_rda_cur_rpts_mutex;
-ResourceLock g_rda_rules_pend_mutex;
+ResourceLock g_rda_trls_pend_mutex;
+ResourceLock g_rda_srls_pend_mutex;
 
 /******************************************************************************
  *
@@ -78,14 +81,18 @@ ResourceLock g_rda_rules_pend_mutex;
 
 void rda_cleanup()
 {
-	lockResource(&g_rda_rules_pend_mutex);
+	lockResource(&g_rda_trls_pend_mutex);
+	lockResource(&g_rda_srls_pend_mutex);
 
 	/* rules_pending only holds pointers. Nothing to free. */
-    lyst_destroy(g_rda_rules_pend);
+    lyst_destroy(g_rda_trls_pend);
+    lyst_destroy(g_rda_srls_pend);
 
-    unlockResource(&g_rda_rules_pend_mutex);
+    unlockResource(&g_rda_trls_pend_mutex);
+    unlockResource(&g_rda_srls_pend_mutex);
     
-    killResourceLock(&g_rda_rules_pend_mutex);
+    killResourceLock(&g_rda_trls_pend_mutex);
+    killResourceLock(&g_rda_srls_pend_mutex);
 
 
 	lockResource(&g_rda_cur_rpts_mutex);
@@ -203,52 +210,57 @@ rpt_t *rda_get_report(eid_t recipient)
  *  --------  ------------   ---------------------------------------------
  *  10/21/11  E. Birrane     Initial implementation,
  *  05/20/15  E. Birrane     Moved to global, mutex-protected lyst
+ *  08/14/15  E. Birrane     Added SRL processing.
  *****************************************************************************/
 
 int rda_scan_rules()
 {
     LystElt elt;
-    trl_t *rule_p = NULL;
+    trl_t *trl = NULL;
+    srl_t *srl = NULL;
     
     DTNMP_DEBUG_ENTRY("rda_scan_rules","()", NULL);
 
     
     /* Step 0: Start with a fresh list for pending rules */
-    lockResource(&g_rda_rules_pend_mutex);
-    lyst_clear(g_rda_rules_pend);
-    unlockResource(&g_rda_rules_pend_mutex);
+    lockResource(&g_rda_trls_pend_mutex);
+    lockResource(&g_rda_srls_pend_mutex);
+    lyst_clear(g_rda_trls_pend);
+    lyst_clear(g_rda_srls_pend);
+    unlockResource(&g_rda_trls_pend_mutex);
+    unlockResource(&g_rda_srls_pend_mutex);
     
     /* 
-     * Step 1: Walk through each defined rule and see if it should be
+     * Step 1: Walk through each defined time rule and see if it should be
      *         included in the current evaluation scan.
      */    
     for (elt = lyst_first(gAgentVDB.trls); elt; elt = lyst_next(elt))
     {
         /* Step 1.1: Grab the next rule...*/
-        if((rule_p = (trl_t *) lyst_data(elt)) == NULL)
+        if((trl = (trl_t *) lyst_data(elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL rule. Exiting", NULL);
+            DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL TRL. Exiting", NULL);
             DTNMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
             return -1;
         }
                 
         /* Step 1.2: Determine if this rule is ready for possible evaluation. */
-        if(rule_p->countdown_ticks == 0)
+        if(trl->countdown_ticks == 0)
         {
             /*
              * Step 1.2.1: Determine if this rule has been evaluated more than
              *             its maximum number of evaluations
              */
-            if((rule_p->desc.num_evals > 0) ||
-               (rule_p->desc.num_evals == DTNMP_RULE_EXEC_ALWAYS))
+            if((trl->desc.num_evals > 0) ||
+               (trl->desc.num_evals == DTNMP_RULE_EXEC_ALWAYS))
             {
             	/* Step 1.2.2: If ready, add rule to list of rules pending
             	 *             evaluation in this current tick.
             	 */
 
-                lockResource(&g_rda_rules_pend_mutex);
-            	lyst_insert_first(g_rda_rules_pend, rule_p);
-                unlockResource(&g_rda_rules_pend_mutex);
+                lockResource(&g_rda_trls_pend_mutex);
+            	lyst_insert_first(g_rda_trls_pend, trl);
+                unlockResource(&g_rda_trls_pend_mutex);
 
             	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
                 		         NULL);
@@ -257,10 +269,60 @@ int rda_scan_rules()
         else
         {
         	/* Step 1.2.2: If not ready, note that another tick has elapsed. */
-            rule_p->countdown_ticks--;
+            trl->countdown_ticks--;
         }                
     }
     
+
+    /*
+     * Step 2: Walk through each defined state rule and see if it should be
+     *         included in the current evaluation scan.
+     */
+    for (elt = lyst_first(gAgentVDB.srls); elt; elt = lyst_next(elt))
+    {
+        /* Step 1.1: Grab the next rule...*/
+        if((srl = (srl_t *) lyst_data(elt)) == NULL)
+        {
+            DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL SRL. Exiting", NULL);
+            DTNMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
+            return -1;
+        }
+
+        /* Step 1.2: Determine if this rule is ready for possible evaluation. */
+        if(srl->countdown_ticks == 0)
+        {
+            /*
+             * Step 1.2.1: Determine if this rule has been evaluated more than
+             *             its maximum number of evaluations
+             */
+            if((srl->desc.num_evals > 0) ||
+               (srl->desc.num_evals == DTNMP_RULE_EXEC_ALWAYS))
+            {
+            	/* Step 1.2.2: If ready, add rule to list of rules pending
+            	 *             evaluation in this current tick.
+            	 */
+            	value_t val;
+            	val = expr_eval(srl->expr);
+            	if(val_cvt_uint(&val) != 0)
+            	{
+            		lockResource(&g_rda_srls_pend_mutex);
+            		lyst_insert_first(g_rda_srls_pend, srl);
+            		unlockResource(&g_rda_srls_pend_mutex);
+            	}
+
+            	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
+                		         NULL);
+            }
+        }
+        else
+        {
+        	/* Step 1.2.2: If not ready, note that another tick has elapsed. */
+            srl->countdown_ticks--;
+        }
+    }
+
+
+
     DTNMP_DEBUG_EXIT("rda_scan_rules","->0.", NULL);
     return 0;
 }
@@ -363,7 +425,7 @@ int rda_clean_ctrls(Lyst exec_defs)
      * Step 1: Walk through each defined ctrl and see if it should be included
      *         in the current evaluation scan.
      */
-    for (elt = lyst_first(exec_defs); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(exec_defs); elt; )
     {
         /* Step 1.1: Grab the next ctrl...*/
         if((ctrl_p = (ctrl_exec_t *) lyst_data(elt)) == NULL)
@@ -388,6 +450,11 @@ int rda_clean_ctrls(Lyst exec_defs)
 
         	/* Step 1.2.3: Release the control object. */
         	ctrl_release(ctrl_p);
+        }
+
+        if(elt != NULL)
+        {
+        	elt = lyst_next(elt);
         }
     }
 
@@ -445,85 +512,6 @@ rpt_entry_t *rda_build_report_entry(mid_t *mid)
     return entry;
 }
 
-/*
- * Returns # rules processed.
- */
-
-/******************************************************************************
- *
- * \par Function Name: rda_eval_rule
- *
- * \par Purpose: Generate a data report by evaluating a time-based production
- *               rule.
- *
- * \return -1   - Error
- *         >= 0 - # rules processed.
- *
- * \param[in]  rule_p   - The MID identifying the report to populate.
- * \param[out] report_p - The constructed report.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/21/11  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-int rda_eval_rule(trl_t *rule_p, rpt_t *report_p)
-{
-	rpt_entry_t *entry = NULL;
-    LystElt elt;
-    mid_t *cur_mid = NULL;
-    int result = 0;
-    Sdnv tmp;
-    
-    DTNMP_DEBUG_ENTRY("rda_eval_rule","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-    		           (uvast) rule_p, (uvast) report_p);
-    
-    /* Step 0: Sanity check.*/
-    if((rule_p == NULL) || (report_p == NULL))
-    {
-    	DTNMP_DEBUG_ERR("rda_eval_rule","Bad parms.", NULL);
-    	return -1;
-    }
-
-    /* Step 1: Update statistics. */
-	gAgentInstr.num_time_rules_run++;
-
-    /* Step 2: For each MID listed in the evaluating report...*/
-    for (elt = lyst_first(rule_p->action); elt; elt = lyst_next(elt))
-    {
-
-    	// \todo: Run action, these aren't reports anymore.
-
-        if((cur_mid = (mid_t*) lyst_data(elt)) == NULL)
-        {
-            DTNMP_DEBUG_ERR("rda_eval_rule","Bad Rule MID.", NULL);
-            DTNMP_DEBUG_EXIT("rda_eval_rule","->-1", NULL);
-            return -1;
-        }
-    
-        /* Step 2.1: Construct The data entry for this MID. */
-        if((entry = rda_build_report_entry(cur_mid)) == NULL)
-        {
-            DTNMP_DEBUG_ERR("rda_eval_rule","Can't build report entry.", NULL);
-            DTNMP_DEBUG_EXIT("rda_eval_rule","->-1", NULL);
-            return -1;            
-        }
-        
-        /* Step 2.2: Add new entry to the report. */
-        lyst_insert_last(report_p->entries,entry);
-        
-        result++;
-    }
-    
-    DTNMP_DEBUG_EXIT("rda_eval_rule","-> %d", result);
-    return result;
-}    
-    
-
-
 /******************************************************************************
  *
  * \par Function Name: rda_eval_pending_rules
@@ -547,46 +535,86 @@ int rda_eval_pending_rules()
 {
     
     LystElt pending_elt;
-    trl_t *rule_p = NULL;
-    
+    trl_t *trl = NULL;
+    srl_t *srl = NULL;
     
     DTNMP_DEBUG_ENTRY("rda_eval_pending_rules","()", NULL);
 
-    lockResource(&g_rda_rules_pend_mutex);
+    lockResource(&g_rda_trls_pend_mutex);
 
     DTNMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval%d rules.",
-    		         lyst_length(g_rda_rules_pend));
+    		         lyst_length(g_rda_trls_pend));
 
-    for (pending_elt = lyst_first(g_rda_rules_pend); pending_elt; pending_elt = lyst_next(pending_elt))
+    for (pending_elt = lyst_first(g_rda_trls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
         /* Grab the next rule...*/
-        if((rule_p = (trl_t*) lyst_data(pending_elt)) == NULL)
+        if((trl = (trl_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_pending_rules",
             		        "Cannot find pending rule from elt 0x%x.", pending_elt);
 
-            unlockResource(&g_rda_rules_pend_mutex);
+            unlockResource(&g_rda_trls_pend_mutex);
 
             DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
             return -1;
         }
         
         /* Evaluate the rule */
-        rpt_t *rpt = rda_get_report(rule_p->desc.sender);
 
-        rda_eval_rule(rule_p, rpt);
-        
+    	gAgentInstr.num_time_rules_run++;
+    	lcc_run_macro(trl->action);
+
         /* Note that the rule has been evaluated */        
-        if(rule_p->desc.num_evals > 0)
+        if(trl->desc.num_evals > 0)
         {
         	DTNMP_DEBUG_INFO("rda_eval_pending_rules",
         			         "Decrementing rule eval count from %d.",
-        			         rule_p->desc.num_evals);
-            rule_p->desc.num_evals--;
+        			         trl->desc.num_evals);
+            trl->desc.num_evals--;
         }
     }
 
-    unlockResource(&g_rda_rules_pend_mutex);
+    unlockResource(&g_rda_trls_pend_mutex);
+
+
+
+    /* SRLS */
+    lockResource(&g_rda_srls_pend_mutex);
+
+    DTNMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval %d SRLs.",
+    		         lyst_length(g_rda_srls_pend));
+
+    for (pending_elt = lyst_first(g_rda_srls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
+    {
+        /* Grab the next rule...*/
+        if((srl = (srl_t*) lyst_data(pending_elt)) == NULL)
+        {
+            DTNMP_DEBUG_ERR("rda_eval_pending_rules",
+            		        "Cannot find pending rule from elt 0x%x.", pending_elt);
+
+            unlockResource(&g_rda_srls_pend_mutex);
+
+            DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
+            return -1;
+        }
+
+        /* Evaluate the rule */
+
+    	gAgentInstr.num_prod_rules_run++;
+    	lcc_run_macro(srl->action);
+
+        /* Note that the rule has been evaluated */
+        if(srl->desc.num_evals > 0)
+        {
+        	DTNMP_DEBUG_INFO("rda_eval_pending_rules",
+        			         "Decrementing rule eval count from %d.",
+        			         srl->desc.num_evals);
+            srl->desc.num_evals--;
+        }
+    }
+
+    unlockResource(&g_rda_srls_pend_mutex);
+
 
     DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
     return 0;
@@ -737,31 +765,32 @@ int rda_send_reports()
 int rda_eval_cleanup()
 {
     LystElt pending_elt;
-    trl_t *rule_p = NULL;
+    trl_t *trl = NULL;
+    srl_t *srl = NULL;
     
     DTNMP_DEBUG_ENTRY("rda_eval_cleanup","()", NULL);
         
-    lockResource(&g_rda_rules_pend_mutex);
+    lockResource(&g_rda_trls_pend_mutex);
 
     /* Step 1: For each pending rule...*/
-    for (pending_elt = lyst_first(g_rda_rules_pend); pending_elt; pending_elt = lyst_next(pending_elt))
+    for (pending_elt = lyst_first(g_rda_trls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
         /*
          * Step 1.1: Grab the next rule. If it is NULL, we stop processing
          *           as the system is in a potentially unknown state.
          */
-        if((rule_p = (trl_t*) lyst_data(pending_elt)) == NULL)
+        if((trl = (trl_t*) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
 
-            unlockResource(&g_rda_rules_pend_mutex);
+            unlockResource(&g_rda_trls_pend_mutex);
 
             DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
             return -1;
         }
         
         /* Step 1.2: If the rule should no longer execute, delete it */
-        if(rule_p->desc.num_evals == 0)
+        if(trl->desc.num_evals == 0)
         {
             DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
 
@@ -771,7 +800,7 @@ int rda_eval_cleanup()
             for(tmp_elt = lyst_first(gAgentVDB.trls); tmp_elt; tmp_elt = lyst_next(tmp_elt))
             {
             	trl_t *tmp_rule = (trl_t*) lyst_data(tmp_elt);
-            	if(tmp_rule == rule_p)
+            	if(tmp_rule == trl)
             	{
             		del_elt = tmp_elt;
             		tmp_elt = lyst_prev(tmp_elt);
@@ -780,13 +809,13 @@ int rda_eval_cleanup()
             }
 
             /* Step 1.2.2: Remove the rule from the SDR storage.. */
-            db_forget(&(rule_p->desc.itemObj),
-         	          &(rule_p->desc.descObj),
+            db_forget(&(trl->desc.itemObj),
+         	          &(trl->desc.descObj),
                       gAgentDB.trls);
 
             /* Step 1.2.3: Release the rule. */
-            trl_release(rule_p);
-            rule_p = NULL;
+            trl_release(trl);
+            trl = NULL;
 
             /* Step 1.2.4: Correct counters. */
         	gAgentInstr.num_time_rules--;
@@ -795,14 +824,82 @@ int rda_eval_cleanup()
         /* Step 1.3: If the rule should run again, reset its timer. */
         else
         {
-            rule_p->countdown_ticks = rule_p->desc.interval_ticks;
+            trl->countdown_ticks = trl->desc.interval_ticks;
 
             /* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
-            agent_db_trl_persist(rule_p);
+            agent_db_trl_persist(trl);
         }
     }
 
-    unlockResource(&g_rda_rules_pend_mutex);
+    unlockResource(&g_rda_trls_pend_mutex);
+
+
+    /* SRLs */
+
+    lockResource(&g_rda_srls_pend_mutex);
+
+    /* Step 1: For each pending rule...*/
+    for (pending_elt = lyst_first(g_rda_srls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
+    {
+        /*
+         * Step 1.1: Grab the next rule. If it is NULL, we stop processing
+         *           as the system is in a potentially unknown state.
+         */
+        if((srl = (srl_t*) lyst_data(pending_elt)) == NULL)
+        {
+            DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
+
+            unlockResource(&g_rda_srls_pend_mutex);
+
+            DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
+            return -1;
+        }
+
+        /* Step 1.2: If the rule should no longer execute, delete it */
+        if(srl->desc.num_evals == 0)
+        {
+            DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
+
+        	/* Step 1.2.1: Find and remove the rule in the memory list. */
+            LystElt tmp_elt;
+            LystElt del_elt;
+            for(tmp_elt = lyst_first(gAgentVDB.srls); tmp_elt; tmp_elt = lyst_next(tmp_elt))
+            {
+            	srl_t *tmp_rule = (srl_t*) lyst_data(tmp_elt);
+            	if(tmp_rule == srl)
+            	{
+            		del_elt = tmp_elt;
+            		tmp_elt = lyst_prev(tmp_elt);
+            		lyst_delete(del_elt);
+            	}
+            }
+
+            /* Step 1.2.2: Remove the rule from the SDR storage.. */
+            db_forget(&(srl->desc.itemObj),
+         	          &(srl->desc.descObj),
+                      gAgentDB.srls);
+
+            /* Step 1.2.3: Release the rule. */
+            srl_release(srl);
+            srl = NULL;
+
+            /* Step 1.2.4: Correct counters. */
+        	gAgentInstr.num_prod_rules--;
+        }
+
+        /* Step 1.3: If the rule should run again, reset its timer. */
+        else
+        {
+            srl->countdown_ticks = srl->desc.interval_ticks;
+
+            /* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
+            agent_db_srl_persist(srl);
+        }
+    }
+
+    unlockResource(&g_rda_srls_pend_mutex);
+
+
 
     DTNMP_DEBUG_EXIT("rda_eval_cleanup","->0", NULL);
     return 0;    
@@ -849,9 +946,17 @@ void* rda_thread(void* threadId)
 		return NULL;
 	}
 
-	if((g_rda_rules_pend = lyst_create()) == NULL)
+	if((g_rda_trls_pend = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Pending Rules Lyst!", NULL);
+		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Pending TRLs Lyst!", NULL);
+		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+		return NULL;
+	}
+
+
+	if((g_rda_srls_pend = lyst_create()) == NULL)
+	{
+		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Pending SRLs Lyst!", NULL);
 		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
 		return NULL;
 	}
@@ -864,7 +969,16 @@ void* rda_thread(void* threadId)
         return NULL;
 	}
 
-	if(initResourceLock(&g_rda_rules_pend_mutex))
+	if(initResourceLock(&g_rda_trls_pend_mutex))
+	{
+        DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
+        		        strerror(errno));
+        DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+        return NULL;
+	}
+
+
+	if(initResourceLock(&g_rda_srls_pend_mutex))
 	{
         DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
         		        strerror(errno));
@@ -878,6 +992,8 @@ void* rda_thread(void* threadId)
     while(g_running)
     {
     	getCurrentTime(&start_time);
+
+
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u ctrls.",
         		        (unsigned long) lyst_length(gAgentVDB.trls));
@@ -893,6 +1009,7 @@ void* rda_thread(void* threadId)
         /* \todo: Update this later to keep them in storage for re-enable. */
         rda_clean_ctrls(gAgentVDB.ctrls);
         unlockResource(&(gAgentVDB.ctrls_mutex));
+
 
 
         DTNMP_DEBUG_INFO("rda_thread","Processing %u rules.",
@@ -940,9 +1057,13 @@ void* rda_thread(void* threadId)
 
         unlockResource(&g_rda_cur_rpts_mutex);
 
-
         unlockResource(&(gAgentVDB.trls_mutex));
-                
+
+
+
+
+
+
         delta = utils_time_cur_delta(&start_time);
 
         // Sleep for 1 second (10^6 microsec) subtracting the processing time.

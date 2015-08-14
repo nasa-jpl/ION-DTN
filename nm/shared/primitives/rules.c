@@ -73,6 +73,8 @@ srl_t*   srl_create(mid_t *mid, time_t time, Lyst expr, uvast count, Lyst action
 		return NULL;
 	}
 
+	srl->desc.num_evals = srl->count;
+
 	DTNMP_DEBUG_EXIT("srl_create",UVAST_FIELDSPEC,(uvast) srl);
 
 	return srl;
@@ -435,6 +437,10 @@ trl_t*   trl_create(mid_t *mid, time_t time, uvast period, uvast count, Lyst act
 		DTNMP_DEBUG_EXIT("trl_create","->NULL",NULL);
 		return NULL;
 	}
+
+	trl->desc.num_evals = trl->count;
+	trl->desc.interval_ticks = trl->period;
+
 
 	DTNMP_DEBUG_EXIT("trl_create",UVAST_FIELDSPEC,(uvast) trl);
 
