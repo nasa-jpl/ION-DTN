@@ -1,5 +1,5 @@
 SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c 
-IONDIR = /home/ebirrane/SecureDtn/ion-open-source/
+IONDIR = ../../
 OPTS = -Wno-write-strings -g 
 
 all:
@@ -14,10 +14,10 @@ all:
 	-I/usr/local/include \
 	-L${IONDIR}/ \
 	-L/usr/local/lib \
-	-lm -lbp -lici -lltp \
+	-lbp -lici -lltp \
 	-DMAXPATHLEN=2048 \
 	-DAGENT_ROLE=1 \
 	-c ${SOURCES} 
 
-	gcc -o nm_agent *.o -lm -lltp -lbp -lici
+	gcc -o nm_agent *.o -lltp -lbp -lici -lm -lpthread
 

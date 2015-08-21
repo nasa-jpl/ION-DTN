@@ -1,5 +1,5 @@
 SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c 
-IONDIR = /home/ebirrane/SecureDtn/ion-open-source/
+IONDIR = ../../
 OPTS = -Wno-write-strings -g 
 
 all:with-db
@@ -20,7 +20,7 @@ without-db:
 	-DMAXPATHLEN=2048 \
 	-c ${SOURCES} 
 
-	gcc -o nm_mgr *.o -lltp -lbp -lici
+	gcc -o nm_mgr *.o -lltp -lbp -lici -lpthread
 
 with-db:
 	gcc ${OPTS} \
@@ -41,7 +41,7 @@ with-db:
 	-DHAVE_MYSQL=1 \
 	-c ${SOURCES} 
 
-	gcc -o nm_mgr *.o -lltp -lbp -lici -lmysqlclient
+	gcc -o nm_mgr *.o -lltp -lbp -lici -lmysqlclient -lpthread
 
 
 

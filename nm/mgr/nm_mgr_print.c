@@ -430,7 +430,7 @@ void ui_print_srl(srl_t *srl)
 
 	mid_str = mid_to_string(srl->mid);
 
-	printf("SRL %s: T:%d E:", mid_str, srl->time);
+	printf("SRL %s: T:%d E:", mid_str, (uint32_t) srl->time);
 	ui_print_mc(srl->expr);
 	printf(" C:"UVAST_FIELDSPEC" A:", srl->count);
 	ui_print_mc(srl->action);
@@ -517,7 +517,7 @@ void ui_print_trl(trl_t *trl)
 
 	mid_str = mid_to_string(trl->mid);
 
-	printf("TRL %s: T:%d P:"UVAST_FIELDSPEC" C:"UVAST_FIELDSPEC" A:", mid_str, trl->time, trl->period, trl->count);
+	printf("TRL %s: T:%d P:"UVAST_FIELDSPEC" C:"UVAST_FIELDSPEC" A:", mid_str, (uint32_t) trl->time, trl->period, trl->count);
 	ui_print_mc(trl->action);
 	MRELEASE(mid_str);
 }

@@ -1315,7 +1315,7 @@ uint8_t* val_serialize_raw(value_t *val, uint32_t *size)
 			break;
 
 		case DTNMP_TYPE_STRING:
-			data = val_serialize_string(val->value.as_ptr, size);
+			data = val_serialize_string((char *) val->value.as_ptr, size);
 			break;
 
 		case DTNMP_TYPE_SDNV:
@@ -1325,6 +1325,9 @@ uint8_t* val_serialize_raw(value_t *val, uint32_t *size)
 		case DTNMP_TYPE_EXPR:
 		case DTNMP_TYPE_BLOB:
 			data = val_serialize_blob(val->value.as_ptr, val->length, size);
+			break;
+		default:
+			DTNMP_DEBUG_ERR("val_serialize_raw","Unknwon type", NULL);
 			break;
 	}
 

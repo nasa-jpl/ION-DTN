@@ -1881,7 +1881,7 @@ nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 
 					
 					
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_LDFLAGS = -lm
+nm_agent_LDFLAGS = -lm -lpthread
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
@@ -1908,7 +1908,7 @@ nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
 
 # Use this to build the DTNMP Manager WITH DB Support.
-#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient
+#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
 #nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 dtpcbin = \

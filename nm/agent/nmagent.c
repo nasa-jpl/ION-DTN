@@ -38,6 +38,7 @@
 #include "adm_ion_priv.h"
 
 #include "shared/primitives/nn.h"
+#include "shared/primitives/instr.h"
 
 static void agent_signal_handler(int);
 
