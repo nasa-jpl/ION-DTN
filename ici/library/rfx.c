@@ -223,7 +223,10 @@ int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 		void *argument)
 {
-	psm_free(partition, nodeData);
+	if (nodeData)
+	{
+		psm_free(partition, nodeData);
+	}
 }
 
 /*	*	*	RFX utility functions	*	*	*	*/
@@ -726,6 +729,12 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
 	CHKZERO(prob > 0.0 && prob <= 1.0);
+	if (fromNode == getOwnNodeNbr() && prob < 1.0)
+	{
+		writeMemo("[?] Ignoring non-certain contact from local node.");
+		return 0;
+	}
+
 	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing

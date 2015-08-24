@@ -78,6 +78,18 @@ extern "C" {
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
+#ifndef MAX_CGR_BETS
+#define	MAX_CGR_BETS			(20)
+#endif
+
+#ifndef MIN_PROB_IMPROVEMENT
+#define	MIN_PROB_IMPROVEMENT		(.05)
+#endif
+
+#ifndef MIN_NET_DELIVERY_PROB
+#define MIN_NET_DELIVERY_PROB		(.80)
+#endif
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.
@@ -338,6 +350,18 @@ typedef struct
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
+
+	/*	Stuff for probabilistic forwarding.  A "bet" is the ID
+	 *	of a node to which CGR has decided to forward a copy
+	 *	of the bundle even though the probability of delivery
+	 *	via the route through that node is less than 100%.
+	 *	The bundle's deliveryProb is the net probability of
+	 *	delivery as calculated from the probabilities of all
+	 *	bets.							*/
+
+	uvast		cgrBets[MAX_CGR_BETS];
+	int		cgrBetsCount;
+	float		deliveryProb;	/*	0.0 to 1.0		*/
 
 	/*	Database navigation stuff (back-references).		*/
 
