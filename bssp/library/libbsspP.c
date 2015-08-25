@@ -19,7 +19,12 @@
 #define	BSSPDEBUG	0
 #endif
 
-#define BSSP_VERSION	0;
+#define BSSP_VERSION	0
+
+static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
+			Object *sessionObj, ExportSession *sessionBuf,
+			Object *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
+			PsmAddress *vspanElt);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -1799,8 +1804,20 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 		}
 	}
 
+	/*	Now serialize the block overhead and prepend that
+	 *	overhead to the content of the segment (if any).
+	 *
+	 *	If sending data, the block must be retained (it may
+	 *	need to be re-sent using the reliable transport
+	 *	service), so xmit session is still needed.  If
+	 *	sending an ACK, the block is no longer needed and
+	 *	the recv session is closed elsewhere.  So no
+	 *	session closure at this point.				*/
+
 	if (block.pdu.blkTypeCode == 0)		/*	Data block.	*/
 	{
+		serializeDataPDU(&block, *buf);
+
 		/*	Need to retain the block in case it needs
 		 *	to be re-sent using the reliable transport
 		 *	service.  So must rewrite block to record
@@ -1831,18 +1848,13 @@ currentTime += 5;	/*	s/b += RTT from contact plan.	*/
 	}
 	else					/*	ACK block.	*/
 	{
+		serializeAck(&block, *buf);
+
 		/*	Block will never be re-sent, so it can be
 		 *	deleted now.					*/
 
 		sdr_free(bsspSdr, blkAddr);
 	}
-
-	/*	Now serialize the block overhead and prepend that
-	 *	overhead to the content of the segment (if any), 
-	 *	and return to link service output process.			
-	 */
-
-	serializeDataPDU(&block, *buf);
 
 	if (sdr_end_xn(bsspSdr))
 	{
@@ -1871,6 +1883,12 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 	Object		blkAddr;
 	BsspXmitBlock	block;
 	int		blockLength;
+	Object		sessionObj;
+	ExportSession	sessionBuf;
+	Object		spanObj2 = 0;
+	BsspSpan	spanBuf2;
+	BsspVspan	*vspan2;
+	PsmAddress	vspanElt2;
 
 	CHKERR(vspan);
 	CHKERR(buf);
@@ -1906,7 +1924,6 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		CHKERR(sdr_begin_xn(bsspSdr));
 		sdr_stage(bsspSdr, (char *) &spanBuf, spanObj,
 				sizeof(BsspSpan));
-
 		elt = sdr_list_first(bsspSdr, spanBuf.rlBlocks);
 	}
 
@@ -1937,22 +1954,23 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		}
 	}
 
-	/*	No longer need the block, as its content is being
-	 *	transmitted by reliable transport service.		*/
-
-	sdr_free(bsspSdr, blkAddr);
-
 	/*	Now serialize the segment overhead and prepend that
-	 *	overhead to the content of the block (if any), and
-	 *	return to link service output process.			*/
+	 *	overhead to the content of the block.			*/
 
-	if (block.pdu.blkTypeCode == 0)
+	serializeDataPDU(&block, *buf);
+
+	/*	No longer need the xmit session at all, as block
+	 *	content is being transmitted by reliable transport
+	 *	service.  Rewrite the block first to record the
+	 *	change of queueListElt to 0.				*/
+
+	sdr_write(bsspSdr, blkAddr, (char *) &block, sizeof(BsspXmitBlock));
+	getSessionContext(getBsspConstants(), block.sessionNbr, &sessionObj,
+			&sessionBuf, &spanObj2, &spanBuf2, &vspan2, &vspanElt2);
+	if (sessionObj)
 	{
-		serializeDataPDU(&block, *buf);
-	}
-	else
-	{
-		serializeAck(&block, *buf);
+		stopExportSession(&sessionBuf);
+		closeExportSession(sessionObj);
 	}
 
 	if (sdr_end_xn(bsspSdr))
