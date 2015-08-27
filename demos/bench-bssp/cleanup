@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# December 8, 2014
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 2.bench.bssp/ion.log 2.bench.bssp/bpdriverAduFile 3.bench.bssp/ion.log
