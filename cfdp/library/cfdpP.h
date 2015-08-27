@@ -278,6 +278,14 @@ typedef struct
 	Object		currentFdu;
 	int		currentFile;
 
+	/*	The "attendant" of the CFDP entity is a coordination
+	 *	object used in flow control of ZCO space allocation.
+	 *	Since the entity has only a single queue of outbound
+	 *	FDUs, only one UTA thread will be creating CFDP PDU
+	 *	ZCOs and therefore only a single attendant is needed.	*/
+
+	ReqAttendant	attendant;
+
 	/*	FOR TESTING ONLY: if the environment value named
 	 *	CFDP_CORRUPTION_MODULUS exists and is a positive
 	 *	integer greater than zero, then its value is stored
