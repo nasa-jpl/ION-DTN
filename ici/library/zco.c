@@ -1765,6 +1765,180 @@ int	zco_bond(Sdr sdr, Object zco)
 	return 0;
 }
 
+static int	reviseSource(Sdr sdr, SourceExtent *extent, vast bytesToSkip,
+			vast bytesExposed, char *buffer)
+{
+	ZcoObjRef	objRef;
+	ZcoLienRef	lienRef;
+	FileRef		fileRef;
+	int		fd;
+	int		bytesWritten;
+
+	if (extent->sourceMedium == ZcoSdrSource)
+	{
+		sdr_read(sdr, (char *) &objRef, extent->location,
+				sizeof(ZcoObjRef));
+		sdr_write(sdr, objRef.location + extent->offset + bytesToSkip,
+				buffer, bytesExposed);
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &lienRef, extent->location, sizeof(ZcoLienRef));
+	sdr_stage(sdr, (char *) &fileRef, lienRef.location, sizeof(FileRef));
+	fd = iopen(fileRef.pathName, O_WRONLY, 0);
+	if (fd < 0)
+	{
+		return -1;
+	}
+
+	if (lseek(fd, extent->offset + bytesToSkip, SEEK_SET) < 0)
+	{
+		close(fd);	/*	Can't position.	*/
+		return -1;
+	}
+
+	bytesWritten = write(fd, buffer, bytesExposed);
+	close(fd);
+	if (bytesWritten != bytesExposed)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
+		vast length)
+{
+	Zco		zco;
+	vast		bytesToSkip;
+	vast		bytesToRevise;
+	vast		bytesRevised;
+	Object		obj;
+	Capsule		capsule;
+	vast		bytesExposed;
+	SourceExtent	extent;
+	int		failed = 0;
+
+	if (length == 0)
+	{
+		return 0;
+	}
+
+	CHKERR(sdr);
+	CHKERR(zcoObj);
+	CHKERR(offset >= 0);
+	CHKERR(buffer);
+	CHKERR(length > 0);
+	sdr_read(sdr, (char *) &zco, zcoObj, sizeof(Zco));
+	bytesToSkip = offset;
+	bytesToRevise = length;
+	bytesRevised = 0;
+
+	/*	Revise header data as necessary.			*/
+
+	for (obj = zco.firstHeader; obj; obj = capsule.nextCapsule)
+	{
+		if (bytesToRevise == 0)		/*	Done.		*/
+		{
+			break;
+		}
+
+		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
+		bytesExposed = capsule.length;
+		if (bytesToSkip >= bytesExposed)
+		{
+			bytesToSkip -= bytesExposed;
+			continue;	/*	Revise none of this.	*/
+		}
+
+		bytesExposed -= bytesToSkip;
+		if (bytesToRevise < bytesExposed)
+		{
+			bytesExposed = bytesToRevise;
+		}
+
+		sdr_write(sdr, capsule.text + bytesToSkip, buffer,
+				bytesExposed);
+		buffer += bytesExposed;
+		bytesToSkip = 0;
+		bytesToRevise -= bytesExposed;
+		bytesRevised += bytesExposed;
+	}
+
+	/*	Revise source data as necessary.			*/
+
+	for (obj = zco.firstExtent; obj; obj = extent.nextExtent)
+	{
+		if (bytesToRevise == 0)		/*	Done.		*/
+		{
+			break;
+		}
+
+		sdr_read(sdr, (char *) &extent, obj, sizeof(SourceExtent));
+		bytesExposed = extent.length;
+		if (bytesToSkip >= bytesExposed)
+		{
+			bytesToSkip -= bytesExposed;
+			continue;	/*	Revise none of this.	*/
+		}
+
+		bytesExposed -= bytesToSkip;
+		if (bytesToRevise < bytesExposed)
+		{
+			bytesExposed = bytesToRevise;
+		}
+
+		if (reviseSource(sdr, &extent, bytesToSkip, bytesExposed,
+				buffer) < 0)
+		{
+			failed = 1;		/*	File problem.	*/
+		}
+
+		bytesToSkip = 0;
+		bytesToRevise -= bytesExposed;
+		bytesRevised += bytesExposed;
+	}
+
+	/*	Revise trailer data as necessary.			*/
+
+	for (obj = zco.firstTrailer; obj; obj = capsule.nextCapsule)
+	{
+		if (bytesToRevise == 0)	/*	Done.		*/
+		{
+			break;
+		}
+
+		sdr_read(sdr, (char *) &capsule, obj, sizeof(Capsule));
+		bytesExposed = capsule.length;
+		if (bytesToSkip >= bytesExposed)
+		{
+			bytesToSkip -= bytesExposed;
+			continue;	/*	Send none of this one.	*/
+		}
+
+		bytesExposed -= bytesToSkip;
+		if (bytesToRevise < bytesExposed)
+		{
+			bytesExposed = bytesToRevise;
+		}
+
+		sdr_write(sdr, capsule.text + bytesToSkip, buffer,
+				bytesExposed);
+		buffer += bytesExposed;
+		bytesToSkip = 0;
+		bytesToRevise -= bytesExposed;
+		bytesRevised += bytesExposed;
+	}
+
+	if (failed)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 {
 	Zco	fromZco;

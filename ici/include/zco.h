@@ -348,6 +348,16 @@ extern int	zco_bond(	Sdr sdr,
 			 *	from being omitted when the ZCO is
 			 *	cloned.					*/
 
+extern int	zco_revise(	Sdr sdr,
+				Object zco,
+				vast offset,
+				char *buffer,
+				vast length);
+			/*	Writes the contents of buffer, for
+			 *	the indicated length, into the 
+			 *	indicated ZCO at the indicated offset.
+			 *	Return 0 on success, -1 on any error.	*/
+
 extern Object	zco_clone(	Sdr sdr,
 				Object zco,
 				vast offset,
