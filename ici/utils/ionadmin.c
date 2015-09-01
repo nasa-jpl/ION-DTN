@@ -201,7 +201,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 	toTime = readTimestampUTC(tokens[3], refTime);
 	if (toTime <= fromTime)
 	{
-		printText("Interval end time must be later than start time.");
+		printText("Interval end time must be later than start time \
+and earlier than 19 January 2038.");
 		return;
 	}
 
