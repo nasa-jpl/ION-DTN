@@ -1,14 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
 
 /*****************************************************************************
  **
@@ -34,8 +23,8 @@
 #include "shared/primitives/report.h"
 
 extern Lyst g_rda_cur_rpts; // Reports being built in the current tao.
-extern Lyst g_rda_trls_pend;
-extern Lyst g_rda_srls_pend;
+extern Lyst g_rda_trls_pend; // COPY of MIDs to run.
+extern Lyst g_rda_srls_pend; // COPY of MIDs to run.
 
 extern ResourceLock g_rda_cur_rpts_mutex;
 extern ResourceLock g_rda_trls_pend_mutex;

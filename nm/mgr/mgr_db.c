@@ -37,10 +37,6 @@
 #include "shared/primitives/report.h"
 
 
-int  mgr_db_compdata_persist(def_gen_t *item)
-{
-	return mgr_db_defgen_persist(gMgrDB.compdata, item);
-}
 
 int  mgr_db_compdata_forget(mid_t *mid)
 {
@@ -56,6 +52,27 @@ int  mgr_db_compdata_forget(mid_t *mid)
 }
 
 
+
+int  mgr_db_compdata_persist(def_gen_t *item)
+{
+	return mgr_db_defgen_persist(gMgrDB.compdata, item);
+}
+
+
+
+
+int  mgr_db_ctrl_forget(mid_t *mid)
+{
+	ctrl_exec_t *item = mgr_vdb_ctrl_find(mid);
+
+	if(item == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_db_ctrl_forget","bad params.",NULL);
+		return -1;
+	}
+
+	return mgr_db_forget(gMgrDB.ctrls, item->desc.itemObj, item->desc.descObj);
+}
 
 
 /******************************************************************************
@@ -140,49 +157,6 @@ int  mgr_db_ctrl_persist(ctrl_exec_t* item)
 	return 1;
 }
 
-int  mgr_db_ctrl_forget(mid_t *mid)
-{
-	ctrl_exec_t *item = mgr_vdb_ctrl_find(mid);
-
-	if(item == NULL)
-	{
-		DTNMP_DEBUG_ERR("mgr_db_ctrl_forget","bad params.",NULL);
-		return -1;
-	}
-
-	return mgr_db_forget(gMgrDB.ctrls, item->desc.itemObj, item->desc.descObj);
-}
-
-int  mgr_db_forget(Object db, Object itemObj, Object descObj)
-{
-	Sdr sdr = getIonsdr();
-
-	/* Step 0: Sanity Checks. */
-	if(((itemObj == 0) && (descObj != 0)) ||
-	   ((itemObj != 0) && (descObj == 0)))
-	{
-		DTNMP_DEBUG_ERR("mgr_db_Forget","bad params.",NULL);
-		return -1;
-	}
-
-	/*
-	 * Step 1: Determine if this is already in the SDR. We will assume
-	 *         it is in the SDR already if its Object fields are nonzero.
-	 */
-	if(itemObj != 0)
-	{
-		int result = db_forget(&(itemObj), &(descObj), db);
-
-		if(result != 1)
-		{
-			DTNMP_DEBUG_ERR("mgr_db_forget","Unable to forget def.",NULL);
-			return -1;
-		}
-	}
-
-	return 1;
-}
-
 
 int  mgr_db_defgen_persist(Object db, def_gen_t* item)
 {
@@ -244,6 +218,40 @@ int  mgr_db_defgen_persist(Object db, def_gen_t* item)
 	return 1;
 }
 
+
+
+int  mgr_db_forget(Object db, Object itemObj, Object descObj)
+{
+	Sdr sdr = getIonsdr();
+
+	/* Step 0: Sanity Checks. */
+	if(((itemObj == 0) && (descObj != 0)) ||
+	   ((itemObj != 0) && (descObj == 0)))
+	{
+		DTNMP_DEBUG_ERR("mgr_db_Forget","bad params.",NULL);
+		return -1;
+	}
+
+	/*
+	 * Step 1: Determine if this is already in the SDR. We will assume
+	 *         it is in the SDR already if its Object fields are nonzero.
+	 */
+	if(itemObj != 0)
+	{
+		int result = db_forget(&(itemObj), &(descObj), db);
+
+		if(result != 1)
+		{
+			DTNMP_DEBUG_ERR("mgr_db_forget","Unable to forget def.",NULL);
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
+
+
 /******************************************************************************
  *
  * \par Function Name: mgr_db_init
@@ -259,6 +267,7 @@ int  mgr_db_defgen_persist(Object db, def_gen_t* item)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/10/13  E. Birrane     Initial implementation.
+ *  08/29/15  E. Birrane     Updated to include SQL Account Information
  *****************************************************************************/
 
 int  mgr_db_init()
@@ -298,6 +307,7 @@ int  mgr_db_init()
 			gMgrDB.reports = sdr_list_create(sdr);
 			gMgrDB.trls = sdr_list_create(sdr);
 			gMgrDB.srls = sdr_list_create(sdr);
+			gMgrDB.sqldb = sdr_list_create(sdr);
 
 			sdr_write(sdr, gMgrDB.descObj, (char *) &gMgrDB, sizeof(MgrDB));
 			sdr_catlg(sdr, "mgrdb", 0, gMgrDB.descObj);
@@ -321,11 +331,6 @@ int  mgr_db_init()
 }
 
 
-int  mgr_db_macro_persist(def_gen_t* ctrl)
-{
-	return mgr_db_defgen_persist(gMgrDB.macros, ctrl);
-}
-
 int  mgr_db_macro_forget(mid_t *mid)
 {
 	def_gen_t *item = mgr_vdb_macro_find(mid);
@@ -338,6 +343,27 @@ int  mgr_db_macro_forget(mid_t *mid)
 
 	return mgr_db_forget(gMgrDB.macros, item->desc.itemObj, item->desc.descObj);
 }
+
+int  mgr_db_macro_persist(def_gen_t* ctrl)
+{
+	return mgr_db_defgen_persist(gMgrDB.macros, ctrl);
+}
+
+
+
+int  mgr_db_report_forget(mid_t *mid)
+{
+	def_gen_t *item = mgr_vdb_report_find(mid);
+
+	if(item == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_db_report_forget","bad params.",NULL);
+		return -1;
+	}
+
+	return mgr_db_forget(gMgrDB.reports, item->desc.itemObj, item->desc.descObj);
+}
+
 
 /******************************************************************************
  *
@@ -363,19 +389,21 @@ int  mgr_db_report_persist(def_gen_t* item)
 	return mgr_db_defgen_persist(gMgrDB.reports, item);
 }
 
-int  mgr_db_report_forget(mid_t *mid)
+
+
+
+int  mgr_db_srl_forget(mid_t *mid)
 {
-	def_gen_t *item = mgr_vdb_report_find(mid);
+	srl_t *item = mgr_vdb_srl_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("mgr_db_report_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_srl_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return mgr_db_forget(gMgrDB.reports, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.srls, item->desc.itemObj, item->desc.descObj);
 }
-
 
 
 
@@ -432,7 +460,7 @@ int  mgr_db_srl_persist(srl_t *item)
 		}
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
-				            &(item->desc), sizeof(srl_t), &(item->desc.descObj),
+				            &(item->desc), sizeof(srl_desc_t), &(item->desc.descObj),
 				            gMgrDB.srls);
 
 		MRELEASE(data);
@@ -463,17 +491,17 @@ int  mgr_db_srl_persist(srl_t *item)
 }
 
 
-int  mgr_db_srl_forget(mid_t *mid)
+int  mgr_db_trl_forget(mid_t *mid)
 {
-	srl_t *item = mgr_vdb_srl_find(mid);
+	trl_t *item = mgr_vdb_trl_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("mgr_db_srl_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_trl_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return mgr_db_forget(gMgrDB.srls, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.trls, item->desc.itemObj, item->desc.descObj);
 }
 
 
@@ -531,7 +559,7 @@ int  mgr_db_trl_persist(trl_t *item)
 		}
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
-				            &(item->desc), sizeof(trl_t), &(item->desc.descObj),
+				            &(item->desc), sizeof(trl_desc_t), &(item->desc.descObj),
 				            gMgrDB.trls);
 
 		MRELEASE(data);
@@ -562,17 +590,124 @@ int  mgr_db_trl_persist(trl_t *item)
 }
 
 
-int  mgr_db_trl_forget(mid_t *mid)
-{
-	trl_t *item = mgr_vdb_trl_find(mid);
 
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_db_sql_forget
+ *
+ * \par Remove SQL DB information from the MGR SDR database.
+ *
+ * \param[in]  item  The sql account information.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success
+ *        -1 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/29/15  E. Birrane     Initial implementation.
+ *****************************************************************************/
+int  mgr_db_sql_forget(ui_db_t* item)
+{
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("mgr_db_trl_forget","bad params.",NULL);
+		DTNMP_DEBUG_ERR("mgr_db_sql_forget","Bad params.",NULL);
 		return -1;
 	}
 
-	return mgr_db_forget(gMgrDB.trls, item->desc.itemObj, item->desc.descObj);
+	return mgr_db_forget(gMgrDB.sqldb, item->desc.itemObj, item->desc.descObj);
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mgr_db_sql_persist
+ *
+ * \par Persist SQL account information to the mgr SDR database.
+ *
+ * \param[in]  item  The SQL account information to persist.
+ *
+ * \par Notes:
+ *
+ * \return 1 - Success
+ *        -1 - Failure
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/29/15  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+int  mgr_db_sql_persist(ui_db_t* item)
+{
+
+	Sdr sdr = getIonsdr();
+
+	/* Step 0: Sanity Checks. */
+	if((item == NULL) ||
+	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
+	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
+	{
+		DTNMP_DEBUG_ERR("mgr_db_sql_persist","bad params.",NULL);
+		return -1;
+	}
+
+
+	/*
+	 * Step 1: Determine if this is already in the SDR. We will assume
+	 *         it is in the SDR already if its Object fields are nonzero.
+	 */
+
+	if(item->desc.itemObj == 0)
+	{
+		uint8_t data[UI_SQL_TOTLEN];
+		uint8_t *cursor = NULL;
+		int result = 0;
+
+		/* Step 1.1: Serialize the item to go into the SDR.. */
+		item->desc.size = UI_SQL_TOTLEN;
+
+		cursor = &(data[0]);
+		memcpy(cursor, item->database,UI_SQL_DBLEN);
+		cursor += UI_SQL_DBLEN;
+		memcpy(cursor, item->username,UI_SQL_ACCTLEN);
+		cursor += UI_SQL_ACCTLEN;
+		memcpy(cursor, item->password,UI_SQL_ACCTLEN);
+		cursor += UI_SQL_ACCTLEN;
+		memcpy(cursor, item->server,UI_SQL_SERVERLEN);
+		cursor += UI_SQL_ACCTLEN;
+
+		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
+				            &(item->desc), sizeof(ui_db_desc_t), &(item->desc.descObj),
+				            gMgrDB.sqldb);
+
+		if(result != 1)
+		{
+			DTNMP_DEBUG_ERR("mgr_db_sql_persist","Unable to persist SQL account information.",NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		ui_db_desc_t temp;
+
+		sdr_begin_xn(sdr);
+
+		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
+		temp = item->desc;
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(trl_t));
+
+		if(sdr_end_xn(sdr))
+		{
+			DTNMP_DEBUG_ERR("mgr_db_sql_persist", "Can't create SQL account info in the database.", NULL);
+			return -1;
+		}
+	}
+
+	return 1;
 }
 
 
@@ -906,6 +1041,7 @@ void mgr_vdb_destroy()
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/10/13  E. Birrane     Initial implementation.
+ *  08/29/15  E. Birrane     Update to include SQL account info.
  *****************************************************************************/
 
 /* Initialize all of the VDB items. */
@@ -944,6 +1080,9 @@ int  mgr_vdb_init()
 	if((gMgrVDB.srls = lyst_create()) == NULL) result = -1;
     if(initResourceLock(&(gMgrVDB.srls_mutex))) result = -1;
     mgr_vdb_srls_init(sdr);
+
+    if(initResourceLock(&(gMgrVDB.sqldb_mutex))) result = -1;
+    mgr_vdb_sql_init(sdr);
 
     DTNMP_DEBUG_EXIT("mgr_vdb_init","-->%d",result);
 
@@ -1221,3 +1360,102 @@ void       mgr_vdb_trl_forget(mid_t *mid)
 
 	unlockResource(&(gMgrVDB.trls_mutex));
 }
+
+
+
+
+
+void mgr_vdb_sql_init(Sdr sdr)
+{
+	Object elt;
+	Object itemObj;
+	Object descObj;
+	uint8_t *data = NULL;
+	uint8_t *cursor = NULL;
+
+	sdr_begin_xn(sdr);
+
+
+	/* Step 1: Grab the description for the account info. */
+	if((elt = sdr_list_first(sdr, gMgrDB.sqldb)) == 0)
+	{
+
+		sdr_end_xn(sdr);
+
+		return;
+	}
+
+	if((descObj = sdr_list_data(sdr, elt)) == 0)
+	{
+		DTNMP_DEBUG_ERR("mgr_vdb_sql_init","Bad SQL Account descriptor.", NULL);
+		sdr_end_xn(sdr);
+
+		return;
+	}
+
+	lockResource(&(gMgrVDB.sqldb_mutex));
+
+
+	sdr_read(sdr, (char *) &(gMgrVDB.sqldb.desc), descObj, sizeof(gMgrVDB.sqldb.desc));
+	gMgrVDB.sqldb.desc.descObj = descObj;
+
+
+	/* Step 2: Allocate and populate the descriptor field. */
+	if((data = (uint8_t*) MTAKE(gMgrVDB.sqldb.desc.size)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("mgr_vdb_sql_init","Can't allocate %d bytes.",
+				gMgrVDB.sqldb.desc.size);
+		unlockResource(&(gMgrVDB.sqldb_mutex));
+		sdr_end_xn(sdr);
+		return;
+	}
+
+	sdr_read(sdr, (char *) data, gMgrVDB.sqldb.desc.itemObj, gMgrVDB.sqldb.desc.size);
+
+	sdr_end_xn(sdr);
+
+
+	/* Step 3: Populate the account info. */
+	cursor = &(data[0]);
+
+	memcpy(gMgrVDB.sqldb.database, cursor, UI_SQL_DBLEN);
+	cursor += UI_SQL_DBLEN;
+	memcpy(gMgrVDB.sqldb.username, cursor, UI_SQL_ACCTLEN);
+	cursor += UI_SQL_ACCTLEN;
+	memcpy(gMgrVDB.sqldb.password, cursor, UI_SQL_ACCTLEN);
+	cursor += UI_SQL_ACCTLEN;
+	memcpy(gMgrVDB.sqldb.server, cursor, UI_SQL_SERVERLEN);
+	cursor += UI_SQL_ACCTLEN;
+
+	MRELEASE(data);
+
+    unlockResource(&(gMgrVDB.sqldb_mutex));
+
+	/* Step 2: Print to user total number of rules read.*/
+	DTNMP_DEBUG_ALWAYS("", "Added SQL Account Information from DB.", NULL);
+}
+
+
+ui_db_t*   mgr_vdb_sql_find()
+{
+	ui_db_t *result = NULL;
+
+	lockResource(&(gMgrVDB.sqldb_mutex));
+
+	result = &(gMgrVDB.sqldb);
+
+	unlockResource(&(gMgrVDB.sqldb_mutex));
+
+	return result;
+}
+
+
+void mgr_vdb_sql_forget()
+{
+	lockResource(&(gMgrVDB.sqldb_mutex));
+
+	bzero(&(gMgrVDB.sqldb), sizeof(ui_db_t));
+
+	unlockResource(&(gMgrVDB.sqldb_mutex));
+}
+

@@ -287,6 +287,14 @@ tdc_t *agent_ctl_cd_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 		return NULL;
 	}
 
+	/* Step 2: Make sure this isn't a duplicate. */
+	if(agent_vdb_compdata_find(mid) != NULL)
+	{
+		DTNMP_DEBUG_WARN("agent_ctl_cd_add","CD already defined for this MID. Ignoring.", NULL);
+		*status = CTRL_FAILURE;
+		mid_release(mid);
+		return NULL;
+	}
 
 	/* Step 1.1: Verify this is a good MID for a CD. */
 	if(MID_GET_FLAG_TYPECAT(mid->flags) != MID_COMPUTED)
@@ -537,6 +545,13 @@ tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
 	{
+		return NULL;
+	}
+
+	if(agent_vdb_report_find(mid) != NULL)
+	{
+		DTNMP_DEBUG_WARN("agent_ctl_rpt_add","Report for this MID already defined. Ignoring.", NULL);
+		mid_release(mid);
 		return NULL;
 	}
 
@@ -851,18 +866,36 @@ tdc_t *agent_ctl_mac_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 	Lyst expr = NULL;
 	def_gen_t *result = NULL;
 	uint8_t success = 0;
+	char *name = NULL;
 
 	*status = CTRL_FAILURE;
 
-
-	/* Step 1: Grab the MID defining the new computed definition. */
-	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
+	if((name = adm_extract_string(params, 1, &success)) == NULL)
 	{
 		return NULL;
 	}
 
+	/* We ignore the name. */
+
+	MRELEASE(name);
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+
+	if((mid = adm_extract_mid(params, 2, &success)) == NULL)
+	{
+		return NULL;
+	}
+
+	if(agent_vdb_macro_find(mid) != NULL)
+	{
+		DTNMP_DEBUG_WARN("agent_ctl_mac_add","Macro for this MID already defined. Ignoring.", NULL);
+		mid_release(mid);
+		return NULL;
+	}
+
+
 	/* Step 2: Grab the expression capturing the definition. */
-	if((expr = adm_extract_mc(params, 2, &success)) == NULL)
+	if((expr = adm_extract_mc(params, 3, &success)) == NULL)
 	{
 		mid_release(mid);
 		return NULL;
@@ -1074,6 +1107,14 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 	{
 		return NULL;
 	}
+
+	if(agent_vdb_trl_find(mid) != NULL)
+	{
+		DTNMP_DEBUG_WARN("agent_ctl_trl_add","TRL for this MID already defined. Ignoring.", NULL);
+		mid_release(mid);
+		return NULL;
+	}
+
 
 	/* Step 2: Grab the offset for this rule. */
 	offset = adm_extract_uint(params, 2, &success);
@@ -1312,6 +1353,12 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, Lyst params, uint8_t *status)
 		return NULL;
 	}
 
+	if(agent_vdb_srl_find(mid) != NULL)
+	{
+		DTNMP_DEBUG_WARN("agent_ctl_srl_add","SRL for this MID already defined. Ignoring.", NULL);
+		mid_release(mid);
+		return NULL;
+	}
 
 	/* Step 2: Grab the offset for this rule. */
 	offset = adm_extract_uint(params, 2, &success);
@@ -1396,6 +1443,8 @@ tdc_t *agent_ctl_srl_del(eid_t *def_mgr, Lyst params, uint8_t *status)
 		{
 			agent_db_srl_forget(mid);
 			agent_vdb_srl_forget(mid);
+
+
 		}
 	}
 

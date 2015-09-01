@@ -577,6 +577,7 @@ int  agent_db_trl_forget(mid_t *mid)
 		return -1;
 	}
 
+
 	return agent_db_forget(gAgentDB.trls, item->desc.itemObj, item->desc.descObj);
 }
 
@@ -1126,17 +1127,22 @@ srl_t*     agent_vdb_srl_find(mid_t *mid)
 void       agent_vdb_srl_forget(mid_t *mid)
 {
 	LystElt elt;
+	LystElt del_elt;
 	srl_t *cur = NULL;
 
 	lockResource(&(gAgentVDB.srls_mutex));
 
-	for(elt = lyst_first(gAgentVDB.srls); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gAgentVDB.srls); elt; )
 	{
+
 		cur = (srl_t *) lyst_data(elt);
+		del_elt = elt;
+		elt = lyst_next(elt);
+
 		if(mid_compare(cur->mid, mid, 1) == 0)
 		{
 			srl_release(cur);
-			lyst_delete(elt);
+			lyst_delete(del_elt);
 			break;
 		}
 	}

@@ -157,95 +157,93 @@ void adm_agent_init_controls()
     adm_add_ctrl(ADM_AGENT_CTL_DSCSRL_MID,  agent_ctl_srl_dsc);
 
 #else
-    ui_parm_spec_t spec;
-
 	adm_add_ctrl(ADM_AGENT_CTL_LSTADM_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_LSTADM_MID", "List ADMs", ADM_AGENT, ADM_AGENT_CTL_LSTADM_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTADM_MID, 0, 0, 0, 0, 0, 0);
+//	ui_add_parmspec(ADM_AGENT_CTL_LSTADM_MID, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_ADDCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDCD_MID", "Add Computed Definition", ADM_AGENT, ADM_AGENT_CTL_ADDCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDCD_MID, 3, DTNMP_TYPE_MID, DTNMP_TYPE_EXPR, DTNMP_TYPE_SDNV, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_ADDCD_MID, 3, "Name", DTNMP_TYPE_MID, "Expression", DTNMP_TYPE_EXPR, "Type", DTNMP_TYPE_SDNV, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELCD_MID", "Delete Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DELCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELCD_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DELCD_MID, 1, "MC to Delete", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTCD_MID", "List Computed Definition", ADM_AGENT, ADM_AGENT_CTL_LSTCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTCD_MID, 0, 0, 0, 0, 0, 0);
+//	ui_add_parmspec(ADM_AGENT_CTL_LSTCD_MID, 0, 0, 0, 0, 0, 0);
 
 	adm_add_ctrl(ADM_AGENT_CTL_DSCCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCCD_MID", "Describe Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DSCCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCCD_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DSCCD_MID, 1, "MC to Describe", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_ADDRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_ADDRPT_MID", "Add Report", ADM_AGENT, ADM_AGENT_CTL_ADDRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDRPT_MID, 2, DTNMP_TYPE_MID, DTNMP_TYPE_MC, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_ADDRPT_MID, 2, "Report Name", DTNMP_TYPE_MID, "Rpt Def.", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_DELRPT_MID", "Delete Report", ADM_AGENT, ADM_AGENT_CTL_DELRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELRPT_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DELRPT_MID, 1, "Rpts To Del", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_LSTRPT_MID", "List Report", ADM_AGENT, ADM_AGENT_CTL_LSTRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTRPT_MID, 0, 0, 0, 0, 0, 0);
+//	ui_add_parmspec(ADM_AGENT_CTL_LSTRPT_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_DSCRPT_MID", "Describe Report", ADM_AGENT, ADM_AGENT_CTL_DSCRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCRPT_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DSCRPT_MID, 1, "Rpts to Descr.", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_GENRPT_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_GENRPT_MID", "Generate Report", ADM_AGENT, ADM_AGENT_CTL_GENRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_GENRPT_MID, 2, DTNMP_TYPE_MC, DTNMP_TYPE_DC, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_GENRPT_MID, 2, "Rpts to Gen.", DTNMP_TYPE_MC, "Mgr to Send", DTNMP_TYPE_DC, NULL, 0, NULL, 0, NULL, 0);
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDMAC_MID", "Add Macro", ADM_AGENT, ADM_AGENT_CTL_ADDMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDMAC_MID, 3, DTNMP_TYPE_STRING, DTNMP_TYPE_MID, DTNMP_TYPE_MC, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_ADDMAC_MID, 3, "Name", DTNMP_TYPE_STRING, "MID ID", DTNMP_TYPE_MID, "Macro Def", DTNMP_TYPE_MC, NULL, 0, NULL, 0);
 
 	adm_add_ctrl(ADM_AGENT_CTL_DELMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELMAC_MID", "Delete Macro", ADM_AGENT, ADM_AGENT_CTL_DELMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELMAC_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DELMAC_MID, 1, "Macros to Del", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTMAC_MID", "List Macro", ADM_AGENT, ADM_AGENT_CTL_LSTMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTMAC_MID, 0, 0, 0, 0, 0, 0);
+//	ui_add_parmspec(ADM_AGENT_CTL_LSTMAC_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCMAC_MID", "Describe Macro", ADM_AGENT, ADM_AGENT_CTL_DSCMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCMAC_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DSCMAC_MID, 1, "Macros to Desc", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDTRL_MID", "Add Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDTRL_MID, 5, DTNMP_TYPE_MID, DTNMP_TYPE_TS, DTNMP_TYPE_SDNV, DTNMP_TYPE_SDNV, DTNMP_TYPE_MC);
+	ui_add_parmspec(ADM_AGENT_CTL_ADDTRL_MID, 5, "TRL ID", DTNMP_TYPE_MID, "Timestamp", DTNMP_TYPE_TS, "Period", DTNMP_TYPE_SDNV, "Count", DTNMP_TYPE_SDNV, "Action", DTNMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELTRL_MID", "Delete Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DELTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELTRL_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DELTRL_MID, 1, "TRLs to Del", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTTRL_MID", "List Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_LSTTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTTRL_MID, 0, 0, 0, 0, 0, 0);
+//	ui_add_parmspec(ADM_AGENT_CTL_LSTTRL_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCTRL_MID", "Describe Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCTRL_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DSCTRL_MID, 1, "TRLs to Desc", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDSRL_MID", "Add State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDSRL_MID, 5, DTNMP_TYPE_MID, DTNMP_TYPE_TS, DTNMP_TYPE_EXPR, DTNMP_TYPE_SDNV, DTNMP_TYPE_MC);
+	ui_add_parmspec(ADM_AGENT_CTL_ADDSRL_MID, 5, "SRL ID", DTNMP_TYPE_MID, "Timestamp", DTNMP_TYPE_TS, "State Expr", DTNMP_TYPE_EXPR, "Count", DTNMP_TYPE_SDNV, "Action", DTNMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELSRL_MID", "Delete State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DELSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELSRL_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DELSRL_MID, 1, "SRLs to Del", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTSRL_MID", "List State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_LSTSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_LSTSRL_MID, 0, 0, 0, 0, 0, 0);
+//	ui_add_parmspec(ADM_AGENT_CTL_LSTSRL_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCSRL_MID", "Describe State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCSRL_MID, 1, DTNMP_TYPE_MC, 0, 0, 0, 0);
+	ui_add_parmspec(ADM_AGENT_CTL_DSCSRL_MID, 1, "SRLs to Desc", DTNMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 #endif
 
@@ -276,12 +274,25 @@ void adm_agent_init_literals()
 
 #ifndef AGENT_ROLE
 	names_add_name("ADM_AGENT_LIT_EPOCH_MID", "DTNMP EPOCH", ADM_AGENT, ADM_AGENT_LIT_EPOCH_MID);
+
 	names_add_name("ADM_AGENT_LIT_USRINT_MID", "User-Defined Signed Integer", ADM_AGENT, ADM_AGENT_LIT_USRINT_MID);
+	ui_add_parmspec(ADM_AGENT_LIT_USRINT_MID, 2, "Sign (1/0)", DTNMP_TYPE_BYTE, "Value", DTNMP_TYPE_SDNV, NULL, 0, NULL, 0, NULL, 0);
+
 	names_add_name("ADM_AGENT_LIT_USRUINT_MID", "User-Defined Unsigned Integer", ADM_AGENT, ADM_AGENT_LIT_USRUINT_MID);
+	ui_add_parmspec(ADM_AGENT_LIT_USRUINT_MID, 1, "Value", DTNMP_TYPE_SDNV, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
 	names_add_name("ADM_AGENT_LIT_USRFLT_MID", "User-Defined Float", ADM_AGENT, ADM_AGENT_LIT_USRFLT_MID);
+	ui_add_parmspec(ADM_AGENT_LIT_USRFLT_MID, 3, "Signs", DTNMP_TYPE_BYTE, "Coeff", DTNMP_TYPE_SDNV, "Exp", DTNMP_TYPE_SDNV, NULL, 0, NULL, 0);
+
 	names_add_name("ADM_AGENT_LIT_USRDBL_MID", "User-Defined Double", ADM_AGENT, ADM_AGENT_LIT_USRDBL_MID);
+	ui_add_parmspec(ADM_AGENT_LIT_USRDBL_MID, 3, "Signs", DTNMP_TYPE_BYTE, "Coeff", DTNMP_TYPE_SDNV, "Exp", DTNMP_TYPE_SDNV, NULL, 0, NULL, 0);
+
 	names_add_name("ADM_AGENT_LIT_USRSTR_MID", "User-Defined String", ADM_AGENT, ADM_AGENT_LIT_USRSTR_MID);
+	ui_add_parmspec(ADM_AGENT_LIT_USRSTR_MID, 1, "Value", DTNMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
 	names_add_name("ADM_AGENT_LIT_USRBLOB_MID", "User-Defined Blob", ADM_AGENT, ADM_AGENT_LIT_USRBLOB_MID);
+	ui_add_parmspec(ADM_AGENT_LIT_USRSTR_MID, 1, "Value", DTNMP_TYPE_BLOB, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
 #endif
 }
 
@@ -310,15 +321,15 @@ void adm_agent_init_metadata()
 {
 	/* Step 1: Register Nicknames */
 
-	oid_nn_add_parm(AGENT_ADM_MD_NN_IDX,   AGENT_ADM_MD_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_AD_NN_IDX,   AGENT_ADM_AD_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_CD_NN_IDX,   AGENT_ADM_CD_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_RPT_NN_IDX,  AGENT_ADM_RPT_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_CTRL_NN_IDX, AGENT_ADM_CTRL_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_LTRL_NN_IDX, AGENT_ADM_LTRL_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_MAC_NN_IDX,  AGENT_ADM_MAC_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_OP_NN_IDX,   AGENT_ADM_OP_NN_STR);
-	oid_nn_add_parm(AGENT_ADM_ROOT_NN_IDX,   AGENT_ADM_ROOT_NN_STR);
+	oid_nn_add_parm(AGENT_ADM_MD_NN_IDX,   AGENT_ADM_MD_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_AD_NN_IDX,   AGENT_ADM_AD_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_CD_NN_IDX,   AGENT_ADM_CD_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_RPT_NN_IDX,  AGENT_ADM_RPT_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_CTRL_NN_IDX, AGENT_ADM_CTRL_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_LTRL_NN_IDX, AGENT_ADM_LTRL_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_MAC_NN_IDX,  AGENT_ADM_MAC_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_OP_NN_IDX,   AGENT_ADM_OP_NN_STR, "AGENT","v0.1");
+	oid_nn_add_parm(AGENT_ADM_ROOT_NN_IDX,   AGENT_ADM_ROOT_NN_STR, "AGENT","v0.1");
 
 
 	/* Step 2: Register Metadata Information. */
@@ -452,10 +463,11 @@ value_t adm_agent_user_int(mid_t *id)
 
 	if(entry != NULL)
 	{
+		result.type = DTNMP_TYPE_VAST;
+		result.length = sizeof(vast);
+
 		if(entry->length <= result.length)
 		{
-			result.type = DTNMP_TYPE_VAST;
-			result.length = sizeof(vast);
 			/* \todo watch network byte order. */
 			memcpy(&(result.value.as_vast), entry->value, MIN(result.length, entry->length));
 		}
@@ -483,10 +495,11 @@ value_t adm_agent_user_uint(mid_t *id)
 
 	if(entry != NULL)
 	{
+		result.type = DTNMP_TYPE_UVAST;
+		result.length = sizeof(uvast);
+
 		if(entry->length <= result.length)
 		{
-			result.type = DTNMP_TYPE_UVAST;
-			result.length = sizeof(uvast);
 			/* \todo watch network byte order. */
 			memcpy(&(result.value.as_uvast), entry->value, MIN(result.length, entry->length));
 		}

@@ -36,16 +36,16 @@
 
 #define UI_MAIN_MENU  0
 #define UI_ADMIN_MENU 1
-#define UI_DEF_MENU   2
-#define UI_RPT_MENU   3
-#define UI_CTRL_MENU  4
+#define UI_RPT_MENU   2
+#define UI_CTRL_MENU  3
+#define UI_DB_MENU	  4
 
 extern int gContext;
 extern Lyst gParmSpec;
 
 
 #define MAX_PARMS 5
-
+#define MAX_PARM_NAME 16
 /*
  * The parameter spec keeps a list of known parameters
  * for individual, known parameterized MIDs.
@@ -57,10 +57,18 @@ typedef struct
 	mid_t *mid;
 	uint8_t num_parms;
 	uint8_t parm_type[MAX_PARMS];
+	char parm_name[MAX_PARMS][MAX_PARM_NAME];
 } ui_parm_spec_t;
 
 
-void           ui_add_parmspec(char *mid_str, uint8_t num, uint8_t p1, uint8_t p2, uint8_t p3, uint8_t p4, uint8_t p5);
+void           ui_add_parmspec(char *mid_str,
+						       uint8_t num,
+		                       char *n1, uint8_t p1,
+		                       char *n2, uint8_t p2,
+		                       char *n3, uint8_t p3,
+		                       char *n4, uint8_t p4,
+		                       char *n5, uint8_t p5);
+
 ui_parm_spec_t* ui_get_parmspec(mid_t *mid);
 
 
@@ -106,6 +114,16 @@ void ui_print_menu_admin();
 void ui_print_menu_ctrl();
 void ui_print_menu_main();
 void ui_print_menu_rpt();
+
+#ifdef HAVE_MYSQL
+void ui_print_menu_db();
+
+void ui_db_set_parms();
+void ui_db_print_parms();
+void ui_db_reset();
+void ui_db_clear_rpt();
+
+#endif
 
 void ui_print_nop();
 

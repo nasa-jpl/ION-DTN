@@ -7,6 +7,7 @@ all:with-db
 without-db:
 	gcc ${OPTS} \
 	-I. -I.. \
+	-I${IONDIR} \
 	-I${IONDIR}/ici/include \
 	-I${IONDIR}/ltp/include \
 	-I${IONDIR}/ltp/library \

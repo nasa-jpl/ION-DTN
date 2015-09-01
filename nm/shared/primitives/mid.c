@@ -1232,6 +1232,52 @@ char *mid_to_string(mid_t *mid)
 
 /******************************************************************************
  *
+ * \par Function Name: midcol_clear
+ *
+ * \par Purpose: Clear MID collection in a Lyst.
+ *
+ * \param[in,out] mc The lyst being cleared.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/30/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+void midcol_clear(Lyst mc)
+{
+	LystElt elt;
+	mid_t *cur_mid = NULL;
+
+	DTNMP_DEBUG_ENTRY("midcol_clear","("UVAST_FIELDSPEC")", (uvast) mc);
+
+	/*
+	 * Step 0: Make sure we even have a lyst.
+	 */
+	if(mc == NULL)
+	{
+		DTNMP_DEBUG_WARN("midcol_clear","NULL mc.",NULL);
+		DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+		return;
+	}
+
+	/* Step 1: Walk through the MIDs releasing as you go. */
+    for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+    {
+    	cur_mid = (mid_t *) lyst_data(elt);
+
+    	if(cur_mid != NULL)
+    	{
+    		mid_release(cur_mid);
+    	}
+    }
+
+    DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+}
+
+
+/******************************************************************************
+ *
  * \par Function Name: midcol_copy
  *
  * \par Purpose: Copies a MID collection
@@ -1318,6 +1364,7 @@ Lyst midcol_copy(Lyst mids)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  08/30/15  E. Birrane     Use midcol_clear as helper.
  *****************************************************************************/
 void midcol_destroy(Lyst *mids)
 {
@@ -1337,16 +1384,8 @@ void midcol_destroy(Lyst *mids)
 		return;
 	}
 
-	/* Step 1: Walk through the MIDs releasing as you go. */
-    for(elt = lyst_first(*mids); elt; elt = lyst_next(elt))
-    {
-    	cur_mid = (mid_t *) lyst_data(elt);
-
-    	if(cur_mid != NULL)
-    	{
-    		mid_release(cur_mid);
-    	}
-    }
+	/* Step 1: Remove all of the MIDs in the MC. */
+	midcol_clear(*mids);
 
     /* Step 2: Destroy and zero out the lyst. */
     lyst_destroy(*mids);

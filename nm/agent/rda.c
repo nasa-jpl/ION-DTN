@@ -1,19 +1,8 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
 
 /*****************************************************************************
- ** \file rda.cpp
+ ** \file rda.c
  ** 
- ** File Name: rda.cpp
+ ** File Name: rda.c
  **
  **
  ** Subsystem:
@@ -38,6 +27,7 @@
  **  09/06/11  M. Reid        Initial Implementation
  **  10/21/11  E. Birrane     Code comments and functional updates.
  **  06/27/13  E. Birrane     Support persisted rules.
+ **  08/30/15  E. Birrane     Updated support for SRL/TRL
  *****************************************************************************/
 
 #include "platform.h"
@@ -81,12 +71,14 @@ ResourceLock g_rda_srls_pend_mutex;
 
 void rda_cleanup()
 {
+	LystElt elt = NULL;
+	mid_t *cur_mid = NULL;
+
 	lockResource(&g_rda_trls_pend_mutex);
 	lockResource(&g_rda_srls_pend_mutex);
 
-	/* rules_pending only holds pointers. Nothing to free. */
-    lyst_destroy(g_rda_trls_pend);
-    lyst_destroy(g_rda_srls_pend);
+	midcol_destroy(&g_rda_trls_pend);
+	midcol_destroy(&g_rda_srls_pend);
 
     unlockResource(&g_rda_trls_pend_mutex);
     unlockResource(&g_rda_srls_pend_mutex);
@@ -225,8 +217,8 @@ int rda_scan_rules()
     /* Step 0: Start with a fresh list for pending rules */
     lockResource(&g_rda_trls_pend_mutex);
     lockResource(&g_rda_srls_pend_mutex);
-    lyst_clear(g_rda_trls_pend);
-    lyst_clear(g_rda_srls_pend);
+    midcol_clear(g_rda_trls_pend);
+    midcol_clear(g_rda_srls_pend);
     unlockResource(&g_rda_trls_pend_mutex);
     unlockResource(&g_rda_srls_pend_mutex);
     
@@ -257,13 +249,21 @@ int rda_scan_rules()
             	/* Step 1.2.2: If ready, add rule to list of rules pending
             	 *             evaluation in this current tick.
             	 */
+            	mid_t *tmp = NULL;
 
                 lockResource(&g_rda_trls_pend_mutex);
-            	lyst_insert_first(g_rda_trls_pend, trl);
+                if((tmp = mid_copy(trl->mid)) == NULL)
+                {
+                	DTNMP_DEBUG_ERR("rda_scan_rules","Can't copy TRL MID. Skipping from next eval.", NULL);
+                }
+                else
+                {
+                	lyst_insert_first(g_rda_trls_pend, tmp);
+                	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
+                    		         NULL);
+                }
                 unlockResource(&g_rda_trls_pend_mutex);
 
-            	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
-                		         NULL);
             }
         }
         else
@@ -305,13 +305,24 @@ int rda_scan_rules()
             	val = expr_eval(srl->expr);
             	if(val_cvt_uint(&val) != 0)
             	{
+                	mid_t *tmp = NULL;
+
             		lockResource(&g_rda_srls_pend_mutex);
-            		lyst_insert_first(g_rda_srls_pend, srl);
+
+                    if((tmp = mid_copy(srl->mid)) == NULL)
+                    {
+                    	DTNMP_DEBUG_ERR("rda_scan_rules","Can't copy SRL MID. Skipping from next eval.", NULL);
+                    }
+                    else
+                    {
+
+                    	lyst_insert_first(g_rda_srls_pend, tmp);
+                    	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
+                    					NULL);
+                    }
+
             		unlockResource(&g_rda_srls_pend_mutex);
             	}
-
-            	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
-                		         NULL);
             }
         }
         else
@@ -535,6 +546,7 @@ int rda_eval_pending_rules()
 {
     
     LystElt pending_elt;
+	mid_t *mid = NULL;
     trl_t *trl = NULL;
     srl_t *srl = NULL;
     
@@ -547,11 +559,11 @@ int rda_eval_pending_rules()
 
     for (pending_elt = lyst_first(g_rda_trls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
-        /* Grab the next rule...*/
-        if((trl = (trl_t*) lyst_data(pending_elt)) == NULL)
+        /* Grab the next rule mid*/
+    	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_pending_rules",
-            		        "Cannot find pending rule from elt 0x%x.", pending_elt);
+            		        "Cannot find pending rule.", NULL);
 
             unlockResource(&g_rda_trls_pend_mutex);
 
@@ -559,19 +571,33 @@ int rda_eval_pending_rules()
             return -1;
         }
         
-        /* Evaluate the rule */
+    	/*
+    	 * Grab the rule associated with the TRL. Not finding
+    	 * a rule isn't necessarily an error - a control may
+    	 * have removed the rule since its MID was added to the
+    	 * pending list.
+    	 */
+    	if((trl = agent_vdb_trl_find(mid)) != NULL)
+    	{
+    		Lyst action;
+    		/* Evaluate the rule */
 
-    	gAgentInstr.num_time_rules_run++;
-    	lcc_run_macro(trl->action);
+    		gAgentInstr.num_time_rules_run++;
 
-        /* Note that the rule has been evaluated */        
-        if(trl->desc.num_evals > 0)
-        {
-        	DTNMP_DEBUG_INFO("rda_eval_pending_rules",
-        			         "Decrementing rule eval count from %d.",
-        			         trl->desc.num_evals);
-            trl->desc.num_evals--;
-        }
+    		/* First, copy the macro, in case the TRL deletes itself as its action. */
+    		action = midcol_copy(trl->action);
+    		lcc_run_macro(action);
+    		midcol_destroy(&action);
+
+    		/* Note that the rule has been evaluated */
+    		if(trl->desc.num_evals > 0)
+    		{
+    			DTNMP_DEBUG_INFO("rda_eval_pending_rules",
+    					         "Decrementing rule eval count from %d.",
+    					         trl->desc.num_evals);
+    			trl->desc.num_evals--;
+    		}
+    	}
     }
 
     unlockResource(&g_rda_trls_pend_mutex);
@@ -586,11 +612,11 @@ int rda_eval_pending_rules()
 
     for (pending_elt = lyst_first(g_rda_srls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
-        /* Grab the next rule...*/
-        if((srl = (srl_t*) lyst_data(pending_elt)) == NULL)
+        /* Grab the next rule mid*/
+    	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
         {
             DTNMP_DEBUG_ERR("rda_eval_pending_rules",
-            		        "Cannot find pending rule from elt 0x%x.", pending_elt);
+            		        "Cannot find pending rule.", NULL);
 
             unlockResource(&g_rda_srls_pend_mutex);
 
@@ -598,18 +624,32 @@ int rda_eval_pending_rules()
             return -1;
         }
 
-        /* Evaluate the rule */
-
-    	gAgentInstr.num_prod_rules_run++;
-    	lcc_run_macro(srl->action);
-
-        /* Note that the rule has been evaluated */
-        if(srl->desc.num_evals > 0)
+    	/*
+    	 * Grab the rule associated with the TRL. Not finding
+    	 * a rule isn't necessarily an error - a control may
+    	 * have removed the rule since its MID was added to the
+    	 * pending list.
+    	 */
+    	if((srl = agent_vdb_srl_find(mid)) != NULL)
         {
-        	DTNMP_DEBUG_INFO("rda_eval_pending_rules",
-        			         "Decrementing rule eval count from %d.",
-        			         srl->desc.num_evals);
-            srl->desc.num_evals--;
+    		Lyst action;
+    		/* Evaluate the rule */
+
+    		gAgentInstr.num_prod_rules_run++;
+
+    		/* First, copy the macro, in case the TRL deletes itself as its action. */
+    		action = midcol_copy(srl->action);
+    		lcc_run_macro(action);
+    		midcol_destroy(&action);
+
+    		/* Note that the rule has been evaluated */
+    		if(srl->desc.num_evals > 0)
+    		{
+    			DTNMP_DEBUG_INFO("rda_eval_pending_rules",
+        		   	             "Decrementing rule eval count from %d.",
+        		   	             srl->desc.num_evals);
+    			srl->desc.num_evals--;
+    		}
         }
     }
 
@@ -765,6 +805,8 @@ int rda_send_reports()
 int rda_eval_cleanup()
 {
     LystElt pending_elt;
+    mid_t *mid = NULL;
+
     trl_t *trl = NULL;
     srl_t *srl = NULL;
     
@@ -779,55 +821,44 @@ int rda_eval_cleanup()
          * Step 1.1: Grab the next rule. If it is NULL, we stop processing
          *           as the system is in a potentially unknown state.
          */
-        if((trl = (trl_t*) lyst_data(pending_elt)) == NULL)
-        {
-            DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
+
+    	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
+    	{
+    		DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't grab MID for pending TRL",NULL);
 
             unlockResource(&g_rda_trls_pend_mutex);
 
             DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
             return -1;
-        }
-        
-        /* Step 1.2: If the rule should no longer execute, delete it */
-        if(trl->desc.num_evals == 0)
+    	}
+
+        if((trl = agent_vdb_trl_find(mid)) != NULL)
         {
-            DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
+        	/* Step 1.2: If the rule should no longer execute, delete it */
+        	if(trl->desc.num_evals == 0)
+        	{
+        		DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
 
-        	/* Step 1.2.1: Find and remove the rule in the memory list. */
-            LystElt tmp_elt;
-            LystElt del_elt;
-            for(tmp_elt = lyst_first(gAgentVDB.trls); tmp_elt; tmp_elt = lyst_next(tmp_elt))
-            {
-            	trl_t *tmp_rule = (trl_t*) lyst_data(tmp_elt);
-            	if(tmp_rule == trl)
-            	{
-            		del_elt = tmp_elt;
-            		tmp_elt = lyst_prev(tmp_elt);
-            		lyst_delete(del_elt);
-            	}
-            }
+        		/* Step 1.2.1: Find and remove the rule in the memory list. */
+        		agent_vdb_trl_forget(trl->mid);
+        		agent_db_trl_forget(trl->mid);
 
-            /* Step 1.2.2: Remove the rule from the SDR storage.. */
-            db_forget(&(trl->desc.itemObj),
-         	          &(trl->desc.descObj),
-                      gAgentDB.trls);
+        		/* Step 1.2.3: Release the rule. */
+        		trl_release(trl);
+        		trl = NULL;
 
-            /* Step 1.2.3: Release the rule. */
-            trl_release(trl);
-            trl = NULL;
-
-            /* Step 1.2.4: Correct counters. */
-        	gAgentInstr.num_time_rules--;
-        }
+        		/* Step 1.2.4: Correct counters. */
+        		gAgentInstr.num_time_rules--;
+        	}
         
-        /* Step 1.3: If the rule should run again, reset its timer. */
-        else
-        {
-            trl->countdown_ticks = trl->desc.interval_ticks;
+        	/* Step 1.3: If the rule should run again, reset its timer. */
+        	else
+        	{
+        		trl->countdown_ticks = trl->desc.interval_ticks;
 
-            /* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
-            agent_db_trl_persist(trl);
+        		/* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
+        		agent_db_trl_persist(trl);
+        	}
         }
     }
 
@@ -841,59 +872,48 @@ int rda_eval_cleanup()
     /* Step 1: For each pending rule...*/
     for (pending_elt = lyst_first(g_rda_srls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
     {
+    	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
+    	{
+    		DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't grab MID for pending TRL",NULL);
+
+            unlockResource(&g_rda_trls_pend_mutex);
+
+            DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
+            return -1;
+    	}
+
         /*
          * Step 1.1: Grab the next rule. If it is NULL, we stop processing
          *           as the system is in a potentially unknown state.
          */
-        if((srl = (srl_t*) lyst_data(pending_elt)) == NULL)
+        if((srl = agent_vdb_srl_find(mid)) != NULL)
         {
-            DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't find pending rule from elt %x.", pending_elt);
 
-            unlockResource(&g_rda_srls_pend_mutex);
+        	/* Step 1.2: If the rule should no longer execute, delete it */
+        	if(srl->desc.num_evals == 0)
+        	{
+        		DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
 
-            DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
-            return -1;
-        }
+        		/* Step 1.2.1: Find and remove the rule in the memory list. */
+        		agent_vdb_srl_forget(srl->mid);
+        		agent_db_srl_forget(srl->mid);
 
-        /* Step 1.2: If the rule should no longer execute, delete it */
-        if(srl->desc.num_evals == 0)
-        {
-            DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
+        		/* Step 1.2.3: Release the rule. */
+        		srl_release(srl);
+        		srl = NULL;
 
-        	/* Step 1.2.1: Find and remove the rule in the memory list. */
-            LystElt tmp_elt;
-            LystElt del_elt;
-            for(tmp_elt = lyst_first(gAgentVDB.srls); tmp_elt; tmp_elt = lyst_next(tmp_elt))
-            {
-            	srl_t *tmp_rule = (srl_t*) lyst_data(tmp_elt);
-            	if(tmp_rule == srl)
-            	{
-            		del_elt = tmp_elt;
-            		tmp_elt = lyst_prev(tmp_elt);
-            		lyst_delete(del_elt);
-            	}
-            }
+        		/* Step 1.2.4: Correct counters. */
+        		gAgentInstr.num_prod_rules--;
+        	}
 
-            /* Step 1.2.2: Remove the rule from the SDR storage.. */
-            db_forget(&(srl->desc.itemObj),
-         	          &(srl->desc.descObj),
-                      gAgentDB.srls);
+        	/* Step 1.3: If the rule should run again, reset its timer. */
+        	else
+        	{
+        		srl->countdown_ticks = srl->desc.interval_ticks;
 
-            /* Step 1.2.3: Release the rule. */
-            srl_release(srl);
-            srl = NULL;
-
-            /* Step 1.2.4: Correct counters. */
-        	gAgentInstr.num_prod_rules--;
-        }
-
-        /* Step 1.3: If the rule should run again, reset its timer. */
-        else
-        {
-            srl->countdown_ticks = srl->desc.interval_ticks;
-
-            /* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
-            agent_db_srl_persist(srl);
+        		/* Step 1.3.1: Re-persist the rule to update its status in the SDR. */
+        		agent_db_srl_persist(srl);
+        	}
         }
     }
 

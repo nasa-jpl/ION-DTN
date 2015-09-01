@@ -268,6 +268,7 @@ agent_t* mgr_agent_get(eid_t* in_eid)
  *  --------  ------------   ---------------------------------------------
  **  09/01/11  V. Ramachandran Initial Implementation
  **  08/20/13  E. Birrane      Code Review Updates
+ **  08/29/15  E. Birrane      Don't print error message on duplicate agent
  *****************************************************************************/
 
 int mgr_agent_add(eid_t agent_eid)
@@ -284,7 +285,6 @@ int mgr_agent_add(eid_t agent_eid)
 	{
 		unlockResource(&agents_mutex);
 		result = 0;
-		DTNMP_DEBUG_ERR("mgr_agent_add","Trying to add an already-known agent.", NULL);
 		DTNMP_DEBUG_EXIT("mgr_agent_add","->%d.", result);
 
 		return result;
@@ -652,7 +652,7 @@ int mgr_init(char *argv[])
 	mgr_vdb_init();
 
 #ifdef HAVE_MYSQL
-	db_mgt_init("localhost", "root", "NetworkManagement", "dtnmp", 1);
+	db_mgt_init(gMgrVDB.sqldb, 0);
 #endif
 
 	DTNMP_DEBUG_EXIT("mgr_init","->0.",NULL);

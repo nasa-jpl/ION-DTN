@@ -11,6 +11,7 @@
 #include "shared/adm/adm_bp_impl.h"
 #else
 #include "mgr/nm_mgr_names.h"
+#include "mgr/nm_mgr_ui.h"
 #endif
 
 
@@ -218,15 +219,19 @@ void adm_bp_init_atomic()
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_NAME_MID,                DTNMP_TYPE_STRING, 1, NULL,  adm_print_string, bp_size_endpoint_name);
 	names_add_name("ADM_BP_AD_ENDPT_NAME_MID", "Endpoint Names", ADM_BP, ADM_BP_AD_ENDPT_NAME_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_NAME_MID, 1, "Endpt Name", DTNMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_ACTIVE_MID,              DTNMP_TYPE_UINT, 1, NULL,  NULL, NULL);
 	names_add_name("ADM_BP_AD_ENDPT_ACTIVE_MID", "Active Endpoint", ADM_BP, ADM_BP_AD_ENDPT_ACTIVE_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_ACTIVE_MID, 1, "Endpt Name", DTNMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_SINGLETON_MID,           DTNMP_TYPE_UINT, 1, NULL,  NULL, NULL);
 	names_add_name("ADM_BP_AD_ENDPT_SINGLETON_MID", "Singleton Endpoint", ADM_BP, ADM_BP_AD_ENDPT_SINGLETON_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_SINGLETON_MID, 1, "Endpt Name", DTNMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, DTNMP_TYPE_UINT, 1, NULL,  NULL, NULL);
 	names_add_name("ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID", "Abandon On Del Fail", ADM_BP, ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, 1,"Endpt Name", DTNMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 #endif
 
@@ -249,7 +254,6 @@ void adm_bp_init_controls()
 #else
 	adm_add_ctrl(ADM_BP_CTL_RESET_BP_COUNTS, NULL);
 	names_add_name("ADM_BP_CTL_RESET_BP_COUNTS", "Reset BP Counts", ADM_BP, ADM_BP_CTL_RESET_BP_COUNTS);
-
 #endif
 
 }
@@ -272,15 +276,15 @@ void adm_bp_init_metadata()
 {
 	/* Step 1: Register Nicknames */
 
-	oid_nn_add_parm(BP_ADM_MD_NN_IDX,   BP_ADM_MD_NN_STR);
-	oid_nn_add_parm(BP_ADM_AD_NN_IDX,   BP_ADM_AD_NN_STR);
-	oid_nn_add_parm(BP_ADM_CD_NN_IDX,   BP_ADM_CD_NN_STR);
-	oid_nn_add_parm(BP_ADM_RPT_NN_IDX,  BP_ADM_RPT_NN_STR);
-	oid_nn_add_parm(BP_ADM_CTRL_NN_IDX, BP_ADM_CTRL_NN_STR);
-	oid_nn_add_parm(BP_ADM_LTRL_NN_IDX, BP_ADM_LTRL_NN_STR);
-	oid_nn_add_parm(BP_ADM_MAC_NN_IDX,  BP_ADM_MAC_NN_STR);
-	oid_nn_add_parm(BP_ADM_OP_NN_IDX,   BP_ADM_OP_NN_STR);
-	oid_nn_add_parm(BP_ADM_ROOT_NN_IDX, BP_ADM_ROOT_NN_STR);
+	oid_nn_add_parm(BP_ADM_MD_NN_IDX,   BP_ADM_MD_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_AD_NN_IDX,   BP_ADM_AD_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_CD_NN_IDX,   BP_ADM_CD_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_RPT_NN_IDX,  BP_ADM_RPT_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_CTRL_NN_IDX, BP_ADM_CTRL_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_LTRL_NN_IDX, BP_ADM_LTRL_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_MAC_NN_IDX,  BP_ADM_MAC_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_OP_NN_IDX,   BP_ADM_OP_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_ROOT_NN_IDX, BP_ADM_ROOT_NN_STR, "BP", "6");
 
 	/* Step 2: Register Metadata Information. */
 #ifdef AGENT_ROLE

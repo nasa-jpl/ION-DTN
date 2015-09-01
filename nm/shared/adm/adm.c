@@ -625,6 +625,8 @@ int adm_add_rpt(char *mid_str, Lyst midcol)
 
 	Lyst newdefs = midcol_copy(midcol);
 
+	printf("EJB: Adding "UVAST_FIELDSPEC"\n", (uvast) newdefs);
+
 	/* Step 2 - Build the definition to hold the macro. */
 	if((new_entry = def_create_gen(mid, DTNMP_TYPE_MC, newdefs)) == NULL)
 	{
@@ -843,13 +845,39 @@ void adm_destroy()
    for (elt = lyst_first(gAdmRpts); elt; elt = lyst_next(elt))
    {
 	   def_gen_t *cur = (def_gen_t *) lyst_data(elt);
+
 	   def_release_gen(cur);
    }
+
    lyst_destroy(gAdmRpts);
    gAdmRpts = NULL;
 
+
+   for (elt = lyst_first(gAdmMacros); elt; elt = lyst_next(elt))
+   {
+	   def_gen_t *cur = (def_gen_t *) lyst_data(elt);
+	   def_release_gen(cur);
+   }
+
+   lyst_destroy(gAdmMacros);
+   gAdmMacros = NULL;
+
+
+   for (elt = lyst_first(gAdmLiterals); elt; elt = lyst_next(elt))
+   {
+	   lit_t *cur = (lit_t *) lyst_data(elt);
+	   lit_release(cur);
+   }
    lyst_destroy(gAdmLiterals);
    gAdmLiterals = NULL;
+
+
+   for (elt = lyst_first(gAdmOps); elt; elt = lyst_next(elt))
+   {
+	   adm_op_t *cur = (adm_op_t *) lyst_data(elt);
+	   mid_release(cur->mid);
+	   MRELEASE(cur);
+   }
 
    lyst_destroy(gAdmOps);
    gAdmOps = NULL;
@@ -1740,6 +1768,7 @@ void adm_init()
 #ifdef _HAVE_ION_ADM_
 	adm_ion_init();
 #endif /* _HAVE_ION_ADM_ */
+
 
 	adm_agent_init();
 

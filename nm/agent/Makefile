@@ -14,10 +14,10 @@ all:
 	-I/usr/local/include \
 	-L${IONDIR}/ \
 	-L/usr/local/lib \
-	-lbp -lici -lltp \
+	-lm -lbp -lici -lltp \
 	-DMAXPATHLEN=2048 \
 	-DAGENT_ROLE=1 \
 	-c ${SOURCES} 
 
-	gcc -o nm_agent *.o -lltp -lbp -lici -lm -lpthread
+	gcc -o nm_agent *.o -lm -lltp -lbp -lici -lpthread
 

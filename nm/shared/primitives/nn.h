@@ -63,9 +63,11 @@
  * of the nickname when re-constructing an OID from a protocol data unit.
  */
 typedef struct {
-	uvast id;				/**> The nickname identifier. */
+	uvast id;				   /**> The nickname identifier. */
+	char adm_name[16];
+	char adm_ver[16];
 	uint8_t raw[MAX_NN_SIZE];  /**> The OID representing the expansion*/
-	uint32_t raw_size;          /**> Size of the expansion OID. */
+	uint32_t raw_size;         /**> Size of the expansion OID. */
 } oid_nn_t;
 
 
@@ -89,9 +91,9 @@ extern ResourceLock nn_db_mutex;
  */
 
 
-int       oid_nn_add(oid_nn_t *nn);
+int oid_nn_add(oid_nn_t *nn);
 
-int       oid_nn_add_parm(uvast id, char *oid);
+int oid_nn_add_parm(uvast id, char *oid, char *name, char *version);
 
 void      oid_nn_cleanup();
 

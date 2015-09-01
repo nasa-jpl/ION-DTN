@@ -47,7 +47,7 @@
 #include "shared/msg/msg_ctrl.h"
 
 #ifdef HAVE_MYSQL
-#include "nm_mgr_db.h"
+#include "nm_mgr_sql.h"
 #endif
 
 
@@ -208,7 +208,7 @@ void *mgr_rx_thread(void * threadId)
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
-            incoming_idx = db_incoming_initialize(group_timestamp);
+            incoming_idx = db_incoming_initialize(group_timestamp, sender_eid);
 #endif
 
             /* For each message in the group. */

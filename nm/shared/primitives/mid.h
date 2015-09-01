@@ -212,6 +212,8 @@ uint8_t* mid_serialize(mid_t *mid, uint32_t *size);
 
 char*    mid_to_string(mid_t *mid);
 
+void     midcol_clear(Lyst mc);
+
 Lyst     midcol_copy(Lyst mids);
 
 void     midcol_destroy(Lyst *mids);

@@ -109,6 +109,7 @@ value_t *expr_get_literal(mid_t *mid)
 	value_t *result = NULL;
 	value_t tmp;
 	lit_t *lit = NULL;
+	mid_t *tmp_mid = NULL;
 
 	DTNMP_DEBUG_ENTRY("expr_get_literal","(%#llx)", (unsigned long) mid);
 
@@ -126,7 +127,11 @@ value_t *expr_get_literal(mid_t *mid)
 		return NULL;
 	}
 
+	/* Swap in MID with the actual parameters. */
+	tmp_mid = lit->id;
+	lit->id = mid;
 	tmp = lit_get_value(lit);
+	lit->id = tmp_mid;
 
 	result = val_as_ptr(tmp);
 

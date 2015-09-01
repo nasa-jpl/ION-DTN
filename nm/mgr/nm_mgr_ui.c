@@ -39,6 +39,10 @@
 #include "nm_mgr_print.h"
 #include "mgr_db.h"
 
+#ifdef HAVE_MYSQL
+#include "nm_mgr_sql.h"
+#endif
+
 int gContext;
 
 Lyst gParmSpec;
@@ -576,12 +580,6 @@ void ui_eventLoop()
 	char choice[3];
 	int len;
 
-	/*
-	#define UI_MAIN_MENU 0
-	#define UI_CTRL_MENU 1
-	#define UI_RPT_MENU  2
-	*/
-
 	int gContext = UI_MAIN_MENU;
 
 
@@ -593,6 +591,10 @@ void ui_eventLoop()
 			case UI_ADMIN_MENU: ui_print_menu_admin(); break;
 			case UI_CTRL_MENU:  ui_print_menu_ctrl();  break;
 			case UI_RPT_MENU:   ui_print_menu_rpt();   break;
+
+#ifdef HAVE_MYSQL
+			case UI_DB_MENU:    ui_print_menu_db();    break;
+#endif
 			default: printf("Error. Unknown menu context.\n"); break;
 		}
 
@@ -608,6 +610,9 @@ void ui_eventLoop()
 						case '1' : gContext = UI_ADMIN_MENU; break;
 						case '2' : gContext = UI_RPT_MENU; break;
 						case '3' : gContext = UI_CTRL_MENU; break;
+#ifdef HAVE_MYSQL
+						case '4' : gContext = UI_DB_MENU; break;
+#endif
 						case 'Z' : exit(1); break;
 						default: printf("Unknown command.\n");break;
 					}
@@ -666,6 +671,24 @@ void ui_eventLoop()
 					  default: printf("Unknown command.\n");			break;
 					}
 					break;
+
+#ifdef HAVE_MYSQL
+					case UI_DB_MENU:
+						switch(cmd)
+						{
+						  // Definitions List
+						  case '1' : ui_db_set_parms(); break; // New Connection Parameters
+						  case '2' : ui_db_print_parms(); break;
+						  case '3' : ui_db_reset(); break; // Reset Tables
+						  case '4' : ui_db_clear_rpt(); break; // Clear Received Reports
+
+						  case 'Z' : gContext = UI_MAIN_MENU;				break;
+
+						  default: printf("Unknown command.\n");			break;
+						}
+						break;
+
+#endif
 
 				default: printf("Error. Unknown menu context.\n"); break;
 			}
@@ -960,6 +983,11 @@ void ui_print_menu_main()
 	printf("1) Administrative Menu.\n");
 	printf("2) Reporting Menu.\n");
 	printf("3) Control Menu. \n");
+
+#ifdef HAVE_MYSQL
+	printf("4) Database Menu. \n");
+#endif
+
 	printf("Z) Exit.\n");
 
 }
@@ -1067,19 +1095,37 @@ void ui_run_tests()
 /*
  * No double-checking, assumes code is correct...
  */
-void ui_add_parmspec(char *mid_str, uint8_t num, uint8_t p1, uint8_t p2, uint8_t p3, uint8_t p4, uint8_t p5)
+void ui_add_parmspec(char *mid_str,
+						       uint8_t num,
+		                       char *n1, uint8_t p1,
+		                       char *n2, uint8_t p2,
+		                       char *n3, uint8_t p3,
+		                       char *n4, uint8_t p4,
+		                       char *n5, uint8_t p5)
 {
 	ui_parm_spec_t *spec = MTAKE(sizeof(ui_parm_spec_t));
 
+	bzero(spec, sizeof(ui_parm_spec_t));
+
 	spec->mid = mid_from_string(mid_str);
 	spec->num_parms = num;
+
+	if(n1 != NULL) strncpy(spec->parm_name[0], n1, MAX_PARM_NAME);
 	spec->parm_type[0] = p1;
+
+	if(n2 != NULL) strncpy(spec->parm_name[1], n2, MAX_PARM_NAME);
 	spec->parm_type[1] = p2;
+
+	if(n3 != NULL) strncpy(spec->parm_name[2], n3, MAX_PARM_NAME);
 	spec->parm_type[2] = p3;
+
+	if(n4 != NULL) strncpy(spec->parm_name[3], n4, MAX_PARM_NAME);
 	spec->parm_type[3] = p4;
+
+	if(n5 != NULL) strncpy(spec->parm_name[4], n5, MAX_PARM_NAME);
 	spec->parm_type[4] = p5;
 
-	lyst_insert_first(gParmSpec, spec);
+	lyst_insert_last(gParmSpec, spec);
 }
 
 ui_parm_spec_t* ui_get_parmspec(mid_t *mid)
@@ -1119,3 +1165,98 @@ void *ui_thread(void * threadId)
 
 	return NULL;
 }
+
+
+
+
+#ifdef HAVE_MYSQL
+
+void ui_print_menu_db()
+{
+
+	printf("========================= Database Menu ==========================\n");
+	printf("Database Status: ");
+
+	if(db_mgt_connected() == 0)
+	{
+		printf("[ACTIVE]\n");
+	}
+	else
+	{
+		printf("[NOT CONNECTED]\n");
+	}
+
+	printf("1) Set Database Connection Information.\n");
+	printf("2) Print Database Connection Information.\n");
+	printf("3) Reset Database to ADMs.\n");
+	printf("4) Clear Received Reports.\n");
+
+	printf("------------------------------------------------------------------\n");
+	printf("Z) Return to Main Menu.\n");
+
+}
+
+void ui_db_set_parms()
+{
+	ui_db_t parms;
+
+	char *tmp = NULL;
+	char prompt[80];
+
+	bzero(&parms, sizeof(ui_db_t));
+
+	printf("Enter SQL Database Connection Information:\n");
+
+	sprintf(prompt,"Enter Database Server (up to %d characters", UI_SQL_SERVERLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.server, tmp, UI_SQL_SERVERLEN-1);
+	MRELEASE(tmp);
+
+	sprintf(prompt,"Enter Database Name (up to %d characters", UI_SQL_DBLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.database, tmp, UI_SQL_DBLEN-1);
+	MRELEASE(tmp);
+
+	sprintf(prompt,"Enter Database Username (up to %d characters", UI_SQL_ACCTLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.username, tmp, UI_SQL_ACCTLEN-1);
+	MRELEASE(tmp);
+
+	sprintf(prompt,"Enter Database Password (up to %d characters", UI_SQL_ACCTLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.password, tmp, UI_SQL_ACCTLEN-1);
+	MRELEASE(tmp);
+
+	mgr_db_sql_persist(&parms);
+
+	lockResource(&(gMgrVDB.sqldb_mutex));
+
+	memcpy(&(gMgrVDB.sqldb), &parms, sizeof(ui_db_t));
+
+	unlockResource(&(gMgrVDB.sqldb_mutex));
+
+}
+
+void ui_db_print_parms()
+{
+	printf("\n\n");
+	printf("Server: %s\nDatabase: %s\nUsername: %s\nPassword: %s\n",
+		gMgrVDB.sqldb.server, gMgrVDB.sqldb.database, gMgrVDB.sqldb.username, gMgrVDB.sqldb.password);
+	printf("\n\n");
+}
+
+void ui_db_reset()
+{
+	printf("Clearing non-ADM tables in the Database....\n");
+	db_mgt_clear();
+	printf("Done!\n\n");
+}
+
+void ui_db_clear_rpt()
+{
+	printf("Not implemented yet.\n");
+}
+
+#endif
+
+

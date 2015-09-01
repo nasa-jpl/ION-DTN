@@ -25,6 +25,7 @@
  **  10/27/12  E. Birrane     Initial Implementation
  **  11/13/12  E. Birrane     Technical review, comment updates.
  **  03/11/15  E. Birrane     Removed NN from OID into NN.
+ **  08/29/15  E. Birrane     Removed length restriction from OID parms.
  *****************************************************************************/
 
 #ifndef OID_H_
@@ -49,15 +50,6 @@
 
 /**
  * OID TYPES
- *
- * FULL: SNMP ASN.1 OID encoded with BER.
- * 	EX: <OID>
- * PARAM: OID with parameters appended.
- * 	EX: <#P><OID ROOT><P1><P2>...<Pn>
- * COMP_FULL: Compressed, full OID
- * 	EX: <nickname><subtree rooted at nickname>
- * COMP_PARAM: COmpressed, parameterized OID
- * 	EX: <#P><nickname><subtree><P1><P2>...<Pn>
  */
 #define OID_TYPE_FULL 0
 #define OID_TYPE_PARAM 1
@@ -93,20 +85,11 @@
  * elided behind the nickname. The value includes the # bytes portion.
  *
  * PARAMETER HANDLING:
- * The num_parm member stores the number of parameters in the OID.
- * The raw_parms and parms_size capture the serialized parameters (including
- * size SDNV) and the size of the serialized parameter buffer, respectively.
- * The parm_idx array holds a series of indices into raw_parms identifying the
- * start of the ith parameter SDNV within raw_parms.  For example, to decode
- * the 3rd parameter, the SDNV string would start at raw_parms[parm_idx[3]].
+ * The params lyst is a Data Collection of the parameters for this OID.
  *
  * NICKNAME HANDLING
  * The nn_id holds the identifier of the OID nickname.  The nickname expansion
  * is not represented in this structure.
- *
- * \todo
- * 	- This structure is huge. Will need to migrate this to dynamic memory
- * 	once we achieve baseline functionality.
  */
 typedef struct {
     
@@ -144,6 +127,8 @@ uint32_t  oid_calc_size(oid_t *oid);
 void      oid_clear(oid_t *oid);
 
 int       oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms);
+
+oid_t*    oid_construct(uint8_t type, Lyst parms, uvast nn_id, uint8_t *value, uint32_t size);
 
 oid_t*    oid_copy(oid_t *src_oid);
 

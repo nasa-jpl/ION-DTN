@@ -457,6 +457,7 @@ Lyst dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
 void dc_destroy(Lyst *datacol)
 {
 	LystElt elt;
+	LystElt del_elt;
 	datacol_entry_t *entry = NULL;
 
 	DTNMP_DEBUG_ENTRY("dc_destroy","(%#llx)", (unsigned long) datacol);
@@ -481,6 +482,7 @@ void dc_destroy(Lyst *datacol)
     }
 
     /* Step 2: Destroy and zero out the lyst. */
+    lyst_clear(*datacol);
     lyst_destroy(*datacol);
     *datacol = NULL;
 

@@ -77,6 +77,16 @@ unsigned long utils_atox(char *s, int *success)
 		return 0;
 	}
 
+	/*
+	 * Step 0.5 Handle case where string starts with "0x" by simply
+	 * advancing s to skip over it. This won't modify s from the
+	 * caller point of view.
+	 */
+	if((s[0]=='0') && (s[1]=='x'))
+	{
+		s = s + 2;
+	}
+
 	*success = 1;
 
 	/* Step 1 - Make sure string isn't too long. Since every character in the
@@ -369,6 +379,17 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 		DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 		return NULL;
 	}
+
+	/*
+	 * Step 0.5 Handle case where string starts with "0x" by simply
+	 * advancing s to skip over it. This won't modify s from the
+	 * caller point of view.
+	 */
+	if((value[0]=='0') && (value[1]=='x'))
+	{
+		value = value + 2;
+	}
+
 
 	/* Step 1 - Figure out the size of the byte array. Since each ASCII
 	 *          character represents a nibble, the size of the byte array is

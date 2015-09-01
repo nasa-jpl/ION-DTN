@@ -54,13 +54,11 @@ ResourceLock nn_db_mutex;
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-
-
 int oid_nn_add(oid_nn_t *nn)
 {
 	oid_nn_t *new_nn = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_add","(%#llx)",(unsigned long)nn);
+	DTNMP_DEBUG_ENTRY("oid_nn_add","("UVAST_FIELDSPEC")",(uvast)nn);
 
 	/* Step 0: Sanity check. */
 	if(nn == NULL)
@@ -123,20 +121,26 @@ int oid_nn_add(oid_nn_t *nn)
  * \retval 0 Failure.
  *         !0 Success.
  *
- * \param[n]  id  The unique identifier of the NN.
- * \param[in] oid The OID whose string representation is being calculated.
+ * \param[n]  id       The unique identifier of the NN.
+ * \param[in] oid      The OID whose string representation is being calculated.
+ * \param[in] name     The ADM name
+ * \param[in] ver      The ADM Version
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  03/11/15  E. Birrane     Initial implementation,
+ *  08/29/15  E. Birrane     Added ADM Id.
  *****************************************************************************/
-int       oid_nn_add_parm(uvast id, char *oid)
+int oid_nn_add_parm(uvast id, char *oid, char *name, char *version)
 {
 	int result = 0;
 	oid_nn_t tmp;
+	uint8_t *data = NULL;
+	uint32_t datasize = 0;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_add_parm","(%#llx, %#llx)",(unsigned long) id, (unsigned long)oid);
+	DTNMP_DEBUG_ENTRY("oid_nn_add_parm","("UVAST_FIELDSPEC","UVAST_FIELDSPEC","UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
+			          (uvast) id, (uvast)oid, (uvast)name, (uvast)version);
 
 	/* Step 0: Sanity check. */
 	if(oid == NULL)
@@ -146,14 +150,34 @@ int       oid_nn_add_parm(uvast id, char *oid)
 		return 0;
 	}
 
+	if((data = utils_string_to_hex(oid, &datasize)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("oid_nn_add_parm","Can't cnv to hex.",NULL);
+		DTNMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
+		return 0;
+	}
+
+	if(datasize > MAX_NN_SIZE)
+	{
+		DTNMP_DEBUG_ERR("oid_nn_add_parm","OID size %d > %d.", datasize, MAX_NN_SIZE);
+		MRELEASE(data);
+		DTNMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
+		return 0;
+	}
+
 	/* Step 1: Populate temp structure. */
 	tmp.id = id;
-	memcpy(&(tmp.raw), oid, strlen(oid));
-//	tmp.raw = oid;
-	tmp.raw_size = strlen(oid);
+
+	memcpy(&(tmp.raw), data, datasize);
+	tmp.raw_size = datasize;
+
+	strncpy(tmp.adm_name, name, 16);
+	strncpy(tmp.adm_ver, version, 16);
 
 	/* Step 2: Add the NN entry. */
 	result = oid_nn_add(&tmp);
+
+	MRELEASE(data);
 
 	DTNMP_DEBUG_EXIT("oid_nn_add_parm","->%d",result);
 

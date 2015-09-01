@@ -46,6 +46,11 @@
  * +--------------------------------------------------------------------------+
  */
 
+#define UI_SQL_SERVERLEN (80)
+#define UI_SQL_ACCTLEN   (20)
+#define UI_SQL_DBLEN     (20)
+#define UI_SQL_TOTLEN    (UI_SQL_SERVERLEN + UI_SQL_ACCTLEN + UI_SQL_ACCTLEN + UI_SQL_DBLEN)
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  	MACROS  								  +
@@ -65,6 +70,32 @@
  * |							  DATA TYPES  								  +
  * +--------------------------------------------------------------------------+
  */
+
+
+
+typedef struct
+{
+	Object itemObj;     /**> Location of definition in SDR. */
+	uint32_t size; 		/**> Size of definition in the SDR */
+
+	Object descObj;    /**> Location of this descr in SDR. */
+
+} ui_db_desc_t;
+
+/*
+ * This structure holds the constants needed to store SQL database
+ * information.
+ */
+typedef struct
+{
+	char server[UI_SQL_SERVERLEN];
+	char username[UI_SQL_ACCTLEN];
+	char password[UI_SQL_ACCTLEN];
+	char database[UI_SQL_DBLEN];
+
+	ui_db_desc_t desc;
+} ui_db_t;
+
 
 /*
  * This structure implements the DTNMP Mgmt Daemon SDR database which keeps a list
@@ -100,7 +131,8 @@ typedef struct
    Object  reports;
    Object  trls;       /* SDR list: trl_descr_t */
    Object  srls;       /* SDR list: srl_descr_t */
-   Object  descObj;    /**> The pointer to the AgentDB object in the SDR. */
+   Object  sqldb;      /* SDR list: ui_db_t */
+   Object  descObj;    /**> The pointer to the MgrDB object in the SDR. */
 } MgrDB;
 
 
@@ -117,6 +149,7 @@ typedef struct
 	Lyst  reports;
 	Lyst  trls;
 	Lyst  srls;
+	ui_db_t sqldb;
 
 	ResourceLock compdata_mutex;
 	ResourceLock ctrls_mutex;
@@ -124,6 +157,7 @@ typedef struct
 	ResourceLock reports_mutex;
 	ResourceLock trls_mutex;
 	ResourceLock srls_mutex;
+	ResourceLock sqldb_mutex;
 } MgrVDB;
 
 
@@ -133,21 +167,24 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
-int  mgr_db_compdata_persist(def_gen_t* item);
 int  mgr_db_compdata_forget(mid_t *mid);
-int  mgr_db_ctrl_persist(ctrl_exec_t* item);
+int  mgr_db_compdata_persist(def_gen_t* item);
 int  mgr_db_ctrl_forget(mid_t *mid);
+int  mgr_db_ctrl_persist(ctrl_exec_t* item);
 int  mgr_db_defgen_persist(Object db, def_gen_t* item);
 int  mgr_db_forget(Object db, Object itemObj, Object descObj);
 int  mgr_db_init();
-int  mgr_db_macro_persist(def_gen_t* item);
 int  mgr_db_macro_forget(mid_t *mid);
-int  mgr_db_report_persist(def_gen_t* item);
+int  mgr_db_macro_persist(def_gen_t* item);
 int  mgr_db_report_forget(mid_t *mid);
-int  mgr_db_srl_persist(srl_t* item);
+int  mgr_db_report_persist(def_gen_t* item);
 int  mgr_db_srl_forget(mid_t *mid);
-int  mgr_db_trl_persist(trl_t* item);
+int  mgr_db_srl_persist(srl_t* item);
 int  mgr_db_trl_forget(mid_t *mid);
+int  mgr_db_trl_persist(trl_t* item);
+int  mgr_db_sql_forget(ui_db_t* item);
+int  mgr_db_sql_persist(ui_db_t* item);
+
 
 
 
@@ -183,6 +220,10 @@ void       mgr_vdb_srl_forget(mid_t *mid);
 void       mgr_vdb_trls_init(Sdr sdr);
 trl_t*     mgr_vdb_trl_find(mid_t *mid);
 void       mgr_vdb_trl_forget(mid_t *mid);
+
+void       mgr_vdb_sql_init(Sdr sdr);
+ui_db_t*   mgr_vdb_sql_find();
+void       mgr_vdb_sql_forget();
 
 
 extern MgrVDB gMgrVDB;
