@@ -16,7 +16,7 @@ LIBDTPCOBJS = \
 PUBINCLS = \
 	$(INCL)/dtpc.h
 
-LBP = -lbp -limcfw -lipnfw
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = dtpcd dtpcclock dtpcsend dtpcreceive dtpcadmin
 

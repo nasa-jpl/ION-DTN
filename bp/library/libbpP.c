@@ -42,6 +42,12 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+/*	We need to link with the ipn and dtn2 libraries in order to
+ *	clean up directive upon removal of an outduct.			*/
+
+extern void	ipn_forgetOutduct(Object ductElt);
+extern void	dtn2_forgetOutduct(Object ductElt);
+
 /*	We hitchhike on the ZCO heap space management system to 
  *	manage the space occupied by Bundle objects.  In effect,
  *	the Bundle overhead objects compete with ZCOs for available
@@ -4294,9 +4300,19 @@ int	removeOutduct(char *protocolName, char *ductName)
 		return 0;
 	}
 
-	/*	Okay to remove this duct from the database.		*/
+	/*	Okay to remove this duct from the database.  First,
+	 *	remove all references to this duct from all routing
+	 *	databases.						*/
+
+	dtn2_forgetOutduct(ductElt);
+	ipn_forgetOutduct(ductElt);
+
+	/*	Next remove the duct's volatile state.			*/
 
 	dropOutduct(vduct, vductElt);
+
+	/*	Finally, remove the duct's non-volatile state.		*/
+
 	if (outductBuf.cloCmd)
 	{
 		sdr_free(bpSdr, outductBuf.cloCmd);

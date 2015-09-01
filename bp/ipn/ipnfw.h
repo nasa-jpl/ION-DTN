@@ -158,6 +158,8 @@ extern int		ipn_removeGroupRule(uvast firstNodeNbr,
 				int sourceServiceNbr,
 				vast sourceNodeNbr);
 
+extern void		ipn_forgetOutduct(Object ductElt);
+
 extern int		ipn_lookupGroupDirective(uvast nodeNbr, 
 				unsigned int sourceServiceNbr,
 				uvast sourceNodeNbr,

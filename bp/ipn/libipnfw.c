@@ -1116,6 +1116,56 @@ int	ipn_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	return 1;
 }
 
+void	ipn_forgetOutduct(Object ductElt)
+{
+	Sdr	sdr = getIonsdr();
+	IpnDB	*db;
+	Object	planElt;
+	Object	nextPlanElt;
+	Object	planAddr;
+		OBJ_POINTER(IpnPlan, plan);
+	Object	ruleElt;
+	Object	nextRuleElt;
+	Object	ruleAddr;
+		OBJ_POINTER(IpnRule, rule);
+
+	CHKVOID(ionLocked());
+	if (ipnInit() < 0 || (db = getIpnConstants()) == NULL)
+	{
+		return;
+	}
+
+	for (planElt = sdr_list_first(sdr, db->plans); planElt;
+			planElt = nextPlanElt)
+	{
+		nextPlanElt = sdr_list_next(sdr, planElt);
+		planAddr = sdr_list_data(sdr, planElt);
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+		for (ruleElt = sdr_list_first(sdr, plan->rules); ruleElt;
+				ruleElt = nextRuleElt)
+		{
+			nextRuleElt = sdr_list_next(sdr, ruleElt);
+			ruleAddr = sdr_list_data(sdr, ruleElt);
+			GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
+			if (rule->directive.outductElt == ductElt)
+			{
+				destroyXmitDirective(&(rule->directive));
+				sdr_free(sdr, ruleAddr);
+				sdr_list_delete(sdr, ruleElt, NULL, NULL);
+			}
+		}
+
+		if (plan->defaultDirective.outductElt == ductElt)
+		{
+			destroyXmitDirective(&(plan->defaultDirective));
+			sdr_free(sdr, planAddr);
+			sdr_list_delete(sdr, planElt, NULL, NULL);
+		}
+	}
+
+	/*	Note: Ipn group directives never reference outducts.	*/
+}
+
 int	ipn_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 		uvast sourceNodeNbr, FwdDirective *dirbuf)
 {

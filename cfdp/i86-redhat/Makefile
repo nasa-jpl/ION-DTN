@@ -20,7 +20,7 @@ CFDPINCLS = \
 	$(API)/cfdpP.h \
 	$(UTILS)/bpcp.h
 
-LBP = -lbp -limcfw -lipnfw
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = cfdpadmin cfdpclock bputa tcputa cfdptest bpcp bpcpd
 
