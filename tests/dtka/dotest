@@ -28,8 +28,8 @@
 # The difference between the two cycles is this: 95 seconds after the
 # start of the test, authority node 4 is terminated and authority
 # nodes 1 and 6 are notionally compromised ("hijack" flag is set to
-# 1 to trigger simulated adversarial operation).  Notice that nodes
-# 1, 4, and 6 are out of service is provided to nodes 2, 3, and 5.
+# 1 to trigger simulated adversarial operation).  Notices that nodes
+# 1, 4, and 6 are out of service are provided to nodes 2, 3, and 5.
 #
 # The test succeeds if all subscriber nodes receive their peers' new
 # public keys without error in each re-keying cycle.			*/
@@ -38,32 +38,86 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
-# Start all nodes.
+# Start all nodes and build multicast spanning tree.
 
-kaboot 20
 cd 1.ipn.ltp
-./ionstart >& node1.stdout &
+./ionstart >& node1.stdout
+sleep 1
 cd ../2.ipn.ltp
-./ionstart >& node2.stdout &
+./ionstart >& node2.stdout
+sleep 1
 cd ../3.ipn.ltp
-./ionstart >& node3.stdout &
+./ionstart >& node3.stdout
+sleep 1
 cd ../4.ipn.ltp
-./ionstart >& node4.stdout &
+./ionstart >& node4.stdout
+sleep 1
 cd ../5.ipn.ltp
-./ionstart >& node5.stdout &
+./ionstart >& node5.stdout
+sleep 1
 cd ../6.ipn.ltp
-./ionstart >& node6.stdout &
+./ionstart >& node6.stdout
+sleep 1
 cd ../7.ipn.ltp
-./ionstart >& node7.stdout &
+./ionstart >& node7.stdout
+sleep 1
 cd ../8.ipn.ltp
-./ionstart >& node8.stdout &
+./ionstart >& node8.stdout
+sleep 1
 cd ../9.ipn.ltp
-./ionstart >& node9.stdout &
+./ionstart >& node9.stdout
+sleep 1
 
-# Sleep 17 seconds and then load all nodes' public keys to each node.
+# Now build multicast distribution trees.
+
+cd ../1.ipn.ltp
+./imcstart >& node1.stdout.b &
+cd ../2.ipn.ltp
+./imcstart >& node2.stdout.b &
+cd ../3.ipn.ltp
+./imcstart >& node3.stdout.b &
+cd ../4.ipn.ltp
+./imcstart >& node4.stdout.b &
+cd ../5.ipn.ltp
+./imcstart >& node5.stdout.b &
+cd ../6.ipn.ltp
+./imcstart >& node6.stdout.b &
+cd ../7.ipn.ltp
+./imcstart >& node7.stdout.b &
+cd ../8.ipn.ltp
+./imcstart >& node8.stdout.b &
+cd ../9.ipn.ltp
+./imcstart >& node9.stdout.b &
+
+# Sleep 2 seconds, then initialize DTKA and start DTKA on all nodes.
 
 cd ..
-sleep 17
+sleep 2
+kaboot 20
+sleep 1
+cd 1.ipn.ltp
+./dtkastart >& node1.stdout.c &
+cd ../2.ipn.ltp
+./dtkastart >& node2.stdout.c &
+cd ../3.ipn.ltp
+./dtkastart >& node3.stdout.c &
+cd ../4.ipn.ltp
+./dtkastart >& node4.stdout.c &
+cd ../5.ipn.ltp
+./dtkastart >& node5.stdout.c &
+cd ../6.ipn.ltp
+./dtkastart >& node6.stdout.c &
+cd ../7.ipn.ltp
+./dtkastart >& node7.stdout.c &
+cd ../8.ipn.ltp
+./dtkastart >& node8.stdout.c &
+cd ../9.ipn.ltp
+./dtkastart >& node9.stdout.c &
+
+# Sleep 8 seconds and then load all nodes' public keys to each node.
+
+cd ..
+sleep 8
 cat 1.ipn.ltp/kn.ionsecrc 2.ipn.ltp/kn.ionsecrc 3.ipn.ltp/kn.ionsecrc 4.ipn.ltp/kn.ionsecrc 5.ipn.ltp/kn.ionsecrc 6.ipn.ltp/kn.ionsecrc 7.ipn.ltp/kn.ionsecrc 8.ipn.ltp/kn.ionsecrc 9.ipn.ltp/kn.ionsecrc > kn.ionsecrc
 cd 1.ipn.ltp
 ionsecadmin ../kn.ionsecrc

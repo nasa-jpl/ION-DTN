@@ -30,3 +30,35 @@ or other export authority as may be required before exporting the
 software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
+
+To build this prototype DTKA implementation:
+
+1.	If it's not already installed, install a version of ION that
+includes dtka support.  In your home directory, create a symbolic link
+to ion-open-source/bp named "bp".
+
+2.	Download PolarSSL and un-tar it.  polarssl-1.2.8 was used in
+development of the DTKA code, but more recent releases might also work.
+
+3.	Build PolarSSL: cd into the PolarSSL directory and enter
+"make clean", "make lib", and "make install".  The resulting library
+should end up in /usr/local/lib and the header files should be in
+/usr/local/include/polarssl.
+
+4.	Then cd into /usr/local/lib and
+
+		ln -s libpolarssl.so libpolarssl.so.0
+		
+(The build should do this automatically, or make it unnecessary somehow,
+but we haven't yet figured out how to make that happen.)
+
+5.	Download zfec-1.4.24 into the top-level DTKA directory and untar it.
+
+6.	Apply the fec.h.patch patch to zfec-1.4.24/zfec/fec.h.  (We needed
+to do this to get zfec to build.  There is undoubtedly a better fix, but we
+haven't found it yet.)
+
+7.	Then in the top-level dtka directory enter "make clean", "make",
+and "make install".
+
+To test the build, cd into ion-open-source/tests/dtka and enter "./dotest".
