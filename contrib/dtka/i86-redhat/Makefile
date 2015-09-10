@@ -3,8 +3,8 @@ INCL = ../include
 UTILS = ../utils
 KAUTH = ../kauth
 KNODE = ../knode
-ZFEC = ../../../zfec-1.4.24/zfec
-BP = ../../../bp
+ZFEC = ../zfec
+BP = ../bp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
@@ -51,17 +51,17 @@ kacompile:	kacompile.o libdtka.so
 		cp kacompile ./bin
 
 kapublish:	kapublish.o libdtka.so
-		$(CC) -o kapublish kapublish.o -L./lib -L$(ROOT)/lib -lkauth -ldtka -lpolarssl $(LBP) -lici -lpthread
+		$(CC) -o kapublish kapublish.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread
 		cp kapublish ./bin
 
 #	-	-	Node executables	-	-	-	-
 
 knclock:	knclock.o libdtka.so
-		$(CC) -o knclock knclock.o -L./lib -L$(ROOT)/lib -lknode -ldtka -lpolarssl $(LBP) -lici -lpthread
+		$(CC) -o knclock knclock.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread
 		cp knclock ./bin
 
 knmgr:		knmgr.o libdtka.so
-		$(CC) -o knmgr knmgr.o -L./lib -L$(ROOT)/lib -lknode -ldtka -lpolarssl $(LBP) -lici -lpthread
+		$(CC) -o knmgr knmgr.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread
 		cp knmgr ./bin
 
 #	-	-	Utility executables	-	-	-	-

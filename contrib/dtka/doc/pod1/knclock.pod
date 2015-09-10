@@ -15,6 +15,12 @@ by B<knadmin> in response to the 's' command that starts operation of the
 DTKA user function, and it is terminated by B<knadmin> in response to an 'x'
 (STOP) command.
 
+B<NOTE> that knclock utilizes functions provided by cryptography software
+that is not distributed with ION.  To indicate that this supporting software
+has been installed, set the compiler flag -DCRYPTO_SOFTWARE_INSTALLED when
+compiling this program.  Absent that flag setting at compile time, knclock's
+generateKeyPair() function does nothing.
+
 =head1 EXIT STATUS
 
 =over 4

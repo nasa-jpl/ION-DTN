@@ -11,7 +11,7 @@
 #include "zco.h"
 #include "ionsec.h"
 #include "fec.h"
-#include "polarssl/sha2.h"
+#include "crypto.h"
 
 #ifndef DTKA_DEBUG
 #define	DTKA_DEBUG	(0)

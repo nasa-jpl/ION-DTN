@@ -55,12 +55,6 @@ static void	sha1_hmac(const unsigned char *key, size_t keylen,
 	return;
 }
 
-static void	sha2(const unsigned char *input, size_t ilen,
-			unsigned char output[32], int is224)
-{
-	return;
-}
-
 static int	x509parse_key(rsa_context *rsa, const unsigned char *key,
 			size_t keylen, const unsigned char *pwd, size_t pwdlen)
 {
@@ -91,6 +85,12 @@ static int	rsa_rsassa_pkcs1_v15_verify(rsa_context *ctx, int mode,
 			const unsigned char *hash, unsigned char *sig)
 {
 	return 0;
+}
+
+void	sha2(const unsigned char *input, size_t ilen,
+		unsigned char output[32], int is224)
+{
+	return;
 }
 
 /*
@@ -253,7 +253,6 @@ void	sha256_hash(unsigned char *data, int data_length,
 	memset(result, 0, resultLen);
 	sha2(data, data_length, result, 0);
 }
-
 
 /*****************************************************************************
  *                RSA AUTHENTICATION FUNCTION DEFINITIONS                    *

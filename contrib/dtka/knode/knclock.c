@@ -2,6 +2,19 @@
 	knclock.c:	public/private key pair generator for ION
 			nodes.
 
+			NOTE: this program utilizes functions
+			provided by cryptography software that is
+			not distributed with ION.  To indicate that
+			this supporting software has been installed,
+			set the compiler flag
+			
+				-DCRYPTO_SOFTWARE_INSTALLED
+				
+			when compiling this program.  Absent that
+			flag setting at compile time, knclock's
+			generateKeyPair() function does nothing.
+
+
 	Author: Scott Burleigh, JPL
 
 	Copyright (c) 2013, California Institute of Technology.
@@ -14,6 +27,7 @@
 #endif
 
 #include "knode.h"
+#ifdef CRYPTO_SOFTWARE_INSTALLED
 #include "polarssl/config.h"
 #include "polarssl/entropy.h"
 #include "polarssl/ctr_drbg.h"
@@ -22,6 +36,7 @@
 #include "polarssl/x509.h"
 #include "polarssl/base64.h"
 #include "polarssl/x509write.h"
+#endif
 
 #define KEY_SIZE 1024
 #define EXPONENT 65537
@@ -51,6 +66,7 @@ static void	shutDown()	/*	Commands knclock termination.	*/
 	oK(_running(&stop));	/*	Terminates knclock.		*/
 }
 
+#ifdef CRYPTO_SOFTWARE_INSTALLED
 static int	writeAddPubKeyCmd(BpTimestamp *effectiveTime,
 			unsigned short publicKeyLen, unsigned char *publicKey)
 {
@@ -97,9 +113,11 @@ static int	writeAddPubKeyCmd(BpTimestamp *effectiveTime,
 	close(fd);
 	return 0;
 }
+#endif
 
 static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 {
+#ifdef CRYPTO_SOFTWARE_INSTALLED
 	time_t			currentTime = getUTCTime();
 	Sdr			sdr = getIonsdr();
 	BpTimestamp		effectiveTime;
@@ -239,6 +257,7 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 	}
 
 	rsa_free(&rsa);
+#endif
 	return 0;
 }
 
