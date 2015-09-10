@@ -335,9 +335,13 @@ char	*logBeacon(Beacon *beacon)
 		"Source EID (%s) Beacon period (%d) Services",
 		beacon->version, beacon->flags, beacon->sequenceNumber,
 		beacon->canonicalEid, beacon->period);
+#if IPND_DEBUG
 	printText(buffer);
+#endif
 	logBeaconServices(buffer, sizeof buffer, beacon->services);
+#if IPND_DEBUG
 	printText(buffer);
+#endif
 	return buffer;
 }
 

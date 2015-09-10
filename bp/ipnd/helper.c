@@ -311,14 +311,16 @@ LystElt	findDestinationByAddr(NetAddress *addr, Lyst destinations)
 /**
  * Releases the contents of a Lyst.
  * @param  lyst Lyst to release.
- * @return      0 on success.
  */
-int	releaseLystElements(Lyst lyst)
+void	releaseLystElements(Lyst lyst)
 {
 	int	i;
 	LystElt	lystElt;
 
-	CHKZERO(lyst);
+	if (lyst == NULL)
+	{
+		return;
+	}
 
 	lystElt = lyst_first(lyst);
 	for (i = 0; i < lyst_length(lyst); i++)
@@ -326,8 +328,6 @@ int	releaseLystElements(Lyst lyst)
 		MRELEASE(lyst_data(lystElt));
 		lystElt = lyst_next(lystElt);
 	}
-
-	return 0;
 }
 
 /* Parse human readable string into IPND protocol bytes

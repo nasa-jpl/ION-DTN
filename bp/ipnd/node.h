@@ -16,6 +16,8 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
+#define IPND_DEBUG	0
+
 #include "helper.h"
 #include "beacon.h"
 

@@ -55,7 +55,7 @@ LystElt		findIpndNeighbor(const char *ip, const int port,
 int		compareDestination(void *data1, void *data2);
 LystElt		findDestinationByAddr(NetAddress *addr, Lyst destinations);
 
-int	releaseLystElements(Lyst lyst);
+void		releaseLystElements(Lyst lyst);
 
 /* Functions to parse human readable string into IPND protocol bytes */
 int	stringToBooleanBytes(char *str, char *buf, int maxLen);

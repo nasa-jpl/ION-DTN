@@ -677,6 +677,11 @@ PsmAddress	sm_list_search(PsmPartition partition, PsmAddress fromElt,
 	int		result;
 
 	CHKZERO(partition);
+	if (fromElt == 0)
+	{
+		return 0;	/*	Obviously not found in list.	*/
+	}
+
 	CHKZERO(fromElt);
 	eltBuffer = (SmListElt *) psp(partition, fromElt);
 	CHKZERO(eltBuffer);

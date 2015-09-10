@@ -729,10 +729,14 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
 	CHKZERO(prob > 0.0 && prob <= 1.0);
-	if (fromNode == getOwnNodeNbr() && prob < 1.0)
+	if (prob < 1.0)
 	{
-		writeMemo("[?] Ignoring non-certain contact from local node.");
-		return 0;
+		if (fromNode == getOwnNodeNbr()
+		|| toNode == getOwnNodeNbr())
+		{
+			writeMemo("[?] Ignoring non-certain local contact.");
+			return 0;
+		}
 	}
 
 	CHKZERO(sdr_begin_xn(sdr));
@@ -746,6 +750,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	arg.fromTime = fromTime;
 	arg.toTime = toTime;
 	arg.xmitRate = xmitRate;
+	arg.prob = prob;
 	arg.routingObject = 0;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);

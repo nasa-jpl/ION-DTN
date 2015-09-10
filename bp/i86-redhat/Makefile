@@ -262,8 +262,8 @@ bibeclo:	bibeclo.o $(BPLIBS)
 #	-	-	IPND executable	-	-	-	-	-
 
 ipnd:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o bibeclo $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread
-		cp bibeclo ./bin
+		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread
+		cp ipnd ./bin
 
 #	-	-	Test executables	-	-	-	-
 

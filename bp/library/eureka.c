@@ -134,7 +134,7 @@ static int	addOutductToNeighbor(ClProtocol *claProtocol, char *outductName,
 	return 0;
 }
 
-static int	addIpnNeighbor(MetaEid *metaEid, char *neighborEid,
+static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 			ClProtocol *claProtocol, char *outductName,
 			char *destDuctName, char *outductDaemon,
 			unsigned int xmitRate, unsigned int recvRate)
@@ -147,7 +147,7 @@ static int	addIpnNeighbor(MetaEid *metaEid, char *neighborEid,
 	DuctExpression	ductExpression;
 	time_t		currentTime;
 
-	ipn_findPlan(metaEid->nodeNbr, &planObj, &planElt);
+	ipn_findPlan(nodeNbr, &planObj, &planElt);
 	if (planElt)	/*	Egress plan for this neighbor exists.	*/
 	{
 		if (!(plansAgree(planObj, claProtocol, outductName)))
@@ -172,7 +172,7 @@ static int	addIpnNeighbor(MetaEid *metaEid, char *neighborEid,
 		findOutduct(claProtocol->name, outductName, &vduct, &vductElt);
 		ductExpression.outductElt = vduct->outductElt;
 		ductExpression.destDuctName = destDuctName;
-		if (ipn_addPlan(metaEid->nodeNbr, &ductExpression) < 0)
+		if (ipn_addPlan(nodeNbr, &ductExpression) < 0)
 		{
 			putErrmsg("Can't add plan for discovery.", outductName);
 			return -1;
@@ -183,16 +183,22 @@ static int	addIpnNeighbor(MetaEid *metaEid, char *neighborEid,
 
 	currentTime = getUTCTime();
 	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, ownNodeNbr,
-			metaEid->nodeNbr, xmitRate, 1.0) == 0)
+			nodeNbr, xmitRate, 1.0) == 0)
 	{
 		putErrmsg("Can't add transmission contact.", outductName);
 		return -1;
 	}
 
-	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, metaEid->nodeNbr,
+	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, nodeNbr,
 			ownNodeNbr, recvRate, 1.0) == 0)
 	{
 		putErrmsg("Can't add reception contact.", outductName);
+		return -1;
+	}
+
+	if (addNdpNeighbor(neighborEid) < 0)
+	{
+		putErrmsg("Can't add discovered Neighbor.", neighborEid);
 		return -1;
 	}
 
@@ -201,12 +207,6 @@ static int	addIpnNeighbor(MetaEid *metaEid, char *neighborEid,
 	if (bpUnblockOutduct(claProtocol->name, outductName) < 0)
 	{
 		putErrmsg("Can't unblock outduct.", outductName);
-		return -1;
-	}
-
-	if (addNdpNeighbor(neighborEid) < 0)
-	{
-		putErrmsg("Can't add discovered Neighbor.", neighborEid);
 		return -1;
 	}
 
@@ -275,6 +275,12 @@ static int	addDtn2Neighbor(char *neighborEid, ClProtocol *claProtocol,
 		}
 	}
 
+	if (addNdpNeighbor(neighborEid) < 0)
+	{
+		putErrmsg("Can't add discovered Neighbor.", neighborEid);
+		return -1;
+	}
+
 	/*	Unblock outduct to this neighbor, enabling reforward.	*/
 
 	if (bpUnblockOutduct(claProtocol->name, outductName) < 0)
@@ -283,17 +289,12 @@ static int	addDtn2Neighbor(char *neighborEid, ClProtocol *claProtocol,
 		return -1;
 	}
 
-	if (addNdpNeighbor(neighborEid) < 0)
-	{
-		putErrmsg("Can't add discovered Neighbor.", neighborEid);
-		return -1;
-	}
-
 	return 0;
 }
 
-int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
-		char *claProtocol, unsigned int xmitRate, unsigned int recvRate)
+static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
+			char *claProtocol, unsigned int xmitRate,
+			unsigned int recvRate)
 {
 	int		result;
 	MetaEid		metaEid;
@@ -309,6 +310,7 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 	unsigned int	ipAddress;
 	char		ipAddressString[16];
 	char		inductName[32];
+	uvast		nodeNbr;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -391,8 +393,9 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 	}
 	else if (strcmp(metaEid.schemeName, "ipn") == 0)
 	{
+		nodeNbr = metaEid.nodeNbr;
 		restoreEidString(&metaEid);
-		return addIpnNeighbor(&metaEid, neighborEid, &protocol,
+		return addIpnNeighbor(nodeNbr, neighborEid, &protocol,
 			outductName, destDuctName, outductDaemon, xmitRate,
 			recvRate);
 	}
@@ -405,8 +408,26 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 	}
 }
 
-int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
-		char *claProtocol)
+int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
+		char *claProtocol, unsigned int xmitRate, unsigned int recvRate)
+{
+	Sdr	sdr = getIonsdr();
+	int	result;
+
+	oK(sdr_begin_xn(sdr));
+	result = discoverContactAcquired(socketSpec, neighborEid, claProtocol,
+			xmitRate, recvRate);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("bp_discover_contact_acquired failed.", NULL);
+		return -1;
+	}
+
+	return result;
+}
+
+static int	discoverContactLost(char *socketSpec, char *neighborEid,
+			char *claProtocol)
 {
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		result;
@@ -460,11 +481,33 @@ int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
 	return 0;
 }
 
+int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
+		char *claProtocol)
+{
+	Sdr	sdr = getIonsdr();
+	int	result;
+
+	oK(sdr_begin_xn(sdr));
+	result = discoverContactLost(socketSpec, neighborEid, claProtocol);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("bp_discover_contact_lost failed.", NULL);
+		return -1;
+	}
+
+	return result;
+}
+
 PsmAddress	bp_discover_find_neighbor(char *eid)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	wm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
+	PsmAddress	neighbor;
 
-	return sm_list_search(wm, sm_list_first(wm, vdb->neighbors),
+	oK(sdr_begin_xn(sdr));		/*	Just to lock database.	*/
+	neighbor = sm_list_search(wm, sm_list_first(wm, vdb->neighbors),
 			compareNeighbors, eid);
+	sdr_exit_xn(sdr);
+	return neighbor;
 }

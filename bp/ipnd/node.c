@@ -131,9 +131,11 @@ beacon (%dB) to %s:%d.", rawBeaconLength, dest->addr.ip, dest->addr.port);
 		return -1;
 	}
 
+#if IPND_DEBUG
 	isprintf(buffer, sizeof buffer, "[i] send-thread: Beacon (%dB) sent \
 to %s:%d correctly: ", rawBeaconLength, dest->addr.ip, dest->addr.port);
 	printText(buffer);
+#endif
 	logBeacon(beacon);
 
 	MRELEASE(rawBeacon);
@@ -150,7 +152,9 @@ to %s:%d correctly: ", rawBeaconLength, dest->addr.ip, dest->addr.port);
  */
 void	*sendBeacons(void *attr)
 {
+#if IPND_DEBUG
 	char		buffer[200];
+#endif
 	IPNDCtx		*ctx = getIPNDCtx();
 	int		sendSocket;
 	int		result;
@@ -223,16 +227,20 @@ lyst.", NULL);
 		/* Reset state */
 		oldBeacon = NULL;
 
+#if IPND_DEBUG
 		isprintf(buffer, sizeof buffer, "[i] send-thread: Started \
 beacon sending to %s:%d.", nDestination->addr.ip, nDestination->addr.port);
 		printText(buffer);
+#endif
 
 		/* Get previously sent beacon */
 		oldBeacon = &nDestination->beacon;
 		if (!nDestination->beaconInitialized)
 		{
+#if IPND_DEBUG
 			printText("[i] send-thread: Previously sent beacon not \
 found.");
+#endif
 
 			/* If beacon has not been initialized,
 			   just create a new beacon and send it */
@@ -264,16 +272,20 @@ beacon.", NULL);
 		}
 		else
 		{
+#if IPND_DEBUG
 			isprintf(buffer, sizeof buffer, "[i] send-thread: \
 Previously sent beacon found: ", NULL);
 			printText(buffer);
+#endif
 			logBeacon(oldBeacon);
 
 			beaconHasChanged = beaconChanged(oldBeacon,
 					nDestination->announcePeriod);
 			if (beaconHasChanged)
 			{
+#if IPND_DEBUG
 				printText("[i] send-thread: Beacon changed.");
+#endif
 
 				/* Create a new beacon. */
 				if (populateBeacon(&newBeacon,
@@ -311,10 +323,12 @@ beacon.", NULL);
 			&& !hasAnActiveConnection(nDestination->eid,
 					nDestination->announcePeriod))
 			{
+#if IPND_DEBUG
 				isprintf(buffer, sizeof buffer, "[i] send-\
 thread: Beacon has not changed and node does not have an active connection \
 with %s:%d.", nDestination->addr.ip, nDestination->addr.port);
 				printText(buffer);
+#endif
 
 				/*  If beacon has not changed and we
 				 *  don't have an active connection
@@ -334,10 +348,12 @@ beacon.", NULL);
 			}
 			else
 			{
+#if IPND_DEBUG
 				isprintf(buffer, sizeof buffer, "[i] send-\
 thread: Beacon has not changed and node has an active connection with %s:%d. \
 Not sending beacon.", nDestination->addr.ip, nDestination->addr.port);
 				printText(buffer);
+#endif
 			}
 		}
 
@@ -418,9 +434,14 @@ static int	*setUpListenSockets(Lyst listenAddresses,
 
 	/* Set up unicast listen sockets */
 	numListenAddrs = lyst_length(listenAddresses);
+	if (numListenAddrs == 0)
+	{
+		*numListenSockets = 0;
+		return NULL;
+	}
 
 	listenSockets = MTAKE(numListenAddrs * sizeof(int));
-	listenAddrElt = numListenAddrs > 0 ? lyst_first(listenAddresses) : NULL;
+	listenAddrElt = lyst_first(listenAddresses);
 	for (i = 0; i < lyst_length(listenAddresses); i++)
 	{
 		/* Reset variables */
@@ -482,7 +503,6 @@ setting reception of broadcast beacons.", NULL);
 	}
 
 	*numListenSockets = i;
-
 	return listenSockets;
 }
 /**
@@ -638,8 +658,8 @@ void	*receiveBeacons(void *attr)
 
 	if (numListenSockets == 0 || listenSockets == NULL)
 	{
-		putErrmsg("receive-thread: No listen sockets configured. \
-IPND will not receive any beacon.", NULL);
+		writeMemo("[?] IPND receive-thread: No listen sockets \
+configured. IPND will not receive any beacon.");
 		return (void *) -1;
 	}
 
@@ -704,11 +724,13 @@ data.", NULL);
 			srcAddrType = getIpv4AddressType(srcAddrStr);
 			unlockResource(&ctx->configurationLock);
 
+#if IPND_DEBUG
 			isprintf(buffer, sizeof buffer,
 					"[i] receive-thread: "
 					"Beacon (%dB) received from %s",
 					recvDataBufferLen, srcAddrStr);
 			printText(buffer);
+#endif
 
 			if (*srcAddrStr == '\0')
 			{
@@ -739,22 +761,28 @@ source address to string.", NULL);
 				/* Known neighbor. */
 				nb = (IpndNeighbor *) lyst_data(nbElt);
 
+#if IPND_DEBUG
 				isprintf(buffer, sizeof buffer, "[i] \
 receive-thread: Sender %s:%d is a known neighbor.", srcAddrStr, srcAddrPort);
 				printText(buffer);
+#endif
 			}
 			else
 			{
+#if IPND_DEBUG
 				isprintf(buffer, sizeof buffer, "[i] \
 receive-thread: Sender %s:%d is an unknown neighbor.", srcAddrStr, srcAddrPort);
 				printText(buffer);
+#endif
 			}
 
 			/* Process recv data */
 			if (*recvDataBuffer == IPND_VERSION2)
 			{
+#if IPND_DEBUG
 				printText("[i] receive-thread: Received \
 IPND version 2 beacon.");
+#endif
 				continue;
 			}
 			else
@@ -783,10 +811,12 @@ Received beacon's optional part cannot be parsed.", NULL);
 						printText(buffer);
 					}
 
+#if IPND_DEBUG
 					isprintf(buffer, sizeof buffer,
 						"[i] receive-thread: Received \
 beacon (%dB) contents: ", recvDataBufferLen);
 					printText(buffer);
+#endif
 					logBeacon(&recvBeacon);
 
 					if (recvBeacon.period == 0)
@@ -830,8 +860,10 @@ Sender %s:%d added as new neighbor.", srcAddrStr, srcAddrPort);
 					}
 					else
 					{
+#if IPND_DEBUG
 						printText("[i] receive-thread: \
 Old beacon contents: ");
+#endif
 						logBeacon(&nb->beacon);
 					}
 
@@ -842,10 +874,12 @@ Old beacon contents: ");
 						strlen(ctx->srcEid)) == 1)
 					{
 						nb->link.bidirectional = 1;
+#if IPND_DEBUG
 						isprintf(buffer, sizeof buffer,
 							"[i] receive-thread: \
 Sender's %s:%d NBF contains our EID - bidirectional.", srcAddrStr, srcAddrPort);
 						printText(buffer);
+#endif
 					}
 
 					/* Update neighbor beacon */
