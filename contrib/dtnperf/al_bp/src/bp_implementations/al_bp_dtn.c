@@ -6,6 +6,8 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains the functions interfacing dtn2
+ ** (i.e. that will actually call the dtn2 APIs).
  ********************************************************/
 
 /*
@@ -16,7 +18,8 @@
 
 /*
  * if there is the DTN2 implementation on the
- * machine the API are implemented
+ * machine the API are actually implemented; otherwise they are just dummy functions
+ * to avoid compilation errors.
  */
 #ifdef DTN2_IMPLEMENTATION
 
@@ -243,7 +246,7 @@ al_bp_error_t bp_dtn_error(int err)
 }
 /*
  * if there isn't the DTN2 implementation
- * the API don't have any implementation
+ * the APIs are just dummy calls
  */
 #else
 al_bp_error_t bp_dtn_open(al_bp_handle_t* handle)

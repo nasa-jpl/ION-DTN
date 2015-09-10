@@ -6,6 +6,8 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains the definitions of functions interfacing ION
+ ** (i.e. that will actually call the ION APIs).
  ********************************************************/
 
 /*

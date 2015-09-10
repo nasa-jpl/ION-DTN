@@ -5,6 +5,7 @@
  **
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
+ ** This file contains the definition of all types specific to the al_bp.
  **  All rights reserved.
  ********************************************************/
 

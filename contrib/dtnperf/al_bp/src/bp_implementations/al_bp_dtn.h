@@ -6,6 +6,8 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains the definitions of functions interfacing dtn2
+ ** (i.e. that will actually call the dtn2 APIs).
  ********************************************************/
 
 /*
@@ -25,7 +27,7 @@
 #  include <dtn-config.h>
 #endif
 #endif
-
+/* al_bp_error_t is the type of the value returned by bp_dtn_open(). Analogously for other ones*/
 al_bp_error_t bp_dtn_open(al_bp_handle_t* handle);
 
 al_bp_error_t bp_dtn_open_with_IP(char * daemon_api_IP, int daemon_api_port, al_bp_handle_t * handle);
