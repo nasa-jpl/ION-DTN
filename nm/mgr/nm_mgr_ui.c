@@ -1,15 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  **
  ** \file nm_mgr_ui.c
@@ -19,8 +7,7 @@
  **
  ** Notes:
  **		1. Currently we do not support ACLs.
- **		2. Currently we do not support multiple DTNMP Agents.
- **		3. When defining new MID, add to list so it can be IDX selected.
+ **		2. \todo When defining new MID, add to list so it can be IDX selected.
  **
  ** Assumptions:
  **
@@ -38,81 +25,28 @@
 
 #include "shared/utils/utils.h"
 #include "shared/adm/adm.h"
+#include "shared/adm/adm_agent.h"
+#include "shared/primitives/ctrl.h"
 #include "shared/primitives/rules.h"
 #include "shared/primitives/mid.h"
 #include "shared/primitives/oid.h"
 #include "shared/msg/pdu.h"
+#include "shared/msg/msg_ctrl.h"
+#include "mgr/nm_mgr_names.h"
 
 #include "nm_mgr_ui.h"
+#include "mgr/ui_input.h"
+#include "nm_mgr_print.h"
+#include "mgr_db.h"
 
-/*
-#define UI_MAIN_MENU 0
-#define UI_DEF_MENU  1
-#define UI_CTRL_MENU 2
-#define UI_RPT_MENU  3
-*/
+#ifdef HAVE_MYSQL
+#include "nm_mgr_sql.h"
+#endif
 
 int gContext;
 
+Lyst gParmSpec;
 
-/******************************************************************************
- *
- * \par Function Name: ui_build_mid
- *
- * \par Builds a MID object from user input.
- *
- * \par Notes:
- *
- * \retval NULL  - Error
- * 		   !NULL - The constructed MID.
- *
- * \param[in]  mid_str  The user input to define the MID.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-mid_t *ui_build_mid(char *mid_str)
-{
-	mid_t *result = NULL;
-	uint8_t *tmp = NULL;
-	uint32_t len = 0;
-	uint32_t bytes = 0;
-	adm_datadef_t adu;
-
-	DTNMP_DEBUG_ENTRY("ui_build_mid","(0x%x)", mid_str);
-
-	/* Step 0: Sanity check. */
-	if(mid_str == NULL)
-	{
-		DTNMP_DEBUG_ERR("ui_build_mid","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("ui_build_mid","->NULL", NULL);
-		return NULL;
-	}
-
-	/* Step 1: Convert the string into a binary buffer. */
-    if((tmp = utils_string_to_hex((unsigned char*)mid_str, &len)) == NULL)
-    {
-    	DTNMP_DEBUG_ERR("ui_build_mid","Can't Parse MID ID of %s.", mid_str);
-		DTNMP_DEBUG_EXIT("ui_build_mid","->NULL", NULL);
-		return NULL;
-    }
-
-    /* Step 2: Build an ADU from the buffer. */
- //   memcpy(adu.mid, tmp, len);
- //   adu.mid_len = len;
-//    MRELEASE(tmp);
-
-    /* Step 3: Build a mid by "deserializing" the ADU into a MID. */
-//	result = mid_deserialize((unsigned char*)&(adu.mid),ADM_MID_ALLOC,&bytes);
-    result = mid_deserialize(tmp, len, &bytes);
-
-	DTNMP_DEBUG_EXIT("ui_build_mid","->0x%x", result);
-
-	return result;
-}
 
 /******************************************************************************
  *
@@ -142,7 +76,7 @@ agent_t* ui_select_agent()
 	printf("Select an Agent:");
 	total = ui_print_agents();
 
-	if(ui_get_user_input("Agent (#), or 'x' to cancel:",
+	if(ui_input_get_line("Agent (#), or 'x' to cancel:",
 			(char **) &line, 10) == 0)
 	{
 		DTNMP_DEBUG_ERR("ui_select_agent","Unable to read user input.", NULL);
@@ -242,60 +176,174 @@ void ui_clear_reports(agent_t* agent)
 }
 
 
-
 /******************************************************************************
  *
- * \par Function Name: ui_construct_ctrl_by_idx
+ * \par Function Name: ui_postprocess_ctrl
  *
- * \par Constructs a "execute control" message by selecting the control from
- *      a list of controls. Puts the control in a PDU and sends to agent.
+ * \par Evaluates a control prior to sending it to agents to see if the manager
+ *      needs to perform any postprocessing of the control.
  *
  * \par Notes:
- *	\todo Add ability to select which agent, and to apply ACL.
+ * 1. Post-processing includes the following activities
+ * 		- Verifying that definitions are unique.
+ * 		- Remembering the definitions of any custom-defined data
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  04/18/13  V.Ramachandran Multiple-agent support (added param)
- *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ *  07/18/15  E. Birrane      Initial implementation,
  *****************************************************************************/
 
-void ui_construct_ctrl_by_idx(agent_t* agent)
+void ui_postprocess_ctrl(mid_t *mid)
 {
-	char line[256];
-	uint32_t offset;
-	char mid_str[256];
-	Lyst mids = lyst_create();
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("ui_postprocess_ctrl","Bad Args.", NULL);
+		return;
+	}
+
+
+	/* If this is a computed data definition...*/
+	if(ui_test_mid(mid, ADM_AGENT_CTL_ADDCD_MID) == 0)
+	{
+
+	}
+	/* If this is removing a computed data definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELCD_MID) == 0)
+	{
+
+	}
+	/* If this is adding a report definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDRPT_MID) == 0)
+	{
+		def_gen_t *def = def_create_from_rpt_parms(mid->oid->params);
+		if(def != NULL)
+		{
+			mgr_db_report_persist(def);
+			ADD_REPORT(def);
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("ui_postprocess_ctrl", "Adding report definition.",NULL);
+		}
+	}
+	/* If this is removing a report definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELRPT_MID) == 0)
+	{
+		datacol_entry_t *entry = dc_get_entry(mid->oid->params, 1);
+
+		if(entry != NULL)
+		{
+			uint32_t bytes = 0;
+			LystElt elt = NULL;
+			Lyst mc = midcol_deserialize(entry->value, entry->length, &bytes);
+			for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+			{
+				mid_t *mid = (mid_t *)lyst_data(elt);
+				mgr_db_report_forget(mid);
+				mgr_vdb_report_forget(mid);
+			}
+			midcol_destroy(&mc);
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("ui_postprocess_ctrl","Can't get entry.", NULL);
+		}
+	}
+	/* If this is adding a macro definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDMAC_MID) == 0)
+	{
+
+	}
+	/* If this is removing a macro definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELMAC_MID) == 0)
+	{
+
+	}
+	/* If this is adding a TRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDTRL_MID) == 0)
+	{
+
+	}
+	/* If this is removing a TRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELTRL_MID) == 0)
+	{
+
+	}
+	/* If this is adding an SRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDSRL_MID) == 0)
+	{
+
+	}
+	/* If this is removing an SRL definition. */
+	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELSRL_MID) == 0)
+	{
+
+	}
+
+
+}
+
+int ui_test_mid(mid_t *mid, const char *mid_str)
+{
+	int result = 0;
+	mid_t*  m2 =  NULL;
+
+	if((mid == NULL) || (mid_str == NULL))
+	{
+		DTNMP_DEBUG_ERR("ui_test_mid","Bad args.", NULL);
+		return 0;
+	}
+
+	m2 = mid_from_string((char *)mid_str);
+
+	result = mid_compare(mid, m2,0);
+	mid_release(m2);
+	return result;
+}
+
+
+
+void ui_build_control(agent_t* agent)
+{
+	mid_t *mid = NULL;
+	uint32_t offset = 0;
 	uint32_t size = 0;
+	time_t ts = 0;
 
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("ui_construct_ctrl_by_idx","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_construct_ctrl_by_idx", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("ui_construct_ctrl_by_idx","->.",NULL);
+		DTNMP_DEBUG_ENTRY("ui_build_control","(NULL)", NULL);
+		DTNMP_DEBUG_ERR("ui_build_control", "No agent specified.", NULL);
+		DTNMP_DEBUG_EXIT("ui_build_control","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_construct_ctrl_by_idx","(%s)", agent->agent_eid.name);
+	DTNMP_DEBUG_ENTRY("ui_build_control","(%s)", agent->agent_eid.name);
 
-	/* Step 0: Read the user input. */
-	if(ui_get_user_input("Enter ctrl as follows: Offset <Ctrl Idx>",
-			             (char **)&line, 256) == 0)
+	ts = ui_input_uint("Control Timestamp");
+	mid = ui_input_mid("Control MID:", ADM_ALL, MID_TYPE_CONTROL, MID_CAT_ATOMIC);
+
+	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_construct_ctrl_by_idx","Unable to read user input.", NULL);
-		DTNMP_DEBUG_EXIT("ui_construct_ctrl_by_idx","->.", NULL);
+		DTNMP_DEBUG_ERR("ui_build_control","Can't get control MID.",NULL);
 		return;
 	}
 
-	/* Step 1: Parse the user input. */
-	sscanf(line,"%d %s", &offset, mid_str);
-	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmCtrls)-1, MID_TYPE_CONTROL);
+	ui_postprocess_ctrl(mid);
 
-	/* Step 2: Construct the control primitive. */
-	ctrl_exec_t *entry = ctrl_create_exec(offset, mids);
+	Lyst mc = lyst_create();
+	lyst_insert_first(mc, mid);
 
-	/* Step 3: Construct a PDU to hold the primitive. */
-	uint8_t *data = ctrl_serialize_exec(entry, &size);
+	msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
+
+	/* Step 2: Construct a PDU to hold the primitive. */
+	uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
+
+	char *str = utils_hex_to_string(data, size);
+	printf("Data is %s\n", str);
+	MRELEASE(str);
+
 	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
 	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
@@ -304,142 +352,56 @@ void ui_construct_ctrl_by_idx(agent_t* agent)
 
 	/* Step 5: Release remaining resources. */
 	pdu_release_group(pdu_group);
-	ctrl_release_exec(entry);
+	msg_destroy_perf_ctrl(ctrl);
+	midcol_destroy(&mc); // Also destroys mid.
 
-	DTNMP_DEBUG_EXIT("ui_construct_ctrl_by_idx","->.", NULL);
+	DTNMP_DEBUG_EXIT("ui_build_control","->.", NULL);
 }
 
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_construct_time_rule_by_idx
- *
- * \par Constructs a "time production report" control by selecting data from
- *      a list of MIDs. Puts the control in a PDU and sends to agent.
- *
- * \par Notes:
- *	\todo Add ability to select which agent, and to apply ACL.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
- *****************************************************************************/
-
-void ui_construct_time_rule_by_idx(agent_t* agent)
+void ui_send_raw(agent_t* agent)
 {
-	char line[256];
-	time_t offset = 0;
-	uint32_t period = 0;
-	uint32_t evals = 0;
-	char mid_str[256];
-	Lyst mids = lyst_create();
+	mid_t *mid = NULL;
+	uint32_t offset = 0;
 	uint32_t size = 0;
+	time_t ts = 0;
 
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_idx","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_construct_time_rule_by_idx", "Null EID", NULL);
-		DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_idx","->.", NULL);
+		DTNMP_DEBUG_ENTRY("ui_send_raw","(NULL)", NULL);
+		DTNMP_DEBUG_ERR("ui_send_raw", "No agent specified.", NULL);
+		DTNMP_DEBUG_EXIT("ui_send_raw","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_idx","(%s)", agent->agent_eid.name);
+	DTNMP_DEBUG_ENTRY("ui_send_raw","(%s)", agent->agent_eid.name);
 
-	/* Step 1: Read and parse the rule. */
-	if(ui_get_user_input("Enter rule as follows: Offset Period #Evals MID1,MID2,MID3,...,MIDn",
-			             (char **) &line, 256) == 0)
+	ts = ui_input_uint("Control Timestamp");
+
+	printf("Enter raw MID to send.\n");
+	mid = ui_input_mid_raw();
+
+	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_construct_time_rule_by_idx","Unable to read user rule input.", NULL);
-		DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_idx","->.", NULL);
+		DTNMP_DEBUG_ERR("ui_build_cui_send_rawontrol","Can't get control MID.",NULL);
 		return;
 	}
 
-	sscanf(line,"%ld %d %d %s", &offset, &period, &evals, mid_str);
-	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmData)-1, MID_TYPE_DATA);
+	ui_postprocess_ctrl(mid);
 
-	/* Step 2: Construct the control primitive. */
-	rule_time_prod_t *entry = rule_create_time_prod_entry(offset, evals, period, mids);
+	Lyst mc = lyst_create();
+	lyst_insert_first(mc, mid);
 
-	/* Step 3: Construct a PDU to hold the primitive. */
-	uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
-	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data, size, NULL);
-	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
+	msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
 
-	/* Step 4: Send the PDU. */
-	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
+	/* Step 2: Construct a PDU to hold the primitive. */
+	uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
 
-	/* Step 5: Release remaining resources. */
-	pdu_release_group(pdu_group);
-	rule_release_time_prod_entry(entry);
-
-	DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_idx","->.", NULL);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_construct_time_rule_by_mid
- *
- * \par Constructs a "time production report" control by building a MID. Put
- *      the control in a PDU and sends to agent.
- *
- * \par Notes:
- *	\todo Add ability to select which agent, and to apply ACL.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
- *****************************************************************************/
-void ui_construct_time_rule_by_mid(agent_t* agent)
-{
-	char line[256];
-	time_t offset = 0;
-	uint32_t period = 0;
-	uint32_t evals = 0;
-	char mid_str[256];
-	Lyst mids = lyst_create();
-	mid_t *midp = NULL;
-	uint32_t size = 0;
-
-	if(agent == NULL)
-	{
-		DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_mid","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_construct_time_rule_by_mid", "Null EID", NULL);
-		DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_mid","->.", NULL);
-		return;
-	}
-	DTNMP_DEBUG_ENTRY("ui_construct_time_rule_by_mid","(%s)", agent->agent_eid.name);
-
-	/* Step 0: Read the user input. */
-	if(ui_get_user_input("Enter rule as follows: Offset Period #Evals MID",
-			             (char **) &line, 256) == 0)
-	{
-		DTNMP_DEBUG_ERR("ui_construct_time_rule_by_mid","Unable to read user input.", NULL);
-		DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_mid","->.", NULL);
-		return;
-	}
-
-	/* Step 1: Parse the user input. */
-	sscanf(line,"%ld %d %d %s", &offset, &period, &evals, mid_str);
-	midp = ui_build_mid(mid_str);
-
-	char *str = mid_to_string(midp);
-	printf("MID IS %s\n", str);
+	char *str = utils_hex_to_string(data, size);
+	printf("Data is %s\n", str);
 	MRELEASE(str);
 
-	lyst_insert_last(mids,midp);
-
-	/* Step 2: Construct the control primitive. */
-	rule_time_prod_t *entry = rule_create_time_prod_entry(offset, evals, period, mids);
-
-	/* Step 3: Construct a PDU to hold the primitive. */
-	uint8_t *data = ctrl_serialize_time_prod_entry(entry, &size);
-	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_PERIOD_PROD, data, size, NULL);
+	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
 	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
 
 	/* Step 4: Send the PDU. */
@@ -447,152 +409,11 @@ void ui_construct_time_rule_by_mid(agent_t* agent)
 
 	/* Step 5: Release remaining resources. */
 	pdu_release_group(pdu_group);
-	rule_release_time_prod_entry(entry);
+	msg_destroy_perf_ctrl(ctrl);
+	midcol_destroy(&mc); // Also destroys mid.
 
-	DTNMP_DEBUG_EXIT("ui_construct_time_rule_by_mid","->.", NULL);
+	DTNMP_DEBUG_EXIT("ui_send_raw","->.", NULL);
 }
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_define_report
- *
- * \par Define a custom report and send the definition to the agent.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
- *****************************************************************************/
-
-void ui_define_report(agent_t* agent)
-{
-	mid_t *new_id = NULL;
-	char line[256];
-	char mid_str[256];
-	Lyst mids;
-	def_gen_t *rpt_def = NULL;
-	uint32_t size = 0;
-
-	if(agent == NULL)
-	{
-		DTNMP_DEBUG_ENTRY("ui_define_report","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_define_report", "Null EID", NULL);
-		DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
-		return;
-	}
-	DTNMP_DEBUG_ENTRY("ui_define_report","(%s)", agent->agent_eid.name);
-
-	/* Step 0: Grab the identifier for the new report. */
-	new_id = ui_input_mid();
-
-	/* Step 1:Grab the MID list defining the report. */
-	if(ui_get_user_input("MIDS comprising this report: IDX1,IDX2,...,IDX_N",
-			             (char **)&line, 256) == 0)
-	{
-		DTNMP_DEBUG_ERR("ui_define_report","Unable to read user input.", NULL);
-		DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
-		return;
-	}
-
-	/* Step 1: Parse the user input. */
-	sscanf(line,"%s", mid_str);
-	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmData)-1, MID_TYPE_DATA);
-
-	/* Step 2: Construct the control primitive. */
-	rpt_def = def_create_gen(new_id, mids);
-
-	/* Step 3a: Record this definition in the agent def lyst. */
-	lockResource(&(agent->mutex));
-	lyst_insert_last(agent->custom_defs, rpt_def);
-	unlockResource(&(agent->mutex));
-
-	/* Step 4: Construct a PDU to hold the primitive. */
-	uint8_t *data = def_serialize_gen(rpt_def, &size);
-	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_CUST_RPT, data, size, NULL);
-	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
-
-	/* Step 5: Send the PDU. */
-	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
-
-	/* Step 6: Release remaining resources. */
-	pdu_release_group(pdu_group);
-
-	/*
-	 * Remember, we do not free the report definition because we added it
-	 * to the list of local custom definitions for this agent.
-	 */
-
-	DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_define_macro
- *
- * \par Define a custom macro and send the definition to the agent.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/22/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
- *****************************************************************************/
-
-void ui_define_macro(agent_t* agent)
-{
-	mid_t *new_id = NULL;
-	char line[256];
-	char mid_str[256];
-	Lyst mids;
-	def_gen_t *macro_def = NULL;
-	uint32_t size = 0;
-
-	/* Step 0: Grab the identifier for the new macro. */
-	new_id = ui_input_mid();
-
-	/* Step 1:Grab the MID list defining the macro. */
-	if(ui_get_user_input("Controls comprising this macro: IDX1,IDX2,...,IDX_N",
-			             (char **)&line, 256) == 0)
-	{
-		DTNMP_DEBUG_ERR("ui_define_macro","Unable to read user input.", NULL);
-		DTNMP_DEBUG_EXIT("ui_define_macro","->.", NULL);
-		return;
-	}
-
-	/* Step 1: Parse the user input. */
-	sscanf(line,"%s", mid_str);
-	mids = ui_parse_mid_str(mid_str, lyst_length(gAdmCtrls)-1, MID_TYPE_DATA);
-
-	/* Step 2: Construct the control primitive. */
-	macro_def = def_create_gen(new_id, mids);
-
-	/* Step 3: Remember this definition for future use. */
-	lockResource(&macro_defs_mutex);
-	lyst_insert_last(macro_defs, macro_def);
-	unlockResource(&macro_defs_mutex);
-
-	/* Step 4: Construct a PDU to hold the primitive. */
-	uint8_t *data = def_serialize_gen(macro_def, &size);
-	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_DEF_MACRO, data, size, NULL);
-	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
-
-	/* Step 5: Send the PDU. */
-	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
-
-	/* Step 6: Release remaining resources. */
-	pdu_release_group(pdu_group);
-
-	DTNMP_DEBUG_EXIT("ui_define_report","->.", NULL);
-}
-
 
 
 /******************************************************************************
@@ -681,7 +502,7 @@ void ui_register_agent()
 	DTNMP_DEBUG_ENTRY("register_agent", "()", NULL);
 
 	/* Grab the new agent's EID. */
-	if(ui_get_user_input("Enter EID of new agent:",
+	if(ui_input_get_line("Enter EID of new agent:",
 						 (char **)&line, MAX_EID_LEN) == 0)
 	{
 		DTNMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
@@ -759,13 +580,6 @@ void ui_eventLoop()
 	char choice[3];
 	int len;
 
-	/*
-	#define UI_MAIN_MENU 0
-	#define UI_DEF_MENU  1
-	#define UI_CTRL_MENU 2
-	#define UI_RPT_MENU  3
-	*/
-
 	int gContext = UI_MAIN_MENU;
 
 
@@ -775,9 +589,12 @@ void ui_eventLoop()
 		{
 			case UI_MAIN_MENU:  ui_print_menu_main();  break;
 			case UI_ADMIN_MENU: ui_print_menu_admin(); break;
-			case UI_DEF_MENU:   ui_print_menu_def();   break;
 			case UI_CTRL_MENU:  ui_print_menu_ctrl();  break;
 			case UI_RPT_MENU:   ui_print_menu_rpt();   break;
+
+#ifdef HAVE_MYSQL
+			case UI_DB_MENU:    ui_print_menu_db();    break;
+#endif
 			default: printf("Error. Unknown menu context.\n"); break;
 		}
 
@@ -791,10 +608,12 @@ void ui_eventLoop()
 					switch(cmd)
 					{
 						case '1' : gContext = UI_ADMIN_MENU; break;
-						case '2' : gContext = UI_DEF_MENU; break;
-						case '3' : gContext = UI_RPT_MENU; break;
-						case '4' : gContext = UI_CTRL_MENU; break;
-						case '5' : exit(1); break;
+						case '2' : gContext = UI_RPT_MENU; break;
+						case '3' : gContext = UI_CTRL_MENU; break;
+#ifdef HAVE_MYSQL
+						case '4' : gContext = UI_DB_MENU; break;
+#endif
+						case 'Z' : exit(1); break;
 						default: printf("Unknown command.\n");break;
 					}
 					break;
@@ -802,7 +621,7 @@ void ui_eventLoop()
 				case UI_ADMIN_MENU:
 					switch(cmd)
 					{
-						case '0' : gContext = UI_MAIN_MENU; break;
+						case 'Z' : gContext = UI_MAIN_MENU; break;
 						case '1' : ui_register_agent(); break;
 						case '2' : ui_print_agents(); break;
 						case '3' : ui_deregister_agent(ui_select_agent()); break;
@@ -810,58 +629,24 @@ void ui_eventLoop()
 					}
 					break;
 
-				case UI_DEF_MENU:
-					switch(cmd)
-					{
-						// Custom Reports
-						//case '1' : ui_print_custom_rpt_def();  break; // List Mgr Custom Rpt Def.
-						case '2' : ui_define_report(ui_select_agent());         break; // Define Custom Report
-						//case '3' : ui_print_cust_rpt_by_idx(); break; // Identify custom report by idx.
-						//case '4' : ui_clear_cust_rpt_by_idx(); break; // Remove custom rept using index.
-
-						// Computed Data
-						//case '5' : ui_print_comp_data_def();    break; // List Computed Data Def
-						//case '6' : ui_define_comp_data();       break; // Define Computed Data
-						//case '7' : ui_print_comp_data_by_idx(); break; // Identify computed data by idx.
-						//case '8' : ui_clear_comp_data_by_idx(); break; // Remove computed data using index.
-
-						// Macro
-						//case '9' : ui_print_macro_def();    break; // List Macro Def
-						case 'A' : ui_define_macro(ui_select_agent());       break; // Define Macro
-						//case 'B' : ui_print_macro_by_idx(); break; // Identify macro by idx.
-						//case 'C' : ui_clear_macro_by_idx(); break; // Remove macro using index.
-
-						case 'D' : gContext = UI_MAIN_MENU; break;
-						default: printf("Unknown command.\n"); break;
-					}
-					break;
-
 				case UI_CTRL_MENU:
 					switch(cmd)
 					{
-						//case '1' : ui_print_adms();      break; // List supported ADMs
-						case '2' : ui_print_mids();      break; // List Data MIDS by Index
-						case '3' : ui_print_ctrls();     break; // List Control MIDs by Index
-						//case '4' : ui_print_literals();  break; // List Literal MIDs by Index
-						//case '5' : ui_print_operators(); break; // List Operator MIDs by Index
 
-						// time based production
-						case '6' : ui_construct_time_rule_by_idx(ui_select_agent()); break; // Construct from indices
-						case '7' : ui_construct_time_rule_by_mid(ui_select_agent()); break; // Construct from user-input MID
-						//case '8' : ui_cancel_time_rule_by_idx();    break; // Cancel sent production
+						// List Definitions (User or Static)
+						case '1' : ui_list_adms();      break; // List supported ADMs
+						case '2' : ui_list_atomic();    break; // List Data MIDS by Index
+						case '3' : ui_list_compdef();   break; // List Computed Data Items
+						case '4' : ui_list_ctrls();     break; // List Control MIDs by Index
+						case '5' : ui_list_literals();  break; // List Literal MIDs by Index
+						case '6' : ui_list_macros();    break; // List MACRO Definitions by Index
+						case '7' : ui_list_ops();       break; // List Operator MIDs by Index
+						case '8' : ui_list_rpts();      break; // List Reports by Index.
 
-						// Content-Based Production
-						//case '9' : ui_construct_pred_rule_by_idx(); break; // Construct from indices
-						//case 'A' : ui_construct_pred_rule_by_mid(); break; // Construct from user-input MID
-						//case 'B' : ui_cancel_pred_rule_by_idx();    break; // Cancel sent production
+						case '9' : ui_build_control(ui_select_agent()); break;
+						case 'A' : ui_send_raw(ui_select_agent()); break;
 
-						// Perform Control
-						case 'C' : ui_construct_ctrl_by_idx(ui_select_agent()); break; // Construct from indices
-						//case 'D' : ui_construct_ctrl_by_mid(); break; // Construct user-input MID
-						//case 'E' : ui_print_sent_ctrls();      break; // List Sent Controls
-						//case 'F' : ui_cancel_ctrl_by_idx();    break; // Cancel Sent Control by Idx
-
-						case 'G' : gContext = UI_MAIN_MENU; break;
+						case 'Z' : gContext = UI_MAIN_MENU; break;
 						default: printf("Unknown command.\n"); break;
 					}
 					break;
@@ -869,23 +654,41 @@ void ui_eventLoop()
 				case UI_RPT_MENU:
 					switch(cmd)
 					{
-						// Data List
-						//case '1' : ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
+					  // Definitions List
+					  case '1' : ui_print_nop(); break; //ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
+					  case '2' : ui_print_nop(); break; //ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
+					  case '3' : ui_print_nop(); break; //ui_print_agent_macro_defs();    break; // LIst agent macro defs.
 
-						// Definitions List
-						//case '2' : ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
-						//case '3' : ui_print_agent_macro_defs();    break; // LIst agent macro defs.
+					  // Report List
+					  case '4' : ui_print_reports(ui_select_agent());   break; // Print received reports.
+					  case '5' : ui_clear_reports(ui_select_agent());	break; // Clear received reports.
 
-						// Report List
-						case '4' : ui_print_reports(ui_select_agent());   break; // Print received reports.
-						case '5' : ui_clear_reports(ui_select_agent());	break; // Clear received reports.
+					  // Production Schedules.
+					  case '6' : ui_print_nop(); break; //ui_print_agent_prod_rules();    break; // List agent production rules.
 
-						// Production Schedules.
-						//case '6' : ui_print_agent_prod_rules();    break; // List agent production rules.
-						case '7' : gContext = UI_MAIN_MENU;				break;
-						default: printf("Unknown command.\n");			break;
+					  case 'Z' : gContext = UI_MAIN_MENU;				break;
+
+					  default: printf("Unknown command.\n");			break;
 					}
 					break;
+
+#ifdef HAVE_MYSQL
+					case UI_DB_MENU:
+						switch(cmd)
+						{
+						  // Definitions List
+						  case '1' : ui_db_set_parms(); break; // New Connection Parameters
+						  case '2' : ui_db_print_parms(); break;
+						  case '3' : ui_db_reset(); break; // Reset Tables
+						  case '4' : ui_db_clear_rpt(); break; // Clear Received Reports
+
+						  case 'Z' : gContext = UI_MAIN_MENU;				break;
+
+						  default: printf("Unknown command.\n");			break;
+						}
+						break;
+
+#endif
 
 				default: printf("Error. Unknown menu context.\n"); break;
 			}
@@ -894,250 +697,8 @@ void ui_eventLoop()
 }
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_get_user_input
- *
- * \par Read a line of input from the user.
- *
- * \par Notes:
- *
- * \retval 0 - Could not get user input.
- * 		   1 - Got user input.
- *
- * \param[in]  prompt   The prompt to the user.
- * \param[out] line     The line of text read from the user.
- * \param [in] max_len  The maximum size of the line.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-int ui_get_user_input(char *prompt, char **line, int max_len)
-{
-	int len = 0;
-
-	DTNMP_DEBUG_ENTRY("ui_get_user_input","(%s,0x%x,%d)",prompt, *line, max_len);
-
-	while(len == 0)
-	{
-		printf("Note: Only the first %d characters will be read.\n%s\n",
-				max_len, prompt);
-
-		if (igets(fileno(stdin), (char *)line, max_len, &len) == NULL)
-		{
-			if (len != 0)
-			{
-				DTNMP_DEBUG_ERR("ui_get_user_input","igets failed.", NULL);
-				DTNMP_DEBUG_EXIT("ui_get_user_input","->0.",NULL);
-				return 0;
-			}
-		}
-	}
-
-	DTNMP_DEBUG_INFO("ui_get_user_input","Read user input.", NULL);
-
-	DTNMP_DEBUG_EXIT("ui_get_user_input","->1.",NULL);
-	return 1;
-}
 
 
-
-/******************************************************************************
- *
- * \par Function Name: ui_input_mid
- *
- * \par Construct a MID object completely from user input.
- *
- * \par Notes:
- *
- * \retval NULL  - Problem building the MID.
- * 		   !NULL - The constructed MID.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Removed references to priority field. Add ISS flag.
- *****************************************************************************/
-
-mid_t *ui_input_mid()
-{
-	uint8_t flag;
-	char line[256];
-	uint32_t size = 0;
-	uint8_t *data = NULL;
-	mid_t *result = NULL;
-	uint32_t bytes = 0;
-
-	/* Step 0: Allocate the resultant MID. */
-	if((result = (mid_t*)MTAKE(sizeof(mid_t))) == NULL)
-	{
-		DTNMP_DEBUG_ERR("ui_input_mid","Can't alloc %d bytes.", sizeof(mid_t));
-		DTNMP_DEBUG_EXIT("ui_input_mid", "->NULL.", NULL);
-		return NULL;
-	}
-	else
-	{
-		memset(result,0,sizeof(mid_t));
-	}
-
-	/* Step 1: Get the MID flag. */
-	ui_input_mid_flag(&(result->flags));
-	result->type = MID_GET_FLAG_TYPE(result->flags);
-	result->category = MID_GET_FLAG_CAT(result->flags);
-
-	/* Step 2: Grab Issuer, if necessary. */
-	if(MID_GET_FLAG_ISS(result->flags))
-	{
-		ui_get_user_input("Issuer (up to 18 hex): 0x", (char**)&line, 256);
-		data = utils_string_to_hex((unsigned char*)line, &size);
-		memcpy(&(result->issuer), data, 4);
-		MRELEASE(data);
-
-		if(size > 4)
-		{
-			DTNMP_DEBUG_ERR("ui_input_mid", "Issuer too big: %d.", size);
-			DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-			mid_release(result);
-			return NULL;
-		}
-	}
-
-	/* Step 3: Grab the OID. */
-	ui_get_user_input("OID: 0x", (char**)&line, 256);
-	data = utils_string_to_hex((unsigned char *)line, &size);
-	result->oid = NULL;
-
-	switch(MID_GET_FLAG_OID(result->flags))
-	{
-		case OID_TYPE_FULL:
-			result->oid = oid_deserialize_full(data, size, &bytes);
-			printf("OID value size is %d\n", result->oid->value_size);
-			break;
-		case OID_TYPE_PARAM:
-			result->oid = oid_deserialize_param(data, size, &bytes);
-			break;
-		case OID_TYPE_COMP_FULL:
-			result->oid = oid_deserialize_comp(data, size, &bytes);
-			break;
-		case OID_TYPE_COMP_PARAM:
-			result->oid = oid_deserialize_comp_param(data, size, &bytes);
-			break;
-		default:
-			DTNMP_DEBUG_ERR("ui_input_mid","Unknown OID Type %d",
-						    MID_GET_FLAG_OID(result->flags));
-			break;
-	}
-	MRELEASE(data);
-
-	if((result->oid == NULL) || (bytes != size))
-	{
-		DTNMP_DEBUG_ERR("ui_input_mid", "Bad OID. Size %d. Bytes %d.",
-				        size, bytes);
-		mid_release(result);
-
-		DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-		return NULL;
-	}
-
-	/* Step 4: Grab a tag, if one exists. */
-	if(MID_GET_FLAG_TAG(result->flags))
-	{
-		ui_get_user_input("Tag (up to 18 hex): 0x", (char**)&line, 256);
-		data = utils_string_to_hex((unsigned char*)line, &size);
-		memcpy(&(result->tag), data, 4);
-		MRELEASE(data);
-
-		if(size > 4)
-		{
-			DTNMP_DEBUG_ERR("ui_input_mid", "Tag too big: %d.", size);
-			DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-			mid_release(result);
-			return NULL;
-		}
-	}
-
-	mid_internal_serialize(result);
-
-	/* Step 5: Sanity check this mid. */
-	if(mid_sanity_check(result) == 0)
-	{
-		DTNMP_DEBUG_ERR("ui_input_mid", "Sanity check failed.", size);
-		DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-		mid_release(result);
-		return NULL;
-	}
-
-	char *mid_str = mid_to_string(result);
-	DTNMP_DEBUG_ALWAYS("ui_input_mid", "Defined MID: %s", mid_str);
-	MRELEASE(mid_str);
-
-	DTNMP_DEBUG_EXIT("ui_input_mid", "->0x%x", (unsigned long) result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_input_mid_flag
- *
- * \par Construct a MID flag byte completely from user input.
- *
- * \par Notes:
- *
- * \retval 0 - Can't construct flag byte
- * 		   1 - Flag byte constructed
- *
- * \param[out]  flag   The resulting flags
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Removed references to priority field.Add ISS Flag.
- *****************************************************************************/
-
-int ui_input_mid_flag(uint8_t *flag)
-{
-	int result = 0;
-	char line[256];
-	int tmp;
-
-	*flag = 0;
-
-	ui_get_user_input("Type: Data (0), Ctrl (1), Literal (2), Op (3):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag = (tmp & 0x3);
-
-	ui_get_user_input("Cat: Atomic (0), Computed (1), Collection (2):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x3) << 2;
-
-	ui_get_user_input("Issuer Field Present? Yes (1)  No (0):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x1) << 4;
-
-	ui_get_user_input("Tag Field Present? Yes (1)  No (0):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x1) << 5;
-
-	ui_get_user_input("OID Type: Full (0), Parm (1), Comp (2), Parm+Comp(3):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x3) << 6;
-
-	printf("Constructed Flag Byte: 0x%x\n", *flag);
-
-	return 1;
-}
 
 
 
@@ -1267,147 +828,100 @@ Lyst ui_parse_mid_str(char *mid_str, int max_idx, int type)
 	return mids;
 }
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_agents
- *
- * \par Prints list of known agents
- *
- * \par Returns number of agents
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  04/18/13  V.Ramachandran Initial Implementation
- *****************************************************************************/
-
-int ui_print_agents()
+void ui_list_adms()
 {
-  int i = 1;
-  LystElt element;
 
-  DTNMP_DEBUG_ENTRY("ui_print_agents","()",NULL);
-
-  printf("\n------------- Known Agents --------------\n");
-
-  element = lyst_first(known_agents);
-  if(element == NULL)
-  {
-	  printf("[None]\n");
-  }
-  while(element != NULL)
-  {
-	  printf("%d) %s\n", i++, (char *) lyst_data(element));
-	  element = lyst_next(element);
-  }
-
-  printf("\n------------- ************ --------------\n");
-  printf("\n");
-
-  DTNMP_DEBUG_EXIT("ui_print_agents","->%d", (i-1));
-  return i;
 }
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_ctrls
- *
- * \par Prints list of configured controls and their associated index
- *
- * \par Notes:
- * 	1. Assuming 80 column display, 2 column are printed of length 40 each.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_ctrls()
+void ui_list_atomic()
 {
-  int i = 0;
-  int num_full_rows = 0;
-  int num_rows = 0;
-  LystElt elt = 0;
-  adm_ctrl_t *cur = NULL;
+	ui_list_gen(ADM_ALL, MID_TYPE_DATA, MID_CAT_ATOMIC);
+}
 
-  DTNMP_DEBUG_ENTRY("ui_print_ctrls","()",NULL);
+void ui_list_compdef()
+{
+	ui_list_gen(ADM_ALL, MID_TYPE_DATA, MID_CAT_COMPUTED);
+}
 
-  num_full_rows = (int) (lyst_length(gAdmCtrls) / 2);
+void ui_list_ctrls()
+{
+	ui_list_gen(ADM_ALL, MID_TYPE_CONTROL, MID_CAT_ATOMIC);
+}
 
-  for(elt = lyst_first(gAdmCtrls); elt; elt = lyst_next(elt))
-  {
-	  cur = (adm_ctrl_t*) lyst_data(elt);
-	  printf("%3d) %-35s ", i, cur->name);
-	  i++;
+mid_t * ui_get_mid(int adm_type, int mid_type, int mid_cat, uint32_t opt)
+{
+	mid_t *result = NULL;
 
-	  if(num_rows < num_full_rows)
+	int i = 0;
+	LystElt elt = 0;
+	mgr_name_t *cur = NULL;
+
+	DTNMP_DEBUG_ENTRY("ui_print","(%d, %d, %d)",adm_type, mid_type, mid_cat);
+
+	Lyst names = names_retrieve(adm_type, mid_type, mid_cat);
+
+	for(elt = lyst_first(names); elt; elt = lyst_next(elt))
+	{
+		if(i == opt)
+		{
+			cur = (mgr_name_t *) lyst_data(elt);
+			result = mid_copy(cur->mid);
+			break;
+		}
+		i++;
+	}
+
+	lyst_destroy(names);
+	DTNMP_DEBUG_EXIT("ui_print","->.", NULL);
+
+	return result;
+}
+
+
+void ui_list_gen(int adm_type, int mid_type, int mid_cat)
+{
+	  int i = 0;
+	  LystElt elt = 0;
+	  mgr_name_t *cur = NULL;
+
+	  DTNMP_DEBUG_ENTRY("ui_print","(%d, %d, %d)",adm_type, mid_type, mid_cat);
+
+	  Lyst result = names_retrieve(adm_type, mid_type, mid_cat);
+
+	  for(elt = lyst_first(result); elt; elt = lyst_next(elt))
 	  {
-		  elt = lyst_next(elt);
-		  cur = (adm_ctrl_t*) lyst_data(elt);
-		  printf("%3d) %-35s\n", i, cur->name);
+		  cur = (mgr_name_t *) lyst_data(elt);
+		  printf("%3d) %-50s - %-25s\n", i, cur->name, cur->descr);
 		  i++;
 	  }
-	  else
-	  {
-		  printf("\n\n\n");
-	  }
-	  num_rows++;
-  }
 
-  DTNMP_DEBUG_EXIT("ui_print_ctrls","->.", NULL);
+	  lyst_destroy(result);
+	  DTNMP_DEBUG_EXIT("ui_print","->.", NULL);
 }
 
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_custom_rpt
- *
- * \par Prints a custom report received by a DTNMP Agent.
- *
- * \par Notes:
- *
- * \param[in]  rpt_entry  The entry containing the report data to print.
- * \param[in]  rpt_def    The static definition of the report.
- *
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_custom_rpt(rpt_data_entry_t *rpt_entry, def_gen_t *rpt_def)
+void ui_list_literals()
 {
-	LystElt elt;
-	uint64_t idx = 0;
-	mid_t *cur_mid = NULL;
-	adm_datadef_t *adu = NULL;
-	uint64_t data_used;
-
-	for(elt = lyst_first(rpt_def->contents); elt; elt = lyst_next(elt))
-	{
-		char *mid_str;
-		cur_mid = (mid_t*)lyst_data(elt);
-		mid_str = mid_to_string(cur_mid);
-		if((adu = adm_find_datadef(cur_mid)) != NULL)
-		{
-			DTNMP_DEBUG_INFO("ui_print_custom_rpt","Printing MID %s", mid_str);
-			ui_print_predefined_rpt(cur_mid, (uint8_t*)&(rpt_entry->contents[idx]),
-					             rpt_entry->size - idx, &data_used, adu);
-			idx += data_used;
-		}
-		else
-		{
-			DTNMP_DEBUG_ERR("ui_print_custom_rpt","Unable to find MID %s", mid_str);
-		}
-
-		MRELEASE(mid_str);
-	}
+	ui_list_gen(ADM_ALL, MID_TYPE_LITERAL, MID_CAT_ATOMIC);
 }
+
+void ui_list_macros()
+{
+	ui_list_gen(ADM_ALL, MID_TYPE_CONTROL, MID_CAT_COLLECTION);
+}
+
+void ui_list_ops()
+{
+	ui_list_gen(ADM_ALL, MID_TYPE_OPERATOR, MID_CAT_ATOMIC);
+}
+
+void ui_list_rpts()
+{
+	ui_list_gen(ADM_ALL, MID_TYPE_DATA, MID_CAT_COLLECTION);
+}
+
+
+
+
 
 
 
@@ -1420,14 +934,8 @@ void ui_print_menu_admin()
 	printf("2) List Registered Agent.\n");
 	printf("3) De-Register Agent.\n");
 
-	printf("\n------------ Reporting Policies ------------\n");
-
-
-	printf("\n-------------- Status Message --------------\n");
-	printf("X) Not Implemented.\n");
-
 	printf("\n--------------------------------------------\n");
-	printf("0) Return to Main Menu.\n");
+	printf("Z) Return to Main Menu.\n");
 
 }
 
@@ -1437,56 +945,22 @@ void ui_print_menu_ctrl()
 
 	printf("\n------------- ADM Information --------------\n");
 	printf("1) List supported ADMs.\n");
-	printf("2) List Data MIDs by Index.     (%ld MIDs)\n", lyst_length(gAdmData));
-	printf("3) List Control MIDs by Index.  (%ld MIDs)\n", lyst_length(gAdmCtrls));
-	printf("4) List Literal MIDs by Index.  (%ld MIDs)\n", lyst_length(gAdmLiterals));
-	printf("5) List Operator MIDs by Index. (%ld MIDs)\n", lyst_length(gAdmOps));
-
-	printf("\n---------- Time-Based Production -----------\n");
-	printf("6) Construct from indices.\n");
-	printf("7) Construct from user-input MID.\n");
-	printf("8) Cancel Sent Production.\n");
-
-	printf("\n--------- Content-Based Production ---------\n");
-	printf("X) Construct from indices.\n");
-	printf("X) Construct from user-input MID.\n");
-	printf("X) Cancel Sent Production.\n");
+	printf("2) List Atomic Data MIDs by Index.   (%ld Known)\n", lyst_length(gAdmData));
+	printf("3) List Computed Data MIDs by Index. (%ld Known)\n", lyst_length(gAdmComputed));
+	printf("4) List Control MIDs by Index.       (%ld Known)\n", lyst_length(gAdmCtrls));
+	printf("5) List Literal MIDs by Index.       (%ld Known)\n", lyst_length(gAdmLiterals));
+	printf("6) List Macro MIDs by Index.         (%ld Known)\n", lyst_length(gAdmMacros));
+	printf("7) List Operator MIDs by Index.      (%ld Known)\n", lyst_length(gAdmOps));
+	printf("8) List Reports MIDs by Index.       (%ld Known)\n", lyst_length(gAdmRpts));
 
 	printf("\n-------------- Perform Control -------------\n");
-	printf("C) Construct from indices.\n");
-	printf("D) Construct from user-input MID.\n");
-	printf("E) List Sent Controls.\n");
-	printf("F) Cancel Sent Control by index.\n");
+	printf("9) Build Arbitrary Control.\n");
+	printf("A) Specify Raw Control.\n");
 
 	printf("\n--------------------------------------------\n");
-	printf("G) Return to Main Menu.\n");
+	printf("Z) Return to Main Menu.\n");
 }
 
-void ui_print_menu_def()
-{
-	printf("============== Definitions Menu ==============\n");
-
-	printf("\n-------------- Custom Reports --------------\n");
-	printf("1) List Manager Custom Report Definitions.\n");
-	printf("2) Define Custom Report.\n");
-	printf("3) Identify Custom Report Using Index.\n");
-	printf("4) Remove Custom Report Using Index.\n");
-
-	printf("\n--------------- Computed Data --------------\n");
-	printf("5) List Manager Computed Data Definitions.\n");
-	printf("6) Define Computed Data.\n");
-	printf("7) Identify Computed Data Using Index.\n");
-	printf("8) Remove Computed Data Using Index.\n");
-
-	printf("\n------------------- Macros -----------------\n");
-	printf("9) List Manager Macro Definitions.\n");
-	printf("A) Define Macro.\n");
-	printf("B) Identify Macro Using Index.\n");
-	printf("C) Remove Macro Using Index.\n");
-
-	printf("\n--------------------------------------------\n");
-	printf("D) Return to Main Menu.\n");
-}
 
 
 /******************************************************************************
@@ -1507,18 +981,14 @@ void ui_print_menu_main()
 {
 	printf("================== Main Menu =================\n");
 	printf("1) Administrative Menu.\n");
-	printf("2) Definitions Menu.\n");
-	printf("3) Reporting Menu.\n");
-	printf("4) Control Menu. \n");
-	printf("5) Exit.\n");
+	printf("2) Reporting Menu.\n");
+	printf("3) Control Menu. \n");
 
-//	printf("2) Define Custom MID. (We have %ld defined.)\n", lyst_length(custom_defs));
-//	printf("3) Construct and Send Production Rule Using Index.\n");
-//	printf("4) Construct and Send Production Rule Using MID.\n");
-//	printf("5) Go to Reports Menu.\n");
-//	printf("6) Go to Controls Menu.\n");
-//	printf("9) Exit.\n");
-//	printf("10) Run Tests.\n");
+#ifdef HAVE_MYSQL
+	printf("4) Database Menu. \n");
+#endif
+
+	printf("Z) Exit.\n");
 
 }
 
@@ -1542,210 +1012,14 @@ void ui_print_menu_rpt()
 	printf("6) List Agent Production Rules.\n");
 
 	printf("------------------------------------------------------------------\n");
-	printf("7) Return to Main Menu.\n");
+	printf("Z) Return to Main Menu.\n");
 }
 
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_mids
- *
- * \par Prints list of configured data items and their associated index
- *
- * \par Notes:
- * 	1. Assuming 80 column display, 2 column are printed of length 40 each.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_mids()
-{
-	int i = 0;
-	int num_full_rows = 0;
-	int num_rows = 0;
-	LystElt elt = 0;
-	adm_datadef_t *cur = NULL;
-
-	DTNMP_DEBUG_ENTRY("ui_print_mids","()",NULL);
-
-
-	num_full_rows = (int) (lyst_length(gAdmData) / 2);
-
-	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
-	{
-		cur = (adm_datadef_t*) lyst_data(elt);
-		printf("%3d) %-35s ", i, cur->name);
-		i++;
-
-		if(num_rows < num_full_rows)
-		{
-			elt = lyst_next(elt);
-			cur = (adm_datadef_t*) lyst_data(elt);
-			printf("%3d) %-35s\n", i, cur->name);
-			i++;
-		}
-		else
-		{
-			printf("\n\n\n");
-		}
-		num_rows++;
-	}
-
-	DTNMP_DEBUG_EXIT("ui_print_mids","->.", NULL);
-}
 
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_predefined_rpt
- *
- * \par Prints a pre-defined report received by a DTNMP Agent.
- *
- * \par Notes:
- *
- * \param[in]  mid        The identifier of the data item being printed.
- * \param[in]  data       The contents of the data item.
- * \param[in]  data_size  The size of the data to be printed.
- * \param[out] data_used  The bytes of the data consumed by printing.
- * \param[in]  adu        The static definition of the report.
- *
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu)
-{
-	uint64_t len;
-	char *mid_str = NULL;
-	char *mid_val = NULL;
-	uint32_t val_size = adu->get_size(data, data_size);
-	uint32_t str_size = 0;
-
-	mid_str = mid_to_string(mid);
-
-	if((mid_val = adu->to_string(data, data_size, val_size, &str_size)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("ui_print_predefined_rpt","Can't print data value for %s.",
-				        mid_str);
-		MRELEASE(mid_str);
-		return;
-	}
-
-	*data_used = str_size;
-	printf("Data Name: %s\n", adu->name);
-	printf("MID      : %s\n", mid_str);
-	printf("Value    : %s\n", mid_val);
-	MRELEASE(mid_val);
-	MRELEASE(mid_str);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_reports
- *
- * \par Print all reports in the received reports queue.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_reports(agent_t* agent)
-{
-	 LystElt report_elt;
-	 LystElt entry_elt;
-	 rpt_data_t *cur_report = NULL;
-	 rpt_data_entry_t *cur_entry = NULL;
-
-	 if(agent == NULL)
-	 {
-		 DTNMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
-		 DTNMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
-
-	 }
-	 DTNMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
-
-	 if(lyst_length(agent->reports) == 0)
-	 {
-		 DTNMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
-	 }
-
-	 /* Free any reports left in the reports list. */
-	 for (report_elt = lyst_first(agent->reports); report_elt; report_elt = lyst_next(report_elt))
-	 {
-		 /* Grab the current report */
-	     if((cur_report = (rpt_data_t*)lyst_data(report_elt)) == NULL)
-	     {
-	        DTNMP_DEBUG_ERR("ui_print_reports","Unable to get report from lyst!", NULL);
-	     }
-	     else
-	     {
-	    	 unsigned long mid_sizes = 0;
-	    	 unsigned long data_sizes = 0;
-	    	 adm_datadef_t *adu = NULL;
-	    	 def_gen_t *report = NULL;
-
-	    	 /* Print the Report Header */
-	    	 printf("\n-----------------\nDTNMP DATA REPORT\n-----------------\n");
-	    	 printf("Sent to  : %s\n", cur_report->recipient.name);
-	    	 printf("Rpt. Size: %d\n", cur_report->size);
-	    	 printf("Timestamp: %ld\n", cur_report->time);
-	    	 printf("Num Mids : %ld\n", lyst_length(cur_report->reports));
-	    	 printf("Value(s)\n---------------------------------\n");
-
-
-	    	 /* For each MID in this report, print it. */
-	    	 for(entry_elt = lyst_first(cur_report->reports); entry_elt; entry_elt = lyst_next(entry_elt))
-	    	 {
-	    		 cur_entry = (rpt_data_entry_t*)lyst_data(entry_elt);
-
-	    		 mid_sizes += cur_entry->id->raw_size;
-	    		 data_sizes += cur_entry->size;
-
-	    		 /* See if this is a pre-defined report, or a custom report. */
-	    		 /* Find ADM associated with this entry. */
-	    		 if((adu = adm_find_datadef(cur_entry->id)) != NULL)
-	    		 {
-	    			 uint64_t used;
-	    			 ui_print_predefined_rpt(cur_entry->id, cur_entry->contents, cur_entry->size, &used, adu);
-	    		 }
-	    		 else if((report = def_find_by_id(agent->custom_defs, &(agent->mutex), cur_entry->id)) != NULL)
-	    		 {
-	    			 ui_print_custom_rpt(cur_entry, report);
-	    		 }
-	    		 else
-	    		 {
-	    			 char *mid_str = mid_to_string(cur_entry->id);
-	    			 DTNMP_DEBUG_ERR("ui_print_reports","Could not print MID %s", mid_str);
-	    			 MRELEASE(mid_str);
-	    		 }
-	    	 }
-	    	 printf("=================\n");
-	    	 printf("STATISTICS:\n");
-	    	 printf("MIDs total %ld bytes\n", mid_sizes);
-	    	 printf("Data total: %ld bytes\n", data_sizes);
-	    	 printf("Efficiency: %.2f%%\n", (double)(((double)data_sizes)/((double)cur_report->size)) * (double)100.0);
-	    	 printf("-----------------\n\n\n");
-	     }
-	 }
-}
 
 
 
@@ -1818,6 +1092,67 @@ void ui_run_tests()
 }
 
 
+/*
+ * No double-checking, assumes code is correct...
+ */
+void ui_add_parmspec(char *mid_str,
+						       uint8_t num,
+		                       char *n1, uint8_t p1,
+		                       char *n2, uint8_t p2,
+		                       char *n3, uint8_t p3,
+		                       char *n4, uint8_t p4,
+		                       char *n5, uint8_t p5)
+{
+	ui_parm_spec_t *spec = MTAKE(sizeof(ui_parm_spec_t));
+
+	bzero(spec, sizeof(ui_parm_spec_t));
+
+	spec->mid = mid_from_string(mid_str);
+	spec->num_parms = num;
+
+	if(n1 != NULL) strncpy(spec->parm_name[0], n1, MAX_PARM_NAME);
+	spec->parm_type[0] = p1;
+
+	if(n2 != NULL) strncpy(spec->parm_name[1], n2, MAX_PARM_NAME);
+	spec->parm_type[1] = p2;
+
+	if(n3 != NULL) strncpy(spec->parm_name[2], n3, MAX_PARM_NAME);
+	spec->parm_type[2] = p3;
+
+	if(n4 != NULL) strncpy(spec->parm_name[3], n4, MAX_PARM_NAME);
+	spec->parm_type[3] = p4;
+
+	if(n5 != NULL) strncpy(spec->parm_name[4], n5, MAX_PARM_NAME);
+	spec->parm_type[4] = p5;
+
+	lyst_insert_last(gParmSpec, spec);
+}
+
+ui_parm_spec_t* ui_get_parmspec(mid_t *mid)
+{
+	ui_parm_spec_t *result = NULL;
+
+	LystElt elt;
+
+	for(elt = lyst_first(gParmSpec); elt; elt = lyst_next(elt))
+	{
+		char *mid_str2;
+		result = lyst_data(elt);
+
+		if(mid_compare(mid, result->mid, 0) == 0)
+		{
+			return result;
+		}
+	}
+
+	return NULL;
+}
+
+void ui_print_nop()
+{
+	printf("This command is currently not implemented in this development version.\n\n");
+}
+
 
 void *ui_thread(void * threadId)
 {
@@ -1827,4 +1162,101 @@ void *ui_thread(void * threadId)
 
 	DTNMP_DEBUG_EXIT("ui_thread","->.", NULL);
 	pthread_exit(NULL);
+
+	return NULL;
 }
+
+
+
+
+#ifdef HAVE_MYSQL
+
+void ui_print_menu_db()
+{
+
+	printf("========================= Database Menu ==========================\n");
+	printf("Database Status: ");
+
+	if(db_mgt_connected() == 0)
+	{
+		printf("[ACTIVE]\n");
+	}
+	else
+	{
+		printf("[NOT CONNECTED]\n");
+	}
+
+	printf("1) Set Database Connection Information.\n");
+	printf("2) Print Database Connection Information.\n");
+	printf("3) Reset Database to ADMs.\n");
+	printf("4) Clear Received Reports.\n");
+
+	printf("------------------------------------------------------------------\n");
+	printf("Z) Return to Main Menu.\n");
+
+}
+
+void ui_db_set_parms()
+{
+	ui_db_t parms;
+
+	char *tmp = NULL;
+	char prompt[80];
+
+	bzero(&parms, sizeof(ui_db_t));
+
+	printf("Enter SQL Database Connection Information:\n");
+
+	sprintf(prompt,"Enter Database Server (up to %d characters", UI_SQL_SERVERLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.server, tmp, UI_SQL_SERVERLEN-1);
+	MRELEASE(tmp);
+
+	sprintf(prompt,"Enter Database Name (up to %d characters", UI_SQL_DBLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.database, tmp, UI_SQL_DBLEN-1);
+	MRELEASE(tmp);
+
+	sprintf(prompt,"Enter Database Username (up to %d characters", UI_SQL_ACCTLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.username, tmp, UI_SQL_ACCTLEN-1);
+	MRELEASE(tmp);
+
+	sprintf(prompt,"Enter Database Password (up to %d characters", UI_SQL_ACCTLEN-1);
+	tmp = ui_input_string(prompt);
+	strncpy(parms.password, tmp, UI_SQL_ACCTLEN-1);
+	MRELEASE(tmp);
+
+	mgr_db_sql_persist(&parms);
+
+	lockResource(&(gMgrVDB.sqldb_mutex));
+
+	memcpy(&(gMgrVDB.sqldb), &parms, sizeof(ui_db_t));
+
+	unlockResource(&(gMgrVDB.sqldb_mutex));
+
+}
+
+void ui_db_print_parms()
+{
+	printf("\n\n");
+	printf("Server: %s\nDatabase: %s\nUsername: %s\nPassword: %s\n",
+		gMgrVDB.sqldb.server, gMgrVDB.sqldb.database, gMgrVDB.sqldb.username, gMgrVDB.sqldb.password);
+	printf("\n\n");
+}
+
+void ui_db_reset()
+{
+	printf("Clearing non-ADM tables in the Database....\n");
+	db_mgt_clear();
+	printf("Done!\n\n");
+}
+
+void ui_db_clear_rpt()
+{
+	printf("Not implemented yet.\n");
+}
+
+#endif
+
+

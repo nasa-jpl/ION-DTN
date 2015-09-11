@@ -1,15 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  **
  ** File Name: mid.h
@@ -26,13 +14,6 @@
  **         implementations may wish to dynamically allocate MIDs as they are
  **         received.
  **
- **
- ** Modification History:
- **  MM/DD/YY  AUTHOR         DESCRIPTION
- **  --------  ------------   ---------------------------------------------
- **  10/21/11  E. Birrane     Code comments and functional updates.
- **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup.
- **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs
  *****************************************************************************/
 
 #ifndef MID_H_
@@ -76,6 +57,7 @@
  * LITERAL: Well-named Constants.
  * OPERATOR: Coded mathematical expression (special case of control).
  */
+#define MID_TYPE_ANY 4
 #define MID_TYPE_DATA 0
 #define MID_TYPE_CONTROL 1
 #define MID_TYPE_LITERAL 2
@@ -89,11 +71,32 @@
  * COMPUTED: Computed by mathematical expression of atomic/computed data values.
  * COLLECTION: List of items, atomic or computed.
  */
+#define MID_CAT_ANY 3
 #define MID_CAT_ATOMIC 0
 #define MID_CAT_COMPUTED 1
 #define MID_CAT_COLLECTION 2
 
 
+/**
+ *   CAT  |  TYPE  | TOTAL
+ * -------|--------+--------
+ *    00  |   00   | Atomic Data
+ *    00  |   01   | Control
+ *    00  |   10   | Literal
+ *    00  |   11   | Operator
+ *    01  |   00   | Computed Data
+ *    10  |   00   | Report
+ *    10  |   01   | Macro
+ *
+ */
+
+#define MID_ATOMIC   (0)
+#define MID_CONTROL  (1)
+#define MID_LITERAL  (2)
+#define MID_OPERATOR (3)
+#define MID_COMPUTED (4)
+#define MID_REPORT   (8)
+#define MID_MACRO    (9)
 
 /**
  * Maximum size, in bytes, supported for MID fields.
@@ -116,6 +119,7 @@
 #define MID_GET_FLAG_TAG(flag)  ((flag & MID_FLAG_TAG) >> 5)
 #define MID_GET_FLAG_OID(flag)  ((flag & MID_FLAG_OID) >> 6)
 
+#define MID_GET_FLAG_TYPECAT(flag) (flag & (MID_FLAG_TYPE | MID_FLAG_CAT))
 
 /*
  * +--------------------------------------------------------------------------+
@@ -186,6 +190,16 @@ mid_t*   mid_deserialize(unsigned char *buffer,
 		                 uint32_t buffer_size,
 		                 uint32_t *bytes_used);
 
+mid_t*   mid_deserialize_str(char *buffer,
+							 uint32_t buffer_size,
+							 uint32_t *bytes_used);
+
+mid_t*   mid_from_string(char *mid_str);
+
+datacol_entry_t *mid_get_param(mid_t *id, int i);
+
+uint8_t  mid_get_num_parms(mid_t *mid);
+
 int      mid_internal_serialize(mid_t *mid);
 
 char*    mid_pretty_print(mid_t *mid);
@@ -197,6 +211,8 @@ int      mid_sanity_check(mid_t *mid);
 uint8_t* mid_serialize(mid_t *mid, uint32_t *size);
 
 char*    mid_to_string(mid_t *mid);
+
+void     midcol_clear(Lyst mc);
 
 Lyst     midcol_copy(Lyst mids);
 

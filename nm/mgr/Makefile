@@ -1,12 +1,13 @@
 SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c 
-IONDIR = /home/apluser/ion/ion-2013-08-02/ion-open-source/
+IONDIR = ../../
 OPTS = -Wno-write-strings -g 
 
 all:with-db
 
 without-db:
-	g++ ${OPTS} \
+	gcc ${OPTS} \
 	-I. -I.. \
+	-I${IONDIR} \
 	-I${IONDIR}/ici/include \
 	-I${IONDIR}/ltp/include \
 	-I${IONDIR}/ltp/library \
@@ -20,10 +21,10 @@ without-db:
 	-DMAXPATHLEN=2048 \
 	-c ${SOURCES} 
 
-	g++ -o nm_mgr *.o -lltp -lbp -lici
+	gcc -o nm_mgr *.o -lltp -lbp -lici -lpthread
 
 with-db:
-	g++ ${OPTS} \
+	gcc ${OPTS} \
 	-I. -I.. \
 	-I${IONDIR}/ici/include \
 	-I${IONDIR}/ltp/include \
@@ -41,7 +42,7 @@ with-db:
 	-DHAVE_MYSQL=1 \
 	-c ${SOURCES} 
 
-	g++ -o nm_mgr *.o -lltp -lbp -lici -lmysqlclient
+	gcc -o nm_mgr *.o -lltp -lbp -lici -lmysqlclient -lpthread
 
 
 

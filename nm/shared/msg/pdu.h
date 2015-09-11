@@ -40,6 +40,10 @@
 
 
 
+#define MSG_TYPE_RPT_DATA_LIST    (0x10)
+#define MSG_TYPE_RPT_DATA_DEFS    (0x11)
+#define MSG_TYPE_RPT_DATA_RPT     (0x12)
+#define MSG_TYPE_RPT_PROD_SCHED   (0x13)
 
 
 typedef struct

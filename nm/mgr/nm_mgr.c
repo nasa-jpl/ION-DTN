@@ -34,9 +34,12 @@
 // Application headers.
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
-#include "nm_mgr_db.h"
-#include "shared/primitives/rules.h"
+#include "mgr_db.h"
+#include "nm_mgr_sql.h"
 
+#include "nm_mgr_names.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/nn.h"
 
 // Definitions of global data.
 iif_t ion_ptr;
@@ -47,15 +50,16 @@ Object		 agents_hashtable;
 Lyst		 known_agents;
 ResourceLock agents_mutex;
 
-Lyst 		 macro_defs;
-ResourceLock macro_defs_mutex;
-
 eid_t        manager_eid;
 eid_t        agent_eid;
 
 uint32_t	 g_reports_total = 0;
 
 Sdr 		 g_sdr;
+
+MgrDB      gMgrDB;
+MgrVDB     gMgrVDB;
+
 
 // This function looks to be completely unused at this time.
 // To prevent compilation warnings, Josh Schendel commented it out on
@@ -264,6 +268,7 @@ agent_t* mgr_agent_get(eid_t* in_eid)
  *  --------  ------------   ---------------------------------------------
  **  09/01/11  V. Ramachandran Initial Implementation
  **  08/20/13  E. Birrane      Code Review Updates
+ **  08/29/15  E. Birrane      Don't print error message on duplicate agent
  *****************************************************************************/
 
 int mgr_agent_add(eid_t agent_eid)
@@ -280,7 +285,6 @@ int mgr_agent_add(eid_t agent_eid)
 	{
 		unlockResource(&agents_mutex);
 		result = 0;
-		DTNMP_DEBUG_ERR("mgr_agent_add","Trying to add an already-known agent.", NULL);
 		DTNMP_DEBUG_EXIT("mgr_agent_add","->%d.", result);
 
 		return result;
@@ -557,8 +561,15 @@ int mgr_cleanup()
 	lyst_destroy(known_agents);
 	killResourceLock(&agents_mutex);
 
-	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
-	killResourceLock(&macro_defs_mutex);
+	LystElt elt;
+	for(elt = lyst_first(gParmSpec); elt; elt = lyst_next(elt))
+	{
+		ui_parm_spec_t *spec = lyst_data(elt);
+		MRELEASE(spec);
+	}
+	lyst_destroy(gParmSpec);
+
+	mgr_vdb_destroy();
 
 	return 0;
 }
@@ -625,28 +636,23 @@ int mgr_init(char *argv[])
     	return -1;
     }
 
-    if((macro_defs = lyst_create()) == NULL)
+    if((gParmSpec = lyst_create()) == NULL)
     {
-        DTNMP_DEBUG_ERR("mgr_init","Failed to create macro def list.%s",NULL);
+        DTNMP_DEBUG_ERR("mgr_init","Failed to create parmsepc list.%s",NULL);
         //MRELEASE(ion_ptr);
         DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
         return -1;
     }
 
-    if (initResourceLock(&macro_defs_mutex))
-    {
-    	DTNMP_DEBUG_ERR("mgr_init","Cant init macro def list mutex. errno = %s",
-    			        strerror(errno));
-        //MRELEASE(ion_ptr);
-        DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-    	return -1;
-    }
-
-
+    oid_nn_init();
+    names_init();
 	adm_init();
 
+	mgr_db_init();
+	mgr_vdb_init();
+
 #ifdef HAVE_MYSQL
-	db_mgt_init("localhost", "root", "NetworkManagement", "dtnmp", 1);
+	db_mgt_init(gMgrVDB.sqldb, 0);
 #endif
 
 	DTNMP_DEBUG_EXIT("mgr_init","->0.",NULL);

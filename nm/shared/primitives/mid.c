@@ -409,7 +409,7 @@ mid_t *mid_deserialize(unsigned char *buffer,
                      (unsigned long) buffer_size,
                      (unsigned long) bytes_used);
 
-    *bytes_used = 0;
+//    *bytes_used = 0;
 
     /* Step 1: Sanity checks. */
     if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
@@ -565,6 +565,107 @@ mid_t *mid_deserialize(unsigned char *buffer,
 }
 
 
+mid_t*   mid_deserialize_str(char *mid_str,
+							 uint32_t buffer_size,
+							 uint32_t *bytes_used)
+{
+	mid_t *result = NULL;
+	uint32_t hex_size = 0;
+	uint8_t *mid_hex = NULL;
+	uint32_t used = 0;
+
+	DTNMP_DEBUG_ENTRY("mid_deserialize_str","(%s, %d, %#llx)",mid_str, buffer_size, (unsigned long) bytes_used);
+
+	mid_hex = utils_string_to_hex(mid_str, &hex_size);
+	if(mid_hex == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_deserialize_str","Can't made hex from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
+		return NULL;
+	}
+
+	result = mid_deserialize(mid_hex, hex_size, &used);
+	MRELEASE(mid_hex);
+
+	if(result == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_deserialize_str","Can't deserialize from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("mid_deserialize_str","-> %#llx", (unsigned long) result);
+
+	return result;
+}
+
+
+/*
+ * Retrieve mid from a string representing the MID in hex
+ * "0x31801...."
+ */
+mid_t* mid_from_string(char *mid_str)
+{
+	mid_t *result = NULL;
+	uint8_t *tmp = NULL;
+	uint32_t len = 0;
+	uint32_t bytes = 0;
+
+	DTNMP_DEBUG_ENTRY("mid_from_string","(0x%x)", mid_str);
+
+	/* Step 0: Sanity check. */
+	if(mid_str == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_from_string","Bad args.", NULL);
+		DTNMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Convert the string into a binary buffer. */
+    if((tmp = utils_string_to_hex(mid_str, &len)) == NULL)
+    {
+    	DTNMP_DEBUG_ERR("mid_from_string","Can't Parse MID ID of %s.", mid_str);
+		DTNMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
+		return NULL;
+    }
+
+    /* Step 2: Build a mid by "deserializing" the STRING into a MID. */
+    result = mid_deserialize(tmp, len, &bytes);
+
+    MRELEASE(tmp);
+
+	DTNMP_DEBUG_EXIT("mid_from_string","->0x%x", (unsigned long) result);
+
+	return result;
+}
+
+datacol_entry_t *mid_get_param(mid_t *id, int i)
+{
+	DTNMP_DEBUG_ENTRY("mid_get_param","(%#llx, i)",(unsigned long) id, i);
+
+	if(id == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_get_param","Bad args.",NULL);
+		DTNMP_DEBUG_EXIT("mid_get_param","->0",NULL);
+		return NULL;
+	}
+
+	return oid_get_param(id->oid, i);
+}
+
+uint8_t  mid_get_num_parms(mid_t *mid)
+{
+	DTNMP_DEBUG_ENTRY("mid_get_num_parms","(%#llx)",(unsigned long) mid);
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_get_num_parms","Bad args.",NULL);
+		DTNMP_DEBUG_EXIT("mid_get_num_parms","->0",NULL);
+		return 0;
+	}
+
+	return oid_get_num_parms(mid->oid);
+}
 
 /******************************************************************************
  *
@@ -1008,7 +1109,6 @@ int mid_sanity_check(mid_t *mid)
 
 	/* Type/Category Checks */
 	if (
-		((mid->type == MID_TYPE_CONTROL) && (mid->category == MID_CAT_COMPUTED)) ||
 		((mid->type == MID_TYPE_LITERAL) && (mid->category != MID_CAT_ATOMIC)) ||
 		((mid->type == MID_TYPE_OPERATOR) && (mid->category != MID_CAT_ATOMIC))
 		)
@@ -1132,6 +1232,52 @@ char *mid_to_string(mid_t *mid)
 
 /******************************************************************************
  *
+ * \par Function Name: midcol_clear
+ *
+ * \par Purpose: Clear MID collection in a Lyst.
+ *
+ * \param[in,out] mc The lyst being cleared.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/30/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+void midcol_clear(Lyst mc)
+{
+	LystElt elt;
+	mid_t *cur_mid = NULL;
+
+	DTNMP_DEBUG_ENTRY("midcol_clear","("UVAST_FIELDSPEC")", (uvast) mc);
+
+	/*
+	 * Step 0: Make sure we even have a lyst.
+	 */
+	if(mc == NULL)
+	{
+		DTNMP_DEBUG_WARN("midcol_clear","NULL mc.",NULL);
+		DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+		return;
+	}
+
+	/* Step 1: Walk through the MIDs releasing as you go. */
+    for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+    {
+    	cur_mid = (mid_t *) lyst_data(elt);
+
+    	if(cur_mid != NULL)
+    	{
+    		mid_release(cur_mid);
+    	}
+    }
+
+    DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+}
+
+
+/******************************************************************************
+ *
  * \par Function Name: midcol_copy
  *
  * \par Purpose: Copies a MID collection
@@ -1218,6 +1364,7 @@ Lyst midcol_copy(Lyst mids)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  08/30/15  E. Birrane     Use midcol_clear as helper.
  *****************************************************************************/
 void midcol_destroy(Lyst *mids)
 {
@@ -1237,16 +1384,8 @@ void midcol_destroy(Lyst *mids)
 		return;
 	}
 
-	/* Step 1: Walk through the MIDs releasing as you go. */
-    for(elt = lyst_first(*mids); elt; elt = lyst_next(elt))
-    {
-    	cur_mid = (mid_t *) lyst_data(elt);
-
-    	if(cur_mid != NULL)
-    	{
-    		mid_release(cur_mid);
-    	}
-    }
+	/* Step 1: Remove all of the MIDs in the MC. */
+	midcol_clear(*mids);
 
     /* Step 2: Destroy and zero out the lyst. */
     lyst_destroy(*mids);

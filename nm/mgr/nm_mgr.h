@@ -1,15 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  ** \file nm_mgr.h
  **
@@ -52,10 +40,9 @@
 #include "shared/adm/adm.h"
 
 #include "shared/primitives/mid.h"
+#include "shared/primitives/report.h"
 
 #include "shared/msg/pdu.h"
-#include "shared/msg/msg_def.h"
-#include "shared/msg/msg_reports.h"
 #include "shared/msg/msg_admin.h"
 #include "shared/msg/msg_ctrl.h"
 
@@ -125,9 +112,6 @@ extern Lyst known_agents;
 extern ResourceLock agents_mutex;
 
 extern Sdr g_sdr;
-
-extern Lyst macro_defs;
-extern ResourceLock macro_defs_mutex;
 
 extern uint32_t g_reports_total;
 

@@ -52,26 +52,26 @@
 #define MAX_RULE_SIZE (1024)
 
 
+typedef struct
+{
+	time_t ts;
+	Lyst mc;
+} msg_perf_ctrl_t;
 
 /* Serialize functions. */
-uint8_t *ctrl_serialize_time_prod_entry(rule_time_prod_t *msg, uint32_t *len);
-uint8_t *ctrl_serialize_pred_prod_entry(rule_pred_prod_t *msg, uint32_t *len);
-uint8_t *ctrl_serialize_exec(ctrl_exec_t *msg, uint32_t *len);
+
+msg_perf_ctrl_t *msg_create_perf_ctrl(time_t ts, Lyst mc);
+void msg_destroy_perf_ctrl(msg_perf_ctrl_t *ctrl);
+
+uint8_t *msg_serialize_perf_ctrl(msg_perf_ctrl_t *ctrl, uint32_t *len);
+
 
 
 /* Deserialize functions. */
-rule_time_prod_t *ctrl_deserialize_time_prod_entry(uint8_t *cursor,
-		                       	   	   	   	   	   uint32_t size,
-		                       	   	   	   	   	   uint32_t *bytes_used);
-
-rule_pred_prod_t *ctrl_deserialize_pred_prod_entry(uint8_t *cursor,
-		                       	   	   	   	       uint32_t size,
-		                       	   	   	   	       uint32_t *bytes_used);
-
-ctrl_exec_t *ctrl_deserialize_exec(uint8_t *cursor,
-		                       	   uint32_t size,
-		                       	   uint32_t *bytes_used);
 
 
+msg_perf_ctrl_t *msg_deserialize_perf_ctrl(uint8_t *cursor,
+		                                   uint32_t size,
+		                                   uint32_t *bytes_used);
 
 #endif // MSG_CTRL_H_
