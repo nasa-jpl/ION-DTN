@@ -244,8 +244,16 @@ typedef struct
 	unsigned int	lastRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
 	int		reportsCount;
-	Object		blockFileRef;	/*	A ZCO File Ref object.	*/
-	Object		svcData;	/*	The acquisition ZCO.	*/
+
+	/*	Acqusition buffers: heap and/or file.			*/
+
+	uvast		heapBufferSize;
+	Object		heapBufferObj;
+	Object		blockObjRef;
+	uvast		blockObjSize;
+	char		fileBufferPath[256];
+	Object		blockFileRef;
+	uvast		blockFileSize;
 
 	/*	Backward reference.					*/
 
