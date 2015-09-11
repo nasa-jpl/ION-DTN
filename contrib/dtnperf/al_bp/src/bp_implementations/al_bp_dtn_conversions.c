@@ -6,6 +6,7 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ **  This files contains the functions that convert bp abstract types in dtn types and vice versa.
  ********************************************************/
 
 /*
@@ -17,6 +18,13 @@
 
 #include "al_bp_dtn_conversions.h"
 
+/*
+ * These functions convert bp abstract types in dtn types and viceversa
+ * The prefix bp_dtn means the function takes a bp abstract type in and returns a dtn type
+ * so the conversion is bp -> dtn
+ * The prefix dtn_bp means the function takes a dtn type in and returns a bp abstract type
+ * so the conversion is dtn -> bp
+ */
 
 dtn_handle_t al_dtn_handle(al_bp_handle_t handle)
 {

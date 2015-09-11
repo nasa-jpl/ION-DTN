@@ -6,6 +6,10 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ This file contains all the API definitions of the al_bp (al_bp prefix).
+ ** These are called directly from the application.
+ ** In DTNperf_3 These are the sole al_bp_ APIs called. 
+ ** Each API consists of a switch between DTN2 and ION API implementations (bp prefix)
  ********************************************************/
 
 /*
@@ -19,7 +23,7 @@
 #include "al_bp_types.h"
 
 /**
- * Get abstraction layer library version
+ * Get abstraction layer library version.
  */
 const char * get_al_bp_version();
 

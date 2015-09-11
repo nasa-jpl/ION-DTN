@@ -69,27 +69,27 @@ static void	printUsage()
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node nbr> <default duct expression>");
 	PUTS("\t   a planrule <node nbr> <qualifier> <duct expression>");
-	PUTS("\t   a group <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   a grouprule <first node nbr> <last node nbr> <qualifier> \
+	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   a exitrule <first node nbr> <last node nbr> <qualifier> \
 <endpoint ID>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c plan <node nbr> <default duct expression>");
 	PUTS("\t   c planrule <node nbr> <qualifier> <duct expression>");
-	PUTS("\t   c group <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   c grouprule <first node nbr> <last node nbr> <qualifier> \
+	PUTS("\t   c exit <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   c exitrule <first node nbr> <last node nbr> <qualifier> \
 <endpoint ID>");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} plan <node nbr>");
 	PUTS("\t   {d|i} planrule <node nbr> <qualifier>");
-	PUTS("\t   {d|i} group <first node nbr> <last node nbr>");
-	PUTS("\t   {d|i} grouprule <first node nbr> <last node nbr> \
+	PUTS("\t   {d|i} exit <first node nbr> <last node nbr>");
+	PUTS("\t   {d|i} exitrule <first node nbr> <last node nbr> \
 <qualifier>");
 	PUTS("\tl\tList");
-	PUTS("\t   l group");
+	PUTS("\t   l exit");
 	PUTS("\t   l plan");
 	PUTS("\t   l planrule <node nbr>");
-	PUTS("\t   l grouprule <first node nbr> <last node nbr>");
+	PUTS("\t   l exitrule <first node nbr> <last node nbr>");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
@@ -211,7 +211,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "group") == 0)
+	if (strcmp(tokens[1], "exit") == 0
+	|| strcmp(tokens[1], "group") == 0)
 	{
 		if (tokenCount != 5)
 		{
@@ -219,12 +220,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_addGroup(strtouvast(tokens[2]), strtouvast(tokens[3]),
+		ipn_addExit(strtouvast(tokens[2]), strtouvast(tokens[3]),
 				tokens[4]);
 		return;
 	}
 
-	if (strcmp(tokens[1], "grouprule") == 0)
+	if (strcmp(tokens[1], "exitrule") == 0
+	|| strcmp(tokens[1], "grouprule") == 0)
 	{
 		if (tokenCount != 7)
 		{
@@ -250,7 +252,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			sourceNodeNbr = strtouvast(tokens[5]);
 		}
 
-		ipn_addGroupRule(strtouvast(tokens[2]), strtouvast(tokens[3]),
+		ipn_addExitRule(strtouvast(tokens[2]), strtouvast(tokens[3]),
 				sourceServiceNbr, sourceNodeNbr, tokens[6]);
 		return;
 	}
@@ -323,7 +325,8 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "group") == 0)
+	if (strcmp(tokens[1], "exit") == 0
+	|| strcmp(tokens[1], "group") == 0)
 	{
 		if (tokenCount != 5)
 		{
@@ -331,12 +334,13 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_updateGroup(strtouvast(tokens[2]), strtouvast(tokens[3]),
+		ipn_updateExit(strtouvast(tokens[2]), strtouvast(tokens[3]),
 				tokens[4]);
 		return;
 	}
 
-	if (strcmp(tokens[1], "grouprule") == 0)
+	if (strcmp(tokens[1], "exitrule") == 0
+	|| strcmp(tokens[1], "grouprule") == 0)
 	{
 		if (tokenCount != 7)
 		{
@@ -362,7 +366,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			sourceNodeNbr = strtouvast(tokens[5]);
 		}
 
-		ipn_updateGroupRule(strtouvast(tokens[2]),
+		ipn_updateExitRule(strtouvast(tokens[2]),
 				strtouvast(tokens[3]), sourceServiceNbr,
 				sourceNodeNbr, tokens[6]);
 		return;
@@ -425,7 +429,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "group") == 0)
+	if (strcmp(tokens[1], "exit") == 0
+	|| strcmp(tokens[1], "group") == 0)
 	{
 		if (tokenCount != 4)
 		{
@@ -433,11 +438,12 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_removeGroup(strtouvast(tokens[2]), strtouvast(tokens[3]));
+		ipn_removeExit(strtouvast(tokens[2]), strtouvast(tokens[3]));
 		return;
 	}
 
-	if (strcmp(tokens[1], "grouprule") == 0)
+	if (strcmp(tokens[1], "exitrule") == 0
+	|| strcmp(tokens[1], "grouprule") == 0)
 	{
 		if (tokenCount != 6)
 		{
@@ -463,7 +469,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			sourceNodeNbr = strtouvast(tokens[5]);
 		}
 
-		ipn_removeGroupRule(strtouvast(tokens[2]),
+		ipn_removeExitRule(strtouvast(tokens[2]),
 				strtouvast(tokens[3]), sourceServiceNbr,
 				sourceNodeNbr);
 		return;
@@ -655,25 +661,25 @@ static void	infoPlanRule(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
-static void	printGroup(IpnGroup *group)
+static void	printExit(IpnExit *exit)
 {
 	char	eidString[SDRSTRING_BUFSZ];
 	char	buffer[384];
 
-	sdr_string_read(getIonsdr(), eidString, group->defaultDirective.eid);
+	sdr_string_read(getIonsdr(), eidString, exit->defaultDirective.eid);
 	isprintf(buffer, sizeof buffer, "From " UVAST_FIELDSPEC " \
 through " UVAST_FIELDSPEC ", forward via %.256s.",
-			group->firstNodeNbr, group->lastNodeNbr, eidString);
+			exit->firstNodeNbr, exit->lastNodeNbr, eidString);
 	printText(buffer);
 }
 
-static void	infoGroup(int tokenCount, char **tokens)
+static void	infoExit(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 	uvast	firstNodeNbr;
 	uvast	lastNodeNbr;
 	Object	elt;
-		OBJ_POINTER(IpnGroup, group);
+		OBJ_POINTER(IpnExit, exit);
 
 	if (tokenCount != 4)
 	{
@@ -685,39 +691,39 @@ static void	infoGroup(int tokenCount, char **tokens)
 	lastNodeNbr = strtouvast(tokens[3]);
 	if (lastNodeNbr < firstNodeNbr)
 	{
-		printText("Unknown group.");
+		printText("Unknown exit.");
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	for (elt = sdr_list_first(sdr, (getIpnConstants())->groups); elt;
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->exits); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
-		if (group->firstNodeNbr == firstNodeNbr
-		&& group->lastNodeNbr == lastNodeNbr)
+		GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
+		if (exit->firstNodeNbr == firstNodeNbr
+		&& exit->lastNodeNbr == lastNodeNbr)
 		{
-			printGroup(group);
+			printExit(exit);
 			break;
 		}
 	}
 
 	if (elt == 0)
 	{
-		printText("Unknown group.");
+		printText("Unknown exit.");
 	}
 
 	sdr_exit_xn(sdr);
 }
 
-static void	infoGroupRule(int tokenCount, char **tokens)
+static void	infoExitRule(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	uvast		firstNodeNbr;
 	uvast		lastNodeNbr;
-	Object		groupAddr;
+	Object		exitAddr;
 	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
+			OBJ_POINTER(IpnExit, exit);
 	unsigned int	sourceServiceNbr;
 	uvast		sourceNodeNbr;
 	Object		ruleAddr;
@@ -732,15 +738,15 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 	firstNodeNbr = strtouvast(tokens[2]);
 	lastNodeNbr = strtouvast(tokens[3]);
 	CHKVOID(sdr_begin_xn(sdr));
-	ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+	ipn_findExit(firstNodeNbr, lastNodeNbr, &exitAddr, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
 	}
 	else
 	{
-		GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
-		printGroup(group);
+		GET_OBJ_POINTER(sdr, IpnExit, exit, exitAddr);
+		printExit(exit);
 		if (strcmp(tokens[4], "*") == 0)
 		{
 			sourceServiceNbr = -1;
@@ -759,8 +765,8 @@ static void	infoGroupRule(int tokenCount, char **tokens)
 			sourceNodeNbr = strtouvast(tokens[5]);
 		}
 
-		ipn_findGroupRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
-				sourceNodeNbr, group, &ruleAddr, &elt);
+		ipn_findExitRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
+				sourceNodeNbr, exit, &ruleAddr, &elt);
 		if (elt == 0)
 		{
 			printText("Unknown rule.");
@@ -795,15 +801,17 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "group") == 0)
+	if (strcmp(tokens[1], "exit") == 0
+	|| strcmp(tokens[1], "group") == 0)
 	{
-		infoGroup(tokenCount, tokens);
+		infoExit(tokenCount, tokens);
 		return;
 	}
 
-	if (strcmp(tokens[1], "grouprule") == 0)
+	if (strcmp(tokens[1], "exitrule") == 0
+	|| strcmp(tokens[1], "grouprule") == 0)
 	{
-		infoGroupRule(tokenCount, tokens);
+		infoExitRule(tokenCount, tokens);
 		return;
 	}
 
@@ -841,18 +849,18 @@ static void	listRules(Object rules)
 	}
 }
 
-static void	listGroups()
+static void	listExits()
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
-		OBJ_POINTER(IpnGroup, group);
+		OBJ_POINTER(IpnExit, exit);
 
 	CHKVOID(sdr_begin_xn(sdr));
-	for (elt = sdr_list_first(sdr, (getIpnConstants())->groups); elt;
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->exits); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
-		printGroup(group);
+		GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
+		printExit(exit);
 	}
 
 	sdr_exit_xn(sdr);
@@ -867,8 +875,8 @@ static void	executeList(int tokenCount, char **tokens)
 		OBJ_POINTER(IpnPlan, plan);
 	uvast	firstNodeNbr;
 	uvast	lastNodeNbr;
-	Object	groupAddr;
-		OBJ_POINTER(IpnGroup, group);
+	Object	exitAddr;
+		OBJ_POINTER(IpnExit, exit);
 
 	if (tokenCount < 2)
 	{
@@ -908,33 +916,35 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "group") == 0)
+	if (strcmp(tokens[1], "exit") == 0
+	|| strcmp(tokens[1], "group") == 0)
 	{
-		listGroups();
+		listExits();
 		return;
 	}
 
-	if (strcmp(tokens[1], "grouprule") == 0)
+	if (strcmp(tokens[1], "exitrule") == 0
+	|| strcmp(tokens[1], "grouprule") == 0)
 	{
 		if (tokenCount < 4)
 		{
-			printText("Must specify group first & last node nbrs.");
+			printText("Must specify exit first & last node nbrs.");
 			return;
 		}
 
 		firstNodeNbr = strtouvast(tokens[2]);
 		lastNodeNbr = strtouvast(tokens[3]);
 		CHKVOID(sdr_begin_xn(sdr));
-		ipn_findGroup(firstNodeNbr, lastNodeNbr, &groupAddr, &elt);
+		ipn_findExit(firstNodeNbr, lastNodeNbr, &exitAddr, &elt);
 		if (elt == 0)
 		{
-			printText("Unknown group.");
+			printText("Unknown exit.");
 		}
 		else
 		{
-			GET_OBJ_POINTER(sdr, IpnGroup, group, groupAddr);
-			printGroup(group);
-			listRules(group->rules);
+			GET_OBJ_POINTER(sdr, IpnExit, exit, exitAddr);
+			printExit(exit);
+			listRules(exit->rules);
 		}
 
 		sdr_exit_xn(sdr);

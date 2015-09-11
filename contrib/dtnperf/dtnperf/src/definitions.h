@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 // dtnperf version
-#define DTNPERF_VERSION "3.3.3"
+#define DTNPERF_VERSION "3.3.5"
 
 // dtnperf server mode string
 #define SERVER_STRING "--server"

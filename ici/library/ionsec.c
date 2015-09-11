@@ -1102,17 +1102,17 @@ int	sec_get_private_key(BpTimestamp *effectiveTime, int *keyBufferLen,
  * \par Function Name: sec_clearBspRules 
  *
  * \par Purpose: Clears bsp rules configured on the node.  Rules are 
- *	       identified by their security source and security destination
- *	       and targeted BSP block type.  For EIDs, ~ is accepted as a
- *	       end-of-string wildcard.
+ *		identified by their security source and security destination
+ *		and targeted BSP block type.  For EIDs, ~ is accepted as a
+ *		end-of-string wildcard.
  *
- * \param[in]  srcEid  The security source of all rules being cleared. This
- *		     may be "~" to match all security sources.
- *	     destEid The security destination of all rules being cleared.
- *		     This may be "~" to match all security destinations.
- *	     blockType This is the BSP block of the rule to be cleared. 
- *		       This is one of "2", "3", "4", or "~" to match all
- *		       block types.
+ * \param[in]	srcEid  The security source of all rules being cleared. This
+ *			may be "~" to match all security sources.
+ *		destEid The security destination of all rules being cleared.
+ *			This may be "~" to match all security destinations.
+ *		blockType This is the BSP block of the rule to be cleared. 
+ *			This is one of "2", "3", "4", or "~" to match all
+ *			block types.
  * \par Notes:
  *****************************************************************************/
 
@@ -1276,7 +1276,7 @@ integrity rules.");
 rules cleared.");
 		}
 	}
-	
+
 	if (blockType[0] == '~' || blockType[0] == '4')	/*	PCB/BCB	*/
 	{
 		/*	Remove matching confidentiality rules.		*/
@@ -1721,17 +1721,17 @@ static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)
  * \par Function Name: eidsMatch 
  *
  * \par Purpose: This function accepts two string EIDs and determines if they
- *	       match.  Significantly, each EID may contain an end-of-string
- *	       wildcard character ("~"). For example, the two EIDs compared
- *	       can be "ipn:1.~" and "ipn~".
+ *		match.  Significantly, each EID may contain an end-of-string
+ *		wildcard character ("~"). For example, the two EIDs compared
+ *		can be "ipn:1.~" and "ipn~".
  *
  * \retval int -- 1 - The EIDs matched, counting wildcards.
  *		0 - The EIDs did not match.
  *
- * \param[in]  firstEid     The first EID to compare. 
- *	     firstEidLen  The length of the first EID string.
- *	     secondEid    The second EID to compare.
- *	     secondEidLen The length of the second EID string.
+ * \param[in]	firstEid	The first EID to compare. 
+ *		firstEidLen	The length of the first EID string.
+ *		secondEid	The second EID to compare.
+ *		secondEidLen	The length of the second EID string.
  *
  * \par Notes:
  *****************************************************************************/
@@ -3262,14 +3262,14 @@ int	sec_removeBspBcbRule(char *secSrcEid, char *secDestEid,
  *
  * \par Purpose: This function is used to find an LTP signing rule.
  * 		 There is a match if there is a rule in Sdr with the
- *	       same ltpEngineId. 
+ *		 same ltpEngineId. 
  *
- *	       Return 1 if there is a match, return 0 if not, return -1 on 
- *	       error.
+ *		 Return 1 if there is a match, return 0 if not, return -1 on 
+ *		 error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
- * \param[out] ruleAddr the pointer to the matched rule object
- *	     eltp the pointer to the matched rule iterator
+ * \param[in]	ltpEngineId the LTP engine ID
+ * \param[out]	ruleAddr the pointer to the matched rule object
+ *		eltp the pointer to the matched rule iterator
  * \par Notes:
  *****************************************************************************/
 
@@ -3316,12 +3316,12 @@ int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
  *
  * \par Purpose: This function is used to add an LTP signing rule. 
  *
- *	       Return 1 if added successfully, return 0 if not, return -1 on 
- *	       error.
+ *		 Return 1 if added successfully, return 0 if not, return -1 on 
+ *		 error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
- *	     ciphersuiteNbr the ciphersuite number
- *	     keyName the key name
+ * \param[in]	ltpEngineId the LTP engine ID
+ *		ciphersuiteNbr the ciphersuite number
+ *		keyName the key name
  * \par Notes:
  *****************************************************************************/
 
@@ -3398,12 +3398,12 @@ is NULL (255).");
  *
  * \par Purpose: This function is used to update an LTP signing rule. 
  *
- *	       Return 1 if updated successfully, return 0 if not, 
- *	       return -1 on error.
+ *		 Return 1 if updated successfully, return 0 if not, 
+ *		 return -1 on error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
- *	     ciphersuiteNbr the ciphersuite number
- *	     keyName the key name
+ * \param[in]	ltpEngineId the LTP engine ID
+ *		ciphersuiteNbr the ciphersuite number
+ *		keyName the key name
  * \par Notes:
  *****************************************************************************/
 
@@ -3467,10 +3467,10 @@ is NULL (255).");
  *
  * \par Purpose: This function is used to remove an LTP signing rule. 
  *
- *	       Return 1 if removed successfully, return 0 if not, 
- *	       return -1 on error.
+ *		 Return 1 if removed successfully, return 0 if not, 
+ *		 return -1 on error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
+ * \param[in]	ltpEngineId the LTP engine ID
  * \par Notes:
  *****************************************************************************/
 
@@ -3505,15 +3505,15 @@ int	sec_removeLtpXmitAuthRule(uvast ltpEngineId)
  * \par Function Name: sec_findLtpRecvAuthRule 
  *
  * \par Purpose: This function is used to find an LTP authentication 
- *	       rule.  There is a match if there is a rule in Sdr with the
- *	       same ltpEngineId. 
+ *		 rule.  There is a match if there is a rule in Sdr with the
+ *		 same ltpEngineId. 
  *
- *	       Return 1 if there is a match, return 0 if not, return -1 on 
- *	       error.
+ *		 Return 1 if there is a match, return 0 if not, return -1 on 
+ *		 error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
- * \param[out] ruleAddr the pointer to the matched rule object
- *	     eltp the pointer to the matched rule iterator
+ * \param[in]	ltpEngineId the LTP engine ID
+ * \param[out]	ruleAddr the pointer to the matched rule object
+ *		eltp the pointer to the matched rule iterator
  * \par Notes:
  *****************************************************************************/
 
@@ -3560,12 +3560,12 @@ int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
  *
  * \par Purpose: This function is used to add an LTP authentication rule. 
  *
- *	       Return 1 if added successfully, return 0 if not, return -1 on 
- *	       error.
+ *		Return 1 if added successfully, return 0 if not, return -1 on 
+ *		error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
- *	     ciphersuiteNbr the ciphersuite number
- *	     keyName the key name
+ * \param[in]	ltpEngineId the LTP engine ID
+ *		ciphersuiteNbr the ciphersuite number
+ *		keyName the key name
  * \par Notes:
  *****************************************************************************/
 
@@ -3641,14 +3641,14 @@ is NULL (255).");
  * \par Function Name: sec_updateLtpRecvAuthRule 
  *
  * \par Purpose: This function is used to update an LTP authentication 
- *	       rule. 
+ *		 rule. 
  *
- *	       Return 1 if updated successfully, return 0 if not, 
- *	       return -1 on error.
+ *		 Return 1 if updated successfully, return 0 if not, 
+ *		 return -1 on error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
- *	     ciphersuiteNbr the ciphersuite number
- *	     keyName the key name
+ * \param[in]	ltpEngineId the LTP engine ID
+ *		ciphersuiteNbr the ciphersuite number
+ *		keyName the key name
  * \par Notes:
  *****************************************************************************/
 
@@ -3711,12 +3711,12 @@ is NULL (255).");
  * \par Function Name: sec_removeLtpRecvAuthRule 
  *
  * \par Purpose: This function is used to remove an LTP authentication 
- *	       rule. 
+ *		 rule. 
  *
- *	       Return 1 if removed successfully, return 0 if not, 
- *	       return -1 on error.
+ *		 Return 1 if removed successfully, return 0 if not, 
+ *		 return -1 on error.
  *
- * \param[in]  ltpEngineId the LTP engine ID
+ * \param[in]	ltpEngineId the LTP engine ID
  * \par Notes:
  *****************************************************************************/
 

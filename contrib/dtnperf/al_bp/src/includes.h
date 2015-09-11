@@ -6,6 +6,7 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains a list of all system library used by the al_bp.
  ********************************************************/
 
 #ifndef INCLUDES_H_

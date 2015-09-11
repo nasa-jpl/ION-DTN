@@ -6,6 +6,7 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** In this file are defined general types, such as synonyms of number types. E.g. s8_t is "signed char"
  ********************************************************/
 
 #ifndef TYPES_H_
