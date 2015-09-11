@@ -16,33 +16,6 @@
 #define	CFDPDEBUG	0
 #endif
 
-static ReqAttendant	*_attendant()
-{
-	ReqAttendant	*attendant;
-	void		*value;
-
-	attendant = (ReqAttendant *) sm_TaskVar(NULL);
-	if (attendant == NULL)
-	{
-		attendant = (ReqAttendant *) MTAKE(sizeof(ReqAttendant));
-		if (attendant == NULL)
-		{
-			return NULL;
-		}
-
-		if (ionStartAttendant(attendant) < 0)
-		{
-			MRELEASE(attendant);
-			return NULL;
-		}
-
-		value = (void *) attendant;
-		attendant = (ReqAttendant *) sm_TaskVar(&value);
-	}
-
-	return attendant;
-}
-
 /*	*	*	Helpful utility functions	*	*	*/
 
 static Object	_cfdpdbObject(Object *newDbObj)
@@ -474,6 +447,7 @@ static CfdpVdb	*_cfdpvdb(char **name)
 		vdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		if (vdb->eventSemaphore == SM_SEM_NONE
 		|| vdb->fduSemaphore == SM_SEM_NONE
+		|| ionStartAttendant(&(vdb->attendant)) < 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -715,7 +689,6 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 {
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
-	ReqAttendant	*attendant;
 
 	/*	Tell all CFDP processes to stop.			*/
 
@@ -723,11 +696,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Disable blocking ZCO buffer space access.		*/
 
-	attendant = _attendant();
-	if (attendant)
-	{
-		ionPauseAttendant(attendant);
-	}
+	ionStopAttendant(&(cfdpvdb->attendant));
 
 	/*	Stop user application input thread.			*/
 
@@ -773,12 +742,6 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	if (attendant)
-	{
-		ionStopAttendant(attendant);
-		MRELEASE(attendant);
-	}
-
 	cfdpvdb->utaPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
@@ -3152,7 +3115,6 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	Sdr			sdr = getIonsdr();
 	CfdpVdb			*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB			cfdpdb;
-	ReqAttendant		*attendant = _attendant();
 	ReqTicket		ticket;
 	Object			fdu = 0;
 	int			pduIsFileData = 0;	/*	Boolean.*/
@@ -3189,7 +3151,8 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	 *	be allocated, when the ZCO is finally created.)		*/
 
 	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength,
-		cfdpdb.maxFileDataLength, 1, 0, attendant, &ticket) < 0)
+			cfdpdb.maxFileDataLength, 1, 0, &(cfdpvdb->attendant),
+			&ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve ZCO space.", NULL);
 		return -1;
@@ -3200,14 +3163,14 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		/*	Ticket is request list element for the request.
 		 *	Wait until space is available.			*/
 
-		if (sm_SemTake(attendant->semaphore) < 0)
+		if (sm_SemTake(cfdpvdb->attendant.semaphore) < 0)
 		{
 			putErrmsg("Failed taking semaphore.", NULL);
 			ionShred(ticket);
 			return -1;
 		}
 
-		if (sm_SemEnded(attendant->semaphore))
+		if (sm_SemEnded(cfdpvdb->attendant.semaphore))
 		{
 			writeMemo("[i] CFDP UTO ZCO request interrupted.");
 			ionShred(ticket);
