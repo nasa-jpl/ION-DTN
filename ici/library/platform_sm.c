@@ -3039,6 +3039,14 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 	int	pid;
 
 	CHKERR(name);
+
+	/*	Ignoring SIGCHLD signals causes the parent process
+	 *	to ignore the fate of the child process, so the child
+	 *	process cannot become a zombie: when it terminates,
+	 *	it is removed immediately rather than waiting for
+	 *	the parent to wait() on it.				*/
+
+	isignal(SIGCHLD, SIG_IGN);	
 	switch (pid = fork())
 	{
 	case -1:		/*	Error.				*/
