@@ -30,14 +30,57 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
-./ionstart >& node1.stdout &
+./ionstart > node1.stdout
 cd ../2.ipn.ltp
 ./ionstart >& node2.stdout &
 cd ../3.ipn.ltp
 ./ionstart >& node3.stdout &
 cd ../4.ipn.ltp
 ./ionstart >& node4.stdout &
-sleep 10
+
+cd ../1.ipn.ltp
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../2.ipn.ltp
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../3.ipn.ltp
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 0
+fi
+
+cd ../4.ipn.ltp
+../../../system_up -i "p 10" -l "p 10" -b "p 10"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 4 not started: Aborting Test"
+	exit 0
+fi
 
 echo "Inserting first set of contacts...."
 cd ../1.ipn.ltp
@@ -116,13 +159,13 @@ fi
 sleep 1
 echo "Stopping ION..."
 cd ../1.ipn.ltp
-./ionstop &
+./ionstop 
 cd ../2.ipn.ltp
-./ionstop &
+./ionstop 
 cd ../3.ipn.ltp
-./ionstop &
+./ionstop 
 cd ../4.ipn.ltp
-./ionstop &
+./ionstop 
 
 # Give all nodes time to shut down, then clean up.
 sleep 5
