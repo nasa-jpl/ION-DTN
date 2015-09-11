@@ -1,9 +1,9 @@
-IONPATH=/home/ptsao/obj
+IONPATH=/usr/local
 CC=cc
 OPTFLAGS=-g
 #OPTFLAGS=-O3 -fomit-frame-pointer -ffast-math -fmerge-all-constants -maccumulate-outgoing-args -march=core2 -U_FORTIFY_SOURCE -fno-stack-protector
 CFLAGS=-I$(IONPATH)/include -std=gnu99 -Wall $(OPTFLAGS)
-LDFLAGS=-pthread -L$(IONPATH)/lib -lbp -lici
+LDFLAGS=-pthread -L$(IONPATH)/lib -lipnfw -limcfw -ldtn2fw -lbp -lici
 
 all: bptap
 

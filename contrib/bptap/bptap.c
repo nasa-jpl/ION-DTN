@@ -93,8 +93,10 @@ void *sendthread( void *foo ) {
        PCP only works on VLANs.
     */
     int classOfService = BP_BULK_PRIORITY;
-    if( buffer[12] == 0x8 && buffer[13] == 0 && ( buffer[15] & 0xfc) == 0xb8 ||
-        buffer[12] == 0x86 && buffer[13] == 0xdd && ( buffer[14] & 0xf ) == 0xb && ( buffer[15] & 0xc0 ) == 0x80 ) {
+    if ((buffer[12] == 0x8 && buffer[13] == 0 && (buffer[15] & 0xfc) == 0xb8)
+    || (buffer[12] == 0x86 && buffer[13] == 0xdd && (buffer[14] & 0xf) == 0xb
+    	&& (buffer[15] & 0xc0) == 0x80))
+    {
       classOfService = BP_EXPEDITED_PRIORITY;
     }
 
