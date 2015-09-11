@@ -11,11 +11,3 @@ sleep 1
 bpadmin		node.bprc.1
 sleep 1
 imcadmin	node.imcrc
-sleep 2
-bpadmin		node.bprc.2
-sleep 2
-#knadmin		../boot.knrc
-knadmin		../node.knrc
-sleep 5
-kaadmin		../boot.karc
-kaadmin		../node.karc

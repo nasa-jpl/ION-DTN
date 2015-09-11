@@ -1,0 +1,6 @@
+# shell script to get node running
+#!/bin/bash
+knadmin		../node.knrc
+sleep 5
+kaadmin		../boot.karc
+kaadmin		../node.karc
