@@ -1,0 +1,6 @@
+20150602 fixed recvthread fencepost error
+         (thanks to Mary Rivera)
+20150420 now works with ION Open Source 3.3.0
+         (thanks to Scott Burleigh)
+20130430 [belatedly] now works with ION 3.1.x
+20120706 cleaned up for "public" consumption
