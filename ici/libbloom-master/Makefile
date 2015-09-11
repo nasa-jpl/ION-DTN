@@ -74,6 +74,11 @@ $(BUILD)/murmurhash2.o: murmur2/MurmurHash2.c murmur2/murmurhash2.h
 clean:
 	rm -rf $(BUILD)
 
+install:
+	cp bloom.h $(ROOT)/include
+	cp build/*.so $(ROOT)/lib
+	cp build/test-libbloom $(ROOT)/bin
+
 lint:
 	lint -x -errfmt=simple $(INC) $(LIB) *.c murmur2/*.c
 
