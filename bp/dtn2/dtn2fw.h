@@ -72,6 +72,8 @@ extern int		dtn2_updateRule(char *nodeName, char *demux,
 				FwdDirective *directive);
 extern int		dtn2_removeRule(char *nodeName, char *demux);
 
+extern void		dtn2_forgetOutduct(Object ductElt);
+
 #ifdef __cplusplus
 }
 #endif

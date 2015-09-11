@@ -159,11 +159,12 @@ extern int		ipn_removeExitRule(uvast firstNodeNbr,
 				uvast lastNodeNbr,
 				int sourceServiceNbr,
 				vast sourceNodeNbr);
-
 extern int		ipn_lookupExitDirective(uvast nodeNbr, 
 				unsigned int sourceServiceNbr,
 				uvast sourceNodeNbr,
 				FwdDirective *directive);
+
+extern void		ipn_forgetOutduct(Object ductElt);
 #ifdef __cplusplus
 }
 #endif
