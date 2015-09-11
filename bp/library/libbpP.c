@@ -45,6 +45,8 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+
 /*	We hitchhike on the ZCO heap space management system to 
  *	manage the space occupied by Bundle objects.  In effect,
  *	the Bundle overhead objects compete with ZCOs for available
@@ -7765,12 +7767,22 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 				SrDepletedStorage);
 	}
 
+	/*	Check authenticity and integrity.			*/
+
 	initAuthenticity(work);	/*	Set default.			*/
 	if (checkPerExtensionBlocks(work) < 0)
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(bpSdr);
 		return -1;
+	}
+
+	if (bundle->corrupt)
+	{
+		writeMemo("[?] Corrupt bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	if (bundle->clDossier.authentic == 0)
@@ -7781,10 +7793,18 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
-	if (bundle->corrupt)
+	if (bundle->altered)
 	{
-		writeMemo("[?] Corrupt bundle.");
-		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+		writeMemo("[?] Altered bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (bsp_securityPolicyViolated(work))
+	{
+		writeMemo("[?] Security policy violated.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
 		return abortBundleAcq(work);
 	}

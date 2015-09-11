@@ -335,6 +335,7 @@ typedef struct
 	char		returnToSender;	/*	Boolean.		*/
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
+	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
