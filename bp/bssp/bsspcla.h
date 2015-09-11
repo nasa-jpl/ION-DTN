@@ -24,7 +24,6 @@ extern "C" {
 #endif
 
 #define BpBsspClientId		(1)
-#define	DEFAULT_BSSP_RATE	-1 //125000000
 
 #ifdef __cplusplus
 }

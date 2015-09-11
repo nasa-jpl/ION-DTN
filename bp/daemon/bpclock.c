@@ -96,10 +96,9 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			 *	we must NOT do so here.			*/
 
 			break;		/*	Out of switch.		*/
-
 #ifdef ENABLE_BPACS
-        case csDue:
-            result = sendAcs(event->ref);
+	        case csDue:
+			result = sendAcs(event->ref);
 
 			/* Note that sendAcs() always erases the 
 			 * csDue event, so we must NOT do so
@@ -107,7 +106,6 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 			break;		/*	Out of switch.		*/
 #endif
-
 		default:		/*	Spurious event; erase.	*/
 			destroyBpTimelineEvent(elt);
 			result = 0;	/*	Event is ignored.	*/
@@ -128,86 +126,26 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 	}
 }
 
-static int	adjustThrottles()
+static void	detectCurrentTopologyChanges(Sdr sdr)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	BpVdb		*bpvdb = getBpVdb();
 	PsmAddress	elt;
-	VOutduct	*outduct;
-	uvast		nodeNbr;
 	IonNeighbor	*neighbor;
-	PsmAddress	nextElt;
 	int		mustPrintStats = 0;
-	int		delta;
-	VInduct		*induct;
 
-	/*	Only the LTP induct and outduct throttles can be
-	 *	dynamically adjusted in response to changes in data
-	 *	rate between the local node and its neighbors, because
-	 *	(currently) there is no mechanism for mapping neighbor
-	 *	node number to duct name for any other CL protocol.
-	 *	For LTP, duct name is LTP engine number which, by
-	 *	convention, is identical to BP node number.  For all
-	 *	other CL protocols, duct nominal data rate is initially
-	 *	set to the protocol's configured nominal data rate and
-	 *	is never subsequently modified.
-	 *	
-	 *	So, first we find the LTP induct if any.		*/
-
-	for (elt = sm_list_first(ionwm, bpvdb->inducts); elt;
-			elt = sm_list_next(ionwm, elt))
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sm_rbt_first(ionwm, ionvdb->neighbors); elt;
+			elt = sm_rbt_next(ionwm, elt))
 	{
-		induct = (VInduct *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (strcmp(induct->protocolName, "ltp") == 0)
-		{
-			break;	/*	Found the LTP induct.		*/
-		}
-	}
-
-	if (elt == 0)		/*	No LTP induct; nothing to do.	*/
-	{
-		return 0;
-	}
-
-	/*	Now update all LTP outducts, and the induct as well,
-	 *	inferring the existence of Neighbors in the process.	*/
-
-	for (elt = sm_list_first(ionwm, bpvdb->outducts); elt;
-			elt = sm_list_next(ionwm, elt))
-	{
-		outduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (strcmp(outduct->protocolName, "ltp") != 0)
-		{
-			continue;
-		}
-
-		nodeNbr = strtouvast(outduct->ductName);
-		neighbor = findNeighbor(ionvdb, nodeNbr, &nextElt);
-		if (neighbor == NULL)
-		{
-			neighbor = addNeighbor(ionvdb, nodeNbr);
-			if (neighbor == NULL)
-			{
-				putErrmsg("Can't adjust outduct throttle.",
-						NULL);
-				return -1;
-			}
-		}
-
+		neighbor = (IonNeighbor *) psp(ionwm, sm_rbt_data(ionwm, elt));
 		if (neighbor->xmitRate != neighbor->prevXmitRate)
 		{
 #ifndef ION_NOSTATS
 			if (neighbor->nodeNbr != getOwnNodeNbr())
 			{
-			/*	We report transmission statistics
-			 *	as necessary.  NOTE that this
-			 *	procedure is based on the assumption
-			 *	that the local node is in LTP
-			 *	transmission contact with AT MOST
-			 *	ONE neighbor at any time.  For more
-			 *	complex topologies it will need to
-			 *	be redesigned.				*/
+				/*	We report transmission
+				 *	statistics as necessary.	*/
 
 				if (neighbor->xmitRate == 0)
 				{
@@ -221,31 +159,17 @@ static int	adjustThrottles()
 				}
 			}
 #endif
-			outduct->xmitThrottle.nominalRate = neighbor->xmitRate;
 			neighbor->prevXmitRate = neighbor->xmitRate;
+			neighbor->xmitThrottle.nominalRate = neighbor->xmitRate;
 		}
-
-		/*	Note that the LTP induct is aggregate; the
-		 *	duct's nominal rate is the sum of the rates
-		 *	at which all neighbors are expected to be
-		 *	transmitting to the local node at any given
-		 *	moment.  So we must add the change in rate
-		 *	for each known neighbor to the aggregate
-		 *	nominal reception rate for the induct.		*/
 
 		if (neighbor->recvRate != neighbor->prevRecvRate)
 		{
 #ifndef ION_NOSTATS
 			if (neighbor->nodeNbr != getOwnNodeNbr())
 			{
-			/*	We report and clear reception
-			 *	statistics as necessary.  NOTE that
-			 *	this procedure is based on the
-			 *	assumption that the local node is
-			 *	in LTP reception contact with
-			 *	AT MOST ONE neighbor at any time.
-			 *	For more complex topologies it will
-			 *	need to be redesigned.			*/
+				/*	We report transmission
+				 *	statistics as necessary.	*/
 
 				if (neighbor->recvRate == 0)
 				{
@@ -259,8 +183,6 @@ static int	adjustThrottles()
 				}
 			}
 #endif
-			delta = neighbor->recvRate - neighbor->prevRecvRate;
-			induct->acqThrottle.nominalRate += delta;
 			neighbor->prevRecvRate = neighbor->recvRate;
 		}
 	}
@@ -270,65 +192,87 @@ static int	adjustThrottles()
 		reportAllStateStats();
 	}
 
-	return 0;
+	oK(sdr_end_xn(sdr));
 }
 
 static void	applyRateControl(Sdr sdr)
 {
 	PsmPartition	ionwm = getIonwm();
-	BpVdb		*vdb = getBpVdb();
-	Throttle	*throttle;
+	IonVdb		*ionvdb = getIonVdb();
+	BpVdb		*bpvdb = getBpVdb();
 	PsmAddress	elt;
-	VInduct		*induct;
+	IonNeighbor	*neighbor;
+	Throttle	*throttle;
 	VOutduct	*outduct;
+
+	/*	Rate control is effected at Outduct granularity
+	 *	but is normally regulated at (neighboring) Node
+	 *	granularity, because it is nominally controlled
+	 *	by the contact plan and the contact information
+	 *	in the contact plan is at Node granularity.  So we
+	 *	blip the throttles of all Neighbors once per second.
+	 *
+	 *	However, not all Outducts can be matched to Neighbors:
+	 *	an Outduct might be cited only in dtn-scheme egress
+	 *	plans, or it might be for a "promiscuous" protocol,
+	 *	or it might be cited in the egress plan for a node
+	 *	for which there are no contacts in the contact plan
+	 *	(hence no Neighbor has been created).  When this is
+	 *	the case, we must drop back to simply using the
+	 *	nominal data rate of the Protocol for the Outduct
+	 *	to regulate transmission.  For this purpose we also
+	 *	blip the throttles of all Outducts once per second,
+	 *	in case they are needed.
+	 *
+	 *	Whenever rate control is enacted at a given Outduct,
+	 *	we first try to identify the corresponding Neighbor
+	 *	and use its throttle to control the duct.  When no
+	 *	Neighbor can be identified, we use the duct's own
+	 *	throttle instead.					*/
 
 	CHKVOID(sdr_begin_xn(sdr));
 
-	/*	Enable some bundle acquisition.				*/
+	/*	Enable some bundle transmission to each Neighbor.	*/
 
-	for (elt = sm_list_first(ionwm, vdb->inducts); elt;
-			elt = sm_list_next(ionwm, elt))
+	for (elt = sm_rbt_first(ionwm, ionvdb->neighbors); elt;
+			elt = sm_rbt_next(ionwm, elt))
 	{
-		induct = (VInduct *) psp(ionwm, sm_list_data(ionwm, elt));
-		throttle = &(induct->acqThrottle);
-		if (throttle->nominalRate < 0)
-		{
-			continue;	/*	Not rate-controlled.	*/
-		}
+		neighbor = (IonNeighbor *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		throttle = &(neighbor->xmitThrottle);
 
-		throttle->capacity += throttle->nominalRate;
-		if (throttle->capacity > throttle->nominalRate)
-		{
-			throttle->capacity = throttle->nominalRate;
-		}
+		/*	If throttle is rate controlled, added capacity
+		 *	is 1 second's worth of transmission.  If not,
+		 *	no change.					*/
 
-		if (throttle->capacity > 0)
+		if (throttle->nominalRate > 0)
 		{
-			sm_SemGive(throttle->semaphore);
+			throttle->capacity += throttle->nominalRate;
+			if (throttle->capacity > throttle->nominalRate)
+			{
+				throttle->capacity = throttle->nominalRate;
+			}
 		}
 	}
 
-	/*	Enable some bundle transmission.			*/
+	/*	Enable some bundle transmission on each Outduct.	*/
 
-	for (elt = sm_list_first(ionwm, vdb->outducts); elt;
+	for (elt = sm_list_first(ionwm, bpvdb->outducts); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		outduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, elt));
 		throttle = &(outduct->xmitThrottle);
-		if (throttle->nominalRate < 0)
-		{
-			continue;	/*	Not rate-controlled.	*/
-		}
 
-		throttle->capacity += throttle->nominalRate;
-		if (throttle->capacity > throttle->nominalRate)
-		{
-			throttle->capacity = throttle->nominalRate;
-		}
+		/*	If throttle is rate controlled, added capacity
+		 *	is 1 second's worth of transmission.  If not,
+		 *	no change.					*/
 
-		if (throttle->capacity > 0)
+		if (throttle->nominalRate > 0)
 		{
-			sm_SemGive(throttle->semaphore);
+			throttle->capacity += throttle->nominalRate;
+			if (throttle->capacity > throttle->nominalRate)
+			{
+				throttle->capacity = throttle->nominalRate;
+			}
 		}
 	}
 
@@ -378,16 +322,10 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		/*	Also adjust throttles in response to rate
-		 *	changes noted in the shared ION database.	*/
+		/*	Also detect current topology changes resulting
+		 *	from rate changes imposed per the contact plan.	*/
 
-		if (adjustThrottles() < 0)
-		{
-			putErrmsg("Can't adjust throttles.", NULL);
-			state = 0;	/*	Terminate loop.		*/
-			oK(_running(&state));
-			continue;
-		}
+		detectCurrentTopologyChanges(sdr);
 
 		/*	Then apply rate control.			*/
 

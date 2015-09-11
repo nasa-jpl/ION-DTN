@@ -334,6 +334,109 @@ int	ipn_removePlan(uvast nodeNbr)
 	return 1;
 }
 
+static int	ruleMatches(IpnPlan *plan, DuctExpression *ductExpression)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnRule, rule);
+	char	destDuctName[SDRSTRING_BUFSZ];
+
+	for (elt = sdr_list_first(sdr, plan->rules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnRule, rule, sdr_list_data(sdr, elt));
+		if (!(rule->directive.action == xmit
+		&& rule->directive.outductElt == ductExpression->outductElt))
+		{
+			continue;	/*	Not a match.		*/
+		}
+
+		if (ductExpression->destDuctName == NULL)
+		{
+			/*	Non-promiscuous protocol; this is
+			 *	the egress plan we're looking for.	*/
+
+			return 1;
+		}
+
+		/*	ductExpression is for a promiscuous protocol,
+		 *	so must match on destDuctName as well.		*/
+
+		if (sdr_string_read(sdr, destDuctName,
+				rule->directive.destDuctName < 0))
+		{
+			putErrmsg("Can't retrieve rule dest duct name.", NULL);
+			return 0;
+		}
+
+		if (strcmp(destDuctName, ductExpression->destDuctName) == 0)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+uvast	ipn_planNodeNbr(DuctExpression *ductExpression)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnPlan, plan);
+	char	destDuctName[SDRSTRING_BUFSZ];
+
+	/*	This function returns the node number associated with
+	 *	the IpnPlan containing a directive that indicates
+	 *	transmission to the duct identified by ductExpression,
+	 *	if any.							*/
+
+	CHKZERO(ionLocked());
+	CHKZERO(ductExpression);
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->plans); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
+		if (ruleMatches(plan, ductExpression))
+		{
+			return plan->nodeNbr;
+		}
+
+		/*	No override rule cites this outduct.		*/
+
+		if (!(plan->defaultDirective.action == xmit
+		&& plan->defaultDirective.outductElt
+				== ductExpression->outductElt))
+		{
+			continue;	/*	Not a match.		*/
+		}
+
+		if (ductExpression->destDuctName == NULL)
+		{
+			/*	Non-promiscuous protocol; this is
+			 *	the egress plan we're looking for.	*/
+
+			return plan->nodeNbr;
+		}
+
+		/*	ductExpression is for a promiscuous protocol,
+		 *	so must match on destDuctName as well.		*/
+
+		if (sdr_string_read(sdr, destDuctName,
+				plan->defaultDirective.destDuctName < 0))
+		{
+			putErrmsg("Can't retrieve plan dest duct name.", NULL);
+			return 0;
+		}
+
+		if (strcmp(destDuctName, ductExpression->destDuctName) == 0)
+		{
+			return plan->nodeNbr;
+		}
+	}
+
+	return 0;
+}
+
 static Object	locateRule(Object rules, unsigned int srcServiceNbr,
 			uvast srcNodeNbr, Object *nextRule)
 {

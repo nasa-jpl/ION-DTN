@@ -30,9 +30,6 @@ extern "C" {
 #define TCPCLA_BUFSZ		(64 * 1024)
 #define BpTcpDefaultPortNbr	4556
 
-#define	DEFAULT_TCP_RATE	-1
-	/*	TCP has congestion control, so rate control not needed.	*/
-
 #define TCPCLA_MAGIC 		"dtn!"
 #define TCPCLA_MAGIC_SIZE	4
 #define TCPCLA_ID_VERSION	0x03

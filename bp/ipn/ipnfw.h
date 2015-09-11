@@ -112,6 +112,8 @@ extern void		ipn_findPlanRule(uvast nodeNbr,
 				vast sourceNodeNbr, IpnPlan *plan,
 				Object *ruleAddr, Object *elt);
 
+extern uvast		ipn_planNodeNbr(DuctExpression *ductExpression);
+
 extern int		ipn_addPlanRule(uvast nodeNbr,
 				int sourceServiceNbr,
 				vast sourceNodeNbr,

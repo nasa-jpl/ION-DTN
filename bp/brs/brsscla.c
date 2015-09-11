@@ -723,17 +723,6 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
-		voutduct->xmitThrottle.nominalRate = DEFAULT_BRS_RATE;
-	}
-	else
-	{
-		vinduct->acqThrottle.nominalRate = protocol.nominalRate;
-		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
 	hostName = ductName;
 	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
 	{

@@ -17,6 +17,7 @@
 	
 									*/
 #include "tcpcla.h"
+#include "ipnfw.h"
 
 static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 {
@@ -110,6 +111,7 @@ int	main(int argc, char *argv[])
 	unsigned char		*buffer;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
+	DuctExpression		ductExpression;
 	Sdr			sdr;
 	Outduct			duct;
 	ClProtocol		protocol;
@@ -119,6 +121,7 @@ int	main(int argc, char *argv[])
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	parms;
 	pthread_t		keepaliveThread;
+	unsigned int		maxPayloadLength;
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
@@ -163,21 +166,24 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	ipnInit();
 	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));
+	CHKERR(sdr_begin_xn(sdr));		/*	Lock the heap.	*/
+	ductExpression.outductElt = vduct->outductElt;
+	ductExpression.destDuctName = NULL;	/*	Non-promiscuous.*/
+	vduct->neighborNodeNbr = ipn_planNodeNbr(&ductExpression);
+	if (vduct->neighborNodeNbr == 0)
+	{
+		/*	Must be using only dtn-scheme EIDs.		*/
+
+		writeMemoNote("[i] No node number for this STCP duct name",
+				ductName);
+	}
+
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
-	}
-	else
-	{
-		vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
+	sdr_exit_xn(sdr);			/*	Unlock.		*/
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = duct.bulkQueue;
 	outflows[1].outboundBundles = duct.stdQueue;
@@ -216,8 +222,22 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] stcpclo is running....");
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
+		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
+		{
+		case -1:
+			sm_SemEnd(stcpcloSemaphore(NULL));
+			continue;
+
+		case 0:			/*	Unknown; try again.	*/
+			snooze(1);
+			continue;
+
+		default:		/*	maxPayloadLength known.	*/
+			break;		/*	Out of switch.		*/
+		}
+
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+				destDuctName, maxPayloadLength, -1) < 0)
 		{
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
