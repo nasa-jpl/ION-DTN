@@ -293,8 +293,19 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
+AC_ARG_ENABLE([sysctl-check], AC_HELP_STRING([--disable-sysctl-check],
+                  [Disable checking sysctl configuration on OSX and FreeBSD]),
+              [], [enable_sysctl_check=yes])
 
+if test "x$enable_sysctl_check" = xyes; then
+    echo "checking sysctl configuration..."
+    echo
 
+    if ! ./sysctl_script.sh; then
+        echo "Reconfigure with --disable-sysctl-check to bypass this check."
+        exit 1
+    fi
+fi
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
