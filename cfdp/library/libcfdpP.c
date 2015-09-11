@@ -726,8 +726,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	attendant = _attendant();
 	if (attendant)
 	{
-		ionStopAttendant(attendant);
-		MRELEASE(attendant);
+		ionPauseAttendant(attendant);
 	}
 
 	/*	Stop user application input thread.			*/
@@ -774,6 +773,12 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	if (attendant)
+	{
+		ionStopAttendant(attendant);
+		MRELEASE(attendant);
+	}
+
 	cfdpvdb->utaPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
@@ -1093,6 +1098,237 @@ int	addFsResp(Object list, CfdpAction action, int status,
 	return 0;
 }
 
+/*	*	CFDP entity management functions	*	*	*/
+
+static Object	locateEntity(uvast entityId, Object *nextEntity)
+{
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*db = _cfdpConstants();
+	Object	elt;
+	Object	entityObj;
+	Entity	entity;
+
+	if (nextEntity) *nextEntity = 0;	/*	Default.	*/
+	for (elt = sdr_list_first(sdr, db->entities); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		entityObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &entity, entityObj, sizeof(Entity));
+		if (entity.entityId < entityId)
+		{
+			continue;
+		}
+
+		if (entity.entityId > entityId)
+		{
+			if (nextEntity) *nextEntity = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		return elt;
+	}
+
+	return 0;
+}
+
+Object	findEntity(uvast entityId, Entity *entity)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	entityObj;
+
+	CHKZERO(entity);
+	elt = locateEntity(entityId, NULL);
+	if (elt == 0)
+	{
+		return 0;
+	}
+
+	entityObj = sdr_list_data(sdr, elt);
+	sdr_read(sdr, (char *) entity, entityObj, sizeof(Entity));
+	return entityObj;
+}
+
+Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
+		unsigned int inCkType, unsigned int outCkType)
+{
+	Sdr	sdr = getIonsdr();
+	CfdpDB	*db = _cfdpConstants();
+	Object	elt;
+	Object	nextElt;
+	Object	entityObj;
+	Entity	entity;
+
+	elt = locateEntity(entityId, &nextElt);
+	if (elt)
+	{
+		writeMemoNote("[?] CFDP entity already exists", itoa(entityId));
+		return 0;
+	}
+
+	memset((char *) &entity, 0, sizeof(Entity));
+	entity.entityId = entityId;
+	istrcpy(entity.protocolName, protocolName, sizeof entity.protocolName);
+	istrcpy(entity.endpointName, endpointName, sizeof entity.endpointName);
+	if (strcmp(protocolName, "bp") == 0)
+	{
+		entity.utLayer = UtBp;
+		entity.bpNodeNbr = entityId;
+	}
+	else if (strcmp(protocolName, "ltp") == 0)
+	{
+		entity.utLayer = UtLtp;
+		entity.ltpEngineNbr = entityId;
+	}
+	else if (strcmp(protocolName, "tcp") == 0)
+	{
+		entity.utLayer = UtTcp;
+		parseSocketSpec(endpointName, &entity.portNbr,
+				&entity.ipAddress);
+		if (entity.ipAddress == 0)
+		{
+			entity.ipAddress = getAddressOfHost();
+			if (entity.ipAddress == 0)
+			{
+				putErrmsg("No own IP address for CFDP entity.",
+						NULL);
+				return 0;
+			}
+		}
+	}
+	else
+	{
+		writeMemoNote("[?] Invalid UT layer protocol", protocolName);
+		return 0;
+	}
+
+	if (inCkType > 1)
+	{
+		writeMemoNote("[?] Invalid inCkType", utoa(inCkType));
+		return 0;
+	}
+
+	if (outCkType > 1)
+	{
+		writeMemoNote("[?] Invalid outCkType", utoa(outCkType));
+		return 0;
+	}
+
+	entity.inCkType = inCkType;
+	entity.outCkType = outCkType;
+	entity.inboundFdus = sdr_list_create(sdr);
+	entityObj = sdr_malloc(sdr, sizeof(Entity));
+	if (entity.inboundFdus == 0 || entityObj == 0
+	|| (elt == 0	?
+		sdr_list_insert_last(sdr, db->entities, entityObj)
+		: 
+		sdr_list_insert_before(sdr, elt, entityObj)) == 0)
+	{
+		return 0;	/*	System failure.		*/
+	}
+
+	sdr_write(sdr, entityObj, (char *) &entity, sizeof(Entity));
+	return entityObj;
+}
+
+int	changeEntity(uvast entityId, char *protocolName, char *endpointName,
+		unsigned int inCkType, unsigned int outCkType)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	entityObj;
+	Entity	entity;
+
+	elt = locateEntity(entityId, NULL);
+	if (elt == 0)
+	{
+		writeMemoNote("[?] CFDP entity doesn't exist", itoa(entityId));
+		return -1;
+	}
+
+	entityObj = sdr_list_data(sdr, elt);
+	sdr_read(sdr, (char *) &entity, entityObj, sizeof(Entity));
+	istrcpy(entity.protocolName, protocolName, sizeof entity.protocolName);
+	istrcpy(entity.endpointName, endpointName, sizeof entity.endpointName);
+	if (strcmp(protocolName, "bp") == 0)
+	{
+		entity.utLayer = UtBp;
+		entity.bpNodeNbr = entityId;
+	}
+	else if (strcmp(protocolName, "ltp") == 0)
+	{
+		entity.utLayer = UtLtp;
+		entity.ltpEngineNbr = entityId;
+	}
+	else if (strcmp(protocolName, "tcp") == 0)
+	{
+		entity.utLayer = UtTcp;
+		parseSocketSpec(endpointName, &entity.portNbr,
+				&entity.ipAddress);
+		if (entity.ipAddress == 0)
+		{
+			entity.ipAddress = getAddressOfHost();
+			if (entity.ipAddress == 0)
+			{
+				putErrmsg("No own IP address for CFDP entity.",
+						NULL);
+				return -1;
+			}
+		}
+	}
+	else
+	{
+		writeMemoNote("[?] Invalid UT layer protocol", protocolName);
+		return -1;
+	}
+
+	if (inCkType > 1)
+	{
+		writeMemoNote("[?] Invalid inCkType", utoa(inCkType));
+		return 0;
+	}
+
+	if (outCkType > 1)
+	{
+		writeMemoNote("[?] Invalid outCkType", utoa(outCkType));
+		return 0;
+	}
+
+	entity.inCkType = inCkType;
+	entity.outCkType = outCkType;
+	sdr_write(sdr, entityObj, (char *) &entity, sizeof(Entity));
+	return 0;
+}
+
+int	removeEntity(uvast entityId)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	entityObj;
+	Entity	entity;
+
+	elt = locateEntity(entityId, NULL);
+	if (elt == 0)
+	{
+		writeMemoNote("[?] CFDP entity doesn't exist", itoa(entityId));
+		return -1;
+	}
+
+	entityObj = sdr_list_data(sdr, elt);
+	sdr_read(sdr, (char *) &entity, entityObj, sizeof(Entity));
+	if (sdr_list_length(sdr, entity.inboundFdus) > 0)
+	{
+		writeMemoNote("[?] Can't delete entity, FDUs pending",
+				itoa(entityId));
+		return -1;
+	}
+
+	sdr_list_destroy(sdr, entity.inboundFdus, NULL, NULL);
+	sdr_free(sdr, entityObj);
+	sdr_list_delete(sdr, elt, NULL, NULL);
+	return 0;
+}
+
 /*	*	CFDP transaction mgt and access functions	*	*/
 
 Object	findOutFdu(CfdpTransactionId *transactionId, OutFdu *fduBuf,
@@ -1136,7 +1372,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	fdubuf->messagesToUser = sdr_list_create(sdr);
 	fdubuf->filestoreRequests = sdr_list_create(sdr);
 	fdubuf->extents = sdr_list_create(sdr);
-	fdubuf->ckType = ModularChecksum;
+	fdubuf->ckType = entity->inCkType;
 	fduObj = sdr_malloc(sdr, sizeof(InFdu));
 	if (fduObj == 0 || fdubuf->messagesToUser == 0
 	|| fdubuf->filestoreRequests == 0 || fdubuf->extents == 0
@@ -1158,11 +1394,10 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 {
 	uvast	sourceEntityId;
 	Sdr	sdr = getIonsdr();
-	CfdpDB	*cfdpConstants = _cfdpConstants();
 	Object	elt;
 	Object	entityObj;
 	Entity	entity;
-	int	foundIt = 0;
+	int	foundIt;
 	Object	fduObj;
 
 	CHKZERO(transactionId);
@@ -1170,26 +1405,11 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 	CHKZERO(fduElt);
 	cfdp_decompress_number(&sourceEntityId,
 			&transactionId->sourceEntityNbr);
-	for (elt = sdr_list_first(sdr, cfdpConstants->entities); elt;
-			elt = sdr_list_next(sdr, elt))
+	elt = locateEntity(sourceEntityId, NULL);
+	if (elt)	/*	This is a known source entity.		*/
 	{
 		entityObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &entity, entityObj, sizeof(Entity));
-		if (entity.entityId < sourceEntityId)
-		{
-			continue;
-		}
-
-		if (entity.entityId == sourceEntityId)
-		{
-			foundIt = 1;
-		}
-
-		break;
-	}
-
-	if (foundIt)		/*	Entity is already known.	*/
-	{
 		foundIt = 0;
 		for (elt = sdr_list_first(sdr, entity.inboundFdus); elt;
 				elt = sdr_list_next(sdr, elt))
@@ -1232,24 +1452,18 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 		return 0;
 	}
 
-	/*	Must create Entity, then create FDU within new Entity.	*/
+	/*	Must create Entity, then create FDU within new Entity.
+	 *	Assume BP-reachable entity, modular checksum.		*/
 
 	cfdp_decompress_number(&entity.entityId,
 			&transactionId->sourceEntityNbr);
-	entity.ckType = ModularChecksum;
-	entity.inboundFdus = sdr_list_create(sdr);
-	entityObj = sdr_malloc(sdr, sizeof(Entity));
-	if (entity.inboundFdus == 0 || entityObj == 0
-	|| (elt == 0	?
-		sdr_list_insert_last(sdr, cfdpConstants->entities,
-			entityObj)
-			: 
-		sdr_list_insert_before(sdr, elt, entityObj)) == 0)
+	entityObj = addEntity(sourceEntityId, "bp", "*", 0, 0);
+	if (entityObj < 0)
 	{
-		return 0;	/*	System failure.		*/
+		return 0;
 	}
 
-	sdr_write(sdr, entityObj, (char *) &entity, sizeof(Entity));
+	sdr_read(sdr, (char *) &entity, entityObj, sizeof(Entity));
 	return createInFdu(transactionId, &entity, fduBuf, fduElt);
 }
 
@@ -3712,7 +3926,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		sdr_stage(sdr, (char *) &extent, addr, sizeof(CfdpExtent));
 		extentEnd = extent.offset + extent.length;
 #if CFDPDEBUG
-printf("Viewing extent from %d to %d.\n", extent.offset, extent.offset + extent.length);
+printf("Viewing extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
+extent.offset, extent.offset + extent.length);
 #endif
 		if (extentEnd < segmentOffset)	/*	No relation.	*/
 		{
@@ -3741,7 +3956,8 @@ printf("Viewing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 			sdr_write(sdr, addr, (char *) &extent,
 					sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf("Rewriting extent at %d, to %d.\n", extent.offset, extent.offset + extent.length);
+printf("Rewriting extent at " UVAST_FIELDSPEC ", to " UVAST_FIELDSPEC ".\n",
+extent.offset, extent.offset + extent.length);
 #endif
 			extentEnd = extent.offset + extent.length;
 
@@ -3752,7 +3968,8 @@ printf("Rewriting extent at %d, to %d.\n", extent.offset, extent.offset + extent
 			cursor += bytesToSkip;
 			bytesRemaining -= bytesToSkip;
 #if CFDPDEBUG
-printf("Skipping %d bytes, segmentOffset changed to %d.\n", bytesToSkip, segmentOffset);
+printf("Skipping %d bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
+bytesToSkip, segmentOffset);
 #endif
 		}
 		else	/*	This segment starts a new extent.	*/
@@ -3783,7 +4000,8 @@ printf("Skipping %d bytes, segmentOffset changed to %d.\n", bytesToSkip, segment
 
 		sdr_write(sdr, addr, (char *) &extent, sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.length);
+printf("Writing extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
+extent.offset, extent.offset + extent.length);
 #endif
 		extentEnd = extent.offset + extent.length;
 	}
@@ -3868,7 +4086,9 @@ printf("Writing extent from %d to %d.\n", extent.offset, extent.offset + extent.
 		sdr_stage(sdr, (char *) &nextExtent, nextAddr,
 				sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf("Continuing to extent from %d to %d; segmentOffset is %d.\n", nextExtent.offset, nextExtent.offset + nextExtent.length, segmentOffset);
+printf("Continuing to extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC "; \
+segmentOffset is " UVAST_FIELDSPEC ".\n", nextExtent.offset,
+nextExtent.offset + nextExtent.length, segmentOffset);
 #endif
 		if (nextExtent.offset > segmentEnd)
 		{
@@ -4279,7 +4499,6 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = ((*cursor) >> 4) & 0x0f;
-	fdu->ckType = (*cursor) & 0x01;
 	cursor++;
 	bytesRemaining--;
 	fdu->eofChecksum = 0;

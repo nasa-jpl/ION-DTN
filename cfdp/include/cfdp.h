@@ -213,6 +213,7 @@ typedef struct
 	int		lifespan;
 	int		classOfService;
 	BpCustodySwitch	custodySwitch;
+	unsigned int	ctInterval;
 	unsigned char	srrFlags;
 	int		ackRequested;
 	BpExtendedCOS	extendedCOS;

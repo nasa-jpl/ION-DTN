@@ -58,6 +58,8 @@ static void	printUsage()
 	PUTS("\tm\tSet transmission mode");
 	PUTS("\t   m <0 = CL reliability (the default), 1 = unreliable, 2 = \
 custody transfer>");
+	PUTS("\ti\tSet custodial retransmission timeout interval");
+	PUTS("\t   i <timeout interval, in seconds>");
 	PUTS("\ta\tControl CFDP transaction closure");
 	PUTS("\t   a <expected round trip latency>");
 	PUTS("\t\t0 = no acknowledgment expected");
@@ -213,7 +215,6 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 	{
 		if (mode & 0x02)	/*	Native BP reliability.	*/
 		{
-			utParms->extendedCOS.flags |= BP_BEST_EFFORT;
 			utParms->custodySwitch = SourceCustodyRequired;
 		}
 		else		/*	Convergence-layer reliability.	*/
@@ -222,6 +223,20 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 			utParms->custodySwitch = NoCustodyRequested;
 		}
 	}
+}
+
+static void	setCtInterval(int tokenCount, char **tokens, BpUtParms *utParms)
+{
+	unsigned long	interval;
+
+	if (tokenCount != 2)
+	{
+		PUTS("What's the custody transfer retransmission interval?");
+		return;
+	}
+
+	interval = strtoul(tokens[1], NULL, 0);
+	utParms->ctInterval = interval;
 }
 
 static void	setClosure(int tokenCount, char **tokens, CfdpReqParms *parms)
@@ -490,6 +505,10 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 
 		case 'm':
 			setMode(tokenCount, tokens, &(parms->utParms));
+			return 0;
+
+		case 'i':
+			setCtInterval(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
 		case 'a':

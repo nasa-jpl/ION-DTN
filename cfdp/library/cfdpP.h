@@ -101,7 +101,7 @@ typedef struct
 	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
 	char			sourceFileName[256];
-	unsigned int		recordBoundsRespected;	/*	Boolean	*/
+	unsigned int		recordBoundsRespected;	/*	Boolean.*/
 	unsigned int		closureLatency;		/*	Seconds.*/
 	unsigned int		finishReceived;		/*	Boolean.*/
 
@@ -183,10 +183,25 @@ typedef struct
 	time_t			inactivityDeadline;
 } InFdu;
 
+typedef enum
+{
+	UtBp = 1,
+	UtLtp = 2,
+	UtTcp = 3
+} UtLayer;
+
 typedef struct
 {
 	uvast			entityId;
-	CfdpCksumType		ckType;
+	char			protocolName[32];
+	char			endpointName[256];
+	UtLayer			utLayer;
+	uvast			bpNodeNbr;
+	uvast			ltpEngineNbr;
+	unsigned int		ipAddress;
+	unsigned short		portNbr;
+	CfdpCksumType		inCkType;
+	CfdpCksumType		outCkType;
 	Object			inboundFdus;	/*	sdrlist: InFdu	*/
 } Entity;
 
@@ -312,6 +327,15 @@ extern BpSAP		cfdpGetBpSap();
 extern Object		getCfdpDbObject();
 extern CfdpDB		*getCfdpConstants();
 extern CfdpVdb		*getCfdpVdb();
+
+extern Object		findEntity(uvast entityId, Entity *entity);
+extern Object		addEntity(uvast entityId, char *protocolName,
+				char *endpointName, unsigned int inCkType,
+				unsigned int outCkType);
+extern int		changeEntity(uvast entityId, char *protocolName,
+				char *endpointName, unsigned int inCkType,
+				unsigned int outCkType);
+extern int		removeEntity(uvast entityId);
 
 extern int		checkFile(char *);
 
