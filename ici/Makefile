@@ -17,6 +17,9 @@ all:
 		mkdir -p html/man5; \
 		gmake all ROOT=$(OPT); \
 		cd ..; \
+		cd libbloom-master; \
+		gmake all; \
+		cd ..; \
 		for PF in $(PLATFORMS);\
 			do \
 				cd $$PF; \
@@ -30,11 +33,17 @@ clean:
 		cd doc; \
 		gmake -i clean; \
 		cd ..; \
+		cd libbloom-master; \
+		gmake -i clean; \
+		cd ..; \
 		for PF in $(PLATFORMS);\
 			do cd $$PF; gmake -i clean; cd ..; done
 
 install:
 		cd doc; \
+		gmake -i install ROOT=$(OPT); \
+		cd ..; \
+		cd libbloom-master; \
 		gmake -i install ROOT=$(OPT); \
 		cd ..; \
 		for PF in $(PLATFORMS);\

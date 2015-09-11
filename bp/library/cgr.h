@@ -114,6 +114,8 @@ typedef enum
 	// node was ignored (CgrUpdateProximateNode)
 	CgrMoreHops,
 	CgrIdentical,
+	CgrNoHelp,
+	CgrLowerProb,
 	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 

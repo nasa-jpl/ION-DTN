@@ -20,6 +20,7 @@
 #include "bpP.h"
 #include "bei.h"
 #include "ipnfw.h"
+#include "eureka.h"
 #include "sdrhash.h"
 #include "smrbt.h"
 
@@ -1312,6 +1313,7 @@ static BpVdb	*_bpvdb(char **name)
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
+		|| (vdb->neighbors = sm_list_create(wm)) == 0
 		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
@@ -5297,7 +5299,10 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	Sdr		bpSdr = getIonsdr();
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	Object		bpDbObject = getBpDbObject();
+	PsmPartition	bpwm = getIonwm();
 	BpDB		bpdb;
+	PsmAddress	neighborElt;
+	NdpNeighbor	*neighbor;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
@@ -5339,6 +5344,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
+	neighborElt = bp_discover_find_neighbor(destEidString);
 	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
@@ -5359,6 +5365,17 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 
 		return 1;
 	}
+
+	/*	Prevent unnecessary NDP beaconing.			*/
+
+	if (neighborElt)
+	{
+		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
+				neighborElt));
+		neighbor->lastContactTime = getUTCTime();
+	}
+
+	/*	Set bundle processing flags.				*/
 
 	if (destMetaEid.cbhe)
 	{
