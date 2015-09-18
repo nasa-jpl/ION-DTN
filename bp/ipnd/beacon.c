@@ -225,7 +225,7 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 			break;
 
 		case 4:
-			if (strcmp(parentName, "IP") == 0)
+			if (parentName && (strcmp(parentName, "IP") == 0))
 			{
 				ret += bytesIP4ToFixed32String
 						(LBT_CONVERSION_PARAMS);
@@ -255,7 +255,7 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 			break;
 
 		case 9:
-			if (strcmp(parentName, "IP") == 0)
+			if (parentName && (strcmp(parentName, "IP") == 0))
 			{
 				ret += bytesIP6ToBytesString
 						(LBT_CONVERSION_PARAMS);
@@ -291,7 +291,7 @@ static char	*logBeaconServices(char* buffer, int maxLen, Lyst services)
 
 	if (!services)
 	{
-		strcpy(buffer, "None");
+		istrcpy(buffer, "None", maxLen);
 	}
 	else
 	{
@@ -450,7 +450,7 @@ int	populateBeacon(Beacon *beacon, const int period)
 	if (ctx->announceEid && *ctx->srcEid != '\0')
 	{
 		beacon->flags |= 1 << BEAC_SOURCE_EID_PRESENT;
-		strncpy(beacon->canonicalEid, ctx->srcEid, MAX_EID_LEN);
+		istrcpy(beacon->canonicalEid, ctx->srcEid, MAX_EID_LEN);
 	}
 
 	/*	Services.	*/

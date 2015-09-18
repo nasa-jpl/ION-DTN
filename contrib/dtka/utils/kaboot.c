@@ -23,12 +23,6 @@ int	main(int argc, char **argv)
 	char	line[256];
 	int	len;
 
-	if (ionAttach < 0)
-	{
-		PUTS("kaboot can't attach to ION.");
-		return 1;
-	}
-
 	fd = iopen("boot.karc", O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd < 0)
 	{
@@ -54,8 +48,6 @@ int	main(int argc, char **argv)
 	}
 
 	close(fd);
-	writeErrmsgMemos();
 	PUTS("Stopping kaboot.");
-	ionDetach();
 	return 0;
 }

@@ -64,7 +64,7 @@ int tun_alloc(char *dev, int flags) {
 
   ifr.ifr_flags = flags;
 
-  strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+  istrcpy(ifr.ifr_name, dev, IFNAMSIZ);
 
   if( (err = ioctl(fd, TUNSETIFF, (void *)&ifr)) < 0 ) {
     perror("ioctl");
@@ -101,7 +101,6 @@ void *sendthread( void *foo ) {
     }
 
     for( int i = 3; i < EidListLen; i++ ) {
-      sdr = bp_get_sdr( );
       sdr_begin_xn(sdr);
       extent = sdr_malloc(sdr, lineLength/*sizeof buffer*/ );
       if (extent == 0) {

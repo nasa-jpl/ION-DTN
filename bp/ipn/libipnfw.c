@@ -363,7 +363,7 @@ static int	ruleMatches(IpnPlan *plan, DuctExpression *ductExpression)
 		 *	so must match on destDuctName as well.		*/
 
 		if (sdr_string_read(sdr, destDuctName,
-				rule->directive.destDuctName < 0))
+				rule->directive.destDuctName) < 0)
 		{
 			putErrmsg("Can't retrieve rule dest duct name.", NULL);
 			return 0;
@@ -422,7 +422,7 @@ uvast	ipn_planNodeNbr(DuctExpression *ductExpression)
 		 *	so must match on destDuctName as well.		*/
 
 		if (sdr_string_read(sdr, destDuctName,
-				plan->defaultDirective.destDuctName < 0))
+				plan->defaultDirective.destDuctName) < 0)
 		{
 			putErrmsg("Can't retrieve plan dest duct name.", NULL);
 			return 0;

@@ -49,7 +49,7 @@ static int	addNdpNeighbor(char *eid)
 	istrcpy(neighbor->eid, eid, sizeof neighbor->eid);
 	neighbor->lastContactTime = getUTCTime();
 	if (sm_list_insert(wm, vdb->neighbors, neighborAddr, compareNeighbors,
-			eid) < 0)
+			eid) == 0)
 	{
 		putErrmsg("Can't add NdpNeighbor.", eid);
 		return -1;

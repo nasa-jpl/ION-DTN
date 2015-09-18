@@ -1,5 +1,5 @@
 IONPATH=/usr/local
-CC=cc
+CC=gcc
 OPTFLAGS=-g
 #OPTFLAGS=-O3 -fomit-frame-pointer -ffast-math -fmerge-all-constants -maccumulate-outgoing-args -march=core2 -U_FORTIFY_SOURCE -fno-stack-protector
 CFLAGS=-I$(IONPATH)/include -std=gnu99 -Wall $(OPTFLAGS)

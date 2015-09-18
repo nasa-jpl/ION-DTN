@@ -413,7 +413,8 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			i++;
 		}
 
-		if (getLstEntry(_lstFile(0,0), &entry, row->firstEntryOffset)
+		if (row->firstEntryOffset < 0
+		|| getLstEntry(_lstFile(0,0), &entry, row->firstEntryOffset)
 				== -1)
 		{
 			oK(_lockMutex(0));

@@ -1421,7 +1421,7 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 	cfdp_decompress_number(&entity.entityId,
 			&transactionId->sourceEntityNbr);
 	entityObj = addEntity(sourceEntityId, "bp", "*", 0, 0);
-	if (entityObj < 0)
+	if (entityObj == 0)
 	{
 		return 0;
 	}

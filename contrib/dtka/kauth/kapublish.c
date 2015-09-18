@@ -670,7 +670,7 @@ int	main(int argc, char *argv[])
 				- currentTime;
 		if (interval <= 0)
 		{
-			sdr_begin_xn(sdr);
+			CHKZERO(sdr_begin_xn(sdr));
 			if (publishConsensusBulletin(sdr, &db, sendSAP) < 0
 			|| sdr_end_xn(sdr) < 0)
 			{

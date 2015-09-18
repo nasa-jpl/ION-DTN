@@ -3207,6 +3207,7 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 		case 0:		/*	End of file; also end of line.	*/
 			if (len == 0)		/*	Nothing more.	*/
 			{
+				*(buffer + len) = '\0';
 				*lineLen = len;
 				return NULL;	/*	Indicate EOF.	*/
 			}
@@ -3218,11 +3219,13 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 		case -1:
 			if (errno == EINTR)	/*	Treat as EOF.	*/
 			{
+				*(buffer + len) = '\0';
 				*lineLen = 0;
 				return NULL;
 			}
 
 			putSysErrmsg("Failed reading line", itoa(len));
+			*(buffer + len) = '\0';
 			*lineLen = -1;
 			return NULL;
 

@@ -192,6 +192,7 @@ void	*sendBeacons(void *attr)
 		{
 			putErrmsg("send-thread: Error waiting for destinations \
 lyst.", NULL);
+			close(sendSocket);
 			return (void *) - 1;
 		}
 
@@ -367,8 +368,6 @@ Not sending beacon.", nDestination->addr.ip, nDestination->addr.port);
 
 		llcv_unlock(ctx->destinationsCV);
 	}
-
-	return NULL;
 }
 
 /**

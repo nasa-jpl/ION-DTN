@@ -208,20 +208,6 @@ static void	manageAuthority(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokenCount < 4)
-	{
-		if (tokenCount < 3)
-		{
-			printText("Manage which authority?");
-		}
-		else
-		{
-			printText("What node number for this authority?");
-		}
-
-		return;
-	}
-
 	idx = atoi(tokens[2]);
 	if (idx < 0 || idx >= DTKA_NUM_AUTHS)
 	{
