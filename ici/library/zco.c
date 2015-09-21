@@ -1169,6 +1169,13 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 
 		location = objRefObj;
 		sourceMedium = ZcoObjSource;
+
+		/*	Flag new object reference for deletion as soon
+		*	as reference counts drop to zero.		*/
+
+		sdr_stage(sdr, (char *) &objRef, location, sizeof(ObjRef));
+		objRef.okayToDestroy = 1;
+		sdr_write(sdr, location, (char *) &objRef, sizeof(ObjRef));
 	}
 
 	extent.sourceMedium = sourceMedium;
@@ -1757,6 +1764,7 @@ int	zco_bond(Sdr sdr, Object zco)
 		objRef.refCount[acct] = 1;
 		objRef.object = capsule.text;
 		objRef.length = capsule.length;
+		objRef.okayToDestroy = 1;
 		sdr_write(sdr, objRefObj, (char *) &objRef, sizeof(ObjRef));
 
 		/*	Create object lien referencing ObjRef object.	*/
@@ -1855,6 +1863,7 @@ int	zco_bond(Sdr sdr, Object zco)
 		objRef.refCount[acct] = 1;
 		objRef.object = capsule.text;
 		objRef.length = capsule.length;
+		objRef.okayToDestroy = 1;
 		sdr_write(sdr, objRefObj, (char *) &objRef, sizeof(ObjRef));
 
 		/*	Create object lien referencing ObjRef object.	*/

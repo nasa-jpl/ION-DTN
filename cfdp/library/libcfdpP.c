@@ -1634,6 +1634,11 @@ void	destroyInFdu(InFdu *fdu, Object fduObj, Object fduElt)
 		sdr_free(sdr, fdu->destFileName);
 	}
 
+	if (fdu->workingFileName && (fdu->workingFileName != fdu->destFileName))
+	{
+		sdr_free(sdr, fdu->workingFileName);
+	}
+
 	if (fdu->flowLabel)
 	{
 		sdr_free(sdr, fdu->flowLabel);
