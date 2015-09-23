@@ -417,10 +417,12 @@ int	stringToFixed64Bytes(char *str, char *buf, int maxLen)
 {
 	if (maxLen < 8) return -1;
 	uvast i = strtouvast(str);
+#ifndef RTEMS
 	i = (1 == htonl(1) ? (i)
 		: ((uvast)htonl(i & 0xFFFFFFFF) << 32) | htonl(i >> 32));
-	memcpy(buf, &i, 8);
-	return 8;
+#endif
+	memcpy(buf, &i, sizeof i);
+	return sizeof i;
 }
 
 /* Parse human readable string into IPND protocol bytes
@@ -453,12 +455,16 @@ int	stringToDoubleBytes(char *str, char *buf, int maxLen)
 	if (maxLen < 8 || sizeof(double) != 8) return -1;
 
 	double	f = strtod(str, NULL);
-	uvast	i;
 
+#ifdef RTEMS
+	memcpy(buf, &f, 8);
+#else
+	uvast	i;
 	memcpy(&i, &f, 8);
 	i = (1 == htonl(1) ? (i)
 		: ((uvast)htonl(i & 0xFFFFFFFF) << 32) | htonl(i >> 32));
 	memcpy(buf, &i, 8);
+#endif
 	return 8;
 }
 
@@ -637,9 +643,11 @@ int	bytesToFixed64String(unsigned char *data, char *buf, int maxLen)
 {
 	uvast	ret;
 
-	memcpy(&ret, data, 8);
+	memcpy(&ret, data, sizeof ret);
+#ifndef RTEMS
 	ret = (1 == htonl(1) ? ret
 		: ((uvast)ntohl(ret & 0xFFFFFFFF) << 32) | ntohl(ret >> 32));
+#endif
 	isprintf(buf, maxLen, UVAST_FIELDSPEC, ret);
 	return 8;
 }
@@ -670,13 +678,17 @@ int	bytesToFloatString(unsigned char *data, char *buf, int maxLen)
  */
 int	bytesToDoubleString(unsigned char *data, char *buf, int maxLen)
 {
-	uvast	i;
 	double	ret;
 
+#ifdef RTEMS
+	memcpy(&ret, data, 8);
+#else
+	uvast	i;
 	memcpy(&i, data, 8);
 	i = (1 == htonl(1) ? (i)
 		: ((uvast)ntohl(i & 0xFFFFFFFF) << 32) | ntohl(i >> 32));
 	memcpy(&ret, &i, 8);
+#endif
 	isprintf(buf, maxLen, "%lf", ret);
 	return 8;
 }

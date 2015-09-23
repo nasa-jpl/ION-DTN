@@ -37,7 +37,7 @@ void	clearBeacon(Beacon *beacon)
 
 	lyst_destroy(beacon->services);
 	bloom_free(&beacon->bloom);
-	bzero(beacon, sizeof(Beacon));
+	memset(beacon, 0, sizeof(Beacon));
 }
 
 /**

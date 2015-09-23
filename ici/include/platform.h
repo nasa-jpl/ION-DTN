@@ -384,10 +384,12 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <pwd.h>
 #include <netdb.h>
 #include <mqueue.h>
+#include <strings.h>
 #include <sys/utsname.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN	*/
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/select.h>
 
 #define	_MULTITHREADED		/*	To pick up resource lock code.	*/
 

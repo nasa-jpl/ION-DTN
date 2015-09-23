@@ -49,7 +49,7 @@ typedef struct
 	 *	0: constructed,
 	 *	1..127: fixed 1..127	*/
 
-	char		lengthType;
+	signed char	lengthType;
 
 	/*	children tags (params)	*/
 

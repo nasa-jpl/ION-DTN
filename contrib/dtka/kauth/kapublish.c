@@ -484,6 +484,7 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 	PUTS("---End of consensus bulletin report---");
 	if (recCount == 0)
 	{
+		MRELEASE(bulletin);
 		return 1;
 	}
 

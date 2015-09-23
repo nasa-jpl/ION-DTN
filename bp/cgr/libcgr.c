@@ -2352,7 +2352,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		TRACE(CgrNoProximateNode);
 	}
 
-	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
+	if (bundle->deliveryProb > 0.0
+	&& bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
 	{
 		/*	Must keep on trying to send this bundle.	*/
 

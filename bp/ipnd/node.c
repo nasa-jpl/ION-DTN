@@ -14,8 +14,6 @@
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  */
 
-#include <net/ethernet.h>
-
 #include "platform.h"
 #include "node.h"
 #include "ipndP.h"

@@ -34,6 +34,8 @@ MY_ICISOURCES := \
 	$(MY_ICI)/library/rfx.c         \
 	$(MY_ICI)/library/zco.c         \
 	$(MY_ICI)/crypto/NULL_SUITES/crypto.c	\
+	$(MY_ICI)/libbloom-master/bloom.c	\
+	$(MY_ICI)/libbloom-master/murmur2/MurmurHash2.c	\
 	$(MY_ICI)/sdr/sdrtable.c        \
 	$(MY_ICI)/sdr/sdrhash.c         \
 	$(MY_ICI)/sdr/sdrxn.c           \
@@ -101,10 +103,18 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/utils/bplist.c       \
 	$(MY_BP)/utils/lgagent.c      \
 	$(MY_BP)/cgr/libcgr.c         \
-	$(MY_BP)/ipn/ipnadmin.c       \
+	$(MY_BP)/ipnd/beacon.c        \
+	$(MY_BP)/ipnd/helper.c        \
+	$(MY_BP)/ipnd/ipnd.c          \
+	$(MY_BP)/ipnd/node.c          \
 	$(MY_BP)/ipn/ipnfw.c          \
-	$(MY_BP)/ipn/ipnadminep.c     \
+	$(MY_BP)/ipn/ipnadmin.c       \
 	$(MY_BP)/ipn/libipnfw.c       \
+	$(MY_BP)/ipn/ipnadminep.c     \
+	$(MY_BP)/dtn2/dtn2admin.c     \
+	$(MY_BP)/dtn2/dtn2fw.c        \
+	$(MY_BP)/dtn2/dtn2adminep.c   \
+	$(MY_BP)/dtn2/libdtn2fw.c     \
 	$(MY_BP)/imc/imcadmin.c       \
 	$(MY_BP)/imc/imcfw.c          \
 	$(MY_BP)/imc/libimcfw.c       \
@@ -116,6 +126,7 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/tcp/tcpclo.c         \
 	$(MY_BP)/tcp/libtcpcla.c      \
 	$(MY_BP)/dgr/dgrcla.c         \
+	$(MY_BP)/library/eureka.c     \
 	$(MY_BP)/library/bei.c        \
 	$(MY_BP)/library/ext/phn/phn.c \
 	$(MY_BP)/library/ext/ecos/ecos.c \
@@ -136,14 +147,6 @@ MY_BSPSOURCES :=                     \
 	$(MY_BSP)/bspbab.c           \
 	$(MY_BSP)/bspbib.c           \
 	$(MY_BSP)/bspbcb.c
-
-MY_DTN2		:= $(MY_BP)/dtn2
-
-MY_DTN2SOURCES :=    \
-	$(MY_DTN2)/dtn2admin.c        \
-	$(MY_DTN2)/dtn2fw.c           \
-	$(MY_DTN2)/dtn2adminep.c      \
-	$(MY_DTN2)/libdtn2fw.c
 
 MY_BSS		:= ../../../bss
 
@@ -167,7 +170,7 @@ MY_BSSSOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/bsp/ciphersuites $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BSS)/include $(MY_BSS)/library
+LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_ICI)/libbloom-master $(MY_ICI)/libbloom-master/murmur2 $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/ipnd $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/bsp/ciphersuites $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BP)/tcp $(MY_BP)/udp $(MY_BSS)/include $(MY_BSS)/library
 
 #	$(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 
@@ -176,7 +179,7 @@ LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_DGR)/include $(MY_B
 LOCAL_CFLAGS = -g -Wall -Werror -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC
 #	-DENABLE_ACS -DNO_PROXY -DNO_DIRLIST
 
-LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_DTN2SOURCES) $(MY_BSSSOURCES)
+LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_BSSSOURCES)
 
 #	$(MY_RESTARTSOURCE) $(MY_LTPSOURCES) $(MY_TESTSOURCES) $(MY_CFDPSOURCES)
 

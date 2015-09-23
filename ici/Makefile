@@ -5,6 +5,10 @@ PLATFORMS = i86-redhat
 # sparc-sol9
 # i86-freebsd
 
+ifeq ($PLATFORMS,i86_64-fedora)
+MM=-m64
+endif
+
 all:
 		cd doc; \
 		mkdir -p man; \
@@ -18,7 +22,7 @@ all:
 		gmake all ROOT=$(OPT); \
 		cd ..; \
 		cd libbloom-master; \
-		gmake all; \
+		gmake all MM=$(MM); \
 		cd ..; \
 		for PF in $(PLATFORMS);\
 			do \
