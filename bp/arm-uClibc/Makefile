@@ -18,7 +18,7 @@ BIBE = ../bibe
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc -DENABLE_BPACS -DENABLE_IMC
-CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(TCP) -I$(IPN) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(TCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
@@ -45,7 +45,7 @@ BPLIBS = \
 BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
 # snid.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
 
-LBP = -lbp -limcfw -lipnfw
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
 # dccpcli dccpclo
@@ -88,15 +88,15 @@ bpadmin:	bpadmin.o $(BPLIBS)
 		cp bpadmin ./bin
 
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
-		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
+		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp ipnadmin ./bin
 
 imcadmin:	imcadmin.o $(BPLIBS) libimcfw.so
-		$(CC) -o imcadmin imcadmin.o -L./lib -L$(ROOT)/lib -limcfw $(LBP) -lici -lpthread
+		$(CC) -o imcadmin imcadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp imcadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
-		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
+		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp dtn2admin ./bin
 
 lgsend:		lgsend.o $(BPLIBS)
@@ -150,27 +150,27 @@ acslist:	acslist.o $(BPLIBS)
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
-		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr -lipnfw $(LBP) -lici -lpthread
+		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread
 		cp ipnfw ./bin
 
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
-		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread
+		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp ipnadminep ./bin
 
 #	-	-	IMC executables	-	-	-	-	-
 
 imcfw:		imcfw.o $(BPLIBS) libimcfw.so libipnfw.so
-		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -limcfw -lipnfw $(LBP) -lici -lpthread
+		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp imcfw ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
 
 dtn2fw:		dtn2fw.o $(BPLIBS) libdtn2fw.so
-		$(CC) -o dtn2fw dtn2fw.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
+		$(CC) -o dtn2fw dtn2fw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp dtn2fw ./bin
 
 dtn2adminep:	dtn2adminep.o $(BPLIBS) libdtn2fw.so
-		$(CC) -o dtn2adminep dtn2adminep.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
+		$(CC) -o dtn2adminep dtn2adminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp dtn2adminep ./bin
 
 #	-	-	LTP executables	-	-	-	-	-

@@ -99,7 +99,7 @@ imcadmin:	imcadmin.o $(BPLIBS) libimcfw.so
 		cp imcadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
-		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
+		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp dtn2admin ./bin
 
 lgsend:		lgsend.o $(BPLIBS)
@@ -169,11 +169,11 @@ imcfw:		imcfw.o $(BPLIBS) libimcfw.so libipnfw.so
 #	-	-	DTN2 executables	-	-	-	-
 
 dtn2fw:		dtn2fw.o $(BPLIBS) libdtn2fw.so
-		$(CC) -o dtn2fw dtn2fw.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
+		$(CC) -o dtn2fw dtn2fw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp dtn2fw ./bin
 
 dtn2adminep:	dtn2adminep.o $(BPLIBS) libdtn2fw.so
-		$(CC) -o dtn2adminep dtn2adminep.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread
+		$(CC) -o dtn2adminep dtn2adminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp dtn2adminep ./bin
 
 #	-	-	LTP executables	-	-	-	-	-
