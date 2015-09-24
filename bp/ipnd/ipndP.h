@@ -19,6 +19,7 @@
 #include "llcv.h"
 #include "bpP.h"
 #include "ipnfw.h"
+#include "dtn2fw.h"
 #include "platform.h"
 #include "bloom.h"
 

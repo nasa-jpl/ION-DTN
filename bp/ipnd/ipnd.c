@@ -212,6 +212,12 @@ static int	initializeIpnd()
 		return -1;
 	}
 
+	if (dtn2Init() < 0)
+	{
+		putErrmsg("Can't load DTN2 routing database.", NULL);
+		return -1;
+	}
+
 	printText("[i] IPND initialized.");
 
 	return 0;
