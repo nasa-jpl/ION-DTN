@@ -19,6 +19,7 @@
 #include "ion.h"
 #include "bpP.h"
 #include "ipndP.h"
+#include "dtn2fw.h"
 #include "node.h"
 
 #define DEFAULT_EID			""
@@ -194,7 +195,11 @@ static int	initializeIpnd()
 		return -1;
 	}
 
-	bloom_init(&ctx->nbf, NBF_DEFAULT_CAPACITY, NBF_DEFAULT_ERROR);
+	if (bloom_init(&ctx->nbf, NBF_DEFAULT_CAPACITY, NBF_DEFAULT_ERROR) != 0)
+	{
+		putErrmsg("Error initializing Bloom filter.", NULL);
+		return -1;
+	}
 
 	_IPNDCtx(ctx);
 

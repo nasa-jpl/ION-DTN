@@ -2053,7 +2053,8 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(proximateNodes);
-	if (bundle->deliveryProb < 1.0)
+	if (bundle->deliveryProb > 1.
+	&& bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
 	{
 		/*	Must keep on trying to send this bundle.	*/
 

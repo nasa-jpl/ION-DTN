@@ -434,6 +434,7 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	uvast		neighborNodeNbr;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -447,6 +448,8 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
+	neighborNodeNbr = metaEid.nodeNbr;
+	restoreEidString(&metaEid);
 	deleteNdpNeighbor(neighborEid);
 	if (strcmp(claProtocol, "udp") == 0)
 	{
@@ -466,13 +469,13 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
-	if (rfx_remove_contact(0, ownNodeNbr, metaEid.nodeNbr) < 0)
+	if (rfx_remove_contact(0, ownNodeNbr, neighborNodeNbr) < 0)
 	{
 		putErrmsg("Can't remove transmission contact.", socketSpec);
 		return -1;
 	}
 
-	if (rfx_remove_contact(0, metaEid.nodeNbr, ownNodeNbr) < 0)
+	if (rfx_remove_contact(0, neighborNodeNbr, ownNodeNbr) < 0)
 	{
 		putErrmsg("Can't remove reception contact.", socketSpec);
 		return -1;

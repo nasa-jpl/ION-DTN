@@ -508,31 +508,38 @@ setting reception of broadcast beacons.", NULL);
  * @param  ctx IPND context.
  * @param  eid EID of CLA.
  */
-static void	bp_discover_contact(char acquired, IPNDCtx* ctx, char* eid)
+static void	bp_discover_contact(char acquired, IPNDCtx *ctx, char *eid)
 {
 	/* find CLA-TCP-v4 (64) service, as only that is supported */
 	char			claProtocol[] = "tcp";
 	char			socketSpec[40];
 	char			buffer[256];
-	LystElt			cur, next, curD, nextD;
+	LystElt			cur, next, curN, nextN;
 	ServiceDefinition	*def;
-	Destination		*dest;
+	IpndNeighbor		*nb;
 	/* WiFi raw rate + overhead is 6 Mbps, so default to 4 Mbps for now. */
 	int			xmitRate = 4000000, recvRate = 4000000;
 
-	if (lyst_length(ctx->destinations) <= 0)
+	lockResource(&ctx->neighborsLock);
+	if (lyst_length(ctx->neighbors) <= 0)
 	{
+		unlockResource(&ctx->neighborsLock);
 		return;
 	}
 
-	for (curD = lyst_first(ctx->destinations); curD != NULL; curD = nextD)
+	for (curN = lyst_first(ctx->neighbors); curN != NULL; curN = nextN)
 	{
-		nextD = lyst_next(curD);
-		dest = (Destination*) lyst_data(curD);
-		socketSpec[0] = '\0';
-		if (lyst_length(dest->beacon.services) > 0)
+		nextN = lyst_next(curN);
+		nb = (IpndNeighbor *) lyst_data(curN);
+		if (strcmp(eid, nb->beacon.canonicalEid) != 0)
 		{
-			for (cur = lyst_first(dest->beacon.services);
+			continue;
+		}
+
+		socketSpec[0] = '\0';
+		if (lyst_length(nb->beacon.services) > 0)
+		{
+			for (cur = lyst_first(nb->beacon.services);
 					cur != NULL; cur = next)
 			{
 				next = lyst_next(cur);
@@ -605,7 +612,11 @@ bp_discover_contact_lost(%s, %s, %s)", socketSpec, eid, claProtocol);
 
 			printText(buffer);
 		}
+
+		break;
 	}
+
+	unlockResource(&ctx->neighborsLock);
 }
 
 /**
