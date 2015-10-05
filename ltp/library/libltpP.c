@@ -2289,6 +2289,13 @@ static void	findReport(ImportSession *session, unsigned int rptSerialNbr,
 	Object	obj;
 		OBJ_POINTER(LtpXmitSeg, rs);
 
+	*rsElt = 0;			/*	Default.		*/
+	*rsObj = 0;			/*	Default.		*/
+	if (session->rsSegments == 0)	/*	Import session stopped.	*/
+	{
+		return;
+	}
+
 	for (elt = sdr_list_first(sdr, session->rsSegments); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -2301,9 +2308,6 @@ static void	findReport(ImportSession *session, unsigned int rptSerialNbr,
 			return;
 		}
 	}
-
-	*rsElt = 0;
-	*rsObj = 0;
 }
 
 static void	findCheckpoint(ExportSession *session,

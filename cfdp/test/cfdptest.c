@@ -548,7 +548,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 					parms->sourceFileName,
 					parms->destFileName, NULL,
 					parms->segMetadataFn,
-					parms->faultHandlers, 0, NULL,
+					NULL, 0, NULL,
 					parms->closureLatency,
 					parms->msgsToUser,
 					parms->fsRequests,
@@ -567,7 +567,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			task.destFileName = parms->destFileName;
 			task.messagesToUser = parms->msgsToUser;
 			task.filestoreRequests = parms->fsRequests;
-			task.faultHandlers = parms->faultHandlers;
+			task.faultHandlers = NULL;
 			task.unacknowledged = 1;
 			task.flowLabelLength = 0;
 			task.flowLabel = NULL;
@@ -642,6 +642,44 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			PUTS("Invalid command.  Enter '?' for help.");
 			return 0;
 	}
+}
+
+static char	*getMessageText(unsigned char *buf, unsigned int length)
+{
+	unsigned int	msgtype;
+	char		*msgtext[] =	{
+				"proxy put request",
+				"proxy message to user",
+				"proxy filestore request",
+				"proxy fault handler override",
+				"proxy transmission mode",
+				"proxy flow label",
+				"proxy segmentation control",
+				"proxy put response",
+				"proxy filestore response",
+				"proxy put cancel",
+				"originating transaction ID",
+				"proxy closure request",
+				"undefined",
+				"undefined",
+				"undefined",
+				"undefined",
+				"directory listing request",
+				"directory listing response"
+					};
+
+	if (length < 5 || strncmp((char *) buf, "cfdp", 4) != 0)
+	{
+		return "undefined";
+	}
+
+	msgtype = *(buf + 4);
+	if (msgtype > 17)
+	{
+		return "unknown user operation";
+	}
+
+	return msgtext[msgtype];
 }
 
 static void	*handleEvents(void *parm)
@@ -737,7 +775,8 @@ static void	*handleEvents(void *parm)
 			if (length > 0)
 			{
 				usrmsgBuf[length] = '\0';
-				printf("\tMessage to user'\n");
+				printf("\tMessage to user: %s\n",
+					getMessageText(usrmsgBuf, length));
 			}
 		}
 

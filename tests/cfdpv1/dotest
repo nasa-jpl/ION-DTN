@@ -32,7 +32,7 @@ cfdptest < cfdp_cmds >& node1.stdout &
 cd ../2.ipn.ltp
 cfdptest < cfdp_cmds >& node2.stdout &
 
-sleep 30
+sleep 35
 echo ""
 echo "Checking for file arrivals...."
 RETVAL=0

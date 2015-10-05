@@ -1861,8 +1861,12 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 
 	CHKERR(transactionId);
-	CHKERR(transactionId->sourceEntityNbr.length);
-	CHKERR(transactionId->transactionNbr.length);
+	if (transactionId->sourceEntityNbr.length == 0
+	|| transactionId->transactionNbr.length == 0)
+	{
+		return 0;
+	}
+
 	if (memcmp(transactionId->sourceEntityNbr.buffer,
 			db->ownEntityNbr.buffer, 8) == 0)
 	{
