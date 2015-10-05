@@ -141,6 +141,7 @@ typedef enum
 	CfdpProxyFilestoreResponse,
 	CfdpProxyPutCancel,
 	CfdpOriginatingTransactionId,
+	CfdpProxyClosureRequest,
 	CfdpDirectoryListingRequest = 16,
 	CfdpDirectoryListingResponse
 } CfdpUserMsgType;

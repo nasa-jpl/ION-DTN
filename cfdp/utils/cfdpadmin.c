@@ -64,15 +64,16 @@ static void	printUsage()
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a entity <entity nbr> <UT protocol name> <endpoint name> \
-<incstype> <outcstype>");
+	PUTS("\t   a entity <entity nbr> <UT protocol name> <UT endpoint name> \
+<rtt> <incstype> <outcstype>");
 	PUTS("\t\tValid UT protocol names are bp and tcp.");
 	PUTS("\t\tEndpoint name is EID for bp, socket spec for tcp.");
+	PUTS("\t\tRTT is round-trip time, used to set acknowledgment timers.");
 	PUTS("\t\tincstype is type of checksum for data rec'd from entity.");
 	PUTS("\t\toutcstype is type of checksum for data sent to entity.");
 	PUTS("\tc\tChange");
-	PUTS("\t   c entity <entity nbr> <UT protocol name> <endpoint name> \
-<incstype> <outcstype>");
+	PUTS("\t   c entity <entity nbr> <UT protocol name> <UT endpoint name> \
+<rtt> <incstype> <outcstype>");
 	PUTS("\td\tDelete");
 	PUTS("\t   d entity <entity nbr>");
 	PUTS("\tl\tList");
@@ -141,7 +142,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "entity") == 0)
 	{
-		if (tokenCount != 7)
+		if (tokenCount != 8)
 		{
 			SYNTAX_ERROR;
 			return;
@@ -151,7 +152,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		entityNbr = strtouvast(tokens[2]);
 		oK(addEntity(entityNbr, tokens[3], tokens[4],
 				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0)));
+				strtol(tokens[6], NULL, 0),
+				strtol(tokens[7], NULL, 0)));
 		oK(sdr_end_xn(sdr));
 		return;
 	}
@@ -172,7 +174,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "entity") == 0)
 	{
-		if (tokenCount != 7)
+		if (tokenCount != 8)
 		{
 			SYNTAX_ERROR;
 			return;
@@ -182,7 +184,8 @@ static void	executeChange(int tokenCount, char **tokens)
 		entityNbr = strtouvast(tokens[2]);
 		oK(changeEntity(entityNbr, tokens[3], tokens[4],
 				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0)));
+				strtol(tokens[6], NULL, 0),
+				strtol(tokens[7], NULL, 0)));
 		oK(sdr_end_xn(sdr));
 		return;
 	}
@@ -251,8 +254,8 @@ static void	printEntity(Entity *entity)
 		printText(buffer);
 	}
 
-	isprintf(buffer, sizeof buffer, "\tinCkType %d outCkType %d",
-			entity->inCkType, entity->outCkType);
+	isprintf(buffer, sizeof buffer, "\trtt %lu\tinCkType %d outCkType %d",
+		entity->ackTimerInterval, entity->inCkType, entity->outCkType);
 	printText(buffer);
 	sdr_exit_xn(sdr);
 }

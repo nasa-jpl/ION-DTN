@@ -43,6 +43,8 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tz\tPause before processing next command. (For test scripts.)");
+	PUTS("\t   z <number of seconds to pause>");
 	PUTS("\td\tSet destination entity number");
 	PUTS("\t   d <destination entity number>");
 	PUTS("\tf\tSet source file name");
@@ -95,6 +97,8 @@ custody transfer>");
 	PUTS("\t   $");
 	PUTS("\t#\tReport on the current file transmission");
 	PUTS("\t   #");
+	PUTS("\t|\tGet file: send request for file per specified parameters");
+	PUTS("\t   |");
 }
 
 static int      _echo(int *newValue)
@@ -422,10 +426,11 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 
 static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 {
-	int	tokenCount;
-	char	*cursor;
-	int	i;
-	char	*tokens[9];
+	int		tokenCount;
+	char		*cursor;
+	int		i;
+	char		*tokens[9];
+	CfdpProxyTask	task;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -557,6 +562,31 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			parms->fsRequests = 0;
 			return 0;
 
+		case '|':
+			task.sourceFileName = parms->sourceFileName;
+			task.destFileName = parms->destFileName;
+			task.messagesToUser = parms->msgsToUser;
+			task.filestoreRequests = parms->fsRequests;
+			task.faultHandlers = parms->faultHandlers;
+			task.unacknowledged = 1;
+			task.flowLabelLength = 0;
+			task.flowLabel = NULL;
+			task.recordBoundsRespected = 0;
+			task.closureRequested = !(parms->closureLatency == 0);
+			if (cfdp_get(&(parms->destinationEntityNbr),
+					sizeof(BpUtParms),
+					(unsigned char *) &(parms->utParms),
+					NULL, NULL, NULL, NULL, 0, NULL, 0, 0,
+					0, &task, &(parms->transactionId)) < 0)
+			{
+				putErrmsg("Can't put FDU.", NULL);
+				return -1;
+			}
+
+			parms->msgsToUser = 0;
+			parms->fsRequests = 0;
+			return 0;
+
 		case '^':
 			if (cfdp_cancel(&(parms->transactionId)) < 0)
 			{
@@ -589,6 +619,18 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			{
 				putErrmsg("Can't report transaction.", NULL);
 				return -1;
+			}
+
+			return 0;
+
+		case 'z':
+			if (tokenCount == 1)
+			{
+				snooze(1);
+			}
+			else
+			{
+				snooze(strtol(tokens[1], NULL, 0));
 			}
 
 			return 0;
@@ -695,7 +737,7 @@ static void	*handleEvents(void *parm)
 			if (length > 0)
 			{
 				usrmsgBuf[length] = '\0';
-				printf("\tMessage '%s'\n", usrmsgBuf);
+				printf("\tMessage to user'\n");
 			}
 		}
 

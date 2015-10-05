@@ -460,7 +460,7 @@ int open_remote_dir(char *host, char *dir)
 			(unsigned char *) &(parms.utParms),
 			NULL,
 			NULL, 0,
-			parms.faultHandlers, 0, NULL,
+			parms.faultHandlers, 0, NULL, 0,
 			parms.msgsToUser,
 			parms.fsRequests,
 			&dirlst,
@@ -883,7 +883,7 @@ int ion_cfdp_get(struct transfer* t)
 				(unsigned char *) &(parms.utParms),
 				NULL,
 				NULL, 0,
-				parms.faultHandlers, 0, NULL,
+				parms.faultHandlers, 0, NULL, 0,
 				parms.msgsToUser,
 				0, &parms.proxytask,
 				&(parms.transactionId));
@@ -982,7 +982,7 @@ int ion_cfdp_rput(struct transfer* t)
 			(unsigned char *) &(parms.utParms),
 			NULL, NULL, 0,
 			parms.faultHandlers,
-			0, NULL,
+			0, NULL, 0,
 			parms.msgsToUser,
 			0, &(parms.destinationEntityNbr), &parms.proxytask,
 			&(parms.transactionId));

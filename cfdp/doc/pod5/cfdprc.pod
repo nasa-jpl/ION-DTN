@@ -37,11 +37,33 @@ combine with B<e 1> command to log the version number at startup.
 The B<initialize> command.  Until this command is executed, CFDP is not
 in operation on the local ION node and most I<cfdpadmin> commands will fail.
 
-=item B<i>
+=item B<a entity>> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
 
-The B<info> This command will print information about the current state
-of the local CFDP entity, including the current settings of all parameters
-that can be managed as described below.
+The B<add entity> command.  This command will add a new remote CFDP entity to
+the CFDP management information base.  Valid UT protocol names are bp and
+tcp.  Endpoint name is EID for bp, socket spec (I<IP address>:I<port number>)
+for tcp.  RTT is round-trip time, used to set acknowledgement timers. incstype
+is the type of checksum to use when validating data received from this entity;
+valid values are 0 (modular checksum) and 1 (CRC32).  outcstype is the type of
+checksum to use when computing the checksum for transmitting data to this
+entity.
+
+=item B<c entity>> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
+
+The B<change entity> command.  This command will change information associated
+with an existing entity in the CFDP management information base.
+
+=item B<d entity>> <entity nbr>
+
+The B<delete entity> command.  This command will delete an existing entity from
+the CFDP management information base.
+
+=item B<i> [<entity nbr>]
+
+The B<info> command.  When B<entity nbr> is provided, this command will print
+information about the indicate entity.  Otherwise this command will print
+information about the current state of the local CFDP entity, including the
+current settings of all parameters that can be managed as described below.
 
 =item B<s> 'I<UTS command>'
 
