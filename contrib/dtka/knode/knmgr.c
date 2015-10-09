@@ -124,12 +124,11 @@ static void	printBlockText(Object text, int offset, int blksize)
 	Sdr		sdr = getIonsdr();
 	ZcoReader	reader;
 	unsigned char	datValue[DTKA_MAX_DATLEN];
-	vast		len;
 	int		j;
 
 	zco_start_receiving(text, &reader);
-	len = zco_receive_source(sdr, &reader, offset, NULL);
-	len = zco_receive_source(sdr, &reader, blksize, (char *) datValue);
+	oK(zco_receive_source(sdr, &reader, offset, NULL));
+	oK(zco_receive_source(sdr, &reader, blksize, (char *) datValue));
 	for (j = 0; j < blksize; j++)
 	{
 		printf("%02x", datValue[j]);
@@ -322,9 +321,9 @@ fflush(stdout);
 	sha2(outputBuffer, bufSize, hash, 0);
 	match = (memcmp(hash, bulletin->hash, 32)) == 0;
 #if DTKA_DEBUG
-printf("Match=%d; bulletin ID %d, block size %d, %d blocks in this bulletin.\n",
-match, (int) (bulletin->timestamp), bulletin->blksize,
-(int) bulletin->sharesAnnounced);
+printf("Match=%d; bulletin ID %d, block size %d, %u blocks in this bulletin.\n",
+match, (int) (bulletin->timestamp), (int) (bulletin->blksize),
+bulletin->sharesAnnounced);
 fflush(stdout);
 if (match == 0)
 {
@@ -830,13 +829,13 @@ int	main(int argc, char *argv[])
 
 		if (dlv.result == BpReceptionInterrupted)
 		{
-			bp_release_delivery(&dlv, 0);
+			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
 		if (dlv.result == BpEndpointStopped)
 		{
-			bp_release_delivery(&dlv, 0);
+			bp_release_delivery(&dlv, 1);
 			state.running = 0;
 			continue;
 		}

@@ -279,13 +279,13 @@ int	main(int argc, char *argv[])
 
 		if (dlv.result == BpReceptionInterrupted)
 		{
-			bp_release_delivery(&dlv, 0);
+			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
 		if (dlv.result == BpEndpointStopped)
 		{
-			bp_release_delivery(&dlv, 0);
+			bp_release_delivery(&dlv, 1);
 			state.running = 0;
 			continue;
 		}
