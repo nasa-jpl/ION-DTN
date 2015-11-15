@@ -1,5 +1,5 @@
 /*
-	dgrcla.c:	ION DGR convergence-layer server daemon.
+	dgrcla.c:	ION DGR convergence-layer adapter daemon.
 			Handles both transmission and reception.
 
 	Author: Scott Burleigh, JPL
@@ -11,8 +11,6 @@
 									*/
 #include "bpP.h"
 #include "dgr.h"
-#include "ipnfw.h"
-#include "dtn2fw.h"
 
 #define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535

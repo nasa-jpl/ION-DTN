@@ -10,6 +10,7 @@ BSSP = ../bssp
 DTN2 = ../dtn2
 LTP = ../ltp
 TCP = ../tcp
+STCP = ../stcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
@@ -19,8 +20,9 @@ IPND = ../ipnd
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DENABLE_BPACS -DENABLE_IMC -DHEAP_PTRS=$(PTRS)
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(TCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
+# -I$(TCP)
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
@@ -36,24 +38,29 @@ BPINCLS = \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
-	$(TCP)/tcpcla.h \
+	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(DCCP)/dccpcla.h \
 	$(API)/acs/acs.h
 
+#	$(TCP)/tcpcla.h \
+
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
+BPPOBJS = libbpP.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
 # snid.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
+# eureka.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
+# tcpcli tcpclo
 # dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
+# libtcpcla.so
 
 all:		$(ALL)
 
@@ -198,12 +205,12 @@ tcpclo:		tcpclo.o $(BPLIBS) libtcpcla.so
 
 #	-	-	STCP executables	-	-	-	-
 
-stcpcli:	stcpcli.o $(BPLIBS) libtcpcla.so
-		$(CC) -o stcpcli stcpcli.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
+stcpcli:	stcpcli.o $(BPLIBS) libstcpcla.so
+		$(CC) -o stcpcli stcpcli.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread
 		cp stcpcli ./bin
 
-stcpclo:	stcpclo.o $(BPLIBS) libtcpcla.so
-		$(CC) -o stcpclo stcpclo.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
+stcpclo:	stcpclo.o $(BPLIBS) libstcpcla.so
+		$(CC) -o stcpclo stcpclo.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread
 		cp stcpclo ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
@@ -244,12 +251,12 @@ dgrcla:		dgrcla.o $(BPLIBS)
 
 #	-	-	BRS executables	-	-	-	-
 
-brsscla:	brsscla.o $(BPLIBS) libtcpcla.so
-		$(CC) -o brsscla brsscla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
+brsscla:	brsscla.o $(BPLIBS) libstcpcla.so
+		$(CC) -o brsscla brsscla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread
 		cp brsscla ./bin
 
-brsccla:	brsccla.o $(BPLIBS) libtcpcla.so
-		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
+brsccla:	brsccla.o $(BPLIBS) libstcpcla.so
+		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread
 		cp brsccla ./bin
 
 #	-	-	BIBE executable	-	-	-	-	-
@@ -320,9 +327,13 @@ libdtn2fw.so:	libdtn2fw.o
 		$(LD) -o libdtn2fw.so libdtn2fw.o
 		cp libdtn2fw.so ./lib
 
-libtcpcla.so:	libtcpcla.o
-		$(LD) -o libtcpcla.so libtcpcla.o
-		cp libtcpcla.so ./lib
+#libtcpcla.so:	libtcpcla.o
+#		$(LD) -o libtcpcla.so libtcpcla.o
+#		cp libtcpcla.so ./lib
+
+libstcpcla.so:	libstcpcla.o
+		$(LD) -o libstcpcla.so libstcpcla.o
+		cp libstcpcla.so ./lib
 
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
@@ -381,8 +392,11 @@ libudpcla.so:	libudpcla.o
 %.o:		$(LTP)/%.c
 		$(CC) -c $<
 
-%.o:		$(TCP)/%.c
+%.o:		$(STCP)/%.c
 		$(CC) -c $<
+
+#%.o:		$(TCP)/%.c
+#		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
 		$(CC) -c $<

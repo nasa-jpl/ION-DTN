@@ -11938,3 +11938,22 @@ int	eidIsLocal(EndpointId eid, char* dictionary)
 
 	return result;
 }
+
+/*	*	DUMMY FUNCTIONS FOR TEMPORARY BUILD.	*	*	*/
+
+int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
+		char *claProtocol, unsigned int xmitRate, unsigned int recvRate)
+{
+	return 0;
+}
+
+int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
+		char *claProtocol)
+{
+	return 0;
+}
+
+PsmAddress	bp_discover_find_neighbor(char *eid)
+{
+	return 0;
+}

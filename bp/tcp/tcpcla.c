@@ -1,5 +1,306 @@
 /*
-	tcpcli.c:	BP TCP-based convergence-layer input
+	tcpcla.c:	ION TCP convergence-layer adapter daemon.
+			Handles both transmission and reception.
+
+	Author: Scott Burleigh, JPL
+
+	Copyright (c) 2015, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+	acknowledged.
+	
+									*/
+#include "bpP.h"
+
+#define	BpTcpDefaultPortNbr	4556
+#define	TCPCLA_BUFSZ		(64 * 1024)
+
+#define TCPCLA_MAGIC 		"dtn!"
+#define TCPCLA_MAGIC_SIZE	4
+#define TCPCLA_ID_VERSION	0x03
+#define TCPCLA_FLAGS		0x00
+#define TCPCLA_TYPE_DATA	0x01
+#define TCPCLA_TYPE_ACK		0x02
+#define TCPCLA_TYPE_REF_BUN	0x03
+#define TCPCLA_TYPE_KEEP_AL	0x04
+#define TCPCLA_TYPE_SHUT_DN	0x05
+#define SHUT_DN_BUFSZ		32
+#define SHUT_DN_DELAY_FLAG	0x01
+#define SHUT_DN_REASON_FLAG	0x02
+#define SHUT_DN_NO	 	0
+#define SHUT_DN_IDLE		1
+#define SHUT_DN_IDLE_HEX	0x00
+#define SHUT_DN_VER		2
+#define SHUT_DN_VER_HEX		0x01
+#define SHUT_DN_BUSY		3
+#define SHUT_DN_BUSY_HEX	0x02
+#define BACKOFF_TIMER_START	30
+#define BACKOFF_TIMER_LIMIT	3600
+
+#ifndef KEEPALIVE_PERIOD
+#define KEEPALIVE_PERIOD	(15)
+#endif
+
+typedef struct
+{
+	VOutduct		*vduct;
+	int			sock;
+	sm_SemId		*eobSemaphore;
+	pthread_t		sender;
+	pthread_t		receiver;
+	char			*eid;		/*	Node ID.	*/
+} TcpclConnection;
+
+#ifndef mingw
+extern void	handleConnectionLoss();
+#endif
+
+static void	interruptThread()
+{
+	isignal(SIGTERM, interruptThread);
+	ionKillMainThread("tcpcla");
+}
+
+/*	*	*	Sender thread functions		*	*	*/
+
+typedef struct
+{
+	VOutduct	*vduct;
+	int		*running;
+	Tcp		tcpSap;
+} SenderThreadParms;
+
+/*	*	*	Receiver thread functions	*	*	*/
+
+/*	*	*	Server thread functions		*	*	*/
+
+/*	*	*	Clock thread functions		*	*	*/
+
+/*	*	*	Main thread functions		*	*	*/
+
+static void	stopConnection(TcpclConnection *connection)
+{
+	sm_SemEnd(connection->vduct->semaphore);
+	sm_SemEnd(connection->eobSemaphore);
+	pthread_join(connection->senderThread, NULL);
+	sm_SemDelete(connection->eobSemaphore);
+	pthread_join(connection->receiverThread, NULL);
+	MRELEASE(connection->eid);
+	MRELEASE(connection);
+}
+
+static void	stopConnections(pthread_mutex_t *connectionsLock,
+			Lyst connections)
+{
+	LystElt		elt;
+
+	pthread_mutex_lock(connectionsLock);
+	for (elt = lyst_first(connections; elt;)
+	{
+		stopConnection(lyst_data(elt));
+		lyst_delete(elt);
+	}
+
+	pthread_mutex_unlock(connectionsLock);
+}
+
+static void	stopServerThread(pthread_t serverThread, ServerThreadParms *stp)
+{
+	int	fd;
+
+	/*	Wake up the server thread by connecting to it.		*/
+
+	stp->running = 0;
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd >= 0)
+	{
+		oK(connect(fd, &(stp->socketName), sizeof(struct sockaddr)));
+
+		/*	Immediately discard the connected socket.	*/
+
+		closesocket(fd);
+	}
+
+	pthread_join(serverThread, NULL);
+}
+
+#if defined (ION_LWT)
+int	tcpcla(int a1, int a2, int a3, int a4, int a5,
+		int a6, int a7, int a8, int a9, int a10)
+{
+	char	*ductName = (char *) a1;
+#else
+int	main(int argc, char *argv[])
+{
+	char	*ductName = (argc > 1 ? argv[1] : NULL);
+#endif
+	VInduct			*vduct;
+	PsmAddress		vductElt;
+	Sdr			sdr;
+	Induct			duct;
+	unsigned short		portNbr;
+	unsigned int		hostNbr;
+	ServerThreadParms	stp;
+	socklen_t		nameLength;
+	Lyst			connections;
+	pthread_mutex_t		connectionsLock;
+	pthread_t		serverThread;
+	pthread_t		clockThread;
+
+	if (ductName == NULL)
+	{
+		PUTS("Usage: tcpcla <local host name>[:<port number>]");
+		return 0;
+	}
+
+	if (bpAttach() < 0)
+	{
+		writeMemo("[?] tcpcla can't attach to BP.");
+		return 1;
+	}
+
+	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	{
+		writeMemo("[?] tcpcla: can't get induct IP address.", ductName);
+		return 1;
+	}
+
+	if (portNbr == 0)
+	{
+		portNbr = BpTcpDefaultPortNbr;
+	}
+
+	findInduct("tcp", ductName, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] tcpcla: no induct", ductName);
+		return 1;
+	}
+
+	/*	NOTE: no outduct lookup here, because all TCPCL
+	 *	outducts are created invisibly and dynamically
+	 *	as connections are made.  None are created during
+	 *	node configuration.					*/
+
+	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
+	{
+		writeMemoNote("[?] tcpcla task is already started.",
+				itoa(vduct->cliPid));
+		return 1;
+	}
+
+	/*	All command-line arguments are now validated.		*/
+
+	connections = lyst_create();
+	if (connections == NULL)
+	{
+		putErrmsg("tcpcla can't create lyst of connections", NULL);
+		return 1;
+	}
+
+	pthread_mutex_init(&connectionsLock, NULL);
+
+	/*	Create the server socket.				*/
+
+	portNbr = htons(portNbr);
+	hostNbr = htonl(hostNbr);
+	stp.vduct = vduct;
+	memset((char *) &(stp.socketName), 0, sizeof(struct sockaddr));
+	stp.inetName = (struct sockaddr_in *) &(stp.socketName);
+	stp.inetName->sin_family = AF_INET;
+	stp.inetName->sin_port = portNbr;
+	memcpy((char *) &(stp.inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	stp.ductSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (stp.ductSocket < 0)
+	{
+		putSysErrmsg("Can't open TCP server socket", NULL);
+		pthread_mutex_destroy(&connectionsLock);
+		lyst_destroy(connections);
+		return 1;
+	}
+
+	nameLength = sizeof(struct sockaddr);
+	if (reUseAddress(stp.ductSocket)
+	|| bind(stp.ductSocket, &(stp.socketName), nameLength) < 0
+	|| listen(stp.ductSocket, 5) < 0
+	|| getsockname(stp.ductSocket, &(stp.socketName), &nameLength) < 0)
+	{
+		closesocket(stp.ductSocket);
+		pthread_mutex_destroy(&connectionsLock);
+		lyst_destroy(connections);
+		putSysErrmsg("Can't initialize TCP server socket", NULL);
+		return 1;
+	}
+
+	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
+
+	ionNoteMainThread("tcpcla");
+	isignal(SIGTERM, interruptThread);
+#ifndef mingw
+	isignal(SIGPIPE, SIG_IGN);
+#endif
+
+	/*	Start the clock thread, which does initial load
+	 *	of the connections lyst.				*/
+
+	ctp.running = 1;
+	if (pthread_begin(&clockThread, NULL, enactSchedule, &ctp))
+	{
+		closesocket(stp.ductSocket);
+		pthread_mutex_destroy(&connectionsLock);
+		lyst_destroy(connections);
+		putSysErrmsg("tcpcla can't create clock thread", NULL);
+		return 1;
+	}
+
+	/*	Start the server thread.				*/
+
+	stp.running = 1;
+	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp))
+	{
+		shutDownConnections(connectionsLock, connections);
+		ctp.running = 0;
+		pthread_join(clockThread, NULL);
+		closesocket(stp.ductSocket);
+		pthread_mutex_destroy(&connectionsLock);
+		lyst_destroy(connections);
+		putSysErrmsg("tcpcla can't create server thread", NULL);
+		return 1;
+	}
+
+	/*	Now sleep until interrupted by SIGTERM, at which point
+	 *	it's time to stop the CLA.				*/
+
+	{
+		char txt[500];
+
+		isprintf(txt, sizeof(txt),
+				"[i] tcpcla is running, [%s:%d].", 
+				inet_ntoa(stp.inetName->sin_addr),
+				ntohs(stp.inetName->sin_port));
+
+		writeMemo(txt);
+	}
+
+	ionPauseMainThread(-1);
+
+	/*	Time to shut down.					*/
+
+	stopServerThread(serverThread, &stp);
+	shutDownConnections(connectionsLock, connections);
+	ctp.running = 0;
+	pthread_join(clockThread, NULL);
+	closesocket(stp.ductSocket);
+	pthread_mutex_destroy(&connectionsLock);
+	lyst_destroy(connections);
+	writeErrmsgMemos();
+	writeMemo("[i] tcpcla duct has ended.");
+	bp_detach();
+	return 0;
+}
+--------------------------------------------------
+
+/*
+	tcpcla.c:	BP TCP-based convergence-layer input
 			daemon, designed to serve as an input
 			duct.
 
@@ -15,7 +316,7 @@
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
-	ionKillMainThread("tcpcli");
+	ionKillMainThread("tcpcla");
 }
 
 /*	*	*	Keepalive thread function	*	*	*/
@@ -32,7 +333,7 @@ typedef struct
 static void	terminateKeepaliveThread(KeepaliveThreadParms *parms)
 {
 	writeErrmsgMemos();
-	writeMemo("[i] tcpcli keepalive thread stopping.");
+	writeMemo("[i] tcpcla keepalive thread stopping.");
 	pthread_mutex_lock(parms->mutex);
 	if (parms->ductSocket != -1)
 	{
@@ -46,7 +347,7 @@ static void	terminateKeepaliveThread(KeepaliveThreadParms *parms)
 static void	*sendKeepalives(void *parm)
 {
 	KeepaliveThreadParms 	*parms = (KeepaliveThreadParms *) parm;
-	char			*procName = "tcpcli";
+	char			*procName = "tcpcla";
 	int 			count = 0;
 	int 			bytesSent;
 	unsigned char		*buffer;
@@ -54,7 +355,7 @@ static void	*sendKeepalives(void *parm)
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putErrmsg("No memory for TCP buffer in tcpcli.", NULL);
+		putErrmsg("No memory for TCP buffer in tcpcla.", NULL);
 		ionKillMainThread(procName);
 		terminateKeepaliveThread(parms);
 		return NULL;
@@ -121,7 +422,7 @@ typedef struct
 static void	terminateReceiverThread(ReceiverThreadParms *parms)
 {
 	writeErrmsgMemos();
-	writeMemo("[i] tcpcli receiver thread stopping.");
+	writeMemo("[i] tcpcla receiver thread stopping.");
 	pthread_mutex_lock(parms->mutex);
 	if (parms->bundleSocket != -1)
 	{
@@ -139,7 +440,7 @@ static void	*receiveBundles(void *parm)
 	 *	connection, terminating when connection is lost.	*/
 
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
-	char			*procName = "tcpcli";
+	char			*procName = "tcpcla";
 	KeepaliveThreadParms	*kparms;
 	AcqWorkArea		*work;
 	char			*buffer;
@@ -150,7 +451,7 @@ static void	*receiveBundles(void *parm)
 	buffer = MTAKE(TCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putErrmsg("tcpcli can't get TCP buffer", NULL);
+		putErrmsg("tcpcla can't get TCP buffer", NULL);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
 		ionKillMainThread(procName);
@@ -160,7 +461,7 @@ static void	*receiveBundles(void *parm)
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putErrmsg("tcpcli can't get acquisition work area", NULL);
+		putErrmsg("tcpcla can't get acquisition work area", NULL);
 		MRELEASE(buffer);
 		terminateReceiverThread(parms);
 		MRELEASE(parms);
@@ -174,7 +475,7 @@ static void	*receiveBundles(void *parm)
 			MTAKE(sizeof(KeepaliveThreadParms));
 	if (kparms == NULL)
 	{
-		putErrmsg("tcpcli can't allocate for new keepalive thread",
+		putErrmsg("tcpcla can't allocate for new keepalive thread",
 				NULL);
 		MRELEASE(buffer);
 		bpReleaseAcqArea(work);
@@ -192,7 +493,7 @@ static void	*receiveBundles(void *parm)
 	if (sendContactHeader(&parms->bundleSocket, (unsigned char *) buffer)
 			< 0)
 	{
-		putErrmsg("tcpcli couldn't send contact header", NULL);
+		putErrmsg("tcpcla couldn't send contact header", NULL);
 		MRELEASE(buffer);
 		MRELEASE(kparms);
 		closesocket(parms->bundleSocket);
@@ -208,7 +509,7 @@ static void	*receiveBundles(void *parm)
 	if (receiveContactHeader(&parms->bundleSocket, (unsigned char *) buffer,
 			&kparms->keepalivePeriod) < 0)
 	{
-		putErrmsg("tcpcli couldn't receive contact header", NULL);
+		putErrmsg("tcpcla couldn't receive contact header", NULL);
 		MRELEASE(buffer);
 		MRELEASE(kparms);
 		pthread_mutex_lock(parms->mutex);
@@ -238,7 +539,7 @@ static void	*receiveBundles(void *parm)
 		 */
 		if (pthread_begin(&kthread, NULL, sendKeepalives, kparms))
 		{
-			putSysErrmsg("tcpcli can't create new thread for \
+			putSysErrmsg("tcpcla can't create new thread for \
 keepalives", NULL);
 			ionKillMainThread(procName);
 			threadRunning = 0;
@@ -325,8 +626,8 @@ static void	*spawnReceivers(void *parm)
 	/*	Main loop for acceptance of connections and
 	 *	creation of receivers to service those connections.	*/
 
-	AccessThreadParms	*atp = (AccessThreadParms *) parm;
-	char			*procName = "tcpcli";
+	AccessThreadParms	*stp = (AccessThreadParms *) parm;
+	char			*procName = "tcpcla";
 	pthread_mutex_t		mutex;
 	Lyst			threads;
 	int			newSocket;
@@ -341,7 +642,7 @@ static void	*spawnReceivers(void *parm)
 	threads = lyst_create_using(getIonMemoryMgr());
 	if (threads == NULL)
 	{
-		putErrmsg("tcpcli can't create threads list", NULL);
+		putErrmsg("tcpcla can't create threads list", NULL);
 		pthread_mutex_destroy(&mutex);
 		ionKillMainThread(procName);
 		return NULL;
@@ -350,20 +651,20 @@ static void	*spawnReceivers(void *parm)
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole CLI.		*/
 
-	while (atp->running)
+	while (stp->running)
 	{
 		nameLength = sizeof(struct sockaddr);
-		newSocket = accept(atp->ductSocket, &cloSocketName,
+		newSocket = accept(stp->ductSocket, &cloSocketName,
 				&nameLength);
 		if (newSocket < 0)
 		{
-			putSysErrmsg("tcpcli accept() failed", NULL);
+			putSysErrmsg("tcpcla accept() failed", NULL);
 			ionKillMainThread(procName);
-			atp->running = 0;
+			stp->running = 0;
 			continue;
 		}
 
-		if (atp->running == 0)
+		if (stp->running == 0)
 		{
 			closesocket(newSocket);
 			break;	/*	Main thread has shut down.	*/
@@ -373,41 +674,41 @@ static void	*spawnReceivers(void *parm)
 				MTAKE(sizeof(ReceiverThreadParms));
 		if (parms == NULL)
 		{
-			putErrmsg("tcpcli can't allocate for new thread", NULL);
+			putErrmsg("tcpcla can't allocate for new thread", NULL);
 			closesocket(newSocket);
 			ionKillMainThread(procName);
-			atp->running = 0;
+			stp->running = 0;
 			continue;
 		}
 
-		parms->vduct = atp->vduct;
+		parms->vduct = stp->vduct;
 		pthread_mutex_lock(&mutex);
 		parms->elt = lyst_insert_last(threads, parms);
 		pthread_mutex_unlock(&mutex);
 		if (parms->elt == NULL)
 		{
-			putErrmsg("tcpcli can't allocate lyst element for new \
+			putErrmsg("tcpcla can't allocate lyst element for new \
 thread", NULL);
 			MRELEASE(parms);
 			closesocket(newSocket);
 			ionKillMainThread(procName);
-			atp->running = 0;
+			stp->running = 0;
 			continue;
 		}
 
 		parms->mutex = &mutex;
 		parms->bundleSocket = newSocket;
 		parms->cloSocketName = cloSocketName;
-		parms->cliRunning = &(atp->running);
+		parms->cliRunning = &(stp->running);
                 parms->receiveRunning = 1;
 		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
 					parms))
 		{
-			putSysErrmsg("tcpcli can't create new thread", NULL);
+			putSysErrmsg("tcpcla can't create new thread", NULL);
 			MRELEASE(parms);
 			closesocket(newSocket);
 			ionKillMainThread(procName);
-			atp->running = 0;
+			stp->running = 0;
 			continue;
 		}
 
@@ -416,7 +717,7 @@ thread", NULL);
 		sm_TaskYield();
 	}
 
-	closesocket(atp->ductSocket);
+	closesocket(stp->ductSocket);
 	writeErrmsgMemos();
 
 	/*	Shut down all current CLI threads cleanly.		*/
@@ -451,167 +752,9 @@ thread", NULL);
 
 	lyst_destroy(threads);
 	writeErrmsgMemos();
-	writeMemo("[i] tcpcli access thread has ended.");
+	writeMemo("[i] tcpcla server thread has ended.");
 	pthread_mutex_destroy(&mutex);
 	return NULL;
 }
 
 /*	*	*	Main thread functions	*	*	*	*/
-
-#if defined (ION_LWT)
-int	tcpcli(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
-{
-	char	*ductName = (char *) a1;
-#else
-int	main(int argc, char *argv[])
-{
-	char	*ductName = (argc > 1 ? argv[1] : NULL);
-#endif
-	VInduct			*vduct;
-	PsmAddress		vductElt;
-	Sdr			sdr;
-	Induct			duct;
-	ClProtocol		protocol;
-	char			*hostName;
-	unsigned short		portNbr;
-	unsigned int		hostNbr;
-	AccessThreadParms	atp;
-	socklen_t		nameLength;
-	pthread_t		accessThread;
-	int			fd;
-
-	if (ductName == NULL)
-	{
-		PUTS("Usage: tcpcli <local host name>[:<port number>]");
-		return 0;
-	}
-
-	if (bpAttach() < 0)
-	{
-		putErrmsg("tcpcli can't attach to BP.", NULL);
-		return 1;
-	}
-
-	findInduct("tcp", ductName, &vduct, &vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("No such tcp duct.", ductName);
-		return 1;
-	}
-
-	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
-	{
-		putErrmsg("CLI task is already started for this duct.",
-				itoa(vduct->cliPid));
-		return 1;
-	}
-
-	/*	All command-line arguments are now validated.		*/
-
-	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
-			sizeof(Induct));
-	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	sdr_exit_xn(sdr);
-	hostName = ductName;
-	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
-	{
-		putErrmsg("Can't get IP/port for host.", hostName);
-		return 1;
-	}
-
-	if (portNbr == 0)
-	{
-		portNbr = BpTcpDefaultPortNbr;
-	}
-
-	portNbr = htons(portNbr);
-	hostNbr = htonl(hostNbr);
-	atp.vduct = vduct;
-	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
-	atp.inetName = (struct sockaddr_in *) &(atp.socketName);
-	atp.inetName->sin_family = AF_INET;
-	atp.inetName->sin_port = portNbr;
-	memcpy((char *) &(atp.inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	atp.ductSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	
-	/* set desired keep alive period to 15 and since there is no negotiated
-	 * keep alive period it is 0	*/
-
-	tcpDesiredKeepAlivePeriod = KEEPALIVE_PERIOD;
-
-	if (atp.ductSocket < 0)
-	{
-		putSysErrmsg("Can't open TCP socket", NULL);
-		return 1;
-	}
-
-	nameLength = sizeof(struct sockaddr);
-	if (reUseAddress(atp.ductSocket)
-	|| bind(atp.ductSocket, &(atp.socketName), nameLength) < 0
-	|| listen(atp.ductSocket, 5) < 0
-	|| getsockname(atp.ductSocket, &(atp.socketName), &nameLength) < 0)
-	{
-		closesocket(atp.ductSocket);
-		putSysErrmsg("Can't initialize socket", NULL);
-		return 1;
-	}
-
-	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
-
-	ionNoteMainThread("tcpcli");
-	isignal(SIGTERM, interruptThread);
-#ifndef mingw
-	isignal(SIGPIPE, SIG_IGN);
-#endif
-
-	/*	Start the access thread.				*/
-
-	atp.running = 1;
-	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
-	{
-		closesocket(atp.ductSocket);
-		putSysErrmsg("tcpcli can't create access thread", NULL);
-		return 1;
-	}
-
-	/*	Now sleep until interrupted by SIGTERM, at which point
-	 *	it's time to stop the induct.				*/
-
-	{
-		char txt[500];
-
-		isprintf(txt, sizeof(txt),
-				"[i] tcpcli is running, spec=[%s:%d].", 
-				inet_ntoa(atp.inetName->sin_addr),
-				ntohs(atp.inetName->sin_port));
-
-		writeMemo(txt);
-	}
-
-	ionPauseMainThread(-1);
-
-	/*	Time to shut down.					*/
-
-	atp.running = 0;
-
-	/*	Wake up the access thread by connecting to it.		*/
-
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (fd >= 0)
-	{
-		oK(connect(fd, &(atp.socketName), sizeof(struct sockaddr)));
-
-		/*	Immediately discard the connected socket.	*/
-
-		closesocket(fd);
-	}
-
-	pthread_join(accessThread, NULL);
-	writeErrmsgMemos();
-	writeMemo("[i] tcpcli duct has ended.");
-	bp_detach();
-	return 0;
-}
