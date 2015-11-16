@@ -33,21 +33,41 @@
 #define SHUT_DN_VER_HEX		0x01
 #define SHUT_DN_BUSY		3
 #define SHUT_DN_BUSY_HEX	0x02
-#define BACKOFF_TIMER_START	30
-#define BACKOFF_TIMER_LIMIT	3600
 
-#ifndef KEEPALIVE_PERIOD
-#define KEEPALIVE_PERIOD	(15)
+#ifndef KEEPALIVE_INTERVAL
+#define KEEPALIVE_INTERVAL	(15)
 #endif
+#ifndef IDLE_SHUTDOWN_INTERVAL
+#define IDLE_SHUTDOWN_INTERVAL	(60)
+#endif
+#ifndef MAX_RECONNECT_INTERVAL
+#define MAX_RECONNECT_INTERVAL	(3600)
+#endif
+#define	TCPCLA_SEGMENT_ACKS	(1)
+#define	TCPCLA_REACTIVE		(0)
+#define	TCPCLA_REFUSALS		(0)
+#define	TCPCLA_LENGTH_MSGS	(0)
 
 typedef struct
 {
 	VOutduct		*vduct;
 	int			sock;
-	sm_SemId		*eobSemaphore;
 	pthread_t		sender;
 	pthread_t		receiver;
-	char			*eid;		/*	Node ID.	*/
+	char			*eid;		/*	Remote node ID.	*/
+	vast			bundleLength;	/*	Curr. outbound.	*/
+	vast			lengthAcked;	/*	Curr. outbound.	*/
+	int			keepaliveInterval;
+	int			secUntilKeepalive;
+	int			secUntilShutdown;	/*	(idle)	*/
+	int			secUntilReconnect;
+	int			mustDelete;	/*	Boolean		*/
+	int			segmentAcks;	/*	Boolean		*/
+	int			reactiveFrags;	/*	Boolean		*/
+	int			bundleRefusals;	/*	Boolean		*/
+	int			lengthMessages;	/*	Boolean		*/
+	vast			lengthReceived;	/*	Curr. inbound.	*/
+	sm_SemId		*eobSemaphore;	/*	End of bundle.	*/
 } TcpclConnection;
 
 #ifndef mingw
@@ -60,20 +80,188 @@ static void	interruptThread()
 	ionKillMainThread("tcpcla");
 }
 
+static int	addConnection(Lyst connections, pthread_mutex_t &connectionLock,
+			int newSocket, struct sockaddr *socketName)
+{
+	TcpclConnection	*connection;
+	LystElt		connectionElt;
+	ReceiverParms	*rtp;
+	SenderParms	*stp;
+
+	pthread_mutex_lock(connectionsLock);
+	connection = (ReceiverThreadParms *)
+			MTAKE(sizeof(ReceiverThreadParms));
+	if (connection == NULL)
+	{
+		putErrmsg("tcpcla can't allocate new connection", NULL);
+		closesocket(newSocket);
+		pthread_mutex_unlock(connectionsLock);
+		return -1;
+	}
+
+	connectionElt = lyst_insert_last(connections, connection);
+	if (connectionElt == NULL)
+	{
+		putErrmsg("tcpcla can't allocate lyst element for new \
+connection", NULL);
+		MRELEASE(rtp);
+		closesocket(newSocket);
+		pthread_mutex_unlock(connectionsLock);
+		return -1;
+	}
+
+	rtp = (ReceiverThreadParms *)
+			MTAKE(sizeof(ReceiverThreadParms));
+	if (rtp == NULL)
+	{
+		lyst_delete(connectionElt);
+		MRELEASE(connection);
+		putErrmsg("tcpcla can't allocate new receiver parms", NULL);
+		closesocket(newSocket);
+		pthread_mutex_unlock(connectionsLock);
+		return -1;
+	}
+
+	stp = (SenderThreadParms *)
+			MTAKE(sizeof(SenderThreadParms));
+	if (stp == NULL)
+	{
+		MRELEASE(rtp);
+		lyst_delete(connectionElt);
+		MRELEASE(connection);
+		putErrmsg("tcpcla can't allocate new receiver parms", NULL);
+		closesocket(newSocket);
+		pthread_mutex_unlock(connectionsLock);
+		return -1;
+	}
+
+/*	Populate connection object, starting sender and receiver
+	threads.  Send contact header, receive contact header.
+	If eid is already in connections list, send shutdown message
+	and destroy the connection; otherwise, negotiate connection
+	parameters and return 0.					*/
+
+/*
+	connection->bundleSocket = newSocket;
+	connection->cloSocketName = cloSocketName;
+	etc.
+	if (pthread_begin(&(connection->receiver), NULL, receiveBundles,
+				parms))
+	{
+		putSysErrmsg("tcpcla can't create new receiver thread", NULL);
+		MRELEASE(parms);
+		closesocket(newSocket);
+		ionKillMainThread(procName);
+		stp->running = 0;
+		continue;
+	}
+*/
+	pthread_mutex_unlock(connectionsLock);
+	return 0;
+}
+
 /*	*	*	Sender thread functions		*	*	*/
 
 typedef struct
 {
-	VOutduct	*vduct;
 	int		*running;
-	Tcp		tcpSap;
+	TcpclConnection	*connection;
+	pthread_mutex_t	connectionsLock;
 } SenderThreadParms;
 
 /*	*	*	Receiver thread functions	*	*	*/
 
+typedef struct
+{
+	int		*running;
+	TcpclConnection	*connection;
+	pthread_mutex_t	connectionsLock;
+} ReceiverThreadParms;
+
 /*	*	*	Server thread functions		*	*	*/
 
+typedef struct
+{
+	int		*running;
+	int		serverSocket;
+	Lyst		connections;
+	pthread_mutex_t	connectionsLock;
+} ServerThreadParms;
+
+static void	*spawnReceivers(void *parm)
+{
+	/*	Main loop for acceptance of connections and
+	 *	creation of threads to service those connections.	*/
+
+	ServerThreadParms	*stp = (ServerThreadParms *) parm;
+	char			*procName = "tcpcla";
+	int			newSocket;
+	struct sockaddr		cloSocketName;
+	socklen_t		nameLength;
+	ReceiverThreadParms	*parms;
+	LystElt			elt;
+	pthread_t		thread;
+
+	snooze(1);	/*	Let main thread become interruptable.	*/
+
+	/*	Can now begin accepting connections from remote
+	 *	contacts.  On failure, take down the whole CLA.		*/
+
+	while (stp->running)
+	{
+		nameLength = sizeof(struct sockaddr);
+		newSocket = accept(stp->ductSocket, &cloSocketName,
+				&nameLength);
+		if (newSocket < 0)
+		{
+			putSysErrmsg("tcpcla accept() failed", NULL);
+			ionKillMainThread(procName);
+			stp->running = 0;
+			continue;
+		}
+
+		if (stp->running == 0)
+		{
+			closesocket(newSocket);
+			break;	/*	Main thread has shut down.	*/
+		}
+
+		if (addConnection(connections, connectionLock, newSocket,
+				cloSocketName) < 0)
+		{
+			putErrmsg("tcpcla server can't add connection.", NULL);
+			ionKillMainThread(procName);
+			stp->running = 0;
+			continue;
+		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
+	}
+
+	writeErrmsgMemos();
+	writeMemo("[i] tcpcla server thread has ended.");
+	return NULL;
+}
+
 /*	*	*	Clock thread functions		*	*	*/
+
+typedef struct
+{
+	int		*running;
+	Lyst		connections;
+	pthread_mutex_t	connectionsLock;
+} ClockThreadParms;
+
+/*	Once per second, snooze(1) and then loop through all
+	connections.  Shut down any that are ready to stop.  For
+	others, decrement remaining time as applicable and handle
+	when remaining time is zero.  Every N seconds, loop through
+	all egress plans and attempt to make new connections for
+	all plans whose neighbor nodes are not in the connections
+	list but that have any directive (default or rule) that
+	cites a tcpcl socket spec.					*/
 
 /*	*	*	Main thread functions		*	*	*/
 
@@ -83,15 +271,16 @@ static void	stopConnection(TcpclConnection *connection)
 	sm_SemEnd(connection->eobSemaphore);
 	pthread_join(connection->senderThread, NULL);
 	sm_SemDelete(connection->eobSemaphore);
+	closesocket(connection->sock);
 	pthread_join(connection->receiverThread, NULL);
 	MRELEASE(connection->eid);
 	MRELEASE(connection);
 }
 
-static void	stopConnections(pthread_mutex_t *connectionsLock,
+static void	shutDownConnections(pthread_mutex_t *connectionsLock,
 			Lyst connections)
 {
-	LystElt		elt;
+	LystElt	elt;
 
 	pthread_mutex_lock(connectionsLock);
 	for (elt = lyst_first(connections; elt;)
@@ -188,7 +377,8 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*	All command-line arguments are now validated.		*/
+	/*	All command-line arguments are now validated, so
+		begin initialization by creating the connections lyst.	*/
 
 	connections = lyst_create();
 	if (connections == NULL)
@@ -199,7 +389,7 @@ int	main(int argc, char *argv[])
 
 	pthread_mutex_init(&connectionsLock, NULL);
 
-	/*	Create the server socket.				*/
+	/*	Now create the server socket.				*/
 
 	portNbr = htons(portNbr);
 	hostNbr = htonl(hostNbr);
@@ -209,8 +399,8 @@ int	main(int argc, char *argv[])
 	stp.inetName->sin_family = AF_INET;
 	stp.inetName->sin_port = portNbr;
 	memcpy((char *) &(stp.inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	stp.ductSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (stp.ductSocket < 0)
+	stp.serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (stp.serverSocket < 0)
 	{
 		putSysErrmsg("Can't open TCP server socket", NULL);
 		pthread_mutex_destroy(&connectionsLock);
@@ -219,12 +409,12 @@ int	main(int argc, char *argv[])
 	}
 
 	nameLength = sizeof(struct sockaddr);
-	if (reUseAddress(stp.ductSocket)
-	|| bind(stp.ductSocket, &(stp.socketName), nameLength) < 0
-	|| listen(stp.ductSocket, 5) < 0
-	|| getsockname(stp.ductSocket, &(stp.socketName), &nameLength) < 0)
+	if (reUseAddress(stp.serverSocket)
+	|| bind(stp.serverSocket, &(stp.socketName), nameLength) < 0
+	|| listen(stp.serverSocket, 5) < 0
+	|| getsockname(stp.serverSocket, &(stp.socketName), &nameLength) < 0)
 	{
-		closesocket(stp.ductSocket);
+		closesocket(stp.serverSocket);
 		pthread_mutex_destroy(&connectionsLock);
 		lyst_destroy(connections);
 		putSysErrmsg("Can't initialize TCP server socket", NULL);
@@ -243,9 +433,9 @@ int	main(int argc, char *argv[])
 	 *	of the connections lyst.				*/
 
 	ctp.running = 1;
-	if (pthread_begin(&clockThread, NULL, enactSchedule, &ctp))
+	if (pthread_begin(&clockThread, NULL, handleEvents, &ctp))
 	{
-		closesocket(stp.ductSocket);
+		closesocket(stp.serverSocket);
 		pthread_mutex_destroy(&connectionsLock);
 		lyst_destroy(connections);
 		putSysErrmsg("tcpcla can't create clock thread", NULL);
@@ -260,7 +450,7 @@ int	main(int argc, char *argv[])
 		shutDownConnections(connectionsLock, connections);
 		ctp.running = 0;
 		pthread_join(clockThread, NULL);
-		closesocket(stp.ductSocket);
+		closesocket(stp.serverSocket);
 		pthread_mutex_destroy(&connectionsLock);
 		lyst_destroy(connections);
 		putSysErrmsg("tcpcla can't create server thread", NULL);
@@ -289,7 +479,7 @@ int	main(int argc, char *argv[])
 	shutDownConnections(connectionsLock, connections);
 	ctp.running = 0;
 	pthread_join(clockThread, NULL);
-	closesocket(stp.ductSocket);
+	closesocket(stp.serverSocket);
 	pthread_mutex_destroy(&connectionsLock);
 	lyst_destroy(connections);
 	writeErrmsgMemos();
@@ -620,141 +810,5 @@ typedef struct
 	int			ductSocket;
 	int			running;
 } AccessThreadParms;
-
-static void	*spawnReceivers(void *parm)
-{
-	/*	Main loop for acceptance of connections and
-	 *	creation of receivers to service those connections.	*/
-
-	AccessThreadParms	*stp = (AccessThreadParms *) parm;
-	char			*procName = "tcpcla";
-	pthread_mutex_t		mutex;
-	Lyst			threads;
-	int			newSocket;
-	struct sockaddr		cloSocketName;
-	socklen_t		nameLength;
-	ReceiverThreadParms	*parms;
-	LystElt			elt;
-	pthread_t		thread;
-
-	snooze(1);	/*	Let main thread become interruptable.	*/
-	pthread_mutex_init(&mutex, NULL);
-	threads = lyst_create_using(getIonMemoryMgr());
-	if (threads == NULL)
-	{
-		putErrmsg("tcpcla can't create threads list", NULL);
-		pthread_mutex_destroy(&mutex);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	/*	Can now begin accepting connections from remote
-	 *	contacts.  On failure, take down the whole CLI.		*/
-
-	while (stp->running)
-	{
-		nameLength = sizeof(struct sockaddr);
-		newSocket = accept(stp->ductSocket, &cloSocketName,
-				&nameLength);
-		if (newSocket < 0)
-		{
-			putSysErrmsg("tcpcla accept() failed", NULL);
-			ionKillMainThread(procName);
-			stp->running = 0;
-			continue;
-		}
-
-		if (stp->running == 0)
-		{
-			closesocket(newSocket);
-			break;	/*	Main thread has shut down.	*/
-		}
-
-		parms = (ReceiverThreadParms *)
-				MTAKE(sizeof(ReceiverThreadParms));
-		if (parms == NULL)
-		{
-			putErrmsg("tcpcla can't allocate for new thread", NULL);
-			closesocket(newSocket);
-			ionKillMainThread(procName);
-			stp->running = 0;
-			continue;
-		}
-
-		parms->vduct = stp->vduct;
-		pthread_mutex_lock(&mutex);
-		parms->elt = lyst_insert_last(threads, parms);
-		pthread_mutex_unlock(&mutex);
-		if (parms->elt == NULL)
-		{
-			putErrmsg("tcpcla can't allocate lyst element for new \
-thread", NULL);
-			MRELEASE(parms);
-			closesocket(newSocket);
-			ionKillMainThread(procName);
-			stp->running = 0;
-			continue;
-		}
-
-		parms->mutex = &mutex;
-		parms->bundleSocket = newSocket;
-		parms->cloSocketName = cloSocketName;
-		parms->cliRunning = &(stp->running);
-                parms->receiveRunning = 1;
-		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
-					parms))
-		{
-			putSysErrmsg("tcpcla can't create new thread", NULL);
-			MRELEASE(parms);
-			closesocket(newSocket);
-			ionKillMainThread(procName);
-			stp->running = 0;
-			continue;
-		}
-
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
-	}
-
-	closesocket(stp->ductSocket);
-	writeErrmsgMemos();
-
-	/*	Shut down all current CLI threads cleanly.		*/
-
-	while (1)
-	{
-		pthread_mutex_lock(&mutex);
-		elt = lyst_first(threads);
-		if (elt == NULL)	/*	All threads shut down.	*/
-		{
-			pthread_mutex_unlock(&mutex);
-			break;
-		}
-
-		/*	Trigger termination of thread.			*/
-
-		parms = (ReceiverThreadParms *) lyst_data(elt);
-		thread = parms->thread;
-		if (sendShutDownMessage(&parms->bundleSocket, SHUT_DN_NO, -1)
-				< 0)
-		{
-			putErrmsg("Sending Shutdown message failed!!",NULL);
-		}
-
-		closesocket(parms->bundleSocket);
-		parms->bundleSocket = -1;
-		pthread_kill(thread, SIGTERM);
-		pthread_mutex_unlock(&mutex);
-		pthread_join(thread, NULL);
-		MRELEASE(parms);
-	}
-
-	lyst_destroy(threads);
-	writeErrmsgMemos();
-	writeMemo("[i] tcpcla server thread has ended.");
-	pthread_mutex_destroy(&mutex);
-	return NULL;
-}
 
 /*	*	*	Main thread functions	*	*	*	*/

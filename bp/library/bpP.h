@@ -542,6 +542,7 @@ typedef struct
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
 	int		blocked;	/*	Boolean			*/
+	int		discovered;	/*	Boolean			*/
 	Object		protocol;	/*	back-reference		*/
 	Object		stats;		/*	OutductStats address.	*/
 	int		updateStats;	/*	Boolean.		*/

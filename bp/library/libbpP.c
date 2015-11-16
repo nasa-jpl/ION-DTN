@@ -4112,6 +4112,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		unsigned int maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
+	int		discovered = 0;
 	ClProtocol	clpbuf;
 	Object		clpElt;
 	VOutduct	*vduct;
@@ -4136,7 +4137,12 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 
 	if (cloCmd)
 	{
-		if (*cloCmd == '\0')
+		if (*cloCmd == '&')	/*	Eureka: TCPCL thread.	*/
+		{
+			discovered = 1;
+			cloCmd = NULL;
+		}
+		else if (*cloCmd == '\0')
 		{
 			cloCmd = NULL;
 		}
@@ -4181,6 +4187,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 	ductBuf.bulkQueue = sdr_list_create(bpSdr);
 	ductBuf.stdQueue = sdr_list_create(bpSdr);
 	ductBuf.urgentQueue = sdr_list_create(bpSdr);
+	ductBuf.discovered = discovered;
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
 	ductBuf.stats = sdr_malloc(bpSdr, sizeof(OutductStats));
 	if (ductBuf.stats)

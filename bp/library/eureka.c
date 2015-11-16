@@ -146,6 +146,8 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 	PsmAddress	vductElt;
 	DuctExpression	ductExpression;
 	time_t		currentTime;
+	uvast		lowerNodeNbr;
+	uvast		higherNodeNbr;
 
 	ipn_findPlan(nodeNbr, &planObj, &planElt);
 	if (planElt)	/*	Egress plan for this neighbor exists.	*/
@@ -193,6 +195,24 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 			ownNodeNbr, recvRate, 1.0) == 0)
 	{
 		putErrmsg("Can't add reception contact.", outductName);
+		return -1;
+	}
+
+	if (nodeNbr < ownNodeNbr)
+	{
+		lowerNodeNbr = nodeNbr;
+		higherNodeNbr = ownNodeNbr;
+	}
+	else
+	{
+		lowerNodeNbr = ownNodeNbr;
+		higherNodeNbr = nodeNbr;
+	}
+
+	if (rfx_insert_range(currentTime, MAX_POSIX_TIME, lowerNodeNbr,
+			higherNodeNbr, 0) == 0)
+	{
+		putErrmsg("Can't add range.", outductName);
 		return -1;
 	}
 
@@ -329,8 +349,8 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 	if (strcmp(claProtocol, "tcp") == 0)
 	{
 		portNumber = BpTcpDefaultPortNbr;
-		inductDaemon = "tcpcli";
-		outductDaemon = "tcpclo";
+		inductDaemon = "tcpcla";
+		outductDaemon = "&";
 		outductName = socketSpec;
 		destDuctName = NULL;
 	}
@@ -429,12 +449,18 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 static int	discoverContactLost(char *socketSpec, char *neighborEid,
 			char *claProtocol)
 {
+	Sdr		sdr = getIonsdr();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	uvast		neighborNodeNbr;
+	uvast		lowerNodeNbr;
+	uvast		higherNodeNbr;
+	VOutduct	*vduct;
+	Object		ductElt;
+	Outduct		duct;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -479,6 +505,41 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 	{
 		putErrmsg("Can't remove reception contact.", socketSpec);
 		return -1;
+	}
+
+	if (neighborNodeNbr < ownNodeNbr)
+	{
+		lowerNodeNbr = neighborNodeNbr;
+		higherNodeNbr = ownNodeNbr;
+	}
+	else
+	{
+		lowerNodeNbr = ownNodeNbr;
+		higherNodeNbr = neighborNodeNbr;
+	}
+
+	if (rfx_remove_range(0, lowerNodeNbr, higherNodeNbr) < 0)
+	{
+		putErrmsg("Can't remove range.", socketSpec);
+		return -1;
+	}
+
+	/*	If this outduct is truly transient, remove it now.	*/
+
+	CHKERR(sdr_begin_xn(sdr));	/*	Lock memory.		*/
+	findOutduct("tcp", socketSpec, &vduct, &vductElt);
+	if (vductElt == 0)		/*	S/b impossible.		*/
+	{
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
+			sizeof(Outduct));
+	sdr_exit_xn(sdr);
+	if (duct.discovered)
+	{
+		return removeOutduct("tcp", socketSpec);
 	}
 
 	return 0;
