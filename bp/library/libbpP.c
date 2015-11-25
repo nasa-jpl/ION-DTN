@@ -6733,7 +6733,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 
 	/*	Reserve space for new ZCO extent.			*/
 
-	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, heapSpaceNeeded,
+	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, 0, heapSpaceNeeded,
 			0, 0, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve ZCO space.", NULL);

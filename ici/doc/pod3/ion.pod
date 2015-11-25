@@ -155,7 +155,7 @@ for blocking ZCO space requisitions.
 
 Destroys the semaphore in I<attendant>, preventing a potential resource leak.
 
-=item int ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded, vast heapSpaceNeeded, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant, ReqTicket *ticket)
+=item int ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded, vast bulkSpaceNeeded, vast heapSpaceNeeded, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant, ReqTicket *ticket)
 
 Lodges a request for space in the pool identified by I<acct>.  If the requested
 space can be provided immediately, it is reserved for use by the calling task

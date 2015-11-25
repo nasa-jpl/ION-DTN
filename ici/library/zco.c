@@ -11,6 +11,7 @@
 
 									*/
 #include "platform.h"
+#include "bulk.h"
 #include "zco.h"
 
 #ifndef ZCODEBUG
@@ -20,21 +21,24 @@
 static const char	*bookNames[] = { "inbound", "outbound" };
 
 /*	The INBOUND and OUTBOUND "books" control ZCOs' occupancy of
- *	SDR heap and file system space.  Inbound and outbound ZCOs
- *	are managed separately to ensure that reaching the occupancy
- *	limit for outbound ZCOs (due to a volume of offered traffic
- *	in excess of the available outbound buffer space) never
- *	inhibits data reception and vice versa.  Reference-counting
- *	objects (FileRef, ObjRef, ZcoFileLien, ZcoObjLien) have counts
- *	for both books because there may be references to them in ZCO
- *	extents posted to both books.					*/
+ *	SDR heap, bulk storage, and file system space.  Inbound and
+ *	outbound ZCOs are managed separately to ensure that reaching
+ *	the occupancy limit for outbound ZCOs (due to a volume of
+ *	offered traffic in excess of the available outbound buffer
+ *	space) never inhibits data reception and vice versa.
+ *	Reference-counting objects (FileRef, BulkRef, ObjRef,
+ *	ZcoFileLien, ZcoBulkLien, ZcoObjLien) have counts for both
+ *	books because there may be references to them in ZCO extents
+ *	posted to both books.						*/
 
 typedef struct
 {
-	vast		heapOccupancy;
-	vast		maxHeapOccupancy;
 	vast		fileOccupancy;
 	vast		maxFileOccupancy;
+	vast		bulkOccupancy;
+	vast		maxBulkOccupancy;
+	vast		heapOccupancy;
+	vast		maxHeapOccupancy;
 } ZcoBook;
 
 typedef struct
@@ -65,6 +69,14 @@ typedef struct
 typedef struct
 {
 	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
+	unsigned long	item;		/*	Bulk item location.	*/
+	vast		length;		/*	Length of object.	*/
+	char		okayToDestroy;	/*	Boolean.		*/
+} BulkRef;
+
+typedef struct
+{
+	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
 	Object		object;		/*	Heap address of object.	*/
 	vast		length;		/*	Length of object.	*/
 	char		okayToDestroy;	/*	Boolean.		*/
@@ -80,6 +92,13 @@ typedef struct
 typedef struct
 {
 	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
+	Object		location;	/*	Heap address of BulkRef.*/
+	vast		length;		/*	Length of lien on item.	*/
+} ZcoBulkLien;
+
+typedef struct
+{
+	int		refCount[2];	/*	ZcoInbound, ZcoOutbound	*/
 	Object		location;	/*	Heap address of ObjRef.	*/
 	vast		length;		/*	Length of lien on obj.	*/
 } ZcoObjLien;
@@ -87,8 +106,8 @@ typedef struct
 typedef struct
 {
 	ZcoMedium	sourceMedium;
-	Object		location;	/*	of file or object lien	*/
-	vast		offset;		/*	within file or object	*/
+	Object		location;	/*	of applicable lien	*/
+	vast		offset;		/*	within file/item/object	*/
 	vast		length;
 	Object		nextExtent;
 } SourceExtent;
@@ -157,14 +176,18 @@ static Object	getZcoDB(Sdr sdr)
 			obj = sdr_malloc(sdr, sizeof(ZcoDB));
 			if (obj)	/*	Must initialize.	*/
 			{
-				db.books[0].heapOccupancy = 0;
-				db.books[0].maxHeapOccupancy = LONG_MAX;
 				db.books[0].fileOccupancy = 0;
 				db.books[0].maxFileOccupancy = LONG_MAX;
-				db.books[1].heapOccupancy = 0;
-				db.books[1].maxHeapOccupancy = LONG_MAX;
+				db.books[0].bulkOccupancy = 0;
+				db.books[0].maxBulkOccupancy = LONG_MAX;
+				db.books[0].heapOccupancy = 0;
+				db.books[0].maxHeapOccupancy = LONG_MAX;
 				db.books[1].fileOccupancy = 0;
 				db.books[1].maxFileOccupancy = LONG_MAX;
+				db.books[1].bulkOccupancy = 0;
+				db.books[1].maxBulkOccupancy = LONG_MAX;
+				db.books[1].heapOccupancy = 0;
+				db.books[1].maxHeapOccupancy = LONG_MAX;
 				sdr_write(sdr, obj, (char*) &db, sizeof(ZcoDB));
 				sdr_catlg(sdr, dbName, 0, obj);
 			}
@@ -193,13 +216,17 @@ void	zco_status(Sdr sdr)
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	for (i = 0, book = db->books; i < 2; i++, book++)
 	{
-		isprintf(buffer, sizeof buffer, "[i] %s heap  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->heapOccupancy,
-				book->maxHeapOccupancy);
-		writeMemo(buffer);
 		isprintf(buffer, sizeof buffer, "[i] %s file  current: "
 VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->fileOccupancy,
 				book->maxFileOccupancy);
+		writeMemo(buffer);
+		isprintf(buffer, sizeof buffer, "[i] %s bulk  current: "
+VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->bulkOccupancy,
+				book->maxBulkOccupancy);
+		writeMemo(buffer);
+		isprintf(buffer, sizeof buffer, "[i] %s heap  current: "
+VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->heapOccupancy,
+				book->maxHeapOccupancy);
 		writeMemo(buffer);
 	}
 }
@@ -231,6 +258,262 @@ void	zco_unregister_callback()
 	ZcoCallback	notify = NULL;
 
 	_zcoCallback(&notify, ZcoUnknown);
+}
+
+static void	zco_increase_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
+{
+	Object	obj;
+	ZcoDB	db;
+	ZcoBook	*book;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		book = &(db.books[((int) acct)]);
+		book->fileOccupancy += delta;
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s file occupancy increased to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->fileOccupancy);
+writeMemo(buf);
+#endif
+	}
+}
+
+static void	zco_reduce_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
+{
+	Object	obj;
+	ZcoDB	db;
+	ZcoBook	*book;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		book = &(db.books[((int) acct)]);
+		book->fileOccupancy -= delta;
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s file occupancy reduced to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->fileOccupancy);
+writeMemo(buf);
+#endif
+	}
+}
+
+vast	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
+{
+	Object	obj;
+		OBJ_POINTER(ZcoDB, db);
+	ZcoBook	*book;
+
+	CHKZERO(sdr);
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+		book = &(db->books[((int) acct)]);
+		return book->fileOccupancy;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void	zco_set_max_file_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+{
+	Object	obj;
+	ZcoDB	db;
+	ZcoBook	*book;
+
+	CHKVOID(sdr);
+	CHKVOID(limit >= 0);
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		book = &(db.books[((int) acct)]);
+		book->maxFileOccupancy = limit;
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+vast	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
+{
+	Object	obj;
+		OBJ_POINTER(ZcoDB, db);
+	ZcoBook	*book;
+
+	CHKZERO(sdr);
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+		book = &(db->books[((int) acct)]);
+		return book->maxFileOccupancy;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int	zco_enough_file_space(Sdr sdr, vast length, ZcoAcct acct)
+{
+	Object	obj;
+		OBJ_POINTER(ZcoDB, db);
+	ZcoBook	*book;
+	vast	increment;
+
+	CHKZERO(sdr);
+	CHKZERO(length >= 0);
+	obj = getZcoDB(sdr);
+	if (obj == 0)
+	{
+		return 0;
+	}
+
+	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+	book = &(db->books[((int) acct)]);
+	increment = book->fileOccupancy + length;
+	if (increment < 0)		/*	Overflow.		*/
+	{
+		return 0;
+	}
+
+	return (book->maxFileOccupancy - increment) > 0;
+}
+
+static void	zco_increase_bulk_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
+{
+	Object	obj;
+	ZcoDB	db;
+	ZcoBook	*book;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		book = &(db.books[((int) acct)]);
+		book->bulkOccupancy += delta;
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s bulk occupancy increased to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->bulkOccupancy);
+writeMemo(buf);
+#endif
+	}
+}
+
+static void	zco_reduce_bulk_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
+{
+	Object	obj;
+	ZcoDB	db;
+	ZcoBook	*book;
+
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		book = &(db.books[((int) acct)]);
+		book->bulkOccupancy -= delta;
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+#if ZCODEBUG
+char	buf[128];
+sprintf(buf, "[i] %s bulk occupancy reduced to " VAST_FIELDSPEC ".",
+bookNames[((int) acct)], book->bulkOccupancy);
+writeMemo(buf);
+#endif
+	}
+}
+
+vast	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+{
+	Object	obj;
+		OBJ_POINTER(ZcoDB, db);
+	ZcoBook	*book;
+
+	CHKZERO(sdr);
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+		book = &(db->books[((int) acct)]);
+		return book->bulkOccupancy;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void	zco_set_max_bulk_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+{
+	Object	obj;
+	ZcoDB	db;
+	ZcoBook	*book;
+
+	CHKVOID(sdr);
+	CHKVOID(limit >= 0);
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
+		book = &(db.books[((int) acct)]);
+		book->maxBulkOccupancy = limit;
+		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
+	}
+}
+
+vast	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+{
+	Object	obj;
+		OBJ_POINTER(ZcoDB, db);
+	ZcoBook	*book;
+
+	CHKZERO(sdr);
+	obj = getZcoDB(sdr);
+	if (obj)
+	{
+		GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+		book = &(db->books[((int) acct)]);
+		return book->maxBulkOccupancy;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int	zco_enough_bulk_space(Sdr sdr, vast length, ZcoAcct acct)
+{
+	Object	obj;
+		OBJ_POINTER(ZcoDB, db);
+	ZcoBook	*book;
+	vast	increment;
+
+	CHKZERO(sdr);
+	CHKZERO(length >= 0);
+	obj = getZcoDB(sdr);
+	if (obj == 0)
+	{
+		return 0;
+	}
+
+	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
+	book = &(db->books[((int) acct)]);
+	increment = book->bulkOccupancy + length;
+	if (increment < 0)		/*	Overflow.		*/
+	{
+		return 0;
+	}
+
+	return (book->maxBulkOccupancy - increment) > 0;
 }
 
 void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
@@ -363,134 +646,6 @@ int	zco_enough_heap_space(Sdr sdr, vast length, ZcoAcct acct)
 	}
 
 	return (book->maxHeapOccupancy - increment) > 0;
-}
-
-int	zco_enough_file_space(Sdr sdr, vast length, ZcoAcct acct)
-{
-	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
-	ZcoBook	*book;
-	vast	increment;
-
-	CHKZERO(sdr);
-	CHKZERO(length >= 0);
-	obj = getZcoDB(sdr);
-	if (obj == 0)
-	{
-		return 0;
-	}
-
-	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
-	book = &(db->books[((int) acct)]);
-	increment = book->fileOccupancy + length;
-	if (increment < 0)		/*	Overflow.		*/
-	{
-		return 0;
-	}
-
-	return (book->maxFileOccupancy - increment) > 0;
-}
-
-static void	zco_increase_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
-{
-	Object	obj;
-	ZcoDB	db;
-	ZcoBook	*book;
-
-	obj = getZcoDB(sdr);
-	if (obj)
-	{
-		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
-		book = &(db.books[((int) acct)]);
-		book->fileOccupancy += delta;
-		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
-#if ZCODEBUG
-char	buf[128];
-sprintf(buf, "[i] %s file occupancy increased to " VAST_FIELDSPEC ".",
-bookNames[((int) acct)], book->fileOccupancy);
-writeMemo(buf);
-#endif
-	}
-}
-
-static void	zco_reduce_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
-{
-	Object	obj;
-	ZcoDB	db;
-	ZcoBook	*book;
-
-	obj = getZcoDB(sdr);
-	if (obj)
-	{
-		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
-		book = &(db.books[((int) acct)]);
-		book->fileOccupancy -= delta;
-		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
-#if ZCODEBUG
-char	buf[128];
-sprintf(buf, "[i] %s file occupancy reduced to " VAST_FIELDSPEC ".",
-bookNames[((int) acct)], book->fileOccupancy);
-writeMemo(buf);
-#endif
-	}
-}
-
-vast	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
-{
-	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
-	ZcoBook	*book;
-
-	CHKZERO(sdr);
-	obj = getZcoDB(sdr);
-	if (obj)
-	{
-		GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
-		book = &(db->books[((int) acct)]);
-		return book->fileOccupancy;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-void	zco_set_max_file_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
-{
-	Object	obj;
-	ZcoDB	db;
-	ZcoBook	*book;
-
-	CHKVOID(sdr);
-	CHKVOID(limit >= 0);
-	obj = getZcoDB(sdr);
-	if (obj)
-	{
-		sdr_stage(sdr, (char *) &db, obj, sizeof(ZcoDB));
-		book = &(db.books[((int) acct)]);
-		book->maxFileOccupancy = limit;
-		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
-	}
-}
-
-vast	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
-{
-	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
-	ZcoBook	*book;
-
-	CHKZERO(sdr);
-	obj = getZcoDB(sdr);
-	if (obj)
-	{
-		GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
-		book = &(db->books[((int) acct)]);
-		return book->maxFileOccupancy;
-	}
-	else
-	{
-		return 0;
-	}
 }
 
 Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
@@ -716,6 +871,58 @@ void	zco_destroy_file_ref(Sdr sdr, Object fileRefObj)
 	sdr_write(sdr, fileRefObj, (char *) &fileRef, sizeof(FileRef));
 }
 
+Object	zco_create_bulk_ref(Sdr sdr, unsigned long item, vast length,
+		ZcoAcct acct)
+{
+	Object	bulkRefObj;
+	BulkRef	bulkRef;
+
+	CHKZERO(sdr);
+	CHKZERO(item);
+
+	/*	Parameters verified.  Proceed with BulkRef creation.	*/
+
+	memset((char *) &bulkRef, 0, sizeof(BulkRef));
+	bulkRef.refCount[0] = 0;
+	bulkRef.refCount[1] = 0;
+	bulkRef.okayToDestroy = 0;
+	bulkRef.item = item;
+	bulkRef.length = length;
+	bulkRefObj = sdr_malloc(sdr, sizeof(BulkRef));
+	if (bulkRefObj == 0)
+	{
+		putErrmsg("No space for bulk reference.", NULL);
+		return 0;
+	}
+
+	sdr_write(sdr, bulkRefObj, (char *) &bulkRef, sizeof(BulkRef));
+	return bulkRefObj;
+}
+
+static void	destroyBulkReference(Sdr sdr, BulkRef *bulkRef,
+			Object bulkRefObj)
+{
+	sdr_free(sdr, bulkRefObj);
+	bulk_destroy(bulkRef->item);
+}
+
+void	zco_destroy_bulk_ref(Sdr sdr, Object bulkRefObj)
+{
+	BulkRef	bulkRef;
+
+	CHKVOID(sdr);
+	CHKVOID(bulkRefObj);
+	sdr_stage(sdr, (char *) &bulkRef, bulkRefObj, sizeof(BulkRef));
+	if (bulkRef.refCount[0] == 0 && bulkRef.refCount[1] == 0)
+	{
+		destroyBulkReference(sdr, &bulkRef, bulkRefObj);
+		return;
+	}
+
+	bulkRef.okayToDestroy = 1;
+	sdr_write(sdr, bulkRefObj, (char *) &bulkRef, sizeof(BulkRef));
+}
+
 Object	zco_create_obj_ref(Sdr sdr, Object object, vast length, ZcoAcct acct)
 {
 	Object	objRefObj;
@@ -773,8 +980,9 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
-	vast	heapSpaceAvbl;
 	vast	fileSpaceAvbl;
+	vast	bulkSpaceAvbl;
+	vast	heapSpaceAvbl;
 
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -784,22 +992,36 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	book = &(db->books[((int) acct)]);
-	heapSpaceAvbl = book->maxHeapOccupancy - book->heapOccupancy;
-	if (heapSpaceAvbl < 0)
-	{
-		heapSpaceAvbl = 0;
-	}
-
 	fileSpaceAvbl = book->maxFileOccupancy - book->fileOccupancy;
 	if (fileSpaceAvbl < 0)
 	{
 		fileSpaceAvbl = 0;
 	}
 
+	bulkSpaceAvbl = book->maxBulkOccupancy - book->bulkOccupancy;
+	if (bulkSpaceAvbl < 0)
+	{
+		bulkSpaceAvbl = 0;
+	}
+
+	heapSpaceAvbl = book->maxHeapOccupancy - book->heapOccupancy;
+	if (heapSpaceAvbl < 0)
+	{
+		heapSpaceAvbl = 0;
+	}
+
 	switch (source)
 	{
 	case ZcoFileSource:
 		if (length > fileSpaceAvbl)
+		{
+			return 1;
+		}
+
+		break;
+
+	case ZcoBulkSource:
+		if (length > bulkSpaceAvbl)
 		{
 			return 1;
 		}
@@ -846,7 +1068,8 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 }
 
 void	zco_get_aggregate_length(Sdr sdr, Object sourceZcoObj, vast offset,
-		vast length, vast *fileSpaceNeeded, vast *heapSpaceNeeded)
+		vast length, vast *fileSpaceOccupied, vast *bulkSpaceOccupied,
+		vast *heapSpaceOccupied)
 {
 	vast		endOfSource = offset + length;
 	Zco		sourceZco;
@@ -856,20 +1079,23 @@ void	zco_get_aggregate_length(Sdr sdr, Object sourceZcoObj, vast offset,
 	vast		bytesToCount;
 
 	CHKVOID(sdr && sourceZcoObj && offset >= 0 && length >= 0
-		&& endOfSource >= 0 && fileSpaceNeeded && heapSpaceNeeded);
+		&& endOfSource >= 0 && fileSpaceOccupied && bulkSpaceOccupied
+		&& heapSpaceOccupied);
 	sdr_read(sdr, (char *) &sourceZco, sourceZcoObj, sizeof(Zco));
 	if (endOfSource > (sourceZco.totalLength
 			- sourceZco.aggregateCapsuleLength))
 	{
-		*fileSpaceNeeded = -1;
-		*heapSpaceNeeded = -1;
+		*fileSpaceOccupied = -1;
+		*bulkSpaceOccupied = -1;
+		*heapSpaceOccupied = -1;
 		putErrmsg("Offset + length exceeds zco source data length.",
 				utoa(endOfSource));
 		return;
 	}
 
-	*fileSpaceNeeded = 0;
-	*heapSpaceNeeded = 0;
+	*fileSpaceOccupied = 0;
+	*bulkSpaceOccupied = 0;
+	*heapSpaceOccupied = 0;
 	for (obj = sourceZco.firstExtent; obj; obj = extent.nextExtent)
 	{
 		if (length == 0)	/*	Done.			*/
@@ -896,14 +1122,19 @@ void	zco_get_aggregate_length(Sdr sdr, Object sourceZcoObj, vast offset,
 			bytesToCount = length;
 		}
 
-		*heapSpaceNeeded += sizeof(SourceExtent);
-		if (extent.sourceMedium == ZcoFileSource)
+		*heapSpaceOccupied += sizeof(SourceExtent);
+		switch (extent.sourceMedium)
 		{
-			*fileSpaceNeeded += bytesToCount;
-		}
-		else
-		{
-			*heapSpaceNeeded += bytesToCount;
+		case ZcoFileSource:
+			*fileSpaceOccupied += bytesToCount;
+			break;
+
+		case ZcoBulkSource:
+			*bulkSpaceOccupied += bytesToCount;
+			break;
+
+		default:
+			*heapSpaceOccupied += bytesToCount;
 		}
 
 		/*	Note that all applicable content of this
@@ -918,15 +1149,17 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 			vast length, ZcoAcct acct)
 {
 	vast		fileSpaceNeeded = 0;
+	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
 	Object		obj;
 			OBJ_POINTER(ZcoDB, db);
 	ZcoBook		*book;
 	vast		fileSpaceAvbl;
+	vast		bulkSpaceAvbl;
 	vast		heapSpaceAvbl;
 
 	zco_get_aggregate_length(sdr, location, offset, length, 
-			&fileSpaceNeeded, &heapSpaceNeeded);
+			&fileSpaceNeeded, &bulkSpaceNeeded, &heapSpaceNeeded);
 	obj = getZcoDB(sdr);
 	if (obj == 0)
 	{
@@ -942,6 +1175,17 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 	}
 
 	if (fileSpaceNeeded > fileSpaceAvbl)
+	{
+		return 1;
+	}
+
+	bulkSpaceAvbl = book->maxBulkOccupancy - book->bulkOccupancy;
+	if (bulkSpaceAvbl < 0)
+	{
+		bulkSpaceAvbl = 0;
+	}
+
+	if (bulkSpaceNeeded > bulkSpaceAvbl)
 	{
 		return 1;
 	}
@@ -974,6 +1218,8 @@ static int	appendExtentOfExistingZco(Sdr sdr, Object zcoObj, Zco *zco,
 	SourceExtent	newExtent;
 	FileRef		fileRef;
 	ZcoFileLien	fileLien;
+	BulkRef		bulkRef;
+	ZcoBulkLien	bulkLien;
 	ObjRef		objRef;
 	ZcoObjLien	objLien;
 	SourceExtent	prevExtent;
@@ -1017,8 +1263,10 @@ static int	appendExtentOfExistingZco(Sdr sdr, Object zcoObj, Zco *zco,
 		newExtent.offset = oldExtent.offset + bytesToSkip;
 		newExtent.length = bytesToCopy;
 		newExtent.nextExtent = 0;
-		if (oldExtent.sourceMedium == ZcoFileSource)
+		switch (oldExtent.sourceMedium)
 		{
+		case ZcoFileSource:
+
 			/*	The source extent's location is a file
 			 *	lien address.				*/
 
@@ -1059,9 +1307,56 @@ static int	appendExtentOfExistingZco(Sdr sdr, Object zcoObj, Zco *zco,
 					increment += sizeof(FileRef);
 				}
 			}
-		}
-		else	/*	Must be ZcoObjSource.			*/
-		{
+
+			break;
+
+		case ZcoBulkSource:
+
+			/*	The source extent's location is a bulk
+			 *	lien address.				*/
+
+			sdr_stage(sdr, (char *) &bulkLien, oldExtent.location,
+					sizeof(ZcoBulkLien));
+			bulkLien.refCount[acct]++;
+			sdr_write(sdr, oldExtent.location, (char *) &bulkLien,
+					sizeof(ZcoBulkLien));
+			if (bulkLien.refCount[acct] == 1)
+			{
+				/*	Initial insertion of this
+				 *	source data item into this
+				 *	account, so post it.		*/
+
+				zco_increase_bulk_occupancy(sdr,
+						bulkLien.length, acct);
+				increment += sizeof(ZcoBulkLien);
+
+				/*	This is an additional
+				 *	citation of the lien's bulk
+				 *	reference object within this
+				 *	account, which must be counted.	*/
+
+				sdr_stage(sdr, (char *) &bulkRef,
+						bulkLien.location,
+						sizeof(BulkRef));
+				bulkRef.refCount[acct]++;
+				sdr_write(sdr, bulkLien.location,
+						(char *) &bulkRef,
+						sizeof(BulkRef));
+				if (bulkRef.refCount[acct] == 1)
+				{
+					/*	Initial insertion of
+					 *	this bulk reference
+					 *	into this account, so
+					 *	post it.		*/
+
+					increment += sizeof(BulkRef);
+				}
+			}
+
+			break;
+
+		default:	/*	Must be ZcoObjSource.		*/
+
 			/*	The source extent's location is an
 			 *	object lien address.			*/
 
@@ -1143,6 +1438,8 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 	Object		lienObj;
 	FileRef		fileRef;
 	ZcoFileLien	fileLien;
+	BulkRef		bulkRef;
+	ZcoBulkLien	bulkLien;
 	ObjRef		objRef;
 	ZcoObjLien	objLien;
 	SourceExtent	prevExtent;
@@ -1179,8 +1476,10 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 	}
 
 	extent.sourceMedium = sourceMedium;
-	if (sourceMedium == ZcoFileSource)
+	switch (sourceMedium)
 	{
+	case ZcoFileSource:
+
 		/*	"location" is heap address of a file reference.
 		 *	Must create a new file lien.			*/
 
@@ -1215,9 +1514,50 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 
 			increment += sizeof(FileRef);
 		}
-	}
-	else	/*	Source medium is heap object.			*/
-	{
+
+		break;
+
+	case ZcoBulkSource:
+
+		/*	"location" is heap address of a bulk reference.
+		 *	Must create a new bulk lien.			*/
+
+		lienObj = sdr_malloc(sdr, sizeof(ZcoBulkLien));
+		if (lienObj == 0)
+		{
+			putErrmsg("No space for lien object.", NULL);
+			return -1;
+		}
+
+		memset((char *) &bulkLien, 0, sizeof(ZcoBulkLien));
+		bulkLien.length = length;
+		bulkLien.location = location;
+		bulkLien.refCount[acct] = 1;
+		sdr_write(sdr, lienObj, (char *) &bulkLien,
+				sizeof(ZcoBulkLien));
+		zco_increase_bulk_occupancy(sdr, length, acct);
+		increment += sizeof(ZcoBulkLien);
+
+		/*	This is an additional citation of the lien's
+		 *	bulk reference object within this account,
+		 *	which must be counted.				*/
+
+		sdr_stage(sdr, (char *) &bulkRef, location, sizeof(BulkRef));
+		bulkRef.refCount[acct]++;
+		sdr_write(sdr, location, (char *) &bulkRef, sizeof(BulkRef));
+		if (bulkRef.refCount[acct] == 1)
+		{
+			/*	Initial insertion of this bulk
+			 *	reference into this account, so
+			 *	post it.				*/
+
+			increment += sizeof(BulkRef);
+		}
+
+		break;
+
+	default:	/*	Source medium is heap object.		*/
+
 		/*	"location" is heap address of an object
 		 *	reference.  Must create a new object lien.	*/
 
@@ -1927,6 +2267,8 @@ static int	reviseSource(Sdr sdr, SourceExtent *extent, vast bytesToSkip,
 {
 	ZcoObjLien	objLien;
 	ObjRef		objRef;
+	ZcoBulkLien	bulkLien;
+	BulkRef		bulkRef;
 	ZcoFileLien	fileLien;
 	FileRef		fileRef;
 	int		fd;
@@ -1943,9 +2285,26 @@ static int	reviseSource(Sdr sdr, SourceExtent *extent, vast bytesToSkip,
 		return 0;
 	}
 
+	if (extent->sourceMedium == ZcoBulkSource)
+	{
+		sdr_read(sdr, (char *) &bulkLien, extent->location,
+				sizeof(ZcoBulkLien));
+		sdr_read(sdr, (char *) &bulkRef, bulkLien.location,
+				sizeof(BulkRef));
+		if (bulk_write(bulkRef.item, extent->offset + bytesToSkip,
+				buffer, bytesExposed) < 0)
+		{
+			return -1;
+		}
+
+		return 0;
+	}
+
+	/*	Must be ZcoFileSource.					*/
+
 	sdr_read(sdr, (char *) &fileLien, extent->location,
 			sizeof(ZcoFileLien));
-	sdr_stage(sdr, (char *) &fileRef, fileLien.location, sizeof(FileRef));
+	sdr_read(sdr, (char *) &fileRef, fileLien.location, sizeof(FileRef));
 	fd = iopen(fileRef.pathName, O_WRONLY, 0);
 	if (fd < 0)
 	{
@@ -2053,7 +2412,7 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 		if (reviseSource(sdr, &extent, bytesToSkip, bytesExposed,
 				buffer) < 0)
 		{
-			failed = 1;		/*	File problem.	*/
+			failed = 1;	/*	File or bulk problem.	*/
 		}
 
 		bytesToSkip = 0;
@@ -2065,7 +2424,7 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 
 	for (obj = zco.firstTrailer; obj; obj = capsule.nextCapsule)
 	{
-		if (bytesToRevise == 0)	/*	Done.		*/
+		if (bytesToRevise == 0)		/*	Done.		*/
 		{
 			break;
 		}
@@ -2172,6 +2531,9 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent, ZcoAcct acct)
 	ZcoObjLien	objLien;
 	Object		objRefObj;
 	ObjRef		objRef;
+	ZcoBulkLien	bulkLien;
+	Object		bulkRefObj;
+	BulkRef		bulkRef;
 	ZcoFileLien	fileLien;
 	Object		fileRefObj;
 	FileRef		fileRef;
@@ -2226,6 +2588,63 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent, ZcoAcct acct)
 		{
 			sdr_write(sdr, lienObj, (char *) &objLien,
 					sizeof(ZcoObjLien));
+		}
+
+		return;
+	}
+
+	if (extent->sourceMedium == ZcoBulkSource)
+	{
+		lienObj = extent->location;
+		sdr_stage(sdr, (char *) &bulkLien, lienObj,
+				sizeof(ZcoBulkLien));
+		bulkLien.refCount[acct]--;
+		if (bulkLien.refCount[acct] == 0)
+		{
+			zco_reduce_bulk_occupancy(sdr, bulkLien.length, acct);
+			zco_reduce_heap_occupancy(sdr, sizeof(ZcoBulkLien),
+					acct);
+
+			/*	In addition, the bulk reference count
+			 *	for this account is now reduced by 1.
+			 *	(There is now 1 less reference to this
+			 *	bulk reference object in this account.	*/
+
+			bulkRefObj = bulkLien.location;
+			sdr_stage(sdr, (char *) &bulkRef, bulkRefObj,
+					sizeof(BulkRef));
+			bulkRef.refCount[acct]--;
+			if (bulkRef.refCount[acct] == 0)
+			{
+				zco_reduce_heap_occupancy(sdr, sizeof(BulkRef),
+						acct);
+			}
+
+			/*	So now the bulk reference object may
+			 *	may no longer be needed.		*/
+
+			if (bulkRef.refCount[0] == 0 && bulkRef.refCount[1] == 0
+			&& bulkRef.okayToDestroy)
+			{
+				destroyBulkReference(sdr, &bulkRef, bulkRefObj);
+			}
+			else	/*	Just update reference count.	*/
+			{
+				sdr_write(sdr, bulkRefObj, (char *) &bulkRef,
+						sizeof(BulkRef));
+			}
+		}
+
+		if (bulkLien.refCount[0] == 0 && bulkLien.refCount[1] == 0)
+		{
+			/*	Destroy the lien object.		*/
+
+			sdr_free(sdr, lienObj);
+		}
+		else	/*	Just update the lien reference count.	*/
+		{
+			sdr_write(sdr, lienObj, (char *) &bulkLien,
+					sizeof(ZcoBulkLien));
 		}
 
 		return;
@@ -2452,6 +2871,8 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 {
 	ZcoObjLien	objLien;
 	ObjRef		objRef;
+	ZcoBulkLien	bulkLien;
+	BulkRef		bulkRef;
 	ZcoFileLien	fileLien;
 	FileRef		fileRef;
 	int		fd;
@@ -2459,8 +2880,9 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 	struct stat	statbuf;
 	unsigned long	xmitProgress = 0;
 
-	if (extent->sourceMedium == ZcoObjSource)
+	switch (extent->sourceMedium)
 	{
+	case ZcoObjSource:
 		sdr_read(sdr, (char *) &objLien, extent->location,
 				sizeof(ZcoObjLien));
 		sdr_read(sdr, (char *) &objRef, objLien.location,
@@ -2468,9 +2890,16 @@ static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,
 		sdr_read(sdr, buffer, objRef.object
 				+ extent->offset + bytesToSkip, bytesAvbl);
 		return bytesAvbl;
-	}
-	else	/*	Source text of ZCO is a file.			*/
-	{
+
+	case ZcoBulkSource:
+		sdr_read(sdr, (char *) &bulkLien, extent->location,
+				sizeof(ZcoBulkLien));
+		sdr_read(sdr, (char *) &bulkRef, bulkLien.location,
+				sizeof(BulkRef));
+		return bulk_read(bulkRef.item, buffer,
+				extent->offset + bytesToSkip, bytesAvbl);
+
+	default:	/*	Source text of extent is a file.	*/
 		if (reader->trackFileOffset)
 		{
 			xmitProgress = extent->offset + bytesToSkip + bytesAvbl;
@@ -2632,9 +3061,9 @@ vast	zco_transmit(Sdr sdr, ZcoReader *reader, vast length, char *buffer)
 		if (buffer)
 		{
 			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
-					bytesAvbl, reader) == 0)
+					bytesAvbl, reader) < bytesAvbl)
 			{
-				failed = 1;	/*	File problem.	*/
+				failed = 1;	/*	Source problem.	*/
 			}
 
 			buffer += bytesAvbl;
@@ -2744,9 +3173,9 @@ vast	zco_receive_headers(Sdr sdr, ZcoReader *reader, vast length,
 		if (buffer)
 		{
 			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
-					bytesAvbl, reader) == 0)
+					bytesAvbl, reader) < bytesAvbl)
 			{
-				failed = 1;	/*	File problem.	*/
+				failed = 1;	/*	Source problem.	*/
 			}
 
 			buffer += bytesAvbl;
@@ -2841,9 +3270,9 @@ vast	zco_receive_source(Sdr sdr, ZcoReader *reader, vast length,
 		if (buffer)
 		{
 			if (copyFromSource(sdr, buffer, &extent, bytesToSkip,
-					bytesAvbl, reader) == 0)
+					bytesAvbl, reader) < bytesAvbl)
 			{
-				failed = 1;	/*	File problem.	*/
+				failed = 1;	/*	Source problem.	*/
 			}
 
 			buffer += bytesAvbl;
@@ -3036,10 +3465,10 @@ void	zco_strip(Sdr sdr, Object zco)
 		{
 			/*	Delete the extent.  Note that the
 			 *	applicable occupancy account is
-			 *	updated only per the lien or object
-			 *	reference to which this extent points,
-			 *	so the fact that extent.length is now
-			 *	zero doesn't mess up the accounting.	*/
+			 *	updated only per the lien to which
+			 *	this extent points, so the fact
+			 *	that extent.length is now zero
+			 *	doesn't mess up the accounting.		*/
 
 			destroyExtentText(sdr, &extent, zcoBuf.acct);
 			sdr_free(sdr, obj);

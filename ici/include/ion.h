@@ -263,6 +263,7 @@ typedef PsmAddress	ReqTicket;
 typedef struct
 {
 	vast		fileSpaceNeeded;
+	vast		bulkSpaceNeeded;
 	vast		heapSpaceNeeded;
 	sm_SemId	semaphore;
 	int		secondsUnclaimed;
@@ -327,6 +328,7 @@ extern void		ionResumeAttendant(ReqAttendant *attendant);
 extern void		ionStopAttendant(ReqAttendant *attendant);
 extern int		ionRequestZcoSpace(ZcoAcct acct,
 					vast fileSpaceNeeded,
+					vast bulkSpaceNeeded,
 					vast heapSpaceNeeded,
 					unsigned char coarsePriority,
 					unsigned char finePriority,
