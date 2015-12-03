@@ -150,8 +150,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	 *	must also be a neighbor.  The only way to guarantee
 	 *	this is to use only direct transmission plans
 	 *	(in the IPN routing database) for forwarding
-	 *	bundles; CGR and static routing groups are of
-	 *	no use.							*/
+	 *	bundles; CGR and static routing exits are of no use.	*/
 
 	if (enqueueToNeighbor(bundle, bundleObj, nodeNbr) < 0)
 	{

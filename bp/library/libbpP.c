@@ -4137,12 +4137,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 
 	if (cloCmd)
 	{
-		if (*cloCmd == '&')	/*	Eureka: TCPCL thread.	*/
-		{
-			discovered = 1;
-			cloCmd = NULL;
-		}
-		else if (*cloCmd == '\0')
+		if (*cloCmd == '\0')
 		{
 			cloCmd = NULL;
 		}
@@ -4311,6 +4306,11 @@ int	removeOutduct(char *protocolName, char *ductName)
 	Outduct		outductBuf;
 
 	CHKERR(protocolName && ductName);
+	if (*protocolName == 0 || *ductName == 0)
+	{
+		writeMemoNote("[?] Zero-length Outduct parm(s)", ductName);
+		return 0;
+	}
 
 	/*	Must stop the outduct before trying to remove it.	*/
 
@@ -4344,10 +4344,16 @@ int	removeOutduct(char *protocolName, char *ductName)
 
 	/*	Okay to remove this duct from the database.  First,
 	 *	remove all references to this duct from all routing
-	 *	databases.						*/
+	 *	databases (unless this is a tcpcl outduct).		*/
 
-	dtn2_forgetOutduct(ductElt);
-	ipn_forgetOutduct(ductElt);
+	if (strcmp(protocolName, "tcp") != 0)
+	{
+		/*	Note: for tcpcl, plans are managed directly and
+		 *	that management controls outduct management.	*/
+
+		dtn2_forgetOutduct(ductElt);
+		ipn_forgetOutduct(ductElt);
+	}
 
 	/*	Next remove the duct's volatile state.			*/
 

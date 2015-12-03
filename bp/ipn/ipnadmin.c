@@ -114,23 +114,31 @@ static int	parseDuctExpression(char *token, DuctExpression *expression)
 		return 0;
 	}
 
-	*cursor = '\0';		/*	Delimit protocol name.	*/
+	*cursor = '\0';			/*	Delimit protocol name.	*/
 	cursor++;
 	outductName = cursor;
+	if (strcmp(protocolName, "tcp") == 0)
+	{
+		/*	tcpcli manages these outducts.			*/
+
+		expression->outductElt = 0;
+		expression->destDuctName = outductName;
+		return 1;
+	}
 
 	/*	If there's a destination duct name, note end of
-	 *	outduct name and start of destination duct name.*/
+	 *	outduct name and start of destination duct name.	*/
 
-	cursor = strchr(cursor, ',');
+	cursor = strchr(outductName, ',');
 	if (cursor == NULL)
 	{
-		/*	End of token delimits outduct name.	*/
+		/*	End of token delimits outduct name.		*/
 
 		expression->destDuctName = NULL;
 	}
 	else
 	{
-		*cursor = '\0';	/*	Delimit outduct name.	*/
+		*cursor = '\0';		/*	Delimit outduct name.	*/
 		cursor++;
 		expression->destDuctName = cursor;
 	}

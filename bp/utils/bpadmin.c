@@ -172,6 +172,13 @@ static void	executeStart(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not started; these are now \
+managed automatically by tcpcli, based on egress plans.");
+			return;
+		}
+
 		bpStartOutduct(tokens[2], tokens[3]);
 		return;
 	}
@@ -201,6 +208,13 @@ static void	executeStop(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not stopped; these are now \
+managed automatically by tcpcli, based on egress plans.");
+			return;
+		}
+
 		bpStopOutduct(tokens[2], tokens[3]);
 		return;
 	}
@@ -316,6 +330,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not added; these are now \
+managed automatically by tcpcli, based on egress plans.");
+			return;
+		}
+
 		addOutduct(tokens[2], tokens[3], tokens[4], maxPayloadLength);
 		return;
 	}
@@ -406,6 +427,13 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not updated; these are now \
+managed automatically by tcpcli, based on egress plans.");
+			return;
+		}
+
 		updateOutduct(tokens[2], tokens[3], tokens[4], maxPayloadLen);
 		return;
 	}
@@ -474,6 +502,13 @@ static void	executeDelete(int tokenCount, char **tokens)
 		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not removed; these are now \
+managed automatically by tcpcli, based on egress plans.");
 			return;
 		}
 
@@ -1069,6 +1104,13 @@ static void	executeBlock(int tokenCount, char **tokens)
 			return;
 		}
 
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not blocked; these are now \
+managed automatically by tcpcli, based on egress plans.");
+			return;
+		}
+
 		oK(bpBlockOutduct(tokens[2], tokens[3]));
 		return;
 	}
@@ -1089,6 +1131,13 @@ static void	executeUnblock(int tokenCount, char **tokens)
 		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
+			return;
+		}
+
+		if (strcmp(tokens[2], "tcp") == 0)
+		{
+			printText("tcpcl outduct not unblocked; these are now \
+managed automatically by tcpcli, based on egress plans.");
 			return;
 		}
 
@@ -1115,7 +1164,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	heapmax = strtoul(tokens[2], NULL, 0);
 	if (heapmax < 560)
 	{
-		writeMemoNote("[?] heapmax must be at least 560", tokens[2]);
+		printText("heapmax must be at least 560.");
 		return;
 	}
 

@@ -542,7 +542,6 @@ typedef struct
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
 	int		blocked;	/*	Boolean			*/
-	int		discovered;	/*	Boolean			*/
 	Object		protocol;	/*	back-reference		*/
 	Object		stats;		/*	OutductStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
@@ -585,7 +584,7 @@ typedef struct
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
 	int		nominalRate;	/*	Bytes per second.	*/
-	int		protocolClass;
+	int		protocolClass;	/*	QoS provided.		*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
@@ -820,7 +819,7 @@ typedef enum
 typedef struct
 {
 	FwdAction	action;
-	int		protocolClass;
+	int		protocolClass;	/*	Required QoS.		*/
 	Object		outductElt;	/*	sdrlist elt for xmit	*/
 	Object		destDuctName;	/*	sdrstring for xmit	*/
 	Object		eid;		/*	sdrstring for fwd	*/

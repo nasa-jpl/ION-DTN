@@ -222,18 +222,10 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] stcpclo is running....");
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
-		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
+		if (!(maxPayloadLengthKnown(vduct, &maxPayloadLength)))
 		{
-		case -1:
-			sm_SemEnd(stcpcloSemaphore(NULL));
-			continue;
-
-		case 0:			/*	Unknown; try again.	*/
 			snooze(1);
 			continue;
-
-		default:		/*	maxPayloadLength known.	*/
-			break;		/*	Out of switch.		*/
 		}
 
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,

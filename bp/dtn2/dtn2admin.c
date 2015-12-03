@@ -131,41 +131,58 @@ static int	parseDirective(char *actionToken, char *parmToken,
 			return 0;
 		}
 
-		*cursor = '\0';
+		*cursor = '\0';		/*	Delimit protocol name.	*/
 		cursor++;
 		outductName = cursor;
-		cursor = strchr(cursor, ',');
-		if (cursor == NULL)
+		if (strcmp(protocolName, "tcp") == 0)
 		{
-			destDuctName = NULL;
-			dir->destDuctName = 0;
+			/*	tcpcli manages these outducts.		*/
+
+			dir->outductElt = 0;
+			destDuctName = outductName;
+			dir->protocolClass = BP_PROTOCOL_RELIABLE;
 		}
 		else
 		{
-			*cursor = '\0';
-			cursor++;
-			destDuctName = cursor;
-			if (strlen(destDuctName) >= SDRSTRING_BUFSZ)
+			cursor = strchr(cursor, ',');
+			if (cursor == NULL)
 			{
-				putErrmsg("Destination duct name is too long.",
-						destDuctName);
-				return 0;
+				/*	End of token delimits outduct
+				 *	name.				*/
+
+				destDuctName = NULL;
+				dir->destDuctName = 0;
+			}
+			else	/*	Delimit outduct name.		*/
+			{
+				*cursor = '\0';
+				cursor++;
+				destDuctName = cursor;
+				findOutduct(protocolName, outductName, &vduct,
+						&vductElt);
+				if (vductElt == 0)
+				{
+					putErrmsg("Unknown outduct.",
+						outductName);
+					return 0;
+				}
+
+				dir->outductElt = vduct->outductElt;
+				outductAddr = sdr_list_data(sdr,
+						dir->outductElt);
+				GET_OBJ_POINTER(sdr, Outduct, outduct,
+						outductAddr);
+				GET_OBJ_POINTER(sdr, ClProtocol, protocol,
+						outduct->protocol);
+				dir->protocolClass = protocol->protocolClass;
 			}
 		}
 
-		findOutduct(protocolName, outductName, &vduct, &vductElt);
-		if (vductElt == 0)
+		if (destDuctName == NULL)
 		{
-			putErrmsg("Unknown outduct.", outductName);
-			return 0;
+			dir->destDuctName = 0;
 		}
-
-		dir->outductElt = vduct->outductElt;
-		outductAddr = sdr_list_data(sdr, dir->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
-		dir->protocolClass = protocol->protocolClass;
-		if (destDuctName)
+		else
 		{
 			CHKZERO(sdr_begin_xn(sdr));
 			dir->destDuctName = sdr_string_create(sdr,
