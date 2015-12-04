@@ -60,13 +60,12 @@ typedef struct
 	pthread_t		sender;
 	pthread_t		receiver;
 	pthread_mutex_t		mutex;
-	sm_SemId		*eobSemaphore;	/*	End of bundle.	*/
-	VInduct			*vduct;
+	VInduct			*induct;
+	VOutduct		*outduct;
 
 	/*	TCPCL exchange state.					*/
 
-	vast			outboundLength;	/*	Curr. outbound.	*/
-	vast			lengthAcked;	/*	Curr. outbound.	*/
+	Lyst			pipeline;	/*	All outbound.	*/
 	vast			inboundLength;	/*	Curr. inbound.	*/
 	vast			lengthReceived;	/*	Curr. inbound.	*/
 	int			secUntilKeepalive;
@@ -75,6 +74,7 @@ typedef struct
 	int			secSinceReception;
 	int			timeoutCount;
 	int			mustDelete;	/*	Boolean		*/
+	int			stopTcpcli;	/*	Boolean		*/
 
 	/*	TCPCL control parameters.				*/
 
@@ -96,7 +96,20 @@ static void	interruptThread()
 	ionKillMainThread("tcpcli");
 }
 
+static char	procName()
+{
+	return "tcpcli";
+}
+
 /*	*	*	Contact management functions	*	*	*/
+
+static void	abandonConnection(TcpclConnection *connection)
+{
+	oK(bpBlockOutduct("tcp", connection->destDuctName));
+	closesocket(connection->sock);
+	connection->sock = -1;
+	connection->secUntilReconnect = connection->reconnectInterval;
+}
 
 static int	sendContactHeader(TcpclConnection *connection)
 {
@@ -138,12 +151,11 @@ static int	sendContactHeader(TcpclConnection *connection)
 	switch (result)
 	{
 	case -1;
-		connection->mustDelete = 1;
+		connection->stopTcpcli = 1;
 		return -1;
 
 	case 0:		/*	Lost the TCP connection.		*/
-		connection->sock = -1;
-		connection->secUntilReconnect = connection->reconnectInterval;
+		abandonConnection(connection);
 		return 0;
 
 	default:
@@ -155,6 +167,7 @@ static void	sendShutdown(TcpclConnection *connection, char reason)
 {
 	char	shutdown[2];
 	int	len;
+	int	result;
 
 	if (connection->sock == -1)	/*	Nothing to send.	*/
 	{
@@ -176,6 +189,16 @@ static void	sendShutdown(TcpclConnection *connection, char reason)
 	pthread_mutex_lock(&(connection->mutex));
 	result = itcp_send(connection->sock, shutdown, len);
 	pthread_mutex_unlock(&(connection->mutex));
+	switch (result)
+	{
+	case -1:
+		connection->stopTcpcli = 1;
+		break;
+
+	case 0:
+		closesocket(connection->sock);
+		connection->sock = -1;
+	}
 }
 
 static int	receiveSdnv(TcpclConnection *connection, uvast *val)
@@ -210,14 +233,17 @@ static int	receiveSdnv(TcpclConnection *connection, uvast *val)
 		case -1:
 			if (errno == EINTR)	/*	Shutdown.	*/
 			{
+				abandonConnection(connection);
 				return 0;
 			}
 
 			putSysErrmsg("irecv() error on TCP socket",
 					connection->destDuctName);
+			connection->stopTcpcli = 1;
 			return -1;
 
 		case 0:			/*	Connection closed.	*/
+			abandonConnection(connection);
 			return 0;
 
 		default:
@@ -241,26 +267,31 @@ static int	receiveSdnv(TcpclConnection *connection, uvast *val)
 static int	receiveContactHeader(TcpclConnection *connection,
 			Lyst connections)
 {
-	int		result;
 	unsigned char	header[8];
 	unsigned short	keepaliveInterval;
 	uvast		eidLength;
 	char		*eidbuf;
 
-	result = itcp_recv(connection->sock, (char *) header, sizeof header);
-	if (result < sizeof header)
+	switch (itcp_recv(connection->sock, (char *) header, sizeof header))
 	{
+	case -1:
+		putSysErrmsg("irecv() error on TCP socket",
+				connection->destDuctName);
+		connection->stopTcpcli = 1;
+		return -1;
+
+	case 0:
 		putErrmsg("Can't get TCPCL contact header.",
 				connection->destDuctName);
-		connection->mustDelete = 1;
-		return result;
+		abandonConnection(connection);
+		return 0;
 	}
 
 	if (memcmp(header, "dtn!", 4) != 0)
 	{
 		writeMemoNote("[?] Invalid TCPCL contact header",
 				connection->destDuctName);
-		connection->mustDelete = 1;
+		abandonConnection(connection);
 		return 0;
 	}
 
@@ -269,7 +300,7 @@ static int	receiveContactHeader(TcpclConnection *connection,
 		oK(sendShutdown(connection, 0x01));
 		writeMemoNote("[?] Invalid TCPCL contact header",
 				connection->destDuctName);
-		connection->mustDelete = 1;
+		abandonConnection(connection);
 		return 0;
 	}
 
@@ -303,11 +334,18 @@ static int	receiveContactHeader(TcpclConnection *connection,
 		connection->secUntilKeepalive = connection->keepaliveInterval;
 	}
 
-	if (receiveSdnv(connection, &eidLength) < 1)
+	switch (receiveSdnv(connection, &eidLength))
 	{
+	case -1:
+		putSysErrmsg("irecv() error on TCP socket",
+				connection->destDuctName);
+		connection->stopTcpcli = 1;
+		return -1;
+
+	case 0:
 		putErrmsg("Can't get EID length in TCPCL contact header",
 				connection->destDuctName);
-		connection->mustDelete = 1;
+		abandonConnection(connection);
 		return 0;
 	}
 
@@ -315,17 +353,23 @@ static int	receiveContactHeader(TcpclConnection *connection,
 	if (eidbuf == NULL)
 	{
 		putErrmsg("Not enough memory for EID.", utoa(eidLength));
-		connection->mustDelete = 1;
+		connection->stopTcpcli = 1;
 		return -1;
 	}
 
-	result = itcp_recv(connection->sock, eidbuf, eidLength);
-	if (result < eidLength)
+	switch (itcp_recv(connection->sock, eidbuf, eidLength))
 	{
+	case -1:
+		putSysErrmsg("irecv() error on TCP socket",
+				connection->destDuctName);
+		connection->stopTcpcli = 1;
+		return -1;
+
+	case 0:
 		putErrmsg("Can't get TCPCL contact header EID.",
 				connection->destDuctName);
-		connection->mustDelete = 1;
-		return result;
+		abandonConnection(connection);
+		return 0;
 	}
 
 	eidbuf[eidLength] = '\0';
@@ -339,7 +383,7 @@ static int	receiveContactHeader(TcpclConnection *connection,
 		{
 			writeMemoNote("[?] EIDs don't match",
 					connection->destDuctName);
-			connection->mustDelete = 1;
+			abandonConnection(connection);
 			result = 0;
 		}
 
@@ -356,14 +400,13 @@ static int	receiveContactHeader(TcpclConnection *connection,
 		{
 			MRELEASE(eidbuf);
 			writeMemoNote("[?] Duplicate connection for EID",
-					connection->eid;
-			connection->mustDelete = 1;
+					connection->eid);
+			abandonConnection(connection);
 			result = 0;
 		}
 	}
 
 	connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
-	connection->secUntilReconnect = -1;
 	connection->keepaliveCount = 0;
 	return result;
 }
@@ -384,6 +427,7 @@ static int	reconnect(TcpclConnection *connection, Lyst connections)
 	{
 	case -1:		/*	System failure.			*/
 		putErrmsg("tcpcli failed on TCP reconnect.", connection->eid);
+		connection->stopTcpcli = 1;
 		return -1;
 
 	case 0:			/*	Connection still refused.	*/
@@ -439,43 +483,38 @@ typedef struct
 	Lyst			connections;
 	TcpclConnection		*connection;
 	char			*buffer;
-	VOutduct		*vduct;
 	Outflow			outflows[3];
 } SenderThreadParms;
 
-static int	discardBundle(Object *bundleZco)
+static int	discardBundle(TcpclConnection *connection, Object bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-	int	result = 0;
 
-	if (bpHandleXmitFailure(*bundleZco) < 0)
+	if (bpHandleXmitFailure(bundleZco) < 0)
 	{
 		putErrmsg("tcpcli can't handle bundle xmit failure.", NULL);
-		result = -1;
+		connection->stopTcpcli = 1;
+		return -1;
 	}
-	else
+
+	/*	Destroy bundle, unless there's stewardship or custody.	*/
+
+	oK(sdr_begin_xn(sdr));
+	zco_destroy(sdr, bundleZco);
+	if (sdr_end_xn(sdr) < 0)
 	{
-		/*	Destroy bundle, unless there's stewardship
-		 *	or custody.					*/
-
-		oK(sdr_begin_xn(sdr));
-		zco_destroy(sdr, *bundleZco);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("tcpcli can't destroy bundle ZCO.", NULL);
-			result = -1;
-		}
+		putErrmsg("tcpcli can't destroy bundle ZCO.", NULL);
+		connection->stopTcpcli = 1;
+		return -1;
 	}
 
-	*bundle = 0;
-	sm_SemGive(stp->connection->eobSemaphore);
-	return result;
+	return 0;
 }
 
-static int	sendBundleByTcpcl(SenderThreadParms *stp, Object *bundleZco)
+static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 {
 	Sdr		sdr = getIonsdr();
-	int		result;
+	TcpclConnection	*connection = stp->connection;
 	uvast		bytesRemaining;
 	int		flags;
 	ZcoReader	reader;
@@ -486,27 +525,21 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object *bundleZco)
 	char		segHeader[4];
 	int		segHeaderLength;
 
-	if (stp->connection->sock == -1)	/*	Disconnected.	*/
+	if (connection->sock == -1)	/*	Disconnected.	*/
 	{
-		result = reconnect(stp->connection, stp->connections);
-		switch (result)
+		switch (reconnect(connection, stp->connections))
 		{
 		case -1:
-			return result;
+			return -1;
 
 		case 0:
 			return discardBundle(bundleZco);
-
-		default:			/*	Reconnected.	*/
-			break;			/*	Out of switch.	*/
 		}
 	}
 
 	zco_start_transmitting(bundleZco, &reader);
 	zco_track_file_offset(&reader);
 	bytesRemaining = zco_length(sdr, bundleZco);
-	stp->connection->outboundLength = bytesRemaining;
-	stp->connection->lengthAcked = 0;
 	flags = 0x02;				/*	1st segment.	*/
 	while (bytesRemaining > 0)
 	{
@@ -525,22 +558,31 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object *bundleZco)
 		encodeSdnv(&segLengthSdnv, bytesToSend);
 		memcpy(segHeader + 1, segLengthSdnv.text, segLengthSdnv.length);
 		segHeaderLength = 1 + segLengthSdnv.length;
-		pthread_mutex_lock(&(stp->connection->mutex));
-		switch (itpc_send(stp->connection->sock, segHeader,
+		pthread_mutex_lock(&(connection->mutex));
+		switch (itpc_send(connection->sock, segHeader,
 				segHeaderLength))
 		{
 		case -1:			/*	System failed.	*/
-			pthread_mutex_unlock(&(stp->connection->mutex));
-			return result;
+			pthread_mutex_unlock(&(connection->mutex));
+			putSysErrmsg("itcp_send() error",
+					connection->destDuctName);
+			connection->stopTcpcli = 1;
+			return -1;
 
 		case 0:
+			pthread_mutex_unlock(&(connection->mutex));
 			writeMemoNote("[?] tcpcl connection lost",
-					stp->eid);
-			pthread_mutex_unlock(&(stp->connection->mutex));
-			return discardBundle(bundleZco);
+					connection->eid);
+			if (discardBundle(bundleZco) < 0)
+			{
+				putSysErrmsg("failed discarding bundle",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+			}
 
-		default:
-			break;			/*	Sent header.	*/
+			abandonConnection(connection);
+			return 0;
 		}
 
 		CHKERR(sdr_begin_xn(sdr));
@@ -548,47 +590,57 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object *bundleZco)
 				stp->buffer);
 		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
 		{
+			pthread_mutex_unlock(&(connection->mutex));
 			putErrmsg("Incomplete zco_transmit.", NULL);
-			pthread_mutex_unlock(&(stp->connection->mutex));
+			connection->stopTcpcli = 1;
 			return -1;
 		}
 
-		switch (itpc_send(stp->connection->sock, stp->buffer,
-				bytesToSend))
+		switch (itpc_send(connection->sock, stp->buffer, bytesToSend))
 		{
 		case -1:			/*	System failed.	*/
-			pthread_mutex_unlock(&(stp->connection->mutex));
-			return result;
+			pthread_mutex_unlock(&(connection->mutex));
+			putSysErrmsg("itcp_send() error",
+					connection->destDuctName);
+			connection->stopTcpcli = 1;
+			return -1;
 
 		case 0:
+			pthread_mutex_unlock(&(connection->mutex));
 			writeMemoNote("[?] tcpcl connection lost",
-					stp->eid);
-			pthread_mutex_unlock(&(stp->connection->mutex));
-			return discardBundle(bundleZco);
+					connection->eid);
+			if (discardBundle(bundleZco) < 0)
+			{
+				putSysErrmsg("failed discarding bundle",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+			}
 
-		default:
-			break;			/*	Sent content.	*/
+			abandonConnection(connection);
+			return 0;
 		}
 
-		pthread_mutex_unlock(&(stp->connection->mutex));
+		pthread_mutex_unlock(&(connection->mutex));
 		flags = 0x00;			/*	No longer 1st.	*/
 		bytesRemaining -= bytesToSend;
 	}
 
-	return 0;
+	return 1;	/*	Bundle was successfully sent.		*/
 }
 
-static int	sendOneBundle(SenderThreadParms *stp, Object *bundleZco)
+static int	sendOneBundle(SenderThreadParms *stp)
 {
 	unsigned int	maxPayloadLength;
+	TcpclConnection	*connection = stp->connection;
+	Object		bundleZco;
 	BpExtendedCOS	extendedCOS;
-	int		result;
 
 	while (1)
 	{
 		/*	Loop until max payload length is known.		*/
 
-		if (!(maxPayloadLengthKnown(stp->vduct, &maxPayloadLength)))
+		if (!(maxPayloadLengthKnown(stp->outduct, &maxPayloadLength)))
 		{
 			snooze(1);
 			continue;
@@ -596,26 +648,26 @@ static int	sendOneBundle(SenderThreadParms *stp, Object *bundleZco)
 
 		/*	If outduct has meanwhile been closed, quit.	*/
 
-		if (sm_SemEnded(stp->vduct->semaphore))
+		if (sm_SemEnded(stp->outduct->semaphore))
 		{
 			writeMemoNote("[i] tcpcli outduct closed",
-					stp->connection->destDuctName);
-			stp->connection->mustDelete = 1;
+					connection->destDuctName);
+			connection->mustDelete = 1;
 			stp->running = 0;
 			return 0;
 		}
 
 		/*	Get the next bundle to send.			*/
 
-		if (bpDequeue(stp->vduct, stp->outflows, bundleZco,
-				&extendedCOS, stp->connection->destDuctName,
+		if (bpDequeue(stp->outduct, stp->outflows, &bundleZco,
+				&extendedCOS, connection->destDuctName,
 				maxPayloadLength, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			return -1;
 		}
 
-		if (*bundleZco == 0)		/*	Interrupted.	*/
+		if (bundleZco == 0)		/*	Interrupted.	*/
 		{
 			continue;		/*	Try again.	*/
 		}
@@ -629,39 +681,24 @@ static int	sendOneBundle(SenderThreadParms *stp, Object *bundleZco)
 static void	*sendBundles(void *parm)
 {
 	SenderThreadParms	*stp = (SenderThreadParms *) parm;
+	TcpclConnection		*connection = stp->connection;
 	Sdr			sdr = getIonsdr();
-	char			*procName = "tcpcli";
-	PsmAddress		vductElt;
 	Outduct			duct;
 	int			i;
-	Object			bundleZco = 0;
-	int			result;
 
 	/*	Load other required sender thread parms.		*/
 
 	stp->buffer = MTAKE(TCPCLA_BUFSZ);
 	if (stp->buffer == NULL)
 	{
-		putErrmsg("No memory for TCP buffer.", stp->connection->eid);
-		ionKillMainThread(procName);
+		putErrmsg("No memory for TCP buffer.", connection->eid);
+		ionKillMainThread(procName());
 		stp->running = 0;
 		return NULL;
 	}
 
-	findOutduct("tcp", stp->connection->destDuctName, &(stp->vduct),
-			&vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("No such tcp duct.", stp->connection->destDuctName);
-		ionKillMainThread(procName);
-		stp->running = 0;
-		return NULL;
-	}
-
-	CHKNULL(sdr_begin_xn(sdr));	/*	Lock the heap.		*/
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr,
-			stp->vduct->outductElt), sizeof(Outduct));
-	sdr_exit_xn(sdr);
+			connection->outduct->outductElt), sizeof(Outduct));
 	memset((char *) (stp->outflows), 0, sizeof stp->outflows);
 	stp->outflows[0].outboundBundles = duct.bulkQueue;
 	stp->outflows[1].outboundBundles = duct.stdQueue;
@@ -675,85 +712,27 @@ static void	*sendBundles(void *parm)
 
 	while (stp->running)
 	{
-		/*	First, handle result of previous bundle
-		 *	transmission, if any.				*/
-
-		if (sm_SemTake(stp->connection->eobSemaphore) < 0)
+		switch (sendOneBundle(stp, &bundleZco))
 		{
-			putErrmsg("Failed taking eob semaphore.", NULL);
-			ionKillMainThread(procName);
-			stp->running = 0;
-			continue;
-		}
-
-		if (sm_SemEnded(stp->connection->eobSemaphore))
-		{
-			writeMemoNote("[i] tcpcli sender thread stopped",
-					stp->connection->eid);
-			stp->running = 0;
-			continue;
-		}
-
-		/*	(Final acknowledgment of previously sent
-		 *	bundle, if any, has been received -- or
-		 *	the connection has been lost.)			*/
-
-		if (bundleZco)
-		{
-			if (stp->connection.lengthAcked ==
-					stp->connection->outboundLength)
-			{
-				result = bpHandleXmitSuccess(bundleZco, 0);
-			}
-			else	/*	Incomplete transmission.	*/
-			{
-				result = bpHandleXmitFailure(bundleZco);
-			}
-
-			/*	Destroy bundle, unless there's
-			 *	stewardship or custody.			*/
-
-			oK(sdr_begin_xn(sdr));
-			zco_destroy(sdr, bundleZco);
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't destroy bundle ZCO.", NULL);
-				ionKillMainThread(procName);
-				stp->running = 0;
-				continue;
-			}
-
-			if (result < 0)
-			{
-				putErrmsg("Can't handle xmit result.", NULL);
-				ionKillMainThread(procName);
-				stp->running = 0;
-				continue;
-			}
-		}
-
-		/*	Now send the next bundle in the queue.		*/
-
-		if (sendOneBundle(stp, &bundleZco) < 0)
-		{
+		case -1:
 			putErrmsg("tcpcli failed sending bundle.", NULL);
-			ionKillMainThread(procName);
+			ionKillMainThread(procName());
 			stp->running = 0;
 			continue;
-		}
 
-		/*	Reset keepalive countdown.			*/
+		case 1:	/*	Successful transmission.		*/
+			/*	Reset keepalive countdown.		*/
 
-		if (stp->connection->keepaliveInterval > 0)
-		{
-			stp->connection->secUntilKeepalive =
-					stp->connection->keepaliveInterval;
+			if (connection->keepaliveInterval > 0)
+			{
+				connection->secUntilKeepalive =
+						connection->keepaliveInterval;
+			}
 		}
 	}
 
 	writeErrmsgMemos();
-	writeMemoNote("[i] tcpcli sender thread has ended.",
-			stp->connection->eid);
+	writeMemoNote("[i] tcpcli sender thread has ended.", connection->eid);
 	MRELEASE(stp->buffer);
 	MRELEASE(stp);
 	return NULL;
@@ -773,11 +752,47 @@ typedef struct
 static int	handleDataSegment(ReceiverThreadParms *rtp,
 			unsigned char msgtypeByte)
 {
+	TcpclConnection	*connection = rtp->connection;
+	uvast		dataLength;
+
+	if (receiveSdnv(connection, &dataLength) < 1)
+	{
+	}
 }
 
 static int	handleAck(ReceiverThreadParms *rtp,
 			unsigned char msgtypeByte)
 {
+			if (stp->connection.lengthAcked ==
+					stp->connection->outboundLength)
+			{
+				result = bpHandleXmitSuccess(bundleZco, 0);
+			}
+			else	/*	Incomplete transmission.	*/
+			{
+				result = bpHandleXmitFailure(bundleZco);
+			}
+
+			/*	Destroy bundle, unless there's
+			 *	stewardship or custody.			*/
+
+			oK(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy bundle ZCO.", NULL);
+				ionKillMainThread(procName());
+				stp->running = 0;
+				continue;
+			}
+
+			if (result < 0)
+			{
+				putErrmsg("Can't handle xmit result.", NULL);
+				ionKillMainThread(procName());
+				stp->running = 0;
+				continue;
+			}
 }
 
 static int	handleRefusal(ReceiverThreadParms *rtp,
@@ -800,54 +815,11 @@ static int	handleLength(ReceiverThreadParms *rtp,
 {
 }
 
-static void	*handleMessages(void *parm)
+static void	*handleMessages(ReceiverThreadParms *rtp)
 {
-	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
-	char			*procName = "tcpcli";
-	TcpclConnection		*connection;
+	TcpclConnection		*connection = rtp->connection;
 	unsigned char		msgtypeByte;
 	int			msgType;
-
-	/*	Load other required receiver thread parms.		*/
-
-	rtp->work = bpGetAcqArea(rtp->connection->vduct);
-	if (rtp->work == NULL)
-	{
-		putErrmsg("tcpcli can't get acquisition work area.",
-				rtp->connection->destDuctName);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	rtp->buffer = MTAKE(TCPCLA_BUFSZ);
-	if (rtp->buffer == NULL)
-	{
-		putErrmsg("No memory for TCP buffer.",
-				rtp->connection->destDuctName);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	connection = rtp->connection;
-	if (sendContactHeader(connection) < 1)
-	{
-		writeErrmsgMemos();
-		writeMemoNote("[i] tcpcli failed sending contact header.",
-				connection->destDuctName);
-		MRELEASE(rtp->buffer);
-		MRELEASE(rtp);
-		return NULL;
-	}
-
-	if (receiveContactHeader(connection, rtp->connections) < 1)
-	{
-		writeErrmsgMemos();
-		writeMemoNote("[i] tcpcli failed receiving contact header.",
-				connection->destDuctName);
-		MRELEASE(rtp->buffer);
-		MRELEASE(rtp);
-		return NULL;
-	}
 
 	while (rtp->running)
 	{
@@ -858,72 +830,112 @@ static void	*handleMessages(void *parm)
 			{
 				putSysErrmsg("irecv() error on TCP socket",
 						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
 			}
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:			/*	Connection closed.	*/
-			connection->mustDelete = 1;
-			rtp->running = 0;
-			continue;
-
-		default:
-			break;		/*	Out of switch.		*/
+			abandonConnection(connection);
+			return 0;
 		}
 
 		msgType = (msgtypeByte >> 4) & 0x0f;
 		switch (msgType);
 		{
 		case 0x01:
-			if (handleDataSegment(rtp, msgtypeByte) < 1)
+			switch (handleDataSegment(rtp, msgtypeByte))
 			{
-				connection->mustDelete = 1;
-				rtp->running = 0;
+			case -1:
+				putErrmsg("tcpcli segment handling error.",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+
+			case 0:		/*	Connection closed.	*/
+				abandonConnection(connection);
+				return 0;
 			}
 
 			continue;
 
-		case 0x01:
-			if (handleAck(rtp, msgtypeByte) < 1)
+		case 0x02:
+			switch (handleAck(rtp, msgtypeByte))
 			{
-				connection->mustDelete = 1;
-				rtp->running = 0;
+			case -1:
+				putErrmsg("tcpcli segment handling error.",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+
+			case 0:		/*	Connection closed.	*/
+				abandonConnection(connection);
+				return 0;
 			}
 
 			continue;
 
-		case 0x01:
-			if (handleRefusal(rtp, msgtypeByte) < 1)
+		case 0x03:
+			switch (handleRefusal(rtp, msgtypeByte))
 			{
-				connection->mustDelete = 1;
-				rtp->running = 0;
+			case -1:
+				putErrmsg("tcpcli segment handling error.",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+
+			case 0:		/*	Connection closed.	*/
+				abandonConnection(connection);
+				return 0;
 			}
 
 			continue;
 
-		case 0x01:
-			if (handleKeepalive(rtp, msgtypeByte) < 1)
+		case 0x04:
+			switch (handleKeepalive(rtp, msgtypeByte))
 			{
-				connection->mustDelete = 1;
-				rtp->running = 0;
+			case -1:
+				putErrmsg("tcpcli segment handling error.",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+
+			case 0:		/*	Connection closed.	*/
+				abandonConnection(connection);
+				return 0;
 			}
 
 			continue;
 
-		case 0x01:
-			if (handleShutdown(rtp, msgtypeByte) < 1)
+		case 0x05:
+			switch (handleShutdown(rtp, msgtypeByte))
 			{
-				connection->mustDelete = 1;
-				rtp->running = 0;
+			case -1:
+				putErrmsg("tcpcli segment handling error.",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+
+			case 0:		/*	Connection closed.	*/
+				abandonConnection(connection);
+				return 0;
 			}
 
 			continue;
 
-		case 0x01:
-			if (handleLength(rtp, msgtypeByte) < 1)
+		case 0x06:
+			switch (handleLength(rtp, msgtypeByte))
 			{
-				connection->mustDelete = 1;
-				rtp->running = 0;
+			case -1:
+				putErrmsg("tcpcli segment handling error.",
+						connection->destDuctName);
+				connection->stopTcpcli = 1;
+				return -1;
+
+			case 0:		/*	Connection closed.	*/
+				abandonConnection(connection);
+				return 0;
 			}
 
 			continue;
@@ -931,8 +943,8 @@ static void	*handleMessages(void *parm)
 		default:
 			writeMemoNote("[?] TCPCL unknown message type",
 					itoa(msgType));
-			connection->mustDelete = 1;
-			rtp->running = 0;
+			abandonConnection(connection);
+			return 0;
 		}
 	}
 
@@ -942,6 +954,96 @@ static void	*handleMessages(void *parm)
 	//	to IDLE_SHUTDOWN_INTERVAL.
 	//	On reception of segment or keepalive, reset
 	//	connection->secSinceReception to zero.
+}
+
+static void	*handleContacts(void *parm)
+{
+	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	TcpclConnection		*connection = rtp->connection;
+	unsigned char		msgtypeByte;
+	int			msgType;
+
+	/*	Load other required receiver thread parms.		*/
+
+	rtp->work = bpGetAcqArea(connection->induct);
+	if (rtp->work == NULL)
+	{
+		putErrmsg("tcpcli can't get acquisition work area.",
+				connection->destDuctName);
+		ionKillMainThread(procName());
+		return NULL;
+	}
+
+	rtp->buffer = MTAKE(TCPCLA_BUFSZ);
+	if (rtp->buffer == NULL)
+	{
+		putErrmsg("No memory for TCP buffer.",
+				connection->destDuctName);
+		ionKillMainThread(procName());
+		return NULL;
+	}
+
+	/*	Now loop through possibly multiple contact episodes.	*/
+
+	while (rtp->running)
+	{
+		if (connection->sock == -1)
+		{
+			switch (reconnect(connection, rtp->connections))
+			{
+			case -1:
+				ionKillMainThread(procName());
+				rtp->running = 0;
+				continue;
+
+			case 0:
+				snooze(1);
+				continue;
+			}
+		}
+		else	/*	Initial contact header exchange.	*/
+		{
+			switch (sendContactHeader(connection))
+			{
+			case -1:
+				putErrmsg("tcpcli can't send contact header.",
+						connection->destDuctName);
+				ionKillMainThread(procName());
+				rtp->running = 0;
+				continue;
+
+			case 0:
+				writeMemoNote("[i] tcpcli did not send \
+contact header.", connection->eid);
+				continue;
+			}
+
+			switch (receiveContactHeader(connection,
+					rtp->connections))
+			{
+			case -1:
+				putErrmsg("tcpcli can't get contact header.",
+						connection->destDuctName);
+				ionKillMainThread(procName());
+				rtp->running = 0;
+				continue;
+
+			case 0:
+				writeMemoNote("[i] tcpcli did not get \
+contact header.", connection->eid);
+				continue;
+			}
+		}
+
+		/*	Contact episode has begun.			*/
+
+		if (receiveMessages(connection) < 0)
+		{
+			ionKillMainThread(procName());
+			rtp->running = 0;
+			continue;
+		}
+	}
 
 	writeErrmsgMemos();
 	writeMemoNote("[i] tcpcli receiver thread has ended.",
@@ -954,9 +1056,34 @@ static void	*handleMessages(void *parm)
 	
 /*	*	*	Connection management functions	*	*	*/
 
-static int	beginConnection(Lyst connections, char *eid, int newSocket,
-			char *destDuctName, VInduct *vduct)
+static void	cancelXmit(LystElt elt, void *userdata)
 {
+	Sdr	sdr = getIonsdr();
+	Object	bundleZco = (Object) lyst_data(elt);
+
+	if (bpHandleXmitFailure(bundleZco) < 0)
+	{
+		putErrmsg("tcpcli connection closure can't handle failed xmit.",
+				NULL);
+		ionKillMainThread(procName());
+	}
+	else
+	{
+		ok(sdr_begin_xn(sdr));
+		zco_destroy(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("tcpcli can't destroy ZCO.", NULL);
+			ionKillMainThread(procName());
+		}
+	}
+}
+
+static int	beginConnection(Lyst connections, char *eid, int newSocket,
+			char *destDuctName, VInduct *induct)
+{
+	VOutduct		*outduct;
+	PsmAddress		vductElt;
 	TcpclConnection		*connection;
 	size_t			len = 0;
 	LystElt			connectionElt;
@@ -979,6 +1106,14 @@ static int	beginConnection(Lyst connections, char *eid, int newSocket,
 		break;			/*	Out of switch.		*/
 	}
 
+	findOutduct("tcp", destDuctName, &outduct, &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("Can't find newly added tcp duct.", destDuctName);
+		closesocket(newSocket);
+		return 0;		/*	Implementation error.	*/
+	}
+
 	connection = (TcpclConnection *) MTAKE(sizeof(TcpclConnection));
 	if (connection == NULL)
 	{
@@ -988,15 +1123,29 @@ static int	beginConnection(Lyst connections, char *eid, int newSocket,
 		return -1;
 	}
 
-	connection->reconnectInterval = 1;
-	connection->vduct = vduct;
 	pthread_mutex_init(&(connection->mutex), NULL);
+	connection->induct = induct;
+	connection->outduct = outduct;
+	connection->reconnectInterval = 1;
+	connection->pipeline = lyst_create_using(getIonMemoryMgr());
+	if (connection->pipeline == NULL)
+	{
+		pthread_mutex_destroy(&(connection->mutex));
+		MRELEASE(connection);
+		putErrmsg("tcpcli can't create pipeline list.", NULL);
+		removeOutduct("tcp", destDuctName);
+		closesocket(newSocket);
+		return -1;
+	}
+
+	lyst_delete_set(connection->pipeline, cancelXmit, NULL);
 	if (eid)
 	{
 		len = istrlen(eid, MAX_EID_LEN) + 1;
 		connection->eid = MTAKE(len);
 		if (connection->eid == NULL)
 		{
+			lyst_destroy(connection->pipeline);
 			pthread_mutex_destroy(&(connection->mutex));
 			MRELEASE(connection);
 			putErrmsg("tcpcli can't copy EID for new connection.",
@@ -1019,6 +1168,7 @@ static int	beginConnection(Lyst connections, char *eid, int newSocket,
 	if (connection->destDuctName == NULL)
 	{
 		if (connection->eid) MRELEASE(connection->eid);
+		lyst_destroy(connection->pipeline);
 		pthread_mutex_destroy(&(connection->mutex));
 		MRELEASE(connection);
 		putErrmsg("tcpcli can't copy socket spec for new connection.",
@@ -1034,6 +1184,7 @@ static int	beginConnection(Lyst connections, char *eid, int newSocket,
 	{
 		MRELEASE(connection->destDuctName);
 		if (connection->eid) MRELEASE(connection->eid);
+		lyst_destroy(connection->pipeline);
 		pthread_mutex_destroy(&(connection->mutex));
 		MRELEASE(connection);
 		putErrmsg("tcpcli can't allocate lyst element for new \
@@ -1049,6 +1200,7 @@ connection.", NULL);
 		lyst_delete(connectionElt);
 		MRELEASE(connection->destDuctName);
 		if (connection->eid) MRELEASE(connection->eid);
+		lyst_destroy(connection->pipeline);
 		pthread_mutex_destroy(&(connection->mutex));
 		MRELEASE(connection);
 		putErrmsg("tcpcli can't allocate new receiver parms.", NULL);
@@ -1067,6 +1219,7 @@ connection.", NULL);
 		lyst_delete(connectionElt);
 		MRELEASE(connection->destDuctName);
 		if (connection->eid) MRELEASE(connection->eid);
+		lyst_destroy(connection->pipeline);
 		pthread_mutex_destroy(&(connection->mutex));
 		MRELEASE(connection);
 		putErrmsg("tcpcli can't allocate new receiver parms.", NULL);
@@ -1078,31 +1231,14 @@ connection.", NULL);
 	stp->running = 1;
 	stp->connections = connections;
 	stp->connection = connection;
-	connection->eobSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-	if (connection->eobSemaphore == SM_SEM_NONE)
+	if (pthread_begin(&(connection->receiver), NULL, handleContacts, &rtp))
 	{
 		MRELEASE(stp);
 		MRELEASE(rtp);
 		lyst_delete(connectionElt);
 		MRELEASE(connection->destDuctName);
 		if (connection->eid) MRELEASE(connection->eid);
-		pthread_mutex_destroy(&(connection->mutex));
-		MRELEASE(connection);
-		putErrmsg("tcpcli can't create connection eobSemaphore.", NULL);
-		removeOutduct("tcp", destDuctName);
-		closesocket(newSocket);
-		return -1;
-	}
-
-	sm_SemTake(connection->eobSemaphore);		/*	Lock.	*/
-	if (pthread_begin(&(connection->receiver), NULL, handleMessages, &rtp))
-	{
-		sm_SemDelete(connection->eobSemaphore);
-		MRELEASE(stp);
-		MRELEASE(rtp);
-		lyst_delete(connectionElt);
-		MRELEASE(connection->destDuctName);
-		if (connection->eid) MRELEASE(connection->eid);
+		lyst_destroy(connection->pipeline);
 		pthread_mutex_destroy(&(connection->mutex));
 		MRELEASE(connection);
 		putSysErrmsg("tcpcli can't create new receiver thread", NULL);
@@ -1115,12 +1251,12 @@ connection.", NULL);
 	{
 		rtp->running = 0;
 		pthread_join(connection->receiver, NULL);
-		sm_SemDelete(connection->eobSemaphore);
 		MRELEASE(stp);
 		MRELEASE(rtp);
 		lyst_delete(connectionElt);
 		MRELEASE(connection->destDuctName);
 		if (connection->eid) MRELEASE(connection->eid);
+		lyst_destroy(connection->pipeline);
 		pthread_mutex_destroy(&(connection->mutex));
 		MRELEASE(connection);
 		putSysErrmsg("tcpcli can't create new sender thread", NULL);
@@ -1140,16 +1276,16 @@ connection.", NULL);
 
 static void	endConnection(TcpclConnection *connection, char reason)
 {
-	oK(blockOutduct("tcp", connection->destDuctName);
-	oK(removeOutduct("tcp", connection->destDuctName);
-	sm_SemEnd(connection->eobSemaphore);
-	pthread_join(connection->senderThread, NULL);
+	sm_SemEnd(connection->outduct->semaphore);
+	oK(blockOutduct("tcp", connection->destDuctName));
+	oK(removeOutduct("tcp", connection->destDuctName));
 	sendShutdown(connection, reason);
 	closesocket(connection->sock);
+	pthread_join(connection->senderThread, NULL);
 	pthread_join(connection->receiverThread, NULL);
-	sm_SemDelete(connection->eobSemaphore);
 	MRELEASE(connection->destDuctName);
 	if (connection->eid) MRELEASE(connection->eid);
+	lyst_destroy(connection->pipeline);
 	pthread_mutex_destroy(&(connection->mutex));
 	MRELEASE(connection);
 }
@@ -1173,10 +1309,10 @@ static void	shutDownConnections(Lyst connections)
 
 typedef struct
 {
+	int		serverSocket;
+	VInduct		*induct;
 	int		*running;
 	Lyst		connections;
-	int		serverSocket;
-	VInduct		*vduct;
 } ServerThreadParms;
 
 static void	*spawnReceivers(void *parm)
@@ -1186,7 +1322,6 @@ static void	*spawnReceivers(void *parm)
 
 	ServerThreadParms	*stp = (ServerThreadParms *) parm;
 	Sdr			sdr = getIonsdr();
-	char			*procName = "tcpcli";
 	socklen_t		nameLength;
 	int			newSocket;
 	struct sockaddr		socketName;
@@ -1195,7 +1330,6 @@ static void	*spawnReceivers(void *parm)
 	ReceiverThreadParms	*parms;
 	LystElt			elt;
 	pthread_t		thread;
-
 	
 	snooze(1);	/*	Let main thread become interruptable.	*/
 
@@ -1210,7 +1344,7 @@ static void	*spawnReceivers(void *parm)
 		if (newSocket < 0)
 		{
 			putSysErrmsg("tcpcli accept() failed", NULL);
-			ionKillMainThread(procName);
+			ionKillMainThread(procName());
 			stp->running = 0;
 			continue;
 		}
@@ -1226,12 +1360,12 @@ static void	*spawnReceivers(void *parm)
 				ntohs(inetName->sin_port));
 		oK(sdr_begin_xn(sdr));
 		if (beginConnection(stp->connections, NULL, newSocket,
-				socketSpec, vduct) < 0)
+				socketSpec, stp->induct) < 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli server thread can't add connection.",
 					NULL);
-			ionKillMainThread(procName);
+			ionKillMainThread(procName());
 			stp->running = 0;
 			continue;
 		}
@@ -1240,7 +1374,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			putErrmsg("tcpcli server thread failed new connection.",
 					NULL);
-			ionKillMainThread(procName);
+			ionKillMainThread(procName());
 			stp->running = 0;
 			continue;
 		}
@@ -1259,6 +1393,7 @@ static void	*spawnReceivers(void *parm)
 
 typedef struct
 {
+	VInduct		*induct;
 	int		*running;
 	Lyst		connections;
 } ClockThreadParms;
@@ -1309,7 +1444,8 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 		break;			/*	Out of switch.		*/
 	}
 
-	if (beginConnection(ctp->connections, eid, sock, socketSpec) < 0)
+	if (beginConnection(ctp->connections, eid, sock, socketSpec,
+			ctp->induct) < 0)
 	{
 		putErrmsg("tcpcli can't add new connection.", NULL);
 		return -1;
@@ -1556,14 +1692,14 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 	return 0;
 }
 
-static int	sendKeepalive(TcpclConnection *connection)
+static int	sendKeepalive(TcpclConnection *connection, Lyst connections)
 {
 	int		result;
 	static char	keepalive = 0x40;
 
 	if (connection->sock == -1)
 	{
-		result = reconnect(connection);
+		result = reconnect(connection, connections);
 		if (result != 1)
 		{
 			return result;
@@ -1573,16 +1709,21 @@ static int	sendKeepalive(TcpclConnection *connection)
 	pthread_mutex_lock(&(connection->mutex));
 	result = itcp_send(connection->sock, &keepalive, 1);
 	pthread_mutex_unlock(&(connection->mutex));
-	if (result != 0)	/*	Success or system failure.	*/
+	switch (result)
 	{
-		return result;
+	case -1:
+		putSysErrmsg("itcp_send() error",
+				connection->destDuctName);
+		connection->stopTcpcli = 1;
+		return -1;
+
+	case 0:
+		writeMemoNote("[?] tcpcl connection lost", connection->eid);
+		abandonConnection(connection);
+		return 0;
 	}
 
-	/*	Lost TCP connection.					*/
-
-	connection->sock = -1;
-	connection->secUntilReconnect = connection->reconnectInterval;
-	return 0;
+	return 1;
 }
 
 static void	*handleEvents(void *parm)
@@ -1693,7 +1834,8 @@ static void	*handleEvents(void *parm)
 
 			if (connection->secUntilKeepalive == 0)
 			{
-				if (sendKeepalive(connection) < 0)
+				if (sendKeepalive(connection, ctp->connections)
+						< 0)
 				{
 					ctp->running = 0;
 					nextElt = NULL;
@@ -1812,8 +1954,7 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated, so
 		begin initialization by creating the connections lyst.	*/
 
-	stp.vduct = vduct;
-	connections = lyst_create();
+	connections = lyst_create_using(getIonMemoryMgr());
 	if (connections == NULL)
 	{
 		putErrmsg("tcpcli can't create lyst of connections", NULL);
@@ -1860,7 +2001,9 @@ int	main(int argc, char *argv[])
 	/*	Start the clock thread, which does initial load
 	 *	of the connections lyst.				*/
 
+	ctp.induct = vduct;
 	ctp.running = 1;
+	ctp.connections = connections;
 	if (pthread_begin(&clockThread, NULL, handleEvents, &ctp))
 	{
 		closesocket(stp.serverSocket);
@@ -1871,6 +2014,7 @@ int	main(int argc, char *argv[])
 
 	/*	Start the server thread.				*/
 
+	stp.induct = vduct;
 	stp.running = 1;
 	stp.connections = connections;
 	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp))
@@ -1911,209 +2055,4 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] tcpcli has ended.");
 	bp_detach();
 	return 0;
-}
---------------------------------------------------
-
-/*	*	*	Receiver thread functions	*	*	*/
-
-typedef struct
-{
-	LystElt		elt;
-	struct sockaddr	cloSocketName;
-	pthread_mutex_t	*mutex;
-	int		bundleSocket;
-	pthread_t	thread;
-	int		*cliRunning;
-        int             receiveRunning;
-} ReceiverThreadParms;
-
-static void	terminateReceiverThread(ReceiverThreadParms *parms)
-{
-	writeErrmsgMemos();
-	writeMemo("[i] tcpcli receiver thread stopping.");
-	pthread_mutex_lock(parms->mutex);
-	if (parms->bundleSocket != -1)
-	{
-		closesocket(parms->bundleSocket);
-		parms->bundleSocket = -1;
-	}
-
-	lyst_delete(parms->elt);
-	pthread_mutex_unlock(parms->mutex);
-}
-
-static void	*receiveBundles(void *parm)
-{
-	/*	Main loop for bundle reception thread on one
-	 *	connection, terminating when connection is lost.	*/
-
-	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
-	char			*procName = "tcpcli";
-	KeepaliveThreadParms	*kparms;
-	AcqWorkArea		*work;
-	char			*buffer;
-	pthread_t		kthread;
-	int			haveKthread = 0;
-	int			threadRunning = 1;
-
-	buffer = MTAKE(TCPCLA_BUFSZ);
-	if (buffer == NULL)
-	{
-		putErrmsg("tcpcli can't get TCP buffer", NULL);
-		terminateReceiverThread(parms);
-		MRELEASE(parms);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	work = bpGetAcqArea(vduct);
-	if (work == NULL)
-	{
-		putErrmsg("tcpcli can't get acquisition work area", NULL);
-		MRELEASE(buffer);
-		terminateReceiverThread(parms);
-		MRELEASE(parms);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-	
-	/*	Set up parameters for the keepalive thread	*/
-
-	kparms = (KeepaliveThreadParms *)
-			MTAKE(sizeof(KeepaliveThreadParms));
-	if (kparms == NULL)
-	{
-		putErrmsg("tcpcli can't allocate for new keepalive thread",
-				NULL);
-		MRELEASE(buffer);
-		bpReleaseAcqArea(work);
-		terminateReceiverThread(parms);
-		MRELEASE(parms);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	pthread_mutex_lock(parms->mutex);
-
-	/*	Making sure there is no race condition when keep alive
-	 *	values are set.						*/
-
-	if (sendContactHeader(&parms->bundleSocket, (unsigned char *) buffer)
-			< 0)
-	{
-		putErrmsg("tcpcli couldn't send contact header", NULL);
-		MRELEASE(buffer);
-		MRELEASE(kparms);
-		closesocket(parms->bundleSocket);
-		parms->bundleSocket = -1;
-		pthread_mutex_unlock(parms->mutex);
-		bpReleaseAcqArea(work);
-		terminateReceiverThread(parms);
-		MRELEASE(parms);
-		return NULL;
-	}
-
-	pthread_mutex_unlock(parms->mutex);
-	if (receiveContactHeader(&parms->bundleSocket, (unsigned char *) buffer,
-			&kparms->keepalivePeriod) < 0)
-	{
-		putErrmsg("tcpcli couldn't receive contact header", NULL);
-		MRELEASE(buffer);
-		MRELEASE(kparms);
-		pthread_mutex_lock(parms->mutex);
-		closesocket(parms->bundleSocket);
-		parms->bundleSocket = -1;
-		pthread_mutex_unlock(parms->mutex);
-		bpReleaseAcqArea(work);
-		terminateReceiverThread(parms);
-		MRELEASE(parms);
-		return NULL;
-	}
-
-	/*
-	 * The keep alive thread is created only if the negotiated
-	 * keep alive is greater than 0.
-	 */
-
-	if( kparms->keepalivePeriod > 0 )
-	{
-		kparms->ductSocket = parms->bundleSocket;
-		kparms->mutex = parms->mutex;
-		kparms->cliRunning = parms->cliRunning;
-                kparms->receiveRunning = &(parms->receiveRunning);
-		/*
-		 * Creating a thread to send out keep alives, which
-		 * makes the TCPCL bi directional
-		 */
-		if (pthread_begin(&kthread, NULL, sendKeepalives, kparms))
-		{
-			putSysErrmsg("tcpcli can't create new thread for \
-keepalives", NULL);
-			ionKillMainThread(procName);
-			threadRunning = 0;
-		}
-		else
-		{
-			haveKthread = 1;
-		}
-	}
-
-	/*	Now start receiving bundles.				*/
-
-	while (threadRunning && *(parms->cliRunning) && parms->receiveRunning)
-	{
-		if (bpBeginAcq(work, 0, NULL) < 0)
-		{
-			putErrmsg("Can't begin acquisition of bundle.", NULL);
-			ionKillMainThread(procName);
-			threadRunning = 0;
-			continue;
-		}
-
-		switch (receiveBundleByTcpCL(parms->bundleSocket, work, buffer))
-		{
-		case -1:
-			putErrmsg("Can't acquire bundle.", NULL);
-
-			/*	Intentional fall-through to next case.	*/
-
-		case 0:				/*	Normal stop.	*/
-			threadRunning = 0;
-			continue;
-
-		default:
-			break;			/*	Out of switch.	*/
-		}
-
-		if (bpEndAcq(work) < 0)
-		{
-			putErrmsg("Can't end acquisition of bundle.", NULL);
-			ionKillMainThread(procName);
-			threadRunning = 0;
-			continue;
-		}
-
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
-	}
-
-	/*	End of receiver thread; release resources.		*/
-
-	parms->receiveRunning = 0;
-	if (haveKthread)
-	{
-		/*	Wait for keepalive snooze cycle to notice that
-		 *	*(parms->cliRunning) or *(parms->receiveRunning)
-		 *	is now zero.					*/
-
-		pthread_join(kthread, NULL);
-	}
-
-	bpReleaseAcqArea(work);
-	MRELEASE(buffer);
-	terminateReceiverThread(parms);
-	MRELEASE(kparms);
-	MRELEASE(parms);
-	return NULL;
 }
