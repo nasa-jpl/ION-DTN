@@ -312,7 +312,7 @@ int	ipn_removePlan(uvast nodeNbr)
 	Object	planObj;
 		OBJ_POINTER(IpnPlan, plan);
 	Object	elt2;
-	Object	ruleObj
+	Object	ruleObj;
 		OBJ_POINTER(IpnRule, rule);
 
 	CHKERR(nodeNbr);

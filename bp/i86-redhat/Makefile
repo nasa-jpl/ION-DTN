@@ -55,8 +55,7 @@ BPPOBJS = libbpP.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
-# tcpcli tcpclo
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
@@ -196,11 +195,11 @@ ltpclo:		ltpclo.o $(BPLIBS)
 #	-	-	TCP executables	-	-	-	-	-
 
 tcpcli:		tcpcli.o $(BPLIBS) libtcpcla.so
-		$(CC) -o tcpcli tcpcli.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
+		$(CC) -o tcpcli tcpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp tcpcli ./bin
 
 tcpclo:		tcpclo.o $(BPLIBS) libtcpcla.so
-		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread
+		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp tcpclo ./bin
 
 #	-	-	STCP executables	-	-	-	-
@@ -395,8 +394,8 @@ libudpcla.so:	libudpcla.o
 %.o:		$(STCP)/%.c
 		$(CC) -c $<
 
-#%.o:		$(TCP)/%.c
-#		$(CC) -c $<
+%.o:		$(TCP)/%.c
+		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
 		$(CC) -c $<

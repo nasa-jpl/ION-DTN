@@ -240,7 +240,6 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 {
 	unsigned int	preamble;
 	Sdr		sdr = getIonsdr();
-	int		result;
 
 	/*	Connect to CLI as necessary.				*/
 
@@ -305,7 +304,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
-		result = -1;
+		return -1;
 	}
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
@@ -318,7 +317,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 		return -1;
 	}
 
-	return result;
+	return 0;
 }
 
 int	receiveBundleByStcp(int sock, AcqWorkArea *work, char *buffer,

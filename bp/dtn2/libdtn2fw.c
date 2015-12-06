@@ -32,10 +32,10 @@ static Object	_dtn2dbObject(Object *newDbObj)
 	return obj;
 }
 
-static DtnDB	*_dtn2Constants()
+static Dtn2DB	*_dtn2Constants()
 {
-	static DtnDB	buf;
-	static DtnDB	*db = NULL;
+	static Dtn2DB	buf;
+	static Dtn2DB	*db = NULL;
 	Sdr		sdr;
 	Object		dbObject;
 	
@@ -49,13 +49,13 @@ static DtnDB	*_dtn2Constants()
 			if (sdr_heap_is_halted(sdr))
 			{
 				sdr_read(sdr, (char *) &buf, dbObject,
-						sizeof(DtnDB));
+						sizeof(Dtn2DB));
 			}
 			else
 			{
 				CHKNULL(sdr_begin_xn(sdr));
 				sdr_read(sdr, (char *) &buf, dbObject,
-						sizeof(DtnDB));
+						sizeof(Dtn2DB));
 				sdr_exit_xn(sdr);
 			}
 
@@ -72,7 +72,7 @@ int	dtn2Init()
 {
 	Sdr	sdr = getIonsdr();
 	Object	dtn2dbObject;
-	DtnDB	dtn2dbBuf;
+	Dtn2DB	dtn2dbBuf;
 
 	/*	Recover the DTN database, creating it if necessary.	*/
 
@@ -86,7 +86,7 @@ int	dtn2Init()
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		dtn2dbObject = sdr_malloc(sdr, sizeof(DtnDB));
+		dtn2dbObject = sdr_malloc(sdr, sizeof(Dtn2DB));
 		if (dtn2dbObject == 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -94,11 +94,11 @@ int	dtn2Init()
 			return -1;
 		}
 
-		memset((char *) &dtn2dbBuf, 0, sizeof(DtnDB));
+		memset((char *) &dtn2dbBuf, 0, sizeof(Dtn2DB));
 		dtn2dbBuf.plans = sdr_list_create(sdr);
 		sdr_list_user_data_set(sdr, dtn2dbBuf.plans, getUTCTime());
 		sdr_write(sdr, dtn2dbObject, (char *) &dtn2dbBuf,
-				sizeof(DtnDB));
+				sizeof(Dtn2DB));
 		sdr_catlg(sdr, DTN_DBNAME, 0, dtn2dbObject);
 		if (sdr_end_xn(sdr))
 		{
@@ -117,12 +117,12 @@ int	dtn2Init()
 	return 0;
 }
 
-Object	getDtnDbObject()
+Object	getDtn2DbObject()
 {
 	return _dtn2dbObject(NULL);
 }
 
-DtnDB	*getDtnConstants()
+Dtn2DB	*getDtn2Constants()
 {
 	return _dtn2Constants();
 }
@@ -801,7 +801,7 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 void	dtn2_forgetOutduct(Object ductElt)
 {
 	Sdr	sdr = getIonsdr();
-	DtnDB	*db;
+	Dtn2DB	*db;
 	Object	planElt;
 	Object	nextPlanElt;
 	Object	planAddr;
@@ -812,7 +812,7 @@ void	dtn2_forgetOutduct(Object ductElt)
 		OBJ_POINTER(Dtn2Rule, rule);
 
 	CHKVOID(ionLocked());
-	if (dtn2Init() < 0 || (db = getDtnConstants()) == NULL)
+	if (dtn2Init() < 0 || (db = getDtn2Constants()) == NULL)
 	{
 		return;
 	}
