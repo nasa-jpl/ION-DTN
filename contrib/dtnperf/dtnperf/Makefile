@@ -9,7 +9,7 @@ DEBUG=0
 ifeq ($(DEBUG),0)
 DEBUG_FLAG= -O2
 else
-DEBUG_FLAG=-g -fno-inline -O0
+DEBUG_FLAG=-g -fno-inline -Og
 endif
 CFLAGS= $(DEBUG_FLAG) -Wall -fmessage-length=0 -Werror
 
@@ -27,7 +27,7 @@ endif
 ifeq ($(strip $(DTN2_DIR)),)
 # ION
 INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(ION_DIR)/include -I$(ION_DIR)/library
-LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -lpthread
+LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -limcfw -ldtn2fw -lipnfw -lpthread
 #LIBS=-lal_bp_vION -lbp -lici -lpthread
 BIN_NAME=$(BIN_NAME_BASE)_vION
 else ifeq ($(strip $(ION_DIR)),)
@@ -39,7 +39,7 @@ BIN_NAME=$(BIN_NAME_BASE)_vDTN2
 else ifneq ($(and $(ION_DIR),$(DTN2_DIR)),)
 # BOTH
 INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(DTN2_DIR) -I$(DTN2_DIR)/applib -I$(ION_DIR)/include -I$(ION_DIR)/library
-LIBS=$(AL_BP_DIR)/libal_bp.a -ldtnapi -lbp -lici -lpthread
+LIBS=$(AL_BP_DIR)/libal_bp.a -ldtnapi -lbp -lici -limcfw -ldtn2fw -lipnfw -lpthread
 #LIBS=-lal_bp -ldtnapi -lbp -lici -lpthread
 BIN_NAME=$(BIN_NAME_BASE)
 endif

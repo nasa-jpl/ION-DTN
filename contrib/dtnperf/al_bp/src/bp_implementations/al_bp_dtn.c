@@ -198,6 +198,11 @@ al_bp_error_t bp_dtn_set_payload(al_bp_bundle_payload_t* payload,
 
 void bp_dtn_free_payload(al_bp_bundle_payload_t* payload)
 {
+	if (payload->status_report != NULL)
+	{
+		free(payload->status_report);
+		payload->status_report = NULL;
+	}
 	dtn_bundle_payload_t dtn_payload = al_dtn_bundle_payload(*payload);
 	dtn_free_payload(&dtn_payload);
 	*payload = dtn_al_bundle_payload(dtn_payload);

@@ -366,6 +366,29 @@ void al_bp_free_payload(al_bp_bundle_payload_t* payload)
 	}
 }
 
+/**
+ * Remember to free return value
+ */
+char* al_bp_status_report_flag_to_str(al_bp_status_report_flags_t flag)
+{
+	static char temp[256];
+	temp[0] = '\0';
+	if (flag & BP_STATUS_RECEIVED)
+		strcat(temp, "RECEIVED, ");
+	if (flag & BP_STATUS_CUSTODY_ACCEPTED)
+		strcat(temp, "CUSTODY_ACCEPTED, ");
+	if (flag & BP_STATUS_FORWARDED)
+		strcat(temp, "FORWARDED, ");
+	if (flag & BP_STATUS_DELIVERED)
+		strcat(temp, "DELIVERED, ");
+	if (flag & BP_STATUS_DELETED)
+		strcat(temp, "DELETED");
+	if (flag & BP_STATUS_ACKED_BY_APP)
+		strcat(temp, "ACKED_BY_APP, ");
+	temp[strlen(temp) - 2] = '\0';
+	return temp;
+}
+
 const char* al_bp_status_report_reason_to_str(al_bp_status_report_reason_t err)
 {
 	switch (err) {

@@ -77,7 +77,8 @@ help:
 	@echo "Usage:"
 	@echo "For DTN2:	make DTN2_DIR=<dtn2_dir>"
 	@echo "For ION:		make ION_DIR=<ion_dir> ION_VERS_UP_3.3.0=<yes|no>"
-	@echo "For both:	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir> ION_VERS_UP_3.3.0=<yes|no>"
+#	@echo "For both:	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir> ION_VERS_UP_3.3.0=<yes|no>"
+	@echo "For both:	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir>"
 	@echo "To compile with debug symbols add DEBUG=1"
 
 clean:

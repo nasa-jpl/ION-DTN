@@ -75,6 +75,13 @@ session_t * session_get(session_list_t * list, al_bp_endpoint_id_t client);
 
 void session_del(session_list_t * list, session_t * session);
 void session_close(session_list_t * list, session_t * session);
+/**
+ * Used by realtime human readable status report information print
+ */
+void printRealtimeStatusReport(FILE *f, al_bp_endpoint_id_t sr_source, al_bp_bundle_status_report_t * status_report);
+void printSingleRealtimeStatusReport(FILE *f, al_bp_endpoint_id_t sr_source, al_bp_bundle_status_report_t * status_report,
+		al_bp_status_report_flags_t type, al_bp_timestamp_t timestamp);
+
 void run_dtnperf_monitor(monitor_parameters_t * parameters);
 
 //session expiration timer thread

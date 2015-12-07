@@ -182,10 +182,14 @@ void al_bp_free_metadata_blocks(al_bp_bundle_spec_t* spec);
 void al_bp_free_payload(al_bp_bundle_payload_t* payload);
 
 /**
- * Return a string version of a status report reason code.
+ * Returns a string version of a status report reason code.
  */
 const char* al_bp_status_report_reason_to_str(al_bp_status_report_reason_t err);
 
+/**
+ * Returns a string version of a status report type.
+ */
+char* al_bp_status_report_flag_to_str(al_bp_status_report_flags_t flag);
 /**
  * Get a string value associated with the bp error code.
  */

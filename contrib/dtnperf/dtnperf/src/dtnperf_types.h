@@ -17,6 +17,7 @@
 
 #include "definitions.h"
 #include <al_bp_types.h>
+#include <stdio.h>
 
 typedef enum {
 	DTNPERF_SERVER = 1,
@@ -99,6 +100,8 @@ typedef struct dtnperf_options
 	char* 							logs_dir;							// dir where are saved monitor logs [LOGS_DIR_DEFAULT]
 	int 							expiration_session; 				// expiration time of session log file [120]
 	boolean_t						oneCSVonly;							// monitor opens an unique session and an unique csv log file [FALSE]
+	boolean_t						rtPrint;							// monitor prints realtime human readable status report info [FASLE]
+	FILE*							rtPrintFile;						// monitor prints realtime SR info on this file [stdout]
 	char*							uniqueCSVfilename;					// filename of the unique csv log file [MONITOR_UNIQUE_CSV_FILENAME]
 	// block options
 	u16_t 							num_blocks;  	  				 	// number of extension and metadata blocks

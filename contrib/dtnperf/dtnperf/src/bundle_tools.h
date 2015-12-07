@@ -82,5 +82,11 @@ void set_block_buf(extension_block_info_t* ext_block, char * buf, u32_t len);
 
 
 u32_t get_current_dtn_time();
-
+/**
+ * Prints bundle id in the format
+ * source_uri, creation_timestamp.creation_seqno,fragment_offset,orig_length
+ * Returns the total number of character written on dest, or a negative value
+ * if an error is encountered.
+ */
+int bundle_id_sprintf(char * dest, al_bp_bundle_id_t * bundle_id);
 #endif /*BUNDLE_TOOLS_H_*/

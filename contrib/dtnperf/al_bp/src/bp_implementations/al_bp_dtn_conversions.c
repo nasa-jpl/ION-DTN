@@ -382,21 +382,21 @@ dtn_bundle_status_report_t al_dtn_bundle_status_report(al_bp_bundle_status_repor
 	dtn_bundle_status_report.ack_by_app_ts = al_dtn_timestamp(bundle_status_report.ack_by_app_ts);
 	return dtn_bundle_status_report;
 }
-al_bp_bundle_status_report_t dtn_al_bundle_status_report(dtn_bundle_status_report_t bundle_status_report)
+al_bp_bundle_status_report_t * dtn_al_bundle_status_report(dtn_bundle_status_report_t bundle_status_report)
 {
-	al_bp_bundle_status_report_t bp_bundle_status_report;
-	memset(&bp_bundle_status_report, 0, sizeof(al_bp_bundle_status_report_t));
+	al_bp_bundle_status_report_t * bp_bundle_status_report = (al_bp_bundle_status_report_t *) malloc(sizeof(al_bp_bundle_status_report_t));
+	memset(bp_bundle_status_report, 0, sizeof(al_bp_bundle_status_report_t));
 	//printf("AL_BP: fragment offset dtn %d\n",bundle_status_report.bundle_id.frag_offset);
-	bp_bundle_status_report.bundle_id = dtn_al_bundle_id(bundle_status_report.bundle_id);
+	bp_bundle_status_report->bundle_id = dtn_al_bundle_id(bundle_status_report.bundle_id);
 	//printf("AL_BP: fragment offset al_bp %lu\n",bp_bundle_status_report.bundle_id.frag_offset);
-	bp_bundle_status_report.reason = dtn_al_status_report_reason(bundle_status_report.reason);
-	bp_bundle_status_report.flags = dtn_al_status_report_flags(bundle_status_report.flags);
-	bp_bundle_status_report.receipt_ts = dtn_al_timestamp(bundle_status_report.receipt_ts);
-	bp_bundle_status_report.custody_ts = dtn_al_timestamp(bundle_status_report.custody_ts);
-	bp_bundle_status_report.forwarding_ts = dtn_al_timestamp(bundle_status_report.forwarding_ts);
-	bp_bundle_status_report.delivery_ts = dtn_al_timestamp(bundle_status_report.delivery_ts);
-	bp_bundle_status_report.deletion_ts = dtn_al_timestamp(bundle_status_report.deletion_ts);
-	bp_bundle_status_report.ack_by_app_ts = dtn_al_timestamp(bundle_status_report.ack_by_app_ts);
+	bp_bundle_status_report->reason = dtn_al_status_report_reason(bundle_status_report.reason);
+	bp_bundle_status_report->flags = dtn_al_status_report_flags(bundle_status_report.flags);
+	bp_bundle_status_report->receipt_ts = dtn_al_timestamp(bundle_status_report.receipt_ts);
+	bp_bundle_status_report->custody_ts = dtn_al_timestamp(bundle_status_report.custody_ts);
+	bp_bundle_status_report->forwarding_ts = dtn_al_timestamp(bundle_status_report.forwarding_ts);
+	bp_bundle_status_report->delivery_ts = dtn_al_timestamp(bundle_status_report.delivery_ts);
+	bp_bundle_status_report->deletion_ts = dtn_al_timestamp(bundle_status_report.deletion_ts);
+	bp_bundle_status_report->ack_by_app_ts = dtn_al_timestamp(bundle_status_report.ack_by_app_ts);
 	return bp_bundle_status_report;
 }
 
@@ -468,8 +468,8 @@ al_bp_bundle_payload_t dtn_al_bundle_payload(dtn_bundle_payload_t bundle_payload
 	}
 	else
 	{
-		al_bp_bundle_status_report_t bp_bundle_status_report = dtn_al_bundle_status_report(*(bundle_payload.status_report));
-		bp_bundle_payload.status_report = & bp_bundle_status_report;
+		al_bp_bundle_status_report_t * bp_bundle_status_report = dtn_al_bundle_status_report(*(bundle_payload.status_report));
+		bp_bundle_payload.status_report = bp_bundle_status_report;
 	}
 
 	return bp_bundle_payload;
