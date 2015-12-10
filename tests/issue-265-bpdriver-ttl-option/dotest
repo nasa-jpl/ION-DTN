@@ -97,8 +97,13 @@ run_netcat() {
 	if [ "$OS" = "SunOS" ]; then
 		netcat -u -l -p 4556 -s localhost > response.bpseg &
 		NETCAT_SVR_PID=$!
-	else
+	# GNU netcat has a -V (version) flag, so test for that.
+	elif netcat -V 2>/dev/null; then
 		netcat -u -l -p 4556 > response.bpseg &
+		NETCAT_SVR_PID=$!
+	# Fall back to BSD netcat
+	else
+		netcat -u -l 4556 > response.bpseg &
 		NETCAT_SVR_PID=$!
 	fi
 }
