@@ -231,12 +231,14 @@ int	main(int argc, char *argv[])
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, maxPayloadLength, -1) < 0)
 		{
-			sm_SemEnd(stcpcloSemaphore(NULL));
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)	/*	Interrupted.		*/
+		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
+			writeMemo("stcpclo outduct closed.");
+			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
 		}
 

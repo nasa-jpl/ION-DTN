@@ -450,12 +450,14 @@ number>");
 		if (bpDequeue(voutduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, 0, -1) < 0)
 		{
-			sm_SemEnd(brscclaSemaphore(NULL));/*	Stop.	*/
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)		/*	Interrupted.	*/
+		if (bundleZco == 0)		/*	Outduct closed.	*/
 		{
+			writeMemo("[i] brsccla outduct closed.");
+			sm_SemEnd(brscclaSemaphore(NULL));/*	Stop.	*/
 			continue;
 		}
 

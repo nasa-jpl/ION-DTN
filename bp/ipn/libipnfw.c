@@ -189,6 +189,7 @@ static void	createXmitDirective(FwdDirective *directive,
 		OBJ_POINTER(Outduct, outduct);
 		OBJ_POINTER(ClProtocol, protocol);
 
+	memset((char *) directive, 0, sizeof(FwdDirective));
 	directive->action = xmit;
 	directive->outductElt = parms->outductElt;
 	if (parms->outductElt == 0)	/*	Must be tcpcl.		*/

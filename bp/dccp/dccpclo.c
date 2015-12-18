@@ -488,13 +488,14 @@ int	main(int argc, char *argv[])
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, 0, -1) < 0)
 		{
-			sm_SemEnd(dccpcloSemaphore(NULL));
-			continue;
-			/*	Take Down CLO				*/
+			putErrmsg("Can'e dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)	/*	Interrupted.		*/
+		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
+			writeMemo("[i] dccpclo outduct closed.");
+			sm_SemEnd(dccpcloSemaphore(NULL));
 			continue;
 		}
 

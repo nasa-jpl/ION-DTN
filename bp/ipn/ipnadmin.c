@@ -512,13 +512,13 @@ static void	printDirective(char *context, FwdDirective *dir)
 			else
 			{
 				if (sdr_string_read(sdr, ductNameBuf,
-						dir->destDuctName) == 0)
+						dir->destDuctName) < 1)
 				{
-					ductName = ductNameBuf;
+					ductName = "?";
 				}
 				else
 				{
-					ductName = "?";
+					ductName = ductNameBuf;
 				}
 			}
 		}
@@ -533,7 +533,7 @@ static void	printDirective(char *context, FwdDirective *dir)
 			{
 				istrcat(ductNameBuf, ",", sizeof ductNameBuf);
 				if (sdr_string_read(sdr, destDuctName,
-						dir->destDuctName) < 0)
+						dir->destDuctName) < 1)
 				{
 					destDuctName[0] = '?';
 					destDuctName[1] = '\0';

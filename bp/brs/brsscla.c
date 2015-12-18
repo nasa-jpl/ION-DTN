@@ -98,11 +98,13 @@ static void	*sendBundles(void *parm)
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
 				&extendedCOS, destDuctName, 0, -1) < 0)
 		{
+			putErrmsg("Can't dequeue bundle.", NULL);
 			break;
 		}
 
-		if (bundleZco == 0)		/*	Interrupted.	*/
+		if (bundleZco == 0)		/*	Outduct closed.	*/
 		{
+			writeMemo("[i] brsscla outduct closed.");
 			continue;
 		}
 

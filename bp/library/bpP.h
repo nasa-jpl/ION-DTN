@@ -70,6 +70,7 @@ extern "C" {
 #define MIN_PRIMARY_BLK_LENGTH		(23)
 #define MAX_CL_PROTOCOL_NAME_LEN	(15)
 #define MAX_CL_DUCT_NAME_LEN		(255)
+#define MAX_CL_CANONICAL_DUCT_NAME_LEN	(MAX_CL_PROTOCOL_NAME_LEN + 1 + MAX_CL_DUCT_NAME_LEN)
 #define	MAX_SCHEME_NAME_LEN		(15)
 #define	MAX_NSS_LEN			(63)
 #define	MAX_EID_LEN			(MAX_SCHEME_NAME_LEN + MAX_NSS_LEN + 2)
@@ -564,6 +565,7 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
+	char		canonicalName[MAX_CL_CANONICAL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
 	uvast		neighborNodeNbr;/*	If non-promiscuous.	*/
 	sm_SemId	semaphore;	/*	For transmit notices.	*/
@@ -997,8 +999,10 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	bundle queues identified by outflows.
 			 *	If no such bundle is currently waiting
 			 *	for transmission, it blocks until one
-			 *	is [or until a signal handler calls
-			 *	bp_interrupt()].
+			 *	is [or until the duct is closed, at
+			 *	which time the function returns zero
+			 *	without providing the address of an
+			 *	outbound bundle ZCO].
 			 *
 			 *	On selecting a bundle, if the bundle's
 			 *	payload is longer than the indicated

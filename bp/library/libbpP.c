@@ -357,6 +357,34 @@ static int	isUnicast(char *schemeName)
 	return 0;
 }
 
+static void	getCanonicalDuctName(char *protocolName, char *ductName,
+			char *buffer)
+{
+	unsigned short	portNbr;
+	unsigned int	hostNbr;
+	char		addressBuffer[16];
+
+	if (strcmp(protocolName, "tcp") == 0)
+	{
+		if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+		{
+			istrcpy(buffer, "tcp/?",
+					MAX_CL_CANONICAL_DUCT_NAME_LEN + 1);
+		}
+		else
+		{
+			printDottedString(hostNbr, addressBuffer);
+			isprintf(buffer, MAX_CL_CANONICAL_DUCT_NAME_LEN + 1,
+					"tcp/%s:%hu", addressBuffer, portNbr);
+		}
+	}
+	else
+	{
+		isprintf(buffer, MAX_CL_CANONICAL_DUCT_NAME_LEN + 1,
+				"%s/%s", protocolName, ductName);
+	}
+}
+
 /*	*	*	Instrumentation functions	*	*	*/
 
 void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
@@ -1104,6 +1132,7 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
+	getCanonicalDuctName(protocol.name, duct.name, vduct->canonicalName);
 	vduct->semaphore = SM_SEM_NONE;
 	vduct->xmitThrottle.nominalRate = protocol.nominalRate;
 	vduct->xmitThrottle.capacity = 0;
@@ -4039,14 +4068,15 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 		PsmAddress *vductElt)
 {
 	PsmPartition	bpwm = getIonwm();
+	char		canonicalDuctName[MAX_CL_CANONICAL_DUCT_NAME_LEN + 1];
 	PsmAddress	elt;
 
+	getCanonicalDuctName(protocolName, ductName, canonicalDuctName);
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->outducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		if (strcmp((*vduct)->protocolName, protocolName) == 0
-		&& strcmp((*vduct)->ductName, ductName) == 0)
+		if (strcmp((*vduct)->canonicalName, canonicalDuctName) == 0)
 		{
 			break;
 		}
@@ -9440,11 +9470,12 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	Sdr		bpSdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
+	Object		outductElt;
+	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	VOutduct	*vduct = NULL;
+	PsmAddress	vductElt = 0;;
 	Object		ductAddr;
 	Outduct		duct;
-	PsmAddress	vductElt;
-	VOutduct	*vduct;
-	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		backlogIncrement;
 	ClProtocol	protocol;
 	time_t		enqueueTime;
@@ -9478,19 +9509,6 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		}
 	}
 
-	/*	Next we check to see if the duct is blocked.		*/
-
-	ductAddr = sdr_list_data(bpSdr, directive->outductElt);
-	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
-	if (duct.blocked)
-	{
-		return enqueueToLimbo(bundle, bundleObj);
-	}
-
-	/*      Now construct transmission parameters.			*/
-
-	bundle->proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
-
 	/*	Retrieve destination induct name, if applicable.	*/
 
 	if (directive->destDuctName)
@@ -9501,7 +9519,42 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 			putErrmsg("Can't retrieve dest duct name.", NULL);
 			return -1;
 		}
+	}
+	else
+	{
+		destDuctName[0] = '\0';
+	}
 
+	/*	Next we check to see if the duct is nonexistent
+	 *	or blocked.						*/
+
+	if (directive->outductElt)
+	{
+		outductElt = directive->outductElt;
+	}
+	else		/*	Outducts are managed by tcpcli.		*/
+	{
+		findOutduct("tcp", destDuctName, &vduct, &vductElt);
+		if (vductElt == 0)	/*	No connection.		*/
+		{
+			return enqueueToLimbo(bundle, bundleObj);
+		}
+
+		outductElt = vduct->outductElt;
+	}
+
+	ductAddr = sdr_list_data(bpSdr, outductElt);
+	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
+	if (duct.blocked)
+	{
+		return enqueueToLimbo(bundle, bundleObj);
+	}
+
+	/*      Now construct transmission parameters.			*/
+
+	bundle->proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
+	if (directive->destDuctName)
+	{
 		bundle->destDuctName = sdr_string_create(bpSdr, destDuctName);
 	}
 	else
@@ -9581,18 +9634,21 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 
 	/*	Finally, if outduct is started then wake up CLO.	*/
 
-	for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
-			vductElt = sm_list_next(ionwm, vductElt))
+	if (vductElt == 0)	/*	Not already found per tcpcli.	*/
 	{
-		vduct = (VOutduct *) psp(ionwm,
-				sm_list_data(ionwm, vductElt));
-		if (vduct->outductElt == directive->outductElt)
+		for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
+				vductElt = sm_list_next(ionwm, vductElt))
 		{
-			break;
+			vduct = (VOutduct *) psp(ionwm,
+					sm_list_data(ionwm, vductElt));
+			if (vduct->outductElt == directive->outductElt)
+			{
+				break;
+			}
 		}
 	}
 
-	if (vductElt != 0)
+	if (vductElt != 0)	/*	Outduct has been started.	*/
 	{
 		bpOutductTally(vduct, BP_OUTDUCT_ENQUEUED,
 				bundle->payload.length);
@@ -10491,7 +10547,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	
 				/*	End task, but without error.	*/
 
-				return -1;
+				return 0;
 			}
 
 			CHKERR(sdr_begin_xn(bpSdr));
@@ -10513,7 +10569,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	if (bundleObj == 0)	/*	Outduct has been stopped.	*/
 	{
 		sdr_exit_xn(bpSdr);
-		return -1;	/*	End task, but without error.	*/
+		return 0;	/*	End task, but without error.	*/
 	}
 
 	if (bundle.proxNodeEid)
