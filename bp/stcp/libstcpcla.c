@@ -112,13 +112,6 @@ static int	_stcpOutductId(char *protocolName, char *ductName,
 	return 0;
 }
 
-#ifndef mingw
-void	handleConnectionLoss()
-{
-	isignal(SIGPIPE, handleConnectionLoss);
-}
-#endif
-
 static int	connectToCLI(char *protocolName, char *ductName, int *sock)
 {
 	if (*protocolName == '\0')

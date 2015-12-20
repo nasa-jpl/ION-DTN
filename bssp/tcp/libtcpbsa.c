@@ -18,13 +18,6 @@ int	tcpDelayNsecPerByte = 0;
 
 /*	*	*	Sender functions	*	*	*	*/
 
-#ifndef mingw
-void	handleConnectionLoss()
-{
-	isignal(SIGPIPE, handleConnectionLoss);
-}
-#endif
-
 int	connectToBSI(struct sockaddr *sn, int *sock)
 {
 	*sock = -1;

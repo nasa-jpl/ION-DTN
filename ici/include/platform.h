@@ -771,6 +771,7 @@ extern int			itcp_connect(char *socketSpec,
 					unsigned short defaultPort, int *sock);
 extern int			itcp_send(int sock, char *from, int length);
 extern int			itcp_recv(int sock, char *into, int length);
+extern void			itcp_handleConnectionLoss();
 
 extern int			fullyQualified(char *fileName);
 extern int			qualifyFileName(char *fileName, char *buffer,

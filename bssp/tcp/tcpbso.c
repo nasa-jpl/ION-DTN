@@ -183,7 +183,7 @@ engine number>");
 	oK(tcpbsoSemaphore(&(vspan->rlSemaphore)));
 	isignal(SIGTERM, shutDownBso);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/*	Start the keepalive thread to manage the connection.	*/

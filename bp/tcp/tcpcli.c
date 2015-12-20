@@ -16,15 +16,15 @@
 #define	BpTcpDefaultPortNbr	4556
 #define	TCPCL_BUFSZ		(64 * 1024)
 
-#ifndef RESCAN_INTERVAL
-#define RESCAN_INTERVAL		(15)
+#ifndef MAX_RESCAN_INTERVAL
+#define MAX_RESCAN_INTERVAL	(20)
 #endif
 
 #ifndef KEEPALIVE_INTERVAL
 #define KEEPALIVE_INTERVAL	(15)
 #endif
 #ifndef IDLE_SHUTDOWN_INTERVAL
-#define IDLE_SHUTDOWN_INTERVAL	(60)
+#define IDLE_SHUTDOWN_INTERVAL	(600)
 #endif
 #ifndef MAX_RECONNECT_INTERVAL
 #define MAX_RECONNECT_INTERVAL	(3600)
@@ -53,6 +53,7 @@ typedef struct
 	int			reactiveFrags;	/*	Boolean		*/
 	int			bundleRefusals;	/*	Boolean		*/
 	int			lengthMessages;	/*	Boolean		*/
+	int			shutDown;	/*	Boolean		*/
 	struct tcpcl_neighbor	*neighbor;	/*	Back reference	*/
 
 	/*	For planned connection only.				*/
@@ -82,10 +83,6 @@ typedef struct tcpcl_neighbor
 static void	closeConnection(TcpclConnection *connection);
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor);
 static void	*handleContacts(void *parm);
-
-#ifndef mingw
-extern void	handleConnectionLoss();
-#endif
 
 static void	interruptThread()
 {
@@ -136,16 +133,13 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 				return 0;
 			}
 
-			putErrmsg("irecv() error on TCP socket",
+			putSysErrmsg("irecv() error on TCP socket",
 					p->neighbor->eid);
 			return -1;
 
 		case 0:			/*	Neighbor closed.	*/
 			closeConnection(p);
 			return 0;
-
-		default:
-			break;		/*	Out of switch.		*/
 		}
 
 		/*	Insert SDNV byte value (with its high-order
@@ -185,7 +179,6 @@ typedef struct
 {
 	Lyst			neighbors;
 	TcpclConnection		*connection;
-	int			running;
 	char			*buffer;
 	AcqWorkArea		*work;
 	ReqAttendant		attendant;
@@ -286,7 +279,6 @@ static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
 	size_t			len = 0;
 	ReceiverThreadParms	*rtp;
 
-writeMemo("Beginning connection.");
 	if (eid)	/*	Planned connection.			*/
 	{
 		neighborElt = findNeighborForEid(neighbors, eid);
@@ -360,7 +352,6 @@ writeMemo("Beginning connection.");
 	{
 		/*	Let receiver thread start running.		*/
 
-		rtp->running = 1;
 		pthread_mutex_unlock(&(connection->mutex));
 		return 0;		/*	Nothing more to do.	*/
 	}
@@ -374,6 +365,7 @@ writeMemo("Beginning connection.");
 	connection->pipeline = lyst_create_using(getIonMemoryMgr());
 	if (connection->pipeline == NULL)
 	{
+		connection->shutDown = 1;
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
@@ -394,6 +386,7 @@ writeMemo("Beginning connection.");
 	if (len == 0 || (connection->destDuctName = MTAKE(len)) == NULL)
 	{
 		lyst_destroy(connection->pipeline);
+		connection->shutDown = 1;
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
@@ -411,7 +404,9 @@ writeMemo("Beginning connection.");
 	}
 
 	istrcpy(connection->destDuctName, destDuctName, len);
-	rtp->running = 1;
+
+	/*	Let receiver thread start running.			*/
+
 	pthread_mutex_unlock(&(connection->mutex));
 	return 0;
 }
@@ -420,7 +415,6 @@ static int	reopenConnection(TcpclConnection *connection)
 {
 	TcpclNeighbor	*neighbor = connection->neighbor;
 
-writeMemo("In reopenConnection().");
 	if (connection->secUntilReconnect != 0)
 	{
 		return 0;	/*	Must not reconnect yet.		*/
@@ -428,7 +422,6 @@ writeMemo("In reopenConnection().");
 
 	/*	Okay to make next connection attempt.			*/
 
-writeMemo("Reconnecting.");
 	switch (itcp_connect(connection->destDuctName,
 			BpTcpDefaultPortNbr, &(connection->sock)))
 	{
@@ -456,7 +449,6 @@ writeMemo("Reconnecting.");
 
 static void	closeConnection(TcpclConnection *connection)
 {
-writeMemoNote("Closing connection", connection->neighbor->eid);
 	if (connection->sock != -1)
 	{
 		closesocket(connection->sock);
@@ -492,7 +484,6 @@ static int	sendShutdown(TcpclConnection *connection, char reason,
 	int	len = 1;
 	int	result;
 
-writeMemo("Sending shutdown.");
 	if (connection->sock == -1)	/*	Nothing to send.	*/
 	{
 		return 0;
@@ -521,32 +512,40 @@ writeMemo("Sending shutdown.");
 
 static void	endConnection(TcpclConnection *connection, char reason)
 {
-writeMemo("Ending connection.");
 	if (sendShutdown(connection, reason, 0) < 0)
 	{
 		ionKillMainThread(procName());
 		return;
 	}
 
-	closeConnection(connection);
+	connection->shutDown = 1;
 	if (connection->hasSender)
 	{
 		sm_SemEnd(connection->outduct->semaphore);
 		pthread_join(connection->sender, NULL);
+		connection->hasSender = 0;
+	}
+
+	if (connection->hasReceiver)
+	{
+#ifdef mingw
+		shutdown(connection->sock, SD_BOTH);
+#else
+		pthread_kill(connection->receiver, SIGTERM);
+#endif
+		pthread_join(connection->receiver, NULL);
+		connection->hasReceiver = 0;
+	}
+
+	closeConnection(connection);
+	if (connection->destDuctName)
+	{
 		if (removeOutduct("tcp", connection->destDuctName) < 0)
 		{
 			putErrmsg("Can't remove outduct",
 					connection->destDuctName);
 			ionKillMainThread(procName());
 		}
-
-		connection->hasSender = 0;
-	}
-
-	if (connection->hasReceiver)
-	{
-		pthread_join(connection->receiver, NULL);
-		connection->hasReceiver = 0;
 	}
 
 	if (connection->pipeline)
@@ -581,13 +580,11 @@ static void	shutDownNeighbors(Lyst neighbors)
 	LystElt		elt;
 	TcpclNeighbor	*neighbor;
 
-writeMemo("Shutting down all neighbors.");
 	oK(sdr_begin_xn(sdr));
-	while ((elt = lyst_first(neighbors)))
+	for (elt = lyst_first(neighbors); elt; elt = lyst_next(elt))
 	{
 		neighbor = (TcpclNeighbor *) lyst_data(elt);
-		deleteTcpclNeighbor(neighbor);
-		lyst_delete(elt);
+		neighbor->mustDelete = 1;
 	}
 
 	oK(sdr_end_xn(sdr));
@@ -654,9 +651,9 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 			flags |= 0x01;		/*	Last segment.	*/
 		}
 
-		firstByte = 0x10 & flags;
+		firstByte = 0x10 | flags;
 		segHeader[0] = firstByte;
-		encodeSdnv(&segLengthSdnv, bytesToSend);
+		encodeSdnv(&segLengthSdnv, bytesToLoad);
 		memcpy(segHeader + 1, segLengthSdnv.text, segLengthSdnv.length);
 		segHeaderLength = 1 + segLengthSdnv.length;
 		pthread_mutex_lock(&(connection->mutex));
@@ -768,7 +765,6 @@ static int	sendOneBundle(SenderThreadParms *stp)
 
 		/*	Send that bundle.				*/
 
-writeMemo("Sending a bundle.");
 		return sendBundleByTcpcl(stp, bundleZco);
 	}
 }
@@ -784,7 +780,6 @@ static void	*sendBundles(void *parm)
 
 	/*	Load other required sender thread parms.		*/
 
-writeMemoNote("Started sender thread", neighbor->eid);
 	connection->newlyAdded = 0;
 	stp->buffer = MTAKE(TCPCL_BUFSZ);
 	if (stp->buffer == NULL)
@@ -853,7 +848,6 @@ static int	sendContactHeader(TcpclConnection *connection)
 	Sdnv	eidLengthSdnv;
 	int	result;
 
-writeMemo("Sending contact header.");
 	memcpy(contactHeader, "dtn!", 4);
 	len += 4;
 	contactHeader[len] = 0x03;		/*	Version.	*/
@@ -895,10 +889,10 @@ writeMemo("Sending contact header.");
 	}
 }
 
-static int	receiveContactHeader(TcpclConnection *connection,
-			Lyst neighbors)
+static int	receiveContactHeader(ReceiverThreadParms *rtp)
 {
 	Sdr			sdr = getIonsdr();
+	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
 	char			ownEid[MAX_EID_LEN];
 	unsigned char		header[8];
@@ -914,11 +908,10 @@ static int	receiveContactHeader(TcpclConnection *connection,
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
-writeMemo("Receiving contact header.");
 	switch (itcp_recv(connection->sock, (char *) header, sizeof header))
 	{
 	case -1:
-		putErrmsg("irecv() error on TCP socket", neighbor->eid);
+		putErrmsg("itcp_recv() error on TCP socket", neighbor->eid);
 		return -1;
 
 	case 0:
@@ -937,7 +930,6 @@ writeMemo("Receiving contact header.");
 
 	if (header[4] < 3)		/*	Version mismatch.	*/
 	{
-writeMemoNote("Wrong version", utoa(header[4]));
 		if (sendShutdown(connection, 0x01, 0) < 0)
 		{
 			return -1;
@@ -982,7 +974,6 @@ writeMemoNote("Wrong version", utoa(header[4]));
 	switch (receiveSdnv(connection, &eidLength))
 	{
 	case -1:
-		putErrmsg("irecv() error on TCP socket", neighbor->eid);
 		return -1;
 
 	case 0:
@@ -1002,7 +993,7 @@ writeMemoNote("Wrong version", utoa(header[4]));
 	switch (itcp_recv(connection->sock, eidbuf, eidLength))
 	{
 	case -1:
-		putErrmsg("irecv() error on TCP socket", neighbor->eid);
+		putErrmsg("itcp_recv() error on TCP socket", neighbor->eid);
 		return -1;
 
 	case 0:
@@ -1027,7 +1018,7 @@ writeMemoNote("Wrong version", utoa(header[4]));
 		 *	Otherwise, update the eid from eidbuf.		*/
 
 		CHKERR(sdr_begin_xn(sdr));	/*	Lock list.	*/
-		elt = findNeighborForEid(neighbors, eidbuf);
+		elt = findNeighborForEid(rtp->neighbors, eidbuf);
 		if (elt)
 		{
 			knownNeighbor = (TcpclNeighbor *) lyst_data(elt);
@@ -1035,29 +1026,31 @@ writeMemoNote("Wrong version", utoa(header[4]));
 			MRELEASE(eidbuf);	/*	Not needed.	*/
 			if (knownNeighbor->cc->sock != -1)
 			{
-writeMemoNote("Have previously accepted connection for EID", neighbor->eid);
+				result = 0;	/*	Rejected.	*/
 				if (sendShutdown(connection, 0x02, 0) < 0)
 				{
 					return -1;
 				}
 
 				closeConnection(connection);
-				result = 0;	/*	Rejected.	*/
 			}
-			else
+			else	/*	Complementary connection.	*/
 			{
+				/*	Copy current connection into
+				 *	known neighbor.			*/
+
+				result = 1;	/*	Accepted.	*/
 				memcpy((char *) (knownNeighbor->cc),
 						(char *) connection,
 						sizeof(TcpclConnection));
+				rtp->connection = knownNeighbor->cc;
 
-				/*	Clear connection so that
-				 *	neighbor deletion won't
-				 *	close it.			*/
+				/*	Make sure deletion of the
+				 *	tentative neighbor doesn't
+				 *	affect the connection.		*/
 
-				memset((char *) connection, 0,
-						sizeof(TcpclConnection));
 				connection->sock = -1;
-				result = 1;	/*	Accepted.	*/
+				connection->hasReceiver = 0;
 			}
 
 			/*	In any case, tentative neighbor is
@@ -1082,7 +1075,6 @@ writeMemoNote("Have previously accepted connection for EID", neighbor->eid);
 		/*	The node that we have connect()ed to is not
 		 *	the one that we thought it was.			*/
 
-writeMemo("Unexpected EID for neighbor.");
 		writeMemoNote("[?] expected tcpcl EID", neighbor->eid);
 		writeMemoNote("[?] received tcpcl EID", eidbuf);
 		MRELEASE(eidbuf);
@@ -1158,7 +1150,6 @@ static int	sendAck(TcpclConnection *connection)
 	int	len;
 	int	result;
 
-writeMemo("Sending ack.");
 	ack[0] = 0x20;
 	encodeSdnv(&ackLengthSdnv, connection->lengthReceived);
 	memcpy(ack + 1, ackLengthSdnv.text, ackLengthSdnv.length);
@@ -1180,7 +1171,6 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	int		bytesToRead;
 	int		extentSize;
 
-writeMemoNote("Handling data segment from neighbor", neighbor->eid);
 	result = receiveSdnv(connection, &dataLength);
 	if (result < 1)
 	{
@@ -1224,7 +1214,8 @@ writeMemoNote("Handling data segment from neighbor", neighbor->eid);
 		switch (extentSize)
 		{
 		case -1:
-			putErrmsg("irecv() error on TCP socket", neighbor->eid);
+			putErrmsg("itcp_recv() error on TCP socket",
+					neighbor->eid);
 			return -1;
 
 		case 0:
@@ -1275,7 +1266,6 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 	LystElt		elt;
 	Object		bundleZco = 0;
 
-writeMemo("Handling ack.");
 	result = receiveSdnv(connection, &lengthAcked);
 	if (result < 1)
 	{
@@ -1380,7 +1370,6 @@ writeMemo("Handling ack.");
 static int	handleRefusal(ReceiverThreadParms *rtp,
 			unsigned char msgtypeByte)
 {
-writeMemo("Handling refusal.");
 	return 1;			/*	Refusals are ignored.	*/
 }
 
@@ -1389,7 +1378,6 @@ static int	handleKeepalive(ReceiverThreadParms *rtp,
 {
 	TcpclConnection	*connection = rtp->connection;
 
-writeMemo("Handling keepalive.");
 	connection->secSinceReception = 0;
 	connection->timeoutCount = 0;
 	return 1;
@@ -1404,13 +1392,23 @@ static int	handleShutdown(ReceiverThreadParms *rtp,
 	unsigned char	reasonCode;
 	uvast		reconnectInterval;
 
-writeMemo("Handling shutdown.");
 	if (msgtypeByte & 0x02)
 	{
 		result = irecv(connection->sock, (char *) &reasonCode, 1, 0);
-		if (result < 1)
+		switch (result)
 		{
-			return result;
+		case -1:
+			if (errno == EINTR)	/*	Shutdown.	*/
+			{
+				return 0;
+			}
+
+			putSysErrmsg("irecv() error on TCP socket",
+					neighbor->eid);
+			return -1;
+
+		case 0:			/*	Neighbor closed.	*/
+			return 0;
 		}
 
 		if (reasonCode == 0x01)	/*	Version mismatch.	*/
@@ -1443,7 +1441,6 @@ static int	handleLength(ReceiverThreadParms *rtp,
 	int	result;
 	uvast	bundleLength;
 
-writeMemo("Handling LENGTH message.");
 	result = receiveSdnv(rtp->connection, &bundleLength);
 	if (result < 1)
 	{
@@ -1462,13 +1459,12 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 
 	while (1)
 	{
-writeMemo("Waiting for message.");
 		switch (irecv(connection->sock, (char *) &msgtypeByte, 1, 0))
 		{
 		case -1:
 			if (errno != EINTR)	/*	Not shutdown.	*/
 			{
-				putErrmsg("irecv() error on TCP socket",
+				putSysErrmsg("irecv() error on TCP socket",
 						neighbor->eid);
 				return -1;
 			}
@@ -1587,11 +1583,12 @@ static void	*handleContacts(void *parm)
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
+	int			result;
 
 	/*	Wait for okay from beginConnection.			*/
 
 	pthread_mutex_lock(&(connection->mutex));
-	if (rtp->running == 0)
+	if (connection->shutDown)
 	{
 		return NULL;
 	}
@@ -1600,7 +1597,6 @@ static void	*handleContacts(void *parm)
 
 	/*	Load other required receiver thread parms.		*/
 
-writeMemoNote("Started a receiver thread", neighbor->eid);
 	rtp->work = bpGetAcqArea(neighbor->induct);
 	if (rtp->work == NULL)
 	{
@@ -1628,7 +1624,7 @@ writeMemoNote("Started a receiver thread", neighbor->eid);
 
 	/*	Now loop through possibly multiple contact episodes.	*/
 
-	while (rtp->running)
+	while (!(connection->shutDown))
 	{
 		if (connection->sock == -1)
 		{
@@ -1643,7 +1639,7 @@ writeMemoNote("Started a receiver thread", neighbor->eid);
 			{
 			case -1:
 				ionKillMainThread(procName());
-				rtp->running = 0;
+				connection->shutDown = 1;
 				continue;
 
 			case 0:			/*	No reconnect.	*/
@@ -1665,7 +1661,7 @@ writeMemoNote("Started a receiver thread", neighbor->eid);
 			putErrmsg("tcpcli can't send contact header.",
 					neighbor->eid);
 			ionKillMainThread(procName());
-			rtp->running = 0;
+			connection->shutDown = 1;
 			continue;
 
 		case 0:				/*	Neighbor lost.	*/
@@ -1674,13 +1670,20 @@ writeMemoNote("Started a receiver thread", neighbor->eid);
 			continue;	/*	Try again.		*/
 		}
 
-		switch (receiveContactHeader(connection, rtp->neighbors))
+		result = receiveContactHeader(rtp);
+
+		/*	Contact header may have attached this receiver
+		 *	thread to a previously established neighbor.	*/
+
+		connection = rtp->connection;
+		neighbor = connection->neighbor;
+		switch (result)
 		{
 		case -1:
 			putErrmsg("tcpcli can't receive contact header.",
 					neighbor->eid);
 			ionKillMainThread(procName());
-			rtp->running = 0;
+			connection->shutDown = 1;
 			continue;
 
 		case 0:		/*	Neighbor lost or discarded.	*/
@@ -1698,7 +1701,7 @@ writeMemoNote("Started a receiver thread", neighbor->eid);
 		if (handleMessages(rtp) < 0)
 		{
 			ionKillMainThread(procName());
-			rtp->running = 0;
+			connection->shutDown = 1;
 		}
 	}
 
@@ -1734,7 +1737,6 @@ static void	*spawnReceivers(void *parm)
 	socklen_t		socknamelen;
 	LystElt			elt;
 
-writeMemo("Started server thread.");
 	snooze(1);	/*	Let main thread become interruptable.	*/
 
 	/*	Can now begin accepting connections from neighboring
@@ -1825,7 +1827,6 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 
 	/*	Try to connect to the indicated socket.			*/
 
-writeMemo("Beginning connection for plan.");
 	switch (itcp_connect(socketSpec, BpTcpDefaultPortNbr, &sock))
 	{
 	case -1:
@@ -1834,15 +1835,11 @@ writeMemo("Beginning connection for plan.");
 
 	case 0:
 		return 0;		/*	Neighbor refused.	*/
-
-	default:
-		break;			/*	Out of switch.		*/
 	}
 
 	/*	TCP connection succeeded, so establish the TCPCL
 	 *	connection.						*/
 
-writeMemoNote("Beginning outbound connection", socketSpec);
 	if (beginConnection(ctp->neighbors, eid, sock, socketSpec,
 			ctp->induct) < 0)
 	{
@@ -1991,7 +1988,6 @@ static int	rescanIpn(ClockThreadParms *ctp, IpnDB *ipndb)
 	Object		ruleObj;
 			OBJ_POINTER(IpnRule, ipnRule);
 
-writeMemo("Rescanning ipn.");
 	CHKERR(sdr_begin_xn(sdr));
 	for (planElt = sdr_list_first(sdr, ipndb->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
@@ -2046,7 +2042,6 @@ writeMemo("Rescanning ipn.");
 		}
 	}
 
-writeMemo("Finished ipn rescan.");
 	return sdr_end_xn(sdr);
 }
 
@@ -2135,7 +2130,6 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 	/*	First look for newly added ipnfw plans or rules and
 	 *	try to create connections for them.			*/
 
-writeMemo("In rescan....");
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
 	if (ipndb)
@@ -2160,7 +2154,6 @@ writeMemo("In rescan....");
 	/*	Now look for connections that must be ended because
 	 *	the plans/rules referencing them have been removed.	*/
 
-writeMemo("Cleaning up obsolete connections.");
 	for (elt = lyst_first(ctp->neighbors); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
@@ -2186,8 +2179,6 @@ writeMemo("Cleaning up obsolete connections.");
 				&vductElt);
 		if (vductElt == 0)	/*	Outduct is gone.	*/
 		{
-writeMemoNote("Ending connection because outduct was deleted",
-connection->destDuctName);
 			endConnection(connection, -1);
 			if (neighbor->cc->sock == -1)
 			{
@@ -2204,8 +2195,6 @@ connection->destDuctName);
 
 		if (noLongerReferenced(connection, ipndb, dtn2db))
 		{
-writeMemoNote("Ending connection because no plan references its outduct",
-connection->destDuctName);
 			endConnection(connection, -1);
 			if (neighbor->cc->sock == -1)
 			{
@@ -2217,7 +2206,6 @@ connection->destDuctName);
 		}
 	}
 
-writeMemo("...finished rescan.");
 	return 0;
 }
 
@@ -2227,7 +2215,6 @@ static int	sendKeepalive(TcpclConnection *connection)
 	TcpclNeighbor	*neighbor = connection->neighbor;
 	int		result;
 
-writeMemo("Sending keepalive.");
 	if (connection->sock == -1)
 	{
 		return 0;
@@ -2261,7 +2248,6 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	while ((elt = lyst_first(ctp->backlog)))
 	{
 		sock = (int) lyst_data(elt);
-writeMemo("Beginning responsive connection");
 		oK(sdr_begin_xn(sdr));
 		if (beginConnection(ctp->neighbors, NULL, sock, NULL,
 				ctp->induct) < 0)
@@ -2305,7 +2291,6 @@ static void	checkConnection(TcpclConnection *connection)
 
 	if (connection->secUntilShutdown == 0)
 	{
-writeMemoNote("Ending connection because no bundle traffic", neighbor->eid);
 		endConnection(connection, 0);
 		return;
 	}
@@ -2321,7 +2306,6 @@ writeMemoNote("Ending connection because no bundle traffic", neighbor->eid);
 			connection->timeoutCount++;
 			if (connection->timeoutCount > 1)
 			{
-writeMemoNote("Ending connection because no reception", neighbor->eid);
 				endConnection(connection, 0);
 				return;
 			}
@@ -2366,13 +2350,13 @@ static void	*handleEvents(void *parm)
 	time_t			planChangeTime;
 	time_t			lastIpnPlanChange = 0;
 	time_t			lastDtn2PlanChange = 0;
+	int			rescanInterval = 1;
 	int			secUntilRescan = 2;
 	LystElt			elt;
 	LystElt			nextElt;
 	TcpclNeighbor		*neighbor;
 	int			i;
 
-writeMemo("Started clock thread.");
 	while (ctp->running)
 	{
 		/*	Begin TCPCL connections for all accepted
@@ -2421,7 +2405,12 @@ writeMemo("Started clock thread.");
 				continue;
 			}
 
-			secUntilRescan = RESCAN_INTERVAL;
+			secUntilRescan = rescanInterval;
+			rescanInterval <<= 1;
+			if (rescanInterval > MAX_RESCAN_INTERVAL)
+			{
+				rescanInterval = MAX_RESCAN_INTERVAL;
+			}
 		}
 
 		/*	Now look for events whose time has come.	*/
@@ -2432,7 +2421,6 @@ writeMemo("Started clock thread.");
 			neighbor = (TcpclNeighbor *) lyst_data(elt);
 			if (neighbor->mustDelete)
 			{
-writeMemoNote("Deleting neighbor because mustDelete", neighbor->eid);
 				deleteTcpclNeighbor(neighbor);
 				lyst_delete(elt);
 				continue;
@@ -2446,7 +2434,6 @@ writeMemoNote("Deleting neighbor because mustDelete", neighbor->eid);
 			if (neighbor->pc->destDuctName == NULL
 			&& neighbor->cc->sock == -1)
 			{
-writeMemoNote("Deleting neighbor because connections are ended", neighbor->eid);
 				deleteTcpclNeighbor(neighbor);
 				lyst_delete(elt);
 			}
@@ -2560,7 +2547,6 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated, so
 		begin initialization by creating the neighbors lyst.	*/
 
-writeMemo("Starting tcpcli main thread.");
 	neighbors = lyst_create_using(getIonMemoryMgr());
 	if (neighbors == NULL)
 	{
@@ -2615,7 +2601,7 @@ writeMemo("Starting tcpcli main thread.");
 	ionNoteMainThread("tcpcli");
 	isignal(SIGTERM, interruptThread);
 #ifndef mingw
-	isignal(SIGPIPE, SIG_IGN);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/*	Start the clock thread, which does initial load
@@ -2643,9 +2629,10 @@ writeMemo("Starting tcpcli main thread.");
 	stp.backlogMutex = &backlogMutex;
 	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp))
 	{
+		shutDownNeighbors(neighbors);
+		snooze(2);	/*	Let clock thread clean up.	*/
 		ctp.running = 0;
 		pthread_join(clockThread, NULL);
-		shutDownNeighbors(neighbors);
 		closesocket(stp.serverSocket);
 		lyst_destroy(backlog);
 		lyst_destroy(neighbors);
@@ -2673,9 +2660,10 @@ writeMemo("Starting tcpcli main thread.");
 	stp.running = 0;
 	wakeUpServerThread(&socketName);
 	pthread_join(serverThread, NULL);
+	shutDownNeighbors(neighbors);
+	snooze(2);		/*	Let clock thread clean up.	*/
 	ctp.running = 0;
 	pthread_join(clockThread, NULL);
-	shutDownNeighbors(neighbors);
 	closesocket(stp.serverSocket);
 	pthread_mutex_destroy(&backlogMutex);
 	lyst_destroy(backlog);

@@ -30,10 +30,6 @@ extern "C" {
 #define STCP_KEEPALIVE_PERIOD	(15)
 #endif
 
-#ifndef mingw
-extern void	handleConnectionLoss();
-#endif
-
 /*	Note that libstcpcla functionality is invoked not only by
  *	the stcp CLA but also by the brss and brsc (Bundle Relay
  *	Service) CLAs.  Because outduct management is different for

@@ -407,7 +407,7 @@ number>");
 	oK(brscclaSemaphore(&(voutduct->semaphore)));
 	isignal(SIGTERM, interruptThread);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/*	Start the receiver thread.				*/

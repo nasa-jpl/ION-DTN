@@ -357,34 +357,6 @@ static int	isUnicast(char *schemeName)
 	return 0;
 }
 
-static void	getCanonicalDuctName(char *protocolName, char *ductName,
-			char *buffer)
-{
-	unsigned short	portNbr;
-	unsigned int	hostNbr;
-	char		addressBuffer[16];
-
-	if (strcmp(protocolName, "tcp") == 0)
-	{
-		if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
-		{
-			istrcpy(buffer, "tcp/?",
-					MAX_CL_CANONICAL_DUCT_NAME_LEN + 1);
-		}
-		else
-		{
-			printDottedString(hostNbr, addressBuffer);
-			isprintf(buffer, MAX_CL_CANONICAL_DUCT_NAME_LEN + 1,
-					"tcp/%s:%hu", addressBuffer, portNbr);
-		}
-	}
-	else
-	{
-		isprintf(buffer, MAX_CL_CANONICAL_DUCT_NAME_LEN + 1,
-				"%s/%s", protocolName, ductName);
-	}
-}
-
 /*	*	*	Instrumentation functions	*	*	*/
 
 void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
@@ -1132,7 +1104,6 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
-	getCanonicalDuctName(protocol.name, duct.name, vduct->canonicalName);
 	vduct->semaphore = SM_SEM_NONE;
 	vduct->xmitThrottle.nominalRate = protocol.nominalRate;
 	vduct->xmitThrottle.capacity = 0;
@@ -4068,15 +4039,13 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 		PsmAddress *vductElt)
 {
 	PsmPartition	bpwm = getIonwm();
-	char		canonicalDuctName[MAX_CL_CANONICAL_DUCT_NAME_LEN + 1];
 	PsmAddress	elt;
 
-	getCanonicalDuctName(protocolName, ductName, canonicalDuctName);
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->outducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		if (strcmp((*vduct)->canonicalName, canonicalDuctName) == 0)
+		if (strcmp((*vduct)->ductName, ductName) == 0)
 		{
 			break;
 		}

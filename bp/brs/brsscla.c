@@ -780,7 +780,7 @@ port 80)", NULL);
 
 	ionNoteMainThread("brsscla");
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);	/*	For sender.	*/
+	isignal(SIGPIPE, itcp_handleConnectionLoss);	/*	Sender.	*/
 #endif
 	isignal(SIGTERM, interruptThread);
 
