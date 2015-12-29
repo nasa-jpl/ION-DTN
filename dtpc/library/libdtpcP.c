@@ -1158,7 +1158,7 @@ int	sendAdu(BpSAP sap)
 	if (profile->maxRtx == 0)	/*	No transport service.	*/
 	{
 		deleteAdu(sdr, sdrElt);
-		return 0;
+		return sdr_end_xn(sdr);
 	}
 
 	/*	Transport service is requested for this ADU.  So

@@ -17,6 +17,10 @@
 extern "C" {
 #endif
 
+#if defined (STRSOE)
+#define RTEMS
+#endif
+
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
 #define ION_LWT
 #else
