@@ -3448,6 +3448,7 @@ int	itcp_send(int sock, char *from, int length)
 int	itcp_recv(int sock, char *into, int length)
 {
 	int	totalBytesReceived = 0;
+	int	bytesToRecv = length;
 	int	bytesRead;
 
 	CHKERR(!(sock < 0));
@@ -3458,9 +3459,9 @@ int	itcp_recv(int sock, char *into, int length)
 	 *	subset of the data received, so we have to loop
 	 *	until the entire buffer has been acquired.		*/
 
-	while (totalBytesReceived < length)
+	while (bytesToRecv > 0)
 	{
-		bytesRead = irecv(sock, into, length, 0);
+		bytesRead = irecv(sock, into, bytesToRecv, 0);
 		switch (bytesRead)
 		{
 		case -1:
@@ -3482,6 +3483,8 @@ int	itcp_recv(int sock, char *into, int length)
 
 		default:
 			totalBytesReceived += bytesRead;
+			into += bytesRead;
+			bytesToRecv -= bytesRead;
 		}
 	}
 

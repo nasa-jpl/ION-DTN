@@ -63,8 +63,8 @@ typedef struct
 	pthread_t		sender;
 	int			hasSender;	/*	Boolean.	*/
 	Lyst			pipeline;	/*	All outbound.	*/
-	vast			lengthSent;	/*	Oldest out.	*/
-	vast			lengthAcked;	/*	Oldest out.	*/
+	uvast			lengthSent;	/*	Oldest out.	*/
+	uvast			lengthAcked;	/*	Oldest out.	*/
 	int			reconnectInterval;
 	int			secUntilReconnect;
 	int			newlyAdded;	/*	Boolean.	*/
@@ -250,6 +250,7 @@ static void	cancelXmit(LystElt elt, void *userdata)
 		return;
 	}
 
+puts("Transmission canceled out of pipeline.");
 	if (bpHandleXmitFailure(bundleZco) < 0)
 	{
 		putErrmsg("tcpcli neighbor closure can't handle failed xmit.",
@@ -629,6 +630,7 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	Sdnv		segLengthSdnv;
 	char		segHeader[4];
 	int		segHeaderLength;
+uvast	lengthSent;
 
 	if (connection->sock == -1)		/*	Disconnected.	*/
 	{
@@ -638,6 +640,7 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	zco_start_transmitting(bundleZco, &reader);
 	zco_track_file_offset(&reader);
 	bytesRemaining = zco_length(sdr, bundleZco);
+lengthSent = bytesRemaining;
 	flags = 0x02;				/*	1st segment.	*/
 	while (bytesRemaining > 0)
 	{
@@ -716,6 +719,14 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 		bytesRemaining -= bytesToSend;
 	}
 
+	if (lyst_insert_last(connection->pipeline, (void *) bundleZco) == NULL)
+	{
+		putErrmsg("Can't append transmitted ZCO to tcpcli pipeline.",
+				neighbor->eid);
+		return -1;
+	}
+
+printf("\nlengthSent is " UVAST_FIELDSPEC ".\n", lengthSent);
 	return 1;	/*	Bundle was successfully sent.		*/
 }
 
@@ -1274,6 +1285,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 	if (lengthAcked == 0)		/*	Nuisance ack.		*/
 	{
+printf("\nIgnoring nuisance ack for " UVAST_FIELDSPEC ".\n", lengthAcked);
 		return 1;		/*	Ignore it.		*/
 	}
 
@@ -1299,6 +1311,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		{
 			/*	Nothing to acknowledge.			*/
 
+printf("\nIgnoring ack for unpipelined " UVAST_FIELDSPEC ".\n", lengthAcked);
 			return 1;	/*	Ignore acknowledgment.	*/
 		}
 
@@ -1308,9 +1321,13 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		connection->lengthAcked = 0;
 	}
 
+printf("\nlengthAcked is " UVAST_FIELDSPEC ".\n", lengthAcked);
 	if (lengthAcked <= connection->lengthAcked
 	|| lengthAcked > connection->lengthSent)
 	{
+/*printf("lengthAcked " UVAST_FIELDSPEC ", connection->lengthAcked "
+UVAST_FIELDSPEC ", connection->lengthSent " UVAST_FIELDSPEC ".\n",
+lengthAcked, connection->lengthAcked, connection->lengthSent);*/
 		/*	Acknowledgment sequence is violated, so 
 		 *	didn't ack the end of the oldest bundle.	*/
 
@@ -1320,6 +1337,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 			bundleZco = (Object) lyst_data(elt);
 		}
 
+puts("Ack sequence violated.");
 		if (bpHandleXmitFailure(bundleZco) < 0)
 		{
 			return -1;
