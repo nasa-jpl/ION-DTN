@@ -250,7 +250,6 @@ static void	cancelXmit(LystElt elt, void *userdata)
 		return;
 	}
 
-puts("Transmission canceled out of pipeline.");
 	if (bpHandleXmitFailure(bundleZco) < 0)
 	{
 		putErrmsg("tcpcli neighbor closure can't handle failed xmit.",
@@ -621,6 +620,7 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	Sdr		sdr = getIonsdr();
 	TcpclConnection	*connection = stp->connection;
 	TcpclNeighbor	*neighbor = connection->neighbor;
+	LystElt		elt;
 	uvast		bytesRemaining;
 	int		flags;
 	ZcoReader	reader;
@@ -630,17 +630,25 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	Sdnv		segLengthSdnv;
 	char		segHeader[4];
 	int		segHeaderLength;
-uvast	lengthSent;
 
 	if (connection->sock == -1)		/*	Disconnected.	*/
 	{
 		return discardBundle(connection, bundleZco);
 	}
 
+	pthread_mutex_lock(&(connection->mutex));
+	elt = lyst_insert_last(connection->pipeline, (void *) bundleZco);
+	pthread_mutex_unlock(&(connection->mutex));
+	if (elt == NULL)
+	{
+		putErrmsg("Can't append transmitted ZCO to tcpcli pipeline.",
+				neighbor->eid);
+		return -1;
+	}
+
 	zco_start_transmitting(bundleZco, &reader);
 	zco_track_file_offset(&reader);
 	bytesRemaining = zco_length(sdr, bundleZco);
-lengthSent = bytesRemaining;
 	flags = 0x02;				/*	1st segment.	*/
 	while (bytesRemaining > 0)
 	{
@@ -654,6 +662,16 @@ lengthSent = bytesRemaining;
 			flags |= 0x01;		/*	Last segment.	*/
 		}
 
+		CHKERR(sdr_begin_xn(sdr));
+		bytesToSend = zco_transmit(sdr, &reader, bytesToLoad,
+				stp->buffer);
+		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
+		{
+			pthread_mutex_unlock(&(connection->mutex));
+			putErrmsg("Incomplete zco_transmit.", neighbor->eid);
+			return -1;
+		}
+
 		firstByte = 0x10 | flags;
 		segHeader[0] = firstByte;
 		encodeSdnv(&segLengthSdnv, bytesToLoad);
@@ -663,11 +681,13 @@ lengthSent = bytesRemaining;
 		switch (itcp_send(connection->sock, segHeader, segHeaderLength))
 		{
 		case -1:			/*	System failed.	*/
+			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
 			putErrmsg("itcp_send() error", neighbor->eid);
 			return -1;
 
 		case 0:
+			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
 			writeMemoNote("[?] tcpcl connection lost",
 					neighbor->eid);
@@ -682,24 +702,16 @@ lengthSent = bytesRemaining;
 			return 0;
 		}
 
-		CHKERR(sdr_begin_xn(sdr));
-		bytesToSend = zco_transmit(sdr, &reader, bytesToLoad,
-				stp->buffer);
-		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
-		{
-			pthread_mutex_unlock(&(connection->mutex));
-			putErrmsg("Incomplete zco_transmit.", neighbor->eid);
-			return -1;
-		}
-
 		switch (itcp_send(connection->sock, stp->buffer, bytesToSend))
 		{
 		case -1:			/*	System failed.	*/
+			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
 			putErrmsg("itcp_send() error", neighbor->eid);
 			return -1;
 
 		case 0:
+			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
 			writeMemoNote("[?] tcpcl connection lost",
 					neighbor->eid);
@@ -719,14 +731,6 @@ lengthSent = bytesRemaining;
 		bytesRemaining -= bytesToSend;
 	}
 
-	if (lyst_insert_last(connection->pipeline, (void *) bundleZco) == NULL)
-	{
-		putErrmsg("Can't append transmitted ZCO to tcpcli pipeline.",
-				neighbor->eid);
-		return -1;
-	}
-
-printf("\nlengthSent is " UVAST_FIELDSPEC ".\n", lengthSent);
 	return 1;	/*	Bundle was successfully sent.		*/
 }
 
@@ -1285,7 +1289,6 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 	if (lengthAcked == 0)		/*	Nuisance ack.		*/
 	{
-printf("\nIgnoring nuisance ack for " UVAST_FIELDSPEC ".\n", lengthAcked);
 		return 1;		/*	Ignore it.		*/
 	}
 
@@ -1306,12 +1309,18 @@ printf("\nIgnoring nuisance ack for " UVAST_FIELDSPEC ".\n", lengthAcked);
 		/*	Must get the oldest bundle, to which this ack
 		 *	pertains.					*/
 
+		pthread_mutex_lock(&(connection->mutex));
 		elt = lyst_first(connection->pipeline);
-		if (elt == NULL || (bundleZco = (Object) lyst_data(elt)) == 0)
+		if (elt)
+		{
+			bundleZco = (Object) lyst_data(elt);
+		}
+
+		pthread_mutex_unlock(&(connection->mutex));
+		if (bundleZco == 0)
 		{
 			/*	Nothing to acknowledge.			*/
 
-printf("\nIgnoring ack for unpipelined " UVAST_FIELDSPEC ".\n", lengthAcked);
 			return 1;	/*	Ignore acknowledgment.	*/
 		}
 
@@ -1321,23 +1330,20 @@ printf("\nIgnoring ack for unpipelined " UVAST_FIELDSPEC ".\n", lengthAcked);
 		connection->lengthAcked = 0;
 	}
 
-printf("\nlengthAcked is " UVAST_FIELDSPEC ".\n", lengthAcked);
 	if (lengthAcked <= connection->lengthAcked
 	|| lengthAcked > connection->lengthSent)
 	{
-/*printf("lengthAcked " UVAST_FIELDSPEC ", connection->lengthAcked "
-UVAST_FIELDSPEC ", connection->lengthSent " UVAST_FIELDSPEC ".\n",
-lengthAcked, connection->lengthAcked, connection->lengthSent);*/
 		/*	Acknowledgment sequence is violated, so 
 		 *	didn't ack the end of the oldest bundle.	*/
 
 		if (bundleZco == 0)	/*	Not already retrieved.	*/
 		{
+			pthread_mutex_lock(&(connection->mutex));
 			elt = lyst_first(connection->pipeline);
 			bundleZco = (Object) lyst_data(elt);
+			pthread_mutex_unlock(&(connection->mutex));
 		}
 
-puts("Ack sequence violated.");
 		if (bpHandleXmitFailure(bundleZco) < 0)
 		{
 			return -1;
@@ -1358,8 +1364,10 @@ puts("Ack sequence violated.");
 
 		if (bundleZco == 0)	/*	Not already retrieved.	*/
 		{
+			pthread_mutex_lock(&(connection->mutex));
 			elt = lyst_first(connection->pipeline);
 			bundleZco = (Object) lyst_data(elt);
+			pthread_mutex_unlock(&(connection->mutex));
 		}
 
 		if (bpHandleXmitSuccess(bundleZco, 0) < 0)
