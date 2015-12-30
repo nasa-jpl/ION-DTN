@@ -2351,20 +2351,21 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 #endif
 	if (profile->maxRtx == 0)	/*	No transport service.	*/
 	{
-		return 1;		/*	No more to do.		*/
+		result = 0;		/*	Force "next expected".	*/
 	}
-
-	/*	Transport service is requested for this profile.	*/
-
-	if (sendAck(txSap, profNum, seqNum, dlv) < 0)
+	else	/*	Transport service requested for this profile.	*/
 	{
-		putErrmsg("DTPC can't send acknowledgment.", NULL);
-		return -1;
+		if (sendAck(txSap, profNum, seqNum, dlv) < 0)
+		{
+			putErrmsg("DTPC can't send acknowledgment.", NULL);
+			return -1;
+		}
+
+		result = compareScalars(&seqNum, &inAggr.nextExpected);
 	}
 
 	/*	Insert the Adu into the collection sequence.		*/
 
-	result = compareScalars(&seqNum, &inAggr.nextExpected);
 	if (result == 2)	/*	seqNum < inAggr.nextExpected	*/
 	{
 		/*	We already have this item or it has expired.	*/
