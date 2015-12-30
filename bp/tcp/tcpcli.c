@@ -12,6 +12,7 @@
 #include "bpP.h"
 #include "ipnfw.h"
 #include "dtn2fw.h"
+#include "llcv.h"
 
 #define	BpTcpDefaultPortNbr	4556
 #define	TCPCL_BUFSZ		(64 * 1024)
@@ -23,12 +24,19 @@
 #ifndef KEEPALIVE_INTERVAL
 #define KEEPALIVE_INTERVAL	(15)
 #endif
+
 #ifndef IDLE_SHUTDOWN_INTERVAL
 #define IDLE_SHUTDOWN_INTERVAL	(600)
 #endif
+
 #ifndef MAX_RECONNECT_INTERVAL
 #define MAX_RECONNECT_INTERVAL	(3600)
 #endif
+
+#ifndef	MAX_PIPELINE_LENGTH
+#define	MAX_PIPELINE_LENGTH	(100)
+#endif
+
 #define	TCPCL_SEGMENT_ACKS	(1)
 #define	TCPCL_REACTIVE		(0)
 #define	TCPCL_REFUSALS		(0)
@@ -63,6 +71,8 @@ typedef struct
 	pthread_t		sender;
 	int			hasSender;	/*	Boolean.	*/
 	Lyst			pipeline;	/*	All outbound.	*/
+	struct llcv_str		throttleLlcv;
+	Llcv			throttle;	/*	On pipeline.	*/
 	uvast			lengthSent;	/*	Oldest out.	*/
 	uvast			lengthAcked;	/*	Oldest out.	*/
 	int			reconnectInterval;
@@ -362,6 +372,7 @@ static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
 	connection->newlyAdded = 1;
 	connection->reconnectInterval = 1;
 	connection->secUntilReconnect = -1;
+	connection->throttle = &(connection->throttleLlcv);
 	connection->pipeline = lyst_create_using(getIonMemoryMgr());
 	if (connection->pipeline == NULL)
 	{
@@ -382,9 +393,30 @@ static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
 	}
 
 	lyst_delete_set(connection->pipeline, cancelXmit, NULL);
+	if (llcv_open(connection->pipeline, connection->throttle) == NULL)
+	{
+		lyst_destroy(connection->pipeline);
+		connection->shutDown = 1;
+		pthread_mutex_unlock(&(connection->mutex));
+		pthread_join(connection->receiver, NULL);
+		MRELEASE(rtp);
+		pthread_mutex_destroy(&(connection->mutex));
+		if (newNeighbor)
+		{
+			deleteTcpclNeighbor(neighbor);
+			lyst_delete(neighborElt);
+		}
+
+		putErrmsg("tcpcli can't copy socket spec for new neighbor.",
+				NULL);
+		closesocket(newSocket);
+		return -1;
+	}
+
 	len = istrlen(destDuctName, MAX_CL_DUCT_NAME_LEN + 1) + 1;
 	if (len == 0 || (connection->destDuctName = MTAKE(len)) == NULL)
 	{
+		llcv_close(connection->throttle);
 		lyst_destroy(connection->pipeline);
 		connection->shutDown = 1;
 		pthread_mutex_unlock(&(connection->mutex));
@@ -552,6 +584,7 @@ static void	endConnection(TcpclConnection *connection, char reason)
 	{
 		lyst_destroy(connection->pipeline);
 		connection->pipeline = NULL;
+		llcv_close(connection->throttle);
 	}
 
 	pthread_mutex_destroy(&(connection->mutex));
@@ -615,6 +648,11 @@ static int	discardBundle(TcpclConnection *connection, Object bundleZco)
 	return 0;
 }
 
+static int pipeline_not_full(Llcv llcv)
+{
+	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
+}
+
 static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 {
 	Sdr		sdr = getIonsdr();
@@ -634,6 +672,13 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	if (connection->sock == -1)		/*	Disconnected.	*/
 	{
 		return discardBundle(connection, bundleZco);
+	}
+
+	if (llcv_wait(connection->throttle, pipeline_not_full, LLCV_BLOCKING))
+	{
+		putErrmsg("Wait on TCPCL pipeline throttle condition failed.",
+				neighbor->eid);
+		return -1;
 	}
 
 	pthread_mutex_lock(&(connection->mutex));
@@ -1348,9 +1393,6 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		{
 			return -1;
 		}
-
-		oK(lyst_data_set(elt, NULL));
-		lyst_delete(elt);
 	}
 	else	/*	Acknowledgments are ascending.			*/
 	{
@@ -1374,10 +1416,11 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		{
 			return -1;
 		}
-
-		oK(lyst_data_set(elt, NULL));
-		lyst_delete(elt);
 	}
+
+	oK(lyst_data_set(elt, NULL));
+	lyst_delete(elt);
+	llcv_signal(connection->throttle, pipeline_not_full);
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
