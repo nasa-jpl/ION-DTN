@@ -172,8 +172,8 @@ bprecvfile ipn:7.1 &
 sleep 5
 echo "Sending files from node 2 destined for nodes 6, 7, and 8..."
 cd ../2.ipn.tcp
-bpsendfile ipn:2.2 ipn:6.1 testfilex
-bpsendfile ipn:2.2 ipn:7.1 testfiley
+#bpsendfile ipn:2.2 ipn:6.1 testfilex
+#bpsendfile ipn:2.2 ipn:7.1 testfiley
 bpsendfile ipn:2.2 ipn:8.1 testfilez
 
 # After 5 seconds, start ipnd for nodes 2 and 3 so that the file
@@ -186,6 +186,9 @@ cd ../3.ipn.tcp
 sleep 1
 cd ../2.ipn.tcp
 ./startlisten
+
+sleep 2
+bpsendfile ipn:2.2 ipn:6.1 testfilex
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
@@ -205,6 +208,9 @@ cd ../5.ipn.tcp
 sleep 1
 cd ../2.ipn.tcp
 ./startlisten
+
+sleep 2
+bpsendfile ipn:2.2 ipn:7.1 testfiley
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
