@@ -192,6 +192,8 @@ sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
 killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
 
 # After 5 seconds, start ipnd for nodes 2 and 5 so that the file
 # destined for node 7 will be forwarded to node 5.
@@ -209,6 +211,8 @@ sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
 killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
 
 # After 5 seconds, start ipnd for nodes 3 and 6 so that the file
 # destined for node 6 will be forwarded to node 6.
@@ -226,6 +230,8 @@ sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
 killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
 
 # After 5 seconds, start ipnd for nodes 5 and 7 so that the file
 # destined for node 7 will be forwarded to node 7.
@@ -243,6 +249,8 @@ sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
 killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
 
 # After 5 seconds, check all results.
 sleep 5
