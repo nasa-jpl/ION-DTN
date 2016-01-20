@@ -71,7 +71,7 @@ EXTRA_DIST+= \
 	$(cfdpextra)
 endif
 
-install-exec-hook: 
+install-exec-hook:
 	@echo
 	@echo "You should now run 'sudo ldconfig' if available."
 	@echo
@@ -97,7 +97,7 @@ cov:
 	@make cov-report
 
 #clean-local:
-#    @make cov-reset 
+#    @make cov-reset
 
 #check:
 #    @make cov
@@ -151,7 +151,7 @@ bin_PROGRAMS+= \
 	$(amsbin) \
 	$(cfdpbin)
 endif
-		
+
 
 lib_LTLIBRARIES = \
 	$(icilib) \
@@ -221,13 +221,13 @@ endif
 #
 #################
 
-# throw the helper scripts in the /usr/local/bin 
+# throw the helper scripts in the /usr/local/bin
 # whatever directory with the rest of the programs.
 stuffdir = $(bindir)
 stuff_SCRIPTS =	$(srcdir)/killm \
 		$(srcdir)/ionstart \
 		$(srcdir)/ionstop \
-		$(srcdir)/ionscript 
+		$(srcdir)/ionscript
 
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
@@ -235,14 +235,14 @@ otherstuff_DATA = \
 	$(srcdir)/tutorial.html \
 	$(srcdir)/ION.pdf \
 	$(srcdir)/ION-LTP-configuration.doc \
-	$(srcdir)/ION-LTP-configuration.xls 
+	$(srcdir)/ION-LTP-configuration.xls
 
 tutorialdir = $(pkgdatadir)/tutorial_files
 tutorial_DATA = \
 	$(srcdir)/tutorial_files/2node.png \
 	$(srcdir)/tutorial_files/3node.png \
 	$(srcdir)/tutorial_files/loopback.png \
-	$(srcdir)/tutorial_files/print.html 
+	$(srcdir)/tutorial_files/print.html
 
 
 #################
@@ -260,23 +260,23 @@ loopbackltp_DATA = \
 	$(srcdir)/configs/loopback-ltp/loopback.ltprc \
 	$(srcdir)/configs/loopback-ltp/loopback.bprc \
 	$(srcdir)/configs/loopback-ltp/loopback.ipnrc \
-	$(srcdir)/configs/loopback-ltp/loopback.rc 
+	$(srcdir)/configs/loopback-ltp/loopback.rc
 # new loopback for ion2, stcp
 loopbackstcpdir = $(pkgdatadir)/configs/loopback-stcp
 loopbackstcp_DATA = \
 	$(srcdir)/configs/loopback-stcp/loopback.ionrc \
 	$(srcdir)/configs/loopback-stcp/loopback.bprc \
 	$(srcdir)/configs/loopback-stcp/loopback.ipnrc \
-	$(srcdir)/configs/loopback-stcp/loopback.rc 
+	$(srcdir)/configs/loopback-stcp/loopback.rc
 # loopback using the udp convergence layer
 loopbackudpdir = $(pkgdatadir)/configs/loopback-udp
 loopbackudp_DATA = \
-	$(srcdir)/configs/loopback-udp/loopback.rc 
+	$(srcdir)/configs/loopback-udp/loopback.rc
 # ion and dtn2 example
 iondtn2dir = $(pkgdatadir)/configs/ion-dtn2-example
 iondtn2_DATA = \
 	$(srcdir)/configs/ion-dtn2-example/dtn2-host.conf \
-	$(srcdir)/configs/ion-dtn2-example/ion-host.rc 
+	$(srcdir)/configs/ion-dtn2-example/ion-host.rc
 
 # 2node testing- using stcp
 #twonodestcpdir = $(pkgdatadir)/configs/2node-stcp
@@ -288,7 +288,7 @@ iondtn2_DATA = \
 	#$(srcdir)/configs/2node-stcp/host2.rc \
 	#$(srcdir)/configs/2node-stcp/host2.bprc \
 	#$(srcdir)/configs/2node-stcp/host2.ionrc \
-	#$(srcdir)/configs/2node-stcp/host2.ipnrc 
+	#$(srcdir)/configs/2node-stcp/host2.ipnrc
 ## 3node testing- using stcp and ltp
 #threenodestcpltpdir = $(pkgdatadir)/configs/3node-stcp-ltp
 #threenodestcpltp_DATA = \
@@ -305,7 +305,7 @@ iondtn2_DATA = \
 	#$(srcdir)/configs/3node-stcp-ltp/host3.ipnrc \
 	#$(srcdir)/configs/3node-stcp-ltp/host3.ionrc \
 	#$(srcdir)/configs/3node-stcp-ltp/host3.bprc \
-	#$(srcdir)/configs/3node-stcp-ltp/host3.rc 
+	#$(srcdir)/configs/3node-stcp-ltp/host3.rc
 
 # nasa-JPL's brs section has 3 directories inside, node10 node5 node7
 node5dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node5
@@ -315,7 +315,7 @@ node5_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ipnrc \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ltprc 
+	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node5/node5.ltprc
 node7dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node7
 node7_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/ionconfig \
@@ -323,7 +323,7 @@ node7_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.bprc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ionrc \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ipnrc \
-	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ltprc 
+	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node7/node7.ltprc
 node10dir = $(pkgdatadir)/configs/3node-ltp-brs/iontest.ipn.node10
 node10_DATA = \
 	$(srcdir)/configs/3node-ltp-brs/iontest.ipn.node10/ionconfig \
@@ -366,7 +366,7 @@ icibin = \
 	owltsim
 
 icilib = \
-	libici.la 
+	libici.la
 #	librfx.la
 
 iciinclude = \
@@ -509,11 +509,11 @@ libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 # --- Utility Programs --- #
 
 sdrwatch_SOURCES = ici/utils/sdrwatch.c
-sdrwatch_LDADD = libici.la $(LIBOBJS) 
+sdrwatch_LDADD = libici.la $(LIBOBJS)
 sdrwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sdrmend_SOURCES = ici/utils/sdrmend.c
-sdrmend_LDADD = libici.la $(LIBOBJS) 
+sdrmend_LDADD = libici.la $(LIBOBJS)
 sdrmend_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 psmwatch_SOURCES = ici/utils/psmwatch.c
@@ -521,20 +521,20 @@ psmwatch_LDADD = libici.la $(LIBOBJS)
 psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionadmin_SOURCES = ici/utils/ionadmin.c
-ionadmin_LDADD = libici.la $(LIBOBJS) 
+ionadmin_LDADD = libici.la $(LIBOBJS)
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libbp.la libltp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS) 
+ionexit_LDADD = libbp.la libltp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
-ionsecadmin_LDADD = libici.la $(LIBOBJS) 
+ionsecadmin_LDADD = libici.la $(LIBOBJS)
 ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionwarn_SOURCES = ici/utils/ionwarn.c
-ionwarn_LDADD = libici.la $(LIBOBJS) 
-ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)	
+ionwarn_LDADD = libici.la $(LIBOBJS)
+ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -558,7 +558,7 @@ sm2file_SOURCES = ici/test/sm2file.c
 sm2file_LDADD = libici.la $(LIBOBJS)
 sm2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-file2sdr_SOURCES = ici/test/file2sdr.c 
+file2sdr_SOURCES = ici/test/file2sdr.c
 file2sdr_LDADD = libici.la $(LIBOBJS)
 file2sdr_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
@@ -677,7 +677,7 @@ libltp_la_LIBADD = libici.la -lm
 # --- Utility Programs --- #
 
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
-ltpadmin_LDADD = libltp.la libici.la $(LIBOBJS) 
+ltpadmin_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
@@ -721,12 +721,12 @@ aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 aoslso_SOURCES = ltp/aos/aoslso.c
-aoslso_LDADD = libltp.la libici.la $(LIBOBJS) 
+aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
 aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
-dccplsi_LDADD = libltp.la libici.la $(LIBOBJS) 
+dccplsi_LDADD = libltp.la libici.la $(LIBOBJS)
 dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
 dccplso_SOURCES = ltp/dccp/dccplso.c
 dccplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -785,7 +785,7 @@ $(top_builddir)/dgr/doc/%.3: dgr/doc/pod3/%.pod
 
 libdgr_la_SOURCES = dgr/library/libdgr.c
 libdgr_la_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
-libdgr_la_LIBADD = libici.la 
+libdgr_la_LIBADD = libici.la
 
 # --- Test Executables --- #
 
@@ -892,7 +892,7 @@ bplib = \
 	libdtn2fw.la \
 	libtcpcla.la \
 	libudpcla.la
-#	libphn.la 
+#	libphn.la
 #	libecos.la
 
 bpinclude = \
@@ -902,7 +902,7 @@ bpinclude = \
 #bp/include/bei.h
 
 #ecos.h goes here?
-#bp/library/ecos.h 
+#bp/library/ecos.h
 bpnoinst = \
 	bp/library/bpP.h \
 	bp/ipn/ipnfw.h \
@@ -1090,7 +1090,7 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 
 # -- Libraries --- #
 
-libipnfw_la_SOURCES = bp/ipn/libipnfw.c 
+libipnfw_la_SOURCES = bp/ipn/libipnfw.c
 libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libipnfw_la_LIBADD = libici.la
 
@@ -1183,11 +1183,11 @@ libcgr_la_LIBADD = libbp.la libici.la
 # --- Utility Programs --- #
 
 bpadmin_SOURCES = bp/utils/bpadmin.c
-bpadmin_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS) 
+bpadmin_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
-ipnadmin_LDADD = libipnfw.la libbp.la libdtn2fw.la libici.la $(LIBOBJS) 
+ipnadmin_LDADD = libipnfw.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 if ENABLE_BPACS
@@ -1211,35 +1211,35 @@ imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif
 
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
-dtn2admin_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS) 
+dtn2admin_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
 dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 lgsend_SOURCES = bp/utils/lgsend.c
-lgsend_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) 
+lgsend_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
 lgsend_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 lgagent_SOURCES = bp/utils/lgagent.c
-lgagent_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) 
+lgagent_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
 lgagent_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats_SOURCES = bp/utils/bpstats.c
-bpstats_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) 
+bpstats_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptrace_SOURCES = bp/utils/bptrace.c
-bptrace_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) 
+bptrace_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpcancel_SOURCES = bp/utils/bpcancel.c
-bpcancel_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS) 
+bpcancel_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
 bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bplist_SOURCES = bp/utils/bplist.c
-bplist_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS) 
+bplist_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 hmackeys_SOURCES = bp/utils/hmackeys.c
-hmackeys_LDADD = libbp.la libici.la $(LIBOBJS) 
+hmackeys_LDADD = libbp.la libici.la $(LIBOBJS)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DTN Executables --- #
@@ -1297,7 +1297,7 @@ ltpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS) 
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ltpclo_SOURCES = bp/ltp/ltpclo.c
-ltpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS) 
+ltpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS)
 ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
@@ -1327,13 +1327,13 @@ udpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJ
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 udpclo_SOURCES = bp/udp/udpclo.c
-udpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS) 
+udpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 bibeclo_SOURCES = bp/bibe/bibeclo.c
-bibeclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS) 
+bibeclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
@@ -1517,15 +1517,15 @@ libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 # --- Utility Programs --- #
 
 amsshell_SOURCES = ams/test/amsshell.c
-amsshell_LDADD = libams.la libdgr.la libici.la $(LIBOBJS) 
+amsshell_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amsshell_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amslog_SOURCES = ams/test/amslog.c
-amslog_LDADD = libams.la libdgr.la libici.la $(LIBOBJS) 
+amslog_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amslog_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amslogprt_SOURCES = ams/test/amslogprt.c
-amslogprt_LDADD = libams.la libdgr.la libici.la $(LIBOBJS) 
+amslogprt_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amslogprt_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
@@ -1564,7 +1564,7 @@ amsd_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_SOURCES = \
 	ams/rams/librams.c \
 	ams/rams/ramscommon.c \
-	ams/rams/ramsgate.c 
+	ams/rams/ramsgate.c
 ramsgate_LDADD = libbp.la libipnfw.la libdtn2fw.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
@@ -1583,7 +1583,7 @@ cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
 cfdpPODM3 = pod2man -s 3 -c "CFDP library functions"
 cfdpPODM5 = pod2man -s 5 -c "CFDP configuration files"
 
-cfdpcflags = -I$(srcdir)/cfdp/library -I$(srcdir)/cfdp/include 
+cfdpcflags = -I$(srcdir)/cfdp/library -I$(srcdir)/cfdp/include
 
 cfdpbin = \
 	cfdpadmin \
@@ -1881,7 +1881,7 @@ dtpcPODM1 = pod2man -s 1 -c "DTPC executables"
 dtpcPODM3 = pod2man -s 3 -c "DTPC library functions"
 dtpcPODM5 = pod2man -s 5 -c "DTPC configuration files"
 
-dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include 
+dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
 
 ##########################
@@ -1904,8 +1904,8 @@ nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
 nm/shared/adm/adm_agent.c
 nm_agent_LDADD = libici.la libbp.la libipnfw.la libdtn2fw.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
-					
-					
+
+
 nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
 					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
 					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
@@ -1917,8 +1917,8 @@ nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
 nm_mgr_LDADD = libici.la libbp.la libipnfw.la libdtn2fw.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 
-# Use this to build the DTNMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
+# Use this to build the DTNMP Manager WITHOUT DB Support.
+nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable
 
 # Use this to build the DTNMP Manager WITH DB Support.
 #nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient
@@ -2227,7 +2227,7 @@ doc/appendix-a-contents.txt: $(mans_as_ps)
 doc/appendix-a-contents.ps: doc/appendix-a-contents.txt
 	$(GROFFMS) -ms $^ > $@
 
-doc/ION-manpages.ps: doc/appendix-a-contents.ps $(mans_as_ps_sorted) 
+doc/ION-manpages.ps: doc/appendix-a-contents.ps $(mans_as_ps_sorted)
 	$(PSJOIN) $^ > $@
 
 doc/ION-beginning.ps: doc/ION-beginning.pdf
