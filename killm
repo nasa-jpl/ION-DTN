@@ -12,6 +12,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
 	aoslsi lt-aoslsi \
 	aoslso lt-aoslso \
+	beacon lt-beacon \
 	bibeclo lt-bibeclo \
 	bpadmin lt-bpadmin \
 	bpcancel lt-bpcancel \
@@ -22,6 +23,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpecho lt-bpecho \
 	bping lt-bping \
 	bplist lt-bplist \
+	bpnmtest lt-bpnmtest \
 	bprecvfile lt-bprecvfile \
 	bpsendfile lt-bpsendfile \
 	bpsink lt-bpsink \
@@ -71,6 +73,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ionwarn lt-ionwarn \
 	ipnadmin lt-ipnadmin \
 	ipnadminep lt-ipnadminep \
+	ipnd lt-ipnd \
 	ipnfw lt-ipnfw \
 	lgagent lt-lgagent \
 	lgsend lt-lgsend \
@@ -83,6 +86,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ltpmeter lt-ltpmeter \
 	nm_agent lt-nm_agent \
 	nm_mgr lt-nm_mgr \
+	node lt-node \
 	owltsim lt-owltsim \
 	owlttb lt-owlttb \
 	psmshell lt-psmshell \
