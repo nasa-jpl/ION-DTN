@@ -19,7 +19,7 @@ POSSIBILITY.
 USER BEARS ALL RISK RELATING TO QUALITY AND PERFORMANCE OF THE
 SOFTWARE AND/OR RELATED MATERIALS.
 *******************************************************************
-Copyright 2002-2011, by the California Institute of Technology. ALL
+Copyright 2002-2015, by the California Institute of Technology. ALL
 RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
 
 This software and/or related materials may be subject to U.S. export

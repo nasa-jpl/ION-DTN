@@ -46,4 +46,7 @@ int find_proc(char * cmd);
 char * get_exe_name(char * full_name);
 
 void pthread_sleep(double sec);
+// print_bytes
+int sprint_bytes(char * out, const void * object, size_t size);
+int print_bytes(const void * object, size_t size);
 #endif /*UTILS_H_*/

@@ -199,8 +199,8 @@ void set_bp_options(al_bp_bundle_object_t *bundle, dtnperf_connection_options_t 
 int open_payload_stream_read(al_bp_bundle_object_t bundle, FILE ** f)
 {
 	al_bp_bundle_payload_location_t pl_location;
-	char * buffer;
-	u32_t buffer_len;
+	//char * buffer;
+	//u32_t buffer_len;
 
 	al_bp_bundle_get_payload_location(bundle, &pl_location);
 
@@ -233,11 +233,12 @@ int close_payload_stream_read(FILE * f)
 int open_payload_stream_write(al_bp_bundle_object_t bundle, FILE ** f)
 {
 	al_bp_bundle_payload_location_t pl_location;
-
 	al_bp_bundle_get_payload_location(bundle, &pl_location);
 
 	if (pl_location == BP_PAYLOAD_MEM)
 	{
+		buffer = NULL;
+		buffer_len = 0;
 		al_bp_bundle_get_payload_mem(bundle, &buffer, &buffer_len);
 		*f= open_memstream(&buffer, (size_t *) &buffer_len);
 		if (*f == NULL)
@@ -485,8 +486,8 @@ al_bp_error_t prepare_generic_payload(dtnperf_options_t *opt, FILE * f, uint32_t
 		return BP_ENULLPNTR;
 
 	char * pattern = PL_PATTERN;
-	long remaining;
-	int i;
+	unsigned long remaining;
+	unsigned int i;
 	uint16_t monitor_eid_len;
 	al_bp_error_t result;
 
@@ -515,23 +516,31 @@ al_bp_error_t prepare_generic_payload(dtnperf_options_t *opt, FILE * f, uint32_t
 	return result;
 }
 
-al_bp_error_t prepare_force_stop_bundle(al_bp_bundle_object_t * start, al_bp_endpoint_id_t monitor,
+al_bp_error_t prepare_force_stop_bundle(al_bp_bundle_object_t * stop, al_bp_endpoint_id_t monitor,
 		al_bp_timeval_t expiration, al_bp_bundle_priority_t priority)
 {
-	FILE * start_stream;
+	FILE * stop_stream;
+	char * buf;
+	char * payload;
+	size_t buf_size;
 	HEADER_TYPE start_header = FORCE_STOP_HEADER;
 	al_bp_endpoint_id_t none;
 	al_bp_bundle_delivery_opts_t opts = BP_DOPTS_NONE;
-	al_bp_bundle_set_payload_location(start, BP_PAYLOAD_MEM);
-	open_payload_stream_write(*start, &start_stream);
-	fwrite(&start_header, HEADER_SIZE, 1, start_stream);
-	close_payload_stream_write(start, start_stream);
-	al_bp_bundle_set_dest(start, monitor);
+	al_bp_bundle_set_payload_location(stop, BP_PAYLOAD_MEM);
+	stop_stream = open_memstream(&buf, &buf_size);
+	if (fwrite(&start_header, HEADER_SIZE, 1, stop_stream) != HEADER_SIZE)
+		printf("[debug] WARNING: problem writing bundle force_stop header: %x\n", start_header);
+	fclose(stop_stream);
+	payload = (char *) malloc(buf_size);
+	memcpy(payload, buf, buf_size);
+	free(buf);
+	al_bp_bundle_set_payload_mem(stop, payload, buf_size);
+	al_bp_bundle_set_dest(stop, monitor);
 	al_bp_get_none_endpoint(&none);
-	al_bp_bundle_set_replyto(start, none);
-	al_bp_bundle_set_delivery_opts(start, opts);
-	al_bp_bundle_set_expiration(start, expiration);
-	al_bp_bundle_set_priority(start, priority);
+	al_bp_bundle_set_replyto(stop, none);
+	al_bp_bundle_set_delivery_opts(stop, opts);
+	al_bp_bundle_set_expiration(stop, expiration);
+	al_bp_bundle_set_priority(stop, priority);
 	return BP_SUCCESS;
 }
 
@@ -539,16 +548,27 @@ al_bp_error_t prepare_stop_bundle(al_bp_bundle_object_t * stop, al_bp_endpoint_i
 		al_bp_timeval_t expiration, al_bp_bundle_priority_t priority, int sent_bundles)
 {
 	FILE * stop_stream;
+	char * buf;
+	char * payload;
+	size_t buf_size;
 	HEADER_TYPE stop_header = STOP_HEADER;
 	al_bp_endpoint_id_t none;
-	uint32_t buf;
+	uint32_t buf_int;
 	al_bp_bundle_delivery_opts_t opts = BP_DOPTS_NONE;
 	al_bp_bundle_set_payload_location(stop, BP_PAYLOAD_MEM);
-	open_payload_stream_write(*stop, &stop_stream);
-	fwrite(&stop_header, HEADER_SIZE, 1, stop_stream);
-	buf = htonl(sent_bundles);
-	fwrite(&buf, sizeof(buf), 1, stop_stream);
-	close_payload_stream_write(stop, stop_stream);
+
+	stop_stream = open_memstream(&buf, &buf_size);
+	if(fwrite(&stop_header, HEADER_SIZE, 1, stop_stream) != 1)
+		printf("[debug] WARNING: problem writing bundle stop header: %x\n", stop_header);
+	fflush(stop_stream);
+	buf_int = htonl(sent_bundles);
+	if(fwrite(&buf_int, sizeof(buf_int), 1, stop_stream) != 1)
+		printf("[debug] WARNING: problem writing sent bundles num into bundle stop: %d\n", ntohl(buf_int));
+	fclose(stop_stream);
+	payload = (char *) malloc(buf_size);
+	memcpy(payload, buf, buf_size);
+	free(buf);
+	al_bp_bundle_set_payload_mem(stop, payload, buf_size);
 	al_bp_bundle_set_dest(stop, monitor);
 	al_bp_get_none_endpoint(&none);
 	al_bp_bundle_set_replyto(stop, none);
@@ -728,4 +748,27 @@ u32_t get_current_dtn_time()
 	time_t current = time(NULL);
 	result = (u32_t) difftime(current, dtn_epoch);
 	return result;
+}
+
+int bundle_id_sprintf(char * dest, al_bp_bundle_id_t * bundle_id)
+{
+	char offset[16], length[16];
+	if (bundle_id->frag_offset != 0)
+	{
+		sprintf(offset, "%d", bundle_id->frag_offset);
+	}
+	else
+	{
+		offset[0] = '\0';
+	}
+	if (bundle_id->orig_length != 0)
+	{
+		sprintf(length, "%d", bundle_id->orig_length);
+	}
+	else
+	{
+		length[0] = '\0';
+	}
+	return sprintf(dest, "%s, %u.%u,%s,%s", bundle_id->source.uri, bundle_id->creation_ts.secs,
+			bundle_id->creation_ts.seqno, offset, length);
 }

@@ -158,7 +158,7 @@ unsigned char	*bsp_addSdnvToStream(unsigned char *stream, Sdnv* value)
  *      1.  This function allocates memory using the MTAKE method.  This
  *          scratchpad must be freed by the caller iff the method does
  *          not return -1.  Any system error will release the memory.
- *      2.  If we return a 1, the ASB is considered corrupted and not usable.
+ *      2.  If we return a 1, the ASB is considered invalid and not usable.
  *          The block should be discarded. It is still returned, though, so that
  *          the caller may examine it.
  *****************************************************************************/
@@ -1130,4 +1130,14 @@ char	*bsp_getLocalAdminEid(char *eid)
 
 	restoreEidString(&metaEid);
    	return vscheme->adminEid;
+}
+
+int	bsp_securityPolicyViolated(AcqWorkArea *wk)
+{
+	/*	TODO: eventually this function should do something like:
+	 *		1.  For each block in the bundle, find matching
+	 *		    BIB rule.  If rule found, find BIB for this
+	 *		    block.  If BIB not found, return 1.		*/
+
+	return 0;
 }

@@ -6,6 +6,11 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains all the APIs of the al_bp (al_bp prefix).
+ ** These are called directly from the application.
+ ** In DTNperf_3 These are the sole al_bp_ APIs called. 
+ ** Each API consists of a switch between DTN2 and ION API implementations (bp prefix)
+ ** For their meaning, see al_bp documentation.
  ********************************************************/
 
 /*
@@ -23,7 +28,7 @@
 
 static al_bp_implementation_t bp_implementation = BP_NONE;
 const char* al_bp_version = AL_BP_VERSION_STRING;
-
+/* This the only API of this file whose name has not the prefix al_bp*/
 const char * get_al_bp_version()
 {
 	return al_bp_version;
@@ -33,6 +38,7 @@ al_bp_implementation_t al_bp_get_implementation()
 {
 	if (bp_implementation == BP_NONE)
 	{
+	/*OS Warning: the strings find_dtnd and find_ion are valid only for Linux/Unix OS. */
 		char* find_dtnd = "ps ax | grep -w dtnd | grep -v grep > /dev/null";
 		char* find_ion = "ps ax | grep -w rfxclock | grep -v grep > /dev/null";
 		if (system(find_dtnd) == 0)
@@ -358,6 +364,29 @@ void al_bp_free_payload(al_bp_bundle_payload_t* payload)
 	default: // cannot find bundle protocol implementation
 		return ;
 	}
+}
+
+/**
+ * Remember to free return value
+ */
+char* al_bp_status_report_flag_to_str(al_bp_status_report_flags_t flag)
+{
+	static char temp[256];
+	temp[0] = '\0';
+	if (flag & BP_STATUS_RECEIVED)
+		strcat(temp, "RECEIVED, ");
+	if (flag & BP_STATUS_CUSTODY_ACCEPTED)
+		strcat(temp, "CUSTODY_ACCEPTED, ");
+	if (flag & BP_STATUS_FORWARDED)
+		strcat(temp, "FORWARDED, ");
+	if (flag & BP_STATUS_DELIVERED)
+		strcat(temp, "DELIVERED, ");
+	if (flag & BP_STATUS_DELETED)
+		strcat(temp, "DELETED");
+	if (flag & BP_STATUS_ACKED_BY_APP)
+		strcat(temp, "ACKED_BY_APP, ");
+	temp[strlen(temp) - 2] = '\0';
+	return temp;
 }
 
 const char* al_bp_status_report_reason_to_str(al_bp_status_report_reason_t err)

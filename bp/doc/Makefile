@@ -33,6 +33,7 @@ MANFILES = \
 	./man/man1/ipnfw.1 \
 	./man/man1/imcadmin.1 \
 	./man/man1/imcfw.1 \
+	./man/man1/ipnd.1 \
 	./man/man1/lgagent.1 \
 	./man/man1/lgsend.1 \
 	./man/man1/hmackeys.1 \
@@ -88,6 +89,7 @@ HTMLFILES = \
 	./html/man1/ipnfw.html \
 	./html/man1/imcadmin.html \
 	./html/man1/imcfw.html \
+	./html/man1/ipnd.html \
 	./html/man1/lgagent.html \
 	./html/man1/lgsend.html \
 	./html/man1/hmackeys.html \

@@ -777,3 +777,53 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 
 	return 1;
 }
+
+void	dtn2_forgetOutduct(Object ductElt)
+{
+	Sdr	sdr = getIonsdr();
+	DtnDB	*db;
+	Object	planElt;
+	Object	nextPlanElt;
+	Object	planAddr;
+		OBJ_POINTER(Dtn2Plan, plan);
+	Object	ruleElt;
+	Object	nextRuleElt;
+	Object	ruleAddr;
+		OBJ_POINTER(Dtn2Rule, rule);
+
+	CHKVOID(ionLocked());
+	if (dtn2Init() < 0 || (db = getDtnConstants()) == NULL)
+	{
+		return;
+	}
+
+	for (planElt = sdr_list_first(sdr, db->plans); planElt;
+			planElt = nextPlanElt)
+	{
+		nextPlanElt = sdr_list_next(sdr, planElt);
+		planAddr = sdr_list_data(sdr, planElt);
+		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+		for (ruleElt = sdr_list_first(sdr, plan->rules); ruleElt;
+				ruleElt = nextRuleElt)
+		{
+			nextRuleElt = sdr_list_next(sdr, ruleElt);
+			ruleAddr = sdr_list_data(sdr, ruleElt);
+			GET_OBJ_POINTER(sdr, Dtn2Rule, rule, ruleAddr);
+			if (rule->directive.action == xmit
+			&& rule->directive.outductElt == ductElt)
+			{
+				dtn2_destroyDirective(&(rule->directive));
+				sdr_free(sdr, ruleAddr);
+				sdr_list_delete(sdr, ruleElt, NULL, NULL);
+			}
+		}
+
+		if (plan->defaultDirective.action == xmit
+		&& plan->defaultDirective.outductElt == ductElt)
+		{
+			dtn2_destroyDirective(&(plan->defaultDirective));
+			sdr_free(sdr, planAddr);
+			sdr_list_delete(sdr, planElt, NULL, NULL);
+		}
+	}
+}

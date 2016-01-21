@@ -199,9 +199,10 @@ void parse_options(int argc, char**argv, dtnperf_global_options_t * global_opt)
 		print_usage(argv[0]);
 		exit(0);
 	}
-	else if (strcmp(argv[1], "--version") == 0) // print program version
+	else if (strcmp(argv[1], "--version") == 0) // print program and al_bp version
 	{
-		printf("DTNperf version %s\n", DTNPERF_VERSION);
+		printf("DTNperf version: %s\n", DTNPERF_VERSION);
+		printf("AL_BP version:   %s\n", get_al_bp_version());
 		exit(0);
 	}
 	else
@@ -298,6 +299,8 @@ void init_dtnperf_options(dtnperf_options_t *opt)
 	opt->bundle_ack_options.set_ack_priority = FALSE;
 	opt->expiration_session = 120;
 	opt->oneCSVonly = FALSE;
+	opt->rtPrint = FALSE;
+	opt->rtPrintFile = stdout;
 	opt->uniqueCSVfilename = MONITOR_UNIQUE_CSV_FILENAME;
 	opt->num_blocks = 0;
 	opt->crc = FALSE;

@@ -10,6 +10,7 @@
 	
 									*/
 #include "ltpcla.h"
+#include "ipnfw.h"
 #include "zco.h"
 
 static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
@@ -55,11 +56,13 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
+	DuctExpression	ductExpression;
 	uvast		destEngineNbr;
 	Outduct		outduct;
 	Outflow		outflows[3];
 	int		i;
 	int		running = 1;
+	unsigned int	maxPayloadLength;
 	Object		bundleZco;
 	BpExtendedCOS	extendedCOS;
 	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
@@ -95,10 +98,22 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
-	CHKERR(sdr_begin_xn(sdr));
+	ipnInit();
+	CHKERR(sdr_begin_xn(sdr));		/*	Lock the heap.	*/
+	ductExpression.outductElt = vduct->outductElt;
+	ductExpression.destDuctName = NULL;	/*	Non-promiscuous.*/
+	vduct->neighborNodeNbr = ipn_planNodeNbr(&ductExpression);
+	if (vduct->neighborNodeNbr == 0)
+	{
+		/*	Must be using only dtn-scheme EIDs.		*/
+
+		writeMemoNote("[i] No node number for this LTP duct name",
+				ductName);
+	}
+
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
-	sdr_exit_xn(sdr);
+	sdr_exit_xn(sdr);			/*	Unlock.		*/
 	destEngineNbr = strtouvast(ductName);
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
@@ -125,8 +140,22 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] ltpclo is running.");
 	while (running && !(sm_SemEnded(ltpcloSemaphore(NULL))))
 	{
+		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
+		{
+		case -1:
+			sm_SemEnd(ltpcloSemaphore(NULL));
+			continue;
+
+		case 0:			/*	Unknown; try again.	*/
+			snooze(1);
+			continue;
+
+		default:		/*	maxPayloadLength known.	*/
+			break;		/*	Out of switch.		*/
+		}
+
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+				destDuctName, maxPayloadLength, -1) < 0)
 		{
 			running = 0;	/*	Terminate CLO.		*/
 			continue;

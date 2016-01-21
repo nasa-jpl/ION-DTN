@@ -214,18 +214,18 @@ route computation and congestion forecasting.
 
 The optional I<nominal_data_rate> argument overrides the hard-coded default
 continuous data rate for the indicated protocol, for purposes of rate
-control.  For all CL protocols other than LTP, the protocol's applicable
+control.  For all "promiscuous" prototocols - that is, protocols whose
+outducts are not specifically dedicated to transmission to a single
+identified convergence-layer protocol endpoing - the protocol's applicable
 nominal continuous data rate is the data rate that is always used for
 rate control over links served by that protocol; data rates are not
-extracted from contact graph information.  This is because only the LTP
-induct and outduct throttles can be dynamically adjusted in response
-to changes in data rate between the local node and its neighbors,
-because (currently) there is no mechanism for mapping neighbor node
-number to the duct name for any other CL protocol.  For LTP, duct name
-is simply LTP engine number which, by convention, is identical to node
-number.  For all other CL protocols, the nominal data rate in each
-induct and outduct throttle is initially set to the protocol's configured
-nominal data rate and is never subsequently modified.
+extracted from contact graph information.  This is because only the
+induct and outduct throttles for non-promiscuous protocols (LTP, TCP)
+can be dynamically adjusted in response to changes in data rate between
+the local node and its neighbors, as enacted per the contact plan.  Even
+for an outduct of a non-promiscuous protocol the nominal data rate may
+be the authority for rate control, in the event that the contact plan
+lacks identified contacts with the node to which the outduct is mapped.
 
 =item B<d protocol> I<protocol_name>
 

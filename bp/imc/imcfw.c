@@ -74,6 +74,10 @@ static int	deliverAtSource(Object bundleObj, Bundle *bundle)
 		fflush(stdout);
 	}
 
+	/*	Authorize destruction of clone in case
+	 *	deliverBundle didn't queue it for delivery.		*/
+
+	oK(bpDestroyBundle(newBundleObj, 0));
 	return 0;
 }
 

@@ -231,10 +231,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 
 	/*	Destination isn't a neighbor that accepts bundles.
 	 *	So look for the narrowest applicable static route
-	 *	(node range, i.e., "group") and forward to the
-	 *	prescribed "via" endpoint for that group.		*/
+	 *	(node range, i.e., "exit") and forward to the
+	 *	prescribed "via" endpoint for that exit.		*/
 
-	if (ipn_lookupGroupDirective(metaEid.nodeNbr,
+	if (ipn_lookupExitDirective(metaEid.nodeNbr,
 			bundle->id.source.c.serviceNbr,
 			bundle->id.source.c.nodeNbr, &directive) == 1)
 	{
@@ -246,7 +246,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return forwardBundle(bundleObj, bundle, eidString);
 	}
 
-	/*	No applicable group.  If there's at least one blocked
+	/*	No applicable exit.  If there's at least one blocked
 	 *	outduct, future outduct unblocking might enable CGR
 	 *	to compute a route that's not currently plausible.
 	 *	So place bundle in limbo.				*/

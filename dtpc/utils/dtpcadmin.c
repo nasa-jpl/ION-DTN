@@ -408,13 +408,12 @@ static void 	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int dtpc_is_up(int tokenCount, char** tokens)
+static int dtpc_is_up(int tokenCount, char** tokens, int count, int max)
 {
 	if (strcmp(tokens[1], "p") == 0) //poll
 	{
 		if (tokenCount < 3) //use default timeout
 		{
-			int count = 1;
 			while (count <= 120 && !dtpc_entity_is_started())
 			{
 				microsnooze(250000);
@@ -433,8 +432,6 @@ static int dtpc_is_up(int tokenCount, char** tokens)
 		}
 		else //use user supplied timeout
 		{
-			int max = atoi(tokens[2]) * 4;
-			int count = 1;
 			while (count <= max && !dtpc_entity_is_started())
 			{
 				microsnooze(250000);
@@ -452,18 +449,10 @@ static int dtpc_is_up(int tokenCount, char** tokens)
 			}
 		}
 	}
-	else //check once
+	else
 	{
-		if (dtpc_entity_is_started())
-		{
-			printText("DTPC entity is started");
-			return 1;
-		}
-		else
-		{
-			printText("DTPC entity is not started");
-			return 0;
-		}
+		printText("Error in arguments: exiting");
+		return 0;
 	}
 }
 
@@ -476,6 +465,9 @@ static int	processLine(char *line, int lineLength)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	int max = 0;
+	int count = 0;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 10; i++)
@@ -633,9 +625,58 @@ command.");
 			return 0;
 
 		case 't':
-			if (attachToDtpc() == 0)
+			if (strcmp(tokens[1], "p") == 0) //poll
 			{
-				exit(dtpc_is_up(tokenCount, tokens));
+				if (tokenCount < 3) //use default timeout
+				{
+					count = 1;
+					while (count <= max && attachToDtpc() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > 120) //dtpc entity is not started
+					{
+						printText("DTPC entity is not started");
+						return 0;
+					}
+					else //bp agent is started
+					{
+						exit(dtpc_is_up(tokenCount, tokens, count, 120));
+					}
+				}
+				else //use user supplied timeout
+				{
+					max = atoi(tokens[2]) * 4;
+					count = 1;
+					while (count <= max && attachToDtpc() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > max) //dtpc entity is not started
+					{
+						printText("DTPC enetiy is not started");
+						return 0;
+					}
+					else //dtpc entity is started
+					{
+						exit(dtpc_is_up(tokenCount, tokens, count, max));
+					}
+				}
+			}
+			else //check once
+			{
+				if (dtpc_entity_is_started())
+				{
+					printText("BP agent is started");
+					return 1;
+				}
+				else
+				{
+					printText("BP agent is not started");
+					return 0;
+				}
 			}
 
 		case 'q':

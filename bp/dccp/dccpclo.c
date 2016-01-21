@@ -429,14 +429,6 @@ int	main(int argc, char *argv[])
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate <= 0)
-	{
-		vduct->xmitThrottle.nominalRate = DEFAULT_DCCP_RATE;
-	}
-	else
-	{
-		vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
 
 	/*setup priority queues						*/
 	memset((char *) outflows, 0, sizeof(outflows));

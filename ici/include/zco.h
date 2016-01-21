@@ -20,12 +20,14 @@
 
 		Each source data object may be either a file
 		(identified by pathname stored in a "file reference"
-		object in SDR heap) or an array of bytes in SDR
-		heap space (identified by SDR address).  Each
-		protocol header or trailer capsule indicates
-		the length and the address (within SDR heap space)
-		of a single protocol header or trailer at some
-		layer of the stack.
+		object in SDR heap) or an object in SDR heap
+		space (identified by heap address stored in an
+		"object reference" object in SDR heap) or an
+		array of bytes in SDR heap space (directly
+		identified by heap address).  Each protocol header
+		or trailer capsule indicates the length and the
+		address (within SDR heap space) of a single protocol
+		header or trailer at some layer of the stack.
 
 		The extents of multiple ZCOs may reference the
 		same files and/or SDR source data objects.  The
@@ -72,8 +74,9 @@ typedef enum
 typedef enum
 {
 	ZcoFileSource = 1,
-	ZcoSdrSource = 2,
-	ZcoZcoSource = 3
+	ZcoObjSource = 2,
+	ZcoSdrSource = 3,
+	ZcoZcoSource = 4
 } ZcoMedium;
 
 typedef struct
@@ -152,6 +155,28 @@ extern int	zco_file_ref_xmit_eof(Sdr sdr,
 extern void	zco_destroy_file_ref(Sdr sdr,
 				Object fileRef);
 			/*	If file reference is no longer in use
+			 *	(no longer referenced by any ZCO) then
+			 *	it is destroyed immediately.  Otherwise
+			 *	it is flagged for destruction as soon
+			 *	as the last reference to it is removed.	*/
+
+extern Object	zco_create_obj_ref(Sdr sdr,
+				Object object,
+				vast length,
+				ZcoAcct acct);
+			/*	The referenced object is automatically
+			 *	freed at the time that the last ZCO
+			 *	that cites this object reference is
+			 *	destroyed [normally upon delivery
+			 *	either down to the "ZCO transition
+			 *	layer" of the protocol stack or up to
+			 *	a ZCO-capable application].  Returns
+			 *	SDR location of object reference object
+			 *	on success, 0 on any error.		*/
+
+extern void	zco_destroy_obj_ref(Sdr sdr,
+				Object objRef);
+			/*	If object reference is no longer in use
 			 *	(no longer referenced by any ZCO) then
 			 *	it is destroyed immediately.  Otherwise
 			 *	it is flagged for destruction as soon
@@ -347,6 +372,16 @@ extern int	zco_bond(	Sdr sdr,
 			 *	to prevent header and trailer data
 			 *	from being omitted when the ZCO is
 			 *	cloned.					*/
+
+extern int	zco_revise(	Sdr sdr,
+				Object zco,
+				vast offset,
+				char *buffer,
+				vast length);
+			/*	Writes the contents of buffer, for
+			 *	the indicated length, into the 
+			 *	indicated ZCO at the indicated offset.
+			 *	Return 0 on success, -1 on any error.	*/
 
 extern Object	zco_clone(	Sdr sdr,
 				Object zco,

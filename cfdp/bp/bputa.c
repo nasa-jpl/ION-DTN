@@ -1,7 +1,6 @@
 /*
 	bputa.c:	UT-layer adapter using Bundle Protocol.
 									*/
-/*									*/
 /*	Copyright (c) 2009, California Institute of Technology.		*/
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
@@ -142,6 +141,7 @@ int	main(int argc, char **argv)
 	RxThreadParms	parms;
 	pthread_t	rxThread;
 	int		haveRxThread = 0;
+	Sdr		sdr;
 	Object		pduZco;
 	OutFdu		fduBuffer;
 	FinishPdu	fpdu;
@@ -152,7 +152,6 @@ int	main(int argc, char **argv)
 	char		reportToEidBuf[64];
 	char		*reportToEid;
 	Object		newBundle;
-	Sdr		sdr;
 	Object		pduElt;
 
 	if (bp_attach() < 0)
@@ -193,6 +192,7 @@ int	main(int argc, char **argv)
 
 	haveRxThread = 1;
 	writeMemo("[i] bputa is running.");
+	sdr = getIonsdr();
 	while (parms.running)
 	{
 		/*	Get an outbound CFDP PDU for transmission.	*/
@@ -221,6 +221,7 @@ terminating.");
 			utParms.lifespan = 86400;	/*	1 day.	*/
 			utParms.classOfService = BP_STD_PRIORITY;
 			utParms.custodySwitch = NoCustodyRequested;
+			utParms.ctInterval = 0;
 			utParms.srrFlags = 0;
 			utParms.ackRequested = 0;
 			utParms.extendedCOS.flowLabel = 0;
@@ -267,7 +268,16 @@ terminating.");
 			reportToEid = reportToEidBuf;
 		}
 
-		/*	Send PDU in a bundle.				*/
+		/*	Send PDU in a bundle.  Do this inside a
+		 *	transaction to ensure that bundle forwarding
+		 *	and transmission doesn't happen before the
+		 *	bundle is released from detention (as needed).	*/
+
+		if (sdr_begin_xn(sdr) == 0)
+		{
+			parms.running = 0;
+			continue;
+		}
 
 		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
 				utParms.classOfService, utParms.custodySwitch,
@@ -276,6 +286,7 @@ terminating.");
 		{
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);
+			sdr_cancel_xn(sdr);
 			parms.running = 0;
 			continue;
 		}
@@ -284,34 +295,38 @@ terminating.");
 		{
 			/*	Enable cancellation of this PDU.	*/
 
-			sdr = bp_get_sdr();
-			if (sdr_begin_xn(sdr) == 0)
-			{
-				parms.running = 0;
-				continue;
-			}
-
 			pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
 					newBundle);
 			if (pduElt)
 			{
 				bp_track(newBundle, pduElt);
 			}
+		}
 
-			if (sdr_end_xn(sdr) < 0)
+		if (utParms.custodySwitch == SourceCustodyRequired
+		&& utParms.ctInterval > 0)
+		{
+			if (bp_memo(newBundle, utParms.ctInterval) < 0)
 			{
-				putErrmsg("bputa can't track PDU; terminated.",
-						NULL);
+				putErrmsg("bputa can't schedule custodial \
+retransmission; terminated.", NULL);
+				sdr_cancel_xn(sdr);
 				parms.running = 0;
 				continue;
 			}
 		}
 
-		/*	Bundle has been detained long enough for us
-		 *	to track it if necessary, so we can now
-		 *	release it for normal processing.		*/
+		/*	Bundle has been detained long enough for us to
+		 *	track it as necessary, so we can now release it
+		 *	for normal processing.				*/
 
 		bp_release(newBundle);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("bputa error sending PDU; terminated.", NULL);
+			parms.running = 0;
+			continue;
+		}
 
 		/*	Make sure other tasks have a chance to run.	*/
 

@@ -4,7 +4,7 @@ TEST = ../test
 DAEMON = ../daemon
 UTILS = ../utils
 
-OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
+OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -16,7 +16,7 @@ LIBDTPCOBJS = \
 PUBINCLS = \
 	$(INCL)/dtpc.h
 
-LBP = -lbp -limcfw -lipnfw
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = dtpcd dtpcclock dtpcsend dtpcreceive dtpcadmin
 

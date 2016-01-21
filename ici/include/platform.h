@@ -146,6 +146,7 @@ typedef unsigned long		uvast;
 
 #ifdef RTEMS			/****	RTEMS			*********/
 typedef unsigned long		n_long;	/*	long as rec'd from net	*/
+extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #endif
 
 /*
@@ -160,6 +161,7 @@ typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 #include <ctype.h>
 #include <signal.h>
 #include <errno.h>
+#include <math.h>
 #include <stdarg.h>
 			/* POSIX.1 */
 #ifndef ION4WIN			/*	No POSIX in Visual Studio.	*/
@@ -382,10 +384,12 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <pwd.h>
 #include <netdb.h>
 #include <mqueue.h>
+#include <strings.h>
 #include <sys/utsname.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN	*/
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/select.h>
 
 #define	_MULTITHREADED		/*	To pick up resource lock code.	*/
 
@@ -398,6 +402,9 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #undef	SVR4_SEMAPHORES
 #define MINGW_SEMAPHORES
+#ifndef SEMMNS
+#define	SEMMNS			32000	/*	Max. nbr of semaphores	*/
+#endif
 
 #undef	UNIX_TASKS
 #define MINGW_TASKS
@@ -420,6 +427,13 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #define	_MULTITHREADED
 #define	MAXPATHLEN		(MAX_PATH)
+
+/*	IPC tracking operations		*/
+#define WIN_STOP_ION		0
+#define WIN_NOTE_SM		1
+#define WIN_NOTE_SEMAPHORE	2
+#define WIN_FORGET_SM		3
+#define WIN_FORGET_SEMAPHORE	4
 
 extern int	_winsock(int stopping);
 extern int	iopen(const char *fileName, int flags, int pmode);
@@ -584,27 +598,15 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
  *	exceed SEMMNI * SEMMSL.						*/
 
 #ifndef SEMMNI			/****	SEMMNI			     ****/
-#if defined (freebsd)
-#define SEMMNI			10
-#else
 #define SEMMNI			128
-#endif
 #endif				/****	End of #ifndef SEMMNI	     ****/
 
 #ifndef SEMMSL			/****	SEMMSL			     ****/
-#if defined (freebsd)
-#define SEMMSL			6
-#else
 #define SEMMSL			250
-#endif
 #endif				/****	End of #ifndef SEMMSL	     ****/
 
 #ifndef SEMMNS			/****	SEMMNS			     ****/
-#if defined (freebsd)
-#define SEMMNS			60
-#else
 #define SEMMNS			32000
-#endif
 #endif				/****	End of #ifndef SEMMNS	     ****/
 
 #elif defined (POSIX_SEMAPHORES)
@@ -755,6 +757,11 @@ extern void			iblock(int);
 extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 
+extern void			icopy(char *fromPath, char *toPath);
+
+extern int			fullyQualified(char *fileName);
+extern int			qualifyFileName(char *fileName, char *buffer,
+					int buflen);
 extern void			findToken(char **cursorPtr, char **token);
 extern unsigned int		getAddressOfHost();
 extern char			*addressToString(struct in_addr, char *buf);

@@ -102,8 +102,8 @@ yyyy/mm/dd-hh:mm:ss
 =item int ionAttach()
 
 Attaches the invoking task to ION infrastructure as previously established
-by running the I<ionadmin> utility program on the same computer.  Returns
-zero on success, -1 on any error.
+by running the I<ionadmin> utility program.  Returns zero on success, -1 on
+any error.
 
 =item void ionDetach()
 
@@ -224,7 +224,7 @@ is essential to the avoidance of race conditions.
 
 =item uvast getOwnNodeNbr()
 
-Returns the Bundle Protocol node number identifying this computer, as
+Returns the Bundle Protocol node number identifying this node, as
 declared when ION was initialized by I<ionadmin>.
 
 =item time_t getUTCTime()

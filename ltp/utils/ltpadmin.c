@@ -533,10 +533,14 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 
 static void	manageMaxBER(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	ltpdbObj = getLtpDbObject();
-	LtpDB	ltpdb;
-	double	newMaxBER;
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	double		newMaxBER;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
 
 	if (tokenCount != 3)
 	{
@@ -553,8 +557,15 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
-	ltpdb.errorsPerByte = newMaxBER * 8;
+	ltpdb.maxBER = newMaxBER;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		computeRetransmissionLimits(vspan);
+	}
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change maximum bit error rate.", NULL);
@@ -718,13 +729,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int ltp_is_up(int tokenCount, char** tokens)
+static int ltp_is_up(int tokenCount, char** tokens, int count, int max)
 {
 	if (strcmp(tokens[1], "p") == 0) //poll
 	{
 		if (tokenCount < 3) //use default timeout
 		{
-			int count = 1;
 			while (count <= 120 && !ltp_engine_is_started())
 			{
 				microsnooze(250000);
@@ -743,8 +753,6 @@ static int ltp_is_up(int tokenCount, char** tokens)
 		}
 		else //use user supplied timeout
 		{
-			int max = atoi(tokens[2]) * 4;
-			int count = 1;
 			while (count <= max && !ltp_engine_is_started())
 			{
 				microsnooze(250000);
@@ -762,18 +770,10 @@ static int ltp_is_up(int tokenCount, char** tokens)
 			}
 		}
 	}
-	else //check once
+	else
 	{
-		if (ltp_engine_is_started())
-		{
-			printText("LTP engine is started");
-			return 1;
-		}
-		else
-		{
-			printText("LTP engine is not started");
-			return 0;
-		}
+		printText("Error in arguments: exiting");
+		return 0;
 	}
 }
 
@@ -786,6 +786,9 @@ static int	processLine(char *line, int lineLength, int *checkNeeded)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	int max = 0;
+	int count = 0;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 12; i++)
@@ -956,11 +959,59 @@ command.");
 			return 0;
 
 		case 't':
-			if (attachToLtp() == 0)
+			if (strcmp(tokens[1], "p") == 0) //poll
 			{
-				exit(ltp_is_up(tokenCount, tokens));
+				if (tokenCount < 3) //use default timeout
+				{
+					count = 1;
+					while (count <= max && attachToLtp() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > 120) //ltp engine is not started
+					{
+						printText("LTP engine is not started");
+						return 0;
+					}
+					else //ltp engine is started
+					{
+						exit(ltp_is_up(tokenCount, tokens, count, 120));
+					}
+				}
+				else //use user supplied timeout
+				{
+					max = atoi(tokens[2]) * 4;
+					count = 1;
+					while (count <= max && attachToLtp() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > max) //ltp engine is not started
+					{
+						printText("LTP engine is not started");
+						return 0;
+					}
+					else //ltp engine is started
+					{
+						exit(ltp_is_up(tokenCount, tokens, count, max));
+					}
+				}
 			}
-
+			else //check once
+			{
+				if (ltp_engine_is_started())
+				{
+					printText("LTP engine is started");
+					return 1;
+				}
+				else
+				{
+					printText("LTP engine is not started");
+					return 0;
+				}
+			}
 		case 'q':
 			return -1;	/*	End program.		*/
 

@@ -6,6 +6,8 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains the functions interfacing ION
+ ** (i.e. that will actually call the ION APIs).
  ********************************************************/
 
 /*
@@ -14,6 +16,11 @@
  */
 
 #include "al_bp_ion.h"
+/**
+ * bp_open_source() is present only in ION >= 3.3.0
+ * If using ION < 3.3.0, please comment the following line.
+ */
+#define BP_OPEN_SOURCE
 
 /*
  * if there is the ION implementation on the
@@ -108,9 +115,16 @@ al_bp_error_t bp_ion_register(al_bp_handle_t * handle,
 						al_bp_reg_id_t* newregid)
 {
 	int result;
-	BpSAP bpSap;
 	char * eid;
-	bpSap = al_ion_handle(*handle);
+	al_ion_handle_t ion_handle;
+
+	//ion_handle = al_ion_handle(*handle); //this is useless because *handle is meaningless
+	//initialization of ion_handle
+	ion_handle = (al_ion_handle_t) malloc(sizeof(al_ion_handle_t));
+	ion_handle->recv = (BpSAP *) malloc(sizeof(BpSAP));
+	ion_handle->source = (BpSAP *) malloc(sizeof(BpSAP));
+	//end of initialization
+
 	eid = al_ion_endpoint_id(reginfo->endpoint);
 /*	switch(reginfo->flags)
 	{
@@ -125,12 +139,18 @@ al_bp_error_t bp_ion_register(al_bp_handle_t * handle,
 		if(result == 0)
 			return BP_EREG;
 	}
-	result = bp_open(eid,&bpSap);
+#ifdef BP_OPEN_SOURCE
+	//result = bp_open(eid, (ion_handle->source));
+	result = bp_open_source(eid, (ion_handle->source), 1);
+	if(result == -1)
+		return BP_EREG;
+#endif
+	result = bp_open(eid, (ion_handle->recv));
 	if(result == -1)
 		return BP_EREG;
 	//Free resource
 	free(eid);
-	(*handle) = ion_al_handle(bpSap);
+	(*handle) = ion_al_handle(ion_handle);
 	return BP_SUCCESS;
 }
 
@@ -185,7 +205,14 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 					al_bp_bundle_payload_t* payload,
 					al_bp_bundle_id_t* id)
 {
-	BpSAP bpSap = al_ion_handle(handle);
+	al_ion_handle_t ion_handle = al_ion_handle(handle);
+#ifdef BP_OPEN_SOURCE
+	// using SAP obtained exclusively for sending bundles
+	BpSAP * bpSap = ion_handle->source;
+#else
+	// using unique SAP for sending/receiving bundles
+	BpSAP * bpSap = ion_handle->recv;
+#endif
 	char * destEid = al_ion_endpoint_id(spec->dest);
 	char * reportEid = NULL;
 	char * tokenClassOfService;
@@ -225,7 +252,7 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	Object newBundleObj;
 
 	/* Send Bundle*/
-	result = bp_send(bpSap,destEid,reportEid,lifespan,tmpPriority,
+	result = bp_send(*bpSap,destEid,reportEid,lifespan,tmpPriority,
 			custodySwitch,srrFlags,ackRequested,&extendedCOS,adu,&newBundleObj);
 	if(result == 0)
 			return BP_ENOSPACE;
@@ -245,12 +272,17 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	sdr_begin_xn(bpSdr);
 	sdr_read(bpSdr,(char*)&bundleION,(SdrAddress) newBundleObj,sizeof(Bundle));
 	sdr_end_xn(bpSdr);
-//dz debug	char * tmpEidSource;
-//dz debug	printEid(&(bundleION.id.source),retrieveDictionary(&bundleION),&tmpEidSource);
+	char * tmpEidSource;
+	char * dictionary = retrieveDictionary(&bundleION);
+	printEid(&(bundleION.id.source),dictionary,&tmpEidSource);
 //dz debug             --- Note that calling retrieveDictionary without releasing it results in
 //dz debug             --- an SDR "memory leak"
-//dz debug	id->source = ion_al_endpoint_id(tmpEidSource);
+#ifdef BP_OPEN_SOURCE
+	id->source = ion_al_endpoint_id(tmpEidSource);
+	bp_release((SdrAddress) newBundleObj);
+#else
 	id->source = ion_al_endpoint_id("<TBD>");  //dz debug
+#endif
 
 //dz debug --- Note that the following values may not always be valid by the time they are read here
 //dz debug --- but most of the time they should be okay and reading invalid values will not cause 
@@ -261,11 +293,9 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	id->frag_offset = bundleION.id.fragmentOffset;
 	id->orig_length = bundleION.totalAduLength;
 
-
-
-	//
-	handle = ion_al_handle(bpSap);
+	handle = ion_al_handle(ion_handle);
 	//Free resource
+	releaseDictionary(dictionary);
 	free(destEid);
 	free(reportEid);
 	free(tokenClassOfService);
@@ -278,12 +308,15 @@ al_bp_error_t bp_ion_recv(al_bp_handle_t handle,
 					al_bp_bundle_payload_t* payload,
 					al_bp_timeval_t timeout)
 {
-	BpSAP bpSap = al_ion_handle(handle);
+	al_ion_handle_t ion_handle = al_ion_handle(handle);
+	// using SAP obtained exclusively for receiving bundles
+	// or unique SAP if BP_OPEN_SOURCE is undefined
+	BpSAP * bpSap = ion_handle->recv;
 	BpDelivery dlv;
 	DtnTime ion_timeout = al_ion_timeval(timeout);
 	int second_timeout = (int) ion_timeout.seconds;
 	int result;
-	result = bp_receive(bpSap ,&dlv, second_timeout);
+	result = bp_receive(*bpSap ,&dlv, second_timeout);
 	if(result < 0)
 	{
 		return BP_ERECV;
@@ -340,17 +373,24 @@ al_bp_error_t bp_ion_recv(al_bp_handle_t handle,
 
 	/* Release Delivery */
 	bp_release_delivery(&dlv, 1);
-	//
-	handle = ion_al_handle(bpSap);
+
+	handle = ion_al_handle(ion_handle);
 
 	return BP_SUCCESS;
 }
 
 al_bp_error_t bp_ion_close(al_bp_handle_t handle)
 {
-	BpSAP bpSap  = al_ion_handle(handle);
-	bp_close(bpSap);
-	handle = ion_al_handle(bpSap);
+	al_ion_handle_t ion_handle = al_ion_handle(handle);
+	bp_close(*ion_handle->recv);
+	bp_close(*ion_handle->source);
+	//free ion_handle
+	free(ion_handle->recv);
+#ifdef BP_OPEN_SOURCE
+	free(ion_handle->source);
+#endif
+	free(ion_handle);
+	handle = ion_al_handle(ion_handle);
 	return BP_SUCCESS;
 }
 

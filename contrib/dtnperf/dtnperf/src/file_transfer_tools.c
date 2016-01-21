@@ -286,7 +286,7 @@ int process_incoming_file_transfer_bundle(file_transfer_info_list_t *info_list,
 			printf(" Error: Couldn't create temporary file\n");
 			return -1;
 		}
-		sprintf(temp, "%lu_", timestamp.secs);
+		sprintf(temp, "%u_", timestamp.secs);
 		strcat(full_dir, temp);
 
 		// create file transfer info object

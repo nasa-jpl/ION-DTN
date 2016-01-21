@@ -28,6 +28,8 @@ extern void	parseProxyFlowLabel(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
 extern void	parseProxySegmentationControl(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
+extern void	parseProxyClosureRequest(char *text, int bytesRemaining,
+			CfdpUserOpsData *opsData);
 extern void	parseProxyPutResponse(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
 extern void	parseProxyFilestoreResponse(char *text, int bytesRemaining,
@@ -1030,7 +1032,7 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	fdu->metadataPdu = sdr_malloc(sdr, mpduLength);
 	if (fdu->metadataPdu == 0)
 	{
-		putErrmsg("Can't construct EOF PDU.", NULL);
+		putErrmsg("Can't construct Metadata PDU.", NULL);
 		return -1;
 	}
 
@@ -1061,7 +1063,7 @@ static int	constructEofPdu(OutFdu *fdu, CfdpDB *db, unsigned int checksum)
 	 *	other than No Error are useful only for Acknowledged-
 	 *	mode FDUs.						*/
 
-	*cursor = (condition << 4) + fdu->ckType;
+	*cursor = (condition << 4);
 	cursor++;
 	epduLength++;
 	u4 = htonl(checksum);
@@ -1118,6 +1120,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CfdpDB		db;
 	Object		elt;
 			OBJ_POINTER(Entity, entity);
+	char		sourceFileBuf[MAXPATHLEN + 1];
 	int		sourceFile;
 	vast		fileSize;
 	unsigned int	truncatedFileSize;
@@ -1173,10 +1176,18 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 	fdu.closureLatency = closureLatency;
 	CHKZERO(sdr_begin_xn(sdr));
+
+	/*	We build the FDU in SDR heap space, so we check here
+	 *	to make sure there's a good chance that this will
+	 *	succeed.  This is completely separate from the
+	 *	check for insertion into Outbound ZCO space that
+	 *	implements flow control.				*/
+
 	if (sdr_heap_depleted(sdr))
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Low on heap space, can't send FDU.", sourceFileName);
+		writeMemoNote("[?] Low on heap space, can't send FDU.",
+				sourceFileName);
 		return 0;
 	}
 
@@ -1188,7 +1199,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		GET_OBJ_POINTER(sdr, Entity, entity, sdr_list_data(sdr, elt));
 		if (entity->entityId == destinationEntityId)
 		{
-			fdu.ckType = entity->ckType;
+			fdu.ckType = entity->outCkType;
 			break;
 		}
 	}
@@ -1198,37 +1209,48 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		if (destFileName != NULL)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CFDP: dest file name should be NULL.", NULL);
+			writeMemoNote("[?] CFDP: dest file name s/b NULL.",
+					destFileName);
 			return 0;
 		}
 	}
 	else	/*	Construct contents of file data PDUs.		*/
 	{
+		if (qualifyFileName(sourceFileName, sourceFileBuf,
+				sizeof sourceFileBuf) < 0)
+		{
+			sdr_exit_xn(sdr);
+			putErrmsg("Source file name unusable: length.",
+					sourceFileName);
+			return 0;
+		}
+
+		if (strlen(sourceFileBuf) >= 256)
+		{
+			sdr_exit_xn(sdr);
+			writeMemoNote("[?] CFDP: source file name too long.",
+					sourceFileBuf);
+			return 0;
+		}
+
 		if (destFileName == NULL)
 		{
 			destFileName = sourceFileName;
 		}
 
-		if (strlen(sourceFileName) >= 256)
-		{
-			sdr_exit_xn(sdr);
-			putErrmsg("CFDP: source file name too long.",
-					sourceFileName);
-			return 0;
-		}
-
 		if (strlen(destFileName) >= 256)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CFDP: destination file name too long.",
+			writeMemoNote("[?] CFDP: dest file name too long.",
 					destFileName);
 			return 0;
 		}
 
+		sourceFileName = sourceFileBuf;
 		if (checkFile(sourceFileName) != 1)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CFDP can't find source file.",
+			writeMemoNote("[?] CFDP can't find source file.",
 					sourceFileName);
 			return 0;
 		}
@@ -1494,14 +1516,14 @@ too long.", sourceFileName);
 			originatingTransactionId) < 0)
 	{
 		sdr_cancel_xn(sdr);
-		putErrmsg("CFDP can't construct metadata PDU.", NULL);
+		putErrmsg("CFDP can't construct Metadata PDU.", NULL);
 		return -1;
 	}
 
 	if (fdu.metadataPdu == 0)
 	{
 		sdr_cancel_xn(sdr);
-		putErrmsg("CFDP can't construct EOF PDU.", NULL);
+		putErrmsg("CFDP can't construct Metadata PDU.", NULL);
 		return 0;
 	}
 
@@ -1839,8 +1861,12 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 
 	CHKERR(transactionId);
-	CHKERR(transactionId->sourceEntityNbr.length);
-	CHKERR(transactionId->transactionNbr.length);
+	if (transactionId->sourceEntityNbr.length == 0
+	|| transactionId->transactionNbr.length == 0)
+	{
+		return 0;
+	}
+
 	if (memcmp(transactionId->sourceEntityNbr.buffer,
 			db->ownEntityNbr.buffer, 8) == 0)
 	{
@@ -2072,6 +2098,10 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 		case 9:
 			proxyPutCancelRecd = 1;
+			break;
+
+		case 11:
+			parseProxyClosureRequest(content, len, &opsData);
 			break;
 #endif
 		case 10:

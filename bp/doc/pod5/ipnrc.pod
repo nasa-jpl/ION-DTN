@@ -38,21 +38,28 @@ regardless of whether or not contact graph routing is used for computing
 dynamic routes to distant nodes.  This is by definition: if there isn't
 an egress plan to a node, it can't be considered a neighbor.
 
-Static default routes are expressed as B<groups> in the ipn-scheme routing
-database.  A group is a range of node numbers identifying a set of nodes
+Static default routes are declared as B<exits> in the ipn-scheme routing
+database.  An exit is a range of node numbers identifying a set of nodes
 for which defined default routing behavior is established.  Whenever a
-bundle is to be forwarded to a node whose number is in the group's node
+bundle is to be forwarded to a node whose number is in the exit's node
 number range B<and> it has not been possible to compute a dynamic route
 to that node from the contact schedules that have been provided to the
 local node B<and> that node is not a neighbor to which the bundle can
 be directly transmitted, BP will forward the bundle to the B<gateway> node
-associated with this group.  The gateway node for any group is identified
+associated with this exit.  The gateway node for any exit is identified
 by an endpoint ID, which might or might not be an ipn-scheme EID; regardless,
-directing a bundle to the gateway for a group causes the bundle to be
-re-forwarded to that intermediate destination endpoint.  Multiple groups
+directing a bundle to the gateway for an exit causes the bundle to be
+re-forwarded to that intermediate destination endpoint.  Multiple exits
 may encompass the same node number, in which case the gateway associated
-with the most restrictive group (the one with the smallest range) is
+with the most restrictive exit (the one with the smallest range) is
 always selected.
+
+B<Note> that "exits" were termed "groups" in earlier versions of ION.  The
+term "exit" has been adopted instead, to minimize any possible confusion
+with multicast groups.  To protect backward compatibility, the keywords
+"group" and "grouprule" continue to be accepted by ipnadmin as aliases
+for the new keywords "exit" and "exitrule", but the older terminology is
+deprecated.
 
 The formats and effects of the IPN scheme configuration commands are
 described below.
@@ -152,65 +159,65 @@ This command lists all planrules in the plan for the indicated node.
 
 =back
 
-=head1 GROUP COMMANDS
+=head1 EXIT COMMANDS
 
 =over 4
 
-=item B<a group> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
+=item B<a exit> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
 
-The B<add group> command.  This command establishes a "group" for static 
+The B<add exit> command.  This command establishes an "exit" for static 
 default routing as described above.
 
-=item B<c group> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
+=item B<c exit> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
 
-The B<change group> command.  This command changes the gateway node
-number for the group identified by I<first_node_nbr> and I<last_node_nbr> .
+The B<change exit> command.  This command changes the gateway node
+number for the exit identified by I<first_node_nbr> and I<last_node_nbr> .
 
-=item B<d group> I<first_node_nbr> I<last_node_nbr>
+=item B<d exit> I<first_node_nbr> I<last_node_nbr>
 
-The B<delete group> command.  This command deletes the group identified
+The B<delete exit> command.  This command deletes the exit identified
 by I<first_node_nbr> and I<last_node_nbr>.
 
-=item B<i group> I<first_node_nbr> I<last_node_nbr>
+=item B<i exit> I<first_node_nbr> I<last_node_nbr>
 
 This command will print information (the gateway endpoint ID) about the
-group identified by I<first_node_nbr> and I<last_node_nbr>.
+exit identified by I<first_node_nbr> and I<last_node_nbr>.
 
-=item B<l group>
+=item B<l exit>
 
-This command lists all groups defined in the IPN database for the local node.
+This command lists all exits defined in the IPN database for the local node.
 
 =back
 
-=head1 GROUPRULE COMMANDS
+=head1 EXITRULE COMMANDS
 
 =over 4
 
-=item B<a grouprule> I<first_node_nbr> I<last_node_nbr> I<qualifier> I<gateway_endpoint_ID>
+=item B<a exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier> I<gateway_endpoint_ID>
 
-The B<add grouprule> command.  This command establishes a grouprule, i.e.,
+The B<add exitrule> command.  This command establishes an exitrule, i.e.,
 a gateway endpoint ID that overrides the default gateway endpoint ID of the
-group identified by I<first_node_nbr> and I<last_node_nbr> in the event
+exit identified by I<first_node_nbr> and I<last_node_nbr> in the event
 that the source endpoint ID of the subject bundle matches I<qualifier>.
 
-=item B<c grouprule> I<first_node_nbr> I<last_node_nbr> I<qualifier> I<gateway_endpoint_ID>
+=item B<c exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier> I<gateway_endpoint_ID>
 
-The B<change grouprule> command.  This command changes the gateway EID
-for the indicated grouprule.
+The B<change exitrule> command.  This command changes the gateway EID
+for the indicated exitrule.
 
-=item B<d grouprule> I<first_node_nbr> I<last_node_nbr> I<qualifier>
+=item B<d exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier>
 
-The B<delete grouprule> command.  This command deletes the grouprule identified
+The B<delete exitrule> command.  This command deletes the exitrule identified
 by I<first_node_nbr>, I<last_node_nbr>, and I<qualifier>.
 
-=item B<i grouprule> I<first_node_nbr> I<last_node_nbr> I<qualifier>
+=item B<i exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier>
 
-This command will print information (the duct expression) about the grouprule
+This command will print information (the duct expression) about the exitrule
 identified by I<node_nbr>, I<last_node_nbr>, and I<qualifier>.
 
-=item B<l grouprule> I<first_node_nbr> I<last_node_nbr>
+=item B<l exitrule> I<first_node_nbr> I<last_node_nbr>
 
-This command lists all grouprules for the indicated group.
+This command lists all exitrules for the indicated exit.
 
 =back
 
@@ -232,7 +239,7 @@ the source of the bundle.  Each such bundle must be queued for transmission
 on TCP outduct 119.31.01.18:4016 rather than the default (transmission
 on LTP outduct 18).
 
-=item a group 1 999 dtn://stargate
+=item a exit 1 999 dtn://stargate
 
 Declares a default route for bundles destined for all nodes whose numbers
 are in the range 1 through 999 inclusive: absent any other routing decision,

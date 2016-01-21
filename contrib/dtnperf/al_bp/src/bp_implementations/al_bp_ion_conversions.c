@@ -6,6 +6,7 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains the functions that convert bp abstract types in ION types and vice versa.
  ********************************************************/
 
 /*************
@@ -15,6 +16,13 @@
  * Conversions bp abstract types to ion types and viceversa
  *
  *************/
+/****
+ * These functions convert bp abstract types in ion types and viceversa
+ * The prefix al_ion means the function takes a bp abstract type in and returns a ion type
+ * so the conversion is bp -> ion
+ * The prefix ion_al means the function takes a ion type in and returns a bp abstract type
+ * so the conversion is ion -> bp
+*****/
 
 #ifdef ION_IMPLEMENTATION
 
@@ -25,10 +33,10 @@
 
 #include "al_bp_ion_conversions.h"
 
-BpSAP al_ion_handle(al_bp_handle_t handle){
-	return (BpSAP) handle;
+al_ion_handle_t al_ion_handle(al_bp_handle_t handle){
+	return (al_ion_handle_t) handle;
 }
-al_bp_handle_t ion_al_handle(BpSAP handle){
+al_bp_handle_t ion_al_handle(al_ion_handle_t handle){
 
 	return (al_bp_handle_t) handle;
 }

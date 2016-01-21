@@ -503,13 +503,13 @@ in the bundle.  Discarding this one.", NULL);
  * 		 BAB, the transmitted security result is compared with
  * 		 the computed security result from the first BAB.
  *
- * \retval int 0 - The block is corrupt.
- *             1 - The block check was inconclusive.
- *             2 - The block check failed: inauthentic.
- *             3 - The block check succeeded: authentic.
+ * \retval int 0 - The BAB is invalid.
+ *             1 - The check was inconclusive.
+ *             2 - The check failed: bundle inauthentic.
+ *             3 - The check succeeded: bundle authentic.
  *            -1 - There was a system error.
  *
- * \param[in]  blk  The acquisition block being checked.
+ * \param[in]  blk  The acquisition BAB being checked.
  * \param[in]  wk   The working area holding other acquisition blocks and
  *                  the rest of the received bundle.
  *

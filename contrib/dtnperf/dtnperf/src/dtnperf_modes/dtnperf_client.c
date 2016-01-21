@@ -13,9 +13,9 @@
  */
 
 
+#include "../includes.h"
 #include "dtnperf_client.h"
 #include "dtnperf_monitor.h"
-#include "../includes.h"
 #include "../definitions.h"
 #include "../bundle_tools.h"
 #include "../file_transfer_tools.h"
@@ -109,7 +109,6 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	 * variables
 	 * ------------------------ */
 	char * client_demux_string = "";
-	int pthread_status;
 
 	char temp1[256]; // buffer for various purpose
 	char temp2[256];
@@ -411,12 +410,12 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 
 	if ((debug) && (debug_level > 0))
 	{
-		printf("[debug] dtnperf header length: %lu\n", header_size);
+		printf("[debug] dtnperf header length: %u\n", header_size);
 		printf("[debug] dtnperf payload length: %f\n", dtnperf_payload);
 	}
 	if (create_log)
 	{
-		printf("[debug] dtnperf header length: %lu\n", header_size);
+		printf("[debug] dtnperf header length: %u\n", header_size);
 		printf("[debug] dtnperf payload length: %f\n", dtnperf_payload);
 	}
 	/* ------------------------------------------------------------------------------
@@ -558,7 +557,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	{
 		ext_buf = malloc(num_ext_blocks * sizeof(al_bp_extension_block_t));
 		memset(ext_buf, 0, num_ext_blocks * sizeof(al_bp_extension_block_t));
-		int i=0;
+		unsigned int i=0;
 
 		ext_bp = (al_bp_extension_block_t *)ext_buf;
 		for (i = 0; i < num_ext_blocks; i++)
@@ -582,7 +581,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	{
 		meta_buf = malloc(num_meta_blocks * sizeof(al_bp_extension_block_t));
 		memset(meta_buf, 0, num_meta_blocks * sizeof(al_bp_extension_block_t));
-		int i=0;
+		unsigned int i=0;
 
 		meta_bp = (al_bp_extension_block_t *)meta_buf;
 		for (i = 0; i < num_meta_blocks; i++)
@@ -654,8 +653,6 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	al_bp_bundle_set_replyto(&bundle, mon_eid);
 	set_bp_options(&bundle, conn_opt);
 
-	// intialize stop bundle;
-	al_bp_bundle_create(&bundle_stop);
 
 	if ((debug) && (debug_level > 0))
 		printf("[debug] entering in loop\n");
@@ -684,8 +681,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	pthread_create(&cong_ctrl, NULL, congestion_control, (void*)perf_g_opt);
 	pthread_create(&wait_for_signal, NULL, wait_for_sigint, (void*) client_demux_string);
 
-	pthread_join(cong_ctrl, (void**)&pthread_status);
-	pthread_join(sender, (void**)&pthread_status);
+	pthread_join(cong_ctrl, NULL);
+	pthread_join(sender, NULL);
 
 	pthread_mutex_destroy(&mutexdata);
 	sem_destroy(&window);
@@ -715,9 +712,17 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 
 	if (!perf_opt->no_bundle_stop)
 	{
+		// intialize stop bundle;
+		al_bp_bundle_create(&bundle_stop);
 		// fill the stop bundle
 		prepare_stop_bundle(&bundle_stop, mon_eid, conn_opt->expiration, conn_opt->priority, sent_bundles);
 		al_bp_bundle_set_source(&bundle_stop, local_eid);
+		if (debug && (debug_level > 0))
+		{
+			printf("[debug] print bundle stop payload\n");
+			printf("[debug] buf len : %d\n", bundle_stop.payload->buf.buf_len);
+			print_bytes(bundle_stop.payload->buf.buf_val, bundle_stop.payload->buf.buf_len);
+		}
 
 		// send stop bundle to monitor
 		if (debug)
@@ -731,6 +736,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		}
 		if (debug)
 			printf("done.\n");
+		al_bp_bundle_free(&bundle_stop);
 	}
 
 	// waiting monitor stops
@@ -833,7 +839,6 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	}
 	//structure bundle is always free in every op mode
 	al_bp_bundle_free(&bundle);
-	al_bp_bundle_free(&bundle_stop);
 	if (perf_opt->num_blocks > 0)
 	{
 		/*free(ext_buf);
@@ -933,8 +938,9 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 		client_clean_exit(2);
 	}
 
+	size_t bufsize = perf_opt->bundle_payload;
 	buf = (char *) malloc(perf_opt->bundle_payload);
-	buf_stream = open_memstream(&buf, (size_t *) &perf_opt->bundle_payload);
+	buf_stream = open_memstream(&buf, &bufsize);
 
 	// prepare the payload
 	if(perf_opt->op_mode == 'F') // File mode
@@ -963,6 +969,7 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 	}
 
 	fclose(buf_stream);
+	perf_opt->bundle_payload = bufsize;
 
 	if (perf_opt->crc==TRUE && debug)
 		printf("[debug] CRC = %"PRIu32"\n", bundle.payload->buf.buf_crc);
@@ -1279,7 +1286,7 @@ void * congestion_control(void * opt)
 					wrong_crc++;
 
 				if ((debug) && (debug_level > 0))
-					printf("\t[debug cong ctrl] ack received timestamp: %lu %lu\n", reported_timestamp.secs, reported_timestamp.seqno);
+					printf("\t[debug cong ctrl] ack received timestamp: %u %u\n", reported_timestamp.secs, reported_timestamp.seqno);
 				position = is_in_info(send_info, reported_timestamp, perf_opt->window);
 				if (position < 0)
 				{
@@ -1733,7 +1740,7 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 
 		case 'P':
 			perf_opt->P_arg = optarg;
-			if(perf_opt->P_arg <= 0)
+			if(perf_opt->P_arg == 0)
 			{
 				printf("\n[DTNperf syntax error] (-P option) invalid data value\n");
 				exit(1);
@@ -1926,7 +1933,7 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 			conn_opt->priority.ordinal = atoi(optarg);
 			if(conn_opt->priority.ordinal > 254)
 			{
-				fprintf(stderr, "[DTNperf syntax error] Invalid ordinal number %lu\n", conn_opt->priority.ordinal);
+				fprintf(stderr, "[DTNperf syntax error] Invalid ordinal number %u\n", conn_opt->priority.ordinal);
 				exit(1);
 				return;
 			}

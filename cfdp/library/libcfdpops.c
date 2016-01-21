@@ -312,6 +312,17 @@ void	parseProxySegmentationControl(char *text, int bytesRemaining,
 	opsData->proxyRecordBoundsRespected = ((unsigned char) *text) & 0x01;
 }
 
+void	parseProxyClosureRequest(char *text, int bytesRemaining,
+		CfdpUserOpsData *opsData)
+{
+	if (bytesRemaining < 1)
+	{
+		return;
+	}
+
+	opsData->proxyClosureRequested = ((unsigned char) *text) & 0x01;
+}
+
 void	parseProxyPutResponse(char *text, int bytesRemaining,
 		CfdpUserOpsData *opsData)
 {
@@ -538,6 +549,9 @@ static int	reportOnProxyPut(CfdpUserOpsData *opsData,
 int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 {
 	static CfdpReaderFn	stdReaderFn = CFDP_STD_READER;
+	Entity			dest;
+	uvast			destinationEntityId;
+	unsigned int		closureLatency;
 	CfdpTransactionId	transactionId;
 	int			result;
 
@@ -545,6 +559,24 @@ int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 	{
 		return reportOnProxyPut(opsData, CfdpInvalidTransmissionMode,
 				CfdpDataIncomplete, CfdpFileStatusUnreported);
+	}
+
+	if (opsData->proxyClosureRequested)
+	{
+		cfdp_decompress_number(&destinationEntityId,
+				&(opsData->proxyDestinationEntityNbr));
+		if (findEntity(destinationEntityId, &dest) == 0)
+		{
+			closureLatency = 0;
+		}
+		else
+		{
+			closureLatency = dest.ackTimerInterval;
+		}
+	}
+	else
+	{
+		closureLatency = 0;
 	}
 
 	result = createFDU(&opsData->proxyDestinationEntityNbr, 0, NULL,
@@ -557,7 +589,7 @@ int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 			opsData->proxyFlowLabelLength,
 			(opsData->proxyFlowLabelLength>0 ?
 					opsData->proxyFlowLabel : NULL),
-			0,
+			closureLatency,
 			opsData->proxyMsgsToUser,
 			opsData->proxyFilestoreRequests,
 			&opsData->originatingTransactionId,
@@ -612,9 +644,10 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		unsigned char *utParms, char *sourceFileName,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
-		unsigned char *flowLabel, Object messagesToUser,
-		Object filestoreRequests, CfdpNumber *beneficiaryEntityNbr,
-		CfdpProxyTask *task, CfdpTransactionId *transactionId)
+		unsigned char *flowLabel, unsigned int closureLatency,
+		Object messagesToUser, Object filestoreRequests,
+		CfdpNumber *beneficiaryEntityNbr, CfdpProxyTask *task,
+		CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
 	int		sourceFileNameLen;
@@ -744,11 +777,15 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 				if (length > 255)
 				{
 					sdr_list_destroy(sdr, msgs, NULL, NULL);
-					sdr_list_destroy(sdr, task->messagesToUser, NULL, NULL);
+					sdr_list_destroy(sdr,
+							task->messagesToUser,
+							NULL, NULL);
 					sdr_end_xn(sdr);
-					putErrmsg("Message to User Too Long.", itoa(length));
+					putErrmsg("Message to user too long.",
+							itoa(length));
 					return -1;
 				}
+
 				if (cfdp_add_usrmsg(msgs, textBuffer, length)
 						< 0)
 				{
@@ -818,11 +855,14 @@ int	cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 			if (length > 255)
 			{
 				sdr_list_destroy(sdr, msgs, NULL, NULL);
-				sdr_list_destroy(sdr, task->filestoreRequests, NULL, NULL);
+				sdr_list_destroy(sdr, task->filestoreRequests,
+						NULL, NULL);
 				sdr_end_xn(sdr);
-				putErrmsg("Message to User Too Long.", itoa(length));
+				putErrmsg("Message to User Too Long.",
+						itoa(length));
 				return -1;
 			}
+
 			if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
 			{
 				sdr_cancel_xn(sdr);
@@ -917,12 +957,30 @@ handler override.", NULL);
 		return -1;
 	}
 
+	/*	Add proxy closure request message to msgs list.		*/
+
+	if (task->closureRequested)
+	{
+		textBuffer[4] = CfdpProxyClosureRequest;
+		length = 5;
+		textBuffer[length] = 0x01;
+		length++;
+		if (cfdp_add_usrmsg(msgs, textBuffer, length) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("Can't insert proxy closure request message.",
+			       	NULL);
+			return -1;
+		}
+	}
+
 	/*	Send the proxy put request FDU.				*/
 
 	if (createFDU(respondentEntityNbr, utParmsLength, utParms,
 			sourceFileName, destFileName, readerFn, NULL,
-			faultHandlers, flowLabelLength, flowLabel, 0, msgs,
-			filestoreRequests, NULL, transactionId) < 0)
+			faultHandlers, flowLabelLength, flowLabel,
+			closureLatency, msgs, filestoreRequests, NULL,
+			transactionId) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't send proxy put request.", NULL);
@@ -942,8 +1000,9 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 		unsigned int utParmsLength, unsigned char *utParms,
 		char *sourceFileName, char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
-		unsigned char *flowLabel, Object messagesToUser,
-		Object filestoreRequests, CfdpTransactionId *rputTransactionId,
+		unsigned char *flowLabel, unsigned int closureLatency,
+		Object messagesToUser, Object filestoreRequests,
+		CfdpTransactionId *rputTransactionId,
 		CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
@@ -985,8 +1044,8 @@ int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 
 	if (createFDU(respondentEntityNbr, utParmsLength, utParms,
 			sourceFileName, destFileName, readerFn, NULL,
-			faultHandlers, flowLabelLength, flowLabel, 0,
-			messagesToUser, filestoreRequests,
+			faultHandlers, flowLabelLength, flowLabel,
+			closureLatency, messagesToUser, filestoreRequests,
 			rputTransactionId, transactionId) < 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -1007,17 +1066,17 @@ int	cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		unsigned char *utParms, char *sourceFileName,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
-		unsigned char *flowLabel, Object messagesToUser,
-		Object filestoreRequests, CfdpProxyTask *task,
-		CfdpTransactionId *transactionId)
+		unsigned char *flowLabel, unsigned int closureLatency,
+		Object messagesToUser, Object filestoreRequests,
+		CfdpProxyTask *task, CfdpTransactionId *transactionId)
 {
 	CfdpDB	*db = getCfdpConstants();
 
 	return cfdp_rput(respondentEntityNbr, utParmsLength, utParms,
 			sourceFileName, destFileName, readerFn, faultHandlers,
-			flowLabelLength, flowLabel, messagesToUser,
-			filestoreRequests, &db->ownEntityNbr, task,
-			transactionId);
+			flowLabelLength, flowLabel, closureLatency,
+			messagesToUser, filestoreRequests,
+			&db->ownEntityNbr, task, transactionId);
 }
 
 #endif
@@ -1229,9 +1288,9 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		unsigned char *utParms, char *sourceFileName,
 		char *destFileName, CfdpReaderFn readerFn,
 		CfdpHandler *faultHandlers, unsigned int flowLabelLength,
-		unsigned char *flowLabel, Object messagesToUser,
-		Object filestoreRequests, CfdpDirListTask *task,
-		CfdpTransactionId *transactionId)
+		unsigned char *flowLabel, unsigned int closureLatency,
+		Object messagesToUser, Object filestoreRequests,
+		CfdpDirListTask *task, CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
 	int		directoryNameLen;
@@ -1293,9 +1352,9 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 
 	if (createFDU(respondentEntityNbr, utParmsLength, utParms,
 			sourceFileName, destFileName, readerFn, NULL,
-			faultHandlers, flowLabelLength, flowLabel, 0,
-			messagesToUser, filestoreRequests, NULL, transactionId)
-			< 0)
+			faultHandlers, flowLabelLength, flowLabel,
+			closureLatency, messagesToUser, filestoreRequests,
+			NULL, transactionId) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't send directory listing request.", NULL);

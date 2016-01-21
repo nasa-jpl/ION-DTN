@@ -96,7 +96,7 @@ int	ipnInit()
 
 		memset((char *) &ipndbBuf, 0, sizeof(IpnDB));
 		ipndbBuf.plans = sdr_list_create(sdr);
-		ipndbBuf.groups = sdr_list_create(sdr);
+		ipndbBuf.exits = sdr_list_create(sdr);
 		sdr_write(sdr, ipndbObject, (char *) &ipndbBuf, sizeof(IpnDB));
 		sdr_catlg(sdr, IPN_DBNAME, 0, ipndbObject);
 		if (sdr_end_xn(sdr))
@@ -332,6 +332,109 @@ int	ipn_removePlan(uvast nodeNbr)
 	}
 
 	return 1;
+}
+
+static int	ruleMatches(IpnPlan *plan, DuctExpression *ductExpression)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnRule, rule);
+	char	destDuctName[SDRSTRING_BUFSZ];
+
+	for (elt = sdr_list_first(sdr, plan->rules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnRule, rule, sdr_list_data(sdr, elt));
+		if (!(rule->directive.action == xmit
+		&& rule->directive.outductElt == ductExpression->outductElt))
+		{
+			continue;	/*	Not a match.		*/
+		}
+
+		if (ductExpression->destDuctName == NULL)
+		{
+			/*	Non-promiscuous protocol; this is
+			 *	the egress plan we're looking for.	*/
+
+			return 1;
+		}
+
+		/*	ductExpression is for a promiscuous protocol,
+		 *	so must match on destDuctName as well.		*/
+
+		if (sdr_string_read(sdr, destDuctName,
+				rule->directive.destDuctName) < 0)
+		{
+			putErrmsg("Can't retrieve rule dest duct name.", NULL);
+			return 0;
+		}
+
+		if (strcmp(destDuctName, ductExpression->destDuctName) == 0)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+uvast	ipn_planNodeNbr(DuctExpression *ductExpression)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnPlan, plan);
+	char	destDuctName[SDRSTRING_BUFSZ];
+
+	/*	This function returns the node number associated with
+	 *	the IpnPlan containing a directive that indicates
+	 *	transmission to the duct identified by ductExpression,
+	 *	if any.							*/
+
+	CHKZERO(ionLocked());
+	CHKZERO(ductExpression);
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->plans); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
+		if (ruleMatches(plan, ductExpression))
+		{
+			return plan->nodeNbr;
+		}
+
+		/*	No override rule cites this outduct.		*/
+
+		if (!(plan->defaultDirective.action == xmit
+		&& plan->defaultDirective.outductElt
+				== ductExpression->outductElt))
+		{
+			continue;	/*	Not a match.		*/
+		}
+
+		if (ductExpression->destDuctName == NULL)
+		{
+			/*	Non-promiscuous protocol; this is
+			 *	the egress plan we're looking for.	*/
+
+			return plan->nodeNbr;
+		}
+
+		/*	ductExpression is for a promiscuous protocol,
+		 *	so must match on destDuctName as well.		*/
+
+		if (sdr_string_read(sdr, destDuctName,
+				plan->defaultDirective.destDuctName) < 0)
+		{
+			putErrmsg("Can't retrieve plan dest duct name.", NULL);
+			return 0;
+		}
+
+		if (strcmp(destDuctName, ductExpression->destDuctName) == 0)
+		{
+			return plan->nodeNbr;
+		}
+	}
+
+	return 0;
 }
 
 static Object	locateRule(Object rules, unsigned int srcServiceNbr,
@@ -704,50 +807,50 @@ int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	return 1;
 }
 
-static Object	locateGroup(uvast firstNodeNbr, uvast lastNodeNbr,
-			Object *nextGroup)
+static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
+			Object *nextExit)
 {
 	Sdr	sdr = getIonsdr();
 	int	targetSize;
-	int	groupSize;
+	int	exitSize;
 	Object	elt;
-		OBJ_POINTER(IpnGroup, group);
+		OBJ_POINTER(IpnExit, exit);
 
-	/*	This function locates the IpnGroup for the specified
+	/*	This function locates the IpnExit for the specified
 	 *	first node number, if any; if none, notes the
 	 *	location within the rules list at which such a rule
 	 *	should be inserted.					*/
 
-	if (nextGroup) *nextGroup = 0;	/*	Default.		*/
+	if (nextExit) *nextExit = 0;	/*	Default.		*/
 	targetSize = lastNodeNbr - firstNodeNbr;
-	for (elt = sdr_list_first(sdr, (_ipnConstants())->groups); elt;
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->exits); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
-		groupSize = group->lastNodeNbr - group->firstNodeNbr;
-		if (groupSize < targetSize)
+		GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
+		exitSize = exit->lastNodeNbr - exit->firstNodeNbr;
+		if (exitSize < targetSize)
 		{
 			continue;
 		}
 
-		if (groupSize > targetSize)
+		if (exitSize > targetSize)
 		{
-			if (nextGroup) *nextGroup = elt;
+			if (nextExit) *nextExit = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
-		if (group->firstNodeNbr < firstNodeNbr)
+		if (exit->firstNodeNbr < firstNodeNbr)
 		{
 			continue;
 		}
 
-		if (group->firstNodeNbr > firstNodeNbr)
+		if (exit->firstNodeNbr > firstNodeNbr)
 		{
-			if (nextGroup) *nextGroup = elt;
+			if (nextExit) *nextExit = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
-		/*	Matched group's first node number.		*/
+		/*	Matched exit's first node number.		*/
 
 		return elt;
 	}
@@ -755,159 +858,159 @@ static Object	locateGroup(uvast firstNodeNbr, uvast lastNodeNbr,
 	return 0;
 }
 
-void	ipn_findGroup(uvast firstNodeNbr, uvast lastNodeNbr, Object *groupAddr,
+void	ipn_findExit(uvast firstNodeNbr, uvast lastNodeNbr, Object *exitAddr,
 		Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 
-	/*	This function finds the IpnGroup for the specified
+	/*	This function finds the IpnExit for the specified
 	 *	node range, if any.					*/
 
 	CHKVOID(ionLocked());
-	CHKVOID(firstNodeNbr && groupAddr && eltp);
+	CHKVOID(firstNodeNbr && exitAddr && eltp);
 	CHKVOID(firstNodeNbr <= lastNodeNbr);
 	*eltp = 0;
-	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		return;
 	}
 
-	*groupAddr = sdr_list_data(sdr, elt);
+	*exitAddr = sdr_list_data(sdr, elt);
 	*eltp = elt;
 }
 
-int	ipn_addGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
+int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
-	Object		nextGroup;
-	IpnGroup	group;
+	Object		nextExit;
+	IpnExit	exit;
 	Object		addr;
 
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
 	CHKERR(sdr_begin_xn(sdr));
-	if (locateGroup(firstNodeNbr, lastNodeNbr, &nextGroup) != 0)
+	if (locateExit(firstNodeNbr, lastNodeNbr, &nextExit) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate group", utoa(firstNodeNbr));
+		writeMemoNote("[?] Duplicate exit", utoa(firstNodeNbr));
 		return 0;
 	}
 
-	/*	All parameters validated, okay to add the group.	*/
+	/*	All parameters validated, okay to add the exit.	*/
 
-	memset((char *) &group, 0, sizeof(IpnGroup));
-	group.firstNodeNbr = firstNodeNbr;
-	group.lastNodeNbr = lastNodeNbr;
-	group.rules = sdr_list_create(sdr);
-	group.defaultDirective.action = fwd;
-	group.defaultDirective.eid = sdr_string_create(sdr, viaEid);
-	addr = sdr_malloc(sdr, sizeof(IpnGroup));
+	memset((char *) &exit, 0, sizeof(IpnExit));
+	exit.firstNodeNbr = firstNodeNbr;
+	exit.lastNodeNbr = lastNodeNbr;
+	exit.rules = sdr_list_create(sdr);
+	exit.defaultDirective.action = fwd;
+	exit.defaultDirective.eid = sdr_string_create(sdr, viaEid);
+	addr = sdr_malloc(sdr, sizeof(IpnExit));
 	if (addr)
 	{
-		if (nextGroup)
+		if (nextExit)
 		{
-			sdr_list_insert_before(sdr, nextGroup, addr);
+			sdr_list_insert_before(sdr, nextExit, addr);
 		}
 		else
 		{
-			sdr_list_insert_last(sdr, (_ipnConstants())->groups,
+			sdr_list_insert_last(sdr, (_ipnConstants())->exits,
 					addr);
 		}
 
-		sdr_write(sdr, addr, (char *) &group, sizeof(IpnGroup));
+		sdr_write(sdr, addr, (char *) &exit, sizeof(IpnExit));
 	}
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't add group.", NULL);
+		putErrmsg("Can't add exit.", NULL);
 		return -1;
 	}
 
 	return 1;
 }
 
-int	ipn_updateGroup(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
+int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		addr;
-	IpnGroup	group;
+	IpnExit	exit;
 
 	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown group", utoa(firstNodeNbr));
+		writeMemoNote("[?] Unknown exit", utoa(firstNodeNbr));
 		return 0;
 	}
 
-	/*	All parameters validated, okay to update the group.	*/
+	/*	All parameters validated, okay to update the exit.	*/
 
 	addr = (Object) sdr_list_data(sdr, elt);
-	sdr_stage(sdr, (char *) &group, addr, sizeof(IpnGroup));
-	sdr_free(sdr, group.defaultDirective.eid);
-	group.defaultDirective.eid = sdr_string_create(sdr, viaEid);
-	sdr_write(sdr, addr, (char *) &group, sizeof(IpnGroup));
+	sdr_stage(sdr, (char *) &exit, addr, sizeof(IpnExit));
+	sdr_free(sdr, exit.defaultDirective.eid);
+	exit.defaultDirective.eid = sdr_string_create(sdr, viaEid);
+	sdr_write(sdr, addr, (char *) &exit, sizeof(IpnExit));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't update group.", NULL);
+		putErrmsg("Can't update exit.", NULL);
 		return -1;
 	}
 
 	return 1;
 }
 
-int	ipn_removeGroup(uvast firstNodeNbr, uvast lastNodeNbr)
+int	ipn_removeExit(uvast firstNodeNbr, uvast lastNodeNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	addr;
-		OBJ_POINTER(IpnGroup, group);
+		OBJ_POINTER(IpnExit, exit);
 
 	CHKERR(firstNodeNbr && lastNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown group", utoa(firstNodeNbr));
+		writeMemoNote("[?] Unknown exit", utoa(firstNodeNbr));
 		return 0;
 	}
 
 	addr = (Object) sdr_list_data(sdr, elt);
-	GET_OBJ_POINTER(sdr, IpnGroup, group, addr);
-	if (sdr_list_length(sdr, group->rules) > 0)
+	GET_OBJ_POINTER(sdr, IpnExit, exit, addr);
+	if (sdr_list_length(sdr, exit->rules) > 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Can't remove group; still has rules",
+		writeMemoNote("[?] Can't remove exit; still has rules",
 				utoa(firstNodeNbr));
 		return 0;
 	}
 
-	/*	All parameters validated, okay to remove the group.	*/
+	/*	All parameters validated, okay to remove the exit.	*/
 
 	sdr_list_delete(sdr, elt, NULL, NULL);
-	sdr_free(sdr, group->defaultDirective.eid);
+	sdr_free(sdr, exit->defaultDirective.eid);
 	sdr_free(sdr, addr);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't remove group.", NULL);
+		putErrmsg("Can't remove exit.", NULL);
 		return -1;
 	}
 
 	return 1;
 }
 
-void	ipn_findGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
-		int argServiceNbr, vast argNodeNbr, IpnGroup *group,
+void	ipn_findExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
+		int argServiceNbr, vast argNodeNbr, IpnExit *exit,
 		Object *ruleAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
@@ -916,7 +1019,7 @@ void	ipn_findGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
-			OBJ_POINTER(IpnGroup, groupPtr);
+			OBJ_POINTER(IpnExit, exitPtr);
 
 	/*	This function finds the IpnRule for the specified
 	 *	service number and source node number, for the
@@ -926,25 +1029,25 @@ void	ipn_findGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	CHKVOID(ruleAddr);
 	CHKVOID(eltp);
 	*eltp = 0;
-	if (group == NULL)
+	if (exit == NULL)
 	{
 		if (firstNodeNbr == 0 || lastNodeNbr < firstNodeNbr)
 		{
 			return;
 		}
 
-		elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+		elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 		if (elt == 0)
 		{
 			return;
 		}
 
-		GET_OBJ_POINTER(sdr, IpnGroup, groupPtr,
+		GET_OBJ_POINTER(sdr, IpnExit, exitPtr,
 				sdr_list_data(sdr, elt));
-		group = groupPtr;
+		exit = exitPtr;
 	}
 
-	elt = locateRule(group->rules, srcServiceNbr, srcNodeNbr, NULL);
+	elt = locateRule(exit->rules, srcServiceNbr, srcNodeNbr, NULL);
 	if (elt == 0)
 	{
 		return;
@@ -954,7 +1057,7 @@ void	ipn_findGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	*eltp = elt;
 }
 
-int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+int	ipn_addExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 		int argServiceNbr, vast argNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
@@ -963,7 +1066,7 @@ int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
+			OBJ_POINTER(IpnExit, exit);
 	Object		nextRule;
 	IpnRule		ruleBuf;
 	Object		addr;
@@ -971,16 +1074,16 @@ int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Group is unknown", utoa(firstNodeNbr));
+		writeMemoNote("[?] Exit is unknown", utoa(firstNodeNbr));
 		return 0;
 	}
 
-	GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
-	if (locateRule(group->rules, srcServiceNbr, srcNodeNbr, &nextRule) != 0)
+	GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
+	if (locateRule(exit->rules, srcServiceNbr, srcNodeNbr, &nextRule) != 0)
 	{
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Duplicate rule", utoa(srcNodeNbr));
@@ -1003,7 +1106,7 @@ int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 		}
 		else
 		{
-			elt = sdr_list_insert_last(sdr, group->rules, addr);
+			elt = sdr_list_insert_last(sdr, exit->rules, addr);
 		}
 
 		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
@@ -1018,7 +1121,7 @@ int	ipn_addGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	return 1;
 }
 
-int	ipn_updateGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+int	ipn_updateExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 		int argServiceNbr, vast argNodeNbr, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
@@ -1027,24 +1130,24 @@ int	ipn_updateGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
+			OBJ_POINTER(IpnExit, exit);
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Group is unknown", utoa(firstNodeNbr));
+		writeMemoNote("[?] Exit is unknown", utoa(firstNodeNbr));
 		return 0;
 	}
 
-	GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
-	ipn_findGroupRule(firstNodeNbr, lastNodeNbr, srcServiceNbr, srcNodeNbr,
-			group, &ruleAddr, &elt);
+	GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
+	ipn_findExitRule(firstNodeNbr, lastNodeNbr, srcServiceNbr, srcNodeNbr,
+			exit, &ruleAddr, &elt);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -1067,7 +1170,7 @@ int	ipn_updateGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	return 1;
 }
 
-int	ipn_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
+int	ipn_removeExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 		int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
@@ -1076,24 +1179,24 @@ int	ipn_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
 				: argNodeNbr);
 	Object		elt;
-			OBJ_POINTER(IpnGroup, group);
+			OBJ_POINTER(IpnExit, exit);
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
 	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
 	CHKERR(firstNodeNbr <= lastNodeNbr);
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateGroup(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Group is unknown", utoa(firstNodeNbr));
+		writeMemoNote("[?] Exit is unknown", utoa(firstNodeNbr));
 		return 0;
 	}
 
-	GET_OBJ_POINTER(sdr, IpnGroup, group, sdr_list_data(sdr, elt));
-	ipn_findGroupRule(firstNodeNbr, lastNodeNbr, srcServiceNbr, srcNodeNbr,
-			group, &ruleAddr, &elt);
+	GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
+	ipn_findExitRule(firstNodeNbr, lastNodeNbr, srcServiceNbr, srcNodeNbr,
+			exit, &ruleAddr, &elt);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -1116,13 +1219,13 @@ int	ipn_removeGroupRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	return 1;
 }
 
-int	ipn_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
+int	ipn_lookupExitDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 		uvast sourceNodeNbr, FwdDirective *dirbuf)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		addr;
-	IpnGroup	group;
+	IpnExit	exit;
 
 	/*	This function determines the relevant FwdDirective for
 	 *	the specified eid, if any.  Wild card match is okay.	*/
@@ -1130,18 +1233,18 @@ int	ipn_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	CHKERR(ionLocked());
 	CHKERR(nodeNbr && dirbuf);
 
-	/*	Find best matching group.  Groups are sorted by first
-	 *	node number within group size, both ascending.  So
-	 *	the first group whose range encompasses the node number
+	/*	Find best matching exit.  Exits are sorted by first
+	 *	node number within exit size, both ascending.  So
+	 *	the first exit whose range encompasses the node number
 	 *	is the best fit (narrowest applicable range), but
 	 *	there's no way to terminate the search early.		*/
 
-	for (elt = sdr_list_first(sdr, (_ipnConstants())->groups); elt;
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->exits); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &group, addr, sizeof(IpnGroup));
-		if (group.lastNodeNbr < nodeNbr || group.firstNodeNbr > nodeNbr)
+		sdr_read(sdr, (char *) &exit, addr, sizeof(IpnExit));
+		if (exit.lastNodeNbr < nodeNbr || exit.firstNodeNbr > nodeNbr)
 		{
 			continue;
 		}
@@ -1151,17 +1254,67 @@ int	ipn_lookupGroupDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 
 	if (elt == 0)
 	{
-		return 0;		/*	No group found.		*/
+		return 0;		/*	No exit found.		*/
 	}
 
 	/*	Find best matching rule.				*/
 
-	if (lookupRule(group.rules, sourceServiceNbr, sourceNodeNbr,
+	if (lookupRule(exit.rules, sourceServiceNbr, sourceNodeNbr,
 			-1, dirbuf) == 0)		/*	None.	*/
 	{
-		memcpy((char *) dirbuf, (char *) &group.defaultDirective,
+		memcpy((char *) dirbuf, (char *) &exit.defaultDirective,
 				sizeof(FwdDirective));
 	}
 
 	return 1;
+}
+
+void	ipn_forgetOutduct(Object ductElt)
+{
+	Sdr	sdr = getIonsdr();
+	IpnDB	*db;
+	Object	planElt;
+	Object	nextPlanElt;
+	Object	planAddr;
+		OBJ_POINTER(IpnPlan, plan);
+	Object	ruleElt;
+	Object	nextRuleElt;
+	Object	ruleAddr;
+		OBJ_POINTER(IpnRule, rule);
+
+	CHKVOID(ionLocked());
+	if (ipnInit() < 0 || (db = getIpnConstants()) == NULL)
+	{
+		return;
+	}
+
+	for (planElt = sdr_list_first(sdr, db->plans); planElt;
+			planElt = nextPlanElt)
+	{
+		nextPlanElt = sdr_list_next(sdr, planElt);
+		planAddr = sdr_list_data(sdr, planElt);
+		GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
+		for (ruleElt = sdr_list_first(sdr, plan->rules); ruleElt;
+				ruleElt = nextRuleElt)
+		{
+			nextRuleElt = sdr_list_next(sdr, ruleElt);
+			ruleAddr = sdr_list_data(sdr, ruleElt);
+			GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
+			if (rule->directive.outductElt == ductElt)
+			{
+				destroyXmitDirective(&(rule->directive));
+				sdr_free(sdr, ruleAddr);
+				sdr_list_delete(sdr, ruleElt, NULL, NULL);
+			}
+		}
+
+		if (plan->defaultDirective.outductElt == ductElt)
+		{
+			destroyXmitDirective(&(plan->defaultDirective));
+			sdr_free(sdr, planAddr);
+			sdr_list_delete(sdr, planElt, NULL, NULL);
+		}
+	}
+
+	/*	Note: Ipn group directives never reference outducts.	*/
 }

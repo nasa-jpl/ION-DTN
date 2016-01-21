@@ -9,12 +9,14 @@ CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
-PUBINCLS = \
-	$(INCL)/dtpc.h
-
 LIBDTPCOBJS = \
 	libdtpc.o \
 	libdtpcP.o
+
+PUBINCLS = \
+	$(INCL)/dtpc.h
+
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = dtpcd dtpcclock dtpcsend dtpcreceive dtpcadmin
 

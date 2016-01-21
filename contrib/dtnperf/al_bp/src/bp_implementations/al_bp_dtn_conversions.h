@@ -79,7 +79,7 @@ dtn_bundle_id_t al_dtn_bundle_id(al_bp_bundle_id_t bundle_id);
 al_bp_bundle_id_t dtn_al_bundle_id(dtn_bundle_id_t bundle_id);
 
 dtn_bundle_status_report_t al_dtn_bundle_status_report(al_bp_bundle_status_report_t bundle_status_report);
-al_bp_bundle_status_report_t dtn_al_bundle_status_report(dtn_bundle_status_report_t bundle_status_report);
+al_bp_bundle_status_report_t * dtn_al_bundle_status_report(dtn_bundle_status_report_t bundle_status_report);
 
 al_bp_bundle_payload_t dtn_al_bundle_payload(dtn_bundle_payload_t bundle_payload);
 dtn_bundle_payload_t al_dtn_bundle_payload(al_bp_bundle_payload_t bundle_payload);

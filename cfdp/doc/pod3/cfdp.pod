@@ -46,13 +46,34 @@ cfdp - CCSDS File Delivery Protocol (CFDP) communications library
         CfdpAbandonedInd
     } CfdpEventType;
 
+    typedef struct
+    {
+	char		*sourceFileName;
+	char		*destFileName;
+	MetadataList	messagesToUser;
+	MetadataList	filestoreRequests;
+	CfdpHandler	*faultHandlers;
+	int		unacknowledged;
+	unsigned int	flowLabelLength;
+	unsigned char	*flowLabel;
+	int		recordBoundsRespected;
+	int		closureRequested;
+    } CfdpProxyTask;
+
+    typedef struct
+    {
+	char		*directoryName;
+	char		*destFileName;
+    } CfdpDirListTask;
+
     [see description for available functions]
 
 =head1 DESCRIPTION
 
 The cfdp library provides functions enabling application software to use CFDP
 to send and receive files.  It conforms to the Class 1 (Unacknowledged)
-service class defined in the CFDP Blue Book.
+service class defined in the CFDP Blue Book and includes implementations of
+several standard CFDP user operations.
 
 In the ION implementation of CFDP, the CFDP notion of B<entity ID> is taken
 to be identical to the BP (CBHE) notion of DTN B<node number>.
@@ -287,6 +308,31 @@ system failure, zero otherwise.
 Interrupts an cfdp_get_event() invocation.  This function is designed to be
 called from a signal handler.
 
+=item int cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpNumber *beneficiaryEntityNbr, CfdpProxyTask *proxyTask, CfdpTransactionId *transactionId)
+
+Sends to the indicated respondent entity a "proxy" request to perform a file
+transmission.  The transmission is to be subject to the configuration values
+in I<proxyTask> and the destination of the file is to be the entity identified
+by I<beneficiaryEntityNbr>.
+
+=item int cfdp_rput_cancel(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *rputTransactionId, CfdpTransactionId *transactionId)
+
+Sends to the indicated respondent entity a request to cancel a prior "proxy"
+file transmission request as identified by I<rputTransactionId>, which is
+the value of I<transactionId> that was returned by that earlier proxy
+transmission request.
+
+=item int cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpProxyTask *proxyTask, CfdpTransactionId *transactionId)
+
+Same as B<cfdp_rput> except that I<beneficiaryEntityNbr> is omitted; the local
+entity is the implicit beneficiary of the request.
+
+=item int cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpDirListTask *dirListTask, CfdpTransactionId *transactionId)
+
+Sends to the indicated respondent entity a request to prepare a directory
+listing, save that listing in a file, and send it to the local entity.  The
+request is subject to the configuration values in I<dirListTask>. 
+
 =item int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer);
 
 This function is provided to enable the application to get an advance look
@@ -313,4 +359,4 @@ returns -1.  Otherwise returns 0.
 
 =head1 SEE ALSO
 
-cfdpadmin(1), cfdpops(3), cfdprc(5)
+cfdpadmin(1), cfdprc(5)

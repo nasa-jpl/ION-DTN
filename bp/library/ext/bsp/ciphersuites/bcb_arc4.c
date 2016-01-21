@@ -93,28 +93,17 @@ static int	cryptPayload(Bundle *bundle, unsigned char *sessionKey,
 			unsigned int sessionKeyLen, char *opString)
 {
 	Sdr		bpSdr = getIonsdr();
-	char		cwd[1024];
-	char		fileName[1024];
 	unsigned char	*dataBuffer = NULL;
 	arc4_context	arcContext;
-	int		tempFile;
 	ZcoReader	dataReader;
 	unsigned int	bytesRemaining = 0;
+	unsigned int	offset;
 	unsigned int	chunkSize = BCB_ENCRYPTION_CHUNK_SIZE;
 	unsigned int	bytesRetrieved = 0;
-	Object		fileRef;
-	vast		extentLength;
-	Object		newZco;
 
 	CHKERR(sessionKey);
 	BCB_DEBUG_INFO("+ %scryptPayload(0x%x, '%s' %d)", opString,
 			(unsigned long) bundle, sessionKey, sessionKeyLen);
-
-	if (igetcwd(cwd, sizeof cwd) == NULL)
-	{
-		putErrmsg("Can't get cwd for ARC4 file name.", NULL);
-		return -1;
-	}
 
 	/*	Allocate data buffer for arc4 crypto work area.		*/
 
@@ -124,23 +113,14 @@ static int	cryptPayload(Bundle *bundle, unsigned char *sessionKey,
 	/*	Set up the context for arc4.				*/
 
 	arc4_setup(&arcContext, sessionKey, sessionKeyLen);
-	isprintf(fileName, sizeof fileName, "%s%c%scrypt.%x", cwd,
-			ION_PATH_DELIMITER, opString, (unsigned long) bundle);
-	tempFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
-	if (tempFile < 0)
-	{
-		putSysErrmsg("Can't create ARC4 temp file", fileName);
-		MRELEASE(dataBuffer);
-		return -1;
-	}
 
 	/*	Encrypt/decrypt the bundle's payload ZCO, one chunk
-	 *	at a time, appending the results to the temporary
-	 *	file.							*/
+	 *	at a time, writing the results back to the ZCO.		*/
 
 	oK(sdr_begin_xn(bpSdr));
 	zco_start_transmitting(bundle->payload.content, &dataReader);
 	bytesRemaining = bundle->payload.length;
+	offset = 0;
 	BCB_DEBUG_INFO("i encryptPayload: size is %d", bytesRemaining);
 	while (bytesRemaining > 0)
 	{
@@ -161,68 +141,27 @@ but expected %d.", bytesRetrieved, chunkSize);
 		}
 
 		arc4_crypt(&arcContext, chunkSize, dataBuffer, dataBuffer);
-		if (write(tempFile, dataBuffer, chunkSize) < chunkSize)
+		if (zco_revise(bpSdr, bundle->payload.content, offset,
+					(char *) dataBuffer, chunkSize) < 0)
 		{
-			putSysErrmsg("Can't write to ARC4 temp file",
-					fileName);
+			putErrmsg("Can't write ARC4 ciphertext.", NULL);
 			break;		/*	Out of loop.		*/
 		}
 
+		offset += bytesRetrieved;
 		bytesRemaining -= bytesRetrieved;
 	}
 
 	MRELEASE(dataBuffer);
-	close(tempFile);
 	if (bytesRemaining != 0)	/*	Error encountered.	*/
 	{
 		sdr_cancel_xn(bpSdr);
-		oK(unlink(fileName));
 		return -1;
-	}
-
-	/*	Now replace the bundle's current payload content with
-	 *	a new ZCO that points at the newly created file.	*/
-
-	fileRef = zco_create_file_ref(bpSdr, fileName, "", ZcoOutbound);
-	if (fileRef == 0)
-	{
-		sdr_cancel_xn(bpSdr);
-		oK(unlink(fileName));
-		return -1;
-	}
-
-	/*	Pass additive inverse of length to zco_create to
-	 *	indicate that allocating this ZCO space to hold
-	 *	the encrypted payload is non-negotiable, since the
-	 *	exact same amount of space is going to be released
-	 *	immediately when the unencrypted payload is destroyed.	*/
-
-	extentLength = bundle->payload.length;
-	newZco = zco_create(bpSdr, ZcoFileSource, fileRef, 0, 0 - extentLength,
-			ZcoOutbound, 0);
-	switch (newZco)
-	{
-	case 0:
-		putErrmsg("Not enough ZCO space for encrypted ADU.",
-				itoa(bundle->payload.length));
-
-		/*	Intentional fall-through to next case.		*/
-
-	case ((Object) -1):		/*	Serious error.		*/
-		sdr_cancel_xn(bpSdr);
-		oK(unlink(fileName));
-		return -1;
-
-	default:			/*	New ZCO created.	*/
-		zco_destroy(bpSdr, bundle->payload.content);
-		bundle->payload.content = newZco;
-		zco_destroy_file_ref(bpSdr, fileRef);
 	}
 
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("ARC4 encrypt/decrypt failed.", NULL);
-		oK(unlink(fileName));
 		return -1;
 	}
 

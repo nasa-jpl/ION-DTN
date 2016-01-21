@@ -114,8 +114,9 @@ static void	*sendBundles(void *parm)
 		&& ductNbr <= parms->lastDuctNbr
 		&& parms->brsSockets[(i = ductNbr - parms->baseDuctNbr)] != -1)
 		{
-			bytesSent = sendBundleByTCP(NULL, parms->brsSockets + i,
-					bundleLength, bundleZco, buffer);
+			bytesSent = sendBundleByTCP("", "",
+					parms->brsSockets + i, bundleLength,
+					bundleZco, buffer);
 
 			/*	Note that TCP I/O errors never block
 			 *	the brsscla induct's output functions;
@@ -429,7 +430,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 			(char *) &timeTag, 4));
 	memcpy(registration + 4, digest, DIGEST_LEN);
 	if (sendBytesByTCP(&parms->bundleSocket, registration + 4,
-			DIGEST_LEN, NULL) < DIGEST_LEN)
+			DIGEST_LEN) < DIGEST_LEN)
 	{
 		putErrmsg("Can't countersign to client.",
 				itoa(parms->bundleSocket));
@@ -722,17 +723,6 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
-		voutduct->xmitThrottle.nominalRate = DEFAULT_BRS_RATE;
-	}
-	else
-	{
-		vinduct->acqThrottle.nominalRate = protocol.nominalRate;
-		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
 	hostName = ductName;
 	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
 	{

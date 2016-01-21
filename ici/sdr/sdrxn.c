@@ -15,7 +15,7 @@
  *	4-3-96	  APS	Abstracted IPC services and task control.
  *	5-1-96	  APS	Ported to sparc-sunos4.
  *	12-20-00  SCB	Revised for sparc-sunos5.
- *	6-8-07    SCB	Divided sdr.c library into separable components.	
+ *	6-8-07    SCB	Divided sdr.c library into separable components.
  */
 
 #include "sdrP.h"
@@ -323,11 +323,6 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 
 		/*	Use built-in defaults as needed.		*/
 
-		if (parms->wmSize == 0)
-		{
-			parms->wmSize = 1000000;
-		}
-
 		if (parms->wmKey == SM_NO_KEY)
 		{
 			sdrwmIsPrivate = 1;
@@ -345,11 +340,6 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 				sdrmtake, sdrmrlse, sdrmatop, sdrmptoa) < 0)
 		{
 			putErrmsg("Can't open SDR working memory.", NULL);
-			if (sdrwmIsPrivate)
-			{
-				memmgr_destroy(sdrwmId, &sdrwm);
-			}
-
 			sdrwmId = 0;
 			sdrwm = NULL;
 			memmgrIdx = -1;
@@ -481,7 +471,7 @@ int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
 		sm_SemGive(lock);
 		return 0;
 	}
-   
+
 	wmparms.wmKey = wmKey;
 	wmparms.wmSize = wmSize;
 	wmparms.wmAddress = wmPtr;
@@ -516,8 +506,7 @@ void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 	_sdrlock(1);		/*	Delete SDR system semaphore.	*/
 }
 
-int	_xniEnd(const const char *fileName, int lineNbr, const char *arg,
-		Sdr sdrv)
+int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 {
 	_postErrmsg(fileName, lineNbr,
 			"Assertion failed, SDR transaction canceled.", arg);
@@ -1010,7 +999,7 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 			putSysErrmsg("Can't extend dataspace file", dsfilename);
 			return -1;
 		}
-	
+
 		lengthRemaining -= lengthToWrite;
 	}
 
@@ -1277,8 +1266,8 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 	{
 		writeMemoNote("[?] No such directory; disabling heap residence \
 in file and transaction reversibility", sdr->pathName);
-		sdr->configFlags &= (~SDR_IN_FILE); 
-		sdr->configFlags &= (~SDR_REVERSIBLE); 
+		sdr->configFlags &= (~SDR_IN_FILE);
+		sdr->configFlags &= (~SDR_REVERSIBLE);
 	}
 
 	if (restartCmd == NULL)
@@ -1387,7 +1376,7 @@ in file and transaction reversibility", sdr->pathName);
 			putErrmsg("Can't attach to dataspace memory.", NULL);
 			destroySdr(sdr);	/*	Releases lock.	*/
 			return -1;
-	
+
 		case 0:		/*	Reattaching to existing SDR.	*/
 			if (dsfile != -1)	/*	Also in file.	*/
 			{
@@ -1405,9 +1394,9 @@ in file and transaction reversibility", sdr->pathName);
 					return -1;
 				}
 			}
-	
+
 			/*	Back transaction out if not yet done.	*/
-	
+
 			if (reverseTransaction(sdr, logfile, logsm, -1, dssm)
 					< 0)
 			{

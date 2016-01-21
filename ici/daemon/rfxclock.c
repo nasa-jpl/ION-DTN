@@ -92,6 +92,11 @@ static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
 	return neighbor;
 }
 
+static void	addContactToHistory(IonCXref *cxref)
+{
+	return;		/*	Develop this in next phase.		*/
+}
+
 static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -102,12 +107,18 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	PsmAddress	ref;
 	Object		iondbObj;
 	IonDB		iondb;
+	IonEvent	*newEvent;
 
 	switch (event->type)
 	{
 	case IonStopImputedRange:
 	case IonStopAssertedRange:
 		rxref = (IonRXref *) psp(ionwm, event->ref);
+
+		/*	rfx_remove_range deletes all range events
+		 *	from timeline including the one that invoked
+		 *	this function.					*/
+
 		return rfx_remove_range(rxref->fromTime,
 				rxref->fromNode, rxref->toNode);
 
@@ -123,6 +134,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonStopFire:
@@ -136,6 +149,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonStopRecv:
@@ -150,6 +165,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonStartImputedRange:
@@ -173,6 +190,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonStartXmit:
@@ -187,6 +206,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonStartFire:
@@ -222,14 +243,14 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 					return -1;
 				}
 
-				event = (IonEvent *) psp(ionwm, addr);
-				cxref->startRecv = event->time =
+				newEvent = (IonEvent *) psp(ionwm, addr);
+				cxref->startRecv = newEvent->time =
 					(cxref->fromTime - iondb.maxClockError)
 						+ neighbor->owltInbound;
-				event->type = IonStartRecv;
-				event->ref = ref;
+				newEvent->type = IonStartRecv;
+				newEvent->ref = ref;
 				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
-						rfx_order_events, event) == 0)
+					rfx_order_events, newEvent) == 0)
 				{
 					psm_free(ionwm, addr);
 					return -1;
@@ -241,14 +262,14 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 					return -1;
 				}
 
-				event = (IonEvent *) psp(ionwm, addr);
-				cxref->stopRecv = event->time =
+				newEvent = (IonEvent *) psp(ionwm, addr);
+				cxref->stopRecv = newEvent->time =
 					(cxref->toTime + iondb.maxClockError)
 						+ neighbor->owltInbound;
-				event->type = IonStopRecv;
-				event->ref = ref;
+				newEvent->type = IonStopRecv;
+				newEvent->ref = ref;
 				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
-						rfx_order_events, event) == 0)
+					rfx_order_events, newEvent) == 0)
 				{
 					psm_free(ionwm, addr);
 					return -1;
@@ -263,14 +284,14 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 					return -1;
 				}
 
-				event = (IonEvent *) psp(ionwm, addr);
-				cxref->purgeTime = event->time =
+				newEvent = (IonEvent *) psp(ionwm, addr);
+				cxref->purgeTime = newEvent->time =
 					(cxref->toTime + iondb.maxClockError)
 						+ neighbor->owltInbound;
-				event->type = IonPurgeContact;
-				event->ref = ref;
+				newEvent->type = IonPurgeContact;
+				newEvent->ref = ref;
 				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
-						rfx_order_events, event) == 0)
+					rfx_order_events, newEvent) == 0)
 				{
 					psm_free(ionwm, addr);
 					return -1;
@@ -278,6 +299,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonStartRecv:
@@ -292,15 +315,28 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return 0;
 
 	case IonPurgeContact:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+		if (cxref->fromNode == getOwnNodeNbr())
+		{
+			addContactToHistory(cxref);
+		}
+
+		/*	rfx_remove_contact deletes all contact events
+		 *	from timeline including the one that invoked
+		 *	this function.					*/
+
 		return rfx_remove_contact(cxref->fromTime,
 				cxref->fromNode, cxref->toNode);
 
 	default:
 		putErrmsg("Invalid RFX timeline event.", itoa(event->type));
+		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL));
 		return -1;
 
 	}
@@ -422,8 +458,9 @@ int	main(int argc, char *argv[])
 				break;
 			}
 
-			oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-					event, NULL, NULL));
+			/*	The dispatchEvent() function handles
+			 *	deletion of the timeline list element
+			 *	and event structure.			*/
 		}
 
 		/*	Finally, clean up any ZCO space requisitions

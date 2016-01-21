@@ -252,7 +252,7 @@ tblIndex	*_tblIndex(int *control)
 
 int	getLstEntry(int fileD, lstEntry *entry, long lstEntryOffset)
 {
-	if ((lseek(fileD, lstEntryOffset, SEEK_SET) < 0) ||
+	if ((lseek(fileD, (off_t) lstEntryOffset, SEEK_SET) < 0) ||
 	    (read(fileD, entry, sizeof(lstEntry)) < 0))
 	{
 		putSysErrmsg("BSS library: can't seek or read from .lst file", 

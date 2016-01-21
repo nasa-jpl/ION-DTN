@@ -82,7 +82,7 @@ if [ $? -eq 3 ]
 then
 	echo ""
 else
-	echo "Node 2 not started: Aborting Test"
+	echo "Node 3 not started: Aborting Test"
 	exit 0
 fi
 

@@ -31,6 +31,7 @@ typedef struct
 	unsigned int	flowLabelLength;
 	unsigned char	*flowLabel;
 	int		recordBoundsRespected;		/*	Boolean	*/
+	int		closureRequested;		/*	Boolean	*/
 } CfdpProxyTask;
 
 extern int	cfdp_rput(CfdpNumber	*respondentEntityNbr,
@@ -42,6 +43,7 @@ extern int	cfdp_rput(CfdpNumber	*respondentEntityNbr,
 			CfdpHandler	*faultHandlers,	/*	array	*/
 			unsigned int	flowLabelLength,
 			unsigned char	*flowLabel,
+			unsigned int	closureLatency,
 			MetadataList	messagesToUser,
 			MetadataList	filestoreRequests,
 			CfdpNumber	*beneficiaryEntityNbr,
@@ -57,6 +59,7 @@ extern int	cfdp_rput_cancel(CfdpNumber *respondentEntityNbr,
 			CfdpHandler	*faultHandlers,	/*	array	*/
 			unsigned int	flowLabelLength,
 			unsigned char	*flowLabel,
+			unsigned int	closureLatency,
 			MetadataList	messagesToUser,
 			MetadataList	filestoreRequests,
 			CfdpTransactionId *rputTransactionId,
@@ -71,6 +74,7 @@ extern int	cfdp_get(CfdpNumber	*respondentEntityNbr,
 			CfdpHandler	*faultHandlers,	/*	array	*/
 			unsigned int	flowLabelLength,
 			unsigned char	*flowLabel,
+			unsigned int	closureLatency,
 			MetadataList	messagesToUser,
 			MetadataList	filestoreRequests,
 			CfdpProxyTask	*retrievalTask,
@@ -94,6 +98,7 @@ extern int	cfdp_rls(CfdpNumber	*respondentEntityNbr,
 			CfdpHandler	*faultHandlers,	/*	array	*/
 			unsigned int	flowLabelLength,
 			unsigned char	*flowLabel,
+			unsigned int	closureLatency,
 			MetadataList	messagesToUser,
 			MetadataList	filestoreRequests,
 			CfdpDirListTask	*dirListTask,

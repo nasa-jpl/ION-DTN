@@ -17,6 +17,7 @@
 	
 									*/
 #include "tcpcla.h"
+#include "ipnfw.h"
 
 static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 {
@@ -52,7 +53,8 @@ typedef struct
 {
 	int		*cloRunning;
 	pthread_mutex_t	*mutex;
-	struct sockaddr	*socketName;
+	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		*ductSocket;
 } KeepaliveThreadParms;
 
@@ -81,8 +83,8 @@ static void	*sendKeepalives(void *parm)
 
 		count = 0;
 		pthread_mutex_lock(parms->mutex);
-		bytesSent = sendBundleByTCP(parms->socketName,
-				parms->ductSocket, 0, 0, NULL);
+		bytesSent = sendBundleByTCP(parms->protocolName,
+				parms->ductName, parms->ductSocket, 0, 0, NULL);
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent < 0)
 		{
@@ -109,20 +111,17 @@ int	main(int argc, char *argv[])
 	unsigned char		*buffer;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
+	DuctExpression		ductExpression;
 	Sdr			sdr;
 	Outduct			duct;
 	ClProtocol		protocol;
 	Outflow			outflows[3];
 	int			i;
-	char			*hostName;
-	unsigned short		portNbr;
-	unsigned int		hostNbr;
-	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName;
 	int			running = 1;
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	parms;
 	pthread_t		keepaliveThread;
+	unsigned int		maxPayloadLength;
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
@@ -167,21 +166,24 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	ipnInit();
 	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));
+	CHKERR(sdr_begin_xn(sdr));		/*	Lock the heap.	*/
+	ductExpression.outductElt = vduct->outductElt;
+	ductExpression.destDuctName = NULL;	/*	Non-promiscuous.*/
+	vduct->neighborNodeNbr = ipn_planNodeNbr(&ductExpression);
+	if (vduct->neighborNodeNbr == 0)
+	{
+		/*	Must be using only dtn-scheme EIDs.		*/
+
+		writeMemoNote("[i] No node number for this STCP duct name",
+				ductName);
+	}
+
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
-	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vduct->xmitThrottle.nominalRate = DEFAULT_TCP_RATE;
-	}
-	else
-	{
-		vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
+	sdr_exit_xn(sdr);			/*	Unlock.		*/
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = duct.bulkQueue;
 	outflows[1].outboundBundles = duct.stdQueue;
@@ -189,34 +191,6 @@ int	main(int argc, char *argv[])
 	for (i = 0; i < 3; i++)
 	{
 		outflows[i].svcFactor = 1 << i;
-	}
-
-	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
-	if (portNbr == 0)
-	{
-		portNbr = BpTcpDefaultPortNbr;
-	}
-
-	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		MRELEASE(buffer);
-		return -1;
-	}
-
-	hostNbr = htonl(hostNbr);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	if (_tcpOutductId(&socketName, "stcp", ductName) < 0)
-	{
-		putErrmsg("Can't record TCP Outduct ID for connection.", NULL);
-		MRELEASE(buffer);
-		return -1;
 	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
@@ -232,7 +206,8 @@ int	main(int argc, char *argv[])
 	parms.cloRunning = &running;
 	pthread_mutex_init(&mutex, NULL);
 	parms.mutex = &mutex;
-	parms.socketName = &socketName;
+	istrcpy(parms.protocolName, protocol.name, MAX_CL_PROTOCOL_NAME_LEN);
+	istrcpy(parms.ductName, ductName, MAX_CL_DUCT_NAME_LEN);
 	parms.ductSocket = &ductSocket;
 	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
 	{
@@ -244,20 +219,25 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	{
-		char	txt[500];
-
-		isprintf(txt, sizeof(txt),
-			"[i] stcpclo is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr),
-			ntohs(inetName->sin_port));
-		writeMemo(txt);
-	}
-
+	writeMemo("[i] stcpclo is running....");
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
+		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
+		{
+		case -1:
+			sm_SemEnd(stcpcloSemaphore(NULL));
+			continue;
+
+		case 0:			/*	Unknown; try again.	*/
+			snooze(1);
+			continue;
+
+		default:		/*	maxPayloadLength known.	*/
+			break;		/*	Out of switch.		*/
+		}
+
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+				destDuctName, maxPayloadLength, -1) < 0)
 		{
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
@@ -272,8 +252,8 @@ int	main(int argc, char *argv[])
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
-		bytesSent = sendBundleByTCP(&socketName, &ductSocket,
-				bundleLength, bundleZco, buffer);
+		bytesSent = sendBundleByTCP(protocol.name, ductName,
+				&ductSocket, bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
 		if (bytesSent < 0)	/*	System error.		*/
 		{
@@ -288,15 +268,10 @@ int	main(int argc, char *argv[])
 
 	running = 0;		/*	Terminate keepalive thread.	*/
 	pthread_join(keepaliveThread, NULL);
-	if (ductSocket != -1)
-	{
-		closesocket(ductSocket);
-	}
-
+	closeOutductSocket(&ductSocket);
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
 	writeMemo("[i] stcpclo duct has ended.");
-	oK(_tcpOutductId(&socketName, NULL, NULL));
 	MRELEASE(buffer);
 	ionDetach();
 	return 0;
