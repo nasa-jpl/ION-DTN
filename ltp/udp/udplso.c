@@ -139,6 +139,11 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				continue;	/*	Retry.		*/
 			}
 
+			if (errno == ENETUNREACH)
+			{
+				return length;	/*	Just data loss.	*/
+			}
+
 			{
 				char			memoBuf[1000];
 				struct sockaddr_in	*saddr = destAddr;

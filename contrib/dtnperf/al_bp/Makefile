@@ -8,11 +8,11 @@ DIR_BP_IMPL=./src/bp_implementations/
 SUFFIX=
 DEBUG=0
 ifeq ($(DEBUG),0)
-DEBUG_FLAG=
+DEBUG_FLAG= -O2
 else
-DEBUG_FLAG=-g -fno-inline
+DEBUG_FLAG=-g -fno-inline -O0
 endif
-CFLAGS= $(DEBUG_FLAG) -Wall -fPIC -Werror -O2
+CFLAGS= $(DEBUG_FLAG) -Wall -fPIC -Werror
 
 ifeq ($(or $(ION_DIR),$(DTN2_DIR)),)
 # NOTHING
@@ -26,9 +26,14 @@ LIB_NAME=$(LIB_NAME_BASE)
 ifeq ($(strip $(DTN2_DIR)),)
 ifneq ($(strip $(ION_DIR)),)
 # ION
+#ifneq ( $(ION_VERS_UP_3.3.0), yes )
+VERSION=-DNEW_ZCO
+#else
+#VERSION=
+#endif
 LIB_NAME=$(LIB_NAME_BASE)_vION
 INC=-I$(ION_DIR) -I$(ION_DIR)/bp/include -I$(ION_DIR)/bp/library -I$(ION_DIR)/ici/include
-OPT=-DION_IMPLEMENTATION $(CFLAGS)
+OPT=-DION_IMPLEMENTATION $(VERSION) $(CFLAGS)
 endif
 else ifeq ($(strip $(ION_DIR)),)
 ifneq ($(strip $(DTN2_DIR)),)
@@ -42,7 +47,7 @@ ifneq ($(strip $(DTN2_DIR)),)
 # BOTH
 LIB_NAME=$(LIB_NAME_BASE)
 INC=-I$(DTN2_DIR) -I$(DTN2_DIR)/applib/ -I$(DTN2_DIR)/oasys/include -I$(ION_DIR)/bp/include -I$(ION_DIR)/bp/library -I$(ION_DIR)/ici/include
-OPT=-DION_IMPLEMENTATION -DDTN2_IMPLEMENTATION $(CFLAGS)
+OPT=-DION_IMPLEMENTATION -DDTN2_IMPLEMENTATION $(VERSION) $(CFLAGS)
 endif
 #else ifeq ($(and $(strip $(DTN2_DIR)), $(strip $(ION_DIR))),)
 endif
@@ -72,7 +77,8 @@ help:
 	@echo "Usage:"
 	@echo "For DTN2:	make DTN2_DIR=<dtn2_dir>"
 	@echo "For ION:		make ION_DIR=<ion_dir> ION_VERS_UP_3.3.0=<yes|no>"
-	@echo "For both:	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir> ION_VERS_UP_3.3.0=<yes|no>"
+#	@echo "For both:	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir> ION_VERS_UP_3.3.0=<yes|no>"
+	@echo "For both:	make DTN2_DIR=<dtn2_dir> ION_DIR=<ion_dir>"
 	@echo "To compile with debug symbols add DEBUG=1"
 
 clean:

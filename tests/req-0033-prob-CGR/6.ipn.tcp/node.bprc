@@ -1,0 +1,11 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:6.0 q
+a endpoint ipn:6.1 q
+a endpoint ipn:6.2 q
+a endpoint ipn:6.64 q
+a endpoint ipn:6.65 q
+a protocol tcp 1400 100
+a induct tcp 127.0.0.1:4566 tcpcli
+w 1
+s

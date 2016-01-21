@@ -19,144 +19,38 @@ typedef struct
 typedef struct
 {
 	pthread_t	mainThread;
-	Lyst		entities;
 	int		recvSocket;
 	int		running;
 } RxThreadParms;
 
 /*	*	*	Utility functions	*	*	*	*/
 
-static void	deleteEntityAddr(LystElt elt, void *userdata)
+static int	lookUpEntity(unsigned int entityId, unsigned int *ipAddress,
+			unsigned short *portNbr)
 {
-	EntityAddr	*entityAddr = lyst_data(elt);
+	Sdr	sdr = getIonsdr();
+	Entity	entity;
+	int	result;
 
-	MRELEASE(entityAddr);
-}
-
-static Lyst	loadEntitiesList(char *addrFileName)
-{
-	Lyst		entities;
-	FILE		*stream;
-	int		tokenCount;
-	EntityAddr	entity;
-	char		socketSpec[256];
-	char		*addr;
-
-	if (addrFileName == NULL)
+	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock database.	*/
+	if (findEntity(entityId, &entity) != 0 && entity.utLayer == UtTcp)
 	{
-		writeMemo("[?] No file of entity addresses.");
-		return NULL;
+		*ipAddress = entity.ipAddress;
+		*portNbr = entity.portNbr;
+		result = 1;
+	}
+	else
+	{
+		result = 0;
 	}
 
-	entities = lyst_create_using(getIonMemoryMgr());
-	if (entities == NULL)
-	{
-		putErrmsg("tcputa can't write list of entity addresses.", NULL);
-		return NULL;
-	}
-
-	lyst_delete_set(entities, deleteEntityAddr, NULL);
-	stream = fopen(addrFileName, "r");
-	if (stream == NULL)
-	{
-		putSysErrmsg("Can't open file of entity addresses.",
-				addrFileName);
-		lyst_destroy(entities);
-		return NULL;
-	}
-
-	while (1)
-	{
-		tokenCount = fscanf(stream, "%u %255s", &entity.entityId,
-				socketSpec);
-		switch (tokenCount)
-		{
-		case EOF:
-			if (ferror(stream))
-			{
-				putSysErrmsg("Failed reading entity addresses.",
-						addrFileName);
-				lyst_destroy(entities);
-				entities = NULL;
-			}
-
-			fclose(stream);
-			return entities;
-
-		case 2:
-			if (entity.entityId == 0)
-			{
-				writeMemoNote("[?] Bad tcputa entity number",
-						socketSpec);
-				continue;
-			}
-
-			parseSocketSpec(socketSpec, &entity.portNbr,
-					&entity.ipAddress);
-			if (entity.ipAddress == 0)
-			{
-				entity.ipAddress = getAddressOfHost();
-				if (entity.ipAddress == 0)
-				{
-					putErrmsg("tcputa can't get own IP \
-adress.", NULL);
-					fclose(stream);
-					lyst_destroy(entities);
-					return NULL;
-				}
-			}
-
-			addr = MTAKE(sizeof(EntityAddr));
-			if (addr == NULL)
-			{
-				putErrmsg("No space for entity address.", NULL);
-				fclose(stream);
-				lyst_destroy(entities);
-				return NULL;
-			}
-
-			if (lyst_insert_last(entities, addr) == NULL)
-			{
-				putErrmsg("No space for entity address list \
-element.", NULL);
-				MRELEASE(addr);
-				fclose(stream);
-				lyst_destroy(entities);
-				return NULL;
-			}
-
-			memcpy(addr, (char *) &entity, sizeof(EntityAddr));
-			continue;
-
-		default:
-			writeMemoNote("[?] Bad tcputa socket spec", socketSpec);
-		}
-	}
-}
-
-static int	lookUpEntity(Lyst entities, unsigned int entityId,
-			unsigned int *ipAddress, unsigned short *portNbr)
-{
-	LystElt		elt;
-	EntityAddr	*entity;
-
-	for (elt = lyst_first(entities); elt; elt = lyst_next(elt))
-	{
-		entity = (EntityAddr *) lyst_data(elt);
-		if (entity->entityId == entityId)
-		{
-			*ipAddress = entity->ipAddress;
-			*portNbr = entity->portNbr;
-			return 1;
-		}
-	}
-
-	return 0;	/*	Not found; not reachable.		*/
+	sdr_exit_xn(sdr);
+	return result;
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
 
-static int	openAccessSocket(Lyst entities)
+static int	openAccessSocket()
 {
 	unsigned int		ipAddress;
 	unsigned short		portNbr;
@@ -165,7 +59,7 @@ static int	openAccessSocket(Lyst entities)
 	int			accessSocket;
 	socklen_t		nameLength = sizeof(struct sockaddr);
 
-	if (lookUpEntity(entities, getCfdpConstants()->ownEntityId, &ipAddress,
+	if (lookUpEntity(getCfdpConstants()->ownEntityId, &ipAddress,
 			&portNbr) == 0)
 	{
 		putErrmsg("tcputa can't get own socket spec.", NULL);
@@ -261,7 +155,7 @@ static void	*receivePdus(void *parm)
 		return NULL;
 	}
 
-	accessSocket = openAccessSocket(parms->entities);
+	accessSocket = openAccessSocket();
 	if (accessSocket < 0)
 	{
 		MRELEASE(buffer);
@@ -369,7 +263,7 @@ static void	*receivePdus(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-static int	connectToPeerEntity(Lyst entities, uvast destinationEntityNbr,
+static int	connectToPeerEntity(uvast destinationEntityNbr,
 			uvast *currentPeerEntity, int *xmitSocket)
 {
 	unsigned int		ipAddress;
@@ -377,8 +271,7 @@ static int	connectToPeerEntity(Lyst entities, uvast destinationEntityNbr,
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
 
-	if (lookUpEntity(entities, destinationEntityNbr, &ipAddress, &portNbr)
-			== 0)
+	if (lookUpEntity(destinationEntityNbr, &ipAddress, &portNbr) == 0)
 	{
 		writeMemoNote("[?] tcputa has no address for this entity",
 				itoa(destinationEntityNbr));
@@ -497,12 +390,10 @@ static int	deletePdu(Object pduZco)
 int	tcputa(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char			*addrFileName = (char * a1);
 #else
 int	main(int argc, char **argv)
 	
 {
-	char			*addrFileName = (argc > 1 ? argv[1] : NULL);
 #endif
 	RxThreadParms		parms;
 	unsigned char		*buffer;
@@ -528,18 +419,10 @@ int	main(int argc, char **argv)
 	}
 
 	parms.mainThread = pthread_self();
-	parms.entities = loadEntitiesList(addrFileName);
-	if (parms.entities == NULL)
-	{
-		writeMemo("[?] No entity addresses; tcputa terminating.");
-		return 0;
-	}
-
 	buffer = MTAKE(CFDP_MAX_PDU_SIZE);
 	if (buffer == NULL)
 	{
 		putErrmsg("tcputa sender thread can't get buffer.", NULL);
-		lyst_destroy(parms.entities);
 		return -1;
 	}
 
@@ -549,7 +432,6 @@ int	main(int argc, char **argv)
 	{
 		putSysErrmsg("tcputa can't create receiver thread", NULL);
 		MRELEASE(buffer);
-		lyst_destroy(parms.entities);
 		return -1;
 	}
 
@@ -593,8 +475,7 @@ terminating.");
 
 		if (destinationEntityNbr != currentPeerEntity)
 		{
-			if (connectToPeerEntity(parms.entities,
-					destinationEntityNbr,
+			if (connectToPeerEntity(destinationEntityNbr,
 					&currentPeerEntity, &xmitSocket) < 0)
 			{
 				putErrmsg("tcputa connection failure.", NULL);
@@ -676,8 +557,7 @@ terminating.");
 			 *	access thread by connecting to it.	*/
 
 			destinationEntityNbr = getCfdpConstants()->ownEntityId; 
-			if (connectToPeerEntity(parms.entities,
-					destinationEntityNbr,
+			if (connectToPeerEntity(destinationEntityNbr,
 					&currentPeerEntity, &xmitSocket) < 0)
 			{
 				putErrmsg("tcputa shutdown failure.", NULL);
@@ -706,7 +586,6 @@ terminating.");
 	}
 
 	MRELEASE(buffer);
-	lyst_destroy(parms.entities);
 	writeErrmsgMemos();
 	writeMemo("[i] Stopping tcputa.");
 	ionDetach();

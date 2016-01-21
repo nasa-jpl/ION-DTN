@@ -39,6 +39,9 @@ ICISOURCES =     \
    ionrestart.c  \
    ionexit.c
 
+#  bloom.c       \
+#  MurmurHash2.c \
+
 LTPSOURCES =     \
 	libltp.c     \
 	libltpP.c    \
@@ -63,8 +66,10 @@ BPSOURCES =      \
 	ipnadmin.c   \
 	ipnfw.c      \
 	libcgr.c     \
+	eureka.c     \
 	ipnadminep.c \
 	libipnfw.c   \
+	libdtn2fw.c  \
 	ltpcli.c     \
 	ltpclo.c     \
 	bibeclo.c    \
@@ -85,6 +90,21 @@ BPSOURCES =      \
 #	acsserialize.c \
 #	acsadmin.c   \
 #	acslist.c    \
+#	beacon.c     \
+#	helper.c     \
+#	ipnd.c       \
+#	node.c       \
+
+#	Not yet included in srclinks
+#	libbssp.c    \
+#	libbsspP.c   \
+#	bsspclock.c  \
+#	udpbsi.c     \
+#	udpbso.c     \
+#	tcpbsi.c     \
+#	tcpbso.c     \
+#	libtcpbsa.c  \
+#	bsspadmin.c  \
 
 BSPSOURCES =     \
 	ciphersuites.c \
@@ -95,9 +115,6 @@ BSPSOURCES =     \
 	bspbab.c  \
 	bspbib.c  \
 	bspbcb.c
-
-DTN2SOURCES =        \
-	libdtn2fw.c 
 
 BSSSOURCES =      \
 	libbss.c     \
@@ -125,7 +142,8 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BSPSOURCES) $(DTN2SOURCES) $(PXSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BSPSOURCES) $(TESTSOURCES)
+# $(BSSSOURCES)
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
 CSRCS = $(CSRCS_I) $(CFDPSOURCES)
@@ -144,7 +162,10 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-INCLUDES_T= -I. -I../ici/include -I../dgr/include -I../ltp/include -I../bp/include -I../bss/include -I../bssp/include
+INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include
+#	-I../dgr/include
+#	-I../bss/include
+#	-I../bssp/include
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
 INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include

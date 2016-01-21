@@ -19,7 +19,12 @@
 #define	BSSPDEBUG	0
 #endif
 
-#define BSSP_VERSION	0;
+#define BSSP_VERSION	0
+
+static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
+			Object *sessionObj, ExportSession *sessionBuf,
+			Object *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
+			PsmAddress *vspanElt);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -1799,33 +1804,57 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 		}
 	}
 
-	/*	Rewrite it to record change of queueListElt to 0.	*/
-
-	sdr_write(bsspSdr, blkAddr, (char *) &block, sizeof(BsspXmitBlock));
-
-	/*	Post timeout event as necessary.			*/
-
-	currentTime = getUTCTime();
-	event.parm = 0;
-	
-	event.type = BsspResendBlock;
-	event.refNbr1 = 0;
-	event.refNbr2 = block.sessionNbr;
-	timer = &block.pdu.timer;
-	if (setTimer(timer, blkAddr + FLD_OFFSET(timer, &block),
-			currentTime, vspan, blockLength, &event) < 0)
-	{
-		putErrmsg("Can't schedule event.", NULL);
-		sdr_cancel_xn(bsspSdr);
-		return -1;
-	}
-
 	/*	Now serialize the block overhead and prepend that
-	 *	overhead to the content of the segment (if any), 
-	 *	and return to link service output process.			
-	 */
+	 *	overhead to the content of the segment (if any).
+	 *
+	 *	If sending data, the block must be retained (it may
+	 *	need to be re-sent using the reliable transport
+	 *	service), so xmit session is still needed.  If
+	 *	sending an ACK, the block is no longer needed and
+	 *	the recv session is closed elsewhere.  So no
+	 *	session closure at this point.				*/
 
-	serializeDataPDU(&block, *buf);
+	if (block.pdu.blkTypeCode == 0)		/*	Data block.	*/
+	{
+		serializeDataPDU(&block, *buf);
+
+		/*	Need to retain the block in case it needs
+		 *	to be re-sent using the reliable transport
+		 *	service.  So must rewrite block to record
+		 *	change: queueListElt is now 0.			*/
+
+		sdr_write(bsspSdr, blkAddr, (char *) &block,
+				sizeof(BsspXmitBlock));
+
+		/*	Post timeout event.				*/
+
+		currentTime = getUTCTime();
+
+//	Temporary patch to prevent premature retransmission.
+currentTime += 5;	/*	s/b += RTT from contact plan.	*/
+
+		event.parm = 0;
+		event.type = BsspResendBlock;
+		event.refNbr1 = 0;
+		event.refNbr2 = block.sessionNbr;
+		timer = &block.pdu.timer;
+		if (setTimer(timer, blkAddr + FLD_OFFSET(timer, &block),
+			currentTime, vspan, blockLength, &event) < 0)
+		{
+			putErrmsg("Can't schedule event.", NULL);
+			sdr_cancel_xn(bsspSdr);
+			return -1;
+		}
+	}
+	else					/*	ACK block.	*/
+	{
+		serializeAck(&block, *buf);
+
+		/*	Block will never be re-sent, so it can be
+		 *	deleted now.					*/
+
+		sdr_free(bsspSdr, blkAddr);
+	}
 
 	if (sdr_end_xn(bsspSdr))
 	{
@@ -1848,15 +1877,18 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 	Sdr		bsspSdr = getIonsdr();
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
 	Object		spanObj;
-	BsspSpan		spanBuf;
+	BsspSpan	spanBuf;
 	Object		elt;
 	char		memo[64];
 	Object		blkAddr;
 	BsspXmitBlock	block;
 	int		blockLength;
-	time_t		currentTime;
-	BsspEvent	event;
-	BsspTimer	*timer;
+	Object		sessionObj;
+	ExportSession	sessionBuf;
+	Object		spanObj2 = 0;
+	BsspSpan	spanBuf2;
+	BsspVspan	*vspan2;
+	PsmAddress	vspanElt2;
 
 	CHKERR(vspan);
 	CHKERR(buf);
@@ -1892,7 +1924,6 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		CHKERR(sdr_begin_xn(bsspSdr));
 		sdr_stage(bsspSdr, (char *) &spanBuf, spanObj,
 				sizeof(BsspSpan));
-
 		elt = sdr_list_first(bsspSdr, spanBuf.rlBlocks);
 	}
 
@@ -1923,55 +1954,29 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		}
 	}
 
-	/*	Remove block from database if possible, i.e.,
-	 *	if it needn't ever be retransmitted.  Otherwise
-	 *	rewrite it to record change of queueListElt to 0.	*/
-
-	if (block.pdu.blkTypeCode == 0)
-	{
-		sdr_write(bsspSdr, blkAddr, (char *) &block,
-				sizeof(BsspXmitBlock));
-	}
-	else	/*	This is an Ack block, no need to retain it.	*/
-	{
-		sdr_free(bsspSdr, blkAddr);
-	}
-
-	/*	Post timeout event as necessary.			*/
-
-	currentTime = getUTCTime();
-	event.parm = 0;
-	if (block.pdu.blkTypeCode == 0)
-	{
-		event.type = BsspResendBlock;
-		event.refNbr1 = 0;
-		event.refNbr2 = block.sessionNbr;
-		timer = &block.pdu.timer;
-		if (setTimer(timer, blkAddr + FLD_OFFSET(timer, &block),
-				currentTime, vspan, blockLength, &event) < 0)
-		{
-			putErrmsg("Can't schedule event.", NULL);
-			sdr_cancel_xn(bsspSdr);
-			return -1;
-		}
-	}
-
 	/*	Now serialize the segment overhead and prepend that
-	 *	overhead to the content of the block (if any), and
-	 *	return to link service output process.			*/
+	 *	overhead to the content of the block.			*/
 
-	if (block.pdu.blkTypeCode == 0)
+	serializeDataPDU(&block, *buf);
+
+	/*	No longer need the xmit session at all, as block
+	 *	content is being transmitted by reliable transport
+	 *	service.  Rewrite the block first to record the
+	 *	change of queueListElt to 0.				*/
+
+	sdr_write(bsspSdr, blkAddr, (char *) &block, sizeof(BsspXmitBlock));
+	getSessionContext(getBsspConstants(), block.sessionNbr, &sessionObj,
+			&sessionBuf, &spanObj2, &spanBuf2, &vspan2, &vspanElt2);
+	if (sessionObj)
 	{
-		serializeDataPDU(&block, *buf);
-	}
-	else
-	{
-		serializeAck(&block, *buf);
+		stopExportSession(&sessionBuf);
+		closeExportSession(sessionObj);
 	}
 
 	if (sdr_end_xn(bsspSdr))
 	{
-		putErrmsg("Can't get reliable outbound block for span.", NULL);
+		putErrmsg("Can't get outbound block for reliable span.",
+				NULL);
 		return -1;
 	}
 
@@ -1985,6 +1990,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 }
 
 /*	*	Control segment construction functions		*	*/
+
 static void	signalBeBso(unsigned int engineId)
 {
 	BsspVspan	*vspan;
@@ -2119,7 +2125,7 @@ static Object	enqueueAckBlock(Object spanObj, Object blockObj)
 
 	CHKZERO(ionLocked());
 	GET_OBJ_POINTER(bsspSdr, BsspSpan, span, spanObj);
-	for (elt = sdr_list_first(bsspSdr, span->rlBlocks); elt;
+	for (elt = sdr_list_first(bsspSdr, span->beBlocks); elt;
 			elt = sdr_list_next(bsspSdr, elt))
 	{
 		GET_OBJ_POINTER(bsspSdr, BsspXmitBlock, block,
@@ -2142,7 +2148,7 @@ static Object	enqueueAckBlock(Object spanObj, Object blockObj)
 	}
 	else
 	{
-		elt = sdr_list_insert_last(bsspSdr, span->rlBlocks, blockObj);
+		elt = sdr_list_insert_last(bsspSdr, span->beBlocks, blockObj);
 	}
 
 	return elt;
@@ -2151,7 +2157,6 @@ static Object	enqueueAckBlock(Object spanObj, Object blockObj)
 static int	constructAck(BsspXmitBlock *rs, Object spanObj)
 {
 	Sdr	bsspSdr = getIonsdr();
-	//Sdnv	sdnv;
 	Object	rsObj;
 		OBJ_POINTER(BsspSpan, span);
 
@@ -2170,10 +2175,9 @@ static int	constructAck(BsspXmitBlock *rs, Object spanObj)
 
 	sdr_write(bsspSdr, rsObj, (char *) rs, sizeof(BsspXmitBlock)); 
 	GET_OBJ_POINTER(bsspSdr, BsspSpan, span, spanObj);
-	signalRlBso(span->engineId);
+	signalBeBso(span->engineId);
 #if BSSPDEBUG
-char	buf[256];
-sprintf(buf, "Sending Ack");
+putErrmsg("Sending Ack.");
 #endif
 	return 0;
 }
@@ -2268,17 +2272,12 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 	{
 		/*	Data block is for an unknown client service,	*
 		 *	so must discard it.				*/
-#if 0		
-		oK(enqueueNotice(bsspvdb->clients + session->clientSvcId,
-			span->engineId, sessionNbr, 0,
-			BsspRecvFailure, BsspClientSvcUnreachable, 0));
-#endif
+
 		if (sdr_end_xn(bsspSdr) < 0)
 		{
 			putErrmsg("Can't handle data Block.", NULL);
 			return -1;
 		}
-
 #if BSSPDEBUG
 putErrmsg("Discarded data block.", itoa(sessionNbr));
 #endif
@@ -2331,6 +2330,7 @@ utoa(pdu->length));
 
 	return 0;	/*	 Data block handled okay.		*/
 }
+
 static int	constructDataBlock(Sdr sdr, ExportSession *session,
 			Object sessionObj, BsspVspan *vspan, 
 			BsspSpan *span, int inOrder)

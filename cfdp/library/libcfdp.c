@@ -28,6 +28,8 @@ extern void	parseProxyFlowLabel(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
 extern void	parseProxySegmentationControl(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
+extern void	parseProxyClosureRequest(char *text, int bytesRemaining,
+			CfdpUserOpsData *opsData);
 extern void	parseProxyPutResponse(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
 extern void	parseProxyFilestoreResponse(char *text, int bytesRemaining,
@@ -1030,7 +1032,7 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	fdu->metadataPdu = sdr_malloc(sdr, mpduLength);
 	if (fdu->metadataPdu == 0)
 	{
-		putErrmsg("Can't construct EOF PDU.", NULL);
+		putErrmsg("Can't construct Metadata PDU.", NULL);
 		return -1;
 	}
 
@@ -1061,7 +1063,7 @@ static int	constructEofPdu(OutFdu *fdu, CfdpDB *db, unsigned int checksum)
 	 *	other than No Error are useful only for Acknowledged-
 	 *	mode FDUs.						*/
 
-	*cursor = (condition << 4) + fdu->ckType;
+	*cursor = (condition << 4);
 	cursor++;
 	epduLength++;
 	u4 = htonl(checksum);
@@ -1197,7 +1199,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		GET_OBJ_POINTER(sdr, Entity, entity, sdr_list_data(sdr, elt));
 		if (entity->entityId == destinationEntityId)
 		{
-			fdu.ckType = entity->ckType;
+			fdu.ckType = entity->outCkType;
 			break;
 		}
 	}
@@ -1514,14 +1516,14 @@ too long.", sourceFileName);
 			originatingTransactionId) < 0)
 	{
 		sdr_cancel_xn(sdr);
-		putErrmsg("CFDP can't construct metadata PDU.", NULL);
+		putErrmsg("CFDP can't construct Metadata PDU.", NULL);
 		return -1;
 	}
 
 	if (fdu.metadataPdu == 0)
 	{
 		sdr_cancel_xn(sdr);
-		putErrmsg("CFDP can't construct EOF PDU.", NULL);
+		putErrmsg("CFDP can't construct Metadata PDU.", NULL);
 		return 0;
 	}
 
@@ -1859,8 +1861,12 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 
 	CHKERR(transactionId);
-	CHKERR(transactionId->sourceEntityNbr.length);
-	CHKERR(transactionId->transactionNbr.length);
+	if (transactionId->sourceEntityNbr.length == 0
+	|| transactionId->transactionNbr.length == 0)
+	{
+		return 0;
+	}
+
 	if (memcmp(transactionId->sourceEntityNbr.buffer,
 			db->ownEntityNbr.buffer, 8) == 0)
 	{
@@ -2092,6 +2098,10 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 		case 9:
 			proxyPutCancelRecd = 1;
+			break;
+
+		case 11:
+			parseProxyClosureRequest(content, len, &opsData);
 			break;
 #endif
 		case 10:

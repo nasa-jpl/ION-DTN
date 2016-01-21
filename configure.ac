@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.3.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.4.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -293,8 +293,19 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
+AC_ARG_ENABLE([sysctl-check], AC_HELP_STRING([--disable-sysctl-check],
+                  [Disable checking sysctl configuration on OSX and FreeBSD]),
+              [], [enable_sysctl_check=yes])
 
+if test "x$enable_sysctl_check" = xyes; then
+    echo "checking sysctl configuration..."
+    echo
 
+    if ! ./sysctl_script.sh; then
+        echo "Reconfigure with --disable-sysctl-check to bypass this check."
+        exit 1
+    fi
+fi
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -338,7 +349,7 @@ else
 fi
 AC_MSG_CHECKING([for fallback included pdfjoin])
 if test -x "$PWD/doc/pdfjoin"; then
-    PSJOIN="$PWD/doc/pdfjoin"
+    PDFJOIN="$PWD/doc/pdfjoin"
     AC_MSG_RESULT($PDFJOIN)
 else
     AC_MSG_RESULT([not found])

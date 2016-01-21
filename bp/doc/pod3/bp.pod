@@ -166,6 +166,14 @@ of inadvertently de-referencing the address of a nonexistent bundle.
 Removes I<trackingElt> from the list of "tracking" references in I<bundle>,
 if it is in that list.  Does not delete I<trackingElt> itself.
 
+=item int bp_memo(Object bundle, unsigned int interval)
+
+Implements custodial retransmission.  This function inserts a
+"custody-acceptance due" event into the timeline.  The event causes the
+indicated bundle to be re-forwarded if it is still in the database (i.e.,
+it has not yet been accepted by another custodian) as of the time computed
+by adding the indicated interval to the current time.
+
 =item int bp_suspend(Object bundle)
 
 Suspends transmission of I<bundle>.  Has no effect if bundle is "critical"

@@ -15,11 +15,12 @@ BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
 BIBE = ../bibe
+IPND = ../ipnd
 
 OPT = -g -Wall -Dmingw -DENABLE_IMC
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(TCP) -I$(IPN) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(TCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -48,9 +49,10 @@ BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bsputil.o bspbab.o bs
 # snid.o extbsputil.o extbsbpab.o extbsppcb.o extbsppib.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
-LBP = -lbp -limcfw -lipnfw
+IPNDOBJS = ipnd.o beacon.o helper.o node.o
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest bping
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
 # dccpcli dccpclo
 # acsadmin acslist
 # bpstats2 bpchat
@@ -260,6 +262,12 @@ bibeclo:	bibeclo.o $(BPLIBS)
 		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
 		cp bibeclo ./bin
 
+#	-	-	IPND executable	-	-	-	-	-
+
+ipnd:		$(IPNDOBJS) $(BPLIBS)
+		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lws2_32
+		cp ipnd ./bin
+
 #	-	-	Test executables	-	-	-	-
 
 bpsource:	bpsource.o libbp.dll $(BPLIBS)
@@ -296,8 +304,8 @@ bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o
-		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
+libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o -ldtn2fw.o
+		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbp.dll ./lib
 
 libcgr.dll:	libcgr.o
@@ -400,3 +408,6 @@ libudpcla.dll:	libudpcla.o
 
 #%.o:		$(API)/ext/cteb/%.c
 #		$(CC) -c $<
+
+%.o:		$(IPND)/%.c
+		$(CC) -I$(IPND) -c $<

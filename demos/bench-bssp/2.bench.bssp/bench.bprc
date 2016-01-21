@@ -1,0 +1,12 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a endpoint ipn:2.64 x
+a endpoint ipn:2.65 x
+a protocol bssp 1400 100
+a induct bssp 2 bsspcli
+a outduct bssp 3 bsspclo
+r 'ipnadmin bench.ipnrc'
+s

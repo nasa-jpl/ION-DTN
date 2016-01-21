@@ -16,7 +16,7 @@
 
 static sm_SemId		bibecloSemaphore(sm_SemId *semid)
 {
-	static sm_SemId	semaphore = -1;
+	static sm_SemId	semaphore = SM_SEM_NONE;
 	
 	if (semid)
 	{
@@ -74,7 +74,6 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	vduct->xmitThrottle.nominalRate = -1;	/*	No rate control.*/
 	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLO task is already started for this duct.",
@@ -87,9 +86,14 @@ int	main(int argc, char *argv[])
 	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
 	if (buffer == NULL)
 	{
-		putErrmsg("Can't create bundle for CLO; stopping.", NULL);
+		putErrmsg("Can't create buffer for CLO; stopping.", NULL);
 		return -1;
 	}
+
+	vduct->xmitThrottle.nominalRate = -1;
+
+	/*	Note: no rate control for BIBE, regardless of what
+	 *	may have been asserted when the Protocol was added.	*/
 
 	adminHeader[0] = BP_ENCAPSULATED_BUNDLE << 4;
 	sdr = getIonsdr();

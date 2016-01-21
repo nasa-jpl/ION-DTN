@@ -1,7 +1,6 @@
 /*
 	bputa.c:	UT-layer adapter using Bundle Protocol.
 									*/
-/*									*/
 /*	Copyright (c) 2009, California Institute of Technology.		*/
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
@@ -222,6 +221,7 @@ terminating.");
 			utParms.lifespan = 86400;	/*	1 day.	*/
 			utParms.classOfService = BP_STD_PRIORITY;
 			utParms.custodySwitch = NoCustodyRequested;
+			utParms.ctInterval = 0;
 			utParms.srrFlags = 0;
 			utParms.ackRequested = 0;
 			utParms.extendedCOS.flowLabel = 0;
@@ -284,9 +284,9 @@ terminating.");
 				utParms.srrFlags, utParms.ackRequested,
 				&utParms.extendedCOS, pduZco, &newBundle) <= 0)
 		{
-			sdr_cancel_xn(sdr);
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);
+			sdr_cancel_xn(sdr);
 			parms.running = 0;
 			continue;
 		}
@@ -303,9 +303,22 @@ terminating.");
 			}
 		}
 
-		/*	Bundle has been detained long enough for us
-		 *	to track it if necessary, so we can now
-		 *	release it for normal processing.		*/
+		if (utParms.custodySwitch == SourceCustodyRequired
+		&& utParms.ctInterval > 0)
+		{
+			if (bp_memo(newBundle, utParms.ctInterval) < 0)
+			{
+				putErrmsg("bputa can't schedule custodial \
+retransmission; terminated.", NULL);
+				sdr_cancel_xn(sdr);
+				parms.running = 0;
+				continue;
+			}
+		}
+
+		/*	Bundle has been detained long enough for us to
+		 *	track it as necessary, so we can now release it
+		 *	for normal processing.				*/
 
 		bp_release(newBundle);
 		if (sdr_end_xn(sdr) < 0)

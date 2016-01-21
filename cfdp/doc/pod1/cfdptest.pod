@@ -39,6 +39,13 @@ formats.  It is the same as the B<h> command.
 
 An alternate form of the B<help> command.
 
+=item B<z> [<number of seconds to pause>]
+
+The B<pause> command.  When B<cfdptest> is running in interactive mode,
+this command causes the console input processing thread to pause the
+indicated number of seconds (defaulting to 1) before processing the next
+command.  This is provided for use in test scripting.
+
 =item B<d> <destination CFDP entity ID number>
 
 The B<destination> command.  This command establishes the CFDP entity
@@ -155,7 +162,14 @@ is commanded.
 =item B<&>
 
 The B<send> command.  This command initiates file transmission as configured
-by the most recent preceding B<d>, B<f>, and B<t> commands.
+by the most recent preceding B<d>, B<f>, B<t>, and B<a> commands.
+
+=item B<|>
+
+The B<get> command.  This command causes a request for file transmission to
+the local node, subject to the parameters provided by the most recent preceding
+B<f>, B<t>, and B<a> commands, to be sent to the entity identified by the
+most recent preceding B<d> command.
 
 =item B<^>
 

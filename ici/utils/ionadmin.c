@@ -201,7 +201,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 	toTime = readTimestampUTC(tokens[3], refTime);
 	if (toTime <= fromTime)
 	{
-		printText("Interval end time must be later than start time.");
+		printText("Interval end time must be later than start time \
+and earlier than 19 January 2038.");
 		return;
 	}
 
@@ -887,13 +888,12 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int ion_is_up(int tokenCount, char** tokens)
+static int ion_is_up(int tokenCount, char** tokens, int count, int max)
 {
 	if (strcmp(tokens[1], "p") == 0) //poll
 	{
 		if (tokenCount < 3) //use default timeout
 		{
-			int count = 1;
 			while (count <= 120 && !rfx_system_is_started())
 			{
 				microsnooze(250000);
@@ -912,8 +912,6 @@ static int ion_is_up(int tokenCount, char** tokens)
 		}
 		else //use user supplied timeout
 		{
-			int max = atoi(tokens[2]) * 4;
-			int count = 1;
 			while (count <= max && !rfx_system_is_started())
 			{
 				microsnooze(250000);
@@ -957,6 +955,9 @@ static int	processLine(char *line, int lineLength)
 	time_t		currentTime;
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	int max = 0;
+	int count = 0;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -1141,9 +1142,58 @@ no time.");
 			return 0;
 
 		case 't':
-			if (ionAttach() == 0)
+			if (strcmp(tokens[1], "p") == 0) //poll
 			{
-				exit(ion_is_up(tokenCount, tokens));
+				if (tokenCount < 3) //use default timeout
+				{
+					count = 1;
+					while (count <= max && ionAttach() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > 120) //ion system is not started
+					{
+						printText("ION system is not started");
+						return 0;
+					}
+					else //ion system is started
+					{
+						exit(ion_is_up(tokenCount, tokens, count, 120));
+					}
+				}
+				else //use user supplied timeout
+				{
+					max = atoi(tokens[2]) * 4;
+					count = 1;
+					while (count <= max && ionAttach() == -1)
+					{
+						microsnooze(250000);
+						count++;
+					}
+					if (count > max) //ion system is not started
+					{
+						printText("ION system is not started");
+						return 0;
+					}
+					else //ion system is started
+					{
+						exit(ion_is_up(tokenCount, tokens, count, max));
+					}
+				}
+			}
+			else //check once
+			{
+				if (rfx_system_is_started())
+				{
+					printText("ION system is started");
+					return 1;
+				}
+				else
+				{
+					printText("ION system is not started");
+					return 0;
+				}
 			}
 
 		case 'q':

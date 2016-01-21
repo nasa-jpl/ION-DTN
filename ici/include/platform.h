@@ -384,10 +384,12 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <pwd.h>
 #include <netdb.h>
 #include <mqueue.h>
+#include <strings.h>
 #include <sys/utsname.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN	*/
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/select.h>
 
 #define	_MULTITHREADED		/*	To pick up resource lock code.	*/
 
@@ -596,27 +598,15 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
  *	exceed SEMMNI * SEMMSL.						*/
 
 #ifndef SEMMNI			/****	SEMMNI			     ****/
-#if defined (freebsd)
-#define SEMMNI			10
-#else
 #define SEMMNI			128
-#endif
 #endif				/****	End of #ifndef SEMMNI	     ****/
 
 #ifndef SEMMSL			/****	SEMMSL			     ****/
-#if defined (freebsd)
-#define SEMMSL			6
-#else
 #define SEMMSL			250
-#endif
 #endif				/****	End of #ifndef SEMMSL	     ****/
 
 #ifndef SEMMNS			/****	SEMMNS			     ****/
-#if defined (freebsd)
-#define SEMMNS			60
-#else
 #define SEMMNS			32000
-#endif
 #endif				/****	End of #ifndef SEMMNS	     ****/
 
 #elif defined (POSIX_SEMAPHORES)

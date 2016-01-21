@@ -797,6 +797,12 @@ static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
 	psm_free(partition, eltData);
 }
 
+static void	destroyNeighbor(PsmPartition partition, PsmAddress nodeData,
+		void *argument)
+{
+	psm_free(partition, nodeData);
+}
+
 static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 {
 	IonVdb		*vdb;
@@ -823,7 +829,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	 *	neighbors themselves can now be deleted.		*/
 
 	sm_rbt_destroy(wm, vdb->nodes, destroyIonNode, NULL);
-	sm_rbt_destroy(wm, vdb->neighbors, rfx_erase_data, NULL);
+	sm_rbt_destroy(wm, vdb->neighbors, destroyNeighbor, NULL);
 
 	/*	Safely shut down the ZCO flow control system.		*/
 
@@ -1226,6 +1232,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 			int timestampIsUTC)
 {
 	long		interval = 0;
+	time_t		result;
 	struct tm	ts;
 	int		count;
 
@@ -1237,7 +1244,15 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 	if (*timestampBuffer == '+')	/*	Relative time.		*/
 	{
 		interval = strtol(timestampBuffer + 1, NULL, 0);
-		return referenceTime + interval;
+		result = referenceTime + interval;
+		if (result < 0 || result > MAX_POSIX_TIME)
+		{
+			putErrmsg("Time value not supported (must be before \
+19 January 2038).", timestampBuffer);
+			return 0;
+		}
+
+		return result;
 	}
 
 	memset((char *) &ts, 0, sizeof ts);
@@ -1245,6 +1260,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 		&ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec);
 	if (count != 6)
 	{
+		putErrmsg("Timestamp format invalid.", timestampBuffer);
 		return 0;
 	}
 
@@ -1276,7 +1292,15 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 		ts.tm_isdst = -1;
 	}
 #endif
-	return mktime(&ts);
+	result = mktime(&ts);
+	if (result < 0 || result > MAX_POSIX_TIME)
+	{
+		putErrmsg("Time value not supported (must be before 19 January \
+2038).", timestampBuffer);
+		return 0;
+	}
+
+	return result;
 }
 
 time_t	readTimestampLocal(char *timestampBuffer, time_t referenceTime)

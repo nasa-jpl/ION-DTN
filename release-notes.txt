@@ -1,6 +1,6 @@
-= Release Notes for ION 3.3.1 =
+= Release Notes for ION 3.4.0 =
 
-May 1, 2015
+Jan 20, 2016
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,131 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.4.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #61: Fixed bug in using FreeBSD semaphores that could cause
+     unexpected behavior and lockoups under FreeBSD.
+
+- SourceForge Bug #74: Fixed bug where semaphore IDs were only properly
+     reclaimed on certain RTEMS operating systems (VxWorks, POSIX).
+     This could cause ION to exhaust the pool of semaphore IDs and create
+     outduct lockups.  ION now properly reuses obsolete semaphore IDs under
+     Windows and SVRr4.
+
+-  SourceForge Bug #81: Fixed bug where ION child processes could become
+     zombie processes.
+     The sm_TaskSpawn() function in ION now properly forces child processes to
+     be re-parented by the "init" process which periodically reaps the
+     zombie processes.
+
+- SourceForge Bug #83: Fixed bug where ION would presume bi-directional BAB were
+     enabled when BAB was only specified as unidirectional in a configuration.
+     This would cause the non-BAB bundles to be declared inauthentic despite no
+     BAB rule being specified in that direction.
+
+- SourceForge Bug #84: Fixed bug where continuously sending BCB-enabled bundles
+     could cause erroneous generation of truncated bundles in the source node.
+     This was due to the Linux file system was having trouble keeping up with
+     the rate of temporary file creation when BCB's ARC4 ciphersuite used a
+     temporary file for ciphertext.
+     ION now does the crypto in place, overwriting the contents of the
+     payload ZCO.
+
+- SourceForge Bug #85: Fixed bug where the number of rules that were entered
+     into ionsecrc would not match the number of messages when cleared in
+     ionsecadmin.
+
+- SourceForge Bug #86: Fixed bug that caused LTP block reassembly to be very
+     CPU-intensive when the block was transmitted in small segments.
+     This could cause delays in processing the block that would incur the
+     expiration of the senders ack timer and ultimately result in session
+     cancellation.
+     ION now receives the block directly into the correct location in a
+     temporary acquisition file and wraps the delivery ZCO around that file.
+
+- SourceForge Bug #87: Fixed bug where BSSP block acknowledgments were sent via
+     TCP rather than UDP, which could result in the volume of TCP BSSP
+     acknowledgment traffic becoming so heavy that the sending BSSP UDP
+     congestion loss would increase to the point of degrading visual quality.
+
+- SourceForge Bug #88: Fixed a bug where the CFDP UTO ZCO request could become
+     interrupted by moving the “attendant” structure into the BP volatile
+     database to keep it stable.
+
+- SourceForge Feature Request #29: The ION testing subsystem has been updated
+     to begin tests immediately after subsystem initialization.  Previously ION
+     used hard timeouts to wait for subsystem initialization which could be
+     overly-aggressive timings on slower systems or overly-conservative on fast
+     systems.
+
+- SourceForge Feature Request #33: The ION CGR implementation now supports
+     probabilistic contacts.  These are opportunistic contacts with
+     probabilities less than 1.0.
+     ION now accepts contacts with probabilities less than 1.0 and will forward
+     multiple copies of a bundle through different discovered contacts until
+     the bundle's computed net delivery probability exceeds a hard-coded
+     threshold value.
+
+- SourceForge Feature Request #34: ION now supports proactive bundle
+     bundle fragmentation in LTPCLO.
+
+- SourceForge Feature Request #35: ION now properly blocks and unblocks non-LTP
+     links in a contact plan.
+     Previously, ION only explicitly blocked and unblocked links operating LTP.
+
+- SourceForge Feature Request #37: The ION CFDP implementation has been updated
+     per new CCSDS CFDP specification revisions.
+     CFDP now uses a managed configuration parameter obtained via a Management
+     Information Base (MIB) as its checksum type.
+     Previously, this value was hard coded into the EOF PDU layout.
+
+- Fixed several miscellaneous bugs with IP Neighbor Discovery.
+
+- ION now only attempts to rebuild the ION.pdf design document if all required
+     tools are detected.
+
+- New and updated tools are now available in the ION contrib subdirectory:
+     - Updates have been applied to DTNPerf, and tool for testing DTN
+       performance testing.
+     - Added BPTAP, a tool that enables BP to act like Ethernet underlying IP.
+     - Added Delay Tolerant Key Administration (DTKA), a tool enabling
+       trustworthy delay-tolerant distribution of public keys.
+       NOTE: DTKA is not built by default.
+             See /contrib/dtka/README.txt for special instructions on building
+             the DTKA tool.
+
+Public API changes:
+     - bp.h:  the new function bp_memo is added.  It was previously exposed only
+              in the BP private API.
+
+     - zco.h: the new functions zco_revise, zco_create_obj_ref, and
+              zco_destroy_obj_ref are added.
+
+Operational interface changes:
+     - cfdpadmin (cfdprc):
+            - Added support for explicitly adding remote entities and
+              specifying their UT-layer endpoints.
+
+     - ipnadmin (ipnrc):
+            - “groups” have been renamed “exits” to avoid a terminology clash
+              with multicast “groups”.  However, the older “group” terminology
+              is still accepted by ipnadmin for backward compatibility.
+
+BUILD NOTE:
+Substantial changes have been made in this version as to how ION is built.  As
+a result, some platforms (particularly older Linux platforms) may encounter
+linker warnings when building ION 3.4.0.  These issues will be resolved in the
+next release, but in the meantime an alternate Makefile has been provided that
+may resolve this issue on affected platforms.  If you encounter any linker
+warnings, try the following procedure to build from this alternate Makefile:
+     1.) cd <top of ION directory>
+     2.) cp Makefile.am.alt Makefile.am
+     3.) autoreconf -fi (requires libtool and autoconf to be installed)
+     4.) ./configure
+     5.) make
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.3.1 =

@@ -2162,13 +2162,22 @@ static void	stopImportSession(ImportSession *session)
 		session->redSegments = 0;
 	}
 
-	if (session->svcData)
+	stopVImportSession(session);
+	if (session->blockObjRef)
 	{
-		zco_destroy(sdr, session->svcData);
-		session->svcData = 0;
+		zco_destroy_obj_ref(sdr, session->blockObjRef);
+		session->blockObjRef = 0;
 	}
 
-	stopVImportSession(session);
+	/*	If service data not delivered, then destroying the
+	 *	object ref immediately causes the referenced heap
+	 *	object to be freed.  Otherwise, the service data
+	 *	object passed to the client is a ZCO, one of whose
+	 *	extents references this object reference; the object
+	 *	ref is retained until the last reference to that ZCO
+	 *	is destroyed, at which time the object ref is
+	 *	destroyed and the referenced heap object is freed.	*/
+
 	if (session->blockFileRef)
 	{
 		zco_destroy_file_ref(sdr, session->blockFileRef);
@@ -2178,11 +2187,11 @@ static void	stopImportSession(ImportSession *session)
 	/*	If service data not delivered, then destroying the
 	 *	file ref immediately causes its cleanup script to
 	 *	be executed, unlinking the file.  Otherwise, the
-	 *	service data object passed to the client is a ZCO
-	 *	whose extents reference this file ref; the file ref
-	 *	is retained until the last reference to that ZCO
-	 *	is destroyed, at which time the file ref is destroyed
-	 *	and the file is consequently unlinked.			*/
+	 *	service data object passed to the client is a ZCO,
+	 *	one of whose extents references this file ref; the
+	 *	file ref is retained until the last reference to that
+	 *	ZCO is destroyed, at which time the file ref is
+	 *	destroyed and the file is consequently unlinked.	*/
 #if LTPDEBUG
 putErrmsg("Stopped import session.", itoa(session->sessionNbr));
 #endif
@@ -2280,6 +2289,13 @@ static void	findReport(ImportSession *session, unsigned int rptSerialNbr,
 	Object	obj;
 		OBJ_POINTER(LtpXmitSeg, rs);
 
+	*rsElt = 0;			/*	Default.		*/
+	*rsObj = 0;			/*	Default.		*/
+	if (session->rsSegments == 0)	/*	Import session stopped.	*/
+	{
+		return;
+	}
+
 	for (elt = sdr_list_first(sdr, session->rsSegments); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -2292,9 +2308,6 @@ static void	findReport(ImportSession *session, unsigned int rptSerialNbr,
 			return;
 		}
 	}
-
-	*rsElt = 0;
-	*rsObj = 0;
 }
 
 static void	findCheckpoint(ExportSession *session,
@@ -4001,11 +4014,12 @@ static int	parseTrailerExtensions(char *endOfHeader, LtpPdu *pdu,
 static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 			ImportSession *sessionBuf, Object *sessionObj,
 			unsigned int clientSvcId, LtpDB *db, LtpVspan *vspan,
-			VImportSession **vsessionPtr)
+			LtpPdu *pdu, VImportSession **vsessionPtr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(LtpSpan, span);
+	uvast	blockSize;
 
 	CHKERR(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
@@ -4042,12 +4056,48 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	sessionBuf->clientSvcId = clientSvcId;
 	sessionBuf->redSegments = sdr_list_create(sdr);
 	sessionBuf->rsSegments = sdr_list_create(sdr);
-	sessionBuf->svcData = zco_create(sdr, 0, 0, 0, 0, ZcoInbound, 0);
 	sessionBuf->span = spanObj;
+	if (db->maxAcqInHeap == 0)
+	{
+		sessionBuf->heapBufferSize = 0;
+	}
+	else	/*	Need a heap buffer for at least part of block.	*/
+	{
+		sessionBuf->heapBufferSize = db->maxAcqInHeap;
+
+		/*	Override the default heapBufferSize if it is
+		 *	known that the total block size is smaller.	*/
+
+		if (pdu->segTypeCode == LtpDsRedEORP
+		|| pdu->segTypeCode == LtpDsRedEOB)
+		{
+			/*	First segment received for this
+			 *	session is end of red part.  Its
+			 *	offset + length is the total size
+			 *	of the block.				*/
+
+			blockSize = pdu->offset + pdu->length;
+			if (blockSize < sessionBuf->heapBufferSize)
+			{
+				sessionBuf->heapBufferSize = blockSize;
+			}
+		}
+	}
+
+	if (sessionBuf->heapBufferSize > 0)
+	{
+		sessionBuf->heapBufferObj = sdr_malloc(sdr,
+				sessionBuf->heapBufferSize);
+		sessionBuf->blockObjRef = zco_create_obj_ref(sdr,
+				sessionBuf->heapBufferObj,
+				sessionBuf->heapBufferSize, ZcoInbound);
+	}
+
 	if (sessionBuf->redSegments == 0
 	|| sessionBuf->rsSegments == 0
-	|| sessionBuf->svcData == (Object) ERROR
-	|| sessionBuf->svcData == 0)	/*	Out of ZCO space.	*/
+	|| (sessionBuf->heapBufferSize > 0 &&
+		(sessionBuf->heapBufferObj == 0
+		|| sessionBuf->blockObjRef == 0)))
 	{
 		putErrmsg("Can't create import session.", NULL);
 		return -1;
@@ -4071,11 +4121,12 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	return 1;	/*	Import session creation okay.		*/
 }
 
-static int	createBlockFile(LtpSpan *span, ImportSession *session)
+static int	createBlockFile(LtpSpan *span, Object sessionObj,
+			ImportSession *session)
 {
 	Sdr	sdr = getIonsdr();
 	char	cwd[200];
-	char	name[SDRSTRING_BUFSZ];
+	char	name[256];
 	int	fd;
 
 	if (igetcwd(cwd, sizeof cwd) == NULL)
@@ -4084,8 +4135,9 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 		return -1;
 	}
 
-	isprintf(name, sizeof name, "%s%cltpblock." UVAST_FIELDSPEC ".%u", cwd,
-		ION_PATH_DELIMITER, span->engineId, session->sessionNbr);
+	isprintf(name, sizeof name, "%s%cltpblock." UVAST_FIELDSPEC ".%u",
+			cwd, ION_PATH_DELIMITER, span->engineId,
+			session->sessionNbr);
 	fd = iopen(name, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
@@ -4102,6 +4154,8 @@ static int	createBlockFile(LtpSpan *span, ImportSession *session)
 		return -1;
 	}
 
+	istrcpy(session->fileBufferPath, name, sizeof session->fileBufferPath);
+	sdr_write(sdr, sessionObj, (char *) session, sizeof(ImportSession));
 	return 0;
 }
 
@@ -4299,117 +4353,9 @@ writeMemo(buf);
 	return maxReportSegments;
 }
 
-static int	writeBlockExtentToHeap(ImportSession *session,
-			LtpRecvSeg *segment, char *from, unsigned int length)
-{
-	Sdr	sdr = getIonsdr();
-	Object	heapAddress;
-	vast	extentLength = length;
-
-	segment->acqOffset = zco_length(sdr, session->svcData);
-	heapAddress = sdr_insert(sdr, from, length);
-	if (heapAddress == 0)
-	{
-		putErrmsg("Can't record block extent.", NULL);
-		return -1;
-	}
-
-	/*	Pass additive inverse of length to zco_append_extent
-	 *	to indicate that space is known to be available.	*/
-
-	switch (zco_append_extent(sdr, session->svcData, ZcoSdrSource,
-			heapAddress, 0, 0 - extentLength))
-	{
-	case ERROR:
-	case 0:
-		sdr_free(sdr, heapAddress);
-		putErrmsg("Can't append block extent.", NULL);
-		return -1;
-
-	default:
-		return 0;
-	}
-}
-
-static int	writeBlockExtentToFile(ImportSession *session,
-			LtpRecvSeg *segment, char *from, unsigned int length)
-{
-	Sdr	sdr = getIonsdr();
-	char	fileName[SDRSTRING_BUFSZ];
-	int	fd;
-	int	fileLength;
-	vast	extentLength = length;
-
-	oK(zco_file_ref_path(sdr, session->blockFileRef, fileName,
-			sizeof fileName));
-	fd = iopen(fileName, O_WRONLY, 0666);
-	if (fd < 0)
-	{
-		if (errno == ENOENT)
-		{
-		/*	Note: it's possible for a session to be closed,
-		 *	causing the blockFileRef to be flagged for
-		 *	destruction, while there are still references
-		 *	to that ZCO file in the delivery queue -- and
-		 *	for a late retransmitted segment for this
-		 *	session to arrive during this window.  In that
-		 *	case a new session would be created and a new
-		 *	blockFileRef for the same file would be
-		 *	created, but the file itself would still exist
-		 *	and therefore NOT be created.  But as soon as
-		 *	the last ZCO reference was delivered the file
-		 *	would be automatically unlinked by the
-		 *	destruction of the old file reference, so the
-		 *	next retransmitted segment for this old session
-		 *	would be destined for a file that no longer
-		 *	exists.  Since this data acquisition is not
-		 *	necessary (block has already been delivered),
-		 *	we simply decline to record this retransmitted
-		 *	segment.					*/
-
-			return 0;
-		}
-
-		putSysErrmsg("Can't open block file", fileName);
-		return -1;
-	}
-
-	segment->acqOffset = zco_length(sdr, session->svcData);
-	fileLength = (int) lseek(fd, 0, SEEK_END);
-	if (fileLength < 0)
-	{
-		putSysErrmsg("Can't seek to end of block file", fileName);
-		close(fd);
-		return -1;
-	}
-
-	if (write(fd, from, length) < 0)
-	{
-		putSysErrmsg("Can't append to block file", fileName);
-		close(fd);
-		return -1;
-	}
-
-	close(fd);
-
-	/*	Pass additive inverse of length to zco_append_extent
-	 *	to indicate that space is known to be available.	*/
-
-	switch (zco_append_extent(sdr, session->svcData, ZcoFileSource,
-			session->blockFileRef, fileLength, 0 - extentLength))
-	{
-	case ERROR:
-	case 0:
-		putErrmsg("Can't append block extent.", NULL);
-		return -1;
-
-	default:
-		return 0;
-	}
-}
-
 static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
-			unsigned int sessionNbr, ImportSession *session)
+			unsigned int sessionNbr, Object sessionObj,
+			ImportSession *session)
 {
 	Sdr	sdr = getIonsdr();
 	LtpVdb	*ltpvdb = _ltpvdb(NULL);
@@ -4417,19 +4363,15 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 	Object	elt;
 	Object	segObj;
 		OBJ_POINTER(LtpRecvSeg, segment);
-	vast	extentLength;
 
-	/*	Use the redSegments list to construct a ZCO that
-	 *	encapsulates the concatenated content of all data
-	 *	segments in the block in *transmission* order.
-	 *
-	 *	In the process, terminate reception of red-part data
-	 *	for this session.  Note that net ZCO space occupancy
-	 *	is unchanged: in effect, we're just using the
-	 *	redSegments list to re-sort the extents of the
-	 *	acquisition ZCO.  Since we are just cloning
-	 *	extents of the same ZCO within a single account,
-	 *	the length of the extent is not controlled.
+	/*	Construct a ZCO with up to two extents, one for
+	 *	each of the session's two possible data reception
+	 *	buffers (SDR heap object for leading bytes, file
+	 *	for the remainder).  This construction is subject
+	 *	to ZCO net space occupancy limits: if available
+	 *	Inbound ZCO space is not available then the session
+	 *	is canceled, the segment whose reception triggered
+	 *	the delivery is discarded, and zero is returned.
 	 *
 	 *	We mark this new ZCO "provisional" to indicate that
 	 *	the ZCO occupies non-Restricted Inbound ZCO space.
@@ -4447,19 +4389,60 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 		return -1;
 	}
 
+	/*	First deliver the heap buffer (if any).			*/
+
+	if (session->blockObjRef)
+	{
+		switch (zco_append_extent(sdr, svcDataObject, ZcoObjSource,
+			session->blockObjRef, 0, session->blockObjSize))
+		{
+		case (Object) ERROR:
+			putErrmsg("Can't deliver ZCO extent.", NULL);
+			return -1;
+
+		case 0:			/*	Out of ZCO space.	*/
+#if LTPDEBUG
+putErrmsg("Canceled session: insufficient ZCO space.", NULL);
+#endif
+			cancelSessionByReceiver(session, sessionObj,
+					LtpCancelByEngine);
+			return 0;
+		}
+
+		zco_destroy_obj_ref(sdr, session->blockObjRef);
+		session->blockObjRef = 0;
+	}
+
+	/*	Now deliver the file buffer (if any).			*/
+
+	if (session->blockFileRef)
+	{
+		switch (zco_append_extent(sdr, svcDataObject, ZcoFileSource,
+			session->blockFileRef, 0, session->blockFileSize))
+		{
+		case (Object) ERROR:
+			putErrmsg("Can't deliver ZCO extent.", NULL);
+			return -1;
+
+		case 0:			/*	Out of ZCO space.	*/
+#if LTPDEBUG
+putErrmsg("Canceled session: insufficient ZCO space.", NULL);
+#endif
+			cancelSessionByReceiver(session, sessionObj,
+					LtpCancelByEngine);
+			return 0;
+		}
+
+		zco_destroy_file_ref(sdr, session->blockFileRef);
+		session->blockFileRef = 0;
+	}
+
+	/*	Can now discard all red segments.			*/
+
 	while ((elt = sdr_list_first(sdr, session->redSegments)))
 	{
 		segObj = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, LtpRecvSeg, segment, segObj);
-		extentLength = segment->pdu.length;
-		if (zco_append_extent(sdr, svcDataObject, ZcoZcoSource,
-				session->svcData, segment->acqOffset,
-				extentLength) < 1)
-		{
-			putErrmsg("Can't deliver ZCO extent.", NULL);
-			return -1;
-		}
-
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		if (segment->pdu.headerExtensions)
 		{
@@ -4478,10 +4461,8 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 
 	sdr_list_destroy(sdr, session->redSegments, NULL, NULL);
 	session->redSegments = 0;
-	zco_destroy(sdr, session->svcData);
-	session->svcData = 0;
 
-	/*	Pass the block content ZCO to the client service.	*/
+	/*	Pass the new service data ZCO to the client service.	*/
 
 	if (enqueueNotice(client, sourceEngineId, sessionNbr, 0,
 			session->redPartLength, LtpRecvRedPart, 0,
@@ -4501,7 +4482,7 @@ static int	deliverSvcData(LtpVclient *client, uvast sourceEngineId,
 #if LTPDEBUG
 putErrmsg("Delivered service data.", itoa(session->redPartLength));
 #endif
-	return 0;
+	return 1;
 }
 
 static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
@@ -4598,29 +4579,32 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 			unsigned int *segUpperBound, LtpPdu *pdu, char **cursor)
 {
 	Sdr		sdr = getIonsdr();
-	ZcoMedium	source;
+	uvast		endOfSegment;
+	uvast		bytesForHeap;
+	uvast		bytesForFile;
 	Object		sessionElt;
 	Object		segmentObj = 0;
+	uvast		offsetInFile;
+	uvast		endOfIncrement;
+	int		fd;
 
 	*segUpperBound = 0;	/*	Default: discard segment.	*/
-	if ((pdu->offset + pdu->length) <= ltpdb->maxAcqInHeap)
+	bytesForHeap = pdu->offset < ltpdb->maxAcqInHeap ?
+			ltpdb->maxAcqInHeap - pdu->offset : 0;
+	if (bytesForHeap > pdu->length)
 	{
-		source = ZcoSdrSource;
-	}
-	else
-	{
-		source = ZcoFileSource;
+		bytesForHeap = pdu->length;
 	}
 
-	if (zco_extent_too_large(sdr, source, pdu->length, ZcoInbound))
+	endOfSegment = pdu->offset + pdu->length;
+	bytesForFile = endOfSegment > ltpdb->maxAcqInHeap ?
+			endOfSegment - ltpdb->maxAcqInHeap : 0;
+	if (bytesForFile > pdu->length)
 	{
-		return 0;	/*	Must discard the segment.	*/
+		bytesForFile = pdu->length;
 	}
 
-	/*	There is known to be enough ZCO space to accept this
-	 *	red data segment.
-	 *
-	 *	Data segment must be accepted into an import session,
+	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
 
 	if (*sessionObj)	/*	Active import session found.	*/
@@ -4657,7 +4641,7 @@ putErrmsg("Discarded data segment for canceled session.", itoa(sessionNbr));
 
 		switch (startImportSession(spanObj, sessionNbr, sessionBuf,
 				sessionObj, pdu->clientSvcId, ltpdb, vspan,
-				&vsession))
+				pdu, &vsession))
 		{
 		case -1:
 			putErrmsg("Can't create reception session.", NULL);
@@ -4690,34 +4674,82 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 		return -1;
 	}
 
-	/*	Write the red-part reception segment to the database.	*/
+	/*	Write the red-part reception segment content to the
+	 *	session's reception buffer(s).				*/
 
 	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
-	if (source == ZcoSdrSource)
+	if (bytesForHeap > 0)
 	{
-		if (writeBlockExtentToHeap(sessionBuf, segment, *cursor,
-				pdu->length) < 0)
+		sdr_write(sdr, sessionBuf->heapBufferObj + pdu->offset,
+				*cursor, bytesForHeap);
+		*cursor += bytesForHeap;
+		endOfIncrement = pdu->offset + bytesForHeap;
+		if (endOfIncrement > sessionBuf->blockObjSize)
 		{
-			putErrmsg("Can't write block extent to heap.", NULL);
-			return -1;
+			sessionBuf->blockObjSize = endOfIncrement;
 		}
 	}
-	else					/*	Store in file.	*/
+
+	if (bytesForFile > 0)
 	{
-		if (sessionBuf->blockFileRef == 0)
+		if (pdu->offset > sessionBuf->heapBufferSize)
 		{
-			if (createBlockFile(span, sessionBuf) < 0)
+			offsetInFile = pdu->offset - sessionBuf->heapBufferSize;
+		}
+		else
+		{
+			offsetInFile = 0;
+		}
+
+		/*	Create overflow reception buffer file if
+		 *	necessary.					*/
+
+		if (sessionBuf->fileBufferPath[0] == '\0')
+		{
+			if (createBlockFile(span, *sessionObj, sessionBuf) < 0)
 			{
-				putErrmsg("Can't receive large block.", NULL);
+				putErrmsg("Can't create block file.", NULL);
 				return -1;
 			}
 		}
 
-		if (writeBlockExtentToFile(sessionBuf, segment, *cursor,
-				pdu->length) < 0)
+		/*	Now write to the reception buffer file.		*/
+
+		fd = iopen(sessionBuf->fileBufferPath, O_WRONLY, 0666);
+		if (fd < 0)
 		{
-			putErrmsg("Can't write block extent to heap.", NULL);
+			putSysErrmsg("Can't open block file",
+					sessionBuf->fileBufferPath);
 			return -1;
+		}
+
+		/*	(If offsetInFile is after end of file, lseek()
+		 *	will succeed and write() will cause the file
+		 *	to be lengthened as necessary, with zeroes
+		 *	written between the old EOF and the offset
+		 *	at which we are writing.)			*/
+
+		if (lseek(fd, offsetInFile, SEEK_SET) < 0)
+		{
+			putSysErrmsg("Can't seek to offset within block file",
+					sessionBuf->fileBufferPath);
+			close(fd);
+			return -1;
+		}
+
+		if (write(fd, *cursor, bytesForFile) < bytesForFile)
+		{
+			putSysErrmsg("Can't write to block file",
+					sessionBuf->fileBufferPath);
+			close(fd);
+			return -1;
+		}
+
+		close(fd);
+		endOfIncrement = offsetInFile + bytesForFile;
+		if (endOfIncrement > sessionBuf->blockFileSize)
+		{
+			sessionBuf->blockFileSize = endOfIncrement;
 		}
 	}
 
@@ -5064,9 +5096,20 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			 *	delivered, so deliver it to the client
 			 *	service.				*/
 
-			if (deliverSvcData(client, sourceEngineId, sessionNbr,
-					&sessionBuf) < 0)
+			switch (deliverSvcData(client, sourceEngineId,
+					sessionNbr, sessionObj, &sessionBuf))
 			{
+			case 0:		/*	Session canceled.	*/
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't handle data segment.",
+							NULL);
+					return -1;
+				}
+
+				return 0;
+
+			case -1:
 				putErrmsg("Can't deliver service data.", NULL);
 				sdr_cancel_xn(sdr);
 				return -1;

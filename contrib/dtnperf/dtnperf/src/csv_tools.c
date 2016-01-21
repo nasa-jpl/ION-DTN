@@ -35,7 +35,7 @@ void csv_print_eid(FILE * file, al_bp_endpoint_id_t eid)
 void csv_print_timestamp(FILE * file, al_bp_timestamp_t timestamp)
 {
 	char buf[50];
-	sprintf(buf, "%lu;%lu;", timestamp.secs, timestamp.seqno);
+	sprintf(buf, "%u;%u;", timestamp.secs, timestamp.seqno);
 	fwrite(buf, strlen(buf), 1, file);
 }
 
@@ -64,31 +64,31 @@ void csv_print_status_report_timestamps(FILE * file, al_bp_bundle_status_report_
 	memset(buf1, 0, 256);
 
 	if (status_report.flags & BP_STATUS_DELIVERED)
-		sprintf(buf2, "%lu;", status_report.delivery_ts.secs);
+		sprintf(buf2, "%u;", status_report.delivery_ts.secs);
 	else
 		sprintf(buf2, " ; ");
 	strcat(buf1, buf2);
 
 	if (status_report.flags & BP_STATUS_CUSTODY_ACCEPTED)
-		sprintf(buf2, "%lu;", status_report.custody_ts.secs);
+		sprintf(buf2, "%u;", status_report.custody_ts.secs);
 	else
 		sprintf(buf2, " ;");
 	strcat(buf1, buf2);
 
 	if (status_report.flags & BP_STATUS_RECEIVED)
-		sprintf(buf2, "%lu;", status_report.receipt_ts.secs);
+		sprintf(buf2, "%u;", status_report.receipt_ts.secs);
 	else
 		sprintf(buf2, " ;");
 	strcat(buf1, buf2);
 
 	if (status_report.flags & BP_STATUS_FORWARDED)
-		sprintf(buf2, "%lu;", status_report.forwarding_ts.secs);
+		sprintf(buf2, "%u;", status_report.forwarding_ts.secs);
 	else
 		sprintf(buf2, " ;");
 	strcat(buf1, buf2);
 
 	if (status_report.flags & BP_STATUS_DELETED)
-		sprintf(buf2, "%lu;", status_report.deletion_ts.secs);
+		sprintf(buf2, "%u;", status_report.deletion_ts.secs);
 	else
 		sprintf(buf2, " ;");
 	strcat(buf1, buf2);
@@ -96,7 +96,7 @@ void csv_print_status_report_timestamps(FILE * file, al_bp_bundle_status_report_
 	// not useful for now
 	/*
 	if (status_report.flags & BP_STATUS_ACKED_BY_APP)
-		sprintf(buf2, "%lu;", status_report.ack_by_app_ts.secs);
+		sprintf(buf2, "%u;", status_report.ack_by_app_ts.secs);
 	else
 		sprintf(buf2, " ;");
 	strcat(buf1, buf2);

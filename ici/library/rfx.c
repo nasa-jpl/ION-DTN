@@ -223,7 +223,10 @@ int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 		void *argument)
 {
-	psm_free(partition, nodeData);
+	if (nodeData)
+	{
+		psm_free(partition, nodeData);
+	}
 }
 
 /*	*	*	RFX utility functions	*	*	*	*/
@@ -726,6 +729,16 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
 	CHKZERO(prob > 0.0 && prob <= 1.0);
+	if (prob < 1.0)
+	{
+		if (fromNode == getOwnNodeNbr()
+		|| toNode == getOwnNodeNbr())
+		{
+			writeMemo("[?] Ignoring non-certain local contact.");
+			return 0;
+		}
+	}
+
 	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing
@@ -737,6 +750,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	arg.fromTime = fromTime;
 	arg.toTime = toTime;
 	arg.xmitRate = xmitRate;
+	arg.prob = prob;
 	arg.routingObject = 0;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
@@ -1033,6 +1047,69 @@ int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 	}
 
 	return 0;
+}
+
+void	rfx_contact_state(uvast nodeNbr, unsigned int *secRemaining,
+		unsigned int *xmitRate)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	time_t		currentTime = getUTCTime();
+	IonCXref	arg;
+	PsmAddress	elt;
+	IonCXref	*contact;
+	int		candidateContacts = 0;
+
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = getOwnNodeNbr();
+	for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
+			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
+	{
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		if (contact->fromNode > arg.fromNode)
+		{
+			/*	No more candidate contacts.		*/
+
+			break;
+		}
+
+		candidateContacts++;
+		if (contact->toNode != nodeNbr)
+		{
+			continue;	/*	Wrong node.		*/
+		}
+
+		if (contact->prob < 1.0)
+		{
+			continue;	/*	Not current contact.	*/
+		}
+
+		if (contact->toTime <= currentTime)
+		{
+			continue;	/*	Contact already ended.	*/
+		}
+
+		if (contact->fromTime > currentTime)
+		{
+			break;		/*	No current contact.	*/
+		}
+
+		*secRemaining = contact->toTime - currentTime;
+		*xmitRate = contact->xmitRate;
+		return;
+	}
+
+	/*	No current contact.					*/
+
+	*secRemaining = 0;
+	if (candidateContacts == 0)	/*	Contact plan n/a.	*/
+	{
+		*xmitRate = ((unsigned int) -1);
+	}
+	else
+	{
+		*xmitRate = 0;		/*	No transmission now.	*/
+	}
 }
 
 /*	*	RFX range list management functions	*	*	*/

@@ -101,7 +101,7 @@ typedef struct
 	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
 	char			sourceFileName[256];
-	unsigned int		recordBoundsRespected;	/*	Boolean	*/
+	unsigned int		recordBoundsRespected;	/*	Boolean.*/
 	unsigned int		closureLatency;		/*	Seconds.*/
 	unsigned int		finishReceived;		/*	Boolean.*/
 
@@ -183,10 +183,26 @@ typedef struct
 	time_t			inactivityDeadline;
 } InFdu;
 
+typedef enum
+{
+	UtBp = 1,
+	UtLtp = 2,
+	UtTcp = 3
+} UtLayer;
+
 typedef struct
 {
 	uvast			entityId;
-	CfdpCksumType		ckType;
+	char			protocolName[32];
+	char			endpointName[256];
+	UtLayer			utLayer;
+	uvast			bpNodeNbr;
+	uvast			ltpEngineNbr;
+	unsigned int		ipAddress;
+	unsigned short		portNbr;
+	unsigned int		ackTimerInterval;
+	CfdpCksumType		inCkType;
+	CfdpCksumType		outCkType;
 	Object			inboundFdus;	/*	sdrlist: InFdu	*/
 } Entity;
 
@@ -203,7 +219,7 @@ typedef struct
 	int			proxyFlowLabelLength;
 	unsigned char		proxyFlowLabel[256];
 	unsigned int		proxyRecordBoundsRespected;/*	Boolean	*/
-	unsigned int		proxyClosureLatency;	/*	Boolean	*/
+	unsigned int		proxyClosureRequested;	/*	Boolean	*/
 	CfdpCondition		proxyCondition;
 	CfdpDeliveryCode	proxyDeliveryCode;
 	CfdpFileStatus		proxyFileStatus;
@@ -278,6 +294,14 @@ typedef struct
 	Object		currentFdu;
 	int		currentFile;
 
+	/*	The "attendant" of the CFDP entity is a coordination
+	 *	object used in flow control of ZCO space allocation.
+	 *	Since the entity has only a single queue of outbound
+	 *	FDUs, only one UTA thread will be creating CFDP PDU
+	 *	ZCOs and therefore only a single attendant is needed.	*/
+
+	ReqAttendant	attendant;
+
 	/*	FOR TESTING ONLY: if the environment value named
 	 *	CFDP_CORRUPTION_MODULUS exists and is a positive
 	 *	integer greater than zero, then its value is stored
@@ -312,6 +336,15 @@ extern BpSAP		cfdpGetBpSap();
 extern Object		getCfdpDbObject();
 extern CfdpDB		*getCfdpConstants();
 extern CfdpVdb		*getCfdpVdb();
+
+extern Object		findEntity(uvast entityId, Entity *entity);
+extern Object		addEntity(uvast entityId, char *protocolName,
+				char *endpointName, unsigned int rtt,
+				unsigned int inCkType, unsigned int outCkType);
+extern int		changeEntity(uvast entityId, char *protocolName,
+				char *endpointName, unsigned int rtt,
+				unsigned int inCkType, unsigned int outCkType);
+extern int		removeEntity(uvast entityId);
 
 extern int		checkFile(char *);
 

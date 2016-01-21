@@ -78,6 +78,18 @@ extern "C" {
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
+#ifndef MAX_CGR_BETS
+#define	MAX_CGR_BETS			(20)
+#endif
+
+#ifndef MIN_PROB_IMPROVEMENT
+#define	MIN_PROB_IMPROVEMENT		(.05)
+#endif
+
+#ifndef MIN_NET_DELIVERY_PROB
+#define MIN_NET_DELIVERY_PROB		(.80)
+#endif
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.
@@ -107,13 +119,6 @@ typedef struct
 {
 	uvast		nbr;
 } NodeId;
-
-typedef struct
-{
-	sm_SemId	semaphore;
-	int		nominalRate;	/*	In bytes per second.	*/
-	vast		capacity;	/*	Bytes, current second.	*/
-} Throttle;
 
 typedef struct
 {
@@ -330,6 +335,7 @@ typedef struct
 	char		returnToSender;	/*	Boolean.		*/
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
+	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
@@ -338,6 +344,18 @@ typedef struct
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
+
+	/*	Stuff for probabilistic forwarding.  A "bet" is the ID
+	 *	of a node to which CGR has decided to forward a copy
+	 *	of the bundle even though the probability of delivery
+	 *	via the route through that node is less than 100%.
+	 *	The bundle's deliveryProb is the net probability of
+	 *	delivery as calculated from the probabilities of all
+	 *	bets.							*/
+
+	uvast		cgrBets[MAX_CGR_BETS];
+	int		cgrBetsCount;
+	float		deliveryProb;	/*	0.0 to 1.0		*/
 
 	/*	Database navigation stuff (back-references).		*/
 
@@ -501,7 +519,6 @@ typedef struct
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cliPid;		/*	For stopping the CLI.	*/
-	Throttle	acqThrottle;	/*	For congestion control.	*/
 } VInduct;
 
 /*	*	*	Outduct structures	*	*	*	*/
@@ -548,6 +565,7 @@ typedef struct
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
+	uvast		neighborNodeNbr;/*	If non-promiscuous.	*/
 	sm_SemId	semaphore;	/*	For transmit notices.	*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } VOutduct;
@@ -704,6 +722,17 @@ typedef struct
 	Tally		tallies[BP_DB_STATS];
 } BpDbStats;
 
+/*	Neighbors discovered by IPND, the neighbor discovery protocol.
+ *	These objects are used to remember the time of last contact
+ *	with each discovered neighbor, to prevent unnecessary beacon
+ *	transmission.							*/
+
+typedef struct
+{
+	char		eid[MAX_EID_LEN];
+	time_t		lastContactTime;
+} NdpNeighbor;
+
 /*	Volatile database encapsulates the volatile state of the
  *	database.							*/
 
@@ -730,6 +759,7 @@ typedef struct
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
+	PsmAddress	neighbors;	/*	SM list: NdpNeighbor.	*/
 	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
 } BpVdb;
 
@@ -956,11 +986,11 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	layer input adapter (induct).
 			 *
 			 *	bpDequeue first blocks until the
-			 *	capacity of the outduct's xmitThrottle
-			 *	is non-negative.  In this way BP imposes
-			 *	rate control on outbound traffic,
-			 *	limiting transmission rate to the
-			 *	nominal data rate of the outduct.
+			 *	capacity of the applicable throttle
+			 *	is non-negative.  In this way BP
+			 *	imposes rate control on outbound
+			 *	traffic, limiting transmission to
+			 *	the applicable nominal rate.
 			 *
 			 *	The function then selects the next
 			 *	outbound bundle from the set of outduct
@@ -1355,6 +1385,9 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
+extern int		maxPayloadLengthKnown(VOutduct *vduct,
+				unsigned int *maxPayloadLength);
+
 extern int		addOutduct(char *protocolName, char *name,
 				char *cloCmd, unsigned int maxPayloadLength);
 extern int		updateOutduct(char *protocolName, char *name,

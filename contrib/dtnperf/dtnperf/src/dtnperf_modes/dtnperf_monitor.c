@@ -36,6 +36,9 @@ al_bp_endpoint_id_t local_eid;
 // oneCSVonly flag
 boolean_t oneCSVonly;
 
+//rtPrint flag
+boolean_t rtPrint;
+
 // flags to exit cleanly
 boolean_t dedicated_monitor;
 boolean_t bp_handle_open;
@@ -83,6 +86,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	int debug_level = perf_opt->debug_level;
 
 	oneCSVonly = perf_opt->oneCSVonly;
+	rtPrint = perf_opt->rtPrint;
 
 	memset(&local_eid, 0, sizeof(local_eid));
 	dedicated_monitor = parameters->dedicated_monitor;
@@ -153,9 +157,9 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	if(debug && debug_level > 0)
 	{
 		printf("[debug] building a local eid in format ");
-		if (perf_opt->eid_format_forced == 'D' && !perf_opt->bp_implementation == BP_DTN)
+		if (perf_opt->eid_format_forced == 'D' && perf_opt->bp_implementation != BP_DTN)
 			printf("forced DTN...");
-		else if (perf_opt->eid_format_forced == 'I' && !perf_opt->bp_implementation == BP_ION)
+		else if (perf_opt->eid_format_forced == 'I' && perf_opt->bp_implementation != BP_ION)
 			printf("forced IPN...");
 		else
 			printf("standard...");
@@ -351,7 +355,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				if ((debug) && (debug_level > 0))
 				{
 					printf(" done:\n");
-					printf("\tbundle expiration: %lu\n", bundle_expiration);
+					printf("\tbundle expiration: %u\n", bundle_expiration);
 					printf("\n");
 				}
 			}
@@ -380,22 +384,24 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				{
 					bundle_type = CLIENT_FORCE_STOP;
 					if ((debug) && (debug_level > 0))
-						printf("[debug] bundle force stop arrived \n");
+						printf("[debug] Monitor: bundle force stop arrived \n");
 				}
 				else if (bundle_header == STOP_HEADER)
 				{
 					bundle_type = CLIENT_STOP;
 					if ((debug) && (debug_level > 0))
-						printf("[debug] bundle stop arrived\n");
+						printf("[debug] Monitor: bundle stop arrived\n");
 				}
 				else if (bundle_header == DSA_HEADER)
 				{
 					bundle_type = SERVER_ACK;
 					if ((debug) && (debug_level > 0))
-						printf("[debug] server ack arrived\n");
+						printf("[debug] Monitor: server ack arrived\n");
 				}
 				else // unknown bundle type
 				{
+					if ((debug) && (debug_level > 1))
+						printf("[DTNperf warning] unknown bundle type: %x\n", bundle_type);
 					fprintf(stderr, "[DTNperf warning] unknown bundle type\n");
 					continue;
 				}
@@ -411,6 +417,8 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			case STATUS_REPORT:
 				al_bp_copy_eid(&relative_source_addr, &(status_report->bundle_id.source));
 				relative_creation_timestamp = status_report->bundle_id.creation_ts;
+				if (rtPrint)
+					printRealtimeStatusReport(perf_opt->rtPrintFile, bundle_source_addr, status_report);
 				break;
 
 			case SERVER_ACK:
@@ -436,7 +444,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				//if oneCSVonly (unique session)
 				if (oneCSVonly)
 				{
-					sprintf(temp, "%lu_%s", relative_creation_timestamp.secs, perf_opt->uniqueCSVfilename);
+					sprintf(temp, "%u_%s", relative_creation_timestamp.secs, perf_opt->uniqueCSVfilename);
 					full_filename = (char *) malloc(strlen(perf_opt->logs_dir) + strlen(temp) + 2);
 					sprintf(full_filename, "%s/%s", perf_opt->logs_dir, temp);
 				}
@@ -452,7 +460,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 					}
 					filename = (char *) malloc(filename_len);
 					memset(filename, 0, filename_len);
-					sprintf(filename, "%lu_", relative_creation_timestamp.secs);
+					sprintf(filename, "%u_", relative_creation_timestamp.secs);
 					strncpy(temp, relative_source_addr.uri, strlen(relative_source_addr.uri) + 1);
 
 					if(strncmp(relative_source_addr.uri,"ipn",3) == 0)
@@ -508,11 +516,11 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			}
 			else
 			{
-				if(perf_opt->expiration_session > bundle_expiration)
+				if(perf_opt->expiration_session > (int) bundle_expiration)
 					session->expiration = bundle_expiration;
 			}
 			if ((debug) && (debug_level > 0))
-				printf("[debug] session expiration = %lu s\n", session->expiration);
+				printf("[debug] session expiration = %u s\n", session->expiration);
 
 			file = session->file;
 			memcpy(&start, session->start, sizeof(struct timeval));
@@ -605,7 +613,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 					session->wait_after_stop = bundle_expiration;
 				gettimeofday(session->stop_arrival_time, NULL);
 				if ((debug) && (debug_level > 0))
-					printf("[debug] bundle stop arrived: closing session in %lu s MAX\n", session->wait_after_stop);
+					printf("[debug] bundle stop arrived: closing session in %u s MAX\n", session->wait_after_stop);
 				pthread_mutex_unlock(&mutexdata);
 			}
 			else if (bundle_type == CLIENT_FORCE_STOP && !oneCSVonly)
@@ -613,6 +621,9 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				printf("DTNperf monitor: received forced end session bundle\n");
 				session_close(session_list, session);
 			}
+
+			// free memory for bundle
+			al_bp_bundle_free(&bundle_object);
 		}
 
 	} // end loop
@@ -769,9 +780,11 @@ void print_monitor_usage(char * progname)
 			"     --ip-addr <addr>          Ip address of the bp daemon api. Default: 127.0.0.1 (DTN2 only)\n"
 			"     --ip-port <port>          Ip port of the bp daemon api. Default: 5010 (DTN2 only)\n"
 			"     --force-eid <[DTN|IPN]    Force scheme of registration EID.\n"
-			"     --ipn-local <num>        Set ipn local number (Use only with --force-eid IPN on DTN2\n"
+			"     --ipn-local <num>         Set ipn local number (Use only with --force-eid IPN on DTN2\n"
 			"     --ldir <dir>              Logs directory. Default: %s .\n"
 			"     --oneCSVonly              Generate an unique csv file\n"
+			"     --rt-print[=filename]     Print realtime human readable status report information\n"
+			"                               If filename is not specified or not valid, will print to stdout\n"
 			"     --debug[=level]           Debug messages [0-1], if level is not indicated level = 1.\n"
 			" -v, --verbose                 Print some information message during the execution.\n"
 			" -h, --help                    This help.\n",
@@ -788,6 +801,7 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 	// kill daemon variables
 	int pid;
 	char cmd[256];
+	FILE *f;
 
 		while (!done)
 		{
@@ -802,6 +816,7 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 					{"force-eid", required_argument, 0, 50},
 					{"ipn-local", required_argument, 0, 51},
 					{"oneCSVonly", no_argument, 0, 52},
+					{"rt-print", optional_argument, 0, 53},
 					{"session-expiration", required_argument, 0,'e'},
 					{"daemon", no_argument, 0, 'a'},
 					{"output", required_argument, 0, 'o'},
@@ -895,6 +910,19 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 
 			case 52:
 				perf_opt->oneCSVonly = TRUE;
+				break;
+
+			case 53:
+				perf_opt->rtPrint = TRUE;
+				if (optarg == NULL)
+					break;
+				f = fopen(optarg, "w+");
+				if (f == NULL)
+				{
+					fprintf(stderr, "[DTNperf error] impossible to open file %s: %s\n", optarg, strerror(errno));
+				}
+				else
+					perf_opt->rtPrintFile = f;
 				break;
 
 			case 'a':
@@ -1067,6 +1095,33 @@ void session_del(session_list_t * list, session_t * session)
 	session_destroy(session);
 	list->count --;
 
+}
+
+void printRealtimeStatusReport(FILE *f, al_bp_endpoint_id_t sr_source, al_bp_bundle_status_report_t * status_report)
+{
+	if (status_report->flags & BP_STATUS_RECEIVED)
+		printSingleRealtimeStatusReport(f, sr_source, status_report, BP_STATUS_RECEIVED, status_report->receipt_ts);
+	if (status_report->flags & BP_STATUS_CUSTODY_ACCEPTED)
+		printSingleRealtimeStatusReport(f, sr_source, status_report, BP_STATUS_CUSTODY_ACCEPTED, status_report->custody_ts);
+	if (status_report->flags & BP_STATUS_FORWARDED)
+		printSingleRealtimeStatusReport(f, sr_source, status_report, BP_STATUS_FORWARDED, status_report->forwarding_ts);
+	if (status_report->flags & BP_STATUS_DELIVERED)
+		printSingleRealtimeStatusReport(f, sr_source, status_report, BP_STATUS_DELIVERED, status_report->delivery_ts);
+	if (status_report->flags & BP_STATUS_DELETED)
+		printSingleRealtimeStatusReport(f, sr_source, status_report, BP_STATUS_DELETED, status_report->deletion_ts);
+	if (status_report->flags & BP_STATUS_ACKED_BY_APP)
+		printSingleRealtimeStatusReport(f, sr_source, status_report, BP_STATUS_ACKED_BY_APP, status_report->ack_by_app_ts);
+	fflush(f);
+
+}
+void printSingleRealtimeStatusReport(FILE *f, al_bp_endpoint_id_t sr_source, al_bp_bundle_status_report_t * status_report,
+		al_bp_status_report_flags_t type, al_bp_timestamp_t timestamp)
+{
+	char bundle_id[256];
+	bundle_id_sprintf(bundle_id, &(status_report->bundle_id));
+	fprintf(f, "SR %s at %u, from node %s, referring to bundle (%s) %s\n", al_bp_status_report_flag_to_str(type),
+			timestamp.secs, sr_source.uri, bundle_id,
+			al_bp_status_report_reason_to_str(status_report->reason));
 }
 
 void monitor_handler(int signo)

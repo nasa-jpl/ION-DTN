@@ -56,6 +56,7 @@ typedef struct
 
 	/*	Details of the route.					*/
 
+	float		arrivalProb;	/*	Probability of arrival.	*/
 	time_t		arrivalTime;	/*	As from time(2).	*/
 	PsmAddress	hops;		/*	SM list: IonCXref addr	*/
 	uvast		maxCapacity;
@@ -88,6 +89,7 @@ typedef struct
 	uvast		neighborNodeNbr;
 	FwdDirective	directive;
 	time_t		forfeitTime;
+	float		arrivalProb;	/*	Probability of arrival.	*/
 	time_t		arrivalTime;
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
 	Scalar		protected;	/*	Bytes not overbooked.	*/
@@ -316,6 +318,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		transmitTime;
 	time_t		arrivalTime;
 	IonCXref	*finalContact = NULL;
+	float		highestProbability = 0.0;
 	time_t		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextContact;
 	time_t		earliestArrivalTime;
@@ -452,9 +455,13 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 				if (contact->toNode == terminusNode->nodeNbr)
 				{
-					if (work->arrivalTime
-						< earliestFinalArrivalTime)
+					if (contact->prob > highestProbability
+					|| (contact->prob == highestProbability
+						&& work->arrivalTime
+						< earliestFinalArrivalTime))
 					{
+						highestProbability
+							= contact->prob;
 						earliestFinalArrivalTime
 							= work->arrivalTime;
 						finalContact = contact;
@@ -518,6 +525,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	if (finalContact)	/*	Found a route to terminus node.	*/
 	{
 		route->arrivalTime = earliestFinalArrivalTime;
+		route->arrivalProb = 1.0;
 
 		/*	Load the entire route into the "hops" list,
 		 *	backtracking to root, and compute the time
@@ -540,6 +548,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				maxCapacity = work->capacity;
 			}
 
+			route->arrivalProb *= contact->prob;
 			addr = psa(ionwm, contact);
 			TRACE(CgrHop, contact->fromNode, contact->toNode);
 			if (sm_list_insert_first(ionwm, route->hops, addr) == 0)
@@ -714,7 +723,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 	 *	to itself and terminating in the "final contact"
 	 *	(which is the terminus node's contact with itself).
 	 *	Each time we search, we exclude from consideration
-	 *	the first contact in every previously computed route.	*/
+	 *	the earliest-expiring contact in every previously
+	 *	computed route.						*/
 
 	rootContact.fromNode = getOwnNodeNbr();
 	rootContact.toNode = rootContact.fromNode;
@@ -995,16 +1005,24 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	}
 
 	/*	Finally, insert that route into the terminusNode's
-	 *	list of routes in arrivalTime order.			*/
+	 *	list of routes in probability/arrivalTime order.	*/
 
 	newRoute = (CgrRoute *) psp(ionwm, routeAddr);
 	for (elt = sm_list_first(ionwm, routes); elt; elt =
 			sm_list_next(ionwm, elt))
 	{
 		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (route->arrivalTime <= newRoute->arrivalTime)
+		if (route->arrivalProb > newRoute->arrivalProb)
 		{
 			continue;
+		}
+
+		if (route->arrivalProb == newRoute->arrivalProb)
+		{
+			if (route->arrivalTime <= newRoute->arrivalTime)
+			{
+				continue;
+			}
 		}
 
 		break;		/*	Insert before this route.	*/
@@ -1407,8 +1425,11 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			/*	This route starts with contact with a
 			 *	neighbor that's already in the list.	*/
 
-			if (arrivalTime < proxNode->arrivalTime)
+			if (route->arrivalProb > proxNode->arrivalProb
+			|| (route->arrivalProb == proxNode->arrivalProb
+				&& arrivalTime < proxNode->arrivalTime))
 			{
+				proxNode->arrivalProb = route->arrivalProb;
 				proxNode->arrivalTime = arrivalTime;
 				proxNode->hopCount = hopCount;
 				proxNode->forfeitTime = route->toTime;
@@ -1419,7 +1440,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			}
 			else
 			{
-				if (arrivalTime == proxNode->arrivalTime)
+				if (route->arrivalProb == proxNode->arrivalProb
+				&& arrivalTime == proxNode->arrivalTime)
 				{
 					if (hopCount < proxNode->hopCount)
 					{
@@ -1470,6 +1492,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	proxNode->neighborNodeNbr = route->toNodeNbr;
 	memcpy((char *) &(proxNode->directive), (char *) &directive,
 			sizeof(FwdDirective));
+	proxNode->arrivalProb = route->arrivalProb;
 	proxNode->arrivalTime = arrivalTime;
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
@@ -1570,9 +1593,9 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 
 		if (route->arrivalTime > deadline)
 		{
-			/*	No more plausible routes.		*/
+			/*	Not a plausible route.			*/
 
-			return 0;
+			continue;
 		}
 
 		/*	Never route to self unless self is the final
@@ -1661,6 +1684,20 @@ static int	excludeNode(Lyst excludedNodes, uvast nodeNbr)
 	return 0;
 }
 
+static float	getNewDeliveryProb(Bundle *bundle, ProximateNode *proxNode)
+{
+	float		deliveryFailureProb;
+
+	/*	Delivery of bundle fails if and only if all bets fail.
+	 *	The probability of this is the product of the delivery
+	 *	failure probabilities of all bets, each of which is
+	 *	1.0 minus the probability of the bet's success.		*/
+
+	deliveryFailureProb = (1.0 - bundle->deliveryProb)
+			* (1.0 - proxNode->arrivalProb);
+	return (1.0 - deliveryFailureProb);
+}
+
 static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 			Object bundleObj, IonNode *terminusNode)
 {
@@ -1671,6 +1708,16 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	Embargo		*embargo;
 	BpEvent		event;
 
+	/*	Note "bet" on the route through this neighbor.		*/
+
+	if (bundle->cgrBetsCount == MAX_CGR_BETS)
+	{
+		return 0;	/*	Reached forwarding limit.	*/
+	}
+
+	bundle->cgrBets[bundle->cgrBetsCount] = proxNode->neighborNodeNbr;
+	bundle->cgrBetsCount++;
+	bundle->deliveryProb = getNewDeliveryProb(bundle, proxNode);
 	if (proxNode->neighborNodeNbr == bundle->destination.c.nodeNbr)
 	{
 		serviceNbr = bundle->destination.c.serviceNbr;
@@ -1936,6 +1983,110 @@ static int	manageOverbooking(ProximateNode *neighbor, Object plans,
 }
 #endif
 
+static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
+{
+	int	i;
+
+	for (i = 0; i < bundle->cgrBetsCount; i++)
+	{
+		if (bundle->cgrBets[i] == nodeNbr)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
+			IonNode *terminusNode, Lyst proximateNodes, int preview)
+{
+	LystElt		elt;
+	LystElt		nextElt;
+	ProximateNode	*proxNode;
+	Bundle		newBundle;
+	Object		newBundleObj;
+
+	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
+	{
+		nextElt = lyst_next(elt);
+		proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
+		lyst_delete(elt);
+		if (preview)
+		{
+			MRELEASE(proxNode);
+			continue;
+		}
+
+		if (proxNodeRedundant(bundle, proxNode->neighborNodeNbr))
+		{
+			MRELEASE(proxNode);
+			continue;
+		}
+
+		if (bundle->ductXmitElt)
+		{
+			/*	This copy of bundle has already
+			 *	been enqueued.				*/
+
+			if (bpClone(bundle, &newBundle, &newBundleObj,
+					0, 0) < 0)
+			{
+				putErrmsg("Can't clone bundle.", NULL);
+				lyst_destroy(proximateNodes);
+				return -1;
+			}
+
+			bundle = &newBundle;
+			bundleObj = newBundleObj;
+		}
+
+		if (enqueueToNeighbor(proxNode, bundle, bundleObj,
+					terminusNode))
+		{
+			putErrmsg("Can't queue for neighbor.", NULL);
+			lyst_destroy(proximateNodes);
+			return -1;
+		}
+
+		MRELEASE(proxNode);
+	}
+
+	lyst_destroy(proximateNodes);
+	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
+	{
+		/*	Must keep on trying to send this bundle.	*/
+
+		/*	Note: need a way to force abandonment of
+		 *	bundles that genuinely are currently non-
+		 *	forwardable.					*/
+
+		if (bundle->ductXmitElt)
+		{
+			/*	This copy of bundle has already
+			 *	been enqueued.				*/
+
+			if (bpClone(bundle, &newBundle, &newBundleObj,
+					0, 0) < 0)
+			{
+				putErrmsg("Can't clone bundle.", NULL);
+				return -1;
+			}
+
+			bundle = &newBundle;
+			bundleObj = newBundleObj;
+		}
+
+		if (enqueueToLimbo(bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't put bundle in limbo.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			uvast terminusNodeNbr, Object plans,
 			CgrLookupFn getDirective, time_t atTime,
@@ -1957,6 +2108,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	Bundle		newBundle;
 	Object		newBundleObj;
 	ProximateNode	*selectedNeighbor;
+	float		newDeliveryProb;
+	float		probImprovement;
 
 	/*	Determine whether or not the contact graph for this
 	 *	node identifies one or more proximate nodes to
@@ -2082,45 +2235,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		/*	Critical bundle; send on all paths.		*/
 
 		TRACE(CgrUseAllProximateNodes);
-		for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
-		{
-			nextElt = lyst_next(elt);
-			proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
-			lyst_delete(elt);
-			if (!preview)
-			{
-				if (enqueueToNeighbor(proxNode, bundle,
-						bundleObj, terminusNode))
-				{
-					putErrmsg("Can't queue for neighbor.",
-							NULL);
-					lyst_destroy(proximateNodes);
-					return -1;
-				}
-			}
-
-			MRELEASE(proxNode);
-			if (nextElt)
-			{
-				/*	Every transmission after the
-			 	*	first must operate on a new
-			 	*	clone of the original bundle.	*/
-
-				if (bpClone(bundle, &newBundle, &newBundleObj,
-						0, 0) < 0)
-				{
-					putErrmsg("Can't clone bundle.", NULL);
-					lyst_destroy(proximateNodes);
-					return -1;
-				}
-
-				bundle = &newBundle;
-				bundleObj = newBundleObj;
-			}
-		}
-
-		lyst_destroy(proximateNodes);
-		return 0;
+		return sendCriticalBundle(bundle, bundleObj, terminusNode,
+				proximateNodes, preview);
 	}
 
 	/*	Non-critical bundle; send on the minimum-latency path.
@@ -2134,10 +2250,40 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		proxNode = (ProximateNode *) lyst_data_set(elt, NULL);
 		lyst_delete(elt);
 		TRACE(CgrConsiderProximateNode, proxNode->neighborNodeNbr);
+
+		/*	Skip this candidate if not cost-effective.	*/
+
+		if (bundle->deliveryProb > 0.0
+		&& bundle->deliveryProb < 1.0)
+		{
+			newDeliveryProb = getNewDeliveryProb(bundle, proxNode);
+			probImprovement =
+				(newDeliveryProb / bundle->deliveryProb) - 1.0;
+			if (probImprovement < MIN_PROB_IMPROVEMENT)
+			{
+				TRACE(CgrIgnoreProximateNode, CgrNoHelp);
+				MRELEASE(proxNode);
+				continue;
+			}
+		}
+
+		/*	Select this candidate if it's the best.		*/
+
 		if (selectedNeighbor == NULL)
 		{
 			TRACE(CgrSelectProximateNode);
 			selectedNeighbor = proxNode;
+		}
+		else if (proxNode->arrivalProb > selectedNeighbor->arrivalProb)
+		{
+			TRACE(CgrSelectProximateNode);
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
+		}
+		else if (proxNode->arrivalProb < selectedNeighbor->arrivalProb)
+		{
+			TRACE(CgrIgnoreProximateNode, CgrLowerProb);
+			MRELEASE(proxNode);
 		}
 		else if (proxNode->arrivalTime <
 				selectedNeighbor->arrivalTime)
@@ -2146,41 +2292,33 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			MRELEASE(selectedNeighbor);
 			selectedNeighbor = proxNode;
 		}
-		else if (proxNode->arrivalTime ==
+		else if (proxNode->arrivalTime >
 				selectedNeighbor->arrivalTime)
 		{
-			if (proxNode->hopCount < selectedNeighbor->hopCount)
-			{
-				TRACE(CgrSelectProximateNode);
-				MRELEASE(selectedNeighbor);
-				selectedNeighbor = proxNode;
-			}
-			else if (proxNode->hopCount ==
-					selectedNeighbor->hopCount)
-			{
-				if (proxNode->neighborNodeNbr <
-					selectedNeighbor->neighborNodeNbr)
-				{
-					TRACE(CgrSelectProximateNode);
-					MRELEASE(selectedNeighbor);
-					selectedNeighbor = proxNode;
-				}
-				else	/*	Larger node#; ignore.	*/
-				{
-					TRACE(CgrIgnoreProximateNode,
-							CgrLargerNodeNbr);
-					MRELEASE(proxNode);
-				}
-			}
-			else	/*	More hops; ignore.		*/
-			{
-				TRACE(CgrIgnoreProximateNode, CgrMoreHops);
-				MRELEASE(proxNode);
-			}
-		}
-		else	/*	Later arrival time; ignore.		*/
-		{
 			TRACE(CgrIgnoreProximateNode, CgrLaterArrivalTime);
+			MRELEASE(proxNode);
+		}
+		else if (proxNode->hopCount < selectedNeighbor->hopCount)
+		{
+			TRACE(CgrSelectProximateNode);
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
+		}
+		else if (proxNode->hopCount > selectedNeighbor->hopCount)
+		{
+			TRACE(CgrIgnoreProximateNode, CgrMoreHops);
+			MRELEASE(proxNode);
+		}
+		else if (proxNode->neighborNodeNbr <
+				selectedNeighbor->neighborNodeNbr)
+		{
+			TRACE(CgrSelectProximateNode);
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
+		}
+		else	/*	Larger node#; ignore.	*/
+		{
+			TRACE(CgrIgnoreProximateNode, CgrLargerNodeNbr);
 			MRELEASE(proxNode);
 		}
 	}
@@ -2216,6 +2354,38 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	else
 	{
 		TRACE(CgrNoProximateNode);
+	}
+
+	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB
+	&& bundle->id.source.c.nodeNbr != bundle->destination.c.nodeNbr)
+	{
+		/*	Must keep on trying to send this bundle.	*/
+
+		/*	Note: need a way to force abandonment of
+		 *	bundles that genuinely are currently non-
+		 *	forwardable.					*/
+
+		if (bundle->ductXmitElt)
+		{
+			/*	This copy of bundle has already
+			 *	been enqueued.				*/
+
+			if (bpClone(bundle, &newBundle, &newBundleObj,
+					0, 0) < 0)
+			{
+				putErrmsg("Can't clone bundle.", NULL);
+				return -1;
+			}
+
+			bundle = &newBundle;
+			bundleObj = newBundleObj;
+		}
+
+		if (enqueueToLimbo(bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't put bundle in limbo.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
@@ -2336,6 +2506,8 @@ capacity for this bundle",
 
 	[CgrMoreHops] = "more hops",
 	[CgrIdentical] = "identical to a previous route",
+	[CgrNoHelp] = "insufficient delivery probability improvement",
+	[CgrLowerProb] = "lower delivery probability",
 	[CgrLaterArrivalTime] = "later arrival time",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
 	};

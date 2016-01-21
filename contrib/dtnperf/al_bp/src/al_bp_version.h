@@ -6,6 +6,7 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ ** This file contains the version definition of the al_bp.
  ********************************************************/
 
 #ifndef _AL_BP_VERSION_H_
@@ -13,11 +14,11 @@
 
 /*
 #define AL_BP_VERSION_MAJOR		1
-#define AL_BP_VERSION_MINOR		3
-#define AL_BP_VERSION_PATCH		3
+#define AL_BP_VERSION_MINOR		4
+#define AL_BP_VERSION_PATCH		0
 */
 
-#define AL_BP_VERSION_STRING	"1.3.3"
+#define AL_BP_VERSION_STRING	"1.4.0"
 
 extern const char* al_bp_version;
 

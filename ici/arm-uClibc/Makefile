@@ -4,11 +4,11 @@ TEST = ../test
 UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
-CRYPTO = ../crypto
+CRYPTO = ../crypto/NULL_SUITES
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc
-CC = $(TCC) $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO)
+CC = $(TCC) $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
@@ -175,7 +175,7 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 %.o:		$(SDR)/%.c
 		$(CC) -c $<
 
-%.o:		$(CRYPTO)/NULL_SUITES/%.c
+%.o:		$(CRYPTO)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

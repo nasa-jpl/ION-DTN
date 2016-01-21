@@ -24,7 +24,6 @@ extern "C" {
 
 #define UDPCLA_BUFSZ		((256 * 256) - 1)
 #define BpUdpDefaultPortNbr	4556
-#define	DEFAULT_UDP_RATE	125000000
 
 extern int	connectToCLI(int *sock);
 extern int	sendBytesByUDP(int *bundleSocket, char *from, int length,

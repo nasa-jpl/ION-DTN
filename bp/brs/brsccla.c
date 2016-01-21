@@ -328,17 +328,6 @@ number>");
 			voutduct->outductElt), sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	if (protocol.nominalRate == 0)
-	{
-		vinduct->acqThrottle.nominalRate = DEFAULT_BRS_RATE;
-		voutduct->xmitThrottle.nominalRate = DEFAULT_BRS_RATE;
-	}
-	else
-	{
-		vinduct->acqThrottle.nominalRate = protocol.nominalRate;
-		voutduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	}
-
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = outduct.bulkQueue;
 	outflows[1].outboundBundles = outduct.stdQueue;

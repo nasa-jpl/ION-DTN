@@ -6,6 +6,10 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ This file contains all the API definitions of the al_bp (al_bp prefix).
+ ** These are called directly from the application.
+ ** In DTNperf_3 These are the sole al_bp_ APIs called. 
+ ** Each API consists of a switch between DTN2 and ION API implementations (bp prefix)
  ********************************************************/
 
 /*
@@ -19,7 +23,7 @@
 #include "al_bp_types.h"
 
 /**
- * Get abstraction layer library version
+ * Get abstraction layer library version.
  */
 const char * get_al_bp_version();
 
@@ -178,10 +182,14 @@ void al_bp_free_metadata_blocks(al_bp_bundle_spec_t* spec);
 void al_bp_free_payload(al_bp_bundle_payload_t* payload);
 
 /**
- * Return a string version of a status report reason code.
+ * Returns a string version of a status report reason code.
  */
 const char* al_bp_status_report_reason_to_str(al_bp_status_report_reason_t err);
 
+/**
+ * Returns a string version of a status report type.
+ */
+char* al_bp_status_report_flag_to_str(al_bp_status_report_flags_t flag);
 /**
  * Get a string value associated with the bp error code.
  */

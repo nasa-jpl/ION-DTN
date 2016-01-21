@@ -15,10 +15,11 @@ BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
 BIBE = ../bibe
+IPND = ../ipnd
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_BPACS -DENABLE_IMC
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(TCP) -I$(IPN) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(API)/ext/cteb -I$(TCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -46,9 +47,10 @@ BPLIBS = \
 BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
 # snid.o extbsputil.o extbspbab.o extbsppcb.o extbsppib.o
 
-LBP = -lbp -limcfw -lipnfw
+IPNDOBJS = ipnd.o beacon.o helper.o node.o
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
@@ -256,6 +258,12 @@ bibeclo:	bibeclo.o $(BPLIBS)
 		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp bibeclo ./bin
 
+#	-	-	IPND executable	-	-	-	-	-
+
+ipnd:		$(IPNDOBJS) $(BPLIBS)
+		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread
+		cp ipnd ./bin
+
 #	-	-	Test executables	-	-	-	-
 
 bpsource:	bpsource.o libbp.so $(BPLIBS)
@@ -396,3 +404,6 @@ libudpcla.so:	libudpcla.o
 
 %.o:		$(API)/ext/cteb/%.c
 		$(CC) -c $<
+
+%.o:		$(IPND)/%.c
+		$(CC) -I$(IPND) -c $<

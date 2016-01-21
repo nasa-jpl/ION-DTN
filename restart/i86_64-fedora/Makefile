@@ -26,5 +26,5 @@ ionrestart.o:	$(UTILS)/ionrestart.c
 		$(CC) -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(UTILS)/ionrestart.c
 
 ionrestart:	ionrestart.o
-		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/i86_64-fedora/lib -L../../ltp/i86_64-fedora/lib -L../../bp/i86_64-fedora/lib -L../../cfdp/i86_64-fedora/lib -lcfdp -lcgr -lbp -lipnfw -limcfw -lltp -lltpP -lici -lpthread -lm
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/i86_64-fedora/lib -L../../ltp/i86_64-fedora/lib -L../../bp/i86_64-fedora/lib -L../../cfdp/i86_64-fedora/lib -lcfdp -lcgr -lipnfw -limcfw -ldtn2fw -lbp -lltp -lltpP -lici -lpthread -lm
 		cp ionrestart ./bin

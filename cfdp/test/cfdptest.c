@@ -43,6 +43,8 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tz\tPause before processing next command. (For test scripts.)");
+	PUTS("\t   z <number of seconds to pause>");
 	PUTS("\td\tSet destination entity number");
 	PUTS("\t   d <destination entity number>");
 	PUTS("\tf\tSet source file name");
@@ -58,6 +60,8 @@ static void	printUsage()
 	PUTS("\tm\tSet transmission mode");
 	PUTS("\t   m <0 = CL reliability (the default), 1 = unreliable, 2 = \
 custody transfer>");
+	PUTS("\ti\tSet custodial retransmission timeout interval");
+	PUTS("\t   i <timeout interval, in seconds>");
 	PUTS("\ta\tControl CFDP transaction closure");
 	PUTS("\t   a <expected round trip latency>");
 	PUTS("\t\t0 = no acknowledgment expected");
@@ -93,6 +97,8 @@ custody transfer>");
 	PUTS("\t   $");
 	PUTS("\t#\tReport on the current file transmission");
 	PUTS("\t   #");
+	PUTS("\t|\tGet file: send request for file per specified parameters");
+	PUTS("\t   |");
 }
 
 static int      _echo(int *newValue)
@@ -213,7 +219,6 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 	{
 		if (mode & 0x02)	/*	Native BP reliability.	*/
 		{
-			utParms->extendedCOS.flags |= BP_BEST_EFFORT;
 			utParms->custodySwitch = SourceCustodyRequired;
 		}
 		else		/*	Convergence-layer reliability.	*/
@@ -222,6 +227,20 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 			utParms->custodySwitch = NoCustodyRequested;
 		}
 	}
+}
+
+static void	setCtInterval(int tokenCount, char **tokens, BpUtParms *utParms)
+{
+	unsigned long	interval;
+
+	if (tokenCount != 2)
+	{
+		PUTS("What's the custody transfer retransmission interval?");
+		return;
+	}
+
+	interval = strtoul(tokens[1], NULL, 0);
+	utParms->ctInterval = interval;
 }
 
 static void	setClosure(int tokenCount, char **tokens, CfdpReqParms *parms)
@@ -407,10 +426,11 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 
 static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 {
-	int	tokenCount;
-	char	*cursor;
-	int	i;
-	char	*tokens[9];
+	int		tokenCount;
+	char		*cursor;
+	int		i;
+	char		*tokens[9];
+	CfdpProxyTask	task;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -492,6 +512,10 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			setMode(tokenCount, tokens, &(parms->utParms));
 			return 0;
 
+		case 'i':
+			setCtInterval(tokenCount, tokens, &(parms->utParms));
+			return 0;
+
 		case 'a':
 			setClosure(tokenCount, tokens, parms);
 			return 0;
@@ -524,11 +548,36 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 					parms->sourceFileName,
 					parms->destFileName, NULL,
 					parms->segMetadataFn,
-					parms->faultHandlers, 0, NULL,
+					NULL, 0, NULL,
 					parms->closureLatency,
 					parms->msgsToUser,
 					parms->fsRequests,
 					&(parms->transactionId)) < 0)
+			{
+				putErrmsg("Can't put FDU.", NULL);
+				return -1;
+			}
+
+			parms->msgsToUser = 0;
+			parms->fsRequests = 0;
+			return 0;
+
+		case '|':
+			task.sourceFileName = parms->sourceFileName;
+			task.destFileName = parms->destFileName;
+			task.messagesToUser = parms->msgsToUser;
+			task.filestoreRequests = parms->fsRequests;
+			task.faultHandlers = NULL;
+			task.unacknowledged = 1;
+			task.flowLabelLength = 0;
+			task.flowLabel = NULL;
+			task.recordBoundsRespected = 0;
+			task.closureRequested = !(parms->closureLatency == 0);
+			if (cfdp_get(&(parms->destinationEntityNbr),
+					sizeof(BpUtParms),
+					(unsigned char *) &(parms->utParms),
+					NULL, NULL, NULL, NULL, 0, NULL, 0, 0,
+					0, &task, &(parms->transactionId)) < 0)
 			{
 				putErrmsg("Can't put FDU.", NULL);
 				return -1;
@@ -574,6 +623,18 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 
 			return 0;
 
+		case 'z':
+			if (tokenCount == 1)
+			{
+				snooze(1);
+			}
+			else
+			{
+				snooze(strtol(tokens[1], NULL, 0));
+			}
+
+			return 0;
+
 		case 'q':
 			return -1;	/*	End program.		*/
 
@@ -581,6 +642,44 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			PUTS("Invalid command.  Enter '?' for help.");
 			return 0;
 	}
+}
+
+static char	*getMessageText(unsigned char *buf, unsigned int length)
+{
+	unsigned int	msgtype;
+	char		*msgtext[] =	{
+				"proxy put request",
+				"proxy message to user",
+				"proxy filestore request",
+				"proxy fault handler override",
+				"proxy transmission mode",
+				"proxy flow label",
+				"proxy segmentation control",
+				"proxy put response",
+				"proxy filestore response",
+				"proxy put cancel",
+				"originating transaction ID",
+				"proxy closure request",
+				"undefined",
+				"undefined",
+				"undefined",
+				"undefined",
+				"directory listing request",
+				"directory listing response"
+					};
+
+	if (length < 5 || strncmp((char *) buf, "cfdp", 4) != 0)
+	{
+		return "undefined";
+	}
+
+	msgtype = *(buf + 4);
+	if (msgtype > 17)
+	{
+		return "unknown user operation";
+	}
+
+	return msgtext[msgtype];
 }
 
 static void	*handleEvents(void *parm)
@@ -676,7 +775,8 @@ static void	*handleEvents(void *parm)
 			if (length > 0)
 			{
 				usrmsgBuf[length] = '\0';
-				printf("\tMessage '%s'\n", usrmsgBuf);
+				printf("\tMessage to user: %s\n",
+					getMessageText(usrmsgBuf, length));
 			}
 		}
 

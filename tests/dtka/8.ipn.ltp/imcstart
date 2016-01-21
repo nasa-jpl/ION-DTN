@@ -1,0 +1,3 @@
+# shell script to get node running
+#!/bin/bash
+bpadmin		node.bprc.2

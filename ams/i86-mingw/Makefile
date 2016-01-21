@@ -36,7 +36,7 @@ RAMSTESTOBJS = \
 PUBINCLS = \
 	$(INCL)/ams.h
 
-LBP = -lbp -limcfw -lipnfw
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = amsd amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
 # amshello

@@ -87,14 +87,16 @@ dtnperf_vION_SOURCES = dtnperf/dtnperf/src/dtnperf_modes/dtnperf_client.c \
 			dtnperf/dtnperf/src/file_transfer_tools.c \
 			dtnperf/dtnperf/src/dtnperf_main.c \
 			dtnperf/dtnperf/src/utils.c
-dtnperf_vION_LDADD = libal_bp_vION.la ../libici.la ../libbp.la $(LIBSOBJS)
+dtnperf_vION_LDADD = libal_bp_vION.la ../libici.la ../libbp.la ../libipnfw.la ../libdtn2fw.la $(LIBSOBJS)
 dtnperf_vION_CFLAGS =  -I$(srcdir)/dtnperf/al_bp/src/bp_implementations \
 			-I$(srcdir)/dtnperf/al_bp/src \
 			-I$(srcdir)/../bp/include \
 			-I$(srcdir)/../bp/library \
+			-I$(srcdir)/../bp/ipn \
+			-I$(srcdir)/../bp/dtn2 \
 			-fmessage-length=0 $(AM_CFLAGS)
 
-libal_bp_vION_la_LIBADD = ../libici.la ../libbp.la $(LIBSOBJS)
+libal_bp_vION_la_LIBADD = ../libici.la ../libbp.la ../libipnfw.la ../libdtn2fw.la $(LIBSOBJS)
 libal_bp_vION_la_SOURCES = dtnperf/al_bp/src/al_bp_api.c \
 			   dtnperf/al_bp/src/bp_implementations/al_bp_dtn.c \
 			   dtnperf/al_bp/src/bp_implementations/al_bp_dtn_conversions.c \
@@ -104,6 +106,8 @@ libal_bp_vION_la_CFLAGS = -I$(srcdir)/dtnperf/al_bp/src/bp_implementations \
 			  -I$(srcdir)/../ici/include \
 			  -I$(srcdir)/../bp/include \
 			  -I$(srcdir)/../bp/library \
-			  -I$(srcdir)/dtnperf/al_bp/src\
+			  -I$(srcdir)/../bp/ipn \
+			  -I$(srcdir)/../bp/dtn2 \
+			  -I$(srcdir)/dtnperf/al_bp/src \
 			  -DION_IMPLEMENTATION $(AM_CFLAGS)
 libal_bp_vION_la_NAME = libal_bp_vION.la

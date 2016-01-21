@@ -1,0 +1,176 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# December 9, 2014
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.bench.bssp/bench.bssprc \
+./2.bench.bssp/bench.bprc \
+./2.bench.bssp/bench.ionconfig \
+./2.bench.bssp/bench.ionrc \
+./2.bench.bssp/bench.ionsecrc \
+./2.bench.bssp/bench.ipnrc \
+./3.bench.bssp/bench.bssprc \
+./3.bench.bssp/bench.bprc \
+./3.bench.bssp/bench.ionconfig \
+./3.bench.bssp/bench.ionrc \
+./3.bench.bssp/bench.ionsecrc \
+./3.bench.bssp/bench.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: produce simple throughput benchmark results, for direct
+	comparison among computing platforms running ION.  All tests are
+	performed using the BSSP convergence-layer protocol between
+	neighboring nodes residing on the same computer.  So the results
+	exercise BP and BSSP in a non-loopback configuration, over loopback
+	UDP/IP and TCP/IP; the results are therefore unaffected by network
+	traffic, router performance, or network interface card performance."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.bench.bssp
+./ionstart
+cd ../3.bench.bssp
+./ionstart
+
+sleep 3
+echo ""
+echo "Test 1: 10,000 bundles of 1000 bytes each."
+cd ../3.bench.bssp
+bpcounter ipn:3.1 10000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bssp
+bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bssp
+	./ionstop &
+	cd ../3.bench.bssp
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 2: 10000 bundles of 10,000 bytes each."
+cd ../3.bench.bssp
+bpcounter ipn:3.1 10000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bssp
+bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bssp
+	./ionstop &
+	cd ../3.bench.bssp
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+fi
+
+echo "Stopping ION..."
+cd ../2.bench.bssp
+./ionstop &
+cd ../3.bench.bssp
+./ionstop &
+sleep 8
+killm
+echo "...benchmarking terminated."
+exit $RETVAL

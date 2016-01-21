@@ -578,3 +578,27 @@ uint32_t calc_crc32_d8(uint32_t crc, uint8_t *data, int len)
 	return crc;
 
 }
+
+/**
+ * print bytes (debug)
+ */
+int sprint_bytes(char * out, const void * object, size_t size)
+{
+	size_t i;
+	int pointer = 0;
+	for (i = 0; i < size; i++)
+	{
+		if (i % 4 == 0)
+			pointer += sprintf(out + pointer, "[ ");
+		pointer += sprintf(out + pointer, "%02x ", ((const unsigned char *) object)[i] & 0xff);
+		if (i % 4 == 3)
+			pointer += sprintf(out + pointer, " ]\n");
+	}
+	return pointer;
+}
+int print_bytes(const void * object, size_t size)
+{
+	char str[5 * size];
+	sprint_bytes(str, object, size);
+	return printf("%s", str);
+}
