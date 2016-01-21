@@ -177,6 +177,19 @@ Operational interface changes:
               with multicast “groups”.  However, the older “group” terminology
               is still accepted by ipnadmin for backward compatibility.
 
+BUILD NOTE:
+Substantial changes have been made in this version as to how ION is built.  As
+a result, some platforms (particularly older Linux platforms) may encounter
+linker warnings when building ION 3.4.0.  These issues will be resolved in the
+next release, but in the meantime an alternate Makefile has been provided that
+may resolve this issue on affected platforms.  If you encounter any linker
+warnings, try the following procedure to build from this alternate Makefile:
+     1.) cd <top of ION directory>
+     2.) cp Makefile.am.alt Makefile.am
+     3.) autoreconf -fi (requires libtool and autoconf to be installed)
+     4.) ./configure
+     5.) make
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.3.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
