@@ -3157,7 +3157,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	 *	will be needed.  (Only one or the other will actually
 	 *	be allocated, when the ZCO is finally created.)		*/
 
-	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength,
+	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength, 0,
 			cfdpdb.maxFileDataLength, 1, 0, &(cfdpvdb->attendant),
 			&ticket) < 0)
 	{
