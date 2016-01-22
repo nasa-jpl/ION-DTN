@@ -759,10 +759,6 @@ extern int			iputs(int, char *);
 
 extern void			icopy(char *fromPath, char *toPath);
 
-extern int			fullyQualified(char *fileName);
-extern int			qualifyFileName(char *fileName, char *buffer,
-					int buflen);
-extern void			findToken(char **cursorPtr, char **token);
 extern unsigned int		getAddressOfHost();
 extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
@@ -770,6 +766,17 @@ extern int			parseSocketSpec(char *socketSpec,
 					unsigned int *ipAddress);
 extern void			printDottedString(unsigned int hostNbr,
 					char *buffer);
+
+extern int			itcp_connect(char *socketSpec,
+					unsigned short defaultPort, int *sock);
+extern int			itcp_send(int sock, char *from, int length);
+extern int			itcp_recv(int sock, char *into, int length);
+extern void			itcp_handleConnectionLoss();
+
+extern int			fullyQualified(char *fileName);
+extern int			qualifyFileName(char *fileName, char *buffer,
+					int buflen);
+extern void			findToken(char **cursorPtr, char **token);
 #include "platform_sm.h"
 
 #ifdef __cplusplus

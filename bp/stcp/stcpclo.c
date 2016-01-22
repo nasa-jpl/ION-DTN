@@ -16,7 +16,7 @@
 	acknowledged.
 	
 									*/
-#include "tcpcla.h"
+#include "stcpcla.h"
 #include "ipnfw.h"
 
 static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
@@ -61,7 +61,7 @@ typedef struct
 static void	*sendKeepalives(void *parm)
 {
 	KeepaliveThreadParms	*parms = (KeepaliveThreadParms *) parm;
-	int			count = KEEPALIVE_PERIOD;
+	int			count = STCP_KEEPALIVE_PERIOD;
 	int			bytesSent;
 
 	iblock(SIGTERM);
@@ -69,21 +69,21 @@ static void	*sendKeepalives(void *parm)
 	{
 		snooze(1);
 		count++;
-		if (count < KEEPALIVE_PERIOD)
+		if (count < STCP_KEEPALIVE_PERIOD)
 		{
 			continue;
 		}
 
 		/*	Time to send a keepalive.  Note that the
 		 *	interval between keepalive attempts will be
-		 *	KEEPALIVE_PERIOD plus (if the remote induct
-		 *	is not reachable) the length of time taken
-		 *	by TCP to determine that the connection
+		 *	STCP_KEEPALIVE_PERIOD plus (if the remote
+		 *	induct is not reachable) the length of time
+		 *	taken by TCP to determine that the connection
 		 *	attempt will not succeed (e.g., 3 seconds).	*/
 
 		count = 0;
 		pthread_mutex_lock(parms->mutex);
-		bytesSent = sendBundleByTCP(parms->protocolName,
+		bytesSent = sendBundleByStcp(parms->protocolName,
 				parms->ductName, parms->ductSocket, 0, 0, NULL);
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent < 0)
@@ -108,7 +108,7 @@ int	main(int argc, char *argv[])
 {
 	char	*ductName = (argc > 1 ? argv[1] : NULL);
 #endif
-	unsigned char		*buffer;
+	char			*buffer;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
 	DuctExpression		ductExpression;
@@ -141,7 +141,7 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	buffer = MTAKE(TCPCLA_BUFSZ);
+	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for TCP buffer in stcpclo.", NULL);
@@ -198,7 +198,7 @@ int	main(int argc, char *argv[])
 	oK(stcpcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/*	Start the keepalive thread to manage the connection.	*/
@@ -222,29 +222,23 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] stcpclo is running....");
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
-		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
+		if (!(maxPayloadLengthKnown(vduct, &maxPayloadLength)))
 		{
-		case -1:
-			sm_SemEnd(stcpcloSemaphore(NULL));
-			continue;
-
-		case 0:			/*	Unknown; try again.	*/
 			snooze(1);
 			continue;
-
-		default:		/*	maxPayloadLength known.	*/
-			break;		/*	Out of switch.		*/
 		}
 
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, maxPayloadLength, -1) < 0)
 		{
-			sm_SemEnd(stcpcloSemaphore(NULL));
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)	/*	Interrupted.		*/
+		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
+			writeMemo("stcpclo outduct closed.");
+			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
 		}
 
@@ -252,7 +246,7 @@ int	main(int argc, char *argv[])
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
-		bytesSent = sendBundleByTCP(protocol.name, ductName,
+		bytesSent = sendBundleByStcp(protocol.name, ductName,
 				&ductSocket, bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
 		if (bytesSent < 0)	/*	System error.		*/
@@ -268,7 +262,7 @@ int	main(int argc, char *argv[])
 
 	running = 0;		/*	Terminate keepalive thread.	*/
 	pthread_join(keepaliveThread, NULL);
-	closeOutductSocket(&ductSocket);
+	closeStcpOutductSocket(&ductSocket);
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
 	writeMemo("[i] stcpclo duct has ended.");

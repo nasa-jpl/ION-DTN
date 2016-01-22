@@ -31,13 +31,6 @@ static void siguser_thread(){
 	isignal(SIGUSR1, siguser_thread);
 }
 
-#ifndef mingw
-void	handleConnectionLoss()
-{
-	isignal(SIGPIPE, handleConnectionLoss);
-}
-#endif
-
 /*	*	*	Reciever thread functions	*	*	*/
 
 typedef struct
@@ -149,7 +142,7 @@ static void *Recieve_DCCP(void *param)
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/* Get buffers							*/

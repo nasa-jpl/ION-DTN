@@ -114,23 +114,31 @@ static int	parseDuctExpression(char *token, DuctExpression *expression)
 		return 0;
 	}
 
-	*cursor = '\0';		/*	Delimit protocol name.	*/
+	*cursor = '\0';			/*	Delimit protocol name.	*/
 	cursor++;
 	outductName = cursor;
+	if (strcmp(protocolName, "tcp") == 0)
+	{
+		/*	tcpcli manages these outducts.			*/
+
+		expression->outductElt = 0;
+		expression->destDuctName = outductName;
+		return 1;
+	}
 
 	/*	If there's a destination duct name, note end of
-	 *	outduct name and start of destination duct name.*/
+	 *	outduct name and start of destination duct name.	*/
 
-	cursor = strchr(cursor, ',');
+	cursor = strchr(outductName, ',');
 	if (cursor == NULL)
 	{
-		/*	End of token delimits outduct name.	*/
+		/*	End of token delimits outduct name.		*/
 
 		expression->destDuctName = NULL;
 	}
 	else
 	{
-		*cursor = '\0';	/*	Delimit outduct name.	*/
+		*cursor = '\0';		/*	Delimit outduct name.	*/
 		cursor++;
 		expression->destDuctName = cursor;
 	}
@@ -481,45 +489,76 @@ static void	executeDelete(int tokenCount, char **tokens)
 static void	printDirective(char *context, FwdDirective *dir)
 {
 	Sdr	sdr = getIonsdr();
+	char	eidString[SDRSTRING_BUFSZ];
 	Object	ductObj;
 		OBJ_POINTER(Outduct, duct);
 		OBJ_POINTER(ClProtocol, clp);
-	char	string[SDRSTRING_BUFSZ + 1];
+	char	*ductName;
+	char	*protocolName;
+	char	ductNameBuf[MAX_CL_DUCT_NAME_LEN + 1 + SDRSTRING_BUFSZ];
+	char	destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	char	buffer[1024];
 
 	switch (dir->action)
 	{
 	case xmit:
-		ductObj = sdr_list_data(sdr, dir->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
-		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
-		if (dir->destDuctName == 0)
+		if (dir->outductElt == 0)	/*	Must be TCPCL.	*/
 		{
-			string[0] = '\0';
+			protocolName = "tcp";
+			if (dir->destDuctName == 0)
+			{
+				ductName = "unknown";
+			}
+			else
+			{
+				if (sdr_string_read(sdr, ductNameBuf,
+						dir->destDuctName) < 1)
+				{
+					ductName = "?";
+				}
+				else
+				{
+					ductName = ductNameBuf;
+				}
+			}
 		}
 		else
 		{
-			string[0] = ',';
-			if (sdr_string_read(sdr, string + 1,
-					dir->destDuctName) < 0)
+			ductObj = sdr_list_data(sdr, dir->outductElt);
+			GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
+			GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+			protocolName = clp->name;
+			istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
+			if (dir->destDuctName)
 			{
-				istrcpy(string + 1, "?", sizeof string - 1);
+				istrcat(ductNameBuf, ",", sizeof ductNameBuf);
+				if (sdr_string_read(sdr, destDuctName,
+						dir->destDuctName) < 1)
+				{
+					destDuctName[0] = '?';
+					destDuctName[1] = '\0';
+				}
+
+				istrcat(ductNameBuf, destDuctName,
+						sizeof ductNameBuf);
 			}
+
+			ductName = ductNameBuf;
 		}
 
-		isprintf(buffer, sizeof buffer, "%.80s x %.8s/%.128s%.128s",
-				context, clp->name, duct->name, string);
+		isprintf(buffer, sizeof buffer, "%.80s x %.8s/%.255s",
+				context, protocolName, ductName);
 		printText(buffer);
 		break;
 
 	case fwd:
-		if (sdr_string_read(sdr, string, dir->eid) < 0)
+		if (sdr_string_read(sdr, eidString, dir->eid) < 0)
 		{
-			istrcpy(string, "?", sizeof string);
+			istrcpy(eidString, "?", sizeof eidString);
 		}
 
 		isprintf(buffer, sizeof buffer, "%.80s f %.255s", context,
-				string);
+				eidString);
 		printText(buffer);
 		break;
 

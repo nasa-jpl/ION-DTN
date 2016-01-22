@@ -2270,3 +2270,62 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 
 	return result;
 }
+
+int	ionSendZcoByTCP(int sock, Object zco, char *buffer, int buflen)
+{
+	Sdr		sdr = getIonsdr();
+	int		totalBytesSent = 0;
+	ZcoReader	reader;
+	uvast		bytesRemaining;
+	uvast		bytesToLoad;
+	int		bytesToSend;
+	int		bytesSent;
+
+	CHKERR(!(sock < 0));
+	CHKERR(zco);
+	CHKERR(buffer);
+	CHKERR(buflen > 0);
+	zco_start_transmitting(zco, &reader);
+	zco_track_file_offset(&reader);
+	bytesRemaining = zco_length(sdr, zco);
+	while (bytesRemaining > 0)
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		bytesToLoad = bytesRemaining;
+		if (bytesToLoad > buflen)
+		{
+			bytesToLoad = buflen;
+		}
+
+		bytesToSend = zco_transmit(sdr, &reader, bytesToLoad, buffer);
+		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
+		{
+			putErrmsg("Incomplete zco_transmit.", NULL);
+			return -1;
+		}
+
+		bytesSent = itcp_send(sock, buffer, bytesToSend);
+		switch (bytesSent)
+		{
+		case -1:
+			/*	Big problem; shut down.			*/
+
+			putErrmsg("Failed to send ZCO by TCP.", NULL);
+			return -1;
+
+		case 0:
+			/*	Just lost connection; treat as a
+			 *	transient anomaly, note the incomplete
+			 *	transmission.				*/
+
+			writeMemo("[?] TCP socket connection lost.");
+			return 0;
+
+		default:
+			totalBytesSent += bytesSent;
+			bytesRemaining -= bytesSent;
+		}
+	}
+
+	return totalBytesSent;
+}

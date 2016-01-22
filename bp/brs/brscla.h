@@ -14,7 +14,7 @@
 #ifndef _BRSCLA_H_
 #define _BRSCLA_H_
 
-#include "../tcp/tcpcla.h"
+#include "../stcp/stcpcla.h"
 #include "ipnfw.h"
 #include "dtn2fw.h"
 #include "ionsec.h"

@@ -10,7 +10,7 @@
 	acknowledged.
 	
 									*/
-#include "tcpcla.h"
+#include "stcpcla.h"
 
 static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 {
@@ -78,7 +78,7 @@ static void	*receiveBundles(void *parm)
 		return NULL;
 	}
 
-	buffer = MTAKE(TCPCLA_BUFSZ);
+	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("stcpcli can't get TCP buffer.", NULL);
@@ -99,7 +99,7 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer,
+		switch (receiveBundleByStcp(parms->bundleSocket, work, buffer,
 					_attendant(NULL)))
 		{
 		case -1:
@@ -344,7 +344,7 @@ int	main(int argc, char *argv[])
 
 	if (portNbr == 0)
 	{
-		portNbr = BpTcpDefaultPortNbr;
+		portNbr = BpStcpDefaultPortNbr;
 	}
 
 	portNbr = htons(portNbr);
