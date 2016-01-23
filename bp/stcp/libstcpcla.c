@@ -325,13 +325,17 @@ int	receiveBundleByStcp(int sock, AcqWorkArea *work, char *buffer,
 
 	/*	Receive length of transmitted bundle.			*/
 
-	bytesReceived = itcp_recv(sock, (char *) &preamble, sizeof preamble);
-	if (bytesReceived < 1)
+	while (bundleLength == 0)
 	{
-		return bytesReceived;
-	}
+		bytesReceived = itcp_recv(sock, (char *) &preamble,
+				sizeof preamble);
+		if (bytesReceived < 1)
+		{
+			return bytesReceived;
+		}
 
-	bundleLength = ntohl(preamble);
+		bundleLength = ntohl(preamble);
+	}
 
 	/*	Receive the bundle itself, a buffer's worth at a
 	 *	time.							*/
@@ -346,7 +350,7 @@ int	receiveBundleByStcp(int sock, AcqWorkArea *work, char *buffer,
 		}
 
 		extentSize = bytesToReceive;
-		bytesReceived = itcp_recv(sock, buffer, sizeof preamble);
+		bytesReceived = itcp_recv(sock, buffer, extentSize);
 		if (bytesReceived < 1)
 		{
 			return bytesReceived;
