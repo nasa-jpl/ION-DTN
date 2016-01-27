@@ -133,6 +133,10 @@ typedef unsigned long		uvast;
 #define ERRMSGS_BUFSIZE		(256*16)
 #endif
 
+#ifndef	DEFAULT_CHECK_TIMEOUT
+#define	DEFAULT_CHECK_TIMEOUT	(120)
+#endif
+
 #ifdef  DOS_PATH_DELIMITER
 #define ION_PATH_DELIMITER	'\\'
 #else

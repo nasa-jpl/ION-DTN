@@ -57,6 +57,7 @@ int	bulk_write(unsigned long item, vast offset, char *buffer, vast length)
 		if (lseek(fd, offset, SEEK_SET) == (off_t) -1)
 		{
 			putSysErrmsg("bulk_write failed on lseek.",  fileName);
+			close(fd);
 			return -1;
 		}
 	}
@@ -91,6 +92,7 @@ int	bulk_read(unsigned long item, char *buffer, vast offset, vast length)
 		if (lseek(fd, offset, SEEK_SET) == (off_t) -1)
 		{
 			putSysErrmsg("bulk_read failed on lseek.",  fileName);
+			close(fd);
 			return -1;
 		}
 	}

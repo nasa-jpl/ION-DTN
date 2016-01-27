@@ -234,7 +234,7 @@ void updateCtxNbf(char* eid, int eidLen)
 	IPNDCtx	*ctx = getIPNDCtx();
 
 	if (!ctx) return;
-	bloom_add(&ctx->nbf, eid, eidLen);
+	oK(bloom_add(&ctx->nbf, eid, eidLen));
 
 	/* find service 127 NBF-Bits and update it with bytes */
 
