@@ -56,7 +56,7 @@ typedef struct
 
 	/*	Details of the route.					*/
 
-	float		arrivalProb;	/*	Probability of arrival.	*/
+	float		arrivalConfidence;
 	time_t		arrivalTime;	/*	As from time(2).	*/
 	PsmAddress	hops;		/*	SM list: IonCXref addr	*/
 	uvast		maxCapacity;
@@ -89,8 +89,8 @@ typedef struct
 	uvast		neighborNodeNbr;
 	FwdDirective	directive;
 	time_t		forfeitTime;
-	float		arrivalProb;	/*	Probability of arrival.	*/
-	time_t		arrivalTime;
+	float		arrivalConfidence;
+	time_t		arrivalTime;	/*	As from time(2).	*/
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
 	Scalar		protected;	/*	Bytes not overbooked.	*/
 	int		hopCount;	/*	# hops from dest. node.	*/
@@ -318,7 +318,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		transmitTime;
 	time_t		arrivalTime;
 	IonCXref	*finalContact = NULL;
-	float		highestProbability = 0.0;
+	float		highestConfidence = 0.0;
 	time_t		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextContact;
 	time_t		earliestArrivalTime;
@@ -455,13 +455,15 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 				if (contact->toNode == terminusNode->nodeNbr)
 				{
-					if (contact->prob > highestProbability
-					|| (contact->prob == highestProbability
+					if (contact->confidence >
+							highestConfidence
+					|| (contact->confidence ==
+							highestConfidence
 						&& work->arrivalTime
 						< earliestFinalArrivalTime))
 					{
-						highestProbability
-							= contact->prob;
+						highestConfidence
+							= contact->confidence;
 						earliestFinalArrivalTime
 							= work->arrivalTime;
 						finalContact = contact;
@@ -525,7 +527,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	if (finalContact)	/*	Found a route to terminus node.	*/
 	{
 		route->arrivalTime = earliestFinalArrivalTime;
-		route->arrivalProb = 1.0;
+		route->arrivalConfidence = 1.0;
 
 		/*	Load the entire route into the "hops" list,
 		 *	backtracking to root, and compute the time
@@ -548,7 +550,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				maxCapacity = work->capacity;
 			}
 
-			route->arrivalProb *= contact->prob;
+			route->arrivalConfidence *= contact->confidence;
 			addr = psa(ionwm, contact);
 			TRACE(CgrHop, contact->fromNode, contact->toNode);
 			if (sm_list_insert_first(ionwm, route->hops, addr) == 0)
@@ -1005,19 +1007,19 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	}
 
 	/*	Finally, insert that route into the terminusNode's
-	 *	list of routes in probability/arrivalTime order.	*/
+	 *	list of routes in confidence/arrivalTime order.	*/
 
 	newRoute = (CgrRoute *) psp(ionwm, routeAddr);
 	for (elt = sm_list_first(ionwm, routes); elt; elt =
 			sm_list_next(ionwm, elt))
 	{
 		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (route->arrivalProb > newRoute->arrivalProb)
+		if (route->arrivalConfidence > newRoute->arrivalConfidence)
 		{
 			continue;
 		}
 
-		if (route->arrivalProb == newRoute->arrivalProb)
+		if (route->arrivalConfidence == newRoute->arrivalConfidence)
 		{
 			if (route->arrivalTime <= newRoute->arrivalTime)
 			{
@@ -1425,11 +1427,14 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			/*	This route starts with contact with a
 			 *	neighbor that's already in the list.	*/
 
-			if (route->arrivalProb > proxNode->arrivalProb
-			|| (route->arrivalProb == proxNode->arrivalProb
+			if (route->arrivalConfidence >
+					proxNode->arrivalConfidence
+			|| (route->arrivalConfidence ==
+					proxNode->arrivalConfidence
 				&& arrivalTime < proxNode->arrivalTime))
 			{
-				proxNode->arrivalProb = route->arrivalProb;
+				proxNode->arrivalConfidence =
+						route->arrivalConfidence;
 				proxNode->arrivalTime = arrivalTime;
 				proxNode->hopCount = hopCount;
 				proxNode->forfeitTime = route->toTime;
@@ -1440,7 +1445,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			}
 			else
 			{
-				if (route->arrivalProb == proxNode->arrivalProb
+				if (route->arrivalConfidence ==
+						proxNode->arrivalConfidence
 				&& arrivalTime == proxNode->arrivalTime)
 				{
 					if (hopCount < proxNode->hopCount)
@@ -1492,7 +1498,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	proxNode->neighborNodeNbr = route->toNodeNbr;
 	memcpy((char *) &(proxNode->directive), (char *) &directive,
 			sizeof(FwdDirective));
-	proxNode->arrivalProb = route->arrivalProb;
+	proxNode->arrivalConfidence = route->arrivalConfidence;
 	proxNode->arrivalTime = arrivalTime;
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
@@ -1684,18 +1690,19 @@ static int	excludeNode(Lyst excludedNodes, uvast nodeNbr)
 	return 0;
 }
 
-static float	getNewDeliveryProb(Bundle *bundle, ProximateNode *proxNode)
+static float	getNewDlvConfidence(Bundle *bundle, ProximateNode *proxNode)
 {
-	float		deliveryFailureProb;
+	float		dlvFailureConfidence;
 
-	/*	Delivery of bundle fails if and only if all bets fail.
-	 *	The probability of this is the product of the delivery
-	 *	failure probabilities of all bets, each of which is
-	 *	1.0 minus the probability of the bet's success.		*/
+	/*	Delivery of bundle fails if and only if all forwarded
+	 *	copies fail to arrive.  Our confidence that this will
+	 *	happen is the product of our confidence in the delivery
+	 *	failures of all forwarded copies, each of which is
+	 *	1.0 minus our confidence that this copy will arrive.	*/
 
-	deliveryFailureProb = (1.0 - bundle->deliveryProb)
-			* (1.0 - proxNode->arrivalProb);
-	return (1.0 - deliveryFailureProb);
+	dlvFailureConfidence = (1.0 - bundle->dlvConfidence)
+			* (1.0 - proxNode->arrivalConfidence);
+	return (1.0 - dlvFailureConfidence);
 }
 
 static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
@@ -1708,16 +1715,17 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	Embargo		*embargo;
 	BpEvent		event;
 
-	/*	Note "bet" on the route through this neighbor.		*/
+	/*	Note that a copy is being sent on the route through
+	 *	this neighbor.						*/
 
-	if (bundle->cgrBetsCount == MAX_CGR_BETS)
+	if (bundle->xmitCopiesCount == MAX_XMIT_COPIES)
 	{
 		return 0;	/*	Reached forwarding limit.	*/
 	}
 
-	bundle->cgrBets[bundle->cgrBetsCount] = proxNode->neighborNodeNbr;
-	bundle->cgrBetsCount++;
-	bundle->deliveryProb = getNewDeliveryProb(bundle, proxNode);
+	bundle->xmitCopies[bundle->xmitCopiesCount] = proxNode->neighborNodeNbr;
+	bundle->xmitCopiesCount++;
+	bundle->dlvConfidence = getNewDlvConfidence(bundle, proxNode);
 	if (proxNode->neighborNodeNbr == bundle->destination.c.nodeNbr)
 	{
 		serviceNbr = bundle->destination.c.serviceNbr;
@@ -1987,9 +1995,9 @@ static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
 {
 	int	i;
 
-	for (i = 0; i < bundle->cgrBetsCount; i++)
+	for (i = 0; i < bundle->xmitCopiesCount; i++)
 	{
-		if (bundle->cgrBets[i] == nodeNbr)
+		if (bundle->xmitCopies[i] == nodeNbr)
 		{
 			return 1;
 		}
@@ -2053,7 +2061,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(proximateNodes);
-	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
+	if (bundle->dlvConfidence < MIN_NET_DELIVERY_CONFIDENCE)
 	{
 		/*	Must keep on trying to send this bundle.	*/
 
@@ -2108,8 +2116,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	Bundle		newBundle;
 	Object		newBundleObj;
 	ProximateNode	*selectedNeighbor;
-	float		newDeliveryProb;
-	float		probImprovement;
+	float		newDlvConfidence;
+	float		confidenceImprovement;
 
 	/*	Determine whether or not the contact graph for this
 	 *	node identifies one or more proximate nodes to
@@ -2253,13 +2261,15 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 
 		/*	Skip this candidate if not cost-effective.	*/
 
-		if (bundle->deliveryProb > 0.0
-		&& bundle->deliveryProb < 1.0)
+		if (bundle->dlvConfidence > 0.0
+		&& bundle->dlvConfidence < 1.0)
 		{
-			newDeliveryProb = getNewDeliveryProb(bundle, proxNode);
-			probImprovement =
-				(newDeliveryProb / bundle->deliveryProb) - 1.0;
-			if (probImprovement < MIN_PROB_IMPROVEMENT)
+			newDlvConfidence =
+				getNewDlvConfidence(bundle, proxNode);
+			confidenceImprovement =
+				(newDlvConfidence / bundle->dlvConfidence)
+				- 1.0;
+			if (confidenceImprovement < MIN_CONFIDENCE_IMPROVEMENT)
 			{
 				TRACE(CgrIgnoreProximateNode, CgrNoHelp);
 				MRELEASE(proxNode);
@@ -2274,15 +2284,17 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			TRACE(CgrSelectProximateNode);
 			selectedNeighbor = proxNode;
 		}
-		else if (proxNode->arrivalProb > selectedNeighbor->arrivalProb)
+		else if (proxNode->arrivalConfidence >
+				selectedNeighbor->arrivalConfidence)
 		{
 			TRACE(CgrSelectProximateNode);
 			MRELEASE(selectedNeighbor);
 			selectedNeighbor = proxNode;
 		}
-		else if (proxNode->arrivalProb < selectedNeighbor->arrivalProb)
+		else if (proxNode->arrivalConfidence <
+				selectedNeighbor->arrivalConfidence)
 		{
-			TRACE(CgrIgnoreProximateNode, CgrLowerProb);
+			TRACE(CgrIgnoreProximateNode, CgrLowerConfidence);
 			MRELEASE(proxNode);
 		}
 		else if (proxNode->arrivalTime <
@@ -2356,7 +2368,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		TRACE(CgrNoProximateNode);
 	}
 
-	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB
+	if (bundle->dlvConfidence < MIN_NET_DELIVERY_CONFIDENCE
 	&& bundle->id.source.c.nodeNbr != bundle->destination.c.nodeNbr)
 	{
 		/*	Must keep on trying to send this bundle.	*/
@@ -2506,8 +2518,8 @@ capacity for this bundle",
 
 	[CgrMoreHops] = "more hops",
 	[CgrIdentical] = "identical to a previous route",
-	[CgrNoHelp] = "insufficient delivery probability improvement",
-	[CgrLowerProb] = "lower delivery probability",
+	[CgrNoHelp] = "insufficient delivery confidence improvement",
+	[CgrLowerConfidence] = "lower delivery confidence",
 	[CgrLaterArrivalTime] = "later arrival time",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
 	};

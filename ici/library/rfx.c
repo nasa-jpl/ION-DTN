@@ -706,7 +706,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 			uvast fromNode, uvast toNode, unsigned int xmitRate,
-			float prob)
+			float confidence)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -728,17 +728,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	CHKZERO(toTime > fromTime);
 	CHKZERO(fromNode);
 	CHKZERO(toNode);
-	CHKZERO(prob > 0.0 && prob <= 1.0);
-	if (prob < 1.0)
-	{
-		if (fromNode == getOwnNodeNbr()
-		|| toNode == getOwnNodeNbr())
-		{
-			writeMemo("[?] Ignoring non-certain local contact.");
-			return 0;
-		}
-	}
-
+	CHKZERO(confidence > 0.0 && confidence <= 1.0);
 	CHKZERO(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing
@@ -750,7 +740,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	arg.fromTime = fromTime;
 	arg.toTime = toTime;
 	arg.xmitRate = xmitRate;
-	arg.prob = prob;
+	arg.confidence = confidence;
 	arg.routingObject = 0;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
@@ -817,7 +807,7 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	contact.fromNode = fromNode;
 	contact.toNode = toNode;
 	contact.xmitRate = xmitRate;
-	contact.prob = prob;
+	contact.confidence = confidence;
 	obj = sdr_malloc(sdr, sizeof(IonContact));
 	if (obj)
 	{
@@ -858,9 +848,8 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
 node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec, \
-probability %f.",
-			fromTimeBuffer, toTimeBuffer, contact->fromNode,
-			contact->toNode, contact->xmitRate, contact->prob);
+confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromNode,
+		contact->toNode, contact->xmitRate, contact->confidence);
 	return buffer;
 }
 
@@ -1079,7 +1068,7 @@ void	rfx_contact_state(uvast nodeNbr, unsigned int *secRemaining,
 			continue;	/*	Wrong node.		*/
 		}
 
-		if (contact->prob < 1.0)
+		if (contact->confidence < 1.0)
 		{
 			continue;	/*	Not current contact.	*/
 		}
@@ -1756,7 +1745,7 @@ static int	loadContact(Object elt)
 	cxref.fromTime = contact.fromTime;
 	cxref.toTime = contact.toTime;
 	cxref.xmitRate = contact.xmitRate;
-	cxref.prob = contact.prob;
+	cxref.confidence = contact.confidence;
 	cxref.contactElt = elt;
 	cxref.routingObject = 0;
 	if (insertCXref(&cxref) == 0)

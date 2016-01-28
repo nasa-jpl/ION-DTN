@@ -42,7 +42,7 @@ extern PsmAddress	rfx_insert_contact(time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
 				unsigned int xmitRate,
-				float prob);
+				float confidence);
 			/*	Creates a new IonContact object,
 				inserts that object into the contacts
 				list in the ION database, and returns

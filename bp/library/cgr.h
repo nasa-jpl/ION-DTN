@@ -115,7 +115,7 @@ typedef enum
 	CgrMoreHops,
 	CgrIdentical,
 	CgrNoHelp,
-	CgrLowerProb,
+	CgrLowerConfidence,
 	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 
