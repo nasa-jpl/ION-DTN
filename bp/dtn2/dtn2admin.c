@@ -135,48 +135,33 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		*cursor = '\0';		/*	Delimit protocol name.	*/
 		cursor++;
 		outductName = cursor;
-		if (strcmp(protocolName, "tcp") == 0)
+		cursor = strchr(cursor, ',');
+		if (cursor == NULL)
 		{
-			/*	tcpcli manages these outducts.		*/
+			/*	End of token delimits outduct name.	*/
 
-			dir->outductElt = 0;
-			destDuctName = outductName;
-			dir->protocolClass = BP_PROTOCOL_RELIABLE;
+			destDuctName = NULL;
+			dir->destDuctName = 0;
 		}
-		else
+		else	/*	Delimit outduct name.			*/
 		{
-			cursor = strchr(cursor, ',');
-			if (cursor == NULL)
+			*cursor = '\0';
+			cursor++;
+			destDuctName = cursor;
+			findOutduct(protocolName, outductName, &vduct,
+					&vductElt);
+			if (vductElt == 0)
 			{
-				/*	End of token delimits outduct
-				 *	name.				*/
-
-				destDuctName = NULL;
-				dir->destDuctName = 0;
+				putErrmsg("Unknown outduct.", outductName);
+				return 0;
 			}
-			else	/*	Delimit outduct name.		*/
-			{
-				*cursor = '\0';
-				cursor++;
-				destDuctName = cursor;
-				findOutduct(protocolName, outductName, &vduct,
-						&vductElt);
-				if (vductElt == 0)
-				{
-					putErrmsg("Unknown outduct.",
-						outductName);
-					return 0;
-				}
 
-				dir->outductElt = vduct->outductElt;
-				outductAddr = sdr_list_data(sdr,
-						dir->outductElt);
-				GET_OBJ_POINTER(sdr, Outduct, outduct,
-						outductAddr);
-				GET_OBJ_POINTER(sdr, ClProtocol, protocol,
-						outduct->protocol);
-				dir->protocolClass = protocol->protocolClass;
-			}
+			dir->outductElt = vduct->outductElt;
+			outductAddr = sdr_list_data(sdr, dir->outductElt);
+			GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
+			GET_OBJ_POINTER(sdr, ClProtocol, protocol,
+					outduct->protocol);
+			dir->protocolClass = protocol->protocolClass;
 		}
 
 		if (destDuctName == NULL)
@@ -379,50 +364,25 @@ static void	printDirective(char *context, FwdDirective *dir)
 		return;
 
 	case xmit:
-		if (dir->outductElt == 0)	/*	Must be TCPCL.	*/
+		ductObj = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
+		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+		protocolName = clp->name;
+		istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
+		if (dir->destDuctName)
 		{
-			protocolName = "tcp";
-			if (dir->destDuctName == 0)
+			istrcat(ductNameBuf, ",", sizeof ductNameBuf);
+			if (sdr_string_read(sdr, destDuctName,
+					dir->destDuctName) < 1)
 			{
-				ductName = "unknown";
-			}
-			else
-			{
-				if (sdr_string_read(sdr, ductNameBuf,
-						dir->destDuctName) < 1)
-				{
-					ductName = "?";
-				}
-				else
-				{
-					ductName = ductNameBuf;
-				}
-			}
-		}
-		else
-		{
-			ductObj = sdr_list_data(sdr, dir->outductElt);
-			GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
-			GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
-			protocolName = clp->name;
-			istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
-			if (dir->destDuctName)
-			{
-				istrcat(ductNameBuf, ",", sizeof ductNameBuf);
-				if (sdr_string_read(sdr, destDuctName,
-						dir->destDuctName) < 1)
-				{
-					destDuctName[0] = '?';
-					destDuctName[1] = '\0';
-				}
-
-				istrcat(ductNameBuf, destDuctName,
-						sizeof ductNameBuf);
+				destDuctName[0] = '?';
+				destDuctName[1] = '\0';
 			}
 
-			ductName = ductNameBuf;
+			istrcat(ductNameBuf, destDuctName, sizeof ductNameBuf);
 		}
 
+		ductName = ductNameBuf;
 		isprintf(buffer, sizeof buffer, "%.255s x %.8s/%.255s",
 				context, protocolName, ductName);
 		printText(buffer);

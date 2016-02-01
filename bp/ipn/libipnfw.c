@@ -192,18 +192,10 @@ static void	createXmitDirective(FwdDirective *directive,
 	memset((char *) directive, 0, sizeof(FwdDirective));
 	directive->action = xmit;
 	directive->outductElt = parms->outductElt;
-	if (parms->outductElt == 0)	/*	Must be tcpcl.		*/
-	{
-		directive->protocolClass = BP_PROTOCOL_RELIABLE;
-	}
-	else
-	{
-		outductAddr = sdr_list_data(sdr, directive->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
-		directive->protocolClass = protocol->protocolClass;
-	}
-
+	outductAddr = sdr_list_data(sdr, directive->outductElt);
+	GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
+	GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
+	directive->protocolClass = protocol->protocolClass;
 	if (parms->destDuctName == NULL)
 	{
 		directive->destDuctName = 0;

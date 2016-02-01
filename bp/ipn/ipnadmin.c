@@ -117,14 +117,6 @@ static int	parseDuctExpression(char *token, DuctExpression *expression)
 	*cursor = '\0';			/*	Delimit protocol name.	*/
 	cursor++;
 	outductName = cursor;
-	if (strcmp(protocolName, "tcp") == 0)
-	{
-		/*	tcpcli manages these outducts.			*/
-
-		expression->outductElt = 0;
-		expression->destDuctName = outductName;
-		return 1;
-	}
 
 	/*	If there's a destination duct name, note end of
 	 *	outduct name and start of destination duct name.	*/
@@ -502,50 +494,25 @@ static void	printDirective(char *context, FwdDirective *dir)
 	switch (dir->action)
 	{
 	case xmit:
-		if (dir->outductElt == 0)	/*	Must be TCPCL.	*/
+		ductObj = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
+		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
+		protocolName = clp->name;
+		istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
+		if (dir->destDuctName)
 		{
-			protocolName = "tcp";
-			if (dir->destDuctName == 0)
+			istrcat(ductNameBuf, ",", sizeof ductNameBuf);
+			if (sdr_string_read(sdr, destDuctName,
+					dir->destDuctName) < 1)
 			{
-				ductName = "unknown";
-			}
-			else
-			{
-				if (sdr_string_read(sdr, ductNameBuf,
-						dir->destDuctName) < 1)
-				{
-					ductName = "?";
-				}
-				else
-				{
-					ductName = ductNameBuf;
-				}
-			}
-		}
-		else
-		{
-			ductObj = sdr_list_data(sdr, dir->outductElt);
-			GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
-			GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
-			protocolName = clp->name;
-			istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
-			if (dir->destDuctName)
-			{
-				istrcat(ductNameBuf, ",", sizeof ductNameBuf);
-				if (sdr_string_read(sdr, destDuctName,
-						dir->destDuctName) < 1)
-				{
-					destDuctName[0] = '?';
-					destDuctName[1] = '\0';
-				}
-
-				istrcat(ductNameBuf, destDuctName,
-						sizeof ductNameBuf);
+				destDuctName[0] = '?';
+				destDuctName[1] = '\0';
 			}
 
-			ductName = ductNameBuf;
+			istrcat(ductNameBuf, destDuctName, sizeof ductNameBuf);
 		}
 
+		ductName = ductNameBuf;
 		isprintf(buffer, sizeof buffer, "%.80s x %.8s/%.255s",
 				context, protocolName, ductName);
 		printText(buffer);

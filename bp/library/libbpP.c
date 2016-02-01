@@ -1106,7 +1106,7 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->semaphore = SM_SEM_NONE;
 	vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	vduct->xmitThrottle.capacity = 0;
+	vduct->xmitThrottle.capacity = protocol.nominalRate;
 	resetOutduct(vduct);
 	return 0;
 }
@@ -4341,16 +4341,10 @@ int	removeOutduct(char *protocolName, char *ductName)
 
 	/*	Okay to remove this duct from the database.  First,
 	 *	remove all references to this duct from all routing
-	 *	databases (unless this is a tcpcl outduct).		*/
+	 *	databases.						*/
 
-	if (strcmp(protocolName, "tcp") != 0)
-	{
-		/*	Note: for tcpcl, plans are managed directly and
-		 *	that management controls outduct management.	*/
-
-		dtn2_forgetOutduct(ductElt);
-		ipn_forgetOutduct(ductElt);
-	}
+	dtn2_forgetOutduct(ductElt);
+	ipn_forgetOutduct(ductElt);
 
 	/*	Next remove the duct's volatile state.			*/
 
@@ -9439,10 +9433,9 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	Sdr		bpSdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
-	Object		outductElt;
-	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	char		destDuctName[SDRSTRING_BUFSZ];
 	VOutduct	*vduct = NULL;
-	PsmAddress	vductElt = 0;;
+	PsmAddress	vductElt = 0;
 	Object		ductAddr;
 	Outduct		duct;
 	int		backlogIncrement;
@@ -9494,25 +9487,9 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		destDuctName[0] = '\0';
 	}
 
-	/*	Next we check to see if the duct is nonexistent
-	 *	or blocked.						*/
+	/*	Next we check to see if the duct is blocked.		*/
 
-	if (directive->outductElt)
-	{
-		outductElt = directive->outductElt;
-	}
-	else		/*	Outducts are managed by tcpcli.		*/
-	{
-		findOutduct("tcp", destDuctName, &vduct, &vductElt);
-		if (vductElt == 0)	/*	No connection.		*/
-		{
-			return enqueueToLimbo(bundle, bundleObj);
-		}
-
-		outductElt = vduct->outductElt;
-	}
-
-	ductAddr = sdr_list_data(bpSdr, outductElt);
+	ductAddr = sdr_list_data(bpSdr, directive->outductElt);
 	sdr_stage(bpSdr, (char *) &duct, ductAddr, sizeof(Outduct));
 	if (duct.blocked)
 	{
@@ -9603,17 +9580,13 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 
 	/*	Finally, if outduct is started then wake up CLO.	*/
 
-	if (vductElt == 0)	/*	Not already found per tcpcli.	*/
+	for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
+			vductElt = sm_list_next(ionwm, vductElt))
 	{
-		for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
-				vductElt = sm_list_next(ionwm, vductElt))
+		vduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, vductElt));
+		if (vduct->outductElt == directive->outductElt)
 		{
-			vduct = (VOutduct *) psp(ionwm,
-					sm_list_data(ionwm, vductElt));
-			if (vduct->outductElt == directive->outductElt)
-			{
-				break;
-			}
+			break;
 		}
 	}
 
@@ -11973,23 +11946,4 @@ int	eidIsLocal(EndpointId eid, char* dictionary)
 	}
 
 	return result;
-}
-
-/*	*	DUMMY FUNCTIONS FOR TEMPORARY BUILD.	*	*	*/
-
-int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
-		char *claProtocol, unsigned int xmitRate, unsigned int recvRate)
-{
-	return 0;
-}
-
-int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
-		char *claProtocol)
-{
-	return 0;
-}
-
-PsmAddress	bp_discover_find_neighbor(char *eid)
-{
-	return 0;
 }

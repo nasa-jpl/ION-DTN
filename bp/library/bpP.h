@@ -27,6 +27,9 @@ extern "C" {
 
 #define	BP_VERSION			6
 
+#define	BpUdpDefaultPortNbr		4556
+#define	BpTcpDefaultPortNbr		4556
+
 /*	"Watch" switches for bundle protocol operation.			*/
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)

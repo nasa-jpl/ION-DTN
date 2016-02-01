@@ -23,8 +23,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	writeMemo("[i] tcpclo is deprecated.  tcpcl outducts are now managed \
-automatically by tcpcli, based on egress plans.");
+	writeMemo("[i] tcpclo is deprecated.  tcpcl outducts are now drained \
+by tcpcli threads.");
 	bp_detach();
 	return 0;
 }

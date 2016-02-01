@@ -5,6 +5,7 @@ UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
+BULK = ../bulk/STUB_BULK
 
 OPT = -g -Wall -Dmingw
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
@@ -25,6 +26,7 @@ LIBICIOBJS = \
 	rfx.o \
 	ionsec.o \
 	crypto.o \
+	bulk.o \
 	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
@@ -48,6 +50,7 @@ PUBINCLS = \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
+	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
@@ -180,6 +183,9 @@ libici.dll:	$(LIBICIOBJS) libicinm.o
 		$(CC) -c $<
 
 %.o:		$(CRYPTO)/%.c
+		$(CC) -c $<
+
+%.o:		$(BULK)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

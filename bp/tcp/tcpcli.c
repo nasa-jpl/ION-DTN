@@ -2,6 +2,53 @@
 	tcpcli.c:	ION TCP convergence-layer adapter daemon.
 			Handles both transmission and reception.
 
+	NOTE: this source file implements TCPCL as defined by
+	RFC 7242.  There are some flaws in RFC 7242, which this
+	implementation attempts to accommodate.  One important
+	note: the expectation in RFC 7242 is that a single socket
+	pair can be used for bidirectional bundle transmission
+	between two nodes, but in ION's implementation of TCPCL
+	this is currently not possible.	 Here's why.
+
+	TCP connections are unidirectional.  The node accepting
+	the connection does not know the socket name of the
+	connecting node until the connection has been made, and
+	in fact it doesn't know anything about the connecting
+	node until after the exchange of contact headers.  This
+	makes it impossible to manage forwarding (as ION does)
+	by associating egress plans, linked to Outducts that
+	cite convergence-layer endpoints, with neighboring
+	nodes.  The convergence-layer endpoint (socket name)
+	for a TCPCL Outduct may be unknown at the time the
+	Outduct is established (because it only is known at
+	connection time).  This is a problem because a socket
+	name (IP address and port number) must be noted in
+	some pre-established Outduct specifications in order
+	for the local node to be the connecting node rather
+	than the node that is connected to.  Overriding plan
+	rules have the same problem.
+
+	In the future it should be possible to design some sort
+	of abstract TCPCL Outduct specification for "whatever
+	TCP connection is made to node X, which you can try to
+	connect to at IP address Y and port Z".  Such Outducts
+	could be created in the course of forwarding management,
+	and in the event of an unexpected connection from a
+	previously unknown neighbor we could create such an
+	Outduct dynamically at connection time.  Dynamically
+	created Outducts would be useless without corresponding
+	dynamically created egress plans, but neighbor discovery
+	will create such plans (though without any overriding
+	plan rules).  All of this dynamic creation of plans and
+	Outducts constitutes wholly unmanaged forwarding, but
+	that will work fine with opportunistic routing.
+
+	For now, though, implementation of TCPCL to suit the
+	needs of Space Station operations does not require
+	this conceptual leap.  tcpcli will execute TCPCL in
+	a compliant manner, just not in the manner anticipated
+	by the designers of TCPCL.
+
 	Author: Scott Burleigh, JPL
 
 	Copyright (c) 2015, California Institute of Technology.
@@ -14,7 +61,6 @@
 #include "dtn2fw.h"
 #include "llcv.h"
 
-#define	BpTcpDefaultPortNbr	4556
 #define	TCPCL_BUFSZ		(64 * 1024)
 
 #ifndef MAX_RESCAN_INTERVAL
@@ -278,46 +324,32 @@ static void	cancelXmit(LystElt elt, void *userdata)
 	}
 }
 
-static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
-			char *destDuctName, VInduct *induct)
+static int	beginConnection(LystElt neighborElt, int newSocket,
+			Lyst neighbors, char *destDuctName)
 {
-	static char		*noEid = "<unknown node>";
-	LystElt			neighborElt = NULL;
 	TcpclNeighbor		*neighbor = NULL;
-	int			newNeighbor = 0;
 	TcpclConnection		*connection;
+	int			newNeighbor = 0;
 	size_t			len = 0;
 	ReceiverThreadParms	*rtp;
 
-	if (eid)	/*	Planned connection.			*/
-	{
-		neighborElt = findNeighborForEid(neighbors, eid);
-	}
-	else
-	{
-		eid = noEid;
-	}
-
-	if (neighborElt == NULL)
-	{
-		neighborElt = addTcpclNeighbor(eid, induct, neighbors);
-		if (neighborElt == NULL)
-		{
-			closesocket(newSocket);
-			return -1;
-		}
-
-		newNeighbor = 1;
-	}
-
 	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
-	if (destDuctName == NULL)
+	if (destDuctName == NULL)	/*	Connection by accept().	*/
 	{
 		connection = neighbor->cc;
+		newNeighbor = 1;
 	}
-	else
+	else				/*	Connect() succeeded.	*/
 	{
 		connection = neighbor->pc;
+
+		/*	Neighbor may have already been created upon
+		 *	acceptance of a connection.			*/
+
+		if (neighbor->cc->sock == -1)
+		{
+			newNeighbor = 1;
+		}
 	}
 
 	connection->sock = newSocket;
@@ -358,7 +390,7 @@ static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
 	}
 
 	connection->hasReceiver = 1;
-	if (eid == noEid)		/*	Connection by accept().	*/
+	if (destDuctName == NULL)	/*	Connection by accept().	*/
 	{
 		/*	Let receiver thread start running.		*/
 
@@ -407,8 +439,7 @@ static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
 			lyst_delete(neighborElt);
 		}
 
-		putErrmsg("tcpcli can't copy socket spec for new neighbor.",
-				NULL);
+		putErrmsg("tcpcli can't open pipeline.", NULL);
 		closesocket(newSocket);
 		return -1;
 	}
@@ -429,8 +460,7 @@ static int	beginConnection(Lyst neighbors, char *eid, int newSocket,
 			lyst_delete(neighborElt);
 		}
 
-		putErrmsg("tcpcli can't copy socket spec for new neighbor.",
-				NULL);
+		putErrmsg("tcpcli can't copy socket spec.", NULL);
 		closesocket(newSocket);
 		return -1;
 	}
@@ -481,6 +511,9 @@ static int	reopenConnection(TcpclConnection *connection)
 
 static void	closeConnection(TcpclConnection *connection)
 {
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
 	if (connection->sock != -1)
 	{
 		closesocket(connection->sock);
@@ -489,10 +522,15 @@ static void	closeConnection(TcpclConnection *connection)
 
 	if (connection->destDuctName)	/*	Planned connection.	*/
 	{
-		if (bpBlockOutduct("tcp", connection->destDuctName) < 0)
+		findOutduct("tcp", connection->destDuctName, &vduct,
+				&vductElt);
+		if (vductElt)
 		{
-			ionKillMainThread(procName());
-			return;
+			if (bpBlockOutduct("tcp", connection->destDuctName) < 0)
+			{
+				ionKillMainThread(procName());
+				return;
+			}
 		}
 
 		if (connection->reconnectInterval == 0)
@@ -570,16 +608,6 @@ static void	endConnection(TcpclConnection *connection, char reason)
 	}
 
 	closeConnection(connection);
-	if (connection->destDuctName)
-	{
-		if (removeOutduct("tcp", connection->destDuctName) < 0)
-		{
-			putErrmsg("Can't remove outduct",
-					connection->destDuctName);
-			ionKillMainThread(procName());
-		}
-	}
-
 	if (connection->pipeline)
 	{
 		lyst_destroy(connection->pipeline);
@@ -798,11 +826,11 @@ static int	sendOneBundle(SenderThreadParms *stp)
 			continue;
 		}
 
-		/*	If outduct has meanwhile been closed, quit.	*/
+		/*	If outduct has meanwhile been stopped, quit.	*/
 
 		if (sm_SemEnded(connection->outduct->semaphore))
 		{
-			writeMemoNote("[i] tcpcli outduct closed",
+			writeMemoNote("[i] tcpcli outduct stopped",
 					connection->destDuctName);
 			return 0;
 		}
@@ -816,9 +844,9 @@ static int	sendOneBundle(SenderThreadParms *stp)
 			return -1;
 		}
 
-		if (bundleZco == 0)		/*	Outduct closed.	*/
+		if (bundleZco == 0)	/*	Outduct stopped.	*/
 		{
-			writeMemoNote("[i] tcpcli outduct closed",
+			writeMemoNote("[i] tcpcli outduct stopped",
 					connection->destDuctName);
 			return 0;
 		}
@@ -1151,21 +1179,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	MRELEASE(eidbuf);			/*	Not needed.	*/
 
 	/*	This is a connection over which bundles may be
-	 *	transmitted, so we must create an outduct for those
-	 *	bundles and start a sender thread for that outduct.	*/
-
-	switch (addOutduct("tcp", connection->destDuctName, NULL, 0))
-	{
-	case -1:
-		putErrmsg("tcpcli can't create outduct.",
-				connection->destDuctName);
-		return -1;
-
-	case 0:
-		writeMemoNote("[?] tcpcli outduct already exists",
-				connection->destDuctName);
-		break;
-	}
+	 *	transmitted, so we must start a sender thread for
+	 *	the outduct that we use for those bundles.		*/
 
 	findOutduct("tcp", connection->destDuctName, &outduct, &vductElt);
 	if (vductElt == 0)
@@ -1193,13 +1208,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	}
 
 	connection->hasSender = 1;
-	if (bpUnblockOutduct("tcp", connection->destDuctName) < 0)
-	{
-		putErrmsg("tcpcli can't unblock outduct.",
-				connection->destDuctName);
-		return -1;
-	}
-
 	return 1;
 }
 
@@ -1867,14 +1875,23 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 {
 	LystElt		elt;
 	TcpclNeighbor	*neighbor;
-	TcpclConnection	*connection;
 	int		sock;
 
-	/*	If a Neighbor doesn't already exist for this plan,
-	 *	add it.							*/
+	/*	If a Neighbor with an open planned connection already
+	 *	exists for this plan, nothing to do.			*/
 
 	elt = findNeighborForEid(ctp->neighbors, eid);
-	if (elt == NULL)
+	if (elt)
+	{
+		neighbor = (TcpclNeighbor *) lyst_data(elt);
+		if (neighbor->pc->sock != -1)
+		{
+			return 0;
+		}
+
+		/*	Otherwise, must try again to connect.		*/
+	}
+	else	/*	This is a newly added plan, no neighbor yet.	*/
 	{
 		elt = addTcpclNeighbor(eid, ctp->induct, ctp->neighbors);
 		if (elt == NULL)
@@ -1882,16 +1899,6 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 			putErrmsg("Can't add neighbor.", eid);
 			return -1;
 		}
-	}
-
-	/*	If connection per this plan has already been begun,
-	 *	cool; we're done.					*/
-
-	neighbor = (TcpclNeighbor *) lyst_data(elt);
-	connection = neighbor->pc;
-	if (connection->destDuctName)
-	{
-		return 0;		/*	Already begun.		*/
 	}
 
 	/*	Try to connect to the indicated socket.			*/
@@ -1903,14 +1910,13 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 		return -1;
 
 	case 0:
-		return 0;		/*	Neighbor refused.	*/
+		return 0;		/*	Connection refused.	*/
 	}
 
 	/*	TCP connection succeeded, so establish the TCPCL
 	 *	connection.						*/
 
-	if (beginConnection(ctp->neighbors, eid, sock, socketSpec,
-			ctp->induct) < 0)
+	if (beginConnection(elt, sock, ctp->neighbors, socketSpec) < 0)
 	{
 		putErrmsg("tcpcli can't add new connection.", NULL);
 		return -1;
@@ -1921,26 +1927,30 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 
 static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 {
-	Sdr	sdr = getIonsdr();
-	Object	planElt;
-	Object	planObj;
-		OBJ_POINTER(IpnPlan, ipnPlan);
-	char	destDuctName[SDRSTRING_BUFSZ];
-	Object	ruleElt;
-	Object	ruleObj;
-		OBJ_POINTER(IpnRule, ipnRule);
+	Sdr		sdr = getIonsdr();
+	Object		planElt;
+	Object		planObj;
+			OBJ_POINTER(IpnPlan, ipnPlan);
+	Outduct		outduct;
+	ClProtocol	protocol;
+	Object		ruleElt;
+	Object		ruleObj;
+			OBJ_POINTER(IpnRule, ipnRule);
 
 	for (planElt = sdr_list_first(sdr, ipndb->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
 	{
 		planObj = sdr_list_data(sdr, planElt);
 		GET_OBJ_POINTER(sdr, IpnPlan, ipnPlan, planObj);
-		if (ipnPlan->defaultDirective.action == xmit
-		&& ipnPlan->defaultDirective.destDuctName != 0)
+		if (ipnPlan->defaultDirective.action == xmit)
 		{
-			sdr_string_read(sdr, destDuctName,
-				ipnPlan->defaultDirective.destDuctName);
-			if (strcmp(destDuctName, connection->destDuctName) == 0)
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					ipnPlan->defaultDirective.outductElt),
+					sizeof(Outduct));
+			sdr_read(sdr, (char *) &protocol, outduct.protocol,
+					sizeof(ClProtocol));
+			if (strcmp(protocol.name, "tcp") == 0
+			&& strcmp(outduct.name, connection->destDuctName) == 0)
 			{
 				return 1;	/*	Referenced.	*/
 			}
@@ -1951,12 +1961,16 @@ static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 		{
 			ruleObj = sdr_list_data(sdr, ruleElt);
 			GET_OBJ_POINTER(sdr, IpnRule, ipnRule, ruleObj);
-			if (ipnRule->directive.action == xmit
-			&& ipnRule->directive.destDuctName != 0)
+			if (ipnRule->directive.action == xmit)
 			{
-				sdr_string_read(sdr, destDuctName,
-					ipnRule->directive.destDuctName);
-				if (strcmp(destDuctName,
+				sdr_read(sdr, (char *) &outduct,
+					sdr_list_data(sdr,
+					ipnRule->directive.outductElt),
+					sizeof(Outduct));
+				sdr_read(sdr, (char *) &protocol,
+					outduct.protocol, sizeof(ClProtocol));
+				if (strcmp(protocol.name, "tcp") == 0
+				&& strcmp(outduct.name,
 					connection->destDuctName) == 0)
 				{
 					return 1;	/*	Ref.	*/
@@ -1970,26 +1984,30 @@ static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 
 static int	referencedInDtn2(TcpclConnection *connection, Dtn2DB *dtn2db)
 {
-	Sdr	sdr = getIonsdr();
-	Object	planElt;
-	Object	planObj;
-		OBJ_POINTER(Dtn2Plan, dtn2Plan);
-	char	destDuctName[SDRSTRING_BUFSZ];
-	Object	ruleElt;
-	Object	ruleObj;
-		OBJ_POINTER(Dtn2Rule, dtn2Rule);
+	Sdr		sdr = getIonsdr();
+	Object		planElt;
+	Object		planObj;
+			OBJ_POINTER(Dtn2Plan, dtn2Plan);
+	Outduct		outduct;
+	ClProtocol	protocol;
+	Object		ruleElt;
+	Object		ruleObj;
+			OBJ_POINTER(Dtn2Rule, dtn2Rule);
 
 	for (planElt = sdr_list_first(sdr, dtn2db->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
 	{
 		planObj = sdr_list_data(sdr, planElt);
 		GET_OBJ_POINTER(sdr, Dtn2Plan, dtn2Plan, planObj);
-		if (dtn2Plan->defaultDirective.action == xmit
-		&& dtn2Plan->defaultDirective.destDuctName != 0)
+		if (dtn2Plan->defaultDirective.action == xmit)
 		{
-			sdr_string_read(sdr, destDuctName,
-				dtn2Plan->defaultDirective.destDuctName);
-			if (strcmp(destDuctName, connection->destDuctName) == 0)
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					dtn2Plan->defaultDirective.outductElt),
+					sizeof(Outduct));
+			sdr_read(sdr, (char *) &protocol, outduct.protocol,
+					sizeof(ClProtocol));
+			if (strcmp(protocol.name, "tcp") == 0
+			&& strcmp(outduct.name, connection->destDuctName) == 0)
 			{
 				return 1;	/*	Referenced.	*/
 			}
@@ -2000,12 +2018,16 @@ static int	referencedInDtn2(TcpclConnection *connection, Dtn2DB *dtn2db)
 		{
 			ruleObj = sdr_list_data(sdr, ruleElt);
 			GET_OBJ_POINTER(sdr, Dtn2Rule, dtn2Rule, ruleObj);
-			if (dtn2Rule->directive.action == xmit
-			&& dtn2Rule->directive.destDuctName != 0)
+			if (dtn2Rule->directive.action == xmit)
 			{
-				sdr_string_read(sdr, destDuctName,
-					dtn2Rule->directive.destDuctName);
-				if (strcmp(destDuctName,
+				sdr_read(sdr, (char *) &outduct,
+					sdr_list_data(sdr,
+					dtn2Rule->directive.outductElt),
+					sizeof(Outduct));
+				sdr_read(sdr, (char *) &protocol,
+					outduct.protocol, sizeof(ClProtocol));
+				if (strcmp(protocol.name, "tcp") == 0
+				&& strcmp(outduct.name,
 					connection->destDuctName) == 0)
 				{
 					return 1;	/*	Ref.	*/
@@ -2048,11 +2070,12 @@ static int	noLongerReferenced(TcpclConnection *connection, IpnDB *ipndb,
 static int	rescanIpn(ClockThreadParms *ctp, IpnDB *ipndb)
 {
 	Sdr		sdr = getIonsdr();
-	char		eid[MAX_EID_LEN];
-	char		destDuctName[SDRSTRING_BUFSZ];
 	Object		planElt;
 	Object		planObj;
 			OBJ_POINTER(IpnPlan, ipnPlan);
+	Outduct		outduct;
+	ClProtocol	protocol;
+	char		eid[MAX_EID_LEN];
 	Object		ruleElt;
 	Object		ruleObj;
 			OBJ_POINTER(IpnRule, ipnRule);
@@ -2063,17 +2086,25 @@ static int	rescanIpn(ClockThreadParms *ctp, IpnDB *ipndb)
 	{
 		planObj = sdr_list_data(sdr, planElt);
 		GET_OBJ_POINTER(sdr, IpnPlan, ipnPlan, planObj);
-		isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
-				ipnPlan->nodeNbr);
-		if (ipnPlan->defaultDirective.action == xmit
-		&& ipnPlan->defaultDirective.outductElt == 0)
+		if (ipnPlan->defaultDirective.action == xmit)
 		{
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					ipnPlan->defaultDirective.outductElt),
+					sizeof(Outduct));
+			sdr_read(sdr, (char *) &protocol, outduct.protocol,
+					sizeof(ClProtocol));
+			if (strcmp(protocol.name, "tcp") != 0)
+			{
+				continue;
+			}
+			
 			/*	This is an ipn plan for xmit via a
-			 *	TCP outduct that doesn't exist yet.	*/
+			 *	TCP outduct for which we may not have
+			 *	a connection.				*/
 
-			sdr_string_read(sdr, destDuctName,
-				ipnPlan->defaultDirective.destDuctName);
-			if (beginConnectionForPlan(ctp, eid, destDuctName) < 0)
+			isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
+					ipnPlan->nodeNbr);
+			if (beginConnectionForPlan(ctp, eid, outduct.name) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				return -1;
@@ -2082,25 +2113,36 @@ static int	rescanIpn(ClockThreadParms *ctp, IpnDB *ipndb)
 			continue;	/*	Move on to next plan.	*/
 		}
 
-		/*	Plan's default directive doesn't need a TCP
-		 *	outduct, but one of its rules might.		*/
+		/*	Plan's default directive doesn't need a
+		 *	connection, but one of its rules might.		*/
 
 		for (ruleElt = sdr_list_first(sdr, ipnPlan->rules); ruleElt;
 				ruleElt = sdr_list_next(sdr, ruleElt))
 		{
 			ruleObj = sdr_list_data(sdr, ruleElt);
 			GET_OBJ_POINTER(sdr, IpnRule, ipnRule, ruleObj);
-			if (ipnRule->directive.action == xmit
-			&& ipnRule->directive.outductElt == 0)
+			if (ipnRule->directive.action == xmit)
 			{
+				sdr_read(sdr, (char *) &outduct,
+					sdr_list_data(sdr,
+					ipnRule->directive.outductElt),
+					sizeof(Outduct));
+				sdr_read(sdr, (char *) &protocol,
+					outduct.protocol, sizeof(ClProtocol));
+				if (strcmp(protocol.name, "tcp") != 0)
+				{
+					continue;
+				}
+			
 				/*	This is an ipn rule for xmit
-				 *	via a TCP outduct that doesn't
-				 *	exist yet.			*/
+				 *	via a TCP outduct for which
+				 *	we may not have a connection.	*/
 
-				sdr_string_read(sdr, destDuctName,
-					ipnRule->directive.destDuctName);
+				isprintf(eid, sizeof eid,
+						"ipn:" UVAST_FIELDSPEC ".0",
+						ipnPlan->nodeNbr);
 				if (beginConnectionForPlan(ctp, eid,
-					destDuctName) < 0)
+						outduct.name) < 0)
 				{
 					sdr_cancel_xn(sdr);
 					return -1;
@@ -2118,10 +2160,11 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 {
 	Sdr		sdr = getIonsdr();
 	char		eid[MAX_EID_LEN];
-	char		destDuctName[SDRSTRING_BUFSZ];
 	Object		planElt;
 	Object		planObj;
 			OBJ_POINTER(Dtn2Plan, dtn2Plan);
+	Outduct		outduct;
+	ClProtocol	protocol;
 	Object		ruleElt;
 	Object		ruleObj;
 			OBJ_POINTER(Dtn2Rule, dtn2Rule);
@@ -2136,16 +2179,24 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 
 		planObj = sdr_list_data(sdr, planElt);
 		GET_OBJ_POINTER(sdr, Dtn2Plan, dtn2Plan, planObj);
-		oK(sdr_string_read(sdr, eid, dtn2Plan->nodeName)); 
-		if (dtn2Plan->defaultDirective.action == xmit
-		&& dtn2Plan->defaultDirective.outductElt == 0)
+		if (dtn2Plan->defaultDirective.action == xmit)
 		{
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					dtn2Plan->defaultDirective.outductElt),
+					sizeof(Outduct));
+			sdr_read(sdr, (char *) &protocol, outduct.protocol,
+					sizeof(ClProtocol));
+			if (strcmp(protocol.name, "tcp") != 0)
+			{
+				continue;
+			}
+			
 			/*	This is a dtn2 plan for xmit via a
-			 *	TCP outduct that doesn't exist yet.	*/
+			 *	TCP outduct for which we may not have
+			 *	a connection.				*/
 
-			sdr_string_read(sdr, destDuctName,
-				dtn2Plan->defaultDirective.destDuctName);
-			if (beginConnectionForPlan(ctp, eid, destDuctName) < 0)
+			oK(sdr_string_read(sdr, eid, dtn2Plan->nodeName)); 
+			if (beginConnectionForPlan(ctp, eid, outduct.name) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				return -1;
@@ -2154,25 +2205,35 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 			continue;	/*	Move on to next plan.	*/
 		}
 
-		/*	Plan's default directive doesn't need a TCP
-		 *	outduct, but one of its rules might.		*/
+		/*	Plan's default directive doesn't need a
+		 *	connection, but one of its rules might.		*/
 
 		for (ruleElt = sdr_list_first(sdr, dtn2Plan->rules); ruleElt;
 				ruleElt = sdr_list_next(sdr, ruleElt))
 		{
 			ruleObj = sdr_list_data(sdr, ruleElt);
 			GET_OBJ_POINTER(sdr, Dtn2Rule, dtn2Rule, ruleObj);
-			if (dtn2Rule->directive.action == xmit
-			&& dtn2Rule->directive.outductElt == 0)
+			if (dtn2Rule->directive.action == xmit)
 			{
-				/*	This is a dtn2 rule for xmit
-				 *	via a TCP outduct that doesn't
-				 *	exist yet.			*/
+				sdr_read(sdr, (char *) &outduct,
+					sdr_list_data(sdr,
+					dtn2Rule->directive.outductElt),
+					sizeof(Outduct));
+				sdr_read(sdr, (char *) &protocol,
+					outduct.protocol, sizeof(ClProtocol));
+				if (strcmp(protocol.name, "tcp") != 0)
+				{
+					continue;
+				}
 
-				sdr_string_read(sdr, destDuctName,
-					dtn2Rule->directive.destDuctName);
+				/*	This is a dtn2 rule for xmit
+				 *	via TCP outduct for which we
+				 *	may not have a connection.	*/
+
+				oK(sdr_string_read(sdr, eid,
+						dtn2Plan->nodeName)); 
 				if (beginConnectionForPlan(ctp, eid,
-					destDuctName) < 0)
+						outduct.name) < 0)
 				{
 					sdr_cancel_xn(sdr);
 					return -1;
@@ -2309,17 +2370,28 @@ static int	sendKeepalive(TcpclConnection *connection)
 
 static int	clearBacklog(ClockThreadParms *ctp)
 {
-	Sdr	sdr = getIonsdr();
-	LystElt	elt;
-	int	sock;
+	static char	*noEid = "<unknown node>";
+	Sdr		sdr = getIonsdr();
+	LystElt		elt;
+	int		sock;
+	LystElt		neighbor;
 
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
 		sock = (int) lyst_data(elt);
 		oK(sdr_begin_xn(sdr));
-		if (beginConnection(ctp->neighbors, NULL, sock, NULL,
-				ctp->induct) < 0)
+		neighbor = addTcpclNeighbor(noEid, ctp->induct, ctp->neighbors);
+		if (neighbor == NULL)
+		{
+			closesocket(sock);
+			sdr_cancel_xn(sdr);
+			putErrmsg("tcpcli can't add tcpcl neighbor.", NULL);
+			pthread_mutex_unlock(ctp->backlogMutex);
+			return -1;
+		}
+
+		if (beginConnection(neighbor, sock, ctp->neighbors, NULL) < 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add responsive connection.",
