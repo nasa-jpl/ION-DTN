@@ -377,6 +377,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 	if (pthread_begin(&(connection->receiver), NULL, handleContacts, rtp))
 	{
 		MRELEASE(rtp);
+		pthread_mutex_unlock(&(connection->mutex));
 		pthread_mutex_destroy(&(connection->mutex));
 		if (newNeighbor)
 		{
@@ -1665,12 +1666,12 @@ static void	*handleContacts(void *parm)
 	/*	Wait for okay from beginConnection.			*/
 
 	pthread_mutex_lock(&(connection->mutex));
-	if (connection->shutDown)
+	result = connection->shutDown;
+	pthread_mutex_unlock(&(connection->mutex));
+	if (result)
 	{
 		return NULL;
 	}
-
-	pthread_mutex_unlock(&(connection->mutex));
 
 	/*	Load other required receiver thread parms.		*/
 

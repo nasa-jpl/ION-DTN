@@ -888,63 +888,27 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int ion_is_up(int tokenCount, char** tokens, int count, int max)
+static int ion_is_up(int count, int max)
 {
-	if (strcmp(tokens[1], "p") == 0) //poll
+	while (count <= max && !rfx_system_is_started())
 	{
-		if (tokenCount < 3) //use default timeout
-		{
-			while (count <= 120 && !rfx_system_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > 120) //ion system is not started
-			{
-				printText("ION system is not started");
-				return 0;
-			}
-			else //ion system is started
-			{
-				printText("ION system is started");
-				return 1;
-			}
-		}
-		else //use user supplied timeout
-		{
-			while (count <= max && !rfx_system_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > max) //ion system is not started
-			{
-				printText("ION system is not started");
-				return 0;
-			}
-			else //ion system is started
-			{
-				printText("ION system is started");
-				return 1;
-			}
-		}
+		microsnooze(250000);
+		count++;
 	}
-	else //check once
+
+	if (count > max)		//ion system is not started
 	{
-		if (rfx_system_is_started())
-		{
-			printText("ION system is started");
-			return 1;
-		}
-		else
-		{
-			printText("ION system is not started");
-			return 0;
-		}
+		printText("ION system is not started");
+		return 0;
 	}
+
+	//ion system is started
+
+	printText("ION system is started");
+	return 1;
 }
 
-static int	processLine(char *line, int lineLength)
+static int	processLine(char *line, int lineLength, int *rc)
 {
 	int		tokenCount;
 	char		*cursor;
@@ -955,9 +919,8 @@ static int	processLine(char *line, int lineLength)
 	time_t		currentTime;
 	struct timeval	done_time;
 	struct timeval	cur_time;
-
-	int max = 0;
-	int count = 0;
+	int		max = 0;
+	int		count = 0;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -1036,8 +999,8 @@ static int	processLine(char *line, int lineLength)
 					    && cur_time.tv_usec >=
 					    done_time.tv_usec)
 					{
-						printText("[?] RFX start hung\
- up, abandoned.");
+						printText("[?] RFX start hung \
+up, abandoned.");
 						break;
 					}
 				}
@@ -1142,62 +1105,54 @@ no time.");
 			return 0;
 
 		case 't':
-			if (strcmp(tokens[1], "p") == 0) //poll
+			if (tokenCount > 1
+			&& strcmp(tokens[1], "p") == 0)	//poll
 			{
-				if (tokenCount < 3) //use default timeout
+				if (tokenCount < 3)	//use default timeout
 				{
-					count = 1;
-					while (count <= max && ionAttach() == -1)
-					{
-						microsnooze(250000);
-						count++;
-					}
-					if (count > 120) //ion system is not started
-					{
-						printText("ION system is not started");
-						return 0;
-					}
-					else //ion system is started
-					{
-						exit(ion_is_up(tokenCount, tokens, count, 120));
-					}
-				}
-				else //use user supplied timeout
-				{
-					max = atoi(tokens[2]) * 4;
-					count = 1;
-					while (count <= max && ionAttach() == -1)
-					{
-						microsnooze(250000);
-						count++;
-					}
-					if (count > max) //ion system is not started
-					{
-						printText("ION system is not started");
-						return 0;
-					}
-					else //ion system is started
-					{
-						exit(ion_is_up(tokenCount, tokens, count, max));
-					}
-				}
-			}
-			else //check once
-			{
-				if (rfx_system_is_started())
-				{
-					printText("ION system is started");
-					return 1;
+					max = DEFAULT_CHECK_TIMEOUT;
 				}
 				else
 				{
-					printText("ION system is not started");
-					return 0;
+					max = atoi(tokens[2]) * 4;
 				}
+
+				count = 1;
+				while (count <= max && ionAttach() == -1)
+				{
+					microsnooze(250000);
+					count++;
+				}
+
+				if (count > max)
+				{
+					//ion system is not started
+					printText("ION system is not started");
+					return 1;
+				}
+
+				//attached to ion system
+
+				*rc = ion_is_up(count, max);
+				return 1;
 			}
 
+			//check once
+
+			*rc = rfx_system_is_started();
+			if (*rc)
+			{
+				printText("ION system is started");
+			}
+			else
+			{
+				printText("ION system is not started");
+			}
+
+			return 1;
+
 		case 'q':
-			return -1;	/*	End program.		*/
+			return 1;	/*	End program.		*/
 
 		default:
 			printText("Invalid command.  Enter '?' for help.");
@@ -1207,6 +1162,7 @@ no time.");
 
 static int	runIonadmin(char *cmdFileName)
 {
+	int	rc = 0;
 	time_t	currentTime;
 	int	cmdFile;
 	char	line[256];
@@ -1241,7 +1197,7 @@ static int	runIonadmin(char *cmdFileName)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (processLine(line, len, &rc))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -1284,7 +1240,7 @@ static int	runIonadmin(char *cmdFileName)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (processLine(line, len, &rc))
 				{
 					break;	/*	Out of loop.	*/
 				}
@@ -1305,7 +1261,7 @@ static int	runIonadmin(char *cmdFileName)
 
 	printText("Stopping ionadmin.");
 	ionDetach();
-	return 0;
+	return rc;
 }
 
 #if defined (ION_LWT)
@@ -1324,8 +1280,8 @@ int	main(int argc, char **argv)
 	if (result < 0)
 	{
 		puts("ionadmin failed.");
-		return 1;
+		result = 1;
 	}
 
-	return 0;
+	return result;
 }
