@@ -153,7 +153,7 @@ acslist:	acslist.o $(BPLIBS)
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
-		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread
+		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lm -lpthread
 		cp ipnfw ./bin
 
 ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
@@ -304,8 +304,8 @@ libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
 		$(LD) -o libbp.so libbp.o $(BPPOBJS) libbpnm.o
 		cp libbp.so ./lib
 
-libcgr.so:	libcgr.o
-		$(LD) -o libcgr.so libcgr.o
+libcgr.so:	libcgr.o libocgr.o
+		$(LD) -o libcgr.so libcgr.o libocgr.o
 		cp libcgr.so ./lib
 
 libipnfw.so:	libipnfw.o

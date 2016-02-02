@@ -64,6 +64,27 @@ extern int		rfx_remove_contact(time_t fromTime,
 				object from the time-ordered contacts
 				list in the ION database.		*/
 
+extern int		rfx_remove_contacts(uvast peerNode);
+			/*	Removes all discovered contacts
+			 *	involving the indicated node,
+			 *	either as sender or receiver.		*/
+
+extern void		rfx_log_contact(time_t fromTime,
+				time_t toTime,
+				uvast fromNode,
+				uvast toNode,
+				unsigned int xmitRate,
+				int idx);
+			/*	Inserts a terminated discovered
+			 *	contact into the appropriate contact
+			 *	log.  toTime should be the time at
+			 *	which the discovered contact was lost.
+			 *	idx indicates which contact log the
+			 *	contact should be inserted into: it
+			 *	must be SENDER_NODE if the source
+			 *	of the log entry is the contact's
+			 *	fromNode, otherwise RECEIVER_NODE.	*/
+
 /*	*	Functions for inserting and removing range notes.	*/
 
 extern PsmAddress	rfx_insert_range(time_t fromTime,

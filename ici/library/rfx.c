@@ -853,12 +853,97 @@ confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromNode,
 	return buffer;
 }
 
+static void	insertLogEntry(Sdr sdr, Object log, Object entryObj,
+			PastContact *newEntry)
+{
+	Object		elt;
+	PastContact	entry;
+
+	for (elt = sdr_list_first(sdr, log); elt; elt = sdr_list_next(sdr, elt))
+	{
+		sdr_read(sdr, (char *) &entry, sdr_list_data(sdr, elt),
+				sizeof(PastContact));
+		if (entry.fromNode < newEntry->fromNode)
+		{
+			continue;
+		}
+
+		if (entry.fromNode > newEntry->fromNode)
+		{
+			break;
+		}
+
+		/*	Same sending node.				*/
+
+		if (entry.toNode < newEntry->toNode)
+		{
+			continue;
+		}
+
+		if (entry.toNode > newEntry->toNode)
+		{
+			break;
+		}
+
+		/*	Same receiving node.				*/
+
+		if (entry.fromTime < newEntry->fromTime)
+		{
+			continue;
+		}
+
+		if (entry.fromTime > newEntry->fromTime)
+		{
+			break;
+		}
+
+		/*	Identical; duplicate, so don't add to log.	*/
+
+		return;
+	}
+
+	if (elt)
+	{
+		oK(sdr_list_insert_before(sdr, elt, entryObj));
+	}
+	else
+	{
+		oK(sdr_list_insert_last(sdr, log, entryObj));
+	}
+}
+
+void	rfx_log_contact(time_t fromTime, time_t toTime, uvast fromNode,
+		uvast toNode, unsigned int xmitRate, int idx)
+{
+	Sdr		sdr = getIonsdr();
+	Object		dbobj = getIonDbObject();
+	IonDB 		db;
+	Object		log;
+	PastContact	entry;
+	Object		entryObj;
+
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(IonDB));
+	log = db.contactLog[idx];
+	entry.fromTime = fromTime;
+	entry.toTime = toTime;
+	entry.fromNode = fromNode;
+	entry.toNode = toNode;
+	entry.xmitRate = xmitRate;
+	entryObj = sdr_malloc(sdr, sizeof(PastContact));
+	if (entryObj)
+	{
+		sdr_write(sdr, entryObj, (char *) &entry, sizeof(PastContact));
+		insertLogEntry(sdr, log, entryObj, &entry);
+	}
+}
+
 static void	deleteContact(PsmAddress cxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
 	time_t		currentTime = getUTCTime();
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	IonCXref	*cxref;
 	Object		obj;
 	IonEvent	event;
@@ -866,6 +951,24 @@ static void	deleteContact(PsmAddress cxaddr)
 	PsmAddress	nextElt;
 
 	cxref = (IonCXref *) psp(ionwm, cxaddr);
+
+	/*	Possibly write to contact log.				*/
+
+	if (cxref->discovered)
+	{
+		if (cxref->fromNode == ownNodeNbr)
+		{
+			rfx_log_contact(cxref->fromTime, currentTime,
+					cxref->fromNode, cxref->toNode,
+					cxref->xmitRate, SENDER_NODE);
+		}
+		else if (cxref->toNode == ownNodeNbr)
+		{
+			rfx_log_contact(cxref->fromTime, currentTime,
+					cxref->fromNode, cxref->toNode,
+					cxref->xmitRate, RECEIVER_NODE);
+		}
+	}
 
 	/*	Delete contact from non-volatile database.		*/
 
@@ -1032,6 +1135,65 @@ int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove contact(s).", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	rfx_remove_contacts(uvast peerNode)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	IonDB		iondb;
+	Object		obj;
+	Object		elt;
+	Object		nextElt;
+	IonContact	contact;
+	IonCXref	arg;
+	PsmAddress	cxelt;
+	PsmAddress	nextCxelt;
+	PsmAddress	cxaddr;
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.contacts); elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+		if (contact.discovered == 0)
+		{
+			continue;	/*	Not discovered.		*/
+		}
+
+		/*	This is a discovered (non-predicted) contact.	*/
+
+		if (contact.fromNode != peerNode && contact.toNode != peerNode)
+		{
+			continue;	/*	Peer node not involved.	*/
+		}
+
+		/*	This is a discovered contact to or from some
+		 *	node with which we have lost contact locally.	*/
+
+		memset((char *) &arg, 0, sizeof(IonCXref));
+		arg.fromNode = contact.fromNode;
+		arg.toNode = contact.toNode;
+		arg.fromTime = contact.fromTime;
+		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
+				rfx_order_contacts, &arg, &nextCxelt);
+		if (cxelt)	/*	Found it.			*/
+		{
+			cxaddr = sm_rbt_data(ionwm, cxelt);
+			deleteContact(cxaddr);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove discovered contacts.", NULL);
 		return -1;
 	}
 

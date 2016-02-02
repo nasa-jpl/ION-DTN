@@ -96,7 +96,6 @@ typedef struct
 {
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	int		reportedBy;	/*	Sender or receiver.	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
@@ -117,7 +116,7 @@ typedef struct
 {
 	Object		contacts;	/*	SDR list: IonContact	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
-	Object		contactHistory;	/*	SDR list: PastContact	*/
+	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	uvast		ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/

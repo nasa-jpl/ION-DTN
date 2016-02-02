@@ -722,6 +722,8 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
+		iondbBuf.contactLog[0] = sdr_list_create(ionsdr);
+		iondbBuf.contactLog[1] = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
                 memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));

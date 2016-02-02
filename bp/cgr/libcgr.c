@@ -2061,13 +2061,10 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(proximateNodes);
-	if (bundle->dlvConfidence < MIN_NET_DELIVERY_CONFIDENCE)
+	if (bundle->dlvConfidence > 0.0
+	&& bundle->dlvConfidence < MIN_NET_DELIVERY_CONFIDENCE)
 	{
 		/*	Must keep on trying to send this bundle.	*/
-
-		/*	Note: need a way to force abandonment of
-		 *	bundles that genuinely are currently non-
-		 *	forwardable.					*/
 
 		if (bundle->ductXmitElt)
 		{
@@ -2428,6 +2425,54 @@ int	cgr_forward(Bundle *bundle, Object bundleObj, uvast terminusNodeNbr,
 	}
 
 	return 0;
+}
+
+float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
+{
+	PsmPartition	wm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	time_t		currentTime = getUTCTime();
+	IonNode		*terminusNode;
+	PsmAddress	nextNode;
+	PsmAddress	routes;		/*	SmList of CgrRoutes.	*/
+	PsmAddress	elt;
+	PsmAddress	addr;
+	CgrRoute	*route;
+	float		prospect = 0.0;
+
+	terminusNode = findNode(ionvdb, terminusNodeNbr, & nextNode);
+	if (terminusNode == NULL)
+	{
+		return 0.0;		/*	Unknown node, no chance.*/
+	}
+
+	routes = terminusNode->routingObject;
+	if (routes == 0)
+	{
+		return 0.0;		/*	No routes, no chance.	*/
+	}
+
+	for (elt = sm_list_first(wm, routes); elt; elt = sm_list_next(wm, elt))
+	{
+		addr = sm_list_data(wm, elt);
+		route = (CgrRoute *) psp(wm, addr);
+		if (route->toTime < currentTime)
+		{
+			continue;	/*	Obsolete route.		*/
+		}
+
+		if (route->arrivalTime > deadline)
+		{
+			continue;	/*	Not a plausible route.	*/
+		}
+
+		if (route->arrivalConfidence > prospect)
+		{
+			prospect = route->arrivalConfidence;
+		}
+	}
+
+	return prospect;
 }
 
 void	cgr_start()
