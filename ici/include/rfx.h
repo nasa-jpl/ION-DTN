@@ -47,7 +47,10 @@ extern PsmAddress	rfx_insert_contact(time_t fromTime,
 				inserts that object into the contacts
 				list in the ION database, and returns
 				the address of the IonCXref object for
-				that contact.
+				that contact.  A toTime value of zero
+				indicates that this is a "discovered"
+				contact, for which the actual toTime
+				on the database will be MAX_POSIX_TIME.
 
 				Returns zero on any error.		*/
 
@@ -57,26 +60,14 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern int		rfx_remove_contact(time_t fromTime,
-				uvast fromNode,
-				uvast toNode);
-			/*	Removes the indicated IonContact
-				object from the time-ordered contacts
-				list in the ION database.		*/
-
-extern int		rfx_remove_contacts(uvast peerNode);
-			/*	Removes all discovered contacts
-			 *	involving the indicated node,
-			 *	either as sender or receiver.		*/
-
-extern void		rfx_log_contact(time_t fromTime,
+extern void		rfx_log_discovered_contact(time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
 				unsigned int xmitRate,
 				int idx);
-			/*	Inserts a terminated discovered
-			 *	contact into the appropriate contact
+			/*	Notes termination of a discovered
+			 *	contact in the appropriate contact
 			 *	log.  toTime should be the time at
 			 *	which the discovered contact was lost.
 			 *	idx indicates which contact log the
@@ -84,6 +75,28 @@ extern void		rfx_log_contact(time_t fromTime,
 			 *	must be SENDER_NODE if the source
 			 *	of the log entry is the contact's
 			 *	fromNode, otherwise RECEIVER_NODE.	*/
+
+extern int		rfx_remove_contact(time_t fromTime,
+				uvast fromNode,
+				uvast toNode);
+			/*	Removes the indicated IonContact
+				object from the time-ordered contacts
+				list in the ION database.		*/
+
+extern int		rfx_remove_discovered_contacts(uvast peerNode);
+			/*	Removes all discovered contacts
+			 *	involving the indicated node,
+			 *	either as sender or receiver.		*/
+
+extern int		rfx_predict_contacts(uvast fromNode, uvast toNode);
+			/*	Removes all existing predicted contacts
+			 *	for this from/to node pair and computes
+			 *	new predicted contacts.			*/
+
+extern int		rfx_predict_all_contacts();
+			/*	Removes all existing predicted contacts
+			 *	and computes new predicted contacts for
+			 *	all from/to node pairs.			*/
 
 /*	*	Functions for inserting and removing range notes.	*/
 

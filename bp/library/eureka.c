@@ -181,18 +181,18 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 		}
 	}
 
-	/*	Insert contact into contact plan.			*/
+	/*	Insert discovered contact and range into contact plan.	*/
 
 	currentTime = getUTCTime();
-	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, ownNodeNbr,
-			nodeNbr, xmitRate, 1.0) == 0)
+	if (rfx_insert_contact(currentTime, 0, ownNodeNbr, nodeNbr, xmitRate,
+			1.0) == 0)
 	{
 		putErrmsg("Can't add transmission contact.", neighborEid);
 		return -1;
 	}
 
-	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, nodeNbr,
-			ownNodeNbr, recvRate, 1.0) == 0)
+	if (rfx_insert_contact(currentTime, 0, nodeNbr, ownNodeNbr, recvRate,
+			1.0) == 0)
 	{
 		putErrmsg("Can't add reception contact.", neighborEid);
 		return -1;
@@ -488,7 +488,7 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
-	if (rfx_remove_contacts(neighborNodeNbr) < 0)
+	if (rfx_remove_discovered_contacts(neighborNodeNbr) < 0)
 	{
 		putErrmsg("Can't remove applicable contacts.", neighborEid);
 		return -1;

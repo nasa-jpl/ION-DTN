@@ -44,33 +44,33 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 dtpcd:		dtpcd.o libdtpc.dll
-		$(CC) -o dtpcd dtpcd.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread
+		$(CC) -o dtpcd dtpcd.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread -lm
 		cp dtpcd ./bin
 
 dtpcclock:	dtpcclock.o libdtpc.dll
-		$(CC) -o dtpcclock dtpcclock.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread
+		$(CC) -o dtpcclock dtpcclock.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread -lm
 		cp dtpcclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 dtpcadmin:	dtpcadmin.o libdtpc.dll
-		$(CC) -o dtpcadmin dtpcadmin.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread
+		$(CC) -o dtpcadmin dtpcadmin.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread -lm
 		cp dtpcadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 dtpcsend:	dtpcsend.o libdtpc.dll
-		$(CC) -o dtpcsend dtpcsend.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread
+		$(CC) -o dtpcsend dtpcsend.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread -lm
 		cp dtpcsend ./bin
 
 dtpcreceive:	dtpcreceive.o libdtpc.dll
-		$(CC) -o dtpcreceive dtpcreceive.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread
+		$(CC) -o dtpcreceive dtpcreceive.o -L./lib -L$(ROOT)/lib -ldtpc -lici -lbp -lpthread -lm
 		cp dtpcreceive ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
 libdtpc.dll:	$(LIBDTPCOBJS) $(API)/dtpcP.h
-		$(LD) -o libdtpc.dll $(LIBDTPCOBJS) -Wl,--output-def,libdtpc.def -L$(ROOT)/lib -lici -lbp -lpthread
+		$(LD) -o libdtpc.dll $(LIBDTPCOBJS) -Wl,--output-def,libdtpc.def -L$(ROOT)/lib -lici -lbp -lpthread -lm
 		cp libdtpc.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

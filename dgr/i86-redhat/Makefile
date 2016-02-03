@@ -39,27 +39,27 @@ install:
 #	-	-	Test executables	-	-	-	-
 
 file2dgr:	file2dgr.o libdgr.so $(TEST)/file2dgr.h
-		$(CC) -o file2dgr file2dgr.o -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread
+		$(CC) -o file2dgr file2dgr.o -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lm
 		cp file2dgr ./bin
 
 dgr2file:	dgr2file.o libdgr.so $(TEST)/file2dgr.h
-		$(CC) -o dgr2file dgr2file.o -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread
+		$(CC) -o dgr2file dgr2file.o -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lm
 		cp dgr2file ./bin
 
 tcp2file:	tcp2file.o $(TEST)/file2tcp.h
-		$(CC) -o tcp2file tcp2file.o -L$(ROOT)/lib -L./lib -lici -lpthread
+		$(CC) -o tcp2file tcp2file.o -L$(ROOT)/lib -L./lib -lici -lpthread -lm
 		cp tcp2file ./bin
 
 file2tcp:	file2tcp.o $(TEST)/file2tcp.h
-		$(CC) -o file2tcp file2tcp.o -L$(ROOT)/lib -L./lib -lici -lpthread
+		$(CC) -o file2tcp file2tcp.o -L$(ROOT)/lib -L./lib -lici -lpthread -lm
 		cp file2tcp ./bin
 
 udp2file:	udp2file.o $(TEST)/file2udp.h
-		$(CC) -o udp2file udp2file.o -L$(ROOT)/lib -L./lib -lici -lpthread
+		$(CC) -o udp2file udp2file.o -L$(ROOT)/lib -L./lib -lici -lpthread -lm
 		cp udp2file ./bin
 
 file2udp:	file2udp.o $(TEST)/file2udp.h
-		$(CC) -o file2udp file2udp.o -L$(ROOT)/lib -L./lib -lici -lpthread
+		$(CC) -o file2udp file2udp.o -L$(ROOT)/lib -L./lib -lici -lpthread -lm
 		cp file2udp ./bin
 
 #	-	-	Libraries	-	-	-	-	-
