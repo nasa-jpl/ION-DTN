@@ -2357,14 +2357,10 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		TRACE(CgrNoProximateNode);
 	}
 
-	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB
-	&& bundle->id.source.c.nodeNbr != bundle->destination.c.nodeNbr)
+	if (bundle->deliveryProb > 0.0
+	&& bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
 	{
 		/*	Must keep on trying to send this bundle.	*/
-
-		/*	Note: need a way to force abandonment of
-		 *	bundles that genuinely are currently non-
-		 *	forwardable.					*/
 
 		if (bundle->ductXmitElt)
 		{

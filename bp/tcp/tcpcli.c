@@ -492,7 +492,7 @@ static int	reopenConnection(TcpclConnection *connection)
 		putErrmsg("tcpcli failed on TCP reconnect.", neighbor->eid);
 		return -1;
 
-	case 0:			/*	Neighbor still refused.	*/
+	case 0:			/*	Neighbor still refuses.		*/
 		writeMemoNote("[i] tcpcli unable to reconnect",
 				neighbor->eid);
 		connection->reconnectInterval <<= 1;
@@ -503,6 +503,13 @@ static int	reopenConnection(TcpclConnection *connection)
 
 		connection->secUntilReconnect = connection->reconnectInterval;
 		return 0;
+	}
+
+	if (bpUnblockOutduct("tcp", connection->destDuctName) < 0)
+	{
+		putErrmsg("tcpcli connected but didn't unblock outduct.",
+				connection->destDuctName);
+		return -1;
 	}
 
 	connection->lengthSent = 0;
@@ -1082,10 +1089,12 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	switch (itcp_recv(connection->sock, eidbuf, eidLength))
 	{
 	case -1:
+		MRELEASE(eidbuf);
 		putErrmsg("itcp_recv() error on TCP socket", neighbor->eid);
 		return -1;
 
 	case 0:
+		MRELEASE(eidbuf);
 		putErrmsg("Can't get TCPCL contact header EID.",
 				neighbor->eid);
 		closeConnection(connection);
@@ -1183,6 +1192,11 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	 *	transmitted, so we must start a sender thread for
 	 *	the outduct that we use for those bundles.		*/
 
+	if (connection->hasSender)
+	{
+		return 1;			/*	Reopen.		*/
+	}
+
 	findOutduct("tcp", connection->destDuctName, &outduct, &vductElt);
 	if (vductElt == 0)
 	{
@@ -1203,6 +1217,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	stp->connection = connection;
 	if (pthread_begin(&(connection->sender), NULL, sendBundles, stp))
 	{
+		MRELEASE(stp);
 		putSysErrmsg("tcpcli can't create new sender thread", 
 				neighbor->eid);
 		return -1;
@@ -1885,12 +1900,17 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 	if (elt)
 	{
 		neighbor = (TcpclNeighbor *) lyst_data(elt);
-		if (neighbor->pc->sock != -1)
+		if (neighbor->pc->hasSender)
 		{
-			return 0;
+			return 0;	/*	Sender handles reopen.	*/
 		}
 
-		/*	Otherwise, must try again to connect.		*/
+		if (neighbor->pc->sock != -1)
+		{
+			return 0;	/*	Connection is pending.	*/
+		}
+
+		/*	Otherwise, must try to connect.			*/
 	}
 	else	/*	This is a newly added plan, no neighbor yet.	*/
 	{
@@ -1912,6 +1932,13 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 
 	case 0:
 		return 0;		/*	Connection refused.	*/
+	}
+
+	if (bpUnblockOutduct("tcp", socketSpec) < 0)
+	{
+		putErrmsg("tcpcli connected but didn't unblock outduct.",
+				socketSpec);
+		return -1;
 	}
 
 	/*	TCP connection succeeded, so establish the TCPCL
@@ -2382,6 +2409,11 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	{
 		sock = (int) lyst_data(elt);
 		oK(sdr_begin_xn(sdr));
+
+		/*	This neighbor may be temporary.  After
+		 *	header exchange we may be loading this
+		 *	connection onto another existing neighbor.	*/
+
 		neighbor = addTcpclNeighbor(noEid, ctp->induct, ctp->neighbors);
 		if (neighbor == NULL)
 		{

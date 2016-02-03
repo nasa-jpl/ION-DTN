@@ -161,6 +161,7 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 #endif
 			neighbor->prevXmitRate = neighbor->xmitRate;
 			neighbor->xmitThrottle.nominalRate = neighbor->xmitRate;
+			neighbor->xmitThrottle.capacity = neighbor->xmitRate;
 		}
 
 		if (neighbor->recvRate != neighbor->prevRecvRate)

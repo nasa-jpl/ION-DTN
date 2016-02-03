@@ -149,7 +149,7 @@ static int	connectToCLI(char *protocolName, char *ductName, int *sock)
 		if (bpUnblockOutduct(protocolName, ductName) < 0)
 		{
 			putErrmsg("CLO connected but didn't unblock outduct.",
-					NULL);
+					ductName);
 			return -1;
 		}
 	}
