@@ -1825,7 +1825,7 @@ static void	*spawnReceivers(void *parm)
 	 *	of threads to service those connections.		*/
 
 	ServerThreadParms	*stp = (ServerThreadParms *) parm;
-	int			newSocket;
+	long			newSocket;
 	struct sockaddr		socketName;
 	socklen_t		socknamelen;
 	LystElt			elt;
@@ -2401,13 +2401,13 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	static char	*noEid = "<unknown node>";
 	Sdr		sdr = getIonsdr();
 	LystElt		elt;
-	int		sock;
+	long		sock;
 	LystElt		neighbor;
 
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
-		sock = (int) lyst_data(elt);
+		sock = (long) lyst_data(elt);
 		oK(sdr_begin_xn(sdr));
 
 		/*	This neighbor may be temporary.  After
@@ -2625,7 +2625,7 @@ static void	*handleEvents(void *parm)
 
 static void	dropPendingConnection(LystElt elt, void *userdata)
 {
-	int	sock = (int) lyst_data(elt);
+	long	sock = (long) lyst_data(elt);
 
 	if (sock != -1)
 	{

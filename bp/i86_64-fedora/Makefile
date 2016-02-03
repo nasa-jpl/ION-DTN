@@ -37,7 +37,7 @@ BPINCLS = \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
-	$(TCP)/stcpcla.h \
+	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(DCCP)/dccpcla.h \
 	$(API)/acs/acs.h
