@@ -1058,15 +1058,19 @@ static void	deleteContact(PsmAddress cxaddr)
 			rfx_log_discovered_contact(cxref->fromTime, currentTime,
 					cxref->fromNode, cxref->toNode,
 					cxref->xmitRate, SENDER_NODE);
-			rfx_predict_contacts(cxref->fromNode, cxref->toNode);
 		}
 		else if (cxref->toNode == ownNodeNbr)
 		{
 			rfx_log_discovered_contact(cxref->fromTime, currentTime,
 					cxref->fromNode, cxref->toNode,
 					cxref->xmitRate, RECEIVER_NODE);
-			rfx_predict_contacts(cxref->fromNode, cxref->toNode);
 		}
+
+		/*	In any case, rebuild list of predicted
+		 *	contacts now that the discovered contact
+		 *	has ended.					*/
+
+		rfx_predict_contacts(cxref->fromNode, cxref->toNode);
 	}
 
 	/*	Delete contact from non-volatile database.		*/
