@@ -996,6 +996,7 @@ static void	insertLogEntry(Sdr sdr, Object log, Object entryObj,
 
 		/*	Identical; duplicate, so don't add to log.	*/
 
+		sdr_free(sdr, entryObj);
 		return;
 	}
 
