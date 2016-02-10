@@ -501,7 +501,8 @@ libici_la_SOURCES =	ici/library/llcv.c \
 			ici/sdr/sdrlist.c \
 			ici/sdr/sdrtable.c \
 			ici/sdr/sdrhash.c \
-			ici/sdr/sdrcatlg.c
+			ici/sdr/sdrcatlg.c \
+			ici/bulk/STUB_BULK/bulk.c
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
@@ -888,7 +889,7 @@ endif
 bplib = \
 	libbp.la \
 	libcgr.la \
-	libtcpcla.la \
+	libstcpcla.la \
 	libudpcla.la
 #	libphn.la
 #	libecos.la
@@ -910,7 +911,7 @@ bpnoinst = \
 	bp/brs/brscla.h \
 	bp/udp/udpcla.h \
 	bp/ltp/ltpcla.h \
-	bp/tcp/tcpcla.h \
+	bp/stcp/stcpcla.h \
 	bp/dccp/dccpcla.h
 #	bp/library/ext/phn/phn.h
 
@@ -1097,9 +1098,9 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 #libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #libdtn2fw_la_LIBADD = libici.la
 
-libtcpcla_la_SOURCES = bp/tcp/libtcpcla.c
-libtcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libtcpcla_la_LIBADD = libbp.la libici.la
+libstcpcla_la_SOURCES = bp/stcp/libstcpcla.c
+libstcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libstcpcla_la_LIBADD = libbp.la libici.la
 
 libudpcla_la_SOURCES = bp/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1306,21 +1307,21 @@ ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- TCP Executables --- #
 
 tcpcli_SOURCES = bp/tcp/tcpcli.c
-tcpcli_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 tcpclo_SOURCES = bp/tcp/tcpclo.c
-tcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
 
-stcpcli_SOURCES = bp/tcp/stcpcli.c
-stcpcli_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpcli_SOURCES = bp/stcp/stcpcli.c
+stcpcli_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-stcpclo_SOURCES = bp/tcp/stcpclo.c
-stcpclo_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpclo_SOURCES = bp/stcp/stcpclo.c
+stcpclo_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
@@ -1358,11 +1359,11 @@ dgrcla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- BRS executables --- #
 
 brsscla_SOURCES = bp/brs/brsscla.c
-brsscla_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsscla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 brsccla_SOURCES = bp/brs/brsccla.c
-brsccla_LDADD = libbp.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsccla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
@@ -1866,7 +1867,7 @@ udpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 # --- TCP Executables --- #
 
 tcpbsi_SOURCES = bssp/tcp/tcpbsi.c
-tcpbsi_LDADD = libbsspP.la libtcpcla.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpbsi_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 tcpbso_SOURCES = bssp/tcp/tcpbso.c
