@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2016-01-29 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.4.0"
+/* As of 2016-02-10 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.4.1"
 #endif
 
 /* Allow the compile option -D to override this in the future */

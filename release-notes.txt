@@ -1,6 +1,6 @@
-= Release Notes for ION 3.4.0 =
+= Release Notes for ION 3.4.1 =
 
-Jan 20, 2016
+Feb 10, 2016
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,12 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.4.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- TBD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.4.0 =
