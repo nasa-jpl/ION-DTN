@@ -1007,8 +1007,9 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	switch (itcp_recv(connection->sock, (char *) header, sizeof header))
 	{
 	case -1:
-		putErrmsg("itcp_recv() error on TCP socket", neighbor->eid);
-		return -1;
+		putErrmsg("Failure reading on TCP socket", neighbor->eid);
+		closeConnection(connection);
+		return 0;
 
 	case 0:
 		putErrmsg("Can't get TCPCL contact header.", neighbor->eid);
@@ -1090,13 +1091,13 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	{
 	case -1:
 		MRELEASE(eidbuf);
-		putErrmsg("itcp_recv() error on TCP socket", neighbor->eid);
-		return -1;
+		putErrmsg("Failure reading on TCP socket", neighbor->eid);
+		closeConnection(connection);
+		return 0;
 
 	case 0:
 		MRELEASE(eidbuf);
-		putErrmsg("Can't get TCPCL contact header EID.",
-				neighbor->eid);
+		putErrmsg("Can't get TCPCL contact header EID.", neighbor->eid);
 		closeConnection(connection);
 		return 0;
 	}
@@ -1298,9 +1299,9 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		switch (extentSize)
 		{
 		case -1:
-			putErrmsg("itcp_recv() error on TCP socket",
+			putErrmsg("Failure reading on TCP socket",
 					neighbor->eid);
-			return -1;
+			return 0;
 
 		case 0:
 			writeMemoNote("[?] Lost TCPCL neighbor", neighbor->eid);
@@ -1405,15 +1406,17 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		/*	Acknowledgment sequence is violated, so 
 		 *	didn't ack the end of the oldest bundle.	*/
 
-		if (bundleZco == 0)	/*	Not already retrieved.	*/
+		pthread_mutex_lock(&(connection->mutex));
+		elt = lyst_first(connection->pipeline);
+		if (elt)
 		{
-			pthread_mutex_lock(&(connection->mutex));
-			elt = lyst_first(connection->pipeline);
-			bundleZco = (Object) lyst_data(elt);
-			pthread_mutex_unlock(&(connection->mutex));
+			bundleZco = (Object) lyst_data_set(elt, NULL);
+			lyst_delete(elt);
 		}
 
-		if (bpHandleXmitFailure(bundleZco) < 0)
+		pthread_mutex_unlock(&(connection->mutex));
+		llcv_signal(connection->throttle, pipeline_not_full);
+		if (bundleZco == 0 || bpHandleXmitFailure(bundleZco) < 0)
 		{
 			return -1;
 		}
@@ -1428,23 +1431,22 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 		/*	Entire bundle has been received.		*/
 
-		if (bundleZco == 0)	/*	Not already retrieved.	*/
+		pthread_mutex_lock(&(connection->mutex));
+		elt = lyst_first(connection->pipeline);
+		if (elt)
 		{
-			pthread_mutex_lock(&(connection->mutex));
-			elt = lyst_first(connection->pipeline);
-			bundleZco = (Object) lyst_data(elt);
-			pthread_mutex_unlock(&(connection->mutex));
+			bundleZco = (Object) lyst_data_set(elt, NULL);
+			lyst_delete(elt);
 		}
 
-		if (bpHandleXmitSuccess(bundleZco, 0) < 0)
+		pthread_mutex_unlock(&(connection->mutex));
+		llcv_signal(connection->throttle, pipeline_not_full);
+		if (bundleZco == 0 || bpHandleXmitSuccess(bundleZco, 0) < 0)
 		{
 			return -1;
 		}
 	}
 
-	oK(lyst_data_set(elt, NULL));
-	lyst_delete(elt);
-	llcv_signal(connection->throttle, pipeline_not_full);
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
@@ -1760,6 +1762,7 @@ static void	*handleContacts(void *parm)
 		case 0:				/*	Neighbor lost.	*/
 			writeMemoNote("[i] tcpcli did not send contact header",
 					neighbor->eid);
+			closeConnection(connection);
 			continue;	/*	Try again.		*/
 		}
 
@@ -1782,6 +1785,7 @@ static void	*handleContacts(void *parm)
 		case 0:		/*	Neighbor lost or discarded.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					neighbor->eid);
+			closeConnection(connection);
 			continue;	/*	Try again.		*/
 		}
 

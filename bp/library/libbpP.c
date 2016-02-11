@@ -4045,7 +4045,8 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		if (strcmp((*vduct)->ductName, ductName) == 0)
+		if (strcmp((*vduct)->protocolName, protocolName) == 0
+		&& strcmp((*vduct)->ductName, ductName) == 0)
 		{
 			break;
 		}

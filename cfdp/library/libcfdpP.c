@@ -696,7 +696,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Disable blocking ZCO buffer space access.		*/
 
-	ionStopAttendant(&(cfdpvdb->attendant));
+	ionPauseAttendant(&(cfdpvdb->attendant));
 
 	/*	Stop user application input thread.			*/
 
@@ -719,6 +719,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 		sm_TaskKill(cfdpvdb->clockPid, SIGTERM);
 	}
 
+	ionStopAttendant(&(cfdpvdb->attendant));
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
