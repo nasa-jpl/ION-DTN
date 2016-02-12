@@ -37,22 +37,26 @@ extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 
 /*	*	Functions for inserting and removing contact notes.	*/
 
-extern PsmAddress	rfx_insert_contact(time_t fromTime,
+extern int		rfx_insert_contact(time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
 				unsigned int xmitRate,
-				float confidence);
+				float confidence,
+				PsmAddress *cxaddr);
 			/*	Creates a new IonContact object,
 				inserts that object into the contacts
-				list in the ION database, and returns
+				list in the ION database, and notes
 				the address of the IonCXref object for
 				that contact.  A toTime value of zero
 				indicates that this is a "discovered"
 				contact, for which the actual toTime
 				on the database will be MAX_POSIX_TIME.
+				The new IonCXref object address is zero
+				if the contact was rejected.
 
-				Returns zero on any error.		*/
+				Returns zero on success, -1 on any
+				system error.				*/
 
 extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 			/*	Prints the indicated IonCXref
@@ -100,18 +104,22 @@ extern int		rfx_predict_all_contacts();
 
 /*	*	Functions for inserting and removing range notes.	*/
 
-extern PsmAddress	rfx_insert_range(time_t fromTime,
+extern int		rfx_insert_range(time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
-				unsigned int owlt);
+				unsigned int owlt,
+				PsmAddress *cxaddr);
 			/*	Creates a new IonRange object,
 				inserts that object into the ranges
-				list in the ION database, and returns
+				list in the ION database, and notes
 				the address of the IonRXref entry for
-				that range.
+				that range.  The new IonRXref object
+				address is zero if the range was
+				rejected.
 
-				Returns zero on any error.		*/
+				Returns zero on success, -1 on any
+				system error.				*/
 
 extern char		*rfx_print_range(PsmAddress range, char *buffer);
 			/*	Prints the indicated IonRXref

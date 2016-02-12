@@ -146,6 +146,7 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 	PsmAddress	vductElt;
 	DuctExpression	ductExpression;
 	time_t		currentTime;
+	PsmAddress	xaddr;
 	uvast		lowerNodeNbr;
 	uvast		higherNodeNbr;
 
@@ -185,14 +186,14 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 
 	currentTime = getUTCTime();
 	if (rfx_insert_contact(currentTime, 0, ownNodeNbr, nodeNbr, xmitRate,
-			1.0) == 0)
+			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		putErrmsg("Can't add transmission contact.", neighborEid);
 		return -1;
 	}
 
 	if (rfx_insert_contact(currentTime, 0, nodeNbr, ownNodeNbr, recvRate,
-			1.0) == 0)
+			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		putErrmsg("Can't add reception contact.", neighborEid);
 		return -1;
@@ -210,7 +211,7 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 	}
 
 	if (rfx_insert_range(currentTime, MAX_POSIX_TIME, lowerNodeNbr,
-			higherNodeNbr, 0) == 0)
+			higherNodeNbr, 0, &xaddr) < 0 || xaddr == 0)
 	{
 		putErrmsg("Can't add range.", neighborEid);
 		return -1;

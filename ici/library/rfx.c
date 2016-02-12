@@ -807,9 +807,9 @@ static int	checkForOverlaps(IonCXref *arg, PsmAddress nextElt)
 	}
 }
 
-PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
+int	rfx_insert_contact(time_t fromTime, time_t toTime,
 			uvast fromNode, uvast toNode, unsigned int xmitRate,
-			float confidence)
+			float confidence, PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -818,7 +818,6 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	IonCXref	arg;
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
-	PsmAddress	cxaddr;
 	IonCXref	*cxref;
 	char		contactIdString[128];
 	IonContact	contact;
@@ -827,22 +826,24 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	Object		obj;
 	Object		elt;
 
-	CHKZERO(fromTime);
+	CHKERR(fromTime);
 	if (toTime == 0)
 	{
 		discovered = 1;
 		toTime = MAX_POSIX_TIME;
 	}
 
-	CHKZERO(toTime > fromTime);
-	CHKZERO(fromNode);
-	CHKZERO(toNode);
-	CHKZERO(confidence > 0.0 && confidence <= 1.0);
-	CHKZERO(sdr_begin_xn(sdr));
+	CHKERR(toTime > fromTime);
+	CHKERR(fromNode);
+	CHKERR(toNode);
+	CHKERR(confidence > 0.0 && confidence <= 1.0);
+	CHKERR(cxaddr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Make sure contact doesn't overlap with any pre-existing
 	 *	contacts.						*/
 
+	*cxaddr = 0;	/*	Default.				*/
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
@@ -856,12 +857,12 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 			&arg, &nextElt);
 	if (cxelt)	/*	Contact is in database already.		*/
 	{
-		cxaddr = sm_rbt_data(ionwm, cxelt);
-		cxref = (IonCXref *) psp(ionwm, cxaddr);
+		*cxaddr = sm_rbt_data(ionwm, cxelt);
+		cxref = (IonCXref *) psp(ionwm, *cxaddr);
 		if (cxref->xmitRate == xmitRate)
 		{
 			sdr_exit_xn(sdr);
-			return cxaddr;
+			return 0;
 		}
 
 		isprintf(contactIdString, sizeof contactIdString,
@@ -892,7 +893,6 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 
 	/*	Contact isn't already in database; okay to add.		*/
 
-	cxaddr = 0;
 	contact.fromTime = fromTime;
 	contact.toTime = toTime;
 	contact.fromNode = fromNode;
@@ -910,8 +910,8 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 		if (elt)
 		{
 			arg.contactElt = elt;
-			cxaddr = insertCXref(&arg);
-			if (cxaddr == 0)
+			*cxaddr = insertCXref(&arg);
+			if (*cxaddr == 0)
 			{
 				sdr_cancel_xn(sdr);
 			}
@@ -921,10 +921,10 @@ PsmAddress	rfx_insert_contact(time_t fromTime, time_t toTime,
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't insert contact.", NULL);
-		return 0;
+		return -1;
 	}
 
-	return cxaddr;
+	return 0;
 }
 
 char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
@@ -1043,6 +1043,9 @@ static void	deleteContact(PsmAddress cxaddr)
 	time_t		currentTime = getUTCTime();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	IonCXref	*cxref;
+	int		predictionsNeeded = 0;
+	uvast		fromNode;
+	uvast		toNode;
 	Object		obj;
 	IonEvent	event;
 	IonNeighbor	*neighbor;
@@ -1071,7 +1074,9 @@ static void	deleteContact(PsmAddress cxaddr)
 		 *	contacts now that the discovered contact
 		 *	has ended.					*/
 
-		rfx_predict_contacts(cxref->fromNode, cxref->toNode);
+		predictionsNeeded = 1;
+		fromNode = cxref->fromNode;
+		toNode = cxref->toNode;
 	}
 
 	/*	Delete contact from non-volatile database.		*/
@@ -1177,6 +1182,13 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	sm_rbt_delete(ionwm, vdb->contactIndex, rfx_order_contacts, cxref,
 			rfx_erase_data, NULL);
+
+	/*	Finally, compute new predicted contacts if necessary.	*/
+
+	if (predictionsNeeded)
+	{
+		rfx_predict_contacts(fromNode, toNode);
+	}
 }
 
 int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
@@ -1607,6 +1619,7 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime)
 	time_t		gapEnd;
 	time_t		contactEnd;
 	unsigned int	xmitRate;
+	PsmAddress	cxaddr;
 
 	if (start == NULL)	/*	No sequence found yet.		*/
 	{
@@ -1724,7 +1737,7 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime)
 		if (contactEnd > currentTime && xmitRate > 1)
 		{
 			if (rfx_insert_contact(gapEnd, contactEnd, fromNode,
-					toNode, xmitRate, netConfidence) == 0)
+				toNode, xmitRate, netConfidence, &cxaddr) < 0)
 			{
 				putErrmsg("Can't insert contact.", NULL);
 				return -1;
@@ -2033,8 +2046,8 @@ static int	insertRXref(IonRXref *rxref)
 	return rxaddr;
 }
 
-Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
-		uvast toNode, unsigned int owlt)
+int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
+		uvast toNode, unsigned int owlt, PsmAddress *rxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -2042,7 +2055,6 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	IonRXref	arg1;
 	PsmAddress	rxelt;
 	PsmAddress	nextElt;
-	PsmAddress	rxaddr;
 	IonRXref	*rxref;
 	IonEvent	arg2;
 	PsmAddress	prevElt;
@@ -2073,15 +2085,17 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	 *	subsequently noted it overrides the default OWLT for
 	 *	transmissions from B to A.				*/
 
-	CHKZERO(fromTime);
-	CHKZERO(toTime > fromTime);
-	CHKZERO(fromNode);
-	CHKZERO(toNode);
-	CHKZERO(sdr_begin_xn(sdr));
+	CHKERR(fromTime);
+	CHKERR(toTime > fromTime);
+	CHKERR(fromNode);
+	CHKERR(toNode);
+	CHKERR(rxaddr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Make sure range doesn't overlap with any pre-existing
 	 *	ranges.							*/
 
+	*rxaddr = 0;
 	memset((char *) &arg1, 0, sizeof(IonRXref));
 	arg1.fromNode = fromNode;
 	arg1.toNode = toNode;
@@ -2092,8 +2106,8 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 			&arg1, &nextElt);
 	if (rxelt)	/*	Range is in database already.		*/
 	{
-		rxaddr = sm_rbt_data(ionwm, rxelt);
-		rxref = (IonRXref *) psp(ionwm, rxaddr);
+		*rxaddr = sm_rbt_data(ionwm, rxelt);
+		rxref = (IonRXref *) psp(ionwm, *rxaddr);
 		if (rxref->rangeElt == 0)	/*	Imputed.	*/
 		{
 			/*	The existing range for the same nodes
@@ -2108,7 +2122,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 
 			sm_rbt_delete(ionwm, vdb->rangeIndex, rfx_order_ranges,
 					&arg1, rfx_erase_data, NULL);
-			arg2.ref = rxaddr;
+			arg2.ref = *rxaddr;
 			arg2.time = rxref->fromTime;
 			arg2.type = IonStartImputedRange;
 			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -2127,7 +2141,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 			if (rxref->owlt == owlt)
 			{
 				sdr_exit_xn(sdr);
-				return rxaddr;	/*	Idempotent.	*/
+				return 0;	/*	Idempotent.	*/
 			}
 
 			isprintf(rangeIdString, sizeof rangeIdString,
@@ -2145,8 +2159,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	if (nextElt)
 	{
 		prevElt = sm_rbt_prev(ionwm, nextElt);
-		rxref = (IonRXref *)
-			psp(ionwm, sm_rbt_data(ionwm, nextElt));
+		rxref = (IonRXref *) psp(ionwm, sm_rbt_data(ionwm, nextElt));
 		if (fromNode == rxref->fromNode
 		&& toNode == rxref->toNode
 		&& toTime > rxref->fromTime)
@@ -2164,8 +2177,7 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 
 	if (prevElt)
 	{
-		rxref = (IonRXref *)
-			psp(ionwm, sm_rbt_data(ionwm, prevElt));
+		rxref = (IonRXref *) psp(ionwm, sm_rbt_data(ionwm, prevElt));
 		if (fromNode == rxref->fromNode
 		&& toNode == rxref->toNode
 		&& fromTime < rxref->toTime)
@@ -2179,7 +2191,6 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 
 	/*	Range isn't already in database; okay to add.		*/
 
-	rxaddr = 0;
 	range.fromTime = fromTime;
 	range.toTime = toTime;
 	range.fromNode = fromNode;
@@ -2195,8 +2206,8 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 		if (elt)
 		{
 			arg1.rangeElt = elt;
-			rxaddr = insertRXref(&arg1);
-			if (rxaddr == 0)
+			*rxaddr = insertRXref(&arg1);
+			if (*rxaddr == 0)
 			{
 				sdr_cancel_xn(sdr);
 			}
@@ -2206,10 +2217,10 @@ Object	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't insert range.", NULL);
-		return 0;
+		return -1;
 	}
 
-	return rxaddr;
+	return 0;
 }
 
 char	*rfx_print_range(PsmAddress rxaddr, char *buffer)
