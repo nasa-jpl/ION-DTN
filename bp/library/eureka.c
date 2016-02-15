@@ -147,8 +147,6 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 	DuctExpression	ductExpression;
 	time_t		currentTime;
 	PsmAddress	xaddr;
-	uvast		lowerNodeNbr;
-	uvast		higherNodeNbr;
 
 	ipn_findPlan(nodeNbr, &planObj, &planElt);
 	if (planElt)	/*	Egress plan for this neighbor exists.	*/
@@ -182,7 +180,7 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 		}
 	}
 
-	/*	Insert discovered contact and range into contact plan.	*/
+	/*	Insert discovered contact into contact plan.		*/
 
 	currentTime = getUTCTime();
 	if (rfx_insert_contact(currentTime, 0, ownNodeNbr, nodeNbr, xmitRate,
@@ -196,24 +194,6 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		putErrmsg("Can't add reception contact.", neighborEid);
-		return -1;
-	}
-
-	if (nodeNbr < ownNodeNbr)
-	{
-		lowerNodeNbr = nodeNbr;
-		higherNodeNbr = ownNodeNbr;
-	}
-	else
-	{
-		lowerNodeNbr = ownNodeNbr;
-		higherNodeNbr = nodeNbr;
-	}
-
-	if (rfx_insert_range(currentTime, MAX_POSIX_TIME, lowerNodeNbr,
-			higherNodeNbr, 0, &xaddr) < 0 || xaddr == 0)
-	{
-		putErrmsg("Can't add range.", neighborEid);
 		return -1;
 	}
 

@@ -422,11 +422,18 @@ static IonRXref *findRange(const IonCXref *contact)
 
 	PsmAddress rangeElt;
 	IonRXref *range;
+	static IonRXref discovery;
 
 	IonRXref arg = {
 		.fromNode = contact->fromNode,
 		.toNode = contact->toNode,
 	};
+
+	if (contact->discovered || contact->confidence < 1.0)
+	{
+		discovery.owlt = 0;
+		return &discovery;
+	}
 
 	for (sm_rbt_search(ionwm, ionvdb->rangeIndex, rfx_order_ranges, &arg,
 	                   &rangeElt);

@@ -21,6 +21,8 @@
 
 #define	MAX_TIME	((unsigned int) ((1U << 31) - 1))
 
+#define	CGRVDB_NAME	"cgrvdb"
+
 #ifdef	ION_BANDWIDTH_RESERVED
 #define	MANAGE_OVERBOOKING	0
 #endif
@@ -194,63 +196,53 @@ static void	clearRoutingObjects(PsmPartition ionwm)
 	}
 }
 
-static CgrVdb	*_cgrvdb(char **name)
+static CgrVdb	*getCgrVcb()
 {
-	static CgrVdb	*vdb = NULL;
-	PsmPartition	ionwm;
+	static char	*name = CGRVDB_NAME;
+	PsmPartition	ionwm = getIonwm();
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
+	CgrVdb		*vdb;
 	Sdr		sdr;
 
-	if (name)
+	/*	Attaching to volatile database.				*/
+
+	if (psm_locate(ionwm, name, &vdbAddress, &elt) < 0)
 	{
-		if (*name == NULL)	/*	Terminating.		*/
-		{
-			vdb = NULL;
-			return vdb;
-		}
-
-		/*	Attaching to volatile database.			*/
-
-		ionwm = getIonwm();
-		if (psm_locate(ionwm, *name, &vdbAddress, &elt) < 0)
-		{
-			putErrmsg("Failed searching for vdb.", *name);
-			return NULL;
-		}
-
-		if (elt)
-		{
-			vdb = (CgrVdb *) psp(ionwm, vdbAddress);
-			return vdb;
-		}
-
-		/*	CGR volatile database doesn't exist yet.	*/
-
-		sdr = getIonsdr();
-		CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.	*/
-		vdbAddress = psm_zalloc(ionwm, sizeof(CgrVdb));
-		if (vdbAddress == 0)
-		{
-			sdr_exit_xn(sdr);
-			putErrmsg("No space for volatile database.", *name);
-			return NULL;
-		}
-
-		vdb = (CgrVdb *) psp(ionwm, vdbAddress);
-		memset((char *) vdb, 0, sizeof(CgrVdb));
-		if ((vdb->routeLists = sm_list_create(ionwm)) == 0
-		|| psm_catlg(ionwm, *name, vdbAddress) < 0)
-		{
-			sdr_exit_xn(sdr);
-			putErrmsg("Can't initialize volatile database.", *name);
-			return NULL;
-		}
-
-		clearRoutingObjects(ionwm);
-		sdr_exit_xn(sdr);
+		putErrmsg("Failed searching for vdb.", name);
+		return NULL;
 	}
 
+	if (elt)
+	{
+		vdb = (CgrVdb *) psp(ionwm, vdbAddress);
+		return vdb;
+	}
+
+	/*	CGR volatile database doesn't exist yet.		*/
+
+	sdr = getIonsdr();
+	CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.		*/
+	vdbAddress = psm_zalloc(ionwm, sizeof(CgrVdb));
+	if (vdbAddress == 0)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("No space for CGR volatile database.", name);
+		return NULL;
+	}
+
+	vdb = (CgrVdb *) psp(ionwm, vdbAddress);
+	memset((char *) vdb, 0, sizeof(CgrVdb));
+	if ((vdb->routeLists = sm_list_create(ionwm)) == 0
+	|| psm_catlg(ionwm, name, vdbAddress) < 0)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("Can't initialize CGR volatile database.", name);
+		return NULL;
+	}
+
+	clearRoutingObjects(ionwm);
+	sdr_exit_xn(sdr);
 	return vdb;
 }
 
@@ -263,6 +255,13 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	IonRXref	arg;
 	PsmAddress	elt;
 	IonRXref	*range;
+
+	if (contact->discovered || contact->confidence < 1.0)
+	{
+		return 0;	/*	Physically adjacent nodes.	*/
+	}
+
+	/*	This is a scheduled contact; need to know the OWLT.	*/
 
 	memset((char *) &arg, 0, sizeof(IonRXref));
 	arg.fromNode = contact->fromNode;
@@ -682,7 +681,7 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	CgrVdb		*cgrvdb = _cgrvdb(NULL);
+	CgrVdb		*cgrvdb = getCgrVcb(CGRVDB_NAME);
 	int		payloadClass;
 	PsmAddress	elt;
 	IonCXref	*contact;
@@ -2098,7 +2097,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			CgrTrace *trace, int preview)
 {
 	IonVdb		*ionvdb = getIonVdb();
-	CgrVdb		*cgrvdb = _cgrvdb(NULL);
+	CgrVdb		*cgrvdb = getCgrVcb(CGRVDB_NAME);
 	IonNode		*terminusNode;
 	PsmAddress	nextNode;
 	int		ionMemIdx;
@@ -2477,9 +2476,7 @@ float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 
 void	cgr_start()
 {
-	char	*name = "cgrvdb";
-
-	oK(_cgrvdb(&name));
+	oK(getCgrVcb(CGRVDB_NAME));
 }
 
 const char	*cgr_tracepoint_text(CgrTraceType traceType)
@@ -2584,7 +2581,6 @@ void	cgr_stop()
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
 	CgrVdb		*vdb;
-	char		*stop = NULL;
 
 	/*Clear Route Caches*/
 	clearRoutingObjects(wm);
@@ -2606,7 +2602,4 @@ void	cgr_stop()
 			putErrmsg("Failed Uncataloging vdb.",NULL);
 		}
 	}
-
-	/*Reset pointer*/
-	oK(_cgrvdb(&stop));
 }
