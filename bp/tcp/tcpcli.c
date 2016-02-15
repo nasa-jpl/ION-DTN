@@ -183,15 +183,13 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 		switch (irecv(p->sock, (char *) &byte, 1, 0))
 		{
 		case -1:
-			if (errno == EINTR)	/*	Shutdown.	*/
+			if (errno != EINTR)	/*	(Shutdown)	*/
 			{
-				closeConnection(p);
-				return 0;
+				putSysErrmsg("irecv() error on TCP socket",
+						p->neighbor->eid);
 			}
 
-			putSysErrmsg("irecv() error on TCP socket",
-					p->neighbor->eid);
-			return -1;
+			/*	Intentional fall-through to next case.	*/
 
 		case 0:			/*	Neighbor closed.	*/
 			closeConnection(p);
@@ -1103,6 +1101,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	}
 
 	eidbuf[eidLength] = '\0';
+writeMemoNote("[i] EID in contact header is", eidbuf);
 	if (connection->destDuctName == NULL)	/*	From accept().	*/
 	{
 		/*	If a TcpclNeighbor already exists whose eid
@@ -1142,6 +1141,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				memcpy((char *) (knownNeighbor->cc),
 						(char *) connection,
 						sizeof(TcpclConnection));
+				knownNeighbor->cc->neighbor = knownNeighbor;
 				rtp->connection = knownNeighbor->cc;
 
 				/*	Make sure deletion of the
@@ -1161,9 +1161,10 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 		/*	This is a new neighbor; just note its EID.	*/
 
-		sdr_exit_xn(sdr);		/*	Unlock list.	*/
 		MRELEASE(neighbor->eid);
 		neighbor->eid = eidbuf;
+writeMemoNote("[i] New neighbor from accept(), EID", neighbor->eid);
+		sdr_exit_xn(sdr);	/*	Unlock list.		*/
 		return 1;		/*	Nothing more to do.	*/
 	}
 
@@ -1493,14 +1494,13 @@ static int	handleShutdown(ReceiverThreadParms *rtp,
 		switch (result)
 		{
 		case -1:
-			if (errno == EINTR)	/*	Shutdown.	*/
+			if (errno != EINTR)	/*	(Shutdown)	*/
 			{
-				return 0;
+				putSysErrmsg("irecv() error on TCP socket",
+						neighbor->eid);
 			}
 
-			putSysErrmsg("irecv() error on TCP socket",
-					neighbor->eid);
-			return -1;
+			/*	Intentional fall-through to next case.	*/
 
 		case 0:			/*	Neighbor closed.	*/
 			return 0;
@@ -1561,7 +1561,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 			{
 				putSysErrmsg("irecv() error on TCP socket",
 						neighbor->eid);
-				return -1;
 			}
 
 			/*	Intentional fall-through to next case.	*/
