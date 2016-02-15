@@ -197,6 +197,8 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #define ENETUNREACH		WSAENETUNREACH
 #define EHOSTUNREACH		WSAEHOSTUNREACH
 #define	O_LARGEFILE		0
+#define	inet_pton(a,b,c)	InetPton(a,b,c)
+#define	inet_ntop(a,b,c,d)	InetNtop(a,b,c,d)
 
 #else				/****	not Windows		*********/
 
