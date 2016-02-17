@@ -538,6 +538,10 @@ static void	closeConnection(TcpclConnection *connection)
 				return;
 			}
 		}
+else
+{
+	putErrmsg("Can't find outduct to block.", connection->destDuctName);
+}
 
 		if (connection->reconnectInterval == 0)
 		{
@@ -757,18 +761,11 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 		memcpy(segHeader + 1, segLengthSdnv.text, segLengthSdnv.length);
 		segHeaderLength = 1 + segLengthSdnv.length;
 		pthread_mutex_lock(&(connection->mutex));
-		switch (itcp_send(connection->sock, segHeader, segHeaderLength))
+		if (itcp_send(connection->sock, segHeader, segHeaderLength) < 1)
 		{
-		case -1:			/*	System failed.	*/
 			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
-			putErrmsg("itcp_send() error", neighbor->eid);
-			return -1;
-
-		case 0:
-			lyst_delete(elt);
-			pthread_mutex_unlock(&(connection->mutex));
-			writeMemoNote("[?] tcpcl connection lost",
+			writeMemoNote("[?] tcpcl connection lost (seg header)",
 					neighbor->eid);
 			if (discardBundle(connection, bundleZco) < 0)
 			{
@@ -781,18 +778,11 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 			return 0;
 		}
 
-		switch (itcp_send(connection->sock, stp->buffer, bytesToSend))
+		if (itcp_send(connection->sock, stp->buffer, bytesToSend) < 1)
 		{
-		case -1:			/*	System failed.	*/
 			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
-			putErrmsg("itcp_send() error", neighbor->eid);
-			return -1;
-
-		case 0:
-			lyst_delete(elt);
-			pthread_mutex_unlock(&(connection->mutex));
-			writeMemoNote("[?] tcpcl connection lost",
+			writeMemoNote("[?] tcpcl connection lost (seg content)",
 					neighbor->eid);
 			if (discardBundle(connection, bundleZco) < 0)
 			{
@@ -969,18 +959,13 @@ static int	sendContactHeader(TcpclConnection *connection)
 	pthread_mutex_lock(&(connection->mutex));
 	result = itcp_send(connection->sock, contactHeader, len);
 	pthread_mutex_unlock(&(connection->mutex));
-	switch (result)
+	if (result < 1)
 	{
-	case -1:
-		return -1;
-
-	case 0:		/*	Lost the TCP neighbor.		*/
 		closeConnection(connection);
 		return 0;
-
-	default:
-		return result;
 	}
+
+	return result;
 }
 
 static int	receiveContactHeader(ReceiverThreadParms *rtp)
@@ -1019,6 +1004,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	{
 		writeMemoNote("[?] Invalid TCPCL contact header",
 				neighbor->eid);
+writeMemoNote("[?] Contact header is", (char *) header);
 		closeConnection(connection);
 		return 0;
 	}
@@ -2384,14 +2370,10 @@ static int	sendKeepalive(TcpclConnection *connection)
 	pthread_mutex_lock(&(connection->mutex));
 	result = itcp_send(connection->sock, &keepalive, 1);
 	pthread_mutex_unlock(&(connection->mutex));
-	switch (result)
+	if (result < 1)
 	{
-	case -1:
-		putErrmsg("itcp_send() error", neighbor->eid);
-		return -1;
-
-	case 0:
-		writeMemoNote("[?] tcpcl connection lost", neighbor->eid);
+		writeMemoNote("[?] tcpcl connection lost (keepalive)",
+				neighbor->eid);
 		closeConnection(connection);
 		return 0;
 	}

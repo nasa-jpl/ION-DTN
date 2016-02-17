@@ -81,8 +81,11 @@ typedef struct
 {
 	/* IPND structures */
 	pthread_t	sendBeaconsThread;
+	int		haveSendThread;		/*	Boolean		*/
 	pthread_t	receiveBeaconsThread;
+	int		haveReceiveThread;	/*	Boolean		*/
 	pthread_t	expireNeighborsThread;
+	int		haveExpireThread;	/*	Boolean		*/
 
 	/* Configuration */
 	char		srcEid[MAX_EID_LEN];
