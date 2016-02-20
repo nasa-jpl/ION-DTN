@@ -108,6 +108,7 @@ typedef struct
 	int			bundleRefusals;	/*	Boolean		*/
 	int			lengthMessages;	/*	Boolean		*/
 	int			shutDown;	/*	Boolean		*/
+	int			hasEnded;	/*	Boolean		*/
 	struct tcpcl_neighbor	*neighbor;	/*	Back reference	*/
 
 	/*	For planned connection only.				*/
@@ -143,6 +144,7 @@ static void	*handleContacts(void *parm);
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
+writeMemo("[$] Thread interrupted.");
 	ionKillMainThread("tcpcli");
 }
 
@@ -520,12 +522,25 @@ static void	closeConnection(TcpclConnection *connection)
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
+	if (connection->hasSender)
+	{
+		sm_SemEnd(connection->outduct->semaphore);
+#ifdef mingw
+		shutdown(connection->sock, SD_BOTH);
+#else
+		pthread_kill(connection->sender, SIGTERM);
+#endif
+		pthread_join(connection->sender, NULL);
+		connection->hasSender = 0;
+	}
+
 	if (connection->sock != -1)
 	{
 		closesocket(connection->sock);
 		connection->sock = -1;
 	}
 
+	connection->secUntilKeepalive = -1;
 	if (connection->destDuctName)	/*	Planned connection.	*/
 	{
 		findOutduct("tcp", connection->destDuctName, &vduct,
@@ -538,11 +553,8 @@ static void	closeConnection(TcpclConnection *connection)
 				return;
 			}
 		}
-else
-{
-	putErrmsg("Can't find outduct to block.", connection->destDuctName);
-}
 
+		lyst_clear(connection->pipeline);
 		if (connection->reconnectInterval == 0)
 		{
 			/*	Never reconnect.			*/
@@ -590,22 +602,8 @@ static int	sendShutdown(TcpclConnection *connection, char reason,
 	return result;
 }
 
-static void	endConnection(TcpclConnection *connection, char reason)
+static void	eraseConnection(TcpclConnection *connection)
 {
-	if (sendShutdown(connection, reason, 0) < 0)
-	{
-		ionKillMainThread(procName());
-		return;
-	}
-
-	connection->shutDown = 1;
-	if (connection->hasSender)
-	{
-		sm_SemEnd(connection->outduct->semaphore);
-		pthread_join(connection->sender, NULL);
-		connection->hasSender = 0;
-	}
-
 	if (connection->hasReceiver)
 	{
 #ifdef mingw
@@ -631,6 +629,19 @@ static void	endConnection(TcpclConnection *connection, char reason)
 		MRELEASE(connection->destDuctName);
 		connection->destDuctName = NULL;
 	}
+}
+
+static void	endConnection(TcpclConnection *connection, char reason)
+{
+	if (sendShutdown(connection, reason, 0) < 0)
+	{
+writeMemo("[$] endConnection failed.");
+		ionKillMainThread(procName());
+		return;
+	}
+
+	connection->shutDown = 1;
+	eraseConnection(connection);
 }
 
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor)
@@ -894,8 +905,8 @@ static void	*sendBundles(void *parm)
 			putErrmsg("tcpcli failed sending bundle.",
 					neighbor->eid);
 			ionKillMainThread(procName());
-			closeConnection(connection);
-			continue;
+
+			/*	Intentional fall-through to next case.	*/
 
 		case 0:
 			closeConnection(connection);
@@ -1179,12 +1190,12 @@ writeMemoNote("[i] New neighbor from accept(), EID", neighbor->eid);
 	/*	This is a connection over which bundles may be
 	 *	transmitted, so we must start a sender thread for
 	 *	the outduct that we use for those bundles.		*/
-
+#if 0
 	if (connection->hasSender)
 	{
 		return 1;			/*	Reopen.		*/
 	}
-
+#endif
 	findOutduct("tcp", connection->destDuctName, &outduct, &vductElt);
 	if (vductElt == 0)
 	{
@@ -1194,6 +1205,7 @@ writeMemoNote("[i] New neighbor from accept(), EID", neighbor->eid);
 	}
 
 	connection->outduct = outduct;
+	sm_SemUnend(connection->outduct->semaphore);
 	stp = (SenderThreadParms *) MTAKE(sizeof(SenderThreadParms));
 	if (stp == NULL)
 	{
@@ -1718,6 +1730,7 @@ static void	*handleContacts(void *parm)
 			switch (reopenConnection(connection))
 			{
 			case -1:
+writeMemo("[$] reopenConnection failed.");
 				ionKillMainThread(procName());
 				connection->shutDown = 1;
 				continue;
@@ -1782,11 +1795,13 @@ static void	*handleContacts(void *parm)
 		connection->timeoutCount = 0;
 		if (handleMessages(rtp) < 0)
 		{
+writeMemo("[$] handleMessages failed.");
 			ionKillMainThread(procName());
 			connection->shutDown = 1;
 		}
 	}
 
+	connection->hasEnded = 1;
 	ionPauseAttendant(&(rtp->attendant));
 	ionStopAttendant(&(rtp->attendant));
 	writeErrmsgMemos();
@@ -1836,6 +1851,9 @@ static void	*spawnReceivers(void *parm)
 			stp->running = 0;
 			continue;
 		}
+
+writeMemoNote("[$] Server thread has accepted a connection, stp->running",
+itoa(stp->running));
 
 		if (stp->running == 0)	/*	Main thread shutdown.	*/
 		{
@@ -2441,6 +2459,12 @@ static void	checkConnection(TcpclConnection *connection)
 {
 	TcpclNeighbor	*neighbor = connection->neighbor;
 
+	if (connection->hasEnded)
+	{
+		eraseConnection(connection);
+		return;
+	}
+
 	/*	Track idleness in bundle traffic.			*/
 
 	if (connection->secUntilShutdown > 0)
@@ -2523,6 +2547,7 @@ static void	*handleEvents(void *parm)
 
 		if (clearBacklog(ctp) < 0)
 		{
+writeMemo("[$] clearBacklog failed.");
 			ionKillMainThread(procName());
 			ctp->running = 0;
 			continue;
@@ -2559,6 +2584,7 @@ static void	*handleEvents(void *parm)
 		{
 			if (rescan(ctp, ipndb, dtn2db) < 0)
 			{
+writeMemo("[$] rescan failed.");
 				ionKillMainThread(procName());
 				ctp->running = 0;
 				continue;
@@ -2816,6 +2842,7 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
+writeMemo("[$] Main thread is shutting down the server thread.");
 	stp.running = 0;
 	wakeUpServerThread(&socketName);
 	pthread_join(serverThread, NULL);
