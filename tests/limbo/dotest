@@ -328,7 +328,7 @@ echo "Node 2 has been shut down."
 
 # Send file from node 5 to node 3
 cd ../5.ipn.tcp
-echo "Sending seventh file twice from node 5 to node 3 (should try to go through clo to node 2, but then be re-routed to go out the clo to node 3."
+echo "Sending seventh file twice from node 5 to node 3 (should try to go through clo to node 2, but then be re-routed to go out the clo to node 3)."
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 

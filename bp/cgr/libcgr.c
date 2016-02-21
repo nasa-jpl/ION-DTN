@@ -1603,6 +1603,14 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 			continue;
 		}
 
+		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
+		contact = (IonCXref *) psp(ionwm, addr);
+printf("Contact confidence %f.\n", contact->confidence);
+		if (contact->confidence != 1.0)
+		{
+			continue;	/*	Not currently usable.	*/
+		}
+
 		/*	Never route to self unless self is the final
 		 *	destination.					*/
 

@@ -705,63 +705,6 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	return cxaddr;
 }
-#if 0
-#ifndef RFX_SIMULATION
-static int	notifyNeighbor(uvast neighborNode, uvast fromNode, uvast toNode,
-			time_t fromTime, time_t toTime, unsigned int xmitRate)
-{
-	return 1;
-}
-#endif
-
-static int	notifyDiscoveredNeighbors(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, unsigned int xmitRate)
-{
-	Sdr		sdr = getIonsdr();
-	uvast		self = getOwnNodeNbr();
-	IonDB		iondb;
-	Object		obj;
-	Object		elt;
-	Object		nextElt;
-	IonContact	contact;
-
-puts("In notifyDiscoveredNeighbors....");
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	for (elt = sdr_list_first(sdr, iondb.contacts); elt; elt = nextElt)
-	{
-		nextElt = sdr_list_next(sdr, elt);
-		obj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		if (contact.discovered == 0
-		|| contact.toNode == fromNode
-		|| contact.toNode == toNode
-		|| contact.fromNode != self)
-		{
-puts("(not a destination for these messages)");
-			continue;	/*	Not a destination.	*/
-		}
-
-		/*	This is a discovered (non-predicted) contact.	*/
-
-		if (notifyNeighbor(contact.toNode, fromNode, toNode, fromTime,
-				toTime, xmitRate) < 0)
-		{
-			putErrmsg("Failed notifying neighbor.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
-	}
-
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't remove discovered contacts.", NULL);
-		return -1;
-	}
-
-	return 0;
-}
-#endif
 
 int	rfx_insert_contact(time_t fromTime, time_t toTime,
 			uvast fromNode, uvast toNode, unsigned int xmitRate,
@@ -790,7 +733,6 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime,
 	{
 		discovered = 1;
 		toTime = MAX_POSIX_TIME;
-//oK(removePredictedContacts(fromNode, toNode));
 	}
 
 	CHKERR(toTime > fromTime);
@@ -924,17 +866,6 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime,
 			{
 				sdr_cancel_xn(sdr);
 			}
-#if 0
-			else
-			{
-				if (discovered)
-				{
-					oK(notifyDiscoveredNeighbors(fromTime,
-							toTime, fromNode,
-							toNode, xmitRate));
-				}
-			}
-#endif
 		}
 	}
 
@@ -1072,8 +1003,8 @@ static void	deleteContact(PsmAddress cxaddr)
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	IonCXref	*cxref;
 	int		predictionsNeeded = 0;
-	uvast		fromNode;
-	uvast		toNode;
+	uvast		fromNode = 0;
+	uvast		toNode = 0;
 	Object		obj;
 	IonEvent	event;
 	IonNeighbor	*neighbor;
@@ -1085,13 +1016,6 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	if (cxref->discovered)
 	{
-printf("Deleting discovered contact at " UVAST_FIELDSPEC ", from "
-UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n", ownNodeNbr,
-cxref->fromNode, cxref->toNode);
-#if 0
-		oK(notifyDiscoveredNeighbors(cxref->fromTime, currentTime,
-			cxref->fromNode, cxref->toNode, cxref->xmitRate));
-#endif
 		if (cxref->fromNode == ownNodeNbr)
 		{
 			rfx_log_discovered_contact(cxref->fromTime, currentTime,
@@ -2577,12 +2501,14 @@ static int	loadContact(Object elt)
 
 	/*	Load contact index entry.				*/
 
+	memset((char *) &cxref, 0, sizeof(IonCXref));
 	cxref.fromNode = contact.fromNode;
 	cxref.toNode = contact.toNode;
 	cxref.fromTime = contact.fromTime;
 	cxref.toTime = contact.toTime;
 	cxref.xmitRate = contact.xmitRate;
 	cxref.confidence = contact.confidence;
+	cxref.discovered = contact.discovered;
 	cxref.contactElt = elt;
 	cxref.routingObject = 0;
 	if (insertCXref(&cxref) == 0)
