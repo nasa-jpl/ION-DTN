@@ -91,6 +91,11 @@
 #define	TCPCL_PLANNED		(0)
 #define	TCPCL_CHANCE		(1)
 
+#ifdef	QUERY
+#undef	QUERY
+#endif
+#define	QUERY			(-1)
+
 typedef struct
 {
 	int			sock;
@@ -137,15 +142,44 @@ typedef struct tcpcl_neighbor
 	TcpclConnection		*cc;		/*	Chance.		*/
 } TcpclNeighbor;
 
-static void	closeConnection(TcpclConnection *connection);
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor);
 static void	*handleContacts(void *parm);
+
+static int	sigtermReceived(int newValue)
+{
+	static int	received = 0;
+
+	if (!(newValue == QUERY))
+	{
+		received = newValue;
+	}
+
+	return received;
+}
+
+static int	connectionTimedOut(int newValue)
+{
+	static int	timedOut = 0;
+
+	if (!(newValue == QUERY))
+	{
+		timedOut = newValue;
+	}
+
+	return timedOut;
+}
 
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
 writeMemo("[$] Thread interrupted.");
-	ionKillMainThread("tcpcli");
+
+	/*	There is an ambiguity here.  SIGTERM is issued by
+	 *	ION to terminate tcpcli, but it also apparently is
+	 *	delivered by recv upon connection failure.  Note the
+	 *	signal and let the clock thread sort this out.		*/
+
+	oK(sigtermReceived(1));
 }
 
 static char	*procName()
@@ -187,6 +221,7 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 		case -1:
 			if (errno != EINTR)	/*	(Shutdown)	*/
 			{
+				oK(connectionTimedOut(1));
 				putSysErrmsg("irecv() error on TCP socket",
 						p->neighbor->eid);
 			}
@@ -194,7 +229,6 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:			/*	Neighbor closed.	*/
-			closeConnection(p);
 			return 0;
 		}
 
@@ -633,13 +667,7 @@ static void	eraseConnection(TcpclConnection *connection)
 
 static void	endConnection(TcpclConnection *connection, char reason)
 {
-	if (sendShutdown(connection, reason, 0) < 0)
-	{
-writeMemo("[$] endConnection failed.");
-		ionKillMainThread(procName());
-		return;
-	}
-
+	oK(sendShutdown(connection, reason, 0));
 	connection->shutDown = 1;
 	eraseConnection(connection);
 }
@@ -785,7 +813,6 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 				return -1;
 			}
 
-			closeConnection(connection);
 			return 0;
 		}
 
@@ -802,7 +829,6 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 				return -1;
 			}
 
-			closeConnection(connection);
 			return 0;
 		}
 
@@ -901,14 +927,14 @@ static void	*sendBundles(void *parm)
 	{
 		switch (sendOneBundle(stp))
 		{
-		case -1:
+		case -1:		/*	System failure.		*/
 			putErrmsg("tcpcli failed sending bundle.",
 					neighbor->eid);
 			ionKillMainThread(procName());
 
 			/*	Intentional fall-through to next case.	*/
 
-		case 0:
+		case 0:			/*	Protocol failure.	*/
 			closeConnection(connection);
 			continue;
 
@@ -970,12 +996,6 @@ static int	sendContactHeader(TcpclConnection *connection)
 	pthread_mutex_lock(&(connection->mutex));
 	result = itcp_send(connection->sock, contactHeader, len);
 	pthread_mutex_unlock(&(connection->mutex));
-	if (result < 1)
-	{
-		closeConnection(connection);
-		return 0;
-	}
-
 	return result;
 }
 
@@ -998,16 +1018,9 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
-	switch (itcp_recv(connection->sock, (char *) header, sizeof header))
+	if (itcp_recv(connection->sock, (char *) header, sizeof header) < 1)
 	{
-	case -1:
-		putErrmsg("Failure reading on TCP socket", neighbor->eid);
-		closeConnection(connection);
-		return 0;
-
-	case 0:
 		putErrmsg("Can't get TCPCL contact header.", neighbor->eid);
-		closeConnection(connection);
 		return 0;
 	}
 
@@ -1016,17 +1029,12 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 		writeMemoNote("[?] Invalid TCPCL contact header",
 				neighbor->eid);
 writeMemoNote("[?] Contact header is", (char *) header);
-		closeConnection(connection);
 		return 0;
 	}
 
 	if (header[4] < 3)		/*	Version mismatch.	*/
 	{
-		if (sendShutdown(connection, 0x01, 0) < 0)
-		{
-			return -1;
-		}
-
+		oK(sendShutdown(connection, 0x01, 0));
 		writeMemoNote("[?] Bad version number in TCPCL contact header",
 				neighbor->eid);
 		neighbor->mustDelete = 1;
@@ -1063,15 +1071,10 @@ writeMemoNote("[?] Contact header is", (char *) header);
 		connection->secUntilKeepalive = connection->keepaliveInterval;
 	}
 
-	switch (receiveSdnv(connection, &eidLength))
+	if (receiveSdnv(connection, &eidLength) < 1)
 	{
-	case -1:
-		return -1;
-
-	case 0:
 		putErrmsg("Can't get EID length in TCPCL contact header",
 				neighbor->eid);
-		closeConnection(connection);
 		return 0;
 	}
 
@@ -1082,18 +1085,10 @@ writeMemoNote("[?] Contact header is", (char *) header);
 		return -1;
 	}
 
-	switch (itcp_recv(connection->sock, eidbuf, eidLength))
+	if (itcp_recv(connection->sock, eidbuf, eidLength) < 1)
 	{
-	case -1:
-		MRELEASE(eidbuf);
-		putErrmsg("Failure reading on TCP socket", neighbor->eid);
-		closeConnection(connection);
-		return 0;
-
-	case 0:
 		MRELEASE(eidbuf);
 		putErrmsg("Can't get TCPCL contact header EID.", neighbor->eid);
-		closeConnection(connection);
 		return 0;
 	}
 
@@ -1122,12 +1117,7 @@ writeMemoNote("[i] EID in contact header is", eidbuf);
 			if (knownNeighbor->cc->sock != -1)
 			{
 				result = 0;	/*	Rejected.	*/
-				if (sendShutdown(connection, 0x02, 0) < 0)
-				{
-					return -1;
-				}
-
-				closeConnection(connection);
+				oK(sendShutdown(connection, 0x02, 0));
 			}
 			else	/*	Complementary connection.	*/
 			{
@@ -1175,12 +1165,7 @@ writeMemoNote("[i] New neighbor from accept(), EID", neighbor->eid);
 		writeMemoNote("[?] expected tcpcl EID", neighbor->eid);
 		writeMemoNote("[?] received tcpcl EID", eidbuf);
 		MRELEASE(eidbuf);
-		if (sendShutdown(connection, 0x02, 0) < 0)
-		{
-			return -1;
-		}
-
-		closeConnection(connection);
+		oK(sendShutdown(connection, 0x02, 0));
 		neighbor->mustDelete = 1;
 		return 0;
 	}
@@ -1190,12 +1175,7 @@ writeMemoNote("[i] New neighbor from accept(), EID", neighbor->eid);
 	/*	This is a connection over which bundles may be
 	 *	transmitted, so we must start a sender thread for
 	 *	the outduct that we use for those bundles.		*/
-#if 0
-	if (connection->hasSender)
-	{
-		return 1;			/*	Reopen.		*/
-	}
-#endif
+
 	findOutduct("tcp", connection->destDuctName, &outduct, &vductElt);
 	if (vductElt == 0)
 	{
@@ -1295,14 +1275,8 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
  
 		extentSize = itcp_recv(connection->sock, rtp->buffer,
 				bytesToRead);
-		switch (extentSize)
+		if (extentSize < 1)
 		{
-		case -1:
-			putErrmsg("Failure reading on TCP socket",
-					neighbor->eid);
-			return 0;
-
-		case 0:
 			writeMemoNote("[?] Lost TCPCL neighbor", neighbor->eid);
 			return 0;
 		}
@@ -1494,6 +1468,7 @@ static int	handleShutdown(ReceiverThreadParms *rtp,
 		case -1:
 			if (errno != EINTR)	/*	(Shutdown)	*/
 			{
+				oK(connectionTimedOut(1));
 				putSysErrmsg("irecv() error on TCP socket",
 						neighbor->eid);
 			}
@@ -1557,6 +1532,7 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 		case -1:
 			if (errno != EINTR)	/*	Not shutdown.	*/
 			{
+				oK(connectionTimedOut(1));
 				putSysErrmsg("irecv() error on TCP socket",
 						neighbor->eid);
 			}
@@ -1564,7 +1540,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:			/*	Neighbor closed.	*/
-			closeConnection(connection);
 			return 0;
 		}
 
@@ -1580,7 +1555,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 				return -1;
 
 			case 0:		/*	Connection closed.	*/
-				closeConnection(connection);
 				return 0;
 			}
 
@@ -1595,7 +1569,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 				return -1;
 
 			case 0:		/*	Connection closed.	*/
-				closeConnection(connection);
 				return 0;
 			}
 
@@ -1610,7 +1583,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 				return -1;
 
 			case 0:		/*	Connection closed.	*/
-				closeConnection(connection);
 				return 0;
 			}
 
@@ -1625,7 +1597,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 				return -1;
 
 			case 0:		/*	Connection closed.	*/
-				closeConnection(connection);
 				return 0;
 			}
 
@@ -1640,7 +1611,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 				return -1;
 
 			case 0:		/*	Connection closed.	*/
-				closeConnection(connection);
 				return 0;
 			}
 
@@ -1655,7 +1625,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 				return -1;
 
 			case 0:		/*	Connection closed.	*/
-				closeConnection(connection);
 				return 0;
 			}
 
@@ -1664,7 +1633,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 		default:
 			writeMemoNote("[?] TCPCL unknown message type",
 					itoa(msgType));
-			closeConnection(connection);
 			return 0;
 		}
 	}
@@ -1730,7 +1698,7 @@ static void	*handleContacts(void *parm)
 			switch (reopenConnection(connection))
 			{
 			case -1:
-writeMemo("[$] reopenConnection failed.");
+writeMemo("[$] reopenConnection failed in receiver thread.");
 				ionKillMainThread(procName());
 				connection->shutDown = 1;
 				continue;
@@ -1748,16 +1716,8 @@ writeMemo("[$] reopenConnection failed.");
 		/*	Connection is known to be established, so
 		 *	now exchange contact headers.			*/
 
-		switch (sendContactHeader(connection))
+		if (sendContactHeader(connection) < 1)
 		{
-		case -1:
-			putErrmsg("tcpcli can't send contact header.",
-					neighbor->eid);
-			ionKillMainThread(procName());
-			connection->shutDown = 1;
-			continue;
-
-		case 0:				/*	Neighbor lost.	*/
 			writeMemoNote("[i] tcpcli did not send contact header",
 					neighbor->eid);
 			closeConnection(connection);
@@ -1766,21 +1726,22 @@ writeMemo("[$] reopenConnection failed.");
 
 		result = receiveContactHeader(rtp);
 
-		/*	Contact header may have attached this receiver
-		 *	thread to a previously established neighbor.	*/
+		/*	Contact header reception may have attached
+		 *	this receiver thread to a previously
+		 *	established neighbor.				*/
 
 		connection = rtp->connection;
 		neighbor = connection->neighbor;
 		switch (result)
 		{
-		case -1:
-			putErrmsg("tcpcli can't receive contact header.",
-					neighbor->eid);
+		case -1:		/*	System failure.		*/
+			putErrmsg("Failure receiving contact header", NULL);
 			ionKillMainThread(procName());
 			connection->shutDown = 1;
-			continue;
+			closeConnection(connection);
+			continue;	/*	Terminate the loop.	*/
 
-		case 0:		/*	Neighbor lost or discarded.	*/
+		case 0:			/*	Protocol faiure.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					neighbor->eid);
 			closeConnection(connection);
@@ -1799,6 +1760,8 @@ writeMemo("[$] handleMessages failed.");
 			ionKillMainThread(procName());
 			connection->shutDown = 1;
 		}
+
+		closeConnection(connection);
 	}
 
 	connection->hasEnded = 1;
@@ -1909,15 +1872,28 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 		neighbor = (TcpclNeighbor *) lyst_data(elt);
 		if (neighbor->pc->hasSender)
 		{
-			return 0;	/*	Sender handles reopen.	*/
+			return 0;	/*	Connection is active.	*/
 		}
 
 		if (neighbor->pc->sock != -1)
 		{
-			return 0;	/*	Connection is pending.	*/
+			/*	Connection is currently not active,
+			 *	but it's open and will be active when
+			 *	the receiver thread completes exchange
+			 *	of contact headers.			*/
+
+			return 0;
 		}
 
-		/*	Otherwise, must try to connect.			*/
+		if (neighbor->pc->hasReceiver)
+		{
+			/*	Connection is not open, but receiver
+	 		 *	thread is responsible for reopening it.	*/
+
+			return 0;
+		}
+
+		/*	Otherwise, must try to begin new connection.	*/
 	}
 	else	/*	This is a newly added plan, no neighbor yet.	*/
 	{
@@ -1933,11 +1909,11 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 
 	switch (itcp_connect(socketSpec, BpTcpDefaultPortNbr, &sock))
 	{
-	case -1:
+	case -1:			/*	System failure.		*/
 		putErrmsg("tcpcli can't connect to remote node.", socketSpec);
 		return -1;
 
-	case 0:
+	case 0:				/*	Protocol failure.	*/
 		return 0;		/*	Connection refused.	*/
 	}
 
@@ -2392,7 +2368,6 @@ static int	sendKeepalive(TcpclConnection *connection)
 	{
 		writeMemoNote("[?] tcpcl connection lost (keepalive)",
 				neighbor->eid);
-		closeConnection(connection);
 		return 0;
 	}
 
@@ -2457,8 +2432,6 @@ static int	clearBacklog(ClockThreadParms *ctp)
 
 static void	checkConnection(TcpclConnection *connection)
 {
-	TcpclNeighbor	*neighbor = connection->neighbor;
-
 	if (connection->hasEnded)
 	{
 		eraseConnection(connection);
@@ -2504,14 +2477,15 @@ static void	checkConnection(TcpclConnection *connection)
 
 	if (connection->secUntilKeepalive == 0)
 	{
-		if (sendKeepalive(connection) < 0)
+		if (sendKeepalive(connection) == 0)
 		{
-			putErrmsg("Failed sending keepalive.", neighbor->eid);
-			ionKillMainThread(procName());
-			return;
+			closeConnection(connection);
 		}
-
-		connection->secUntilKeepalive = connection->keepaliveInterval;
+		else
+		{
+			connection->secUntilKeepalive
+					= connection->keepaliveInterval;
+		}
 	}
 
 	/*	Count down to reconnect.				*/
@@ -2542,8 +2516,40 @@ static void	*handleEvents(void *parm)
 
 	while (ctp->running)
 	{
-		/*	Begin TCPCL connections for all accepted
-		 *	TCP connections.				*/
+		/*	First, check for shutdown.			*/
+
+		if (connectionTimedOut(QUERY))
+		{
+			/*	Any SIGTERM received in the course of
+			 *	connection timeout must NOT terminate
+			 *	tcpcli.					*/
+
+if (sigtermReceived(QUERY)) writeMemo("[$] SIGTERM signal ignored.");
+			oK(sigtermReceived(0));
+			oK(connectionTimedOut(0));
+		}
+
+		switch (sigtermReceived(QUERY))
+		{
+		case 2:
+			/*	We are now confident that the cause
+			 *	of the SIGTERM was not a connection
+			 *	timeout.				*/
+
+if (sigtermReceived(QUERY)) writeMemo("[$] SIGTERM signal applied.");
+			ionKillMainThread(procName());
+			oK(sigtermReceived(0));
+			break;		/*	Out of switch.		*/
+
+		case 1:
+			/*	Let's wait 1 more second for belated
+			 *	posting of connection timeout.		*/
+
+			oK(sigtermReceived(2));
+		}
+
+		/*	Begin TCPCL connections for all accepted TCP
+		 *	connections.					*/
 
 		if (clearBacklog(ctp) < 0)
 		{

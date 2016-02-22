@@ -3362,11 +3362,8 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 		*sock = -1;
 		return 0;
 	}
-	else
-	{
-		writeMemoNote("[i] Connected to TCP socket", socketTag);
-	}
 
+	writeMemoNote("[i] Connected to TCP socket", socketTag);
 	return 1;	/*	Connected to remote socket.		*/
 }
 
