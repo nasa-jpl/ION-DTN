@@ -41,7 +41,7 @@ extern int	openStcpOutductSocket(char *protocolName, char *ductName,
 extern int	sendBundleByStcp(char *protocolName, char *ductName,
 			int *bundleSocket, unsigned int bundleLength,
 			Object bundleZco, char *buffer);
-extern int	receiveBundleByStcp(int bundleSocket, AcqWorkArea *work,
+extern int	receiveBundleByStcp(int *bundleSocket, AcqWorkArea *work,
 			char *buffer, ReqAttendant *attendant);
 extern void	closeStcpOutductSocket(int *bundleSocket);
 

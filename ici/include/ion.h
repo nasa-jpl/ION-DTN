@@ -351,7 +351,7 @@ extern vast		ionAppendZcoExtent(Object zco,
 					unsigned char coarsePriority,
 					unsigned char finePriority,
 					ReqAttendant *attendant);
-extern int		ionSendZcoByTCP(int sock, Object zco, char *buffer,
+extern int		ionSendZcoByTCP(int *sock, Object zco, char *buffer,
 					int buflen);
 
 extern Sdr		getIonsdr();

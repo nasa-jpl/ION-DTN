@@ -46,7 +46,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	MRELEASE(parms);
 }
 
-static int	receiveBlockByTCP(int bsiSocket, char *buffer)
+static int	receiveBlockByTCP(int *bsiSocket, char *buffer)
 {
 	unsigned int	blockLength = 0;
 	int		bytesToReceive;
@@ -122,7 +122,7 @@ static void	*receiveBlocks(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		blockLength = receiveBlockByTCP(parms->blockSocket, buffer);
+		blockLength = receiveBlockByTCP(&parms->blockSocket, buffer);
 		switch (blockLength)
 		{
 		case -1:

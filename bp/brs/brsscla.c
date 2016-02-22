@@ -24,9 +24,14 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	interruptThread()
+static void	handleStopThread()
 {
-	isignal(SIGTERM, interruptThread);
+	isignal(SIGINT, handleStopThread);
+}
+
+static void	handleStopBrsscla()
+{
+	isignal(SIGTERM, handleStopBrsscla);
 	ionKillMainThread("brsscla");
 }
 
@@ -314,7 +319,7 @@ static void	*receiveBundles(void *parm)
 
 	while (1)
 	{
-		switch (itcp_recv(parms->bundleSocket,
+		switch (itcp_recv(&(parms->bundleSocket),
 				(char *) (sdnvText + sdnvLength), 1))
 		{
 			case 1:
@@ -380,7 +385,8 @@ static void	*receiveBundles(void *parm)
 
 	/*	Get time tag and its HMAC-SHA1 digest.			*/
 
-	switch (itcp_recv(parms->bundleSocket, registration, REGISTRATION_LEN))
+	switch (itcp_recv(&(parms->bundleSocket), registration,
+			REGISTRATION_LEN))
 	{
 	case REGISTRATION_LEN:
 		break;				/*	Out of switch.	*/
@@ -430,7 +436,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	oK(hmac_authenticate(digest, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
 	memcpy(registration + 4, digest, DIGEST_LEN);
-	if (itcp_send(parms->bundleSocket, registration + 4,
+	if (itcp_send(&(parms->bundleSocket), registration + 4,
 			DIGEST_LEN) < DIGEST_LEN)
 	{
 		putErrmsg("Can't countersign to client.",
@@ -479,7 +485,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 			continue;
 		}
 
-		switch (receiveBundleByStcp(parms->bundleSocket, work, buffer,
+		switch (receiveBundleByStcp(&parms->bundleSocket, work, buffer,
 				_attendant(NULL)))
 		{
 		case -1:
@@ -660,7 +666,7 @@ static void	*spawnReceivers(void *parm)
 #ifdef mingw
 		shutdown(receiverParms->bundleSocket, SD_BOTH);
 #else
-		pthread_kill(thread, SIGTERM);
+		pthread_kill(thread, SIGINT);
 #endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
@@ -781,8 +787,9 @@ port 80)", NULL);
 	ionNoteMainThread("brsscla");
 #ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);	/*	Sender.	*/
+	isignal(SIGINT, handleStopThread);
 #endif
-	isignal(SIGTERM, interruptThread);
+	isignal(SIGTERM, handleStopBrsscla);
 
 	/*	Start the sender thread; a single sender for all
 	 *	connections.						*/

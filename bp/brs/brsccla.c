@@ -165,7 +165,7 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByStcp(*(parms->ductSocket), work, buffer,
+		switch (receiveBundleByStcp(parms->ductSocket, work, buffer,
 				&attendant))
 		{
 		case -1:
@@ -355,9 +355,9 @@ number>");
 	memcpy(registration, (char *) &timeTag, 4);
 	oK(hmac_authenticate(registration + 4, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
-	if (itcp_send(ductSocket, (char *) ductSdnv.text, ductSdnv.length)
+	if (itcp_send(&ductSocket, (char *) ductSdnv.text, ductSdnv.length)
 			< ductSdnv.length
-	|| itcp_send(ductSocket, registration, REGISTRATION_LEN)
+	|| itcp_send(&ductSocket, registration, REGISTRATION_LEN)
 			< REGISTRATION_LEN)
 	{
 		putErrmsg("Can't register with server.", itoa(ductSocket));
@@ -374,7 +374,7 @@ number>");
 	timeTag = htonl(timeTag);
 	oK(hmac_authenticate(expectedCountersign, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
-	switch (itcp_recv(ductSocket, receivedCountersign, DIGEST_LEN))
+	switch (itcp_recv(&ductSocket, receivedCountersign, DIGEST_LEN))
 	{
 		case DIGEST_LEN:
 			break;			/*	Out of switch.	*/

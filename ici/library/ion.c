@@ -2306,7 +2306,7 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	return result;
 }
 
-int	ionSendZcoByTCP(int sock, Object zco, char *buffer, int buflen)
+int	ionSendZcoByTCP(int *sock, Object zco, char *buffer, int buflen)
 {
 	Sdr		sdr = getIonsdr();
 	int		totalBytesSent = 0;
@@ -2316,7 +2316,7 @@ int	ionSendZcoByTCP(int sock, Object zco, char *buffer, int buflen)
 	int		bytesToSend;
 	int		bytesSent;
 
-	CHKERR(!(sock < 0));
+	CHKERR(!(*sock < 0));
 	CHKERR(zco);
 	CHKERR(buffer);
 	CHKERR(buflen > 0);

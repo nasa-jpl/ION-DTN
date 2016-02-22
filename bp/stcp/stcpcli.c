@@ -24,9 +24,14 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	interruptThread()
+static void	handleStopThread()
 {
-	isignal(SIGTERM, interruptThread);
+	isignal(SIGINT, handleStopThread);
+}
+
+static void	handleStopStcpcli()
+{
+	isignal(SIGTERM, handleStopStcpcli);
 	ionKillMainThread("stcpcli");
 }
 
@@ -99,8 +104,8 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByStcp(parms->bundleSocket, work, buffer,
-					_attendant(NULL)))
+		switch (receiveBundleByStcp(&(parms->bundleSocket), work,
+				buffer, _attendant(NULL)))
 		{
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -262,7 +267,7 @@ static void	*spawnReceivers(void *parm)
 #ifdef mingw
 		shutdown(parms->bundleSocket, SD_BOTH);
 #else
-		pthread_kill(thread, SIGTERM);
+		pthread_kill(thread, SIGINT);
 #endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
@@ -387,7 +392,10 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("stcpcli");
-	isignal(SIGTERM, interruptThread);
+#ifndef mingw
+	isignal(SIGINT, handleStopThread);
+#endif
+	isignal(SIGTERM, handleStopStcpcli);
 
 	/*	Start the access thread.				*/
 

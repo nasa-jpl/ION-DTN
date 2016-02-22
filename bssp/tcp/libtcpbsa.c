@@ -63,7 +63,7 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		}
 	}
 
-	bytesSent = itcp_send(*blockSocket, (char *) &header, 4);
+	bytesSent = itcp_send(blockSocket, (char *) &header, 4);
 	if (bytesSent < 0)
 	{
 		/*	Big problem; shut down.				*/
@@ -87,7 +87,7 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		return 1;	/*	Impossible length; means "OK".	*/
 	}
 
-	bytesSent = itcp_send(*blockSocket, block, blockLength);
+	bytesSent = itcp_send(blockSocket, block, blockLength);
 	if (bytesSent < 0)
 	{
 		/*	Big problem; shut down.			*/

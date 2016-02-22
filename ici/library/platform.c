@@ -3367,7 +3367,7 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 	return 1;	/*	Connected to remote socket.		*/
 }
 
-static int	itcpSendBytes(int sock, char *from, int length)
+static int	itcpSendBytes(int *sock, char *from, int length)
 {
 	int	bytesWritten;
 
@@ -3376,7 +3376,12 @@ static int	itcpSendBytes(int sock, char *from, int length)
 
 	while (1)	/*	Continue until not interrupted.		*/
 	{
-		bytesWritten = isend(sock, from, length, 0);
+		if (*sock == -1)	/*	Socket has been closed.	*/
+		{
+			return 0;
+		}
+
+		bytesWritten = isend(*sock, from, length, 0);
 		if (bytesWritten < 0)
 		{
 			switch (errno)
@@ -3392,20 +3397,20 @@ static int	itcpSendBytes(int sock, char *from, int length)
 				bytesWritten = 0;
 			}
 
-			putSysErrmsg("isend() error on TCP socket", itoa(sock));
+			putSysErrmsg("isend error on TCP socket", itoa(*sock));
 		}
 
 		return bytesWritten;
 	}
 }
 
-int	itcp_send(int sock, char *from, int length)
+int	itcp_send(int *sock, char *from, int length)
 {
 	int	totalBytesSent = 0;
 	int	bytesToSend = length;
 	int	bytesSent;
 
-	CHKERR(!(sock < 0));
+	CHKERR(!(*sock < 0));
 	CHKERR(from);
 	CHKERR(length > 0);
 
@@ -3442,13 +3447,13 @@ int	itcp_send(int sock, char *from, int length)
 	return totalBytesSent;
 }
 
-int	itcp_recv(int sock, char *into, int length)
+int	itcp_recv(int *sock, char *into, int length)
 {
 	int	totalBytesReceived = 0;
 	int	bytesToRecv = length;
 	int	bytesRead;
 
-	CHKERR(!(sock < 0));
+	CHKERR(!(*sock < 0));
 	CHKERR(into);
 	CHKERR(length > 0);
 
@@ -3458,7 +3463,12 @@ int	itcp_recv(int sock, char *into, int length)
 
 	while (bytesToRecv > 0)
 	{
-		bytesRead = irecv(sock, into, bytesToRecv, 0);
+		if (*sock == -1)	/*	Socket has been closed.	*/
+		{
+			return 0;
+		}
+
+		bytesRead = irecv(*sock, into, bytesToRecv, 0);
 		switch (bytesRead)
 		{
 		case -1:

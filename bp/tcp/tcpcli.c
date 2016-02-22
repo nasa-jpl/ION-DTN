@@ -145,46 +145,20 @@ typedef struct tcpcl_neighbor
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor);
 static void	*handleContacts(void *parm);
 
-static int	sigtermReceived(int newValue)
-{
-	static int	received = 0;
-
-	if (!(newValue == QUERY))
-	{
-		received = newValue;
-	}
-
-	return received;
-}
-
-static int	connectionTimedOut(int newValue)
-{
-	static int	timedOut = 0;
-
-	if (!(newValue == QUERY))
-	{
-		timedOut = newValue;
-	}
-
-	return timedOut;
-}
-
-static void	interruptThread()
-{
-	isignal(SIGTERM, interruptThread);
-writeMemo("[$] Thread interrupted.");
-
-	/*	There is an ambiguity here.  SIGTERM is issued by
-	 *	ION to terminate tcpcli, but it also apparently is
-	 *	delivered by recv upon connection failure.  Note the
-	 *	signal and let the clock thread sort this out.		*/
-
-	oK(sigtermReceived(1));
-}
-
 static char	*procName()
 {
 	return "tcpcli";
+}
+
+static void	handleStopThread()
+{
+	isignal(SIGINT, handleStopThread);
+}
+
+static void	handleStopTcpcli()
+{
+	isignal(SIGTERM, handleStopTcpcli);
+	ionKillMainThread(procName());
 }
 
 /*	*	*	Utility functions	*	*	*	*/
@@ -221,7 +195,6 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 		case -1:
 			if (errno != EINTR)	/*	(Shutdown)	*/
 			{
-				oK(connectionTimedOut(1));
 				putSysErrmsg("irecv() error on TCP socket",
 						p->neighbor->eid);
 			}
@@ -562,7 +535,7 @@ static void	closeConnection(TcpclConnection *connection)
 #ifdef mingw
 		shutdown(connection->sock, SD_BOTH);
 #else
-		pthread_kill(connection->sender, SIGTERM);
+		pthread_kill(connection->sender, SIGINT);
 #endif
 		pthread_join(connection->sender, NULL);
 		connection->hasSender = 0;
@@ -631,7 +604,7 @@ static int	sendShutdown(TcpclConnection *connection, char reason,
 	}
 
 	pthread_mutex_lock(&(connection->mutex));
-	result = itcp_send(connection->sock, shutdown, len);
+	result = itcp_send(&connection->sock, shutdown, len);
 	pthread_mutex_unlock(&(connection->mutex));
 	return result;
 }
@@ -643,7 +616,7 @@ static void	eraseConnection(TcpclConnection *connection)
 #ifdef mingw
 		shutdown(connection->sock, SD_BOTH);
 #else
-		pthread_kill(connection->receiver, SIGTERM);
+		pthread_kill(connection->receiver, SIGINT);
 #endif
 		pthread_join(connection->receiver, NULL);
 		connection->hasReceiver = 0;
@@ -744,7 +717,7 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	int		firstByte;
 	Sdnv		segLengthSdnv;
 	char		segHeader[4];
-	int		segHeaderLength;
+	int		segHeaderLen;
 
 	if (connection->sock == -1)		/*	Disconnected.	*/
 	{
@@ -798,9 +771,9 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 		segHeader[0] = firstByte;
 		encodeSdnv(&segLengthSdnv, bytesToLoad);
 		memcpy(segHeader + 1, segLengthSdnv.text, segLengthSdnv.length);
-		segHeaderLength = 1 + segLengthSdnv.length;
+		segHeaderLen = 1 + segLengthSdnv.length;
 		pthread_mutex_lock(&(connection->mutex));
-		if (itcp_send(connection->sock, segHeader, segHeaderLength) < 1)
+		if (itcp_send(&connection->sock, segHeader, segHeaderLen) < 1)
 		{
 			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
@@ -816,7 +789,7 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 			return 0;
 		}
 
-		if (itcp_send(connection->sock, stp->buffer, bytesToSend) < 1)
+		if (itcp_send(&connection->sock, stp->buffer, bytesToSend) < 1)
 		{
 			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
@@ -994,7 +967,7 @@ static int	sendContactHeader(TcpclConnection *connection)
 	/*	connection->sock is known to be a connected socket.	*/
 
 	pthread_mutex_lock(&(connection->mutex));
-	result = itcp_send(connection->sock, contactHeader, len);
+	result = itcp_send(&connection->sock, contactHeader, len);
 	pthread_mutex_unlock(&(connection->mutex));
 	return result;
 }
@@ -1018,7 +991,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
-	if (itcp_recv(connection->sock, (char *) header, sizeof header) < 1)
+	if (itcp_recv(&connection->sock, (char *) header, sizeof header) < 1)
 	{
 		putErrmsg("Can't get TCPCL contact header.", neighbor->eid);
 		return 0;
@@ -1085,7 +1058,7 @@ writeMemoNote("[?] Contact header is", (char *) header);
 		return -1;
 	}
 
-	if (itcp_recv(connection->sock, eidbuf, eidLength) < 1)
+	if (itcp_recv(&connection->sock, eidbuf, eidLength) < 1)
 	{
 		MRELEASE(eidbuf);
 		putErrmsg("Can't get TCPCL contact header EID.", neighbor->eid);
@@ -1219,7 +1192,7 @@ static int	sendAck(TcpclConnection *connection)
 	memcpy(ack + 1, ackLengthSdnv.text, ackLengthSdnv.length);
 	len = 1 + ackLengthSdnv.length;
 	pthread_mutex_lock(&(connection->mutex));
-	result = itcp_send(connection->sock, ack, len);
+	result = itcp_send(&connection->sock, ack, len);
 	pthread_mutex_unlock(&(connection->mutex));
 	return result;
 }
@@ -1273,7 +1246,7 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 			bytesToRead = TCPCL_BUFSZ;
 		}
  
-		extentSize = itcp_recv(connection->sock, rtp->buffer,
+		extentSize = itcp_recv(&connection->sock, rtp->buffer,
 				bytesToRead);
 		if (extentSize < 1)
 		{
@@ -1468,7 +1441,6 @@ static int	handleShutdown(ReceiverThreadParms *rtp,
 		case -1:
 			if (errno != EINTR)	/*	(Shutdown)	*/
 			{
-				oK(connectionTimedOut(1));
 				putSysErrmsg("irecv() error on TCP socket",
 						neighbor->eid);
 			}
@@ -1532,7 +1504,6 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 		case -1:
 			if (errno != EINTR)	/*	Not shutdown.	*/
 			{
-				oK(connectionTimedOut(1));
 				putSysErrmsg("irecv() error on TCP socket",
 						neighbor->eid);
 			}
@@ -2362,7 +2333,7 @@ static int	sendKeepalive(TcpclConnection *connection)
 	}
 
 	pthread_mutex_lock(&(connection->mutex));
-	result = itcp_send(connection->sock, &keepalive, 1);
+	result = itcp_send(&connection->sock, &keepalive, 1);
 	pthread_mutex_unlock(&(connection->mutex));
 	if (result < 1)
 	{
@@ -2516,38 +2487,6 @@ static void	*handleEvents(void *parm)
 
 	while (ctp->running)
 	{
-		/*	First, check for shutdown.			*/
-
-		if (connectionTimedOut(QUERY))
-		{
-			/*	Any SIGTERM received in the course of
-			 *	connection timeout must NOT terminate
-			 *	tcpcli.					*/
-
-if (sigtermReceived(QUERY)) writeMemo("[$] SIGTERM signal ignored.");
-			oK(sigtermReceived(0));
-			oK(connectionTimedOut(0));
-		}
-
-		switch (sigtermReceived(QUERY))
-		{
-		case 2:
-			/*	We are now confident that the cause
-			 *	of the SIGTERM was not a connection
-			 *	timeout.				*/
-
-if (sigtermReceived(QUERY)) writeMemo("[$] SIGTERM signal applied.");
-			ionKillMainThread(procName());
-			oK(sigtermReceived(0));
-			break;		/*	Out of switch.		*/
-
-		case 1:
-			/*	Let's wait 1 more second for belated
-			 *	posting of connection timeout.		*/
-
-			oK(sigtermReceived(2));
-		}
-
 		/*	Begin TCPCL connections for all accepted TCP
 		 *	connections.					*/
 
@@ -2790,10 +2729,11 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("tcpcli");
-	isignal(SIGTERM, interruptThread);
 #ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
+	isignal(SIGINT, handleStopThread);
 #endif
+	isignal(SIGTERM, handleStopTcpcli);
 
 	/*	Start the clock thread, which does initial load
 	 *	of the neighbors lyst.				*/

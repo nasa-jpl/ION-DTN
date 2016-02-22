@@ -164,7 +164,7 @@ static void	*receivePdus(void *parm)
 		{
 			/*	Get fixed-length portion of header.	*/
 
-			result = itcp_recv(parms->recvSocket,
+			result = itcp_recv(&(parms->recvSocket),
 					(char *) buffer, 4);
 			if (result < 4)		/*	Disconnect.	*/
 			{
@@ -186,7 +186,7 @@ static void	*receivePdus(void *parm)
 
 			/*	Get remainder of PDU.			*/
 
-			result = itcp_recv(parms->recvSocket,
+			result = itcp_recv(&(parms->recvSocket),
 					((char *) buffer) + 4,
 					remainingPduLength);
 			if (result < remainingPduLength)
@@ -459,7 +459,7 @@ terminating.");
 			continue;
 		}
 
-		result = itcp_send(xmitSocket, (char *) buffer, bytesToSend);
+		result = itcp_send(&xmitSocket, (char *) buffer, bytesToSend);
 		if (result < bytesToSend)
 		{
 			if (result < 0)		/*	Must stop.	*/

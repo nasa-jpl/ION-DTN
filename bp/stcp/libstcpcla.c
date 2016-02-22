@@ -257,7 +257,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 	/*	Send preamble (length), telling CLI how much to read.	*/
 
 	preamble = htonl(bundleLength);
-	switch (itcp_send(*sock, (char *) &preamble, sizeof preamble))
+	switch (itcp_send(sock, (char *) &preamble, sizeof preamble))
 	{
 	case -1:
 		putErrmsg("Failed to send bundle by STCP.", NULL);
@@ -279,7 +279,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 
 	/*	Send the bundle itself.					*/
 
-	switch(ionSendZcoByTCP(*sock, bundleZco, buffer, STCPCLA_BUFSZ))
+	switch(ionSendZcoByTCP(sock, bundleZco, buffer, STCPCLA_BUFSZ))
 	{
 	case -1:
 		putErrmsg("Failed to send bundle by STCP.", NULL);
@@ -313,7 +313,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 	return 0;
 }
 
-int	receiveBundleByStcp(int sock, AcqWorkArea *work, char *buffer,
+int	receiveBundleByStcp(int *sock, AcqWorkArea *work, char *buffer,
 		ReqAttendant *attendant)
 {
 	unsigned int	preamble;

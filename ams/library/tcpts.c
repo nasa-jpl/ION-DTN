@@ -83,7 +83,7 @@ static void	removeReceiver(TcpRcvr *rcvr)
 	MRELEASE(rcvr);
 }
 
-static int	receiveMsgByTCP(int fd, char *buffer)
+static int	receiveMsgByTCP(int *fd, char *buffer)
 {
 	unsigned short	preamble;
 	char		*into;
@@ -298,7 +298,7 @@ static void	*tcpAmsReceiver(void *parm)
 #endif
 	while (1)
 	{
-		length = receiveMsgByTCP(me->fd, buffer);
+		length = receiveMsgByTCP(&(me->fd), buffer);
 		switch (length)
 		{
 		case -1:
@@ -614,7 +614,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 
 	preamble = xmitlen;
 	preamble = htons(preamble);
-	result = itcp_send(tsep->fd, (char *) &preamble, sizeof preamble);
+	result = itcp_send(&tsep->fd, (char *) &preamble, sizeof preamble);
 	if (result < 1)		/*	Data not transmitted.		*/
 	{
 		removeSender(tsep);
@@ -633,7 +633,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			headerLen + contentLen);
 	checksum = htons(checksum);
 	memcpy(tcpAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
-	result = itcp_send(tsep->fd, tcpAmsBuf, xmitlen);
+	result = itcp_send(&tsep->fd, tcpAmsBuf, xmitlen);
 	MRELEASE(tcpAmsBuf);
 	if (result < 1)		/*	Data not transmitted.		*/
 	{
