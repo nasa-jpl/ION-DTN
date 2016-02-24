@@ -512,6 +512,8 @@ static int	reopenConnection(TcpclConnection *connection)
 		return 0;
 	}
 
+	/*	Reconnection succeeded.					*/
+
 	if (bpUnblockOutduct("tcp", connection->destDuctName) < 0)
 	{
 		putErrmsg("tcpcli connected but didn't unblock outduct.",
@@ -675,29 +677,6 @@ static void	shutDownNeighbors(Lyst neighbors)
 
 /*	*	*	Sender thread functions		*	*	*/
 
-static int	discardBundle(TcpclConnection *connection, Object bundleZco)
-{
-	Sdr	sdr = getIonsdr();
-
-	if (bpHandleXmitFailure(bundleZco) < 0)
-	{
-		putErrmsg("tcpcli can't handle bundle xmit failure.", NULL);
-		return -1;
-	}
-
-	/*	Destroy bundle, unless there's stewardship or custody.	*/
-
-	oK(sdr_begin_xn(sdr));
-	zco_destroy(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("tcpcli can't destroy bundle ZCO.", NULL);
-		return -1;
-	}
-
-	return 0;
-}
-
 static int pipeline_not_full(Llcv llcv)
 {
 	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
@@ -719,9 +698,9 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	char		segHeader[4];
 	int		segHeaderLen;
 
-	if (connection->sock == -1)		/*	Disconnected.	*/
+	if (connection->sock == -1)
 	{
-		return discardBundle(connection, bundleZco);
+		return 0;	/*	Connection has been lost.	*/
 	}
 
 	if (llcv_wait(connection->throttle, pipeline_not_full, LLCV_BLOCKING))
@@ -775,33 +754,17 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 		pthread_mutex_lock(&(connection->mutex));
 		if (itcp_send(&connection->sock, segHeader, segHeaderLen) < 1)
 		{
-			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
 			writeMemoNote("[?] tcpcl connection lost (seg header)",
 					neighbor->eid);
-			if (discardBundle(connection, bundleZco) < 0)
-			{
-				putErrmsg("Failed discarding bundle.",
-						neighbor->eid);
-				return -1;
-			}
-
 			return 0;
 		}
 
 		if (itcp_send(&connection->sock, stp->buffer, bytesToSend) < 1)
 		{
-			lyst_delete(elt);
 			pthread_mutex_unlock(&(connection->mutex));
 			writeMemoNote("[?] tcpcl connection lost (seg content)",
 					neighbor->eid);
-			if (discardBundle(connection, bundleZco) < 0)
-			{
-				putErrmsg("Failed discarding bundle",
-						neighbor->eid);
-				return -1;
-			}
-
 			return 0;
 		}
 
@@ -1001,7 +964,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	{
 		writeMemoNote("[?] Invalid TCPCL contact header",
 				neighbor->eid);
-writeMemoNote("[?] Contact header is", (char *) header);
 		return 0;
 	}
 
@@ -1066,7 +1028,6 @@ writeMemoNote("[?] Contact header is", (char *) header);
 	}
 
 	eidbuf[eidLength] = '\0';
-writeMemoNote("[i] EID in contact header is", eidbuf);
 	if (connection->destDuctName == NULL)	/*	From accept().	*/
 	{
 		/*	If a TcpclNeighbor already exists whose eid
@@ -1123,7 +1084,6 @@ writeMemoNote("[i] EID in contact header is", eidbuf);
 
 		MRELEASE(neighbor->eid);
 		neighbor->eid = eidbuf;
-writeMemoNote("[i] New neighbor from accept(), EID", neighbor->eid);
 		sdr_exit_xn(sdr);	/*	Unlock list.		*/
 		return 1;		/*	Nothing more to do.	*/
 	}
@@ -1392,7 +1352,6 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 			return -1;
 		}
 	}
-
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
@@ -1669,7 +1628,6 @@ static void	*handleContacts(void *parm)
 			switch (reopenConnection(connection))
 			{
 			case -1:
-writeMemo("[$] reopenConnection failed in receiver thread.");
 				ionKillMainThread(procName());
 				connection->shutDown = 1;
 				continue;
@@ -1727,7 +1685,6 @@ writeMemo("[$] reopenConnection failed in receiver thread.");
 		connection->timeoutCount = 0;
 		if (handleMessages(rtp) < 0)
 		{
-writeMemo("[$] handleMessages failed.");
 			ionKillMainThread(procName());
 			connection->shutDown = 1;
 		}
@@ -1785,9 +1742,6 @@ static void	*spawnReceivers(void *parm)
 			stp->running = 0;
 			continue;
 		}
-
-writeMemoNote("[$] Server thread has accepted a connection, stp->running",
-itoa(stp->running));
 
 		if (stp->running == 0)	/*	Main thread shutdown.	*/
 		{
@@ -2492,7 +2446,6 @@ static void	*handleEvents(void *parm)
 
 		if (clearBacklog(ctp) < 0)
 		{
-writeMemo("[$] clearBacklog failed.");
 			ionKillMainThread(procName());
 			ctp->running = 0;
 			continue;
@@ -2529,7 +2482,6 @@ writeMemo("[$] clearBacklog failed.");
 		{
 			if (rescan(ctp, ipndb, dtn2db) < 0)
 			{
-writeMemo("[$] rescan failed.");
 				ionKillMainThread(procName());
 				ctp->running = 0;
 				continue;
@@ -2788,7 +2740,6 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
-writeMemo("[$] Main thread is shutting down the server thread.");
 	stp.running = 0;
 	wakeUpServerThread(&socketName);
 	pthread_join(serverThread, NULL);

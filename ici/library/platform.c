@@ -3410,7 +3410,7 @@ int	itcp_send(int *sock, char *from, int length)
 	int	bytesToSend = length;
 	int	bytesSent;
 
-	CHKERR(!(*sock < 0));
+	CHKERR(sock);
 	CHKERR(from);
 	CHKERR(length > 0);
 
@@ -3423,18 +3423,10 @@ int	itcp_send(int *sock, char *from, int length)
 		bytesSent = itcpSendBytes(sock, from, bytesToSend);
 		switch (bytesSent)
 		{
-		case -1:
-			/*	Big problem; shut down.		*/
-
-			putErrmsg("Failed to send by TCP.", NULL);
+		case -1:	/*	Big problem; shut down.		*/
 			return -1;
 
-		case 0:
-			/*	Just lost connection; treat
-			 *	as a transient anomaly, note
-			 *	the incomplete transmission.	*/
-
-			writeMemo("[?] Disconnected from remote TCP socket.");
+		case 0:		/*	Connection closed.		*/
 			return 0;
 
 		default:
@@ -3453,7 +3445,7 @@ int	itcp_recv(int *sock, char *into, int length)
 	int	bytesToRecv = length;
 	int	bytesRead;
 
-	CHKERR(!(*sock < 0));
+	CHKERR(sock);
 	CHKERR(into);
 	CHKERR(length > 0);
 
