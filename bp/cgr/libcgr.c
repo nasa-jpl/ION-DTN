@@ -1518,6 +1518,7 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 	PsmAddress	elt;
 	PsmAddress	nextElt;
 	PsmAddress	addr;
+	IonCXref	*contact;
 	CgrRoute	*route;
 	uvast		contactToNodeNbr;
 	time_t		contactFromTime;
