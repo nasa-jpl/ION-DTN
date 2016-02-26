@@ -554,6 +554,7 @@ static int	reopenConnection(TcpclConnection *connection)
 
 static void	closeConnection(TcpclConnection *connection)
 {
+	Sdr		sdr = getIonsdr();
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
@@ -589,7 +590,9 @@ static void	closeConnection(TcpclConnection *connection)
 			}
 		}
 
+		oK(sdr_begin_xn(sdr));
 		lyst_clear(connection->pipeline);
+		oK(sdr_end_xn(sdr));
 		if (connection->reconnectInterval == 0)
 		{
 			/*	Never reconnect.			*/
@@ -767,7 +770,6 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 				stp->buffer);
 		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
 		{
-			pthread_mutex_unlock(&(connection->mutex));
 			putErrmsg("Incomplete zco_transmit.", neighbor->eid);
 			return -1;
 		}
@@ -1306,6 +1308,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		return 1;		/*	Ignore it.		*/
 	}
 
+	oK(sdr_begin_xn(sdr));
 	if (connection->lengthSent == 0)
 	{
 		/*	Must get the oldest bundle, to which this ack
@@ -1323,6 +1326,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		{
 			/*	Nothing to acknowledge.			*/
 
+			sdr_exit_xn(sdr);
 			return 1;	/*	Ignore acknowledgment.	*/
 		}
 
@@ -1350,6 +1354,11 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		llcv_signal(connection->throttle, pipeline_not_full);
 		if (bundleZco == 0 || bpHandleXmitFailure(bundleZco) < 0)
 		{
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't clear oldest bundle.", NULL);
+			}
+
 			return -1;
 		}
 	}
@@ -1358,6 +1367,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		connection->lengthAcked = lengthAcked;
 		if (connection->lengthAcked < connection->lengthSent)
 		{
+			sdr_exit_xn(sdr);
 			return 1;	/*	Not fully acked yet.	*/
 		}
 
@@ -1375,13 +1385,17 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		llcv_signal(connection->throttle, pipeline_not_full);
 		if (bundleZco == 0 || bpHandleXmitSuccess(bundleZco, 0) < 0)
 		{
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't clear oldest bundle.", NULL);
+			}
+
 			return -1;
 		}
 	}
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
-	oK(sdr_begin_xn(sdr));
 	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -2336,13 +2350,13 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	long		sock;
 	LystElt		neighbor;
 
+	oK(sdr_begin_xn(sdr));
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
 		sock = (long) lyst_data(elt);
-		oK(sdr_begin_xn(sdr));
 
-		/*	This neighbor may be temporary.  After
+		/*	This new neighbor may be temporary.  After
 		 *	header exchange we may be loading this
 		 *	connection onto another existing neighbor.	*/
 
@@ -2350,26 +2364,18 @@ static int	clearBacklog(ClockThreadParms *ctp)
 		if (neighbor == NULL)
 		{
 			closesocket(sock);
+			pthread_mutex_unlock(ctp->backlogMutex);
 			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add tcpcl neighbor.", NULL);
-			pthread_mutex_unlock(ctp->backlogMutex);
 			return -1;
 		}
 
 		if (beginConnection(neighbor, sock, ctp->neighbors, NULL) < 0)
 		{
+			pthread_mutex_unlock(ctp->backlogMutex);
 			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add responsive connection.",
 					NULL);
-			pthread_mutex_unlock(ctp->backlogMutex);
-			return -1;
-		}
-
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("tcpcli failed adding responsive connection.",
-					NULL);
-			pthread_mutex_unlock(ctp->backlogMutex);
 			return -1;
 		}
 
@@ -2381,6 +2387,12 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	}
 
 	pthread_mutex_unlock(ctp->backlogMutex);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("tcpcli failed adding responsive connections.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
