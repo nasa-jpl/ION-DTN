@@ -135,6 +135,11 @@ static int	parseDirective(char *actionToken, char *parmToken,
 		*cursor = '\0';		/*	Delimit protocol name.	*/
 		cursor++;
 		outductName = cursor;
+
+		/*	If there's a destination duct name, note end
+		 *	of outduct name and start of destination duct
+		 *	name.						*/
+
 		cursor = strchr(cursor, ',');
 		if (cursor == NULL)
 		{
@@ -148,27 +153,27 @@ static int	parseDirective(char *actionToken, char *parmToken,
 			*cursor = '\0';
 			cursor++;
 			destDuctName = cursor;
-			findOutduct(protocolName, outductName, &vduct,
-					&vductElt);
-			if (vductElt == 0)
+			if (strlen(destDuctName) >= SDRSTRING_BUFSZ)
 			{
-				putErrmsg("Unknown outduct.", outductName);
+				putErrmsg("Destination duct name is too long.",
+						destDuctName);
 				return 0;
 			}
-
-			dir->outductElt = vduct->outductElt;
-			outductAddr = sdr_list_data(sdr, dir->outductElt);
-			GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
-			GET_OBJ_POINTER(sdr, ClProtocol, protocol,
-					outduct->protocol);
-			dir->protocolClass = protocol->protocolClass;
 		}
 
-		if (destDuctName == NULL)
+		findOutduct(protocolName, outductName, &vduct, &vductElt);
+		if (vductElt == 0)
 		{
-			dir->destDuctName = 0;
+			putErrmsg("Unknown outduct.", outductName);
+			return 0;
 		}
-		else
+
+		dir->outductElt = vduct->outductElt;
+		outductAddr = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
+		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
+		dir->protocolClass = protocol->protocolClass;
+		if (destDuctName)
 		{
 			CHKZERO(sdr_begin_xn(sdr));
 			dir->destDuctName = sdr_string_create(sdr,

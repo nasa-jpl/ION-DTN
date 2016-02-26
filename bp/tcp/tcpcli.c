@@ -96,6 +96,32 @@
 #endif
 #define	QUERY			(-1)
 
+/*	Each TCPCL-speaking node must be prepared to accept TCPCL
+ *	connections from other nodes but must also initiate those
+ *	connections according to egress plans as discussed above.
+ *	Note that these two distinct connections - one asserted,
+ *	the other accepted - cannot be considered two distinct
+ *	nodes: in order to comply with RFC 7242 we must apply
+ *	rules on reconnection and shutdown on a node basis rather
+ *	than a connection basis.
+ *
+ *	Accordingly, the ION TCPCL adapter manages a list of
+ *	TCPCL Neighbors (nodes), each of which may contain up to
+ *	two distinct Connections, one Planned (asserted) and
+ *	one Chance (accepted).  Each Connection has a single
+ *	socket (TCP connection) and has a single reception thread
+ *	that executes most of the TCPCL protocol.  The Planned
+ *	connection additionally has a transmission thread that
+ *	dequeues bundles from the Outduct to which the associated
+ *	egress plan maps and transmits data segments.  When
+ *	TCPCL data segments are acknowledged, the acknowledgments
+ *	are applied to transmitted bundles in FIFO fashion;
+ *	bundles awaiting acknowledgment are retained in a
+ *	pipeline list, from which they can be relocated into
+ *	the Limbo list in the event that link disruption is
+ *	detected.  Insertion into the pipeline list is throttled,
+ *	an additional flow control measure.				*/
+
 typedef struct
 {
 	int			sock;
@@ -1846,6 +1872,7 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 	{
 		putErrmsg("tcpcli connected but didn't unblock outduct.",
 				socketSpec);
+		closesocket(sock);
 		return -1;
 	}
 
@@ -2095,12 +2122,13 @@ static int	rescanIpn(ClockThreadParms *ctp, IpnDB *ipndb)
 static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 {
 	Sdr		sdr = getIonsdr();
-	char		eid[MAX_EID_LEN];
 	Object		planElt;
 	Object		planObj;
 			OBJ_POINTER(Dtn2Plan, dtn2Plan);
 	Outduct		outduct;
 	ClProtocol	protocol;
+	char		nodeName[SDRSTRING_BUFSZ];
+	char		eid[MAX_EID_LEN];
 	Object		ruleElt;
 	Object		ruleObj;
 			OBJ_POINTER(Dtn2Rule, dtn2Rule);
@@ -2131,7 +2159,8 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 			 *	TCP outduct for which we may not have
 			 *	a connection.				*/
 
-			oK(sdr_string_read(sdr, eid, dtn2Plan->nodeName)); 
+			oK(sdr_string_read(sdr, nodeName, dtn2Plan->nodeName)); 
+			isprintf(eid, sizeof eid, "dtn:%s", nodeName);
 			if (beginConnectionForPlan(ctp, eid, outduct.name) < 0)
 			{
 				sdr_cancel_xn(sdr);
