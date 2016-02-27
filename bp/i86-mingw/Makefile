@@ -254,7 +254,7 @@ brsscla:	brsscla.o $(BPLIBS) libstcpcla.dll
 		cp brsscla ./bin
 
 brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
-		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32
 		cp brsccla ./bin
 
 #	-	-	BIBE executable	-	-	-	-	-
@@ -305,7 +305,7 @@ bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o -ldtn2fw.o
+libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o
 		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbp.dll ./lib
 
@@ -322,7 +322,7 @@ libimcfw.dll:	libimcfw.o
 		cp libimcfw.dll ./lib
 
 libdtn2fw.dll:	libdtn2fw.o
-		$(LD) -o libdtn2fw.dll libdtn2fw.o -Wl,--output-def,libdtn2fw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libdtn2fw.dll libdtn2fw.o -Wl,--output-def,libdtn2fw.def -L./lib -L$(ROOT)/lib -lbp -limcfw -lipnfw -lici -lpthread
 		cp libdtn2fw.dll ./lib
 
 libstcpcla.dll:	libstcpcla.o

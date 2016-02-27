@@ -191,11 +191,21 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
 #endif
+#ifndef ECONNREFUSED
 #define	ECONNREFUSED		WSAECONNREFUSED
+#endif
+#ifndef ECONNRESET
 #define ECONNRESET		WSAECONNRESET
+#endif
+#ifndef EWOULDBLOCK
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#endif
+#ifndef ENETUNREACH
 #define ENETUNREACH		WSAENETUNREACH
+#endif
+#ifndef EHOSTUNREACH
 #define EHOSTUNREACH		WSAEHOSTUNREACH
+#endif
 #define	O_LARGEFILE		0
 #define	inet_pton(a,b,c)	InetPton(a,b,c)
 #define	inet_ntop(a,b,c,d)	InetNtop(a,b,c,d)

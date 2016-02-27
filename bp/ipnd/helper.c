@@ -12,6 +12,7 @@
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  */
 
+#include <stdint.h> 
 #include "platform.h"
 #include "eureka.h"
 #include "helper.h"
