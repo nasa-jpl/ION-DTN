@@ -37,7 +37,7 @@ install:
 #	-	-	Libraries	-	-	-	-	-
 
 libbloom.dll:	$(LIBBLOOMOBJS) 
-		$(LD) -o libbloom.dll $(LIBBLOOMOBJS) -lpthread -lws2_32
+		$(LD) -o libbloom.dll $(LIBBLOOMOBJS) -Wl,--output-def,libbloom.def -lpthread -lws2_32
 		mkdir -p ./lib
 		cp libbloom.dll ./lib
 

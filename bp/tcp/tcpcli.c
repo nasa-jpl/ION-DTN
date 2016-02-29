@@ -315,6 +315,7 @@ static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 		connection->neighbor = neighbor;
 		connection->secUntilShutdown = -1;
 		connection->secUntilKeepalive = -1;
+		pthread_mutex_init(&(connection->mutex), NULL);
 	}
 
 	elt = lyst_insert_last(neighbors, (void *) neighbor);
@@ -386,7 +387,6 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 	}
 
 	connection->sock = newSocket;
-	pthread_mutex_init(&(connection->mutex), NULL);
 	connection->keepaliveInterval = 0;
 	connection->secUntilKeepalive = -1;
 	connection->secUntilShutdown = -1;
