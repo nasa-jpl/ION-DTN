@@ -1,6 +1,6 @@
 = Release Notes for ION 3.4.1 =
 
-Feb 10, 2016
+Feb 29, 2016
 
 %%%%%%%%%%%
 = GENERAL =
@@ -69,7 +69,31 @@ Features included:
 = NOTES ON RELEASE 3.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- TBD
+- SourceForge Bug #60: The ION killm script no longer fails to clean up shared
+     memory allocations from the current user when their username is longer
+     than 10 characters.
+
+- SourceForge Bug #89: The ION TCPCL has been updated to implement bundle
+     acknowledgments, which are listed as an optional feature in the TCPCL
+     specification (RFC 7242).
+     Bundle acknowledgments can help improve reliability of TCPCL transmissions
+     by alleviating issues that can occur during a window after a disconnection
+     but before a timeout.
+     During this time the CLO may finish its send() call without error and
+     trigger BP to delete the bundle before the timeout fires and it is
+     discovered the transmission did not succeed and can no longer be
+     retransmitted.
+
+- SourceForge Bug #91: The ION autoconf configuration has been streamlined by
+     merging the libipnfw and libdtn2fw libraries directly into libbp.
+     This should improve portability and alleviate any build issues that some
+     users reported having in ION v3.4.0.
+
+- SourceForge Feature Request #50: ION now supports an abstract "bulk" storage
+     type for zero-copy objects.
+     This allows FPGAs to receive inbound data into bulk storage and invoke
+     ION data acquisition logic that will encapsulate the bulk storage objects
+     in ZCOs for LTP and BP processing.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.4.0 =
@@ -83,6 +107,9 @@ Features included:
      This could cause ION to exhaust the pool of semaphore IDs and create
      outduct lockups.  ION now properly reuses obsolete semaphore IDs under
      Windows and SVRr4.
+
+- SourceForge Bug #79: Fixed bug where removing and re-adding an outduct could
+     cause a bundle transmission failure.
 
 -  SourceForge Bug #81: Fixed bug where ION child processes could become
      zombie processes.
