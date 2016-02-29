@@ -64,7 +64,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	dtpcd lt-dtpcd \
 	dtpcreceive lt-dtpcreceive \
 	dtpcsend lt-dtpcsend \
-	dtpcadmin lt-dtpcadmin \
 	file2dgr lt-file2dgr \
 	file2sdr lt-file2sdr \
 	file2sm lt-file2sm \
