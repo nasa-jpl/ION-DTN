@@ -32,8 +32,8 @@ static int	setUpSendingSocket(const int multicastTTL,
 	/* Sets up sending sockets */
 
 	int	sendSocket;
-	int	mulicastLoopSockOption;
-	int	mulicastTTLSockOption;
+	int	multicastLoopSockOption;
+	int	multicastTTLSockOption;
 	int	broadcastDiscoverySockOption;
 
 	/* Initialize sending socket */
@@ -47,24 +47,24 @@ static int	setUpSendingSocket(const int multicastTTL,
 
 	/* Set multicast loop option to avoid receiving
 	   our multicast sent beacons */
-	mulicastLoopSockOption = 0;
+	multicastLoopSockOption = 0;
 	if (setsockopt(sendSocket,
 			IPPROTO_IP,
 			IP_MULTICAST_LOOP,
-			&mulicastLoopSockOption,
-			sizeof(mulicastLoopSockOption)) < 0)
+			(void *) &multicastLoopSockOption,
+			sizeof(multicastLoopSockOption)) < 0)
 	{
 		putSysErrmsg("send-thread: Can't set multicast loop option \
 for beacon sending socket.", NULL);
 	}
 
 	/* Set multicast ttl option */
-	mulicastTTLSockOption = multicastTTL;
+	multicastTTLSockOption = multicastTTL;
 	if (setsockopt(sendSocket,
 			IPPROTO_IP,
 			IP_MULTICAST_TTL,
-			&mulicastTTLSockOption,
-			sizeof(mulicastTTLSockOption)) < 0)
+			(void *) &multicastTTLSockOption,
+			sizeof(multicastTTLSockOption)) < 0)
 	{
 		putSysErrmsg("send-thread: Can't set multicast TTL option \
 for beacon sending socket.", NULL);
@@ -77,7 +77,7 @@ for beacon sending socket.", NULL);
 		if (setsockopt(sendSocket,
 				SOL_SOCKET,
 				SO_BROADCAST,
-				&broadcastDiscoverySockOption,
+				(void *) &broadcastDiscoverySockOption,
 				sizeof(broadcastDiscoverySockOption)) < 0)
 		{
 			putSysErrmsg("send-thread: Can't set broadcast \
@@ -111,12 +111,12 @@ static int	sendBeacon(Beacon *beacon, Destination *dest, int socket)
 	}
 
 	/* Send beacon */
-	bzero(&dest_addr, sizeof(dest_addr));
+	memset(&dest_addr, 0, sizeof(dest_addr));
 	dest_addr.sin_family = AF_INET;
 	dest_addr.sin_addr.s_addr = inet_addr(dest->addr.ip);
 	dest_addr.sin_port = htons(dest->addr.port);
 
-	if (isendto(socket, rawBeacon,
+	if (isendto(socket, (char *) rawBeacon,
 			rawBeaconLength,
 			0,
 			(struct sockaddr *)&dest_addr,
@@ -211,7 +211,7 @@ lyst.", NULL);
 		if (waitNextDestination > 0)
 		{
 			llcv_unlock(ctx->destinationsCV);
-			sleep(waitNextDestination);
+			snooze(waitNextDestination);
 			llcv_lock(ctx->destinationsCV);
 		}	/* Otherwise, period has already expired. */
 
@@ -391,7 +391,7 @@ static int	joinMulticastGroups(Lyst listenAddresses, const int socket,
 		listenAddr = (NetAddress *) lyst_data(listenAddrElt);
 		if (getIpv4AddressType(listenAddr->ip) == MULTICAST)
 		{
-			bzero(&mcReq, sizeof(mcReq));
+			memset(&mcReq, 0, sizeof(mcReq));
 			mcReq.imr_multiaddr.s_addr = inet_addr(listenAddr->ip);
 			mcReq.imr_interface.s_addr = inet_addr(address);
 			if ((setsockopt(socket, IPPROTO_IP, IP_ADD_MEMBERSHIP,
@@ -443,7 +443,7 @@ static int	*setUpListenSockets(Lyst listenAddresses,
 	{
 		/* Reset variables */
 		listenAddr = (NetAddress *) lyst_data(listenAddrElt);
-		bzero(&listenAddrStruct, sizeof(listenAddrStruct));
+		memset(&listenAddrStruct, 0, sizeof(listenAddrStruct));
 		listenSocket = -1;
 
 		/* Create socket */
@@ -657,7 +657,9 @@ void	*receiveBeacons(void *attr)
 	CHKNULL(ctx);
 
 	printText("[i] receive-thread: Receive beacons thread started.");
-	iblock(SIGUSR1);
+#if 0
+	iblock(SIGUSR1);	/*	Why is this necessary?		*/
+#endif
 
 	lockResource(&ctx->configurationLock);
 	listenSockets = setUpListenSockets(ctx->listenAddresses,
@@ -713,7 +715,7 @@ configured. IPND will not receive any beacon.");
 			recevingSocket = i;
 			srcAddrLen = sizeof(srcAddr);
 			if ((recvDataBufferLen = irecvfrom(recevingSocket,
-					recvDataBuffer,
+					(char *) recvDataBuffer,
 					MAX_BEACON_SIZE, 0,
 					(struct sockaddr *) &srcAddr,
 					(socklen_t *) &srcAddrLen)) < 0)
@@ -931,7 +933,7 @@ allocating memory for new destination.", NULL);
 					continue;
 				}
 
-				bzero(newDest, sizeof(*newDest));
+				memset(newDest, 0, sizeof(*newDest));
 				newDest->addr = nb->addr;
 
 				lockResource(&ctx->configurationLock);
@@ -1019,7 +1021,9 @@ void	*expireNeighbors(void *attr)
 	CHKNULL(ctx);
 
 	printText("[i] expire-thread: Expire neighbors thread started.");
-	iblock(SIGUSR1);
+#if 0
+	iblock(SIGUSR1);	/*	Why is this necessary?		*/
+#endif
 
 	/* Purge the neighbors set of node whose beacon intervals have \
 	 * expired.  See ["2.8. Disconnection", paragraph 1, page 16] */

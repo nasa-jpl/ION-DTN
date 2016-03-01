@@ -20,6 +20,9 @@
 
 		Each source data object may be either a file
 		(identified by pathname stored in a "file reference"
+		object in SDR heap) or an item in mass storage
+		(identified by item number, with implementation-
+		specific semantics, stored in a "bulk reference"
 		object in SDR heap) or an object in SDR heap
 		space (identified by heap address stored in an
 		"object reference" object in SDR heap) or an
@@ -74,9 +77,10 @@ typedef enum
 typedef enum
 {
 	ZcoFileSource = 1,
-	ZcoObjSource = 2,
-	ZcoSdrSource = 3,
-	ZcoZcoSource = 4
+	ZcoBulkSource = 2,
+	ZcoObjSource = 3,
+	ZcoSdrSource = 4,
+	ZcoZcoSource = 5
 } ZcoMedium;
 
 typedef struct
@@ -119,9 +123,9 @@ extern Object	zco_create_file_ref(Sdr sdr,
 			 *	to delete the referenced file when
 			 *	the file reference is destroyed.
 			 *	Maximum length of cleanupScript is
-			 *	255.  Returns SDR location of file
-			 *	reference object on success, 0 on any
-			 *	error.					*/
+			 *	255.  Returns SDR heap location of
+			 *	file reference object on success, 0
+			 *	on any error.				*/
 
 extern int	zco_revise_file_ref(Sdr sdr,
 				Object fileRef,
@@ -160,6 +164,28 @@ extern void	zco_destroy_file_ref(Sdr sdr,
 			 *	it is flagged for destruction as soon
 			 *	as the last reference to it is removed.	*/
 
+extern Object	zco_create_bulk_ref(Sdr sdr,
+				unsigned long item,
+				vast length,
+				ZcoAcct acct);
+			/*	The referenced item is automatically
+			 *	destroyed at the time that the last
+			 *	ZCO that cites this bulk reference is
+			 *	destroyed [normally upon delivery
+			 *	either down to the "ZCO transition
+			 *	layer" of the protocol stack or up to
+			 *	a ZCO-capable application].  Returns
+			 *	SDR heap location of bulk reference
+			 *	object on success, 0 on any error.	*/
+
+extern void	zco_destroy_bulk_ref(Sdr sdr,
+				Object bulkRef);
+			/*	If bulk reference is no longer in use
+			 *	(no longer referenced by any ZCO) then
+			 *	it is destroyed immediately.  Otherwise
+			 *	it is flagged for destruction as soon
+			 *	as the last reference to it is removed.	*/
+
 extern Object	zco_create_obj_ref(Sdr sdr,
 				Object object,
 				vast length,
@@ -171,8 +197,8 @@ extern Object	zco_create_obj_ref(Sdr sdr,
 			 *	either down to the "ZCO transition
 			 *	layer" of the protocol stack or up to
 			 *	a ZCO-capable application].  Returns
-			 *	SDR location of object reference object
-			 *	on success, 0 on any error.		*/
+			 *	SDR heap location of object reference
+			 *	object on success, 0 on any error.	*/
 
 extern void	zco_destroy_obj_ref(Sdr sdr,
 				Object objRef);
@@ -212,6 +238,32 @@ extern int	zco_enough_file_space(Sdr sdr,
 			 *	system space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
+extern vast	zco_get_bulk_occupancy(Sdr sdr,
+				ZcoAcct acct);
+			/*	Returns the total number of bulk
+			 *	storage space bytes occupied by ZCOs
+			 *	in this SDR.				*/
+
+extern void	zco_set_max_bulk_occupancy(Sdr sdr,
+				vast occupancy,
+				ZcoAcct acct);
+			/*	Sets the maximum number of bulk
+			 *	storage space bytes that may be
+			 *	occupied by ZCOs in this SDR.		*/
+
+extern vast	zco_get_max_bulk_occupancy(Sdr sdr,
+				ZcoAcct acct);
+			/*	Returns the maximum number of bulk
+			 *	storage space bytes that may be
+			 *	occupied by ZCOs in this SDR.		*/
+
+extern int	zco_enough_bulk_space(Sdr sdr,
+				vast length,
+				ZcoAcct acct);
+			/*	Returns 1 if the total remaining bulk
+			 *	storage space available for ZCOs is
+			 *	greater than length, 0 otherwise.	*/
+
 extern vast	zco_get_heap_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the total number of SDR
@@ -243,26 +295,28 @@ extern int	zco_extent_too_large(Sdr sdr,
 				vast length,
 				ZcoAcct acct);
 			/*	Returns 1 if the total remaining space
-			 *	(heap and file) available for ZCOs is
-			 *	NOT enough to contain a new extent of
-			 *	the indicated length in the indicated
-			 *	source medium.  Returns 0 otherwise.	*/
+			 *	available for ZCOs is NOT enough to
+			 *	contain a new extent of the indicated
+			 *	length in the indicated source medium.
+			 *	Returns 0 otherwise.			*/
 
 extern void	zco_get_aggregate_length(Sdr sdr,
 				Object location,
 				vast offset,
 				vast length,
 				vast *fileSpaceOccupied,
+				vast *bulkSpaceOccupied,
 				vast *heapSpaceOccupied);
-			/*	Populates *fileSpaceOccupied and
-			 *	*heapSpaceOccupied with the total
-			 *	number of ZCO space bytes occupied by
-			 *	the extents of the zco at "location",
-			 *	from "offset" to offset + length.  If
-			 *	offset isn't the start of an extent
-			 *	or offset + length isn't the end of an
-			 *	extent, returns -1 in both "Occupied"
-			 *	fields.					*/
+			/*	Populates the *fileSpaceOccupied,
+			 *	*bulkSpaceOccupied, and
+			 *	*heapSpaceOccupied fields with the
+			 *	total number of ZCO space bytes
+			 *	occupied by the extents of the zco
+			 *	at "location", from "offset" to
+			 *	offset + length.  If offset isn't
+			 *	the start of an extent or offset
+			 *	+ length isn't the end of an extent,
+			 *	returns -1 in all "Occupied" fields.	*/
 
 extern Object	zco_create(	Sdr sdr,
 				ZcoMedium firstExtentSourceMedium,
@@ -283,6 +337,26 @@ extern Object	zco_create(	Sdr sdr,
 			 *	available ZCO space, and the actual
 			 *	length of the extent is the additive
 			 *	inverse of this value.
+			 *
+			 *	If firstExtentSourceMedium is
+			 *	ZcoFileSource then firstExtentLocation
+			 *	must be the SDR heap location of a
+			 *	file reference.
+			 *
+			 *	If firstExtentSourceMedium is
+			 *	ZcoBulkSource then firstExtentLocation
+			 *	must be the SDR heap location of a
+			 *	bulk reference.
+			 *
+			 *	If firstExtentSourceMedium is
+			 *	ZcoObjSource then firstExtentLocation
+			 *	must be the SDR heap location of an
+			 *	object reference.
+			 *
+			 *	If firstExtentSourceMedium is
+			 *	ZcoSdrSource then firstExtentLocation
+			 *	must be the SDR heap location of an
+			 *	SDR heap object.
 			 *
 			 *	A non-zero value of "provisional"
 			 *	indicates that this ZCO will occupy
@@ -313,6 +387,9 @@ extern vast	zco_append_extent(Sdr sdr,
 			 *	available ZCO space, and the actual
 			 *	length of the extent is the additive
 			 *	inverse of this value.
+			 *
+			 *	For constraints on the value of
+			 *	location, see zco_create().
 			 *
 			 *	Returns length on success, 0 if there
 			 *	is currently too little available ZCO

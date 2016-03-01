@@ -3298,3 +3298,194 @@ int	iputs(int fd, char *string)
 
 	return totalBytesWritten;
 }
+
+/*	*	*	Standard TCP functions	*	*	*	*/
+
+#ifndef mingw
+void	itcp_handleConnectionLoss()
+{
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
+}
+#endif
+
+int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
+{
+	unsigned short		portNbr;
+	unsigned int		hostNbr;
+	struct sockaddr		socketName;
+	struct sockaddr_in	*inetName;
+	char			dottedString[16];
+	char			socketTag[32];
+
+	CHKERR(socketSpec);
+	CHKERR(sock);
+	*sock = -1;		/*	Default value.			*/
+	if (*socketSpec == '\0')
+	{
+		return 0;	/*	Don't try to connect.		*/
+	}
+
+	/*	Construct socket name.					*/
+
+	parseSocketSpec(socketSpec, &portNbr, &hostNbr);
+	if (hostNbr == 0)
+	{
+		putErrmsg("Can't get IP address for host.", socketSpec);
+		return 0;
+	}
+
+	if (portNbr == 0)
+	{
+		portNbr = defaultPort;
+	}
+
+	printDottedString(hostNbr, dottedString);
+	isprintf(socketTag, sizeof socketTag, "%s:%hu", dottedString, portNbr);
+	hostNbr = htonl(hostNbr);
+	portNbr = htons(portNbr);
+	memset((char *) &socketName, 0, sizeof socketName);
+	inetName = (struct sockaddr_in *) &socketName;
+	inetName->sin_family = AF_INET;
+	inetName->sin_port = portNbr;
+	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	*sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (*sock < 0)
+	{
+		putSysErrmsg("Can't open TCP socket", socketTag);
+		return -1;
+	}
+
+	if (connect(*sock, &socketName, sizeof(struct sockaddr)) < 0)
+	{
+		putSysErrmsg("Can't connect to TCP socket", socketTag);
+		closesocket(*sock);
+		*sock = -1;
+		return 0;
+	}
+
+	writeMemoNote("[i] Connected to TCP socket", socketTag);
+	return 1;	/*	Connected to remote socket.		*/
+}
+
+static int	itcpSendBytes(int *sock, char *from, int length)
+{
+	int	bytesWritten;
+
+	/*	This is a single transmission.  It's in a loop only
+	 *	so that we can deal with interruptions.			*/
+
+	while (1)	/*	Continue until not interrupted.		*/
+	{
+		if (*sock == -1)	/*	Socket has been closed.	*/
+		{
+			return 0;
+		}
+
+		bytesWritten = isend(*sock, from, length, 0);
+		if (bytesWritten < 0)
+		{
+			switch (errno)
+			{
+			case EINTR:	/*	Interrupted; retry.	*/
+				continue;
+
+			case EPIPE:	/*	Lost connection.	*/
+			case EBADF:
+			case ETIMEDOUT:
+			case ECONNRESET:
+			case EHOSTUNREACH:
+				bytesWritten = 0;
+			}
+
+			putSysErrmsg("isend error on TCP socket", itoa(*sock));
+		}
+
+		return bytesWritten;
+	}
+}
+
+int	itcp_send(int *sock, char *from, int length)
+{
+	int	totalBytesSent = 0;
+	int	bytesToSend = length;
+	int	bytesSent;
+
+	CHKERR(sock);
+	CHKERR(from);
+	CHKERR(length > 0);
+
+	/*	It's valid for TCP to accept for transmission only
+	 *	a subset of the data presented, so we have to loop
+	 *	until the entire buffer has been transmitted.		*/
+
+	while (bytesToSend > 0)
+	{
+		bytesSent = itcpSendBytes(sock, from, bytesToSend);
+		switch (bytesSent)
+		{
+		case -1:	/*	Big problem; shut down.		*/
+			return -1;
+
+		case 0:		/*	Connection closed.		*/
+			return 0;
+
+		default:
+			totalBytesSent += bytesSent;
+			from += bytesSent;
+			bytesToSend -= bytesSent;
+		}
+	}
+
+	return totalBytesSent;
+}
+
+int	itcp_recv(int *sock, char *into, int length)
+{
+	int	totalBytesReceived = 0;
+	int	bytesToRecv = length;
+	int	bytesRead;
+
+	CHKERR(sock);
+	CHKERR(into);
+	CHKERR(length > 0);
+
+	/*	It's valid for TCP to deliver on demand only a
+	 *	subset of the data received, so we have to loop
+	 *	until the entire buffer has been acquired.		*/
+
+	while (bytesToRecv > 0)
+	{
+		if (*sock == -1)	/*	Socket has been closed.	*/
+		{
+			return 0;
+		}
+
+		bytesRead = irecv(*sock, into, bytesToRecv, 0);
+		switch (bytesRead)
+		{
+		case -1:
+			/*	The recv() call may have been
+			 *	interrupted by arrival of SIGTERM,
+			 *	in which case reception should
+			 *	report that it's time to shut down.	*/
+
+			if (errno == EINTR)	/*	Shutdown.	*/
+			{
+				return 0;
+			}
+
+			putSysErrmsg("irecv() error on TCP socket", NULL);
+			return -1;
+
+		case 0:			/*	Connection closed.	*/
+			return 0;
+
+		default:
+			totalBytesReceived += bytesRead;
+			into += bytesRead;
+			bytesToRecv -= bytesRead;
+		}
+	}
+
+	return totalBytesReceived;
+}

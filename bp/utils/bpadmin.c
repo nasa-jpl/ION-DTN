@@ -1115,7 +1115,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	heapmax = strtoul(tokens[2], NULL, 0);
 	if (heapmax < 560)
 	{
-		writeMemoNote("[?] heapmax must be at least 560", tokens[2]);
+		printText("heapmax must be at least 560.");
 		return;
 	}
 
@@ -1303,55 +1303,27 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int bp_is_up(int tokenCount, char** tokens, int count, int max)
+static int bp_is_up(int count, int max)
 {
-	if (strcmp(tokens[1], "p") == 0) //poll
+	while (count <= max && !bp_agent_is_started())
 	{
-		if (tokenCount < 3) //use default timeout
-		{
-			while (count <= 120 && !bp_agent_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > 120) //bp agent is not started
-			{
-				printText("BP agent is not started");
-				return 0;
-			}
-			else //bp agent is started
-			{
-				printText("BP agent is started");
-				return 1;
-			}
-		}
-		else //use user supplied timeout
-		{
-			while (count <= max && !bp_agent_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > max) //bp agent is not started
-			{
-				printText("BP agent is not started");
-				return 0;
-			}
-			else //bp agent is started
-			{
-				printText("BP agent is started");
-				return 1;
-			}
-		}
+		microsnooze(250000);
+		count++;
 	}
-	else
+
+	if (count > max)		//bp agent is not started
 	{
-		printText("Error in arguments: exiting");
+		printText("BP agent is not started");
 		return 0;
 	}
+
+	//bp agent is started
+
+	printText("BP agent is started");
+	return 1;
 }
 
-static int	processLine(char *line, int lineLength)
+static int	processLine(char *line, int lineLength, int *rc)
 {
 	int		tokenCount;
 	char		*cursor;
@@ -1557,62 +1529,54 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case 't':
-			if (strcmp(tokens[1], "p") == 0) //poll
+			if (tokenCount > 1
+			&& strcmp(tokens[1], "p") == 0) //poll
 			{
 				if (tokenCount < 3) //use default timeout
 				{
-					count = 1;
-					while (count <= max && attachToBp() == -1)
-					{
-						microsnooze(250000);
-						count++;
-					}
-					if (count > 120) //bp agent is not started
-					{
-						printText("BP agent is not started");
-						return 0;
-					}
-					else //bp agent is started
-					{
-						exit(bp_is_up(tokenCount, tokens, count, 120));
-					}
-				}
-				else //use user supplied timeout
-				{
-					max = atoi(tokens[2]) * 4;
-					count = 1;
-					while (count <= max && attachToBp() == -1)
-					{
-						microsnooze(250000);
-						count++;
-					}
-					if (count > max) //bp agent is not started
-					{
-						printText("BP agent is not started");
-						return 0;
-					}
-					else //bp agent is started
-					{
-						exit(bp_is_up(tokenCount, tokens, count, max));
-					}
-				}
-			}
-			else //check once
-			{
-				if (bp_agent_is_started())
-				{
-					printText("BP agent is started");
-					return 1;
+					max = DEFAULT_CHECK_TIMEOUT;
 				}
 				else
 				{
-					printText("BP agent is not started");
-					return 0;
+					max = atoi(tokens[2]) * 4;
 				}
+
+				count = 1;
+				while (count <= max && attachToBp() == -1)
+				{
+					microsnooze(250000);
+					count++;
+				}
+
+				if (count > max)
+				{
+					//bp agent is not started
+					printText("BP agent is not started");
+					return 1;
+				}
+
+				//attached to bp system
+
+				*rc = bp_is_up(count, max);
+				return 1;
 			}
 
+			//check once
+
+			*rc = bp_agent_is_started();
+			if (*rc)
+			{
+				printText("BP agent is started");
+			}
+			else
+			{
+				printText("BP agent is not started");
+			}
+
+			return 1;
+
 		case 'q':
-			return -1;	/*	End program.		*/
+			return 1;	/*	End program.		*/
 
 		default:
 			printText("Invalid command.  Enter '?' for help.");
@@ -1630,6 +1594,7 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
+	int	rc = 0;
 	int	cmdFile;
 	char	line[256];
 	int	len;
@@ -1661,7 +1626,7 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (processLine(line, len, &rc))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -1704,7 +1669,7 @@ int	main(int argc, char **argv)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (processLine(line, len, &rc))
 				{
 					break;	/*	Out of loop.	*/
 				}
@@ -1717,6 +1682,5 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	printText("Stopping bpadmin.");
 	ionDetach();
-
-	return 0;
+	return rc;
 }

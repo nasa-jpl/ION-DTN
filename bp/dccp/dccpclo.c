@@ -40,13 +40,6 @@ static void	shutDownClo()
 	sm_SemEnd(dccpcloSemaphore(NULL));
 }
 
-#ifndef mingw
-void	handleConnectionLoss()
-{
-	isignal(SIGPIPE, handleConnectionLoss);
-}
-#endif
-
 
 /*	*	*	General Functions	*	*	*	*/
 
@@ -186,7 +179,7 @@ void* send_keepalives(void* param)
 
 	iblock(SIGTERM);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	memset(keepalive,0,4);
@@ -464,7 +457,7 @@ int	main(int argc, char *argv[])
 	oK(dccpcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 
@@ -488,13 +481,14 @@ int	main(int argc, char *argv[])
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, 0, -1) < 0)
 		{
-			sm_SemEnd(dccpcloSemaphore(NULL));
-			continue;
-			/*	Take Down CLO				*/
+			putErrmsg("Can'e dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)	/*	Interrupted.		*/
+		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
+			writeMemo("[i] dccpclo outduct closed.");
+			sm_SemEnd(dccpcloSemaphore(NULL));
 			continue;
 		}
 

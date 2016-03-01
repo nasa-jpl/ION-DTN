@@ -1351,8 +1351,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	/*	Now determine whether or not the bundle could be sent
 	 *	to this neighbor via the outduct for this directive
 	 *	in time to follow the route that is being considered.
-	 *	There are three criteria.  First, is the duct blocked
-	 *	(e.g., no TCP connection)?				*/
+	 *	There are three criteria.  First, is the outduct
+	 *	blocked (e.g., no TCP connection or temporarily shut
+	 *	off by operations)?					*/
 
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			directive.outductElt), sizeof(Outduct));
@@ -2356,14 +2357,10 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		TRACE(CgrNoProximateNode);
 	}
 
-	if (bundle->deliveryProb < MIN_NET_DELIVERY_PROB
-	&& bundle->id.source.c.nodeNbr != bundle->destination.c.nodeNbr)
+	if (bundle->deliveryProb > 0.0
+	&& bundle->deliveryProb < MIN_NET_DELIVERY_PROB)
 	{
 		/*	Must keep on trying to send this bundle.	*/
-
-		/*	Note: need a way to force abandonment of
-		 *	bundles that genuinely are currently non-
-		 *	forwardable.					*/
 
 		if (bundle->ductXmitElt)
 		{

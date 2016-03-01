@@ -1853,9 +1853,10 @@ void	ionShred(ReqTicket ticket)
 }
 
 int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
-			vast heapSpaceNeeded, unsigned char coarsePriority,
-			unsigned char finePriority, ReqAttendant *attendant,
-			ReqTicket *ticket)
+			vast bulkSpaceNeeded, vast heapSpaceNeeded,
+			unsigned char coarsePriority,
+			unsigned char finePriority,
+			ReqAttendant *attendant, ReqTicket *ticket)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1868,6 +1869,7 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 
 	CHKERR(acct == ZcoInbound || acct == ZcoOutbound);
 	CHKERR(fileSpaceNeeded >= 0);
+	CHKERR(bulkSpaceNeeded >= 0);
 	CHKERR(heapSpaceNeeded >= 0);
 	CHKERR(ticket);
 	CHKERR(vdb);
@@ -1883,6 +1885,7 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 
 	req = (Requisition *) psp(ionwm, reqAddr);
 	req->fileSpaceNeeded = fileSpaceNeeded;
+	req->bulkSpaceNeeded = bulkSpaceNeeded;
 	req->heapSpaceNeeded = heapSpaceNeeded;
 	if (attendant)
 	{
@@ -1977,14 +1980,19 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	vast		maxFileOccupancy;
+	vast		maxBulkOccupancy;
 	vast		maxHeapOccupancy;
 	vast		currentFileOccupancy;
+	vast		currentBulkOccupancy;
 	vast		currentHeapOccupancy;
 	vast		totalFileSpaceAvbl;
+	vast		totalBulkSpaceAvbl;
 	vast		totalHeapSpaceAvbl;
 	vast		restrictedFileSpaceAvbl;
+	vast		restrictedBulkSpaceAvbl;
 	vast		restrictedHeapSpaceAvbl;
 	vast		fileSpaceAvbl;
+	vast		bulkSpaceAvbl;
 	vast		heapSpaceAvbl;
 	PsmAddress	elt;
 	PsmAddress	reqAddr;
@@ -1993,10 +2001,13 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	CHKVOID(vdb);
 	oK(sdr_begin_xn(sdr));		/*	Just to lock memory.	*/
 	maxFileOccupancy = zco_get_max_file_occupancy(sdr, acct);
+	maxBulkOccupancy = zco_get_max_bulk_occupancy(sdr, acct);
 	maxHeapOccupancy = zco_get_max_heap_occupancy(sdr, acct);
 	currentFileOccupancy = zco_get_file_occupancy(sdr, acct);
+	currentBulkOccupancy = zco_get_bulk_occupancy(sdr, acct);
 	currentHeapOccupancy = zco_get_heap_occupancy(sdr, acct);
 	totalFileSpaceAvbl = maxFileOccupancy - currentFileOccupancy;
+	totalBulkSpaceAvbl = maxBulkOccupancy - currentBulkOccupancy;
 	totalHeapSpaceAvbl = maxHeapOccupancy - currentHeapOccupancy;
 
 	/*	Requestors that are willing to wait for space are not
@@ -2007,6 +2018,7 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	 *	wait for it.						*/
 
 	restrictedFileSpaceAvbl = (maxFileOccupancy / 2) - currentFileOccupancy;
+	restrictedBulkSpaceAvbl = (maxBulkOccupancy / 2) - currentBulkOccupancy;
 	restrictedHeapSpaceAvbl = (maxHeapOccupancy / 2) - currentHeapOccupancy;
 	for (elt = sm_list_first(ionwm, vdb->requisitions[acct]); elt;
 			elt = sm_list_next(ionwm, elt))
@@ -2021,8 +2033,10 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 			 *	for any other requests.			*/
 
 			totalFileSpaceAvbl -= req->fileSpaceNeeded;
+			totalBulkSpaceAvbl -= req->bulkSpaceNeeded;
 			totalHeapSpaceAvbl -= req->heapSpaceNeeded;
 			restrictedFileSpaceAvbl -= req->fileSpaceNeeded;
+			restrictedBulkSpaceAvbl -= req->bulkSpaceNeeded;
 			restrictedHeapSpaceAvbl -= req->heapSpaceNeeded;
 			continue;	/*	Req already serviced.	*/
 		}
@@ -2030,11 +2044,13 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 		if (req->semaphore == SM_SEM_NONE)
 		{
 			fileSpaceAvbl = totalFileSpaceAvbl;
+			bulkSpaceAvbl = totalBulkSpaceAvbl;
 			heapSpaceAvbl = totalHeapSpaceAvbl;
 		}
 		else
 		{
 			fileSpaceAvbl = restrictedFileSpaceAvbl;
+			bulkSpaceAvbl = restrictedBulkSpaceAvbl;
 			heapSpaceAvbl = restrictedHeapSpaceAvbl;
 		}
 
@@ -2043,12 +2059,18 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 			fileSpaceAvbl = 0;
 		}
 
+		if (bulkSpaceAvbl < 0)
+		{
+			bulkSpaceAvbl = 0;
+		}
+
 		if (heapSpaceAvbl < 0)
 		{
 			heapSpaceAvbl = 0;
 		}
 
 		if (fileSpaceAvbl < req->fileSpaceNeeded
+		|| bulkSpaceAvbl < req->bulkSpaceNeeded
 		|| heapSpaceAvbl < req->heapSpaceNeeded)
 		{
 			/*	Can't provide ZCO space to this
@@ -2066,8 +2088,10 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 		}
 
 		totalFileSpaceAvbl -= req->fileSpaceNeeded;
+		totalBulkSpaceAvbl -= req->bulkSpaceNeeded;
 		totalHeapSpaceAvbl -= req->heapSpaceNeeded;
 		restrictedFileSpaceAvbl -= req->fileSpaceNeeded;
+		restrictedBulkSpaceAvbl -= req->bulkSpaceNeeded;
 		restrictedHeapSpaceAvbl -= req->heapSpaceNeeded;
 	}
 
@@ -2083,6 +2107,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	IonVdb		*vdb = getIonVdb();
 	unsigned char	provisional;
 	vast		fileSpaceNeeded = 0;
+	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
 	ReqTicket	ticket;
 	Object		zco;
@@ -2114,6 +2139,10 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		fileSpaceNeeded = length;
 		break;
 
+	case ZcoBulkSource:
+		bulkSpaceNeeded = length;
+		break;
+
 	case ZcoSdrSource:
 		heapSpaceNeeded = length;
 		break;
@@ -2121,7 +2150,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	case ZcoZcoSource:
 		oK(sdr_begin_xn(sdr));
 		zco_get_aggregate_length(sdr, location, offset, length,
-				&fileSpaceNeeded, &heapSpaceNeeded);
+			&fileSpaceNeeded, &bulkSpaceNeeded, &heapSpaceNeeded);
 		sdr_exit_xn(sdr);
 		break;
 
@@ -2130,8 +2159,9 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		return ((Object) ERROR);
 	}
 
-	if (ionRequestZcoSpace(acct, fileSpaceNeeded, heapSpaceNeeded,
-			coarsePriority, finePriority, attendant, &ticket) < 0)
+	if (ionRequestZcoSpace(acct, fileSpaceNeeded, bulkSpaceNeeded,
+			heapSpaceNeeded, coarsePriority, finePriority,
+			attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed on ionRequest.", NULL);
 		return ((Object) ERROR);
@@ -2188,6 +2218,7 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = _ionvdb(NULL);
 	vast		fileSpaceNeeded = 0;
+	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
 	ReqTicket	ticket;
 	vast		result;
@@ -2202,14 +2233,18 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		fileSpaceNeeded = length;
 		break;
 
-	case ZcoSdrSource:
+	case ZcoBulkSource:
+		bulkSpaceNeeded = length;
+		break;
+
+	case ZcoSdrSource:	/*	Will become ZcoObjSource.	*/
 		heapSpaceNeeded = length;
 		break;
 
 	case ZcoZcoSource:
 		oK(sdr_begin_xn(sdr));
 		zco_get_aggregate_length(sdr, location, offset, length,
-				&fileSpaceNeeded, &heapSpaceNeeded);
+			&fileSpaceNeeded, &bulkSpaceNeeded, &heapSpaceNeeded);
 		sdr_exit_xn(sdr);
 		break;
 
@@ -2219,8 +2254,8 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	}
 
 	if (ionRequestZcoSpace(zco_acct(sdr, zco), fileSpaceNeeded,
-			heapSpaceNeeded, coarsePriority, finePriority,
-			attendant, &ticket) < 0)
+			bulkSpaceNeeded, heapSpaceNeeded, coarsePriority,
+			finePriority, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed on ionRequest.", NULL);
 		return ERROR;
@@ -2269,4 +2304,63 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	}
 
 	return result;
+}
+
+int	ionSendZcoByTCP(int *sock, Object zco, char *buffer, int buflen)
+{
+	Sdr		sdr = getIonsdr();
+	int		totalBytesSent = 0;
+	ZcoReader	reader;
+	uvast		bytesRemaining;
+	uvast		bytesToLoad;
+	int		bytesToSend;
+	int		bytesSent;
+
+	CHKERR(!(*sock < 0));
+	CHKERR(zco);
+	CHKERR(buffer);
+	CHKERR(buflen > 0);
+	zco_start_transmitting(zco, &reader);
+	zco_track_file_offset(&reader);
+	bytesRemaining = zco_length(sdr, zco);
+	while (bytesRemaining > 0)
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		bytesToLoad = bytesRemaining;
+		if (bytesToLoad > buflen)
+		{
+			bytesToLoad = buflen;
+		}
+
+		bytesToSend = zco_transmit(sdr, &reader, bytesToLoad, buffer);
+		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
+		{
+			putErrmsg("Incomplete zco_transmit.", NULL);
+			return -1;
+		}
+
+		bytesSent = itcp_send(sock, buffer, bytesToSend);
+		switch (bytesSent)
+		{
+		case -1:
+			/*	Big problem; shut down.			*/
+
+			putErrmsg("Failed to send ZCO by TCP.", NULL);
+			return -1;
+
+		case 0:
+			/*	Just lost connection; treat as a
+			 *	transient anomaly, note the incomplete
+			 *	transmission.				*/
+
+			writeMemo("[?] TCP socket connection lost.");
+			return 0;
+
+		default:
+			totalBytesSent += bytesSent;
+			bytesRemaining -= bytesSent;
+		}
+	}
+
+	return totalBytesSent;
 }

@@ -35,6 +35,7 @@ ICISOURCES =     \
    ionsec.c      \
    ionsecadmin.c \
    crypto.c      \
+   bulk.c        \
    ionwarn.c     \
    ionrestart.c  \
    ionexit.c

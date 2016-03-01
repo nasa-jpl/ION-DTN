@@ -27,6 +27,9 @@ extern "C" {
 
 #define	BP_VERSION			6
 
+#define	BpUdpDefaultPortNbr		4556
+#define	BpTcpDefaultPortNbr		4556
+
 /*	"Watch" switches for bundle protocol operation.			*/
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)
@@ -584,7 +587,7 @@ typedef struct
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
 	int		nominalRate;	/*	Bytes per second.	*/
-	int		protocolClass;
+	int		protocolClass;	/*	QoS provided.		*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
@@ -819,7 +822,7 @@ typedef enum
 typedef struct
 {
 	FwdAction	action;
-	int		protocolClass;
+	int		protocolClass;	/*	Required QoS.		*/
 	Object		outductElt;	/*	sdrlist elt for xmit	*/
 	Object		destDuctName;	/*	sdrstring for xmit	*/
 	Object		eid;		/*	sdrstring for fwd	*/
@@ -997,8 +1000,10 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	bundle queues identified by outflows.
 			 *	If no such bundle is currently waiting
 			 *	for transmission, it blocks until one
-			 *	is [or until a signal handler calls
-			 *	bp_interrupt()].
+			 *	is [or until the duct is closed, at
+			 *	which time the function returns zero
+			 *	without providing the address of an
+			 *	outbound bundle ZCO].
 			 *
 			 *	On selecting a bundle, if the bundle's
 			 *	payload is longer than the indicated

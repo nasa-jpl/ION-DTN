@@ -10,6 +10,7 @@ BSSP = ../bssp
 DTN2 = ../dtn2
 LTP = ../ltp
 TCP = ../tcp
+STCP = ../stcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
@@ -20,7 +21,7 @@ IPND = ../ipnd
 OPT = -g -Wall -Dmingw -DENABLE_IMC
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(TCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -37,7 +38,7 @@ BPINCLS = \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
-	$(TCP)/tcpcla.h \
+	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h
 #	$(DCCP)/dccpcla.h
 #	$(API)/acs/acs.h
@@ -57,7 +58,7 @@ RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfi
 # acsadmin acslist
 # bpstats2 bpchat
 
-ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libtcpcla.dll libudpcla.dll $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libstcpcla.dll libudpcla.dll $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -192,22 +193,22 @@ ltpclo:		ltpclo.o $(BPLIBS)
 
 #	-	-	TCP executables	-	-	-	-	-
 
-tcpcli:		tcpcli.o $(BPLIBS) libtcpcla.dll
-		$(CC) -o tcpcli tcpcli.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+tcpcli:		tcpcli.o $(BPLIBS)
+		$(CC) -o tcpcli tcpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
 		cp tcpcli ./bin
 
-tcpclo:		tcpclo.o $(BPLIBS) libtcpcla.dll
-		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+tcpclo:		tcpclo.o $(BPLIBS)
+		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
 		cp tcpclo ./bin
 
 #	-	-	STCP executables	-	-	-	-
 
-stcpcli:	stcpcli.o $(BPLIBS) libtcpcla.dll
-		$(CC) -o stcpcli stcpcli.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+stcpcli:	stcpcli.o $(BPLIBS) libstcpcla.dll
+		$(CC) -o stcpcli stcpcli.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32
 		cp stcpcli ./bin
 
-stcpclo:	stcpclo.o $(BPLIBS) libtcpcla.dll
-		$(CC) -o stcpclo stcpclo.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+stcpclo:	stcpclo.o $(BPLIBS) libstcpcla.dll
+		$(CC) -o stcpclo stcpclo.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32
 		cp stcpclo ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
@@ -248,12 +249,12 @@ dgrcla:		dgrcla.o $(BPLIBS)
 
 #	-	-	BRS executables	-	-	-	-
 
-brsscla:	brsscla.o $(BPLIBS) libtcpcla.dll
-		$(CC) -o brsscla brsscla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+brsscla:	brsscla.o $(BPLIBS) libstcpcla.dll
+		$(CC) -o brsscla brsscla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32
 		cp brsscla ./bin
 
-brsccla:	brsccla.o $(BPLIBS) libtcpcla.dll
-		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lws2_32
+brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
+		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32
 		cp brsccla ./bin
 
 #	-	-	BIBE executable	-	-	-	-	-
@@ -304,7 +305,7 @@ bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o -ldtn2fw.o
+libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o
 		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread
 		cp libbp.dll ./lib
 
@@ -321,12 +322,12 @@ libimcfw.dll:	libimcfw.o
 		cp libimcfw.dll ./lib
 
 libdtn2fw.dll:	libdtn2fw.o
-		$(LD) -o libdtn2fw.dll libdtn2fw.o -Wl,--output-def,libdtn2fw.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		$(LD) -o libdtn2fw.dll libdtn2fw.o -Wl,--output-def,libdtn2fw.def -L./lib -L$(ROOT)/lib -lbp -limcfw -lipnfw -lici -lpthread
 		cp libdtn2fw.dll ./lib
 
-libtcpcla.dll:	libtcpcla.o
-		$(LD) -o libtcpcla.dll libtcpcla.o -Wl,--output-def,libtcpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
-		cp libtcpcla.dll ./lib
+libstcpcla.dll:	libstcpcla.o
+		$(LD) -o libstcpcla.dll libstcpcla.o -Wl,--output-def,libstcpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
+		cp libstcpcla.dll ./lib
 
 libudpcla.dll:	libudpcla.o
 		$(LD) -o libudpcla.dll libudpcla.o -Wl,--output-def,libudpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32
@@ -383,6 +384,9 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(LTP)/%.c
+		$(CC) -c $<
+
+%.o:		$(STCP)/%.c
 		$(CC) -c $<
 
 %.o:		$(TCP)/%.c

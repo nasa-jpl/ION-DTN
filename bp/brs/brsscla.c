@@ -24,9 +24,14 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	interruptThread()
+static void	handleStopThread()
 {
-	isignal(SIGTERM, interruptThread);
+	isignal(SIGINT, handleStopThread);
+}
+
+static void	handleStopBrsscla()
+{
+	isignal(SIGTERM, handleStopBrsscla);
 	ionKillMainThread("brsscla");
 }
 
@@ -54,7 +59,7 @@ static void	*sendBundles(void *parm)
 
 	SenderThreadParms	*parms = (SenderThreadParms *) parm;
 	char			*procName = "brsscla";
-	unsigned char		*buffer;
+	char			*buffer;
 	Outduct			outduct;
 	Sdr			sdr;
 	Outflow			outflows[3];
@@ -69,7 +74,7 @@ static void	*sendBundles(void *parm)
 	Bundle			bundle;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
-	buffer = MTAKE(TCPCLA_BUFSZ);
+	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for TCP buffer in brsscla.", NULL);
@@ -98,11 +103,13 @@ static void	*sendBundles(void *parm)
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
 				&extendedCOS, destDuctName, 0, -1) < 0)
 		{
+			putErrmsg("Can't dequeue bundle.", NULL);
 			break;
 		}
 
-		if (bundleZco == 0)		/*	Interrupted.	*/
+		if (bundleZco == 0)		/*	Outduct closed.	*/
 		{
+			writeMemo("[i] brsscla outduct closed.");
 			continue;
 		}
 
@@ -114,7 +121,7 @@ static void	*sendBundles(void *parm)
 		&& ductNbr <= parms->lastDuctNbr
 		&& parms->brsSockets[(i = ductNbr - parms->baseDuctNbr)] != -1)
 		{
-			bytesSent = sendBundleByTCP("", "",
+			bytesSent = sendBundleByStcp("", "",
 					parms->brsSockets + i, bundleLength,
 					bundleZco, buffer);
 
@@ -312,7 +319,7 @@ static void	*receiveBundles(void *parm)
 
 	while (1)
 	{
-		switch (receiveBytesByTCP(parms->bundleSocket,
+		switch (itcp_recv(&(parms->bundleSocket),
 				(char *) (sdnvText + sdnvLength), 1))
 		{
 			case 1:
@@ -378,21 +385,21 @@ static void	*receiveBundles(void *parm)
 
 	/*	Get time tag and its HMAC-SHA1 digest.			*/
 
-	switch (receiveBytesByTCP(parms->bundleSocket, registration,
+	switch (itcp_recv(&(parms->bundleSocket), registration,
 			REGISTRATION_LEN))
 	{
-		case REGISTRATION_LEN:
-			break;			/*	Out of switch.	*/
+	case REGISTRATION_LEN:
+		break;				/*	Out of switch.	*/
 
-		case -1:
-			putErrmsg("Can't get registration.", NULL);
+	case -1:
+		putErrmsg("Can't get registration.", NULL);
 
 			/*	Intentional fall-through to next case.	*/
 
-		default:
-			*parms->authenticated = 1;
-			terminateReceiverThread(parms);
-			return NULL;
+	default:
+		*parms->authenticated = 1;
+		terminateReceiverThread(parms);
+		return NULL;
 	}
 
 	memcpy((char *) &timeTag, registration, 4);
@@ -429,7 +436,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	oK(hmac_authenticate(digest, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
 	memcpy(registration + 4, digest, DIGEST_LEN);
-	if (sendBytesByTCP(&parms->bundleSocket, registration + 4,
+	if (itcp_send(&(parms->bundleSocket), registration + 4,
 			DIGEST_LEN) < DIGEST_LEN)
 	{
 		putErrmsg("Can't countersign to client.",
@@ -458,7 +465,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		return NULL;
 	}
 
-	buffer = MTAKE(TCPCLA_BUFSZ);
+	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("brsscla can't get TCP buffer.", NULL);
@@ -478,7 +485,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 			continue;
 		}
 
-		switch (receiveBundleByTcp(parms->bundleSocket, work, buffer,
+		switch (receiveBundleByStcp(&parms->bundleSocket, work, buffer,
 				_attendant(NULL)))
 		{
 		case -1:
@@ -659,7 +666,7 @@ static void	*spawnReceivers(void *parm)
 #ifdef mingw
 		shutdown(receiverParms->bundleSocket, SD_BOTH);
 #else
-		pthread_kill(thread, SIGTERM);
+		pthread_kill(thread, SIGINT);
 #endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
@@ -779,9 +786,10 @@ port 80)", NULL);
 
 	ionNoteMainThread("brsscla");
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);	/*	For sender.	*/
+	isignal(SIGPIPE, itcp_handleConnectionLoss);	/*	Sender.	*/
+	isignal(SIGINT, handleStopThread);
 #endif
-	isignal(SIGTERM, interruptThread);
+	isignal(SIGTERM, handleStopBrsscla);
 
 	/*	Start the sender thread; a single sender for all
 	 *	connections.						*/

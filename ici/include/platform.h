@@ -133,6 +133,10 @@ typedef unsigned long		uvast;
 #define ERRMSGS_BUFSIZE		(256*16)
 #endif
 
+#ifndef	DEFAULT_CHECK_TIMEOUT
+#define	DEFAULT_CHECK_TIMEOUT	(120)
+#endif
+
 #ifdef  DOS_PATH_DELIMITER
 #define ION_PATH_DELIMITER	'\\'
 #else
@@ -187,12 +191,24 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
 #endif
+#ifndef ECONNREFUSED
 #define	ECONNREFUSED		WSAECONNREFUSED
+#endif
+#ifndef ECONNRESET
 #define ECONNRESET		WSAECONNRESET
+#endif
+#ifndef EWOULDBLOCK
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#endif
+#ifndef ENETUNREACH
 #define ENETUNREACH		WSAENETUNREACH
+#endif
+#ifndef EHOSTUNREACH
 #define EHOSTUNREACH		WSAEHOSTUNREACH
+#endif
 #define	O_LARGEFILE		0
+#define	inet_pton(a,b,c)	InetPton(a,b,c)
+#define	inet_ntop(a,b,c,d)	InetNtop(a,b,c,d)
 
 #else				/****	not Windows		*********/
 
@@ -759,10 +775,6 @@ extern int			iputs(int, char *);
 
 extern void			icopy(char *fromPath, char *toPath);
 
-extern int			fullyQualified(char *fileName);
-extern int			qualifyFileName(char *fileName, char *buffer,
-					int buflen);
-extern void			findToken(char **cursorPtr, char **token);
 extern unsigned int		getAddressOfHost();
 extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
@@ -770,6 +782,17 @@ extern int			parseSocketSpec(char *socketSpec,
 					unsigned int *ipAddress);
 extern void			printDottedString(unsigned int hostNbr,
 					char *buffer);
+
+extern int			itcp_connect(char *socketSpec,
+					unsigned short defaultPort, int *sock);
+extern int			itcp_send(int *sock, char *from, int length);
+extern int			itcp_recv(int *sock, char *into, int length);
+extern void			itcp_handleConnectionLoss();
+
+extern int			fullyQualified(char *fileName);
+extern int			qualifyFileName(char *fileName, char *buffer,
+					int buflen);
+extern void			findToken(char **cursorPtr, char **token);
 #include "platform_sm.h"
 
 #ifdef __cplusplus

@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2016-01-29 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.4.0"
+/* As of 2016-02-10 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.4.1"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -263,6 +263,7 @@ typedef PsmAddress	ReqTicket;
 typedef struct
 {
 	vast		fileSpaceNeeded;
+	vast		bulkSpaceNeeded;
 	vast		heapSpaceNeeded;
 	sm_SemId	semaphore;
 	int		secondsUnclaimed;
@@ -327,6 +328,7 @@ extern void		ionResumeAttendant(ReqAttendant *attendant);
 extern void		ionStopAttendant(ReqAttendant *attendant);
 extern int		ionRequestZcoSpace(ZcoAcct acct,
 					vast fileSpaceNeeded,
+					vast bulkSpaceNeeded,
 					vast heapSpaceNeeded,
 					unsigned char coarsePriority,
 					unsigned char finePriority,
@@ -349,6 +351,8 @@ extern vast		ionAppendZcoExtent(Object zco,
 					unsigned char coarsePriority,
 					unsigned char finePriority,
 					ReqAttendant *attendant);
+extern int		ionSendZcoByTCP(int *sock, Object zco, char *buffer,
+					int buflen);
 
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();

@@ -83,34 +83,7 @@ static void	removeReceiver(TcpRcvr *rcvr)
 	MRELEASE(rcvr);
 }
 
-static int	receiveBytesByTCP(int fd, char *into, int length)
-{
-	int	bytesRead;
-
-	while (1)	/*	Continue until not interrupted.		*/
-	{
-		bytesRead = irecv(fd, into, length, 0);
-		switch (bytesRead)
-		{
-		case -1:
-			if (errno == EINTR)
-			{
-				continue;
-			}
-
-			putSysErrmsg("tcpts recv() error on socket", NULL);
-			return -1;
-
-		case 0:			/*	Connection closed.	*/
-			return 0;
-
-		default:
-			return bytesRead;
-		}
-	}
-}
-
-static int	receiveMsgByTCP(int fd, char *buffer)
+static int	receiveMsgByTCP(int *fd, char *buffer)
 {
 	unsigned short	preamble;
 	char		*into;
@@ -124,7 +97,7 @@ static int	receiveMsgByTCP(int fd, char *buffer)
 	bytesToReceive = sizeof preamble;
 	while (bytesToReceive > 0)
 	{
-		bytesReceived = receiveBytesByTCP(fd, into, bytesToReceive);
+		bytesReceived = itcp_recv(fd, into, bytesToReceive);
 		if (bytesReceived < 1)
 		{
 			return bytesReceived;
@@ -141,7 +114,7 @@ static int	receiveMsgByTCP(int fd, char *buffer)
 	bytesToReceive = msglen;
 	while (bytesToReceive > 0)
 	{
-		bytesReceived = receiveBytesByTCP(fd, into, bytesToReceive);
+		bytesReceived = itcp_recv(fd, into, bytesToReceive);
 		if (bytesReceived < 1)
 		{
 			return bytesReceived;
@@ -181,42 +154,6 @@ static void	removeSender(TcpTsep *tsep)
 
 	sap->nbrInSendPool--;
 	pthread_mutex_unlock(&sap->sendPoolMutex);
-}
-
-static int	sendBytesByTCP(TcpTsep *tsep, char *bytes, int length)
-{
-	int	result;
-
-	while (1)	/*	Continue until not interrupted.		*/
-	{
-		result = isend(tsep->fd, bytes, length, 0);
-		if (result < 0)
-		{
-			if (errno == EINTR)	/*	Interrupted.	*/
-			{
-				continue;	/*	Try again.	*/
-			}
-
-			break;			/*	Handle failure.	*/
-		}
-
-		return 1;	/*	Successful transmission.	*/
-	}
-
-	/*	Unsuccessful transmission, for one reason or another.	*/
-
-	removeSender(tsep);
-	switch (errno)
-	{
-	case EPIPE:			/*	Lost connection.	*/
-	case EBADF:			/*	Closed.			*/
-	case ECONNRESET:		/*	Lost connection.	*/
-		return 0;		/*	Non-fatal failure.	*/
-		
-	default:
-		putSysErrmsg("tcpts send() error on socket", NULL);
-		return -1;		/*	Fatal failure.		*/
-	}
 }
 
 /*	*	*	*	MAMS stuff	*	*	*	*/
@@ -361,7 +298,7 @@ static void	*tcpAmsReceiver(void *parm)
 #endif
 	while (1)
 	{
-		length = receiveMsgByTCP(me->fd, buffer);
+		length = receiveMsgByTCP(&(me->fd), buffer);
 		switch (length)
 		{
 		case -1:
@@ -677,9 +614,10 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 
 	preamble = xmitlen;
 	preamble = htons(preamble);
-	result = sendBytesByTCP(tsep, (char *) &preamble, sizeof preamble);
+	result = itcp_send(&tsep->fd, (char *) &preamble, sizeof preamble);
 	if (result < 1)		/*	Data not transmitted.		*/
 	{
+		removeSender(tsep);
 		return result;
 	}
 
@@ -695,10 +633,11 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 			headerLen + contentLen);
 	checksum = htons(checksum);
 	memcpy(tcpAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
-	result = sendBytesByTCP(tsep, tcpAmsBuf, xmitlen);
+	result = itcp_send(&tsep->fd, tcpAmsBuf, xmitlen);
 	MRELEASE(tcpAmsBuf);
 	if (result < 1)		/*	Data not transmitted.		*/
 	{
+		removeSender(tsep);
 		return result;
 	}
 
