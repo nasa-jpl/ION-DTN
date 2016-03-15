@@ -365,15 +365,15 @@ static int	hashDestId(unsigned short portNbr, unsigned int ipAddress)
 static DgrDest	*findDest(DgrSAP *sap, unsigned short portNbr,
 			unsigned int ipAddress, int *idx)
 {
-	int		bin;
-	LystElt		elt;
-	unsigned long	i;
-	DgrDest		*dest;
+	int	bin;
+	LystElt	elt;
+	uaddr	i;
+	DgrDest	*dest;
 
 	bin = hashDestId(portNbr, ipAddress);
 	for (elt = lyst_first(sap->destLysts[bin]); elt; elt = lyst_next(elt))
 	{
-		dest = sap->dests + (i = (unsigned long) lyst_data(elt));
+		dest = sap->dests + (i = (uaddr) lyst_data(elt));
 		if (dest->ipAddress == ipAddress && dest->portNbr == portNbr)
 		{
 			*idx = i;
@@ -440,10 +440,10 @@ traceBytesToTransmit = dest->bytesToTransmit;
 static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 			unsigned int ipAddress, int *destIdx)
 {
-	unsigned long	newDest;
-	DgrDest		*dest;
-	int		nextDest;
-	int		bin;
+	uaddr	newDest;
+	DgrDest	*dest;
+	uaddr	nextDest;
+	int	bin;
 
 	if (sap->destsCount < DGR_MAX_DESTS)	/*	Empty slot.	*/
 	{

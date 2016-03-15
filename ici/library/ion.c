@@ -129,7 +129,7 @@ static int	_ionMemory(int *memmgrIdx)
 
 static PsmPartition	_ionwm(sm_WmParms *parms)
 {
-	static int		ionSmId = 0;
+	static uaddr		ionSmId = 0;
 	static PsmView		ionWorkingMemory;
 	static PsmPartition	ionwm = NULL;
 	static int		memmgrIdx;
@@ -1539,7 +1539,7 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "wmAddress") == 0)
 		{
-			parms->wmAddress = (char *) atol(tokens[1]);
+			parms->wmAddress = (char *) strtoaddr(tokens[1]);
 			continue;
 		}
 
@@ -1615,8 +1615,13 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "wmSize:          %ld",
 			parms->wmSize);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "wmAddress:       %0lx",
-			(unsigned long) parms->wmAddress);
+#if (SPACE_ORDER > 2 && defined(mingw))
+	isprintf(buffer, sizeof buffer, "wmAddress:       %#I64x",
+			(uaddr) (parms->wmAddress));
+#else
+	isprintf(buffer, sizeof buffer, "wmAddress:       %#lx",
+			(uaddr) (parms->wmAddress));
+#endif
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);

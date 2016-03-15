@@ -7212,7 +7212,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned int	nssOffset;
 	unsigned int	dataLength;
 	unsigned int	lengthOfBlock;
-	unsigned long	temp;
+	uaddr		temp;
 	ExtensionDef	*def;
 
 	if (work->malformed || work->lastBlockParsed)

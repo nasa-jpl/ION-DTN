@@ -2647,6 +2647,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 	long long	llval;
 	double		dval;
 	void		*vpval;
+	uaddr		uaddrval;
 
 	if (buffer == NULL || bufSize < 1)
 	{
@@ -2908,7 +2909,12 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 
 		case 'p':
 			vpval = va_arg(args, void *);
-			sprintf(scratchpad, "%#lx", (unsigned long) vpval);
+			uaddrval = (uaddr) vpval;
+#if (SPACE_ORDER > 2 && defined(mingw))
+			sprintf(scratchpad, "%#I64x", uaddrval);
+#else				/*	Pointer same size as long.	*/
+			sprintf(scratchpad, "%#lx", uaddrval);
+#endif
 			break;
 
 		default:		/*	Bad conversion char.	*/

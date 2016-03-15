@@ -176,11 +176,12 @@ static char	*procName()
 	return "tcpcli";
 }
 
+#ifndef mingw
 static void	handleStopThread()
 {
 	isignal(SIGINT, handleStopThread);
 }
-
+#endif
 static void	handleStopTcpcli()
 {
 	isignal(SIGTERM, handleStopTcpcli);
@@ -1760,7 +1761,7 @@ static void	*spawnReceivers(void *parm)
 	 *	of threads to service those connections.		*/
 
 	ServerThreadParms	*stp = (ServerThreadParms *) parm;
-	long			newSocket;
+	saddr			newSocket;
 	struct sockaddr		socketName;
 	socklen_t		socknamelen;
 	LystElt			elt;
@@ -2347,14 +2348,14 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	static char	*noEid = "<unknown node>";
 	Sdr		sdr = getIonsdr();
 	LystElt		elt;
-	long		sock;
+	int		sock;
 	LystElt		neighbor;
 
 	oK(sdr_begin_xn(sdr));
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
-		sock = (long) lyst_data(elt);
+		sock = (saddr) lyst_data(elt);
 
 		/*	This new neighbor may be temporary.  After
 		 *	header exchange we may be loading this
@@ -2574,7 +2575,7 @@ static void	*handleEvents(void *parm)
 
 static void	dropPendingConnection(LystElt elt, void *userdata)
 {
-	long	sock = (long) lyst_data(elt);
+	saddr	sock = (uaddr) lyst_data(elt);
 
 	if (sock != -1)
 	{

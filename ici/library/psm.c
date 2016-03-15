@@ -198,10 +198,10 @@ int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
 	CHKERR(outcome);
 	*outcome = Refused;
 	CHKERR(start != NULL);
-	if ((((unsigned long) start) % LG_OHD_SIZE) != 0)
+	if ((((uaddr) start) % LG_OHD_SIZE) != 0)
 	{
 		putErrmsg("Starting address not double-word-aligned.",
-				utoa((unsigned long) start));
+				utoa((uaddr) start));
 		return -1;	/*	Start address misaligned.	*/
 	}
 

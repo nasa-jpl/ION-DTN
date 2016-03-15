@@ -542,6 +542,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	socklen_t		nameLength;
 	int			datagramLength;
 	Lyst			msgspaces;
+	saddr			temp;
 	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
@@ -619,7 +620,8 @@ printf("continuum lyst:");
 	msgspaces = ams_list_msgspaces(gWay->amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		cId = (long) lyst_data(elt);
+		temp = (saddr) lyst_data(elt);
+		cId = temp;
 #if RAMSDEBUG
 printf(" %ld", cId);		
 #endif

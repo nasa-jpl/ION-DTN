@@ -87,7 +87,9 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			unsigned char flowLabel)
 {
 	char	*subjectName;
+#ifdef unix
 	int	subjectNameLength;
+#endif
 	char	replyText[256];
 	int	replyLength;
 

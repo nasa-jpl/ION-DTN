@@ -2193,6 +2193,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 		int responseNbr)
 {
+	saddr	temp;
 	long	queryNbr;
 	LystElt	elt;
 
@@ -2221,7 +2222,8 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	 *	we stuff it into the "compare" function pointer in
 	 *	the Lyst structure.					*/
 
-	queryNbr = (long) lyst_compare_get(eventsQueue->list);
+	temp = (saddr) lyst_compare_get(eventsQueue->list);
+	queryNbr = temp;
 	if (queryNbr != 0)	/*	Need response to specfic msg.	*/
 	{
 		if (responseNbr == queryNbr)	/*	This is it.	*/

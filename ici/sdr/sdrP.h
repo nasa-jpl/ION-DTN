@@ -148,11 +148,11 @@ typedef struct sdrv_str
 
 	int		dsfile;		/*	DS in file (fd).	*/
 	char		*dssm;		/*	DS in shared memory.	*/
-	int		dssmId;		/*	DS shmId if applicable.	*/
+	uaddr		dssmId;		/*	DS shmId if applicable.	*/
 
 	int		logfile;	/*	Xn log file (fd).	*/
 	char		*logsm;		/*	Log in shared memory.	*/
-	int		logsmId;	/*	Log shmId if applicable.*/
+	uaddr		logsmId;	/*	Log shmId if applicable.*/
 
 	Lyst		knownObjects;	/*	ObjectExtents.		*/
 	int		modified;	/*	Boolean.		*/

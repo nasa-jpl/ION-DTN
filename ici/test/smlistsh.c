@@ -29,12 +29,13 @@ int	main(int argc, char **argv)
 	long		arg1;
 	long		arg2;
 	unsigned long	keyValue;
+	PsmAddress	datum;
 	PsmUsageSummary	summary;
 	PsmAddress	elt;
 	int		key;
 	int		length;
 	unsigned char	*smlistsh_space = NULL;
-	int		smlistsh_partitionId = 0;
+	uaddr		smlistsh_partitionId = 0;
 	PsmPartition	smlistsh_partition = NULL;
 	PsmAddress	smlistsh_list = 0;
 	PsmMgtOutcome	outcome;
@@ -187,8 +188,9 @@ int	main(int argc, char **argv)
 					break;
 				}
 
+				datum = arg1;
 				if (sm_list_insert_first(smlistsh_partition,
-					smlistsh_list, (PsmAddress) arg1) == 0)
+						smlistsh_list, datum) == 0)
 				{
 					puts("unable to insert first elt");
 				}
@@ -202,8 +204,9 @@ int	main(int argc, char **argv)
 					break;
 				}
 
+				datum = arg1;
 				if (sm_list_insert_last(smlistsh_partition,
-					smlistsh_list, (PsmAddress) arg1) == 0)
+						smlistsh_list, datum) == 0)
 				{
 					puts("unable to insert last elt");
 				}
@@ -217,9 +220,10 @@ int	main(int argc, char **argv)
 					break;
 				}
 
+				datum = arg1;
 				elt = sm_list_search(smlistsh_partition,
 					sm_list_first(smlistsh_partition,
-					smlistsh_list), NULL, (void *) arg1);
+					smlistsh_list), NULL, (void *) datum);
 				printf("value %ld is in element at %ld.\n",
 						arg1, elt);
 
