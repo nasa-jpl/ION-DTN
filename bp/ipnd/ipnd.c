@@ -234,7 +234,7 @@ void updateCtxNbf(char* eid, int eidLen)
 	IPNDCtx	*ctx = getIPNDCtx();
 
 	if (!ctx) return;
-	bloom_add(&ctx->nbf, eid, eidLen);
+	oK(bloom_add(&ctx->nbf, eid, eidLen));
 
 	/* find service 127 NBF-Bits and update it with bytes */
 
@@ -1143,6 +1143,7 @@ static int	processLine(char *line, int lineLength)
 			return -1;
 		}
 
+		ctx->haveSendThread = 1;
 		if (pthread_begin(&ctx->receiveBeaconsThread, NULL,
 				receiveBeacons, NULL))
 		{
@@ -1151,6 +1152,7 @@ static int	processLine(char *line, int lineLength)
 			return -1;
 		}
 
+		ctx->haveReceiveThread = 1;
 		if (pthread_begin(&ctx->expireNeighborsThread, NULL,
 					expireNeighbors, NULL))
 		{
@@ -1159,6 +1161,7 @@ static int	processLine(char *line, int lineLength)
 			return -1;
 		}
 
+		ctx->haveExpireThread = 1;
 		return 0;
 
 	case 'a':
@@ -1196,8 +1199,10 @@ int	main(int argc, char *argv[])
 	char	line[1024];
 	IPNDCtx	*ctx = NULL;
 
+#if 0
 	/* Block SIGUSR1 signals */
-	iblock(SIGUSR1);
+	iblock(SIGUSR1);	/*	Why is this necessary?		*/
+#endif
 
 	if (cmdFileName == NULL)
 	{
@@ -1246,7 +1251,7 @@ int	main(int argc, char *argv[])
 
 	ctx = getIPNDCtx();
 
-	if (ctx == NULL || ctx->sendBeaconsThread == 0)
+	if (ctx == NULL || ctx->haveSendThread == 0)
 	{
 		printText("Configuration script did not issue initialize or \
 start command.");
@@ -1266,12 +1271,23 @@ start command.");
 	printText("[i] IPND shutting down.");
 
 	/* Shutdown */
-	pthread_end(ctx->sendBeaconsThread);
-	pthread_join(ctx->sendBeaconsThread, NULL);
-	pthread_end(ctx->receiveBeaconsThread);
-	pthread_join(ctx->receiveBeaconsThread, NULL);
-	pthread_end(ctx->expireNeighborsThread);
-	pthread_join(ctx->expireNeighborsThread, NULL);
+	if (ctx->haveSendThread)
+	{
+		pthread_end(ctx->sendBeaconsThread);
+		pthread_join(ctx->sendBeaconsThread, NULL);
+	}
+
+	if (ctx->haveReceiveThread)
+	{
+		pthread_end(ctx->receiveBeaconsThread);
+		pthread_join(ctx->receiveBeaconsThread, NULL);
+	}
+
+	if (ctx->haveExpireThread)
+	{
+		pthread_end(ctx->expireNeighborsThread);
+		pthread_join(ctx->expireNeighborsThread, NULL);
+	}
 
 	/* Free up resources */
 	releaseLystElements(ctx->destinations);

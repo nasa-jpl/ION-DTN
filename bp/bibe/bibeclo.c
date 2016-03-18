@@ -124,12 +124,15 @@ int	main(int argc, char *argv[])
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, outduct.maxPayloadLen, 0) < 0)
 		{
-			sm_SemEnd(bibecloSemaphore(NULL));/*	Stop.	*/
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			shutDownClo();
+			break;
 		}
 
-		if (bundleZco == 0)	/*	Interrupted.		*/
+		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
+			writeMemo("[i] bibeclo outduct closed.");
+			sm_SemEnd(bibecloSemaphore(NULL));/*	Stop.	*/
 			continue;
 		}
 

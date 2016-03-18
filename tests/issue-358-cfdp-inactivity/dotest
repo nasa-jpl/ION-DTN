@@ -73,9 +73,8 @@ sleep 5
 echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
-echo "Killing CLO..."
-pkill -15 tcpclo >/dev/null 2>&1
-
+echo "Killing TCPCL..."
+pkill -15 tcpcli >/dev/null 2>&1
 
 #Waiting
 echo "Waiting 5 seconds for inactivity deadline trigger..."

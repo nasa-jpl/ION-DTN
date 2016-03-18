@@ -501,7 +501,8 @@ libici_la_SOURCES =	ici/library/llcv.c \
 			ici/sdr/sdrlist.c \
 			ici/sdr/sdrtable.c \
 			ici/sdr/sdrhash.c \
-			ici/sdr/sdrcatlg.c
+			ici/sdr/sdrcatlg.c \
+			ici/bulk/STUB_BULK/bulk.c
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
@@ -525,7 +526,7 @@ ionadmin_LDADD = libici.la $(LIBOBJS)
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libbp.la libltp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+ionexit_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
@@ -888,13 +889,12 @@ endif
 bplib = \
 	libbp.la \
 	libcgr.la \
-	libipnfw.la \
-	libdtn2fw.la \
-	libtcpcla.la \
+	libstcpcla.la \
 	libudpcla.la
 #	libphn.la
 #	libecos.la
-
+#	libipnfw.la
+#	libdtn2fw.la
 bpinclude = \
 	bp/include/bp.h \
 	bp/include/eureka.h
@@ -911,7 +911,7 @@ bpnoinst = \
 	bp/brs/brscla.h \
 	bp/udp/udpcla.h \
 	bp/ltp/ltpcla.h \
-	bp/tcp/tcpcla.h \
+	bp/stcp/stcpcla.h \
 	bp/dccp/dccpcla.h
 #	bp/library/ext/phn/phn.h
 
@@ -1090,17 +1090,17 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 
 # -- Libraries --- #
 
-libipnfw_la_SOURCES = bp/ipn/libipnfw.c
-libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libipnfw_la_LIBADD = libici.la
+#libipnfw_la_SOURCES = bp/ipn/libipnfw.c
+#libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libipnfw_la_LIBADD = libici.la
 
-libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
-libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libdtn2fw_la_LIBADD = libici.la
+#libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
+#libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libdtn2fw_la_LIBADD = libici.la
 
-libtcpcla_la_SOURCES = bp/tcp/libtcpcla.c
-libtcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libtcpcla_la_LIBADD = libbp.la libici.la
+libstcpcla_la_SOURCES = bp/stcp/libstcpcla.c
+libstcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libstcpcla_la_LIBADD = libbp.la libici.la
 
 libudpcla_la_SOURCES = bp/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1109,6 +1109,8 @@ libudpcla_la_LIBADD = libbp.la libici.la
 
 
 libbp_la_SOURCES = \
+	bp/dtn2/libdtn2fw.h \
+	bp/dtn2/libdtn2fw.c \
 	bp/library/libbp.c \
 	bp/library/libbpP.c \
 	bp/library/libbpnm.c \
@@ -1135,6 +1137,8 @@ libbp_la_SOURCES = \
 	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
 	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	bp/library/ext/snid/snid.c \
+	bp/ipn/libipnfw.h \
+	bp/ipn/libipnfw.c \
 	bp/ipnd/ipnd.c \
 	bp/ipnd/beacon.c \
 	bp/ipnd/helper.c \
@@ -1183,59 +1187,59 @@ libcgr_la_LIBADD = libbp.la libici.la
 # --- Utility Programs --- #
 
 bpadmin_SOURCES = bp/utils/bpadmin.c
-bpadmin_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
-ipnadmin_LDADD = libipnfw.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 if ENABLE_BPACS
 acsadmin_SOURCES = bp/utils/acsadmin.c
-acsadmin_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 acslist_SOURCES = bp/utils/acslist.c
-acslist_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+acslist_LDADD = libbp.la libici.la $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif
 
 if ENABLE_IMC
 imcadmin_SOURCES = bp/imc/imcadmin.c
-imcadmin_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+imcadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 imcfw_SOURCES = bp/imc/imcfw.c
-imcfw_LDADD = libipnfw.la libbp.la libdtn2fw.la  libici.la $(LIBOBJS)
+imcfw_LDADD = libbp.la libici.la $(LIBOBJS)
 imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif
 
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
-dtn2admin_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
+dtn2admin_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 lgsend_SOURCES = bp/utils/lgsend.c
-lgsend_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+lgsend_LDADD = libbp.la libici.la $(LIBOBJS)
 lgsend_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 lgagent_SOURCES = bp/utils/lgagent.c
-lgagent_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+lgagent_LDADD = libbp.la libici.la $(LIBOBJS)
 lgagent_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats_SOURCES = bp/utils/bpstats.c
-bpstats_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bpstats_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptrace_SOURCES = bp/utils/bptrace.c
-bptrace_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bptrace_LDADD = libbp.la libici.la $(LIBOBJS)
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpcancel_SOURCES = bp/utils/bpcancel.c
-bpcancel_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpcancel_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bplist_SOURCES = bp/utils/bplist.c
-bplist_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bplist_LDADD = libbp.la libici.la $(LIBOBJS)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 hmackeys_SOURCES = bp/utils/hmackeys.c
@@ -1245,21 +1249,21 @@ hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- DTN Executables --- #
 
 dtn2fw_SOURCES = bp/dtn2/dtn2fw.c
-dtn2fw_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
+dtn2fw_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2fw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dtn2adminep_SOURCES = bp/dtn2/dtn2adminep.c
-dtn2adminep_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
+dtn2adminep_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2adminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPN Executables --- #
 
 ipnfw_SOURCES = bp/ipn/ipnfw.c
-ipnfw_LDADD = libipnfw.la libcgr.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnfw_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnadminep_SOURCES = bp/ipn/ipnadminep.c
-ipnadminep_LDADD = libipnfw.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnadminep_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPND Executables --- #
@@ -1269,157 +1273,157 @@ ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #helper_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnd_SOURCES = bp/ipnd/ipnd.c
-ipnd_LDADD = libipnfw.la libcgr.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnd_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 beacon_SOURCES = bp/ipnd/beacon.c
-beacon_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+beacon_LDADD = libbp.la libici.la $(LIBOBJS)
 beacon_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 node_SOURCES = bp/ipnd/node.c
-node_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+node_LDADD = libbp.la libici.la $(LIBOBJS)
 node_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BSSP Executables --- #
 
 bsspcli_SOURCES = bp/bssp/bsspcli.c
-bsspcli_LDADD = libbssp.la libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bsspcli_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bsspclo_SOURCES = bp/bssp/bsspclo.c
-bsspclo_LDADD = libbssp.la libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bsspclo_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS)
 bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- LTP Executables --- #
 
 ltpcli_SOURCES = bp/ltp/ltpcli.c
-ltpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+ltpcli_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ltpclo_SOURCES = bp/ltp/ltpclo.c
-ltpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS)
+ltpclo_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
 ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 
 tcpcli_SOURCES = bp/tcp/tcpcli.c
-tcpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 tcpclo_SOURCES = bp/tcp/tcpclo.c
-tcpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
 
-stcpcli_SOURCES = bp/tcp/stcpcli.c
-stcpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpcli_SOURCES = bp/stcp/stcpcli.c
+stcpcli_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-stcpclo_SOURCES = bp/tcp/stcpclo.c
-stcpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpclo_SOURCES = bp/stcp/stcpclo.c
+stcpclo_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udpcli_SOURCES = bp/udp/udpcli.c
-udpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udpcli_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 udpclo_SOURCES = bp/udp/udpclo.c
-udpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS)
+udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 bibeclo_SOURCES = bp/bibe/bibeclo.c
-bibeclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS)
+bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 
 dccpcli_SOURCES = bp/dccp/dccpcli.c
-dccpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dccpclo_SOURCES = bp/dccp/dccpclo.c
-dccpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
 dgrcla_SOURCES = bp/dgr/dgrcla.c
-dgrcla_LDADD = libbp.la libipnfw.la libdtn2fw.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrcla_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dgrcla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 
 brsscla_SOURCES = bp/brs/brsscla.c
-brsscla_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsscla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 brsccla_SOURCES = bp/brs/brsccla.c
-brsccla_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsccla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
 bpsource_SOURCES = bp/test/bpsource.c
-bpsource_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpsource_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsource_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsink_SOURCES = bp/test/bpsink.c
-bpsink_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpsink_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsink_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpdriver_SOURCES = bp/test/bpdriver.c
-bpdriver_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpdriver_LDADD = libbp.la libici.la $(LIBOBJS)
 bpdriver_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpecho_SOURCES = bp/test/bpecho.c
-bpecho_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpecho_LDADD = libbp.la libici.la $(LIBOBJS)
 bpecho_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpcounter_SOURCES = bp/test/bpcounter.c
-bpcounter_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpcounter_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcounter_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsendfile_SOURCES = bp/utils/bpsendfile.c
-bpsendfile_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpsendfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bprecvfile_SOURCES = bp/utils/bprecvfile.c
-bprecvfile_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bprecvfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bping_SOURCES = bp/test/bping.c
-bping_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpnmtest_SOURCES = bp/test/bpnmtest.c
-bpnmtest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bp/test/bpstats2.c
-bpstats2_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpchat_SOURCES = bp/test/bpchat.c
-bpchat_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bpchat_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 cgrfetch_SOURCES = bp/utils/cgrfetch.c
-cgrfetch_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la libcgr.la $(LIBOBJS)
+cgrfetch_LDADD = libbp.la libici.la libcgr.la $(LIBOBJS)
 cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 bpclock_SOURCES = bp/daemon/bpclock.c
-bpclock_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpclock_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptransit_SOURCES = bp/daemon/bptransit.c
-bptransit_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ##########################
@@ -1565,7 +1569,7 @@ ramsgate_SOURCES = \
 	ams/rams/librams.c \
 	ams/rams/ramscommon.c \
 	ams/rams/ramsgate.c
-ramsgate_LDADD = libbp.la libipnfw.la libdtn2fw.la libams.la libdgr.la libici.la $(LIBOBJS)
+ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 endif
@@ -1665,7 +1669,7 @@ bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # --- BP Programs --- #
 
 bputa_SOURCES = cfdp/bp/bputa.c
-bputa_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS) $(PTHREAD_LIBS)
+bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
@@ -1677,7 +1681,7 @@ cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # --- Daemon Executables --- #
 
 cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
-cfdpclock_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 endif
@@ -1737,24 +1741,24 @@ libbss_la_SOURCES = \
 	bss/library/libbss.c \
 	bss/library/libbssP.c
 libbss_la_CFLAGS = $(bsscflags) $(AM_CFLAGS)
-libbss_la_LIBADD = libici.la libbp.la libipnfw.la libdtn2fw.la
+libbss_la_LIBADD = libici.la libbp.la
 
 # --- Test Programs --- #
 
 bssrecv_SOURCES = bss/test/bssrecv.c
-bssrecv_LDADD = libbss.la libici.la libipnfw.la libdtn2fw.la libbp.la $(LIBOBJS)
+bssrecv_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
-bssStreamingApp_LDADD = libbss.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+bssStreamingApp_LDADD = libbp.la libbss.la libici.la $(LIBOBJS)
 bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bsscounter_SOURCES = bss/test/bsscounter.c
-bsscounter_LDADD = libbss.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+bsscounter_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssdriver_SOURCES = bss/test/bssdriver.c
-bssdriver_LDADD = libbss.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 
@@ -1863,7 +1867,7 @@ udpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 # --- TCP Executables --- #
 
 tcpbsi_SOURCES = bssp/tcp/tcpbsi.c
-tcpbsi_LDADD = libbsspP.la libtcpcla.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpbsi_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 tcpbso_SOURCES = bssp/tcp/tcpbso.c
@@ -1902,7 +1906,7 @@ nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmag
 nm/agent/adm_agent_priv.c nm/agent/adm_bp_priv.c nm/agent/adm_ion_priv.c \
 nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
 nm/shared/adm/adm_agent.c
-nm_agent_LDADD = libici.la libbp.la libipnfw.la libdtn2fw.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
 
 
@@ -1914,7 +1918,7 @@ nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
 					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
 					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
 nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
-nm_mgr_LDADD = libici.la libbp.la libipnfw.la libdtn2fw.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 
 # Use this to build the DTNMP Manager WITHOUT DB Support.
@@ -1979,7 +1983,7 @@ libdtpc_la_SOURCES = \
 	dtpc/library/libdtpcP.c
 libdtpc_la_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 libdtpc_la_LDFLAGS = $(ION_LINK_FLAGS)
-libdtpc_la_LIBADD = libici.la libbp.la libipnfw.la libdtn2fw.la $(PTHREAD_LIBS)
+libdtpc_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
 
 # --- Utility Programs --- #
 
@@ -1990,11 +1994,11 @@ dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 # --- Test Programs --- #
 
 dtpcreceive_SOURCES = dtpc/test/dtpcreceive.c
-dtpcreceive_LDADD = libdtpc.la libici.la libbp.la libipnfw.la libdtn2fw.la  $(LIBOBJS)
+dtpcreceive_LDADD = libdtpc.la libici.la libbp.la  $(LIBOBJS)
 dtpcreceive_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 dtpcsend_SOURCES = dtpc/test/dtpcsend.c
-dtpcsend_LDADD = libdtpc.la libici.la libbp.la libipnfw.la libdtn2fw.la  $(LIBOBJS)
+dtpcsend_LDADD = libdtpc.la libici.la libbp.la  $(LIBOBJS)
 dtpcsend_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -2018,11 +2022,11 @@ restartbin = ionrestart
 # --- Utility Programs --- #
 if ION_NASA_B
 ionrestart_SOURCES = restart/utils/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
 else
 ionrestart_SOURCES = restart/utils/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libipnfw.la libdtn2fw.la libltp.la libcfdp.la $(LIBOBJS)
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
 endif
 
@@ -2112,11 +2116,11 @@ check_PROGRAMS+= \
 endif
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
-tests_1000_loopback_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1000_loopback_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
-tests_1300_loopback_tcp_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1300_loopback_tcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 # Disabled this test in ION 3.2.2 due to crashes.  Restore after fixing crashes.
@@ -2125,11 +2129,11 @@ tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAG
 # tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
-tests_1500_loopback_brs_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1500_loopback_brs_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
-tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
@@ -2137,22 +2141,22 @@ tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la $(LIBOBJS) $(TEST
 tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
-tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD=libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD=libbp.la libici.la $(LIBOBJS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
 
 if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la$(LIBOBJS)
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 endif
 
 if !ION_NASA_B
 tests_issue_333_cfdp_orig_ID_type_send_SOURCES =tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 endif
 

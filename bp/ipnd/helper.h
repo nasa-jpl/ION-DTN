@@ -15,7 +15,6 @@
 #ifndef _HELPER_H_
 #define _HELPER_H_
 
-#include <netinet/in.h>
 #include "lyst.h"
 #include "platform.h"
 #include "bpP.h"

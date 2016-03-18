@@ -103,37 +103,6 @@ static int	openAccessSocket()
 	return accessSocket;
 }
 
-static int	receiveBytesByTCP(int recvSocket, char *buffer, int buflen)
-{
-	int	totalBytesRcvd = 0;
-	int	bytesRcvd;
-
-	while (totalBytesRcvd < buflen)
-	{
-		bytesRcvd = read(recvSocket, buffer + totalBytesRcvd,
-				buflen - totalBytesRcvd);
-		switch (bytesRcvd)
-		{
-		case -1:
-			if (errno == EINTR)	/*	Shutdown.	*/
-			{
-				return totalBytesRcvd;
-			}
-
-			putSysErrmsg("tcputa read() error on socket", NULL);
-			return -1;
-
-		case 0:				/*	Disconnected.	*/
-			return totalBytesRcvd;
-
-		default:
-			totalBytesRcvd += bytesRcvd;
-		}
-	}
-
-	return totalBytesRcvd;
-}
-
 static void	*receivePdus(void *parm)
 {
 	RxThreadParms		*parms = (RxThreadParms *) parm;
@@ -195,7 +164,7 @@ static void	*receivePdus(void *parm)
 		{
 			/*	Get fixed-length portion of header.	*/
 
-			result = receiveBytesByTCP(parms->recvSocket,
+			result = itcp_recv(&(parms->recvSocket),
 					(char *) buffer, 4);
 			if (result < 4)		/*	Disconnect.	*/
 			{
@@ -217,7 +186,7 @@ static void	*receivePdus(void *parm)
 
 			/*	Get remainder of PDU.			*/
 
-			result = receiveBytesByTCP(parms->recvSocket,
+			result = itcp_recv(&(parms->recvSocket),
 					((char *) buffer) + 4,
 					remainingPduLength);
 			if (result < remainingPduLength)
@@ -331,39 +300,6 @@ static int	connectToPeerEntity(uvast destinationEntityNbr,
 			return -1;
 		}
 	}
-}
-
-static int	sendBytesByTcp(int xmitSocket, char *bytes, int length)
-{
-	int	totalBytesSent = 0;
-	int	bytesSent;
-
-	while (totalBytesSent < length)
-	{
-		bytesSent = write(xmitSocket, bytes + totalBytesSent,
-				length - totalBytesSent);
-		if (bytesSent < 0)
-		{
-			switch (errno)
-			{
-			case EINTR:	/*	Interrupted; retry.	*/
-				continue;
-
-			case EPIPE:	/*	Lost connection.	*/
-			case EBADF:
-			case ETIMEDOUT:
-			case ECONNRESET:
-				return totalBytesSent;
-			}
-
-			putSysErrmsg("tcputa write() error on socket", NULL);
-			return -1;
-		}
-
-		totalBytesSent += bytesSent;
-	}
-
-	return totalBytesSent;
 }
 
 static int	deletePdu(Object pduZco)
@@ -523,8 +459,7 @@ terminating.");
 			continue;
 		}
 
-		result = sendBytesByTcp(xmitSocket, (char *) buffer,
-				bytesToSend);
+		result = itcp_send(&xmitSocket, (char *) buffer, bytesToSend);
 		if (result < bytesToSend)
 		{
 			if (result < 0)		/*	Must stop.	*/

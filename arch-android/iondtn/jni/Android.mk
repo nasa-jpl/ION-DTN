@@ -34,6 +34,7 @@ MY_ICISOURCES := \
 	$(MY_ICI)/library/rfx.c         \
 	$(MY_ICI)/library/zco.c         \
 	$(MY_ICI)/crypto/NULL_SUITES/crypto.c	\
+	$(MY_ICI)/bulk/STUB_BULK/bulk.c	\
 	$(MY_ICI)/libbloom-master/bloom.c	\
 	$(MY_ICI)/libbloom-master/murmur2/MurmurHash2.c	\
 	$(MY_ICI)/sdr/sdrtable.c        \
@@ -77,18 +78,18 @@ MY_DGRSOURCES :=     \
 #	and bssp/tcp/libtcpbsa.c is resolved.  Best approach is to
 #	abstract this common TCP stuff out of BP and move it to ici.
 
-#	MY_BSSP		:= ../../../bssp
+MY_BSSP		:= ../../../bssp
 
-#	MY_BSSPSOURCES :=     \
-#		$(MY_BSSP)/library/libbssp.c    \
-#		$(MY_BSSP)/library/libbsspP.c   \
-#		$(MY_BSSP)/daemon/bsspclock.c   \
-#		$(MY_BSSP)/udp/udpbsi.c         \
-#		$(MY_BSSP)/udp/udpbso.c         \
-#		$(MY_BSSP)/tcp/tcpbsi.c         \
-#		$(MY_BSSP)/tcp/tcpbso.c         \
-#		$(MY_BSSP)/tcp/libtcpbsa.c      \
-#		$(MY_BSSP)/utils/bsspadmin.c
+MY_BSSPSOURCES :=     \
+	$(MY_BSSP)/library/libbssp.c    \
+	$(MY_BSSP)/library/libbsspP.c   \
+	$(MY_BSSP)/daemon/bsspclock.c   \
+	$(MY_BSSP)/udp/udpbsi.c         \
+	$(MY_BSSP)/udp/udpbso.c         \
+	$(MY_BSSP)/tcp/tcpbsi.c         \
+	$(MY_BSSP)/tcp/tcpbso.c         \
+	$(MY_BSSP)/tcp/libtcpbsa.c      \
+	$(MY_BSSP)/utils/bsspadmin.c
 
 MY_BP		:= ../../../bp
 
@@ -124,7 +125,9 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/udp/libudpcla.c      \
 	$(MY_BP)/tcp/tcpcli.c         \
 	$(MY_BP)/tcp/tcpclo.c         \
-	$(MY_BP)/tcp/libtcpcla.c      \
+	$(MY_BP)/stcp/stcpcli.c       \
+	$(MY_BP)/stcp/stcpclo.c       \
+	$(MY_BP)/stcp/libstcpcla.c    \
 	$(MY_BP)/dgr/dgrcla.c         \
 	$(MY_BP)/library/eureka.c     \
 	$(MY_BP)/library/bei.c        \
@@ -170,9 +173,8 @@ MY_BSSSOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_ICI)/libbloom-master $(MY_ICI)/libbloom-master/murmur2 $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/ipnd $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/bsp/ciphersuites $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BP)/tcp $(MY_BP)/udp $(MY_BSS)/include $(MY_BSS)/library
+LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_ICI)/libbloom-master $(MY_ICI)/libbloom-master/murmur2 $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/ipnd $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/bsp/ciphersuites $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BP)/tcp $(MY_BP)/udp $(MY_BSS)/include $(MY_BSS)/library $(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
 
-#	$(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 
 #	$(MY_CFDP)/include $(MY_CFDP)/library
 

@@ -157,7 +157,7 @@ cd ../2.ipn.tcp
 cd ../3.ipn.tcp
 ./ionstop &
 
-# Give all three nodes time to shut down, then clean up.
+# Give both nodes time to shut down, then clean up.
 sleep 5
 killm
 echo "TCPCL Keepalive test completed."

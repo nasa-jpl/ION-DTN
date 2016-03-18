@@ -50,7 +50,7 @@ typedef struct
 	int		*bsoRunning;
 	pthread_mutex_t	*mutex;
 	struct sockaddr	*socketName;
-	int		*ductSocket;
+	int		*flowSocket;
 } KeepaliveThreadParms;
 
 static void	*sendKeepalives(void *parm)
@@ -71,7 +71,7 @@ static void	*sendKeepalives(void *parm)
 
 		/*	Time to send a keepalive.  Note that the
 		 *	interval between keepalive attempts will be
-		 *	KEEPALIVE_PERIOD plus (if the remote induct
+		 *	KEEPALIVE_PERIOD plus (if the remote inflow
 		 *	is not reachable) the length of time taken
 		 *	by TCP to determine that the connection
 		 *	attempt will not succeed (e.g., 3 seconds).	*/
@@ -79,7 +79,7 @@ static void	*sendKeepalives(void *parm)
 		count = 0;
 		pthread_mutex_lock(parms->mutex);
 		bytesSent = sendBlockByTCP(parms->socketName,
-				parms->ductSocket, 0, NULL);
+				parms->flowSocket, 0, NULL);
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent < 0)
 		{
@@ -97,12 +97,12 @@ static void	*sendKeepalives(void *parm)
 int	tcpbso(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*ductName = (char *) a1;
+	char	*flowName = (char *) a1;
 	uvast	remoteEngineId = a2 != 0 ? strtouvast((char *) a2) : 0;
 #else
 int	main(int argc, char *argv[])
 {
-	char	*ductName = (argc > 1 ? argv[1] : NULL);
+	char	*flowName = (argc > 1 ? argv[1] : NULL);
 	uvast	remoteEngineId = argc > 2 ? strtouvast(argv[2]) : 0;
 #endif
 	Sdr			sdr;
@@ -119,10 +119,10 @@ int	main(int argc, char *argv[])
 	pthread_t		keepaliveThread;
 	int			blockLength;
 	char			*block;
-	int			ductSocket = -1;
+	int			flowSocket = -1;
 	int			bytesSent;
 
-	if (remoteEngineId == 0 || ductName == NULL)
+	if (remoteEngineId == 0 || flowName == NULL)
 	{
 		PUTS("Usage: tcpbso <remote host name>[:<port number>] <remote \
 engine number>");
@@ -157,8 +157,8 @@ engine number>");
 
 	/*	All command-line arguments are now validated.		*/
 
-	hostName = ductName;
-	parseSocketSpec(ductName, &portNbr, &hostNbr);
+	hostName = flowName;
+	parseSocketSpec(flowName, &portNbr, &hostNbr);
 	if (portNbr == 0)
 	{
 		portNbr = bsspTcpDefaultPortNbr;
@@ -183,7 +183,7 @@ engine number>");
 	oK(tcpbsoSemaphore(&(vspan->rlSemaphore)));
 	isignal(SIGTERM, shutDownBso);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/*	Start the keepalive thread to manage the connection.	*/
@@ -192,7 +192,7 @@ engine number>");
 	pthread_mutex_init(&mutex, NULL);
 	parms.mutex = &mutex;
 	parms.socketName = &socketName;
-	parms.ductSocket = &ductSocket;
+	parms.flowSocket = &flowSocket;
 	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
 	{
 		putSysErrmsg("tcpbso can't create keepalive thread", NULL);
@@ -200,7 +200,7 @@ engine number>");
 		return 1;
 	}
 
-	/*	Can now begin transmitting to remote duct.		*/
+	/*	Can now begin transmitting to remote flow.		*/
 
 	{
 		char	txt[500];
@@ -236,7 +236,7 @@ engine number>");
 		else
 		{
 			pthread_mutex_lock(&mutex);
-			bytesSent = sendBlockByTCP(&socketName, &ductSocket,
+			bytesSent = sendBlockByTCP(&socketName, &flowSocket,
 					blockLength, block);
 			pthread_mutex_unlock(&mutex);
 			if (bytesSent < blockLength)	/*	Stop BSO.*/
@@ -253,13 +253,13 @@ engine number>");
 
 	running = 0;		/*	Terminate keepalive thread.	*/
 	pthread_join(keepaliveThread, NULL);
-	if (ductSocket != -1)
+	if (flowSocket != -1)
 	{
-		closesocket(ductSocket);
+		closesocket(flowSocket);
 	}
 
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
-	writeMemo("[i] tcpbso duct has ended.");
+	writeMemo("[i] tcpbso has ended.");
 	return 0;
 }

@@ -32,10 +32,10 @@ static Object	_dtn2dbObject(Object *newDbObj)
 	return obj;
 }
 
-static DtnDB	*_dtn2Constants()
+static Dtn2DB	*_dtn2Constants()
 {
-	static DtnDB	buf;
-	static DtnDB	*db = NULL;
+	static Dtn2DB	buf;
+	static Dtn2DB	*db = NULL;
 	Sdr		sdr;
 	Object		dbObject;
 	
@@ -49,13 +49,13 @@ static DtnDB	*_dtn2Constants()
 			if (sdr_heap_is_halted(sdr))
 			{
 				sdr_read(sdr, (char *) &buf, dbObject,
-						sizeof(DtnDB));
+						sizeof(Dtn2DB));
 			}
 			else
 			{
 				CHKNULL(sdr_begin_xn(sdr));
 				sdr_read(sdr, (char *) &buf, dbObject,
-						sizeof(DtnDB));
+						sizeof(Dtn2DB));
 				sdr_exit_xn(sdr);
 			}
 
@@ -72,7 +72,7 @@ int	dtn2Init()
 {
 	Sdr	sdr = getIonsdr();
 	Object	dtn2dbObject;
-	DtnDB	dtn2dbBuf;
+	Dtn2DB	dtn2dbBuf;
 
 	/*	Recover the DTN database, creating it if necessary.	*/
 
@@ -86,7 +86,7 @@ int	dtn2Init()
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		dtn2dbObject = sdr_malloc(sdr, sizeof(DtnDB));
+		dtn2dbObject = sdr_malloc(sdr, sizeof(Dtn2DB));
 		if (dtn2dbObject == 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -94,10 +94,11 @@ int	dtn2Init()
 			return -1;
 		}
 
-		memset((char *) &dtn2dbBuf, 0, sizeof(DtnDB));
+		memset((char *) &dtn2dbBuf, 0, sizeof(Dtn2DB));
 		dtn2dbBuf.plans = sdr_list_create(sdr);
+		sdr_list_user_data_set(sdr, dtn2dbBuf.plans, getUTCTime());
 		sdr_write(sdr, dtn2dbObject, (char *) &dtn2dbBuf,
-				sizeof(DtnDB));
+				sizeof(Dtn2DB));
 		sdr_catlg(sdr, DTN_DBNAME, 0, dtn2dbObject);
 		if (sdr_end_xn(sdr))
 		{
@@ -116,12 +117,12 @@ int	dtn2Init()
 	return 0;
 }
 
-Object	getDtnDbObject()
+Object	getDtn2DbObject()
 {
 	return _dtn2dbObject(NULL);
 }
 
-DtnDB	*getDtnConstants()
+Dtn2DB	*getDtn2Constants()
 {
 	return _dtn2Constants();
 }
@@ -375,6 +376,7 @@ void	dtn2_findPlan(char *nodeNm, Object *planAddr, Object *eltp)
 int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 {
 	Sdr		sdr = getIonsdr();
+	Dtn2DB		*dtn2db = _dtn2Constants();
 	char		nodeName[SDRSTRING_BUFSZ];
 	Object		nextPlan;
 	Dtn2Plan	plan;
@@ -390,7 +392,7 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 	if (locatePlan(nodeName, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate plan", nodeNm);
+		writeMemoNote("[?] Duplicate dtn2 plan", nodeNm);
 		return 0;
 	}
 
@@ -409,11 +411,11 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 		}
 		else
 		{
-			oK(sdr_list_insert_last(sdr,
-					(_dtn2Constants())->plans, planObj));
+			oK(sdr_list_insert_last(sdr, dtn2db->plans, planObj));
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(Dtn2Plan));
+		sdr_list_user_data_set(sdr, dtn2db->plans, getUTCTime());
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -428,6 +430,7 @@ int	dtn2_addPlan(char *nodeNm, FwdDirective *defaultDir)
 int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 {
 	Sdr		sdr = getIonsdr();
+	Dtn2DB		*dtn2db = _dtn2Constants();
 	char		nodeName[SDRSTRING_BUFSZ];
 	Object		elt;
 	Object		planObj;
@@ -444,7 +447,7 @@ int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] No plan defined for this node", nodeNm);
+		writeMemoNote("[?] Unknown dtn2 plan", nodeNm);
 		return 0;
 	}
 
@@ -456,6 +459,7 @@ int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 	memcpy((char *) &plan.defaultDirective, (char *) defaultDir,
 			sizeof(FwdDirective));
 	sdr_write(sdr, planObj, (char *) &plan, sizeof(Dtn2Plan));
+	sdr_list_user_data_set(sdr, dtn2db->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update plan.", nodeNm);
@@ -468,10 +472,14 @@ int	dtn2_updatePlan(char *nodeNm, FwdDirective *defaultDir)
 int	dtn2_removePlan(char *nodeNm)
 {
 	Sdr	sdr = getIonsdr();
+	Dtn2DB	*dtn2db = _dtn2Constants();
 	char	nodeName[SDRSTRING_BUFSZ];
 	Object	elt;
 	Object	planObj;
 		OBJ_POINTER(Dtn2Plan, plan);
+	Object	elt2;
+	Object	ruleObj;
+		OBJ_POINTER(Dtn2Rule, rule);
 
 	CHKERR(nodeNm);
 	if (filterNodeName(nodeName, nodeNm) < 0)
@@ -484,17 +492,22 @@ int	dtn2_removePlan(char *nodeNm)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown plan", nodeNm);
+		writeMemoNote("[?] Unknown dtn2 plan", nodeNm);
 		return 0;
 	}
 
 	planObj = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planObj);
-	if (sdr_list_length(sdr, plan->rules) > 0)
+
+	/*	Remove all plan rules.					*/
+
+	while ((elt2 = sdr_list_first(sdr, plan->rules)) != 0)
 	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Can't remove plan; still has rules", nodeNm);
-		return 0;
+		ruleObj = sdr_list_data(sdr, elt2);
+		GET_OBJ_POINTER(sdr, Dtn2Rule, rule, ruleObj);
+		dtn2_destroyDirective(&(rule->directive));
+		sdr_free(sdr, ruleObj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	/*	Okay to remove this plan from the database.		*/
@@ -504,6 +517,7 @@ int	dtn2_removePlan(char *nodeNm)
 	sdr_list_destroy(sdr, plan->rules, NULL, NULL);
 	sdr_free(sdr, plan->nodeName);
 	sdr_free(sdr, planObj);
+	sdr_list_user_data_set(sdr, dtn2db->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove plan.", nodeNm);
@@ -603,6 +617,7 @@ void	dtn2_findRule(char *nodeNm, char *demux, Dtn2Plan *plan,
 int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 {
 	Sdr		sdr = getIonsdr();
+	Dtn2DB		*dtn2db = _dtn2Constants();
 	char		nodeName[SDRSTRING_BUFSZ];
 	Object		elt;
 			OBJ_POINTER(Dtn2Plan, plan);
@@ -658,6 +673,7 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 		}
 
 		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(Dtn2Rule));
+		sdr_list_user_data_set(sdr, dtn2db->plans, getUTCTime());
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -672,6 +688,7 @@ int	dtn2_addRule(char *nodeNm, char *demux, FwdDirective *directive)
 int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 {
 	Sdr		sdr = getIonsdr();
+	Dtn2DB		*dtn2db = _dtn2Constants();
 	char		nodeName[SDRSTRING_BUFSZ];
 	Object		elt;
 			OBJ_POINTER(Dtn2Plan, plan);
@@ -715,6 +732,7 @@ int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 	memcpy((char *) &ruleBuf.directive, (char *) directive,
 			sizeof(FwdDirective));
 	sdr_write(sdr, ruleAddr, (char *) &ruleBuf, sizeof(Dtn2Rule));
+	sdr_list_user_data_set(sdr, dtn2db->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update rule.", NULL);
@@ -727,6 +745,7 @@ int	dtn2_updateRule(char *nodeNm, char *demux, FwdDirective *directive)
 int	dtn2_removeRule(char *nodeNm, char *demux)
 {
 	Sdr	sdr = getIonsdr();
+	Dtn2DB	*dtn2db = _dtn2Constants();
 	char	nodeName[SDRSTRING_BUFSZ];
 	Object	elt;
 		OBJ_POINTER(Dtn2Plan, plan);
@@ -769,6 +788,7 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 	dtn2_destroyDirective(&(rule->directive));
 	sdr_free(sdr, ruleAddr);
 	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_list_user_data_set(sdr, dtn2db->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove rule.", NULL);
@@ -781,7 +801,7 @@ int	dtn2_removeRule(char *nodeNm, char *demux)
 void	dtn2_forgetOutduct(Object ductElt)
 {
 	Sdr	sdr = getIonsdr();
-	DtnDB	*db;
+	Dtn2DB	*db;
 	Object	planElt;
 	Object	nextPlanElt;
 	Object	planAddr;
@@ -792,7 +812,7 @@ void	dtn2_forgetOutduct(Object ductElt)
 		OBJ_POINTER(Dtn2Rule, rule);
 
 	CHKVOID(ionLocked());
-	if (dtn2Init() < 0 || (db = getDtnConstants()) == NULL)
+	if (dtn2Init() < 0 || (db = getDtn2Constants()) == NULL)
 	{
 		return;
 	}
@@ -826,4 +846,6 @@ void	dtn2_forgetOutduct(Object ductElt)
 			sdr_list_delete(sdr, planElt, NULL, NULL);
 		}
 	}
+
+	sdr_list_user_data_set(sdr, db->plans, getUTCTime());
 }

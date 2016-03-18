@@ -96,6 +96,7 @@ int	ipnInit()
 
 		memset((char *) &ipndbBuf, 0, sizeof(IpnDB));
 		ipndbBuf.plans = sdr_list_create(sdr);
+		sdr_list_user_data_set(sdr, ipndbBuf.plans, getUTCTime());
 		ipndbBuf.exits = sdr_list_create(sdr);
 		sdr_write(sdr, ipndbObject, (char *) &ipndbBuf, sizeof(IpnDB));
 		sdr_catlg(sdr, IPN_DBNAME, 0, ipndbObject);
@@ -188,6 +189,7 @@ static void	createXmitDirective(FwdDirective *directive,
 		OBJ_POINTER(Outduct, outduct);
 		OBJ_POINTER(ClProtocol, protocol);
 
+	memset((char *) directive, 0, sizeof(FwdDirective));
 	directive->action = xmit;
 	directive->outductElt = parms->outductElt;
 	outductAddr = sdr_list_data(sdr, directive->outductElt);
@@ -208,6 +210,7 @@ static void	createXmitDirective(FwdDirective *directive,
 int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 {
 	Sdr	sdr = getIonsdr();
+	IpnDB	*ipndb = _ipnConstants();
 	Object	nextPlan;
 	IpnPlan	plan;
 	Object	planObj;
@@ -217,7 +220,7 @@ int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate plan", utoa(nodeNbr));
+		writeMemoNote("[?] Duplicate ipn plan", utoa(nodeNbr));
 		return 0;
 	}
 
@@ -235,11 +238,11 @@ int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 		}
 		else
 		{
-			oK(sdr_list_insert_last(sdr,
-					(_ipnConstants())->plans, planObj));
+			oK(sdr_list_insert_last(sdr, ipndb->plans, planObj));
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));
+		sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -262,6 +265,7 @@ static void	destroyXmitDirective(FwdDirective *directive)
 int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 {
 	Sdr	sdr = getIonsdr();
+	IpnDB	*ipndb = _ipnConstants();
 	Object	elt;
 	Object	planObj;
 	IpnPlan	plan;
@@ -272,7 +276,7 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This plan is not defined.", utoa(nodeNbr));
+		writeMemoNote("[?] Unknown ipn plan", utoa(nodeNbr));
 		return 0;
 	}
 
@@ -283,6 +287,7 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	destroyXmitDirective(&(plan.defaultDirective));
 	createXmitDirective(&(plan.defaultDirective), defaultDuct);
 	sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update plan.", utoa(nodeNbr));
@@ -295,9 +300,13 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 int	ipn_removePlan(uvast nodeNbr)
 {
 	Sdr	sdr = getIonsdr();
+	IpnDB	*ipndb = _ipnConstants();
 	Object	elt;
 	Object	planObj;
 		OBJ_POINTER(IpnPlan, plan);
+	Object	elt2;
+	Object	ruleObj;
+		OBJ_POINTER(IpnRule, rule);
 
 	CHKERR(nodeNbr);
 	CHKERR(sdr_begin_xn(sdr));
@@ -305,18 +314,22 @@ int	ipn_removePlan(uvast nodeNbr)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown plan", utoa(nodeNbr));
+		writeMemoNote("[?] Unknown ipn plan", utoa(nodeNbr));
 		return 0;
 	}
 
 	planObj = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, IpnPlan, plan, planObj);
-	if (sdr_list_length(sdr, plan->rules) > 0)
+
+	/*	Remove all plan rules.					*/
+
+	while ((elt2 = sdr_list_first(sdr, plan->rules)) != 0)
 	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Can't remove plan; still has rules",
-				utoa(nodeNbr));
-		return 0;
+		ruleObj = sdr_list_data(sdr, elt2);
+		GET_OBJ_POINTER(sdr, IpnRule, rule, ruleObj);
+		destroyXmitDirective(&rule->directive);
+		sdr_free(sdr, ruleObj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	/*	Okay to remove this plan from the database.		*/
@@ -325,6 +338,7 @@ int	ipn_removePlan(uvast nodeNbr)
 	destroyXmitDirective(&(plan->defaultDirective));
 	sdr_list_destroy(sdr, plan->rules, NULL, NULL);
 	sdr_free(sdr, planObj);
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove plan.", utoa(nodeNbr));
@@ -537,6 +551,7 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 		DuctExpression *directive)
 {
 	Sdr		sdr = getIonsdr();
+	IpnDB		*ipndb = _ipnConstants();
 	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
 				IPN_ALL_OTHER_SERVICES : argServiceNbr);
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
@@ -585,6 +600,7 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 		}
 
 		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
+		sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -600,6 +616,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 		vast argNodeNbr, DuctExpression *directive)
 {
 	Sdr		sdr = getIonsdr();
+	IpnDB		*ipndb = _ipnConstants();
 	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
 				IPN_ALL_OTHER_SERVICES : argServiceNbr);
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
@@ -636,6 +653,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 	destroyXmitDirective(&ruleBuf.directive);
 	createXmitDirective(&ruleBuf.directive, directive);
 	sdr_write(sdr, ruleAddr, (char *) &ruleBuf, sizeof(IpnRule));
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update rule.", NULL);
@@ -648,6 +666,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
+	IpnDB		*ipndb = _ipnConstants();
 	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
 				IPN_ALL_OTHER_SERVICES : argServiceNbr);
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
@@ -684,6 +703,7 @@ int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 	destroyXmitDirective(&rule->directive);
 	sdr_free(sdr, ruleAddr);
 	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove rule.", NULL);
@@ -1316,5 +1336,7 @@ void	ipn_forgetOutduct(Object ductElt)
 		}
 	}
 
-	/*	Note: Ipn group directives never reference outducts.	*/
+	sdr_list_user_data_set(sdr, db->plans, getUTCTime());
+
+	/*	Note: Ipn exit directives never reference outducts.	*/
 }

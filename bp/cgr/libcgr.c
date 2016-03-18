@@ -1352,8 +1352,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	/*	Now determine whether or not the bundle could be sent
 	 *	to this neighbor via the outduct for this directive
 	 *	in time to follow the route that is being considered.
-	 *	There are three criteria.  First, is the duct blocked
-	 *	(e.g., no TCP connection)?				*/
+	 *	There are three criteria.  First, is the outduct
+	 *	blocked (e.g., no TCP connection or temporarily shut
+	 *	off by operations)?					*/
 
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			directive.outductElt), sizeof(Outduct));
@@ -1606,7 +1607,6 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 
 		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
 		contact = (IonCXref *) psp(ionwm, addr);
-printf("Contact confidence %f.\n", contact->confidence);
 		if (contact->confidence != 1.0)
 		{
 			continue;	/*	Not currently usable.	*/
@@ -2020,6 +2020,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	LystElt		elt;
 	LystElt		nextElt;
 	ProximateNode	*proxNode;
+	PsmAddress	routes;
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -2069,32 +2070,38 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(proximateNodes);
-	if (bundle->dlvConfidence > 0.0
-	&& bundle->dlvConfidence < MIN_NET_DELIVERY_CONFIDENCE)
+	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
+	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
 	{
-		/*	Must keep on trying to send this bundle.	*/
+		return 0;	/*	Potential future fwd unneeded.	*/
+	}
 
-		if (bundle->ductXmitElt)
+	routes = terminusNode->routingObject;
+	if (routes == 0 || sm_list_length(getIonwm(), routes) == 0)
+	{
+		return 0;	/*	No potential future forwarding.	*/
+	}
+
+	/*	Must put bundle in limbo, keep on trying to send it.	*/
+
+	if (bundle->ductXmitElt)
+	{
+		/*	This copy of bundle has already been enqueued.	*/
+
+		if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0) < 0)
 		{
-			/*	This copy of bundle has already
-			 *	been enqueued.				*/
-
-			if (bpClone(bundle, &newBundle, &newBundleObj,
-					0, 0) < 0)
-			{
-				putErrmsg("Can't clone bundle.", NULL);
-				return -1;
-			}
-
-			bundle = &newBundle;
-			bundleObj = newBundleObj;
-		}
-
-		if (enqueueToLimbo(bundle, bundleObj) < 0)
-		{
-			putErrmsg("Can't put bundle in limbo.", NULL);
+			putErrmsg("Can't clone bundle.", NULL);
 			return -1;
 		}
+
+		bundle = &newBundle;
+		bundleObj = newBundleObj;
+	}
+
+	if (enqueueToLimbo(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't put bundle in limbo.", NULL);
+		return -1;
 	}
 
 	return 0;
@@ -2118,6 +2125,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	LystElt		elt;
 	LystElt		nextElt;
 	ProximateNode	*proxNode;
+	PsmAddress	routes;
 	Bundle		newBundle;
 	Object		newBundleObj;
 	ProximateNode	*selectedNeighbor;
@@ -2373,36 +2381,38 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		TRACE(CgrNoProximateNode);
 	}
 
-	if (bundle->dlvConfidence < MIN_NET_DELIVERY_CONFIDENCE
-	&& bundle->id.source.c.nodeNbr != bundle->destination.c.nodeNbr)
+	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
+	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
 	{
-		/*	Must keep on trying to send this bundle.	*/
+		return 0;	/*	Potential future fwd unneeded.	*/
+	}
 
-		/*	Note: need a way to force abandonment of
-		 *	bundles that genuinely are currently non-
-		 *	forwardable.					*/
+	routes = terminusNode->routingObject;
+	if (routes == 0 || sm_list_length(getIonwm(), routes) == 0)
+	{
+		return 0;	/*	No potential future forwarding.	*/
+	}
 
-		if (bundle->ductXmitElt)
+	/*	Must put bundle in limbo, keep on trying to send it.	*/
+
+	if (bundle->ductXmitElt)
+	{
+		/*	This copy of bundle has already been enqueued.	*/
+
+		if (bpClone(bundle, &newBundle, &newBundleObj, 0, 0) < 0)
 		{
-			/*	This copy of bundle has already
-			 *	been enqueued.				*/
-
-			if (bpClone(bundle, &newBundle, &newBundleObj,
-					0, 0) < 0)
-			{
-				putErrmsg("Can't clone bundle.", NULL);
-				return -1;
-			}
-
-			bundle = &newBundle;
-			bundleObj = newBundleObj;
-		}
-
-		if (enqueueToLimbo(bundle, bundleObj) < 0)
-		{
-			putErrmsg("Can't put bundle in limbo.", NULL);
+			putErrmsg("Can't clone bundle.", NULL);
 			return -1;
 		}
+
+		bundle = &newBundle;
+		bundleObj = newBundleObj;
+	}
+
+	if (enqueueToLimbo(bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't put bundle in limbo.", NULL);
+		return -1;
 	}
 
 	return 0;

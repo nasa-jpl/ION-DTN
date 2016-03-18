@@ -72,13 +72,13 @@ typedef struct
 static void	*sendKeepalives(void *parm)
 {
 	KeepaliveThreadParms	*parms = (KeepaliveThreadParms *) parm;
-	int			count = KEEPALIVE_PERIOD;
+	int			count = STCP_KEEPALIVE_PERIOD;
 	int			bytesSent;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	while (*(parms->running))
 	{
-		if (count < KEEPALIVE_PERIOD)
+		if (count < STCP_KEEPALIVE_PERIOD)
 		{
 			count++;
 			snooze(1);
@@ -88,7 +88,7 @@ static void	*sendKeepalives(void *parm)
 		/*	Time to send a keepalive.			*/
 
 		pthread_mutex_lock(parms->mutex);
-		bytesSent = sendBundleByTCP(parms->protocolName,
+		bytesSent = sendBundleByStcp(parms->protocolName,
 				parms->ductName, parms->ductSocket, 0, 0, NULL);
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent <= 0)
@@ -146,7 +146,7 @@ static void	*receiveBundles(void *parm)
 		return NULL;
 	}
 
-	buffer = MTAKE(TCPCLA_BUFSZ);
+	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("brsccla can't get TCP buffer.", NULL);
@@ -165,7 +165,7 @@ static void	*receiveBundles(void *parm)
 			continue;
 		}
 
-		switch (receiveBundleByTcp(*(parms->ductSocket), work, buffer,
+		switch (receiveBundleByStcp(parms->ductSocket, work, buffer,
 				&attendant))
 		{
 		case -1:
@@ -226,7 +226,7 @@ int	main(int argc, char *argv[])
 	char			key[DIGEST_LEN];
 	int			keyBufLen = sizeof key;
 	int			keyLen;
-	unsigned char		*buffer;
+	char			*buffer;
 	Sdr			sdr;
 	VInduct			*vinduct;
 	PsmAddress		vductElt;
@@ -286,7 +286,7 @@ number>");
 		return 1;
 	}
 
-	buffer = MTAKE(TCPCLA_BUFSZ);
+	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for TCP buffer in brsccla.", NULL);
@@ -342,7 +342,7 @@ number>");
 	 *	server rejects the signature, it simply closes the
 	 *	connection so that next operation on this socket fails.	*/
 
-	if (openOutductSocket(protocol.name, ductName, &ductSocket) < 0
+	if (openStcpOutductSocket(protocol.name, ductName, &ductSocket) < 0
 	|| ductSocket < 0)
 	{
 		putErrmsg("Can't connect to server.", ductName);
@@ -355,9 +355,9 @@ number>");
 	memcpy(registration, (char *) &timeTag, 4);
 	oK(hmac_authenticate(registration + 4, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
-	if (sendBytesByTCP(&ductSocket, (char *) ductSdnv.text, ductSdnv.length)
+	if (itcp_send(&ductSocket, (char *) ductSdnv.text, ductSdnv.length)
 			< ductSdnv.length
-	|| sendBytesByTCP(&ductSocket, registration, REGISTRATION_LEN)
+	|| itcp_send(&ductSocket, registration, REGISTRATION_LEN)
 			< REGISTRATION_LEN)
 	{
 		putErrmsg("Can't register with server.", itoa(ductSocket));
@@ -374,7 +374,7 @@ number>");
 	timeTag = htonl(timeTag);
 	oK(hmac_authenticate(expectedCountersign, DIGEST_LEN, key, keyLen,
 			(char *) &timeTag, 4));
-	switch (receiveBytesByTCP(ductSocket, receivedCountersign, DIGEST_LEN))
+	switch (itcp_recv(&ductSocket, receivedCountersign, DIGEST_LEN))
 	{
 		case DIGEST_LEN:
 			break;			/*	Out of switch.	*/
@@ -407,7 +407,7 @@ number>");
 	oK(brscclaSemaphore(&(voutduct->semaphore)));
 	isignal(SIGTERM, interruptThread);
 #ifndef mingw
-	isignal(SIGPIPE, handleConnectionLoss);
+	isignal(SIGPIPE, itcp_handleConnectionLoss);
 #endif
 
 	/*	Start the receiver thread.				*/
@@ -450,12 +450,14 @@ number>");
 		if (bpDequeue(voutduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, 0, -1) < 0)
 		{
-			sm_SemEnd(brscclaSemaphore(NULL));/*	Stop.	*/
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)		/*	Interrupted.	*/
+		if (bundleZco == 0)		/*	Outduct closed.	*/
 		{
+			writeMemo("[i] brsccla outduct closed.");
+			sm_SemEnd(brscclaSemaphore(NULL));/*	Stop.	*/
 			continue;
 		}
 
@@ -463,7 +465,7 @@ number>");
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
 		pthread_mutex_lock(&mutex);
-		bytesSent = sendBundleByTCP(protocol.name, ductName,
+		bytesSent = sendBundleByStcp(protocol.name, ductName,
 				&ductSocket, bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
 		if (bytesSent <= 0)
@@ -498,7 +500,7 @@ number>");
 	}
 
 	pthread_join(keepaliveThread, NULL);
-	closeOutductSocket(&ductSocket);
+	closeStcpOutductSocket(&ductSocket);
 	pthread_mutex_destroy(&mutex);
 	writeErrmsgMemos();
 	writeMemo("[i] brsccla duct has ended.");

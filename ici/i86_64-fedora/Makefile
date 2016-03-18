@@ -5,6 +5,7 @@ UTILS = ../utils
 DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
+BULK = ../bulk/STUB_BULK
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
@@ -26,6 +27,7 @@ LIBICIOBJS = \
 	rfx.o \
 	ionsec.o \
 	crypto.o \
+	bulk.o \
 	zco.o \
 	sdrxn.o \
 	sdrmgt.o \
@@ -49,6 +51,7 @@ PUBINCLS = \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
+	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
 	$(INCL)/sdrmgt.h \
@@ -174,6 +177,9 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(CC) -c $<
 
 %.o:		$(CRYPTO)/%.c
+		$(CC) -c $<
+
+%.o:		$(BULK)/%.c
 		$(CC) -c $<
 
 %.o:		$(UTILS)/%.c

@@ -46,6 +46,6 @@ a induct tcp 127.0.0.1:4556 tcpcli
 # Add an outduct. (send to yourself)
 #	Add an outduct to send bundles using the tcp protocol.
 #	The outduct itself is implemented by the 'tcpclo' command.
-a outduct tcp 127.0.0.1:4556 tcpclo
+a outduct tcp 127.0.0.1:4556 ''
 w 1
 s

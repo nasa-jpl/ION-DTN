@@ -250,6 +250,7 @@ int	main(int argc, char *argv[])
 	Bundle			bundle;
 	int			priority;
 	vast			fileSpaceNeeded;
+	vast			bulkSpaceNeeded;
 	vast			heapSpaceNeeded;
 	Object			currentElt;
 	vast			currentFileSpaceNeeded;
@@ -319,7 +320,7 @@ int	main(int argc, char *argv[])
 		priority = COS_FLAGS(bundle.bundleProcFlags) & 0x03;
 		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
 				bundle.payload.length, &fileSpaceNeeded,
-				&heapSpaceNeeded);
+				&bulkSpaceNeeded, &heapSpaceNeeded);
 		sdr_exit_xn(sdr);		/*	Unlock.		*/
 
 		/*	Remember this candidate bundle.			*/
@@ -331,7 +332,7 @@ int	main(int argc, char *argv[])
 		/*	Reserve space for new ZCO.			*/
 
 		if (ionRequestZcoSpace(ZcoOutbound, fileSpaceNeeded,
-				heapSpaceNeeded, priority,
+				bulkSpaceNeeded, heapSpaceNeeded, priority,
 				bundle.extendedCOS.ordinal,
 				&attendant, &ticket) < 0)
 		{
@@ -383,7 +384,7 @@ int	main(int argc, char *argv[])
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
 				bundle.payload.length, &fileSpaceNeeded,
-				&heapSpaceNeeded);
+				&bulkSpaceNeeded, &heapSpaceNeeded);
 		if (fileSpaceNeeded != currentFileSpaceNeeded
 		|| heapSpaceNeeded != currentHeapSpaceNeeded)
 		{
