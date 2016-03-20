@@ -968,7 +968,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	Sdr			sdr = getIonsdr();
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
-	char			ownEid[MAX_EID_LEN];
 	unsigned char		header[8];
 	unsigned short		keepaliveInterval;
 	uvast			eidLength;
@@ -980,8 +979,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	PsmAddress		vductElt;
 	SenderThreadParms	*stp;
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	if (itcp_recv(&connection->sock, (char *) header, sizeof header) < 1)
 	{
 		putErrmsg("Can't get TCPCL contact header.", neighbor->eid);
@@ -1033,6 +1030,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	{
 		connection->secUntilKeepalive = connection->keepaliveInterval;
 	}
+
+	/*	Next is the neighboring node's ID, an endpoint ID.	*/
 
 	if (receiveSdnv(connection, &eidLength) < 1)
 	{
@@ -1147,6 +1146,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 	connection->outduct = outduct;
 	sm_SemUnend(connection->outduct->semaphore);
+	sm_SemGive(connection->outduct->semaphore);
 	stp = (SenderThreadParms *) MTAKE(sizeof(SenderThreadParms));
 	if (stp == NULL)
 	{
@@ -1270,7 +1270,14 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		connection->lengthReceived = 0;
 	}
 
-	connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+	if (connection->secUntilShutdown != -1)
+	{
+		/*	Will end the connection when incoming bundles
+		 *	stop, but they are still arriving.		*/
+
+		connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+	}
+
 	connection->secSinceReception = 0;
 	connection->timeoutCount = 0;
 	return 1;
@@ -1613,7 +1620,11 @@ static void	*handleContacts(void *parm)
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
+	char			ownEid[MAX_EID_LEN];
 	int			result;
+
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
 
 	/*	Wait for okay from beginConnection.			*/
 
@@ -1720,7 +1731,16 @@ static void	*handleContacts(void *parm)
 		/*	Contact episode has begun.			*/
 
 		connection->lengthReceived = 0;
-		connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+		if (connection->destDuctName == NULL
+		&& strcmp(neighbor->eid, ownEid) != 0)
+		{
+			/*	From accept(), and not loopback, so
+			 *	end the connection when the incoming
+			 *	bundles end.				*/
+
+			connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+		}
+
 		connection->secSinceReception = 0;
 		connection->timeoutCount = 0;
 		if (handleMessages(rtp) < 0)
@@ -2228,7 +2248,6 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 
 static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 {
-	char		ownEid[MAX_EID_LEN];
 	LystElt		elt;
 	TcpclNeighbor	*neighbor;
 	TcpclConnection	*connection;
@@ -2239,8 +2258,6 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 	/*	First look for newly added ipnfw plans or rules and
 	 *	try to create connections for them.			*/
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	if (ipndb)
 	{
 		if (rescanIpn(ctp, ipndb) < 0)

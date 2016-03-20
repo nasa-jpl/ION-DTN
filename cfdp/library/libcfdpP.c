@@ -752,6 +752,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	else
 	{
 		sm_SemUnend(cfdpvdb->eventSemaphore);
+		sm_SemGive(cfdpvdb->eventSemaphore);
 	}
 
 	sm_SemTake(cfdpvdb->eventSemaphore);		/*	Lock.	*/
@@ -762,6 +763,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	else
 	{
 		sm_SemUnend(cfdpvdb->fduSemaphore);
+		sm_SemGive(cfdpvdb->fduSemaphore);
 	}
 
 	sm_SemTake(cfdpvdb->fduSemaphore);		/*	Lock.	*/

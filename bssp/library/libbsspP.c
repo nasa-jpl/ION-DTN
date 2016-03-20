@@ -90,6 +90,7 @@ static void	resetClient(BsspVclient *client)
 	else
 	{
 		sm_SemUnend(client->semaphore);
+		sm_SemGive(client->semaphore);
 	}
 
 	sm_SemTake(client->semaphore);			/*	Lock.	*/
@@ -111,6 +112,7 @@ static void	resetSpan(BsspVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->bufOpenSemaphore);
+		sm_SemGive(vspan->bufOpenSemaphore);
 	}
 
 	sm_SemTake(vspan->bufOpenSemaphore);		/*	Lock.	*/
@@ -121,6 +123,7 @@ static void	resetSpan(BsspVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->beSemaphore);
+		sm_SemGive(vspan->beSemaphore);
 	}
 
 	sm_SemTake(vspan->beSemaphore);		/*	Lock.	*/
@@ -131,6 +134,7 @@ static void	resetSpan(BsspVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->rlSemaphore);
+		sm_SemGive(vspan->rlSemaphore);
 	}
 
 	sm_SemTake(vspan->rlSemaphore);		/*	Lock.	*/
