@@ -208,14 +208,14 @@ void	releaseToIonMemory(const char *fileName, int lineNbr, void *block)
 #endif
 }
 
-void	*ionMemAtoP(unsigned long address)
+void	*ionMemAtoP(uaddr address)
 {
 	return (void *) psp(_ionwm(NULL), address);
 }
 
-unsigned long ionMemPtoA(void *pointer)
+uaddr	ionMemPtoA(void *pointer)
 {
-	return (unsigned long) psa(_ionwm(NULL), pointer);
+	return (uaddr) psa(_ionwm(NULL), pointer);
 }
 
 static IonVdb	*_ionvdb(char **name)

@@ -270,14 +270,14 @@ void	releaseToSdrMemory(const char *fileName, int lineNbr, void *block)
 	Psm_free(fileName, lineNbr, sdrwm, psa(sdrwm, (char *) block));
 }
 
-void	*sdrMemAtoP(unsigned long address)
+void	*sdrMemAtoP(uaddr address)
 {
 	return (void *) psp(_sdrwm(NULL), address);
 }
 
-unsigned long sdrMemPtoA(void *pointer)
+uaddr sdrMemPtoA(void *pointer)
 {
-	return (unsigned long) psa(_sdrwm(NULL), pointer);
+	return (uaddr) psa(_sdrwm(NULL), pointer);
 }
 
 static PsmPartition	_sdrwm(sm_WmParms *parms)

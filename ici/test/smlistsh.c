@@ -119,7 +119,8 @@ int	main(int argc, char **argv)
 
 				smlistsh_list =
 					sm_list_create(smlistsh_partition);
-				printf("List is at %ld.\n", smlistsh_list);
+				printf("List is at " ADDR_FIELDSPEC ".\n",
+					smlistsh_list);
 				continue;
 
 			case 'w':
@@ -139,10 +140,8 @@ int	main(int argc, char **argv)
 					smlistsh_list); elt; elt =
 					sm_list_next(smlistsh_partition, elt))
 				{
-					printf("element at %ld contains %ld.\n",
-						elt,
-						sm_list_data(smlistsh_partition,
-						elt));
+					printf("element at " ADDR_FIELDSPEC \
+" contains " ADDR_FIELDSPEC ".\n", elt, sm_list_data(smlistsh_partition, elt));
 				}
 
 				continue;
@@ -224,8 +223,8 @@ int	main(int argc, char **argv)
 				elt = sm_list_search(smlistsh_partition,
 					sm_list_first(smlistsh_partition,
 					smlistsh_list), NULL, (void *) datum);
-				printf("value %ld is in element at %ld.\n",
-						arg1, elt);
+				printf("value %ld is in element at " \
+ADDR_FIELDSPEC ".\n", arg1, elt);
 
 			case 'd':
 				if (smlistsh_list == 0)

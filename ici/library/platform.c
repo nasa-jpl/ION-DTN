@@ -2910,11 +2910,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 		case 'p':
 			vpval = va_arg(args, void *);
 			uaddrval = (uaddr) vpval;
-#if (SPACE_ORDER > 2 && defined(mingw))
-			sprintf(scratchpad, "%#I64x", uaddrval);
-#else				/*	Pointer same size as long.	*/
-			sprintf(scratchpad, "%#lx", uaddrval);
-#endif
+			sprintf(scratchpad, ADDR_FIELDSPEC, uaddrval);
 			break;
 
 		default:		/*	Bad conversion char.	*/

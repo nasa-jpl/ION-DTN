@@ -99,9 +99,11 @@ typedef long			saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define	ADDR_FIELDSPEC		"%#lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
@@ -110,13 +112,16 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #if (defined(mingw) || defined(ION4WIN))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
+#define	ADDR_FIELDSPEC		"%#lx"
 #else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
+#define	ADDR_FIELDSPEC		"%#lx"
 #endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #else			/*	64-bit machines.			*/
 #if (defined(mingw) || defined(ION4WIN))
 typedef long long		vast;
@@ -125,9 +130,11 @@ typedef long long		saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
+#define	ADDR_FIELDSPEC		"%#I64x"
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #define	strtoaddr(x)		strtoull(x, NULL, 0)
+#define LARGE1			1ULL
 #else				/*	Not Windows.			*/
 typedef long			vast;
 typedef unsigned long		uvast;
@@ -135,9 +142,11 @@ typedef long			saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define	ADDR_FIELDSPEC		"%#lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #endif				/*	end #ifdef mingw || ION4WIN	*/
 #endif	/*	!LONG_LONG_OKAY						*/
 

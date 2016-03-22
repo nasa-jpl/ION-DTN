@@ -88,7 +88,9 @@ static int	_amsdRunning(int *state)
 		else			/*	Starting.		*/
 		{
 			running = 1;
+#ifndef mingw
 			amsdThread = pthread_self();
+#endif
 		}
 	}
 
