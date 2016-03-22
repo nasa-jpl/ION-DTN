@@ -309,8 +309,8 @@ typedef struct
 
 extern void		*allocFromIonMemory(const char *, int, size_t);
 extern void		releaseToIonMemory(const char *, int, void *);
-extern void		*ionMemAtoP(unsigned long);
-extern unsigned long	ionMemPtoA(void *);
+extern void		*ionMemAtoP(uaddr);
+extern uaddr		ionMemPtoA(void *);
 
 extern int		ionInitialize(	IonParms *parms,
 					uvast ownNodeNbr);
