@@ -49,8 +49,8 @@
 #define MRELEASE(addr)	releaseToSdrMemory(__FILE__, __LINE__, addr)
 extern void		*allocFromSdrMemory(const char *, int, size_t);
 extern void		releaseToSdrMemory(const char *, int, void *);
-extern void		*sdrMemAtoP(unsigned long);
-extern unsigned long	sdrMemPtoA(void *);
+extern void		*sdrMemAtoP(uaddr);
+extern uaddr		sdrMemPtoA(void *);
 
 /*	SdrControlHeader is the object in the root of the SDR working
  *	memory (a shared memory partition) that enables multiple

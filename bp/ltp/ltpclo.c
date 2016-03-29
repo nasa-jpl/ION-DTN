@@ -163,7 +163,7 @@ int	main(int argc, char *argv[])
 
 		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
-			writeMemo("[] ltpclo outduct closed.");
+			writeMemo("[i] ltpclo outduct closed.");
 			running = 0;	/*	Terminate CLO.		*/
 			continue;
 		}

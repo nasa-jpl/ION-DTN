@@ -1315,24 +1315,42 @@ time_t	readTimestampUTC(char *timestampBuffer, time_t referenceTime)
 
 void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 {
-	struct tm	ts;
+#if defined (mingw)
+	struct tm	*ts;
+#else
+	struct tm	tsbuf;
+	struct tm	*ts = &tsbuf;
+#endif
 
 	CHKVOID(timestampBuffer);
-	oK(localtime_r(&timestamp, &ts));
+#if defined (mingw)
+	ts = localtime(&timestamp);
+#else
+	oK(localtime_r(&timestamp, &tsbuf));
+#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
-			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
-			ts.tm_hour, ts.tm_min, ts.tm_sec);
+			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
+			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
 void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
-	struct tm	ts;
+#if defined (mingw)
+	struct tm	*ts;
+#else
+	struct tm	tsbuf;
+	struct tm	*ts = &tsbuf;
+#endif
 
 	CHKVOID(timestampBuffer);
-	oK(gmtime_r(&timestamp, &ts));
+#if defined (mingw)
+	ts = gmtime(&timestamp);
+#else
+	oK(gmtime_r(&timestamp, &tsbuf));
+#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
-			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
-			ts.tm_hour, ts.tm_min, ts.tm_sec);
+			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
+			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
 /*	*	*	Parsing 	*	*	*	*	*/
