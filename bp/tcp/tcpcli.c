@@ -126,6 +126,7 @@ typedef struct
 {
 	int			sock;
 	pthread_mutex_t		mutex;
+	int			hasMutex;	/*	Boolean.	*/
 	pthread_t		receiver;
 	int			hasReceiver;	/*	Boolean.	*/
 	vast			lengthReceived;	/*	Current in.	*/
@@ -151,6 +152,7 @@ typedef struct
 	Lyst			pipeline;	/*	All outbound.	*/
 	struct llcv_str		throttleLlcv;
 	Llcv			throttle;	/*	On pipeline.	*/
+	int			hasThrottle;	/*	Boolean.	*/
 	uvast			lengthSent;	/*	Oldest out.	*/
 	uvast			lengthAcked;	/*	Oldest out.	*/
 	int			reconnectInterval;
@@ -315,7 +317,6 @@ static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 		connection->neighbor = neighbor;
 		connection->secUntilShutdown = -1;
 		connection->secUntilKeepalive = -1;
-		pthread_mutex_init(&(connection->mutex), NULL);
 	}
 
 	elt = lyst_insert_last(neighbors, (void *) neighbor);
@@ -368,12 +369,12 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 	ReceiverThreadParms	*rtp;
 
 	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
-	if (destDuctName == NULL)	/*	Connection by accept().	*/
+	if (destDuctName == NULL)	/*	accept() succeeded.	*/
 	{
 		connection = neighbor->cc;
 		newNeighbor = 1;
 	}
-	else				/*	Connect() succeeded.	*/
+	else				/*	connect() succeeded.	*/
 	{
 		connection = neighbor->pc;
 
@@ -406,12 +407,15 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 
 	rtp->neighbors = neighbors;
 	rtp->connection = connection;
+	pthread_mutex_init(&(connection->mutex), NULL);
+	connection->hasMutex = 1;
 	pthread_mutex_lock(&(connection->mutex));
 	if (pthread_begin(&(connection->receiver), NULL, handleContacts, rtp))
 	{
 		MRELEASE(rtp);
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -447,6 +451,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -467,6 +472,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -478,16 +484,19 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		return -1;
 	}
 
+	connection->hasThrottle = 1;
 	len = istrlen(destDuctName, MAX_CL_DUCT_NAME_LEN + 1) + 1;
 	if (len == 0 || (connection->destDuctName = MTAKE(len)) == NULL)
 	{
 		llcv_close(connection->throttle);
+		connection->hasThrottle = 0;
 		lyst_destroy(connection->pipeline);
 		connection->shutDown = 1;
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -658,10 +667,20 @@ static void	eraseConnection(TcpclConnection *connection)
 	{
 		lyst_destroy(connection->pipeline);
 		connection->pipeline = NULL;
-		llcv_close(connection->throttle);
 	}
 
-	pthread_mutex_destroy(&(connection->mutex));
+	if (connection->hasThrottle)
+	{
+		llcv_close(connection->throttle);
+		connection->hasThrottle = 0;
+	}
+
+	if (connection->hasMutex)
+	{
+		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
+	}
+
 	if (connection->destDuctName)
 	{
 		MRELEASE(connection->destDuctName);
@@ -1098,6 +1117,9 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 				connection->sock = -1;
 				connection->hasReceiver = 0;
+				connection->hasMutex = 0;
+				connection->hasSender = 0;
+				connection->hasThrottle = 0;
 			}
 
 			/*	In any case, tentative neighbor is
