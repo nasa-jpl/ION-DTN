@@ -710,6 +710,7 @@ static void	resetScheme(VScheme *vscheme)
 	else
 	{
 		sm_SemUnend(vscheme->semaphore);
+		sm_SemGive(vscheme->semaphore);
 	}
 
 	sm_SemTake(vscheme->semaphore);			/*	Lock.	*/
@@ -1058,6 +1059,7 @@ static void	resetOutduct(VOutduct *vduct)
 	else
 	{
 		sm_SemUnend(vduct->semaphore);
+		sm_SemGive(vduct->semaphore);
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/

@@ -126,6 +126,7 @@ typedef struct
 {
 	int			sock;
 	pthread_mutex_t		mutex;
+	int			hasMutex;	/*	Boolean.	*/
 	pthread_t		receiver;
 	int			hasReceiver;	/*	Boolean.	*/
 	vast			lengthReceived;	/*	Current in.	*/
@@ -151,6 +152,7 @@ typedef struct
 	Lyst			pipeline;	/*	All outbound.	*/
 	struct llcv_str		throttleLlcv;
 	Llcv			throttle;	/*	On pipeline.	*/
+	int			hasThrottle;	/*	Boolean.	*/
 	uvast			lengthSent;	/*	Oldest out.	*/
 	uvast			lengthAcked;	/*	Oldest out.	*/
 	int			reconnectInterval;
@@ -316,7 +318,6 @@ static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 		connection->neighbor = neighbor;
 		connection->secUntilShutdown = -1;
 		connection->secUntilKeepalive = -1;
-		pthread_mutex_init(&(connection->mutex), NULL);
 	}
 
 	elt = lyst_insert_last(neighbors, (void *) neighbor);
@@ -369,12 +370,12 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 	ReceiverThreadParms	*rtp;
 
 	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
-	if (destDuctName == NULL)	/*	Connection by accept().	*/
+	if (destDuctName == NULL)	/*	accept() succeeded.	*/
 	{
 		connection = neighbor->cc;
 		newNeighbor = 1;
 	}
-	else				/*	Connect() succeeded.	*/
+	else				/*	connect() succeeded.	*/
 	{
 		connection = neighbor->pc;
 
@@ -407,12 +408,15 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 
 	rtp->neighbors = neighbors;
 	rtp->connection = connection;
+	pthread_mutex_init(&(connection->mutex), NULL);
+	connection->hasMutex = 1;
 	pthread_mutex_lock(&(connection->mutex));
 	if (pthread_begin(&(connection->receiver), NULL, handleContacts, rtp))
 	{
 		MRELEASE(rtp);
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -448,6 +452,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -468,6 +473,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -479,16 +485,19 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		return -1;
 	}
 
+	connection->hasThrottle = 1;
 	len = istrlen(destDuctName, MAX_CL_DUCT_NAME_LEN + 1) + 1;
 	if (len == 0 || (connection->destDuctName = MTAKE(len)) == NULL)
 	{
 		llcv_close(connection->throttle);
+		connection->hasThrottle = 0;
 		lyst_destroy(connection->pipeline);
 		connection->shutDown = 1;
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -659,10 +668,20 @@ static void	eraseConnection(TcpclConnection *connection)
 	{
 		lyst_destroy(connection->pipeline);
 		connection->pipeline = NULL;
-		llcv_close(connection->throttle);
 	}
 
-	pthread_mutex_destroy(&(connection->mutex));
+	if (connection->hasThrottle)
+	{
+		llcv_close(connection->throttle);
+		connection->hasThrottle = 0;
+	}
+
+	if (connection->hasMutex)
+	{
+		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
+	}
+
 	if (connection->destDuctName)
 	{
 		MRELEASE(connection->destDuctName);
@@ -969,7 +988,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	Sdr			sdr = getIonsdr();
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
-	char			ownEid[MAX_EID_LEN];
 	unsigned char		header[8];
 	unsigned short		keepaliveInterval;
 	uvast			eidLength;
@@ -981,8 +999,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	PsmAddress		vductElt;
 	SenderThreadParms	*stp;
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	if (itcp_recv(&connection->sock, (char *) header, sizeof header) < 1)
 	{
 		putErrmsg("Can't get TCPCL contact header.", neighbor->eid);
@@ -1034,6 +1050,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	{
 		connection->secUntilKeepalive = connection->keepaliveInterval;
 	}
+
+	/*	Next is the neighboring node's ID, an endpoint ID.	*/
 
 	if (receiveSdnv(connection, &eidLength) < 1)
 	{
@@ -1100,6 +1118,9 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 				connection->sock = -1;
 				connection->hasReceiver = 0;
+				connection->hasMutex = 0;
+				connection->hasSender = 0;
+				connection->hasThrottle = 0;
 			}
 
 			/*	In any case, tentative neighbor is
@@ -1148,6 +1169,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 	connection->outduct = outduct;
 	sm_SemUnend(connection->outduct->semaphore);
+	sm_SemGive(connection->outduct->semaphore);
 	stp = (SenderThreadParms *) MTAKE(sizeof(SenderThreadParms));
 	if (stp == NULL)
 	{
@@ -1271,7 +1293,14 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		connection->lengthReceived = 0;
 	}
 
-	connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+	if (connection->secUntilShutdown != -1)
+	{
+		/*	Will end the connection when incoming bundles
+		 *	stop, but they are still arriving.		*/
+
+		connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+	}
+
 	connection->secSinceReception = 0;
 	connection->timeoutCount = 0;
 	return 1;
@@ -1614,7 +1643,11 @@ static void	*handleContacts(void *parm)
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
+	char			ownEid[MAX_EID_LEN];
 	int			result;
+
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
 
 	/*	Wait for okay from beginConnection.			*/
 
@@ -1721,7 +1754,16 @@ static void	*handleContacts(void *parm)
 		/*	Contact episode has begun.			*/
 
 		connection->lengthReceived = 0;
-		connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+		if (connection->destDuctName == NULL
+		&& strcmp(neighbor->eid, ownEid) != 0)
+		{
+			/*	From accept(), and not loopback, so
+			 *	end the connection when the incoming
+			 *	bundles end.				*/
+
+			connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+		}
+
 		connection->secSinceReception = 0;
 		connection->timeoutCount = 0;
 		if (handleMessages(rtp) < 0)
@@ -2229,7 +2271,6 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 
 static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 {
-	char		ownEid[MAX_EID_LEN];
 	LystElt		elt;
 	TcpclNeighbor	*neighbor;
 	TcpclConnection	*connection;
@@ -2240,8 +2281,6 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 	/*	First look for newly added ipnfw plans or rules and
 	 *	try to create connections for them.			*/
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	if (ipndb)
 	{
 		if (rescanIpn(ctp, ipndb) < 0)

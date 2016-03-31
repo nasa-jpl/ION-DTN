@@ -430,6 +430,7 @@ void	_dtpcStop()		/*	Reverses dtpcStart.		*/
 	else
 	{
 		sm_SemUnend(dtpcvdb->aduSemaphore);
+		sm_SemGive(dtpcvdb->aduSemaphore);
 	}
 
 	sm_SemTake(dtpcvdb->aduSemaphore);		/*	Lock.	*/
@@ -444,6 +445,7 @@ void	_dtpcStop()		/*	Reverses dtpcStart.		*/
 		else
 		{
 			sm_SemUnend(vsap->semaphore);
+			sm_SemGive(vsap->semaphore);
 		}
 
 		sm_SemTake(vsap->semaphore);		/*	Lock	*/

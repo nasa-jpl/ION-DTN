@@ -1852,6 +1852,7 @@ void	ionResumeAttendant(ReqAttendant *attendant)
 {
 	CHKVOID(attendant);
 	sm_SemUnend(attendant->semaphore);
+	sm_SemGive(attendant->semaphore);
 }
 
 void	ionStopAttendant(ReqAttendant *attendant)
