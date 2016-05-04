@@ -230,7 +230,7 @@ static int	PlaybackPetitionLog(int petitionLog)
 	}
 }
 
-static int	_petitionLog(char *logLine)
+static int	_petitionLog(char *logLine, int ventureNbr)
 {
 	static int	petitionLog = -1;
 	int		len;
@@ -245,9 +245,13 @@ static int	_petitionLog(char *logLine)
 	{
 		if (petitionLog < 0)	/*	Log is not open.	*/
 		{
+			char	logName[64];
+
 			/*	Recover all known petition activity.	*/
 
-			petitionLog = iopen("petition.log",
+			isprintf(logName, sizeof logName, "%d.petition.log",
+					ventureNbr);
+			petitionLog = iopen(logName,
 					O_RDWR | O_CREAT | O_APPEND, 0777);
 			if (petitionLog < 0)
 			{
@@ -542,6 +546,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	socklen_t		nameLength;
 	int			datagramLength;
 	Lyst			msgspaces;
+	long			temp;
 	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
@@ -619,7 +624,8 @@ printf("continuum lyst:");
 	msgspaces = ams_list_msgspaces(gWay->amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		cId = (long) lyst_data(elt);
+		temp = (long) lyst_data(elt);
+		cId = temp;
 #if RAMSDEBUG
 printf(" %ld", cId);		
 #endif
@@ -824,7 +830,7 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 		return -1;
 	}
 
-	if (_petitionLog(NULL) < 0)
+	if (_petitionLog(NULL, amsModule->venture->nbr) < 0)
 	{
 		ErrMsg("Failed initializing the petition log.");
 		return -1;
@@ -942,7 +948,7 @@ printf("Before bp_receive...\n");
 	}
 
 	oK(_gWay(gWay));
-	oK(_petitionLog(NULL));		/*	Close the petition log.	*/
+	oK(_petitionLog(NULL, 0));	/*	Close the petition log.	*/
 	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
 }
@@ -1461,7 +1467,7 @@ fromNode->continuumNbr);
 					fromNode->gwEid, cc, sub,
 					domainContinuum, domainUnit,
 					domainRole);
-			if (_petitionLog(petitionLine) < 0)
+			if (_petitionLog(petitionLine, 0) < 0)
 			{
 				putErrmsg("Can't log petition assertion.",
 						petitionLine);
@@ -1487,7 +1493,7 @@ fromNode->continuumNbr);
 					fromNode->gwEid, cc, sub,
 					domainContinuum, domainUnit,
 					domainRole);
-			if (_petitionLog(petitionLine) < 0)
+			if (_petitionLog(petitionLine, 0) < 0)
 			{
 				putErrmsg("Can't log petition cancellation.",
 						petitionLine);
