@@ -652,6 +652,8 @@ static int	sendShutdown(TcpclConnection *connection, char reason,
 
 static void	eraseConnection(TcpclConnection *connection)
 {
+	TcpclNeighbor	*neighbor = connection->neighbor;
+
 	if (connection->hasReceiver)
 	{
 #ifdef mingw
@@ -660,33 +662,34 @@ static void	eraseConnection(TcpclConnection *connection)
 		pthread_kill(connection->receiver, SIGINT);
 #endif
 		pthread_join(connection->receiver, NULL);
-		connection->hasReceiver = 0;
 	}
 
 	closeConnection(connection);
 	if (connection->pipeline)
 	{
 		lyst_destroy(connection->pipeline);
-		connection->pipeline = NULL;
 	}
 
 	if (connection->hasThrottle)
 	{
 		llcv_close(connection->throttle);
-		connection->hasThrottle = 0;
 	}
 
 	if (connection->hasMutex)
 	{
 		pthread_mutex_destroy(&(connection->mutex));
-		connection->hasMutex = 0;
 	}
 
 	if (connection->destDuctName)
 	{
 		MRELEASE(connection->destDuctName);
-		connection->destDuctName = NULL;
 	}
+
+	memset(connection, 0, sizeof(TcpclConnection));
+	connection->sock = -1;
+	connection->neighbor = neighbor;
+	connection->secUntilShutdown = -1;
+	connection->secUntilKeepalive = -1;
 }
 
 static void	endConnection(TcpclConnection *connection, char reason)
