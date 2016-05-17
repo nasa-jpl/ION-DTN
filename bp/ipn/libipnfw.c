@@ -169,7 +169,12 @@ void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 	 *	node, if any.						*/
 
 	CHKVOID(ionLocked());
-	CHKVOID(nodeNbr && planAddr && eltp);
+	CHKVOID(planAddr && eltp);
+	if (nodeNbr == 0)
+	{
+		return;
+	}
+
 	*eltp = 0;
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -215,7 +220,13 @@ int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	IpnPlan	plan;
 	Object	planObj;
 
-	CHKERR(nodeNbr && defaultDuct);
+	CHKERR(defaultDuct);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn plan.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
@@ -270,7 +281,13 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	Object	planObj;
 	IpnPlan	plan;
 
-	CHKERR(nodeNbr && defaultDuct);
+	CHKERR(defaultDuct);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn plan.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -308,7 +325,12 @@ int	ipn_removePlan(uvast nodeNbr)
 	Object	ruleObj;
 		OBJ_POINTER(IpnRule, rule);
 
-	CHKERR(nodeNbr);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn plan.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -562,7 +584,19 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 	IpnRule		ruleBuf;
 	Object		addr;
 
-	CHKERR(nodeNbr && srcNodeNbr);
+	CHKERR(directive);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number 0 for ipn rule.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -626,7 +660,19 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
-	CHKERR(nodeNbr && srcNodeNbr);
+	CHKERR(directive);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number 0 for ipn rule.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -676,7 +722,18 @@ int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
-	CHKERR(nodeNbr && srcNodeNbr);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number 0 for ipn rule.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -786,7 +843,13 @@ int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	CHKERR(nodeNbr && dirbuf);
+	CHKERR(bundle);
+	CHKERR(dirbuf);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
 
 	/*	Determine constraints on directive usability.		*/
 
@@ -888,8 +951,19 @@ void	ipn_findExit(uvast firstNodeNbr, uvast lastNodeNbr, Object *exitAddr,
 	 *	node range, if any.					*/
 
 	CHKVOID(ionLocked());
-	CHKVOID(firstNodeNbr && exitAddr && eltp);
-	CHKVOID(firstNodeNbr <= lastNodeNbr);
+	CHKVOID(exitAddr && eltp);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return;
+	}
+
 	*eltp = 0;
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -908,9 +982,26 @@ int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	IpnExit	exit;
 	Object		addr;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
-	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
+	CHKERR(viaEid);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return 0;
+	}
+
+	if (strlen(viaEid) > MAX_SDRSTRING)
+	{
+		writeMemoNote("[?] Exit's gateway EID is too long",
+				viaEid);
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (locateExit(firstNodeNbr, lastNodeNbr, &nextExit) != 0)
 	{
@@ -959,9 +1050,26 @@ int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	Object		addr;
 	IpnExit	exit;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
-	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
+	CHKERR(viaEid);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return 0;
+	}
+
+	if (strlen(viaEid) > MAX_SDRSTRING)
+	{
+		writeMemoNote("[?] Exit's gateway EID is too long",
+				viaEid);
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -994,8 +1102,18 @@ int	ipn_removeExit(uvast firstNodeNbr, uvast lastNodeNbr)
 	Object	addr;
 		OBJ_POINTER(IpnExit, exit);
 
-	CHKERR(firstNodeNbr && lastNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1091,8 +1209,24 @@ int	ipn_addExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	IpnRule		ruleBuf;
 	Object		addr;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for rule is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for rule greater than last.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for rule is 0.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1154,8 +1288,24 @@ int	ipn_updateExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for rule is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for rule greater than last.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for rule is 0.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1203,8 +1353,24 @@ int	ipn_removeExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
-	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for rule is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for rule greater than last.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for rule is 0.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1251,7 +1417,12 @@ int	ipn_lookupExitDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	CHKERR(nodeNbr && dirbuf);
+	CHKERR(dirbuf);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number for exit is 0.");
+		return 0;
+	}
 
 	/*	Find best matching exit.  Exits are sorted by first
 	 *	node number within exit size, both ascending.  So
@@ -1303,6 +1474,7 @@ void	ipn_forgetOutduct(Object ductElt)
 		OBJ_POINTER(IpnRule, rule);
 
 	CHKVOID(ionLocked());
+	CHKVOID(ductElt);
 	if (ipnInit() < 0 || (db = getIpnConstants()) == NULL)
 	{
 		return;
