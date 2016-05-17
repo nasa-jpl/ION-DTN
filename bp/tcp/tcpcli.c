@@ -260,6 +260,24 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 	return sdnvLength;		/*	Succeeded.		*/
 }
 
+/*	*	Connection and neighbor management functions	*	*/
+
+typedef struct
+{
+	Lyst		neighbors;
+	TcpclConnection	*connection;
+	char		*buffer;
+	AcqWorkArea	*work;
+	ReqAttendant	attendant;
+} ReceiverThreadParms;
+
+typedef struct
+{
+	TcpclConnection	*connection;
+	char		*buffer;
+	Outflow		outflows[3];
+} SenderThreadParms;
+
 static LystElt	findNeighborForEid(Lyst neighbors, char *eid)
 {
 	LystElt		elt;
@@ -276,24 +294,6 @@ static LystElt	findNeighborForEid(Lyst neighbors, char *eid)
 
 	return NULL;
 }
-
-/*	*	Connection and neighbor management functions	*	*/
-
-typedef struct
-{
-	Lyst			neighbors;
-	TcpclConnection		*connection;
-	char			*buffer;
-	AcqWorkArea		*work;
-	ReqAttendant		attendant;
-} ReceiverThreadParms;
-
-typedef struct
-{
-	TcpclConnection	*connection;
-	char		*buffer;
-	Outflow		outflows[3];
-} SenderThreadParms;
 
 static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 {
@@ -379,9 +379,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 	int			newNeighbor = 0;
 	ReceiverThreadParms	*rtp;
 
-if (neighborElt == NULL) abort();
 	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
-if (neighbor == NULL) abort();
 	if (fromAccept)			/*	accept() succeeded.	*/
 	{
 		connection = neighbor->cc;
@@ -1978,7 +1976,6 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 
 	neighbor->connecting = 1;
 	neighbor->connectThreadState = ThreadRunning;
-printf("neighborElt is %ld.\n", (long) neighborElt);
 	if (pthread_begin(&(neighbor->connectThread), NULL,
 			makePlannedConnection, neighborElt))
 	{
@@ -2337,7 +2334,6 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 	LystElt		elt;
 	TcpclNeighbor	*neighbor;
 	TcpclConnection	*connection;
-	LystElt		nextElt;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
@@ -2409,36 +2405,6 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 						NULL);
 				return -1;
 			}
-		}
-	}
-
-	/*	Now clean up connection and disconnection threads
-	 *	that have completed and remove neighbors that have
-	 *	become moot.						*/
-
-	for (elt = lyst_first(ctp->neighbors); elt; elt = nextElt)
-	{
-		nextElt = lyst_next(elt);
-		neighbor = (TcpclNeighbor *) lyst_data(elt);
-		if (neighbor->connecting
-		&& neighbor->connectThreadState == ThreadStopped)
-		{
-			pthread_join(neighbor->connectThread, NULL);
-			neighbor->connecting = 0;
-		}
-
-		if (neighbor->disconnecting
-		&& neighbor->cleanupThreadState == ThreadStopped)
-		{
-			pthread_join(neighbor->cleanupThread, NULL);
-			neighbor->disconnecting = 0;
-		}
-
-		if (neighbor->destDuctName == NULL
-		&& neighbor->cc->sock == -1)
-		{
-			deleteTcpclNeighbor(neighbor);
-			lyst_delete(elt);
 		}
 	}
 
@@ -2675,6 +2641,36 @@ static void	*handleEvents(void *parm)
 				deleteTcpclNeighbor(neighbor);
 				lyst_delete(elt);
 				continue;
+			}
+
+			if (neighbor->connecting)
+			{
+				if (neighbor->connectThreadState
+						== ThreadStopped)
+				{
+					pthread_join(neighbor->connectThread,
+							NULL);
+					neighbor->connecting = 0;
+				}
+				else	/*	Can't delete yet.	*/
+				{
+					continue;
+				}
+			}
+
+			if (neighbor->disconnecting)
+			{
+				if (neighbor->cleanupThreadState
+						== ThreadStopped)
+				{
+					pthread_join(neighbor->cleanupThread,
+							NULL);
+					neighbor->disconnecting = 0;
+				}
+				else	/*	Can't delete yet.	*/
+				{
+					continue;
+				}
 			}
 
 			for (i = 0; i < 2; i++)
