@@ -1,10 +1,10 @@
 # configure.ac for ION
 # Samuel Jero
-# June 14, 2013
+# May 18, 2016
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.3.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.3.1b, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
