@@ -153,9 +153,9 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	if(debug && debug_level > 0)
 	{
 		printf("[debug] building a local eid in format ");
-		if (perf_opt->eid_format_forced == 'D' && !perf_opt->bp_implementation == BP_DTN)
+		if (perf_opt->eid_format_forced == 'D' && perf_opt->bp_implementation != BP_DTN)
 			printf("forced DTN...");
-		else if (perf_opt->eid_format_forced == 'I' && !perf_opt->bp_implementation == BP_ION)
+		else if (perf_opt->eid_format_forced == 'I' && perf_opt->bp_implementation != BP_ION)
 			printf("forced IPN...");
 		else
 			printf("standard...");
