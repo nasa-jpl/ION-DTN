@@ -1,6 +1,6 @@
-= Release Notes for ION 3.3.1 =
+= Release Notes for ION 3.3.1b =
 
-May 1, 2015
+May 18, 2016
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,14 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.3.1b=
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #90: Fixed CFDP file renaming problem in a temporary 
+     distribution for ISS payloads by creating remote directory structure in a
+     more controlled manner and adding error checking.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.3.1 =
