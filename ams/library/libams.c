@@ -4295,24 +4295,22 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 	return msgspaces;
 }
 
-int	ams_continuum_is_neighbor(int continuumNbr)
+int	ams_msgspace_is_neighbor(AmsSAP *sap, int continuumNbr)
 {
-	Continuum	*contin;
+	Subject	*msgspace;
 
-	if (continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR)
+	if (sap == NULL || continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR)
 	{
 		return 0;
 	}
 
-	lockMib();
-	contin = (_mib(NULL))->continua[continuumNbr];
-	unlockMib();
-	if (contin == NULL)
+	msgspace = sap->venture->msgspaces[continuumNbr];
+	if (msgspace == NULL)
 	{
 		return 0;
 	}
 
-	return contin->isNeighbor;
+	return msgspace->isNeighbor;
 }
 
 int	ams_get_continuum_nbr()

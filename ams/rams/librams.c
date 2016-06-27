@@ -607,7 +607,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 	/*	Determine RAMS network type.				*/
 
-	if (ams_rams_net_is_tree(gWay->amsModule))
+	if (ams_rams_net_is_tree(amsModule))
 	{
 		gWay->netType = TREETYPE;
 	}
@@ -621,7 +621,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 #if RAMSDEBUG
 printf("continuum lyst:");
 #endif
-	msgspaces = ams_list_msgspaces(gWay->amsModule);
+	msgspaces = ams_list_msgspaces(amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
 		temp = (long) lyst_data(elt);
@@ -634,7 +634,7 @@ printf(" %ld", cId);
 			continue;
 		}
 
-		if (!ams_continuum_is_neighbor(cId))
+		if (!ams_msgspace_is_neighbor(amsModule, cId))
 		{
 			continue;
 		} 	
@@ -698,13 +698,13 @@ printf("\n");
 	rules.msgHandler = HandleAamsMessage;
 	rules.msgHandlerUserData = gWay;
 
-	ams_set_event_mgr(gWay->amsModule, &rules);	
+	ams_set_event_mgr(amsModule, &rules);	
 
 	/*	Subscribe to message on the pseudo-subject for the
 	 *	local continuum.					*/
 
 	ownPseudoSubject = 0 - gWay->amsMib->localContinuumNbr;
-	if (ams_subscribe(gWay->amsModule, 0, 0, 0, ownPseudoSubject, 10, 0,
+	if (ams_subscribe(amsModule, 0, 0, 0, ownPseudoSubject, 10, 0,
 			AmsTransmissionOrder, AmsAssured) < 0)
 	{
 		putErrmsg("Can't subscribe to local continuum pseudo-subject.",
@@ -717,7 +717,7 @@ printf("subscribed to %d\n", ownPseudoSubject);
 #endif
 	/*	Insert self into RAMS network.				*/
 
-	gWay->netProtocol = gWay->amsModule->venture->gwProtocol;
+	gWay->netProtocol = amsModule->venture->gwProtocol;
 	switch (gWay->netProtocol)
 	{
 	case RamsBp:
