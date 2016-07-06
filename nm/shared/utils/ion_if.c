@@ -26,9 +26,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  08/10/11  V.Ramachandran Initial Implementation
- **  11/13/12  E. Birrane     Technical review, comment updates.
- **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ **  08/10/11  V.Ramachandran Initial Implementation (JHU/APL)
+ **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
+ **  06/30/16  E. Birrane     Doc. Updates and Bug Fixes (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "bp.h"
@@ -57,7 +58,8 @@
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/10/11  V.Ramachandran Initial implementation,
+ *  08/10/11  V.Ramachandran Initial implementation, (JHU/APL)
+ *  06/30/16  E. Birrane     Fix EID init. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 uint8_t iif_deregister_node(iif_t *iif)
@@ -74,7 +76,7 @@ uint8_t iif_deregister_node(iif_t *iif)
 
     bp_close(iif->sap);
     bp_detach();
-    memset(iif->local_eid.name,0, 1024);
+    memset(iif->local_eid.name,0, AMP_MAX_EID_LEN);
 
     DTNMP_DEBUG_EXIT("iif_deregister_node","-> %d", 1);
     return 1;
@@ -98,7 +100,7 @@ uint8_t iif_deregister_node(iif_t *iif)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/10/11  V.Ramachandran Initial implementation,
+ *  08/10/11  V.Ramachandran Initial implementation. (JHU/APL)
  *****************************************************************************/
 
 eid_t iif_get_local_eid(iif_t *iif)
@@ -136,7 +138,7 @@ eid_t iif_get_local_eid(iif_t *iif)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/10/11  V.Ramachandran Initial implementation,
+ *  08/10/11  V.Ramachandran Initial implementation. (JHU/APL)
  *****************************************************************************/
 
 uint8_t iif_is_registered(iif_t *iif)
@@ -183,7 +185,7 @@ uint8_t iif_is_registered(iif_t *iif)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/10/11  V.Ramachandran Initial implementation,
+ *  08/10/11  V.Ramachandran Initial implementation (JHU/APL)
  *****************************************************************************/
 
 uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeout)
@@ -194,10 +196,6 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     int content_len;
     Sdr sdr = bp_get_sdr();
     uint8_t *buffer = NULL;
-    uint8_t *cursor = NULL;
-    pdu_msg_t *pdu = NULL;
-    uint32_t bytes = 0;
-    uint32_t buf_size = 0;
     int result;
 
     DTNMP_DEBUG_ENTRY("iif_receive", "(0x%x, %d)",
@@ -208,8 +206,8 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     /* Step 1: Receive the bundle.*/
     if((result = bp_receive(iif->sap, &dlv, timeout)) < 0)
     {
-    	DTNMP_DEBUG_ERR("iif_receive","bp_receive failed. Result: %d.", result);
-    	exit(0);
+    	DTNMP_DEBUG_INFO("iif_receive","bp_receive failed. Result: %d.", result);
+    	return NULL;
     }
     else
     {
@@ -217,12 +215,12 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     	{
     		case BpEndpointStopped:
     			/* The endpoint stopped? Panic.*/
-    			DTNMP_DEBUG_ERR("iif_receive","Endpoint stopped.", NULL);
-    			exit(0);
+    			DTNMP_DEBUG_INFO("iif_receive","Endpoint stopped.", NULL);
+    			return NULL;
 
     		case BpPayloadPresent:
     			/* Clear to process the payload. */
-    			DTNMP_DEBUG_ERR("iif_receive", "Payload present.", NULL);
+    			DTNMP_DEBUG_INFO("iif_receive", "Payload present.", NULL);
     			break;
 
     		default:
@@ -235,7 +233,7 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
 
     /* Step 2: Allocate result space. */
     *size = content_len;
-    if((buffer = (uint8_t*) MTAKE(content_len)) == NULL)
+    if((buffer = (uint8_t*) STAKE(content_len)) == NULL)
     {
     	DTNMP_DEBUG_ERR("iif_receive","Can't alloc %d of msg.", content_len);
     	DTNMP_DEBUG_ERR("iif_receive","Timeout is %d.", timeout);
@@ -252,7 +250,7 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     if(sdr_end_xn(sdr) < 0 || dataLength < 0)
     {
         DTNMP_DEBUG_ERR("iif_receive", "Unable to process received bundle.", NULL);
-        MRELEASE(buffer);
+        SRELEASE(buffer);
 
         DTNMP_DEBUG_EXIT("iif_receive","-> NULL", NULL);
         return NULL;
@@ -287,7 +285,7 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/10/11  V.Ramachandran Initial implementation,
+ *  08/10/11  V.Ramachandran Initial implementation . (JHU/APL)
  *****************************************************************************/
 
 uint8_t iif_register_node(iif_t *iif, eid_t eid)
@@ -302,6 +300,7 @@ uint8_t iif_register_node(iif_t *iif, eid_t eid)
     	return 0;
     }
 
+    bzero((char*)iif, sizeof(iif_t));
     iif->local_eid = eid;
 
     if(bp_attach() < 0)
@@ -327,7 +326,6 @@ uint8_t iif_register_node(iif_t *iif, eid_t eid)
 
 
 
-
 /******************************************************************************
  *
  * \par Function Name: iif_send
@@ -346,20 +344,17 @@ uint8_t iif_register_node(iif_t *iif, eid_t eid)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/10/11  V.Ramachandran Initial implementation,
- *  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ *  08/10/11  V.Ramachandran Initial implementation. (JHU/APL)
+ *  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
+ *  03/??/16  E. Birrane     Fix BP Send to latest ION version. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
 {
-    BpExtendedCOS extendedCOS = {0, 0, 0};
     Object extent;
-
     Object newBundle;
-    int sdrDataLength; // Space allocated in SDR
-
     uint8_t *data = NULL;
-    uint32_t len;
+    uint32_t len = 0;
 
     DTNMP_DEBUG_ENTRY("iif_send","(%#llx, %#llx, %#llx)", iif, group, recipient);
 
@@ -376,21 +371,21 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
 
     if(len == 0)
     {
-    	MRELEASE(data);
+    	SRELEASE(data);
     	DTNMP_DEBUG_ERR("iif_send","Bad message of length 0.", NULL);
     	DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
     	return 0;
     }
 
     /* Information on bitstream we are sending. */
-    DTNMP_DEBUG_INFO("iif_send","Sending following data of length %d",len);
-    utils_print_hex(data, len);
+    DTNMP_DEBUG_ALWAYS("iif_send","Sending to %s:",recipient);
 
 
     /* Step 2 - Get the SDR, insert the message as an SDR transaction.*/
     Sdr sdr = bp_get_sdr();
 
     CHKZERO(sdr_begin_xn(sdr));
+
     extent = sdr_malloc(sdr, len);
     if(extent)
     {
@@ -408,10 +403,9 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     }
         
     /* Step 3 - Great ZCO in an SDR transaction.*/
-    Object content = ionCreateZco(ZcoSdrSource, extent, 0, len, 0, 0, 0, NULL);
+    Object content = ionCreateZco(ZcoSdrSource, extent, 0, len, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
 
-    //Object content = zco_create(sdr, ZcoSdrSource, sdrObj, 0, len);
-    if(!content)
+    if(content == 0 || content == (Object) ERROR)
     {
         DTNMP_DEBUG_ERR("iif_send","Zero-Copy Object creation failed.", NULL);
         DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
@@ -429,19 +423,19 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
 				NoCustodyRequested,	// Custody Switch
 				0,			// SRR Flags
 				0,			// ACK Requested
-				&extendedCOS,		// Extended COS
+				NULL,		// Extended COS
 				content,		// ADU
 				&newBundle		// New Bundle
 				)) != 1)
     {
-        DTNMP_DEBUG_ERR("iif_send","Send failed (%d).", res);
-        MRELEASE(data);
+        DTNMP_DEBUG_ERR("iif_send","Send failed (%d) to %s.", res, recipient);
+        SRELEASE(data);
         DTNMP_DEBUG_EXIT("iif_send", "->0.", NULL);
     	return 0;
 
     }
 
-    MRELEASE(data);
+    SRELEASE(data);
     DTNMP_DEBUG_EXIT("iif_send", "->1.", NULL);
     return 1;
 }

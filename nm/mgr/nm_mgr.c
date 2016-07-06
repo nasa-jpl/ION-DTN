@@ -34,21 +34,21 @@
 // Application headers.
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
-#include "nm_mgr_db.h"
-#include "shared/primitives/rules.h"
+#include "mgr_db.h"
+#include "nm_mgr_sql.h"
 
+#include "nm_mgr_names.h"
+#include "shared/primitives/rules.h"
+#include "shared/primitives/nn.h"
 
 // Definitions of global data.
 iif_t ion_ptr;
 
-uint8_t      g_running;
+uint8_t      gRunning;
 
 Object		 agents_hashtable;
 Lyst		 known_agents;
 ResourceLock agents_mutex;
-
-Lyst 		 macro_defs;
-ResourceLock macro_defs_mutex;
 
 eid_t        manager_eid;
 eid_t        agent_eid;
@@ -56,6 +56,10 @@ eid_t        agent_eid;
 uint32_t	 g_reports_total = 0;
 
 Sdr 		 g_sdr;
+
+MgrDB      gMgrDB;
+MgrVDB     gMgrVDB;
+
 
 // This function looks to be completely unused at this time.
 // To prevent compilation warnings, Josh Schendel commented it out on
@@ -89,7 +93,6 @@ int main(int argc, char *argv[])
 {
     pthread_t rx_thr;
     pthread_t ui_thr;
-    pthread_t daemon_thr;
 
     char rx_thr_name[]     = "rx_thread";
     char ui_thr_name[]     = "ui_thread";
@@ -104,7 +107,7 @@ int main(int argc, char *argv[])
     }
 
     /* Indicate that the threads should run once started. */
-    g_running = 1;
+    gRunning = 1;
 
     /* Initialize the DTNMP Manager. */
     if(mgr_init(argv) != 0)
@@ -121,14 +124,16 @@ int main(int argc, char *argv[])
 	isignal(SIGTERM, mgr_signal_handler);*/
 
     /* Spawn threads for receiving msgs, user interface, and db connection. */
-    if(pthread_create(&rx_thr, NULL, mgr_rx_thread, (void *)rx_thr_name))
+
+    if(pthread_begin(&rx_thr, NULL, (void *)mgr_rx_thread, (void *)&gRunning))
     {
         DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
         		        rx_thr_name, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-    if(pthread_create(&ui_thr, NULL, ui_thread, (void *)ui_thr_name))
+
+    if(pthread_begin(&ui_thr, NULL, (void *)ui_thread, (void *)&gRunning))
     {
         DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
         		        ui_thr_name, strerror(errno));
@@ -136,7 +141,8 @@ int main(int argc, char *argv[])
     }
 
 #ifdef HAVE_MYSQL
-    if(pthread_create(&daemon_thr, NULL, db_mgt_daemon, (void *)daemon_thr_name))
+
+    if(pthread_begin(&daemon_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning))
     {
     	DTNMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
     			daemon_thr_name, strerror(errno));
@@ -156,6 +162,8 @@ int main(int argc, char *argv[])
         		         ui_thr_name, strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+    pthread_kill(rx_thr, 0);
 
 #ifdef HAVE_MYSQL
     if (pthread_join(daemon_thr, NULL))
@@ -264,6 +272,7 @@ agent_t* mgr_agent_get(eid_t* in_eid)
  *  --------  ------------   ---------------------------------------------
  **  09/01/11  V. Ramachandran Initial Implementation
  **  08/20/13  E. Birrane      Code Review Updates
+ **  08/29/15  E. Birrane      Don't print error message on duplicate agent
  *****************************************************************************/
 
 int mgr_agent_add(eid_t agent_eid)
@@ -280,7 +289,6 @@ int mgr_agent_add(eid_t agent_eid)
 	{
 		unlockResource(&agents_mutex);
 		result = 0;
-		DTNMP_DEBUG_ERR("mgr_agent_add","Trying to add an already-known agent.", NULL);
 		DTNMP_DEBUG_EXIT("mgr_agent_add","->%d.", result);
 
 		return result;
@@ -335,7 +343,6 @@ agent_t* mgr_agent_create(eid_t *in_eid)
 	Object  *entry = NULL;
 	agent_t *agent	= NULL;
 
-	DTNMP_DEBUG_ENTRY("mgr_agent_create", "(%s)", in_eid->name);
 
 	/* Step 0: Sanity Check. */
 	if(in_eid == NULL)
@@ -345,8 +352,11 @@ agent_t* mgr_agent_create(eid_t *in_eid)
 		return NULL;
 	}
 
+	DTNMP_DEBUG_ENTRY("mgr_agent_create", "(%s)", in_eid->name);
+
+
 	/* Step 1:  Allocate space for the new agent. */
-	if((agent = (agent_t*)MTAKE(sizeof(agent_t))) == NULL)
+	if((agent = (agent_t*)STAKE(sizeof(agent_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("mgr_agent_create",
 				        "Unable to allocate %d bytes for new agent %s",
@@ -356,14 +366,14 @@ agent_t* mgr_agent_create(eid_t *in_eid)
 	}
 
 	/* Step 2: Copy over the name. */
-	strncpy(agent->agent_eid.name, in_eid->name, MAX_EID_LEN);
+	strncpy(agent->agent_eid.name, in_eid->name, AMP_MAX_EID_LEN);
 
 	/* Step 3: Create associated lists. */
 	if((agent->custom_defs = lyst_create()) == NULL)
 	{
 		DTNMP_DEBUG_ERR("mgr_agent_create","Unable to create custom definition lyst for agent %s",
 				in_eid->name);
-		MRELEASE(agent);
+		SRELEASE(agent);
 
 		DTNMP_DEBUG_EXIT("mgr_agent_create","->NULL", NULL);
 		return NULL;
@@ -374,7 +384,7 @@ agent_t* mgr_agent_create(eid_t *in_eid)
 		DTNMP_DEBUG_ERR("mgr_agent_create","Unable to create report lyst for agent %s",
 				in_eid->name);
 		lyst_destroy(agent->custom_defs);
-		MRELEASE(agent);
+		SRELEASE(agent);
 
 		DTNMP_DEBUG_EXIT("mgr_agent_create","->NULL", NULL);
 		return NULL;
@@ -386,7 +396,7 @@ agent_t* mgr_agent_create(eid_t *in_eid)
 				in_eid->name);
 		lyst_destroy(agent->custom_defs);
 		lyst_destroy(agent->reports);
-		MRELEASE(agent);
+		SRELEASE(agent);
 
 		DTNMP_DEBUG_EXIT("mgr_agent_create","->NULL", NULL);
 		return NULL;
@@ -470,7 +480,7 @@ int mgr_agent_remove(eid_t* in_eid)
 	def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
 
 	killResourceLock(&(agent->mutex));
-	MRELEASE(agent);
+	SRELEASE(agent);
 
 	DTNMP_DEBUG_EXIT("remove_agent", "->1", NULL);
 	return 1;
@@ -523,7 +533,7 @@ void mgr_agent_remove_cb(LystElt elt, void *nil)
 		def_lyst_clear(&(agent->custom_defs), &(agent->mutex), 1);
 
 		killResourceLock(&(agent->mutex));
-		MRELEASE(agent);
+		SRELEASE(agent);
 	}
 
 	unlockResource(&agents_mutex);
@@ -557,9 +567,23 @@ int mgr_cleanup()
 	lyst_destroy(known_agents);
 	killResourceLock(&agents_mutex);
 
-	def_lyst_clear(&(macro_defs), &(macro_defs_mutex), 1);
-	killResourceLock(&macro_defs_mutex);
+	LystElt elt;
+	for(elt = lyst_first(gParmSpec); elt; elt = lyst_next(elt))
+	{
+		ui_parm_spec_t *spec = lyst_data(elt);
+		SRELEASE(spec->mid);
+		SRELEASE(spec);
+	}
+	lyst_destroy(gParmSpec);
 
+
+	adm_destroy();
+	names_lyst_destroy(&gMgrNames);
+	oid_nn_cleanup();
+
+	mgr_vdb_destroy();
+
+	utils_mem_teardown();
 	return 0;
 }
 
@@ -583,6 +607,9 @@ int mgr_init(char *argv[])
 {
 
 	DTNMP_DEBUG_ENTRY("mgr_init","(0x%x)",(unsigned long) argv);
+
+
+	 utils_mem_int();
 
     strcpy((char *) manager_eid.name, argv[1]);
 
@@ -611,7 +638,7 @@ int mgr_init(char *argv[])
     if((known_agents = lyst_create()) == NULL)
         {
             DTNMP_DEBUG_ERR("mgr_init","Failed to create known agents list.",NULL);
-            //MRELEASE(ion_ptr);
+            //SRELEASE(ion_ptr);
             DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
             return -1;
         }
@@ -620,33 +647,28 @@ int mgr_init(char *argv[])
     {
     	DTNMP_DEBUG_ERR("mgr_init","Can't initialize rcv rpt list. . errno = %s",
     			        strerror(errno));
-        //MRELEASE(ion_ptr);
+        //SRELEASE(ion_ptr);
         DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
     	return -1;
     }
 
-    if((macro_defs = lyst_create()) == NULL)
+    if((gParmSpec = lyst_create()) == NULL)
     {
-        DTNMP_DEBUG_ERR("mgr_init","Failed to create macro def list.%s",NULL);
-        //MRELEASE(ion_ptr);
+        DTNMP_DEBUG_ERR("mgr_init","Failed to create parmsepc list.%s",NULL);
+        //SRELEASE(ion_ptr);
         DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
         return -1;
     }
 
-    if (initResourceLock(&macro_defs_mutex))
-    {
-    	DTNMP_DEBUG_ERR("mgr_init","Cant init macro def list mutex. errno = %s",
-    			        strerror(errno));
-        //MRELEASE(ion_ptr);
-        DTNMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-    	return -1;
-    }
-
-
+    oid_nn_init();
+    names_init();
 	adm_init();
 
+	mgr_db_init();
+	mgr_vdb_init();
+
 #ifdef HAVE_MYSQL
-	db_mgt_init("localhost", "root", "NetworkManagement", "dtnmp", 1);
+	db_mgt_init(gMgrVDB.sqldb, 0);
 #endif
 
 	DTNMP_DEBUG_EXIT("mgr_init","->0.",NULL);

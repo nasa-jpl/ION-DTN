@@ -2182,7 +2182,26 @@ uvast	ntohv(uvast netvast)
 int	fullyQualified(char *fileName)
 {
 	CHKZERO(fileName);
-#if (defined(mingw) || defined(DOS_PATH_DELIMITER))
+
+#if (defined(VXWORKS))
+	if(strncmp("host:",fileName,5) == 0)
+	{
+		fileName += 5;
+	}
+
+	if (isalpha((int)*fileName) && *(fileName + 1) == ':')
+	{
+		return 1;
+	}
+
+	if (*fileName == '/')
+	{
+		return 1;
+	}
+
+	return 0;
+
+#elif (defined(mingw) || defined(DOS_PATH_DELIMITER))
 	if (isalpha(*fileName) && *(fileName + 1) == ':')
 	{
 		return 1;

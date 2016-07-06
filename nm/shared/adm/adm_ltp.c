@@ -178,7 +178,7 @@ char *ltp_print_node_resources_all(uint8_t* buffer, uint64_t buffer_len, uint64_
 	// Assume all the text strings average less than 25 characters per string.
 	*str_len = (data_len * 5) + (25 * 2);
 	// Assume for now a 4 byte integer takes <= 20 characters to print.
-	if((result = (char *) MTAKE(*str_len)) == NULL)
+	if((result = (char *) STAKE(*str_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ltpPrintNodeResourceAll","Can't allocate %d bytes", *str_len);
 		*str_len = 0;

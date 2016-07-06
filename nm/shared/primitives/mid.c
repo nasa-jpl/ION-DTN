@@ -39,11 +39,13 @@
  **  10/21/11  E. Birrane     Code comments and functional updates.
  **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup.
  **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs
+ **  04/19/16  E. Birrane     Put OIDs on stack and not heap.
  *****************************************************************************/
 
 #include "platform.h"
 
 #include "shared/utils/utils.h"
+#include "shared/utils/nm_types.h"
 
 #include "shared/primitives/mid.h"
 
@@ -58,8 +60,7 @@
  *        !0 Success
  *
  * \param[in,out] mid    The MID whose OID is getting a new param.
- * \param[in]     value  The value of the new parameter
- * \param[in]     len    The length, in bytes, of the new parameter.
+ * \param[in]     blob   The new parameter.
  *
  * \par Notes:
  *		1. The new parameter is allocated into the new OID and, upon exit,
@@ -69,15 +70,17 @@
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/25/12  E. Birrane     Initial implementation,
+ *  04/15/16  E. Birrane     Updated to use blob_t
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-int mid_add_param(mid_t *mid, uint8_t *value, uint32_t len)
+int mid_add_param(mid_t *mid, dtnmp_type_e type, blob_t *blob)
 {
 	int result = 0;
 
-	DTNMP_DEBUG_ENTRY("mid_add_param","(%#llx, %#llx, %ld)", mid, value, len);
+	DTNMP_DEBUG_ENTRY("mid_add_param","(%#llx, %#llx)", mid, blob);
 
 	/* Step 0: Sanity Check.*/
-	if((mid == NULL) || (value == NULL) || (len == 0))
+	if((mid == NULL) || (blob == NULL))
 	{
 		DTNMP_DEBUG_ERR("mid_add_param","Bad Args", NULL);
 		DTNMP_DEBUG_EXIT("mid_add_param","->0.",NULL);
@@ -85,7 +88,7 @@ int mid_add_param(mid_t *mid, uint8_t *value, uint32_t len)
 	}
 
 	/* Step 1: Add to the OID. */
-	result = oid_add_param(mid->oid, value, len);
+	result = oid_add_param(&(mid->oid), type, blob);
 
 	DTNMP_DEBUG_EXIT("mid_add_param","->%d.",result);
 	return result;
@@ -127,21 +130,40 @@ void mid_clear(mid_t *mid)
 
     if(mid->raw != NULL)
     {
-        MRELEASE(mid->raw);
+        SRELEASE(mid->raw);
         mid->raw = NULL;
     }
 
-    if(mid->oid != NULL)
-    {
-    	oid_release(mid->oid);
-    	mid->oid = NULL;
-    }
+   	oid_release(&(mid->oid));
 
     memset(mid, 0, sizeof(mid_t));
     DTNMP_DEBUG_EXIT("mid_clear","", NULL);
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: mid_clear_parms
+ *
+ * \par Clears the parameters associated with a MID.
+ *
+ * \param[in] mid The MID whose parameters are to be cleared.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/19/16  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+void mid_clear_parms(mid_t *mid)
+{
+	CHKVOID(mid);
+	oid_clear_parms(&(mid->oid));
+	mid_internal_serialize(mid);
+}
 
 /******************************************************************************
  *
@@ -181,17 +203,14 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
         return -1;
     }
 
-    /* \todo: Cleanup */
     if(use_parms != 0)
     {
-    if(mid1->raw_size != mid2->raw_size)
-    {
-        return -1;
+    	if(mid1->raw_size != mid2->raw_size)
+    	{
+    		return -1;
+    	}
     }
-    }
-    
-    /* For now, we can just compare the raw version of the mid */
-    /*result = memcmp(mid1->raw, mid2->raw, mid1->raw_size);*/
+
     /* Step 3: Check if flag and MID length bytes match. */
     if((mid1->flags == mid2->flags) &&
        (mid1->issuer == mid2->issuer) &&
@@ -215,8 +234,7 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
  * \retval NULL - Failure
  *         !NULL - The constructed MID
  *
- * \param[in] type     The type of MID
- * \param[in] cat      The MID category
+ * \param[in] id       The Id of the structure encapsulated by the MID.
  * \param[in] issuer   The MID issuer, or NULL for no issuer.
  * \param[in] tag      The MID tag, or NULL for no tag.
  * \param[in] oid      The OID encapsulated in the MID.
@@ -232,28 +250,19 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
  *  10/22/12  E. Birrane     Initial implementation,
  *  06/17/13  E. Birrane     Updated to ION 3.1.3, switched to uvast
  *  06/25/13  E. Birrane     Removed references to priority field.
+ *  07/04/16  E. Birrane     Moved MID type/cat to ID.
  *****************************************************************************/
 
-mid_t *mid_construct(uint8_t type, uint8_t cat,
-		             uvast *issuer, uvast *tag, oid_t *oid)
+mid_t *mid_construct(uint8_t id, uvast *issuer, uvast *tag, oid_t oid)
 {
 	mid_t *mid = NULL;
-	DTNMP_DEBUG_ENTRY("mid_construct","(%#llx, %#llx, %#llx, %#llx, %#llx",
-			         type, cat,
-			         (unsigned long) issuer, (unsigned long) tag,
-			         (unsigned long) oid);
+	DTNMP_DEBUG_ENTRY("mid_construct","(%d, %#llx, %#llx, oid)",
+			         id,
+			         (unsigned long) issuer, (unsigned long) tag);
 
-
-	/* Step 0: Sanity Check */
-	if(oid == NULL)
-	{
-		DTNMP_DEBUG_ERR("mid_construct","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
-		return NULL;
-	}
 
 	/* Step 1: Allocate the MID. */
-	if((mid = (mid_t *)MTAKE(sizeof(mid_t))) == NULL)
+	if((mid = (mid_t *)STAKE(sizeof(mid_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("mid_construct","Can't allocate %d bytes.",
 				        sizeof(mid_t));
@@ -264,23 +273,23 @@ mid_t *mid_construct(uint8_t type, uint8_t cat,
 	/* Step 2: Populate the MID. */
 
 	/* Flag */
-	mid->flags =  (oid->type & 0x03) << 6;
+	mid->flags =  (oid.type & 0x03) << 6;
 	mid->flags |= (tag != NULL) ? 0x20 : 0x00;
 	mid->flags |= (issuer != NULL) ? 0x10 : 0x00;
-	mid->flags |= (cat & 0x03) << 2;
-	mid->flags |= (type & 0x03);
+	mid->flags |= (id & 0x0F);
 
 	/* Shallow copies */
-	mid->type     = type;
-	mid->category = cat;
+	mid->id       = id;
 	mid->issuer   = (issuer != NULL) ? *issuer : 0;
 	mid->tag      = (tag != NULL) ? *tag : 0;
 
-	if((mid->oid = oid_copy(oid)) == NULL)
+	mid->oid = oid_copy(oid);
+
+	if(mid->oid.type == OID_TYPE_UNK)
 	{
 		DTNMP_DEBUG_ERR("mid_construct","Failed to copy OID.",NULL);
 
-		MRELEASE(mid);
+		SRELEASE(mid);
 		DTNMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
 		return NULL;
 	}
@@ -339,7 +348,7 @@ mid_t *mid_copy(mid_t *src_mid)
     }
 
     /* Step 1: Allocate the new MID. */
-    if((result = (mid_t *)MTAKE(sizeof(mid_t))) == NULL)
+    if((result = (mid_t *)STAKE(sizeof(mid_t))) == NULL)
     {
         DTNMP_DEBUG_ERR("mid_copy","Can't allocate %d bytes", sizeof(mid_t));
         DTNMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
@@ -352,13 +361,12 @@ mid_t *mid_copy(mid_t *src_mid)
     /* Step 3: Now, deep copy the pointers. */
     result->oid = oid_copy(src_mid->oid);
 
-    if((result->raw = (uint8_t *)MTAKE(src_mid->raw_size)) == NULL)
+    if((result->raw = (uint8_t *)STAKE(src_mid->raw_size)) == NULL)
     {
         DTNMP_DEBUG_ERR("mid_copy","Can't allocate %d bytes",
         		        src_mid->raw_size);
-
-        MRELEASE(result->oid);
-        MRELEASE(result);
+        oid_release(&(result->oid));
+        mid_release(result);
 
         DTNMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
         return NULL;
@@ -370,6 +378,35 @@ mid_t *mid_copy(mid_t *src_mid)
     return result;
 }
 
+
+/******************************************************************************
+ *
+ * \par Function Name: mid_copy_parms
+ *
+ * \par Deep-copies parameters from a source MID to a dest MID.
+ *
+ * \retval ERROR - Problem
+ *         SUCCESS - OK.
+ *
+ * \param[in|out] dest  The MID to receive a copy of the parameters.
+ * \param[in]     src   The MID providing the parameters to copy.
+ *
+ * \par Notes:
+ *		1. The destination MID MUST NOT already have parameters.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/19/16  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+uint8_t  mid_copy_parms(mid_t *dest, mid_t *src)
+{
+	CHKERR(dest);
+	CHKERR(src);
+
+	return oid_copy_parms(&(dest->oid), &(src->oid));
+}
 
 /******************************************************************************
  *
@@ -400,7 +437,6 @@ mid_t *mid_deserialize(unsigned char *buffer,
 {
     mid_t *result = NULL;
     unsigned char *cursor = NULL;
-    int sdnv_len = 0;
     uint32_t cur_bytes = 0;
     uint32_t bytes_left=0;
 
@@ -408,8 +444,6 @@ mid_t *mid_deserialize(unsigned char *buffer,
                      (unsigned long) buffer,
                      (unsigned long) buffer_size,
                      (unsigned long) bytes_used);
-
-    *bytes_used = 0;
 
     /* Step 1: Sanity checks. */
     if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
@@ -426,7 +460,7 @@ mid_t *mid_deserialize(unsigned char *buffer,
     }
 
     /* Step 2: Allocate/Zero the MID. */
-    if((result = (mid_t *) MTAKE(sizeof(mid_t))) == NULL)
+    if((result = (mid_t *) STAKE(sizeof(mid_t))) == NULL)
     {
         DTNMP_DEBUG_ERR("mid_deserialize","Cannot allocate MID of size %d",
         		        sizeof(mid_t));
@@ -455,8 +489,7 @@ mid_t *mid_deserialize(unsigned char *buffer,
     }
 
     /* Step 4: Break out flag...*/
-    result->type = MID_GET_FLAG_TYPE(result->flags);
-    result->category = MID_GET_FLAG_CAT(result->flags);
+    result->id = MID_GET_FLAG_ID(result->flags);
 
     /* Step 5: Grab issuer, if present. Issuers MUST exist for non-atomic.*/
     if(MID_GET_FLAG_ISS(result->flags))
@@ -494,12 +527,12 @@ mid_t *mid_deserialize(unsigned char *buffer,
     		result->oid = oid_deserialize_comp_param(cursor, bytes_left, &cur_bytes);
     		break;
     	default:
-    		result->oid = NULL;
+    		result->oid.type = OID_TYPE_UNK;
     		cur_bytes = 0;
     		break;
     }
 
-    if(result->oid == NULL)
+    if(result->oid.type == OID_TYPE_UNK)
     {
     	DTNMP_DEBUG_ERR("mid_deserialize","Can't grab oid.", NULL);
     	mid_release(result);
@@ -512,7 +545,7 @@ mid_t *mid_deserialize(unsigned char *buffer,
     	cursor += cur_bytes;
     	bytes_left -= cur_bytes;
     	*bytes_used += cur_bytes;
-    	result->oid->type = MID_GET_FLAG_OID(result->flags);
+    	result->oid.type = MID_GET_FLAG_OID(result->flags);
     }
 
 
@@ -547,7 +580,7 @@ mid_t *mid_deserialize(unsigned char *buffer,
     }
 
     /* Step 9: Copy MID into the raw value. */
-    if((result->raw = (unsigned char *) MTAKE(*bytes_used)) == NULL)
+    if((result->raw = (unsigned char *) STAKE(*bytes_used)) == NULL)
     {
         DTNMP_DEBUG_ERR("mid_deserialize","Can't TAKE raw mid of size (%d)",
         		        *bytes_used);
@@ -565,6 +598,107 @@ mid_t *mid_deserialize(unsigned char *buffer,
 }
 
 
+mid_t*   mid_deserialize_str(char *mid_str,
+							 uint32_t buffer_size,
+							 uint32_t *bytes_used)
+{
+	mid_t *result = NULL;
+	uint32_t hex_size = 0;
+	uint8_t *mid_hex = NULL;
+	uint32_t used = 0;
+
+	DTNMP_DEBUG_ENTRY("mid_deserialize_str","(%s, %d, %#llx)",mid_str, buffer_size, (unsigned long) bytes_used);
+
+	mid_hex = utils_string_to_hex(mid_str, &hex_size);
+	if(mid_hex == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_deserialize_str","Can't made hex from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
+		return NULL;
+	}
+
+	result = mid_deserialize(mid_hex, hex_size, &used);
+	SRELEASE(mid_hex);
+
+	if(result == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_deserialize_str","Can't deserialize from %s.", mid_str);
+		DTNMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
+		return NULL;
+	}
+
+	DTNMP_DEBUG_EXIT("mid_deserialize_str","-> %#llx", (unsigned long) result);
+
+	return result;
+}
+
+
+/*
+ * Retrieve mid from a string representing the MID in hex
+ * "0x31801...."
+ */
+mid_t* mid_from_string(char *mid_str)
+{
+	mid_t *result = NULL;
+	uint8_t *tmp = NULL;
+	uint32_t len = 0;
+	uint32_t bytes = 0;
+
+	DTNMP_DEBUG_ENTRY("mid_from_string","(0x%x)", mid_str);
+
+	/* Step 0: Sanity check. */
+	if(mid_str == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_from_string","Bad args.", NULL);
+		DTNMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Convert the string into a binary buffer. */
+    if((tmp = utils_string_to_hex(mid_str, &len)) == NULL)
+    {
+    	DTNMP_DEBUG_ERR("mid_from_string","Can't Parse MID ID of %s.", mid_str);
+		DTNMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
+		return NULL;
+    }
+
+    /* Step 2: Build a mid by "deserializing" the STRING into a MID. */
+    result = mid_deserialize(tmp, len, &bytes);
+
+    SRELEASE(tmp);
+
+	DTNMP_DEBUG_EXIT("mid_from_string","->0x%x", (unsigned long) result);
+
+	return result;
+}
+
+blob_t *mid_get_param(mid_t *id, int i, dtnmp_type_e *type)
+{
+	DTNMP_DEBUG_ENTRY("mid_get_param","(%#llx, i)",(unsigned long) id, i);
+
+	if(id == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_get_param","Bad args.",NULL);
+		DTNMP_DEBUG_EXIT("mid_get_param","->0",NULL);
+		return NULL;
+	}
+
+	return oid_get_param(id->oid, i, type);
+}
+
+uint8_t  mid_get_num_parms(mid_t *mid)
+{
+	DTNMP_DEBUG_ENTRY("mid_get_num_parms","(%#llx)",(unsigned long) mid);
+
+	if(mid == NULL)
+	{
+		DTNMP_DEBUG_ERR("mid_get_num_parms","Bad args.",NULL);
+		DTNMP_DEBUG_EXIT("mid_get_num_parms","->0",NULL);
+		return 0;
+	}
+
+	return oid_get_num_parms(mid->oid);
+}
 
 /******************************************************************************
  *
@@ -632,7 +766,7 @@ int mid_internal_serialize(mid_t *mid)
 	/* Step 2: If there is a serialized version of the MID already, wipe it.*/
 	if(mid->raw != NULL)
 	{
-		MRELEASE(mid->raw);
+		SRELEASE(mid->raw);
 		mid->raw = NULL;
 	}
 	mid->raw_size = 0;
@@ -659,12 +793,12 @@ int mid_internal_serialize(mid_t *mid)
 
 
 	/* Step 5: Allocate space for the serialized MID. */
-	if((mid->raw = (uint8_t *)MTAKE(mid->raw_size)) == NULL)
+	if((mid->raw = (uint8_t *)STAKE(mid->raw_size)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("mid_internal_serialize","Can't alloc %d bytes.",
 				        mid->raw_size);
 		mid->raw_size = 0;
-		MRELEASE(oid_val);
+		SRELEASE(oid_val);
 
 		DTNMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
 		return 0;
@@ -700,9 +834,9 @@ int mid_internal_serialize(mid_t *mid)
 		DTNMP_DEBUG_ERR("mid_internal_serialize","Copied %d bytes, expected %d bytes.",
 				        (cursor - mid->raw), mid->raw_size);
 		mid->raw_size = 0;
-		MRELEASE(mid->raw);
+		SRELEASE(mid->raw);
 		mid->raw = NULL;
-		MRELEASE(oid_val);
+		SRELEASE(oid_val);
 
 		DTNMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
 		return 0;
@@ -763,7 +897,7 @@ char *mid_pretty_print(mid_t *mid)
 	/* Step 1: Grab the pretty-print of the encapsulated OID. We will need to
 	 *         do this anyway and it will help with the sizing.
 	 */
-	if(mid->oid != NULL)
+	if(mid->oid.type == OID_TYPE_UNK)
 	{
 		oid_str = oid_pretty_print(mid->oid);
 		oid_size = strlen((char *)oid_str) + 1;
@@ -772,7 +906,7 @@ char *mid_pretty_print(mid_t *mid)
 	if(oid_str == NULL)
 	{
 		oid_size = strlen("NULL_OID") + 1;
-		if((oid_str = (char *) MTAKE(oid_size)) != NULL)
+		if((oid_str = (char *) STAKE(oid_size)) != NULL)
 		{
 			memset(oid_str,0,oid_size);
 			strncpy((char *)oid_str,"NULL OID",oid_size);
@@ -791,7 +925,7 @@ char *mid_pretty_print(mid_t *mid)
 	if((raw_str = mid_to_string(mid)) == NULL)
 	{
 		raw_size = strlen("NO RAW!") + 1;
-		if((raw_str = (char *) MTAKE(raw_size)) != NULL)
+		if((raw_str = (char *) STAKE(raw_size)) != NULL)
 		{
 			memset(raw_str, 0, raw_size);
 			strncpy(raw_str,"NO RAW!", raw_size);
@@ -800,7 +934,7 @@ char *mid_pretty_print(mid_t *mid)
 		{
 			DTNMP_DEBUG_ERR("mid_pretty_print","Can't alloc %d bytes for RAW.",
 						    raw_size);
-			MRELEASE(oid_str);
+			SRELEASE(oid_str);
 
 			DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
 			return NULL;
@@ -829,12 +963,12 @@ char *mid_pretty_print(mid_t *mid)
 		   28;				/* BANNER ----- */
 
 	/* Step 4: Allocate the string. */
-	if((result = (char*)MTAKE(size)) == NULL)
+	if((result = (char*)STAKE(size)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("mid_pretty_print", "Can't alloc %d bytes.", size);
 
-		MRELEASE(oid_str);
-		MRELEASE(raw_str);
+		SRELEASE(oid_str);
+		SRELEASE(raw_str);
 
 		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
 		return NULL;
@@ -849,21 +983,17 @@ char *mid_pretty_print(mid_t *mid)
 	cursor += sprintf(cursor,"MID:\n---------------------\nFlag: %#x",mid->flags);
 
 	cursor += sprintf(cursor,"\nType : ");
-	switch(mid->type)
+	switch(mid->id)
 	{
-	case 0: cursor += sprintf(cursor,"DATA\n"); break;
-	case 1: cursor += sprintf(cursor,"CONTROL\n"); break;
-	case 2: cursor += sprintf(cursor,"LITERAL\n"); break;
-	case 3: cursor += sprintf(cursor,"OPERATOR\n"); break;
-	default: cursor += sprintf(cursor,"UNKNOWN\n"); break;
-	}
-
-	cursor += sprintf(cursor,"Cat: ");
-	switch(mid->category)
-	{
-	case 0: cursor += sprintf(cursor,"ATOMIC\n"); break;
-	case 1: cursor += sprintf(cursor,"COMPUTED\n"); break;
-	case 2: cursor += sprintf(cursor,"COLLECTION\n"); break;
+	case MID_ATOMIC:   cursor += sprintf(cursor,"AD\n"); break;
+	case MID_COMPUTED: cursor += sprintf(cursor,"CD\n"); break;
+	case MID_REPORT:   cursor += sprintf(cursor,"RPT\n"); break;
+	case MID_CONTROL:  cursor += sprintf(cursor,"CTRL\n"); break;
+	case MID_TRL:      cursor += sprintf(cursor,"TRL\n"); break;
+	case MID_SRL:      cursor += sprintf(cursor,"SRL\n"); break;
+	case MID_MACRO:    cursor += sprintf(cursor,"MACRO\n"); break;
+	case MID_LITERAL:  cursor += sprintf(cursor,"LIT\n"); break;
+	case MID_OPERATOR: cursor += sprintf(cursor,"OP\n"); break;
 	default: cursor += sprintf(cursor,"UNKNOWN\n"); break;
 	}
 
@@ -877,7 +1007,7 @@ char *mid_pretty_print(mid_t *mid)
 	}
 
 	cursor += sprintf(cursor,"OID : %s", oid_str);
-	MRELEASE(oid_str);
+	SRELEASE(oid_str);
 
 	if(MID_GET_FLAG_TAG(mid->flags))
 	{
@@ -889,14 +1019,14 @@ char *mid_pretty_print(mid_t *mid)
 	}
 
 	cursor += sprintf(cursor,"RAW : %s", raw_str);
-	MRELEASE(raw_str);
+	SRELEASE(raw_str);
 
 	/* Step 6: Sanity check. */
 	if((cursor - result) > size)
 	{
 		DTNMP_DEBUG_ERR("mid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
 				        size, (cursor-result));
-		MRELEASE(result);
+		SRELEASE(result);
 		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
@@ -934,7 +1064,7 @@ void mid_release(mid_t *mid)
     if(mid != NULL)
     {
         mid_clear(mid);
-        MRELEASE(mid);
+        SRELEASE(mid);
         mid = NULL;
     }
 
@@ -964,6 +1094,7 @@ void mid_release(mid_t *mid)
  *  11/14/12  E. Birrane     Initial implementation,
  *  06/25/13  E. Birrane     Removed references to priority field. Removed
  *                           type/cat checks as spec allows many new combos.
+ *  07/04/16  E. Birrane     Removed all type/cat checks.
  *****************************************************************************/
 
 int mid_sanity_check(mid_t *mid)
@@ -979,42 +1110,10 @@ int mid_sanity_check(mid_t *mid)
 	}
 
 	/* Range Checks */
-	if(mid->type > 3)
+	if(mid->id >= MID_ANY)
 	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","Type out of range (%d)",
-        		        mid->type);
-        result = 0;
-	}
-
-	if(mid->category > 2)
-	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","Cat. out of range (%d)",
-        		        mid->category);
-        result = 0;
-	}
-
-	if(mid->oid == NULL)
-	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","NULL OID.",NULL);
-        result = 0;
-	}
-	else if(mid->oid->type > 3)
-	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","OID type out of range (%d)",
-        		        mid->oid->type);
-        result = 0;
-	}
-
-
-	/* Type/Category Checks */
-	if (
-		((mid->type == MID_TYPE_CONTROL) && (mid->category == MID_CAT_COMPUTED)) ||
-		((mid->type == MID_TYPE_LITERAL) && (mid->category != MID_CAT_ATOMIC)) ||
-		((mid->type == MID_TYPE_OPERATOR) && (mid->category != MID_CAT_ATOMIC))
-		)
-	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","Bad type(%d)/cat.(%d) combo.",
-        		        mid->type, mid->category);
+        DTNMP_DEBUG_ERR("mid_sanity_check","id out of range (%d)",
+        		        mid->id);
         result = 0;
 	}
 
@@ -1076,7 +1175,7 @@ uint8_t *mid_serialize(mid_t *mid, uint32_t *size)
 	*size = mid->raw_size;
 
 	/* Step 2: Allocate result. */
-	if((result = (uint8_t*) MTAKE(*size)) == NULL)
+	if((result = (uint8_t*) STAKE(*size)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("mid_serialize","Can't alloc %d bytes.", *size);
 		*size = 0;
@@ -1132,6 +1231,56 @@ char *mid_to_string(mid_t *mid)
 
 /******************************************************************************
  *
+ * \par Function Name: midcol_clear
+ *
+ * \par Purpose: Clear MID collection in a Lyst.
+ *
+ * \param[in,out] mc The lyst being cleared.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/30/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+void midcol_clear(Lyst mc)
+{
+	LystElt elt;
+	LystElt del_elt;
+	mid_t *cur_mid = NULL;
+
+	DTNMP_DEBUG_ENTRY("midcol_clear","("UVAST_FIELDSPEC")", (uvast) mc);
+
+	/*
+	 * Step 0: Make sure we even have a lyst.
+	 */
+	if(mc == NULL)
+	{
+		DTNMP_DEBUG_WARN("midcol_clear","NULL mc.",NULL);
+		DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+		return;
+	}
+
+	/* Step 1: Walk through the MIDs releasing as you go. */
+    for(elt = lyst_first(mc); elt;)
+    {
+    	cur_mid = (mid_t *) lyst_data(elt);
+
+    	if(cur_mid != NULL)
+    	{
+    		mid_release(cur_mid);
+    	}
+    	del_elt = elt;
+    	elt = lyst_next(elt);
+    	lyst_delete(del_elt);
+    }
+
+    DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+}
+
+
+/******************************************************************************
+ *
  * \par Function Name: midcol_copy
  *
  * \par Purpose: Copies a MID collection
@@ -1175,7 +1324,6 @@ Lyst midcol_copy(Lyst mids)
 	}
 
 	/* Walking copy. */
-	int success = 1;
 	for(elt = lyst_first(mids); elt; elt = lyst_next(elt))
 	{
 		cur_mid = (mid_t *) lyst_data(elt);
@@ -1189,7 +1337,7 @@ Lyst midcol_copy(Lyst mids)
 		}
 		else
 		{
-			lyst_insert_last(result,mid_copy(cur_mid));
+			lyst_insert_last(result,new_mid);
 		}
 	}
 
@@ -1218,11 +1366,10 @@ Lyst midcol_copy(Lyst mids)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  08/30/15  E. Birrane     Use midcol_clear as helper.
  *****************************************************************************/
 void midcol_destroy(Lyst *mids)
 {
-	LystElt elt;
-	mid_t *cur_mid = NULL;
 
 	DTNMP_DEBUG_ENTRY("midcol_destroy","(%#llx)", (unsigned long) mids);
 
@@ -1237,16 +1384,8 @@ void midcol_destroy(Lyst *mids)
 		return;
 	}
 
-	/* Step 1: Walk through the MIDs releasing as you go. */
-    for(elt = lyst_first(*mids); elt; elt = lyst_next(elt))
-    {
-    	cur_mid = (mid_t *) lyst_data(elt);
-
-    	if(cur_mid != NULL)
-    	{
-    		mid_release(cur_mid);
-    	}
-    }
+	/* Step 1: Remove all of the MIDs in the MC. */
+	midcol_clear(*mids);
 
     /* Step 2: Destroy and zero out the lyst. */
     lyst_destroy(*mids);
@@ -1410,7 +1549,7 @@ char *midcol_pretty_print(Lyst mc)
 	 */
 	num_items = (int) lyst_length(mc);
 
-	mid_strs = (char**) MTAKE(num_items * sizeof(char*));
+	mid_strs = (char**) STAKE(num_items * sizeof(char*));
 	if(mid_strs == NULL)
 	{
 		DTNMP_DEBUG_ERR("midcol_pretty_print","Can't alloc %d bytes.",
@@ -1435,15 +1574,15 @@ char *midcol_pretty_print(Lyst mc)
 			    28 +       /* Trailer ---'s */
 			    num_items; /* newline per MID. */
 
-	if((result = (char *) MTAKE(tot_size)) == NULL)
+	if((result = (char *) STAKE(tot_size)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("midcol_pretty_print","Can't alloc %d bytes.",
 				        tot_size);
 		for(i = 0; i < num_items; i++)
 		{
-			MRELEASE(mid_strs[i]);
+			SRELEASE(mid_strs[i]);
 		}
-		MRELEASE(mid_strs);
+		SRELEASE(mid_strs);
 
 		DTNMP_DEBUG_EXIT("midcol_pretty_print","->NULL",NULL);
 		return NULL;
@@ -1458,17 +1597,17 @@ char *midcol_pretty_print(Lyst mc)
 	for(i = 0; i < num_items; i++)
 	{
 		cursor += sprintf(cursor,"%s\n",mid_strs[i]);
-		MRELEASE(mid_strs[i]);
+		SRELEASE(mid_strs[i]);
 	}
 	cursor += sprintf(cursor,"--------------\n");
-	MRELEASE(mid_strs);
+	SRELEASE(mid_strs);
 
 	/* Step 5: Sanity check. */
 	if((cursor - result) > tot_size)
 	{
 		DTNMP_DEBUG_ERR("midcol_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
 				tot_size, (cursor-result));
-		MRELEASE(result);
+		SRELEASE(result);
 		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
@@ -1530,7 +1669,7 @@ char *midcol_to_string(Lyst mc)
 	 */
 	num_items = (int) lyst_length(mc);
 
-	mid_strs = (char**) MTAKE(num_items * sizeof(char*));
+	mid_strs = (char**) STAKE(num_items * sizeof(char*));
 	if(mid_strs == NULL)
 	{
 		DTNMP_DEBUG_ERR("midcol_to_string","Can't alloc %d bytes.",
@@ -1553,17 +1692,19 @@ char *midcol_to_string(Lyst mc)
 	/* Step 3: Calculate size of the MID collection print and allocate it. */
 	tot_size += 5 +        /* "MC : " */
 				2 +        /* trailer */
-			    num_items; /* space between MIDs. */
+			    num_items + /* space between MIDs. */
+				2 +         /* Period and newline. */
+				1;          /* NULL terminator */
 
-	if((result = (char *) MTAKE(tot_size)) == NULL)
+	if((result = (char *) STAKE(tot_size)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("midcol_to_string","Can't alloc %d bytes.",
 				        tot_size);
 		for(i = 0; i < num_items; i++)
 		{
-			MRELEASE(mid_strs[i]);
+			SRELEASE(mid_strs[i]);
 		}
-		MRELEASE(mid_strs);
+		SRELEASE(mid_strs);
 
 		DTNMP_DEBUG_EXIT("midcol_to_string","->NULL",NULL);
 		return NULL;
@@ -1578,17 +1719,17 @@ char *midcol_to_string(Lyst mc)
 	for(i = 0; i < num_items; i++)
 	{
 		cursor += sprintf(cursor,"%s ",mid_strs[i]);
-		MRELEASE(mid_strs[i]);
+		SRELEASE(mid_strs[i]);
 	}
 	cursor += sprintf(cursor,".\n");
-	MRELEASE(mid_strs);
+	SRELEASE(mid_strs);
 
 	/* Step 5: Sanity check. */
 	if((cursor - result) > tot_size)
 	{
 		DTNMP_DEBUG_ERR("midcol_to_string", "OVERWROTE! Alloc %d, wrote %llu.",
 				tot_size, (cursor-result));
-		MRELEASE(result);
+		SRELEASE(result);
 		DTNMP_DEBUG_EXIT("mid_to_string","->NULL",NULL);
 		return NULL;
 	}
@@ -1677,7 +1818,7 @@ uint8_t *midcol_serialize(Lyst mids, uint32_t *size)
     }
 
     /* Step 3: Allocate the space for the serialized list. */
-    if((result = (uint8_t*) MTAKE(*size)) == NULL)
+    if((result = (uint8_t*) STAKE(*size)) == NULL)
     {
 		DTNMP_DEBUG_ERR("midcol_serialize","Can't alloc %d bytes", *size);
 		*size = 0;
@@ -1717,7 +1858,7 @@ uint8_t *midcol_serialize(Lyst mids, uint32_t *size)
 		DTNMP_DEBUG_ERR("midcol_serialize","Wrote %d bytes not %d bytes",
 				        (cursor - result), *size);
 		*size = 0;
-		MRELEASE(result);
+		SRELEASE(result);
 		DTNMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
 		return NULL;
     }

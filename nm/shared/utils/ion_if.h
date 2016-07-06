@@ -26,9 +26,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  08/10/11  V.Ramachandran Initial Implementation
- **  11/13/12  E. Birrane     Technical review, comment updates.
- **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ **  08/10/11  V.Ramachandran Initial Implementation (JHU/APL)
+ **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
+ **  06/30/16  E. Birrane     Doc. Updates (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #ifndef ION_IF_H_
 #define ION_IF_H_

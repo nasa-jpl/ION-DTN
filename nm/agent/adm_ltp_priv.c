@@ -201,7 +201,7 @@ expr_result_t ltp_get_node_resources_all(Lyst params)
 	ltpnm_resources(&bytes_reserved, &bytes_used);
 	result.length = sizeof(unsigned long) * 2;
 
-	result.value = (uint8_t*) MTAKE(result.length);
+	result.value = (uint8_t*) STAKE(result.length);
 
 	memcpy(result.value, &bytes_reserved, sizeof(bytes_reserved));
 	memcpy(&(result.value[sizeof(bytes_reserved)]), &bytes_used, sizeof(bytes_used));
@@ -218,7 +218,7 @@ expr_result_t ltp_get_heap_bytes_reserved(Lyst params)
 	ltpnm_resources(&bytes_reserved, &bytes_used);
 	result.length = sizeof(unsigned long);
 
-	result.value = (uint8_t*) MTAKE(result.length);
+	result.value = (uint8_t*) STAKE(result.length);
 
 	memcpy(result.value, &bytes_reserved, sizeof(bytes_reserved));
 	return result;
@@ -235,7 +235,7 @@ expr_result_t ltp_get_heap_bytes_used(Lyst params)
 	ltpnm_resources(&bytes_reserved, &bytes_used);
 	result.length = sizeof(unsigned long);
 
-	result.value = (uint8_t*) MTAKE(result.length);
+	result.value = (uint8_t*) STAKE(result.length);
 
 	memcpy(result.value, &bytes_used, sizeof(bytes_used));
 	return result;
@@ -265,7 +265,7 @@ expr_result_t ltp_get_engines(Lyst params)
 	result.length = num_sdnv.length +             /* NUM as SDNV length */
 			  (num * sizeof(unsigned long));
 
-	result.value = (uint8_t *) MTAKE(result.length);
+	result.value = (uint8_t *) STAKE(result.length);
 	cursor = result.value;
 
 	memcpy(cursor,num_sdnv.text, num_sdnv.length);
@@ -301,7 +301,7 @@ expr_result_t ltp_get_eng_all(Lyst params)
 	ltpnm_span_get(engineId, &span, &success);
 	if(success != 0)
 	{
-		result.value = (uint8_t*) MTAKE(sizeof(span));
+		result.value = (uint8_t*) STAKE(sizeof(span));
 		memcpy(result.value, &span, sizeof(span));
 		result.length = sizeof(span);
 	}

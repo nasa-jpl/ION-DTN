@@ -24,6 +24,10 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
+#ifdef BPSEC
+#include "ext/bpsec/bpsec_instr.h"
+#endif
+
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -45,7 +49,13 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+#ifdef ORIGINAL_BSP
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+#elif SBSP
+extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+#elif BPSEC
+extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
+#endif
 
 /*	We need to link with the ipn and dtn2 libraries in order to
  *	clean up directive upon removal of an outduct.			*/
@@ -1522,6 +1532,9 @@ int	bpInit()
 	}
 	else
 	{
+#ifdef BPSEC
+		bpsec_instr_init();
+#endif
 		writeMemo("[i] Bundle security is enabled.");
 	}
 
@@ -1686,6 +1699,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		zcoElt;
 	Object		nextElt;
 	Object		zco;
+
+#ifdef BPSEC
+	bpsec_instr_cleanup();
+#endif
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -7817,7 +7834,15 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
+#ifdef ORIGINAL_BSP
 	if (bsp_securityPolicyViolated(work))
+#elif SBSP
+	if (bsp_securityPolicyViolated(work))
+#elif BPSEC
+	if (bpsec_securityPolicyViolated(work))
+#else
+	if(0)
+#endif
 	{
 		writeMemo("[?] Security policy violated.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,

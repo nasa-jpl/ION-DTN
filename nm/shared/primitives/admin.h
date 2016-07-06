@@ -24,8 +24,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/17/13  E. Birrane     Redesign of messaging architecture.
- **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
+ **  01/17/13  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
+ **  06/30/16  E. Birrane     Update to AMP v0.3 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 
@@ -40,7 +41,6 @@
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
-
 
 
 /*
@@ -60,10 +60,10 @@
 /*
  * Associated Message Type: MSG_TYPE_ADMIN_REG_AGENT
  * Purpose: Notify manager of discovered agent.
- * +-------+----------+
- * | Size  | Agent ID |
- * | (SDNV)| (var)    |
- * +-------+----------+
+ * +----------+
+ * | Agent ID |
+ * | [BLOB]   |
+ * +----------+
  */
 typedef struct {
 	eid_t agent_id;       /**> ID of the agent being registered. */

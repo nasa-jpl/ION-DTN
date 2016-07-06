@@ -26,7 +26,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  06/29/13  E. Birrane Initial Implementation
+ **  06/29/13  E. Birrane Initial Implementation (JHU/APL)
  *****************************************************************************/
 #ifndef DB_H_
 #define DB_H_
