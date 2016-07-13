@@ -17,6 +17,11 @@
 #include "rfx.h"
 #include "lyst.h"
 
+#ifndef MAX_CONTACT_LOG_LENGTH
+#define MAX_CONTACT_LOG_LENGTH	(8)
+#endif
+#define CONFIDENCE_BASIS	(MAX_CONTACT_LOG_LENGTH * 2.0)
+
 static int	removePredictedContacts(uvast fromNode, uvast toNode);
 
 /*	*	Red-black tree ordering and deletion functions	*	*/
@@ -700,7 +705,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	if (cxref->toTime > currentTime)	/*	Affects routes.	*/
 	{
-		vdb->lastEditTime = currentTime;
+		getCurrentTime(&(vdb->lastEditTime));
 	}
 
 	return cxaddr;
@@ -902,11 +907,6 @@ static void	insertLogEntry(Sdr sdr, Object log, Object entryObj,
 	Object		elt;
 	PastContact	entry;
 
-	/*	The order of entries in the log is not important
-	 *	in itself.  It just makes it easier to exclude
-	 *	duplicate log entries, which if permitted would
-	 *	eventually make contact prediction very time-consuming.	*/
-
 	for (elt = sdr_list_first(sdr, log); elt; elt = sdr_list_next(sdr, elt))
 	{
 		sdr_read(sdr, (char *) &entry, sdr_list_data(sdr, elt),
@@ -952,6 +952,8 @@ puts("Duplicate log entry is rejected.");
 		return;
 	}
 
+	/*	Okay to insert the new contact history entry.		*/
+
 	if (elt)
 	{
 		oK(sdr_list_insert_before(sdr, elt, entryObj));
@@ -959,6 +961,17 @@ puts("Duplicate log entry is rejected.");
 	else
 	{
 		oK(sdr_list_insert_last(sdr, log, entryObj));
+	}
+
+	/*	If length of contact history now exceeds limit,
+	 *	delete the earliest entry.				*/
+
+	if (sdr_list_length(sdr, log) > MAX_CONTACT_LOG_LENGTH)
+	{
+		elt = sdr_list_first(sdr, log);
+		entryObj = sdr_list_data(sdr, elt);
+		sdr_free(sdr, entryObj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 }
 
@@ -1136,7 +1149,7 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	if (cxref->toTime > currentTime)	/*	Affects routes.	*/
 	{
-		vdb->lastEditTime = currentTime;
+		getCurrentTime(&(vdb->lastEditTime));
 	}
 
 	sm_rbt_delete(ionwm, vdb->contactIndex, rfx_order_contacts, cxref,
@@ -1585,10 +1598,11 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime)
 	uvast		gapDeviationsTotal = 0;
 	uvast		contactStdDev;
 	uvast		gapStdDev;
-	float		baseConfidence;
-	float		netDoubt;
+	float		contactDoubt;
+	float		gapDoubt;
+	float		contactConfidence;
+	float		gapConfidence;
 	float		netConfidence;
-	int		i;
 	unsigned int	xmitRate;
 	PsmAddress	cxaddr;
 char	buf[255];
@@ -1684,27 +1698,35 @@ meanCapacity, meanContactDuration, meanGapDuration);
 printf("Contact duration sigma " UVAST_FIELDSPEC ", gap duration sigma "
 UVAST_FIELDSPEC ".\n", contactStdDev, gapStdDev);
 
-	/*	Select base confidence, compute net confidence.		*/
+	/*	Compute net confidence for predicted contact between
+	 *	these two nodes.					*/
 
-	if (gapsCount > 1
-	&& contactStdDev < meanContactDuration
-	&& gapStdDev < meanGapDuration)
+	if (contactStdDev > meanContactDuration)
 	{
-		baseConfidence = HIGH_BASE_CONFIDENCE;
+		contactDoubt = 1.0;
 	}
 	else
 	{
-		baseConfidence = LOW_BASE_CONFIDENCE;
+		contactDoubt = MAX(0.1, contactStdDev / meanContactDuration);
 	}
 
-printf("Base confidence %f.\n", baseConfidence);
-	netDoubt = 1.0;
-	for (i = 0; i < contactsCount; i++)
+printf("Contact doubt %f.\n", contactDoubt);
+	if (gapStdDev > meanGapDuration)
 	{
-		netDoubt *= (1.0 - baseConfidence);
+		gapDoubt = 1.0;
+	}
+	else
+	{
+		gapDoubt = MAX(0.1, gapStdDev / meanGapDuration);
 	}
 
-	netConfidence = 1.0 - netDoubt;
+printf("Gap doubt %f.\n", gapDoubt);
+	contactConfidence = 1.0 - powf(contactDoubt,
+			contactsCount / CONFIDENCE_BASIS);
+printf("Contact confidence %f.\n", contactConfidence);
+	gapConfidence = 1.0 - powf(gapDoubt, gapsCount / CONFIDENCE_BASIS);
+printf("Gap confidence %f.\n", gapConfidence);
+	netConfidence = MAX(((contactConfidence + gapConfidence) / 2.0), .01);
 printf("Net confidence %f.\n", netConfidence);
 
 	/*	Insert predicted contact (aggregate).			*/
@@ -1727,6 +1749,7 @@ int	rfx_predict_contacts(uvast fromNode, uvast toNode)
 {
 	time_t		currentTime = getUTCTime();
 	Lyst		predictionBase;
+	PastContact	logEntry;
 	int		result = 0;
 
 	/*	First, remove predicted contacts from contact plan.	*/
@@ -1746,6 +1769,44 @@ int	rfx_predict_contacts(uvast fromNode, uvast toNode)
 	{
 		putErrmsg("Can't predict contacts.", NULL);
 		return -1;
+	}
+
+	/*	If the prediction base is empty, insert a single
+	 *	"hypothetical" past discovered contact (from one day
+	 *	ago to 1 hour later) to enable bold route anticipation.	*/
+
+	if (lyst_length(predictionBase) == 0)
+	{
+		logEntry.fromTime = currentTime - 86400;
+		logEntry.toTime = logEntry.fromTime + 3600;
+		logEntry.fromNode = fromNode;
+		logEntry.toNode = toNode;
+		logEntry.xmitRate = 125000000;	/*	1 Gbps		*/
+		if (insertIntoPredictionBase(predictionBase, &logEntry) < 0)
+		{
+			putErrmsg("Can't insert hypothetical contact.", NULL);
+			lyst_destroy(predictionBase);
+			return -1;
+		}
+	}
+
+	/*	If the prediction base contains only a single contact,
+	 *	insert an additional "stub" past discovered contact
+	 *	(creating one gap) to enable bold route anticipation.	*/
+
+	if (lyst_length(predictionBase) == 1)
+	{
+		logEntry.fromTime = currentTime - 2;
+		logEntry.toTime = logEntry.fromTime + 1;
+		logEntry.fromNode = fromNode;
+		logEntry.toNode = toNode;
+		logEntry.xmitRate = 125000000;	/*	1 Gbps		*/
+		if (insertIntoPredictionBase(predictionBase, &logEntry) < 0)
+		{
+			putErrmsg("Can't insert hypothetical contact.", NULL);
+			lyst_destroy(predictionBase);
+			return -1;
+		}
 	}
 
 	/*	Now generate predicted contacts from the prediction
@@ -1926,7 +1987,7 @@ static int	insertRXref(IonRXref *rxref)
 
 	if (rxref->toTime > currentTime)	/*	Affects routes.	*/
 	{
-		vdb->lastEditTime = currentTime;
+		getCurrentTime(&(vdb->lastEditTime));
 	}
 
 	if (rxref->fromNode > rxref->toNode)
@@ -2299,7 +2360,7 @@ static void	deleteRange(PsmAddress rxaddr, int conditional)
 
 	if (rxref->toTime > currentTime)	/*	Affects routes.	*/
 	{
-		vdb->lastEditTime = currentTime;
+		getCurrentTime(&(vdb->lastEditTime));
 	}
 
 	sm_rbt_delete(ionwm, vdb->rangeIndex, rfx_order_ranges, rxref,

@@ -293,7 +293,7 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
-	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
+	struct timeval	lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
 	PsmAddress	contactIndex;	/*	SM RB tree: IonCXref	*/
