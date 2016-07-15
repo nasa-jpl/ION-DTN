@@ -1726,6 +1726,56 @@ int	sec_removeKey(char *keyName)
 	return 1;
 }
 
+int	sec_activeKey(char *keyName)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+	Object	elt;
+	Object	ruleObj;
+	OBJ_POINTER(BspBabRule, babRule);
+	OBJ_POINTER(BspBibRule, bibRule);
+	OBJ_POINTER(BspBcbRule, bcbRule);
+
+	CHKERR(sdr_begin_xn(sdr));
+
+	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt; elt = sdr_list_next(sdr, elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBibRule, babRule, ruleObj);
+		if((strncmp(babRule->keyName, keyName, 32)) == 0)
+		{
+			sdr_end_xn(sdr);
+			return 1;
+		}
+	}
+
+	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt; elt = sdr_list_next(sdr, elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBibRule, bibRule, ruleObj);
+		if((strncmp(bibRule->keyName, keyName, 32)) == 0)
+		{
+			sdr_end_xn(sdr);
+			return 1;
+		}
+	}
+
+	for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt; elt = sdr_list_next(sdr, elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBcbRule, bcbRule, ruleObj);
+		if((strncmp(bcbRule->keyName, keyName, 32)) == 0)
+		{
+			sdr_end_xn(sdr);
+			return 1;
+		}
+	}
+
+	sdr_end_xn(sdr);
+
+	return 0;
+}
+
 int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 {
 	Sdr	sdr = getIonsdr();

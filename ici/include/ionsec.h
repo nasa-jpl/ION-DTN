@@ -248,6 +248,7 @@ extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);
 extern int	sec_addKey(char *keyName, char *fileName);
 extern int	sec_updateKey(char *keyName, char *fileName);
 extern int	sec_removeKey(char *keyName);
+extern int	sec_activeKey(char *keyName);
 extern int  sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen);
 
 /*	Bundle Security Protocol Bundle Authentication Blocks		*/
