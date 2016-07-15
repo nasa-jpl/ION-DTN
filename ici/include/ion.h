@@ -64,8 +64,8 @@ typedef struct
 {
 	unsigned int	term;		/*	In seconds.		*/
 	unsigned int	cycles;		/*	0 = forever.		*/
-	int		(*proceed)(void *);
-	void		*userData;
+	sm_SemId	semaphore;
+	time_t		nextTimeout;
 } IonAlarm;
 
 /*	The IonDB lists of IonContacts and IonRanges are time-ordered,
@@ -241,6 +241,7 @@ typedef enum
 	IonStartFire = 19,
 	IonStartRecv = 20,
 	IonPurgeContact = 21,
+	IonAlarmTimeout = 31
 } IonEventType;
 
 typedef struct
@@ -402,11 +403,6 @@ extern int		ionLocked();
 extern int		readIonParms(	char *configFileName,
 					IonParms *parms);
 extern void		printIonParms(	IonParms *parms);
-
-#ifndef ION4WIN		/*	No pthreads in Visual Studio		*/
-extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
-extern void		ionCancelAlarm(	pthread_t thread);
-#endif			/*	end of #ifndef ION4WIN			*/
 
 extern void		ionNoteMainThread(char *procName);
 extern void		ionPauseMainThread(int seconds);

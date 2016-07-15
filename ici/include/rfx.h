@@ -92,6 +92,28 @@ extern int		rfx_remove_range(time_t fromTime,
 				object from the time-ordered ranges
 				list in the ION database.		*/
 
+/*	*	Functions for inserting and removing alarms.		*/
+
+extern PsmAddress	rfx_insert_alarm(unsigned int term,
+				unsigned int cycles);
+			/*	Creates a new alarm object, inserts
+			 *	a timeline event referencing that
+			 *	object, and returns the alarm object's
+			 *	address. Returns zero on any error.
+			 *
+			 *	If cycles is zero, the alarm recurs
+			 *	indefinitely until it is removed.	*/
+
+extern int		rfx_alarm_raised(PsmAddress alarmAddr);
+			/*	Waits until alarm timeout expires,
+			 *	then returns 1.  On any error, or
+			 *	if the alarm is removed before its
+			 *	timeout expires, returns 0.		*/
+
+extern int		rfx_remove_alarm(PsmAddress alarmAddr);
+			/*	Removes the indicated alarm from the
+			 *	events timeline in the ION database.	*/
+
 /*	*	Functions for controlling the rfxclock.			*/
 
 extern int		rfx_start();

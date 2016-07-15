@@ -9,6 +9,7 @@
 										*/
 
 #include <dtpc.h>
+#include <rfx.h>
 
 static DtpcSAP	_dtpcsap(DtpcSAP *newSAP)
 {
@@ -80,11 +81,20 @@ static int	_startTime(time_t newStartTime)
 	return start;
 }
 
-static int	printCount(void *userData)
+static void	*printCounts(void *parm)
 {
-	PUTMEMO("Payloads received", itoa(_payloadCount(0)));
-	fflush(stdout);
-	return 0;
+	PsmAddress	alarm = (PsmAddress) parm;
+
+	while (1)
+	{
+		if (rfx_alarm_raised(alarm) == 0)
+		{
+			return NULL;
+		}
+
+		PUTMEMO("Payloads received", itoa(_payloadCount(0)));
+		fflush(stdout);
+	}
 }
 
 #if defined (ION_LWT)
@@ -100,9 +110,9 @@ int	main(int argc, char **argv)
 	DtpcSAP		sap;
 	DtpcDelivery	dlv;
 	int		stop = 0;
-	IonAlarm	alarm = { 5, 0, printCount, NULL };
-	pthread_t	alarmThread;
 	time_t		startTime = 0;
+	PsmAddress	alarm;
+	pthread_t	printThread;
 	time_t		endTime;
 	int 		interval;
 
@@ -125,7 +135,16 @@ int	main(int argc, char **argv)
 	}
 
 	oK(_dtpcsap(&sap));
-	ionSetAlarm(&alarm, &alarmThread);
+	alarm = rfx_insert_alarm(5, 0);
+	if (pthread_begin(&printThread, NULL, printCounts, (void *) alarm))
+	{
+		putErrmsg("Can't start print thread.", NULL);
+		rfx_remove_alarm(alarm);
+		dtpc_close(sap);
+		ionDetach();
+		return 0;
+	}
+
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))
 	{
@@ -162,6 +181,8 @@ int	main(int argc, char **argv)
 		dtpc_release_delivery(&dlv);
 	}
 
+	rfx_remove_alarm(alarm);
+	pthread_join(printThread, NULL);
 	dtpc_close(sap);
 	startTime = _startTime(0);
 	if (startTime)

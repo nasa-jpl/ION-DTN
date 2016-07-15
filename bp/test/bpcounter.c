@@ -8,6 +8,7 @@
 /*									*/
 
 #include <bp.h>
+#include <rfx.h>
 
 typedef struct
 {
@@ -56,11 +57,20 @@ static int	_bundleCount(int increment)
 	return count;
 }
 
-static int	printCount(void *userData)
+static void	*printCounts(void *parm)
 {
-	PUTMEMO("Bundles received", itoa(_bundleCount(0)));
-	fflush(stdout);
-	return 0;
+	PsmAddress	alarm = (PsmAddress) parm;
+
+	while (1)
+	{
+		if (rfx_alarm_raised(alarm) == 0)
+		{
+			return NULL;
+		}
+
+		PUTMEMO("Bundles received", itoa(_bundleCount(0)));
+		fflush(stdout);
+	}
 }
 
 #if defined (ION_LWT)
@@ -81,8 +91,8 @@ int	main(int argc, char **argv)
 	struct timeval	startTime;
 	double		bytesReceived = 0.0;
 	int		bundlesReceived = -1;
-	IonAlarm	alarm = { 5, 0, printCount, NULL };
-	pthread_t	alarmThread;
+	PsmAddress	alarm;
+	pthread_t	printThread;
 	struct timeval	endTime;
 	double		interval;
 	char		textBuf[256];
@@ -107,12 +117,22 @@ int	main(int argc, char **argv)
 	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
+		bp_detach();
 		return 0;
 	}
 
 	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
-	ionSetAlarm(&alarm, &alarmThread);
+	alarm = rfx_insert_alarm(5, 0);
+	if (pthread_begin(&printThread, NULL, printCounts, (void *) alarm))
+	{
+		putErrmsg("Can't start print thread.", NULL);
+		rfx_remove_alarm(alarm);
+		bp_close(state.sap);
+		bp_detach();
+		return 0;
+	}
+
 	isignal(SIGINT, handleQuit);
 	while (state.running)
 	{
@@ -163,7 +183,8 @@ int	main(int argc, char **argv)
 	}
 
 	getCurrentTime(&endTime);
-	ionCancelAlarm(alarmThread);
+	rfx_remove_alarm(alarm);
+	pthread_join(printThread, NULL);
 	bp_close(state.sap);
 	PUTMEMO("Stopping bpcounter; bundles received", itoa(bundlesReceived));
 	if (bundlesReceived > 0)
