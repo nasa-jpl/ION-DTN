@@ -677,7 +677,7 @@ int rda_eval_pending_rules()
     			srl->desc.num_evals--;
     		}
 
-    		srl_release(srl);
+    	//	srl_release(srl);
         }
     }
 

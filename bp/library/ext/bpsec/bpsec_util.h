@@ -307,7 +307,7 @@ extern int8_t	      bpsec_securityPolicyViolated(AcqWorkArea *wk);
 extern unsigned char *bpsec_serializeASB(unsigned int *length,
 		                                 BpsecOutboundBlock *blk);
 
-extern int32_t        bpsec_transferToZcoFileSource(Sdr sdr,
+extern int8_t         bpsec_transferToZcoFileSource(Sdr sdr,
 		                                            Object *resultZco,
 													Object *acqFileRef,
 													char *fname,

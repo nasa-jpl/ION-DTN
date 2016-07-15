@@ -333,7 +333,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 		BCB_DEBUG_ERR("x bpsec_bcbDecrypt:  Blocks are NULL. %x",
 				(unsigned long) blk);
-		result = -1;
+		result = 0;
 		BCB_DEBUG_PROC("- bpsec_bcbDecrypt --> %d", result);
 		return result;
 	}
@@ -350,7 +350,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	{
 		ADD_BCB_RX_FAIL(NULL, 1, 0);
 
-		return -1;
+		return 0;
 	}
 
 	asb = (BpsecInboundBlock *) (blk->object);
@@ -361,7 +361,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 			ADD_BCB_RX_FAIL(NULL, 1, 0);
 
 			releaseDictionary(dictionary);
-			return -1;
+			return 0;
 		}
 	}
 	else
@@ -370,7 +370,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		{
 			ADD_BCB_RX_FAIL(NULL, 1, 0);
 			releaseDictionary(dictionary);
-			return -1;
+			return 0;
 		}
 	}
 
@@ -380,7 +380,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 		MRELEASE(fromEid);
 		releaseDictionary(dictionary);
-		return -1;
+		return 0;
 	}
 
 	releaseDictionary(dictionary);
@@ -447,6 +447,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 		else
 		{
+//			BCB_DEBUG(5,"BCB Passed Decrypt", NULL);
 			ADD_BCB_RX_PASS(fromEid, 1, bytes);
 		}
 
@@ -770,9 +771,9 @@ payload.", NULL);
 	{
 		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt: Can't allocate heap \
 space for ASB result.", NULL);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt --> %d", -1);
+		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt --> %d", 0);
 		csi_cipherparms_free(parms);
-		return -1;
+		return 0;
 	}
 
 	/* Step 8 - Place the parameters in the appropriate BCB field. */
@@ -901,8 +902,8 @@ of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
  *               appropriate ciphersuite, and generates a serialized version of
  *               the block appropriate for transmission.
  * *
- * \retval int -1  - Error.
- *              0  - No BCB Policy
+ * \retval int -1  - System Error.
+ *              0  - Failure (such as No BCB Policy)
  *             >0  - BCB Attached
  *
  * \param[in|out]  bundle  The bundle to which a BCB might be attached.
@@ -952,12 +953,12 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	/* Step 1 - Grab Policy for the candidate block. */
 
 	/* Step 1.1 - Retrieve the from/to EIDs that bound the integrity service. */
-	if (bpsec_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb, &fromEid, &toEid))
+	if ((result = bpsec_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb, &fromEid, &toEid)) <= 0)
 	{
 		ADD_BCB_TX_FAIL(NULL, 1, 0);
 
 		BCB_DEBUG_ERR("x bpsec_bcbAttach: Can't get security EIDs.", NULL);
-		result = -1;
+
 		BCB_DEBUG_PROC("- attachBib -> %d", result);
 		return result;
 	}
@@ -973,6 +974,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	if (prof == NULL)
 	{
 		MRELEASE(fromEid);
+//		BCB_DEBUG(5,"NOT adding BCB.", NULL);
 
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bcbBlk);
@@ -981,6 +983,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		return result;
 	}
 
+//	BCB_DEBUG(5,"Adding BCB", NULL);
 
 	/* Step 2 - Populate the BCB ASB. */
 
@@ -1000,8 +1003,8 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		ADD_BCB_TX_FAIL(fromEid, 1, 0);
 		MRELEASE(fromEid);
 
-		result = -1;
 		scratchExtensionBlock(bcbBlk);
+		bundle->corrupt = 1;
 		BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
 		return result;
 	}
@@ -1019,8 +1022,8 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
 		MRELEASE(fromEid);
 
-		result = -1;
 		scratchExtensionBlock(bcbBlk);
+		bundle->corrupt = 1;
 		BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
 		return result;
 	}
@@ -1036,14 +1039,19 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
 		MRELEASE(fromEid);
 
-		result = -1;
+		result = 0;
 		scratchExtensionBlock(bcbBlk);
+		bundle->corrupt = 1;
 		BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
 		return result;
 	}
 
 	/* Step 3.2 - Copy the serializedBIB ASB into the BCB extension block. */
-	result = serializeExtBlk(bcbBlk, NULL, (char *) serializedAsb);
+	if((result = serializeExtBlk(bcbBlk, NULL, (char *) serializedAsb)) < 0)
+	{
+		bundle->corrupt = 1;
+	}
+
 	MRELEASE(serializedAsb);
 
 	ADD_BCB_TX_PASS(fromEid, 1, bytes);
@@ -1118,7 +1126,7 @@ int	bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	if ((blk->tag1 == BLOCK_TYPE_PRIMARY)||
 		(blk->tag1 == BLOCK_TYPE_BCB))
 	{
-		/*	Can't have a BIB for these types of block.	*/
+		/*	Can't have a BCB for these types of block.	*/
 		BCB_DEBUG_ERR("x bpsec_bcbOffer - BCB can't target type %d", blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
@@ -1146,6 +1154,9 @@ int	bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	bpsec_insertSecuritySource(bundle, &asb);
 	asb.targetBlockType = blk->tag1;
 
+
+	sdr_begin_xn(bpSdr);
+
 	/* Step 2.2 Populate the BCB Extension Block. */
 	blk->size = sizeof(BpsecOutboundBlock);
 	if((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
@@ -1153,6 +1164,7 @@ int	bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		BCB_DEBUG_ERR("x bpsec_bcbOffer: Failed to SDR allocate object \
 of size: %d", blk->size);
 		result = -1;
+		sdr_cancel_xn(bpSdr);
 		BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
 		return result;
 	}
@@ -1161,6 +1173,8 @@ of size: %d", blk->size);
 	/* Step 3 - Write the ASB into the block. */
 
 	sdr_write(bpSdr, blk->object, (char *) &asb, blk->size);
+
+	sdr_end_xn(bpSdr);
 
 
 	/* Step 4 - Attach BCB if possible. */
@@ -1188,12 +1202,19 @@ of size: %d", blk->size);
 		return result;
 	}
 
-
 	/*
 	 * Step 4.2 If target is the payload, encrypt the target
 	 * and attach the BCB.
 	 */
-	result = bpsec_bcbAttach(bundle, blk, &asb);
+	if((result = bpsec_bcbAttach(bundle, blk, &asb)) <= 0)
+	{
+		sdr_begin_xn(bpSdr);
+		sdr_free(bpSdr, blk->object);
+		sdr_end_xn(bpSdr);
+
+		blk->object = 0;
+		blk->size = 0;
+	}
 
 	BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
 	return result;
@@ -1890,7 +1911,7 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t          suite,
 		}
 
 		if(bpsec_transferToZcoFileSource(bpSdr, cipherZco, &fileRef, BCB_FILENAME,
-									     (char *) ciphertext.contents, ciphertext.len) < 0)
+									     (char *) ciphertext.contents, ciphertext.len) <= 0)
 		{
 			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Transfer of chunk has failed..", NULL);
 			MRELEASE(ciphertext.contents);
@@ -1991,7 +2012,7 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t          suite,
  *                           implementation (NASA: NNX14CS58P)]
  *
  *****************************************************************************/
-uint8_t bpsec_bcbHelper(Object *dataObj,
+int8_t bpsec_bcbHelper(Object *dataObj,
   				  	           uint32_t chunkSize,
 						       uint32_t suite,
 						       csi_val_t key,

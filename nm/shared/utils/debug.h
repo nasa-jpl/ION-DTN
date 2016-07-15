@@ -44,9 +44,9 @@
 
 #define DTNMP_DEBUG_LVL	DTNMP_DEBUG_LVL_WARN
 
-#define	GMSG_BUFLEN	512
+#define	DTNMP_GMSG_BUFLEN	256
 #if DTNMP_DEBUGGING == 1
-extern char		gMsg[];		/*	Debug message buffer.	*/
+extern char		gDtnmpMsg[];		/*	Debug message buffer.	*/
 #endif
 
 /**
@@ -80,13 +80,13 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 #if defined (ION_LWT)
 
 #define DTNMP_DEBUG(level, type, func, format,...) if(level >= DTNMP_DEBUG_LVL) \
-{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(func, gMsg);}
+{_isprintf(gDtnmpMsg, DTNMP_GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(func, gDtnmpMsg);}
 
 #else
 
 #define DTNMP_DEBUG(level, type, func, format,...) if(level >= DTNMP_DEBUG_LVL) \
-{isprintf(gMsg, GMSG_BUFLEN, (char *) format, __VA_ARGS__); \
-fprintf(stderr, "[%s:%d] %c %s %s\n",__FILE__,__LINE__,type, func, gMsg);}
+{isprintf(gDtnmpMsg, DTNMP_GMSG_BUFLEN, (char *) format, __VA_ARGS__); \
+fprintf(stderr, "[%s:%d] %c %s %s\n",__FILE__,__LINE__,type, func, gDtnmpMsg);}
 
 #endif
 

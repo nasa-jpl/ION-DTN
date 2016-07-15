@@ -174,7 +174,7 @@ extern BcbProfile *bpsec_bcbGetProfile(char *secSrc,
 							           int secTgtType,
 									   BspBcbRule *secBcbRule);
 
-extern uint8_t     bpsec_bcbHelper(Object *dataObj,
+extern  int8_t     bpsec_bcbHelper(Object *dataObj,
 				  	               uint32_t chunkSize,
 						           uint32_t suite,
 						           csi_val_t key,

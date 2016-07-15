@@ -4991,6 +4991,11 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
+	if(bundle->corrupt == 1)
+	{
+		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
+	}
+
 	/*	If bundle is already being forwarded, then a
 	 *	redundant CT signal indicating custody refusal
 	 *	has been received, and we haven't yet finished

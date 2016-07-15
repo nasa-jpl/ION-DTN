@@ -521,6 +521,7 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 
 	memcpy(cursor, entries, entries_len);
 	cursor += entries_len;
+	SRELEASE(entries);
 
 	/* Step 6: Last sanity check. */
 	if((cursor - result) != *len)
@@ -987,6 +988,7 @@ void rpt_entry_release(rpt_entry_t *entry)
 	{
 		mid_release(entry->id);
 		tdc_destroy(&(entry->contents));
+		SRELEASE(entry);
 	}
 }
 
@@ -1063,6 +1065,9 @@ uint8_t *rpt_entry_serialize(rpt_entry_t *entry, uint32_t *len)
 	memcpy(cursor, mid_data, mid_len);
 	cursor += mid_len;
 	memcpy(cursor, tdc_data, tdc_len);
+
+	SRELEASE(mid_data);
+	SRELEASE(tdc_data);
 
 	return result;
 }

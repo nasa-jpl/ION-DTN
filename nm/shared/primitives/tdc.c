@@ -369,6 +369,11 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 			DTNMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
 			return NULL;
 		}
+
+		/* Remove entry BLOB container, but do not destroy value, which was
+		 * copied into the TDC above.
+		 */
+		SRELEASE(entry);
 	}
 
 	DTNMP_DEBUG_EXIT("tdc_deserialize", "->" UVAST_FIELDSPEC, (uvast)result);

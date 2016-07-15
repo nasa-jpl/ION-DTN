@@ -22,6 +22,7 @@
 #include "shared/primitives/table.h"
 
 #include "shared/adm/adm_bpsec.h"
+#include "bp/library/ext/bpsec/profiles.h"
 
 /* Meta-Data Functions. */
 value_t adm_bpsec_md_name(tdc_t params)
@@ -540,6 +541,17 @@ tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 		return NULL;
 	}
 
+	/*
+	 * Step 2: Make sure key to be deleted is not an active key. Deleting
+	 * an active key can lock someone out of the system
+	 */
+	if(sec_activeKey(name) != 0)
+	{
+		DTNMP_DEBUG_WARN("adm_bpsec_ctl_del_key","Can't remove active key %s", name);
+		SRELEASE(name);
+		return NULL;
+	}
+
 	if(sec_removeKey(name) == 1)
 	{
 		*status = CTRL_SUCCESS;
@@ -605,10 +617,33 @@ tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	cs = adm_extract_string(params, 3, &success);
 	key = adm_extract_string(params, 4, &success);
 
-
-	if(sec_addBspBibRule(src, dst, tgt, cs, key) == 1)
+	if(get_bib_prof_by_name(cs) != NULL)
 	{
-		*status = CTRL_SUCCESS;
+		Object addr;
+		Object elt;
+
+		/* Step 3: Check to see if key exists. */
+		sec_findKey(key, &addr, &elt);
+		if(elt != 0)
+		{
+			/* Step 4: Update the BCB Rule. */
+			if(sec_addBspBibRule(src, dst, tgt, cs, key) == 1)
+			{
+				*status = CTRL_SUCCESS;
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Can't update rule.", NULL);
+			}
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Key %s doesn't exist.", key);
+		}
+	}
+	else
+	{
+		DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -941,10 +976,36 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	cs = adm_extract_string(params, 3, &success);
 	key = adm_extract_string(params, 4, &success);
 
-	if(sec_addBspBcbRule(src, dst, tgt, cs, key) == 1)
+
+	if(get_bcb_prof_by_name(cs) != NULL)
 	{
-		*status = CTRL_SUCCESS;
+		Object addr;
+		Object elt;
+
+		/* Step 3: Check to see if key exists. */
+		sec_findKey(key, &addr, &elt);
+		if(elt != 0)
+		{
+			/* Step 4: Update the BCB Rule. */
+			if(sec_addBspBcbRule(src, dst, tgt, cs, key) == 1)
+			{
+				*status = CTRL_SUCCESS;
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Can't add rule.", NULL);
+			}
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Key %s doesn't exist.", key);
+		}
 	}
+	else
+	{
+		DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Ciphersuite %s not supported.", cs);
+	}
+
 
 	SRELEASE(src);
 	SRELEASE(dst);
@@ -1027,4 +1088,126 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	*status = CTRL_SUCCESS;
 
 	return retval;
+}
+
+
+/*
+ *  UpdateBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
+ */
+tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	char *src = NULL;
+	char *dst = NULL;
+	uint32_t tgt = 0;
+	char *cs = NULL;
+	char *key = NULL;
+	int8_t success = 0;
+
+	*status = CTRL_FAILURE;
+
+	/* Step 1: Grab the name of the new key. */
+	src = adm_extract_string(params, 0, &success);
+	dst = adm_extract_string(params, 1, &success);
+	tgt = adm_extract_uint(params, 2, &success);
+	cs = adm_extract_string(params, 3, &success);
+	key = adm_extract_string(params, 4, &success);
+
+
+	if(get_bib_prof_by_name(cs) != NULL)
+	{
+		Object addr;
+		Object elt;
+
+		/* Step 3: Check to see if key exists. */
+		sec_findKey(key, &addr, &elt);
+		if(elt != 0)
+		{
+			/* Step 4: Update the BCB Rule. */
+			if(sec_updateBspBibRule(src, dst, tgt, cs, key) == 1)
+			{
+				*status = CTRL_SUCCESS;
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Can't update rule.", NULL);
+			}
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Key %s doesn't exist.", key);
+		}
+	}
+	else
+	{
+		DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "CIphersuite %s not supported.", cs);
+	}
+
+	SRELEASE(src);
+	SRELEASE(dst);
+	SRELEASE(cs);
+	SRELEASE(key);
+
+	return NULL;
+}
+
+
+
+/*
+ *  UpdateBcbRule(STR src, STR dest, INT tgt, STR cs, STR key)
+ */
+tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	char *src = NULL;
+	char *dst = NULL;
+	uint32_t tgt = 0;
+	char *cs = NULL;
+	char *key = NULL;
+	int8_t success = 0;
+
+	*status = CTRL_FAILURE;
+
+	/* Step 1: Grab the name of the new key. */
+	src = adm_extract_string(params, 0, &success);
+	dst = adm_extract_string(params, 1, &success);
+	tgt = adm_extract_uint(params, 2, &success);
+	cs = adm_extract_string(params, 3, &success);
+	key = adm_extract_string(params, 4, &success);
+
+
+	/* Step 2: Check to make sure Ciphersuite is supported. */
+	if(get_bcb_prof_by_name(cs) != NULL)
+	{
+		Object addr;
+		Object elt;
+
+		/* Step 3: Check to see if key exists. */
+		sec_findKey(key, &addr, &elt);
+		if(elt != 0)
+		{
+			/* Step 4: Update the BCB Rule. */
+			if(sec_updateBspBcbRule(src, dst, tgt, cs, key) == 1)
+			{
+				*status = CTRL_SUCCESS;
+			}
+			else
+			{
+				DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Can't update rule.", NULL);
+			}
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Key %s doesn't exist.", key);
+		}
+	}
+	else
+	{
+		DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "CIphersuite %s not supported.", cs);
+	}
+
+	SRELEASE(src);
+	SRELEASE(dst);
+	SRELEASE(cs);
+	SRELEASE(key);
+
+	return NULL;
 }

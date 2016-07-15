@@ -394,6 +394,7 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
     	val_data = val_serialize(result, &val_len, 0);
     	tdc_insert(entry->contents, adm_def->type, val_data, val_len);
     	SRELEASE(val_data);
+    	val_release(&result, 0);
     }
 
     DTNMP_DEBUG_EXIT("ldc_fill_atomic","-> 0", NULL);

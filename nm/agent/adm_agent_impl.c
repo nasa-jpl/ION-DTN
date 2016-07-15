@@ -1592,9 +1592,16 @@ tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		/* do not release cur, it is a direct ptr. */
 		srl_t *srl = agent_vdb_srl_find(mid);
 
-		data = srl_serialize(srl, &data_len);
-		tdc_insert(retval, DTNMP_TYPE_SRL, data, data_len);
-		SRELEASE(data);
+		if(srl != NULL)
+		{
+			if((data = srl_serialize(srl, &data_len)) != NULL)
+			{
+				tdc_insert(retval, DTNMP_TYPE_SRL, data, data_len);
+				SRELEASE(data);
+			}
+
+//			srl_release(srl);
+		}
 	}
 
 	midcol_destroy(&mc);

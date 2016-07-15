@@ -125,7 +125,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	/* Step 1 - Grab Policy for the candidate block. */
 
 	/* Step 1.1 - Retrieve the from/to EIDs that bound the integrity service. */
-	if (bpsec_getOutboundSecurityEids(bundle, bibBlk, bibAsb, &fromEid, &toEid))
+	if (bpsec_getOutboundSecurityEids(bundle, bibBlk, bibAsb, &fromEid, &toEid) <= 0)
 	{
 		BIB_DEBUG_ERR("x bpsec_bibAttach: Can't get security EIDs.", NULL);
 		result = -1;
@@ -142,6 +142,8 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
+	//	BIB_DEBUG(5, "NOT Attaching BIB.", NULL);
+
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bibBlk);
 		result = 0;
@@ -151,6 +153,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	}
 
 
+//	BIB_DEBUG(5, "Attaching BIB.", NULL);
 
 	/* Step 2 - Populate the BIB ASB. */
 
@@ -169,6 +172,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 
 		BIB_DEBUG_ERR("x bpsec_bibAttach: Can't construct ASB.", NULL);
 		result = -1;
+		bundle->corrupt = 1;
 		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- bpsec_bibAttach --> %d", result);
 		return result;
@@ -187,6 +191,8 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 
 		BIB_DEBUG_ERR("x bpsec_bibAttach: Can't sign target block.", NULL);
 		result = -1;
+		bundle->corrupt = 1;
+
 		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- bpsec_bibAttach --> %d", result);
 		return result;
@@ -196,7 +202,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 
 	/* Step 3 - serialize the BIB ASB into the BIB blk. */
 
-	/* Step 3.1 - Crreat a serilized version of the BIB ASB. */
+	/* Step 3.1 - Create a serialized version of the BIB ASB. */
 	if((serializedAsb = bpsec_serializeASB(&(bibBlk->dataLength), bibAsb)) == NULL)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
@@ -205,13 +211,19 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 		BIB_DEBUG_ERR("x bpsec_bibAttach: Unable to serialize ASB.  bibBlk->dataLength = %d",
 				      bibBlk->dataLength);
 		result = -1;
+		bundle->corrupt = 1;
+
 		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- bpsec_bibAttach --> %d", result);
 		return result;
 	}
 
 	/* Step 3.2 - Copy the serializedBIB ASB into the BIB extension block. */
-	result = serializeExtBlk(bibBlk, NULL, (char *) serializedAsb);
+	if((result = serializeExtBlk(bibBlk, NULL, (char *) serializedAsb)) < 0)
+	{
+		bundle->corrupt = 1;
+	}
+
 	MRELEASE(serializedAsb);
 
 	ADD_BIB_TX_PASS(fromEid, 1, bytes);
@@ -376,6 +388,7 @@ int bpsec_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 		else
 		{
+	//		BIB_DEBUG(5, "BIB check passed.", NULL);
 			ADD_BIB_RX_PASS(fromEid, 1, bytes);
 		}
 		discardExtensionBlock(blk);
@@ -1281,6 +1294,9 @@ int	bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	asb.targetBlockType = blk->tag1;
 
 	/* Step 2.2 Populate the BIB Extension Block. */
+
+	sdr_begin_xn(bpSdr);
+
 	blk->size = sizeof(BpsecOutboundBlock);
 	if((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
 	{
@@ -1294,6 +1310,8 @@ int	bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	/* Step 3 - Write the ASB into the block. */
 
 	sdr_write(bpSdr, blk->object, (char *) &asb, blk->size);
+
+	sdr_end_xn(bpSdr);
 
 	/* Step 4 - Attach BIB if possible. */
 
@@ -1325,7 +1343,16 @@ int	bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	 * and attached the BIB.
 	 */
 
-	result = bpsec_bibAttach(bundle, blk, &asb);
+	if((result = bpsec_bibAttach(bundle, blk, &asb)) <= 0)
+	{
+		sdr_begin_xn(bpSdr);
+		sdr_free(bpSdr, blk->object);
+		sdr_end_xn(bpSdr);
+
+		blk->object = 0;
+		blk->size = 0;
+	}
+
 
 	BIB_DEBUG_PROC("- bpsec_bibOffer -> %d", result);
 	return result;

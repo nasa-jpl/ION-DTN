@@ -533,7 +533,7 @@ int  agent_db_srl_forget(mid_t *mid)
 	}
 
 	result =  agent_db_forget(gAgentDB.srls, item->desc.itemObj, item->desc.descObj);
-	srl_release(item);
+//	srl_release(item);
 
 	return result;
 }
@@ -1260,7 +1260,8 @@ srl_t*     agent_vdb_srl_find(mid_t *mid)
 		cur = (srl_t *) lyst_data(elt);
 		if(mid_compare(cur->mid, mid, 1) == 0)
 		{
-			result = srl_copy(cur);
+		//	result = srl_copy(cur);
+			result = cur;
 			break;
 		}
 	}

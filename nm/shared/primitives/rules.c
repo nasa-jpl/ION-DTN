@@ -296,6 +296,8 @@ void     srl_release(srl_t *srl)
 	{
 		midcol_destroy(&(srl->action));
 	}
+
+	SRELEASE(srl);
 }
 
 

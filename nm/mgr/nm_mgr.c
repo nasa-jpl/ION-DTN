@@ -571,7 +571,7 @@ int mgr_cleanup()
 	for(elt = lyst_first(gParmSpec); elt; elt = lyst_next(elt))
 	{
 		ui_parm_spec_t *spec = lyst_data(elt);
-		SRELEASE(spec->mid);
+		mid_release(spec->mid);
 		SRELEASE(spec);
 	}
 	lyst_destroy(gParmSpec);

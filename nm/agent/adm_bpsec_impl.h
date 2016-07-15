@@ -130,6 +130,8 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_bpsec_ctl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status);
 
+tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status);
 
 /* OP Functions. */
 

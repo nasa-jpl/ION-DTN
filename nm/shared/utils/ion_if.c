@@ -197,16 +197,28 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     Sdr sdr = bp_get_sdr();
     uint8_t *buffer = NULL;
     int result;
+    static int count = 0;
 
     DTNMP_DEBUG_ENTRY("iif_receive", "(0x%x, %d)",
     		         (unsigned long) iif, timeout);
 
     DTNMP_DEBUG_INFO("iif_rceive", "Received bundle.", NULL);
 
+    if(count > 10)
+    {
+    	if(count == 10)
+    	{
+    		count++;
+    		DTNMP_DEBUG_ALWAYS("iif_receive","BPA no longer responding. Shutting down.", NULL);
+    	}
+    	return NULL;
+    }
+
     /* Step 1: Receive the bundle.*/
     if((result = bp_receive(iif->sap, &dlv, timeout)) < 0)
     {
     	DTNMP_DEBUG_INFO("iif_receive","bp_receive failed. Result: %d.", result);
+    	count++;
     	return NULL;
     }
     else
@@ -214,16 +226,19 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     	switch(dlv.result)
     	{
     		case BpEndpointStopped:
+    			count++;
     			/* The endpoint stopped? Panic.*/
     			DTNMP_DEBUG_INFO("iif_receive","Endpoint stopped.", NULL);
     			return NULL;
 
     		case BpPayloadPresent:
+    	    	count = 0;
     			/* Clear to process the payload. */
     			DTNMP_DEBUG_INFO("iif_receive", "Payload present.", NULL);
     			break;
 
     		default:
+    	    	count = 0;
     			/* No message. Return NULL. */
     			return NULL;
     			break;
@@ -261,6 +276,8 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     strcpy(meta->senderEid.name, dlv.bundleSourceEid);
     strcpy(meta->originatorEid.name, dlv.bundleSourceEid);
     strcpy(meta->recipientEid.name, iif->local_eid.name);
+
+    MRELEASE(dlv.bundleSourceEid);
 
     DTNMP_DEBUG_EXIT("iif_receive", "->0x%x", (unsigned long) buffer);
     return buffer;
@@ -394,6 +411,8 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     else
     {
     	DTNMP_DEBUG_ERR("iif_send","Can't write to NULL extent.", NULL);
+    	sdr_cancel_xn(sdr);
+    	return 0;
     }
 
    // Object sdrObj = sdr_insert(sdr, (char *) data, len);
@@ -402,8 +421,9 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     	DTNMP_DEBUG_ERR("iif_send","Can't close transaction?", NULL);
     }
         
-    /* Step 3 - Great ZCO in an SDR transaction.*/
+    /* Step 3 - Create ZCO.*/
     Object content = ionCreateZco(ZcoSdrSource, extent, 0, len, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+
 
     if(content == 0 || content == (Object) ERROR)
     {

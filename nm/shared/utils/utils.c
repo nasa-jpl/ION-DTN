@@ -46,6 +46,9 @@
 
 static ResourceLock gMemMutex;
 
+#if DTNMP_DEBUGGING == 1
+char gDtnmpMsg[DTNMP_GMSG_BUFLEN];
+#endif
 
 int8_t utils_mem_int()
 {

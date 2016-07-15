@@ -843,6 +843,8 @@ int mid_internal_serialize(mid_t *mid)
 
 	}
 
+	SRELEASE(oid_val);
+
 	DTNMP_DEBUG_EXIT("mid_internal_serialize","->1",NULL);
 	return 1;
 }

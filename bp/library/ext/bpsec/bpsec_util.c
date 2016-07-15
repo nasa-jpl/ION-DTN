@@ -399,8 +399,8 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 			asb.parmsData = MTAKE(asb.parmsLen);
 			if (asb.parmsData == NULL)
 			{
-				putErrmsg("No space for ASB parms.",
-						utoa(asb.parmsLen));
+				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB parms %d",
+						        utoa(asb.parmsLen));
 				return -1;
 			}
 
@@ -436,8 +436,8 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 			asb.resultsData = MTAKE(asb.resultsLen);
 			if (asb.resultsData == NULL)
 			{
-				putErrmsg("No space for ASB results.",
-						utoa(asb.resultsLen));
+				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB results %d",
+						        utoa(asb.resultsLen));
 				return -1;
 			}
 
@@ -453,7 +453,7 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 	blk->object = MTAKE(sizeof(BpsecInboundBlock));
 	if (blk->object == NULL)
 	{
-		putErrmsg("No space for ASB scratchpad.", NULL);
+		BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB scratchpad", NULL);
 		return -1;
 	}
 
@@ -502,7 +502,7 @@ int8_t	bpsec_destinationIsLocal(Bundle *bundle)
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
-		putErrmsg("Can't retrieve dictionary.", NULL);
+		BPSEC_DEBUG_ERR("x bpsec_destinationIsLocal: Can't retrieve dictionary.", NULL);
 		return result;
 	}
 
@@ -658,7 +658,9 @@ Object	bpsec_findBlock(Bundle *bundle,
  * \par Purpose: This function retrieves the inbound and outbound security
  *               EIDs associated with an inbound abstract security block.
  *
- * \retval -1 on ERROR, 0 Otherwise
+ * \retval -1 on fatal error
+ *          0 on failure
+ *          >0 on Success
  *
  * \param[in]   bundle   The inbound bundle.
  * \param[in]   blk      The inbound block.
@@ -675,6 +677,8 @@ Object	bpsec_findBlock(Bundle *bundle,
  *  MM/DD/YY  AUTHOR        DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  03/14/16  E. Birrane    Documentation.[Secure DTN
+ *                          implementation (NASA: NNX14CS58P)]
+ *  07/14/16  E. Birrane    Update Return Codes.[Secure DTN
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
@@ -697,7 +701,7 @@ int8_t bpsec_getInboundSecurityEids(Bundle *bundle,
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
-		return -1;
+		return 0;
 	}
 
 	if (printEid(&(bundle->destination), dictionary, toEid) < 0)
@@ -716,7 +720,14 @@ int8_t bpsec_getInboundSecurityEids(Bundle *bundle,
 	}
 	else
 	{
-		result = printEid(&bundle->id.source, dictionary, fromEid);
+		if(printEid(&bundle->id.source, dictionary, fromEid) < 0)
+		{
+			result = -1;
+		}
+		else
+		{
+			result = 1;
+		}
 	}
 
 	if (dictionary)
@@ -736,7 +747,9 @@ int8_t bpsec_getInboundSecurityEids(Bundle *bundle,
  * \par Purpose: This function finds the security source associated with a
  *               given in-bound extension block.
  *
- * \retval  -1 on Error. 0 Otherwise.
+ * \retval  -1 on System Error
+ *           0 on failure.
+ *           >0 Success
  *
  * \param[in]  bundle      		The bundle within which to search.
  * \param[in]  type        		The type of BPSEC block to look for.
@@ -751,6 +764,8 @@ int8_t bpsec_getInboundSecurityEids(Bundle *bundle,
  *  MM/DD/YY  AUTHOR        DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  03/14/16  E. Birrane    Documentation.[Secure DTN
+ *                          implementation (NASA: NNX14CS58P)]
+ *  07/14/16  E. Birrane    Update return values [Secure DTN
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
@@ -778,7 +793,7 @@ int8_t	bpsec_getInboundSecuritySource(AcqExtBlock *blk,
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 
@@ -883,8 +898,8 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
 	temp = MTAKE(bufLen);
 	if (temp == NULL)
 	{
-		putErrmsg("No space for temporary memory buffer.",
-				utoa(bufLen));
+		BPSEC_DEBUG_ERR("x bpsec_getOutboundItem: No space for temporary memory buffer %d.",
+					    utoa(bufLen));
 		return;
 	}
 
@@ -942,7 +957,9 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
  * \par Purpose: This function retrieves the inbound and outbound security
  *               EIDs associated with an outbound abstract security block.
  *
- * \retval -1 on ERROR, 0 Otherwise
+ * \retval -1 on Fatal error
+ *          0 on failure
+ *          >0 on success
  *
  * \param[in]   bundle   The outbound bundle.
  * \param[in]   blk      The outbound block.
@@ -959,6 +976,8 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
  *  MM/DD/YY  AUTHOR        DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  03/14/16  E. Birrane    Documentation.[Secure DTN
+ *                          implementation (NASA: NNX14CS58P)]
+ *  07/14/16  E. Birrane    Updated return codes.[Secure DTN
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
@@ -982,7 +1001,7 @@ int8_t	bpsec_getOutboundSecurityEids(Bundle *bundle,
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
-		return -1;
+		return 0;
 	}
 
 	if (printEid(&(bundle->destination), dictionary, toEid) < 0)
@@ -1001,7 +1020,14 @@ int8_t	bpsec_getOutboundSecurityEids(Bundle *bundle,
 	}
 	else
 	{
-		result = printEid(&bundle->id.source, dictionary, fromEid);
+		if(printEid(&bundle->id.source, dictionary, fromEid) < 0)
+		{
+			result = -1;
+		}
+		else
+		{
+			result = 1;
+		}
 	}
 
 	if (dictionary)
@@ -1021,7 +1047,9 @@ int8_t	bpsec_getOutboundSecurityEids(Bundle *bundle,
  * \par Purpose: This function finds the security source associated with a
  *               given outbound extension block.
  *
- * \retval  -1 on Error. 0 Otherwise.
+ * \retval  -1 on Fatal Error.
+ *           0 on Failure.
+ *           >0 on Success.
  *
  * \param[in]   blk      	The outbound block.
  * \param[in]   dictionary  The bundle dictionary (or null).
@@ -1034,6 +1062,8 @@ int8_t	bpsec_getOutboundSecurityEids(Bundle *bundle,
  *  MM/DD/YY  AUTHOR        DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  03/14/16  E. Birrane    Documentation.[Secure DTN
+ *                          implementation (NASA: NNX14CS58P)]
+ *  07/14/16  E. Birrane    Update return codes.[Secure DTN
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
@@ -1062,7 +1092,7 @@ int8_t bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 
@@ -1492,7 +1522,9 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
  *
  * \par Date Written:  8/15/11
  *
- * \retval int - 0 indicates success, -1 is an error
+ * \retval -1 on Fatal Error
+ *          0 on failure
+ *          >0 on Success
  *
  * \param[in]  sdr        ion sdr
  * \param]in]  resultZco  Object where the file references will go
@@ -1507,12 +1539,12 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
  *  08/20/11  R. Brown      Initial Implementation.
  *  01/31/16  E. Birrane    Update to BPSEC
  *****************************************************************************/
-int32_t bpsec_transferToZcoFileSource(Sdr sdr,
-									  Object *resultZco,
-									  Object *acqFileRef,
-									  char *fname,
-									  char *bytes,
-									  uvast length)
+int8_t bpsec_transferToZcoFileSource(Sdr sdr,
+	    							 Object *resultZco,
+									 Object *acqFileRef,
+									 char *fname,
+									 char *bytes,
+									 uvast length)
 {
 	static uint32_t    acqCount = 0;
 	char               cwd[200];
@@ -1540,8 +1572,7 @@ int32_t bpsec_transferToZcoFileSource(Sdr sdr,
 		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoOutbound, 0);
 		if (*resultZco == (Object) ERROR)
 		{
-			putErrmsg("extbsputil: Can't start file source ZCO.",
-					NULL);
+			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't start file source ZCO.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
@@ -1554,10 +1585,9 @@ int32_t bpsec_transferToZcoFileSource(Sdr sdr,
 	{
 		if (igetcwd(cwd, sizeof cwd) == NULL)
 		{
-			putErrmsg("extbsputil: Can't get CWD for acq file name.",
-						NULL);
+			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't get CWD for acq file name.", NULL);
 			sdr_cancel_xn(sdr);
-			return -1;
+			return 0;
 		}
 
 		acqCount++;
@@ -1566,10 +1596,9 @@ int32_t bpsec_transferToZcoFileSource(Sdr sdr,
 		fd = open(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
-			putSysErrmsg("extbsputil: Can't create acq file",
-					fileName);
+			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't create acq file %s.", fileName);
 			sdr_cancel_xn(sdr);
-			return -1;
+			return 0;
 		}
 
 		fileLength = 0;
@@ -1581,35 +1610,36 @@ int32_t bpsec_transferToZcoFileSource(Sdr sdr,
 		fd = open(fileName, O_WRONLY, 0666);
 		if (fd < 0)
 		{
-			putSysErrmsg("extbsputil: Can't reopen acq file", fileName);
+			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't reopen acq file %s.", fileName);
 			sdr_cancel_xn(sdr);
-			return -1;
+			return 0;
 		}
 
 		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
-			putSysErrmsg("extbsputil: Can't get acq file length",
-					fileName);
+			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't get acq file length %s.", fileName);
 			sdr_cancel_xn(sdr);
 			close(fd);
-			return -1;
+			return 0;
 		}
 	}
 
 	// Write the data to the file
 	if (write(fd, bytes, length) < 0)
 	{
-		putSysErrmsg("extbsputil: Can't append to acq file", fileName);
+		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't append to acq file %s.", fileName);
 		sdr_cancel_xn(sdr);
 		close(fd);
-		return -1;
+		return 0;
 	}
 
 	close(fd);
+
+
 	if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
 					      fileLength, length) <= 0)
 	{
-		putErrmsg("extbsputil: Can't append extent to ZCO.", NULL);
+		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't append extent to ZCO.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -1619,11 +1649,11 @@ int32_t bpsec_transferToZcoFileSource(Sdr sdr,
 	zco_destroy_file_ref(sdr, *acqFileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("extbsputil: Can't acquire extent into file.", NULL);
+		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't acquire extent into file..", NULL);
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 
