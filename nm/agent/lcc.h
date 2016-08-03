@@ -33,8 +33,13 @@
 #include "shared/adm/adm.h"
 
 
+
 int lcc_run_ctrl_mid(mid_t *id);
-int lcc_run_ctrl(ctrl_exec_t *id);
+int lcc_run_ctrl(ctrl_exec_t *ctrl);
+
+int lcc_run_macro(Lyst macro);
+
+void lcc_send_retval(eid_t *rx, tdc_t *retval, mid_t *mid);
 
 
 #endif // _LCC_H_

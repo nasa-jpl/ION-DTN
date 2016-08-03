@@ -43,13 +43,11 @@
 #include "shared/utils/debug.h"
 
 #include "shared/msg/pdu.h"
-#include "shared/msg/msg_reports.h"
 #include "shared/msg/msg_admin.h"
-#include "shared/msg/msg_def.h"
 #include "shared/msg/msg_ctrl.h"
 
 #ifdef HAVE_MYSQL
-#include "nm_mgr_db.h"
+#include "nm_mgr_sql.h"
 #endif
 
 
@@ -95,7 +93,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 		return -1;
 	}
 
-	DTNMP_DEBUG_ALWAYS("msg_rx_data_rpt", "Processing a data report.\n", NULL);
+//	DTNMP_DEBUG_ALWAYS("msg_rx_data_rpt", "Processing a data report.\n", NULL);
 	*bytes_used = 0;
 
 	/* Step 1: Retrieve stored information about this agent. */
@@ -107,7 +105,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 	}
 	else
 	{
-		rpt_data_t *report = NULL;
+		rpt_t *report = NULL;
 
 		if((report = rpt_deserialize_data(cursor, size, bytes_used)) == NULL)
 		{
@@ -153,10 +151,10 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
  *  08/20/13  E. Birrane     Code cleanup and documentation.
  *****************************************************************************/
 
-void *mgr_rx_thread(void * threadId)
+void *mgr_rx_thread(int *running)
 {
    
-    DTNMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) threadId);
+    DTNMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) running);
     
     DTNMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
     
@@ -180,18 +178,17 @@ void *mgr_rx_thread(void * threadId)
      * g_running controls the overall execution of threads in the
      * NM Agent.
      */
-    while(g_running) {
-        
-        /* Step 1: Receive a message from the Bundle Protocol Agent. */
+    while(*running) {
 
-        buf = iif_receive(&ion_ptr, &size, &meta, NM_RECEIVE_TIMEOUT_MILLIS);
-        sender_eid = &(meta.originatorEid);
+        /* Step 1: Receive a message from the Bundle Protocol Agent. */
+        buf = iif_receive(&ion_ptr, &size, &meta, NM_RECEIVE_TIMEOUT_SEC);
         
         if(buf != NULL)
         {
             DTNMP_DEBUG_INFO("mgr_rx_thread","Received buf (%x) of size %d",
             		(unsigned long) buf, size);
 
+            sender_eid = &(meta.originatorEid);
 
             /* Grab # messages in, and timestamp for, this group. */
             cursor = buf;
@@ -210,7 +207,7 @@ void *mgr_rx_thread(void * threadId)
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
-            incoming_idx = db_incoming_initialize(group_timestamp);
+            incoming_idx = db_incoming_initialize(group_timestamp, sender_eid);
 #endif
 
             /* For each message in the group. */
@@ -227,7 +224,7 @@ void *mgr_rx_thread(void * threadId)
                 	case MSG_TYPE_RPT_DATA_RPT:
                 	{
                 		DTNMP_DEBUG_ALWAYS("mgr_rx_thread",
-                				         "Processing a data report.\n\n", NULL);
+                				         "Received a data report.\n\n", NULL);
 
                 		msg_rx_data_rpt(sender_eid, cursor, size, &bytes);
 
@@ -275,14 +272,19 @@ void *mgr_rx_thread(void * threadId)
             	}
 #endif
 
+            	pdu_release_hdr(hdr);
+            	hdr = NULL;
             }
 #ifdef HAVE_MYSQL
             db_incoming_finalize(incoming_idx);
 #endif
 
+            SRELEASE(buf);
+            buf = NULL;
         }
     }
    
+    DTNMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
     DTNMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);
     pthread_exit(NULL);
 }

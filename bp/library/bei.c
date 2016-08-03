@@ -221,8 +221,10 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	blk->type = spec->type;
 #ifdef ORIGINAL_BSP
 	if (blk->type == BSP_BAB_TYPE)
-#else
+#elif SBSP
 	if (blk->type == EXTENSION_TYPE_BAB)
+#else
+	if(0)
 #endif
 	{
 		blk->occurrence = spec->listIdx;	/*	0 or 1.	*/
@@ -866,8 +868,10 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	blk->type = blkType;
 #ifdef ORIGINAL_BSP
 	if (blkType == BSP_BAB_TYPE)
-#else
+#elif SBSP
 	if (blkType == EXTENSION_TYPE_BAB)
+#else
+	if(0)
 #endif
 	{
 		blk->occurrence = work->currentExtBlocksList;

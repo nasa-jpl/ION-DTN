@@ -13,14 +13,11 @@
 #ifndef _CRYPTO_H_
 #define _CRYPTO_H_
 
-#define NULL_CRYPTO_SUITES
-
 #include "platform.h"
 
 /*****************************************************************************
  *                           CONSTANTS DEFINITIONS                           *
  *****************************************************************************/
-extern char	*crypto_suite_name;
 
 /*****************************************************************************
  *                   FAUX POLARSSL FUNCTION DEFINITIONS                      *

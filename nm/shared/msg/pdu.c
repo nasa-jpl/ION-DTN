@@ -42,7 +42,7 @@ pdu_group_t *pdu_create_empty_group()
 {
 	pdu_group_t *result = NULL;
 
-	result = (pdu_group_t*) MTAKE(sizeof(pdu_group_t));
+	result = (pdu_group_t*) STAKE(sizeof(pdu_group_t));
 
 	result->msgs = lyst_create();
 	result->time = time(NULL);
@@ -67,7 +67,7 @@ pdu_header_t *pdu_create_hdr(uint8_t id, uint8_t ack, uint8_t nack, uint8_t acl)
 	DTNMP_DEBUG_ENTRY("pdu_create_hdr","(%d, %d, %d, %d, %d)",id ,ack,
 			           nack, acl);
 
-	if((result = (pdu_header_t *) MTAKE(sizeof(pdu_header_t))) == NULL)
+	if((result = (pdu_header_t *) STAKE(sizeof(pdu_header_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_create_hdr","Can't alloc %d bytes",
 				        sizeof(pdu_header_t));
@@ -107,7 +107,7 @@ pdu_msg_t *pdu_create_msg(uint8_t id,
 	}
 
 	/* Step 1: Allocate the message. */
-	if((result = (pdu_msg_t*)MTAKE(sizeof(pdu_msg_t))) == NULL)
+	if((result = (pdu_msg_t*)STAKE(sizeof(pdu_msg_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_create_msg","Can't Alloc %d bytes",
 				        sizeof(pdu_msg_t));
@@ -131,7 +131,7 @@ void pdu_release_hdr(pdu_header_t *hdr)
 {
 	if(hdr != NULL)
 	{
-		MRELEASE(hdr);
+		SRELEASE(hdr);
 	}
 }
 
@@ -139,7 +139,7 @@ void pdu_release_meta(pdu_metadata_t *meta)
 {
 	if(meta != NULL)
 	{
-		MRELEASE(meta);
+		SRELEASE(meta);
 	}
 }
 
@@ -147,7 +147,7 @@ void pdu_release_acl(pdu_acl_t *acl)
 {
 	if(acl != NULL)
 	{
-		MRELEASE(acl);
+		SRELEASE(acl);
 	}
 }
 
@@ -155,10 +155,10 @@ void pdu_release_msg(pdu_msg_t *pdu)
 {
 	if(pdu != NULL)
 	{
-		MRELEASE(pdu->hdr);
-		MRELEASE(pdu->contents);
-		MRELEASE(pdu->acl);
-		MRELEASE(pdu);
+		SRELEASE(pdu->hdr);
+		SRELEASE(pdu->contents);
+		SRELEASE(pdu->acl);
+		SRELEASE(pdu);
 	}
 }
 
@@ -177,7 +177,7 @@ void pdu_release_group(pdu_group_t *group)
 		pdu_release_msg(cur_msg);
 	}
 	lyst_destroy(group->msgs);
-	MRELEASE(group);
+	SRELEASE(group);
 }
 
 
@@ -215,7 +215,7 @@ uint8_t *pdu_serialize_hdr(pdu_header_t *hdr, uint32_t *len)
 	}
 
 	/* Step 1: Grab space. */
-	if((result = (uint8_t*)MTAKE(result_len)) == NULL)
+	if((result = (uint8_t*)STAKE(result_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_hdr","Can't allocate %d bytes.",
 				        result_len);
@@ -274,7 +274,7 @@ uint8_t *pdu_serialize_acl(pdu_acl_t *acl, uint32_t *len)
 	}
 
 	/* Step 1: Grab space. */
-	if((result = (uint8_t*)MTAKE(result_len)) == NULL)
+	if((result = (uint8_t*)STAKE(result_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_acl","Can't allocate %d bytes.",
 				        result_len);
@@ -288,7 +288,7 @@ uint8_t *pdu_serialize_acl(pdu_acl_t *acl, uint32_t *len)
 
 	/* \todo: Implement this. */
 	DTNMP_DEBUG_ERR("pdu_serialize_acl","Not implemented yet.",NULL);
-	MRELEASE(result);
+	SRELEASE(result);
 	result = NULL;
 
 	DTNMP_DEBUG_EXIT("pdu_serialize_acl","->0x%x",(unsigned long)result);
@@ -323,7 +323,7 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 		{
 			DTNMP_DEBUG_ERR("pdu_serialize_msg","Can't serialize acl",NULL);
 
-			MRELEASE(hdr);
+			SRELEASE(hdr);
 			DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 			return NULL;
 		}
@@ -331,12 +331,12 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 
 	*len = hdr_len + msg->size + acl_len;
 
-	if((result = (uint8_t *) MTAKE(*len)) == NULL)
+	if((result = (uint8_t *) STAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_msg","Can't alloc %d bytes",*len);
 
-		MRELEASE(hdr);
-		MRELEASE(acl);
+		SRELEASE(hdr);
+		SRELEASE(acl);
 		DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 		return NULL;
 	}
@@ -345,7 +345,7 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 
 	memcpy(cursor,hdr,hdr_len);
 	cursor += hdr_len;
-	MRELEASE(hdr);
+	SRELEASE(hdr);
 
 	memcpy(cursor,msg->contents, msg->size);
 	cursor += msg->size;
@@ -354,14 +354,14 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 	{
 		memcpy(cursor, acl, acl_len);
 		cursor += acl_len;
-		MRELEASE(acl);
+		SRELEASE(acl);
 	}
 
 	if((cursor-result) != *len)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_msg","Wrote %d not %d bytes!",
 				        (unsigned long)(cursor-result), *len);
-		MRELEASE(result);
+		SRELEASE(result);
 		DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 		return NULL;
 	}
@@ -400,7 +400,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	num_msgs = lyst_length(group->msgs);
 
 	/* Step 1: Allocate space to store serialized msgs. */
-	if((tmp_data = (uint8_t **) MTAKE(num_msgs * sizeof(uint8_t *))) == NULL)
+	if((tmp_data = (uint8_t **) STAKE(num_msgs * sizeof(uint8_t *))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
 					    num_msgs * sizeof(uint8_t *));
@@ -412,11 +412,11 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 		memset(tmp_data,0,num_msgs * sizeof(uint8_t*));
 	}
 
-	if((tmp_size = (uint32_t *) MTAKE(num_msgs * sizeof(uint32_t))) == NULL)
+	if((tmp_size = (uint32_t *) STAKE(num_msgs * sizeof(uint32_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
 					    num_msgs * sizeof(uint32_t));
-		MRELEASE(tmp_data);
+		SRELEASE(tmp_data);
 		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
@@ -457,10 +457,10 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 		int j = 0;
 		for(j = 0; j < i; j++)
 		{
-			MRELEASE(tmp_data[j]);
+			SRELEASE(tmp_data[j]);
 		}
-		MRELEASE(tmp_data);
-		MRELEASE(tmp_size);
+		SRELEASE(tmp_data);
+		SRELEASE(tmp_size);
 
 		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
@@ -473,16 +473,16 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	*len = num_msgs_sdnv.length + time_sdnv.length + tot_size;
 
 	DTNMP_DEBUG_INFO("pdu_serialize_group", "msgs is %d, time is %d, total is %d", num_msgs_sdnv.length, time_sdnv.length, tot_size);
-	if((result = (uint8_t*) MTAKE(*len)) == NULL)
+	if((result = (uint8_t*) STAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't alloc %d bytes.",*len);
 		int j = 0;
 		for(j = 0; j < i; j++)
 		{
-			MRELEASE(tmp_data[j]);
+			SRELEASE(tmp_data[j]);
 		}
-		MRELEASE(tmp_data);
-		MRELEASE(tmp_size);
+		SRELEASE(tmp_data);
+		SRELEASE(tmp_size);
 
 		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
@@ -500,12 +500,12 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	for(i = 0; i < num_msgs; i++)
 	{
 		memcpy(cursor, tmp_data[i], tmp_size[i]);
-		MRELEASE(tmp_data[i]);
+		SRELEASE(tmp_data[i]);
 		cursor += tmp_size[i];
 	}
 
-	MRELEASE(tmp_data);
-	MRELEASE(tmp_size);
+	SRELEASE(tmp_data);
+	SRELEASE(tmp_size);
 
 	DTNMP_DEBUG_EXIT("pdu_serialize_group","->0x%x",(unsigned long) result);
 	return result;
@@ -542,7 +542,7 @@ pdu_header_t *pdu_deserialize_hdr(uint8_t *cursor,
 	}
 
 	/* Step 1: Allocate the header object. */
-	if((result = (pdu_header_t*) MTAKE(sizeof(pdu_header_t))) == NULL)
+	if((result = (pdu_header_t*) STAKE(sizeof(pdu_header_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_deserialize_hdr","Can't allocate %d bytes.",
 				        sizeof(pdu_header_t));
@@ -600,7 +600,7 @@ pdu_acl_t *pdu_deserialize_acl(uint8_t *cursor,
 	}
 
 	/* Step 1: Allocate the header object. */
-	if((result = (pdu_acl_t*)MTAKE(sizeof(pdu_acl_t))) == NULL)
+	if((result = (pdu_acl_t*)STAKE(sizeof(pdu_acl_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("pdu_deserialize_acl","Can't allocate %d bytes.",
 				        sizeof(pdu_acl_t));
@@ -613,7 +613,7 @@ pdu_acl_t *pdu_deserialize_acl(uint8_t *cursor,
 	/* Step 2: Populate the object. */
 	/* \todo: Implement this. */
 	DTNMP_DEBUG_ERR("pdu_deserialize_acl","Not implemented yet.",NULL);
-	MRELEASE(result);
+	SRELEASE(result);
 	result = NULL;
 
 	DTNMP_DEBUG_EXIT("pdu_deserialize_acl","->0x%x",result);
@@ -654,7 +654,7 @@ nm_custom_report* createCustomReport(pdu *cur_pdu)
     }
 
     / * Step 1: Allocate the new custom report definition. * /
-    if((report = (nm_custom_report*) MTAKE(sizeof(nm_custom_report))) == NULL)
+    if((report = (nm_custom_report*) STAKE(sizeof(nm_custom_report))) == NULL)
     {
         DTNMP_DEBUG_ERR("x PDU: Unable to allocate new custom report definition.", NULL);
         DTNMP_DEBUG_PROC("- PDU: createRule -> NULL", NULL);
@@ -670,7 +670,7 @@ nm_custom_report* createCustomReport(pdu *cur_pdu)
     report->report_id = build_mid(cursor, (cur_pdu->content + cur_pdu->data_size) - cursor, &mid_used);
     mid_str = mid_string(report->report_id);
     DTNMP_DEBUG_INFO("i PDU: Report has ID of %s. Used is %d.", mid_str, mid_used);
-    MRELEASE(mid_str);
+    SRELEASE(mid_str);
 
     cursor += mid_used;
 
@@ -685,7 +685,7 @@ nm_custom_report* createCustomReport(pdu *cur_pdu)
             lyst_insert_last(report->mids, cur_mid);
             cursor += mid_used;
             DTNMP_DEBUG_INFO("i  PDU: Added MID %s of size %d to report.", name, mid_used);
-            MRELEASE(name);
+            SRELEASE(name);
         }
     }
 
@@ -723,7 +723,7 @@ nm_report *createDataReport(pdu *cur_pdu)
     }
 
     / * Step 1: Allocate the new report. * /
-    if((report = (nm_report*) MTAKE(sizeof(nm_report))) == NULL)
+    if((report = (nm_report*) STAKE(sizeof(nm_report))) == NULL)
     {
         DTNMP_DEBUG_ERR("x PDU: Unable to allocate new report of size %d.",
         				 sizeof(nm_report));
@@ -744,7 +744,7 @@ nm_report *createDataReport(pdu *cur_pdu)
         DTNMP_DEBUG_ERR("x PDU: No timestamp field in report msg.", NULL);
 
         lyst_destroy(report->report_data);
-        MRELEASE(report);
+        SRELEASE(report);
 
         DTNMP_DEBUG_PROC("- PDU: createDataReport -> NULL", NULL);
         return NULL;
@@ -760,7 +760,7 @@ nm_report *createDataReport(pdu *cur_pdu)
     while(cursor < (cur_pdu->content + cur_pdu->data_size))
     {
     	/ * Allocate the entry * /
-    	cur_entry = (nm_report_entry*) MTAKE(sizeof(nm_report_entry));
+    	cur_entry = (nm_report_entry*) STAKE(sizeof(nm_report_entry));
 
     	/ * Grab the MID * /
         if((cur_entry->mid = build_mid(cursor,
@@ -768,7 +768,7 @@ nm_report *createDataReport(pdu *cur_pdu)
         				        &mid_size)) == NULL)
         {
         	DTNMP_DEBUG_ERR("x PDU: Unable to build MID!", NULL);
-        	MRELEASE(report);
+        	SRELEASE(report);
             DTNMP_DEBUG_PROC("- PDU: createDataReport -> NULL", NULL);
             return NULL;
         }
@@ -787,14 +787,14 @@ nm_report *createDataReport(pdu *cur_pdu)
         DTNMP_DEBUG_INFO("i PDU: Got data size of %d", cur_entry->data_size);
 
     	/ * Grab the data * /
-        cur_entry->data = (uint8_t*) MTAKE(cur_entry->data_size);
+        cur_entry->data = (uint8_t*) STAKE(cur_entry->data_size);
         memcpy(cur_entry->data, cursor, cur_entry->data_size);
         cursor += cur_entry->data_size;
 
         mid_str = mid_string(cur_entry->mid);
         DTNMP_DEBUG_INFO("i PDU: Added entry for mid %s of size %d",
         			      mid_str, cur_entry->data_size);
-        MRELEASE(mid_str);
+        SRELEASE(mid_str);
 
         / * Add the entry to the entry list. * /
         lyst_insert_last(report->report_data, cur_entry);
@@ -839,7 +839,7 @@ uint8_t *buildProdRulePDU(int offset, int period, int evals, Lyst mids, int mid_
 	length += evals_tmp.length;
 	length += mid_size;
 
-	if((pdu = (uint8_t*) MTAKE(length)) == NULL)
+	if((pdu = (uint8_t*) STAKE(length)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("x PDU: Failed allocating pdu of size %d", length);
 		return NULL;
@@ -865,7 +865,7 @@ uint8_t *buildProdRulePDU(int offset, int period, int evals, Lyst mids, int mid_
 		{
 			DTNMP_DEBUG_ERR("x PDU: Invalid sizes. Length %d, idx+mid %d",
 							 length, idx + entry->mid_len);
-			MRELEASE(pdu);
+			SRELEASE(pdu);
 			return NULL;
 		}
 		memcpy(&pdu[idx], entry->mid, entry->mid_len);
@@ -885,7 +885,7 @@ uint8_t *buildReportDefPDU(mid_t *report_id, Lyst mids, uint32_t mid_size, int *
 
 	DTNMP_DEBUG_INFO("i report_id size %d mis_size %d i %d", report_id->raw_size, mid_size, 1);
 	*msg_len = report_id->raw_size + mid_size + 1;
-	pdu = (uint8_t *) MTAKE(*msg_len);
+	pdu = (uint8_t *) STAKE(*msg_len);
 
 	idx = 0;
 	pdu[idx++] = (uint8_t) MSG_TYPE_DEF_CUST_RPT;
@@ -902,12 +902,12 @@ uint8_t *buildReportDefPDU(mid_t *report_id, Lyst mids, uint32_t mid_size, int *
 		{
 			DTNMP_DEBUG_ERR("x PDU: Invalid sizes. Length %d, idx+mid %d",
 							 *msg_len, idx + cur_mid->raw_size);
-			MRELEASE(pdu);
+			SRELEASE(pdu);
 			return NULL;
 		}
 		mid_str = mid_string(cur_mid);
 		DTNMP_DEBUG_INFO("i PFU: Adding mid %s to custom report.", mid_str);
-		MRELEASE(mid_str);
+		SRELEASE(mid_str);
 		memcpy(&pdu[idx], cur_mid->raw, cur_mid->raw_size);
 		idx += cur_mid->raw_size;
 	}

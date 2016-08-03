@@ -97,6 +97,7 @@ typedef long			vast;
 typedef unsigned long		uvast;
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define UVAST_HEX_FIELDSPEC	"%lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
@@ -105,9 +106,11 @@ typedef unsigned long long	uvast;
 #if (defined(mingw) || defined(ION4WIN))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
+#define UVAST_HEX_FIELDSPEC	"%I64x"
 #else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
 #endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
@@ -116,6 +119,7 @@ typedef long			vast;
 typedef unsigned long		uvast;
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define UVAST_HEX_FIELDSPEC	"%lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #endif

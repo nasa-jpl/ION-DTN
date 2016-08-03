@@ -1,15 +1,3 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
-
 /*****************************************************************************
  **
  ** File Name: ingest.h
@@ -41,15 +29,17 @@
 #include "shared/msg/pdu.h"
 
 #include "shared/msg/msg_admin.h"
-#include "shared/msg/msg_reports.h"
-#include "shared/msg/msg_def.h"
 #include "shared/msg/msg_ctrl.h"
 #include "shared/primitives/rules.h"
-#include "shared/primitives/instr.h"
+#include "instr.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/def.h"
 
 #include "shared/utils/utils.h"
 
 #include "ingest.h"
+#include <pthread.h>
+
 
 extern eid_t manager_eid;
 
@@ -110,7 +100,7 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
         if(mid_sanity_check(cur_mid) == 0)
         {
             DTNMP_DEBUG_ERR("rx_validate_mid_mc","Malformed MID: %s.", mid_str);
-            MRELEASE(mid_str);
+            SRELEASE(mid_str);
             DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
             return 0;
         }
@@ -120,14 +110,14 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
            (def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), cur_mid) == NULL))
         {
             DTNMP_DEBUG_ERR("rx_validate_mid_mc","Unknown MID %s.", mid_str);
-            MRELEASE(mid_str);
+            SRELEASE(mid_str);
             DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
             return 0;
         }
 
         DTNMP_DEBUG_INFO("rx_validate_mid_mc","MID %s is recognized.", mid_str);
 
-        MRELEASE(mid_str);
+        SRELEASE(mid_str);
     }
 
 
@@ -161,7 +151,7 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
  *  01/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int rx_validate_rule(rule_time_prod_t *rule)
+int rx_validate_rule(trl_t *rule)
 {
     int result = 1;
     
@@ -184,7 +174,7 @@ int rx_validate_rule(rule_time_prod_t *rule)
     }
 
     /* Do we understand the sender EID? */
-    if(memcmp(&(rule->desc.sender), &(manager_eid), MAX_EID_LEN) != 0)
+    if(memcmp(&(rule->desc.sender), &(manager_eid), AMP_MAX_EID_LEN) != 0)
     {
     	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown EID: %s.", rule->desc.sender.name);
     	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
@@ -192,7 +182,7 @@ int rx_validate_rule(rule_time_prod_t *rule)
     }
 
     /* Is each MID valid and recognized? */
-    if(rx_validate_mid_mc(rule->mids, 0) == 0)
+    if(rx_validate_mid_mc(rule->action, 0) == 0)
     {
     	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown MIDs",NULL);
     	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
@@ -223,9 +213,9 @@ int rx_validate_rule(rule_time_prod_t *rule)
  *  01/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-void *rx_thread(void *threadId) {
+void *rx_thread(int *running) {
    
-    DTNMP_DEBUG_ENTRY("rx_thread","(0x%x)",(unsigned long) threadId);
+    DTNMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
     
     DTNMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
     
@@ -235,7 +225,6 @@ void *rx_thread(void *threadId) {
     uint32_t bytes = 0;
     uint32_t i = 0;
     pdu_header_t *hdr = NULL;
-    pdu_acl_t *acl = NULL;
     uint32_t size = 0;
     pdu_metadata_t meta;
     uvast val = 0;
@@ -245,7 +234,7 @@ void *rx_thread(void *threadId) {
      * g_running controls the overall execution of threads in the
      * NM Agent.
      */
-    while(g_running) {
+    while(*running) {
         
         /* Step 1: Receive a message from the Bundle Protocol Agent. */
         buf = iif_receive(&ion_ptr, &size, &meta, NM_RECEIVE_TIMEOUT_SEC);
@@ -280,31 +269,10 @@ void *rx_thread(void *threadId) {
 
             	switch (hdr->id)
             	{
-                	case MSG_TYPE_CTRL_PERIOD_PROD:
-                	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Periodic Production Message.\n", NULL);
-                		rx_handle_time_prod(&meta, cursor,size,&bytes);
-                	}
-                	break;
-                
-                	case MSG_TYPE_DEF_CUST_RPT:
-                	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Custom Report Definition.\n", NULL);
-                		rx_handle_rpt_def(&meta, cursor,size,&bytes);
-                	}
-                	break;
-
                 	case MSG_TYPE_CTRL_EXEC:
                 	{
                 		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Perform Control Message.\n", NULL);
                 		rx_handle_exec(&meta, cursor,size,&bytes);
-                	}
-                	break;
-
-                	case MSG_TYPE_DEF_MACRO:
-                	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Macro Definition.\n", NULL);
-                		rx_handle_macro_def(&meta, cursor,size,&bytes);
                 	}
                 	break;
 
@@ -317,16 +285,23 @@ void *rx_thread(void *threadId) {
                 	break;
             	}
 
+            	pdu_release_hdr(hdr);
+            	hdr = NULL;
+
             	cursor += bytes;
             	size -= bytes;
 
             }
+
+            SRELEASE(buf);
+            buf = NULL;
         }
     }
    
     DTNMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
     DTNMP_DEBUG_EXIT("rx_thread","->.", NULL);
     pthread_exit(NULL);
+    return NULL; /* Defensive. */
 }
 
 
@@ -426,8 +401,10 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 
 void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-	ctrl_exec_t* ctrl = NULL;
 	uint32_t bytes = 0;
+	time_t time;
+	Lyst ctrls;
+	LystElt elt;
 
 	DTNMP_DEBUG_ENTRY("rx_handle_exec","(0x%#llx, %d, 0x%#llx)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
@@ -441,56 +418,65 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
     	return;
 	}
 
-	/* Step 1: Attempt to deserialize the message. */
-	ctrl = ctrl_deserialize_exec(cursor, size, &bytes);
+	/* Step 1: Get the timestamp associated with these controls. */
+	uvast val;
+    bytes = decodeSdnv(&val, cursor);
+    time = val;
 
-	/* Step 2: If the deserialization failed, complain. */
-    if((ctrl == NULL) || (bytes == 0))
-    {
-    	DTNMP_DEBUG_ERR("rx_handle_exec","Can't deserialize.",NULL);
-    	ctrl_release_exec(ctrl);
-    	*bytes_used = 0;
-    	DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
-    	return;
-    }
+    cursor += bytes;
+    size -= bytes;
+    *bytes_used += bytes;
 
-    /* Step 3: Otherwise, note how many bytes were consumed. */
-    *bytes_used = bytes;
+	/* Step 2: Get the MID Collection for these controls. */
+	/* Grab the list of contents. */
+	if((ctrls = midcol_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		DTNMP_DEBUG_ERR("rx_handle_exec","Can't grab Ctrl MC.",NULL);
 
+		*bytes_used = 0;
+		DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
 
-    /*
-     * Step 4: Adjust the countdown ticks based on whether
-     *         we are given a relative or absolute time.
-     */
+	/* Step 3: For each MID representing a control instance... */
+	for(elt = lyst_first(ctrls); elt; elt = lyst_next(elt))
+	{
+		/* Step 3.1: Get the current MID. */
+		mid_t *mid = lyst_data(elt);
+		ctrl_exec_t *ctrl = NULL;
 
-    if(ctrl->time <= DTNMP_RELATIVE_TIME_EPOCH)
-    {
-    	/* Step 4a: If relative time, that is # seconds. */
-    	ctrl->countdown_ticks = ctrl->time;
-    }
-    else
-    {
-    	/*
-    	 * Step 4b: If absolute time, # seconds if difference
-    	 * from now until then.
-    	 */
-    	ctrl->countdown_ticks = (ctrl->time - getUTCTime());
-    }
+		char *str = mid_to_string(mid);
+		DTNMP_DEBUG_ALWAYS("rx_handle_exec","Received control mid %.50s...\n", str);
 
-    /* Step 5: Populate dynamic parts of the control. */
-	ctrl->desc.state = CONTROL_ACTIVE;
-	strcpy(ctrl->desc.sender.name, meta->senderEid.name);
+		/* Step 3.2: Create a control instance from this MID. */
+		if((ctrl = ctrl_create(time, mid, meta->senderEid)) != NULL)
+		{
 
-    /* Step 6: Persist this definition to our SDR. */
-    agent_db_ctrl_persist(ctrl);
+			/* Step 3.3: Persist this control to the SDR. */
+			agent_db_ctrl_persist(ctrl);
 
-    /* Step 7: Persist this definition to our memory lists. */
-	DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
-	ADD_CTRL(ctrl);
+			/* Step 3.4: Persist this control to memory. */
+			DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
+			ADD_CTRL(ctrl);
 
-	/* Step 8: Update instrumentation counters. */
-	gAgentInstr.num_ctrls++;
+			/* Step 3.5: Update instrumentation counters. */
+			gAgentInstr.num_ctrls++;
+		}
+		else
+		{
+			DTNMP_DEBUG_ERR("rx_handle_exec","Cannot create control for %s", str);
+		}
 
+		SRELEASE(str);
+	}
+
+	/* Step 4: Release the MidCol. */
+	midcol_destroy(&ctrls);
 }
 
 
@@ -519,7 +505,7 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 
 void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-	rule_time_prod_t *new_rule = NULL;
+	trl_t *new_rule = NULL;
     uint32_t bytes = 0;
 
     DTNMP_DEBUG_INFO("rx_handle_time_prod",
@@ -534,13 +520,13 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	}
 
 	/* Step 1: Attempt to deserialize the message. */
-	new_rule = ctrl_deserialize_time_prod_entry(cursor, size, &bytes);
+	new_rule = trl_deserialize(cursor, size, &bytes);
 
 	/* Step 2: If the deserialization failed, complain. */
 	if((new_rule == NULL) || (bytes == 0))
 	{
 		DTNMP_DEBUG_ERR("rx_handle_time_prod","Can't deserialize.",NULL);
-		rule_release_time_prod_entry(new_rule);
+		trl_release(new_rule);
 		*bytes_used = 0;
 		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
 		return;
@@ -566,7 +552,7 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     if(rx_validate_rule(new_rule) == 0)
     {
 		DTNMP_DEBUG_ERR("rx_handle_time_prod","New rule failed validation.",NULL);
-		rule_release_time_prod_entry(new_rule);
+		trl_release(new_rule);
 		*bytes_used = 0;
 		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
 		return;
@@ -576,10 +562,10 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     			         "Adding new production rule.", NULL);
 
     /* Step 6: Persist this definition to our SDR. */
-    agent_db_rule_persist(new_rule);
+    agent_db_trl_persist(new_rule);
 
     /* Step 7: Persist this definition to our memory lists. */
-	ADD_RULE(new_rule);
+	ADD_TRL(new_rule);
 
 	/* Step 8: Update instrumentation counters. */
 	gAgentInstr.num_time_rules++;

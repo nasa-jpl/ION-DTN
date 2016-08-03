@@ -11,6 +11,7 @@
 
 #include "bpP.h"
 #include "crypto.h"
+#include "csi.h"
 
 static int	_echo(int *newValue)
 {
@@ -1385,7 +1386,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 		case 'v':
 			isprintf(buffer, sizeof buffer,
 					"%s compiled with crypto suite: %s",
-					IONVERSIONNUMBER, crypto_suite_name);
+					IONVERSIONNUMBER, CSI_SUITE_NAME);
 			printText(buffer);
 			return 0;
 

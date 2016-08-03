@@ -75,7 +75,7 @@ uint8_t *msg_serialize_reg_agent(adm_reg_agent_t *msg, uint32_t *len)
 	*len = id.length + id_len;
 
 	/* STEP 4: Allocate the serialized message. */
-	if((result = (uint8_t*)MTAKE(*len)) == NULL)
+	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("msg_serialize_reg_agent","Can't alloc %d bytes", *len);
 		*len = 0;
@@ -99,7 +99,7 @@ uint8_t *msg_serialize_reg_agent(adm_reg_agent_t *msg, uint32_t *len)
 		DTNMP_DEBUG_ERR("msg_serialize_reg_agent","Wrote %d bytes but allcated %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
-		MRELEASE(result);
+		SRELEASE(result);
 
 		DTNMP_DEBUG_EXIT("msg_serialize_reg_agent","->NULL",NULL);
 		return NULL;
@@ -149,7 +149,7 @@ uint8_t *msg_serialize_rpt_policy(adm_rpt_policy_t *msg, uint32_t *len)
 	*len = 1;
 
 	/* STEP 4: Allocate the serialized message. */
-	if((result = (uint8_t*)MTAKE(*len)) == NULL)
+	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("msg_serialize_rpt_policy","Can't alloc %d bytes", *len);
 		*len = 0;
@@ -170,7 +170,7 @@ uint8_t *msg_serialize_rpt_policy(adm_rpt_policy_t *msg, uint32_t *len)
 		DTNMP_DEBUG_ERR("msg_serialize_rpt_policy","Wrote %d bytes but allcated %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
-		MRELEASE(result);
+		SRELEASE(result);
 
 		DTNMP_DEBUG_EXIT("msg_serialize_rpt_policy","->NULL",NULL);
 		return NULL;
@@ -235,7 +235,7 @@ uint8_t *msg_serialize_stat_msg(adm_stat_msg_t *msg, uint32_t *len)
 	{
 		DTNMP_DEBUG_ERR("msg_serialize_stat_msg","Can't serialize code.",
 				         NULL);
-		MRELEASE(code);
+		SRELEASE(code);
 		DTNMP_DEBUG_EXIT("msg_serialize_stat_msg","->NULL",NULL);
 		return NULL;
 
@@ -249,12 +249,12 @@ uint8_t *msg_serialize_stat_msg(adm_stat_msg_t *msg, uint32_t *len)
 
 
 	/* STEP 7: Allocate the serialized message. */
-	if((result = (uint8_t*)MTAKE(*len)) == NULL)
+	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("msg_serialize_stat_msg","Can't alloc %d bytes", *len);
 		*len = 0;
-		MRELEASE(code);
-		MRELEASE(list);
+		SRELEASE(code);
+		SRELEASE(list);
 		DTNMP_DEBUG_EXIT("msg_serialize_stat_msg","->NULL",NULL);
 		return NULL;
 	}
@@ -264,14 +264,14 @@ uint8_t *msg_serialize_stat_msg(adm_stat_msg_t *msg, uint32_t *len)
 
 	memcpy(cursor,code,code_size);
 	cursor += code_size;
-	MRELEASE(code);
+	SRELEASE(code);
 
 	memcpy(cursor, time.text, time.length);
 	cursor += time.length;
 
 	memcpy(cursor, list, list_size);
 	cursor += list_size;
-	MRELEASE(list);
+	SRELEASE(list);
 
 	/* Step 9: Last sanity check. */
 	if((cursor - result) != *len)
@@ -279,7 +279,7 @@ uint8_t *msg_serialize_stat_msg(adm_stat_msg_t *msg, uint32_t *len)
 		DTNMP_DEBUG_ERR("msg_serialize_stat_msg","Wrote %d bytes but alloc %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
-		MRELEASE(result);
+		SRELEASE(result);
 
 		DTNMP_DEBUG_EXIT("msg_serialize_stat_msg","->NULL",NULL);
 		return NULL;
@@ -311,9 +311,7 @@ adm_reg_agent_t *msg_deserialize_reg_agent(uint8_t *cursor,
 		                                   uint32_t size,
 		                                   uint32_t *bytes_used)
 {
-	Sdnv id;
 	adm_reg_agent_t *result = NULL;
-	uint32_t bytes = 0;
 
 	DTNMP_DEBUG_ENTRY("msg_deserialize_reg_agent","(0x%x, %d, 0x%x)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
@@ -327,7 +325,7 @@ adm_reg_agent_t *msg_deserialize_reg_agent(uint8_t *cursor,
 	}
 
 	/* Step 1: Allocate the new message structure. */
-	if((result = (adm_reg_agent_t*)MTAKE(sizeof(adm_reg_agent_t))) == NULL)
+	if((result = (adm_reg_agent_t*)STAKE(sizeof(adm_reg_agent_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("msg_deserialize_reg_agent","Can't Alloc %d Bytes.",
 				        sizeof(adm_reg_agent_t));
@@ -347,10 +345,10 @@ adm_reg_agent_t *msg_deserialize_reg_agent(uint8_t *cursor,
 	uvast sdnv_tmp = 0;
 
 	sdnv_len = decodeSdnv(&(sdnv_tmp), cursor);
-	if(sdnv_len > MAX_EID_LEN)
+	if(sdnv_len > AMP_MAX_EID_LEN)
 	{
 		DTNMP_DEBUG_ERR("msg_deserialize_reg_agent", "EID size %d > max %d.",
-				        sdnv_tmp, MAX_EID_LEN);
+				        sdnv_tmp, AMP_MAX_EID_LEN);
 
 		msg_release_reg_agent(result);
 		*bytes_used = 0;
@@ -397,7 +395,6 @@ adm_rpt_policy_t *msg_deserialize_rpt_policy(uint8_t *cursor,
         									 	 uint32_t *bytes_used)
 {
 	adm_rpt_policy_t *result = NULL;
-	uint32_t bytes = 0;
 
 	DTNMP_DEBUG_ENTRY("msg_deserialize_rpt_policy","(0x%x, %d, 0x%x)",
 			          (unsigned long)cursor, size,
@@ -412,7 +409,7 @@ adm_rpt_policy_t *msg_deserialize_rpt_policy(uint8_t *cursor,
 	}
 
 	/* Step 1: Allocate the new message structure. */
-	if((result = (adm_rpt_policy_t*)MTAKE(sizeof(adm_rpt_policy_t))) == NULL)
+	if((result = (adm_rpt_policy_t*)STAKE(sizeof(adm_rpt_policy_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("msg_deserialize_rpt_policy","Can't Alloc %d Bytes.",
 				        sizeof(adm_rpt_policy_t));
@@ -477,7 +474,7 @@ adm_stat_msg_t   *msg_deserialize_stat_msg(uint8_t *cursor,
 	}
 
 	/* Step 1: Allocate the new message structure. */
-	if((result = (adm_stat_msg_t*)MTAKE(sizeof(adm_stat_msg_t))) == NULL)
+	if((result = (adm_stat_msg_t*)STAKE(sizeof(adm_stat_msg_t))) == NULL)
 	{
 		DTNMP_DEBUG_ERR("msg_deserialize_stat_msg","Can't Alloc %d Bytes.",
 				        sizeof(adm_stat_msg_t));
@@ -570,7 +567,7 @@ prod_rule *createProdRule(pdu* cur_pdu)
     }
 
     / * Step 1: Allocate the new rule. * /
-    if((rule = (prod_rule*) MTAKE(sizeof(prod_rule))) == NULL)
+    if((rule = (prod_rule*) STAKE(sizeof(prod_rule))) == NULL)
     {
         DTNMP_DEBUG_ERR("x PDU: Unable to allocate new rule.", NULL);
         DTNMP_DEBUG_PROC("- PDU: createRule -> NULL", NULL);
@@ -589,7 +586,7 @@ prod_rule *createProdRule(pdu* cur_pdu)
         DTNMP_DEBUG_ERR("x PDU: No offset field in rule msg.", NULL);
 
         lyst_destroy(rule->mids);
-        MRELEASE(rule);
+        SRELEASE(rule);
         
         DTNMP_DEBUG_PROC("- PDU: createRule -> NULL", NULL);
         return NULL;
@@ -607,7 +604,7 @@ prod_rule *createProdRule(pdu* cur_pdu)
         DTNMP_DEBUG_ERR("x PDU: No period field in rule msg.", NULL);
 
         lyst_destroy(rule->mids);
-        MRELEASE(rule);
+        SRELEASE(rule);
         
         DTNMP_DEBUG_PROC("- PDU: createRule -> NULL", NULL);
         return NULL;
@@ -626,7 +623,7 @@ prod_rule *createProdRule(pdu* cur_pdu)
         DTNMP_DEBUG_ERR("x PDU: No eval count field in rule msg.", NULL);
         
         lyst_destroy(rule->mids);
-        MRELEASE(rule);
+        SRELEASE(rule);
         
         DTNMP_DEBUG_PROC("- PDU: createRule -> NULL", NULL);
         return NULL;
@@ -663,14 +660,14 @@ prod_rule *createProdRule(pdu* cur_pdu)
             lyst_insert_last(rule->mids, cur_mid);
             cursor += mid_used;
             DTNMP_DEBUG_INFO("i  PDU: Added MID %s to this RUle.", mid_str);
-            MRELEASE(mid_str);
+            SRELEASE(mid_str);
 
         }
         else
         {
         	DTNMP_DEBUG_ERR("x  PDU: Unknown MID.", NULL);
             lyst_destroy(rule->mids);
-            MRELEASE(rule);
+            SRELEASE(rule);
             return NULL;
         }
     }
@@ -711,7 +708,7 @@ nm_custom_report* createCustomReport(pdu *cur_pdu)
     }
 
     / * Step 1: Allocate the new custom report definition. * /
-    if((report = (nm_custom_report*) MTAKE(sizeof(nm_custom_report))) == NULL)
+    if((report = (nm_custom_report*) STAKE(sizeof(nm_custom_report))) == NULL)
     {
         DTNMP_DEBUG_ERR("x PDU: Unable to allocate new custom report definition.", NULL);
         DTNMP_DEBUG_PROC("- PDU: createRule -> NULL", NULL);
@@ -727,7 +724,7 @@ nm_custom_report* createCustomReport(pdu *cur_pdu)
     report->report_id = build_mid(cursor, (cur_pdu->content + cur_pdu->data_size) - cursor, &mid_used);
     mid_str = mid_string(report->report_id);
     DTNMP_DEBUG_INFO("i PDU: Report has ID of %s. Used is %d.", mid_str, mid_used);
-    MRELEASE(mid_str);
+    SRELEASE(mid_str);
 
     cursor += mid_used;
 
@@ -742,7 +739,7 @@ nm_custom_report* createCustomReport(pdu *cur_pdu)
             lyst_insert_last(report->mids, cur_mid);
             cursor += mid_used;
             DTNMP_DEBUG_INFO("i  PDU: Added MID %s of size %d to report.", name, mid_used);
-            MRELEASE(name);
+            SRELEASE(name);
         }
     }
 
@@ -780,7 +777,7 @@ nm_report *createDataReport(pdu *cur_pdu)
     }
 
     / * Step 1: Allocate the new report. * /
-    if((report = (nm_report*) MTAKE(sizeof(nm_report))) == NULL)
+    if((report = (nm_report*) STAKE(sizeof(nm_report))) == NULL)
     {
         DTNMP_DEBUG_ERR("x PDU: Unable to allocate new report of size %d.",
         				 sizeof(nm_report));
@@ -801,7 +798,7 @@ nm_report *createDataReport(pdu *cur_pdu)
         DTNMP_DEBUG_ERR("x PDU: No timestamp field in report msg.", NULL);
 
         lyst_destroy(report->report_data);
-        MRELEASE(report);
+        SRELEASE(report);
 
         DTNMP_DEBUG_PROC("- PDU: createDataReport -> NULL", NULL);
         return NULL;
@@ -817,7 +814,7 @@ nm_report *createDataReport(pdu *cur_pdu)
     while(cursor < (cur_pdu->content + cur_pdu->data_size))
     {
     	/ * Allocate the entry * /
-    	cur_entry = (nm_report_entry*) MTAKE(sizeof(nm_report_entry));
+    	cur_entry = (nm_report_entry*) STAKE(sizeof(nm_report_entry));
 
     	/ * Grab the MID * /
         if((cur_entry->mid = build_mid(cursor,
@@ -825,7 +822,7 @@ nm_report *createDataReport(pdu *cur_pdu)
         				        &mid_size)) == NULL)
         {
         	DTNMP_DEBUG_ERR("x PDU: Unable to build MID!", NULL);
-        	MRELEASE(report);
+        	SRELEASE(report);
             DTNMP_DEBUG_PROC("- PDU: createDataReport -> NULL", NULL);
             return NULL;
         }
@@ -844,14 +841,14 @@ nm_report *createDataReport(pdu *cur_pdu)
         DTNMP_DEBUG_INFO("i PDU: Got data size of %d", cur_entry->data_size);
 
     	/ * Grab the data * /
-        cur_entry->data = (uint8_t*) MTAKE(cur_entry->data_size);
+        cur_entry->data = (uint8_t*) STAKE(cur_entry->data_size);
         memcpy(cur_entry->data, cursor, cur_entry->data_size);
         cursor += cur_entry->data_size;
 
         mid_str = mid_string(cur_entry->mid);
         DTNMP_DEBUG_INFO("i PDU: Added entry for mid %s of size %d",
         			      mid_str, cur_entry->data_size);
-        MRELEASE(mid_str);
+        SRELEASE(mid_str);
 
         / * Add the entry to the entry list. * /
         lyst_insert_last(report->report_data, cur_entry);
@@ -896,7 +893,7 @@ uint8_t *buildProdRulePDU(int offset, int period, int evals, Lyst mids, int mid_
 	length += evals_tmp.length;
 	length += mid_size;
 
-	if((pdu = (uint8_t*) MTAKE(length)) == NULL)
+	if((pdu = (uint8_t*) STAKE(length)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("x PDU: Failed allocating pdu of size %d", length);
 		return NULL;
@@ -922,7 +919,7 @@ uint8_t *buildProdRulePDU(int offset, int period, int evals, Lyst mids, int mid_
 		{
 			DTNMP_DEBUG_ERR("x PDU: Invalid sizes. Length %d, idx+mid %d",
 							 length, idx + entry->mid_len);
-			MRELEASE(pdu);
+			SRELEASE(pdu);
 			return NULL;
 		}
 		memcpy(&pdu[idx], entry->mid, entry->mid_len);
@@ -942,7 +939,7 @@ uint8_t *buildReportDefPDU(mid_t *report_id, Lyst mids, uint32_t mid_size, int *
 
 	DTNMP_DEBUG_INFO("i report_id size %d mis_size %d i %d", report_id->raw_size, mid_size, 1);
 	*msg_len = report_id->raw_size + mid_size + 1;
-	pdu = (uint8_t *) MTAKE(*msg_len);
+	pdu = (uint8_t *) STAKE(*msg_len);
 
 	idx = 0;
 	pdu[idx++] = (uint8_t) MSG_TYPE_DEF_CUST_RPT;
@@ -959,12 +956,12 @@ uint8_t *buildReportDefPDU(mid_t *report_id, Lyst mids, uint32_t mid_size, int *
 		{
 			DTNMP_DEBUG_ERR("x PDU: Invalid sizes. Length %d, idx+mid %d",
 							 *msg_len, idx + cur_mid->raw_size);
-			MRELEASE(pdu);
+			SRELEASE(pdu);
 			return NULL;
 		}
 		mid_str = mid_string(cur_mid);
 		DTNMP_DEBUG_INFO("i PFU: Adding mid %s to custom report.", mid_str);
-		MRELEASE(mid_str);
+		SRELEASE(mid_str);
 		memcpy(&pdu[idx], cur_mid->raw, cur_mid->raw_size);
 		idx += cur_mid->raw_size;
 	}

@@ -33,12 +33,14 @@
 
 #include "shared/adm/adm.h"
 
-#include "shared/msg/msg_reports.h"
-#include "shared/msg/msg_def.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/cd.h"
 
-int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry);
-int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt);
-int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt);
+int ldc_fill_report_entry(rpt_entry_t *entry);
+int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry);
+int ldc_fill_custom(def_gen_t *rpt_def, rpt_entry_t *entry);
+int ldc_fill_computed(cd_t *cd, rpt_entry_t *entry);
+
 
 #endif // _LDC_H_
 

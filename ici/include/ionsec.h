@@ -248,6 +248,8 @@ extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);
 extern int	sec_addKey(char *keyName, char *fileName);
 extern int	sec_updateKey(char *keyName, char *fileName);
 extern int	sec_removeKey(char *keyName);
+extern int	sec_activeKey(char *keyName);
+extern int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen);
 
 /*	Bundle Security Protocol Bundle Authentication Blocks		*/
 extern int	sec_findBspBabRule(char *senderEid, char *destEid,
@@ -351,6 +353,8 @@ extern void	sec_get_bspBibRule(char *srcEid, char *destEid,
 		 *	rule is found, populates ruleAddr and eltp;
 		 *	otherwise, sets *eltp to 0.			*/
 
+extern Object	sec_get_bspBibRuleList();
+
 extern void	sec_get_bspBcbRule(char *srcEid, char *destEid,
 			int type, Object *ruleAddr, Object *eltp);
 		/*	Finds the BCB rule that most narrowly applies
@@ -359,6 +363,41 @@ extern void	sec_get_bspBcbRule(char *srcEid, char *destEid,
 		 *	indicates "all block types".)  If applicable
 		 *	rule is found, populates ruleAddr and eltp;
 		 *	otherwise, sets *eltp to 0.			*/
+
+extern Object	sec_get_bspBcbRuleList();
+
+extern int	sec_get_bpsecNumKeys(int *size);
+		/* Retrieves number of keys and maximum size
+		 * of each key name.
+		 */
+
+extern void	sec_get_bpsecKeys(char *buffer, int length);
+		/* Populates a PRE-ALLOCATED buffer of length len
+		 * with bpsec key names. Key names are
+		 * comma-separated as "K1,K2,K3".
+		 */
+
+extern int	sec_get_bpsecNumCSNames(int *size);
+		/* Retrieves number of ciphersuites and maximum size
+		 * of each ciphersuite name.
+		 */
+
+extern void	sec_get_bpsecCSNames(char *buffer, int length);
+		/* Populates a PRE-ALLOCATED buffer of length len
+		 * with bpsec ciphersuite names. ciphersuite names
+		 * are comma-separated as "CS1,CS2,CS3".
+		 */
+
+extern int	sec_get_bpsecNumSrcEIDs(int *size);
+		/* Retrieves number of rule src EIDs and maximum size
+		 * of each EID name.
+		 */
+
+extern void	sec_get_bpsecSrcEIDs(char *buffer, int length);
+		/* Populates a PRE-ALLOCATED buffer of length len
+		 * with bpsec rule src EID names. Src names are
+		 * comma-separated as "K1,K2,CS3".
+		 */
 
 #ifdef ORIGINAL_BSP
 extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr,

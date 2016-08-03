@@ -21,7 +21,8 @@ AM_CFLAGS += \
 	-I$(srcdir)/bp/include \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
-	-I$(srcdir)/bssp/include
+	-I$(srcdir)/bssp/include \
+	-DBPSEC
 
 if !ION_NASA_B
 AM_CFLAGS+= \
@@ -344,7 +345,7 @@ iciPODM1 = pod2man -s 1 -c "ICI executables"
 iciPODM3 = pod2man -s 3 -c "ICI library functions"
 iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 
-icicflags = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
+icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/crypto -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
 
 icibin = \
 	sdrwatch \
@@ -991,7 +992,18 @@ bpextra = \
 	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
 	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
 	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
-	ici/include/crypto.h
+	bp/library/ext/bpsec/bpsec_instr.h \
+	bp/library/ext/bpsec/bpsec_instr.c \
+	bp/library/ext/bpsec/bpsec_bcb.h \
+	bp/library/ext/bpsec/bpsec_bcb.c \
+	bp/library/ext/bpsec/bpsec_bib.h \
+	bp/library/ext/bpsec/bpsec_bib.c \
+	bp/library/ext/bpsec/bpsec_util.h \
+	bp/library/ext/bpsec/bpsec_util.c \
+	bp/library/ext/bpsec/profiles.h \
+	bp/library/ext/bpsec/profiles.c \
+	ici/include/crypto.h \
+	ici/include/csi.h
 # Removed in 3.3.0 per the new BSP rule structure
 #	bp/library/ext/bsp/extbsputil.h \
 #	bp/library/ext/bsp/extbsputil.c \
@@ -1136,6 +1148,16 @@ libbp_la_SOURCES = \
 	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
 	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
 	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
+	bp/library/ext/bpsec/bpsec_instr.h \
+	bp/library/ext/bpsec/bpsec_instr.c \
+	bp/library/ext/bpsec/bpsec_bcb.h \
+	bp/library/ext/bpsec/bpsec_bcb.c \
+	bp/library/ext/bpsec/bpsec_bib.h \
+	bp/library/ext/bpsec/bpsec_bib.c \
+	bp/library/ext/bpsec/bpsec_util.h \
+	bp/library/ext/bpsec/bpsec_util.c \
+	bp/library/ext/bpsec/profiles.h \
+	bp/library/ext/bpsec/profiles.c \
 	bp/library/ext/snid/snid.c \
 	bp/ipn/libipnfw.h \
 	bp/ipn/libipnfw.c \
@@ -1154,15 +1176,18 @@ libbp_la_SOURCES = \
 #	bp/library/ext/bsp/extbsppib.c
 
 if CRYPTO
-libbp_la_SOURCES+= \
-	ici/crypto/NULL_SUITES/crypto.c
+libici_la_SOURCES+= \
+	ici/crypto/NULL_SUITES/crypto.c\
+	ici/crypto/NULL_SUITES/csi.c
 else
-libbp_la_SOURCES+= \
-	ici/crypto/NULL_SUITES/crypto.c
+libici_la_SOURCES+= \
+	ici/crypto/NULL_SUITES/crypto.c\
+	ici/crypto/NULL_SUITES/csi.c
 endif
-libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libbp_la_LIBADD = libici.la $(CRYPTO_LIBS) -lm
-
+libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/bpsec
+#libbp_la_LIBADD = libici.la $(CRYPTO_LIBS) -lm
+libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
+#EJB
 if ENABLE_BPACS
 libbp_la_SOURCES += \
 	bp/library/acs/acsrx.c \
@@ -1909,6 +1934,47 @@ nm/shared/adm/adm_agent.c
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
 
+nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
+                    nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
+                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
+                    nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
+					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
+					nm/shared/adm/adm_agent.c nm/shared/adm/adm_bpsec.c	nm/agent/adm_bpsec_impl.c \
+					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
+					nm/shared/primitives/cd.c 	 nm/shared/primitives/blob.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
+					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
+					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
+					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
+					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
+					nm/shared/utils/nm_types.c
+				
+					
+nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_LDFLAGS = -lm -lpthread
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+                  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable \
+                  -DAGENT_ROLE
+					
+					
+nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
+					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
+					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
+					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
+					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
+					nm/shared/adm/adm_bpsec.c	\
+					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
+					nm/shared/primitives/cd.c    nm/shared/primitives/expr.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
+					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
+					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
+					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
+					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
+					nm/shared/utils/nm_types.c
+					
+nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
 					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
@@ -1920,13 +1986,14 @@ nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
 nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
-
-# Use this to build the DTNMP Manager WITHOUT DB Support.
-nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable
+# Use this to build the DTNMP Manager WITHOUT DB Support. 
+nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) -Wno-unused-variable 
 
 # Use this to build the DTNMP Manager WITH DB Support.
-#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient
+#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
 #nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
+
+
 
 dtpcbin = \
 	dtpcreceive \
