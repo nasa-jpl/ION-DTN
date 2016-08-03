@@ -270,19 +270,19 @@ void	releaseToSdrMemory(const char *fileName, int lineNbr, void *block)
 	Psm_free(fileName, lineNbr, sdrwm, psa(sdrwm, (char *) block));
 }
 
-void	*sdrMemAtoP(unsigned long address)
+void	*sdrMemAtoP(uaddr address)
 {
 	return (void *) psp(_sdrwm(NULL), address);
 }
 
-unsigned long sdrMemPtoA(void *pointer)
+uaddr sdrMemPtoA(void *pointer)
 {
-	return (unsigned long) psa(_sdrwm(NULL), pointer);
+	return (uaddr) psa(_sdrwm(NULL), pointer);
 }
 
 static PsmPartition	_sdrwm(sm_WmParms *parms)
 {
-	static int		sdrwmId = 0;
+	static uaddr		sdrwmId = 0;
 	static PsmView		sdrWorkingMemory;
 	static PsmPartition	sdrwm = NULL;
 	static int		memmgrIdx; /*	For local lists only.	*/
@@ -1052,9 +1052,9 @@ static void	destroySdr(SdrState *sdr)
 	char		dsfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	char		logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	char		*dssm = NULL;
-	int		dssmId = 0;
+	uaddr		dssmId = 0;
 	char		*logsm = NULL;
-	int		logsmId = 0;
+	uaddr		logsmId = 0;
 
 	/*	Destroy global persistent SDR state.			*/
 
@@ -1147,11 +1147,11 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	int			logfile = -1;
 	char			*logsm = NULL;
-	int			logsmId;
+	uaddr			logsmId;
 	char			dsfilename[PATHLENMAX + 1 + 32 + 1 + 3 + 1];
 	int			dsfile = -1;
 	char			*dssm = NULL;
-	int			dssmId;
+	uaddr			dssmId;
 
 	CHKERR(sdrwm);
 	CHKERR(sch);

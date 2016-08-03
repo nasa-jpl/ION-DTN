@@ -123,11 +123,14 @@ int	main(int argc, char **argv)
 				return 1;
 			}
 
-putchar(dlvmarks[dlv.result]);
-fflush(stdout);
-			if (dlv.result == BpEndpointStopped
-			|| (dlv.result == BpReceptionInterrupted
-					&& state.running == 0))
+			putchar(dlvmarks[dlv.result]);
+			fflush(stdout);
+			if (dlv.result == BpReceptionInterrupted)
+			{
+				continue;
+			}
+
+			if (dlv.result == BpEndpointStopped)
 			{
 				state.running = 0;
 				continue;

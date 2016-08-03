@@ -44,7 +44,7 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 				int interval, int verbose)
 {
 	char		*memory = NULL;
-	int		smId = 0;
+	uaddr		smId = 0;
 	PsmView		memView;
 	PsmPartition	psm = &memView;
 	int		memmgrIdx;

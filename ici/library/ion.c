@@ -129,7 +129,7 @@ static int	_ionMemory(int *memmgrIdx)
 
 static PsmPartition	_ionwm(sm_WmParms *parms)
 {
-	static int		ionSmId = 0;
+	static uaddr		ionSmId = 0;
 	static PsmView		ionWorkingMemory;
 	static PsmPartition	ionwm = NULL;
 	static int		memmgrIdx;
@@ -208,14 +208,14 @@ void	releaseToIonMemory(const char *fileName, int lineNbr, void *block)
 #endif
 }
 
-void	*ionMemAtoP(unsigned long address)
+void	*ionMemAtoP(uaddr address)
 {
 	return (void *) psp(_ionwm(NULL), address);
 }
 
-unsigned long ionMemPtoA(void *pointer)
+uaddr	ionMemPtoA(void *pointer)
 {
-	return (unsigned long) psa(_ionwm(NULL), pointer);
+	return (uaddr) psa(_ionwm(NULL), pointer);
 }
 
 static IonVdb	*_ionvdb(char **name)
@@ -1315,24 +1315,42 @@ time_t	readTimestampUTC(char *timestampBuffer, time_t referenceTime)
 
 void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 {
-	struct tm	ts;
+#if defined (mingw)
+	struct tm	*ts;
+#else
+	struct tm	tsbuf;
+	struct tm	*ts = &tsbuf;
+#endif
 
 	CHKVOID(timestampBuffer);
-	oK(localtime_r(&timestamp, &ts));
+#if defined (mingw)
+	ts = localtime(&timestamp);
+#else
+	oK(localtime_r(&timestamp, &tsbuf));
+#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
-			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
-			ts.tm_hour, ts.tm_min, ts.tm_sec);
+			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
+			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
 void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
-	struct tm	ts;
+#if defined (mingw)
+	struct tm	*ts;
+#else
+	struct tm	tsbuf;
+	struct tm	*ts = &tsbuf;
+#endif
 
 	CHKVOID(timestampBuffer);
-	oK(gmtime_r(&timestamp, &ts));
+#if defined (mingw)
+	ts = gmtime(&timestamp);
+#else
+	oK(gmtime_r(&timestamp, &tsbuf));
+#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
-			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
-			ts.tm_hour, ts.tm_min, ts.tm_sec);
+			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
+			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
 /*	*	*	Parsing 	*	*	*	*	*/
@@ -1539,7 +1557,7 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "wmAddress") == 0)
 		{
-			parms->wmAddress = (char *) atol(tokens[1]);
+			parms->wmAddress = (char *) strtoaddr(tokens[1]);
 			continue;
 		}
 
@@ -1615,8 +1633,13 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "wmSize:          %ld",
 			parms->wmSize);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "wmAddress:       %0lx",
-			(unsigned long) parms->wmAddress);
+#if (SPACE_ORDER > 2 && defined(mingw))
+	isprintf(buffer, sizeof buffer, "wmAddress:       %#I64x",
+			(uaddr) (parms->wmAddress));
+#else
+	isprintf(buffer, sizeof buffer, "wmAddress:       %#lx",
+			(uaddr) (parms->wmAddress));
+#endif
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);
@@ -1829,6 +1852,7 @@ void	ionResumeAttendant(ReqAttendant *attendant)
 {
 	CHKVOID(attendant);
 	sm_SemUnend(attendant->semaphore);
+	sm_SemGive(attendant->semaphore);
 }
 
 void	ionStopAttendant(ReqAttendant *attendant)

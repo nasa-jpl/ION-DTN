@@ -67,7 +67,9 @@ typedef struct
 static int	_amsdRunning(int *state)
 {
 	static int		running = 0;
+#ifndef mingw
 	static pthread_t	amsdThread;
+#endif
 
 	if (state)
 	{
@@ -86,7 +88,9 @@ static int	_amsdRunning(int *state)
 		else			/*	Starting.		*/
 		{
 			running = 1;
+#ifndef mingw
 			amsdThread = pthread_self();
+#endif
 		}
 	}
 

@@ -133,6 +133,7 @@ static void	resetClient(LtpVclient *client)
 	else
 	{
 		sm_SemUnend(client->semaphore);
+		sm_SemGive(client->semaphore);
 	}
 
 	sm_SemTake(client->semaphore);			/*	Lock.	*/
@@ -155,6 +156,7 @@ static void	resetSpan(LtpVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->bufOpenRedSemaphore);
+		sm_SemGive(vspan->bufOpenRedSemaphore);
 	}
 
 	sm_SemTake(vspan->bufOpenRedSemaphore);		/*	Lock.	*/
@@ -166,6 +168,7 @@ static void	resetSpan(LtpVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->bufOpenGreenSemaphore);
+		sm_SemGive(vspan->bufOpenGreenSemaphore);
 	}
 
 	sm_SemTake(vspan->bufOpenGreenSemaphore);	/*	Lock.	*/
@@ -177,6 +180,7 @@ static void	resetSpan(LtpVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->bufClosedSemaphore);
+		sm_SemGive(vspan->bufClosedSemaphore);
 	}
 
 	sm_SemTake(vspan->bufClosedSemaphore);		/*	Lock.	*/
@@ -187,6 +191,7 @@ static void	resetSpan(LtpVspan *vspan)
 	else
 	{
 		sm_SemUnend(vspan->segSemaphore);
+		sm_SemGive(vspan->segSemaphore);
 	}
 
 	sm_SemTake(vspan->segSemaphore);		/*	Lock.	*/

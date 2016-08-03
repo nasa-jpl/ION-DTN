@@ -15,7 +15,7 @@
 
 static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 {
-	long		temp;
+	uaddr		temp;
 	void		*value;
 	sm_SemId	semaphore;
 	
@@ -30,7 +30,7 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 		value = sm_TaskVar(NULL);
 	}
 
-	temp = (long) value;
+	temp = (uaddr) value;
 	semaphore = temp;
 	return semaphore;
 }
@@ -163,7 +163,7 @@ int	main(int argc, char *argv[])
 
 		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
-			writeMemo("[] ltpclo outduct closed.");
+			writeMemo("[i] ltpclo outduct closed.");
 			running = 0;	/*	Terminate CLO.		*/
 			continue;
 		}

@@ -59,7 +59,7 @@ PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
 			PsmPartition trace, char *name)
 {
 	int		nameLen;
-	int		smid;
+	uaddr		smid;
 	PsmMgtOutcome	outcome;
 	TraceHeader	*trh;
 	PsmAddress	traceHeaderAddress;
@@ -153,7 +153,7 @@ PsmPartition	sptrace_join(int smkey, int smsize, char *sm,
 			PsmPartition trace, char *name)
 {
 	int		nameLen;
-	int		smid;
+	uaddr		smid;
 	PsmMgtOutcome	outcome;
 	TraceHeader	*trh;
 

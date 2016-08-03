@@ -16,19 +16,19 @@
 #include "acs.h"		/* provides sendAcs */
 #endif /* ENABLE_ACS */
 
-static long	_running(long *newValue)
+static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
-	long	state;
+	uaddr	state;
 
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (uaddr) sm_TaskVar(&value);
 	}
 	else				/*	Just check.		*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (uaddr) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -36,7 +36,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands bpclock termination.	*/
 {
-	long	stop = 0;
+	uaddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates bpclock.		*/
 }
@@ -290,7 +290,7 @@ int	main(int argc, char *argv[])
 #endif
 	Sdr	sdr;
 	BpDB	*bpConstants;
-	long	state = 1;
+	uaddr	state = 1;
 	time_t	currentTime;
 
 	if (bpAttach() < 0)

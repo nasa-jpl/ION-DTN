@@ -13,7 +13,7 @@
 
 static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 {
-	long		temp;
+	uaddr		temp;
 	void		*value;
 	sm_SemId	sem;
 
@@ -28,7 +28,7 @@ static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 		value = sm_TaskVar(NULL);
 	}
 
-	temp = (long) value;
+	temp = (uaddr) value;
 	sem = temp;
 	return sem;
 }

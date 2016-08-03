@@ -186,6 +186,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	/*	Un-end the transaction semaphore.			*/
 
 	sm_SemUnend(sdrv->sdr->sdrSemaphore);
+	sm_SemGive(sdrv->sdr->sdrSemaphore);
 
 	/*	Now re-create all of the volatile databases.		*/
 

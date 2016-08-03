@@ -2666,6 +2666,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 	long long	llval;
 	double		dval;
 	void		*vpval;
+	uaddr		uaddrval;
 
 	if (buffer == NULL || bufSize < 1)
 	{
@@ -2927,7 +2928,8 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 
 		case 'p':
 			vpval = va_arg(args, void *);
-			sprintf(scratchpad, "%#lx", (unsigned long) vpval);
+			uaddrval = (uaddr) vpval;
+			sprintf(scratchpad, ADDR_FIELDSPEC, uaddrval);
 			break;
 
 		default:		/*	Bad conversion char.	*/
