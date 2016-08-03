@@ -102,7 +102,7 @@ static void	printUsage()
 relative times (+ss) are computed.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
-<xmit rate in bytes per second> [probability of occurrence; default is 1.0]");
+<xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
 	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
@@ -171,8 +171,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 	time_t		toTime;
 	uvast		fromNodeNbr;
 	uvast		toNodeNbr;
+	PsmAddress	xaddr;
 	unsigned int	xmitRate;
-	float		prob;
+	float		confidence;
 	unsigned int	owlt;
 
 	if (tokenCount < 2)
@@ -184,11 +185,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 	switch (tokenCount)
 	{
 	case 8:
-		prob = atof(tokens[7]);
+		confidence = atof(tokens[7]);
 		break;
 
 	case 7:
-		prob = 1.0;
+		confidence = 1.0;
 		break;
 
 	default:
@@ -212,16 +213,16 @@ and earlier than 19 January 2038.");
 	{
 		xmitRate = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, xmitRate, prob));
+				toNodeNbr, xmitRate, confidence, &xaddr));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		owlt = atoi(tokens[6]);
+		owlt = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_range(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, owlt));
+				toNodeNbr, owlt, &xaddr));
 		return;
 	}
 

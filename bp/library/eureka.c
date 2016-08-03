@@ -121,8 +121,7 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 	PsmAddress	vductElt;
 	DuctExpression	ductExpression;
 	time_t		currentTime;
-	uvast		lowerNodeNbr;
-	uvast		higherNodeNbr;
+	PsmAddress	xaddr;
 
 	/*	Add egress plan for the new neighbor.			*/
 
@@ -160,35 +159,17 @@ static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
 	 *	CGR, regardless of outduct protocol.			*/
 
 	currentTime = getUTCTime();
-	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, ownNodeNbr,
-			nodeNbr, xmitRate, 1.0) == 0)
+	if (rfx_insert_contact(currentTime, 0, ownNodeNbr, nodeNbr, xmitRate,
+			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		putErrmsg("Can't add transmission contact.", neighborEid);
 		return -1;
 	}
 
-	if (rfx_insert_contact(currentTime, MAX_POSIX_TIME, nodeNbr,
-			ownNodeNbr, recvRate, 1.0) == 0)
+	if (rfx_insert_contact(currentTime, 0, nodeNbr, ownNodeNbr, recvRate,
+			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		putErrmsg("Can't add reception contact.", neighborEid);
-		return -1;
-	}
-
-	if (nodeNbr < ownNodeNbr)
-	{
-		lowerNodeNbr = nodeNbr;
-		higherNodeNbr = ownNodeNbr;
-	}
-	else
-	{
-		lowerNodeNbr = ownNodeNbr;
-		higherNodeNbr = nodeNbr;
-	}
-
-	if (rfx_insert_range(currentTime, MAX_POSIX_TIME, lowerNodeNbr,
-			higherNodeNbr, 0) == 0)
-	{
-		putErrmsg("Can't add range.", neighborEid);
 		return -1;
 	}
 
@@ -409,14 +390,11 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 static int	discoverContactLost(char *socketSpec, char *neighborEid,
 			char *claProtocol)
 {
-	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	uvast		neighborNodeNbr;
-	uvast		lowerNodeNbr;
-	uvast		higherNodeNbr;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -475,35 +453,9 @@ name error", claProtocol);
 		return -1;
 	}
 
-	/*	Remove contact and range, disabling CGR route
-	 *	computation through this neighbor.			*/
-
-	if (rfx_remove_contact(0, ownNodeNbr, neighborNodeNbr) < 0)
+	if (rfx_remove_discovered_contacts(neighborNodeNbr) < 0)
 	{
-		putErrmsg("Can't remove transmission contact.", socketSpec);
-		return -1;
-	}
-
-	if (rfx_remove_contact(0, neighborNodeNbr, ownNodeNbr) < 0)
-	{
-		putErrmsg("Can't remove reception contact.", socketSpec);
-		return -1;
-	}
-
-	if (neighborNodeNbr < ownNodeNbr)
-	{
-		lowerNodeNbr = neighborNodeNbr;
-		higherNodeNbr = ownNodeNbr;
-	}
-	else
-	{
-		lowerNodeNbr = ownNodeNbr;
-		higherNodeNbr = neighborNodeNbr;
-	}
-
-	if (rfx_remove_range(0, lowerNodeNbr, higherNodeNbr) < 0)
-	{
-		putErrmsg("Can't remove range.", socketSpec);
+		putErrmsg("Can't remove applicable contacts.", neighborEid);
 		return -1;
 	}
 

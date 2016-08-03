@@ -722,6 +722,8 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
+		iondbBuf.contactLog[0] = sdr_list_create(ionsdr);
+		iondbBuf.contactLog[1] = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
                 memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
@@ -1044,11 +1046,11 @@ void	ionDetach()
 void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 		unsigned int owlt)
 {
-	Sdr	ionsdr = _ionsdr(NULL);
-	time_t	fromTime;
-	time_t	toTime;
-	Object	elt;
-	char	textbuf[RFX_NOTE_LEN];
+	Sdr		ionsdr = _ionsdr(NULL);
+	time_t		fromTime;
+	time_t		toTime;
+	char		textbuf[RFX_NOTE_LEN];
+	PsmAddress	xaddr;
 
 	if (ionsdr == NULL)
 	{
@@ -1061,8 +1063,8 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 
 	fromTime = getUTCTime();	/*	The current time.	*/
 	toTime = fromTime + 14400;	/*	Four hours later.	*/
-	elt = rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt);
-       	if (elt == 0)
+	if (rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt,
+			&xaddr) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: range insertion failed.",
 				utoa(owlt));
@@ -1070,10 +1072,9 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 	}
 
 	writeMemo("ionProd: range inserted.");
-	writeMemo(rfx_print_range(sdr_list_data(ionsdr, elt), textbuf));
-	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
-			1.0);
-	if (elt == 0)
+	writeMemo(rfx_print_range(xaddr, textbuf));
+	if (rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
+			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: contact insertion failed.",
 				utoa(xmitRate));
@@ -1081,7 +1082,7 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 	}
 
 	writeMemo("ionProd: contact inserted.");
-	writeMemo(rfx_print_contact(sdr_list_data(ionsdr, elt), textbuf));
+	writeMemo(rfx_print_contact(xaddr, textbuf));
 }
 
 void	ionEject()

@@ -139,6 +139,7 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 			elt = sm_rbt_next(ionwm, elt))
 	{
 		neighbor = (IonNeighbor *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		CHKVOID(neighbor);
 		if (neighbor->xmitRate != neighbor->prevXmitRate)
 		{
 #ifndef ION_NOSTATS
