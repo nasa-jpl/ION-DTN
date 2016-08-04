@@ -10558,6 +10558,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	context.xmitRate = throttle->nominalRate;
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");

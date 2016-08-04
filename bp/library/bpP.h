@@ -166,6 +166,7 @@ typedef struct
 {
 	char		*protocolName;
 	char		*proxNodeEid;
+	unsigned int	xmitRate;
 } DequeueContext;
 
 /*	*	*	Bundle structures	*	*	*	*/
