@@ -92,19 +92,27 @@ fi
 
 cd ../
 
-
+# Run the platform-specific netcat server
+run_netcat() {
+	if [ "$OS" = "SunOS" ]; then
+		netcat -u -l -p 4556 -s localhost > response.bpseg &
+		NETCAT_SVR_PID=$!
+	# GNU netcat has a -V (version) flag, so test for that.
+	elif netcat -V 2>/dev/null; then
+		netcat -u -l -p 4556 > response.bpseg &
+		NETCAT_SVR_PID=$!
+	# Fall back to BSD netcat
+	else
+		netcat -u -l 4556 > response.bpseg &
+		NETCAT_SVR_PID=$!
+	fi
+}
 
 #Test 1---default TTL (300sec)
 echo "Test 1---Check bpdriver default TTL (300 sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-if [ "$OS" = "SunOS" ]; then
-	netcat -u -l -p 4556 -s localhost > response.bpseg &
-	NETCAT_SVR_PID=$!
-else
-	netcat -u -l -p 4556 > response.bpseg &
-	NETCAT_SVR_PID=$!
-fi
+run_netcat
 cd ../
 
 echo "Using bpdriver to send bundles with default ttl..."
@@ -152,13 +160,7 @@ cd ..
 echo "Test 2---Try Increasing bpdriver TTL (3000sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-if [ "$OS" = "SunOS" ]; then
-	netcat -u -l -p 4556 -s localhost > response.bpseg &
-	NETCAT_SVR_PID=$!
-else
-	netcat -u -l -p 4556 > response.bpseg &
-	NETCAT_SVR_PID=$!
-fi
+run_netcat
 cd ../
 
 echo "Using bpdriver to send bundles with ttl of 3000 sec..."
@@ -206,14 +208,7 @@ cd ..
 echo "Test 3--Try Decreasing bpdriver TTL (30sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
-
-if [ "$OS" = "SunOS" ]; then
-	netcat -u -l -p 4556 -s localhost > response.bpseg &
-	NETCAT_SVR_PID=$!
-else
-	netcat -u -l -p 4556 > response.bpseg &
-	NETCAT_SVR_PID=$!
-fi
+run_netcat
 cd ../
 
 echo "Using bpdriver to send bundles with ttl of 30 sec..."
