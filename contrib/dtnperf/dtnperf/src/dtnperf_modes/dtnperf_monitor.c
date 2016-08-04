@@ -1,6 +1,7 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico@studio.unibo.it
+ **           Davide Pallotti, davide.pallotti@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
@@ -157,7 +158,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	if(debug && debug_level > 0)
 	{
 		printf("[debug] building a local eid in format ");
-		if (perf_opt->eid_format_forced == 'D' && perf_opt->bp_implementation != BP_DTN)
+		if (perf_opt->eid_format_forced == 'D' && perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 			printf("forced DTN...");
 		else if (perf_opt->eid_format_forced == 'I' && perf_opt->bp_implementation != BP_ION)
 			printf("forced IPN...");
@@ -166,7 +167,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 	}
 	if(perf_opt->bp_implementation == BP_ION && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'I'))
 		// Use ION implementation with standard eid scheme
-		error = al_bp_build_local_eid(handle, &local_eid, MON_EP_NUM_SERVICE,CBHE_SCHEME);
+		error = al_bp_build_local_eid(handle, &local_eid, MON_EP_NUM_SERVICE, CBHE_SCHEME);
 	else if(perf_opt->bp_implementation == BP_DTN && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'D'))
 		// Use DTN2 implementation with standard eid scheme
 	{
@@ -174,7 +175,16 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			sprintf(temp, "%s_%d", MON_EP_STRING, parameters->client_id);
 		else
 			sprintf(temp, "%s", MON_EP_STRING);
-		error = al_bp_build_local_eid(handle, &local_eid, temp,DTN_SCHEME);
+		error = al_bp_build_local_eid(handle, &local_eid, temp, DTN_SCHEME);
+	}
+	else if(perf_opt->bp_implementation == BP_IBR && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'D'))
+		// Use IBR-DTN implementation with standard eid scheme
+	{
+		if (parameters->dedicated_monitor)
+			sprintf(temp, "%s_%d", MON_EP_STRING, parameters->client_id);
+		else
+			sprintf(temp, "%s", MON_EP_STRING);
+		error = al_bp_build_local_eid(handle, &local_eid, temp, DTN_SCHEME);
 	}
 	else if(perf_opt->bp_implementation == BP_ION && perf_opt->eid_format_forced == 'D')
 		// Use ION implementation with forced DTN scheme
@@ -183,7 +193,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			sprintf(temp, "%s_%d", MON_EP_STRING, parameters->client_id);
 		else
 			sprintf(temp, "%s", MON_EP_STRING);
-		error = al_bp_build_local_eid(handle, &local_eid, temp,DTN_SCHEME);
+		error = al_bp_build_local_eid(handle, &local_eid, temp, DTN_SCHEME);
 	}
 	else if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'I')
 		// Use DTN2 implementation with forced IPN scheme
@@ -191,6 +201,11 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 		//in this case the api al_bp_build_local_eid() wants ipn_local_number.service_number
 		sprintf(temp, "%d.%s", perf_opt->ipn_local_num, MON_EP_NUM_SERVICE);
 		error = al_bp_build_local_eid(handle, &local_eid, temp, CBHE_SCHEME);
+	}
+	else if (perf_opt->bp_implementation == BP_IBR && perf_opt->eid_format_forced == 'I')
+		// Use IBR-DTN implementation with forced IPN scheme
+	{
+		error = al_bp_build_local_eid(handle, &local_eid, MON_EP_NUM_SERVICE, CBHE_SCHEME);
 	}
 
 	if(debug && debug_level > 0)
@@ -210,7 +225,8 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 		printf("[debug] checking for existing registration...");
 	error = al_bp_find_registration(handle, &local_eid, &regid);
 	if ( (error == BP_SUCCESS && perf_opt->bp_implementation == BP_DTN)
-			|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID)))
+			|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID))
+			|| (perf_opt->bp_implementation == BP_IBR && error == BP_SUCCESS))
 	{
 		fflush(stdout);
 		fprintf(stderr, "[DTNperf fatal error] existing a registration with the same eid.\n");
@@ -338,8 +354,8 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				printf("\n");
 			}
 
-			// get bundle EXPIRATION TIME only in DTN2
-			if(perf_opt->bp_implementation == BP_DTN)
+			// get bundle EXPIRATION TIME only in DTN2 and IBR-DTN
+			if(perf_opt->bp_implementation == BP_DTN || perf_opt->bp_implementation == BP_IBR)
 			{
 				if ((debug) && (debug_level > 0))
 				printf("[debug]\tgetting bundle expiration time...");
@@ -400,8 +416,6 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 				}
 				else // unknown bundle type
 				{
-					if ((debug) && (debug_level > 1))
-						printf("[DTNperf warning] unknown bundle type: %x\n", bundle_type);
 					fprintf(stderr, "[DTNperf warning] unknown bundle type\n");
 					continue;
 				}
@@ -516,7 +530,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			}
 			else
 			{
-				if(perf_opt->expiration_session > (int) bundle_expiration)
+				if(perf_opt->expiration_session > bundle_expiration)
 					session->expiration = bundle_expiration;
 			}
 			if ((debug) && (debug_level > 0))
@@ -531,7 +545,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 			}
 
 			if (bundle_type == SERVER_ACK)
-			{	
+			{
 				if (extension_ack & BO_CRC_ENABLED)
 					session->wrong_crc++;
 			}
@@ -748,12 +762,16 @@ void monitor_clean_exit(int status)
 
 	session_list_destroy(session_list);
 
-
-	// close bp_handle
-	if (bp_handle_open)
+	//with IBR-DTN, al_bp_close from a signal handler is blocking, 
+	//and not needed since the process is being terminated
+	if (al_bp_get_implementation() != BP_IBR) //perf_opt is not available here
 	{
-		al_bp_close(handle);
-		//al_bp_unregister(handle,regid,local_eid);
+		// close bp_handle
+		if (bp_handle_open)
+		{
+			al_bp_close(handle);
+			//al_bp_unregister(handle,regid,local_eid);
+		}
 	}
 	printf("Dtnperf Monitor: exit.\n");
 	exit(status);
@@ -777,16 +795,16 @@ void print_monitor_usage(char * progname)
 			" -o, --output <file>           Change the default output file (Only with -a option).\n"
 			" -s, --stop                    Stop the monitor daemon.\n"
 			" -e, --session-expiration <s>  Max idle time of log files (s). Default: 120.\n"
-			"     --ip-addr <addr>          Ip address of the bp daemon api. Default: 127.0.0.1 (DTN2 only)\n"
-			"     --ip-port <port>          Ip port of the bp daemon api. Default: 5010 (DTN2 only)\n"
-			"     --force-eid <[DTN|IPN]    Force scheme of registration EID.\n"
-			"     --ipn-local <num>         Set ipn local number (Use only with --force-eid IPN on DTN2\n"
+			"     --ip-addr <addr>          Ip address of the bp daemon api. Default: 127.0.0.1 (DTN2 and IBR-DTN only)\n"
+			"     --ip-port <port>          Ip port of the bp daemon api. Default: 5010 (DTN2 and IBR-DTN only)\n"
+			"     --force-eid <[DTN|IPN]    Force the scheme of the registration EID.\n"
+			"     --ipn-local <num>         Set the ipn local number (Use only with --force-eid IPN on DTN2)\n"
 			"     --ldir <dir>              Logs directory. Default: %s .\n"
-			"     --oneCSVonly              Generate an unique csv file\n"
+			"     --oneCSVonly              Generate a unique csv file\n"
 			"     --rt-print[=filename]     Print realtime human readable status report information\n"
-			"                               If filename is not specified or not valid, will print to stdout\n"
-			"     --debug[=level]           Debug messages [0-1], if level is not indicated level = 1.\n"
-			" -v, --verbose                 Print some information message during the execution.\n"
+			"                               Print to stdout if filename is omitted \n"
+			"     --debug[=level]           Debug messages [0-2], if level is not indicated level = 1.\n"
+			" -v, --verbose                 Print information messages during execution.\n"
 			" -h, --help                    This help.\n",
 			MONITOR_OUTPUT_FILE, LOGS_DIR_DEFAULT);
 	fprintf(stderr, "\n");
@@ -859,9 +877,9 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 				break;
 
 			case 37:
-				if(perf_opt->bp_implementation != BP_DTN)
+				if(perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 				{
-					fprintf(stderr, "[DTNperf error] --ip-addr supported only in DTN2\n");
+					fprintf(stderr, "[DTNperf error] --ip-addr supported only in DTN2 and IBR-DTN\n");
 					exit(1);
 					return;
 				}
@@ -870,9 +888,9 @@ void parse_monitor_options(int argc, char ** argv, dtnperf_global_options_t * pe
 				break;
 
 			case 38:
-				if(perf_opt->bp_implementation != BP_DTN)
+				if(perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 				{
-					fprintf(stderr, "[DTNperf syntax error] --ip-port supported only in DTN2\n");
+					fprintf(stderr, "[DTNperf syntax error] --ip-port supported only in DTN2 and IBR-DTN\n");
 					exit(1);
 					return;
 				}
