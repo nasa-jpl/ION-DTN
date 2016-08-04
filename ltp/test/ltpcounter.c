@@ -10,6 +10,7 @@
 
 #include "platform.h"
 #include "ltpP.h"
+#include "rfx.h"
 
 static int	_clientId(int *newId)
 {
@@ -72,11 +73,20 @@ static int	_bytesReceived(int increment)
 	return count;
 }
 
-static int	showProgress(void *userData)
+static void	*showProgress(void *parm)
 {
-	PUTS("v");
-	fflush(stdout);
-	return 0;
+	PsmAddress	alarm = (PsmAddress) parm;
+
+	while (1)
+	{
+		if (rfx_alarm_raised(alarm) == 0)
+		{
+			return NULL;
+		}
+
+		PUTS("v");
+		fflush(stdout);
+	}
 }
 
 static void	handleQuit()
@@ -87,7 +97,7 @@ static void	handleQuit()
 	ltp_interrupt(_clientId(NULL));
 }
 
-static void	printCount()
+static void	printCounts()
 {
 	PUTMEMO("Sessions canceled", itoa(_sessionsCanceled(0)));
 	PUTMEMO("Blocks received", itoa(_blocksReceived(0)));
@@ -107,8 +117,8 @@ int	main(int argc, char **argv)
 	int		clientId = (argc > 1 ? strtol(argv[1], NULL, 0) : 0);
 	int		maxBytes = (argc > 2 ? strtol(argv[2], NULL, 0) : 0);
 #endif
-	IonAlarm	alarm = { 5, 0, showProgress, NULL };
-	pthread_t	alarmThread;
+	PsmAddress	alarm;
+	pthread_t	progressThread;
 	int		state = 1;
 	LtpNoticeType	type;
 	LtpSessionId	sessionId;
@@ -145,7 +155,16 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	ionSetAlarm(&alarm, &alarmThread);
+	alarm = rfx_insert_alarm(5, 0);
+	if (pthread_begin(&progressThread, NULL, showProgress, (void *) alarm))
+	{
+		putErrmsg("Can't start progress thread.", NULL);
+		rfx_remove_alarm(alarm);
+		ltp_close(_clientId(NULL));
+		ltp_detach();
+		return 0;
+	}
+
 	isignal(SIGINT, handleQuit);
 	oK((_running(&state)));
 	while (_running(NULL))
@@ -210,9 +229,10 @@ offset %u, length %u, eob=%d.", sessionId.sourceEngineId, sessionId.sessionNbr,
 		}
 	}
 
-	ionCancelAlarm(alarmThread);
+	rfx_remove_alarm(alarm);
+	pthread_join(progressThread, NULL);
 	writeErrmsgMemos();
-	printCount();
+	printCounts();
 	PUTS("Stopping ltpcounter.");
 	ltp_close(_clientId(NULL));
 	ltp_detach();

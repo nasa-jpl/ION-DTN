@@ -1,7 +1,8 @@
 /*
 
 	rfx.c:	API for managing ION's time-ordered lists of
-		contacts and ranges.
+		contacts and ranges.  Also manages timeline
+		of ION events, including alarm timeouts.
 
 	Author:	Scott Burleigh, JPL
 
@@ -2489,6 +2490,127 @@ int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 		return -1;
 	}
 
+	return 0;
+}
+
+/*	*	RFX alarm management functions	*	*	*	*/
+
+extern PsmAddress	rfx_insert_alarm(unsigned int term,
+				unsigned int cycles)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	time_t		currentTime = getUTCTime();
+	PsmAddress	alarmAddr;
+	IonAlarm	*alarm;
+	PsmAddress	eventAddr;
+	IonEvent	*event;
+
+	CHKZERO(term);
+
+	/*	Construct the alarm control structure.			*/
+
+	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
+	alarmAddr = psm_zalloc(ionwm, sizeof(IonAlarm));
+	if (alarmAddr == 0)
+	{
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	alarm = (IonAlarm *) psp(ionwm, alarmAddr);
+	alarm->term = term;
+	alarm->cycles = cycles;
+	alarm->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	alarm->nextTimeout = currentTime + alarm->term;
+
+	/*	Construct the timeout event referencing this structure.	*/
+
+	eventAddr = psm_zalloc(ionwm, sizeof(IonEvent));
+	if (eventAddr == 0)
+	{
+		sm_SemDelete(alarm->semaphore);
+		psm_free(ionwm, alarmAddr);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	event = (IonEvent *) psp(ionwm, eventAddr);
+	event->time = alarm->nextTimeout;
+	event->type = IonAlarmTimeout;
+	event->ref = alarmAddr;
+	if (sm_rbt_insert(ionwm, vdb->timeline, eventAddr, rfx_order_events,
+			event) == 0)
+	{
+		psm_free(ionwm, eventAddr);
+		sm_SemDelete(alarm->semaphore);
+		psm_free(ionwm, alarmAddr);
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	sdr_exit_xn(sdr);
+	return alarmAddr;
+}
+
+extern int	rfx_alarm_raised(PsmAddress alarmAddr)
+{
+	IonAlarm	*alarm;
+	sm_SemId	semaphore;
+
+	if (alarmAddr == 0)
+	{
+		return 0;	/*	Can't wait for this alarm.	*/
+	}
+
+	alarm = (IonAlarm *) psp(getIonwm(), alarmAddr);
+	semaphore = alarm->semaphore;
+
+	/*	We save the value of semaphore in case the alarm
+	 *	itself is destroyed while we're waiting.		*/
+
+	if (semaphore == SM_SEM_NONE
+	|| sm_SemTake(semaphore) < 0
+	|| sm_SemEnded(semaphore))
+	{
+		return 0;	/*	Alarm is dead.			*/
+	}
+
+	return 1;
+}
+
+extern int	rfx_remove_alarm(PsmAddress alarmAddr)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	IonAlarm	*alarm;
+	IonEvent	event;
+
+	if (alarmAddr == 0)
+	{
+		return 0;	/*	Nothing to do.			*/
+	}
+
+	alarm = (IonAlarm *) psp(ionwm, alarmAddr);
+
+	/*	First disable the alarm.				*/
+
+	sm_SemEnd(alarm->semaphore);	/*	Tell thread to stop.	*/
+	sm_TaskYield();			/*	Give thread time.	*/
+
+	/*	Now remove the alarm.					*/
+
+	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
+	sm_SemDelete(alarm->semaphore);
+	alarm->semaphore = SM_SEM_NONE;
+	event.time = alarm->nextTimeout;
+	event.type = IonAlarmTimeout;
+	event.ref = alarmAddr;
+	sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events, &event,
+			rfx_erase_data, NULL);
+	sdr_exit_xn(sdr);
 	return 0;
 }
 
