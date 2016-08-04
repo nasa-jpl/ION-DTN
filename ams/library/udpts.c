@@ -110,7 +110,7 @@ printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 	portNbr = ntohs(portNbr);
 	memcpy((char *) &ipAddress, (char *) &(inetName->sin_addr.s_addr), 4);
 	ipAddress = ntohl(ipAddress);
-	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 #if AMSDEBUG
 printf("resulting ept is '%s'.\n", endpointNameText);
@@ -252,7 +252,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	ipAddress = ntohl(ipAddress);
 	tsif->diligence = AmsBestEffort;
 	tsif->sequence = AmsArrivalOrder;
-	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 	eptLen = strlen(endpointNameText) + 1;
 	tsif->ept = MTAKE(eptLen);
