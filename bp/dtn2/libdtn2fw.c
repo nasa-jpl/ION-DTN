@@ -262,7 +262,8 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, Bundle *bundle,
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, Dtn2Rule, rule, addr);
-		if ((rule->directive.protocolClass & protClassReqd) == 0)
+		if (rule->directive.action == xmit
+		&& (rule->directive.protocolClass & protClassReqd) == 0)
 		{
 			continue;	/*	Can't use this rule.	*/
 		}
@@ -292,7 +293,8 @@ int	dtn2_lookupDirective(char *nodeName, char *demux, Bundle *bundle,
 
 	if (elt == 0)			/*	End of list.		*/
 	{
-		if ((plan->defaultDirective.protocolClass & protClassReqd) == 0)
+		if (plan->defaultDirective.action == xmit
+		&& (plan->defaultDirective.protocolClass & protClassReqd) == 0)
 		{
 			return 0;	/*	Matching plan unusable.	*/
 		}
