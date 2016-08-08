@@ -3485,18 +3485,24 @@ int	itcp_recv(int *sock, char *into, int length)
 		switch (bytesRead)
 		{
 		case -1:
+			switch (errno)
+			{
 			/*	The recv() call may have been
 			 *	interrupted by arrival of SIGTERM,
-			 *	in which case reception should
+			 *	in which case reception should simply
 			 *	report that it's time to shut down.	*/
+			case EINTR:		/*	Shutdown.	*/
+			case EBADF:
+			case ECONNRESET:
+				bytesRead = 0;
 
-			if (errno == EINTR)	/*	Shutdown.	*/
-			{
-				return 0;
+			/*	Intentional fall-through to default.	*/
+
+			default:
+				putSysErrmsg("irecv() error on TCP socket",
+						NULL);
+				return bytesRead;
 			}
-
-			putSysErrmsg("irecv() error on TCP socket", NULL);
-			return -1;
 
 		case 0:			/*	Connection closed.	*/
 			return 0;

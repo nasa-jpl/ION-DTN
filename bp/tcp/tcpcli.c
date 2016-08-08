@@ -1890,7 +1890,6 @@ static void	*makePlannedConnection(void *parm)
 	if (beginConnection(neighborElt, sock, 0) < 0)
 	{
 		putErrmsg("tcpcli can't add new connection.", NULL);
-		closesocket(sock);
 		neighbor->connectThreadState = ThreadStopped;
 		return NULL;
 	}

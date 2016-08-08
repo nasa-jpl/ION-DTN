@@ -182,7 +182,7 @@ static void	clearRoutingObjects(PsmPartition ionwm)
 	}
 }
 
-static CgrVdb	*getCgrVcb()
+static CgrVdb	*getCgrVdb()
 {
 	static char	*name = CGRVDB_NAME;
 	PsmPartition	ionwm = getIonwm();
@@ -656,7 +656,7 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	CgrVdb		*cgrvdb = getCgrVcb(CGRVDB_NAME);
+	CgrVdb		*cgrvdb = getCgrVdb();
 	PsmAddress	elt;
 	IonCXref	*contact;
 	CgrContactNote	*work;
@@ -2084,7 +2084,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			CgrTrace *trace, int preview)
 {
 	IonVdb		*ionvdb = getIonVdb();
-	CgrVdb		*cgrvdb = getCgrVcb(CGRVDB_NAME);
+	CgrVdb		*cgrvdb = getCgrVdb();
 	IonNode		*terminusNode;
 	PsmAddress	nextNode;
 	int		ionMemIdx;
@@ -2468,7 +2468,7 @@ float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 
 void	cgr_start()
 {
-	oK(getCgrVcb(CGRVDB_NAME));
+	oK(getCgrVdb());
 }
 
 const char	*cgr_tracepoint_text(CgrTraceType traceType)

@@ -5043,7 +5043,6 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	i2 = subjectNbr;
 	i2 = htons(i2);
 	memcpy(cancellation, (char *) &i2, 2);
-	*(cancellation + 2) = (continuumNbr >> 16) & 0x000000ff;
 	*(cancellation + 2) = (continuumNbr >> 8) & 0x0000007f;
 	*(cancellation + 3) = continuumNbr & 0x000000ff;
 	u2 = unitNbr;

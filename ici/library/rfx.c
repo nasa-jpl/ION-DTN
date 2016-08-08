@@ -1708,7 +1708,8 @@ UVAST_FIELDSPEC ".\n", contactStdDev, gapStdDev);
 	}
 	else
 	{
-		contactDoubt = MAX(0.1, contactStdDev / meanContactDuration);
+		contactDoubt = MAX(0.1,
+				((double) contactStdDev) / meanContactDuration);
 	}
 
 printf("Contact doubt %f.\n", contactDoubt);
@@ -1718,7 +1719,7 @@ printf("Contact doubt %f.\n", contactDoubt);
 	}
 	else
 	{
-		gapDoubt = MAX(0.1, gapStdDev / meanGapDuration);
+		gapDoubt = MAX(0.1, ((double) gapStdDev) / meanGapDuration);
 	}
 
 printf("Gap doubt %f.\n", gapDoubt);

@@ -1742,7 +1742,7 @@ int	sec_activeKey(char *keyName)
 			elt = sdr_list_next(sdr, elt))
 	{
 		ruleObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, BspBibRule, babRule, ruleObj);
+		GET_OBJ_POINTER(sdr, BspBabRule, babRule, ruleObj);
 		if ((strncmp(babRule->keyName, keyName, 32)) == 0)
 		{
 			sdr_end_xn(sdr);

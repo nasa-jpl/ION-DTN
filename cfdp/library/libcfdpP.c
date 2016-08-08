@@ -3250,7 +3250,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		memcpy((char *) &transactionId, (char *) &(fpdu->transactionId),
 				sizeof(CfdpTransactionId));
 		memcpy((char *) &destinationEntity,
-				(char *) &cfdpdb.ownEntityNbr.buffer,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber));
 	}
 	else			/*	A forward PDU.			*/
