@@ -3615,14 +3615,14 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 		return 0;			/*	Malformed.	*/
 	}
 
-	fdu->finishReceived = 1;
 	if (fdu->closureElt)
 	{
-		sdr_free(sdr,  sdr_list_data(sdr, fdu->closureElt));
+		sdr_free(sdr, sdr_list_data(sdr, fdu->closureElt));
 		sdr_list_delete(sdr, fdu->closureElt, NULL, NULL);
 		fdu->closureElt = 0;
 	}
 
+	fdu->finishReceived = 1;
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
