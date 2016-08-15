@@ -183,6 +183,7 @@ typedef struct tcpcl_neighbor
 } TcpclNeighbor;
 
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor);
+static void	stopSenderThread(TcpclConnection *connection);
 static void	*handleContacts(void *parm);
 
 static char	*procName()
@@ -555,18 +556,6 @@ static void	closeConnection(TcpclConnection *connection)
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
-	if (connection->hasSender)
-	{
-		sm_SemEnd(connection->outduct->semaphore);
-#ifdef mingw
-		shutdown(connection->sock, SD_BOTH);
-#else
-		pthread_kill(connection->sender, SIGINT);
-#endif
-		pthread_join(connection->sender, NULL);
-		connection->hasSender = 0;
-	}
-
 	if (connection->sock != -1)
 	{
 		closesocket(connection->sock);
@@ -641,6 +630,7 @@ static void	eraseConnection(TcpclConnection *connection)
 {
 	TcpclNeighbor	*neighbor = connection->neighbor;
 
+	stopSenderThread(connection);
 	if (connection->hasReceiver)
 	{
 #ifdef mingw
@@ -825,6 +815,13 @@ static int	sendOneBundle(SenderThreadParms *stp)
 
 	while (1)
 	{
+		if (sm_SemEnded(connection->outduct->semaphore))
+		{
+			writeMemoNote("[i] tcpcli outduct stopped",
+					neighbor->destDuctName);
+			return 0;	/*	Time to give up.	*/
+		}
+
 		/*	Loop until max payload length is known.		*/
 
 		if (!(maxPayloadLengthKnown(connection->outduct,
@@ -832,15 +829,6 @@ static int	sendOneBundle(SenderThreadParms *stp)
 		{
 			snooze(1);
 			continue;
-		}
-
-		/*	If outduct has meanwhile been stopped, quit.	*/
-
-		if (sm_SemEnded(connection->outduct->semaphore))
-		{
-			writeMemoNote("[i] tcpcli outduct stopped",
-					neighbor->destDuctName);
-			return 0;
 		}
 
 		/*	Get the next bundle to send.			*/
@@ -929,6 +917,35 @@ static void	*sendBundles(void *parm)
 	MRELEASE(stp->buffer);
 	MRELEASE(stp);
 	return NULL;
+}
+
+static void	stopSenderThread(TcpclConnection *connection)
+{
+	if (!(connection->hasSender))
+	{
+		return;
+	}
+
+	/*	Enable sendOneBundle to exit.				*/
+
+	sm_SemEnd(connection->outduct->semaphore);
+
+	/*	Enable sendBundleByTcpcl to exit.			*/
+
+	llcv_signal(connection->throttle, pipeline_not_full);
+
+	/*	Signal thread in case it's not already stopping.	*/
+
+#ifdef mingw
+	shutdown(connection->sock, SD_BOTH);
+#else
+	pthread_kill(connection->sender, SIGINT);
+#endif
+
+	/*	Forget connection's sender.				*/
+
+	pthread_join(connection->sender, NULL);
+	connection->hasSender = 0;
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -1721,7 +1738,8 @@ static void	*handleContacts(void *parm)
 
 		/*	Contact header reception may have attached
 		 *	this receiver thread to a previously
-		 *	established neighbor.				*/
+		 *	established neighbor.  Also may have started
+		 *	a sender thread.				*/
 
 		connection = rtp->connection;
 		neighbor = connection->neighbor;
@@ -1729,6 +1747,7 @@ static void	*handleContacts(void *parm)
 		{
 		case -1:		/*	System failure.		*/
 			putErrmsg("Failure receiving contact header", NULL);
+			stopSenderThread(connection);
 			ionKillMainThread(procName());
 			connection->shutDown = 1;
 			closeConnection(connection);
@@ -1737,6 +1756,7 @@ static void	*handleContacts(void *parm)
 		case 0:			/*	Protocol faiure.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					neighbor->eid);
+			stopSenderThread(connection);
 			closeConnection(connection);
 			continue;	/*	Try again.		*/
 		}
@@ -1762,6 +1782,7 @@ static void	*handleContacts(void *parm)
 			connection->shutDown = 1;
 		}
 
+		stopSenderThread(connection);
 		closeConnection(connection);
 	}
 
@@ -2538,6 +2559,7 @@ static void	checkConnection(TcpclConnection *connection)
 	{
 		if (sendKeepalive(connection) == 0)
 		{
+			stopSenderThread(connection);
 			closeConnection(connection);
 		}
 		else
