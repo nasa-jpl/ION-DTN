@@ -235,7 +235,7 @@ otherstuff_DATA = \
 	$(srcdir)/ionstart.awk \
 	$(srcdir)/tutorial.html \
 	$(srcdir)/ION.pdf \
-	$(srcdir)/ION-LTP-configuration.doc \
+	$(srcdir)/ION-LTP-configuration.pdf \
 	$(srcdir)/ION-LTP-configuration.xls
 
 tutorialdir = $(pkgdatadir)/tutorial_files
@@ -511,75 +511,75 @@ libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 # --- Utility Programs --- #
 
 sdrwatch_SOURCES = ici/utils/sdrwatch.c
-sdrwatch_LDADD = libici.la $(LIBOBJS)
+sdrwatch_LDADD = libici.la $(LIBOBJS) -lm
 sdrwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sdrmend_SOURCES = ici/utils/sdrmend.c
-sdrmend_LDADD = libici.la $(LIBOBJS)
+sdrmend_LDADD = libici.la $(LIBOBJS) -lm
 sdrmend_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 psmwatch_SOURCES = ici/utils/psmwatch.c
-psmwatch_LDADD = libici.la $(LIBOBJS)
+psmwatch_LDADD = libici.la $(LIBOBJS) -lm
 psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionadmin_SOURCES = ici/utils/ionadmin.c
-ionadmin_LDADD = libici.la $(LIBOBJS)
+ionadmin_LDADD = libici.la $(LIBOBJS) -lm
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
+ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
-ionsecadmin_LDADD = libici.la $(LIBOBJS)
+ionsecadmin_LDADD = libici.la $(LIBOBJS) -lm
 ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionwarn_SOURCES = ici/utils/ionwarn.c
-ionwarn_LDADD = libici.la $(LIBOBJS)
+ionwarn_LDADD = libici.la $(LIBOBJS) -lm
 ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
 psmshell_SOURCES = ici/test/psmshell.c
-psmshell_LDADD = libici.la $(LIBOBJS)
+psmshell_LDADD = libici.la $(LIBOBJS) -lm
 psmshell_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 smlistsh_SOURCES = ici/test/smlistsh.c
-smlistsh_LDADD = libici.la $(LIBOBJS)
+smlistsh_LDADD = libici.la $(LIBOBJS) -lm
 smlistsh_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 smrbtsh_SOURCES = ici/test/smrbtsh.c
-smrbtsh_LDADD = libici.la $(LIBOBJS)
+smrbtsh_LDADD = libici.la $(LIBOBJS) -lm
 smrbtsh_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 file2sm_SOURCES = ici/test/file2sm.c
-file2sm_LDADD = libici.la $(LIBOBJS)
+file2sm_LDADD = libici.la $(LIBOBJS) -lm
 file2sm_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sm2file_SOURCES = ici/test/sm2file.c
-sm2file_LDADD = libici.la $(LIBOBJS)
+sm2file_LDADD = libici.la $(LIBOBJS) -lm
 sm2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 file2sdr_SOURCES = ici/test/file2sdr.c
-file2sdr_LDADD = libici.la $(LIBOBJS)
+file2sdr_LDADD = libici.la $(LIBOBJS) -lm
 file2sdr_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sdr2file_SOURCES = ici/test/sdr2file.c
-sdr2file_LDADD = libici.la $(LIBOBJS)
+sdr2file_LDADD = libici.la $(LIBOBJS) -lm
 sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 owltsim_SOURCES = ici/test/owltsim.c
-owltsim_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+owltsim_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS) -lm
 owltsim_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 owlttb_SOURCES = ici/test/owlttb.c
-owlttb_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+owlttb_LDADD = libici.la $(LIBOBJS) $(PTHREAD_LIBS) -lm
 owlttb_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 rfxclock_SOURCES = ici/daemon/rfxclock.c
-rfxclock_LDADD = libici.la $(LIBOBJS)
+rfxclock_LDADD = libici.la $(LIBOBJS) -lm
 rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ##########################
@@ -792,27 +792,27 @@ libdgr_la_LIBADD = libici.la
 # --- Test Executables --- #
 
 file2dgr_SOURCES = dgr/test/file2dgr.c
-file2dgr_LDADD = libdgr.la libici.la $(LIBOBJS)
+file2dgr_LDADD = libdgr.la libici.la $(LIBOBJS) -lm
 file2dgr_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 dgr2file_SOURCES = dgr/test/dgr2file.c
-dgr2file_LDADD = libdgr.la libici.la $(LIBOBJS)
+dgr2file_LDADD = libdgr.la libici.la $(LIBOBJS) -lm
 dgr2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 file2udp_SOURCES = dgr/test/file2udp.c
-file2udp_LDADD = libici.la $(LIBOBJS)
+file2udp_LDADD = libici.la $(LIBOBJS) -lm
 file2udp_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 udp2file_SOURCES = dgr/test/udp2file.c
-udp2file_LDADD = libici.la $(LIBOBJS)
+udp2file_LDADD = libici.la $(LIBOBJS) -lm
 udp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 file2tcp_SOURCES = dgr/test/file2tcp.c
-file2tcp_LDADD = libici.la $(LIBOBJS)
+file2tcp_LDADD = libici.la $(LIBOBJS) -lm
 file2tcp_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 tcp2file_SOURCES = dgr/test/tcp2file.c
-tcp2file_LDADD = libici.la $(LIBOBJS)
+tcp2file_LDADD = libici.la $(LIBOBJS) -lm
 tcp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 ##########################
@@ -1185,8 +1185,8 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/csi.c
 endif
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/bpsec
-#libbp_la_LIBADD = libici.la $(CRYPTO_LIBS) -lm
-libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
+libbp_la_LIBADD = libici.la $(CRYPTO_LIBS) -lm
+#libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
 if ENABLE_BPACS
 libbp_la_SOURCES += \
@@ -1268,7 +1268,7 @@ bplist_LDADD = libbp.la libici.la $(LIBOBJS)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 hmackeys_SOURCES = bp/utils/hmackeys.c
-hmackeys_LDADD = libbp.la libici.la $(LIBOBJS)
+hmackeys_LDADD = libici.la -lm libbp.la $(LIBOBJS)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DTN Executables --- #
@@ -1546,11 +1546,11 @@ libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 # --- Utility Programs --- #
 
 amsshell_SOURCES = ams/test/amsshell.c
-amsshell_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsshell_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 amsshell_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amslog_SOURCES = ams/test/amslog.c
-amslog_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amslog_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 amslog_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amslogprt_SOURCES = ams/test/amslogprt.c
@@ -1560,19 +1560,19 @@ amslogprt_CFLAGS = $(amscflags) $(AM_CFLAGS)
 # --- Test Executables --- #
 
 amshello_SOURCES = ams/test/amshello.c
-amshello_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amshello_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 amshello_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsbenchs_SOURCES = ams/test/amsbenchs.c
-amsbenchs_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsbenchs_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 amsbenchs_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsbenchr_SOURCES = ams/test/amsbenchr.c
-amsbenchr_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsbenchr_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 amsbenchr_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsstop_SOURCES =ams/utils/amsstop.c
-amsstop_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsstop_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 amsstop_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -1586,7 +1586,7 @@ amsd_SOURCES = \
 	ams/library/udpts.c \
 	ams/library/tcpts.c
 amsd_CFLAGS = $(amscflags) $(AM_CFLAGS)
-amsd_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
+amsd_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
 
 # --- RAMS Executables --- #
 
@@ -1680,15 +1680,15 @@ libcfdp_la_LIBADD = libici.la
 # --- Utility Programs --- #
 
 cfdpadmin_SOURCES = cfdp/utils/cfdpadmin.c
-cfdpadmin_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
+cfdpadmin_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcp_SOURCES = cfdp/utils/bpcp.c
-bpcp_LDADD = libcfdp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bpcp_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(PTHREAD_LIBS)
 bpcp_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcpd_SOURCES = cfdp/utils/bpcpd.c
-bpcpd_LDADD = libcfdp.la libici.la $(LIBOBJS)
+bpcpd_LDADD = libcfdp.la libici.la -lm $(LIBOBJS)
 bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- BP Programs --- #
@@ -1700,7 +1700,7 @@ bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # --- Test Programs --- #
 
 cfdptest_SOURCES = cfdp/test/cfdptest.c
-cfdptest_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
+cfdptest_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -1870,33 +1870,33 @@ libtcpbsa_la_LIBADD = libici.la $(PTHREAD_LIBS)
 # --- Daemon Executables --- #
 
 bsspclock_SOURCES = bssp/daemon/bsspclock.c
-bsspclock_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS)
+bsspclock_LDADD = libbsspP.la libici.la -lm libbp.la $(LIBOBJS)
 bsspclock_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- Utility Programs --- #
 
 bsspadmin_SOURCES = bssp/utils/bsspadmin.c
-bsspadmin_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS)
+bsspadmin_LDADD = libbsspP.la libici.la -lm libbp.la $(LIBOBJS)
 bsspadmin_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udpbsi_SOURCES = bssp/udp/udpbsi.c
-udpbsi_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udpbsi_LDADD = libbsspP.la libici.la -lm libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 udpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 udpbso_SOURCES = bssp/udp/udpbso.c
-udpbso_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udpbso_LDADD = libbsspP.la libici.la -lm libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 udpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 
 tcpbsi_SOURCES = bssp/tcp/tcpbsi.c
-tcpbsi_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpbsi_LDADD = libbsspP.la libici.la -lm libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 tcpbso_SOURCES = bssp/tcp/tcpbso.c
-tcpbso_LDADD = libbsspP.la libtcpbsa.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpbso_LDADD = libbsspP.la libtcpbsa.la libici.la -lm libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 ##############
@@ -1921,22 +1921,30 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
 nmbin= nm_agent nm_mgr
 
-nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmagent.c nm/agent/rda.c \
-					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
-					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
-					nm/shared/msg/pdu.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
-					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
-					nm/shared/utils/ion_if.c nm/shared/utils/utils.c nm/shared/utils/db.c \
-nm/agent/adm_agent_priv.c nm/agent/adm_bp_priv.c nm/agent/adm_ion_priv.c \
-nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
-nm/shared/adm/adm_agent.c
-nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
+#nminclude = \
+#	nm/agent/adm_agent_impl.h \
+#	nm/agent/adm_bp_impl.h \
+#	nm/agent/adm_bpsec_impl.h \
+#	nm/agent/adm_ion_priv.h \
+#	nm/agent/adm_ltp_priv.h \
+#	nm/agent/agent_db.h \
+#	nm/agent/ingest.h \
+#	nm/agent/instr.h \
+#	nm/agent/lcc.h \
+#	nm/agent/ldc.h \
+#	nm/agent/nmagent.h \
+#	nm/agent/rda.h \
+#	nm/mgr/nm_mgr.h \
+#	nm/mgr/mgr_db.h \
+#	nm/mgr/nm_mgr_names.h \
+#	nm/mgr/nm_mgr_print.h \
+#	nm/mgr/nm_mgr_sql.h \
+#	nm/mgr/nm_mgr_ui.h \
+#	nm/mgr/ui_input.h
 
 nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
-                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
+                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
                     nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
 					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
 					nm/shared/adm/adm_agent.c nm/shared/adm/adm_bpsec.c	nm/agent/adm_bpsec_impl.c \
@@ -1945,7 +1953,7 @@ nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
 					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
 					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\
 					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
 					nm/shared/utils/nm_types.c
@@ -1959,7 +1967,7 @@ nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library 
 					
 					
 nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
+					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
 					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
 					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
 					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
@@ -1969,21 +1977,11 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
 					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
 					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
 					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
 					nm/shared/utils/nm_types.c
 					
-nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-
-nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
-					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
-					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
-					nm/shared/msg/pdu.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
-					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
-					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
-nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Use this to build the DTNMP Manager WITHOUT DB Support. 
