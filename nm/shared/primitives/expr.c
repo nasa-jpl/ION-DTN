@@ -365,7 +365,7 @@ value_t expr_eval(expr_t *expr)
 	mid_t *cur_mid = NULL;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("expr_eval","(0x"UHF")", (uvast) expr);
+	DTNMP_DEBUG_ENTRY("expr_eval","(0x"ADDR_FIELDSPEC")", (uaddr) expr);
 
 	val_init(&result);
 

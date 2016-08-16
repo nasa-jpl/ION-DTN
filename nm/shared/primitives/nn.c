@@ -58,7 +58,7 @@ int oid_nn_add(oid_nn_t *nn)
 {
 	oid_nn_t *new_nn = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_add","("UVAST_FIELDSPEC")",(uvast)nn);
+	DTNMP_DEBUG_ENTRY("oid_nn_add","("ADDR_FIELDSPEC")",(uaddr)nn);
 
 	/* Step 0: Sanity check. */
 	if(nn == NULL)
@@ -139,8 +139,8 @@ int oid_nn_add_parm(uvast id, char *oid, char *name, char *version)
 	uint8_t *data = NULL;
 	uint32_t datasize = 0;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_add_parm","("UVAST_FIELDSPEC","UVAST_FIELDSPEC","UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-			          (uvast) id, (uvast)oid, (uvast)name, (uvast)version);
+	DTNMP_DEBUG_ENTRY("oid_nn_add_parm","("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+		(uaddr) id, (uaddr)oid, (uaddr)name, (uaddr)version);
 
 	/* Step 0: Sanity check. */
 	if(oid == NULL)

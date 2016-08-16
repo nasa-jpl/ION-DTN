@@ -1251,7 +1251,7 @@ void midcol_clear(Lyst mc)
 	LystElt del_elt;
 	mid_t *cur_mid = NULL;
 
-	DTNMP_DEBUG_ENTRY("midcol_clear","("UVAST_FIELDSPEC")", (uvast) mc);
+	DTNMP_DEBUG_ENTRY("midcol_clear","("ADDR_FIELDSPEC")", (uaddr) mc);
 
 	/*
 	 * Step 0: Make sure we even have a lyst.

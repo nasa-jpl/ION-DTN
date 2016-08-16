@@ -195,8 +195,8 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 
 	static int nesting = 0;
 
-	DTNMP_DEBUG_ENTRY("ldc_fill_custom","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-			          (uvast) def, (uvast) entry);
+	DTNMP_DEBUG_ENTRY("ldc_fill_custom","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			          (uaddr) def, (uaddr) entry);
 
 	nesting++;
 
@@ -362,8 +362,8 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
     uint8_t *val_data = NULL;
     uint32_t val_len = 0;
 
-    DTNMP_DEBUG_ENTRY("ldc_fill_atomic","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-    			      (uvast) adm_def, (uvast) entry);
+    DTNMP_DEBUG_ENTRY("ldc_fill_atomic","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+    			      (uaddr) adm_def, (uaddr) entry);
 
     /* Step 0: Sanity Checks. */
     if((adm_def == NULL) || (entry == NULL))
@@ -430,8 +430,8 @@ int ldc_fill_computed(cd_t *cd, rpt_entry_t *entry)
     uint32_t val_len = 0;
     value_t result;
 
-    DTNMP_DEBUG_ENTRY("ldc_fill_computed","(0x"UHF",0x"UHF")",
-    			      (uvast) cd, (uvast) entry);
+    DTNMP_DEBUG_ENTRY("ldc_fill_computed","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")",
+    			      (uaddr) cd, (uaddr) entry);
 
     /* Step 0: Sanity Checks. */
     if((cd == NULL) || (entry == NULL))

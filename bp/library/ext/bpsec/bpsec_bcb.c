@@ -1648,15 +1648,10 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
  * 0 BCB error
  * -1 System error
  */
-int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t           suite,
-                                      csi_cipherparms_t  parms,
-									  uint8_t	        *context,
-									  csi_blocksize_t   *blocksize,
-									  Object             dataObj,
-									  ZcoReader         *dataReader,
-									  uvast              cipherBufLen,
-									  Object            *cipherZco,
-									  uint8_t            function)
+int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
+		uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
+		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
+		uint8_t function)
 {
 	Sdr bpSdr = getIonsdr();
 	csi_val_t plaintext;
@@ -1673,9 +1668,12 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t           suite,
 	CHKERR(dataReader);
 	CHKERR(cipherZco);
 
-	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromSdr(%d,0x%llx, 0x%llx, %d, 0x%llx,"UVAST_FIELDSPEC",0x%llx, %d)",
-				   suite, (uvast) context, (uvast) blocksize, (uvast) dataObj,
-				   (uvast) dataReader, cipherBufLen, (uvast) cipherZco, function);
+	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromSdr(%d," ADDR_FIELDSPEC \
+			"," ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," \
+			ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC \
+			", %d)", suite, (uaddr) context, (uaddr) blocksize,
+			(uvast) dataObj, (uaddr) dataReader, cipherBufLen,
+			(uaddr) cipherZco, function);
 
 	/* Step 1 - Get information about the SDR storage space. */
 	sdr_usage(bpSdr, &summary);
@@ -1825,15 +1823,10 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t           suite,
  * 0 processing error
  * -1 system error
  */
-int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t          suite,
-									   csi_cipherparms_t parms,
-									  uint8_t	        *context,
-									  csi_blocksize_t *blocksize,
-									  Object             dataObj,
-									  ZcoReader         *dataReader,
-									  uvast              cipherBufLen,
-									  Object            *cipherZco,
-									  uint8_t            function)
+int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
+		uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
+		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
+		uint8_t function)
 {
 	Sdr bpSdr = getIonsdr();
 	csi_val_t plaintext;
@@ -1842,9 +1835,10 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t          suite,
 	uvast bytesRemaining = 0;
 	Object fileRef = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromFile(%d,0x%x,0x%x,%d,0x%x,"UVAST_FIELDSPEC",0x%x,%d)",
-			       suite, (uvast)context, (uvast)blocksize, dataObj, (uvast) dataReader,
-				   cipherBufLen, (uvast) cipherZco, function);
+	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromFile(%d," ADDR_FIELDSPEC \
+"," ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC \ "," UVAST_FIELDSPEC "," \
+ADDR_FIELDSPEC ",%d)", suite, (uaddr)context, (uaddr)blocksize, dataObj,
+		(uaddr) dataReader, cipherBufLen, (uaddr) cipherZco, function);
 
 	CHKERR(context);
 	CHKERR(blocksize);

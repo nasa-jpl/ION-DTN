@@ -315,8 +315,8 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 	tdc_t *result = NULL;
     Lyst dc = NULL;
 
-	DTNMP_DEBUG_ENTRY("tdc_deserialize","(" UVAST_FIELDSPEC ",%d," UVAST_FIELDSPEC ")",
-			          (uvast) buffer, buffer_size, (uvast) bytes_used);
+	DTNMP_DEBUG_ENTRY("tdc_deserialize","(" ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ")",
+			          (uaddr) buffer, buffer_size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
@@ -376,7 +376,7 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 		SRELEASE(entry);
 	}
 
-	DTNMP_DEBUG_EXIT("tdc_deserialize", "->" UVAST_FIELDSPEC, (uvast)result);
+	DTNMP_DEBUG_EXIT("tdc_deserialize", "->" ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 

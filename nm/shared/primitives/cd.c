@@ -57,8 +57,7 @@ cd_t *cd_create(mid_t *id,
 {
 	cd_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("cd_create","(0x"UHF",%d,0x"UHF",val (type %d))",
-			          (uvast) id, type, (uvast) init, val.type);
+	DTNMP_DEBUG_ENTRY("cd_create","(0x"ADDR_FIELDSPEC",%d,0x"ADDR_FIELDSPEC",val (type %d))", (uaddr) id, type, (uaddr) init, val.type);
 
 	/* Step 0: Sanity Check. */
 	if(id == NULL)
@@ -112,7 +111,7 @@ cd_t *cd_create(mid_t *id,
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("cd_create","->0x"UHF,(uvast)result);
+	DTNMP_DEBUG_EXIT("cd_create","->0x"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -191,7 +190,7 @@ cd_t *cd_create_from_parms(Lyst parms)
 	result = cd_create(mid, type, init, val);
 	expr_release(init);
 
-	DTNMP_DEBUG_EXIT("cd_create_from_parms","->0x"UHF,(uvast)result);
+	DTNMP_DEBUG_EXIT("cd_create_from_parms","->0x"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -228,8 +227,8 @@ cd_t *cd_deserialize(uint8_t *cursor,
     value_t val;
 
 	DTNMP_DEBUG_ENTRY("cd_deserialize",
-			          "(0x"UHF",%d,0x"UHF")",
-			          (uvast)cursor, size, (uvast) bytes_used);
+			          "(0x"ADDR_FIELDSPEC",%d,0x"ADDR_FIELDSPEC")",
+			          (uaddr)cursor, size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
@@ -280,7 +279,7 @@ cd_t *cd_deserialize(uint8_t *cursor,
 
 	val_release(&val, 0);
 
-	DTNMP_DEBUG_EXIT("cd_deserialize","->0x"UHF,(uvast)result);
+	DTNMP_DEBUG_EXIT("cd_deserialize","->0x"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -338,7 +337,7 @@ cd_t *cd_duplicate(cd_t *orig)
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("cd_duplicate","-->0x"UHF, (uvast) result);
+	DTNMP_DEBUG_EXIT("cd_duplicate","-->0x"ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -370,8 +369,7 @@ cd_t *cd_find_by_id(Lyst cds, ResourceLock *mutex, mid_t *id)
 	LystElt elt;
 	cd_t *cur_cd = NULL;
 
-	DTNMP_DEBUG_ENTRY("cd_find_by_id","(0x"UHF", 0x"UHF", 0x"UHF")",
-			          (uvast) cds, (uvast) mutex, (uvast) id);
+	DTNMP_DEBUG_ENTRY("cd_find_by_id","(0x"ADDR_FIELDSPEC", 0x"ADDR_FIELDSPEC", 0x"ADDR_FIELDSPEC")", (uaddr) cds, (uaddr) mutex, (uaddr) id);
 
 	/* Step 0: Sanity Check. */
 	if((cds == NULL) || (id == NULL))
@@ -441,8 +439,7 @@ void cd_lyst_clear(Lyst *cds, ResourceLock *mutex, int destroy)
 	 LystElt elt;
 	 cd_t *cur_cd = NULL;
 
-	 DTNMP_DEBUG_ENTRY("cd_lyst_clear","(0x"UHF", 0x"UHF", %d)",
-			          (uvast) cds, (uvast) mutex, destroy);
+	 DTNMP_DEBUG_ENTRY("cd_lyst_clear","(0x"ADDR_FIELDSPEC", 0x"ADDR_FIELDSPEC", %d)", (uaddr) cds, (uaddr) mutex, destroy);
 
 	 if((cds == NULL) || (*cds == NULL))
 	 {
@@ -504,9 +501,7 @@ void cd_lyst_clear(Lyst *cds, ResourceLock *mutex, int destroy)
 
 void cd_release(cd_t *cd)
 {
-	DTNMP_DEBUG_ENTRY("cd_release",
-			          "(0x"UHF")",
-			          (uvast) cd);
+	DTNMP_DEBUG_ENTRY("cd_release", "(0x"ADDR_FIELDSPEC")", (uaddr) cd);
 
 	if(cd != NULL)
 	{
@@ -559,8 +554,8 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
 	uint32_t val_len = 0;
 
 	DTNMP_DEBUG_ENTRY("cd_serialize",
-			          "(0x"UHF",0x"UHF")",
-			          (uvast)cd, (uvast) len);
+			          "(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")",
+			          (uaddr)cd, (uaddr) len);
 
 	/* Step 0: Sanity Checks. */
 	if((cd == NULL) || (len == NULL))
@@ -629,7 +624,7 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("cd_serialize","->0x"UHF,(uvast)result);
+	DTNMP_DEBUG_EXIT("cd_serialize","->0x"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 

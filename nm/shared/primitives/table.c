@@ -359,8 +359,8 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	uint32_t size = 0;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("table_deserialize","(" UVAST_FIELDSPEC ",%d," UVAST_FIELDSPEC ")",
-			          (uvast) buffer, buffer_size, (uvast) bytes_used);
+	DTNMP_DEBUG_ENTRY("table_deserialize","(" ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ")",
+			          (uaddr) buffer, buffer_size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))

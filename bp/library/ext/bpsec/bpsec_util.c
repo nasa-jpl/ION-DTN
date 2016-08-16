@@ -323,8 +323,7 @@ int8_t	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast	 ltemp;
 	uint32_t itemp;
 
-	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB("UVAST_FIELDSPEC","UVAST_FIELDSPEC"%d)",
-			         (uvast) blk, (uvast) wk);
+	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB("ADDR_FIELDSPEC","ADDR_FIELDSPEC"%d)", (uaddr) blk, (uaddr) wk);
 
 	CHKERR(blk);
 	CHKERR(wk);
@@ -1201,8 +1200,8 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 	char stdBuffer[100];
 	int32_t  ReqBufLen = 0;
 
-	BPSEC_DEBUG_PROC("+ bpsec_retrieveKey(0x"UVAST_HEX_FIELDSPEC")",
-			         (uvast) keyName);
+	BPSEC_DEBUG_PROC("+ bpsec_retrieveKey(0x"ADDR_FIELDSPEC")",
+			         (uaddr) keyName);
 
 	/*
 	 * We first guess that the key will normally be no more than 100
@@ -1491,8 +1490,9 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	if (asb->ciphersuiteFlags & BPSEC_ASB_RES)
 	{
 		cursor = bpsec_addSdnvToStream(cursor, &resultsLen);
-		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor "UVAST_HEX_FIELDSPEC", results data \
-0x%x, results length %d", (uvast) cursor, asb->resultsData, asb->resultsLen);
+		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor "ADDR_FIELDSPEC\
+", results data  0x%x, results length %d", (uaddr) cursor, asb->resultsData,
+				asb->resultsLen);
 		if (asb->resultsData != 0)
 		{
 			sdr_read(sdr, (char *) cursor, asb->resultsData,
@@ -1501,8 +1501,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		}
 	}
 
-	BPSEC_DEBUG_INFO("i bpsec_serializeASB -> data: "UVAST_HEX_FIELDSPEC", length %d",
-			         (uvast) serializedAsb, *length);
+	BPSEC_DEBUG_INFO("i bpsec_serializeASB -> data: "ADDR_FIELDSPEC\
+", length %d", (uaddr) serializedAsb, *length);
 	BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 
 	return serializedAsb;
@@ -1539,12 +1539,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
  *  08/20/11  R. Brown      Initial Implementation.
  *  01/31/16  E. Birrane    Update to BPSEC
  *****************************************************************************/
-int8_t bpsec_transferToZcoFileSource(Sdr sdr,
-	    							 Object *resultZco,
-									 Object *acqFileRef,
-									 char *fname,
-									 char *bytes,
-									 uvast length)
+int8_t bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
+		Object *acqFileRef, char *fname, char *bytes, uvast length)
 {
 	static uint32_t    acqCount = 0;
 	char               cwd[200];
@@ -1556,12 +1552,13 @@ int8_t bpsec_transferToZcoFileSource(Sdr sdr,
 	CHKERR(length >= 0);
 
 	BPSEC_DEBUG_PROC("+bpsec_transferToZcoFileSource(sdr, 0x"
-			          UVAST_HEX_FIELDSPEC", 0x"
-			          UVAST_HEX_FIELDSPEC", 0x"
-					  UVAST_HEX_FIELDSPEC", 0x"
-					  UVAST_HEX_FIELDSPEC","
-					  UVAST_FIELDSPEC")",
-			         (uvast) resultZco, (uvast) acqFileRef, (uvast) fname, (uvast) bytes, length);
+			         ADDR_FIELDSPEC", 0x"
+			         ADDR_FIELDSPEC", 0x"
+				 ADDR_FIELDSPEC", 0x"
+				 ADDR_FIELDSPEC","
+				 UVAST_FIELDSPEC")",
+			         (uaddr) resultZco, (uaddr) acqFileRef,
+				 (uaddr) fname, (uaddr) bytes, length);
 
 
 	CHKERR(sdr_begin_xn(sdr));

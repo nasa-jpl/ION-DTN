@@ -133,6 +133,7 @@ typedef long long		saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
+#define UVAST_HEX_FIELDSPEC	"%I64x"
 #define	ADDR_FIELDSPEC		"%#I64x"
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
