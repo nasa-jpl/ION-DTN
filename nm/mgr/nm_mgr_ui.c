@@ -514,8 +514,7 @@ void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid)
 	int i = 0;
 	uint32_t size = 0;
 
-	DTNMP_DEBUG_ENTRY("ui_define_mid_params", "("UHF","UHF","UHF"))",
-			          (uvast) name, (uvast)parmspec, (uvast) mid);
+	DTNMP_DEBUG_ENTRY("ui_define_mid_params", "("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC"))", (uaddr) name, (uaddr)parmspec, (uaddr) mid);
 
 	if((name == NULL) || (parmspec == NULL) || (mid == NULL))
 	{

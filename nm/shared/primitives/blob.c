@@ -220,8 +220,8 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
 	uvast len = 0;
 	uint8_t *value = NULL;
 
-	DTNMP_DEBUG_ENTRY("blob_deserialize","(0x"UHF",%d,0x"UHF")",
-			          (uvast) buffer, buffer_size, (uvast) bytes_used);
+	DTNMP_DEBUG_ENTRY("blob_deserialize","(0x"ADDR_FIELDSPEC",%d,0x"ADDR_FIELDSPEC")",
+			          (uaddr) buffer, buffer_size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
@@ -369,7 +369,7 @@ uint8_t* blob_serialize(blob_t *blob, uint32_t *size)
 	uint8_t *result = NULL;
 	Sdnv num_sdnv;
 
-	DTNMP_DEBUG_ENTRY("blob_serialize","(0x"UHF")", (uvast) blob);
+	DTNMP_DEBUG_ENTRY("blob_serialize","(0x"ADDR_FIELDSPEC")", (uaddr) blob);
 
 	/* Step 0: Sanity Check */
 	if(blob == NULL)
