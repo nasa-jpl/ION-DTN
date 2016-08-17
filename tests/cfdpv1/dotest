@@ -12,7 +12,7 @@
 # mode with closure requested by the file sender in each direction.
 # Communication between the two nodes is subject to 3 seconds of OWLT,
 # so the "get" operation should finish before the put operation (which must
-# wait for a Finished PDU from node 2)..
+# wait for a Finished PDU from node 2).
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD

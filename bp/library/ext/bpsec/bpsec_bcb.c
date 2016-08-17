@@ -1842,7 +1842,6 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 			suite, (uaddr)context, (uaddr)blocksize, dataObj,
 			(uaddr) dataReader, cipherBufLen, (uaddr) cipherZco,
 			function);
-
 	CHKERR(context);
 	CHKERR(blocksize);
 	CHKERR(dataReader);
