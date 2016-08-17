@@ -1051,7 +1051,7 @@ void ui_add_parmspec(char *mid_str,
 {
 	ui_parm_spec_t *spec = STAKE(sizeof(ui_parm_spec_t));
 
-	bzero(spec, sizeof(ui_parm_spec_t));
+	memset(spec, 0, sizeof(ui_parm_spec_t));
 
 	spec->mid = mid_from_string(mid_str);
 	spec->num_parms = num;
@@ -1151,7 +1151,7 @@ void ui_db_conn()
 {
 	ui_db_t parms;
 
-	bzero(&parms, sizeof(ui_db_t));
+	memset(&parms, 0, sizeof(ui_db_t));
 
 	lockResource(&(gMgrVDB.sqldb_mutex));
 
@@ -1175,7 +1175,7 @@ void ui_db_set_parms()
 	char *tmp = NULL;
 	char prompt[80];
 
-	bzero(&parms, sizeof(ui_db_t));
+	memset(&parms, 0, sizeof(ui_db_t));
 
 	printf("Enter SQL Database Connection Information:\n");
 

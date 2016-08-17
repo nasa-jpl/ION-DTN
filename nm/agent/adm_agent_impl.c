@@ -799,7 +799,7 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 	int8_t success = 0;
 
 	*status = CTRL_FAILURE;
-	bzero(&recipient, sizeof(eid_t));
+	memset(&recipient, 0, sizeof(eid_t));
 
 	/* Step 1: Get the MC from the params. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
