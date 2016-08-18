@@ -934,7 +934,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 	uint32_t types_len = 0;
 	uint8_t **rows_data = NULL;
 	uint32_t *rows_len = 0;
-	uint32_t num_rows = 0;
+	int32_t num_rows = 0;
 	uint32_t cur_row = 0;
 	uint32_t tot_size = 0;
 	Sdnv num_rows_sdnv;

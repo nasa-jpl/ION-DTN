@@ -1543,11 +1543,11 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 int8_t bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		Object *acqFileRef, char *fname, char *bytes, uvast length)
 {
-	static uint32_t    acqCount = 0;
-	char               cwd[200];
-	char               fileName[SDRSTRING_BUFSZ];
-	int                fd;
-	uvast              fileLength;
+	static uint32_t	acqCount = 0;
+	char		cwd[200];
+	char		fileName[SDRSTRING_BUFSZ];
+	int		fd;
+	vast		fileLength;
 
 	CHKERR(bytes);
 	CHKERR(length >= 0);
