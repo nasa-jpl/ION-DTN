@@ -976,22 +976,6 @@ bpextra = \
 	bp/library/bei.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bsp/bspbab.h \
-	bp/library/ext/bsp/bspbab.c \
-	bp/library/ext/bsp/bspbcb.h \
-	bp/library/ext/bsp/bspbcb.c \
-	bp/library/ext/bsp/bspbib.h \
-	bp/library/ext/bsp/bspbib.c \
-	bp/library/ext/bsp/bsputil.h \
-	bp/library/ext/bsp/bsputil.c \
-	bp/library/ext/bsp/ciphersuites.h \
-	bp/library/ext/bsp/ciphersuites.c \
-	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
-	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
-	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
-	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
-	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
-	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	bp/library/ext/bpsec/bpsec_instr.h \
 	bp/library/ext/bpsec/bpsec_instr.c \
 	bp/library/ext/bpsec/bpsec_bcb.h \
@@ -1013,6 +997,23 @@ bpextra = \
 #	bp/library/ext/bsp/extbsppcb.c \
 #	bp/library/ext/bsp/extbsppib.h \
 #	bp/library/ext/bsp/extbsppib.c
+
+#	bp/library/ext/bsp/bspbab.h \
+#	bp/library/ext/bsp/bspbab.c \
+#	bp/library/ext/bsp/bspbcb.h \
+#	bp/library/ext/bsp/bspbcb.c \
+#	bp/library/ext/bsp/bspbib.h \
+#	bp/library/ext/bsp/bspbib.c \
+#	bp/library/ext/bsp/bsputil.h \
+#	bp/library/ext/bsp/bsputil.c \
+#	bp/library/ext/bsp/ciphersuites.h \
+#	bp/library/ext/bsp/ciphersuites.c \
+#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
+#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
+#	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
+#	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
+#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
+#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c 
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -1132,22 +1133,6 @@ libbp_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bsp/bspbab.h \
-	bp/library/ext/bsp/bspbab.c \
-	bp/library/ext/bsp/bspbcb.h \
-	bp/library/ext/bsp/bspbcb.c \
-	bp/library/ext/bsp/bspbib.h \
-	bp/library/ext/bsp/bspbib.c \
-	bp/library/ext/bsp/bsputil.h \
-	bp/library/ext/bsp/bsputil.c \
-	bp/library/ext/bsp/ciphersuites.h \
-	bp/library/ext/bsp/ciphersuites.c \
-	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
-	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
-	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
-	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
-	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
-	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c \
 	bp/library/ext/bpsec/bpsec_instr.h \
 	bp/library/ext/bpsec/bpsec_instr.c \
 	bp/library/ext/bpsec/bpsec_bcb.h \
@@ -1174,6 +1159,23 @@ libbp_la_SOURCES = \
 #	bp/library/ext/bsp/extbspbab.c \
 #	bp/library/ext/bsp/extbsppcb.c \
 #	bp/library/ext/bsp/extbsppib.c
+
+#	bp/library/ext/bsp/bspbab.h \
+#	bp/library/ext/bsp/bspbab.c \
+#	bp/library/ext/bsp/bspbcb.h \
+#	bp/library/ext/bsp/bspbcb.c \
+#	bp/library/ext/bsp/bspbib.h \
+#	bp/library/ext/bsp/bspbib.c \
+#	bp/library/ext/bsp/bsputil.h \
+#	bp/library/ext/bsp/bsputil.c \
+#	bp/library/ext/bsp/ciphersuites.h \
+#	bp/library/ext/bsp/ciphersuites.c \
+#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
+#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
+#	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
+#	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
+#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
+#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c 
 
 if CRYPTO
 libici_la_SOURCES+= \
@@ -2176,6 +2178,7 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 if !ION_NASA_B
 check_PROGRAMS+= \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
+	tests/issue-333-cfdp-orig-ID-type/send \
 	tests/issue-334-cfdp-transaction-id/dotest
 endif
 
@@ -2218,11 +2221,11 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -l
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 endif
 
-#if !ION_NASA_B
-#tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-#tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
-#tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-#endif
+if !ION_NASA_B
+tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
+tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
+tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+endif
 
 if !ION_NASA_B
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
