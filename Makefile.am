@@ -507,6 +507,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
+libici_la_LIBADD = -lm
 
 # --- Utility Programs --- #
 
@@ -1187,7 +1188,7 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/csi.c
 endif
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/bpsec
-libbp_la_LIBADD = libici.la $(CRYPTO_LIBS) -lm
+libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
 #libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
 if ENABLE_BPACS
