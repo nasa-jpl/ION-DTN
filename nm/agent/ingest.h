@@ -1,3 +1,10 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: ingest.h
@@ -12,7 +19,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/10/13  E. Birrane     Initial Implementation
+ **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
 #ifndef _INGEST_H_

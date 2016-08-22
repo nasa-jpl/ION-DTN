@@ -1,3 +1,10 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: ingest.h
@@ -12,9 +19,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR          DESCRIPTION
  **  --------  ------------    ---------------------------------------------
- **  08/31/11  V. Ramachandran Initial Implementation
- **  01/10/13  E. Birrane      Updates to lastest version of DTNMP spec.
- **  06/27/13  E. Birrane      Support persisted rules.
+ **  08/31/11  V. Ramachandran Initial Implementation (JHU/APL)
+ **  01/10/13  E. Birrane      Updates to lastest version of DTNMP spec. (JHU/APL)
+ **  06/27/13  E. Birrane      Support persisted rules. (JHU/APL)
  *****************************************************************************/
 
 #include "pthread.h"
@@ -70,14 +77,14 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
     mid_t *cur_mid = NULL;
     int i = 0;
 
-    DTNMP_DEBUG_ENTRY("rx_validate_mid_mc","(0x%#llx, %d)",
+    AMP_DEBUG_ENTRY("rx_validate_mid_mc","(0x%#llx, %d)",
     		         (unsigned long) mids, passEmpty);
 
     /* Step 0 : Sanity Check. */
     if (mids == NULL)
     {
-        DTNMP_DEBUG_ERR("rx_validate_mid_mc", "Bad Args.", NULL);
-        DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
+        AMP_DEBUG_ERR("rx_validate_mid_mc", "Bad Args.", NULL);
+        AMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
         return 0;
     }
 
@@ -89,8 +96,8 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
         /* Grab the next mid...*/
         if((cur_mid = (mid_t*) lyst_data(elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rx_validate_mid_mc","Found unexpected NULL mid.", NULL);
-            DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
+            AMP_DEBUG_ERR("rx_validate_mid_mc","Found unexpected NULL mid.", NULL);
+            AMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
             return 0;
         }
 
@@ -99,9 +106,9 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
         /* Is this a valid MID? */
         if(mid_sanity_check(cur_mid) == 0)
         {
-            DTNMP_DEBUG_ERR("rx_validate_mid_mc","Malformed MID: %s.", mid_str);
+            AMP_DEBUG_ERR("rx_validate_mid_mc","Malformed MID: %s.", mid_str);
             SRELEASE(mid_str);
-            DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
+            AMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
             return 0;
         }
 
@@ -109,13 +116,13 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
         if((adm_find_datadef(cur_mid) == NULL) &&
            (def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), cur_mid) == NULL))
         {
-            DTNMP_DEBUG_ERR("rx_validate_mid_mc","Unknown MID %s.", mid_str);
+            AMP_DEBUG_ERR("rx_validate_mid_mc","Unknown MID %s.", mid_str);
             SRELEASE(mid_str);
-            DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
+            AMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
             return 0;
         }
 
-        DTNMP_DEBUG_INFO("rx_validate_mid_mc","MID %s is recognized.", mid_str);
+        AMP_DEBUG_INFO("rx_validate_mid_mc","MID %s is recognized.", mid_str);
 
         SRELEASE(mid_str);
     }
@@ -123,12 +130,12 @@ int rx_validate_mid_mc(Lyst mids, int passEmpty)
 
     if((i == 0) && (passEmpty == 0))
     {
-        DTNMP_DEBUG_ERR("rx_validate_mid_mc","Empty MID list not allowed.", NULL);
-        DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
+        AMP_DEBUG_ERR("rx_validate_mid_mc","Empty MID list not allowed.", NULL);
+        AMP_DEBUG_EXIT("rx_validate_mid_mc","-> 0", NULL);
         return 0;
     }
 
-    DTNMP_DEBUG_EXIT("rx_validate_mid_mc","-> 1", NULL);
+    AMP_DEBUG_EXIT("rx_validate_mid_mc","-> 1", NULL);
     return 1;
 }
 
@@ -155,41 +162,41 @@ int rx_validate_rule(trl_t *rule)
 {
     int result = 1;
     
-    DTNMP_DEBUG_ENTRY("rx_validate_rule","(0x%x)", (unsigned long) rule);
+    AMP_DEBUG_ENTRY("rx_validate_rule","(0x%x)", (unsigned long) rule);
 
     /* Step 0: Sanity Check. */
     if(rule == NULL)
     {
-    	DTNMP_DEBUG_ERR("rx_validate_rule","NULL rule.", NULL);
-    	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
+    	AMP_DEBUG_ERR("rx_validate_rule","NULL rule.", NULL);
+    	AMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
     	return 0;
     }
 
     /* Is the interval correct? */
     if(rule->desc.interval_ticks == 0)
     {
-    	DTNMP_DEBUG_ERR("rx_validate_rule","Bad interval ticks: 0.", NULL);
-    	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
+    	AMP_DEBUG_ERR("rx_validate_rule","Bad interval ticks: 0.", NULL);
+    	AMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
     	return 0;
     }
 
     /* Do we understand the sender EID? */
     if(memcmp(&(rule->desc.sender), &(manager_eid), AMP_MAX_EID_LEN) != 0)
     {
-    	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown EID: %s.", rule->desc.sender.name);
-    	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
+    	AMP_DEBUG_ERR("rx_validate_rule","Unknown EID: %s.", rule->desc.sender.name);
+    	AMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
     	return 0;
     }
 
     /* Is each MID valid and recognized? */
     if(rx_validate_mid_mc(rule->action, 0) == 0)
     {
-    	DTNMP_DEBUG_ERR("rx_validate_rule","Unknown MIDs",NULL);
-    	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
+    	AMP_DEBUG_ERR("rx_validate_rule","Unknown MIDs",NULL);
+    	AMP_DEBUG_EXIT("rx_validate_rule","-> 0", NULL);
     	return 0;
     }
 
-	DTNMP_DEBUG_EXIT("rx_validate_rule","-> 1", NULL);
+	AMP_DEBUG_EXIT("rx_validate_rule","-> 1", NULL);
 
     return result;
 }
@@ -215,9 +222,9 @@ int rx_validate_rule(trl_t *rule)
 
 void *rx_thread(int *running) {
    
-    DTNMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
+    AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
     
-    DTNMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
+    AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
     
     uint32_t num_msgs = 0;
     uint8_t *buf = NULL;
@@ -241,7 +248,7 @@ void *rx_thread(int *running) {
 
         if(buf != NULL)
         {
-            DTNMP_DEBUG_INFO("rx_thread","Received buf (%x) of size %d",
+            AMP_DEBUG_INFO("rx_thread","Received buf (%x) of size %d",
             		         (unsigned long) buf, size);
 
             /* Grab # messages and timestamp for this group. */
@@ -257,8 +264,8 @@ void *rx_thread(int *running) {
             cursor += bytes;
             size -= bytes;
 
-            DTNMP_DEBUG_INFO("rx_thread","Group had %d msgs", num_msgs);
-            DTNMP_DEBUG_INFO("rx_thread","Group time stamp %lu", (unsigned long) group_timestamp);
+            AMP_DEBUG_INFO("rx_thread","Group had %d msgs", num_msgs);
+            AMP_DEBUG_INFO("rx_thread","Group time stamp %lu", (unsigned long) group_timestamp);
 
             /* For each message in the bundle. */
             for(i = 0; i < num_msgs; i++)
@@ -271,15 +278,15 @@ void *rx_thread(int *running) {
             	{
                 	case MSG_TYPE_CTRL_EXEC:
                 	{
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Perform Control Message.\n", NULL);
+                		AMP_DEBUG_ALWAYS("NM Agent :","Received Perform Control Message.\n", NULL);
                 		rx_handle_exec(&meta, cursor,size,&bytes);
                 	}
                 	break;
 
                 	default:
                 	{
-                		DTNMP_DEBUG_WARN("rx_thread","Received unknown type: %d.\n", hdr->type);
-                		DTNMP_DEBUG_ALWAYS("NM Agent :","Received Unsupported message of type 0x%x.\n", hdr->id);
+                		AMP_DEBUG_WARN("rx_thread","Received unknown type: %d.\n", hdr->type);
+                		AMP_DEBUG_ALWAYS("NM Agent :","Received Unsupported message of type 0x%x.\n", hdr->id);
 
                 	}
                 	break;
@@ -298,8 +305,8 @@ void *rx_thread(int *running) {
         }
     }
    
-    DTNMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
-    DTNMP_DEBUG_EXIT("rx_thread","->.", NULL);
+    AMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
+    AMP_DEBUG_EXIT("rx_thread","->.", NULL);
     pthread_exit(NULL);
     return NULL; /* Defensive. */
 }
@@ -333,14 +340,14 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 	def_gen_t* rpt_def = NULL;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("rx_handle_rpt_def","(0x%#llx, %d, 0x%#llx)",
+	AMP_DEBUG_ENTRY("rx_handle_rpt_def","(0x%#llx, %d, 0x%#llx)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
 
 	/* Step 0: Sanity checks. */
 	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
 	{
-    	DTNMP_DEBUG_ERR("rx_handle_rpt_def","Bad args.",NULL);
-    	DTNMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
+    	AMP_DEBUG_ERR("rx_handle_rpt_def","Bad args.",NULL);
+    	AMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
     	return;
 	}
 
@@ -350,17 +357,17 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
     /* Step 2: If the deserialization failed, complain. */
     if((rpt_def == NULL) || (bytes == 0))
     {
-    	DTNMP_DEBUG_ERR("rx_handle_rpt_def","Can't deserialize.",NULL);
+    	AMP_DEBUG_ERR("rx_handle_rpt_def","Can't deserialize.",NULL);
     	def_release_gen(rpt_def);
     	*bytes_used = 0;
-    	DTNMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
+    	AMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
     	return;
     }
 
     /* Step 3: Otherwise, note how many bytes were consumed. */
     *bytes_used = bytes;
 
-	DTNMP_DEBUG_INFO("rx_handle_rpt_def","Adding new report definition.", NULL);
+	AMP_DEBUG_INFO("rx_handle_rpt_def","Adding new report definition.", NULL);
 
 
     /* Step 4: Persist this definition to our SDR. */
@@ -371,7 +378,7 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 	ADD_REPORT(rpt_def);
 
 	/* Step 6: Update instrumentation counters. */
-	gAgentInstr.num_rpt_defs++;
+	gAgentInstr.num_rptt_defs++;
 }
 
 
@@ -406,15 +413,15 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 	Lyst ctrls;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("rx_handle_exec","(0x%#llx, %d, 0x%#llx)",
+	AMP_DEBUG_ENTRY("rx_handle_exec","(0x%#llx, %d, 0x%#llx)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
 
 
 	/* Step 0: Sanity checks. */
 	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
 	{
-    	DTNMP_DEBUG_ERR("rx_handle_exec","Bad args.",NULL);
-    	DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
+    	AMP_DEBUG_ERR("rx_handle_exec","Bad args.",NULL);
+    	AMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
     	return;
 	}
 
@@ -431,10 +438,10 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 	/* Grab the list of contents. */
 	if((ctrls = midcol_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rx_handle_exec","Can't grab Ctrl MC.",NULL);
+		AMP_DEBUG_ERR("rx_handle_exec","Can't grab Ctrl MC.",NULL);
 
 		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
+		AMP_DEBUG_EXIT("rx_handle_exec","->.",NULL);
 	}
 	else
 	{
@@ -451,7 +458,7 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 		ctrl_exec_t *ctrl = NULL;
 
 		char *str = mid_to_string(mid);
-		DTNMP_DEBUG_ALWAYS("rx_handle_exec","Received control mid %.50s...\n", str);
+		AMP_DEBUG_ALWAYS("rx_handle_exec","Received control mid %.50s...\n", str);
 
 		/* Step 3.2: Create a control instance from this MID. */
 		if((ctrl = ctrl_create(time, mid, meta->senderEid)) != NULL)
@@ -461,7 +468,7 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 			agent_db_ctrl_persist(ctrl);
 
 			/* Step 3.4: Persist this control to memory. */
-			DTNMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
+			AMP_DEBUG_INFO("rx_handle_exec","Performing control.", NULL);
 			ADD_CTRL(ctrl);
 
 			/* Step 3.5: Update instrumentation counters. */
@@ -469,7 +476,7 @@ void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("rx_handle_exec","Cannot create control for %s", str);
+			AMP_DEBUG_ERR("rx_handle_exec","Cannot create control for %s", str);
 		}
 
 		SRELEASE(str);
@@ -508,14 +515,14 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	trl_t *new_rule = NULL;
     uint32_t bytes = 0;
 
-    DTNMP_DEBUG_INFO("rx_handle_time_prod",
+    AMP_DEBUG_INFO("rx_handle_time_prod",
     		         "Processing a production rule.", NULL);
 
 	/* Step 0: Sanity checks. */
 	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
 	{
-    	DTNMP_DEBUG_ERR("rx_handle_time_prod","Bad args.",NULL);
-    	DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+    	AMP_DEBUG_ERR("rx_handle_time_prod","Bad args.",NULL);
+    	AMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
     	return;
 	}
 
@@ -525,10 +532,10 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	/* Step 2: If the deserialization failed, complain. */
 	if((new_rule == NULL) || (bytes == 0))
 	{
-		DTNMP_DEBUG_ERR("rx_handle_time_prod","Can't deserialize.",NULL);
+		AMP_DEBUG_ERR("rx_handle_time_prod","Can't deserialize.",NULL);
 		trl_release(new_rule);
 		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+		AMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
 		return;
 	}
 
@@ -551,14 +558,14 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
     /* Step 5: Validate the new rule. */
     if(rx_validate_rule(new_rule) == 0)
     {
-		DTNMP_DEBUG_ERR("rx_handle_time_prod","New rule failed validation.",NULL);
+		AMP_DEBUG_ERR("rx_handle_time_prod","New rule failed validation.",NULL);
 		trl_release(new_rule);
 		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+		AMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
 		return;
     }
 
-    DTNMP_DEBUG_INFO("rx_handle_time_prod",
+    AMP_DEBUG_INFO("rx_handle_time_prod",
     			         "Adding new production rule.", NULL);
 
     /* Step 6: Persist this definition to our SDR. */
@@ -568,7 +575,7 @@ void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	ADD_TRL(new_rule);
 
 	/* Step 8: Update instrumentation counters. */
-	gAgentInstr.num_time_rules++;
+	gAgentInstr.num_trls++;
 }
 
 
@@ -601,15 +608,15 @@ void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	def_gen_t* macro_def = NULL;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("rx_handle_macro_def","(0x%x, %d, 0x%x)",
+	AMP_DEBUG_ENTRY("rx_handle_macro_def","(0x%x, %d, 0x%x)",
 			          (unsigned long)cursor, size, (unsigned long) bytes_used);
 
 
 	/* Step 0: Sanity checks. */
 	if((meta == NULL) || (cursor == NULL) || (bytes_used == NULL))
 	{
-    	DTNMP_DEBUG_ERR("rx_handle_time_prod","Bad args.",NULL);
-    	DTNMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
+    	AMP_DEBUG_ERR("rx_handle_time_prod","Bad args.",NULL);
+    	AMP_DEBUG_EXIT("rx_handle_time_prod","->.",NULL);
     	return;
 	}
 
@@ -619,17 +626,17 @@ void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, u
 	/* Step 2: If the deserialization failed, complain. */
     if((macro_def == NULL) || (bytes == 0))
     {
-    	DTNMP_DEBUG_ERR("rx_handle_macro_def","Can;t deserialize.",NULL);
+    	AMP_DEBUG_ERR("rx_handle_macro_def","Can;t deserialize.",NULL);
     	def_release_gen(macro_def);
     	*bytes_used = 0;
-    	DTNMP_DEBUG_EXIT("rx_handle_macro_def","->.",NULL);
+    	AMP_DEBUG_EXIT("rx_handle_macro_def","->.",NULL);
     	return;
     }
 
     /* Step 3: Otherwise, note how many bytes were consumed. */
     *bytes_used = bytes;
 
-	DTNMP_DEBUG_INFO("rx_handle_macro_def","Adding new report definition.", NULL);
+	AMP_DEBUG_INFO("rx_handle_macro_def","Adding new report definition.", NULL);
 
     /* Step 4: Persist this definition to our SDR. */
 	agent_db_macro_persist(macro_def);

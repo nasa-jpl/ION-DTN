@@ -14,7 +14,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  04/26/15  E. Birrane     Initial Implementation
+ **  04/26/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "mgr/nm_mgr_names.h"
@@ -49,9 +49,9 @@ int names_add_name(char *name, char *desc, int adm, char *mid_str)
 	uint8_t *mid_hex = utils_string_to_hex(mid_str, &hex_size);
 	if(mid_hex == NULL)
 	{
-		DTNMP_DEBUG_ERR("names_add_name","Can't made hex from %s.", mid_str);
+		AMP_DEBUG_ERR("names_add_name","Can't made hex from %s.", mid_str);
 		SRELEASE(entry);
-		DTNMP_DEBUG_EXIT("names_add_name","-> 0.", NULL);
+		AMP_DEBUG_EXIT("names_add_name","-> 0.", NULL);
 		return 0;
 	}
 	entry->mid = mid_deserialize(mid_hex, hex_size, &used);
@@ -144,7 +144,7 @@ void names_init()
 
     if((gMgrNames = lyst_create()) == NULL)
     {
-    	DTNMP_DEBUG_ERR("names_init","Failed to create known names list.",NULL);
+    	AMP_DEBUG_ERR("names_init","Failed to create known names list.",NULL);
     }
 
 }

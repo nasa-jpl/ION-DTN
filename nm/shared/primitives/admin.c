@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -64,21 +58,21 @@ adm_reg_agent_t *msg_create_reg_agent(eid_t eid)
 {
 	adm_reg_agent_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("msg_create_reg_agent","(%s)", eid.name);
+	AMP_DEBUG_ENTRY("msg_create_reg_agent","(%s)", eid.name);
 
 	/* Step 1: Allocate the message. */
 	if((result = (adm_reg_agent_t*) STAKE(sizeof(adm_reg_agent_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("msg_create_reg_agent","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("msg_create_reg_agent","Can't alloc %d bytes.",
 				        sizeof(adm_reg_agent_t));
-		DTNMP_DEBUG_EXIT("msg_create_reg_agent","->NULL",NULL);
+		AMP_DEBUG_EXIT("msg_create_reg_agent","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the message. */
 	result->agent_id = eid;
 
-	DTNMP_DEBUG_EXIT("msg_create_reg_agent","->0x%x",result);
+	AMP_DEBUG_EXIT("msg_create_reg_agent","->0x%x",result);
 	return result;
 }
 
@@ -110,21 +104,21 @@ adm_rpt_policy_t *msg_create_rpt_policy(uint8_t mask)
 {
 	adm_rpt_policy_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("msg_create_rpt_policy","(0x%x)", mask);
+	AMP_DEBUG_ENTRY("msg_create_rpt_policy","(0x%x)", mask);
 
 	/* Step 1: Allocate the message. */
 	if((result = (adm_rpt_policy_t*)STAKE(sizeof(adm_reg_agent_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("msg_create_rpt_policy","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("msg_create_rpt_policy","Can't alloc %d bytes.",
 				        sizeof(adm_reg_agent_t));
-		DTNMP_DEBUG_EXIT("msg_create_rpt_policy","->NULL",NULL);
+		AMP_DEBUG_EXIT("msg_create_rpt_policy","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the message. */
 	result->mask = mask;
 
-	DTNMP_DEBUG_EXIT("msg_create_rpt_policy","->0x%x",result);
+	AMP_DEBUG_EXIT("msg_create_rpt_policy","->0x%x",result);
 	return result;
 }
 
@@ -160,23 +154,23 @@ adm_stat_msg_t *msg_create_stat_msg(mid_t *code,
 {
 	adm_stat_msg_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("msg_create_stat_msg","(code,0x%x,0x%x)",
+	AMP_DEBUG_ENTRY("msg_create_stat_msg","(code,0x%x,0x%x)",
 			          time, (unsigned long) generators);
 
 	/* Step 0: Sanity Check. */
 	if((code == NULL) || (generators == NULL))
 	{
-		DTNMP_DEBUG_ERR("msg_create_stat_msg","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("msg_create_stat_msg","->NULL",NULL);
+		AMP_DEBUG_ERR("msg_create_stat_msg","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("msg_create_stat_msg","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the message. */
 	if((result = (adm_stat_msg_t*)STAKE(sizeof(adm_reg_agent_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("msg_create_stat_msg","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("msg_create_stat_msg","Can't alloc %d bytes.",
 				        sizeof(adm_reg_agent_t));
-		DTNMP_DEBUG_EXIT("msg_create_stat_msg","->NULL",NULL);
+		AMP_DEBUG_EXIT("msg_create_stat_msg","->NULL",NULL);
 		return NULL;
 	}
 
@@ -185,7 +179,7 @@ adm_stat_msg_t *msg_create_stat_msg(mid_t *code,
 	result->time = time;
 	result->generators = generators;
 
-	DTNMP_DEBUG_EXIT("msg_create_stat_msg","->0x%x",result);
+	AMP_DEBUG_EXIT("msg_create_stat_msg","->0x%x",result);
 	return result;
 }
 
@@ -209,7 +203,7 @@ adm_stat_msg_t *msg_create_stat_msg(mid_t *code,
 
 void msg_release_reg_agent(adm_reg_agent_t *msg)
 {
-	DTNMP_DEBUG_ENTRY("msg_release_reg_agent","(0x%x)",
+	AMP_DEBUG_ENTRY("msg_release_reg_agent","(0x%x)",
 			          (unsigned long) msg);
 
 	if(msg != NULL)
@@ -217,7 +211,7 @@ void msg_release_reg_agent(adm_reg_agent_t *msg)
 		SRELEASE(msg);
 	}
 
-	DTNMP_DEBUG_EXIT("msg_release_reg_agent","->.",NULL);
+	AMP_DEBUG_EXIT("msg_release_reg_agent","->.",NULL);
 }
 
 
@@ -240,7 +234,7 @@ void msg_release_reg_agent(adm_reg_agent_t *msg)
 
 void msg_release_rpt_policy(adm_rpt_policy_t *msg)
 {
-	DTNMP_DEBUG_ENTRY("msg_release_rpt_policy","(0x%x)",
+	AMP_DEBUG_ENTRY("msg_release_rpt_policy","(0x%x)",
 			          (unsigned long) msg);
 
 	if(msg != NULL)
@@ -248,7 +242,7 @@ void msg_release_rpt_policy(adm_rpt_policy_t *msg)
 		SRELEASE(msg);
 	}
 
-	DTNMP_DEBUG_EXIT("msg_release_rpt_policy","->.",NULL);
+	AMP_DEBUG_EXIT("msg_release_rpt_policy","->.",NULL);
 }
 
 
@@ -271,7 +265,7 @@ void msg_release_rpt_policy(adm_rpt_policy_t *msg)
 
 void msg_release_stat_msg(adm_stat_msg_t *msg)
 {
-	DTNMP_DEBUG_ENTRY("msg_release_stat_msg","(0x%x)",
+	AMP_DEBUG_ENTRY("msg_release_stat_msg","(0x%x)",
 			          (unsigned long) msg);
 
 	if(msg != NULL)
@@ -281,6 +275,6 @@ void msg_release_stat_msg(adm_stat_msg_t *msg)
 		SRELEASE(msg);
 	}
 
-	DTNMP_DEBUG_EXIT("msg_release_stat_msg","->.",NULL);
+	AMP_DEBUG_EXIT("msg_release_stat_msg","->.",NULL);
 }
 

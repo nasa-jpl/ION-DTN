@@ -3,17 +3,12 @@
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 
 /*****************************************************************************
  **
- ** File Name: adm_agent.h
+ ** File Name: adm_agent_impl.c
  **
  **
  ** Description: This file implements the private (agent-specific) aspects of
@@ -44,197 +39,437 @@
 #include "agent_db.h"
 #include "instr.h"
 
+
+
+
 /******************************************************************************
  *
- * \par Function Name: agent_adm_init_agent
+ * \par Function Name: adm_agent_md_name
  *
- * \par Initializes the collect/run functions for agent ADM support. Both the
- *      manager and agent share functions for sizing and printing items. However,
- *      only the agent needs to implement the functions for collecting data and
- *      running controls.
+ * \par Returns the name of this ADM.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
  *
  * \par Notes:
- *
- *  - We build a string representation of the MID rather than storing one
- *    statically to save on static space.  Please see the DTNMP AGENT ADM
- *    for specifics on the information added here.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  07/04/13  E. Birrane     Initial implementation.
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Updated Comments.(Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-value_t agent_md_name(tdc_t params)
+value_t adm_agent_md_name(tdc_t params)
 {
 	return val_from_string("DTNMP ADM");
 }
 
-value_t agent_md_ver(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_md_ver
+ *
+ * \par Returns the version of this ADM.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Updated Comments.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_md_ver(tdc_t params)
 {
 	return val_from_string("v0.2");
 }
 
+
+
 /* Retrieval Functions. */
 
-value_t agent_get_num_rpt(tdc_t params)
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_rpt
+ *
+ * \par Returns The number of reports defined for this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_rpt(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_rpt_defs;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_rptt_defs);
 }
 
-value_t agent_get_sent_rpt(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_sent_rpt
+ *
+ * \par Returns The number of reports sent by this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_sent_rpt(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_sent_rpts;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_sent_rpts);
 }
 
-value_t agent_get_num_trl(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_trl
+ *
+ * \par Returns The number of TRLs defined for this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_trl(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_time_rules;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_trls);
 }
 
-value_t agent_get_run_trl(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_run_trl
+ *
+ * \par Returns The number of TRLs evaluations on this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_run_trl(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_time_rules_run;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_trls_run);
 }
 
-value_t agent_get_num_srl(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_srl
+ *
+ * \par Returns The number of SRLs defined on this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_srl(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_prod_rules;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_srls);
 }
 
-value_t agent_get_run_srl(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_run_srl
+ *
+ * \par Returns The number of SRL evaluations by this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_run_srl(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_prod_rules_run;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_srls_run);
 }
 
-value_t agent_get_num_lit(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_lit
+ *
+ * \par Returns The number of Literals known by this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_lit(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_consts;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_lits);
 }
 
-value_t agent_get_num_cust(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_var
+ *
+ * \par Returns The number of Variables known to this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_var(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_data_defs;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_vars);
 }
 
-value_t agent_get_num_mac(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_mac
+ *
+ * \par Returns The number of Macros known to this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_mac(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_macros;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_macros);
 }
 
-value_t agent_get_run_mac(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_run_mac
+ *
+ * \par Returns The number of Macros tun by this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_run_mac(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_macros_run;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_macros_run);
 }
 
-value_t agent_get_num_ctrl(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_num_ctrl
+ *
+ * \par Returns The number of Controls known to this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_num_ctrl(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_ctrls;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_ctrls);
 }
 
-value_t agent_get_run_ctrl(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_run_ctrl
+ *
+ * \par Returns The number of Controls run by this agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_run_ctrl(tdc_t params)
 {
-	value_t result;
-
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = gAgentInstr.num_ctrls_run;
-
-	return result;
+	return val_from_uint(gAgentInstr.num_ctrls_run);
 }
 
-value_t agent_get_curtime(tdc_t params)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_get_curtime
+ *
+ * \par Returns The current UTC time on the agent.
+ *
+ * \param[in] params  Unused. This control takes 0 parameters.
+ *
+ * \return The value_t holding the result, or type UNK on error.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Use val_from.(Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+value_t adm_agent_get_curtime(tdc_t params)
 {
-	value_t result;
 	struct timeval cur_time;
 
 	getCurrentTime(&cur_time);
 
-	result.type = DTNMP_TYPE_UINT;
-	result.value.as_uint = (uint32_t) cur_time.tv_sec;
-
-	return result;
+	return val_from_uint((uint32_t) cur_time.tv_sec);
 }
 
 
 /* Control Functions */
 
-/*
- * This control causes the agent to produce a report detailing the list
- * of all ADMs configured on the agent and available for use.
- * This control takes no parameters.
- * This control causes a report to be generated with the following format.
- * ListADMs Report Format
- * +--------+------------+     +------------+
- * | # ADMs | ADM 1 Name | ... | ADM N Name |
- * | [SDNV] |    [STR]   |     |    [STR]   |
- * +--------+------------+     +------------+
- * Figure 18
- * # ADMs - The number of ADMs known to the agent.
- * ADM [x] Name - For each ADM, it’s human readable name.
- */
-/* Return a data collection of strings. */
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_adm_lst
+ *
+ * \par Causes the agent to produce a report entry detailing the list of all
+ *      ADMs supported by the agent and available for use.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   Unused. This control takes 0 parameters.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return A TDC of strings representing each ADM known to this agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_agent_ctl_adm_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t *result = NULL;
-	value_t cur_val;
 	uint8_t *data = NULL;
 	uint32_t data_size = 0;
+	amp_type_e type = AMP_TYPE_UNK;
+
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Construct the values. */
 	if((result = tdc_create(NULL, NULL, 0)) == NULL)
@@ -243,41 +478,45 @@ tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
     	return NULL;
     }
 
-	cur_val.type = DTNMP_TYPE_STRING;
-//	cur_val.length = strlen("DTNMP_AGENT");
-	cur_val.value.as_ptr = adm_copy_string("DTNMP AGENT", NULL);
-	data = val_serialize(cur_val, &data_size, 0);
-	val_release(&cur_val, 0);
-	tdc_insert(result, cur_val.type, data, data_size);
+	data = utils_serialize_string("AGENT", &data_size);
+	type = tdc_insert(result, AMP_TYPE_STRING, data, data_size);
 	SRELEASE(data);
-	//tdc_insert(result, DTNMP_TYPE_STRING, (uint8_t*) "DTNMP AGENT", strlen("DTNMP AGENT"));
 
-	cur_val.type = DTNMP_TYPE_STRING;
-//	cur_val.length = strlen("BP");
-	cur_val.value.as_ptr = adm_copy_string("BP", NULL);
-	data = val_serialize(cur_val, &data_size, 0);
-	val_release(&cur_val, 0);
-	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
+	if(type != AMP_TYPE_STRING)
+	{
+		tdc_destroy(&result);
+		return NULL;
+	}
+
+	data = utils_serialize_string("BP", &data_size);
+	type = tdc_insert(result, AMP_TYPE_STRING, data, data_size);
 	SRELEASE(data);
+	if(type != AMP_TYPE_STRING)
+	{
+		tdc_destroy(&result);
+		return NULL;
+	}
 
 #ifdef _HAVE_LTP_ADM_
-	cur_val.type = DTNMP_TYPE_STRING;
-//	cur_val.length = strlen("LTP");
-	cur_val.value.as_ptr = adm_copy_string("LTP", NULL);
-	data = val_serialize(&cur_val, &data_size, 0);
-	val_release(&cur_val, 0);
-	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
+	data = utils_serialize_string("LTP", &data_size);
+	type = tdc_insert(result, AMP_TYPE_STRING, data, data_size);
 	SRELEASE(data);
+	if(type != AMP_TYPE_STRING)
+	{
+		tdc_destroy(&result);
+		return NULL;
+	}
 #endif /* _HAVE_LTP_ADM_ */
 
 #ifdef _HAVE_ION_ADM_
-	cur_val.type = DTNMP_TYPE_STRING;
-//	cur_val.length = strlen("ION");
-	cur_val.value.as_ptr = adm_copy_string("ION", NULL);
-	data = val_serialize(&cur_val, &data_size, 0);
-	val_release(&cur_val, 0);
-	tdc_insert(result, DTNMP_TYPE_STRING, data, data_size);
+	data = utils_serialize_string("ION", &data_size);
+	type = tdc_insert(result, AMP_TYPE_STRING, data, data_size);
 	SRELEASE(data);
+	if(type != AMP_TYPE_STRING)
+	{
+		tdc_destroy(&result);
+		return NULL;
+	}
 #endif /* _Have_ION_ADM_ */
 
     *status = CTRL_SUCCESS;
@@ -285,114 +524,192 @@ tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control defines a new computed data definition for the agent.
- *
- * THe control takes 2 parameters:
- * 1. The MID for the new computed data item.
- * 2. The type of the Computed Data Value
- * 3. The expression associated with the value.
- *
- * The control returns success/failure and does not generate a report.
- */
 
-tdc_t *agent_ctl_cd_add(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_var_add
+ *
+ * \par Defines a new variable on the agent. The added VAR can be interpetted
+ *      as having the declaration:
+ *
+ *      Type Id = EVAL(Initializer);
+ *
+ *      Unless the type of the variable is EXPR, in which case the variable should
+ *      be interpretted as having the following definition:
+ *
+ *      Type Id = Initializer;
+ *
+ *      The parameters for this control are as follows.
+ *
+ *       +--------+-------------+--------+
+ *       |   Id   | Initializer |  Type  |
+ *       |  [MID] |    [EXPR]   | [BYTE] |
+ *       +--------+-------------+--------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for this control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.  This control does not generate an RPTE.
+ *
+ * \par Notes:
+ *  - This control will fail if the variable ID is already defined.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_var_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	mid_t *mid = NULL;
-	dtnmp_type_e type = DTNMP_TYPE_UNK;
+	uint32_t tmp = 0;
+	amp_type_e type = AMP_TYPE_UNK;
 	expr_t *expr = NULL;
-	cd_t *cd = NULL;
+	var_t *var = NULL;
+	value_t val;
 	int8_t success = 0;
+
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mid = adm_extract_mid(params, 0, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
-	/* Step 2: Make sure this isn't a duplicate. */
-	if(agent_vdb_compdata_find(mid) != NULL)
+	/* Step 1.1: Make sure this isn't a duplicate. */
+	if(agent_vdb_var_find(mid) != NULL)
 	{
-		DTNMP_DEBUG_WARN("agent_ctl_cd_add","CD already defined for this MID. Ignoring.", NULL);
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Dup. Id. Ignoring.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 1.1: Verify this is a good MID for a CD. */
+	/* Step 1.2: Verify this is a good MID for a VAR. */
 	if(MID_GET_FLAG_ID(mid->flags) != MID_COMPUTED)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_cd_add","MID flags do not match a CD definition.", NULL);
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_var_add","Bad MID.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 2: Grab the expression that defines the CD. */
+	/* Step 2: Grab the expression that defines the VAR. */
 	if((expr = adm_extract_expr(params, 1, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Parm 1 (EXPR) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 3: Grab the type that defines the CD. */
-	type = adm_extract_sdnv(params, 2, &success);
+	/* Step 3: Grab the type that defines the VAR. */
+	tmp = (uint32_t) adm_extract_sdnv(params, 2, &success);
 	if(success != 1)
 	{
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Parm 2 (SDNV) Err.", NULL);
 		mid_release(mid);
 		expr_release(expr);
 		return NULL;
 	}
 
-
-	/* Step 3: Add the new definition.
-	 * NOTE: cd_create shallow-copies information. Do not release
-	 * mid or val!
-	 */
-	value_t val;
-	val_init(&val);
-	if((cd = cd_create(mid, type, expr, val)) == NULL)
+	/* Step 3.1: Verify the type is valid. */
+	type = type_from_uint(tmp);
+	if(type == AMP_TYPE_UNK)
 	{
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Bad type %d.", type);
 		mid_release(mid);
 		expr_release(expr);
 		return NULL;
 	}
 
+	/* Step 3.2: Verify if type != EXPR, that expr value = type value. */
+	if((type != AMP_TYPE_EXPR) && (type != expr->type))
+	{
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Expr has wrong type %d not %d.", expr->type, type);
+		mid_release(mid);
+		expr_release(expr);
+		return NULL;
+	}
+
+
+	/* Step 4 : Construct the variable. Note, this function shallow-copies the
+	 *          MID so do not release it. Also, passing an empty val to the
+	 *          create function will cause the expression to be evaluated to
+	 *          generate a value.
+	 */
+	val_init(&val);
+	if((var = var_create(mid, type, expr, val)) == NULL)
+	{
+		AMP_DEBUG_WARN("adm_agent_ctl_var_add","Can't make VAR.", NULL);
+		mid_release(mid);
+		expr_release(expr);
+		return NULL;
+	}
+
+
+	/* Step 5: Release the expr, it is not used after the VAR create. */
 	expr_release(expr);
 
-	agent_db_compdata_persist(cd);
-	ADD_COMPDATA(cd);
+	/* Step 6: Update ADM Agent statistics. */
+	agent_db_var_persist(var);
+	ADD_VAR(var);
 
-	gAgentInstr.num_data_defs = agent_db_count(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex)) +
-			                    agent_db_count(gAdmData, NULL);
+	gAgentInstr.num_vars = agent_db_count(gAgentVDB.vars, &(gAgentVDB.var_mutex)) +
+			                    agent_db_count(gAdmComputed, NULL);
 
 	*status = CTRL_SUCCESS;
 
 	return NULL;
 }
 
-/*
- * This control defines a new computed data definition for the agent.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of CDs to remove.
- *
- * The control returns success/failure and does not generate a report.
- */
 
-tdc_t *agent_ctl_cd_del(eid_t *def_mgr, tdc_t params, int8_t *status)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_var_del
+ *
+ * \par Removes a variable definition from the agent.
+ *
+ *      The parameters for this control are as follows.
+ *
+ *       +---------------+
+ *       | Ids To Remove |
+ *       |      [MC]     |
+ *       +---------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for this control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.  This control does not generate an RPTE.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_var_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
 	int8_t success = 0;
 
+	*status = CTRL_FAILURE;
+
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_var_del","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
@@ -403,15 +720,16 @@ tdc_t *agent_ctl_cd_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 		if(mid != NULL)
 		{
-			agent_db_compdata_forget(mid);
-			agent_vdb_compdata_forget(mid);
+			agent_db_var_forget(mid);
+			agent_vdb_var_forget(mid);
 		}
 	}
 
+	/* Step 3: Cleanup. */
 	midcol_destroy(&mc);
 
-	gAgentInstr.num_data_defs = agent_db_count(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex)) +
-			                    agent_db_count(gAdmData, NULL);
+	gAgentInstr.num_vars = agent_db_count(gAgentVDB.vars, &(gAgentVDB.var_mutex)) +
+			                    agent_db_count(gAdmComputed, NULL);
 
 
 	*status = CTRL_SUCCESS;
@@ -419,15 +737,40 @@ tdc_t *agent_ctl_cd_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control defines a new computed data definition for the agent.
- *
- * THe control takes 0 parameters:
- *
- * The control returns success/failure and does not generate a report.
- */
 
-tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_var_lst
+ *
+ * \par Lists variable definitions known to the agent.
+ *
+ *      This control does not take any parameters.
+ *
+ *      Generates a report entry of the following format:
+ *
+ *      +--------------------+
+ *      | Known Variable IDs |
+ *      |         [MC]       |
+ *      +--------------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   This control does not take parameters.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return The list of known variable names as a MC.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_var_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t *retval = NULL;
 	Lyst mc = NULL;
@@ -437,27 +780,27 @@ tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	/* Step 0: Sanity Check. */
 
-	/* Step 1: Build an MC of known compdata. */
+	/* Step 1: Build an MC of known variables. */
 	if((mc = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_var_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
 
-	lockResource(&(gAgentVDB.compdata_mutex));
-	for(elt = lyst_first(gAgentVDB.compdata); elt; elt = lyst_next(elt))
+	lockResource(&(gAgentVDB.var_mutex));
+	for(elt = lyst_first(gAgentVDB.vars); elt; elt = lyst_next(elt))
 	{
-		cd_t *cur = (cd_t*) lyst_data(elt);
+		var_t *cur = (var_t*) lyst_data(elt);
 		lyst_insert_last(mc, mid_copy(cur->id));
 	}
-	unlockResource(&(gAgentVDB.compdata_mutex));
+	unlockResource(&(gAgentVDB.var_mutex));
 
 	/* Step 2: Allocate the return value. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_var_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -467,11 +810,11 @@ tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	data = midcol_serialize(mc, &data_len);
 	midcol_destroy(&mc);
 
-	if(tdc_insert(retval, DTNMP_TYPE_MC, data, data_len) != DTNMP_TYPE_MC)
+	if(tdc_insert(retval, AMP_TYPE_MC, data, data_len) != AMP_TYPE_MC)
 	{
 		tdc_destroy(&retval);
 		SRELEASE(data);
-		DTNMP_DEBUG_ERR("agent_ctl_cd_lst","Can't add MC to TDC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_var_lst","Can't add MC to TDC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -484,16 +827,52 @@ tdc_t *agent_ctl_cd_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control defines a new computed data definition for the agent.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of CDs to describe
- *
- * The control returns a list of each compdata def.
- */
 
-tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_var_dsc
+ *
+ * \par Described certain variables known to the agent.
+ *
+ *      This control takes 1 parameter:.
+ *
+ *      +-----------------+
+ *      | Ids To Describe |
+ *      |       [MC]      |
+ *      +-----------------+
+ *
+ *      Generates a report entry of the following format:
+ *
+ *      +--------+--------+--------+    +--------+
+ *      | # VARS | Types  | VAR 1  |... | VAR N  |
+ *      | [SDNV] | [BLOB] | [BLOB] |    | [BLOB] |
+ *      +--------+--------+--------+    +--------+
+ *                          ||
+ *                          ||
+ *             ____________/  \__________
+ *            /                          \
+ *            +-------+--------+--------+
+ *            |  ID   |  TYPE  |  Value |
+ *            | [MID] | [BYTE] | [BLOB] |
+ *            +-------+--------+--------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   This control does not take parameters.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return Description of variables.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_var_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -502,11 +881,12 @@ tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	uint32_t data_len = 0;
 	int8_t success = 0;
 
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the list of MIDs to describe. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_var_dsc","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
@@ -514,8 +894,7 @@ tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_cd_dsc","Can't make tdc.", NULL);
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_var_dsc","Can't make tdc.", NULL);
 		return NULL;
 	}
 
@@ -525,16 +904,16 @@ tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		mid_t *mid = lyst_data(elt);
 
 		/* do not release cur, it is a direct ptr. */
-		cd_t *cur = agent_vdb_compdata_find(mid);
+		var_t *cur = agent_vdb_var_find(mid);
 
-		if((data = cd_serialize(cur, &data_len)) != NULL)
+		if((data = var_serialize(cur, &data_len)) != NULL)
 		{
-			tdc_insert(retval, DTNMP_TYPE_CD, data, data_len);
+			tdc_insert(retval, AMP_TYPE_VAR, data, data_len);
 			SRELEASE(data);
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("agent_ctl_cd_desc","Cannot serialize CD.", NULL);
+			AMP_DEBUG_ERR("adm_agent_ctl_var_dsc","Cannot serialize VAR.", NULL);
 		}
 	}
 
@@ -548,17 +927,39 @@ tdc_t *agent_ctl_cd_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 /* REPORT-RELATED CONTROLS. */
 
-/*
- * This control defines a new report definition for the agent.
- *
- * THe control takes 2 parameters:
- * 1. The MID of the new report.
- * 2. The MC describing the report.
- *
- * The control returns no DC.
- */
 
-tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_rptt_add
+ *
+ * \par Defines a new report template on the agent.
+ *
+ *      This control takes 2 parameter:.
+ *
+ *      +--------+------------+
+ *      | Rpt Id | Definition |
+ *      |  [MID] |    [MC]    |
+ *      +--------+------------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  07/31/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_rptt_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	int8_t success = 0;
 	def_gen_t *result = NULL;
@@ -570,36 +971,40 @@ tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mid = adm_extract_mid(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_add","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
+	/* Step 2: Make sure this is not a duplicate definition. */
 	if(agent_vdb_report_find(mid) != NULL)
 	{
-		DTNMP_DEBUG_WARN("agent_ctl_rpt_add","Report for this MID already defined. Ignoring.", NULL);
+		AMP_DEBUG_WARN("adm_agent_ctl_rptt_add","Report already defined. Ignoring.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 2: Grab the expression capturing the definition. */
+	/* Step 3: Grab the expression capturing the definition. */
 	if((expr = adm_extract_mc(params, 1, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_add","Parm 1 (MC) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 3: Create the new definition. This is a shallow copy sp
-	 * don't release the mis and expr.  */
-	if((result = def_create_gen(mid, DTNMP_TYPE_RPT, expr)) == NULL)
+	/* Step 4: Create the new definition. This is a shallow copy so
+	 * don't release the mid and expr.  */
+	if((result = def_create_gen(mid, AMP_TYPE_RPT, expr)) == NULL)
 	{
 		mid_release(mid);
 		midcol_destroy(&expr);
 		return NULL;
 	}
 
+	/* Step 5: Add the report. */
 	agent_db_report_persist(result);
 	ADD_REPORT(result);
 
-	gAgentInstr.num_rpt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
+	gAgentInstr.num_rptt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
 			                    agent_db_count(gAdmRpts, NULL);
 
 	*status = CTRL_SUCCESS;
@@ -608,28 +1013,51 @@ tdc_t *agent_ctl_rpt_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control deletes a report definition for the agent.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of rpts to remove.
- *
- * The control returns success/failure and does not generate a report.
- */
 
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_rptt_del
+ *
+ * \par Removes a report template definition from the agent.
+ *
+ *      This control takes 1 parameter:
+ *
+ *      +---------------+
+ *      | Ids To Remove |
+ *      |      [MC]     |
+ *      +---------------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t *agent_ctl_rpt_del(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_agent_ctl_rptt_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
-
 	Lyst mc = NULL;
 	LystElt elt = NULL;
 
 	int8_t success = 0;
 
+	*status = CTRL_FAILURE;
+
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mc = adm_extract_mc(params,0,&success)) == NULL)
 	{
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_del","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
@@ -647,7 +1075,8 @@ tdc_t *agent_ctl_rpt_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	midcol_destroy(&mc);
 
-	gAgentInstr.num_rpt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
+	/* Step 3: Update metrics. */
+	gAgentInstr.num_rptt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
 			                    agent_db_count(gAdmRpts, NULL);
 
 	*status = CTRL_SUCCESS;
@@ -655,30 +1084,56 @@ tdc_t *agent_ctl_rpt_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control lists all reports known by the agent.
- *
- * THe control takes 0 parameters:
- *
- * The control returns a MC of known report MIDs.
- */
 
-tdc_t *agent_ctl_rpt_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_rptt_lst
+ *
+ * \par Lists all report template definition on the agent.
+ *
+ *      This control takes no parameters
+ *
+ *      This control generates the following report entry.
+ *
+ *      +---------------+
+ *      | Known Reports |
+ *      |      [MC]     |
+ *      +---------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_rptt_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t *retval = NULL;
 	Lyst mc = NULL;
-	LystElt elt;
+	LystElt elt = NULL;
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
+
+	*status = CTRL_FAILURE;
 
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_lst","Can't make MC.", NULL);
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_lst","Can't make MC.", NULL);
 		return NULL;
 	}
 
+	/* Step 2: Build list of report MIDs. */
 	lockResource(&(gAgentVDB.reports_mutex));
 	for(elt = lyst_first(gAgentVDB.reports); elt; elt = lyst_next(elt))
 	{
@@ -687,20 +1142,19 @@ tdc_t *agent_ctl_rpt_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	}
 	unlockResource(&(gAgentVDB.reports_mutex));
 
-	/* Step 2: Allocate the return value. */
+	/* Step 3: Allocate the return value. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_lst","Can't make MC.", NULL);
-		*status = CTRL_FAILURE;
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_lst","Can't make MC.", NULL);
 		return NULL;
 	}
 
-	/* Step 3: Populate the retval. */
+	/* Step 4: Populate the return RPTE. */
 	data = midcol_serialize(mc, &data_len);
 	midcol_destroy(&mc);
 
-	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	tdc_insert(retval, AMP_TYPE_MC, data, data_len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
@@ -708,16 +1162,53 @@ tdc_t *agent_ctl_rpt_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	return retval;
 }
 
-/*
- * This control returns a description of each selected report MID.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of reports to describe
- *
- * The control returns a list of each report def.
- */
 
-tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_rptt_dsc
+ *
+ * \par Produce a description of the given report templates.
+ *
+ *      This control takes 1 parameter
+ *
+ *      +-----------------+
+ *      | Ids To Describe |
+ *      |       [MC]     |
+ *      +-----------------+
+ *
+ *      This control generates the following report entry.
+ *
+ *      +--------+--------+--------+    +--------+
+ *      | # Tpls |  Types |  Tpl 1 |... |  Tpl N |
+ *      | [SDNV] | [BLOB] | [BLOB] |    | [BLOB] |
+ *      +--------+--------+--------+    +--------+
+ *                           ||
+ *                           ||
+ *                 _________/  \_________
+ *                /                      \
+ *                 +-------+------------+
+ *                 |  ID   | Definition |
+ *                 | [MID] |    [MC]    |
+ *                 +-------+------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_rptt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -725,11 +1216,13 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	uint8_t *data = NULL;
 	uint32_t data_len = 0;
 	int8_t success = 0;
+
 	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the list of MIDs to describe. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_dsc","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
@@ -737,11 +1230,11 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_dsc","Can't make lyst.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_rptt_dsc","Can't make lyst.", NULL);
 		return NULL;
 	}
 
-	/* Step 2: For each MID in the MC... */
+	/* Step 3: For each MID in the MC... */
 	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
 	{
 		mid_t *mid = lyst_data(elt);
@@ -750,7 +1243,7 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		def_gen_t *cur = agent_vdb_report_find(mid);
 
 		data = def_serialize_gen(cur, &data_len);
-		tdc_insert(retval, DTNMP_TYPE_RPT, data, data_len);
+		tdc_insert(retval, AMP_TYPE_RPT, data, data_len);
 		SRELEASE(data);
 	}
 
@@ -763,15 +1256,48 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 /******************************************************************************
  *
- * \par Function Name: agent_ctl_rpt_gen
+ * \par Function Name: adm_agent_ctl_rpt_gen
  *
  * \par Purpose: Causes a report to be generated by the agent and sent to
  *               appropriate managers.
  *
- * \return 0  - Failure.
- * 		   !0 - Success.
+ *      This control takes 2 parameters
  *
- * \param[in]   params  The control parameters.
+ *      +---------------------+---------------------+
+ *      | Reports to Generate | Managers to Receive |
+ *      |         [MC]        |         [DC]        |
+ *      +---------------------+---------------------+
+ *
+ *      This control does not, itself, return a report entry. It adds a report
+ *      entry manually to the next outgoing report to the given managers. The
+ *      report entries (RPTEs) added are formatted as follows.
+ *
+ *                           +---------+     +---------+
+ *                           | Entry 1 |     | Entry N |
+ *                           |  [RPTE] | ... |  [RPTE] |
+ *                           +---------+     +---------+
+ *                                ||
+ *                                ||
+ *                        _______/  \_______
+ *                       /                  \
+ *                        +-------+--------+
+ *                        |   ID  | Values |
+ *                        | [MID] | [TDC]  |
+ *                        +-------+--------+
+ *                                   ||
+ *                                   ||
+ *       ___________________________/  \_______________________________
+ *      /                                                              \
+ *       +----------+-------------+---------+---------+     +---------+
+ *       | # Values | Value Types | Value 1 | Value 2 |     | Value N |
+ *       |  [SDNV]  |    [BLOB]   | [BLOB]  | [BLOB]  | ... |  [BLOB] |
+ *       +----------+-------------+---------+---------+     +---------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
  *
  * \par Notes:
  *  - Parm 1 is a MC of items to be included in the report.
@@ -786,10 +1312,12 @@ tdc_t *agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  05/17/15  E. Birrane     Initial implementation,
- *  06/21/15  E. Birrane     Updated to new control return code structure.
+ *  05/17/15  E. Birrane     Initial implementation, (Secure DTN - NASA: NNX14CS58P)
+ *  06/21/15  E. Birrane     Updated to new control return code structure. (Secure DTN - NASA: NNX14CS58P)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
-tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
+
+tdc_t *adm_agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	rpt_t *report = NULL;
 	eid_t recipient;
@@ -804,13 +1332,14 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Get the MC from the params. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_rpt_gen","Parm 0 (MC) Err.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Get the list of mgrs to receive this report. */
 	if((rx = adm_extract_dc(params,1, &success)) == NULL)
 	{
-		/* Step 2.1: If we don'thave, or can't get the rx list send report back to requester. */
+		/* Step 2.1: If we don't have, or can't get the rx list send report back to requester. */
 		memcpy(&recipient, def_mgr, sizeof(eid_t));
 	}
 	else
@@ -819,12 +1348,12 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 		if((entry = lyst_data(lyst_first(rx))) == NULL)
 		{
-			/* Step 2.1: If we don'thave, or can't get the rx list send report back to requester. */
+			/* Step 2.1: If we don't have, or can't get the rx list send report back to requester. */
 			memcpy(&recipient, def_mgr, sizeof(eid_t));
 		}
 		else if(entry->length == 0)
 		{
-			/* Step 2.1: If we don'thave, or can't get the rx list send report back to requester. */
+			/* Step 2.1: If we don't have, or can't get the rx list send report back to requester. */
 			memcpy(&recipient, def_mgr, sizeof(eid_t));
 		}
 		else if(entry->length < sizeof(recipient))
@@ -833,7 +1362,7 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("agent_ctl_rpt_gen", "Rx length of %d > %d.", entry->length, sizeof(eid_t));
+			AMP_DEBUG_ERR("adm_agent_ctl_rpt_gen", "Rx length of %d > %d.", entry->length, sizeof(eid_t));
 			dc_destroy(&rx);
 			midcol_destroy(&mc);
 			return NULL;
@@ -842,7 +1371,7 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 		dc_destroy(&rx);
 	}
 
-	/* Step 2: Build the report.
+	/* Step 3: Build the report.
 	 *
 	 * This function will grab an existing to-be-sent report or
 	 * create a new report and add it to the "built-reports" section.
@@ -851,13 +1380,13 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 	 */
 	if((report = rda_get_report(recipient)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_rpt_gen", "Cannot allocate report.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_rpt_gen", "Cannot allocate report.", NULL);
 		midcol_destroy(&mc);
 		return NULL;
 	}
 
 
-	/* Step 3: For each MID in the report definition, construct the
+	/* Step 4: For each MID in the report definition, construct the
 	 * entry and add it to the report.
 	 */
 	for(elt = lyst_first(mc); elt != NULL; elt = lyst_next(elt))
@@ -873,7 +1402,7 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 		else
 		{
 			char *midstr = mid_to_string(mid);
-			DTNMP_DEBUG_ERR("agent_ctl_rpt_gen","Can't build report for %s", midstr);
+			AMP_DEBUG_ERR("adm_agent_ctl_rpt_gen","Can't build report for %s", midstr);
 			SRELEASE(midstr);
 		}
 	}
@@ -882,21 +1411,43 @@ tdc_t *agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	*status = CTRL_SUCCESS;
 
-  return NULL;
+    return NULL;
 }
 
 
-/*
- * This control defines a new macro definition for the agent.
- *
- * The control takes 2 parameters:
- * 1. The MID of the new macro.
- * 2. The MC describing the macro.
- *
- * The control returns no DC.
- */
 
-tdc_t *agent_ctl_mac_add(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_mac_add
+ *
+ * \par Defines a new macro on the agent.
+ *
+ *      This control takes 3 parameter:.
+ *
+ *      +------------+----------+----------+
+ *      | Macro Name | Macro Id | Controls |
+ *      |    [STR]   |   [MID]  |   [MC]   |
+ *      +------------+----------+----------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_mac_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	mid_t *mid = NULL;
 	Lyst expr = NULL;
@@ -906,48 +1457,52 @@ tdc_t *agent_ctl_mac_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	*status = CTRL_FAILURE;
 
+	/* Step 1: Grab the first parameter, the Macro name. */
 	if((name = adm_extract_string(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_mac_add","Parm 0 (STR) Err.", NULL);
 		return NULL;
 	}
 
-	/* We ignore the name. */
+	/* Step 2: We ignore the name. */
 
 	SRELEASE(name);
 
-	/* Step 1: Grab the MID defining the new computed definition. */
-
+	/* Step 3: Grab the MID defining the new computed definition. */
 	if((mid = adm_extract_mid(params, 1, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_mac_add","Parm 1 (MID) Err.", NULL);
 		return NULL;
 	}
 
+	/* Step 4: Make sure the macro is not already defined. */
 	if(agent_vdb_macro_find(mid) != NULL)
 	{
-		DTNMP_DEBUG_WARN("agent_ctl_mac_add","Macro for this MID already defined. Ignoring.", NULL);
+		AMP_DEBUG_WARN("adm_agent_ctl_mac_add","Macro ID already defined. Ignoring.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-
-	/* Step 2: Grab the expression capturing the definition. */
+	/* Step 5: Grab the expression capturing the definition. */
 	if((expr = adm_extract_mc(params, 2, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_mac_add","Parm 2 (MC) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
 
-	/* Step 3: Add the new definition.
-	 * This is a shllow-copy so don't release mid and expr.
+	/* Step 6: Add the new definition.
+	 * This is a shallow-copy so don't release mid and expr.
 	 */
 
-	if((result = def_create_gen(mid, DTNMP_TYPE_MACRO, expr)) == NULL)
+	if((result = def_create_gen(mid, AMP_TYPE_MACRO, expr)) == NULL)
 	{
 		mid_release(mid);
 		midcol_destroy(&expr);
 		return NULL;
 	}
 
+	/* Step 7: Persist the Macro definition. */
 	agent_db_macro_persist(result);
 	ADD_MACRO(result);
 
@@ -960,16 +1515,39 @@ tdc_t *agent_ctl_mac_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control deletes a macro definition for the agent.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of macros to remove.
- *
- * The control returns success/failure and does not generate a report.
- */
 
-tdc_t *agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_mac_del
+ *
+ * \par Removes a macro definition from the agent.
+ *
+ *      This control takes 1 parameter:.
+ *
+ *      +---------------+
+ *      | Ids To Remove |
+ *      |      [MC]     |
+ *      +---------------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -980,6 +1558,7 @@ tdc_t *agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_mac_del","Parm 0 (MC) err.", NULL);
 		return NULL;
 	}
 
@@ -997,6 +1576,7 @@ tdc_t *agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	midcol_destroy(&mc);
 
+	/* Step 3: Update metrics. */
 	gAgentInstr.num_macros = agent_db_count(gAgentVDB.macros, &(gAgentVDB.macros_mutex)) +
 			                    agent_db_count(gAdmMacros, NULL);
 
@@ -1005,15 +1585,39 @@ tdc_t *agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control lists all macros known by the agent.
- *
- * THe control takes 0 parameters:
- *
- * The control returns a MC of known macro MIDs.
- */
 
-tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_mac_lst
+ *
+ * \par Lists all macro IDs defined on the agent.
+ *
+ *      This control takes no parameters
+ *
+ *      This control generates the following report entry.
+ *
+ *      +--------------+
+ *      | Known Macros |
+ *      |     [MC]     |
+ *      +--------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t *retval = NULL;
 	Lyst mc = NULL;
@@ -1024,7 +1628,7 @@ tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_mac_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("agent_ctl_mac_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -1041,7 +1645,7 @@ tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_mac_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("agent_ctl_mac_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -1050,7 +1654,7 @@ tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	data = midcol_serialize(mc, &data_len);
 	midcol_destroy(&mc);
 
-	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	tdc_insert(retval, AMP_TYPE_MC, data, data_len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
@@ -1058,16 +1662,53 @@ tdc_t *agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	return retval;
 }
 
-/*
- * This control returns a description of each selected macro MID.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of macros to describe
- *
- * The control returns a list of each macro.
- */
 
-tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_mac_dsc
+ *
+ * \par Produce a description of the given macros.
+ *
+ *      This control takes 1 parameter
+ *
+ *      +-----------------+
+ *      | Ids To Describe |
+ *      |       [MC]      |
+ *      +-----------------+
+ *
+ *      This control generates the following report entry.
+ *
+ *      +--------+--------+------------+   +------------+
+ *      | # Defs | Types  | MacroDef 1 |...| MacroDef N |
+ *      | [SDNV] | [BLOB] |   [BLOB]   |   |   [BLOB]   |
+ *      +--------+--------+------------+   +------------+
+ *                             ||
+ *                             ||
+ *                    ________/  \__________
+ *                   /                      \
+ *                    +-------+------------+
+ *                    |  ID   | Definition |
+ *                    | [MID] |    [MC]    |
+ *                    +-------+------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -1081,14 +1722,14 @@ tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the list of MIDs to describe. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_mac_dsc","Parm 0 (MC) Err.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Allocate the retval holding the descriptions. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_mac_dsc","Can't make lyst.", NULL);
-
+		AMP_DEBUG_ERR("adm_agent_ctl_mac_dsc","Can't make lyst.", NULL);
 		midcol_destroy(&mc);
 		return NULL;
 	}
@@ -1102,7 +1743,7 @@ tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		def_gen_t *cur = agent_vdb_macro_find(mid);
 
 		data = def_serialize_gen(cur, &data_len);
-		tdc_insert(retval, DTNMP_TYPE_RPT, data, data_len);
+		tdc_insert(retval, AMP_TYPE_RPT, data, data_len);
 		SRELEASE(data);
 	}
 
@@ -1113,20 +1754,39 @@ tdc_t *agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control adds a time-based rule to the agent.
- *
- * THe control takes 5 parameters:
- * 1. The MID of the new control.
- * 2. The time offset for starting the rule evaluation
- * 3. The relative time period for the rule.
- * 4. The number of times to execute the rule.
- * 5. The macro to run when applying the rule.
- *
- * The control returns no data.
- */
 
-tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_trl_add
+ *
+ * \par Defines a new TRL on the agent.
+ *
+ *      This control takes 5 parameters.
+ *
+ *      +-------+-------+------------+--------+--------+
+ *      |  Id   | Start | Period (s) | Count  | Action |
+ *      | [MID] |  [TS] |   [SDNV]   | [SDNV] |  [MC]  |
+ *      +-------+-------+------------+--------+--------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	mid_t *mid = NULL;
 	Lyst action = NULL;
@@ -1141,12 +1801,13 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new rule. */
 	if((mid = adm_extract_mid(params,0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_add","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
 	if(agent_vdb_trl_find(mid) != NULL)
 	{
-		DTNMP_DEBUG_WARN("agent_ctl_trl_add","TRL for this MID already defined. Ignoring.", NULL);
+		AMP_DEBUG_WARN("adm_agent_ctl_trl_add","TRL already defined. Ignoring.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1156,6 +1817,7 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	offset = adm_extract_sdnv(params, 1, &success);
 	if(success == 0)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_add","Parm 1 (SDNV) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1164,6 +1826,7 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	period = adm_extract_sdnv(params, 2, &success);
 	if(success == 0)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_add","Parm 2 (SDNV) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1172,6 +1835,7 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	count = adm_extract_sdnv(params, 3, &success);
 	if(success == 0)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_add","Parm 3 (SDNV) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1179,6 +1843,7 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 5: Grab the macro action for this rule. */
 	if((action =adm_extract_mc(params, 4, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_add","Parm 4 (MC) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1193,7 +1858,7 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 		ADD_TRL(rule);
 	}
 
-	gAgentInstr.num_time_rules = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
+	gAgentInstr.num_trls = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
 
 
 	mid_release(mid);
@@ -1202,16 +1867,38 @@ tdc_t *agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control deletes a rule definition for the agent.
+/******************************************************************************
  *
- * THe control takes 1 parameter:
- * 1. The MC of rules to remove.
+ * \par Function Name: adm_agent_ctl_trl_del
  *
- * The control returns success/failure and does not generate a report.
- */
+ * \par Removes a TRL definition from the agent.
+ *
+ *      This control takes 1 parameter:.
+ *
+ *      +---------------+
+ *      | Ids To Remove |
+ *      |      [MC]     |
+ *      +---------------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t *agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -1222,6 +1909,7 @@ tdc_t *agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_del","Parm 0 (MC) Err.", NULL);
 		return NULL;
 	}
 
@@ -1239,7 +1927,7 @@ tdc_t *agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	midcol_destroy(&mc);
 
-	gAgentInstr.num_time_rules = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
+	gAgentInstr.num_trls = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
 
 	*status = CTRL_SUCCESS;
 	return NULL;
@@ -1247,15 +1935,38 @@ tdc_t *agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 
 
-/*
- * This control lists all TRLs known by the agent.
+/******************************************************************************
  *
- * THe control takes 0 parameters:
+ * \par Function Name: adm_agent_ctl_trl_lst
  *
- * The control returns a MC of known TRL MIDs.
- */
+ * \par Lists all TRL IDs defined on the agent.
+ *
+ *      This control takes no parameters
+ *
+ *      This control generates the following report entry.
+ *
+ *      +--------------+
+ *      |  Known TRLs  |
+ *      |     [MC]     |
+ *      +--------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t *retval = NULL;
 	Lyst mc = NULL;
@@ -1267,7 +1978,7 @@ tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_trl_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -1284,7 +1995,7 @@ tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_trl_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -1293,7 +2004,7 @@ tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	data = midcol_serialize(mc, &data_len);
 	midcol_destroy(&mc);
 
-	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	tdc_insert(retval, AMP_TYPE_MC, data, data_len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
@@ -1302,16 +2013,52 @@ tdc_t *agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control returns a description of each selected TRL.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of TRLs to describe
- *
- * The control returns a MC comprising the MID of each TRL.
- */
 
-tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_trl_dsc
+ *
+ * \par Produce a description of the given TRLs.
+ *
+ *      This control takes 1 parameter
+ *
+ *      +-----------------+
+ *      | Ids To Describe |
+ *      |       [MC]      |
+ *      +-----------------+
+ *
+ *      This control generates the following report entry.
+ *
+ *         +--------+--------+--------+    +--------+
+ *         | # TRLs | Types  | TRL 1  |... | TRL N  |
+ *         | [SDNV] | [BLOB] | [BLOB] |    | [BLOB] |
+ *         +--------+--------+--------+    +--------+
+ *                              ||
+ *                              ||
+ *          ___________________/  \_____________________
+ *         /                                            \
+ *          +-------+-------+--------+--------+--------+
+ *          |  ID   | Start | Period | Count  | Action |
+ *          | [MID] | [TS]  | [SDNV] | [SDNV] |  [MC]  |
+ *          +-------+-------+--------+--------+--------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/03/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -1325,13 +2072,14 @@ tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the list of MIDs to describe. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_dsc","Parm 0 (MC) Err.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Allocate the retval holding the descriptions. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_trl_dsc","Can't make lyst.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_trl_dsc","Can't make lyst.", NULL);
 
 		midcol_destroy(&mc);
 		return NULL;
@@ -1348,7 +2096,7 @@ tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		if(trl != NULL)
 		{
 			data = trl_serialize(trl, &data_len);
-			tdc_insert(retval, DTNMP_TYPE_TRL, data, data_len);
+			tdc_insert(retval, AMP_TYPE_TRL, data, data_len);
 			SRELEASE(data);
 		}
 	}
@@ -1360,21 +2108,39 @@ tdc_t *agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control adds a state-based rule to the agent.
- *
- * THe control takes 5 parameters:
- * 1. The MID of the new control.
- * 2. The time offset for starting the rule evaluation
- * 3. The expression triggering the rule.
- * 4. The number of times to execute the rule.
- * 5. The macro to run when applying the rule.
- *
- * The control returns no data.
- */
 
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_srl_add
+ *
+ * \par Defines a new SRL on the agent.
+ *
+ *      This control takes 5 parameters.
+ *
+ *       +-------+-------+--------+--------+--------+
+ *       |  ID   | START |  COND  | COUNT  | ACTION |
+ *       | [MID] | [TS]  | [PRED] | [SDNV] |  [MC]  |
+ *       +-------+-------+--------+--------+--------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	mid_t *mid = NULL;
 	Lyst action = NULL;
@@ -1389,12 +2155,13 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new rule. */
 	if((mid = adm_extract_mid(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_add","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
 	if(agent_vdb_srl_find(mid) != NULL)
 	{
-		DTNMP_DEBUG_WARN("agent_ctl_srl_add","SRL for this MID already defined. Ignoring.", NULL);
+		AMP_DEBUG_WARN("agent_ctl_srl_add","MID already defined. Ignoring.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1403,6 +2170,7 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	offset = adm_extract_sdnv(params, 1, &success);
 	if(success == 0)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_add","Parm 1 (SDNV) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1410,6 +2178,7 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 3: Grab the expression for this rule. */
 	if((expr = adm_extract_expr(params, 2, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_add","Parm 2 (SDNV) Err.", NULL);
 		mid_release(mid);
 		return NULL;
 	}
@@ -1418,6 +2187,7 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	count = adm_extract_sdnv(params, 3, &success);
 	if(success == 0)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_add","Parm 3 (SDNV) Err.", NULL);
 		mid_release(mid);
 		expr_release(expr);
 		return NULL;
@@ -1426,6 +2196,7 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 5: Grab the macro action for this rule. */
 	if((action =adm_extract_mc(params, 4, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_add","Parm 4 (MC) Err.", NULL);
 		mid_release(mid);
 		expr_release(expr);
 		return NULL;
@@ -1443,23 +2214,45 @@ tdc_t *agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 	expr_release(expr);
 	midcol_destroy(&action);
 
-	gAgentInstr.num_prod_rules = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
+	gAgentInstr.num_srls = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
 
 	return NULL;
 }
 
 
 
-/*
- * This control deletes an SRL definition for the agent.
+/******************************************************************************
  *
- * THe control takes 1 parameter:
- * 1. The MC of SRLs to remove.
+ * \par Function Name: adm_agent_ctl_srl_del
  *
- * The control returns success/failure and does not generate a report.
- */
+ * \par Removes a SRL definition from the agent.
+ *
+ *      This control takes 1 parameter:.
+ *
+ *      +---------------+
+ *      | Ids To Remove |
+ *      |      [MC]     |
+ *      +---------------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t *agent_ctl_srl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_agent_ctl_srl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -1470,6 +2263,7 @@ tdc_t *agent_ctl_srl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((mc = adm_extract_mc(params,0,&success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_del", "Parm 0 (MC) Err.", NULL);
 		return NULL;
 	}
 
@@ -1487,22 +2281,46 @@ tdc_t *agent_ctl_srl_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	midcol_destroy(&mc);
 
-	gAgentInstr.num_prod_rules = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
+	gAgentInstr.num_srls = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
 
 	*status = CTRL_SUCCESS;
 	return NULL;
 }
 
 
-/*
- * This control lists all SRLs known by the agent.
- *
- * THe control takes 0 parameters:
- *
- * The control returns a MC of known SRL MIDs.
- */
 
-tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_srl_lst
+ *
+ * \par Lists all SRLs defined on the agent.
+ *
+ *      This control takes no parameters
+ *
+ *      This control generates the following report entry.
+ *
+ *      +--------------+
+ *      |  Known SRLs  |
+ *      |     [MC]     |
+ *      +--------------+
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t *adm_agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t *retval = NULL;
 	Lyst mc = NULL;
@@ -1513,7 +2331,7 @@ tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Build an MC of known reports. */
 	if((mc = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_srl_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_lst","Can't make Lyst.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -1530,7 +2348,7 @@ tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		midcol_destroy(&mc);
-		DTNMP_DEBUG_ERR("agent_ctl_srl_lst","Can't make MC.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_lst","Can't make MC.", NULL);
 		*status = CTRL_FAILURE;
 		return NULL;
 	}
@@ -1539,7 +2357,7 @@ tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	data = midcol_serialize(mc, &data_len);
 	midcol_destroy(&mc);
 
-	tdc_insert(retval, DTNMP_TYPE_MC, data, data_len);
+	tdc_insert(retval, AMP_TYPE_MC, data, data_len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
@@ -1548,17 +2366,53 @@ tdc_t *agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control returns a description of each selected SRL.
- *
- * THe control takes 1 parameter:
- * 1. THe MC of SRLs to describe
- *
- * The control returns a list of each SRL.
- */
 
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_srl_dsc
+ *
+ * \par Produce a description of the given SRLs.
+ *
+ *      This control takes 1 parameter
+ *
+ *      +-----------------+
+ *      | Ids To Describe |
+ *      |       [MC]      |
+ *      +-----------------+
+ *
+ *      This control generates the following report entry.
+ *
+ *         +--------+--------+--------+    +--------+
+ *         | # SRLs | Types  | SRL 1  |... | SRL N  |
+ *         | [SDNV] | [BLOB] | [BLOB] |    | [BLOB] |
+ *         +--------+--------+--------+    +--------+
+ *                              ||
+ *                              ||
+ *          ___________________/  \_____________________
+ *         /                                            \
+ *          +-------+-------+--------+--------+-------+
+ *          |  ID   | START |  COND  | COUNT  |   ACT |
+ *          | [MID] | [TS]  | [PRED] | [SDNV] |  [MC] |
+ *          +-------+-------+--------+--------+-------+
+ *
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/04/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
 
-tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	Lyst mc = NULL;
 	LystElt elt = NULL;
@@ -1572,13 +2426,14 @@ tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the list of MIDs to describe. */
 	if((mc = adm_extract_mc(params, 0, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_dsc","Parm 0 (MC) Err.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Allocate the retval holding the descriptions. */
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_srl_dsc","Can't make lyst.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_srl_dsc","Can't make lyst.", NULL);
 
 		midcol_destroy(&mc);
 		return NULL;
@@ -1596,11 +2451,9 @@ tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		{
 			if((data = srl_serialize(srl, &data_len)) != NULL)
 			{
-				tdc_insert(retval, DTNMP_TYPE_SRL, data, data_len);
+				tdc_insert(retval, AMP_TYPE_SRL, data, data_len);
 				SRELEASE(data);
 			}
-
-//			srl_release(srl);
 		}
 	}
 
@@ -1611,77 +2464,99 @@ tdc_t *agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-/*
- * This control evaluates an EXPR and stores it in a CD.
- *
- * THe control takes 2 parameters:
- * Parm 1: CD to hold the expr value.
- * Parm 2: EXPR to evaluate.
- *
- * The control has no return report.
- */
 
-tdc_t* agent_ctl_stor(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_stor
+ *
+ * \par Store a value into a variable.
+ *
+ *      This control takes 2 parameter
+ *
+ *      +--------+--------+
+ *      | Target |  Expr. |
+ *      | [VAR]  | [EXPR] |
+ *      +--------+--------+
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t* adm_agent_ctl_stor(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	mid_t *mid = NULL;
-	cd_t *cd = NULL;
+	var_t *var = NULL;
 	expr_t *expr = NULL;
 	int8_t success = 0;
 
 	*status = CTRL_FAILURE;
 
-	/* Step 1: Grab the CD MID to hold the result.
-	 * We don't need to sanity check the MID or ensure it is a CD
-	 * here because we will use it to look up the CD later and if the
+	/* Step 1: Grab the VAR MID to hold the result.
+	 * We don't need to sanity check the MID or ensure it is a VAR
+	 * here because we will use it to look up the VAR later and if the
 	 * MID is bad, the lookup will fail.
 	 * */
 	if((mid = adm_extract_mid(params, 0, &success)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_stor","Can't get destination CD MID.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_stor","Parm 0 (MID) Err.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Grab the EXPR to evaluate. */
 	if((expr = adm_extract_expr(params, 1, &success)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_agent_ctl_stor","Parm 1 (EXPR) Err.", NULL);
 		mid_release(mid);
-		DTNMP_DEBUG_ERR("agent_ctl_stor","Can't get expression.", NULL);
 		return NULL;
 	}
 
 	/* Step 3: Make sure this isn't an ADM-defined MID. We can't re-assign
 	 * them.
 	 */
- 	if((cd = cd_find_by_id(gAdmComputed, NULL, mid)) != NULL)
+ 	if((var = var_find_by_id(gAdmComputed, NULL, mid)) != NULL)
 	{
- 		DTNMP_DEBUG_ERR("agent_ctl_stor", "Cannot overwrite ADM-defined CD.", NULL);
+ 		AMP_DEBUG_ERR("adm_agent_ctl_stor", "Cannot target ADM-defined VAR.", NULL);
 	}
 
- 	/* Step 4 - Find the CD definitions to update. */
- 	else if((cd = cd_find_by_id(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex), mid)) != NULL)
+ 	/* Step 4 - Find the VAR definitions to update. */
+ 	else if((var = var_find_by_id(gAgentVDB.vars, &(gAgentVDB.var_mutex), mid)) != NULL)
     {
 		value_t tmp = expr_eval(expr);
 
-		/* Step 4.1: Can the CD hold the expression result? */
-		if(val_cvt_type(&tmp, cd->value.type) == 1)
+		/* Step 4.1: Can the VAR hold the expression result? */
+		if(val_cvt_type(&tmp, var->value.type) == 1)
 		{
-			// Free current CD value.
-			val_release(&(cd->value), 0);
+			// Free current VAR value.
+			val_release(&(var->value), 0);
 
 			// Can shallow copy this since tmp is a deep copy.
-			cd->value = tmp;
+			var->value = tmp;
 
 			*status = CTRL_SUCCESS;
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("agent_ctl_stor", "Cannot convert from type %d to %d.", tmp.type, cd->value.type);
+			AMP_DEBUG_ERR("adm_agent_ctl_stor", "Cannot convert from type %d to %d.", tmp.type, var->value.type);
 			val_release(&tmp, 0);
 		}
     }
 	else
 	{
-		DTNMP_DEBUG_ERR("agent_ctl_stor", "Cannot find CD.", NULL);
+		AMP_DEBUG_ERR("adm_agent_ctl_stor", "Cannot find VAR.", NULL);
 	}
 
  	mid_release(mid);
@@ -1691,7 +2566,33 @@ tdc_t* agent_ctl_stor(eid_t *def_mgr, tdc_t params, int8_t *status)
 }
 
 
-tdc_t* agent_ctrl_reset_cnt(eid_t *def_mgr, tdc_t params, int8_t *status)
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_ctl_reset_cnt
+ *
+ * \par Reset Agent ADM metric counters
+ *
+ *      This control takes no parameters
+ *
+ *      This control generates no report entries.
+ *
+ * \param[in]  def_mgr  The default manager receiving the report entry.
+ * \param[in]  params   The parameters for the control.
+ * \param[out] status   Whether the control passed or failed.
+ *
+ * \return NULL.
+ *
+ * \par Notes:
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
+tdc_t* adm_agent_ctl_reset_cnt(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	agent_instr_clear();
 	*status = CTRL_SUCCESS;
@@ -1704,7 +2605,29 @@ tdc_t* agent_ctrl_reset_cnt(eid_t *def_mgr, tdc_t params, int8_t *status)
  * OP FUnctions
  */
 
-// Success = 1. Failure = 0
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_op_prep
+ *
+ * \par Fetch operator parameters from an operand stack.
+ *
+ * \param[in]  num    # operands to pop (1 or 2)
+ * \param[in]  stack  The operand stack
+ * \param[out] lval   The first (or only) operand popped
+ * \param[out] rval   The second operand popped
+ *
+ * \return 1 (success) or 0 (failure).
+ *
+ * \par Notes:
+ *    - The lval and rval are shallow-copied
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 uint8_t adm_agent_op_prep(int num, Lyst stack, value_t *lval, value_t *rval)
 {
     LystElt elt = 0;
@@ -1714,8 +2637,7 @@ uint8_t adm_agent_op_prep(int num, Lyst stack, value_t *lval, value_t *rval)
 		(lval == NULL) ||
 		((num == 2) && (rval == NULL)) || (lyst_length(stack) != num))
 	{
-        DTNMP_DEBUG_ERR("adm_agent_op_prep","Bad params.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_op_prep","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_op_prep","Bad params.",NULL);
         return 0;
 	}
 
@@ -1723,8 +2645,7 @@ uint8_t adm_agent_op_prep(int num, Lyst stack, value_t *lval, value_t *rval)
 	elt = lyst_first(stack);
 	if((tmp = (value_t*) lyst_data(elt)) == NULL)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_op_plus","NULL lval.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_op_plus","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_op_prep","NULL lval.",NULL);
         return 0;
 	}
 	else
@@ -1736,8 +2657,7 @@ uint8_t adm_agent_op_prep(int num, Lyst stack, value_t *lval, value_t *rval)
 		elt = lyst_next(elt);
 		if((tmp = (value_t*) lyst_data(elt)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("adm_agent_op_plus","NULL rval.",NULL);
-			DTNMP_DEBUG_EXIT("adm_agent_op_plus","-> Unknown", NULL);
+			AMP_DEBUG_ERR("adm_agent_op_prep","NULL rval.",NULL);
 			return 0;
 		}
 		else
@@ -1749,14 +2669,34 @@ uint8_t adm_agent_op_prep(int num, Lyst stack, value_t *lval, value_t *rval)
 	return 1;
 }
 
-/*
- * Good for: INT, UINT, VAST, UVAST, REAL32, REAL64
- */
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_unary_num_op
+ *
+ * \par Implement a unary numerical operator.
+ *
+ * \param[in]  op    The OP to apply.
+ * \param[in]  stack  The operand stack
+ *
+ * \return The value of the operation. An invalid value_t indicates failure.
+ *
+ * \par Notes:
+ *    - This implements an operator for INTs, UINTs, VASTs, UVASTS, REAL32s, and
+ *      REAL64s.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 value_t adm_agent_unary_num_op(agent_adm_op_e op, Lyst stack)
 {
 	value_t result;
 	value_t val;
-	uint32_t cvt_type = DTNMP_TYPE_UNK;
 	uint8_t s = 0;
 
 	/* Step 1 - Prep for the operation. */
@@ -1764,87 +2704,72 @@ value_t adm_agent_unary_num_op(agent_adm_op_e op, Lyst stack)
 
 	if(adm_agent_op_prep(1, stack, &val, NULL) == 0)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_unary_num_op","Can't get lval.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_unary_num_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_unary_num_op","Can't get lval.",NULL);
         return result;
 	}
 
-	cvt_type = result.type;
+	result.type = val.type;
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == DTNMP_TYPE_UNK)
+    if(result.type == AMP_TYPE_UNK)
     {
-        DTNMP_DEBUG_ERR("adm_agent_unary_num_op","Bad params.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_unary_num_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_unary_num_op","Bad params.",NULL);
         return result;
     }
 
 	/* Step 3: Based on result type, convert and perform operations. */
 
-    switch(cvt_type)
+    switch(result.type)
 	{
-	case DTNMP_TYPE_INT:
+	case AMP_TYPE_INT:
 		switch(op)
 		{
-		case NEG:    result.value.as_int = 0 - val_cvt_int(val, &s); break;
-		case BITNOT: result.value.as_int = ~val_cvt_int(val, &s); break;
-		case ABS:    result.value.as_int = abs(val_cvt_int(val, &s)); break;
-		default: s = 0; break;
+			case NEG:    result.value.as_int = 0 - val_cvt_int(val, &s); break;
+			case BITNOT: result.value.as_int = ~val_cvt_int(val, &s); break;
+			case ABS:    result.value.as_int = abs(val_cvt_int(val, &s)); break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(int32_t);
-		result.type = DTNMP_TYPE_INT;
 		break;
-	case DTNMP_TYPE_UINT:
+	case AMP_TYPE_UINT:
 		switch(op)
 		{
-		case BITNOT: result.value.as_uint = ~val_cvt_uint(val, &s); break;
-		case ABS:    result.value.as_uint = val_cvt_uint(val, &s); break;
-		default: s = 0; break;
+			case BITNOT: result.value.as_uint = ~val_cvt_uint(val, &s); break;
+			case ABS:    result.value.as_uint = val_cvt_uint(val, &s); break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(uint32_t);
-		result.type = DTNMP_TYPE_UINT;
 		break;
-	case DTNMP_TYPE_VAST:
+	case AMP_TYPE_VAST:
 		switch(op)
 		{
-		case NEG:    result.value.as_vast = 0 - val_cvt_vast(val, &s); break;
-		case BITNOT: result.value.as_vast = ~val_cvt_vast(val, &s); break;
-		case ABS:    result.value.as_vast = abs(val_cvt_vast(val, &s)); break;
-		default: s = 0; break;
+			case NEG:    result.value.as_vast = 0 - val_cvt_vast(val, &s); break;
+			case BITNOT: result.value.as_vast = ~val_cvt_vast(val, &s); break;
+			case ABS:    result.value.as_vast = abs(val_cvt_vast(val, &s)); break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(vast);
-		result.type = DTNMP_TYPE_VAST;
 		break;
-	case DTNMP_TYPE_UVAST:
+	case AMP_TYPE_UVAST:
 		switch(op)
 		{
-		case ABS:    result.value.as_uvast = val_cvt_uvast(val, &s); break;
-		case BITNOT: result.value.as_uvast = ~val_cvt_uvast(val, &s); break;
-		default: s = 0; break;
+			case ABS:    result.value.as_uvast = val_cvt_uvast(val, &s); break;
+			case BITNOT: result.value.as_uvast = ~val_cvt_uvast(val, &s); break;
+			default: s = 0; break;
 		}
-
-//		result.length = sizeof(uvast);
-		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case DTNMP_TYPE_REAL32:
+	case AMP_TYPE_REAL32:
 		switch(op)
 		{
-		case NEG:    result.value.as_real32 = 0 - val_cvt_real32(val, &s); break;
-		case ABS:    result.value.as_real32 = fabs(val_cvt_real32(val, &s)); break;
-		default: s = 0; break;
+			case NEG:    result.value.as_real32 = 0 - val_cvt_real32(val, &s); break;
+			case ABS:    result.value.as_real32 = fabs(val_cvt_real32(val, &s)); break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(float);
-		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case DTNMP_TYPE_REAL64:
+	case AMP_TYPE_REAL64:
 		switch(op)
 		{
-		case NEG:    result.value.as_real64 = 0 - val_cvt_real64(val, &s); break;
-		case ABS:    result.value.as_real64 = fabs(val_cvt_real64(val, &s)); break;
-		default: s = 0; break;
+			case NEG:    result.value.as_real64 = 0 - val_cvt_real64(val, &s); break;
+			case ABS:    result.value.as_real64 = fabs(val_cvt_real64(val, &s)); break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(double);
-		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		s = 0;
@@ -1853,97 +2778,99 @@ value_t adm_agent_unary_num_op(agent_adm_op_e op, Lyst stack)
 
 	if(s == 0)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_unary_num_op","Bad type combo. Can't get %d from %d.",cvt_type, val.type);
-        DTNMP_DEBUG_EXIT("adm_agent_unary_num_op","-> Unknown", NULL);
-        memset(&result, 0, sizeof(value_t));
+        AMP_DEBUG_ERR("adm_agent_unary_num_op","Bad op (%d) or type (%d).",op, result.type);
+    	val_init(&result);
 	}
 
 	return result;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_unary_log_op
+ *
+ * \par Implement a unary logical operator.
+ *
+ * \param[in]  op    The OP to apply.
+ * \param[in]  stack  The operand stack
+ *
+ * \return The value of the operation. An invalid value_t indicates failure.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 value_t adm_agent_unary_log_op(agent_adm_op_e op, Lyst stack)
 {
 	value_t result;
 	value_t val;
-	uint32_t cvt_type = DTNMP_TYPE_UNK;
 	uint8_t s = 0;
 
 	/* Step 1 - Prep for the operation. */
     val_init(&result);
     if(adm_agent_op_prep(1, stack, &val, NULL) == 0)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_unary_log_op","Can't get lval.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_unary_log_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_unary_log_op","Can't get lval.",NULL);
         return result;
 	}
 
-
-	cvt_type = result.type;
-
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == DTNMP_TYPE_UNK)
+    if(val.type == AMP_TYPE_UNK)
     {
-        DTNMP_DEBUG_ERR("adm_agent_unary_log_op","Bad params.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_unary_log_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_unary_log_op","Bad params.",NULL);
         return result;
     }
 
 	/* Step 3: Based on result type, convert and perform operations. */
-
-    switch(cvt_type)
+    result.type = val.type;
+    switch(val.type)
 	{
-	case DTNMP_TYPE_INT:
+	case AMP_TYPE_INT:
 		switch(op)
 		{
-		case LOGNOT: result.value.as_uint = val_cvt_int(val, &s) ? 0 : 1; break;
-		default: s = 0; break;
+			case LOGNOT: result.value.as_uint = val_cvt_int(val, &s) ? 0 : 1; break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(int32_t);
-		result.type = DTNMP_TYPE_INT;
 		break;
-	case DTNMP_TYPE_UINT:
+	case AMP_TYPE_UINT:
 		switch(op)
 		{
-		case LOGNOT: result.value.as_uint = val_cvt_uint(val, &s) ? 0 : 1; break;
-		default: s = 0; break;
+			case LOGNOT: result.value.as_uint = val_cvt_uint(val, &s) ? 0 : 1; break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(uint32_t);
-		result.type = DTNMP_TYPE_UINT;
 		break;
-	case DTNMP_TYPE_VAST:
+	case AMP_TYPE_VAST:
 		switch(op)
 		{
-		case LOGNOT: result.value.as_uint = val_cvt_vast(val, &s) ? 0 : 1; break;
-		default: s = 0; break;
+			case LOGNOT: result.value.as_uint = val_cvt_vast(val, &s) ? 0 : 1; break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(vast);
-		result.type = DTNMP_TYPE_VAST;
 		break;
-	case DTNMP_TYPE_UVAST:
+	case AMP_TYPE_UVAST:
 		switch(op)
 		{
-		case LOGNOT: result.value.as_uint = val_cvt_uvast(val, &s) ? 0 : 1; break;
-		default: s = 0; break;
+			case LOGNOT: result.value.as_uint = val_cvt_uvast(val, &s) ? 0 : 1; break;
+			default: s = 0; break;
 		}
-
-//		result.length = sizeof(uvast);
-		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case DTNMP_TYPE_REAL32:
+	case AMP_TYPE_REAL32:
 		switch(op)
 		{
-		default: s = 0; break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(float);
-		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case DTNMP_TYPE_REAL64:
+	case AMP_TYPE_REAL64:
 		switch(op)
 		{
-		default: s = 0; break;
+			default: s = 0; break;
 		}
-//		result.length = sizeof(double);
-		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		s = 0;
@@ -1952,19 +2879,40 @@ value_t adm_agent_unary_log_op(agent_adm_op_e op, Lyst stack)
 
 	if(s == 0)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_unary_log_op","Bad type combo. Can't get %d from %d.",cvt_type, val.type);
-        DTNMP_DEBUG_EXIT("adm_agent_unary_log_op","-> Unknown", NULL);
-        memset(&result, 0, sizeof(value_t));
+        AMP_DEBUG_ERR("adm_agent_unary_log_op","Bad op (%d) or type (%d).",op, result.type);
+        val_init(&result);
 	}
 
 	return result;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_binary_log_op
+ *
+ * \par Implement a binary logical operator.
+ *
+ * \param[in]  op    The OP to apply.
+ * \param[in]  stack  The operand stack
+ *
+ * \return The value of the operation. An invalid value_t indicates failure.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 {
 	value_t result;
 	value_t lval, rval;
-	uint32_t cvt_type = DTNMP_TYPE_UNK;
+	uint32_t cvt_type = AMP_TYPE_UNK;
 	uint8_t ls = 0;
 	uint8_t rs = 0;
 
@@ -1972,25 +2920,24 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 	val_init(&result);
 	if(adm_agent_op_prep(2, stack, &lval, &rval) == 0)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_binary_log_op","Can't get lval.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_binary_log_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_binary_log_op","Can't get lval.",NULL);
         return result;
 	}
 
 	cvt_type = val_get_result_type(lval.type, rval.type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == DTNMP_TYPE_UNK)
+    if(cvt_type == AMP_TYPE_UNK)
     {
-        DTNMP_DEBUG_ERR("adm_agent_binary_log_op","Bad params.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_binary_log_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_binary_log_op","Bad params.",NULL);
         return result;
     }
 
 	/* Step 3: Based on result type, convert and perform operations. */
-	switch(cvt_type)
+    result.type = cvt_type;
+    switch(cvt_type)
 	{
-	case DTNMP_TYPE_INT:
+	case AMP_TYPE_INT:
 		switch(op)
 		{
 		case LOGAND: result.value.as_uint = val_cvt_int(lval, &ls) && val_cvt_int(rval, &rs); break;
@@ -2002,10 +2949,8 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 		case EQ:     result.value.as_uint = val_cvt_int(lval, &ls) == val_cvt_int(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(int32_t);
-		result.type = DTNMP_TYPE_INT;
 		break;
-	case DTNMP_TYPE_UINT:
+	case AMP_TYPE_UINT:
 		switch(op)
 		{
 		case LOGAND: result.value.as_uint = val_cvt_uint(lval, &ls) && val_cvt_uint(rval, &rs); break;
@@ -2017,10 +2962,8 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 		case EQ:     result.value.as_uint = val_cvt_uint(lval, &ls) == val_cvt_uint(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(uint32_t);
-		result.type = DTNMP_TYPE_UINT;
 		break;
-	case DTNMP_TYPE_VAST:
+	case AMP_TYPE_VAST:
 		switch(op)
 		{
 		case LOGAND: result.value.as_uint = val_cvt_vast(lval, &ls) && val_cvt_vast(rval, &rs); break;
@@ -2032,10 +2975,8 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 		case EQ:     result.value.as_uint = val_cvt_vast(lval, &ls) == val_cvt_vast(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(vast);
-		result.type = DTNMP_TYPE_VAST;
 		break;
-	case DTNMP_TYPE_UVAST:
+	case AMP_TYPE_UVAST:
 		switch(op)
 		{
 		case LOGAND: result.value.as_uint = val_cvt_uvast(lval, &ls) && val_cvt_uvast(rval, &rs); break;
@@ -2047,11 +2988,8 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 		case EQ:     result.value.as_uint = val_cvt_uvast(lval, &ls) == val_cvt_uvast(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-
-//		result.length = sizeof(uvast);
-		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case DTNMP_TYPE_REAL32:
+	case AMP_TYPE_REAL32:
 		switch(op)
 		{
 		case LOGAND: result.value.as_uint = val_cvt_real32(lval, &ls) && val_cvt_real32(rval, &rs); break;
@@ -2063,10 +3001,8 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 		case EQ:     result.value.as_uint = val_cvt_real32(lval, &ls) == val_cvt_real32(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(float);
-		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case DTNMP_TYPE_REAL64:
+	case AMP_TYPE_REAL64:
 		switch(op)
 		{
 		case LOGAND: result.value.as_uint = val_cvt_real64(lval, &ls) && val_cvt_real64(rval, &rs); break;
@@ -2078,8 +3014,6 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 		case EQ:     result.value.as_uint = val_cvt_real64(lval, &ls) == val_cvt_real64(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(double);
-		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		ls = rs = 0;
@@ -2088,20 +3022,43 @@ value_t adm_agent_binary_log_op(agent_adm_op_e op, Lyst stack)
 
 	if((ls == 0) || (rs == 0))
 	{
-        DTNMP_DEBUG_ERR("adm_agent_binary_log_op","Bad type combo. Can't get %d from %d OP %d.",cvt_type, lval.type, rval.type);
-        DTNMP_DEBUG_EXIT("adm_agent_binary_log_op","-> Unknown", NULL);
-        memset(&result, 0, sizeof(value_t));
+        AMP_DEBUG_ERR("adm_agent_binary_log_op","Bad op (%d) or type (%d -> %d).",op, lval.type, rval.type);
+        val_init(&result);
 	}
 
 	return result;
 
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_binary_num_op
+ *
+ * \par Implement a binary numeric operator.
+ *
+ * \param[in]  op    The OP to apply.
+ * \param[in]  stack  The operand stack
+ *
+ * \return The value of the operation. An invalid value_t indicates failure.
+ *
+ * \par Notes:
+ *    - This implements an operator for INTs, UINTs, VASTs, UVASTS, REAL32s, and
+ *      REAL64s.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 {
 	value_t result;
 	value_t lval, rval;
-	uint32_t cvt_type = DTNMP_TYPE_UNK;
+	uint32_t cvt_type = AMP_TYPE_UNK;
 	uint8_t ls = 0;
 	uint8_t rs = 0;
 
@@ -2109,25 +3066,24 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
     val_init(&result);
     if(adm_agent_op_prep(2, stack, &lval, &rval) == 0)
 	{
-        DTNMP_DEBUG_ERR("adm_agent_binary_num_op","Can't get lval.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_binary_num_op","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_binary_num_op","Can't get lval.",NULL);
         return result;
 	}
 
 	cvt_type = val_get_result_type(lval.type, rval.type, VAL_OPTYPE_ARITHMETIC);
 
     /* Step 2 - Sanity check the prep. */
-    if(cvt_type == DTNMP_TYPE_UNK)
+    if(cvt_type == AMP_TYPE_UNK)
     {
-        DTNMP_DEBUG_ERR("adm_agent_op_plus","Bad params.",NULL);
-        DTNMP_DEBUG_EXIT("adm_agent_op_plus","-> Unknown", NULL);
+        AMP_DEBUG_ERR("adm_agent_op_plus","Bad params.",NULL);
         return result;
     }
 
 	/* Step 3: Based on result type, convert and perform operations. */
-	switch(cvt_type)
+    result.type = cvt_type;
+    switch(cvt_type)
 	{
-	case DTNMP_TYPE_INT:
+	case AMP_TYPE_INT:
 		switch(op)
 		{
 		case PLUS:   result.value.as_int = val_cvt_int(lval, &ls) + val_cvt_int(rval, &rs); break;
@@ -2143,10 +3099,8 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 		case BITRSHFT: result.value.as_int = val_cvt_int(lval, &ls) >> val_cvt_uint(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(int32_t);
-		result.type = DTNMP_TYPE_INT;
 		break;
-	case DTNMP_TYPE_UINT:
+	case AMP_TYPE_UINT:
 		switch(op)
 		{
 		case PLUS:   result.value.as_uint = val_cvt_uint(lval, &ls) + val_cvt_uint(rval, &rs); break;
@@ -2160,13 +3114,10 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 		case BITXOR: result.value.as_uint = val_cvt_uint(lval, &ls) ^ val_cvt_uint(rval, &rs); break;
 		case BITLSHFT: result.value.as_uint = val_cvt_uint(lval, &ls) << val_cvt_uint(rval, &rs); break;
 		case BITRSHFT: result.value.as_uint = val_cvt_uint(lval, &ls) >> val_cvt_uint(rval, &rs); break;
-
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(uint32_t);
-		result.type = DTNMP_TYPE_UINT;
 		break;
-	case DTNMP_TYPE_VAST:
+	case AMP_TYPE_VAST:
 		switch(op)
 		{
 		case PLUS:   result.value.as_vast = val_cvt_vast(lval, &ls) + val_cvt_vast(rval, &rs); break;
@@ -2182,10 +3133,8 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 		case BITRSHFT: result.value.as_vast = val_cvt_vast(lval, &ls) >> val_cvt_uint(rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(vast);
-		result.type = DTNMP_TYPE_VAST;
 		break;
-	case DTNMP_TYPE_UVAST:
+	case AMP_TYPE_UVAST:
 		switch(op)
 		{
 		case PLUS:   result.value.as_uvast = val_cvt_uvast(lval, &ls) + val_cvt_uvast(rval, &rs); break;
@@ -2199,14 +3148,10 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 		case BITXOR: result.value.as_uvast = val_cvt_uvast(lval, &ls) ^ val_cvt_uvast(rval, &rs); break;
 		case BITLSHFT: result.value.as_uvast = val_cvt_uvast(lval, &ls) << val_cvt_uint(rval, &rs); break;
 		case BITRSHFT: result.value.as_uvast = val_cvt_uvast(lval, &ls) >> val_cvt_uint(rval, &rs); break;
-
 		default: ls = rs = 0; break;
 		}
-
-//		result.length = sizeof(uvast);
-		result.type = DTNMP_TYPE_UVAST;
 		break;
-	case DTNMP_TYPE_REAL32:
+	case AMP_TYPE_REAL32:
 		switch(op)
 		{
 		case PLUS:   result.value.as_real32 = val_cvt_real32(lval, &ls) + val_cvt_real32(rval, &rs); break;
@@ -2216,10 +3161,8 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 		case EXP:    result.value.as_real32 = (float) pow(val_cvt_real32(lval, &ls), val_cvt_real32(rval, &rs)); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(float);
-		result.type = DTNMP_TYPE_REAL32;
 		break;
-	case DTNMP_TYPE_REAL64:
+	case AMP_TYPE_REAL64:
 		switch(op)
 		{
 		case PLUS:   result.value.as_real64 = val_cvt_real64(lval, &ls) + val_cvt_real64(rval, &rs); break;
@@ -2229,8 +3172,6 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 		case EXP:    result.value.as_real64 = (double) pow(val_cvt_real64(lval, &ls), val_cvt_real64(rval, &rs)); break;
 		default: ls = rs = 0; break;
 		}
-//		result.length = sizeof(double);
-		result.type = DTNMP_TYPE_REAL64;
 		break;
 	default:
 		ls = rs = 0;
@@ -2239,13 +3180,13 @@ value_t adm_agent_binary_num_op(agent_adm_op_e op, Lyst stack)
 
 	if((ls == 0) || (rs == 0))
 	{
-        DTNMP_DEBUG_ERR("adm_agent_op_plus","Bad type combo. Can'get get %d from %d OP %d.",cvt_type, lval.type, rval.type);
-        DTNMP_DEBUG_EXIT("adm_agent_op_plus","-> Unknown", NULL);
-        memset(&result, 0, sizeof(value_t));
+        AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval.type, rval.type);
+        val_init(&result);
 	}
 
 	return result;
 }
+
 
 value_t adm_agent_op_plus(Lyst stack)
 {
@@ -2338,18 +3279,6 @@ value_t adm_agent_op_logor(Lyst stack)
 }
 
 
-value_t adm_agent_op_logxor(Lyst stack)
-{
-	value_t result;
-
-	//result.length = 0;
-	result.type = DTNMP_TYPE_UNK;
-	result.value.as_ptr = NULL;
-
-	return result;
-}
-
-
 value_t adm_agent_op_lognot(Lyst stack)
 {
 	return adm_agent_unary_log_op(LOGNOT, stack);
@@ -2410,62 +3339,83 @@ value_t adm_agent_op_rshft(Lyst stack)
 	return adm_agent_binary_num_op(BITRSHFT, stack);
 }
 
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_agent_op_stor
+ *
+ * \par Implements the storage operator: STOR(VAR, VAL) which assigns
+ *      VAL to a VAR.
+ *
+ * \param[in]  stack  The operand stack
+ *
+ * \return The value of the operation. An invalid value_t indicates failure.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *            E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  08/13/16  E. Birrane     Cleanup. Error checking. (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 value_t adm_agent_op_stor(Lyst stack)
 {
-
 	value_t result;
 	value_t lval, rval;
-    cd_t *cd_def = NULL;
-
+    var_t *var_def = NULL;
 
 	val_init(&result);
+
 	/* Step 1 - Prep for the operation. */
     if(adm_agent_op_prep(2, stack, &lval, &rval) == 0)
     {
+    	AMP_DEBUG_ERR("adm_agent_op_stor","Bad parms.", NULL);
     	return result;
     }
 
-    /* Step 2 - Check lval type. It needs to be a CD MID. */
+    /* Step 2 - Check lval type. It needs to be a VAR MID. */
     mid_t *mid = (mid_t *) lval.value.as_ptr;
 
     if((mid_sanity_check(mid) == 0) ||
        (MID_GET_FLAG_ID(mid->flags) != MID_COMPUTED))
     {
-    	DTNMP_DEBUG_ERR("adm_agent_op_stor","lval not computed mid.", NULL);
+    	AMP_DEBUG_ERR("adm_agent_op_stor","lval not computed mid.", NULL);
     	return result;
     }
 
-    /* Step 3 - Cannot store over top of an ADM-controlled CD. */
- 	if((cd_def = cd_find_by_id(gAdmComputed, NULL, mid)) != NULL)
+    /* Step 3 - Cannot store over top of an ADM-controlled VAR. */
+ 	if((var_def = var_find_by_id(gAdmComputed, NULL, mid)) != NULL)
 	{
- 		DTNMP_DEBUG_ERR("adm_agent_op_stor", "Cannot overwrite ADM-defined CD.", NULL);
+ 		AMP_DEBUG_ERR("adm_agent_op_stor", "Cannot overwrite ADM-defined VAR.", NULL);
 	}
 
- 	/* Step 4 - Find the CD definitions to update. */
-	if((cd_def = cd_find_by_id(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex), mid)) != NULL)
+ 	/* Step 4 - Find the VAR definitions to update. */
+	if((var_def = var_find_by_id(gAgentVDB.vars, &(gAgentVDB.var_mutex), mid)) != NULL)
     {
 		value_t tmp = val_copy(rval);
 
 		// Can we convert the rval to the lval type?
-		if(val_cvt_type(&tmp, cd_def->value.type) != 1)
+		if(val_cvt_type(&tmp, var_def->value.type) != 1)
 		{
-			DTNMP_DEBUG_ERR("adm_agent_op_stor", "Cannot convert from type %d to %d.", tmp.type, cd_def->value.type);
+			AMP_DEBUG_ERR("adm_agent_op_stor", "Cannot convert from type %d to %d.", tmp.type, var_def->value.type);
 			val_release(&tmp, 0);
 			return result;
 		}
 
-		// Free current CD value.
-		val_release(&(cd_def->value), 0);
+		// Free current VAR value.
+		val_release(&(var_def->value), 0);
 
 		// Can shallow copy this since tmp is a deep copy of the rval.
-		cd_def->value = tmp;
+		var_def->value = tmp;
 
 		// Make another deep copy to return on the stack.
 		result = val_copy(tmp);
     }
 	else
 	{
-		DTNMP_DEBUG_ERR("adm_agent_op_stor", "Cannot find lval CD.", NULL);
+		AMP_DEBUG_ERR("adm_agent_op_stor", "Cannot find lval VAR.", NULL);
 	}
     return result;
 }

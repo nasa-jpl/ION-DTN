@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -27,6 +21,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  06/29/13  E. Birrane Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "db.h"
@@ -39,7 +34,7 @@ int  db_forget(Object *primitiveObj, Object *descObj, Object list)
 
 	if((primitiveObj == NULL) || (descObj == NULL) || (list == 0))
 	{
-		DTNMP_DEBUG_ERR("db_forget","Bad Params.",NULL);
+		AMP_DEBUG_ERR("db_forget","Bad Params.",NULL);
 		return -1;
 	}
 
@@ -110,7 +105,7 @@ int  db_persist(uint8_t  *item,
    {
 	   sdr_cancel_xn(sdr);
 
-	   DTNMP_DEBUG_ERR("db_persist",
+	   AMP_DEBUG_ERR("db_persist",
 			   	       "Can't allocate descriptor of size %d.",
 			   	       desc_len);
 	   return -1;
@@ -124,7 +119,7 @@ int  db_persist(uint8_t  *item,
 
 	   sdr_cancel_xn(sdr);
 	   *descObj = 0;
-	   DTNMP_DEBUG_ERR("db_persist",
+	   AMP_DEBUG_ERR("db_persist",
 			   	   	   "Unable to allocate Item in SDR. Size %d.",
 			           item_len);
 	   return -1;
@@ -146,14 +141,14 @@ int  db_persist(uint8_t  *item,
 
       *itemObj = 0;
       *descObj = 0;
-      DTNMP_DEBUG_ERR("db_persist",
+      AMP_DEBUG_ERR("db_persist",
 				        "Unable to insert item Descr. in SDR.", NULL);
       return -1;
    }
 
 	if(sdr_end_xn(sdr))
 	{
-		DTNMP_DEBUG_ERR("db_persist", "Can't create Agent database.", NULL);
+		AMP_DEBUG_ERR("db_persist", "Can't create Agent database.", NULL);
 		return -1;
 	}
 

@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: expr.h
@@ -15,7 +20,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/28/13  E. Birrane     Initial Implementation
+ **  07/28/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #ifndef EXPR_H_
 #define EXPR_H_
@@ -28,12 +34,12 @@
 
 typedef struct
 {
-	dtnmp_type_e type;
+	amp_type_e type;
 	Lyst contents; /* MidCol */
 } expr_t;
 
 
-expr_t *expr_create(dtnmp_type_e type, Lyst contents);
+expr_t *expr_create(amp_type_e type, Lyst contents);
 
 expr_t *expr_copy(expr_t *expr);
 

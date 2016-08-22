@@ -1,3 +1,10 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: agent_db.h
@@ -14,7 +21,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/17/15  E. Birrane     Initial Implementation
+ **  06/10/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  05/17/15  E. Birrane     Update to new data types (Secure DTN - NASA: NNX14CS58P)
+ **  07/31/16  E. Birrane     Update naming to AMP v0.3. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef _NM_AGENT_DB_H
@@ -28,6 +37,7 @@
 #include "platform.h"
 #include "lyst.h"
 
+#include "../shared/primitives/var.h"
 #include "shared/utils/nm_types.h"
 #include "shared/utils/ion_if.h"
 
@@ -35,8 +45,6 @@
 #include "shared/primitives/rules.h"
 #include "shared/primitives/ctrl.h"
 #include "shared/primitives/def.h"
-#include "shared/primitives/cd.h"
-
 #include "shared/msg/pdu.h"
 #include "shared/msg/msg_ctrl.h"
 #include "shared/msg/msg_admin.h"
@@ -54,14 +62,12 @@
  */
 
 
-#define ADD_COMPDATA(x) agent_vdb_add(x, gAgentVDB.compdata, &(gAgentVDB.compdata_mutex));
-#define ADD_CONST(x)    agent_vdb_add(x, gAgentVDB.consts,   &(gAgentVDB.consts_mutex));
-#define ADD_CTRL(x)     agent_vdb_add(x, gAgentVDB.ctrls,    &(gAgentVDB.ctrls_mutex));
-#define ADD_MACRO(x)    agent_vdb_add(x, gAgentVDB.macros,   &(gAgentVDB.macros_mutex));
-//#define ADD_OP(x)       agent_vdb_add(x, gAgentVDB.ops,      &(gAgentVDB.ops_mutex));
-#define ADD_REPORT(x)   agent_vdb_add(x, gAgentVDB.reports,  &(gAgentVDB.reports_mutex));
-#define ADD_TRL(x)      agent_vdb_add(x, gAgentVDB.trls,     &(gAgentVDB.trls_mutex));
-#define ADD_SRL(x)      agent_vdb_add(x, gAgentVDB.srls,     &(gAgentVDB.srls_mutex));
+#define ADD_VAR(x)    agent_vdb_add(x, gAgentVDB.vars,     &(gAgentVDB.var_mutex));
+#define ADD_CTRL(x)   agent_vdb_add(x, gAgentVDB.ctrls,    &(gAgentVDB.ctrls_mutex));
+#define ADD_MACRO(x)  agent_vdb_add(x, gAgentVDB.macros,   &(gAgentVDB.macros_mutex));
+#define ADD_REPORT(x) agent_vdb_add(x, gAgentVDB.reports,  &(gAgentVDB.reports_mutex));
+#define ADD_TRL(x)    agent_vdb_add(x, gAgentVDB.trls,     &(gAgentVDB.trls_mutex));
+#define ADD_SRL(x)    agent_vdb_add(x, gAgentVDB.srls,     &(gAgentVDB.srls_mutex));
 
 /*
  * +--------------------------------------------------------------------------+
@@ -70,49 +76,51 @@
  */
 
 /*
- * This structure implements the DTNMP Agent SDR database which keeps a list
+ * This structure implements the AMP Agent SDR database which keeps a list
  * of all agent information that must be persisted across a reset.
  *
  * Each object in the database represents an sdr_list. Each list is populated
  * with a series of pointers to "descriptor" objects.  Each descriptor object
- * captures meta-data associated with the associated DTNMP object and a
- * pointer to that object. DTNMP objects are stored in the SDR in their
+ * captures meta-data associated with the associated AMP object and a
+ * pointer to that object. AMP objects are stored in the SDR in their
  * message-serialized form as that comprises the most space-efficient
  * representation of the object.
  *
- * On agent startup, DTNMP object types are deserialized and copied into
+ * On agent startup,AMP object types are deserialized and copied into
  * associated RAM data types.
  *
- * For example, the active_rules Object in the database is an sdr_list. Each
- * item in the active_rules list is an Object which points to a
- * rule_time_prod_desc_t object.  This descriptor object captures information
- * such as the execution state of the active rule. One of the entries of the
- * rule_time_prod_desc_t object is an Object pointer to the serialized
- * rule in the SDR.  On system startup, the agent will grab the descriptor
- * object and use it to find the serialized rule. The rule will be de-serialized
- * into a new rule structure.  The meta-data associated with the rule will be
+ * For example, the trls Object in the database is an sdr_list. Each
+ * item in the trls list is an Object which points to a
+ * trl_desc_t object.  This descriptor object captures information
+ * such as the execution state of the TRL. One of the entries of the
+ * trl_desc_t object is an Object pointer to the serialized
+ * TRL in the SDR.  On system startup, the agent will grab the descriptor
+ * object and use it to find the serialized TRL. The rule will be de-serialized
+ * into a new trl_t structure.  The meta-data associated with the rule will be
  * populated by additional meta-data in the rule's descriptor object.
  *
  * All entities in the DB operate in this way, as follows.
  *
  * LIST          Descriptor Type          Type that we deserialize into
  * -------------+-----------------------+------------------------------
- * active_rules | rule_time_prod_desc_t | rule_time_prod_t
- * custom_defs  | def_gen_desc_t        | def_gen_t
- * macro_defs   | def_gen_desc_t        | def_gen_t
- * exec_defs    | ctrl_exec_desc_t      | ctrl_exec_t
+ * vars         | var_desc_t            | var_t
+ * ctrls        | ctrl_desc_t           | ctrl_t
+ * macros       | def_gen_desc_t        | def_gen_t
+ * reports      | def_gen_desc_t        | rpt_t
+ * trls         | trl_desc_t            | trl_t
+ * srls         | srl_desc_t            | srl_t
  *
  */
 
 typedef struct
 {
-   Object  compdata;    /* SDR list: def_gen_descr_t        */
-   Object  ctrls;      /* SDR list: ctrl_exec_descr_t      */
-   Object  macros;     /* SDR list: def_gen_descr_t        */
+   Object  vars;
+   Object  ctrls;
+   Object  macros;
    Object  reports;
-   Object  trls;       /* SDR list: trl_descr_t */
-   Object  srls;       /* SDR list: srl_descr_t */
-   Object  descObj;    /**> The pointer to the AgentDB object in the SDR. */
+   Object  trls;
+   Object  srls;
+   Object  descObj;  /**> The pointer to the AgentDB object in the SDR. */
 } AgentDB;
 
 
@@ -123,14 +131,14 @@ typedef struct
 
 typedef struct
 {
-	Lyst  compdata;
+	Lyst  vars;
 	Lyst  ctrls;
 	Lyst  macros;
 	Lyst  reports;
 	Lyst  trls;
 	Lyst  srls;
 
-	ResourceLock compdata_mutex;
+	ResourceLock var_mutex;
 	ResourceLock ctrls_mutex;
 	ResourceLock macros_mutex;
 	ResourceLock reports_mutex;
@@ -145,8 +153,8 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
-int  agent_db_compdata_persist(cd_t* item);
-int  agent_db_compdata_forget(mid_t *mid);
+int  agent_db_var_persist(var_t* item);
+int  agent_db_var_forget(mid_t *mid);
 int  agent_db_ctrl_persist(ctrl_exec_t* item);
 int  agent_db_ctrl_forget(mid_t *mid);
 int  agent_db_defgen_persist(Object db, def_gen_t* item);
@@ -166,9 +174,9 @@ uint32_t agent_db_count(Lyst list, ResourceLock *mutex);
 
 void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex);
 
-uint32_t   agent_vdb_compdata_init(Sdr sdr);
-cd_t*      agent_vdb_compdata_find(mid_t *mid);
-void       agent_vdb_compdata_forget(mid_t *id);
+uint32_t   agent_vdb_var_init(Sdr sdr);
+var_t*     agent_vdb_var_find(mid_t *mid);
+void       agent_vdb_var_forget(mid_t *id);
 
 void         agent_vdb_ctrls_init(Sdr sdr);
 ctrl_exec_t* agent_vdb_ctrl_find(mid_t *mid);

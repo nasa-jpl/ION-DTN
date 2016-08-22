@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** \file def.c
@@ -12,9 +18,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/17/13  E. Birrane     Redesign of messaging architecture.
- **  06/21/15  E. Birrane     Added <type> for definitions.
- **  04/05/16  E. Birrane     Added sticky bit for CDs
+ **  01/17/13  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  06/21/15  E. Birrane     Added <type> for definitions. (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -48,23 +54,23 @@ def_gen_t *def_create_gen(mid_t *id,
 {
 	def_gen_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("def_create_gen","(0x%x,0x%x)",
+	AMP_DEBUG_ENTRY("def_create_gen","(0x%x,0x%x)",
 			          (unsigned long) id, (unsigned long) contents);
 
 	/* Step 0: Sanity Check. */
 	if((id == NULL) || (contents == NULL))
 	{
-		DTNMP_DEBUG_ERR("def_create_gen","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("def_create_gen","->NULL",NULL);
+		AMP_DEBUG_ERR("def_create_gen","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("def_create_gen","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the message. */
 	if((result = (def_gen_t*)STAKE(sizeof(def_gen_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_create_gen","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("def_create_gen","Can't alloc %d bytes.",
 				        sizeof(def_gen_t));
-		DTNMP_DEBUG_EXIT("def_create_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_create_gen","->NULL",NULL);
 		return NULL;
 	}
 
@@ -73,7 +79,7 @@ def_gen_t *def_create_gen(mid_t *id,
 //	result->type = type;
 	result->contents = contents;
 
-	DTNMP_DEBUG_EXIT("def_create_gen","->0x%x",result);
+	AMP_DEBUG_EXIT("def_create_gen","->0x%x",result);
 	return result;
 }
 
@@ -88,7 +94,7 @@ def_gen_t *def_create_from_rpt_parms(tdc_t parms)
 	/* Step 0: Sanity Check. */
 	if(tdc_get_count(&parms) != 2)
 	{
-		DTNMP_DEBUG_ERR("def_create_from_rpt_parms","Bad # params. Need 2, received %d", tdc_get_count(&parms));
+		AMP_DEBUG_ERR("def_create_from_rpt_parms","Bad # params. Need 2, received %d", tdc_get_count(&parms));
 		return NULL;
 	}
 
@@ -107,7 +113,7 @@ def_gen_t *def_create_from_rpt_parms(tdc_t parms)
 
 	/* Step 3: Create the new definition. This is a shallow copy sp
 	 * don't release the mis and expr.  */
-	result = def_create_gen(mid, DTNMP_TYPE_RPT, mc);
+	result = def_create_gen(mid, AMP_TYPE_RPT, mc);
 
 	return result;
 }
@@ -134,37 +140,37 @@ def_gen_t *def_duplicate(def_gen_t *def)
 
 	if(def == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_duplicate","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		AMP_DEBUG_ERR("def_duplicate","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
 	if((new_id = mid_copy(def->id)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_duplicate","Can't copy DEF ID.",NULL);
-		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		AMP_DEBUG_ERR("def_duplicate","Can't copy DEF ID.",NULL);
+		AMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
 	if((new_contents = midcol_copy(def->contents)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_duplicate","Can't copy DEF contents.", NULL);
+		AMP_DEBUG_ERR("def_duplicate","Can't copy DEF contents.", NULL);
 		mid_release(new_id);
 
-		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		AMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
 	if((result = def_create_gen(new_id, 0 /*def->type*/, new_contents)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_duplicate","Can't duplicate DEF.", NULL);
+		AMP_DEBUG_ERR("def_duplicate","Can't duplicate DEF.", NULL);
 		mid_release(new_id);
 		midcol_destroy(&new_contents);
-		DTNMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
+		AMP_DEBUG_EXIT("def_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("def_duplicate","-->%x", (unsigned long) result);
+	AMP_DEBUG_EXIT("def_duplicate","-->%x", (unsigned long) result);
 	return result;
 }
 
@@ -180,7 +186,7 @@ def_gen_t *def_duplicate(def_gen_t *def)
  */
 void def_release_gen(def_gen_t *def)
 {
-	DTNMP_DEBUG_ENTRY("def_release_gen","(0x%x)",
+	AMP_DEBUG_ENTRY("def_release_gen","(0x%x)",
 			          (unsigned long) def);
 
 	if(def != NULL)
@@ -197,7 +203,7 @@ void def_release_gen(def_gen_t *def)
 		SRELEASE(def);
 	}
 
-	DTNMP_DEBUG_EXIT("def_release_gen","->.",NULL);
+	AMP_DEBUG_EXIT("def_release_gen","->.",NULL);
 }
 
 
@@ -219,14 +225,14 @@ def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id)
 	LystElt elt;
 	def_gen_t *cur_def = NULL;
 
-	DTNMP_DEBUG_ENTRY("def_find_by_id","(0x%x, 0x%x",
+	AMP_DEBUG_ENTRY("def_find_by_id","(0x%x, 0x%x",
 			          (unsigned long) defs, (unsigned long) id);
 
 	/* Step 0: Sanity Check. */
 	if((defs == NULL) || (id == NULL))
 	{
-		DTNMP_DEBUG_ERR("def_find_by_id","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("def_find_by_id","->NULL.", NULL);
+		AMP_DEBUG_ERR("def_find_by_id","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("def_find_by_id","->NULL.", NULL);
 		return NULL;
 	}
 
@@ -239,14 +245,14 @@ def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id)
         /* Grab the definition */
         if((cur_def = (def_gen_t*) lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("def_find_by_id","Can't grab def from lyst!", NULL);
+        	AMP_DEBUG_ERR("def_find_by_id","Can't grab def from lyst!", NULL);
         }
         else
         {
         	// EJB: Do not consider parms when matching a report.
         	if(mid_compare(id, cur_def->id, 0) == 0)
         	{
-        		DTNMP_DEBUG_EXIT("def_find_by_id","->0x%x.", cur_def);
+        		AMP_DEBUG_EXIT("def_find_by_id","->0x%x.", cur_def);
         	    if(mutex != NULL)
         	    {
         	    	unlockResource(mutex);
@@ -261,7 +267,7 @@ def_gen_t *def_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id)
     	unlockResource(mutex);
     }
 
-	DTNMP_DEBUG_EXIT("def_find_by_id","->NULL.", NULL);
+	AMP_DEBUG_EXIT("def_find_by_id","->NULL.", NULL);
 	return NULL;
 }
 
@@ -279,12 +285,12 @@ void def_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 	 LystElt elt;
 	 def_gen_t *cur_def = NULL;
 
-	 DTNMP_DEBUG_ENTRY("def_lyst_clear","(0x%x, 0x%x, %d)",
+	 AMP_DEBUG_ENTRY("def_lyst_clear","(0x%x, 0x%x, %d)",
 			          (unsigned long) list, (unsigned long) mutex, destroy);
 
 	 if((list == NULL) || (*list == NULL))
 	 {
-		 DTNMP_DEBUG_ERR("def_lyst_clear","Bad Params.", NULL);
+		 AMP_DEBUG_ERR("def_lyst_clear","Bad Params.", NULL);
 		 return;
 	 }
 
@@ -299,7 +305,7 @@ void def_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 		 /* Grab the current report */
 		 if((cur_def = (def_gen_t *) lyst_data(elt)) == NULL)
 		 {
-			 DTNMP_DEBUG_ERR("clearDefsLyst","Can't get report from lyst!", NULL);
+			 AMP_DEBUG_ERR("clearDefsLyst","Can't get report from lyst!", NULL);
 		 }
 		 else
 		 {
@@ -318,7 +324,7 @@ void def_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 	 {
 		 unlockResource(mutex);
 	 }
-	 DTNMP_DEBUG_EXIT("clearDefsLyst","->.",NULL);
+	 AMP_DEBUG_EXIT("clearDefsLyst","->.",NULL);
 }
 
 
@@ -369,14 +375,14 @@ uint8_t *def_serialize_gen(def_gen_t *def, uint32_t *len)
 	uint8_t *contents = NULL;
 	uint32_t contents_len = 0;
 
-	DTNMP_DEBUG_ENTRY("def_serialize_gen","(0x%x, 0x%x)",
+	AMP_DEBUG_ENTRY("def_serialize_gen","(0x%x, 0x%x)",
 			          (unsigned long)def, (unsigned long) len);
 
 	/* Step 0: Sanity Checks. */
 	if((def == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("def_serialize_gen","Bad Args",NULL);
-		DTNMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
+		AMP_DEBUG_ERR("def_serialize_gen","Bad Args",NULL);
+		AMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
 		return NULL;
 	}
 
@@ -385,19 +391,19 @@ uint8_t *def_serialize_gen(def_gen_t *def, uint32_t *len)
 	/* STEP 1: Serialize the ID. */
 	if((id = mid_serialize(def->id, &id_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_serialize_gen","Can't serialize hdr.",NULL);
+		AMP_DEBUG_ERR("def_serialize_gen","Can't serialize hdr.",NULL);
 
-		DTNMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
 		return NULL;
 	}
 
 	/* STEP 3: Serialize the Contents. */
 	if((contents = midcol_serialize(def->contents, &contents_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_serialize_gen","Can't serialize hdr.",NULL);
+		AMP_DEBUG_ERR("def_serialize_gen","Can't serialize hdr.",NULL);
 		SRELEASE(id);
 
-		DTNMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
 		return NULL;
 	}
 
@@ -407,12 +413,12 @@ uint8_t *def_serialize_gen(def_gen_t *def, uint32_t *len)
 	/* STEP 5: Allocate the serialized message. */
 	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_serialize_gen","Can't alloc %d bytes", *len);
+		AMP_DEBUG_ERR("def_serialize_gen","Can't alloc %d bytes", *len);
 		*len = 0;
 		SRELEASE(id);
 		SRELEASE(contents);
 
-		DTNMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
 		return NULL;
 	}
 
@@ -430,16 +436,16 @@ uint8_t *def_serialize_gen(def_gen_t *def, uint32_t *len)
 	/* Step 7: Last sanity check. */
 	if((cursor - result) != *len)
 	{
-		DTNMP_DEBUG_ERR("def_serialize_gen","Wrote %d bytes but allcated %d",
+		AMP_DEBUG_ERR("def_serialize_gen","Wrote %d bytes but allcated %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
 		SRELEASE(result);
 
-		DTNMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_serialize_gen","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("def_serialize_gen","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("def_serialize_gen","->0x%x",(unsigned long)result);
 	return result;
 }
 
@@ -466,25 +472,25 @@ def_gen_t *def_deserialize_gen(uint8_t *cursor,
 	def_gen_t *result = NULL;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("def_deserialize_gen","(0x%x, %d, 0x%x)",
+	AMP_DEBUG_ENTRY("def_deserialize_gen","(0x%x, %d, 0x%x)",
 			          (unsigned long)cursor,
 			           size, (unsigned long) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
 	{
-		DTNMP_DEBUG_ERR("def_deserialize_gen","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
+		AMP_DEBUG_ERR("def_deserialize_gen","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the new message structure. */
 	if((result = (def_gen_t*)STAKE(sizeof(def_gen_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_deserialize_gen","Can't Alloc %d Bytes.",
+		AMP_DEBUG_ERR("def_deserialize_gen","Can't Alloc %d Bytes.",
 				        sizeof(def_gen_t));
 		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -497,11 +503,11 @@ def_gen_t *def_deserialize_gen(uint8_t *cursor,
 	/* Grab the ID MID. */
 	if((result->id = mid_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_deserialize_gen","Can't grab ID MID.",
+		AMP_DEBUG_ERR("def_deserialize_gen","Can't grab ID MID.",
 				        sizeof(def_gen_t));
 		*bytes_used = 0;
 		def_release_gen(result);
-		DTNMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -514,11 +520,11 @@ def_gen_t *def_deserialize_gen(uint8_t *cursor,
 	/* Grab the list of contents. */
 	if((result->contents = midcol_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("def_deserialize_gen","Can't grab contents.",NULL);
+		AMP_DEBUG_ERR("def_deserialize_gen","Can't grab contents.",NULL);
 
 		*bytes_used = 0;
 		def_release_gen(result);
-		DTNMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
+		AMP_DEBUG_EXIT("def_deserialize_gen","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -528,6 +534,6 @@ def_gen_t *def_deserialize_gen(uint8_t *cursor,
 		*bytes_used += bytes;
 	}
 
-	DTNMP_DEBUG_EXIT("def_deserialize_gen","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("def_deserialize_gen","->0x%x",(unsigned long)result);
 	return result;
 }

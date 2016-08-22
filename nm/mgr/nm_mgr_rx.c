@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -29,8 +23,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR          DESCRIPTION
  **  --------  ------------    ---------------------------------------------
- **  08/31/11  V. Ramachandran Initial Implementation
- **  08/19/13  E. Birrane      Documentation clean up and code review comments.
+ **  08/31/11  V. Ramachandran Initial Implementation (JHU/APL)
+ **  08/19/13  E. Birrane      Documentation clean up and code review comments. (JHU/APL)
+ **  08/21/16  E. Birrane      Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #include "pthread.h"
 
@@ -82,14 +77,14 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
     agent_t *agent = NULL;
     int result = -1;
 
-	DTNMP_DEBUG_ENTRY("msg_rx_data_rpt","()",NULL);
+	AMP_DEBUG_ENTRY("msg_rx_data_rpt","()",NULL);
 
 
 	/* Step 0: Sanity Check */
 	if((sender_eid == NULL) || (cursor == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("msg_rx_data_rpt","Bad Parms", NULL);
-		DTNMP_DEBUG_EXIT("msg_rx_data_rpt","-->-1",NULL);
+		AMP_DEBUG_ERR("msg_rx_data_rpt","Bad Parms", NULL);
+		AMP_DEBUG_EXIT("msg_rx_data_rpt","-->-1",NULL);
 		return -1;
 	}
 
@@ -99,7 +94,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 	/* Step 1: Retrieve stored information about this agent. */
 	if((agent = mgr_agent_get(sender_eid)) == NULL)
 	{
-		DTNMP_DEBUG_WARN("msg_rx_data_rpt",
+		AMP_DEBUG_WARN("msg_rx_data_rpt",
 				         "Received group is from an unknown sender (%s); ignoring it.",
 				         sender_eid->name);
 	}
@@ -109,7 +104,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 
 		if((report = rpt_deserialize_data(cursor, size, bytes_used)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("msg_rx_data_rpt","Can't deserialize rpt",NULL);
+			AMP_DEBUG_ERR("msg_rx_data_rpt","Can't deserialize rpt",NULL);
 		}
 		else
 		{
@@ -125,7 +120,7 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("msg_rx_data_rpt","-->%d", result);
+	AMP_DEBUG_EXIT("msg_rx_data_rpt","-->%d", result);
 	return result;
 }
 
@@ -154,9 +149,9 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 void *mgr_rx_thread(int *running)
 {
    
-    DTNMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) running);
+    AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) running);
     
-    DTNMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
+    AMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
     
     uint32_t num_msgs = 0;
     uint8_t *buf = NULL;
@@ -185,7 +180,7 @@ void *mgr_rx_thread(int *running)
         
         if(buf != NULL)
         {
-            DTNMP_DEBUG_INFO("mgr_rx_thread","Received buf (%x) of size %d",
+            AMP_DEBUG_INFO("mgr_rx_thread","Received buf (%x) of size %d",
             		(unsigned long) buf, size);
 
             sender_eid = &(meta.originatorEid);
@@ -203,7 +198,7 @@ void *mgr_rx_thread(int *running)
             cursor += bytes;
             size -= bytes;
 
-            DTNMP_DEBUG_INFO("mgr_rx_thread","# Msgs %d, TS %llu", num_msgs, group_timestamp);
+            AMP_DEBUG_INFO("mgr_rx_thread","# Msgs %d, TS %llu", num_msgs, group_timestamp);
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
@@ -218,12 +213,12 @@ void *mgr_rx_thread(int *running)
             	size -= bytes;
             	hdr_len = bytes;
 
-            	DTNMP_DEBUG_INFO("mgr_rx_thread","Header id %d with len %d", hdr->id, hdr_len);
+            	AMP_DEBUG_INFO("mgr_rx_thread","Header id %d with len %d", hdr->id, hdr_len);
             	switch (hdr->id)
             	{
                 	case MSG_TYPE_RPT_DATA_RPT:
                 	{
-                		DTNMP_DEBUG_ALWAYS("mgr_rx_thread",
+                		AMP_DEBUG_ALWAYS("mgr_rx_thread",
                 				         "Received a data report.\n\n", NULL);
 
                 		msg_rx_data_rpt(sender_eid, cursor, size, &bytes);
@@ -235,7 +230,7 @@ void *mgr_rx_thread(int *running)
                 
                 	case MSG_TYPE_ADMIN_REG_AGENT:
                 	{
-                		DTNMP_DEBUG_ALWAYS("mgr_rx_thread",
+                		AMP_DEBUG_ALWAYS("mgr_rx_thread",
                 						   "Processing Agent Registration.\n\n",
                 						   NULL);
 
@@ -258,7 +253,7 @@ void *mgr_rx_thread(int *running)
 
                 	default:
                 	{
-                		DTNMP_DEBUG_WARN("mgr_rx_thread","Unknown message type: %d",
+                		AMP_DEBUG_WARN("mgr_rx_thread","Unknown message type: %d",
                 				hdr->type);
                 		bytes = 0;
                 	}
@@ -284,8 +279,8 @@ void *mgr_rx_thread(int *running)
         }
     }
    
-    DTNMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
-    DTNMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);
+    AMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
+    AMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);
     pthread_exit(NULL);
 }
 

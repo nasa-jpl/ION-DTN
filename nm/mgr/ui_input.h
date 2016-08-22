@@ -14,7 +14,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/24/15  E. Birrane     Initial Implementation
+ **  05/24/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef _UI_INPUT_H

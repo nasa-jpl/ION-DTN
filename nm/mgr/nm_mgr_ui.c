@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file nm_mgr_ui.c
@@ -14,9 +19,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/18/13  E. Birrane     Code comments and cleanup
- **  06/25/13  E. Birrane     Removed references to priority field. Add ISS flag.
- **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
+ **  01/18/13  E. Birrane     Code comments and cleanup (JHU/APL)
+ **  06/25/13  E. Birrane     Removed references to priority field. Add ISS flag. (JHU/APL)
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "ctype.h"
@@ -86,8 +92,8 @@ agent_t* ui_select_agent()
 	{
 		if((agent = (agent_t *) lyst_data(lyst_first(known_agents))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
-			DTNMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
+			AMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
+			AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
 			return NULL;
 		}
 
@@ -98,13 +104,13 @@ agent_t* ui_select_agent()
 	if(ui_input_get_line("Agent (#), or 'x' to cancel:",
 			(char **) &line, 10) == 0)
 	{
-		DTNMP_DEBUG_ERR("ui_select_agent","Unable to read user input.", NULL);
-		DTNMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
+		AMP_DEBUG_ERR("ui_select_agent","Unable to read user input.", NULL);
+		AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
 		return NULL;
 	}
 	else if(strcmp(line, "x") == 0)
 	{
-		DTNMP_DEBUG_EXIT("ui_select_agent","->[cancelled]", NULL);
+		AMP_DEBUG_EXIT("ui_select_agent","->[cancelled]", NULL);
 		return NULL;
 	}
 
@@ -112,15 +118,15 @@ agent_t* ui_select_agent()
 	if(idx < 0 || idx >= total)
 	{
 		printf("Invalid option.\n");
-		DTNMP_DEBUG_ALWAYS("ui_select_agent", "User selected invalid option (%d).", idx);
-		DTNMP_DEBUG_EXIT("ui_select_agent", "->NULL", NULL);
+		AMP_DEBUG_ALWAYS("ui_select_agent", "User selected invalid option (%d).", idx);
+		AMP_DEBUG_EXIT("ui_select_agent", "->NULL", NULL);
 		return NULL;
 	}
 
 	if(idx == 0)
 	{
-		DTNMP_DEBUG_ALWAYS("ui_select_agent", "User opted to cancel.", NULL);
-		DTNMP_DEBUG_EXIT("ui_select_agent", "->NULL", NULL);
+		AMP_DEBUG_ALWAYS("ui_select_agent", "User opted to cancel.", NULL);
+		AMP_DEBUG_EXIT("ui_select_agent", "->NULL", NULL);
 		return NULL;
 	}
 
@@ -129,8 +135,8 @@ agent_t* ui_select_agent()
 	elt = lyst_first(known_agents);
 	if(elt == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_select_agent","Empty known_agents lyst.", NULL);
-		DTNMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
+		AMP_DEBUG_ERR("ui_select_agent","Empty known_agents lyst.", NULL);
+		AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
 		return NULL;
 	}
 
@@ -140,20 +146,20 @@ agent_t* ui_select_agent()
 		elt = lyst_next(elt);
 		if(elt == NULL)
 		{
-			DTNMP_DEBUG_ERR("ui_select_agent","Out-of-bounds index in known_agents lyst (%d).", idx);
-			DTNMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
+			AMP_DEBUG_ERR("ui_select_agent","Out-of-bounds index in known_agents lyst (%d).", idx);
+			AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
 			return NULL;
 		}
 	}
 
 	if((agent = (agent_t *) lyst_data(elt)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
-		DTNMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
+		AMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
+		AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("ui_select_agent","->%s", agent->agent_eid.name);
+	AMP_DEBUG_EXIT("ui_select_agent","->%s", agent->agent_eid.name);
 
 	return agent;
 }
@@ -179,19 +185,19 @@ void ui_clear_reports(agent_t* agent)
 {
     if(agent == NULL)
     {
-    	DTNMP_DEBUG_ENTRY("ui_clear_reports","(NULL)", NULL);
-    	DTNMP_DEBUG_ERR("ui_clear_reports", "No agent specified.", NULL);
-        DTNMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
+    	AMP_DEBUG_ENTRY("ui_clear_reports","(NULL)", NULL);
+    	AMP_DEBUG_ERR("ui_clear_reports", "No agent specified.", NULL);
+        AMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
         return;
     }
-    DTNMP_DEBUG_ENTRY("ui_clear_reports","(%s)",agent->agent_eid.name);
+    AMP_DEBUG_ENTRY("ui_clear_reports","(%s)",agent->agent_eid.name);
 
 	int num = lyst_length(agent->reports);
 	rpt_clear_lyst(&(agent->reports), NULL, 0);
 	g_reports_total -= num;
 
-	DTNMP_DEBUG_ALWAYS("ui_clear_reports","Cleared %d reports.", num);
-    DTNMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
+	AMP_DEBUG_ALWAYS("ui_clear_reports","Cleared %d reports.", num);
+    AMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
 }
 
 
@@ -218,7 +224,7 @@ void ui_postprocess_ctrl(mid_t *mid)
 
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_postprocess_ctrl","Bad Args.", NULL);
+		AMP_DEBUG_ERR("ui_postprocess_ctrl","Bad Args.", NULL);
 		return;
 	}
 
@@ -244,7 +250,7 @@ void ui_postprocess_ctrl(mid_t *mid)
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("ui_postprocess_ctrl", "Adding report definition.",NULL);
+			AMP_DEBUG_ERR("ui_postprocess_ctrl", "Adding report definition.",NULL);
 		}
 	}
 	/* If this is removing a report definition. */
@@ -266,7 +272,7 @@ void ui_postprocess_ctrl(mid_t *mid)
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("ui_postprocess_ctrl","Can't get entry.", NULL);
+			AMP_DEBUG_ERR("ui_postprocess_ctrl","Can't get entry.", NULL);
 		}
 	}
 	/* If this is adding a macro definition. */
@@ -286,7 +292,7 @@ void ui_postprocess_ctrl(mid_t *mid)
 			}
 			else
 			{
-				def_gen_t *def = def_create_gen(mid, DTNMP_TYPE_MACRO, mc);
+				def_gen_t *def = def_create_gen(mid, AMP_TYPE_MACRO, mc);
 				if(def != NULL)
 				{
 					mgr_db_macro_persist(def);
@@ -316,7 +322,7 @@ void ui_postprocess_ctrl(mid_t *mid)
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("ui_postprocess_ctrl","DEL Macro: Can't get entry.", NULL);
+			AMP_DEBUG_ERR("ui_postprocess_ctrl","DEL Macro: Can't get entry.", NULL);
 		}
 	}
 	/* If this is adding a TRL definition. */
@@ -350,7 +356,7 @@ int ui_test_mid(mid_t *mid, const char *mid_str)
 
 	if((mid == NULL) || (mid_str == NULL))
 	{
-		DTNMP_DEBUG_ERR("ui_test_mid","Bad args.", NULL);
+		AMP_DEBUG_ERR("ui_test_mid","Bad args.", NULL);
 		return 0;
 	}
 
@@ -372,19 +378,19 @@ void ui_build_control(agent_t* agent)
 
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("ui_build_control","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_build_control", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("ui_build_control","->.",NULL);
+		AMP_DEBUG_ENTRY("ui_build_control","(NULL)", NULL);
+		AMP_DEBUG_ERR("ui_build_control", "No agent specified.", NULL);
+		AMP_DEBUG_EXIT("ui_build_control","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_build_control","(%s)", agent->agent_eid.name);
+	AMP_DEBUG_ENTRY("ui_build_control","(%s)", agent->agent_eid.name);
 
 	ts = ui_input_uint("Control Timestamp");
 	mid = ui_input_mid("Control MID:", ADM_ALL, MID_CONTROL);
 
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_build_control","Can't get control MID.",NULL);
+		AMP_DEBUG_ERR("ui_build_control","Can't get control MID.",NULL);
 		return;
 	}
 
@@ -413,7 +419,7 @@ void ui_build_control(agent_t* agent)
 	msg_destroy_perf_ctrl(ctrl);
 	midcol_destroy(&mc); // Also destroys mid.
 
-	DTNMP_DEBUG_EXIT("ui_build_control","->.", NULL);
+	AMP_DEBUG_EXIT("ui_build_control","->.", NULL);
 }
 
 
@@ -427,12 +433,12 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ENTRY("ui_send_raw","(NULL)", NULL);
-		DTNMP_DEBUG_ERR("ui_send_raw", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("ui_send_raw","->.",NULL);
+		AMP_DEBUG_ENTRY("ui_send_raw","(NULL)", NULL);
+		AMP_DEBUG_ERR("ui_send_raw", "No agent specified.", NULL);
+		AMP_DEBUG_EXIT("ui_send_raw","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_send_raw","(%s)", agent->agent_eid.name);
+	AMP_DEBUG_ENTRY("ui_send_raw","(%s)", agent->agent_eid.name);
 
 	if(enter_ts != 0)
 	{
@@ -448,7 +454,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_send_raw","Can't get control MID.",NULL);
+		AMP_DEBUG_ERR("ui_send_raw","Can't get control MID.",NULL);
 		return;
 	}
 
@@ -481,7 +487,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 	/* Step 5: Release remaining resources. */
 	pdu_release_group(pdu_group);
 
-	DTNMP_DEBUG_EXIT("ui_send_raw","->.", NULL);
+	AMP_DEBUG_EXIT("ui_send_raw","->.", NULL);
 }
 
 
@@ -514,13 +520,13 @@ void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid)
 	int i = 0;
 	uint32_t size = 0;
 
-	DTNMP_DEBUG_ENTRY("ui_define_mid_params", "("UHF","UHF","UHF"))",
+	AMP_DEBUG_ENTRY("ui_define_mid_params", "("UHF","UHF","UHF"))",
 			          (uvast) name, (uvast)parmspec, (uvast) mid);
 
 	if((name == NULL) || (parmspec == NULL) || (mid == NULL))
 	{
-		DTNMP_DEBUG_ERR("ui_define_mid_params", "Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
+		AMP_DEBUG_ERR("ui_define_mid_params", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
 		return;
 	}
 
@@ -534,8 +540,8 @@ void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid)
 	    {
 	    	if (len != 0)
 	    	{
-	    		DTNMP_DEBUG_ERR("ui_define_mid_params","igets failed.", NULL);
-	    		DTNMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
+	    		AMP_DEBUG_ERR("ui_define_mid_params","igets failed.", NULL);
+	    		AMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
 	    		return;
 	    	}
 	    }
@@ -549,7 +555,7 @@ void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid)
     	mid_add_param(mid, parmspec->parm_type[i], &b);
 	}
 
-	DTNMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
+	AMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
 }
 
 /******************************************************************************
@@ -570,25 +576,25 @@ void ui_register_agent()
 	char line[AMP_MAX_EID_LEN];
 	eid_t agent_eid;
 
-	DTNMP_DEBUG_ENTRY("register_agent", "()", NULL);
+	AMP_DEBUG_ENTRY("register_agent", "()", NULL);
 
 	/* Grab the new agent's EID. */
 	if(ui_input_get_line("Enter EID of new agent:",
 						 (char **)&line, AMP_MAX_EID_LEN) == 0)
 	{
-		DTNMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
-		DTNMP_DEBUG_EXIT("register_agent","->.", NULL);
+		AMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
+		AMP_DEBUG_EXIT("register_agent","->.", NULL);
 		return;
 	}
 	else
-		DTNMP_DEBUG_INFO("register_agent", "User entered agent EID name %s", line);
+		AMP_DEBUG_INFO("register_agent", "User entered agent EID name %s", line);
 
 
 	/* Check if the agent is already known. */
 	sscanf(line, "%s", agent_eid.name);
 	mgr_agent_add(agent_eid);
 
-	DTNMP_DEBUG_EXIT("register_agent", "->.", NULL);
+	AMP_DEBUG_EXIT("register_agent", "->.", NULL);
 }
 
 /******************************************************************************
@@ -606,25 +612,25 @@ void ui_register_agent()
  *****************************************************************************/
 void ui_deregister_agent(agent_t* agent)
 {
-	DTNMP_DEBUG_ENTRY("ui_deregister_agent","(%llu)", (unsigned long)agent);
+	AMP_DEBUG_ENTRY("ui_deregister_agent","(%llu)", (unsigned long)agent);
 
 	if(agent == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_deregister_agent", "No agent specified.", NULL);
-		DTNMP_DEBUG_EXIT("ui_deregister_agent","->.",NULL);
+		AMP_DEBUG_ERR("ui_deregister_agent", "No agent specified.", NULL);
+		AMP_DEBUG_EXIT("ui_deregister_agent","->.",NULL);
 		return;
 	}
-	DTNMP_DEBUG_ENTRY("ui_deregister_agent","(%s)",agent->agent_eid.name);
+	AMP_DEBUG_ENTRY("ui_deregister_agent","(%s)",agent->agent_eid.name);
 
 	lockResource(&agents_mutex);
 
 	if(mgr_agent_remove(&(agent->agent_eid)) != 0)
 	{
-		DTNMP_DEBUG_WARN("ui_deregister_agent","No agent by that name is currently registered.\n", NULL);
+		AMP_DEBUG_WARN("ui_deregister_agent","No agent by that name is currently registered.\n", NULL);
 	}
 	else
 	{
-		DTNMP_DEBUG_ALWAYS("ui_deregister_agent","Successfully deregistered agent.\n", NULL);
+		AMP_DEBUG_ALWAYS("ui_deregister_agent","Successfully deregistered agent.\n", NULL);
 	}
 
 	unlockResource(&agents_mutex);
@@ -803,7 +809,7 @@ mid_t * ui_get_mid(int adm_type, int mid_id, uint32_t opt)
 	LystElt elt = 0;
 	mgr_name_t *cur = NULL;
 
-	DTNMP_DEBUG_ENTRY("ui_print","(%d, %d)",adm_type, mid_id);
+	AMP_DEBUG_ENTRY("ui_print","(%d, %d)",adm_type, mid_id);
 
 	Lyst names = names_retrieve(adm_type, mid_id);
 
@@ -819,7 +825,7 @@ mid_t * ui_get_mid(int adm_type, int mid_id, uint32_t opt)
 	}
 
 	lyst_destroy(names);
-	DTNMP_DEBUG_EXIT("ui_print","->.", NULL);
+	AMP_DEBUG_EXIT("ui_print","->.", NULL);
 
 	return result;
 }
@@ -831,7 +837,7 @@ void ui_list_gen(int adm_type, int mid_id)
 	  LystElt elt = 0;
 	  mgr_name_t *cur = NULL;
 
-	  DTNMP_DEBUG_ENTRY("ui_print","(%d, %d)",adm_type, mid_id);
+	  AMP_DEBUG_ENTRY("ui_print","(%d, %d)",adm_type, mid_id);
 
 	  Lyst result = names_retrieve(adm_type, mid_id);
 
@@ -843,7 +849,7 @@ void ui_list_gen(int adm_type, int mid_id)
 	  }
 
 	  lyst_destroy(result);
-	  DTNMP_DEBUG_EXIT("ui_print","->.", NULL);
+	  AMP_DEBUG_EXIT("ui_print","->.", NULL);
 }
 
 void ui_list_literals()
@@ -1102,13 +1108,13 @@ void ui_print_nop()
 
 void *ui_thread(int *running)
 {
-	DTNMP_DEBUG_ENTRY("ui_thread","(0x%x)", (unsigned long) running);
+	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (unsigned long) running);
 
 	ui_eventLoop(running);
 
-	DTNMP_DEBUG_ALWAYS("ui_thread","Exiting.", NULL);
+	AMP_DEBUG_ALWAYS("ui_thread","Exiting.", NULL);
 
-	DTNMP_DEBUG_EXIT("ui_thread","->.", NULL);
+	AMP_DEBUG_EXIT("ui_thread","->.", NULL);
 
 	pthread_exit(NULL);
 

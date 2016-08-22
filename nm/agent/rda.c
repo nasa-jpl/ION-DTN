@@ -1,4 +1,9 @@
-
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
 /*****************************************************************************
  ** \file rda.c
  ** 
@@ -24,10 +29,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  09/06/11  M. Reid        Initial Implementation
- **  10/21/11  E. Birrane     Code comments and functional updates.
- **  06/27/13  E. Birrane     Support persisted rules.
- **  08/30/15  E. Birrane     Updated support for SRL/TRL
+ **  09/06/11  M. Reid        Initial Implementation (JHU/APL)
+ **  10/21/11  E. Birrane     Code comments and functional updates. (JHU/APL)
+ **  06/27/13  E. Birrane     Support persisted rules. (JHU/APL)
+ **  08/30/15  E. Birrane     Updated support for SRL/TRL (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -129,12 +134,12 @@ rpt_t *rda_get_report(eid_t recipient)
     rpt_t *cur_report = NULL;
     rpt_t *result = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_get_report","(%s)", recipient.name);
+    AMP_DEBUG_ENTRY("rda_get_report","(%s)", recipient.name);
     
     /* Step 0: Sanity check. */
     if(strlen(recipient.name) == 0)
     {
-    	DTNMP_DEBUG_ERR("rda_get_report","Bad parms.",NULL);
+    	AMP_DEBUG_ERR("rda_get_report","Bad parms.",NULL);
     	return NULL;
     }
 
@@ -149,7 +154,7 @@ rpt_t *rda_get_report(eid_t recipient)
         /* Step 1.2: Check if this report is destined for our recipient. */
         if(strcmp(cur_report->recipient.name, recipient.name) == 0)
         {
-            DTNMP_DEBUG_INFO("rda_get_report",
+            AMP_DEBUG_INFO("rda_get_report",
             		         "Found existing report for recipient %s", recipient);
 
             /* Step 1.2.1: Remeber report if it is a match. */
@@ -170,14 +175,14 @@ rpt_t *rda_get_report(eid_t recipient)
     	strcpy(rx.name,recipient.name);
     	result = rpt_create((uint32_t)getUTCTime(), lyst_create(), rx);
 
-    	DTNMP_DEBUG_INFO("rda_get_report","New report for recipient %s", recipient);
+    	AMP_DEBUG_INFO("rda_get_report","New report for recipient %s", recipient);
 
         lyst_insert_first(g_rda_cur_rpts, result);
     }
 
     unlockResource(&g_rda_cur_rpts_mutex);
 
-    DTNMP_DEBUG_EXIT("rda_get_report","->0x%x", (unsigned long) result);
+    AMP_DEBUG_EXIT("rda_get_report","->0x%x", (unsigned long) result);
     
     return result;
 }
@@ -211,7 +216,7 @@ int rda_scan_rules()
     trl_t *trl = NULL;
     srl_t *srl = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_scan_rules","()", NULL);
+    AMP_DEBUG_ENTRY("rda_scan_rules","()", NULL);
 
     
     /* Step 0: Start with a fresh list for pending rules */
@@ -246,8 +251,8 @@ int rda_scan_rules()
         /* Step 1.1: Grab the next rule...*/
         if((trl = (trl_t *) lyst_data(elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL TRL. Exiting", NULL);
-            DTNMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
+            AMP_DEBUG_ERR("rda_scan_rules","Found NULL TRL. Exiting", NULL);
+            AMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
             return -1;
         }
                 
@@ -269,12 +274,12 @@ int rda_scan_rules()
                 lockResource(&g_rda_trls_pend_mutex);
                 if((tmp = mid_copy(trl->mid)) == NULL)
                 {
-                	DTNMP_DEBUG_ERR("rda_scan_rules","Can't copy TRL MID. Skipping from next eval.", NULL);
+                	AMP_DEBUG_ERR("rda_scan_rules","Can't copy TRL MID. Skipping from next eval.", NULL);
                 }
                 else
                 {
                 	lyst_insert_first(g_rda_trls_pend, tmp);
-                	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
+                	AMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
                     		         NULL);
                 }
                 unlockResource(&g_rda_trls_pend_mutex);
@@ -301,8 +306,8 @@ int rda_scan_rules()
         if((srl = (srl_t *) lyst_data(elt)) == NULL)
         {
         	unlockResource(&(gAgentVDB.srls_mutex));
-            DTNMP_DEBUG_ERR("rda_scan_rules","Found NULL SRL. Exiting", NULL);
-            DTNMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
+            AMP_DEBUG_ERR("rda_scan_rules","Found NULL SRL. Exiting", NULL);
+            AMP_DEBUG_EXIT("rda_scan_rules","->-1.", NULL);
             return -1;
         }
 
@@ -326,7 +331,7 @@ int rda_scan_rules()
             	if(success == 0)
             	{
             		srl->desc.num_evals = 0;
-            		DTNMP_DEBUG_ERR("rda_scan_rules", "Can't convert to uint. Stopping eval of SRL.", NULL);
+            		AMP_DEBUG_ERR("rda_scan_rules", "Can't convert to uint. Stopping eval of SRL.", NULL);
             	}
             	// If the expression is true, we add the SRL to list of SRLs whose action is now pending to run.
             	else if(result != 0)
@@ -337,14 +342,14 @@ int rda_scan_rules()
 
                     if((tmp = mid_copy(srl->mid)) == NULL)
                     {
-                    	DTNMP_DEBUG_ERR("rda_scan_rules","Can't copy SRL MID. Skipping from next eval.", NULL);
+                    	AMP_DEBUG_ERR("rda_scan_rules","Can't copy SRL MID. Skipping from next eval.", NULL);
                     }
                     else
                     {
 
                     	lyst_insert_last(g_rda_srls_pend, tmp);
 
-                    	DTNMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
+                    	AMP_DEBUG_INFO("rda_scan_rules","Added rule to evaluate list.",
                     					NULL);
                     }
 
@@ -361,7 +366,7 @@ int rda_scan_rules()
 
     unlockResource(&(gAgentVDB.srls_mutex));
 
-    DTNMP_DEBUG_EXIT("rda_scan_rules","->0.", NULL);
+    AMP_DEBUG_EXIT("rda_scan_rules","->0.", NULL);
     return 0;
 }
  
@@ -392,7 +397,7 @@ int rda_scan_ctrls(Lyst exec_defs)
     LystElt elt;
     ctrl_exec_t *ctrl_p = NULL;
 
-    DTNMP_DEBUG_ENTRY("rda_scan_ctrls","(0x%#llx)", (unsigned long)exec_defs);
+    AMP_DEBUG_ENTRY("rda_scan_ctrls","(0x%#llx)", (unsigned long)exec_defs);
 
     /*
      * Step 1: Walk through each defined ctrl and see if it should be included
@@ -403,8 +408,8 @@ int rda_scan_ctrls(Lyst exec_defs)
         /* Step 1.1: Grab the next ctrl...*/
         if((ctrl_p = (ctrl_exec_t *) lyst_data(elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_scan_ctrls","Found NULL ctrl. Exiting", NULL);
-            DTNMP_DEBUG_EXIT("rda_scan_ctrls","->-1.", NULL);
+            AMP_DEBUG_ERR("rda_scan_ctrls","Found NULL ctrl. Exiting", NULL);
+            AMP_DEBUG_EXIT("rda_scan_ctrls","->-1.", NULL);
             return -1;
         }
 
@@ -427,7 +432,7 @@ int rda_scan_ctrls(Lyst exec_defs)
         }
     }
 
-    DTNMP_DEBUG_EXIT("rda_scan_ctrls","->0.", NULL);
+    AMP_DEBUG_EXIT("rda_scan_ctrls","->0.", NULL);
     return 0;
 }
 
@@ -457,7 +462,7 @@ int rda_clean_ctrls(Lyst exec_defs)
     LystElt del_elt;
     ctrl_exec_t *ctrl_p = NULL;
 
-    DTNMP_DEBUG_ENTRY("rda_clean_ctrls","(0x%#llx)", (unsigned long)exec_defs);
+    AMP_DEBUG_ENTRY("rda_clean_ctrls","(0x%#llx)", (unsigned long)exec_defs);
 
     /*
      * Step 1: Walk through each defined ctrl and see if it should be included
@@ -468,8 +473,8 @@ int rda_clean_ctrls(Lyst exec_defs)
         /* Step 1.1: Grab the next ctrl...*/
         if((ctrl_p = (ctrl_exec_t *) lyst_data(elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_clean_ctrls","Found NULL ctrl. Exiting", NULL);
-            DTNMP_DEBUG_EXIT("rda_clean_ctrls","->-1.", NULL);
+            AMP_DEBUG_ERR("rda_clean_ctrls","Found NULL ctrl. Exiting", NULL);
+            AMP_DEBUG_EXIT("rda_clean_ctrls","->-1.", NULL);
             return -1;
         }
 
@@ -496,7 +501,7 @@ int rda_clean_ctrls(Lyst exec_defs)
         }
     }
 
-    DTNMP_DEBUG_EXIT("rda_clean_ctrls","->0.", NULL);
+    AMP_DEBUG_EXIT("rda_clean_ctrls","->0.", NULL);
     return 0;
 }
 
@@ -525,27 +530,27 @@ rpt_entry_t *rda_build_report_entry(mid_t *mid)
 {
 	rpt_entry_t *entry = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_build_report_entry","(0x%x)", (unsigned long) mid);
+    AMP_DEBUG_ENTRY("rda_build_report_entry","(0x%x)", (unsigned long) mid);
     
     /* Step 1: Make sure we have an entry structure to populate. */
     if((entry = rpt_entry_create(mid)) == NULL)
     {
-        DTNMP_DEBUG_ERR("rda_build_report_entry","Can't create new entry.", NULL);
-        DTNMP_DEBUG_EXIT("rda_build_report_entry","->NULL.", NULL);
+        AMP_DEBUG_ERR("rda_build_report_entry","Can't create new entry.", NULL);
+        AMP_DEBUG_EXIT("rda_build_report_entry","->NULL.", NULL);
         return NULL;
     }
 
     /* Step 2: Fill the report with data. */
     if(ldc_fill_report_entry(entry) == -1)
     {
-        DTNMP_DEBUG_ERR("rda_build_report_entry","Can't fill report.",NULL);
+        AMP_DEBUG_ERR("rda_build_report_entry","Can't fill report.",NULL);
         rpt_entry_release(entry);
 
-        DTNMP_DEBUG_EXIT("rda_build_report_entry","->NULL.", NULL);
+        AMP_DEBUG_EXIT("rda_build_report_entry","->NULL.", NULL);
         return NULL;
     }
 
-    DTNMP_DEBUG_EXIT("rda_build_report_entry","->0x%x", (unsigned long) entry);
+    AMP_DEBUG_EXIT("rda_build_report_entry","->0x%x", (unsigned long) entry);
     return entry;
 }
 
@@ -576,11 +581,11 @@ int rda_eval_pending_rules()
     trl_t *trl = NULL;
     srl_t *srl = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_eval_pending_rules","()", NULL);
+    AMP_DEBUG_ENTRY("rda_eval_pending_rules","()", NULL);
 
     lockResource(&g_rda_trls_pend_mutex);
 
-    DTNMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval%d rules.",
+    AMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval%d rules.",
     		         lyst_length(g_rda_trls_pend));
 
     for (pending_elt = lyst_first(g_rda_trls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
@@ -588,12 +593,12 @@ int rda_eval_pending_rules()
         /* Grab the next rule mid*/
     	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_eval_pending_rules",
+            AMP_DEBUG_ERR("rda_eval_pending_rules",
             		        "Cannot find pending rule.", NULL);
 
             unlockResource(&g_rda_trls_pend_mutex);
 
-            DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
+            AMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
             return -1;
         }
         
@@ -608,7 +613,7 @@ int rda_eval_pending_rules()
     		Lyst action;
     		/* Evaluate the rule */
 
-    		gAgentInstr.num_time_rules_run++;
+    		gAgentInstr.num_trls_run++;
 
     		/* First, copy the macro, in case the TRL deletes itself as its action. */
     		action = midcol_copy(trl->action);
@@ -618,7 +623,7 @@ int rda_eval_pending_rules()
     		/* Note that the rule has been evaluated */
     		if(trl->desc.num_evals > 0)
     		{
-    			DTNMP_DEBUG_INFO("rda_eval_pending_rules",
+    			AMP_DEBUG_INFO("rda_eval_pending_rules",
     					         "Decrementing rule eval count from %d.",
     					         trl->desc.num_evals);
     			trl->desc.num_evals--;
@@ -633,7 +638,7 @@ int rda_eval_pending_rules()
     /* SRLS */
     lockResource(&g_rda_srls_pend_mutex);
 
-    DTNMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval %d SRLs.",
+    AMP_DEBUG_INFO("rda_eval_pending_rules","Preparing to eval %d SRLs.",
     		         lyst_length(g_rda_srls_pend));
 
     for (pending_elt = lyst_first(g_rda_srls_pend); pending_elt; pending_elt = lyst_next(pending_elt))
@@ -641,12 +646,12 @@ int rda_eval_pending_rules()
         /* Grab the next rule mid*/
     	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_eval_pending_rules",
+            AMP_DEBUG_ERR("rda_eval_pending_rules",
             		        "Cannot find pending rule.", NULL);
 
             unlockResource(&g_rda_srls_pend_mutex);
 
-            DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
+            AMP_DEBUG_EXIT("rda_eval_pending_rules","-> -1.", NULL);
             return -1;
         }
 
@@ -661,7 +666,7 @@ int rda_eval_pending_rules()
     		Lyst action;
     		/* Evaluate the rule */
 
-    		gAgentInstr.num_prod_rules_run++;
+    		gAgentInstr.num_srls_run++;
 
     		/* First, copy the macro, in case the TRL deletes itself as its action. */
     		action = midcol_copy(srl->action);
@@ -671,7 +676,7 @@ int rda_eval_pending_rules()
     		/* Note that the rule has been evaluated */
     		if(srl->desc.num_evals > 0)
     		{
-    			DTNMP_DEBUG_INFO("rda_eval_pending_rules",
+    			AMP_DEBUG_INFO("rda_eval_pending_rules",
         		   	             "Decrementing rule eval count from %d.",
         		   	             srl->desc.num_evals);
     			srl->desc.num_evals--;
@@ -684,7 +689,7 @@ int rda_eval_pending_rules()
     unlockResource(&g_rda_srls_pend_mutex);
 
 
-    DTNMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
+    AMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
     return 0;
 }
 
@@ -721,11 +726,11 @@ int rda_send_reports()
     uint8_t *raw_report = NULL;
     uint32_t raw_report_len = 0;
     
-    DTNMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
+    AMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
 
     lockResource(&g_rda_cur_rpts_mutex);
     
-    DTNMP_DEBUG_INFO("rda_send_reports","Preparing to send %d reports.",
+    AMP_DEBUG_INFO("rda_send_reports","Preparing to send %d reports.",
     		         lyst_length(g_rda_cur_rpts));
     
 
@@ -739,12 +744,12 @@ int rda_send_reports()
          */
         if((report = (rpt_t*) lyst_data(report_elt)) == NULL)
         {
-            DTNMP_DEBUG_ERR("rda_send_reports","Can't find report from elt %x.",
+            AMP_DEBUG_ERR("rda_send_reports","Can't find report from elt %x.",
             		        report_elt);
 
             unlockResource(&g_rda_cur_rpts_mutex);
 
-            DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+            AMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
@@ -755,11 +760,11 @@ int rda_send_reports()
         /* Step 1.3: Serialize the payload. */
         if((raw_report = rpt_serialize(report, &raw_report_len)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
+        	AMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
 
             unlockResource(&g_rda_cur_rpts_mutex);
 
-        	DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+        	AMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
@@ -767,18 +772,18 @@ int rda_send_reports()
         if((pdu_msg = pdu_create_msg(MSG_TYPE_RPT_DATA_RPT,
         		                 raw_report, raw_report_len, NULL)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
+        	AMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
         	SRELEASE(raw_report);
 
             unlockResource(&g_rda_cur_rpts_mutex);
 
-        	DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+        	AMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
         if((pdu_group = pdu_create_group(pdu_msg)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
+        	AMP_DEBUG_ERR("rda_send_reports","Can't serialize report.",NULL);
 
         	/* This will also release the associated raw_report which was
         	 * shallow-copied into the message. */
@@ -786,7 +791,7 @@ int rda_send_reports()
 
             unlockResource(&g_rda_cur_rpts_mutex);
 
-        	DTNMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
+        	AMP_DEBUG_EXIT("rda_send_reports","->-1.", NULL);
             return -1;
         }
 
@@ -805,7 +810,7 @@ int rda_send_reports()
 
     unlockResource(&g_rda_cur_rpts_mutex);
 
-    DTNMP_DEBUG_EXIT("rda_send_reports","->0", NULL);
+    AMP_DEBUG_EXIT("rda_send_reports","->0", NULL);
     return 0;    
 }
 
@@ -838,7 +843,7 @@ int rda_eval_cleanup()
     trl_t *trl = NULL;
     srl_t *srl = NULL;
     
-    DTNMP_DEBUG_ENTRY("rda_eval_cleanup","()", NULL);
+    AMP_DEBUG_ENTRY("rda_eval_cleanup","()", NULL);
         
     lockResource(&g_rda_trls_pend_mutex);
 
@@ -852,11 +857,11 @@ int rda_eval_cleanup()
 
     	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
     	{
-    		DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't grab MID for pending TRL",NULL);
+    		AMP_DEBUG_ERR("rda_eval_cleanup","Can't grab MID for pending TRL",NULL);
 
             unlockResource(&g_rda_trls_pend_mutex);
 
-            DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
+            AMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
             return -1;
     	}
 
@@ -865,7 +870,7 @@ int rda_eval_cleanup()
         	/* Step 1.2: If the rule should no longer execute, delete it */
         	if(trl->desc.num_evals == 0)
         	{
-        		DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
+        		AMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
 
         		/* Step 1.2.1: Find and remove the rule in the memory list. */
         		agent_db_trl_forget(trl->mid);
@@ -876,7 +881,7 @@ int rda_eval_cleanup()
         		//trl = NULL;
 
         		/* Step 1.2.4: Correct counters. */
-        		gAgentInstr.num_time_rules--;
+        		gAgentInstr.num_trls--;
         	}
         
         	/* Step 1.3: If the rule should run again, reset its timer. */
@@ -902,11 +907,11 @@ int rda_eval_cleanup()
     {
     	if((mid = (mid_t *) lyst_data(pending_elt)) == NULL)
     	{
-    		DTNMP_DEBUG_ERR("rda_eval_cleanup","Can't grab MID for pending TRL",NULL);
+    		AMP_DEBUG_ERR("rda_eval_cleanup","Can't grab MID for pending TRL",NULL);
 
             unlockResource(&g_rda_srls_pend_mutex);
 
-            DTNMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
+            AMP_DEBUG_EXIT("rda_eval_cleanup","-> -1", NULL);
             return -1;
     	}
 
@@ -920,7 +925,7 @@ int rda_eval_cleanup()
         	/* Step 1.2: If the rule should no longer execute, delete it */
         	if(srl->desc.num_evals == 0)
         	{
-        		DTNMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
+        		AMP_DEBUG_INFO("rda_eval_cleanup","Removing expired rule.", NULL);
 
         		/* Step 1.2.1: Find and remove the rule in the memory list. */
         		agent_db_srl_forget(srl->mid);
@@ -931,7 +936,7 @@ int rda_eval_cleanup()
         		srl = NULL;
 
         		/* Step 1.2.4: Correct counters. */
-        		gAgentInstr.num_prod_rules--;
+        		gAgentInstr.num_srls--;
         	}
 
         	/* Step 1.3: If the rule should run again, reset its timer. */
@@ -951,7 +956,7 @@ int rda_eval_cleanup()
 
 
 
-    DTNMP_DEBUG_EXIT("rda_eval_cleanup","->0", NULL);
+    AMP_DEBUG_EXIT("rda_eval_cleanup","->0", NULL);
     return 0;    
 }
 
@@ -987,56 +992,56 @@ void* rda_thread(int* running)
     struct timeval start_time;
     vast delta = 0;
 
-    DTNMP_DEBUG_ENTRY("rda_thread","(0x%X)", (unsigned long) pthread_self()); //threadId);
+    AMP_DEBUG_ENTRY("rda_thread","(0x%X)", (unsigned long) pthread_self()); //threadId);
     
 	if((g_rda_cur_rpts = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Rpts Lyst!", NULL);
-		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+		AMP_DEBUG_ERR("rda_thread","Can't allocate Rpts Lyst!", NULL);
+		AMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
 		return NULL;
 	}
 
 	if((g_rda_trls_pend = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Pending TRLs Lyst!", NULL);
-		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+		AMP_DEBUG_ERR("rda_thread","Can't allocate Pending TRLs Lyst!", NULL);
+		AMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
 		return NULL;
 	}
 
 
 	if((g_rda_srls_pend = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rda_thread","Can't allocate Pending SRLs Lyst!", NULL);
-		DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+		AMP_DEBUG_ERR("rda_thread","Can't allocate Pending SRLs Lyst!", NULL);
+		AMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
 		return NULL;
 	}
 
 	if(initResourceLock(&g_rda_cur_rpts_mutex))
 	{
-        DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
+        AMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
         		        strerror(errno));
-        DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+        AMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
         return NULL;
 	}
 
 	if(initResourceLock(&g_rda_trls_pend_mutex))
 	{
-        DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
+        AMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
         		        strerror(errno));
-        DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+        AMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
         return NULL;
 	}
 
 
 	if(initResourceLock(&g_rda_srls_pend_mutex))
 	{
-        DTNMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
+        AMP_DEBUG_ERR("rda_thread","Unable to initialize mutex, errno = %s",
         		        strerror(errno));
-        DTNMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
+        AMP_DEBUG_EXIT("rda_thread","->-1.",NULL);
         return NULL;
 	}
 
-    DTNMP_DEBUG_INFO("rda_thread","Running Remote Data Aggregator Thread.", NULL);
+    AMP_DEBUG_INFO("rda_thread","Running Remote Data Aggregator Thread.", NULL);
    
     /* While the DTNMP Agent is running...*/
     while(*running)
@@ -1045,13 +1050,13 @@ void* rda_thread(int* running)
 
 
 
-        DTNMP_DEBUG_INFO("rda_thread","Processing %u ctrls.",
+        AMP_DEBUG_INFO("rda_thread","Processing %u ctrls.",
         		        (unsigned long) lyst_length(gAgentVDB.trls));
 
         lockResource(&(gAgentVDB.ctrls_mutex));
         if(rda_scan_ctrls(gAgentVDB.ctrls) == -1)
         {
-            DTNMP_DEBUG_ERR("rda_thread","Problem scanning ctrls.", NULL);
+            AMP_DEBUG_ERR("rda_thread","Problem scanning ctrls.", NULL);
             //pthread_exit(NULL);
             continue;
         }
@@ -1063,7 +1068,7 @@ void* rda_thread(int* running)
 
 
 
-        DTNMP_DEBUG_INFO("rda_thread","Processing %u rules.",
+        AMP_DEBUG_INFO("rda_thread","Processing %u rules.",
         		        (unsigned long) lyst_length(gAgentVDB.trls));
                 
         /* Lock the rule list while we are scanning and processinf rules */
@@ -1073,7 +1078,7 @@ void* rda_thread(int* running)
         /* Step 1: Collect set of rules to be processed */
         if(rda_scan_rules() == -1)
         {
-            DTNMP_DEBUG_ERR("rda_thread","Problem scanning rule list. Exiting.", NULL);
+            AMP_DEBUG_ERR("rda_thread","Problem scanning rule list. Exiting.", NULL);
             //rda_cleanup();
             //pthread_exit(NULL);
             continue;
@@ -1082,7 +1087,7 @@ void* rda_thread(int* running)
         /* Step 2: Evaluate each rule. */
         if(rda_eval_pending_rules() == -1)
         {
-            DTNMP_DEBUG_ERR("rda_thread","Problem evaluating rules. Exiting.", NULL);
+            AMP_DEBUG_ERR("rda_thread","Problem evaluating rules. Exiting.", NULL);
             //rda_cleanup();
             //pthread_exit(NULL);
             continue;
@@ -1091,7 +1096,7 @@ void* rda_thread(int* running)
         /* Step 3: Send out any built reports. */
         if(rda_send_reports() == -1)
         {
-            DTNMP_DEBUG_ERR("rda_thread","Problem sending built reports. Exiting.", NULL);
+            AMP_DEBUG_ERR("rda_thread","Problem sending built reports. Exiting.", NULL);
             //rda_cleanup();
             //pthread_exit(NULL);
             continue;
@@ -1101,7 +1106,7 @@ void* rda_thread(int* running)
         /* Step 4: Perform housekeeping for all evaluated rules. */
         if(rda_eval_cleanup() == -1)
         {
-            DTNMP_DEBUG_ERR("rda_thread","Problem cleaning up after rules eval. Exiting.", NULL);
+            AMP_DEBUG_ERR("rda_thread","Problem cleaning up after rules eval. Exiting.", NULL);
             //rda_cleanup();
             //pthread_exit(NULL);
             continue;
@@ -1133,9 +1138,9 @@ void* rda_thread(int* running)
     
     rda_cleanup();
 
-    DTNMP_DEBUG_ALWAYS("rda_thread","Shutting Down Agent Data Aggregator Thread.",NULL);
+    AMP_DEBUG_ALWAYS("rda_thread","Shutting Down Agent Data Aggregator Thread.",NULL);
 
-    DTNMP_DEBUG_EXIT("rda_thread","->NULL.", NULL);
+    AMP_DEBUG_EXIT("rda_thread","->NULL.", NULL);
     
     pthread_exit(NULL);
     return NULL; /* Defensive */

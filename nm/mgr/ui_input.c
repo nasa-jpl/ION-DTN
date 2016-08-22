@@ -14,7 +14,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/24/15  E. Birrane     Initial Implementation
+ **  05/24/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "mgr/ui_input.h"
@@ -45,7 +45,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 {
 	int len = 0;
 
-	DTNMP_DEBUG_ENTRY("ui_input_get_line","(%s,0x%x,%d)",prompt, *line, max_len);
+	AMP_DEBUG_ENTRY("ui_input_get_line","(%s,0x%x,%d)",prompt, *line, max_len);
 
 	while(len == 0)
 	{
@@ -56,16 +56,16 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 		{
 			if (len != 0)
 			{
-				DTNMP_DEBUG_ERR("ui_input_get_line","igets failed.", NULL);
-				DTNMP_DEBUG_EXIT("ui_input_get_line","->0.",NULL);
+				AMP_DEBUG_ERR("ui_input_get_line","igets failed.", NULL);
+				AMP_DEBUG_EXIT("ui_input_get_line","->0.",NULL);
 				return 0;
 			}
 		}
 	}
 
-	DTNMP_DEBUG_INFO("ui_input_get_line","Read user input.", NULL);
+	AMP_DEBUG_INFO("ui_input_get_line","Read user input.", NULL);
 
-	DTNMP_DEBUG_EXIT("ui_input_get_line","->1.",NULL);
+	AMP_DEBUG_EXIT("ui_input_get_line","->1.",NULL);
 	return 1;
 }
 
@@ -85,7 +85,7 @@ blob_t *ui_input_file_contents(char *prompt)
 
 	if((fp = fopen(filename, "rb")) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_input_file_contents","Could not open %s.", filename);
+		AMP_DEBUG_ERR("ui_input_file_contents","Could not open %s.", filename);
 		SRELEASE(filename);
 		return NULL;
 	}
@@ -93,7 +93,7 @@ blob_t *ui_input_file_contents(char *prompt)
 	/* Grab the file size. */
 	if((fseek(fp, 0L, SEEK_END)) != 0)
 	{
-		DTNMP_DEBUG_ERR("ui_input_file_contents","Couldn't seek to end of %s", filename);
+		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't seek to end of %s", filename);
 		SRELEASE(filename);
 		fclose(fp);
 		return NULL;
@@ -101,7 +101,7 @@ blob_t *ui_input_file_contents(char *prompt)
 
 	if((file_size = ftell(fp)) == -1)
 	{
-		DTNMP_DEBUG_ERR("ui_input_file_contents","Couldn't get size of %s", filename);
+		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't get size of %s", filename);
 		SRELEASE(filename);
 		fclose(fp);
 		return NULL;
@@ -110,7 +110,7 @@ blob_t *ui_input_file_contents(char *prompt)
 
 	if((data = STAKE(file_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_input_file_contents","Couldn't allocate %d bytes.", file_size);
+		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't allocate %d bytes.", file_size);
 		SRELEASE(filename);
 		fclose(fp);
 		return NULL;
@@ -119,7 +119,7 @@ blob_t *ui_input_file_contents(char *prompt)
 	if((fread(data, 1, file_size, fp)) != file_size)
 	{
 		SRELEASE(data);
-		DTNMP_DEBUG_ERR("ui_input_file_contents","Couldn't read %d bytes from %s", file_size, filename);
+		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't read %d bytes from %s", file_size, filename);
 		SRELEASE(filename);
 		fclose(fp);
 		return NULL;
@@ -129,7 +129,7 @@ blob_t *ui_input_file_contents(char *prompt)
 	result = blob_create(data, file_size);
 
 	str = utils_hex_to_string(data, file_size);
-	DTNMP_DEBUG_ALWAYS("Read from %s: %.50s...", filename, str);
+	AMP_DEBUG_ALWAYS("Read from %s: %.50s...", filename, str);
 	SRELEASE(str);
 	SRELEASE(filename);
 	fclose(fp);
@@ -413,10 +413,10 @@ mid_t *ui_input_mid(char *prompt, uint8_t adm_type, uint8_t id)
 			/* Get the parameter spec for this MID. */
 			if((spec = ui_get_parmspec(result)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("ui_input_mid", "No Parm Spec?", NULL);
+				AMP_DEBUG_ERR("ui_input_mid", "No Parm Spec?", NULL);
 				mid_release(result);
 
-				DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
+				AMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
 				return NULL;
 			}
 
@@ -437,8 +437,8 @@ mid_t *ui_input_mid(char *prompt, uint8_t adm_type, uint8_t id)
 	/* Step 5: Sanity check this mid. */
 	if(mid_sanity_check(result) == 0)
 	{
-		DTNMP_DEBUG_ERR("ui_input_mid", "Sanity check failed.", NULL);
-		DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
+		AMP_DEBUG_ERR("ui_input_mid", "Sanity check failed.", NULL);
+		AMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
 		mid_release(result);
 		return NULL;
 	}
@@ -448,7 +448,7 @@ mid_t *ui_input_mid(char *prompt, uint8_t adm_type, uint8_t id)
 	fflush(stdout);
 	SRELEASE(mid_str);
 
-	DTNMP_DEBUG_EXIT("ui_input_mid", "->0x%x", (unsigned long) result);
+	AMP_DEBUG_EXIT("ui_input_mid", "->0x%x", (unsigned long) result);
 	return result;
 }
 
@@ -459,8 +459,8 @@ mid_t* ui_input_mid_build()
 	/* Step 0: Allocate the resultant MID. */
 	if((result = (mid_t*)STAKE(sizeof(mid_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_input_mid","Can't alloc %d bytes.", sizeof(mid_t));
-		DTNMP_DEBUG_EXIT("ui_input_mid", "->NULL.", NULL);
+		AMP_DEBUG_ERR("ui_input_mid","Can't alloc %d bytes.", sizeof(mid_t));
+		AMP_DEBUG_EXIT("ui_input_mid", "->NULL.", NULL);
 		return NULL;
 	}
 	else
@@ -482,10 +482,10 @@ mid_t* ui_input_mid_build()
 	result->oid = ui_input_oid(result->flags);
 	if(result->oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("ui_input_mid", "Bad OID.", NULL);
+		AMP_DEBUG_ERR("ui_input_mid", "Bad OID.", NULL);
 		mid_release(result);
 
-		DTNMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
+		AMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
 		return NULL;
 	}
 
@@ -683,7 +683,7 @@ oid_t ui_input_oid(uint8_t mid_flags)
 			break;
 
 		default:
-			DTNMP_DEBUG_ERR("ui_input_oid","Unknown OID Type %d",
+			AMP_DEBUG_ERR("ui_input_oid","Unknown OID Type %d",
 					    	 MID_GET_FLAG_OID(mid_flags));
 			return oid_get_null();
 			break;
@@ -718,7 +718,7 @@ oid_t ui_input_oid(uint8_t mid_flags)
 			break;
 
 		default:
-			DTNMP_DEBUG_ERR("ui_input_mid","Unknown OID Type %d",
+			AMP_DEBUG_ERR("ui_input_mid","Unknown OID Type %d",
 					    MID_GET_FLAG_OID(mid_flags));
 			break;
 	}
@@ -756,56 +756,56 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 
 		switch(spec->parm_type[i])
 		{
-			case DTNMP_TYPE_BYTE:
+			case AMP_TYPE_BYTE:
 			{
 				sprintf(prompt,"(BYTE) %s", spec->parm_name[i]);
 				uint8_t val = ui_input_byte(prompt);
 				data = utils_serialize_byte(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_INT:
+			case AMP_TYPE_INT:
 			{
 				sprintf(prompt,"(INT) %s", spec->parm_name[i]);
 				int32_t  val = ui_input_int(prompt);
 				data = utils_serialize_int(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_UINT:
+			case AMP_TYPE_UINT:
 			{
 				sprintf(prompt,"(UINT) %s", spec->parm_name[i]);
 				uint32_t  val = ui_input_uint(prompt);
 				data = utils_serialize_uint(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_VAST:
+			case AMP_TYPE_VAST:
 			{
 				sprintf(prompt,"(VAST) %s", spec->parm_name[i]);
 				vast  val = ui_input_vast(prompt);
 				data = utils_serialize_vast(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_UVAST:
+			case AMP_TYPE_UVAST:
 			{
 				sprintf(prompt,"(UVAST) %s", spec->parm_name[i]);
 				uvast  val = ui_input_uvast(prompt);
 				data = utils_serialize_uvast(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_REAL32:
+			case AMP_TYPE_REAL32:
 			{
 				sprintf(prompt,"(REAL32) %s", spec->parm_name[i]);
 				float  val = ui_input_float(prompt);
 				data = utils_serialize_real32(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_REAL64:
+			case AMP_TYPE_REAL64:
 			{
 				sprintf(prompt,"(REAL64) %s", spec->parm_name[i]);
 				double  val = ui_input_double(prompt);
 				data = utils_serialize_real64(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_STRING:
+			case AMP_TYPE_STRING:
 			{
 				sprintf(prompt,"(STRING) %s", spec->parm_name[i]);
 				char *val = ui_input_string(prompt);
@@ -813,7 +813,7 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				SRELEASE(val);
 			}
 				break;
-			case DTNMP_TYPE_BLOB:
+			case AMP_TYPE_BLOB:
 			{
 				sprintf(prompt,"(BLOB) %s", spec->parm_name[i]);
 				blob_t *val = ui_input_blob(prompt, 0);
@@ -821,7 +821,7 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				SRELEASE(val);
 			}
 				break;
-			case DTNMP_TYPE_SDNV:
+			case AMP_TYPE_SDNV:
 			{
 				sprintf(prompt,"(SDNV) %s", spec->parm_name[i]);
 				Sdnv val = ui_input_sdnv(prompt);
@@ -830,14 +830,14 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				memcpy(data, &(val.text), val.length);
 			}
 				break;
-			case DTNMP_TYPE_TS:
+			case AMP_TYPE_TS:
 			{
 				sprintf(prompt,"(TS) %s", spec->parm_name[i]);
 				uint32_t  val = ui_input_uint(prompt);
 				data = utils_serialize_uint(val, &size);
 			}
 				break;
-			case DTNMP_TYPE_DC:
+			case AMP_TYPE_DC:
 			{
 				sprintf(prompt,"(DC) %s", spec->parm_name[i]);
 				Lyst user_dc = ui_input_dc(prompt);
@@ -845,7 +845,7 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				dc_destroy(&user_dc);
 			}
 				break;
-			case DTNMP_TYPE_MID:
+			case AMP_TYPE_MID:
 			{
 				sprintf(prompt,"(MID) %s", spec->parm_name[i]);
 
@@ -854,7 +854,7 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				mid_release(mid);
 			}
 				break;
-			case DTNMP_TYPE_MC:
+			case AMP_TYPE_MC:
 			{
 				sprintf(prompt,"(MID Collection) %s", spec->parm_name[i]);
 				Lyst mc = ui_input_mc(prompt);
@@ -862,7 +862,7 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				midcol_destroy(&mc);
 			}
 				break;
-			case DTNMP_TYPE_EXPR:
+			case AMP_TYPE_EXPR:
 			{
 				printf("(Expression) %s", spec->parm_name[i]);
 				uint8_t type = ui_input_uint("EXPR Type:");

@@ -14,7 +14,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  06/24/15  J. P. Mayer    Initial Implementation.
- **  06/27/15  E. Birrane     Migrate from datalist to TDC.
+ **  06/27/15  E. Birrane     Migrate from datalist to TDC. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #ifndef TDC_H_
 #define TDC_H_
@@ -76,16 +76,16 @@ int8_t           tdc_compare(tdc_t *t1, tdc_t *t2);
 tdc_t*           tdc_copy(tdc_t *tdc);
 tdc_t*           tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_used);
 void             tdc_destroy(tdc_t **tdc);
-dtnmp_type_e     tdc_get(tdc_t* tdc, uint8_t index, dtnmp_type_e type, uint8_t** optr, size_t* outsize);
+amp_type_e     tdc_get(tdc_t* tdc, uint8_t index, amp_type_e type, uint8_t** optr, size_t* outsize);
 blob_t*          tdc_get_colentry(tdc_t* tdc, uint8_t index);
 int8_t           tdc_get_count(tdc_t* tdc);
 uint32_t         tdc_get_entry_size(tdc_t* tdc, uint8_t index);
-dtnmp_type_e     tdc_get_type(tdc_t* tdc, uint8_t index);
+amp_type_e     tdc_get_type(tdc_t* tdc, uint8_t index);
 uint8_t          tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize);
 uint8_t          tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize);
-dtnmp_type_e     tdc_insert(tdc_t* tdc, dtnmp_type_e type, uint8_t* data, uint32_t size);
+amp_type_e     tdc_insert(tdc_t* tdc, amp_type_e type, uint8_t* data, uint32_t size);
 uint8_t*         tdc_serialize(tdc_t *tdc, uint32_t *size);
-dtnmp_type_e     tdc_set_type(tdc_t* tdc, uint8_t index, dtnmp_type_e type);
+amp_type_e     tdc_set_type(tdc_t* tdc, uint8_t index, amp_type_e type);
 char*            tdc_to_str(tdc_t *tdc);
 
 

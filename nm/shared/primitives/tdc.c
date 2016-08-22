@@ -14,7 +14,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  06/24/15  J. P. Mayer    Initial Implementation.
- **  06/27/15  E. Birrane     Migrate from datalist to TDC.
+ **  06/27/15  E. Birrane     Migrate from datalist to TDC. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -37,7 +37,7 @@ int8_t tdc_append(tdc_t *dst, tdc_t *src)
 	/* Step 0: Sanity Check. */
 	if((dst == NULL) || (src == NULL))
 	{
-		DTNMP_DEBUG_ERR("tdc_append","Bad Args.", NULL);
+		AMP_DEBUG_ERR("tdc_append","Bad Args.", NULL);
 		return ERROR;
 	}
 
@@ -192,7 +192,7 @@ tdc_t *tdc_create(Lyst *dc, uint8_t *types, uint8_t type_cnt)
 	/* Step 0: Allocate the new TDC. */
 	if((result = (tdc_t *) STAKE(sizeof(tdc_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_create","Cannot allocate new TDC.", NULL);
+		AMP_DEBUG_ERR("tdc_create","Cannot allocate new TDC.", NULL);
 		return NULL;
 	}
 
@@ -203,7 +203,7 @@ tdc_t *tdc_create(Lyst *dc, uint8_t *types, uint8_t type_cnt)
 	{
 		if(type_cnt != lyst_length(*dc))
 		{
-			DTNMP_DEBUG_ERR("tdc_create", "DC entry (%d) to type count (%d) mismatch.", lyst_length(*dc), type_cnt);
+			AMP_DEBUG_ERR("tdc_create", "DC entry (%d) to type count (%d) mismatch.", lyst_length(*dc), type_cnt);
 			SRELEASE(result);
 			return NULL;
 		}
@@ -249,14 +249,14 @@ tdc_t* tdc_copy(tdc_t *tdc)
 	/* Step 0: Sanity Check. */
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_copy","Bad Args.",NULL);
+		AMP_DEBUG_ERR("tdc_copy","Bad Args.",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the new tdc structure. */
 	if((result = (tdc_t *) STAKE(sizeof(tdc_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_copy","Can't allocate new TDC.",NULL);
+		AMP_DEBUG_ERR("tdc_copy","Can't allocate new TDC.",NULL);
 		return NULL;
 	}
 
@@ -267,7 +267,7 @@ tdc_t* tdc_copy(tdc_t *tdc)
 	result->hdr.length = tdc->hdr.length;
 	if((result->hdr.data = (uint8_t *) STAKE(result->hdr.length)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_copy","Can't Copy header type data.",NULL);
+		AMP_DEBUG_ERR("tdc_copy","Can't Copy header type data.",NULL);
 		SRELEASE(result);
 		return NULL;
 	}
@@ -275,7 +275,7 @@ tdc_t* tdc_copy(tdc_t *tdc)
 
 	if((result->datacol = dc_copy(tdc->datacol)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_copy","Can't Copy DC.",NULL);
+		AMP_DEBUG_ERR("tdc_copy","Can't Copy DC.",NULL);
 		SRELEASE(result->hdr.data);
 		SRELEASE(result);
 		return NULL;
@@ -315,14 +315,14 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 	tdc_t *result = NULL;
     Lyst dc = NULL;
 
-	DTNMP_DEBUG_ENTRY("tdc_deserialize","(" UVAST_FIELDSPEC ",%d," UVAST_FIELDSPEC ")",
+	AMP_DEBUG_ENTRY("tdc_deserialize","(" UVAST_FIELDSPEC ",%d," UVAST_FIELDSPEC ")",
 			          (uvast) buffer, buffer_size, (uvast) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("tdc_deserialize","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("tdc_deserialize","Bad Args", NULL);
+		AMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -331,8 +331,8 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 	/* Step 1: Deserialize as a DC. */
 	if((dc = dc_deserialize(buffer, buffer_size, bytes_used)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_deserialize","Can't deserialize DC.", NULL);
-		DTNMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("tdc_deserialize","Can't deserialize DC.", NULL);
+		AMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -341,9 +341,9 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 	{
 		if((result = tdc_create(NULL, NULL, 0)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("tdc_deserialize","Can't create TDC.", NULL);
+			AMP_DEBUG_ERR("tdc_deserialize","Can't create TDC.", NULL);
 			dc_destroy(&dc);
-			DTNMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
+			AMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
 			return NULL;
 		}
 	}
@@ -361,12 +361,12 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 		/* Step 4: Create the TDC. This is a shallow copy. */
 		if((result = tdc_create(&dc, entry->value, lyst_length(dc))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("tdc_deserialize","Can't create TDC.", NULL);
+			AMP_DEBUG_ERR("tdc_deserialize","Can't create TDC.", NULL);
 
 			blob_destroy(entry, 1);
 			dc_destroy(&dc);
 
-			DTNMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
+			AMP_DEBUG_EXIT("tdc_deserialize","->NULL",NULL);
 			return NULL;
 		}
 
@@ -376,7 +376,7 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 		SRELEASE(entry);
 	}
 
-	DTNMP_DEBUG_EXIT("tdc_deserialize", "->" UVAST_FIELDSPEC, (uvast)result);
+	AMP_DEBUG_EXIT("tdc_deserialize", "->" UVAST_FIELDSPEC, (uvast)result);
 	return result;
 }
 
@@ -421,7 +421,7 @@ void tdc_destroy(tdc_t **tdc)
  *****************************************************************************/
 
 
-dtnmp_type_e tdc_get(tdc_t* tdc, uint8_t index, dtnmp_type_e type, uint8_t** optr, size_t* outsize)
+amp_type_e tdc_get(tdc_t* tdc, uint8_t index, amp_type_e type, uint8_t** optr, size_t* outsize)
 {
 	uint8_t cur_type = 0;
 	blob_t *entry = NULL;
@@ -429,36 +429,36 @@ dtnmp_type_e tdc_get(tdc_t* tdc, uint8_t index, dtnmp_type_e type, uint8_t** opt
 	/* Step 0: Sanity Checks. */
 	if((tdc == NULL) || (optr == NULL) || (outsize == NULL))
 	{
-		DTNMP_DEBUG_ERR("tdc_get","Bad Args.", NULL);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get","Bad Args.", NULL);
+		return AMP_TYPE_UNK;
 	}
 
 	if(tdc->hdr.length <= index)
 	{
-		DTNMP_DEBUG_ERR("tdc_get","Cannot get index %d with only %d items.", index, tdc->hdr.length);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get","Cannot get index %d with only %d items.", index, tdc->hdr.length);
+		return AMP_TYPE_UNK;
 	}
 
 	/* Step 1: Check the type. */
 	cur_type = tdc_get_type(tdc, index);
 	if(cur_type != type)
 	{
-		DTNMP_DEBUG_ERR("tdc_get","Item %d has type %d not %d.", index, cur_type, type);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get","Item %d has type %d not %d.", index, cur_type, type);
+		return AMP_TYPE_UNK;
 	}
 
 	/* Step 2: Grab the entry. */
 	if((entry = tdc_get_colentry(tdc, index)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get", "UNable to retrieve index %d from TDC.", index);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get", "UNable to retrieve index %d from TDC.", index);
+		return AMP_TYPE_UNK;
 	}
 
 	/* Step 3: Copy over the pointers. */
 	if((*optr = (uint8_t *) STAKE(entry->length)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get","Can't allocate entry.", NULL);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get","Can't allocate entry.", NULL);
+		return AMP_TYPE_UNK;
 	}
 
 	memcpy(*optr, entry, entry->length);
@@ -503,13 +503,13 @@ blob_t* tdc_get_colentry(tdc_t* tdc, uint8_t index)
 	/* Step 0: Sanity Check. */
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_colentry","Bad args.", NULL);
+		AMP_DEBUG_ERR("tdc_get_colentry","Bad args.", NULL);
 		return NULL;
 	}
 
 	if(tdc->hdr.length < index)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_colentry","Bad index %d out of %d.", index, tdc->hdr.length);
+		AMP_DEBUG_ERR("tdc_get_colentry","Bad index %d out of %d.", index, tdc->hdr.length);
 		return NULL;
 	}
 
@@ -553,7 +553,7 @@ int8_t tdc_get_count(tdc_t* tdc)
 	/* Step 0: Sanity Check. */
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_count","Bad Args.", NULL);
+		AMP_DEBUG_ERR("tdc_get_count","Bad Args.", NULL);
 		return ERROR;
 	}
 	else if(tdc->datacol == NULL)
@@ -567,7 +567,7 @@ int8_t tdc_get_count(tdc_t* tdc)
 	/* Step 2: Check against type information. */
 	if(tdc->hdr.length != result)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_count","Count Mismatch %d entries and %d types.", result, tdc->hdr.length);
+		AMP_DEBUG_ERR("tdc_get_count","Count Mismatch %d entries and %d types.", result, tdc->hdr.length);
 		return ERROR;
 	}
 
@@ -603,19 +603,19 @@ uint32_t tdc_get_entry_size(tdc_t* tdc, uint8_t index)
 	/* Step 0: Sanity Check. */
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_entry_size","Bad Args.", NULL);
+		AMP_DEBUG_ERR("tdc_get_entry_size","Bad Args.", NULL);
 		return 0;
 	}
 
 	if(tdc->hdr.length <= index)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_entry_size","Bad index %d <= %d.", tdc->hdr.length, index);
+		AMP_DEBUG_ERR("tdc_get_entry_size","Bad index %d <= %d.", tdc->hdr.length, index);
 		return 0;
 	}
 
 	if((entry = tdc_get_colentry(tdc, index)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_colentry","Can't get entry.", NULL);
+		AMP_DEBUG_ERR("tdc_get_colentry","Can't get entry.", NULL);
 		return 0;
 	}
 
@@ -644,22 +644,22 @@ uint32_t tdc_get_entry_size(tdc_t* tdc, uint8_t index)
  *  06/27/15  E. Birrane     Ported from datalist to TDC.
  *****************************************************************************/
 
-dtnmp_type_e tdc_get_type(tdc_t* tdc, uint8_t index)
+amp_type_e tdc_get_type(tdc_t* tdc, uint8_t index)
 {
 	/* Step 0: Sanity Check. */
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_type","Bad Args.", NULL);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get_type","Bad Args.", NULL);
+		return AMP_TYPE_UNK;
 	}
 
 	if(tdc->hdr.length <= index)
 	{
-		DTNMP_DEBUG_ERR("tdc_get_type","Bad index %d <= %d.", tdc->hdr.length, index);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_get_type","Bad index %d <= %d.", tdc->hdr.length, index);
+		return AMP_TYPE_UNK;
 	}
 
-	return (dtnmp_type_e) tdc->hdr.data[index];
+	return (amp_type_e) tdc->hdr.data[index];
 }
 
 
@@ -692,14 +692,14 @@ uint8_t tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize)
 {
 	if(header == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_hdr_allocate","Header == null",NULL);
+		AMP_DEBUG_ERR("tdc_hdr_allocate","Header == null",NULL);
 		return 0;
 	}
 
 
 	if(header->data != NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_hdr_allocate","Header data != null",NULL);
+		AMP_DEBUG_ERR("tdc_hdr_allocate","Header data != null",NULL);
 		return 0;
 	}
 
@@ -756,7 +756,7 @@ uint8_t tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize)
 	/* Step 2: Allocate a larger data set and copy it over. */
 	if((tmp = (uint8_t *) STAKE(newSize)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("datalist_header_reallocate","Unable to allocate of size %d", newSize);
+		AMP_DEBUG_ERR("datalist_header_reallocate","Unable to allocate of size %d", newSize);
 		return header->length;
 	}
 
@@ -806,15 +806,15 @@ uint8_t tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize)
  *  06/11/16  E. Birrane     Update to handle inserting to empty TDC.
  *****************************************************************************/
 
-dtnmp_type_e tdc_insert(tdc_t* tdc, dtnmp_type_e type, uint8_t* data, uint32_t size)
+amp_type_e tdc_insert(tdc_t* tdc, amp_type_e type, uint8_t* data, uint32_t size)
 {
 	uint8_t len = 0;
 
 	/* Step 0: Sanity Checks. */
 	if((tdc == NULL) || (data == NULL))
 	{
-		DTNMP_DEBUG_ERR("tdc_insert","Bad Args.",NULL);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_insert","Bad Args.",NULL);
+		return AMP_TYPE_UNK;
 	}
 
 	/* Step 1: Calculate the size of the new data. */
@@ -822,8 +822,8 @@ dtnmp_type_e tdc_insert(tdc_t* tdc, dtnmp_type_e type, uint8_t* data, uint32_t s
 	{
 		if((size = type_get_size(type)) == 0)
 		{
-			DTNMP_DEBUG_ERR("tdc_insert","Can't get size for type %d", type);
-			return DTNMP_TYPE_UNK;
+			AMP_DEBUG_ERR("tdc_insert","Can't get size for type %d", type);
+			return AMP_TYPE_UNK;
 		}
 	}
 
@@ -832,8 +832,8 @@ dtnmp_type_e tdc_insert(tdc_t* tdc, dtnmp_type_e type, uint8_t* data, uint32_t s
 	{
 		if((tdc->datacol = lyst_create()) == NULL)
 		{
-			DTNMP_DEBUG_ERR("tdc_insert","Can't allocate lyst.", NULL);
-			return DTNMP_TYPE_UNK;
+			AMP_DEBUG_ERR("tdc_insert","Can't allocate lyst.", NULL);
+			return AMP_TYPE_UNK;
 		}
 		len = 1;
 	}
@@ -844,8 +844,8 @@ dtnmp_type_e tdc_insert(tdc_t* tdc, dtnmp_type_e type, uint8_t* data, uint32_t s
 
 	if(tdc_hdr_reallocate(&(tdc->hdr), len) != len)
 	{
-		DTNMP_DEBUG_ERR("tdc_insert", "Can't expand type array", NULL);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_insert", "Can't expand type array", NULL);
+		return AMP_TYPE_UNK;
 	}
 
 	/* Step 3: Add the data to the data collection. */
@@ -853,8 +853,8 @@ dtnmp_type_e tdc_insert(tdc_t* tdc, dtnmp_type_e type, uint8_t* data, uint32_t s
 	{
 		// rollback.
 		tdc_hdr_reallocate(&(tdc->hdr), len-1);
-		DTNMP_DEBUG_ERR("tdc_insert","Unable to add to DC.", NULL);
-		return DTNMP_TYPE_UNK;
+		AMP_DEBUG_ERR("tdc_insert","Unable to add to DC.", NULL);
+		return AMP_TYPE_UNK;
 	}
 
 	/* Step 3: Update type information and index. */
@@ -903,7 +903,7 @@ uint8_t* tdc_serialize(tdc_t *tdc, uint32_t *size)
 	/* Step 0: Sanity Check. */
 	if((tdc == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("tdc_serialize","Bad Args.", NULL);
+		AMP_DEBUG_ERR("tdc_serialize","Bad Args.", NULL);
 		return NULL;
 	}
 
@@ -912,7 +912,7 @@ uint8_t* tdc_serialize(tdc_t *tdc, uint32_t *size)
 	{
 		if((result = (uint8_t *) STAKE(1)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("tdc_serialize","Can't allocate 1 byte.", NULL);
+			AMP_DEBUG_ERR("tdc_serialize","Can't allocate 1 byte.", NULL);
 			return NULL;
 		}
 		*result = 0;
@@ -926,7 +926,7 @@ uint8_t* tdc_serialize(tdc_t *tdc, uint32_t *size)
 	/* Step 3: Serialize the underlying DC with type blob */
 	if((result = dc_serialize(tdc->datacol, size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_serialize","Can't serialize DC.", NULL);
+		AMP_DEBUG_ERR("tdc_serialize","Can't serialize DC.", NULL);
 		return NULL;
 	}
 
@@ -962,18 +962,18 @@ uint8_t* tdc_serialize(tdc_t *tdc, uint32_t *size)
  *  06/27/15  E. Birrane     Ported from datalist to TDC.
  *****************************************************************************/
 
-dtnmp_type_e tdc_set_type(tdc_t* tdc, uint8_t index, dtnmp_type_e type)
+amp_type_e tdc_set_type(tdc_t* tdc, uint8_t index, amp_type_e type)
 {
 	/* Step 0: Sanity Check. */
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_set_type","Bad Args.", NULL);
+		AMP_DEBUG_ERR("tdc_set_type","Bad Args.", NULL);
 		return 0;
 	}
 
 	if(tdc->hdr.length <= index)
 	{
-		DTNMP_DEBUG_ERR("tdc_set_type","Bad index %d <= %d.", tdc->hdr.length, index);
+		AMP_DEBUG_ERR("tdc_set_type","Bad index %d <= %d.", tdc->hdr.length, index);
 		return 0;
 	}
 
@@ -994,7 +994,7 @@ char* tdc_to_str(tdc_t *tdc)
 	uint32_t *lens = NULL;
 	LystElt elt = NULL;
 	blob_t *cur_entry = NULL;
-	dtnmp_type_e cur_type;
+	amp_type_e cur_type;
 	int i = 0;
 	uint32_t tot_size = 0;
 	char *result = NULL;
@@ -1002,7 +1002,7 @@ char* tdc_to_str(tdc_t *tdc)
 
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("tdc_to_str","Bad Args", NULL);
+		AMP_DEBUG_ERR("tdc_to_str","Bad Args", NULL);
 		return NULL;
 	}
 
@@ -1011,7 +1011,7 @@ char* tdc_to_str(tdc_t *tdc)
 
 	if((entries == NULL) || (lens == NULL))
 	{
-		DTNMP_DEBUG_ERR("tdc_to_str","Can't allocate storage.",NULL);
+		AMP_DEBUG_ERR("tdc_to_str","Can't allocate storage.",NULL);
 		SRELEASE(entries);
 		SRELEASE(lens);
 		return NULL;

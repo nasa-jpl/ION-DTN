@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  ** \file nm_mgr_db.h
  **
@@ -17,9 +22,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/10/13  S. Jacobs      Initial Implementation
- **  08/19/13  E. Birrane     Documentation clean up and code review comments.
- **  08/22/15  E. Birrane     Updates for new schema and dynamic user permissions.
+ **  07/10/13  S. Jacobs      Initial Implementation (JHU/APL)
+ **  08/19/13  E. Birrane     Documentation clean up and code review comments. (JHU/APL)
+ **  08/22/15  E. Birrane     Updates for new schema and dynamic user permissions. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #ifdef HAVE_MYSQL
 

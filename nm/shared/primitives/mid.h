@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: mid.h
@@ -14,6 +19,14 @@
  **         implementations may wish to dynamically allocate MIDs as they are
  **         received.
  **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **  10/21/11  E. Birrane     Code comments and functional updates. (JHU/APL)
+ **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
+ **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs (JHU/APL)
+ **  04/19/16  E. Birrane     Put OIDs on stack and not heap. (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef MID_H_
@@ -139,7 +152,7 @@ typedef struct {
  */
 
 
-int      mid_add_param(mid_t *mid, dtnmp_type_e type, blob_t *blob);
+int      mid_add_param(mid_t *mid, amp_type_e type, blob_t *blob);
 
 void     mid_clear(mid_t *mid);
 
@@ -163,7 +176,7 @@ mid_t*   mid_deserialize_str(char *buffer,
 
 mid_t*   mid_from_string(char *mid_str);
 
-blob_t *mid_get_param(mid_t *id, int i, dtnmp_type_e *type);
+blob_t *mid_get_param(mid_t *id, int i, amp_type_e *type);
 
 uint8_t  mid_get_num_parms(mid_t *mid);
 

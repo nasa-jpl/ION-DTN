@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2009 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
  
 /*****************************************************************************
@@ -44,11 +38,12 @@
  **
  **  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
  **  --------  ------------  -----------------------------------------------
- **  06/08/09  E. Birrane           Initial Implementation of BAB blocks.
- **  06/15/09  E. Birrane           Completed BAB Unit Testing & Documentation
- **  06/20/09  E. Birrane           Doc. updates for initial release.
+ **  06/08/09  E. Birrane           Initial Implementation of BAB blocks. (JHU/APL)
+ **  06/15/09  E. Birrane           Completed BAB Unit Testing & Documentation (JHU/APL)
+ **  06/20/09  E. Birrane           Doc. updates for initial release. (JHU/APL)
  **  01/14/14  S. Burleigh          Revised for "streamlined bpsec".
  **  01/23/16  E. Birrane           Updated for BPSEC
+ **                                 [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
 #ifndef _BPSEC_UTIL_H_

@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** \file ctrl.h
@@ -11,7 +17,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/17/15  E. Birrane     Redesign around DTNMP v0.1
+ **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  05/17/15  E. Birrane     Redesign around DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #ifndef _CTRL_H
 #define _CTRL_H

@@ -1,3 +1,28 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
+/*****************************************************************************
+ **
+ ** File Name: adm_ion_priv.h
+ **
+ ** Description: This file contains the definitions of the LTP
+ **              ADM.
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ ** 	1. We current use a non-official OID root tree for DTN Bundle Protocol
+ **         identifiers.
+ **
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **  10/22/11  E. Birrane     Initial Implementation
+ *****************************************************************************/
 #ifdef _HAVE_LTP_ADM_
 
 #include "platform.h"

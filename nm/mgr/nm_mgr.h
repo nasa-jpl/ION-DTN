@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  ** \file nm_mgr.h
  **
@@ -15,8 +20,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR          DESCRIPTION
  **  --------  ------------    ---------------------------------------------
- **  09/01/11  V. Ramachandran Initial Implementation
- **  08/19/13  E. Birrane      Documentation clean up and code review comments.
+ **  09/01/11  V. Ramachandran Initial Implementation (JHU/APL)
+ **  08/19/13  E. Birrane      Documentation clean up and code review comments. (JHU/APL)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef NM_MGR_H

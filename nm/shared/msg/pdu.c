@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,10 +18,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  09/24/12  E. Birrane     Initial Implementation
- **  11/01/12  E. Birrane     Redesign of messaging architecture.
- **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
- **  06/26/13  E. Birrane     Added group timestamp
+ **  09/24/12  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/01/12  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
+ **  06/26/13  E. Birrane     Added group timestamp (JHU/APL)
  *****************************************************************************/
 
 #include "platform.h"
@@ -64,14 +58,14 @@ pdu_header_t *pdu_create_hdr(uint8_t id, uint8_t ack, uint8_t nack, uint8_t acl)
 {
 	pdu_header_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("pdu_create_hdr","(%d, %d, %d, %d, %d)",id ,ack,
+	AMP_DEBUG_ENTRY("pdu_create_hdr","(%d, %d, %d, %d, %d)",id ,ack,
 			           nack, acl);
 
 	if((result = (pdu_header_t *) STAKE(sizeof(pdu_header_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_create_hdr","Can't alloc %d bytes",
+		AMP_DEBUG_ERR("pdu_create_hdr","Can't alloc %d bytes",
 				        sizeof(pdu_header_t));
-		DTNMP_DEBUG_EXIT("pdu_create_hdr","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_create_hdr","->NULL",NULL);
 		return NULL;
 	}
 
@@ -83,7 +77,7 @@ pdu_header_t *pdu_create_hdr(uint8_t id, uint8_t ack, uint8_t nack, uint8_t acl)
 	result->acl = acl;
 
 
-	DTNMP_DEBUG_EXIT("pdu_create_hdr","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("pdu_create_hdr","->0x%x",(unsigned long)result);
 	return result;
 }
 
@@ -94,24 +88,24 @@ pdu_msg_t *pdu_create_msg(uint8_t id,
 {
 	pdu_msg_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("pdu_create_msg","(%d, 0x%x, %d, 0x%x)",
+	AMP_DEBUG_ENTRY("pdu_create_msg","(%d, 0x%x, %d, 0x%x)",
 			          id, (unsigned long) data, data_size, (unsigned long) acl);
 
 
 	/* Step 0: Sanity Check. */
 	if(data == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_create_msg","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("pdu_create_msg","->0x%x",result);
+		AMP_DEBUG_ERR("pdu_create_msg","Bad args",NULL);
+		AMP_DEBUG_EXIT("pdu_create_msg","->0x%x",result);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the message. */
 	if((result = (pdu_msg_t*)STAKE(sizeof(pdu_msg_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_create_msg","Can't Alloc %d bytes",
+		AMP_DEBUG_ERR("pdu_create_msg","Can't Alloc %d bytes",
 				        sizeof(pdu_msg_t));
-		DTNMP_DEBUG_EXIT("pdu_create_msg","->0x%x",result);
+		AMP_DEBUG_EXIT("pdu_create_msg","->0x%x",result);
 		return NULL;
 	}
 
@@ -121,7 +115,7 @@ pdu_msg_t *pdu_create_msg(uint8_t id,
 	result->size = data_size;
 	result->acl = acl;
 
-	DTNMP_DEBUG_EXIT("pdu_create_msg","->0x%x",result);
+	AMP_DEBUG_EXIT("pdu_create_msg","->0x%x",result);
 	return result;
 }
 
@@ -203,25 +197,25 @@ uint8_t *pdu_serialize_hdr(pdu_header_t *hdr, uint32_t *len)
 	uint8_t *result = NULL;
 	uint32_t result_len = 1;
 
-	DTNMP_DEBUG_ENTRY("pdu_serialize_hdr","(0x%x, 0x%x)",
+	AMP_DEBUG_ENTRY("pdu_serialize_hdr","(0x%x, 0x%x)",
 			          (unsigned long) hdr, (unsigned long) len);
 
 	/* Step 0: Sanity Checks. */
 	if((hdr == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_hdr","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("pdu_serialize_hdr","->NULL",NULL);
+		AMP_DEBUG_ERR("pdu_serialize_hdr","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_hdr","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Grab space. */
 	if((result = (uint8_t*)STAKE(result_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_hdr","Can't allocate %d bytes.",
+		AMP_DEBUG_ERR("pdu_serialize_hdr","Can't allocate %d bytes.",
 				        result_len);
 
 		*len = 0;
-		DTNMP_DEBUG_EXIT("pdu_serialize_hdr","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_hdr","->NULL",NULL);
 		return NULL;
 	}
 
@@ -233,7 +227,7 @@ uint8_t *pdu_serialize_hdr(pdu_header_t *hdr, uint32_t *len)
 	*result |= (hdr->nack    & 0x01) << 1;
 	*result |= (hdr->acl     & 0x01);
 
-	DTNMP_DEBUG_EXIT("pdu_serialize_hdr","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("pdu_serialize_hdr","->0x%x",(unsigned long)result);
 	return result;
 }
 
@@ -262,36 +256,36 @@ uint8_t *pdu_serialize_acl(pdu_acl_t *acl, uint32_t *len)
 	uint8_t *result = NULL;
 	uint32_t result_len = sizeof(pdu_acl_t);
 
-	DTNMP_DEBUG_ENTRY("pdu_serialize_acl","(0x%x, 0x%x)",
+	AMP_DEBUG_ENTRY("pdu_serialize_acl","(0x%x, 0x%x)",
 			          (unsigned long) acl, (unsigned long) len);
 
 	/* Step 0: Sanity Checks. */
 	if((acl == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_acl","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("pdu_serialize_acl","->NULL",NULL);
+		AMP_DEBUG_ERR("pdu_serialize_acl","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_acl","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Grab space. */
 	if((result = (uint8_t*)STAKE(result_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_acl","Can't allocate %d bytes.",
+		AMP_DEBUG_ERR("pdu_serialize_acl","Can't allocate %d bytes.",
 				        result_len);
 
 		*len = 0;
-		DTNMP_DEBUG_EXIT("pdu_serialize_acl","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_acl","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the space. */
 
 	/* \todo: Implement this. */
-	DTNMP_DEBUG_ERR("pdu_serialize_acl","Not implemented yet.",NULL);
+	AMP_DEBUG_ERR("pdu_serialize_acl","Not implemented yet.",NULL);
 	SRELEASE(result);
 	result = NULL;
 
-	DTNMP_DEBUG_EXIT("pdu_serialize_acl","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("pdu_serialize_acl","->0x%x",(unsigned long)result);
 	return result;
 }
 
@@ -307,13 +301,13 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 	uint8_t *acl = NULL;
 	uint32_t acl_len = 0;
 
-	DTNMP_DEBUG_ENTRY("pdu_serialize_msg","(0x%x, 0x%x)",
+	AMP_DEBUG_ENTRY("pdu_serialize_msg","(0x%x, 0x%x)",
 			          (unsigned long) msg, (unsigned long) len);
 
 	if((hdr = pdu_serialize_hdr(msg->hdr, &hdr_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_msg","Can't serialize hdr",NULL);
-		DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
+		AMP_DEBUG_ERR("pdu_serialize_msg","Can't serialize hdr",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 		return NULL;
 	}
 
@@ -321,10 +315,10 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 	{
 		if((acl = pdu_serialize_acl(msg->acl, &acl_len)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("pdu_serialize_msg","Can't serialize acl",NULL);
+			AMP_DEBUG_ERR("pdu_serialize_msg","Can't serialize acl",NULL);
 
 			SRELEASE(hdr);
-			DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
+			AMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 			return NULL;
 		}
 	}
@@ -333,11 +327,11 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 
 	if((result = (uint8_t *) STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_msg","Can't alloc %d bytes",*len);
+		AMP_DEBUG_ERR("pdu_serialize_msg","Can't alloc %d bytes",*len);
 
 		SRELEASE(hdr);
 		SRELEASE(acl);
-		DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 		return NULL;
 	}
 
@@ -359,14 +353,14 @@ uint8_t *pdu_serialize_msg(pdu_msg_t *msg, uint32_t *len)
 
 	if((cursor-result) != *len)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_msg","Wrote %d not %d bytes!",
+		AMP_DEBUG_ERR("pdu_serialize_msg","Wrote %d not %d bytes!",
 				        (unsigned long)(cursor-result), *len);
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_msg","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("pdu_serialize_msg","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("pdu_serialize_msg","->0x%x",(unsigned long)result);
 	return result;
 }
 
@@ -386,14 +380,14 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	uint32_t tot_size = 0;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("pdu_serialize_group","(0x%x,0x%x)",
+	AMP_DEBUG_ENTRY("pdu_serialize_group","(0x%x,0x%x)",
 			          (unsigned long) group, (unsigned long) len);
 
 	/* Step 0: Sanity Checks. */
 	if((group == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_group","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
+		AMP_DEBUG_ERR("pdu_serialize_group","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 
@@ -402,9 +396,9 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	/* Step 1: Allocate space to store serialized msgs. */
 	if((tmp_data = (uint8_t **) STAKE(num_msgs * sizeof(uint8_t *))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
+		AMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
 					    num_msgs * sizeof(uint8_t *));
-		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 	else
@@ -414,10 +408,10 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 
 	if((tmp_size = (uint32_t *) STAKE(num_msgs * sizeof(uint32_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
+		AMP_DEBUG_ERR("pdu_serialize_group","Can't Alloc %d bytes.",
 					    num_msgs * sizeof(uint32_t));
 		SRELEASE(tmp_data);
-		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 	else
@@ -433,7 +427,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 
 		if(cur_msg == NULL)
 		{
-			DTNMP_DEBUG_WARN("pdu_serialize_group","Null %dth msg", i);
+			AMP_DEBUG_WARN("pdu_serialize_group","Null %dth msg", i);
 		}
 		else
 		{
@@ -444,7 +438,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 			}
 			else
 			{
-				DTNMP_DEBUG_WARN("pdu_serialize_group",
+				AMP_DEBUG_WARN("pdu_serialize_group",
 						         "Can't serialize %dth msg", i);
 			}
 		}
@@ -453,7 +447,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	/* Step 3: If we had any problems, time to bail. */
 	if(i < num_msgs)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_group","Problems serializing.",NULL);
+		AMP_DEBUG_ERR("pdu_serialize_group","Problems serializing.",NULL);
 		int j = 0;
 		for(j = 0; j < i; j++)
 		{
@@ -462,7 +456,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 		SRELEASE(tmp_data);
 		SRELEASE(tmp_size);
 
-		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 
@@ -472,10 +466,10 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 
 	*len = num_msgs_sdnv.length + time_sdnv.length + tot_size;
 
-	DTNMP_DEBUG_INFO("pdu_serialize_group", "msgs is %d, time is %d, total is %d", num_msgs_sdnv.length, time_sdnv.length, tot_size);
+	AMP_DEBUG_INFO("pdu_serialize_group", "msgs is %d, time is %d, total is %d", num_msgs_sdnv.length, time_sdnv.length, tot_size);
 	if((result = (uint8_t*) STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_serialize_group","Can't alloc %d bytes.",*len);
+		AMP_DEBUG_ERR("pdu_serialize_group","Can't alloc %d bytes.",*len);
 		int j = 0;
 		for(j = 0; j < i; j++)
 		{
@@ -484,7 +478,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 		SRELEASE(tmp_data);
 		SRELEASE(tmp_size);
 
-		DTNMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
+		AMP_DEBUG_EXIT("pdu_serialize_group","->NULL.", NULL);
 		return NULL;
 	}
 	cursor = result;
@@ -507,7 +501,7 @@ uint8_t *pdu_serialize_group(pdu_group_t *group, uint32_t *len)
 	SRELEASE(tmp_data);
 	SRELEASE(tmp_size);
 
-	DTNMP_DEBUG_EXIT("pdu_serialize_group","->0x%x",(unsigned long) result);
+	AMP_DEBUG_EXIT("pdu_serialize_group","->0x%x",(unsigned long) result);
 	return result;
 }
 
@@ -530,25 +524,25 @@ pdu_header_t *pdu_deserialize_hdr(uint8_t *cursor,
 {
 	pdu_header_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("pdu_deserialize_hdr","(0x%x,%d,0x%x)",
+	AMP_DEBUG_ENTRY("pdu_deserialize_hdr","(0x%x,%d,0x%x)",
 			          (unsigned long) cursor, size, (unsigned long) bytes_used);
 
 	/* Step 0: Sanity Check */
 	if((cursor == 0) || (size <= 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("pdu_deserialize_hdr","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("pdu_deserialize_hdr","->NULL",NULL);
+		AMP_DEBUG_ERR("pdu_deserialize_hdr","Bad args.", NULL);
+		AMP_DEBUG_EXIT("pdu_deserialize_hdr","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the header object. */
 	if((result = (pdu_header_t*) STAKE(sizeof(pdu_header_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_deserialize_hdr","Can't allocate %d bytes.",
+		AMP_DEBUG_ERR("pdu_deserialize_hdr","Can't allocate %d bytes.",
 				        sizeof(pdu_header_t));
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("pdu_deserialize_hdr","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_deserialize_hdr","->NULL",NULL);
 		return NULL;
 	}
 
@@ -562,7 +556,7 @@ pdu_header_t *pdu_deserialize_hdr(uint8_t *cursor,
 	result->id = (result->context << 3) | result->type;
 	*bytes_used = 1;
 
-	DTNMP_DEBUG_EXIT("pdu_deserialize_hdr","->0x%x",result);
+	AMP_DEBUG_EXIT("pdu_deserialize_hdr","->0x%x",result);
 	return result;
 }
 
@@ -588,35 +582,35 @@ pdu_acl_t *pdu_deserialize_acl(uint8_t *cursor,
 {
 	pdu_acl_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("pdu_deserialize_acl","(0x%x,%d,0x%x)",
+	AMP_DEBUG_ENTRY("pdu_deserialize_acl","(0x%x,%d,0x%x)",
 			          (unsigned long) cursor, size, (unsigned long) bytes_used);
 
 	/* Step 0: Sanity Check */
 	if((cursor == 0) || (size <= 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("pdu_deserialize_acl","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("pdu_deserialize_acl","->NULL",NULL);
+		AMP_DEBUG_ERR("pdu_deserialize_acl","Bad args.", NULL);
+		AMP_DEBUG_EXIT("pdu_deserialize_acl","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the header object. */
 	if((result = (pdu_acl_t*)STAKE(sizeof(pdu_acl_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("pdu_deserialize_acl","Can't allocate %d bytes.",
+		AMP_DEBUG_ERR("pdu_deserialize_acl","Can't allocate %d bytes.",
 				        sizeof(pdu_acl_t));
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("pdu_deserialize_acl","->NULL",NULL);
+		AMP_DEBUG_EXIT("pdu_deserialize_acl","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the object. */
 	/* \todo: Implement this. */
-	DTNMP_DEBUG_ERR("pdu_deserialize_acl","Not implemented yet.",NULL);
+	AMP_DEBUG_ERR("pdu_deserialize_acl","Not implemented yet.",NULL);
 	SRELEASE(result);
 	result = NULL;
 
-	DTNMP_DEBUG_EXIT("pdu_deserialize_acl","->0x%x",result);
+	AMP_DEBUG_EXIT("pdu_deserialize_acl","->0x%x",result);
 	return result;
 }
 

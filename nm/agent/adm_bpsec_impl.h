@@ -8,13 +8,15 @@
  **
  ** Assumptions:
  **
- **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef ADM_BPSEC_IMPL_H_
 #define ADM_BPSEC_IMPL_H_
-
-#ifdef AGENT_ROLE
 
 #include "shared/adm/adm_bpsec.h"
 #include "shared/adm/adm_bp.h"
@@ -136,7 +138,6 @@ tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status
 /* OP Functions. */
 
 
-#endif // AGENT_ROLE
 #endif // ADM_BPSEC_IMPL_H_
 
 

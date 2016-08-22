@@ -55,7 +55,7 @@ int8_t blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
 
 	if((blob == NULL) || (buffer == NULL) || (length == 0))
 	{
-		DTNMP_DEBUG_ERR("blob_append","Bad Args.", NULL);
+		AMP_DEBUG_ERR("blob_append","Bad Args.", NULL);
 		return ERROR;
 	}
 
@@ -63,7 +63,7 @@ int8_t blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
 
 	if((new_data = STAKE(new_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_append","Can't allocate %d bytes.", new_len);
+		AMP_DEBUG_ERR("blob_append","Can't allocate %d bytes.", new_len);
 		return ERROR;
 	}
 
@@ -110,13 +110,13 @@ blob_t * blob_create(uint8_t *value, uint32_t length)
 
 	if((length != 0) && (value == NULL))
 	{
-		DTNMP_DEBUG_ERR("blob_create","Bad args.", NULL);
+		AMP_DEBUG_ERR("blob_create","Bad args.", NULL);
 		return NULL;
 	}
 
 	if((result = (blob_t*)STAKE(sizeof(blob_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_create","Can't allocate %d bytes.", sizeof(blob_t));
+		AMP_DEBUG_ERR("blob_create","Can't allocate %d bytes.", sizeof(blob_t));
 		return NULL;
 	}
 
@@ -156,14 +156,14 @@ blob_t* blob_copy(blob_t *blob)
 	/* Step 0: Sanity Checks. */
 	if(blob == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_copy","Bad Args.", NULL);
+		AMP_DEBUG_ERR("blob_copy","Bad Args.", NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the new entry.*/
 	if((result = (blob_t*) STAKE(sizeof(blob_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_copy","Can't allocate new entry.", NULL);
+		AMP_DEBUG_ERR("blob_copy","Can't allocate new entry.", NULL);
 		return NULL;
 	}
 
@@ -177,7 +177,7 @@ blob_t* blob_copy(blob_t *blob)
 	/* Step 2: Allocate the value. */
 	if((result->value = (uint8_t *) STAKE(blob->length)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_copy","Can't allocate blob value.", NULL);
+		AMP_DEBUG_ERR("blob_copy","Can't allocate blob value.", NULL);
 		SRELEASE(result);
 		return NULL;
 	}
@@ -220,14 +220,14 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
 	uvast len = 0;
 	uint8_t *value = NULL;
 
-	DTNMP_DEBUG_ENTRY("blob_deserialize","(0x"UHF",%d,0x"UHF")",
+	AMP_DEBUG_ENTRY("blob_deserialize","(0x"UHF",%d,0x"UHF")",
 			          (uvast) buffer, buffer_size, (uvast) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("blob_deserialize","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("blob_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("blob_deserialize","Bad Args", NULL);
+		AMP_DEBUG_EXIT("blob_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -237,7 +237,7 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
 	/* Grab data item length. */
 	if((bytes = utils_grab_sdnv(cursor, buffer_size, &len)) == 0)
 	{
-		DTNMP_DEBUG_ERR("blob_deserialize","Can't parse SDNV.", NULL);
+		AMP_DEBUG_ERR("blob_deserialize","Can't parse SDNV.", NULL);
 		return NULL;
 	}
 
@@ -250,7 +250,7 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
 		/* Grab BLOB data. */
 		if((value = (uint8_t*)STAKE(len)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("blob_deserialize","Can't allocate %d bytes.", len);
+			AMP_DEBUG_ERR("blob_deserialize","Can't allocate %d bytes.", len);
 			return NULL;
 		}
 
@@ -262,7 +262,7 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
 
 	if((result = blob_create(value, len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_deserialize","Can't create blob of length %d", len);
+		AMP_DEBUG_ERR("blob_deserialize","Can't create blob of length %d", len);
 		SRELEASE(value);
 		return NULL;
 	}
@@ -369,13 +369,13 @@ uint8_t* blob_serialize(blob_t *blob, uint32_t *size)
 	uint8_t *result = NULL;
 	Sdnv num_sdnv;
 
-	DTNMP_DEBUG_ENTRY("blob_serialize","(0x"UHF")", (uvast) blob);
+	AMP_DEBUG_ENTRY("blob_serialize","(0x"UHF")", (uvast) blob);
 
 	/* Step 0: Sanity Check */
 	if(blob == NULL)
 	{
-		DTNMP_DEBUG_ERR("blob_serialize","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("blob_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("blob_serialize","Bad args.", NULL);
+		AMP_DEBUG_EXIT("blob_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -390,7 +390,7 @@ uint8_t* blob_serialize(blob_t *blob, uint32_t *size)
     /* Step 2: Allocate the space for the serialized BLOB. */
     if((result = (uint8_t*) STAKE(*size)) == NULL)
     {
-		DTNMP_DEBUG_ERR("blob_serialize","Can't alloc %d bytes", *size);
+		AMP_DEBUG_ERR("blob_serialize","Can't alloc %d bytes", *size);
 		*size = 0;
 		return NULL;
     }
@@ -411,7 +411,7 @@ uint8_t* blob_serialize(blob_t *blob, uint32_t *size)
     /* Step 5: Final sanity check. */
     if((cursor - result) != *size)
     {
-		DTNMP_DEBUG_ERR("blob_serialize","Wrote %d bytes not %d bytes",
+		AMP_DEBUG_ERR("blob_serialize","Wrote %d bytes not %d bytes",
 				        (cursor - result), *size);
 		*size = 0;
 		SRELEASE(result);

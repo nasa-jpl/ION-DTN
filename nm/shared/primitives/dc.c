@@ -17,8 +17,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/28/15  E. Birrane     Initial Implementation
- **  04/14/16  E. Birrane     Migrated to BLOB type
+ **  05/28/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  04/14/16  E. Birrane     Migrated to BLOB type (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #include "platform.h"
 #include "shared/adm/adm.h"
@@ -97,7 +97,7 @@ int dc_append(Lyst dest, Lyst src)
 		/* Step 1.1; Copy the item...*/
 		if((new_entry = blob_copy(cur_entry)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("dc_append","Can't copy entry.", NULL);
+			AMP_DEBUG_ERR("dc_append","Can't copy entry.", NULL);
 			// \todo: Consider removing previously added items.
 			return 0;
 		}
@@ -139,14 +139,14 @@ int dc_compare(Lyst col1, Lyst col2)
 	blob_t *entry1 = NULL;
 	blob_t *entry2 = NULL;
 
-	DTNMP_DEBUG_ENTRY("dc_compare","(%#llx, %#llx)",col1, col2);
+	AMP_DEBUG_ENTRY("dc_compare","(%#llx, %#llx)",col1, col2);
 
 	/* Step 0: Sanity check. */
 	if((col1 == NULL) || (col2 == NULL))
 	{
-		DTNMP_DEBUG_ERR("dc_compare", "Bad Args.", NULL);
+		AMP_DEBUG_ERR("dc_compare", "Bad Args.", NULL);
 
-		DTNMP_DEBUG_EXIT("dc_compare","->-1.", NULL);
+		AMP_DEBUG_EXIT("dc_compare","->-1.", NULL);
 		return -1;
 	}
 
@@ -162,12 +162,12 @@ int dc_compare(Lyst col1, Lyst col2)
 
 			if(entry1->length != entry2->length)
 			{
-				DTNMP_DEBUG_EXIT("dc_compare","->1.", NULL);
+				AMP_DEBUG_EXIT("dc_compare","->1.", NULL);
 				return 1;
 			}
 			else if(memcmp(entry1->value,entry2->value,entry1->length) != 0)
 			{
-				DTNMP_DEBUG_EXIT("dc_compare","->1.", NULL);
+				AMP_DEBUG_EXIT("dc_compare","->1.", NULL);
 				return 1;
 			}
 
@@ -177,11 +177,11 @@ int dc_compare(Lyst col1, Lyst col2)
 	}
 	else
 	{
-		DTNMP_DEBUG_EXIT("dc_compare","->1.", NULL);
+		AMP_DEBUG_EXIT("dc_compare","->1.", NULL);
 		return 1;
 	}
 
-	DTNMP_DEBUG_EXIT("dc_compare","->0.", NULL);
+	AMP_DEBUG_EXIT("dc_compare","->0.", NULL);
 	return 0;
 }
 
@@ -215,21 +215,21 @@ Lyst dc_copy(Lyst col)
 	blob_t *cur_entry = NULL;
 	blob_t *new_entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("dc_copy","(%#llx)",(unsigned long) col);
+	AMP_DEBUG_ENTRY("dc_copy","(%#llx)",(unsigned long) col);
 
 	/* Step 0: Sanity Check. */
 	if(col == NULL)
 	{
-		DTNMP_DEBUG_ERR("dc_copy","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("dc_copy","->NULL.",NULL);
+		AMP_DEBUG_ERR("dc_copy","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("dc_copy","->NULL.",NULL);
 		return NULL;
 	}
 
 	/* Build the Lyst. */
 	if((result = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("dc_copy","Unable to create lyst.",NULL);
-		DTNMP_DEBUG_EXIT("dc_copy","->NULL.",NULL);
+		AMP_DEBUG_ERR("dc_copy","Unable to create lyst.",NULL);
+		AMP_DEBUG_EXIT("dc_copy","->NULL.",NULL);
 		return NULL;
 	}
 
@@ -240,17 +240,17 @@ Lyst dc_copy(Lyst col)
 
 		if((new_entry = blob_copy(cur_entry)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("dc_copy","Failed to alloc %d bytes.",
+			AMP_DEBUG_ERR("dc_copy","Failed to alloc %d bytes.",
 					        sizeof(blob_t));
 			dc_destroy(&result);
 
-			DTNMP_DEBUG_EXIT("dc_copy","->NULL.",NULL);
+			AMP_DEBUG_EXIT("dc_copy","->NULL.",NULL);
 			return NULL;
 		}
 		lyst_insert_last(result,new_entry);
 	}
 
-	DTNMP_DEBUG_EXIT("dc_copy","->%#llx.",(unsigned long) result);
+	AMP_DEBUG_EXIT("dc_copy","->%#llx.",(unsigned long) result);
 	return result;
 }
 
@@ -288,15 +288,15 @@ Lyst dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
 	uvast num = 0;
 	uint32_t i = 0;
 
-	DTNMP_DEBUG_ENTRY("dc_deserialize","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("dc_deserialize","(%#llx,%d,%#llx)",
 			          (unsigned long) buffer, buffer_size,
 			          (unsigned long) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("dc_deserialize","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("dc_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("dc_deserialize","Bad Args", NULL);
+		AMP_DEBUG_EXIT("dc_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -306,18 +306,18 @@ Lyst dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
 	/* Step 1: Create the Lyst. */
 	if((result = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("dc_deserialize","Can't create lyst.", NULL);
-		DTNMP_DEBUG_EXIT("dc_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("dc_deserialize","Can't create lyst.", NULL);
+		AMP_DEBUG_EXIT("dc_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Grab # entries in the collection. */
 	if((bytes = utils_grab_sdnv(cursor, buffer_size, &num)) == 0)
 	{
-		DTNMP_DEBUG_ERR("dc_deserialize","Can't parse SDNV.", NULL);
+		AMP_DEBUG_ERR("dc_deserialize","Can't parse SDNV.", NULL);
 		lyst_destroy(result);
 
-		DTNMP_DEBUG_EXIT("dc_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("dc_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -341,7 +341,7 @@ Lyst dc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
 		lyst_insert_last(result, entry);
 	}
 
-	DTNMP_DEBUG_EXIT("dc_deserialize","->%#llx",(unsigned long)result);
+	AMP_DEBUG_EXIT("dc_deserialize","->%#llx",(unsigned long)result);
 	return result;
 }
 
@@ -372,7 +372,7 @@ void dc_destroy(Lyst *datacol)
 	LystElt del_elt;
 	blob_t *entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("dc_destroy","(%#llx)", (unsigned long) datacol);
+	AMP_DEBUG_ENTRY("dc_destroy","(%#llx)", (unsigned long) datacol);
 
 	/*
 	 * Step 0: Make sure we even have a lyst. Not an error if not, since we
@@ -380,8 +380,8 @@ void dc_destroy(Lyst *datacol)
 	 */
 	if((datacol == NULL) || (*datacol == NULL))
 	{
-		DTNMP_DEBUG_ERR("dc_destroy","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("dc_destroy","->.", NULL);
+		AMP_DEBUG_ERR("dc_destroy","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("dc_destroy","->.", NULL);
 		return;
 	}
 
@@ -400,7 +400,7 @@ void dc_destroy(Lyst *datacol)
     lyst_destroy(*datacol);
     *datacol = NULL;
 
-    DTNMP_DEBUG_EXIT("dc_destroy","->.", NULL);
+    AMP_DEBUG_EXIT("dc_destroy","->.", NULL);
 }
 
 
@@ -438,13 +438,13 @@ blob_t* dc_get_entry(Lyst datacol, uint32_t idx)
 
 	if(datacol == NULL)
 	{
-		DTNMP_DEBUG_ERR("dc_get_entry","Bad args",NULL);
+		AMP_DEBUG_ERR("dc_get_entry","Bad args",NULL);
 		return NULL;
 	}
 
 	if(idx > lyst_length(datacol))
 	{
-		DTNMP_DEBUG_ERR("dc_get_entry","Can't as for %d in list of length %d", idx, lyst_length(datacol));
+		AMP_DEBUG_ERR("dc_get_entry","Can't as for %d in list of length %d", idx, lyst_length(datacol));
 		return NULL;
 	}
 
@@ -531,14 +531,14 @@ uint8_t *dc_serialize(Lyst datacol, uint32_t *size)
 	Sdnv num_sdnv;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("dc_serialize","(%#llx, %#llx)",
+	AMP_DEBUG_ENTRY("dc_serialize","(%#llx, %#llx)",
 			          (unsigned long) datacol, (unsigned long) size);
 
 	/* Step 0: Sanity Check */
 	if((datacol == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("dc_serialize","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("dc_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("dc_serialize","Bad args.", NULL);
+		AMP_DEBUG_EXIT("dc_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -558,10 +558,10 @@ uint8_t *dc_serialize(Lyst datacol, uint32_t *size)
     /* Step 3: Allocate the space for the serialized list. */
     if((result = (uint8_t*) STAKE(*size)) == NULL)
     {
-		DTNMP_DEBUG_ERR("dc_serialize","Can't alloc %d bytes", *size);
+		AMP_DEBUG_ERR("dc_serialize","Can't alloc %d bytes", *size);
 		*size = 0;
 
-		DTNMP_DEBUG_EXIT("dc_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("dc_serialize","->NULL",NULL);
 		return NULL;
     }
 
@@ -585,21 +585,21 @@ uint8_t *dc_serialize(Lyst datacol, uint32_t *size)
     	}
     	else
     	{
-    		DTNMP_DEBUG_WARN("dc_serialize","Found NULL MID?", NULL);
+    		AMP_DEBUG_WARN("dc_serialize","Found NULL MID?", NULL);
     	}
     }
 
     /* Step 5: Final sanity check. */
     if((cursor - result) != *size)
     {
-		DTNMP_DEBUG_ERR("dc_serialize","Wrote %d bytes not %d bytes",
+		AMP_DEBUG_ERR("dc_serialize","Wrote %d bytes not %d bytes",
 				        (cursor - result), *size);
 		*size = 0;
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("dc_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("dc_serialize","->NULL",NULL);
 		return NULL;
     }
 
-	DTNMP_DEBUG_EXIT("dc_serialize","->%#llx",(unsigned long) result);
+	AMP_DEBUG_EXIT("dc_serialize","->%#llx",(unsigned long) result);
 	return result;
 }
