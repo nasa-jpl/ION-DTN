@@ -5,4 +5,5 @@ a endpoint ipn:1.2 q
 a protocol tcp 1400 100
 a induct tcp 127.0.0.1:1556 tcpcli
 a outduct tcp 127.0.0.1:2556 ''
+r 'ipnadmin host1.ipnrc'
 s
