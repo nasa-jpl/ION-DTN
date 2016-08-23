@@ -2743,7 +2743,7 @@ value_t adm_agent_unary_num_op(agent_adm_op_e op, Lyst stack)
 		{
 			case NEG:    result.value.as_vast = 0 - val_cvt_vast(val, &s); break;
 			case BITNOT: result.value.as_vast = ~val_cvt_vast(val, &s); break;
-			case ABS:    result.value.as_vast = abs(val_cvt_vast(val, &s)); break;
+			case ABS:    result.value.as_vast = labs(val_cvt_vast(val, &s)); break;
 			default: s = 0; break;
 		}
 		break;

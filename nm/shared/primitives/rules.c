@@ -71,7 +71,7 @@ srl_t*   srl_create(mid_t *mid, time_t time, expr_t *expr, uvast count, Lyst act
 	srl_t *srl = NULL;
 
 	AMP_DEBUG_ENTRY("srl_create",
-			          "(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC",0x"UHF",0x"ADDR_FIELDSPEC")",
+			          "(0x" ADDR_FIELDSPEC ",0x" ADDR_FIELDSPEC ",0x" ADDR_FIELDSPEC ",0x" UHF ",0x" ADDR_FIELDSPEC ")",
 		(uaddr) mid, (uaddr) time, (uaddr) expr, count, (uaddr) action);
 
 	/* Step 0: Sanity Check. */
@@ -118,7 +118,7 @@ srl_t*   srl_create(mid_t *mid, time_t time, expr_t *expr, uvast count, Lyst act
 	}
 
 
-	AMP_DEBUG_EXIT("srl_create",ADDR_FIELDSPEC,(uaddr) srl);
+	AMP_DEBUG_EXIT("srl_create", ADDR_FIELDSPEC, (uaddr) srl);
 
 	return srl;
 }
@@ -417,7 +417,7 @@ uint8_t* srl_serialize(srl_t *srl, uint32_t *len)
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("srl_serialize","->" ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("srl_serialize", "->" ADDR_FIELDSPEC, (uaddr)result);
 
 	return result;
 }
@@ -666,8 +666,7 @@ uint8_t* trl_serialize(trl_t *trl, uint32_t *len)
 	uint8_t *action = NULL;
 	uint32_t action_len = 0;
 
-	AMP_DEBUG_ENTRY("trl_serialize","(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ")",
-			           (uvast) trl, (uvast) len);
+	AMP_DEBUG_ENTRY("trl_serialize", "(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")", (uaddr) trl, (uaddr) len);
 
 	/* Step 0: Sanity Checks. */
 	if((trl == NULL) || (len == NULL))
@@ -751,7 +750,7 @@ uint8_t* trl_serialize(trl_t *trl, uint32_t *len)
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("trl_serialize","->" UVAST_FIELDSPEC,(uvast)result);
+	AMP_DEBUG_EXIT("trl_serialize","->" ADDR_FIELDSPEC, (uaddr)result);
 
 	return result;
 }

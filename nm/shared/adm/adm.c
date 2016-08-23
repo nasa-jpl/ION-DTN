@@ -226,8 +226,7 @@ int	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr)
 	var_t *new_entry = NULL;
 	mid_t *mid = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_computeddef","(0x"UHF",%d,0x"UHF")",
-			          (uvast) mid_str, type, (uvast) expr);
+	AMP_DEBUG_ENTRY("adm_add_computeddef", "(0x" ADDR_FIELDSPEC ",%d,0x" ADDR_FIELDSPEC ")", (uaddr) mid_str, type, (uaddr) expr);
 
 	/* Step 0 - Sanity Checks. */
 	if((mid_str == NULL) || expr == NULL)
