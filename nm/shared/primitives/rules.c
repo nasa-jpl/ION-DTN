@@ -477,7 +477,7 @@ trl_t*   trl_create(mid_t *mid, time_t time, uvast period, uvast count, Lyst act
 	}
 
 
-	AMP_DEBUG_EXIT("trl_create",UVAST_FIELDSPEC,(uvast) trl);
+	AMP_DEBUG_EXIT("trl_create", ADDR_FIELDSPEC, (uaddr) trl);
 
 	return trl;
 }
@@ -489,8 +489,7 @@ trl_t*   trl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 	uvast tmp = 0;
 	uint32_t bytes = 0;
 
-	AMP_DEBUG_ENTRY("trl_deserialize",UVAST_FIELDSPEC ", %d, " UVAST_FIELDSPEC ")",
-			          (uvast)cursor, size, (uvast) bytes_used);
+	AMP_DEBUG_ENTRY("trl_deserialize", ADDR_FIELDSPEC ", %d, " ADDR_FIELDSPEC ")", (uaddr) cursor, size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
@@ -568,7 +567,7 @@ trl_t*   trl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 		*bytes_used += bytes;
 	}
 
-	AMP_DEBUG_EXIT("trl_deserialize","->" UVAST_FIELDSPEC, (uvast) trl);
+	AMP_DEBUG_EXIT("trl_deserialize", "->" ADDR_FIELDSPEC, (uaddr) trl);
 
 	return trl;
 }
@@ -583,8 +582,8 @@ void trl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 	trl_t *entry = NULL;
 
 	AMP_DEBUG_ENTRY("trl_lyst_clear",
-			          "(" UVAST_FIELDSPEC "," UVAST_FIELDSPEC ", %d)",
-			          (uvast) list, (uvast) mutex, destroy);
+			          "(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ", %d)",
+			          (uaddr) list, (uaddr) mutex, destroy);
 
     if((list == NULL) || (*list == NULL))
     {

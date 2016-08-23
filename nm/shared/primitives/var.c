@@ -57,8 +57,8 @@ var_t *var_create(mid_t *id,
 {
 	var_t *result = NULL;
 
-	AMP_DEBUG_ENTRY("var_create","(0x"UHF",%d,0x"UHF",val (type %d))",
-			          (uvast) id, type, (uvast) init, val.type);
+	AMP_DEBUG_ENTRY("var_create","(0x" ADDR_FIELDSPEC ",%d,0x" ADDR_FIELDSPEC ",val (type %d))",
+			          (uaddr) id, type, (uaddr) init, val.type);
 
 	/* Step 0: Sanity Check. */
 	if(id == NULL)
@@ -112,7 +112,7 @@ var_t *var_create(mid_t *id,
 		}
 	}
 
-	AMP_DEBUG_EXIT("var_create","->0x"UHF,(uvast)result);
+	AMP_DEBUG_EXIT("var_create", "->0x" ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -191,7 +191,7 @@ var_t *var_create_from_parms(Lyst parms)
 	result = var_create(mid, type, init, val);
 	expr_release(init);
 
-	AMP_DEBUG_EXIT("var_create_from_parms","->0x"UHF,(uvast)result);
+	AMP_DEBUG_EXIT("var_create_from_parms", "->0x" ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -228,8 +228,8 @@ var_t *var_deserialize(uint8_t *cursor,
     value_t val;
 
 	AMP_DEBUG_ENTRY("var_deserialize",
-			          "(0x"UHF",%d,0x"UHF")",
-			          (uvast)cursor, size, (uvast) bytes_used);
+			          "(0x" ADDR_FIELDSPEC ",%d,0x" ADDR_FIELDSPEC ")",
+			          (uaddr)cursor, size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
@@ -280,7 +280,7 @@ var_t *var_deserialize(uint8_t *cursor,
 
 	val_release(&val, 0);
 
-	AMP_DEBUG_EXIT("var_deserialize","->0x"UHF,(uvast)result);
+	AMP_DEBUG_EXIT("var_deserialize", "->0x" ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -338,7 +338,7 @@ var_t *var_duplicate(var_t *orig)
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("var_duplicate","-->0x"UHF, (uvast) result);
+	AMP_DEBUG_EXIT("var_duplicate", "-->0x" ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -370,8 +370,8 @@ var_t *var_find_by_id(Lyst vars, ResourceLock *mutex, mid_t *id)
 	LystElt elt;
 	var_t *cur_var = NULL;
 
-	AMP_DEBUG_ENTRY("var_find_by_id","(0x"UHF", 0x"UHF", 0x"UHF")",
-			          (uvast) vars, (uvast) mutex, (uvast) id);
+	AMP_DEBUG_ENTRY("var_find_by_id","(0x" ADDR_FIELDSPEC ", 0x" ADDR_FIELDSPEC ", 0x" ADDR_FIELDSPEC ")",
+			          (uaddr) vars, (uaddr) mutex, (uaddr) id);
 
 	/* Step 0: Sanity Check. */
 	if((vars == NULL) || (id == NULL))
@@ -441,8 +441,8 @@ void var_lyst_clear(Lyst *vars, ResourceLock *mutex, int destroy)
 	 LystElt elt;
 	 var_t *cur_var = NULL;
 
-	 AMP_DEBUG_ENTRY("var_lyst_clear","(0x"UHF", 0x"UHF", %d)",
-			          (uvast) vars, (uvast) mutex, destroy);
+	 AMP_DEBUG_ENTRY("var_lyst_clear","(0x" ADDR_FIELDSPEC ", 0x" ADDR_FIELDSPEC ", %d)",
+			          (uaddr) vars, (uaddr) mutex, destroy);
 
 	 if((vars == NULL) || (*vars == NULL))
 	 {
@@ -505,8 +505,8 @@ void var_lyst_clear(Lyst *vars, ResourceLock *mutex, int destroy)
 void var_release(var_t *var)
 {
 	AMP_DEBUG_ENTRY("var_release",
-			          "(0x"UHF")",
-			          (uvast) var);
+			          "(0x" ADDR_FIELDSPEC ")",
+			          (uaddr) var);
 
 	if(var != NULL)
 	{
@@ -559,8 +559,8 @@ uint8_t *var_serialize(var_t *var, uint32_t *len)
 	uint32_t val_len = 0;
 
 	AMP_DEBUG_ENTRY("var_serialize",
-			          "(0x"UHF",0x"UHF")",
-			          (uvast)var, (uvast) len);
+			          "(0x" ADDR_FIELDSPEC ",0x" ADDR_FIELDSPEC ")",
+			          (uaddr)var, (uaddr) len);
 
 	/* Step 0: Sanity Checks. */
 	if((var == NULL) || (len == NULL))
@@ -629,7 +629,7 @@ uint8_t *var_serialize(var_t *var, uint32_t *len)
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("var_serialize","->0x"UHF,(uvast)result);
+	AMP_DEBUG_EXIT("var_serialize", "->0x" ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 

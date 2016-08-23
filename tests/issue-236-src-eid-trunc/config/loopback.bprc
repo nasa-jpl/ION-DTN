@@ -33,19 +33,19 @@ a endpoint dtn://host1.dtn/a q
 a endpoint dtn://host1.dtn/b q
 
 # Add a protocol. 
-#	Add the protocol named tcp.
+#	Add the protocol named stcp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.
-a protocol tcp 1400 100
+a protocol stcp 1400 100
 
 # Add an induct. (listen)
-#	Add an induct to accept bundles using the tcp protocol.
-#	The induct itself is implemented by the 'tcpcli' command.
-a induct tcp 127.0.0.1:4556 tcpcli
+#	Add an induct to accept bundles using the stcp protocol.
+#	The induct itself is implemented by the 'stcpcli' command.
+a induct stcp 127.0.0.1:4556 stcpcli
 
 # Add an outduct. (send to yourself)
-#	Add an outduct to send bundles using the tcp protocol.
-#	The outduct itself is implemented by the 'tcpclo' command.
-a outduct tcp 127.0.0.1:4556 ''
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 127.0.0.1:4556 stcpclo
 w 1
 s
