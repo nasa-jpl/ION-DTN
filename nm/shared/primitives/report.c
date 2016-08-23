@@ -369,6 +369,14 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 
 	/* Step 5: Create the report. */
 	eid_t tmp;
+
+	/*	Inferred fix.  Needed to get past MacOS compile error
+	 *	but may not be what is intended.  TODO			*/
+
+	strcpy(tmp.name, rx);
+
+	/*	End of inferred fix.					*/
+
 	if((result = rpt_create((time_t) time_val, entries, tmp)) == NULL)
 	{
 		AMP_DEBUG_ERR("rpt_deserialize","Can't create entries # %d of %d.", i, num_entries);
