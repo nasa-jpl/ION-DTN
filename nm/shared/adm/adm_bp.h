@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: adm_bp.h
@@ -11,6 +16,11 @@
  **      1. We current use a non-official OID root tree for DTN Bundle Protocol
  **         identifiers.
  **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef ADM_BP_H_

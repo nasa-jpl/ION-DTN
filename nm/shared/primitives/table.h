@@ -11,7 +11,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/15/16  E. Birrane    Initial Implementation.
+ **  05/15/16  E. Birrane    Initial Implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #ifndef TABLE_H_
 #define TABLE_H_
@@ -68,7 +68,7 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
-int8_t    table_add_col(table_t *table, char *name, dtnmp_type_e type);
+int8_t    table_add_col(table_t *table, char *name, amp_type_e type);
 int8_t    table_add_row(table_t *table, Lyst new_cels);
 void      table_clear(table_t *table);
 table_t*  table_create(blob_t *col_desc, Lyst names);

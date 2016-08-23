@@ -18,7 +18,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/10/15  E. Birrane     Initial Implementation
+ **  07/10/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "nm_mgr_ui.h"
@@ -52,7 +52,7 @@ int ui_print_agents()
   LystElt element = NULL;
   agent_t * agent = NULL;
 
-  DTNMP_DEBUG_ENTRY("ui_print_agents","()",NULL);
+  AMP_DEBUG_ENTRY("ui_print_agents","()",NULL);
 
   printf("\n------------- Known Agents --------------\n");
 
@@ -78,7 +78,7 @@ int ui_print_agents()
   printf("\n------------- ************ --------------\n");
   printf("\n");
 
-  DTNMP_DEBUG_EXIT("ui_print_agents","->%d", (i));
+  AMP_DEBUG_EXIT("ui_print_agents","->%d", (i));
   return i;
 }
 
@@ -166,7 +166,7 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 
 	if((entry == NULL) || (mid_sizes == NULL) || (data_sizes == NULL))
 	{
-		DTNMP_DEBUG_ERR("ui_print_entry","Bad Args.", NULL);
+		AMP_DEBUG_ERR("ui_print_entry","Bad Args.", NULL);
 		return;
 	}
 
@@ -218,14 +218,14 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 	else if(MID_GET_FLAG_ID(entry->id->flags) == MID_COMPUTED)
 	{
-		cd_t *cd = NULL;
+		var_t *cd = NULL;
 	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
 	    {
-	    	cd = cd_find_by_id(gAdmComputed, NULL, entry->id);
+	    	cd = var_find_by_id(gAdmComputed, NULL, entry->id);
 	    }
 	    else
 	    {
-	    	cd = cd_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), entry->id);
+	    	cd = var_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), entry->id);
 	    }
 
 	    // Fake a def_gen just for this CD item.
@@ -401,18 +401,18 @@ void ui_print_reports(agent_t* agent)
 
 	 if(agent == NULL)
 	 {
-		 DTNMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
-		 DTNMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
+		 AMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
+		 AMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
+		 AMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
 		 return;
 
 	 }
-	 DTNMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
+	 AMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
 
 	 if(lyst_length(agent->reports) == 0)
 	 {
-		 DTNMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
-		 DTNMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
+		 AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
+		 AMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
 		 return;
 	 }
 
@@ -422,7 +422,7 @@ void ui_print_reports(agent_t* agent)
 		 /* Grab the current report */
 	     if((cur_report = (rpt_t*)lyst_data(report_elt)) == NULL)
 	     {
-	        DTNMP_DEBUG_ERR("ui_print_reports","Unable to get report from lyst!", NULL);
+	        AMP_DEBUG_ERR("ui_print_reports","Unable to get report from lyst!", NULL);
 	     }
 	     else
 	     {
@@ -485,13 +485,13 @@ void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
 	LystElt elt = NULL;
 	LystElt def_elt = NULL;
 	uint32_t i = 0;
-	dtnmp_type_e cur_type;
+	amp_type_e cur_type;
 	blob_t *cur_entry = NULL;
 	value_t *cur_val = NULL;
 
 	if(tdc == NULL)
 	{
-		DTNMP_DEBUG_ERR("ui_print_tdc","Bad Args.", NULL);
+		AMP_DEBUG_ERR("ui_print_tdc","Bad Args.", NULL);
 		return;
 	}
 
@@ -499,7 +499,7 @@ void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
 	{
 		if(lyst_length(cur_def->contents) != tdc->hdr.length)
 		{
-			DTNMP_DEBUG_WARN("ui_print_tdc","def and TDC length mismatch: %d != %d. Ignoring.",
+			AMP_DEBUG_WARN("ui_print_tdc","def and TDC length mismatch: %d != %d. Ignoring.",
 					        lyst_length(cur_def->contents), tdc->hdr.length);
 			cur_def = NULL;
 		}
@@ -514,7 +514,7 @@ void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
 
 	for(i = 0; ((i < tdc->hdr.length) && elt); i++)
 	{
-		cur_type = (dtnmp_type_e) tdc->hdr.data[i];
+		cur_type = (amp_type_e) tdc->hdr.data[i];
 
 		printf("\n\t");
 		if(cur_def != NULL)
@@ -674,43 +674,43 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 
 	switch(type)
 	{
-		case DTNMP_TYPE_CD:
+		case AMP_TYPE_VAR:
 		{
-			cd_t *cd = cd_deserialize(data, length, &bytes);
-			char *str = cd_to_string(cd);
+			var_t *cd = var_deserialize(data, length, &bytes);
+			char *str = var_to_string(cd);
 			printf("%s", str);
 			SRELEASE(str);
-			cd_release(cd);
+			var_release(cd);
 		}
 			break;
 
-		case DTNMP_TYPE_INT:
+		case AMP_TYPE_INT:
 			printf("%d", utils_deserialize_int(data, length, &bytes));
 			break;
 
-		case DTNMP_TYPE_TS:
-		case DTNMP_TYPE_UINT:
+		case AMP_TYPE_TS:
+		case AMP_TYPE_UINT:
 			printf("%d", utils_deserialize_uint(data, length, &bytes));
 			break;
 
-		case DTNMP_TYPE_VAST:
+		case AMP_TYPE_VAST:
 			printf(VAST_FIELDSPEC, utils_deserialize_vast(data, length, &bytes));
 			break;
 
-		case DTNMP_TYPE_SDNV:
-		case DTNMP_TYPE_UVAST:
+		case AMP_TYPE_SDNV:
+		case AMP_TYPE_UVAST:
 			printf(UVAST_FIELDSPEC, utils_deserialize_uvast(data, length, &bytes));
 			break;
 
-		case DTNMP_TYPE_REAL32:
+		case AMP_TYPE_REAL32:
 			printf("%f", utils_deserialize_real32(data, length, &bytes));
 			break;
 
-		case DTNMP_TYPE_REAL64:
+		case AMP_TYPE_REAL64:
 			printf("%f", utils_deserialize_real64(data, length, &bytes));
 			break;
 
-		case DTNMP_TYPE_STRING:
+		case AMP_TYPE_STRING:
 			{
 				char* tmp = NULL;
 				tmp = utils_deserialize_string(data, length, &bytes);
@@ -719,7 +719,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case DTNMP_TYPE_BLOB:
+		case AMP_TYPE_BLOB:
 			{
 				blob_t *blob = blob_deserialize(data, length, &bytes);
 				char *str = blob_to_str(blob);
@@ -729,7 +729,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case DTNMP_TYPE_DC:
+		case AMP_TYPE_DC:
 			{
 				uint32_t bytes = 0;
 				Lyst dc = dc_deserialize(data, length, &bytes);
@@ -738,7 +738,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case DTNMP_TYPE_MID:
+		case AMP_TYPE_MID:
 			{
 				uint32_t bytes = 0;
 				mid_t *mid = mid_deserialize(data, length, &bytes);
@@ -747,7 +747,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case DTNMP_TYPE_MC:
+		case AMP_TYPE_MC:
 			{
 				uint32_t bytes = 0;
 				Lyst mc = midcol_deserialize(data, length, &bytes);
@@ -757,7 +757,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			break;
 			// \todo: Expression has no priority. Need to re-think priority.
 
-		case DTNMP_TYPE_EXPR:
+		case AMP_TYPE_EXPR:
 			{
 				uint32_t bytes = 0;
 				expr_t *expr = expr_deserialize(data, length, &bytes);
@@ -775,7 +775,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 */
-		case DTNMP_TYPE_TRL:
+		case AMP_TYPE_TRL:
 			{
 				uint32_t bytes = 0;
 				trl_t *trl = trl_deserialize(data, length, &bytes);
@@ -784,7 +784,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case DTNMP_TYPE_TABLE:
+		case AMP_TYPE_TABLE:
 			{
 				uint32_t bytes = 0;
 				table_t *table = table_deserialize(data, length, &bytes);
@@ -793,7 +793,7 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case DTNMP_TYPE_SRL:
+		case AMP_TYPE_SRL:
 			{
 				uint32_t bytes = 0;
 				srl_t *srl = srl_deserialize(data, length, &bytes);

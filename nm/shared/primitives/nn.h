@@ -20,7 +20,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  03/11/15  E. Birrane     Pulled nicknamed out of OID into NN.
+ **            E. Birrane     Initial Implementation. (Secure DTN - NASA: NNX14CS58P)
+ **  03/11/15  E. Birrane     Pulled nicknamed out of OID into NN. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef NN_H_

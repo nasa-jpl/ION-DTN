@@ -212,7 +212,6 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 	bpsec_src_instr_t instr;
 	Object sdrElt = 0;
 	Object sdrData = 0;
-	CHKVOID(src);
 
 	sdr_begin_xn(sdr);
 

@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -28,7 +22,7 @@
  *****************************************************************************/
 #include "nm_types.h"
 
-const char * const dtnmp_type_str[] = {
+const char * const amp_type_str[] = {
 										"AD",    /* DTNMP_TYPE_AD     */
 										"CD",    /* DTNMP_TYPE_CD     */
 										"RPT",   /* DTNMP_TYPE_RPT    */
@@ -59,7 +53,7 @@ const char * const dtnmp_type_str[] = {
                                        };
 
 
-const char * const dtnmp_type_fieldspec_str[] = {
+const char * const amp_type_fieldspec_str[] = {
 		UHF,                 /* DTNMP_TYPE_AD     */
 		UHF,                 /* DTNMP_TYPE_CD     */
 		UHF,                 /* DTNMP_TYPE_RPT    */
@@ -91,9 +85,9 @@ const char * const dtnmp_type_fieldspec_str[] = {
 
 
 
-dtnmp_type_e type_from_str(char *str)
+amp_type_e type_from_str(char *str)
 {
-	dtnmp_type_e result = DTNMP_TYPE_UNK;
+	amp_type_e result = AMP_TYPE_UNK;
 	int i = 0;
 
 	if(str == NULL)
@@ -101,11 +95,11 @@ dtnmp_type_e type_from_str(char *str)
 		return result;
 	}
 
-	for(i = 0; i < DTNMP_TYPE_UNK; i++)
+	for(i = 0; i < AMP_TYPE_UNK; i++)
 	{
-		if(strcasecmp(str, dtnmp_type_str[i]) == 0)
+		if(strcasecmp(str, amp_type_str[i]) == 0)
 		{
-			result = (dtnmp_type_e) i;
+			result = (amp_type_e) i;
 			break;
 		}
 	}
@@ -114,9 +108,18 @@ dtnmp_type_e type_from_str(char *str)
 }
 
 
-const char *   type_get_fieldspec(dtnmp_type_e type)
+amp_type_e type_from_uint(uint32_t type)
 {
-	return dtnmp_type_fieldspec_str[type];
+	if(type >= AMP_TYPE_UNK)
+	{
+		return AMP_TYPE_UNK;
+	}
+	return (amp_type_e) type;
+}
+
+const char *   type_get_fieldspec(amp_type_e type)
+{
+	return amp_type_fieldspec_str[type];
 }
 
 
@@ -141,20 +144,20 @@ const char *   type_get_fieldspec(dtnmp_type_e type)
  *                           (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-size_t   type_get_size(dtnmp_type_e type)
+size_t   type_get_size(amp_type_e type)
 {
 	size_t result = 0;
 
 	switch(type)
 	{
-		case DTNMP_TYPE_BYTE:   result = sizeof(uint8_t);  break;
-		case DTNMP_TYPE_INT:    result = sizeof(int32_t);  break;
-		case DTNMP_TYPE_UINT:   result = sizeof(uint32_t); break;
-		case DTNMP_TYPE_VAST:   result = sizeof(vast);     break;
-		case DTNMP_TYPE_UVAST:  result = sizeof(uvast);    break;
-		case DTNMP_TYPE_REAL32:  result = sizeof(float);    break;
-		case DTNMP_TYPE_REAL64: result = sizeof(double);   break;
-		case DTNMP_TYPE_TS:     result = sizeof(uint32_t); break;
+		case AMP_TYPE_BYTE:   result = sizeof(uint8_t);  break;
+		case AMP_TYPE_INT:    result = sizeof(int32_t);  break;
+		case AMP_TYPE_UINT:   result = sizeof(uint32_t); break;
+		case AMP_TYPE_VAST:   result = sizeof(vast);     break;
+		case AMP_TYPE_UVAST:  result = sizeof(uvast);    break;
+		case AMP_TYPE_REAL32:  result = sizeof(float);    break;
+		case AMP_TYPE_REAL64: result = sizeof(double);   break;
+		case AMP_TYPE_TS:     result = sizeof(uint32_t); break;
 		default:                result = 0; break;
 	}
 
@@ -163,26 +166,26 @@ size_t   type_get_size(dtnmp_type_e type)
 
 
 
-const char *type_to_str(dtnmp_type_e type)
+const char *type_to_str(amp_type_e type)
 {
-	return dtnmp_type_str[type];
+	return amp_type_str[type];
 }
 
 
 
-uint8_t type_is_numeric(dtnmp_type_e type)
+uint8_t type_is_numeric(amp_type_e type)
 {
 	uint8_t result = 0;
 
 	switch(type)
 	{
-		case DTNMP_TYPE_BYTE:
-		case DTNMP_TYPE_INT:
-		case DTNMP_TYPE_UINT:
-		case DTNMP_TYPE_VAST:
-		case DTNMP_TYPE_UVAST:
-		case DTNMP_TYPE_REAL32:
-		case DTNMP_TYPE_REAL64:
+		case AMP_TYPE_BYTE:
+		case AMP_TYPE_INT:
+		case AMP_TYPE_UINT:
+		case AMP_TYPE_VAST:
+		case AMP_TYPE_UVAST:
+		case AMP_TYPE_REAL32:
+		case AMP_TYPE_REAL64:
 			result = 1;
 			break;
 		default:

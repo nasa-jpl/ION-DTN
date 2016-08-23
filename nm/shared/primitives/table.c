@@ -11,7 +11,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/15/16  E. Birrane    Initial Implementation.
+ **  05/15/16  E. Birrane    Initial Implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -49,7 +49,7 @@
  *  06/06/16  E. Birrane     Initial implementation
  *****************************************************************************/
 
-int8_t table_add_col(table_t *table, char *name, dtnmp_type_e type)
+int8_t table_add_col(table_t *table, char *name, amp_type_e type)
 {
 	blob_t *new_name = NULL;
 	uint8_t *data = NULL;
@@ -60,14 +60,14 @@ int8_t table_add_col(table_t *table, char *name, dtnmp_type_e type)
 
 	if(lyst_length(table->rows) != 0)
 	{
-		DTNMP_DEBUG_ERR("table_add_col","Table has %d rows.", lyst_length(table->rows));
+		AMP_DEBUG_ERR("table_add_col","Table has %d rows.", lyst_length(table->rows));
 		return ERROR;
 	}
 
 	/* Step 1 - Add the extra type to the blob. */
 	if((blob_append(&(table->hdr.types), (uint8_t*)&type, 1)) == ERROR)
 	{
-		DTNMP_DEBUG_ERR("table_add_col", "Unable to add new type.", NULL);
+		AMP_DEBUG_ERR("table_add_col", "Unable to add new type.", NULL);
 		return ERROR;
 	}
 
@@ -75,7 +75,7 @@ int8_t table_add_col(table_t *table, char *name, dtnmp_type_e type)
 	if((data = STAKE(strlen(name) + 1)) == NULL)
 	{
 		blob_trim(&(table->hdr.types), 1);
-		DTNMP_DEBUG_ERR("table_add_col", "Unable to allocate %d bytes.", strlen(name));
+		AMP_DEBUG_ERR("table_add_col", "Unable to allocate %d bytes.", strlen(name));
 		return ERROR;
 	}
 
@@ -89,7 +89,7 @@ int8_t table_add_col(table_t *table, char *name, dtnmp_type_e type)
 	{
 		SRELEASE(data);
 		blob_trim(&(table->hdr.types), 1);
-		DTNMP_DEBUG_ERR("table_add_col", "Unable to allocate %d bytes.", strlen(name));
+		AMP_DEBUG_ERR("table_add_col", "Unable to allocate %d bytes.", strlen(name));
 		return ERROR;
 	}
 
@@ -127,13 +127,13 @@ int8_t table_add_row(table_t *table, Lyst new_cels)
 
 	if((table == NULL) || (new_cels == NULL))
 	{
-		DTNMP_DEBUG_ERR("table_add_row","Bad Args.", NULL);
+		AMP_DEBUG_ERR("table_add_row","Bad Args.", NULL);
 		return 0;
 	}
 
 	if((new_row = STAKE(sizeof(table_row_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_add_row","Can't allocate %d bytes.", sizeof(table_row_t));
+		AMP_DEBUG_ERR("table_add_row","Can't allocate %d bytes.", sizeof(table_row_t));
 		return -1;
 	}
 
@@ -223,14 +223,14 @@ table_t*  table_create(blob_t *col_desc, Lyst names)
 	{
 		if(col_desc->length != lyst_length(names))
 		{
-			DTNMP_DEBUG_ERR("table_create","%d columns but %d names.", col_desc->length, lyst_length(names));
+			AMP_DEBUG_ERR("table_create","%d columns but %d names.", col_desc->length, lyst_length(names));
 			return NULL;
 		}
 	}
 
 	if((result = (table_t *) STAKE(sizeof(table_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_create","Can't allocate %d bytes.", sizeof(table_t));
+		AMP_DEBUG_ERR("table_create","Can't allocate %d bytes.", sizeof(table_t));
 		return NULL;
 	}
 
@@ -255,7 +255,7 @@ table_t*  table_create(blob_t *col_desc, Lyst names)
 		 */
 		if((tmp = blob_copy(col_desc)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("table_create","Can't copy blob.", NULL);
+			AMP_DEBUG_ERR("table_create","Can't copy blob.", NULL);
 			SRELEASE(result);
 			return NULL;
 		}
@@ -265,7 +265,7 @@ table_t*  table_create(blob_t *col_desc, Lyst names)
 
 	if((result->rows = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_create", "Can't make lyst.", NULL);
+		AMP_DEBUG_ERR("table_create", "Can't make lyst.", NULL);
 		blob_destroy(&(result->hdr.types), 0);
 		SRELEASE(result);
 		return NULL;
@@ -359,14 +359,14 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	uint32_t size = 0;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("table_deserialize","(" ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ")",
+	AMP_DEBUG_ENTRY("table_deserialize","(" ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ")",
 			          (uaddr) buffer, buffer_size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("table_deserialize","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("table_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("table_deserialize","Bad Args", NULL);
+		AMP_DEBUG_EXIT("table_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -377,7 +377,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	/* Step 1 - Deserialize the column names. */
 	if((names = dc_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_deserialize","Can't get names.", NULL);
+		AMP_DEBUG_ERR("table_deserialize","Can't get names.", NULL);
 		*bytes_used = 0;
 		return NULL;
 	}
@@ -391,7 +391,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	/* Step 2: Deserialize the column descriptions.	 */
 	if((types = blob_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_deserialize","Can't get types", NULL);
+		AMP_DEBUG_ERR("table_deserialize","Can't get types", NULL);
 		dc_destroy(&names);
 		*bytes_used = 0;
 		return NULL;
@@ -406,7 +406,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	/* Step 3: Deserialize the # rows. */
 	if((bytes = utils_grab_sdnv(cursor, buffer_size, &num_rows)) == 0)
 	{
-		DTNMP_DEBUG_ERR("table_deserialize","Can't parse SDNV.", NULL);
+		AMP_DEBUG_ERR("table_deserialize","Can't parse SDNV.", NULL);
 		blob_destroy(types, 1);
 		dc_destroy(&names);
 		*bytes_used = 0;
@@ -422,7 +422,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	/* Step 4 - Create the empty table. */
 	if((result = table_create(types, names)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_deserialize","Can't parse SDNV.", NULL);
+		AMP_DEBUG_ERR("table_deserialize","Can't parse SDNV.", NULL);
 		blob_destroy(types, 1);
 		dc_destroy(&names);
 		*bytes_used = 0;
@@ -434,7 +434,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 	{
 		if((cur_cels = dc_deserialize(cursor, size, &bytes)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("table_deserialize","Can't get %dth row.", cur_row);
+			AMP_DEBUG_ERR("table_deserialize","Can't get %dth row.", cur_row);
 			table_destroy(result, 1);
 			*bytes_used = 0;
 			return NULL;
@@ -533,12 +533,12 @@ tdc_t *table_extract_col(table_t *table, uint32_t col_idx)
 	blob_t* cur_blob = NULL;
 	table_row_t *cur_row = NULL;
 	uint32_t cur_col_idx = 0;
-	dtnmp_type_e type = DTNMP_TYPE_UNK;
+	amp_type_e type = AMP_TYPE_UNK;
 
 	/* Step 0 - Sanity check. */
 	if((table == NULL) || (col_idx > table->hdr.types.length))
 	{
-		DTNMP_DEBUG_ERR("table_extract_col","Bad Args.", NULL);
+		AMP_DEBUG_ERR("table_extract_col","Bad Args.", NULL);
 		return NULL;
 	}
 
@@ -550,7 +550,7 @@ tdc_t *table_extract_col(table_t *table, uint32_t col_idx)
 	/* Step 2 - Create the resultant TDC. */
 	if((result = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_Extract_col", "Can't create result TDC.", NULL);
+		AMP_DEBUG_ERR("table_Extract_col", "Can't create result TDC.", NULL);
 		return NULL;
 	}
 
@@ -617,14 +617,14 @@ tdc_t *table_extract_row(table_t *table, uint32_t row_idx)
 	/* Step 0 - Sanity check. */
 	if((table == NULL) || (row_idx > table_get_num_rows(table)))
 	{
-		DTNMP_DEBUG_ERR("table_extract_row","Bad Args.", NULL);
+		AMP_DEBUG_ERR("table_extract_row","Bad Args.", NULL);
 		return NULL;
 	}
 
 	/* Step 1 - Create the resultant TDC. */
 	if((result = tdc_create(NULL, NULL, 0)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_Extract_row", "Can't create result TDC.", NULL);
+		AMP_DEBUG_ERR("table_Extract_row", "Can't create result TDC.", NULL);
 		return NULL;
 	}
 
@@ -695,7 +695,7 @@ blob_t* table_extract_cel(table_t *table, uint32_t col_idx, uint32_t row_idx)
 	   (col_idx > table_get_num_cols(table)) ||
 	   (row_idx > table_get_num_rows(table)))
 	{
-		DTNMP_DEBUG_ERR("table_extract_cel","Bad Args.", NULL);
+		AMP_DEBUG_ERR("table_extract_cel","Bad Args.", NULL);
 		return NULL;
 	}
 
@@ -862,7 +862,7 @@ int8_t   table_get_num_rows(table_t *table)
 
 table_t*  table_make_subtable(table_t *table, Lyst col_names)
 {
-	DTNMP_DEBUG_ERR("table_make_subtable","Not implemented.", NULL);
+	AMP_DEBUG_ERR("table_make_subtable","Not implemented.", NULL);
 	return NULL;
 }
 
@@ -889,7 +889,7 @@ table_t*  table_make_subtable(table_t *table, Lyst col_names)
 
 int8_t    table_remove_row(table_t *table, uint32_t row_idx)
 {
-	DTNMP_DEBUG_ERR("table_make_subtable","Not implemented.", NULL);
+	AMP_DEBUG_ERR("table_make_subtable","Not implemented.", NULL);
 	return -1;
 }
 
@@ -943,7 +943,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 	/* Step 0: Sanity Check. */
 	if((table == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("table_serialize","Bad Args.", NULL);
+		AMP_DEBUG_ERR("table_serialize","Bad Args.", NULL);
 		return NULL;
 	}
 
@@ -952,7 +952,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 	/* Step 1: Serialize column names. */
 	if((names_data = dc_serialize(table->hdr.names, &names_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("table_serialize","Can't serialize names.", NULL);
+		AMP_DEBUG_ERR("table_serialize","Can't serialize names.", NULL);
 		return NULL;
 	}
 	tot_size += names_len;
@@ -961,7 +961,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 	if((types_data = blob_serialize(&(table->hdr.types), &types_len)) == NULL)
 	{
 		SRELEASE(names_data);
-		DTNMP_DEBUG_ERR("table_serialize","Can't serialize types.", NULL);
+		AMP_DEBUG_ERR("table_serialize","Can't serialize types.", NULL);
 		return NULL;
 	}
 	tot_size += types_len;
@@ -971,7 +971,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 	{
 		SRELEASE(names_data);
 		SRELEASE(types_data);
-		DTNMP_DEBUG_ERR("table_serialize","Can't get num rows.", NULL);
+		AMP_DEBUG_ERR("table_serialize","Can't get num rows.", NULL);
 		return NULL;
 	}
 	encodeSdnv(&num_rows_sdnv, num_rows);
@@ -989,7 +989,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 		{
 			SRELEASE(names_data);
 			SRELEASE(types_data);
-			DTNMP_DEBUG_ERR("table_serialize","Can't allocate space for %d rows.", num_rows);
+			AMP_DEBUG_ERR("table_serialize","Can't allocate space for %d rows.", num_rows);
 			return NULL;
 		}
 		if((rows_len = (uint32_t *) STAKE(num_rows * sizeof(uint32_t))) == NULL)
@@ -997,7 +997,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 			SRELEASE(names_data);
 			SRELEASE(types_data);
 			SRELEASE(rows_data);
-			DTNMP_DEBUG_ERR("table_serialize","Can't allocate space for %d rows.", num_rows);
+			AMP_DEBUG_ERR("table_serialize","Can't allocate space for %d rows.", num_rows);
 			return NULL;
 
 		}
@@ -1018,7 +1018,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 					SRELEASE(rows_len);
 					SRELEASE(names_data);
 					SRELEASE(types_data);
-					DTNMP_DEBUG_ERR("table_serialize","Can't Serialize row %d.", cur_idx);
+					AMP_DEBUG_ERR("table_serialize","Can't Serialize row %d.", cur_idx);
 					return NULL;
 				}
 				tot_size += rows_len[cur_idx];
@@ -1039,7 +1039,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 		SRELEASE(rows_len);
 		SRELEASE(names_data);
 		SRELEASE(types_data);
-		DTNMP_DEBUG_ERR("table_serialize","Can't allocate %d bytes.", tot_size);
+		AMP_DEBUG_ERR("table_serialize","Can't allocate %d bytes.", tot_size);
 		return NULL;
 	}
 
@@ -1069,7 +1069,7 @@ uint8_t*  table_serialize(table_t *table, uint32_t *size)
 	/* Step 7 - Sanity check result. */
 	if((cursor - result) != tot_size)
 	{
-		DTNMP_DEBUG_ERR("table_serialize", "Sanity check failed. %d != %d.", (cursor-result), tot_size);
+		AMP_DEBUG_ERR("table_serialize", "Sanity check failed. %d != %d.", (cursor-result), tot_size);
 		SRELEASE(result);
 		result = NULL;
 	}

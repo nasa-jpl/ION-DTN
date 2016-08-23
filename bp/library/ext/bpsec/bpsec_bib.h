@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: bpsec_bib.h
@@ -42,7 +48,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/05/10  E. Birrane     Implementation as extbspbib.c
+ **  07/05/10  E. Birrane     Implementation as extbspbib.c (JHU/APL)
  **            S. Burleigh    Implementation as bspbib.c for SBSP
  **  11/02/15  E. Birrane     Update for generic proc and profiles
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]

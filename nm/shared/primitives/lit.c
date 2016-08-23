@@ -1,4 +1,8 @@
-
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: lit.c
@@ -16,7 +20,11 @@
  **
  ** Assumptions:
  **
- **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "ion.h"
@@ -47,23 +55,23 @@ lit_t *lit_create(mid_t *id, value_t value, lit_val_fn calc)
 {
 	lit_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("lit_create","(0x%x,(%d, %d), 0x%x)",
+	AMP_DEBUG_ENTRY("lit_create","(0x%x,(%d, %d), 0x%x)",
 			          (unsigned long) id, value.type, value.value.as_int,
 			          (unsigned long) calc);
 
 	/* Step 0: Sanity Check. */
 	if((id == NULL) || (id->oid.type == OID_TYPE_UNK))
 	{
-		DTNMP_DEBUG_ERR("lit_create","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("lit_create","->NULL",NULL);
+		AMP_DEBUG_ERR("lit_create","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("lit_create","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Sanity check. */
 	if(MID_GET_FLAG_ID(id->flags) != MID_LITERAL)
 	{
-		DTNMP_DEBUG_ERR("lit_create","Malformed MID for literal. ",NULL);
-		DTNMP_DEBUG_EXIT("lit_create","->NULL",NULL);
+		AMP_DEBUG_ERR("lit_create","Malformed MID for literal. ",NULL);
+		AMP_DEBUG_EXIT("lit_create","->NULL",NULL);
 		return NULL;
 	}
 
@@ -73,18 +81,18 @@ lit_t *lit_create(mid_t *id, value_t value, lit_val_fn calc)
 		/* Step 1.1: If this is parameterized, we need a calculate function. */
 		if(calc == NULL)
 		{
-			DTNMP_DEBUG_ERR("lit_create","Parameterized literal needs calc function.",NULL);
-			DTNMP_DEBUG_EXIT("lit_create","->NULL",NULL);
+			AMP_DEBUG_ERR("lit_create","Parameterized literal needs calc function.",NULL);
+			AMP_DEBUG_EXIT("lit_create","->NULL",NULL);
 			return NULL;
 		}
 	}
 	else
 	{
 		/* Step 1.1: If this is not parameterized, we need a valid value. */
-		if(value.type == DTNMP_TYPE_UNK)
+		if(value.type == AMP_TYPE_UNK)
 		{
-			DTNMP_DEBUG_ERR("lit_create","Unparameterized literal needs valid value.",NULL);
-			DTNMP_DEBUG_EXIT("lit_create","->NULL",NULL);
+			AMP_DEBUG_ERR("lit_create","Unparameterized literal needs valid value.",NULL);
+			AMP_DEBUG_EXIT("lit_create","->NULL",NULL);
 			return NULL;
 		}
 	}
@@ -92,9 +100,9 @@ lit_t *lit_create(mid_t *id, value_t value, lit_val_fn calc)
 	/* Step 2: Allocate the message. */
 	if((result = (lit_t*)STAKE(sizeof(lit_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("lit_create","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("lit_create","Can't alloc %d bytes.",
 				        sizeof(lit_t));
-		DTNMP_DEBUG_EXIT("lit_create","->NULL",NULL);
+		AMP_DEBUG_EXIT("lit_create","->NULL",NULL);
 		return NULL;
 	}
 
@@ -103,7 +111,7 @@ lit_t *lit_create(mid_t *id, value_t value, lit_val_fn calc)
 	result->value = value;
 	result->calc = calc;
 
-	DTNMP_DEBUG_EXIT("lit_create","->0x%x",result);
+	AMP_DEBUG_EXIT("lit_create","->0x%x",result);
 
 	return result;
 }
@@ -136,7 +144,7 @@ lit_t *lit_find_by_id(Lyst list, ResourceLock *mutex, mid_t *id)
 	LystElt elt;
 	lit_t *cur_lit = NULL;
 
-	DTNMP_DEBUG_ENTRY("lit_find_by_id","(0x%x, 0x%x, 0x%x)",
+	AMP_DEBUG_ENTRY("lit_find_by_id","(0x%x, 0x%x, 0x%x)",
 			          (unsigned long) list,
 			          (unsigned long) mutex,
 			          (unsigned long) id);
@@ -144,16 +152,16 @@ lit_t *lit_find_by_id(Lyst list, ResourceLock *mutex, mid_t *id)
 	/* Step 0: Sanity Check. */
 	if((list == NULL) || (id == NULL))
 	{
-		DTNMP_DEBUG_ERR("lit_find_by_id","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("lit_find_by_id","->NULL.", NULL);
+		AMP_DEBUG_ERR("lit_find_by_id","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("lit_find_by_id","->NULL.", NULL);
 		return NULL;
 	}
 
 	/* Step 1: Sanity check. */
 	if(MID_GET_FLAG_ID(id->flags) != MID_LITERAL)
 	{
-		DTNMP_DEBUG_ERR("lit_find_by_id","Malformed MID for literal. ",NULL);
-		DTNMP_DEBUG_EXIT("lit_find_by_id","->NULL",NULL);
+		AMP_DEBUG_ERR("lit_find_by_id","Malformed MID for literal. ",NULL);
+		AMP_DEBUG_EXIT("lit_find_by_id","->NULL",NULL);
 		return NULL;
 	}
 
@@ -169,14 +177,14 @@ lit_t *lit_find_by_id(Lyst list, ResourceLock *mutex, mid_t *id)
         /* Step 2.1: Grab the definition */
         if((cur_lit = (lit_t*) lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("lit_find_by_id","Can't grab literal from lyst!", NULL);
+        	AMP_DEBUG_ERR("lit_find_by_id","Can't grab literal from lyst!", NULL);
         }
         else
         {
         	/* Step 2.2: Compare it. We do not match on parameters for literals. */
         	if(mid_compare(id, cur_lit->id,0) == 0)
         	{
-        		DTNMP_DEBUG_EXIT("lit_find_by_id","->0x%x.", cur_lit);
+        		AMP_DEBUG_EXIT("lit_find_by_id","->0x%x.", cur_lit);
         	    if(mutex != NULL)
         	    {
         	    	unlockResource(mutex);
@@ -191,7 +199,7 @@ lit_t *lit_find_by_id(Lyst list, ResourceLock *mutex, mid_t *id)
     	unlockResource(mutex);
     }
 
-	DTNMP_DEBUG_EXIT("lit_find_by_id","->NULL.", NULL);
+	AMP_DEBUG_EXIT("lit_find_by_id","->NULL.", NULL);
 	return NULL;
 }
 
@@ -217,17 +225,17 @@ value_t lit_get_value(lit_t *lit)
 {
 	value_t result;
 
-	DTNMP_DEBUG_ENTRY("lit_get_value","(0x%x)",
+	AMP_DEBUG_ENTRY("lit_get_value","(0x%x)",
 			          (unsigned long) lit);
 
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 	result.value.as_int = 0;
 
 	/* Step 0: Sanity Check. */
 	if(lit == NULL)
 	{
-		DTNMP_DEBUG_ERR("lit_get_value","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("lit_get_value","-> Bad Expr.", NULL);
+		AMP_DEBUG_ERR("lit_get_value","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("lit_get_value","-> Bad Expr.", NULL);
 		return result;
 	}
 
@@ -236,23 +244,23 @@ value_t lit_get_value(lit_t *lit)
 	{
 		if(lit->calc == NULL)
 		{
-			DTNMP_DEBUG_ERR("lit_get_value","No calc function for parameterized literal.",NULL);
-			DTNMP_DEBUG_EXIT("lit_get_value","-> Bad Expr.", NULL);
+			AMP_DEBUG_ERR("lit_get_value","No calc function for parameterized literal.",NULL);
+			AMP_DEBUG_EXIT("lit_get_value","-> Bad Expr.", NULL);
 			return result;
 		}
 
-		DTNMP_DEBUG_INFO("lit_get_value","Using literal calc function.",NULL);
+		AMP_DEBUG_INFO("lit_get_value","Using literal calc function.",NULL);
 
 		result = lit->calc(lit->id);
 	}
 	else
 	{
-		DTNMP_DEBUG_INFO("lit_get_value","Using literal predefined value.",NULL);
+		AMP_DEBUG_INFO("lit_get_value","Using literal predefined value.",NULL);
 
 		result = lit->value;
 	}
 
-	DTNMP_DEBUG_EXIT("lit_get_value","-> Resultant type: %d.", result.type);
+	AMP_DEBUG_EXIT("lit_get_value","-> Resultant type: %d.", result.type);
 
 	return result;
 }
@@ -280,13 +288,13 @@ void lit_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 	 LystElt elt;
 	 lit_t *cur = NULL;
 
-	 DTNMP_DEBUG_ENTRY("lit_lyst_clear","(0x%x, 0x%x, %d)",
+	 AMP_DEBUG_ENTRY("lit_lyst_clear","(0x%x, 0x%x, %d)",
 			          (unsigned long) list, (unsigned long) mutex, destroy);
 
 	 /* Step 0: Sanity Checks. */
 	 if((list == NULL) || (*list == NULL))
 	 {
-		 DTNMP_DEBUG_ERR("lit_lyst_clear","Bad Params.", NULL);
+		 AMP_DEBUG_ERR("lit_lyst_clear","Bad Params.", NULL);
 		 return;
 	 }
 
@@ -302,7 +310,7 @@ void lit_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 		 /* Grab the current report */
 		 if((cur = (lit_t *) lyst_data(elt)) == NULL)
 		 {
-			 DTNMP_DEBUG_ERR("lit_lyst_clear","Can't get literal from lyst!", NULL);
+			 AMP_DEBUG_ERR("lit_lyst_clear","Can't get literal from lyst!", NULL);
 		 }
 		 else
 		 {
@@ -313,7 +321,7 @@ void lit_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 
 	 if(destroy != 0)
 	 {
-		 DTNMP_DEBUG_INFO("lit_lyst_clear","Destroying list", NULL);
+		 AMP_DEBUG_INFO("lit_lyst_clear","Destroying list", NULL);
 
 		 lyst_destroy(*list);
 		 *list = NULL;
@@ -323,7 +331,7 @@ void lit_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 	 {
 		 unlockResource(mutex);
 	 }
-	 DTNMP_DEBUG_EXIT("lit_lyst_clear","->.",NULL);
+	 AMP_DEBUG_EXIT("lit_lyst_clear","->.",NULL);
 
 }
 
@@ -345,7 +353,7 @@ void lit_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
 void lit_release(lit_t *lit)
 {
 
-	DTNMP_DEBUG_ENTRY("lit_release","(0x%x)", (unsigned long) lit);
+	AMP_DEBUG_ENTRY("lit_release","(0x%x)", (unsigned long) lit);
 
 	if(lit != NULL)
 	{
@@ -357,7 +365,7 @@ void lit_release(lit_t *lit)
 		SRELEASE(lit);
 	}
 
-	DTNMP_DEBUG_EXIT("lit_release","->.",NULL);
+	AMP_DEBUG_EXIT("lit_release","->.",NULL);
 }
 
 
@@ -384,13 +392,13 @@ char *lit_to_string(lit_t *lit)
 	char *result = NULL;
 	uint32_t size = 0;
 
-	 DTNMP_DEBUG_ENTRY("lit_to_string","(0x%x)", (unsigned long) lit);
+	 AMP_DEBUG_ENTRY("lit_to_string","(0x%x)", (unsigned long) lit);
 
 	 /* Step 0: Sanity Checks. */
 	 if(lit == NULL)
 	 {
-		 DTNMP_DEBUG_ERR("lit_to_string","Bad Params.", NULL);
-		 DTNMP_DEBUG_EXIT("lit_to_string","->NULL", NULL);
+		 AMP_DEBUG_ERR("lit_to_string","Bad Params.", NULL);
+		 AMP_DEBUG_EXIT("lit_to_string","->NULL", NULL);
 
 		 return NULL;
 	 }
@@ -398,8 +406,8 @@ char *lit_to_string(lit_t *lit)
 	 /* Step 1: Capture the value associated with the literal. */
 	 if((val = val_to_string(lit->value)) == NULL)
 	 {
-		 DTNMP_DEBUG_ERR("lit_to_string","Unable to to_string val.", NULL);
-		 DTNMP_DEBUG_EXIT("lit_to_string","->NULL", NULL);
+		 AMP_DEBUG_ERR("lit_to_string","Unable to to_string val.", NULL);
+		 AMP_DEBUG_EXIT("lit_to_string","->NULL", NULL);
 
 		 return NULL;
 	 }
@@ -409,8 +417,8 @@ char *lit_to_string(lit_t *lit)
 	 {
 		 SRELEASE(val);
 
-		 DTNMP_DEBUG_ERR("lit_to_string","Unable to to_string mid.", NULL);
-		 DTNMP_DEBUG_EXIT("lit_to_string","->NULL", NULL);
+		 AMP_DEBUG_ERR("lit_to_string","Unable to to_string mid.", NULL);
+		 AMP_DEBUG_EXIT("lit_to_string","->NULL", NULL);
 
 		 return NULL;
 	 }
@@ -426,8 +434,8 @@ char *lit_to_string(lit_t *lit)
 		 SRELEASE(val);
 		 SRELEASE(mid);
 
-		 DTNMP_DEBUG_ERR("lit_to_string", "Can't alloc %d bytes.", size);
-		 DTNMP_DEBUG_EXIT("lit_to_string","->NULL",NULL);
+		 AMP_DEBUG_ERR("lit_to_string", "Can't alloc %d bytes.", size);
+		 AMP_DEBUG_EXIT("lit_to_string","->NULL",NULL);
 		 return NULL;
 	 }
 
@@ -438,7 +446,7 @@ char *lit_to_string(lit_t *lit)
 	 SRELEASE(val);
 	 SRELEASE(mid);
 
-	 DTNMP_DEBUG_EXIT("lit_to_string","->0x%x",(unsigned long) result);
+	 AMP_DEBUG_EXIT("lit_to_string","->0x%x",(unsigned long) result);
 	 return result;
 }
 

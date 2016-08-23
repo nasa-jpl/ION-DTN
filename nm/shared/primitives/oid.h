@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: oid.h
@@ -22,11 +28,11 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/27/12  E. Birrane     Initial Implementation
- **  11/13/12  E. Birrane     Technical review, comment updates.
- **  03/11/15  E. Birrane     Removed NN from OID into NN.
- **  08/29/15  E. Birrane     Removed length restriction from OID parms.
- **  06/11/16  E. Birrane     Updated parameters to be of type TDC.
+ **  10/27/12  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
+ **  03/11/15  E. Birrane     Removed NN from OID into NN. (Secure DTN - NASA: NNX14CS58P)
+ **  08/29/15  E. Birrane     Removed length restriction from OID parms. (Secure DTN - NASA: NNX14CS58P)
+ **  06/11/16  E. Birrane     Updated parameters to be of type TDC. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef OID_H_
@@ -118,7 +124,7 @@ typedef struct {
  */
 
 
-int8_t   oid_add_param(oid_t *oid, dtnmp_type_e type, blob_t *blob);
+int8_t   oid_add_param(oid_t *oid, amp_type_e type, blob_t *blob);
 
 int8_t   oid_add_params(oid_t *oid, tdc_t *params);
 
@@ -154,7 +160,7 @@ oid_t    oid_get_null();
 
 int8_t   oid_get_num_parms(oid_t oid);
 
-blob_t*  oid_get_param(oid_t oid, uint32_t idx, dtnmp_type_e *type);
+blob_t*  oid_get_param(oid_t oid, uint32_t idx, amp_type_e *type);
 
 void	 oid_init(oid_t *oid);
 

@@ -1,3 +1,10 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: agent_db.c
@@ -14,8 +21,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/17/15  E. Birrane     Initial Implementation
- **  06/21/15  E. Birrane     Add support for computed data storage.
+ **  06/10/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  05/17/15  E. Birrane     Update to new data types (Secure DTN - NASA: NNX14CS58P)
+ **  06/21/15  E. Birrane     Add support for computed data storage. (Secure DTN - NASA: NNX14CS58P)
+ **  07/31/16  E. Birrane     Update naming to AMP v0.3. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 // System headers.
@@ -42,7 +51,7 @@
 #include "instr.h"
 
 
-int  agent_db_compdata_persist(cd_t *item)
+int  agent_db_var_persist(var_t *item)
 {
 	Sdr sdr = getIonsdr();
 
@@ -51,7 +60,7 @@ int  agent_db_compdata_persist(cd_t *item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_compdata_persist","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_var_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -67,33 +76,33 @@ int  agent_db_compdata_persist(cd_t *item)
 		int result = 0;
 
 		/* Step 1.1: Serialize the item to go into the SDR.. */
-		if((data = cd_serialize(item, &(item->desc.size))) == NULL)
+		if((data = var_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_compdata_persist",
+			AMP_DEBUG_ERR("agent_db_var_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
-				            &(item->desc), sizeof(cd_desc_t), &(item->desc.descObj),
-							gAgentDB.compdata);
+				            &(item->desc), sizeof(var_desc_t), &(item->desc.descObj),
+							gAgentDB.vars);
 
 		SRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_compdata_persist","Unable to persist cd.",NULL);
+			AMP_DEBUG_ERR("agent_db_var_persist","Unable to persist cd.",NULL);
 			return -1;
 		}
 	}
 	else
 	{
-		cd_desc_t temp;
+		var_desc_t temp;
 
 		sdr_begin_xn(sdr);
 
-		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(cd_desc_t));
+		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(var_desc_t));
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(cd_desc_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(var_desc_t));
 
 		sdr_end_xn(sdr);
 	}
@@ -102,17 +111,17 @@ int  agent_db_compdata_persist(cd_t *item)
 	return 1;
 }
 
-int  agent_db_compdata_forget(mid_t *mid)
+int  agent_db_var_forget(mid_t *mid)
 {
-	cd_t *item = agent_vdb_compdata_find(mid);
+	var_t *item = agent_vdb_var_find(mid);
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_compdata_forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_var_forget","bad params.",NULL);
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.compdata, item->desc.itemObj, item->desc.descObj);
+	return agent_db_forget(gAgentDB.vars, item->desc.itemObj, item->desc.descObj);
 }
 
 
@@ -146,7 +155,7 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 	   ((item->desc.itemObj == 0) && (item->desc.descObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.descObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_ctrl_persist","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_ctrl_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -164,7 +173,7 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = ctrl_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_ctrl_persist",
+			AMP_DEBUG_ERR("agent_db_ctrl_persist",
 					       "Unable to serialize new ctrl.", NULL);
 			return -1;
 		}
@@ -176,11 +185,11 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 		SRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_ctrl_persist","Unable to persist def.",NULL);
+			AMP_DEBUG_ERR("agent_db_ctrl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 
-		DTNMP_DEBUG_INFO("agent_db_ctrl_persist","Persisted new ctrl", NULL);
+		AMP_DEBUG_INFO("agent_db_ctrl_persist","Persisted new ctrl", NULL);
 	}
 	else
 	{
@@ -192,7 +201,7 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 		temp = item->desc;
 		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(ctrl_exec_desc_t));
 
-		DTNMP_DEBUG_INFO("agent_db_ctrl_persist","Updated ctrl", NULL);
+		AMP_DEBUG_INFO("agent_db_ctrl_persist","Updated ctrl", NULL);
 
 		sdr_end_xn(sdr);
 	}
@@ -206,7 +215,7 @@ int  agent_db_ctrl_forget(mid_t *mid)
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_ctrl_forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_ctrl_forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -219,7 +228,7 @@ int  agent_db_forget(Object db, Object itemObj, Object descObj)
 	if(((itemObj == 0) && (descObj != 0)) ||
 	   ((itemObj != 0) && (descObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_Forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_Forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -233,7 +242,7 @@ int  agent_db_forget(Object db, Object itemObj, Object descObj)
 
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_forget","Unable to forget def.",NULL);
+			AMP_DEBUG_ERR("agent_db_forget","Unable to forget def.",NULL);
 			return -1;
 		}
 	}
@@ -251,7 +260,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_defgen_persist","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_defgen_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -269,7 +278,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = def_serialize_gen(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_defgen_persist",
+			AMP_DEBUG_ERR("agent_db_defgen_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
@@ -281,7 +290,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 		SRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_defgen_persist","Unable to persist def.",NULL);
+			AMP_DEBUG_ERR("agent_db_defgen_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 	}
@@ -336,7 +345,7 @@ int  agent_db_init()
 	{
 		case -1:  // SDR error. * /
 			sdr_cancel_xn(sdr);
-			DTNMP_DEBUG_ERR("agent_db_init", "Can't search for Agent DB in SDR.", NULL);
+			AMP_DEBUG_ERR("agent_db_init", "Can't search for Agent DB in SDR.", NULL);
 			return -1;
 
 		case 0: // Not found; Must create new DB. * /
@@ -345,12 +354,12 @@ int  agent_db_init()
 			if(gAgentDB.descObj == 0)
 			{
 				sdr_cancel_xn(sdr);
-				DTNMP_DEBUG_ERR("agent_db_init", "No space for agent database.", NULL);
+				AMP_DEBUG_ERR("agent_db_init", "No space for agent database.", NULL);
 				return -1;
 			}
-			DTNMP_DEBUG_ALWAYS("agent_db_init", "Creating DB", NULL);
+			AMP_DEBUG_ALWAYS("agent_db_init", "Creating DB", NULL);
 
-			gAgentDB.compdata = sdr_list_create(sdr);
+			gAgentDB.vars = sdr_list_create(sdr);
 			gAgentDB.ctrls = sdr_list_create(sdr);
 			gAgentDB.macros = sdr_list_create(sdr);
 			gAgentDB.reports = sdr_list_create(sdr);
@@ -366,12 +375,12 @@ int  agent_db_init()
 			/* Read in the Database. */
 			sdr_read(sdr, (char *) &gAgentDB, gAgentDB.descObj, sizeof(AgentDB));
 
-			DTNMP_DEBUG_ALWAYS("agent_db_init", "Found DB", NULL);
+			AMP_DEBUG_ALWAYS("agent_db_init", "Found DB", NULL);
 	}
 
 	if(sdr_end_xn(sdr))
 	{
-		DTNMP_DEBUG_ERR("agent_db_init", "Can't create Agent database.", NULL);
+		AMP_DEBUG_ERR("agent_db_init", "Can't create Agent database.", NULL);
 		return -1;
 	}
 
@@ -390,7 +399,7 @@ int  agent_db_macro_forget(mid_t *mid)
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_macro_forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_macro_forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -427,7 +436,7 @@ int  agent_db_report_forget(mid_t *mid)
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_report_forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_report_forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -466,7 +475,7 @@ int  agent_db_srl_persist(srl_t *item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_srl_persist","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_srl_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -484,7 +493,7 @@ int  agent_db_srl_persist(srl_t *item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = srl_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_srl_persist",
+			AMP_DEBUG_ERR("agent_db_srl_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
@@ -496,7 +505,7 @@ int  agent_db_srl_persist(srl_t *item)
 		SRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_srl_persist","Unable to persist def.",NULL);
+			AMP_DEBUG_ERR("agent_db_srl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 	}
@@ -512,7 +521,7 @@ int  agent_db_srl_persist(srl_t *item)
 
 		if(sdr_end_xn(sdr))
 		{
-			DTNMP_DEBUG_ERR("agent_db_srl_persist", "Can't create Agent database.", NULL);
+			AMP_DEBUG_ERR("agent_db_srl_persist", "Can't create Agent database.", NULL);
 			return -1;
 		}
 	}
@@ -528,7 +537,7 @@ int  agent_db_srl_forget(mid_t *mid)
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_srl_forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_srl_forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -569,7 +578,7 @@ int  agent_db_trl_persist(trl_t *item)
 	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
 	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
 	{
-		DTNMP_DEBUG_ERR("agent_db_trl_persist","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_trl_persist","bad params.",NULL);
 		return -1;
 	}
 
@@ -587,7 +596,7 @@ int  agent_db_trl_persist(trl_t *item)
 		/* Step 1.1: Serialize the item to go into the SDR.. */
 		if((data = trl_serialize(item, &(item->desc.size))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_db_trl_persist",
+			AMP_DEBUG_ERR("agent_db_trl_persist",
 					       "Unable to serialize new item.", NULL);
 			return -1;
 		}
@@ -599,7 +608,7 @@ int  agent_db_trl_persist(trl_t *item)
 		SRELEASE(data);
 		if(result != 1)
 		{
-			DTNMP_DEBUG_ERR("agent_db_trl_persist","Unable to persist def.",NULL);
+			AMP_DEBUG_ERR("agent_db_trl_persist","Unable to persist def.",NULL);
 			return -1;
 		}
 	}
@@ -615,7 +624,7 @@ int  agent_db_trl_persist(trl_t *item)
 
 		if(sdr_end_xn(sdr))
 		{
-			DTNMP_DEBUG_ERR("agent_db_trl_persist", "Can't create Agent database.", NULL);
+			AMP_DEBUG_ERR("agent_db_trl_persist", "Can't create Agent database.", NULL);
 			return -1;
 		}
 	}
@@ -630,7 +639,7 @@ int  agent_db_trl_forget(mid_t *mid)
 
 	if(item == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_db_trl_forget","bad params.",NULL);
+		AMP_DEBUG_ERR("agent_db_trl_forget","bad params.",NULL);
 		return -1;
 	}
 
@@ -691,12 +700,12 @@ void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex)
 }
 
 
-uint32_t agent_vdb_compdata_init(Sdr sdr)
+uint32_t agent_vdb_var_init(Sdr sdr)
 {
 	Object elt;
 	Object descObj;
-	cd_desc_t cur_desc;
-	cd_t *cur_item;
+	var_desc_t cur_desc;
+	var_t *cur_item;
 	uint8_t *data;
 	uint32_t bytes_used = 0;
 	uint32_t num = 0;
@@ -704,7 +713,7 @@ uint32_t agent_vdb_compdata_init(Sdr sdr)
     sdr_begin_xn(sdr);
 
     /* Step 1: Walk through report definitions. */
-    for (elt = sdr_list_first(sdr, gAgentDB.compdata); elt;
+    for (elt = sdr_list_first(sdr, gAgentDB.vars); elt;
     		elt = sdr_list_next(sdr, elt))
     {
 
@@ -717,7 +726,7 @@ uint32_t agent_vdb_compdata_init(Sdr sdr)
     	/* Step 1.2: Allocate space for the def. */
     	if((data = (uint8_t*) STAKE(cur_desc.size)) == NULL)
     	{
-    		DTNMP_DEBUG_ERR("agent_vdb_compdata_init","Can't allocate %d bytes.",
+    		AMP_DEBUG_ERR("agent_vdb_var_init","Can't allocate %d bytes.",
     					cur_desc.size);
     	}
     	else
@@ -726,11 +735,11 @@ uint32_t agent_vdb_compdata_init(Sdr sdr)
     		sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
 
     		/* Step 1.4: Deserialize into a rule object. */
-    		if((cur_item = cd_deserialize(data,
+    		if((cur_item = var_deserialize(data,
     				cur_desc.size,
 					&bytes_used)) == NULL)
     		{
-    			DTNMP_DEBUG_ERR("agent_vdb_compdata_init","Can't deserialize cd.", NULL);
+    			AMP_DEBUG_ERR("agent_vdb_var_init","Can't deserialize cd.", NULL);
     		}
     		else
     		{
@@ -738,7 +747,7 @@ uint32_t agent_vdb_compdata_init(Sdr sdr)
     			cur_item->desc = cur_desc;
 
     			/* Step 1.6: Add report def to list of report defs. */
-    			agent_vdb_add(cur_item, gAgentVDB.compdata, &(gAgentVDB.compdata_mutex));
+    			agent_vdb_add(cur_item, gAgentVDB.vars, &(gAgentVDB.var_mutex));
 
     			/* Step 1.7: Note that we have read a new report.*/
     			num++;
@@ -751,21 +760,21 @@ uint32_t agent_vdb_compdata_init(Sdr sdr)
 
     sdr_end_xn(sdr);
 
-    DTNMP_DEBUG_ALWAYS("", "Added %d Computed Data Definitions from DB.", num);
+    AMP_DEBUG_ALWAYS("", "Added %d Variable Definitions from DB.", num);
 
     return num;
 }
 
-cd_t *agent_vdb_compdata_find(mid_t *mid)
+var_t *agent_vdb_var_find(mid_t *mid)
 {
 	LystElt elt;
-	cd_t *cur = NULL;
+	var_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.compdata_mutex));
+	lockResource(&(gAgentVDB.var_mutex));
 
-	for(elt = lyst_first(gAgentVDB.compdata); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gAgentVDB.vars); elt; elt = lyst_next(elt))
 	{
-		cur = (cd_t *) lyst_data(elt);
+		cur = (var_t *) lyst_data(elt);
 		if(mid_compare(cur->id, mid, 1) == 0)
 		{
 			break;
@@ -773,31 +782,31 @@ cd_t *agent_vdb_compdata_find(mid_t *mid)
 		cur = NULL;
 	}
 
-	unlockResource(&(gAgentVDB.compdata_mutex));
+	unlockResource(&(gAgentVDB.var_mutex));
 
 	return cur;
 
 }
 
-void agent_vdb_compdata_forget(mid_t *id)
+void agent_vdb_var_forget(mid_t *id)
 {
 	LystElt elt;
-	cd_t *cur = NULL;
+	var_t *cur = NULL;
 
-	lockResource(&(gAgentVDB.compdata_mutex));
+	lockResource(&(gAgentVDB.var_mutex));
 
-	for(elt = lyst_first(gAgentVDB.compdata); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(gAgentVDB.vars); elt; elt = lyst_next(elt))
 	{
-		cur = (cd_t *) lyst_data(elt);
+		cur = (var_t *) lyst_data(elt);
 		if(mid_compare(cur->id, id, 1) == 0)
 		{
-			cd_release(cur);
+			var_release(cur);
 			lyst_delete(elt);
 			break;
 		}
 	}
 
-	unlockResource(&(gAgentVDB.compdata_mutex));
+	unlockResource(&(gAgentVDB.var_mutex));
 }
 
 
@@ -844,7 +853,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 		/* Step 1.3: Allocate space for the item. */
 		if((data = (uint8_t*) STAKE(cur_desc.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_ctrls_init","Can't allocate %d bytes.",
+			AMP_DEBUG_ERR("agent_vdb_ctrls_init","Can't allocate %d bytes.",
 					        cur_desc.size);
 		}
 		else
@@ -855,7 +864,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 			/* Step 1.5: Deserialize the item. */
 			if((cur_item = ctrl_deserialize(data,cur_desc.size, &bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_ctrls_init","Failed to deserialize ctrl.",NULL);
+				AMP_DEBUG_ERR("agent_vdb_ctrls_init","Failed to deserialize ctrl.",NULL);
 			}
 			else
 			{
@@ -877,7 +886,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 	sdr_end_xn(sdr);
 
 	/* Step 2: Note to use number of controls read in. */
-	DTNMP_DEBUG_ALWAYS("", "Added %d Controls from DB.", num);
+	AMP_DEBUG_ALWAYS("", "Added %d Controls from DB.", num);
 }
 
 
@@ -951,7 +960,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 		/* Step 1.2: Allocate space for the def. */
 		if((data = (uint8_t*) STAKE(cur_desc.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_defgen_init","Can't allocate %d bytes.",
+			AMP_DEBUG_ERR("agent_vdb_defgen_init","Can't allocate %d bytes.",
 					        cur_desc.size);
 		}
 		else
@@ -964,7 +973,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 									  cur_desc.size,
 									  &bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_defgen_init","Can't deserialize rpt.", NULL);
+				AMP_DEBUG_ERR("agent_vdb_defgen_init","Can't deserialize rpt.", NULL);
 			}
 			else
 			{
@@ -1048,7 +1057,7 @@ void agent_vdb_destroy()
 {
 
 	/* Step 1: Clear out data in lysts. */
-	cd_lyst_clear(&(gAgentVDB.compdata),    &(gAgentVDB.compdata_mutex), 1);
+	var_lyst_clear(&(gAgentVDB.vars),    &(gAgentVDB.var_mutex), 1);
     ctrl_clear_lyst(&(gAgentVDB.ctrls),     &(gAgentVDB.ctrls_mutex),    1);
     def_lyst_clear(&(gAgentVDB.macros),      &(gAgentVDB.macros_mutex),   1);
     def_lyst_clear(&(gAgentVDB.reports),    &(gAgentVDB.reports_mutex),  1);
@@ -1056,7 +1065,7 @@ void agent_vdb_destroy()
     srl_lyst_clear(&(gAgentVDB.srls),&(gAgentVDB.srls_mutex),    1);
 
     /* Step 2: Release resource locks. */
-    killResourceLock(&(gAgentVDB.compdata_mutex));
+    killResourceLock(&(gAgentVDB.var_mutex));
     killResourceLock(&(gAgentVDB.ctrls_mutex));
     killResourceLock(&(gAgentVDB.macros_mutex));
     killResourceLock(&(gAgentVDB.reports_mutex));
@@ -1089,16 +1098,16 @@ int  agent_vdb_init()
 	Sdr sdr = getIonsdr();
 	int result = 1;
 
-	DTNMP_DEBUG_ENTRY("agent_vdb_init","()",NULL);
+	AMP_DEBUG_ENTRY("agent_vdb_init","()",NULL);
 
 	/* Step 0: Clean the memory. */
 	memset(&gAgentVDB, 0, sizeof(gAgentVDB));
 
 	/* Step 1: Create lysts and associated resource locks. */
 
-	if((gAgentVDB.compdata = lyst_create()) == NULL) result = -1;
-    if(initResourceLock(&(gAgentVDB.compdata_mutex))) result = -1;
-    agent_vdb_compdata_init(sdr);
+	if((gAgentVDB.vars = lyst_create()) == NULL) result = -1;
+    if(initResourceLock(&(gAgentVDB.var_mutex))) result = -1;
+    agent_vdb_var_init(sdr);
 
 	if((gAgentVDB.ctrls = lyst_create()) == NULL) result = -1;
     if(initResourceLock(&(gAgentVDB.ctrls_mutex))) result = -1;
@@ -1120,7 +1129,7 @@ int  agent_vdb_init()
     if(initResourceLock(&(gAgentVDB.srls_mutex))) result = -1;
     agent_vdb_srls_init(sdr);
 
-    DTNMP_DEBUG_EXIT("agent_vdb_init","-->%d",result);
+    AMP_DEBUG_EXIT("agent_vdb_init","-->%d",result);
 
     return result;
 }
@@ -1132,7 +1141,7 @@ void agent_vdb_macros_init(Sdr sdr)
 
 	num = agent_vdb_defgen_init(sdr, gAgentDB.macros, gAgentVDB.macros, &(gAgentVDB.macros_mutex));
 
-	DTNMP_DEBUG_ALWAYS("", "Added %d Macros from DB.", num);
+	AMP_DEBUG_ALWAYS("", "Added %d Macros from DB.", num);
 }
 
 def_gen_t *agent_vdb_macro_find(mid_t *mid)
@@ -1169,7 +1178,7 @@ void agent_vdb_reports_init(Sdr sdr)
 
 	num = agent_vdb_defgen_init(sdr, gAgentDB.reports, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
 
-	DTNMP_DEBUG_ALWAYS("", "Added %d Reports from DB.", num);
+	AMP_DEBUG_ALWAYS("", "Added %d Reports from DB.", num);
 }
 
 def_gen_t *agent_vdb_report_find(mid_t *mid)
@@ -1208,7 +1217,7 @@ void       agent_vdb_srls_init(Sdr sdr)
 		/* Step 1.2: Allocate space for the rule. */
 		if((data = (uint8_t*) STAKE(cur_descr.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_srls_init","Can't allocate %d bytes.",
+			AMP_DEBUG_ERR("agent_vdb_srls_init","Can't allocate %d bytes.",
 					        cur_descr.size);
 		}
 		else
@@ -1219,7 +1228,7 @@ void       agent_vdb_srls_init(Sdr sdr)
 			/* Step 1.4: Deserialize into a rule object. */
 			if((cur_item = srl_deserialize(data,cur_descr.size,&bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_srls_init","Can't deserialize rule.", NULL);
+				AMP_DEBUG_ERR("agent_vdb_srls_init","Can't deserialize rule.", NULL);
 			}
 			else
 			{
@@ -1240,10 +1249,10 @@ void       agent_vdb_srls_init(Sdr sdr)
 
 	sdr_end_xn(sdr);
 
-	gAgentInstr.num_prod_rules = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
+	gAgentInstr.num_srls = agent_db_count(gAgentVDB.srls, &(gAgentVDB.srls_mutex));
 
 	/* Step 2: Print to user total number of rules read.*/
-	DTNMP_DEBUG_ALWAYS("", "Added %d SRLs from DB.", num);
+	AMP_DEBUG_ALWAYS("", "Added %d SRLs from DB.", num);
 }
 
 
@@ -1323,7 +1332,7 @@ void agent_vdb_trls_init(Sdr sdr)
 		/* Step 1.2: Allocate space for the rule. */
 		if((data = (uint8_t*) STAKE(cur_descr.size)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("agent_vdb_trls_init","Can't allocate %d bytes.",
+			AMP_DEBUG_ERR("agent_vdb_trls_init","Can't allocate %d bytes.",
 					        cur_descr.size);
 		}
 		else
@@ -1334,7 +1343,7 @@ void agent_vdb_trls_init(Sdr sdr)
 			/* Step 1.4: Deserialize into a rule object. */
 			if((cur_item = trl_deserialize(data,cur_descr.size,&bytes_used)) == NULL)
 			{
-				DTNMP_DEBUG_ERR("agent_vdb_trls_init","Can't deserialize rule.", NULL);
+				AMP_DEBUG_ERR("agent_vdb_trls_init","Can't deserialize rule.", NULL);
 			}
 			else
 			{
@@ -1355,10 +1364,10 @@ void agent_vdb_trls_init(Sdr sdr)
 
 	sdr_end_xn(sdr);
 
-	gAgentInstr.num_time_rules = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
+	gAgentInstr.num_trls = agent_db_count(gAgentVDB.trls, &(gAgentVDB.trls_mutex));
 
 	/* Step 2: Print to user total number of rules read.*/
-	DTNMP_DEBUG_ALWAYS("", "Added %d TRLs from DB.", num);
+	AMP_DEBUG_ALWAYS("", "Added %d TRLs from DB.", num);
 }
 
 

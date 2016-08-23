@@ -3,17 +3,12 @@
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 
 /*****************************************************************************
  **
- ** File Name: adm_agent.h
+ ** File Name: adm_agent_impl.h
  **
  **
  ** Description: This file implements the private (agent-specific) aspects of
@@ -41,8 +36,12 @@
 #include "instr.h"
 #include "shared/primitives/expr.h"
 
-void agent_adm_init_agent();
 
+/*
+ * +--------------------------------------------------------------------------+
+ * |							  CONSTANTS  								  +
+ * +--------------------------------------------------------------------------+
+ */
 
 typedef enum
 {
@@ -72,72 +71,83 @@ typedef enum
 } agent_adm_op_e;
 
 
-/******************************************************************************
- *                            Retrieval Functions                             *
- ******************************************************************************/
+/*
+ * +--------------------------------------------------------------------------+
+ * |							  	MACROS  								  +
+ * +--------------------------------------------------------------------------+
+ */
 
 
-/* Retrieval Functions */
+/*
+ * +--------------------------------------------------------------------------+
+ * |							  DATA TYPES  								  +
+ * +--------------------------------------------------------------------------+
+ */
 
-/* DTNMP AGENT */
 
-/* MEtadata Functions */
-value_t agent_md_name(tdc_t params);
-value_t agent_md_ver(tdc_t params);
+/*
+ * +--------------------------------------------------------------------------+
+ * |						  FUNCTION PROTOTYPES  							  +
+ * +--------------------------------------------------------------------------+
+ */
+
+/* Metadata Functions. */
+value_t adm_agent_md_name(tdc_t params);
+value_t adm_agent_md_ver(tdc_t params);
 
 
 
 /* Collect Functions */
-value_t agent_get_num_rpt(tdc_t params);
-value_t agent_get_sent_rpt(tdc_t params);
-value_t agent_get_num_trl(tdc_t params);
-value_t agent_get_run_trl(tdc_t params);
-value_t agent_get_num_srl(tdc_t params);
-value_t agent_get_run_srl(tdc_t params);
-value_t agent_get_num_lit(tdc_t params);
-value_t agent_get_num_cust(tdc_t params);
-value_t agent_get_num_mac(tdc_t params);
-value_t agent_get_run_mac(tdc_t params);
-value_t agent_get_num_ctrl(tdc_t params);
-value_t agent_get_run_ctrl(tdc_t params);
-value_t agent_get_curtime(tdc_t params);
+value_t adm_agent_get_num_rpt(tdc_t params);
+value_t adm_agent_get_sent_rpt(tdc_t params);
+value_t adm_agent_get_num_trl(tdc_t params);
+value_t adm_agent_get_run_trl(tdc_t params);
+value_t adm_agent_get_num_srl(tdc_t params);
+value_t adm_agent_get_run_srl(tdc_t params);
+value_t adm_agent_get_num_lit(tdc_t params);
+value_t adm_agent_get_num_var(tdc_t params);
+value_t adm_agent_get_num_mac(tdc_t params);
+value_t adm_agent_get_run_mac(tdc_t params);
+value_t adm_agent_get_num_ctrl(tdc_t params);
+value_t adm_agent_get_run_ctrl(tdc_t params);
+value_t adm_agent_get_curtime(tdc_t params);
 
 /* Control Functions */
 
-tdc_t* agent_ctl_adm_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_adm_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctl_cd_add(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_cd_del(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_cd_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_cd_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_var_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_var_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_var_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_var_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctl_rpt_add(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_rpt_del(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_rpt_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_rpt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_rptt_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_rptt_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_rptt_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_rptt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_rpt_gen(eid_t *def_mgr, tdc_t params, int8_t *status);
 
 
-tdc_t* agent_ctl_mac_add(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_mac_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_mac_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_mac_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_mac_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_trl_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_trl_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_trl_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_trl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_srl_del(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_srl_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_srl_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_srl_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_srl_dsc(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctl_lit_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_lit_lst(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctl_stor(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_stor(eid_t *def_mgr, tdc_t params, int8_t *status);
 
-tdc_t* agent_ctrl_reset_cnt(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_agent_ctl_reset_cnt(eid_t *def_mgr, tdc_t params, int8_t *status);
 
 
 /* OP Functions. */

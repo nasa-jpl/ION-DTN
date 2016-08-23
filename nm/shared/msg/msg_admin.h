@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -26,8 +20,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  09/24/12  E. Birrane     Initial Implementation
- **  11/01/12  E. Birrane     Redesign of messaging architecture.
+ **  09/24/12  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/01/12  E. Birrane     Redesign of messaging architecture. (JHU/APL)
  *****************************************************************************/
 
 #ifndef MSG_ADMIN_H_

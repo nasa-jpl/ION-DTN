@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: expr.c
@@ -14,7 +20,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/28/13  E. Birrane Initial Implementation
+ **  07/28/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "expr.h"
@@ -28,7 +35,7 @@
 
 
 // Shallow copy.
-expr_t *expr_create(dtnmp_type_e type, Lyst contents)
+expr_t *expr_create(amp_type_e type, Lyst contents)
 {
 	expr_t *result = NULL;
 
@@ -57,7 +64,7 @@ expr_t *expr_deserialize(uint8_t *cursor,
 	expr_t *result = NULL;
 	uint32_t bytes = 0;
 
-	dtnmp_type_e type;
+	amp_type_e type;
 	Lyst contents;
 
 	type = *cursor;
@@ -122,14 +129,14 @@ char *expr_to_string(expr_t *expr)
 	CHKNULL(expr);
 	if((contents = midcol_to_string(expr->contents)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_to_string","Can't to_str midcol.", NULL);
+		AMP_DEBUG_ERR("expr_to_string","Can't to_str midcol.", NULL);
 		return NULL;
 	}
 
 	size = strlen(contents) + 13;
 	if((result = (char *) STAKE(size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_to_string","Can't allocate %d bytes.", size);
+		AMP_DEBUG_ERR("expr_to_string","Can't allocate %d bytes.", size);
 
 		SRELEASE(contents);
 		return NULL;
@@ -147,28 +154,28 @@ value_t expr_get_atomic(mid_t *mid)
 	value_t result;
 	adm_datadef_t *adm_def = NULL;
 
-    DTNMP_DEBUG_ENTRY("expr_get_atomic","(0x%x)", (unsigned long) mid);
+    AMP_DEBUG_ENTRY("expr_get_atomic","(0x%x)", (unsigned long) mid);
 
     val_init(&result);
 
     /* Step 0: Sanity Checks. */
     if(mid == NULL)
     {
-    	DTNMP_DEBUG_ERR("expr_get_atomic","Bad Args", NULL);
+    	AMP_DEBUG_ERR("expr_get_atomic","Bad Args", NULL);
     	return result;
     }
 
     /* Step 1: Find the atomic definition. */
     if((adm_def = adm_find_datadef(mid)) == NULL)
     {
-      	DTNMP_DEBUG_INFO("expr_get_atomic","Can't find def.", NULL);
+      	AMP_DEBUG_INFO("expr_get_atomic","Can't find def.", NULL);
     	return result;
     }
 
     /* Step 2: Collect the value. */
     result = adm_def->collect(mid->oid.params);
 
-	DTNMP_DEBUG_EXIT("expr_get_atomic", "->%d", result.type);
+	AMP_DEBUG_EXIT("expr_get_atomic", "->%d", result.type);
 
 	return result;
 }
@@ -178,16 +185,16 @@ value_t expr_get_atomic(mid_t *mid)
 value_t expr_get_computed(mid_t *mid)
 {
 	value_t result;
-	cd_t *cd = NULL;
+	var_t *cd = NULL;
 
-    DTNMP_DEBUG_ENTRY("expr_get_computed","(0x%x)", (unsigned long) mid);
+    AMP_DEBUG_ENTRY("expr_get_computed","(0x%x)", (unsigned long) mid);
 
     val_init(&result);
 
     /* Step 0: Sanity Checks. */
     if(mid == NULL)
     {
-    	DTNMP_DEBUG_ERR("expr_get_computed","Bad Args", NULL);
+    	AMP_DEBUG_ERR("expr_get_computed","Bad Args", NULL);
     	return result;
     }
 
@@ -196,22 +203,22 @@ value_t expr_get_computed(mid_t *mid)
     {
 
 #ifdef AGENT_ROLE
-    	if((cd = cd_find_by_id(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex), mid)) == NULL)
+    	if((cd = var_find_by_id(gAgentVDB.vars, &(gAgentVDB.var_mutex), mid)) == NULL)
 		{
-	      	DTNMP_DEBUG_ERR("expr_get_computed","Can't find cd.", NULL);
+	      	AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
 	    	return result;
 		}
 #else
-		if((cd = cd_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), mid)) == NULL)
+		if((cd = var_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), mid)) == NULL)
 		{
-		  	DTNMP_DEBUG_ERR("expr_get_computed","Can't find cd.", NULL);
+		  	AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
 		   	return result;
 		}
 #endif
     }
 
     /* Step 2: create ephermeral value to use in this evaluation. */
-    if(cd->value.type == DTNMP_TYPE_EXPR)
+    if(cd->value.type == AMP_TYPE_EXPR)
     {
     	/* \todo: limit recursion. */
         result = expr_eval((expr_t*)cd->value.value.as_ptr);
@@ -221,7 +228,7 @@ value_t expr_get_computed(mid_t *mid)
         result = val_copy(cd->value);
     }
 
-	DTNMP_DEBUG_EXIT("expr_get_computed", "->%d", result.type);
+	AMP_DEBUG_EXIT("expr_get_computed", "->%d", result.type);
 
 	return result;
 }
@@ -234,19 +241,19 @@ value_t expr_get_literal(mid_t *mid)
 	lit_t *lit = NULL;
 	mid_t *tmp_mid = NULL;
 
-	DTNMP_DEBUG_ENTRY("expr_get_literal","(%#llx)", (unsigned long) mid);
+	AMP_DEBUG_ENTRY("expr_get_literal","(%#llx)", (unsigned long) mid);
 
 	val_init(&result);
 
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_get_literal","Bad Parms.", NULL);
+		AMP_DEBUG_ERR("expr_get_literal","Bad Parms.", NULL);
     	return result;
 	}
 
 	if((lit = adm_find_lit(mid)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_get_literal","Can't find literal.", NULL);
+		AMP_DEBUG_ERR("expr_get_literal","Can't find literal.", NULL);
     	return result;
 	}
 
@@ -256,7 +263,7 @@ value_t expr_get_literal(mid_t *mid)
 	result = lit_get_value(lit);
 	lit->id = tmp_mid;
 
-	DTNMP_DEBUG_EXIT("expr_get_literal", "->%d", result.type);
+	AMP_DEBUG_EXIT("expr_get_literal", "->%d", result.type);
 
 	return result;
 }
@@ -301,13 +308,13 @@ value_t expr_apply_op(mid_t *op_mid, Lyst *stack)
 	int i;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("expr_apply_op","(%#llx, %#llx)", (unsigned long) op_mid, (unsigned long) stack);
+	AMP_DEBUG_ENTRY("expr_apply_op","(%#llx, %#llx)", (unsigned long) op_mid, (unsigned long) stack);
 
 	val_init(&result);
 
 	if((op = adm_find_op(op_mid)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_apply_op","Can't find operator.", NULL);
+		AMP_DEBUG_ERR("expr_apply_op","Can't find operator.", NULL);
     	return result;
 	}
 
@@ -321,7 +328,7 @@ value_t expr_apply_op(mid_t *op_mid, Lyst *stack)
 		lyst_delete(elt);
 	}
 
-	DTNMP_DEBUG_EXIT("expr_apply_op","->%d", result.type);
+	AMP_DEBUG_EXIT("expr_apply_op","->%d", result.type);
 
 	return result;
 }
@@ -365,14 +372,14 @@ value_t expr_eval(expr_t *expr)
 	mid_t *cur_mid = NULL;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("expr_eval","(0x"ADDR_FIELDSPEC")", (uaddr) expr);
+	AMP_DEBUG_ENTRY("expr_eval","(0x"ADDR_FIELDSPEC")", (uaddr) expr);
 
 	val_init(&result);
 
 	/* Step 0 - Sanity Checks. */
 	if(expr == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_eval","Bad Parms.", NULL);
+		AMP_DEBUG_ERR("expr_eval","Bad Parms.", NULL);
     	return result;
 	}
 
@@ -382,7 +389,7 @@ value_t expr_eval(expr_t *expr)
 	/* Step 2 - Create the stack. */
 	if((stack = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("expr_eval","Can't create Stack Lyst.", NULL);
+		AMP_DEBUG_ERR("expr_eval","Can't create Stack Lyst.", NULL);
 		return result;
 	}
 
@@ -396,7 +403,7 @@ value_t expr_eval(expr_t *expr)
 		{
 			valcol_destroy(&stack);
 
-			DTNMP_DEBUG_ERR("expr_eval","Bad MID in expression.", NULL);
+			AMP_DEBUG_ERR("expr_eval","Bad MID in expression.", NULL);
 	    	return result;
 		}
 
@@ -405,22 +412,22 @@ value_t expr_eval(expr_t *expr)
 		{
 			/* Step 2.2.1 - Calculate the new value and put it on the stack. */
 			tmp = expr_apply_op(cur_mid, &stack);
-			if(tmp.type == DTNMP_TYPE_UNK)
+			if(tmp.type == AMP_TYPE_UNK)
 			{
 				char *msg = mid_to_string(cur_mid);
 
 				if(msg != NULL)
 				{
-					DTNMP_DEBUG_ERR("expr_eval","No value for MID %s.", msg);
+					AMP_DEBUG_ERR("expr_eval","No value for MID %s.", msg);
 					SRELEASE(msg);
 				}
 				else
 				{
-					DTNMP_DEBUG_ERR("expr_eval","No value for MID ??.", NULL);
+					AMP_DEBUG_ERR("expr_eval","No value for MID ??.", NULL);
 				}
 
 				valcol_destroy(&stack);
-				DTNMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
+				AMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
 		    	return result;
 			}
 
@@ -430,22 +437,22 @@ value_t expr_eval(expr_t *expr)
 		else
 		{
 			tmp = expr_get_val(cur_mid);
-			if(tmp.type == DTNMP_TYPE_UNK)
+			if(tmp.type == AMP_TYPE_UNK)
 			{
 				char *msg = mid_to_string(cur_mid);
 
 				if(msg != NULL)
 				{
-					DTNMP_DEBUG_ERR("expr_eval","No value for MID %s.", msg);
+					AMP_DEBUG_ERR("expr_eval","No value for MID %s.", msg);
 					SRELEASE(msg);
 				}
 				else
 				{
-					DTNMP_DEBUG_ERR("expr_eval","No value for MID ??.", NULL);
+					AMP_DEBUG_ERR("expr_eval","No value for MID ??.", NULL);
 				}
 
 				valcol_destroy(&stack);
-				DTNMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
+				AMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
 				return result;
 			}
 
@@ -456,10 +463,10 @@ value_t expr_eval(expr_t *expr)
 	/* Step 3 - Sanity check. We should have 1 result on the stack. */
 	if(lyst_length(stack) > 1)
 	{
-		DTNMP_DEBUG_ERR("expr_eval","Stack has %d items?", lyst_length(stack));
+		AMP_DEBUG_ERR("expr_eval","Stack has %d items?", lyst_length(stack));
 
 		valcol_destroy(&stack);
-		DTNMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
+		AMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
     	return result;
 	}
 
@@ -468,7 +475,7 @@ value_t expr_eval(expr_t *expr)
 
 	if(val_cvt_type(v_ptr, expr->type) != 1)
 	{
-		DTNMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", v_ptr->type, expr->type);
+		AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", v_ptr->type, expr->type);
 		val_release(v_ptr, 1);
 		return result;
 	}

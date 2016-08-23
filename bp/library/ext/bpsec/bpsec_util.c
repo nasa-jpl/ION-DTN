@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2009 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -61,13 +55,14 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
  **  --------  ------------  -----------------------------------------------
- **  06/08/09  E. Birrane           Initial Implementation of BAB blocks.
- **  06/15/09  E. Birrane           BAB Unit Testing and Documentation updates.
- **  06/20/09  E. Birrane           Documentation updates for initial release.
+ **  06/08/09  E. Birrane           Initial Implementation of BAB blocks. (JHU/APL)
+ **  06/15/09  E. Birrane           BAB Unit Testing and Documentation updates. (JHU/APL)
+ **  06/20/09  E. Birrane           Documentation updates for initial release. (JHU/APL)
  **  12/04/09  S. Burleigh          Revisions per DINET and DEN testing.
- **  01/14/11  B. Van Besien        Revised to use old security syntax.
+ **  01/14/11  B. Van Besien        Revised to use old security syntax. (JHU/APL)
  **  01/14/14  S. Burleigh          Revised for "streamlined" BSP.
  **  01/23/16  E. Birrane           Update to BPSEC
+ **                                 [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
 /*****************************************************************************
@@ -323,8 +318,7 @@ int8_t	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast	 ltemp;
 	uint32_t itemp;
 
-	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB(" ADDR_FIELDSPEC "," 
-			ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
+	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB("ADDR_FIELDSPEC","ADDR_FIELDSPEC"%d)", (uaddr) blk, (uaddr) wk);
 
 	CHKERR(blk);
 	CHKERR(wk);

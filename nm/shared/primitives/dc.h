@@ -17,8 +17,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/28/15  E. Birrane     Initial Implementation
- **  04/14/16  E. Birrane     Migrated to BLOB type
+ **  05/28/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  04/14/16  E. Birrane     Migrated to BLOB type (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef DC_H_

@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: lcc.c
@@ -13,8 +19,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/22/13  E. Birrane     Update to latest version of DTNMP. Cleanup.
- **  05/17/15  E. Birrane     Add Macro support, updated to DTNMP v0.1
+ **  01/22/13  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
+ **  05/17/15  E. Birrane     Add Macro support, updated to DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "shared/adm/adm.h"
@@ -60,41 +66,41 @@ int lcc_run_ctrl_mid(mid_t *id)
 
     nesting++;
 
-    DTNMP_DEBUG_ENTRY("lcc_run_ctrl_mid","(0x%#llx)", (unsigned long) id);
+    AMP_DEBUG_ENTRY("lcc_run_ctrl_mid","(0x%#llx)", (unsigned long) id);
 
 
     /* Step 0: Sanity Check */
     if((id == NULL) || (id->oid.type == OID_TYPE_UNK))
     {
-    	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Bad Args.",NULL);
-    	DTNMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
+    	AMP_DEBUG_ERR("lcc_run_ctrl_mid","Bad Args.",NULL);
+    	AMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
     	nesting--;
     	return -1;
     }
 
     if(nesting > 5)
     {
-    	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Too many nesting levels (%d).",nesting);
-    	DTNMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
+    	AMP_DEBUG_ERR("lcc_run_ctrl_mid","Too many nesting levels (%d).",nesting);
+    	AMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
     	nesting--;
     	return -1;
     }
 
     msg = mid_to_string(id);
-    DTNMP_DEBUG_INFO("lcc_run_ctrl_mid","Running control: %s", msg);
+    AMP_DEBUG_INFO("lcc_run_ctrl_mid","Running control: %s", msg);
 
     /* Step 1: See if this identifies an atomic control. */
     if((adm_ctrl = adm_find_ctrl(id)) != NULL)
     {
         tdc_t *retval = NULL;
 
-    	DTNMP_DEBUG_INFO("lcc_run_ctrl_mid","Found control.", NULL);
+    	AMP_DEBUG_INFO("lcc_run_ctrl_mid","Found control.", NULL);
 
     	retval = adm_ctrl->run(&manager_eid, id->oid.params, &status);
 
     	if(status != CTRL_SUCCESS)
     	{
-    		DTNMP_DEBUG_WARN("lcc_run_ctrl_mid","Error running control.", NULL);
+    		AMP_DEBUG_WARN("lcc_run_ctrl_mid","Error running control.", NULL);
     	}
     	else if(retval != NULL)
     	{
@@ -115,13 +121,13 @@ int lcc_run_ctrl_mid(mid_t *id)
     	{
     		if(lcc_run_macro(macro_def->contents) != 0)
     		{
-    			DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Error running macro %s.", msg);
+    			AMP_DEBUG_ERR("lcc_run_ctrl_mid","Error running macro %s.", msg);
     		}
     	}
         /* Step 3: Otherwise, give up. */
         else
         {
-        	DTNMP_DEBUG_ERR("lcc_run_ctrl_mid","Could not find control for MID %s",
+        	AMP_DEBUG_ERR("lcc_run_ctrl_mid","Could not find control for MID %s",
         			        msg);
         	result = -1;
         }
@@ -130,7 +136,7 @@ int lcc_run_ctrl_mid(mid_t *id)
     SRELEASE(msg);
 
     nesting--;
-    DTNMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> %d", result);
+    AMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> %d", result);
     return result;
 }
 
@@ -160,13 +166,13 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 	int8_t status = CTRL_FAILURE;
     tdc_t* retval = NULL;
 
-	DTNMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) ctrl_p);
+	AMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) ctrl_p);
 
 	/* Step 0: Sanity Check */
 	if((ctrl_p == NULL) || (ctrl_p->adm_ctrl == NULL) || (ctrl_p->adm_ctrl->run == NULL))
 	{
-		DTNMP_DEBUG_ERR("lcc_run_ctrl","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> -1",NULL);
+		AMP_DEBUG_ERR("lcc_run_ctrl","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("lcc_run_ctrl","-> -1",NULL);
 		return -1;
 	}
 
@@ -176,7 +182,7 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 
 	if(status != CTRL_SUCCESS)
 	{
-		DTNMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
+		AMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
 	}
 	else if(retval != NULL)
 	{
@@ -191,7 +197,7 @@ int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
 		tdc_destroy(&retval);
 	}
 
-	DTNMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
+	AMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
 	return status;
 }
 
@@ -203,7 +209,7 @@ int lcc_run_macro(Lyst macro)
 
 	if(macro == NULL)
 	{
-		DTNMP_DEBUG_ERR("lcc_run_macro","Bad Args", NULL);
+		AMP_DEBUG_ERR("lcc_run_macro","Bad Args", NULL);
 		return -1;
 	}
 
@@ -249,7 +255,7 @@ void lcc_send_retval(eid_t *rx, tdc_t *retval, mid_t *mid)
 	/* Step 0: Sanity Checks. */
 	if((rx == NULL) || (mid == NULL))
 	{
-		DTNMP_DEBUG_ERR("lcc_send_retval","Bad Args.", NULL);
+		AMP_DEBUG_ERR("lcc_send_retval","Bad Args.", NULL);
 		return;
 	}
 

@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file report.h
@@ -15,9 +20,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/11/13  E. Birrane     Redesign of primitives architecture.
- **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
- **  07/02/15  E. Birrane     Migrated to Typed Data Collections (TDCs)
+ **  01/11/13  E. Birrane     Redesign of primitives architecture. (JHU/APL)
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
+ **  07/02/15  E. Birrane     Migrated to Typed Data Collections (TDCs) (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 

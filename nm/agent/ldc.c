@@ -3,11 +3,6 @@
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,8 +19,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/22/11  E. Birrane     Code comments and functional updates.
- **  01/10/13  E. Birrane     Update to latest version of DTNMP. Cleanup.
+ **  10/22/11  E. Birrane     Code comments and functional updates. (JHU/APL)
+ **  01/10/13  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
  *****************************************************************************/
 
 #include "shared/adm/adm.h"
@@ -64,19 +59,19 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
     int result = -1;
     char *msg = NULL;
 
-    DTNMP_DEBUG_ENTRY("ldc_fill_report_entry","(0x%x)",
+    AMP_DEBUG_ENTRY("ldc_fill_report_entry","(0x%x)",
     		          (unsigned long) entry);
 
     /* Step 0: Sanity Check */
     if(entry == NULL)
     {
-    	DTNMP_DEBUG_ERR("ldc_fill_report_entry","Bad Args.",NULL);
-    	DTNMP_DEBUG_EXIT("ldc_fill_report_entry","-> -1",NULL);
+    	AMP_DEBUG_ERR("ldc_fill_report_entry","Bad Args.",NULL);
+    	AMP_DEBUG_EXIT("ldc_fill_report_entry","-> -1",NULL);
     	return -1;
     }
 
     msg = mid_to_string(entry->id);
-    DTNMP_DEBUG_INFO("ldc_fill_report_entry","Gathering report data for MID: %s",
+    AMP_DEBUG_INFO("ldc_fill_report_entry","Gathering report data for MID: %s",
     		         msg);
 
     /* Step 1: Search for this MID...
@@ -99,7 +94,7 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
 
     	    if((adm_def = adm_find_datadef(entry->id)) != NULL)
     	    {
-    	    	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling pre-defined.", NULL);
+    	    	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling pre-defined.", NULL);
     	    	result = ldc_fill_atomic(adm_def, entry);
     	    }
     	}
@@ -108,18 +103,18 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
    		/* Step 1.2: If this is a computed definition... */
     	case MID_COMPUTED:
     	{
-    	    cd_t *cd_def = NULL;
+    	    var_t *cd_def = NULL;
 
     		/* Step 1.3.1: Check if this is an ADM-defined CD. */
-    		if((cd_def = cd_find_by_id(gAdmComputed, NULL, entry->id)) != NULL)
+    		if((cd_def = var_find_by_id(gAdmComputed, NULL, entry->id)) != NULL)
     		{
-    	       	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling ADM Custom Definition.", NULL);
+    	       	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling ADM Custom Definition.", NULL);
     	       	result = ldc_fill_computed(cd_def, entry);
     		}
     		/* Step 1.3.2: Check if this is a user-defined CD. */
-    		else if((cd_def = cd_find_by_id(gAgentVDB.compdata, &(gAgentVDB.compdata_mutex), entry->id)) != NULL)
+    		else if((cd_def = var_find_by_id(gAgentVDB.vars, &(gAgentVDB.var_mutex), entry->id)) != NULL)
     	    {
-    	       	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling User Computed Definition.", NULL);
+    	       	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling User Computed Definition.", NULL);
     	       	result = ldc_fill_computed(cd_def, entry);
     	    }
      	}
@@ -133,13 +128,13 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
     		/* Step 1.3.1: Check if this is an ADM-defined report. */
     		if((rpt_def = def_find_by_id(gAdmRpts, NULL, entry->id)) != NULL)
     		{
-    	       	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling ADM Report.", NULL);
+    	       	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling ADM Report.", NULL);
     	       	result = ldc_fill_custom(rpt_def, entry);
     		}
     		/* Step 1.3.2: Check if this is a user-defined report. */
     		else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), entry->id)) != NULL)
     	    {
-    	       	DTNMP_DEBUG_INFO("ldc_fill_report_entry","Filling User Report.", NULL);
+    	       	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling User Report.", NULL);
     	       	result = ldc_fill_custom(rpt_def, entry);
     	    }
     	}
@@ -148,12 +143,12 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
 
     if(result == -1)
     {
-    	DTNMP_DEBUG_ERR("ldc_fill_report_entry","Could not find def for MID %s",
+    	AMP_DEBUG_ERR("ldc_fill_report_entry","Could not find def for MID %s",
     			        msg);
     }
 
     SRELEASE(msg);
-    DTNMP_DEBUG_EXIT("ldc_fill_report_entry","-> %d", result);
+    AMP_DEBUG_EXIT("ldc_fill_report_entry","-> %d", result);
     return result;
 }
 
@@ -195,7 +190,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 
 	static int nesting = 0;
 
-	DTNMP_DEBUG_ENTRY("ldc_fill_custom","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("ldc_fill_custom","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 			          (uaddr) def, (uaddr) entry);
 
 	nesting++;
@@ -203,8 +198,8 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 	/* Step 0: Sanity Checks. */
 	if((def == NULL) || (entry == NULL))
 	{
-		DTNMP_DEBUG_ERR("ldc_fill_custom","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		AMP_DEBUG_ERR("ldc_fill_custom","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
 		nesting--;
 		return -1;
 	}
@@ -212,8 +207,8 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 	/* Step 1: Check for too much recursion. */
 	if(nesting > 5)
 	{
-		DTNMP_DEBUG_ERR("ldc_fill_custom","Too many nesting levels %d.", nesting);
-		DTNMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		AMP_DEBUG_ERR("ldc_fill_custom","Too many nesting levels %d.", nesting);
+		AMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
 		nesting--;
 		return -1;
 	}
@@ -221,7 +216,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 	/* Step 2: Create a list to hold temporary entries. */
 	if((tmp_entries = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ldc_fill_custom","Can't create lyst.", NULL);
+		AMP_DEBUG_ERR("ldc_fill_custom","Can't create lyst.", NULL);
 		nesting--;
 		return -1;
 	}
@@ -238,7 +233,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         /* Step 3.1 Grab the mid */
         if((cur_mid = (mid_t*)lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
+        	AMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
         	result = -1;
         	break;
         }
@@ -273,7 +268,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 
         if(tmp_entry == NULL)
         {
-        	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't allocate entry.", NULL);
+        	AMP_DEBUG_ERR("ldc_fill_custom","Can't allocate entry.", NULL);
         	result = -1;
         	break;
         }
@@ -281,7 +276,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         /* Step 3.3 Fill in the temporary entry. */
       	if(ldc_fill_report_entry(tmp_entry) != 0)
       	{
-      		DTNMP_DEBUG_ERR("ldc_fill_custom","Can't populate entry!", NULL);
+      		AMP_DEBUG_ERR("ldc_fill_custom","Can't populate entry!", NULL);
       		result = -1;
       		break;
       	}
@@ -302,7 +297,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         }
         lyst_destroy(tmp_entries);
 
-    	DTNMP_DEBUG_EXIT("ldc_fill_custom","->-1",NULL);
+    	AMP_DEBUG_EXIT("ldc_fill_custom","->-1",NULL);
 
     	nesting--;
     	return -1;
@@ -362,30 +357,30 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
     uint8_t *val_data = NULL;
     uint32_t val_len = 0;
 
-    DTNMP_DEBUG_ENTRY("ldc_fill_atomic","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+    AMP_DEBUG_ENTRY("ldc_fill_atomic","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
     			      (uaddr) adm_def, (uaddr) entry);
 
     /* Step 0: Sanity Checks. */
     if((adm_def == NULL) || (entry == NULL))
     {
-        DTNMP_DEBUG_ERR("ldc_fill_atomic","Bad Args", NULL);
-        DTNMP_DEBUG_EXIT("ldc_fill_atomic","-> -1.", NULL);
+        AMP_DEBUG_ERR("ldc_fill_atomic","Bad Args", NULL);
+        AMP_DEBUG_EXIT("ldc_fill_atomic","-> -1.", NULL);
         return -1;
     }
 
     /* Step 1: Collect the information for this datum. */
     value_t result = adm_def->collect(entry->id->oid.params);
 
-    if(result.type == DTNMP_TYPE_UNK)
+    if(result.type == AMP_TYPE_UNK)
     {
     	char *midstr = mid_to_string(entry->id);
     	if(midstr == NULL)
     	{
-    		DTNMP_DEBUG_INFO("ldc_fill_atomic","Unable to collect NULL MID", NULL);
+    		AMP_DEBUG_INFO("ldc_fill_atomic","Unable to collect NULL MID", NULL);
     	}
     	else
     	{
-    		DTNMP_DEBUG_INFO("ldc_fill_atomic","Unable to collect %s", midstr);
+    		AMP_DEBUG_INFO("ldc_fill_atomic","Unable to collect %s", midstr);
         	SRELEASE(midstr);
     	}
     }
@@ -397,7 +392,7 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
     	val_release(&result, 0);
     }
 
-    DTNMP_DEBUG_EXIT("ldc_fill_atomic","-> 0", NULL);
+    AMP_DEBUG_EXIT("ldc_fill_atomic","-> 0", NULL);
     return 0;
 }
 
@@ -424,20 +419,20 @@ int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry)
  *  07/31/15  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int ldc_fill_computed(cd_t *cd, rpt_entry_t *entry)
+int ldc_fill_computed(var_t *cd, rpt_entry_t *entry)
 {
     uint8_t *val_data = NULL;
     uint32_t val_len = 0;
     value_t result;
 
-    DTNMP_DEBUG_ENTRY("ldc_fill_computed","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")",
+    AMP_DEBUG_ENTRY("ldc_fill_computed","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")",
     			      (uaddr) cd, (uaddr) entry);
 
     /* Step 0: Sanity Checks. */
     if((cd == NULL) || (entry == NULL))
     {
-        DTNMP_DEBUG_ERR("ldc_fill_computed","Bad Args", NULL);
-        DTNMP_DEBUG_EXIT("ldc_fill_computed","-> -1.", NULL);
+        AMP_DEBUG_ERR("ldc_fill_computed","Bad Args", NULL);
+        AMP_DEBUG_EXIT("ldc_fill_computed","-> -1.", NULL);
         return -1;
     }
 
@@ -445,7 +440,7 @@ int ldc_fill_computed(cd_t *cd, rpt_entry_t *entry)
 
     /* Step 1: Collect the information for this datum. */
 
-    if(cd->value.type == DTNMP_TYPE_EXPR)
+    if(cd->value.type == AMP_TYPE_EXPR)
     {
     	result = expr_eval((expr_t*)cd->value.value.as_ptr);
     }
@@ -454,9 +449,9 @@ int ldc_fill_computed(cd_t *cd, rpt_entry_t *entry)
     	result = val_copy(cd->value);
     }
 
-    if(result.type == DTNMP_TYPE_UNK)
+    if(result.type == AMP_TYPE_UNK)
     {
-    	DTNMP_DEBUG_ERR("ldc_fill_computed","Can't get value.", NULL);
+    	AMP_DEBUG_ERR("ldc_fill_computed","Can't get value.", NULL);
     	return -1;
     }
 
@@ -467,6 +462,6 @@ int ldc_fill_computed(cd_t *cd, rpt_entry_t *entry)
 
     SRELEASE(val_data);
 
-    DTNMP_DEBUG_EXIT("ldc_fill_computed","-> 0", NULL);
+    AMP_DEBUG_EXIT("ldc_fill_computed","-> 0", NULL);
     return 0;
 }

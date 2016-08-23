@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: adm.h
@@ -16,8 +22,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/22/11  E. Birrane     Initial Implementation
- **  11/13/12  E. Birrane     Technical review, comment updates.
+ **  10/22/11  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef ADM_H_
@@ -25,10 +32,9 @@
 
 #include "lyst.h"
 
+#include "../primitives/var.h"
 #include "shared/primitives/dc.h"
 #include "shared/primitives/def.h"
-#include "shared/primitives/cd.h"
-
 #include "shared/primitives/tdc.h"
 #include "shared/primitives/mid.h"
 #include "shared/primitives/value.h"
@@ -99,7 +105,7 @@ typedef struct
 {
     mid_t *mid;					 /**> The MID identifying this def.        */
 
-    dtnmp_type_e type;           /**> The data type of this MID.           */
+    amp_type_e type;           /**> The data type of this MID.           */
 
     uint8_t num_parms;           /**> # params needed to complete this MID.*/
 
@@ -169,9 +175,9 @@ extern Lyst gAdmMacros; // Type def_gen_t
  * +--------------------------------------------------------------------------+
  */
 
-int         adm_add_datadef(char *mid_str, dtnmp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
+int         adm_add_datadef(char *mid_str, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
 
-int		 	adm_add_computeddef(char *mid_str, dtnmp_type_e type, expr_t *expr);
+int		 	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr);
 
 
 int         adm_add_ctrl(char *mid_str, adm_ctrl_run_fn run);
@@ -209,7 +215,7 @@ uint32_t         adm_extract_uint(tdc_t params, uint32_t idx, int8_t *success);
 uvast            adm_extract_uvast(tdc_t params, uint32_t idx, int8_t *success);
 vast             adm_extract_vast(tdc_t params, uint32_t idx, int8_t *success);
 
-cd_t* adm_find_computeddef(mid_t *mid);
+var_t* adm_find_computeddef(mid_t *mid);
 
 adm_datadef_t* adm_find_datadef(mid_t *mid);
 adm_datadef_t* adm_find_datadef_by_idx(int idx);

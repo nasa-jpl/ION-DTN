@@ -8,6 +8,11 @@
  **
  ** Assumptions:
  **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #include <math.h>
 
@@ -45,7 +50,7 @@ static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, quer
 	uvast num = 0;
 	int8_t success = ERROR;
 
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 
 
 	if((eid_id = adm_extract_string(params, 0, &success)) == NULL)
@@ -62,7 +67,7 @@ static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, quer
 
 	if(success != ERROR)
 	{
-		result.type = DTNMP_TYPE_UVAST;
+		result.type = AMP_TYPE_UVAST;
 		result.value.as_uvast = num;
 	}
 
@@ -86,12 +91,12 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 
 	if(success == ERROR)
 	{
-		result.type = DTNMP_TYPE_UNK;
+		result.type = AMP_TYPE_UNK;
 	}
 	else
 	{
 
-		result.type = DTNMP_TYPE_UVAST;
+		result.type = AMP_TYPE_UVAST;
 		result.value.as_uvast = num;
 	}
 
@@ -223,10 +228,10 @@ value_t adm_bpsec_get_tot_forward_bib_bytes(tdc_t params)
 value_t adm_bpsec_get_last_update(tdc_t params)
 {
 	value_t result;
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 	if(bpsec_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
 	{
-		result.type = DTNMP_TYPE_TS;
+		result.type = AMP_TYPE_TS;
 	}
 	return result;
 }
@@ -236,7 +241,7 @@ value_t adm_bpsec_get_num_keys(tdc_t params)
 	value_t result;
 	uint32_t size = 0;
 
-	result.type = DTNMP_TYPE_UINT;
+	result.type = AMP_TYPE_UINT;
 	result.value.as_uint = bpsec_instr_get_num_keys((int*)&size);
 	return result;
 }
@@ -247,7 +252,7 @@ value_t adm_bpsec_get_keys(tdc_t params)
 	value_t result;
 	char *tmp = bpsec_instr_get_keynames();
 
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
 	 * something using STAKE.
 	 */
@@ -262,7 +267,7 @@ value_t adm_bpsec_get_keys(tdc_t params)
 		memcpy(result.value.as_ptr, tmp, size);
 		MRELEASE(tmp);
 
-		result.type = DTNMP_TYPE_STRING;
+		result.type = AMP_TYPE_STRING;
 	}
 
 	return result;
@@ -273,7 +278,7 @@ value_t adm_bpsec_get_ciphs(tdc_t params)
 	value_t result;
 	char *tmp = bpsec_instr_get_csnames();
 
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
 	 * something using STAKE.
 	 */
@@ -288,7 +293,7 @@ value_t adm_bpsec_get_ciphs(tdc_t params)
 		memcpy(result.value.as_ptr, tmp, size);
 		MRELEASE(tmp);
 
-		result.type = DTNMP_TYPE_STRING;
+		result.type = AMP_TYPE_STRING;
 	}
 
 	return result;
@@ -299,7 +304,7 @@ value_t adm_bpsec_get_srcs(tdc_t params)
 	value_t result;
 	char *tmp = bpsec_instr_get_srcnames();
 
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
 	 * something using STAKE.
 	 */
@@ -314,7 +319,7 @@ value_t adm_bpsec_get_srcs(tdc_t params)
 		memcpy(result.value.as_ptr, tmp, size);
 		MRELEASE(tmp);
 
-		result.type = DTNMP_TYPE_STRING;
+		result.type = AMP_TYPE_STRING;
 	}
 
 	return result;
@@ -450,7 +455,7 @@ value_t adm_bpsec_get_src_last_update(tdc_t params)
 	char *name = NULL;
 	int8_t success = 0;
 
-	result.type = DTNMP_TYPE_UNK;
+	result.type = AMP_TYPE_UNK;
 
 	if((name = adm_extract_string(params, 0, &success)) == NULL)
 	{
@@ -459,7 +464,7 @@ value_t adm_bpsec_get_src_last_update(tdc_t params)
 
 	if(bpsec_instr_get_src_update(name, &time) != ERROR)
 	{
-		result.type = DTNMP_TYPE_TS;
+		result.type = AMP_TYPE_TS;
 		result.value.as_uint = time;
 	}
 
@@ -476,11 +481,11 @@ value_t adm_bpsec_get_last_reset(tdc_t params)
 
 	if(bpsec_instr_get_misc(&misc) == ERROR)
 	{
-		result.type = DTNMP_TYPE_UNK;
+		result.type = AMP_TYPE_UNK;
 		return result;
 	}
 
-	result.type = DTNMP_TYPE_UINT;
+	result.type = AMP_TYPE_UINT;
 	result.value.as_uint = misc.last_reset;
 	return result;
 }
@@ -547,7 +552,7 @@ tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 	 */
 	if(sec_activeKey(name) != 0)
 	{
-		DTNMP_DEBUG_WARN("adm_bpsec_ctl_del_key","Can't remove active key %s", name);
+		AMP_DEBUG_WARN("adm_bpsec_ctl_del_key","Can't remove active key %s", name);
 		SRELEASE(name);
 		return NULL;
 	}
@@ -633,17 +638,17 @@ tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -712,25 +717,25 @@ table_t *get_bib_rules()
 
 	if((listObj = sec_get_bspBibRuleList()) == 0)
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot get list.", NULL);
 		return NULL;
 	}
 
 
 	if((table = table_create(NULL, NULL)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot allocate table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot allocate table.", NULL);
 		return NULL;
 	}
 
-	if((table_add_col(table, "SrcEid", DTNMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "DestEid", DTNMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "TgtBlk", DTNMP_TYPE_UINT) == ERROR) ||
-	   (table_add_col(table, "csName", DTNMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "keyName", DTNMP_TYPE_STRING) == ERROR))
+	if((table_add_col(table, "SrcEid", AMP_TYPE_STRING) == ERROR) ||
+	   (table_add_col(table, "DestEid", AMP_TYPE_STRING) == ERROR) ||
+	   (table_add_col(table, "TgtBlk", AMP_TYPE_UINT) == ERROR) ||
+	   (table_add_col(table, "csName", AMP_TYPE_STRING) == ERROR) ||
+	   (table_add_col(table, "keyName", AMP_TYPE_STRING) == ERROR))
 	{
 		table_destroy(table, 1);
-		DTNMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot add columns.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot add columns.", NULL);
 		return NULL;
 	}
 
@@ -772,7 +777,7 @@ table_t *get_bib_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					DTNMP_DEBUG_ERR("adm_bpsec_get_bib_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("adm_bpsec_get_bib_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -782,12 +787,12 @@ table_t *get_bib_rules()
 			}
 			else
 			{
-				DTNMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			DTNMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -827,25 +832,25 @@ table_t *get_bcb_rules()
 
 	if((listObj = sec_get_bspBcbRuleList()) == 0)
 	{
-		DTNMP_DEBUG_ERR("get_bcb_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("get_bcb_rules","Cannot get list.", NULL);
 		return NULL;
 	}
 
 
 	if((table = table_create(NULL, NULL)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("get_bcb_rules","Cannot allocate table.", NULL);
+		AMP_DEBUG_ERR("get_bcb_rules","Cannot allocate table.", NULL);
 		return NULL;
 	}
 
-	if((table_add_col(table, "SrcEid", DTNMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "DestEid", DTNMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "TgtBlk", DTNMP_TYPE_UINT) == ERROR) ||
-	   (table_add_col(table, "csName", DTNMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "keyName", DTNMP_TYPE_STRING) == ERROR))
+	if((table_add_col(table, "SrcEid", AMP_TYPE_STRING) == ERROR) ||
+	   (table_add_col(table, "DestEid", AMP_TYPE_STRING) == ERROR) ||
+	   (table_add_col(table, "TgtBlk", AMP_TYPE_UINT) == ERROR) ||
+	   (table_add_col(table, "csName", AMP_TYPE_STRING) == ERROR) ||
+	   (table_add_col(table, "keyName", AMP_TYPE_STRING) == ERROR))
 	{
 		table_destroy(table, 1);
-		DTNMP_DEBUG_ERR("get_bcb_rules","Cannot add columns.", NULL);
+		AMP_DEBUG_ERR("get_bcb_rules","Cannot add columns.", NULL);
 		return NULL;
 	}
 
@@ -887,7 +892,7 @@ table_t *get_bcb_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					DTNMP_DEBUG_ERR("get_bcb_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("get_bcb_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -897,12 +902,12 @@ table_t *get_bcb_rules()
 			}
 			else
 			{
-				DTNMP_DEBUG_WARN("get_bcb_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("get_bcb_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			DTNMP_DEBUG_WARN("get_bcb_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("get_bcb_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -923,7 +928,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	if(table == NULL)
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -931,7 +936,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -941,13 +946,13 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 		table_destroy(table, 1);
 		tdc_destroy(&retval);
 
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't serialize table.", NULL);
 		return NULL;
 	}
 
 	table_destroy(table, 1);
 
-	tdc_insert(retval, DTNMP_TYPE_TABLE, data, len);
+	tdc_insert(retval, AMP_TYPE_TABLE, data, len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
@@ -993,17 +998,17 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Can't add rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Can't add rule.", NULL);
 			}
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Ciphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Ciphersuite %s not supported.", cs);
 	}
 
 
@@ -1058,7 +1063,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	if(table == NULL)
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -1066,7 +1071,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -1076,13 +1081,13 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 		table_destroy(table, 1);
 		tdc_destroy(&retval);
 
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't serialize table.", NULL);
 		return NULL;
 	}
 
 	table_destroy(table, 1);
 
-	tdc_insert(retval, DTNMP_TYPE_TABLE, data, len);
+	tdc_insert(retval, AMP_TYPE_TABLE, data, len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
@@ -1129,17 +1134,17 @@ tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status
 			}
 			else
 			{
-				DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -1191,17 +1196,17 @@ tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status
 			}
 			else
 			{
-				DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);

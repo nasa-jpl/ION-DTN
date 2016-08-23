@@ -2,20 +2,11 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
- ******************************************************************************/
+  ******************************************************************************/
 
 /*****************************************************************************
  **
  ** \file mid.c
- **
- ** Subsystem:
- **          Network Management Utilities
  **
  ** Description: This file contains the definitions, prototypes, constants, and
  **              other information necessary for the identification and
@@ -36,10 +27,11 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/21/11  E. Birrane     Code comments and functional updates.
- **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup.
- **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs
- **  04/19/16  E. Birrane     Put OIDs on stack and not heap.
+ **  10/21/11  E. Birrane     Code comments and functional updates. (JHU/APL)
+ **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
+ **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs (JHU/APL)
+ **  04/19/16  E. Birrane     Put OIDs on stack and not heap. (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -73,24 +65,24 @@
  *  04/15/16  E. Birrane     Updated to use blob_t
  *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-int mid_add_param(mid_t *mid, dtnmp_type_e type, blob_t *blob)
+int mid_add_param(mid_t *mid, amp_type_e type, blob_t *blob)
 {
 	int result = 0;
 
-	DTNMP_DEBUG_ENTRY("mid_add_param","(%#llx, %#llx)", mid, blob);
+	AMP_DEBUG_ENTRY("mid_add_param","(%#llx, %#llx)", mid, blob);
 
 	/* Step 0: Sanity Check.*/
 	if((mid == NULL) || (blob == NULL))
 	{
-		DTNMP_DEBUG_ERR("mid_add_param","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("mid_add_param","->0.",NULL);
+		AMP_DEBUG_ERR("mid_add_param","Bad Args", NULL);
+		AMP_DEBUG_EXIT("mid_add_param","->0.",NULL);
 		return 0;
 	}
 
 	/* Step 1: Add to the OID. */
 	result = oid_add_param(&(mid->oid), type, blob);
 
-	DTNMP_DEBUG_EXIT("mid_add_param","->%d.",result);
+	AMP_DEBUG_EXIT("mid_add_param","->%d.",result);
 	return result;
 }
 
@@ -119,12 +111,12 @@ int mid_add_param(mid_t *mid, dtnmp_type_e type, blob_t *blob)
 void mid_clear(mid_t *mid)
 {
 
-    DTNMP_DEBUG_ENTRY("mid_clear","(%#llx)", (unsigned long) mid);
+    AMP_DEBUG_ENTRY("mid_clear","(%#llx)", (unsigned long) mid);
 
     if(mid == NULL)
     {
-        DTNMP_DEBUG_ERR("mid_clear","Clearing NULL MID.", NULL);
-        DTNMP_DEBUG_EXIT("mid_clear","->NULL.",NULL);
+        AMP_DEBUG_ERR("mid_clear","Clearing NULL MID.", NULL);
+        AMP_DEBUG_EXIT("mid_clear","->NULL.",NULL);
         return;
     }
 
@@ -137,7 +129,7 @@ void mid_clear(mid_t *mid)
    	oid_release(&(mid->oid));
 
     memset(mid, 0, sizeof(mid_t));
-    DTNMP_DEBUG_EXIT("mid_clear","", NULL);
+    AMP_DEBUG_EXIT("mid_clear","", NULL);
 }
 
 
@@ -194,7 +186,7 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
 {
 	int result = 1;
 
-    DTNMP_DEBUG_ENTRY("mid_compare","(%#llx, %#llx)",
+    AMP_DEBUG_ENTRY("mid_compare","(%#llx, %#llx)",
     		         (unsigned long) mid1,
     		         (unsigned long) mid2);
 
@@ -219,7 +211,7 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
     	result = oid_compare(mid1->oid, mid2->oid, use_parms);
     }
 
-    DTNMP_DEBUG_EXIT("mid_compare","->%d.", result);
+    AMP_DEBUG_EXIT("mid_compare","->%d.", result);
     return result;
 }
 
@@ -256,7 +248,7 @@ int mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms)
 mid_t *mid_construct(uint8_t id, uvast *issuer, uvast *tag, oid_t oid)
 {
 	mid_t *mid = NULL;
-	DTNMP_DEBUG_ENTRY("mid_construct","(%d, %#llx, %#llx, oid)",
+	AMP_DEBUG_ENTRY("mid_construct","(%d, %#llx, %#llx, oid)",
 			         id,
 			         (unsigned long) issuer, (unsigned long) tag);
 
@@ -264,9 +256,9 @@ mid_t *mid_construct(uint8_t id, uvast *issuer, uvast *tag, oid_t oid)
 	/* Step 1: Allocate the MID. */
 	if((mid = (mid_t *)STAKE(sizeof(mid_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_construct","Can't allocate %d bytes.",
+		AMP_DEBUG_ERR("mid_construct","Can't allocate %d bytes.",
 				        sizeof(mid_t));
-		DTNMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
 		return NULL;
 	}
 
@@ -287,26 +279,26 @@ mid_t *mid_construct(uint8_t id, uvast *issuer, uvast *tag, oid_t oid)
 
 	if(mid->oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("mid_construct","Failed to copy OID.",NULL);
+		AMP_DEBUG_ERR("mid_construct","Failed to copy OID.",NULL);
 
 		SRELEASE(mid);
-		DTNMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 3: Build the serialized MID. */
 	if (mid_internal_serialize(mid) == 0)
 	{
-		DTNMP_DEBUG_ERR("mid_construct","Failed to serialize MID.",NULL);
+		AMP_DEBUG_ERR("mid_construct","Failed to serialize MID.",NULL);
 
 		mid_release(mid);
 
-		DTNMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_construct","->NULL",NULL);
 		return NULL;
 	}
 
 
-	DTNMP_DEBUG_EXIT("mid_construct","->0x%x",(unsigned long)mid);
+	AMP_DEBUG_EXIT("mid_construct","->0x%x",(unsigned long)mid);
 	return mid;
 }
 
@@ -336,22 +328,22 @@ mid_t *mid_copy(mid_t *src_mid)
 {
     mid_t *result = 0;
     
-    DTNMP_DEBUG_ENTRY("mid_copy","(%#llx)",
+    AMP_DEBUG_ENTRY("mid_copy","(%#llx)",
     		          (unsigned long) src_mid);
     
     /* Step 0: Sanity Check */
     if(src_mid == NULL)
     {
-        DTNMP_DEBUG_ERR("mid_copy","Cannot copy from NULL source MID.", NULL);
-        DTNMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
+        AMP_DEBUG_ERR("mid_copy","Cannot copy from NULL source MID.", NULL);
+        AMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
         return NULL;
     }
 
     /* Step 1: Allocate the new MID. */
     if((result = (mid_t *)STAKE(sizeof(mid_t))) == NULL)
     {
-        DTNMP_DEBUG_ERR("mid_copy","Can't allocate %d bytes", sizeof(mid_t));
-        DTNMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
+        AMP_DEBUG_ERR("mid_copy","Can't allocate %d bytes", sizeof(mid_t));
+        AMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
         return NULL;
     }
 
@@ -363,18 +355,18 @@ mid_t *mid_copy(mid_t *src_mid)
 
     if((result->raw = (uint8_t *)STAKE(src_mid->raw_size)) == NULL)
     {
-        DTNMP_DEBUG_ERR("mid_copy","Can't allocate %d bytes",
+        AMP_DEBUG_ERR("mid_copy","Can't allocate %d bytes",
         		        src_mid->raw_size);
         oid_release(&(result->oid));
         mid_release(result);
 
-        DTNMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
+        AMP_DEBUG_EXIT("mid_copy","->NULL",NULL);
         return NULL;
     }
 
     memcpy(result->raw, src_mid->raw, src_mid->raw_size);
 
-    DTNMP_DEBUG_EXIT("mid_copy","->%d", result);
+    AMP_DEBUG_EXIT("mid_copy","->%d", result);
     return result;
 }
 
@@ -440,7 +432,7 @@ mid_t *mid_deserialize(unsigned char *buffer,
     uint32_t cur_bytes = 0;
     uint32_t bytes_left=0;
 
-    DTNMP_DEBUG_ENTRY("mid_deserialize","(%#llx, %d, %#llx)",
+    AMP_DEBUG_ENTRY("mid_deserialize","(%#llx, %d, %#llx)",
                      (unsigned long) buffer,
                      (unsigned long) buffer_size,
                      (unsigned long) bytes_used);
@@ -448,8 +440,8 @@ mid_t *mid_deserialize(unsigned char *buffer,
     /* Step 1: Sanity checks. */
     if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
     {
-        DTNMP_DEBUG_ERR("mid_deserialize","Bad params.",NULL);
-        DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+        AMP_DEBUG_ERR("mid_deserialize","Bad params.",NULL);
+        AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
         return NULL;
     }
     else
@@ -462,9 +454,9 @@ mid_t *mid_deserialize(unsigned char *buffer,
     /* Step 2: Allocate/Zero the MID. */
     if((result = (mid_t *) STAKE(sizeof(mid_t))) == NULL)
     {
-        DTNMP_DEBUG_ERR("mid_deserialize","Cannot allocate MID of size %d",
+        AMP_DEBUG_ERR("mid_deserialize","Cannot allocate MID of size %d",
         		        sizeof(mid_t));
-        DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+        AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
         return NULL;
     }
     else
@@ -475,10 +467,10 @@ mid_t *mid_deserialize(unsigned char *buffer,
     /* Step 3: Grab the MID flag */
     if(utils_grab_byte(cursor, bytes_left, &(result->flags)) != 1)
     {
-    	DTNMP_DEBUG_ERR("mid_deserialize","Can't grab flag byte.", NULL);
+    	AMP_DEBUG_ERR("mid_deserialize","Can't grab flag byte.", NULL);
     	mid_release(result);
 
-        DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+        AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
         return NULL;
     }
     else
@@ -497,10 +489,10 @@ mid_t *mid_deserialize(unsigned char *buffer,
     	cur_bytes = utils_grab_sdnv(cursor, bytes_left, &(result->issuer));
         if( cur_bytes == 0)
         {
-        	DTNMP_DEBUG_ERR("mid_deserialize","Can't grab issuer.", NULL);
+        	AMP_DEBUG_ERR("mid_deserialize","Can't grab issuer.", NULL);
         	mid_release(result);
 
-            DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+            AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
             return NULL;
         }
         else
@@ -534,10 +526,10 @@ mid_t *mid_deserialize(unsigned char *buffer,
 
     if(result->oid.type == OID_TYPE_UNK)
     {
-    	DTNMP_DEBUG_ERR("mid_deserialize","Can't grab oid.", NULL);
+    	AMP_DEBUG_ERR("mid_deserialize","Can't grab oid.", NULL);
     	mid_release(result);
 
-        DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+        AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
         return NULL;
     }
     else
@@ -555,10 +547,10 @@ mid_t *mid_deserialize(unsigned char *buffer,
     	cur_bytes = utils_grab_sdnv(cursor, bytes_left, &(result->tag));
         if( cur_bytes == 0)
         {
-        	DTNMP_DEBUG_ERR("mid_deserialize","Can't grab tag.", NULL);
+        	AMP_DEBUG_ERR("mid_deserialize","Can't grab tag.", NULL);
         	mid_release(result);
 
-            DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+            AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
             return NULL;
         }
         else
@@ -572,28 +564,28 @@ mid_t *mid_deserialize(unsigned char *buffer,
     /* Step 8: Is this a sane MID? */
     if(mid_sanity_check(result) == 0)
     {
-    	DTNMP_DEBUG_ERR("mid_deserialize","Flags Sanity Check Failed.", NULL);
+    	AMP_DEBUG_ERR("mid_deserialize","Flags Sanity Check Failed.", NULL);
     	mid_release(result);
 
-        DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+        AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
         return NULL;
     }
 
     /* Step 9: Copy MID into the raw value. */
     if((result->raw = (unsigned char *) STAKE(*bytes_used)) == NULL)
     {
-        DTNMP_DEBUG_ERR("mid_deserialize","Can't TAKE raw mid of size (%d)",
+        AMP_DEBUG_ERR("mid_deserialize","Can't TAKE raw mid of size (%d)",
         		        *bytes_used);
         mid_release(result);
 
-        DTNMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
+        AMP_DEBUG_EXIT("mid_deserialize","-> NULL", NULL);
         return NULL;
     }
 
     memcpy(result->raw, buffer, *bytes_used);
     result->raw_size = *bytes_used;
 
-    DTNMP_DEBUG_EXIT("mid_deserialize","-> %#llx", (unsigned long) result);
+    AMP_DEBUG_EXIT("mid_deserialize","-> %#llx", (unsigned long) result);
     return result;
 }
 
@@ -607,13 +599,13 @@ mid_t*   mid_deserialize_str(char *mid_str,
 	uint8_t *mid_hex = NULL;
 	uint32_t used = 0;
 
-	DTNMP_DEBUG_ENTRY("mid_deserialize_str","(%s, %d, %#llx)",mid_str, buffer_size, (unsigned long) bytes_used);
+	AMP_DEBUG_ENTRY("mid_deserialize_str","(%s, %d, %#llx)",mid_str, buffer_size, (unsigned long) bytes_used);
 
 	mid_hex = utils_string_to_hex(mid_str, &hex_size);
 	if(mid_hex == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_deserialize_str","Can't made hex from %s.", mid_str);
-		DTNMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
+		AMP_DEBUG_ERR("mid_deserialize_str","Can't made hex from %s.", mid_str);
+		AMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
 		return NULL;
 	}
 
@@ -622,12 +614,12 @@ mid_t*   mid_deserialize_str(char *mid_str,
 
 	if(result == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_deserialize_str","Can't deserialize from %s.", mid_str);
-		DTNMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
+		AMP_DEBUG_ERR("mid_deserialize_str","Can't deserialize from %s.", mid_str);
+		AMP_DEBUG_EXIT("mid_deserialize_str","-> 0.", NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("mid_deserialize_str","-> %#llx", (unsigned long) result);
+	AMP_DEBUG_EXIT("mid_deserialize_str","-> %#llx", (unsigned long) result);
 
 	return result;
 }
@@ -644,21 +636,21 @@ mid_t* mid_from_string(char *mid_str)
 	uint32_t len = 0;
 	uint32_t bytes = 0;
 
-	DTNMP_DEBUG_ENTRY("mid_from_string","(0x%x)", mid_str);
+	AMP_DEBUG_ENTRY("mid_from_string","(0x%x)", mid_str);
 
 	/* Step 0: Sanity check. */
 	if(mid_str == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_from_string","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
+		AMP_DEBUG_ERR("mid_from_string","Bad args.", NULL);
+		AMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
 		return NULL;
 	}
 
 	/* Step 1: Convert the string into a binary buffer. */
     if((tmp = utils_string_to_hex(mid_str, &len)) == NULL)
     {
-    	DTNMP_DEBUG_ERR("mid_from_string","Can't Parse MID ID of %s.", mid_str);
-		DTNMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
+    	AMP_DEBUG_ERR("mid_from_string","Can't Parse MID ID of %s.", mid_str);
+		AMP_DEBUG_EXIT("mid_from_string","->NULL", NULL);
 		return NULL;
     }
 
@@ -667,19 +659,19 @@ mid_t* mid_from_string(char *mid_str)
 
     SRELEASE(tmp);
 
-	DTNMP_DEBUG_EXIT("mid_from_string","->0x%x", (unsigned long) result);
+	AMP_DEBUG_EXIT("mid_from_string","->0x%x", (unsigned long) result);
 
 	return result;
 }
 
-blob_t *mid_get_param(mid_t *id, int i, dtnmp_type_e *type)
+blob_t *mid_get_param(mid_t *id, int i, amp_type_e *type)
 {
-	DTNMP_DEBUG_ENTRY("mid_get_param","(%#llx, i)",(unsigned long) id, i);
+	AMP_DEBUG_ENTRY("mid_get_param","(%#llx, i)",(unsigned long) id, i);
 
 	if(id == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_get_param","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("mid_get_param","->0",NULL);
+		AMP_DEBUG_ERR("mid_get_param","Bad args.",NULL);
+		AMP_DEBUG_EXIT("mid_get_param","->0",NULL);
 		return NULL;
 	}
 
@@ -688,12 +680,12 @@ blob_t *mid_get_param(mid_t *id, int i, dtnmp_type_e *type)
 
 uint8_t  mid_get_num_parms(mid_t *mid)
 {
-	DTNMP_DEBUG_ENTRY("mid_get_num_parms","(%#llx)",(unsigned long) mid);
+	AMP_DEBUG_ENTRY("mid_get_num_parms","(%#llx)",(unsigned long) mid);
 
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_get_num_parms","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("mid_get_num_parms","->0",NULL);
+		AMP_DEBUG_ERR("mid_get_num_parms","Bad args.",NULL);
+		AMP_DEBUG_EXIT("mid_get_num_parms","->0",NULL);
 		return 0;
 	}
 
@@ -745,21 +737,21 @@ int mid_internal_serialize(mid_t *mid)
 	uint8_t *oid_val = NULL;
 	uint8_t *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("mid_internal_serialize","(%#llx)",(unsigned long) mid);
+	AMP_DEBUG_ENTRY("mid_internal_serialize","(%#llx)",(unsigned long) mid);
 
 	/* Step 0: Sanity Check. */
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_internal_serialize","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
+		AMP_DEBUG_ERR("mid_internal_serialize","Bad args.",NULL);
+		AMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
 		return 0;
 	}
 
 	/* Step 1: Serialize the OID for sizing. */
 	if((oid_val = oid_serialize(mid->oid, &oid_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_internal_serialize","Can't serialize OID.",NULL);
-		DTNMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
+		AMP_DEBUG_ERR("mid_internal_serialize","Can't serialize OID.",NULL);
+		AMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
 		return 0;
 	}
 
@@ -795,12 +787,12 @@ int mid_internal_serialize(mid_t *mid)
 	/* Step 5: Allocate space for the serialized MID. */
 	if((mid->raw = (uint8_t *)STAKE(mid->raw_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_internal_serialize","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("mid_internal_serialize","Can't alloc %d bytes.",
 				        mid->raw_size);
 		mid->raw_size = 0;
 		SRELEASE(oid_val);
 
-		DTNMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
+		AMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
 		return 0;
 	}
 
@@ -831,21 +823,21 @@ int mid_internal_serialize(mid_t *mid)
 	/* Step 7: Final sanity check. */
 	if((cursor - mid->raw) != mid->raw_size)
 	{
-		DTNMP_DEBUG_ERR("mid_internal_serialize","Copied %d bytes, expected %d bytes.",
+		AMP_DEBUG_ERR("mid_internal_serialize","Copied %d bytes, expected %d bytes.",
 				        (cursor - mid->raw), mid->raw_size);
 		mid->raw_size = 0;
 		SRELEASE(mid->raw);
 		mid->raw = NULL;
 		SRELEASE(oid_val);
 
-		DTNMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
+		AMP_DEBUG_EXIT("mid_internal_serialize","->0",NULL);
 		return 0;
 
 	}
 
 	SRELEASE(oid_val);
 
-	DTNMP_DEBUG_EXIT("mid_internal_serialize","->1",NULL);
+	AMP_DEBUG_EXIT("mid_internal_serialize","->1",NULL);
 	return 1;
 }
 
@@ -885,13 +877,13 @@ char *mid_pretty_print(mid_t *mid)
 	char *result = NULL;
 	char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("mid_pretty_print","(%#llx)", (unsigned long) mid);
+	AMP_DEBUG_ENTRY("mid_pretty_print","(%#llx)", (unsigned long) mid);
 
 	/* Step 0: Sanity Check. */
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_pretty_print","NULL MID.",NULL);
-		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
+		AMP_DEBUG_ERR("mid_pretty_print","NULL MID.",NULL);
+		AMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
 		return NULL;
 	}
 
@@ -915,10 +907,10 @@ char *mid_pretty_print(mid_t *mid)
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("mid_pretty_print","Can't alloc %d bytes for OID.",
+			AMP_DEBUG_ERR("mid_pretty_print","Can't alloc %d bytes for OID.",
 						    oid_size);
 
-			DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
+			AMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
 			return NULL;
 		}
 	}
@@ -934,11 +926,11 @@ char *mid_pretty_print(mid_t *mid)
 		}
 		else
 		{
-			DTNMP_DEBUG_ERR("mid_pretty_print","Can't alloc %d bytes for RAW.",
+			AMP_DEBUG_ERR("mid_pretty_print","Can't alloc %d bytes for RAW.",
 						    raw_size);
 			SRELEASE(oid_str);
 
-			DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
+			AMP_DEBUG_EXIT("mid_pretty_print","->NULL.",NULL);
 			return NULL;
 		}
 	}
@@ -967,12 +959,12 @@ char *mid_pretty_print(mid_t *mid)
 	/* Step 4: Allocate the string. */
 	if((result = (char*)STAKE(size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_pretty_print", "Can't alloc %d bytes.", size);
+		AMP_DEBUG_ERR("mid_pretty_print", "Can't alloc %d bytes.", size);
 
 		SRELEASE(oid_str);
 		SRELEASE(raw_str);
 
-		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1026,17 +1018,17 @@ char *mid_pretty_print(mid_t *mid)
 	/* Step 6: Sanity check. */
 	if((cursor - result) > size)
 	{
-		DTNMP_DEBUG_ERR("mid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
+		AMP_DEBUG_ERR("mid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
 				        size, (cursor-result));
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_INFO("mid_pretty_print","Wrote %llu into %d string.",
+	AMP_DEBUG_INFO("mid_pretty_print","Wrote %llu into %d string.",
 			         (cursor -result), size);
 
-	DTNMP_DEBUG_EXIT("mid_pretty_print","->%#llx",result);
+	AMP_DEBUG_EXIT("mid_pretty_print","->%#llx",result);
 
 	return result;
 }
@@ -1061,7 +1053,7 @@ char *mid_pretty_print(mid_t *mid)
 
 void mid_release(mid_t *mid)
 {
-    DTNMP_DEBUG_ENTRY("mid_release", "(%#llx)", (unsigned long) mid);
+    AMP_DEBUG_ENTRY("mid_release", "(%#llx)", (unsigned long) mid);
 
     if(mid != NULL)
     {
@@ -1070,7 +1062,7 @@ void mid_release(mid_t *mid)
         mid = NULL;
     }
 
-    DTNMP_DEBUG_EXIT("mid_release", "-> NULL", NULL);
+    AMP_DEBUG_EXIT("mid_release", "-> NULL", NULL);
 }
 
 
@@ -1102,24 +1094,24 @@ void mid_release(mid_t *mid)
 int mid_sanity_check(mid_t *mid)
 {
 	int result = 1;
-    DTNMP_DEBUG_ENTRY("mid_sanity_check","(%#llx)", (unsigned long) mid);
+    AMP_DEBUG_ENTRY("mid_sanity_check","(%#llx)", (unsigned long) mid);
 
 	/* NULL Checks */
 	if(mid == NULL)
 	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","NULL mid.", NULL);
+        AMP_DEBUG_ERR("mid_sanity_check","NULL mid.", NULL);
         return 0;
 	}
 
 	/* Range Checks */
 	if(mid->id >= MID_ANY)
 	{
-        DTNMP_DEBUG_ERR("mid_sanity_check","id out of range (%d)",
+        AMP_DEBUG_ERR("mid_sanity_check","id out of range (%d)",
         		        mid->id);
         result = 0;
 	}
 
-    DTNMP_DEBUG_EXIT("mid_sanity_check","-> %d", result);
+    AMP_DEBUG_EXIT("mid_sanity_check","-> %d", result);
     return result;
 }
 
@@ -1151,14 +1143,14 @@ uint8_t *mid_serialize(mid_t *mid, uint32_t *size)
 {
 	uint8_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("mid_serialize","(%#llx, %#llx)",
+	AMP_DEBUG_ENTRY("mid_serialize","(%#llx, %#llx)",
 			          (unsigned long) mid, (unsigned long) size);
 
 	/* Step 0: Sanity Check. */
 	if((mid == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("mid_serialize","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("mid_serialize","->NULL", NULL);
+		AMP_DEBUG_ERR("mid_serialize","Bad args.", NULL);
+		AMP_DEBUG_EXIT("mid_serialize","->NULL", NULL);
 		return NULL;
 	}
 
@@ -1167,9 +1159,9 @@ uint8_t *mid_serialize(mid_t *mid, uint32_t *size)
 	{
 		if(mid_internal_serialize(mid) == 0)
 		{
-			DTNMP_DEBUG_ERR("mid_serialize","Can't serialize mid.", NULL);
+			AMP_DEBUG_ERR("mid_serialize","Can't serialize mid.", NULL);
 			*size = 0;
-			DTNMP_DEBUG_EXIT("mid_serialize","->NULL", NULL);
+			AMP_DEBUG_EXIT("mid_serialize","->NULL", NULL);
 			return NULL;
 		}
 	}
@@ -1179,16 +1171,16 @@ uint8_t *mid_serialize(mid_t *mid, uint32_t *size)
 	/* Step 2: Allocate result. */
 	if((result = (uint8_t*) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("mid_serialize","Can't alloc %d bytes.", *size);
+		AMP_DEBUG_ERR("mid_serialize","Can't alloc %d bytes.", *size);
 		*size = 0;
-		DTNMP_DEBUG_EXIT("mid_serialize","->NULL", NULL);
+		AMP_DEBUG_EXIT("mid_serialize","->NULL", NULL);
 		return NULL;
 	}
 
 	/* Step 3: Copy in the result. */
 	memcpy(result, mid->raw, mid->raw_size);
 
-	DTNMP_DEBUG_EXIT("mid_serialize","->%#llx", (unsigned long)result);
+	AMP_DEBUG_EXIT("mid_serialize","->%#llx", (unsigned long)result);
 	return result;
 }
 
@@ -1219,12 +1211,12 @@ char *mid_to_string(mid_t *mid)
 {
     char *result = NULL;
 
-    DTNMP_DEBUG_ENTRY("mid_to_string","(%#llx)",(unsigned long) mid);
+    AMP_DEBUG_ENTRY("mid_to_string","(%#llx)",(unsigned long) mid);
 
     /* For now, we just show the raw MID. */
 	result = utils_hex_to_string(mid->raw, mid->raw_size);
 
-    DTNMP_DEBUG_EXIT("mid_to_string","->%s.", result);
+    AMP_DEBUG_EXIT("mid_to_string","->%s.", result);
 
 	return result;
 }
@@ -1251,15 +1243,15 @@ void midcol_clear(Lyst mc)
 	LystElt del_elt;
 	mid_t *cur_mid = NULL;
 
-	DTNMP_DEBUG_ENTRY("midcol_clear","("ADDR_FIELDSPEC")", (uaddr) mc);
+	AMP_DEBUG_ENTRY("midcol_clear","("UVAST_FIELDSPEC")", (uvast) mc);
 
 	/*
 	 * Step 0: Make sure we even have a lyst.
 	 */
 	if(mc == NULL)
 	{
-		DTNMP_DEBUG_WARN("midcol_clear","NULL mc.",NULL);
-		DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+		AMP_DEBUG_WARN("midcol_clear","NULL mc.",NULL);
+		AMP_DEBUG_EXIT("midcol_clear","->.", NULL);
 		return;
 	}
 
@@ -1277,7 +1269,7 @@ void midcol_clear(Lyst mc)
     	lyst_delete(del_elt);
     }
 
-    DTNMP_DEBUG_EXIT("midcol_clear","->.", NULL);
+    AMP_DEBUG_EXIT("midcol_clear","->.", NULL);
 }
 
 
@@ -1307,21 +1299,21 @@ Lyst midcol_copy(Lyst mids)
 	mid_t *cur_mid = NULL;
 	mid_t *new_mid = NULL;
 
-	DTNMP_DEBUG_ENTRY("midcol_copy","(%#llx)",(unsigned long) mids);
+	AMP_DEBUG_ENTRY("midcol_copy","(%#llx)",(unsigned long) mids);
 
 	/* Step 0: Sanity Check. */
 	if(mids == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_copy","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("midcol_copy","->NULL.",NULL);
+		AMP_DEBUG_ERR("midcol_copy","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("midcol_copy","->NULL.",NULL);
 		return NULL;
 	}
 
 	/* Build the Lyst. */
 	if((result = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_copy","Unable to create lyst.",NULL);
-		DTNMP_DEBUG_EXIT("midcol_copy","->NULL.",NULL);
+		AMP_DEBUG_ERR("midcol_copy","Unable to create lyst.",NULL);
+		AMP_DEBUG_EXIT("midcol_copy","->NULL.",NULL);
 		return NULL;
 	}
 
@@ -1331,10 +1323,10 @@ Lyst midcol_copy(Lyst mids)
 		cur_mid = (mid_t *) lyst_data(elt);
 		if((new_mid = mid_copy(cur_mid)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("midcol_copy","Fsiled to copy MID.",NULL);
+			AMP_DEBUG_ERR("midcol_copy","Fsiled to copy MID.",NULL);
 			midcol_destroy(&result);
 
-			DTNMP_DEBUG_EXIT("midcol_copy","->NULL.",NULL);
+			AMP_DEBUG_EXIT("midcol_copy","->NULL.",NULL);
 			return NULL;
 		}
 		else
@@ -1343,7 +1335,7 @@ Lyst midcol_copy(Lyst mids)
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("midcol_copy","->%#llx.",(unsigned long) result);
+	AMP_DEBUG_EXIT("midcol_copy","->%#llx.",(unsigned long) result);
 	return result;
 }
 
@@ -1373,7 +1365,7 @@ Lyst midcol_copy(Lyst mids)
 void midcol_destroy(Lyst *mids)
 {
 
-	DTNMP_DEBUG_ENTRY("midcol_destroy","(%#llx)", (unsigned long) mids);
+	AMP_DEBUG_ENTRY("midcol_destroy","(%#llx)", (unsigned long) mids);
 
 	/*
 	 * Step 0: Make sure we even have a lyst. Not an error if not, since we
@@ -1381,8 +1373,8 @@ void midcol_destroy(Lyst *mids)
 	 */
 	if((mids == NULL) || (*mids == NULL))
 	{
-		DTNMP_DEBUG_ERR("midcol_destroy","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("midcol_destroy","->.", NULL);
+		AMP_DEBUG_ERR("midcol_destroy","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("midcol_destroy","->.", NULL);
 		return;
 	}
 
@@ -1393,7 +1385,7 @@ void midcol_destroy(Lyst *mids)
     lyst_destroy(*mids);
     *mids = NULL;
 
-    DTNMP_DEBUG_EXIT("midcol_destroy","->.", NULL);
+    AMP_DEBUG_EXIT("midcol_destroy","->.", NULL);
 }
 
 
@@ -1432,15 +1424,15 @@ Lyst midcol_deserialize(unsigned char *buffer,
 	mid_t *cur_mid = NULL;
 	uint32_t i = 0;
 
-	DTNMP_DEBUG_ENTRY("midcol_deserialize","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("midcol_deserialize","(%#llx,%d,%#llx)",
 			          (unsigned long) buffer, buffer_size,
 			          (unsigned long) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("mid_deserialize_mc","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("mid_deserialize_mc","->NULL",NULL);
+		AMP_DEBUG_ERR("mid_deserialize_mc","Bad Args", NULL);
+		AMP_DEBUG_EXIT("mid_deserialize_mc","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1450,18 +1442,18 @@ Lyst midcol_deserialize(unsigned char *buffer,
 	/* Step 1: Create the Lyst. */
 	if((result = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_deserialize","Can't create lyst.", NULL);
-		DTNMP_DEBUG_EXIT("midcol_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("midcol_deserialize","Can't create lyst.", NULL);
+		AMP_DEBUG_EXIT("midcol_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Grab # MIDs in the collection. */
 	if((bytes = utils_grab_sdnv(cursor, buffer_size, &num)) == 0)
 	{
-		DTNMP_DEBUG_ERR("midcol_deserialize","Can't parse SDNV.", NULL);
+		AMP_DEBUG_ERR("midcol_deserialize","Can't parse SDNV.", NULL);
 		lyst_destroy(result);
 
-		DTNMP_DEBUG_EXIT("midcol_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1477,10 +1469,10 @@ Lyst midcol_deserialize(unsigned char *buffer,
 		/* Deserialize ith MID. */
 		if((cur_mid = mid_deserialize(cursor, buffer_size, &bytes)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("mid_deserialize_mc","Can't grab MID #%d.", i);
+			AMP_DEBUG_ERR("mid_deserialize_mc","Can't grab MID #%d.", i);
 			midcol_destroy(&result);
 
-			DTNMP_DEBUG_EXIT("mid_deserialize_mc","->NULL",NULL);
+			AMP_DEBUG_EXIT("mid_deserialize_mc","->NULL",NULL);
 			return NULL;
 		}
 		else
@@ -1494,7 +1486,7 @@ Lyst midcol_deserialize(unsigned char *buffer,
 		lyst_insert_last(result, cur_mid);
 	}
 
-	DTNMP_DEBUG_EXIT("midcol_deserialize","->%#llx",(unsigned long)result);
+	AMP_DEBUG_EXIT("midcol_deserialize","->%#llx",(unsigned long)result);
 	return result;
 }
 
@@ -1536,13 +1528,13 @@ char *midcol_pretty_print(Lyst mc)
 	char **mid_strs = NULL;
 	int tot_size = 0;
 
-	DTNMP_DEBUG_ENTRY("midcol_pretty_print","(%#llx)", (unsigned long) mc);
+	AMP_DEBUG_ENTRY("midcol_pretty_print","(%#llx)", (unsigned long) mc);
 
 	/* Step 0: Sanity Check. */
 	if(mc == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_pretty_print","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("midcol_pretty_print","->NULL", NULL);
+		AMP_DEBUG_ERR("midcol_pretty_print","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("midcol_pretty_print","->NULL", NULL);
 		return NULL;
 	}
 
@@ -1554,9 +1546,9 @@ char *midcol_pretty_print(Lyst mc)
 	mid_strs = (char**) STAKE(num_items * sizeof(char*));
 	if(mid_strs == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_pretty_print","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("midcol_pretty_print","Can't alloc %d bytes.",
 				        num_items * sizeof(char *));
-		DTNMP_DEBUG_EXIT("midcol_pretty_print","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1578,7 +1570,7 @@ char *midcol_pretty_print(Lyst mc)
 
 	if((result = (char *) STAKE(tot_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_pretty_print","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("midcol_pretty_print","Can't alloc %d bytes.",
 				        tot_size);
 		for(i = 0; i < num_items; i++)
 		{
@@ -1586,7 +1578,7 @@ char *midcol_pretty_print(Lyst mc)
 		}
 		SRELEASE(mid_strs);
 
-		DTNMP_DEBUG_EXIT("midcol_pretty_print","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1607,17 +1599,17 @@ char *midcol_pretty_print(Lyst mc)
 	/* Step 5: Sanity check. */
 	if((cursor - result) > tot_size)
 	{
-		DTNMP_DEBUG_ERR("midcol_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
+		AMP_DEBUG_ERR("midcol_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
 				tot_size, (cursor-result));
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_INFO("midcol_pretty_print","Wrote %llu into %d string.",
+	AMP_DEBUG_INFO("midcol_pretty_print","Wrote %llu into %d string.",
 					(cursor -result), tot_size);
 
-	DTNMP_DEBUG_EXIT("midcol_pretty_print","->%#llx",result);
+	AMP_DEBUG_EXIT("midcol_pretty_print","->%#llx",result);
 
 	return result;
 }
@@ -1656,13 +1648,13 @@ char *midcol_to_string(Lyst mc)
 	char **mid_strs = NULL;
 	int tot_size = 0;
 
-	DTNMP_DEBUG_ENTRY("midcol_to_string","(%#llx)", (unsigned long) mc);
+	AMP_DEBUG_ENTRY("midcol_to_string","(%#llx)", (unsigned long) mc);
 
 	/* Step 0: Sanity Check. */
 	if(mc == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_to_string","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("midcol_to_string","->NULL", NULL);
+		AMP_DEBUG_ERR("midcol_to_string","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("midcol_to_string","->NULL", NULL);
 		return NULL;
 	}
 
@@ -1674,9 +1666,9 @@ char *midcol_to_string(Lyst mc)
 	mid_strs = (char**) STAKE(num_items * sizeof(char*));
 	if(mid_strs == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_to_string","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("midcol_to_string","Can't alloc %d bytes.",
 				        num_items * sizeof(char *));
-		DTNMP_DEBUG_EXIT("midcol_to_string","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_to_string","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1700,7 +1692,7 @@ char *midcol_to_string(Lyst mc)
 
 	if((result = (char *) STAKE(tot_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("midcol_to_string","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("midcol_to_string","Can't alloc %d bytes.",
 				        tot_size);
 		for(i = 0; i < num_items; i++)
 		{
@@ -1708,7 +1700,7 @@ char *midcol_to_string(Lyst mc)
 		}
 		SRELEASE(mid_strs);
 
-		DTNMP_DEBUG_EXIT("midcol_to_string","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_to_string","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1729,17 +1721,17 @@ char *midcol_to_string(Lyst mc)
 	/* Step 5: Sanity check. */
 	if((cursor - result) > tot_size)
 	{
-		DTNMP_DEBUG_ERR("midcol_to_string", "OVERWROTE! Alloc %d, wrote %llu.",
+		AMP_DEBUG_ERR("midcol_to_string", "OVERWROTE! Alloc %d, wrote %llu.",
 				tot_size, (cursor-result));
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("mid_to_string","->NULL",NULL);
+		AMP_DEBUG_EXIT("mid_to_string","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_INFO("midcol_to_string","Wrote %llu into %d string.",
+	AMP_DEBUG_INFO("midcol_to_string","Wrote %llu into %d string.",
 					(cursor -result), tot_size);
 
-	DTNMP_DEBUG_EXIT("midcol_to_string","->%#llx",result);
+	AMP_DEBUG_EXIT("midcol_to_string","->%#llx",result);
 
 	return result;
 }
@@ -1774,14 +1766,14 @@ uint8_t *midcol_serialize(Lyst mids, uint32_t *size)
 	Sdnv num_sdnv;
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("midcol_serialize","(%#llx, %#llx)",
+	AMP_DEBUG_ENTRY("midcol_serialize","(%#llx, %#llx)",
 			          (unsigned long) mids, (unsigned long) size);
 
 	/* Step 0: Sanity Check */
 	if((mids == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("midcol_serialize","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("midcol_serialize","Bad args.", NULL);
+		AMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1806,7 +1798,7 @@ uint8_t *midcol_serialize(Lyst mids, uint32_t *size)
     		}
     		if((cur_mid->raw == NULL) || (cur_mid->raw_size == 0))
     		{
-        		DTNMP_DEBUG_WARN("midcol_serialize","MID didn't serialize.", NULL);
+        		AMP_DEBUG_WARN("midcol_serialize","MID didn't serialize.", NULL);
     		}
     		else
     		{
@@ -1815,17 +1807,17 @@ uint8_t *midcol_serialize(Lyst mids, uint32_t *size)
     	}
     	else
     	{
-    		DTNMP_DEBUG_WARN("midcol_serialize","Found NULL MID?", NULL);
+    		AMP_DEBUG_WARN("midcol_serialize","Found NULL MID?", NULL);
     	}
     }
 
     /* Step 3: Allocate the space for the serialized list. */
     if((result = (uint8_t*) STAKE(*size)) == NULL)
     {
-		DTNMP_DEBUG_ERR("midcol_serialize","Can't alloc %d bytes", *size);
+		AMP_DEBUG_ERR("midcol_serialize","Can't alloc %d bytes", *size);
 		*size = 0;
 
-		DTNMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
 		return NULL;
     }
 
@@ -1850,22 +1842,22 @@ uint8_t *midcol_serialize(Lyst mids, uint32_t *size)
     	}
     	else
     	{
-    		DTNMP_DEBUG_WARN("midcol_serialize","Found NULL MID?", NULL);
+    		AMP_DEBUG_WARN("midcol_serialize","Found NULL MID?", NULL);
     	}
     }
 
     /* Step 5: Final sanity check. */
     if((cursor - result) != *size)
     {
-		DTNMP_DEBUG_ERR("midcol_serialize","Wrote %d bytes not %d bytes",
+		AMP_DEBUG_ERR("midcol_serialize","Wrote %d bytes not %d bytes",
 				        (cursor - result), *size);
 		*size = 0;
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("midcol_serialize","->NULL",NULL);
 		return NULL;
     }
 
-	DTNMP_DEBUG_EXIT("midcol_serialize","->%#llx",(unsigned long) result);
+	AMP_DEBUG_EXIT("midcol_serialize","->%#llx",(unsigned long) result);
 	return result;
 }
 

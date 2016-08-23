@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** \file ctrl.c
@@ -11,7 +17,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  05/17/15  E. Birrane     Redesign around DTNMP v0.1
+ **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  05/17/15  E. Birrane     Redesign around DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "ctrl.h"
@@ -23,12 +30,12 @@ void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 	LystElt elt;
 	ctrl_exec_t *entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("ctrl_clear_lyst","(0x%x, 0x%x, %d)",
+	AMP_DEBUG_ENTRY("ctrl_clear_lyst","(0x%x, 0x%x, %d)",
 			          (unsigned long) list, (unsigned long) mutex, destroy);
 
     if((list == NULL) || (*list == NULL))
     {
-    	DTNMP_DEBUG_ERR("ctrl_clear_lyst","Bad Params.", NULL);
+    	AMP_DEBUG_ERR("ctrl_clear_lyst","Bad Params.", NULL);
     	return;
     }
 
@@ -43,7 +50,7 @@ void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 		/* Grab the current item */
 		if((entry = (ctrl_exec_t *) lyst_data(elt)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("ctrl_clear_lyst","Can't get report from lyst!", NULL);
+			AMP_DEBUG_ERR("ctrl_clear_lyst","Can't get report from lyst!", NULL);
 		}
 		else
 		{
@@ -64,7 +71,7 @@ void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 		unlockResource(mutex);
 	}
 
-	DTNMP_DEBUG_EXIT("ctrl_clear_lyst","->.",NULL);
+	AMP_DEBUG_EXIT("ctrl_clear_lyst","->.",NULL);
 }
 
 
@@ -85,40 +92,40 @@ void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  01/10/13  E. Birrane     Initial implementation.
- *  05/17/15  E. Birrane     Moved to ctrl.c, updated to DTNMP V0.1
+ *  01/10/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  05/17/15  E. Birrane     Moved to ctrl.c, updated to DTNMP V0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 ctrl_exec_t* ctrl_create(time_t time, mid_t *mid, eid_t sender)
 {
 	ctrl_exec_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("ctrl_create","(%d, 0x%x)",
+	AMP_DEBUG_ENTRY("ctrl_create","(%d, 0x%x)",
 			          time, (unsigned long) mid);
 
 	/* Step 0: Sanity Check. */
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_create","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("ctrl_create","->NULL",NULL);
+		AMP_DEBUG_ERR("ctrl_create","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("ctrl_create","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the message. */
 	if((result = (ctrl_exec_t*)STAKE(sizeof(ctrl_exec_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_create","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("ctrl_create","Can't alloc %d bytes.",
 				        sizeof(ctrl_exec_t));
-		DTNMP_DEBUG_EXIT("ctrl_create","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_create","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Find the adm_ctrl_t associated with this control. */
 	if((result->adm_ctrl = adm_find_ctrl(mid)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_create","Can't find ADM ctrl.",NULL);
+		AMP_DEBUG_ERR("ctrl_create","Can't find ADM ctrl.",NULL);
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("ctrl_create","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_create","->NULL",NULL);
 		return NULL;
 	}
 
@@ -130,7 +137,7 @@ ctrl_exec_t* ctrl_create(time_t time, mid_t *mid, eid_t sender)
 	result->time = time;
 	result->mid = mid_copy(mid);
 
-    if(result->time <= DTNMP_RELATIVE_TIME_EPOCH)
+    if(result->time <= AMP_RELATIVE_TIME_EPOCH)
     {
     	/* Step 4a: If relative time, that is # seconds. */
     	result->countdown_ticks = result->time;
@@ -147,7 +154,7 @@ ctrl_exec_t* ctrl_create(time_t time, mid_t *mid, eid_t sender)
     /* Step 5: Populate dynamic parts of the control. */
 	result->status = CONTROL_ACTIVE;
 
-	DTNMP_DEBUG_EXIT("ctrl_create","->0x%x",result);
+	AMP_DEBUG_EXIT("ctrl_create","->0x%x",result);
 	return result;
 }
 
@@ -169,8 +176,8 @@ ctrl_exec_t* ctrl_create(time_t time, mid_t *mid, eid_t sender)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  01/10/13  E. Birrane     Initial implementation.
- *  05/17/15  E. Birrane     Moved to ctrl.c, updated to DTNMP V0.1
+ *  01/10/13  E. Birrane     Initial implementation. (JHU/APL)
+ *  05/17/15  E. Birrane     Moved to ctrl.c, updated to DTNMP V0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 ctrl_exec_t *ctrl_deserialize(uint8_t *cursor,
 							  uint32_t size,
@@ -180,25 +187,25 @@ ctrl_exec_t *ctrl_deserialize(uint8_t *cursor,
 	uint32_t bytes = 0;
 	uvast val = 0;
 
-	DTNMP_DEBUG_ENTRY("ctrl_deserialize","(0x%x, %d, 0x%x)",
+	AMP_DEBUG_ENTRY("ctrl_deserialize","(0x%x, %d, 0x%x)",
 			          (unsigned long)cursor,
 			           size, (unsigned long) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
 	{
-		DTNMP_DEBUG_ERR("ctrl_deserialize","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("ctrl_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("ctrl_deserialize","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("ctrl_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the new message structure. */
 	if((result = (ctrl_exec_t*)STAKE(sizeof(ctrl_exec_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_deserialize","Can't Alloc %d Bytes.",
+		AMP_DEBUG_ERR("ctrl_deserialize","Can't Alloc %d Bytes.",
 				        sizeof(ctrl_exec_t));
 		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("ctrl_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -225,11 +232,11 @@ ctrl_exec_t *ctrl_deserialize(uint8_t *cursor,
 
 	if((result->mid = mid_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_deserialize","Can't grab contents.",NULL);
+		AMP_DEBUG_ERR("ctrl_deserialize","Can't grab contents.",NULL);
 
 		*bytes_used = 0;
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("ctrl_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -239,7 +246,7 @@ ctrl_exec_t *ctrl_deserialize(uint8_t *cursor,
 		*bytes_used += bytes;
 	}
 
-	DTNMP_DEBUG_EXIT("ctrl_deserialize","->0x%x",
+	AMP_DEBUG_EXIT("ctrl_deserialize","->0x%x",
 			         (unsigned long)result);
 	return result;
 }
@@ -267,14 +274,14 @@ uint8_t *ctrl_serialize(ctrl_exec_t *ctrl, uint32_t *len)
 	uint8_t *contents = NULL;
 	uint32_t contents_len = 0;
 
-	DTNMP_DEBUG_ENTRY("ctrl_serialize","(0x%x, 0x%x)",
+	AMP_DEBUG_ENTRY("ctrl_serialize","(0x%x, 0x%x)",
 			          (unsigned long)ctrl, (unsigned long) len);
 
 	/* Step 0: Sanity Checks. */
 	if((ctrl == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("ctrl_serialize","Bad Args",NULL);
-		DTNMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("ctrl_serialize","Bad Args",NULL);
+		AMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -287,9 +294,9 @@ uint8_t *ctrl_serialize(ctrl_exec_t *ctrl, uint32_t *len)
 
 	if((contents = mid_serialize(ctrl->mid, &contents_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_serialize","Can't serialize MID.",NULL);
+		AMP_DEBUG_ERR("ctrl_serialize","Can't serialize MID.",NULL);
 
-		DTNMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -299,11 +306,11 @@ uint8_t *ctrl_serialize(ctrl_exec_t *ctrl, uint32_t *len)
 	/* STEP 3: Allocate the serialized message. */
 	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("ctrl_serialize","Can't alloc %d bytes", *len);
+		AMP_DEBUG_ERR("ctrl_serialize","Can't alloc %d bytes", *len);
 		*len = 0;
 		SRELEASE(contents);
 
-		DTNMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -326,16 +333,16 @@ uint8_t *ctrl_serialize(ctrl_exec_t *ctrl, uint32_t *len)
 	/* Step 5: Last sanity check. */
 	if((cursor - result) != *len)
 	{
-		DTNMP_DEBUG_ERR("ctrl_serialize","Wrote %d bytes but allcated %d",
+		AMP_DEBUG_ERR("ctrl_serialize","Wrote %d bytes but allcated %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
 		SRELEASE(result);
 
-		DTNMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("ctrl_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("ctrl_serialize","->0x%x",(unsigned long)result);
+	AMP_DEBUG_EXIT("ctrl_serialize","->0x%x",(unsigned long)result);
 	return result;
 }
 

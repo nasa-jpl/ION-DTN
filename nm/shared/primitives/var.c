@@ -1,20 +1,20 @@
 /*****************************************************************************
  **
- ** \file cd.c
+ ** \file var.c
  **
  **
- ** Description: Structures that capture computed data definitions.
+ ** Description: Structures that capture variable definitions.
  **
  ** Notes:
- **   These functions were originally part of the def.c package, and later
- **   customized as the cd package to support the sticky bit.
+ **   These functions were originally part of the def.c package.
  **
  ** Assumptions:
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  04/05/16  E. Birrane     Initial implementation
+ **  04/05/16  E. Birrane     Initial implementation (Secure DTN - NASA: NNX14CS58P)
+ **  07/31/16  E. Birrane     Renamed CD to VAR. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -22,111 +22,112 @@
 #include "shared/utils/utils.h"
 #include "shared/utils/nm_types.h"
 
-#include "cd.h"
+#include "var.h"
 
 
 /******************************************************************************
  *
- * \par Function Name: cd_create
+ * \par Function Name: var_create
  *
- * \par Create a computed data definition.
+ * \par Create a variable definition.
  *
  * \retval NULL Failure
- *        !NULL The new Computed Data definition
+ *        !NULL The new variable definition
  *
- * \param[in] mid   The identifier for the new CD.
- * \param[in] type  The type of the CD value.
- * \param[in] init  The CD definition.
- * \param[in] val   Optional value of the CD object.
+ * \param[in] mid   The identifier for the new VAR.
+ * \param[in] type  The type of the VAR value.
+ * \param[in] init  The VAR definition.
+ * \param[in] val   Optional value of the VAR object.
  *
  * \par Notes:
  *		1. The ID is SHALLOW COPIED into this object and
  *		   MUST NOT be released by the calling function.
  *		2 The init expr and VAL are DEEP COPIED if used, and otherwise not. Either
- *		  way it MUST BE released by the calling function.
+ *		  way they MUST BE released by the calling function.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
-cd_t *cd_create(mid_t *id,
-				dtnmp_type_e type,
+var_t *var_create(mid_t *id,
+				amp_type_e type,
 				expr_t *init,
 				value_t val)
 {
-	cd_t *result = NULL;
+	var_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("cd_create","(0x"ADDR_FIELDSPEC",%d,0x"ADDR_FIELDSPEC",val (type %d))", (uaddr) id, type, (uaddr) init, val.type);
+	AMP_DEBUG_ENTRY("var_create","(0x"UHF",%d,0x"UHF",val (type %d))",
+			          (uvast) id, type, (uvast) init, val.type);
 
 	/* Step 0: Sanity Check. */
 	if(id == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_create","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("cd_create","->NULL",NULL);
+		AMP_DEBUG_ERR("var_create","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("var_create","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1: Allocate the message. */
-	if((result = (cd_t*)STAKE(sizeof(cd_t))) == NULL)
+	if((result = (var_t*)STAKE(sizeof(var_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_create","Can't alloc %d bytes.",
-				        sizeof(cd_t));
-		DTNMP_DEBUG_EXIT("cd_create","->NULL",NULL);
+		AMP_DEBUG_ERR("var_create","Can't alloc %d bytes.",
+				        sizeof(var_t));
+		AMP_DEBUG_EXIT("var_create","->NULL",NULL);
 		return NULL;
 	}
 
-	memset(result, 0, sizeof(cd_t));
+	memset(result, 0, sizeof(var_t));
 
 	/* Step 2: Populate the message. */
 	result->id = id;
 
-	if(val.type != DTNMP_TYPE_UNK)
+	if(val.type != AMP_TYPE_UNK)
 	{
 		result->value = val_copy(val);
 	}
 	else if(init == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_create","NULL val and init expr.", NULL);
-		cd_release(result);
-		DTNMP_DEBUG_EXIT("cd_create","->NULL", NULL);
+		AMP_DEBUG_ERR("var_create","NULL val and init expr.", NULL);
+		var_release(result);
+		AMP_DEBUG_EXIT("var_create","->NULL", NULL);
 		return NULL;
 	}
-	else if(type == DTNMP_TYPE_EXPR)
+	else if(type == AMP_TYPE_EXPR)
 	{
-		result->value.type = DTNMP_TYPE_EXPR;
+		result->value.type = AMP_TYPE_EXPR;
 		result->value.value.as_ptr = (uint8_t *)expr_copy(init);
 	}
 	else
 	{
 		result->value = expr_eval(init);
-		if(result->value.type == DTNMP_TYPE_UNK)
+		if(result->value.type == AMP_TYPE_UNK)
 		{
 			char *init_str = expr_to_string(init);
-			DTNMP_DEBUG_ERR("cd_create", "Can't evaluate initial expression %s", init_str);
+			AMP_DEBUG_ERR("var_create", "Can't evaluate initial expression %s", init_str);
 			SRELEASE(init_str);
-			cd_release(result);
-			DTNMP_DEBUG_EXIT("cd_create","->NULL",NULL);
+			var_release(result);
+			AMP_DEBUG_EXIT("var_create","->NULL",NULL);
 			return NULL;
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("cd_create","->0x"ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("var_create","->0x"UHF,(uvast)result);
 	return result;
 }
 
 
 /******************************************************************************
  *
- * \par Function Name: cd_create_from_parms
+ * \par Function Name: var_create_from_parms
  *
- * \par Create a computed data definition from a set of parameters held in
+ * \par Create a variable definition from a set of parameters held in
  *      a Lyst.
  *
  * \retval NULL Failure
- *        !NULL The new Computed Data definition
+ *        !NULL The new variable definition
  *
- * \param[in] parms The set of parameters describing the new CD.
+ * \param[in] parms The set of parameters describing the new VAR.
  *
  * \par Notes:
  *		1. The parms MUSt be as follows: (MID Id, UINT Sticky, MC Definition)
@@ -137,9 +138,9 @@ cd_t *cd_create(mid_t *id,
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
 
-cd_t *cd_create_from_parms(Lyst parms)
+var_t *var_create_from_parms(Lyst parms)
 {
-	cd_t *result = NULL;
+	var_t *result = NULL;
 	LystElt elt = NULL;
 	blob_t *cur = NULL;
 	mid_t *mid = NULL;
@@ -150,7 +151,7 @@ cd_t *cd_create_from_parms(Lyst parms)
 	/* Step 0: Sanity Check. */
 	if(lyst_length(parms) != 3)
 	{
-		DTNMP_DEBUG_ERR("cd_create_from_parms","Bad # params. Need 3, received %d", lyst_length(parms));
+		AMP_DEBUG_ERR("var_create_from_parms","Bad # params. Need 3, received %d", lyst_length(parms));
 		return NULL;
 	}
 
@@ -159,7 +160,7 @@ cd_t *cd_create_from_parms(Lyst parms)
 	cur = lyst_data(elt);
 	if((mid = mid_deserialize(cur->value, cur->length, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_create_from_parms","Can't grab Parm 1 (MID).", NULL);
+		AMP_DEBUG_ERR("var_create_from_parms","Can't grab Parm 1 (MID).", NULL);
 		return NULL;
 	}
 
@@ -169,7 +170,7 @@ cd_t *cd_create_from_parms(Lyst parms)
 	if((bytes = utils_grab_byte(cur->value, cur->length, &type)) != 1)
 	{
 		mid_release(mid);
-		DTNMP_DEBUG_ERR("cd_create_from_parms","Can't grab Parm 2 (BYTE).", NULL);
+		AMP_DEBUG_ERR("var_create_from_parms","Can't grab Parm 2 (BYTE).", NULL);
 		return NULL;
 	}
 
@@ -179,7 +180,7 @@ cd_t *cd_create_from_parms(Lyst parms)
 	if((init = expr_deserialize(cur->value, cur->length, &bytes)) == NULL)
 	{
 		mid_release(mid);
-		DTNMP_DEBUG_ERR("cd_create_from_parms","Can't grab Parm 3 (EXPR).", NULL);
+		AMP_DEBUG_ERR("var_create_from_parms","Can't grab Parm 3 (EXPR).", NULL);
 		return NULL;
 	}
 
@@ -187,10 +188,10 @@ cd_t *cd_create_from_parms(Lyst parms)
 	 * deep copies the expr. */
 	value_t val;
 	val_init(&val);
-	result = cd_create(mid, type, init, val);
+	result = var_create(mid, type, init, val);
 	expr_release(init);
 
-	DTNMP_DEBUG_EXIT("cd_create_from_parms","->0x"ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("var_create_from_parms","->0x"UHF,(uvast)result);
 	return result;
 }
 
@@ -198,12 +199,12 @@ cd_t *cd_create_from_parms(Lyst parms)
 
 /******************************************************************************
  *
- * \par Function Name: cd_deserialize
+ * \par Function Name: var_deserialize
  *
- * \par Construct a CD from a serialized byte stream.
+ * \par Construct a VAR from a serialized byte stream.
  *
  * \retval NULL Failure
- *        !NULL The new Computed Data definition
+ *        !NULL The new variable definition
  *
  * \param[in] cursor       The start of the byte stream
  * \param[in] size         The length of the byte stream in bytes
@@ -217,24 +218,24 @@ cd_t *cd_create_from_parms(Lyst parms)
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
 
-cd_t *cd_deserialize(uint8_t *cursor,
+var_t *var_deserialize(uint8_t *cursor,
 		             uint32_t size,
 		             uint32_t *bytes_used)
 {
-	cd_t *result = NULL;
+	var_t *result = NULL;
 	uint32_t bytes = 0;
 	mid_t *id = NULL;
     value_t val;
 
-	DTNMP_DEBUG_ENTRY("cd_deserialize",
-			          "(0x"ADDR_FIELDSPEC",%d,0x"ADDR_FIELDSPEC")",
-			          (uaddr)cursor, size, (uaddr) bytes_used);
+	AMP_DEBUG_ENTRY("var_deserialize",
+			          "(0x"UHF",%d,0x"UHF")",
+			          (uvast)cursor, size, (uvast) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
 	{
-		DTNMP_DEBUG_ERR("cd_deserialize","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("cd_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("var_deserialize","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("var_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -244,9 +245,9 @@ cd_t *cd_deserialize(uint8_t *cursor,
 	/* Step 1.1: Grab the ID MID. */
 	if((id = mid_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_deserialize","Can't grab ID MID.",NULL);
+		AMP_DEBUG_ERR("var_deserialize","Can't grab ID MID.",NULL);
 		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("cd_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("var_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -258,12 +259,12 @@ cd_t *cd_deserialize(uint8_t *cursor,
 
 	/* Step 1.2: Grab the value. */
 	val = val_deserialize(cursor, size, &bytes);
-	if((bytes <= 0) || (val.type == DTNMP_TYPE_UNK))
+	if((bytes <= 0) || (val.type == AMP_TYPE_UNK))
 	{
-		DTNMP_DEBUG_ERR("cd_deserialize", "Can't grab VAL.", NULL);
+		AMP_DEBUG_ERR("var_deserialize", "Can't grab VAL.", NULL);
 		*bytes_used = 0;
 		mid_release(id);
-		DTNMP_DEBUG_EXIT("cd_deserialize", "->NULL", NULL);
+		AMP_DEBUG_EXIT("var_deserialize", "->NULL", NULL);
 		return NULL;
 	}
 	else
@@ -275,11 +276,11 @@ cd_t *cd_deserialize(uint8_t *cursor,
 
 	/* Step 2: Create the new definition. This is a shallow copy so
 	 * don't release the mid and expr.  */
-	result = cd_create(id, val.type, NULL, val);
+	result = var_create(id, val.type, NULL, val);
 
 	val_release(&val, 0);
 
-	DTNMP_DEBUG_EXIT("cd_deserialize","->0x"ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("var_deserialize","->0x"UHF,(uvast)result);
 	return result;
 }
 
@@ -287,14 +288,14 @@ cd_t *cd_deserialize(uint8_t *cursor,
 
 /******************************************************************************
  *
- * \par Function Name: cd_duplicate
+ * \par Function Name: var_duplicate
  *
- * \par Deep copy a computed data definition.
+ * \par Deep copy a variable definition.
  *
  * \retval NULL Failure
- *        !NULL The copied Computed Data definition
+ *        !NULL The copied variable definition
  *
- * \param[in] orig   The CD object to copy.
+ * \param[in] orig   The VAR object to copy.
  *
  * \par Notes:
  *
@@ -304,16 +305,16 @@ cd_t *cd_deserialize(uint8_t *cursor,
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
 
-cd_t *cd_duplicate(cd_t *orig)
+var_t *var_duplicate(var_t *orig)
 {
 	mid_t *new_id;
-	cd_t *result = NULL;
+	var_t *result = NULL;
 
 	/* Step 0: Sanity Check. */
 	if(orig == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_duplicate","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("cd_duplicate","-->NULL",NULL);
+		AMP_DEBUG_ERR("var_duplicate","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("var_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
@@ -322,22 +323,22 @@ cd_t *cd_duplicate(cd_t *orig)
 	/* Step 1.1: Deep copy ID. */
 	if((new_id = mid_copy(orig->id)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_duplicate","Can't copy ID.",NULL);
-		DTNMP_DEBUG_EXIT("cd_duplicate","-->NULL",NULL);
+		AMP_DEBUG_ERR("var_duplicate","Can't copy ID.",NULL);
+		AMP_DEBUG_EXIT("var_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 1.2: Deep copy value. */
 
-	if((result = cd_create(new_id, orig->value.type, NULL, orig->value)) == NULL)
+	if((result = var_create(new_id, orig->value.type, NULL, orig->value)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_duplicate","Can't duplicate DEF.", NULL);
+		AMP_DEBUG_ERR("var_duplicate","Can't duplicate DEF.", NULL);
 		mid_release(new_id);
-		DTNMP_DEBUG_EXIT("cd_duplicate","-->NULL",NULL);
+		AMP_DEBUG_EXIT("var_duplicate","-->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("cd_duplicate","-->0x"ADDR_FIELDSPEC, (uaddr) result);
+	AMP_DEBUG_EXIT("var_duplicate","-->0x"UHF, (uvast) result);
 	return result;
 }
 
@@ -345,16 +346,16 @@ cd_t *cd_duplicate(cd_t *orig)
 
 /******************************************************************************
  *
- * \par Function Name: cd_find_by_id
+ * \par Function Name: var_find_by_id
  *
- * \par Find a CD object by its MID in a Lyst of CD objects.
+ * \par Find a VAR object by its MID in a Lyst of VAR objects.
  *
  * \retval NULL Failure
- *        !NULL The found Computed Data object
+ *        !NULL The found variable object
  *
- * \param[in]     cds    The list of CD objects.
+ * \param[in]     vars    The list of VAR objects.
  * \param[in|out] mutex  The mutex (if any) protecting access to the list.
- * \param[in]     id     The MID of the CD to find.
+ * \param[in]     id     The MID of the VAR to find.
  *
  * \par Notes:
  *
@@ -364,18 +365,19 @@ cd_t *cd_duplicate(cd_t *orig)
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
 
-cd_t *cd_find_by_id(Lyst cds, ResourceLock *mutex, mid_t *id)
+var_t *var_find_by_id(Lyst vars, ResourceLock *mutex, mid_t *id)
 {
 	LystElt elt;
-	cd_t *cur_cd = NULL;
+	var_t *cur_var = NULL;
 
-	DTNMP_DEBUG_ENTRY("cd_find_by_id","(0x"ADDR_FIELDSPEC", 0x"ADDR_FIELDSPEC", 0x"ADDR_FIELDSPEC")", (uaddr) cds, (uaddr) mutex, (uaddr) id);
+	AMP_DEBUG_ENTRY("var_find_by_id","(0x"UHF", 0x"UHF", 0x"UHF")",
+			          (uvast) vars, (uvast) mutex, (uvast) id);
 
 	/* Step 0: Sanity Check. */
-	if((cds == NULL) || (id == NULL))
+	if((vars == NULL) || (id == NULL))
 	{
-		DTNMP_DEBUG_ERR("cd_find_by_id","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("cd_find_by_id","->NULL.", NULL);
+		AMP_DEBUG_ERR("var_find_by_id","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("var_find_by_id","->NULL.", NULL);
 		return NULL;
 	}
 
@@ -383,23 +385,23 @@ cd_t *cd_find_by_id(Lyst cds, ResourceLock *mutex, mid_t *id)
 	{
 		lockResource(mutex);
 	}
-    for (elt = lyst_first(cds); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(vars); elt; elt = lyst_next(elt))
     {
         /* Grab the definition */
-        if((cur_cd = (cd_t*) lyst_data(elt)) == NULL)
+        if((cur_var = (var_t*) lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("cd_find_by_id","Can't grab cd from lyst!", NULL);
+        	AMP_DEBUG_ERR("var_find_by_id","Can't grab var from lyst!", NULL);
         }
         else
         {
-        	if(mid_compare(id, cur_cd->id, 1) == 0)
+        	if(mid_compare(id, cur_var->id, 1) == 0)
         	{
-        		DTNMP_DEBUG_EXIT("cd_find_by_id","->0x%x.", cur_cd);
+        		AMP_DEBUG_EXIT("var_find_by_id","->0x%x.", cur_var);
         	    if(mutex != NULL)
         	    {
         	    	unlockResource(mutex);
         	    }
-        		return cur_cd;
+        		return cur_var;
         	}
         }
     }
@@ -409,7 +411,7 @@ cd_t *cd_find_by_id(Lyst cds, ResourceLock *mutex, mid_t *id)
     	unlockResource(mutex);
     }
 
-	DTNMP_DEBUG_EXIT("cd_find_by_id","->NULL.", NULL);
+	AMP_DEBUG_EXIT("var_find_by_id","->NULL.", NULL);
 	return NULL;
 }
 
@@ -417,12 +419,12 @@ cd_t *cd_find_by_id(Lyst cds, ResourceLock *mutex, mid_t *id)
 
 /******************************************************************************
  *
- * \par Function Name: cd_lyst_clear
+ * \par Function Name: var_lyst_clear
  *
- * \par Releases all CDs in a list of CDs.
+ * \par Releases all VARs in a list of VARs.
  *
  *
- * \param[out]    cds      The list of CD objects.
+ * \param[out]    vars      The list of VAR objects.
  * \param[in|out] mutex    The mutex (if any) protecting access to the list.
  * \param[in]     destroy  Whether to destroy the list (1) or not (0).
  *
@@ -434,16 +436,17 @@ cd_t *cd_find_by_id(Lyst cds, ResourceLock *mutex, mid_t *id)
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
 
-void cd_lyst_clear(Lyst *cds, ResourceLock *mutex, int destroy)
+void var_lyst_clear(Lyst *vars, ResourceLock *mutex, int destroy)
 {
 	 LystElt elt;
-	 cd_t *cur_cd = NULL;
+	 var_t *cur_var = NULL;
 
-	 DTNMP_DEBUG_ENTRY("cd_lyst_clear","(0x"ADDR_FIELDSPEC", 0x"ADDR_FIELDSPEC", %d)", (uaddr) cds, (uaddr) mutex, destroy);
+	 AMP_DEBUG_ENTRY("var_lyst_clear","(0x"UHF", 0x"UHF", %d)",
+			          (uvast) vars, (uvast) mutex, destroy);
 
-	 if((cds == NULL) || (*cds == NULL))
+	 if((vars == NULL) || (*vars == NULL))
 	 {
-		 DTNMP_DEBUG_ERR("cd_lyst_clear","Bad Params.", NULL);
+		 AMP_DEBUG_ERR("var_lyst_clear","Bad Params.", NULL);
 		 return;
 	 }
 
@@ -453,24 +456,24 @@ void cd_lyst_clear(Lyst *cds, ResourceLock *mutex, int destroy)
 	 }
 
 	 /* Free any reports left in the reports list. */
-	 for (elt = lyst_first(*cds); elt; elt = lyst_next(elt))
+	 for (elt = lyst_first(*vars); elt; elt = lyst_next(elt))
 	 {
 		 /* Grab the current report */
-		 if((cur_cd = (cd_t *) lyst_data(elt)) == NULL)
+		 if((cur_var = (var_t *) lyst_data(elt)) == NULL)
 		 {
-			 DTNMP_DEBUG_ERR("cd_lyst_clear","Can't get CD from list!", NULL);
+			 AMP_DEBUG_ERR("var_lyst_clear","Can't get VAR from list!", NULL);
 		 }
 		 else
 		 {
-			 cd_release(cur_cd);
+			 var_release(cur_var);
 		 }
 	 }
-	 lyst_clear(*cds);
+	 lyst_clear(*vars);
 
 	 if(destroy != 0)
 	 {
-		 lyst_destroy(*cds);
-		 *cds = NULL;
+		 lyst_destroy(*vars);
+		 *vars = NULL;
 	 }
 
 	 if(mutex != NULL)
@@ -478,18 +481,18 @@ void cd_lyst_clear(Lyst *cds, ResourceLock *mutex, int destroy)
 		 unlockResource(mutex);
 	 }
 
-	 DTNMP_DEBUG_EXIT("cd_lyst_clear","->.",NULL);
+	 AMP_DEBUG_EXIT("var_lyst_clear","->.",NULL);
 }
 
 
 /******************************************************************************
  *
- * \par Function Name: cd_release
+ * \par Function Name: var_release
  *
- * \par Releases memory associated with a CD Object
+ * \par Releases memory associated with a VAR Object
  *
  *
- * \param[in|out]    cd      The CD object being freed.
+ * \param[in|out]    var      The VAR object being freed.
  *
  * \par Notes:
  *
@@ -499,37 +502,39 @@ void cd_lyst_clear(Lyst *cds, ResourceLock *mutex, int destroy)
  *  04/05/16  E. Birrane     Initial implementation, modified from def.c
  *****************************************************************************/
 
-void cd_release(cd_t *cd)
+void var_release(var_t *var)
 {
-	DTNMP_DEBUG_ENTRY("cd_release", "(0x"ADDR_FIELDSPEC")", (uaddr) cd);
+	AMP_DEBUG_ENTRY("var_release",
+			          "(0x"UHF")",
+			          (uvast) var);
 
-	if(cd != NULL)
+	if(var != NULL)
 	{
-		if(cd->id != NULL)
+		if(var->id != NULL)
 		{
-			mid_release(cd->id);
+			mid_release(var->id);
 		}
 
-		val_release(&(cd->value), 0);
+		val_release(&(var->value), 0);
 
-		SRELEASE(cd);
+		SRELEASE(var);
 	}
 
-	DTNMP_DEBUG_EXIT("cd_release","->.",NULL);
+	AMP_DEBUG_EXIT("var_release","->.",NULL);
 }
 
 
 
 /******************************************************************************
  *
- * \par Function Name: cd_serialize
+ * \par Function Name: var_serialize
  *
- * \par Serializes a CD object to a byte stream.
+ * \par Serializes a VAR object to a byte stream.
  *
  * \retval NULL Failure
- *        !NULL The serialized CD object as a byte stream
+ *        !NULL The serialized VAR object as a byte stream
  *
- * \param[in]  cd   The CD object to represent.
+ * \param[in]  var   The VAR object to represent.
  * \param[out] len  The length of the byte stream
  *
  * \par Notes:
@@ -542,7 +547,7 @@ void cd_release(cd_t *cd)
  *  04/05/16  E. Birrane     Initial implementation
  *****************************************************************************/
 
-uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
+uint8_t *var_serialize(var_t *var, uint32_t *len)
 {
 	uint8_t *result = NULL;
 	uint8_t *cursor = NULL;
@@ -553,36 +558,36 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
 	uint8_t *val = NULL;
 	uint32_t val_len = 0;
 
-	DTNMP_DEBUG_ENTRY("cd_serialize",
-			          "(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")",
-			          (uaddr)cd, (uaddr) len);
+	AMP_DEBUG_ENTRY("var_serialize",
+			          "(0x"UHF",0x"UHF")",
+			          (uvast)var, (uvast) len);
 
 	/* Step 0: Sanity Checks. */
-	if((cd == NULL) || (len == NULL))
+	if((var == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("cd_serialize","Bad Args",NULL);
-		DTNMP_DEBUG_EXIT("cd_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("var_serialize","Bad Args",NULL);
+		AMP_DEBUG_EXIT("var_serialize","->NULL",NULL);
 		return NULL;
 	}
 
 	*len = 0;
 
 	/* STEP 1: Serialize the ID. */
-	if((id = mid_serialize(cd->id, &id_len)) == NULL)
+	if((id = mid_serialize(var->id, &id_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_serialize","Can't serialize hdr.",NULL);
+		AMP_DEBUG_ERR("var_serialize","Can't serialize hdr.",NULL);
 
-		DTNMP_DEBUG_EXIT("cd_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("var_serialize","->NULL",NULL);
 		return NULL;
 	}
 
 	/* STEP 2: Serialize the value. */
-	if((val = val_serialize(cd->value, &val_len, 1)) == NULL)
+	if((val = val_serialize(var->value, &val_len, 1)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_serialize","Can't serialize value.",NULL);
+		AMP_DEBUG_ERR("var_serialize","Can't serialize value.",NULL);
 		SRELEASE(id);
 
-		DTNMP_DEBUG_EXIT("cd_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("var_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -592,12 +597,12 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
 	/* STEP 4: Allocate the serialized message. */
 	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_serialize","Can't alloc %d bytes", *len);
+		AMP_DEBUG_ERR("var_serialize","Can't alloc %d bytes", *len);
 		*len = 0;
 		SRELEASE(id);
 		SRELEASE(val);
 
-		DTNMP_DEBUG_EXIT("cd_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("var_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -615,16 +620,16 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
 	/* Step 6: Last sanity check. */
 	if((cursor - result) != *len)
 	{
-		DTNMP_DEBUG_ERR("cd_serialize","Wrote %d bytes but allcated %d",
+		AMP_DEBUG_ERR("var_serialize","Wrote %d bytes but allcated %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
 		SRELEASE(result);
 
-		DTNMP_DEBUG_EXIT("cd_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("var_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("cd_serialize","->0x"ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("var_serialize","->0x"UHF,(uvast)result);
 	return result;
 }
 
@@ -632,15 +637,15 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
 
 /******************************************************************************
  *
- * \par Function Name: cd_to_string
+ * \par Function Name: var_to_string
  *
- * \par Creates a string representation of a CD object.
+ * \par Creates a string representation of a VAR object.
  *
  * \retval NULL Failure
- *        !NULL The string representation of the CD object.
+ *        !NULL The string representation of the VAR object.
  *
  *
- * \param[in] cd  The CD object to represent.
+ * \param[in] var  The VAR object to represent.
  *
  * \par Notes:
  *   1. The string is allocated on the heap and MUST be released by the
@@ -652,7 +657,7 @@ uint8_t *cd_serialize(cd_t *cd, uint32_t *len)
  *  04/05/16  E. Birrane     Initial implementation
  *****************************************************************************/
 
-char *cd_to_string(cd_t *cd)
+char *var_to_string(var_t *var)
 {
 	char *result = NULL;
 	char *id_str = NULL;
@@ -660,30 +665,30 @@ char *cd_to_string(cd_t *cd)
 	uint32_t len = 0;
 
 	/* Step 0: Sanity Check. */
-	if(cd == NULL)
+	if(var == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_to_string", "Bad Args.", NULL);
+		AMP_DEBUG_ERR("var_to_string", "Bad Args.", NULL);
 		return NULL;
 	}
 
 	/* Step 1: Create string representation of basic objects. */
-	id_str = mid_to_string(cd->id);
-	val_str = val_to_string(cd->value);
+	id_str = mid_to_string(var->id);
+	val_str = val_to_string(var->value);
 
 	/*
 	 * Step 2: Calculate length of final string:
 	 * Format is:
-	 * CD MID(%s) Sticky(%d) Def(%s) Val(%s)
+	 * VAR MID(%s) Val(%s)
 	 */
 
-	len = 9 + strlen(id_str) + 1;   // "CD MID(%s) "
+	len = 10 + strlen(id_str) + 1;   // "VAR MID(%s) "
 	len += 5 + strlen(val_str) + 1; // "Val(%s) "
 	len += 1;                       // null term
 
 	/* Step 3: Allocate final string. */
 	if((result = STAKE(len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("cd_to_string", "Can't allocate length %d", len);
+		AMP_DEBUG_ERR("var_to_string", "Can't allocate length %d", len);
 		SRELEASE(id_str);
 		SRELEASE(val_str);
 		return NULL;
@@ -691,7 +696,7 @@ char *cd_to_string(cd_t *cd)
 
 	/* Step 4: Construct new string. */
 	sprintf(result,
-			"CD MID(%s) Val(%s)",
+			"VAR MID(%s) Val(%s)",
 			id_str, val_str);
 
 	/* Step 5: Free resources. */

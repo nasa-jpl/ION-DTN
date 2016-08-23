@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: nmagent.c
@@ -12,9 +18,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR          DESCRIPTION
  **  --------  ------------    ---------------------------------------------
- **  09/01/11  V. Ramachandran Initial Implementation
- **  01/10/13  E. Birrane      Update to lasted DTNMP Spec.
- **  06/10/13  E. Birrane      Added SDR data persistence.
+ **  09/01/11  V. Ramachandran Initial Implementation (JHU/APL)
+ **  01/10/13  E. Birrane      Update to lasted DTNMP Spec. (JHU/APL)
+ **  06/10/13  E. Birrane      Added SDR data persistence. (JHU/APL)
  *****************************************************************************/
 
 // System headers.
@@ -79,14 +85,14 @@ void agent_register()
 	/* Step 0: Build an agent registration message. */
 	if((reg = msg_create_reg_agent(agent_eid)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_register","Unable to create agent registration.",NULL);
+		AMP_DEBUG_ERR("agent_register","Unable to create agent registration.",NULL);
 		return;
 	}
 
 	/* Step 1: Serialize the message. */
 	if((data = msg_serialize_reg_agent(reg, &len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("agent_register","Unable to serialize message.", NULL);
+		AMP_DEBUG_ERR("agent_register","Unable to serialize message.", NULL);
 		msg_release_reg_agent(reg);
 		return;
 	}
@@ -94,7 +100,7 @@ void agent_register()
 	/* Step 2: Create the DTNMP message. */
     if((pdu_msg = pdu_create_msg(MSG_TYPE_ADMIN_REG_AGENT, data, len, NULL)) == NULL)
     {
-    	DTNMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
+    	AMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
     	msg_release_reg_agent(reg);
     	SRELEASE(data);
     	return;
@@ -103,7 +109,7 @@ void agent_register()
     /* Step 3: Create a group for this message. */
     if((pdu_group = pdu_create_group(pdu_msg)) == NULL)
     {
-    	DTNMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
+    	AMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
     	msg_release_reg_agent(reg);
     	SRELEASE(data);
     	pdu_release_msg(pdu_msg);
@@ -172,11 +178,11 @@ int	main(int argc, char *argv[])
     errno = 0;
 
 
-    DTNMP_DEBUG_ENTRY("agent_main","(%d, 0x%#llx)", argc, (unsigned long)argv);
+    AMP_DEBUG_ENTRY("agent_main","(%d, 0x%#llx)", argc, (unsigned long)argv);
 
     /* Step 1: Sanity check. */
     if(argc != 3) {
-        DTNMP_DEBUG_ALWAYS("main","Usage: nmagent <agent eid> <manager eid>\n", NULL);
+        AMP_DEBUG_ALWAYS("main","Usage: nmagent <agent eid> <manager eid>\n", NULL);
         return 1;
     }
     
@@ -184,11 +190,11 @@ int	main(int argc, char *argv[])
        ((argv[1] == NULL) || (strlen(argv[1]) <= 0)) ||
        ((argv[2] == NULL) || (strlen(argv[2]) <= 0)))
     {
-		DTNMP_DEBUG_ERR("agent_main", "Invalid Parameters (NULL or 0).", NULL);
+		AMP_DEBUG_ERR("agent_main", "Invalid Parameters (NULL or 0).", NULL);
 		return -1;
     }
 
-    DTNMP_DEBUG_INFO("agent main","Agent EID: %s, Mgr EID: %s", argv[1], argv[2]);
+    AMP_DEBUG_INFO("agent main","Agent EID: %s, Mgr EID: %s", argv[1], argv[2]);
     
     /* Step 2: Note command-line arguments. */
     strcpy((char *) manager_eid.name, argv[2]);
@@ -197,7 +203,7 @@ int	main(int argc, char *argv[])
     /* Step 3: Attach to ION and register. */
 	if (ionAttach() < 0)
 	{
-		DTNMP_DEBUG_ERR("agentDbInit", "Agent can't attach to ION.", NULL);
+		AMP_DEBUG_ERR("agentDbInit", "Agent can't attach to ION.", NULL);
 		return -1;
 	}
 
@@ -205,22 +211,22 @@ int	main(int argc, char *argv[])
 
     if(iif_register_node(&ion_ptr, agent_eid) != 1)
     {
-        DTNMP_DEBUG_ERR("agent_main","Unable to regster BP Node. Exiting.",
+        AMP_DEBUG_ERR("agent_main","Unable to regster BP Node. Exiting.",
         		         NULL);
-    	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
    
     if (iif_is_registered(&ion_ptr))
     {
-        DTNMP_DEBUG_INFO("agent_main","Agent registered with ION, EID: %s",
+        AMP_DEBUG_INFO("agent_main","Agent registered with ION, EID: %s",
         		           iif_get_local_eid(&ion_ptr).name);
     }
     else
     {
-        DTNMP_DEBUG_ERR("agent_main","Failed to register agent with ION, EID %s",
+        AMP_DEBUG_ERR("agent_main","Failed to register agent with ION, EID %s",
         		         iif_get_local_eid(&ion_ptr).name);
-    	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
     }
    
@@ -239,10 +245,10 @@ int	main(int argc, char *argv[])
     {
     	agent_vdb_destroy();
 
-        DTNMP_DEBUG_ERR("agent_main","Unable to initialize VDB, errno = %s",
+        AMP_DEBUG_ERR("agent_main","Unable to initialize VDB, errno = %s",
         		        strerror(errno));
        // SRELEASE(ion_ptr);
-    	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
     }
 
@@ -265,12 +271,12 @@ int	main(int argc, char *argv[])
 
     if (rc)
     {
-        DTNMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
+        AMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
         		ingest_thr_name, strerror(errno));
         adm_destroy();
         agent_vdb_destroy();
 
-    	DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
     }
    
@@ -279,16 +285,16 @@ int	main(int argc, char *argv[])
 
     if (rc)
     {
-       DTNMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
+       AMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
     		           rda_thr_name, strerror(errno));
        adm_destroy();
        agent_vdb_destroy();
 
-       DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+       AMP_DEBUG_EXIT("agent_main","->-1",NULL);
        return -1;
     }
    
-    DTNMP_DEBUG_ALWAYS("agent_main","Threads started...", NULL);
+    AMP_DEBUG_ALWAYS("agent_main","Threads started...", NULL);
 
 
     /* Step 8: Send out agent broadcast message. */
@@ -297,36 +303,36 @@ int	main(int argc, char *argv[])
     /* Step 9: Join threads and wait for them to complete. */
     if (pthread_join(ingest_thr, NULL))
     {
-        DTNMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
+        AMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
      		           ingest_thr_name, strerror(errno));
         adm_destroy();
         agent_vdb_destroy();
 
-        DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+        AMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
 
     if (pthread_join(rda_thr, NULL))
     {
-        DTNMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
+        AMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
      		           rda_thr_name, strerror(errno));
         adm_destroy();
         agent_vdb_destroy();
 
-        DTNMP_DEBUG_EXIT("agent_main","->-1",NULL);
+        AMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
    
     /* Step 10: Cleanup. */
-    DTNMP_DEBUG_ALWAYS("agent_main","Cleaning Agent Resources.",NULL);
+    AMP_DEBUG_ALWAYS("agent_main","Cleaning Agent Resources.",NULL);
     adm_destroy();
     agent_vdb_destroy();
 
     oid_nn_cleanup();
 
-    DTNMP_DEBUG_ALWAYS("agent_main","Stopping Agent.",NULL);
+    AMP_DEBUG_ALWAYS("agent_main","Stopping Agent.",NULL);
 
-    DTNMP_DEBUG_INFO("agent_main","Exiting Agent after cleanup.", NULL);
+    AMP_DEBUG_INFO("agent_main","Exiting Agent after cleanup.", NULL);
 
 	utils_mem_teardown();
 

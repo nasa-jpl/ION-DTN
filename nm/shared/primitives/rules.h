@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file rules.h
@@ -12,10 +17,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  11/08/12  E. Birrane     Redesign of messaging architecture.
- **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
- **  05/17/15  E. Birrane     Moved controls to ctrl.[h|c]. Updated TRL/SRL to DTNMP v0.1
- **  06/26/15  E. Birrane     Updated structures/functs to reflect TRL/SRL naming.
+ **  11/08/12  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
+ **  05/17/15  E. Birrane     Moved controls to ctrl.[h|c]. Updated TRL/SRL to DTNMP v0.1  (Secure DTN - NASA: NNX14CS58P)
+ **  06/26/15  E. Birrane     Updated structures/functs to reflect TRL/SRL naming.  (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef _RULES_H_

@@ -1,9 +1,9 @@
 /*****************************************************************************
  **
- ** \file cd.h
+ ** \file var.h
  **
  **
- ** Description: Structures that capture protocol computed data definitions.
+ ** Description: Structures that capture AMP Variable definitions.
  **
  ** Notes:
  **
@@ -12,11 +12,12 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  04/05/16  E. Birrane     Initial Implementation
+ **  04/05/16  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  07/31/16  E. Birrane     Renamed CD to VAR. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-#ifndef _CD_H_
-#define _CD_H_
+#ifndef _VAR_H_
+#define _VAR_H_
 
 #include "mid.h"
 #include "value.h"
@@ -45,33 +46,33 @@
 
 
 /**
- * This structure captures the location of this Computed Data object
+ * This structure captures the location of this Variable object
  * in the applicable, persistent SDR.
  */
 typedef struct
 {
-	Object itemObj;   /**> Location of the CD object in SDR. */
-	uint32_t size;    /**> Size of the CD object in the SDR */
+	Object itemObj;   /**> Location of the VAR object in SDR. */
+	uint32_t size;    /**> Size of the VAR object in the SDR */
 
 	Object descObj;   /**> Location of this descr in SDR. */
 
-} cd_desc_t;
+} var_desc_t;
 
-// \todo make a single db desc object since these contain no data-typespecific units.
+// \todo make a single db desc object since these contain no data-type specific units.
 
 /**
- * This structure captures the contents of a Computed Data object. This
+ * This structure captures the contents of a Variable object. This
  * includes the definition of the object itself and, on the Agent side,
  * the last computed value of the definition.
  */
 typedef struct
 {
-    mid_t *id;         /**> The identifier (name) of the CD. */
+    mid_t *id;     /**> The identifier (name) of the CD. */
     value_t value; /**> The value of the CD. */
 
     /* Below items are not serialized with this structure. */
-    cd_desc_t desc; /**> Descriptor of def in the SDR. */
-} cd_t;
+    var_desc_t desc; /**> Descriptor of def in the SDR. */
+} var_t;
 
 
 /*
@@ -81,29 +82,27 @@ typedef struct
  */
 
 
-
-/* Create functions. */
-cd_t *cd_create(mid_t *id,
-				dtnmp_type_e type,
+var_t *var_create(mid_t *id,
+				amp_type_e type,
 				expr_t *init,
 				value_t val);
 
-cd_t *cd_create_from_parms(Lyst parms);
+var_t *var_create_from_parms(Lyst parms);
 
-cd_t *cd_deserialize(uint8_t *cursor,
+var_t *var_deserialize(uint8_t *cursor,
 		             uint32_t size,
 		             uint32_t *bytes_used);
 
-cd_t *cd_duplicate(cd_t *orig);
+var_t *var_duplicate(var_t *orig);
 
-cd_t *cd_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id);
+var_t *var_find_by_id(Lyst defs, ResourceLock *mutex, mid_t *id);
 
-void cd_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
+void var_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
 
-void cd_release(cd_t *cd);
+void var_release(var_t *cd);
 
-uint8_t *cd_serialize(cd_t *cd, uint32_t *len);
+uint8_t *var_serialize(var_t *cd, uint32_t *len);
 
-char *cd_to_string(cd_t *cd);
+char *var_to_string(var_t *cd);
 
-#endif /* _CD_H_ */
+#endif /* _VAR_H_ */

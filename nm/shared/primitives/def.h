@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,8 +18,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/17/13  E. Birrane     Redesign of messaging architecture.
- **  04/05/16  E. Birrane     Added support for sticky evaluation.
+ **  01/17/13  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  04/05/16  E. Birrane     Added support for sticky evaluation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef _DEF_H_

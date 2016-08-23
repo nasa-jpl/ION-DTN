@@ -1,6 +1,13 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
+
 /*****************************************************************************
  **
- ** File Name: adm_bp_priv.c
+ ** File Name: adm_adm_bp_impl.c
  **
  ** Description: This implements the private aspects of a BP ADM.
  **
@@ -8,7 +15,12 @@
  **
  ** Assumptions:
  **
- *****************************************************************************/
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
+*****************************************************************************/
 #include "ion.h"
 #include "lyst.h"
 #include "platform.h"
@@ -20,517 +32,517 @@
 #include "adm_bp_impl.h"
 
 
-value_t bp_md_name(tdc_t params)
+value_t adm_bp_md_name(tdc_t params)
 {
 	return val_from_string("BP ADM");
 }
 
-value_t bp_md_ver(tdc_t params)
+value_t adm_bp_md_ver(tdc_t params)
 {
 	return val_from_string("v6");
 }
 
-value_t bp_node_get_node_id(tdc_t params)
+value_t adm_bp_node_get_node_id(tdc_t params)
 {
 	value_t result;
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = DTNMP_TYPE_STRING;
+	result.type = AMP_TYPE_STRING;
 	result.value.as_ptr = adm_copy_string((char *) node_state.nodeID, NULL);
 	return result;
 }
 
-value_t bp_node_get_version(tdc_t params)
+value_t adm_bp_node_get_version(tdc_t params)
 {
 	value_t result;
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = DTNMP_TYPE_STRING;
+	result.type = AMP_TYPE_STRING;
 
 	result.value.as_ptr = adm_copy_string((char *) node_state.bpVersionNbr, NULL);
 
 	return result;
 }
 
-value_t bp_node_get_storage(tdc_t params)
+value_t adm_bp_node_get_storage(tdc_t params)
 {
 	value_t result;
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = node_state.avblStorage;
 
 	return result;
 }
 
-value_t bp_node_get_last_restart(tdc_t params)
+value_t adm_bp_node_get_last_restart(tdc_t params)
 {
 	value_t result;
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = node_state.lastRestartTime;
 
 	return result;
 }
 
-value_t bp_node_get_num_reg(tdc_t params)
+value_t adm_bp_node_get_num_reg(tdc_t params)
 {
 	value_t result;
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = node_state.nbrOfRegistrations;
 
 	return result;
 }
 
-value_t bp_node_get_fwd_pend(tdc_t params)
+value_t adm_bp_node_get_fwd_pend(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentForwardPending;
 
 	return result;
 }
 
-value_t bp_node_get_dispatch_pend(tdc_t params)
+value_t adm_bp_node_get_dispatch_pend(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentDispatchPending;
 
 	return result;
 }
 
-value_t bp_node_get_in_cust(tdc_t params)
+value_t adm_bp_node_get_in_cust(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentInCustody;
 
 	return result;
 }
 
-value_t bp_node_get_reassembly_pend(tdc_t params)
+value_t adm_bp_node_get_reassembly_pend(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentReassemblyPending;
 
 	return result;
 }
 
-value_t bp_node_get_blk_src_cnt(tdc_t params)
+value_t adm_bp_node_get_blk_src_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceCount[0];
 
 	return result;
 }
 
-value_t bp_node_get_norm_src_cnt(tdc_t params)
+value_t adm_bp_node_get_norm_src_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceCount[1];
 
 	return result;
 }
 
-value_t bp_node_get_exp_src_cnt(tdc_t params)
+value_t adm_bp_node_get_exp_src_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceCount[2];
 
 	return result;
 }
 
 
-value_t bp_node_get_blk_src_bytes(tdc_t params)
+value_t adm_bp_node_get_blk_src_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceBytes[0];
 
 	return result;
 }
 
-value_t bp_node_get_norm_src_bytes(tdc_t params)
+value_t adm_bp_node_get_norm_src_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceBytes[1];
 
 	return result;
 }
 
-value_t bp_node_get_exp_src_bytes(tdc_t params)
+value_t adm_bp_node_get_exp_src_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleSourceBytes[2];
 
 	return result;
 }
 
-value_t bp_node_get_blk_res_cnt(tdc_t params)
+value_t adm_bp_node_get_blk_res_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentCount[0];
 
 	return result;
 }
 
-value_t bp_node_get_norm_res_cnt(tdc_t params)
+value_t adm_bp_node_get_norm_res_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentCount[1];
 
 	return result;
 }
 
-value_t bp_node_get_exp_res_cnt(tdc_t params)
+value_t adm_bp_node_get_exp_res_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentCount[2];
 
 	return result;
 }
 
 
-value_t bp_node_get_blk_res_bytes(tdc_t params)
+value_t adm_bp_node_get_blk_res_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentBytes[0];
 
 	return result;
 }
 
-value_t bp_node_get_norm_res_bytes(tdc_t params)
+value_t adm_bp_node_get_norm_res_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentBytes[1];
 
 	return result;
 }
 
-value_t bp_node_get_exp_res_bytes(tdc_t params)
+value_t adm_bp_node_get_exp_res_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.currentResidentBytes[2];
 
 	return result;
 }
 
-value_t bp_node_get_bundles_frag(tdc_t params)
+value_t adm_bp_node_get_bundles_frag(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundlesFragmented;
 
 	return result;
 }
 
-value_t bp_node_get_frag_produced(tdc_t params)
+value_t adm_bp_node_get_frag_produced(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.fragmentsProduced;
 
 	return result;
 }
 
 
-value_t bp_node_get_del_none(tdc_t params)
+value_t adm_bp_node_get_del_none(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delNoneCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_expired(tdc_t params)
+value_t adm_bp_node_get_del_expired(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delExpiredCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_fwd_uni(tdc_t params)
+value_t adm_bp_node_get_del_fwd_uni(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delFwdUnidirCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_cancel(tdc_t params)
+value_t adm_bp_node_get_del_cancel(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delCanceledCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_deplete(tdc_t params)
+value_t adm_bp_node_get_del_deplete(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delDepletionCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_bad_eid(tdc_t params)
+value_t adm_bp_node_get_del_bad_eid(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delEidMalformedCount;
 
 	return result;
 }
 
 
-value_t bp_node_get_del_no_route(tdc_t params)
+value_t adm_bp_node_get_del_no_route(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delNoRouteCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_no_contact(tdc_t params)
+value_t adm_bp_node_get_del_no_contact(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delNoContactCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_bad_blk(tdc_t params)
+value_t adm_bp_node_get_del_bad_blk(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.delBlkMalformedCount;
 
 	return result;
 }
 
-value_t bp_node_get_del_bytes(tdc_t params)
+value_t adm_bp_node_get_del_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bytesDeletedToDate;
 
 	return result;
 }
 
-value_t bp_node_get_fail_cust_cnt(tdc_t params)
+value_t adm_bp_node_get_fail_cust_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.custodyRefusedCount;
 
 	return result;
 }
 
-value_t bp_node_get_fail_cust_bytes(tdc_t params)
+value_t adm_bp_node_get_fail_cust_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.custodyRefusedBytes;
 
 	return result;
 }
 
 
-value_t bp_node_get_fail_fwd_cnt(tdc_t params)
+value_t adm_bp_node_get_fail_fwd_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleFwdFailedCount;
 
 	return result;
 }
 
-value_t bp_node_get_fail_fwd_bytes(tdc_t params)
+value_t adm_bp_node_get_fail_fwd_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleFwdFailedBytes;
 
 	return result;
 }
 
 
-value_t bp_node_get_fail_abandon_cnt(tdc_t params)
+value_t adm_bp_node_get_fail_abandon_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleAbandonCount;
 
 	return result;
 }
 
-value_t bp_node_get_fail_abandon_bytes(tdc_t params)
+value_t adm_bp_node_get_fail_abandon_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleAbandonBytes;
 
 	return result;
 }
 
 
-value_t bp_node_get_fail_discard_cnt(tdc_t params)
+value_t adm_bp_node_get_fail_discard_cnt(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleDiscardCount;
 
 	return result;
 }
 
-value_t bp_node_get_fail_discard_bytes(tdc_t params)
+value_t adm_bp_node_get_fail_discard_bytes(tdc_t params)
 {
 	value_t result;
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result.type = DTNMP_TYPE_UVAST;
+	result.type = AMP_TYPE_UVAST;
 	result.value.as_uvast = state.bundleDiscardBytes;
 
 	return result;
 }
 
 
-value_t bp_endpoint_get_names(tdc_t params)
+value_t adm_bp_endpoint_get_names(tdc_t params)
 {
 	char names[2048];
 	char *ptrs[128];
@@ -552,11 +564,11 @@ value_t bp_endpoint_get_names(tdc_t params)
 
 	if((result.value.as_ptr = (uint8_t *) STAKE(size + 1)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("bp_endpoint_get_names","Cannot allocate %d bytes for %d eids.", size, num);
+		AMP_DEBUG_ERR("adm_bp_endpoint_get_names","Cannot allocate %d bytes for %d eids.", size, num);
 		return result;
 	}
 
-	result.type = DTNMP_TYPE_STRING;
+	result.type = AMP_TYPE_STRING;
 
 	cursor = result.value.as_ptr;
 	memset(cursor, 0, size + 1);
@@ -579,7 +591,7 @@ value_t bp_endpoint_get_names(tdc_t params)
 }
 
 
-value_t bp_endpoint_get_name(tdc_t params)
+value_t adm_bp_endpoint_get_name(tdc_t params)
 {
 	char *name = NULL;
 	value_t result;
@@ -593,7 +605,7 @@ value_t bp_endpoint_get_name(tdc_t params)
 
 	if((name = adm_extract_string(params, 0, &adm_success)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("bp_endpoint_get_name","No endpoint name given.", NULL);
+		AMP_DEBUG_ERR("adm_bp_endpoint_get_name","No endpoint name given.", NULL);
 		return result;
 	}
 
@@ -601,7 +613,7 @@ value_t bp_endpoint_get_name(tdc_t params)
 	bpnm_endpoint_get(name, &endpoint, &success);
 	if(success != 0)
 	{
-		result.type = DTNMP_TYPE_STRING;
+		result.type = AMP_TYPE_STRING;
 
 		size = (uint64_t) strlen(endpoint.eid) + 1;
 		result.value.as_ptr = (uint8_t*) STAKE(size);
@@ -614,7 +626,7 @@ value_t bp_endpoint_get_name(tdc_t params)
 	return result;
 }
 
-value_t bp_endpoint_get_active(tdc_t params)
+value_t adm_bp_endpoint_get_active(tdc_t params)
 {
 	char *name = NULL;
 	value_t result;
@@ -628,7 +640,7 @@ value_t bp_endpoint_get_active(tdc_t params)
 
 	if((name = adm_extract_string(params, 0, &adm_success)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("bp_endpoint_get_active","Can't extract first parm.", NULL);
+		AMP_DEBUG_ERR("adm_bp_endpoint_get_active","Can't extract first parm.", NULL);
 		return result;
 	}
 
@@ -636,7 +648,7 @@ value_t bp_endpoint_get_active(tdc_t params)
 	bpnm_endpoint_get(name, &endpoint, &success);
 	if(success != 0)
 	{
-		result.type = DTNMP_TYPE_UINT;
+		result.type = AMP_TYPE_UINT;
 		result.value.as_uint = endpoint.active;
 	}
 
@@ -645,7 +657,7 @@ value_t bp_endpoint_get_active(tdc_t params)
 	return result;
 }
 
-value_t bp_endpoint_get_singleton(tdc_t params)
+value_t adm_bp_endpoint_get_singleton(tdc_t params)
 {
 	char *name = NULL;
 	value_t result;
@@ -657,7 +669,7 @@ value_t bp_endpoint_get_singleton(tdc_t params)
 
 	if((name = adm_extract_string(params, 0, &adm_success)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("bp_endpoint_get_singleton","Can't extract first parm.", NULL);
+		AMP_DEBUG_ERR("adm_bp_endpoint_get_singleton","Can't extract first parm.", NULL);
 		return result;
 	}
 
@@ -665,7 +677,7 @@ value_t bp_endpoint_get_singleton(tdc_t params)
 	bpnm_endpoint_get(name, &endpoint, &success);
 	if(success != 0)
 	{
-		result.type = DTNMP_TYPE_UINT;
+		result.type = AMP_TYPE_UINT;
 		result.value.as_uint = endpoint.singleton;
 	}
 
@@ -674,7 +686,7 @@ value_t bp_endpoint_get_singleton(tdc_t params)
 }
 
 
-value_t bp_endpoint_get_abandon(tdc_t params)
+value_t adm_bp_endpoint_get_abandon(tdc_t params)
 {
 	char *name = NULL;
 	value_t result;
@@ -686,7 +698,7 @@ value_t bp_endpoint_get_abandon(tdc_t params)
 
 	if((name = adm_extract_string(params, 0, &adm_success)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("bp_endpoint_get_abandon","Can't extract first parm.", NULL);
+		AMP_DEBUG_ERR("adm_bp_endpoint_get_abandon","Can't extract first parm.", NULL);
 		return result;
 	}
 
@@ -694,7 +706,7 @@ value_t bp_endpoint_get_abandon(tdc_t params)
 	bpnm_endpoint_get(name, &endpoint, &success);
 	if(success != 0)
 	{
-		result.type = DTNMP_TYPE_UINT;
+		result.type = AMP_TYPE_UINT;
 		result.value.as_uint = endpoint.abandonOnDelivFailure;
 	}
 
@@ -705,7 +717,7 @@ value_t bp_endpoint_get_abandon(tdc_t params)
 
 
 /* Controls */
-tdc_t *bp_ctrl_reset(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t *adm_bp_ctrl_reset(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t result;
 

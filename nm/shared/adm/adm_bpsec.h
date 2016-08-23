@@ -8,6 +8,11 @@
  **
  ** Assumptions:
  **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef ADM_BPSEC_H_

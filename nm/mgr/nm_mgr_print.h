@@ -18,7 +18,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/10/15  E. Birrane     Initial Implementation
+ **  07/10/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef MGR_PRINT_H_

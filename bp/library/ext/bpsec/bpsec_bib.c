@@ -1,4 +1,9 @@
-
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ **
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: bpsec_bib.c
@@ -43,7 +48,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/05/10  E. Birrane     Implementation as extbpsecbib.c
+ **  07/05/10  E. Birrane     Implementation as extbpsecbib.c (JHU/APL)
  **            S. Burleigh    Implementation as bpsecbib.c for Sbpsec
  **  11/02/15  E. Birrane     Update for generic proc and profiles
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
@@ -141,7 +146,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
-	//	BIB_DEBUG(5, "NOT Attaching BIB.", NULL);
+		BIB_DEBUG(5, "NOT Attaching BIB.", NULL);
 
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bibBlk);
@@ -152,7 +157,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	}
 
 
-//	BIB_DEBUG(5, "Attaching BIB.", NULL);
+	BIB_DEBUG(5, "Attaching BIB.", NULL);
 
 	/* Step 2 - Populate the BIB ASB. */
 
@@ -198,7 +203,6 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	}
 
 
-
 	/* Step 3 - serialize the BIB ASB into the BIB blk. */
 
 	/* Step 3.1 - Create a serialized version of the BIB ASB. */
@@ -229,7 +233,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	MRELEASE(fromEid);
 
 	BIB_DEBUG_PROC("- bpsec_bibAttach --> %d", result);
-	return result;
+	return 1;
 }
 
 
@@ -387,7 +391,7 @@ int bpsec_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 		else
 		{
-	//		BIB_DEBUG(5, "BIB check passed.", NULL);
+			BIB_DEBUG(5, "BIB check passed.", NULL);
 			ADD_BIB_RX_PASS(fromEid, 1, bytes);
 		}
 		discardExtensionBlock(blk);
@@ -902,7 +906,7 @@ int8_t bpsec_bibDefaultSign(uint32_t suite,
 									  csi_blocksize(suite),
 									  suite,
 									  context,
-									  CSI_SVC_VERIFY);
+									  CSI_SVC_SIGN);
 		break;
 
 		case BLOCK_TYPE_PRIMARY:

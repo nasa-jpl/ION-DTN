@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -46,15 +40,15 @@
 
 static ResourceLock gMemMutex;
 
-#if DTNMP_DEBUGGING == 1
-char gDtnmpMsg[DTNMP_GMSG_BUFLEN];
+#if AMP_DEBUGGING == 1
+char gAmpMsg[AMP_GMSG_BUFLEN];
 #endif
 
 int8_t utils_mem_int()
 {
 	if(initResourceLock(&gMemMutex))
 	{
-		DTNMP_DEBUG_ERR("utils_mem_int", "Cannot allocate memory mutex.", NULL);
+		AMP_DEBUG_ERR("utils_mem_int", "Cannot allocate memory mutex.", NULL);
 		return ERROR;
 
 	}
@@ -118,14 +112,14 @@ unsigned long utils_atox(char *s, int *success)
 	int j = 0;
 	int temp = 0;
 
-	DTNMP_DEBUG_ENTRY("utils_atox","(%#llx, %#llx)", s, success);
+	AMP_DEBUG_ENTRY("utils_atox","(%#llx, %#llx)", s, success);
 
 	/* Step 0 - Sanity Check. */
 	if((s == NULL) || (success == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
+		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
 		*success = 0;
-		DTNMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
 		return 0;
 	}
 
@@ -147,9 +141,9 @@ unsigned long utils_atox(char *s, int *success)
 	 */
 	if(strlen(s) > (sizeof(unsigned long) * 2))
 	{
-		DTNMP_DEBUG_ERR("utils_atox","x UI: String %s too long to convert to hex unsigned long.", s);
+		AMP_DEBUG_ERR("utils_atox","x UI: String %s too long to convert to hex unsigned long.", s);
 		*success = 0;
-		DTNMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
 		return 0;
 	}
 
@@ -176,7 +170,7 @@ unsigned long utils_atox(char *s, int *success)
 		case 'E': case 'e': result += 14 * mult; break;
 		case 'F': case 'f': result += 15 * mult; break;
 		default:
-			DTNMP_DEBUG_ERR("utils_atox","x Non-hex character: %c", s[i]);
+			AMP_DEBUG_ERR("utils_atox","x Non-hex character: %c", s[i]);
 			*success = 0;
 			j--;
 			break;
@@ -215,22 +209,22 @@ int8_t utils_grab_byte(unsigned char *cursor,
 		  		       uint32_t size,
 				       uint8_t *result)
 {
-	DTNMP_DEBUG_ENTRY("utils_grab_byte","(%x,%d,%x)",
+	AMP_DEBUG_ENTRY("utils_grab_byte","(%x,%d,%x)",
 			          (unsigned long) cursor, size,
 			          (unsigned long) result);
 
 	/* Do we have a byte to grab? */
 	if(size < 1)
 	{
-        DTNMP_DEBUG_ERR("utils_grab_byte","Bounds overrun. Size %d Used %d.",
+        AMP_DEBUG_ERR("utils_grab_byte","Bounds overrun. Size %d Used %d.",
         				size, 1);
-        DTNMP_DEBUG_EXIT("utils_grab_byte","-> 0", NULL);
+        AMP_DEBUG_EXIT("utils_grab_byte","-> 0", NULL);
         return 0;
 	}
 
     *result = *cursor;
 
-    DTNMP_DEBUG_EXIT("utils_grab_byte","-> 1", NULL);
+    AMP_DEBUG_EXIT("utils_grab_byte","-> 1", NULL);
 
     return 1;
 }
@@ -265,29 +259,29 @@ uint32_t utils_grab_sdnv(unsigned char *cursor,
 {
 	int result_len = 0;
 
-	DTNMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
+	AMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
 			          (unsigned long) cursor,
 			          (unsigned long) size,
 			          (unsigned long) result);
 
     if((result_len = decodeSdnv(result, cursor)) == 0)
     {
-        DTNMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
-		DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
+        AMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
+		AMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
         return 0;
     }
 
     /* Did we go too far? */
 	if (result_len > size)
 	{
-		DTNMP_DEBUG_ERR("utils_grab_sdnv","Bounds overrun. Size %d Used %d.",
+		AMP_DEBUG_ERR("utils_grab_sdnv","Bounds overrun. Size %d Used %d.",
 						size, result_len);
 
-		DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
+		AMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
 		return 0;
 	}
 
-	DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> %d", result_len);
+	AMP_DEBUG_EXIT("utils_grab_sdnv","-> %d", result_len);
 	return result_len;
 }
 
@@ -322,7 +316,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
     int i = 0;
     int r = 0;
 
-    DTNMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
+    AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
     		          (unsigned long) buffer, size);
 
     /* Each byte requires 2 characters to represent in HEX. Also, require
@@ -333,9 +327,9 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 
     if(result == NULL)
     {
-        DTNMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
+        AMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
         		        char_size);
-        DTNMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
+        AMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
         return NULL;
     }
 
@@ -352,7 +346,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 
     result[r] = '\0';
 
-    DTNMP_DEBUG_EXIT("mid_to_string","->%s.", result);
+    AMP_DEBUG_EXIT("mid_to_string","->%s.", result);
 
     return result;
 }
@@ -430,13 +424,13 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 	int success = 0;
 	int pad = 0; 
 
-	DTNMP_DEBUG_ENTRY("utils_string_to_hex","(%#llx, %#llx)", value, size);
+	AMP_DEBUG_ENTRY("utils_string_to_hex","(%#llx, %#llx)", value, size);
 
 	/* Step 0 - Sanity Checks. */
 	if((value == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_string_to_hex", "Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+		AMP_DEBUG_ERR("utils_string_to_hex", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 		return NULL;
 	}
 
@@ -469,10 +463,10 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 
 	if((result = (uint8_t *) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", *size);
+		AMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", *size);
 		*size = 0;
 
-		DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 		return NULL;
 	}
 
@@ -503,16 +497,16 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 		i += incr;
 		if(success == 0)
 		{
-			DTNMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);
+			AMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);
 			SRELEASE(result);
 			*size = 0;
 
-			DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+			AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 			return NULL;
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("utils_string_to_hex", "->%#llx.", result);
+	AMP_DEBUG_EXIT("utils_string_to_hex", "->%#llx.", result);
 	return result;
 }
 
@@ -593,7 +587,7 @@ float    utils_deserialize_real32(uint8_t *buffer, uint32_t bytes_left, uint32_t
 
 	if(errno != 0)
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
+		AMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
 		*bytes_used = 0;
 		result = 0;
 	}
@@ -615,7 +609,7 @@ double   utils_deserialize_real64(uint8_t *buffer, uint32_t bytes_left, uint32_t
 
 	if(errno != 0)
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
+		AMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
 		*bytes_used = 0;
 		result = 0;
 	}
@@ -636,7 +630,7 @@ char*    utils_deserialize_string(uint8_t *buffer, uint32_t bytes_left, uint32_t
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_string","Bad Args.", NULL);
+		AMP_DEBUG_ERR("utils_deserialize_string","Bad Args.", NULL);
 		return NULL;
 	}
 
@@ -646,7 +640,7 @@ char*    utils_deserialize_string(uint8_t *buffer, uint32_t bytes_left, uint32_t
 	/* Step 2: Allocate string which is 1 extra character (null terminator). */
 	if((result = (char *) STAKE(blob_len + 1)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_string","Can't allocate %d bytes.", blob_len + 1);
+		AMP_DEBUG_ERR("utils_deserialize_string","Can't allocate %d bytes.", blob_len + 1);
 		*bytes_used = 0;
 		return NULL;
 	}
@@ -664,7 +658,7 @@ uint32_t utils_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *
 	/* Step 0: Sanity check. */
 	if((buffer == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_uint","Bad Args.", NULL);
+		AMP_DEBUG_ERR("utils_deserialize_uint","Bad Args.", NULL);
 		if(bytes_used != NULL)
 		{
 			*bytes_used = 0;
@@ -675,7 +669,7 @@ uint32_t utils_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *
 	// + 1 for length byte.
 	if(bytes_left < sizeof(uint32_t))
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_uint","Buffer size %d too small for %d.", bytes_left, sizeof(uint32_t));
+		AMP_DEBUG_ERR("utils_deserialize_uint","Buffer size %d too small for %d.", bytes_left, sizeof(uint32_t));
 		*bytes_used = 0;
 		return 0;
 	}
@@ -703,7 +697,7 @@ uvast    utils_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t 
 	/* Step 0: Sanity check. */
 	if((buffer == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_uvast","Bad Args.", NULL);
+		AMP_DEBUG_ERR("utils_deserialize_uvast","Bad Args.", NULL);
 		if(bytes_used != NULL)
 		{
 			*bytes_used = 0;
@@ -713,7 +707,7 @@ uvast    utils_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t 
 
 	if(bytes_left < sizeof(uvast))
 	{
-		DTNMP_DEBUG_ERR("utils_deserialize_uvast","Buffer size %d too small for %d.", bytes_left, sizeof(uvast));
+		AMP_DEBUG_ERR("utils_deserialize_uvast","Buffer size %d too small for %d.", bytes_left, sizeof(uvast));
 		*bytes_used = 0;
 		return 0;
 	}
@@ -766,7 +760,7 @@ uint8_t *utils_serialize_byte(uint8_t value, uint32_t *size)
 	*size = 1;
 	if((result = (uint8_t *) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_byte","Cannot grab memory.", NULL);
+		AMP_DEBUG_ERR("utils_serialize_byte","Cannot grab memory.", NULL);
 		return NULL;
 	}
 
@@ -826,14 +820,14 @@ uint8_t *utils_serialize_string(char *value, uint32_t *size)
 
 	if((value == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_string","Bad Args", NULL);
+		AMP_DEBUG_ERR("utils_serialize_string","Bad Args", NULL);
 		return NULL;
 	}
 
 	*size = strlen(value) + 1;
 	if((result = (uint8_t *) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", *size);
+		AMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", *size);
 		return NULL;
 	}
 	memcpy(result, value, *size);
@@ -847,13 +841,13 @@ uint8_t *utils_serialize_uint(uint32_t value, uint32_t *size)
 
 	if(size == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_uint", "Bad Args.", NULL);
+		AMP_DEBUG_ERR("utils_serialize_uint", "Bad Args.", NULL);
 		return NULL;
 	}
 
 	if((result = (uint8_t *) STAKE(sizeof(uint32_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", sizeof(uint32_t));
+		AMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", sizeof(uint32_t));
 		return NULL;
 	}
 
@@ -876,19 +870,19 @@ uint8_t *utils_serialize_uvast(uvast value, uint32_t *size)
 
 	if(size == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_uvast", "Bad Args.", NULL);
+		AMP_DEBUG_ERR("utils_serialize_uvast", "Bad Args.", NULL);
 		return NULL;
 	}
 
 	if(sizeof(uvast) != 8)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_uvast","uvast isn't size 8?", NULL);
+		AMP_DEBUG_ERR("utils_serialize_uvast","uvast isn't size 8?", NULL);
 		return NULL;
 	}
 
 	if((result = (uint8_t *) STAKE(sizeof(uvast))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_serialize_uvast", "Can't allocate %d bytes", sizeof(uvast));
+		AMP_DEBUG_ERR("utils_serialize_uvast", "Can't allocate %d bytes", sizeof(uvast));
 		return NULL;
 	}
 

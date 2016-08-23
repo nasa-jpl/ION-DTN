@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** \file oid.c
@@ -22,10 +28,11 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/29/12  E. Birrane     Initial Implementation
- **  11/14/12  E. Birrane     Code review comments and documentation update.
- **  08/29/15  E. Birrane     Removed length restriction from OID parms.
- **  06/11/16  E. Birrane     Updated parameters to be of type TDC.
+ **  10/27/12  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
+ **  03/11/15  E. Birrane     Removed NN from OID into NN. (Secure DTN - NASA: NNX14CS58P)
+ **  08/29/15  E. Birrane     Removed length restriction from OID parms. (Secure DTN - NASA: NNX14CS58P)
+ **  06/11/16  E. Birrane     Updated parameters to be of type TDC. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -76,17 +83,17 @@ oid_t oid_get_null()
  *  04/19/16  E. Birrane     Keep OIDs on stack not heap.
  *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-int8_t    oid_add_param(oid_t *oid, dtnmp_type_e type, blob_t *blob)
+int8_t    oid_add_param(oid_t *oid, amp_type_e type, blob_t *blob)
 {
 	blob_t *entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_add_param","(%#llx, %#llx)", oid, blob);
+	AMP_DEBUG_ENTRY("oid_add_param","(%#llx, %#llx)", oid, blob);
 
 	/* Step 0: Sanity Check.*/
-	if((blob == NULL) || (type == DTNMP_TYPE_UNK))
+	if((blob == NULL) || (type == AMP_TYPE_UNK))
 	{
-		DTNMP_DEBUG_ERR("oid_add_param","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
+		AMP_DEBUG_ERR("oid_add_param","Bad Args", NULL);
+		AMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
 		return 0;
 	}
 
@@ -94,21 +101,21 @@ int8_t    oid_add_param(oid_t *oid, dtnmp_type_e type, blob_t *blob)
 	if((oid->type != OID_TYPE_PARAM)  &&
 	   (oid->type != OID_TYPE_COMP_PARAM))
 	{
-		DTNMP_DEBUG_ERR("oid_add_param","Can't add parameter to OID of type %d.",
+		AMP_DEBUG_ERR("oid_add_param","Can't add parameter to OID of type %d.",
 				        oid->type);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
+		AMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
 		return 0;
 	}
 
 	/* Step 2: Add the parameter. */
-	if(tdc_insert(&(oid->params), type, blob->value, blob->length) == DTNMP_TYPE_UNK)
+	if(tdc_insert(&(oid->params), type, blob->value, blob->length) == AMP_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_add_param","Cannot add parameter.", NULL);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
+		AMP_DEBUG_ERR("oid_add_param","Cannot add parameter.", NULL);
+		AMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
 		return 0;
 	}
 
-	DTNMP_DEBUG_EXIT("oid_add_param","->%d.",1);
+	AMP_DEBUG_EXIT("oid_add_param","->%d.",1);
 	return 1;
 }
 
@@ -167,14 +174,14 @@ int8_t oid_add_params(oid_t *oid, tdc_t *params)
 void oid_clear(oid_t* oid)
 {
 
-    DTNMP_DEBUG_ENTRY("oid_clear","(OID)",NULL);
+    AMP_DEBUG_ENTRY("oid_clear","(OID)",NULL);
 
     CHKVOID(oid);
 
     oid_clear_parms(oid);
     oid_init(oid);
 
-    DTNMP_DEBUG_EXIT("oid_clear","<->", NULL);
+    AMP_DEBUG_EXIT("oid_clear","<->", NULL);
 }
 
 
@@ -233,7 +240,7 @@ int8_t oid_compare(oid_t oid1, oid_t oid2, uint8_t use_parms)
 {
 	int result = 0;
 
-    DTNMP_DEBUG_ENTRY("oid_compare","(oid1, oid2)", NULL);
+    AMP_DEBUG_ENTRY("oid_compare","(oid1, oid2)", NULL);
 
     /* Step 0: Sanity check and shallow comparison in one. */
 
@@ -241,7 +248,7 @@ int8_t oid_compare(oid_t oid1, oid_t oid2, uint8_t use_parms)
        ((oid1.nn_id != oid2.nn_id)) ||
        ((oid1.type != oid2.type)))
     {
-        DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
+        AMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
         return -1;
     }
     
@@ -251,7 +258,7 @@ int8_t oid_compare(oid_t oid1, oid_t oid2, uint8_t use_parms)
     /* Step 1: Compare the OID value without parameters. */
     if(result != 0)
     {
-        DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
+        AMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
         return -1;
     }
 
@@ -261,7 +268,7 @@ int8_t oid_compare(oid_t oid1, oid_t oid2, uint8_t use_parms)
     	result = tdc_compare(&(oid1.params), &(oid2.params));
     }
 
-    DTNMP_DEBUG_EXIT("oid_compare","->%d.", result);
+    AMP_DEBUG_EXIT("oid_compare","->%d.", result);
 
     return result;
 }
@@ -297,7 +304,7 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
 {
 	oid_t result;
 
-    DTNMP_DEBUG_ENTRY("oid_construct",
+    AMP_DEBUG_ENTRY("oid_construct",
     		          "(%d, "ADDR_FIELDSPEC","UVAST_FIELDSPEC","ADDR_FIELDSPEC",%d)", type, (uaddr)parms, nn_id, (uaddr)value, size);
 
     oid_init(&result);
@@ -305,15 +312,15 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
     /* Step 0: Sanity checks. */
     if((value == NULL) || (size == 0))
     {
-    	DTNMP_DEBUG_ERR("oid_construct","Bad args.", NULL);
-        DTNMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+    	AMP_DEBUG_ERR("oid_construct","Bad args.", NULL);
+        AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
     	return oid_get_null();
     }
     else if(size > MAX_OID_SIZE)
     {
-    	DTNMP_DEBUG_ERR("oid_construct","New OID size %d > MAX OID size %d.",
+    	AMP_DEBUG_ERR("oid_construct","New OID size %d > MAX OID size %d.",
     					size, MAX_OID_SIZE);
-        DTNMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+        AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
     	return oid_get_null();
     }
 
@@ -328,9 +335,9 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
     {
     	if(nn_id == 0)
     	{
-    		DTNMP_DEBUG_ERR("oid_construct", "Expected nn with type %d", type);
+    		AMP_DEBUG_ERR("oid_construct", "Expected nn with type %d", type);
     		SRELEASE(result);
-            DTNMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+            AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
         	return NULL;
     	}
     }
@@ -344,8 +351,8 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
     {
     	if(tdc_append(&(result.params), parms) == ERROR)
     	{
-    		DTNMP_DEBUG_ERR("oid_construct", "Cannot add params.", type);
-    		DTNMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+    		AMP_DEBUG_ERR("oid_construct", "Cannot add params.", type);
+    		AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
         	return oid_get_null();
     	}
     }
@@ -356,7 +363,7 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
 
     result.value_size = size;
 
-    DTNMP_DEBUG_EXIT("oid_construct", "-->%d", result.type);
+    AMP_DEBUG_EXIT("oid_construct", "-->%d", result.type);
 	return result;
 }
 
@@ -418,7 +425,7 @@ uint8_t oid_copy_parms(oid_t *dest, oid_t *src)
 
 	if(num_parms != 0)
 	{
-		DTNMP_DEBUG_ERR("oid_copy_parms",
+		AMP_DEBUG_ERR("oid_copy_parms",
 				        "Cannot copy parms into OID that already has %d parms.",
 				        num_parms);
 		return ERROR;
@@ -467,7 +474,7 @@ oid_t oid_deserialize_comp(unsigned char *buffer,
 	oid_t new_oid;
 	unsigned char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_comp","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_comp","(%#llx,%d,%#llx)",
 					  (unsigned long) buffer,
 					  size,
 					  (unsigned long) bytes_used);
@@ -477,8 +484,8 @@ oid_t oid_deserialize_comp(unsigned char *buffer,
 	/* Step 0: Sanity Checks. */
 	if((buffer == NULL) || (bytes_used == NULL) || (size == 0))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp", "Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_comp", "Bad args.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -490,10 +497,10 @@ oid_t oid_deserialize_comp(unsigned char *buffer,
 	/* Step 1: Grab the nickname, which is in an SDNV. */
 	 if((bytes = utils_grab_sdnv(cursor, size, &nn_id)) <= 0)
 	 {
-		 DTNMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab nickname.", NULL);
+		 AMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab nickname.", NULL);
 		 *bytes_used = 0;
 
-		 DTNMP_DEBUG_EXIT("oid_deserialize_comp", "->0", NULL);
+		 AMP_DEBUG_EXIT("oid_deserialize_comp", "->0", NULL);
 		 return oid_get_null();
 	 }
 	 else
@@ -508,10 +515,10 @@ oid_t oid_deserialize_comp(unsigned char *buffer,
 	new_oid = oid_deserialize_full(cursor, size, &bytes);
 	if(new_oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab remaining OID.", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab remaining OID.", NULL);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -526,7 +533,7 @@ oid_t oid_deserialize_comp(unsigned char *buffer,
 	new_oid.type = OID_TYPE_COMP_FULL;
 
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_comp","-> OID.", NULL);
+	AMP_DEBUG_EXIT("oid_deserialize_comp","-> OID.", NULL);
 	return new_oid;
 }
 
@@ -569,7 +576,7 @@ oid_t oid_deserialize_comp_param(unsigned char *buffer,
 	oid_t new_oid;
 	unsigned char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_comp_param","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_comp_param","(%#llx,%d,%#llx)",
 					  (unsigned long) buffer,
 					  size,
 					  (unsigned long) bytes_used);
@@ -579,8 +586,8 @@ oid_t oid_deserialize_comp_param(unsigned char *buffer,
 	/* Step 0: Sanity Checks. */
 	if((buffer == NULL) || (bytes_used == NULL) || (size == 0))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp_param", "Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_comp_param", "Bad args.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -592,10 +599,10 @@ oid_t oid_deserialize_comp_param(unsigned char *buffer,
 	/* Step 1: Grab the nickname, which is in an SDNV. */
 	 if((bytes = utils_grab_sdnv(cursor, size, &nn_id)) <= 0)
 	 {
-		 DTNMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab nickname.", NULL);
+		 AMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab nickname.", NULL);
 		 *bytes_used = 0;
 
-		 DTNMP_DEBUG_EXIT("oid_deserialize_comp_param", "->0", NULL);
+		 AMP_DEBUG_EXIT("oid_deserialize_comp_param", "->0", NULL);
 		 return oid_get_null();
 	 }
 	 else
@@ -610,11 +617,11 @@ oid_t oid_deserialize_comp_param(unsigned char *buffer,
 	new_oid = oid_deserialize_param(cursor, size, &bytes);
 	if(new_oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab remaining OID.",
+		AMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab remaining OID.",
 				        NULL);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -628,7 +635,7 @@ oid_t oid_deserialize_comp_param(unsigned char *buffer,
 	new_oid.nn_id = nn_id;
 	new_oid.type = OID_TYPE_COMP_PARAM;
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_comp_param","-> OID.", NULL);
+	AMP_DEBUG_EXIT("oid_deserialize_comp_param","-> OID.", NULL);
 	return new_oid;
 }
 
@@ -672,7 +679,7 @@ oid_t oid_deserialize_full(unsigned char *buffer,
 	unsigned char *cursor = NULL;
 	blob_t *value = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_full","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_full","(%#llx,%d,%#llx)",
 			         (unsigned long) buffer, size, (unsigned long) bytes_used);
 
 	oid_init(&new_oid);
@@ -680,8 +687,8 @@ oid_t oid_deserialize_full(unsigned char *buffer,
 	/* Step 0: Sanity Checks. */
 	if((buffer == NULL) || (bytes_used == NULL) || (size == 0))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full", "Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_full", "->NULL", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_full", "Bad args.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_full", "->NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -695,8 +702,8 @@ oid_t oid_deserialize_full(unsigned char *buffer,
 	 */
 	if((value = blob_deserialize(cursor, size, bytes_used)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full", "Can't get OID BLOB.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_full", "-> NULL", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_full", "Can't get OID BLOB.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_full", "-> NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -711,11 +718,11 @@ oid_t oid_deserialize_full(unsigned char *buffer,
 	 */
 	if((value->length) >= MAX_OID_SIZE)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full","Size %d exceeds supported size %d",
+		AMP_DEBUG_ERR("oid_deserialize_full","Size %d exceeds supported size %d",
 				        value->length, MAX_OID_SIZE);
 		*bytes_used = 0;
 		blob_destroy(value, 1);
-		DTNMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
 		return oid_get_null();
 	}
 
@@ -729,7 +736,7 @@ oid_t oid_deserialize_full(unsigned char *buffer,
 
 	new_oid.type = OID_TYPE_FULL;
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_full","-> new_oid: OID  bytes_used %d",
+	AMP_DEBUG_EXIT("oid_deserialize_full","-> new_oid: OID  bytes_used %d",
 			         *bytes_used);
 
 	return new_oid;
@@ -776,7 +783,7 @@ oid_t oid_deserialize_param(unsigned char *buffer,
 	uint32_t bytes = 0;
 	unsigned char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_param","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_param","(%#llx,%d,%#llx)",
 					  (unsigned long) buffer,
 					  size,
 					  (unsigned long) bytes_used);
@@ -786,8 +793,8 @@ oid_t oid_deserialize_param(unsigned char *buffer,
 	/* Step 0: Sanity Checks... */
 	if((buffer == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_param","NULL input values!",NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_param","->NULL",NULL);
+		AMP_DEBUG_ERR("oid_deserialize_param","NULL input values!",NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_param","->NULL",NULL);
 		return oid_get_null();
 	}
 	else
@@ -801,12 +808,12 @@ oid_t oid_deserialize_param(unsigned char *buffer,
 
 	if((bytes == 0) || (new_oid.type == OID_TYPE_UNK))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_param","Could not grab OID.", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_param","Could not grab OID.", NULL);
 
 		oid_release(&new_oid); /* release just in case bytes was 0. */
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
 		return oid_get_null();
 	}
 	else
@@ -825,12 +832,12 @@ oid_t oid_deserialize_param(unsigned char *buffer,
 
 		if(cur_tdc == NULL)
 		{
-			DTNMP_DEBUG_ERR("oid_deserialize_param","Could not grab params.", NULL);
+			AMP_DEBUG_ERR("oid_deserialize_param","Could not grab params.", NULL);
 
 			oid_release(&new_oid); /* release just in case bytes was 0. */
 			*bytes_used = 0;
 
-			DTNMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
+			AMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
 			return oid_get_null();
 		}
 		else
@@ -847,7 +854,7 @@ oid_t oid_deserialize_param(unsigned char *buffer,
 	/* Step 3: Fill in any other parts of the OID. */
 	new_oid.type = OID_TYPE_PARAM;
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_param","-> %d.", new_oid.type);
+	AMP_DEBUG_EXIT("oid_deserialize_param","-> %d.", new_oid.type);
 	return new_oid;
 }
 
@@ -895,12 +902,12 @@ void oid_init(oid_t *oid)
  *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
 
-blob_t*  oid_get_param(oid_t oid, uint32_t idx, dtnmp_type_e *type)
+blob_t*  oid_get_param(oid_t oid, uint32_t idx, amp_type_e *type)
 {
 	blob_t *result = NULL;
 	LystElt elt = 0;
 
-	DTNMP_DEBUG_ENTRY("oid_get_param","(OID, %d,"ADDR_FIELDSPEC")", idx, (uaddr)type);
+	AMP_DEBUG_ENTRY("oid_get_param","(OID, %d,"ADDR_FIELDSPEC")", idx, (uaddr)type);
 
 	CHKNULL(type);
 
@@ -947,13 +954,13 @@ char *oid_pretty_print(oid_t oid)
 	uint32_t parm_str_len = 0;
 	char *parm_str = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_pretty_print","(OID)", NULL);
+	AMP_DEBUG_ENTRY("oid_pretty_print","(OID)", NULL);
 
 	/* Step 0: Sanity Check. */
 	if(oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_pretty_print","NULL OID.",NULL);
-		DTNMP_DEBUG_EXIT("oid_pretty_print","->NULL.",NULL);
+		AMP_DEBUG_ERR("oid_pretty_print","NULL OID.",NULL);
+		AMP_DEBUG_EXIT("oid_pretty_print","->NULL.",NULL);
 		return NULL;
 	}
 
@@ -980,8 +987,8 @@ char *oid_pretty_print(oid_t oid)
 	/* Step 2: Allocate the string. */
 	if((result = (char*)STAKE(size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_pretty_print", "Can't alloc %d bytes.", size);
-		DTNMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
+		AMP_DEBUG_ERR("oid_pretty_print", "Can't alloc %d bytes.", size);
+		AMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1011,17 +1018,17 @@ char *oid_pretty_print(oid_t oid)
 	/* Step 4: Sanity check. */
 	if((cursor - result) > size)
 	{
-		DTNMP_DEBUG_ERR("oid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
+		AMP_DEBUG_ERR("oid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
 				        size, (cursor-result));
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
+		AMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_INFO("oid_pretty_print","Wrote %llu into %d string.",
+	AMP_DEBUG_INFO("oid_pretty_print","Wrote %llu into %d string.",
 			         (cursor -result), size);
 
-	DTNMP_DEBUG_EXIT("oid_pretty_print","->%#llx",result);
+	AMP_DEBUG_EXIT("oid_pretty_print","->%#llx",result);
 
 	return result;
 }
@@ -1053,7 +1060,7 @@ char *oid_pretty_print(oid_t oid)
 
 void oid_release(oid_t* oid)
 {
-    DTNMP_DEBUG_ENTRY("oid_release", "(OID)", NULL);
+    AMP_DEBUG_ENTRY("oid_release", "(OID)", NULL);
 
     CHKVOID(oid);
 
@@ -1064,7 +1071,7 @@ void oid_release(oid_t* oid)
         oid_init(oid);
     }
 
-    DTNMP_DEBUG_EXIT("oid_release", "-> NULL", NULL);
+    AMP_DEBUG_EXIT("oid_release", "-> NULL", NULL);
 }
 
 
@@ -1121,14 +1128,14 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 	uint32_t idx = 0;
 	Sdnv nn_sdnv;
 
-	DTNMP_DEBUG_ENTRY("oid_serialize","(oid,%#llx)",
+	AMP_DEBUG_ENTRY("oid_serialize","(oid,%#llx)",
 			          (unsigned long)size);
 
 	/* Step 0: Sanity Check */
 	if((oid.type == OID_TYPE_UNK) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("oid_serialize","Bad args.",NULL);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1139,7 +1146,7 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 	/* Step 2: Serialize the OID value. */
 	if((data = blob_serialize(&value, &data_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Can't serialize OID data.", NULL);
+		AMP_DEBUG_ERR("oid_serialize","Can't serialize OID data.", NULL);
 		return NULL;
 	}
 
@@ -1163,21 +1170,21 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 
 	if(*size == 0)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Bad size %d.",*size);
+		AMP_DEBUG_ERR("oid_serialize","Bad size %d.",*size);
 		*size = 0;
 		if(parms != NULL)
 		{
 			SRELEASE(parms);
 		}
 		SRELEASE(data);
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Allocate the serialized buffer.*/
 	if((result = (uint8_t *) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Couldn't allocate %d bytes.",
+		AMP_DEBUG_ERR("oid_serialize","Couldn't allocate %d bytes.",
 				        *size);
 		*size = 0;
 		if(parms != NULL)
@@ -1185,7 +1192,7 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 			SRELEASE(parms);
 		}
 		SRELEASE(data);
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1210,10 +1217,10 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 	{
 		if((parms == NULL) || (parm_size == 0))
 		{
-			DTNMP_DEBUG_ERR("oid_serialize","Can't serialize parameters.",NULL);
+			AMP_DEBUG_ERR("oid_serialize","Can't serialize parameters.",NULL);
 			*size = 0;
 			SRELEASE(result);
-			DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+			AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 			return NULL;
 		}
 
@@ -1225,15 +1232,15 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 	/* Step 6: Final sanity check */
 	if((cursor-result) > *size)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Serialized %d bytes but counted %d!",
+		AMP_DEBUG_ERR("oid_serialize","Serialized %d bytes but counted %d!",
 				        (cursor-result), *size);
 		*size = 0;
 		SRELEASE(result);
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("oid_serialize","->%#llx",(unsigned long)result);
+	AMP_DEBUG_EXIT("oid_serialize","->%#llx",(unsigned long)result);
 	return result;
 }
 
@@ -1265,13 +1272,13 @@ char *oid_to_string(oid_t oid)
 {
     char *result = NULL;
 
-    DTNMP_DEBUG_ENTRY("oid_to_string","(OID)",NULL);
+    AMP_DEBUG_ENTRY("oid_to_string","(OID)",NULL);
 
     /* Step 0: Sanity Check. */
     if(oid.type == OID_TYPE_UNK)
     {
-        DTNMP_DEBUG_ERR("oid_to_string","NULL OID",NULL);
-        DTNMP_DEBUG_EXIT("oid_to_string","->NULL.",NULL);
+        AMP_DEBUG_ERR("oid_to_string","NULL OID",NULL);
+        AMP_DEBUG_EXIT("oid_to_string","->NULL.",NULL);
     	return NULL;
     }
 
@@ -1281,7 +1288,7 @@ char *oid_to_string(oid_t oid)
     /* For now, we just show the raw MID. */
 	result = utils_hex_to_string(oid.value, oid.value_size);
 
-    DTNMP_DEBUG_EXIT("oid_to_string","->%s.", result);
+    AMP_DEBUG_EXIT("oid_to_string","->%s.", result);
 	return result;
 }
 

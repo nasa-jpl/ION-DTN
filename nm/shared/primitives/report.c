@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file report.c
@@ -13,9 +18,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/11/13  E. Birrane     Redesign of primitives architecture.
- **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
- **  07/02/15  E. Birrane     Migrated to using Typed Data Collections (TDCs).
+ **  01/11/13  E. Birrane     Redesign of primitives architecture. (JHU/APL)
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
+ **  07/02/15  E. Birrane     Migrated to Typed Data Collections (TDCs) (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -58,7 +63,7 @@ int      rpt_add_entry(rpt_t *rpt, rpt_entry_t *entry)
 	/* Step 0: Sanity Checks. */
 	if((rpt == NULL) || (rpt->entries == NULL) || (entry == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_add_entry","Bad Args.",NULL);
+		AMP_DEBUG_ERR("rpt_add_entry","Bad Args.",NULL);
 		return FAILURE;
 	}
 
@@ -99,15 +104,15 @@ rpt_t*   rpt_create(time_t time, Lyst entries, eid_t recipient)
 {
 	rpt_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("rpt_create","(%d,"ADDR_FIELDSPEC",%s)",
+	AMP_DEBUG_ENTRY("rpt_create","(%d,"ADDR_FIELDSPEC",%s)",
 			          time, (uaddr) entries, recipient.name);
 
 	/* Step 1: Allocate the message. */
 	if((result = (rpt_t*) STAKE(sizeof(rpt_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_create","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("rpt_create","Can't alloc %d bytes.",
 				        sizeof(rpt_t));
-		DTNMP_DEBUG_EXIT("rpt_create","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_create","->NULL",NULL);
 		return NULL;
 	}
 
@@ -118,14 +123,14 @@ rpt_t*   rpt_create(time_t time, Lyst entries, eid_t recipient)
 	{
 		if((result->entries = lyst_create()) == NULL)
 		{
-			DTNMP_DEBUG_ERR("rpt_create","Can't create entries lyst.", NULL);
+			AMP_DEBUG_ERR("rpt_create","Can't create entries lyst.", NULL);
 			SRELEASE(result);
 			return NULL;
 		}
 	}
 	result->recipient = recipient;
 
-	DTNMP_DEBUG_EXIT("rpt_create","->0x%x",result);
+	AMP_DEBUG_EXIT("rpt_create","->0x%x",result);
 	return result;
 }
 
@@ -159,13 +164,13 @@ void  rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
     LystElt elt;
     rpt_t *cur_rpt = NULL;
 
-    DTNMP_DEBUG_ENTRY("rpt_clear_lyst","("ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
+    AMP_DEBUG_ENTRY("rpt_clear_lyst","("ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
 			          (uaddr) list, (uaddr) mutex, destroy);
 
     /* Step 0: Sanity Checks. */
     if((list == NULL) || (*list == NULL))
     {
-    	DTNMP_DEBUG_ERR("rpt_clear_lyst","Bad Params.", NULL);
+    	AMP_DEBUG_ERR("rpt_clear_lyst","Bad Params.", NULL);
     	return;
     }
 
@@ -181,7 +186,7 @@ void  rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
         /* Grab the current report */
         if((cur_rpt = (rpt_t*) lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_WARN("rpt_clear_lyst","Can't get report from lyst!", NULL);
+        	AMP_DEBUG_WARN("rpt_clear_lyst","Can't get report from lyst!", NULL);
         }
         else
         {
@@ -205,7 +210,7 @@ void  rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
     	unlockResource(mutex);
     }
 
-    DTNMP_DEBUG_EXIT("rpt_clear_lyst","->.", NULL);
+    AMP_DEBUG_EXIT("rpt_clear_lyst","->.", NULL);
 }
 
 
@@ -246,14 +251,14 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	rpt_entry_t *cur_entry = NULL;
 	char *rx = NULL;
 
-	DTNMP_DEBUG_ENTRY("rpt_deserialize","("ADDR_FIELDSPEC", %d,"ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("rpt_deserialize","("ADDR_FIELDSPEC", %d,"ADDR_FIELDSPEC")",
 			          (uaddr)cursor, size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_deserialize","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -262,10 +267,10 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	/* Step 1: Grab the length of the recipient. */
 	if((bytes = utils_grab_sdnv(cursor, size, &rx_len)) == 0)
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Can't Grab time SDNV.", NULL);
+		AMP_DEBUG_ERR("rpt_deserialize","Can't Grab time SDNV.", NULL);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -278,10 +283,10 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	/* Step 2: Copy in the recipient. */
 	if((rx = (char *) STAKE(rx_len + 1)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Can't Alloc %d rx bytes.", rx_len + 1);
+		AMP_DEBUG_ERR("rpt_deserialize","Can't Alloc %d rx bytes.", rx_len + 1);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -296,11 +301,11 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	/* Step 1: Grab the timestamp for the report. */
 	if((bytes = utils_grab_sdnv(cursor, size, &time_val)) == 0)
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Can't Grab time SDNV.", NULL);
+		AMP_DEBUG_ERR("rpt_deserialize","Can't Grab time SDNV.", NULL);
 		*bytes_used = 0;
 		SRELEASE(rx);
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -313,11 +318,11 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	/* Step 2: Grab the # entries. */
 	if((bytes = utils_grab_sdnv(cursor, size, &num_entries)) == 0)
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Can't Grab entries SDNV.", NULL);
+		AMP_DEBUG_ERR("rpt_deserialize","Can't Grab entries SDNV.", NULL);
 		*bytes_used = 0;
 		SRELEASE(rx);
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -330,11 +335,11 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	/* Step 3: Create the lyst of report entires. */
 	if((entries = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Can't create entries lyst.", NULL);
+		AMP_DEBUG_ERR("rpt_deserialize","Can't create entries lyst.", NULL);
 		*bytes_used = 0;
 		SRELEASE(rx);
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -343,13 +348,13 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	{
 		if((cur_entry = rpt_entry_deserialize(cursor, size, &bytes)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("rpt_deserialize","Can't create entries # %d of %d.", i, num_entries);
+			AMP_DEBUG_ERR("rpt_deserialize","Can't create entries # %d of %d.", i, num_entries);
 			*bytes_used = 0;
 
 			rpt_entry_clear_lyst(&entries, NULL, 1);
 			SRELEASE(rx);
 
-			DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+			AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 			return NULL;
 		}
 		else
@@ -366,20 +371,20 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	eid_t tmp;
 	if((result = rpt_create((time_t) time_val, entries, tmp)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_deserialize","Can't create entries # %d of %d.", i, num_entries);
+		AMP_DEBUG_ERR("rpt_deserialize","Can't create entries # %d of %d.", i, num_entries);
 		*bytes_used = 0;
 
 		rpt_entry_clear_lyst(&entries, NULL, 1);
 		SRELEASE(rx);
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
 	memcpy(result->recipient.name, rx, strlen(rx) + 1);
 	SRELEASE(rx);
 
-	DTNMP_DEBUG_EXIT("rpt_deserialize_data","->"ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("rpt_deserialize_data","->"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -459,14 +464,14 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 	uint32_t num_entries = 0;
 
 
-	DTNMP_DEBUG_ENTRY("rpt_serialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("rpt_serialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 			          (uaddr)rpt, (uaddr) len);
 
 	/* Step 0: Sanity Checks. */
 	if((rpt == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_serialize","Bad Args",NULL);
-		DTNMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_serialize","Bad Args",NULL);
+		AMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -481,8 +486,8 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 	/* Step 2: Serialize the report entries list. */
 	if((entries = rpt_entry_serialize_lst(rpt->entries, &entries_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_serialize","Can't serialize entries.",NULL);
-		DTNMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_serialize","Can't serialize entries.",NULL);
+		AMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
 		return NULL;
 	}
 
@@ -492,11 +497,11 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 	/* Step 4: Allocate the final full report. */
 	if((result = (uint8_t*)STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_serialize", "Can't alloc %d bytes.", *len);
+		AMP_DEBUG_ERR("rpt_serialize", "Can't alloc %d bytes.", *len);
 		SRELEASE(entries);
 
 		*len = 0;
-		DTNMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -526,16 +531,16 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 	/* Step 6: Last sanity check. */
 	if((cursor - result) != *len)
 	{
-		DTNMP_DEBUG_ERR("rpt_serialize","Wrote %d bytes but allocated %d",
+		AMP_DEBUG_ERR("rpt_serialize","Wrote %d bytes but allocated %d",
 				(unsigned long) (cursor - result), *len);
 		*len = 0;
 		SRELEASE(result);
 
-		DTNMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("rpt_serialize","->"ADDR_FIELDSPEC,(uaddr)result);
+	AMP_DEBUG_EXIT("rpt_serialize","->"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -576,14 +581,14 @@ char*    rpt_to_str(rpt_t *rpt)
 	/* Step 0: Sanity Check. */
 	if(rpt == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_to_str","Bad Args.",NULL);
+		AMP_DEBUG_ERR("rpt_to_str","Bad Args.",NULL);
 		return NULL;
 	}
 
 	/* Step 1: First, try and to-str the list of entries. */
 	if((entries = rpt_entry_lst_to_str(rpt->entries)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_to_str","Can't to_str entry list.",NULL);
+		AMP_DEBUG_ERR("rpt_to_str","Can't to_str entry list.",NULL);
 		return NULL;
 	}
 
@@ -593,7 +598,7 @@ char*    rpt_to_str(rpt_t *rpt)
 	/* Step 3: Allocate the return string. */
 	if((result = (char *) STAKE(size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_to_str","Can't allocate %d bytes.", size);
+		AMP_DEBUG_ERR("rpt_to_str","Can't allocate %d bytes.", size);
 		SRELEASE(entries);
 		return NULL;
 	}
@@ -639,13 +644,13 @@ void rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
     LystElt elt;
     rpt_entry_t *cur_entry = NULL;
 
-    DTNMP_DEBUG_ENTRY("rpt_entry_clear_lyst","("ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
+    AMP_DEBUG_ENTRY("rpt_entry_clear_lyst","("ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
 			          (uaddr) list, (uaddr) mutex, destroy);
 
     /* Step 0: Sanity Checks. */
     if((list == NULL) || (*list == NULL))
     {
-    	DTNMP_DEBUG_ERR("rpt_entry_clear_lyst","Bad Params.", NULL);
+    	AMP_DEBUG_ERR("rpt_entry_clear_lyst","Bad Params.", NULL);
     	return;
     }
 
@@ -661,7 +666,7 @@ void rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
         /* Grab the current report */
         if((cur_entry = (rpt_entry_t*) lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_WARN("rpt_entry_clear_lyst","Can't get report from lyst!", NULL);
+        	AMP_DEBUG_WARN("rpt_entry_clear_lyst","Can't get report from lyst!", NULL);
         }
         else
         {
@@ -685,7 +690,7 @@ void rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
     	unlockResource(mutex);
     }
 
-    DTNMP_DEBUG_EXIT("rpt_entry_clear_lyst","->.", NULL);
+    AMP_DEBUG_EXIT("rpt_entry_clear_lyst","->.", NULL);
 }
 
 
@@ -715,14 +720,14 @@ rpt_entry_t* rpt_entry_create(mid_t *mid)
 
 	if((result = (rpt_entry_t *) STAKE(sizeof(rpt_entry_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_create","Can't allocate %d bytes.", sizeof(rpt_entry_t));
+		AMP_DEBUG_ERR("rpt_entry_create","Can't allocate %d bytes.", sizeof(rpt_entry_t));
 		return NULL;
 	}
 
 	if((result->contents = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		SRELEASE(result);
-		DTNMP_DEBUG_ERR("rpt_entry_create","Can't allocate TDC.", NULL);
+		AMP_DEBUG_ERR("rpt_entry_create","Can't allocate TDC.", NULL);
 		return NULL;
 	}
 
@@ -771,7 +776,7 @@ rpt_entry_t* rpt_entry_deserialize(uint8_t *cursor,
 	/* Step 0: Sanity Check. */
 	if((cursor == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_deserialize","Bad Args.",NULL);
+		AMP_DEBUG_ERR("rpt_entry_deserialize","Bad Args.",NULL);
 		return NULL;
 	}
 
@@ -780,21 +785,21 @@ rpt_entry_t* rpt_entry_deserialize(uint8_t *cursor,
 	/* Step 1: Allocate the new entry. */
 	if((result = (rpt_entry_t*)STAKE(sizeof(rpt_entry_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_deserialize","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("rpt_entry_deserialize","Can't alloc %d bytes.",
 				        sizeof(rpt_entry_t));
 
-		DTNMP_DEBUG_EXIT("rpt_entry_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_deserialize","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Grab the MID. */
 	if((result->id = mid_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_deserialize","Can't grab MID.", NULL);
+		AMP_DEBUG_ERR("rpt_entry_deserialize","Can't grab MID.", NULL);
 		rpt_entry_release(result);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("rpt_entry_deserialize","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_deserialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -807,11 +812,11 @@ rpt_entry_t* rpt_entry_deserialize(uint8_t *cursor,
 	/* Step 3: Grab the types data collection. */
 	if((result->contents = tdc_deserialize(cursor, size, &bytes)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_deserialize","Can't Grab TDC.", NULL);
+		AMP_DEBUG_ERR("rpt_entry_deserialize","Can't Grab TDC.", NULL);
 		rpt_entry_release(result);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("rpt_deserialize_data","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_deserialize_data","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -867,8 +872,8 @@ char *rpt_entry_lst_to_str(Lyst entries)
 	/* Step 0: Sanity Check. */
 	if(entries == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_lst_to_str","Bad Args",NULL);
-		DTNMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_entry_lst_to_str","Bad Args",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
 		return NULL;
 	}
 
@@ -880,12 +885,12 @@ char *rpt_entry_lst_to_str(Lyst entries)
 
 	if((temp_space == NULL) || (temp_len == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_lst_to_str",
+		AMP_DEBUG_ERR("rpt_entry_lst_to_str",
 				        "Can't allocate space for %d entries.", num_entries);
 
 		SRELEASE(temp_space);
 		SRELEASE(temp_len);
-		DTNMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -911,7 +916,7 @@ char *rpt_entry_lst_to_str(Lyst entries)
 		}
 		else
 		{
-    		DTNMP_DEBUG_WARN("rpt_entry_lst_to_str", "%d entry NULL.",i);
+    		AMP_DEBUG_WARN("rpt_entry_lst_to_str", "%d entry NULL.",i);
     		success = 0;
 		}
 	}
@@ -919,7 +924,7 @@ char *rpt_entry_lst_to_str(Lyst entries)
 	/* Step 3: If there was a problem, roll-back. */
 	if(success == 0)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_lst_to_str","Can't to_str entries.",NULL);
+		AMP_DEBUG_ERR("rpt_entry_lst_to_str","Can't to_str entries.",NULL);
 
 		for(i = 0; i < num_entries; i++)
 		{
@@ -928,14 +933,14 @@ char *rpt_entry_lst_to_str(Lyst entries)
 		SRELEASE(temp_space);
 		SRELEASE(temp_len);
 
-		DTNMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 4: Allocate space for the serialization buffer. */
 	if((result = (char *) STAKE(len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_lst_to_str","Can't allocate result of size %d.", len);
+		AMP_DEBUG_ERR("rpt_entry_lst_to_str","Can't allocate result of size %d.", len);
 
 		for(i = 0; i < num_entries; i++)
 		{
@@ -944,7 +949,7 @@ char *rpt_entry_lst_to_str(Lyst entries)
 		SRELEASE(temp_space);
 		SRELEASE(temp_len);
 
-		DTNMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_lst_to_str","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1029,7 +1034,7 @@ uint8_t *rpt_entry_serialize(rpt_entry_t *entry, uint32_t *len)
 	/* Step 0: Sanity check. */
 	if((entry == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize","Bad Args.",NULL);
+		AMP_DEBUG_ERR("rpt_entry_serialize","Bad Args.",NULL);
 		return NULL;
 	}
 
@@ -1038,14 +1043,14 @@ uint8_t *rpt_entry_serialize(rpt_entry_t *entry, uint32_t *len)
 	/* Step 1: Serialize the MID in the entry. */
 	if((mid_data = mid_serialize(entry->id, &mid_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize","Can't serialize mid.",NULL);
+		AMP_DEBUG_ERR("rpt_entry_serialize","Can't serialize mid.",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Serialize the typed data collection. */
 	if((tdc_data = tdc_serialize(entry->contents, &tdc_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize","Can't serialize TDC.",NULL);
+		AMP_DEBUG_ERR("rpt_entry_serialize","Can't serialize TDC.",NULL);
 		SRELEASE(mid_data);
 		return NULL;
 	}
@@ -1054,7 +1059,7 @@ uint8_t *rpt_entry_serialize(rpt_entry_t *entry, uint32_t *len)
 	*len = mid_len + tdc_len;
 	if((result = (uint8_t *) STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize","Can't allocate %d bytes.", *len);
+		AMP_DEBUG_ERR("rpt_entry_serialize","Can't allocate %d bytes.", *len);
 		SRELEASE(mid_data);
 		SRELEASE(tdc_data);
 		return NULL;
@@ -1115,8 +1120,8 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 	/* Step 0: Sanity Check. */
 	if((entries == NULL) || (len == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize_lst","Bad Args",NULL);
-		DTNMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_entry_serialize_lst","Bad Args",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1125,8 +1130,8 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 
 	if(num_entries == 0)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize_lst","No entries to serialize.",NULL);
-		DTNMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
+		AMP_DEBUG_ERR("rpt_entry_serialize_lst","No entries to serialize.",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1136,13 +1141,13 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 
 	if((temp_space == NULL) || (temp_len == NULL))
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize_lst",
+		AMP_DEBUG_ERR("rpt_entry_serialize_lst",
 				        "Can't allocate space for %d entries.", num_entries);
 
 		SRELEASE(temp_space);
 		SRELEASE(temp_len);
 		*len = 0;
-		DTNMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1166,7 +1171,7 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 		}
 		else
 		{
-    		DTNMP_DEBUG_WARN("rpt_entry_serialize_lst", "%d entry NULL.",i);
+    		AMP_DEBUG_WARN("rpt_entry_serialize_lst", "%d entry NULL.",i);
     		success = 0;
 		}
 	}
@@ -1174,7 +1179,7 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 	/* Step 3: If there was a problem, roll-back. */
 	if(success == 0)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize_lst","Can't serialize reports.",NULL);
+		AMP_DEBUG_ERR("rpt_entry_serialize_lst","Can't serialize reports.",NULL);
 
 		for(i = 0; i < num_entries; i++)
 		{
@@ -1184,14 +1189,14 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 		SRELEASE(temp_len);
 
 		*len = 0;
-		DTNMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 4: Allocate space for the serialization buffer. */
 	if((result = (uint8_t*) STAKE(*len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_serialize_lst","Can't allocate result of size %d.",*len);
+		AMP_DEBUG_ERR("rpt_entry_serialize_lst","Can't allocate result of size %d.",*len);
 
 		for(i = 0; i < num_entries; i++)
 		{
@@ -1201,7 +1206,7 @@ uint8_t *rpt_entry_serialize_lst(Lyst entries, uint32_t *len)
 		SRELEASE(temp_len);
 
 		*len = 0;
-		DTNMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
+		AMP_DEBUG_EXIT("rpt_entry_serialize_lst","->NULL",NULL);
 		return NULL;
 	}
 
@@ -1255,14 +1260,14 @@ char *rpt_entry_to_str(rpt_entry_t *entry)
 	/* Step 0: Sanity Check. */
 	if(entry == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_to_str","Bad Args.", NULL);
+		AMP_DEBUG_ERR("rpt_entry_to_str","Bad Args.", NULL);
 		return NULL;
 	}
 
 	/* Step 1: Make a string for the MID. */
 	if((mid_str = mid_to_string(entry->id)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_to_str","Can't to_str mid.", NULL);
+		AMP_DEBUG_ERR("rpt_entry_to_str","Can't to_str mid.", NULL);
 		return NULL;
 	}
 	mid_len = strlen(mid_str);
@@ -1270,7 +1275,7 @@ char *rpt_entry_to_str(rpt_entry_t *entry)
 	/* Step 2: Make a string for the TDC. */
 	if((tdc_str = tdc_to_str(entry->contents)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_to_str","Can't to_str tdc.", NULL);
+		AMP_DEBUG_ERR("rpt_entry_to_str","Can't to_str tdc.", NULL);
 		SRELEASE(mid_str);
 		return NULL;
 	}
@@ -1279,7 +1284,7 @@ char *rpt_entry_to_str(rpt_entry_t *entry)
 	/* Step 3: Allocate the result. */
 	if((result = (char *) STAKE(overhead+mid_len+tdc_len)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("rpt_entry_to_str","Can't allocate %d bytes.", overhead+mid_len+tdc_len);
+		AMP_DEBUG_ERR("rpt_entry_to_str","Can't allocate %d bytes.", overhead+mid_len+tdc_len);
 		SRELEASE(mid_str);
 		SRELEASE(tdc_str);
 		return NULL;

@@ -19,8 +19,11 @@
  ** Assumptions:
  **		1. ION AMP does not support integer or real values > 64 bits.
  **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
-
 #ifndef VALUE_H_
 #define VALUE_H_
 
@@ -70,7 +73,7 @@ extern int gValNumCvtResult[6][6];
  */
 typedef struct
 {
-	dtnmp_type_e type;      /* The strong type of the value. */
+	amp_type_e type;      /* The strong type of the value. */
 
 	union {
 		uint8_t *as_ptr;    /* When used, this is serialized? */
@@ -105,14 +108,21 @@ float    val_cvt_real32(value_t val, uint8_t *success);
 
 double	 val_cvt_real64(value_t val, uint8_t *success);
 
-uint8_t	 val_cvt_type(value_t *val, dtnmp_type_e type);
+uint8_t	 val_cvt_type(value_t *val, amp_type_e type);
 
 value_t  val_deserialize(unsigned char *buffer, uint32_t bytes_left, uint32_t *bytes_used);
 
 
-value_t  val_from_blob(blob_t *blob, dtnmp_type_e type);
-
+value_t  val_from_blob(blob_t *blob, amp_type_e type);
+value_t  val_from_int(int32_t val);
+value_t  val_from_real32(float val);
+value_t  val_from_real64(double val);
 value_t  val_from_string(char *str);
+value_t  val_from_uint(uint32_t val);
+value_t  val_from_uvast(uvast val);
+value_t  val_from_vast(vast val);
+
+
 
 
 

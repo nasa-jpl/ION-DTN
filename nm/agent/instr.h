@@ -3,11 +3,6 @@
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,7 +19,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/04/13  E. Birrane     Initial Implementation
+ **  07/04/13  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
 
@@ -57,14 +52,14 @@
 
 
 typedef struct {
-	unsigned long num_rpt_defs; // done
+	unsigned long num_rptt_defs; // done
 	unsigned long num_sent_rpts; // done
-	unsigned long num_time_rules; // done
-	unsigned long num_time_rules_run; // done
-	unsigned long num_prod_rules;
-	unsigned long num_prod_rules_run;
-	unsigned long num_consts;
-	unsigned long num_data_defs;
+	unsigned long num_trls; // done
+	unsigned long num_trls_run; // done
+	unsigned long num_srls;
+	unsigned long num_srls_run;
+	unsigned long num_lits;
+	unsigned long num_vars;
 	unsigned long num_macros; // done
 	unsigned long num_macros_run;
 	unsigned long num_ctrls; // done

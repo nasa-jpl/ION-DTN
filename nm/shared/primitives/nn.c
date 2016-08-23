@@ -19,7 +19,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  03/11/15  E. Birrane     Pulled nicknamed out of OID into NN.
+ **            E. Birrane     Initial Implementation. (Secure DTN - NASA: NNX14CS58P)
+ **  03/11/15  E. Birrane     Pulled nicknamed out of OID into NN. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
@@ -58,13 +59,13 @@ int oid_nn_add(oid_nn_t *nn)
 {
 	oid_nn_t *new_nn = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_add","("ADDR_FIELDSPEC")",(uaddr)nn);
+	AMP_DEBUG_ENTRY("oid_nn_add","("ADDR_FIELDSPEC")",(uaddr)nn);
 
 	/* Step 0: Sanity check. */
 	if(nn == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
+		AMP_DEBUG_ERR("oid_nn_add","Bad args.",NULL);
+		AMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
 		return 0;
 	}
 
@@ -75,24 +76,24 @@ int oid_nn_add(oid_nn_t *nn)
 	/* Step 1: Make sure entry doesn't already exist. */
 	if(oid_nn_exists(nn->id))
 	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Id 0x%x already exists in db.",
+		AMP_DEBUG_ERR("oid_nn_add","Id 0x%x already exists in db.",
 				         nn->id);
 
 		unlockResource(&nn_db_mutex);
 
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
+		AMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
 		return 0;
 	}
 
 	/* Step 2: Allocate new entry. */
 	if ((new_nn = (oid_nn_t*)STAKE(sizeof(oid_nn_t))) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Can't take %d bytes for new nn.",
+		AMP_DEBUG_ERR("oid_nn_add","Can't take %d bytes for new nn.",
 						sizeof(oid_nn_t));
 
 		unlockResource(&nn_db_mutex);
 
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
+		AMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
 		return 0;
 	}
 
@@ -106,7 +107,7 @@ int oid_nn_add(oid_nn_t *nn)
     unlockResource(&nn_db_mutex);
 
 
-	DTNMP_DEBUG_EXIT("oid_nn_add","->1",NULL);
+	AMP_DEBUG_EXIT("oid_nn_add","->1",NULL);
 	return 1;
 }
 
@@ -139,29 +140,29 @@ int oid_nn_add_parm(uvast id, char *oid, char *name, char *version)
 	uint8_t *data = NULL;
 	uint32_t datasize = 0;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_add_parm","("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("oid_nn_add_parm","("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 		(uaddr) id, (uaddr)oid, (uaddr)name, (uaddr)version);
 
 	/* Step 0: Sanity check. */
 	if(oid == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_nn_add_parm","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
+		AMP_DEBUG_ERR("oid_nn_add_parm","Bad args.",NULL);
+		AMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
 		return 0;
 	}
 
 	if((data = utils_string_to_hex(oid, &datasize)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_nn_add_parm","Can't cnv to hex.",NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
+		AMP_DEBUG_ERR("oid_nn_add_parm","Can't cnv to hex.",NULL);
+		AMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
 		return 0;
 	}
 
 	if(datasize > MAX_NN_SIZE)
 	{
-		DTNMP_DEBUG_ERR("oid_nn_add_parm","OID size %d > %d.", datasize, MAX_NN_SIZE);
+		AMP_DEBUG_ERR("oid_nn_add_parm","OID size %d > %d.", datasize, MAX_NN_SIZE);
 		SRELEASE(data);
-		DTNMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
+		AMP_DEBUG_EXIT("oid_nn_add_parm","->0",NULL);
 		return 0;
 	}
 
@@ -179,7 +180,7 @@ int oid_nn_add_parm(uvast id, char *oid, char *name, char *version)
 
 	SRELEASE(data);
 
-	DTNMP_DEBUG_EXIT("oid_nn_add_parm","->%d",result);
+	AMP_DEBUG_EXIT("oid_nn_add_parm","->%d",result);
 
 	return result;
 }
@@ -209,12 +210,12 @@ void oid_nn_cleanup()
     LystElt elt;
     oid_nn_t *entry = NULL;
 
-    DTNMP_DEBUG_ENTRY("oid_nn_cleanup","()",NULL);
+    AMP_DEBUG_ENTRY("oid_nn_cleanup","()",NULL);
 
     /* Step 0: Sanity Check. */
     if(nn_db == NULL)
     {
-    	DTNMP_DEBUG_WARN("oid_nn_cleanup","NN database already cleaned.",NULL);
+    	AMP_DEBUG_WARN("oid_nn_cleanup","NN database already cleaned.",NULL);
     	return;
     }
 
@@ -232,7 +233,7 @@ void oid_nn_cleanup()
     	}
     	else
     	{
-    		DTNMP_DEBUG_WARN("oid_nn_cleanup","Found NULL entry in nickname db.",
+    		AMP_DEBUG_WARN("oid_nn_cleanup","Found NULL entry in nickname db.",
     				         NULL);
     	}
     }
@@ -269,7 +270,7 @@ int oid_nn_delete(uvast nn_id)
 	LystElt tmp_elt;
 	int result = 0;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_delete","(%#llx)",nn_id);
+	AMP_DEBUG_ENTRY("oid_nn_delete","(%#llx)",nn_id);
 
 	/* Step 1: Need to lock to preserve validity of the lookup result. . */
 	lockResource(&nn_db_mutex);
@@ -285,7 +286,7 @@ int oid_nn_delete(uvast nn_id)
 
     unlockResource(&nn_db_mutex);
 
-	DTNMP_DEBUG_EXIT("oid_nn_delete","->%d",result);
+	AMP_DEBUG_EXIT("oid_nn_delete","->%d",result);
 	return result;
 }
 
@@ -325,7 +326,7 @@ LystElt oid_nn_exists(uvast nn_id)
 	LystElt tmp_elt = NULL;
 	LystElt result = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_exists","(%#llx)",nn_id);
+	AMP_DEBUG_ENTRY("oid_nn_exists","(%#llx)",nn_id);
 
 	/* Step 0: Make sure no +/-'s while we search. */
 	lockResource(&nn_db_mutex);
@@ -343,13 +344,13 @@ LystElt oid_nn_exists(uvast nn_id)
     	}
     	else
     	{
-    		DTNMP_DEBUG_WARN("oid_nn_exists","Encountered NULL nn?",NULL);
+    		AMP_DEBUG_WARN("oid_nn_exists","Encountered NULL nn?",NULL);
     	}
     }
 
     unlockResource(&nn_db_mutex);
 
-	DTNMP_DEBUG_EXIT("oid_nn_delete","->%x",result);
+	AMP_DEBUG_EXIT("oid_nn_delete","->%x",result);
 	return result;
 }
 
@@ -384,7 +385,7 @@ oid_nn_t* oid_nn_find(uvast nn_id)
 	LystElt tmpElt = NULL;
 	oid_nn_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_nn_find","(%#llx)",nn_id);
+	AMP_DEBUG_ENTRY("oid_nn_find","(%#llx)",nn_id);
 
 	/* Step 0: Call exists function (exists should block mutex, so we don't. */
 	if((tmpElt = oid_nn_exists(nn_id)) != NULL)
@@ -392,7 +393,7 @@ oid_nn_t* oid_nn_find(uvast nn_id)
 		result = (oid_nn_t*) lyst_data(tmpElt);
 	}
 
-	DTNMP_DEBUG_EXIT("oid_nn_find","->%#llx",result);
+	AMP_DEBUG_EXIT("oid_nn_find","->%#llx",result);
 	return result;
 }
 
@@ -424,31 +425,31 @@ oid_nn_t* oid_nn_find(uvast nn_id)
 
 int oid_nn_init()
 {
-	DTNMP_DEBUG_ENTRY("oid_init_nn_db","()",NULL);
+	AMP_DEBUG_ENTRY("oid_init_nn_db","()",NULL);
 
 	/* Step 0: Sanity Check. */
 	if(nn_db != NULL)
 	{
-		DTNMP_DEBUG_WARN("oid_nn_init","Trying to init existing NN db.",NULL);
+		AMP_DEBUG_WARN("oid_nn_init","Trying to init existing NN db.",NULL);
 		return 0;
 	}
 
 	if((nn_db = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_nn_init","Can't allocate NN DB!", NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_init","->-1.",NULL);
+		AMP_DEBUG_ERR("oid_nn_init","Can't allocate NN DB!", NULL);
+		AMP_DEBUG_EXIT("oid_nn_init","->-1.",NULL);
 		return -1;
 	}
 
 	if(initResourceLock(&nn_db_mutex))
 	{
-        DTNMP_DEBUG_ERR("oid_init_nn_db","Unable to initialize mutex, errno = %s",
+        AMP_DEBUG_ERR("oid_init_nn_db","Unable to initialize mutex, errno = %s",
         		        strerror(errno));
-        DTNMP_DEBUG_EXIT("oid_init_nn_db","->-1.",NULL);
+        AMP_DEBUG_EXIT("oid_init_nn_db","->-1.",NULL);
         return -1;
 	}
 
-    DTNMP_DEBUG_EXIT("oid_init_nn_db","->0.",NULL);
+    AMP_DEBUG_EXIT("oid_init_nn_db","->0.",NULL);
 	return 0;
 }
 
