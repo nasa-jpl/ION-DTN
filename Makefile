@@ -259,15 +259,16 @@ libams_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 am_libams_la_rpath = -rpath $(libdir)
 libbp_la_DEPENDENCIES = libici.la libipnfw.la libdtn2fw.la \
 	$(am__DEPENDENCIES_1)
-am__libbp_la_SOURCES_DIST = bp/library/libbp.c bp/library/libbpP.c \
-	bp/library/libbpnm.c bp/library/eureka.c \
-	bp/library/ext/phn/phn.c bp/library/ext/ecos/ecos.c \
-	bp/library/bei.c bp/library/ext/meb/meb.c \
-	bp/library/ext/bae/bae.c bp/library/ext/bsp/bspbab.h \
-	bp/library/ext/bsp/bspbab.c bp/library/ext/bsp/bspbcb.h \
-	bp/library/ext/bsp/bspbcb.c bp/library/ext/bsp/bspbib.h \
-	bp/library/ext/bsp/bspbib.c bp/library/ext/bsp/bsputil.h \
-	bp/library/ext/bsp/bsputil.c bp/library/ext/bsp/ciphersuites.h \
+am__libbp_la_SOURCES_DIST = bp/dtn2/libdtn2fw.h bp/dtn2/libdtn2fw.c \
+	bp/library/libbp.c bp/library/libbpP.c bp/library/libbpnm.c \
+	bp/library/eureka.c bp/library/ext/phn/phn.c \
+	bp/library/ext/ecos/ecos.c bp/library/bei.c \
+	bp/library/ext/meb/meb.c bp/library/ext/bae/bae.c \
+	bp/library/ext/bsp/bspbab.h bp/library/ext/bsp/bspbab.c \
+	bp/library/ext/bsp/bspbcb.h bp/library/ext/bsp/bspbcb.c \
+	bp/library/ext/bsp/bspbib.h bp/library/ext/bsp/bspbib.c \
+	bp/library/ext/bsp/bsputil.h bp/library/ext/bsp/bsputil.c \
+	bp/library/ext/bsp/ciphersuites.h \
 	bp/library/ext/bsp/ciphersuites.c \
 	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
 	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
@@ -285,9 +286,9 @@ am__libbp_la_SOURCES_DIST = bp/library/libbp.c bp/library/libbpP.c \
 	bp/library/ext/bpsec/bpsec_util.c \
 	bp/library/ext/bpsec/profiles.h \
 	bp/library/ext/bpsec/profiles.c bp/library/ext/snid/snid.c \
-	bp/ipnd/ipnd.c bp/ipnd/beacon.c bp/ipnd/helper.c \
-	bp/ipnd/node.c ici/libbloom-master/bloom.h \
-	ici/libbloom-master/bloom.c \
+	bp/ipn/libipnfw.h bp/ipn/libipnfw.c bp/ipnd/ipnd.c \
+	bp/ipnd/beacon.c bp/ipnd/helper.c bp/ipnd/node.c \
+	ici/libbloom-master/bloom.h ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/murmurhash2.h \
 	ici/libbloom-master/murmur2/MurmurHash2.c \
 	bp/library/acs/acsrx.c bp/library/acs/acstx.c \
@@ -301,9 +302,9 @@ am__objects_1 = bp/library/acs/libbp_la-acsrx.lo \
 	bp/library/acs/libbp_la-acsid.lo \
 	bp/library/ext/cteb/libbp_la-cteb.lo
 am__objects_2 = bp/imc/libbp_la-libimcfw.lo
-am_libbp_la_OBJECTS = bp/library/libbp_la-libbp.lo \
-	bp/library/libbp_la-libbpP.lo bp/library/libbp_la-libbpnm.lo \
-	bp/library/libbp_la-eureka.lo \
+am_libbp_la_OBJECTS = bp/dtn2/libbp_la-libdtn2fw.lo \
+	bp/library/libbp_la-libbp.lo bp/library/libbp_la-libbpP.lo \
+	bp/library/libbp_la-libbpnm.lo bp/library/libbp_la-eureka.lo \
 	bp/library/ext/phn/libbp_la-phn.lo \
 	bp/library/ext/ecos/libbp_la-ecos.lo \
 	bp/library/libbp_la-bei.lo bp/library/ext/meb/libbp_la-meb.lo \
@@ -321,7 +322,8 @@ am_libbp_la_OBJECTS = bp/library/libbp_la-libbp.lo \
 	bp/library/ext/bpsec/libbp_la-bpsec_bib.lo \
 	bp/library/ext/bpsec/libbp_la-bpsec_util.lo \
 	bp/library/ext/bpsec/libbp_la-profiles.lo \
-	bp/library/ext/snid/libbp_la-snid.lo bp/ipnd/libbp_la-ipnd.lo \
+	bp/library/ext/snid/libbp_la-snid.lo \
+	bp/ipn/libbp_la-libipnfw.lo bp/ipnd/libbp_la-ipnd.lo \
 	bp/ipnd/libbp_la-beacon.lo bp/ipnd/libbp_la-helper.lo \
 	bp/ipnd/libbp_la-node.lo ici/libbloom-master/libbp_la-bloom.lo \
 	ici/libbloom-master/murmur2/libbp_la-MurmurHash2.lo \
@@ -330,7 +332,7 @@ libbp_la_OBJECTS = $(am_libbp_la_OBJECTS)
 libbp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libbp_la_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-libbss_la_DEPENDENCIES = libici.la libbp.la libipnfw.la libdtn2fw.la
+libbss_la_DEPENDENCIES = libici.la libbp.la
 am_libbss_la_OBJECTS = bss/library/libbss_la-libbss.lo \
 	bss/library/libbss_la-libbssP.lo
 libbss_la_OBJECTS = $(am_libbss_la_OBJECTS)
@@ -375,13 +377,7 @@ libdgr_la_OBJECTS = $(am_libdgr_la_OBJECTS)
 libdgr_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libdgr_la_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-libdtn2fw_la_DEPENDENCIES = libici.la
-am_libdtn2fw_la_OBJECTS = bp/dtn2/libdtn2fw_la-libdtn2fw.lo
-libdtn2fw_la_OBJECTS = $(am_libdtn2fw_la_OBJECTS)
-libdtn2fw_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libdtn2fw_la_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-libdtpc_la_DEPENDENCIES = libici.la libbp.la libipnfw.la libdtn2fw.la
+libdtpc_la_DEPENDENCIES = libici.la libbp.la
 am_libdtpc_la_OBJECTS = dtpc/library/libdtpc_la-libdtpc.lo \
 	dtpc/library/libdtpc_la-libdtpcP.lo
 libdtpc_la_OBJECTS = $(am_libdtpc_la_OBJECTS)
@@ -396,7 +392,7 @@ am__libici_la_SOURCES_DIST = ici/library/llcv.c ici/library/libicinm.c \
 	ici/library/ion.c ici/library/ionsec.c ici/library/zco.c \
 	ici/library/smrbt.c ici/sdr/sdrxn.c ici/sdr/sdrmgt.c \
 	ici/sdr/sdrstring.c ici/sdr/sdrlist.c ici/sdr/sdrtable.c \
-	ici/sdr/sdrhash.c ici/sdr/sdrcatlg.c \
+	ici/sdr/sdrhash.c ici/sdr/sdrcatlg.c ici/bulk/STUB_BULK/bulk.c \
 	ici/crypto/NULL_SUITES/crypto.c ici/crypto/NULL_SUITES/csi.c
 #am__objects_3 =  \
 #	ici/crypto/NULL_SUITES/libici_la-crypto.lo \
@@ -416,17 +412,12 @@ am_libici_la_OBJECTS = ici/library/libici_la-llcv.lo \
 	ici/sdr/libici_la-sdrxn.lo ici/sdr/libici_la-sdrmgt.lo \
 	ici/sdr/libici_la-sdrstring.lo ici/sdr/libici_la-sdrlist.lo \
 	ici/sdr/libici_la-sdrtable.lo ici/sdr/libici_la-sdrhash.lo \
-	ici/sdr/libici_la-sdrcatlg.lo $(am__objects_3) \
+	ici/sdr/libici_la-sdrcatlg.lo \
+	ici/bulk/STUB_BULK/libici_la-bulk.lo $(am__objects_3) \
 	$(am__objects_4)
 libici_la_OBJECTS = $(am_libici_la_OBJECTS)
 libici_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libici_la_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-libipnfw_la_DEPENDENCIES = libici.la
-am_libipnfw_la_OBJECTS = bp/ipn/libipnfw_la-libipnfw.lo
-libipnfw_la_OBJECTS = $(am_libipnfw_la_OBJECTS)
-libipnfw_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libipnfw_la_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 libltp_la_DEPENDENCIES = libici.la
 am_libltp_la_OBJECTS = ltp/library/libltp_la-libltp.lo \
@@ -437,18 +428,18 @@ libltp_la_OBJECTS = $(am_libltp_la_OBJECTS)
 libltp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libltp_la_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+libstcpcla_la_DEPENDENCIES = libbp.la libici.la
+am_libstcpcla_la_OBJECTS = bp/stcp/libstcpcla_la-libstcpcla.lo
+libstcpcla_la_OBJECTS = $(am_libstcpcla_la_OBJECTS)
+libstcpcla_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libstcpcla_la_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 libtcpbsa_la_DEPENDENCIES = libici.la
 am_libtcpbsa_la_OBJECTS = bssp/tcp/libtcpbsa_la-libtcpbsa.lo
 libtcpbsa_la_OBJECTS = $(am_libtcpbsa_la_OBJECTS)
 libtcpbsa_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libtcpbsa_la_CFLAGS) \
 	$(CFLAGS) $(libtcpbsa_la_LDFLAGS) $(LDFLAGS) -o $@
-libtcpcla_la_DEPENDENCIES = libbp.la libici.la
-am_libtcpcla_la_OBJECTS = bp/tcp/libtcpcla_la-libtcpcla.lo
-libtcpcla_la_OBJECTS = $(am_libtcpcla_la_OBJECTS)
-libtcpcla_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libtcpcla_la_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 libudpcla_la_DEPENDENCIES = libbp.la libici.la
 am_libudpcla_la_OBJECTS = bp/udp/libudpcla_la-libudpcla.lo
 libudpcla_la_OBJECTS = $(am_libudpcla_la_OBJECTS)
@@ -523,8 +514,8 @@ am__acsadmin_SOURCES_DIST = bp/utils/acsadmin.c
 am_acsadmin_OBJECTS =  \
 	bp/utils/acsadmin-acsadmin.$(OBJEXT)
 acsadmin_OBJECTS = $(am_acsadmin_OBJECTS)
-acsadmin_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libici.la $(LIBOBJS)
+acsadmin_DEPENDENCIES = libbp.la libici.la \
+	$(LIBOBJS)
 acsadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(acsadmin_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -532,8 +523,8 @@ am__acslist_SOURCES_DIST = bp/utils/acslist.c
 am_acslist_OBJECTS =  \
 	bp/utils/acslist-acslist.$(OBJEXT)
 acslist_OBJECTS = $(am_acslist_OBJECTS)
-acslist_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libici.la $(LIBOBJS)
+acslist_DEPENDENCIES = libbp.la libici.la \
+	$(LIBOBJS)
 acslist_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(acslist_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -630,50 +621,43 @@ aoslso_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_beacon_OBJECTS = bp/ipnd/beacon-beacon.$(OBJEXT)
 beacon_OBJECTS = $(am_beacon_OBJECTS)
-beacon_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+beacon_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 beacon_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(beacon_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bibeclo_OBJECTS = bp/bibe/bibeclo-bibeclo.$(OBJEXT)
 bibeclo_OBJECTS = $(am_bibeclo_OBJECTS)
-bibeclo_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libudpcla.la \
-	libici.la $(LIBOBJS)
+bibeclo_DEPENDENCIES = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bibeclo_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpadmin_OBJECTS = bp/utils/bpadmin-bpadmin.$(OBJEXT)
 bpadmin_OBJECTS = $(am_bpadmin_OBJECTS)
-bpadmin_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpadmin_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpadmin_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpcancel_OBJECTS = bp/utils/bpcancel-bpcancel.$(OBJEXT)
 bpcancel_OBJECTS = $(am_bpcancel_OBJECTS)
-bpcancel_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpcancel_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpcancel_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpcancel_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpchat_OBJECTS = bp/test/bpchat-bpchat.$(OBJEXT)
 bpchat_OBJECTS = $(am_bpchat_OBJECTS)
-bpchat_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+bpchat_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpchat_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpchat_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpclock_OBJECTS = bp/daemon/bpclock-bpclock.$(OBJEXT)
 bpclock_OBJECTS = $(am_bpclock_OBJECTS)
-bpclock_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpclock_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpclock_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpclock_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpcounter_OBJECTS = bp/test/bpcounter-bpcounter.$(OBJEXT)
 bpcounter_OBJECTS = $(am_bpcounter_OBJECTS)
-bpcounter_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpcounter_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpcounter_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpcounter_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -693,92 +677,79 @@ bpcpd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpdriver_OBJECTS = bp/test/bpdriver-bpdriver.$(OBJEXT)
 bpdriver_OBJECTS = $(am_bpdriver_OBJECTS)
-bpdriver_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpdriver_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpdriver_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpdriver_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpecho_OBJECTS = bp/test/bpecho-bpecho.$(OBJEXT)
 bpecho_OBJECTS = $(am_bpecho_OBJECTS)
-bpecho_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpecho_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpecho_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpecho_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bping_OBJECTS = bp/test/bping-bping.$(OBJEXT)
 bping_OBJECTS = $(am_bping_OBJECTS)
-bping_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+bping_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bping_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bping_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bplist_OBJECTS = bp/utils/bplist-bplist.$(OBJEXT)
 bplist_OBJECTS = $(am_bplist_OBJECTS)
-bplist_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bplist_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bplist_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bplist_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpnmtest_OBJECTS = bp/test/bpnmtest-bpnmtest.$(OBJEXT)
 bpnmtest_OBJECTS = $(am_bpnmtest_OBJECTS)
-bpnmtest_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+bpnmtest_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpnmtest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpnmtest_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bprecvfile_OBJECTS = bp/utils/bprecvfile-bprecvfile.$(OBJEXT)
 bprecvfile_OBJECTS = $(am_bprecvfile_OBJECTS)
-bprecvfile_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bprecvfile_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bprecvfile_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bprecvfile_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpsendfile_OBJECTS = bp/utils/bpsendfile-bpsendfile.$(OBJEXT)
 bpsendfile_OBJECTS = $(am_bpsendfile_OBJECTS)
-bpsendfile_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpsendfile_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpsendfile_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpsendfile_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpsink_OBJECTS = bp/test/bpsink-bpsink.$(OBJEXT)
 bpsink_OBJECTS = $(am_bpsink_OBJECTS)
-bpsink_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpsink_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpsink_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpsink_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpsource_OBJECTS = bp/test/bpsource-bpsource.$(OBJEXT)
 bpsource_OBJECTS = $(am_bpsource_OBJECTS)
-bpsource_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bpsource_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpsource_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpsource_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpstats_OBJECTS = bp/utils/bpstats-bpstats.$(OBJEXT)
 bpstats_OBJECTS = $(am_bpstats_OBJECTS)
-bpstats_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+bpstats_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpstats_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpstats_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bpstats2_OBJECTS = bp/test/bpstats2-bpstats2.$(OBJEXT)
 bpstats2_OBJECTS = $(am_bpstats2_OBJECTS)
-bpstats2_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+bpstats2_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bpstats2_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bpstats2_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bptrace_OBJECTS = bp/utils/bptrace-bptrace.$(OBJEXT)
 bptrace_OBJECTS = $(am_bptrace_OBJECTS)
-bptrace_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+bptrace_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bptrace_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bptrace_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bptransit_OBJECTS = bp/daemon/bptransit-bptransit.$(OBJEXT)
 bptransit_OBJECTS = $(am_bptransit_OBJECTS)
-bptransit_DEPENDENCIES = libbp.la libici.la libdtn2fw.la libipnfw.la \
-	$(LIBOBJS)
+bptransit_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 bptransit_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bptransit_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -786,44 +757,39 @@ am__bputa_SOURCES_DIST = cfdp/bp/bputa.c
 am_bputa_OBJECTS = cfdp/bp/bputa-bputa.$(OBJEXT)
 bputa_OBJECTS = $(am_bputa_OBJECTS)
 bputa_DEPENDENCIES = libcfdp.la libici.la libbp.la \
-	libipnfw.la libdtn2fw.la $(LIBOBJS)
+	$(LIBOBJS)
 bputa_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bputa_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_brsccla_OBJECTS = bp/brs/brsccla-brsccla.$(OBJEXT)
 brsccla_OBJECTS = $(am_brsccla_OBJECTS)
-brsccla_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la \
-	libici.la $(LIBOBJS)
+brsccla_DEPENDENCIES = libbp.la libici.la libstcpcla.la $(LIBOBJS)
 brsccla_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(brsccla_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_brsscla_OBJECTS = bp/brs/brsscla-brsscla.$(OBJEXT)
 brsscla_OBJECTS = $(am_brsscla_OBJECTS)
-brsscla_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la \
-	libici.la $(LIBOBJS)
+brsscla_DEPENDENCIES = libbp.la libici.la libstcpcla.la $(LIBOBJS)
 brsscla_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(brsscla_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bssStreamingApp_OBJECTS =  \
 	bss/test/bssStreamingApp-bssStreamingApp.$(OBJEXT)
 bssStreamingApp_OBJECTS = $(am_bssStreamingApp_OBJECTS)
-bssStreamingApp_DEPENDENCIES = libbss.la libici.la libbp.la \
-	libipnfw.la libdtn2fw.la $(LIBOBJS)
+bssStreamingApp_DEPENDENCIES = libbp.la libbss.la libici.la $(LIBOBJS)
 bssStreamingApp_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(bssStreamingApp_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 am_bsscounter_OBJECTS = bss/test/bsscounter-bsscounter.$(OBJEXT)
 bsscounter_OBJECTS = $(am_bsscounter_OBJECTS)
-bsscounter_DEPENDENCIES = libbss.la libici.la libbp.la libipnfw.la \
-	libdtn2fw.la $(LIBOBJS)
+bsscounter_DEPENDENCIES = libbss.la libici.la libbp.la $(LIBOBJS)
 bsscounter_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bsscounter_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bssdriver_OBJECTS = bss/test/bssdriver-bssdriver.$(OBJEXT)
 bssdriver_OBJECTS = $(am_bssdriver_OBJECTS)
-bssdriver_DEPENDENCIES = libbss.la libici.la libbp.la libipnfw.la \
-	libdtn2fw.la $(LIBOBJS)
+bssdriver_DEPENDENCIES = libbss.la libici.la libbp.la $(LIBOBJS)
 bssdriver_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bssdriver_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -835,15 +801,13 @@ bsspadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bsspcli_OBJECTS = bp/bssp/bsspcli-bsspcli.$(OBJEXT)
 bsspcli_OBJECTS = $(am_bsspcli_OBJECTS)
-bsspcli_DEPENDENCIES = libbssp.la libbp.la libipnfw.la libdtn2fw.la \
-	libici.la $(LIBOBJS)
+bsspcli_DEPENDENCIES = libbssp.la libbp.la libici.la $(LIBOBJS)
 bsspcli_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bsspcli_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bsspclo_OBJECTS = bp/bssp/bsspclo-bsspclo.$(OBJEXT)
 bsspclo_OBJECTS = $(am_bsspclo_OBJECTS)
-bsspclo_DEPENDENCIES = libbssp.la libbp.la libipnfw.la libdtn2fw.la \
-	libici.la $(LIBOBJS)
+bsspclo_DEPENDENCIES = libbssp.la libbp.la libici.la $(LIBOBJS)
 bsspclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bsspclo_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -855,8 +819,7 @@ bsspclock_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_bssrecv_OBJECTS = bss/test/bssrecv-bssrecv.$(OBJEXT)
 bssrecv_OBJECTS = $(am_bssrecv_OBJECTS)
-bssrecv_DEPENDENCIES = libbss.la libici.la libipnfw.la libdtn2fw.la \
-	libbp.la $(LIBOBJS)
+bssrecv_DEPENDENCIES = libbss.la libici.la libbp.la $(LIBOBJS)
 bssrecv_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(bssrecv_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -874,7 +837,7 @@ am_cfdpclock_OBJECTS =  \
 	cfdp/daemon/cfdpclock-cfdpclock.$(OBJEXT)
 cfdpclock_OBJECTS = $(am_cfdpclock_OBJECTS)
 cfdpclock_DEPENDENCIES = libcfdp.la libici.la \
-	libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+	libbp.la $(LIBOBJS)
 cfdpclock_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(cfdpclock_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -889,22 +852,19 @@ cfdptest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_cgrfetch_OBJECTS = bp/utils/cgrfetch-cgrfetch.$(OBJEXT)
 cgrfetch_OBJECTS = $(am_cgrfetch_OBJECTS)
-cgrfetch_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	libcgr.la $(LIBOBJS)
+cgrfetch_DEPENDENCIES = libbp.la libici.la libcgr.la $(LIBOBJS)
 cgrfetch_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(cgrfetch_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dccpcli_OBJECTS = bp/dccp/dccpcli-dccpcli.$(OBJEXT)
 dccpcli_OBJECTS = $(am_dccpcli_OBJECTS)
-dccpcli_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+dccpcli_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 dccpcli_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dccpcli_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dccpclo_OBJECTS = bp/dccp/dccpclo-dccpclo.$(OBJEXT)
 dccpclo_OBJECTS = $(am_dccpclo_OBJECTS)
-dccpclo_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+dccpclo_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 dccpclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dccpclo_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -928,29 +888,25 @@ dgr2file_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dgrcla_OBJECTS = bp/dgr/dgrcla-dgrcla.$(OBJEXT)
 dgrcla_OBJECTS = $(am_dgrcla_OBJECTS)
-dgrcla_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libdgr.la \
-	libici.la $(LIBOBJS)
+dgrcla_DEPENDENCIES = libbp.la libdgr.la libici.la $(LIBOBJS)
 dgrcla_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dgrcla_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dtn2admin_OBJECTS = bp/dtn2/dtn2admin-dtn2admin.$(OBJEXT)
 dtn2admin_OBJECTS = $(am_dtn2admin_OBJECTS)
-dtn2admin_DEPENDENCIES = libdtn2fw.la libbp.la libipnfw.la libici.la \
-	$(LIBOBJS)
+dtn2admin_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 dtn2admin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dtn2admin_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dtn2adminep_OBJECTS = bp/dtn2/dtn2adminep-dtn2adminep.$(OBJEXT)
 dtn2adminep_OBJECTS = $(am_dtn2adminep_OBJECTS)
-dtn2adminep_DEPENDENCIES = libdtn2fw.la libbp.la libipnfw.la libici.la \
-	$(LIBOBJS)
+dtn2adminep_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 dtn2adminep_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dtn2adminep_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dtn2fw_OBJECTS = bp/dtn2/dtn2fw-dtn2fw.$(OBJEXT)
 dtn2fw_OBJECTS = $(am_dtn2fw_OBJECTS)
-dtn2fw_DEPENDENCIES = libdtn2fw.la libbp.la libipnfw.la libici.la \
-	$(LIBOBJS)
+dtn2fw_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 dtn2fw_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dtn2fw_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -974,15 +930,13 @@ dtpcd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dtpcreceive_OBJECTS = dtpc/test/dtpcreceive-dtpcreceive.$(OBJEXT)
 dtpcreceive_OBJECTS = $(am_dtpcreceive_OBJECTS)
-dtpcreceive_DEPENDENCIES = libdtpc.la libici.la libbp.la libipnfw.la \
-	libdtn2fw.la $(LIBOBJS)
+dtpcreceive_DEPENDENCIES = libdtpc.la libici.la libbp.la $(LIBOBJS)
 dtpcreceive_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dtpcreceive_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_dtpcsend_OBJECTS = dtpc/test/dtpcsend-dtpcsend.$(OBJEXT)
 dtpcsend_OBJECTS = $(am_dtpcsend_OBJECTS)
-dtpcsend_DEPENDENCIES = libdtpc.la libici.la libbp.la libipnfw.la \
-	libdtn2fw.la $(LIBOBJS)
+dtpcsend_DEPENDENCIES = libdtpc.la libici.la libbp.la $(LIBOBJS)
 dtpcsend_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(dtpcsend_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1026,16 +980,14 @@ am__imcadmin_SOURCES_DIST = bp/imc/imcadmin.c
 am_imcadmin_OBJECTS =  \
 	bp/imc/imcadmin-imcadmin.$(OBJEXT)
 imcadmin_OBJECTS = $(am_imcadmin_OBJECTS)
-imcadmin_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libici.la $(LIBOBJS)
+imcadmin_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 imcadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(imcadmin_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am__imcfw_SOURCES_DIST = bp/imc/imcfw.c
 am_imcfw_OBJECTS = bp/imc/imcfw-imcfw.$(OBJEXT)
 imcfw_OBJECTS = $(am_imcfw_OBJECTS)
-imcfw_DEPENDENCIES = libipnfw.la libbp.la \
-	libdtn2fw.la libici.la $(LIBOBJS)
+imcfw_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 imcfw_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(imcfw_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1047,8 +999,7 @@ ionadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ionexit_OBJECTS = ici/utils/ionexit-ionexit.$(OBJEXT)
 ionexit_OBJECTS = $(am_ionexit_OBJECTS)
-ionexit_DEPENDENCIES = libbp.la libltp.la libici.la libdtn2fw.la \
-	libipnfw.la $(LIBOBJS)
+ionexit_DEPENDENCIES = libbp.la libltp.la libici.la $(LIBOBJS)
 ionexit_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ionexit_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1057,11 +1008,9 @@ am_ionrestart_OBJECTS = restart/utils/ionrestart-ionrestart.$(OBJEXT)
 #am_ionrestart_OBJECTS = restart/utils/ionrestart-ionrestart.$(OBJEXT)
 ionrestart_OBJECTS = $(am_ionrestart_OBJECTS)
 ionrestart_DEPENDENCIES = libici.la libcgr.la \
-	libbp.la libipnfw.la libdtn2fw.la libltp.la \
-	libcfdp.la $(LIBOBJS)
+	libbp.la libltp.la libcfdp.la $(LIBOBJS)
 #ionrestart_DEPENDENCIES = libici.la libcgr.la \
-#	libbp.la libltp.la libipnfw.la libdtn2fw.la \
-#	$(LIBOBJS)
+#	libbp.la libltp.la $(LIBOBJS)
 ionrestart_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ionrestart_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1079,43 +1028,37 @@ ionwarn_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ipnadmin_OBJECTS = bp/ipn/ipnadmin-ipnadmin.$(OBJEXT)
 ipnadmin_OBJECTS = $(am_ipnadmin_OBJECTS)
-ipnadmin_DEPENDENCIES = libipnfw.la libbp.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+ipnadmin_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 ipnadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ipnadmin_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ipnadminep_OBJECTS = bp/ipn/ipnadminep-ipnadminep.$(OBJEXT)
 ipnadminep_OBJECTS = $(am_ipnadminep_OBJECTS)
-ipnadminep_DEPENDENCIES = libipnfw.la libbp.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+ipnadminep_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 ipnadminep_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ipnadminep_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ipnd_OBJECTS = bp/ipnd/ipnd-ipnd.$(OBJEXT)
 ipnd_OBJECTS = $(am_ipnd_OBJECTS)
-ipnd_DEPENDENCIES = libipnfw.la libcgr.la libbp.la libdtn2fw.la \
-	libici.la $(LIBOBJS)
+ipnd_DEPENDENCIES = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ipnd_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ipnfw_OBJECTS = bp/ipn/ipnfw-ipnfw.$(OBJEXT)
 ipnfw_OBJECTS = $(am_ipnfw_OBJECTS)
-ipnfw_DEPENDENCIES = libipnfw.la libcgr.la libbp.la libdtn2fw.la \
-	libici.la $(LIBOBJS)
+ipnfw_DEPENDENCIES = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnfw_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ipnfw_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_lgagent_OBJECTS = bp/utils/lgagent-lgagent.$(OBJEXT)
 lgagent_OBJECTS = $(am_lgagent_OBJECTS)
-lgagent_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+lgagent_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 lgagent_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(lgagent_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_lgsend_OBJECTS = bp/utils/lgsend-lgsend.$(OBJEXT)
 lgsend_OBJECTS = $(am_lgsend_OBJECTS)
-lgsend_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+lgsend_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 lgsend_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(lgsend_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1127,15 +1070,13 @@ ltpadmin_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ltpcli_OBJECTS = bp/ltp/ltpcli-ltpcli.$(OBJEXT)
 ltpcli_OBJECTS = $(am_ltpcli_OBJECTS)
-ltpcli_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libltp.la \
-	libici.la $(LIBOBJS)
+ltpcli_DEPENDENCIES = libbp.la libltp.la libici.la $(LIBOBJS)
 ltpcli_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ltpcli_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ltpclo_OBJECTS = bp/ltp/ltpclo-ltpclo.$(OBJEXT)
 ltpclo_OBJECTS = $(am_ltpclo_OBJECTS)
-ltpclo_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libltp.la \
-	libici.la $(LIBOBJS)
+ltpclo_DEPENDENCIES = libbp.la libltp.la libici.la $(LIBOBJS)
 ltpclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ltpclo_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1212,40 +1153,25 @@ nm_agent_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 am_nm_mgr_OBJECTS = nm/mgr/nm_mgr-nm_mgr.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr_rx.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT) \
-	nm/mgr/nm_mgr-nm_mgr_names.$(OBJEXT) \
-	nm/mgr/nm_mgr-nm_mgr_sql.$(OBJEXT) \
-	nm/mgr/nm_mgr-ui_input.$(OBJEXT) \
-	nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT) \
-	nm/mgr/nm_mgr-mgr_db.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm_bp.$(OBJEXT) \
-	nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm_ion.$(OBJEXT) \
-	nm/shared/adm/nm_mgr-adm_agent.$(OBJEXT) \
-	nm/shared/adm/nm_mgr-adm_bpsec.$(OBJEXT) \
+	nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT) \
 	nm/shared/msg/nm_mgr-msg_admin.$(OBJEXT) \
 	nm/shared/msg/nm_mgr-msg_ctrl.$(OBJEXT) \
+	nm/shared/msg/nm_mgr-msg_def.$(OBJEXT) \
+	nm/shared/msg/nm_mgr-msg_reports.$(OBJEXT) \
 	nm/shared/msg/nm_mgr-pdu.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-var.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-expr.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-admin.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-def.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-mid.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-oid.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-report.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-rules.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-dc.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-value.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-lit.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-nn.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-tdc.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-ctrl.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-blob.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-table.$(OBJEXT) \
 	nm/shared/utils/nm_mgr-ion_if.$(OBJEXT) \
 	nm/shared/utils/nm_mgr-utils.$(OBJEXT) \
-	nm/shared/utils/nm_mgr-db.$(OBJEXT) \
-	nm/shared/utils/nm_mgr-nm_types.$(OBJEXT)
+	nm/shared/adm/nm_mgr-adm_agent.$(OBJEXT) \
+	nm/mgr/nm_mgr-nm_mgr_db.$(OBJEXT)
 nm_mgr_OBJECTS = $(am_nm_mgr_OBJECTS)
 nm_mgr_DEPENDENCIES = libici.la libbp.la libltp.la $(LIBOBJS)
 nm_mgr_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -1253,8 +1179,7 @@ nm_mgr_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_node_OBJECTS = bp/ipnd/node-node.$(OBJEXT)
 node_OBJECTS = $(am_node_OBJECTS)
-node_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libici.la \
-	$(LIBOBJS)
+node_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 node_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(node_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1289,9 +1214,8 @@ am_ramsgate_OBJECTS =  \
 	ams/rams/ramsgate-ramscommon.$(OBJEXT) \
 	ams/rams/ramsgate-ramsgate.$(OBJEXT)
 ramsgate_OBJECTS = $(am_ramsgate_OBJECTS)
-ramsgate_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libams.la libdgr.la libici.la \
-	$(LIBOBJS)
+ramsgate_DEPENDENCIES = libbp.la libams.la libdgr.la \
+	libici.la $(LIBOBJS)
 ramsgate_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ramsgate_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1343,17 +1267,15 @@ smrbtsh_DEPENDENCIES = libici.la $(LIBOBJS)
 smrbtsh_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(smrbtsh_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_stcpcli_OBJECTS = bp/tcp/stcpcli-stcpcli.$(OBJEXT)
+am_stcpcli_OBJECTS = bp/stcp/stcpcli-stcpcli.$(OBJEXT)
 stcpcli_OBJECTS = $(am_stcpcli_OBJECTS)
-stcpcli_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la \
-	libici.la $(LIBOBJS)
+stcpcli_DEPENDENCIES = libbp.la libici.la libstcpcla.la $(LIBOBJS)
 stcpcli_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(stcpcli_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_stcpclo_OBJECTS = bp/tcp/stcpclo-stcpclo.$(OBJEXT)
+am_stcpclo_OBJECTS = bp/stcp/stcpclo-stcpclo.$(OBJEXT)
 stcpclo_OBJECTS = $(am_stcpclo_OBJECTS)
-stcpclo_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la \
-	libici.la $(LIBOBJS)
+stcpclo_DEPENDENCIES = libbp.la libici.la libstcpcla.la $(LIBOBJS)
 stcpclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(stcpclo_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1365,8 +1287,7 @@ tcp2file_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_tcpbsi_OBJECTS = bssp/tcp/tcpbsi-tcpbsi.$(OBJEXT)
 tcpbsi_OBJECTS = $(am_tcpbsi_OBJECTS)
-tcpbsi_DEPENDENCIES = libbsspP.la libtcpcla.la libbp.la libici.la \
-	$(LIBOBJS)
+tcpbsi_DEPENDENCIES = libbsspP.la libbp.la libici.la $(LIBOBJS)
 tcpbsi_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(tcpbsi_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1379,23 +1300,21 @@ tcpbso_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_tcpcli_OBJECTS = bp/tcp/tcpcli-tcpcli.$(OBJEXT)
 tcpcli_OBJECTS = $(am_tcpcli_OBJECTS)
-tcpcli_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la \
-	libici.la $(LIBOBJS)
+tcpcli_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 tcpcli_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(tcpcli_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_tcpclo_OBJECTS = bp/tcp/tcpclo-tcpclo.$(OBJEXT)
 tcpclo_OBJECTS = $(am_tcpclo_OBJECTS)
-tcpclo_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la \
-	libici.la $(LIBOBJS)
+tcpclo_DEPENDENCIES = libbp.la libici.la $(LIBOBJS)
 tcpclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(tcpclo_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_tests_1000_loopback_dotest_OBJECTS = tests/1000.loopback/tests_1000_loopback_dotest-dotest.$(OBJEXT)
 tests_1000_loopback_dotest_OBJECTS =  \
 	$(am_tests_1000_loopback_dotest_OBJECTS)
-tests_1000_loopback_dotest_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1000_loopback_dotest_DEPENDENCIES = libbp.la libici.la $(ltplib) \
+	$(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(tests_1000_loopback_dotest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
@@ -1403,8 +1322,8 @@ tests_1000_loopback_dotest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 am_tests_1300_loopback_tcp_dotest_OBJECTS = tests/1300.loopback-tcp/tests_1300_loopback_tcp_dotest-dotest.$(OBJEXT)
 tests_1300_loopback_tcp_dotest_OBJECTS =  \
 	$(am_tests_1300_loopback_tcp_dotest_OBJECTS)
-tests_1300_loopback_tcp_dotest_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1300_loopback_tcp_dotest_DEPENDENCIES = libbp.la libici.la \
+	$(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1300_loopback_tcp_dotest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(tests_1300_loopback_tcp_dotest_CFLAGS) $(CFLAGS) \
@@ -1412,8 +1331,8 @@ tests_1300_loopback_tcp_dotest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 am_tests_1500_loopback_brs_dotest_OBJECTS = tests/1500.loopback-brs/tests_1500_loopback_brs_dotest-dotest.$(OBJEXT)
 tests_1500_loopback_brs_dotest_OBJECTS =  \
 	$(am_tests_1500_loopback_brs_dotest_OBJECTS)
-tests_1500_loopback_brs_dotest_DEPENDENCIES = libbp.la libipnfw.la \
-	libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1500_loopback_brs_dotest_DEPENDENCIES = libbp.la libici.la \
+	$(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(tests_1500_loopback_brs_dotest_CFLAGS) $(CFLAGS) \
@@ -1422,7 +1341,7 @@ am_tests_bug_0015_tcpclo_bpcp_sig_handling_test_OBJECTS = tests/bug-0015-tcpclo-
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_OBJECTS =  \
 	$(am_tests_bug_0015_tcpclo_bpcp_sig_handling_test_OBJECTS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_DEPENDENCIES = libbp.la \
-	libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+	libici.la $(LIBOBJS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_LINK = $(LIBTOOL) \
 	$(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) \
@@ -1432,8 +1351,7 @@ am_tests_issue_188_common_cos_syntax_dotest_OBJECTS = tests/issue-188-common-cos
 tests_issue_188_common_cos_syntax_dotest_OBJECTS =  \
 	$(am_tests_issue_188_common_cos_syntax_dotest_OBJECTS)
 tests_issue_188_common_cos_syntax_dotest_DEPENDENCIES = libbp.la \
-	libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) \
-	$(TESTUTILOBJS)
+	libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_LINK = $(LIBTOOL) $(AM_V_lt) \
 	--tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
 	$(CCLD) $(tests_issue_188_common_cos_syntax_dotest_CFLAGS) \
@@ -1452,7 +1370,7 @@ am_tests_issue_279_bpMemo_timeline_driver_OBJECTS = tests/issue-279-bpMemo-timel
 tests_issue_279_bpMemo_timeline_driver_OBJECTS =  \
 	$(am_tests_issue_279_bpMemo_timeline_driver_OBJECTS)
 tests_issue_279_bpMemo_timeline_driver_DEPENDENCIES = libbp.la \
-	libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+	libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_LINK = $(LIBTOOL) $(AM_V_lt) \
 	--tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
 	$(CCLD) $(tests_issue_279_bpMemo_timeline_driver_CFLAGS) \
@@ -1462,8 +1380,7 @@ am__tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES_DIST =  \
 am_tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS = tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.$(OBJEXT)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS = $(am_tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_DEPENDENCIES =  \
-	libcfdp.la libici.la libbp.la libipnfw.la \
-	libdtn2fw.la$(LIBOBJS)
+	libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LINK = $(LIBTOOL) \
 	$(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) \
@@ -1475,8 +1392,7 @@ am_tests_issue_333_cfdp_orig_ID_type_send_OBJECTS = tests/issue-333-cfdp-orig-ID
 tests_issue_333_cfdp_orig_ID_type_send_OBJECTS =  \
 	$(am_tests_issue_333_cfdp_orig_ID_type_send_OBJECTS)
 tests_issue_333_cfdp_orig_ID_type_send_DEPENDENCIES =  \
-	libcfdp.la libici.la libbp.la libipnfw.la \
-	libdtn2fw.la $(LIBOBJS)
+	libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_333_cfdp_orig_ID_type_send_LINK = $(LIBTOOL) $(AM_V_lt) \
 	--tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
 	$(CCLD) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) \
@@ -1514,15 +1430,13 @@ udpbso_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_udpcli_OBJECTS = bp/udp/udpcli-udpcli.$(OBJEXT)
 udpcli_OBJECTS = $(am_udpcli_OBJECTS)
-udpcli_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libudpcla.la \
-	libici.la $(LIBOBJS)
+udpcli_DEPENDENCIES = libbp.la libudpcla.la libici.la $(LIBOBJS)
 udpcli_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(udpcli_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_udpclo_OBJECTS = bp/udp/udpclo-udpclo.$(OBJEXT)
 udpclo_OBJECTS = $(am_udpclo_OBJECTS)
-udpclo_DEPENDENCIES = libbp.la libipnfw.la libdtn2fw.la libudpcla.la \
-	libici.la $(LIBOBJS)
+udpclo_DEPENDENCIES = libbp.la libudpcla.la libici.la $(LIBOBJS)
 udpclo_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(udpclo_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -1577,10 +1491,9 @@ SOURCES = $(libams_la_SOURCES) $(libbp_la_SOURCES) \
 	$(libbss_la_SOURCES) $(libbssp_la_SOURCES) \
 	$(libbsspP_la_SOURCES) $(libcfdp_la_SOURCES) \
 	$(libcgr_la_SOURCES) $(libdgr_la_SOURCES) \
-	$(libdtn2fw_la_SOURCES) $(libdtpc_la_SOURCES) \
-	$(libici_la_SOURCES) $(libipnfw_la_SOURCES) \
-	$(libltp_la_SOURCES) $(libtcpbsa_la_SOURCES) \
-	$(libtcpcla_la_SOURCES) $(libudpcla_la_SOURCES) \
+	$(libdtpc_la_SOURCES) $(libici_la_SOURCES) \
+	$(libltp_la_SOURCES) $(libstcpcla_la_SOURCES) \
+	$(libtcpbsa_la_SOURCES) $(libudpcla_la_SOURCES) \
 	$(tests_library_libtestutil_la_SOURCES) $(acsadmin_SOURCES) \
 	$(acslist_SOURCES) $(amsbenchr_SOURCES) $(amsbenchs_SOURCES) \
 	$(amsd_SOURCES) $(amshello_SOURCES) $(amslog_SOURCES) \
@@ -1637,10 +1550,9 @@ DIST_SOURCES = $(am__libams_la_SOURCES_DIST) \
 	$(am__libbp_la_SOURCES_DIST) $(libbss_la_SOURCES) \
 	$(libbssp_la_SOURCES) $(libbsspP_la_SOURCES) \
 	$(am__libcfdp_la_SOURCES_DIST) $(libcgr_la_SOURCES) \
-	$(libdgr_la_SOURCES) $(libdtn2fw_la_SOURCES) \
-	$(libdtpc_la_SOURCES) $(am__libici_la_SOURCES_DIST) \
-	$(libipnfw_la_SOURCES) $(libltp_la_SOURCES) \
-	$(libtcpbsa_la_SOURCES) $(libtcpcla_la_SOURCES) \
+	$(libdgr_la_SOURCES) $(libdtpc_la_SOURCES) \
+	$(am__libici_la_SOURCES_DIST) $(libltp_la_SOURCES) \
+	$(libstcpcla_la_SOURCES) $(libtcpbsa_la_SOURCES) \
 	$(libudpcla_la_SOURCES) \
 	$(tests_library_libtestutil_la_SOURCES) \
 	$(am__acsadmin_SOURCES_DIST) $(am__acslist_SOURCES_DIST) \
@@ -1738,7 +1650,7 @@ am__noinst_HEADERS_DIST = ici/library/lystP.h ici/sdr/sdrP.h \
 	dgr/test/file2tcp.h dgr/test/file2udp.h bp/library/bpP.h \
 	bp/ipn/ipnfw.h bp/ipnd/ipndP.h bp/dtn2/dtn2fw.h \
 	bp/brs/brscla.h bp/udp/udpcla.h bp/ltp/ltpcla.h \
-	bp/tcp/tcpcla.h bp/dccp/dccpcla.h bss/library/bssP.h \
+	bp/stcp/stcpcla.h bp/dccp/dccpcla.h bss/library/bssP.h \
 	dtpc/library/dtpcP.h bssp/library/bsspP.h \
 	ams/library/amscommon.h ams/library/amsP.h ams/rams/rams.h \
 	ams/library/marshal.c ams/library/default.marshal.c \
@@ -1885,10 +1797,10 @@ OTOOL64 =
 PACKAGE = ion
 PACKAGE_BUGREPORT = http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs
 PACKAGE_NAME = ion
-PACKAGE_STRING = ion open source 3.4.0
+PACKAGE_STRING = ion open source 3.4.1
 PACKAGE_TARNAME = ion
 PACKAGE_URL = 
-PACKAGE_VERSION = open source 3.4.0
+PACKAGE_VERSION = open source 3.4.1
 PATH_SEPARATOR = :
 PDF2PS = /usr/bin/pdf2ps
 PDFJOIN = /home/ebirrane/ion_3_4_1/ion-open-source/doc/pdfjoin
@@ -1901,7 +1813,7 @@ SET_MAKE =
 SHELL = /bin/bash
 STRIP = strip
 VALGRIND_COMPAT_CFLAGS = 
-VERSION = open source 3.4.0
+VERSION = open source 3.4.1
 abs_builddir = /home/ebirrane/ion_3_4_1/ion-open-source
 abs_srcdir = /home/ebirrane/ion_3_4_1/ion-open-source
 abs_top_builddir = /home/ebirrane/ion_3_4_1/ion-open-source
@@ -2247,8 +2159,8 @@ libici_la_SOURCES = ici/library/llcv.c ici/library/libicinm.c \
 	ici/library/ion.c ici/library/ionsec.c ici/library/zco.c \
 	ici/library/smrbt.c ici/sdr/sdrxn.c ici/sdr/sdrmgt.c \
 	ici/sdr/sdrstring.c ici/sdr/sdrlist.c ici/sdr/sdrtable.c \
-	ici/sdr/sdrhash.c ici/sdr/sdrcatlg.c $(am__append_12) \
-	$(am__append_13)
+	ici/sdr/sdrhash.c ici/sdr/sdrcatlg.c ici/bulk/STUB_BULK/bulk.c \
+	$(am__append_12) $(am__append_13)
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Utility Programs --- #
@@ -2265,7 +2177,7 @@ ionadmin_SOURCES = ici/utils/ionadmin.c
 ionadmin_LDADD = libici.la $(LIBOBJS)
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libbp.la libltp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+ionexit_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS)
@@ -2517,13 +2429,13 @@ bpbin = bpadmin bpsink bpdriver bpsource bpecho bpcancel bpcounter \
 bplib = \
 	libbp.la \
 	libcgr.la \
-	libipnfw.la \
-	libdtn2fw.la \
-	libtcpcla.la \
+	libstcpcla.la \
 	libudpcla.la
 
 #	libphn.la
 #	libecos.la
+#	libipnfw.la
+#	libdtn2fw.la
 bpinclude = \
 	bp/include/bp.h \
 	bp/include/eureka.h
@@ -2541,7 +2453,7 @@ bpnoinst = \
 	bp/brs/brscla.h \
 	bp/udp/udpcla.h \
 	bp/ltp/ltpcla.h \
-	bp/tcp/tcpcla.h \
+	bp/stcp/stcpcla.h \
 	bp/dccp/dccpcla.h
 
 #	bp/library/ext/phn/phn.h
@@ -2698,27 +2610,30 @@ bpmans = $(top_builddir)/bp/doc/bpadmin.1 \
 	$(am__append_11)
 
 # -- Libraries --- #
-libipnfw_la_SOURCES = bp/ipn/libipnfw.c
-libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libipnfw_la_LIBADD = libici.la
-libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
-libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libdtn2fw_la_LIBADD = libici.la
-libtcpcla_la_SOURCES = bp/tcp/libtcpcla.c
-libtcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libtcpcla_la_LIBADD = libbp.la libici.la
+
+#libipnfw_la_SOURCES = bp/ipn/libipnfw.c
+#libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libipnfw_la_LIBADD = libici.la
+
+#libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
+#libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libdtn2fw_la_LIBADD = libici.la
+libstcpcla_la_SOURCES = bp/stcp/libstcpcla.c
+libstcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libstcpcla_la_LIBADD = libbp.la libici.la
 libudpcla_la_SOURCES = bp/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
-libbp_la_SOURCES = bp/library/libbp.c bp/library/libbpP.c \
-	bp/library/libbpnm.c bp/library/eureka.c \
-	bp/library/ext/phn/phn.c bp/library/ext/ecos/ecos.c \
-	bp/library/bei.c bp/library/ext/meb/meb.c \
-	bp/library/ext/bae/bae.c bp/library/ext/bsp/bspbab.h \
-	bp/library/ext/bsp/bspbab.c bp/library/ext/bsp/bspbcb.h \
-	bp/library/ext/bsp/bspbcb.c bp/library/ext/bsp/bspbib.h \
-	bp/library/ext/bsp/bspbib.c bp/library/ext/bsp/bsputil.h \
-	bp/library/ext/bsp/bsputil.c bp/library/ext/bsp/ciphersuites.h \
+libbp_la_SOURCES = bp/dtn2/libdtn2fw.h bp/dtn2/libdtn2fw.c \
+	bp/library/libbp.c bp/library/libbpP.c bp/library/libbpnm.c \
+	bp/library/eureka.c bp/library/ext/phn/phn.c \
+	bp/library/ext/ecos/ecos.c bp/library/bei.c \
+	bp/library/ext/meb/meb.c bp/library/ext/bae/bae.c \
+	bp/library/ext/bsp/bspbab.h bp/library/ext/bsp/bspbab.c \
+	bp/library/ext/bsp/bspbcb.h bp/library/ext/bsp/bspbcb.c \
+	bp/library/ext/bsp/bspbib.h bp/library/ext/bsp/bspbib.c \
+	bp/library/ext/bsp/bsputil.h bp/library/ext/bsp/bsputil.c \
+	bp/library/ext/bsp/ciphersuites.h \
 	bp/library/ext/bsp/ciphersuites.c \
 	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
 	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
@@ -2736,9 +2651,9 @@ libbp_la_SOURCES = bp/library/libbp.c bp/library/libbpP.c \
 	bp/library/ext/bpsec/bpsec_util.c \
 	bp/library/ext/bpsec/profiles.h \
 	bp/library/ext/bpsec/profiles.c bp/library/ext/snid/snid.c \
-	bp/ipnd/ipnd.c bp/ipnd/beacon.c bp/ipnd/helper.c \
-	bp/ipnd/node.c ici/libbloom-master/bloom.h \
-	ici/libbloom-master/bloom.c \
+	bp/ipn/libipnfw.h bp/ipn/libipnfw.c bp/ipnd/ipnd.c \
+	bp/ipnd/beacon.c bp/ipnd/helper.c bp/ipnd/node.c \
+	ici/libbloom-master/bloom.h ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/murmurhash2.h \
 	ici/libbloom-master/murmur2/MurmurHash2.c $(am__append_14) \
 	$(am__append_15)
@@ -2751,43 +2666,43 @@ libcgr_la_LIBADD = libbp.la libici.la
 
 # --- Utility Programs --- #
 bpadmin_SOURCES = bp/utils/bpadmin.c
-bpadmin_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
-ipnadmin_LDADD = libipnfw.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 acsadmin_SOURCES = bp/utils/acsadmin.c
-acsadmin_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 acslist_SOURCES = bp/utils/acslist.c
-acslist_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+acslist_LDADD = libbp.la libici.la $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 imcadmin_SOURCES = bp/imc/imcadmin.c
-imcadmin_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+imcadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 imcfw_SOURCES = bp/imc/imcfw.c
-imcfw_LDADD = libipnfw.la libbp.la libdtn2fw.la  libici.la $(LIBOBJS)
+imcfw_LDADD = libbp.la libici.la $(LIBOBJS)
 imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
-dtn2admin_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
+dtn2admin_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 lgsend_SOURCES = bp/utils/lgsend.c
-lgsend_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+lgsend_LDADD = libbp.la libici.la $(LIBOBJS)
 lgsend_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 lgagent_SOURCES = bp/utils/lgagent.c
-lgagent_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+lgagent_LDADD = libbp.la libici.la $(LIBOBJS)
 lgagent_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpstats_SOURCES = bp/utils/bpstats.c
-bpstats_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bpstats_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bptrace_SOURCES = bp/utils/bptrace.c
-bptrace_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bptrace_LDADD = libbp.la libici.la $(LIBOBJS)
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpcancel_SOURCES = bp/utils/bpcancel.c
-bpcancel_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpcancel_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bplist_SOURCES = bp/utils/bplist.c
-bplist_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bplist_LDADD = libbp.la libici.la $(LIBOBJS)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 hmackeys_SOURCES = bp/utils/hmackeys.c
 hmackeys_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -2795,18 +2710,18 @@ hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DTN Executables --- #
 dtn2fw_SOURCES = bp/dtn2/dtn2fw.c
-dtn2fw_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
+dtn2fw_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2fw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 dtn2adminep_SOURCES = bp/dtn2/dtn2adminep.c
-dtn2adminep_LDADD = libdtn2fw.la libbp.la libipnfw.la libici.la $(LIBOBJS)
+dtn2adminep_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2adminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPN Executables --- #
 ipnfw_SOURCES = bp/ipn/ipnfw.c
-ipnfw_LDADD = libipnfw.la libcgr.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnfw_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 ipnadminep_SOURCES = bp/ipn/ipnadminep.c
-ipnadminep_LDADD = libipnfw.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnadminep_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPND Executables --- #
@@ -2815,125 +2730,125 @@ ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #helper_LDADD = libbp.la libipnfw.la  libdtn2fw.la libici.la $(LIBOBJS)
 #helper_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 ipnd_SOURCES = bp/ipnd/ipnd.c
-ipnd_LDADD = libipnfw.la libcgr.la libbp.la libdtn2fw.la libici.la $(LIBOBJS)
+ipnd_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 beacon_SOURCES = bp/ipnd/beacon.c
-beacon_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+beacon_LDADD = libbp.la libici.la $(LIBOBJS)
 beacon_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 node_SOURCES = bp/ipnd/node.c
-node_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+node_LDADD = libbp.la libici.la $(LIBOBJS)
 node_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BSSP Executables --- #
 bsspcli_SOURCES = bp/bssp/bsspcli.c
-bsspcli_LDADD = libbssp.la libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bsspcli_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bsspclo_SOURCES = bp/bssp/bsspclo.c
-bsspclo_LDADD = libbssp.la libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bsspclo_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS)
 bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- LTP Executables --- #
 ltpcli_SOURCES = bp/ltp/ltpcli.c
-ltpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+ltpcli_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 ltpclo_SOURCES = bp/ltp/ltpclo.c
-ltpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libltp.la libici.la $(LIBOBJS)
+ltpclo_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
 ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 tcpcli_SOURCES = bp/tcp/tcpcli.c
-tcpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 tcpclo_SOURCES = bp/tcp/tcpclo.c
-tcpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
-stcpcli_SOURCES = bp/tcp/stcpcli.c
-stcpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpcli_SOURCES = bp/stcp/stcpcli.c
+stcpcli_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-stcpclo_SOURCES = bp/tcp/stcpclo.c
-stcpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpclo_SOURCES = bp/stcp/stcpclo.c
+stcpclo_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 udpcli_SOURCES = bp/udp/udpcli.c
-udpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udpcli_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 udpclo_SOURCES = bp/udp/udpclo.c
-udpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS)
+udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 bibeclo_SOURCES = bp/bibe/bibeclo.c
-bibeclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libudpcla.la libici.la $(LIBOBJS)
+bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccpcli_SOURCES = bp/dccp/dccpcli.c
-dccpcli_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 dccpclo_SOURCES = bp/dccp/dccpclo.c
-dccpclo_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 dgrcla_SOURCES = bp/dgr/dgrcla.c
-dgrcla_LDADD = libbp.la libipnfw.la libdtn2fw.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrcla_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dgrcla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 brsscla_SOURCES = bp/brs/brsscla.c
-brsscla_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsscla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 brsccla_SOURCES = bp/brs/brsccla.c
-brsccla_LDADD = libbp.la libipnfw.la libdtn2fw.la libtcpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsccla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 bpsource_SOURCES = bp/test/bpsource.c
-bpsource_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpsource_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsource_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpsink_SOURCES = bp/test/bpsink.c
-bpsink_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpsink_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsink_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpdriver_SOURCES = bp/test/bpdriver.c
-bpdriver_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpdriver_LDADD = libbp.la libici.la $(LIBOBJS)
 bpdriver_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpecho_SOURCES = bp/test/bpecho.c
-bpecho_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpecho_LDADD = libbp.la libici.la $(LIBOBJS)
 bpecho_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpcounter_SOURCES = bp/test/bpcounter.c
-bpcounter_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpcounter_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcounter_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpsendfile_SOURCES = bp/utils/bpsendfile.c
-bpsendfile_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpsendfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bprecvfile_SOURCES = bp/utils/bprecvfile.c
-bprecvfile_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bprecvfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bping_SOURCES = bp/test/bping.c
-bping_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpnmtest_SOURCES = bp/test/bpnmtest.c
-bpnmtest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpstats2_SOURCES = bp/test/bpstats2.c
-bpstats2_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpchat_SOURCES = bp/test/bpchat.c
-bpchat_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bpchat_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 cgrfetch_SOURCES = bp/utils/cgrfetch.c
-cgrfetch_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la libcgr.la $(LIBOBJS)
+cgrfetch_LDADD = libbp.la libici.la libcgr.la $(LIBOBJS)
 cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 bpclock_SOURCES = bp/daemon/bpclock.c
-bpclock_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bpclock_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bptransit_SOURCES = bp/daemon/bptransit.c
-bptransit_LDADD = libbp.la libici.la libdtn2fw.la libipnfw.la $(LIBOBJS)
+bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ##########################
@@ -3055,7 +2970,7 @@ ramsgate_SOURCES = \
 	ams/rams/ramscommon.c \
 	ams/rams/ramsgate.c
 
-ramsgate_LDADD = libbp.la libipnfw.la libdtn2fw.la libams.la libdgr.la libici.la $(LIBOBJS)
+ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 ##############
@@ -3132,7 +3047,7 @@ bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- BP Programs --- #
 bputa_SOURCES = cfdp/bp/bputa.c
-bputa_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS) $(PTHREAD_LIBS)
+bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
 bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
@@ -3142,7 +3057,7 @@ cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
-cfdpclock_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 ##############
@@ -3188,20 +3103,20 @@ libbss_la_SOURCES = \
 	bss/library/libbssP.c
 
 libbss_la_CFLAGS = $(bsscflags) $(AM_CFLAGS)
-libbss_la_LIBADD = libici.la libbp.la libipnfw.la libdtn2fw.la
+libbss_la_LIBADD = libici.la libbp.la
 
 # --- Test Programs --- #
 bssrecv_SOURCES = bss/test/bssrecv.c
-bssrecv_LDADD = libbss.la libici.la libipnfw.la libdtn2fw.la libbp.la $(LIBOBJS)
+bssrecv_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
-bssStreamingApp_LDADD = libbss.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+bssStreamingApp_LDADD = libbp.la libbss.la libici.la $(LIBOBJS)
 bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bsscounter_SOURCES = bss/test/bsscounter.c
-bsscounter_LDADD = libbss.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+bsscounter_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 bssdriver_SOURCES = bss/test/bssdriver.c
-bssdriver_LDADD = libbss.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 ##############
@@ -3289,7 +3204,7 @@ udpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 tcpbsi_SOURCES = bssp/tcp/tcpbsi.c
-tcpbsi_LDADD = libbsspP.la libtcpcla.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpbsi_LDADD = libbsspP.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 tcpbso_SOURCES = bssp/tcp/tcpbso.c
 tcpbso_LDADD = libbsspP.la libtcpbsa.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -3330,26 +3245,19 @@ nm_agent_SOURCES = nm/agent/ingest.c            nm/agent/lcc.c                 n
 					nm/shared/utils/nm_types.c
 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_LDFLAGS = -lm -lpthread
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
 
-nm_mgr_SOURCES = nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
-					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
-					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
-					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
-					nm/shared/adm/adm_bpsec.c	\
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c    nm/shared/primitives/expr.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
+nm_agent_LDFLAGS = -lm -lpthread
+nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
+					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
+					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
+					nm/shared/msg/pdu.c \
+					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
+					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
+					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
+nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
 
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
@@ -3401,7 +3309,7 @@ libdtpc_la_SOURCES = \
 
 libdtpc_la_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 libdtpc_la_LDFLAGS = $(ION_LINK_FLAGS)
-libdtpc_la_LIBADD = libici.la libbp.la libipnfw.la libdtn2fw.la $(PTHREAD_LIBS)
+libdtpc_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
 
 # --- Utility Programs --- #
 dtpcadmin_SOURCES = dtpc/utils/dtpcadmin.c
@@ -3410,10 +3318,10 @@ dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
 dtpcreceive_SOURCES = dtpc/test/dtpcreceive.c
-dtpcreceive_LDADD = libdtpc.la libici.la libbp.la libipnfw.la libdtn2fw.la  $(LIBOBJS)
+dtpcreceive_LDADD = libdtpc.la libici.la libbp.la  $(LIBOBJS)
 dtpcreceive_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 dtpcsend_SOURCES = dtpc/test/dtpcsend.c
-dtpcsend_LDADD = libdtpc.la libici.la libbp.la libipnfw.la libdtn2fw.la  $(LIBOBJS)
+dtpcsend_LDADD = libdtpc.la libici.la libbp.la  $(LIBOBJS)
 dtpcsend_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -3434,8 +3342,8 @@ ionrestart_SOURCES = restart/utils/ionrestart.c
 
 # --- Utility Programs --- #
 #ionrestart_SOURCES = restart/utils/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libipnfw.la libdtn2fw.la libltp.la libcfdp.la $(LIBOBJS)
-#ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
+#ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
 #ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
 
@@ -3451,10 +3359,10 @@ tests_library_libtestutil_la_SOURCES = \
 
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
-tests_1000_loopback_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1000_loopback_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
-tests_1300_loopback_tcp_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1300_loopback_tcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 # Disabled this test in ION 3.2.2 due to crashes.  Restore after fixing crashes.
@@ -3462,25 +3370,25 @@ tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAG
 # tests_1400_loopback_stcp_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 # tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
-tests_1500_loopback_brs_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1500_loopback_brs_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
-tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_188_common_cos_syntax_dotest_LDADD = libbp.la libici.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
 tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
-tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_279_bpMemo_timeline_driver_LDADD = libbp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES = tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD = libbp.la libipnfw.la libdtn2fw.la libici.la $(LIBOBJS)
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD = libbp.la libici.la $(LIBOBJS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la$(LIBOBJS)
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la libbp.la libipnfw.la libdtn2fw.la $(LIBOBJS)
+tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la $(LIBOBJS) $(TESTUTILOBJS)
@@ -3617,6 +3525,14 @@ ams/library/libams_la-tcpts.lo: ams/library/$(am__dirstamp) \
 
 libams.la: $(libams_la_OBJECTS) $(libams_la_DEPENDENCIES) $(EXTRA_libams_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libams_la_LINK) $(am_libams_la_rpath) $(libams_la_OBJECTS) $(libams_la_LIBADD) $(LIBS)
+bp/dtn2/$(am__dirstamp):
+	@$(MKDIR_P) bp/dtn2
+	@: > bp/dtn2/$(am__dirstamp)
+bp/dtn2/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/dtn2/$(DEPDIR)
+	@: > bp/dtn2/$(DEPDIR)/$(am__dirstamp)
+bp/dtn2/libbp_la-libdtn2fw.lo: bp/dtn2/$(am__dirstamp) \
+	bp/dtn2/$(DEPDIR)/$(am__dirstamp)
 bp/library/$(am__dirstamp):
 	@$(MKDIR_P) bp/library
 	@: > bp/library/$(am__dirstamp)
@@ -3735,6 +3651,14 @@ bp/library/ext/snid/$(DEPDIR)/$(am__dirstamp):
 bp/library/ext/snid/libbp_la-snid.lo:  \
 	bp/library/ext/snid/$(am__dirstamp) \
 	bp/library/ext/snid/$(DEPDIR)/$(am__dirstamp)
+bp/ipn/$(am__dirstamp):
+	@$(MKDIR_P) bp/ipn
+	@: > bp/ipn/$(am__dirstamp)
+bp/ipn/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/ipn/$(DEPDIR)
+	@: > bp/ipn/$(DEPDIR)/$(am__dirstamp)
+bp/ipn/libbp_la-libipnfw.lo: bp/ipn/$(am__dirstamp) \
+	bp/ipn/$(DEPDIR)/$(am__dirstamp)
 bp/ipnd/$(am__dirstamp):
 	@$(MKDIR_P) bp/ipnd
 	@: > bp/ipnd/$(am__dirstamp)
@@ -3874,17 +3798,6 @@ dgr/library/libdgr_la-libdgr.lo: dgr/library/$(am__dirstamp) \
 
 libdgr.la: $(libdgr_la_OBJECTS) $(libdgr_la_DEPENDENCIES) $(EXTRA_libdgr_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libdgr_la_LINK) -rpath $(libdir) $(libdgr_la_OBJECTS) $(libdgr_la_LIBADD) $(LIBS)
-bp/dtn2/$(am__dirstamp):
-	@$(MKDIR_P) bp/dtn2
-	@: > bp/dtn2/$(am__dirstamp)
-bp/dtn2/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/dtn2/$(DEPDIR)
-	@: > bp/dtn2/$(DEPDIR)/$(am__dirstamp)
-bp/dtn2/libdtn2fw_la-libdtn2fw.lo: bp/dtn2/$(am__dirstamp) \
-	bp/dtn2/$(DEPDIR)/$(am__dirstamp)
-
-libdtn2fw.la: $(libdtn2fw_la_OBJECTS) $(libdtn2fw_la_DEPENDENCIES) $(EXTRA_libdtn2fw_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libdtn2fw_la_LINK) -rpath $(libdir) $(libdtn2fw_la_OBJECTS) $(libdtn2fw_la_LIBADD) $(LIBS)
 dtpc/library/$(am__dirstamp):
 	@$(MKDIR_P) dtpc/library
 	@: > dtpc/library/$(am__dirstamp)
@@ -3952,6 +3865,15 @@ ici/sdr/libici_la-sdrhash.lo: ici/sdr/$(am__dirstamp) \
 	ici/sdr/$(DEPDIR)/$(am__dirstamp)
 ici/sdr/libici_la-sdrcatlg.lo: ici/sdr/$(am__dirstamp) \
 	ici/sdr/$(DEPDIR)/$(am__dirstamp)
+ici/bulk/STUB_BULK/$(am__dirstamp):
+	@$(MKDIR_P) ici/bulk/STUB_BULK
+	@: > ici/bulk/STUB_BULK/$(am__dirstamp)
+ici/bulk/STUB_BULK/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) ici/bulk/STUB_BULK/$(DEPDIR)
+	@: > ici/bulk/STUB_BULK/$(DEPDIR)/$(am__dirstamp)
+ici/bulk/STUB_BULK/libici_la-bulk.lo:  \
+	ici/bulk/STUB_BULK/$(am__dirstamp) \
+	ici/bulk/STUB_BULK/$(DEPDIR)/$(am__dirstamp)
 ici/crypto/NULL_SUITES/$(am__dirstamp):
 	@$(MKDIR_P) ici/crypto/NULL_SUITES
 	@: > ici/crypto/NULL_SUITES/$(am__dirstamp)
@@ -3967,17 +3889,6 @@ ici/crypto/NULL_SUITES/libici_la-csi.lo:  \
 
 libici.la: $(libici_la_OBJECTS) $(libici_la_DEPENDENCIES) $(EXTRA_libici_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libici_la_LINK) -rpath $(libdir) $(libici_la_OBJECTS) $(libici_la_LIBADD) $(LIBS)
-bp/ipn/$(am__dirstamp):
-	@$(MKDIR_P) bp/ipn
-	@: > bp/ipn/$(am__dirstamp)
-bp/ipn/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/ipn/$(DEPDIR)
-	@: > bp/ipn/$(DEPDIR)/$(am__dirstamp)
-bp/ipn/libipnfw_la-libipnfw.lo: bp/ipn/$(am__dirstamp) \
-	bp/ipn/$(DEPDIR)/$(am__dirstamp)
-
-libipnfw.la: $(libipnfw_la_OBJECTS) $(libipnfw_la_DEPENDENCIES) $(EXTRA_libipnfw_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libipnfw_la_LINK) -rpath $(libdir) $(libipnfw_la_OBJECTS) $(libipnfw_la_LIBADD) $(LIBS)
 ltp/library/$(am__dirstamp):
 	@$(MKDIR_P) ltp/library
 	@: > ltp/library/$(am__dirstamp)
@@ -4003,6 +3914,17 @@ ltp/library/libltp_la-libltpnm.lo: ltp/library/$(am__dirstamp) \
 
 libltp.la: $(libltp_la_OBJECTS) $(libltp_la_DEPENDENCIES) $(EXTRA_libltp_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libltp_la_LINK) -rpath $(libdir) $(libltp_la_OBJECTS) $(libltp_la_LIBADD) $(LIBS)
+bp/stcp/$(am__dirstamp):
+	@$(MKDIR_P) bp/stcp
+	@: > bp/stcp/$(am__dirstamp)
+bp/stcp/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/stcp/$(DEPDIR)
+	@: > bp/stcp/$(DEPDIR)/$(am__dirstamp)
+bp/stcp/libstcpcla_la-libstcpcla.lo: bp/stcp/$(am__dirstamp) \
+	bp/stcp/$(DEPDIR)/$(am__dirstamp)
+
+libstcpcla.la: $(libstcpcla_la_OBJECTS) $(libstcpcla_la_DEPENDENCIES) $(EXTRA_libstcpcla_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libstcpcla_la_LINK) -rpath $(libdir) $(libstcpcla_la_OBJECTS) $(libstcpcla_la_LIBADD) $(LIBS)
 bssp/tcp/$(am__dirstamp):
 	@$(MKDIR_P) bssp/tcp
 	@: > bssp/tcp/$(am__dirstamp)
@@ -4014,17 +3936,6 @@ bssp/tcp/libtcpbsa_la-libtcpbsa.lo: bssp/tcp/$(am__dirstamp) \
 
 libtcpbsa.la: $(libtcpbsa_la_OBJECTS) $(libtcpbsa_la_DEPENDENCIES) $(EXTRA_libtcpbsa_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libtcpbsa_la_LINK) -rpath $(libdir) $(libtcpbsa_la_OBJECTS) $(libtcpbsa_la_LIBADD) $(LIBS)
-bp/tcp/$(am__dirstamp):
-	@$(MKDIR_P) bp/tcp
-	@: > bp/tcp/$(am__dirstamp)
-bp/tcp/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) bp/tcp/$(DEPDIR)
-	@: > bp/tcp/$(DEPDIR)/$(am__dirstamp)
-bp/tcp/libtcpcla_la-libtcpcla.lo: bp/tcp/$(am__dirstamp) \
-	bp/tcp/$(DEPDIR)/$(am__dirstamp)
-
-libtcpcla.la: $(libtcpcla_la_OBJECTS) $(libtcpcla_la_DEPENDENCIES) $(EXTRA_libtcpcla_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libtcpcla_la_LINK) -rpath $(libdir) $(libtcpcla_la_OBJECTS) $(libtcpcla_la_LIBADD) $(LIBS)
 bp/udp/$(am__dirstamp):
 	@$(MKDIR_P) bp/udp
 	@: > bp/udp/$(am__dirstamp)
@@ -5000,29 +4911,13 @@ nm/mgr/nm_mgr-nm_mgr_rx.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-nm_mgr_names.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-nm_mgr_sql.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-ui_input.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-mgr_db.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_mgr-adm.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_mgr-adm_bp.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_mgr-adm_ion.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_mgr-adm_agent.$(OBJEXT):  \
-	nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_mgr-adm_bpsec.$(OBJEXT):  \
-	nm/shared/adm/$(am__dirstamp) \
+nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
 nm/shared/msg/nm_mgr-msg_admin.$(OBJEXT):  \
 	nm/shared/msg/$(am__dirstamp) \
@@ -5030,14 +4925,13 @@ nm/shared/msg/nm_mgr-msg_admin.$(OBJEXT):  \
 nm/shared/msg/nm_mgr-msg_ctrl.$(OBJEXT):  \
 	nm/shared/msg/$(am__dirstamp) \
 	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
+nm/shared/msg/nm_mgr-msg_def.$(OBJEXT): nm/shared/msg/$(am__dirstamp) \
+	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
+nm/shared/msg/nm_mgr-msg_reports.$(OBJEXT):  \
+	nm/shared/msg/$(am__dirstamp) \
+	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
 nm/shared/msg/nm_mgr-pdu.$(OBJEXT): nm/shared/msg/$(am__dirstamp) \
 	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-var.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-expr.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_mgr-admin.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
@@ -5056,41 +4950,17 @@ nm/shared/primitives/nm_mgr-report.$(OBJEXT):  \
 nm/shared/primitives/nm_mgr-rules.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-dc.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-value.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-lit.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-nn.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-tdc.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-ctrl.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-blob.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-table.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/nm_mgr-ion_if.$(OBJEXT):  \
 	nm/shared/utils/$(am__dirstamp) \
 	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/nm_mgr-utils.$(OBJEXT):  \
 	nm/shared/utils/$(am__dirstamp) \
 	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/shared/utils/nm_mgr-db.$(OBJEXT): nm/shared/utils/$(am__dirstamp) \
-	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/shared/utils/nm_mgr-nm_types.$(OBJEXT):  \
-	nm/shared/utils/$(am__dirstamp) \
-	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
+nm/shared/adm/nm_mgr-adm_agent.$(OBJEXT):  \
+	nm/shared/adm/$(am__dirstamp) \
+	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-nm_mgr_db.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 
 nm_mgr$(EXEEXT): $(nm_mgr_OBJECTS) $(nm_mgr_DEPENDENCIES) $(EXTRA_nm_mgr_DEPENDENCIES) 
 	@rm -f nm_mgr$(EXEEXT)
@@ -5195,14 +5065,14 @@ ici/test/smrbtsh-smrbtsh.$(OBJEXT): ici/test/$(am__dirstamp) \
 smrbtsh$(EXEEXT): $(smrbtsh_OBJECTS) $(smrbtsh_DEPENDENCIES) $(EXTRA_smrbtsh_DEPENDENCIES) 
 	@rm -f smrbtsh$(EXEEXT)
 	$(AM_V_CCLD)$(smrbtsh_LINK) $(smrbtsh_OBJECTS) $(smrbtsh_LDADD) $(LIBS)
-bp/tcp/stcpcli-stcpcli.$(OBJEXT): bp/tcp/$(am__dirstamp) \
-	bp/tcp/$(DEPDIR)/$(am__dirstamp)
+bp/stcp/stcpcli-stcpcli.$(OBJEXT): bp/stcp/$(am__dirstamp) \
+	bp/stcp/$(DEPDIR)/$(am__dirstamp)
 
 stcpcli$(EXEEXT): $(stcpcli_OBJECTS) $(stcpcli_DEPENDENCIES) $(EXTRA_stcpcli_DEPENDENCIES) 
 	@rm -f stcpcli$(EXEEXT)
 	$(AM_V_CCLD)$(stcpcli_LINK) $(stcpcli_OBJECTS) $(stcpcli_LDADD) $(LIBS)
-bp/tcp/stcpclo-stcpclo.$(OBJEXT): bp/tcp/$(am__dirstamp) \
-	bp/tcp/$(DEPDIR)/$(am__dirstamp)
+bp/stcp/stcpclo-stcpclo.$(OBJEXT): bp/stcp/$(am__dirstamp) \
+	bp/stcp/$(DEPDIR)/$(am__dirstamp)
 
 stcpclo$(EXEEXT): $(stcpclo_OBJECTS) $(stcpclo_DEPENDENCIES) $(EXTRA_stcpclo_DEPENDENCIES) 
 	@rm -f stcpclo$(EXEEXT)
@@ -5225,6 +5095,12 @@ bssp/tcp/tcpbso-tcpbso.$(OBJEXT): bssp/tcp/$(am__dirstamp) \
 tcpbso$(EXEEXT): $(tcpbso_OBJECTS) $(tcpbso_DEPENDENCIES) $(EXTRA_tcpbso_DEPENDENCIES) 
 	@rm -f tcpbso$(EXEEXT)
 	$(AM_V_CCLD)$(tcpbso_LINK) $(tcpbso_OBJECTS) $(tcpbso_LDADD) $(LIBS)
+bp/tcp/$(am__dirstamp):
+	@$(MKDIR_P) bp/tcp
+	@: > bp/tcp/$(am__dirstamp)
+bp/tcp/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) bp/tcp/$(DEPDIR)
+	@: > bp/tcp/$(DEPDIR)/$(am__dirstamp)
 bp/tcp/tcpcli-tcpcli.$(OBJEXT): bp/tcp/$(am__dirstamp) \
 	bp/tcp/$(DEPDIR)/$(am__dirstamp)
 
@@ -5503,8 +5379,9 @@ mostlyclean-compile:
 	-rm -f bp/library/ext/snid/*.$(OBJEXT)
 	-rm -f bp/library/ext/snid/*.lo
 	-rm -f bp/ltp/*.$(OBJEXT)
+	-rm -f bp/stcp/*.$(OBJEXT)
+	-rm -f bp/stcp/*.lo
 	-rm -f bp/tcp/*.$(OBJEXT)
-	-rm -f bp/tcp/*.lo
 	-rm -f bp/test/*.$(OBJEXT)
 	-rm -f bp/udp/*.$(OBJEXT)
 	-rm -f bp/udp/*.lo
@@ -5533,6 +5410,8 @@ mostlyclean-compile:
 	-rm -f dtpc/library/*.lo
 	-rm -f dtpc/test/*.$(OBJEXT)
 	-rm -f dtpc/utils/*.$(OBJEXT)
+	-rm -f ici/bulk/STUB_BULK/*.$(OBJEXT)
+	-rm -f ici/bulk/STUB_BULK/*.lo
 	-rm -f ici/crypto/NULL_SUITES/*.$(OBJEXT)
 	-rm -f ici/crypto/NULL_SUITES/*.lo
 	-rm -f ici/daemon/*.$(OBJEXT)
@@ -5617,14 +5496,14 @@ include bp/dgr/$(DEPDIR)/dgrcla-dgrcla.Po
 include bp/dtn2/$(DEPDIR)/dtn2admin-dtn2admin.Po
 include bp/dtn2/$(DEPDIR)/dtn2adminep-dtn2adminep.Po
 include bp/dtn2/$(DEPDIR)/dtn2fw-dtn2fw.Po
-include bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Plo
+include bp/dtn2/$(DEPDIR)/libbp_la-libdtn2fw.Plo
 include bp/imc/$(DEPDIR)/imcadmin-imcadmin.Po
 include bp/imc/$(DEPDIR)/imcfw-imcfw.Po
 include bp/imc/$(DEPDIR)/libbp_la-libimcfw.Plo
 include bp/ipn/$(DEPDIR)/ipnadmin-ipnadmin.Po
 include bp/ipn/$(DEPDIR)/ipnadminep-ipnadminep.Po
 include bp/ipn/$(DEPDIR)/ipnfw-ipnfw.Po
-include bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
+include bp/ipn/$(DEPDIR)/libbp_la-libipnfw.Plo
 include bp/ipnd/$(DEPDIR)/beacon-beacon.Po
 include bp/ipnd/$(DEPDIR)/ipnd-ipnd.Po
 include bp/ipnd/$(DEPDIR)/libbp_la-beacon.Plo
@@ -5663,9 +5542,9 @@ include bp/library/ext/phn/$(DEPDIR)/libbp_la-phn.Plo
 include bp/library/ext/snid/$(DEPDIR)/libbp_la-snid.Plo
 include bp/ltp/$(DEPDIR)/ltpcli-ltpcli.Po
 include bp/ltp/$(DEPDIR)/ltpclo-ltpclo.Po
-include bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Plo
-include bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
-include bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
+include bp/stcp/$(DEPDIR)/libstcpcla_la-libstcpcla.Plo
+include bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Po
+include bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Po
 include bp/tcp/$(DEPDIR)/tcpcli-tcpcli.Po
 include bp/tcp/$(DEPDIR)/tcpclo-tcpclo.Po
 include bp/test/$(DEPDIR)/bpchat-bpchat.Po
@@ -5733,6 +5612,7 @@ include dtpc/library/$(DEPDIR)/libdtpc_la-libdtpcP.Plo
 include dtpc/test/$(DEPDIR)/dtpcreceive-dtpcreceive.Po
 include dtpc/test/$(DEPDIR)/dtpcsend-dtpcsend.Po
 include dtpc/utils/$(DEPDIR)/dtpcadmin-dtpcadmin.Po
+include ici/bulk/STUB_BULK/$(DEPDIR)/libici_la-bulk.Plo
 include ici/crypto/NULL_SUITES/$(DEPDIR)/libici_la-crypto.Plo
 include ici/crypto/NULL_SUITES/$(DEPDIR)/libici_la-csi.Plo
 include ici/daemon/$(DEPDIR)/rfxclock-rfxclock.Po
@@ -5804,14 +5684,10 @@ include nm/agent/$(DEPDIR)/nm_agent-lcc.Po
 include nm/agent/$(DEPDIR)/nm_agent-ldc.Po
 include nm/agent/$(DEPDIR)/nm_agent-nmagent.Po
 include nm/agent/$(DEPDIR)/nm_agent-rda.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
 include nm/shared/adm/$(DEPDIR)/nm_agent-adm.Po
 include nm/shared/adm/$(DEPDIR)/nm_agent-adm_agent.Po
 include nm/shared/adm/$(DEPDIR)/nm_agent-adm_bp.Po
@@ -5821,7 +5697,6 @@ include nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Po
-include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
 include nm/shared/msg/$(DEPDIR)/nm_agent-msg_admin.Po
@@ -5829,6 +5704,8 @@ include nm/shared/msg/$(DEPDIR)/nm_agent-msg_ctrl.Po
 include nm/shared/msg/$(DEPDIR)/nm_agent-pdu.Po
 include nm/shared/msg/$(DEPDIR)/nm_mgr-msg_admin.Po
 include nm/shared/msg/$(DEPDIR)/nm_mgr-msg_ctrl.Po
+include nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Po
+include nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Po
 include nm/shared/msg/$(DEPDIR)/nm_mgr-pdu.Po
 include nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Po
 include nm/shared/primitives/$(DEPDIR)/nm_agent-blob.Po
@@ -5847,28 +5724,16 @@ include nm/shared/primitives/$(DEPDIR)/nm_agent-tdc.Po
 include nm/shared/primitives/$(DEPDIR)/nm_agent-value.Po
 include nm/shared/primitives/$(DEPDIR)/nm_agent-var.Po
 include nm/shared/primitives/$(DEPDIR)/nm_mgr-admin.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
 include nm/shared/primitives/$(DEPDIR)/nm_mgr-def.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
 include nm/shared/primitives/$(DEPDIR)/nm_mgr-mid.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
 include nm/shared/primitives/$(DEPDIR)/nm_mgr-oid.Po
 include nm/shared/primitives/$(DEPDIR)/nm_mgr-report.Po
 include nm/shared/primitives/$(DEPDIR)/nm_mgr-rules.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
-include nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
 include nm/shared/utils/$(DEPDIR)/nm_agent-db.Po
 include nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Po
 include nm/shared/utils/$(DEPDIR)/nm_agent-nm_types.Po
 include nm/shared/utils/$(DEPDIR)/nm_agent-utils.Po
-include nm/shared/utils/$(DEPDIR)/nm_mgr-db.Po
 include nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Po
-include nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Po
 include nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Po
 include restart/utils/$(DEPDIR)/ionrestart-ionrestart.Po
 include tests/1000.loopback/$(DEPDIR)/tests_1000_loopback_dotest-dotest.Po
@@ -5958,6 +5823,13 @@ ams/library/libams_la-tcpts.lo: ams/library/tcpts.c
 #	$(AM_V_CC)source='ams/library/tcpts.c' object='ams/library/libams_la-tcpts.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libams_la_CFLAGS) $(CFLAGS) -c -o ams/library/libams_la-tcpts.lo `test -f 'ams/library/tcpts.c' || echo '$(srcdir)/'`ams/library/tcpts.c
+
+bp/dtn2/libbp_la-libdtn2fw.lo: bp/dtn2/libdtn2fw.c
+	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/dtn2/libbp_la-libdtn2fw.lo -MD -MP -MF bp/dtn2/$(DEPDIR)/libbp_la-libdtn2fw.Tpo -c -o bp/dtn2/libbp_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
+	$(AM_V_at)$(am__mv) bp/dtn2/$(DEPDIR)/libbp_la-libdtn2fw.Tpo bp/dtn2/$(DEPDIR)/libbp_la-libdtn2fw.Plo
+#	$(AM_V_CC)source='bp/dtn2/libdtn2fw.c' object='bp/dtn2/libbp_la-libdtn2fw.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/dtn2/libbp_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
 
 bp/library/libbp_la-libbp.lo: bp/library/libbp.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/library/libbp_la-libbp.lo -MD -MP -MF bp/library/$(DEPDIR)/libbp_la-libbp.Tpo -c -o bp/library/libbp_la-libbp.lo `test -f 'bp/library/libbp.c' || echo '$(srcdir)/'`bp/library/libbp.c
@@ -6119,6 +5991,13 @@ bp/library/ext/snid/libbp_la-snid.lo: bp/library/ext/snid/snid.c
 #	$(AM_V_CC)source='bp/library/ext/snid/snid.c' object='bp/library/ext/snid/libbp_la-snid.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/library/ext/snid/libbp_la-snid.lo `test -f 'bp/library/ext/snid/snid.c' || echo '$(srcdir)/'`bp/library/ext/snid/snid.c
+
+bp/ipn/libbp_la-libipnfw.lo: bp/ipn/libipnfw.c
+	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/ipn/libbp_la-libipnfw.lo -MD -MP -MF bp/ipn/$(DEPDIR)/libbp_la-libipnfw.Tpo -c -o bp/ipn/libbp_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
+	$(AM_V_at)$(am__mv) bp/ipn/$(DEPDIR)/libbp_la-libipnfw.Tpo bp/ipn/$(DEPDIR)/libbp_la-libipnfw.Plo
+#	$(AM_V_CC)source='bp/ipn/libipnfw.c' object='bp/ipn/libbp_la-libipnfw.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -c -o bp/ipn/libbp_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
 
 bp/ipnd/libbp_la-ipnd.lo: bp/ipnd/ipnd.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libbp_la_CFLAGS) $(CFLAGS) -MT bp/ipnd/libbp_la-ipnd.lo -MD -MP -MF bp/ipnd/$(DEPDIR)/libbp_la-ipnd.Tpo -c -o bp/ipnd/libbp_la-ipnd.lo `test -f 'bp/ipnd/ipnd.c' || echo '$(srcdir)/'`bp/ipnd/ipnd.c
@@ -6288,13 +6167,6 @@ dgr/library/libdgr_la-libdgr.lo: dgr/library/libdgr.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdgr_la_CFLAGS) $(CFLAGS) -c -o dgr/library/libdgr_la-libdgr.lo `test -f 'dgr/library/libdgr.c' || echo '$(srcdir)/'`dgr/library/libdgr.c
 
-bp/dtn2/libdtn2fw_la-libdtn2fw.lo: bp/dtn2/libdtn2fw.c
-	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtn2fw_la_CFLAGS) $(CFLAGS) -MT bp/dtn2/libdtn2fw_la-libdtn2fw.lo -MD -MP -MF bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Tpo -c -o bp/dtn2/libdtn2fw_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
-	$(AM_V_at)$(am__mv) bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Tpo bp/dtn2/$(DEPDIR)/libdtn2fw_la-libdtn2fw.Plo
-#	$(AM_V_CC)source='bp/dtn2/libdtn2fw.c' object='bp/dtn2/libdtn2fw_la-libdtn2fw.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtn2fw_la_CFLAGS) $(CFLAGS) -c -o bp/dtn2/libdtn2fw_la-libdtn2fw.lo `test -f 'bp/dtn2/libdtn2fw.c' || echo '$(srcdir)/'`bp/dtn2/libdtn2fw.c
-
 dtpc/library/libdtpc_la-libdtpc.lo: dtpc/library/libdtpc.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdtpc_la_CFLAGS) $(CFLAGS) -MT dtpc/library/libdtpc_la-libdtpc.lo -MD -MP -MF dtpc/library/$(DEPDIR)/libdtpc_la-libdtpc.Tpo -c -o dtpc/library/libdtpc_la-libdtpc.lo `test -f 'dtpc/library/libdtpc.c' || echo '$(srcdir)/'`dtpc/library/libdtpc.c
 	$(AM_V_at)$(am__mv) dtpc/library/$(DEPDIR)/libdtpc_la-libdtpc.Tpo dtpc/library/$(DEPDIR)/libdtpc_la-libdtpc.Plo
@@ -6456,6 +6328,13 @@ ici/sdr/libici_la-sdrcatlg.lo: ici/sdr/sdrcatlg.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/sdr/libici_la-sdrcatlg.lo `test -f 'ici/sdr/sdrcatlg.c' || echo '$(srcdir)/'`ici/sdr/sdrcatlg.c
 
+ici/bulk/STUB_BULK/libici_la-bulk.lo: ici/bulk/STUB_BULK/bulk.c
+	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/bulk/STUB_BULK/libici_la-bulk.lo -MD -MP -MF ici/bulk/STUB_BULK/$(DEPDIR)/libici_la-bulk.Tpo -c -o ici/bulk/STUB_BULK/libici_la-bulk.lo `test -f 'ici/bulk/STUB_BULK/bulk.c' || echo '$(srcdir)/'`ici/bulk/STUB_BULK/bulk.c
+	$(AM_V_at)$(am__mv) ici/bulk/STUB_BULK/$(DEPDIR)/libici_la-bulk.Tpo ici/bulk/STUB_BULK/$(DEPDIR)/libici_la-bulk.Plo
+#	$(AM_V_CC)source='ici/bulk/STUB_BULK/bulk.c' object='ici/bulk/STUB_BULK/libici_la-bulk.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/bulk/STUB_BULK/libici_la-bulk.lo `test -f 'ici/bulk/STUB_BULK/bulk.c' || echo '$(srcdir)/'`ici/bulk/STUB_BULK/bulk.c
+
 ici/crypto/NULL_SUITES/libici_la-crypto.lo: ici/crypto/NULL_SUITES/crypto.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -MT ici/crypto/NULL_SUITES/libici_la-crypto.lo -MD -MP -MF ici/crypto/NULL_SUITES/$(DEPDIR)/libici_la-crypto.Tpo -c -o ici/crypto/NULL_SUITES/libici_la-crypto.lo `test -f 'ici/crypto/NULL_SUITES/crypto.c' || echo '$(srcdir)/'`ici/crypto/NULL_SUITES/crypto.c
 	$(AM_V_at)$(am__mv) ici/crypto/NULL_SUITES/$(DEPDIR)/libici_la-crypto.Tpo ici/crypto/NULL_SUITES/$(DEPDIR)/libici_la-crypto.Plo
@@ -6469,13 +6348,6 @@ ici/crypto/NULL_SUITES/libici_la-csi.lo: ici/crypto/NULL_SUITES/csi.c
 #	$(AM_V_CC)source='ici/crypto/NULL_SUITES/csi.c' object='ici/crypto/NULL_SUITES/libici_la-csi.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libici_la_CFLAGS) $(CFLAGS) -c -o ici/crypto/NULL_SUITES/libici_la-csi.lo `test -f 'ici/crypto/NULL_SUITES/csi.c' || echo '$(srcdir)/'`ici/crypto/NULL_SUITES/csi.c
-
-bp/ipn/libipnfw_la-libipnfw.lo: bp/ipn/libipnfw.c
-	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libipnfw_la_CFLAGS) $(CFLAGS) -MT bp/ipn/libipnfw_la-libipnfw.lo -MD -MP -MF bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Tpo -c -o bp/ipn/libipnfw_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
-	$(AM_V_at)$(am__mv) bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Tpo bp/ipn/$(DEPDIR)/libipnfw_la-libipnfw.Plo
-#	$(AM_V_CC)source='bp/ipn/libipnfw.c' object='bp/ipn/libipnfw_la-libipnfw.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libipnfw_la_CFLAGS) $(CFLAGS) -c -o bp/ipn/libipnfw_la-libipnfw.lo `test -f 'bp/ipn/libipnfw.c' || echo '$(srcdir)/'`bp/ipn/libipnfw.c
 
 ltp/library/libltp_la-libltp.lo: ltp/library/libltp.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltp_la_CFLAGS) $(CFLAGS) -MT ltp/library/libltp_la-libltp.lo -MD -MP -MF ltp/library/$(DEPDIR)/libltp_la-libltp.Tpo -c -o ltp/library/libltp_la-libltp.lo `test -f 'ltp/library/libltp.c' || echo '$(srcdir)/'`ltp/library/libltp.c
@@ -6512,19 +6384,19 @@ ltp/library/libltp_la-libltpnm.lo: ltp/library/libltpnm.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libltp_la_CFLAGS) $(CFLAGS) -c -o ltp/library/libltp_la-libltpnm.lo `test -f 'ltp/library/libltpnm.c' || echo '$(srcdir)/'`ltp/library/libltpnm.c
 
+bp/stcp/libstcpcla_la-libstcpcla.lo: bp/stcp/libstcpcla.c
+	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libstcpcla_la_CFLAGS) $(CFLAGS) -MT bp/stcp/libstcpcla_la-libstcpcla.lo -MD -MP -MF bp/stcp/$(DEPDIR)/libstcpcla_la-libstcpcla.Tpo -c -o bp/stcp/libstcpcla_la-libstcpcla.lo `test -f 'bp/stcp/libstcpcla.c' || echo '$(srcdir)/'`bp/stcp/libstcpcla.c
+	$(AM_V_at)$(am__mv) bp/stcp/$(DEPDIR)/libstcpcla_la-libstcpcla.Tpo bp/stcp/$(DEPDIR)/libstcpcla_la-libstcpcla.Plo
+#	$(AM_V_CC)source='bp/stcp/libstcpcla.c' object='bp/stcp/libstcpcla_la-libstcpcla.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libstcpcla_la_CFLAGS) $(CFLAGS) -c -o bp/stcp/libstcpcla_la-libstcpcla.lo `test -f 'bp/stcp/libstcpcla.c' || echo '$(srcdir)/'`bp/stcp/libstcpcla.c
+
 bssp/tcp/libtcpbsa_la-libtcpbsa.lo: bssp/tcp/libtcpbsa.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpbsa_la_CFLAGS) $(CFLAGS) -MT bssp/tcp/libtcpbsa_la-libtcpbsa.lo -MD -MP -MF bssp/tcp/$(DEPDIR)/libtcpbsa_la-libtcpbsa.Tpo -c -o bssp/tcp/libtcpbsa_la-libtcpbsa.lo `test -f 'bssp/tcp/libtcpbsa.c' || echo '$(srcdir)/'`bssp/tcp/libtcpbsa.c
 	$(AM_V_at)$(am__mv) bssp/tcp/$(DEPDIR)/libtcpbsa_la-libtcpbsa.Tpo bssp/tcp/$(DEPDIR)/libtcpbsa_la-libtcpbsa.Plo
 #	$(AM_V_CC)source='bssp/tcp/libtcpbsa.c' object='bssp/tcp/libtcpbsa_la-libtcpbsa.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpbsa_la_CFLAGS) $(CFLAGS) -c -o bssp/tcp/libtcpbsa_la-libtcpbsa.lo `test -f 'bssp/tcp/libtcpbsa.c' || echo '$(srcdir)/'`bssp/tcp/libtcpbsa.c
-
-bp/tcp/libtcpcla_la-libtcpcla.lo: bp/tcp/libtcpcla.c
-	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpcla_la_CFLAGS) $(CFLAGS) -MT bp/tcp/libtcpcla_la-libtcpcla.lo -MD -MP -MF bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Tpo -c -o bp/tcp/libtcpcla_la-libtcpcla.lo `test -f 'bp/tcp/libtcpcla.c' || echo '$(srcdir)/'`bp/tcp/libtcpcla.c
-	$(AM_V_at)$(am__mv) bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Tpo bp/tcp/$(DEPDIR)/libtcpcla_la-libtcpcla.Plo
-#	$(AM_V_CC)source='bp/tcp/libtcpcla.c' object='bp/tcp/libtcpcla_la-libtcpcla.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libtcpcla_la_CFLAGS) $(CFLAGS) -c -o bp/tcp/libtcpcla_la-libtcpcla.lo `test -f 'bp/tcp/libtcpcla.c' || echo '$(srcdir)/'`bp/tcp/libtcpcla.c
 
 bp/udp/libudpcla_la-libudpcla.lo: bp/udp/libudpcla.c
 	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libudpcla_la_CFLAGS) $(CFLAGS) -MT bp/udp/libudpcla_la-libudpcla.lo -MD -MP -MF bp/udp/$(DEPDIR)/libudpcla_la-libudpcla.Tpo -c -o bp/udp/libudpcla_la-libudpcla.lo `test -f 'bp/udp/libudpcla.c' || echo '$(srcdir)/'`bp/udp/libudpcla.c
@@ -8507,76 +8379,6 @@ nm/mgr/nm_mgr-nm_mgr_ui.obj: nm/mgr/nm_mgr_ui.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_ui.obj `if test -f 'nm/mgr/nm_mgr_ui.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_ui.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_ui.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr_names.o: nm/mgr/nm_mgr_names.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_names.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_names.o `test -f 'nm/mgr/nm_mgr_names.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_names.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_names.c' object='nm/mgr/nm_mgr-nm_mgr_names.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_names.o `test -f 'nm/mgr/nm_mgr_names.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_names.c
-
-nm/mgr/nm_mgr-nm_mgr_names.obj: nm/mgr/nm_mgr_names.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_names.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_names.obj `if test -f 'nm/mgr/nm_mgr_names.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_names.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_names.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_names.c' object='nm/mgr/nm_mgr-nm_mgr_names.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_names.obj `if test -f 'nm/mgr/nm_mgr_names.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_names.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_names.c'; fi`
-
-nm/mgr/nm_mgr-nm_mgr_sql.o: nm/mgr/nm_mgr_sql.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_sql.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_sql.o `test -f 'nm/mgr/nm_mgr_sql.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_sql.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_sql.c' object='nm/mgr/nm_mgr-nm_mgr_sql.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_sql.o `test -f 'nm/mgr/nm_mgr_sql.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_sql.c
-
-nm/mgr/nm_mgr-nm_mgr_sql.obj: nm/mgr/nm_mgr_sql.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_sql.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_sql.obj `if test -f 'nm/mgr/nm_mgr_sql.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_sql.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_sql.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_sql.c' object='nm/mgr/nm_mgr-nm_mgr_sql.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_sql.obj `if test -f 'nm/mgr/nm_mgr_sql.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_sql.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_sql.c'; fi`
-
-nm/mgr/nm_mgr-ui_input.o: nm/mgr/ui_input.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-ui_input.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo -c -o nm/mgr/nm_mgr-ui_input.o `test -f 'nm/mgr/ui_input.c' || echo '$(srcdir)/'`nm/mgr/ui_input.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
-#	$(AM_V_CC)source='nm/mgr/ui_input.c' object='nm/mgr/nm_mgr-ui_input.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.o `test -f 'nm/mgr/ui_input.c' || echo '$(srcdir)/'`nm/mgr/ui_input.c
-
-nm/mgr/nm_mgr-ui_input.obj: nm/mgr/ui_input.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-ui_input.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
-#	$(AM_V_CC)source='nm/mgr/ui_input.c' object='nm/mgr/nm_mgr-ui_input.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
-
-nm/mgr/nm_mgr-nm_mgr_print.o: nm/mgr/nm_mgr_print.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_print.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_print.o `test -f 'nm/mgr/nm_mgr_print.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_print.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_print.c' object='nm/mgr/nm_mgr-nm_mgr_print.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_print.o `test -f 'nm/mgr/nm_mgr_print.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_print.c
-
-nm/mgr/nm_mgr-nm_mgr_print.obj: nm/mgr/nm_mgr_print.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_print.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_print.obj `if test -f 'nm/mgr/nm_mgr_print.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_print.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_print.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_print.c' object='nm/mgr/nm_mgr-nm_mgr_print.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_print.obj `if test -f 'nm/mgr/nm_mgr_print.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_print.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_print.c'; fi`
-
-nm/mgr/nm_mgr-mgr_db.o: nm/mgr/mgr_db.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-mgr_db.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Tpo -c -o nm/mgr/nm_mgr-mgr_db.o `test -f 'nm/mgr/mgr_db.c' || echo '$(srcdir)/'`nm/mgr/mgr_db.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Tpo nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Po
-#	$(AM_V_CC)source='nm/mgr/mgr_db.c' object='nm/mgr/nm_mgr-mgr_db.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-mgr_db.o `test -f 'nm/mgr/mgr_db.c' || echo '$(srcdir)/'`nm/mgr/mgr_db.c
-
-nm/mgr/nm_mgr-mgr_db.obj: nm/mgr/mgr_db.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-mgr_db.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Tpo -c -o nm/mgr/nm_mgr-mgr_db.obj `if test -f 'nm/mgr/mgr_db.c'; then $(CYGPATH_W) 'nm/mgr/mgr_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/mgr_db.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Tpo nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Po
-#	$(AM_V_CC)source='nm/mgr/mgr_db.c' object='nm/mgr/nm_mgr-mgr_db.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-mgr_db.obj `if test -f 'nm/mgr/mgr_db.c'; then $(CYGPATH_W) 'nm/mgr/mgr_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/mgr_db.c'; fi`
-
 nm/shared/adm/nm_mgr-adm.o: nm/shared/adm/adm.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Tpo -c -o nm/shared/adm/nm_mgr-adm.o `test -f 'nm/shared/adm/adm.c' || echo '$(srcdir)/'`nm/shared/adm/adm.c
 	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Po
@@ -8605,20 +8407,6 @@ nm/shared/adm/nm_mgr-adm_bp.obj: nm/shared/adm/adm_bp.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_bp.obj `if test -f 'nm/shared/adm/adm_bp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_bp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_bp.c'; fi`
 
-nm/shared/adm/nm_mgr-adm_ltp.o: nm/shared/adm/adm_ltp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ltp.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo -c -o nm/shared/adm/nm_mgr-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_mgr-adm_ltp.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
-
-nm/shared/adm/nm_mgr-adm_ltp.obj: nm/shared/adm/adm_ltp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ltp.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo -c -o nm/shared/adm/nm_mgr-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_mgr-adm_ltp.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
-
 nm/shared/adm/nm_mgr-adm_ion.o: nm/shared/adm/adm_ion.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ion.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Tpo -c -o nm/shared/adm/nm_mgr-adm_ion.o `test -f 'nm/shared/adm/adm_ion.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ion.c
 	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Po
@@ -8633,33 +8421,19 @@ nm/shared/adm/nm_mgr-adm_ion.obj: nm/shared/adm/adm_ion.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ion.obj `if test -f 'nm/shared/adm/adm_ion.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ion.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ion.c'; fi`
 
-nm/shared/adm/nm_mgr-adm_agent.o: nm/shared/adm/adm_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_agent.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo -c -o nm/shared/adm/nm_mgr-adm_agent.o `test -f 'nm/shared/adm/adm_agent.c' || echo '$(srcdir)/'`nm/shared/adm/adm_agent.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_agent.c' object='nm/shared/adm/nm_mgr-adm_agent.o' libtool=no \
+nm/shared/adm/nm_mgr-adm_ltp.o: nm/shared/adm/adm_ltp.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ltp.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo -c -o nm/shared/adm/nm_mgr-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
+	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
+#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_mgr-adm_ltp.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_agent.o `test -f 'nm/shared/adm/adm_agent.c' || echo '$(srcdir)/'`nm/shared/adm/adm_agent.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
 
-nm/shared/adm/nm_mgr-adm_agent.obj: nm/shared/adm/adm_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_agent.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo -c -o nm/shared/adm/nm_mgr-adm_agent.obj `if test -f 'nm/shared/adm/adm_agent.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_agent.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_agent.c' object='nm/shared/adm/nm_mgr-adm_agent.obj' libtool=no \
+nm/shared/adm/nm_mgr-adm_ltp.obj: nm/shared/adm/adm_ltp.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ltp.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo -c -o nm/shared/adm/nm_mgr-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
+#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_mgr-adm_ltp.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_agent.obj `if test -f 'nm/shared/adm/adm_agent.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_agent.c'; fi`
-
-nm/shared/adm/nm_mgr-adm_bpsec.o: nm/shared/adm/adm_bpsec.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_bpsec.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Tpo -c -o nm/shared/adm/nm_mgr-adm_bpsec.o `test -f 'nm/shared/adm/adm_bpsec.c' || echo '$(srcdir)/'`nm/shared/adm/adm_bpsec.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_bpsec.c' object='nm/shared/adm/nm_mgr-adm_bpsec.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_bpsec.o `test -f 'nm/shared/adm/adm_bpsec.c' || echo '$(srcdir)/'`nm/shared/adm/adm_bpsec.c
-
-nm/shared/adm/nm_mgr-adm_bpsec.obj: nm/shared/adm/adm_bpsec.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_bpsec.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Tpo -c -o nm/shared/adm/nm_mgr-adm_bpsec.obj `if test -f 'nm/shared/adm/adm_bpsec.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_bpsec.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_bpsec.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bpsec.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_bpsec.c' object='nm/shared/adm/nm_mgr-adm_bpsec.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_bpsec.obj `if test -f 'nm/shared/adm/adm_bpsec.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_bpsec.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_bpsec.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
 
 nm/shared/msg/nm_mgr-msg_admin.o: nm/shared/msg/msg_admin.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_mgr-msg_admin.o -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_mgr-msg_admin.Tpo -c -o nm/shared/msg/nm_mgr-msg_admin.o `test -f 'nm/shared/msg/msg_admin.c' || echo '$(srcdir)/'`nm/shared/msg/msg_admin.c
@@ -8689,6 +8463,34 @@ nm/shared/msg/nm_mgr-msg_ctrl.obj: nm/shared/msg/msg_ctrl.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-msg_ctrl.obj `if test -f 'nm/shared/msg/msg_ctrl.c'; then $(CYGPATH_W) 'nm/shared/msg/msg_ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/msg_ctrl.c'; fi`
 
+nm/shared/msg/nm_mgr-msg_def.o: nm/shared/msg/msg_def.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_mgr-msg_def.o -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Tpo -c -o nm/shared/msg/nm_mgr-msg_def.o `test -f 'nm/shared/msg/msg_def.c' || echo '$(srcdir)/'`nm/shared/msg/msg_def.c
+	$(AM_V_at)$(am__mv) nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Tpo nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Po
+#	$(AM_V_CC)source='nm/shared/msg/msg_def.c' object='nm/shared/msg/nm_mgr-msg_def.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-msg_def.o `test -f 'nm/shared/msg/msg_def.c' || echo '$(srcdir)/'`nm/shared/msg/msg_def.c
+
+nm/shared/msg/nm_mgr-msg_def.obj: nm/shared/msg/msg_def.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_mgr-msg_def.obj -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Tpo -c -o nm/shared/msg/nm_mgr-msg_def.obj `if test -f 'nm/shared/msg/msg_def.c'; then $(CYGPATH_W) 'nm/shared/msg/msg_def.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/msg_def.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Tpo nm/shared/msg/$(DEPDIR)/nm_mgr-msg_def.Po
+#	$(AM_V_CC)source='nm/shared/msg/msg_def.c' object='nm/shared/msg/nm_mgr-msg_def.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-msg_def.obj `if test -f 'nm/shared/msg/msg_def.c'; then $(CYGPATH_W) 'nm/shared/msg/msg_def.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/msg_def.c'; fi`
+
+nm/shared/msg/nm_mgr-msg_reports.o: nm/shared/msg/msg_reports.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_mgr-msg_reports.o -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Tpo -c -o nm/shared/msg/nm_mgr-msg_reports.o `test -f 'nm/shared/msg/msg_reports.c' || echo '$(srcdir)/'`nm/shared/msg/msg_reports.c
+	$(AM_V_at)$(am__mv) nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Tpo nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Po
+#	$(AM_V_CC)source='nm/shared/msg/msg_reports.c' object='nm/shared/msg/nm_mgr-msg_reports.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-msg_reports.o `test -f 'nm/shared/msg/msg_reports.c' || echo '$(srcdir)/'`nm/shared/msg/msg_reports.c
+
+nm/shared/msg/nm_mgr-msg_reports.obj: nm/shared/msg/msg_reports.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_mgr-msg_reports.obj -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Tpo -c -o nm/shared/msg/nm_mgr-msg_reports.obj `if test -f 'nm/shared/msg/msg_reports.c'; then $(CYGPATH_W) 'nm/shared/msg/msg_reports.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/msg_reports.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Tpo nm/shared/msg/$(DEPDIR)/nm_mgr-msg_reports.Po
+#	$(AM_V_CC)source='nm/shared/msg/msg_reports.c' object='nm/shared/msg/nm_mgr-msg_reports.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-msg_reports.obj `if test -f 'nm/shared/msg/msg_reports.c'; then $(CYGPATH_W) 'nm/shared/msg/msg_reports.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/msg_reports.c'; fi`
+
 nm/shared/msg/nm_mgr-pdu.o: nm/shared/msg/pdu.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_mgr-pdu.o -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_mgr-pdu.Tpo -c -o nm/shared/msg/nm_mgr-pdu.o `test -f 'nm/shared/msg/pdu.c' || echo '$(srcdir)/'`nm/shared/msg/pdu.c
 	$(AM_V_at)$(am__mv) nm/shared/msg/$(DEPDIR)/nm_mgr-pdu.Tpo nm/shared/msg/$(DEPDIR)/nm_mgr-pdu.Po
@@ -8702,34 +8504,6 @@ nm/shared/msg/nm_mgr-pdu.obj: nm/shared/msg/pdu.c
 #	$(AM_V_CC)source='nm/shared/msg/pdu.c' object='nm/shared/msg/nm_mgr-pdu.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-pdu.obj `if test -f 'nm/shared/msg/pdu.c'; then $(CYGPATH_W) 'nm/shared/msg/pdu.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/pdu.c'; fi`
-
-nm/shared/primitives/nm_mgr-var.o: nm/shared/primitives/var.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-var.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo -c -o nm/shared/primitives/nm_mgr-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
-#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_mgr-var.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
-
-nm/shared/primitives/nm_mgr-var.obj: nm/shared/primitives/var.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-var.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo -c -o nm/shared/primitives/nm_mgr-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
-#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_mgr-var.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
-
-nm/shared/primitives/nm_mgr-expr.o: nm/shared/primitives/expr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-expr.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo -c -o nm/shared/primitives/nm_mgr-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
-#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_mgr-expr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
-
-nm/shared/primitives/nm_mgr-expr.obj: nm/shared/primitives/expr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-expr.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo -c -o nm/shared/primitives/nm_mgr-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
-#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_mgr-expr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
 
 nm/shared/primitives/nm_mgr-admin.o: nm/shared/primitives/admin.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-admin.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-admin.Tpo -c -o nm/shared/primitives/nm_mgr-admin.o `test -f 'nm/shared/primitives/admin.c' || echo '$(srcdir)/'`nm/shared/primitives/admin.c
@@ -8815,118 +8589,6 @@ nm/shared/primitives/nm_mgr-rules.obj: nm/shared/primitives/rules.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-rules.obj `if test -f 'nm/shared/primitives/rules.c'; then $(CYGPATH_W) 'nm/shared/primitives/rules.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/rules.c'; fi`
 
-nm/shared/primitives/nm_mgr-dc.o: nm/shared/primitives/dc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-dc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo -c -o nm/shared/primitives/nm_mgr-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_mgr-dc.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
-
-nm/shared/primitives/nm_mgr-dc.obj: nm/shared/primitives/dc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-dc.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo -c -o nm/shared/primitives/nm_mgr-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_mgr-dc.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
-
-nm/shared/primitives/nm_mgr-value.o: nm/shared/primitives/value.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-value.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo -c -o nm/shared/primitives/nm_mgr-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
-#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_mgr-value.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
-
-nm/shared/primitives/nm_mgr-value.obj: nm/shared/primitives/value.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-value.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo -c -o nm/shared/primitives/nm_mgr-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
-#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_mgr-value.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
-
-nm/shared/primitives/nm_mgr-lit.o: nm/shared/primitives/lit.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-lit.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo -c -o nm/shared/primitives/nm_mgr-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
-#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_mgr-lit.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
-
-nm/shared/primitives/nm_mgr-lit.obj: nm/shared/primitives/lit.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-lit.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo -c -o nm/shared/primitives/nm_mgr-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
-#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_mgr-lit.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
-
-nm/shared/primitives/nm_mgr-nn.o: nm/shared/primitives/nn.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-nn.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo -c -o nm/shared/primitives/nm_mgr-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
-#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_mgr-nn.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
-
-nm/shared/primitives/nm_mgr-nn.obj: nm/shared/primitives/nn.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-nn.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo -c -o nm/shared/primitives/nm_mgr-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
-#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_mgr-nn.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
-
-nm/shared/primitives/nm_mgr-tdc.o: nm/shared/primitives/tdc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-tdc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Tpo -c -o nm/shared/primitives/nm_mgr-tdc.o `test -f 'nm/shared/primitives/tdc.c' || echo '$(srcdir)/'`nm/shared/primitives/tdc.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/tdc.c' object='nm/shared/primitives/nm_mgr-tdc.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-tdc.o `test -f 'nm/shared/primitives/tdc.c' || echo '$(srcdir)/'`nm/shared/primitives/tdc.c
-
-nm/shared/primitives/nm_mgr-tdc.obj: nm/shared/primitives/tdc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-tdc.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Tpo -c -o nm/shared/primitives/nm_mgr-tdc.obj `if test -f 'nm/shared/primitives/tdc.c'; then $(CYGPATH_W) 'nm/shared/primitives/tdc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/tdc.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/tdc.c' object='nm/shared/primitives/nm_mgr-tdc.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-tdc.obj `if test -f 'nm/shared/primitives/tdc.c'; then $(CYGPATH_W) 'nm/shared/primitives/tdc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/tdc.c'; fi`
-
-nm/shared/primitives/nm_mgr-ctrl.o: nm/shared/primitives/ctrl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-ctrl.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo -c -o nm/shared/primitives/nm_mgr-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
-#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_mgr-ctrl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
-
-nm/shared/primitives/nm_mgr-ctrl.obj: nm/shared/primitives/ctrl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-ctrl.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo -c -o nm/shared/primitives/nm_mgr-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
-#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_mgr-ctrl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
-
-nm/shared/primitives/nm_mgr-blob.o: nm/shared/primitives/blob.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-blob.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo -c -o nm/shared/primitives/nm_mgr-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
-#	$(AM_V_CC)source='nm/shared/primitives/blob.c' object='nm/shared/primitives/nm_mgr-blob.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
-
-nm/shared/primitives/nm_mgr-blob.obj: nm/shared/primitives/blob.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-blob.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo -c -o nm/shared/primitives/nm_mgr-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
-#	$(AM_V_CC)source='nm/shared/primitives/blob.c' object='nm/shared/primitives/nm_mgr-blob.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
-
-nm/shared/primitives/nm_mgr-table.o: nm/shared/primitives/table.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-table.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo -c -o nm/shared/primitives/nm_mgr-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
-#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_mgr-table.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
-
-nm/shared/primitives/nm_mgr-table.obj: nm/shared/primitives/table.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-table.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo -c -o nm/shared/primitives/nm_mgr-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
-#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_mgr-table.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
-
 nm/shared/utils/nm_mgr-ion_if.o: nm/shared/utils/ion_if.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-ion_if.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo -c -o nm/shared/utils/nm_mgr-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
 	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Po
@@ -8955,33 +8617,33 @@ nm/shared/utils/nm_mgr-utils.obj: nm/shared/utils/utils.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
 
-nm/shared/utils/nm_mgr-db.o: nm/shared/utils/db.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-db.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-db.Tpo -c -o nm/shared/utils/nm_mgr-db.o `test -f 'nm/shared/utils/db.c' || echo '$(srcdir)/'`nm/shared/utils/db.c
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-db.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-db.Po
-#	$(AM_V_CC)source='nm/shared/utils/db.c' object='nm/shared/utils/nm_mgr-db.o' libtool=no \
+nm/shared/adm/nm_mgr-adm_agent.o: nm/shared/adm/adm_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_agent.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo -c -o nm/shared/adm/nm_mgr-adm_agent.o `test -f 'nm/shared/adm/adm_agent.c' || echo '$(srcdir)/'`nm/shared/adm/adm_agent.c
+	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Po
+#	$(AM_V_CC)source='nm/shared/adm/adm_agent.c' object='nm/shared/adm/nm_mgr-adm_agent.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-db.o `test -f 'nm/shared/utils/db.c' || echo '$(srcdir)/'`nm/shared/utils/db.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_agent.o `test -f 'nm/shared/adm/adm_agent.c' || echo '$(srcdir)/'`nm/shared/adm/adm_agent.c
 
-nm/shared/utils/nm_mgr-db.obj: nm/shared/utils/db.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-db.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-db.Tpo -c -o nm/shared/utils/nm_mgr-db.obj `if test -f 'nm/shared/utils/db.c'; then $(CYGPATH_W) 'nm/shared/utils/db.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/db.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-db.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-db.Po
-#	$(AM_V_CC)source='nm/shared/utils/db.c' object='nm/shared/utils/nm_mgr-db.obj' libtool=no \
+nm/shared/adm/nm_mgr-adm_agent.obj: nm/shared/adm/adm_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_agent.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo -c -o nm/shared/adm/nm_mgr-adm_agent.obj `if test -f 'nm/shared/adm/adm_agent.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Po
+#	$(AM_V_CC)source='nm/shared/adm/adm_agent.c' object='nm/shared/adm/nm_mgr-adm_agent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-db.obj `if test -f 'nm/shared/utils/db.c'; then $(CYGPATH_W) 'nm/shared/utils/db.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/db.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_agent.obj `if test -f 'nm/shared/adm/adm_agent.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_agent.c'; fi`
 
-nm/shared/utils/nm_mgr-nm_types.o: nm/shared/utils/nm_types.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-nm_types.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Tpo -c -o nm/shared/utils/nm_mgr-nm_types.o `test -f 'nm/shared/utils/nm_types.c' || echo '$(srcdir)/'`nm/shared/utils/nm_types.c
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Po
-#	$(AM_V_CC)source='nm/shared/utils/nm_types.c' object='nm/shared/utils/nm_mgr-nm_types.o' libtool=no \
+nm/mgr/nm_mgr-nm_mgr_db.o: nm/mgr/nm_mgr_db.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_db.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_db.o `test -f 'nm/mgr/nm_mgr_db.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_db.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_db.c' object='nm/mgr/nm_mgr-nm_mgr_db.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-nm_types.o `test -f 'nm/shared/utils/nm_types.c' || echo '$(srcdir)/'`nm/shared/utils/nm_types.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_db.o `test -f 'nm/mgr/nm_mgr_db.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_db.c
 
-nm/shared/utils/nm_mgr-nm_types.obj: nm/shared/utils/nm_types.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-nm_types.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Tpo -c -o nm/shared/utils/nm_mgr-nm_types.obj `if test -f 'nm/shared/utils/nm_types.c'; then $(CYGPATH_W) 'nm/shared/utils/nm_types.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/nm_types.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Po
-#	$(AM_V_CC)source='nm/shared/utils/nm_types.c' object='nm/shared/utils/nm_mgr-nm_types.obj' libtool=no \
+nm/mgr/nm_mgr-nm_mgr_db.obj: nm/mgr/nm_mgr_db.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_db.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_db.obj `if test -f 'nm/mgr/nm_mgr_db.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_db.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_db.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_db.c' object='nm/mgr/nm_mgr-nm_mgr_db.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-nm_types.obj `if test -f 'nm/shared/utils/nm_types.c'; then $(CYGPATH_W) 'nm/shared/utils/nm_types.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/nm_types.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_db.obj `if test -f 'nm/mgr/nm_mgr_db.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_db.c'; fi`
 
 bp/ipnd/node-node.o: bp/ipnd/node.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(node_CFLAGS) $(CFLAGS) -MT bp/ipnd/node-node.o -MD -MP -MF bp/ipnd/$(DEPDIR)/node-node.Tpo -c -o bp/ipnd/node-node.o `test -f 'bp/ipnd/node.c' || echo '$(srcdir)/'`bp/ipnd/node.c
@@ -9207,33 +8869,33 @@ ici/test/smrbtsh-smrbtsh.obj: ici/test/smrbtsh.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(smrbtsh_CFLAGS) $(CFLAGS) -c -o ici/test/smrbtsh-smrbtsh.obj `if test -f 'ici/test/smrbtsh.c'; then $(CYGPATH_W) 'ici/test/smrbtsh.c'; else $(CYGPATH_W) '$(srcdir)/ici/test/smrbtsh.c'; fi`
 
-bp/tcp/stcpcli-stcpcli.o: bp/tcp/stcpcli.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpcli-stcpcli.o -MD -MP -MF bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/tcp/stcpcli-stcpcli.o `test -f 'bp/tcp/stcpcli.c' || echo '$(srcdir)/'`bp/tcp/stcpcli.c
-	$(AM_V_at)$(am__mv) bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
-#	$(AM_V_CC)source='bp/tcp/stcpcli.c' object='bp/tcp/stcpcli-stcpcli.o' libtool=no \
+bp/stcp/stcpcli-stcpcli.o: bp/stcp/stcpcli.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/stcp/stcpcli-stcpcli.o -MD -MP -MF bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/stcp/stcpcli-stcpcli.o `test -f 'bp/stcp/stcpcli.c' || echo '$(srcdir)/'`bp/stcp/stcpcli.c
+	$(AM_V_at)$(am__mv) bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Po
+#	$(AM_V_CC)source='bp/stcp/stcpcli.c' object='bp/stcp/stcpcli-stcpcli.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpcli-stcpcli.o `test -f 'bp/tcp/stcpcli.c' || echo '$(srcdir)/'`bp/tcp/stcpcli.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/stcp/stcpcli-stcpcli.o `test -f 'bp/stcp/stcpcli.c' || echo '$(srcdir)/'`bp/stcp/stcpcli.c
 
-bp/tcp/stcpcli-stcpcli.obj: bp/tcp/stcpcli.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpcli-stcpcli.obj -MD -MP -MF bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/tcp/stcpcli-stcpcli.obj `if test -f 'bp/tcp/stcpcli.c'; then $(CYGPATH_W) 'bp/tcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpcli.c'; fi`
-	$(AM_V_at)$(am__mv) bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/tcp/$(DEPDIR)/stcpcli-stcpcli.Po
-#	$(AM_V_CC)source='bp/tcp/stcpcli.c' object='bp/tcp/stcpcli-stcpcli.obj' libtool=no \
+bp/stcp/stcpcli-stcpcli.obj: bp/stcp/stcpcli.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -MT bp/stcp/stcpcli-stcpcli.obj -MD -MP -MF bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Tpo -c -o bp/stcp/stcpcli-stcpcli.obj `if test -f 'bp/stcp/stcpcli.c'; then $(CYGPATH_W) 'bp/stcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/stcp/stcpcli.c'; fi`
+	$(AM_V_at)$(am__mv) bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Tpo bp/stcp/$(DEPDIR)/stcpcli-stcpcli.Po
+#	$(AM_V_CC)source='bp/stcp/stcpcli.c' object='bp/stcp/stcpcli-stcpcli.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpcli-stcpcli.obj `if test -f 'bp/tcp/stcpcli.c'; then $(CYGPATH_W) 'bp/tcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpcli.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpcli_CFLAGS) $(CFLAGS) -c -o bp/stcp/stcpcli-stcpcli.obj `if test -f 'bp/stcp/stcpcli.c'; then $(CYGPATH_W) 'bp/stcp/stcpcli.c'; else $(CYGPATH_W) '$(srcdir)/bp/stcp/stcpcli.c'; fi`
 
-bp/tcp/stcpclo-stcpclo.o: bp/tcp/stcpclo.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpclo-stcpclo.o -MD -MP -MF bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/tcp/stcpclo-stcpclo.o `test -f 'bp/tcp/stcpclo.c' || echo '$(srcdir)/'`bp/tcp/stcpclo.c
-	$(AM_V_at)$(am__mv) bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
-#	$(AM_V_CC)source='bp/tcp/stcpclo.c' object='bp/tcp/stcpclo-stcpclo.o' libtool=no \
+bp/stcp/stcpclo-stcpclo.o: bp/stcp/stcpclo.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/stcp/stcpclo-stcpclo.o -MD -MP -MF bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/stcp/stcpclo-stcpclo.o `test -f 'bp/stcp/stcpclo.c' || echo '$(srcdir)/'`bp/stcp/stcpclo.c
+	$(AM_V_at)$(am__mv) bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Po
+#	$(AM_V_CC)source='bp/stcp/stcpclo.c' object='bp/stcp/stcpclo-stcpclo.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpclo-stcpclo.o `test -f 'bp/tcp/stcpclo.c' || echo '$(srcdir)/'`bp/tcp/stcpclo.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/stcp/stcpclo-stcpclo.o `test -f 'bp/stcp/stcpclo.c' || echo '$(srcdir)/'`bp/stcp/stcpclo.c
 
-bp/tcp/stcpclo-stcpclo.obj: bp/tcp/stcpclo.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/tcp/stcpclo-stcpclo.obj -MD -MP -MF bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/tcp/stcpclo-stcpclo.obj `if test -f 'bp/tcp/stcpclo.c'; then $(CYGPATH_W) 'bp/tcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpclo.c'; fi`
-	$(AM_V_at)$(am__mv) bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/tcp/$(DEPDIR)/stcpclo-stcpclo.Po
-#	$(AM_V_CC)source='bp/tcp/stcpclo.c' object='bp/tcp/stcpclo-stcpclo.obj' libtool=no \
+bp/stcp/stcpclo-stcpclo.obj: bp/stcp/stcpclo.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -MT bp/stcp/stcpclo-stcpclo.obj -MD -MP -MF bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Tpo -c -o bp/stcp/stcpclo-stcpclo.obj `if test -f 'bp/stcp/stcpclo.c'; then $(CYGPATH_W) 'bp/stcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/stcp/stcpclo.c'; fi`
+	$(AM_V_at)$(am__mv) bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Tpo bp/stcp/$(DEPDIR)/stcpclo-stcpclo.Po
+#	$(AM_V_CC)source='bp/stcp/stcpclo.c' object='bp/stcp/stcpclo-stcpclo.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/tcp/stcpclo-stcpclo.obj `if test -f 'bp/tcp/stcpclo.c'; then $(CYGPATH_W) 'bp/tcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/tcp/stcpclo.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stcpclo_CFLAGS) $(CFLAGS) -c -o bp/stcp/stcpclo-stcpclo.obj `if test -f 'bp/stcp/stcpclo.c'; then $(CYGPATH_W) 'bp/stcp/stcpclo.c'; else $(CYGPATH_W) '$(srcdir)/bp/stcp/stcpclo.c'; fi`
 
 dgr/test/tcp2file-tcp2file.o: dgr/test/tcp2file.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tcp2file_CFLAGS) $(CFLAGS) -MT dgr/test/tcp2file-tcp2file.o -MD -MP -MF dgr/test/$(DEPDIR)/tcp2file-tcp2file.Tpo -c -o dgr/test/tcp2file-tcp2file.o `test -f 'dgr/test/tcp2file.c' || echo '$(srcdir)/'`dgr/test/tcp2file.c
@@ -9565,7 +9227,7 @@ clean-libtool:
 	-rm -rf bp/library/ext/meb/.libs bp/library/ext/meb/_libs
 	-rm -rf bp/library/ext/phn/.libs bp/library/ext/phn/_libs
 	-rm -rf bp/library/ext/snid/.libs bp/library/ext/snid/_libs
-	-rm -rf bp/tcp/.libs bp/tcp/_libs
+	-rm -rf bp/stcp/.libs bp/stcp/_libs
 	-rm -rf bp/udp/.libs bp/udp/_libs
 	-rm -rf bss/library/.libs bss/library/_libs
 	-rm -rf bssp/library/.libs bssp/library/_libs
@@ -9573,6 +9235,7 @@ clean-libtool:
 	-rm -rf cfdp/library/.libs cfdp/library/_libs
 	-rm -rf dgr/library/.libs dgr/library/_libs
 	-rm -rf dtpc/library/.libs dtpc/library/_libs
+	-rm -rf ici/bulk/STUB_BULK/.libs ici/bulk/STUB_BULK/_libs
 	-rm -rf ici/crypto/NULL_SUITES/.libs ici/crypto/NULL_SUITES/_libs
 	-rm -rf ici/libbloom-master/.libs ici/libbloom-master/_libs
 	-rm -rf ici/libbloom-master/murmur2/.libs ici/libbloom-master/murmur2/_libs
@@ -10320,6 +9983,8 @@ distclean-generic:
 	-rm -f bp/library/ext/snid/$(am__dirstamp)
 	-rm -f bp/ltp/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/ltp/$(am__dirstamp)
+	-rm -f bp/stcp/$(DEPDIR)/$(am__dirstamp)
+	-rm -f bp/stcp/$(am__dirstamp)
 	-rm -f bp/tcp/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bp/tcp/$(am__dirstamp)
 	-rm -f bp/test/$(DEPDIR)/$(am__dirstamp)
@@ -10364,6 +10029,8 @@ distclean-generic:
 	-rm -f dtpc/test/$(am__dirstamp)
 	-rm -f dtpc/utils/$(DEPDIR)/$(am__dirstamp)
 	-rm -f dtpc/utils/$(am__dirstamp)
+	-rm -f ici/bulk/STUB_BULK/$(DEPDIR)/$(am__dirstamp)
+	-rm -f ici/bulk/STUB_BULK/$(am__dirstamp)
 	-rm -f ici/crypto/NULL_SUITES/$(DEPDIR)/$(am__dirstamp)
 	-rm -f ici/crypto/NULL_SUITES/$(am__dirstamp)
 	-rm -f ici/daemon/$(DEPDIR)/$(am__dirstamp)
@@ -10444,7 +10111,7 @@ clean-am: clean-binPROGRAMS clean-checkLTLIBRARIES clean-checkPROGRAMS \
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/stcp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/bulk/STUB_BULK/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -10498,7 +10165,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/stcp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/bulk/STUB_BULK/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

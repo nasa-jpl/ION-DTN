@@ -1300,8 +1300,8 @@ blk 0x%x, blk->size %d",
 
 
 	/*
-	 * Step 1.3 - If the target is the payload, the BCB was already
-	 *            handled in bpsec_bcbOffer. Nothing left to do.
+	 * Step 1.3 - If the target is the payload, the BIB was already
+	 *            handled in bpsec_bibOffer. Nothing left to do.
 	 */
 	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
 	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
@@ -1674,9 +1674,9 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 	CHKERR(dataReader);
 	CHKERR(cipherZco);
 
-	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromSdr(%d," ADDR_FIELDSPEC \
-			"," ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," \
-			ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC \
+	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromSdr(%d," ADDR_FIELDSPEC
+			"," ADDR_FIELDSPEC "," UVAST_FIELDSPEC ","
+			ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC
 			", %d)", suite, (uaddr) context, (uaddr) blocksize,
 			(uvast) dataObj, (uaddr) dataReader, cipherBufLen,
 			(uaddr) cipherZco, function);
@@ -1691,8 +1691,8 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 	/* Step 2 - See if the ciphertext will fit into the existing SDR space. */
 	if(cipherBufLen > memmax)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Buffer len will not fit. "UVAST_FIELDSPEC" > "UVAST_FIELDSPEC,
-				       cipherBufLen, memmax);
+		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Buffer len \
+will not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, cipherBufLen, memmax);
 		sdr_report(&summary);
 		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> 0", NULL);
 
@@ -1701,7 +1701,8 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 
 	if((cipherBuffer = sdr_malloc(bpSdr, cipherBufLen)) == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Cannot allocate "UVAST_FIELDSPEC" from SDR.", NULL);
+		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Cannot \
+allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
 
 		return -1;
@@ -1841,10 +1842,12 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 	uvast bytesRemaining = 0;
 	Object fileRef = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromFile(%d," ADDR_FIELDSPEC \
-"," ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC \ "," UVAST_FIELDSPEC "," \
-ADDR_FIELDSPEC ",%d)", suite, (uaddr)context, (uaddr)blocksize, dataObj,
-		(uaddr) dataReader, cipherBufLen, (uaddr) cipherZco, function);
+	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromFile(%d," ADDR_FIELDSPEC
+			"," ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ","
+			UVAST_FIELDSPEC "," ADDR_FIELDSPEC ",%d)",
+			suite, (uaddr)context, (uaddr)blocksize, dataObj,
+			(uaddr) dataReader, cipherBufLen, (uaddr) cipherZco,
+			function);
 
 	CHKERR(context);
 	CHKERR(blocksize);

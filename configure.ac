@@ -178,7 +178,7 @@ AC_ARG_ENABLE(
 		no)  BUILD_CONTRIB=no;;
 		*) AC_MSG_ERROR([bad value ${enableval} for --enable-contrib]);;
 	esac],
-	[BUILD_CONTRIB=yes])
+	[BUILD_CONTRIB=no])
 AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 
 #
