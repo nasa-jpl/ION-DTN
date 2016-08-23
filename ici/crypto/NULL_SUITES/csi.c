@@ -285,6 +285,113 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 {
 	csi_val_t result;
+	uint32_t offset = 0;
+	csi_val_t iv;
+	csi_val_t add;
+	csi_val_t keyinfo;
+	csi_val_t salt;
+	csi_val_t icv;
+	csi_val_t intsig;
+
+	memset(&result, 0, sizeof(csi_val_t));
+
+	/* Step 1 - Initialize the individual TLV fields. */
+	memset(&iv, 0, sizeof(csi_val_t));
+	memset(&add, 0, sizeof(csi_val_t));
+	memset(&salt, 0, sizeof(csi_val_t));
+	memset(&icv, 0, sizeof(csi_val_t));
+	memset(&keyinfo, 0, sizeof(csi_val_t));
+	memset(&intsig, 0, sizeof(csi_val_t));
+
+	/* Step 2 - Populate TLV fields */
+	if(parms.intsig.len > 0)
+	{
+		intsig = csi_build_tlv(CSI_PARM_INTSIG, parms.intsig.len,
+							   parms.intsig.contents);
+	    result.len += intsig.len;
+	}
+
+	if(parms.icv.len > 0)
+	{
+		icv = csi_build_tlv(CSI_PARM_ICV, parms.icv.len, parms.icv.contents);
+		result.len += icv.len;
+	}
+
+	if(parms.iv.len > 0)
+	{
+		iv = csi_build_tlv(CSI_PARM_IV, parms.iv.len, parms.iv.contents);
+		result.len += iv.len;
+	}
+
+	if(parms.salt.len > 0)
+	{
+		salt = csi_build_tlv(CSI_PARM_SALT, parms.salt.len,
+							 parms.salt.contents);
+	    result.len += salt.len;
+	}
+
+	if(parms.keyinfo.len > 0)
+	{
+		keyinfo = csi_build_tlv(CSI_PARM_KEYINFO, parms.keyinfo.len,
+								parms.keyinfo.contents);
+		result.len += keyinfo.len;
+	}
+
+
+	/* Step 3 - Allocate the SDR space. */
+	if((result.contents = MTAKE(result.len)) == 0)
+	{
+		CSI_DEBUG_ERR("csi_serialize_parms: Can't allocate result of length %d.", result.len);
+		result.len = 0;
+		MRELEASE(intsig.contents);
+		MRELEASE(icv.contents);
+		MRELEASE(iv.contents);
+		MRELEASE(salt.contents);
+		MRELEASE(keyinfo.contents);
+		return result;
+	}
+
+	if(parms.add.len > 0)
+	{
+		memcpy(result.contents+offset, (char *) intsig.contents, intsig.len);
+		offset += intsig.len;
+		MRELEASE(intsig.contents);
+	}
+
+	if(parms.icv.len > 0)
+	{
+		memcpy(result.contents+offset, (char *) icv.contents, icv.len);
+		offset += icv.len;
+		MRELEASE(icv.contents);
+	}
+
+	if(parms.iv.len > 0)
+	{
+		memcpy(result.contents+offset, (char *) iv.contents, iv.len);
+		offset += iv.len;
+		MRELEASE(iv.contents);
+	}
+
+	if(parms.salt.len > 0)
+	{
+		memcpy(result.contents+offset, (char *) salt.contents, salt.len);
+		offset += salt.len;
+		MRELEASE(salt.contents);
+	}
+
+	if(parms.keyinfo.len > 0)
+	{
+		memcpy(result.contents+offset, (char *) keyinfo.contents, keyinfo.len);
+		offset += keyinfo.len;
+		MRELEASE(keyinfo.contents);
+	}
+
+	return result;
+}
+
+
+/*
+	csi_val_t result;
 
 	memset(&result, 0, sizeof(csi_val_t));
 	result.len = 20;
@@ -298,7 +405,7 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 	}
 	memset(result.contents, 0, result.len);
 	return result;
-}
+}*/
 
 int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, csi_val_t longtermkey, csi_val_t input, csi_val_t *output)
 {
@@ -312,37 +419,7 @@ int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
 	}
 	memset(output->contents, 0, output->len);
 	CSI_DEBUG_PROC("- csi_crypt_key ->%d", retval);
-	return retval;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: csi_crypt_parm_get
- *
- * \par Generate a ciphersuite parameter.
- *
- * \param[in]  suite    The ciphersuite being used.
- * \param[in]  parmid   The ciphersuite parmeter to generate
- *
- * \par Notes:
- *
- * \return The parameter. Length 0 indicates an error.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  02/26/16  E. Birrane     Initial Implementation [Secure DTN
- *                           implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-
-csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
-{
-	csi_val_t result;
-
-	memset(&result, 0, sizeof(csi_val_t));
-	return result;
+	return 0;
 }
 
 
@@ -481,7 +558,7 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 
 	if(key_info.len > 0)
 	{
-		memcpy(context, key_info.contents, MAX(20, key_info.len));
+		memcpy(context, key_info.contents, MIN(20, key_info.len));
 	}
 
 	return context;
@@ -633,8 +710,7 @@ int8_t  csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_
 
 	result->len = 20;
 	result->contents = MTAKE(result->len);
-	memset(result->contents, 0, result->len);
-	memcpy(result->contents, context, MIN(20, result->len));
+	memset(result->contents, 0, 20);
 
 	return 1;
 }
@@ -678,12 +754,11 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 	result->len = 20;
 	if((result->contents = (uint8_t *) MTAKE(result->len)) == NULL)
 	{
+		result->len = 0;
 		return ERROR;
 	}
 
 	memset(result->contents, 0, result->len);
-	memcpy(result->contents, input.contents, MIN(result->len, input.len));
-
 	return 1;
 }
 
@@ -722,11 +797,11 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 	parms->icv.len = 20;
 	if((parms->icv.contents = MTAKE(parms->icv.len)) == NULL)
 	{
+		parms->icv.len = 0;
 		return ERROR;
 	}
 
 	memset(parms->icv.contents, 0, parms->icv.len);
-	memcpy(parms->icv.contents, context, parms->icv.len);
 
 	return 1;
 }
@@ -780,7 +855,7 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 
 /******************************************************************************
  *
- * \par Function Name: csi_crypt_get_parm
+ * \par Function Name: csi_crypt_parm_get
  *
  * \par Generate a ciphersuite parameter.
  *
@@ -798,11 +873,16 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-csi_val_t csi_crypt_get_parm(csi_csid_t suite, csi_parmid_t parmid)
+csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 {
 	csi_val_t result;
 
-	result.contents = (uint8_t*) MTAKE(20);
+	if((result.contents = (uint8_t*) MTAKE(20)) == NULL)
+	{
+		result.len = 0;
+		return result;
+	}
+
 	result.len = 20;
 
 	memset(result.contents, 0, 20);
@@ -814,7 +894,7 @@ csi_val_t csi_crypt_get_parm(csi_csid_t suite, csi_parmid_t parmid)
 
 /******************************************************************************
  *
- * \par Function Name: csi_crypt_get_parm_len
+ * \par Function Name: csi_crypt_parm_get_len
  *
  * \par Report a ciphersuite parameter length.
  *
@@ -832,7 +912,7 @@ csi_val_t csi_crypt_get_parm(csi_csid_t suite, csi_parmid_t parmid)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-uint32_t  csi_crypt_get_parm_len(csi_csid_t suite, csi_parmid_t parmid)
+uint32_t  csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
 {
 	return 20;
 }
@@ -925,23 +1005,7 @@ csi_val_t  csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, cs
 
 	result.len = data.len;
 	result.contents = MTAKE(result.len);
-/***
-	uvast i = 0;
-
-	for(i = 0; i < result.len; i++)
-	{
-		if(function == CRYPTO_ENCRYPT)
-		{
-			result.contents[i] = data->contents[i] + 1;
-		}
-		else
-		{
-			result.contents[i] = data->contents[i] - 1;
-		}
-	}
-***/
-	memset(result.contents,'E', result.len);
-    //memcpy(result.contents, data->contents, result.len);
+    memcpy(result.contents, data.contents, result.len);
 	return result;
 }
 

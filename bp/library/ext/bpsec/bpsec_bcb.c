@@ -13,7 +13,7 @@
  **              API as well as a default implementation of the BCB
  **              ASB processing for standard ciphersuite profiles.
  **
- **              BIB BPSEC Interface Call Order:
+ **              BCB BPSEC Interface Call Order:
  **              -------------------------------------------------------------
  **
  **                     SEND SIDE                    RECEIVE SIDE
@@ -47,8 +47,8 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/05/10  E. Birrane     Implementation as extbpsecbib.c (JHU/APL)
- **            S. Burleigh    Implementation as bpsecbib.c for Sbpsec
+ **  07/05/10  E. Birrane     Implementation as extbpsecbcb.c (JHU/APL)
+ **            S. Burleigh    Implementation as bpsecbcb.c for Sbpsec
  **  11/07/15  E. Birrane     Update for generic proc and profiles
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
@@ -453,7 +453,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 		else
 		{
-//			BCB_DEBUG(5,"BCB Passed Decrypt", NULL);
+			BCB_DEBUG(5,"BCB Passed Decrypt", NULL);
 			ADD_BCB_RX_PASS(fromEid, 1, bytes);
 		}
 
@@ -830,7 +830,7 @@ space for ASB result.", NULL);
  *               the given block between the source and destination.
  *
  * \retval BcbProfile *  NULL  - No profile found.
- *            -          !NULL - The appropriate BIB Profile
+ *            -          !NULL - The appropriate BCB Profile
  *
  * \param[in]  secSrc     The EID of the node seeking to add the BCB
  * \param[in]  secDest    The bundle destination ultimately responsible
@@ -917,7 +917,7 @@ of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
  * \param[out]     bcbAsb  The ASB for this BCB.
  *
  * \todo Update to handle target identifier beyond just block type.
- * \todo This function assumes bib asb and blk are partially initialized
+ * \todo This function assumes bcb asb and blk are partially initialized
  *       by other functions. Clean up/document this, removing
  *       such assumptions where practical.
  *
@@ -965,7 +965,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 
 		BCB_DEBUG_ERR("x bpsec_bcbAttach: Can't get security EIDs.", NULL);
 
-		BCB_DEBUG_PROC("- attachBib -> %d", result);
+		BCB_DEBUG_PROC("- bpsec_bcbAttach -> %d", result);
 		return result;
 	}
 
@@ -980,7 +980,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	if (prof == NULL)
 	{
 		MRELEASE(fromEid);
-//		BCB_DEBUG(5,"NOT adding BCB.", NULL);
+		BCB_DEBUG(5,"NOT adding BCB.", NULL);
 
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bcbBlk);
@@ -989,7 +989,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		return result;
 	}
 
-//	BCB_DEBUG(5,"Adding BCB", NULL);
+	BCB_DEBUG(5,"Adding BCB", NULL);
 
 	/* Step 2 - Populate the BCB ASB. */
 
@@ -997,7 +997,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 
 	memcpy(bcbAsb->keyName, bcbRule.keyName, BPSEC_KEY_NAME_LEN);
 
-	/* Step 2.2 - Initialize the BIB ASB. */
+	/* Step 2.2 - Initialize the BCB ASB. */
 	result = (prof->construct == NULL) ?
 			 bpsec_bcbDefaultConstruct(prof->suiteId, bcbBlk, bcbAsb) :
 			 prof->construct(bcbBlk, bcbAsb);
@@ -1034,9 +1034,9 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		return result;
 	}
 
-	/* Step 3 - serialize the BIB ASB into the BIB blk. */
+	/* Step 3 - serialize the BCB ASB into the BCB blk. */
 
-	/* Step 3.1 - Create a serialized version of the BIB ASB. */
+	/* Step 3.1 - Create a serialized version of the BCB ASB. */
 	if((serializedAsb = bpsec_serializeASB(&(bcbBlk->dataLength), bcbAsb)) == NULL)
 	{
 		BCB_DEBUG_ERR("x bpsec_bcbAttach: Unable to serialize ASB.  bcbBlk->dataLength = %d",
@@ -1052,7 +1052,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		return result;
 	}
 
-	/* Step 3.2 - Copy the serializedBIB ASB into the BCB extension block. */
+	/* Step 3.2 - Copy the serializedBCB ASB into the BCB extension block. */
 	if((result = serializeExtBlk(bcbBlk, NULL, (char *) serializedAsb)) < 0)
 	{
 		bundle->corrupt = 1;
@@ -1064,7 +1064,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	MRELEASE(fromEid);
 
 	BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
-	return result;
+	return 1;
 }
 
 
@@ -1300,8 +1300,8 @@ blk 0x%x, blk->size %d",
 
 
 	/*
-	 * Step 1.3 - If the target is the payload, the BIB was already
-	 *            handled in bpsec_bibOffer. Nothing left to do.
+	 * Step 1.3 - If the target is the payload, the BCB was already
+	 *            handled in bpsec_bcbOffer. Nothing left to do.
 	 */
 	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
 	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
