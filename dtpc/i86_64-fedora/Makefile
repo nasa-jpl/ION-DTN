@@ -42,27 +42,27 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 dtpcd:		dtpcd.o libdtpc.so
-		$(CC) -o dtpcd dtpcd.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
+		$(CC) -o dtpcd dtpcd.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread -lm
 		cp dtpcd ./bin
 
 dtpcclock:	dtpcclock.o libdtpc.so
-		$(CC) -o dtpcclock dtpcclock.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
+		$(CC) -o dtpcclock dtpcclock.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread -lm
 		cp dtpcclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 dtpcadmin:	dtpcadmin.o libdtpc.so
-		$(CC) -o dtpcadmin dtpcadmin.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
+		$(CC) -o dtpcadmin dtpcadmin.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread -lm
 		cp dtpcadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 dtpcsend:	dtpcsend.o libdtpc.so
-		$(CC) -o dtpcsend dtpcsend.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
+		$(CC) -o dtpcsend dtpcsend.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread -lm
 		cp dtpcsend ./bin
 
 dtpcreceive:	dtpcreceive.o libdtpc.so
-		$(CC) -o dtpcreceive dtpcreceive.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread
+		$(CC) -o dtpcreceive dtpcreceive.o -L./lib -L$(ROOT)/lib -ldtpc $(LBP) -lici -lpthread -lm
 		cp dtpcreceive ./bin
 
 #	-	-	Libraries	-	-	-	-	-

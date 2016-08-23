@@ -1,7 +1,8 @@
 # shell script to populate RTEMS build directory with sym links to source files.
 #!/bin/bash
 ION_OPEN_SOURCE=1
-CRYPTO=NULL_SUITES
+CRYPTO=crypto/NULL_SUITES
+BULK=bulk/STUB_BULK
 ln -s ../ici/library/platform.c
 ln -s ../ici/library/platform_sm.c
 ln -s ../ici/library/memmgr.c
@@ -13,7 +14,8 @@ ln -s ../ici/library/smlist.c
 ln -s ../ici/library/smrbt.c
 ln -s ../ici/library/ion.c
 ln -s ../ici/library/ionsec.c
-ln -s ../ici/crypto/$CRYPTO/crypto.c
+ln -s ../ici/$CRYPTO/crypto.c
+ln -s ../ici/$BULK/bulk.c
 ln -s ../ici/libbloom-master/bloom.c
 ln -s ../ici/libbloom-master/bloom.h
 ln -s ../ici/libbloom-master/murmur2/MurmurHash2.c
@@ -94,7 +96,7 @@ ln -s ../bp/ipnd/node.h
 ln -s ../bp/ltp/ltpcli.c
 ln -s ../bp/ltp/ltpclo.c
 ln -s ../bp/ltp/ltpcla.h
-ln -s ../bp/tcp/tcpcla.h
+ln -s ../bp/stcp/stcpcla.h
 ln -s ../bp/udp/udpcla.h
 ln -s ../bp/bibe/bibeclo.c
 ln -s ../ltp/library/libltp.c

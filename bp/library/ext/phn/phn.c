@@ -117,9 +117,9 @@ static int	getSenderEidFromDictionary(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	memset((char *) &eid, 0, sizeof(EndpointId));
 	elt = lyst_first(blk->eidReferences);
-	eid.d.schemeNameOffset = (unsigned long) lyst_data(elt);
+	eid.d.schemeNameOffset = (uaddr) lyst_data(elt);
 	elt = lyst_next(elt);
-	eid.d.nssOffset = (unsigned long) lyst_data(elt);
+	eid.d.nssOffset = (uaddr) lyst_data(elt);
 	if (eid.d.schemeNameOffset > wk->bundle.dictionaryLength
 	|| eid.d.nssOffset > wk->bundle.dictionaryLength)
 	{

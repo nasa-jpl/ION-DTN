@@ -522,7 +522,7 @@ static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
 		memcpy(mib->csPrivateKeyName, privkeyname, length);
 	}
 
-	if (createContinuum(continuumNbr, "local", 0, "this continuum") == NULL)
+	if (createContinuum(continuumNbr, "local", "this continuum") == NULL)
 	{
 		putErrmsg("Can't create local continuum object.", NULL);
 		return -1;
@@ -1136,7 +1136,6 @@ Subject	*createSubject(Venture *venture, int nbr, char *name,
 	CHKNULL(subj);
 	memset((char *) subj, 0, sizeof(Subject));
 	subj->nbr = nbr;
-	subj->isContinuum = 0;
 	length += 1;
 	subj->name = MTAKE(length);
 	CHKNULL(subj->name);
@@ -1396,8 +1395,8 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 	return elt;
 }
 
-Subject	*createMsgspace(Venture *venture, int continNbr, char *gwEidString,
-		char *symmetricKeyName)
+Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
+		char *gwEidString, char *symmetricKeyName)
 {
 	int		amsMemory = getIonMemoryMgr();
 	Subject		*msgspace;
@@ -1415,7 +1414,7 @@ Subject	*createMsgspace(Venture *venture, int continNbr, char *gwEidString,
 	CHKNULL(msgspace);
 	memset((char *) msgspace, 0, sizeof(Subject));
 	msgspace->nbr = 0 - continNbr;	/*	Negative subj number.	*/
-	msgspace->isContinuum = 1;
+	msgspace->isNeighbor = 1 - (isNeighbor == 0);
 	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
 	if (ramsProtocol == RamsNoProtocol)
 	{
@@ -1749,8 +1748,8 @@ static Venture	*createVenture2(int nbr, char *appname, char *authname,
 
 	/*	Automatically create the local message space.		*/
 
-	msgspace = createMsgspace(venture, mib->localContinuumNbr, gwEidString,
-			NULL);
+	msgspace = createMsgspace(venture, mib->localContinuumNbr, 0,
+			gwEidString, NULL);
 	if (msgspace == NULL)
 	{
 		putErrmsg("Can't create local msgspace for venture.", appname);
@@ -1773,7 +1772,7 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 	return result;
 }
 
-static Continuum	*createContinuum2(int nbr, char *name, int isNeighbor,
+static Continuum	*createContinuum2(int nbr, char *name,
 				char *description)
 {
 	AmsMib		*mib = _mib(NULL);
@@ -1792,7 +1791,6 @@ static Continuum	*createContinuum2(int nbr, char *name, int isNeighbor,
 	CHKNULL(contin);
 	memset((char *) contin, 0, sizeof(Continuum));
 	contin->nbr = nbr;
-	contin->isNeighbor = 1 - (isNeighbor == 0);
 	nameLen = length + 1;
 	contin->name = MTAKE(nameLen);
 	CHKNULL(contin->name);
@@ -1809,13 +1807,12 @@ static Continuum	*createContinuum2(int nbr, char *name, int isNeighbor,
 	return contin;
 }
 
-Continuum	*createContinuum(int nbr, char *name, int isNeighbor,
-			char *description)
+Continuum	*createContinuum(int nbr, char *name, char *description)
 {
 	Continuum	*result;
 
 	lockMib();
-	result = createContinuum2(nbr, name, isNeighbor, description);
+	result = createContinuum2(nbr, name, description);
 	unlockMib();
 	return result;
 }
@@ -2193,6 +2190,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 		int responseNbr)
 {
+	saddr	temp;
 	long	queryNbr;
 	LystElt	elt;
 
@@ -2221,7 +2219,8 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	 *	we stuff it into the "compare" function pointer in
 	 *	the Lyst structure.					*/
 
-	queryNbr = (long) lyst_compare_get(eventsQueue->list);
+	temp = (saddr) lyst_compare_get(eventsQueue->list);
+	queryNbr = temp;
 	if (queryNbr != 0)	/*	Need response to specfic msg.	*/
 	{
 		if (responseNbr == queryNbr)	/*	This is it.	*/

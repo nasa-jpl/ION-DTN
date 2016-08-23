@@ -41,6 +41,10 @@ for f in ${makefiles[@]}; do
 	rm $fnameold
 done
 
+# move mingw makefile for libbloom
+mv ici/libbloom-master/Makefile ici/libbloom-master/Makefile.saved
+mv ici/libbloom-master/Makefile.winion ici/libbloom-master/Makefile
+
 mv ~/.profile ~/.profile.saved
 echo -e "export PATH=/opt/bin:/opt/lib:/c/DTN/test:\$PATH\nalias ll='ls -l'\nalias vi='vim'" > ~/.profile
 

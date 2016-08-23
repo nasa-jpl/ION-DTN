@@ -1454,13 +1454,13 @@ adm_datadef_t* adm_find_datadef_by_name(char *name)
 	LystElt elt = 0;
 	adm_datadef_t *cur = NULL;
 
-	DTNMP_DEBUG_ENTRY("adm_find_datadef_by_name","(%s)", name);
+	AMP_DEBUG_ENTRY("adm_find_datadef_by_name","(%s)", name);
 
 	/ * Step 0 - Sanity Check. * /
 	if(name == NULL)
 	{
-		DTNMP_DEBUG_ERR("adm_find_datadef_by_name", "Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("adm_find_datadef_by_name", "->NULL.", NULL);
+		AMP_DEBUG_ERR("adm_find_datadef_by_name", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("adm_find_datadef_by_name", "->NULL.", NULL);
 		return NULL;
 	}
 
@@ -1479,7 +1479,7 @@ adm_datadef_t* adm_find_datadef_by_name(char *name)
 
 	/ * Step 2 - Return what we found, or NULL. * /
 
-	DTNMP_DEBUG_EXIT("adm_find_datadef_by_name", "->%llx.", cur);
+	AMP_DEBUG_EXIT("adm_find_datadef_by_name", "->%llx.", cur);
 	return cur;
 }
 ************/
@@ -1630,13 +1630,13 @@ adm_ctrl_t* adm_find_ctrl_by_name(char *name)
 	LystElt elt = 0;
 	adm_ctrl_t *cur = NULL;
 
-	DTNMP_DEBUG_ENTRY("adm_find_ctrl_by_name","(%s)", name);
+	AMP_DEBUG_ENTRY("adm_find_ctrl_by_name","(%s)", name);
 
 	/ * Step 0 - Sanity Check. * /
 	if(name == NULL)
 	{
-		DTNMP_DEBUG_ERR("adm_find_ctrl_by_name", "Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->NULL.", NULL);
+		AMP_DEBUG_ERR("adm_find_ctrl_by_name", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->NULL.", NULL);
 		return NULL;
 	}
 
@@ -1654,7 +1654,7 @@ adm_ctrl_t* adm_find_ctrl_by_name(char *name)
 	}
 
 	/ * Step 2 - Return what we found, or NULL. * /
-	DTNMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->%llx.", cur);
+	AMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->%llx.", cur);
 	return cur;
 }
 *****/

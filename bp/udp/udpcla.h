@@ -23,9 +23,7 @@ extern "C" {
 #endif
 
 #define UDPCLA_BUFSZ		((256 * 256) - 1)
-#define BpUdpDefaultPortNbr	4556
 
-extern int	connectToCLI(int *sock);
 extern int	sendBytesByUDP(int *bundleSocket, char *from, int length,
 			struct sockaddr *socketName);
 extern int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,

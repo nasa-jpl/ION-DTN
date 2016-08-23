@@ -28,7 +28,7 @@ echo
 echo "PURPOSE: Testing the functionality of issue 311: Bundle Streaming Service.
 Tests BSS protocol and BSS API:
 
-Bundle Streaming Service, is an architecture specifically developed to
+Bundle Streaming Service is an architecture specifically developed to
 support real-time streaming of multimedia content in DTN environments.
 BSS architecture comprises two parts: (a) the Bundle Streaming Service
 Protocol (BSSP) which is responsible for forwarding BSS traffic in a
@@ -47,9 +47,9 @@ operations and perform several stream parsing tasks.
 
 	c.  Proper operation of stream parsing functions.
 
-This test simulates the streaming of a HD video by sending a stream of
+This test simulates the streaming of HD video by sending a stream of
 1000 bundles from node 1 to node 2. The communication channel between
-node 1 and node 2 suffers from severe packet loss  (10%); the playback
+node 1 and node 2 suffers from severe packet loss (10%); the playback
 mode of the BSS forwarding mechanism is activated in order for these
 losses to be recovered. At the receiver's end, the frames that arrive
 in-order are counted while the out-of-order frames are stored in the

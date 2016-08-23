@@ -64,7 +64,7 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
 {
 	csi_cipherparms_t result;
 
-	CSI_DEBUG_PROC("+ csi_build_parms(0x"UVAST_HEX_FIELDSPEC",%d", (uvast)buf, len);
+	CSI_DEBUG_PROC("+ csi_build_parms(0x"ADDR_FIELDSPEC",%d", (uaddr)buf, len);
 
 	memset(&result, 0, sizeof(csi_cipherparms_t));
 
@@ -120,8 +120,8 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 	uvast	  longNumber;
 	uint32_t  itemLength;
 
-	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, 0x"UVAST_HEX_FIELDSPEC",%d)",
-			       itemNeeded, (uvast)buf, bufLen);
+	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, 0x"ADDR_FIELDSPEC",%d)",
+			       itemNeeded, (uaddr)buf, bufLen);
 
 	memset(&result,0, sizeof(csi_val_t));
 
@@ -242,7 +242,7 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 	csi_val_t result;
 	Sdnv      lenSdnv;
 
-	CSI_DEBUG_PROC("+ csi_build_tlv(%d, %d, 0x"UVAST_HEX_FIELDSPEC")", id, len, (uvast)contents);
+	CSI_DEBUG_PROC("+ csi_build_tlv(%d, %d, 0x"ADDR_FIELDSPEC")", id, len, (uaddr)contents);
 
 	memset(&result, 0, sizeof(result));
 

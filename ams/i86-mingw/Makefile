@@ -65,31 +65,31 @@ install:
 #	-	-	Daemon executable	-	-	-	-
 
 amsd:		$(AMSDOBJS) $(API)/amscommon.h
-		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32 -lm
 		cp amsd ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 amshello:	amshello.o libams.dll $(INCL)/ams.h
-		$(CC) -o amshello amshello.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amshello amshello.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amshello ./bin
 
 amsbenchs:	amsbenchs.o libams.dll $(INCL)/ams.h
-		$(CC) -o amsbenchs amsbenchs.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amsbenchs amsbenchs.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amsbenchs ./bin
 
 amsbenchr:	amsbenchr.o libams.dll $(INCL)/ams.h
-		$(CC) -o amsbenchr amsbenchr.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amsbenchr amsbenchr.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amsbenchr ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 amsshell:	amsshell.o libams.dll $(INCL)/ams.h
-		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amsshell ./bin
 
 amslog:		amslog.o libams.dll $(INCL)/ams.h
-		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amslog ./bin
 
 amslogprt:	amslogprt.o
@@ -97,23 +97,23 @@ amslogprt:	amslogprt.o
 		cp amslogprt ./bin
 
 amsstop:	amsstop.o
-		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amsstop ./bin
 
 amsmib:		amsmib.o
-		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp amsmib ./bin
 
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.dll $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lws2_32
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lws2_32 -lm
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
 libams.dll:	$(LIBAMSOBJS) $(API)/amsP.h
-		$(LD) -o libams.dll $(LIBAMSOBJS) -Wl,--output-def,libams.def -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32
+		$(LD) -o libams.dll $(LIBAMSOBJS) -Wl,--output-def,libams.def -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32 -lm
 		cp libams.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

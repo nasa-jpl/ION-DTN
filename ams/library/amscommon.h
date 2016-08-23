@@ -148,7 +148,6 @@ typedef struct
 {
 	int		nbr;
 	char		*name;
-	int		isNeighbor;	/*	Boolean.		*/
 	char		*description;
 } Continuum;
 
@@ -304,7 +303,6 @@ typedef struct
 typedef struct subjst
 {
 	int		nbr;
-	int		isContinuum;
 	char		*name;
 	char		*description;
 	Lyst		authorizedSenders;	/*	(AppRole *)	*/
@@ -315,12 +313,18 @@ typedef struct subjst
 	Lyst		modules;		/*	(FanModule *)	*/
 	LystElt		elt;			/*	In hashtable.	*/
 
-	/*	If this Subject is for a message space (i.e.,
-	 *	subject number is < 0; isContinuum == 1) then
-	 *	gwEid is non-NULL and identifies the endpoint ID
-	 *	at which the RAMS gateway for the parent venture
-	 *	in the indicated continuum receives RAMS PDUs.		*/
+	/*	If this Subject is for one of the message spaces of
+	 *	the parent Venture (i.e., subject number is < 0,
+	 *	giving the additive inverse of the continuum number
+	 *	of the continuum in which this message space resides)
+	 *	then (a) the isNeighbor flag is set to indicate whether
+	 *	or not the indicated continuum is a neighbor of the
+	 *	local continuum, within the RAMS network established
+	 *	for the parent Venure, and (b) gwEid is non-NULL and
+	 *	identifies the endpoint ID at which the RAMS gateway
+	 *	for this message space receives RAMS PDUs.		*/
 
+	int		isNeighbor;		/*	Boolean.	*/
 	char		*gwEid;
 } Subject;
 
@@ -491,7 +495,7 @@ extern void	deleteAuthorizedReceiver(Subject *subj, char *receiverRoleName);
 extern int	addAuthorizedReceiver(Venture *venture, Subject *subj,
 			char *receiverRoleName);
 extern void	eraseMsgspace(Venture *venture, Subject *subj);
-extern Subject	*createMsgspace(Venture *venture, int continNbr,
+extern Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
 			char *gwEidString, char *symmetricKeyName);
 extern void	eraseUnit(Venture *venture, Unit *unit);
 extern Unit	*createUnit(Venture *venture, int nbr, char *name,
@@ -501,8 +505,7 @@ extern Venture	*createVenture(int nbr, char *appname, char *authname,
 			char *gwEidString, int ramsNetIsTree,
 			int rootCellResyncPeriod);
 extern Continuum
-		*createContinuum(int nbr, char *name, int isNeighbor,
-			char *description);
+		*createContinuum(int nbr, char *name, char *description);
 extern LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt);
 extern LystElt	createAmsEpspec(char *tsname, char *endpointSpec);
 

@@ -10,19 +10,19 @@
 									*/
 #include "cfdpP.h"
 
-static long	_running(long *newValue)
+static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
-	long	state;
+	uaddr	state;
 	
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (uaddr) sm_TaskVar(&value);
 	}
 	else				/*	Just check.		*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (uaddr) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -30,7 +30,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands cfdpclock termination.	*/
 {
-	long	stop = 0;
+	uaddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates cfdpclock.		*/
 }
@@ -129,10 +129,20 @@ reached.", NULL);
 static int	handleFinishOverdue(Sdr sdr, Object fduObj)
 {
 	OutFdu		fdu;
+	Object		fpObj;
 	CfdpEvent	event;
 
 	sdr_stage(sdr, (char *) &fdu, fduObj, sizeof(OutFdu));
+	if (fdu.finishReceived)
+	{
+		return 0;
+	}
+
+	fpObj = sdr_list_data(sdr, fdu.closureElt);
+	sdr_free(sdr, fpObj);
+	sdr_list_delete(sdr, fdu.closureElt, NULL, NULL);
 	fdu.closureElt = 0;
+	fdu.finishReceived = 1;
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu.transactionId,
 			sizeof(CfdpTransactionId));
@@ -148,7 +158,7 @@ static int	handleFinishOverdue(Sdr sdr, Object fduObj)
 		return -1;
 	}
 
-	sdr_write(sdr, fduObj, (char *) &fdu, sizeof(InFdu));
+	sdr_write(sdr, fduObj, (char *) &fdu, sizeof(OutFdu));
 	return 0;
 }
 
@@ -175,8 +185,6 @@ static int	scanFinsPending(Sdr sdr, time_t currentTime)
 		}
 
 		fduObj = fp->fdu;
-		sdr_free(sdr, fpObj);
-		sdr_list_delete(sdr, elt, NULL, NULL);
 		if (handleFinishOverdue(sdr, fduObj) < 0)
 		{
 			sdr_cancel_xn(sdr);
@@ -429,7 +437,7 @@ int	main(int argc, char *argv[])
 {
 #endif
 	Sdr	sdr;
-	long	state = 1;
+	uaddr	state = 1;
 	time_t	currentTime;
 
 	if (cfdpInit() < 0 || bp_attach() < 0)

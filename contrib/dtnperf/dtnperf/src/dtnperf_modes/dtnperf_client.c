@@ -1,6 +1,7 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico@studio.unibo.it
+ **           Davide Pallotti, davide.pallotti@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
@@ -13,9 +14,9 @@
  */
 
 
-#include "../includes.h"
 #include "dtnperf_client.h"
 #include "dtnperf_monitor.h"
+#include "../includes.h"
 #include "../definitions.h"
 #include "../bundle_tools.h"
 #include "../file_transfer_tools.h"
@@ -109,6 +110,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	 * variables
 	 * ------------------------ */
 	char * client_demux_string = "";
+	int pthread_status;
 
 	char temp1[256]; // buffer for various purpose
 	char temp2[256];
@@ -159,7 +161,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		printf("[debug] opening connection to local BP daemon...");
 
 	if (perf_opt->use_ip)
-		error = al_bp_open_with_ip(perf_opt->ip_addr,perf_opt->ip_port,&handle);
+		error = al_bp_open_with_ip(perf_opt->ip_addr, perf_opt->ip_port, &handle);
 	else
 		error = al_bp_open(&handle);
 
@@ -187,8 +189,9 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 
 	// parse SERVER EID
 	//  if the scheme is not "ipn" append server demux string to destination eid
-	if(strncmp(perf_opt->dest_eid,"ipn",3) != 0)
+	if(strncmp(perf_opt->dest_eid, "ipn", 3) != 0)
 		strcat(perf_opt->dest_eid, SERV_EP_STRING);
+
 
 	if (verbose)
 		fprintf(stdout, "%s (local)\n", perf_opt->dest_eid);
@@ -219,6 +222,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		eid_format = 'I';
 	else if (al_bp_get_implementation() == BP_DTN)
 		eid_format = 'D';
+	else if (al_bp_get_implementation() == BP_IBR)
+		eid_format = 'D';
 	else {
 		fprintf(stderr, "[DTNperf fatal error] Don't know what eid scheme to use with this BP implementation");
 		if (create_log)
@@ -233,7 +238,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		temp = getpid();
 		if (getpid()<10000)
 			temp = temp + 10000;
-		sprintf(client_demux_string,"%lu",temp);
+		sprintf(client_demux_string, "%lu", temp);
 		//if using a DTN2 implementation, al_bp_build_local_eid() wants ipn_local_number.service_number
 		if (al_bp_get_implementation() == BP_DTN)
 			sprintf(temp1, "%d.%s", perf_opt->ipn_local_num, client_demux_string);
@@ -247,7 +252,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		// append process id to the client demux string
 		client_demux_string = malloc (strlen(CLI_EP_STRING) + 10);
 		sprintf(client_demux_string, "%s_%d", CLI_EP_STRING, getpid());
-		error = al_bp_build_local_eid(handle, &local_eid,client_demux_string,DTN_SCHEME);
+		error = al_bp_build_local_eid(handle, &local_eid, client_demux_string, DTN_SCHEME);
 	}
 
 	if(debug && debug_level > 0)
@@ -281,18 +286,18 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			perf_opt->eid_format_forced = 'I';
 			char * ptr, * temp;
 			temp = (char *) malloc(sizeof(char)*AL_BP_MAX_ENDPOINT_ID);
-			strcpy(temp,local_eid.uri);
+			strcpy(temp, local_eid.uri);
 			ptr = strtok(temp , ".");
-			sprintf(temp,"%s.%s",ptr,MON_EP_NUM_SERVICE);
+			sprintf(temp, "%s.%s", ptr, MON_EP_NUM_SERVICE);
 			strncpy(perf_opt->mon_eid, temp, strlen(temp));
 			free(temp);
 		}
 
 	}
 	// if the scheme is not "ipn" append monitor demux string to reply-to EID
-	if(strncmp(perf_opt->mon_eid,"ipn",3) != 0)
+	if(strncmp(perf_opt->mon_eid, "ipn", 3) != 0)
 		strcat(perf_opt->mon_eid, MON_EP_STRING);
-
+	
 	// parse
 	error = al_bp_parse_eid_string(&mon_eid, perf_opt->mon_eid);
 	if (error != BP_SUCCESS)
@@ -310,7 +315,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			printf("[debug] checking for existing monitor on this endpoint...\n");
 		error = al_bp_find_registration(handle, &mon_eid, &regid);
 		if ( (error == BP_SUCCESS && perf_opt->bp_implementation == BP_DTN)
-					|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID)))
+					|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID))
+					|| (perf_opt->bp_implementation == BP_IBR && error == BP_SUCCESS))
 		{
 			dedicated_monitor = FALSE;
 			printf("there is already a monitor on this endpoint.\n");
@@ -323,7 +329,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			mon_params.perf_g_opt = perf_g_opt;
 			printf("there is not a monitor on this endpoint.\n");
 			// if the scheme is not "ipn", append monitor demux string to reply-to EID
-			if(strncmp(perf_opt->mon_eid,"ipn",3) != 0)
+			if(strncmp(perf_opt->mon_eid, "ipn", 3) != 0)
 				sprintf(temp1, "%s_%d", mon_eid.uri, mon_params.client_id);
 			else
 				sprintf(temp1, "%s", mon_eid.uri);
@@ -362,7 +368,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	reginfo.expiration = 0;
 	error = al_bp_register(&handle, &reginfo, &regid);
 	if ( (error != BP_SUCCESS && perf_opt->bp_implementation == BP_DTN)
-			|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID)))
+			|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID))
+			|| (perf_opt->bp_implementation == BP_IBR && error != BP_SUCCESS))
 	{
 		fflush(stdout);
 		fprintf(stderr, "[DTNperf fatal error] in registering eid: %s (%s)\n",
@@ -405,7 +412,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		fprintf(stderr, "[DTNperf warning] bundle payload too small. Extended to %d bytes\n", DEFAULT_PAYLOAD);
 		if (create_log)
 			fprintf(stderr, "[DTNperf warning] bundle payload too small. Extended to %d bytes\n", DEFAULT_PAYLOAD);
-		client_clean_exit(1);
+		perf_opt->bundle_payload = DEFAULT_PAYLOAD; //client_clean_exit(1);
 	}
 
 	if ((debug) && (debug_level > 0))
@@ -557,7 +564,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	{
 		ext_buf = malloc(num_ext_blocks * sizeof(al_bp_extension_block_t));
 		memset(ext_buf, 0, num_ext_blocks * sizeof(al_bp_extension_block_t));
-		unsigned int i=0;
+		int i=0;
 
 		ext_bp = (al_bp_extension_block_t *)ext_buf;
 		for (i = 0; i < num_ext_blocks; i++)
@@ -581,7 +588,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	{
 		meta_buf = malloc(num_meta_blocks * sizeof(al_bp_extension_block_t));
 		memset(meta_buf, 0, num_meta_blocks * sizeof(al_bp_extension_block_t));
-		unsigned int i=0;
+		int i=0;
 
 		meta_bp = (al_bp_extension_block_t *)meta_buf;
 		for (i = 0; i < num_meta_blocks; i++)
@@ -653,6 +660,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	al_bp_bundle_set_replyto(&bundle, mon_eid);
 	set_bp_options(&bundle, conn_opt);
 
+	// intialize stop bundle;
+	al_bp_bundle_create(&bundle_stop);
 
 	if ((debug) && (debug_level > 0))
 		printf("[debug] entering in loop\n");
@@ -681,8 +690,8 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	pthread_create(&cong_ctrl, NULL, congestion_control, (void*)perf_g_opt);
 	pthread_create(&wait_for_signal, NULL, wait_for_sigint, (void*) client_demux_string);
 
-	pthread_join(cong_ctrl, NULL);
-	pthread_join(sender, NULL);
+	pthread_join(cong_ctrl, (void**)&pthread_status);
+	pthread_join(sender, (void**)&pthread_status);
 
 	pthread_mutex_destroy(&mutexdata);
 	sem_destroy(&window);
@@ -712,17 +721,9 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 
 	if (!perf_opt->no_bundle_stop)
 	{
-		// intialize stop bundle;
-		al_bp_bundle_create(&bundle_stop);
 		// fill the stop bundle
 		prepare_stop_bundle(&bundle_stop, mon_eid, conn_opt->expiration, conn_opt->priority, sent_bundles);
 		al_bp_bundle_set_source(&bundle_stop, local_eid);
-		if (debug && (debug_level > 0))
-		{
-			printf("[debug] print bundle stop payload\n");
-			printf("[debug] buf len : %d\n", bundle_stop.payload->buf.buf_len);
-			print_bytes(bundle_stop.payload->buf.buf_val, bundle_stop.payload->buf.buf_len);
-		}
 
 		// send stop bundle to monitor
 		if (debug)
@@ -736,7 +737,6 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 		}
 		if (debug)
 			printf("done.\n");
-		al_bp_bundle_free(&bundle_stop);
 	}
 
 	// waiting monitor stops
@@ -765,7 +765,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	// Unregister Local Eid only For ION
 	if(perf_opt->bp_implementation == BP_ION)
 	{
-		if (al_bp_unregister(handle,regid,local_eid) != BP_SUCCESS)
+		if (al_bp_unregister(handle, regid, local_eid) != BP_SUCCESS)
 		{
 			fprintf(stderr, "[DTNperf fatal error] unregisted endpoint: %s\n", strerror(errno));
 			if (create_log)
@@ -819,7 +819,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			{
 			// The last bundle delivered is not deleted here
 			// Is deleted with the free(&bundle)
-				if( strcmp(bundle.payload->filename.filename_val,file_bundle_names[i]) != 0)
+				if( strcmp(bundle.payload->filename.filename_val, file_bundle_names[i]) != 0)
 				{
 					tmp_payload.filename.filename_len = strlen(file_bundle_names[i]);
 					tmp_payload.filename.filename_val = file_bundle_names[i];
@@ -839,6 +839,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 	}
 	//structure bundle is always free in every op mode
 	al_bp_bundle_free(&bundle);
+	al_bp_bundle_free(&bundle_stop);
 	if (perf_opt->num_blocks > 0)
 	{
 		/*free(ext_buf);
@@ -876,7 +877,7 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 	int bytes_written;
 
 	if(perf_opt->op_mode == 'F')// File mode
-		sprintf(source_file, "%s_%d_%d", SOURCE_FILE, getpid(),num_bundle);
+		sprintf(source_file, "%s_%d_%d", SOURCE_FILE, getpid(), num_bundle);
 	else 						// Time and Data mode
 		sprintf(source_file, "%s_%d", SOURCE_FILE, getpid());
 
@@ -887,7 +888,7 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 		if ((debug) && (debug_level > 0))
 			printf("[debug] creating file %s...", source_file);
 
-		stream = fopen(source_file,	"wb");
+		stream = fopen(source_file, "wb");
 
 		if (stream == NULL)
 		{
@@ -938,9 +939,8 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 		client_clean_exit(2);
 	}
 
-	size_t bufsize = perf_opt->bundle_payload;
 	buf = (char *) malloc(perf_opt->bundle_payload);
-	buf_stream = open_memstream(&buf, &bufsize);
+	buf_stream = open_memstream(&buf, (size_t *) &perf_opt->bundle_payload);
 
 	// prepare the payload
 	if(perf_opt->op_mode == 'F') // File mode
@@ -969,7 +969,6 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 	}
 
 	fclose(buf_stream);
-	perf_opt->bundle_payload = bufsize;
 
 	if (perf_opt->crc==TRUE && debug)
 		printf("[debug] CRC = %"PRIu32"\n", bundle.payload->buf.buf_crc);
@@ -1078,7 +1077,7 @@ void * send_bundles(void * opt)
 		// Add in bundles_file_array the bundle to send for free at the end every bundle
 		if (perf_opt->op_mode == 'F')
 		{
-			sprintf(source_file, "%s_%d_%d", SOURCE_FILE, getpid(),sent_bundles);
+			sprintf(source_file, "%s_%d_%d", SOURCE_FILE, getpid(), sent_bundles);
 			if (perf_opt->use_file)
 				error = al_bp_bundle_set_payload_file(&bundle, source_file, strlen(source_file));
 			else
@@ -1287,23 +1286,31 @@ void * congestion_control(void * opt)
 
 				if ((debug) && (debug_level > 0))
 					printf("\t[debug cong ctrl] ack received timestamp: %u %u\n", reported_timestamp.secs, reported_timestamp.seqno);
-				position = is_in_info(send_info, reported_timestamp, perf_opt->window);
+				
+				if (perf_opt->bp_implementation != BP_IBR)
+					position = is_in_info(send_info, reported_timestamp, perf_opt->window);
+				else {
+					position = is_in_info_timestamp(send_info, reported_timestamp, perf_opt->window);
+					if ((debug) && (debug_level > 0))
+						printf("\t[debug cong ctrl] ignoring ack sequence number\n");
+				}
+				
 				if (position < 0)
 				{
-					fprintf(stderr, "[DTNperf fatal error] in removing bundle info\n");
+					fprintf(stderr, "[DTNperf warning] ack not validated\n");
 					if (create_log)
-						fprintf(log_file, "[DTNperf fatal error] in removing bundle info\n");
-					//client_clean_exit(1);
-				}
-				remove_from_info(send_info, position);
-				if ((debug) && (debug_level > 0))
-					printf("\t[debug cong ctrl] ack validated\n");
-				sem_post(&window);
-				if ((debug) && (debug_level > 1))
-				{
-					int cur;
-					sem_getvalue(&window, &cur);
-					printf("\t[debug cong ctrl] window is %d\n", cur);
+						fprintf(log_file, "[DTNperf warning] ack not validated\n");
+				} else {
+					remove_from_info(send_info, position);
+					if ((debug) && (debug_level > 0))
+						printf("\t[debug cong ctrl] ack validated\n");
+					sem_post(&window);
+					if ((debug) && (debug_level > 1))
+					{
+						int cur;
+						sem_getvalue(&window, &cur);
+						printf("\t[debug cong ctrl] window is %d\n", cur);
+					}
 				}
 			}
 			al_bp_bundle_free(&ack);
@@ -1440,7 +1447,7 @@ void * wait_for_sigint(void * arg)
 		if(perf_opt->bp_implementation == BP_DTN)
 		{
 			if (perf_opt->use_ip)
-				error = al_bp_open_with_ip(perf_opt->ip_addr,perf_opt->ip_port,&force_stop_handle);
+				error = al_bp_open_with_ip(perf_opt->ip_addr, perf_opt->ip_port, &force_stop_handle);
 			else
 				error = al_bp_open(&force_stop_handle);
 		}
@@ -1468,6 +1475,8 @@ void * wait_for_sigint(void * arg)
 			error = al_bp_bundle_send(force_stop_handle, regid, &bundle_force_stop);
 		else if(perf_opt->bp_implementation == BP_ION)
 			error = al_bp_bundle_send(handle, regid, &bundle_force_stop);
+		else if(perf_opt->bp_implementation == BP_IBR)
+			error = al_bp_bundle_send(handle, regid, &bundle_force_stop);
 		if ((error) != BP_SUCCESS)
 		{
 			fprintf(stderr, "[DTNperf fatal error] in sending force stop bundle: %d (%s)\n", error, al_bp_strerror(error));
@@ -1478,7 +1487,7 @@ void * wait_for_sigint(void * arg)
 		}
 		printf("done.\n");
 
-		if(perf_opt->bp_implementation == BP_DTN)
+		if (perf_opt->bp_implementation == BP_DTN)
 			al_bp_close(force_stop_handle);
 
 
@@ -1571,8 +1580,8 @@ void print_client_usage(char* progname)
 			" -M, --memory                Store the bundle into memory instead of file (if payload < 50KB).\n"
 			" -L, --log[=log_filename]    Create a log file. Default log filename is %s.\n"
 			"     --log-dir <dir>         Directory where the client and the internal monitor save log and the csv files. Default \"%s\"\n"
-			"     --ip-addr <addr>        IP address of the BP daemon api. Default is 127.0.0.1 (DTN2 only).\n"
-			"     --ip-port <port>        IP port of the BP daemon api. Default is 5010 (DTN2 only).\n"
+			"     --ip-addr <addr>        IP address of the BP daemon api. Default is 127.0.0.1 (DTN2 and IBR-DTN only).\n"
+			"     --ip-port <port>        IP port of the BP daemon api. Default is 5010 (DTN2 and IBR-DTN only).\n"
 			"     --debug[=level]         Debug messages [1-2]; if level is not indicated level = 2.\n"
 			" -l, --lifetime <time>       Bundle lifetime (s). Default is 60 s.\n"
 			" -p, --priority <val>        Bundle  priority [bulk|normal|expedited|reserved]. Default is normal.\n"
@@ -1581,7 +1590,7 @@ void print_client_usage(char* progname)
 			"     --ack-lifetime <time>   ACK lifetime (value given to the server). Default is the same as bundle lifetime\n"
             "     --ack-priority <val>    ACK priority (value given to the server) [bulk|normal|expedited|reserved]. Default is the same as bundle priority\n"
 			"     --no-bundle-stop        Do not send bundles stop and force-stop to the monitor. Use it only if you know what you are doing\n"
-			"     --force-eid <[DTN|IPN]  Force scheme of registration EID.\n"
+			"     --force-eid <[DTN|IPN]> Force scheme of registration EID.\n"
 			"     --ipn-local <num>       Set ipn local number (Use only on DTN2)\n"
 			"     --ordinal <num>         ECOS \"ordinal priority\" [0-254]. Default: 0 (ION Only).\n"
 			"     --unreliable            Set ECOS \"unreliable flag\" to True. Default: False (ION Only).\n"
@@ -1640,7 +1649,7 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 				{"no-ack-to-mon", no_argument, 0, 45},		// force server to NOT send acks to monitor
 				{"ack-lifetime", required_argument, 0, 46}	,			// set server ack expiration equal to client bundles
 				{"ack-priority", required_argument, 0, 47},	// set server ack priority as indicated or equal to client bundles
-				{"del", no_argument,0,48},					//request of bundle status deleted report
+				{"del", no_argument, 0, 48},					//request of bundle status deleted report
 				{"no-bundle-stop", no_argument, 0, 49},		// do not send bundle stop and force stop to the monitor
 				{"force-eid", required_argument, 0, 50},   // force client to register with a different scheme
 				{"ipn-local", required_argument, 0, 51},   // ipn local number (DTN2 only)
@@ -1652,7 +1661,7 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 				{"mb-type", required_argument, 0, 56},   // set metadata extension block type
 				{"mb-string", required_argument, 0, 57},          // set metadata/extension block content
 				{"crc", no_argument, 0, 58},
-				{0,0,0,0}	// The last element of the array has to be filled with zeros.
+				{0, 0, 0, 0}	// The last element of the array has to be filled with zeros.
 
 		};
 
@@ -1740,7 +1749,7 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 
 		case 'P':
 			perf_opt->P_arg = optarg;
-			if(perf_opt->P_arg == 0)
+			if(perf_opt->P_arg <= 0)
 			{
 				printf("\n[DTNperf syntax error] (-P option) invalid data value\n");
 				exit(1);
@@ -1837,9 +1846,9 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 			break;
 
 		case 37:
-			if(perf_opt->bp_implementation != BP_DTN)
+			if(perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 			{
-				fprintf(stderr, "[DTNperf error] --ip-addr supported only in DTN2\n");
+				fprintf(stderr, "[DTNperf error] --ip-addr supported only in DTN2 and IBR-DTN\n");
 				exit(1);
 				return;
 			}
@@ -1848,9 +1857,9 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 			break;
 
 		case 38:
-			if(perf_opt->bp_implementation != BP_DTN)
+			if(perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 			{
-				fprintf(stderr, "[DTNperf error] --ip-port supported only in DTN2\n");
+				fprintf(stderr, "[DTNperf error] --ip-port supported only in DTN2 and IBR-DTN\n");
 				exit(1);
 				return;
 			}
@@ -1969,34 +1978,34 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 		                        perf_opt->num_blocks = atoi(optarg);
 		                        ext_blocks = malloc(perf_opt->num_blocks * sizeof(extension_block_info_t));
 		                        break;*/
-			case 56:
-				if(perf_opt->bp_implementation != BP_DTN)
-				{
-					fprintf(stderr, "[DTNperf syntax error] --mb-type supported only in DTN2\n");
-					exit(1);
-					return;
-				}
-				perf_opt->num_blocks = 1;
-				ext_blocks = malloc(perf_opt->num_blocks * sizeof(extension_block_info_t));
-				perf_opt->metadata_type = atoi(optarg);
-		        if((num_meta_blocks + 1) > perf_opt->num_blocks)
-		        {
-		        	fprintf(stderr, "[DTNperf error] Specified only %d extension/metadata blocks\n",
-		        			perf_opt->num_blocks);
-		        	exit(1);
-		        }
-                if (!((perf_opt->metadata_type == METADATA_TYPE_URI) ||
-                		((perf_opt->metadata_type >= METADATA_TYPE_EXPT_MIN) &&
-                	     (perf_opt->metadata_type <= METADATA_TYPE_EXPT_MAX))))
-                {
-                	fprintf(stderr, "-M - metadata type code is not in use - available 1, 192-255\n");
-		            exit(1);
-                }
-                ext_blocks[num_meta_blocks].block.type = METADATA_BLOCK;
-                set_metadata_type(&ext_blocks[num_meta_blocks], perf_opt->metadata_type);
-                num_meta_blocks++;
-		        data_set = false;
-		        break;
+		case 56:
+			if(perf_opt->bp_implementation != BP_DTN)
+			{
+				fprintf(stderr, "[DTNperf syntax error] --mb-type supported only in DTN2\n");
+				exit(1);
+				return;
+			}
+			perf_opt->num_blocks = 1;
+			ext_blocks = malloc(perf_opt->num_blocks * sizeof(extension_block_info_t));
+			perf_opt->metadata_type = atoi(optarg);
+			if((num_meta_blocks + 1) > perf_opt->num_blocks)
+			{
+				fprintf(stderr, "[DTNperf error] Specified only %d extension/metadata blocks\n",
+						perf_opt->num_blocks);
+				exit(1);
+			}
+			if (!((perf_opt->metadata_type == METADATA_TYPE_URI) ||
+					((perf_opt->metadata_type >= METADATA_TYPE_EXPT_MIN) &&
+					 (perf_opt->metadata_type <= METADATA_TYPE_EXPT_MAX))))
+			{
+				fprintf(stderr, "-M - metadata type code is not in use - available 1, 192-255\n");
+				exit(1);
+			}
+			ext_blocks[num_meta_blocks].block.type = METADATA_BLOCK;
+			set_metadata_type(&ext_blocks[num_meta_blocks], perf_opt->metadata_type);
+			num_meta_blocks++;
+			data_set = false;
+			break;
 
 		case 57:
 			if(perf_opt->bp_implementation != BP_DTN)
@@ -2182,7 +2191,7 @@ void client_handler(int sig)
 	printf("\nDTNperf client received SIGINT: exiting\n");
 	if (perf_opt->create_log)
 		fprintf(log_file, "\nDTNperf client received SIGINT: exiting\n");
-
+	
 	client_clean_exit(0);
 } // end client_handler
 
@@ -2208,9 +2217,14 @@ void client_clean_exit(int status)
 		}
 	}
 
+	if (perf_opt->bp_implementation == BP_IBR)
+		//with IBR-DTN, al_bp_close from a signal handler is blocking, 
+		//and not needed since the process is being terminated
+		exit(status); 
+		
 	if (bp_handle_open)
 		al_bp_close(handle);
-	if( perf_opt->bp_implementation == BP_ION)
-		al_bp_unregister(handle,regid,local_eid);
+	if (perf_opt->bp_implementation == BP_ION)
+		al_bp_unregister(handle, regid, local_eid);
 	exit(status);
 } // end client_clean_exit

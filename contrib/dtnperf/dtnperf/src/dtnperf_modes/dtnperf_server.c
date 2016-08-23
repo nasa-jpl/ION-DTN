@@ -1,6 +1,7 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico@studio.unibo.it
+ **           Davide Pallotti, davide.pallotti@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
@@ -215,22 +216,27 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 			printf("standard...");
 	}
 
-	if(perf_opt->bp_implementation == BP_ION && perf_opt->eid_format_forced == 'N')
+	if(perf_opt->bp_implementation == BP_ION && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'I'))
 		// Use ION implementation with standard eid scheme
-		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_NUM_SERVICE,CBHE_SCHEME);
-	else if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'N')
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_NUM_SERVICE, CBHE_SCHEME);
+	else if(perf_opt->bp_implementation == BP_DTN && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'D'))
 		// Use DTN2 implementation with standard eid scheme
-		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING,DTN_SCHEME);
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING, DTN_SCHEME);
+	else if(perf_opt->bp_implementation == BP_IBR && (perf_opt->eid_format_forced == 'N' || perf_opt->eid_format_forced == 'D'))
+		// Use IBR-DTN implementation with standard eid scheme
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING, DTN_SCHEME);
 	else if(perf_opt->bp_implementation == BP_ION && perf_opt->eid_format_forced == 'D')
 		// Use ION implementation with forced DTN scheme
-		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING,DTN_SCHEME);
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_STRING, DTN_SCHEME);
 	else if(perf_opt->bp_implementation == BP_DTN && perf_opt->eid_format_forced == 'I')
 		// Use DTN2 implementation with forced IPN scheme
 	{
 		//in this case the api al_bp_build_local_eid() wants ipn_local_number.service_number
 		sprintf(temp, "%d.%s", perf_opt->ipn_local_num, SERV_EP_NUM_SERVICE);
 		error = al_bp_build_local_eid(handle, &local_eid, temp, CBHE_SCHEME);
-	}
+	} else if(perf_opt->bp_implementation == BP_IBR && perf_opt->eid_format_forced == 'I')
+		// Use IBR-DTN implementation with forced IPN scheme
+		error = al_bp_build_local_eid(handle, &local_eid, SERV_EP_NUM_SERVICE, CBHE_SCHEME);
 
 	if(debug && debug_level > 0)
 		printf("done\n");
@@ -248,7 +254,8 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 		printf("[debug] checking for existing registration...");
 	error = al_bp_find_registration(handle, &local_eid, &regid);
 	if ( (error == BP_SUCCESS && perf_opt->bp_implementation == BP_DTN)
-			|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID)))
+			|| (perf_opt->bp_implementation == BP_ION && (error == BP_EBUSY || error == BP_EPARSEEID))
+			|| (perf_opt->bp_implementation == BP_IBR && error == BP_SUCCESS))
 	{
 		fflush(stdout);
 		fprintf(stderr, "[DTNperf error] existing a registration with the same eid.\n");
@@ -687,11 +694,11 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				if ((debug) && (debug_level > 0))
 					printf("[debug] setting the payload of the bundle ack...");
 				// For DTN2 implementation ack payload in in memory
-				if(perf_opt->bp_implementation == BP_DTN)
+				if (perf_opt->bp_implementation == BP_DTN)
 				{
 					error = al_bp_bundle_set_payload_mem(&bundle_ack_object, pl_buffer, pl_buffer_size);
 				}
-				else if(perf_opt->bp_implementation == BP_ION)
+				else if (perf_opt->bp_implementation == BP_ION)
 				{
 					char filename_ack[256];
 					FILE * fd_ack;
@@ -705,7 +712,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 						fprintf(stderr, "[DTNperf fatal error] in creating the payload of the bundle ack: %s\n", strerror(errno));
 						server_clean_exit(1);
 					}
-					if(fwrite(pl_buffer, pl_buffer_size, 1, fd_ack) < 1){
+					if(fwrite(pl_buffer, pl_buffer_size, 1, fd_ack)<0){
 						fflush(stdout);
 						fprintf(stderr, "[DTNperf fatal error] in writing the payload of the bundle ack: %s\n", strerror(errno));
 						//server_clean_exit(1);
@@ -724,6 +731,10 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 					if (num_ack == 10000) //reset ack counter when it arrives at 10000
 						num_ack = 0;
 					error = al_bp_bundle_set_payload_file(&bundle_ack_object,filename_ack,filename_ack_len);
+				} 
+				else if (perf_opt->bp_implementation == BP_IBR) 
+				{	
+					error = al_bp_bundle_set_payload_mem(&bundle_ack_object, pl_buffer, pl_buffer_size);
 				}
 				if (error != BP_SUCCESS)
 				{
@@ -930,7 +941,7 @@ void print_server_usage(char * progname)
 			"     --ip-addr <addr>         IP address of the BP daemon api. Default: 127.0.0.1\n"
 			"     --ip-port <port>         IP port of the BP daemon api. Default: 5010\n"
 			"     --force-eid <[DTN|IPN]>  Force scheme of registration EID.\n"
-			"     --ipn-local <num>        Set ipn local number (Use only with --force-eid IPN on DTN2\n"
+			"     --ipn-local <num>        Set ipn local number (Use only with --force-eid IPN on DTN2)\n"
 			"     --fdir <dir>             Destination directory of files transferred. Default is %s .\n"
 			"     --debug[=level]          Debug messages [1-2], if level is not indicated level = 2.\n"
 			" -M, --memory         	       Save received bundles into memory.\n"
@@ -1044,9 +1055,9 @@ void parse_server_options(int argc, char ** argv, dtnperf_global_options_t * per
 			break;
 
 		case 37:
-			if(perf_opt->bp_implementation != BP_DTN)
+			if(perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 			{
-				fprintf(stderr, "[DTNperf error] --ip-addr supported only in DTN2\n");
+				fprintf(stderr, "[DTNperf error] --ip-addr supported only in DTN2 and IBR-DTN\n");
 				exit(1);
 				return;
 			}
@@ -1055,9 +1066,9 @@ void parse_server_options(int argc, char ** argv, dtnperf_global_options_t * per
 			break;
 
 		case 38:
-			if(perf_opt->bp_implementation != BP_DTN)
+			if(perf_opt->bp_implementation != BP_DTN && perf_opt->bp_implementation != BP_IBR)
 			{
-				fprintf(stderr, "[DTNperf error] --ip-port supported only in DTN2\n");
+				fprintf(stderr, "[DTNperf error] --ip-port supported only in DTN2 and IBR-DTN\n");
 				exit(1);
 				return;
 			}
@@ -1176,11 +1187,16 @@ void server_clean_exit(int status)
 		file_transfer_info_list_item_delete(&file_transfer_info_list, item);
 		free(filename);
 	}
-
-	if (bp_handle_open)
+	
+	//with IBR-DTN, al_bp_close from a signal handler is blocking, 
+	//and not needed since the process is being terminated	
+	if (al_bp_get_implementation() != BP_IBR) //perf_opt is not available here	
 	{
-		al_bp_close(handle);
-		//al_bp_unregister(handle,regid,local_eid);
+		if (bp_handle_open)
+		{
+			al_bp_close(handle);
+			//al_bp_unregister(handle,regid,local_eid);
+		}
 	}
 	printf("DTNperf server: Exit.\n");
 	exit(status);

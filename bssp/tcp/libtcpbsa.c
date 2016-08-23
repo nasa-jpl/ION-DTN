@@ -18,13 +18,6 @@ int	tcpDelayNsecPerByte = 0;
 
 /*	*	*	Sender functions	*	*	*	*/
 
-#ifndef mingw
-void	handleConnectionLoss()
-{
-	isignal(SIGPIPE, handleConnectionLoss);
-}
-#endif
-
 int	connectToBSI(struct sockaddr *sn, int *sock)
 {
 	*sock = -1;
@@ -52,44 +45,10 @@ int	connectToBSI(struct sockaddr *sn, int *sock)
 	return 0;
 }
 
-int	sendBytesByTCP(int *blockSocket, char *from, int length,
-		struct sockaddr *sn)
-{
-	int	bytesWritten;
-
-	while (1)	/*	Continue until not interrupted.		*/
-	{
-		bytesWritten = isend(*blockSocket, from, length, 0);
-		if (bytesWritten < 0)
-		{
-			switch (errno)
-			{
-			case EINTR:	/*	Interrupted; retry.	*/
-				continue;
-
-			case EPIPE:	/*	Lost connection.	*/
-			case EBADF:
-			case ETIMEDOUT:
-			case ECONNRESET:
-				closesocket(*blockSocket);
-				*blockSocket = -1;
-				bytesWritten = 0;
-			}
-
-			putSysErrmsg("TCP BSO write() error on socket", NULL);
-		}
-
-		return bytesWritten;
-	}
-}
-
 int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		int blockLength, char *block)
 {
-	int	totalBytesSent = 0;
 	int	header = htonl(blockLength);
-	int	bytesRemaining;
-	char	*from;
 	int	bytesSent;
 
 	/*	Connect to BSI as necessary.				*/
@@ -104,32 +63,23 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		}
 	}
 
-	bytesRemaining = 4;
-	from = (char *) &header;
-	while (bytesRemaining > 0)
+	bytesSent = itcp_send(blockSocket, (char *) &header, 4);
+	if (bytesSent < 0)
 	{
-		bytesSent = sendBytesByTCP(blockSocket, from, bytesRemaining,
-				socketName);
-		if (bytesSent < 0)
-		{
-			/*	Big problem; shut down.			*/
+		/*	Big problem; shut down.				*/
 
-			putErrmsg("Failed to send preamble by TCP.", NULL);
-			return -1;
-		}
+		putErrmsg("Failed to send preamble by TCP.", NULL);
+		return -1;
+	}
 
-		if (*blockSocket == -1)
-		{
-			/*	Just lost connection; treat as a
-			 *	transient anomaly, note incomplete
-			 *	transmission.				*/
+	if (bytesSent == 0)
+	{
+		/*	Just lost connection; treat as a transient
+		 *	anomaly, note incomplete transmission.		*/
 
-			writeMemo("[?] Lost connection to TCP BSI.");
-			return 0;
-		}
-
-		bytesRemaining -= bytesSent;
-		from += bytesSent;
+		writeMemo("[?] Lost connection to TCP BSI.");
+		closesocket(*blockSocket);
+		return 0;
 	}
 
 	if (blockLength == 0)		/*	Just a keep-alive.	*/
@@ -137,34 +87,23 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		return 1;	/*	Impossible length; means "OK".	*/
 	}
 
-	bytesRemaining = blockLength;
-	from = block;
-	while (bytesRemaining > 0)
+	bytesSent = itcp_send(blockSocket, block, blockLength);
+	if (bytesSent < 0)
 	{
-		bytesSent = sendBytesByTCP(blockSocket, from, bytesRemaining,
-				socketName);
-		if (bytesSent < 0)
-		{
-			/*	Big problem; shut down.			*/
+		/*	Big problem; shut down.			*/
 
-			putErrmsg("Failed to send block by TCP.", NULL);
-			return -1;
-		}
-
-		if (*blockSocket == -1)
-		{
-			/*	Just lost connection; treat as a
-			 *	transient anomaly, note incomplete
-			 *	transmission.				*/
-
-			writeMemo("[?] Lost connection to TCP BSI.");
-			return 0;
-		}
-
-		totalBytesSent += bytesSent;
-		from += bytesSent;
-		bytesRemaining -= bytesSent;
+		putErrmsg("Failed to send block by TCP.", NULL);
+		return -1;
 	}
 
-	return totalBytesSent;
+	if (bytesSent == 0)
+	{
+		/*	Just lost connection; treat as a transient
+		 *	anomaly, note incomplete transmission.		*/
+
+		writeMemo("[?] Lost connection to TCP BSI.");
+		return 0;
+	}
+
+	return blockLength;
 }

@@ -1484,11 +1484,11 @@ static int	loadKeyValue(SecKey *key, char *fileName)
  */
 int sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen)
 {
-	Sdr	   sdr = getIonsdr();
-	SecDB* secdb = _secConstants();
-	Object		nextKey;
-	SecKey		key;
-	Object		keyObj;
+	Sdr	sdr = getIonsdr();
+	SecDB*	secdb = _secConstants();
+	Object	nextKey;
+	SecKey	key;
+	Object	keyObj;
 
 	CHKERR(keyName);
 	CHKERR(keyVal);
@@ -1732,39 +1732,42 @@ int	sec_activeKey(char *keyName)
 	SecDB	*secdb = _secConstants();
 	Object	elt;
 	Object	ruleObj;
-	OBJ_POINTER(BspBabRule, babRule);
-	OBJ_POINTER(BspBibRule, bibRule);
-	OBJ_POINTER(BspBcbRule, bcbRule);
+		OBJ_POINTER(BspBabRule, babRule);
+		OBJ_POINTER(BspBibRule, bibRule);
+		OBJ_POINTER(BspBcbRule, bcbRule);
 
 	CHKERR(sdr_begin_xn(sdr));
 
-	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt; elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
 		ruleObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, BspBibRule, babRule, ruleObj);
-		if((strncmp(babRule->keyName, keyName, 32)) == 0)
+		GET_OBJ_POINTER(sdr, BspBabRule, babRule, ruleObj);
+		if ((strncmp(babRule->keyName, keyName, 32)) == 0)
 		{
 			sdr_end_xn(sdr);
 			return 1;
 		}
 	}
 
-	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt; elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
 		ruleObj = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BspBibRule, bibRule, ruleObj);
-		if((strncmp(bibRule->keyName, keyName, 32)) == 0)
+		if ((strncmp(bibRule->keyName, keyName, 32)) == 0)
 		{
 			sdr_end_xn(sdr);
 			return 1;
 		}
 	}
 
-	for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt; elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
 		ruleObj = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BspBcbRule, bcbRule, ruleObj);
-		if((strncmp(bcbRule->keyName, keyName, 32)) == 0)
+		if ((strncmp(bcbRule->keyName, keyName, 32)) == 0)
 		{
 			sdr_end_xn(sdr);
 			return 1;
@@ -3145,8 +3148,6 @@ int	sec_removeBspBibRule(char *secSrcEid, char *secDestEid,
 
 /*		Block Confidentiality Block Support			*/
 
-
-
 void	sec_get_bspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		Object *ruleAddr, Object *eltp)
 {
@@ -3387,8 +3388,6 @@ int	sec_removeBspBcbRule(char *secSrcEid, char *secDestEid,
 	return 1;
 }
 
-
-
 Object sec_get_bspBibRuleList()
 {
 	SecDB	*secdb = _secConstants();
@@ -3400,7 +3399,6 @@ Object sec_get_bspBibRuleList()
 
 	return secdb->bspBibRules;
 }
-
 
 Object sec_get_bspBcbRuleList()
 {
@@ -3414,13 +3412,12 @@ Object sec_get_bspBcbRuleList()
 	return secdb->bspBcbRules;
 }
 
-
 /* Size is the maximum size of a key name. */
-int  sec_get_bpsecNumKeys(int *size)
+int	sec_get_bpsecNumKeys(int *size)
 {
 	Sdr	sdr = getIonsdr();
-	SecDB		*secdb = _secConstants();
-//	OBJ_POINTER(SecDB, db);
+	SecDB	*secdb = _secConstants();
+/*		OBJ_POINTER(SecDB, db);		*/
 	int result = 0;
 
 	CHKERR(size);
@@ -3440,9 +3437,9 @@ int  sec_get_bpsecNumKeys(int *size)
 void sec_get_bpsecKeys(char *buffer, int length)
 {
 	Sdr	sdr = getIonsdr();
-//	OBJ_POINTER(SecDB, db);
-	SecDB		*secdb = _secConstants();
-	OBJ_POINTER(SecKey, key);
+/*		OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+		OBJ_POINTER(SecKey, key);
 	Object	elt;
 	Object	obj;
 
@@ -3463,12 +3460,12 @@ void sec_get_bpsecKeys(char *buffer, int length)
 
 		GET_OBJ_POINTER(sdr, SecKey, key, obj);
 
-		if((key != NULL) && ((key_len = strlen(key->name)) > 0))
+		if ((key != NULL) && ((key_len = strlen(key->name)) > 0))
 		{
 			/* Make sure there is room in the buffer to
 			 * hold the key name.
 			 */
-			if((idx + key_len + 1) > length)
+			if ((idx + key_len + 1) > length)
 			{
 				memset(buffer, 0, length);
 				sdr_cancel_xn(sdr);
@@ -3487,7 +3484,7 @@ void sec_get_bpsecKeys(char *buffer, int length)
 	/* If we put anything in the buffer, there is now
 	 * a trailing ",". Replace it with a NULL terminator.
 	 */
-	if(buffer != cursor)
+	if (buffer != cursor)
 	{
 		cursor--;
 		cursor[0] = '\0';
@@ -3496,14 +3493,12 @@ void sec_get_bpsecKeys(char *buffer, int length)
 	sdr_end_xn(sdr);
 }
 
-
-
 int  sec_get_bpsecNumCSNames(int *size)
 {
 	Sdr	sdr = getIonsdr();
-	SecDB		*secdb = _secConstants();
-//	OBJ_POINTER(SecDB, db);
-	int result = 0;
+	SecDB	*secdb = _secConstants();
+	/*	OBJ_POINTER(SecDB, db);		*/
+	int	result = 0;
 
 	CHKERR(size);
 
@@ -3521,10 +3516,10 @@ int  sec_get_bpsecNumCSNames(int *size)
 void sec_get_bpsecCSNames(char *buffer, int length)
 {
 	Sdr	sdr = getIonsdr();
-//	OBJ_POINTER(SecDB, db);
-	SecDB		*secdb = _secConstants();
-	OBJ_POINTER(BspBibRule, bibRule);
-	OBJ_POINTER(BspBcbRule, bcbRule);
+	/*	OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+		OBJ_POINTER(BspBibRule, bibRule);
+		OBJ_POINTER(BspBcbRule, bcbRule);
 	Object	elt;
 	Object	obj;
 
@@ -3552,9 +3547,9 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 		 * hold the ciphersuite name.
 		 */
 		size = strlen(bibRule->ciphersuiteName);
-		if((size > 0) && (size <= 32))
+		if ((size > 0) && (size <= 32))
 		{
-			if((idx + size + 1) > length)
+			if ((idx + size + 1) > length)
 			{
 				memset(buffer, 0, length);
 				sdr_exit_xn(sdr);
@@ -3582,9 +3577,9 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 		 * hold the ciphersuite name.
 		 */
 		size = strlen(bcbRule->ciphersuiteName);
-		if((size > 0) && (size <= 32))
+		if ((size > 0) && (size <= 32))
 		{
-			if((idx + size + 1) > length)
+			if ((idx + size + 1) > length)
 			{
 				memset(buffer, 0, length);
 				sdr_exit_xn(sdr);
@@ -3604,7 +3599,7 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 	/* If we put anything in the buffer, there is now
 	 * a trailing ",". Replace it with a NULL terminator.
 	 */
-	if(buffer != cursor)
+	if (buffer != cursor)
 	{
 		cursor--;
 		cursor[0] = '\0';
@@ -3616,9 +3611,9 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 int  sec_get_bpsecNumSrcEIDs(int *size)
 {
 	Sdr	sdr = getIonsdr();
-//	OBJ_POINTER(SecDB, db);
-	SecDB		*secdb = _secConstants();
-	int result = 0;
+	/*	OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+	int	result = 0;
 
 	CHKERR(size);
 
@@ -3636,16 +3631,16 @@ int  sec_get_bpsecNumSrcEIDs(int *size)
 void sec_get_bpsecSrcEIDs(char *buffer, int length)
 {
 	Sdr	sdr = getIonsdr();
-//	OBJ_POINTER(SecDB, db);
-	SecDB		*secdb = _secConstants();
-	OBJ_POINTER(BspBibRule, bibRule);
-	OBJ_POINTER(BspBcbRule, bcbRule);
+	/*	OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+		OBJ_POINTER(BspBibRule, bibRule);
+		OBJ_POINTER(BspBcbRule, bcbRule);
 	Object	elt;
 	Object	obj;
 
-	char *cursor = NULL;
-	int idx = 0;
-	int size = 0;
+	char	*cursor = NULL;
+	int	idx = 0;
+	int	size = 0;
 	char	eidBuffer[SDRSTRING_BUFSZ];
 
 	CHKVOID(buffer);
@@ -3669,9 +3664,9 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 		 */
 
 		size = sdr_string_read(sdr, eidBuffer, bibRule->securitySrcEid);
-		if((size > 0) && (size <= 32))
+		if ((size > 0) && (size <= 32))
 		{
-			if((idx + size + 1) > length)
+			if ((idx + size + 1) > length)
 			{
 				memset(buffer, 0, length);
 				sdr_exit_xn(sdr);
@@ -3699,9 +3694,9 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 		 * hold the ciphersuite name.
 		 */
 		size = sdr_string_read(sdr, eidBuffer, bcbRule->securitySrcEid);
-		if((size > 0) && (size <= 32))
+		if ((size > 0) && (size <= 32))
 		{
-			if((idx + size + 1) > length)
+			if ((idx + size + 1) > length)
 			{
 				memset(buffer, 0, length);
 				sdr_exit_xn(sdr);
@@ -3721,7 +3716,7 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 	/* If we put anything in the buffer, there is now
 	 * a trailing ",". Replace it with a NULL terminator.
 	 */
-	if(buffer != cursor)
+	if (buffer != cursor)
 	{
 		cursor--;
 		cursor[0] = '\0';
@@ -3730,7 +3725,6 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 	sdr_exit_xn(sdr);
 
 }
-
 
 #endif
 

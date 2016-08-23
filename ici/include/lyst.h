@@ -76,7 +76,7 @@ LystElt lyst_next(LystElt);
 LystElt lyst_prev(LystElt);
 LystElt lyst_search(LystElt,void *);
 
-Lyst lyst_list(LystElt);
+Lyst lyst_lyst(LystElt);
 void *lyst_data(LystElt);
 void *lyst_data_set(LystElt,void *);
 

@@ -168,13 +168,13 @@ fi
 
 bprecvfile ipn:7.1 &
 
-# After 5 seconds, issue files from node 2 to nodes 6, 7, and 8.
+# After 5 seconds, issue file from node 2 to node 8.
 sleep 5
-echo "Sending files from node 2 destined for nodes 6, 7, and 8..."
 cd ../2.ipn.tcp
-#bpsendfile ipn:2.2 ipn:6.1 testfilex
-#bpsendfile ipn:2.2 ipn:7.1 testfiley
+echo "Sending file z (885 bytes) from node 2 destined for node 8..."
 bpsendfile ipn:2.2 ipn:8.1 testfilez
+sleep 1
+echo "File should have been abandoned as unroutable."
 
 # After 5 seconds, start ipnd for nodes 2 and 3 so that the file
 # destined for node 6 will be forwarded to node 3.
@@ -188,7 +188,10 @@ cd ../2.ipn.tcp
 ./startlisten
 
 sleep 2
+echo "Sending file x (915 bytes) from node 2 destined for node 6..."
 bpsendfile ipn:2.2 ipn:6.1 testfilex
+sleep 1
+echo "File should have been forwarded from 2 to 3 with copy saved in limbo."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
@@ -210,7 +213,10 @@ cd ../2.ipn.tcp
 ./startlisten
 
 sleep 2
+echo "Sending file y (1070 bytes) from node 2 destined for node 7..."
 bpsendfile ipn:2.2 ipn:7.1 testfiley
+sleep 1
+echo "File should have been forwarded from 2 to 5, no copy in limbo."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
@@ -231,6 +237,9 @@ sleep 1
 cd ../3.ipn.tcp
 ./startlisten
 
+sleep 2
+echo "File x (915 bytes) in 3 destined for 6 should be forwarded to 6."
+
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
 echo ""
@@ -249,6 +258,9 @@ cd ../7.ipn.tcp
 sleep 1
 cd ../5.ipn.tcp
 ./startlisten
+
+sleep 2
+echo "File y (1070 bytes) in 5 destined for 7 should be forwarded to 7."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5

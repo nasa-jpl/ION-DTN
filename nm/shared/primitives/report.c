@@ -104,8 +104,8 @@ rpt_t*   rpt_create(time_t time, Lyst entries, eid_t recipient)
 {
 	rpt_t *result = NULL;
 
-	AMP_DEBUG_ENTRY("rpt_create","(%d,"UVAST_FIELDSPEC",%s)",
-			          time, (uvast) entries, recipient.name);
+	AMP_DEBUG_ENTRY("rpt_create","(%d,"ADDR_FIELDSPEC",%s)",
+			          time, (uaddr) entries, recipient.name);
 
 	/* Step 1: Allocate the message. */
 	if((result = (rpt_t*) STAKE(sizeof(rpt_t))) == NULL)
@@ -164,8 +164,8 @@ void  rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
     LystElt elt;
     rpt_t *cur_rpt = NULL;
 
-    AMP_DEBUG_ENTRY("rpt_clear_lyst","("UVAST_FIELDSPEC","UVAST_FIELDSPEC", %d)",
-			          (uvast) list, (uvast) mutex, destroy);
+    AMP_DEBUG_ENTRY("rpt_clear_lyst","("ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
+			          (uaddr) list, (uaddr) mutex, destroy);
 
     /* Step 0: Sanity Checks. */
     if((list == NULL) || (*list == NULL))
@@ -251,8 +251,8 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	rpt_entry_t *cur_entry = NULL;
 	char *rx = NULL;
 
-	AMP_DEBUG_ENTRY("rpt_deserialize","("UVAST_FIELDSPEC", %d,"UVAST_FIELDSPEC")",
-			          (uvast)cursor, size, (uvast) bytes_used);
+	AMP_DEBUG_ENTRY("rpt_deserialize","("ADDR_FIELDSPEC", %d,"ADDR_FIELDSPEC")",
+			          (uaddr)cursor, size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Checks. */
 	if((cursor == NULL) || (bytes_used == 0))
@@ -384,7 +384,7 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	memcpy(result->recipient.name, rx, strlen(rx) + 1);
 	SRELEASE(rx);
 
-	AMP_DEBUG_EXIT("rpt_deserialize_data","->"UVAST_FIELDSPEC,(uvast)result);
+	AMP_DEBUG_EXIT("rpt_deserialize_data","->"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -464,8 +464,8 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 	uint32_t num_entries = 0;
 
 
-	AMP_DEBUG_ENTRY("rpt_serialize","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-			          (uvast)rpt, (uvast) len);
+	AMP_DEBUG_ENTRY("rpt_serialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			          (uaddr)rpt, (uaddr) len);
 
 	/* Step 0: Sanity Checks. */
 	if((rpt == NULL) || (len == NULL))
@@ -540,7 +540,7 @@ uint8_t* rpt_serialize(rpt_t *rpt, uint32_t *len)
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("rpt_serialize","->"UVAST_FIELDSPEC,(uvast)result);
+	AMP_DEBUG_EXIT("rpt_serialize","->"ADDR_FIELDSPEC,(uaddr)result);
 	return result;
 }
 
@@ -644,8 +644,8 @@ void rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
     LystElt elt;
     rpt_entry_t *cur_entry = NULL;
 
-    AMP_DEBUG_ENTRY("rpt_entry_clear_lyst","("UVAST_FIELDSPEC","UVAST_FIELDSPEC", %d)",
-			          (uvast) list, (uvast) mutex, destroy);
+    AMP_DEBUG_ENTRY("rpt_entry_clear_lyst","("ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
+			          (uaddr) list, (uaddr) mutex, destroy);
 
     /* Step 0: Sanity Checks. */
     if((list == NULL) || (*list == NULL))

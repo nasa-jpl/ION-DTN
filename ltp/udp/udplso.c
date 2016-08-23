@@ -12,7 +12,10 @@
 	7/6/2010, modified as per issue 132-udplso-tx-rate-limit
 	Greg Menke, Raytheon, under contract METS-MR-679-0909
 	with NASA GSFC.
-									*/
+	
+	5/31/2016, modified as per bug 0069-Improve rate control
+	algorithms. Jeremy Pierce-Mayer, DLR/INSYEN.
+*/
 
 #include "udplsa.h"
 
@@ -57,7 +60,7 @@ typedef struct
 	int		linkSocket;
 	int		running;
 } ReceiverThreadParms;
-
+	
 static void	*handleDatagrams(void *parm)
 {
 	/*	Main loop for UDP datagram reception and handling.	*/
@@ -139,11 +142,6 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				continue;	/*	Retry.		*/
 			}
 
-			if (errno == ENETUNREACH)
-			{
-				return length;	/*	Just data loss.	*/
-			}
-
 			{
 				char			memoBuf[1000];
 				struct sockaddr_in	*saddr = destAddr;
@@ -167,13 +165,17 @@ int	udplso(int a1, int a2, int a3, int a4, int a5,
 {
 	char		*endpointSpec = (char *) a1;
 	unsigned int	txbps = (a2 != 0 ?  strtoul((char *) a2, NULL, 0) : 0);
-	uvast		remoteEngineId = a3 != 0 ?  strtouvast((char *) a3) : 0;
+	unsigned int 	tokenWindowTime = (a3 != 0 ?  strtoul((char *) a3, NULL, 0) : 0);
+	uvast		remoteEngineId = a4 != 0 ?  strtouvast((char *) a4) : 0;
+
 #else
 int	main(int argc, char *argv[])
 {
 	char		*endpointSpec = argc > 1 ? argv[1] : NULL;
 	unsigned int	txbps = (argc > 2 ?  strtoul(argv[2], NULL, 0) : 0);
-	uvast		remoteEngineId = argc > 3 ? strtouvast(argv[3]) : 0;
+	unsigned int 	tokenWindowTime = (argc > 3 ? strtoul(argv[3], NULL, 0) : 0);
+	uvast		remoteEngineId = argc > 4 ? strtouvast(argv[4]) : 0;
+
 #endif
 	Sdr			sdr;
 	LtpVspan		*vspan;
@@ -193,22 +195,31 @@ int	main(int argc, char *argv[])
 	int			segmentLength;
 	char			*segment;
 	int			bytesSent;
-	float			sleepSecPerBit = 0;
-	float			sleep_secs;
-	unsigned int		usecs;
 	int			fd;
 	char			quit = '\0';
-
-	if( txbps != 0 && remoteEngineId == 0 )
+	/* For token bucket implementation */
+	unsigned int remainingTokens = 0;
+	unsigned int lastTokenAdditionTime = 0;
+	unsigned int tokensToAdd = 0;
+	unsigned int tokenMaxInBucket = 0;
+	unsigned int tokenCurTime = 0;
+	struct timeval tokenTimeVal;
+	
+	if (tokenWindowTime != 0 && remoteEngineId == 0)
+	{
+		remoteEngineId = tokenWindowTime;
+		tokenWindowTime = 0;
+	}
+	else if( txbps != 0 && remoteEngineId == 0)
 	{
 		remoteEngineId = txbps;
 		txbps = 0;
 	}
-
+	
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
 		PUTS("Usage: udplso {<remote engine's host name> | @}[:\
-		<its port number>] <txbps (0=unlimited)> <remote engine ID>");
+		<its port number>] <txbps (0=unlimited)> <token bucket sliding window (in ms)> <remote engine ID> ");
 		return 0;
 	}
 
@@ -241,6 +252,30 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr_exit_xn(sdr);
+	
+	/* Perform the initial setup for the token bucket */
+	if(txbps)
+	{
+		/* Internally, our math is all based upon bytes/sec, whereas this parameter is in bits/sec, so we change that */
+		txbps = txbps/8;
+		tokenMaxInBucket = txbps;
+		/* Check to see if the txbps is less than a single segment. */
+		if(txbps < vspan->maxXmitSegSize)
+		{
+			putErrmsg("txbps shouldn't ever be less than the Max Xmit Segment Size, attempting to compensate", NULL);
+			tokenMaxInBucket = vspan->maxXmitSegSize;
+		}
+		if((tokenWindowTime == 0) | (tokenWindowTime * txbps < 1000000)) /*We need to add some sane defaults */
+		{
+			tokenWindowTime = 1000000/txbps; /*microseconds*/
+			tokensToAdd = 1;
+		}
+		else
+			tokensToAdd = txbps/(1000000/tokenWindowTime);
+		
+		/* Seed the bucket */
+		remainingTokens = tokensToAdd;
+	}	
 
 	/*	All command-line arguments are now validated.  First
 	 *	get peer's socket address.				*/
@@ -304,6 +339,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
+
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
@@ -318,22 +354,16 @@ int	main(int argc, char *argv[])
 	}
 
 	/*	Can now begin transmitting to remote engine.		*/
-
 	{
 		char	memoBuf[1024];
 
 		isprintf(memoBuf, sizeof(memoBuf),
 			"[i] udplso is running, spec=[%s:%d], txbps=%d \
-(0=unlimited), rengine=%d.", (char *) inet_ntoa(peerInetName->sin_addr),
-			ntohs(portNbr), txbps, (int) remoteEngineId);
+(0=unlimited), tokenWindowTime=%d, rengine=%d.", (char *) inet_ntoa(peerInetName->sin_addr),
+			ntohs(portNbr), txbps, tokenWindowTime, (int) remoteEngineId);
 		writeMemo(memoBuf);
 	}
-
-	if (txbps)
-	{
-		sleepSecPerBit = 1.0 / txbps;
-	}
-
+	
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
@@ -347,38 +377,60 @@ int	main(int argc, char *argv[])
 		{
 			continue;
 		}
-
+		
 		if (segmentLength > UDPLSA_BUFSZ)
 		{
 			putErrmsg("Segment is too big for UDP LSO.",
 					itoa(segmentLength));
 			rtp.running = 0;	/*	Terminate LSO.	*/
 		}
-		else
+		
+		if(tokenWindowTime) /* A quick-and-dirty way to test if we're using token bucket */
 		{
-			bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
-					segmentLength, peerInetName);
-			if (bytesSent < segmentLength)
+	
+			/* First, add tokens if required */
+			getCurrentTime(&tokenTimeVal);
+			tokenCurTime = tokenTimeVal.tv_sec*1000000 + tokenTimeVal.tv_usec;
+			
+			unsigned int tokenTimeElapsed = tokenCurTime - lastTokenAdditionTime;
+			
+			if((tokenTimeElapsed > tokenWindowTime) && (remainingTokens < tokenMaxInBucket))
 			{
-				rtp.running = 0;/*	Terminate LSO.	*/
+				remainingTokens += tokensToAdd * (tokenTimeElapsed/tokenWindowTime);
+				lastTokenAdditionTime = tokenCurTime;
+				
+				if(remainingTokens > tokenMaxInBucket)
+					remainingTokens = tokenMaxInBucket;
 			}
-
-			if (txbps)
+			
+			if(segmentLength + IPHDR_SIZE > remainingTokens) /* We don't have enough tokens to transmit the entire segment */
 			{
-				sleep_secs = sleepSecPerBit
-					* ((IPHDR_SIZE + segmentLength) * 8);
-				usecs = sleep_secs * 1000000.0;
-				if (usecs == 0)
+				/* Predict when we will, and sleep until then */
+				if(tokensToAdd != 1)
 				{
-					usecs = 1;
+					microsnooze(tokenWindowTime);
 				}
-
-				microsnooze(usecs);
+				else
+					sm_TaskYield();
+					
+				continue;
 			}
 		}
-
+		writeMemo("Sending");
+		bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
+					segmentLength, peerInetName);	
+		
+		if (bytesSent < segmentLength)
+		{
+			printf("Transmit error %d\n",bytesSent);
+			rtp.running = 0;/*	Terminate LSO.	*/
+		}
+		else if (tokenWindowTime)
+		{
+			remainingTokens -= bytesSent + IPHDR_SIZE;
+		}
+		
 		/*	Make sure other tasks have a chance to run.	*/
-
 		sm_TaskYield();
 	}
 

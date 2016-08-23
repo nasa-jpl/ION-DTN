@@ -8,6 +8,13 @@ ION_OPEN_SOURCE=1
 OS_VERS=""
 NOT_KILLED=""
 PS_LIST=""
+
+# Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
+# Since ipcs truncates usernames to 10 characters, we need to match against a
+# truncated username so we trim the username to 10 characters.
+# NOTE: This may cause conflicts with long usernames with similar beginning
+#       characters. We'll look for a more robust solution in the near future.
+USERNAME_CUT=`echo $USER | cut -c 1-10`
 KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
 	aoslsi lt-aoslsi \
@@ -57,7 +64,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	dtpcd lt-dtpcd \
 	dtpcreceive lt-dtpcreceive \
 	dtpcsend lt-dtpcsend \
-	dtpcadmin lt-dtpcadmin \
 	file2dgr lt-file2dgr \
 	file2sdr lt-file2sdr \
 	file2sm lt-file2sm \
@@ -176,15 +182,15 @@ echo "Deleting shared memory to remove SDR..."
 
 if [[ -z "$OS_VERS" ]]; then 
 	# For mac 10.5 and Linux
-	for Q in `ipcs -q | grep $USER | awk '{ print $2 }'`; do ipcrm -q $Q; done
-	for M in `ipcs -m | grep $USER | awk '{ print $2 }'`; do ipcrm -m $M; done
-	for S in `ipcs -s | grep $USER | awk '{ print $2 }'`; do ipcrm -s $S; done
+	for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
+	for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
+	for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
 else
 	# For mac 10.4, since ipcs on it is weird.
 	echo "Since ipcs on Apple OSX 10.4 is weird, this script (killm) needs to use sudo, and will ask for your password"
-	for Q in `sudo ipcs -q | grep $USER | awk '{ print $3 }'`; do ipcrm -Q $Q; done
-	for M in `sudo ipcs -m | grep $USER | awk '{ print $3 }'`; do ipcrm -M $M; done
-	for S in `sudo ipcs -s | grep $USER | awk '{ print $3 }'`; do ipcrm -S $S; done
+	for Q in `sudo ipcs -q | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -Q $Q; done
+	for M in `sudo ipcs -m | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -M $M; done
+	for S in `sudo ipcs -s | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -S $S; done
 fi
 
 echo "Killm completed."	

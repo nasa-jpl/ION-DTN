@@ -16,7 +16,7 @@
 static int	run_file2sm(char *fileName)
 {
 	char		*wmspace;
-	int		wmid;
+	uaddr		wmid;
 	PsmPartition	wm = NULL;
 	PsmMgtOutcome	outcome;
 	PsmAddress	testlist;

@@ -315,8 +315,8 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 	tdc_t *result = NULL;
     Lyst dc = NULL;
 
-	AMP_DEBUG_ENTRY("tdc_deserialize","(" UVAST_FIELDSPEC ",%d," UVAST_FIELDSPEC ")",
-			          (uvast) buffer, buffer_size, (uvast) bytes_used);
+	AMP_DEBUG_ENTRY("tdc_deserialize","(" ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ")",
+			          (uaddr) buffer, buffer_size, (uaddr) bytes_used);
 
 	/* Step 0: Sanity Check. */
 	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
@@ -376,7 +376,7 @@ tdc_t *tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_us
 		SRELEASE(entry);
 	}
 
-	AMP_DEBUG_EXIT("tdc_deserialize", "->" UVAST_FIELDSPEC, (uvast)result);
+	AMP_DEBUG_EXIT("tdc_deserialize", "->" ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -400,7 +400,7 @@ void tdc_destroy(tdc_t **tdc)
  * \par Purpose: Grabs an item from the specified index, checks the type given is
  *				equal to the type of the item, then copies it to the given buffer.
  *
- * \return The type, or DTNMP_TYPE_UNK if something failed.
+ * \return The type, or AMP_TYPE_UNK if something failed.
  *
  *
  * \param[in]   tdc	        The typed data collection being queried
@@ -629,7 +629,7 @@ uint32_t tdc_get_entry_size(tdc_t* tdc, uint8_t index)
  *
  * \par Purpose: returns the type of a given entry.
  *
- * \return the requested type, or DTNMP_TYPE_UNK.
+ * \return the requested type, or AMP_TYPE_UNK.
  *
  *
  * \param[in]   tdc			The typed data collection
@@ -785,7 +785,7 @@ uint8_t tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize)
  *				 allocated and the parameter copied, so remember to free
  *				 your list!
  *
- * \return       The type inserted, or DTNMP_TYPE_UNK if something failed.
+ * \return       The type inserted, or AMP_TYPE_UNK if something failed.
  *
  *
  * \param[in]   tdc     The typed data collection.
@@ -946,7 +946,7 @@ uint8_t* tdc_serialize(tdc_t *tdc, uint32_t *size)
  * \par Purpose: Sets the type for a given index, allocating additional header
  *				space as needed-
  *				space
- * \return The type, or DTNMP_TYPE_UNK if something failed.
+ * \return The type, or AMP_TYPE_UNK if something failed.
  *
  *
  * \param[in]   tdc		The Typed Data Collection

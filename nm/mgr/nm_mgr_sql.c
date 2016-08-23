@@ -293,8 +293,8 @@ uint32_t db_add_dc(Lyst dc, ui_parm_spec_t *spec)
 	LystElt elt;
 	int i = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_dc", "("UVAST_FIELDSPEC", %d)",
-					  (uvast) entry, type);
+	DTNMP_DEBUG_ENTRY("db_add_dc", "("ADDR_FIELDSPEC", %d)",
+					  (uaddr) entry, type);
 
 	/* Step 0: Sanity check arguments. */
 	if(dc == NULL)
@@ -426,7 +426,7 @@ uint32_t db_add_mid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
 	uint32_t parm_idx = 0;
 	uint32_t num_parms = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_mid", "("UVAST_FIELDSPEC")", (uvast)mid);
+	DTNMP_DEBUG_ENTRY("db_add_mid", "("ADDR_FIELDSPEC")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -566,7 +566,7 @@ uint32_t db_add_mc(Lyst mc)
 	uint32_t i = 0;
 	uint32_t mid_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_mc", "("UVAST_FIELDSPEC")", (uvast)mc);
+	DTNMP_DEBUG_ENTRY("db_add_mc", "("ADDR_FIELDSPEC")", (uaddr)mc);
 
 	/* Step 0 - Sanity check arguments. */
 	if(mc == NULL)
@@ -675,7 +675,7 @@ uint32_t db_add_nn(oid_nn_t *nn)
 	uint32_t oid_idx = 0;
 	uint32_t adm_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_nn", "("UVAST_FIELDSPEC")", (uvast)nn);
+	DTNMP_DEBUG_ENTRY("db_add_nn", "("ADDR_FIELDSPEC")", (uaddr)nn);
 
 	/* Step 0 - Sanity check arguments. */
 	if(nn == NULL)
@@ -789,8 +789,8 @@ uint32_t db_add_oid(oid_t *oid)
 	uint32_t num_parms = 0;
 	char *oid_str = NULL;
 
-	DTNMP_DEBUG_ENTRY("db_add_oid", "("UVAST_FIELDSPEC")",
-					  (uvast) oid);
+	DTNMP_DEBUG_ENTRY("db_add_oid", "("ADDR_FIELDSPEC")",
+					  (uaddr) oid);
 
 	/* Step 0: Sanity check arguments. */
 	if(oid == NULL)
@@ -884,8 +884,8 @@ uint32_t db_add_parms(oid_t *oid, ui_parm_spec_t *spec)
 	uint32_t num_parms = 0;
 	uint32_t result = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_parms", "("UVAST_FIELDSPEC")",
-					  (uvast) oid);
+	DTNMP_DEBUG_ENTRY("db_add_parms", "("ADDR_FIELDSPEC")",
+					  (uaddr) oid);
 
 	/* Step 0: Sanity check arguments. */
 	if((oid == NULL) || (spec == NULL))
@@ -950,8 +950,8 @@ uint32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
 	uint32_t num_parms = 0;
 
 	DTNMP_DEBUG_ENTRY("db_add_protomid",
-			          "("UVAST_FIELDSPEC","UVAST_FIELDSPEC",%d)",
-			          (uvast)mid, (uvast) spec, type);
+			          "("ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d)",
+			          (uaddr)mid, (uaddr) spec, type);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -1090,8 +1090,8 @@ uint32_t db_add_protoparms(ui_parm_spec_t *spec)
 	uint32_t num_parms = 0;
 	uint32_t result = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_protoparms", "("UVAST_FIELDSPEC")",
-					  (uvast) spec);
+	DTNMP_DEBUG_ENTRY("db_add_protoparms", "("ADDR_FIELDSPEC")",
+					  (uaddr) spec);
 
 	/* Step 0: Sanity check arguments. */
 	if(spec == NULL)
@@ -1181,8 +1181,8 @@ uint32_t db_fetch_adm_idx(char *name, char *version)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_adm_idx","("UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-					  (uvast)name, (uvast) version);
+	DTNMP_DEBUG_ENTRY("db_fetch_adm_idx","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+					  (uaddr)name, (uaddr) version);
 
 	if((name == NULL) || (version == NULL))
 	{
@@ -1306,7 +1306,7 @@ Lyst db_fetch_dc(int dc_idx)
 	/* Step 4: Free results. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_dc", "-->"UVAST_FIELDSPEC, (uvast) result);
+	DTNMP_DEBUG_EXIT("db_fetch_dc", "-->"ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -1479,7 +1479,7 @@ mid_t *db_fetch_mid(int idx)
 		result = NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("db_fetch_mid", "-->"UVAST_FIELDSPEC, (uvast) result);
+	DTNMP_DEBUG_EXIT("db_fetch_mid", "-->"ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -1594,7 +1594,7 @@ uint32_t db_fetch_mid_idx(mid_t *mid)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_mid_idx","("UVAST_FIELDSPEC")", (uvast)mid);
+	DTNMP_DEBUG_ENTRY("db_fetch_mid_idx","("ADDR_FIELDSPEC")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -1821,8 +1821,8 @@ uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"UVAST_FIELDSPEC")",
-			          idx, (uvast)size);
+	DTNMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"ADDR_FIELDSPEC")",
+			          idx, (uaddr)size);
 
 	if((idx == 0) || (size == NULL))
 	{
@@ -1954,7 +1954,7 @@ oid_t *db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx)
 		dc_destroy(&parms);
 	}
 
-	DTNMP_DEBUG_EXIT("db_fetch_oid","-->"UVAST_FIELDSPEC, (uvast)result);
+	DTNMP_DEBUG_EXIT("db_fetch_oid","-->"ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -1989,7 +1989,7 @@ uint32_t db_fetch_oid_idx(oid_t *oid)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_oid_idx","("UVAST_FIELDSPEC")", (uvast)oid);
+	DTNMP_DEBUG_ENTRY("db_fetch_oid_idx","("ADDR_FIELDSPEC")", (uaddr)oid);
 
 	if(oid == NULL)
 	{
@@ -2135,7 +2135,7 @@ Lyst db_fetch_parms(uint32_t idx)
 	/* Step 4: Free results. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_parms", "-->"UVAST_FIELDSPEC, (uvast)result);
+	DTNMP_DEBUG_EXIT("db_fetch_parms", "-->"ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -2169,7 +2169,7 @@ uint32_t db_fetch_protomid_idx(mid_t *mid)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_protomid_idx","("UVAST_FIELDSPEC")", (uvast)mid);
+	DTNMP_DEBUG_ENTRY("db_fetch_protomid_idx","("ADDR_FIELDSPEC")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -2329,7 +2329,7 @@ uint32_t db_fetch_reg_agent_idx(eid_t *eid)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_reg_agent_idx","("UVAST_FIELDSPEC")", (uvast) eid);
+	DTNMP_DEBUG_ENTRY("db_fetch_reg_agent_idx","("ADDR_FIELDSPEC")", (uaddr) eid);
 
 	if(eid == 0)
 	{
@@ -3033,7 +3033,7 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 	adm_reg_agent_t *agent_reg = NULL;
 	char query[128];
 
-	DTNMP_DEBUG_ENTRY("db_outgoing_process","("UVAST_FIELDSPEC")",(uvast) sql_res);
+	DTNMP_DEBUG_ENTRY("db_outgoing_process","("ADDR_FIELDSPEC")",(uaddr) sql_res);
 
 	CHKCONN
 
@@ -3153,8 +3153,8 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
 	uint32_t size = 0;
 
 	DTNMP_DEBUG_ENTRY("db_outgoing_process_messages",
-					  "(%d, "UVAST_FIELDSPEC")",
-			          idx, (uvast) msg_group);
+					  "(%d, "ADDR_FIELDSPEC")",
+			          idx, (uaddr) msg_group);
 
 	CHKCONN
 
@@ -3334,7 +3334,7 @@ int db_outgoing_ready(MYSQL_RES **sql_res)
 
 	*sql_res = NULL;
 
-	DTNMP_DEBUG_ENTRY("db_outgoing_ready","("UVAST_FIELDSPEC")", (uvast) sql_res);
+	DTNMP_DEBUG_ENTRY("db_outgoing_ready","("ADDR_FIELDSPEC")", (uaddr) sql_res);
 
 	CHKCONN
 

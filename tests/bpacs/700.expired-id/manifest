@@ -1,11 +1,14 @@
+#This test may fail because the date coded into the signals gets too old.
+#Using the date 2/11/2016 this test will begin to fail around february 2021 for date related reasons.
+
 import time
 
 # Send bundles with ID 1-4,6-9 that ION should accept custody of.
 timestr = time.strftime("%m/%d/%Y %H:%M:%S", time.gmtime() )
 bids = [ ]
 for i in range(10):
-    sendexpectacsandcustody("ipn:2.0", "ipn:13.42", timestr, i, cid = i, ttl = 5)
-    bids.append(("ipn:13.42", dtntime(timestr), i))
+    sendexpectacsandcustody("ipn:2.0", "ipn:1.2", timestr, i, cid = i, ttl = 5)
+    bids.append(("ipn:1.2", dtntime(timestr), i))
 
 # Get the CTEBs that ION assigned to these bundles when it forwarded them.
 receiveuntil(3.0)
@@ -27,7 +30,7 @@ emptycustody()
 checkcustody()
 
 # Send a bundle again, to make sure our stale ACS didn't crash ION.
-sendexpectacsandcustody("ipn:2.0", "ipn:13.42", timestr, 11, cid = 11 )
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", timestr, 11, cid = 11 )
 
 # Get the CTEBs that ION assigned to these bundles when it forwarded them.
 receiveuntil( 2.0 )

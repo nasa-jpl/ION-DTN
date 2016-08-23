@@ -119,8 +119,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	uint8_t	    *serializedAsb;
 	uvast bytes = 0;
 
-	BIB_DEBUG_PROC("+ bpsec_bibAttach("UVAST_FIELDSPEC","UVAST_FIELDSPEC","UVAST_FIELDSPEC")",
-			       (uvast) bundle, (uvast) bibBlk, (uvast) bibAsb);
+	BIB_DEBUG_PROC("+ bpsec_bibAttach("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr) bundle, (uaddr) bibBlk, (uaddr) bibAsb);
 
 	/* Step 0 - Sanity checks. */
 	CHKERR(bundle);

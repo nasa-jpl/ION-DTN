@@ -86,16 +86,16 @@ used for interpreting relative time values from now until the next revision
 of reference time.  Note that the new reference time can be a relative time,
 i.e., an offset beyond the current reference time.
 
-=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<probability>]
+=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
 
 The B<add contact> command.  This command schedules a period of data
 transmission from I<source_node> to I<dest_node>.  The period of
 transmission will begin at I<start_time> and end at I<stop_time>,
 and the rate of data transmission will be I<xmit_data_rate> bytes/second.
-The probability of the contact defaults to 1.0, indicating that the contact
+Our confidence in the contact defaults to 1.0, indicating that the contact
 is scheduled - not that non-occurrence of the contact is impossible, just
 that occurrence of the contact is planned and scheduled rather than merely
-imputed from past node behavior.  In the latter case, I<probability>
+imputed from past node behavior.  In the latter case, I<confidence>
 indicates our estimation of the likelihood of this potential contact.
 
 =item B<d contact> I<start_time> I<source_node> I<dest_node>
@@ -122,6 +122,24 @@ which the distance from I<one_node> to I<the_other_node> will be constant
 to within one light second.  The period will begin at I<start_time> and
 end at I<stop_time>, and the distance between the nodes during that time
 will be I<distance> light seconds.
+
+B<NOTE> that the ranges declared by these commands are directional.  ION
+does not automatically assume that the distance from node A to node B is
+the same as the distance from node B to node A.  While this symmetry is
+certainly true of geographic distance, the range that concerns ION is the
+latency in propagating a signal from one node to the other; this latency may
+be different in different directions because (for example) the signal from
+B to A might need to be forwarded along a different convergence-layer network
+path from the one used for the signal from A to B.
+
+As a convenience, ION interprets a range command in which the node number of
+the first cited node is numerically less than that of the second cited node
+as implicitly declaring the same distance in the reverse direction B<UNLESS>
+a second range command is present that cites the same two nodes in the opposite
+order, which overrides the implicit declaration.  A range command in which
+the node number of the first cited node is numerically greater than that of
+the second cited node implies B<ABSOLUTELY NOTHING> about the distance in the
+reverse direction.
 
 =item B<d range> I<start_time> I<one_node> I<the_other_node>
 

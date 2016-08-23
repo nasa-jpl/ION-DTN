@@ -73,6 +73,7 @@ static void add_random(int entries, double error, int count)
   int fd = open("/dev/urandom", O_RDONLY);
   int n;
 
+  assert(fd >= 0);
   for (n = 0; n < count; n++) {
     assert(read(fd, block, 32) == 32);
     if (bloom_add(&bloom, (void *)block, 32)) { collisions++; }

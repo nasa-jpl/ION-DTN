@@ -99,6 +99,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 			OBJ_POINTER(Outduct, outduct);
 			OBJ_POINTER(ClProtocol, protocol);
 
+	memset((char *) dir, 0, sizeof(FwdDirective));
 	switch (*actionToken)
 	{
 	case 'f':
@@ -131,16 +132,23 @@ static int	parseDirective(char *actionToken, char *parmToken,
 			return 0;
 		}
 
-		*cursor = '\0';
+		*cursor = '\0';		/*	Delimit protocol name.	*/
 		cursor++;
 		outductName = cursor;
+
+		/*	If there's a destination duct name, note end
+		 *	of outduct name and start of destination duct
+		 *	name.						*/
+
 		cursor = strchr(cursor, ',');
 		if (cursor == NULL)
 		{
+			/*	End of token delimits outduct name.	*/
+
 			destDuctName = NULL;
 			dir->destDuctName = 0;
 		}
-		else
+		else	/*	Delimit outduct name.			*/
 		{
 			*cursor = '\0';
 			cursor++;
@@ -333,10 +341,14 @@ static void	executeDelete(int tokenCount, char **tokens)
 static void	printDirective(char *context, FwdDirective *dir)
 {
 	Sdr	sdr = getIonsdr();
-	char	eidString[SDRSTRING_BUFSZ + 1];
+	char	eidString[SDRSTRING_BUFSZ];
+	Object	ductObj;
 		OBJ_POINTER(Outduct, duct);
 		OBJ_POINTER(ClProtocol, clp);
-	char	destDuctName[SDRSTRING_BUFSZ + 1];
+	char	*ductName;
+	char	*protocolName;
+	char	ductNameBuf[MAX_CL_DUCT_NAME_LEN + 1 + SDRSTRING_BUFSZ];
+	char	destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	char	buffer[1024];
 
 	switch (dir->action)
@@ -344,12 +356,12 @@ static void	printDirective(char *context, FwdDirective *dir)
 	case fwd:
 		if (sdr_string_read(sdr, eidString, dir->eid) < 1)
 		{
-			isprintf(buffer, sizeof buffer, "%.256s f ?", context);
+			isprintf(buffer, sizeof buffer, "%.255s f ?", context);
 			printText(buffer);
 		}
 		else
 		{
-			isprintf(buffer, sizeof buffer, "%.256s f %.256s\n",
+			isprintf(buffer, sizeof buffer, "%.255s f %.255s\n",
 					context, eidString);
 			printText(buffer);
 		}
@@ -357,26 +369,27 @@ static void	printDirective(char *context, FwdDirective *dir)
 		return;
 
 	case xmit:
-		GET_OBJ_POINTER(sdr, Outduct, duct, sdr_list_data(sdr,
-				dir->outductElt));
+		ductObj = sdr_list_data(sdr, dir->outductElt);
+		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
 		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
-		if (dir->destDuctName == 0)
+		protocolName = clp->name;
+		istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
+		if (dir->destDuctName)
 		{
-			destDuctName[0] = '\0';
-		}
-		else
-		{
-			destDuctName[0] = ':';
-			if (sdr_string_read(sdr, destDuctName + 1,
-					dir->destDuctName) < 0)
+			istrcat(ductNameBuf, ",", sizeof ductNameBuf);
+			if (sdr_string_read(sdr, destDuctName,
+					dir->destDuctName) < 1)
 			{
-				istrcpy(destDuctName + 1, "?",
-						sizeof destDuctName - 1);
+				destDuctName[0] = '?';
+				destDuctName[1] = '\0';
 			}
+
+			istrcat(ductNameBuf, destDuctName, sizeof ductNameBuf);
 		}
 
-		isprintf(buffer, sizeof buffer, "%.256s x %.8s.%.128s%.128s\n",
-				context, clp->name, duct->name, destDuctName);
+		ductName = ductNameBuf;
+		isprintf(buffer, sizeof buffer, "%.255s x %.8s/%.255s",
+				context, protocolName, ductName);
 		printText(buffer);
 		return;
 
@@ -521,7 +534,7 @@ static void	listPlans()
 		OBJ_POINTER(Dtn2Plan, plan);
 
 	CHKVOID(sdr_begin_xn(sdr));
-	for (elt = sdr_list_first(sdr, (getDtnConstants())->plans); elt;
+	for (elt = sdr_list_first(sdr, (getDtn2Constants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));

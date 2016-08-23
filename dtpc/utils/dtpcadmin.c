@@ -408,55 +408,27 @@ static void 	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int dtpc_is_up(int tokenCount, char** tokens, int count, int max)
+static int dtpc_is_up(int count, int max)
 {
-	if (strcmp(tokens[1], "p") == 0) //poll
+	while (count <= max && !dtpc_entity_is_started())
 	{
-		if (tokenCount < 3) //use default timeout
-		{
-			while (count <= 120 && !dtpc_entity_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > 120) //dtpc entity is not started
-			{
-				printText("DTPC entity is not started");
-				return 0;
-			}
-			else //dtpc entity is started
-			{
-				printText("DTPC entity is started");
-				return 1;
-			}
-		}
-		else //use user supplied timeout
-		{
-			while (count <= max && !dtpc_entity_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > max) //dtpc entity is not started
-			{
-				printText("DTPC entity is not started");
-				return 0;
-			}
-			else //dtpc entity is started
-			{
-				printText("DTPC entity is started");
-				return 1;
-			}
-		}
+		microsnooze(250000);
+		count++;
 	}
-	else
+
+	if (count > max)		//dtpc entity is not started
 	{
-		printText("Error in arguments: exiting");
+		printText("DTPC entity is not started");
 		return 0;
 	}
+
+	//dtpc entity is started
+
+	printText("DTPC entity is started");
+	return 1;
 }
 
-static int	processLine(char *line, int lineLength)
+static int	processLine(char *line, int lineLength, int *rc)
 {
 	int		tokenCount;
 	char		*cursor;
@@ -625,62 +597,54 @@ command.");
 			return 0;
 
 		case 't':
-			if (strcmp(tokens[1], "p") == 0) //poll
+			if (tokenCount > 1
+			&& strcmp(tokens[1], "p") == 0) //poll
 			{
 				if (tokenCount < 3) //use default timeout
 				{
-					count = 1;
-					while (count <= max && attachToDtpc() == -1)
-					{
-						microsnooze(250000);
-						count++;
-					}
-					if (count > 120) //dtpc entity is not started
-					{
-						printText("DTPC entity is not started");
-						return 0;
-					}
-					else //bp agent is started
-					{
-						exit(dtpc_is_up(tokenCount, tokens, count, 120));
-					}
-				}
-				else //use user supplied timeout
-				{
-					max = atoi(tokens[2]) * 4;
-					count = 1;
-					while (count <= max && attachToDtpc() == -1)
-					{
-						microsnooze(250000);
-						count++;
-					}
-					if (count > max) //dtpc entity is not started
-					{
-						printText("DTPC enetiy is not started");
-						return 0;
-					}
-					else //dtpc entity is started
-					{
-						exit(dtpc_is_up(tokenCount, tokens, count, max));
-					}
-				}
-			}
-			else //check once
-			{
-				if (dtpc_entity_is_started())
-				{
-					printText("BP agent is started");
-					return 1;
+					max = DEFAULT_CHECK_TIMEOUT;
 				}
 				else
 				{
-					printText("BP agent is not started");
-					return 0;
+					max = atoi(tokens[2]) * 4;
 				}
+
+				count = 1;
+				while (count <= max && attachToDtpc() == -1)
+				{
+					microsnooze(250000);
+					count++;
+				}
+
+				if (count > max)
+				{
+					//dtpc entity is not started
+					printText("DTPC entity is not started");
+					return 1;
+				}
+
+				//attached to dtpc system
+
+				*rc = dtpc_is_up(count, max);
+				return 1;
 			}
 
+			//check once
+
+			*rc = dtpc_entity_is_started();
+			if (*rc)
+			{
+				printText("DTPC entity is started");
+			}
+			else
+			{
+				printText("DTPC entity is not started");
+			}
+
+			return 1;
+
 		case 'q':
-			return -1;	/*	End program.		*/
+			return 1;	/*	End program.		*/
 
 		default:
 			printText("Invalid command.  Enter '?' for help.");
@@ -698,6 +662,7 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
+	int	rc = 0;
 	int	cmdFile;
 	char	line[512];
 	int	len;
@@ -729,7 +694,7 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (processLine(line, len, &rc))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -772,7 +737,7 @@ int	main(int argc, char **argv)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (processLine(line, len, &rc))
 				{
 					break;	/*	Out of loop.	*/
 				}
@@ -785,5 +750,5 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	printText("Stopping dtpcadmin.");
 	ionDetach();
-	return 0;
+	return rc;
 }

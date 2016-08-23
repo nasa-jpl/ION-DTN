@@ -305,8 +305,7 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
 	oid_t result;
 
     AMP_DEBUG_ENTRY("oid_construct",
-    		          "(%d, "UVAST_FIELDSPEC","UVAST_FIELDSPEC","UVAST_FIELDSPEC",%d)",
-					  type, (uvast)parms, nn_id, (uvast)value, size);
+    		          "(%d, "ADDR_FIELDSPEC","UVAST_FIELDSPEC","ADDR_FIELDSPEC",%d)", type, (uaddr)parms, nn_id, (uaddr)value, size);
 
     oid_init(&result);
 
@@ -336,9 +335,9 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
     {
     	if(nn_id == 0)
     	{
-    		DTNMP_DEBUG_ERR("oid_construct", "Expected nn with type %d", type);
+    		AMP_DEBUG_ERR("oid_construct", "Expected nn with type %d", type);
     		SRELEASE(result);
-            DTNMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+            AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
         	return NULL;
     	}
     }
@@ -908,7 +907,7 @@ blob_t*  oid_get_param(oid_t oid, uint32_t idx, amp_type_e *type)
 	blob_t *result = NULL;
 	LystElt elt = 0;
 
-	AMP_DEBUG_ENTRY("oid_get_param","(OID, %d,"UHF")", idx, (uvast)type);
+	AMP_DEBUG_ENTRY("oid_get_param","(OID, %d,"ADDR_FIELDSPEC")", idx, (uaddr)type);
 
 	CHKNULL(type);
 

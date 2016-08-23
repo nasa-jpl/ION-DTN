@@ -248,7 +248,6 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 {
 	int		contnbr = 0;
 	char		*contname = NULL;
-	int		isNeighbor = 1;
 	char		*desc = NULL;
 	char		**att;
 	char		*name;
@@ -269,10 +268,6 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 		else if (strcmp(name, "name") == 0)
 		{
 			contname = value;
-		}
-		else if (strcmp(name, "neighbor") == 0)
-		{
-			isNeighbor = 1 - (0 == atoi(value));
 		}
 		else if (strcmp(name, "desc") == 0)
 		{
@@ -309,8 +304,7 @@ mismatch.");
 	case LoadAdding:
 		if (contin == NULL)
 		{
-			contin = createContinuum(contnbr, contname, isNeighbor,
-					desc);
+			contin = createContinuum(contnbr, contname, desc);
 			if (contin == NULL)
 			{
 				return putErrmsg("Couldn't add continuum.",
@@ -1013,6 +1007,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 	int		contnbr = 0;
 	char		*gwEid = NULL;
 	char		*symkeyname = NULL;
+	int		isNeighbor = 1;
 	char		**att;
 	char		*name;
 	char		*value;
@@ -1038,6 +1033,10 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		if (strcmp(name, "nbr") == 0)
 		{
 			contnbr = atoi(value);
+		}
+		else if (strcmp(name, "neighbor") == 0)
+		{
+			isNeighbor = 1 - (0 == atoi(value));
 		}
 		else if (strcmp(name, "gweid") == 0)
 		{
@@ -1068,7 +1067,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		if (msgspace == NULL)
 		{
 			msgspace = createMsgspace(state->venture, contnbr,
-					gwEid, symkeyname);
+					isNeighbor, gwEid, symkeyname);
 			if (msgspace == NULL)
 			{
 				return putErrmsg("Couldn't add msgspace.",

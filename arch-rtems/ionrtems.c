@@ -32,7 +32,8 @@ static void	createIonConfigFiles()
 					};
 	int	ionconfigLineCount = sizeof ionconfigLines / sizeof (char *);
 	char	*globalLines[] =	{
-"a contact +0 +7200 19 19 100000\n"
+"a contact +0 +7200 19 19 100000\n",
+"a range +0 +7200 19 19 0\n"
 					};
 	int	globalLineCount = sizeof globalLines / sizeof (char *);
 	char	*ionsecrcLines[] =	{

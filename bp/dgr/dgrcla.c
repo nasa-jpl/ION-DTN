@@ -1,5 +1,5 @@
 /*
-	dgrcla.c:	ION DGR convergence-layer server daemon.
+	dgrcla.c:	ION DGR convergence-layer adapter daemon.
 			Handles both transmission and reception.
 
 	Author: Scott Burleigh, JPL
@@ -11,8 +11,6 @@
 									*/
 #include "bpP.h"
 #include "dgr.h"
-#include "ipnfw.h"
-#include "dtn2fw.h"
 
 #define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
@@ -92,13 +90,14 @@ static void	*sendBundles(void *parm)
 		if (bpDequeue(parms->vduct, outflows, &bundleZco,
 				&extendedCOS, destDuctName, 64000, -1) < 0)
 		{
-			threadRunning = 0;
-			writeMemo("[?] dgrcla failed de-queueing bundle.");
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)		/*	Interrupted.	*/
+		if (bundleZco == 0)		/*	Outduct closed.	*/
 		{
+			writeMemo("[i] dgrcla outduct closed.");
+			threadRunning = 0;
 			continue;
 		}
 
@@ -115,7 +114,7 @@ static void	*sendBundles(void *parm)
 			zco_destroy(sdr, bundleZco);
 			if (sdr_end_xn(sdr) < 0)
 			{
-				putErrmsg("Can't destroy ZCO reference.", NULL);
+				putErrmsg("Can't destroy bundle ZCO.", NULL);
 				threadRunning = 0;
 			}
 

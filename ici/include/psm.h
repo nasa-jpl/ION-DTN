@@ -45,7 +45,7 @@ typedef struct psm_str		/*	Local view of managed memory.	*/
 } PsmView, *PsmPartition;
 
 typedef enum { Okay, Redundant, Refused } PsmMgtOutcome;
-typedef unsigned long	PsmAddress;
+typedef uaddr		PsmAddress;
 
 extern int		psm_manage(char *, unsigned long, char *,
 					PsmPartition *psmp,

@@ -12,12 +12,40 @@
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  */
 
-#include <arpa/inet.h>
+#include <stdint.h> 
 #include "platform.h"
 #include "eureka.h"
 #include "helper.h"
 #include "node.h"
 #include "ipndP.h"
+
+static int	toBinary(const char *string, char *buf)
+{
+	struct hostent	*hostInfo;
+
+	CHKZERO(string);
+	CHKZERO(buf);
+	hostInfo = gethostbyname(string);
+	if (hostInfo == NULL)
+	{
+		return 0;
+	}
+
+	memcpy(buf, hostInfo->h_addr, 4);
+	return 1;
+}
+
+static void	toChar(unsigned char *data, char *buf, int buflen)
+{
+	unsigned int	hostNbr;
+
+	CHKVOID(data);
+	CHKVOID(buf);
+	CHKVOID(buflen > 15);
+	memcpy((char *) &hostNbr, data, 4);
+	hostNbr = ntohl(hostNbr);
+	printDottedString(hostNbr, buf);
+}
 
 /**
  * Handles echo state.
@@ -128,7 +156,7 @@ int	getIpv4AddressType(const char *ip)
 	unsigned char	binaryAddr[4];
 
 	/* Convert address to binary */
-	if (!inet_pton(AF_INET, ip, binaryAddr))
+	if (!toBinary(ip, (char *) binaryAddr))
 	{
 		return -1;
 	}
@@ -544,7 +572,7 @@ int	stringToBytesBytes(char *str, char *buf, int maxLen)
  */
 int	stringIP4ToFixed32Bytes(char *str, char *buf, int maxLen)
 {
-	if (maxLen < 4 || inet_pton(AF_INET, str, buf) != 1) return -1;
+	if (maxLen < 4 || toBinary(str, buf) != 1) return -1;
 	return 4;
 }
 
@@ -556,8 +584,11 @@ int	stringIP4ToFixed32Bytes(char *str, char *buf, int maxLen)
  */
 int	stringIP6ToBytesBytes(char *str, char *buf, int maxLen)
 {
-	if (maxLen < 1 + 16|| inet_pton(AF_INET6, str, buf + 1) != 1) return -1;
+	/*	No portable support for IPV6 at this time.		*/
+
+	if (maxLen < 1 + 16) return -1;
 	buf[0] = 16;
+	memset(buf + 1, 0, 16);
 	return 17;
 }
 
@@ -764,7 +795,7 @@ int	bytesToBytesString(unsigned char *data, char *buf, int maxLen)
  */
 int	bytesIP4ToFixed32String(unsigned char *data, char *buf, int maxLen)
 {
-	inet_ntop(AF_INET, data, buf, maxLen);
+	toChar(data, buf, maxLen);
 	return 4;
 }
 
@@ -783,6 +814,8 @@ int	bytesIP6ToBytesString(unsigned char *data, char *buf, int maxLen)
 		return bytesToBytesString(data, buf, maxLen);
 	}
 
-	inet_ntop(AF_INET6, data + 1, buf, maxLen);
+	/*	No portable support for IPV6 at this time.		*/
+
+	memset(buf, 0, maxLen);
 	return 1 + 16;
 }

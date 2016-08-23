@@ -21,7 +21,7 @@ int	main(int argc, char **argv)
 #endif
 {
 	char		*wmspace;
-	int		wmid;
+	uaddr		wmid;
 	PsmPartition	wm = NULL;
 	PsmMgtOutcome	outcome;
 	PsmAddress	testlist;

@@ -11,6 +11,10 @@
 # correctly signalled that custody of those bundles could be released
 # by the local node.
 
+# This test may fail because the timestamp on the canned bundles gets too old.
+# Using the date 2/11/2016 this test will begin to fail around february 2021 for date related reasons.
+
+
 export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
 echo "Setting PYTHONPATH to $PYTHONPATH"
 
