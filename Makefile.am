@@ -787,7 +787,7 @@ $(top_builddir)/dgr/doc/%.3: dgr/doc/pod3/%.pod
 
 libdgr_la_SOURCES = dgr/library/libdgr.c
 libdgr_la_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
-libdgr_la_LIBADD = libici.la
+libdgr_la_LIBADD = libici.la -lm
 
 # --- Test Executables --- #
 
@@ -1675,7 +1675,7 @@ libcfdp_la_SOURCES = \
 	cfdp/library/libcfdpops.c \
 	cfdp/library/libcfdpP.c
 libcfdp_la_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-libcfdp_la_LIBADD = libici.la
+libcfdp_la_LIBADD = libici.la -lm
 
 # --- Utility Programs --- #
 
@@ -1852,20 +1852,20 @@ libbsspP_la_SOURCES = \
 	bssp/library/libbsspP.c
 libbsspP_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libbsspP_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbsspP_la_LIBADD = libici.la $(PTHREAD_LIBS)
+libbsspP_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
 
 libbssp_la_SOURCES = \
 	bssp/library/libbssp.c \
 	bssp/library/libbsspP.c
 libbssp_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libbssp_la_LDFLAGS = $(ION_LINK_FLAGS)
-libbssp_la_LIBADD = libici.la $(PTHREAD_LIBS)
+libbssp_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
 
 libtcpbsa_la_SOURCES = \
 	bssp/tcp/libtcpbsa.c
 libtcpbsa_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libtcpbsa_la_LDFLAGS = $(ION_LINK_FLAGS)
-libtcpbsa_la_LIBADD = libici.la $(PTHREAD_LIBS)
+libtcpbsa_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
 
 # --- Daemon Executables --- #
 

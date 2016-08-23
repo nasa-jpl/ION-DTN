@@ -90,7 +90,7 @@ typedef enum {
 typedef struct
 {
 	uint8_t *contents;
-	uint32_t len;
+	int32_t len;
 } csi_val_t;
 
 typedef struct

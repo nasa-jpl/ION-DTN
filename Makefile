@@ -175,7 +175,6 @@ check_PROGRAMS = tests/1000.loopback/dotest$(EXEEXT) \
 	$(am__EXEEXT_15)
 am__append_16 = \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-333-cfdp-orig-ID-type/send \
 	tests/issue-334-cfdp-transaction-id/dotest
 
 subdir = .
@@ -507,7 +506,6 @@ am__EXEEXT_13 = cfdpadmin$(EXEEXT) \
 	bpcpd$(EXEEXT)
 am__EXEEXT_14 = $(am__EXEEXT_12) $(am__EXEEXT_13)
 am__EXEEXT_15 = tests/issue-330-cfdpclock-FDU-removal/cfdplisten$(EXEEXT) \
-	tests/issue-333-cfdp-orig-ID-type/send$(EXEEXT) \
 	tests/issue-334-cfdp-transaction-id/dotest$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 am__acsadmin_SOURCES_DIST = bp/utils/acsadmin.c
@@ -1401,17 +1399,6 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LINK = $(LIBTOOL) \
 	--mode=link $(CCLD) \
 	$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am__tests_issue_333_cfdp_orig_ID_type_send_SOURCES_DIST =  \
-	tests/issue-333-cfdp-orig-ID-type/send.c
-am_tests_issue_333_cfdp_orig_ID_type_send_OBJECTS = tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.$(OBJEXT)
-tests_issue_333_cfdp_orig_ID_type_send_OBJECTS =  \
-	$(am_tests_issue_333_cfdp_orig_ID_type_send_OBJECTS)
-tests_issue_333_cfdp_orig_ID_type_send_DEPENDENCIES =  \
-	libcfdp.la libici.la libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_LINK = $(LIBTOOL) $(AM_V_lt) \
-	--tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
-	$(CCLD) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am__tests_issue_334_cfdp_transaction_id_dotest_SOURCES_DIST =  \
 	tests/issue-334-cfdp-transaction-id/dotest.c
 am_tests_issue_334_cfdp_transaction_id_dotest_OBJECTS = tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.$(OBJEXT)
@@ -1556,7 +1543,6 @@ SOURCES = $(libams_la_SOURCES) $(libbp_la_SOURCES) \
 	$(tests_issue_260_teach_valgrind_mtake_domtake_SOURCES) \
 	$(tests_issue_279_bpMemo_timeline_driver_SOURCES) \
 	$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES) \
-	$(tests_issue_333_cfdp_orig_ID_type_send_SOURCES) \
 	$(tests_issue_334_cfdp_transaction_id_dotest_SOURCES) \
 	$(udp2file_SOURCES) $(udpbsi_SOURCES) $(udpbso_SOURCES) \
 	$(udpcli_SOURCES) $(udpclo_SOURCES) $(udplsi_SOURCES) \
@@ -1621,7 +1607,6 @@ DIST_SOURCES = $(am__libams_la_SOURCES_DIST) \
 	$(tests_issue_260_teach_valgrind_mtake_domtake_SOURCES) \
 	$(tests_issue_279_bpMemo_timeline_driver_SOURCES) \
 	$(am__tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES_DIST) \
-	$(am__tests_issue_333_cfdp_orig_ID_type_send_SOURCES_DIST) \
 	$(am__tests_issue_334_cfdp_transaction_id_dotest_SOURCES_DIST) \
 	$(udp2file_SOURCES) $(udpbsi_SOURCES) $(udpbso_SOURCES) \
 	$(udpcli_SOURCES) $(udpclo_SOURCES) $(udplsi_SOURCES) \
@@ -3408,9 +3393,12 @@ tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS = $(bpcflags) $(icicflags) $
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+
+#if !ION_NASA_B
+#tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
+#tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
+#tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+#endif
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
@@ -5279,19 +5267,6 @@ tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdp
 tests/issue-330-cfdpclock-FDU-removal/cfdplisten$(EXEEXT): $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_DEPENDENCIES) $(EXTRA_tests_issue_330_cfdpclock_FDU_removal_cfdplisten_DEPENDENCIES) tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp)
 	@rm -f tests/issue-330-cfdpclock-FDU-removal/cfdplisten$(EXEEXT)
 	$(AM_V_CCLD)$(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LINK) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_OBJECTS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD) $(LIBS)
-tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-333-cfdp-orig-ID-type
-	@: > tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp)
-tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)
-	@: > tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp)
-tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.$(OBJEXT):  \
-	tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp) \
-	tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp)
-
-tests/issue-333-cfdp-orig-ID-type/send$(EXEEXT): $(tests_issue_333_cfdp_orig_ID_type_send_OBJECTS) $(tests_issue_333_cfdp_orig_ID_type_send_DEPENDENCIES) $(EXTRA_tests_issue_333_cfdp_orig_ID_type_send_DEPENDENCIES) tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp)
-	@rm -f tests/issue-333-cfdp-orig-ID-type/send$(EXEEXT)
-	$(AM_V_CCLD)$(tests_issue_333_cfdp_orig_ID_type_send_LINK) $(tests_issue_333_cfdp_orig_ID_type_send_OBJECTS) $(tests_issue_333_cfdp_orig_ID_type_send_LDADD) $(LIBS)
 tests/issue-334-cfdp-transaction-id/$(am__dirstamp):
 	@$(MKDIR_P) tests/issue-334-cfdp-transaction-id
 	@: > tests/issue-334-cfdp-transaction-id/$(am__dirstamp)
@@ -5512,7 +5487,6 @@ mostlyclean-compile:
 	-rm -f tests/issue-260-teach-valgrind-mtake/*.$(OBJEXT)
 	-rm -f tests/issue-279-bpMemo-timeline/*.$(OBJEXT)
 	-rm -f tests/issue-330-cfdpclock-FDU-removal/*.$(OBJEXT)
-	-rm -f tests/issue-333-cfdp-orig-ID-type/*.$(OBJEXT)
 	-rm -f tests/issue-334-cfdp-transaction-id/*.$(OBJEXT)
 	-rm -f tests/library/*.$(OBJEXT)
 	-rm -f tests/library/*.lo
@@ -5821,7 +5795,6 @@ include tests/issue-188-common-cos-syntax/$(DEPDIR)/tests_issue_188_common_cos_s
 include tests/issue-260-teach-valgrind-mtake/$(DEPDIR)/tests_issue_260_teach_valgrind_mtake_domtake-domtake.Po
 include tests/issue-279-bpMemo-timeline/$(DEPDIR)/tests_issue_279_bpMemo_timeline_driver-driver.Po
 include tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.Po
-include tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Po
 include tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Po
 include tests/library/$(DEPDIR)/tests_library_libtestutil_la-check.Plo
 include tests/library/$(DEPDIR)/tests_library_libtestutil_la-ionstart.Plo
@@ -9366,20 +9339,6 @@ tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdp
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS) $(CFLAGS) -c -o tests/issue-330-cfdpclock-FDU-removal/tests_issue_330_cfdpclock_FDU_removal_cfdplisten-cfdplisten.obj `if test -f 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; then $(CYGPATH_W) 'tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c'; fi`
 
-tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o: tests/issue-333-cfdp-orig-ID-type/send.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -MT tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o -MD -MP -MF tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o `test -f 'tests/issue-333-cfdp-orig-ID-type/send.c' || echo '$(srcdir)/'`tests/issue-333-cfdp-orig-ID-type/send.c
-	$(AM_V_at)$(am__mv) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Po
-#	$(AM_V_CC)source='tests/issue-333-cfdp-orig-ID-type/send.c' object='tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.o `test -f 'tests/issue-333-cfdp-orig-ID-type/send.c' || echo '$(srcdir)/'`tests/issue-333-cfdp-orig-ID-type/send.c
-
-tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj: tests/issue-333-cfdp-orig-ID-type/send.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -MT tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj -MD -MP -MF tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj `if test -f 'tests/issue-333-cfdp-orig-ID-type/send.c'; then $(CYGPATH_W) 'tests/issue-333-cfdp-orig-ID-type/send.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-333-cfdp-orig-ID-type/send.c'; fi`
-	$(AM_V_at)$(am__mv) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Tpo tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/tests_issue_333_cfdp_orig_ID_type_send-send.Po
-#	$(AM_V_CC)source='tests/issue-333-cfdp-orig-ID-type/send.c' object='tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_333_cfdp_orig_ID_type_send_CFLAGS) $(CFLAGS) -c -o tests/issue-333-cfdp-orig-ID-type/tests_issue_333_cfdp_orig_ID_type_send-send.obj `if test -f 'tests/issue-333-cfdp-orig-ID-type/send.c'; then $(CYGPATH_W) 'tests/issue-333-cfdp-orig-ID-type/send.c'; else $(CYGPATH_W) '$(srcdir)/tests/issue-333-cfdp-orig-ID-type/send.c'; fi`
-
 tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o: tests/issue-334-cfdp-transaction-id/dotest.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(tests_issue_334_cfdp_transaction_id_dotest_CFLAGS) $(CFLAGS) -MT tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o -MD -MP -MF tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Tpo -c -o tests/issue-334-cfdp-transaction-id/tests_issue_334_cfdp_transaction_id_dotest-dotest.o `test -f 'tests/issue-334-cfdp-transaction-id/dotest.c' || echo '$(srcdir)/'`tests/issue-334-cfdp-transaction-id/dotest.c
 	$(AM_V_at)$(am__mv) tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Tpo tests/issue-334-cfdp-transaction-id/$(DEPDIR)/tests_issue_334_cfdp_transaction_id_dotest-dotest.Po
@@ -9538,7 +9497,6 @@ clean-libtool:
 	-rm -rf tests/issue-260-teach-valgrind-mtake/.libs tests/issue-260-teach-valgrind-mtake/_libs
 	-rm -rf tests/issue-279-bpMemo-timeline/.libs tests/issue-279-bpMemo-timeline/_libs
 	-rm -rf tests/issue-330-cfdpclock-FDU-removal/.libs tests/issue-330-cfdpclock-FDU-removal/_libs
-	-rm -rf tests/issue-333-cfdp-orig-ID-type/.libs tests/issue-333-cfdp-orig-ID-type/_libs
 	-rm -rf tests/issue-334-cfdp-transaction-id/.libs tests/issue-334-cfdp-transaction-id/_libs
 	-rm -rf tests/library/.libs tests/library/_libs
 
@@ -10380,8 +10338,6 @@ distclean-generic:
 	-rm -f tests/issue-279-bpMemo-timeline/$(am__dirstamp)
 	-rm -f tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/issue-330-cfdpclock-FDU-removal/$(am__dirstamp)
-	-rm -f tests/issue-333-cfdp-orig-ID-type/$(DEPDIR)/$(am__dirstamp)
-	-rm -f tests/issue-333-cfdp-orig-ID-type/$(am__dirstamp)
 	-rm -f tests/issue-334-cfdp-transaction-id/$(DEPDIR)/$(am__dirstamp)
 	-rm -f tests/issue-334-cfdp-transaction-id/$(am__dirstamp)
 	-rm -f tests/library/$(DEPDIR)/$(am__dirstamp)
@@ -10398,7 +10354,7 @@ clean-am: clean-binPROGRAMS clean-checkLTLIBRARIES clean-checkPROGRAMS \
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/stcp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/bulk/STUB_BULK/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/stcp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/bulk/STUB_BULK/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -10452,7 +10408,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/stcp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/bulk/STUB_BULK/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-333-cfdp-orig-ID-type/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
+	-rm -rf ams/library/$(DEPDIR) ams/rams/$(DEPDIR) ams/test/$(DEPDIR) ams/utils/$(DEPDIR) bp/bibe/$(DEPDIR) bp/brs/$(DEPDIR) bp/bssp/$(DEPDIR) bp/cgr/$(DEPDIR) bp/daemon/$(DEPDIR) bp/dccp/$(DEPDIR) bp/dgr/$(DEPDIR) bp/dtn2/$(DEPDIR) bp/imc/$(DEPDIR) bp/ipn/$(DEPDIR) bp/ipnd/$(DEPDIR) bp/library/$(DEPDIR) bp/library/acs/$(DEPDIR) bp/library/ext/bae/$(DEPDIR) bp/library/ext/bpsec/$(DEPDIR) bp/library/ext/bsp/$(DEPDIR) bp/library/ext/bsp/ciphersuites/$(DEPDIR) bp/library/ext/cteb/$(DEPDIR) bp/library/ext/ecos/$(DEPDIR) bp/library/ext/meb/$(DEPDIR) bp/library/ext/phn/$(DEPDIR) bp/library/ext/snid/$(DEPDIR) bp/ltp/$(DEPDIR) bp/stcp/$(DEPDIR) bp/tcp/$(DEPDIR) bp/test/$(DEPDIR) bp/udp/$(DEPDIR) bp/utils/$(DEPDIR) bss/library/$(DEPDIR) bss/test/$(DEPDIR) bssp/daemon/$(DEPDIR) bssp/library/$(DEPDIR) bssp/tcp/$(DEPDIR) bssp/udp/$(DEPDIR) bssp/utils/$(DEPDIR) cfdp/bp/$(DEPDIR) cfdp/daemon/$(DEPDIR) cfdp/library/$(DEPDIR) cfdp/test/$(DEPDIR) cfdp/utils/$(DEPDIR) dgr/library/$(DEPDIR) dgr/test/$(DEPDIR) dtpc/daemon/$(DEPDIR) dtpc/library/$(DEPDIR) dtpc/test/$(DEPDIR) dtpc/utils/$(DEPDIR) ici/bulk/STUB_BULK/$(DEPDIR) ici/crypto/NULL_SUITES/$(DEPDIR) ici/daemon/$(DEPDIR) ici/libbloom-master/$(DEPDIR) ici/libbloom-master/murmur2/$(DEPDIR) ici/library/$(DEPDIR) ici/sdr/$(DEPDIR) ici/test/$(DEPDIR) ici/utils/$(DEPDIR) ltp/aos/$(DEPDIR) ltp/daemon/$(DEPDIR) ltp/dccp/$(DEPDIR) ltp/library/$(DEPDIR) ltp/sda/$(DEPDIR) ltp/test/$(DEPDIR) ltp/udp/$(DEPDIR) ltp/utils/$(DEPDIR) nm/agent/$(DEPDIR) nm/mgr/$(DEPDIR) nm/shared/adm/$(DEPDIR) nm/shared/msg/$(DEPDIR) nm/shared/primitives/$(DEPDIR) nm/shared/utils/$(DEPDIR) restart/utils/$(DEPDIR) tests/1000.loopback/$(DEPDIR) tests/1300.loopback-tcp/$(DEPDIR) tests/1500.loopback-brs/$(DEPDIR) tests/bug-0015-tcpclo-bpcp-sig-handling/$(DEPDIR) tests/issue-188-common-cos-syntax/$(DEPDIR) tests/issue-260-teach-valgrind-mtake/$(DEPDIR) tests/issue-279-bpMemo-timeline/$(DEPDIR) tests/issue-330-cfdpclock-FDU-removal/$(DEPDIR) tests/issue-334-cfdp-transaction-id/$(DEPDIR) tests/library/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
