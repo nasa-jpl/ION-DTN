@@ -233,7 +233,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         /* Step 3.1 Grab the mid */
         if((cur_mid = (mid_t*)lyst_data(elt)) == NULL)
         {
-        	DTNMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
+        	AMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
         	result = -1;
         	break;
         }
@@ -297,7 +297,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         }
         lyst_destroy(tmp_entries);
 
-    	DTNMP_DEBUG_EXIT("ldc_fill_custom","->-1",NULL);
+    	AMP_DEBUG_EXIT("ldc_fill_custom","->-1",NULL);
 
     	nesting--;
     	return -1;

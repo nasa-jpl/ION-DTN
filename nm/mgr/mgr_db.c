@@ -1541,7 +1541,7 @@ void mgr_vdb_sql_forget()
 {
 	lockResource(&(gMgrVDB.sqldb_mutex));
 
-	bzero(&(gMgrVDB.sqldb), sizeof(ui_db_t));
+	memset(&(gMgrVDB.sqldb), 0, sizeof(ui_db_t));
 
 	unlockResource(&(gMgrVDB.sqldb_mutex));
 }

@@ -358,7 +358,7 @@ oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uin
     }
 
     /* Step 5: Assign OID bytes. */
-    bzero(result.value, MAX_OID_SIZE);
+    memset(result.value, 0, MAX_OID_SIZE);
     memcpy(result.value, value, size);
 
     result.value_size = size;

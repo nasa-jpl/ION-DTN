@@ -311,7 +311,7 @@ uint8_t iif_register_node(iif_t *iif, eid_t eid)
     	return 0;
     }
 
-    bzero((char*)iif, sizeof(iif_t));
+    memset((char*)iif, 0, sizeof(iif_t));
     iif->local_eid = eid;
 
     if(bp_attach() < 0)

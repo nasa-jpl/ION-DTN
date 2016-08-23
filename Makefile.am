@@ -1921,19 +1921,6 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
 nmbin= nm_agent nm_mgr
 
-nm_agent_SOURCES = nm/agent/ingest.c nm/agent/lcc.c nm/agent/ldc.c nm/agent/nmagent.c nm/agent/rda.c \
-					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
-					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
-					nm/shared/msg/pdu.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
-					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
-					nm/shared/utils/ion_if.c nm/shared/utils/utils.c nm/shared/utils/db.c \
-nm/agent/adm_agent_priv.c nm/agent/adm_bp_priv.c nm/agent/adm_ion_priv.c \
-nm/agent/adm_ltp_priv.c nm/shared/primitives/instr.c \
-nm/shared/adm/adm_agent.c
-nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/agent $(AM_CFLAGS) -Wno-unused-variable
-
 nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
                     nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
@@ -1974,16 +1961,6 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
 					nm/shared/utils/nm_types.c
 					
-nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-
-nm_mgr_SOURCES = nm/mgr/nm_mgr.c nm/mgr/nm_mgr_rx.c nm/mgr/nm_mgr_ui.c \
-					nm/shared/adm/adm.c nm/shared/adm/adm_bp.c nm/shared/adm/adm_ion.c nm/shared/adm/adm_ltp.c \
-					nm/shared/msg/msg_admin.c nm/shared/msg/msg_ctrl.c nm/shared/msg/msg_def.c nm/shared/msg/msg_reports.c \
-					nm/shared/msg/pdu.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c nm/shared/primitives/mid.c nm/shared/primitives/oid.c \
-					nm/shared/primitives/report.c nm/shared/primitives/rules.c \
-					nm/shared/utils/ion_if.c nm/shared/utils/utils.c \
-nm/shared/adm/adm_agent.c nm/mgr/nm_mgr_db.c
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Use this to build the DTNMP Manager WITHOUT DB Support. 
@@ -2178,7 +2155,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 if !ION_NASA_B
 check_PROGRAMS+= \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-333-cfdp-orig-ID-type/send \
 	tests/issue-334-cfdp-transaction-id/dotest
 endif
 
@@ -2221,11 +2197,11 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -l
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 endif
 
-if !ION_NASA_B
-tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-endif
+#if !ION_NASA_B
+#tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
+#tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
+#tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+#endif
 
 if !ION_NASA_B
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
