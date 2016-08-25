@@ -413,7 +413,8 @@ typedef struct rlock_str
 	pthread_mutex_t	semaphore;
 	pthread_t	owner;
 	short		count;
-	short		init;
+	unsigned char	init;		/*	Boolean.		*/
+	unsigned char	owned;		/*	Boolean.		*/
 } Rlock;		/*	Private-memory semaphore.		*/ 
 
 int	initResourceLock(ResourceLock *rl)
@@ -461,10 +462,11 @@ void	lockResource(ResourceLock *rl)
 	if (lock && lock->init)
 	{
 		tid = pthread_self();
-		if (!pthread_equal(tid, lock->owner))
+		if (lock->owned == 0 || !pthread_equal(tid, lock->owner))
 		{
 			oK(pthread_mutex_lock(&(lock->semaphore)));
 			lock->owner = tid;
+			lock->owned = 1;
 		}
 
 		(lock->count)++;
@@ -479,13 +481,12 @@ void	unlockResource(ResourceLock *rl)
 	if (lock && lock->init)
 	{
 		tid = pthread_self();
-		if (pthread_equal(tid, lock->owner))
+		if (lock->owned && pthread_equal(tid, lock->owner))
 		{
 			(lock->count)--;
 			if ((lock->count) == 0)
 			{
-				memset((char *) &(lock->owner), 0,
-						sizeof(pthread_t));
+				lock->owned = 0;
 				oK(pthread_mutex_unlock(&(lock->semaphore)));
 			}
 		}
