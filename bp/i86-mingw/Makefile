@@ -18,10 +18,10 @@ DCCP = ../dccp
 BIBE = ../bibe
 IPND = ../ipnd
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bsp -I$(API)/ext/bsp/ciphersuites -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -46,8 +46,8 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bsputil.o bspbab.o bspbib.o bspbcb.o ciphersuites.o bab_hmac_sha1.o bib_hmac_sha256.o bcb_arc4.o
-# snid.o extbsputil.o extbsbpab.o extbsppcb.o extbsppib.o
+BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bpsec_bib.o bpsec_bcb.o
+# snid.o
 # acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
@@ -350,10 +350,7 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/ext/bae/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/bsp/%.c
-		$(CC) -c $<
-
-%.o:		$(API)/ext/bsp/ciphersuites/%.c
+%.o:		$(API)/ext/bpsec/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/phn/%.c

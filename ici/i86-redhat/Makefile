@@ -9,7 +9,7 @@ BULK = ../bulk/STUB_BULK
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
@@ -27,6 +27,7 @@ LIBICIOBJS = \
 	rfx.o \
 	ionsec.o \
 	crypto.o \
+	csi.o \
 	bulk.o \
 	zco.o \
 	sdrxn.o \
@@ -51,6 +52,7 @@ PUBINCLS = \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
+	$(INCL)/csi.h \
 	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \

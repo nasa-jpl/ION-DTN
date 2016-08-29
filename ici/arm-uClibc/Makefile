@@ -9,7 +9,7 @@ BULK = ../bulk/STUB_BULK
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc
-CC = $(TCC) $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
+CC = $(TCC) $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
@@ -27,6 +27,7 @@ LIBICIOBJS = \
 	rfx.o \
 	ionsec.o \
 	crypto.o \
+	csi.o \
 	bulk.o \
 	zco.o \
 	sdrxn.o \
@@ -51,6 +52,7 @@ PUBINCLS = \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
+	$(INCL)/csi.h \
 	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
