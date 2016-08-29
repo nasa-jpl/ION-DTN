@@ -1,6 +1,6 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
--DNO_PROXY -DNO_DIRLIST
+-DNO_PROXY -DNO_DIRLIST -DBPSEC
 # -DENABLE_IMC -DENABLE_BPACS
 
 PGM=${ARCH}/ion.exe
@@ -35,6 +35,7 @@ ICISOURCES =     \
    ionsec.c      \
    ionsecadmin.c \
    crypto.c      \
+   csi.c         \
    bulk.c        \
    ionwarn.c     \
    ionrestart.c  \
@@ -107,15 +108,12 @@ BPSOURCES =      \
 #	libtcpbsa.c  \
 #	bsspadmin.c  \
 
-BSPSOURCES =     \
-	ciphersuites.c \
-	bab_hmac_sha1.c \
-	bib_hmac_sha256.c \
-	bcb_arc4.c \
-	bsputil.c \
-	bspbab.c  \
-	bspbib.c  \
-	bspbcb.c
+BPSECSOURCES =       \
+	bpsec_util.c \
+	bpsec_instr.c\
+	profiles.c   \
+	bpsec_bib.c  \
+	bpsec_bcb.c
 
 BSSSOURCES =      \
 	libbss.c     \
@@ -143,7 +141,7 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BSPSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BPSECSOURCES) $(TESTSOURCES)
 # $(BSSSOURCES)
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
