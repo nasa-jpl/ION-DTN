@@ -1344,7 +1344,7 @@ csi_val_t bpsec_retrieveKey(char *keyName)
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t	bpsec_securityPolicyViolated(AcqWorkArea *wk)
+int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
 {
 	/*	TODO: eventually this function should do something like:
 	 *		1.  For each block in the bundle, find matching

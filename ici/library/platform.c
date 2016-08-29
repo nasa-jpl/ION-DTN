@@ -2154,25 +2154,32 @@ int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
 
 uvast	htonv(uvast hostvast)
 {
-	static int	length = sizeof(uvast);
-	uvast		result;
-	unsigned char	*cursor;
-	int		i;
+	static const int	fortyTwo = 42;
+	static const vast	mask = 0xffffffff;
+	unsigned int		big_part;
+	unsigned int		small_part;
+	uvast			result;
 
-	if (1 != htonl(1))	/*	Must reverse the digits.	*/
+	if ((*(char *) &fortyTwo) == 0)	/*	Check first byte.	*/
 	{
-		cursor = ((unsigned char *) &hostvast) + length;
-		result = 0;
-		for (i = 0; i < length; i++)
-		{
-			cursor--;
-			result = (result << 8) + (*cursor);
-		}
+		/*	Small-endian (network byte order) machine.	*/
 
-		return result;
+		return hostvast;
 	}
 
-	return hostvast;
+	/*	Must  reverse the byte order of this number.		*/
+
+	if (sizeof(uvast) == sizeof(int))	/*	Small "vast".	*/
+	{
+		return htonl(hostvast);
+	}
+
+	big_part = hostvast >> 32;
+	small_part = hostvast & mask;
+	big_part = htonl(big_part);
+	small_part = htonl(small_part);
+	result = small_part;
+	return (result << 32) | big_part;
 }
 
 uvast	ntohv(uvast netvast)

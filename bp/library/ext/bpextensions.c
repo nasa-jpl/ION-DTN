@@ -18,15 +18,15 @@
 #include "ecos.h"
 #include "meb.h"
 #include "bae.h"
-#ifdef ORIGINAL_BSP
+#if defined(ORIGINAL_BSP)
 #include "extbspbab.h"
 #include "extbsppcb.h"
 #include "extbsppib.h"
-#elif SBSP
+#elif defined(SBSP)
 #include "bspbab.h"
 #include "bspbib.h"
 #include "bspbcb.h"
-#elif BPSEC
+#elif defined(BPSEC)
 #include "bpsec_bib.h"
 #include "bpsec_bcb.h"
 #endif /* ORIGINAL_BSP */
@@ -73,7 +73,7 @@ static ExtensionDef	extensionDefs[] =
 				snid_clear
 		},
 #endif
-#ifdef ORIGINAL_BSP
+#if defined(ORIGINAL_BSP)
 		{ "bsp_bab", BSP_BAB_TYPE,
 				bsp_babOffer,
 				{0,
@@ -122,7 +122,7 @@ static ExtensionDef	extensionDefs[] =
                                 0,
 				bsp_pcbClear
 		},
-#elif SBSP
+#elif defined(SBSP)
 		{ "bab", EXTENSION_TYPE_BAB,
 				bsp_babOffer,
 				{0,
@@ -171,7 +171,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				bsp_bibClear
 		},
-#elif BPSEC
+#elif defined(BPSEC)
 		{ "bcb", BLOCK_TYPE_BCB,
 				bpsec_bcbOffer,
 				{0,
@@ -283,9 +283,9 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec	extensionSpecs[] =
 			{
-#ifdef ORIGINAL_BSP
+#if defined(ORIGINAL_BSP)
 				{ BSP_BAB_TYPE, 0, 0, 0, 0 },
-#elif SBSP
+#elif defined(SBSP)
 				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0 },
 
 #endif /* ORIGINAL_BSP */
@@ -296,15 +296,15 @@ static ExtensionSpec	extensionSpecs[] =
 #ifdef ENABLE_BPACS
         			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0 },
 #endif /* ENABLE_BPACS */
-#ifdef ORIGINAL_BSP
+#if defined(ORIGINAL_BSP)
 				{ BSP_PIB_TYPE, 0, 0, 0, 0 },
 				{ BSP_PCB_TYPE, 0, 0, 0, 0 },
 				{ BSP_BAB_TYPE, 0, 0, 1, 1 },
-#elif SBSP
+#elif defined(SBSP)
 				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
-#elif BPSEC
+#elif defined(BPSEC)
 				{ BLOCK_TYPE_BIB, 1, 0, 0, 0 },
 				{ BLOCK_TYPE_BCB, 1, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */

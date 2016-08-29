@@ -49,11 +49,11 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
-#ifdef ORIGINAL_BSP
+#if defined(ORIGINAL_BSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif SBSP
+#elif defined(SBSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif BPSEC
+#elif defined(BPSEC)
 extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
 #endif
 
@@ -7846,11 +7846,11 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
-#ifdef ORIGINAL_BSP
+#if defined(ORIGINAL_BSP)
 	if (bsp_securityPolicyViolated(work))
-#elif SBSP
+#elif defined(SBSP)
 	if (bsp_securityPolicyViolated(work))
-#elif BPSEC
+#elif defined(BPSEC)
 	if (bpsec_securityPolicyViolated(work))
 #else
 	if(0)

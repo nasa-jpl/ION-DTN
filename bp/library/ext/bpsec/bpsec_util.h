@@ -63,7 +63,7 @@
  *****************************************************************************/
 
 #ifndef BPSEC_DEBUGGING
-#define BPSEC_DEBUGGING	1  /** Whether to enable (1) or disable (0) debugging */
+#define BPSEC_DEBUGGING	0  /** Whether to enable (1) or disable (0) debugging */
 #endif
 
 #define BPSEC_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
@@ -297,7 +297,7 @@ extern void	          bpsec_insertSecuritySource(Bundle *bundle,
 
 extern csi_val_t      bpsec_retrieveKey(char *keyName);
 
-extern int8_t	      bpsec_securityPolicyViolated(AcqWorkArea *wk);
+extern int	      bpsec_securityPolicyViolated(AcqWorkArea *wk);
 
 extern unsigned char *bpsec_serializeASB(unsigned int *length,
 		                                 BpsecOutboundBlock *blk);

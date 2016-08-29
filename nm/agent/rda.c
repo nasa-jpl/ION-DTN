@@ -991,9 +991,9 @@ void* rda_thread(int* running)
 {
     struct timeval start_time;
     vast delta = 0;
-
+#ifndef mingw
     AMP_DEBUG_ENTRY("rda_thread","(0x%X)", (unsigned long) pthread_self()); //threadId);
-    
+#endif
 	if((g_rda_cur_rpts = lyst_create()) == NULL)
 	{
 		AMP_DEBUG_ERR("rda_thread","Can't allocate Rpts Lyst!", NULL);

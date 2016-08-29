@@ -9,6 +9,8 @@ all:
 	gmake -C bssp install
 	gmake -C bp $@
 	gmake -C bp install
+	gmake -C nm $@
+	gmake -C nm install
 	gmake -C ams $@
 	gmake -C ams install
 	gmake -C cfdp $@
@@ -26,6 +28,7 @@ clean:
 	gmake -C dgr $@
 	gmake -C bssp $@
 	gmake -C bp $@
+	gmake -C nm $@
 	gmake -C ams $@
 	gmake -C cfdp $@
 	gmake -C bss $@

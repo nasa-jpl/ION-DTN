@@ -209,7 +209,7 @@ int rx_validate_rule(trl_t *rule)
  *
  * \par Receives and processes a DTNMP message.
  *
- * \param[in] threadId The thread identifier.
+ * \param[in] running	Operational loop state.
  *
  * \return NULL - Error
  *         !NULL - Some thread thing.
@@ -221,9 +221,9 @@ int rx_validate_rule(trl_t *rule)
  *****************************************************************************/
 
 void *rx_thread(int *running) {
-   
+#ifndef mingw
     AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
-    
+#endif
     AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
     
     uint32_t num_msgs = 0;
