@@ -51,7 +51,7 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int8_t getBpInstrDb(BpsecInstrDB *result, Object *addr)
+static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
 {
 	static Object dbObj = 0;
 	Sdr sdr = getIonsdr();
@@ -125,7 +125,7 @@ static int8_t getBpInstrDb(BpsecInstrDB *result, Object *addr)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int8_t bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdrElt, Object *sdrData)
+static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdrElt, Object *sdrData)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
@@ -135,7 +135,7 @@ static int8_t bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *
 	CHKERR(result);
 	CHKERR(sdrElt);
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
@@ -213,7 +213,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 	Object sdrElt = 0;
 	Object sdrData = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* If we can't find the source to update, then add it. */
 	if((bpsec_instr_get_src(src, &instr, &sdrElt, &sdrData)) == ERROR)
@@ -354,7 +354,7 @@ void bpsec_instr_clear_src(Object sdrElt)
 		return;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	if((sdrData = sdr_list_data(sdr, sdrElt)) != 0)
 	{
@@ -388,7 +388,7 @@ void bpsec_instr_clear_src(Object sdrElt)
  *  07/05/16  E. Birrane     Init result to 0. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t bpsec_instr_get_misc(bpsec_instr_misc_t *result)
+int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB instr_db;
@@ -403,7 +403,7 @@ int8_t bpsec_instr_get_misc(bpsec_instr_misc_t *result)
 
 	memset(result, 0, sizeof(bpsec_instr_misc_t));
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) result, instr_db.misc, sizeof(bpsec_instr_misc_t));
 	sdr_end_xn(sdr);
 
@@ -428,7 +428,7 @@ int8_t bpsec_instr_get_misc(bpsec_instr_misc_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t bpsec_instr_clear()
+int bpsec_instr_clear()
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB result;
@@ -445,7 +445,7 @@ int8_t bpsec_instr_clear()
 	/* Clear misc instr. data. */
 	memset(&tmp, 0, sizeof(bpsec_instr_misc_t));
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	sdr_write(sdr, result.misc, (char *) &tmp, sizeof(bpsec_instr_misc_t));
 
@@ -483,7 +483,7 @@ int8_t bpsec_instr_clear()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *result)
+int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *result)
 {
 	bpsec_src_instr_t src;
 	Object sdrElt = 0;
@@ -542,7 +542,7 @@ int8_t  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *re
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *result)
+int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *result)
 {
 	bpsec_src_instr_t src;
 	Object sdrElt = 0;
@@ -600,7 +600,7 @@ int8_t  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t bpsec_instr_get_src_update(char *src_id, time_t *result)
+int bpsec_instr_get_src_update(char *src_id, time_t *result)
 {
 	bpsec_src_instr_t src;
 	Object sdrElt = 0;
@@ -641,7 +641,7 @@ int8_t bpsec_instr_get_src_update(char *src_id, time_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
+int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 {
 	bpsec_src_instr_t src;
 	bpsec_instr_misc_t misc;
@@ -661,7 +661,7 @@ int8_t bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 		return ERROR;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(bpsec_instr_misc_t));
 
@@ -741,7 +741,7 @@ int8_t bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
+int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 {
 	bpsec_src_instr_t src;
 	bpsec_instr_misc_t misc;
@@ -761,9 +761,9 @@ int8_t bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 		return ERROR;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
-	sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(bpsec_instr_misc_t));
+	oK(sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(bpsec_instr_misc_t)));
 
 	switch(type)
 	{
@@ -839,7 +839,7 @@ int8_t bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int8_t  bpsec_instr_get_tot_update(time_t *result)
+int  bpsec_instr_get_tot_update(time_t *result)
 {
 	bpsec_src_instr_t src;
 	Sdr sdr = getIonsdr();
@@ -858,7 +858,7 @@ int8_t  bpsec_instr_get_tot_update(time_t *result)
 		return ERROR;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
@@ -1027,7 +1027,7 @@ char * bpsec_instr_get_srcnames()
 		return NULL;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 
 	num = sdr_list_length(sdr, result.src);
 

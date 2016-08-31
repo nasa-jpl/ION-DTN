@@ -38,7 +38,7 @@ int  db_forget(Object *primitiveObj, Object *descObj, Object list)
 		return -1;
 	}
 
-	sdr_begin_xn(sdr);
+	CHKERR(sdr_begin_xn(sdr));
 
 	if(*primitiveObj != 0)
 	{
@@ -97,7 +97,7 @@ int  db_persist(uint8_t  *item,
 
    Sdr sdr = getIonsdr();
 
-   sdr_begin_xn(sdr);
+   CHKERR(sdr_begin_xn(sdr));
 
 
    /* Step 1: Allocate a descriptor object for this item in the SDR. */

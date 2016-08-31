@@ -1020,6 +1020,7 @@ expr_t *adm_extract_expr(tdc_t params, uint32_t idx, int8_t *success)
 	if(bytes != entry->length)
 	{
 		AMP_DEBUG_ERR("adm_extract_expr","mismatched deserialize (%d != %d)", bytes, entry->length);
+		/*	TODO  Need to destroy *result at this point.	*/
 		return 0;
 	}
 

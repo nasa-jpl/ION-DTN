@@ -436,6 +436,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 		{
 			AMP_DEBUG_ERR("table_deserialize","Can't get %dth row.", cur_row);
 			table_destroy(result, 1);
+			blob_destroy(types, 1);
 			*bytes_used = 0;
 			return NULL;
 		}
@@ -449,6 +450,7 @@ table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* byt
 		}
 	}
 
+	blob_destroy(types, 1);
 	return result;
 }
 

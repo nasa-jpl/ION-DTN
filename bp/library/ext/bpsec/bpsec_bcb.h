@@ -165,7 +165,7 @@ extern int	       bpsec_bcbDefaultConstruct(uint32_t suite,
 		                                     ExtensionBlock *blk,
 											 BpsecOutboundBlock *asb);
 
-extern uint8_t     bpsec_bcbDefaultDecrypt(uint32_t suite,
+extern int     bpsec_bcbDefaultDecrypt(uint32_t suite,
 		                                   AcqWorkArea *wk,
 										   AcqExtBlock *blk,
 										   uvast *bytes);
@@ -181,7 +181,7 @@ extern BcbProfile *bpsec_bcbGetProfile(char *secSrc,
 							           int secTgtType,
 									   BspBcbRule *secBcbRule);
 
-extern  int8_t     bpsec_bcbHelper(Object *dataObj,
+extern  int     bpsec_bcbHelper(Object *dataObj,
 				  	               uint32_t chunkSize,
 						           uint32_t suite,
 						           csi_val_t key,

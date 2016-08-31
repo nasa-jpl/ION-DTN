@@ -453,7 +453,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 		else
 		{
-			BCB_DEBUG(5,"BCB Passed Decrypt", NULL);
+			BCB_DEBUG(2,"BCB Passed Decrypt", NULL);
 			ADD_BCB_RX_PASS(fromEid, 1, bytes);
 		}
 
@@ -525,7 +525,7 @@ int	bpsec_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutbound
 /*
  * Assume the asb key has been udpated with the key to use for decrypt.
  */
-uint8_t bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, uvast *bytes)
+int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, uvast *bytes)
 {
 
 	BpsecInboundBlock	*asb;
@@ -980,7 +980,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	if (prof == NULL)
 	{
 		MRELEASE(fromEid);
-		BCB_DEBUG(5,"NOT adding BCB.", NULL);
+		BCB_DEBUG(2,"NOT adding BCB.", NULL);
 
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bcbBlk);
@@ -989,7 +989,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		return result;
 	}
 
-	BCB_DEBUG(5,"Adding BCB", NULL);
+	BCB_DEBUG(2,"Adding BCB", NULL);
 
 	/* Step 2 - Populate the BCB ASB. */
 
@@ -1161,7 +1161,7 @@ int	bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	asb.targetBlockType = blk->tag1;
 
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 
 	/* Step 2.2 Populate the BCB Extension Block. */
 	blk->size = sizeof(BpsecOutboundBlock);
@@ -1214,7 +1214,7 @@ of size: %d", blk->size);
 	 */
 	if((result = bpsec_bcbAttach(bundle, blk, &asb)) <= 0)
 	{
-		sdr_begin_xn(bpSdr);
+		CHKERR(sdr_begin_xn(bpSdr));
 		sdr_free(bpSdr, blk->object);
 		sdr_end_xn(bpSdr);
 
@@ -1406,6 +1406,7 @@ Object bpsec_bcbStoreOverflow(uint32_t suite,
 	Object cipherBuffer = 0;
 
 	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
+	ciphertext.contents = NULL;
 	if((readOffset < blocksize->plaintextLen) || (cipherOverflow > 0))
 	{
 		Object cipherBuffer = 0;
@@ -1490,6 +1491,7 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 
 	*cipherBuffer = 0;
 	chunkSize = blocksize->chunkSize;
+	ciphertext.contents = NULL;
 
 	/* Step 1: Allocate read buffers. */
 	if((plaintext[0].contents = MTAKE(chunkSize)) == NULL)
@@ -1637,7 +1639,11 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 	if((csi_crypt_finish(suite, context, function, &parms)) == ERROR)
 	{
 		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace: Could not finish CSI context.", NULL);
-		MRELEASE(ciphertext.contents);
+		if (ciphertext.contents)
+		{
+			MRELEASE(ciphertext.contents);
+		}
+
 		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadInPlace--> -1", NULL);
 		return -1;
 	}
@@ -2014,7 +2020,7 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *                           implementation (NASA: NNX14CS58P)]
  *
  *****************************************************************************/
-int8_t bpsec_bcbHelper(Object *dataObj,
+int bpsec_bcbHelper(Object *dataObj,
   				  	           uint32_t chunkSize,
 						       uint32_t suite,
 						       csi_val_t key,

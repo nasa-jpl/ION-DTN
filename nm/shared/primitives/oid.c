@@ -989,6 +989,7 @@ char *oid_pretty_print(oid_t oid)
 	{
 		AMP_DEBUG_ERR("oid_pretty_print", "Can't alloc %d bytes.", size);
 		AMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
+		/*	TODO  Must destroy parm_str at this point.	*/
 		return NULL;
 	}
 
@@ -1219,6 +1220,11 @@ uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 		{
 			AMP_DEBUG_ERR("oid_serialize","Can't serialize parameters.",NULL);
 			*size = 0;
+			if(parms != NULL)
+			{
+				SRELEASE(parms);
+			}
+
 			SRELEASE(result);
 			AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 			return NULL;

@@ -739,7 +739,13 @@ table_t *get_bib_rules()
 		return NULL;
 	}
 
-	sdr_begin_xn(sdr);
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		putErrmsg("Can't start transaction.", NULL);
+		table_destroy(table, 1);
+		return NULL;
+	}
+
 	for (elt = sdr_list_first(sdr, listObj); elt; elt = sdr_list_next(sdr, elt))
 	{
 
@@ -753,9 +759,23 @@ table_t *get_bib_rules()
 				success = 1;
 
 				strLen = sdr_string_read(sdr, strBuffer, rule->securitySrcEid);
+				if (strLen < 0)
+				{
+					putErrmsg("string read failed.", NULL);
+					table_destroy(table, 1);
+					return NULL;
+				}
+
 				success = success && (dc_add(cur_row, (uint8_t*) strBuffer, strLen) != ERROR);
 
 				strLen = sdr_string_read(sdr, strBuffer, rule->destEid);
+				if (strLen < 0)
+				{
+					putErrmsg("string read failed.", NULL);
+					table_destroy(table, 1);
+					return NULL;
+				}
+
 				success = success && (dc_add(cur_row, (uint8_t*) strBuffer, strLen) != ERROR);
 
 				if((data = utils_serialize_uint(rule->blockTypeNbr, &len)) == NULL)
@@ -764,7 +784,7 @@ table_t *get_bib_rules()
 				}
 				else
 				{
-					dc_add(cur_row, data, len);
+					oK(dc_add(cur_row, data, len));
 					SRELEASE(data);
 				}
 
@@ -854,7 +874,13 @@ table_t *get_bcb_rules()
 		return NULL;
 	}
 
-	sdr_begin_xn(sdr);
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		putErrmsg("Can't start transaction.", NULL);
+		table_destroy(table, 1);
+		return NULL;
+	}
+
 	for (elt = sdr_list_first(sdr, listObj); elt; elt = sdr_list_next(sdr, elt))
 	{
 
@@ -868,9 +894,23 @@ table_t *get_bcb_rules()
 				success = 1;
 
 				strLen = sdr_string_read(sdr, strBuffer, rule->securitySrcEid);
+				if (strLen < 0)
+				{
+					putErrmsg("string read failed.", NULL);
+					table_destroy(table, 1);
+					return NULL;
+				}
+
 				success = success && (dc_add(cur_row, (uint8_t*) strBuffer, strLen) != ERROR);
 
 				strLen = sdr_string_read(sdr, strBuffer, rule->destEid);
+				if (strLen < 0)
+				{
+					putErrmsg("string read failed.", NULL);
+					table_destroy(table, 1);
+					return NULL;
+				}
+
 				success = success && (dc_add(cur_row, (uint8_t*) strBuffer, strLen) != ERROR);
 
 				if((data = utils_serialize_uint(rule->blockTypeNbr, &len)) == NULL)
@@ -879,7 +919,7 @@ table_t *get_bcb_rules()
 				}
 				else
 				{
-					dc_add(cur_row, data, len);
+					oK(dc_add(cur_row, data, len));
 					SRELEASE(data);
 				}
 

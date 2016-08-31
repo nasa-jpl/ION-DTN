@@ -1544,7 +1544,6 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	vast		fileLength;
 
 	CHKERR(bytes);
-	CHKERR(length >= 0);
 
 	BPSEC_DEBUG_PROC("+bpsec_transferToZcoFileSource(sdr, 0x"
 			         ADDR_FIELDSPEC ", 0x"

@@ -397,7 +397,7 @@ agent_t* mgr_agent_create(eid_t *in_eid)
 		return NULL;
 	}
 
-	initResourceLock(&(agent->mutex));
+	oK(initResourceLock(&(agent->mutex)));
 
 	AMP_DEBUG_EXIT("mgr_agent_create", "->New Agent %s", agent->agent_eid.name);
 	return agent;

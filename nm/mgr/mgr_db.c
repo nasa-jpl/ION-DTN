@@ -101,7 +101,7 @@ int  mgr_db_compdata_persist(var_t *item)
 	{
 		var_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(var_desc_t));
 		temp = item->desc;
@@ -199,7 +199,7 @@ int  mgr_db_ctrl_persist(ctrl_exec_t* item)
 	{
 		ctrl_exec_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(ctrl_exec_desc_t));
 		temp = item->desc;
@@ -261,7 +261,7 @@ int  mgr_db_defgen_persist(Object db, def_gen_t* item)
 	{
 		def_gen_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(def_gen_desc_t));
 		temp = item->desc;
@@ -530,11 +530,11 @@ int  mgr_db_srl_persist(srl_t *item)
 	{
 		srl_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(srl_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(srl_desc_t));
 
 		if(sdr_end_xn(sdr))
 		{
@@ -629,11 +629,11 @@ int  mgr_db_trl_persist(trl_t *item)
 	{
 		trl_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(trl_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(trl_desc_t));
 
 		if(sdr_end_xn(sdr))
 		{
@@ -750,11 +750,11 @@ int  mgr_db_sql_persist(ui_db_t* item)
 	{
 		ui_db_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(trl_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(ui_db_desc_t));
 
 		if(sdr_end_xn(sdr))
 		{
@@ -878,7 +878,7 @@ void mgr_vdb_ctrls_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* Step 1: Read through SDR list.... */
 	for (elt = sdr_list_first(sdr, gMgrDB.ctrls); elt;
@@ -985,7 +985,7 @@ uint32_t mgr_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mutex)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 
 	/* Step 1: Walk through report definitions. */
 	for (elt = sdr_list_first(sdr, db); elt;
@@ -1247,7 +1247,7 @@ void       mgr_vdb_srls_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* Step 1: Read in active rules. */
 	for (elt = sdr_list_first(sdr, gMgrDB.srls); elt;
@@ -1353,7 +1353,7 @@ void mgr_vdb_trls_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* Step 1: Read in active rules. */
 	for (elt = sdr_list_first(sdr, gMgrDB.trls); elt;
@@ -1460,7 +1460,7 @@ void mgr_vdb_sql_init(Sdr sdr)
 	uint8_t *data = NULL;
 	uint8_t *cursor = NULL;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 
 	/* Step 1: Grab the description for the account info. */

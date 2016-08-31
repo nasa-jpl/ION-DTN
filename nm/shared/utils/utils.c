@@ -115,10 +115,17 @@ unsigned long utils_atox(char *s, int *success)
 	AMP_DEBUG_ENTRY("utils_atox","(%#llx, %#llx)", s, success);
 
 	/* Step 0 - Sanity Check. */
-	if((s == NULL) || (success == NULL))
+	if (success == NULL)
 	{
 		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
-		*success = 0;
+		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		return 0;
+	}
+
+	*success = 0;
+	if((s == NULL))
+	{
+		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
 		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
 		return 0;
 	}

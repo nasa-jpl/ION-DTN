@@ -98,7 +98,7 @@ int  agent_db_var_persist(var_t *item)
 	{
 		var_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(var_desc_t));
 		temp = item->desc;
@@ -195,7 +195,7 @@ int  agent_db_ctrl_persist(ctrl_exec_t* item)
 	{
 		ctrl_exec_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		oK(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(ctrl_exec_desc_t));
 		temp = item->desc;
@@ -298,7 +298,7 @@ int  agent_db_defgen_persist(Object db, def_gen_t* item)
 	{
 		def_gen_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		oK(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(def_gen_desc_t));
 		temp = item->desc;
@@ -513,11 +513,11 @@ int  agent_db_srl_persist(srl_t *item)
 	{
 		srl_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		oK(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(srl_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(srl_desc_t));
 
 		if(sdr_end_xn(sdr))
 		{
@@ -616,11 +616,11 @@ int  agent_db_trl_persist(trl_t *item)
 	{
 		trl_desc_t temp;
 
-		sdr_begin_xn(sdr);
+		oK(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(trl_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(trl_desc_t));
 
 		if(sdr_end_xn(sdr))
 		{
@@ -695,8 +695,8 @@ uint32_t agent_db_count(Lyst list, ResourceLock *mutex)
 void agent_vdb_add(void *item, Lyst list, ResourceLock *mutex)
 {
 	lockResource(mutex);
-    lyst_insert_last(list, item);
-    unlockResource(mutex);
+	lyst_insert_last(list, item);
+	unlockResource(mutex);
 }
 
 
@@ -710,7 +710,7 @@ uint32_t agent_vdb_var_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	uint32_t num = 0;
 
-    sdr_begin_xn(sdr);
+    oK(sdr_begin_xn(sdr));
 
     /* Step 1: Walk through report definitions. */
     for (elt = sdr_list_first(sdr, gAgentDB.vars); elt;
@@ -719,7 +719,7 @@ uint32_t agent_vdb_var_init(Sdr sdr)
 
     	/* Step 1.1: Grab the descriptor. */
     	descObj = sdr_list_data(sdr, elt);
-    	sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc));
+    	oK(sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc)));
 
     	cur_desc.descObj = descObj;
 
@@ -732,7 +732,7 @@ uint32_t agent_vdb_var_init(Sdr sdr)
     	else
     	{
     		/* Step 1.3: Grab the serialized rule */
-    		sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
+    		oK(sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size));
 
     		/* Step 1.4: Deserialize into a rule object. */
     		if((cur_item = var_deserialize(data,
@@ -837,7 +837,7 @@ void agent_vdb_ctrls_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* Step 1: Read through SDR list.... */
 	for (elt = sdr_list_first(sdr, gAgentDB.ctrls); elt;
@@ -944,7 +944,7 @@ uint32_t agent_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mute
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKZERO(sdr_begin_xn(sdr));
 
 	/* Step 1: Walk through report definitions. */
 	for (elt = sdr_list_first(sdr, db); elt;
@@ -1202,7 +1202,7 @@ void       agent_vdb_srls_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* Step 1: Read in active rules. */
 	for (elt = sdr_list_first(sdr, gAgentDB.srls); elt;
@@ -1317,7 +1317,7 @@ void agent_vdb_trls_init(Sdr sdr)
 	uint32_t bytes_used = 0;
 	int num = 0;
 
-	sdr_begin_xn(sdr);
+	CHKVOID(sdr_begin_xn(sdr));
 
 	/* Step 1: Read in active rules. */
 	for (elt = sdr_list_first(sdr, gAgentDB.trls); elt;

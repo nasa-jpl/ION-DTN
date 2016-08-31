@@ -573,7 +573,7 @@ value_t adm_agent_user_float(mid_t *id)
 		return result;
 	}
 
-	if((entry = adm_extract_blob(id->oid.params, 0, &success)) == NULL)
+	if((entry = adm_extract_blob(id->oid.params, 0, &success)))
 	{
 		if(entry->length <=  sizeof(float))
 		{
@@ -585,13 +585,12 @@ value_t adm_agent_user_float(mid_t *id)
 		{
 			AMP_DEBUG_ERR("adm_agent_user_float","User length %d > Data len %d.",entry->length,  sizeof(float));
 		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("adm_agent_user_float","No user data found.",NULL);
+
+		blob_destroy(entry, 1);
+		return result;
 	}
 
-	blob_destroy(entry, 1);
+	AMP_DEBUG_ERR("adm_agent_user_float","No user data found.",NULL);
 	return result;
 }
 
@@ -609,7 +608,7 @@ value_t adm_agent_user_double(mid_t *id)
 		return result;
 	}
 
-	if((entry = adm_extract_blob(id->oid.params, 0, &success)) == NULL)
+	if((entry = adm_extract_blob(id->oid.params, 0, &success)))
 	{
 		if(entry->length <= sizeof(double))
 		{
@@ -621,13 +620,12 @@ value_t adm_agent_user_double(mid_t *id)
 		{
 			AMP_DEBUG_ERR("adm_agent_user_double","User length %d > Data len %d.",entry->length, sizeof(double));
 		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("adm_agent_user_double","No user data found.",NULL);
+
+		blob_destroy(entry, 1);
+		return result;
 	}
 
-	blob_destroy(entry, 1);
+	AMP_DEBUG_ERR("adm_agent_user_double","No user data found.",NULL);
 	return result;
 }
 
@@ -645,7 +643,7 @@ value_t adm_agent_user_string(mid_t *id)
 		return result;
 	}
 
-	if((str = adm_extract_string(id->oid.params, 0, &success)) == NULL)
+	if((str = adm_extract_string(id->oid.params, 0, &success)))
 	{
 		result.type = AMP_TYPE_STRING;
 		result.value.as_ptr = (uint8_t *) str;

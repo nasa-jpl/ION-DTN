@@ -6029,11 +6029,11 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 
 	bundle->statusRpt.flags = 0;
 	bundle->statusRpt.reasonCode = 0;
-	memset(&bundle->statusRpt.receiptTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.forwardTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.deletionTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.receiptTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.forwardTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.deletionTime, 0, sizeof(DtnTime));
 	return 0;
 }
 

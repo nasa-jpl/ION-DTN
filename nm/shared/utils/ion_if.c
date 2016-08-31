@@ -198,15 +198,13 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
 
     AMP_DEBUG_INFO("iif_rceive", "Received bundle.", NULL);
 
-    if(count > 10)
+    if(count == 10)
     {
-    	if(count == 10)
-    	{
-    		count++;
-    		AMP_DEBUG_ALWAYS("iif_receive","BPA no longer responding. Shutting down.", NULL);
-    	}
+    	AMP_DEBUG_ALWAYS("iif_receive","BPA no longer responding. Shutting down.", NULL);
     	return NULL;
     }
+
+    count++;
 
     /* Step 1: Receive the bundle.*/
     if((result = bp_receive(iif->sap, &dlv, timeout)) < 0)
@@ -252,7 +250,13 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     }
 
     /* Step 2: Read the bundle in from the ZCO. */
-    sdr_begin_xn(sdr);
+    if (sdr_begin_xn(sdr) < 0)
+    {
+        SRELEASE(buffer);
+	putErrmsg("Can't start transaction.", NULL);
+        return NULL;
+    }
+
     zco_start_receiving(dlv.adu, &reader);
     dataLength = zco_receive_source(sdr, &reader, content_len, (char*)buffer);
 
@@ -395,7 +399,12 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     /* Step 2 - Get the SDR, insert the message as an SDR transaction.*/
     Sdr sdr = bp_get_sdr();
 
-    CHKZERO(sdr_begin_xn(sdr));
+    if (sdr_begin_xn(sdr) < 0)
+    {
+            SRELEASE(data);
+	    putErrmsg("Unable to start transaction.", NULL);
+	    return 0;
+    }
 
     extent = sdr_malloc(sdr, len);
     if(extent)
@@ -404,6 +413,7 @@ uint8_t iif_send(iif_t *iif, pdu_group_t *group, char *recipient)
     }
     else
     {
+	SRELEASE(data);
     	AMP_DEBUG_ERR("iif_send","Can't write to NULL extent.", NULL);
     	sdr_cancel_xn(sdr);
     	return 0;

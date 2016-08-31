@@ -336,6 +336,7 @@ void def_print_gen(def_gen_t *def)
 	if(def == NULL)
 	{
 		fprintf(stderr,"NULL Definition.\n");
+		return;
 	}
 
 	id_str = mid_pretty_print(def->id);

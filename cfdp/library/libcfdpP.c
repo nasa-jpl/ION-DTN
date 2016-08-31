@@ -3790,7 +3790,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	int		offsetLength;
 	int		i;
 	uvast		segmentOffset;
-	unsigned int	segmentEnd;
+	uvast		segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -3798,17 +3798,17 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Object		elt;
 	Object		addr;
 	CfdpExtent	extent;
-	unsigned int	extentEnd = 0;
+	uvast		extentEnd = 0;
 	Object		nextElt = 0;
-	unsigned int	bytesToSkip;
+	uvast		bytesToSkip;
 	char		stringBuf[256];
 	char		workingNameBuffer[MAXPATHLEN + 1];
 	off_t		endOfFile;
-	unsigned int	fileLength;
+	uvast		fileLength;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
-	unsigned int	bytesToWrite;
-	unsigned int	nextExtentEnd;
+	uvast		bytesToWrite;
+	uvast		nextExtentEnd;
 
 	/*	Prepare to issue indication.				*/
 

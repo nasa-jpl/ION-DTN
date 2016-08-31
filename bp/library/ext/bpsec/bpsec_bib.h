@@ -142,7 +142,7 @@
 
 
 
-extern int8_t	   bpsec_bibAttach(Bundle *bundle,
+extern int	   bpsec_bibAttach(Bundle *bundle,
 		                           ExtensionBlock *bibBlk,
 			                       BpsecOutboundBlock *bibAsb);
 
@@ -152,13 +152,13 @@ extern void        bpsec_bibClear(AcqExtBlock *blk);
 
 extern int         bpsec_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
 
-extern int8_t      bpsec_bibDefaultCompute(Object dataObj,
+extern int      bpsec_bibDefaultCompute(Object dataObj,
  				   	                       uint32_t chunkSize,
  						                   uint32_t suite,
  						                   void *context,
  						                   csi_svcid_t svc);
 
-extern int8_t	   bpsec_bibDefaultConstruct(uint32_t suite,
+extern int	   bpsec_bibDefaultConstruct(uint32_t suite,
  		                                     ExtensionBlock *blk,
  											 BpsecOutboundBlock *asb);
 
@@ -166,13 +166,13 @@ extern int8_t	   bpsec_bibDefaultConstruct(uint32_t suite,
 extern uint32_t    bpsec_bibDefaultResultLen(uint32_t suite,
  		                                     uint8_t tlv);
 
-extern int8_t      bpsec_bibDefaultSign(uint32_t suite,
+extern int      bpsec_bibDefaultSign(uint32_t suite,
  		                                Bundle *bundle,
  		                                ExtensionBlock *blk,
  		                                BpsecOutboundBlock *asb,
 										uvast *bytes);
 
-extern int8_t      bpsec_bibDefaultVerify(uint32_t suite,
+extern int      bpsec_bibDefaultVerify(uint32_t suite,
  		                                  AcqWorkArea *wk,
  					     				  AcqExtBlock *blk,
 										  uvast *bytes);
@@ -187,7 +187,7 @@ extern int	       bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle);
 
 extern int         bpsec_bibParse(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern int8_t	   bpsec_bibProcessOnDequeue(ExtensionBlock *blk,
+extern int	   bpsec_bibProcessOnDequeue(ExtensionBlock *blk,
 		                              Bundle *bundle,
 		                              void *parm);
 

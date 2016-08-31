@@ -1056,6 +1056,7 @@ void ui_add_parmspec(char *mid_str,
 		                       char *n5, uint8_t p5)
 {
 	ui_parm_spec_t *spec = STAKE(sizeof(ui_parm_spec_t));
+	CHKVOID(spec);
 
 	memset(spec, 0, sizeof(ui_parm_spec_t));
 

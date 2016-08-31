@@ -617,6 +617,13 @@ value_t adm_bp_endpoint_get_name(tdc_t params)
 
 		size = (uint64_t) strlen(endpoint.eid) + 1;
 		result.value.as_ptr = (uint8_t*) STAKE(size);
+		if (result.value.as_ptr == NULL)
+		{
+			putErrmsg("Can't create result.value.as_ptr.", NULL);
+			SRELEASE(name);
+			return result;
+		}
+
 		memset(result.value.as_ptr,0,size);
 		memcpy(result.value.as_ptr, endpoint.eid, size);
 	}

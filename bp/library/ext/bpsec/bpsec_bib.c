@@ -107,7 +107,7 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t	bpsec_bibAttach(Bundle *bundle,
+int	bpsec_bibAttach(Bundle *bundle,
                         ExtensionBlock *bibBlk,
 	                    BpsecOutboundBlock *bibAsb)
 {
@@ -146,7 +146,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
-		BIB_DEBUG(5, "NOT Attaching BIB.", NULL);
+		BIB_DEBUG(2, "NOT Attaching BIB.", NULL);
 
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bibBlk);
@@ -157,7 +157,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	}
 
 
-	BIB_DEBUG(5, "Attaching BIB.", NULL);
+	BIB_DEBUG(2, "Attaching BIB.", NULL);
 
 	/* Step 2 - Populate the BIB ASB. */
 
@@ -391,7 +391,7 @@ int bpsec_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 		else
 		{
-			BIB_DEBUG(5, "BIB check passed.", NULL);
+			BIB_DEBUG(2, "BIB check passed.", NULL);
 			ADD_BIB_RX_PASS(fromEid, 1, bytes);
 		}
 		discardExtensionBlock(blk);
@@ -619,7 +619,7 @@ int	bpsec_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t bpsec_bibDefaultCompute(Object dataObj,
+int bpsec_bibDefaultCompute(Object dataObj,
 							   uint32_t chunkSize,
 						       uint32_t suite,
 						       void *context,
@@ -741,7 +741,7 @@ int8_t bpsec_bibDefaultCompute(Object dataObj,
  *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int8_t bpsec_bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock *asb)
+int bpsec_bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock *asb)
 {
 
 	CHKERR(blk);
@@ -852,7 +852,7 @@ uint32_t bpsec_bibDefaultResultLen(uint32_t suite, uint8_t tlv)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t bpsec_bibDefaultSign(uint32_t suite,
+int bpsec_bibDefaultSign(uint32_t suite,
      	                      Bundle *bundle,
 		                      ExtensionBlock *blk,
 		                      BpsecOutboundBlock *asb,
@@ -1010,7 +1010,7 @@ space for ASB result, len %ld.", resultsLen);
  *  04/26/16  E. Birrane     Added bytes. [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int8_t bpsec_bibDefaultVerify(uint32_t suite,
+int bpsec_bibDefaultVerify(uint32_t suite,
 		                     AcqWorkArea *wk,
 							 AcqExtBlock *blk,
 							 uvast *bytes)
@@ -1298,7 +1298,7 @@ int	bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	/* Step 2.2 Populate the BIB Extension Block. */
 
-	sdr_begin_xn(bpSdr);
+	CHKERR(sdr_begin_xn(bpSdr));
 
 	blk->size = sizeof(BpsecOutboundBlock);
 	if((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
@@ -1348,7 +1348,7 @@ int	bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	if((result = bpsec_bibAttach(bundle, blk, &asb)) <= 0)
 	{
-		sdr_begin_xn(bpSdr);
+		CHKERR(sdr_begin_xn(bpSdr));
 		sdr_free(bpSdr, blk->object);
 		sdr_end_xn(bpSdr);
 
@@ -1442,7 +1442,7 @@ int	bpsec_bibParse(AcqExtBlock *blk, AcqWorkArea *wk)
  *                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t	bpsec_bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
+int	bpsec_bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 {
 	BpsecOutboundBlock	asb;
 	int8_t		    	result = 0;

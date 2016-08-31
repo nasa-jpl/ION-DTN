@@ -686,7 +686,6 @@ oid_t ui_input_oid(uint8_t mid_flags)
 			AMP_DEBUG_ERR("ui_input_oid","Unknown OID Type %d",
 					    	 MID_GET_FLAG_OID(mid_flags));
 			return oid_get_null();
-			break;
 	}
 
 	/* Get the non-parameterized parts of the OID. */
@@ -710,6 +709,12 @@ oid_t ui_input_oid(uint8_t mid_flags)
 
 			size = size2 + id.length;
 			data = (uint8_t *) STAKE(size);
+			if (data == NULL)
+			{
+				putErrmsg("Failed allocating OID.", NULL);
+				return oid_get_null();
+			}
+
 			memcpy(data, id.text, id.length);
 			memcpy(data+id.length, data2, size2);
 			SRELEASE(data2);
@@ -826,8 +831,15 @@ tdc_t *ui_input_parms(ui_parm_spec_t *spec)
 				sprintf(prompt,"(SDNV) %s", spec->parm_name[i]);
 				Sdnv val = ui_input_sdnv(prompt);
 				data = (uint8_t *) STAKE(val.length);
-				size = val.length;
-				memcpy(data, &(val.text), val.length);
+				if (data)
+				{
+					size = val.length;
+					memcpy(data, &(val.text), val.length);
+				}
+				else
+				{
+					putErrmsg("Can't allocate data.", NULL);
+				}
 			}
 				break;
 			case AMP_TYPE_TS:

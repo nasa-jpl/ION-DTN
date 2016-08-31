@@ -28,7 +28,7 @@ static void	getSymmetricKeyForRule(char *keyName, int *keyLength,
 {
 	*keyLength = 0;
 	*keyValue = MTAKE(1);
-	sec_get_key(keyName, keyLength, *keyValue);
+	oK(sec_get_key(keyName, keyLength, *keyValue));
 	MRELEASE(keyValue);
 	if (*keyLength <= 0)
 	{
@@ -40,7 +40,7 @@ static void	getSymmetricKeyForRule(char *keyName, int *keyLength,
 	}
 
 	*keyValue = MTAKE(*keyLength);
-	sec_get_key(keyName, keyLength, *keyValue);
+	oK(sec_get_key(keyName, keyLength, *keyValue));
 }
 
 static void	getPublicKeyForNode(uvast nodeNbr, int *keyLength,

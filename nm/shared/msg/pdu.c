@@ -37,6 +37,7 @@ pdu_group_t *pdu_create_empty_group()
 	pdu_group_t *result = NULL;
 
 	result = (pdu_group_t*) STAKE(sizeof(pdu_group_t));
+	CHKNULL(result);
 
 	result->msgs = lyst_create();
 	result->time = time(NULL);
