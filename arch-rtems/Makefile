@@ -1,7 +1,12 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
--DNO_PROXY -DNO_DIRLIST -DBPSEC
-# -DENABLE_IMC -DENABLE_BPACS
+-DNO_PROXY -DNO_DIRLIST
+# Add -DAGENT_ROLE if building with nm.
+# -DAGENT_ROLE
+# Add -DBPSEC if building with bpsec.
+# -DBPSEC
+# -DENABLE_IMC
+# -DENABLE_BPACS
 
 PGM=${ARCH}/ion.exe
 
@@ -58,6 +63,7 @@ LTPSOURCES =     \
 BPSOURCES =      \
 	libbp.c      \
 	libbpP.c     \
+	libbpnm.c    \
 	bpclock.c    \
 	bptransit.c  \
 	bpadmin.c    \
@@ -108,6 +114,49 @@ BPSOURCES =      \
 #	libtcpbsa.c  \
 #	bsspadmin.c  \
 
+NMSOURCES =	     \
+	adm.o \
+	adm_agent.o \
+	adm_bp.o \
+	adm_bpsec.o \
+	adm_ion.o \
+	adm_ltp.o \
+	msg_admin.o \
+	msg_ctrl.o \
+	pdu.o \
+	var.o \
+	expr.o \
+	blob.o \
+	admin.o \
+	def.o \
+	mid.o \
+	oid.o \
+	report.o \
+	rules.o \
+	dc.o \
+	value.o \
+	lit.o \
+	nn.o \
+	tdc.o \
+	ctrl.o \
+	table.o \
+	ion_if.o \
+	utils.o \
+	db.o \
+	nm_types.o \
+	ingest.o \
+	instr.o \
+	lcc.o \
+	ldc.o \
+	rda.o \
+	agent_db.o \
+	adm_ion_priv.o \
+	adm_ltp_priv.o \
+	adm_agent_impl.o \
+	adm_bp_impl.o \
+	adm_bpsec_impl.o \
+	nmagent.o
+
 BPSECSOURCES =       \
 	bpsec_util.c \
 	bpsec_instr.c\
@@ -141,7 +190,13 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BPSECSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES)
+#	*** NOTE *** ION will build with BPSECSOURCES and NMSOURCES included.
+#	But IT WON'T RUN.  The object file uses up too much of the RTEMS
+#	memory allocation in this configuration; there's not enough memory
+#	left for the ION node initialization to complete.
+# $(BPSECSOURCES)
+# $(NMSOURCES)
 # $(BSSSOURCES)
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
@@ -161,7 +216,18 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include
+INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
+-I../bp \
+-I../bp/library \
+-I../bp/library/ext \
+-I../bp/library/ext/bpsec \
+-I.. \
+-I../nm \
+-I../nm/agent \
+-I../nm/shared/adm \
+-I../nm/shared/msg \
+-I../nm/shared/primitives \
+-I../nm/shared/utils
 #	-I../dgr/include
 #	-I../bss/include
 #	-I../bssp/include
@@ -173,7 +239,8 @@ INCLUDES = $(INCLUDES_T)
 endif
 
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
-CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)
+#CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)
+CFLAGS = -g -Wall -Werror -Wno-unused-variable $(IONFLAGS) $(INCLUDES)
 
 all:    ${ARCH} $(PGM)
 

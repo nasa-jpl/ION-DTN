@@ -1037,7 +1037,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	/* Step 3 - serialize the BCB ASB into the BCB blk. */
 
 	/* Step 3.1 - Create a serialized version of the BCB ASB. */
-	if((serializedAsb = bpsec_serializeASB(&(bcbBlk->dataLength), bcbAsb)) == NULL)
+	if((serializedAsb = bpsec_serializeASB((uint32_t *) &(bcbBlk->dataLength), bcbAsb)) == NULL)
 	{
 		BCB_DEBUG_ERR("x bpsec_bcbAttach: Unable to serialize ASB.  bcbBlk->dataLength = %d",
 				      bcbBlk->dataLength);

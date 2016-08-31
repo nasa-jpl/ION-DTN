@@ -614,7 +614,7 @@ char*    rpt_to_str(rpt_t *rpt)
 	/* Step 4: Populate the return string. */
 	sprintf(result,
 			"Timestamp: %d\n# Entries: %d\n------\n%s\n",
-			(uint32_t) rpt->time, (uint32_t) lyst_length(rpt->entries), entries);
+			(int) (rpt->time), (int) lyst_length(rpt->entries), entries);
 
 	/* Step 5: Release entries memory (copied into result) and return. */
 	SRELEASE(entries);

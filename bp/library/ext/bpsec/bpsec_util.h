@@ -241,9 +241,9 @@ extern SdrObject      bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uin
 
 extern SdrObject      bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t *len);
 
-extern int8_t         bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
+extern int         bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern int8_t         bpsec_destinationIsLocal(Bundle *bundle);
+extern int         bpsec_destinationIsLocal(Bundle *bundle);
 
 extern LystElt	      bpsec_findAcqBlock(AcqWorkArea *wk,
 		                                 uint8_t type,
@@ -264,13 +264,13 @@ extern void	          bpsec_getInboundItem(int itemNeeded,
 			                               unsigned int *len);
 */
 
-extern int8_t	      bpsec_getInboundSecurityEids(Bundle *bundle,
+extern int	      bpsec_getInboundSecurityEids(Bundle *bundle,
 												   AcqExtBlock *blk,
 												   BpsecInboundBlock *asb,
 												   char **fromEid,
 												   char **toEid);
 
-extern int8_t	      bpsec_getInboundSecuritySource(AcqExtBlock *blk,
+extern int	      bpsec_getInboundSecuritySource(AcqExtBlock *blk,
    		                                             char *dictionary,
 			                                         char **fromEid);
 
@@ -282,13 +282,13 @@ extern void	          bpsec_getOutboundItem(uint8_t itemNeeded,
 											Address *val,
 											uint32_t *len);
 
-extern int8_t	      bpsec_getOutboundSecurityEids(Bundle *bundle,
+extern int	      bpsec_getOutboundSecurityEids(Bundle *bundle,
 		                                            ExtensionBlock *blk,
 			                                        BpsecOutboundBlock *asb,
 													char **fromEid,
 													char **toEid);
 
-extern int8_t         bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
+extern int         bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
 		                                              char *dictionary,
 				  				 	                  char **fromEid);
 
@@ -299,10 +299,10 @@ extern csi_val_t      bpsec_retrieveKey(char *keyName);
 
 extern int	      bpsec_securityPolicyViolated(AcqWorkArea *wk);
 
-extern unsigned char *bpsec_serializeASB(unsigned int *length,
+extern unsigned char *bpsec_serializeASB(uint32_t *length,
 		                                 BpsecOutboundBlock *blk);
 
-extern int8_t         bpsec_transferToZcoFileSource(Sdr sdr,
+extern int         bpsec_transferToZcoFileSource(Sdr sdr,
 		                                            Object *resultZco,
 													Object *acqFileRef,
 													char *fname,

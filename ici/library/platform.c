@@ -2155,10 +2155,6 @@ int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
 uvast	htonv(uvast hostvast)
 {
 	static const int	fortyTwo = 42;
-	static const vast	mask = 0xffffffff;
-	unsigned int		big_part;
-	unsigned int		small_part;
-	uvast			result;
 
 	if ((*(char *) &fortyTwo) == 0)	/*	Check first byte.	*/
 	{
@@ -2169,10 +2165,13 @@ uvast	htonv(uvast hostvast)
 
 	/*	Must  reverse the byte order of this number.		*/
 
-	if (sizeof(uvast) == sizeof(int))	/*	Small "vast".	*/
-	{
-		return htonl(hostvast);
-	}
+#if (!LONG_LONG_OKAY)
+	return htonl(hostvast);
+#else
+	static const vast	mask = 0xffffffff;
+	unsigned int		big_part;
+	unsigned int		small_part;
+	uvast			result;
 
 	big_part = hostvast >> 32;
 	small_part = hostvast & mask;
@@ -2180,6 +2179,7 @@ uvast	htonv(uvast hostvast)
 	small_part = htonl(small_part);
 	result = small_part;
 	return (result << 32) | big_part;
+#endif
 }
 
 uvast	ntohv(uvast netvast)

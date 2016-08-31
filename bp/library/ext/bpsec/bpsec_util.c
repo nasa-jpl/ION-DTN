@@ -308,15 +308,15 @@ SdrObject bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t 
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-int8_t	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
+int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int32_t		result = 1;
+	int		result = 1;
 	BpsecInboundBlock	asb;
 	unsigned char	*cursor = NULL;
-	int32_t	unparsedBytes = 0;
+	int	unparsedBytes = 0;
 	LystElt		elt;
 	uvast	 ltemp;
-	uint32_t itemp;
+	unsigned int itemp;
 
 	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB("ADDR_FIELDSPEC","ADDR_FIELDSPEC"%d)", (uaddr) blk, (uaddr) wk);
 
@@ -486,12 +486,12 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t	bpsec_destinationIsLocal(Bundle *bundle)
+int	bpsec_destinationIsLocal(Bundle *bundle)
 {
 	char		*dictionary;
 	VScheme		*vscheme;
 	VEndpoint	*vpoint;
-	int8_t		result = 0;
+	int		result = 0;
 
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
@@ -543,7 +543,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
 						   uint8_t targetBlockOccurrence,
 						   uint8_t instance)
 {
-	uint32_t	idx;
+	uint32_t	 idx;
 	LystElt		elt;
 	AcqExtBlock	*blk;
 	BpsecInboundBlock	*asb;
@@ -676,14 +676,14 @@ Object	bpsec_findBlock(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t bpsec_getInboundSecurityEids(Bundle *bundle,
+int bpsec_getInboundSecurityEids(Bundle *bundle,
 		                            AcqExtBlock *blk,
 									BpsecInboundBlock *asb,
 									char **fromEid,
 									char **toEid)
 {
 	char	*dictionary;
-	int8_t	result;
+	int	result;
 
 	CHKERR(bundle);
 	CHKERR(blk);
@@ -763,7 +763,7 @@ int8_t bpsec_getInboundSecurityEids(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t	bpsec_getInboundSecuritySource(AcqExtBlock *blk,
+int	bpsec_getInboundSecuritySource(AcqExtBlock *blk,
 		                                       char *dictionary,
 			                                   char **fromEid)
 {
@@ -874,7 +874,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
 	unsigned char *temp;
 	unsigned char *cursor;
 	uint8_t       itemType;
-	uint32_t      sdnvLength;
+	unsigned int      sdnvLength;
 	uvast		  longNumber;
 	uint32_t	  itemLength;
 	uint32_t	  offset;
@@ -975,14 +975,14 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t	bpsec_getOutboundSecurityEids(Bundle *bundle,
+int	bpsec_getOutboundSecurityEids(Bundle *bundle,
 		                              ExtensionBlock *blk,
 									  BpsecOutboundBlock *asb,
 									  char **fromEid,
 									  char **toEid)
 {
 	char	*dictionary;
-	int8_t	result;
+	int	result;
 
 	CHKERR(bundle);
 	CHKERR(blk);
@@ -1061,7 +1061,7 @@ int8_t	bpsec_getOutboundSecurityEids(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
+int bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
 		                                      char *dictionary,
 				  				 	          char **fromEid)
 {
@@ -1193,7 +1193,7 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 {
 	csi_val_t key;
 	char stdBuffer[100];
-	int32_t  ReqBufLen = 0;
+	int  ReqBufLen = 0;
 
 	BPSEC_DEBUG_PROC("+ bpsec_retrieveKey(0x" ADDR_FIELDSPEC ")",
 			(uaddr) keyName);
@@ -1534,7 +1534,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
  *  08/20/11  R. Brown      Initial Implementation.
  *  01/31/16  E. Birrane    Update to BPSEC
  *****************************************************************************/
-int8_t bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
+int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		Object *acqFileRef, char *fname, char *bytes, uvast length)
 {
 	static uint32_t	acqCount = 0;

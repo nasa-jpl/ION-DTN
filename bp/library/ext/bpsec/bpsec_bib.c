@@ -206,7 +206,7 @@ int8_t	bpsec_bibAttach(Bundle *bundle,
 	/* Step 3 - serialize the BIB ASB into the BIB blk. */
 
 	/* Step 3.1 - Create a serialized version of the BIB ASB. */
-	if((serializedAsb = bpsec_serializeASB(&(bibBlk->dataLength), bibAsb)) == NULL)
+	if((serializedAsb = bpsec_serializeASB((uint32_t *) &(bibBlk->dataLength), bibAsb)) == NULL)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
 		MRELEASE(fromEid);

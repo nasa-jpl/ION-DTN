@@ -909,10 +909,10 @@ char *val_to_string(value_t val)
 //	case DTNMP_TYPE_TRL:    val_str = trl_to_str((trl_t*)val.value.as_ptr); break;
 	case AMP_TYPE_MC:     val_str = midcol_to_string((Lyst)val.value.as_ptr); break;
 	case AMP_TYPE_MACRO:  val_str = midcol_to_string((Lyst)val.value.as_ptr); break;
-	case AMP_TYPE_BYTE:   use_alt = 1; sprintf(alt_str,"%x", val.value.as_int); break;
-	case AMP_TYPE_INT:    use_alt = 1; sprintf(alt_str,"%d", val.value.as_int); break;
-	case AMP_TYPE_TS:     use_alt = 1; sprintf(alt_str,"%d", val.value.as_uint); break;
-	case AMP_TYPE_UINT:   use_alt = 1; sprintf(alt_str,"%u", val.value.as_uint); break;
+	case AMP_TYPE_BYTE:   use_alt = 1; sprintf(alt_str,"%x", (unsigned int) val.value.as_int); break;
+	case AMP_TYPE_INT:    use_alt = 1; sprintf(alt_str,"%d", (int) val.value.as_int); break;
+	case AMP_TYPE_TS:     use_alt = 1; sprintf(alt_str,"%d", (int) val.value.as_uint); break;
+	case AMP_TYPE_UINT:   use_alt = 1; sprintf(alt_str,"%u", (unsigned int) val.value.as_uint); break;
 	case AMP_TYPE_VAST:   use_alt = 1; sprintf(alt_str,VAST_FIELDSPEC, val.value.as_vast); break;
 	case AMP_TYPE_UVAST:  use_alt = 1; sprintf(alt_str,UVAST_FIELDSPEC, val.value.as_uvast); break;
 	case AMP_TYPE_REAL32:	use_alt = 1; sprintf(alt_str,"%f", val.value.as_real32); break;

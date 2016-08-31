@@ -715,6 +715,7 @@ uvast    utils_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t 
 	/* Step 1: Populate the uvast. */
 	uvast tmp;
 
+#if LONG_LONG_OKAY
 	tmp = buffer[0]; tmp <<= 56;
 	result |= tmp;
 
@@ -737,6 +738,18 @@ uvast    utils_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t 
 	result |= tmp;
 
 	result |= buffer[7];
+#else
+	tmp = buffer[0]; tmp <<= 24;
+	result |= tmp;
+
+	tmp = buffer[1]; tmp <<= 16;
+	result |= tmp;
+
+	tmp = buffer[2]; tmp <<= 8;
+	result |= tmp;
+
+	result |= buffer[3];
+#endif
 
 	*bytes_used = 8;
 
@@ -888,6 +901,7 @@ uint8_t *utils_serialize_uvast(uvast value, uint32_t *size)
 
 	tmp = htonv(value);
 
+#if LONG_LONG_OKAY
 	result[0] = (tmp >> 56) & (0xFF);
 	result[1] = (tmp >> 48) & (0xFF);
 	result[2] = (tmp >> 40) & (0xFF);
@@ -896,6 +910,12 @@ uint8_t *utils_serialize_uvast(uvast value, uint32_t *size)
 	result[5] = (tmp >> 16) & (0xFF);
 	result[6] = (tmp >> 8) & (0xFF);
 	result[7] = tmp & (0xFF);
+#else
+	result[0] = (tmp >> 24) & (0xFF);
+	result[1] = (tmp >> 16) & (0xFF);
+	result[2] = (tmp >> 8) & (0xFF);
+	result[3] = tmp & (0xFF);
+#endif
 
 	*size = 8;
 

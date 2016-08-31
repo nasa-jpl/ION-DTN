@@ -1007,7 +1007,7 @@ char *oid_pretty_print(oid_t oid)
 
 	cursor += sprintf(cursor,"num_parm: %d\n", oid_get_num_parms(oid));
 	cursor += sprintf(cursor,"parms: %s\n", parm_str);
-	cursor += sprintf(cursor, "nn_id: %d\n", (uint32_t)oid.nn_id);
+	cursor += sprintf(cursor, "nn_id: " UVAST_FIELDSPEC "\n", oid.nn_id);
 	cursor += printf(cursor, "value_size: %d\n", oid.value_size);
 
 	str = oid_to_string(oid);
