@@ -25,13 +25,13 @@
 
 #include "platform.h"
 
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/msg/pdu.h"
+#include "../msg/pdu.h"
 
-#include "shared/primitives/tdc.h"
-#include "shared/primitives/mid.h"
-#include "shared/msg/msg_ctrl.h"
+#include "../primitives/tdc.h"
+#include "../primitives/mid.h"
+#include "../msg/msg_ctrl.h"
 
 #include "report.h"
 

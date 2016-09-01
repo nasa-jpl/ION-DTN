@@ -16,18 +16,18 @@
  *****************************************************************************/
 #include <math.h>
 
-#include "shared/adm/adm.h"
+#include "../shared/adm/adm.h"
 
-#include "shared/primitives/value.h"
+#include "../shared/primitives/value.h"
 #include "adm_bpsec_impl.h"
-#include "shared/primitives/report.h"
+#include "../shared/primitives/report.h"
 #include "rda.h"
-#include "shared/primitives/ctrl.h"
+#include "../shared/primitives/ctrl.h"
 #include "agent_db.h"
-#include "shared/primitives/table.h"
+#include "../shared/primitives/table.h"
 
-#include "shared/adm/adm_bpsec.h"
-#include "bp/library/ext/bpsec/profiles.h"
+#include "../shared/adm/adm_bpsec.h"
+#include "profiles.h"
 
 /* Meta-Data Functions. */
 value_t adm_bpsec_md_name(tdc_t params)

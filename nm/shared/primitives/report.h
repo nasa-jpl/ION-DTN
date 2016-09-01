@@ -31,10 +31,10 @@
 
 #include "lyst.h"
 
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
-#include "shared/primitives/def.h"
-#include "shared/primitives/tdc.h"
+#include "../primitives/def.h"
+#include "../primitives/tdc.h"
 
 /*
  * +--------------------------------------------------------------------------+

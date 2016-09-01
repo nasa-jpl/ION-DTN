@@ -20,19 +20,19 @@
 #include "platform.h"
 
 
-#include "shared/adm/adm_bpsec.h"
-#include "shared/utils/utils.h"
-#include "shared/primitives/def.h"
-#include "shared/primitives/nn.h"
-#include "shared/primitives/report.h"
-#include "shared/primitives/blob.h"
+#include "../adm/adm_bpsec.h"
+#include "../utils/utils.h"
+#include "../primitives/def.h"
+#include "../primitives/nn.h"
+#include "../primitives/report.h"
+#include "../primitives/blob.h"
 
 #ifdef AGENT_ROLE
-#include "adm_bpsec_impl.h"
-#include "rda.h"
+#include "../../agent/adm_bpsec_impl.h"
+#include "../../agent/rda.h"
 #else
-#include "mgr/nm_mgr_names.h"
-#include "mgr/nm_mgr_ui.h"
+#include "../../mgr/nm_mgr_names.h"
+#include "../../mgr/nm_mgr_ui.h"
 #endif
 
 #define _HAVE_BPSEC_ADM_

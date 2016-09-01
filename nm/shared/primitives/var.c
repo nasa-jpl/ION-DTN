@@ -19,8 +19,8 @@
 
 #include "platform.h"
 
-#include "shared/utils/utils.h"
-#include "shared/utils/nm_types.h"
+#include "../utils/utils.h"
+#include "../utils/nm_types.h"
 
 #include "var.h"
 

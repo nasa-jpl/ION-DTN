@@ -28,17 +28,17 @@
 #include "platform.h"
 #include "lyst.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/utils/ion_if.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/utils/ion_if.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/rules.h"
-#include "shared/primitives/ctrl.h"
-#include "shared/primitives/def.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/rules.h"
+#include "../shared/primitives/ctrl.h"
+#include "../shared/primitives/def.h"
 
-#include "shared/msg/pdu.h"
-#include "shared/msg/msg_ctrl.h"
-#include "shared/msg/msg_admin.h"
+#include "../shared/msg/pdu.h"
+#include "../shared/msg/msg_ctrl.h"
+#include "../shared/msg/msg_admin.h"
 
 /*
  * +--------------------------------------------------------------------------+

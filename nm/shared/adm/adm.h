@@ -33,13 +33,13 @@
 #include "lyst.h"
 
 #include "../primitives/var.h"
-#include "shared/primitives/dc.h"
-#include "shared/primitives/def.h"
-#include "shared/primitives/tdc.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/value.h"
-#include "shared/primitives/lit.h"
-#include "shared/utils/nm_types.h"
+#include "../primitives/dc.h"
+#include "../primitives/def.h"
+#include "../primitives/tdc.h"
+#include "../primitives/mid.h"
+#include "../primitives/value.h"
+#include "../primitives/lit.h"
+#include "../utils/nm_types.h"
 
 /*
  * +--------------------------------------------------------------------------+

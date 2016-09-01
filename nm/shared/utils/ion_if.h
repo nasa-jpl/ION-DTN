@@ -29,7 +29,7 @@
 #define ION_IF_H_
 
 #include "bp.h"
-#include "shared/msg/pdu.h"
+#include "../msg/pdu.h"
 
 /*
  * +--------------------------------------------------------------------------+

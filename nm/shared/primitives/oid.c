@@ -37,9 +37,9 @@
 
 #include "platform.h"
 
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/primitives/oid.h"
+#include "../primitives/oid.h"
 
 #define UHF UVAST_HEX_FIELDSPEC
 

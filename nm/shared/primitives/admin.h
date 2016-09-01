@@ -28,7 +28,7 @@
 #define _ADMIN_H_
 
 
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
 /*
  * +--------------------------------------------------------------------------+

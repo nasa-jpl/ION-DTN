@@ -25,9 +25,9 @@
 
 #include "platform.h"
 
-#include "shared/utils/utils.h"
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
+#include "../utils/utils.h"
+#include "../utils/nm_types.h"
+#include "../adm/adm.h"
 
 #include "def.h"
 

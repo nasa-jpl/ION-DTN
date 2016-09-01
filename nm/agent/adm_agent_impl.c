@@ -29,13 +29,13 @@
 
 #include <math.h>
 
-#include "shared/adm/adm.h"
+#include "../shared/adm/adm.h"
 
-#include "shared/primitives/value.h"
+#include "../shared/primitives/value.h"
 #include "adm_agent_impl.h"
-#include "shared/primitives/report.h"
+#include "../shared/primitives/report.h"
 #include "rda.h"
-#include "shared/primitives/ctrl.h"
+#include "../shared/primitives/ctrl.h"
 #include "agent_db.h"
 #include "instr.h"
 

@@ -27,14 +27,14 @@
 
 #include "rules.h"
 
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/msg/pdu.h"
+#include "../msg/pdu.h"
 
-#include "shared/msg/msg_ctrl.h"
+#include "../msg/msg_ctrl.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/rules.h"
+#include "../primitives/mid.h"
+#include "../primitives/rules.h"
 
 
 /* 9/4/2015 */

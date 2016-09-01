@@ -28,7 +28,7 @@
 #ifndef LIT_H_
 #define LIT_H_
 
-#include "shared/primitives/value.h"
+#include "../primitives/value.h"
 
 /*
  * +--------------------------------------------------------------------------+

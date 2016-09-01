@@ -27,15 +27,15 @@
 #include "nm_mgr.h"
 #include "nm_mgr_names.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/dc.h"
-#include "shared/primitives/tdc.h"
-#include "shared/primitives/value.h"
-#include "shared/primitives/report.h"
-#include "shared/primitives/rules.h"
-#include "shared/primitives/expr.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/adm/adm.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/dc.h"
+#include "../shared/primitives/tdc.h"
+#include "../shared/primitives/value.h"
+#include "../shared/primitives/report.h"
+#include "../shared/primitives/rules.h"
+#include "../shared/primitives/expr.h"
 
 int ui_print_agents();
 void ui_print_custom_rpt_entry(rpt_entry_t *rpt_entry, def_gen_t *rpt_def);

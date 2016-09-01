@@ -23,7 +23,7 @@
 
 #include "ctrl.h"
 
-#include "shared/primitives/mid.h"
+#include "../primitives/mid.h"
 
 void ctrl_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
 {

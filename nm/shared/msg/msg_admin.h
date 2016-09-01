@@ -31,12 +31,12 @@
 
 #include "lyst.h"
 
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/admin.h"
+#include "../primitives/mid.h"
+#include "../primitives/admin.h"
 
-#include "shared/msg/pdu.h"
+#include "../msg/pdu.h"
 
 
 /* Administrative messages */

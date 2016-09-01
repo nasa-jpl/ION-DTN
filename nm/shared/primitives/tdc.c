@@ -22,9 +22,9 @@
 #include "lyst.h"
 #include "ion.h"
 #include "tdc.h"
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/primitives/value.h"
+#include "../primitives/value.h"
 
 
 int8_t tdc_append(tdc_t *dst, tdc_t *src)

@@ -30,9 +30,9 @@
 
 #include "lyst.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-#include "shared/primitives/lit.h"
+#include "../utils/nm_types.h"
+#include "../adm/adm.h"
+#include "../primitives/lit.h"
 
 
 

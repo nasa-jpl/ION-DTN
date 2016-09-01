@@ -28,10 +28,10 @@
 
 #include "lyst.h"
 
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/expr.h"
+#include "../primitives/mid.h"
+#include "../primitives/expr.h"
 
 
 /*

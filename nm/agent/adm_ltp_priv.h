@@ -28,8 +28,8 @@
 #include "lyst.h"
 #include "ltpnm.h"
 
-#include "shared/adm/adm_ltp.h"
-#include "shared/utils/expr.h"
+#include "../shared/adm/adm_ltp.h"
+#include "../shared/utils/expr.h"
 
 void agent_adm_init_ltp();
 

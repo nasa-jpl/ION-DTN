@@ -21,10 +21,10 @@
  **  04/14/16  E. Birrane     Migrated to BLOB type (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #include "platform.h"
-#include "shared/adm/adm.h"
+#include "../adm/adm.h"
 
-#include "shared/primitives/dc.h"
-#include "shared/utils/nm_types.h"
+#include "../primitives/dc.h"
+#include "../utils/nm_types.h"
 
 /*
  * Value is deep-copied.

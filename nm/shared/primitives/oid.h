@@ -45,9 +45,9 @@
 #include "lyst.h"
 #include "dc.h"
 
-#include "shared/utils/debug.h"
-#include "shared/utils/utils.h"
-#include "shared/primitives/tdc.h"
+#include "../utils/debug.h"
+#include "../utils/utils.h"
+#include "../primitives/tdc.h"
 
 /*
  * +--------------------------------------------------------------------------+

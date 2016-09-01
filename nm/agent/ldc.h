@@ -26,9 +26,9 @@
 #define _LDC_H_
 
 #include "../shared/primitives/var.h"
-#include "shared/adm/adm.h"
+#include "../shared/adm/adm.h"
 
-#include "shared/primitives/report.h"
+#include "../shared/primitives/report.h"
 
 int ldc_fill_report_entry(rpt_entry_t *entry);
 int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry);

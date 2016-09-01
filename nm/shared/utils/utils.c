@@ -35,8 +35,8 @@
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/utils/debug.h"
-#include "shared/utils/utils.h"
+#include "../utils/debug.h"
+#include "../utils/utils.h"
 
 static ResourceLock gMemMutex;
 

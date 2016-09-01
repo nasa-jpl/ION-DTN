@@ -25,9 +25,9 @@
 #include "nm_mgr_print.h"
 #include "mgr_db.h"
 
-#include "shared/utils/utils.h"
-#include "shared/primitives/blob.h"
-#include "shared/primitives/table.h"
+#include "../shared/utils/utils.h"
+#include "../shared/primitives/blob.h"
+#include "../shared/primitives/table.h"
 
 /******************************************************************************
  *

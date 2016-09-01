@@ -33,10 +33,10 @@
 
 #include "nm_mgr.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/report.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/adm/adm.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/report.h"
 
 
 

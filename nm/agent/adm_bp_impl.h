@@ -25,7 +25,7 @@
 #define ADM_BP_IMPL_H_
 
 
-#include "shared/adm/adm_bp.h"
+#include "../shared/adm/adm_bp.h"
 
 
 /******************************************************************************

@@ -19,11 +19,11 @@
 #include "lyst.h"
 #include "ion.h"
 #include "tdc.h"
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/primitives/table.h"
+#include "../primitives/table.h"
 
-#include "shared/primitives/value.h"
+#include "../primitives/value.h"
 
 
 /******************************************************************************

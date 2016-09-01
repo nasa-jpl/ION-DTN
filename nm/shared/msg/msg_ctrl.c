@@ -29,8 +29,8 @@
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/utils/utils.h"
-#include "shared/msg/msg_ctrl.h"
+#include "../utils/utils.h"
+#include "../msg/msg_ctrl.h"
 
 
 /* Create functions. */

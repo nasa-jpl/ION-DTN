@@ -28,11 +28,11 @@
 
 #include "bp.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/utils/ion_if.h"
-#include "shared/utils/utils.h"
+#include "../utils/nm_types.h"
+#include "../utils/ion_if.h"
+#include "../utils/utils.h"
 
-#include "shared/msg/pdu.h"
+#include "../msg/pdu.h"
 
 
 
@@ -198,13 +198,11 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
 
     AMP_DEBUG_INFO("iif_rceive", "Received bundle.", NULL);
 
-    if(count == 10)
+    if(count > 9)
     {
     	AMP_DEBUG_ALWAYS("iif_receive","BPA no longer responding. Shutting down.", NULL);
     	return NULL;
     }
-
-    count++;
 
     /* Step 1: Receive the bundle.*/
     if((result = bp_receive(iif->sap, &dlv, timeout)) < 0)

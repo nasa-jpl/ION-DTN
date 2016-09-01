@@ -27,8 +27,8 @@
 #include "bpnm.h"
 #include "icinm.h"
 
-#include "shared/adm/adm_ion.h"
-#include "shared/utils/expr.h"
+#include "../shared/adm/adm_ion.h"
+#include "../shared/utils/expr.h"
 
 void agent_adm_init_ion();
 

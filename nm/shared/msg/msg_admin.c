@@ -24,9 +24,9 @@
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/utils/utils.h"
-#include "shared/utils/nm_types.h"
-#include "shared/msg/msg_admin.h"
+#include "../utils/utils.h"
+#include "../utils/nm_types.h"
+#include "../msg/msg_admin.h"
 
 
 /**

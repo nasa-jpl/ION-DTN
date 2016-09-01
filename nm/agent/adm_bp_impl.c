@@ -25,9 +25,9 @@
 #include "lyst.h"
 #include "platform.h"
 
-#include "shared/adm/adm_bp.h"
-#include "shared/utils/utils.h"
-#include "shared/primitives/ctrl.h"
+#include "../shared/adm/adm_bp.h"
+#include "../shared/utils/utils.h"
+#include "../shared/primitives/ctrl.h"
 
 #include "adm_bp_impl.h"
 

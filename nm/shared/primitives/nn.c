@@ -25,9 +25,9 @@
 
 #include "platform.h"
 
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/primitives/nn.h"
+#include "../primitives/nn.h"
 
 
 Lyst nn_db;

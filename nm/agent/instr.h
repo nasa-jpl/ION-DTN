@@ -27,7 +27,7 @@
 #define _INSTR_H_
 
 
-#include "shared/utils/nm_types.h"
+#include "../shared/utils/nm_types.h"
 
 /*
  * +--------------------------------------------------------------------------+

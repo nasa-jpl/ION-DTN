@@ -33,8 +33,8 @@
 #include "nm_mgr_sql.h"
 
 #include "nm_mgr_names.h"
-#include "shared/primitives/rules.h"
-#include "shared/primitives/nn.h"
+#include "../shared/primitives/rules.h"
+#include "../shared/primitives/nn.h"
 
 // Definitions of global data.
 iif_t ion_ptr;

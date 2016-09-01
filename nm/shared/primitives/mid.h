@@ -36,8 +36,8 @@
 
 #include "ion.h"
 
-#include "shared/utils/debug.h"
-#include "shared/primitives/oid.h"
+#include "../utils/debug.h"
+#include "../primitives/oid.h"
 
 /*
  * +--------------------------------------------------------------------------+

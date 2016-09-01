@@ -30,7 +30,7 @@
 #include "ion.h"
 #include "platform.h"
 
-#include "shared/primitives/lit.h"
+#include "../primitives/lit.h"
 
 
 /******************************************************************************

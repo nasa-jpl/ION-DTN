@@ -23,11 +23,11 @@
  **  01/10/13  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
  *****************************************************************************/
 
-#include "shared/adm/adm.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/value.h"
-#include "shared/primitives/report.h"
-#include "shared/primitives/expr.h"
+#include "../shared/adm/adm.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/value.h"
+#include "../shared/primitives/report.h"
+#include "../shared/primitives/expr.h"
 
 #include "nmagent.h"
 #include "ldc.h"

@@ -27,8 +27,8 @@
 #ifndef VALUE_H_
 #define VALUE_H_
 
-#include "shared/utils/nm_types.h"
-#include "shared/primitives/mid.h"
+#include "../utils/nm_types.h"
+#include "../primitives/mid.h"
 
 // \todo: Make enum
 #define VAL_OPTYPE_ARITHMETIC 0

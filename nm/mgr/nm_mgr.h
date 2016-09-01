@@ -40,17 +40,17 @@
 
 // Application includes
 
-#include "shared/utils/nm_types.h"
-#include "shared/utils/ion_if.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/utils/ion_if.h"
 
-#include "shared/adm/adm.h"
+#include "../shared/adm/adm.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/report.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/report.h"
 
-#include "shared/msg/pdu.h"
-#include "shared/msg/msg_admin.h"
-#include "shared/msg/msg_ctrl.h"
+#include "../shared/msg/pdu.h"
+#include "../shared/msg/msg_admin.h"
+#include "../shared/msg/msg_ctrl.h"
 
 /* Constants */
 static const int32_t NM_RECEIVE_TIMEOUT_MILLIS = 3600;

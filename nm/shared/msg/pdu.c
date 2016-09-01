@@ -27,10 +27,10 @@
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/adm/adm.h"
-#include "shared/msg/pdu.h"
-#include "shared/primitives/mid.h"
-#include "shared/utils/utils.h"
+#include "../adm/adm.h"
+#include "../msg/pdu.h"
+#include "../primitives/mid.h"
+#include "../utils/utils.h"
 
 pdu_group_t *pdu_create_empty_group()
 {

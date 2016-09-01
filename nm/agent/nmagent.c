@@ -31,19 +31,19 @@
 #include "lyst.h"
 
 // Application headers.
-#include "shared/adm/adm.h"
-#include "shared/utils/db.h"
+#include "../shared/adm/adm.h"
+#include "../shared/utils/db.h"
 
 #include "nmagent.h"
 #include "ingest.h"
 #include "rda.h"
 
-#include "shared/adm/adm_bp.h"
-#include "shared/adm/adm_agent.h"
+#include "../shared/adm/adm_bp.h"
+#include "../shared/adm/adm_agent.h"
 #include "adm_ltp_priv.h"
 #include "adm_ion_priv.h"
 
-#include "shared/primitives/nn.h"
+#include "../shared/primitives/nn.h"
 #include "instr.h"
 
 static void agent_signal_handler(int);

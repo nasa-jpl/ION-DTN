@@ -27,8 +27,8 @@
 #include "platform.h"
 
 
-#include "shared/adm/adm_ion.h"
-#include "shared/utils/utils.h"
+#include "../shared/adm/adm_ion.h"
+#include "../shared/utils/utils.h"
 
 #include "adm_ion_priv.h"
 

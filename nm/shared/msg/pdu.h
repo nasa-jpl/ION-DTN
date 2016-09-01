@@ -30,7 +30,7 @@
 #include "lyst.h"
 
 #include "stdint.h"
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
 
 

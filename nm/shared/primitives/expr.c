@@ -25,12 +25,12 @@
  *****************************************************************************/
 
 #include "expr.h"
-#include "shared/adm/adm.h"
+#include "../adm/adm.h"
 
 #ifdef AGENT_ROLE
-#include "agent_db.h"
+#include "../../agent/agent_db.h"
 #else
-#include "mgr_db.h"
+#include "../../mgr/mgr_db.h"
 #endif
 
 

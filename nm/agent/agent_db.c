@@ -35,19 +35,19 @@
 #include "lyst.h"
 
 // Application headers.
-#include "shared/adm/adm.h"
-#include "shared/utils/db.h"
+#include "../shared/adm/adm.h"
+#include "../shared/utils/db.h"
 
 #include "agent_db.h"
 #include "ingest.h"
 #include "rda.h"
 
-#include "shared/adm/adm_bp.h"
-#include "shared/adm/adm_agent.h"
+#include "../shared/adm/adm_bp.h"
+#include "../shared/adm/adm_agent.h"
 #include "adm_ltp_priv.h"
 #include "adm_ion_priv.h"
 
-#include "shared/primitives/ctrl.h"
+#include "../shared/primitives/ctrl.h"
 #include "instr.h"
 
 

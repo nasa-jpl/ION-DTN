@@ -20,9 +20,9 @@
  **  04/14/16  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 #include "platform.h"
-#include "shared/adm/adm.h"
+#include "../adm/adm.h"
 
-#include "shared/primitives/blob.h"
+#include "../primitives/blob.h"
 
 
 /******************************************************************************

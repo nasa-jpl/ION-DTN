@@ -40,8 +40,8 @@
 #include "nm_mgr_sql.h"
 #include "nm_mgr_names.h"
 
-#include "shared/adm/adm_agent.h"
-#include "shared/adm/adm_bp.h"
+#include "../shared/adm/adm_agent.h"
+#include "../shared/adm/adm_bp.h"
 
 /* Global connection to the MYSQL Server. */
 static MYSQL *gConn;

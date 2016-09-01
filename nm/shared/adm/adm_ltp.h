@@ -34,9 +34,9 @@
 
 
 
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
-#include "shared/adm/adm.h"
+#include "...adm/adm.h"
 
 /*
  * We will invent an OID space for LTP ADM information, to live at:

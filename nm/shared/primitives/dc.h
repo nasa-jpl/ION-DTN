@@ -25,7 +25,7 @@
 #define DC_H_
 
 #include "stdint.h"
-#include "shared/primitives/blob.h"
+#include "../primitives/blob.h"
 #include "lyst.h"
 
 

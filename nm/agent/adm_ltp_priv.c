@@ -25,9 +25,9 @@
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/utils/utils.h"
+#include "../shared/utils/utils.h"
 
-#include "shared/adm/adm_ltp.h"
+#include "../shared/adm/adm_ltp.h"
 
 #include "adm_ltp_priv.h"
 

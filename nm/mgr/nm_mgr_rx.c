@@ -32,14 +32,14 @@
 #include "nm_mgr.h"
 #include "platform.h"
 
-#include "shared/utils/ion_if.h"
-#include "shared/utils/nm_types.h"
-#include "shared/utils/utils.h"
-#include "shared/utils/debug.h"
+#include "../shared/utils/ion_if.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/utils/utils.h"
+#include "../shared/utils/debug.h"
 
-#include "shared/msg/pdu.h"
-#include "shared/msg/msg_admin.h"
-#include "shared/msg/msg_ctrl.h"
+#include "../shared/msg/pdu.h"
+#include "../shared/msg/msg_admin.h"
+#include "../shared/msg/msg_ctrl.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"

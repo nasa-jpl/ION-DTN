@@ -1,10 +1,10 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
 -DNO_PROXY -DNO_DIRLIST
-# Add -DAGENT_ROLE if building with nm.
-# -DAGENT_ROLE
 # Add -DBPSEC if building with bpsec.
 # -DBPSEC
+# Add -DAGENT_ROLE if building with nm.
+# -DAGENT_ROLE
 # -DENABLE_IMC
 # -DENABLE_BPACS
 
@@ -115,47 +115,47 @@ BPSOURCES =      \
 #	bsspadmin.c  \
 
 NMSOURCES =	     \
-	adm.o \
-	adm_agent.o \
-	adm_bp.o \
-	adm_bpsec.o \
-	adm_ion.o \
-	adm_ltp.o \
-	msg_admin.o \
-	msg_ctrl.o \
-	pdu.o \
-	var.o \
-	expr.o \
-	blob.o \
-	admin.o \
-	def.o \
-	mid.o \
-	oid.o \
-	report.o \
-	rules.o \
-	dc.o \
-	value.o \
-	lit.o \
-	nn.o \
-	tdc.o \
-	ctrl.o \
-	table.o \
-	ion_if.o \
-	utils.o \
-	db.o \
-	nm_types.o \
-	ingest.o \
-	instr.o \
-	lcc.o \
-	ldc.o \
-	rda.o \
-	agent_db.o \
-	adm_ion_priv.o \
-	adm_ltp_priv.o \
-	adm_agent_impl.o \
-	adm_bp_impl.o \
-	adm_bpsec_impl.o \
-	nmagent.o
+	adm.c \
+	adm_agent.c \
+	adm_bp.c \
+	adm_bpsec.c \
+	adm_ion.c \
+	adm_ltp.c \
+	msg_admin.c \
+	msg_ctrl.c \
+	pdu.c \
+	var.c \
+	expr.c \
+	blob.c \
+	admin.c \
+	def.c \
+	mid.c \
+	oid.c \
+	report.c \
+	rules.c \
+	dc.c \
+	value.c \
+	lit.c \
+	nn.c \
+	tdc.c \
+	ctrl.c \
+	table.c \
+	ion_if.c \
+	utils.c \
+	db.c \
+	nm_types.c \
+	ingest.c \
+	instr.c \
+	lcc.c \
+	ldc.c \
+	rda.c \
+	agent_db.c \
+	adm_ion_priv.c \
+	adm_ltp_priv.c \
+	adm_agent_impl.c \
+	adm_bp_impl.c \
+	adm_bpsec_impl.c \
+	nmagent.c
 
 BPSECSOURCES =       \
 	bpsec_util.c \

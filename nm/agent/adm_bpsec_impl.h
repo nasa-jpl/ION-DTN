@@ -18,13 +18,13 @@
 #ifndef ADM_BPSEC_IMPL_H_
 #define ADM_BPSEC_IMPL_H_
 
-#include "shared/adm/adm_bpsec.h"
-#include "shared/adm/adm_bp.h"
-#include "shared/adm/adm_ion.h"
-#include "shared/adm/adm_ltp.h"
-#include "shared/primitives/expr.h"
+#include "../shared/adm/adm_bpsec.h"
+#include "../shared/adm/adm_bp.h"
+#include "../shared/adm/adm_ion.h"
+#include "../shared/adm/adm_ltp.h"
+#include "../shared/primitives/expr.h"
 
-#include "bp/library/ext/bpsec/bpsec_instr.h"
+#include "bpsec_instr.h"
 
 
 typedef enum

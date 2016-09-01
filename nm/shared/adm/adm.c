@@ -29,20 +29,20 @@
 #include "ion.h"
 #include "platform.h"
 
-#include "shared/primitives/def.h"
-#include "shared/primitives/lit.h"
-#include "shared/primitives/expr.h"
-#include "shared/utils/nm_types.h"
-#include "shared/utils/utils.h"
+#include "../primitives/def.h"
+#include "../primitives/lit.h"
+#include "../primitives/expr.h"
+#include "../utils/nm_types.h"
+#include "../utils/utils.h"
 
-#include "shared/adm/adm.h"
+#include "../adm/adm.h"
 
 #include "../primitives/var.h"
-#include "shared/adm/adm_bp.h"
-#include "shared/adm/adm_ltp.h"
-#include "shared/adm/adm_ion.h"
-#include "shared/adm/adm_agent.h"
-#include "shared/adm/adm_bpsec.h"
+#include "../adm/adm_bp.h"
+#include "../adm/adm_ltp.h"
+#include "../adm/adm_ion.h"
+#include "../adm/adm_agent.h"
+#include "../adm/adm_bpsec.h"
 
 Lyst gAdmData;
 Lyst gAdmComputed;

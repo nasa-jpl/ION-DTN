@@ -26,7 +26,7 @@
 #ifndef _LCC_H_
 #define _LCC_H_
 
-#include "shared/adm/adm.h"
+#include "../shared/adm/adm.h"
 
 
 

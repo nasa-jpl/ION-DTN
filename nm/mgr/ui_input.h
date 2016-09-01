@@ -20,10 +20,10 @@
 #ifndef _UI_INPUT_H
 #define _UI_INPUT_H
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/blob.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/adm/adm.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/blob.h"
 
 #include "mgr/nm_mgr_ui.h"
 

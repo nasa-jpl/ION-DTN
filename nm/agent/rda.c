@@ -38,12 +38,12 @@
 #include "platform.h"
 #include "lyst.h"
 
-#include "shared/utils/utils.h"
-#include "shared/primitives/mid.h"
+#include "../shared/utils/utils.h"
+#include "../shared/primitives/mid.h"
 #include "instr.h"
-#include "shared/primitives/expr.h"
+#include "../shared/primitives/expr.h"
 
-#include "shared/utils/db.h"
+#include "../shared/utils/db.h"
 
 #include "nmagent.h"
 #include "ldc.h"

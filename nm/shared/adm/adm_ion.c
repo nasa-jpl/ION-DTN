@@ -29,8 +29,8 @@
 #include "platform.h"
 
 
-#include "shared/adm/adm_ion.h"
-#include "shared/utils/utils.h"
+#include "../adm/adm_ion.h"
+#include "../utils/utils.h"
 
 
 void adm_ion_init()

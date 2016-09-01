@@ -23,12 +23,12 @@
  **  05/17/15  E. Birrane     Add Macro support, updated to DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-#include "shared/adm/adm.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/rules.h"
+#include "../shared/adm/adm.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/rules.h"
 #include "instr.h"
-#include "shared/primitives/ctrl.h"
-#include "shared/primitives/report.h"
+#include "../shared/primitives/ctrl.h"
+#include "../shared/primitives/report.h"
 
 #include "nmagent.h"
 #include "lcc.h"

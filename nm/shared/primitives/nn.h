@@ -34,7 +34,7 @@
 #include "lyst.h"
 
 
-#include "shared/utils/debug.h"
+#include "../utils/debug.h"
 
 
 

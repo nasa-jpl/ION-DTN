@@ -34,8 +34,8 @@
 #include "icinm.h"
 
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
+#include "../utils/nm_types.h"
+#include "../adm/adm.h"
 
 
 /*

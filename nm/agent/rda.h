@@ -24,8 +24,8 @@
 #ifndef RDA_H_
 #define RDA_H_
 
-#include "shared/primitives/rules.h"
-#include "shared/primitives/report.h"
+#include "../shared/primitives/rules.h"
+#include "../shared/primitives/report.h"
 
 extern Lyst g_rda_cur_rpts; // Reports being built in the current tao.
 extern Lyst g_rda_trls_pend; // COPY of MIDs to run.

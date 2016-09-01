@@ -23,11 +23,11 @@
 #ifdef _HAVE_BPSEC_ADM_
 
 #include "lyst.h"
-#include "bp/library/ext/bpsec/bpsec_instr.h"
+#include "bpsec_instr.h"
 
 
-#include "shared/utils/nm_types.h"
-#include "shared/adm/adm.h"
+#include "../utils/nm_types.h"
+#include "../adm/adm.h"
 
 
 

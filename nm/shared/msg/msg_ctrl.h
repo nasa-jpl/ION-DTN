@@ -34,10 +34,10 @@
 
 #include "lyst.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/primitives/mid.h"
-#include "shared/primitives/rules.h"
-#include "shared/msg/pdu.h"
+#include "../utils/nm_types.h"
+#include "../primitives/mid.h"
+#include "../primitives/rules.h"
+#include "../msg/pdu.h"
 
 /* Control messages */
 #define MSG_TYPE_CTRL_PERIOD_PROD (0x18)

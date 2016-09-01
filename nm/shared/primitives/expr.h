@@ -26,11 +26,11 @@
 #ifndef EXPR_H_
 #define EXPR_H_
 
-#include "shared/utils/ion_if.h"
-#include "shared/utils/nm_types.h"
+#include "../utils/ion_if.h"
+#include "../utils/nm_types.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/value.h"
+#include "../primitives/mid.h"
+#include "../primitives/value.h"
 
 typedef struct
 {

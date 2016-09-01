@@ -34,17 +34,17 @@
 #include "lyst.h"
 
 // Application includes
-#include "agent/agent_db.h"
+#include "agent_db.h"
 
-#include "shared/utils/nm_types.h"
-#include "shared/utils/ion_if.h"
+#include "../shared/utils/nm_types.h"
+#include "../shared/utils/ion_if.h"
 
-#include "shared/primitives/mid.h"
-#include "shared/primitives/rules.h"
+#include "../shared/primitives/mid.h"
+#include "../shared/primitives/rules.h"
 
-#include "shared/msg/pdu.h"
-#include "shared/msg/msg_ctrl.h"
-#include "shared/msg/msg_admin.h"
+#include "../shared/msg/pdu.h"
+#include "../shared/msg/msg_ctrl.h"
+#include "../shared/msg/msg_admin.h"
 
 /*
  * +--------------------------------------------------------------------------+

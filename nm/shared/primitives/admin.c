@@ -24,8 +24,8 @@
  *****************************************************************************/
 
 #include "platform.h"
-#include "shared/utils/utils.h"
-#include "shared/primitives/mid.h"
+#include "../utils/utils.h"
+#include "../primitives/mid.h"
 
 #include "admin.h"
 
