@@ -461,6 +461,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define MINGW_TASKS
 
 #include <pthread.h>
+#include <stdint.h>
 
 #ifndef gmtime_r
 #define gmtime_r(_clock, _result) \

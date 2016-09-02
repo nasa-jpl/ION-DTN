@@ -139,7 +139,7 @@ MGR_OBJS =	mgt_adm.o \
 		nm_mgr.o
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Wno-unused-variable -Dlinux -fPIC -DSPACE_ORDER=3 -DHEAP_PTRS=$(PTRS) 
+OPT = -g -fPIC -Wall -Werror -Wno-unused-variable -Dlinux -DSPACE_ORDER=3 -DHEAP_PTRS=$(PTRS) 
 # For database support, append -DHAVE_MYSQL
 
 INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I$(ROOT)/include
@@ -172,11 +172,11 @@ install:
 #	-	-	NM executables	-	-	-	-	-
 
 nm_agent:	adm_objs msg_objs primitive_objs util_objs agent_objs
-		$(LD) -DAGENT_ROLE -o nm_agent $(AGENT_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lltpP -lici -lpthread -lm
+		$(LD) -DAGENT_ROLE -o nm_agent $(AGENT_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lm
 		cp nm_agent ./bin
 
 nm_mgr:		adm_objs msg_objs primitive_objs util_objs mgr_objs
-		$(LD) -o nm_mgr $(MGR_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lltpP -lici -lpthread -lm
+		$(LD) -o nm_mgr $(MGR_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lm
 		cp nm_mgr ./bin
 
 #	-	-	Object modules	-	-	-	-	-
