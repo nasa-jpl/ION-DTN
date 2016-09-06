@@ -196,7 +196,7 @@ echo -e "the signature function is impossible.  So we skip this test."
 # Test 4 ....
 
 echo -e "\n\n\n\n\n*****TEST 4*****"
-echo -e "Clear security rules, send bundle without security blocks again (should deliver)"
+echo -e "Clear security rules, send bundle without security blocks again (should deliver)."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
@@ -236,7 +236,7 @@ fi
 # In this case we will use a script to generate a ~4MB file.
 
 echo -e "\n\n\n\n\n*****TEST 5*****"
-echo -e "Restore consistent rules, send BIG bundle with all security blocks (should deliver)"
+echo -e "Restore consistent rules, send BIG bundle with all security blocks (should deliver)."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
@@ -300,7 +300,7 @@ rm -f 3.ipn.ltp/testfile1
 
 ##############################
 # Test 6
-# Send bundle from node 2 to 4 via node 3 with BABs at each point, requesting all status reports.
+# Send bundle from node 2 to 4 via node 3, requesting all status reports.
 # Bundle is sent to endpoint ipn:4.1, on which bpsink is listening, so
 # it should be delivered.
 
@@ -319,7 +319,7 @@ cd ..
 sleep 1
 
 echo -e "\n\n\n*****TEST 6*****"
-echo -e "Sending Bundle with BAB, BCB, BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib or bcb key..it should still be forwarded.\nBAB blocks are authenticated at each hop.  This should deliver."
+echo -e "Sending Bundle with BCB and BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib or bcb key...it should still be forwarded.\nThis should deliver."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
@@ -370,7 +370,7 @@ fi
 # anonymous bundle (no source id!)
 
 echo -e "\n\n\n*****TEST 7*****"
-echo "Sending Bundle with all blocks from ANONYMOUS bpsource on node 2 to ipn:4.1 via node 3. BAB should be authenticated at each hop, BIB and BCB at the destination. The bundle should be delivered."
+echo "Sending Bundle with all blocks from ANONYMOUS bpsource on node 2 to ipn:4.1 via node 3. BIB and BCB should be authenticated at the destination. The bundle should be delivered."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS

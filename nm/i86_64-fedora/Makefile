@@ -142,7 +142,7 @@ MGR_OBJS =	mgt_adm.o \
 OPT = -g -fPIC -Wall -Werror -Wno-unused-variable -Dlinux -DSPACE_ORDER=3 -DHEAP_PTRS=$(PTRS) 
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I$(ROOT)/include
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I../../bp/library/ext/bpsec -I$(ROOT)/include
 # For database support, append -I/usr/local/mysql/include -I/user/include/mysql
 
 CC = gcc $(OPT) $(INCLDIRS)
