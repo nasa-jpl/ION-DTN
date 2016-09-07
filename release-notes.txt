@@ -1,6 +1,6 @@
-= Release Notes for ION 3.4.1 =
+= Release Notes for ION 3.5.0 =
 
-Feb 29, 2016
+Sep 7, 2016
 
 %%%%%%%%%%%
 = GENERAL =
