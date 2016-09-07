@@ -66,6 +66,41 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.5.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #94: Warnings printed at compile time on 64-bit Windows
+     were fixed.
+
+- SourceForge Bug #98: Fixed bug in the dtn2 directive lookup function
+     that ignored egress plans and rules citing CL protocols of classes that
+     don't match the protocol class indicated by the bundle's required quality
+     of service for plans that cite the "forwarding" directive.
+
+- SourceForge Feature Request #48: Improved the portability of Alarms and
+     enabled them to be used in flight code as they no longer spawn new threads
+     but instead are implemented as events in the RFX timeline that are clocked
+     out by rfxclock at 1-second granularity.
+
+- The BP security and Asynchronous Management Protocol (bpsec) replaced the
+     previous BP security mechanism bsp.
+
+- Added opportunistic contact graph routing (ocgr) based on predicted contacts.
+     This system is still experimental but is ready for others to experiment
+     with.
+
+- Fixes for bugs in AMS uncovered in IPAS demonstration environment development.
+
+- Added tcpcl-ack-resilience-test.
+
+- Fixed issue-265-bpdriver-ttl-option test by adding support for BSD netcat.
+
+- NOTE for MacOS X users:  At this time, ON 3.5.0 will NOT run on any recent
+     version of MacOS. Our tests on MacOS 10.11 show failures in the semaphore
+     locking system that we have not yet fully diagnosed.  No work-around is
+     available.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -111,7 +146,7 @@ Features included:
 - SourceForge Bug #79: Fixed bug where removing and re-adding an outduct could
      cause a bundle transmission failure.
 
--  SourceForge Bug #81: Fixed bug where ION child processes could become
+- SourceForge Bug #81: Fixed bug where ION child processes could become
      zombie processes.
      The sm_TaskSpawn() function in ION now properly forces child processes to
      be re-parented by the "init" process which periodically reaps the
