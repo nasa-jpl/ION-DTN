@@ -27,7 +27,7 @@ BPINCLS = \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
-	$(TCP)/tcpcla.h \
+	$(TCP)/stcpcla.h \
 	$(LTP)/ltpcla.h
 
 BPLIBS = \
@@ -43,7 +43,7 @@ LBP = -lbp -lbpP
 
 RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libtcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -154,22 +154,22 @@ ltpclo:		ltpclo.o $(BPLIBS)
 
 #	-	-	TCP executables	-	-	-	-	-
 
-tcpcli:		tcpcli.o $(BPLIBS) libtcpcla.so
-		$(CC) -o tcpcli tcpcli.o -L./lib -L$(ROOT)/lib $(LFW) -ltcpcla $(LBP) -lici -lpthread -lrt -lsocket
+tcpcli:		tcpcli.o $(BPLIBS)
+		$(CC) -o tcpcli tcpcli.o -L./lib -L$(ROOT)/lib $(LFW) $(LBP) -lici -lpthread -lrt -lsocket
 		cp tcpcli ./bin
 
-tcpclo:		tcpclo.o $(BPLIBS) libtcpcla.so
-		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lrt -lsocket
+tcpclo:		tcpclo.o $(BPLIBS)
+		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
 		cp tcpclo ./bin
 
 #	-	-	STCP executables	-	-	-	-
 
-stcpcli:	stcpcli.o $(BPLIBS) libtcpcla.so
-		$(CC) -o stcpcli stcpcli.o -L./lib -L$(ROOT)/lib $(LFW) -ltcpcla $(LBP) -lici -lpthread -lrt -lsocket
+stcpcli:	stcpcli.o $(BPLIBS) libstcpcla.so
+		$(CC) -o stcpcli stcpcli.o -L./lib -L$(ROOT)/lib $(LFW) -lstcpcla $(LBP) -lici -lpthread -lrt -lsocket
 		cp stcpcli ./bin
 
-stcpclo:	stcpclo.o $(BPLIBS) libtcpcla.so
-		$(CC) -o stcpclo stcpclo.o -L./lib -L$(ROOT)/lib -ltcpcla $(LBP) -lici -lpthread -lrt -lsocket
+stcpclo:	stcpclo.o $(BPLIBS) libstcpcla.so
+		$(CC) -o stcpclo stcpclo.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lrt -lsocket
 		cp stcpclo ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
@@ -190,12 +190,12 @@ dgrcla:		dgrcla.o $(BPLIBS)
 
 #	-	-	BRS executables	-	-	-	-
 
-brsscla:	brsscla.o $(BPLIBS) libtcpcla.so
-		$(CC) -o brsscla brsscla.o -L./lib -L$(ROOT)/lib $(LFW) -ltcpcla $(LBP) -lici -lpthread -lrt -lsocket
+brsscla:	brsscla.o $(BPLIBS) libstcpcla.so
+		$(CC) -o brsscla brsscla.o -L./lib -L$(ROOT)/lib $(LFW) -lstcpcla $(LBP) -lici -lpthread -lrt -lsocket
 		cp brsscla ./bin
 
-brsccla:	brsccla.o $(BPLIBS) libtcpcla.so
-		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib $(LFW) -ltcpcla $(LBP) -lici -lpthread -lrt -lsocket
+brsccla:	brsccla.o $(BPLIBS) libstcpcla.so
+		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib $(LFW) -lstcpcla $(LBP) -lici -lpthread -lrt -lsocket
 		cp brsccla ./bin
 
 #	-	-	Test executables	-	-	-	-
@@ -250,9 +250,9 @@ libdtn2fw.so:	libdtn2fw.o
 		$(LD) -o libdtn2fw.so libdtn2fw.o
 		cp libdtn2fw.so ./lib
 
-libtcpcla.so:	libtcpcla.o
-		$(LD) -o libtcpcla.so libtcpcla.o
-		cp libtcpcla.so ./lib
+libstcpcla.so:	libstcpcla.o
+		$(LD) -o libstcpcla.so libstcpcla.o
+		cp libstcpcla.so ./lib
 
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o

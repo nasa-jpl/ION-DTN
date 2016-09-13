@@ -88,7 +88,7 @@ struct big_ohd2				/*	Trailing overhead.	*/
 #define	LG_OHD_SIZE	(1 << LARGE_ORDER1)   /* double word	*/
 #define	LARGE_BLOCK_OHD	(2 * LG_OHD_SIZE)
 #define	MIN_LARGE_BLOCK	(3 * LG_OHD_SIZE)
-#define	LARGE_BLK_LIMIT	(1UL << LARGE_ORDERn)
+#define	LARGE_BLK_LIMIT	(LARGE1 << LARGE_ORDERn)
 
 #define	INITIALIZED	(0x99999999)
 #define	MANAGED		(0xbbbbbbbb)
@@ -198,10 +198,10 @@ int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
 	CHKERR(outcome);
 	*outcome = Refused;
 	CHKERR(start != NULL);
-	if ((((unsigned long) start) % LG_OHD_SIZE) != 0)
+	if ((((uaddr) start) % LG_OHD_SIZE) != 0)
 	{
 		putErrmsg("Starting address not double-word-aligned.",
-				utoa((unsigned long) start));
+				utoa((uaddr) start));
 		return -1;	/*	Start address misaligned.	*/
 	}
 

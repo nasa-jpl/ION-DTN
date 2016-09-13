@@ -1,11 +1,36 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
+/*****************************************************************************
+ **
+ ** File Name: adm_ion_priv.h
+ **
+ ** Description: This file contains the definitions of the LTP
+ **              ADM.
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ ** 	1. We current use a non-official OID root tree for DTN Bundle Protocol
+ **         identifiers.
+ **
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **  10/22/11  E. Birrane     Initial Implementation
+ *****************************************************************************/
 #ifdef _HAVE_LTP_ADM_
 
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/adm/adm_ltp.h"
+#include "../adm/adm_ltp.h"
 
 void adm_ltp_init()
 {
@@ -178,7 +203,7 @@ char *ltp_print_node_resources_all(uint8_t* buffer, uint64_t buffer_len, uint64_
 	// Assume all the text strings average less than 25 characters per string.
 	*str_len = (data_len * 5) + (25 * 2);
 	// Assume for now a 4 byte integer takes <= 20 characters to print.
-	if((result = (char *) MTAKE(*str_len)) == NULL)
+	if((result = (char *) STAKE(*str_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ltpPrintNodeResourceAll","Can't allocate %d bytes", *str_len);
 		*str_len = 0;

@@ -16,19 +16,19 @@
 
 extern void	ionShred(ReqTicket ticket);
 
-static long	_running(long *newValue)
+static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
-	long	state;
+	uaddr	state;
 	
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (uaddr) sm_TaskVar(&value);
 	}
 	else				/*	Just check.		*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (uaddr) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -36,7 +36,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands rfxclock termination.	*/
 {
-	long	stop = 0;
+	uaddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates rfxclock.		*/
 }
@@ -108,6 +108,9 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	Object		iondbObj;
 	IonDB		iondb;
 	IonEvent	*newEvent;
+	PsmAddress	alarmAddr;
+	IonAlarm	*alarm;
+	time_t		currentTime;
 
 	switch (event->type)
 	{
@@ -134,8 +137,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonStopFire:
@@ -149,8 +152,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonStopRecv:
@@ -165,8 +168,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonStartImputedRange:
@@ -190,8 +193,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonStartXmit:
@@ -206,8 +209,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonStartFire:
@@ -299,8 +302,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonStartRecv:
@@ -315,8 +318,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return 0;
 
 	case IonPurgeContact:
@@ -333,10 +336,86 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		return rfx_remove_contact(cxref->fromTime,
 				cxref->fromNode, cxref->toNode);
 
+	case IonAlarmTimeout:
+		alarmAddr = event->ref;
+		alarm = (IonAlarm *) psp(ionwm, alarmAddr);
+		if (alarm->term == 0)		/*	Cleaning up.	*/
+		{
+			if (sm_SemEnded(alarm->semaphore))
+			{
+				/*	Time to remove alarm.		*/
+
+				sm_SemDelete(alarm->semaphore);
+				sm_rbt_delete(ionwm, vdb->timeline,
+						rfx_order_events,
+						event, rfx_erase_data, NULL);
+				return 0;
+			}
+
+			/*	Must continue cleanup.			*/
+
+			sm_SemEnd(alarm->semaphore);
+		}
+		else	/*	Must raise alarm.			*/
+		{
+			sm_SemGive(alarm->semaphore);
+			if (alarm->cycles > 0)
+			{
+				alarm->cycles -= 1;
+				if (alarm->cycles == 0)
+				{
+					/*	Must start cleanup.	*/
+
+					alarm->term = 0;
+				}
+			}
+		}
+
+		/*	Must repeat alarm.  Delete the expired event, 
+		 *	without deleting the alarm structure.		*/
+
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events, event,
+				NULL, NULL);
+		
+		/*	Now post next event for this alarm.		*/
+
+		currentTime = getUTCTime();
+		if (alarm->term == 0)	/*	Cleaning up.		*/
+		{
+			alarm->nextTimeout = currentTime + 1;
+		}
+		else
+		{
+			alarm->nextTimeout = currentTime + alarm->term;
+		}
+
+		addr = psm_zalloc(ionwm, sizeof(IonEvent));
+		if (addr == 0)
+		{
+			sm_SemDelete(alarm->semaphore);
+			psm_free(ionwm, alarmAddr);
+			return -1;
+		}
+
+		newEvent = (IonEvent *) psp(ionwm, addr);
+		newEvent->time = alarm->nextTimeout;
+		newEvent->type = IonAlarmTimeout;
+		newEvent->ref = alarmAddr;
+		if (sm_rbt_insert(ionwm, vdb->timeline, addr, rfx_order_events,
+				newEvent) == 0)
+		{
+			psm_free(ionwm, addr);
+			sm_SemDelete(alarm->semaphore);
+			psm_free(ionwm, alarmAddr);
+			return -1;
+		}
+
+		return 0;
+
 	default:
 		putErrmsg("Invalid RFX timeline event.", itoa(event->type));
-		oK(sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
-				event, rfx_erase_data, NULL));
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				event, rfx_erase_data, NULL);
 		return -1;
 
 	}
@@ -353,7 +432,7 @@ int	main(int argc, char *argv[])
 	Sdr		sdr;
 	PsmPartition	ionwm;
 	IonVdb		*vdb;
-	long		start = 1;
+	uaddr		start = 1;
 	time_t		currentTime;
 	PsmAddress	elt;
 	PsmAddress	addr;

@@ -18,7 +18,7 @@
 
 static sm_SemId		bsspcloSemaphore(sm_SemId *semid)
 {
-	long		temp;
+	uaddr		temp;
 	void		*value;
 	sm_SemId	semaphore;
 	
@@ -33,7 +33,7 @@ static sm_SemId		bsspcloSemaphore(sm_SemId *semid)
 		value = sm_TaskVar(NULL);
 	}
 
-	temp = (long) value;
+	temp = (uaddr) value;
 	semaphore = temp;
 	return semaphore;
 }
@@ -295,12 +295,14 @@ int	main(int argc, char *argv[])
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
 				destDuctName, maxPayloadLength, -1) < 0)
 		{
-			running = 0;	/*	Terminate CLO.		*/
-			continue;
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
 		}
 
-		if (bundleZco == 0)	/*	Interrupted.		*/
+		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
+			writeMemo("[i] bsspclo outduct closed.");
+			running = 0;	/*	Terminate CLO.		*/
 			continue;
 		}
 

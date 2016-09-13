@@ -68,9 +68,10 @@ extern sm_SemId		sm_GetTaskSemaphore(int taskId);
 
 /*	Portable shared-memory region access routines.			*/
 
-extern int		sm_ShmAttach(int key, int size, char **shmPtr, int *id);
+extern int		sm_ShmAttach(int key, int size, char **shmPtr,
+					uaddr *id);
 extern void		sm_ShmDetach(char *shmPtr);
-extern void		sm_ShmDestroy(int id);
+extern void		sm_ShmDestroy(uaddr id);
 
 /*	Portable task (process) management routines.			*/
 

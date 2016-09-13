@@ -46,35 +46,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 	MRELEASE(parms);
 }
 
-static int	receiveBytesByTCP(int bundleSocket, char *into, int length)
-{
-	int	bytesRead;
-
-	bytesRead = irecv(bundleSocket, into, length, 0);
-	switch (bytesRead)
-	{
-	case -1:
-		/*	The recv() call may have been interrupted by
-		 *	arrival of SIGTERM, in which case reception
-		 *	should report that it's time to shut down.	*/
-
-		if (errno == EINTR)	/*	Shutdown.		*/
-		{
-			return 0;
-		}
-
-		putSysErrmsg("RL-BSI read() error on socket", NULL);
-		return -1;
-
-	case 0:				/*	Connection closed.	*/
-		return 0;
-
-	default:
-		return bytesRead;
-	}
-}
-
-static int	receiveBlockByTCP(int bsiSocket, char *buffer)
+static int	receiveBlockByTCP(int *bsiSocket, char *buffer)
 {
 	unsigned int	blockLength = 0;
 	int		bytesToReceive;
@@ -88,7 +60,7 @@ static int	receiveBlockByTCP(int bsiSocket, char *buffer)
 		into = (char *) &preamble;
 		while (bytesToReceive > 0)
 		{
-			bytesReceived = receiveBytesByTCP(bsiSocket, into,
+			bytesReceived = itcp_recv(bsiSocket, into,
 					bytesToReceive);
 			if (bytesReceived < 1)
 			{
@@ -112,7 +84,7 @@ static int	receiveBlockByTCP(int bsiSocket, char *buffer)
 	into = buffer;
 	while (bytesToReceive > 0)
 	{
-		bytesReceived = receiveBytesByTCP(bsiSocket, into,
+		bytesReceived = itcp_recv(bsiSocket, into,
 				bytesToReceive);
 		if (bytesReceived < 1)
 		{
@@ -150,7 +122,7 @@ static void	*receiveBlocks(void *parm)
 
 	while (threadRunning && *(parms->running))
 	{
-		blockLength = receiveBlockByTCP(parms->blockSocket, buffer);
+		blockLength = receiveBlockByTCP(&parms->blockSocket, buffer);
 		switch (blockLength)
 		{
 		case -1:

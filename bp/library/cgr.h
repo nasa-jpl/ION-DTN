@@ -115,7 +115,7 @@ typedef enum
 	CgrMoreHops,
 	CgrIdentical,
 	CgrNoHelp,
-	CgrLowerProb,
+	CgrLowerConfidence,
 	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 
@@ -133,14 +133,17 @@ typedef struct
 	void		*data;	/*	Data to pass to the function.	*/
 } CgrTrace;
 
+extern int		cgr_predict_contacts();
+
 extern void		cgr_start();
 extern int		cgr_forward(Bundle *bundle, Object bundleObj,
-				uvast stationNodeNbr, Object plans,
+				uvast terminusNode, Object plans,
 				CgrLookupFn getDirective, CgrTrace *trace);
 extern int		cgr_preview_forward(Bundle *bundle, Object bundleObj,
-				uvast stationNodeNbr, Object plans,
+				uvast terminusNode, Object plans,
 				CgrLookupFn getDirective, time_t atTime,
 				CgrTrace *trace);
+extern float		cgr_prospect(uvast terminusNode, unsigned int deadline);
 extern const char	*cgr_tracepoint_text(CgrTraceType traceType);
 extern const char	*cgr_reason_text(CgrReason reason);
 extern void		cgr_stop();

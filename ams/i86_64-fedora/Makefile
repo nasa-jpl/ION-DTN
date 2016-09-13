@@ -63,31 +63,31 @@ install:
 #	-	-	Daemon executable	-	-	-	-
 
 amsd:		$(AMSDOBJS) $(API)/amscommon.h
-		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread
+		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lm
 		cp amsd ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 amshello:	amshello.o libams.so $(INCL)/ams.h
-		$(CC) -o amshello amshello.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amshello amshello.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amshello ./bin
 
 amsbenchs:	amsbenchs.o libams.so $(INCL)/ams.h
-		$(CC) -o amsbenchs amsbenchs.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amsbenchs amsbenchs.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amsbenchs ./bin
 
 amsbenchr:	amsbenchr.o libams.so $(INCL)/ams.h
-		$(CC) -o amsbenchr amsbenchr.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amsbenchr amsbenchr.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amsbenchr ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 amsshell:	amsshell.o libams.so $(INCL)/ams.h
-		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amsshell ./bin
 
 amslog:		amslog.o libams.so $(INCL)/ams.h
-		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amslog ./bin
 
 amslogprt:	amslogprt.o
@@ -95,17 +95,17 @@ amslogprt:	amslogprt.o
 		cp amslogprt ./bin
 
 amsstop:	amsstop.o libams.so $(INCL)/ams.h
-		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amsstop amsstop.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amsstop ./bin
 
 amsmib:		amsmib.o libams.so $(INCL)/ams.h
-		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread
+		$(CC) -o amsmib amsmib.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lm
 		cp amsmib ./bin
 
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-

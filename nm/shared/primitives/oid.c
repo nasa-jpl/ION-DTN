@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -21,34 +15,47 @@
  ** Notes:
  **	     1. In the current implementation, the nickname database is not
  **	        persistent.
- **	     2. We do not support a "create" function for OIDs as, so far, any
- **	        need to create OIDs can be met by calling the appropriate
- **	        deserialize function.
  **
  ** Assumptions:
  **      1. We limit the size of an OID in the system to reduce the amount
  **         of pre-allocated memory in this embedded system. Non-embedded
  **         implementations may wish to dynamically allocate MIDs as they are
  **         received.
+ **      2. Parameters for OIDs, which can be quite large, are dynamically
+ **         allocated.
  **
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/29/12  E. Birrane     Initial Implementation
- **  11/14/12  E. Birrane     Code review comments and documentation update.
+ **  10/27/12  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
+ **  03/11/15  E. Birrane     Removed NN from OID into NN. (Secure DTN - NASA: NNX14CS58P)
+ **  08/29/15  E. Birrane     Removed length restriction from OID parms. (Secure DTN - NASA: NNX14CS58P)
+ **  06/11/16  E. Birrane     Updated parameters to be of type TDC. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
 
-#include "shared/utils/utils.h"
+#include "../utils/utils.h"
 
-#include "shared/primitives/oid.h"
+#include "../primitives/oid.h"
+
+#define UHF UVAST_HEX_FIELDSPEC
 
 
-Lyst nn_db;
-ResourceLock nn_db_mutex;
+oid_t oid_get_null()
+{
+	static int i = 0;
+	static oid_t result;
 
+	if(i == 0)
+	{
+		oid_init(&result);
+		i = 1;
+	}
+	return result;
+}
 
 /******************************************************************************
  *
@@ -71,21 +78,22 @@ ResourceLock nn_db_mutex;
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/25/12  E. Birrane     Initial implementation,
+ *  08/29/15  E. Birrane     Parms no longer count against MAX_OID_SIZE.
+ *  04/15/16  E. Birrane     Updated to use BLOB type
+ *  04/19/16  E. Birrane     Keep OIDs on stack not heap.
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-int oid_add_param(oid_t *oid, uint8_t *value, uint32_t len)
+int8_t    oid_add_param(oid_t *oid, amp_type_e type, blob_t *blob)
 {
-	int result = 0;
-	uint8_t *cursor = NULL;
-	Sdnv len_sdnv;
-	datacol_entry_t *entry = NULL;
+	blob_t *entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_add_param","(%#llx, %#llx, %ld)", oid, value, len);
+	AMP_DEBUG_ENTRY("oid_add_param","(%#llx, %#llx)", oid, blob);
 
 	/* Step 0: Sanity Check.*/
-	if((oid == NULL) || (value == NULL) || (len == 0))
+	if((blob == NULL) || (type == AMP_TYPE_UNK))
 	{
-		DTNMP_DEBUG_ERR("oid_add_param","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
+		AMP_DEBUG_ERR("oid_add_param","Bad Args", NULL);
+		AMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
 		return 0;
 	}
 
@@ -93,160 +101,54 @@ int oid_add_param(oid_t *oid, uint8_t *value, uint32_t len)
 	if((oid->type != OID_TYPE_PARAM)  &&
 	   (oid->type != OID_TYPE_COMP_PARAM))
 	{
-		DTNMP_DEBUG_ERR("oid_add_param","Can't add parameter to OID of type %d.",
+		AMP_DEBUG_ERR("oid_add_param","Can't add parameter to OID of type %d.",
 				        oid->type);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
+		AMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
 		return 0;
 	}
 
-	/* Step 2: Make sure this doesn't give us too many params. */
-	if((lyst_length(oid->params)+1) > MAX_OID_PARM)
+	/* Step 2: Add the parameter. */
+	if(tdc_insert(&(oid->params), type, blob->value, blob->length) == AMP_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_add_param","OID has %d params, no room for more.",
-				         lyst_length(oid->params));
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
+		AMP_DEBUG_ERR("oid_add_param","Cannot add parameter.", NULL);
+		AMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
 		return 0;
 	}
 
-	/* Step 3: Make sure we have room for the passed-in parameter. */
-	encodeSdnv(&len_sdnv, len);
-
-	if((oid_calc_size(oid) + len) > MAX_OID_SIZE)
-	{
-		DTNMP_DEBUG_ERR("oid_add_param","Parm too long. OID %d MAX %d Len %d",
-				        oid_calc_size(oid), MAX_OID_SIZE, len);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
-		return 0;
-	}
-
-	/* Step 4: Allocate the entry. */
-	if((entry = (datacol_entry_t*)MTAKE(sizeof(datacol_entry_t))) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_add_param","Can't alloc %d bytes.",
-				        sizeof(datacol_entry_t));
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
-		return 0;
-	}
-
-	entry->length = len;
-
-	if((entry->value = (uint8_t*) MTAKE(entry->length)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_add_param","Can't alloc %d bytes.",
-				        entry->length);
-		MRELEASE(entry);
-		DTNMP_DEBUG_EXIT("oid_add_param","->0.",NULL);
-		return 0;
-	}
-
-	cursor = entry->value;
-
-//	memcpy(cursor, len_sdnv.text, len_sdnv.length);
-//	cursor += len_sdnv.length;
-
-	memcpy(cursor, value, len);
-	cursor += len;
-
-	lyst_insert_last(oid->params, entry);
-
-	DTNMP_DEBUG_EXIT("oid_add_param","->%d.",result);
-	return result;
+	AMP_DEBUG_EXIT("oid_add_param","->%d.",1);
+	return 1;
 }
+
 
 
 /******************************************************************************
  *
- * \par Function Name: oid_calc_size
+ * \par Function Name: oid_add_params
  *
- * \par Purpose: Calculate size of the OID once serialized. THe serialized OID
- *      does *not* include the OID type, but will include the following info
- *      based on type:
- *      - # Bytes in the OID  (always)
- *      - # Parms (for any parameterized OID)
- *      - SDNV per parm (for any parameterized OID)
- *		- Nickname (for any compressed OID).
- *		Therefore, the largest possible OID has the following form:
+ * \par Adds a set of parameters to a parameterized OID.
  *
- *     <..opt..> <..........required........> <..........optional..........>
- *	   +--------+-------+-------+     +------+--------+-------+     +-------+
- *	   |Nickname|# Bytes| Byte 1| ... |Byte N| # Parms| Parm 1| ... | Parm N|
- *	   | (SDNV) | (SDNV)| (Byte)|     |(Byte)| (SDNV) | (SDNV)|     |(SDNV) |
- *	   +--------+-------+-------+     +------+--------+-------+     +-------+
+ * \retval -1 System Error
+ *          0 User Error
+ *          1 Success
  *
- * \retval 0 - Error
- *         >0 The serialized size of the OID.
- *
- * \param[in] oid        The OID whose serialized size is to be calculated.
- * \param[in] expand_nn  Whether to expand the nickname (!0) or not (0).
+ * \param[in,out] oid     The OID getting a new param.
+ * \param[in]     params  The TDC of new parameters.
  *
  * \par Notes:
+ *		1. The new parameter is allocated into the OID and, upon exit,
+ *		   the passed-in value may be released if necessary.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  10/27/12  E. Birrane     Initial implementation,
+ *  05/28/15  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-
-uint32_t oid_calc_size(oid_t *oid)
+int8_t oid_add_params(oid_t *oid, tdc_t *params)
 {
-	uint32_t size = 0;
-	Sdnv tmp;
-	datacol_entry_t *entry = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_calc_size","(%#llx)",(unsigned long)oid);
-
-	/* Step 0: Sanity Check. */
-	if(oid == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_calc_size","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_calc_size","->0",NULL);
-		return 0;
-	}
-
-	/* Step 1: How big is the nickname portion of the OID? */
-	if((oid->type == OID_TYPE_COMP_FULL) || (oid->type == OID_TYPE_COMP_PARAM))
-	{
-		encodeSdnv(&tmp, oid->nn_id);
-		size += tmp.length;
-	}
-
-	/* Step 2: Add the # bytes SDNV and the OID data size. */
-	size += oid->value_size;
-
-	DTNMP_DEBUG_INFO("oid_calc_size","val is %d\n", oid->value_size);
-
-	/*
-	 * Step 3: If we have parameters, add them too. This is simple because we
-	 *         keep the serialized parameters around, including the SDNV at
-	 *         the beginning precisely to make subsequent serialization (and
-	 *         sizing) calculations easier.
-	 */
-	if(lyst_length(oid->params) > 0)
-	{
-		LystElt elt;
-
-		/* Step 3a: Make room for number of parameters. */
-		encodeSdnv(&tmp, lyst_length(oid->params));
-		size += tmp.length;
-
-		/* Step 3b: Add room for each parameter, which is a # bytes, followed
-		 * by the bytes.
-		 */
-		for(elt = lyst_first(oid->params); elt; elt = lyst_next(elt))
-		{
-	    	entry = (datacol_entry_t *) lyst_data(elt);
-	    	if(entry != NULL)
-	    	{
-	    		encodeSdnv(&tmp, entry->length);
-	    		/*/todo update spec: parms is # bytes, followed by bytes. */
-	    		size += tmp.length + entry->length;
-	    	}
-		}
-	}
-
-	DTNMP_DEBUG_EXIT("oid_calc_size","->%d",size);
-	return size;
+	return tdc_append(&(oid->params), params);
 }
+
 
 
 /******************************************************************************
@@ -265,28 +167,45 @@ uint32_t oid_calc_size(oid_t *oid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
+ *  08/29/15  E. Birrane     Cleanup from valgrind.
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
 
-void oid_clear(oid_t *oid)
+void oid_clear(oid_t* oid)
 {
 
-    DTNMP_DEBUG_ENTRY("oid_clear","(%#llx)", (unsigned long) oid);
+    AMP_DEBUG_ENTRY("oid_clear","(OID)",NULL);
 
-    /* Step 0: Sanity Check. */
-    if(oid == NULL)
-    {
-        DTNMP_DEBUG_ERR("oid_clear","Clearing NULL OID.", NULL);
-        DTNMP_DEBUG_EXIT("oid_clear","<->",NULL);
-        return;
-    }
+    CHKVOID(oid);
 
-    /* Step 1: Free parameters list. */
-    utils_datacol_destroy(&(oid->params));
+    oid_clear_parms(oid);
+    oid_init(oid);
 
-    /* Step 2: Bzero rest of the OID. */
-    memset(oid, 0, sizeof(oid_t));
+    AMP_DEBUG_EXIT("oid_clear","<->", NULL);
+}
 
-    DTNMP_DEBUG_EXIT("oid_clear","<->", NULL);
+
+
+/******************************************************************************
+ *
+ * \par Function Name: oid_clear_parms
+ *
+ * \par Clears the parameters associated with an OID.
+ *
+ * \param[in] oid The OID whose parameters are to be cleared.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/19/16  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
+ *****************************************************************************/
+
+void oid_clear_parms(oid_t* oid)
+{
+	tdc_clear(&(oid->params));
 }
 
 
@@ -314,51 +233,138 @@ void oid_clear(oid_t *oid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
+ *  06/04/15  E. Birrane     Consider NN when comparing.
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
+int8_t oid_compare(oid_t oid1, oid_t oid2, uint8_t use_parms)
 {
 	int result = 0;
 
-    DTNMP_DEBUG_ENTRY("oid_compare","(%#llx, %#llx)",
-    		         (unsigned long) oid1,
-    		         (unsigned long) oid2);
+    AMP_DEBUG_ENTRY("oid_compare","(oid1, oid2)", NULL);
 
     /* Step 0: Sanity check and shallow comparison in one. */
 
-    if(((oid1 == NULL) || (oid2 == NULL)) ||
-       ((oid1->value_size != oid2->value_size)) ||
-       ((oid1->type != oid2->type)))
+    if(((oid1.value_size != oid2.value_size)) ||
+       ((oid1.nn_id != oid2.nn_id)) ||
+       ((oid1.type != oid2.type)))
     {
-        DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
+        AMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
         return -1;
     }
     
-    if(use_parms != 0)
+
+    result = memcmp(&(oid1.value), &(oid2.value), oid1.value_size);
+
+    /* Step 1: Compare the OID value without parameters. */
+    if(result != 0)
     {
-    	if(lyst_length(oid1->params) != lyst_length(oid2->params))
-    	{
-    		DTNMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
-    		return -1;
-    	}
+        AMP_DEBUG_EXIT("oid_compare","->-1.", NULL);
+        return -1;
     }
 
-    /* Step 1: Compare the value version of the oid */
-    result = memcmp(oid1->value, oid2->value, oid1->value_size);
-
-    /* Step 2: If OIDs match so far, and if there are parameters, then we
-     *         need to check the parameters...
-     */
+    /* Step 2: If we are matching so far, look at the parameters. */
     if(use_parms != 0)
     {
-    	if((result == 0) && (lyst_length(oid1->params) > 0))
-    	{
-    		result = utils_datacol_compare(oid1->params, oid2->params);
-    	}
+    	result = tdc_compare(&(oid1.params), &(oid2.params));
     }
 
-    DTNMP_DEBUG_EXIT("oid_compare","->%d.", result);
+    AMP_DEBUG_EXIT("oid_compare","->%d.", result);
 
     return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: oid_construct
+ *
+ * \par Purpose: Create an OID from parameters.
+ *
+ * \retval  NULL: The construct failed
+ *         !NULL: The constructed OID.
+ *
+ * \param[in]  type    The type of the OID.
+ * \param[in]  parms   Parameters for the OID, if any.
+ * \param[in]  nn_id   Nickname for the OID, if any.
+ * \param[in]  value   OID bytes
+ * \param[in]  size    Size of value bytes.
+ *
+ * \par Notes:
+ *		1. The parameters and value are deep-copied and MUST be released
+ *		   by the calling function.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/24/15  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
+ *****************************************************************************/
+oid_t oid_construct(uint8_t type, tdc_t *parms, uvast nn_id, uint8_t *value, uint32_t size)
+{
+	oid_t result;
+
+    AMP_DEBUG_ENTRY("oid_construct",
+    		          "(%d, "ADDR_FIELDSPEC","UVAST_FIELDSPEC","ADDR_FIELDSPEC",%d)", type, (uaddr)parms, nn_id, (uaddr)value, size);
+
+    oid_init(&result);
+
+    /* Step 0: Sanity checks. */
+    if((value == NULL) || (size == 0))
+    {
+    	AMP_DEBUG_ERR("oid_construct","Bad args.", NULL);
+        AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+    	return oid_get_null();
+    }
+    else if(size > MAX_OID_SIZE)
+    {
+    	AMP_DEBUG_ERR("oid_construct","New OID size %d > MAX OID size %d.",
+    					size, MAX_OID_SIZE);
+        AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+    	return oid_get_null();
+    }
+
+    /* Step 2: Assign the OID Type. */
+    result.type = type;
+
+    /* Step 3: Assign the NN, checking if one is required.
+     *
+     * \todo: Defer this check, as nn_id 0 is valid for now...
+    if((type == OID_TYPE_COMP_FULL) ||
+       (type == OID_TYPE_COMP_PARAM))
+    {
+    	if(nn_id == 0)
+    	{
+    		AMP_DEBUG_ERR("oid_construct", "Expected nn with type %d", type);
+    		SRELEASE(result);
+            AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+        	return NULL;
+    	}
+    }
+     */
+
+    result.nn_id = nn_id;
+
+    /* Step 4: Assign parameters, if required. */
+    if((type == OID_TYPE_PARAM) ||
+       (type == OID_TYPE_COMP_PARAM))
+    {
+    	if(tdc_append(&(result.params), parms) == ERROR)
+    	{
+    		AMP_DEBUG_ERR("oid_construct", "Cannot add params.", type);
+    		AMP_DEBUG_EXIT("oid_construct", "-->NULL", NULL);
+        	return oid_get_null();
+    	}
+    }
+
+    /* Step 5: Assign OID bytes. */
+    memset(result.value, 0, MAX_OID_SIZE);
+    memcpy(result.value, value, size);
+
+    result.value_size = size;
+
+    AMP_DEBUG_EXIT("oid_construct", "-->%d", result.type);
+	return result;
 }
 
 
@@ -381,42 +387,52 @@ int oid_compare(oid_t *oid1, oid_t *oid2, uint8_t use_parms)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-oid_t *oid_copy(oid_t *src_oid)
+
+oid_t oid_copy(oid_t src_oid)
 {
-    oid_t *result = NULL;
-
-    DTNMP_DEBUG_ENTRY("oid_copy","(%#llx)", (unsigned long) src_oid);
-
-    /* Step 0: Sanity Check */
-    if(src_oid == NULL)
-    {
-        DTNMP_DEBUG_ERR("oid_copy","Cannot copy from NULL source OID.", NULL);
-        DTNMP_DEBUG_EXIT("oid_copy","->NULL",NULL);
-        return NULL;
-    }
-
-    /* Step 1: Allocate the new OID. */
-    if((result = (oid_t*) MTAKE(sizeof(oid_t))) == NULL)
-    {
-        DTNMP_DEBUG_ERR("oid_copy","Can't allocate %d bytes.", sizeof(oid_t));
-        DTNMP_DEBUG_EXIT("oid_copy","->NULL",NULL);
-        return NULL;
-    }
-
-    /* Step 2: Deep copy parameters. */
-    result->params = utils_datacol_copy(src_oid->params);
-
-    /* Step 3: Shallow copies the rest. */
-    result->type = src_oid->type;
-    result->nn_id = src_oid->nn_id;
-    result->value_size = src_oid->value_size;
-    memcpy(result->value, src_oid->value, result->value_size);
-
-    DTNMP_DEBUG_EXIT("oid_copy","->%d", result);
-    return result;
+    return oid_construct(src_oid.type, &(src_oid.params), src_oid.nn_id, src_oid.value, src_oid.value_size);
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: oid_copy_parms
+ *
+ * \par Deep-copies parameters from a source OID to a dest OID.
+ *
+ * \retval ERROR - Problem
+ *         SUCCESS - OK.
+ *
+ * \param[in|out] dest  The OID to receive a copy of the parameters.
+ * \param[in]     src   The OID providing the parameters to copy.
+ *
+ * \par Notes:
+ *		1. The destination OID MUST NOT already have parameters.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/19/16  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
+ *****************************************************************************/
+
+uint8_t oid_copy_parms(oid_t *dest, oid_t *src)
+{
+	int8_t num_parms = oid_get_num_parms(*dest);
+
+	if(num_parms != 0)
+	{
+		AMP_DEBUG_ERR("oid_copy_parms",
+				        "Cannot copy parms into OID that already has %d parms.",
+				        num_parms);
+		return ERROR;
+	}
+
+	return oid_add_params(dest, &(src->params));
+}
 
 
 
@@ -449,26 +465,28 @@ oid_t *oid_copy(oid_t *src_oid)
  *  10/27/12  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-oid_t *oid_deserialize_comp(unsigned char *buffer,
+oid_t oid_deserialize_comp(unsigned char *buffer,
 		                    uint32_t size,
 		                    uint32_t *bytes_used)
 {
 	uvast nn_id = 0;
 	uint32_t bytes = 0;
-	oid_t *new_oid = NULL;
+	oid_t new_oid;
 	unsigned char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_comp","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_comp","(%#llx,%d,%#llx)",
 					  (unsigned long) buffer,
 					  size,
 					  (unsigned long) bytes_used);
 
+	oid_init(&new_oid);
+
 	/* Step 0: Sanity Checks. */
 	if((buffer == NULL) || (bytes_used == NULL) || (size == 0))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp", "Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("oid_deserialize_comp", "Bad args.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -479,11 +497,11 @@ oid_t *oid_deserialize_comp(unsigned char *buffer,
 	/* Step 1: Grab the nickname, which is in an SDNV. */
 	 if((bytes = utils_grab_sdnv(cursor, size, &nn_id)) <= 0)
 	 {
-		 DTNMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab nickname.", NULL);
+		 AMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab nickname.", NULL);
 		 *bytes_used = 0;
 
-		 DTNMP_DEBUG_EXIT("oid_deserialize_comp", "->0", NULL);
-		 return 0;
+		 AMP_DEBUG_EXIT("oid_deserialize_comp", "->0", NULL);
+		 return oid_get_null();
 	 }
 	 else
 	 {
@@ -494,13 +512,14 @@ oid_t *oid_deserialize_comp(unsigned char *buffer,
 
 
 	/* Step 2: grab the remaining OID, which looks just like a full OID. */
-	if((new_oid = oid_deserialize_full(cursor, size, &bytes)) == NULL)
+	new_oid = oid_deserialize_full(cursor, size, &bytes);
+	if(new_oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab remaining OID.", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_comp", "Can't grab remaining OID.", NULL);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_EXIT("oid_deserialize_comp", "->NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -510,11 +529,11 @@ oid_t *oid_deserialize_comp(unsigned char *buffer,
 	}
 
 	/* Step 3: Store extra information in the new OID. */
-	new_oid->nn_id = nn_id;
-	new_oid->type = OID_TYPE_COMP_FULL;
+	new_oid.nn_id = nn_id;
+	new_oid.type = OID_TYPE_COMP_FULL;
 
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_comp","-> %x.", (unsigned long)new_oid);
+	AMP_DEBUG_EXIT("oid_deserialize_comp","-> OID.", NULL);
 	return new_oid;
 }
 
@@ -548,26 +567,28 @@ oid_t *oid_deserialize_comp(unsigned char *buffer,
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
  *****************************************************************************/
-oid_t *oid_deserialize_comp_param(unsigned char *buffer,
+oid_t oid_deserialize_comp_param(unsigned char *buffer,
     					         uint32_t size,
     					         uint32_t *bytes_used)
 {
 	uvast nn_id = 0;
 	uint32_t bytes = 0;
-	oid_t *new_oid = NULL;
+	oid_t new_oid;
 	unsigned char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_comp_param","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_comp_param","(%#llx,%d,%#llx)",
 					  (unsigned long) buffer,
 					  size,
 					  (unsigned long) bytes_used);
 
+	oid_init(&new_oid);
+
 	/* Step 0: Sanity Checks. */
 	if((buffer == NULL) || (bytes_used == NULL) || (size == 0))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp_param", "Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("oid_deserialize_comp_param", "Bad args.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -578,11 +599,11 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
 	/* Step 1: Grab the nickname, which is in an SDNV. */
 	 if((bytes = utils_grab_sdnv(cursor, size, &nn_id)) <= 0)
 	 {
-		 DTNMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab nickname.", NULL);
+		 AMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab nickname.", NULL);
 		 *bytes_used = 0;
 
-		 DTNMP_DEBUG_EXIT("oid_deserialize_comp_param", "->0", NULL);
-		 return NULL;
+		 AMP_DEBUG_EXIT("oid_deserialize_comp_param", "->0", NULL);
+		 return oid_get_null();
 	 }
 	 else
 	 {
@@ -593,14 +614,15 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
 
 
 	/* Step 2: grab the parameterized, remaining OID. */
-	if((new_oid = oid_deserialize_param(cursor, size, &bytes)) == NULL)
+	new_oid = oid_deserialize_param(cursor, size, &bytes);
+	if(new_oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab remaining OID.",
+		AMP_DEBUG_ERR("oid_deserialize_comp_param", "Can't grab remaining OID.",
 				        NULL);
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_EXIT("oid_deserialize_comp_param", "->NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -610,10 +632,10 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
 	}
 
 	/* Step 3: Store extra information in the new OID. */
-	new_oid->nn_id = nn_id;
-	new_oid->type = OID_TYPE_COMP_PARAM;
+	new_oid.nn_id = nn_id;
+	new_oid.type = OID_TYPE_COMP_PARAM;
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_comp_param","-> %x.", (unsigned long)new_oid);
+	AMP_DEBUG_EXIT("oid_deserialize_comp_param","-> OID.", NULL);
 	return new_oid;
 }
 
@@ -624,12 +646,6 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
  * \par Function Name: oid_deserialize_full
  *
  * \par Purpose: Extracts a regular OID from a buffer.
- *
- * 	\todo We currently assume that the length field is a single byte (0-127).
- * 	      We need to code this to follow BER rules for large definite data
- * 	      form. Like SDNV but not quite: if high-bit of first byte set, bits
- * 	      7-1 give # octets that comprise length. Then, concatenate, big-endian,
- * 	      those octets to build	length. Ex: length 435 = 0x8201B3
  *
  * \retval  NULL  - Failure.
  * 		   !NULL - The extracted OID.
@@ -653,25 +669,27 @@ oid_t *oid_deserialize_comp_param(unsigned char *buffer,
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
-oid_t *oid_deserialize_full(unsigned char *buffer,
-			                uint32_t size,
-			                uint32_t *bytes_used)
+oid_t oid_deserialize_full(unsigned char *buffer,
+			               uint32_t size,
+			               uint32_t *bytes_used)
 {
-	uint32_t oid_size = 0;
-	oid_t *new_oid = NULL;
-	uint8_t val = 0;
+	oid_t new_oid;
 	unsigned char *cursor = NULL;
+	blob_t *value = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_full","(%#llx,%d,%#llx)",
-			  (       unsigned long) buffer, size, (unsigned long) bytes_used);
+	AMP_DEBUG_ENTRY("oid_deserialize_full","(%#llx,%d,%#llx)",
+			         (unsigned long) buffer, size, (unsigned long) bytes_used);
+
+	oid_init(&new_oid);
 
 	/* Step 0: Sanity Checks. */
 	if((buffer == NULL) || (bytes_used == NULL) || (size == 0))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full", "Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_full", "->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("oid_deserialize_full", "Bad args.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_full", "->NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -679,82 +697,47 @@ oid_t *oid_deserialize_full(unsigned char *buffer,
 		cursor = buffer;
 	}
 
-
 	/*
-	 * Step 1: Grab # SDNVs in the OID
-	 * \todo: Check if this should be a byte or an SDNV.
+	 * Step 1: Grab the OID, which is model as a BLOB.
 	 */
-	if((*bytes_used = utils_grab_byte(cursor, size, &val)) != 1)
+	if((value = blob_deserialize(cursor, size, bytes_used)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full", "Can't grab size byte.", NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_full", "-> NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("oid_deserialize_full", "Can't get OID BLOB.", NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_full", "-> NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
 		cursor += *bytes_used;
 		size -= *bytes_used;
-
-		oid_size = val;
 	}
 
 	/*
 	 * Step 2: Make sure OID fits within our size. We add 1 to oid_size to
 	 *         account for the # bytes parameter.
-	 * \todo Change the 1 here to something else if me move to SDNV for #bytes.
 	 */
-	if((oid_size + 1) >= MAX_OID_SIZE)
+	if((value->length) >= MAX_OID_SIZE)
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full","Size %d exceeds supported size %d",
-				        oid_size + 1, MAX_OID_SIZE);
+		AMP_DEBUG_ERR("oid_deserialize_full","Size %d exceeds supported size %d",
+				        value->length, MAX_OID_SIZE);
 		*bytes_used = 0;
-
-		DTNMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
-		return NULL;
+		blob_destroy(value, 1);
+		AMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
+		return oid_get_null();
 	}
 
-	/* Step 3: Make sure we have oid_size bytes left in the buffer. */
-	if(oid_size > size)
-	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full","Can't read %d bytes from %d sized buf.",
-				        oid_size, size);
-
-		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
-		return NULL;
-	}
-
-	/* Step 4: Allocate the target OID object. */
-	if((new_oid = (oid_t*)MTAKE(sizeof(oid_t))) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full","Cannot allocate new OID.", NULL);
-
-		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
-		return NULL;
-	}
-
-	/* Step 5: Copy in the data contents of the OID.  We don't interpret the
+	/* Step 3: Copy in the data contents of the OID.  We don't interpret the
 	 *         values here, just put them in.
 	 */
-	new_oid->value[0] = oid_size;
-	memcpy(&(new_oid->value[1]), cursor, oid_size);
-	new_oid->value_size = oid_size + 1;
-	*bytes_used += oid_size;
 
-	if((new_oid->params = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_deserialize_full","Cannot allocate param lyst.", NULL);
-		MRELEASE(new_oid);
-		*bytes_used = 0;
-		DTNMP_DEBUG_EXIT("oid_deserialize_full","-> NULL", NULL);
-		return NULL;
-	}
+	new_oid.value_size = value->length;
+	memcpy(new_oid.value, value->value, value->length);
+	blob_destroy(value, 1);
 
-	new_oid->type = OID_TYPE_FULL;
+	new_oid.type = OID_TYPE_FULL;
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_full","-> new_oid: %#llx  bytes_used %d",
-			         (unsigned long)new_oid, *bytes_used);
+	AMP_DEBUG_EXIT("oid_deserialize_full","-> new_oid: OID  bytes_used %d",
+			         *bytes_used);
 
 	return new_oid;
 }
@@ -789,29 +772,30 @@ oid_t *oid_deserialize_full(unsigned char *buffer,
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/27/12  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
 
-oid_t *oid_deserialize_param(unsigned char *buffer,
+oid_t oid_deserialize_param(unsigned char *buffer,
 		                     uint32_t size,
 		                     uint32_t *bytes_used)
 {
-	oid_t *new_oid;
+	oid_t new_oid;
 	uint32_t bytes = 0;
-	uvast value = 0;
-	uint32_t idx = 0;
 	unsigned char *cursor = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_deserialize_param","(%#llx,%d,%#llx)",
+	AMP_DEBUG_ENTRY("oid_deserialize_param","(%#llx,%d,%#llx)",
 					  (unsigned long) buffer,
 					  size,
 					  (unsigned long) bytes_used);
 
+	oid_init(&new_oid);
+
 	/* Step 0: Sanity Checks... */
 	if((buffer == NULL) || (bytes_used == NULL))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_param","NULL input values!",NULL);
-		DTNMP_DEBUG_EXIT("oid_deserialize_param","->NULL",NULL);
-		return NULL;
+		AMP_DEBUG_ERR("oid_deserialize_param","NULL input values!",NULL);
+		AMP_DEBUG_EXIT("oid_deserialize_param","->NULL",NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -822,15 +806,15 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 	/* Step 1: Grab the regular OID and store it. */
 	new_oid = oid_deserialize_full(cursor, size, &bytes);
 
-	if((bytes == 0) || (new_oid == NULL))
+	if((bytes == 0) || (new_oid.type == OID_TYPE_UNK))
 	{
-		DTNMP_DEBUG_ERR("oid_deserialize_param","Could not grab OID.", NULL);
+		AMP_DEBUG_ERR("oid_deserialize_param","Could not grab OID.", NULL);
 
-		oid_release(new_oid); /* release just in case bytes was 0. */
+		oid_release(&new_oid); /* release just in case bytes was 0. */
 		*bytes_used = 0;
 
-		DTNMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
-		return NULL;
+		AMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
+		return oid_get_null();
 	}
 	else
 	{
@@ -844,18 +828,23 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 	 */
 	if(size > 0)
 	{
-		if((new_oid->params = utils_datacol_deserialize(cursor, size, &bytes)) == NULL)
-		{
-			DTNMP_DEBUG_ERR("oid_deserialize_param","Could not grab params.", NULL);
+		tdc_t *cur_tdc = tdc_deserialize(cursor, size, &bytes);
 
-			oid_release(new_oid); /* release just in case bytes was 0. */
+		if(cur_tdc == NULL)
+		{
+			AMP_DEBUG_ERR("oid_deserialize_param","Could not grab params.", NULL);
+
+			oid_release(&new_oid); /* release just in case bytes was 0. */
 			*bytes_used = 0;
 
-			DTNMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
-			return NULL;
+			AMP_DEBUG_EXIT("oid_deserialize_param","-> NULL", NULL);
+			return oid_get_null();
 		}
 		else
 		{
+			oid_add_params(&new_oid, cur_tdc);
+			tdc_destroy(&cur_tdc);
+
 			cursor += bytes;
 			size -= bytes;
 			*bytes_used += bytes;
@@ -863,14 +852,70 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
 	}
 
 	/* Step 3: Fill in any other parts of the OID. */
-	new_oid->type = OID_TYPE_PARAM;
+	new_oid.type = OID_TYPE_PARAM;
 
-	DTNMP_DEBUG_EXIT("oid_deserialize_param","-> %#llx.", (unsigned long) new_oid);
+	AMP_DEBUG_EXIT("oid_deserialize_param","-> %d.", new_oid.type);
 	return new_oid;
 }
 
 
 
+/*  06/11/16  E. Birrane     Cleanup parameters, use TDC. */
+
+int8_t  oid_get_num_parms(oid_t oid)
+{
+	return tdc_get_count(&(oid.params));
+}
+
+
+
+void oid_init(oid_t *oid)
+{
+	CHKVOID(oid);
+
+	oid->type = OID_TYPE_UNK;
+	memset(&(oid->params), 0, sizeof(tdc_t));
+	oid->nn_id = 0;
+	oid->value_size = 0;
+	memset(oid->value, 0, MAX_OID_SIZE);
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: oid_get_param
+ *
+ * \par Purpose: Retrieves the ith parameter of a parameterized OID.
+ *
+ * \retval  NULL: Could not find parameter.
+ *         !NULL: The datacol entry representing this parameter.
+ *
+ * \param[in]  oid  The OID whose parameter is being queried.
+ * \param[in]  i    Which parameter to retrieve. 0 based.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  10/27/12  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
+ *****************************************************************************/
+
+blob_t*  oid_get_param(oid_t oid, uint32_t idx, amp_type_e *type)
+{
+	blob_t *result = NULL;
+	LystElt elt = 0;
+
+	AMP_DEBUG_ENTRY("oid_get_param","(OID, %d,"ADDR_FIELDSPEC")", idx, (uaddr)type);
+
+	CHKNULL(type);
+
+	result = tdc_get_colentry(&(oid.params), idx);
+	*type = tdc_get_type(&(oid.params), idx);
+
+	return result;
+}
 
 
 
@@ -895,26 +940,32 @@ oid_t *oid_deserialize_param(unsigned char *buffer,
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/14/12  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
 
-char *oid_pretty_print(oid_t *oid)
+char *oid_pretty_print(oid_t oid)
 {
 	int size = 0;
 	char *str = NULL;
 	char *result = NULL;
 	char *cursor = NULL;
 	LystElt elt;
-	datacol_entry_t *entry = NULL;
+	blob_t *entry = NULL;
+	uint32_t parm_str_len = 0;
+	char *parm_str = NULL;
 
-	DTNMP_DEBUG_ENTRY("oid_pretty_print","(%#llx)", (unsigned long) oid);
+	AMP_DEBUG_ENTRY("oid_pretty_print","(OID)", NULL);
 
 	/* Step 0: Sanity Check. */
-	if(oid == NULL)
+	if(oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("oid_pretty_print","NULL OID.",NULL);
-		DTNMP_DEBUG_EXIT("oid_pretty_print","->NULL.",NULL);
+		AMP_DEBUG_ERR("oid_pretty_print","NULL OID.",NULL);
+		AMP_DEBUG_EXIT("oid_pretty_print","->NULL.",NULL);
 		return NULL;
 	}
+
+	parm_str = tdc_to_str(&(oid.params));
+	parm_str_len = strlen(parm_str);
 
 	/* Step 1: Guestimate size. This is, at best, a dark art and prone to
 	 *         exaggeration. Numerics are assumed to take 5 bytes, unless I
@@ -923,21 +974,22 @@ char *oid_pretty_print(oid_t *oid)
 	 *         update this calculation if one changes string constants, else
 	 *         one will be sorry.
 	 */
-	size = 33 +   									 /* Header */
-		   11 +   									 /* OID type as text */
-		   (lyst_length(oid->params) * 22) +         /* Each parameter index */
-		   (MAX_OID_PARM * (20 * MAX_OID_SIZE)) +    /* Parameters */
-		   12 +                                      /* nn_id */
-		   18 +   								     /* value_size */
-		   7 + (oid->value_size * 4) +               /* OID values */
-		   22;  									 /* Footer. */
+	size = 33 +   					   /* Header */
+		   11 +   					   /* OID type as text */
+		   22 +                        /* "num_parm: %ld" */
+		   parm_str_len + 1 +          /* Parameters */
+		   12 +                        /* nn_id */
+		   18 +   					   /* value_size */
+		   7 + (oid.value_size * 4) +  /* OID values */
+		   22;  					   /* Footer. */
 
 
 	/* Step 2: Allocate the string. */
-	if((result = (char*)MTAKE(size)) == NULL)
+	if((result = (char*)STAKE(size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_pretty_print", "Can't alloc %d bytes.", size);
-		DTNMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
+		AMP_DEBUG_ERR("oid_pretty_print", "Can't alloc %d bytes.", size);
+		AMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
+		/*	TODO  Must destroy parm_str at this point.	*/
 		return NULL;
 	}
 
@@ -945,7 +997,7 @@ char *oid_pretty_print(oid_t *oid)
 	cursor = result;
 	cursor += sprintf(cursor,"OID:\n---------------------\nType: ");
 
-	switch(oid->type)
+	switch(oid.type)
 	{
 	case 0: cursor += sprintf(cursor,"FULL\n"); break;
 	case 1: cursor += sprintf(cursor,"PARAM\n"); break;
@@ -954,39 +1006,30 @@ char *oid_pretty_print(oid_t *oid)
 	default: cursor += sprintf(cursor,"UNKNOWN\n"); break;
 	}
 
-	cursor += sprintf(cursor,"num_parm: %ld\n", lyst_length(oid->params));
-
-	int i = 0;
-	for(elt = lyst_first(oid->params); elt; elt = lyst_next(elt))
-	{
-		entry = (datacol_entry_t*)lyst_data(elt);
-		str = utils_hex_to_string(entry->value, entry->length);
-		cursor += sprintf(cursor, "Parm %d:%s\n",i,str);
-		MRELEASE(str);
-		i++;
-	}
-
-	cursor += sprintf(cursor, "nn_id: %d\n", (uint32_t)oid->nn_id);
-	cursor += printf(cursor, "value_size: %d\n", oid->value_size);
+	cursor += sprintf(cursor,"num_parm: %d\n", oid_get_num_parms(oid));
+	cursor += sprintf(cursor,"parms: %s\n", parm_str);
+	cursor += sprintf(cursor, "nn_id: " UVAST_FIELDSPEC "\n", oid.nn_id);
+	cursor += printf(cursor, "value_size: %d\n", oid.value_size);
 
 	str = oid_to_string(oid);
 	cursor += sprintf(cursor, "value: %s\n---------------------\n\n", str);
-	MRELEASE(str);
+	SRELEASE(parm_str);
+	SRELEASE(str);
 
 	/* Step 4: Sanity check. */
 	if((cursor - result) > size)
 	{
-		DTNMP_DEBUG_ERR("oid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
+		AMP_DEBUG_ERR("oid_pretty_print", "OVERWROTE! Alloc %d, wrote %llu.",
 				        size, (cursor-result));
-		MRELEASE(result);
-		DTNMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
+		SRELEASE(result);
+		AMP_DEBUG_EXIT("oid_pretty_print","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_INFO("oid_pretty_print","Wrote %llu into %d string.",
+	AMP_DEBUG_INFO("oid_pretty_print","Wrote %llu into %d string.",
 			         (cursor -result), size);
 
-	DTNMP_DEBUG_EXIT("oid_pretty_print","->%#llx",result);
+	AMP_DEBUG_EXIT("oid_pretty_print","->%#llx",result);
 
 	return result;
 }
@@ -1013,90 +1056,24 @@ char *oid_pretty_print(oid_t *oid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
 
-void oid_release(oid_t *oid)
+void oid_release(oid_t* oid)
 {
-    DTNMP_DEBUG_ENTRY("oid_release", "(%#llx)", (unsigned long) oid);
+    AMP_DEBUG_ENTRY("oid_release", "(OID)", NULL);
 
-    if(oid != NULL)
+    CHKVOID(oid);
+
+    if(oid->type != OID_TYPE_UNK)
     {
         oid_clear(oid);
-        MRELEASE(oid);
-        oid = NULL;
+        tdc_clear(&(oid->params));
+        oid_init(oid);
     }
 
-    DTNMP_DEBUG_EXIT("oid_release", "-> NULL", NULL);
+    AMP_DEBUG_EXIT("oid_release", "-> NULL", NULL);
 }
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_sanity_check
- *
- * \par Purpose: Checks an oid structure for proper values.
- *
- * \retval <=0  - Failure. The OID is not sane.
- * 		   >0   - Success. The OID is sane.
- *
- * \param[in]  oid  The OID whose sanity is in question.
- *
- * \par Notes:
- *		1. We don't bail on the first failure so as to better populate the
- *		   error log in instances where we have an OID with multiple problems.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-int oid_sanity_check(oid_t *oid)
-{
-	int result = 1;
-    DTNMP_DEBUG_ENTRY("oid_sanity_check","(%#llx)", (unsigned long) oid);
-
-	/* NULL Checks. Perform all so that we get lots of logging in case
-	 * there are multiple problems with the OID.  */
-	if(oid == NULL)
-	{
-        DTNMP_DEBUG_ERR("oid_sanity_check","NULL oid.", NULL);
-        result = 0;
-	}
-
-	if(oid->type > 3)
-	{
-        DTNMP_DEBUG_ERR("oid_sanity_check","Bad type: %d.", oid->type);
-        result = 0;
-	}
-
-	if(lyst_length(oid->params) > MAX_OID_PARM)
-	{
-        DTNMP_DEBUG_ERR("oid_sanity_check","Too many params: %d.",
-        		         lyst_length(oid->params));
-        result = 0;
-	}
-
-	uint32_t size = oid_calc_size(oid);
-	if(size > MAX_OID_SIZE)
-	{
-        DTNMP_DEBUG_ERR("oid_sanity_check","Parm size %d bigger than max %d",
-        			    size, MAX_OID_SIZE);
-        result = 0;
-	}
-
-	if(oid->value_size > MAX_OID_SIZE)
-	{
-        DTNMP_DEBUG_ERR("oid_sanity_check","Val size %d bigger than max %d",
-        			    oid->value_size, MAX_OID_SIZE);
-        result = 0;
-	}
-
-    DTNMP_DEBUG_EXIT("oid_sanity_check","->%d", result);
-    return result;
-}
-
 
 
 /******************************************************************************
@@ -1105,6 +1082,12 @@ int oid_sanity_check(oid_t *oid)
  *
  * \par Purpose: Generate full, serialized version of the OID.
  *
+ *     <..opt..> <..........required........> <..........optional..........>
+ *	   +--------+-------+-------+     +------+--------+-------+     +-------+
+ *	   |Nickname|# Bytes| Byte 1| ... |Byte N| # Parms| Parm 1| ... | Parm N|
+ *	   | (SDNV) | (SDNV)| (Byte)|     |(Byte)| (SDNV) | (SDNV)|     |(SDNV) |
+ *	   +--------+-------+-------+     +------+--------+-------+     +-------+
+
  * \todo Add a mechanism to determine whether we should expand a nickname or
  *       not when serializing the OID.
  *
@@ -1129,55 +1112,88 @@ int oid_sanity_check(oid_t *oid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  10/14/12  E. Birrane     Initial implementation,
+ *  08/28/15  E. Birrane     Allow parms > MAX_OID_SIZE.
+ *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *****************************************************************************/
 
-uint8_t *oid_serialize(oid_t *oid, uint32_t *size)
+uint8_t *oid_serialize(oid_t oid, uint32_t *size)
 {
 	uint8_t *result = NULL;
 	uint8_t *cursor = NULL;
 	uint8_t *parms = NULL;
 	uint32_t parm_size = 0;
+	blob_t value;
+	uint8_t *data = NULL;
+	uint32_t data_size = 0;
 
 	uint32_t idx = 0;
 	Sdnv nn_sdnv;
 
-	DTNMP_DEBUG_ENTRY("oid_serialize","(%#llx,%#llx)",
-			          (unsigned long)oid, (unsigned long)size);
+	AMP_DEBUG_ENTRY("oid_serialize","(oid,%#llx)",
+			          (unsigned long)size);
 
 	/* Step 0: Sanity Check */
-	if((oid == NULL) || (size == NULL))
+	if((oid.type == OID_TYPE_UNK) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		AMP_DEBUG_ERR("oid_serialize","Bad args.",NULL);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	/* Step 1: Count up the total size of the OID. */
-	if((*size = oid_calc_size(oid)) == 0)
+	/* Step 1: Model the OID value as a BLOB. */
+	value.length = oid.value_size;
+	value.value = oid.value;
+
+	/* Step 2: Serialize the OID value. */
+	if((data = blob_serialize(&value, &data_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Bad size %d.",*size);
+		AMP_DEBUG_ERR("oid_serialize","Can't serialize OID data.", NULL);
+		return NULL;
+	}
+
+	/* Step 3: Calculate the serialized size. */
+	*size = 0;
+
+
+	if((oid.type == OID_TYPE_COMP_FULL) || (oid.type == OID_TYPE_COMP_PARAM))
+	{
+		encodeSdnv(&nn_sdnv, oid.nn_id);
+		*size += nn_sdnv.length;
+	}
+
+	*size += data_size;
+
+	if((oid.type == OID_TYPE_PARAM) || (oid.type == OID_TYPE_COMP_PARAM))
+	{
+		parms = tdc_serialize(&(oid.params), &parm_size);
+		*size += parm_size;
+	}
+
+	if(*size == 0)
+	{
+		AMP_DEBUG_ERR("oid_serialize","Bad size %d.",*size);
 		*size = 0;
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		if(parms != NULL)
+		{
+			SRELEASE(parms);
+		}
+		SRELEASE(data);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	/* Step 2: Sanity check the size. */
-	if(*size > MAX_OID_SIZE)
+	/* Step 2: Allocate the serialized buffer.*/
+	if((result = (uint8_t *) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Size %d bigger than max of %d.",
-				        *size, MAX_OID_SIZE);
-		*size = 0;
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 3: Allocate the serialized buffer.*/
-	if((result = (uint8_t *) MTAKE(*size)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_serialize","Couldn't allocate %d bytes.",
+		AMP_DEBUG_ERR("oid_serialize","Couldn't allocate %d bytes.",
 				        *size);
 		*size = 0;
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		if(parms != NULL)
+		{
+			SRELEASE(parms);
+		}
+		SRELEASE(data);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 	else
@@ -1185,48 +1201,52 @@ uint8_t *oid_serialize(oid_t *oid, uint32_t *size)
 		cursor = result;
 	}
 
-	/* Step 4: Copy in the nickname portion. */
-	if((oid->type == OID_TYPE_COMP_FULL) || (oid->type == OID_TYPE_COMP_PARAM))
+	/* Step 3: Copy in the nickname portion. */
+	if((oid.type == OID_TYPE_COMP_FULL) || (oid.type == OID_TYPE_COMP_PARAM))
 	{
-		encodeSdnv(&nn_sdnv, oid->nn_id);
 		memcpy(cursor, nn_sdnv.text, nn_sdnv.length);
 		cursor += nn_sdnv.length;
 	}
 
-	/* Step 5: Copy in the value portion. */
-	memcpy(cursor,oid->value, oid->value_size);
-	cursor += oid->value_size;
+	/* Step 4: Copy in the value portion. */
+	memcpy(cursor,data, data_size);
+	cursor += data_size;
+	SRELEASE(data);
 
-	/* Step 6: Copy in the parameters portion. */
-	if((oid->type == OID_TYPE_PARAM) || (oid->type == OID_TYPE_COMP_PARAM))
+	/* Step 5: Copy in the parameters portion. */
+	if((oid.type == OID_TYPE_PARAM) || (oid.type == OID_TYPE_COMP_PARAM))
 	{
-		parms = utils_datacol_serialize(oid->params, &parm_size);
 		if((parms == NULL) || (parm_size == 0))
 		{
-			DTNMP_DEBUG_ERR("oid_serialize","Can't serialize parameters.",NULL);
+			AMP_DEBUG_ERR("oid_serialize","Can't serialize parameters.",NULL);
 			*size = 0;
-			MRELEASE(result);
-			DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+			if(parms != NULL)
+			{
+				SRELEASE(parms);
+			}
+
+			SRELEASE(result);
+			AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 			return NULL;
 		}
 
 		memcpy(cursor, parms, parm_size);
 		cursor += parm_size;
-		MRELEASE(parms);
+		SRELEASE(parms);
 	}
 
-	/* Step 7: Final sanity check */
+	/* Step 6: Final sanity check */
 	if((cursor-result) > *size)
 	{
-		DTNMP_DEBUG_ERR("oid_serialize","Serialized %d bytes but counted %d!",
+		AMP_DEBUG_ERR("oid_serialize","Serialized %d bytes but counted %d!",
 				        (cursor-result), *size);
 		*size = 0;
-		MRELEASE(result);
-		DTNMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
+		SRELEASE(result);
+		AMP_DEBUG_EXIT("oid_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("oid_serialize","->%#llx",(unsigned long)result);
+	AMP_DEBUG_EXIT("oid_serialize","->%#llx",(unsigned long)result);
 	return result;
 }
 
@@ -1254,18 +1274,17 @@ uint8_t *oid_serialize(oid_t *oid, uint32_t *size)
  *  10/14/12  E. Birrane     Initial implementation,
  *****************************************************************************/
 
-char *oid_to_string(oid_t *oid)
+char *oid_to_string(oid_t oid)
 {
     char *result = NULL;
-    uint32_t size = 0;
 
-    DTNMP_DEBUG_ENTRY("oid_to_string","(%#llx)",(unsigned long) oid);
+    AMP_DEBUG_ENTRY("oid_to_string","(OID)",NULL);
 
     /* Step 0: Sanity Check. */
-    if(oid == NULL)
+    if(oid.type == OID_TYPE_UNK)
     {
-        DTNMP_DEBUG_ERR("oid_to_string","NULL OID",NULL);
-        DTNMP_DEBUG_EXIT("oid_to_string","->NULL.",NULL);
+        AMP_DEBUG_ERR("oid_to_string","NULL OID",NULL);
+        AMP_DEBUG_EXIT("oid_to_string","->NULL.",NULL);
     	return NULL;
     }
 
@@ -1273,368 +1292,9 @@ char *oid_to_string(oid_t *oid)
 
 
     /* For now, we just show the raw MID. */
-	result = utils_hex_to_string(oid->value, oid->value_size);
+	result = utils_hex_to_string(oid.value, oid.value_size);
 
-    DTNMP_DEBUG_EXIT("oid_to_string","->%s.", result);
+    AMP_DEBUG_EXIT("oid_to_string","->%s.", result);
 	return result;
 }
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_add
- *
- * \par Purpose: Adds a nickname to the database.
- *
- * \retval 0 Failure.
- *         !0 Success.
- *
- * \param[in] oid The OID whose string representation is being calculated.
- *
- * \par Notes:
- *		1. We will allocate our own entry on addition, the passed-in structure
- *		   may be deleted or changed after this call.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-int oid_nn_add(oid_nn_t *nn)
-{
-	oid_nn_t *new_nn = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_add","(%#llx)",(unsigned long)nn);
-
-	/* Step 0: Sanity check. */
-	if(nn == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Bad args.",NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
-		return 0;
-	}
-
-	/* Need to lock early so our uniqueness check (step 1) doesn't change by
-	 * the time we go to insert in step 4. */
-	lockResource(&nn_db_mutex);
-
-	/* Step 1: Make sure entry doesn't already exist. */
-	if(oid_nn_exists(nn->id))
-	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Id 0x%x already exists in db.",
-				         nn->id);
-
-		unlockResource(&nn_db_mutex);
-
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
-		return 0;
-	}
-
-	/* Step 2: Allocate new entry. */
-	if ((new_nn = (oid_nn_t*)MTAKE(sizeof(oid_nn_t))) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_nn_add","Can't take %d bytes for new nn.",
-						sizeof(oid_nn_t));
-
-		unlockResource(&nn_db_mutex);
-
-		DTNMP_DEBUG_EXIT("oid_nn_add","->0",NULL);
-		return 0;
-	}
-
-	/* Step 3: Populate new entry with passed-in data. */
-	memcpy(new_nn, nn, sizeof(oid_nn_t));
-
-
-	/* Step 4: Add new entry to the db. */
-
-	lyst_insert_first(nn_db, new_nn);
-    unlockResource(&nn_db_mutex);
-
-
-	DTNMP_DEBUG_EXIT("oid_nn_add","->1",NULL);
-	return 1;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_cleanup
- *
- * \par Purpose: Breaks down the nickname database.
- *
- * \retval void
- *
- * \par Notes:
- *		1.  We assume there are no other people who will use the nn_db after
- *		    this!
- *		2.  We also kill the mutex around the database.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-void oid_nn_cleanup()
-{
-    LystElt elt;
-    oid_nn_t *entry = NULL;
-
-    DTNMP_DEBUG_ENTRY("oid_nn_cleanup","()",NULL);
-
-    /* Step 0: Sanity Check. */
-    if(nn_db == NULL)
-    {
-    	DTNMP_DEBUG_WARN("oid_nn_cleanup","NN database already cleaned.",NULL);
-    	return;
-    }
-
-
-    /* Step 1: Wait for folks to be done with the database. */
-    lockResource(&nn_db_mutex);
-
-    /* Step 2: Release each entry. */
-    for (elt = lyst_first(nn_db); elt; elt = lyst_next(elt))
-    {
-    	entry = (oid_nn_t*) lyst_data(elt);
-    	if (entry != NULL)
-    	{
-    		MRELEASE(entry);
-    	}
-    	else
-    	{
-    		DTNMP_DEBUG_WARN("oid_nn_cleanup","Found NULL entry in nickname db.",
-    				         NULL);
-    	}
-    }
-    lyst_destroy(nn_db);
-
-    /* Step 3: Clean up locking mechanisms too. */
-    unlockResource(&nn_db_mutex);
-    killResourceLock(&nn_db_mutex);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_delete
- *
- * \par Purpose: Removes a nickname from the database.
- *
- * \retval 0 - Entry not found (or other error)
- * 		   !0 - Success.
- *
- * \param[in] nn_id The ID of the entry to remove.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-int oid_nn_delete(uvast nn_id)
-{
-	oid_nn_t *cur_nn = NULL;
-	LystElt tmp_elt;
-	int result = 0;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_delete","(%#llx)",nn_id);
-
-	/* Step 1: Need to lock to preserve validity of the lookup result. . */
-	lockResource(&nn_db_mutex);
-
-	/* Step 2: If you find it, delete it. */
-	if((tmp_elt = oid_nn_exists(nn_id)) != NULL)
-	{
-    	cur_nn = (oid_nn_t*) lyst_data(tmp_elt);
-		lyst_delete(tmp_elt);
-		MRELEASE(cur_nn);
-		result = 1;
-	}
-
-    unlockResource(&nn_db_mutex);
-
-	DTNMP_DEBUG_EXIT("oid_nn_delete","->%d",result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_exists
- *
- * \par Purpose: Determines if an ID is in the nickname db.
- *
- * \retval NULL - Not found.
- * 		   !NULL - ELT pointing to the found element.
- *
- * \param[in] nn_id The ID of the nickname whose existence is in question.
- *
- * \todo There is probably a smarter way to do this with a lyst find function
- * 	     and a search callback.
- *
- * \par Notes:
- *		1. LystElt is a pointer. Handle this handle with care.
- *		2. We break abstraction here and return a Lyst structure because this
- *		   lookup function is often called in the context of lyst maintenance,
- *		   but if we were to change the underlying nickname database storage
- *		   approach, this function would, clearly, need to change. Those who
- *		   do not like this approach are referred to the much less deprecable
- *		   function: oid_find.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-LystElt oid_nn_exists(uvast nn_id)
-{
-	oid_nn_t *cur_nn = NULL;
-	LystElt tmp_elt = NULL;
-	LystElt result = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_exists","(%#llx)",nn_id);
-
-	/* Step 0: Make sure no +/-'s while we search. */
-	lockResource(&nn_db_mutex);
-
-    for(tmp_elt = lyst_first(nn_db); tmp_elt; tmp_elt = lyst_next(tmp_elt))
-    {
-    	cur_nn = (oid_nn_t*) lyst_data(tmp_elt);
-    	if(cur_nn != NULL)
-    	{
-    		if(cur_nn->id == nn_id)
-    		{
-    			result = tmp_elt;
-    			break;
-    		}
-    	}
-    	else
-    	{
-    		DTNMP_DEBUG_WARN("oid_nn_exists","Encountered NULL nn?",NULL);
-    	}
-    }
-
-    unlockResource(&nn_db_mutex);
-
-	DTNMP_DEBUG_EXIT("oid_nn_delete","->%x",result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_find
- *
- * \par Purpose: Convenience function to grab a nickname entry from its ID.
- *
- * \retval NULL - Item not found.
- *         !NULL - Handle to the found item.
- *
- * \param[in] nn_id  The ID of the nickname to find.
- *
- * \todo There is probably a smarter way to do this with a lyst find function
- * 	     and a search callback.
- *
- * \par Notes:
- *		1. The returned pointer should NOT be released. It points directly into
- *		   the nickname list.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-oid_nn_t* oid_nn_find(uvast nn_id)
-{
-	LystElt tmpElt = NULL;
-	oid_nn_t *result = NULL;
-
-	DTNMP_DEBUG_ENTRY("oid_nn_find","(%#llx)",nn_id);
-
-	/* Step 0: Call exists function (exists should block mutex, so we don't. */
-	if((tmpElt = oid_nn_exists(nn_id)) != NULL)
-	{
-		result = (oid_nn_t*) lyst_data(tmpElt);
-	}
-
-	DTNMP_DEBUG_EXIT("oid_nn_find","->%#llx",result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: oid_nn_init
- *
- * \par Purpose: Initialize the nickname database for OIDs.
- *
- * \retval <0 - Failure.
- * 		    0 - Success.
- *
- * \param[in] nn_id  The ID of the nickname to find.
- *
- * \todo Add functions here to read the nickname database from persistent
- *       storage, such as an SDR.
- *
- * \par Notes:
- *		1. nn_db must only hold items that have been dynamically allocated
- *		   from the	memory pool.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-int oid_nn_init()
-{
-	DTNMP_DEBUG_ENTRY("oid_init_nn_db","()",NULL);
-
-	/* Step 0: Sanity Check. */
-	if(nn_db != NULL)
-	{
-		DTNMP_DEBUG_WARN("oid_nn_init","Trying to init existing NN db.",NULL);
-		return 0;
-	}
-
-	if((nn_db = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("oid_nn_init","Can't allocate NN DB!", NULL);
-		DTNMP_DEBUG_EXIT("oid_nn_init","->-1.",NULL);
-		return -1;
-	}
-
-	if(initResourceLock(&nn_db_mutex))
-	{
-        DTNMP_DEBUG_ERR("oid_init_nn_db","Unable to initialize mutex, errno = %s",
-        		        strerror(errno));
-        DTNMP_DEBUG_EXIT("oid_init_nn_db","->-1.",NULL);
-        return -1;
-	}
-
-    DTNMP_DEBUG_EXIT("oid_init_nn_db","->0.",NULL);
-	return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
 

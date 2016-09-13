@@ -696,7 +696,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 
 	/*	Disable blocking ZCO buffer space access.		*/
 
-	ionStopAttendant(&(cfdpvdb->attendant));
+	ionPauseAttendant(&(cfdpvdb->attendant));
 
 	/*	Stop user application input thread.			*/
 
@@ -719,6 +719,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 		sm_TaskKill(cfdpvdb->clockPid, SIGTERM);
 	}
 
+	ionStopAttendant(&(cfdpvdb->attendant));
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
@@ -751,6 +752,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	else
 	{
 		sm_SemUnend(cfdpvdb->eventSemaphore);
+		sm_SemGive(cfdpvdb->eventSemaphore);
 	}
 
 	sm_SemTake(cfdpvdb->eventSemaphore);		/*	Lock.	*/
@@ -761,6 +763,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	else
 	{
 		sm_SemUnend(cfdpvdb->fduSemaphore);
+		sm_SemGive(cfdpvdb->fduSemaphore);
 	}
 
 	sm_SemTake(cfdpvdb->fduSemaphore);		/*	Lock.	*/
@@ -2209,8 +2212,8 @@ static int	executeFilestoreRequests(InFdu *fdu,
 	return 0;
 }
 
-static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
-			char *fileName, int newFile)
+static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
+			char *fileName)
 {
 	char	*wdname;
 	int	wdnameLen;
@@ -2233,7 +2236,7 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		if ((wdnameLen + 1 + filenameLen + 1) > bufLen)
 		{
 			*pathNameBuf = '\0';
-			return;
+			return 0;	/*	Too long.		*/
 		}
  
 		*(pathNameBuf + wdnameLen) = ION_PATH_DELIMITER;
@@ -2241,15 +2244,9 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		istrcpy(pathNameBuf + wdnameLen, fileName, bufLen - wdnameLen);
 	}
 
-	if (!newFile)
-	{
-		return;
-	}
-
 #if (!(defined(VXWORKS) || defined(mingw)))
-	/*	If nothing has yet been written to this file, create
-	 *	(as necessary) the directory in which the file is to
-	 *	be created.
+	/*	Create (as necessary) the directory in which the file
+	 *	is to be created.
 	 *
 	 *	Per Josh Schoolcraft, 23 June 2011.
 	 *
@@ -2275,7 +2272,7 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 	pathNameLen = istrlen(pathNameBuf, bufLen);
 	if (pathNameLen > MAXPATHLEN)		/*	Too long.	*/
 	{
-		return;		/*	Can't create the directory.	*/
+		return 0;	/*	Can't create the directory.	*/
 	}
 
 	/*	Temporarily strip off the unqualified file name, i.e.,
@@ -2311,19 +2308,26 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 	{
 		if (*cursor == ION_PATH_DELIMITER)
 		{
-		        *cursor = 0;
-			oK(mkdir(pathNameBuf, 0777));
+		        *cursor = 0;	/*	Momentarily...		*/
+			if (mkdir(pathNameBuf, 0777) < 0)
+			{
+				if (errno != EEXIST)
+				{
+					putSysErrmsg("Can't create directory.",
+							pathNameBuf);
+                			*cursor = ION_PATH_DELIMITER;
+					if (lastPathSeparator)
+					{
+						*lastPathSeparator
+							= ION_PATH_DELIMITER;
+					}
 
-			/*	NOTE: if the qualification path is
-			 *	explicitly relative, we execute
-			 *	'mkdir .', trying (and failing) to
-			 *	create the current working directory.
-			 *	If the qualification path is absolute,
-			 *	we might try (and fail) to create the
-			 *	top-level directory for the file
-			 *	system.  In short, the failure of path
-			 *	mkdir operations is not anomalous, so
-			 *	we don't check the return code.		*/
+					return 0;
+				}
+
+				/*	If directory already exists,
+				 *	no problem.			*/
+			}
 
                 	*cursor = ION_PATH_DELIMITER;
 		}
@@ -2331,7 +2335,21 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 
 	/*	Now create the destination directory itself.		*/
 
-	oK(mkdir(pathNameBuf, 0777));
+	if (mkdir(pathNameBuf, 0777) < 0)
+	{
+		if (errno != EEXIST)
+		{
+			putSysErrmsg("Can't create directory.", pathNameBuf);
+			if (lastPathSeparator)
+			{
+				*lastPathSeparator = ION_PATH_DELIMITER;
+			}
+
+			return 0;
+		}
+
+		/*	If directory already exists, no problem.	*/
+	}
 
 	/*	And restore the original qualified path name.		*/
 
@@ -2340,6 +2358,7 @@ static void	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		*lastPathSeparator = ION_PATH_DELIMITER;
 	}
 #endif
+	return 1;
 }
 
 static int	relocateFile(char *fromPath, char *toPath)
@@ -2357,27 +2376,19 @@ static int	relocateFile(char *fromPath, char *toPath)
 static void	renameWorkingFile(InFdu *fduBuf)
 {
 	Sdr	sdr = getIonsdr();
-	char	workingFileName[256];
-	char	destFileName[256];
-	char	qualifiedFileName[MAXPATHLEN + 1];
+	char	workingFileName[SDRSTRING_BUFSZ];
+	char	destFileName[SDRSTRING_BUFSZ];
 	char	renameErrBuffer[600];
 
 	sdr_string_read(sdr, workingFileName, fduBuf->workingFileName);
 	sdr_string_read(sdr, destFileName, fduBuf->destFileName);
-	getQualifiedFileName(qualifiedFileName, sizeof qualifiedFileName,
-			destFileName, 1);
-	if (strcmp(qualifiedFileName, destFileName) == 0)
+	if (rename(workingFileName, destFileName) < 0)
 	{
-		return;		/*	Nothing to do.			*/
-	}
-
-	if (rename(workingFileName, qualifiedFileName) < 0)
-	{
-		if (relocateFile(workingFileName, qualifiedFileName) < 0)
+		if (relocateFile(workingFileName, destFileName) < 0)
 		{
 			isprintf(renameErrBuffer, sizeof renameErrBuffer,
 					"CFDP can't relocate '%s' to '%s'",
-					workingFileName, qualifiedFileName);
+					workingFileName, destFileName);
 			putSysErrmsg(renameErrBuffer, NULL);
 		}
 	}
@@ -2619,8 +2630,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 		else
 		{
 			event.fileStatus = CfdpFileRetained;
-			if (fduBuf->destFileName
-			&& fduBuf->workingFileName != fduBuf->destFileName)
+			if (fduBuf->workingFileName != fduBuf->destFileName)
 			{
 				renameWorkingFile(fduBuf);
 			}
@@ -2676,8 +2686,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 			else
 			{
 				event.fileStatus = CfdpFileRetained;
-				if (fduBuf->destFileName
-				&& fduBuf->workingFileName !=
+				if (fduBuf->workingFileName !=
 						fduBuf->destFileName)
 				{
 					renameWorkingFile(fduBuf);
@@ -3157,7 +3166,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	 *	will be needed.  (Only one or the other will actually
 	 *	be allocated, when the ZCO is finally created.)		*/
 
-	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength,
+	if (ionRequestZcoSpace(ZcoOutbound, cfdpdb.maxFileDataLength, 0,
 			cfdpdb.maxFileDataLength, 1, 0, &(cfdpvdb->attendant),
 			&ticket) < 0)
 	{
@@ -3241,7 +3250,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		memcpy((char *) &transactionId, (char *) &(fpdu->transactionId),
 				sizeof(CfdpTransactionId));
 		memcpy((char *) &destinationEntity,
-				(char *) &cfdpdb.ownEntityNbr.buffer,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber));
 	}
 	else			/*	A forward PDU.			*/
@@ -3606,14 +3615,14 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 		return 0;			/*	Malformed.	*/
 	}
 
-	fdu->finishReceived = 1;
 	if (fdu->closureElt)
 	{
-		sdr_free(sdr,  sdr_list_data(sdr, fdu->closureElt));
+		sdr_free(sdr, sdr_list_data(sdr, fdu->closureElt));
 		sdr_list_delete(sdr, fdu->closureElt, NULL, NULL);
 		fdu->closureElt = 0;
 	}
 
+	fdu->finishReceived = 1;
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
@@ -3711,7 +3720,7 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 		fdu->workingFileName = sdr_string_create(sdr, stringBuf);
 		if (fdu->workingFileName == 0)
 		{
-			putErrmsg("Can't retain working file name.", NULL);
+			putErrmsg("Can't retain working file name.", stringBuf);
 			return -1;
 		}
 	}
@@ -3777,12 +3786,11 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 			InFdu *fdu, Object fduObj, Object fduElt, int largeFile,
 			int recordStructure, int haveMetadata)
 {
-	int		firstSegment = (fdu->progress == 0);
 	CfdpEvent	event;
 	int		offsetLength;
 	int		i;
 	uvast		segmentOffset;
-	unsigned int	segmentEnd;
+	uvast		segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -3790,17 +3798,17 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Object		elt;
 	Object		addr;
 	CfdpExtent	extent;
-	unsigned int	extentEnd = 0;
+	uvast		extentEnd = 0;
 	Object		nextElt = 0;
-	unsigned int	bytesToSkip;
+	uvast		bytesToSkip;
 	char		stringBuf[256];
 	char		workingNameBuffer[MAXPATHLEN + 1];
 	off_t		endOfFile;
-	unsigned int	fileLength;
+	uvast		fileLength;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
-	unsigned int	bytesToWrite;
-	unsigned int	nextExtentEnd;
+	uvast		bytesToWrite;
+	uvast		nextExtentEnd;
 
 	/*	Prepare to issue indication.				*/
 
@@ -3979,8 +3987,7 @@ extent.offset, extent.offset + extent.length);
 	nextElt = sdr_list_next(sdr, elt);
 
 	/*	Open the file (possibly a temporary working file) if
-	 *	it's not the currently open file.  First figure out
-	 *	the file's fully-qualified name.			*/
+	 *	it's not the currently open file.			*/
 
 	if (getFileName(fdu, stringBuf, sizeof stringBuf) < 0)
 	{
@@ -3988,8 +3995,7 @@ extent.offset, extent.offset + extent.length);
 		return -1;
 	}
 
-	getQualifiedFileName(workingNameBuffer, sizeof workingNameBuffer,
-			stringBuf, firstSegment);
+	istrcpy(workingNameBuffer, stringBuf, sizeof workingNameBuffer);
 
 	/*	Now open the file, creating it if necessary.		*/
 
@@ -4556,6 +4562,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	int		i;
 	unsigned int	fileSize;
 	char		stringBuf[256];
+	char		qualifiedFileName[MAXPATHLEN + 1];
 	Sdr		sdr = getIonsdr();
 	CfdpEvent	event;
 	CfdpHandler	handler;
@@ -4632,10 +4639,21 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 		cursor += i;
 		bytesRemaining -= i;
 		stringBuf[i] = 0;
-		fdu->destFileName = sdr_string_create(sdr, stringBuf);
+		if (getQualifiedFileName(qualifiedFileName,
+				sizeof qualifiedFileName, stringBuf) == 0
+		|| strlen(qualifiedFileName) >= SDRSTRING_BUFSZ)
+		{
+			writeMemoNote("[?] CFDP can't qualify dest file name",
+					stringBuf);
+			istrcpy(qualifiedFileName, stringBuf,
+					sizeof qualifiedFileName);
+		}
+
+		fdu->destFileName = sdr_string_create(sdr, qualifiedFileName);
 		if (fdu->destFileName == 0)
 		{
-			putErrmsg("Can't retain dest file name.", stringBuf);
+			putErrmsg("Can't retain dest file name.",
+					qualifiedFileName);
 			return -1;
 		}
 

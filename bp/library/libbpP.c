@@ -24,6 +24,10 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
+#ifdef BPSEC
+#include "ext/bpsec/bpsec_instr.h"
+#endif
+
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -45,7 +49,13 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+#if defined(ORIGINAL_BSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(SBSP)
+extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(BPSEC)
+extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
+#endif
 
 /*	We need to link with the ipn and dtn2 libraries in order to
  *	clean up directive upon removal of an outduct.			*/
@@ -710,6 +720,7 @@ static void	resetScheme(VScheme *vscheme)
 	else
 	{
 		sm_SemUnend(vscheme->semaphore);
+		sm_SemGive(vscheme->semaphore);
 	}
 
 	sm_SemTake(vscheme->semaphore);			/*	Lock.	*/
@@ -1058,6 +1069,7 @@ static void	resetOutduct(VOutduct *vduct)
 	else
 	{
 		sm_SemUnend(vduct->semaphore);
+		sm_SemGive(vduct->semaphore);
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
@@ -1106,7 +1118,7 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->semaphore = SM_SEM_NONE;
 	vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	vduct->xmitThrottle.capacity = 0;
+	vduct->xmitThrottle.capacity = protocol.nominalRate;
 	resetOutduct(vduct);
 	return 0;
 }
@@ -1522,6 +1534,9 @@ int	bpInit()
 	}
 	else
 	{
+#ifdef BPSEC
+		bpsec_instr_init();
+#endif
 		writeMemo("[i] Bundle security is enabled.");
 	}
 
@@ -1686,6 +1701,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		zcoElt;
 	Object		nextElt;
 	Object		zco;
+
+#ifdef BPSEC
+	bpsec_instr_cleanup();
+#endif
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -4304,6 +4323,11 @@ int	removeOutduct(char *protocolName, char *ductName)
 	Outduct		outductBuf;
 
 	CHKERR(protocolName && ductName);
+	if (*protocolName == 0 || *ductName == 0)
+	{
+		writeMemoNote("[?] Zero-length Outduct parm(s)", ductName);
+		return 0;
+	}
 
 	/*	Must stop the outduct before trying to remove it.	*/
 
@@ -4973,6 +4997,11 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
+
+	if(bundle->corrupt == 1)
+	{
+		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
+	}
 
 	/*	If bundle is already being forwarded, then a
 	 *	redundant CT signal indicating custody refusal
@@ -6000,11 +6029,11 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 
 	bundle->statusRpt.flags = 0;
 	bundle->statusRpt.reasonCode = 0;
-	memset(&bundle->statusRpt.receiptTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.forwardTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.deletionTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.receiptTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.forwardTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.deletionTime, 0, sizeof(DtnTime));
 	return 0;
 }
 
@@ -6733,7 +6762,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 
 	/*	Reserve space for new ZCO extent.			*/
 
-	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, heapSpaceNeeded,
+	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, 0, heapSpaceNeeded,
 			0, 0, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve ZCO space.", NULL);
@@ -7207,7 +7236,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned int	nssOffset;
 	unsigned int	dataLength;
 	unsigned int	lengthOfBlock;
-	unsigned long	temp;
+	uaddr		temp;
 	ExtensionDef	*def;
 
 	if (work->malformed || work->lastBlockParsed)
@@ -7817,7 +7846,15 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
+#if defined(ORIGINAL_BSP)
 	if (bsp_securityPolicyViolated(work))
+#elif defined(SBSP)
+	if (bsp_securityPolicyViolated(work))
+#elif defined(BPSEC)
+	if (bpsec_securityPolicyViolated(work))
+#else
+	if(0)
+#endif
 	{
 		writeMemo("[?] Security policy violated.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
@@ -9429,11 +9466,11 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	Sdr		bpSdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
+	char		destDuctName[SDRSTRING_BUFSZ];
+	VOutduct	*vduct = NULL;
+	PsmAddress	vductElt = 0;
 	Object		ductAddr;
 	Outduct		duct;
-	PsmAddress	vductElt;
-	VOutduct	*vduct;
-	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		backlogIncrement;
 	ClProtocol	protocol;
 	time_t		enqueueTime;
@@ -9467,6 +9504,22 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 		}
 	}
 
+	/*	Retrieve destination induct name, if applicable.	*/
+
+	if (directive->destDuctName)
+	{
+		if (sdr_string_read(getIonsdr(), destDuctName,
+				directive->destDuctName) < 0)
+		{
+			putErrmsg("Can't retrieve dest duct name.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		destDuctName[0] = '\0';
+	}
+
 	/*	Next we check to see if the duct is blocked.		*/
 
 	ductAddr = sdr_list_data(bpSdr, directive->outductElt);
@@ -9479,18 +9532,8 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	/*      Now construct transmission parameters.			*/
 
 	bundle->proxNodeEid = sdr_string_create(bpSdr, proxNodeEid);
-
-	/*	Retrieve destination induct name, if applicable.	*/
-
 	if (directive->destDuctName)
 	{
-		if (sdr_string_read(getIonsdr(), destDuctName,
-				directive->destDuctName) < 0)
-		{
-			putErrmsg("Can't retrieve dest duct name.", NULL);
-			return -1;
-		}
-
 		bundle->destDuctName = sdr_string_create(bpSdr, destDuctName);
 	}
 	else
@@ -9573,15 +9616,14 @@ int	bpEnqueue(FwdDirective *directive, Bundle *bundle, Object bundleObj,
 	for (vductElt = sm_list_first(ionwm, vdb->outducts); vductElt;
 			vductElt = sm_list_next(ionwm, vductElt))
 	{
-		vduct = (VOutduct *) psp(ionwm,
-				sm_list_data(ionwm, vductElt));
+		vduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, vductElt));
 		if (vduct->outductElt == directive->outductElt)
 		{
 			break;
 		}
 	}
 
-	if (vductElt != 0)
+	if (vductElt != 0)	/*	Outduct has been started.	*/
 	{
 		bpOutductTally(vduct, BP_OUTDUCT_ENQUEUED,
 				bundle->payload.length);
@@ -10480,7 +10522,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	
 				/*	End task, but without error.	*/
 
-				return -1;
+				return 0;
 			}
 
 			CHKERR(sdr_begin_xn(bpSdr));
@@ -10502,7 +10544,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 	if (bundleObj == 0)	/*	Outduct has been stopped.	*/
 	{
 		sdr_exit_xn(bpSdr);
-		return -1;	/*	End task, but without error.	*/
+		return 0;	/*	End task, but without error.	*/
 	}
 
 	if (bundle.proxNodeEid)
@@ -10516,6 +10558,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	context.xmitRate = throttle->nominalRate;
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");

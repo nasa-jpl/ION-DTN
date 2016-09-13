@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,8 +18,9 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/17/13  E. Birrane     Redesign of messaging architecture.
- **  06/24/13  E. Birrane     Migrated from uint32_t to time_t.
+ **  01/17/13  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
+ **  06/30/16  E. Birrane     Update to AMP v0.3 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 
@@ -33,14 +28,13 @@
 #define _ADMIN_H_
 
 
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
-
 
 
 /*
@@ -60,10 +54,10 @@
 /*
  * Associated Message Type: MSG_TYPE_ADMIN_REG_AGENT
  * Purpose: Notify manager of discovered agent.
- * +-------+----------+
- * | Size  | Agent ID |
- * | (SDNV)| (var)    |
- * +-------+----------+
+ * +----------+
+ * | Agent ID |
+ * | [BLOB]   |
+ * +----------+
  */
 typedef struct {
 	eid_t agent_id;       /**> ID of the agent being registered. */

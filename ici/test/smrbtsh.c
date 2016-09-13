@@ -322,7 +322,7 @@ static int	run_smrbtsh(char *cmdFileName)
 	int		length = TEST_MEM_SIZE;
 	unsigned char	*allocation = NULL;
 	PsmPartition	partition = NULL;
-	int		partitionId;
+	uaddr		partitionId;
 	PsmMgtOutcome	outcome;
 	PsmAddress	rbt;
 	int		cmdFile;

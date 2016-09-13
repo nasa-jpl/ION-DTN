@@ -27,6 +27,9 @@ extern "C" {
 
 #define	BP_VERSION			6
 
+#define	BpUdpDefaultPortNbr		4556
+#define	BpTcpDefaultPortNbr		4556
+
 /*	"Watch" switches for bundle protocol operation.			*/
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)
@@ -78,16 +81,16 @@ extern "C" {
 #define BP_MAX_BLOCK_SIZE		(2000)
 #endif
 
-#ifndef MAX_CGR_BETS
-#define	MAX_CGR_BETS			(20)
+#ifndef MAX_XMIT_COPIES
+#define	MAX_XMIT_COPIES			(20)
 #endif
 
-#ifndef MIN_PROB_IMPROVEMENT
-#define	MIN_PROB_IMPROVEMENT		(.05)
+#ifndef MIN_CONFIDENCE_IMPROVEMENT
+#define	MIN_CONFIDENCE_IMPROVEMENT	(.05)
 #endif
 
-#ifndef MIN_NET_DELIVERY_PROB
-#define MIN_NET_DELIVERY_PROB		(.80)
+#ifndef MIN_NET_DELIVERY_CONFIDENCE
+#define MIN_NET_DELIVERY_CONFIDENCE	(.80)
 #endif
 
 /*	An ION "node" is a set of cooperating state machines that
@@ -163,6 +166,7 @@ typedef struct
 {
 	char		*protocolName;
 	char		*proxNodeEid;
+	unsigned int	xmitRate;
 } DequeueContext;
 
 /*	*	*	Bundle structures	*	*	*	*/
@@ -345,17 +349,18 @@ typedef struct
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
 
-	/*	Stuff for probabilistic forwarding.  A "bet" is the ID
-	 *	of a node to which CGR has decided to forward a copy
-	 *	of the bundle even though the probability of delivery
-	 *	via the route through that node is less than 100%.
-	 *	The bundle's deliveryProb is the net probability of
-	 *	delivery as calculated from the probabilities of all
-	 *	bets.							*/
+	/*	Stuff for opportunistic forwarding.  A "copy" is the
+	 *	ID of a node to which CGR has decided to forward a
+	 *	copy of the bundle even though our confidence that
+	 *	the bundle will actually get delivered via the route
+	 *	through that node is less than 100%.  The bundle's
+	 *	dlvConfidence is the our net confidence that the
+	 *	bundle will get delivered, one way or another, as
+	 *	calculated from our confidence in all copies.		*/
 
-	uvast		cgrBets[MAX_CGR_BETS];
-	int		cgrBetsCount;
-	float		deliveryProb;	/*	0.0 to 1.0		*/
+	uvast		xmitCopies[MAX_XMIT_COPIES];
+	int		xmitCopiesCount;
+	float		dlvConfidence;	/*	0.0 to 1.0		*/
 
 	/*	Database navigation stuff (back-references).		*/
 
@@ -584,7 +589,7 @@ typedef struct
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
 	int		nominalRate;	/*	Bytes per second.	*/
-	int		protocolClass;
+	int		protocolClass;	/*	QoS provided.		*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
@@ -819,7 +824,7 @@ typedef enum
 typedef struct
 {
 	FwdAction	action;
-	int		protocolClass;
+	int		protocolClass;	/*	Required QoS.		*/
 	Object		outductElt;	/*	sdrlist elt for xmit	*/
 	Object		destDuctName;	/*	sdrstring for xmit	*/
 	Object		eid;		/*	sdrstring for fwd	*/
@@ -997,8 +1002,10 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	bundle queues identified by outflows.
 			 *	If no such bundle is currently waiting
 			 *	for transmission, it blocks until one
-			 *	is [or until a signal handler calls
-			 *	bp_interrupt()].
+			 *	is [or until the duct is closed, at
+			 *	which time the function returns zero
+			 *	without providing the address of an
+			 *	outbound bundle ZCO].
 			 *
 			 *	On selecting a bundle, if the bundle's
 			 *	payload is longer than the indicated

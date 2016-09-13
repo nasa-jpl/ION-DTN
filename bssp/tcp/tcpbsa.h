@@ -38,9 +38,6 @@ extern "C" {
 extern int	tcpDelayEnabled;
 extern int	tcpDelayNsecPerByte;
 
-extern int	_tcpOutductId(struct sockaddr *sn, char *protocolName,
-			char *ductName);
-extern void	handleConnectionLoss();
 extern int	connectToBSI(struct sockaddr *sn, int *sock);
 extern int	sendBytesByTCP(int *blockSocket, char *from, int length,
 			struct sockaddr *sn);

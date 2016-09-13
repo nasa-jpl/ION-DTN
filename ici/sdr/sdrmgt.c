@@ -45,7 +45,7 @@ typedef struct
 
 #define	SMALL_BLOCK_OHD	(WORD_SIZE)
 #define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
-#define SMALL_MAX_ADDR	(1L << (8 * (WORD_SIZE - 1)))
+#define SMALL_MAX_ADDR	(LARGE1 << (8 * (WORD_SIZE - 1)))
 
 /*
  * The overhead on a small block is WORD_SIZE bytes.  The last byte
@@ -99,7 +99,7 @@ typedef struct
 #define	LG_OHD_SIZE	(1 << LARGE_ORDER1)	/*	double word	*/
 #define	LARGE_BLOCK_OHD	(2 * LG_OHD_SIZE)
 #define	MIN_LARGE_BLOCK	(3 * LG_OHD_SIZE)
-#define	LARGE_BLK_LIMIT	(1UL << LARGE_ORDERn)
+#define	LARGE_BLK_LIMIT	(LARGE1 << LARGE_ORDERn)
 
 typedef enum { NotAnObject, SmallObject, LargeObject } ObjectScale;
 

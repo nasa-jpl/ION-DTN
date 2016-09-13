@@ -96,6 +96,7 @@ int	ipnInit()
 
 		memset((char *) &ipndbBuf, 0, sizeof(IpnDB));
 		ipndbBuf.plans = sdr_list_create(sdr);
+		sdr_list_user_data_set(sdr, ipndbBuf.plans, getUTCTime());
 		ipndbBuf.exits = sdr_list_create(sdr);
 		sdr_write(sdr, ipndbObject, (char *) &ipndbBuf, sizeof(IpnDB));
 		sdr_catlg(sdr, IPN_DBNAME, 0, ipndbObject);
@@ -168,7 +169,12 @@ void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 	 *	node, if any.						*/
 
 	CHKVOID(ionLocked());
-	CHKVOID(nodeNbr && planAddr && eltp);
+	CHKVOID(planAddr && eltp);
+	if (nodeNbr == 0)
+	{
+		return;
+	}
+
 	*eltp = 0;
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -188,6 +194,7 @@ static void	createXmitDirective(FwdDirective *directive,
 		OBJ_POINTER(Outduct, outduct);
 		OBJ_POINTER(ClProtocol, protocol);
 
+	memset((char *) directive, 0, sizeof(FwdDirective));
 	directive->action = xmit;
 	directive->outductElt = parms->outductElt;
 	outductAddr = sdr_list_data(sdr, directive->outductElt);
@@ -208,16 +215,23 @@ static void	createXmitDirective(FwdDirective *directive,
 int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 {
 	Sdr	sdr = getIonsdr();
+	IpnDB	*ipndb = _ipnConstants();
 	Object	nextPlan;
 	IpnPlan	plan;
 	Object	planObj;
 
-	CHKERR(nodeNbr && defaultDuct);
+	CHKERR(defaultDuct);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn plan.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (locatePlan(nodeNbr, &nextPlan) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate plan", utoa(nodeNbr));
+		writeMemoNote("[?] Duplicate ipn plan", utoa(nodeNbr));
 		return 0;
 	}
 
@@ -235,11 +249,11 @@ int	ipn_addPlan(uvast nodeNbr, DuctExpression *defaultDuct)
 		}
 		else
 		{
-			oK(sdr_list_insert_last(sdr,
-					(_ipnConstants())->plans, planObj));
+			oK(sdr_list_insert_last(sdr, ipndb->plans, planObj));
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));
+		sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -262,17 +276,24 @@ static void	destroyXmitDirective(FwdDirective *directive)
 int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 {
 	Sdr	sdr = getIonsdr();
+	IpnDB	*ipndb = _ipnConstants();
 	Object	elt;
 	Object	planObj;
 	IpnPlan	plan;
 
-	CHKERR(nodeNbr && defaultDuct);
+	CHKERR(defaultDuct);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn plan.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This plan is not defined.", utoa(nodeNbr));
+		writeMemoNote("[?] Unknown ipn plan", utoa(nodeNbr));
 		return 0;
 	}
 
@@ -283,6 +304,7 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 	destroyXmitDirective(&(plan.defaultDirective));
 	createXmitDirective(&(plan.defaultDirective), defaultDuct);
 	sdr_write(sdr, planObj, (char *) &plan, sizeof(IpnPlan));
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update plan.", utoa(nodeNbr));
@@ -295,28 +317,41 @@ int	ipn_updatePlan(uvast nodeNbr, DuctExpression *defaultDuct)
 int	ipn_removePlan(uvast nodeNbr)
 {
 	Sdr	sdr = getIonsdr();
+	IpnDB	*ipndb = _ipnConstants();
 	Object	elt;
 	Object	planObj;
 		OBJ_POINTER(IpnPlan, plan);
+	Object	elt2;
+	Object	ruleObj;
+		OBJ_POINTER(IpnRule, rule);
 
-	CHKERR(nodeNbr);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn plan.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown plan", utoa(nodeNbr));
+		writeMemoNote("[?] Unknown ipn plan", utoa(nodeNbr));
 		return 0;
 	}
 
 	planObj = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, IpnPlan, plan, planObj);
-	if (sdr_list_length(sdr, plan->rules) > 0)
+
+	/*	Remove all plan rules.					*/
+
+	while ((elt2 = sdr_list_first(sdr, plan->rules)) != 0)
 	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Can't remove plan; still has rules",
-				utoa(nodeNbr));
-		return 0;
+		ruleObj = sdr_list_data(sdr, elt2);
+		GET_OBJ_POINTER(sdr, IpnRule, rule, ruleObj);
+		destroyXmitDirective(&rule->directive);
+		sdr_free(sdr, ruleObj);
+		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	/*	Okay to remove this plan from the database.		*/
@@ -325,6 +360,7 @@ int	ipn_removePlan(uvast nodeNbr)
 	destroyXmitDirective(&(plan->defaultDirective));
 	sdr_list_destroy(sdr, plan->rules, NULL, NULL);
 	sdr_free(sdr, planObj);
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove plan.", utoa(nodeNbr));
@@ -537,6 +573,7 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 		DuctExpression *directive)
 {
 	Sdr		sdr = getIonsdr();
+	IpnDB		*ipndb = _ipnConstants();
 	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
 				IPN_ALL_OTHER_SERVICES : argServiceNbr);
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
@@ -547,7 +584,19 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 	IpnRule		ruleBuf;
 	Object		addr;
 
-	CHKERR(nodeNbr && srcNodeNbr);
+	CHKERR(directive);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number 0 for ipn rule.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -585,6 +634,7 @@ int	ipn_addPlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr,
 		}
 
 		sdr_write(sdr, addr, (char *) &ruleBuf, sizeof(IpnRule));
+		sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -600,6 +650,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 		vast argNodeNbr, DuctExpression *directive)
 {
 	Sdr		sdr = getIonsdr();
+	IpnDB		*ipndb = _ipnConstants();
 	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
 				IPN_ALL_OTHER_SERVICES : argServiceNbr);
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
@@ -609,7 +660,19 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
-	CHKERR(nodeNbr && srcNodeNbr);
+	CHKERR(directive);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number 0 for ipn rule.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -636,6 +699,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 	destroyXmitDirective(&ruleBuf.directive);
 	createXmitDirective(&ruleBuf.directive, directive);
 	sdr_write(sdr, ruleAddr, (char *) &ruleBuf, sizeof(IpnRule));
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update rule.", NULL);
@@ -648,6 +712,7 @@ int	ipn_updatePlanRule(uvast nodeNbr, int argServiceNbr,
 int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
+	IpnDB		*ipndb = _ipnConstants();
 	unsigned int	srcServiceNbr = (argServiceNbr == -1 ?
 				IPN_ALL_OTHER_SERVICES : argServiceNbr);
 	uvast		srcNodeNbr = (argNodeNbr == -1 ? IPN_ALL_OTHER_NODES
@@ -657,7 +722,18 @@ int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
-	CHKERR(nodeNbr && srcNodeNbr);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number 0 for ipn rule.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePlan(nodeNbr, NULL);
 	if (elt == 0)
@@ -684,6 +760,7 @@ int	ipn_removePlanRule(uvast nodeNbr, int argServiceNbr, vast argNodeNbr)
 	destroyXmitDirective(&rule->directive);
 	sdr_free(sdr, ruleAddr);
 	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_list_user_data_set(sdr, ipndb->plans, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove rule.", NULL);
@@ -766,7 +843,13 @@ int	ipn_lookupPlanDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	CHKERR(nodeNbr && dirbuf);
+	CHKERR(bundle);
+	CHKERR(dirbuf);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number 0 for ipn rule.");
+		return 0;
+	}
 
 	/*	Determine constraints on directive usability.		*/
 
@@ -868,8 +951,19 @@ void	ipn_findExit(uvast firstNodeNbr, uvast lastNodeNbr, Object *exitAddr,
 	 *	node range, if any.					*/
 
 	CHKVOID(ionLocked());
-	CHKVOID(firstNodeNbr && exitAddr && eltp);
-	CHKVOID(firstNodeNbr <= lastNodeNbr);
+	CHKVOID(exitAddr && eltp);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return;
+	}
+
 	*eltp = 0;
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -888,9 +982,26 @@ int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	IpnExit	exit;
 	Object		addr;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
-	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
+	CHKERR(viaEid);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return 0;
+	}
+
+	if (strlen(viaEid) > MAX_SDRSTRING)
+	{
+		writeMemoNote("[?] Exit's gateway EID is too long",
+				viaEid);
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	if (locateExit(firstNodeNbr, lastNodeNbr, &nextExit) != 0)
 	{
@@ -939,9 +1050,26 @@ int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	Object		addr;
 	IpnExit	exit;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && viaEid);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
-	CHKERR(strlen(viaEid) <= MAX_SDRSTRING);
+	CHKERR(viaEid);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return 0;
+	}
+
+	if (strlen(viaEid) > MAX_SDRSTRING)
+	{
+		writeMemoNote("[?] Exit's gateway EID is too long",
+				viaEid);
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -974,8 +1102,18 @@ int	ipn_removeExit(uvast firstNodeNbr, uvast lastNodeNbr)
 	Object	addr;
 		OBJ_POINTER(IpnExit, exit);
 
-	CHKERR(firstNodeNbr && lastNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for exit is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for exit greater than last.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1071,8 +1209,24 @@ int	ipn_addExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	IpnRule		ruleBuf;
 	Object		addr;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for rule is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for rule greater than last.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for rule is 0.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1134,8 +1288,24 @@ int	ipn_updateExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	Object		ruleAddr;
 	IpnRule		ruleBuf;
 
-	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for rule is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for rule greater than last.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for rule is 0.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1183,8 +1353,24 @@ int	ipn_removeExitRule(uvast firstNodeNbr, uvast lastNodeNbr,
 	Object		ruleAddr;
 			OBJ_POINTER(IpnRule, rule);
 
-	CHKERR(firstNodeNbr && lastNodeNbr && srcNodeNbr);
-	CHKERR(firstNodeNbr <= lastNodeNbr);
+	if (firstNodeNbr == 0)
+	{
+		writeMemo("[?] First node number for rule is 0.");
+		return 0;
+	}
+
+	if (firstNodeNbr > lastNodeNbr)
+	{
+		writeMemo("[?] First node number for rule greater than last.");
+		return 0;
+	}
+
+	if (srcNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for rule is 0.");
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
 	if (elt == 0)
@@ -1231,7 +1417,12 @@ int	ipn_lookupExitDirective(uvast nodeNbr, unsigned int sourceServiceNbr,
 	 *	the specified eid, if any.  Wild card match is okay.	*/
 
 	CHKERR(ionLocked());
-	CHKERR(nodeNbr && dirbuf);
+	CHKERR(dirbuf);
+	if (nodeNbr == 0)
+	{
+		writeMemo("[?] Node number for exit is 0.");
+		return 0;
+	}
 
 	/*	Find best matching exit.  Exits are sorted by first
 	 *	node number within exit size, both ascending.  So
@@ -1283,6 +1474,7 @@ void	ipn_forgetOutduct(Object ductElt)
 		OBJ_POINTER(IpnRule, rule);
 
 	CHKVOID(ionLocked());
+	CHKVOID(ductElt);
 	if (ipnInit() < 0 || (db = getIpnConstants()) == NULL)
 	{
 		return;
@@ -1316,5 +1508,7 @@ void	ipn_forgetOutduct(Object ductElt)
 		}
 	}
 
-	/*	Note: Ipn group directives never reference outducts.	*/
+	sdr_list_user_data_set(sdr, db->plans, getUTCTime());
+
+	/*	Note: Ipn exit directives never reference outducts.	*/
 }

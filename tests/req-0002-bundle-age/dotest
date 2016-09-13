@@ -27,7 +27,10 @@ echo
 echo "PURPOSE: demonstrate correct bundle expiration time computations
 	for nodes both with and without synchronized clocks.  Node 2
 	is configured as a node with a synchronized clock, while node
-	3 is configured as a node with no synchronized clock.
+	3 is configured as a node with no synchronized clock.  Ducts
+	between nodes 2 and 3 are blocked after initial connection;
+	then bundles are issued by both nodes and 3 seconds later the
+	outducts are unblocked.
 	First bundle sent by 2 and second bundle sent by 3 expire at node 2.
 	First bundle sent by 3 and second bundle sent by 2 expire at node 3.
 	Third bundle sent by each node is still alive at end of test."
@@ -76,6 +79,14 @@ else
 	echo "Node 3 not started: Aborting Test"
 	exit 0
 fi
+
+sleep 3
+echo ""
+echo "Blocking outducts between nodes 2 and 3."
+cd ../2.bench.tcp
+bpadmin block.bprc
+cd ../3.bench.tcp
+bpadmin block.bprc
 
 sleep 3
 echo ""

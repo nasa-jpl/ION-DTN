@@ -95,30 +95,65 @@ extern "C" {
 #if (!LONG_LONG_OKAY)
 typedef long			vast;
 typedef unsigned long		uvast;
+typedef long			saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define UVAST_HEX_FIELDSPEC	"%lx"
+#define	ADDR_FIELDSPEC		"%#lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
+#define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
+typedef long			saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #if (defined(mingw) || defined(ION4WIN))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
+#define UVAST_HEX_FIELDSPEC	"%I64x"
+#define	ADDR_FIELDSPEC		"%#lx"
 #else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
+#define	ADDR_FIELDSPEC		"%#lx"
 #endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
+#define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #else			/*	64-bit machines.			*/
+#if (defined(mingw) || defined(ION4WIN))
+typedef long long		vast;
+typedef unsigned long long	uvast;
+typedef long long		saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
+#define	VAST_FIELDSPEC		"%I64d"
+#define	UVAST_FIELDSPEC		"%I64u"
+#define UVAST_HEX_FIELDSPEC	"%I64x"
+#define	ADDR_FIELDSPEC		"%#I64x"
+#define	strtovast(x)		strtoll(x, NULL, 0)
+#define	strtouvast(x)		strtoull(x, NULL, 0)
+#define	strtoaddr(x)		strtoull(x, NULL, 0)
+#define LARGE1			1ULL
+#else				/*	Not Windows.			*/
 typedef long			vast;
 typedef unsigned long		uvast;
+typedef long			saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define UVAST_HEX_FIELDSPEC	"%lx"
+#define	ADDR_FIELDSPEC		"%#lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
-#endif
+#define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
+#endif				/*	end #ifdef mingw || ION4WIN	*/
+#endif	/*	!LONG_LONG_OKAY						*/
 
 #define WORD_SIZE	(1 << SPACE_ORDER)
 #define SMALL_SIZES	(64)
@@ -131,6 +166,10 @@ typedef unsigned long		uvast;
 
 #ifndef ERRMSGS_BUFSIZE
 #define ERRMSGS_BUFSIZE		(256*16)
+#endif
+
+#ifndef	DEFAULT_CHECK_TIMEOUT
+#define	DEFAULT_CHECK_TIMEOUT	(120)
 #endif
 
 #ifdef  DOS_PATH_DELIMITER
@@ -187,12 +226,24 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
 #endif
+#ifndef ECONNREFUSED
 #define	ECONNREFUSED		WSAECONNREFUSED
+#endif
+#ifndef ECONNRESET
 #define ECONNRESET		WSAECONNRESET
+#endif
+#ifndef EWOULDBLOCK
 #define EWOULDBLOCK		WSAEWOULDBLOCK
+#endif
+#ifndef ENETUNREACH
 #define ENETUNREACH		WSAENETUNREACH
+#endif
+#ifndef EHOSTUNREACH
 #define EHOSTUNREACH		WSAEHOSTUNREACH
+#endif
 #define	O_LARGEFILE		0
+#define	inet_pton(a,b,c)	InetPton(a,b,c)
+#define	inet_ntop(a,b,c,d)	InetNtop(a,b,c,d)
 
 #else				/****	not Windows		*********/
 
@@ -410,6 +461,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define MINGW_TASKS
 
 #include <pthread.h>
+#include <stdint.h>
 
 #ifndef gmtime_r
 #define gmtime_r(_clock, _result) \
@@ -759,10 +811,6 @@ extern int			iputs(int, char *);
 
 extern void			icopy(char *fromPath, char *toPath);
 
-extern int			fullyQualified(char *fileName);
-extern int			qualifyFileName(char *fileName, char *buffer,
-					int buflen);
-extern void			findToken(char **cursorPtr, char **token);
 extern unsigned int		getAddressOfHost();
 extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
@@ -770,6 +818,17 @@ extern int			parseSocketSpec(char *socketSpec,
 					unsigned int *ipAddress);
 extern void			printDottedString(unsigned int hostNbr,
 					char *buffer);
+
+extern int			itcp_connect(char *socketSpec,
+					unsigned short defaultPort, int *sock);
+extern int			itcp_send(int *sock, char *from, int length);
+extern int			itcp_recv(int *sock, char *into, int length);
+extern void			itcp_handleConnectionLoss();
+
+extern int			fullyQualified(char *fileName);
+extern int			qualifyFileName(char *fileName, char *buffer,
+					int buflen);
+extern void			findToken(char **cursorPtr, char **token);
 #include "platform_sm.h"
 
 #ifdef __cplusplus

@@ -46,14 +46,14 @@ static void	releaseToDgrMemory(const char *fileName, int lineNbr,
 	Psm_free(fileName, lineNbr, dgrwm, psa(dgrwm, (char *) block));
 }
 
-static void	*dgrAtoP(unsigned long address)
+static void	*dgrAtoP(uaddr address)
 {
 	return (void *) psp(dgrwm, address);
 }
 
-static unsigned long dgrPtoA(void *pointer)
+static uaddr	 dgrPtoA(void *pointer)
 {
-	return (unsigned long) psa(dgrwm, pointer);
+	return (uaddr) psa(dgrwm, pointer);
 }
 
 static void	report(struct timeval *startTime, unsigned long bytesSent)

@@ -517,66 +517,27 @@ static void	switchEcho(int tokenCount, char **tokens)
 	}
 }
 
-static int bssp_is_up(int tokenCount, char** tokens)
+static int bssp_is_up(int count, int max)
 {
-	if (strcmp(tokens[1], "p") == 0) //poll
+	while (count <= max && !bssp_engine_is_started())
 	{
-		if (tokenCount < 3) //use default timeout
-		{
-			int count = 1;
-			while (count <= 120 && !bssp_engine_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > 120) //bssp engine is not started
-			{
-				printText("BSSP engine is not started");
-				return 0;
-			}
-			else //bssp engine is started
-			{
-				printText("BSSP engine is started");
-				return 1;
-			}
-		}
-		else //use user supplied timeout
-		{
-			int max = atoi(tokens[2]) * 4;
-			int count = 1;
-			while (count <= max && !bssp_engine_is_started())
-			{
-				microsnooze(250000);
-				count++;
-			}
-			if (count > max) //bssp engine is not started
-			{
-				printText("BSSP engine is not started");
-				return 0;
-			}
-			else //bssp engine is started
-			{
-				printText("BSSP engine is started");
-				return 1;
-			}
-		}
+		microsnooze(250000);
+		count++;
 	}
-	else //check once
+
+	if (count > max)		//bssp engine is not started
 	{
-		if (bssp_engine_is_started())
-		{
-			printText("BSSP engine is started");
-			return 1;
-		}
-		else
-		{
-			printText("BSSP engine is not started");
-			return 0;
-		}
+		printText("BSSP engine is not started");
+		return 0;
 	}
+
+	//bssp engine is started
+
+	printText("BSSP engine is started");
+	return 1;
 }
 
-static int	processLine(char *line, int lineLength)
+static int	processLine(char *line, int lineLength, int *rc)
 {
 	int		tokenCount;
 	char		*cursor;
@@ -585,6 +546,8 @@ static int	processLine(char *line, int lineLength)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+	int		max = 0;
+	int		count = 0;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 12; i++)
@@ -750,13 +713,54 @@ best-effort or reliable BSI command.");
 			return 0;
 
 		case 't':
-			if (attachToBssp() == 0)
+			if (tokenCount > 1
+			&& strcmp(tokens[1], "p") == 0) //poll
 			{
-				return bssp_is_up(tokenCount, tokens);
+				if (tokenCount < 3)	//use default timeout
+				{
+					max = DEFAULT_CHECK_TIMEOUT;
+				}
+				else
+				{
+					max = atoi(tokens[2]) * 4;
+				}
+
+				count = 1;
+				while (count <= max && attachToBssp() == -1)
+				{
+					microsnooze(250000);
+					count++;
+				}
+
+				if (count > max)
+				{
+					//bssp engine is not started
+					printText("BSSP engine is not started");
+					return 1;
+				}
+
+				//attached to bssp system
+
+				*rc = bssp_is_up(count, max);
+				return 1;
 			}
 
+			//check once
+
+			*rc = bssp_engine_is_started();
+			if (*rc)
+			{
+				printText("BSSP engine is started");
+			}
+			else
+			{
+				printText("BSSP engine is not started");
+			}
+
+			return 1;
+
 		case 'q':
-			return -1;	/*	End program.		*/
+			return 1;	/*	End program.		*/
 
 		default:
 			printText("Invalid command.  Enter '?' for help.");
@@ -774,6 +778,7 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
+	int	rc = 0;
 	int	cmdFile;
 	char	line[256];
 	int	len;
@@ -805,7 +810,7 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (processLine(line, len))
+			if (processLine(line, len, &rc))
 			{
 				break;		/*	Out of loop.	*/
 			}
@@ -848,7 +853,7 @@ int	main(int argc, char **argv)
 					continue;
 				}
 
-				if (processLine(line, len))
+				if (processLine(line, len, &rc))
 				{
 					break;	/*	Out of loop.	*/
 				}
@@ -861,6 +866,5 @@ int	main(int argc, char **argv)
 	writeErrmsgMemos();
 	printText("Stopping bsspadmin.");
 	ionDetach();
-
-	return 0;
+	return rc;
 }

@@ -8,6 +8,4 @@ ltpadmin	config.ltprc
 sleep 1
 bpadmin		config.bprc
 sleep 1
-ipnadmin	config.ipnrc
-sleep 1
 cfdpadmin	config.cfdprc

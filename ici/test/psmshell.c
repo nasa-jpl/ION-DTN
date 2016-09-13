@@ -141,7 +141,7 @@ static int	run_psmshell(short partitionSize)
 				break;
 
 			case 'p':
-				printf("0x%lx\n", cells[cell]);
+				printf(ADDR_FIELDSPEC "\n", cells[cell]);
 				break;
 
 			default:

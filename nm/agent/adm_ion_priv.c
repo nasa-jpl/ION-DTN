@@ -3,11 +3,6 @@
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 #ifdef _HAVE_ION_ADM_
@@ -32,8 +27,8 @@
 #include "platform.h"
 
 
-#include "shared/adm/adm_ion.h"
-#include "shared/utils/utils.h"
+#include "../shared/adm/adm_ion.h"
+#include "../shared/utils/utils.h"
 
 #include "adm_ion_priv.h"
 
@@ -164,7 +159,7 @@ expr_result_t ion_ici_get_sdr_state_all(Lyst params)
 	result.type = EXPR_TYPE_BLOB;
 
 	result.length = sizeof(state);
-	result.value = (uint8_t*) MTAKE(result.length);
+	result.value = (uint8_t*) STAKE(result.length);
 	sdrnm_state_get(&state);
 
 	memcpy(result.value, &state, result.length);
@@ -280,7 +275,7 @@ expr_result_t ion_induct_get_all(Lyst params)
 	if(success != 0)
 	{
 		result.length = sizeof(NmbpInduct);
-		result.value = (uint8_t*) MTAKE(result.length);
+		result.value = (uint8_t*) STAKE(result.length);
 		memset(result.value, 0, result.length);
 		memcpy(result.value, &induct, result.length);
 	}
@@ -308,7 +303,7 @@ expr_result_t ion_induct_get_name(Lyst params)
 	if(success != 0)
 	{
 		result.length = (uint64_t) strlen(induct.inductName) + 1;
-		result.value = (uint8_t*) MTAKE(result.length);
+		result.value = (uint8_t*) STAKE(result.length);
 		memset(result.value, 0, result.length);
 		memcpy(result.value, induct.inductName, result.length);
 	}
@@ -513,7 +508,7 @@ expr_result_t ion_node_get_all(Lyst params)
 	outducts = ion_node_get_outducts(params);
 
 	result.length = inducts.length + outducts.length;
-	result.value = (uint8_t*) MTAKE(result.length);
+	result.value = (uint8_t*) STAKE(result.length);
 	memcpy(result.value,inducts.value,inducts.length);
 	memcpy(result.value + inducts.length, outducts.value, outducts.length);
 	expr_release(inducts);
@@ -540,7 +535,7 @@ expr_result_t ion_node_get_inducts(Lyst params)
 			        strlen(ptrs[num-1]) +   /* length of last string */
 			        (ptrs[num-1] - names) + /* # bytes to get to last string */
 			        1;                      /* Final NULL terminator. */
-	result.value = (uint8_t *) MTAKE(result.length);
+	result.value = (uint8_t *) STAKE(result.length);
 
 	cursor = result.value;
 
@@ -573,7 +568,7 @@ expr_result_t ion_node_get_outducts(Lyst params)
 			        strlen(ptrs[num-1]) +   /* length of last string */
 			        (ptrs[num-1] - names) + /* # bytes to get to last string */
 			        1;                      /* Final NULL terminator. */
-	result.value = (uint8_t *) MTAKE(result.length);
+	result.value = (uint8_t *) STAKE(result.length);
 
 	cursor = result.value;
 
@@ -610,7 +605,7 @@ expr_result_t ion_outduct_get_all(Lyst params)
 	if(success != 0)
 	{
 		result.length = sizeof(NmbpInduct);
-		result.value = (uint8_t*) MTAKE(result.length);
+		result.value = (uint8_t*) STAKE(result.length);
 		memset(result.value, 0, result.length);
 		memcpy(result.value, &outduct, result.length);
 	}
@@ -640,7 +635,7 @@ expr_result_t ion_outduct_get_name(Lyst params)
 	if(success != 0)
 	{
 		result.length = (uint64_t) strlen(outduct.outductName) + 1;
-		result.value = (uint8_t*) MTAKE(result.length);
+		result.value = (uint8_t*) STAKE(result.length);
 		memset(result.value, 0, result.length);
 		memcpy(result.value, outduct.outductName, result.length);
 	}

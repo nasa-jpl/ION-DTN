@@ -45,11 +45,11 @@ typedef struct
 typedef struct
 {
 	Object		plans;
-} DtnDB;
+} Dtn2DB;
 
 extern int		dtn2Init();
-extern Object		getDtnDbObject();
-extern DtnDB		*getDtnConstants();
+extern Object		getDtn2DbObject();
+extern Dtn2DB		*getDtn2Constants();
 
 extern void		dtn2_destroyDirective(FwdDirective *directive);
 

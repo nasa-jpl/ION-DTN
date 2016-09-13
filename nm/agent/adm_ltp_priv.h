@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 #ifdef _HAVE_LTP_ADM_
@@ -34,8 +28,8 @@
 #include "lyst.h"
 #include "ltpnm.h"
 
-#include "shared/adm/adm_ltp.h"
-#include "shared/utils/expr.h"
+#include "../shared/adm/adm_ltp.h"
+#include "../shared/utils/expr.h"
 
 void agent_adm_init_ltp();
 

@@ -1,403 +1,412 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+/*****************************************************************************
+ **
+ ** File Name: adm_bp.h
+ **
+ ** Description: This file contains the definitions of the Bundle Protocol
+ **              ADM.
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ **      1. We current use a non-official OID root tree for DTN Bundle Protocol
+ **         identifiers.
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **            E. Birrane     Initial Implementation (JHU/APL)
+ **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
+ *****************************************************************************/
+
 #include "ion.h"
 #include "lyst.h"
 #include "platform.h"
 
-#include "shared/adm/adm_bp.h"
-#include "shared/utils/utils.h"
+#include "../adm/adm_bp.h"
+#include "../utils/utils.h"
+#include "../primitives/def.h"
+#include "../primitives/nn.h"
+
+#ifdef AGENT_ROLE
+#include "../../agent/adm_bp_impl.h"
+#else
+#include "../../mgr/nm_mgr_names.h"
+#include "../../mgr/nm_mgr_ui.h"
+#endif
 
 
 void adm_bp_init()
 {
-	/* Node-specific Information. */
-	uint8_t mid_str[ADM_MID_ALLOC];
-
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 0, mid_str);
-	adm_add_datadef("BP_NODE_ALL",                 mid_str, 0,  bp_print_node_all,       bp_size_node_all);
-
-	/* Node State Information */
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 1, mid_str);
-	adm_add_datadef("BP NODE ID",                  mid_str, 0,  adm_print_string, adm_size_string/*bp_size_node_id*/);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 2, mid_str);
-	adm_add_datadef("BP_NODE_VER",                 mid_str, 0,  adm_print_string, adm_size_string/*bp_size_node_version*/);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 3, mid_str);
-	adm_add_datadef("BP_NODE_AVAIL_STOR",          mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 4, mid_str);
-	adm_add_datadef("BP_NODE_LAST_RESET_TIME",     mid_str, 0,  NULL, bp_size_node_restart_time);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 5, mid_str);
-	adm_add_datadef("BP_NODE_NUM_REG",             mid_str, 0,  NULL, bp_size_node_num_reg);
-
-
-	/* Bundle State Information */
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 6, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_FWD_PEND_CNT",        mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 7, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_DISPATCH_PEND_CNT",   mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 8, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_IN_CUSTODY_CNT",      mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 9, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_REASSMBL_PEND_CNT", mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 10, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_BULK_RES_CNT",       mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 11, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_NORM_RES_CNT",       mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 12, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_EXP_RES_CNT",        mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 13, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_BULK_RES_BYTES",     mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 14, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_NORM_BYTES",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 15, mid_str);
-	adm_add_datadef("BP_BNDL_CUR_EXP_BYTES",          mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 16, mid_str);
-	adm_add_datadef("BP_BNDL_BULK_SRC_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 17, mid_str);
-	adm_add_datadef("BP_BNDL_NORM_SRC_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 18, mid_str);
-	adm_add_datadef("BP_BNDL_EXP_SRC_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 19, mid_str);
-	adm_add_datadef("BP_BNDL_BULK_SRC_BYTES",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 20, mid_str);
-	adm_add_datadef("BP_BNDL_NORM_SRC_BYTES",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 21, mid_str);
-	adm_add_datadef("BP_BNDL_EXP_SRC_BYTES",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 22, mid_str);
-	adm_add_datadef("BP_BNDL_FRAGMENTED_CNT",        mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 23, mid_str);
-	adm_add_datadef("BP_BNDL_FRAG_PRODUCED",         mid_str, 0,  NULL, NULL);
-
-
-	/* Error and Reporting Information */
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 24, mid_str);
-	adm_add_datadef("BP_RPT_NOINFO_DEL_CNT",          mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 25, mid_str);
-	adm_add_datadef("BP_RPT_EXPIRED_DEL_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 26, mid_str);
-	adm_add_datadef("BP_RPT_UNI_FWD_DEL_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 27, mid_str);
-	adm_add_datadef("BP_RPT_CANCEL_DEL_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 28, mid_str);
-	adm_add_datadef("BP_RPT_NO_STRG_DEL_CNT",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 29, mid_str);
-	adm_add_datadef("BP_RPT_BAD_EID_DEL_CNT",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 30, mid_str);
-	adm_add_datadef("BP_RPT_NO_ROUTE_DEL_CNT",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 31, mid_str);
-	adm_add_datadef("BP_RPT_NO_CONTACT_DEL_CNT",        mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 32, mid_str);
-	adm_add_datadef("BP_RPT_BAD_BLOCK_DEL_CNT",         mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 33, mid_str);
-	adm_add_datadef("BP_RPT_BUNDLES_DEL_CNT",           mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 34, mid_str);
-	adm_add_datadef("BP_RPT_FAIL_CUST_XFER_CNT",        mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 35, mid_str);
-	adm_add_datadef("BP_RPT_FAIL_CUST_XFER_BYTES",      mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 36, mid_str);
-	adm_add_datadef("BP_RPT_FAIL_FWD_CNT",              mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 37, mid_str);
-	adm_add_datadef("BP_RPT_FAIL_FWD_BYTES",            mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 38, mid_str);
-	adm_add_datadef("BP_RPT_ABANDONED_CNT",            mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 39, mid_str);
-	adm_add_datadef("BP_RPT_ABANDONED_BYTES",          mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 40, mid_str);
-	adm_add_datadef("BP_RPT_DISCARD_CNT",              mid_str, 0,  NULL, NULL);
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 41, mid_str);
-	adm_add_datadef("BP_RPT_DISCARD_BYTES",            mid_str, 0,  NULL, NULL);
-
-
-	adm_build_mid_str(0, BP_ADM_DATA_NN, BP_ADM_DATA_NN_LEN, 42, mid_str);
-	adm_add_datadef("BP_NODE_ENDPOINT_NAMES",      mid_str, 0,  adm_print_string_list,   adm_size_string_list);
-
-
-	/* Endpoint-Specific Information */
-
-	adm_build_mid_str(0x40, BP_ADM_DATA_END_NN, BP_ADM_DATA_END_NN_LEN, 0, mid_str);
-	adm_add_datadef("BP_ENDPT_ALL",                  mid_str, 1, bp_print_endpoint_all,   bp_size_endpoint_all);
-
-	adm_build_mid_str(0x40, BP_ADM_DATA_END_NN, BP_ADM_DATA_END_NN_LEN, 1, mid_str);
-	adm_add_datadef("BP_ENDPT_NAME",                 mid_str, 1, adm_print_string,        bp_size_endpoint_name);
-
-	adm_build_mid_str(0x40, BP_ADM_DATA_END_NN, BP_ADM_DATA_END_NN_LEN, 2, mid_str);
-	adm_add_datadef("BP_ENDPT_ACTIVE",                 mid_str, 1, NULL, NULL);
-
-	adm_build_mid_str(0x40, BP_ADM_DATA_END_NN, BP_ADM_DATA_END_NN_LEN, 3, mid_str);
-	adm_add_datadef("BP_ENDPT_SINGLETON",                 mid_str, 1, NULL, NULL);
-
-	adm_build_mid_str(0x40, BP_ADM_DATA_END_NN, BP_ADM_DATA_END_NN_LEN, 4, mid_str);
-	adm_add_datadef("BP_ENDPT_ABANDON_ON_DEL_FAIL",       mid_str, 1, NULL, NULL);
-
-
-	/* Controls */
-	adm_build_mid_str(0x01, BP_ADM_DATA_CTRL_NN, BP_ADM_DATA_CTRL_NN_LEN, 0, mid_str);
-	adm_add_ctrl("BP_NODE_RESET_COUNTS",     mid_str, 0);
+	adm_bp_init_atomic();
+	adm_bp_init_computed();
+	adm_bp_init_controls();
+	adm_bp_init_literals();
+	adm_bp_init_macros();
+	adm_bp_init_metadata();
+	adm_bp_init_ops();
+	adm_bp_init_reports();
 }
 
-char *bp_print_node_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len)
+
+
+void adm_bp_init_atomic()
 {
-	NmbpNode node_state;
-	NmbpDisposition state;
-	char *result;
-	char temp[256];
 
-	memcpy(&node_state, buffer, sizeof(node_state));
-	memcpy(&state, buffer+sizeof(node_state), sizeof(state));
+	#ifdef AGENT_ROLE
 
-	// Assume for now a 8 byte integer takes <= 20 characters.
-	// Assume all the text strings average less than 30 characters per string.
-	*str_len = (20 * 40) + (30 * 60);
+	adm_add_datadef(ADM_BP_AD_NODE_ID_MID,     AMP_TYPE_STRING, 0, adm_bp_node_get_node_id,  adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_BP_AD_NODE_VER_MID,    AMP_TYPE_STRING, 0, adm_bp_node_get_version,  adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_BP_AD_AVAIL_STOR_MID,  AMP_TYPE_UVAST,  0, adm_bp_node_get_storage,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RESET_TIME_MID,  AMP_TYPE_UVAST,  0, adm_bp_node_get_last_restart,  NULL, bp_size_node_restart_time);
+	adm_add_datadef(ADM_BP_AD_NUM_REG_MID,     AMP_TYPE_UVAST,  0, adm_bp_node_get_num_reg,  NULL, bp_size_node_num_reg);
+	adm_add_datadef(ADM_BP_AD_ENDPT_NAMES_MID, AMP_TYPE_STRING, 0, adm_bp_endpoint_get_names,  adm_print_string,   adm_size_string);
 
-	if((result = (char *) MTAKE(*str_len)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("bp_print_node_all","Can't allocate %d bytes.", *str_len);
-		*str_len = 0;
-		return NULL;
-	}
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_FWD_PEND_CNT_MID,      AMP_TYPE_UVAST, 0, adm_bp_node_get_fwd_pend,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_DISPATCH_PEND_CNT_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_dispatch_pend,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_IN_CUSTODY_CNT_MID,    AMP_TYPE_UVAST, 0, adm_bp_node_get_in_cust,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_REASSMBL_PEND_CNT_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_reassembly_pend,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_BULK_RES_CNT_MID,      AMP_TYPE_UVAST, 0, adm_bp_node_get_blk_src_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_NORM_RES_CNT_MID,      AMP_TYPE_UVAST, 0, adm_bp_node_get_norm_src_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_EXP_RES_CNT_MID,       AMP_TYPE_UVAST, 0, adm_bp_node_get_exp_src_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_BULK_RES_BYTES_MID,    AMP_TYPE_UVAST, 0, adm_bp_node_get_blk_src_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_NORM_BYTES_MID,        AMP_TYPE_UVAST, 0, adm_bp_node_get_norm_src_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_EXP_BYTES_MID,         AMP_TYPE_UVAST, 0, adm_bp_node_get_exp_src_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_BULK_SRC_CNT_MID,          AMP_TYPE_UVAST, 0, adm_bp_node_get_blk_res_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_NORM_SRC_CNT_MID,          AMP_TYPE_UVAST, 0, adm_bp_node_get_norm_res_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_EXP_SRC_CNT_MID,           AMP_TYPE_UVAST, 0, adm_bp_node_get_exp_res_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_BULK_SRC_BYTES_MID,        AMP_TYPE_UVAST, 0, adm_bp_node_get_blk_res_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_NORM_SRC_BYTES_MID,        AMP_TYPE_UVAST, 0, adm_bp_node_get_norm_res_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_EXP_SRC_BYTES_MID,         AMP_TYPE_UVAST, 0, adm_bp_node_get_exp_res_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_FRAGMENTED_CNT_MID,        AMP_TYPE_UVAST, 0, adm_bp_node_get_bundles_frag,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_BNDL_FRAG_PRODUCED_MID,         AMP_TYPE_UVAST, 0, adm_bp_node_get_frag_produced,  NULL, NULL);
 
-	memset(result,0,*str_len);
+	adm_add_datadef(ADM_BP_AD_RPT_NOINFO_DEL_CNT_MID,  AMP_TYPE_UVAST, 0, adm_bp_node_get_del_none,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_EXPIRED_DEL_CNT_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_del_expired,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_UNI_FWD_DEL_CNT_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_del_fwd_uni,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_CANCEL_DEL_CNT_MID,  AMP_TYPE_UVAST, 0, adm_bp_node_get_del_cancel,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_NO_STRG_DEL_CNT_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_del_deplete,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_BAD_EID_DEL_CNT_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_del_bad_eid,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_NO_ROUTE_DEL_CNT_MID,AMP_TYPE_UVAST, 0, adm_bp_node_get_del_no_route,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_NO_CONTACT_DEL_CNT_MID,   AMP_TYPE_UVAST, 0, adm_bp_node_get_del_no_contact,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_BAD_BLOCK_DEL_CNT_MID,    AMP_TYPE_UVAST, 0, adm_bp_node_get_del_bad_blk,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_BUNDLES_DEL_CNT_MID,      AMP_TYPE_UVAST, 0, adm_bp_node_get_del_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_CUST_XFER_CNT_MID,   AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_cust_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_CUST_XFER_BYTES_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_cust_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_FWD_CNT_MID,    AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_fwd_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_FWD_BYTES_MID,  AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_fwd_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_ABANDONED_CNT_MID,   AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_abandon_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_ABANDONED_BYTES_MID, AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_abandon_bytes,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_DISCARD_CNT_MID,     AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_discard_cnt,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_RPT_DISCARD_BYTES_MID,   AMP_TYPE_UVAST, 0, adm_bp_node_get_fail_discard_bytes,  NULL, NULL);
 
-	memset(temp,0,256);
-	snprintf(temp, 256, "\n\nNode State Information\n------------------------------");
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_ENDPT_NAME_MID,                AMP_TYPE_STRING, 1, adm_bp_endpoint_get_name,  adm_print_string, bp_size_endpoint_name);
+	adm_add_datadef(ADM_BP_AD_ENDPT_ACTIVE_MID,              AMP_TYPE_UINT, 1, adm_bp_endpoint_get_active,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_ENDPT_SINGLETON_MID,           AMP_TYPE_UINT, 1, adm_bp_endpoint_get_singleton,  NULL, NULL);
+	adm_add_datadef(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, AMP_TYPE_UINT, 1, adm_bp_endpoint_get_abandon,  NULL, NULL);
 
-	snprintf(temp, 256,
-			"\nNode ID           = %s \
-\nNode Version      = %s \
-\nAvailable Storage = " UVAST_FIELDSPEC " \
-\nLast Restart Time = " UVAST_FIELDSPEC " \
-\n# Registrations   = %d",
-			node_state.nodeID,
-			node_state.bpVersionNbr,
-			node_state.avblStorage,
-			(uvast)node_state.lastRestartTime,
-			node_state.nbrOfRegistrations);
-	strncat(result,temp,256);
+#else
+	adm_add_datadef(ADM_BP_AD_NODE_ID_MID,     AMP_TYPE_STRING, 0, NULL,  adm_print_string, adm_size_string);
+	names_add_name("NODE ID", "Node Identifier", ADM_BP, ADM_BP_AD_NODE_ID_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256, "\n\nBundle Retention Counts\n------------------------------");
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_NODE_VER_MID,    AMP_TYPE_STRING, 0, NULL,  adm_print_string, adm_size_string);
+	names_add_name("NODE VER", "Node Version", ADM_BP, ADM_BP_AD_NODE_VER_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nForward Pending   = " UVAST_FIELDSPEC " \
-\nDispatch Pending  = " UVAST_FIELDSPEC " \
-\nCustody Accepted  = " UVAST_FIELDSPEC " \
-\nReassemby Pending = " UVAST_FIELDSPEC,
-			state.currentForwardPending,
-			state.currentDispatchPending,
-			state.currentInCustody,
-			state.currentReassemblyPending);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_AVAIL_STOR_MID,  AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("AVAIL STOR", "Available Storage in Bytes", ADM_BP, ADM_BP_AD_AVAIL_STOR_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,  "\n\nPriority Counts\n------------------------------");
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_RESET_TIME_MID,  AMP_TYPE_UVAST, 0, NULL,  NULL, bp_size_node_restart_time);
+	names_add_name("RESET TIME", "UTC of Last Reset", ADM_BP, ADM_BP_AD_RESET_TIME_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nBulk Sources Count       = " UVAST_FIELDSPEC " \
-\nNormal Sourced Count     = " UVAST_FIELDSPEC " \
-\nExpedited Sourced Count = " UVAST_FIELDSPEC,
-			state.bundleSourceCount[0],
-			state.bundleSourceCount[1],
-			state.bundleSourceCount[2]);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_NUM_REG_MID,     AMP_TYPE_UVAST, 0, NULL,  NULL, bp_size_node_num_reg);
+	names_add_name("NUM REG", "# Registered Nodes", ADM_BP, ADM_BP_AD_NUM_REG_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nBulk Sources Bytes       = " UVAST_FIELDSPEC " \
-\nNormal Sourced Bytes     = " UVAST_FIELDSPEC " \
-\nExpedited Sourced Bytes = " UVAST_FIELDSPEC,
-			state.bundleSourceBytes[0],
-			state.bundleSourceBytes[1],
-			state.bundleSourceBytes[2]);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_ENDPT_NAMES_MID, AMP_TYPE_STRING, 0, NULL,  adm_print_string,   adm_size_string);
+	names_add_name("ENDPT NAMES", "Endpoint Names", ADM_BP, ADM_BP_AD_ENDPT_NAMES_MID);
 
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_FWD_PEND_CNT_MID, AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("CUR FWD PEND CNT", "# Bundles Pending Forwarding", ADM_BP, ADM_BP_AD_BNDL_CUR_FWD_PEND_CNT_MID);
 
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_DISPATCH_PEND_CNT_MID, AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("CUR DISPATCH PEND CNT", "# Bundles Pending Dispatch", ADM_BP, ADM_BP_AD_BNDL_CUR_DISPATCH_PEND_CNT_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nBulk Resident Count       = " UVAST_FIELDSPEC " \
-\nNormal Resident Count     = " UVAST_FIELDSPEC " \
-\nExpedited Resident Count = " UVAST_FIELDSPEC,
-			state.currentResidentCount[0],
-			state.currentResidentCount[1],
-			state.currentResidentCount[2]);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_IN_CUSTODY_CNT_MID,    AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("CUR IN CUSTODY CNT", "# Bundles In Custody", ADM_BP, ADM_BP_AD_BNDL_CUR_IN_CUSTODY_CNT_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nBulk Resident Bytes       = " UVAST_FIELDSPEC " \
-\nNormal Resident Bytes     = " UVAST_FIELDSPEC " \
-\nExpedited Resident Bytes = " UVAST_FIELDSPEC,
-			state.currentResidentBytes[0],
-			state.currentResidentBytes[1],
-			state.currentResidentBytes[2]);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_REASSMBL_PEND_CNT_MID, AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("CUR REASSMBL PEND CNT", "# Bundles Pending Reassembly", ADM_BP, ADM_BP_AD_BNDL_CUR_REASSMBL_PEND_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_BULK_RES_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("CUR BULK RES CNT", "# Bundles Pending Reassembly", ADM_BP, ADM_BP_AD_BNDL_CUR_BULK_RES_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_NORM_RES_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_CUR_NORM_RES_CNT_MID", "Cur Norm Res Cnt", ADM_BP, ADM_BP_AD_BNDL_CUR_NORM_RES_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_EXP_RES_CNT_MID,       AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_CUR_EXP_RES_CNT_MID", "Cur Exp Res Cnt", ADM_BP, ADM_BP_AD_BNDL_CUR_EXP_RES_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_BULK_RES_BYTES_MID,    AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_CUR_BULK_RES_BYTES_MID", "Cur Bulk Res Bytes", ADM_BP, ADM_BP_AD_BNDL_CUR_BULK_RES_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_NORM_BYTES_MID,        AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_CUR_NORM_BYTES_MID", "Cur Norm Bytes", ADM_BP, ADM_BP_AD_BNDL_CUR_NORM_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_CUR_EXP_BYTES_MID,         AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_CUR_EXP_BYTES_MID", "Cur Exp Bytes", ADM_BP, ADM_BP_AD_BNDL_CUR_EXP_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_BULK_SRC_CNT_MID,          AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_BULK_SRC_CNT_MID", "Bulk Src Cnt", ADM_BP, ADM_BP_AD_BNDL_BULK_SRC_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_NORM_SRC_CNT_MID,          AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_NORM_SRC_CNT_MID", "Norm Src Cnt", ADM_BP, ADM_BP_AD_BNDL_NORM_SRC_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_EXP_SRC_CNT_MID,           AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_EXP_SRC_CNT_MID", "Exp Src Cnt", ADM_BP, ADM_BP_AD_BNDL_EXP_SRC_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_BULK_SRC_BYTES_MID,        AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_BULK_SRC_BYTES_MID", "Bulk Src Bytes", ADM_BP, ADM_BP_AD_BNDL_BULK_SRC_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_NORM_SRC_BYTES_MID,        AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_NORM_SRC_BYTES_MID", "Norm Src Bytes", ADM_BP, ADM_BP_AD_BNDL_NORM_SRC_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_EXP_SRC_BYTES_MID,         AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_EXP_SRC_BYTES_MID", "Exp Src Bytes", ADM_BP, ADM_BP_AD_BNDL_EXP_SRC_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_FRAGMENTED_CNT_MID,        AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_FRAGMENTED_CNT_MID", "Bundles Fragmented Count", ADM_BP, ADM_BP_AD_BNDL_FRAGMENTED_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_BNDL_FRAG_PRODUCED_MID,         AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_BNDL_FRAG_PRODUCED_MID", "Bundles Fragments Produced", ADM_BP, ADM_BP_AD_BNDL_FRAG_PRODUCED_MID);
 
 
-	memset(temp,0,256);
-	snprintf(temp, 256, "\n\nFragmentation Counts\n------------------------------");
-	strncat(result,temp,256);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nBundles Fragmented = " UVAST_FIELDSPEC " \
-\nFragments Produced = " UVAST_FIELDSPEC,
-             state.bundlesFragmented,
-  			 state.fragmentsProduced);
-	strncat(result,temp,256);
 
-	memset(temp,0,256);
-	snprintf(temp, 256, "\n\nBundle Deletion Counts By Reason\n------------------------------");
-	strncat(result,temp,256);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nNo Info     = " UVAST_FIELDSPEC " \
-\nExpired     = " UVAST_FIELDSPEC " \
-\nUnicast Fwd = " UVAST_FIELDSPEC " \
-\nCancelled   = " UVAST_FIELDSPEC " \
-\nNo Storage  = " UVAST_FIELDSPEC " \
-\nBad EID     = " UVAST_FIELDSPEC " \
-\nNo Route    = " UVAST_FIELDSPEC " \
-\nNo Contact  = " UVAST_FIELDSPEC " \
-\nBad Block   = " UVAST_FIELDSPEC " \
-\nTotal Bytes = " UVAST_FIELDSPEC,
-			state.delNoneCount,
-			state.delExpiredCount,
-			state.delFwdUnidirCount,
-			state.delCanceledCount,
-			state.delDepletionCount,
-			state.delEidMalformedCount,
-			state.delNoRouteCount,
-			state.delNoContactCount,
-			state.delBlkMalformedCount,
-			state.bytesDeletedToDate);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_RPT_NOINFO_DEL_CNT_MID,       AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_NOINFO_DEL_CNT_MID", "No-Info Del Cnt", ADM_BP, ADM_BP_AD_RPT_NOINFO_DEL_CNT_MID);
 
-	memset(temp,0,256);
-	snprintf(temp,256, "\n\nBundle Processing Errors\n------------------------------");
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_RPT_EXPIRED_DEL_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_EXPIRED_DEL_CNT_MID", "Expired Del Cnt", ADM_BP, ADM_BP_AD_RPT_EXPIRED_DEL_CNT_MID);
 
-	memset(temp,0,256);
-	snprintf(temp, 256,
-			"\nNo Custody Count = " UVAST_FIELDSPEC " \
-\nNo Custody Bytes = " UVAST_FIELDSPEC " \
-\nFwd Failed Count = " UVAST_FIELDSPEC " \
-\nFwd Failed Bytes = " UVAST_FIELDSPEC " \
-\nAbandoned Count  = " UVAST_FIELDSPEC " \
-\nAbandoned Bytes  = " UVAST_FIELDSPEC " \
-\nDiscarded Count  = " UVAST_FIELDSPEC " \
-\nDiscarded Bytes  = " UVAST_FIELDSPEC,
-			state.custodyRefusedCount,
-			state.custodyRefusedBytes,
-			state.bundleFwdFailedCount,
-			state.bundleFwdFailedBytes,
-			state.bundleAbandonCount,
-			state.bundleAbandonBytes,
-			state.bundleDiscardCount,
-			state.bundleDiscardBytes);
-	strncat(result,temp,256);
+	adm_add_datadef(ADM_BP_AD_RPT_UNI_FWD_DEL_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_UNI_FWD_DEL_CNT_MID", "Uni Fwd Del Cnt", ADM_BP, ADM_BP_AD_RPT_UNI_FWD_DEL_CNT_MID);
 
-	return result;
+	adm_add_datadef(ADM_BP_AD_RPT_CANCEL_DEL_CNT_MID,       AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_CANCEL_DEL_CNT_MID", "Cancel Del Cnt", ADM_BP, ADM_BP_AD_RPT_CANCEL_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_NO_STRG_DEL_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_NO_STRG_DEL_CNT_MID", "No Storage Del Cnt", ADM_BP, ADM_BP_AD_RPT_NO_STRG_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_BAD_EID_DEL_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_BAD_EID_DEL_CNT_MID", "Bad EID Del Cnt", ADM_BP, ADM_BP_AD_RPT_BAD_EID_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_NO_ROUTE_DEL_CNT_MID,     AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_NO_ROUTE_DEL_CNT_MID", "No Route Del Cnt", ADM_BP, ADM_BP_AD_RPT_NO_ROUTE_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_NO_CONTACT_DEL_CNT_MID,   AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_NO_CONTACT_DEL_CNT_MID", "No Contact Del Cnt", ADM_BP, ADM_BP_AD_RPT_NO_CONTACT_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_BAD_BLOCK_DEL_CNT_MID,    AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_BAD_BLOCK_DEL_CNT_MID", "Bad Block Del Cnt", ADM_BP, ADM_BP_AD_RPT_BAD_BLOCK_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_BUNDLES_DEL_CNT_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_BUNDLES_DEL_CNT_MID", "Bundles Del Cnt", ADM_BP, ADM_BP_AD_RPT_BUNDLES_DEL_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_CUST_XFER_CNT_MID,   AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_FAIL_CUST_XFER_CNT_MID", "Cust Fail Del Cnt", ADM_BP, ADM_BP_AD_RPT_FAIL_CUST_XFER_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_CUST_XFER_BYTES_MID, AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_FAIL_CUST_XFER_BYTES_MID", "Cust Fail Bytes", ADM_BP, ADM_BP_AD_RPT_FAIL_CUST_XFER_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_FWD_CNT_MID,         AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_FAIL_FWD_CNT_MID", "Fail Fwd Cnt", ADM_BP, ADM_BP_AD_RPT_FAIL_FWD_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_FAIL_FWD_BYTES_MID,       AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_FAIL_FWD_BYTES_MID", "Fail Fwd Bytes", ADM_BP, ADM_BP_AD_RPT_FAIL_FWD_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_ABANDONED_CNT_MID,        AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_ABANDONED_CNT_MID", "Abandoned Cnt", ADM_BP, ADM_BP_AD_RPT_ABANDONED_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_ABANDONED_BYTES_MID,      AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_ABANDONED_BYTES_MID", "Abandoned Bytes", ADM_BP, ADM_BP_AD_RPT_ABANDONED_BYTES_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_DISCARD_CNT_MID,          AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_DISCARD_CNT_MID", "Discard Count", ADM_BP, ADM_BP_AD_RPT_DISCARD_CNT_MID);
+
+	adm_add_datadef(ADM_BP_AD_RPT_DISCARD_BYTES_MID,        AMP_TYPE_UVAST, 0, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_RPT_DISCARD_BYTES_MID", "Discard Bytes", ADM_BP, ADM_BP_AD_RPT_DISCARD_BYTES_MID);
+
+
+
+	adm_add_datadef(ADM_BP_AD_ENDPT_NAME_MID,                AMP_TYPE_STRING, 1, NULL,  adm_print_string, bp_size_endpoint_name);
+	names_add_name("ADM_BP_AD_ENDPT_NAME_MID", "Endpoint Names", ADM_BP, ADM_BP_AD_ENDPT_NAME_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_NAME_MID, 1, "Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
+	adm_add_datadef(ADM_BP_AD_ENDPT_ACTIVE_MID,              AMP_TYPE_UINT, 1, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_ENDPT_ACTIVE_MID", "Active Endpoint", ADM_BP, ADM_BP_AD_ENDPT_ACTIVE_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_ACTIVE_MID, 1, "Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
+	adm_add_datadef(ADM_BP_AD_ENDPT_SINGLETON_MID,           AMP_TYPE_UINT, 1, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_ENDPT_SINGLETON_MID", "Singleton Endpoint", ADM_BP, ADM_BP_AD_ENDPT_SINGLETON_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_SINGLETON_MID, 1, "Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
+	adm_add_datadef(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, AMP_TYPE_UINT, 1, NULL,  NULL, NULL);
+	names_add_name("ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID", "Abandon On Del Fail", ADM_BP, ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID);
+	ui_add_parmspec(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, 1,"Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
+#endif
+
 }
 
 
-char *bp_print_endpoint_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len)
+
+void adm_bp_init_computed()
 {
-	NmbpEndpoint endpoint;
 
-	char *result;
-	char temp[256];
-	uint32_t temp_size = 0;
-
-	memcpy(&endpoint, buffer, data_len);
-
-	// Assume for now a 8 byte integer takes <= 20 characters.
-	// Assume all the text strings average less than 100 characters per string.
-	temp_size = (sizeof(uvast)*20) + 1;
-	*str_len = (3 * temp_size) + (100 * 1);
-
-	if((result = (char *) MTAKE(*str_len)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("bp_endpoint_print_all","Can't allocate %d bytes.", *str_len);
-		*str_len = 0;
-		return NULL;
-	}
-
-	memset(result, 0, *str_len);
-
-	memset(temp,0,256);
-	sprintf(temp,
-			"\nName      = %s \
-\nActive    = %d \
-\nSingleton = %d \
-\nAbandon   = %d",
-			endpoint.eid,
-			endpoint.active,
-			endpoint.singleton,
-			endpoint.abandonOnDelivFailure);
-	strcat(result,temp);
-
-	return result;
 }
 
+
+void adm_bp_init_controls()
+{
+
+#ifdef AGENT_ROLE
+	adm_add_ctrl(ADM_BP_CTL_RESET_BP_COUNTS, adm_bp_ctrl_reset);
+
+#else
+	adm_add_ctrl(ADM_BP_CTL_RESET_BP_COUNTS, NULL);
+	names_add_name("ADM_BP_CTL_RESET_BP_COUNTS", "Reset BP Counts", ADM_BP, ADM_BP_CTL_RESET_BP_COUNTS);
+#endif
+
+}
+
+
+void adm_bp_init_literals()
+{
+
+}
+
+
+void adm_bp_init_macros()
+{
+
+}
+
+
+
+void adm_bp_init_metadata()
+{
+	/* Step 1: Register Nicknames */
+
+	oid_nn_add_parm(BP_ADM_MD_NN_IDX,   BP_ADM_MD_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_AD_NN_IDX,   BP_ADM_AD_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_CD_NN_IDX,   BP_ADM_CD_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_RPT_NN_IDX,  BP_ADM_RPT_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_CTRL_NN_IDX, BP_ADM_CTRL_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_LTRL_NN_IDX, BP_ADM_LTRL_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_MAC_NN_IDX,  BP_ADM_MAC_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_OP_NN_IDX,   BP_ADM_OP_NN_STR, "BP", "6");
+	oid_nn_add_parm(BP_ADM_ROOT_NN_IDX, BP_ADM_ROOT_NN_STR, "BP", "6");
+
+	/* Step 2: Register Metadata Information. */
+#ifdef AGENT_ROLE
+	adm_add_datadef(ADM_BP_MD_NAME_MID, AMP_TYPE_STRING, 0, adm_bp_md_name, adm_print_string, adm_size_string);
+	adm_add_datadef(ADM_BP_MD_VER_MID,  AMP_TYPE_STRING, 0, adm_bp_md_ver,  adm_print_string, adm_size_string);
+#else
+	adm_add_datadef(ADM_BP_MD_NAME_MID, AMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
+	names_add_name("ADM_BP_MD_NAME_MID", "BP Name", ADM_BP, ADM_BP_MD_NAME_MID);
+
+	adm_add_datadef(ADM_BP_MD_VER_MID,  AMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
+	names_add_name("ADM_BP_MD_VER_MID", "BP Version", ADM_BP, ADM_BP_MD_VER_MID);
+#endif
+
+}
+
+void adm_bp_init_names()
+{
+}
+
+
+void adm_bp_init_ops()
+{
+}
+
+void adm_bp_init_reports()
+{
+	uint32_t used = 0;
+	Lyst rpt = lyst_create();
+
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_NODE_ID_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_NODE_VER_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_AVAIL_STOR_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RESET_TIME_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_NUM_REG_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_FWD_PEND_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_DISPATCH_PEND_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_IN_CUSTODY_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_REASSMBL_PEND_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_BULK_RES_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_NORM_RES_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_EXP_RES_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_BULK_RES_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_NORM_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_CUR_EXP_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_BULK_SRC_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_NORM_SRC_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_EXP_SRC_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_BULK_SRC_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_NORM_SRC_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_EXP_SRC_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_FRAGMENTED_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_BNDL_FRAG_PRODUCED_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_NOINFO_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_EXPIRED_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_UNI_FWD_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_CANCEL_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_NO_STRG_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_BAD_EID_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_NO_ROUTE_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_NO_CONTACT_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_BAD_BLOCK_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_BUNDLES_DEL_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_FAIL_CUST_XFER_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_FAIL_CUST_XFER_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_FAIL_FWD_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_FAIL_FWD_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_ABANDONED_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_ABANDONED_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_DISCARD_CNT_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_RPT_DISCARD_BYTES_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_ENDPT_NAMES_MID, ADM_MID_ALLOC, &used));
+
+	adm_add_rpt(ADM_BP_RPT_FULL_MID, rpt);
+
+	midcol_destroy(&rpt);
+
+	rpt = lyst_create();
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_ENDPT_NAME_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_ENDPT_ACTIVE_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_ENDPT_SINGLETON_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_deserialize_str(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, ADM_MID_ALLOC, &used));
+
+	adm_add_rpt(ADM_BP_ENDPT_FULL_MID, rpt);
+
+	midcol_destroy(&rpt);
+
+#ifndef AGENT_ROLE
+	names_add_name("ADM_BP_RPT_FULL_MID", "Full Report", ADM_BP, ADM_BP_RPT_FULL_MID);
+	names_add_name("ADM_BP_ENDPT_FULL_MID", "Endpoint Full Report", ADM_BP, ADM_BP_ENDPT_FULL_MID);
+	ui_add_parmspec(ADM_BP_ENDPT_FULL_MID, 1,"Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+
+#endif
+
+}
 
 /* SIZE */
 
-
-uint32_t bp_size_node_all(uint8_t* buffer, uint64_t buffer_len)
-{
-	NmbpNode node_state;
-	NmbpDisposition state;
-	return sizeof(state) + sizeof(node_state);
-}
-
-uint32_t bp_size_endpoint_all(uint8_t* buffer, uint64_t buffer_len)
-{
-	NmbpEndpoint endpoint;
-	return sizeof(endpoint);
-}
 
 
 uint32_t bp_size_node_id(uint8_t* buffer, uint64_t buffer_len)

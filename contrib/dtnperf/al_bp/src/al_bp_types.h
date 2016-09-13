@@ -1,12 +1,13 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico@studio.unibo.it
+ **           Davide Pallotti, davide.pallotti@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
- ** This file contains the definition of all types specific to the al_bp.
  **  All rights reserved.
+ ** This file contains the definition of all types specific to the al_bp.
  ********************************************************/
 
 /*
@@ -30,6 +31,7 @@ typedef enum
 	BP_NONE = 0,
     BP_DTN,
     BP_ION,
+	BP_IBR
 } al_bp_implementation_t;
 
 /**
@@ -56,7 +58,7 @@ struct al_bp_endpoint_id_t {
 typedef struct al_bp_endpoint_id_t al_bp_endpoint_id_t;
 
 /**
- * *************************************************************************CONTROLLA DESCRZIONE
+ * *************************************************************************CONTROLLA DESCRIZIONE
  * The basic handle for communication with the bp router.
  */
 typedef int * al_bp_handle_t;

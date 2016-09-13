@@ -230,7 +230,7 @@ static int	PlaybackPetitionLog(int petitionLog)
 	}
 }
 
-static int	_petitionLog(char *logLine)
+static int	_petitionLog(char *logLine, int ventureNbr)
 {
 	static int	petitionLog = -1;
 	int		len;
@@ -245,9 +245,13 @@ static int	_petitionLog(char *logLine)
 	{
 		if (petitionLog < 0)	/*	Log is not open.	*/
 		{
+			char	logName[64];
+
 			/*	Recover all known petition activity.	*/
 
-			petitionLog = iopen("petition.log",
+			isprintf(logName, sizeof logName, "%d.petition.log",
+					ventureNbr);
+			petitionLog = iopen(logName,
 					O_RDWR | O_CREAT | O_APPEND, 0777);
 			if (petitionLog < 0)
 			{
@@ -542,6 +546,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	socklen_t		nameLength;
 	int			datagramLength;
 	Lyst			msgspaces;
+	saddr			temp;
 	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
@@ -602,7 +607,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 	/*	Determine RAMS network type.				*/
 
-	if (ams_rams_net_is_tree(gWay->amsModule))
+	if (ams_rams_net_is_tree(amsModule))
 	{
 		gWay->netType = TREETYPE;
 	}
@@ -616,10 +621,11 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 #if RAMSDEBUG
 printf("continuum lyst:");
 #endif
-	msgspaces = ams_list_msgspaces(gWay->amsModule);
+	msgspaces = ams_list_msgspaces(amsModule);
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		cId = (long) lyst_data(elt);
+		temp = (saddr) lyst_data(elt);
+		cId = temp;
 #if RAMSDEBUG
 printf(" %ld", cId);		
 #endif
@@ -628,7 +634,7 @@ printf(" %ld", cId);
 			continue;
 		}
 
-		if (!ams_continuum_is_neighbor(cId))
+		if (!ams_msgspace_is_neighbor(amsModule, cId))
 		{
 			continue;
 		} 	
@@ -692,13 +698,13 @@ printf("\n");
 	rules.msgHandler = HandleAamsMessage;
 	rules.msgHandlerUserData = gWay;
 
-	ams_set_event_mgr(gWay->amsModule, &rules);	
+	ams_set_event_mgr(amsModule, &rules);	
 
 	/*	Subscribe to message on the pseudo-subject for the
 	 *	local continuum.					*/
 
 	ownPseudoSubject = 0 - gWay->amsMib->localContinuumNbr;
-	if (ams_subscribe(gWay->amsModule, 0, 0, 0, ownPseudoSubject, 10, 0,
+	if (ams_subscribe(amsModule, 0, 0, 0, ownPseudoSubject, 10, 0,
 			AmsTransmissionOrder, AmsAssured) < 0)
 	{
 		putErrmsg("Can't subscribe to local continuum pseudo-subject.",
@@ -711,7 +717,7 @@ printf("subscribed to %d\n", ownPseudoSubject);
 #endif
 	/*	Insert self into RAMS network.				*/
 
-	gWay->netProtocol = gWay->amsModule->venture->gwProtocol;
+	gWay->netProtocol = amsModule->venture->gwProtocol;
 	switch (gWay->netProtocol)
 	{
 	case RamsBp:
@@ -824,7 +830,7 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 		return -1;
 	}
 
-	if (_petitionLog(NULL) < 0)
+	if (_petitionLog(NULL, amsModule->venture->nbr) < 0)
 	{
 		ErrMsg("Failed initializing the petition log.");
 		return -1;
@@ -942,7 +948,7 @@ printf("Before bp_receive...\n");
 	}
 
 	oK(_gWay(gWay));
-	oK(_petitionLog(NULL));		/*	Close the petition log.	*/
+	oK(_petitionLog(NULL, 0));	/*	Close the petition log.	*/
 	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
 }
@@ -1461,7 +1467,7 @@ fromNode->continuumNbr);
 					fromNode->gwEid, cc, sub,
 					domainContinuum, domainUnit,
 					domainRole);
-			if (_petitionLog(petitionLine) < 0)
+			if (_petitionLog(petitionLine, 0) < 0)
 			{
 				putErrmsg("Can't log petition assertion.",
 						petitionLine);
@@ -1487,7 +1493,7 @@ fromNode->continuumNbr);
 					fromNode->gwEid, cc, sub,
 					domainContinuum, domainUnit,
 					domainRole);
-			if (_petitionLog(petitionLine) < 0)
+			if (_petitionLog(petitionLine, 0) < 0)
 			{
 				putErrmsg("Can't log petition cancellation.",
 						petitionLine);

@@ -50,11 +50,11 @@ rm -f ./ion_nodes
 
 echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 10.
-echo "Should be abandoned as unroutable prior to expiration."
+echo "Should be put into limbo: no current route, but might be opportunistic."
 bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 0.1 "Hi"
 sleep 1
 echo ""
-echo "Watch characters should be 'a~'."
+echo "Watch characters should be 'aj'."
 
 echo "Sending bundle with 25-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 25
@@ -75,10 +75,10 @@ echo ""
 echo "Watch characters should be 'abcdefg'."
 
 # Wait for retransmission limits to be reached.
-echo "Waiting for 25-second bundle to time out."
+echo "Waiting for 10-second and 25-second bundles to time out."
 sleep 24
 echo ""
-echo "Watch characters should be '=g=g=g=g=g=g!'."
+echo "Watch characters should be '=g=g!=g=g=g=g!'."
 
 # Wait for contact to terminate.
 echo "Both sessions will be canceled on reaching retransmission limit."
@@ -112,13 +112,13 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'exp' message '(+) 1 3'..."
-COUNT=`grep exp ion.log | grep "(+) 1 3" | wc -l`
+echo "Checking ion.log for 'exp' message '(+) 2 6'..."
+COUNT=`grep exp ion.log | grep "(+) 2 6" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: One bundle expired."
+	echo "OK: Two bundles expired."
 else
-	echo "ERROR: Bundle not expired."
+	echo "ERROR: Bad bundle expiration count."
 	RETVAL=1
 fi
 

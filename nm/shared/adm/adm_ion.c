@@ -1,11 +1,36 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
+/*****************************************************************************
+ **
+ ** File Name: adm_ion_priv.h
+ **
+ ** Description: This file contains the definitions of the ION
+ **              ADM.
+ **
+ ** Notes:
+ **
+ ** Assumptions:
+ ** 	1. We current use a non-official OID root tree for DTN Bundle Protocol
+ **         identifiers.
+ **
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **  10/22/11  E. Birrane     Initial Implementation
+ *****************************************************************************/
 
 #ifdef _HAVE_ION_ADM_
 #include "ion.h"
 #include "platform.h"
 
 
-#include "shared/adm/adm_ion.h"
-#include "shared/utils/utils.h"
+#include "../adm/adm_ion.h"
+#include "../utils/utils.h"
 
 
 void adm_ion_init()
@@ -144,12 +169,12 @@ char *ion_node_print_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len
 	outducts = adm_print_string_list(buffer+induct_len, buffer_len-induct_len, data_len, &tmp);
 
 	*str_len = induct_len + outduct_len + 25;
-	result = (char*) MTAKE(*str_len);
+	result = (char*) STAKE(*str_len);
 	cursor = result;
 
 	sprintf(cursor, "inducts: %s\noutducts: %s\n",inducts, outducts);
-	MRELEASE(inducts);
-	MRELEASE(outducts);
+	SRELEASE(inducts);
+	SRELEASE(outducts);
 
 	return result;
 }
@@ -170,7 +195,7 @@ char *ion_print_sdr_state_all(uint8_t* buffer, uint64_t buffer_len, uint64_t dat
 	*str_len = (temp_size * 5) + (25 * 100);
 
 	// Assume for now a 4 byte integer takes <= 20 characters to print.
-	if((result = (char *) MTAKE(*str_len)) == NULL)
+	if((result = (char *) STAKE(*str_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("iciPrintSdrStateAll","Can;t allocate %d bytes", *str_len);
 		*str_len = 0;
@@ -204,7 +229,7 @@ char *ion_induct_print_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_l
 	*str_len = (temp_size * 5) + (25 * 100) + strlen(induct.inductName);
 
 	// Assume for now a 4 byte integer takes <= 20 characters to print.
-	if((result = (char *) MTAKE(*str_len)) == NULL)
+	if((result = (char *) STAKE(*str_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ion_induct_print_all","Can't allocate %d bytes", *str_len);
 		*str_len = 0;
@@ -242,7 +267,7 @@ char *ion_outduct_print_all(uint8_t* buffer, uint64_t buffer_len, uint64_t data_
 	*str_len = (temp_size * 5) + (25 * 100) + strlen(outduct.outductName);
 
 	// Assume for now a 4 byte integer takes <= 20 characters to print.
-	if((result = (char *) MTAKE(*str_len)) == NULL)
+	if((result = (char *) STAKE(*str_len)) == NULL)
 	{
 		DTNMP_DEBUG_ERR("ion_outduct_print_all","Can't allocate %d bytes", *str_len);
 		*str_len = 0;
