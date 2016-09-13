@@ -94,16 +94,24 @@ static void *       recvBundles(void *args)
 	int             rc;
 	int             bytesToRead;
 
-	while(running) {
+	while(running)
+	{
 		if(bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("bpchat bundle reception failed.", NULL);
 			break;
 		}
 
-		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0)
+		{
 			bp_release_delivery(&dlv, 1);
 			continue;
+		}
+
+		if(dlv.result == BpEndpointStopped)
+		{
+			bp_release_delivery(&dlv, 1);
+			break;
 		}
 
 		if(pthread_mutex_lock(&sdrmutex) != 0)
@@ -115,9 +123,11 @@ static void *       recvBundles(void *args)
 		oK(sdr_begin_xn(sdr));
 		bundleLenRemaining = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
-		while(bundleLenRemaining > 0) {
+		while(bundleLenRemaining > 0)
+		{
 			bytesToRead = MIN(bundleLenRemaining, sizeof(buffer)-1);
-			rc = zco_receive_source(sdr, &reader, bytesToRead, buffer);
+			rc = zco_receive_source(sdr, &reader, bytesToRead,
+					buffer);
 			if(rc < 0) break;
 			bundleLenRemaining -= rc;
 			printf("%.*s", rc, buffer);

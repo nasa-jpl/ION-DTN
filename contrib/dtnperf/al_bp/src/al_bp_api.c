@@ -1,6 +1,7 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico2@studio.unibo.it
+ **           Davide Pallotti, davide.pallotti@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
@@ -9,7 +10,7 @@
  ** This file contains all the APIs of the al_bp (al_bp prefix).
  ** These are called directly from the application.
  ** In DTNperf_3 These are the sole al_bp_ APIs called. 
- ** Each API consists of a switch between DTN2 and ION API implementations (bp prefix)
+ ** Each API consists of a switch between DTN2,ION and IBR-DTN API implementations (bp prefix)
  ** For their meaning, see al_bp documentation.
  ********************************************************/
 
@@ -25,6 +26,7 @@
 /* Implementations API */
 #include "al_bp_dtn.h"
 #include "al_bp_ion.h"
+#include "al_bp_ibr.h"
 
 static al_bp_implementation_t bp_implementation = BP_NONE;
 const char* al_bp_version = AL_BP_VERSION_STRING;
@@ -38,10 +40,15 @@ al_bp_implementation_t al_bp_get_implementation()
 {
 	if (bp_implementation == BP_NONE)
 	{
-	/*OS Warning: the strings find_dtnd and find_ion are valid only for Linux/Unix OS. */
+		/*OS Warning: the following strings are valid only for Linux/Unix OS. */
 		char* find_dtnd = "ps ax | grep -w dtnd | grep -v grep > /dev/null";
 		char* find_ion = "ps ax | grep -w rfxclock | grep -v grep > /dev/null";
-		if (system(find_dtnd) == 0)
+		char* find_ibrdtnd1 = "ps axe | grep /usr/sbin/dtnd | grep -v grep > /dev/null"; //in constrast with dtn2 daemon in /usr/bin/dtnd
+		char* find_ibrdtnd2 = "ps axe | grep /usr/local/sbin/dtnd | grep -v grep > /dev/null"; //when installed from source
+		
+		if (system(find_ibrdtnd1) == 0 || system(find_ibrdtnd2) == 0)
+			bp_implementation = BP_IBR;
+		else if (system(find_dtnd) == 0)
 			bp_implementation = BP_DTN;
 		else if (system(find_ion) == 0)
 			bp_implementation = BP_ION;
@@ -61,6 +68,9 @@ al_bp_error_t al_bp_open(al_bp_handle_t* handle)
 
 	case BP_ION:
 		return bp_ion_attach();
+		
+	case BP_IBR:
+		return bp_ibr_open(handle);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -79,6 +89,9 @@ al_bp_error_t al_bp_open_with_ip(char *daemon_api_IP,int daemon_api_port,al_bp_h
 
 	case BP_ION:
 		return bp_ion_open_with_IP(daemon_api_IP, daemon_api_port, handle);
+		
+	case BP_IBR:
+		return bp_ibr_open_with_IP(daemon_api_IP, daemon_api_port, handle);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -94,6 +107,9 @@ al_bp_error_t al_bp_errno(al_bp_handle_t handle)
 
 	case BP_ION:
 		return bp_ion_errno(handle);
+	
+	case BP_IBR:
+		return bp_ibr_errno(handle);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -116,6 +132,9 @@ al_bp_error_t al_bp_build_local_eid(al_bp_handle_t handle,
 
 	case BP_ION:
 		return bp_ion_build_local_eid(local_eid, service_tag,type);
+		
+	case BP_IBR:
+		return bp_ibr_build_local_eid(handle, local_eid, service_tag, type);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -138,6 +157,9 @@ al_bp_error_t al_bp_register(al_bp_handle_t * handle,
 
 	case BP_ION:
 		return bp_ion_register(handle, reginfo, newregid);
+		
+	case BP_IBR:
+		return bp_ibr_register(*handle, reginfo, newregid);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -152,31 +174,37 @@ al_bp_error_t al_bp_find_registration(al_bp_handle_t handle,
 		return BP_ENULLPNTR;
 
 	switch (al_bp_get_implementation())
-		{
-		case BP_DTN:
-			return bp_dtn_find_registration(handle, eid, newregid);
+	{
+	case BP_DTN:
+		return bp_dtn_find_registration(handle, eid, newregid);
 
-		case BP_ION:
-			return bp_ion_find_registration(handle, eid, newregid);
+	case BP_ION:
+		return bp_ion_find_registration(handle, eid, newregid);
+		
+	case BP_IBR:
+		return bp_ibr_find_registration(handle, eid, newregid);
 
-		default: // cannot find bundle protocol implementation
-			return BP_ENOBPI;
-		}
+	default: // cannot find bundle protocol implementation
+		return BP_ENOBPI;
+	}
 }
 
 al_bp_error_t al_bp_unregister(al_bp_handle_t handle, al_bp_reg_id_t regid,al_bp_endpoint_id_t eid){
 
 	switch (al_bp_get_implementation())
-		{
-		case BP_DTN:
-			return bp_dtn_unregister(handle, regid);
+	{
+	case BP_DTN:
+		return bp_dtn_unregister(handle, regid);
 
-		case BP_ION:
-			return bp_ion_unregister(eid);
+	case BP_ION:
+		return bp_ion_unregister(eid);
+	
+	case BP_IBR:
+		return bp_ibr_unregister(handle, regid, eid);
 
-		default: // cannot find bundle protocol implementation
-			return BP_ENOBPI;
-		}
+	default: // cannot find bundle protocol implementation
+		return BP_ENOBPI;
+	}
 }
 
 al_bp_error_t al_bp_send(al_bp_handle_t handle,
@@ -191,7 +219,7 @@ al_bp_error_t al_bp_send(al_bp_handle_t handle,
 		return BP_ENULLPNTR;
 	if (id == NULL)
 		return BP_ENULLPNTR;
-
+	
 	switch (al_bp_get_implementation())
 	{
 	case BP_DTN:
@@ -199,6 +227,9 @@ al_bp_error_t al_bp_send(al_bp_handle_t handle,
 
 	case BP_ION:
 		return bp_ion_send(handle, regid, spec, payload, id);
+		
+	case BP_IBR:
+		return bp_ibr_send(handle, regid, spec, payload, id);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -223,6 +254,9 @@ al_bp_error_t al_bp_recv(al_bp_handle_t handle,
 
 	case BP_ION:
 		return bp_ion_recv(handle, spec, location, payload, timeout);
+		
+	case BP_IBR:
+		return bp_ibr_recv(handle, spec, location, payload, timeout);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -238,6 +272,9 @@ al_bp_error_t al_bp_close(al_bp_handle_t handle)
 
 	case BP_ION:
 		return bp_ion_close(handle);
+		
+	case BP_IBR:
+		return bp_ibr_close(handle);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -257,6 +294,9 @@ al_bp_error_t al_bp_parse_eid_string(al_bp_endpoint_id_t* eid, const char* str)
 	case BP_ION:
 		return bp_ion_parse_eid_string(eid, str);
 
+	case BP_IBR:
+		return bp_ibr_parse_eid_string(eid, str);
+
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
 	}
@@ -273,6 +313,10 @@ void al_bp_copy_eid(al_bp_endpoint_id_t* dst, al_bp_endpoint_id_t* src)
 	case BP_ION:
 		bp_ion_copy_eid(dst, src);
 		break;
+		
+	case BP_IBR:
+		bp_ibr_copy_eid(dst, src);
+		break;
 
 	default: // cannot find bundle protocol implementation
 		return ;
@@ -288,6 +332,9 @@ al_bp_error_t al_bp_get_none_endpoint(al_bp_endpoint_id_t * eid_none)
 
 	case BP_ION:
 		return bp_ion_parse_eid_string(eid_none, "dtn:none");
+		
+	case BP_IBR:
+		return bp_ibr_parse_eid_string(eid_none, "dtn:none");
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -308,6 +355,9 @@ al_bp_error_t al_bp_set_payload(al_bp_bundle_payload_t* payload,
 
 	case BP_ION:
 		return bp_ion_set_payload(payload, location, val, len);
+		
+	case BP_IBR:
+		return bp_ibr_set_payload(payload, location, val, len);
 
 	default: // cannot find bundle protocol implementation
 		return BP_ENOBPI;
@@ -324,6 +374,10 @@ void al_bp_free_extension_blocks(al_bp_bundle_spec_t* spec)
 
 	case BP_ION:
                 // NOT IMPLEMENTED
+		break;
+		
+	case BP_IBR:
+		bp_ibr_free_extension_blocks(spec);
 		break;
 
 	default: // cannot find bundle protocol implementation
@@ -342,6 +396,10 @@ void al_bp_free_metadata_blocks(al_bp_bundle_spec_t* spec)
 	case BP_ION:
                 // NOT IMPLEMENTED
 		break;
+		
+	case BP_IBR:
+		bp_ibr_free_metadata_blocks(spec);
+		break;
 
 	default: // cannot find bundle protocol implementation
 		return ;
@@ -359,6 +417,10 @@ void al_bp_free_payload(al_bp_bundle_payload_t* payload)
 
 	case BP_ION:
 		bp_ion_free_payload(payload);
+		break;
+		
+	case BP_IBR:
+		bp_ibr_free_payload(payload);
 		break;
 
 	default: // cannot find bundle protocol implementation

@@ -19,9 +19,11 @@
 #include "stcpcla.h"
 #include "ipnfw.h"
 
+#define	MAX_RECONNECT_PAUSE	(30)
+
 static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 {
-	long		temp;
+	uaddr		temp;
 	void		*value;
 	sm_SemId	semaphore;
 
@@ -36,7 +38,7 @@ static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 		value = sm_TaskVar(NULL);
 	}
 
-	temp = (long) value;
+	temp = (uaddr) value;
 	semaphore = temp;
 	return semaphore;
 }
@@ -128,6 +130,7 @@ int	main(int argc, char *argv[])
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
+	int			pause = 0;
 
 	if (ductName == NULL)
 	{
@@ -255,9 +258,34 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		/*	Make sure other tasks have a chance to run.	*/
+		/*	Check for closed socket.			*/
 
-		sm_TaskYield();
+		if (ductSocket < 0)
+		{
+			/*	Wait a bit before trying to reconnect.	*/
+
+			if (pause == 0)
+			{
+				pause = 1;
+			}
+			else
+			{
+				pause <<= 1;
+				if (pause > MAX_RECONNECT_PAUSE)
+				{
+					pause = MAX_RECONNECT_PAUSE;
+				}
+			}
+
+			snooze(pause);
+		}
+		else
+		{
+			/*	Give other tasks a chance to run.	*/
+
+			pause = 0;
+			sm_TaskYield();
+		}
 	}
 
 	running = 0;		/*	Terminate keepalive thread.	*/

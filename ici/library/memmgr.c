@@ -53,7 +53,7 @@ static void	memmgr_free(const char *fileName, int lineNbr, void *address)
  *	private standard address-to-pointer converter
  */
 
-static void	*memmgr_atop(unsigned long pointer)
+static void	*memmgr_atop(uaddr pointer)
 {
 	return (void *) pointer;
 }
@@ -62,9 +62,9 @@ static void	*memmgr_atop(unsigned long pointer)
  *	private standard pointer-to-address converter
  */
 
-static unsigned long	memmgr_ptoa(void * address)
+static uaddr	memmgr_ptoa(void * address)
 {
-	return (unsigned long) address;
+	return (uaddr) address;
 }
 
 /*	Default null memory management functions.			*/
@@ -79,12 +79,12 @@ static void	null_free(const char *fileName, int lineNbr, void *address)
 	return;
 }
 
-static void	*null_atop(unsigned long pointer)
+static void	*null_atop(uaddr pointer)
 {
 	return NULL;
 }
 
-static unsigned long	null_ptoa(void * address)
+static uaddr	null_ptoa(void * address)
 {
 	return 0;
 }
@@ -292,7 +292,7 @@ MemPtoAConverter memmgr_PtoA(int mgrId)
 	return mgr->PtoA;
 }
 
-int	memmgr_open(int memKey, long memSize, char **memPtr, int *smId,
+int	memmgr_open(int memKey, long memSize, char **memPtr, uaddr *smId,
 		char *partitionName, PsmPartition *partition,
 		int *memMgr, MemAllocator afn, MemDeallocator ffn,
 		MemAtoPConverter apfn, MemPtoAConverter pafn)
@@ -348,7 +348,7 @@ int	memmgr_open(int memKey, long memSize, char **memPtr, int *smId,
 	return 0;
 }
 
-void	memmgr_destroy(int smId, PsmPartition *partition)
+void	memmgr_destroy(uaddr smId, PsmPartition *partition)
 {
 	char	*memptr;
 

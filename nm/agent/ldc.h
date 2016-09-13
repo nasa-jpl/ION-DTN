@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,21 +18,23 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/22/11  E. Birrane     Code comments and functional updates.
- **  01/10/13  E. Birrane     Update to latest version of DTNMP. Cleanup.
+ **  10/22/11  E. Birrane     Code comments and functional updates. (JHU/APL)
+ **  01/10/13  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
  *****************************************************************************/
 
 #ifndef _LDC_H_
 #define _LDC_H_
 
-#include "shared/adm/adm.h"
+#include "../shared/primitives/var.h"
+#include "../shared/adm/adm.h"
 
-#include "shared/msg/msg_reports.h"
-#include "shared/msg/msg_def.h"
+#include "../shared/primitives/report.h"
 
-int ldc_fill_report_data(mid_t *id, rpt_data_entry_t *entry);
-int ldc_fill_atomic(adm_datadef_t *adm_def, mid_t *id, rpt_data_entry_t *rpt);
-int ldc_fill_custom(def_gen_t *rpt_def, rpt_data_entry_t *rpt);
+int ldc_fill_report_entry(rpt_entry_t *entry);
+int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry);
+int ldc_fill_custom(def_gen_t *rpt_def, rpt_entry_t *entry);
+int ldc_fill_computed(var_t *cd, rpt_entry_t *entry);
+
 
 #endif // _LDC_H_
 

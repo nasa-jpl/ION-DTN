@@ -129,7 +129,7 @@ static int	_ionMemory(int *memmgrIdx)
 
 static PsmPartition	_ionwm(sm_WmParms *parms)
 {
-	static int		ionSmId = 0;
+	static uaddr		ionSmId = 0;
 	static PsmView		ionWorkingMemory;
 	static PsmPartition	ionwm = NULL;
 	static int		memmgrIdx;
@@ -208,14 +208,14 @@ void	releaseToIonMemory(const char *fileName, int lineNbr, void *block)
 #endif
 }
 
-void	*ionMemAtoP(unsigned long address)
+void	*ionMemAtoP(uaddr address)
 {
 	return (void *) psp(_ionwm(NULL), address);
 }
 
-unsigned long ionMemPtoA(void *pointer)
+uaddr	ionMemPtoA(void *pointer)
 {
-	return (unsigned long) psa(_ionwm(NULL), pointer);
+	return (uaddr) psa(_ionwm(NULL), pointer);
 }
 
 static IonVdb	*_ionvdb(char **name)
@@ -722,6 +722,8 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
+		iondbBuf.contactLog[0] = sdr_list_create(ionsdr);
+		iondbBuf.contactLog[1] = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
                 memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
@@ -1044,11 +1046,11 @@ void	ionDetach()
 void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 		unsigned int owlt)
 {
-	Sdr	ionsdr = _ionsdr(NULL);
-	time_t	fromTime;
-	time_t	toTime;
-	Object	elt;
-	char	textbuf[RFX_NOTE_LEN];
+	Sdr		ionsdr = _ionsdr(NULL);
+	time_t		fromTime;
+	time_t		toTime;
+	char		textbuf[RFX_NOTE_LEN];
+	PsmAddress	xaddr;
 
 	if (ionsdr == NULL)
 	{
@@ -1061,8 +1063,8 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 
 	fromTime = getUTCTime();	/*	The current time.	*/
 	toTime = fromTime + 14400;	/*	Four hours later.	*/
-	elt = rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt);
-       	if (elt == 0)
+	if (rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt,
+			&xaddr) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: range insertion failed.",
 				utoa(owlt));
@@ -1070,10 +1072,9 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 	}
 
 	writeMemo("ionProd: range inserted.");
-	writeMemo(rfx_print_range(sdr_list_data(ionsdr, elt), textbuf));
-	elt = rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
-			1.0);
-	if (elt == 0)
+	writeMemo(rfx_print_range(xaddr, textbuf));
+	if (rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
+			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: contact insertion failed.",
 				utoa(xmitRate));
@@ -1081,7 +1082,7 @@ void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
 	}
 
 	writeMemo("ionProd: contact inserted.");
-	writeMemo(rfx_print_contact(sdr_list_data(ionsdr, elt), textbuf));
+	writeMemo(rfx_print_contact(xaddr, textbuf));
 }
 
 void	ionEject()
@@ -1315,24 +1316,42 @@ time_t	readTimestampUTC(char *timestampBuffer, time_t referenceTime)
 
 void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 {
-	struct tm	ts;
+#if defined (mingw)
+	struct tm	*ts;
+#else
+	struct tm	tsbuf;
+	struct tm	*ts = &tsbuf;
+#endif
 
 	CHKVOID(timestampBuffer);
-	oK(localtime_r(&timestamp, &ts));
+#if defined (mingw)
+	ts = localtime(&timestamp);
+#else
+	oK(localtime_r(&timestamp, &tsbuf));
+#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
-			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
-			ts.tm_hour, ts.tm_min, ts.tm_sec);
+			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
+			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
 void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
-	struct tm	ts;
+#if defined (mingw)
+	struct tm	*ts;
+#else
+	struct tm	tsbuf;
+	struct tm	*ts = &tsbuf;
+#endif
 
 	CHKVOID(timestampBuffer);
-	oK(gmtime_r(&timestamp, &ts));
+#if defined (mingw)
+	ts = gmtime(&timestamp);
+#else
+	oK(gmtime_r(&timestamp, &tsbuf));
+#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
-			ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday,
-			ts.tm_hour, ts.tm_min, ts.tm_sec);
+			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
+			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
 /*	*	*	Parsing 	*	*	*	*	*/
@@ -1539,7 +1558,7 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "wmAddress") == 0)
 		{
-			parms->wmAddress = (char *) atol(tokens[1]);
+			parms->wmAddress = (char *) strtoaddr(tokens[1]);
 			continue;
 		}
 
@@ -1615,8 +1634,13 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "wmSize:          %ld",
 			parms->wmSize);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "wmAddress:       %0lx",
-			(unsigned long) parms->wmAddress);
+#if (SPACE_ORDER > 2 && defined(mingw))
+	isprintf(buffer, sizeof buffer, "wmAddress:       %#I64x",
+			(uaddr) (parms->wmAddress));
+#else
+	isprintf(buffer, sizeof buffer, "wmAddress:       %#lx",
+			(uaddr) (parms->wmAddress));
+#endif
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);
@@ -1644,82 +1668,7 @@ void	printIonParms(IonParms *parms)
 	writeMemo(buffer);
 }
 
-/*	*	*	Portable alarm functions	*	*	*/
-
-#ifndef uClibc
-static void	*alarmMain(void *parm)
-{
-	IonAlarm	*alarm = (IonAlarm *) parm;
-	pthread_mutex_t	mutex;
-	pthread_cond_t	cv;
-	struct timeval	workTime;
-	struct timespec	deadline;
-	int		result;
-
-	if (alarm->cycles == 0)
-	{
-		alarm->cycles -= 1;	/*	Underflow to max uint.	*/
-	}
-
-	memset((char *) &mutex, 0, sizeof mutex);
-	if (pthread_mutex_init(&mutex, NULL))
-	{
-		putSysErrmsg("Can't start alarm, mutex init failed", NULL);
-		return NULL;
-	}
-
-	memset((char *) &cv, 0, sizeof cv);
-	if (pthread_cond_init(&cv, NULL))
-	{
-		putSysErrmsg("Can't start alarm, cond init failed", NULL);
-		return NULL;
-	}
-
-	while (alarm->cycles > 0)
-	{
-		getCurrentTime(&workTime);
-		deadline.tv_sec = workTime.tv_sec + alarm->term;
-		deadline.tv_nsec = workTime.tv_usec * 1000;
-		oK(pthread_mutex_lock(&mutex));
-		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
-		pthread_mutex_unlock(&mutex);
-		if (result != ETIMEDOUT)
-		{
-			putSysErrmsg("Alarm failure", NULL);
-			break;
-		}
-
-		if ((alarm->proceed)(alarm->userData) < 0)
-		{
-			break;
-		}
-
-		alarm->cycles -= 1;
-	}
-
-	pthread_mutex_destroy(&mutex);
-	pthread_cond_destroy(&cv);
-	return NULL;
-}
-#endif
-
-void	ionSetAlarm(IonAlarm *alarm, pthread_t *alarmThread)
-{
-#ifndef uClibc
-	if (pthread_begin(alarmThread, NULL, alarmMain, alarm) < 0)
-	{
-		putSysErrmsg("Can't set alarm", NULL);
-	}
-#endif
-}
-
-void	ionCancelAlarm(pthread_t alarmThread)
-{
-#ifndef uClibc
-	pthread_end(alarmThread);
-	pthread_join(alarmThread, NULL);
-#endif
-}
+/*	Functions for signaling the main threads of processes.	*	*/
 
 #ifdef mingw
 void	ionNoteMainThread(char *procName)
@@ -1829,6 +1778,7 @@ void	ionResumeAttendant(ReqAttendant *attendant)
 {
 	CHKVOID(attendant);
 	sm_SemUnend(attendant->semaphore);
+	sm_SemGive(attendant->semaphore);
 }
 
 void	ionStopAttendant(ReqAttendant *attendant)

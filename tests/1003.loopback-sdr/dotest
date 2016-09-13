@@ -94,7 +94,19 @@ echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
 echo "ionstart -i ${CONFIGDIR}/loopback.ionrc -l ${CONFIGDIR}/loopback.ltprc -b ${CONFIGDIR}/loopback.bprc -p ${CONFIGDIR}/loopback.ipnrc -s ${CONFIGDIR}/loopback.ionsecrc"
+
+echo "Running ionstart..."
 "ionstart" -i "${CONFIGDIR}/loopback.ionrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
+echo "...finished ionstart script"
+
+sleep 3
+
+# Start BP daemons, give them time to get going
+echo "Starting BP daemons..."
+echo "bpadmin ${CONFIGDIR}/loopbackstart.bprc"
+bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+sleep 5
+echo "...all BP daemons should now be running."
 
 # Start the listener that will receive all the bundles.
 echo "Starting Message Listener..."
@@ -102,7 +114,7 @@ bpsink ipn:1.1 > $IONRECEIVEFILE &
 BPSINKPID=$!
 
 # give bpsink some time to start up
-sleep 5
+sleep 2
 
 while [ ${PASS} -eq 1 ] && [ ! $ITERATION -gt $ITERATIONGOAL ]
 do

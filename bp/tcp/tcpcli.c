@@ -72,7 +72,7 @@
 #endif
 
 #ifndef IDLE_SHUTDOWN_INTERVAL
-#define IDLE_SHUTDOWN_INTERVAL	(600)
+#define IDLE_SHUTDOWN_INTERVAL	(-1)
 #endif
 
 #ifndef MAX_RECONNECT_INTERVAL
@@ -126,6 +126,7 @@ typedef struct
 {
 	int			sock;
 	pthread_mutex_t		mutex;
+	int			hasMutex;	/*	Boolean.	*/
 	pthread_t		receiver;
 	int			hasReceiver;	/*	Boolean.	*/
 	vast			lengthReceived;	/*	Current in.	*/
@@ -144,13 +145,13 @@ typedef struct
 
 	/*	For planned connection only.				*/
 
-	char			*destDuctName;	/*	From directive.	*/
 	VOutduct		*outduct;
 	pthread_t		sender;
 	int			hasSender;	/*	Boolean.	*/
 	Lyst			pipeline;	/*	All outbound.	*/
 	struct llcv_str		throttleLlcv;
 	Llcv			throttle;	/*	On pipeline.	*/
+	int			hasThrottle;	/*	Boolean.	*/
 	uvast			lengthSent;	/*	Oldest out.	*/
 	uvast			lengthAcked;	/*	Oldest out.	*/
 	int			reconnectInterval;
@@ -158,10 +159,23 @@ typedef struct
 	int			newlyAdded;	/*	Boolean.	*/
 } TcpclConnection;
 
+typedef enum
+{
+	ThreadStopped = 0,
+	ThreadRunning = 1
+} ThreadState;
+
 typedef struct tcpcl_neighbor
 {
 	char			*eid;		/*	Remote node ID.	*/
+	char			*destDuctName;	/*	From directive.	*/
 	VInduct			*induct;	/*	(Shared.)	*/
+	int			connecting;	/*	Boolean		*/
+	pthread_t		connectThread;
+	ThreadState		connectThreadState;
+	int			disconnecting;	/*	Boolean		*/
+	pthread_t		cleanupThread;
+	ThreadState		cleanupThreadState;
 	int			mustDelete;	/*	Boolean		*/
 	TcpclConnection		connections[2];
 	TcpclConnection		*pc;		/*	Planned.	*/
@@ -169,6 +183,7 @@ typedef struct tcpcl_neighbor
 } TcpclNeighbor;
 
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor);
+static void	stopSenderThread(TcpclConnection *connection);
 static void	*handleContacts(void *parm);
 
 static char	*procName()
@@ -176,11 +191,12 @@ static char	*procName()
 	return "tcpcli";
 }
 
+#ifndef mingw
 static void	handleStopThread()
 {
 	isignal(SIGINT, handleStopThread);
 }
-
+#endif
 static void	handleStopTcpcli()
 {
 	isignal(SIGTERM, handleStopTcpcli);
@@ -245,6 +261,24 @@ static int	receiveSdnv(TcpclConnection *p, uvast *val)
 	return sdnvLength;		/*	Succeeded.		*/
 }
 
+/*	*	Connection and neighbor management functions	*	*/
+
+typedef struct
+{
+	Lyst		neighbors;
+	TcpclConnection	*connection;
+	char		*buffer;
+	AcqWorkArea	*work;
+	ReqAttendant	attendant;
+} ReceiverThreadParms;
+
+typedef struct
+{
+	TcpclConnection	*connection;
+	char		*buffer;
+	Outflow		outflows[3];
+} SenderThreadParms;
+
 static LystElt	findNeighborForEid(Lyst neighbors, char *eid)
 {
 	LystElt		elt;
@@ -262,29 +296,11 @@ static LystElt	findNeighborForEid(Lyst neighbors, char *eid)
 	return NULL;
 }
 
-/*	*	Connection and neighbor management functions	*	*/
-
-typedef struct
-{
-	Lyst			neighbors;
-	TcpclConnection		*connection;
-	char			*buffer;
-	AcqWorkArea		*work;
-	ReqAttendant		attendant;
-} ReceiverThreadParms;
-
-typedef struct
-{
-	TcpclConnection	*connection;
-	char		*buffer;
-	Outflow		outflows[3];
-} SenderThreadParms;
-
 static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 {
 	TcpclNeighbor	*neighbor;
+	size_t		len;
 	TcpclConnection	*connection;
-	size_t		eidlen;
 	LystElt		elt;
 	int		i;
 
@@ -295,16 +311,15 @@ static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 		return NULL;
 	}
 
-	eidlen = istrlen(eid, MAX_EID_LEN) + 1;
-	neighbor->eid = MTAKE(eidlen);
-	if (neighbor->eid == NULL)
+	len = istrlen(eid, MAX_EID_LEN) + 1;
+	if (len == 0 || (neighbor->eid = MTAKE(len)) == NULL)
 	{
 		MRELEASE(neighbor);
 		putErrmsg("tcpcli can't allocate new neighbor EID.", eid);
 		return NULL;
 	}
 
-	oK(istrcpy(neighbor->eid, eid, eidlen));
+	oK(istrcpy(neighbor->eid, eid, len));
 	neighbor->induct = induct;
 	neighbor->pc = &(neighbor->connections[0]);
 	neighbor->cc = &(neighbor->connections[1]);
@@ -315,7 +330,6 @@ static LystElt	addTcpclNeighbor(char *eid, VInduct *induct, Lyst neighbors)
 		connection->neighbor = neighbor;
 		connection->secUntilShutdown = -1;
 		connection->secUntilKeepalive = -1;
-		pthread_mutex_init(&(connection->mutex), NULL);
 	}
 
 	elt = lyst_insert_last(neighbors, (void *) neighbor);
@@ -359,21 +373,20 @@ static void	cancelXmit(LystElt elt, void *userdata)
 }
 
 static int	beginConnection(LystElt neighborElt, int newSocket,
-			Lyst neighbors, char *destDuctName)
+			int fromAccept)
 {
 	TcpclNeighbor		*neighbor = NULL;
 	TcpclConnection		*connection;
 	int			newNeighbor = 0;
-	size_t			len = 0;
 	ReceiverThreadParms	*rtp;
 
 	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
-	if (destDuctName == NULL)	/*	Connection by accept().	*/
+	if (fromAccept)			/*	accept() succeeded.	*/
 	{
 		connection = neighbor->cc;
 		newNeighbor = 1;
 	}
-	else				/*	Connect() succeeded.	*/
+	else				/*	connect() succeeded.	*/
 	{
 		connection = neighbor->pc;
 
@@ -404,14 +417,17 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		return -1;
 	}
 
-	rtp->neighbors = neighbors;
+	rtp->neighbors = lyst_lyst(neighborElt);
 	rtp->connection = connection;
+	pthread_mutex_init(&(connection->mutex), NULL);
+	connection->hasMutex = 1;
 	pthread_mutex_lock(&(connection->mutex));
 	if (pthread_begin(&(connection->receiver), NULL, handleContacts, rtp))
 	{
 		MRELEASE(rtp);
 		pthread_mutex_unlock(&(connection->mutex));
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -424,7 +440,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 	}
 
 	connection->hasReceiver = 1;
-	if (destDuctName == NULL)	/*	Connection by accept().	*/
+	if (fromAccept)			/*	Connection by accept().	*/
 	{
 		/*	Let receiver thread start running.		*/
 
@@ -447,6 +463,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -467,6 +484,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		pthread_join(connection->receiver, NULL);
 		MRELEASE(rtp);
 		pthread_mutex_destroy(&(connection->mutex));
+		connection->hasMutex = 0;
 		if (newNeighbor)
 		{
 			deleteTcpclNeighbor(neighbor);
@@ -478,28 +496,7 @@ static int	beginConnection(LystElt neighborElt, int newSocket,
 		return -1;
 	}
 
-	len = istrlen(destDuctName, MAX_CL_DUCT_NAME_LEN + 1) + 1;
-	if (len == 0 || (connection->destDuctName = MTAKE(len)) == NULL)
-	{
-		llcv_close(connection->throttle);
-		lyst_destroy(connection->pipeline);
-		connection->shutDown = 1;
-		pthread_mutex_unlock(&(connection->mutex));
-		pthread_join(connection->receiver, NULL);
-		MRELEASE(rtp);
-		pthread_mutex_destroy(&(connection->mutex));
-		if (newNeighbor)
-		{
-			deleteTcpclNeighbor(neighbor);
-			lyst_delete(neighborElt);
-		}
-
-		putErrmsg("tcpcli can't copy socket spec.", NULL);
-		closesocket(newSocket);
-		return -1;
-	}
-
-	istrcpy(connection->destDuctName, destDuctName, len);
+	connection->hasThrottle = 1;
 
 	/*	Let receiver thread start running.			*/
 
@@ -518,8 +515,8 @@ static int	reopenConnection(TcpclConnection *connection)
 
 	/*	Okay to make next connection attempt.			*/
 
-	switch (itcp_connect(connection->destDuctName,
-			BpTcpDefaultPortNbr, &(connection->sock)))
+	switch (itcp_connect(neighbor->destDuctName, BpTcpDefaultPortNbr,
+			&(connection->sock)))
 	{
 	case -1:		/*	System failure.			*/
 		putErrmsg("tcpcli failed on TCP reconnect.", neighbor->eid);
@@ -540,10 +537,10 @@ static int	reopenConnection(TcpclConnection *connection)
 
 	/*	Reconnection succeeded.					*/
 
-	if (bpUnblockOutduct("tcp", connection->destDuctName) < 0)
+	if (bpUnblockOutduct("tcp", neighbor->destDuctName) < 0)
 	{
 		putErrmsg("tcpcli connected but didn't unblock outduct.",
-				connection->destDuctName);
+				neighbor->destDuctName);
 		return -1;
 	}
 
@@ -555,20 +552,9 @@ static int	reopenConnection(TcpclConnection *connection)
 static void	closeConnection(TcpclConnection *connection)
 {
 	Sdr		sdr = getIonsdr();
+	TcpclNeighbor	*neighbor;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-
-	if (connection->hasSender)
-	{
-		sm_SemEnd(connection->outduct->semaphore);
-#ifdef mingw
-		shutdown(connection->sock, SD_BOTH);
-#else
-		pthread_kill(connection->sender, SIGINT);
-#endif
-		pthread_join(connection->sender, NULL);
-		connection->hasSender = 0;
-	}
 
 	if (connection->sock != -1)
 	{
@@ -577,13 +563,13 @@ static void	closeConnection(TcpclConnection *connection)
 	}
 
 	connection->secUntilKeepalive = -1;
-	if (connection->destDuctName)	/*	Planned connection.	*/
+	if (connection->hasThrottle)	/*	Planned connection.	*/
 	{
-		findOutduct("tcp", connection->destDuctName, &vduct,
-				&vductElt);
+		neighbor = connection->neighbor;
+		findOutduct("tcp", neighbor->destDuctName, &vduct, &vductElt);
 		if (vductElt)
 		{
-			if (bpBlockOutduct("tcp", connection->destDuctName) < 0)
+			if (bpBlockOutduct("tcp", neighbor->destDuctName) < 0)
 			{
 				ionKillMainThread(procName());
 				return;
@@ -642,6 +628,9 @@ static int	sendShutdown(TcpclConnection *connection, char reason,
 
 static void	eraseConnection(TcpclConnection *connection)
 {
+	TcpclNeighbor	*neighbor = connection->neighbor;
+
+	stopSenderThread(connection);
 	if (connection->hasReceiver)
 	{
 #ifdef mingw
@@ -650,23 +639,29 @@ static void	eraseConnection(TcpclConnection *connection)
 		pthread_kill(connection->receiver, SIGINT);
 #endif
 		pthread_join(connection->receiver, NULL);
-		connection->hasReceiver = 0;
 	}
 
 	closeConnection(connection);
 	if (connection->pipeline)
 	{
 		lyst_destroy(connection->pipeline);
-		connection->pipeline = NULL;
+	}
+
+	if (connection->hasThrottle)
+	{
 		llcv_close(connection->throttle);
 	}
 
-	pthread_mutex_destroy(&(connection->mutex));
-	if (connection->destDuctName)
+	if (connection->hasMutex)
 	{
-		MRELEASE(connection->destDuctName);
-		connection->destDuctName = NULL;
+		pthread_mutex_destroy(&(connection->mutex));
 	}
+
+	memset(connection, 0, sizeof(TcpclConnection));
+	connection->sock = -1;
+	connection->neighbor = neighbor;
+	connection->secUntilShutdown = -1;
+	connection->secUntilKeepalive = -1;
 }
 
 static void	endConnection(TcpclConnection *connection, char reason)
@@ -683,6 +678,11 @@ static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor)
 	if (neighbor->eid)
 	{
 		MRELEASE(neighbor->eid);
+	}
+
+	if (neighbor->destDuctName)
+	{
+		MRELEASE(neighbor->destDuctName);
 	}
 
 	MRELEASE(neighbor);
@@ -808,12 +808,20 @@ static int	sendOneBundle(SenderThreadParms *stp)
 {
 	unsigned int	maxPayloadLength;
 	TcpclConnection	*connection = stp->connection;
+	TcpclNeighbor	*neighbor = connection->neighbor;
 	Object		bundleZco;
 	BpExtendedCOS	extendedCOS;
 	char		destDuctName[SDRSTRING_BUFSZ];
 
 	while (1)
 	{
+		if (sm_SemEnded(connection->outduct->semaphore))
+		{
+			writeMemoNote("[i] tcpcli outduct stopped",
+					neighbor->destDuctName);
+			return 0;	/*	Time to give up.	*/
+		}
+
 		/*	Loop until max payload length is known.		*/
 
 		if (!(maxPayloadLengthKnown(connection->outduct,
@@ -821,15 +829,6 @@ static int	sendOneBundle(SenderThreadParms *stp)
 		{
 			snooze(1);
 			continue;
-		}
-
-		/*	If outduct has meanwhile been stopped, quit.	*/
-
-		if (sm_SemEnded(connection->outduct->semaphore))
-		{
-			writeMemoNote("[i] tcpcli outduct stopped",
-					connection->destDuctName);
-			return 0;
 		}
 
 		/*	Get the next bundle to send.			*/
@@ -844,7 +843,7 @@ static int	sendOneBundle(SenderThreadParms *stp)
 		if (bundleZco == 0)	/*	Outduct stopped.	*/
 		{
 			writeMemoNote("[i] tcpcli outduct stopped",
-					connection->destDuctName);
+					neighbor->destDuctName);
 			return 0;
 		}
 
@@ -920,6 +919,35 @@ static void	*sendBundles(void *parm)
 	return NULL;
 }
 
+static void	stopSenderThread(TcpclConnection *connection)
+{
+	if (!(connection->hasSender))
+	{
+		return;
+	}
+
+	/*	Enable sendOneBundle to exit.				*/
+
+	sm_SemEnd(connection->outduct->semaphore);
+
+	/*	Enable sendBundleByTcpcl to exit.			*/
+
+	llcv_signal(connection->throttle, pipeline_not_full);
+
+	/*	Signal thread in case it's not already stopping.	*/
+
+#ifdef mingw
+	shutdown(connection->sock, SD_BOTH);
+#else
+	pthread_kill(connection->sender, SIGINT);
+#endif
+
+	/*	Forget connection's sender.				*/
+
+	pthread_join(connection->sender, NULL);
+	connection->hasSender = 0;
+}
+
 /*	*	*	Receiver thread functions	*	*	*/
 
 static int	sendContactHeader(TcpclConnection *connection)
@@ -968,7 +996,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	Sdr			sdr = getIonsdr();
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
-	char			ownEid[MAX_EID_LEN];
 	unsigned char		header[8];
 	unsigned short		keepaliveInterval;
 	uvast			eidLength;
@@ -980,8 +1007,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	PsmAddress		vductElt;
 	SenderThreadParms	*stp;
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	if (itcp_recv(&connection->sock, (char *) header, sizeof header) < 1)
 	{
 		putErrmsg("Can't get TCPCL contact header.", neighbor->eid);
@@ -1034,6 +1059,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 		connection->secUntilKeepalive = connection->keepaliveInterval;
 	}
 
+	/*	Next is the neighboring node's ID, an endpoint ID.	*/
+
 	if (receiveSdnv(connection, &eidLength) < 1)
 	{
 		putErrmsg("Can't get EID length in TCPCL contact header",
@@ -1056,7 +1083,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	}
 
 	eidbuf[eidLength] = '\0';
-	if (connection->destDuctName == NULL)	/*	From accept().	*/
+	if (connection->hasThrottle == 0)	/*	From accept().	*/
 	{
 		/*	If a TcpclNeighbor already exists whose eid
 		 *	is equal to eidbuf:
@@ -1099,6 +1126,9 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 				connection->sock = -1;
 				connection->hasReceiver = 0;
+				connection->hasMutex = 0;
+				connection->hasSender = 0;
+				connection->hasThrottle = 0;
 			}
 
 			/*	In any case, tentative neighbor is
@@ -1137,16 +1167,16 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	 *	transmitted, so we must start a sender thread for
 	 *	the outduct that we use for those bundles.		*/
 
-	findOutduct("tcp", connection->destDuctName, &outduct, &vductElt);
+	findOutduct("tcp", neighbor->destDuctName, &outduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("tcpli can't find outduct.",
-				connection->destDuctName);
+		putErrmsg("tcpli can't find outduct.", neighbor->destDuctName);
 		return -1;
 	}
 
 	connection->outduct = outduct;
 	sm_SemUnend(connection->outduct->semaphore);
+	sm_SemGive(connection->outduct->semaphore);
 	stp = (SenderThreadParms *) MTAKE(sizeof(SenderThreadParms));
 	if (stp == NULL)
 	{
@@ -1270,7 +1300,14 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		connection->lengthReceived = 0;
 	}
 
-	connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+	if (connection->secUntilShutdown != -1)
+	{
+		/*	Will end the connection when incoming bundles
+		 *	stop, but they are still arriving.		*/
+
+		connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+	}
+
 	connection->secSinceReception = 0;
 	connection->timeoutCount = 0;
 	return 1;
@@ -1296,7 +1333,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		return 1;		/*	Ignore it.		*/
 	}
 
-	if (connection->destDuctName == NULL)
+	if (connection->hasThrottle == 0)
 	{
 		/*	This is a chance connection, created by
 		 *	accepting connect() from the neighbor node.
@@ -1613,7 +1650,11 @@ static void	*handleContacts(void *parm)
 	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
 	TcpclConnection		*connection = rtp->connection;
 	TcpclNeighbor		*neighbor = connection->neighbor;
+	char			ownEid[MAX_EID_LEN];
 	int			result;
+
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
 
 	/*	Wait for okay from beginConnection.			*/
 
@@ -1658,7 +1699,7 @@ static void	*handleContacts(void *parm)
 	{
 		if (connection->sock == -1)
 		{
-			if (connection->destDuctName == NULL)
+			if (connection->hasThrottle == 0)
 			{
 				break;	/*	Only peer can reopen.	*/
 			}
@@ -1697,7 +1738,8 @@ static void	*handleContacts(void *parm)
 
 		/*	Contact header reception may have attached
 		 *	this receiver thread to a previously
-		 *	established neighbor.				*/
+		 *	established neighbor.  Also may have started
+		 *	a sender thread.				*/
 
 		connection = rtp->connection;
 		neighbor = connection->neighbor;
@@ -1705,6 +1747,7 @@ static void	*handleContacts(void *parm)
 		{
 		case -1:		/*	System failure.		*/
 			putErrmsg("Failure receiving contact header", NULL);
+			stopSenderThread(connection);
 			ionKillMainThread(procName());
 			connection->shutDown = 1;
 			closeConnection(connection);
@@ -1713,6 +1756,7 @@ static void	*handleContacts(void *parm)
 		case 0:			/*	Protocol faiure.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					neighbor->eid);
+			stopSenderThread(connection);
 			closeConnection(connection);
 			continue;	/*	Try again.		*/
 		}
@@ -1720,7 +1764,16 @@ static void	*handleContacts(void *parm)
 		/*	Contact episode has begun.			*/
 
 		connection->lengthReceived = 0;
-		connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+		if (connection->hasThrottle == 0
+		&& strcmp(neighbor->eid, ownEid) != 0)
+		{
+			/*	From accept(), and not loopback, so
+			 *	end the connection when the incoming
+			 *	bundles end.				*/
+
+			connection->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
+		}
+
 		connection->secSinceReception = 0;
 		connection->timeoutCount = 0;
 		if (handleMessages(rtp) < 0)
@@ -1729,6 +1782,7 @@ static void	*handleContacts(void *parm)
 			connection->shutDown = 1;
 		}
 
+		stopSenderThread(connection);
 		closeConnection(connection);
 	}
 
@@ -1760,7 +1814,7 @@ static void	*spawnReceivers(void *parm)
 	 *	of threads to service those connections.		*/
 
 	ServerThreadParms	*stp = (ServerThreadParms *) parm;
-	long			newSocket;
+	saddr			newSocket;
 	struct sockaddr		socketName;
 	socklen_t		socknamelen;
 	LystElt			elt;
@@ -1821,20 +1875,64 @@ typedef struct
 	Lyst		neighbors;
 } ClockThreadParms;
 
+static void	*makePlannedConnection(void *parm)
+{
+	LystElt		neighborElt = (LystElt) parm;
+	TcpclNeighbor	*neighbor;
+	int		sock;
+
+	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
+	switch (itcp_connect(neighbor->destDuctName, BpTcpDefaultPortNbr,
+				&sock))
+	{
+	case -1:	/*	System failure.				*/
+		putErrmsg("tcpcli can't connect to remote node.",
+				neighbor->destDuctName);
+
+			/*	Intentional fall-through to next case.	*/
+
+	case 0:		/*	Protocol failure.			*/
+		neighbor->connectThreadState = ThreadStopped;
+		return NULL;
+	}
+
+	if (bpUnblockOutduct("tcp", neighbor->destDuctName) < 0)
+	{
+		putErrmsg("tcpcli connected but didn't unblock outduct.",
+				neighbor->destDuctName);
+		closesocket(sock);
+		neighbor->connectThreadState = ThreadStopped;
+		return NULL;
+	}
+
+	/*	TCP connection succeeded, so establish the TCPCL
+	 *	connection.						*/
+
+	if (beginConnection(neighborElt, sock, 0) < 0)
+	{
+		putErrmsg("tcpcli can't add new connection.", NULL);
+		neighbor->connectThreadState = ThreadStopped;
+		return NULL;
+	}
+
+	neighbor->connectThreadState = ThreadStopped;
+	return NULL;
+}
+
 static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 			char *socketSpec)
 {
-	LystElt		elt;
+	LystElt		neighborElt;
 	TcpclNeighbor	*neighbor;
-	int		sock;
+	size_t		len = 0;
 
 	/*	If a Neighbor with an open planned connection already
 	 *	exists for this plan, nothing to do.			*/
 
-	elt = findNeighborForEid(ctp->neighbors, eid);
-	if (elt)
+	neighborElt = findNeighborForEid(ctp->neighbors, eid);
+	if (neighborElt)
 	{
-		neighbor = (TcpclNeighbor *) lyst_data(elt);
+		neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
 		if (neighbor->pc->hasSender)
 		{
 			return 0;	/*	Connection is active.	*/
@@ -1862,49 +1960,56 @@ static int	beginConnectionForPlan(ClockThreadParms *ctp, char *eid,
 	}
 	else	/*	This is a newly added plan, no neighbor yet.	*/
 	{
-		elt = addTcpclNeighbor(eid, ctp->induct, ctp->neighbors);
-		if (elt == NULL)
+		neighborElt = addTcpclNeighbor(eid, ctp->induct,
+				ctp->neighbors);
+		if (neighborElt == NULL)
 		{
 			putErrmsg("Can't add neighbor.", eid);
 			return -1;
 		}
+
+		neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
 	}
 
-	/*	Try to connect to the indicated socket.			*/
+	/*	Neighbor exists, but there is no connection.  Need to
+	 *	connect to the indicated socket.			*/
 
-	switch (itcp_connect(socketSpec, BpTcpDefaultPortNbr, &sock))
+	if (neighbor->connecting	/*	Already on it.		*/
+	|| neighbor->disconnecting)	/*	Nothing to do.		*/
 	{
-	case -1:			/*	System failure.		*/
-		putErrmsg("tcpcli can't connect to remote node.", socketSpec);
-		return -1;
-
-	case 0:				/*	Protocol failure.	*/
-		return 0;		/*	Connection refused.	*/
+		return 0;
 	}
 
-	if (bpUnblockOutduct("tcp", socketSpec) < 0)
+	/*	Socket spec for connecting to neighbor may be new.	*/
+
+	if (neighbor->destDuctName == NULL)
 	{
-		putErrmsg("tcpcli connected but didn't unblock outduct.",
-				socketSpec);
-		closesocket(sock);
-		return -1;
+		len = istrlen(socketSpec, MAX_CL_DUCT_NAME_LEN + 1) + 1;
+		if (len == 0 || (neighbor->destDuctName = MTAKE(len)) == NULL)
+		{
+			putErrmsg("tcpcli can't copy socket spec.", eid);
+			return -1;
+		}
+
+		oK(istrcpy(neighbor->destDuctName, socketSpec, len));
 	}
 
-	/*	TCP connection succeeded, so establish the TCPCL
-	 *	connection.						*/
-
-	if (beginConnection(elt, sock, ctp->neighbors, socketSpec) < 0)
+	neighbor->connecting = 1;
+	neighbor->connectThreadState = ThreadRunning;
+	if (pthread_begin(&(neighbor->connectThread), NULL,
+			makePlannedConnection, neighborElt))
 	{
-		putErrmsg("tcpcli can't add new connection.", NULL);
+		putSysErrmsg("tcpcli can't create thread", NULL);
 		return -1;
 	}
 
-	return 0;			/*	Successful.		*/
+	return 0;
 }
 
 static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 {
 	Sdr		sdr = getIonsdr();
+	TcpclNeighbor	*neighbor;
 	Object		planElt;
 	Object		planObj;
 			OBJ_POINTER(IpnPlan, ipnPlan);
@@ -1914,6 +2019,7 @@ static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 	Object		ruleObj;
 			OBJ_POINTER(IpnRule, ipnRule);
 
+	neighbor = connection->neighbor;
 	for (planElt = sdr_list_first(sdr, ipndb->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
 	{
@@ -1927,7 +2033,7 @@ static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 			sdr_read(sdr, (char *) &protocol, outduct.protocol,
 					sizeof(ClProtocol));
 			if (strcmp(protocol.name, "tcp") == 0
-			&& strcmp(outduct.name, connection->destDuctName) == 0)
+			&& strcmp(outduct.name, neighbor->destDuctName) == 0)
 			{
 				return 1;	/*	Referenced.	*/
 			}
@@ -1948,7 +2054,7 @@ static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 					outduct.protocol, sizeof(ClProtocol));
 				if (strcmp(protocol.name, "tcp") == 0
 				&& strcmp(outduct.name,
-					connection->destDuctName) == 0)
+					neighbor->destDuctName) == 0)
 				{
 					return 1;	/*	Ref.	*/
 				}
@@ -1962,6 +2068,7 @@ static int	referencedInIpn(TcpclConnection *connection, IpnDB *ipndb)
 static int	referencedInDtn2(TcpclConnection *connection, Dtn2DB *dtn2db)
 {
 	Sdr		sdr = getIonsdr();
+	TcpclNeighbor	*neighbor;
 	Object		planElt;
 	Object		planObj;
 			OBJ_POINTER(Dtn2Plan, dtn2Plan);
@@ -1971,6 +2078,7 @@ static int	referencedInDtn2(TcpclConnection *connection, Dtn2DB *dtn2db)
 	Object		ruleObj;
 			OBJ_POINTER(Dtn2Rule, dtn2Rule);
 
+	neighbor = connection->neighbor;
 	for (planElt = sdr_list_first(sdr, dtn2db->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
 	{
@@ -1984,7 +2092,7 @@ static int	referencedInDtn2(TcpclConnection *connection, Dtn2DB *dtn2db)
 			sdr_read(sdr, (char *) &protocol, outduct.protocol,
 					sizeof(ClProtocol));
 			if (strcmp(protocol.name, "tcp") == 0
-			&& strcmp(outduct.name, connection->destDuctName) == 0)
+			&& strcmp(outduct.name, neighbor->destDuctName) == 0)
 			{
 				return 1;	/*	Referenced.	*/
 			}
@@ -2005,7 +2113,7 @@ static int	referencedInDtn2(TcpclConnection *connection, Dtn2DB *dtn2db)
 					outduct.protocol, sizeof(ClProtocol));
 				if (strcmp(protocol.name, "tcp") == 0
 				&& strcmp(outduct.name,
-					connection->destDuctName) == 0)
+					neighbor->destDuctName) == 0)
 				{
 					return 1;	/*	Ref.	*/
 				}
@@ -2226,21 +2334,32 @@ static int	rescanDtn2(ClockThreadParms *ctp, Dtn2DB *dtn2db)
 	return sdr_end_xn(sdr);
 }
 
+static void	*cleanUpPlannedConnection(void *parm)
+{
+	LystElt		neighborElt = (LystElt) parm;
+	TcpclNeighbor	*neighbor;
+	TcpclConnection	*connection;
+
+	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
+	connection = neighbor->pc;
+	endConnection(connection, -1);
+	MRELEASE(neighbor->destDuctName);
+	neighbor->destDuctName = NULL;
+	neighbor->cleanupThreadState = ThreadStopped;
+	return NULL;
+}
+
 static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 {
-	char		ownEid[MAX_EID_LEN];
 	LystElt		elt;
 	TcpclNeighbor	*neighbor;
 	TcpclConnection	*connection;
-	LystElt		nextElt;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
 	/*	First look for newly added ipnfw plans or rules and
 	 *	try to create connections for them.			*/
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	if (ipndb)
 	{
 		if (rescanIpn(ctp, ipndb) < 0)
@@ -2263,12 +2382,11 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 	/*	Now look for connections that must be ended because
 	 *	the plans/rules referencing them have been removed.	*/
 
-	for (elt = lyst_first(ctp->neighbors); elt; elt = nextElt)
+	for (elt = lyst_first(ctp->neighbors); elt; elt = lyst_next(elt))
 	{
-		nextElt = lyst_next(elt);
 		neighbor = (TcpclNeighbor *) lyst_data(elt);
 		connection = neighbor->pc;
-		if (connection->destDuctName == NULL)
+		if (connection->hasThrottle == 0)
 		{
 			/*	No connection to this neighbor per
 			 *	plan, nothing to clean up.		*/
@@ -2284,33 +2402,28 @@ static int	rescan(ClockThreadParms *ctp, IpnDB *ipndb, Dtn2DB *dtn2db)
 			continue;	/*	Too soon to clean up.	*/
 		}
 
-		findOutduct("tcp", connection->destDuctName, &vduct,
-				&vductElt);
-		if (vductElt == 0)	/*	Outduct is gone.	*/
-		{
-			endConnection(connection, -1);
-			if (neighbor->cc->sock == -1)
-			{
-				/*	No connection from neighbor.	*/
+		/*	Connection is well established.			*/
 
-				deleteTcpclNeighbor(neighbor);
-				lyst_delete(elt);
-				continue;
-			}
+		if (neighbor->disconnecting	/*	Cleaning up.	*/
+		|| neighbor->connecting)	/*	Nothing to do.	*/
+		{
+			continue;
 		}
 
-		/*	Is there some plan or rule that references
-		 *	this connection?				*/
+		/*	Clean up as necessary.				*/
 
-		if (noLongerReferenced(connection, ipndb, dtn2db))
+		findOutduct("tcp", neighbor->destDuctName, &vduct, &vductElt);
+		if (vductElt == 0	/*	Outduct is gone.	*/
+		|| noLongerReferenced(connection, ipndb, dtn2db))
 		{
-			endConnection(connection, -1);
-			if (neighbor->cc->sock == -1)
+			neighbor->disconnecting = 1;
+			neighbor->cleanupThreadState = ThreadRunning;
+			if (pthread_begin(&(neighbor->cleanupThread), NULL,
+					cleanUpPlannedConnection, elt))
 			{
-				/*	No connection from neighbor.	*/
-
-				deleteTcpclNeighbor(neighbor);
-				lyst_delete(elt);
+				putSysErrmsg("tcpcli can't create thread",
+						NULL);
+				return -1;
 			}
 		}
 	}
@@ -2347,21 +2460,22 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	static char	*noEid = "<unknown node>";
 	Sdr		sdr = getIonsdr();
 	LystElt		elt;
-	long		sock;
-	LystElt		neighbor;
+	int		sock;
+	LystElt		neighborElt;
 
 	oK(sdr_begin_xn(sdr));
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
-		sock = (long) lyst_data(elt);
+		sock = (saddr) lyst_data(elt);
 
 		/*	This new neighbor may be temporary.  After
 		 *	header exchange we may be loading this
 		 *	connection onto another existing neighbor.	*/
 
-		neighbor = addTcpclNeighbor(noEid, ctp->induct, ctp->neighbors);
-		if (neighbor == NULL)
+		neighborElt = addTcpclNeighbor(noEid, ctp->induct,
+				ctp->neighbors);
+		if (neighborElt == NULL)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
@@ -2370,7 +2484,7 @@ static int	clearBacklog(ClockThreadParms *ctp)
 			return -1;
 		}
 
-		if (beginConnection(neighbor, sock, ctp->neighbors, NULL) < 0)
+		if (beginConnection(neighborElt, sock, 1) < 0)
 		{
 			pthread_mutex_unlock(ctp->backlogMutex);
 			sdr_cancel_xn(sdr);
@@ -2445,6 +2559,7 @@ static void	checkConnection(TcpclConnection *connection)
 	{
 		if (sendKeepalive(connection) == 0)
 		{
+			stopSenderThread(connection);
 			closeConnection(connection);
 		}
 		else
@@ -2549,12 +2664,42 @@ static void	*handleEvents(void *parm)
 				continue;
 			}
 
+			if (neighbor->connecting)
+			{
+				if (neighbor->connectThreadState
+						== ThreadStopped)
+				{
+					pthread_join(neighbor->connectThread,
+							NULL);
+					neighbor->connecting = 0;
+				}
+				else	/*	Can't delete yet.	*/
+				{
+					continue;
+				}
+			}
+
+			if (neighbor->disconnecting)
+			{
+				if (neighbor->cleanupThreadState
+						== ThreadStopped)
+				{
+					pthread_join(neighbor->cleanupThread,
+							NULL);
+					neighbor->disconnecting = 0;
+				}
+				else	/*	Can't delete yet.	*/
+				{
+					continue;
+				}
+			}
+
 			for (i = 0; i < 2; i++)
 			{
 				checkConnection(&(neighbor->connections[i]));
 			}
 
-			if (neighbor->pc->destDuctName == NULL
+			if (neighbor->pc->hasThrottle == 0
 			&& neighbor->cc->sock == -1)
 			{
 				deleteTcpclNeighbor(neighbor);
@@ -2574,7 +2719,7 @@ static void	*handleEvents(void *parm)
 
 static void	dropPendingConnection(LystElt elt, void *userdata)
 {
-	long	sock = (long) lyst_data(elt);
+	saddr	sock = (uaddr) lyst_data(elt);
 
 	if (sock != -1)
 	{

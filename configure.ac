@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.4.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.5.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -178,7 +178,7 @@ AC_ARG_ENABLE(
 		no)  BUILD_CONTRIB=no;;
 		*) AC_MSG_ERROR([bad value ${enableval} for --enable-contrib]);;
 	esac],
-	[BUILD_CONTRIB=yes])
+	[BUILD_CONTRIB=no])
 AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 
 #

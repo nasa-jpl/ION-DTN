@@ -24,11 +24,12 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
+#ifndef mingw
 static void	handleStopThread()
 {
 	isignal(SIGINT, handleStopThread);
 }
-
+#endif
 static void	handleStopBrsscla()
 {
 	isignal(SIGTERM, handleStopBrsscla);

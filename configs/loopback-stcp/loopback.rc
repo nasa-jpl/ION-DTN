@@ -109,9 +109,10 @@ a plan 1 stcp/127.0.0.1:4556
 1
 e 1
 
-## a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
+a bspbibrule ipn:1.* ipn:1.* 1 'BIB-HMAC-SHA256' testkey
+a bspbcbrule ipn:1.* ipn:1.* 1 'BCB-SHA256-AES128' testkey
 
-## a key 'testkey' testkey.bin
+a key 'testkey' testkey.bin
 ## a key 'testkey2' testkey2.bin
 
 ## end ionsecadmin

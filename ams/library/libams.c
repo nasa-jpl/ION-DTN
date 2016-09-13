@@ -107,6 +107,7 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 		int responseNbr, int priority, AmsMsgType msgType)
 {
 	Llcv	eventsQueue = sap->amsEventsCV;
+	saddr	temp;
 	long	queryNbr;
 	LystElt	elt;
 
@@ -143,7 +144,8 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 	 *	we stuff it into the "compare" function pointer in
 	 *	the Lyst structure.					*/
 
-	queryNbr = (long) lyst_compare_get(eventsQueue->list);
+	temp = (saddr) lyst_compare_get(eventsQueue->list);
+	queryNbr = temp;
 	if (queryNbr != 0)	/*	Need response to specfic msg.	*/
 	{
 		if (msgType == AmsMsgReply
@@ -2875,6 +2877,7 @@ static int	locateRegistrar(AmsSAP *sap)
 {
 	AmsMib		*mib = _mib(NULL);
 	long		queryNbr;
+	saddr		temp;
 	MamsEndpoint	*ep;
 	char		*ept;
 	int		eptLen;
@@ -2919,7 +2922,8 @@ static int	locateRegistrar(AmsSAP *sap)
 	ept = sap->mamsTsif.ept;	/*	Own MAMS endpoint name.	*/
 	eptLen = strlen(ept) + 1;
 	queryNbr = time(NULL);
-	lyst_compare_set(sap->mamsEvents, (LystCompareFn) queryNbr);
+	temp = queryNbr;
+	lyst_compare_set(sap->mamsEvents, (LystCompareFn) temp);
 	result = sendMamsMsg(ep, &(sap->mamsTsif), registrar_query, queryNbr,
 			eptLen, ept);
 	if (result < 0)
@@ -3033,6 +3037,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	int		supplementLength;
 	char		*cursor;
 	long		queryNbr;
+	saddr		temp;
 	int		result;
 	LystElt		elt;
 	AmsEvt		*evt;
@@ -3078,7 +3083,8 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	/*	Now send reconnect message.				*/
 
 	queryNbr = time(NULL);
-	lyst_compare_set(sap->mamsEvents, (LystCompareFn) queryNbr);
+	temp = queryNbr;
+	lyst_compare_set(sap->mamsEvents, (LystCompareFn) temp);
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif), reconnect,
 			queryNbr, supplementLength, supplement);
 	MRELEASE(supplement);
@@ -3305,6 +3311,7 @@ static int	getModuleNbr(AmsSAP *sap)
 	int	supplementLength;
 	char	*supplement;
 	long	queryNbr;
+	saddr	temp;
 	LystElt	elt;
 	AmsEvt	*evt;
 	MamsMsg	*msg;
@@ -3342,7 +3349,8 @@ static int	getModuleNbr(AmsSAP *sap)
 	CHKERR(supplement);
 	loadContactSummary(sap, supplement, supplementLength);
 	queryNbr = time(NULL);
-	lyst_compare_set(sap->mamsEvents, (LystCompareFn) queryNbr);
+	temp = queryNbr;
+	lyst_compare_set(sap->mamsEvents, (LystCompareFn) temp);
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif),
 		module_registration, queryNbr, supplementLength, supplement);
 	MRELEASE(supplement);
@@ -4264,7 +4272,8 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 	Lyst	msgspaces = NULL;
 	int	i;
 	Subject	**msgspace;
-	long	msgspaceNbr;
+	int	msgspaceNbr;
+	saddr	temp;
 
 	if (validSap(sap))
 	{
@@ -4278,8 +4287,9 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 				if (*msgspace != NULL)
 				{
 					msgspaceNbr = 0 - (*msgspace)->nbr;
+					temp = msgspaceNbr;
 					if (lyst_insert_last(msgspaces,
-						(void *) msgspaceNbr) == NULL)
+							(void *) temp) == NULL)
 					{
 						lyst_destroy(msgspaces);
 						msgspaces = NULL;
@@ -4295,24 +4305,22 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 	return msgspaces;
 }
 
-int	ams_continuum_is_neighbor(int continuumNbr)
+int	ams_msgspace_is_neighbor(AmsSAP *sap, int continuumNbr)
 {
-	Continuum	*contin;
+	Subject	*msgspace;
 
-	if (continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR)
+	if (sap == NULL || continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR)
 	{
 		return 0;
 	}
 
-	lockMib();
-	contin = (_mib(NULL))->continua[continuumNbr];
-	unlockMib();
-	if (contin == NULL)
+	msgspace = sap->venture->msgspaces[continuumNbr];
+	if (msgspace == NULL)
 	{
 		return 0;
 	}
 
-	return contin->isNeighbor;
+	return msgspace->isNeighbor;
 }
 
 int	ams_get_continuum_nbr()
@@ -4392,11 +4400,13 @@ static XmitRule	*getXmitRule(AmsSAP *sap, Lyst rules)
 static int	receivedMsgAlready(Lyst recipients, int moduleNbr)
 {
 	LystElt	elt;
-	long	longModuleNbr = (long) moduleNbr;
+	long	longModuleNbr = moduleNbr;
+	saddr	temp;
 
 	for (elt = lyst_first(recipients); elt; elt = lyst_next(elt))
 	{
-		if (longModuleNbr == (long) lyst_data(elt))
+		temp = (saddr) lyst_data(elt);
+		if (longModuleNbr == temp)
 		{
 			return 1;
 		}
@@ -4415,6 +4425,7 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 	FanModule	*fan;
 	XmitRule	*rule;
 	int		result;
+	saddr		temp;
 
 	for (elt = lyst_first(subject->modules); elt; elt = lyst_next(elt))
 	{
@@ -4461,8 +4472,8 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 
 		if (subject->nbr != ALL_SUBJECTS)
 		{
-			lyst_insert_last(recipients,
-					(void *) ((long) (fan->module->nbr)));
+			temp = fan->module->nbr;
+			lyst_insert_last(recipients, (void *) temp);
 		}
 	}
 
@@ -5032,7 +5043,6 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	i2 = subjectNbr;
 	i2 = htons(i2);
 	memcpy(cancellation, (char *) &i2, 2);
-	*(cancellation + 2) = (continuumNbr >> 16) & 0x000000ff;
 	*(cancellation + 2) = (continuumNbr >> 8) & 0x0000007f;
 	*(cancellation + 3) = continuumNbr & 0x000000ff;
 	u2 = unitNbr;
@@ -5639,10 +5649,11 @@ static void	stopEventMgr(AmsSAP *sap)
 static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 			int moduleNbr, int subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
-			char *content, long context, int term, AmsEvent *event)
+			char *content, int context, int term, AmsEvent *event)
 {
 	int		eventMgrNeeded = 0;
 	int		result = 0;
+	saddr		comparefn;
 	pthread_t	mgrThread;
 
 	CHKERR(sap);
@@ -5675,7 +5686,8 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 		stopEventMgr(sap);
 	}
 
-	lyst_compare_set(sap->amsEvents, (LystCompareFn) context);
+	comparefn = context;
+	lyst_compare_set(sap->amsEvents, (LystCompareFn) comparefn);
 	if (sendMsg(sap, continuumNbr, unitNbr, moduleNbr, subjectNbr,
 			priority, flowLabel, contentLength, content,
 			context, AmsMsgQuery) < 0)
@@ -5775,6 +5787,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	Lyst		recipients;
 	LystElt		elt;
 	FanModule	*fan;
+	saddr		temp;
 	XmitRule	*rule;
 
 	if (continuumNbr == THIS_CONTINUUM)
@@ -5896,8 +5909,8 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			return result;
 		}
 
-		lyst_insert_last(recipients,
-				(void *) ((long) (fan->module->nbr)));
+		temp = fan->module->nbr;
+		lyst_insert_last(recipients, (void *) temp);
 	}
 
 	/*	Now send a copy of the message to every module in the

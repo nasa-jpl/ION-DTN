@@ -3,11 +3,6 @@
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,7 +19,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  01/10/13  E. Birrane     Initial Implementation
+ **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
 #ifndef _INGEST_H_
@@ -33,10 +28,10 @@
 
 /* Validation function */
 int rx_validate_mid_mc(Lyst mids, int passEmpty);
-int rx_validate_rule(rule_time_prod_t *rule);
+int rx_validate_rule(trl_t *rule);
 
 
-void *rx_thread(void *threadId);
+void *rx_thread(int *running);
 
 /* Message Handling Functions. */
 void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used);

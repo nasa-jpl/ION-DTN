@@ -752,6 +752,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	else
 	{
 		sm_SemUnend(cfdpvdb->eventSemaphore);
+		sm_SemGive(cfdpvdb->eventSemaphore);
 	}
 
 	sm_SemTake(cfdpvdb->eventSemaphore);		/*	Lock.	*/
@@ -762,6 +763,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	else
 	{
 		sm_SemUnend(cfdpvdb->fduSemaphore);
+		sm_SemGive(cfdpvdb->fduSemaphore);
 	}
 
 	sm_SemTake(cfdpvdb->fduSemaphore);		/*	Lock.	*/
@@ -3248,7 +3250,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		memcpy((char *) &transactionId, (char *) &(fpdu->transactionId),
 				sizeof(CfdpTransactionId));
 		memcpy((char *) &destinationEntity,
-				(char *) &cfdpdb.ownEntityNbr.buffer,
+				(char *) &cfdpdb.ownEntityNbr,
 				sizeof(CfdpNumber));
 	}
 	else			/*	A forward PDU.			*/
@@ -3613,14 +3615,14 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 		return 0;			/*	Malformed.	*/
 	}
 
-	fdu->finishReceived = 1;
 	if (fdu->closureElt)
 	{
-		sdr_free(sdr,  sdr_list_data(sdr, fdu->closureElt));
+		sdr_free(sdr, sdr_list_data(sdr, fdu->closureElt));
 		sdr_list_delete(sdr, fdu->closureElt, NULL, NULL);
 		fdu->closureElt = 0;
 	}
 
+	fdu->finishReceived = 1;
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
@@ -3788,7 +3790,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	int		offsetLength;
 	int		i;
 	uvast		segmentOffset;
-	unsigned int	segmentEnd;
+	uvast		segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -3796,17 +3798,17 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Object		elt;
 	Object		addr;
 	CfdpExtent	extent;
-	unsigned int	extentEnd = 0;
+	uvast		extentEnd = 0;
 	Object		nextElt = 0;
-	unsigned int	bytesToSkip;
+	uvast		bytesToSkip;
 	char		stringBuf[256];
 	char		workingNameBuffer[MAXPATHLEN + 1];
 	off_t		endOfFile;
-	unsigned int	fileLength;
+	uvast		fileLength;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
-	unsigned int	bytesToWrite;
-	unsigned int	nextExtentEnd;
+	uvast		bytesToWrite;
+	uvast		nextExtentEnd;
 
 	/*	Prepare to issue indication.				*/
 

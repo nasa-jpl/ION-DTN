@@ -133,8 +133,7 @@ static unsigned int	getExtensionRank(ExtensionSpec *spec)
 	int		extensionsCt;
 
 	getExtensionSpecs(&extensions, &extensionsCt);
-	return ((unsigned long) spec - (unsigned long) extensions)
-			/ sizeof(ExtensionSpec);
+	return ((uaddr) spec - (uaddr) extensions) / sizeof(ExtensionSpec);
 }
 
 /******************************************************************************
@@ -221,8 +220,10 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	blk->type = spec->type;
 #ifdef ORIGINAL_BSP
 	if (blk->type == BSP_BAB_TYPE)
-#else
+#elif SBSP
 	if (blk->type == EXTENSION_TYPE_BAB)
+#else
+	if(0)
 #endif
 	{
 		blk->occurrence = spec->listIdx;	/*	0 or 1.	*/
@@ -688,7 +689,7 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 	Sdnv		dataLengthSdnv;
 	int		listLength;
 	LystElt		elt;
-	unsigned int	offset;
+	uaddr		offset;
 	Sdnv		offsetSdnv;
 	unsigned int	referenceCount;
 	Sdnv		referenceCountSdnv;
@@ -735,7 +736,7 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 		CHKERR(blk->eidReferences);
 		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
 		{
-			offset = (unsigned long) lyst_data(elt);
+			offset = (uaddr) lyst_data(elt);
 			encodeSdnv(&offsetSdnv, offset);
 			blk->length += offsetSdnv.length;
 			oK(sdr_list_insert_last(bpSdr,
@@ -768,7 +769,7 @@ int	serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences,
 		cursor += referenceCountSdnv.length;
 		for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
 		{
-			offset = (unsigned long) lyst_data(elt);
+			offset = (uaddr) lyst_data(elt);
 			encodeSdnv(&offsetSdnv, offset);
 			memcpy(cursor, offsetSdnv.text, offsetSdnv.length);
 			cursor += offsetSdnv.length;
@@ -795,10 +796,10 @@ void	suppressExtensionBlock(ExtensionBlock *blk)
 
 static int	determineOccurrenceNbr(Lyst eidReferences)
 {
-	int		listLength;
-	LystElt		elt;
-	unsigned int	schemeOffset;
-	unsigned int	sspOffset;
+	int	listLength;
+	LystElt	elt;
+	uaddr	schemeOffset;
+	uaddr	sspOffset;
 
 	if (eidReferences == NULL)
 	{
@@ -821,9 +822,9 @@ static int	determineOccurrenceNbr(Lyst eidReferences)
 
 	for (elt = lyst_first(eidReferences); elt; elt = lyst_next(elt))
 	{
-		schemeOffset = (unsigned long) lyst_data(elt);
+		schemeOffset = (uaddr) lyst_data(elt);
 		elt = lyst_next(elt);
-		sspOffset = (unsigned long) lyst_data(elt);
+		sspOffset = (uaddr) lyst_data(elt);
 		if (sspOffset == 0)
 		{
 			return schemeOffset;
@@ -866,8 +867,10 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	blk->type = blkType;
 #ifdef ORIGINAL_BSP
 	if (blkType == BSP_BAB_TYPE)
-#else
+#elif SBSP
 	if (blkType == EXTENSION_TYPE_BAB)
+#else
+	if(0)
 #endif
 	{
 		blk->occurrence = work->currentExtBlocksList;

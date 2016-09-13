@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -20,6 +14,9 @@
  ** Description:
  **
  ** Notes:
+ **   1. TODO: more work needed to serialize/deserialize floating point. Approach
+ **      is to captur ein a string. Some evident that an IEEE 754 double loses
+ **      significant precision after ~16 digits.
  **
  ** Assumptions:
  **
@@ -27,16 +24,65 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/29/12  E. Birrane     Initial Implementation.
+ **  10/29/12  E. Birrane     Initial Implementation. (JHU/APL)
+ **  ??/??/16  E. Birrane     Added Serialize/Deserialize Functions.
+ **                           Added "safe" memory functions.
+ **                           Document Updates (Secure DTN - NASA: NNX14CS58P)
+ **  07/04/16  E. Birrane     Added limited support for serialize/deserialize
+ **                           floats and doubles. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #include "platform.h"
 #include "ion.h"
 
-#include "shared/utils/debug.h"
-#include "shared/utils/utils.h"
+#include "../utils/debug.h"
+#include "../utils/utils.h"
+
+static ResourceLock gMemMutex;
+
+#if AMP_DEBUGGING == 1
+char gAmpMsg[AMP_GMSG_BUFLEN];
+#endif
+
+int8_t utils_mem_int()
+{
+	if(initResourceLock(&gMemMutex))
+	{
+		AMP_DEBUG_ERR("utils_mem_int", "Cannot allocate memory mutex.", NULL);
+		return ERROR;
+
+	}
+	return SUCCESS;
+}
+
+void utils_mem_teardown()
+{
+	killResourceLock(&gMemMutex);
+}
 
 
+void* utils_safe_take(size_t size)
+{
+	void *result;
+
+	lockResource(&gMemMutex);
+	//result = MTAKE(size);
+	result = malloc(size);
+	if(result != NULL)
+	{
+		memset(result,0,size);
+	}
+	unlockResource(&gMemMutex);
+	return result;
+}
+
+void utils_safe_release(void* ptr)
+{
+	lockResource(&gMemMutex);
+	//MRELEASE(ptr);
+	free(ptr);
+	unlockResource(&gMemMutex);
+}
 
 /******************************************************************************
  *
@@ -54,8 +100,8 @@
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  11/25/12  E. Birrane     Initial implementation.
- *  12/16/12  E. Birrane     Added success return, error checks, logging
+ *  11/25/12  E. Birrane     Initial implementation. (JHU/APL)
+ *  12/16/12  E. Birrane     Added success return, error checks, logging (JHU/APL)
  *****************************************************************************/
 
 unsigned long utils_atox(char *s, int *success)
@@ -66,15 +112,32 @@ unsigned long utils_atox(char *s, int *success)
 	int j = 0;
 	int temp = 0;
 
-	DTNMP_DEBUG_ENTRY("utils_atox","(%#llx, %#llx)", s, success);
+	AMP_DEBUG_ENTRY("utils_atox","(%#llx, %#llx)", s, success);
 
 	/* Step 0 - Sanity Check. */
-	if((s == NULL) || (success == NULL))
+	if (success == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
-		*success = 0;
-		DTNMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
+		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
 		return 0;
+	}
+
+	*success = 0;
+	if((s == NULL))
+	{
+		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
+		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		return 0;
+	}
+
+	/*
+	 * Step 0.5 Handle case where string starts with "0x" by simply
+	 * advancing s to skip over it. This won't modify s from the
+	 * caller point of view.
+	 */
+	if((s[0]=='0') && (s[1]=='x'))
+	{
+		s = s + 2;
 	}
 
 	*success = 1;
@@ -85,9 +148,9 @@ unsigned long utils_atox(char *s, int *success)
 	 */
 	if(strlen(s) > (sizeof(unsigned long) * 2))
 	{
-		DTNMP_DEBUG_ERR("utils_atox","x UI: String %s too long to convert to hex unsigned long.", s);
+		AMP_DEBUG_ERR("utils_atox","x UI: String %s too long to convert to hex unsigned long.", s);
 		*success = 0;
-		DTNMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
+		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
 		return 0;
 	}
 
@@ -114,7 +177,7 @@ unsigned long utils_atox(char *s, int *success)
 		case 'E': case 'e': result += 14 * mult; break;
 		case 'F': case 'f': result += 15 * mult; break;
 		default:
-			DTNMP_DEBUG_ERR("utils_atox","x Non-hex character: %c", s[i]);
+			AMP_DEBUG_ERR("utils_atox","x Non-hex character: %c", s[i]);
 			*success = 0;
 			j--;
 			break;
@@ -122,482 +185,9 @@ unsigned long utils_atox(char *s, int *success)
 		j++;
 	}
 
-	DTNMP_DEBUG_INFO("utils_atox","i UI: Turned string %s to number %x.", s, result);
+//	DTNMP_DEBUG_INFO("utils_atox","i UI: Turned string %s to number %x.", s, result);
 	return result;
 }
-
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_datacol_compare
- *
- * \par Determines equivalence of two Data Collections.
- *
- * \retval -1 : Error
- * 			0 : col1 == col2
- * 			1 : col1 != col2
- *
- * \param[in] col1      First Data Collection being compared.
- * \param[in] col2      Second Data Collection being compared.
- *
- * \par Notes:
- *		1. This function should only check for equivalence (== 0), not order
- *         since we do not differentiate between col1 < col2 and error.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/22/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-int utils_datacol_compare(Lyst col1, Lyst col2)
-{
-	LystElt elt1;
-	LystElt elt2;
-	datacol_entry_t *entry1 = NULL;
-	datacol_entry_t *entry2 = NULL;
-
-	DTNMP_DEBUG_ENTRY("utils_datacol_compare","(%#llx, %#llx)",col1, col2);
-
-	/* Step 0: Sanity check. */
-	if((col1 == NULL) || (col2 == NULL))
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_compare", "Bad Args.", NULL);
-
-		DTNMP_DEBUG_EXIT("utils_datacol_compare","->-1.", NULL);
-		return -1;
-	}
-
-	/* Step 1: Easy checks: Same magnitude? */
-	if(lyst_length(col1) == lyst_length(col2))
-	{
-		elt1 = lyst_first(col1);
-		elt2 = lyst_first(col2);
-		while(elt1 && elt2)
-		{
-			entry1 = (datacol_entry_t *) lyst_data(elt1);
-			entry2 = (datacol_entry_t *) lyst_data(elt2);
-
-			if(entry1->length != entry2->length)
-			{
-				DTNMP_DEBUG_EXIT("utils_datacol_compare","->1.", NULL);
-				return 1;
-			}
-			else if(memcmp(entry1->value,entry2->value,entry1->length) != 0)
-			{
-				DTNMP_DEBUG_EXIT("utils_datacol_compare","->1.", NULL);
-				return 1;
-			}
-
-			elt1 = lyst_next(elt1);
-			elt2 = lyst_next(elt2);
-		}
-	}
-	else
-	{
-		DTNMP_DEBUG_EXIT("utils_datacol_compare","->1.", NULL);
-		return 1;
-	}
-
-	DTNMP_DEBUG_EXIT("utils_datacol_compare","->0.", NULL);
-	return 0;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_datacol_copy
- *
- * \par Duplicates a Data Collection object.
- *
- * \retval NULL - Failure
- *         !NULL - The copied MID
- *
- * \param[in] col  The Data Collection being copied.
- *
- * \par Notes:
- *		1. The returned Data Collection is allocated and must be freed when
- *		   no longer needed.  This is a deep copy.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/22/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-Lyst utils_datacol_copy(Lyst col)
-{
-	Lyst result = NULL;
-	LystElt elt;
-	datacol_entry_t *cur_entry = NULL;
-	datacol_entry_t *new_entry = NULL;
-
-	DTNMP_DEBUG_ENTRY("utils_datacol_copy","(%#llx)",(unsigned long) col);
-
-	/* Step 0: Sanity Check. */
-	if(col == NULL)
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_copy","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("utils_datacol_copy","->NULL.",NULL);
-		return NULL;
-	}
-
-	/* Build the Lyst. */
-	if((result = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_copy","Unable to create lyst.",NULL);
-		DTNMP_DEBUG_EXIT("utils_datacol_copy","->NULL.",NULL);
-		return NULL;
-	}
-
-	/* Walking copy. */
-	int success = 1;
-	for(elt = lyst_first(col); elt; elt = lyst_next(elt))
-	{
-		cur_entry = (datacol_entry_t *) lyst_data(elt);
-
-		if((new_entry = (datacol_entry_t*)MTAKE(sizeof(datacol_entry_t))) == NULL)
-		{
-			DTNMP_DEBUG_ERR("utils_datacol_copy","Failed to alloc %d bytes.",
-					        sizeof(datacol_entry_t));
-			utils_datacol_destroy(&result);
-
-			DTNMP_DEBUG_EXIT("utils_datacol_copy","->NULL.",NULL);
-			return NULL;
-		}
-
-		new_entry->length = cur_entry->length;
-
-		if((new_entry->value = (uint8_t*)MTAKE(new_entry->length)) == NULL)
-		{
-			DTNMP_DEBUG_ERR("utils_datacol_copy","Failed to alloc %d bytes.",
-					        new_entry->length);
-			MRELEASE(new_entry);
-			utils_datacol_destroy(&result);
-
-			DTNMP_DEBUG_EXIT("utils_datacol_copy","->NULL.",NULL);
-			return NULL;
-		}
-
-		memcpy(new_entry->value, cur_entry->value, new_entry->length);
-
-		lyst_insert_last(result,new_entry);
-	}
-
-	DTNMP_DEBUG_EXIT("utils_datacol_copy","->%#llx.",(unsigned long) result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_datacol_deserialize
- *
- * \par Extracts a Data Collection from a byte buffer. When serialized, a
- *      Data Collection is an SDNV # of items, followed by a series of
- *      entries.  Each entry is an SDNV size followed by a blob of data.
- *
- * \retval NULL - Failure
- *         !NULL - The created/deserialized Data Collection.
- *
- * \param[in]  buffer       The byte buffer holding the data
- * \param[in]  buffer_size  The # bytes available in the buffer
- * \param[out] bytes_used   The # of bytes consumed in the deserialization.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/22/12  E. Birrane     Initial implementation,
- *  06/17/13  E. Birrane     Updated to ION 3.1.3, moved to uvast data type.
- *****************************************************************************/
-
-Lyst utils_datacol_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
-{
-	unsigned char *cursor = NULL;
-	Lyst result = NULL;
-	uint32_t bytes = 0;
-	uvast num = 0;
-	uvast len = 0;
-	uint32_t i = 0;
-
-	DTNMP_DEBUG_ENTRY("utils_datacol_deserialize","(%#llx,%d,%#llx)",
-			          (unsigned long) buffer, buffer_size,
-			          (unsigned long) bytes_used);
-
-	/* Step 0: Sanity Check. */
-	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_deserialize","Bad Args", NULL);
-		DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->NULL",NULL);
-		return NULL;
-	}
-
-	*bytes_used = 0;
-	cursor = buffer;
-
-	/* Step 1: Create the Lyst. */
-	if((result = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_deserialize","Can't create lyst.", NULL);
-		DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 2: Grab # entries in the collection. */
-	if((bytes = utils_grab_sdnv(cursor, buffer_size, &num)) == 0)
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_deserialize","Can't parse SDNV.", NULL);
-		lyst_destroy(result);
-
-		DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		cursor += bytes;
-		buffer_size -= bytes;
-		*bytes_used += bytes;
-	}
-
-	/* Step 3: Grab entries. */
-	for(i = 0; i < num; i++)
-	{
-		datacol_entry_t *entry = NULL;
-
-		/* Make new entry. */
-		if((entry = (datacol_entry_t*) MTAKE(sizeof(datacol_entry_t))) == NULL)
-		{
-			DTNMP_DEBUG_ERR("utils_datacol_deserialize","Can't grab MID #%d.", i);
-			utils_datacol_destroy(&result);
-
-			DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->NULL",NULL);
-			return NULL;
-		}
-
-		/* Grab data item length. */
-		if((bytes = utils_grab_sdnv(cursor, buffer_size, &len)) == 0)
-		{
-			DTNMP_DEBUG_ERR("utils_datacol_deserialize","Can't parse SDNV.", NULL);
-			MRELEASE(entry);
-			utils_datacol_destroy(&result);
-
-			DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->NULL",NULL);
-			return NULL;
-		}
-
-		cursor += bytes;
-		buffer_size -= bytes;
-		*bytes_used += bytes;
-
-		entry->length = len;
-
-		if((entry->value = (uint8_t*)MTAKE(entry->length)) == NULL)
-		{
-			DTNMP_DEBUG_ERR("utils_datacol_deserialize","Can't parse SDNV.", NULL);
-			MRELEASE(entry);
-			utils_datacol_destroy(&result);
-
-			DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->NULL",NULL);
-			return NULL;
-		}
-
-		memcpy(entry->value, cursor, entry->length);
-		cursor += entry->length;
-		buffer_size -= entry->length;
-		*bytes_used += entry->length;
-
-		/* Drop it in the lyst in order. */
-		lyst_insert_last(result, entry);
-	}
-
-	DTNMP_DEBUG_EXIT("utils_datacol_deserialize","->%#llx",(unsigned long)result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_datacol_destroy
- *
- * \par Releases all memory allocated in the Data Collection. Clear all Data
- *      Collection information.
- *
- * \param[in,out]  datacol      The data collection to be destroyed.
- *
- * \par Notes:
- *      - We pass in a pointer so we can destroy the lyst. The lyst must not
- *        be accessed after this call.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/22/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-void utils_datacol_destroy(Lyst *datacol)
-{
-	LystElt elt;
-	datacol_entry_t *entry = NULL;
-
-	DTNMP_DEBUG_ENTRY("utils_datacol_destroy","(%#llx)", (unsigned long) datacol);
-
-	/*
-	 * Step 0: Make sure we even have a lyst. Not an error if not, since we
-	 * are destroying anyway.
-	 */
-	if((datacol == NULL) || (*datacol == NULL))
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_destroy","Bad Args.",NULL);
-		DTNMP_DEBUG_EXIT("utils_datacol_destroy","->.", NULL);
-		return;
-	}
-
-	/* Step 1: Walk through the MIDs releasing as you go. */
-    for(elt = lyst_first(*datacol); elt; elt = lyst_next(elt))
-    {
-    	entry = (datacol_entry_t *) lyst_data(elt);
-
-    	if(entry != NULL)
-    	{
-    		MRELEASE(entry->value);
-    		MRELEASE(entry);
-    	}
-    }
-
-    /* Step 2: Destroy and zero out the lyst. */
-    lyst_destroy(*datacol);
-    *datacol = NULL;
-
-    DTNMP_DEBUG_EXIT("utils_datacol_destroy","->.", NULL);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_datacol_serialize
- *
- * \par Purpose: Generate full, serialized version of a Data Collection. A
- *      serialized Data Collection is of the form:
- * \par +-------+--------+--------+    +--------+--------+
- *      |   #   | Item 1 | Item 1 |    | Item N | Item N |
- *      | Items |  Size  |  Data  |... |  Size  |  Data  |
- *      | [SDNV]| [SDNV] |[BYTES] |    | [SDNV] |[BYTES] |
- *      +-------+--------+--------+    +--------+--------+
- *
- * \retval NULL - Failure serializing
- * 		   !NULL - Serialized collection.
- *
- * \param[in]  datacol    The Data Collection to be serialized.
- * \param[out] size       The size of the resulting serialized Collection.
- *
- * \par Notes:
- *		1. The result is allocated on the memory pool and must be released when
- *         no longer needed.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-uint8_t *utils_datacol_serialize(Lyst datacol, uint32_t *size)
-{
-	uint8_t *result = NULL;
-	Sdnv num_sdnv;
-	Sdnv tmp;
-	LystElt elt;
-
-	DTNMP_DEBUG_ENTRY("utils_datacol_serialize","(%#llx, %#llx)",
-			          (unsigned long) datacol, (unsigned long) size);
-
-	/* Step 0: Sanity Check */
-	if((datacol == NULL) || (size == NULL))
-	{
-		DTNMP_DEBUG_ERR("utils_datacol_serialize","Bad args.", NULL);
-		DTNMP_DEBUG_EXIT("utils_datacol_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 1: Calculate the size. */
-
-	/* Consider the size of the SDNV holding # data entries.*/
-	encodeSdnv(&num_sdnv, lyst_length(datacol));
-	*size = num_sdnv.length;
-
-	/* Walk through each datacol and look at size. */
-    for(elt = lyst_first(datacol); elt; elt = lyst_next(elt))
-    {
-    	datacol_entry_t *entry = (datacol_entry_t *) lyst_data(elt);
-
-    	if(entry != NULL)
-    	{
-    		encodeSdnv(&tmp, entry->length);
-    		*size += (entry->length + tmp.length);
-    	}
-    	else
-    	{
-    		DTNMP_DEBUG_WARN("utils_datacol_serialize","Found NULL Entry?", NULL);
-    	}
-    }
-
-    /* Step 3: Allocate the space for the serialized list. */
-    if((result = (uint8_t*) MTAKE(*size)) == NULL)
-    {
-		DTNMP_DEBUG_ERR("utils_datacol_serialize","Can't alloc %d bytes", *size);
-		*size = 0;
-
-		DTNMP_DEBUG_EXIT("utils_datacol_serialize","->NULL",NULL);
-		return NULL;
-    }
-
-    /* Step 4: Walk through list again copying as we go. */
-    uint8_t *cursor = result;
-
-    /* Copy over the number of data entries in the collection. */
-    memcpy(cursor, num_sdnv.text, num_sdnv.length);
-    cursor += num_sdnv.length;
-
-    for(elt = lyst_first(datacol); elt; elt = lyst_next(elt))
-    {
-    	datacol_entry_t *entry = (datacol_entry_t *) lyst_data(elt);
-
-    	if(entry != NULL)
-    	{
-    		encodeSdnv(&tmp, entry->length);
-    		memcpy(cursor, tmp.text, tmp.length);
-    		cursor += tmp.length;
-
-    		memcpy(cursor,entry->value, entry->length);
-    		cursor += entry->length;
-    	}
-    	else
-    	{
-    		DTNMP_DEBUG_WARN("utils_datacol_serialize","Found NULL MID?", NULL);
-    	}
-    }
-
-    /* Step 5: Final sanity check. */
-    if((cursor - result) != *size)
-    {
-		DTNMP_DEBUG_ERR("utils_datacol_serialize","Wrote %d bytes not %d bytes",
-				        (cursor - result), *size);
-		*size = 0;
-		MRELEASE(result);
-		DTNMP_DEBUG_EXIT("utils_datacol_serialize","->NULL",NULL);
-		return NULL;
-    }
-
-	DTNMP_DEBUG_EXIT("utils_datacol_serialize","->%#llx",(unsigned long) result);
-	return result;
-}
-
 
 
 
@@ -619,29 +209,29 @@ uint8_t *utils_datacol_serialize(Lyst datacol, uint32_t *size)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
+ *  10/14/12  E. Birrane     Initial implementation, (JHU/APL)
  *****************************************************************************/
 
 int8_t utils_grab_byte(unsigned char *cursor,
 		  		       uint32_t size,
 				       uint8_t *result)
 {
-	DTNMP_DEBUG_ENTRY("utils_grab_byte","(%x,%d,%x)",
+	AMP_DEBUG_ENTRY("utils_grab_byte","(%x,%d,%x)",
 			          (unsigned long) cursor, size,
 			          (unsigned long) result);
 
 	/* Do we have a byte to grab? */
 	if(size < 1)
 	{
-        DTNMP_DEBUG_ERR("utils_grab_byte","Bounds overrun. Size %d Used %d.",
+        AMP_DEBUG_ERR("utils_grab_byte","Bounds overrun. Size %d Used %d.",
         				size, 1);
-        DTNMP_DEBUG_EXIT("utils_grab_byte","-> 0", NULL);
+        AMP_DEBUG_EXIT("utils_grab_byte","-> 0", NULL);
         return 0;
 	}
 
     *result = *cursor;
 
-    DTNMP_DEBUG_EXIT("utils_grab_byte","-> 1", NULL);
+    AMP_DEBUG_EXIT("utils_grab_byte","-> 1", NULL);
 
     return 1;
 }
@@ -666,8 +256,8 @@ int8_t utils_grab_byte(unsigned char *cursor,
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
- *  06/17/13  E. Birrane     Updated to ION 3.1.3, added uvast type.
+ *  10/14/12  E. Birrane     Initial implementation, (JHU/APL)
+ *  06/17/13  E. Birrane     Updated to ION 3.1.3, added uvast type. (JHU/APL)
  *****************************************************************************/
 
 uint32_t utils_grab_sdnv(unsigned char *cursor,
@@ -676,29 +266,29 @@ uint32_t utils_grab_sdnv(unsigned char *cursor,
 {
 	int result_len = 0;
 
-	DTNMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
+	AMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
 			          (unsigned long) cursor,
 			          (unsigned long) size,
 			          (unsigned long) result);
 
     if((result_len = decodeSdnv(result, cursor)) == 0)
     {
-        DTNMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
-		DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
+        AMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
+		AMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
         return 0;
     }
 
     /* Did we go too far? */
 	if (result_len > size)
 	{
-		DTNMP_DEBUG_ERR("utils_grab_sdnv","Bounds overrun. Size %d Used %d.",
+		AMP_DEBUG_ERR("utils_grab_sdnv","Bounds overrun. Size %d Used %d.",
 						size, result_len);
 
-		DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
+		AMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
 		return 0;
 	}
 
-	DTNMP_DEBUG_EXIT("utils_grab_sdnv","-> %d", result_len);
+	AMP_DEBUG_EXIT("utils_grab_sdnv","-> %d", result_len);
 	return result_len;
 }
 
@@ -721,7 +311,7 @@ uint32_t utils_grab_sdnv(unsigned char *cursor,
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
+ *  10/14/12  E. Birrane     Initial implementation (JHU/APL)
  *****************************************************************************/
 
 char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
@@ -733,20 +323,20 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
     int i = 0;
     int r = 0;
 
-    DTNMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
+    AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
     		          (unsigned long) buffer, size);
 
     /* Each byte requires 2 characters to represent in HEX. Also, require
      * three additional bytes to capture '0x' and NULL terminator.
      */
     char_size = (2 * size) + 3;
-    result = (char *) MTAKE(char_size);
+    result = (char *) STAKE(char_size);
 
     if(result == NULL)
     {
-        DTNMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
+        AMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
         		        char_size);
-        DTNMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
+        AMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
         return NULL;
     }
 
@@ -763,7 +353,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 
     result[r] = '\0';
 
-    DTNMP_DEBUG_EXIT("mid_to_string","->%s.", result);
+    AMP_DEBUG_EXIT("mid_to_string","->%s.", result);
 
     return result;
 }
@@ -784,7 +374,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
+ *  10/14/12  E. Birrane     Initial implementation (JHU/APL)
  *****************************************************************************/
 
 void utils_print_hex(unsigned char *s, uint32_t len)
@@ -819,10 +409,21 @@ void utils_print_hex(unsigned char *s, uint32_t len)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation,
+ *  10/14/12  E. Birrane     Initial implementation (JHU/APL)
  *****************************************************************************/
 
-uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
+uint8_t getNibble(char c)
+{
+	if(c >= '0' && c <= '9') return c - '0';
+	if(c >= 'a' && c <= 'f') return c - 'a' + 10;
+	if( c>= 'A' && c <= 'F') return c - 'A' + 10;
+
+	return 255;
+}
+
+
+
+uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 {
 	uint8_t *result = NULL;
 	char tmp_s[3];
@@ -830,15 +431,26 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 	int success = 0;
 	int pad = 0; 
 
-	DTNMP_DEBUG_ENTRY("utils_string_to_hex","(%#llx, %#llx)", value, size);
+	AMP_DEBUG_ENTRY("utils_string_to_hex","(%#llx, %#llx)", value, size);
 
 	/* Step 0 - Sanity Checks. */
 	if((value == NULL) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("utils_string_to_hex", "Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+		AMP_DEBUG_ERR("utils_string_to_hex", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 		return NULL;
 	}
+
+	/*
+	 * Step 0.5 Handle case where string starts with "0x" by simply
+	 * advancing s to skip over it. This won't modify s from the
+	 * caller point of view.
+	 */
+	if((value[0]=='0') && (value[1]=='x'))
+	{
+		value = value + 2;
+	}
+
 
 	/* Step 1 - Figure out the size of the byte array. Since each ASCII
 	 *          character represents a nibble, the size of the byte array is
@@ -856,12 +468,12 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
        pad = 1;
 	}
 
-	if((result = (uint8_t *) MTAKE(*size)) == NULL)
+	if((result = (uint8_t *) STAKE(*size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", *size);
+		AMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", *size);
 		*size = 0;
 
-		DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 		return NULL;
 	}
 
@@ -892,16 +504,16 @@ uint8_t *utils_string_to_hex(unsigned char *value, uint32_t *size)
 		i += incr;
 		if(success == 0)
 		{
-			DTNMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);
-			MRELEASE(result);
+			AMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);
+			SRELEASE(result);
 			*size = 0;
 
-			DTNMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
+			AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 			return NULL;
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("utils_string_to_hex", "->%#llx.", result);
+	AMP_DEBUG_EXIT("utils_string_to_hex", "->%#llx.", result);
 	return result;
 }
 
@@ -937,6 +549,8 @@ int utils_time_delta(struct timeval *result, struct timeval *t1, struct timeval 
 	return t1->tv_sec < t2->tv_sec;
 }
 
+
+
 /* Return number of micro-seconds that have elapsed since the passed-in time.*/
 vast    utils_time_cur_delta(struct timeval *t1)
 {
@@ -960,3 +574,363 @@ vast    utils_time_cur_delta(struct timeval *t1)
 	return result;
 }
 
+
+
+int32_t  utils_deserialize_int(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+	return (int32_t) utils_deserialize_uint(buffer, bytes_left, bytes_used);
+}
+
+
+
+
+float    utils_deserialize_real32(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+	float result = 0;
+	char *endstr = NULL;
+
+	errno = 0;
+	result = strtof((char *)buffer, &endstr);
+
+	if(errno != 0)
+	{
+		AMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
+		*bytes_used = 0;
+		result = 0;
+	}
+	else
+	{
+		*bytes_used = endstr - (char *) buffer;
+	}
+
+	return result;
+}
+
+double   utils_deserialize_real64(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+	double result = 0;
+	char *endstr = NULL;
+
+	errno = 0;
+	result = strtod((char *)buffer, &endstr);
+
+	if(errno != 0)
+	{
+		AMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
+		*bytes_used = 0;
+		result = 0;
+	}
+	else
+	{
+		*bytes_used = endstr - (char *)buffer;
+	}
+
+	return result;
+}
+
+char*    utils_deserialize_string(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+	uint32_t blob_len = 0;
+	uint8_t *blob = NULL;
+	char *result = NULL;
+
+	/* Step 0: Sanity Check. */
+	if((buffer == NULL) || (bytes_used == NULL))
+	{
+		AMP_DEBUG_ERR("utils_deserialize_string","Bad Args.", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Strings are null-terminated, so calculate length. */
+	blob_len = strlen((char*)buffer);
+
+	/* Step 2: Allocate string which is 1 extra character (null terminator). */
+	if((result = (char *) STAKE(blob_len + 1)) == NULL)
+	{
+		AMP_DEBUG_ERR("utils_deserialize_string","Can't allocate %d bytes.", blob_len + 1);
+		*bytes_used = 0;
+		return NULL;
+	}
+
+	memcpy(result, buffer, blob_len);
+	result[blob_len] = '\0';
+
+	return result;
+}
+
+uint32_t utils_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+	uint32_t result = 0;
+
+	/* Step 0: Sanity check. */
+	if((buffer == NULL) || (bytes_used == NULL))
+	{
+		AMP_DEBUG_ERR("utils_deserialize_uint","Bad Args.", NULL);
+		if(bytes_used != NULL)
+		{
+			*bytes_used = 0;
+		}
+		return 0;
+	}
+
+	// + 1 for length byte.
+	if(bytes_left < sizeof(uint32_t))
+	{
+		AMP_DEBUG_ERR("utils_deserialize_uint","Buffer size %d too small for %d.", bytes_left, sizeof(uint32_t));
+		*bytes_used = 0;
+		return 0;
+	}
+
+	/* Step 1: Populate the uint32_t. */
+
+	result |= buffer[0] << 24;
+	result |= buffer[1] << 16;
+	result |= buffer[2] << 8;
+	result |= buffer[3];
+
+	*bytes_used = 4;
+
+	/* Step 2: Check byte order. */
+	result = ntohl(result);
+
+	return result;
+}
+
+uvast    utils_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+
+	uvast result = 0;
+
+	/* Step 0: Sanity check. */
+	if((buffer == NULL) || (bytes_used == NULL))
+	{
+		AMP_DEBUG_ERR("utils_deserialize_uvast","Bad Args.", NULL);
+		if(bytes_used != NULL)
+		{
+			*bytes_used = 0;
+		}
+		return 0;
+	}
+
+	if(bytes_left < sizeof(uvast))
+	{
+		AMP_DEBUG_ERR("utils_deserialize_uvast","Buffer size %d too small for %d.", bytes_left, sizeof(uvast));
+		*bytes_used = 0;
+		return 0;
+	}
+
+	/* Step 1: Populate the uvast. */
+	uvast tmp;
+
+#if LONG_LONG_OKAY
+	tmp = buffer[0]; tmp <<= 56;
+	result |= tmp;
+
+	tmp = buffer[1]; tmp <<= 48;
+	result |= tmp;
+
+	tmp = buffer[2]; tmp <<= 40;
+	result |= tmp;
+
+	tmp = buffer[3]; tmp <<= 32;
+	result |= tmp;
+
+	tmp = buffer[4]; tmp <<= 24;
+	result |= tmp;
+
+	tmp = buffer[5]; tmp <<= 16;
+	result |= tmp;
+
+	tmp = buffer[6]; tmp <<= 8;
+	result |= tmp;
+
+	result |= buffer[7];
+#else
+	tmp = buffer[0]; tmp <<= 24;
+	result |= tmp;
+
+	tmp = buffer[1]; tmp <<= 16;
+	result |= tmp;
+
+	tmp = buffer[2]; tmp <<= 8;
+	result |= tmp;
+
+	result |= buffer[3];
+#endif
+
+	*bytes_used = 8;
+
+	/* Step 2: Check byte order. */
+	result = ntohv(result);
+
+	return result;
+}
+
+vast     utils_deserialize_vast(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
+{
+	return (vast) utils_deserialize_uvast(buffer, bytes_left, bytes_used);
+}
+
+
+
+uint8_t *utils_serialize_byte(uint8_t value, uint32_t *size)
+{
+	uint8_t *result = NULL;
+
+	*size = 1;
+	if((result = (uint8_t *) STAKE(*size)) == NULL)
+	{
+		AMP_DEBUG_ERR("utils_serialize_byte","Cannot grab memory.", NULL);
+		return NULL;
+	}
+
+	result[0] = value;
+
+	return result;
+}
+
+uint8_t *utils_serialize_int(int32_t value, uint32_t *size)
+{
+	return utils_serialize_uint((uint32_t) value, size);
+}
+
+
+/*
+ *
+ */
+uint8_t *utils_serialize_real32(float value, uint32_t *size)
+{
+	char too_small[1];
+	uint8_t *result = NULL;
+
+	*size = snprintf(too_small, sizeof too_small, "%f", value) + 1;
+
+	if((result = STAKE(*size)) == NULL)
+	{
+		*size = 0;
+		return NULL;
+	}
+
+	snprintf((char *) result, *size, "%f", value);
+
+	return result;
+}
+
+uint8_t *utils_serialize_real64(double value, uint32_t *size)
+{
+	char too_small[1];
+	uint8_t *result = NULL;
+
+	*size = snprintf(too_small, sizeof too_small, "%f", value) + 1;
+
+	if((result = STAKE(*size)) == NULL)
+	{
+		*size = 0;
+		return NULL;
+	}
+
+	snprintf((char *)result, *size, "%f", value);
+
+	return result;
+}
+
+uint8_t *utils_serialize_string(char *value, uint32_t *size)
+{
+	uint8_t *result = NULL;
+
+	if((value == NULL) || (size == NULL))
+	{
+		AMP_DEBUG_ERR("utils_serialize_string","Bad Args", NULL);
+		return NULL;
+	}
+
+	*size = strlen(value) + 1;
+	if((result = (uint8_t *) STAKE(*size)) == NULL)
+	{
+		AMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", *size);
+		return NULL;
+	}
+	memcpy(result, value, *size);
+	return result;
+}
+
+uint8_t *utils_serialize_uint(uint32_t value, uint32_t *size)
+{
+	uint8_t *result = NULL;
+	uint32_t tmp;
+
+	if(size == NULL)
+	{
+		AMP_DEBUG_ERR("utils_serialize_uint", "Bad Args.", NULL);
+		return NULL;
+	}
+
+	if((result = (uint8_t *) STAKE(sizeof(uint32_t))) == NULL)
+	{
+		AMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", sizeof(uint32_t));
+		return NULL;
+	}
+
+	tmp = htonl(value);
+	result[0] = (tmp >> 24) & (0xFF);
+	result[1] = (tmp >> 16) & (0xFF);
+	result[2] = (tmp >> 8) & (0xFF);
+	result[3] = tmp & (0xFF);
+
+	*size = 4;
+
+	return result;
+}
+
+
+uint8_t *utils_serialize_uvast(uvast value, uint32_t *size)
+{
+	uint8_t *result = NULL;
+	uvast tmp;
+
+	if(size == NULL)
+	{
+		AMP_DEBUG_ERR("utils_serialize_uvast", "Bad Args.", NULL);
+		return NULL;
+	}
+
+	if(sizeof(uvast) != 8)
+	{
+		AMP_DEBUG_ERR("utils_serialize_uvast","uvast isn't size 8?", NULL);
+		return NULL;
+	}
+
+	if((result = (uint8_t *) STAKE(sizeof(uvast))) == NULL)
+	{
+		AMP_DEBUG_ERR("utils_serialize_uvast", "Can't allocate %d bytes", sizeof(uvast));
+		return NULL;
+	}
+
+	tmp = htonv(value);
+
+#if LONG_LONG_OKAY
+	result[0] = (tmp >> 56) & (0xFF);
+	result[1] = (tmp >> 48) & (0xFF);
+	result[2] = (tmp >> 40) & (0xFF);
+	result[3] = (tmp >> 32) & (0xFF);
+	result[4] = (tmp >> 24) & (0xFF);
+	result[5] = (tmp >> 16) & (0xFF);
+	result[6] = (tmp >> 8) & (0xFF);
+	result[7] = tmp & (0xFF);
+#else
+	result[0] = (tmp >> 24) & (0xFF);
+	result[1] = (tmp >> 16) & (0xFF);
+	result[2] = (tmp >> 8) & (0xFF);
+	result[3] = tmp & (0xFF);
+#endif
+
+	*size = 8;
+
+	return result;
+}
+
+
+uint8_t *utils_serialize_vast(vast value, uint32_t *size)
+{
+	return utils_serialize_uvast((uvast) value, size);
+}

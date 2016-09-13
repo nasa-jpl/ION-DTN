@@ -292,21 +292,34 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 
-		if(dlv.result == BpPayloadPresent) {
-			sendStats(dlv.bundleSourceEid, theBuffer, sizeof(theBuffer));
+		if(dlv.result == BpPayloadPresent)
+		{
+			sendStats(dlv.bundleSourceEid, theBuffer,
+					sizeof(theBuffer));
 			bp_release_delivery(&dlv, 1);
-		} else if(dlv.result == BpReceptionInterrupted) {
-			if(needSendDefault) {
+			continue;
+		}
+
+		if(dlv.result == BpReceptionInterrupted)
+		{
+			if(needSendDefault)
+			{
 				needSendDefault = 0;
-				sendStats(defaultDestEid, theBuffer, sizeof(theBuffer));
+				sendStats(defaultDestEid, theBuffer,
+						sizeof(theBuffer));
 				ionResumeAttendant(&attendant);
 			}
+
 			bp_release_delivery(&dlv, 1);
-		} else {
-			bp_release_delivery(&dlv, 1);
-			break;
+			continue;
 		}
+
+		/*	On any other delivery result, shut down.	*/
+
+		bp_release_delivery(&dlv, 1);
+		break;
 	}
+
 	bp_close(sap);
 	bp_detach();
 	ionStopAttendant(&attendant);

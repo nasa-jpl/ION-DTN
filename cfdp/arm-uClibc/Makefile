@@ -47,34 +47,34 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 cfdpclock:	cfdpclock.o libcfdp.so
-		$(CC) -o cfdpclock cfdpclock.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread
+		$(CC) -o cfdpclock cfdpclock.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread -lm
 		cp cfdpclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 cfdpadmin:	cfdpadmin.o libcfdp.so
-		$(CC) -o cfdpadmin cfdpadmin.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread
+		$(CC) -o cfdpadmin cfdpadmin.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread -lm
 		cp cfdpadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 cfdptest:	cfdptest.o libcfdp.so
-		$(CC) -o cfdptest cfdptest.o -L./lib -L$(ROOT)/lib -lcfdp -lcfdp $(LBP) -lici -lpthread
+		$(CC) -o cfdptest cfdptest.o -L./lib -L$(ROOT)/lib -lcfdp -lcfdp $(LBP) -lici -lpthread -lm
 		cp cfdptest ./bin
 
 #	-	-	BP executables	-	-	-	-	-
 
 bputa:		bputa.o libcfdp.so
-		$(CC) -o bputa bputa.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread
+		$(CC) -o bputa bputa.o -L./lib -L$(ROOT)/lib -lcfdp $(LBP) -lici -lpthread -lm
 		cp bputa ./bin
 		
 #	-	-	BPCP executables	-	-	-	-	-
 bpcp: 		bpcp.o
-		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
+		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS) -lm
 		cp bpcp ./bin
 		
 bpcpd: 		bpcpd.o
-		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS)
+		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS) -lm
 		cp bpcpd ./bin
 
 #	-	-	Libraries	-	-	-	-	-

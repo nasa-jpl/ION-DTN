@@ -45,7 +45,7 @@ static SmShm	*_shmTbl()
 }
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, int *id)
+sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
 {
 	int	i;
 	SmShm	*shm;
@@ -125,7 +125,7 @@ sm_ShmDetach(char *shmPtr)
 }
 
 void
-sm_ShmDestroy(int i)
+sm_ShmDestroy(uaddr i)
 {
 	SmShm	*shm;
 
@@ -295,7 +295,7 @@ static void	_smSegment(char *shmPtr, int *key)
 }
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, int *id)
+sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
 {
 	char	memName[32];
 	int	minSegSize = 16;
@@ -368,7 +368,7 @@ sm_ShmAttach(int key, int size, char **shmPtr, int *id)
 
 	_smSegment(mem, &key);
 	*shmPtr = (char *) mem;
-	*id = (int) mappingObj;
+	*id = (uaddr) mappingObj;
 	if (newSegment)
 	{
 		memset(mem, 0, size);	/*	Initialize to zeroes.	*/
@@ -385,7 +385,7 @@ sm_ShmDetach(char *shmPtr)
 }
 
 void
-sm_ShmDestroy(int id)
+sm_ShmDestroy(uaddr id)
 {
 	return;		/*	Closing last handle destroys mapping.	*/
 }
@@ -397,7 +397,7 @@ sm_ShmDestroy(int id)
 	/* ---- Shared Memory services (Unix) ------------------------- */
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, int *id)
+sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
 {
 	int		minSegSize = 16;
 	int		result;
@@ -467,7 +467,7 @@ sm_ShmDetach(char *shmPtr)
 }
 
 void
-sm_ShmDestroy(int id)
+sm_ShmDestroy(uaddr id)
 {
 	if (shmctl(id, IPC_RMID, NULL) < 0)
 	{
@@ -994,7 +994,7 @@ typedef struct
 static SemaphoreTable	*_semTbl(int stop)
 {
 	static SemaphoreTable	*semaphoreTable = NULL;
-	static int		semtblId = 0;
+	static uaddr		semtblId = 0;
 
 	if (stop)
 	{
@@ -1627,7 +1627,7 @@ typedef struct
 static SemaphoreBase	*_sembase(int stop)
 {
 	static SemaphoreBase	*semaphoreBase = NULL;
-	static int		sembaseId = 0;
+	static uaddr		sembaseId = 0;
 	int			semSetIdx;
 	IciSemaphoreSet		*semset;
 	int			i;

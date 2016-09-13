@@ -76,13 +76,6 @@ bpadmin host2.bprc
 cd ../3.ipn.tcp
 bpadmin host3.bprc
 
-cd ../1.ipn.tcp
-ipnadmin host1.ipnrc
-cd ../2.ipn.tcp
-ipnadmin host2.ipnrc
-cd ../3.ipn.tcp
-ipnadmin host3.ipnrc
-
 # start bpcounter on node 3
 cd ../3.ipn.tcp
 
@@ -127,7 +120,7 @@ killm
 echo "Verifying results..."
 cd ../3.ipn.tcp
 # compare the sent message to the received one
-if ! grep -q "$BUNDLEMESSAGE" $BPCOUNTERFILE; then
+if ! grep "$BUNDLEMESSAGE" $BPCOUNTERFILE; then
     echo "ERROR: bpcounter/bpdriver failed!!"
     RETVAL=1
 else 

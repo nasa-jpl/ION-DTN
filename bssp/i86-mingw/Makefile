@@ -44,43 +44,43 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 bsspclock:	bsspclock.o libbssp.dll
-		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread
+		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lm
 		cp bsspclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 bsspadmin:	bsspadmin.o libbssp.dll
-		$(CC) -o bsspadmin bsspadmin.o -L./lib -L$(ROOT)/lib -lbssp -lbssp -lici -lpthread
+		$(CC) -o bsspadmin bsspadmin.o -L./lib -L$(ROOT)/lib -lbssp -lbssp -lici -lpthread -lm
 		cp bsspadmin ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
 
 udpbsi:		udpbsi.o libbssp.dll
-		$(CC) -o udpbsi udpbsi.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32
+		$(CC) -o udpbsi udpbsi.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32 -lm
 		cp udpbsi ./bin
 
 udpbso:		udpbso.o libbssp.dll
-		$(CC) -o udpbso udpbso.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32
+		$(CC) -o udpbso udpbso.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32 -lm
 		cp udpbso ./bin
 
 #	-	-	TCP executables-	-	-	-	-
 
 tcpbsi:		tcpbsi.o libbssp.dll
-		$(CC) -o tcpbsi tcpbsi.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbssp -lici -lpthread -lws2_32
+		$(CC) -o tcpbsi tcpbsi.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbssp -lici -lpthread -lws2_32 -lm
 		cp tcpbsi ./bin
 
 tcpbso:		tcpbso.o libbssp.dll
-		$(CC) -o tcpbso tcpbso.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbssp -lici -lpthread -lws2_32
+		$(CC) -o tcpbso tcpbso.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbssp -lici -lpthread -lws2_32 -lm
 		cp tcpbso ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
 libbssp.dll:	libbsspP.o libbssp.o
-		$(LD) -o libbssp.dll libbsspP.o libbssp.o -Wl,--output-def,libbssp.def -L$(ROOT)/lib -lici -lpthread
+		$(LD) -o libbssp.dll libbsspP.o libbssp.o -Wl,--output-def,libbssp.def -L$(ROOT)/lib -lici -lpthread -lm
 		cp libbssp.dll ./lib
 
 libtcpbsa.dll:	libtcpbsa.o
-		$(LD) -o libtcpbsa.dll libtcpbsa.o -Wl,--output-def,libtcpbsa.def -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32
+		$(LD) -o libtcpbsa.dll libtcpbsa.o -Wl,--output-def,libtcpbsa.def -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lws2_32 -lm
 		cp libtcpbsa.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

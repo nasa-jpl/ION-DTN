@@ -44,6 +44,3 @@ a induct ltp 1 ltpcli
 #	outduct).
 #	The outduct itself is implemented by the 'ltpclo' command.
 a outduct ltp 1 ltpclo
-
-# Start the daemons
-s

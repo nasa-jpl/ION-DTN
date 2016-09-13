@@ -155,6 +155,14 @@ static void *receiveResponses(void *x)
 			continue;
 		}
 
+		if (dlv.result == BpEndpointStopped)
+		{
+			if(verbosity) fprintf(stderr, "Endpoint stopped.\n");
+			bp_release_delivery(&dlv, 1);
+			shutdownnow = 1;
+			continue;
+		}
+
 		/* Buffer the response so we can bp_release_delivery before parsing. */
 		if(pthread_mutex_lock(&sdrmutex) != 0)
 		{

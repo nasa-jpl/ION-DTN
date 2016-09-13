@@ -43,32 +43,32 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 bsspclock:	bsspclock.o libbsspP.so
-		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread
+		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
 		cp bsspclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 bsspadmin:	bsspadmin.o libbsspP.so
-		$(CC) -o bsspadmin bsspadmin.o -L./lib -L$(ROOT)/lib -lbssp -lbsspP -lici -lpthread
+		$(CC) -o bsspadmin bsspadmin.o -L./lib -L$(ROOT)/lib -lbssp -lbsspP -lici -lpthread -lm
 		cp bsspadmin ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
 
 udpbsi:		udpbsi.o libbsspP.so
-		$(CC) -o udpbsi udpbsi.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread
+		$(CC) -o udpbsi udpbsi.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
 		cp udpbsi ./bin
 
 udpbso:		udpbso.o libbsspP.so
-		$(CC) -o udpbso udpbso.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread
+		$(CC) -o udpbso udpbso.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
 		cp udpbso ./bin
 
 #	-	-	TCP executables-	-	-	-	-
 tcpbsi:		tcpbsi.o libbsspP.so
-		$(CC) -o tcpbsi tcpbsi.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbsspP -lici -lpthread
+		$(CC) -o tcpbsi tcpbsi.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbsspP -lici -lpthread -lm
 		cp tcpbsi ./bin
 
 tcpbso:		tcpbso.o libbsspP.so
-		$(CC) -o tcpbso tcpbso.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbsspP -lici -lpthread
+		$(CC) -o tcpbso tcpbso.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbsspP -lici -lpthread -lm
 		cp tcpbso ./bin
 
 #	-	-	Libraries	-	-	-	-	-

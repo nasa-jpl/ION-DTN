@@ -302,10 +302,7 @@ static void	*tcpAmsReceiver(void *parm)
 		switch (length)
 		{
 		case -1:
-			if (errno != EBADF)
-			{
-				writeMemo("[?] tcpts receiver crashed.");
-			}
+			writeMemo("[?] tcpts receiver crashed.");
 
 			/*	Intentional fall-through to next case.	*/
 

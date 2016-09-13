@@ -26,7 +26,7 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 
 static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 {
-	long		temp;
+	uaddr		temp;
 	void		*value;
 	sm_SemId	semaphore;
 
@@ -41,7 +41,7 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 		value = sm_TaskVar(NULL);
 	}
 
-	temp = (long) value;
+	temp = (uaddr) value;
 	semaphore = temp;
 	return semaphore;
 }

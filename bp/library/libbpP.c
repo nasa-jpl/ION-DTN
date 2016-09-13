@@ -24,6 +24,10 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
+#ifdef BPSEC
+#include "ext/bpsec/bpsec_instr.h"
+#endif
+
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -45,7 +49,13 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+#if defined(ORIGINAL_BSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(SBSP)
+extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(BPSEC)
+extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
+#endif
 
 /*	We need to link with the ipn and dtn2 libraries in order to
  *	clean up directive upon removal of an outduct.			*/
@@ -710,6 +720,7 @@ static void	resetScheme(VScheme *vscheme)
 	else
 	{
 		sm_SemUnend(vscheme->semaphore);
+		sm_SemGive(vscheme->semaphore);
 	}
 
 	sm_SemTake(vscheme->semaphore);			/*	Lock.	*/
@@ -1058,6 +1069,7 @@ static void	resetOutduct(VOutduct *vduct)
 	else
 	{
 		sm_SemUnend(vduct->semaphore);
+		sm_SemGive(vduct->semaphore);
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
@@ -1522,6 +1534,9 @@ int	bpInit()
 	}
 	else
 	{
+#ifdef BPSEC
+		bpsec_instr_init();
+#endif
 		writeMemo("[i] Bundle security is enabled.");
 	}
 
@@ -1686,6 +1701,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		zcoElt;
 	Object		nextElt;
 	Object		zco;
+
+#ifdef BPSEC
+	bpsec_instr_cleanup();
+#endif
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -4979,6 +4998,11 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
+	if(bundle->corrupt == 1)
+	{
+		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
+	}
+
 	/*	If bundle is already being forwarded, then a
 	 *	redundant CT signal indicating custody refusal
 	 *	has been received, and we haven't yet finished
@@ -6005,11 +6029,11 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 
 	bundle->statusRpt.flags = 0;
 	bundle->statusRpt.reasonCode = 0;
-	memset(&bundle->statusRpt.receiptTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.forwardTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(struct timespec));
-	memset(&bundle->statusRpt.deletionTime, 0, sizeof(struct timespec));
+	memset(&bundle->statusRpt.receiptTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.acceptanceTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.forwardTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(DtnTime));
+	memset(&bundle->statusRpt.deletionTime, 0, sizeof(DtnTime));
 	return 0;
 }
 
@@ -7212,7 +7236,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned int	nssOffset;
 	unsigned int	dataLength;
 	unsigned int	lengthOfBlock;
-	unsigned long	temp;
+	uaddr		temp;
 	ExtensionDef	*def;
 
 	if (work->malformed || work->lastBlockParsed)
@@ -7822,7 +7846,15 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
+#if defined(ORIGINAL_BSP)
 	if (bsp_securityPolicyViolated(work))
+#elif defined(SBSP)
+	if (bsp_securityPolicyViolated(work))
+#elif defined(BPSEC)
+	if (bpsec_securityPolicyViolated(work))
+#else
+	if(0)
+#endif
 	{
 		writeMemo("[?] Security policy violated.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
@@ -10526,6 +10558,7 @@ int	bpDequeue(VOutduct *vduct, Outflow *flows, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	context.xmitRate = throttle->nominalRate;
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");

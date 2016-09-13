@@ -1,7 +1,12 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
 -DNO_PROXY -DNO_DIRLIST
-# -DENABLE_IMC -DENABLE_BPACS
+# Add -DBPSEC if building with bpsec.
+# -DBPSEC
+# Add -DAGENT_ROLE if building with nm.
+# -DAGENT_ROLE
+# -DENABLE_IMC
+# -DENABLE_BPACS
 
 PGM=${ARCH}/ion.exe
 
@@ -35,6 +40,7 @@ ICISOURCES =     \
    ionsec.c      \
    ionsecadmin.c \
    crypto.c      \
+   csi.c         \
    bulk.c        \
    ionwarn.c     \
    ionrestart.c  \
@@ -57,6 +63,7 @@ LTPSOURCES =     \
 BPSOURCES =      \
 	libbp.c      \
 	libbpP.c     \
+	libbpnm.c    \
 	bpclock.c    \
 	bptransit.c  \
 	bpadmin.c    \
@@ -107,15 +114,55 @@ BPSOURCES =      \
 #	libtcpbsa.c  \
 #	bsspadmin.c  \
 
-BSPSOURCES =     \
-	ciphersuites.c \
-	bab_hmac_sha1.c \
-	bib_hmac_sha256.c \
-	bcb_arc4.c \
-	bsputil.c \
-	bspbab.c  \
-	bspbib.c  \
-	bspbcb.c
+NMSOURCES =	     \
+	adm.c \
+	adm_agent.c \
+	adm_bp.c \
+	adm_bpsec.c \
+	adm_ion.c \
+	adm_ltp.c \
+	msg_admin.c \
+	msg_ctrl.c \
+	pdu.c \
+	var.c \
+	expr.c \
+	blob.c \
+	admin.c \
+	def.c \
+	mid.c \
+	oid.c \
+	report.c \
+	rules.c \
+	dc.c \
+	value.c \
+	lit.c \
+	nn.c \
+	tdc.c \
+	ctrl.c \
+	table.c \
+	ion_if.c \
+	utils.c \
+	db.c \
+	nm_types.c \
+	ingest.c \
+	instr.c \
+	lcc.c \
+	ldc.c \
+	rda.c \
+	agent_db.c \
+	adm_ion_priv.c \
+	adm_ltp_priv.c \
+	adm_agent_impl.c \
+	adm_bp_impl.c \
+	adm_bpsec_impl.c \
+	nmagent.c
+
+BPSECSOURCES =       \
+	bpsec_util.c \
+	bpsec_instr.c\
+	profiles.c   \
+	bpsec_bib.c  \
+	bpsec_bcb.c
 
 BSSSOURCES =      \
 	libbss.c     \
@@ -143,7 +190,13 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(BSPSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES)
+#	*** NOTE *** ION will build with BPSECSOURCES and NMSOURCES included.
+#	But IT WON'T RUN.  The object file uses up too much of the RTEMS
+#	memory allocation in this configuration; there's not enough memory
+#	left for the ION node initialization to complete.
+# $(BPSECSOURCES)
+# $(NMSOURCES)
 # $(BSSSOURCES)
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
@@ -163,7 +216,18 @@ include $(PROJECT_ROOT)/make/leaf.cfg
 
 OBJS = $(COBJS) $(CXXOBJS) $(ASOBJS)
 
-INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include
+INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
+-I../bp \
+-I../bp/library \
+-I../bp/library/ext \
+-I../bp/library/ext/bpsec \
+-I.. \
+-I../nm \
+-I../nm/agent \
+-I../nm/shared/adm \
+-I../nm/shared/msg \
+-I../nm/shared/primitives \
+-I../nm/shared/utils
 #	-I../dgr/include
 #	-I../bss/include
 #	-I../bssp/include
@@ -175,7 +239,8 @@ INCLUDES = $(INCLUDES_T)
 endif
 
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
-CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)
+#CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)
+CFLAGS = -g -Wall -Werror -Wno-unused-variable $(IONFLAGS) $(INCLUDES)
 
 all:    ${ARCH} $(PGM)
 

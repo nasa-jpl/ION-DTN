@@ -1,0 +1,51 @@
+#!/bin/bash
+
+makefiles=(ici ltp dgr bssp bp nm cfdp ams bss dtpc restart)
+
+ismingw=`uname | awk '{print match($0, "MINGW")}'`
+
+if [ $ismingw -eq 1 ]; then
+	echo "Configuring ION for compilation under MINGW..."
+else
+	echo "This setup is only for use under MINGW!"
+	exit
+fi
+
+mv Makefile Makefile.saved
+mv Makefile.winion Makefile
+
+cp /bin/make.exe /bin/gmake.exe
+
+mkdir /opt/bin
+mkdir /opt/lib
+mkdir /opt/include
+mkdir /opt/man
+mkdir /opt/man/man1
+mkdir /opt/man/man3
+mkdir /opt/man/man5
+
+for f in ${makefiles[@]}; do 
+	fname=`echo "$f/Makefile"`
+	fnameold=`echo "$fname.old"`
+
+	mv `echo $fname $fnameold`
+
+	awk '
+	{
+		if($1=="PLATFORMS")
+			$3="i86-mingw"
+		print $0
+	}
+	' $fnameold > $fname
+
+	rm $fnameold
+done
+
+# move mingw makefile for libbloom
+mv ici/libbloom-master/Makefile ici/libbloom-master/Makefile.saved
+mv ici/libbloom-master/Makefile.winion ici/libbloom-master/Makefile
+
+mv ~/.profile ~/.profile.saved
+echo -e "export PATH=/opt/bin:/opt/lib:/c/DTN/test:\$PATH\nalias ll='ls -l'\nalias vi='vim'" > ~/.profile
+
+source ~/.profile

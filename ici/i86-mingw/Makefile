@@ -8,7 +8,7 @@ CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
 OPT = -g -Wall -Dmingw
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL)
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -26,6 +26,7 @@ LIBICIOBJS = \
 	rfx.o \
 	ionsec.o \
 	crypto.o \
+	csi.o \
 	bulk.o \
 	zco.o \
 	sdrxn.o \
@@ -50,6 +51,7 @@ PUBINCLS = \
 	$(INCL)/rfx.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
+	$(INCL)/csi.h \
 	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
@@ -93,85 +95,85 @@ install:
 #	-	-	Utility executables	-	-	-	-
 
 sdrwatch:	sdrwatch.o libici.dll
-		$(CC) -o sdrwatch sdrwatch.o -L./lib -lici -lpthread
+		$(CC) -o sdrwatch sdrwatch.o -L./lib -lici -lpthread -lm
 		cp sdrwatch ./bin
 
 sdrmend:	sdrmend.o libici.dll
-		$(CC) -o sdrmend sdrmend.o -L./lib -lici -lpthread
+		$(CC) -o sdrmend sdrmend.o -L./lib -lici -lpthread -lm
 		cp sdrmend ./bin
 
 psmwatch:	psmwatch.o libici.dll
-		$(CC) -o psmwatch psmwatch.o -L./lib -lici -lpthread
+		$(CC) -o psmwatch psmwatch.o -L./lib -lici -lpthread -lm
 		cp psmwatch ./bin
 
 ionadmin:	ionadmin.o libici.dll
-		$(CC) -o ionadmin ionadmin.o -L./lib -lici -lpthread
+		$(CC) -o ionadmin ionadmin.o -L./lib -lici -lpthread -lm
 		cp ionadmin ./bin
 
 ionwarn:	ionwarn.o libici.dll
-		$(CC) -o ionwarn ionwarn.o -L./lib -lici -lpthread
+		$(CC) -o ionwarn ionwarn.o -L./lib -lici -lpthread -lm
 		cp ionwarn ./bin
 
 ionsecadmin:	ionsecadmin.o libici.dll
-		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread
+		$(CC) -o ionsecadmin ionsecadmin.o -L./lib -lici -lpthread -lm
 		cp ionsecadmin ./bin
 
 killm:		killm.o libici.dll
-		$(CC) -o killm killm.o -L./lib -lici -lpthread
+		$(CC) -o killm killm.o -L./lib -lici -lpthread -lm
 		cp killm ./bin
 
 #	-	-	Test executables	-	-	-	-
 
 psmshell:	psmshell.o libici.dll
-		$(CC) -o psmshell psmshell.o -L./lib -lici -lpthread
+		$(CC) -o psmshell psmshell.o -L./lib -lici -lpthread -lm
 		cp psmshell ./bin
 
 smlistsh:	smlistsh.o libici.dll
-		$(CC) -o smlistsh smlistsh.o -L./lib -lici -lpthread
+		$(CC) -o smlistsh smlistsh.o -L./lib -lici -lpthread -lm
 		cp smlistsh ./bin
 
 smrbtsh:	smrbtsh.o libici.dll
-		$(CC) -o smrbtsh smrbtsh.o -L./lib -lici -lpthread
+		$(CC) -o smrbtsh smrbtsh.o -L./lib -lici -lpthread -lm
 		cp smrbtsh ./bin
 
 file2sm:	file2sm.o libici.dll
-		$(CC) -I. -o file2sm file2sm.o -L./lib -lici -lpthread
+		$(CC) -I. -o file2sm file2sm.o -L./lib -lici -lpthread -lm
 		cp file2sm ./bin
 
 sm2file:	sm2file.o libici.dll
-		$(CC) -I. -o sm2file sm2file.o -L./lib -lici -lpthread
+		$(CC) -I. -o sm2file sm2file.o -L./lib -lici -lpthread -lm
 		cp sm2file ./bin
 
 file2sdr:	file2sdr.o libici.dll
-		$(CC) -I. -o file2sdr file2sdr.o -L./lib -lici -lpthread
+		$(CC) -I. -o file2sdr file2sdr.o -L./lib -lici -lpthread -lm
 		cp file2sdr ./bin
 
 sdr2file:	sdr2file.o libici.dll
-		$(CC) -o sdr2file sdr2file.o -L./lib -lici -lpthread
+		$(CC) -o sdr2file sdr2file.o -L./lib -lici -lpthread -lm
 		cp sdr2file ./bin
 
 owltsim:	owltsim.o libici.dll
-		$(CC) -o owltsim owltsim.o -L./lib -lici -lpthread -lws2_32
+		$(CC) -o owltsim owltsim.o -L./lib -lici -lpthread -lws2_32 -lm
 		cp owltsim ./bin
 
 owlttb:		owlttb.o libici.dll
-		$(CC) -o owlttb owlttb.o -L./lib -lici -lpthread
+		$(CC) -o owlttb owlttb.o -L./lib -lici -lpthread -lm
 		cp owlttb ./bin
 
 #	-	-	Daemon executables	-	-	-	-
 
 rfxclock:	rfxclock.o libici.dll
-		$(CC) -I. -o rfxclock rfxclock.o -L./lib -lici -lpthread
+		$(CC) -I. -o rfxclock rfxclock.o -L./lib -lici -lpthread -lm
 		cp rfxclock ./bin
 
 winion:		winion.o libici.dll
-		$(CC) -I. -o winion winion.o -L./lib -lici -lpthread
+		$(CC) -I. -o winion winion.o -L./lib -lici -lpthread -lm
 		cp winion ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
 libici.dll:	$(LIBICIOBJS) libicinm.o
-		$(LD) -o libici.dll $(LIBICIOBJS) libicinm.o -Wl,--output-def,libici.def -lpthread -lws2_32
+		$(LD) -o libici.dll $(LIBICIOBJS) libicinm.o -Wl,--output-def,libici.def -lpthread -lws2_32 -lm
 		cp libici.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

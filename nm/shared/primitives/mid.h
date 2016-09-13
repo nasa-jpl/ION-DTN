@@ -2,14 +2,7 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
-
 /*****************************************************************************
  **
  ** File Name: mid.h
@@ -26,13 +19,14 @@
  **         implementations may wish to dynamically allocate MIDs as they are
  **         received.
  **
- **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/21/11  E. Birrane     Code comments and functional updates.
- **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup.
- **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs
+ **  10/21/11  E. Birrane     Code comments and functional updates. (JHU/APL)
+ **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
+ **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs (JHU/APL)
+ **  04/19/16  E. Birrane     Put OIDs on stack and not heap. (Secure DTN - NASA: NNX14CS58P)
+ **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 #ifndef MID_H_
@@ -42,8 +36,8 @@
 
 #include "ion.h"
 
-#include "shared/utils/debug.h"
-#include "shared/primitives/oid.h"
+#include "../utils/debug.h"
+#include "../primitives/oid.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -54,15 +48,13 @@
 /**
  * Defines the bits comprising the MID flags as follows.
  *
- * Bits 0-1:  The type of component identified by the MID
- * Bits 2-3:  The category of component identified by the MID
+ * Bits 0-3:  The struct id of the component identified by the MID
  * Bit 4: The issuer flag associated with the MID
  * Bit 5: The tag flag associated with the MID
  * Bits 6-7: The OID type encapsulated within the MID
  *
  */
-#define MID_FLAG_TYPE       (0x03)
-#define MID_FLAG_CAT        (0x0C)
+#define MID_FLAG_ID         (0x0F)
 #define MID_FLAG_ISS        (0x10)
 #define MID_FLAG_TAG        (0x20)
 #define MID_FLAG_OID        (0xC0)
@@ -76,24 +68,17 @@
  * LITERAL: Well-named Constants.
  * OPERATOR: Coded mathematical expression (special case of control).
  */
-#define MID_TYPE_DATA 0
-#define MID_TYPE_CONTROL 1
-#define MID_TYPE_LITERAL 2
-#define MID_TYPE_OPERATOR 3
 
-
-/**
- * MID CATEGORY DEFINITIONS
- *
- * ATOMIC: Proper-named data from specification.
- * COMPUTED: Computed by mathematical expression of atomic/computed data values.
- * COLLECTION: List of items, atomic or computed.
- */
-#define MID_CAT_ATOMIC 0
-#define MID_CAT_COMPUTED 1
-#define MID_CAT_COLLECTION 2
-
-
+#define MID_ATOMIC   (0)
+#define MID_COMPUTED (1)
+#define MID_REPORT   (2)
+#define MID_CONTROL  (3)
+#define MID_SRL      (4)
+#define MID_TRL      (5)
+#define MID_MACRO    (6)
+#define MID_LITERAL  (7)
+#define MID_OPERATOR (8)
+#define MID_ANY      (9)
 
 /**
  * Maximum size, in bytes, supported for MID fields.
@@ -110,8 +95,7 @@
  * +--------------------------------------------------------------------------+
  */
 
-#define MID_GET_FLAG_TYPE(flag) (flag & MID_FLAG_TYPE)
-#define MID_GET_FLAG_CAT(flag)  ((flag & MID_FLAG_CAT) >> 2)
+#define MID_GET_FLAG_ID(flag) (flag & MID_FLAG_ID)
 #define MID_GET_FLAG_ISS(flag)  ((flag & MID_FLAG_ISS) >> 4)
 #define MID_GET_FLAG_TAG(flag)  ((flag & MID_FLAG_TAG) >> 5)
 #define MID_GET_FLAG_OID(flag)  ((flag & MID_FLAG_OID) >> 6)
@@ -140,17 +124,14 @@ typedef struct {
     /** Flags describing optional MID elements */
     uint8_t flags;
 
-    /** Type of the MID, one of MID_TYPE_[DATA|CONTROL|LITERAL|OPERATOR]. */
-    uint8_t type;
+    /** ID of the MID structure. */
+    uint8_t id;
 
-    /** Category of the MID, one of MID_CAT_[ATOMIC|COMPUTED|COLLECTION]. */
-    uint8_t category;
-    
     /** Issuer, capped to largest atomic data type allowed by architecture */
     uvast issuer;    
     
     /** OID */
-    oid_t *oid;
+    oid_t oid;
     
     /** Tag, capped to largest atomic data type allowed by architecture */
     uvast tag;
@@ -171,20 +152,33 @@ typedef struct {
  */
 
 
-int      mid_add_param(mid_t *mid, uint8_t *value, uint32_t len);
+int      mid_add_param(mid_t *mid, amp_type_e type, blob_t *blob);
 
 void     mid_clear(mid_t *mid);
 
+void	 mid_clear_parms(mid_t *mid);
+
 int      mid_compare(mid_t *mid1, mid_t *mid2, uint8_t use_parms);
 
-mid_t*   mid_construct(uint8_t type, uint8_t cat,
-		               uvast *issuer, uvast *tag, oid_t *oid);
+mid_t*   mid_construct(uint8_t id, uvast *issuer, uvast *tag, oid_t oid);
 
 mid_t*   mid_copy(mid_t *src_mid);
+
+uint8_t  mid_copy_parms(mid_t *dest, mid_t *src);
 
 mid_t*   mid_deserialize(unsigned char *buffer,
 		                 uint32_t buffer_size,
 		                 uint32_t *bytes_used);
+
+mid_t*   mid_deserialize_str(char *buffer,
+							 uint32_t buffer_size,
+							 uint32_t *bytes_used);
+
+mid_t*   mid_from_string(char *mid_str);
+
+blob_t *mid_get_param(mid_t *id, int i, amp_type_e *type);
+
+uint8_t  mid_get_num_parms(mid_t *mid);
 
 int      mid_internal_serialize(mid_t *mid);
 
@@ -197,6 +191,8 @@ int      mid_sanity_check(mid_t *mid);
 uint8_t* mid_serialize(mid_t *mid, uint32_t *size);
 
 char*    mid_to_string(mid_t *mid);
+
+void     midcol_clear(Lyst mc);
 
 Lyst     midcol_copy(Lyst mids);
 

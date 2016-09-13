@@ -1477,6 +1477,83 @@ static int	loadKeyValue(SecKey *key, char *fileName)
 	return 1;
 }
 
+/*
+ * -1: System Error.
+ * 0: Bad key or Duplicate
+ * 1: Success
+ */
+int sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB*	secdb = _secConstants();
+	Object	nextKey;
+	SecKey	key;
+	Object	keyObj;
+
+	CHKERR(keyName);
+	CHKERR(keyVal);
+	CHKERR(secdb);
+
+	/* Check that a key has been passed in. */
+	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
+	{
+		writeMemoNote("[?] Invalid key name", keyName);
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+
+	/* Make sure key does not already exist. */
+	if (locateKey(keyName, &nextKey) != 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] This key is already defined", keyName);
+		return 0;
+	}
+
+	/*	Store key in the SDR.		*/
+
+	istrcpy(key.name, keyName, sizeof key.name);
+	key.length = keyLen;
+	key.value = sdr_malloc(sdr, key.length);
+	if (key.value == 0)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("Failed loading key value.", key.name);
+		return -1;
+	}
+
+	sdr_write(sdr, key.value, keyVal, keyLen);
+
+	/* Add key object to the key database. */
+	keyObj = sdr_malloc(sdr, sizeof(SecKey));
+	if (keyObj == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't create key.", keyName);
+		return -1;
+	}
+
+	if (nextKey)
+	{
+		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
+	}
+	else
+	{
+		oK(sdr_list_insert_last(sdr, secdb->keys, keyObj));
+	}
+
+	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't add key.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
 int	sec_addKey(char *keyName, char *fileName)
 {
 	Sdr		sdr = getIonsdr();
@@ -1647,6 +1724,59 @@ int	sec_removeKey(char *keyName)
 	}
 
 	return 1;
+}
+
+int	sec_activeKey(char *keyName)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+	Object	elt;
+	Object	ruleObj;
+		OBJ_POINTER(BspBabRule, babRule);
+		OBJ_POINTER(BspBibRule, bibRule);
+		OBJ_POINTER(BspBcbRule, bcbRule);
+
+	CHKERR(sdr_begin_xn(sdr));
+
+	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBabRule, babRule, ruleObj);
+		if ((strncmp(babRule->keyName, keyName, 32)) == 0)
+		{
+			sdr_end_xn(sdr);
+			return 1;
+		}
+	}
+
+	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBibRule, bibRule, ruleObj);
+		if ((strncmp(bibRule->keyName, keyName, 32)) == 0)
+		{
+			sdr_end_xn(sdr);
+			return 1;
+		}
+	}
+
+	for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBcbRule, bcbRule, ruleObj);
+		if ((strncmp(bcbRule->keyName, keyName, 32)) == 0)
+		{
+			sdr_end_xn(sdr);
+			return 1;
+		}
+	}
+
+	sdr_end_xn(sdr);
+
+	return 0;
 }
 
 int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
@@ -2801,17 +2931,20 @@ void	sec_get_bspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
+
 	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		*ruleAddr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BspBibRule, rule, *ruleAddr);
+
 		if (blockTypeNbr != 0 && rule->blockTypeNbr != blockTypeNbr)
 		{
 			continue;	/*	Wrong target blk type.	*/
 		}
 
 		eidLen = sdr_string_read(sdr, eidBuffer, rule->destEid);
+
 		/* If destinations match... */
 		if ((rule->blockTypeNbr == blockTypeNbr)
 		&& (eidsMatch(eidBuffer, eidLen, secDestEid,
@@ -3254,6 +3387,345 @@ int	sec_removeBspBcbRule(char *secSrcEid, char *secDestEid,
 
 	return 1;
 }
+
+Object sec_get_bspBibRuleList()
+{
+	SecDB	*secdb = _secConstants();
+
+	if(secdb == NULL)
+	{
+		return 0;
+	}
+
+	return secdb->bspBibRules;
+}
+
+Object sec_get_bspBcbRuleList()
+{
+	SecDB	*secdb = _secConstants();
+
+	if(secdb == NULL)
+	{
+		return 0;
+	}
+
+	return secdb->bspBcbRules;
+}
+
+/* Size is the maximum size of a key name. */
+int	sec_get_bpsecNumKeys(int *size)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+/*		OBJ_POINTER(SecDB, db);		*/
+	int result = 0;
+
+	CHKERR(size);
+	CHKERR(sdr_begin_xn(sdr));
+	result = sdr_list_length(sdr, secdb->keys);
+	/* TODO: This should be a #define. */
+	*size = 32;
+	sdr_exit_xn(sdr);
+
+	return result;
+}
+
+/*
+ * Generates NULL-terminated, CSV of key names
+ * in the PRE-ALLOCATED buffer of given length.
+ */
+void sec_get_bpsecKeys(char *buffer, int length)
+{
+	Sdr	sdr = getIonsdr();
+/*		OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+		OBJ_POINTER(SecKey, key);
+	Object	elt;
+	Object	obj;
+
+	char *cursor = NULL;
+	int idx = 0;
+	int key_len = 0;
+
+	CHKVOID(buffer);
+
+	memset(buffer, 0, length);
+	cursor = buffer;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sdr_list_first(sdr, secdb->keys); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+
+		GET_OBJ_POINTER(sdr, SecKey, key, obj);
+
+		if ((key != NULL) && ((key_len = strlen(key->name)) > 0))
+		{
+			/* Make sure there is room in the buffer to
+			 * hold the key name.
+			 */
+			if ((idx + key_len + 1) > length)
+			{
+				memset(buffer, 0, length);
+				sdr_cancel_xn(sdr);
+				return;
+			}
+
+			/* Copy current key name into the buffer. */
+			memcpy(cursor, key->name, key_len);
+			cursor += key_len;
+			*cursor = ',';
+			cursor += 1;
+			idx += key_len + 1;
+		}
+	}
+
+	/* If we put anything in the buffer, there is now
+	 * a trailing ",". Replace it with a NULL terminator.
+	 */
+	if (buffer != cursor)
+	{
+		cursor--;
+		cursor[0] = '\0';
+	}
+
+	sdr_end_xn(sdr);
+}
+
+int  sec_get_bpsecNumCSNames(int *size)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+	/*	OBJ_POINTER(SecDB, db);		*/
+	int	result = 0;
+
+	CHKERR(size);
+
+	CHKERR(sdr_begin_xn(sdr));
+	result = sdr_list_length(sdr, secdb->bspBibRules);
+	result += sdr_list_length(sdr, secdb->bspBcbRules);
+
+	/* TODO: This should be a #define. */
+	*size = 32;
+	sdr_exit_xn(sdr);
+
+	return result;
+}
+
+void sec_get_bpsecCSNames(char *buffer, int length)
+{
+	Sdr	sdr = getIonsdr();
+	/*	OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+		OBJ_POINTER(BspBibRule, bibRule);
+		OBJ_POINTER(BspBcbRule, bcbRule);
+	Object	elt;
+	Object	obj;
+
+	char *cursor = NULL;
+	int idx = 0;
+	int size = 0;
+
+	CHKVOID(buffer);
+
+	memset(buffer, 0, length);
+
+	CHKVOID(sdr_begin_xn(sdr));
+	cursor = buffer;
+
+	/* Walk through the BIB rules and gather ciphersuite names. */
+
+	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+
+		GET_OBJ_POINTER(sdr, BspBibRule, bibRule, obj);
+
+		/* Make sure there is room in the buffer to
+		 * hold the ciphersuite name.
+		 */
+		size = strlen(bibRule->ciphersuiteName);
+		if ((size > 0) && (size <= 32))
+		{
+			if ((idx + size + 1) > length)
+			{
+				memset(buffer, 0, length);
+				sdr_exit_xn(sdr);
+				return;
+			}
+
+			/* Copy current key name into the buffer. */
+			memcpy(cursor, bibRule->ciphersuiteName, size);
+			cursor += size;
+			*cursor = ',';
+			cursor += 1;
+			idx += size + 1;
+		}
+	}
+
+	/* Walk through the BCB rules and gather ciphersuite names. */
+	for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+
+		GET_OBJ_POINTER(sdr, BspBcbRule, bcbRule, obj);
+
+		/* Make sure there is room in the buffer to
+		 * hold the ciphersuite name.
+		 */
+		size = strlen(bcbRule->ciphersuiteName);
+		if ((size > 0) && (size <= 32))
+		{
+			if ((idx + size + 1) > length)
+			{
+				memset(buffer, 0, length);
+				sdr_exit_xn(sdr);
+				return;
+			}
+
+			/* Copy current key name into the buffer. */
+			memcpy(cursor, bcbRule->ciphersuiteName, size);
+			cursor += size;
+			*cursor = ',';
+			cursor += 1;
+			idx += size + 1;
+		}
+	}
+
+
+	/* If we put anything in the buffer, there is now
+	 * a trailing ",". Replace it with a NULL terminator.
+	 */
+	if (buffer != cursor)
+	{
+		cursor--;
+		cursor[0] = '\0';
+	}
+
+	sdr_exit_xn(sdr);
+}
+
+int  sec_get_bpsecNumSrcEIDs(int *size)
+{
+	Sdr	sdr = getIonsdr();
+	/*	OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+	int	result = 0;
+
+	CHKERR(size);
+
+	CHKERR(sdr_begin_xn(sdr));
+	result = sdr_list_length(sdr, secdb->bspBibRules);
+	result += sdr_list_length(sdr, secdb->bspBcbRules);
+
+	/* TODO: This should be a #define. */
+	*size = SDRSTRING_BUFSZ;
+	sdr_exit_xn(sdr);
+
+	return result;
+}
+
+void sec_get_bpsecSrcEIDs(char *buffer, int length)
+{
+	Sdr	sdr = getIonsdr();
+	/*	OBJ_POINTER(SecDB, db);		*/
+	SecDB	*secdb = _secConstants();
+		OBJ_POINTER(BspBibRule, bibRule);
+		OBJ_POINTER(BspBcbRule, bcbRule);
+	Object	elt;
+	Object	obj;
+
+	char	*cursor = NULL;
+	int	idx = 0;
+	int	size = 0;
+	char	eidBuffer[SDRSTRING_BUFSZ];
+
+	CHKVOID(buffer);
+
+	memset(buffer, 0, length);
+
+	CHKVOID(sdr_begin_xn(sdr));
+	cursor = buffer;
+
+	/* Walk through the BIB rules and gather ciphersuite names. */
+
+	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+
+		GET_OBJ_POINTER(sdr, BspBibRule, bibRule, obj);
+
+		/* Make sure there is room in the buffer to
+		 * hold the ciphersuite name.
+		 */
+
+		size = sdr_string_read(sdr, eidBuffer, bibRule->securitySrcEid);
+		if ((size > 0) && (size <= 32))
+		{
+			if ((idx + size + 1) > length)
+			{
+				memset(buffer, 0, length);
+				sdr_exit_xn(sdr);
+				return;
+			}
+
+			/* Copy current key name into the buffer. */
+			memcpy(cursor, eidBuffer, size);
+			cursor += size;
+			*cursor = ',';
+			cursor += 1;
+			idx += size + 1;
+		}
+	}
+
+	/* Walk through the BCB rules and gather ciphersuite names. */
+	for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+
+		GET_OBJ_POINTER(sdr, BspBcbRule, bcbRule, obj);
+
+		/* Make sure there is room in the buffer to
+		 * hold the ciphersuite name.
+		 */
+		size = sdr_string_read(sdr, eidBuffer, bcbRule->securitySrcEid);
+		if ((size > 0) && (size <= 32))
+		{
+			if ((idx + size + 1) > length)
+			{
+				memset(buffer, 0, length);
+				sdr_exit_xn(sdr);
+				return;
+			}
+
+			/* Copy current key name into the buffer. */
+			memcpy(cursor, eidBuffer, size);
+			cursor += size;
+			*cursor = ',';
+			cursor += 1;
+			idx += size + 1;
+		}
+	}
+
+
+	/* If we put anything in the buffer, there is now
+	 * a trailing ",". Replace it with a NULL terminator.
+	 */
+	if (buffer != cursor)
+	{
+		cursor--;
+		cursor[0] = '\0';
+	}
+
+	sdr_exit_xn(sdr);
+
+}
+
 #endif
 
 /******************************************************************************

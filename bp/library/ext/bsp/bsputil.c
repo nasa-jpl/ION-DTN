@@ -170,7 +170,7 @@ int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	unsigned char	*cursor = NULL;
 	int		unparsedBytes = blk->length;
 	LystElt		elt;
-	unsigned long	ltemp;
+	uaddr		ltemp;
 	unsigned int	itemp;
 
 	BSP_DEBUG_PROC("+ bsp_deserializeASB(%x)", (unsigned long) blk);
@@ -183,10 +183,10 @@ int	bsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	{
 		asb.securitySource.unicast = 1;
 		elt = lyst_first(blk->eidReferences);
-		ltemp = (unsigned long) lyst_data(elt);
+		ltemp = (uaddr) lyst_data(elt);
 		asb.securitySource.d.schemeNameOffset = ltemp;
 		elt = lyst_next(elt);
-		ltemp = (unsigned long) lyst_data(elt);
+		ltemp = (uaddr) lyst_data(elt);
 		asb.securitySource.d.nssOffset = ltemp;
 	}
 
@@ -951,8 +951,8 @@ static int	getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 
 	securitySource.cbhe = 0;
 	securitySource.unicast = 1;
-	securitySource.d.schemeNameOffset = (long) lyst_data(elt1);
-	securitySource.d.nssOffset = (long) lyst_data(elt2);
+	securitySource.d.schemeNameOffset = (uaddr) lyst_data(elt1);
+	securitySource.d.nssOffset = (uaddr) lyst_data(elt2);
 	if (printEid(&securitySource, dictionary, fromEid) < 0)
 	{
 		return -1;

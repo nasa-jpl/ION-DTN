@@ -1,6 +1,7 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico@studio.unibo.it
+ **           Davide Pallotti, davide.pallotti@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
@@ -124,6 +125,30 @@ int is_in_info(send_information_t* send_info, al_bp_timestamp_t bundle_timestamp
     return -1;
 } // end is_in_info
 
+int is_in_info_timestamp(send_information_t* send_info, al_bp_timestamp_t bundle_timestamp, int window)
+{
+    static const uint32_t TOLERANCE = 1;
+	
+	int oldest_i = -1;
+	int i;
+	for (i = 0; i < window; i++) 
+	{
+        if (send_info[i].bundle_id.creation_ts.secs >= bundle_timestamp.secs &&
+				send_info[i].bundle_id.creation_ts.secs <= bundle_timestamp.secs + TOLERANCE)
+		{
+			if (oldest_i < 0 || 
+					send_info[i].bundle_id.creation_ts.secs < send_info[oldest_i].bundle_id.creation_ts.secs ||
+					(send_info[i].bundle_id.creation_ts.secs == send_info[oldest_i].bundle_id.creation_ts.secs &&
+						send_info[i].bundle_id.creation_ts.seqno < send_info[oldest_i].bundle_id.creation_ts.seqno))
+			{
+				oldest_i = i;
+			}
+        }
+    }
+	
+    return oldest_i;
+}
+
 int count_info(send_information_t* send_info, int window)
 {
 	int i, count = 0;
@@ -199,8 +224,8 @@ void set_bp_options(al_bp_bundle_object_t *bundle, dtnperf_connection_options_t 
 int open_payload_stream_read(al_bp_bundle_object_t bundle, FILE ** f)
 {
 	al_bp_bundle_payload_location_t pl_location;
-	//char * buffer;
-	//u32_t buffer_len;
+	char * buffer;
+	u32_t buffer_len;
 
 	al_bp_bundle_get_payload_location(bundle, &pl_location);
 
@@ -233,12 +258,11 @@ int close_payload_stream_read(FILE * f)
 int open_payload_stream_write(al_bp_bundle_object_t bundle, FILE ** f)
 {
 	al_bp_bundle_payload_location_t pl_location;
+
 	al_bp_bundle_get_payload_location(bundle, &pl_location);
 
 	if (pl_location == BP_PAYLOAD_MEM)
 	{
-		buffer = NULL;
-		buffer_len = 0;
 		al_bp_bundle_get_payload_mem(bundle, &buffer, &buffer_len);
 		*f= open_memstream(&buffer, (size_t *) &buffer_len);
 		if (*f == NULL)
@@ -486,8 +510,8 @@ al_bp_error_t prepare_generic_payload(dtnperf_options_t *opt, FILE * f, uint32_t
 		return BP_ENULLPNTR;
 
 	char * pattern = PL_PATTERN;
-	unsigned long remaining;
-	unsigned int i;
+	long remaining;
+	int i;
 	uint16_t monitor_eid_len;
 	al_bp_error_t result;
 
@@ -516,31 +540,23 @@ al_bp_error_t prepare_generic_payload(dtnperf_options_t *opt, FILE * f, uint32_t
 	return result;
 }
 
-al_bp_error_t prepare_force_stop_bundle(al_bp_bundle_object_t * stop, al_bp_endpoint_id_t monitor,
+al_bp_error_t prepare_force_stop_bundle(al_bp_bundle_object_t * start, al_bp_endpoint_id_t monitor,
 		al_bp_timeval_t expiration, al_bp_bundle_priority_t priority)
 {
-	FILE * stop_stream;
-	char * buf;
-	char * payload;
-	size_t buf_size;
+	FILE * start_stream;
 	HEADER_TYPE start_header = FORCE_STOP_HEADER;
 	al_bp_endpoint_id_t none;
 	al_bp_bundle_delivery_opts_t opts = BP_DOPTS_NONE;
-	al_bp_bundle_set_payload_location(stop, BP_PAYLOAD_MEM);
-	stop_stream = open_memstream(&buf, &buf_size);
-	if (fwrite(&start_header, HEADER_SIZE, 1, stop_stream) != HEADER_SIZE)
-		printf("[debug] WARNING: problem writing bundle force_stop header: %x\n", start_header);
-	fclose(stop_stream);
-	payload = (char *) malloc(buf_size);
-	memcpy(payload, buf, buf_size);
-	free(buf);
-	al_bp_bundle_set_payload_mem(stop, payload, buf_size);
-	al_bp_bundle_set_dest(stop, monitor);
+	al_bp_bundle_set_payload_location(start, BP_PAYLOAD_MEM);
+	open_payload_stream_write(*start, &start_stream);
+	fwrite(&start_header, HEADER_SIZE, 1, start_stream);
+	close_payload_stream_write(start, start_stream);
+	al_bp_bundle_set_dest(start, monitor);
 	al_bp_get_none_endpoint(&none);
-	al_bp_bundle_set_replyto(stop, none);
-	al_bp_bundle_set_delivery_opts(stop, opts);
-	al_bp_bundle_set_expiration(stop, expiration);
-	al_bp_bundle_set_priority(stop, priority);
+	al_bp_bundle_set_replyto(start, none);
+	al_bp_bundle_set_delivery_opts(start, opts);
+	al_bp_bundle_set_expiration(start, expiration);
+	al_bp_bundle_set_priority(start, priority);
 	return BP_SUCCESS;
 }
 
@@ -548,27 +564,16 @@ al_bp_error_t prepare_stop_bundle(al_bp_bundle_object_t * stop, al_bp_endpoint_i
 		al_bp_timeval_t expiration, al_bp_bundle_priority_t priority, int sent_bundles)
 {
 	FILE * stop_stream;
-	char * buf;
-	char * payload;
-	size_t buf_size;
 	HEADER_TYPE stop_header = STOP_HEADER;
 	al_bp_endpoint_id_t none;
-	uint32_t buf_int;
+	uint32_t buf;
 	al_bp_bundle_delivery_opts_t opts = BP_DOPTS_NONE;
 	al_bp_bundle_set_payload_location(stop, BP_PAYLOAD_MEM);
-
-	stop_stream = open_memstream(&buf, &buf_size);
-	if(fwrite(&stop_header, HEADER_SIZE, 1, stop_stream) != 1)
-		printf("[debug] WARNING: problem writing bundle stop header: %x\n", stop_header);
-	fflush(stop_stream);
-	buf_int = htonl(sent_bundles);
-	if(fwrite(&buf_int, sizeof(buf_int), 1, stop_stream) != 1)
-		printf("[debug] WARNING: problem writing sent bundles num into bundle stop: %d\n", ntohl(buf_int));
-	fclose(stop_stream);
-	payload = (char *) malloc(buf_size);
-	memcpy(payload, buf, buf_size);
-	free(buf);
-	al_bp_bundle_set_payload_mem(stop, payload, buf_size);
+	open_payload_stream_write(*stop, &stop_stream);
+	fwrite(&stop_header, HEADER_SIZE, 1, stop_stream);
+	buf = htonl(sent_bundles);
+	fwrite(&buf, sizeof(buf), 1, stop_stream);
+	close_payload_stream_write(stop, stop_stream);
 	al_bp_bundle_set_dest(stop, monitor);
 	al_bp_get_none_endpoint(&none);
 	al_bp_bundle_set_replyto(stop, none);

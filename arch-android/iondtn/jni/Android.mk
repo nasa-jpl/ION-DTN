@@ -34,6 +34,7 @@ MY_ICISOURCES := \
 	$(MY_ICI)/library/rfx.c         \
 	$(MY_ICI)/library/zco.c         \
 	$(MY_ICI)/crypto/NULL_SUITES/crypto.c	\
+	$(MY_ICI)/crypto/NULL_SUITES/csi.c	\
 	$(MY_ICI)/bulk/STUB_BULK/bulk.c	\
 	$(MY_ICI)/libbloom-master/bloom.c	\
 	$(MY_ICI)/libbloom-master/murmur2/MurmurHash2.c	\
@@ -73,11 +74,6 @@ MY_DGRSOURCES :=     \
 #		$(MY_LTP)/udp/udplso.c        \
 #		$(MY_LTP)/utils/ltpadmin.c
 
-#	NOTE: can't include BSSP in bionic build until duplication
-#	of function and variable names between bp/tcp/libtcpcla.c
-#	and bssp/tcp/libtcpbsa.c is resolved.  Best approach is to
-#	abstract this common TCP stuff out of BP and move it to ici.
-
 MY_BSSP		:= ../../../bssp
 
 MY_BSSPSOURCES :=     \
@@ -96,6 +92,7 @@ MY_BP		:= ../../../bp
 MY_BPSOURCES :=      \
 	$(MY_BP)/library/libbp.c      \
 	$(MY_BP)/library/libbpP.c     \
+	$(MY_BP)/library/libbpnm.c     \
 	$(MY_BP)/daemon/bpclock.c     \
 	$(MY_BP)/daemon/bptransit.c   \
 	$(MY_BP)/utils/bpadmin.c      \
@@ -139,17 +136,59 @@ MY_BPSOURCES :=      \
 #	$(MY_BP)/ltp/ltpcli.c         \
 #	$(MY_BP)/ltp/ltpclo.c         \
 
-MY_BSP		:= $(MY_BP)/library/ext/bsp
+MY_BPSEC	:= $(MY_BP)/library/ext/bpsec
 
-MY_BSPSOURCES :=                     \
-	$(MY_BSP)/ciphersuites.c     \
-	$(MY_BSP)/ciphersuites/bab_hmac_sha1.c    \
-	$(MY_BSP)/ciphersuites/bib_hmac_sha256.c  \
-	$(MY_BSP)/ciphersuites/bcb_arc4.c         \
-	$(MY_BSP)/bsputil.c          \
-	$(MY_BSP)/bspbab.c           \
-	$(MY_BSP)/bspbib.c           \
-	$(MY_BSP)/bspbcb.c
+MY_BPSECSOURCES :=                    \
+	$(MY_BPSEC)/bpsec_util.c      \
+	$(MY_BPSEC)/bpsec_instr.c     \
+	$(MY_BPSEC)/profiles.c        \
+	$(MY_BPSEC)/bpsec_bib.c       \
+	$(MY_BPSEC)/bpsec_bcb.c
+
+MY_NM		:= ../../../nm
+
+MY_NMSOURCES :=                       \
+	$(MY_NM)/shared/adm/adm.c \
+	$(MY_NM)/shared/adm/adm_agent.c \
+	$(MY_NM)/shared/adm/adm_bp.c \
+	$(MY_NM)/shared/adm/adm_bpsec.c \
+	$(MY_NM)/shared/adm/adm_ion.c \
+	$(MY_NM)/shared/adm/adm_ltp.c \
+	$(MY_NM)/shared/msg/msg_admin.c \
+	$(MY_NM)/shared/msg/msg_ctrl.c \
+	$(MY_NM)/shared/msg/pdu.c \
+	$(MY_NM)/shared/primitives/var.c \
+	$(MY_NM)/shared/primitives/expr.c \
+	$(MY_NM)/shared/primitives/blob.c \
+	$(MY_NM)/shared/primitives/admin.c \
+	$(MY_NM)/shared/primitives/def.c \
+	$(MY_NM)/shared/primitives/mid.c \
+	$(MY_NM)/shared/primitives/oid.c \
+	$(MY_NM)/shared/primitives/report.c \
+	$(MY_NM)/shared/primitives/rules.c \
+	$(MY_NM)/shared/primitives/dc.c \
+	$(MY_NM)/shared/primitives/value.c \
+	$(MY_NM)/shared/primitives/lit.c \
+	$(MY_NM)/shared/primitives/nn.c \
+	$(MY_NM)/shared/primitives/tdc.c \
+	$(MY_NM)/shared/primitives/ctrl.c \
+	$(MY_NM)/shared/primitives/table.c \
+	$(MY_NM)/shared/utils/ion_if.c \
+	$(MY_NM)/shared/utils/utils.c \
+	$(MY_NM)/shared/utils/db.c \
+	$(MY_NM)/shared/utils/nm_types.c \
+	$(MY_NM)/agent/ingest.c \
+	$(MY_NM)/agent/instr.c \
+	$(MY_NM)/agent/lcc.c \
+	$(MY_NM)/agent/ldc.c \
+	$(MY_NM)/agent/rda.c \
+	$(MY_NM)/agent/agent_db.c \
+	$(MY_NM)/agent/adm_ion_priv.c \
+	$(MY_NM)/agent/adm_ltp_priv.c \
+	$(MY_NM)/agent/adm_agent_impl.c \
+	$(MY_NM)/agent/adm_bp_impl.c \
+	$(MY_NM)/agent/adm_bpsec_impl.c \
+	$(MY_NM)/agent/nmagent.c
 
 MY_BSS		:= ../../../bss
 
@@ -173,15 +212,40 @@ MY_BSSSOURCES :=    \
 #		$(MY_CFDP)/daemon/cfdpclock.c   \
 #		$(MY_CFDP)/utils/cfdpadmin.c    \
 
-LOCAL_C_INCLUDES := $(MY_ICI)/include $(MY_ICI)/library $(MY_ICI)/libbloom-master $(MY_ICI)/libbloom-master/murmur2 $(MY_DGR)/include $(MY_BP)/include $(MY_BP)/library $(MY_BP)/ipn $(MY_BP)/imc $(MY_BP)/dtn2 $(MY_BP)/ipnd $(MY_BP)/library/ext $(MY_BP)/library/ext/bsp $(MY_BP)/library/ext/bsp/ciphersuites $(MY_BP)/library/ext/ecos $(MY_BP)/library/ext/meb $(MY_BP)/library/ext/bae $(MY_BP)/library/ext/phn $(MY_BP)/tcp $(MY_BP)/udp $(MY_BSS)/include $(MY_BSS)/library $(MY_BSSP)/include $(MY_BSSP)/library $(MY_BSSP)/udp $(MY_BSSP)/tcp
+LOCAL_C_INCLUDES := $(MY_ICI)/include \
+	$(MY_ICI)/library \
+	$(MY_ICI)/libbloom-master \
+	$(MY_ICI)/libbloom-master/murmur2 \
+	$(MY_ICI)/crypto \
+	$(MY_DGR)/include \
+	$(MY_BP)/include \
+	$(MY_BP)/library \
+	$(MY_BP)/ipn \
+	$(MY_BP)/imc \
+	$(MY_BP)/dtn2 \
+	$(MY_BP)/ipnd \
+	$(MY_BP)/library/ext \
+	$(MY_BP)/library/ext/bpsec \
+	$(MY_BP)/library/ext/ecos \
+	$(MY_BP)/library/ext/meb \
+	$(MY_BP)/library/ext/bae \
+	$(MY_BP)/library/ext/phn \
+	$(MY_BP)/tcp \
+	$(MY_BP)/udp \
+	$(MY_BSS)/include \
+	$(MY_BSS)/library \
+	$(MY_BSSP)/include \
+	$(MY_BSSP)/library \
+	$(MY_BSSP)/udp \
+	$(MY_BSSP)/tcp
 
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp 
 #	$(MY_CFDP)/include $(MY_CFDP)/library
 
-LOCAL_CFLAGS = -g -Wall -Werror -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC
+LOCAL_CFLAGS = -g -Wall -Werror -Wno-unused-variable -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC -DBPSEC -DAGENT_ROLE
 #	-DENABLE_ACS -DNO_PROXY -DNO_DIRLIST
 
-LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BSPSOURCES) $(MY_BSSSOURCES)
+LOCAL_SRC_FILES := iondtn.c $(MY_ICISOURCES) $(MY_DGRSOURCES) $(MY_BPSOURCES) $(MY_BPSECSOURCES) $(MY_NMSOURCES) $(MY_BSSSOURCES)
 
 #	$(MY_RESTARTSOURCE) $(MY_LTPSOURCES) $(MY_TESTSOURCES) $(MY_CFDPSOURCES)
 

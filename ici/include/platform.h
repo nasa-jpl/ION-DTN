@@ -95,30 +95,65 @@ extern "C" {
 #if (!LONG_LONG_OKAY)
 typedef long			vast;
 typedef unsigned long		uvast;
+typedef long			saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define UVAST_HEX_FIELDSPEC	"%lx"
+#define	ADDR_FIELDSPEC		"%#lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
+#define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #elif (SPACE_ORDER < 3)	/*	32-bit machines.			*/
 typedef long long		vast;
 typedef unsigned long long	uvast;
+typedef long			saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #if (defined(mingw) || defined(ION4WIN))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
+#define UVAST_HEX_FIELDSPEC	"%I64x"
+#define	ADDR_FIELDSPEC		"%#lx"
 #else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
+#define	ADDR_FIELDSPEC		"%#lx"
 #endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
+#define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
 #else			/*	64-bit machines.			*/
+#if (defined(mingw) || defined(ION4WIN))
+typedef long long		vast;
+typedef unsigned long long	uvast;
+typedef long long		saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
+#define	VAST_FIELDSPEC		"%I64d"
+#define	UVAST_FIELDSPEC		"%I64u"
+#define UVAST_HEX_FIELDSPEC	"%I64x"
+#define	ADDR_FIELDSPEC		"%#I64x"
+#define	strtovast(x)		strtoll(x, NULL, 0)
+#define	strtouvast(x)		strtoull(x, NULL, 0)
+#define	strtoaddr(x)		strtoull(x, NULL, 0)
+#define LARGE1			1ULL
+#else				/*	Not Windows.			*/
 typedef long			vast;
 typedef unsigned long		uvast;
+typedef long			saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	VAST_FIELDSPEC		"%ld"
 #define	UVAST_FIELDSPEC		"%lu"
+#define UVAST_HEX_FIELDSPEC	"%lx"
+#define	ADDR_FIELDSPEC		"%#lx"
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
-#endif
+#define	strtoaddr(x)		strtoul(x, NULL, 0)
+#define LARGE1			1UL
+#endif				/*	end #ifdef mingw || ION4WIN	*/
+#endif	/*	!LONG_LONG_OKAY						*/
 
 #define WORD_SIZE	(1 << SPACE_ORDER)
 #define SMALL_SIZES	(64)
@@ -426,6 +461,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define MINGW_TASKS
 
 #include <pthread.h>
+#include <stdint.h>
 
 #ifndef gmtime_r
 #define gmtime_r(_clock, _result) \

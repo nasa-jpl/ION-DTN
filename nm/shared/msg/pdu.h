@@ -2,12 +2,6 @@
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
- **
- **     This material may only be used, modified, or reproduced by or for the
- **       U.S. Government pursuant to the license rights granted under
- **          FAR clause 52.227-14 or DFARS clauses 252.227-7013/7014
- **
- **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
 /*****************************************************************************
@@ -24,10 +18,10 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  09/24/12  E. Birrane     Initial Implementation
- **  11/01/12  E. Birrane     Redesign of messaging architecture.
- **  06/25/13  E. Birrane     Renamed message "bundle" message "group".
- **  06/26/13  E. Birrane     Added group timestamp
+ **  09/24/12  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/01/12  E. Birrane     Redesign of messaging architecture. (JHU/APL)
+ **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
+ **  06/26/13  E. Birrane     Added group timestamp (JHU/APL)
  *****************************************************************************/
 
 #ifndef DTNMPDU_H_
@@ -36,10 +30,14 @@
 #include "lyst.h"
 
 #include "stdint.h"
-#include "shared/utils/nm_types.h"
+#include "../utils/nm_types.h"
 
 
 
+#define MSG_TYPE_RPT_DATA_LIST    (0x10)
+#define MSG_TYPE_RPT_DATA_DEFS    (0x11)
+#define MSG_TYPE_RPT_DATA_RPT     (0x12)
+#define MSG_TYPE_RPT_PROD_SCHED   (0x13)
 
 
 typedef struct

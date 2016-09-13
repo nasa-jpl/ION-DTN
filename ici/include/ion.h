@@ -24,7 +24,7 @@ extern "C" {
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
 /* As of 2016-02-10 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.4.1"
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.5.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -36,6 +36,9 @@ extern "C" {
 
 #define	MAX_SPEED_MPH	(150000)
 #define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
+
+#define	SENDER_NODE	(0)
+#define	RECEIVER_NODE	(1)
 
 #ifndef ION_SDR_MARGIN
 #define	ION_SDR_MARGIN	(20)		/*	Percent.		*/
@@ -64,8 +67,8 @@ typedef struct
 {
 	unsigned int	term;		/*	In seconds.		*/
 	unsigned int	cycles;		/*	0 = forever.		*/
-	int		(*proceed)(void *);
-	void		*userData;
+	sm_SemId	semaphore;
+	time_t		nextTimeout;
 } IonAlarm;
 
 /*	The IonDB lists of IonContacts and IonRanges are time-ordered,
@@ -85,8 +88,18 @@ typedef struct
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
-	float		prob;		/*	Contact probability.	*/
+	float		confidence;	/*	Confidence in contact.	*/
+	int		discovered;	/*	Boolean.		*/
 } IonContact;
+
+typedef struct
+{
+	time_t		fromTime;	/*	As from time(2).	*/
+	time_t		toTime;		/*	As from time(2).	*/
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	unsigned int	xmitRate;	/*	In bytes per second.	*/
+} PastContact;
 
 typedef struct
 {
@@ -103,6 +116,7 @@ typedef struct
 {
 	Object		contacts;	/*	SDR list: IonContact	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
+	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	uvast		ownNodeNbr;
 	long		productionRate;	/*	Bundles sent by apps.	*/
 	long		consumptionRate;/*	Bundles rec'd by apps.	*/
@@ -216,7 +230,8 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	xmitRate;	/*	In bytes per second.	*/
-	float		prob;		/*	Contact probability.	*/
+	float		confidence;	/*	Confidence in contact.	*/
+	int		discovered;	/*	Boolean.		*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
 	time_t		startFire;	/*	Computed when inserted.	*/
@@ -241,6 +256,7 @@ typedef enum
 	IonStartFire = 19,
 	IonStartRecv = 20,
 	IonPurgeContact = 21,
+	IonAlarmTimeout = 31
 } IonEventType;
 
 typedef struct
@@ -278,7 +294,7 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
-	time_t		lastEditTime;	/*	Add/del contacts/ranges	*/
+	struct timeval	lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
 	PsmAddress	contactIndex;	/*	SM RB tree: IonCXref	*/
@@ -309,8 +325,8 @@ typedef struct
 
 extern void		*allocFromIonMemory(const char *, int, size_t);
 extern void		releaseToIonMemory(const char *, int, void *);
-extern void		*ionMemAtoP(unsigned long);
-extern unsigned long	ionMemPtoA(void *);
+extern void		*ionMemAtoP(uaddr);
+extern uaddr		ionMemPtoA(void *);
 
 extern int		ionInitialize(	IonParms *parms,
 					uvast ownNodeNbr);
@@ -402,11 +418,6 @@ extern int		ionLocked();
 extern int		readIonParms(	char *configFileName,
 					IonParms *parms);
 extern void		printIonParms(	IonParms *parms);
-
-#ifndef ION4WIN		/*	No pthreads in Visual Studio		*/
-extern void		ionSetAlarm(	IonAlarm *alarm, pthread_t *thread);
-extern void		ionCancelAlarm(	pthread_t thread);
-#endif			/*	end of #ifndef ION4WIN			*/
 
 extern void		ionNoteMainThread(char *procName);
 extern void		ionPauseMainThread(int seconds);

@@ -12,6 +12,10 @@
 
 #include "ipnfw.h"
 
+#ifndef	MIN_PROSPECT
+#define	MIN_PROSPECT	(0.0)
+#endif
+
 #ifndef CGR_DEBUG
 #define CGR_DEBUG	0
 #endif
@@ -35,7 +39,7 @@ static void	printCgrTraceLine(void *data, unsigned int lineNbr,
 
 static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 {
-	long		temp;
+	uaddr		temp;
 	void		*value;
 	sm_SemId	sem;
 
@@ -50,7 +54,7 @@ static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 		value = sm_TaskVar(NULL);
 	}
 
-	temp = (long) value;
+	temp = (uaddr) value;
 	sem = temp;
 	return sem;
 }
@@ -126,36 +130,6 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	}
 
 	return 0;
-}
-
-static int	blockedOutductsCount()
-{
-	Sdr	sdr = getIonsdr();
-	BpDB	*db = getBpConstants();
-	int	count = 0;
-	Object	elt;
-		OBJ_POINTER(ClProtocol, protocol);
-	Object	elt2;
-		OBJ_POINTER(Outduct, duct);
-
-	for (elt = sdr_list_first(sdr, db->protocols); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol,
-			       	sdr_list_data(sdr, elt));
-		for (elt2 = sdr_list_first(sdr, protocol->outducts); elt2;
-				elt2 = sdr_list_next(sdr, elt2))
-		{
-			GET_OBJ_POINTER(sdr, Outduct, duct,
-			       		sdr_list_data(sdr, elt2));
-			if (duct->blocked)
-			{
-				count++;
-			}
-		}
-	}
-
-	return count;
 }
 
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
@@ -246,12 +220,15 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return forwardBundle(bundleObj, bundle, eidString);
 	}
 
-	/*	No applicable exit.  If there's at least one blocked
-	 *	outduct, future outduct unblocking might enable CGR
-	 *	to compute a route that's not currently plausible.
-	 *	So place bundle in limbo.				*/
+	/*	No applicable exit.  If there's at least some route
+	 *	in which we have a minimal level of confidence that
+	 *	the bundle could read its destination given that
+	 *	the initial contact actually materializes (or the
+	 *	outduct to that contact gets unblocked), we just
+	 *	place the bundle in limbo and hope for the best.	*/
 
-	if (blockedOutductsCount() > 0)
+	if (cgr_prospect(metaEid.nodeNbr,
+			bundle->expirationTime + EPOCH_2000_SEC) > MIN_PROSPECT)
 	{
 		if (enqueueToLimbo(bundle, bundleObj) < 0)
 		{

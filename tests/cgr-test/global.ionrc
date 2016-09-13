@@ -30,8 +30,8 @@ a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +1200		8 7   16384
 a contact  +0 +1200		7 8   16384
-a contact  +0 +120		9 6   16384
-a contact  +0 +120		6 9   16384
+a contact  +0 +120		9 5   16384
+a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +300		9 7   16384
 a contact  +0 +300		7 9   16384
@@ -65,8 +65,45 @@ a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +1200		8 7   16384
 a contact  +0 +1200		7 8   16384
-a contact  +0 +120		9 6   16384
-a contact  +0 +120		6 9   16384
+a contact  +0 +120		9 5   16384
+a contact  +0 +120		5 9   16384
+@ +1200
+a contact  +0 +300		9 7   16384
+a contact  +0 +300		7 9   16384
+@ +1200
+a contact  +0 +300		5 2   131072
+a contact  +0 +300		2 5   1024
+a contact  +0 +600		6 3   131072
+a contact  +0 +600		3 6   1024
+a contact  +0 +900		7 4   131072
+a contact  +0 +900		4 7   1024
+@ +900
+a contact  +0 +300		5 3   131072
+a contact  +0 +300		3 5   1024
+a contact  +0 +600		6 4   131072
+a contact  +0 +600		4 6   1024
+a contact  +0 +900		7 2   131072
+a contact  +0 +900		2 7   1024
+@ +900
+a contact  +0 +300		5 4   131072
+a contact  +0 +300		4 5   1024
+a contact  +0 +600		6 2   131072
+a contact  +0 +600		2 6   1024
+a contact  +0 +900		7 3   131072
+a contact  +0 +900		3 7   1024
+@ +1800
+#
+a contact  +0 +1200		8 6   16384
+a contact  +0 +1200		6 8   16384
+#a contact  +0 +120		9 5   16384
+#a contact  +0 +120		5 9   16384
+a contact  +0 +10		9 5   16384
+a contact  +0 +10		5 9   16384
+@ +1200
+a contact  +0 +1200		8 7   16384
+a contact  +0 +1200		7 8   16384
+a contact  +0 +120		9 5   16384
+a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +300		9 7   16384
 a contact  +0 +300		7 9   16384
@@ -100,8 +137,8 @@ a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +1200		8 7   16384
 a contact  +0 +1200		7 8   16384
-a contact  +0 +120		9 6   16384
-a contact  +0 +120		6 9   16384
+a contact  +0 +120		9 5   16384
+a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +300		9 7   16384
 a contact  +0 +300		7 9   16384
@@ -135,43 +172,8 @@ a contact  +0 +120		5 9   16384
 @ +1200
 a contact  +0 +1200		8 7   16384
 a contact  +0 +1200		7 8   16384
-a contact  +0 +120		9 6   16384
-a contact  +0 +120		6 9   16384
-@ +1200
-a contact  +0 +300		9 7   16384
-a contact  +0 +300		7 9   16384
-@ +1200
-a contact  +0 +300		5 2   131072
-a contact  +0 +300		2 5   1024
-a contact  +0 +600		6 3   131072
-a contact  +0 +600		3 6   1024
-a contact  +0 +900		7 4   131072
-a contact  +0 +900		4 7   1024
-@ +900
-a contact  +0 +300		5 3   131072
-a contact  +0 +300		3 5   1024
-a contact  +0 +600		6 4   131072
-a contact  +0 +600		4 6   1024
-a contact  +0 +900		7 2   131072
-a contact  +0 +900		2 7   1024
-@ +900
-a contact  +0 +300		5 4   131072
-a contact  +0 +300		4 5   1024
-a contact  +0 +600		6 2   131072
-a contact  +0 +600		2 6   1024
-a contact  +0 +900		7 3   131072
-a contact  +0 +900		3 7   1024
-@ +1800
-#
-a contact  +0 +1200		8 6   16384
-a contact  +0 +1200		6 8   16384
 a contact  +0 +120		9 5   16384
 a contact  +0 +120		5 9   16384
-@ +1200
-a contact  +0 +1200		8 7   16384
-a contact  +0 +1200		7 8   16384
-a contact  +0 +120		9 6   16384
-a contact  +0 +120		6 9   16384
 @ +1200
 a contact  +0 +300		9 7   16384
 a contact  +0 +300		7 9   16384

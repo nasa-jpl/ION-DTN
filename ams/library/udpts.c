@@ -60,7 +60,7 @@ static int	udpMamsInit(MamsInterface *tsif)
 	int			fd;
 	char			endpointNameText[32];
 	int			eptLen;
-	long			longfd;
+	saddr			longfd;
 
 	CHKERR(tsif);
 	parseSocketSpec(tsif->endpointSpec, &portNbr, &ipAddress);
@@ -110,7 +110,7 @@ printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 	portNbr = ntohs(portNbr);
 	memcpy((char *) &ipAddress, (char *) &(inetName->sin_addr.s_addr), 4);
 	ipAddress = ntohl(ipAddress);
-	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 #if AMSDEBUG
 printf("resulting ept is '%s'.\n", endpointNameText);
@@ -140,7 +140,7 @@ static void	*udpMamsReceiver(void *parm)
 	socklen_t		fromSize;
 
 	CHKNULL(tsif);
-	fd = (long) (tsif->sap);
+	fd = (saddr) (tsif->sap);
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 #ifndef mingw
@@ -194,7 +194,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	int			fd;
 	char			endpointNameText[32];
 	int			eptLen;
-	long			longfd;
+	saddr			longfd;
 
 	CHKERR(tsif);
 	CHKERR(epspec);
@@ -252,7 +252,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	ipAddress = ntohl(ipAddress);
 	tsif->diligence = AmsBestEffort;
 	tsif->sequence = AmsArrivalOrder;
-	isprintf(endpointNameText, sizeof endpointNameText, "%s:%hu", hostName,
+	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 	eptLen = strlen(endpointNameText) + 1;
 	tsif->ept = MTAKE(eptLen);
@@ -280,7 +280,7 @@ static void	*udpAmsReceiver(void *parm)
 	socklen_t		fromSize;
 
 	CHKNULL(tsif);
-	fd = (long) (tsif->sap);
+	fd = (saddr) (tsif->sap);
 	amsSap = tsif->amsSap;
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
@@ -421,7 +421,7 @@ printf("in udpSendMams, tsep at %lu has port %hu, address %u.\n",
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	fd = (long) (tsif->sap);
+	fd = (saddr) (tsif->sap);
 	while (1)
 	{
 		if (sendto(fd, msg, msgLen, 0, &socketName,
@@ -489,7 +489,7 @@ printf("in udpSendAms, tsep is %lu.\n", (unsigned long) tsep);
 		return 0;	/*	Cannot send msg to endpoint.	*/
 	}
 
-	fd = (long) (tsif->sap); 
+	fd = (saddr) (tsif->sap); 
 	portNbr = htons(tsep->portNbr);
 	hostNbr = htonl(tsep->ipAddress);
 	memset((char *) &socketName, 0, sizeof socketName);
@@ -536,7 +536,7 @@ PUTS("udpSendAms succeeded.");
 
 static void	udpShutdown(void *abstract_sap)
 {
-	int		fd = (long) abstract_sap;
+	int		fd = (saddr) abstract_sap;
 	struct sockaddr	sockName;
 	socklen_t	sockNameLen = sizeof sockName;
 	char		shutdown = 1;

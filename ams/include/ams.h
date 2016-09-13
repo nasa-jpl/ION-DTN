@@ -229,7 +229,8 @@ extern int		ams_get_continuum_nbr();
 
 extern int		ams_rams_net_is_tree(AmsModule module);
 
-extern int		ams_continuum_is_neighbor(int continuumNbr);
+extern int		ams_msgspace_is_neighbor(AmsModule module,
+					int continuumNbr);
 
 extern char		*ams_get_role_name(AmsModule module,
 					int unitNbr,

@@ -413,7 +413,8 @@ typedef struct rlock_str
 	pthread_mutex_t	semaphore;
 	pthread_t	owner;
 	short		count;
-	short		init;
+	unsigned char	init;		/*	Boolean.		*/
+	unsigned char	owned;		/*	Boolean.		*/
 } Rlock;		/*	Private-memory semaphore.		*/ 
 
 int	initResourceLock(ResourceLock *rl)
@@ -461,10 +462,11 @@ void	lockResource(ResourceLock *rl)
 	if (lock && lock->init)
 	{
 		tid = pthread_self();
-		if (!pthread_equal(tid, lock->owner))
+		if (lock->owned == 0 || !pthread_equal(tid, lock->owner))
 		{
 			oK(pthread_mutex_lock(&(lock->semaphore)));
 			lock->owner = tid;
+			lock->owned = 1;
 		}
 
 		(lock->count)++;
@@ -479,13 +481,12 @@ void	unlockResource(ResourceLock *rl)
 	if (lock && lock->init)
 	{
 		tid = pthread_self();
-		if (pthread_equal(tid, lock->owner))
+		if (lock->owned && pthread_equal(tid, lock->owner))
 		{
 			(lock->count)--;
 			if ((lock->count) == 0)
 			{
-				memset((char *) &(lock->owner), 0,
-						sizeof(pthread_t));
+				lock->owned = 0;
 				oK(pthread_mutex_unlock(&(lock->semaphore)));
 			}
 		}
@@ -2153,25 +2154,32 @@ int	sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
 
 uvast	htonv(uvast hostvast)
 {
-	static int	length = sizeof(uvast);
-	uvast		result;
-	unsigned char	*cursor;
-	int		i;
+	static const int	fortyTwo = 42;
 
-	if (1 != htonl(1))	/*	Must reverse the digits.	*/
+	if ((*(char *) &fortyTwo) == 0)	/*	Check first byte.	*/
 	{
-		cursor = ((unsigned char *) &hostvast) + length;
-		result = 0;
-		for (i = 0; i < length; i++)
-		{
-			cursor--;
-			result = (result << 8) + (*cursor);
-		}
+		/*	Small-endian (network byte order) machine.	*/
 
-		return result;
+		return hostvast;
 	}
 
-	return hostvast;
+	/*	Must  reverse the byte order of this number.		*/
+
+#if (!LONG_LONG_OKAY)
+	return htonl(hostvast);
+#else
+	static const vast	mask = 0xffffffff;
+	unsigned int		big_part;
+	unsigned int		small_part;
+	uvast			result;
+
+	big_part = hostvast >> 32;
+	small_part = hostvast & mask;
+	big_part = htonl(big_part);
+	small_part = htonl(small_part);
+	result = small_part;
+	return (result << 32) | big_part;
+#endif
 }
 
 uvast	ntohv(uvast netvast)
@@ -2182,7 +2190,26 @@ uvast	ntohv(uvast netvast)
 int	fullyQualified(char *fileName)
 {
 	CHKZERO(fileName);
-#if (defined(mingw) || defined(DOS_PATH_DELIMITER))
+
+#if (defined(VXWORKS))
+	if (strncmp("host:", fileName, 5) == 0)
+	{
+		fileName += 5;
+	}
+
+	if (isalpha((int)*fileName) && *(fileName + 1) == ':')
+	{
+		return 1;
+	}
+
+	if (*fileName == '/')
+	{
+		return 1;
+	}
+
+	return 0;
+
+#elif (defined(mingw) || defined(DOS_PATH_DELIMITER))
 	if (isalpha(*fileName) && *(fileName + 1) == ':')
 	{
 		return 1;
@@ -2647,6 +2674,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 	long long	llval;
 	double		dval;
 	void		*vpval;
+	uaddr		uaddrval;
 
 	if (buffer == NULL || bufSize < 1)
 	{
@@ -2908,7 +2936,8 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 
 		case 'p':
 			vpval = va_arg(args, void *);
-			sprintf(scratchpad, "%#lx", (unsigned long) vpval);
+			uaddrval = (uaddr) vpval;
+			sprintf(scratchpad, ADDR_FIELDSPEC, uaddrval);
 			break;
 
 		default:		/*	Bad conversion char.	*/
@@ -3464,18 +3493,24 @@ int	itcp_recv(int *sock, char *into, int length)
 		switch (bytesRead)
 		{
 		case -1:
+			switch (errno)
+			{
 			/*	The recv() call may have been
 			 *	interrupted by arrival of SIGTERM,
-			 *	in which case reception should
+			 *	in which case reception should simply
 			 *	report that it's time to shut down.	*/
+			case EINTR:		/*	Shutdown.	*/
+			case EBADF:
+			case ECONNRESET:
+				bytesRead = 0;
 
-			if (errno == EINTR)	/*	Shutdown.	*/
-			{
-				return 0;
+			/*	Intentional fall-through to default.	*/
+
+			default:
+				putSysErrmsg("irecv() error on TCP socket",
+						NULL);
+				return bytesRead;
 			}
-
-			putSysErrmsg("irecv() error on TCP socket", NULL);
-			return -1;
 
 		case 0:			/*	Connection closed.	*/
 			return 0;

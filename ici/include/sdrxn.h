@@ -220,7 +220,7 @@ extern int		sdr_end_xn(Sdr sdr);
 
 /*		Low-level SDR I/O functions.				*/
 
-typedef long		SdrAddress;
+typedef saddr		SdrAddress;
 #define	Address		SdrAddress
 
 /*	Both SdrObjects and SdrAddresses are absolute offsets from
@@ -232,7 +232,7 @@ typedef long		SdrAddress;
 	while an SdrAddress can point to any location in the data
 	space (i.e., it can point anywhere inside an object).		*/
 
-typedef unsigned long	SdrObject;
+typedef uaddr		SdrObject;
 #define	Object		SdrObject
 
 extern void		*sdr_pointer(Sdr sdr, Address address);
