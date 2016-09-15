@@ -692,6 +692,7 @@ configured. IPND will not receive any beacon.");
 	/* Make sure memory is released when the thread is canceled. */
 	pthread_cleanup_push(releaseToIonMemory, recvDataBuffer);
 #endif
+	memset((char *) &recvBeacon, 0, sizeof recvBeacon);
 	while (1)
 	{
 		/* Reset variables */
@@ -879,17 +880,32 @@ Old beacon contents: ");
 
 					/* create bidirectional link if
 					 * our eid is present */
-					if (bloom_check(&recvBeacon.bloom,
-						ctx->srcEid,
-						strlen(ctx->srcEid)) == 1)
+					if (recvBeacon.bloom.ready)
 					{
-						nb->link.bidirectional = 1;
+						switch (bloom_check
+							(&recvBeacon.bloom,
+							ctx->srcEid,
+							strlen(ctx->srcEid)))
+						{
+						case 0:
+							break;
+						case 1:
+							nb->link.bidirectional
+								= 1;
 #if IPND_DEBUG
-						isprintf(buffer, sizeof buffer,
-							"[i] receive-thread: \
-Sender's %s:%d NBF contains our EID - bidirectional.", srcAddrStr, srcAddrPort);
-						printText(buffer);
+							isprintf(buffer,
+								sizeof buffer,
+								"[i] receive-\
+thread: Sender's %s:%d NBF contains our EID - bidirectional.",
+								srcAddrStr,
+								srcAddrPort);
+							printText(buffer);
 #endif
+							break;
+						default:
+							putErrmsg("Can't check \
+for EID in Bloom filter", ctx->srcEid);
+						}
 					}
 
 					/* Update neighbor beacon */
