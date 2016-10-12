@@ -1406,6 +1406,7 @@ Object bpsec_bcbStoreOverflow(uint32_t suite,
 	Object cipherBuffer = 0;
 
 	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
+	ciphertext.len = 0;
 	ciphertext.contents = NULL;
 	if((readOffset < blocksize->plaintextLen) || (cipherOverflow > 0))
 	{
