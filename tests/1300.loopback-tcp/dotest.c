@@ -31,6 +31,9 @@ int main(int argc, char **argv)
 			 "loopback-tcp/loopback.bprc",
 			 "loopback-tcp/loopback.ipnrc",
 			 NULL);
+	ionstart_default_config(NULL, NULL, NULL,
+			"loopback-tcp/loopbackstart.bprc",
+			NULL, NULL);
 
 	/* Attach to ION */
 	fail_unless(bp_attach() >= 0);

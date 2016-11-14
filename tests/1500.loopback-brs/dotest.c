@@ -36,6 +36,9 @@ void do_brs_startup()
 
 	/* Now start BP and IPN portions of node. */
 	bpadmin_default_config("loopback-brs/loopback.bprc");
+	ionstart_default_config(NULL, NULL, NULL,
+			"loopback-brs/loopbackstart.bprc",
+			NULL, NULL);
 	ipnadmin_default_config("loopback-brs/loopback.ipnrc");
 
 	/* It is possible that the BRS client tried to connect to the BRS server
