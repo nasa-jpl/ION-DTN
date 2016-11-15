@@ -34,14 +34,14 @@ void _ionstart(const char* path_prefix, const char *ionrc,
     const char *ipnrc, const char *dtn2rc)
 {
     _ionadmin(path_prefix, ionrc);
-    sleep(1);
+    sleep(2);
     _ionsecadmin(path_prefix, ionsecrc);
-    sleep(1);
+    sleep(2);
     _ltpadmin(path_prefix, ltprc);
-    sleep(1);
+    sleep(2);
     _bpadmin(path_prefix, bprc);
-    sleep(1);
+    sleep(2);
     _ipnadmin(path_prefix, ipnrc);
-    sleep(1);
+    sleep(2);
     _dtn2admin(path_prefix, dtn2rc);
 }

@@ -24,6 +24,9 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
+	ionstop();
+	sleep(15);
+
 	/* Start ION */
 	ionstart_default_config("loopback-tcp/loopback.ionrc", 
 			 NULL,

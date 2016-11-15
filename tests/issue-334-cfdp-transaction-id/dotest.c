@@ -35,13 +35,23 @@ int main(int argc, char **argv)
 	uvast tid;
 	int ret;
 
+	ionstop();
+	sleep(15);
+
 	/* Start ION */
 	printf("Starting ION...\n");
 	_xadmin("ionadmin", "", "cfdp.ipn.bp.ltp.udp/config.ionrc");
+	sleep(2);
 	_xadmin("ltpadmin", "", "cfdp.ipn.bp.ltp.udp/config.ltprc");
+	sleep(2);
 	_xadmin("bpadmin", "", "cfdp.ipn.bp.ltp.udp/config.bprc");
+	sleep(2);
 	_xadmin("ipnadmin", "", "cfdp.ipn.bp.ltp.udp/config.ipnrc");
+	sleep(2);
+	_xadmin("bpadmin", "", "cfdp.ipn.bp.ltp.udp/loopbackstart.bprc");
+	sleep(2);
 	_xadmin("cfdpadmin", "", "cfdp.ipn.bp.ltp.udp/config.cfdprc");
+	sleep(2);
 
 	/* Attach to CFDP */
 	fail_unless(cfdp_attach() >= 0);
