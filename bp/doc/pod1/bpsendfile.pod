@@ -4,16 +4,16 @@ bpsendfile - Bundle Protocol (BP) file transmission utility
 
 =head1 SYNOPSIS
 
-B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<class_of_service>]
+B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<time_to_live (seconds)> [I<class_of_service>]]
 
 =head1 DESCRIPTION
 
 B<bpsendfile> uses bp_send() to issue a single bundle to a designated
 destination endpoint, containing the contents of the file identified by
 I<file_name>, then terminates.  The bundle is sent with no custody transfer
-requested, with TTL of 300 seconds (5 minutes).  When I<class_of_service>
-is omitted, the bundle is sent at standard priority; for details of the
-I<class_of_service> parameter, see bptrace(1).
+requested; I<time_to_live>, if not specified, defaults to 300 seconds (5
+minutes).  When I<class_of_service> is omitted, the bundle is sent at standard
+priority; for details of the I<class_of_service> parameter, see bptrace(1).
 
 =head1 EXIT STATUS
 
