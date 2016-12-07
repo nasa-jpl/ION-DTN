@@ -49,42 +49,40 @@ int	bpsource(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char		*destEid = (char *) a1;
-	char		*text = (char *) a2;
-	int 		ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
+	char		*arg2 = (char *) a2;
+	char		*arg3 = (char *) a3;
 #else
 int	main(int argc, char **argv)
 {
 	char		*destEid = NULL;
-	char		*text = NULL;
-	int 		ttl = 300;
+	char		*arg2 = NULL;
+	char		*arg3 = NULL;
 
-	if(argc > 4) argc=4;
+	if (argc > 4)
+	{
+		argc = 4;
+	}
 
 	switch (argc)
 	{
 	case 4:
-		if(argv[3][0]=='-' && argv[3][1]=='t')
-		{
-			ttl=atoi(&argv[3][2]);
-		}else{
-			text=argv[3];
-		}
-		/*Fall Through*/
+		arg3 = argv[3];
+
+		/*	Intentional fall-through to next case.		*/
 	case 3:
-		if(argv[2][0]=='-' && argv[2][1]=='t')
-		{
-			ttl=atoi(&argv[2][2]);
-		}else{
-			text=argv[2];
-		}
-		/*Fall Through*/
+		arg2 = argv[2];
+
+		/*	Intentional fall-through to next case.		*/
 	case 2:
 		destEid = argv[1];
-		/*Fall Through*/
+
+		/*	Intentional fall-through to next case.		*/
 	default:
 		break;
 	}
 #endif
+	int		ttl = 300;
+	char		*text = NULL;
 	Sdr		sdr;
 	char		line[256];
 	int		lineLength;
@@ -94,15 +92,33 @@ int	main(int argc, char **argv)
 	Object		newBundle;
 	int		fd;
 
-	if (destEid == NULL)
+	if (arg2)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] [-t<Bundle TTL>]");
-		return 0;
+		if (arg2[0] == '-' && arg2[1] == 't')
+		{
+			ttl = atoi(arg2 + 2);
+		}
+		else
+		{
+			text = arg2;
+		}
 	}
 
-	if (ttl <= 0)
+	if (arg3)
 	{
-		PUTS("Usage: bpsource <destination endpoint ID> ['<text>'] \
+		if (arg3[0] == '-' && arg3[1] == 't')
+		{
+			ttl = atoi(arg3 + 2);
+		}
+		else
+		{
+			text = arg3;
+		}
+	}
+
+	if (destEid == NULL || ttl <= 0)
+	{
+		PUTS("Usage: bpsource <destination endpoint ID> [\"<text>\"] \
 [-t<Bundle TTL>]");
 		return 0;
 	}

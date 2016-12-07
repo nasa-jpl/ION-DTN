@@ -38,9 +38,13 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 int	udpclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+	unsigned int		rtt = (a1 != 0 ? strtoul((char *) a1, NULL, 0)
+		       				: 0);
 #else
 int	main(int argc, char *argv[])
 {
+	unsigned int		rtt = (argc > 1 ? strtoul(argv[2], NULL, 0)
+						: 0);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -118,7 +122,7 @@ int	main(int argc, char *argv[])
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, outduct.maxPayloadLen, 0) < 0)
+				destDuctName, outduct.maxPayloadLen, rtt) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

@@ -51,7 +51,9 @@ typedef enum
 #define BP_DELIVERED_RPT	(8)	/*	00001000		*/
 #define BP_DELETED_RPT		(16)	/*	00010000		*/
 
+#ifndef BP_MAX_METADATA_LEN
 #define	BP_MAX_METADATA_LEN	(30)
+#endif
 
 typedef struct
 {

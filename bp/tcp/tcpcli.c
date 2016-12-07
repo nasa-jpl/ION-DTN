@@ -1153,12 +1153,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 		/*	The node that we have connect()ed to is not
 		 *	the one that we thought it was.			*/
 
-		writeMemoNote("[?] expected tcpcl EID", neighbor->eid);
-		writeMemoNote("[?] received tcpcl EID", eidbuf);
-		MRELEASE(eidbuf);
-		oK(sendShutdown(connection, 0x02, 0));
-		neighbor->mustDelete = 1;
-		return 0;
+		writeMemoNote("[i] Note: expected tcpcl EID", neighbor->eid);
+		writeMemoNote("[i] ...but received tcpcl EID", eidbuf);
 	}
 
 	MRELEASE(eidbuf);			/*	Not needed.	*/
