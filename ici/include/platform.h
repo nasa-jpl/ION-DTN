@@ -101,6 +101,7 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	UVAST_FIELDSPEC		"%lu"
 #define UVAST_HEX_FIELDSPEC	"%lx"
 #define	ADDR_FIELDSPEC		"%#lx"
+#define ilseek(a, b, c)		lseek(a, b, c)
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
@@ -115,11 +116,13 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	UVAST_FIELDSPEC		"%I64u"
 #define UVAST_HEX_FIELDSPEC	"%I64x"
 #define	ADDR_FIELDSPEC		"%#lx"
+#define ilseek(a, b, c)		lseek64(a, b, c)
 #else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
 #define UVAST_HEX_FIELDSPEC	"%llx"
 #define	ADDR_FIELDSPEC		"%#lx"
+#define ilseek(a, b, c)		lseek(a, b, c)
 #endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
@@ -135,6 +138,7 @@ typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
 #define	UVAST_FIELDSPEC		"%I64u"
 #define UVAST_HEX_FIELDSPEC	"%I64x"
 #define	ADDR_FIELDSPEC		"%#I64x"
+#define ilseek(a, b, c)		lseek64(a, b, c)
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #define	strtoaddr(x)		strtoull(x, NULL, 0)
@@ -148,6 +152,7 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	UVAST_FIELDSPEC		"%lu"
 #define UVAST_HEX_FIELDSPEC	"%lx"
 #define	ADDR_FIELDSPEC		"%#lx"
+#define ilseek(a, b, c)		lseek(a, b, c)
 #define	strtovast(x)		strtol(x, NULL, 0)
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)

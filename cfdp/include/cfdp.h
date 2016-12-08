@@ -235,7 +235,7 @@ extern void	cfdp_compress_number(CfdpNumber *toNbr, uvast from);
 extern void	cfdp_decompress_number(uvast *toNbr, CfdpNumber *from);
 
 extern void	cfdp_update_checksum(unsigned char octet,
-			uvast		*offset,
+			vast		*offset,
 			unsigned int	*checksum,
 			CfdpCksumType	ckType);
 extern

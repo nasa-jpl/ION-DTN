@@ -205,7 +205,7 @@ int	checkFile(char *fileName)
 #endif
 }
 
-static void	addToModularChecksum(unsigned char octet, uvast *offset,
+static void	addToModularChecksum(unsigned char octet, vast *offset,
 			unsigned int *checksum)
 {
 	unsigned int	octetVal;
@@ -312,7 +312,7 @@ static void	addToCrc32(unsigned char octet, unsigned int *checksum)
 	*checksum = (crc32 ^ 0xFFFFFFFF );
 }
 
-void	addToChecksum(unsigned char octet, uvast *offset,
+void	addToChecksum(unsigned char octet, vast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
 	CHKVOID(checksum);
@@ -3746,7 +3746,7 @@ static int	handleFilestoreRejection(InFdu *fdu, int returnCode,
 }
 
 static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
-			int *bytesRemaining, uvast *segmentOffset,
+			int *bytesRemaining, vast *segmentOffset,
 			int bytesToWrite)
 {
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -3789,7 +3789,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	CfdpEvent	event;
 	int		offsetLength;
 	int		i;
-	uvast		segmentOffset;
+	vast		segmentOffset;
 	uvast		segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
@@ -3803,7 +3803,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	uvast		bytesToSkip;
 	char		stringBuf[256];
 	char		workingNameBuffer[MAXPATHLEN + 1];
-	off_t		endOfFile;
+	vast		endOfFile;
 	uvast		fileLength;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
@@ -4022,8 +4022,8 @@ extent.offset, extent.offset + extent.length);
 
 	/*	Write leading fill characters as necessary.		*/
 
-	endOfFile = lseek(cfdpvdb->currentFile, 0, SEEK_END);
-	if (endOfFile == (off_t) -1)
+	endOfFile = ilseek(cfdpvdb->currentFile, 0, SEEK_END);
+	if (endOfFile < 0)
 	{
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
 		return handleFilestoreRejection(fdu, -1, &handler);
@@ -4044,7 +4044,7 @@ extent.offset, extent.offset + extent.length);
 
 	/*	Reposition at offset of new file data bytes.		*/
 
-	if (lseek(cfdpvdb->currentFile, segmentOffset, SEEK_SET) == (off_t) -1)
+	if (ilseek(cfdpvdb->currentFile, segmentOffset, SEEK_SET) < 0)
 	{
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
 		return handleFilestoreRejection(fdu, -1, &handler);
