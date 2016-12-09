@@ -2181,7 +2181,7 @@ static int	constructAck(BsspXmitBlock *rs, Object spanObj)
 	GET_OBJ_POINTER(bsspSdr, BsspSpan, span, spanObj);
 	signalBeBso(span->engineId);
 #if BSSPDEBUG
-putErrmsg("Sending Ack.");
+putErrmsg("Sending Ack.", NULL);
 #endif
 	return 0;
 }
@@ -2233,7 +2233,9 @@ static int	handleDataBlock(uvast sourceEngineId, BsspDB *bsspdb,
 	PsmAddress	vspanElt;
 	Object		spanObj;
 	BsspVclient	*client;
+	ReqTicket	ticket;
 	Object		pduObj;
+	vast		pduLength = 0;
 	Object		clientSvcData = 0;
 
 	/*	First finish parsing the block.			*/
@@ -2288,15 +2290,40 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 		return 0;
 	}
 
+	/*	Deliver the client service data.			*/
+
+	if (ionRequestZcoSpace(ZcoInbound, 0, 0, pdu->length, 0, 0, NULL,
+			&ticket) < 0)
+	{
+		putErrmsg("Failed on ionRequest.", NULL);
+		sdr_cancel_xn(bsspSdr);
+		return -1;
+	}
+
+	if (ticket)	/*	Couldn't service request immediately.	*/
+	{
+		ionShred(ticket);
+#if BSSPDEBUG
+putErrmsg("Can't handle data block, would exceed available ZCO space.",
+utoa(pdu->length));
+#endif
+		return sdr_end_xn(bsspSdr);
+	}
+
 	pduObj = sdr_insert(bsspSdr, *cursor, pdu->length);
 	if (pduObj == 0)
 	{
 		putErrmsg("Can't record data block.", NULL);
+		sdr_cancel_xn(bsspSdr);
 		return -1;
 	}
 
-	clientSvcData = ionCreateZco(ZcoSdrSource, pduObj, 0,
-			pdu->length, 0, 0, ZcoInbound, NULL);
+	/*	Pass additive inverse of length to zco_create to
+ 	*	indicate that space has already been awarded.		*/
+
+	pduLength -= pdu->length;
+	clientSvcData = zco_create(bsspSdr, ZcoSdrSource, pduObj, 0, pduLength,
+			ZcoInbound, 0);
 	switch (clientSvcData)
 	{
 	case (Object) ERROR:
@@ -2306,17 +2333,17 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 
 	case 0:	/*	No ZCO space.  Silently discard block.	*/
 #if BSSPDEBUG
-putErrmsg("Can't handle data block, would exceed available heap space.",
+putErrmsg("Can't handle data block, would exceed available ZCO space.",
 utoa(pdu->length));
 #endif
-		return 0;
+		return sdr_end_xn(bsspSdr);
 	}
 
 	if (enqueueNotice(client, sourceEngineId, sessionNbr, pdu->length,
 			BsspRecvSuccess, 0, clientSvcData) < 0)
 	{
 		putErrmsg("Can't enqueue notice to bssp client.", NULL);
-		return 0;	
+		return sdr_end_xn(bsspSdr);
 	}
 
 	if (sendAck(sessionNbr, spanObj) < 0)
