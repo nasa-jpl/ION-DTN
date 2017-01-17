@@ -62,7 +62,6 @@ int	main(int argc, char *argv[])
 	Outflow		outflows[3];
 	int		i;
 	int		running = 1;
-	unsigned int	maxPayloadLength;
 	Object		bundleZco;
 	BpExtendedCOS	extendedCOS;
 	char		destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
@@ -140,22 +139,8 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] ltpclo is running.");
 	while (running && !(sm_SemEnded(ltpcloSemaphore(NULL))))
 	{
-		switch (maxPayloadLengthKnown(vduct, &maxPayloadLength))
-		{
-		case -1:
-			sm_SemEnd(ltpcloSemaphore(NULL));
-			continue;
-
-		case 0:			/*	Unknown; try again.	*/
-			snooze(1);
-			continue;
-
-		default:		/*	maxPayloadLength known.	*/
-			break;		/*	Out of switch.		*/
-		}
-
 		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, maxPayloadLength, -1) < 0)
+				destDuctName, 0, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

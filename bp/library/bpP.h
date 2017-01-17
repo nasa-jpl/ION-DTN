@@ -379,9 +379,8 @@ typedef struct
 
 	/*	Transmission queue (or limbo list) stuff.		*/
 
+	Object		planXmitElt;	/*	Issuance queue ref.	*/
 	Object		ductXmitElt;	/*	Transmission queue ref.	*/
-	Object		proxNodeEid;	/*	An SDR string		*/
-	Object		destDuctName;	/*	An SDR string		*/
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
@@ -493,6 +492,53 @@ typedef struct
 	PsmAddress	endpoints;	/*	SM list: VEndpoint.	*/
 } VScheme;
 
+/*	*	Definitions supporting route computation.	*	*/
+
+typedef enum
+{
+	fwd = 1,	/*	Forward via indicated EID.		*/
+	xmit = 2	/*	Transmit via indicated CL duct.		*/
+} FwdAction;
+
+typedef struct
+{
+	FwdAction	action;
+
+	/*	For "fwd" directive, spec is the EID of the node
+	 *	through which the bundle is to be forwarded.  For
+	 *	"xmit" directive, spec is the duct expression
+	 *	identifying the Outduct by which the bundle is to
+	 *	be transmitted to the next node on the path to
+	 *	the destination.					*/
+
+	Object		spec;		/*	sdrstring		*/
+} FwdDirective;
+
+/*	Definitions supporting the use of QoS-sensitive bandwidth
+ *	management.
+ *
+ *	Outflow objects are non-persistent.  They are used only to
+ *	do QoS-sensitive bandwidth management.  Since they are private
+ *	to CLMs, they can reside in the private memory of the CLM
+ *	(rather than in shared memory).
+ *
+ *	Each egress Plan has three Outflows:
+ *
+ *		Expedited = 2, Standard = 1, and Bulk = 0.
+ *
+ * 	Expedited traffic goes out before any other.  Standard traffic
+ * 	(service factor = 2) goes out twice as fast as Bulk traffic
+ * 	(service factor = 1).                 				*/
+
+#define EXPEDITED_FLOW   2
+
+typedef struct
+{
+	Object		outboundBundles;/*	SDR list.		*/
+	int		totalBytesSent;
+	int		svcFactor;
+} Outflow;
+
 /*	*	*	Induct structures	*	*	*	*/
 
 typedef struct
@@ -521,12 +567,21 @@ typedef struct
 	Object		inductElt;	/*	Reference to Induct.	*/
 	Object		stats;		/*	InductStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
-	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cliPid;		/*	For stopping the CLI.	*/
 } VInduct;
 
-/*	*	*	Outduct structures	*	*	*	*/
+/*	*	*	Egress Plan structures	*	*	*	*/
+
+#define	BP_PLAN_ENQUEUED	0
+#define	BP_PLAN_DEQUEUED	1
+#define	BP_PLAN_STATS		2
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[BP_PLAN_STATS];
+} PlanStats;
 
 typedef struct
 {
@@ -536,8 +591,10 @@ typedef struct
 
 typedef struct
 {
-	char		name[MAX_CL_DUCT_NAME_LEN + 1];
-	Object		cloCmd;		/*	For starting the CLO.	*/
+	Object		neighborEid;	/*	An SDR string.		*/
+	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	Object		stats;		/*	PlanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
 	Object		bulkQueue;	/*	SDR list of Bundles	*/
 	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
 	Object		stdQueue;	/*	SDR list of Bundles	*/
@@ -545,34 +602,64 @@ typedef struct
 	Object		urgentQueue;	/*	SDR list of Bundles	*/
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
-	int		blocked;	/*	Boolean			*/
-	Object		protocol;	/*	back-reference		*/
-	Object		stats;		/*	OutductStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
-} Outduct;
-
-#define	BP_OUTDUCT_ENQUEUED		0
-#define	BP_OUTDUCT_DEQUEUED		1
-#define	BP_OUTDUCT_STATS		2
+	Object		directives;	/*	SDR list FwdDirectives.	*/
+} BpPlan;
 
 typedef struct
 {
-	time_t		resetTime;
-	Tally		tallies[BP_OUTDUCT_STATS];
-} OutductStats;
+	Object		planElt;	/*	Reference to BpPlan.	*/
+	Object		stats;		/*	PlanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
+	PsmAddress	neighborEid;	/*	Shared memory (char *).	*/
+	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	int		clmPid;		/*	For stopping the CLM.	*/
+	sm_SemId	semaphore;	/*	Queue non-empty.	*/
+	Throttle	xmitThrottle;	/*	For rate control.	*/
+} VPlan;
+
+/*	*	*	Outduct structures	*	*	*	*/
+
+typedef struct
+{
+	Object		planElt;	/*	Assigned BpPlan.	*/
+	char		name[MAX_CL_DUCT_NAME_LEN + 1];
+	Object		cloCmd;		/*	For starting the CLO.	*/
+
+	/*	An Outduct may be TBD, i.e., a place to enqueue
+	 *	bundles destined for the node assigned to the Outduct
+	 *	(identified by planElt) even though the convergence-
+	 *	layer endpoint at which that node can be reached was
+	 *	not known at the time the outduct was created.  For
+	 *	a TBD Outduct, name (the convergence-layer endpoint
+	 *	ID) is "tbd:<eid>", where <eid> is the eid of the
+	 *	node assigned to this outduct, and cloCmd is zero;
+	 *	later processing will enable bundle flow.  In the
+	 *	case of neighbor discovery, the host/port of the
+	 *	discovered neighbor will be encoded in name and the
+	 *	appropriate CLO task will be started and passed the
+	 *	new Outduct name.  In the case of acceptance of a
+	 *	TCPCL connection from the neighboring node, the
+	 *	host/port of the neighbor will be encoded as
+	 *	"@:<fd>", where <fd> is the number of the file
+	 *	descriptor for the accepted socket, and a transmit
+	 *	thread will be started and passed this number.  In
+	 *	all cases cloCmd remains zero for all TBD Outducts.	*/
+
+	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
+	Object		xmitBuffer;	/*	SDR list of (1) ZCO.	*/
+	int		blocked;	/*	Boolean			*/
+	Object		protocol;	/*	back-reference		*/
+} Outduct;
 
 typedef struct
 {
 	Object		outductElt;	/*	Reference to Outduct.	*/
-	Object		stats;		/*	OutductStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
-	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
-	uvast		neighborNodeNbr;/*	If non-promiscuous.	*/
-	sm_SemId	semaphore;	/*	For transmit notices.	*/
-	Throttle	xmitThrottle;	/*	For rate control.	*/
+	unsigned int	maxPayloadLen;	/*	For CLM fragmentation.	*/
+	int		timeoutInterval;/*	For CT retransmission.	*/
+	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
+	BpExtendedCOS	extendedCOS;	/*	For return to CLO.	*/
 } VOutduct;
 
 /*	*	*	Protocol structures	*	*	*	*/
@@ -590,8 +677,6 @@ typedef struct
 	int		overheadPerFrame;
 	int		nominalRate;	/*	Bytes per second.	*/
 	int		protocolClass;	/*	QoS provided.		*/
-	Object		inducts;	/*	SDR list of Inducts	*/
-	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
 
 /*	*	*	BP Database structures	*	*	*	*/
@@ -623,6 +708,9 @@ typedef struct
 {
 	Object		schemes;	/*	SDR list of Schemes	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
+	Object		inducts;	/*	SDR list of Inducts	*/
+	Object		outducts;	/*	SDR list of Outducts	*/
+	Object		plans;		/*	SDR list of BpPlans	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
@@ -762,6 +850,7 @@ typedef struct
 	/*	For finding structures in database.			*/
 
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
+	PsmAddress	plans;		/*	SM list: VPlan.		*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
 	PsmAddress	neighbors;	/*	SM list: NdpNeighbor.	*/
@@ -812,48 +901,6 @@ typedef struct
 	int		bytesBuffered;
 	char		buffer[BP_MAX_BLOCK_SIZE];
 } AcqWorkArea;
-
-/*	Definitions supporting route computation.			*/
-
-typedef enum
-{
-	fwd = 1,	/*	Forward via indicated EID.		*/
-	xmit = 2	/*	Transmit in indicated CL duct.		*/
-} FwdAction;
-
-typedef struct
-{
-	FwdAction	action;
-	int		protocolClass;	/*	Required QoS.		*/
-	Object		outductElt;	/*	sdrlist elt for xmit	*/
-	Object		destDuctName;	/*	sdrstring for xmit	*/
-	Object		eid;		/*	sdrstring for fwd	*/
-} FwdDirective;
-
-/*	Definitions supporting the use of QoS-sensitive bandwidth
- *	management.							*/
-
-/*	Outflow objects are non-persistent.  They are used only to
- *	do QoS-sensitive bandwidth management.  Since they are private
- *	to CLOs, they can reside in the private memory of the CLO
- *	(rather than in shared memory).
- *
- *	Each Outduct, of whatever CL protocol, has three Outflows:
- *
- *		Expedited = 2, Standard = 1, and Bulk = 0.
- *
- * 	Expedited traffic goes out before any other.  Standard traffic
- * 	(service factor = 2) goes out twice as fast as Bulk traffic
- * 	(service factor = 1).                 				*/
-
-#define EXPEDITED_FLOW   2
-
-typedef struct
-{
-	Object		outboundBundles;	/*	SDR list.	*/
-	int		totalBytesSent;
-	int		svcFactor;
-} Outflow;
 
 /*	*	*	Function prototypes.	*	*	*	*/
 
