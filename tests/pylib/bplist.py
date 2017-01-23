@@ -288,7 +288,15 @@ def bplist():
     or, returns None if there is a problem parsing the output of bplist.
     """
     # bufsize = 1 --> line buffered
-    bplist_p = subprocess.Popen("bplist", shell = True, close_fds = True, stdout=subprocess.PIPE, bufsize = 1)
+
+    import sys
+    mswindows = (sys.platform == "win32")
+
+    if mswindows:
+      #close_fds raises a ValueError exception on windows.
+      bplist_p = subprocess.Popen("bplist", shell = True, stdout=subprocess.PIPE, bufsize = 1)
+    else:
+      bplist_p = subprocess.Popen("bplist", shell = True, close_fds = True, stdout=subprocess.PIPE, bufsize = 1)
 
     return bplist_lines_to_bundles(bplist_p.stdout)
 
