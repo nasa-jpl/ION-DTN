@@ -596,10 +596,10 @@ int	main(int argc, char *argv[])
 
 		GET_OBJ_POINTER(sdr, Outduct, outduct, sdr_list_data(sdr,
 				vduct->outductElt));
-		if (vduct->maxPayloadLen > 0
-		&& vduct->maxPayloadLen < maxPayloadLength)
+		if (outduct->maxPayloadLen > 0
+		&& outduct->maxPayloadLen < maxPayloadLength)
 		{
-			maxPayloadLength = vduct->maxPayloadLen;
+			maxPayloadLength = outduct->maxPayloadLen;
 		}
 
 		if (maxPayloadLength > 0

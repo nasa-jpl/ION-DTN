@@ -539,6 +539,54 @@ typedef struct
 	int		svcFactor;
 } Outflow;
 
+/*	*	*	Egress Plan structures	*	*	*	*/
+
+#define	BP_PLAN_ENQUEUED	0
+#define	BP_PLAN_DEQUEUED	1
+#define	BP_PLAN_STATS		2
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[BP_PLAN_STATS];
+} PlanStats;
+
+typedef struct
+{
+	Scalar		backlog;
+	Object		lastForOrdinal;	/*	SDR list element.	*/
+} OrdinalState;
+
+typedef struct
+{
+	char		neighborEid[MAX_EID_LEN];
+	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	unsigned int	nominalRate;	/*	Bytes per second.	*/
+	int		blocked;	/*	Boolean			*/
+	Object		stats;		/*	PlanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
+	Object		bulkQueue;	/*	SDR list of Bundles	*/
+	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
+	Object		stdQueue;	/*	SDR list of Bundles	*/
+	Scalar		stdBacklog;	/*	Std bytes enqueued.	*/
+	Object		urgentQueue;	/*	SDR list of Bundles	*/
+	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
+	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
+	Object		directives;	/*	SDR list FwdDirectives.	*/
+} BpPlan;
+
+typedef struct
+{
+	Object		planElt;	/*	Reference to BpPlan.	*/
+	Object		stats;		/*	PlanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
+	char		neighborEid[MAX_EID_LEN];
+	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	int		clmPid;		/*	For stopping the CLM.	*/
+	sm_SemId	semaphore;	/*	Queue non-empty.	*/
+	Throttle	xmitThrottle;	/*	For rate control.	*/
+} VPlan;
+
 /*	*	*	Induct structures	*	*	*	*/
 
 typedef struct
@@ -571,52 +619,6 @@ typedef struct
 	int		cliPid;		/*	For stopping the CLI.	*/
 } VInduct;
 
-/*	*	*	Egress Plan structures	*	*	*	*/
-
-#define	BP_PLAN_ENQUEUED	0
-#define	BP_PLAN_DEQUEUED	1
-#define	BP_PLAN_STATS		2
-
-typedef struct
-{
-	time_t		resetTime;
-	Tally		tallies[BP_PLAN_STATS];
-} PlanStats;
-
-typedef struct
-{
-	Scalar		backlog;
-	Object		lastForOrdinal;	/*	SDR list element.	*/
-} OrdinalState;
-
-typedef struct
-{
-	Object		neighborEid;	/*	An SDR string.		*/
-	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
-	Object		stats;		/*	PlanStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
-	Object		bulkQueue;	/*	SDR list of Bundles	*/
-	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
-	Object		stdQueue;	/*	SDR list of Bundles	*/
-	Scalar		stdBacklog;	/*	Std bytes enqueued.	*/
-	Object		urgentQueue;	/*	SDR list of Bundles	*/
-	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
-	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	Object		directives;	/*	SDR list FwdDirectives.	*/
-} BpPlan;
-
-typedef struct
-{
-	Object		planElt;	/*	Reference to BpPlan.	*/
-	Object		stats;		/*	PlanStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
-	PsmAddress	neighborEid;	/*	Shared memory (char *).	*/
-	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
-	int		clmPid;		/*	For stopping the CLM.	*/
-	sm_SemId	semaphore;	/*	Queue non-empty.	*/
-	Throttle	xmitThrottle;	/*	For rate control.	*/
-} VPlan;
-
 /*	*	*	Outduct structures	*	*	*	*/
 
 typedef struct
@@ -647,7 +649,6 @@ typedef struct
 
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
 	Object		xmitBuffer;	/*	SDR list of (1) ZCO.	*/
-	int		blocked;	/*	Boolean			*/
 	Object		protocol;	/*	back-reference		*/
 } Outduct;
 
@@ -656,10 +657,7 @@ typedef struct
 	Object		outductElt;	/*	Reference to Outduct.	*/
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
-	unsigned int	maxPayloadLen;	/*	For CLM fragmentation.	*/
-	int		timeoutInterval;/*	For CT retransmission.	*/
 	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
-	BpExtendedCOS	extendedCOS;	/*	For return to CLO.	*/
 } VOutduct;
 
 /*	*	*	Protocol structures	*	*	*	*/
@@ -675,7 +673,6 @@ typedef struct
 	char		name[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
-	int		nominalRate;	/*	Bytes per second.	*/
 	int		protocolClass;	/*	QoS provided.		*/
 } ClProtocol;
 
@@ -707,10 +704,10 @@ typedef struct
 typedef struct
 {
 	Object		schemes;	/*	SDR list of Schemes	*/
+	Object		plans;		/*	SDR list of BpPlans	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
-	Object		plans;		/*	SDR list of BpPlans	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
@@ -747,7 +744,7 @@ typedef struct
 	Object		dbStats;	/*	BpDbStats address.	*/
 } BpDB;
 
-/*  CT database encapsulates custody transfer configuration. */
+/*	CT database encapsulates custody transfer configuration.	*/
 
 typedef struct
 {
@@ -1007,14 +1004,9 @@ extern int		bpEnqueue(	FwdDirective *directive,
 			 *	to the proximate node identified by
 			 *	proxNodeEid.  It appends the indicated
 			 *	bundle to the appropriate transmission
-			 *	queue of the duct indicated by
+			 *	queue of the duct indicated by the
 			 *	"directive" based on the bundle's
-			 *	priority.  If the bundle is destined
-			 *	for a specific location among all the
-			 *	locations that are reachable via this
-			 *	duct, then the directive' destDuctName
-			 *	must be a string identifying that
-			 *	location.
+			 *	priority.
 			 *
 			 *	If forwarding the bundle to multiple
 			 *	nodes (flooding or multicast), call
@@ -1025,28 +1017,19 @@ extern int		bpEnqueue(	FwdDirective *directive,
 			 *	failure.				*/
 
 extern int		bpDequeue(	VOutduct *vduct,
-					Outflow *outflows,
 					Object *outboundZco,
 					BpExtendedCOS *extendedCOS,
-					char *destDuctName,
-					unsigned int maxPayloadLength,
 					int timeoutInterval);
 			/*	This function is invoked by a
-			 *	convergence-layer output adapter (an
-			 *	outduct) to get a bundle that it is to
-			 *	transmit to some remote convergence-
-			 *	layer input adapter (induct).
+			 *	convergence-layer output adapter
+			 *	(outduct) daemon to get a bundle that
+			 *	it is to transmit to some remote
+			 *	convergence-layer input adapter (induct)
+			 *	daemon.
 			 *
-			 *	bpDequeue first blocks until the
-			 *	capacity of the applicable throttle
-			 *	is non-negative.  In this way BP
-			 *	imposes rate control on outbound
-			 *	traffic, limiting transmission to
-			 *	the applicable nominal rate.
-			 *
-			 *	The function then selects the next
-			 *	outbound bundle from the set of outduct
-			 *	bundle queues identified by outflows.
+			 *	The function first pops the next (only)
+			 *	outbound bundle from the queue of
+			 *	outbound bundles for the indicated duct.
 			 *	If no such bundle is currently waiting
 			 *	for transmission, it blocks until one
 			 *	is [or until the duct is closed, at
@@ -1054,23 +1037,11 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	without providing the address of an
 			 *	outbound bundle ZCO].
 			 *
-			 *	On selecting a bundle, if the bundle's
-			 *	payload is longer than the indicated
-			 *	maximum then bpDequeue fragments the
-			 *	bundle: a cloned bundle whose payload
-			 *	is all bytes beyond the initial
-			 *	maxPayloadLength bytes is created and
-			 *	inserted back to the front of the queue
-			 *	from which the bundle was selected.
-			 *
-			 *	Then bpDequeue catenates (serializes)
-			 *	the BP header information in the
-			 *	bundle and prepends that serialized
-			 *	header to the source data of the
-			 *	bundle's payload ZCO; if there are
-			 *	post-payload blocks, it likewise
-			 *	catenates them into a trailer that
-			 *	is appended to the source data.  Then
+			 *	On obtaining a bundle, bpDequeue
+			 *	catenates (serializes) the BP header
+			 *	information in the bundle and prepends
+			 *	that serialized header to the source
+			 *	data of the bundle's payload ZCO.  Then
 			 *	it returns the address of that ZCO in
 			 *	*bundleZco for transmission at the
 			 *	convergence layer (possibly entailing
@@ -1082,15 +1053,6 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	so that the requested QOS can be
 			 *	mapped to the QOS features of the
 			 *	convergence-layer protocol.
-			 *
-			 *	If this bundle is destined for a
-			 *	specific location among all the
-			 *	locations that are reachable via
-			 *	this duct, then a string identifying
-			 *	that location is written into
-			 *	destDuctName, which must be an array
-			 *	of at least MAX_CL_DUCT_NAME_LEN + 1
-			 *	bytes.
 			 *
 			 *	The timeoutInterval argument indicates
 			 *	the length of time following return of
@@ -1419,6 +1381,24 @@ extern void		lookUpEidScheme(EndpointId eid, char *dictionary,
 extern void		lookUpEndpoint(EndpointId eid, char *dictionary,
 				VScheme *vscheme, VEndpoint **vpoint);
 
+extern void		findPlan(char *eid, VPlan **vplan, PsmAddress *elt);
+
+extern int		addPlan(char *eid, unsigned int nominalRate);
+extern int		updatePlan(char *eid, unsigned int nominalRate);
+extern int		removePlan(char *eid);
+extern int		bpStartPlan(char *eid);
+extern void		bpStopPlan(char *eid);
+extern int		bpBlockPlan(char *eid);
+extern int		bpUnblockPlan(char *eid);
+
+extern int		addPlanDirective(char *eid, FwdAction action,
+				char *spec);
+extern int		removePlanDirective(char *eid, FwdAction action,
+				char *spec);
+
+extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+			        Object planObj, BpPlan *plan);
+
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
 				int overheadPerFrame, int nominalRate,
@@ -1449,15 +1429,9 @@ extern int		updateOutduct(char *protocolName, char *name,
 extern int		removeOutduct(char *protocolName, char *name);
 extern int		bpStartOutduct(char *protocolName, char *ductName);
 extern void		bpStopOutduct(char *protocolName, char *ductName);
-extern int		bpBlockOutduct(char *protocolName, char *ductName);
-extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 extern void		destroyBpTimelineEvent(Object timelineElt);
-
-extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			        ClProtocol *protocol, Object outductObj,
-			        Outduct *outduct);
 
 extern int		decodeBundle(Sdr sdr, Object zco, unsigned char *buf,
 				Bundle *image, char **dictionary,
