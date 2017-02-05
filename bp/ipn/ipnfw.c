@@ -65,65 +65,18 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
-static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
-			FwdDirective *directive)
-{
-	return ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
-			bundle->id.source.c.nodeNbr, bundle, directive);
-}
-
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr, unsigned int serviceNbr)
 {
-	FwdDirective	directive;
-	char		stationEid[64];
-	IonNode		*stationNode;
-	PsmAddress	nextElt;
-	PsmPartition	ionwm;
-	PsmAddress	embElt;
-	Embargo		*embargo;
+	VPlan	*vplan;
 
-	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
-			bundle->id.source.c.nodeNbr, bundle, &directive) == 0)
+	ipn_lookupPlan(nodeNbr, &vplan);
+	if (vplan == NULL)
 	{
 		return 0;
 	}
 
-	/*	The station node is a neighbor.				*/
-
-	isprintf(stationEid, sizeof stationEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			nodeNbr, serviceNbr);
-
-	/*	Is neighbor refusing to be a station for bundles?	*/
-
-	stationNode = findNode(getIonVdb(), nodeNbr, &nextElt);
-	if (stationNode)
-	{
-		ionwm = getIonwm();
-		for (embElt = sm_list_first(ionwm, stationNode->embargoes);
-				embElt; embElt = sm_list_next(ionwm, embElt))
-		{
-			embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm,
-					embElt));
-			if (embargo->nodeNbr < nodeNbr)
-			{
-				continue;
-			}
-
-			if (embargo->nodeNbr > nodeNbr)
-			{
-				break;	/*	Not refusing bundles.	*/
-			}
-
-			/*	Neighbor is refusing bundles.  A
-			 *	neighbor, but not a good neighbor;
-			 *	give up.				*/
-
-			return 0;
-		}
-	}
-
-	if (bpEnqueue(&directive, bundle, bundleObj, stationEid) < 0)
+	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
 		return -1;
@@ -136,11 +89,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
-	char		eidString[SDRSTRING_BUFSZ];
+	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	FwdDirective	directive;
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
 #else
@@ -154,10 +106,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	sdr_string_read(sdr, eidString, sdr_list_data(sdr, elt));
-	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
+	sdr_string_read(sdr, eid, sdr_list_data(sdr, elt));
+	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		putErrmsg("Can't parse node EID string.", eidString);
+		putErrmsg("Can't parse node EID string.", eid);
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
@@ -168,8 +120,8 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getIpnConstants())->plans, getDirective, trace) < 0)
+	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr, trace)
+			< 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
@@ -178,7 +130,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -196,7 +148,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -208,16 +160,13 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	(node range, i.e., "exit") and forward to the
 	 *	prescribed "via" endpoint for that exit.		*/
 
-	if (ipn_lookupExitDirective(metaEid.nodeNbr,
-			bundle->id.source.c.serviceNbr,
-			bundle->id.source.c.nodeNbr, &directive) == 1)
+	if (ipn_lookupExit(metaEid.nodeNbr, eid) == 1)
 	{
-		/*	Found directive; forward via the indicated
-		 *	endpoint.					*/
+		/*	Found applicable exit; forward via the
+		 *	indicated endpoint.				*/
 
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
-		sdr_string_read(sdr, eidString, directive.eid);
-		return forwardBundle(bundleObj, bundle, eidString);
+		return forwardBundle(bundleObj, bundle, eid);
 	}
 
 	/*	No applicable exit.  If there's at least some route
@@ -237,7 +186,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		}
 	}
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued to limbo.				*/
 

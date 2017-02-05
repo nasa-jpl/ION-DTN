@@ -94,10 +94,10 @@ payload length");
 	PUTS("\t   l protocol");
 	PUTS("\t   l induct [<protocol name>]");
 	PUTS("\t   l outduct [<protocol name>]");
-	PUTS("\tb\tBlock an outduct");
-	PUTS("\t   b outduct <protocol name> <duct name>");
-	PUTS("\tu\tUnblock an outduct");
-	PUTS("\t   u outduct <protocol name> <duct name>");
+	PUTS("\tb\tBlock an egress plan");
+	PUTS("\t   b plan <endpoint name>");
+	PUTS("\tu\tUnblock an egress plan");
+	PUTS("\t   u plan <endpoint name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
 	PUTS("\tr\tRun another admin program");
@@ -213,7 +213,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
-	int		nominalRate = 0;
 	int		protocolClass = 0;
 	unsigned int	maxPayloadLength;
 
@@ -267,24 +266,19 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
-		if (tokenCount < 5 || tokenCount > 7)
+		if (tokenCount < 5 || tokenCount > 6)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (tokenCount == 7)
-		{
-			protocolClass = atol(tokens[6]);
-		}
-
 		if (tokenCount == 6)
 		{
-			nominalRate = atol(tokens[5]);
+			protocolClass = atol(tokens[5]);
 		}
 
 		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),
-				nominalRate, protocolClass);
+				protocolClass);
 		return;
 	}
 
@@ -1062,15 +1056,15 @@ static void	executeBlock(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "outduct") == 0)
+	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(bpBlockOutduct(tokens[2], tokens[3]));
+		oK(bpBlockPlan(tokens[2]));
 		return;
 	}
 
@@ -1085,15 +1079,15 @@ static void	executeUnblock(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "outduct") == 0)
+	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(bpUnblockOutduct(tokens[2], tokens[3]));
+		oK(bpUnblockPlan(tokens[2]));
 		return;
 	}
 

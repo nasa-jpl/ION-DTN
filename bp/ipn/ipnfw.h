@@ -23,36 +23,31 @@
 extern "C" {
 #endif
 
-#define IPN_ALL_OTHER_NODES	((uvast) -1)
-#define IPN_ALL_OTHER_SERVICES	((unsigned int) -1)
-
-/*	All directives established for IpnPlans must be Transmission
- *	directives.
+/*	Bundles for which the forwarder lacks forwarding knowledge
+ *	may be forwarded to another forwarder that is expected to
+ *	have the requisite knowledge; this "static routing" mechanism
+ *	enables ipn-scheme routing to scale up to relatively large
+ *	numbers of nodes.  For this purpose, one or more "exits"
+ *	-- each exit identified by a range of node numbers for which
+ *	the designated "via" node takes forwarding responsibility --
+ *	may be defined.
  *
- *	Nodes for which no plans or contact schedules are known by
- *	the local forwarder may be forwarded to another forwarder
- *	that is expected to have the requisite knowledge; this
- *	mechanism enables IPN to scale up to relatively large numbers
- *	of nodes.  For this purpose, one or more "exits" -- each
- *	exit identified by a range of node numbers for which the
- *	designated "via" node takes forwarding responsibility
- *	-- may be defined.  Exits may nest, but otherwise the
- *	node ranges of exits may never overlap.  Any bundle that is
- *	to be sent to a node for which no local forwarding knowledge
- *	is available will be forwarded to the designated "via" node
- *	cited by the smallest exit between whose first and last node
+ *	Exits may nest, but otherwise the node ranges of exits may
+ *	never overlap.  Any bundle with an ipn-scheme destination
+ *	for which the ipn forwarder cannot otherwise compute a
+ *	route will be forwarded to the designated "via" node cited
+ *	by the smallest exit between whose first and last node
  *	numbers (inclusive) the destination node's number lies, if any.
  *
- *	All directives established for IpnExits must be Forwarding
- *	directives.  Note that the First and Last node numbers
- *	specified for a exit may be the same number, identifying
- *	a static route to a specified node.				*/
+ *	Note that the First and Last node numbers specified for an
+ *	exit may be the same number, identifying a static route to a
+ *	specified node.							*/
 
 typedef struct
 {
 	uvast		firstNodeNbr;		/*	in range	*/
 	uvast		lastNodeNbr;		/*	in range	*/
-	FwdDirective	directive;
+	Object		eid;			/*	Send via.	*/
 } IpnExit;
 
 typedef struct
@@ -65,15 +60,15 @@ extern Object		getIpnDbObject();
 extern IpnDB		*getIpnConstants();
 
 extern void		ipn_findPlan(uvast nodeNbr, Object *planAddr,
-				Object *elt;
+				Object *elt);
 
-extern int		ipn_addPlan(uvast nodeNbr, Object outductElt);
-extern int		ipn_updatePlan(uvast nodeNbr, Object outductElt);
+extern int		ipn_addPlan(uvast nodeNbr, unsigned int nominalRate);
+extern int		ipn_addPlanDuct(uvast nodeNbr, char *ductExpression);
+extern int		ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate);
+extern int		ipn_removePlanDuct(uvast nodeNbr, char *ductExpression);
 extern int		ipn_removePlan(uvast nodeNbr);
 
-extern int		ipn_lookupPlanDirective(uvast nodeNbr, 
-				Bundle *bundle,
-				FwdDirective *directive);
+extern void		ipn_lookupPlan(uvast nodeNbr, VPlan **vplan);
 
 extern void		ipn_findExit(uvast firstNodeNbr,
 				uvast lastNodeNbr,
@@ -86,8 +81,7 @@ extern int		ipn_updateExit(uvast firstNodeNbr,
 extern int		ipn_removeExit(uvast firstNodeNbr,
 				uvast lastNodeNbr);
 
-extern int		ipn_lookupExitDirective(uvast nodeNbr, 
-				FwdDirective *directive);
+extern int		ipn_lookupExit(uvast nodeNbr, char *eid);
 #ifdef __cplusplus
 }
 #endif

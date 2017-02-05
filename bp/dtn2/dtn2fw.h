@@ -21,16 +21,18 @@
 extern "C" {
 #endif
 
-extern void		dtn2_destroyDirective(FwdDirective *directive);
+extern int		dtn2_init();
 
 extern void		dtn2_findPlan(char *eid, Object *planAddr, Object *elt);
 
-extern int		dtn2_addPlan(char *eid, FwdDirective *directive);
-extern int		dtn2_updatePlan(char *eid, FwdDirective *directive);
+extern int		dtn2_addPlan(char *eid, unsigned int nominalRate);
+extern int		dtn2_addPlanDuct(char *eid, char *ductExpression);
+extern int		dtn2_updatePlan(char *eid, unsigned int nominalRate);
+extern int		dtn2_setPlanViaEid(char *eid, char *viaEid);
+extern int		dtn2_removePlanDuct(char *eid, char *ductExpression);
 extern int		dtn2_removePlan(char *eid);
 
-extern int		dtn2_lookupDirective(char *eid, Bundle *bundle,
-				FwdDirective *directive);
+extern void		dtn2_lookupPlan(char *eid, VPlan **vplan);
 
 #ifdef __cplusplus
 }

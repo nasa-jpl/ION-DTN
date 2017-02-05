@@ -63,13 +63,12 @@ static void	*sendBundles(void *parm)
 	char			*buffer;
 	Outduct			outduct;
 	Sdr			sdr;
-	Outflow			outflows[3];
-	int			i;
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	unsigned int		bundleLength;
 	int			ductNbr;
+	int			i;
 	int			bytesSent;
 	Object			bundleAddr;
 	Bundle			bundle;
@@ -88,21 +87,12 @@ static void	*sendBundles(void *parm)
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			parms->vduct->outductElt), sizeof(Outduct));
 	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Can now begin transmitting to clients.			*/
 
 	while (!(sm_SemEnded(parms->vduct->semaphore)))
 	{
-		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 0, -1) < 0)
+		if (bpDequeue(parms->vduct, &bundleZco, &extendedCOS, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

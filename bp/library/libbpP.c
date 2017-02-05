@@ -30,6 +30,7 @@
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
+#define	TYPICAL_STACK_OVERHEAD	36
 #define	ION_DEFAULT_XMIT_RATE	125000000
 
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
@@ -419,8 +420,8 @@ void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 	Tally		*tally;
 	int		offset;
 
-	CHKVOID(plan && plan->stats);
-	if (!(plan->updateStats))
+	CHKVOID(vplan && vplan->stats);
+	if (!(vplan->updateStats))
 	{
 		return;
 	}
@@ -979,16 +980,29 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 	PsmPartition	bpwm = getIonwm();
 	Object		planObj;
 	BpPlan		plan;
-	VPlan		*plan;
-	PsmAddress	vplanElt;
+	PsmAddress	elt;
+	VPlan		*vplan;
+	int		result;
 	PsmAddress	addr;
 
 	planObj = sdr_list_data(bpSdr, planElt);
 	sdr_read(bpSdr, (char *) &plan, planObj, sizeof(BpPlan));
-	findPlan(plan.neighborEid, &plan, &vplanElt);
-	if (vplanElt)		/*	Plan is already raised.		*/
+	for (elt = sm_list_first(bpwm, bpvdb->plans); elt;
+			elt = sm_list_next(bpwm, elt))
 	{
-		return 0;
+		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
+		result = strcmp(vplan->neighborEid, plan.neighborEid);
+		if (result < 0)
+		{
+			continue;
+		}
+
+		if (result > 0)		/*	Insert before this one.	*/
+		{
+			break;		/*	Same as end of list.	*/
+		}
+
+		return 0;		/*	Already raised.		*/
 	}
 
 	addr = psm_malloc(bpwm, sizeof(VPlan));
@@ -997,8 +1011,16 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 		return -1;
 	}
 
-	vplanElt = sm_list_insert_last(bpwm, bpvdb->plans, addr);
-	if (vplanElt == 0)
+	if (elt)
+	{
+		elt = sm_list_insert_before(bpwm, elt, addr);
+	}
+	else
+	{
+		elt = sm_list_insert_last(bpwm, bpvdb->plans, addr);
+	}
+
+	if (elt == 0)
 	{
 		psm_free(bpwm, addr);
 		return -1;
@@ -1207,13 +1229,9 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 	vduct = (VOutduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VOutduct));
 	vduct->outductElt = outductElt;
-	vduct->stats = duct.stats;
-	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
 	vduct->semaphore = SM_SEM_NONE;
-	vduct->xmitThrottle.nominalRate = protocol.nominalRate;
-	vduct->xmitThrottle.capacity = protocol.nominalRate;
 	resetOutduct(vduct);
 	return 0;
 }
@@ -1270,16 +1288,24 @@ static void	waitForOutduct(VOutduct *vduct)
 	}
 }
 
-static int	raiseProtocol(Address addr, BpVdb *bpvdb)
+static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
 {
 	Sdr	bpSdr = getIonsdr();
-		OBJ_POINTER(ClProtocol, protocol);
+	BpDB	*bpConstants = getBpConstants();
 	Object	elt;
+		OBJ_POINTER(Induct, induct);
+		OBJ_POINTER(Outduct, outduct);
 
-	GET_OBJ_POINTER(bpSdr, ClProtocol, protocol, addr);
-	for (elt = sdr_list_first(bpSdr, protocol->inducts); elt;
+	for (elt = sdr_list_first(bpSdr, bpConstants->inducts); elt;
 			elt = sdr_list_next(bpSdr, elt))
 	{
+		GET_OBJ_POINTER(bpSdr, Induct, induct,
+				sdr_list_data(bpSdr, elt));
+		if (induct->protocol != protocolAddr)
+		{
+			continue;	/*	For different protocol.	*/
+		}
+
 		if (raiseInduct(elt, bpvdb) < 0)
 		{
 			putErrmsg("Can't raise induct.", NULL);
@@ -1287,9 +1313,15 @@ static int	raiseProtocol(Address addr, BpVdb *bpvdb)
 		}
 	}
 
-	for (elt = sdr_list_first(bpSdr, protocol->outducts); elt;
+	for (elt = sdr_list_first(bpSdr, bpConstants->outducts); elt;
 			elt = sdr_list_next(bpSdr, elt))
 	{
+		GET_OBJ_POINTER(bpSdr, Outduct, outduct,
+				sdr_list_data(bpSdr, elt));
+		if (outduct->protocol != protocolAddr)
+		{
+			continue;	/*	For different protocol.	*/
+		}
 		if (raiseOutduct(elt, bpvdb) < 0)
 		{
 			putErrmsg("Can't raise outduct.", NULL);
@@ -2056,13 +2088,15 @@ void	getCurrentDtnTime(DtnTime *dt)
 	dt->nanosec = 0;
 }
 
-static Throttle	*applicableThrottle(VPlan *vplan)
+Throttle	*applicableThrottle(VPlan *vplan)
 {
 	Sdr		sdr = getIonsdr();
 			OBJ_POINTER(BpPlan, plan);
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
 
+	CHKNULL(vplan);
+	CHKNULL(ionLocked());
 	GET_OBJ_POINTER(sdr, BpPlan, plan, vplan->planElt);
 	if (plan->neighborNodeNbr == 0)	/*	No nbr for assigned node.*/
 	{
@@ -2082,7 +2116,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 		Scalar *totalBacklog)
 {
 	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
-	VPlan		*plan;
+	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Throttle	*throttle;
 	vast		committed = 0;
@@ -2093,12 +2127,12 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 	int		i;
 
 	findPlan(plan->neighborEid, &vplan, &vplanElt);
-	CHKVOID(vductElt);
-	throttle = applicableThrottle(vduct);
+	CHKVOID(vplanElt);
+	throttle = applicableThrottle(vplan);
 
 	/*	Prior claims on the first contact along this route
-	 *	must include however much transmission the outduct
-	 *	itself has already committed to (as per bpDequeue)
+	 *	must include however much transmission the plan
+	 *	itself has already committed to (as per bpclm)
 	 *	during the current second of operation, pending
 	 *	capacity replenishment through the rate control
 	 *	mechanism implemented by bpclock.  That commitment
@@ -2119,59 +2153,59 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 	 *	be negative.						*/
 
 	loadScalar(totalBacklog, committed);
-	addToScalar(totalBacklog, &(duct->urgentBacklog));
-	addToScalar(totalBacklog, &(duct->stdBacklog));
-	addToScalar(totalBacklog, &(duct->bulkBacklog));
+	addToScalar(totalBacklog, &(plan->urgentBacklog));
+	addToScalar(totalBacklog, &(plan->stdBacklog));
+	addToScalar(totalBacklog, &(plan->bulkBacklog));
 	loadScalar(priorClaims, committed);
 	if (priority == 0)
 	{
-		addToScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(plan->urgentBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the standard
 		 *	backlog's prior claims, which is the entire
 		 *	standard backlog or twice the bulk backlog,
 		 *	whichever is less.				*/
 
-		copyScalar(&limit, &(duct->bulkBacklog));
+		copyScalar(&limit, &(plan->bulkBacklog));
 		multiplyScalar(&limit, 2);
 		copyScalar(&increment, &limit);
-		subtractFromScalar(&limit, &(duct->stdBacklog));
+		subtractFromScalar(&limit, &(plan->stdBacklog));
 		if (scalarIsValid(&limit))
 		{
 			/*	Current standard backlog is less than
 			 *	twice the current bulk backlog.		*/
 
-			copyScalar(&increment, &(duct->stdBacklog));
+			copyScalar(&increment, &(plan->stdBacklog));
 		}
 
 		addToScalar(priorClaims, &increment);
 #else
-		addToScalar(priorClaims, &(duct->stdBacklog));
+		addToScalar(priorClaims, &(plan->stdBacklog));
 #endif
-		addToScalar(priorClaims, &(duct->bulkBacklog));
+		addToScalar(priorClaims, &(plan->bulkBacklog));
 		return;
 	}
 
 	if (priority == 1)
 	{
-		addToScalar(priorClaims, &(duct->urgentBacklog));
-		addToScalar(priorClaims, &(duct->stdBacklog));
+		addToScalar(priorClaims, &(plan->urgentBacklog));
+		addToScalar(priorClaims, &(plan->stdBacklog));
 #ifdef ION_BANDWIDTH_RESERVED
 		/*	priorClaims increment is the bulk backlog's
 		 *	prior claims, which is the entire bulk backlog
 		 *	or half of the standard backlog, whichever is
 		 *	less.						*/
 
-		copyScalar(&limit, &(duct->stdBacklog));
+		copyScalar(&limit, &(plan->stdBacklog));
 		divideScalar(&limit, 2);
 		copyScalar(&increment, &limit);
-		subtractFromScalar(&limit, &(duct->bulkBacklog));
+		subtractFromScalar(&limit, &(plan->bulkBacklog));
 		if (scalarIsValid(&limit))
 		{
 			/*	Current bulk backlog is less than half
 			 *	of the current std backlog.		*/
 
-			copyScalar(&increment, &(duct->bulkBacklog));
+			copyScalar(&increment, &(plan->bulkBacklog));
 		}
 
 		addToScalar(priorClaims, &increment);
@@ -2183,7 +2217,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	if ((i = bundle->extendedCOS.ordinal) == 0)
 	{
-		addToScalar(priorClaims, &(duct->urgentBacklog));
+		addToScalar(priorClaims, &(plan->urgentBacklog));
 		return;
 	}
 
@@ -2193,7 +2227,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	while (i < 256)
 	{
-		addToScalar(priorClaims, &(duct->ordinals[i].backlog));
+		addToScalar(priorClaims, &(plan->ordinals[i].backlog));
 		i++;
 	}
 }
@@ -2936,12 +2970,6 @@ incomplete bundle.", NULL);
 	{
 		sdr_free(bpSdr, bundle.proxNodeEid);
 		bundle.proxNodeEid = 0;
-	}
-
-	if (bundle.destDuctName)
-	{
-		sdr_free(bpSdr, bundle.destDuctName);
-		bundle.destDuctName = 0;
 	}
 
 	/*	Turn off automatic re-forwarding.			*/
@@ -3696,54 +3724,111 @@ int	removeEndpoint(char *eid)
 	return 1;
 }
 
-void	findPlan(char *eid, VPlan **vplan, PsmAddress *vplanElt)
+static int	filterEid(char *outputEid, char *inputEid)
+{
+	int	eidLength;
+	int	last;
+
+	eidLength = istrlen(inputEid, MAX_SDRSTRING);
+	if (eidLength == 0 || eidLength == MAX_SDRSTRING)
+	{
+		putErrmsg("Invalid EID length.", inputEid);
+		return -1;
+	}
+
+	last = eidLength - 1;
+
+	/*	Note: the '~' character is used internally to
+	 *	indicate "all others" (wild card) because it's the
+	 *	last printable ASCII character and therefore always
+	 *	sorts last in any list.  If the user wants to use
+	 *	'*' instead, we just change it silently.		*/
+
+	memcpy(outputEid, inputEid, eidLength);
+	outputEid[eidLength] = '\0';
+	if (outputEid[last] == '*')
+	{
+		outputEid[last] = '~';
+	}
+
+	return 0;
+}
+
+void	findPlan(char *eidIn, VPlan **vplan, PsmAddress *vplanElt)
 {
 	PsmPartition	bpwm = getIonwm();
+	char		eid[SDRSTRING_BUFSZ];
 	PsmAddress	elt;
+	int		result;
+
+	CHKVOID(vplanElt);
+	*vplanElt = 0;			/*	Default.		*/
+	CHKVOID(eidIn);
+	CHKVOID(vplan);
+	if (filterEid(eid, eidIn) < 0)
+	{
+		return;
+	}
+
+	/*	This function locates the volatile egress plan
+	 *	object identified by the specified endpoint ID,
+	 *	if any; must be an exact match.  (Note that BpPlans
+	 *	are *not* ordered alphabetically by EID; only the
+	 *	VPlans in the volatile database are.)			*/
 
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->plans); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
-		if (strcmp((*vplan)->neighborEid, eid) == 0)
+		result = strcmp((*vplan)->neighborEid, eid);
+		if (result < 0)
 		{
-			break;
+			continue;
 		}
-	}
 
-	*vplanElt = elt;
+		if (result == 0)	/*	Found matching plan.	*/
+		{
+			*vplanElt = elt;
+		}
+
+		/*	One way or another, the search is now done.	*/
+
+		return;
+	}
 }
 
-int	addPlan(char *eid, unsigned int nominalRate)
+int	addPlan(char *eidIn, unsigned int nominalRate)
 {
 	Sdr		bpSdr = getIonsdr();
-	BpDB		*bpConstants = getBpConstants();
+	BpDB		*bpConstants = _bpConstants();
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
+	char		eid[SDRSTRING_BUFSZ];
+	Object		elt = 0;
 	BpPlan		planBuf;
 	PlanStats	statsInit;
 	Object		addr;
-	Object		elt = 0;
 
-	CHKERR(eid);
-	if (*eid == 0)
+	CHKERR(eidIn);
+	CHKERR(sdr_begin_xn(bpSdr));
+	findPlan(eidIn, &vplan, &vplanElt);
+	if (vplanElt != 0)	/*	This is a known egress plan.	*/
 	{
-		writeMemo("[?] Zero-length Plan eid.");
+		sdr_exit_xn(bpSdr);
+		writeMemoNote("[?] Duplicate egress plan", eidIn);
+		return 0;
+	}
+
+	if (filterEid(eid, eidIn) < 0)
+	{
+		sdr_exit_xn(bpSdr);
 		return 0;
 	}
 
 	if (strlen(eid) > MAX_EID_LEN)
 	{
-		writeMemoNote("[?] Plan eid is too long", eid);
-		return 0;
-	}
-
-	CHKERR(sdr_begin_xn(bpSdr));
-	findPlan(eid, &vplan, &vplanElt);
-	if (vplanElt != 0)	/*	This is a known egress plan.	*/
-	{
 		sdr_exit_xn(bpSdr);
-		writeMemoNote("[?] Duplicate egress plan", eid);
+		writeMemoNote("[?] Plan eid is too long", eidIn);
 		return 0;
 	}
 
@@ -3767,7 +3852,7 @@ int	addPlan(char *eid, unsigned int nominalRate)
 	addr = sdr_malloc(bpSdr, sizeof(BpPlan));
 	if (addr)
 	{
-		elt = sdr_list_insert_last(bpSdr, bpconstants->plans, addr);
+		elt = sdr_list_insert_last(bpSdr, bpConstants->plans, addr);
 		sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
 
 		/*	Record plan's address in the "user data" of
@@ -3798,23 +3883,23 @@ int	addPlan(char *eid, unsigned int nominalRate)
 	return 1;
 }
 
-int	updatePlan(char *eid, unsigned int nominalRate)
+int	updatePlan(char *eidIn, unsigned int nominalRate)
 {
 	Sdr		bpSdr = getIonsdr();
+	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		addr;
 	BpPlan		planBuf;
 
-	CHKERR(eid);
-	if (*eid == 0)
+	CHKERR(eidIn);
+	if (filterEid(eid, eidIn) < 0)
 	{
-		writeMemo("[?] Zero-length Plan EID.");
 		return 0;
 	}
 
 	CHKERR(sdr_begin_xn(bpSdr));
-	findOutduct(eid, &vplan, &vplanElt);
+	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	This is an unknown egress plan.	*/
 	{
 		sdr_exit_xn(bpSdr);
@@ -3837,19 +3922,19 @@ int	updatePlan(char *eid, unsigned int nominalRate)
 	return 1;
 }
 
-int	removePlan(char *eid)
+int	removePlan(char *eidIn)
 {
 	Sdr		bpSdr = getIonsdr();
+	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		planElt;
 	Object		addr;
 	BpPlan		planBuf;
 
-	CHKERR(eid);
-	if (*eid == 0)
+	CHKERR(eidIn);
+	if (filterEid(eid, eidIn) < 0)
 	{
-		writeMemo("[?] Zero-length Plan eid.");
 		return 0;
 	}
 
@@ -3913,7 +3998,7 @@ int	bpStartPlan(char *eid)
 	int		result = 1;
 
 	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
-	findPlan(eid, &vplan, &plantElt);
+	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	This is an unknown egress plan.	*/
 	{
 		writeMemoNote("[?] Unknown egress plan", eid);
@@ -3951,6 +4036,232 @@ void	bpStopPlan(char *eid)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
 
+int	setPlanViaEid(char *eid, char *viaEid)
+{
+	Sdr		sdr = getIonsdr();
+	size_t		length;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	Object		planObj;
+	BpPlan		plan;
+
+	CHKERR(eid);
+	CHKERR(viaEid);
+	length = istrlen(viaEid, MAX_SDRSTRING);
+	if (length == 0 || length == MAX_SDRSTRING)
+	{
+		putErrmsg("Via EID length invalid.", viaEid);
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown plan, can't set via EID", eid);
+		return 0;
+	}
+
+	planObj = sdr_list_data(sdr, vplan->planElt);
+	sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+	if (plan.viaEid)
+	{
+		sdr_free(sdr, plan.viaEid);
+	}
+
+	plan.viaEid = sdr_string_create(sdr, viaEid);
+	sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set via EID for plan.", eid);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	addPlanDuct(char *eid, char *ductExpression)
+{
+	Sdr		sdr = getIonsdr();
+	size_t		length;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	BpPlan		plan;
+	Object		ductExpObj;
+
+	CHKERR(eid);
+	CHKERR(ductExpression);
+	length = istrlen(ductExpression, MAX_SDRSTRING);
+	if (length == 0 || length == MAX_SDRSTRING)
+	{
+		putErrmsg("Duct expression length invalid.", ductExpression);
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown plan, can't attach duct", eid);
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
+			sizeof(BpPlan));
+	ductExpObj = sdr_string_create(sdr, ductExpression);
+	if (ductExpObj)
+	{
+		sdr_list_insert_last(sdr, plan.ducts, ductExpObj);
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't attach duct to plan.", eid);
+		return -1;
+	}
+
+	return 1;
+}
+
+int	removePlanDuct(char *eid, char *ductExpression)
+{
+	Sdr		sdr = getIonsdr();
+	size_t		length;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	BpPlan		plan;
+	Object		elt;
+	Object		ductExpObj;
+	char		ductExp[SDRSTRING_BUFSZ];
+
+	CHKERR(eid);
+	if (ductExpression)
+	{
+		length = istrlen(ductExpression, MAX_SDRSTRING);
+		if (length == 0 || length == MAX_SDRSTRING)
+		{
+			putErrmsg("Duct expression length invalid.",
+					ductExpression);
+			return 0;
+		}
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown plan, can't detach duct", eid);
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
+			sizeof(BpPlan));
+	if (ductExpression == NULL)
+	{
+		/*	Hack, pending support for multiple ducts.	*/
+
+		elt = sdr_list_first(sdr, plan.ducts);
+	}
+	else
+	{
+		for (elt = sdr_list_first(sdr, plan.ducts); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			ductExpObj = sdr_list_data(sdr, elt);
+			sdr_string_read(sdr, ductExp, ductExpObj);
+			if (strncmp(ductExpression, ductExp, sizeof ductExp)
+					== 0)
+			{
+				break;
+			}
+		}
+	}
+
+	if (elt == 0)	/*	No such duct was found.		*/
+	{
+		sdr_exit_xn(sdr);
+		if (ductExpression)
+		{
+			writeMemoNote("[?] Unknown duct, can't detach it",
+					ductExpression);
+		}
+
+		return 0;
+	}
+
+	sdr_free(sdr, ductExpObj);
+	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't detach duct from plan.", eid);
+		return -1;
+	}
+
+	return 1;
+}
+
+void	lookupPlan(char *eid, VPlan **answer)
+{
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	elt;
+	VPlan		*vplan;
+	int		result;
+	int		eidLen;
+	int		last;
+
+	/*	This function determines the applicable egress plan
+	 *	for the specified eid, if any. 				*/
+
+	CHKVOID(eid);
+	CHKVOID(answer);
+	CHKVOID(ionLocked());
+
+	/*	Find the matching plan.  The search argument eid must
+	 *	be a node ID, but that eid's best matching plan may be
+	 *	one that is for a "wild card" eid, i.e., a string that
+	 *	ends in a '~' character indicating "whatever".
+	 *
+	 *	Increasingly comprehensive wild-card plans sort toward
+	 *	the end of the list, so there's no way to terminate
+	 *	the search early.					*/
+
+	*answer = NULL;			/*	Default.		*/
+	for (elt = sm_list_first(bpwm, vdb->plans); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
+		result = strcmp(vplan->neighborEid, eid);
+		if (result < 0)
+		{
+			continue;	/*	No matching EID yet.	*/
+		}
+
+		if (result == 0)	/*	Exact match.		*/
+		{
+			*answer = vplan;
+			return;
+		}
+
+		if (result > 0)		/*	May be wild-card match.	*/
+		{
+			eidLen = istrlen(vplan->neighborEid, MAX_EID_LEN);
+			CHKVOID(eidLen > 0 && eidLen != MAX_EID_LEN);
+			last = eidLen - 1;
+			if (vplan->neighborEid[last] == '~'
+			&& (eidLen == 1
+			|| strncmp(vplan->neighborEid, eid, eidLen - 1) == 0))
+			{
+				*answer = vplan;
+				return;
+			}
+		}
+	}
+}
+
 void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
 {
 	Sdr	bpSdr = getIonsdr();
@@ -3971,7 +4282,7 @@ void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
 }
 
 int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
-		int nominalRate, int protocolClass)
+		int protocolClass)
 {
 	Sdr		bpSdr = getIonsdr();
 	ClProtocol	clpbuf;
@@ -4008,15 +4319,6 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
 	clpbuf.payloadBytesPerFrame = payloadPerFrame;
 	clpbuf.overheadPerFrame = ohdPerFrame;
-	if (nominalRate == 0)
-	{
-		nominalRate = ION_DEFAULT_XMIT_RATE;
-	}
-
-	/*	Note: protocol's nominal transmission rate may be -1
-	 *	indicating "no rate control".				*/
-
-	clpbuf.nominalRate = nominalRate;
 	if (protocolClass == 1 || strcmp(protocolName, "bssp") == 0)
 	{
 		clpbuf.protocolClass = BP_PROTOCOL_STREAMING;
@@ -4034,8 +4336,6 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 		clpbuf.protocolClass = BP_PROTOCOL_RELIABLE;
 	}
 
-	clpbuf.inducts = sdr_list_create(bpSdr);
-	clpbuf.outducts = sdr_list_create(bpSdr);
 	addr = sdr_malloc(bpSdr, sizeof(ClProtocol));
 	if (addr)
 	{
@@ -4072,20 +4372,9 @@ int	removeProtocol(char *protocolName)
 		return 0;
 	}
 
-	if (sdr_list_length(bpSdr, clpbuf.inducts) != 0
-	|| sdr_list_length(bpSdr, clpbuf.outducts) != 0)
-	{
-		sdr_exit_xn(bpSdr);
-		writeMemoNote("[?] Protocol has ducts, can't be removed",
-				protocolName);
-		return 0;
-	}
-
 	/*	Okay to remove this protocol from the database.		*/
 
 	addr = (Object) sdr_list_data(bpSdr, elt);
-	sdr_list_destroy(bpSdr, clpbuf.inducts, NULL, NULL);
-	sdr_list_destroy(bpSdr, clpbuf.outducts, NULL, NULL);
 	sdr_free(bpSdr, addr);
 	sdr_list_delete(bpSdr, elt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)
@@ -4195,6 +4484,7 @@ void	findInduct(char *protocolName, char *ductName, VInduct **vduct,
 int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 {
 	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = getBpConstants();
 	ClProtocol	clpbuf;
 	Object		clpElt;
 	VInduct		*vduct;
@@ -4273,7 +4563,7 @@ int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 	addr = sdr_malloc(bpSdr, sizeof(Induct));
 	if (addr)
 	{
-		elt = sdr_list_insert_last(bpSdr, clpbuf.inducts, addr);
+		elt = sdr_list_insert_last(bpSdr, bpConstants->inducts, addr);
 		sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Induct));
 	}
 
@@ -4484,12 +4774,12 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		unsigned int maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = getBpConstants();
 	ClProtocol	clpbuf;
 	Object		clpElt;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 	Outduct		ductBuf;
-	OutductStats	statsInit;
 	Object		addr;
 	Object		elt = 0;
 
@@ -4550,23 +4840,12 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 	}
 
 	ductBuf.maxPayloadLen = maxPayloadLength;
-	ductBuf.bulkQueue = sdr_list_create(bpSdr);
-	ductBuf.stdQueue = sdr_list_create(bpSdr);
-	ductBuf.urgentQueue = sdr_list_create(bpSdr);
+	ductBuf.xmitBuffer = sdr_list_create(bpSdr);
 	ductBuf.protocol = (Object) sdr_list_data(bpSdr, clpElt);
-	ductBuf.stats = sdr_malloc(bpSdr, sizeof(OutductStats));
-	if (ductBuf.stats)
-	{
-		memset((char *) &statsInit, 0, sizeof(OutductStats));
-		sdr_write(bpSdr, ductBuf.stats, (char *) &statsInit,
-				sizeof(OutductStats));
-	}
-
-	ductBuf.updateStats = 1;	/*	Default.		*/
 	addr = sdr_malloc(bpSdr, sizeof(Outduct));
 	if (addr)
 	{
-		elt = sdr_list_insert_last(bpSdr, clpbuf.outducts, addr);
+		elt = sdr_list_insert_last(bpSdr, bpConstants->outducts, addr);
 		sdr_write(bpSdr, addr, (char *) &ductBuf, sizeof(Outduct));
 
 		/*	Record duct's address in the "user data" of
@@ -4574,9 +4853,7 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		 *	from a duct queue element back to the duct
 		 *	via the queue.					*/
 
-		sdr_list_user_data_set(bpSdr, ductBuf.bulkQueue, addr);
-		sdr_list_user_data_set(bpSdr, ductBuf.stdQueue, addr);
-		sdr_list_user_data_set(bpSdr, ductBuf.urgentQueue, addr);
+		sdr_list_user_data_set(bpSdr, ductBuf.xmitBuffer, addr);
 	}
 
 	if (sdr_end_xn(bpSdr) < 0 || elt == 0)
@@ -4703,36 +4980,25 @@ int	removeOutduct(char *protocolName, char *ductName)
 	ductElt = vduct->outductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
 	sdr_read(bpSdr, (char *) &outductBuf, addr, sizeof(Outduct));
-	if (sdr_list_length(bpSdr, outductBuf.bulkQueue) != 0
-	|| sdr_list_length(bpSdr, outductBuf.stdQueue) != 0
-	|| sdr_list_length(bpSdr, outductBuf.urgentQueue) != 0)
+	if (sdr_list_length(bpSdr, outductBuf.xmitBuffer) != 0)
 	{
 		sdr_exit_xn(bpSdr);
 		writeMemoNote("[?] Outduct has data to transmit", ductName);
 		return 0;
 	}
 
-	/*	Okay to remove this duct from the database.  First,
-	 *	remove all references to this duct from all routing
-	 *	databases.						*/
-
-	dtn2_forgetOutduct(ductElt);
-	ipn_forgetOutduct(ductElt);
-
-	/*	Next remove the duct's volatile state.			*/
+	/*	First remove the duct's volatile state.			*/
 
 	dropOutduct(vduct, vductElt);
 
-	/*	Finally, remove the duct's non-volatile state.		*/
+	/*	Then remove the duct's non-volatile state.		*/
 
 	if (outductBuf.cloCmd)
 	{
 		sdr_free(bpSdr, outductBuf.cloCmd);
 	}
 
-	sdr_list_destroy(bpSdr, outductBuf.bulkQueue, NULL, NULL);
-	sdr_list_destroy(bpSdr, outductBuf.stdQueue, NULL, NULL);
-	sdr_list_destroy(bpSdr, outductBuf.urgentQueue, NULL,NULL);
+	sdr_list_destroy(bpSdr, outductBuf.xmitBuffer, NULL, NULL);
 	sdr_free(bpSdr, addr);
 	sdr_list_delete(bpSdr, ductElt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)
@@ -5307,17 +5573,6 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 		if (newBundle->proxNodeEid == 0)
 		{
 			putErrmsg("Can't copy proxNodeEid.", NULL);
-			return -1;
-		}
-	}
-
-	if (oldBundle->destDuctName)
-	{
-		newBundle->destDuctName = sdr_string_dup(bpSdr,
-				oldBundle->destDuctName);
-		if (newBundle->destDuctName == 0)
-		{
-			putErrmsg("Can't copy destDuctName.", NULL);
 			return -1;
 		}
 	}
@@ -7333,9 +7588,17 @@ unsigned int	guessBundleSize(Bundle *bundle)
 
 unsigned int	computeECCC(unsigned int bundleSize)
 {
+	unsigned int	stackOverhead;
+
 	/*	Assume 6.25% convergence-layer overhead.		*/
 
-	return bundleSize + ((bundleSize >> 4) & 0x0fffffff);
+	stackOverhead = (bundleSize >> 4) & 0x0fffffff;
+	if (stackOverhead < TYPICAL_STACK_OVERHEAD)
+	{
+		stackOverhead = TYPICAL_STACK_OVERHEAD;
+	}
+
+	return bundleSize + stackOverhead;
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -9742,11 +10005,11 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 	return sdr_list_insert_first(bpSdr, queue, bundleAddr);
 }
 
-static Object	enqueueUrgentBundle(Outduct *duct, Bundle *bundle,
+static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
 	unsigned char	ordinal = bundle->extendedCOS.ordinal;
-	OrdinalState	*ord = &(duct->ordinals[ordinal]);
+	OrdinalState	*ord = &(plan->ordinals[ordinal]);
 	Object		lastElt = 0;	// initialized to avoid warning
 	int		i;
 	Object		xmitElt;
@@ -9757,7 +10020,7 @@ static Object	enqueueUrgentBundle(Outduct *duct, Bundle *bundle,
 
 	for (i = ordinal; i < 256; i++)
 	{
-		lastElt = duct->ordinals[i].lastForOrdinal;
+		lastElt = plan->ordinals[i].lastForOrdinal;
 		if (lastElt)
 		{
 			break;
@@ -9766,12 +10029,12 @@ static Object	enqueueUrgentBundle(Outduct *duct, Bundle *bundle,
 
 	if (i == 256)	/*	No more urgent bundle to enqueue after.	*/
 	{
-		xmitElt = sdr_list_insert_first(getIonsdr(), duct->urgentQueue,
+		xmitElt = sdr_list_insert_first(getIonsdr(), plan->urgentQueue,
 				bundleObj);
 	}
 	else		/*	Enqueue after this one.			*/
 	{
-		xmitElt = insertBundleIntoQueue(duct->urgentQueue, lastElt,
+		xmitElt = insertBundleIntoQueue(plan->urgentQueue, lastElt,
 				bundleObj, 2, ordinal, bundle->enqueueTime);
 	}
 
@@ -9812,8 +10075,6 @@ static int	isLoopback(char *eid)
 int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 {
 	Sdr		bpSdr = getIonsdr();
-	PsmPartition	ionwm = getIonwm();
-	BpVdb		*vdb = getBpVdb();
 	Object		planObj;
 	BpPlan		plan;
 	unsigned int	backlogIncrement;
@@ -9825,8 +10086,8 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	CHKERR(vplan && bundle && bundleObj);
 	CHKERR(bundle->planXmitElt == 0);
 	bpDbTally(BP_DB_FWD_OKAY, bundle->payload.length);
-	planObj = sdr_list_data(sdr, vplan->planElt);
-	sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan);
+	planObj = sdr_list_data(bpSdr, vplan->planElt);
+	sdr_stage(bpSdr, (char *) &plan, planObj, sizeof(BpPlan));
 
 	/*	We have settled on a neighboring node to forward
 	 *	this bundle to.
@@ -10331,17 +10592,16 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	int		stewardshipAccepted;
 	Object		outductObj;
 	Outduct		outduct;
-	sm_SemId	ductSemaphore;
 			OBJ_POINTER(ClProtocol, protocol);
+	Object		elt;
 	Object		bundleObj;
 	Bundle		bundle;
 	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
 	DequeueContext	context;
 	char		*dictionary;
-	unsigned int	xmitLength;
 
-	CHKERR(vduct && flows && bundleZco && extendedCOS && destDuctName);
+	CHKERR(vduct && bundleZco && extendedCOS);
 	*bundleZco = 0;			/*	Default behavior.	*/
 	if (timeoutInterval < 0)	/*	CLA is a steward.	*/
 	{
@@ -10356,7 +10616,6 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		stewardshipAccepted = 0;
 	}
 
-	ductSemaphore = vduct->semaphore;
 	outductObj = sdr_list_data(bpSdr, vduct->outductElt);
 	sdr_read(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 	CHKERR(sdr_begin_xn(bpSdr));
@@ -10407,7 +10666,6 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
-	context.xmitRate = throttle->nominalRate;
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");
@@ -11266,20 +11524,14 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	if (bundle.ductXmitElt)
 	{
-		sdr_list_delete(bpSdr, bundle->ductXmitElt, NULL, NULL);
-		bundle->ductXmitElt = 0;
+		sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
+		bundle.ductXmitElt = 0;
 	}
 
 	if (bundle.proxNodeEid)
 	{
 		sdr_free(bpSdr, bundle.proxNodeEid);
 		bundle.proxNodeEid = 0;
-	}
-
-	if (bundle.destDuctName)
-	{
-		sdr_free(bpSdr, bundle.destDuctName);
-		bundle.destDuctName = 0;
 	}
 
 	if (bundle.overdueElt)

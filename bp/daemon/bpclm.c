@@ -358,6 +358,61 @@ static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	return 1;			/*	Embargo applied.	*/
 }
 
+static int	planApplies(BpPlan *plan, Bundle *bundle,
+			FwdDirective *directive)
+{
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	Object		directiveObj;
+	char		ductExpression[SDRSTRING_BUFSZ];
+	char		*delimiter;
+	int		protClassReqd;
+	ClProtocol	protocol;
+	Object		protocolElt;
+
+	elt = sdr_list_first(sdr, plan->directives);
+	CHKERR(elt);
+	directiveObj = sdr_list_data(sdr, elt);
+	CHKERR(directiveObj);
+	sdr_read(sdr, (char *) directive, directiveObj, sizeof(FwdDirective));
+	if (directive->action == relay)
+	{
+		return 1;		/*	Use this directive.	*/
+	}
+
+	/*	This is an xmit directive.  Does it map to a
+	 *	suitable outduct?					*/
+
+	sdr_string_read(sdr, ductExpression, directive->spec);
+	delimiter = strchr(ductExpression, '/');
+	if (delimiter == NULL)
+	{
+		writeMemoNote("[?] Invalid outduct expression", ductExpression);
+		return 0;
+	}
+
+	/*	Determine constraints on directive usability.		*/
+
+	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
+	if (protClassReqd == 0)		/*	Don't care.		*/
+	{
+		protClassReqd = -1;	/*	Matches any.		*/
+	}
+	else if (protClassReqd == 10)	/*	Need BSS.		*/
+	{
+		protClassReqd = BP_PROTOCOL_STREAMING;
+	}
+
+	*delimiter = '\0';
+	fetchProtocol(ductExpression, &protocol, &protocolElt);
+	if ((protocol.protocolClass & protClassReqd) == 0)
+	{
+		return 0;		/*	Directive unsuitable.	*/
+	}
+
+	return 1;			/*	Use this directive.	*/
+}
+
 static VOutduct	*selectOutduct(Vplan *vplan, Bundle *bundle)
 {
 	Sdr		sdr = getIonsdr();
@@ -392,10 +447,8 @@ static VOutduct	*selectOutduct(Vplan *vplan, Bundle *bundle)
 	findOutduct(protocolName, outductName, &vduct, &vductElt);
 	ductAddr = sdr_list_data(sdr, vduct->outductElt);
 	sdr_read(sdr, (char *) &duct, ductAddr, sizeof(Outduct));
-	if (duct.blocked)
-
-	
 	return vduct;
+<<-- check protocol class here (must read ClProtocol) - see planApplies
 }
 
 static void	noteFragmentation(Bundle *bundle)
@@ -445,6 +498,9 @@ int	main(int argc, char *argv[])
 			OBJ_POINTER(Outduct, outduct);
 	Object		queue;
 	Object		elt;
+	ClProtocol	protocol;
+	Object		oldBundleObj;
+	Bundle		oldBundle;
 
 	if (!nodeName)
 	{
@@ -711,16 +767,35 @@ int	main(int argc, char *argv[])
 		/*	Any bundle previously enqueued for transmission
 		 *	via this outduct that has not yet been
 		 *	transmitted is treated as a convergence-layer
-		 *	transmission failure: we try again.		*/
+		 *	transmission failure: try again or destroy the
+		 *	bundle, depending on reliability commitment.	*/
 
+		sdr_read(sdr, (char *) &protocol, outduct.protocol,
+				sizeof(ClProtocol));
 		for (elt = sdr_list_first(sdr, outduct.xmitBuffer); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			if (bpReforwardBundle(bundleObj) < 0)
+			oldBundleObj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &oldBundle, oldBundleObj,
+					sizeof(Bundle));
+			if (oldBundle.custodyTaken
+			|| protocol.protocolClass & BP_PROTOCOL_RELIABLE)
 			{
-				putErrmsg("Inferred CL-fail procedure failed",
-						nodeName);
-				break;
+				if (bpReforwardBundle(oldBundleObj) < 0)
+				{
+					putErrmsg("Inferred CL-failure failed",
+							nodeName);
+					break;
+				}
+			}
+			else
+			{
+				if (bpDestroyBundle(oldBundleObj, 0) < 0)
+				{
+					putErrmsg("Inferred CL-failure failed",
+							nodeName);
+					break;
+				}
 			}
 		}
 

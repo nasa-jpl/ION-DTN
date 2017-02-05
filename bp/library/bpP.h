@@ -166,7 +166,6 @@ typedef struct
 {
 	char		*protocolName;
 	char		*proxNodeEid;
-	unsigned int	xmitRate;
 } DequeueContext;
 
 /*	*	*	Bundle structures	*	*	*	*/
@@ -381,6 +380,7 @@ typedef struct
 
 	Object		planXmitElt;	/*	Issuance queue ref.	*/
 	Object		ductXmitElt;	/*	Transmission queue ref.	*/
+	Object		proxNodeEid;	/*	An SDR string.		*/
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
@@ -492,28 +492,6 @@ typedef struct
 	PsmAddress	endpoints;	/*	SM list: VEndpoint.	*/
 } VScheme;
 
-/*	*	Definitions supporting route computation.	*	*/
-
-typedef enum
-{
-	fwd = 1,	/*	Forward via indicated EID.		*/
-	xmit = 2	/*	Transmit via indicated CL duct.		*/
-} FwdAction;
-
-typedef struct
-{
-	FwdAction	action;
-
-	/*	For "fwd" directive, spec is the EID of the node
-	 *	through which the bundle is to be forwarded.  For
-	 *	"xmit" directive, spec is the duct expression
-	 *	identifying the Outduct by which the bundle is to
-	 *	be transmitted to the next node on the path to
-	 *	the destination.					*/
-
-	Object		spec;		/*	sdrstring		*/
-} FwdDirective;
-
 /*	Definitions supporting the use of QoS-sensitive bandwidth
  *	management.
  *
@@ -560,7 +538,22 @@ typedef struct
 typedef struct
 {
 	char		neighborEid[MAX_EID_LEN];
+
+	/*	Note: neighborEid may be a wildcarded EID string.	*/
+
 	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+
+	/*	If the plan for bundles destined for this neighbor is
+	 *	to relay them via some other EID, then that "via"
+	 *	EID is given here and the rest of the structure is
+	 *	unused.							*/
+
+	Object		viaEid;		/*	An sdrstring.		*/
+
+	/*	Otherwise, viaEid is zero and the plan for bundles
+	 *	destined for this neighbor is to transmit them using
+	 *	one of the ducts in the list.				*/
+
 	unsigned int	nominalRate;	/*	Bytes per second.	*/
 	int		blocked;	/*	Boolean			*/
 	Object		stats;		/*	PlanStats address.	*/
@@ -572,7 +565,7 @@ typedef struct
 	Object		urgentQueue;	/*	SDR list of Bundles	*/
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	Object		directives;	/*	SDR list FwdDirectives.	*/
+	Object		ducts;		/*	SDR list of duct names.	*/
 } BpPlan;
 
 typedef struct
@@ -615,6 +608,7 @@ typedef struct
 	Object		inductElt;	/*	Reference to Induct.	*/
 	Object		stats;		/*	InductStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
+	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cliPid;		/*	For stopping the CLI.	*/
 } VInduct;
@@ -655,6 +649,7 @@ typedef struct
 typedef struct
 {
 	Object		outductElt;	/*	Reference to Outduct.	*/
+	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
 	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
@@ -994,19 +989,16 @@ extern int		bpClone(	Bundle *originalBundle,
 			 *	payload.  Returns 0 on success,
 			 *	-1 on any error.			*/
 
-extern int		bpEnqueue(	FwdDirective *directive,
+extern int		bpEnqueue(	VPlan *vplan,
 					Bundle *bundle,
-					Object bundleObj,
-					char *proxNodeEid);
+					Object bundleObj);
 			/*	This function is invoked by a forwarder
 			 *	to enqueue a bundle for transmission
-			 *	by a convergence-layer output adapter
-			 *	to the proximate node identified by
-			 *	proxNodeEid.  It appends the indicated
-			 *	bundle to the appropriate transmission
-			 *	queue of the duct indicated by the
-			 *	"directive" based on the bundle's
-			 *	priority.
+			 *	according to a defined egress plan.
+			 *	It appends the indicated bundle to the
+			 *	appropriate transmission queue of the
+			 *	egress plan identified by "vplan" based
+			 *	on the bundle's priority.
 			 *
 			 *	If forwarding the bundle to multiple
 			 *	nodes (flooding or multicast), call
@@ -1335,10 +1327,12 @@ extern BpVdb		*getBpVdb();
 
 extern void		getCurrentDtnTime(DtnTime *dt);
 
-extern int		guessBundleSize(Bundle *bundle);
-extern int		computeECCC(int bundleSize, ClProtocol *protocol);
-extern void		computePriorClaims(ClProtocol *, Outduct *, Bundle *,
-				Scalar *, Scalar *);
+extern Throttle		*applicableThrottle(VPlan *vplan);
+
+extern unsigned int	guessBundleSize(Bundle *bundle);
+extern unsigned int	computeECCC(unsigned int bundleSize);
+extern void		computePriorClaims(BpPlan *plan, Bundle *bundle,
+				Scalar *priorClaims, Scalar *backlog);
 
 extern int		putBpString(BpString *bpString, char *string);
 extern char		*getBpString(BpString *bpString);
@@ -1391,18 +1385,17 @@ extern void		bpStopPlan(char *eid);
 extern int		bpBlockPlan(char *eid);
 extern int		bpUnblockPlan(char *eid);
 
-extern int		addPlanDirective(char *eid, FwdAction action,
-				char *spec);
-extern int		removePlanDirective(char *eid, FwdAction action,
-				char *spec);
+extern int		setPlanViaEid(char *eid, char *viaEid);
+extern int		addPlanDuct(char *eid, char *ductExpression);
+extern int		removePlanDuct(char *eid, char *ductExpression);
+extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
 			        Object planObj, BpPlan *plan);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
-				int overheadPerFrame, int nominalRate,
-				int protocolClass);
+				int overheadPerFrame, int protocolClass);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
 extern void		bpStopProtocol(char *name);
@@ -1447,9 +1440,8 @@ extern int		deliverBundle(Object bundleObj, Bundle *bundle,
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		reverseEnqueue(Object xmitElt, ClProtocol *protocol,
-				Object outductObj, Outduct *outduct,
-				int sendToLimbo);
+extern int		reverseEnqueue(Object xmitElt, Object planObj,
+				BpPlan *plan, int sendToLimbo);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);

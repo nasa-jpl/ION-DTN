@@ -142,18 +142,6 @@ static int	connectToCLI(char *protocolName, char *ductName, int *sock)
 		return -1;
 	}
 
-	/*	Unblock duct if possible.  N/A for BRS.			*/
-
-	if (strncmp(protocolName, "brs", 3) != 0)
-	{
-		if (bpUnblockOutduct(protocolName, ductName) < 0)
-		{
-			putErrmsg("CLO connected but didn't unblock outduct.",
-					ductName);
-			return -1;
-		}
-	}
-
 	return 1;	/*	CLO connected to remote CLI.		*/
 }
 
@@ -167,27 +155,10 @@ int	openStcpOutductSocket(char *protocolName, char *ductName, int *sock)
 
 void	closeStcpOutductSocket(int *ductSocket)
 {
-	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	char	ductName[MAX_CL_DUCT_NAME_LEN];
-
 	CHKVOID(ductSocket);
 	if (*ductSocket != -1)
 	{
-		/*	Block the corresponding outduct if possible.	*/
-
-		protocolName[0] = '\0';
-		oK(_stcpOutductId(protocolName, ductName, *ductSocket));
-		if (protocolName[0] != '\0'
-		&& strncmp(protocolName, "brs", 3) != 0)
-		{
-			if (bpBlockOutduct(protocolName, ductName) < 0)
-			{
-				writeMemoNote("[?] Failed blocking outduct",
-						ductName);
-			}
-		}
-
-		/*	Now forget the outduct ID and close the socket.	*/
+		/*	Forget the outduct ID and close the socket.	*/
 
 		oK(_stcpOutductId(NULL, NULL, *ductSocket));
 		closesocket(*ductSocket);

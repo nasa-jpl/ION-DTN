@@ -41,8 +41,6 @@ static void	*sendBundles(void *parm)
 	char			*buffer;
 	Sdr			sdr;
 	Outduct			outduct;
-	Outflow			outflows[3];
-	int			i;
 	int			threadRunning = 1;
 	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
@@ -69,14 +67,6 @@ static void	*sendBundles(void *parm)
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
 			parms->vduct->outductElt), sizeof(Outduct));
 	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Can now begin transmitting to clients.			*/
 
@@ -87,8 +77,7 @@ static void	*sendBundles(void *parm)
 			break;
 		}
 
-		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 64000, -1) < 0)
+		if (bpDequeue(parms->vduct, &bundleZco, &extendedCOS, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

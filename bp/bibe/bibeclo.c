@@ -46,8 +46,6 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	Outduct			outduct;
 	ClProtocol		protocol;
-	Outflow			outflows[3];
-	int			i;
 	unsigned char		*buffer;
 	char			adminHeader[1];
 	Object			bundleZco;
@@ -90,11 +88,6 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	vduct->xmitThrottle.nominalRate = -1;
-
-	/*	Note: no rate control for BIBE, regardless of what
-	 *	may have been asserted when the Protocol was added.	*/
-
 	adminHeader[0] = BP_ENCAPSULATED_BUNDLE << 4;
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
@@ -102,14 +95,6 @@ int	main(int argc, char *argv[])
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -121,8 +106,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] bibeclo is running.");
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, outduct.maxPayloadLen, 0) < 0)
+		if (bpDequeue(vduct, &bundleZco, &extendedCOS, 0) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			shutDownClo();
