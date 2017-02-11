@@ -167,6 +167,21 @@ obtained time values whenever ION needs to know the current time.  For
 machines that use UTC natively and are synchronized by NTP, the value
 of this delta should be 0, the default.
 
+Note that the purpose of the UTC delta is not to correct for time zone
+differences (which operating systems often do natively) but rather to
+compensate for error (drift) in clocks, particularly spacecraft clocks.
+The hardware clock on a spacecraft might gain or lose a few seconds every
+month, to the point at which its understanding of the current time - as
+reported out by the operating system - might differ significantly from the
+actual value of UTC as reported by authoritative clocks on Earth.  To
+compensate for this difference without correcting the clock itself (which
+can be difficult and dangerous), ION simply adds the UTC delta to the
+UTC reported by the operating system.
+
+Note that this means that setting the UTC delta is not a one-time node
+configuration activity but rather an ongoing node administration chore,
+because a drifting clock typically keeps on drifting.
+
 =item B<m clockerr> I<known_maximum_clock_error>
 
 This management command sets ION's understanding of the accuracy of the
