@@ -172,7 +172,7 @@ int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
 	char	eid[MAX_EID_LEN + 1];
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	return addPlanDuct(eid, ductExpression);
+	return attachPlanDuct(eid, ductExpression);
 }
 
 int	ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate)
@@ -193,7 +193,7 @@ int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
 	char	eid[MAX_EID_LEN + 1];
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	return removePlanDuct(eid, ductExpression);
+	return detachPlanDuct(eid, ductExpression);
 }
 
 int	ipn_removePlan(uvast nodeNbr)

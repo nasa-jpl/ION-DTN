@@ -57,7 +57,7 @@ int	dtn2_addPlan(char *eid, unsigned int nominalRate)
 
 int	dtn2_addPlanDuct(char *eid, char *spec)
 {
-	return addPlanDuct(eid, spec);
+	return attachPlanDuct(eid, spec);
 }
 
 int	dtn2_updatePlan(char *eid, unsigned int nominalRate)
@@ -77,7 +77,7 @@ int	dtn2_setPlanViaEid(char *eid, char *viaEid)
 
 int	dtn2_removePlanDuct(char *eid, char *spec)
 {
-	return removePlanDuct(eid, spec);
+	return detachPlanDuct(eid, spec);
 }
 
 int	dtn2_removePlan(char *eid)

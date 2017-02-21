@@ -1291,7 +1291,7 @@ static void	waitForOutduct(VOutduct *vduct)
 static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
 {
 	Sdr	bpSdr = getIonsdr();
-	BpDB	*bpConstants = getBpConstants();
+	BpDB	*bpConstants = _bpConstants();
 	Object	elt;
 		OBJ_POINTER(Induct, induct);
 		OBJ_POINTER(Outduct, outduct);
@@ -3854,6 +3854,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	{
 		elt = sdr_list_insert_last(bpSdr, bpConstants->plans, addr);
 		sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
+		sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
 
 		/*	Record plan's address in the "user data" of
 		 *	each queue so that we can easily navigate
@@ -3886,6 +3887,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 int	updatePlan(char *eidIn, unsigned int nominalRate)
 {
 	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = _bpConstants();
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -3913,6 +3915,7 @@ int	updatePlan(char *eidIn, unsigned int nominalRate)
 	sdr_stage(bpSdr, (char *) &planBuf, addr, sizeof(BpPlan));
 	planBuf.nominalRate = nominalRate;
 	sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
+	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't update egress plan.", eid);
@@ -3925,6 +3928,7 @@ int	updatePlan(char *eidIn, unsigned int nominalRate)
 int	removePlan(char *eidIn)
 {
 	Sdr		bpSdr = getIonsdr();
+	BpDB		*bpConstants = _bpConstants();
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -3976,11 +3980,12 @@ int	removePlan(char *eidIn)
 
 	/*	Then remove the plan's non-volatile state.		*/
 
+	sdr_list_delete(bpSdr, planElt, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.bulkQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.stdQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.urgentQueue, NULL,NULL);
 	sdr_free(bpSdr, addr);
-	sdr_list_delete(bpSdr, planElt, NULL, NULL);
+	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't remove egress plan.", NULL);
@@ -4081,7 +4086,7 @@ int	setPlanViaEid(char *eid, char *viaEid)
 	return 1;
 }
 
-int	addPlanDuct(char *eid, char *ductExpression)
+int	attachPlanDuct(char *eid, char *ductExpression)
 {
 	Sdr		sdr = getIonsdr();
 	size_t		length;
@@ -4125,7 +4130,7 @@ int	addPlanDuct(char *eid, char *ductExpression)
 	return 1;
 }
 
-int	removePlanDuct(char *eid, char *ductExpression)
+int	detachPlanDuct(char *eid, char *ductExpression)
 {
 	Sdr		sdr = getIonsdr();
 	size_t		length;
@@ -4484,7 +4489,7 @@ void	findInduct(char *protocolName, char *ductName, VInduct **vduct,
 int	addInduct(char *protocolName, char *ductName, char *cliCmd)
 {
 	Sdr		bpSdr = getIonsdr();
-	BpDB		*bpConstants = getBpConstants();
+	BpDB		*bpConstants = _bpConstants();
 	ClProtocol	clpbuf;
 	Object		clpElt;
 	VInduct		*vduct;
@@ -4770,11 +4775,57 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 	*vductElt = elt;
 }
 
+int	flushOutduct(Outduct *outduct)
+{
+	Sdr		sdr = getIonsdr();
+	ClProtocol	protocol;
+	Object		elt;
+	Object		bundleObj;
+	Bundle		bundle;
+
+	/*	Any bundle previously enqueued for transmission via
+	 *	this outduct that has not yet been transmitted is
+	 *	treated as a convergence-layer transmission failure:
+	 *	try again or destroy the bundle, depending on
+	 *	reliability commitment.					*/
+
+	CHKERR(ionLocked());
+	sdr_read(sdr, (char *) &protocol, outduct->protocol,
+			sizeof(ClProtocol));
+	for (elt = sdr_list_first(sdr, outduct->xmitBuffer); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		bundleObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+		if (bundle.custodyTaken
+		|| protocol.protocolClass & BP_PROTOCOL_RELIABLE)
+		{
+			if (bpReforwardBundle(bundleObj) < 0)
+			{
+				putErrmsg("Inferred CL-failure failed",
+						outduct->name);
+				return -1;
+			}
+		}
+		else
+		{
+			if (bpDestroyBundle(bundleObj, 0) < 0)
+			{
+				putErrmsg("Inferred CL-failure failed",
+						outduct->name);
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
 int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		unsigned int maxPayloadLength)
 {
 	Sdr		bpSdr = getIonsdr();
-	BpDB		*bpConstants = getBpConstants();
+	BpDB		*bpConstants = _bpConstants();
 	ClProtocol	clpbuf;
 	Object		clpElt;
 	VOutduct	*vduct;
@@ -4943,6 +4994,57 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	return 1;
 }
 
+static void	detachFromAllPlans(char *protocolName, char *outductName)
+{
+	Sdr	sdr = getIonsdr();
+	Object	planElt;
+	Object	planObj;
+		OBJ_POINTER(BpPlan, plan);
+	Object	ductElt;
+	Object	nextElt;
+	Object	ductExpObj;
+	char	ductExpression[SDRSTRING_BUFSZ];
+	char	*cursor;
+
+	CHKVOID(ionLocked());
+	for (planElt = sdr_list_first(sdr, getBpConstants()->plans); planElt;
+			planElt = sdr_list_next(sdr, planElt))
+	{
+		planObj = sdr_list_data(sdr, planElt);
+		GET_OBJ_POINTER(sdr, BpPlan, plan, planObj);
+		for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
+				ductElt = nextElt)
+		{
+			nextElt = sdr_list_next(sdr, ductElt);
+			ductExpObj = sdr_list_data(sdr, ductElt);
+			sdr_string_read(sdr, ductExpression, ductExpObj);
+			cursor = strchr(ductExpression, '/');
+			if (cursor == NULL)
+			{
+				putErrmsg("Duct expression lacks duct name.",
+						ductExpression);
+				continue;
+			}
+
+			*cursor = '\0';
+			if (strcmp(ductExpression, protocolName) != 0)
+			{
+				continue;
+			}
+			
+			if (strcmp(cursor + 1, outductName) != 0)
+			{
+				continue;
+			}
+
+			/*	Remove this reference to this outduct.	*/
+
+			sdr_free(sdr, ductExpObj);
+			sdr_list_delete(sdr, ductElt, NULL, NULL);
+		}
+	}
+}
+
 int	removeOutduct(char *protocolName, char *ductName)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -4980,18 +5082,27 @@ int	removeOutduct(char *protocolName, char *ductName)
 	ductElt = vduct->outductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
 	sdr_read(bpSdr, (char *) &outductBuf, addr, sizeof(Outduct));
-	if (sdr_list_length(bpSdr, outductBuf.xmitBuffer) != 0)
+
+	/*	First flush any bundles currently in the outduct's
+	 *	transmission buffer.					*/
+
+	if (flushOutduct(&outductBuf) < 0)
 	{
-		sdr_exit_xn(bpSdr);
-		writeMemoNote("[?] Outduct has data to transmit", ductName);
-		return 0;
+		sdr_cancel_xn(bpSdr);
+		putErrmsg("Failed flushing outduct.", ductName);
+		return -1;
 	}
 
-	/*	First remove the duct's volatile state.			*/
+	/*	Then detach the outduct from every egress plan that 
+	 *	cites it.						*/
+
+	detachFromAllPlans(protocolName, ductName);
+
+	/*	Can then remove the duct's volatile state.		*/
 
 	dropOutduct(vduct, vductElt);
 
-	/*	Then remove the duct's non-volatile state.		*/
+	/*	Finally, remove the duct's non-volatile state.		*/
 
 	if (outductBuf.cloCmd)
 	{
@@ -10467,7 +10578,7 @@ int	bpUnblockPlan(char *eid)
 	return 0;
 }
 
-static void	releaseCustody(Object bundleAddr, Bundle *bundle)
+void	releaseCustody(Object bundleAddr, Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
 

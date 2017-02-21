@@ -42,7 +42,6 @@ static void	shutDown()	/*	Commands bpclm termination.	*/
 static int	maxPayloadLengthKnown(VPlan *vplan,
 			unsigned int *maxPayloadLength)
 {
-	Sdr		sdr = getIonsdr();
 	unsigned int	secRemaining;
 	unsigned int	xmitRate;
 
@@ -228,11 +227,10 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 }
 #endif
 
-static int	getOutboundBundle(Outflow *flows, char *nodeName, VPlan *vplan,
+static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 			Object *bundleElt, Bundle *bundle)
 {
 	Sdr		bpSdr = getIonsdr();
-	PsmPartition	bpwm = getIonwm();
 	Outflow		*selectedFlow;
 	Object		xmitElt;
 
@@ -245,21 +243,20 @@ static int	getOutboundBundle(Outflow *flows, char *nodeName, VPlan *vplan,
 			sdr_exit_xn(bpSdr);
 
 			/*	Wait until forwarder announces an
-			 *	outbound bundle by giving duct's
-			 *	semaphore.  Duct might have changed
-			 *	in the interim, so re-read it.		*/
+			 *	outbound bundle by giving plan's
+			 *	semaphore.				*/
 
 			if (sm_SemTake(vplan->semaphore) < 0)
 			{
 				putErrmsg("bpclm can't take plan semaphore.",
-						nodeName);
+						vplan->neighborEid);
 				return -1;
 			}
 
 			if (sm_SemEnded(vplan->semaphore))
 			{
 				writeMemoNote("[i] Plan has been stopped",
-						nodeName);
+						vplan->neighborEid);
 
 				/*	End task, but without error.	*/
 
@@ -287,7 +284,7 @@ static int	getOutboundBundle(Outflow *flows, char *nodeName, VPlan *vplan,
 
 static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
 {
-	PsmPartition	ionwm = getIonwm();
+	PsmPartition	wm = getIonwm();
 	IonNode		*destNode;
 	PsmAddress	nextNode;
 	PsmAddress	elt;
@@ -323,11 +320,11 @@ static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	 *	identified by CBHE-conformant endpoint IDs that have
 	 *	been refusing bundles for this destination.		*/
 
-	for (elt = sm_list_first(bpwm, destNode->embargoes); elt;
+	for (elt = sm_list_first(wm, destNode->embargoes); elt;
 			elt = nextEmbargo)
 	{
-		nextEmbargo = sm_list_next(bpwm, elt);
-		embargo = (Embargo *) psp(bpwm, sm_list_data(bpwm, elt));
+		nextEmbargo = sm_list_next(wm, elt);
+		embargo = (Embargo *) psp(wm, sm_list_data(wm, elt));
 		if (embargo->nodeNbr < vplan->neighborNodeNbr)
 		{
 			continue;
@@ -358,41 +355,18 @@ static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	return 1;			/*	Embargo applied.	*/
 }
 
-static int	planApplies(BpPlan *plan, Bundle *bundle,
-			FwdDirective *directive)
+static void	selectOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 {
 	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		directiveObj;
-	char		ductExpression[SDRSTRING_BUFSZ];
-	char		*delimiter;
 	int		protClassReqd;
+	BpPlan		plan;
+	Object		ductElt;
+	Object		ductObj;
+	Outduct		duct;
 	ClProtocol	protocol;
-	Object		protocolElt;
+	PsmAddress	vductElt;
 
-	elt = sdr_list_first(sdr, plan->directives);
-	CHKERR(elt);
-	directiveObj = sdr_list_data(sdr, elt);
-	CHKERR(directiveObj);
-	sdr_read(sdr, (char *) directive, directiveObj, sizeof(FwdDirective));
-	if (directive->action == relay)
-	{
-		return 1;		/*	Use this directive.	*/
-	}
-
-	/*	This is an xmit directive.  Does it map to a
-	 *	suitable outduct?					*/
-
-	sdr_string_read(sdr, ductExpression, directive->spec);
-	delimiter = strchr(ductExpression, '/');
-	if (delimiter == NULL)
-	{
-		writeMemoNote("[?] Invalid outduct expression", ductExpression);
-		return 0;
-	}
-
-	/*	Determine constraints on directive usability.		*/
-
+	*vduct = NULL;			/*	Default.		*/
 	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
 	if (protClassReqd == 0)		/*	Don't care.		*/
 	{
@@ -403,52 +377,30 @@ static int	planApplies(BpPlan *plan, Bundle *bundle,
 		protClassReqd = BP_PROTOCOL_STREAMING;
 	}
 
-	*delimiter = '\0';
-	fetchProtocol(ductExpression, &protocol, &protocolElt);
-	if ((protocol.protocolClass & protClassReqd) == 0)
-	{
-		return 0;		/*	Directive unsuitable.	*/
-	}
-
-	return 1;			/*	Use this directive.	*/
-}
-
-static VOutduct	*selectOutduct(Vplan *vplan, Bundle *bundle)
-{
-	Sdr		sdr = getIonsdr();
-	Object		directiveElt;
-	Object		directiveObj;
-			OBJ_POINTER(FwdDirective, directive);
-	char		ductExpression[SDRSTRING_BUFSZ];
-	char		*cursor;
-	char		*protocolName;
-	char		*outductName;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
-	Object		ductAddr;
-	Outduct		duct;
-
-	/*	Eventually the plan->directives list will be replaced
+	/*	Eventually the plan->outducts list will be replaced
 	 *	by a list of outduct selection rules pairing bundle
 	 *	characteristics with duct expressions, but for now
-	 *	there is only a single assigned outduct per plan.	*/
+	 *	there is only a single assigned outduct per plan.
+	 *	(Well, possibly two in the event that a TCPCL
+	 *	connection is received from a node identified by
+	 *	the same node ID as was provided in a managed outduct
+	 *	assertion, but in that case the two are indistin-
+	 *	guishable and it is still valid to use the first.)	*/
 
-	directiveElt = sdr_list_first(sdr, plan->directives);
-	CHKNULL(directiveElt);
-	directiveObj = sdr_list_data(sdr, directiveElt);
-	GET_OBJ_POINTER(sdr, FwdDirective, directive, directiveObj);
-	CHKNULL(directive->action == xmit);
-	CHKNULL(sdr_string_read(sdr, ductExpression, directive->spec) > 0);
-	protocolName = ductExpression;
-	cursor = strchr(ductExpression, '/');
-	CHKNULL(cursor);
-	*cursor = '\0';
-	outductName = cursor + 1;
-	findOutduct(protocolName, outductName, &vduct, &vductElt);
-	ductAddr = sdr_list_data(sdr, vduct->outductElt);
-	sdr_read(sdr, (char *) &duct, ductAddr, sizeof(Outduct));
-	return vduct;
-<<-- check protocol class here (must read ClProtocol) - see planApplies
+	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
+			sizeof(BpPlan));
+	ductElt = sdr_list_first(sdr, plan.ducts);
+	if (ductElt)
+	{
+		ductObj = sdr_list_data(sdr, ductElt);
+		sdr_read(sdr, (char *) &duct, ductObj, sizeof(Outduct));
+		sdr_read(sdr, (char *) &protocol, duct.protocol,
+				sizeof(ClProtocol));
+		if ((protocol.protocolClass & protClassReqd))
+		{
+			findOutduct(protocol.name, duct.name, vduct, &vductElt);
+		}
+	}
 }
 
 static void	noteFragmentation(Bundle *bundle)
@@ -485,7 +437,7 @@ int	main(int argc, char *argv[])
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		planObj;
-	Plan		plan;
+	BpPlan		plan;
 	Throttle	*throttle;
 	Outflow		outflows[3];
 	int		i;
@@ -496,11 +448,11 @@ int	main(int argc, char *argv[])
 	Bundle		bundle;
 	VOutduct	*vduct;
 			OBJ_POINTER(Outduct, outduct);
+	Bundle		firstBundle;
+	Object		firstBundleObj;
+	Bundle		secondBundle;
+	Object		secondBundleObj;
 	Object		queue;
-	Object		elt;
-	ClProtocol	protocol;
-	Object		oldBundleObj;
-	Bundle		oldBundle;
 
 	if (!nodeName)
 	{
@@ -516,7 +468,7 @@ int	main(int argc, char *argv[])
 
 	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock database.	*/
 	findPlan(nodeName, &vplan, &vplanElt);
-	if (planElt == 0)
+	if (vplanElt == 0)
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("No egress plan for this node", nodeName);
@@ -534,7 +486,7 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	planObj = sdr_list_data(sdr, vplan->planElt);
-	sdr_read(sdr, (char *) &plan, planObj, sizeof(Plan));
+	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
 	throttle = applicableThrottle(vplan);
 	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
 
@@ -543,9 +495,9 @@ int	main(int argc, char *argv[])
 	 *	after transaction exit.					*/
 
 	memset((char *) outflows, 0, sizeof outflows);
-	outflow[0].outboundBundle = plan.bulkQueue;
-	outflow[1].outboundBundle = plan.stdQueue;
-	outflow[2].outboundBundle = plan.urgentQueue;
+	outflows[0].outboundBundles = plan.bulkQueue;
+	outflows[1].outboundBundles = plan.stdQueue;
+	outflows[2].outboundBundles = plan.urgentQueue;
 	for (i = 0; i < 3; i++)
 	{
 		outflows[i].svcFactor = 1 << i;
@@ -594,7 +546,7 @@ int	main(int argc, char *argv[])
 
 		/*	Get a transmittable bundle.			*/
 
-		if (getOutboundBundle(outflows, &bundleElt, &bundle) < 0)
+		if (getOutboundBundle(outflows, vplan, &bundleElt, &bundle) < 0)
 		{
 			sdr_exit_xn(sdr);
 			putErrmsg("CLO can't get next outbound bundle.", NULL);
@@ -630,14 +582,7 @@ int	main(int argc, char *argv[])
 
 		/*	Fragment transmittable bundle as necessary.	*/
 
-		if (selectOutduct(&plan, &bundle, &vduct) < 0)
-		{
-			sdr_cancel_xn(sdr);
-			putErrmsg("Can't select outduct.", nodeName);
-			running = 0;
-			continue;
-		}
-
+		selectOutduct(vplan, &bundle, &vduct);
 		if (vduct == NULL)		/*	No usable duct.	*/
 		{
 			oK(enqueueToLimbo(&bundle, bundleObj));
@@ -659,11 +604,11 @@ int	main(int argc, char *argv[])
 		}
 
 		if (maxPayloadLength > 0
-		&& bundle->payload.length > maxPayloadLength)
+		&& bundle.payload.length > maxPayloadLength)
 		{
 			/*	Must fragment this bundle.		*/
 
-			if (bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT)
+			if (bundle.bundleProcFlags & BDL_DOES_NOT_FRAGMENT)
 			{
 				/*	Bundle can't be fragmented,
 				 *	cannot be sent to this
@@ -671,7 +616,7 @@ int	main(int argc, char *argv[])
 				 *	it and get another bundle.	*/
 
 				removeBundleFromQueue(&bundle, bundleObj,
-						planObj, plan);
+						planObj, &plan);
 				if (bpReforwardBundle(bundleObj) < 0)
 				{
 					sdr_cancel_xn(sdr);
@@ -695,10 +640,10 @@ int	main(int argc, char *argv[])
 
 			/*	Okay to fragment.			*/
 
-			if (bpClone(bundle, &firstBundle, &firstBundleObj, 0,
+			if (bpClone(&bundle, &firstBundle, &firstBundleObj, 0,
 					maxPayloadLength) < 0
-			|| bpClone(bundle, &secondBundle, &secondBundleObj,
-					maxPayloadLength, bundle->payload.length
+			|| bpClone(&bundle, &secondBundle, &secondBundleObj,
+					maxPayloadLength, bundle.payload.length
 					- maxPayloadLength) < 0)
 			{
 				sdr_cancel_xn(sdr);
@@ -714,15 +659,15 @@ int	main(int argc, char *argv[])
 			 *	don't call purgeDuctXmitElt which calls
 			 *	removeBundleFromQueue.			*/
 
-			queue = sdr_list_list(sdr, bundle->planXmitElt);
-			sdr_list_delete(sdr, bundle->planXmitElt, NULL, NULL);
-			bundle->planXmitElt = 0;
-			if (bundle->custodyTaken)
+			queue = sdr_list_list(sdr, bundle.planXmitElt);
+			sdr_list_delete(sdr, bundle.planXmitElt, NULL, NULL);
+			bundle.planXmitElt = 0;
+			if (bundle.custodyTaken)
 			{
 				/*	Means that custody of the
 				 *	two clones is taken instead.	*/
 
-				releaseCustody(*bundleObj, bundle);
+				releaseCustody(bundleObj, &bundle);
 				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
 						firstBundle.payload.length);
 				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
@@ -731,9 +676,9 @@ int	main(int argc, char *argv[])
 
 			/*	Lose the original bundle.		*/
 
-			sdr_write(sdr, bundleObj, (char *) bundle,
+			sdr_write(sdr, bundleObj, (char *) &bundle,
 					sizeof(Bundle));
-			if (bpDestroyBundle(*bundleObj, 0) < 0)
+			if (bpDestroyBundle(bundleObj, 0) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				putErrmsg("CLO can't destroy original bundle.",
@@ -751,55 +696,23 @@ int	main(int argc, char *argv[])
 					&secondBundle, sizeof(Bundle));
 			firstBundle.planXmitElt = sdr_list_insert_first(sdr,
 					queue, firstBundleObj);
-			sdr_write(bpSdr, firstBundleObj, (char *) &firstBundle,
+			sdr_write(sdr, firstBundleObj, (char *) &firstBundle,
 					sizeof(Bundle));
-			xmitElt = firstBundle.planXmitElt;
+			bundleElt = firstBundle.planXmitElt;
 			bundleObj = firstBundleObj;
-			memcpy((char *) bundle, (char *) &firstBundle,
+			memcpy((char *) &bundle, (char *) &firstBundle,
 					sizeof(Bundle));
 		}
 
 		/*	Pop the outbound bundle out of its issuance
 		 *	queue.						*/
 
-		removeBundleFromQueue(bundle, bundleObj, planObj, plan);
+		removeBundleFromQueue(&bundle, bundleObj, planObj, &plan);
 
-		/*	Any bundle previously enqueued for transmission
-		 *	via this outduct that has not yet been
-		 *	transmitted is treated as a convergence-layer
-		 *	transmission failure: try again or destroy the
-		 *	bundle, depending on reliability commitment.	*/
+		/*	Clean out the outduct's transmission buffer
+		 *	to make room for the new bundle.		*/
 
-		sdr_read(sdr, (char *) &protocol, outduct.protocol,
-				sizeof(ClProtocol));
-		for (elt = sdr_list_first(sdr, outduct.xmitBuffer); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			oldBundleObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &oldBundle, oldBundleObj,
-					sizeof(Bundle));
-			if (oldBundle.custodyTaken
-			|| protocol.protocolClass & BP_PROTOCOL_RELIABLE)
-			{
-				if (bpReforwardBundle(oldBundleObj) < 0)
-				{
-					putErrmsg("Inferred CL-failure failed",
-							nodeName);
-					break;
-				}
-			}
-			else
-			{
-				if (bpDestroyBundle(oldBundleObj, 0) < 0)
-				{
-					putErrmsg("Inferred CL-failure failed",
-							nodeName);
-					break;
-				}
-			}
-		}
-
-		if (elt)	/*	Didn't finish queue cleanup.	*/
+		if (flushOutduct(outduct) < 0)
 		{
 			sdr_cancel_xn(sdr);
 			running = 0;
@@ -825,7 +738,7 @@ int	main(int argc, char *argv[])
 		bpPlanTally(vplan, BP_PLAN_DEQUEUED, bundle.payload.length);
 		bpXmitTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
 				bundle.payload.length);
-		if ((_bpvdb(NULL))->watching & WATCH_c)
+		if ((getBpVdb())->watching & WATCH_c)
 		{
 			iwatch('c');
 		}

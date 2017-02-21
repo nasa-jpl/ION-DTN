@@ -267,7 +267,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
-	if (addPlanDuct(neighborEid, ductExpression) < 0)
+	if (attachPlanDuct(neighborEid, ductExpression) < 0)
 	{
 		putErrmsg("Can't add plan duct.", neighborEid);
 		return -1;
@@ -368,7 +368,7 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 	bpStopPlan(neighborEid);
 	isprintf(ductExpression, sizeof ductExpression, "%s/%s", claProtocol,
 			socketSpec);
-	removePlanDuct(neighborEid, ductExpression);
+	detachPlanDuct(neighborEid, ductExpression);
 	removePlan(neighborEid);
 	bpStopOutduct(claProtocol, socketSpec);
 	removeOutduct(claProtocol, socketSpec);

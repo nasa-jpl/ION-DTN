@@ -462,7 +462,7 @@ number>");
 			 *	anomaly then the outduct has been
 			 *	blocked, but we have to stop it
 			 *	altogether.  We can't just wait for
-			 *	a keepalive to retect reconnection
+			 *	a keepalive to detect reconnection
 			 *	and resume: we must re-authenticate.	*/
 
 			sm_SemEnd(brscclaSemaphore(NULL));

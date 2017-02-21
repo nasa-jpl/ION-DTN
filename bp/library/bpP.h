@@ -621,25 +621,17 @@ typedef struct
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cloCmd;		/*	For starting the CLO.	*/
 
-	/*	An Outduct may be TBD, i.e., a place to enqueue
-	 *	bundles destined for the node assigned to the Outduct
-	 *	(identified by planElt) even though the convergence-
-	 *	layer endpoint at which that node can be reached was
-	 *	not known at the time the outduct was created.  For
-	 *	a TBD Outduct, name (the convergence-layer endpoint
-	 *	ID) is "tbd:<eid>", where <eid> is the eid of the
-	 *	node assigned to this outduct, and cloCmd is zero;
-	 *	later processing will enable bundle flow.  In the
-	 *	case of neighbor discovery, the host/port of the
-	 *	discovered neighbor will be encoded in name and the
-	 *	appropriate CLO task will be started and passed the
-	 *	new Outduct name.  In the case of acceptance of a
-	 *	TCPCL connection from the neighboring node, the
-	 *	host/port of the neighbor will be encoded as
-	 *	"@:<fd>", where <fd> is the number of the file
-	 *	descriptor for the accepted socket, and a transmit
-	 *	thread will be started and passed this number.  In
-	 *	all cases cloCmd remains zero for all TBD Outducts.	*/
+	/*	Outducts are created automatically in at least two
+	 *	cases.  In neighbor discovery, the eureka library
+	 *	will encode the host/port of the discovered neighbor
+	 *	in name and post the outduct, and the appropriate
+	 *	CLO task will be started and passed the new outduct's
+	 *	name.  Upon acceptance of a TCPCL connection from a
+	 *	neighboring node, tcpcli will encode the name of the
+	 *	outduct as "#:<fd>", where <fd> is the number of the
+	 *	file descriptor for the accepted socket, and a
+	 *	transmission thread will be started and passed this
+	 *	number.							*/
 
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
 	Object		xmitBuffer;	/*	SDR list of (1) ZCO.	*/
@@ -1386,9 +1378,11 @@ extern int		bpBlockPlan(char *eid);
 extern int		bpUnblockPlan(char *eid);
 
 extern int		setPlanViaEid(char *eid, char *viaEid);
-extern int		addPlanDuct(char *eid, char *ductExpression);
-extern int		removePlanDuct(char *eid, char *ductExpression);
+extern int		attachPlanDuct(char *eid, char *ductExpression);
+extern int		detachPlanDuct(char *eid, char *ductExpression);
 extern void		lookupPlan(char *eid, VPlan **vplan);
+
+extern void		releaseCustody(Object bundleObj, Bundle *bundle);
 
 extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
 			        Object planObj, BpPlan *plan);
@@ -1412,8 +1406,7 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
-extern int		maxPayloadLengthKnown(VOutduct *vduct,
-				unsigned int *maxPayloadLength);
+extern int		flushOutduct(Outduct *outduct);
 
 extern int		addOutduct(char *protocolName, char *name,
 				char *cloCmd, unsigned int maxPayloadLength);
@@ -1447,6 +1440,11 @@ extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);
 
 extern int		sendStatusRpt(Bundle *bundle, char *dictionary);
+
+extern void		bpCtTally(unsigned int reason, unsigned int size);
+extern void		bpPlanTally(VPlan *vplan, unsigned int idx,
+				unsigned int size);
+extern void		bpXmitTally(unsigned int priority, unsigned int size);
 
 typedef int		(*StatusRptCB)(BpDelivery *, BpStatusRpt *);
 typedef int		(*CtSignalCB)(BpDelivery *, BpCtSignal *);
