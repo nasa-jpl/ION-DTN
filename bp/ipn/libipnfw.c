@@ -169,10 +169,31 @@ int	ipn_addPlan(uvast nodeNbr, unsigned int nominalRate)
 
 int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
 {
-	char	eid[MAX_EID_LEN + 1];
+	char		eid[MAX_EID_LEN + 1];
+	char		*cursor;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	return attachPlanDuct(eid, ductExpression);
+	cursor = strchr(ductExpression, '/');
+	if (cursor == NULL)
+	{
+		writeMemoNote("[?] Duct expression lacks duct name",
+				ductExpression);
+		writeMemoNote("[?] (Attaching duct to plan", eid);
+		return -1;
+	}
+
+	*cursor = '\0';
+	findOutduct(ductExpression, cursor + 1, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] Unknown duct", ductExpression);
+		writeMemoNote("[?] (Attaching duct to plan", eid);
+		return -1;
+	}
+
+	return attachPlanDuct(eid, vduct->outductElt);
 }
 
 int	ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate)
@@ -190,10 +211,31 @@ int	ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate)
 
 int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
 {
-	char	eid[MAX_EID_LEN + 1];
+	char		eid[MAX_EID_LEN + 1];
+	char		*cursor;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	return detachPlanDuct(eid, ductExpression);
+	cursor = strchr(ductExpression, '/');
+	if (cursor == NULL)
+	{
+		writeMemoNote("[?] Duct expression lacks duct name",
+				ductExpression);
+		writeMemoNote("[?] (Detaching duct from plan", eid);
+		return -1;
+	}
+
+	*cursor = '\0';
+	findOutduct(ductExpression, cursor + 1, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] Unknown duct", ductExpression);
+		writeMemoNote("[?] (Detaching duct from plan", eid);
+		return -1;
+	}
+
+	return detachPlanDuct(eid, vduct->outductElt);
 }
 
 int	ipn_removePlan(uvast nodeNbr)

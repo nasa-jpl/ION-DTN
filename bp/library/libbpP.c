@@ -1064,7 +1064,7 @@ static void	startPlan(VPlan *vplan)
 
 static void	stopPlan(VPlan *vplan)
 {
-	if (vplan->semaphore != SM_SEM_NONE)	/*	Stop CLO.	*/
+	if (vplan->semaphore != SM_SEM_NONE)	/*	Stop bpclm.	*/
 	{
 		sm_SemEnd(vplan->semaphore);
 	}
@@ -1244,6 +1244,7 @@ static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
 	vductAddr = sm_list_data(bpwm, vductElt);
 	if (vduct->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vduct->semaphore);
 		sm_SemDelete(vduct->semaphore);
 	}
 
@@ -1458,6 +1459,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
+		|| (vdb->plans = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
 		|| (vdb->neighbors = sm_list_create(wm)) == 0
@@ -1579,7 +1581,10 @@ int	bpInit()
 
 		memset((char *) &bpdbBuf, 0, sizeof(BpDB));
 		bpdbBuf.schemes = sdr_list_create(bpSdr);
+		bpdbBuf.plans = sdr_list_create(bpSdr);
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
+		bpdbBuf.inducts = sdr_list_create(bpSdr);
+		bpdbBuf.outducts = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
 		bpdbBuf.bundles = sdr_hash_create(bpSdr,
 				BUNDLES_HASH_KEY_LEN,
@@ -1699,13 +1704,14 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 		dropScheme(vscheme, elt);
 	}
 
+	sm_list_destroy(wm, vdb->schemes, NULL, NULL);
 	while ((elt = sm_list_first(wm, vdb->plans)) != 0)
 	{
 		vplan = (VPlan *) psp(wm, sm_list_data(wm, elt));
 		dropPlan(vplan, elt);
 	}
 
-	sm_list_destroy(wm, vdb->schemes, NULL, NULL);
+	sm_list_destroy(wm, vdb->plans, NULL, NULL);
 	while ((elt = sm_list_first(wm, vdb->inducts)) != 0)
 	{
 		vinduct = (VInduct *) psp(wm, sm_list_data(wm, elt));
@@ -1720,6 +1726,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 
 	sm_list_destroy(wm, vdb->outducts, NULL, NULL);
+	sm_list_destroy(wm, vdb->neighbors, NULL, NULL);
 	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
 }
 
@@ -3804,6 +3811,10 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	char		eid[SDRSTRING_BUFSZ];
+	uvast		neighborNodeNbr = 0;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	Object		elt = 0;
 	BpPlan		planBuf;
 	PlanStats	statsInit;
@@ -3832,14 +3843,27 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 		return 0;
 	}
 
+	if (parseEidString(eidIn, &metaEid, &vscheme, &vschemeElt) == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] Malformed eid for egress plan", eidIn);
+		return 0;
+	}
+
+	if (metaEid.cbhe)
+	{
+		neighborNodeNbr = metaEid.nodeNbr;
+	}
+
+	restoreEidString(&metaEid);
+
 	/*	All parameters validated, okay to add the plan.		*/
 
 	memset((char *) &planBuf, 0, sizeof(BpPlan));
 	istrcpy(planBuf.neighborEid, eid, sizeof planBuf.neighborEid);
+	planBuf.neighborNodeNbr = neighborNodeNbr;
 	planBuf.nominalRate = nominalRate;
-	planBuf.bulkQueue = sdr_list_create(bpSdr);
-	planBuf.stdQueue = sdr_list_create(bpSdr);
-	planBuf.urgentQueue = sdr_list_create(bpSdr);
 	planBuf.stats = sdr_malloc(bpSdr, sizeof(PlanStats));
 	if (planBuf.stats)
 	{
@@ -3849,6 +3873,10 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	}
 
 	planBuf.updateStats = 1;	/*	Default.		*/
+	planBuf.bulkQueue = sdr_list_create(bpSdr);
+	planBuf.stdQueue = sdr_list_create(bpSdr);
+	planBuf.urgentQueue = sdr_list_create(bpSdr);
+	planBuf.ducts = sdr_list_create(bpSdr);
 	addr = sdr_malloc(bpSdr, sizeof(BpPlan));
 	if (addr)
 	{
@@ -3984,6 +4012,7 @@ int	removePlan(char *eidIn)
 	sdr_list_destroy(bpSdr, planBuf.bulkQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.stdQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.urgentQueue, NULL,NULL);
+	sdr_list_destroy(bpSdr, planBuf.ducts, NULL,NULL);
 	sdr_free(bpSdr, addr);
 	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
 	if (sdr_end_xn(bpSdr) < 0)
@@ -4086,24 +4115,18 @@ int	setPlanViaEid(char *eid, char *viaEid)
 	return 1;
 }
 
-int	attachPlanDuct(char *eid, char *ductExpression)
+int	attachPlanDuct(char *eid, Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	size_t		length;
+	char		ownEid[MAX_EID_LEN];
+			OBJ_POINTER(Outduct, outduct);
+			OBJ_POINTER(ClProtocol, protocol);
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	BpPlan		plan;
-	Object		ductExpObj;
+			OBJ_POINTER(BpPlan, plan);
 
 	CHKERR(eid);
-	CHKERR(ductExpression);
-	length = istrlen(ductExpression, MAX_SDRSTRING);
-	if (length == 0 || length == MAX_SDRSTRING)
-	{
-		putErrmsg("Duct expression length invalid.", ductExpression);
-		return 0;
-	}
-
+	CHKERR(outductElt);
 	CHKERR(sdr_begin_xn(sdr));
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
@@ -4113,14 +4136,24 @@ int	attachPlanDuct(char *eid, char *ductExpression)
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
-			sizeof(BpPlan));
-	ductExpObj = sdr_string_create(sdr, ductExpression);
-	if (ductExpObj)
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	if (strncmp(vplan->neighborEid, ownEid, sizeof ownEid) == 0)
 	{
-		sdr_list_insert_last(sdr, plan.ducts, ductExpObj);
+		GET_OBJ_POINTER(sdr, Outduct, outduct, sdr_list_data(sdr,
+					outductElt));
+		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
+		if (strcmp(protocol->name, "tcp") == 0)
+		{
+			sdr_exit_xn(sdr);
+			writeMemoNote("[?] No support for loopback TCPCL \
+at this time.  Maybe some day", outduct->name);
+			return 0;
+		}
 	}
 
+	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
+	sdr_list_insert_last(sdr, plan->ducts, outductElt);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't attach duct to plan.", eid);
@@ -4130,29 +4163,15 @@ int	attachPlanDuct(char *eid, char *ductExpression)
 	return 1;
 }
 
-int	detachPlanDuct(char *eid, char *ductExpression)
+int	detachPlanDuct(char *eid, Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	size_t		length;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	BpPlan		plan;
 	Object		elt;
-	Object		ductExpObj;
-	char		ductExp[SDRSTRING_BUFSZ];
 
 	CHKERR(eid);
-	if (ductExpression)
-	{
-		length = istrlen(ductExpression, MAX_SDRSTRING);
-		if (length == 0 || length == MAX_SDRSTRING)
-		{
-			putErrmsg("Duct expression length invalid.",
-					ductExpression);
-			return 0;
-		}
-	}
-
 	CHKERR(sdr_begin_xn(sdr));
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
@@ -4164,7 +4183,7 @@ int	detachPlanDuct(char *eid, char *ductExpression)
 
 	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
 			sizeof(BpPlan));
-	if (ductExpression == NULL)
+	if (outductElt == 0)
 	{
 		/*	Hack, pending support for multiple ducts.	*/
 
@@ -4175,10 +4194,7 @@ int	detachPlanDuct(char *eid, char *ductExpression)
 		for (elt = sdr_list_first(sdr, plan.ducts); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			ductExpObj = sdr_list_data(sdr, elt);
-			sdr_string_read(sdr, ductExp, ductExpObj);
-			if (strncmp(ductExpression, ductExp, sizeof ductExp)
-					== 0)
+			if (sdr_list_data(sdr, elt) == outductElt)
 			{
 				break;
 			}
@@ -4188,16 +4204,9 @@ int	detachPlanDuct(char *eid, char *ductExpression)
 	if (elt == 0)	/*	No such duct was found.		*/
 	{
 		sdr_exit_xn(sdr);
-		if (ductExpression)
-		{
-			writeMemoNote("[?] Unknown duct, can't detach it",
-					ductExpression);
-		}
-
 		return 0;
 	}
 
-	sdr_free(sdr, ductExpObj);
 	sdr_list_delete(sdr, elt, NULL, NULL);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -4847,6 +4856,13 @@ int	addOutduct(char *protocolName, char *ductName, char *cloCmd,
 		return 0;
 	}
 
+	if (*ductName == '*')
+	{
+		writeMemoNote("[?] ION no longer supports promiscuous ('*') \
+outduct expressions for any convergence-layer protocols", ductName);
+		return 0;
+	}
+
 	if (cloCmd)
 	{
 		if (*cloCmd == '\0')
@@ -4994,17 +5010,15 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	return 1;
 }
 
-static void	detachFromAllPlans(char *protocolName, char *outductName)
+static void	detachFromAllPlans(Object outductElt)
 {
 	Sdr	sdr = getIonsdr();
 	Object	planElt;
 	Object	planObj;
 		OBJ_POINTER(BpPlan, plan);
 	Object	ductElt;
+	Object	attachedOutductElt;
 	Object	nextElt;
-	Object	ductExpObj;
-	char	ductExpression[SDRSTRING_BUFSZ];
-	char	*cursor;
 
 	CHKVOID(ionLocked());
 	for (planElt = sdr_list_first(sdr, getBpConstants()->plans); planElt;
@@ -5016,31 +5030,11 @@ static void	detachFromAllPlans(char *protocolName, char *outductName)
 				ductElt = nextElt)
 		{
 			nextElt = sdr_list_next(sdr, ductElt);
-			ductExpObj = sdr_list_data(sdr, ductElt);
-			sdr_string_read(sdr, ductExpression, ductExpObj);
-			cursor = strchr(ductExpression, '/');
-			if (cursor == NULL)
+			attachedOutductElt = sdr_list_data(sdr, ductElt);
+			if (attachedOutductElt == outductElt)
 			{
-				putErrmsg("Duct expression lacks duct name.",
-						ductExpression);
-				continue;
+				sdr_list_delete(sdr, ductElt, NULL, NULL);
 			}
-
-			*cursor = '\0';
-			if (strcmp(ductExpression, protocolName) != 0)
-			{
-				continue;
-			}
-			
-			if (strcmp(cursor + 1, outductName) != 0)
-			{
-				continue;
-			}
-
-			/*	Remove this reference to this outduct.	*/
-
-			sdr_free(sdr, ductExpObj);
-			sdr_list_delete(sdr, ductElt, NULL, NULL);
 		}
 	}
 }
@@ -5050,9 +5044,9 @@ int	removeOutduct(char *protocolName, char *ductName)
 	Sdr		bpSdr = getIonsdr();
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
-	Object		ductElt;
-	Object		addr;
-	Outduct		outductBuf;
+	Object		outductElt;
+	Object		outductObj;
+	Outduct		outduct;
 
 	CHKERR(protocolName && ductName);
 	if (*protocolName == 0 || *ductName == 0)
@@ -5079,14 +5073,14 @@ int	removeOutduct(char *protocolName, char *ductName)
 	waitForOutduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
 	resetOutduct(vduct);
-	ductElt = vduct->outductElt;
-	addr = sdr_list_data(bpSdr, ductElt);
-	sdr_read(bpSdr, (char *) &outductBuf, addr, sizeof(Outduct));
+	outductElt = vduct->outductElt;
+	outductObj = sdr_list_data(bpSdr, outductElt);
+	sdr_read(bpSdr, (char *) &outduct, outductObj, sizeof(Outduct));
 
 	/*	First flush any bundles currently in the outduct's
 	 *	transmission buffer.					*/
 
-	if (flushOutduct(&outductBuf) < 0)
+	if (flushOutduct(&outduct) < 0)
 	{
 		sdr_cancel_xn(bpSdr);
 		putErrmsg("Failed flushing outduct.", ductName);
@@ -5096,7 +5090,7 @@ int	removeOutduct(char *protocolName, char *ductName)
 	/*	Then detach the outduct from every egress plan that 
 	 *	cites it.						*/
 
-	detachFromAllPlans(protocolName, ductName);
+	detachFromAllPlans(outductElt);
 
 	/*	Can then remove the duct's volatile state.		*/
 
@@ -5104,14 +5098,14 @@ int	removeOutduct(char *protocolName, char *ductName)
 
 	/*	Finally, remove the duct's non-volatile state.		*/
 
-	if (outductBuf.cloCmd)
+	if (outduct.cloCmd)
 	{
-		sdr_free(bpSdr, outductBuf.cloCmd);
+		sdr_free(bpSdr, outduct.cloCmd);
 	}
 
-	sdr_list_destroy(bpSdr, outductBuf.xmitBuffer, NULL, NULL);
-	sdr_free(bpSdr, addr);
-	sdr_list_delete(bpSdr, ductElt, NULL, NULL);
+	sdr_list_destroy(bpSdr, outduct.xmitBuffer, NULL, NULL);
+	sdr_free(bpSdr, outductObj);
+	sdr_list_delete(bpSdr, outductElt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't remove outduct.", NULL);
@@ -10306,7 +10300,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	BpDB	*bpConstants = getBpConstants();
 
 	/*      ION has determined that this bundle must wait
-	 *      in limbo until a duct is unblocked, enabling
+	 *      in limbo until a plan is unblocked, enabling
 	 *      transmission.  So append bundle to the "limbo"
 	 *      list.							*/
 

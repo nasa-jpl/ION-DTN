@@ -57,7 +57,29 @@ int	dtn2_addPlan(char *eid, unsigned int nominalRate)
 
 int	dtn2_addPlanDuct(char *eid, char *spec)
 {
-	return attachPlanDuct(eid, spec);
+	char		*cursor;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	cursor = strchr(spec, '/');
+	if (cursor == NULL)
+	{
+		writeMemoNote("[?] Duct expression lacks duct name",
+				spec);
+		writeMemoNote("[?] (Attaching duct to plan", eid);
+		return -1;
+	}
+
+	*cursor = '\0';
+	findOutduct(spec, cursor + 1, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] Unknown duct", spec);
+		writeMemoNote("[?] (Attaching duct to plan", eid);
+		return -1;
+	}
+
+	return attachPlanDuct(eid, vduct->outductElt);
 }
 
 int	dtn2_updatePlan(char *eid, unsigned int nominalRate)
@@ -77,7 +99,29 @@ int	dtn2_setPlanViaEid(char *eid, char *viaEid)
 
 int	dtn2_removePlanDuct(char *eid, char *spec)
 {
-	return detachPlanDuct(eid, spec);
+	char		*cursor;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	cursor = strchr(spec, '/');
+	if (cursor == NULL)
+	{
+		writeMemoNote("[?] Duct expression lacks duct name",
+				spec);
+		writeMemoNote("[?] (Detaching duct from plan", eid);
+		return -1;
+	}
+
+	*cursor = '\0';
+	findOutduct(spec, cursor + 1, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] Unknown duct", spec);
+		writeMemoNote("[?] (Detaching duct from plan", eid);
+		return -1;
+	}
+
+	return detachPlanDuct(eid, vduct->outductElt);
 }
 
 int	dtn2_removePlan(char *eid)

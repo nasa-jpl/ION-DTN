@@ -39,6 +39,8 @@
 #define	TCPCL_REFUSALS		(0)
 #define	TCPCL_LENGTH_MSGS	(0)
 
+#define	DUCT_BUFLEN		(MAX_CL_DUCT_NAME_LEN + 1)
+
 #define	TCPCL_PLANNED		(0)
 #define	TCPCL_CHANCE		(1)
 
@@ -85,10 +87,11 @@ typedef struct
 	struct tcpcl_neighbor	*neighbor;	/*	Back reference	*/
 	pthread_mutex_t		mutex;
 	int			hasMutex;	/*	Boolean.	*/
-	int			newlyAdded;	/*	Boolean.	*/
 
 	/*	Configuration settings and session state.		*/
 
+	int			newlyAdded;	/*	Boolean.	*/
+	int			isOpen;		/*	Boolean.	*/
 	int			secUntilShutdown;
 	int			keepaliveInterval;
 	int			secUntilKeepalive;
@@ -121,24 +124,14 @@ typedef struct
 	uvast			lengthAcked;	/*	Oldest out.	*/
 } TcpclSession;
 
-typedef enum
-{
-	ThreadStopped = 0,
-	ThreadRunning = 1
-} ThreadState;
-
 typedef struct tcpcl_neighbor
 {
 	VPlan			*vplan;		/*	Remote node.	*/
 	VInduct			*induct;	/*	(Common.)	*/
-	int			connecting;	/*	Boolean		*/
-	pthread_t		connectThread;
-	ThreadState		connectThreadState;
 	int			mustDelete;	/*	Boolean		*/
 	TcpclSession		sessions[2];
 } TcpclNeighbor;
 
-static void	stopSenderThread(TcpclSession *session);
 static void	*handleContacts(void *parm);
 
 static char	*procName()
@@ -242,6 +235,11 @@ static LystElt	findNeighborForEid(Lyst neighbors, char *eid)
 	for (elt = lyst_first(neighbors); elt; elt = lyst_next(elt))
 	{
 		neighbor = (TcpclNeighbor *) lyst_data(elt);
+		if (neighbor->vplan == NULL)
+		{
+			continue;
+		}
+
 		if (strcmp(neighbor->vplan->neighborEid, eid) == 0)
 		{
 			return elt;
@@ -443,26 +441,18 @@ static int	reopenSession(TcpclSession *session)
 
 static void	closeSession(TcpclSession *session)
 {
-	Sdr		sdr = getIonsdr();
-	TcpclNeighbor	*neighbor = session->neighbor;
+	Sdr	sdr = getIonsdr();
+
+	if (session->isOpen == 0)
+	{
+		return;
+	}
 
 	session->secUntilKeepalive = -1;
 	if (session->sock != -1)
 	{
 		closesocket(session->sock);
 		session->sock = -1;
-	}
-
-	if (neighbor->sessions[0].sock == -1
-	&& neighbor->sessions[1].sock == -1)
-	{
-		if (bpBlockPlan(neighbor->vplan->neighborEid) < 0)
-		{
-			putErrmsg("Disconnecting outducts didn't block egress.",
-					neighbor->vplan->neighborEid);
-			ionKillMainThread(procName());
-			return;
-		}
 	}
 
 	oK(sdr_begin_xn(sdr));
@@ -477,13 +467,22 @@ static void	closeSession(TcpclSession *session)
 		session->secUntilReconnect = session->reconnectInterval;
 	}
 
-	if (*(session->outductName) == '#')	/*	Accepted.	*/
+	if (session->outductName)
 	{
-		/*	This automatic outduct must be destroyed as
-		 *	soon as the accepted socket connection ends.	*/
+		if (*(session->outductName) == '#')
+		{
+			/*	This automatic outduct must be
+			 *	destroyed as soon as the accepted
+			 *	socket connection ends.			*/
 
-		oK(removeOutduct("tcp", session->outductName));
+			oK(removeOutduct("tcp", session->outductName));
+			MRELEASE(session->outductName);
+			session->outductName = NULL;
+			session->vduct = NULL;
+		}
 	}
+
+	session->isOpen = 0;
 }
 
 static int	sendShutdown(TcpclSession *session, char reason,
@@ -519,9 +518,71 @@ static int	sendShutdown(TcpclSession *session, char reason,
 	return result;
 }
 
-static void	eraseSession(TcpclSession *session)
+static int pipeline_not_full(Llcv llcv)
+{
+	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
+}
+
+static void	stopSenderThread(TcpclSession *session)
+{
+	if (session->hasSender == 0)
+	{
+		return;
+	}
+
+	/*	Enable sendOneBundle to exit.				*/
+
+	if (session->vduct)
+	{
+		sm_SemEnd(session->vduct->semaphore);
+	}
+
+	/*	Enable sendBundleByTcpcl to exit.			*/
+
+	if (session->hasThrottle)
+	{
+		llcv_signal(session->throttle, pipeline_not_full);
+	}
+
+	/*	Signal thread in case it's not already stopping.	*/
+
+#ifdef mingw
+	shutdown(session->sock, SD_BOTH);
+#else
+	pthread_kill(session->sender, SIGINT);
+#endif
+
+	/*	Forget session's sender.				*/
+
+	if (pthread_kill(session->sender, SIGCONT) == 1)
+	{
+		pthread_join(session->sender, NULL);
+	}
+
+	session->hasSender = 0;
+}
+
+static void	endSession(TcpclSession *session, char reason)
 {
 	TcpclNeighbor	*neighbor = session->neighbor;
+
+	oK(sendShutdown(session, reason, 0));
+	if (session->hasSender)
+	{
+		stopSenderThread(session);
+	}
+
+	closeSession(session);
+	if (session->hasReceiver
+	&& pthread_kill(session->receiver, SIGCONT) == 1)
+	{
+#ifdef mingw
+		shutdown(session->sock, SD_BOTH);
+#else
+		pthread_kill(session->receiver, SIGINT);
+#endif
+		pthread_join(session->receiver, NULL);
+	}
 
 	if (session->pipeline)
 	{
@@ -548,24 +609,6 @@ static void	eraseSession(TcpclSession *session)
 	session->neighbor = neighbor;
 	session->secUntilShutdown = -1;
 	session->secUntilKeepalive = -1;
-}
-
-static void	endSession(TcpclSession *session, char reason)
-{
-	oK(sendShutdown(session, reason, 0));
-	stopSenderThread(session);
-	closeSession(session);
-	if (session->hasReceiver)
-	{
-#ifdef mingw
-		shutdown(session->sock, SD_BOTH);
-#else
-		pthread_kill(session->receiver, SIGINT);
-#endif
-		pthread_join(session->receiver, NULL);
-	}
-
-	eraseSession(session);
 }
 
 static void	deleteTcpclNeighbor(TcpclNeighbor *neighbor)
@@ -597,11 +640,6 @@ static void	shutDownNeighbors(Lyst neighbors)
 }
 
 /*	*	*	Sender thread functions		*	*	*/
-
-static int pipeline_not_full(Llcv llcv)
-{
-	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
-}
 
 static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 {
@@ -754,15 +792,6 @@ static void	*sendBundles(void *parm)
 		return NULL;
 	}
 
-	if (bpUnblockPlan(neighbor->vplan->neighborEid) < 0)
-	{
-		MRELEASE(stp->buffer);
-		MRELEASE(stp);
-		putErrmsg("Starting sender thread didn't unblock egress.",
-				neighbor->vplan->neighborEid);
-		return NULL;
-	}
-
 	/*	Ready to start sending bundles.				*/
 
 	while (session->sock != -1)
@@ -798,35 +827,6 @@ static void	*sendBundles(void *parm)
 	MRELEASE(stp->buffer);
 	MRELEASE(stp);
 	return NULL;
-}
-
-static void	stopSenderThread(TcpclSession *session)
-{
-	if (session->hasSender == 0)
-	{
-		return;
-	}
-
-	/*	Enable sendOneBundle to exit.				*/
-
-	sm_SemEnd(session->vduct->semaphore);
-
-	/*	Enable sendBundleByTcpcl to exit.			*/
-
-	llcv_signal(session->throttle, pipeline_not_full);
-
-	/*	Signal thread in case it's not already stopping.	*/
-
-#ifdef mingw
-	shutdown(session->sock, SD_BOTH);
-#else
-	pthread_kill(session->sender, SIGINT);
-#endif
-
-	/*	Forget session's sender.				*/
-
-	pthread_join(session->sender, NULL);
-	session->hasSender = 0;
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -877,6 +877,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	Sdr			sdr = getIonsdr();
 	TcpclSession		*session = rtp->session;
 	TcpclNeighbor		*neighbor = session->neighbor;
+	VPlan			*vplan;
+	PsmAddress		vplanElt;
 	unsigned char		header[8];
 	unsigned short		keepaliveInterval;
 	uvast			eidLength;
@@ -884,12 +886,16 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	LystElt			elt;
 	TcpclNeighbor		*knownNeighbor;
 	int			result = 1;
-	VPlan			*vplan;
-	PsmAddress		vplanElt;
-	char			ductExpression[MAX_CL_DUCT_NAME_LEN + 5];
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
 	SenderThreadParms	*stp;
+
+	findOutduct("tcp", session->outductName, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("tcpli can't find outduct.", session->outductName);
+		return -1;
+	}
 
 	if (itcp_recv(&session->sock, (char *) header, sizeof header) < 1)
 	{
@@ -1010,11 +1016,12 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				 *	affect this session.		*/
 
 				session->sock = -1;
-				session->hasReceiver = 0;
 				session->hasMutex = 0;
+				session->hasReceiver = 0;
 				session->hasSender = 0;
-				session->hasThrottle = 0;
 				session->outductName = NULL;
+				session->pipeline = NULL;
+				session->hasThrottle = 0;
 
 				/*	Point to known neighbor session.*/
 
@@ -1026,7 +1033,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			 *	session then delete that neighbor; it
 			 *	is temporary and is no longer needed.	*/
 
-			if (neighbor->sessions[TCPCL_PLANNED].hasReceiver == 0)
+			if (neighbor->sessions[TCPCL_PLANNED].outductName
+					== NULL)
 			{
 				neighbor->mustDelete = 1;
 			}
@@ -1063,9 +1071,7 @@ plan for neighbor.", eidbuf);
 			neighbor->vplan = vplan;
 		}
 
-		isprintf(ductExpression, sizeof ductExpression, "tcp/%s",
-				session->outductName);
-		if (attachPlanDuct(eidbuf, ductExpression) < 0)
+		if (attachPlanDuct(eidbuf, vduct->outductElt) < 0)
 		{
 			putErrmsg("Can't attach duct to plan.", eidbuf);
 			return -1;
@@ -1087,16 +1093,8 @@ plan for neighbor.", eidbuf);
 
 	MRELEASE(eidbuf);		/*	No longer needed.	*/
 
-	/*	This is a session over which bundles may be
-	 *	transmitted, so we must start a sender thread for
-	 *	the outduct that we use for those bundles.		*/
-
-	findOutduct("tcp", session->outductName, &vduct, &vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("tcpli can't find outduct.", session->outductName);
-		return -1;
-	}
+	/*	We must start a sender thread for the outduct that
+	 *	we use to send bundles to this neighbor.		*/
 
 	session->vduct = vduct;
 	sm_SemUnend(session->vduct->semaphore);
@@ -1565,7 +1563,6 @@ static void	*handleContacts(void *parm)
 	TcpclSession		*session = rtp->session;
 	TcpclNeighbor		*neighbor = session->neighbor;
 	char			*tag = session->outductName;
-	char			ownEid[MAX_EID_LEN];
 	int			running = 1;
 	int			result;
 
@@ -1574,9 +1571,6 @@ static void	*handleContacts(void *parm)
 	{
 		tag = neighbor->vplan->neighborEid;
 	}
-
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 
 	/*	Load other required receiver thread parms.		*/
 
@@ -1615,6 +1609,12 @@ static void	*handleContacts(void *parm)
 	{
 		if (session->sock == -1)	/*	Closed.		*/
 		{
+			if (session->outductName == NULL)
+			{
+				running = 0;
+				continue;
+			}
+
 			if (*(session->outductName) == '#')
 			{
 				/*	This is a session established
@@ -1622,7 +1622,8 @@ static void	*handleContacts(void *parm)
 				 *	from a peer node; only that
 				 *	peer node can reopen it.	*/
 
-				break;
+				running = 0;
+				continue;
 			}
 
 			/*	Session can be re-established.		*/
@@ -1647,6 +1648,7 @@ static void	*handleContacts(void *parm)
 		/*	Session is known to be open, so can now
 		 *	exchange contact headers.			*/
 
+		session->isOpen = 1;
 		if (sendContactHeader(session) < 1)
 		{
 			writeMemoNote("[i] tcpcli did not send contact header",
@@ -1685,12 +1687,10 @@ static void	*handleContacts(void *parm)
 
 		tag = neighbor->vplan->neighborEid;
 		session->lengthReceived = 0;
-		if (*(session->outductName) == '#'
-		&& strcmp(neighbor->vplan->neighborEid, ownEid) != 0)
+		if (*(session->outductName) == '#')
 		{
-			/*	From accept(), and not loopback, so
-			 *	end the session when the incoming
-			 *	bundles end.				*/
+			/*	From accept(), so end the session
+			 *	when the incoming bundles end.		*/
 
 			session->secUntilShutdown = IDLE_SHUTDOWN_INTERVAL;
 		}
@@ -1795,41 +1795,6 @@ typedef struct
 	Lyst		neighbors;
 } ClockThreadParms;
 
-static void	*startPlannedSession(void *parm)
-{
-	LystElt		neighborElt = (LystElt) parm;
-	TcpclNeighbor	*neighbor;
-	TcpclSession	*session;
-	int		sock;
-
-	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
-	session = &(neighbor->sessions[TCPCL_PLANNED]);
-	switch (itcp_connect(session->outductName, BpTcpDefaultPortNbr,
-				&sock))
-	{
-	case -1:	/*	System failure.				*/
-		putErrmsg("tcpcli can't connect to remote node.",
-				session->outductName);
-
-			/*	Intentional fall-through to next case.	*/
-
-	case 0:		/*	Protocol failure.			*/
-		neighbor->connectThreadState = ThreadStopped;
-		return NULL;
-	}
-
-	/*	TCP connection succeeded, so establish the TCPCL
-	 *	session.						*/
-
-	if (beginSession(neighborElt, sock, TCPCL_PLANNED) < 0)
-	{
-		putErrmsg("tcpcli can't start planned session.", NULL);
-	}
-
-	neighbor->connectThreadState = ThreadStopped;
-	return NULL;
-}
-
 static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
 			VPlan *vplan, char *outductName)
 {
@@ -1839,8 +1804,9 @@ static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
 	TcpclSession	*session;
 	int		sock;
 
-	len = istrlen(outductName, MAX_CL_DUCT_NAME_LEN + 1) + 1;
+	len = istrlen(outductName, DUCT_BUFLEN);
 	CHKERR(len > 2);
+	len++;			/*	Add room for terminating NULL.	*/
 	if (vplan)
 	{
 		eid = vplan->neighborEid;
@@ -1856,9 +1822,11 @@ static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
 	neighbor = (TcpclNeighbor *) lyst_data(neighborElt);
 	if (*outductName == '#')	/*	Accepted socket duct.	*/
 	{
+		sock = atoi(outductName + 2);
 		session = &(neighbor->sessions[TCPCL_CHANCE]);
 		if (session->outductName)
 		{
+			closesocket(sock);
 			writeMemoNote("[?] Already have an accepted TCPCL \
 session with this neighbor", eid); 
 			return 0;
@@ -1866,47 +1834,50 @@ session with this neighbor", eid);
 
 		if ((session->outductName = MTAKE(len)) == NULL)
 		{
+			closesocket(sock);
 			putErrmsg("tcpcli can't copy duct name.", outductName);
 			return -1;
 		}
 
 		oK(istrcpy(session->outductName, outductName, len));
-		sock = atoi(outductName + 2);
 		return beginSession(neighborElt, sock, TCPCL_CHANCE);
 	}
 
 	/*	This is a duct for which we need to make a connection.	*/
 
-	if (neighbor->connecting)	/*	Already on it.		*/
-	{
-		return 0;
-	}
-
 	session = &(neighbor->sessions[TCPCL_PLANNED]);
-	if (session->outductName)
+	if (session->hasReceiver)	/*	Already connected.	*/
 	{
-		writeMemoNote("[?] Already have a connected TCPCL session \
-with this neighbor", eid); 
 		return 0;
 	}
 
-	if ((session->outductName = MTAKE(len)) == NULL)
+	if (session->outductName == NULL)
 	{
-		putErrmsg("tcpcli can't copy socket spec.", eid);
-		return -1;
+		if ((session->outductName = MTAKE(len)) == NULL)
+		{
+			putErrmsg("tcpcli can't copy socket spec.", eid);
+			return -1;
+		}
+
+		oK(istrcpy(session->outductName, outductName, len));
 	}
 
-	oK(istrcpy(session->outductName, outductName, len));
-	neighbor->connecting = 1;
-	neighbor->connectThreadState = ThreadRunning;
-	if (pthread_begin(&(neighbor->connectThread), NULL,
-			startPlannedSession, neighborElt))
+	switch (itcp_connect(session->outductName, BpTcpDefaultPortNbr,
+				&sock))
 	{
-		putSysErrmsg("tcpcli can't create thread", NULL);
+	case -1:	/*	System failure.				*/
+		putErrmsg("tcpcli can't connect to remote node.",
+				session->outductName);
 		return -1;
+
+	case 0:		/*	Protocol failure.			*/
+		return 0;
 	}
 
-	return 0;
+	/*	TCP connection succeeded, so establish the TCPCL
+	 *	session.						*/
+
+	return beginSession(neighborElt, sock, TCPCL_PLANNED);
 }
 
 static int	rescanPlans(ClockThreadParms *ctp)
@@ -1914,16 +1885,21 @@ static int	rescanPlans(ClockThreadParms *ctp)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	wm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
+	ClProtocol	clp;
+	Object		protocolElt;
+	Object		protocolObj;
 	PsmAddress	vplanElt;
 	VPlan		*vplan;
 	Object		planObj;
 			OBJ_POINTER(BpPlan, plan);
 	Object		ductElt;
-	Object		ductExpObj;
-	char		ductExpression[SDRSTRING_BUFSZ];
+	Object		outductElt;
+			OBJ_POINTER(Outduct, outduct);
 	LystElt		neighborElt;
 
 	CHKERR(sdr_begin_xn(sdr));
+	fetchProtocol("tcp", &clp, &protocolElt);
+	protocolObj = sdr_list_data(sdr, protocolElt);
 	for (vplanElt = sm_list_first(wm, vdb->plans); vplanElt;
 			vplanElt = sm_list_next(wm, vplanElt))
 	{
@@ -1933,18 +1909,22 @@ static int	rescanPlans(ClockThreadParms *ctp)
 		for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
 				ductElt = sdr_list_next(sdr, ductElt))
 		{
-			ductExpObj = sdr_list_data(sdr, ductElt);
-			if (sdr_string_read(sdr, ductExpression, ductExpObj)
-					< 7)
+			outductElt = sdr_list_data(sdr, ductElt);
+			GET_OBJ_POINTER(sdr, Outduct, outduct,
+					sdr_list_data(sdr, outductElt));
+			if (outduct->protocol != protocolObj)
 			{
-				continue;	/*	Can't be tcp.	*/
+				continue;	/*	Not a tcp duct.	*/
 			}
 
-			if (strncmp(ductExpression, "tcp/", 4) != 0)
+			if (outduct->name[0] == '#')
 			{
+				/*	Automatic outduct created for
+				 *	an accepted session.		*/
+
 				continue;
 			}
-			
+
 			/*	This outduct assignment references a
 			 *	TCP outduct for which we may not have
 			 *	a session.  Begin session for the TCP
@@ -1958,6 +1938,7 @@ static int	rescanPlans(ClockThreadParms *ctp)
 						ctp->induct, ctp->neighbors);
 				if (neighborElt == NULL)
 				{
+					sdr_cancel_xn(sdr);
 					putErrmsg("Can't add neighbor.",
 							vplan->neighborEid);
 					return -1;
@@ -1965,7 +1946,7 @@ static int	rescanPlans(ClockThreadParms *ctp)
 			}
 
 			if (beginSessionForDuct(ctp, neighborElt, vplan,
-					ductExpression + 4) < 0)
+					outduct->name) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				putErrmsg("tcpcli can't add planned session.",
@@ -1980,15 +1961,17 @@ static int	rescanPlans(ClockThreadParms *ctp)
 
 static int	noLongerReferenced(char *outductName)
 {
-	Sdr	sdr = getIonsdr();
-	Object	planElt;
-	Object	planObj;
-		OBJ_POINTER(BpPlan, plan);
-	Object	ductElt;
-	Object	ductExpObj;
-	char	ductExpression[SDRSTRING_BUFSZ];
+	Sdr		sdr = getIonsdr();
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	Object		planElt;
+	Object		planObj;
+			OBJ_POINTER(BpPlan, plan);
+	Object		ductElt;
+	Object		outductElt;
 
 	CHKERR(sdr_begin_xn(sdr));
+	findOutduct("tcp", outductName, &vduct, &vductElt);
 	for (planElt = sdr_list_first(sdr, getBpConstants()->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
 	{
@@ -1997,21 +1980,10 @@ static int	noLongerReferenced(char *outductName)
 		for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
 				ductElt = sdr_list_next(sdr, ductElt))
 		{
-			ductExpObj = sdr_list_data(sdr, ductElt);
-			if (sdr_string_read(sdr, ductExpression, ductExpObj)
-					< 7)
+			outductElt = sdr_list_data(sdr, ductElt);
+			if (outductElt == vduct->outductElt)
 			{
-				continue;	/*	Can't be tcp.	*/
-			}
-
-			if (strncmp(ductExpression, "tcp/", 4) != 0)
-			{
-				continue;
-			}
-			
-			if (strncmp(ductExpression + 4, outductName,
-					sizeof ductExpression - 4) == 0)
-			{
+				sdr_exit_xn(sdr);
 				return 0;	/*	Outduct in use.	*/
 			}
 		}
@@ -2048,6 +2020,13 @@ static int	rescan(ClockThreadParms *ctp)
 			if (session->newlyAdded)
 			{
 				/*	Too soon to clean up.		*/
+
+				continue;
+			}
+
+			if (session->outductName == NULL)
+			{
+				/*	Nothing to clean up.		*/
 
 				continue;
 			}
@@ -2292,31 +2271,9 @@ static void	*handleEvents(void *parm)
 				continue;
 			}
 
-			if (neighbor->connecting)
-			{
-				if (neighbor->connectThreadState
-						== ThreadStopped)
-				{
-					pthread_join(neighbor->connectThread,
-							NULL);
-					neighbor->connecting = 0;
-				}
-				else	/*	Can't delete yet.	*/
-				{
-					continue;
-				}
-			}
-
 			for (i = 0; i < 2; i++)
 			{
 				checkSession(&(neighbor->sessions[i]));
-			}
-
-			if (neighbor->sessions[0].hasReceiver == 0
-			&& neighbor->sessions[1].hasReceiver == 0)
-			{
-				deleteTcpclNeighbor(neighbor);
-				lyst_delete(elt);
 			}
 		}
 
@@ -2514,7 +2471,11 @@ int	main(int argc, char *argv[])
 		shutDownNeighbors(neighbors);
 		snooze(2);	/*	Let clock thread clean up.	*/
 		ctp.running = 0;
-		pthread_join(clockThread, NULL);
+		if (pthread_kill(clockThread, SIGCONT) == 1)
+		{
+			pthread_join(clockThread, NULL);
+		}
+
 		closesocket(stp.serverSocket);
 		lyst_destroy(backlog);
 		lyst_destroy(neighbors);
@@ -2541,11 +2502,19 @@ int	main(int argc, char *argv[])
 
 	stp.running = 0;
 	wakeUpServerThread(&socketName);
-	pthread_join(serverThread, NULL);
+	if (pthread_kill(serverThread, SIGCONT) == 1)
+	{
+		pthread_join(serverThread, NULL);
+	}
+
 	shutDownNeighbors(neighbors);
 	snooze(2);		/*	Let clock thread clean up.	*/
 	ctp.running = 0;
-	pthread_join(clockThread, NULL);
+	if (pthread_kill(clockThread, SIGCONT) == 1)
+	{
+		pthread_join(clockThread, NULL);
+	}
+
 	closesocket(stp.serverSocket);
 	pthread_mutex_destroy(&backlogMutex);
 	lyst_destroy(backlog);

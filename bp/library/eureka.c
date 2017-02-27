@@ -247,6 +247,8 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
+	findOutduct(claProtocol, socketSpec, &vduct, &vductElt);
+	CHKERR(vductElt);
 	if (bpStartOutduct(claProtocol, socketSpec) < 0)
 	{
 		putErrmsg("Can't start outduct.", ductExpression);
@@ -261,13 +263,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
-	if (bpBlockPlan(neighborEid) < 0)
-	{
-		putErrmsg("Can't block egress plan.", neighborEid);
-		return -1;
-	}
-
-	if (attachPlanDuct(neighborEid, ductExpression) < 0)
+	if (attachPlanDuct(neighborEid, vduct->outductElt) < 0)
 	{
 		putErrmsg("Can't add plan duct.", neighborEid);
 		return -1;
@@ -284,14 +280,6 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 	if (addNdpNeighbor(neighborEid) < 0)
 	{
 		putErrmsg("Can't add discovered Neighbor.", neighborEid);
-		return -1;
-	}
-
-	/*	Unblock outduct to this neighbor, enabling reforward.	*/
-
-	if (bpUnblockPlan(neighborEid) < 0)
-	{
-		putErrmsg("Can't unblock egress plan.", neighborEid);
 		return -1;
 	}
 
@@ -321,7 +309,6 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 {
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	PsmAddress	elt;
-	char		ductExpression[SDRSTRING_BUFSZ];
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -359,16 +346,11 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 
 	/*	Stop transmission of bundles via this contact.		*/
 
-	if (bpBlockPlan(neighborEid) < 0)
-	{
-		putErrmsg("Can't block egress.", neighborEid);
-		return -1;
-	}
-
 	bpStopPlan(neighborEid);
-	isprintf(ductExpression, sizeof ductExpression, "%s/%s", claProtocol,
-			socketSpec);
-	detachPlanDuct(neighborEid, ductExpression);
+
+	/*	No need to detach ducts, because removePlan will
+	 *	automatically do this.					*/
+
 	removePlan(neighborEid);
 	bpStopOutduct(claProtocol, socketSpec);
 	removeOutduct(claProtocol, socketSpec);

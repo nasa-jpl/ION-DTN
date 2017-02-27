@@ -209,7 +209,7 @@ int	main(int argc, char *argv[])
 
 		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
-			writeMemo("stcpclo outduct closed.");
+			writeMemo("[i] stcpclo outduct closed.");
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
 		}

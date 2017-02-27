@@ -361,8 +361,9 @@ static void	selectOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	int		protClassReqd;
 	BpPlan		plan;
 	Object		ductElt;
-	Object		ductObj;
-	Outduct		duct;
+	Object		outductElt;
+	Object		outductObj;
+	Outduct		outduct;
 	ClProtocol	protocol;
 	PsmAddress	vductElt;
 
@@ -384,21 +385,23 @@ static void	selectOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	 *	(Well, possibly two in the event that a TCPCL
 	 *	connection is received from a node identified by
 	 *	the same node ID as was provided in a managed outduct
-	 *	assertion, but in that case the two are indistin-
-	 *	guishable and it is still valid to use the first.)	*/
+	 *	assertion, but in that case the two are equivalent
+	 *	and it is still valid to use the first.)		*/
 
 	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
 			sizeof(BpPlan));
 	ductElt = sdr_list_first(sdr, plan.ducts);
 	if (ductElt)
 	{
-		ductObj = sdr_list_data(sdr, ductElt);
-		sdr_read(sdr, (char *) &duct, ductObj, sizeof(Outduct));
-		sdr_read(sdr, (char *) &protocol, duct.protocol,
+		outductElt = sdr_list_data(sdr, ductElt);
+		outductObj = sdr_list_data(sdr, outductElt);
+		sdr_read(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
+		sdr_read(sdr, (char *) &protocol, outduct.protocol,
 				sizeof(ClProtocol));
 		if ((protocol.protocolClass & protClassReqd))
 		{
-			findOutduct(protocol.name, duct.name, vduct, &vductElt);
+			findOutduct(protocol.name, outduct.name, vduct,
+					&vductElt);
 		}
 	}
 }
@@ -433,7 +436,7 @@ int	main(int argc, char *argv[])
 {
 	char		*nodeName = (argc > 1 ? argv[1] : NULL);
 #endif
-	Sdr		sdr = getIonsdr();
+	Sdr		sdr;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		planObj;
@@ -466,6 +469,7 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock database.	*/
 	findPlan(nodeName, &vplan, &vplanElt);
 	if (vplanElt == 0)
@@ -521,27 +525,24 @@ int	main(int argc, char *argv[])
 	writeMemoNote("[i] bpclm is running", nodeName);
 	while (running)
 	{
-		/*	Rate control: wait for capacity if necessary.	*/
-
 		CHKZERO(sdr_begin_xn(sdr));
-		if (throttle->nominalRate > 0)	/*	Rate-controlled.*/
-		{
-			while (throttle->capacity <= 0)
-			{
-				sdr_exit_xn(sdr);
-				snooze(1);
-				CHKZERO(sdr_begin_xn(sdr));
-			}
-		}
 
-		/*	Wait until contact plan constraint on payload
-		 *	length is known, if any.  (May be unlimited.)	*/
+		/*	Wait until (a) there is at least one outduct,
+		 *	(b) maximum payload length is known, and (c)
+		 *	rate control (if applicable) is satisfied.	*/
 
-		while (maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0)
+		if (sdr_list_length(sdr, plan.ducts) == 0
+		|| maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0
+		|| (throttle->nominalRate > 0 && throttle->capacity <= 0))
 		{
 			sdr_exit_xn(sdr);
-			snooze(1);		/*	Await contact.	*/
-			CHKZERO(sdr_begin_xn(sdr));
+			snooze(1);
+			if (sm_SemEnded(vplan->semaphore))
+			{
+				running = 0;
+			}
+
+			continue;
 		}
 
 		/*	Get a transmittable bundle.			*/
@@ -585,6 +586,8 @@ int	main(int argc, char *argv[])
 		selectOutduct(vplan, &bundle, &vduct);
 		if (vduct == NULL)		/*	No usable duct.	*/
 		{
+			removeBundleFromQueue(&bundle, bundleObj, planObj,
+					&plan);
 			oK(enqueueToLimbo(&bundle, bundleObj));
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -724,13 +727,6 @@ int	main(int argc, char *argv[])
 		bundle.ductXmitElt = sdr_list_insert_last(sdr,
 				outduct->xmitBuffer, bundleObj);
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Failed requeuing bundle.", nodeName);
-			running = 0;	/*	Terminate loop.		*/
-			continue;
-		}
-
 		sm_SemGive(vduct->semaphore);
 
 		/*	Track this transmission event.			*/
@@ -746,6 +742,12 @@ int	main(int argc, char *argv[])
 		/*	Consume estimated transmission capacity.	*/
 
 		throttle->capacity -= computeECCC(guessBundleSize(&bundle));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Failed requeuing bundle.", nodeName);
+			running = 0;	/*	Terminate loop.		*/
+			continue;
+		}
 
 		/*	Make sure other tasks have a chance to run.	*/
 

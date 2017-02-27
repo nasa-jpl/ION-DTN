@@ -210,13 +210,6 @@ void* send_keepalives(void* param)
 			else
 			{
 				itp->active = 1;
-				pthread_mutex_unlock(&itp->mutex);
-				if (bpUnblockOutduct("dccp", itp->ductname) < 0)
-				{
-					putErrmsg("DCCPCLO connected but didn't unblock outduct.",
-								NULL);
-				}
-				pthread_mutex_lock(&itp->mutex);
 			}
 		}
 		pthread_mutex_unlock(&itp->mutex);
@@ -231,16 +224,6 @@ return NULL;
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-
-	/*	First mark the outduct as blocked, if possible.		*/
-	if (ductname)
-	{
-		if (bpBlockOutduct("dccp", ductname) < 0)
-		{
-			putErrmsg("Can't block outduct.", NULL);
-			return -1;
-		}
-	}
 
 	/*	Handle the de-queued bundle.				*/
 	if (bpHandleXmitFailure(*bundleZco) < 0)

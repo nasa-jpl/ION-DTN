@@ -565,7 +565,7 @@ typedef struct
 	Object		urgentQueue;	/*	SDR list of Bundles	*/
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
-	Object		ducts;		/*	SDR list of duct names.	*/
+	Object		ducts;		/*	SDR list: outduct elts.	*/
 } BpPlan;
 
 typedef struct
@@ -1378,8 +1378,8 @@ extern int		bpBlockPlan(char *eid);
 extern int		bpUnblockPlan(char *eid);
 
 extern int		setPlanViaEid(char *eid, char *viaEid);
-extern int		attachPlanDuct(char *eid, char *ductExpression);
-extern int		detachPlanDuct(char *eid, char *ductExpression);
+extern int		attachPlanDuct(char *eid, Object outductElt);
+extern int		detachPlanDuct(char *eid, Object outductElt);
 extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void		releaseCustody(Object bundleObj, Bundle *bundle);

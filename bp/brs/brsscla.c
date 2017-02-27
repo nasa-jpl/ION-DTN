@@ -94,7 +94,6 @@ static void	*sendBundles(void *parm)
 
 	/*	Can now begin transmitting to clients.			*/
 
-	oK(bpUnblockPlan(parms->stp.eid));
 	while (!(sm_SemEnded(parms->stp.vduct->semaphore)))
 	{
 		if (bpDequeue(parms->stp.vduct, &bundleZco, &extendedCOS, -1)
@@ -247,7 +246,6 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 	PsmAddress	vductElt;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
-	char		ductExpression[MAX_CL_DUCT_NAME_LEN + 6];
 
 	/*	Create automatic Outduct for this socket.		*/
 
@@ -287,9 +285,7 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 	}
 
 	oK(bpBlockPlan(rtp->stp.eid));
-	isprintf(ductExpression, sizeof ductExpression, "brss/%s",
-			rtp->stp.outductName);
-	if (attachPlanDuct(rtp->stp.eid, ductExpression) < 0)
+	if (attachPlanDuct(rtp->stp.eid, rtp->stp.vduct->outductElt) < 0)
 	{
 		putErrmsg("Can't attach duct to plan.", rtp->stp.eid);
 		return -1;
