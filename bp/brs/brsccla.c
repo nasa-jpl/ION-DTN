@@ -456,7 +456,7 @@ number>");
 		bytesSent = sendBundleByStcp(protocol.name, ductName,
 				&ductSocket, bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
-		if (bytesSent <= 0)
+		if (bytesSent < 0)
 		{
 			/*	If this is just a transient connection
 			 *	anomaly then the outduct has been

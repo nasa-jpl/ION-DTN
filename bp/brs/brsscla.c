@@ -77,8 +77,6 @@ static void	*sendBundles(void *parm)
 	BpExtendedCOS		extendedCOS;
 	unsigned int		bundleLength;
 	int			bytesSent;
-	Object			bundleAddr;
-	Bundle			bundle;
 
 	parms->hasSender = 1;
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -100,6 +98,7 @@ static void	*sendBundles(void *parm)
 				< 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
+			ionKillMainThread(procName);
 			break;
 		}
 
@@ -125,62 +124,8 @@ static void	*sendBundles(void *parm)
 		if (bytesSent < 0)
 		{
 			putErrmsg("Can't send bundle.", NULL);
+			ionKillMainThread(procName);
 			break;
-		}
-
-		if (bytesSent < bundleLength)
-		{
-			/*	Couldn't send the bundle, so put it
-			 *	in limbo so we can try again later
-			 *	-- except that if bundle has already
-			 *	been destroyed then just lose the ADU.	*/
-
-			CHKNULL(sdr_begin_xn(sdr));
-			if (retrieveSerializedBundle(bundleZco, &bundleAddr))
-			{
-				putErrmsg("Can't locate unsent bundle.", NULL);
-				sdr_cancel_xn(sdr);
-				break;
-			}
-
-			if (bundleAddr == 0)
-			{
-				/*	Bundle not found, so we can't
-				 *	put it in limbo for another
-				 *	attempt later; discard the ADU.	*/
-
-				zco_destroy(sdr, bundleZco);
-			}
-			else
-			{
-				sdr_stage(sdr, (char *) &bundle, bundleAddr,
-						sizeof(Bundle));
-				if (bundle.extendedCOS.flags
-						& BP_MINIMUM_LATENCY)
-				{
-					/*	We never put critical
-					 *	bundles into limbo.	*/
-
-					zco_destroy(sdr, bundleZco);
-				}
-				else
-				{
-					if (enqueueToLimbo(&bundle, bundleAddr)
-							< 0)
-					{
-						putErrmsg("Can't save bundle.",
-								NULL);
-						sdr_cancel_xn(sdr);
-						break;
-					}
-				}
-			}
-
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Failed handling brss xmit.", NULL);
-				break;
-			}
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -188,7 +133,6 @@ static void	*sendBundles(void *parm)
 		sm_TaskYield();
 	}
 
-	ionKillMainThread(procName);
 	writeMemo("[i] brsscla outduct has ended.");
 	MRELEASE(buffer);
 	return terminateSenderThread();
@@ -284,7 +228,6 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 		findPlan(rtp->stp.eid, &vplan, &vplanElt);
 	}
 
-	oK(bpBlockPlan(rtp->stp.eid));
 	if (attachPlanDuct(rtp->stp.eid, rtp->stp.vduct->outductElt) < 0)
 	{
 		putErrmsg("Can't attach duct to plan.", rtp->stp.eid);
@@ -313,7 +256,6 @@ static void	stopSendingThread(ReceiverThreadParms *rtp)
 	}
 
 	removeOutduct("brss", rtp->stp.outductName);
-	oK(bpBlockPlan(rtp->stp.eid));
 }
 
 static void	*receiveBundles(void *parm)
@@ -338,6 +280,7 @@ static void	*receiveBundles(void *parm)
 	char			digest[DIGEST_LEN];
 	AcqWorkArea		*work;
 	char			*buffer;
+	int			running = 1;
 
 	currentTime = time(NULL);
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -495,7 +438,7 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 
 	/*	Now start receiving bundles.				*/
 
-	while (*(parms->running))
+	while (running && *(parms->running))
 	{
 		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
@@ -511,11 +454,13 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
+			*(parms->running) = 0;
+			continue;
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			*(parms->running) = 0;
+			running = 0;
 			continue;
 
 		default:
