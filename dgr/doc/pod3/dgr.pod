@@ -34,7 +34,7 @@ the future.
 
 =over 4
 
-=item int dgr_open(uvast ownEngineId, unsigned in clientSvcId, unsigned short ownPortNbr, unsigned int ownIpAddress, char *memmgrName, Dgr *dgr, DgrRC *rc)
+=item int dgr_open(uvast ownEngineId, unsigned int clientSvcId, unsigned short ownPortNbr, unsigned int ownIpAddress, char *memmgrName, Dgr *dgr, DgrRC *rc)
 
 Establishes the application's access to DGR communication service.
 

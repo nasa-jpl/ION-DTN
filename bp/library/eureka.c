@@ -136,10 +136,10 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		return 0;
 	}
 
-	isprintf(ductExpression, sizeof ductExpression, claProtocol,
+	isprintf(ductExpression, sizeof ductExpression, "%s/%s", claProtocol,
 			socketSpec);
 	findOutduct(claProtocol, socketSpec, &vduct, &vductElt);
-	if (vductElt == 0)
+	if (vductElt)
 	{
 		writeMemoNote("[?] Outduct is managed; no discovery",
 				ductExpression);
@@ -255,7 +255,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
-	/*	Add plan, block it, attach duct, start plan.		*/
+	/*	Add plan, attach duct, start it.			*/
 
 	if (addPlan(neighborEid, 125000000) < 0)
 	{

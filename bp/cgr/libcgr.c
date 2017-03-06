@@ -241,7 +241,8 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	PsmAddress	elt;
 	IonRXref	*range;
 
-	if (contact->discovered || contact->confidence < 1.0)
+	*owlt = 0;		/*	Default.			*/
+	if (contact->discovered)
 	{
 		return 0;	/*	Physically adjacent nodes.	*/
 	}
@@ -280,7 +281,6 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 
 	/*	No applicable range.					*/
 
-	*owlt = 0;
 	return -1;
 }
 
