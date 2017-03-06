@@ -13,25 +13,10 @@ transmission to neighboring nodes that are members of endpoints identified
 in the "ipn" URI scheme and (b) establish static default routing rules
 for forwarding bundles to specified destination nodes.
 
-The egress B<plan> established for a given node associates a default egress
-B<duct expression> with that node, and that default duct expression may be
-overridden by more narrowly scoped B<planrule>s in specific circumstances:
-a different egress duct expression may apply when the source endpoint for
-the subject bundle identifies a specific node, a specific service, or both.
-
-Each duct expression is a string of the form
-"I<protocol_name>/I<outduct_name>[,I<destination_induct_name>]",
-signifying that the bundle is to be queued for transmission via the
-indicated convergence layer protocol outduct.  I<destination_induct_name>
-must be provided when the indicated outduct is "promiscuous", i.e., not
-configured for transmission only to a single neighboring node; this is
-protocol-specific.
-
-The circumstances that characterize a specific rule within a general plan
-are expressed in a B<qualifier>, a string of the form
-"I<source_service_number> I<source_node_number>" where either
-I<source_service_number> or I<source_node_number> may be an asterisk
-character (*) signifying "all".
+The egress B<plan> established for a given node associates a B<duct expression>
+with that node.  Each duct expression is a string of the form
+"I<protocol_name>/I<outduct_name>" signifying that the bundle isto be
+queued for transmission via the indicated convergence layer protocol outduct.
 
 Note that egress plans B<must> be established for all neighboring nodes,
 regardless of whether or not contact graph routing is used for computing
@@ -56,10 +41,9 @@ always selected.
 
 B<Note> that "exits" were termed "groups" in earlier versions of ION.  The
 term "exit" has been adopted instead, to minimize any possible confusion
-with multicast groups.  To protect backward compatibility, the keywords
-"group" and "grouprule" continue to be accepted by ipnadmin as aliases
-for the new keywords "exit" and "exitrule", but the older terminology is
-deprecated.
+with multicast groups.  To protect backward compatibility, the keyword
+"group" continues to be accepted by ipnadmin as an alias for the new keyword
+"exit", but the older terminology is deprecated.
 
 The formats and effects of the IPN scheme configuration commands are
 described below.
@@ -102,60 +86,27 @@ formats.  It is the same as the B<?> command.
 
 The B<add plan> command.  This command establishes an egress plan for
 the bundles that must be transmitted to the neighboring node identified
-by I<node_nbr>.  A general plan must be in place for a node before
-any more specific rules are declared.
+by I<node_nbr>.
 
 =item B<c plan> I<node_nbr> I<default_duct_expression>
 
-The B<change plan> command.  This command changes the default duct
-expression for the indicated plan.
+The B<change plan> command.  This command changes the duct expression
+for the indicated plan.
 
 =item B<d plan> I<node_nbr>
 
 The B<delete plan> command.  This command deletes the egress plan
-for the node identified by I<node_nbr>, including all associated rules.
+for the node identified by I<node_nbr>.
 
 =item B<i plan> I<node_nbr>
 
-This command will print information (the default duct expression and all
-specific rules) about the egress plan for the node identified by I<node_nbr>.
+This command will print information about the egress plan for the node
+identified by I<node_nbr>.
 
 =item B<l plan>
 
 This command lists all egress plans established in the IPN database for the
 local node.
-
-=back
-
-=head1 PLANRULE COMMANDS
-
-=over 4
-
-=item B<a planrule> I<node_nbr> I<qualifier> I<duct_expression>
-
-The B<add planrule> command.  This command establishes a planrule, i.e., a
-duct expression that overrides the default duct expression of the egress
-plan for the node identified by I<node_nbr> in the event that the source
-endpoint ID of the subject bundle matches I<qualifier>.
-
-=item B<c planrule> I<node_nbr> I<qualifier> I<duct_expression>
-
-The B<change planrule> command.  This command changes the duct expression
-for the indicated planrule.
-
-=item B<d planrule> I<node_nbr> I<qualifier>
-
-The B<delete planrule> command.  This command deletes the planrule identified
-by I<node_nbr> and I<qualifier>.
-
-=item B<i planrule> I<node_nbr> I<qualifier>
-
-This command will print information (the duct expression) about the planrule
-identified by I<node_nbr> and I<qualifier>.
-
-=item B<l planrule> I<node_nbr>
-
-This command lists all planrules in the plan for the indicated node.
 
 =back
 
@@ -189,38 +140,6 @@ This command lists all exits defined in the IPN database for the local node.
 
 =back
 
-=head1 EXITRULE COMMANDS
-
-=over 4
-
-=item B<a exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier> I<gateway_endpoint_ID>
-
-The B<add exitrule> command.  This command establishes an exitrule, i.e.,
-a gateway endpoint ID that overrides the default gateway endpoint ID of the
-exit identified by I<first_node_nbr> and I<last_node_nbr> in the event
-that the source endpoint ID of the subject bundle matches I<qualifier>.
-
-=item B<c exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier> I<gateway_endpoint_ID>
-
-The B<change exitrule> command.  This command changes the gateway EID
-for the indicated exitrule.
-
-=item B<d exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier>
-
-The B<delete exitrule> command.  This command deletes the exitrule identified
-by I<first_node_nbr>, I<last_node_nbr>, and I<qualifier>.
-
-=item B<i exitrule> I<first_node_nbr> I<last_node_nbr> I<qualifier>
-
-This command will print information (the duct expression) about the exitrule
-identified by I<node_nbr>, I<last_node_nbr>, and I<qualifier>.
-
-=item B<l exitrule> I<first_node_nbr> I<last_node_nbr>
-
-This command lists all exitrules for the indicated exit.
-
-=back
-
 =head1 EXAMPLES
 
 =over 4
@@ -230,14 +149,6 @@ This command lists all exitrules for the indicated exit.
 Declares the egress plan to use for transmission from the local node to
 neighboring node 18.  By default, any bundle for which the computed "next
 hop" node is node 18 will be queued for transmission on LTP outduct 18.
-
-=item a planrule 18 * 9 tcp/119.31.01.18:4016
-
-Declares an egress plan override that applies to transmission to node 18
-of any bundle whose source is node 9, regardless of the service that was
-the source of the bundle.  Each such bundle must be queued for transmission
-on TCP outduct 119.31.01.18:4016 rather than the default (transmission
-on LTP outduct 18).
 
 =item a exit 1 999 dtn://stargate
 

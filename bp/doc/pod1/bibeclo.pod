@@ -4,7 +4,7 @@ bibeclo - BP convergence layer output task using bundle-in-bundle encapsulation
 
 =head1 SYNOPSIS
 
-B<bibeclo>
+B<bibeclo> I<remote_node_ID>
 
 =head1 DESCRIPTION
 
@@ -12,17 +12,11 @@ B<bibeclo> is a background "daemon" task that extracts bundles from the
 queues of bundles ready for transmission via bundle-in-bundle encapsulation
 (BIBE) to remote bundle protocol agents, encapsulates them in BP administrative
 records of (non-standard) record type 7 (BP_ENCAPSULATED_BUNDLE), and sends
-those administrative records to designated DTN nodes.  The receiving nodes
-are expected to process these received administrative records by simply
-dispatching the encapsulated bundles as if they had been received from
-neighboring nodes in the normal course of operations.
-
-Note that B<bibeclo> is a "promiscuous" CLO daemon, able to transmit bundles
-to any BIBE destination induct.  Its duct name is '*' rather than
-the induct name of any single BIBE destination induct to which it might be
-dedicated, so scheme configuration directives that cite this outduct must
-provide destination induct IDs.  For the BIBE convergence-layer protocol,
-destination induct IDs are simply BP endpoint IDs.
+those administrative records to the DTN node identified by I<remote_node_ID>, a
+BP endpoint ID.  The receiving node sexpected to process these received
+administrative records by simply dispatching the encapsulated bundles as if
+they had been received from neighboring nodes in the normal course of
+operations.
 
 B<bibeclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
 command that starts operation of the Bundle Protocol, and it is terminated by
@@ -68,9 +62,9 @@ B<bpadmin> has not yet initialized Bundle Protocol operations.
 
 =item No such bibe duct.
 
-No BIBE outduct with duct name '*' has been added to the BP database.  Use
-B<bpadmin> to stop the BIBE convergence-layer protocol, add the outduct, and
-then restart the BIBE protocol.
+No BIBE outduct with duct name I<remote_node_ID> has been added to the BP
+database.  Use B<bpadmin> to stop the BIBE convergence-layer protocol, add
+the outduct, and then restart the BIBE protocol.
 
 =item CLO task is already started for this duct.
 

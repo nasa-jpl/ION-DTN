@@ -70,6 +70,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
+	restoreEidString(&metaEid);
 	dtn2_lookupPlan(eid, &vplan);
 	if (vplan == NULL)
 	{

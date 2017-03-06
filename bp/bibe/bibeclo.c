@@ -37,9 +37,11 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 int	bibeclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+	char			*endpointSpec = (char *) a1;
 #else
 int	main(int argc, char *argv[])
 {
+	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
 #endif
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
@@ -59,16 +61,22 @@ int	main(int argc, char *argv[])
 	unsigned int		ttl;
 	Object			newBundle;
 
+	if (endpointSpec == NULL)
+	{
+		PUTS("Usage: bibeclo <remote node's ID>");
+		return 0;
+	}
+
 	if (bpAttach() < 0)
 	{
 		putErrmsg("bibeclo can't attach to BP.", NULL);
 		return -1;
 	}
 
-	findOutduct("bibe", "*", &vduct, &vductElt);
+	findOutduct("bibe", endpointSpec, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("No such bibe duct.", "*");
+		putErrmsg("No such bibe duct.", endpointSpec);
 		return -1;
 	}
 

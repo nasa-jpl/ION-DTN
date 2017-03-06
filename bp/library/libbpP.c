@@ -10420,7 +10420,7 @@ int	bpBlockPlan(char *eid)
 	plan.blocked = 1;
 
 	/*	Send into limbo all bundles currently queued for
-	 *	transmission via this outduct.				*/
+	 *	transmission to this node.				*/
 
 	for (xmitElt = sdr_list_first(bpSdr, plan.urgentQueue); xmitElt;
 			xmitElt = nextElt)
@@ -10484,7 +10484,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 		{
 			bundle.suspended = 0;
 		}
-		else	/*	Merely unblocking a blocked outduct.	*/
+		else	/*	Merely unblocking a blocked plan.	*/
 		{
 			return 0;	/*	Can't release yet.	*/
 		}
@@ -10548,7 +10548,7 @@ int	bpUnblockPlan(char *eid)
 	sdr_write(bpSdr, planObj, (char *) &plan, sizeof(BpPlan));
 
 	/*	Release all non-suspended bundles currently in limbo,
-	 *	in case the unblocking of this outduct enables some
+	 *	in case the unblocking of this plan enables some
 	 *	or all of them to be queued for transmission.		*/
 
 	for (xmitElt = sdr_list_first(bpSdr, bpConstants->limboQueue);
@@ -10565,7 +10565,7 @@ int	bpUnblockPlan(char *eid)
 
 	if (sdr_end_xn(bpSdr) < 0)
 	{
-		putErrmsg("Failed unblocking outduct.", NULL);
+		putErrmsg("Failed unblocking plan.", NULL);
 		return -1;
 	}
 

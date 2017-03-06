@@ -61,7 +61,6 @@ static void	printUsage()
 	PUTS("\t<protocol name>/<outduct name>");
 	PUTS("Syntax of 'directive' is:");
 	PUTS("\t{ f <endpoint ID> | x <duct expression>");
-	PUTS("Note that, by convention, each node ID must start with '//'.");
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");

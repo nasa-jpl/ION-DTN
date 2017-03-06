@@ -343,17 +343,19 @@ all locally established outducts, regardless of protocol.
 The B<start outduct> command.  This command starts the indicated outduct 
 task as defined for the indicated CL protocol on the local node.
 
-=item B<b outduct> I<protocol_name> I<duct_name>
+=item B<b plan> I<node_ID>
 
-The B<block outduct> command.  This command disables transmission of
-bundles via the indicated outduct and reforwards all non-critical bundles
-currently queued for transmission via this outduct.
+The B<block plan> command.  This command disables transmission of bundles
+to the indicated node and reforwards all non-critical bundles currently
+queued for transmission to this node.  This may result in some or all
+of these bundles being enqueued for transmission (actually just retention)
+to the pseudo-node "limbo".
 
-=item B<u outduct> I<protocol_name> I<duct_name>
+=item B<u plan> I<node_ID>
 
-The B<unblock outduct> command.  This command re-enables transmission of
-bundles via the indicated outduct and reforwards all bundles in "limbo"
-in the hope that the unblocking of this outduct will enable some of them
+The B<unblock plan> command.  This command re-enables transmission of
+bundles to the indicated node and reforwards all bundles in "limbo"
+in the hope that the unblocking of this egress plan will enable some of them
 to be transmitted.
 
 =item B<x outduct> I<protocol_name> I<duct_name>

@@ -9,24 +9,22 @@
 # Node 1 is configured to send everything directly to node 2 via LTP.
 #
 # Node 2 is configured:
-#	To use bibe/*,ipn:4.0 for all bundles with destination 4, service 1.
-#	To use bibe/*,ipn:3.0 for all bundles with destination 4, service 2.
-#	To use ltp/4 for all other bundles with destination 4.
+#	To use bibe/ipn:3.0 for bundles with destination 4, 5, 6, or 7.
+#	To use ltp/3 for bundles with destination 3.
 #
 # Node 3 is configured:
-#	To use ltp/4 for all bundles with destination 4, service 3.
-#	To use ltp/4 for all bundles with destination 4, source node 2.
-#	To use udp/*,127.0.0.0.1:8888 for all other bundles destined for 4.
+#	To use udp/*,127.0.0.0.1:8888 for bundles with destination 5.
 #	(udp/*,127.0.0.1:8888 is the bit bucket.)
+#	To use ltp/4 for bundles with all other destinations.
 #
-# That is, service-1 bundles are tunneled directly to 4, bypassing the
-# service filter at 3.  Service-3 bundles are simply forwarded by 2 and by 3.
-# Service-2 bundle are tunneled directly to 3, where they are unpacked and
-# are subject to the service filter.
+# That is, all bundles for destination nodes 4 through 7 are tunneled
+# through node 3, which discards bundles destined for node 5 and forwards
+# all others directly to 4.
 #
-# We send 4 bundles from 1 to 4; two are for service 1, one is for service 2,
-# one is for service 3.  The bundles for services 1 and 3 should arrive at
-# node 4 while the one for service 2 does not.
+# We send 4 bundles from 1: to destinations 4, 5, 6, and 7, one bundle each.
+# The bundle destined for 4 should be delivered; bundles destined for nodes
+# 6 and 7 should be received at 4 and abandoned there, while the bundle
+# destined for node 5 should be received and abandoned at node 3.
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=2
@@ -102,33 +100,42 @@ sleep 1
 cd ../1.ipn.ltp
 
 ##############################
-# Send two bundles for service 1 from node 1 to node 4.
+# Send one bundle from node 1 to node 4.
 
-echo -e "\n\n***Sending two bundles for service 1 from node 1 to node 4.***"
+echo -e "\n\n***Sending one bundle from node 1 to node 4.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace1a"
-bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace1b"
+bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
 ##############################
-# Send one bundles for service 2 from node 1 to node 4.
+# Send one bundle from node 1 to node 5.
 
-echo -e "\n\n***Sending one bundle for service 2 from node 1 to node 4.***"
+echo -e "\n\n***Sending one bundle from node 1 to node 5.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.2 ipn:4.1 ipn:1.0 3600 0.1 "test_trace2"
+bptrace ipn:1.1 ipn:5.1 ipn:1.0 3600 0.1 "test_trace5" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
 ##############################
-# Send one bundle for service 3 from node 1 to node 4.
+# Send one bundle from node 1 to node 6.
 
-echo -e "\n\n***Sending one bundle for service 3 from node 1 to node 4.***"
+echo -e "\n\n***Sending one bundle from node 1 to node 6.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.3 ipn:4.1 ipn:1.0 3600 0.1 "test_trace3"
+bptrace ipn:1.2 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+##############################
+# Send one bundle from node 1 to node 7.
+
+echo -e "\n\n***Sending one bundle from node 1 to node 7.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.3 ipn:7.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -136,31 +143,13 @@ echo ""
 
 cd ../4.ipn.ltp
 
-COUNT=`grep "test_trace1" results.txt | wc -l`
-if [ $COUNT -ne 2 ]
-then
-	echo "ERROR: service-1 bundles not both received."
-        PASS=0
-else
-	echo "Service-1 bundles both received."
-fi
-
-COUNT=`grep "test_trace2" results.txt | wc -l`
-if [ $COUNT -ne 0 ]
-then
-	echo "ERROR: service-2 bundle was received."
-        PASS=0
-else
-	echo "Service-2 bundle was not received."
-fi
-
-COUNT=`grep "test_trace3" results.txt | wc -l`
+COUNT=`grep "test_trace4" results.txt | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "ERROR: service-3 bundle was not received."
+	echo "ERROR: bundle for node 4 not received."
         PASS=0
 else
-	echo "Service-3 bundle was received."
+	echo "Bundle for node 4 was received."
 fi
 
 ############################################################
