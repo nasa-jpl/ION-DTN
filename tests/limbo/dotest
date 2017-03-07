@@ -2,45 +2,46 @@
 #
 # Scott Burleigh
 # October 11, 2010
+# Revised March 6, 2017
 #
 # Tests "limbo" system:
 #
-#	a.  When an outduct is blocked, all bundles currently queued
-#	    for that outduct are removed from their queues and are
+#	a.  When an egress plan is blocked, all bundles currently queued
+#	    for that plan are removed from their queues and are
 #	    reforwarded; if no other outbound route is available, those
 #	    bundles are appended to the "limbo" queue.  In addition,
 #	    any new bundles that would otherwise be queued to the
-#	    blocked outduct are likewise appended to the "limbo" queue.
+#	    blocked plan are likewise appended to the "limbo" queue.
 #
-#	b.  When a blocked outduct is unblocked, all bundles in the
+#	b.  When a blocked plan is unblocked, all bundles in the
 #	    "limbo" queue are automatically reforwarded in hopes that
 #	    some or all of them may be transmitted via the newly
-#	    unblocked duct.
+#	    unblocked plan
 #
-#	c.  Ducts may be manually blocked and unblocked by bpadmin
+#	c.  Plans are manually blocked and unblocked by bpadmin
 #	    directives.
 #
-#	d.  Also, an EPIPE error on transmission over a TCP outduct
-#	    will cause that outduct to be blocked automatically;
-#	    a subsequent successful connection for that outduct (as
-#	    by a keepalive thread) will automatically unblock it.
+#	d.  A termination of convergence-layer connectivity (e.g., a
+#	    lost TCP connection) does NOT cause the egress plan
+#	    using that outduct to be blocked.  Bundles simply
+#	    remain queued for transmission to the affected node,
+#	    waiting for connectivity to be re-established.
 #
 # This test first sends a file over a TCP outduct, then uses bpadmin
-# to block the duct and tries to send a second file; the second file
-# goes into limbo and is released from limbo when we then use bpadmin
-# to unblock the duct.
+# to block the plan for that node and tries to send a second file; the
+# second file goes into limbo and is released from limbo when we thenk
+# use bpadmin to unblock the plan.
 #
-# Then we test automatic TCP outduct blockage.  We again send a file,
+# Then we test automatic TCP outduct management.  We again send a file,
 # then shut down the receiving node altogether, let the keepalive
-# thread detect the socket closure, blocking the outduct, and then
-# send another file.  The second file goes into limbo and is released
-# from limbo when the receiving node is restarted and reopens its TCP
-# socket, enabling the keepalive thread to unblock the outduct.
+# thread detect the socket closure, pausing the CL manager, and then
+# send another file.  The second file is likewise queued for transmission
+# but not dequeued by the convergence-layer output daemon; it is dequeued
+# when the receiving node is restarted and reopens its TCP socket.
 #
-# Finally, we trigger an automatic blockage again. But, this time with
-# a backup contact active for the bundle to reForward through
-# when the preferred contact is blocked.
-
+# Finally, we trigger an automatic egress plan pause again. But this time
+# we provide an active backup contact for the bundle to reForward through
+# when the original contact is removed.
 #
 # Get the latest bp stat printed to an ion.log file
 #
@@ -128,7 +129,7 @@ fi
 echo ""
 # Now block transmission to node 3.
 cd ../2.ipn.tcp
-echo "Blocking outduct to node 3."
+echo "Blocking transmission to node 3."
 bpadmin block.bprc
 sleep 2
 
@@ -153,7 +154,7 @@ fi
 echo ""
 # Now unblock transmission to node 3; file should flow automatically.
 cd ../2.ipn.tcp
-echo "Unblocking outduct to node 3.  Bundle should flow out of limbo (k)..."
+echo "Unblocking transmission to node 3; bundle should flow out of limbo (k)..."
 bpadmin unblock.bprc
 sleep 2
 
@@ -173,7 +174,7 @@ fi
 echo ""
 # Send third file from node 2.
 cd ../2.ipn.tcp
-echo "Sending third file from node 2 to node 3 to test unblocked outduct..."
+echo "Sending third file from node 2 to node 3 to test unblocked plan..."
 bpsendfile ipn:2.1 ipn:3.1 testfilez
 sleep 2
 
@@ -192,7 +193,7 @@ fi
 
 echo ""
 # Now break TCP connectivity to node 3.
-echo "Breaking STCP connection to node 3 to test automatic blocking..."
+echo "Breaking STCP connection to node 3 to test CLM pause..."
 cd ../3.ipn.tcp
 ./ionstop
 echo "Node 3 is stopped."
@@ -201,7 +202,7 @@ sleep 30
 
 # Send fourth file from node 2.
 cd ../2.ipn.tcp
-echo "Sending fourth file from node 2 to node 3 (should go into limbo -- j)..."
+echo "Sending fourth file from node 2 to node 3 (should simply be enqueued)..."
 bpsendfile ipn:2.1 ipn:3.1 testfiley
 sleep 2
 
@@ -220,7 +221,7 @@ fi
 
 echo ""
 # Restore node 3's TCP socket.
-echo "Restoring STCP connectivity to node 3 to test automatic release."
+echo "Restoring STCP connectivity to node 3 to test CLM resume..."
 cd ../3.ipn.tcp
 rm testfile*
 ./ionstart
@@ -230,7 +231,7 @@ bprecvfile ipn:3.1 &
 echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
 sleep 30
 echo ""
-echo "Bundle for 4th file should have been released from limbo -- k."
+echo "Bundle for 4th file should have been transmitted."
 
 # Verify that the fourth file arrived.
 COUNT=`ls -l testfile1 | egrep 1070 | wc -l`

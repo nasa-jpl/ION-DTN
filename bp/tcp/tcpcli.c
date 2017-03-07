@@ -1057,8 +1057,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			if (vplanElt == 0)
 			{
 				if (addPlan(eidbuf, 125000000) < 0
-				|| bpStartPlan(eidbuf) < 0
-				|| bpBlockPlan(eidbuf) < 0)
+				|| bpStartPlan(eidbuf) < 0)
 				{
 					putErrmsg("Can't add automatic egress \
 plan for neighbor.", eidbuf);

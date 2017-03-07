@@ -343,6 +343,17 @@ all locally established outducts, regardless of protocol.
 The B<start outduct> command.  This command starts the indicated outduct 
 task as defined for the indicated CL protocol on the local node.
 
+=item B<x outduct> I<protocol_name> I<duct_name>
+
+The B<stop outduct> command.  This command stops the indicated outduct 
+task as defined for the indicated CL protocol on the local node.
+
+=back
+
+=head1 EGRESS PLAN COMMANDS
+
+=over 4
+
 =item B<b plan> I<node_ID>
 
 The B<block plan> command.  This command disables transmission of bundles
@@ -357,11 +368,6 @@ The B<unblock plan> command.  This command re-enables transmission of
 bundles to the indicated node and reforwards all bundles in "limbo"
 in the hope that the unblocking of this egress plan will enable some of them
 to be transmitted.
-
-=item B<x outduct> I<protocol_name> I<duct_name>
-
-The B<stop outduct> command.  This command stops the indicated outduct 
-task as defined for the indicated CL protocol on the local node.
 
 =back
 

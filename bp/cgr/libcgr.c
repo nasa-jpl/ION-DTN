@@ -91,9 +91,10 @@ typedef struct
 	time_t		forfeitTime;
 	float		arrivalConfidence;
 	time_t		arrivalTime;	/*	As from time(2).	*/
+	uvast		capacity;	/*	# bytes conveyed.	*/
+	int		hopCount;	/*	# hops from dest. node.	*/
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
 	Scalar		protected;	/*	Bytes not overbooked.	*/
-	int		hopCount;	/*	# hops from dest. node.	*/
 } ProximateNode;
 
 /*		Functions for managing the CGR database.		*/
@@ -301,7 +302,6 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		transmitTime;
 	time_t		arrivalTime;
 	IonCXref	*finalContact = NULL;
-	float		highestConfidence = 0.0;
 	time_t		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextContact;
 	time_t		earliestArrivalTime;
@@ -430,15 +430,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 				if (contact->toNode == terminusNode->nodeNbr)
 				{
-					if (contact->confidence >
-							highestConfidence
-					|| (contact->confidence ==
-							highestConfidence
-						&& work->arrivalTime
-						< earliestFinalArrivalTime))
+					if (work->arrivalTime
+						< earliestFinalArrivalTime)
 					{
-						highestConfidence
-							= contact->confidence;
 						earliestFinalArrivalTime
 							= work->arrivalTime;
 						finalContact = contact;
@@ -969,21 +963,21 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	}
 
 	/*	Finally, insert that route into the terminusNode's
-	 *	list of routes in confidence/arrivalTime order.	*/
+	 *	list of routes in arrivalTime/capacity order.	*/
 
 	newRoute = (CgrRoute *) psp(ionwm, routeAddr);
-	for (elt = sm_list_first(ionwm, routes); elt; elt =
-			sm_list_next(ionwm, elt))
+	for (elt = sm_list_first(ionwm, routes); elt;
+			elt = sm_list_next(ionwm, elt))
 	{
 		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (route->arrivalConfidence > newRoute->arrivalConfidence)
+		if (route->arrivalTime < newRoute->arrivalTime)
 		{
 			continue;
 		}
 
-		if (route->arrivalConfidence == newRoute->arrivalConfidence)
+		if (route->arrivalTime == newRoute->arrivalTime)
 		{
-			if (route->arrivalTime <= newRoute->arrivalTime)
+			if (route->maxCapacity >= newRoute->maxCapacity)
 			{
 				continue;
 			}
@@ -1306,6 +1300,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	BpPlan		plan;
 	LystElt		elt2;
 	int		hopCount;
+	uvast		capacity;
 	time_t		arrivalTime;
 	Scalar		overbooked;
 	Scalar		protected;
@@ -1328,8 +1323,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	to this neighbor via the applicable egress plan in
 	 *	time to follow the route that is being considered.
 	 *	There are two criteria.  First, is the egress plan
-	 *	blocked (e.g., no TCP connection or temporarily shut
-	 *	off by operations)?					*/
+	 *	blocked (i.e., temporarily shut off by operations)?	*/
 
 	if (plan.blocked)
 	{
@@ -1367,81 +1361,97 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	with transmission to that neighbor, i.e., among
 	 *	all plausible routes.
 	 *
-	 *	The hopCount noted here is the smallest among the
-	 *	hopCounts projected on all plausible paths to the
+	 *	The capacity noted here is the largest among the
+	 *	capacities projected on all plausible paths to the
 	 *	terminus node, starting at the candidate proximate
 	 *	node, that share the minimum arrivalTime.
 	 *
+	 *	The hopCount noted here is the smallest among the
+	 *	hopCounts projected on all plausible paths to the
+	 *	terminus node, starting at the candidate proximate
+	 *	node, that share the minimum arrivalTime and
+	 *	maximum capacity.
+	 *
 	 *	We set forfeit time to the forfeit time associated
-	 *	with the "best" (lowest-latency, shortest) path.
-	 *	Note that the best path might not have the lowest
-	 *	associated forfeit time.				*/
+	 *	with the "best" (lowest-latency, highest-cpacity,
+	 *	shortest) path.  Note that the best path might not
+	 *	have the lowest associated forfeit time.		*/
 
+	capacity = route->maxCapacity;
 	hopCount = sm_list_length(ionwm, route->hops);
 	for (elt2 = lyst_first(proximateNodes); elt2; elt2 = lyst_next(elt2))
 	{
 		proxNode = (ProximateNode *) lyst_data(elt2);
-		if (proxNode->neighborNodeNbr == route->toNodeNbr)
+		if (proxNode->neighborNodeNbr != route->toNodeNbr)
 		{
-			/*	This route starts with contact with a
-			 *	neighbor that's already in the list.	*/
+			continue;
+		}
 
-			if (route->arrivalConfidence >
-					proxNode->arrivalConfidence
-			|| (route->arrivalConfidence ==
-					proxNode->arrivalConfidence
-				&& arrivalTime < proxNode->arrivalTime))
-			{
-				proxNode->arrivalConfidence =
-						route->arrivalConfidence;
-				proxNode->arrivalTime = arrivalTime;
-				proxNode->hopCount = hopCount;
-				proxNode->forfeitTime = route->toTime;
-				copyScalar(&proxNode->overbooked, &overbooked);
-				copyScalar(&proxNode->protected, &protected);
-				TRACE(CgrUpdateProximateNode,
-						CgrLaterArrivalTime);
-			}
-			else
-			{
-				if (route->arrivalConfidence ==
-						proxNode->arrivalConfidence
-				&& arrivalTime == proxNode->arrivalTime)
-				{
-					if (hopCount < proxNode->hopCount)
-					{
-						proxNode->hopCount = hopCount;
-						proxNode->forfeitTime =
-							route->toTime;
-						copyScalar
-							(&proxNode->overbooked,
-							 &overbooked);
-						copyScalar
-							(&proxNode->protected,
-							 &protected);
-						TRACE(CgrUpdateProximateNode,
-								CgrMoreHops);
-					}
-					else if (hopCount > proxNode->hopCount)
-					{
-						TRACE(CgrIgnoreRoute,
-								CgrMoreHops);
-					}
-					else
-					{
-						TRACE(CgrIgnoreRoute,
-								CgrIdentical);
-					}
-				}
-				else
-				{
-					TRACE(CgrIgnoreRoute,
-							CgrLaterArrivalTime);
-				}
-			}
+		/*	This route starts with contact with a neighbor
+		 *	that's already in the list.			*/
 
+		if (arrivalTime < proxNode->arrivalTime)
+		{
+			proxNode->arrivalTime = arrivalTime;
+			proxNode->capacity = capacity;
+			proxNode->hopCount = hopCount;
+			proxNode->forfeitTime = route->toTime;
+			copyScalar(&proxNode->overbooked, &overbooked);
+			copyScalar(&proxNode->protected, &protected);
+			proxNode->arrivalConfidence = route->arrivalConfidence;
+			TRACE(CgrUpdateProximateNode, CgrLaterArrivalTime);
 			return 0;
 		}
+
+		if (arrivalTime > proxNode->arrivalTime)
+		{
+			TRACE(CgrIgnoreRoute, CgrLaterArrivalTime);
+			return 0;
+		}
+
+		/*	Same arrival time.				*/
+
+		if (capacity > proxNode->capacity)
+		{
+			proxNode->capacity = capacity;
+			proxNode->hopCount = hopCount;
+			proxNode->forfeitTime = route->toTime;
+			copyScalar(&proxNode->overbooked, &overbooked);
+			copyScalar(&proxNode->protected, &protected);
+			proxNode->arrivalConfidence = route->arrivalConfidence;
+			TRACE(CgrUpdateProximateNode, CgrLowerCapacity);
+			return 0;
+		}
+
+		if (capacity < proxNode->capacity)
+		{
+			TRACE(CgrIgnoreRoute, CgrLowerCapacity);
+			return 0;
+		}
+
+		/*	Same capacity.					*/
+
+		if (hopCount < proxNode->hopCount)
+		{
+			proxNode->hopCount = hopCount;
+			proxNode->forfeitTime = route->toTime;
+			copyScalar(&proxNode->overbooked, &overbooked);
+			copyScalar(&proxNode->protected, &protected);
+			proxNode->arrivalConfidence = route->arrivalConfidence;
+			TRACE(CgrUpdateProximateNode, CgrMoreHops);
+			return 0;
+		}
+
+		if (hopCount > proxNode->hopCount)
+		{
+			TRACE(CgrIgnoreRoute, CgrMoreHops);
+			return 0;
+		}
+
+		/*	Same route length.				*/
+
+		TRACE(CgrIgnoreRoute, CgrIdentical);
+		return 0;
 	}
 
 	/*	This neighbor is not yet in the list, so add it.	*/
@@ -1455,12 +1465,13 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	}
 
 	proxNode->neighborNodeNbr = route->toNodeNbr;
-	proxNode->arrivalConfidence = route->arrivalConfidence;
 	proxNode->arrivalTime = arrivalTime;
+	proxNode->capacity = capacity;
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
 	copyScalar(&proxNode->overbooked, &overbooked);
 	copyScalar(&proxNode->protected, &protected);
+	proxNode->arrivalConfidence = route->arrivalConfidence;
 	TRACE(CgrAddProximateNode);
 	return 0;
 }
@@ -1761,10 +1772,10 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	}
 
 	/*	In any event, we enqueue the bundle for transmission.
-	 *	Since we've already determined that the plan to
-	 *	this neighbor is not blocked (else the neighbor would
-	 *	not be in the list of proximate nodes), the bundle
-	 *	can't go into limbo at this point.			*/
+	 *	Since we've already determined that the plan to this
+	 *	neighbor is not blocked (else the neighbor would not
+	 *	be in the list of proximate nodes), the bundle can't
+	 *	go into limbo at this point.				*/
 
 	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
 			proxNode->neighborNodeNbr);
@@ -2213,7 +2224,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	TRACE(CgrSelectProximateNodes);
 	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
 	{
-		/*	Critical bundle; send on all paths.		*/
+		/*	Critical bundle; send to all capable neighbors.	*/
 
 		TRACE(CgrUseAllProximateNodes);
 		return sendCriticalBundle(bundle, bundleObj, terminusNode,
@@ -2252,23 +2263,10 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 
 		/*	Select this candidate if it's the best.		*/
 
-		if (selectedNeighbor == NULL)
+		if (selectedNeighbor == NULL)	/*	1st candidate.	*/
 		{
 			TRACE(CgrSelectProximateNode);
 			selectedNeighbor = proxNode;
-		}
-		else if (proxNode->arrivalConfidence >
-				selectedNeighbor->arrivalConfidence)
-		{
-			TRACE(CgrSelectProximateNode);
-			MRELEASE(selectedNeighbor);
-			selectedNeighbor = proxNode;
-		}
-		else if (proxNode->arrivalConfidence <
-				selectedNeighbor->arrivalConfidence)
-		{
-			TRACE(CgrIgnoreProximateNode, CgrLowerConfidence);
-			MRELEASE(proxNode);
 		}
 		else if (proxNode->arrivalTime <
 				selectedNeighbor->arrivalTime)
@@ -2281,6 +2279,17 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 				selectedNeighbor->arrivalTime)
 		{
 			TRACE(CgrIgnoreProximateNode, CgrLaterArrivalTime);
+			MRELEASE(proxNode);
+		}
+		else if (proxNode->capacity > selectedNeighbor->capacity)
+		{
+			TRACE(CgrSelectProximateNode);
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
+		}
+		else if (proxNode->capacity < selectedNeighbor->capacity)
+		{
+			TRACE(CgrIgnoreProximateNode, CgrLowerCapacity);
 			MRELEASE(proxNode);
 		}
 		else if (proxNode->hopCount < selectedNeighbor->hopCount)
@@ -2536,7 +2545,7 @@ capacity for this bundle",
 	[CgrMoreHops] = "more hops",
 	[CgrIdentical] = "identical to a previous route",
 	[CgrNoHelp] = "insufficient delivery confidence improvement",
-	[CgrLowerConfidence] = "lower delivery confidence",
+	[CgrLowerCapacity] = "lower path capacity",
 	[CgrLaterArrivalTime] = "later arrival time",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
 	};
