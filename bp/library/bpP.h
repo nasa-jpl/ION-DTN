@@ -93,6 +93,10 @@ extern "C" {
 #define MIN_NET_DELIVERY_CONFIDENCE	(.80)
 #endif
 
+#ifndef	ION_DEFAULT_XMIT_RATE
+#define	ION_DEFAULT_XMIT_RATE		(125000000)
+#endif
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.
@@ -566,6 +570,7 @@ typedef struct
 	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
 	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
 	Object		ducts;		/*	SDR list: outduct elts.	*/
+	Object		context;	/*	For duct selection.	*/
 } BpPlan;
 
 typedef struct
@@ -635,6 +640,7 @@ typedef struct
 
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
 	Object		xmitBuffer;	/*	SDR list of (1) ZCO.	*/
+	Object		context;	/*	For duct selection.	*/
 	Object		protocol;	/*	back-reference		*/
 } Outduct;
 

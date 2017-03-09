@@ -217,7 +217,7 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 	findPlan(rtp->stp.eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	Client initial connection.	*/
 	{
-		if (addPlan(rtp->stp.eid, 125000000) < 0
+		if (addPlan(rtp->stp.eid, ION_DEFAULT_XMIT_RATE) < 0
 		|| bpStartPlan(rtp->stp.eid) < 0)
 		{
 			putErrmsg("Can't add automatic egress plan.",

@@ -745,7 +745,7 @@ static int	sendOneBundle(SenderThreadParms *stp)
 	{
 		if (sm_SemEnded(session->vduct->semaphore))
 		{
-			writeMemoNote("[i] tcpcli outduct stopped",
+			writeMemoNote("[i] tcpcli session output stopped",
 					session->outductName);
 			return 0;	/*	Time to give up.	*/
 		}
@@ -760,7 +760,7 @@ static int	sendOneBundle(SenderThreadParms *stp)
 
 		if (bundleZco == 0)	/*	Outduct stopped.	*/
 		{
-			writeMemoNote("[i] tcpcli outduct stopped",
+			writeMemoNote("[i] tcpcli session output stopped",
 					session->outductName);
 			return 0;
 		}
@@ -1056,7 +1056,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			findPlan(eidbuf, &vplan, &vplanElt);
 			if (vplanElt == 0)
 			{
-				if (addPlan(eidbuf, 125000000) < 0
+				if (addPlan(eidbuf, ION_DEFAULT_XMIT_RATE) < 0
 				|| bpStartPlan(eidbuf) < 0)
 				{
 					putErrmsg("Can't add automatic egress \

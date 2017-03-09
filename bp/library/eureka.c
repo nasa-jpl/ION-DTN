@@ -257,7 +257,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 
 	/*	Add plan, attach duct, start it.			*/
 
-	if (addPlan(neighborEid, 125000000) < 0)
+	if (addPlan(neighborEid, ION_DEFAULT_XMIT_RATE) < 0)
 	{
 		putErrmsg("Can't add egress plan.", neighborEid);
 		return -1;

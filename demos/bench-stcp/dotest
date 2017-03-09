@@ -1,20 +1,21 @@
 #!/bin/bash
 #
 # Scott Burleigh
-# February 26, 2012
+# March 8, 2017
 #
 
 # documentation boilerplate
 CONFIGFILES=" \
-./2.bench.tcp/bench.bprc \
-./2.bench.tcp/bench.ionconfig \
-./2.bench.tcp/bench.ionrc \
-./2.bench.tcp/bench.ionsecrc \
-./2.bench.tcp/bench.ipnrc \
-./3.bench.tcp/bench.bprc \
-./3.bench.tcp/bench.ionconfig \
-./3.bench.tcp/bench.ionrc \
-./3.bench.tcp/bench.ionsecrc \
+./2.bench.stcp/bench.bprc \
+./2.bench.stcp/bench.ionconfig \
+./2.bench.stcp/bench.ionrc \
+./2.bench.stcp/bench.ionsecrc \
+./2.bench.stcp/bench.ipnrc \
+./3.bench.stcp/bench.bprc \
+./3.bench.stcp/bench.ionconfig \
+./3.bench.stcp/bench.ionrc \
+./3.bench.stcp/bench.ionsecrc \
+./3.bench.stcp/bench.ipnrc \
 "
 
 echo "########################################"
@@ -51,20 +52,20 @@ rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.
-cd 2.bench.tcp
+cd 2.bench.stcp
 ./ionstart
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 ./ionstart
 
 sleep 3
 echo ""
 echo "Test 1: 10,000 bundles of 1000 bytes each."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 10000 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
 
 # Wait for transmission to finish.
@@ -96,9 +97,9 @@ if [ $RETVAL -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.tcp
+	cd ../2.bench.stcp
 	./ionstop &
-	cd ../3.bench.tcp
+	cd ../3.bench.stcp
 	./ionstop &
 	sleep 5
 	killm
@@ -109,12 +110,12 @@ fi
 sleep 3
 echo ""
 echo "Test 2: 10000 bundles of 10,000 bytes each."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 10000 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &
 
 # Wait for transmission to finish.
@@ -146,9 +147,9 @@ if [ $RETVAL -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.tcp
+	cd ../2.bench.stcp
 	./ionstop &
-	cd ../3.bench.tcp
+	cd ../3.bench.stcp
 	./ionstop &
 	sleep 5
 	killm
@@ -159,12 +160,12 @@ fi
 sleep 3
 echo ""
 echo "Test 3: 10000 bundles of 100,000 bytes each."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 10000 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 10000 ipn:2.1 ipn:3.1 -100000 &
 
 # Wait for transmission to finish.
@@ -196,9 +197,9 @@ if [ $RETVAL -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.tcp
+	cd ../2.bench.stcp
 	./ionstop &
-	cd ../3.bench.tcp
+	cd ../3.bench.stcp
 	./ionstop &
 	sleep 5
 	killm
@@ -209,12 +210,12 @@ fi
 sleep 3
 echo ""
 echo "Test 4: 1000 bundles of 1,000,000 bytes each."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 1000 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 1000 ipn:2.1 ipn:3.1 -1000000 &
 
 # Wait for transmission to finish.
@@ -246,9 +247,9 @@ if [ $RETVAL -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.tcp
+	cd ../2.bench.stcp
 	./ionstop &
-	cd ../3.bench.tcp
+	cd ../3.bench.stcp
 	./ionstop &
 	sleep 5
 	killm
@@ -259,12 +260,12 @@ fi
 sleep 3
 echo ""
 echo "Test 5: 100 bundles of 10,000,000 bytes each."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 100 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 100 ipn:2.1 ipn:3.1 -10000000 &
 
 # Wait for transmission to finish.
@@ -296,9 +297,9 @@ if [ $RETVAL -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.tcp
+	cd ../2.bench.stcp
 	./ionstop &
-	cd ../3.bench.tcp
+	cd ../3.bench.stcp
 	./ionstop &
 	sleep 5
 	killm
@@ -309,12 +310,12 @@ fi
 sleep 3
 echo ""
 echo "Test 6: 10 bundles of 100,000,000 bytes each."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 10 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 10 ipn:2.1 ipn:3.1 -100000000 &
 
 # Wait for transmission to finish.
@@ -346,9 +347,9 @@ if [ $RETVAL -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.tcp
+	cd ../2.bench.stcp
 	./ionstop &
-	cd ../3.bench.tcp
+	cd ../3.bench.stcp
 	./ionstop &
 	sleep 5
 	killm
@@ -359,12 +360,12 @@ fi
 sleep 3
 echo ""
 echo "Test 7: 1 bundle of 1,000,000,000 bytes."
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 bpcounter ipn:3.1 1 &
 BPCOUNTER_PID=$!
 sleep 1
 
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 bpdriver 1 ipn:2.1 ipn:3.1 -1000000000 &
 
 # Wait for transmission to finish.
@@ -398,9 +399,9 @@ then
 fi
 
 echo "Stopping ION..."
-cd ../2.bench.tcp
+cd ../2.bench.stcp
 ./ionstop &
-cd ../3.bench.tcp
+cd ../3.bench.stcp
 ./ionstop &
 sleep 8
 killm

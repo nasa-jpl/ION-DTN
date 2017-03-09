@@ -47,11 +47,6 @@ void	dtn2_findPlan(char *eid, Object *planAddr, Object *eltp)
 
 int	dtn2_addPlan(char *eid, unsigned int nominalRate)
 {
-	if (nominalRate == 0)
-	{
-		nominalRate = 125000000;	/*	Default 1Gbps.	*/
-	}
-
 	return addPlan(eid, nominalRate);
 }
 
@@ -72,6 +67,7 @@ int	dtn2_addPlanDuct(char *eid, char *spec)
 
 	*cursor = '\0';
 	findOutduct(spec, cursor + 1, &vduct, &vductElt);
+	*cursor = '/';
 	if (vductElt == 0)
 	{
 		writeMemoNote("[?] Unknown duct", spec);
@@ -84,11 +80,6 @@ int	dtn2_addPlanDuct(char *eid, char *spec)
 
 int	dtn2_updatePlan(char *eid, unsigned int nominalRate)
 {
-	if (nominalRate == 0)
-	{
-		nominalRate = 125000000;	/*	Default 1Gbps.	*/
-	}
-
 	return updatePlan(eid, nominalRate);
 }
 
@@ -114,6 +105,7 @@ int	dtn2_removePlanDuct(char *eid, char *spec)
 
 	*cursor = '\0';
 	findOutduct(spec, cursor + 1, &vduct, &vductElt);
+	*cursor = '/';
 	if (vductElt == 0)
 	{
 		writeMemoNote("[?] Unknown duct", spec);

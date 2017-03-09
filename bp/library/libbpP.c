@@ -31,7 +31,6 @@
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
 #define	TYPICAL_STACK_OVERHEAD	36
-#define	ION_DEFAULT_XMIT_RATE	125000000
 
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
 
@@ -1032,6 +1031,7 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 	vplan->stats = plan.stats;
 	vplan->updateStats = plan.updateStats;
 	istrcpy(vplan->neighborEid, plan.neighborEid, sizeof plan.neighborEid);
+	vplan->neighborNodeNbr = plan.neighborNodeNbr;
 	vplan->semaphore = SM_SEM_NONE;
 	vplan->xmitThrottle.nominalRate = plan.nominalRate;
 	vplan->xmitThrottle.capacity = plan.nominalRate;
@@ -2098,13 +2098,15 @@ void	getCurrentDtnTime(DtnTime *dt)
 Throttle	*applicableThrottle(VPlan *vplan)
 {
 	Sdr		sdr = getIonsdr();
+	Object		planObj;
 			OBJ_POINTER(BpPlan, plan);
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
 
 	CHKNULL(vplan);
 	CHKNULL(ionLocked());
-	GET_OBJ_POINTER(sdr, BpPlan, plan, vplan->planElt);
+	planObj = sdr_list_data(sdr, vplan->planElt);
+	GET_OBJ_POINTER(sdr, BpPlan, plan, planObj);
 	if (plan->neighborNodeNbr == 0)	/*	No nbr for assigned node.*/
 	{
 		return &(vplan->xmitThrottle);
@@ -4013,6 +4015,11 @@ int	removePlan(char *eidIn)
 	sdr_list_destroy(bpSdr, planBuf.stdQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.urgentQueue, NULL,NULL);
 	sdr_list_destroy(bpSdr, planBuf.ducts, NULL,NULL);
+	if (planBuf.context)
+	{
+		sdr_free(bpSdr, planBuf.context);
+	}
+
 	sdr_free(bpSdr, addr);
 	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
 	if (sdr_end_xn(bpSdr) < 0)
@@ -4880,6 +4887,16 @@ outduct expressions for any convergence-layer protocols", ductName);
 		}
 	}
 
+	if (maxPayloadLength == 0)
+	{
+		if (strcmp(protocolName, "udp") == 0
+		|| strcmp(protocolName, "dgr") == 0
+		|| strcmp(protocolName, "dccp") == 0)
+		{
+			maxPayloadLength = 65000;
+		}
+	}
+
 	CHKERR(sdr_begin_xn(bpSdr));
 	fetchProtocol(protocolName, &clpbuf, &clpElt);
 	if (clpElt == 0)
@@ -4971,6 +4988,16 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 						cloCmd);
 				return 0;
 			}
+		}
+	}
+
+	if (maxPayloadLength == 0)
+	{
+		if (strcmp(protocolName, "udp") == 0
+		|| strcmp(protocolName, "dgr") == 0
+		|| strcmp(protocolName, "dccp") == 0)
+		{
+			maxPayloadLength = 65000;
 		}
 	}
 
@@ -5104,6 +5131,11 @@ int	removeOutduct(char *protocolName, char *ductName)
 	}
 
 	sdr_list_destroy(bpSdr, outduct.xmitBuffer, NULL, NULL);
+	if (outduct.context)
+	{
+		sdr_free(bpSdr, outduct.context);
+	}
+
 	sdr_free(bpSdr, outductObj);
 	sdr_list_delete(bpSdr, outductElt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)

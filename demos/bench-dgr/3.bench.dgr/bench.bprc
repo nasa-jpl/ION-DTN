@@ -6,7 +6,7 @@ a endpoint ipn:3.2 x
 a endpoint ipn:3.64 x
 a endpoint ipn:3.65 x
 a protocol dgr 1400 100
-a induct dgr 127.0.0.1:3113 dgrcla
-a outduct dgr * ''
+a induct dgr 127.0.0.1:3113 dgrcli
+a outduct dgr 127.0.0.1:2113 dgrclo
 r 'ipnadmin bench.ipnrc'
 s

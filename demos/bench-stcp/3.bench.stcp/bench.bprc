@@ -5,6 +5,6 @@ a endpoint ipn:3.1 x
 a endpoint ipn:3.2 x
 a endpoint ipn:3.64 x
 a endpoint ipn:3.65 x
-a protocol tcp 1400 100 -1
-a induct tcp localhost:3113 tcpcli
+a protocol stcp 1400 100 -1
+a induct stcp localhost:3113 stcpcli
 s

@@ -355,16 +355,55 @@ static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	return 1;			/*	Embargo applied.	*/
 }
 
-static void	selectOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
+static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
+			int classReqd, ClProtocol *protocol, Outduct *outduct)
+{
+	Sdr	sdr = getIonsdr();
+	Object	ductElt;
+	Object	outductElt;
+	Object	outductObj;
+
+#if defined(MULTIDUCTS)
+#include "selectcla.c"
+#else
+	/*	A mission-specific implementation of this function
+	 *	can select among multiple possible outducts to the
+	 *	indicated neighobring node based on characteristics
+	 *	of the bundle or other criteria.  By default there
+	 *	is only a single assigned outduct per plan.  (Well,
+	 *	possibly two in the event that a TCPCL connection
+	 *	is received from a node identified by the same node
+	 *	ID as was provided in a managed outduct assertion,
+	 *	but in that case the two are equivalent and it is
+	 *	still valid to use the first.)				*/
+
+	ductElt = sdr_list_first(sdr, plan->ducts);
+	if (ductElt == 0)
+	{
+		return 0;	/*	No outducts.			*/
+	}
+
+	outductElt = sdr_list_data(sdr, ductElt);
+	outductObj = sdr_list_data(sdr, outductElt);
+	sdr_read(sdr, (char *) outduct, outductObj, sizeof(Outduct));
+	sdr_read(sdr, (char *) protocol, outduct->protocol, sizeof(ClProtocol));
+	if ((protocol->protocolClass & classReqd))
+	{
+		return 1;	/*	Duct is usable.			*/
+	}
+
+	return 0;		/*	Ducts is not usable.		*/
+#endif
+}
+
+static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 {
 	Sdr		sdr = getIonsdr();
 	int		protClassReqd;
+	Object		planObj;
 	BpPlan		plan;
-	Object		ductElt;
-	Object		outductElt;
-	Object		outductObj;
-	Outduct		outduct;
 	ClProtocol	protocol;
+	Outduct		outduct;
 	PsmAddress	vductElt;
 
 	*vduct = NULL;			/*	Default.		*/
@@ -378,31 +417,12 @@ static void	selectOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 		protClassReqd = BP_PROTOCOL_STREAMING;
 	}
 
-	/*	Eventually the plan->outducts list will be replaced
-	 *	by a list of outduct selection rules pairing bundle
-	 *	characteristics with duct expressions, but for now
-	 *	there is only a single assigned outduct per plan.
-	 *	(Well, possibly two in the event that a TCPCL
-	 *	connection is received from a node identified by
-	 *	the same node ID as was provided in a managed outduct
-	 *	assertion, but in that case the two are equivalent
-	 *	and it is still valid to use the first.)		*/
-
-	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
-			sizeof(BpPlan));
-	ductElt = sdr_list_first(sdr, plan.ducts);
-	if (ductElt)
+	planObj = sdr_list_data(sdr, vplan->planElt);
+	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+	if (outductSelected(&plan, planObj, bundle, protClassReqd, &protocol,
+			&outduct))
 	{
-		outductElt = sdr_list_data(sdr, ductElt);
-		outductObj = sdr_list_data(sdr, outductElt);
-		sdr_read(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
-		sdr_read(sdr, (char *) &protocol, outduct.protocol,
-				sizeof(ClProtocol));
-		if ((protocol.protocolClass & protClassReqd))
-		{
-			findOutduct(protocol.name, outduct.name, vduct,
-					&vductElt);
-		}
+		findOutduct(protocol.name, outduct.name, vduct, &vductElt);
 	}
 }
 
@@ -583,7 +603,7 @@ int	main(int argc, char *argv[])
 
 		/*	Fragment transmittable bundle as necessary.	*/
 
-		selectOutduct(vplan, &bundle, &vduct);
+		getOutduct(vplan, &bundle, &vduct);
 		if (vduct == NULL)		/*	No usable duct.	*/
 		{
 			removeBundleFromQueue(&bundle, bundleObj, planObj,
@@ -601,7 +621,8 @@ int	main(int argc, char *argv[])
 		GET_OBJ_POINTER(sdr, Outduct, outduct, sdr_list_data(sdr,
 				vduct->outductElt));
 		if (outduct->maxPayloadLen > 0
-		&& outduct->maxPayloadLen < maxPayloadLength)
+		&& (maxPayloadLength == 0
+			|| outduct->maxPayloadLen < maxPayloadLength))
 		{
 			maxPayloadLength = outduct->maxPayloadLen;
 		}

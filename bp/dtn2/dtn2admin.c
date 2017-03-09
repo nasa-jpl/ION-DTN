@@ -100,7 +100,7 @@ static int	parseDirective(char *actionToken, char *parmToken,
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	unsigned int	nominalRate = 125000000;
+	unsigned int	nominalRate = 0;
 	char		*viaEid = NULL;
 	char		*ductExpression = NULL;
 

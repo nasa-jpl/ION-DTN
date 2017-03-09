@@ -14,7 +14,6 @@
 
 #define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
-#define	DEFAULT_DGR_RATE	125000000
 
 static void	interruptThread()
 {

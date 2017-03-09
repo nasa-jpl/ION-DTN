@@ -85,7 +85,7 @@ static void	printUsage()
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	unsigned int	nominalRate = 125000000;
+	unsigned int	nominalRate = 0;
 	char		*spec = NULL;
 
 	if (tokenCount < 2)

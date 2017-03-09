@@ -159,11 +159,6 @@ int	ipn_addPlan(uvast nodeNbr, unsigned int nominalRate)
 	char	eid[MAX_EID_LEN + 1];
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	if (nominalRate == 0)
-	{
-		nominalRate = 125000000;	/*	Default 1Gbps.	*/
-	}
-
 	return addPlan(eid, nominalRate);
 }
 
@@ -186,6 +181,7 @@ int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
 
 	*cursor = '\0';
 	findOutduct(ductExpression, cursor + 1, &vduct, &vductElt);
+	*cursor = '/';
 	if (vductElt == 0)
 	{
 		writeMemoNote("[?] Unknown duct", ductExpression);
@@ -201,11 +197,6 @@ int	ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate)
 	char	eid[MAX_EID_LEN + 1];
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	if (nominalRate == 0)
-	{
-		nominalRate = 125000000;	/*	Default 1Gbps.	*/
-	}
-
 	return updatePlan(eid, nominalRate);
 }
 
@@ -228,6 +219,7 @@ int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
 
 	*cursor = '\0';
 	findOutduct(ductExpression, cursor + 1, &vduct, &vductElt);
+	*cursor = '/';
 	if (vductElt == 0)
 	{
 		writeMemoNote("[?] Unknown duct", ductExpression);
