@@ -155,24 +155,48 @@ static void	executeStart(int tokenCount, char **tokens)
 {
 	if (strcmp(tokens[1], "scheme") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartScheme(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartProtocol(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "induct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartInduct(tokens[2], tokens[3]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartOutduct(tokens[2], tokens[3]);
 		return;
 	}
@@ -184,24 +208,48 @@ static void	executeStop(int tokenCount, char **tokens)
 {
 	if (strcmp(tokens[1], "scheme") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopScheme(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopProtocol(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "induct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopInduct(tokens[2], tokens[3]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopOutduct(tokens[2], tokens[3]);
 		return;
 	}
