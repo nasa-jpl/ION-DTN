@@ -534,6 +534,7 @@ int	cfdpInit()
 		cfdpdbBuf.transactionInactivityLimit = 86400;
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;
+		cfdpdbBuf.maxQueuedEvents = 20;
 
 		/*	Management information.				*/
 
@@ -2733,9 +2734,10 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 int	enqueueCfdpEvent(CfdpEvent *event)
 {
 	Sdr	sdr = getIonsdr();
-	CfdpDB	*cfdpConstants = _cfdpConstants();
 	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
 	Object	eventObj;
+	CfdpDB	cfdpdb;
+	Object	elt;
 
 	CHKERR(ionLocked());
 	CHKERR(event);
@@ -2746,13 +2748,23 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 		return -1;
 	}
 
-	if (sdr_list_insert_last(sdr, cfdpConstants->events, eventObj) == 0)
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	if (sdr_list_insert_last(sdr, cfdpdb.events, eventObj) == 0)
 	{
 		putErrmsg("Can't enqueue CFDP event.", NULL);
 		return -1;
 	}
 
 	sdr_write(sdr, eventObj, (char *) event, sizeof(CfdpEvent));
+
+	/*	Discard unread events as necessary.			*/
+
+	while (sdr_list_length(sdr, cfdpdb.events) > cfdpdb.maxQueuedEvents)
+	{
+		elt = sdr_list_first(sdr, cfdpdb.events);
+		sdr_free(sdr, sdr_list_data(sdr, elt));
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 
 	/*	Tell user application that an event is waiting.		*/
 
