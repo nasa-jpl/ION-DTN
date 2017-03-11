@@ -32,8 +32,6 @@ extern int		dtn2_setPlanViaEid(char *eid, char *viaEid);
 extern int		dtn2_removePlanDuct(char *eid, char *ductExpression);
 extern int		dtn2_removePlan(char *eid);
 
-extern void		dtn2_lookupPlan(char *eid, VPlan **vplan);
-
 #ifdef __cplusplus
 }
 #endif

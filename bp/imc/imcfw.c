@@ -84,10 +84,13 @@ static int	deliverAtSource(Object bundleObj, Bundle *bundle)
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
-	VPlan	*vplan;
+	char		eid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 
-	ipn_lookupPlan(nodeNbr, &vplan);
-	if (vplan == NULL)
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
 		return 0;
 	}

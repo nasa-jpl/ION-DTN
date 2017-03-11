@@ -66,12 +66,15 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 }
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			uvast nodeNbr, unsigned int serviceNbr)
+			uvast nodeNbr)
 {
-	VPlan	*vplan;
+	char		eid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 
-	ipn_lookupPlan(nodeNbr, &vplan);
-	if (vplan == NULL)
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
 		return 0;
 	}
@@ -141,8 +144,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	to the destination node.  So see if destination node
 	 *	is a neighbor; if so, enqueue for direct transmission.	*/
 
-	if (enqueueToNeighbor(bundle, bundleObj, metaEid.nodeNbr,
-			metaEid.serviceNbr) < 0)
+	if (enqueueToNeighbor(bundle, bundleObj, metaEid.nodeNbr) < 0)
 	{
 		putErrmsg("Can't send bundle to neighbor.", NULL);
 		return -1;
@@ -172,8 +174,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	No applicable exit.  If there's at least some route
 	 *	in which we have a minimal level of confidence that
 	 *	the bundle could read its destination given that
-	 *	the initial contact actually materializes (or the
-	 *	outduct to that contact gets unblocked), we just
+	 *	the initial contact actually materializes, we just
 	 *	place the bundle in limbo and hope for the best.	*/
 
 	if (cgr_prospect(metaEid.nodeNbr,

@@ -120,8 +120,3 @@ int	dtn2_removePlan(char *eid)
 {
 	return removePlan(eid);
 }
-
-void	dtn2_lookupPlan(char *eid, VPlan **vplan)
-{
-	lookupPlan(eid, vplan);
-}

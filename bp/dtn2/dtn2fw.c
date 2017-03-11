@@ -71,7 +71,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	restoreEidString(&metaEid);
-	dtn2_lookupPlan(eid, &vplan);
+	lookupPlan(eid, &vplan);
 	if (vplan == NULL)
 	{
 		writeMemoNote("[?] Can't find egress plan for EID", eid);

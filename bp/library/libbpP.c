@@ -4080,7 +4080,7 @@ void	bpStopPlan(char *eid)
 int	setPlanViaEid(char *eid, char *viaEid)
 {
 	Sdr		sdr = getIonsdr();
-	size_t		length;
+	size_t		viaEidLength;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		planObj;
@@ -4088,8 +4088,8 @@ int	setPlanViaEid(char *eid, char *viaEid)
 
 	CHKERR(eid);
 	CHKERR(viaEid);
-	length = istrlen(viaEid, MAX_SDRSTRING);
-	if (length == 0 || length == MAX_SDRSTRING)
+	viaEidLength = istrlen(viaEid, MAX_SDRSTRING);
+	if (viaEidLength == MAX_SDRSTRING)
 	{
 		putErrmsg("Via EID length invalid.", viaEid);
 		return 0;
@@ -4111,7 +4111,15 @@ int	setPlanViaEid(char *eid, char *viaEid)
 		sdr_free(sdr, plan.viaEid);
 	}
 
-	plan.viaEid = sdr_string_create(sdr, viaEid);
+	if (viaEidLength == 0)
+	{
+		plan.viaEid = 0;
+	}
+	else
+	{
+		plan.viaEid = sdr_string_create(sdr, viaEid);
+	}
+
 	sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 	if (sdr_end_xn(sdr) < 0)
 	{

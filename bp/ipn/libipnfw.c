@@ -238,14 +238,6 @@ int	ipn_removePlan(uvast nodeNbr)
 	return removePlan(eid);
 }
 
-void	ipn_lookupPlan(uvast nodeNbr, VPlan **vplan)
-{
-	char	eid[MAX_EID_LEN + 1];
-
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	lookupPlan(eid, vplan);
-}
-
 static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
 			Object *nextExit)
 {

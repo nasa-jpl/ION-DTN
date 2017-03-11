@@ -68,8 +68,6 @@ extern int		ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate);
 extern int		ipn_removePlanDuct(uvast nodeNbr, char *ductExpression);
 extern int		ipn_removePlan(uvast nodeNbr);
 
-extern void		ipn_lookupPlan(uvast nodeNbr, VPlan **vplan);
-
 extern void		ipn_findExit(uvast firstNodeNbr,
 				uvast lastNodeNbr,
 				Object *exitAddr, Object *elt);
