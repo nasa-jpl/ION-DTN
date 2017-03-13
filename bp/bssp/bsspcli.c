@@ -118,6 +118,7 @@ static void	*handleNotices(void *parm)
 	unsigned char		reasonCode;
 	unsigned int		dataLength;
 	Object			data;		/*	ZCO reference.	*/
+	int			result;
 	unsigned int		buflen = 0;
 	char			*buffer = NULL;
 
@@ -161,7 +162,8 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			if (bpHandleXmitSuccess(data, 0) < 0)
+			result = bpHandleXmitSuccess(data, 0);
+			if (result < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
@@ -169,13 +171,17 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			CHKNULL(sdr_begin_xn(sdr));
-			zco_destroy(sdr, data);
-			if (sdr_end_xn(sdr) < 0)
+			if (result == 1)
 			{
-				putErrmsg("Crashed on data cleanup.", NULL);
-				ionKillMainThread(procName);
-				rtp->running = 0;
+				CHKNULL(sdr_begin_xn(sdr));
+				zco_destroy(sdr, data);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Crashed on data cleanup.",
+							NULL);
+					ionKillMainThread(procName);
+					rtp->running = 0;
+				}
 			}
 
 			break;		/*	Out of switch.		*/
@@ -186,7 +192,8 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			if (bpHandleXmitFailure(data) < 0)
+			result = bpHandleXmitFailure(data);
+			if (result < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
@@ -194,13 +201,17 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			CHKNULL(sdr_begin_xn(sdr));
-			zco_destroy(sdr, data);
-			if (sdr_end_xn(sdr) < 0)
+			if (result == 1)
 			{
-				putErrmsg("Crashed on data cleanup.", NULL);
-				ionKillMainThread(procName);
-				rtp->running = 0;
+				CHKNULL(sdr_begin_xn(sdr));
+				zco_destroy(sdr, data);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Crashed on data cleanup.",
+							NULL);
+					ionKillMainThread(procName);
+					rtp->running = 0;
+				}
 			}
 
 			break;		/*	Out of switch.		*/

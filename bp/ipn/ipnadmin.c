@@ -268,15 +268,19 @@ static void	executeDelete(int tokenCount, char **tokens)
 static void	printPlan(BpPlan *plan)
 {
 	Sdr	sdr = getIonsdr();
-	Object	ductElt;
 	char	*action = "none";
-	char	spec[SDRSTRING_BUFSZ] = "none";
+	char	viaEid[SDRSTRING_BUFSZ];
+	char	*spec = "none";
+	Object	ductElt;
+	Object	outductElt;
+	Outduct	outduct;
 	char	buffer[1024];
 
 	if (plan->viaEid)
 	{
 		action = "relay";
-		sdr_string_read(sdr, spec, plan->viaEid);
+		sdr_string_read(sdr, viaEid, plan->viaEid);
+		spec = viaEid;
 	}
 	else
 	{
@@ -284,12 +288,15 @@ static void	printPlan(BpPlan *plan)
 		ductElt = sdr_list_first(sdr, plan->ducts);
 		if (ductElt)
 		{
-			sdr_string_read(sdr, spec, sdr_list_data(sdr, ductElt));
+			outductElt = sdr_list_data(sdr, ductElt);
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					outductElt), sizeof(Outduct));
+			spec = outduct.name;
 		}
 	}
 
-	isprintf(buffer, sizeof buffer, "%s %s %s", plan->neighborEid,
-			action, spec);
+	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s %s",
+			plan->neighborNodeNbr, action, spec);
 	printText(buffer);
 }
 
@@ -413,6 +420,11 @@ static void	listPlans()
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, elt));
+		if (plan->neighborNodeNbr == 0)	/*	Not CBHE.	*/
+		{
+			continue;
+		}
+
 		printPlan(plan);
 	}
 

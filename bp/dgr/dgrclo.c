@@ -49,6 +49,7 @@ static void	*sendBundles(void *parm)
 	ZcoReader		reader;
 	int			bytesToSend;
 	DgrRC			rc;
+	int			result;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	buffer = MTAKE(DGRCLA_BUFSZ);
@@ -123,17 +124,28 @@ static void	*sendBundles(void *parm)
 			{
 				threadRunning = 0;
 				putErrmsg("Crashed sending bundle.", NULL);
+				continue;
 			}
 			else
 			{
 				if (rc == DgrFailed)
 				{
 					failedTransmissions++;
-					if (bpHandleXmitFailure(bundleZco))
+					result = bpHandleXmitFailure(bundleZco);
+					if (result < 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 failure.", NULL);
+						continue;
+					}
+
+					if (result == 0)
+					{
+						/*	No such bundle.	*/
+
+						sm_TaskYield();
+						continue;
 					}
 				}
 			}
@@ -181,6 +193,7 @@ static void	*receiveSegments(void *parm)
 	char			*buffer;
 	int			threadRunning = 1;
 	DgrRC			rc;
+	int			result;
 	unsigned short		fromPortNbr;
 	unsigned int		fromHostNbr;
 	int			length;
@@ -248,20 +261,25 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					if (bpHandleXmitSuccess(bundleZco, 0))
+					result = bpHandleXmitSuccess(bundleZco,
+							0);
+					if (result < 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 success.", NULL);
 					}
 
-					CHKNULL(sdr_begin_xn(sdr));
-					zco_destroy(sdr, bundleZco);
-					if (sdr_end_xn(sdr) < 0)
+					if (result == 1)
 					{
-						threadRunning = 0;
-						putErrmsg("Failed destroying \
-bundle ZCO.", NULL);
+						CHKNULL(sdr_begin_xn(sdr));
+						zco_destroy(sdr, bundleZco);
+						if (sdr_end_xn(sdr) < 0)
+						{
+							threadRunning = 0;
+							putErrmsg("Failed \
+destroying bundle ZCO.", NULL);
+						}
 					}
 
 					if (threadRunning == 0)
@@ -295,20 +313,24 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					if (bpHandleXmitFailure(bundleZco))
+					result = bpHandleXmitFailure(bundleZco);
+					if (result < 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 failure.", NULL);
 					}
 
-					CHKNULL(sdr_begin_xn(sdr));
-					zco_destroy(sdr, bundleZco);
-					if (sdr_end_xn(sdr) < 0)
+					if (result == 1)
 					{
-						threadRunning = 0;
-						putErrmsg("Failed destroying \
-bundle ZCO.", NULL);
+						CHKNULL(sdr_begin_xn(sdr));
+						zco_destroy(sdr, bundleZco);
+						if (sdr_end_xn(sdr) < 0)
+						{
+							threadRunning = 0;
+							putErrmsg("Failed \
+destroying bundle ZCO.", NULL);
+						}
 					}
 
 					if (threadRunning == 0)

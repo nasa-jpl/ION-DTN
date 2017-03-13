@@ -1128,7 +1128,9 @@ extern int		bpHandleXmitSuccess(Object zco, unsigned int interval);
 			 *	acceptance signal for this bundle has
 			 *	been received.
 			 *
-			 *	Returns 0 on success, -1 on failure.	*/
+			 *	Returns 1 if bundle success was
+			 *	handled, 0 if bundle had already
+			 *	been destroyed, -1 on system failure.	*/
 
 extern int		bpHandleXmitFailure(Object zco);
 			/*	This function is invoked by a
@@ -1139,7 +1141,9 @@ extern int		bpHandleXmitFailure(Object zco);
 			 *	outbound bundle in zco to be queued
 			 *	up for re-forwarding.
 			 *
-			 *	Returns 0 on success, -1 on failure.	*/
+			 *	Returns 1 if bundle failure was
+			 *	handled, 0 if bundle had already
+			 *	been destroyed, -1 on system failure.	*/
 
 extern int		bpReforwardBundle(Object bundleToReforward);
 			/*	bpReforwardBundle aborts the current

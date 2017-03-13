@@ -299,19 +299,23 @@ static void	cancelXmit(LystElt elt, void *userdata)
 {
 	Sdr	sdr = getIonsdr();
 	Object	bundleZco = (Object) lyst_data(elt);
+	int	result;
 
 	if (bundleZco == 0)
 	{
 		return;
 	}
 
-	if (bpHandleXmitFailure(bundleZco) < 0)
+	result = bpHandleXmitFailure(bundleZco);
+       	if (result < 0)
 	{
 		putErrmsg("tcpcli neighbor closure can't handle failed xmit.",
 				NULL);
 		ionKillMainThread(procName());
+		return;
 	}
-	else
+
+	if (result == 1)
 	{
 		oK(sdr_begin_xn(sdr));
 		zco_destroy(sdr, bundleZco);
@@ -1298,7 +1302,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 		pthread_mutex_unlock(&(session->mutex));
 		llcv_signal(session->throttle, pipeline_not_full);
-		if (bundleZco == 0 || bpHandleXmitFailure(bundleZco) < 0)
+		if (bundleZco == 0)
 		{
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -1308,6 +1312,8 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 			return -1;
 		}
+
+		result = bpHandleXmitFailure(bundleZco);
 	}
 	else	/*	Acknowledgments are ascending.			*/
 	{
@@ -1330,7 +1336,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 		pthread_mutex_unlock(&(session->mutex));
 		llcv_signal(session->throttle, pipeline_not_full);
-		if (bundleZco == 0 || bpHandleXmitSuccess(bundleZco, 0) < 0)
+		if (bundleZco == 0)
 		{
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -1340,6 +1346,28 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 			return -1;
 		}
+
+		result = bpHandleXmitSuccess(bundleZco, 0);
+	}
+
+	if (result != 1)
+	{
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't clear oldest bundle.",
+					session->neighbor->vplan->neighborEid);
+			return -1;
+		}
+
+		if (result == 0)	/*	Bundle already gone.	*/
+		{
+			session->lengthSent = 0;
+			return 1;	/*	In effect, ack handled.	*/
+		}
+
+		putErrmsg("Can't clear oldest bundle.",
+				session->neighbor->vplan->neighborEid);
+		return -1;		/*	System failure.		*/
 	}
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/

@@ -11032,7 +11032,7 @@ static int	bufAdvance(int length, unsigned int *bundleLength,
 	*cursor += length;
 	if (*cursor > endOfBuffer)
 	{
-		writeMemoNote("[?] Bundle truncated",
+		writeMemoNote("[?] Bundle truncated, possibly non-bundle data",
 				itoa(endOfBuffer - *cursor));
 		*bundleLength = 0;
 	}
@@ -11305,19 +11305,14 @@ int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
 			(char *) buffer);
 	if (bytesBuffered < 0)
 	{
-		putErrmsg("Can't extract primary block.", NULL);
-		oK(sdr_end_xn(sdr));
-		return -1;
+		/*	Guessing this memory is no longer occupied
+		 *	by a ZCO.  Note decoding failure.		*/
+
+		return sdr_end_xn(sdr);
 	}
 
-	if (decodeHeader(sdr, &reader, buffer, bytesBuffered, image,
-			dictionary, bundleLength) < 0)
-	{
-		putErrmsg("Can't decode bundle header.", NULL);
-		oK(sdr_end_xn(sdr));
-		return -1;
-	}
-
+	oK (decodeHeader(sdr, &reader, buffer, bytesBuffered, image,
+			dictionary, bundleLength));
 	return sdr_end_xn(sdr);
 }
 
@@ -11550,7 +11545,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 int	bpHandleXmitFailure(Object bundleZco)
@@ -11603,7 +11598,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 int	bpReforwardBundle(Object bundleAddr)
