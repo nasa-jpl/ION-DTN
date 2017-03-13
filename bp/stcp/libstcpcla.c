@@ -142,18 +142,6 @@ static int	connectToCLI(char *protocolName, char *ductName, int *sock)
 		return -1;
 	}
 
-	/*	Unblock duct if possible.  N/A for BRS.			*/
-
-	if (strncmp(protocolName, "brs", 3) != 0)
-	{
-		if (bpUnblockOutduct(protocolName, ductName) < 0)
-		{
-			putErrmsg("CLO connected but didn't unblock outduct.",
-					ductName);
-			return -1;
-		}
-	}
-
 	return 1;	/*	CLO connected to remote CLI.		*/
 }
 
@@ -167,27 +155,10 @@ int	openStcpOutductSocket(char *protocolName, char *ductName, int *sock)
 
 void	closeStcpOutductSocket(int *ductSocket)
 {
-	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	char	ductName[MAX_CL_DUCT_NAME_LEN];
-
 	CHKVOID(ductSocket);
 	if (*ductSocket != -1)
 	{
-		/*	Block the corresponding outduct if possible.	*/
-
-		protocolName[0] = '\0';
-		oK(_stcpOutductId(protocolName, ductName, *ductSocket));
-		if (protocolName[0] != '\0'
-		&& strncmp(protocolName, "brs", 3) != 0)
-		{
-			if (bpBlockOutduct(protocolName, ductName) < 0)
-			{
-				writeMemoNote("[?] Failed blocking outduct",
-						ductName);
-			}
-		}
-
-		/*	Now forget the outduct ID and close the socket.	*/
+		/*	Forget the outduct ID and close the socket.	*/
 
 		oK(_stcpOutductId(NULL, NULL, *ductSocket));
 		closesocket(*ductSocket);
@@ -198,6 +169,7 @@ void	closeStcpOutductSocket(int *ductSocket)
 static int	handleStcpFailure(Object bundleZco)
 {
 	Sdr	sdr = getIonsdr();
+	int	result;
 
 	/*	Make sure the bundle isn't dropped on the floor.	*/
 
@@ -208,7 +180,8 @@ static int	handleStcpFailure(Object bundleZco)
 
 	/*	Handle the de-queued bundle.				*/
 
-	if (bpHandleXmitFailure(bundleZco) < 0)
+	result = bpHandleXmitFailure(bundleZco);
+       	if (result < 0)
 	{
 		putErrmsg("Can't handle STCP xmit failure.", NULL);
 		return -1;
@@ -216,12 +189,15 @@ static int	handleStcpFailure(Object bundleZco)
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (result == 1)
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		return -1;
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy bundle ZCO.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
@@ -233,6 +209,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 {
 	unsigned int	preamble;
 	Sdr		sdr = getIonsdr();
+	int		result;
 
 	/*	Connect to CLI as necessary.				*/
 
@@ -294,7 +271,8 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 		break;		/*	Out of switch.			*/
 	}
 
-	if (bpHandleXmitSuccess(bundleZco, 0) < 0)
+	result = bpHandleXmitSuccess(bundleZco, 0);
+       	if (result < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		return -1;
@@ -302,12 +280,15 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 
 	/*	Destroy bundle, unless there's stewardship or custody.	*/
 
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (result == 1)
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		return -1;
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy bundle ZCO.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;

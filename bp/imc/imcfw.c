@@ -84,54 +84,18 @@ static int	deliverAtSource(Object bundleObj, Bundle *bundle)
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
-	FwdDirective	directive;
-	char		stationEid[64];
-	IonNode		*stationNode;
-	PsmAddress	nextElt;
-	PsmPartition	ionwm;
-	PsmAddress	embElt;
-	Embargo		*embargo;
+	char		eid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 
-	if (ipn_lookupPlanDirective(nodeNbr, 0, 0, bundle, &directive) == 0)
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
 		return 0;
 	}
 
-	/*	The station node is a neighbor.				*/
-
-	isprintf(stationEid, sizeof stationEid, "ipn:" UVAST_FIELDSPEC ".0",
-			nodeNbr);
-
-	/*	Is neighbor refusing to be a station for bundles?	*/
-
-	stationNode = findNode(getIonVdb(), nodeNbr, &nextElt);
-	if (stationNode)
-	{
-		ionwm = getIonwm();
-		for (embElt = sm_list_first(ionwm, stationNode->embargoes);
-				embElt; embElt = sm_list_next(ionwm, embElt))
-		{
-			embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm,
-					embElt));
-			if (embargo->nodeNbr < nodeNbr)
-			{
-				continue;
-			}
-
-			if (embargo->nodeNbr > nodeNbr)
-			{
-				break;	/*	Not refusing bundles.	*/
-			}
-
-			/*	Neighbor is refusing bundles.  A
-			 *	neighbor, but not a good neighbor;
-			 *	give up.				*/
-
-			return 0;
-		}
-	}
-
-	if (bpEnqueue(&directive, bundle, bundleObj, stationEid) < 0)
+	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
 		return -1;

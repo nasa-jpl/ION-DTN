@@ -437,9 +437,8 @@ int	bp_suspend(Object bundleObj)
 	Sdr		sdr = getIonsdr();
 	Bundle		bundle;
 	Object		queue;
-	Object		outductObj;
-	Outduct		outduct;
-	ClProtocol	protocol;
+	Object		planObj;
+	BpPlan		plan;
 
 	CHKERR(bundleObj);
 	CHKERR(sdr_begin_xn(sdr));
@@ -458,9 +457,9 @@ int	bp_suspend(Object bundleObj)
 	}
 
 	bundle.suspended = 1;
-	queue = sdr_list_list(sdr, bundle.ductXmitElt);
-	outductObj = sdr_list_user_data(sdr, queue);
-	if (outductObj == 0)
+	queue = sdr_list_list(sdr, bundle.planXmitElt);
+	planObj = sdr_list_user_data(sdr, queue);
+	if (planObj == 0)
 	{
 		/*	Object is already in limbo for other reasons.
 		 *	Just record the suspension flag.		*/
@@ -472,11 +471,8 @@ int	bp_suspend(Object bundleObj)
 		/*	Must reverse the enqueuing of this bundle
 		 *	and place it in limbo.				*/
 
-		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
-		sdr_read(sdr, (char *) &protocol, outduct.protocol,
-				sizeof(ClProtocol));
-		if (reverseEnqueue(bundle.ductXmitElt, &protocol, outductObj,
-				&outduct, 1))
+		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		if (reverseEnqueue(bundle.planXmitElt, planObj, &plan, 1))
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);

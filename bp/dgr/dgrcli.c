@@ -1,10 +1,10 @@
 /*
-	dgrcla.c:	ION DGR convergence-layer adapter daemon.
-			Handles both transmission and reception.
+	dgrcli.c:	ION DGR convergence-layer reception daemon.
+			Adapted from dgrcla.c, 2006.
 
 	Author: Scott Burleigh, JPL
 
-	Copyright (c) 2006, California Institute of Technology.
+	Copyright (c) 2017, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 	
@@ -14,171 +14,11 @@
 
 #define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
-#define	DEFAULT_DGR_RATE	125000000
 
 static void	interruptThread()
 {
 	isignal(SIGTERM, interruptThread);
-	ionKillMainThread("dgrcla");
-}
-
-/*	*	*	Sender thread functions	*	*	*	*/
-
-typedef struct
-{
-	VOutduct	*vduct;
-	int		*running;
-	Dgr		dgrSap;
-} SenderThreadParms;
-
-static void	*sendBundles(void *parm)
-{
-	/*	Main loop for single bundle transmission thread
-	 *	serving all DGR destination inducts.			*/
-
-	SenderThreadParms	*parms = (SenderThreadParms *) parm;
-	char			*procName = "dgrcla";
-	char			*buffer;
-	Sdr			sdr;
-	Outduct			outduct;
-	Outflow			outflows[3];
-	int			i;
-	int			threadRunning = 1;
-	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
-	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
-	unsigned short		portNbr;
-	unsigned int		hostNbr;
-	int			failedTransmissions = 0;
-	ZcoReader		reader;
-	int			bytesToSend;
-	DgrRC			rc;
-
-	snooze(1);	/*	Let main thread become interruptable.	*/
-	buffer = MTAKE(DGRCLA_BUFSZ);
-	if (buffer == NULL)
-	{
-		putErrmsg("dgrcla can't get DGR buffer.", NULL);
-		*(parms->running) = 0;
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	sdr = getIonsdr();
-	CHKNULL(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
-			parms->vduct->outductElt), sizeof(Outduct));
-	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
-
-	/*	Can now begin transmitting to clients.			*/
-
-	while (threadRunning)
-	{
-		if (sm_SemEnded(parms->vduct->semaphore))
-		{
-			break;
-		}
-
-		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 64000, -1) < 0)
-		{
-			putErrmsg("Can't dequeue bundle.", NULL);
-			break;
-		}
-
-		if (bundleZco == 0)		/*	Outduct closed.	*/
-		{
-			writeMemo("[i] dgrcla outduct closed.");
-			threadRunning = 0;
-			continue;
-		}
-
-		parseSocketSpec(destDuctName, &portNbr, &hostNbr);
-		if (portNbr == 0)
-		{
-			portNbr = DGRCLA_PORT_NBR;
-		}
-
-		CHKNULL(sdr_begin_xn(sdr));
-		if (hostNbr == 0)		/*	Can't send it.	*/
-		{
-			failedTransmissions++;
-			zco_destroy(sdr, bundleZco);
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't destroy bundle ZCO.", NULL);
-				threadRunning = 0;
-			}
-
-			continue;
-		}
-
-		zco_start_transmitting(bundleZco, &reader);
-		zco_track_file_offset(&reader);
-		bytesToSend = zco_transmit(sdr, &reader, DGRCLA_BUFSZ, buffer);
-		oK(sdr_end_xn(sdr));
-		if (bytesToSend < 0)
-		{
-			threadRunning = 0;
-			putErrmsg("Can't issue from ZCO.", NULL);
-			continue;
-		}
-
-		/*	Concatenated bundle is now in buffer.  Send it.	*/
-
-		if (bytesToSend > 0)
-		{
-			if (dgr_send(parms->dgrSap, portNbr, hostNbr,
-				DGR_NOTE_ALL, buffer, bytesToSend, &rc) < 0)
-			{
-				threadRunning = 0;
-				putErrmsg("Crashed sending bundle.", NULL);
-			}
-			else
-			{
-				if (rc == DgrFailed)
-				{
-					failedTransmissions++;
-					if (bpHandleXmitFailure(bundleZco))
-					{
-						threadRunning = 0;
-						putErrmsg("Crashed handling \
-failure.", NULL);
-					}
-				}
-			}
-		}
-
-		CHKNULL(sdr_begin_xn(sdr));
-		zco_destroy(sdr, bundleZco);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			threadRunning = 0;
-			putErrmsg("Failed destroying bundle ZCO.", NULL);
-			continue;
-		}
-
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
-	}
-
-	*(parms->running) = 0;
-	ionKillMainThread(procName);
-	writeErrmsgMemos();
-	isprintf(buffer, DGRCLA_BUFSZ, "[i] dgrcla outduct ended.  %d \
-transmissions failed.", failedTransmissions);
-	writeMemo(buffer);
-	MRELEASE(buffer);
-	return NULL;
+	ionKillMainThread("dgrcli");
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -196,7 +36,7 @@ static void	*receiveBundles(void *parm)
 
 	Sdr			sdr = getIonsdr();
 	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
-	char			*procName = "dgrcla";
+	char			*procName = "dgrcli";
 	char			*buffer;
 	AcqWorkArea		*work;
 	int			threadRunning = 1;
@@ -206,13 +46,14 @@ static void	*receiveBundles(void *parm)
 	int			length;
 	int			errnbr;
 	Object			bundleZco;
+	int			result;
 	char			hostName[MAXHOSTNAMELEN + 1];
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	work = bpGetAcqArea(parms->vduct);
 	if (work == NULL)
 	{
-		putErrmsg("dgrcla can't get acquisition work area.", NULL);
+		putErrmsg("dgrcli can't get acquisition work area.", NULL);
 		*(parms->running) = 0;
 		ionKillMainThread(procName);
 		return NULL;
@@ -221,7 +62,7 @@ static void	*receiveBundles(void *parm)
 	buffer = MTAKE(DGRCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putErrmsg("dgrcla can't get DGR buffer.", NULL);
+		putErrmsg("dgrcli can't get DGR buffer.", NULL);
 		*(parms->running) = 0;
 		ionKillMainThread(procName);
 		return NULL;
@@ -278,20 +119,25 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					if (bpHandleXmitSuccess(bundleZco, 0))
+					result = bpHandleXmitSuccess(bundleZco,
+							0);
+					if (result < 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 success.", NULL);
 					}
 
-					CHKNULL(sdr_begin_xn(sdr));
-					zco_destroy(sdr, bundleZco);
-					if (sdr_end_xn(sdr) < 0)
+					if (result == 1)
 					{
-						threadRunning = 0;
-						putErrmsg("Failed destroying \
-bundle ZCO.", NULL);
+						CHKNULL(sdr_begin_xn(sdr));
+						zco_destroy(sdr, bundleZco);
+						if (sdr_end_xn(sdr) < 0)
+						{
+							threadRunning = 0;
+							putErrmsg("Failed \
+destroying bundle ZCO.", NULL);
+						}
 					}
 
 					if (threadRunning == 0)
@@ -325,20 +171,24 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					if (bpHandleXmitFailure(bundleZco))
+					result = bpHandleXmitFailure(bundleZco);
+					if (result < 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 failure.", NULL);
 					}
 
-					CHKNULL(sdr_begin_xn(sdr));
-					zco_destroy(sdr, bundleZco);
-					if (sdr_end_xn(sdr) < 0)
+					if (result == 1)
 					{
-						threadRunning = 0;
-						putErrmsg("Failed destroying \
-bundle ZCO.", NULL);
+						CHKNULL(sdr_begin_xn(sdr));
+						zco_destroy(sdr, bundleZco);
+						if (sdr_end_xn(sdr) < 0)
+						{
+							threadRunning = 0;
+							putErrmsg("Failed \
+destroying bundle ZCO.", NULL);
+						}
 					}
 
 					if (threadRunning == 0)
@@ -373,7 +223,7 @@ bundle ZCO.", NULL);
 			{
 				/*	Not terminated by main thread.	*/
 
-				writeMemo("[?] dgrcla failed in bundle acq.");
+				writeMemo("[?] dgrcli failed in bundle acq.");
 			}
 
 			threadRunning = 0;
@@ -405,14 +255,14 @@ bundle ZCO.", NULL);
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
 	writeErrmsgMemos();
-	writeMemo("[i] dgrcla receiver thread stopping.");
+	writeMemo("[i] dgrcli receiver thread stopping.");
 	return NULL;
 }
 
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
-int	dgrcla(int a1, int a2, int a3, int a4, int a5,
+int	dgrcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*ductName = (char *) a1;
@@ -423,7 +273,6 @@ int	main(int argc, char *argv[])
 #endif
 	VInduct			*vinduct;
 	PsmAddress		vductElt;
-	VOutduct		*voutduct;
 	Sdr			sdr;
 	Induct			induct;
 	ClProtocol		protocol;
@@ -432,21 +281,19 @@ int	main(int argc, char *argv[])
 	Dgr			dgrSap;
 	DgrRC			rc;
 	int			running = 1;
-	SenderThreadParms	senderParms;
 	ReceiverThreadParms	rtp;
-	pthread_t		senderThread;
 	pthread_t		receiverThread;
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: dgrcla <local host name>[:<port number>]");
+		PUTS("Usage: dgrcli <local host name>[:<port number>]");
 		PUTS("[port number defaults to 1113]");
 		return 0;
 	}
 
 	if (bpAttach() < 0)
 	{
-		putErrmsg("dgrcla can't attach to BP.", NULL);
+		putErrmsg("dgrcli can't attach to BP.", NULL);
 		return 1;
 	}
 
@@ -461,13 +308,6 @@ int	main(int argc, char *argv[])
 	{
 		putErrmsg("CLI task is already started for this duct.",
 				itoa(vinduct->cliPid));
-		return 1;
-	}
-
-	findOutduct("dgr", "*", &voutduct, &vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("No such dgr outduct.", ductName);
 		return 1;
 	}
 
@@ -493,27 +333,14 @@ int	main(int argc, char *argv[])
 	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)
 	|| rc == DgrFailed)
 	{
-		putErrmsg("dgrcla can't open DGR service access point.", NULL);
+		putErrmsg("dgrcli can't open DGR service access point.", NULL);
 		return 1;
 	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
-	ionNoteMainThread("dgrcla");
+	ionNoteMainThread("dgrcli");
 	isignal(SIGTERM, interruptThread);
-
-	/*	Start the sender thread; a single sender for all
-	 *	destinations.						*/
-
-	senderParms.vduct = voutduct;
-	senderParms.running = &running;
-	senderParms.dgrSap = dgrSap;
-	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
-	{
-		dgr_close(dgrSap);
-		putSysErrmsg("dgrcla can't create sender thread", NULL);
-		return 1;
-	}
 
 	/*	Start the receiver thread.				*/
 
@@ -522,14 +349,12 @@ int	main(int argc, char *argv[])
 	rtp.dgrSap = dgrSap;
 	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp))
 	{
-		sm_SemEnd(voutduct->semaphore);
-		pthread_join(senderThread, NULL);
 		dgr_close(dgrSap);
-		putSysErrmsg("dgrcla can't create receiver thread", NULL);
+		putSysErrmsg("dgrcli can't create receiver thread", NULL);
 		return 1;
 	}
 
-	writeMemo("[i] dgrcla is running.");
+	writeMemo("[i] dgrcli is running.");
 
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the ducts.				*/
@@ -540,21 +365,12 @@ int	main(int argc, char *argv[])
 
 	running = 0;
 
-	/*	Shut down the sender thread.				*/
-
-	if (voutduct->semaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(voutduct->semaphore);
-	}
-
-	pthread_join(senderThread, NULL);
-
 	/*	Shut down the receiver thread.				*/
 
 	dgr_close(dgrSap);
 	pthread_join(receiverThread, NULL);
 	writeErrmsgMemos();
-	writeMemo("[i] dgrcla induct ended.");
+	writeMemo("[i] dgrcli induct ended.");
 	bp_detach();
 	return 0;
 }

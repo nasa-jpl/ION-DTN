@@ -8,18 +8,19 @@ B<tcpcli> I<local_hostname>[:I<local_port_nbr>]
 
 =head1 DESCRIPTION
 
-B<tcpcli> is a background "daemon" task comprising 1 + N threads: one that
+B<tcpcli> is a background "daemon" task comprising 1 + 2*N threads: one that
 handles TCP connections from remote B<tcpclo> tasks, spawning sockets for
-data reception from those tasks, plus one input thread for each spawned
-socket to handle data reception over that socket.
+data reception from those tasks, plus one input thread and one output thread
+for each spawned socket to handle data reception and transmission over that
+socket.
 
 The connection thread simply accepts connections on a TCP socket bound to
 I<local_hostname> and I<local_port_nbr> and spawns reception threads.  The
 default value for I<local_port_nbr>, if omitted, is 4556.
 
-Each time a connection is established, the end-points will first exchange
+Each time a connection is established, the endpoints will first exchange
 contact headers, because connection parameters need to be negotiated.
-B<tcpcli> records the acknowledgement flags, reactive fragmentation flag
+B<tcpcli> records the acknowledgement flags, reactive fragmentation flag,
 and negative acknowledgements flag in the contact header it receives from
 its peer B<tcpclo> task.
  
@@ -27,6 +28,10 @@ Each reception thread receives bundles over the associated connected socket.
 Each bundle received on the connection is preceded by message type,
 fragmentation flags, and size represented as an SDNV.  The received bundles
 are passed to the bundle protocol agent on the local ION node.
+
+Similarly, each transmission thread obtains outbound bundles from the local
+ION node, encapsulates them as noted above, and transmits them over the
+associated connected socket.
 
 B<tcpcli> is spawned automatically by B<bpadmin> in response to the 's'
 (START) command that starts operation of the Bundle Protocol; the text

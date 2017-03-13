@@ -106,7 +106,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 			socketName);
 	if (bytesSent < 0)
 	{
-		if (bpHandleXmitFailure(bundleZco))
+		if (bpHandleXmitFailure(bundleZco) < 0)
 		{
 			putErrmsg("Can't handle xmit failure.", NULL);
 			return -1;

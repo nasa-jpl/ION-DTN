@@ -21,58 +21,16 @@
 extern "C" {
 #endif
 
-typedef struct
-{
-	Object		demux;			/*	SDR string	*/
-	FwdDirective	directive;
-} Dtn2Rule;
+extern int		dtn2_init();
 
-/*	DTN2 forwarding rules are managed in the non-volatile linked
- *	list of Dtn2Plan objects that associate egress directives
- *	with node name patterns.  Each plan may have an associated
- *	list of Dtn2Rules indicating the egress directives for bundles
- *	that are characterized by a specific demux token.  Each plan
- *	also has a default directive, which applies to all bundles
- *	for which no demux-specific Dtn2Rules apply.			*/
+extern void		dtn2_findPlan(char *eid, Object *planAddr, Object *elt);
 
-typedef struct
-{
-	Object		nodeName;		/*	SDR string	*/
-	FwdDirective	defaultDirective;
-	Object		rules;			/*	(Dtn2Rule *)	*/
-} Dtn2Plan;
-
-typedef struct
-{
-	Object		plans;
-} Dtn2DB;
-
-extern int		dtn2Init();
-extern Object		getDtn2DbObject();
-extern Dtn2DB		*getDtn2Constants();
-
-extern void		dtn2_destroyDirective(FwdDirective *directive);
-
-extern int		dtn2_lookupDirective(char *nodeName, char *demux,
-				Bundle *bundle, FwdDirective *directive);
-
-extern void		dtn2_findPlan(char *nodeName, Object *planAddr,
-				Object *elt);
-extern int		dtn2_addPlan(char *nodeName,
-				FwdDirective *defaultDirective);
-extern int		dtn2_updatePlan(char *nodeName,
-				FwdDirective *defaultDirective);
-extern int		dtn2_removePlan(char *nodeName);
-
-extern void		dtn2_findRule(char *nodeName, char *demux,
-				Dtn2Plan *plan, Object *ruleAddr, Object *elt);
-extern int		dtn2_addRule(char *nodeName, char *demux,
-				FwdDirective *directive);
-extern int		dtn2_updateRule(char *nodeName, char *demux,
-				FwdDirective *directive);
-extern int		dtn2_removeRule(char *nodeName, char *demux);
-
-extern void		dtn2_forgetOutduct(Object ductElt);
+extern int		dtn2_addPlan(char *eid, unsigned int nominalRate);
+extern int		dtn2_addPlanDuct(char *eid, char *ductExpression);
+extern int		dtn2_updatePlan(char *eid, unsigned int nominalRate);
+extern int		dtn2_setPlanViaEid(char *eid, char *viaEid);
+extern int		dtn2_removePlanDuct(char *eid, char *ductExpression);
+extern int		dtn2_removePlan(char *eid);
 
 #ifdef __cplusplus
 }

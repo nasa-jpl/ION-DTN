@@ -1,0 +1,17 @@
+## begin ipnd
+# Initialize Ipnd
+1
+#e 1
+# Configure EID
+m eid ipn:2.0
+m port 4550
+m announce period 1
+m announce eid 1
+m interval unicast 1
+m interval multicast 10
+m interval broadcast 10
+m multicast ttl 1
+a listen 127.0.0.1
+#a svcadv CLA-TCP-v4 IP:127.0.0.1 Port:4562
+s
+## end ipnd

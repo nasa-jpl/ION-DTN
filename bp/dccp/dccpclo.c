@@ -210,13 +210,6 @@ void* send_keepalives(void* param)
 			else
 			{
 				itp->active = 1;
-				pthread_mutex_unlock(&itp->mutex);
-				if (bpUnblockOutduct("dccp", itp->ductname) < 0)
-				{
-					putErrmsg("DCCPCLO connected but didn't unblock outduct.",
-								NULL);
-				}
-				pthread_mutex_lock(&itp->mutex);
 			}
 		}
 		pthread_mutex_unlock(&itp->mutex);
@@ -231,43 +224,39 @@ return NULL;
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-
-	/*	First mark the outduct as blocked, if possible.		*/
-	if (ductname)
-	{
-		if (bpBlockOutduct("dccp", ductname) < 0)
-		{
-			putErrmsg("Can't block outduct.", NULL);
-			return -1;
-		}
-	}
+	int	result;
 
 	/*	Handle the de-queued bundle.				*/
-	if (bpHandleXmitFailure(*bundleZco) < 0)
+	result = bpHandleXmitFailure(*bundleZco);
+       	if (result < 0)
 	{
 		putErrmsg("Can't handle DCCP xmit failure.", NULL);
 		return -1;
 	}
 
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, *bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (result == 1)
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		return -1;
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, *bundleZco);
+		if (sdr_end_xn(sdr) < 0	)
+		{
+			putErrmsg("Can't destroy bundle ZCO.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
 }
 
-int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedCOS,
-			char* dest, char* buffer)
+int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
+		BpExtendedCOS *extendedCOS, char* dest, char* buffer)
 {
-	Sdr			sdr;
+	Sdr		sdr;
 	ZcoReader	reader;
-	int			bytesSent;
-	int			bytesToSend;
-	int			bundleLength;
+	int		bytesSent;
+	int		bytesToSend;
+	int		bundleLength;
+	int		result;
 
 	/* Connect socket				*/
 	if (!itp->active)
@@ -328,20 +317,25 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 	}while(1);
 
 	/* Notify BP of success transmitting		*/
-	if (bpHandleXmitSuccess(*bundleZco, 0) < 0)
+	result = bpHandleXmitSuccess(*bundleZco, 0);
+       	if (result < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		bytesSent=-1;
 	}
 
-	/* Cleanup ZCO					*/
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, *bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (result == 1)
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		bytesSent=-1;
+		/* Cleanup ZCO					*/
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, *bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy bundle ZCO.", NULL);
+			bytesSent=-1;
+		}
 	}
+
 	return bytesSent;
 }
 

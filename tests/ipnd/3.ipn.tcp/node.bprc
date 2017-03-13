@@ -1,0 +1,11 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a scheme dtn 'dtn2fw' 'dtn2adminep'
+a protocol tcp 1400 100
+a induct tcp 127.0.0.1:4563 tcpcli
+e 1
+w 1
+s
