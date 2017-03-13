@@ -789,7 +789,17 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 		if (advanceCursor(&cursor, sdnvLength, cursorEnd) < 0)
 			BEACON_TRUNCATED_MANDATORY
 
-		memcpy(&deserializedBeacon->canonicalEid, cursor, eidLength);
+		if (eidLength >= MAX_EID_LEN)
+		{
+			printText("Beacon malformed, source EID too long.");
+			ret = -2;
+		}
+		else
+		{
+			memcpy(&deserializedBeacon->canonicalEid, cursor,
+					eidLength);
+		}
+
 		if (advanceCursor(&cursor, eidLength, cursorEnd) < 0)
 			BEACON_TRUNCATED_MANDATORY
 	}
@@ -805,6 +815,14 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 		{
 			serviceDefinition = (ServiceDefinition*)
 					MTAKE(sizeof(ServiceDefinition));
+			if (serviceDefinition == NULL)
+			{
+				putErrmsg("No space for service definition.",
+						NULL);
+				BEACON_TRUNCATED_OPTIONAL;
+				break;
+			}
+
 			serviceDefinition->number = *cursor;
 			if (advanceCursor(&cursor, 1, cursorEnd) < 0)
 			{
@@ -825,6 +843,15 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 
 			serviceDefinition->data =
 					MTAKE(serviceDefinition->dataLength);
+			if (serviceDefinition->data == NULL)
+			{
+				putErrmsg("No space for service def data.",
+						NULL);
+				BEACON_TRUNCATED_OPTIONAL;
+				MRELEASE(serviceDefinition);
+				break;
+			}
+
 			for (j = 0; j < sdnvLength + 1; j++)
 			{
 				serviceDefinition->data[j] = *(cursor
@@ -864,6 +891,15 @@ information (%s) is malformed.", ctx->tags[*serviceDefinition->data].name);
 			{
 				deserializedBeacon->services =
 					lyst_create_using(getIonMemoryMgr());
+				if (deserializedBeacon->services == NULL)
+				{
+					putErrmsg("No space for services list.",
+							NULL);
+					BEACON_TRUNCATED_OPTIONAL;
+					MRELEASE(serviceDefinition->data);
+					MRELEASE(serviceDefinition);
+					break;
+				}
 			}
 
 			lyst_insert(deserializedBeacon->services,

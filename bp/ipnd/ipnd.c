@@ -234,7 +234,10 @@ void updateCtxNbf(char* eid, int eidLen)
 	IPNDCtx	*ctx = getIPNDCtx();
 
 	if (!ctx) return;
-	oK(bloom_add(&ctx->nbf, eid, eidLen));
+	if (bloom_add(&ctx->nbf, eid, eidLen) < 0)
+	{
+		putErrmsg("Can't add EID to Bloom filter", eid);
+	}
 
 	/* find service 127 NBF-Bits and update it with bytes */
 

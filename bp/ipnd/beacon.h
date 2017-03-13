@@ -32,7 +32,7 @@ typedef struct
 {
 	unsigned char	version;
 	unsigned char	flags;
-	unsigned int	sequenceNumber;
+	unsigned short	sequenceNumber;
 	char		canonicalEid[MAX_EID_LEN];
 	Lyst		services;	/*	ServiceDefinitions	*/
 	int		period;

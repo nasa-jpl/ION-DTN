@@ -409,7 +409,6 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 	}
 
 	neighborNodeNbr = metaEid.nodeNbr;
-	restoreEidString(&metaEid);
 	deleteNdpNeighbor(neighborEid);
 	if (strcmp(claProtocol, "tcp") == 0)
 	{
@@ -435,11 +434,13 @@ name error", claProtocol);
 
 	if (strcmp(metaEid.schemeName, "dtn") == 0)
 	{
+		restoreEidString(&metaEid);
 		return dtn2_removePlan(neighborEid);
 	}
 
 	if (strcmp(metaEid.schemeName, "ipn") != 0)
 	{
+		restoreEidString(&metaEid);
 		writeMemoNote("[?] Neighbor discovery unsupported scheme name",
 				neighborEid);
 		return -1;
@@ -448,6 +449,7 @@ name error", claProtocol);
 	/*	For discovered ipn-scheme EID's egress plan, must
 	 *	manage contact and range as well as plan.		*/
 
+	restoreEidString(&metaEid);
 	if (ipn_removePlan(neighborNodeNbr) < 0)
 	{
 		return -1;
