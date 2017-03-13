@@ -10,7 +10,7 @@
 #include <bpP.h>
 
 static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
-			char *svcClass)
+			int ttl, char *svcClass)
 {
 	int		priority = 0;
 	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
@@ -84,7 +84,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		if (bp_send(sap, destEid, NULL, 300, priority, custodySwitch,
+		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
 				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
@@ -113,20 +113,24 @@ int	bpsendfile(int a1, int a2, int a3, int a4, int a5,
 	char	*ownEid = (char *) a1;
 	char	*destEid = (char *) a2;
 	char	*fileName = (char *) a3;
-	char	*classOfService = (char *) a4;
+	int	ttl = atoi((char *) a4);
+	char	*classOfService = (char *) a5;
 #else
 int	main(int argc, char **argv)
 {
 	char	*ownEid = NULL;
 	char	*destEid = NULL;
 	char	*fileName = NULL;
+	int	ttl = 300;
 	char	*classOfService = NULL;
 
-	if (argc > 5) argc = 5;
+	if (argc > 6) argc = 6;
 	switch (argc)
 	{
+	case 6:
+		classOfService = argv[5];
 	case 5:
-		classOfService = argv[4];
+		ttl = atoi(argv[4]);
 	case 4:
 		fileName = argv[3];
 	case 3:
@@ -140,10 +144,10 @@ int	main(int argc, char **argv)
 	if (ownEid == NULL || destEid == NULL || fileName == NULL)
 	{
 		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
-endpoint ID> <file name> [<class of service>]");
+endpoint ID> <file name> [<time to live (seconds)> [<class of service>]]");
 		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
 		return 0;
 	}
 
-	return run_bpsendfile(ownEid, destEid, fileName, classOfService);
+	return run_bpsendfile(ownEid, destEid, fileName, ttl, classOfService);
 }
