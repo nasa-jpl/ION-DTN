@@ -3066,6 +3066,7 @@ char	*igetcwd(char *buf, size_t size)
 
 typedef struct
 {
+	int		declared;	/*	Boolean.		*/
 	pthread_t	tid;
 	int		signbr;
 	SignalHandler	handler;
@@ -3093,7 +3094,7 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 
 		for (i = 0, rule = rules; i < SIGNAL_RULE_CT; i++, rule++)
 		{
-			if (rule->tid == 0)	/*	Cleared.	*/
+			if (rule->declared == 0)	/*	Clear.	*/
 			{
 				if (handler == NULL)	/*	Noted.	*/
 				{
@@ -3102,6 +3103,7 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 
 				/*	Declare new signal rule here.	*/
 
+				rule->declared = 1;
 				rule->tid = tid;
 				rule->signbr = signbr;
 				rule->handler = handler;
@@ -3111,7 +3113,7 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 
 			/*	This is a declared signal rule.		*/
 
-			if (rule->tid == tid)
+			if (pthread_equal(rule->tid, tid))
 			{
 				/*	One of thread's own rules.	*/
 
@@ -3129,7 +3131,7 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 				}
 				else	/*	Noted in another rule.	*/
 				{
-					rule->tid = 0;	/*	Clear.	*/
+					rule->declared = 0;
 				}
 
 				continue;
@@ -3141,7 +3143,7 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 			{
 				/*	Obsolete rule; thread is gone.	*/
 
-				rule->tid = 0;		/*	Clear.	*/
+				rule->declared = 0;	/*	Clear.	*/
 			}
 		}
 
@@ -3152,7 +3154,7 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 
 	for (i = 0, rule = rules; i < SIGNAL_RULE_CT; i++, rule++)
 	{
-		if (rule->tid == tid && rule->signbr == signbr)
+		if (pthread_equal(rule->tid, tid) && rule->signbr == signbr)
 		{
 			return rule->handler;
 		}
