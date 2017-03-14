@@ -169,6 +169,7 @@ static void	executeStart(int tokenCount, char **tokens)
 		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStartScheme(tokens[2]);
@@ -180,6 +181,7 @@ static void	executeStart(int tokenCount, char **tokens)
 		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStartProtocol(tokens[2]);
@@ -191,6 +193,7 @@ static void	executeStart(int tokenCount, char **tokens)
 		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStartInduct(tokens[2], tokens[3]);
@@ -202,6 +205,7 @@ static void	executeStart(int tokenCount, char **tokens)
 		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStartOutduct(tokens[2], tokens[3]);
@@ -229,6 +233,7 @@ static void	executeStop(int tokenCount, char **tokens)
 		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStopScheme(tokens[2]);
@@ -240,6 +245,7 @@ static void	executeStop(int tokenCount, char **tokens)
 		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStopProtocol(tokens[2]);
@@ -251,6 +257,7 @@ static void	executeStop(int tokenCount, char **tokens)
 		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStopInduct(tokens[2], tokens[3]);
@@ -262,6 +269,7 @@ static void	executeStop(int tokenCount, char **tokens)
 		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
+			return;
 		}
 
 		bpStopOutduct(tokens[2], tokens[3]);
