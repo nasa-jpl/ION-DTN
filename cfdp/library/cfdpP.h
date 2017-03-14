@@ -245,6 +245,7 @@ typedef struct
 	unsigned int	transactionInactivityLimit;
 	unsigned int	checkTimerPeriod;
 	unsigned int	checkTimeoutLimit;
+	unsigned int	maxQueuedEvents;
 	CfdpHandler	faultHandlers[16];
 
 	/*	Fault handlers table is indexed by transaction
