@@ -606,7 +606,7 @@ int mgr_init(char *argv[])
 
 	 utils_mem_int();
 
-    strcpy((char *) manager_eid.name, argv[1]);
+    istrcpy((char *) manager_eid.name, argv[1], sizeof manager_eid.name);
 
     if(iif_register_node(&ion_ptr, manager_eid) == 0)
     {

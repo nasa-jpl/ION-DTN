@@ -229,7 +229,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 		}
 
 		memset(&instr, 0, sizeof(bpsec_src_instr_t));
-		strncpy(instr.eid, src, MAX_EID_LEN);
+		istrcpy(instr.eid, src, MAX_EID_LEN);
 
 		if((sdrData = sdr_insert(sdr, (char *) &instr, sizeof(bpsec_src_instr_t))) == 0)
 		{

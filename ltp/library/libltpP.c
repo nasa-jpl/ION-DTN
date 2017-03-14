@@ -254,6 +254,8 @@ static int	acknowledgeLateReport(unsigned int sessionNbr,
 		{
 			writeMemoNote("Ack from closed export session",
 					utoa(sessionNbr));
+			sdr_read(sdr, (char *) &spanBuf, closedExportBuf.span,
+					sizeof(LtpSpan));
 			if (constructReportAckSegment(&spanBuf,
 					closedExportBuf.span,
 					sessionNbr, rptSerialNbr))

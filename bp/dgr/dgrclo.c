@@ -258,6 +258,7 @@ temporary ZCO.", NULL);
 						 *	in effect,
 						 *	datagram lost.	*/
 
+						sm_TaskYield();
 						continue;
 					}
 
@@ -287,6 +288,7 @@ destroying bundle ZCO.", NULL);
 						break;	/*	Switch.	*/
 					}
 
+					sm_TaskYield();
 					continue;
 
 				case DgrDatagramNotAcknowledged:
@@ -310,6 +312,7 @@ temporary ZCO.", NULL);
 						 *	in effect,
 						 *	datagram lost.	*/
 
+						sm_TaskYield();
 						continue;
 					}
 
@@ -338,12 +341,14 @@ destroying bundle ZCO.", NULL);
 						break;	/*	Switch.	*/
 					}
 
+					sm_TaskYield();
 					continue;
 
 				case DgrFailed:
 					break;	/*	Out of switch.	*/
 
 				default:
+					sm_TaskYield();
 					continue;
 			}
 
@@ -368,12 +373,7 @@ destroying bundle ZCO.", NULL);
 			}
 
 			threadRunning = 0;
-			continue;
 		}
-
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
 	}
 
 	*(parms->running) = 0;
