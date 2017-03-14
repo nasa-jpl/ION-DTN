@@ -2138,16 +2138,10 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 #endif
 	int		i;
 
-<<<<<<< local
+	CHKVOID(plan && bundle && priorClaims && totalBacklog);
 	findPlan(plan->neighborEid, &vplan, &vplanElt);
 	CHKVOID(vplanElt);
 	throttle = applicableThrottle(vplan);
-=======
-	CHKVOID(protocol && duct && bundle && priorClaims && totalBacklog);
-	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
-	CHKVOID(vductElt);
-	throttle = applicableThrottle(vduct);
->>>>>>> other
 
 	/*	Prior claims on the first contact along this route
 	 *	must include however much transmission the plan
@@ -2745,19 +2739,10 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 	unsigned int	backlogDecrement;
 	OrdinalState	*ord;
 
-<<<<<<< local
 	/*	Removal from queue reduces plan's backlog.		*/
-=======
-	CHKVOID(bundle && bundleObj && protocol && outductObj && outduct);
->>>>>>> other
 
-<<<<<<< local
+	CHKVOID(bundle && bundleObj && planObj && plan);
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
-=======
-	/*	Removal from queue reduces outduct's backlog.		*/
-
-	backlogDecrement = computeECCC(guessBundleSize(bundle), protocol);
->>>>>>> other
 	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
 	{
 	case 0:				/*	Bulk priority.		*/
@@ -4832,35 +4817,17 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 int	flushOutduct(Outduct *outduct)
 {
 	Sdr		sdr = getIonsdr();
-<<<<<<< local
 	ClProtocol	protocol;
 	Object		elt;
 	Object		bundleObj;
 	Bundle		bundle;
-=======
-	unsigned int	secRemaining;
-	unsigned int	xmitRate;
->>>>>>> other
 
-<<<<<<< local
 	/*	Any bundle previously enqueued for transmission via
 	 *	this outduct that has not yet been transmitted is
 	 *	treated as a convergence-layer transmission failure:
 	 *	try again or destroy the bundle, depending on
 	 *	reliability commitment.					*/
-=======
-	CHKERR(vduct && maxPayloadLength);
-	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
-	if (vduct->neighborNodeNbr)	/*	Known neighbor node.	*/
-	{
-		/*	If neighbor node number is known, we may be
-		 *	able to limit bundle size to the remaining
-		 *	contact capacity.  But we can only do this
-		 *	if the contact plan contains contacts for
-		 *	transmission to this node.			*/
->>>>>>> other
 
-<<<<<<< local
 	CHKERR(ionLocked());
 	sdr_read(sdr, (char *) &protocol, outduct->protocol,
 			sizeof(ClProtocol));
@@ -4871,19 +4838,8 @@ int	flushOutduct(Outduct *outduct)
 		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 		if (bundle.custodyTaken
 		|| protocol.protocolClass & BP_PROTOCOL_RELIABLE)
-=======
-		CHKERR(sdr_begin_xn(sdr));
-		rfx_contact_state(vduct->neighborNodeNbr, &secRemaining,
-				&xmitRate);
-		sdr_exit_xn(sdr);
-		if (secRemaining == 0)	/*	No current contact.	*/
->>>>>>> other
 		{
-<<<<<<< local
 			if (bpReforwardBundle(bundleObj) < 0)
-=======
-			if (xmitRate == 0)
->>>>>>> other
 			{
 				putErrmsg("Inferred CL-failure failed",
 						outduct->name);
@@ -7792,25 +7748,12 @@ unsigned int	guessBundleSize(Bundle *bundle)
 		+ bundle->extensionsLength[POST_PAYLOAD]);
 }
 
-<<<<<<< local
 unsigned int	computeECCC(unsigned int bundleSize)
-=======
-int	computeECCC(int bundleSize, ClProtocol *protocol)
->>>>>>> other
 {
-<<<<<<< local
 	unsigned int	stackOverhead;
-=======
-	int	framesNeeded;
->>>>>>> other
 
-<<<<<<< local
 	/*	Assume 6.25% convergence-layer overhead.		*/
-=======
-	/*	Compute estimated consumption of contact capacity.	*/
->>>>>>> other
 
-<<<<<<< local
 	stackOverhead = (bundleSize >> 4) & 0x0fffffff;
 	if (stackOverhead < TYPICAL_STACK_OVERHEAD)
 	{
@@ -7818,13 +7761,6 @@ int	computeECCC(int bundleSize, ClProtocol *protocol)
 	}
 
 	return bundleSize + stackOverhead;
-=======
-	CHKZERO(protocol);
-	framesNeeded = bundleSize / protocol->payloadBytesPerFrame;
-	framesNeeded += (bundleSize % protocol->payloadBytesPerFrame) ? 1 : 0;
-	framesNeeded += (framesNeeded == 0) ? 1 : 0;
-	return bundleSize + (protocol->overheadPerFrame * framesNeeded);
->>>>>>> other
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -10465,7 +10401,7 @@ int	reverseEnqueue(Object xmitElt, Object planObj, BpPlan *plan,
 	Object	bundleAddr;
 	Bundle	bundle;
 
-	CHKERR(xmitElt && protocol && outductObj && outduct);
+	CHKERR(xmitElt && planObj && plan);
 	bundleAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 	removeBundleFromQueue(&bundle, bundleAddr, planObj, plan);
@@ -10523,21 +10459,11 @@ int	bpBlockPlan(char *eid)
 	Object		xmitElt;
 	Object		nextElt;
 
-<<<<<<< local
 	CHKERR(eid);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
-=======
-	CHKERR(protocolName && ductName);
-	findOutduct(protocolName, ductName, &vduct, &outductElt);
-	if (outductElt == 0)
->>>>>>> other
 	{
-<<<<<<< local
 		writeMemoNote("[?] Can't find plan to block", eid);
-=======
-		writeMemoNote("[?] Can't find outduct to block", ductName);
->>>>>>> other
 		return 0;
 	}
 
@@ -10660,21 +10586,11 @@ int	bpUnblockPlan(char *eid)
 	Object		xmitElt;
 	Object		nextElt;
 
-<<<<<<< local
 	CHKERR(eid);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
-=======
-	CHKERR(protocolName && ductName);
-	findOutduct(protocolName, ductName, &vduct, &outductElt);
-	if (outductElt == 0)
->>>>>>> other
 	{
-<<<<<<< local
 		writeMemoNote("[?] Can't find plan to unblock", eid);
-=======
-		writeMemoNote("[?] Can't find outduct to unblock", ductName);
->>>>>>> other
 		return 0;
 	}
 

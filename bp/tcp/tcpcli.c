@@ -1082,26 +1082,16 @@ plan for neighbor.", eidbuf);
 	}
 	else				/*	From connect().		*/
 	{
-<<<<<<< local
 		if (strcmp(eidbuf, neighbor->vplan->neighborEid) != 0)
 		{
 			/*	The node that we have connect()ed
 			 *	to is not the one that we thought
 			 *	it was.					*/
-=======
-		/*	The node that we have connect()ed to is not
-		 *	the one that we thought it was.			*/
->>>>>>> other
 
-<<<<<<< local
 			writeMemoNote("[i] expected tcpcl EID",
 					neighbor->vplan->neighborEid);
 			writeMemoNote("[i] received tcpcl EID", eidbuf);
 		}
-=======
-		writeMemoNote("[i] Note: expected tcpcl EID", neighbor->eid);
-		writeMemoNote("[i] ...but received tcpcl EID", eidbuf);
->>>>>>> other
 	}
 
 	MRELEASE(eidbuf);		/*	No longer needed.	*/
