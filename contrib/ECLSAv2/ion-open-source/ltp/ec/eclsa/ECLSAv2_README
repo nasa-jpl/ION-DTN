@@ -1,0 +1,13 @@
++-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+ECLSAv2: 
+Copyright University of Bologna 2016
+All rights reserved.
++-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Project supervisor: Carlo Caini (carlo.caini@unibo.it)
+Main Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+Author of the OpenFEC Adapter: Marco Raminella (marco.raminella@studio.unibo.it)
+
+The software contained in this directory (/ec/eclsa) is released under the GPLv2 and later versions 
+license.
+Please Refer to GPLv2_Licence for licence details.
