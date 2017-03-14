@@ -85,11 +85,17 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 					event.refNbr2);
 			break;		/*	Out of switch.		*/
 
-		case LtpForgetSession:
+		case LtpForgetImportSession:
 			sdr_list_delete(sdr, event.parm, NULL, NULL);
 			result = 0;
 			break;		/*	Out of switch.		*/
 
+#if CLOSED_EXPORTS_ENABLED
+		case LtpForgetExportSession:
+			ltpForgetClosedExport(event.parm);
+			result = 0;
+			break;		/*	Out of switch.		*/
+#endif
 		default:		/*	Spurious event.		*/
 			result = 0;	/*	Event is ignored.	*/
 		}
