@@ -35,11 +35,21 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 int	udpclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+<<<<<<< local
 	char			*endpointSpec = (char *) a1;
+=======
+	unsigned int		rtt = (a1 != 0 ? strtoul((char *) a1, NULL, 0)
+		       				: 0);
+>>>>>>> other
 #else
 int	main(int argc, char *argv[])
 {
+<<<<<<< local
 	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
+=======
+	unsigned int		rtt = (argc > 1 ? strtoul(argv[2], NULL, 0)
+						: 0);
+>>>>>>> other
 #endif
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
@@ -132,7 +142,12 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] udpclo is running.");
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
+<<<<<<< local
 		if (bpDequeue(vduct, &bundleZco, &extendedCOS, 0) < 0)
+=======
+		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
+				destDuctName, outduct.maxPayloadLen, rtt) < 0)
+>>>>>>> other
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

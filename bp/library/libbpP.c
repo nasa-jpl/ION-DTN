@@ -2074,12 +2074,14 @@ void	bpDetach()
 
 void	noteBundleInserted(Bundle *bundle)
 {
+	CHKVOID(bundle);
 	zco_increase_heap_occupancy(getIonsdr(), bundle->dbOverhead,
 			bundle->acct);
 }
 
 void	noteBundleRemoved(Bundle *bundle)
 {
+	CHKVOID(bundle);
 	zco_reduce_heap_occupancy(getIonsdr(), bundle->dbOverhead,
 			bundle->acct);
 }
@@ -2090,6 +2092,7 @@ void	getCurrentDtnTime(DtnTime *dt)
 {
 	time_t	currentTime;
 
+	CHKVOID(dt);
 	currentTime = getUTCTime();
 	dt->seconds = currentTime - EPOCH_2000_SEC;	/*	30 yrs	*/
 	dt->nanosec = 0;
@@ -2135,9 +2138,16 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 #endif
 	int		i;
 
+<<<<<<< local
 	findPlan(plan->neighborEid, &vplan, &vplanElt);
 	CHKVOID(vplanElt);
 	throttle = applicableThrottle(vplan);
+=======
+	CHKVOID(protocol && duct && bundle && priorClaims && totalBacklog);
+	findOutduct(protocol->name, duct->name, &vduct, &vductElt);
+	CHKVOID(vductElt);
+	throttle = applicableThrottle(vduct);
+>>>>>>> other
 
 	/*	Prior claims on the first contact along this route
 	 *	must include however much transmission the plan
@@ -2458,8 +2468,7 @@ static int	printDtnEid(DtnEid *eid, char *dictionary, char **result)
 
 int	printEid(EndpointId *eid, char *dictionary, char **result)
 {
-	CHKERR(eid);
-	CHKERR(result);
+	CHKERR(eid && result);
 	if (eid->cbhe)
 	{
 		if (eid->unicast)
@@ -2484,6 +2493,7 @@ int	startBpTask(Object cmd, Object cmdParms, int *pid)
 	char	cmdString[SDRSTRING_BUFSZ];
 	char	parmsString[SDRSTRING_BUFSZ];
 
+	CHKERR(cmd && pid && bpSdr);
 	if (sdr_string_read(bpSdr, cmdString, cmd) < 0)
 	{
 		putErrmsg("Failed reading command.", NULL);
@@ -2735,9 +2745,19 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 	unsigned int	backlogDecrement;
 	OrdinalState	*ord;
 
+<<<<<<< local
 	/*	Removal from queue reduces plan's backlog.		*/
+=======
+	CHKVOID(bundle && bundleObj && protocol && outductObj && outduct);
+>>>>>>> other
 
+<<<<<<< local
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
+=======
+	/*	Removal from queue reduces outduct's backlog.		*/
+
+	backlogDecrement = computeECCC(guessBundleSize(bundle), protocol);
+>>>>>>> other
 	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
 	{
 	case 0:				/*	Bulk priority.		*/
@@ -3086,9 +3106,7 @@ int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 	Object		hashElt;
 	BundleSet	bset;
 
-	CHKERR(sourceEid);
-	CHKERR(creationTime);
-	CHKERR(bundleAddr);
+	CHKERR(sourceEid && creationTime && bundleAddr);
 	*bundleAddr = 0;	/*	Default: not found.		*/
 	CHKERR(ionLocked());
 	if (constructBundleHashKey(key, sourceEid, creationTime->seconds,
@@ -3436,6 +3454,7 @@ int	bpStartScheme(char *name)
 	PsmAddress	vschemeElt;
 	int		result = 1;
 
+	CHKZERO(name);
 	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findScheme(name, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
@@ -3458,6 +3477,7 @@ void	bpStopScheme(char *name)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 
+	CHKVOID(name);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findScheme(name, &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
@@ -3481,8 +3501,10 @@ void	findEndpoint(char *schemeName, char *nss, VScheme *vscheme,
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
+	CHKVOID(vpoint && vpointElt);
 	if (vscheme == NULL)
 	{
+		CHKVOID(schemeName);
 		findScheme(schemeName, &vscheme, &elt);
 		if (elt == 0)
 		{
@@ -3491,6 +3513,7 @@ void	findEndpoint(char *schemeName, char *nss, VScheme *vscheme,
 		}
 	}
 
+	CHKVOID(nss);
 	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -4296,6 +4319,7 @@ void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
 	Sdr	bpSdr = getIonsdr();
 	Object	elt;
 
+	CHKVOID(protocolName && clp && clpElt);
 	for (elt = sdr_list_first(bpSdr, (_bpConstants())->protocols); elt;
 			elt = sdr_list_next(bpSdr, elt))
 	{
@@ -4424,6 +4448,7 @@ int	bpStartProtocol(char *name)
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
 
+	CHKZERO(name);
 	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -4458,6 +4483,7 @@ void	bpStopProtocol(char *name)
 	VInduct		*vinduct;
 	VOutduct	*voutduct;
 
+	CHKVOID(name);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -4496,6 +4522,7 @@ void	findInduct(char *protocolName, char *ductName, VInduct **vduct,
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
+	CHKVOID(protocolName && ductName && vduct && vductElt);
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -4740,6 +4767,7 @@ int	bpStartInduct(char *protocolName, char *ductName)
 	PsmAddress	vductElt;
 	int		result = 1;
 
+	CHKERR(protocolName && ductName);
 	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findInduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
@@ -4762,6 +4790,7 @@ void	bpStopInduct(char *protocolName, char *ductName)
 	VInduct		*vduct;
 	PsmAddress	vductElt;
 
+	CHKVOID(protocolName && ductName);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findInduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
@@ -4785,6 +4814,7 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
+	CHKVOID(protocolName && ductName && vduct && vductElt);
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->outducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
@@ -4802,17 +4832,35 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 int	flushOutduct(Outduct *outduct)
 {
 	Sdr		sdr = getIonsdr();
+<<<<<<< local
 	ClProtocol	protocol;
 	Object		elt;
 	Object		bundleObj;
 	Bundle		bundle;
+=======
+	unsigned int	secRemaining;
+	unsigned int	xmitRate;
+>>>>>>> other
 
+<<<<<<< local
 	/*	Any bundle previously enqueued for transmission via
 	 *	this outduct that has not yet been transmitted is
 	 *	treated as a convergence-layer transmission failure:
 	 *	try again or destroy the bundle, depending on
 	 *	reliability commitment.					*/
+=======
+	CHKERR(vduct && maxPayloadLength);
+	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
+	if (vduct->neighborNodeNbr)	/*	Known neighbor node.	*/
+	{
+		/*	If neighbor node number is known, we may be
+		 *	able to limit bundle size to the remaining
+		 *	contact capacity.  But we can only do this
+		 *	if the contact plan contains contacts for
+		 *	transmission to this node.			*/
+>>>>>>> other
 
+<<<<<<< local
 	CHKERR(ionLocked());
 	sdr_read(sdr, (char *) &protocol, outduct->protocol,
 			sizeof(ClProtocol));
@@ -4823,8 +4871,19 @@ int	flushOutduct(Outduct *outduct)
 		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 		if (bundle.custodyTaken
 		|| protocol.protocolClass & BP_PROTOCOL_RELIABLE)
+=======
+		CHKERR(sdr_begin_xn(sdr));
+		rfx_contact_state(vduct->neighborNodeNbr, &secRemaining,
+				&xmitRate);
+		sdr_exit_xn(sdr);
+		if (secRemaining == 0)	/*	No current contact.	*/
+>>>>>>> other
 		{
+<<<<<<< local
 			if (bpReforwardBundle(bundleObj) < 0)
+=======
+			if (xmitRate == 0)
+>>>>>>> other
 			{
 				putErrmsg("Inferred CL-failure failed",
 						outduct->name);
@@ -5162,6 +5221,7 @@ int	bpStartOutduct(char *protocolName, char *ductName)
 	PsmAddress	vductElt;
 	int		result = 1;
 
+	CHKERR(protocolName && ductName);
 	CHKZERO(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findOutduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
@@ -5184,6 +5244,7 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
+	CHKVOID(protocolName && ductName);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
 	findOutduct(protocolName, ductName, &vduct, &vductElt);
 	if (vductElt == 0)	/*	This is an unknown duct.	*/
@@ -5308,6 +5369,7 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 	Object		nextElt;
 	Object		elt;
 
+	CHKZERO(newEvent);
 	CHKZERO(ionLocked());
 	node = sm_rbt_search(wm, timeline, orderBpEvents, newEvent, &successor);
 	if (node != 0)
@@ -5560,9 +5622,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	BpString	*oldSenderEid;
 	int		result;
 
-	CHKERR(oldBundle);
-	CHKERR(newBundle);
-	CHKERR(newBundleObj);
+	CHKERR(oldBundle && newBundle && newBundleObj);
 	if (oldBundle->payload.content == 0)
 	{
 		putErrmsg("Nothing to clone.", utoa(oldBundle->payload.length));
@@ -5740,9 +5800,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	PsmAddress	vschemeElt;
 	Scheme		schemeBuf;
 
-	CHKERR(bundleObj);
-	CHKERR(bundle);
-	CHKERR(eid);
+	CHKERR(bundleObj && bundle && eid);
 
 	/*	Error if this bundle is already in the process of
 	 *	being delivered locally.  A bundle that is being
@@ -6715,6 +6773,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 	char		*reportToEid;
 	int		result;
 
+	CHKERR(bundle);
 	if (bundle->statusRpt.creationTime.seconds == 0)
 	{
 		bundle->statusRpt.creationTime.seconds
@@ -6799,8 +6858,7 @@ void	lookUpEndpoint(EndpointId eid, char *dictionary, VScheme *vscheme,
 	char		*nss;
 	PsmAddress	elt;
 
-	CHKVOID(vscheme);
-	CHKVOID(vpoint);
+	CHKVOID(vscheme && vpoint);
 	if (dictionary == NULL)
 	{
 		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
@@ -7049,6 +7107,7 @@ int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 		OBJ_POINTER(IncompleteBundle, incomplete);
 	Object	elt;
 
+	CHKERR(bundleObj && bundle && vpoint);
 	CHKERR(ionLocked());
 
 	/*	Regardless of delivery outcome, current custodian
@@ -7444,6 +7503,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 	Sdr	bpSdr = getIonsdr();
 	BpDB	*bpConstants = _bpConstants();
 
+	CHKERR(work && zco);
 	if (work->zco)
 	{
 		putErrmsg("Can't replace ZCO in acq work area.",  NULL);
@@ -7480,8 +7540,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	int			fd;
 	int			fileLength;
 
-	CHKERR(work);
-	CHKERR(bytes);
+	CHKERR(work && bytes);
 	CHKERR(length >= 0);
 	if (work->congestive)
 	{
@@ -7719,11 +7778,13 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 
 void	bpCancelAcq(AcqWorkArea *work)
 {
+	CHKVOID(work);
 	oK(eraseWorkZco(work));
 }
 
 unsigned int	guessBundleSize(Bundle *bundle)
 {
+	CHKZERO(bundle);
 	return (NOMINAL_PRIMARY_BLKSIZE
 		+ bundle->dictionaryLength
 		+ bundle->extensionsLength[PRE_PAYLOAD]
@@ -7731,12 +7792,25 @@ unsigned int	guessBundleSize(Bundle *bundle)
 		+ bundle->extensionsLength[POST_PAYLOAD]);
 }
 
+<<<<<<< local
 unsigned int	computeECCC(unsigned int bundleSize)
+=======
+int	computeECCC(int bundleSize, ClProtocol *protocol)
+>>>>>>> other
 {
+<<<<<<< local
 	unsigned int	stackOverhead;
+=======
+	int	framesNeeded;
+>>>>>>> other
 
+<<<<<<< local
 	/*	Assume 6.25% convergence-layer overhead.		*/
+=======
+	/*	Compute estimated consumption of contact capacity.	*/
+>>>>>>> other
 
+<<<<<<< local
 	stackOverhead = (bundleSize >> 4) & 0x0fffffff;
 	if (stackOverhead < TYPICAL_STACK_OVERHEAD)
 	{
@@ -7744,6 +7818,13 @@ unsigned int	computeECCC(unsigned int bundleSize)
 	}
 
 	return bundleSize + stackOverhead;
+=======
+	CHKZERO(protocol);
+	framesNeeded = bundleSize / protocol->payloadBytesPerFrame;
+	framesNeeded += (bundleSize % protocol->payloadBytesPerFrame) ? 1 : 0;
+	framesNeeded += (framesNeeded == 0) ? 1 : 0;
+	return bundleSize + (protocol->overheadPerFrame * framesNeeded);
+>>>>>>> other
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -10091,6 +10172,7 @@ static int	sendAcceptanceAdminRecords(Bundle *bundle)
 
 int	bpAccept(Object bundleObj, Bundle *bundle)
 {
+	CHKERR(bundleObj && bundle);
 	CHKERR(ionLocked());
 	if (!bundle->accepted)	/*	Accept bundle only once.	*/
 	{
@@ -10383,6 +10465,7 @@ int	reverseEnqueue(Object xmitElt, Object planObj, BpPlan *plan,
 	Object	bundleAddr;
 	Bundle	bundle;
 
+	CHKERR(xmitElt && protocol && outductObj && outduct);
 	bundleAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 	removeBundleFromQueue(&bundle, bundleAddr, planObj, plan);
@@ -10440,11 +10523,21 @@ int	bpBlockPlan(char *eid)
 	Object		xmitElt;
 	Object		nextElt;
 
+<<<<<<< local
 	CHKERR(eid);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
+=======
+	CHKERR(protocolName && ductName);
+	findOutduct(protocolName, ductName, &vduct, &outductElt);
+	if (outductElt == 0)
+>>>>>>> other
 	{
+<<<<<<< local
 		writeMemoNote("[?] Can't find plan to block", eid);
+=======
+		writeMemoNote("[?] Can't find outduct to block", ductName);
+>>>>>>> other
 		return 0;
 	}
 
@@ -10567,11 +10660,21 @@ int	bpUnblockPlan(char *eid)
 	Object		xmitElt;
 	Object		nextElt;
 
+<<<<<<< local
 	CHKERR(eid);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
+=======
+	CHKERR(protocolName && ductName);
+	findOutduct(protocolName, ductName, &vduct, &outductElt);
+	if (outductElt == 0)
+>>>>>>> other
 	{
+<<<<<<< local
 		writeMemoNote("[?] Can't find plan to unblock", eid);
+=======
+		writeMemoNote("[?] Can't find outduct to unblock", ductName);
+>>>>>>> other
 		return 0;
 	}
 
@@ -11293,6 +11396,7 @@ int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
 	ZcoReader	reader;
 	int		bytesBuffered;
 
+	CHKERR(sdr && zco && buffer && image && bundleLength); 
 	*bundleLength = 0;	/*	Initialize to default.		*/
 	memset((char *) image, 0, sizeof(Bundle));
 
@@ -11326,8 +11430,7 @@ int	bpIdentify(Object bundleZco, Object *bundleObj)
 	int		result;
 	char		*sourceEid;
 
-	CHKERR(bundleZco);
-	CHKERR(bundleObj);
+	CHKERR(bundleZco && bundleObj);
 	*bundleObj = 0;			/*	Default: not located.	*/
 	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
 	if (buffer == NULL)
@@ -11416,8 +11519,7 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 	int		result;
 	char		*sourceEid;
 
-	CHKERR(bundleZco);
-	CHKERR(bundleObj);
+	CHKERR(bundleZco && bundleObj);
 	CHKERR(ionLocked());
 	*bundleObj = 0;			/*	Default: not located.	*/
 	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
@@ -11468,6 +11570,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 	char	*dictionary;
 	int	result;
 
+	CHKERR(bundleZco);
 	CHKERR(sdr_begin_xn(bpSdr));
 	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)
 	{
@@ -11554,6 +11657,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 	Object	bundleAddr;
 	Bundle	bundle;
 
+	CHKERR(bundleZco);
 	CHKERR(sdr_begin_xn(bpSdr));
 	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)
 	{
@@ -11866,6 +11970,7 @@ int	applyCtSignal(BpCtSignal *cts, char *bundleSourceEid)
 	char		*eidString;
 	int		result;
 
+	CHKERR(cts && bundleSourceEid);
 	CHKERR(sdr_begin_xn(bpSdr));
 	if (findBundle(cts->sourceEid, &cts->creationTime, cts->fragmentOffset,
 			cts->fragmentLength, &bundleAddr) < 0)

@@ -106,6 +106,8 @@ B<j>	bundle is placed in "limbo" for possible future re-forwarding
 
 B<k>	bundle is removed from "limbo" and queued for re-forwarding
 
+B<$>	bundle's custodial retransmission timeout interval expired
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their

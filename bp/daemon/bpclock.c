@@ -89,6 +89,11 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			break;		/*	Out of switch.		*/
 
 		case ctDue:
+			if ((getBpVdb())->watching & WATCH_retransmit)
+			{
+				iwatch('$');
+			}
+
 			result = bpReforwardBundle(event->ref);
 
 			/*	Note that bpReforwardBundle() always

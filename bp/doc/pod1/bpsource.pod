@@ -4,7 +4,7 @@ bpsource - Bundle Protocol transmission test shell
 
 =head1 SYNOPSIS
 
-B<bpsource> I<destinationEndpointId> ['I<text>'] [-tI<TTL>]
+B<bpsource> I<destinationEndpointId> ["I<text>"] [-tI<TTL>]
 
 =head1 DESCRIPTION
 

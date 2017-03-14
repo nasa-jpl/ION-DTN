@@ -58,6 +58,13 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 
 	aduLength = statbuf.st_size;
+	if (aduLength == 0)
+	{
+		writeMemoNote("[?] bpsendfile can't send file of length zero",
+				fileName);
+		return 0;
+	}
+
 	sdr = bp_get_sdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))

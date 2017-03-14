@@ -45,6 +45,7 @@ extern "C" {
 #define	WATCH_timeout			(2048)
 #define	WATCH_limbo			(4096)
 #define	WATCH_delimbo			(8192)
+#define	WATCH_retransmit		(16384)
 
 #define SDR_LIST_ELT_OVERHEAD		(WORD_SIZE * 4)
 

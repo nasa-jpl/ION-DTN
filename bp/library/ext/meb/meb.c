@@ -123,7 +123,7 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	meb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	return 0;
+	return 1;
 }
 
 void	meb_clear(AcqExtBlock *blk)
