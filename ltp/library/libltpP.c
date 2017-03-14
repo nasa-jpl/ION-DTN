@@ -4242,6 +4242,15 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		return 0;			/*	Overlap.	*/
 	}
 
+	/*	If we're low on heap space we can't accept the segment,
+	 *	because we don't have enough space for the necessary
+	 *	accounting objects.					*/
+
+	if (sdr_heap_depleted(sdr))
+	{
+		return 0;
+	}
+
 	/*	Okay to insert this segment into the list.		*/
 
 	session->redPartReceived += segment->pdu.length;
@@ -4496,6 +4505,8 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	ImportSession	sessionBuf;
+	ReqTicket	ticket;
+	vast		pduLength = 0;
 	Object		pduObj;
 
 	ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
@@ -4551,6 +4562,24 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 
 	/*	Deliver the client service data.			*/
 
+	if (ionRequestZcoSpace(ZcoInbound, 0, 0, pdu->length, 0, 0, NULL,
+			&ticket) < 0)
+	{
+		putErrmsg("Failed on ionRequest.", NULL);
+		return -1;
+	}
+
+	if (ticket)	/*	Couldn't service request immediately.	*/
+	{
+		ionShred(ticket);
+		*clientSvcData = 0;
+#if LTPDEBUG
+putErrmsg("Can't handle green data, would exceed available ZCO space.",
+utoa(pdu->length));
+#endif
+		return 1;		/*	No Zco created.		*/
+	}
+
 	pduObj = sdr_insert(sdr, cursor, pdu->length);
 	if (pduObj == 0)
 	{
@@ -4558,8 +4587,12 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 		return -1;
 	}
 
-	*clientSvcData = ionCreateZco(ZcoSdrSource, pduObj, 0, pdu->length,
-			1, 0, ZcoInbound, NULL);
+	/*	Pass additive inverse of length to zco_create to
+ 	*	indicate that space has already been awarded.		*/
+
+	pduLength -= pdu->length;
+	*clientSvcData = zco_create(sdr, ZcoSdrSource, pduObj, 0, pduLength,
+			ZcoInbound, 0);
 	switch (*clientSvcData)
 	{
 	case (Object) ERROR:
@@ -4568,7 +4601,7 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 
 	case 0:	/*	No ZCO space.  Silently discard segment.	*/
 #if LTPDEBUG
-putErrmsg("Can't handle green data, would exceed available heap space.",
+putErrmsg("Can't handle green data, would exceed available ZCO space.",
 utoa(pdu->length));
 #endif
 		break;
