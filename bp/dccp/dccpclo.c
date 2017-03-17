@@ -249,7 +249,7 @@ int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 }
 
 int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
-		BpExtendedCOS *extendedCOS, char* dest, char* buffer)
+		BpExtendedCOS *extendedCOS, char* buffer)
 {
 	Sdr		sdr;
 	ZcoReader	reader;
@@ -349,28 +349,23 @@ int	main(int argc, char *argv[])
 {
 	char	*ductName = (argc > 1 ? argv[1] : NULL);
 #endif
-	VOutduct			*vduct;
-	PsmAddress			vductElt;
-	Sdr					sdr;
-	Outduct				outduct;
-	ClProtocol			protocol;
-	Outflow				outflows[3];
-	char* 				hostName;
+	VOutduct		*vduct;
+	PsmAddress		vductElt;
+	Sdr			sdr;
+	Outduct			outduct;
+	ClProtocol		protocol;
+	char* 			hostName;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	struct sockaddr_in	*inetName;
-	pthread_t			keepalive_thread;
-	clo_state			itp;
-	Object				bundleZco;
+	pthread_t		keepalive_thread;
+	clo_state		itp;
+	Object			bundleZco;
 	BpExtendedCOS		extendedCOS;
-	char				destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	unsigned int		bundleLength;
-	int					running = 1;
+	int			running = 1;
 	unsigned int		sentLength;
-	char				*buffer;
-	int					i;
-
-
+	char			*buffer;
 
 	if (ductName == NULL)
 	{
@@ -417,16 +412,6 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
 
-	/*setup priority queues						*/
-	memset((char *) outflows, 0, sizeof(outflows));
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
-
 	/* get host to connect to from outduct				*/
 	hostName = ductName;
 	if (parseSocketSpec(hostName, &portNbr, &ipAddress) != 0)
@@ -472,8 +457,7 @@ int	main(int argc, char *argv[])
 	while (running && !(sm_SemEnded(vduct->semaphore)))
 	{
 		
-		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &extendedCOS, -1) < 0)
 		{
 			putErrmsg("Can'e dequeue bundle.", NULL);
 			break;
@@ -493,7 +477,8 @@ int	main(int argc, char *argv[])
 		if (bundleLength > DCCPCLA_BUFSZ)
 		{
 			/*Bundle Way Too Big--Terminate CLO 	*/
-			putErrmsg("Bundle is too big for DCCPCLO.", itoa(bundleLength));
+			putErrmsg("Bundle is too big for DCCPCLO.",
+					itoa(bundleLength));
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			running = 0;
 			continue;
@@ -502,7 +487,8 @@ int	main(int argc, char *argv[])
 
 		/* send bundle 						*/
 		pthread_mutex_lock(&itp.mutex);
-		sentLength = sendBundleByDCCP(&itp, &bundleZco, &extendedCOS, destDuctName, buffer);
+		sentLength = sendBundleByDCCP(&itp, &bundleZco, &extendedCOS,
+				buffer);
 		pthread_mutex_unlock(&itp.mutex);
 		if (sentLength < bundleLength)
 		{
