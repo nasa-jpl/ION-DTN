@@ -840,6 +840,7 @@ bpbin = \
 	bplist \
 	bpsendfile \
 	bprecvfile \
+	bpclm \
 	bpclock \
 	bptransit \
 	ipnadmin \
@@ -1404,6 +1405,10 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bptransit_SOURCES = bp/daemon/bptransit.c
 bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpclm_SOURCES = bp/daemon/bpclm.c
+bpclm_LDADD = libbp.la libici.la $(LIBOBJS)
+bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ##########################
 #
