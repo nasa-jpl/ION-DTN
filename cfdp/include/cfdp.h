@@ -217,7 +217,7 @@ typedef struct
 	unsigned int	ctInterval;
 	unsigned char	srrFlags;
 	int		ackRequested;
-	BpExtendedCOS	extendedCOS;
+	BpAncillaryData	ancillaryData;
 } BpUtParms;
 
 /*	*	*	CFDP initialization	*	*	*	*/

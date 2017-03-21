@@ -60,7 +60,7 @@ int	main(int argc, char *argv[])
 	Outduct		outduct;
 	int		running = 1;
 	Object		bundleZco;
-	BpExtendedCOS	extendedCOS;
+	BpAncillaryData	ancillaryData;
 	unsigned int	redPartLength;
 	LtpSessionId	sessionId;
 
@@ -115,7 +115,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] ltpclo is running.");
 	while (running && !(sm_SemEnded(ltpcloSemaphore(NULL))))
 	{
-		if (bpDequeue(vduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;
@@ -128,7 +128,7 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		if (extendedCOS.flags & BP_BEST_EFFORT)
+		if (ancillaryData.flags & BP_BEST_EFFORT)
 		{
 			redPartLength = 0;
 		}

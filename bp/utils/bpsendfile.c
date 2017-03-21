@@ -13,7 +13,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 			int ttl, char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
@@ -29,7 +29,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &extendedCOS,
+		if (!bp_parse_class_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
@@ -84,7 +84,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
-			priority, extendedCOS.ordinal, ZcoOutbound, NULL);
+			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
 	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("bpsendfile can't create ZCO.", NULL);
@@ -92,7 +92,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	else
 	{
 		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
-				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
+			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));

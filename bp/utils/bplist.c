@@ -211,14 +211,15 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"Ordinal                 %d",
-		       	bundle->extendedCOS.ordinal);
+		       	bundle->ancillaryData.ordinal);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
-			"Unreliable:             %d", bundle->extendedCOS.flags
-			& BP_BEST_EFFORT ? 1 : 0);
+			"Unreliable:             %d",
+			bundle->ancillaryData.flags & BP_BEST_EFFORT ? 1 : 0);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
-			"Critical:               %d", bundle->extendedCOS.flags
+			"Critical:               %d",
+			bundle->ancillaryData.flags
 			& BP_MINIMUM_LATENCY ? 1 : 0);
 	PUTS(buf);
 	oK(printEid(&(bundle->destination), dictionary, &eid));

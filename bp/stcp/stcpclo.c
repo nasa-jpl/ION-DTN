@@ -121,7 +121,7 @@ int	main(int argc, char *argv[])
 	KeepaliveThreadParms	parms;
 	pthread_t		keepaliveThread;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
@@ -201,7 +201,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] stcpclo is running....");
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
-		if (bpDequeue(vduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

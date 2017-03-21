@@ -51,7 +51,7 @@ int	main(int argc, char *argv[])
 	unsigned char		*buffer;
 	char			adminHeader[1];
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	Bundle			image;
 	char			*dictionary = 0;
@@ -114,7 +114,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] bibeclo is running.");
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, &bundleZco, &extendedCOS, 0) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			shutDownClo();
@@ -153,7 +153,7 @@ int	main(int argc, char *argv[])
 		ttl = image.timeToLive - bundleAge;
 		switch (bpSend(NULL, destDuctName, NULL, ttl,
 				COS_FLAGS(image.bundleProcFlags),
-				NoCustodyRequested, 0, 0, &extendedCOS,
+				NoCustodyRequested, 0, 0, &ancillaryData,
 				bundleZco, &newBundle, BP_ENCAPSULATED_BUNDLE))
 		{
 		case -1:	/*	System error.			*/

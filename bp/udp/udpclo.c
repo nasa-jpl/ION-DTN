@@ -57,7 +57,7 @@ int	main(int argc, char *argv[])
 	Outduct			outduct;
 	ClProtocol		protocol;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
@@ -136,7 +136,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] udpclo is running.");
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, &bundleZco, &extendedCOS, rtt) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, rtt) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

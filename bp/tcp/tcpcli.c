@@ -743,7 +743,7 @@ static int	sendOneBundle(SenderThreadParms *stp)
 {
 	TcpclSession	*session = stp->session;
 	Object		bundleZco;
-	BpExtendedCOS	extendedCOS;
+	BpAncillaryData	ancillaryData;
 
 	while (1)
 	{
@@ -756,7 +756,8 @@ static int	sendOneBundle(SenderThreadParms *stp)
 
 		/*	Get the next bundle to send.			*/
 
-		if (bpDequeue(session->vduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(session->vduct, &bundleZco, &ancillaryData, -1)
+				< 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			return -1;

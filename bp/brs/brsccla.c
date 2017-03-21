@@ -247,7 +247,7 @@ int	main(int argc, char *argv[])
 	KeepaliveThreadParms	ktparms;
 	pthread_t		keepaliveThread;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent;
 
@@ -436,7 +436,7 @@ number>");
 	writeMemo("[i] brsccla is running....");
 	while (!(sm_SemEnded(brscclaSemaphore(NULL))))
 	{
-		if (bpDequeue(voutduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(voutduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

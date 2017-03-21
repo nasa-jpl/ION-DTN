@@ -249,7 +249,7 @@ int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 }
 
 int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
-		BpExtendedCOS *extendedCOS, char* buffer)
+		BpAncillaryData *ancillaryData, char* buffer)
 {
 	Sdr		sdr;
 	ZcoReader	reader;
@@ -361,7 +361,7 @@ int	main(int argc, char *argv[])
 	pthread_t		keepalive_thread;
 	clo_state		itp;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			running = 1;
 	unsigned int		sentLength;
@@ -457,7 +457,7 @@ int	main(int argc, char *argv[])
 	while (running && !(sm_SemEnded(vduct->semaphore)))
 	{
 		
-		if (bpDequeue(vduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can'e dequeue bundle.", NULL);
 			break;
@@ -487,7 +487,7 @@ int	main(int argc, char *argv[])
 
 		/* send bundle 						*/
 		pthread_mutex_lock(&itp.mutex);
-		sentLength = sendBundleByDCCP(&itp, &bundleZco, &extendedCOS,
+		sentLength = sendBundleByDCCP(&itp, &bundleZco, &ancillaryData,
 				buffer);
 		pthread_mutex_unlock(&itp.mutex);
 		if (sentLength < bundleLength)

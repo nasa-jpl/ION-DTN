@@ -144,7 +144,7 @@ typedef struct
 	unsigned int    lifespan;
 	unsigned int    aggrSizeLimit;
 	unsigned int    aggrTimeLimit;
-        BpExtendedCOS	extendedCOS;
+        BpAncillaryData	ancillaryData;
         int		srrFlags;
 	BpCustodySwitch custodySwitch;
 	Object		reportToEid;	/*	SDR String		*/
@@ -182,7 +182,7 @@ extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				unsigned int lifespan,
-				BpExtendedCOS *extendedCOS,
+				BpAncillaryData *ancillaryData,
 				unsigned char srrFlags,
 				BpCustodySwitch custodySwitch,
 				char *reportToEid,

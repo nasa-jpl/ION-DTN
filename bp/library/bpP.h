@@ -310,9 +310,9 @@ typedef struct
 		/*	fragment offset is in the id field.		*/
 	unsigned int	totalAduLength;
 
-	/*	Stuff in Extended COS extension block.			*/
+	/*	Stuff in Extended COS and Metadata extension blocks.			*/
 
-	BpExtendedCOS	extendedCOS;
+	BpAncillaryData	ancillaryData;
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
@@ -903,7 +903,7 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 					BpCustodySwitch custodySwitch,
 					unsigned char srrFlags,
 					int ackRequested,
-					BpExtendedCOS *extendedCOS,
+					BpAncillaryData *ancillaryData,
 					Object adu,
 					Object *newBundle,
 					int bundleIsAdmin);
@@ -1009,7 +1009,7 @@ extern int		bpEnqueue(	VPlan *vplan,
 
 extern int		bpDequeue(	VOutduct *vduct,
 					Object *outboundZco,
-					BpExtendedCOS *extendedCOS,
+					BpAncillaryData *ancillaryData,
 					int timeoutInterval);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter

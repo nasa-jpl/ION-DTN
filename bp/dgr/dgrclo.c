@@ -44,7 +44,7 @@ static void	*sendBundles(void *parm)
 	Outduct			outduct;
 	int			threadRunning = 1;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	int			failedTransmissions = 0;
 	ZcoReader		reader;
 	int			bytesToSend;
@@ -76,7 +76,7 @@ static void	*sendBundles(void *parm)
 			break;
 		}
 
-		if (bpDequeue(parms->vduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(parms->vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

@@ -978,7 +978,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 {
 	Sdr		sdr = getIonsdr();
 	int		classOfService;
-	BpExtendedCOS	ecos = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
 	Object		extent;
 	Object		bundleZco;
 	Object		newBundle;
@@ -991,7 +991,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 
 	classOfService = flowLabel & 0x03;
-	ecos.flags = (flowLabel >> 2) & 0x03;
+	ancillaryData.flags = (flowLabel >> 2) & 0x03;
 	CHKERR(sdr_begin_xn(sdr));
 	extent = sdr_insert(sdr, envelope, envelopeLength);
 	if (extent == 0)
@@ -1002,7 +1002,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, envelopeLength,
-			classOfService, ecos.ordinal, ZcoOutbound, NULL);
+		classOfService, ancillaryData.ordinal, ZcoOutbound, NULL);
 	if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
 	|| bundleZco == 0)
 	{
@@ -1011,8 +1011,8 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 
 	if (bp_send(gWay->sap, ramsNode->gwEid, "dtn:none", gWay->ttl,
-			classOfService, SourceCustodyRequired, 0, 0, &ecos,
-			bundleZco, &newBundle) < 1)
+		classOfService, SourceCustodyRequired, 0, 0, &ancillaryData,
+		bundleZco, &newBundle) < 1)
 	{
 		isprintf(errorMsg, sizeof errorMsg,
 				"Cannot send message to %s.", ramsNode->gwEid);

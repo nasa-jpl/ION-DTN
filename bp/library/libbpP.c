@@ -2228,7 +2228,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	/*	Priority is 2, i.e., urgent (expedited).		*/
 
-	if ((i = bundle->extendedCOS.ordinal) == 0)
+	if ((i = bundle->ancillaryData.ordinal) == 0)
 	{
 		addToScalar(priorClaims, &(plan->urgentBacklog));
 		return;
@@ -2754,7 +2754,7 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 		break;
 
 	default:			/*	Urgent priority.	*/
-		ord = &(plan->ordinals[bundle->extendedCOS.ordinal]);
+		ord = &(plan->ordinals[bundle->ancillaryData.ordinal]);
 		reduceScalar(&(ord->backlog), backlogDecrement);
 		if (ord->lastForOrdinal == bundle->planXmitElt)
 		{
@@ -6108,7 +6108,7 @@ static char	*loadDtnEids(Bundle *bundle, MetaEid *destMetaEid,
 int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		char *reportToEidString, int lifespan, int classOfService,
 		BpCustodySwitch custodySwitch, unsigned char srrFlagsByte,
-		int ackRequested, BpExtendedCOS *extendedCOS, Object adu,
+		int ackRequested, BpAncillaryData *ancillaryData, Object adu,
 		Object *bundleObj, int adminRecordType)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -6254,9 +6254,9 @@ status reports for admin records.");
 			return 0;
 		}
 
-		if (extendedCOS)
+		if (ancillaryData)
 		{
-			if (extendedCOS->flags & BP_MINIMUM_LATENCY)
+			if (ancillaryData->flags & BP_MINIMUM_LATENCY)
 			{
 				restoreEidString(&destMetaEid);
 				writeMemo("[?] Can't flag bundle as 'critical' \
@@ -6506,23 +6506,15 @@ when asking for custody transfer and/or status reports.");
 		return -1;
 	}
 
-	if (extendedCOS)
+	if (ancillaryData)
 	{
-		bundle.extendedCOS.flowLabel = extendedCOS->flowLabel;
-		bundle.extendedCOS.flags = extendedCOS->flags;
-		bundle.extendedCOS.ordinal = extendedCOS->ordinal;
-
-		/*	RFC 6258 data isn't part of ECOS but for now
-		 *	it is managed within the ECOS block structure
-		 *	to avoid having to revise the BP API in order
-		 *	to accommodate metadata.  The BpExtendedCOS
-		 *	structure should be renamed to BpAncillaryData
-		 *	in the next major ION release.			*/
-
-		bundle.extendedCOS.metadataType = extendedCOS->metadataType;
-		bundle.extendedCOS.metadataLen = extendedCOS->metadataLen;
-		memcpy(bundle.extendedCOS.metadata, extendedCOS->metadata,
-				sizeof bundle.extendedCOS.metadata);
+		bundle.ancillaryData.flowLabel = ancillaryData->flowLabel;
+		bundle.ancillaryData.flags = ancillaryData->flags;
+		bundle.ancillaryData.ordinal = ancillaryData->ordinal;
+		bundle.ancillaryData.metadataType = ancillaryData->metadataType;
+		bundle.ancillaryData.metadataLen = ancillaryData->metadataLen;
+		memcpy(bundle.ancillaryData.metadata, ancillaryData->metadata,
+				sizeof bundle.ancillaryData.metadata);
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6614,7 +6606,7 @@ static int	sendCtSignal(Bundle *bundle, char *dictionary, int succeeded,
 {
 	char		*custodianEid;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
-	BpExtendedCOS	ecos = { 0, 0, 255 };
+	BpAncillaryData	ecos = { 0, 0, 255 };
 	Object		payloadZco = 0;
 	int		result;
 
@@ -6724,7 +6716,7 @@ int	sendStatusRpt(Bundle *bundle, char *dictionary)
 {
 	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
-	BpExtendedCOS	ecos = { 0, 0, bundle->extendedCOS.ordinal };
+	BpAncillaryData	ecos = { 0, 0, bundle->ancillaryData.ordinal };
 	Object		payloadZco=0;
 	char		*reportToEid;
 	int		result;
@@ -10154,7 +10146,7 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 			continue;	/*	Don't check ordinal.	*/
 		}
 
-		if (bundle->extendedCOS.ordinal > ordinal)
+		if (bundle->ancillaryData.ordinal > ordinal)
 		{
 			break;		/*	At head of subqueue.	*/
 		}
@@ -10171,7 +10163,7 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
-	unsigned char	ordinal = bundle->extendedCOS.ordinal;
+	unsigned char	ordinal = bundle->ancillaryData.ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
 	Object		lastElt = 0;	// initialized to avoid warning
 	int		i;
@@ -10365,7 +10357,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	CHKERR(ionLocked());
 	CHKERR(bundleObj && bundle);
 	CHKERR(bundle->planXmitElt == 0);
-	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	"Critical" bundles are never reforwarded
 		 *	(see notes on this in bpReforwardBundle),
@@ -10416,7 +10408,7 @@ int	reverseEnqueue(Object xmitElt, Object planObj, BpPlan *plan,
 	/*	If bundle is MINIMUM_LATENCY, nothing more to do.  We
 	 *	never reforward critical bundles or send them to limbo.	*/
 
-	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle.ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		return 0;
 	}
@@ -10750,7 +10742,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 }
 
 int	bpDequeue(VOutduct *vduct, Object *bundleZco,
-		BpExtendedCOS *extendedCOS, int timeoutInterval)
+		BpAncillaryData *ancillaryData, int timeoutInterval)
 {
 	Sdr		bpSdr = getIonsdr();
 	int		stewardshipAccepted;
@@ -10765,7 +10757,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	DequeueContext	context;
 	char		*dictionary;
 
-	CHKERR(vduct && bundleZco && extendedCOS);
+	CHKERR(vduct && bundleZco && ancillaryData);
 	*bundleZco = 0;			/*	Default behavior.	*/
 	if (timeoutInterval < 0)	/*	CLA is a steward.	*/
 	{
@@ -10904,7 +10896,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	 *	to zero even if the convergence-layer adapter for
 	 *	this outduct is one that normally accepts stewardship.	*/
 
-	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle.ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		stewardshipAccepted = 0;
 	}
@@ -10969,8 +10961,8 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	/*	Return the outbound bundle's extended class of service.	*/
 
-	memcpy((char *) extendedCOS, (char *) &bundle.extendedCOS,
-			sizeof(BpExtendedCOS));
+	memcpy((char *) ancillaryData, (char *) &bundle.ancillaryData,
+			sizeof(BpAncillaryData));
 
 	/*	Finally, authorize transmission of applicable status
 	 *	report message and destruction of the bundle object
@@ -11632,7 +11624,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	CHKERR(ionLocked());
 	CHKERR(bundleAddr);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle.ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	If the bundle is critical it has already
 		 *	been queued for transmission on all possible
@@ -11784,7 +11776,7 @@ static void	noteEmbargo(Bundle *bundle, Object bundleAddr,
 
 	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
 	|| bundle->destination.unicast == 0	/*	Multicast.	*/
-	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
+	|| (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
 		/*	For non-cbhe or multicast bundles we have no
 		 *	node number, so we can't impose routing
@@ -11835,7 +11827,7 @@ static void	forgetEmbargo(Bundle *bundle, Object bundleAddr,
 
 	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
 	|| bundle->destination.unicast == 0	/*	Multicast.	*/
-	|| (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
+	|| (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
 		/*	For non-cbhe or multicast bundles we have no
 		 *	node number, so we don't have embargoes.  If

@@ -74,7 +74,7 @@ static void	*sendBundles(void *parm)
 	char			*buffer;
 	Sdr			sdr;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent;
 
@@ -94,7 +94,7 @@ static void	*sendBundles(void *parm)
 
 	while (!(sm_SemEnded(parms->stp.vduct->semaphore)))
 	{
-		if (bpDequeue(parms->stp.vduct, &bundleZco, &extendedCOS, -1)
+		if (bpDequeue(parms->stp.vduct, &bundleZco, &ancillaryData, -1)
 				< 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);

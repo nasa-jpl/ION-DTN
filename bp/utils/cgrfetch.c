@@ -636,7 +636,7 @@ static void run_cgrfetch(void)
 	expirationTime = nowTime + expirationOffset;
 
 	Bundle bundle = {
-		.extendedCOS = {
+		.ancillaryData = {
 			.flags = minLatency ? BP_MINIMUM_LATENCY
 			                    : BP_BEST_EFFORT,
 		},

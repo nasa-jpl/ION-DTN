@@ -407,7 +407,7 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	PsmAddress	vductElt;
 
 	*vduct = NULL;			/*	Default.		*/
-	protClassReqd = bundle->extendedCOS.flags & BP_PROTOCOL_BOTH;
+	protClassReqd = bundle->ancillaryData.flags & BP_PROTOCOL_BOTH;
 	if (protClassReqd == 0)		/*	Don't care.		*/
 	{
 		protClassReqd = -1;	/*	Matches any.		*/

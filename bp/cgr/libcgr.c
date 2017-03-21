@@ -1755,7 +1755,7 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	 *	in case the bundle doesn't get transmitted during the
 	 *	contact in which we expect it to be transmitted.	*/
 
-	if (!(bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
+	if (!(bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
 		event.type = xmitOverdue;
 		event.time = proxNode->forfeitTime;
@@ -1920,7 +1920,7 @@ static int	manageOverbooking(ProximateNode *neighbor, Bundle *newBundle,
 				plan.stdQueue);
 		queueControls[1].limitElt = sdr_list_first(sdr,
 				plan.stdQueue);
-		ordinal = bundle->extendedCOS.ordinal;
+		ordinal = bundle->ancillaryData.ordinal;
 		if (ordinal > 0)
 		{
 			queueControls[2].currentElt = sdr_list_last(sdr,
@@ -2222,7 +2222,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 
 	lyst_destroy(excludedNodes);
 	TRACE(CgrSelectProximateNodes);
-	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	Critical bundle; send to all capable neighbors.	*/
 

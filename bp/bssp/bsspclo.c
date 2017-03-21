@@ -175,7 +175,7 @@ int	main(int argc, char *argv[])
 	ClProtocol	protocol;
 	int		running = 1;
 	Object		bundleZco;
-	BpExtendedCOS	extendedCOS;
+	BpAncillaryData	ancillaryData;
 	BsspSessionId	sessionId;
 	unsigned char	*buffer;
 	Lyst		streams;
@@ -253,7 +253,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] bsspclo is running.");
 	while (running && !(sm_SemEnded(bsspcloSemaphore(NULL))))
 	{
-		if (bpDequeue(vduct, &bundleZco, &extendedCOS, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

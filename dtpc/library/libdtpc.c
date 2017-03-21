@@ -42,7 +42,7 @@ char    *dtpc_working_directory()
 int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 			unsigned int maxRtx, unsigned int aggrSizeLimit,
 			unsigned int aggrTimeLimit, int lifespan,
-			BpExtendedCOS *extendedCOS, unsigned char srrFlags,
+			BpAncillaryData *ancillaryData, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
 			int classOfService, Object item, unsigned int length)
 {
@@ -62,8 +62,8 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 	if (profileID == 0)	
 	{
 		profileID = dtpcGetProfile(maxRtx, aggrSizeLimit, aggrTimeLimit,
-				lifespan, extendedCOS, srrFlags, custodySwitch,
-				reportToEid, classOfService);
+				lifespan, ancillaryData, srrFlags,
+				custodySwitch, reportToEid, classOfService);
 		if (profileID == 0)
 		{
 			writeMemo("[?] No profile found.");

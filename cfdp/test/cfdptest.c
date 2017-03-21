@@ -197,7 +197,7 @@ static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 	}
 
 	ordinal = strtoul(tokens[1], NULL, 0);
-	utParms->extendedCOS.ordinal = ordinal;
+	utParms->ancillaryData.ordinal = ordinal;
 }
 
 static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
@@ -213,7 +213,7 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 	mode = strtoul(tokens[1], NULL, 0);
 	if (mode & 0x01)	/*	Unreliable.			*/
 	{
-		utParms->extendedCOS.flags |= BP_BEST_EFFORT;
+		utParms->ancillaryData.flags |= BP_BEST_EFFORT;
 	}
 	else	/*	Default: ECOS best-efforts flag = 0.		*/
 	{
@@ -223,7 +223,7 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 		}
 		else		/*	Convergence-layer reliability.	*/
 		{
-			utParms->extendedCOS.flags &= (~BP_BEST_EFFORT);
+			utParms->ancillaryData.flags &= (~BP_BEST_EFFORT);
 			utParms->custodySwitch = NoCustodyRequested;
 		}
 	}
@@ -352,11 +352,11 @@ static void	setCriticality(int tokenCount, char **tokens,
 	criticality = (strtoul(tokens[1], NULL, 0) == 0 ? 0 : 1);
 	if (criticality == 1)
 	{
-		utParms->extendedCOS.flags |= BP_MINIMUM_LATENCY;
+		utParms->ancillaryData.flags |= BP_MINIMUM_LATENCY;
 	}
 	else
 	{
-		utParms->extendedCOS.flags &= (~BP_MINIMUM_LATENCY);
+		utParms->ancillaryData.flags &= (~BP_MINIMUM_LATENCY);
 	}
 }
 

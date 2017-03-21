@@ -57,14 +57,18 @@ typedef enum
 
 typedef struct
 {
+	/*	From Extended Class of Service (ECOS) block.		*/
+
 	unsigned int	flowLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	See below.		*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
 
+	/*	From Metadata block.					*/
+
 	unsigned char	metadataType;	/*	See RFC 6258.		*/
 	unsigned char	metadataLen;
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
-} BpExtendedCOS;
+} BpAncillaryData;
 
 /*	Extended class-of-service flags.				*/
 #define	BP_MINIMUM_LATENCY	(1)	/*	Forward on all routes.	*/
@@ -173,7 +177,7 @@ extern int		bp_open_source(	char *eid,
 	"[.<unreliable>.<critical>[.<flow-label>]]]"
 
 extern int		bp_parse_class_of_service(	const char *token,
-					BpExtendedCOS *extendedCOS,
+					BpAncillaryData *ancillaryData,
 					BpCustodySwitch *custodySwitch,
 					int *priority);
 			/*  Parses the token string specifying service
@@ -192,7 +196,7 @@ extern int		bp_send(	BpSAP sap,
 					BpCustodySwitch custodySwitch,
 					unsigned char srrFlags,
 					int ackRequested,
-					BpExtendedCOS *extendedCOS,
+					BpAncillaryData *ancillaryData,
 					Object adu,
 					Object *newBundle);
 			/*	Class of service is simply priority
