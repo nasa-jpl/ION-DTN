@@ -24,7 +24,6 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
-	ionstop();
 	sleep(15);
 
 	/* Start ION */
