@@ -157,9 +157,16 @@ void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 int	ipn_addPlan(uvast nodeNbr, unsigned int nominalRate)
 {
 	char	eid[MAX_EID_LEN + 1];
+	int	result;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	return addPlan(eid, nominalRate);
+	result = addPlan(eid, nominalRate);
+	if (result == 1)
+	{
+		result = bpStartPlan(eid);
+	}
+
+	return result;
 }
 
 int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)

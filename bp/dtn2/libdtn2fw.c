@@ -47,7 +47,15 @@ void	dtn2_findPlan(char *eid, Object *planAddr, Object *eltp)
 
 int	dtn2_addPlan(char *eid, unsigned int nominalRate)
 {
-	return addPlan(eid, nominalRate);
+	int	result;
+
+	result = addPlan(eid, nominalRate);
+	if (result == 1)
+	{
+		result = bpStartPlan(eid);
+	}
+
+	return result;
 }
 
 int	dtn2_addPlanDuct(char *eid, char *spec)
