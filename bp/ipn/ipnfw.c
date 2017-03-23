@@ -68,9 +68,11 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
+	Sdr		sdr = getIonsdr();
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
+	BpPlan		plan;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	findPlan(eid, &vplan, &vplanElt);
@@ -79,10 +81,23 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 		return 0;
 	}
 
-	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
+			sizeof(BpPlan));
+	if (plan.blocked)
 	{
-		putErrmsg("Can't enqueue bundle.", NULL);
-		return -1;
+		if (enqueueToLimbo(bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't put bundle in limbo.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't enqueue bundle.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
@@ -94,6 +109,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	Object		elt;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
+	uvast		nodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 #if CGR_DEBUG == 1
@@ -123,7 +139,9 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr, trace)
+	nodeNbr = metaEid.nodeNbr;
+	restoreEidString(&metaEid);
+	if (cgr_forward(bundle, bundleObj, nodeNbr, trace)
 			< 0)
 	{
 		putErrmsg("CGR failed.", NULL);
@@ -144,7 +162,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	to the destination node.  So see if destination node
 	 *	is a neighbor; if so, enqueue for direct transmission.	*/
 
-	if (enqueueToNeighbor(bundle, bundleObj, metaEid.nodeNbr) < 0)
+	if (enqueueToNeighbor(bundle, bundleObj, nodeNbr) < 0)
 	{
 		putErrmsg("Can't send bundle to neighbor.", NULL);
 		return -1;
@@ -162,7 +180,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	(node range, i.e., "exit") and forward to the
 	 *	prescribed "via" endpoint for that exit.		*/
 
-	if (ipn_lookupExit(metaEid.nodeNbr, eid) == 1)
+	if (ipn_lookupExit(nodeNbr, eid) == 1)
 	{
 		/*	Found applicable exit; forward via the
 		 *	indicated endpoint.				*/
@@ -177,8 +195,8 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	the initial contact actually materializes, we just
 	 *	place the bundle in limbo and hope for the best.	*/
 
-	if (cgr_prospect(metaEid.nodeNbr,
-			bundle->expirationTime + EPOCH_2000_SEC) > MIN_PROSPECT)
+	if (cgr_prospect(nodeNbr, bundle->expirationTime + EPOCH_2000_SEC)
+			> MIN_PROSPECT)
 	{
 		if (enqueueToLimbo(bundle, bundleObj) < 0)
 		{

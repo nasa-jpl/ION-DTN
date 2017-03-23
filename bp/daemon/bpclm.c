@@ -386,6 +386,11 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 	outductElt = sdr_list_data(sdr, ductElt);
 	outductObj = sdr_list_data(sdr, outductElt);
 	sdr_read(sdr, (char *) outduct, outductObj, sizeof(Outduct));
+	if (sdr_list_length(sdr, outduct->xmitBuffer) > 1)
+	{
+		return 0;	/*	Outduct congested, unusable.	*/
+	}
+
 	sdr_read(sdr, (char *) protocol, outduct->protocol, sizeof(ClProtocol));
 	if ((protocol->protocolClass & classReqd))
 	{
@@ -732,16 +737,6 @@ int	main(int argc, char *argv[])
 		 *	queue.						*/
 
 		removeBundleFromQueue(&bundle, bundleObj, planObj, &plan);
-
-		/*	Clean out the outduct's transmission buffer
-		 *	to make room for the new bundle.		*/
-
-		if (flushOutduct(outduct) < 0)
-		{
-			sdr_cancel_xn(sdr);
-			running = 0;
-			continue;
-		}
 
 		/*	Pass the bundle to the outduct.			*/
 

@@ -82,10 +82,21 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 			sizeof(BpPlan));
 	if (plan.viaEid == 0)	/*	Must transmit to neighbor.	*/
 	{
-		if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+		if (plan.blocked)
 		{
-			putErrmsg("Can't enqueue bundle.", NULL);
-			return -1;
+			if (enqueueToLimbo(bundle, bundleObj) < 0)
+			{
+				putErrmsg("Can't put bundle in limbo.", NULL);
+				return -1;
+			}
+		}
+		else
+		{
+			if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+			{
+				putErrmsg("Can't enqueue bundle.", NULL);
+				return -1;
+			}
 		}
 
 		if (bundle->planXmitElt)

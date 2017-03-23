@@ -5,11 +5,10 @@ a endpoint ipn:3.1 x
 a endpoint ipn:3.2 x
 a endpoint ipn:3.64 x
 a endpoint ipn:3.65 x
-a protocol tcp 1400 100
-a induct tcp localhost:3113 tcpcli
-a outduct tcp localhost:2113 ''
-a outduct tcp localhost:3113 ''
-a outduct tcp localhost:4113 ''
+a protocol stcp 1400 100
+a induct stcp localhost:3113 stcpcli
+a outduct stcp localhost:2113 stcpclo
+a outduct stcp localhost:4113 stcpclo
 r 'ipnadmin bench.ipnrc'
 w 1
 s

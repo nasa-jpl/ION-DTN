@@ -1417,7 +1417,6 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
-extern int		flushOutduct(Outduct *outduct);
 
 extern int		addOutduct(char *protocolName, char *name,
 				char *cloCmd, unsigned int maxPayloadLength);
