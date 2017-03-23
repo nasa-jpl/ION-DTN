@@ -892,16 +892,24 @@ endpoint", vscheme->adminEid);
 
 	sdr_read(bpSdr, (char *) &scheme, sdr_list_data(bpSdr,
 			vscheme->schemeElt), sizeof(Scheme));
-	if (scheme.fwdCmd != 0)
+	if (vscheme->fwdPid == ERROR
+	|| sm_TaskExists(vscheme->fwdPid) == 0)
 	{
-		sdr_string_read(bpSdr, cmdString, scheme.fwdCmd);
-		vscheme->fwdPid = pseudoshell(cmdString);
+		if (scheme.fwdCmd != 0)
+		{
+			sdr_string_read(bpSdr, cmdString, scheme.fwdCmd);
+			vscheme->fwdPid = pseudoshell(cmdString);
+		}
 	}
 
-	if (scheme.admAppCmd != 0)
+	if (vscheme->admAppPid == ERROR
+	|| sm_TaskExists(vscheme->admAppPid) == 0)
 	{
-		sdr_string_read(bpSdr, cmdString, scheme.admAppCmd);
-		vscheme->admAppPid = pseudoshell(cmdString);
+		if (scheme.admAppCmd != 0)
+		{
+			sdr_string_read(bpSdr, cmdString, scheme.admAppCmd);
+			vscheme->admAppPid = pseudoshell(cmdString);
+		}
 	}
 }
 
@@ -912,9 +920,12 @@ static void	stopScheme(VScheme *vscheme)
 	PsmAddress	endpointAddr;
 	VEndpoint	*vpoint;
 
+	/*	Ending the semaphore stops the forwarder task
+	 *	(vscheme->fwdPid).					*/
+
 	if (vscheme->semaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vscheme->semaphore);	/*	Stop fwd.	*/
+		sm_SemEnd(vscheme->semaphore);
 	}
 
 	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
@@ -1058,13 +1069,20 @@ static void	startPlan(VPlan *vplan)
 {
 	char	cmdString[6 + MAX_EID_LEN + 1];
 
-	isprintf(cmdString, sizeof cmdString, "bpclm %s", vplan->neighborEid);
-	vplan->clmPid = pseudoshell(cmdString);
+	if (vplan->clmPid == ERROR || sm_TaskExists(vplan->clmPid) == 0)
+	{
+		isprintf(cmdString, sizeof cmdString, "bpclm %s",
+				vplan->neighborEid);
+		vplan->clmPid = pseudoshell(cmdString);
+	}
 }
 
 static void	stopPlan(VPlan *vplan)
 {
-	if (vplan->semaphore != SM_SEM_NONE)	/*	Stop bpclm.	*/
+	/*	Ending the semaphore stops the bpclm daemon
+	 *	(vplan->clmPid).					*/
+
+	if (vplan->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vplan->semaphore);
 	}
@@ -1149,12 +1167,15 @@ static void	startInduct(VInduct *vduct)
 
 	sdr_read(bpSdr, (char *) &induct, sdr_list_data(bpSdr,
 			vduct->inductElt), sizeof(Induct));
-	if (induct.cliCmd != 0)
+	if (vduct->cliPid == ERROR || sm_TaskExists(vduct->cliPid) == 0)
 	{
-		sdr_string_read(bpSdr, cmd, induct.cliCmd);
-		isprintf(cmdString, sizeof cmdString, "%s %s", cmd,
-				induct.name);
-		vduct->cliPid = pseudoshell(cmdString);
+		if (induct.cliCmd != 0)
+		{
+			sdr_string_read(bpSdr, cmd, induct.cliCmd);
+			isprintf(cmdString, sizeof cmdString, "%s %s", cmd,
+					induct.name);
+			vduct->cliPid = pseudoshell(cmdString);
+		}
 	}
 }
 
@@ -1261,18 +1282,24 @@ static void	startOutduct(VOutduct *vduct)
 
 	sdr_read(bpSdr, (char *) &outduct, sdr_list_data(bpSdr,
 			vduct->outductElt), sizeof(Outduct));
-	if (outduct.cloCmd != 0)
+	if (vduct->cloPid == ERROR || sm_TaskExists(vduct->cloPid) == 0)
 	{
-		sdr_string_read(bpSdr, cmd, outduct.cloCmd);
-		isprintf(cmdString, sizeof cmdString, "%s %s", cmd,
-				outduct.name);
-		vduct->cloPid = pseudoshell(cmdString);
+		if (outduct.cloCmd != 0)
+		{
+			sdr_string_read(bpSdr, cmd, outduct.cloCmd);
+			isprintf(cmdString, sizeof cmdString, "%s %s", cmd,
+					outduct.name);
+			vduct->cloPid = pseudoshell(cmdString);
+		}
 	}
 }
 
 static void	stopOutduct(VOutduct *vduct)
 {
-	if (vduct->semaphore != SM_SEM_NONE)	/*	Stop CLO.	*/
+	/*	Ending the semaphore stops the clo daemon
+	 *	(vduct->cloPid).					*/
+
+	if (vduct->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vduct->semaphore);
 	}
