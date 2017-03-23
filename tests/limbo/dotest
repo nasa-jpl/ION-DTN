@@ -22,28 +22,28 @@
 #	    directives.
 #
 #	d.  A termination of convergence-layer connectivity (e.g., a
-#	    lost TCP connection) does NOT cause the egress plan
+#	    lost STCP connection) does NOT cause the egress plan
 #	    using that outduct to be blocked.  Bundles simply
 #	    remain queued for transmission to the affected node,
 #	    waiting for connectivity to be re-established.
 #
-# This test first sends a file over a TCP outduct, then uses bpadmin
+# This test first sends a file over a STCP outduct, then uses bpadmin
 # to block the plan for that node and tries to send a second file; the
 # second file goes into limbo and is released from limbo when we thenk
 # use bpadmin to unblock the plan.
 #
-# Then we test automatic TCP outduct management.  We again send a file,
+# Then we test automatic STCP outduct management.  We again send a file,
 # then shut down the receiving node altogether, let the keepalive
 # thread detect the socket closure, pausing the CL manager, and then
 # send another file.  The second file is likewise queued for transmission
 # but not dequeued by the convergence-layer output daemon; it is dequeued
-# when the receiving node is restarted and reopens its TCP socket.
+# when the receiving node is restarted and reopens its STCP socket.
 #
-# Finally, we trigger an automatic egress plan pause again. But this time
-# we provide an active backup contact for the bundle to reForward through
+# Finally, we trigger another egress plan pause.  But this time we
+# provide an active backup contact for the bundle to reForward through
 # when the original contact is removed.
 #
-# Get the latest bp stat printed to an ion.log file
+# Get the latest bp stat printed to an ion.log file.
 #
 function getStatsCounter() {
 	TYPE=$1
@@ -192,7 +192,7 @@ else
 fi
 
 echo ""
-# Now break TCP connectivity to node 3.
+# Now break STCP connectivity to node 3.
 echo "Breaking STCP connection to node 3 to test CLM pause..."
 cd ../3.ipn.tcp
 ./ionstop
@@ -220,12 +220,14 @@ else
 fi
 
 echo ""
-# Restore node 3's TCP socket.
+# Restore node 3's STCP socket.
 echo "Restoring STCP connectivity to node 3 to test CLM resume..."
 cd ../3.ipn.tcp
 rm testfile*
-./ionstart
-sleep 1
+ionadmin restart
+sleep 2
+bpadmin restart
+sleep 2
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
 echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
@@ -313,29 +315,18 @@ else
 	RETVAL=1
 fi
 
-cd ../5.ipn.tcp
-NODE_5_TCPCLO_PID=`echo "i outduct stcp localhost:5001" | bpadmin | grep 'pid:' | sed 's/^.*pid: \([0-9]*\) .*$/\1/'`
 echo ""
-echo "Pausing node 5's stcpclo to node 2 ($NODE_5_TCPCLO_PID), so it won't dequeue bundles."
-kill -STOP $NODE_5_TCPCLO_PID
-echo "Node 5's stcpclo to node 2 has been paused."
+echo "Blocking node 5's egress to node 2, to force use of node-3 plan instead."
+cd ../5.ipn.tcp
+bpadmin block.bprc
+sleep 2
 
 echo ""
-# Now break TCP connectivity to node 2.
-echo "Shutting down node 2 to test re-routing..."
-cd ../2.ipn.tcp
-./ionstop
-echo "Node 2 has been shut down."
-
-# Send file from node 5 to node 3
-cd ../5.ipn.tcp
-echo "Sending seventh file twice from node 5 to node 3 (should try to go through clo to node 2, but then be re-routed to go out the clo to node 3)."
+echo "Sending seventh file twice from node 5 to node 3 (wants to go through node 2, but because egress to node 2 is blocked the bundle must be sent to node 3 directly)."
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
-
-sleep 5
-echo "Resuming node 5's stcpclo to node 2 (which no longer exists)..."
-kill -CONT $NODE_5_TCPCLO_PID
+echo ""
+echo "Sleeping 30 sec to wait for contact from 5 to 3 to start..."
 sleep 30
 
 # Verify that this file has arrived twice.

@@ -10636,11 +10636,11 @@ int	bpUnblockPlan(char *eid)
 		if (releaseFromLimbo(xmitElt, 0) < 0)
 		{
 			putErrmsg("Failed releasing bundle from limbo.", NULL);
-			sdr_cancel_xn(bpSdr);
-			return -1;
+			break;
 		}
 	}
 
+	sdr_list_user_data_set(bpSdr, bpConstants->limboQueue, getUTCTime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Failed unblocking plan.", NULL);

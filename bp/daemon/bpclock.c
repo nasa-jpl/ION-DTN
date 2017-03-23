@@ -253,6 +253,53 @@ static void	applyRateControl(Sdr sdr)
 	oK(sdr_end_xn(sdr));
 }
 
+static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime)
+{
+	int	length;
+	int	batchesNeeded;
+	time_t	previousFlush;
+	int	elapsed;
+	int	batchesAvbl;
+	Object	elt;
+	Object	nextElt;
+
+	/*	We don't want this feature to slow down the operation
+	 *	of the node, so we limit it.  We flush at most once
+	 *	every 4 seconds, and each 4 seconds we are okay with
+	 *	releasing a "batch" of up to 64 bundles in limbo.
+	 *	But we can't just release one batch every 4 seconds
+	 *	because we may miss some or release some multiple
+	 *	times, because reforwarding may put one or more
+	 *	bundles back in limbo.  So we defer flushing until
+	 *	the total elapsed time since the previous flush is
+	 *	enough to justify flushing all bundles currently in
+	 *	limbo.							*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	length = sdr_list_length(sdr, limboList);
+	batchesNeeded = (length >> 6) & 0x03ffffff;
+	previousFlush = (time_t) sdr_list_user_data(sdr, limboList);
+	elapsed = currentTime - previousFlush;
+	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
+	if (batchesAvbl >= batchesNeeded)
+	{
+		for (elt = sdr_list_first(sdr, limboList); elt; elt = nextElt)
+		{
+			nextElt = sdr_list_next(sdr, elt);
+			if (releaseFromLimbo(elt, 0) < 0)
+			{
+				putErrmsg("Failed releasing bundle from limbo.",
+						NULL);
+				break;
+			}
+		}
+
+		sdr_list_user_data_set(sdr, limboList, getUTCTime());
+	}
+
+	return sdr_end_xn(sdr);
+}
+
 #if defined (ION_LWT)
 int	bpclock(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -304,6 +351,17 @@ int	main(int argc, char *argv[])
 		/*	Then apply rate control.			*/
 
 		applyRateControl(sdr);
+
+		/*	Finally, possibly give bundles in limbo an
+		 *	opportunity to be forwarded, in case an
+		 *	Outduct was temporarily stuck.			*/
+
+		if (flushLimbo(sdr, bpConstants->limboQueue, currentTime) < 0)
+		{
+			putErrmsg("Can't flush limbo queue.", NULL);
+			state = 0;
+			oK(_running(&state));
+		}
 	}
 
 	writeErrmsgMemos();

@@ -155,11 +155,11 @@ static int	reforwardStrandedBundles()
 		if (releaseFromLimbo(elt, 0) < 0)
 		{
 			putErrmsg("Failed releasing bundle from limbo.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
+			break;
 		}
 	}
 
+	sdr_list_user_data_set(sdr, bpConstants->limboQueue, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("brss failed limbo release on client connect.", NULL);
