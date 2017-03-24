@@ -2114,7 +2114,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 if !ION_NASA_B
 check_PROGRAMS+= \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-333-cfdp-orig-ID-type/send \
 	tests/issue-334-cfdp-transaction-id/dotest
 endif
 
@@ -2155,12 +2154,6 @@ if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-endif
-
-if !ION_NASA_B
-tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 endif
 
 if !ION_NASA_B
