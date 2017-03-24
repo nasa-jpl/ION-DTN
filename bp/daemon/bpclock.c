@@ -253,11 +253,11 @@ static void	applyRateControl(Sdr sdr)
 	oK(sdr_end_xn(sdr));
 }
 
-static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime)
+static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
+			time_t *previousFlush)
 {
 	int	length;
 	int	batchesNeeded;
-	time_t	previousFlush;
 	int	elapsed;
 	int	batchesAvbl;
 	Object	elt;
@@ -278,10 +278,9 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime)
 	CHKERR(sdr_begin_xn(sdr));
 	length = sdr_list_length(sdr, limboList);
 	batchesNeeded = (length >> 6) & 0x03ffffff;
-	previousFlush = (time_t) sdr_list_user_data(sdr, limboList);
-	elapsed = currentTime - previousFlush;
+	elapsed = currentTime - *previousFlush;
 	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
-	if (batchesAvbl >= batchesNeeded)
+	if (batchesAvbl > 0 && batchesAvbl >= batchesNeeded)
 	{
 		for (elt = sdr_list_first(sdr, limboList); elt; elt = nextElt)
 		{
@@ -294,7 +293,7 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime)
 			}
 		}
 
-		sdr_list_user_data_set(sdr, limboList, getUTCTime());
+		*previousFlush = currentTime;
 	}
 
 	return sdr_end_xn(sdr);
@@ -312,6 +311,7 @@ int	main(int argc, char *argv[])
 	BpDB	*bpConstants;
 	uaddr	state = 1;
 	time_t	currentTime;
+	time_t	previousFlush = getUTCTime();
 
 	if (bpAttach() < 0)
 	{
@@ -356,7 +356,8 @@ int	main(int argc, char *argv[])
 		 *	opportunity to be forwarded, in case an
 		 *	Outduct was temporarily stuck.			*/
 
-		if (flushLimbo(sdr, bpConstants->limboQueue, currentTime) < 0)
+		if (flushLimbo(sdr, bpConstants->limboQueue, currentTime,
+				&previousFlush) < 0)
 		{
 			putErrmsg("Can't flush limbo queue.", NULL);
 			state = 0;

@@ -252,7 +252,7 @@ static int	acknowledgeLateReport(unsigned int sessionNbr,
 				sizeof(ClosedExport));
 		if (closedExportBuf.sessionNbr == sessionNbr)
 		{
-			writeMemoNote("Ack from closed export session",
+			writeMemoNote("[i] Ack from closed export session",
 					utoa(sessionNbr));
 			sdr_read(sdr, (char *) &spanBuf, closedExportBuf.span,
 					sizeof(LtpSpan));
@@ -267,7 +267,7 @@ static int	acknowledgeLateReport(unsigned int sessionNbr,
 			closedExportBuf.responseLimit--;
 			if (closedExportBuf.responseLimit < 1)
 			{
-				writeMemoNote("Forget session, retries \
+				writeMemoNote("[i] Forget session, retries \
 exceeded", utoa(closedExportBuf.sessionNbr));
 				sdr_free(sdr, closedExportObj);
 				sdr_list_delete(sdr, elt, NULL, NULL);

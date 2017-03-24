@@ -10640,7 +10640,6 @@ int	bpUnblockPlan(char *eid)
 		}
 	}
 
-	sdr_list_user_data_set(bpSdr, bpConstants->limboQueue, getUTCTime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Failed unblocking plan.", NULL);
@@ -11624,6 +11623,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		iwatch('#');
 	}
 
+	bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);
 	if (bpReforwardBundle(bundleAddr) < 0)
 	{
 		putErrmsg("Failed trying to re-forward bundle.", NULL);
@@ -11744,7 +11744,6 @@ int	bpReforwardBundle(Object bundleAddr)
 		return -1;
 	}
 
-	bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);
 	result = forwardBundle(bundleAddr, &bundle, eidString);
 	MRELEASE(eidString);
 	releaseDictionary(dictionary);

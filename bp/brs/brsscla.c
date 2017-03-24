@@ -159,7 +159,6 @@ static int	reforwardStrandedBundles()
 		}
 	}
 
-	sdr_list_user_data_set(sdr, bpConstants->limboQueue, getUTCTime());
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("brss failed limbo release on client connect.", NULL);
