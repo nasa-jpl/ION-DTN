@@ -120,24 +120,24 @@ int	bpsendfile(int a1, int a2, int a3, int a4, int a5,
 	char	*ownEid = (char *) a1;
 	char	*destEid = (char *) a2;
 	char	*fileName = (char *) a3;
-	int	ttl = atoi((char *) a4);
-	char	*classOfService = (char *) a5;
+	char	*classOfService = (char *) a4;
+	int	ttl = atoi((char *) a5);
 #else
 int	main(int argc, char **argv)
 {
 	char	*ownEid = NULL;
 	char	*destEid = NULL;
 	char	*fileName = NULL;
-	int	ttl = 300;
 	char	*classOfService = NULL;
+	int	ttl = 300;
 
 	if (argc > 6) argc = 6;
 	switch (argc)
 	{
 	case 6:
-		classOfService = argv[5];
+		ttl = atoi(argv[5]);
 	case 5:
-		ttl = atoi(argv[4]);
+		classOfService = argv[4];
 	case 4:
 		fileName = argv[3];
 	case 3:

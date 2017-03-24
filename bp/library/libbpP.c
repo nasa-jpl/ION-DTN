@@ -4841,11 +4841,12 @@ void	findOutduct(char *protocolName, char *ductName, VOutduct **vduct,
 	*vductElt = elt;
 }
 
-int	flushOutduct(Outduct *outduct)
+static int	flushOutduct(Outduct *outduct)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	protocol;
 	Object		elt;
+	Object		nextElt;
 	Object		bundleObj;
 	Bundle		bundle;
 
@@ -4858,9 +4859,9 @@ int	flushOutduct(Outduct *outduct)
 	CHKERR(ionLocked());
 	sdr_read(sdr, (char *) &protocol, outduct->protocol,
 			sizeof(ClProtocol));
-	for (elt = sdr_list_first(sdr, outduct->xmitBuffer); elt;
-			elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, outduct->xmitBuffer); elt; elt = nextElt)
 	{
+		nextElt = sdr_list_next(sdr, elt);
 		bundleObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 		if (bundle.custodyTaken
@@ -4875,7 +4876,7 @@ int	flushOutduct(Outduct *outduct)
 		}
 		else
 		{
-			if (bpDestroyBundle(bundleObj, 0) < 0)
+			if (bpDestroyBundle(bundleObj, 1) < 0)
 			{
 				putErrmsg("Inferred CL-failure failed",
 						outduct->name);

@@ -266,7 +266,7 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 	/*	We don't want this feature to slow down the operation
 	 *	of the node, so we limit it.  We flush at most once
 	 *	every 4 seconds, and each 4 seconds we are okay with
-	 *	releasing a "batch" of up to 64 bundles in limbo.
+	 *	releasing a "batch" of up to 256 bundles in limbo.
 	 *	But we can't just release one batch every 4 seconds
 	 *	because we may miss some or release some multiple
 	 *	times, because reforwarding may put one or more
@@ -277,8 +277,16 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 
 	CHKERR(sdr_begin_xn(sdr));
 	length = sdr_list_length(sdr, limboList);
-	batchesNeeded = (length >> 6) & 0x03ffffff;
-	elapsed = currentTime - *previousFlush;
+	batchesNeeded = (length >> 8) & 0x00ffffff;
+	if (*previousFlush == 0)
+	{
+		elapsed = 0;
+	}
+	else
+	{
+		elapsed = currentTime - *previousFlush;
+	}
+
 	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
 	if (batchesAvbl > 0 && batchesAvbl >= batchesNeeded)
 	{
@@ -311,7 +319,7 @@ int	main(int argc, char *argv[])
 	BpDB	*bpConstants;
 	uaddr	state = 1;
 	time_t	currentTime;
-	time_t	previousFlush = getUTCTime();
+	time_t	previousFlush = 0;
 
 	if (bpAttach() < 0)
 	{
