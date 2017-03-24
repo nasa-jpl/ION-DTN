@@ -1,6 +1,0 @@
-wmKey 2
-sdrName ion1
-wmSize 10000000
-configFlags 13
-heapWords 250000
-pathName '/tmp/'

@@ -1,2 +1,0 @@
-
-ION event: Reception interrupted.
