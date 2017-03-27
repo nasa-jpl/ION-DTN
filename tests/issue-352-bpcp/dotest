@@ -88,7 +88,7 @@ fi
 cd ..
 
 #Test 1 L2R
-sleep 3
+sleep 12
 echo "Test 1 --- Local to Remote Copy"
 cd 1.ipn.cfdp.bp.tcp
 echo "Starting bpcp..."
