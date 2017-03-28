@@ -280,13 +280,10 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 	batchesNeeded = (length >> 8) & 0x00ffffff;
 	if (*previousFlush == 0)
 	{
-		elapsed = 0;
-	}
-	else
-	{
-		elapsed = currentTime - *previousFlush;
+		*previousFlush = currentTime;	/*	Initialize.	*/
 	}
 
+	elapsed = currentTime - *previousFlush;
 	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
 	if (batchesAvbl > 0 && batchesAvbl >= batchesNeeded)
 	{
