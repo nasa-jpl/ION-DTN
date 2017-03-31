@@ -43,6 +43,7 @@ char *processes[] = { "bsscounter.exe", "lt-bsscounter.exe", \
 "bpchat.exe", "lt-bpchat.exe", \
 "bpclock.exe", "lt-bpclock.exe", \
 "bptransit.exe", "lt-bptransit.exe", \
+"bpclm.exe", "lt-bpclm.exe", \
 "bpcounter.exe", "lt-bpcounter.exe", \
 "bpdriver.exe", "lt-bpdriver.exe", \
 "bpecho.exe", "lt-bpecho.exe", "bping.exe", \
@@ -53,8 +54,10 @@ char *processes[] = { "bsscounter.exe", "lt-bsscounter.exe", \
 "lt-bpstats2.exe", "bptrace.exe", "lt-bptrace.exe", \
 "brsccla.exe", "lt-brsccla.exe", "brsscla.exe", \
 "lt-brsscla.exe", "dgr2file.exe", "lt-dgr2file.exe", \
-"dgrcla.exe", "lt-dgrcla.exe", "dtn2admin.exe", \
-"lt-dtn2admin.exe", "dtn2adminep.exe", "lt-dtn2adminep.exe", \
+"dgrcli.exe", "lt-dgrcli.exe", \
+"dgrclo.exe", "lt-dgrclo.exe", \
+"dtn2admin.exe", "lt-dtn2admin.exe", \
+"dtn2adminep.exe", "lt-dtn2adminep.exe", \
 "dtn2fw.exe", "lt-dtn2fw.exe", "file2dgr.exe", \
 "lt-file2dgr.exe", "file2sdr.exe", "lt-file2sdr.exe", \
 "file2sm.exe", "lt-file2sm.exe", "file2tcp.exe", \

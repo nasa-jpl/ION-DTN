@@ -104,7 +104,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		if (tokenCount == 5)
 		{
-			if (isdigit(tokens[4][0]))
+			if (isdigit((int) tokens[4][0]))
 			{
 				nominalRate = atoi(tokens[4]);
 			}
@@ -116,7 +116,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		if (tokenCount == 4)
 		{
-			if (isdigit(tokens[3][0]))
+			if (isdigit((int) tokens[3][0]))
 			{
 				nominalRate = atoi(tokens[3]);
 			}
@@ -174,7 +174,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (tokenCount == 5)
 		{
-			if (isdigit(tokens[4][0]))
+			if (isdigit((int) tokens[4][0]))
 			{
 				nominalRate = atoi(tokens[4]);
 				rateChanged = 1;
@@ -187,7 +187,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (tokenCount == 4)
 		{
-			if (isdigit(tokens[3][0]))
+			if (isdigit((int) tokens[3][0]))
 			{
 				nominalRate = atoi(tokens[3]);
 				rateChanged = 1;

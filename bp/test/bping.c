@@ -526,6 +526,7 @@ int main(int argc, char **argv)
 		putErrmsg("Can't open source endpoint.", srcEid);
 		fprintf(stderr, "Can't open source endpoint (%s).\n", 
 				srcEid);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
@@ -534,6 +535,7 @@ int main(int argc, char **argv)
 		putErrmsg("Can't open reception endpoint.", srcEid);
 		fprintf(stderr, "Can't open reception endpoint (%s).\n", 
 				srcEid);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
@@ -546,6 +548,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
 		bp_close(xmitsap);
 		bp_close(recvsap);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
@@ -556,6 +559,7 @@ int main(int argc, char **argv)
 		bp_interrupt(recvsap);
 		bp_close(xmitsap);
 		bp_close(recvsap);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
