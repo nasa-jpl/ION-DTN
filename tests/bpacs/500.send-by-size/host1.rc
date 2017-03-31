@@ -83,7 +83,7 @@ a plan 1 udp/127.0.0.1:4556
 # There's no one here, but if we don't define the routes, we can't
 # accept custody of bundles.
 a plan 2 udp/127.0.0.1:4557
-a plan 3 udp/127.0.0.1:4558
+a plan 3 udp/127.0.0.1:4557
 ## end ipnadmin 
 
 ## begin ionsecadmin
