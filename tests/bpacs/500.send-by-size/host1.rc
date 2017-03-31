@@ -67,6 +67,8 @@ a induct udp 127.0.0.1:4556 udpcli
 
 # Add an outduct.
 a outduct udp 127.0.0.1:4556 udpclo
+a outduct udp 127.0.0.1:4557 udpclo
+a outduct udp 127.0.0.1:4557 udpclo
 
 s
 ## end bpadmin 
