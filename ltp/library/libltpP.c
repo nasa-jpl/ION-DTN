@@ -67,6 +67,7 @@
 
 #define LTP_VERSION		0;
 
+static Object	insertLtpTimelineEvent(LtpEvent *newEvent);
 static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 			LtpVspan *vspan, int segmentLength, LtpEvent *event);
 static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
@@ -178,14 +179,13 @@ putErrmsg("Forget export session: timer elapsed", utoa(sessionNbr));
 }
 
 static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
-			unsigned int sessionNbr, unsigned int segmentLength)
+			unsigned int sessionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	time_t		currentTime = getUTCTime();
 	ClosedExport	closedExportBuf;
 	Object 		closedExportObj;
 	Object		elt;
-	LtpTimer	*timer;
 	LtpEvent 	closedExportEvent;
 
 	closedExportObj = sdr_malloc(sdr, sizeof(ClosedExport));
@@ -207,15 +207,11 @@ static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
 
 	memset((char *) &closedExportEvent, 0, sizeof(LtpEvent));
 	closedExportEvent.parm = elt;
+	closedExportEvent.scheduledTime = currentTime + 10 +
+			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
+			 * (vspan->owltOutbound + vspan->owltInbound));
 	closedExportEvent.type = LtpForgetExportSession;
-	timer = &closedExportBuf.timer;
-	if (setTimer(timer, closedExportObj + FLD_OFFSET(timer,
-			&closedExportBuf), currentTime, vspan,
-			segmentLength, &closedExportEvent) < 0)
-	{
-		putErrmsg("Can't set timer.", NULL);
-		return -1;
-	}
+	oK(insertLtpTimelineEvent(&closedExportEvent));
 
 #if LTPDEBUG
 char	rsbuf[256];
@@ -6363,11 +6359,7 @@ putErrmsg("Discarding report.", NULL);
 			closeExportSession(sessionObj);
 			ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
 #if CLOSED_EXPORTS_ENABLED
-			int	segmentLength = segment->pdu.headerLength
-					+ segment->pdu.contentLength
-					+ segment->pdu.trailerLength;
-			noteClosedExport(ltpdb, vspan, spanObj, sessionNbr,
-					segmentLength);
+			noteClosedExport(ltpdb, vspan, spanObj, sessionNbr);
 #endif
 		}
 		else
@@ -7488,26 +7480,6 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 			xsessionBuf.sessionNbr, 0);
 	}
 
-#if CLOSED_EXPORTS_ENABLED
-	Object 		closedExportObj;
-	ClosedExport	closedExportBuf;
-
-	for (elt = sdr_list_first(sdr, (_ltpConstants())->closedExports); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		closedExportObj = sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &closedExportBuf, closedExportObj,
-				sizeof(ClosedExport));
-
-		/*	Suspend LtpForgetExportSession timer.		*/
-
-		timer = &closedExportBuf.timer;
-		suspendTimer(suspendTime, timer, closedExportObj
-				+ FLD_OFFSET(timer, &closedExportBuf),
-				qTime, priorXmitRate, LtpForgetExportSession,
-				0, closedExportBuf.sessionNbr, 0);
-	}
-#endif
 	for (elt = sdr_list_first(sdr, span->exportSessions); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -7714,37 +7686,6 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 		}
 	}
 
-#if CLOSED_EXPORTS_ENABLED
-	Object 		closedExportObj;
-	ClosedExport	closedExportBuf;
-
-	for (elt = sdr_list_first(sdr, (_ltpConstants())->closedExports); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		closedExportObj = sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &closedExportBuf, closedExportObj,
-				sizeof(ClosedExport));
-		if (closedExportBuf.timer.state != LtpTimerSuspended)
-		{
-#if LTPDEBUG
-	putErrmsg("LtpTimerSuspended continue", itoa(-1));
-#endif
-			continue;		/*	Not suspended.	*/
-		}
-
-		timer = &closedExportBuf.timer;
-		if (resumeTimer(resumeTime, timer, closedExportObj
-				+ FLD_OFFSET(timer, &closedExportBuf),
-				qTime, remoteXmitRate, LtpForgetExportSession,
-				0, closedExportBuf.sessionNbr, 0) < 0)
-		{
-			putErrmsg("Can't resume timers for span.",
-					itoa(span->engineId));
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
-	}
-#endif
 	for (elt = sdr_list_first(sdr, span->exportSessions); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
