@@ -16,7 +16,7 @@ BRS = ../brs
 UDP = ../udp
 DCCP = ../dccp
 BIBE = ../bibe
-IPND = ../ipnd
+#IPND = ../ipnd
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc -DENABLE_BPACS -DENABLE_IMC -DBPSEC
@@ -47,11 +47,11 @@ BPLIBS = \
 BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bpsec_util.o bpsec_instr.o profiles.o bpsec_bib.o bpsec_bcb.o
 # snid.o
 
-IPNDOBJS = ipnd.o beacon.o helper.o node.o
+#IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd cgrfetch
-# dccpcli dccpclo
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest cgrfetch
+# dccpcli dccpclo ipnd
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
 
@@ -272,9 +272,9 @@ bibeclo:	bibeclo.o $(BPLIBS)
 
 #	-	-	IPND executable	-	-	-	-	-
 
-ipnd:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lm
-		cp ipnd ./bin
+#ipnd:		$(IPNDOBJS) $(BPLIBS)
+#		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lm
+#		cp ipnd ./bin
 
 #	-	-	Test executables	-	-	-	-
 
@@ -417,5 +417,5 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/ext/cteb/%.c
 		$(CC) -c $<
 
-%.o:		$(IPND)/%.c
-		$(CC) -I$(IPND) -c $<
+#%.o:		$(IPND)/%.c
+#		$(CC) -I$(IPND) -c $<
