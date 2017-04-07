@@ -113,7 +113,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../3.ipn.tcp
@@ -125,7 +125,7 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../5.ipn.tcp
@@ -137,7 +137,7 @@ then
 	echo ""
 else
 	echo "Node 5 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../6.ipn.tcp
@@ -149,7 +149,7 @@ then
 	echo ""
 else
 	echo "Node 6 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 bprecvfile ipn:6.1 &
@@ -163,7 +163,7 @@ then
 	echo ""
 else
 	echo "Node 7 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 bprecvfile ipn:7.1 &
