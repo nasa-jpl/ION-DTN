@@ -240,6 +240,9 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #ifndef EWOULDBLOCK
 #define EWOULDBLOCK		WSAEWOULDBLOCK
 #endif
+#ifndef SIGCONT
+#define SIGCONT             0
+#endif
 #ifndef ENETUNREACH
 #define ENETUNREACH		WSAENETUNREACH
 #endif
