@@ -252,13 +252,13 @@ dccpclo:	dccpclo.o $(BPLIBS)
 
 #	-	-	DGR executables	-	-	-	-	-
 
-dccpcli:	dccpcli.o $(BPLIBS)
-		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-		cp dccpcli ./bin
+dgrcli:		dgrcli.o $(BPLIBS)
+		$(CC) -o dgrcli dgrcli.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lm
+		cp dgrcli ./bin
 
-dccpclo:	dccpclo.o $(BPLIBS)
-		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-		cp dccpclo ./bin
+dgrclo:		dgrclo.o $(BPLIBS)
+		$(CC) -o dgrclo dgrclo.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lm
+		cp dgrclo ./bin
 
 #	-	-	BRS executables	-	-	-	-
 
@@ -279,7 +279,7 @@ bibeclo:	bibeclo.o $(BPLIBS)
 #	-	-	IPND executable	-	-	-	-	-
 
 ipnd:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lws2_32 -lm
+		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
 		cp ipnd ./bin
 
 #	-	-	Test executables	-	-	-	-
@@ -424,4 +424,4 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(IPND)/%.c
-		$(CC) -I$(IPND) -c $<
+		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
