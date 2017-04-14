@@ -57,7 +57,7 @@ BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
 # dccpcli dccpclo
 RUNTIMES += acsadmin acslist 
 # acsadmin acslist
@@ -93,6 +93,10 @@ bpclock:	bpclock.o $(BPLIBS)
 bptransit:	bptransit.o $(BPLIBS)
 		$(CC) -o bptransit bptransit.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bptransit ./bin
+
+bpclm:		bpclm.o $(BPLIBS)
+		$(CC) -o bpclm bpclm.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpclm ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
@@ -246,11 +250,15 @@ dccpclo:	dccpclo.o $(BPLIBS)
 		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp dccpclo ./bin
 
-#	-	-	DGR executable	-	-	-	-	-
+#	-	-	DGR executables	-	-	-	-	-
 
-dgrcla:		dgrcla.o $(BPLIBS)
-		$(CC) -o dgrcla dgrcla.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lws2_32 -lm
-		cp dgrcla ./bin
+dccpcli:	dccpcli.o $(BPLIBS)
+		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp dccpcli ./bin
+
+dccpclo:	dccpclo.o $(BPLIBS)
+		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp dccpclo ./bin
 
 #	-	-	BRS executables	-	-	-	-
 
@@ -319,7 +327,7 @@ libcgr.dll:	libcgr.o
 		cp libcgr.dll ./lib
 
 libipnfw.dll:	libipnfw.o
-		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib -lici -lpthread -lm
+		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib -lici -lpthread -lbp -lm
 		cp libipnfw.dll ./lib
 
 libimcfw.dll:	libimcfw.o
