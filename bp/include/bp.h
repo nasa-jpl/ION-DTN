@@ -68,6 +68,11 @@ typedef struct
 	unsigned char	metadataType;	/*	See RFC 6258.		*/
 	unsigned char	metadataLen;
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
+
+	/*	From Sequence Number block.				*/
+
+	unsigned long	sequenceNumber;
+	struct timeval	arrivalTime;
 } BpAncillaryData;
 
 /*	Extended class-of-service flags.				*/

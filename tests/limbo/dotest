@@ -226,10 +226,11 @@ cd ../3.ipn.tcp
 rm testfile*
 ionadmin restart
 sleep 2
-bpadmin restart
-sleep 2
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
+sleep 2
+echo "Restarting BP agent..."
+bpadmin restart
 echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
 sleep 30
 echo ""
