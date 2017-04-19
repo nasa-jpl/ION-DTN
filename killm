@@ -172,7 +172,7 @@ sleep 2
 
 echo "Checking if all processes ended..."
 for THECOMMAND in ${KILLPROCESSLIST}; do
-	NOT_KILLED=`ps -e | grep "${THECOMMAND}" | grep -v grep | wc -l`
+	NOT_KILLED=`ps -e | egrep '[^-a-zA-Z]'"${THECOMMAND}"'[^-a-zA-Z]' | grep -v grep | wc -l`
 	if [ "$NOT_KILLED" -gt 0 ]; then
 		echo "Unknown error: process '${THECOMMAND}' not killed...try rebooting?"
 	fi
