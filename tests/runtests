@@ -51,7 +51,7 @@ function run_a_test () {
     TEST=${TEST##./}
     TEST=${TEST%%/}
 
-    if [ -f "$TEST/.exclude_$VERSION" ]; then
+    if [ -f "$TEST/.exclude_$VERSION" ]  || [ -f "$TEST/.exclude_all"]; then
     	echo "Test Excluded, skipping"
     	skip_test $TEST
     	return
@@ -173,6 +173,8 @@ then
 elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]]
 then
 	VERSION=mac;
+elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
+    VERSION=solaris
 fi
 
 CLEANUP=""
