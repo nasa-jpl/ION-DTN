@@ -666,21 +666,25 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 		return 0;	/*	Session has been lost.	*/
 	}
 
-	if (llcv_wait(session->throttle, pipeline_not_full, LLCV_BLOCKING))
+	if (session->segmentAcks)
 	{
-		putErrmsg("Wait on TCPCL pipeline throttle condition failed.",
-				session->outductName);
-		return -1;
-	}
+		if (llcv_wait(session->throttle, pipeline_not_full,
+					LLCV_BLOCKING))
+		{
+			putErrmsg("Wait on TCPCL pipeline throttle condition \
+failed.", session->outductName);
+			return -1;
+		}
 
-	pthread_mutex_lock(&(session->mutex));
-	elt = lyst_insert_last(session->pipeline, (void *) bundleZco);
-	pthread_mutex_unlock(&(session->mutex));
-	if (elt == NULL)
-	{
-		putErrmsg("Can't append transmitted ZCO to tcpcli pipeline.",
-				session->outductName);
-		return -1;
+		pthread_mutex_lock(&(session->mutex));
+		elt = lyst_insert_last(session->pipeline, (void *) bundleZco);
+		pthread_mutex_unlock(&(session->mutex));
+		if (elt == NULL)
+		{
+			putErrmsg("Can't append transmitted ZCO to tcpcli \
+pipeline.", session->outductName);
+			return -1;
+		}
 	}
 
 	zco_start_transmitting(bundleZco, &reader);
@@ -1252,6 +1256,11 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 	if (result < 1)
 	{
 		return result;
+	}
+
+	if (session->segmentAcks == 0)	/*	Inappropriate ack.	*/
+	{
+		return 1;		/*	Ignore it.		*/
 	}
 
 	if (lengthAcked == 0)		/*	Nuisance ack.		*/

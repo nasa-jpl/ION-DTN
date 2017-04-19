@@ -1,6 +1,6 @@
 # shell script to get node running
 #!/bin/bash
-ionadmin	config.ionrc
+ionadmin	config.ionrc &
 sleep		1
 ionsecadmin 	config.ionsecrc &
 sleep		1
@@ -9,4 +9,3 @@ sleep		1
 bpadmin		config.bprc &
 sleep		1
 ipnadmin	config.ipnrc &
-sleep		1

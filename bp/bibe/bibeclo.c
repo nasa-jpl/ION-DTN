@@ -1,9 +1,6 @@
 /*
 	bibeclo.c:	BP BIBE-based convergence-layer output
-			daemon.  Note that this convergence-layer
-			output daemon is a "promiscuous" CLO daemon
-			which can transmit bundles to any number of
-			different peers.
+			daemon.
 
 	Author:		Scott Burleigh, JPL
 
@@ -52,7 +49,6 @@ int	main(int argc, char *argv[])
 	char			adminHeader[1];
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
-	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
 	Bundle			image;
 	char			*dictionary = 0;
 	unsigned int		bundleLength;
@@ -76,7 +72,7 @@ int	main(int argc, char *argv[])
 	findOutduct("bibe", endpointSpec, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("No such bibe duct.", endpointSpec);
+		putErrmsg("No such bibe outduct.", endpointSpec);
 		return -1;
 	}
 
@@ -151,7 +147,7 @@ int	main(int argc, char *argv[])
 		bundleAge = currentTime -
 			(image.id.creationTime.seconds + EPOCH_2000_SEC);
 		ttl = image.timeToLive - bundleAge;
-		switch (bpSend(NULL, destDuctName, NULL, ttl,
+		switch (bpSend(NULL, endpointSpec, NULL, ttl,
 				COS_FLAGS(image.bundleProcFlags),
 				NoCustodyRequested, 0, 0, &ancillaryData,
 				bundleZco, &newBundle, BP_ENCAPSULATED_BUNDLE))
