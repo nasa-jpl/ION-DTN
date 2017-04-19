@@ -15,7 +15,7 @@ case $OSTYPE in
                   'kern.ipc.semmns' 'kern.ipc.semmni')
     ;;
     *)
-        echo "Not a supported system"
+        echo "No need to update sysctl variables."
         exit 0
     ;;
 esac
