@@ -51,7 +51,7 @@ function run_a_test () {
     TEST=${TEST##./}
     TEST=${TEST%%/}
 
-    if [ -f "$TEST/.exclude_$VERSION" ]  || [ -f "$TEST/.exclude_all"]; then
+    if [ -f "$TEST/.exclude_$VERSION" -o -f "$TEST/.exclude_all" ]; then
     	echo "Test Excluded, skipping"
     	skip_test $TEST
     	return
