@@ -175,7 +175,7 @@ then
 	VERSION=mac;
 elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
 then
-    VERSION=solaris
+    VERSION=solaris;
 fi
 
 CLEANUP=""
