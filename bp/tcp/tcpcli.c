@@ -1065,8 +1065,15 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			findPlan(eidbuf, &vplan, &vplanElt);
 			if (vplanElt == 0)
 			{
-				if (addPlan(eidbuf, ION_DEFAULT_XMIT_RATE) < 0
-				|| bpStartPlan(eidbuf) < 0)
+				result = addPlan(eidbuf, ION_DEFAULT_XMIT_RATE);
+				if (result == 0)
+				{
+					writeMemoNote("[?] Can't add egress \
+plan for this TCPCL contact header", eidbuf);
+					return 0;
+				}
+
+				if (result < 0 || bpStartPlan(eidbuf) < 0)
 				{
 					putErrmsg("Can't add automatic egress \
 plan for neighbor.", eidbuf);
