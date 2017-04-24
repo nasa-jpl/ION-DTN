@@ -5,7 +5,7 @@
 #############################################################
 
 #ION_VERSION_MAJOR=3
-#ION_VERSION_MINOR=2.1
+#ION_VERSION_MINOR=6.0
 #ION_VERSION:=$(ION_VERSION_MAJOR).$(ION_VERSION_MINOR)
 ION_VERSION:=open-source
 ION_SOURCE:=ion-$(ION_VERSION).tar.gz

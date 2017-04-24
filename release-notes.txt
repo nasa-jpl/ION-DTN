@@ -1,6 +1,6 @@
 = Release Notes for ION 3.6.0 =
 
-April 7, 2017
+April 21, 2017
 
 %%%%%%%%%%%
 = GENERAL =
@@ -69,6 +69,48 @@ Features included:
 = NOTES ON RELEASE 3.6.0 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
+- SourceForge Bug #103: Made pthread_t variable access abstract for POSIX task
+     signal management.
+
+- SourceForge Bug #104: Fixed segmentation fault in the ipnd neighbor discovery
+     task that caused a crash when a beaconing node that it has been listening
+     to abruptly terminates.
+
+- SourceForge Bug #106: Fix a bug using lseek on Windows machines when trying
+     to transfer large files (over 2GB in size).
+
+- SourceForge Bug #107: Updated to a new convergence layer management system.
+     (See ION interface changes in version 3.6.0 note below for more
+     information).
+
+- SourceForge Bug #110: Fix flow control to reserve ZCO before allocating SDR
+     heapspace.
+
+- SourceForge Bug #112: Added include directories needed to successfully build
+     acsadmin on Windows.
+
+- SourceForge Bug #115: Fix a bug in bpadmin that caused a segmentation fault
+     and subsequent lock up if "s outduct" was entered without any parameters.
+
+- SourceForge Feature Request #56: Added a TTL option to bpsendfile so the user
+     can specify a TTL longer than 300 seconds if needed.
+
+- SourceForge Feature Request #58: LTP performance enhancements.
+
+- SourceForge Feature Request #59: Added ECLSA an implementation of erasure
+     coding under LTP.
+
+- SourceForge Feature Request #60: Enabled custodial retransmission when using
+     the UDP convergence-layer adapter by adding an optional retransmission
+     timeout interval (RTT) that defaults to 0.
+
+- SourceForge Feature Request #63: Added an option to allow automatic discard
+     of status messages for a CFDP transfer in a recipient does not want to
+     process them.
+
+- Added a new system to disable tests that you do not want to run when using
+     the runtests script.
+
 --- ION interface changes in version 3.6.0 ---
  
 In ION version 3.6.0 we introduce a new degree of indirection between routing (next-hop bundle-layer endpoint selection) and forwarding (next-hop convergence-layer endpoint selection).  This new capability, named “convergence layer management” (CLM), provides a number of important benefits.  Unfortunately, in order to realize those benefits we had to revise some ION interfaces more drastically than we usually do in moving to a new version.  Please be aware of the following significant changes as you adjust your test and deployment environments to utilize ION 3.6.0.
@@ -94,7 +136,7 @@ The operation of the dtn2admin utility has been expanded, conceptually enabling 
 Finally, the TCP convergence-layer protocol implementation has been significantly revised: it now enables bundle to be transmitted to a neighboring node over a TCP connection that was established by that node, i.e., not declared a priori in local outduct commands.  That is, it is no longer necessary to declare outducts for all neighboring nodes to which you want to be able to send bundles by tcpcl.  However, these revisions are fairly complex and were time-consuming to debug; tcpcl loopback introduces a whole additional layer of complexity, particularly in fault handling, so at least for now tcpcl loopback is not supported in ION 3.6.0.  Everything one might want to demonstrate or test using tcpcl loopback can be more cleanly and convincingly accomplished using two nodes exercising tcpcl on the same machine, so we don’t see removal of this limitation as urgent.
 
 
-- NOTE for MacOS X users:  At this time, ON 3.6.0 will NOT run on any recent
+- NOTE for MacOS X users:  At this time, ION 3.6.0 will NOT run on any recent
      version of MacOS. Our tests on MacOS 10.11 show failures in the semaphore
      locking system that we have not yet fully diagnosed.  No work-around is
      available.
