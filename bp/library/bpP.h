@@ -45,6 +45,7 @@ extern "C" {
 #define	WATCH_timeout			(2048)
 #define	WATCH_limbo			(4096)
 #define	WATCH_delimbo			(8192)
+#define	WATCH_retransmit		(16384)
 
 #define SDR_LIST_ELT_OVERHEAD		(WORD_SIZE * 4)
 
@@ -91,6 +92,10 @@ extern "C" {
 
 #ifndef MIN_NET_DELIVERY_CONFIDENCE
 #define MIN_NET_DELIVERY_CONFIDENCE	(.80)
+#endif
+
+#ifndef	ION_DEFAULT_XMIT_RATE
+#define	ION_DEFAULT_XMIT_RATE		(125000000)
 #endif
 
 /*	An ION "node" is a set of cooperating state machines that
@@ -166,7 +171,6 @@ typedef struct
 {
 	char		*protocolName;
 	char		*proxNodeEid;
-	unsigned int	xmitRate;
 } DequeueContext;
 
 /*	*	*	Bundle structures	*	*	*	*/
@@ -306,9 +310,9 @@ typedef struct
 		/*	fragment offset is in the id field.		*/
 	unsigned int	totalAduLength;
 
-	/*	Stuff in Extended COS extension block.			*/
+	/*	Stuff in Extended COS and Metadata extension blocks.			*/
 
-	BpExtendedCOS	extendedCOS;
+	BpAncillaryData	ancillaryData;
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
@@ -379,9 +383,9 @@ typedef struct
 
 	/*	Transmission queue (or limbo list) stuff.		*/
 
+	Object		planXmitElt;	/*	Issuance queue ref.	*/
 	Object		ductXmitElt;	/*	Transmission queue ref.	*/
-	Object		proxNodeEid;	/*	An SDR string		*/
-	Object		destDuctName;	/*	An SDR string		*/
+	Object		proxNodeEid;	/*	An SDR string.		*/
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
@@ -493,6 +497,95 @@ typedef struct
 	PsmAddress	endpoints;	/*	SM list: VEndpoint.	*/
 } VScheme;
 
+/*	Definitions supporting the use of QoS-sensitive bandwidth
+ *	management.
+ *
+ *	Outflow objects are non-persistent.  They are used only to
+ *	do QoS-sensitive bandwidth management.  Since they are private
+ *	to CLMs, they can reside in the private memory of the CLM
+ *	(rather than in shared memory).
+ *
+ *	Each egress Plan has three Outflows:
+ *
+ *		Expedited = 2, Standard = 1, and Bulk = 0.
+ *
+ * 	Expedited traffic goes out before any other.  Standard traffic
+ * 	(service factor = 2) goes out twice as fast as Bulk traffic
+ * 	(service factor = 1).                 				*/
+
+#define EXPEDITED_FLOW   2
+
+typedef struct
+{
+	Object		outboundBundles;/*	SDR list.		*/
+	int		totalBytesSent;
+	int		svcFactor;
+} Outflow;
+
+/*	*	*	Egress Plan structures	*	*	*	*/
+
+#define	BP_PLAN_ENQUEUED	0
+#define	BP_PLAN_DEQUEUED	1
+#define	BP_PLAN_STATS		2
+
+typedef struct
+{
+	time_t		resetTime;
+	Tally		tallies[BP_PLAN_STATS];
+} PlanStats;
+
+typedef struct
+{
+	Scalar		backlog;
+	Object		lastForOrdinal;	/*	SDR list element.	*/
+} OrdinalState;
+
+typedef struct
+{
+	char		neighborEid[MAX_EID_LEN];
+
+	/*	Note: neighborEid may be a wildcarded EID string.	*/
+
+	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+
+	/*	If the plan for bundles destined for this neighbor is
+	 *	to relay them via some other EID, then that "via"
+	 *	EID is given here and the rest of the structure is
+	 *	unused.							*/
+
+	Object		viaEid;		/*	An sdrstring.		*/
+
+	/*	Otherwise, viaEid is zero and the plan for bundles
+	 *	destined for this neighbor is to transmit them using
+	 *	one of the ducts in the list.				*/
+
+	unsigned int	nominalRate;	/*	Bytes per second.	*/
+	int		blocked;	/*	Boolean			*/
+	Object		stats;		/*	PlanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
+	Object		bulkQueue;	/*	SDR list of Bundles	*/
+	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
+	Object		stdQueue;	/*	SDR list of Bundles	*/
+	Scalar		stdBacklog;	/*	Std bytes enqueued.	*/
+	Object		urgentQueue;	/*	SDR list of Bundles	*/
+	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
+	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
+	Object		ducts;		/*	SDR list: outduct elts.	*/
+	Object		context;	/*	For duct selection.	*/
+} BpPlan;
+
+typedef struct
+{
+	Object		planElt;	/*	Reference to BpPlan.	*/
+	Object		stats;		/*	PlanStats address.	*/
+	int		updateStats;	/*	Boolean.		*/
+	char		neighborEid[MAX_EID_LEN];
+	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	int		clmPid;		/*	For stopping the CLM.	*/
+	sm_SemId	semaphore;	/*	Queue non-empty.	*/
+	Throttle	xmitThrottle;	/*	For rate control.	*/
+} VPlan;
+
 /*	*	*	Induct structures	*	*	*	*/
 
 typedef struct
@@ -530,49 +623,37 @@ typedef struct
 
 typedef struct
 {
-	Scalar		backlog;
-	Object		lastForOrdinal;	/*	SDR list element.	*/
-} OrdinalState;
-
-typedef struct
-{
+	Object		planElt;	/*	Assigned BpPlan.	*/
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cloCmd;		/*	For starting the CLO.	*/
-	Object		bulkQueue;	/*	SDR list of Bundles	*/
-	Scalar		bulkBacklog;	/*	Bulk bytes enqueued.	*/
-	Object		stdQueue;	/*	SDR list of Bundles	*/
-	Scalar		stdBacklog;	/*	Std bytes enqueued.	*/
-	Object		urgentQueue;	/*	SDR list of Bundles	*/
-	Scalar		urgentBacklog;	/*	Urgent bytes enqueued.	*/
-	OrdinalState	ordinals[256];	/*	Orders urgent queue.	*/
+
+	/*	Outducts are created automatically in at least two
+	 *	cases.  In neighbor discovery, the eureka library
+	 *	will encode the host/port of the discovered neighbor
+	 *	in name and post the outduct, and the appropriate
+	 *	CLO task will be started and passed the new outduct's
+	 *	name.  Upon acceptance of a TCPCL connection from a
+	 *	neighboring node, tcpcli will encode the name of the
+	 *	outduct as "#:<fd>", where <fd> is the number of the
+	 *	file descriptor for the accepted socket, and a
+	 *	transmission thread will be started and passed this
+	 *	number.							*/
+
 	unsigned int	maxPayloadLen;	/*	0 = no limit.		*/
-	int		blocked;	/*	Boolean			*/
+	Object		xmitBuffer;	/*	SDR list of (1) ZCO.	*/
+	Object		context;	/*	For duct selection.	*/
 	Object		protocol;	/*	back-reference		*/
-	Object		stats;		/*	OutductStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
 } Outduct;
-
-#define	BP_OUTDUCT_ENQUEUED		0
-#define	BP_OUTDUCT_DEQUEUED		1
-#define	BP_OUTDUCT_STATS		2
-
-typedef struct
-{
-	time_t		resetTime;
-	Tally		tallies[BP_OUTDUCT_STATS];
-} OutductStats;
 
 typedef struct
 {
 	Object		outductElt;	/*	Reference to Outduct.	*/
-	Object		stats;		/*	OutductStats address.	*/
-	int		updateStats;	/*	Boolean.		*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
-	uvast		neighborNodeNbr;/*	If non-promiscuous.	*/
-	sm_SemId	semaphore;	/*	For transmit notices.	*/
-	Throttle	xmitThrottle;	/*	For rate control.	*/
+	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
+	int		prevBufferLength;
+	time_t		timeOfLastXmit;
 } VOutduct;
 
 /*	*	*	Protocol structures	*	*	*	*/
@@ -588,10 +669,7 @@ typedef struct
 	char		name[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	int		payloadBytesPerFrame;
 	int		overheadPerFrame;
-	int		nominalRate;	/*	Bytes per second.	*/
 	int		protocolClass;	/*	QoS provided.		*/
-	Object		inducts;	/*	SDR list of Inducts	*/
-	Object		outducts;	/*	SDR list of Outducts	*/
 } ClProtocol;
 
 /*	*	*	BP Database structures	*	*	*	*/
@@ -622,7 +700,10 @@ typedef struct
 typedef struct
 {
 	Object		schemes;	/*	SDR list of Schemes	*/
+	Object		plans;		/*	SDR list of BpPlans	*/
 	Object		protocols;	/*	SDR list of ClProtocols	*/
+	Object		inducts;	/*	SDR list of Inducts	*/
+	Object		outducts;	/*	SDR list of Outducts	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
@@ -659,7 +740,7 @@ typedef struct
 	Object		dbStats;	/*	BpDbStats address.	*/
 } BpDB;
 
-/*  CT database encapsulates custody transfer configuration. */
+/*	CT database encapsulates custody transfer configuration.	*/
 
 typedef struct
 {
@@ -762,6 +843,7 @@ typedef struct
 	/*	For finding structures in database.			*/
 
 	PsmAddress	schemes;	/*	SM list: VScheme.	*/
+	PsmAddress	plans;		/*	SM list: VPlan.		*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
 	PsmAddress	neighbors;	/*	SM list: NdpNeighbor.	*/
@@ -813,48 +895,6 @@ typedef struct
 	char		buffer[BP_MAX_BLOCK_SIZE];
 } AcqWorkArea;
 
-/*	Definitions supporting route computation.			*/
-
-typedef enum
-{
-	fwd = 1,	/*	Forward via indicated EID.		*/
-	xmit = 2	/*	Transmit in indicated CL duct.		*/
-} FwdAction;
-
-typedef struct
-{
-	FwdAction	action;
-	int		protocolClass;	/*	Required QoS.		*/
-	Object		outductElt;	/*	sdrlist elt for xmit	*/
-	Object		destDuctName;	/*	sdrstring for xmit	*/
-	Object		eid;		/*	sdrstring for fwd	*/
-} FwdDirective;
-
-/*	Definitions supporting the use of QoS-sensitive bandwidth
- *	management.							*/
-
-/*	Outflow objects are non-persistent.  They are used only to
- *	do QoS-sensitive bandwidth management.  Since they are private
- *	to CLOs, they can reside in the private memory of the CLO
- *	(rather than in shared memory).
- *
- *	Each Outduct, of whatever CL protocol, has three Outflows:
- *
- *		Expedited = 2, Standard = 1, and Bulk = 0.
- *
- * 	Expedited traffic goes out before any other.  Standard traffic
- * 	(service factor = 2) goes out twice as fast as Bulk traffic
- * 	(service factor = 1).                 				*/
-
-#define EXPEDITED_FLOW   2
-
-typedef struct
-{
-	Object		outboundBundles;	/*	SDR list.	*/
-	int		totalBytesSent;
-	int		svcFactor;
-} Outflow;
-
 /*	*	*	Function prototypes.	*	*	*	*/
 
 extern int		bpSend(		MetaEid *sourceMetaEid,
@@ -865,7 +905,7 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 					BpCustodySwitch custodySwitch,
 					unsigned char srrFlags,
 					int ackRequested,
-					BpExtendedCOS *extendedCOS,
+					BpAncillaryData *ancillaryData,
 					Object adu,
 					Object *newBundle,
 					int bundleIsAdmin);
@@ -950,24 +990,16 @@ extern int		bpClone(	Bundle *originalBundle,
 			 *	payload.  Returns 0 on success,
 			 *	-1 on any error.			*/
 
-extern int		bpEnqueue(	FwdDirective *directive,
+extern int		bpEnqueue(	VPlan *vplan,
 					Bundle *bundle,
-					Object bundleObj,
-					char *proxNodeEid);
+					Object bundleObj);
 			/*	This function is invoked by a forwarder
 			 *	to enqueue a bundle for transmission
-			 *	by a convergence-layer output adapter
-			 *	to the proximate node identified by
-			 *	proxNodeEid.  It appends the indicated
-			 *	bundle to the appropriate transmission
-			 *	queue of the duct indicated by
-			 *	"directive" based on the bundle's
-			 *	priority.  If the bundle is destined
-			 *	for a specific location among all the
-			 *	locations that are reachable via this
-			 *	duct, then the directive' destDuctName
-			 *	must be a string identifying that
-			 *	location.
+			 *	according to a defined egress plan.
+			 *	It appends the indicated bundle to the
+			 *	appropriate transmission queue of the
+			 *	egress plan identified by "vplan" based
+			 *	on the bundle's priority.
 			 *
 			 *	If forwarding the bundle to multiple
 			 *	nodes (flooding or multicast), call
@@ -978,28 +1010,19 @@ extern int		bpEnqueue(	FwdDirective *directive,
 			 *	failure.				*/
 
 extern int		bpDequeue(	VOutduct *vduct,
-					Outflow *outflows,
 					Object *outboundZco,
-					BpExtendedCOS *extendedCOS,
-					char *destDuctName,
-					unsigned int maxPayloadLength,
+					BpAncillaryData *ancillaryData,
 					int timeoutInterval);
 			/*	This function is invoked by a
-			 *	convergence-layer output adapter (an
-			 *	outduct) to get a bundle that it is to
-			 *	transmit to some remote convergence-
-			 *	layer input adapter (induct).
+			 *	convergence-layer output adapter
+			 *	(outduct) daemon to get a bundle that
+			 *	it is to transmit to some remote
+			 *	convergence-layer input adapter (induct)
+			 *	daemon.
 			 *
-			 *	bpDequeue first blocks until the
-			 *	capacity of the applicable throttle
-			 *	is non-negative.  In this way BP
-			 *	imposes rate control on outbound
-			 *	traffic, limiting transmission to
-			 *	the applicable nominal rate.
-			 *
-			 *	The function then selects the next
-			 *	outbound bundle from the set of outduct
-			 *	bundle queues identified by outflows.
+			 *	The function first pops the next (only)
+			 *	outbound bundle from the queue of
+			 *	outbound bundles for the indicated duct.
 			 *	If no such bundle is currently waiting
 			 *	for transmission, it blocks until one
 			 *	is [or until the duct is closed, at
@@ -1007,23 +1030,11 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	without providing the address of an
 			 *	outbound bundle ZCO].
 			 *
-			 *	On selecting a bundle, if the bundle's
-			 *	payload is longer than the indicated
-			 *	maximum then bpDequeue fragments the
-			 *	bundle: a cloned bundle whose payload
-			 *	is all bytes beyond the initial
-			 *	maxPayloadLength bytes is created and
-			 *	inserted back to the front of the queue
-			 *	from which the bundle was selected.
-			 *
-			 *	Then bpDequeue catenates (serializes)
-			 *	the BP header information in the
-			 *	bundle and prepends that serialized
-			 *	header to the source data of the
-			 *	bundle's payload ZCO; if there are
-			 *	post-payload blocks, it likewise
-			 *	catenates them into a trailer that
-			 *	is appended to the source data.  Then
+			 *	On obtaining a bundle, bpDequeue
+			 *	catenates (serializes) the BP header
+			 *	information in the bundle and prepends
+			 *	that serialized header to the source
+			 *	data of the bundle's payload ZCO.  Then
 			 *	it returns the address of that ZCO in
 			 *	*bundleZco for transmission at the
 			 *	convergence layer (possibly entailing
@@ -1035,15 +1046,6 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	so that the requested QOS can be
 			 *	mapped to the QOS features of the
 			 *	convergence-layer protocol.
-			 *
-			 *	If this bundle is destined for a
-			 *	specific location among all the
-			 *	locations that are reachable via
-			 *	this duct, then a string identifying
-			 *	that location is written into
-			 *	destDuctName, which must be an array
-			 *	of at least MAX_CL_DUCT_NAME_LEN + 1
-			 *	bytes.
 			 *
 			 *	The timeoutInterval argument indicates
 			 *	the length of time following return of
@@ -1129,7 +1131,9 @@ extern int		bpHandleXmitSuccess(Object zco, unsigned int interval);
 			 *	acceptance signal for this bundle has
 			 *	been received.
 			 *
-			 *	Returns 0 on success, -1 on failure.	*/
+			 *	Returns 1 if bundle success was
+			 *	handled, 0 if bundle had already
+			 *	been destroyed, -1 on system failure.	*/
 
 extern int		bpHandleXmitFailure(Object zco);
 			/*	This function is invoked by a
@@ -1140,7 +1144,9 @@ extern int		bpHandleXmitFailure(Object zco);
 			 *	outbound bundle in zco to be queued
 			 *	up for re-forwarding.
 			 *
-			 *	Returns 0 on success, -1 on failure.	*/
+			 *	Returns 1 if bundle failure was
+			 *	handled, 0 if bundle had already
+			 *	been destroyed, -1 on system failure.	*/
 
 extern int		bpReforwardBundle(Object bundleToReforward);
 			/*	bpReforwardBundle aborts the current
@@ -1326,10 +1332,12 @@ extern BpVdb		*getBpVdb();
 
 extern void		getCurrentDtnTime(DtnTime *dt);
 
-extern int		guessBundleSize(Bundle *bundle);
-extern int		computeECCC(int bundleSize, ClProtocol *protocol);
-extern void		computePriorClaims(ClProtocol *, Outduct *, Bundle *,
-				Scalar *, Scalar *);
+extern Throttle		*applicableThrottle(VPlan *vplan);
+
+extern unsigned int	guessBundleSize(Bundle *bundle);
+extern unsigned int	computeECCC(unsigned int bundleSize);
+extern void		computePriorClaims(BpPlan *plan, Bundle *bundle,
+				Scalar *priorClaims, Scalar *backlog);
 
 extern int		putBpString(BpString *bpString, char *string);
 extern char		*getBpString(BpString *bpString);
@@ -1372,10 +1380,29 @@ extern void		lookUpEidScheme(EndpointId eid, char *dictionary,
 extern void		lookUpEndpoint(EndpointId eid, char *dictionary,
 				VScheme *vscheme, VEndpoint **vpoint);
 
+extern void		findPlan(char *eid, VPlan **vplan, PsmAddress *elt);
+
+extern int		addPlan(char *eid, unsigned int nominalRate);
+extern int		updatePlan(char *eid, unsigned int nominalRate);
+extern int		removePlan(char *eid);
+extern int		bpStartPlan(char *eid);
+extern void		bpStopPlan(char *eid);
+extern int		bpBlockPlan(char *eid);
+extern int		bpUnblockPlan(char *eid);
+
+extern int		setPlanViaEid(char *eid, char *viaEid);
+extern int		attachPlanDuct(char *eid, Object outductElt);
+extern int		detachPlanDuct(char *eid, Object outductElt);
+extern void		lookupPlan(char *eid, VPlan **vplan);
+
+extern void		releaseCustody(Object bundleObj, Bundle *bundle);
+
+extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
+			        Object planObj, BpPlan *plan);
+
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
-				int overheadPerFrame, int nominalRate,
-				int protocolClass);
+				int overheadPerFrame, int protocolClass);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
 extern void		bpStopProtocol(char *name);
@@ -1392,8 +1419,6 @@ extern void		bpStopInduct(char *protocolName, char *ductName);
 
 extern void		findOutduct(char *protocolName, char *name,
 				VOutduct **vduct, PsmAddress *elt);
-extern int		maxPayloadLengthKnown(VOutduct *vduct,
-				unsigned int *maxPayloadLength);
 
 extern int		addOutduct(char *protocolName, char *name,
 				char *cloCmd, unsigned int maxPayloadLength);
@@ -1402,15 +1427,9 @@ extern int		updateOutduct(char *protocolName, char *name,
 extern int		removeOutduct(char *protocolName, char *name);
 extern int		bpStartOutduct(char *protocolName, char *ductName);
 extern void		bpStopOutduct(char *protocolName, char *ductName);
-extern int		bpBlockOutduct(char *protocolName, char *ductName);
-extern int		bpUnblockOutduct(char *protocolName, char *ductName);
 
 extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 extern void		destroyBpTimelineEvent(Object timelineElt);
-
-extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			        ClProtocol *protocol, Object outductObj,
-			        Outduct *outduct);
 
 extern int		decodeBundle(Sdr sdr, Object zco, unsigned char *buf,
 				Bundle *image, char **dictionary,
@@ -1426,14 +1445,18 @@ extern int		deliverBundle(Object bundleObj, Bundle *bundle,
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		reverseEnqueue(Object xmitElt, ClProtocol *protocol,
-				Object outductObj, Outduct *outduct,
-				int sendToLimbo);
+extern int		reverseEnqueue(Object xmitElt, Object planObj,
+				BpPlan *plan, int sendToLimbo);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);
 
 extern int		sendStatusRpt(Bundle *bundle, char *dictionary);
+
+extern void		bpCtTally(unsigned int reason, unsigned int size);
+extern void		bpPlanTally(VPlan *vplan, unsigned int idx,
+				unsigned int size);
+extern void		bpXmitTally(unsigned int priority, unsigned int size);
 
 typedef int		(*StatusRptCB)(BpDelivery *, BpStatusRpt *);
 typedef int		(*CtSignalCB)(BpDelivery *, BpCtSignal *);

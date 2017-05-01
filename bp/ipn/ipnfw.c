@@ -65,68 +65,39 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
-static int	getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
-			FwdDirective *directive)
-{
-	return ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
-			bundle->id.source.c.nodeNbr, bundle, directive);
-}
-
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			uvast nodeNbr, unsigned int serviceNbr)
+			uvast nodeNbr)
 {
-	FwdDirective	directive;
-	char		stationEid[64];
-	IonNode		*stationNode;
-	PsmAddress	nextElt;
-	PsmPartition	ionwm;
-	PsmAddress	embElt;
-	Embargo		*embargo;
+	Sdr		sdr = getIonsdr();
+	char		eid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	BpPlan		plan;
 
-	if (ipn_lookupPlanDirective(nodeNbr, bundle->id.source.c.serviceNbr,
-			bundle->id.source.c.nodeNbr, bundle, &directive) == 0)
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
 		return 0;
 	}
 
-	/*	The station node is a neighbor.				*/
-
-	isprintf(stationEid, sizeof stationEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			nodeNbr, serviceNbr);
-
-	/*	Is neighbor refusing to be a station for bundles?	*/
-
-	stationNode = findNode(getIonVdb(), nodeNbr, &nextElt);
-	if (stationNode)
+	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
+			sizeof(BpPlan));
+	if (plan.blocked)
 	{
-		ionwm = getIonwm();
-		for (embElt = sm_list_first(ionwm, stationNode->embargoes);
-				embElt; embElt = sm_list_next(ionwm, embElt))
+		if (enqueueToLimbo(bundle, bundleObj) < 0)
 		{
-			embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm,
-					embElt));
-			if (embargo->nodeNbr < nodeNbr)
-			{
-				continue;
-			}
-
-			if (embargo->nodeNbr > nodeNbr)
-			{
-				break;	/*	Not refusing bundles.	*/
-			}
-
-			/*	Neighbor is refusing bundles.  A
-			 *	neighbor, but not a good neighbor;
-			 *	give up.				*/
-
-			return 0;
+			putErrmsg("Can't put bundle in limbo.", NULL);
+			return -1;
 		}
 	}
-
-	if (bpEnqueue(&directive, bundle, bundleObj, stationEid) < 0)
+	else
 	{
-		putErrmsg("Can't enqueue bundle.", NULL);
-		return -1;
+		if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't enqueue bundle.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
@@ -136,11 +107,11 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
-	char		eidString[SDRSTRING_BUFSZ];
+	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
+	uvast		nodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	FwdDirective	directive;
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
 #else
@@ -154,10 +125,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	sdr_string_read(sdr, eidString, sdr_list_data(sdr, elt));
-	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
+	sdr_string_read(sdr, eid, sdr_list_data(sdr, elt));
+	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		putErrmsg("Can't parse node EID string.", eidString);
+		putErrmsg("Can't parse node EID string.", eid);
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
@@ -168,8 +139,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
-	if (cgr_forward(bundle, bundleObj, metaEid.nodeNbr,
-			(getIpnConstants())->plans, getDirective, trace) < 0)
+	nodeNbr = metaEid.nodeNbr;
+	restoreEidString(&metaEid);
+	if (cgr_forward(bundle, bundleObj, nodeNbr, trace)
+			< 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;
@@ -178,7 +151,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -189,14 +162,13 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	to the destination node.  So see if destination node
 	 *	is a neighbor; if so, enqueue for direct transmission.	*/
 
-	if (enqueueToNeighbor(bundle, bundleObj, metaEid.nodeNbr,
-			metaEid.serviceNbr) < 0)
+	if (enqueueToNeighbor(bundle, bundleObj, nodeNbr) < 0)
 	{
 		putErrmsg("Can't send bundle to neighbor.", NULL);
 		return -1;
 	}
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -208,27 +180,23 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	 *	(node range, i.e., "exit") and forward to the
 	 *	prescribed "via" endpoint for that exit.		*/
 
-	if (ipn_lookupExitDirective(metaEid.nodeNbr,
-			bundle->id.source.c.serviceNbr,
-			bundle->id.source.c.nodeNbr, &directive) == 1)
+	if (ipn_lookupExit(nodeNbr, eid) == 1)
 	{
-		/*	Found directive; forward via the indicated
-		 *	endpoint.					*/
+		/*	Found applicable exit; forward via the
+		 *	indicated endpoint.				*/
 
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
-		sdr_string_read(sdr, eidString, directive.eid);
-		return forwardBundle(bundleObj, bundle, eidString);
+		return forwardBundle(bundleObj, bundle, eid);
 	}
 
 	/*	No applicable exit.  If there's at least some route
 	 *	in which we have a minimal level of confidence that
 	 *	the bundle could read its destination given that
-	 *	the initial contact actually materializes (or the
-	 *	outduct to that contact gets unblocked), we just
+	 *	the initial contact actually materializes, we just
 	 *	place the bundle in limbo and hope for the best.	*/
 
-	if (cgr_prospect(metaEid.nodeNbr,
-			bundle->expirationTime + EPOCH_2000_SEC) > MIN_PROSPECT)
+	if (cgr_prospect(nodeNbr, bundle->expirationTime + EPOCH_2000_SEC)
+			> MIN_PROSPECT)
 	{
 		if (enqueueToLimbo(bundle, bundleObj) < 0)
 		{
@@ -237,7 +205,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		}
 	}
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued to limbo.				*/
 

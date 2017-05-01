@@ -64,14 +64,14 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 			int ttl, char *svcClass, char *trace, char *flags)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	int		srrFlags = 0;
 	BpSAP		sap;
 	Sdr		sdr;
 	Object		newBundle;
 
-	if (!bp_parse_class_of_service(svcClass, &extendedCOS, &custodySwitch,
+	if (!bp_parse_class_of_service(svcClass, &ancillaryData, &custodySwitch,
 			&priority))
 	{
 		putErrmsg("Invalid class of service for bptrace.", svcClass);
@@ -123,7 +123,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             }
 
             traceZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
-			    priority, extendedCOS.ordinal, ZcoOutbound, NULL);
+			    priority, ancillaryData.ordinal, ZcoOutbound, NULL);
             if (traceZco == 0)
             {
                     putErrmsg("bptrace can't create ZCO.", fileName);
@@ -131,7 +131,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	    else
 	    {
 		if (bp_send(sap, destEid, reportToEid, ttl, priority,
-				custodySwitch, srrFlags, 0, &extendedCOS,
+				custodySwitch, srrFlags, 0, &ancillaryData,
 				traceZco, &newBundle) <= 0)
 		{
 			putErrmsg("bptrace can't send file in bundle.",
@@ -168,7 +168,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
             }
 
             traceZco = ionCreateZco(ZcoSdrSource, msg, 0, msgLength, priority,
-			    extendedCOS.ordinal, ZcoOutbound, NULL);
+			    ancillaryData.ordinal, ZcoOutbound, NULL);
             if (traceZco == 0 || traceZco == (Object) ERROR)
             {
                     putErrmsg("bptrace can't create ZCO", NULL);
@@ -176,7 +176,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	    else
 	    {
             	if (bp_send(sap, destEid, reportToEid, ttl, priority,
-				custodySwitch, srrFlags, 0, &extendedCOS,
+				custodySwitch, srrFlags, 0, &ancillaryData,
 				traceZco, &newBundle) <= 0)
             	{
                     putErrmsg("bptrace can't send message.", NULL);

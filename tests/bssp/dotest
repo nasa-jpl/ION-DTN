@@ -92,7 +92,7 @@ then
 	echo ""
 else
 	echo "Node 1 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../2.ipn.bssp
@@ -103,7 +103,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 # Start BSS receiver on node 2.

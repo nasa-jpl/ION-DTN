@@ -944,7 +944,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	/*		Create ZCO and append header			*/
 
 	zco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength,
-			profile->classOfService, profile->extendedCOS.ordinal,
+			profile->classOfService, profile->ancillaryData.ordinal,
 			ZcoOutbound, NULL);
 	if (zco == 0 || zco == (Object) ERROR)
 	{
@@ -990,7 +990,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		MRELEASE(buffer);
 		extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr, 0,
 				extentLength, profile->classOfService,
-				profile->extendedCOS.ordinal, NULL);
+				profile->ancillaryData.ordinal, NULL);
 		if (extent == 0 || extent == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO extent.", NULL);
@@ -1025,7 +1025,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 			extent = ionAppendZcoExtent(zco, ZcoSdrSource, addr,
 					0, payloadRec->length.length,
 					profile->classOfService,
-					profile->extendedCOS.ordinal, NULL);
+					profile->ancillaryData.ordinal, NULL);
 			if (extent == 0 || extent == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
@@ -1036,7 +1036,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 					payloadRec->payload, 0,
 					payloadDataLength,
 					profile->classOfService,
-					profile->extendedCOS.ordinal, NULL);
+					profile->ancillaryData.ordinal, NULL);
 			if (extent == 0 || extent == (Object) ERROR)
 			{
 				putErrmsg("Can't create ZCO extent.", NULL);
@@ -1149,7 +1149,7 @@ int	sendAdu(BpSAP sap)
 
 	if (bp_send(sap, dstEid, reportToEid, lifetime,
 			profile->classOfService, profile->custodySwitch,
-			profile->srrFlags, 0, &(profile->extendedCOS),
+			profile->srrFlags, 0, &(profile->ancillaryData),
 			zco, &outAdu.bundleObj) <= 0)
 	{
 		sdr_cancel_xn(sdr);
@@ -1408,7 +1408,7 @@ event.", NULL);
 
 unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 			unsigned int aggrTimeLimit, unsigned int lifespan,
-			BpExtendedCOS *extendedCOS, unsigned char srrFlags,
+			BpAncillaryData *ancillaryData, unsigned char srrFlags,
 			BpCustodySwitch custodySwitch, char *reportToEid,
 			int classOfService)
 {
@@ -1439,9 +1439,9 @@ unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 		&& profile->custodySwitch == custodySwitch
 		&& profile->srrFlags == srrFlags
 		&& strcmp(repToEid, reportToEid) == 0
-		&& profile->extendedCOS.flowLabel == extendedCOS->flowLabel
-		&& profile->extendedCOS.flags == extendedCOS->flags
-		&& profile->extendedCOS.ordinal == extendedCOS->ordinal)
+		&& profile->ancillaryData.flowLabel == ancillaryData->flowLabel
+		&& profile->ancillaryData.flags == ancillaryData->flags
+		&& profile->ancillaryData.ordinal == ancillaryData->ordinal)
 		{
 			break;	/*	Found matching profile.		*/
 		}
@@ -1514,7 +1514,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 {
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*vdb = getDtpcVdb();
-	BpExtendedCOS	extendedCOS = {0, 0, 0};
+	BpAncillaryData	ancillaryData = {0, 0, 0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*vprofile;
 	Profile		profile;
@@ -1551,7 +1551,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
-	if (!bp_parse_class_of_service(svcClass, &extendedCOS, 
+	if (!bp_parse_class_of_service(svcClass, &ancillaryData, 
 			&custodySwitch, &priority))
         {
                 sdr_exit_xn(sdr);
@@ -1565,7 +1565,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 	}
 
 	if (dtpcGetProfile(maxRtx, aggrSizeLimit, aggrTimeLimit, lifespan,
-			&extendedCOS, srrFlags, custodySwitch, reportToEid,
+			&ancillaryData, srrFlags, custodySwitch, reportToEid,
 			priority) > 0)
 	{
 		sdr_exit_xn(sdr);
@@ -1578,7 +1578,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 	profile.aggrSizeLimit = aggrSizeLimit;
 	profile.aggrTimeLimit = aggrTimeLimit;
 	profile.lifespan = lifespan;
-	profile.extendedCOS = extendedCOS;
+	profile.ancillaryData = ancillaryData;
 	profile.custodySwitch = custodySwitch;
 	profile.classOfService = priority;
 	profile.srrFlags = srrFlags;	
@@ -2879,7 +2879,7 @@ int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 	Object		addr;
 	Object		ackZco;
 	Object		newBundle;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0};
+	BpAncillaryData	ancillaryData = { 0, 0, 0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*profile;
 	time_t		currentTime;
@@ -2958,7 +2958,7 @@ send ACK.");
 	/*	Create ZCO and send ACK.				*/
 
 	ackZco = ionCreateZco(ZcoSdrSource, addr, 0, extentLength, priority,
-			extendedCOS.ordinal, ZcoOutbound, NULL);
+			ancillaryData.ordinal, ZcoOutbound, NULL);
 	if (ackZco == 0 || ackZco == (Object) ERROR)
 	{
 		putErrmsg("Can't create ack ZCO.", NULL);
@@ -2967,7 +2967,7 @@ send ACK.");
 	}
 
 	if (bp_send(sap, dstEid, NULL, lifetime, priority, custodySwitch,
-			0, 0, &extendedCOS, ackZco, &newBundle) <= 0) 
+			0, 0, &ancillaryData, ackZco, &newBundle) <= 0) 
 	{
 		putErrmsg("DTPC can't send ack.", NULL);
 		sdr_cancel_xn(sdr);

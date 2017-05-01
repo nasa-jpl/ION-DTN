@@ -68,12 +68,6 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (dtn2Init() < 0)
-	{
-		putErrmsg("dtn2adminep can't load routing database.", NULL);
-		return 1;
-	}
-
 	findScheme("dtn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{

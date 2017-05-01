@@ -15,7 +15,6 @@ CONFIGFILES=" \
 ./3.bench.tcp/bench.ionconfig \
 ./3.bench.tcp/bench.ionrc \
 ./3.bench.tcp/bench.ionsecrc \
-./3.bench.tcp/bench.ipnrc \
 "
 
 echo "########################################"

@@ -245,6 +245,7 @@ typedef struct
 	unsigned int	transactionInactivityLimit;
 	unsigned int	checkTimerPeriod;
 	unsigned int	checkTimeoutLimit;
+	unsigned int	maxQueuedEvents;
 	CfdpHandler	faultHandlers[16];
 
 	/*	Fault handlers table is indexed by transaction
@@ -348,7 +349,7 @@ extern int		removeEntity(uvast entityId);
 
 extern int		checkFile(char *);
 
-extern void		addToChecksum(unsigned char octet, uvast *offset,
+extern void		addToChecksum(unsigned char octet, vast *offset,
 				unsigned int *checksum, CfdpCksumType ckType);
 
 extern int		getReqNbr();	/*	Returns next req nbr.	*/

@@ -84,6 +84,7 @@ static void	printUsage()
 	PUTS("\t   m fillchar <file fill character in hex, e.g., 0xaa>");
 	PUTS("\t   m ckperiod <check cycle period, in seconds>");
 	PUTS("\t   m maxtimeouts <max number of check cycle timeouts>");
+	PUTS("\t   m maxevents <max number of queued service indications>");
 	PUTS("\t   m maxtrnbr <max transaction number>");
 	PUTS("\t   m segsize <max bytes per file data segment>");
 	PUTS("\t   m inactivity <inactivity limit, in seconds>");
@@ -296,11 +297,12 @@ static void	printCfdpInfo()
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
 	isprintf(buffer, sizeof buffer, "xncount=%lu, maxtrnbr=%lu, \
 fillchar=0x%x, discard=%hu, requirecrc=%hu, segsize=%hu, inactivity=%u, \
-ckperiod=%u, maxtimeouts=%u", db->transactionCounter, db->maxTransactionNbr,
-			db->fillCharacter, db->discardIncompleteFile,
-			db->crcRequired, db->maxFileDataLength, 
-			db->transactionInactivityLimit, db->checkTimerPeriod,
-			db->checkTimeoutLimit);
+ckperiod=%u, maxtimeouts=%u, maxevents=%u", db->transactionCounter,
+			db->maxTransactionNbr, db->fillCharacter,
+		       	db->discardIncompleteFile, db->crcRequired,
+			db->maxFileDataLength, db->transactionInactivityLimit,
+			db->checkTimerPeriod, db->checkTimeoutLimit,
+			db->maxQueuedEvents);
 	sdr_exit_xn(sdr);
 	printText(buffer);
 }
@@ -517,7 +519,37 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't change checkTimerPeriod.", NULL);
+		putErrmsg("Can't change checkTimeoutLimit.", NULL);
+	}
+}
+
+static void	manageMaxevents(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	cfdpdbObj = getCfdpDbObject();
+	CfdpDB	cfdpdb;
+	int	newMaxevents;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newMaxevents = atoi(tokens[2]);
+	if (newMaxevents < 0)
+	{
+		putErrmsg("eventQueueLimit invalid.", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
+	cfdpdb.maxQueuedEvents = newMaxevents;
+	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change eventQueueLimit.", NULL);
 	}
 }
 
@@ -646,6 +678,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "maxtimeouts") == 0)
 	{
 		manageMaxtimeouts(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxevents") == 0)
+	{
+		manageMaxevents(tokenCount, tokens);
 		return;
 	}
 

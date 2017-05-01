@@ -8,7 +8,6 @@ a endpoint ipn:3.65 x
 a protocol stcp 1400 100
 a induct stcp localhost:5101 stcpcli
 a outduct stcp localhost:5001 stcpclo
-a outduct stcp localhost:5101 stcpclo
 r 'ipnadmin amroc.ipnrc'
 w 1
 s

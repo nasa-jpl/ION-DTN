@@ -24,6 +24,8 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
+	sleep(15);
+
 	/* Start ION */
 	ionstart_default_config("loopback-tcp/loopback.ionrc", 
 			 NULL,
@@ -31,6 +33,9 @@ int main(int argc, char **argv)
 			 "loopback-tcp/loopback.bprc",
 			 "loopback-tcp/loopback.ipnrc",
 			 NULL);
+	ionstart_default_config(NULL, NULL, NULL,
+			"loopback-tcp/loopbackstart.bprc",
+			NULL, NULL);
 
 	/* Attach to ION */
 	fail_unless(bp_attach() >= 0);

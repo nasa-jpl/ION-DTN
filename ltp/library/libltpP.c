@@ -28,13 +28,51 @@
 #include "ltpP.h"
 #include "ltpei.h"
 
-#define	EST_LINK_OHD	16
+#define	EST_LINK_OHD		16
 
 #ifndef LTPDEBUG
-#define	LTPDEBUG	0
+#define	LTPDEBUG		0
 #endif
 
-#define LTP_VERSION	0;
+//if 1, the standard RA will not be not enqueued for transmission, just use it for debug purpose
+#ifndef SKIP_STANDARD_RA
+#define	SKIP_STANDARD_RA	0
+#endif
+
+#if (!(defined(SIGNAL_REDUNDANCY)) || SIGNAL_REDUNDANCY < 1)
+#define SIGNAL_REDUNDANCY	1.0
+#endif
+
+#if (!(defined(CHECKPOINT_BURST)) || CHECKPOINT_BURST < 1)
+#define CHECKPOINT_BURST	1
+#endif
+
+#if (!(defined(REPORTSEGMENT_BURST)) || REPORTSEGMENT_BURST < 1)
+#define REPORTSEGMENT_BURST	1
+#endif
+
+#if (!(defined(CANCELSEGMENT_BURST)) || CANCELSEGMENT_BURST < 1)
+#define CANCELSEGMENT_BURST	1
+#endif
+
+#if (!(defined(REPORTACK_BURST)) || REPORTACK_BURST < 1)
+#define REPORTACK_BURST		1
+#endif
+
+#if (!(defined(CANCELACK_BURST)) || CANCELACK_BURST < 1)
+#define CANCELACK_BURST		1
+#endif
+
+#define CEIL(x)			(int)(x) + (1 - (int)((int)((x) + 1) - (x)))
+
+#define LTP_VERSION		0;
+
+static Object	insertLtpTimelineEvent(LtpEvent *newEvent);
+static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
+			LtpVspan *vspan, int segmentLength, LtpEvent *event);
+static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
+			unsigned int sessionNbr, unsigned int reportSerialNbr);
+static Object	enqueueAckSegment(Object spanObj, Object segmentObj);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -121,6 +159,203 @@ void	ltpSpanTally(LtpVspan *vspan, unsigned int idx, unsigned int size)
 	offset = (char *) tally - ((char *) &stats);
 	sdr_write(sdr, vspan->stats + offset, (char *) tally, sizeof(Tally));
 }
+
+/*	*	*	Functions for LTP enhancements	*	*	*/
+
+#if CLOSED_EXPORTS_ENABLED
+void	 ltpForgetClosedExport(Object elt)
+{
+	Sdr	sdr = getIonsdr();
+	Object 	closedExportObj;
+
+	closedExportObj = sdr_list_data(sdr, elt);
+#if LTPDEBUG
+ClosedExport	closedExportBuf;
+sdr_read(sdr, (char *) &closedExportBuf, closedExportObj, sizeof(ClosedExport));
+putErrmsg("Forget export session: timer elapsed", utoa(sessionNbr));
+#endif
+	sdr_free(sdr, closedExportObj);
+	sdr_list_delete(sdr, elt, NULL, NULL);
+}
+
+static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
+			unsigned int sessionNbr)
+{
+	Sdr		sdr = getIonsdr();
+	time_t		currentTime = getUTCTime();
+	ClosedExport	closedExportBuf;
+	Object 		closedExportObj;
+	Object		elt;
+	LtpEvent 	closedExportEvent;
+
+	closedExportObj = sdr_malloc(sdr, sizeof(ClosedExport));
+	if (closedExportObj == 0)
+	{
+		putErrmsg("No space for database.", NULL);
+		return -1;
+	}
+
+	memset((char *) &closedExportBuf, 0, sizeof(ClosedExport));
+	closedExportBuf.span = spanObj;
+	closedExportBuf.sessionNbr = sessionNbr;
+	closedExportBuf.responseLimit = vspan->maxTimeouts;
+	sdr_write(sdr, closedExportObj, (char *) &closedExportBuf,
+			sizeof(ClosedExport));
+	elt = sdr_list_insert_first(sdr, ltpdb->closedExports, closedExportObj);
+
+	/*	Set timer for removal of closed export session.		*/
+
+	memset((char *) &closedExportEvent, 0, sizeof(LtpEvent));
+	closedExportEvent.parm = elt;
+	closedExportEvent.scheduledTime = currentTime + 10 +
+			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
+			 * (vspan->owltOutbound + vspan->owltInbound));
+	closedExportEvent.type = LtpForgetExportSession;
+	oK(insertLtpTimelineEvent(&closedExportEvent));
+
+#if LTPDEBUG
+char	rsbuf[256];
+Object 	elt;
+putErrmsg("List of closed export sessions:", NULL );
+for (elt = sdr_list_first(sdr, (_ltpConstants())->closedExports); elt;
+		elt = sdr_list_next(sdr, elt))
+{
+	closedExportObj = sdr_list_data(sdr, elt);
+	sdr_read(sdr, (char *) &closedExportBuf, closedExportObj,
+			sizeof(ClosedExport));
+	sprintf(rsbuf, "Span:%lu SessionNumber:%u", closedExportBuf.span,
+			closedExportBuf.sessionNbr);
+	putErrmsg(rsbuf, NULL);
+}
+#endif
+	return 0;
+}
+
+static int	acknowledgeLateReport(unsigned int sessionNbr,
+			unsigned int rptSerialNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object 		elt;
+	Object 		closedExportObj;
+	ClosedExport	closedExportBuf;
+	LtpSpan		spanBuf;
+
+	for (elt = sdr_list_first(sdr, (_ltpConstants())->closedExports); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		closedExportObj = sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &closedExportBuf, closedExportObj,
+				sizeof(ClosedExport));
+		if (closedExportBuf.sessionNbr == sessionNbr)
+		{
+			writeMemoNote("[i] Ack from closed export session",
+					utoa(sessionNbr));
+			sdr_read(sdr, (char *) &spanBuf, closedExportBuf.span,
+					sizeof(LtpSpan));
+			if (constructReportAckSegment(&spanBuf,
+					closedExportBuf.span,
+					sessionNbr, rptSerialNbr))
+			{
+				putErrmsg("Can't send RA segment.", NULL);
+				return 0;
+			}
+
+			closedExportBuf.responseLimit--;
+			if (closedExportBuf.responseLimit < 1)
+			{
+				writeMemoNote("[i] Forget session, retries \
+exceeded", utoa(closedExportBuf.sessionNbr));
+				sdr_free(sdr, closedExportObj);
+				sdr_list_delete(sdr, elt, NULL, NULL);
+			}
+			else
+			{
+				sdr_write(sdr, closedExportObj,
+						(char *) (&closedExportBuf),
+						sizeof(ClosedExport));
+			}
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+#endif
+
+#if BURST_SIGNALS_ENABLED
+int	enqueueBurst(LtpXmitSeg *segment, LtpSpan *span, Object where,
+		int burstType)
+{
+	Sdr	sdr = getIonsdr();
+	int	i;
+	Object	segmentObj;
+
+	/*	Some segments may be generated by changing a
+	 *	previous segment. If we don't save expirationCount
+	 *	those segments will be considered as burst segments,
+	 *	causing troubles.					*/
+
+	int	oldExpirationCount = segment->pdu.timer.expirationCount;
+
+	for (i = 1; i < burstType; i++)
+	{
+		segmentObj = sdr_malloc(sdr, sizeof(LtpXmitSeg));
+		segment->pdu.timer.expirationCount = -1;
+
+	/*	Note: expirationCount -1 indicates that the segment
+	 *	is part of a burst and prevents the setting of a
+	 *	retransmission timer.  Any other non-zero value
+	 *	indicates that the segment is a retransmission.		*/
+
+		segment->queueListElt = sdr_list_insert_last(sdr,
+				span->segments, segmentObj);
+		if (where)
+		{
+			segment->sessionListElt = sdr_list_insert_last(sdr,
+					where, segmentObj);
+		}
+
+		sdr_write(sdr, segmentObj, (char *) segment,
+				sizeof(LtpXmitSeg));
+	}
+
+	segment->pdu.timer.expirationCount = oldExpirationCount;
+	return 0;
+}
+
+int	enqueueAckBurst(LtpXmitSeg *segment, Object spanObj, int burstType)
+{
+	Sdr	sdr = getIonsdr();
+	int	i;
+	Object	segmentObj;
+
+	/*	Some segments may be generated by changing a
+	 *	previous segment. if we don't save expirationCount
+	 *	those segments will be considered as burst segments,
+	 *	causing troubles.					*/
+
+	int	oldExpirationCount = segment->pdu.timer.expirationCount;
+
+	for (i = 1; i < burstType; i++)
+	{
+		segmentObj = sdr_malloc(sdr, sizeof(LtpXmitSeg));
+		segment->pdu.timer.expirationCount = -1;
+
+	/*	Note: expirationCount -1 indicates that the segment
+	 *	is part of a burst and prevents the setting of a
+	 *	retransmission timer.  Any other non-zero value
+	 *	indicates that the segment is a retransmission.		*/
+
+		segment->queueListElt = enqueueAckSegment(spanObj, segmentObj);
+		sdr_write(sdr, segmentObj, (char *) segment,
+				sizeof(LtpXmitSeg));
+	}
+
+	segment->pdu.timer.expirationCount = oldExpirationCount;
+	return 0;
+}
+#endif
 
 /*	*	*	LTP service control functions	*	*	*/
 
@@ -246,6 +481,7 @@ void	computeRetransmissionLimits(LtpVspan *vspan)
 		vspan->maxTimeouts = 3;
 	}
 
+	vspan->maxTimeouts *= SIGNAL_REDUNDANCY;
 	isprintf(buf, sizeof buf, "[i] Span to engine " UVAST_FIELDSPEC " \
 (max BER %f, max xmit segment size %d, max recv segment size %d): xmit segment \
 loss rate %f, recv segment loss rate %f, max timeouts %d.", vspan->engineId,
@@ -629,6 +865,9 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.exportSessionsHash = sdr_hash_create(sdr,
 				sizeof(unsigned int), estMaxExportSessions,
 				LTP_MEAN_SEARCH_LENGTH);
+#if CLOSED_EXPORTS_ENABLED
+		ltpdbBuf.closedExports= sdr_list_create(sdr);
+#endif
 		ltpdbBuf.deadExports = sdr_list_create(sdr);
 		ltpdbBuf.spans = sdr_list_create(sdr);
 		ltpdbBuf.timeline = sdr_list_create(sdr);
@@ -1640,12 +1879,15 @@ static void	destroyDataXmitSeg(Object dsElt, Object dsObj, LtpXmitSeg *ds)
 				ds->pdu.ckptSerialNbr);
 	}
 
-	if (ds->ckptListElt)		/*	A checkpoint segment.	*/
+	if (ds->pdu.timer.expirationCount != -1)	/*	(burst)	*/
 	{
-		/*	Destroy the LtpCkpt object and its ListElt.	*/
+		if (ds->ckptListElt)	/*	A checkpoint segment.	*/
+		{
+			/*	Destroy LtpCkpt object and its ListElt.	*/
 
-		sdr_free(sdr, sdr_list_data(sdr, ds->ckptListElt));
-		sdr_list_delete(sdr, ds->ckptListElt, NULL, NULL);
+			sdr_free(sdr, sdr_list_data(sdr, ds->ckptListElt));
+			sdr_list_delete(sdr, ds->ckptListElt, NULL, NULL);
+		}
 	}
 
 	if (ds->queueListElt)	/*	Queued for retransmission.	*/
@@ -2074,7 +2316,11 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
-	sdr_list_destroy(sdr, rs->pdu.receptionClaims, NULL, NULL);
+	if (rs->pdu.timer.expirationCount != -1)	/*	(burst)	*/
+	{
+		sdr_list_destroy(sdr, rs->pdu.receptionClaims, NULL, NULL);
+	}
+
 	if (rs->queueListElt)	/*	Queued for retransmission.	*/
 	{
 		sdr_list_delete(sdr, rs->queueListElt, NULL, NULL);
@@ -2260,9 +2506,10 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	event.parm = elt2;
 	currentTime = getUTCTime();
 	findSpan(span->engineId, &vspan, &vspanElt);
-	event.scheduledTime = currentTime + 10 + (2 * vspan->maxTimeouts
+	event.scheduledTime = currentTime + 10 +
+			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
 			* (vspan->owltOutbound + vspan->owltInbound));
-	event.type = LtpForgetSession;
+	event.type = LtpForgetImportSession;
 	oK(insertLtpTimelineEvent(&event));
 }
 
@@ -2623,8 +2870,15 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 {
 	Sdr	sdr = getIonsdr();
 	LtpDB	ltpdb;
+	time_t	segArrivalTimeOffset = 0;
+	time_t	ackDeadlineOffset = 0;
 	int	radTime;
 		OBJ_POINTER(LtpSpan, span);
+
+	if (timer->expirationCount == -1)	/*	(burst)		*/
+	{
+		return 0;	/*	Never set timer for bursts	*/
+	}
 
 	CHKERR(ionLocked());
 	sdr_read(sdr, (char *) &ltpdb, getLtpDbObject(), sizeof(LtpDB));
@@ -2645,10 +2899,9 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	 *	current transmission rate over this span, plus
 	 *	the current outbound signal propagation time (owlt).	*/
 
-	timer->segArrivalTime = currentSec + radTime + vspan->owltOutbound
+	segArrivalTimeOffset = radTime + vspan->owltOutbound
 			+ ((ltpdb.ownQtime >> 1) & 0x7fffffff);
-	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr,
-			vspan->spanElt));
+	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
 
 	/*	Following arrival of the segment, the response from
 	 *	the remote node should arrive here following the
@@ -2667,9 +2920,20 @@ static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
 	 *	restored on suspension/resumption of the link because
 	 *	the remote fire rate might change, etc.).		*/
 
-	timer->ackDeadline = timer->segArrivalTime
+	ackDeadlineOffset = segArrivalTimeOffset
 			+ span->remoteQtime + vspan->owltInbound
 			+ ((ltpdb.ownQtime >> 1) & 0x7fffffff);
+	timer->segArrivalTime = currentSec
+			+ CEIL(segArrivalTimeOffset / SIGNAL_REDUNDANCY);
+	timer->ackDeadline = currentSec
+			+ CEIL(ackDeadlineOffset / SIGNAL_REDUNDANCY);
+#if CLOSED_EXPORTS_ENABLED
+	if (event->type == LtpForgetExportSession)
+	{
+		timer->ackDeadline = currentSec + (ackDeadlineOffset
+				* vspan->maxTimeouts / SIGNAL_REDUNDANCY);
+	}
+#endif
 	if (vspan->remoteXmitRate > 0)
 	{
 		event->scheduledTime = timer->ackDeadline;
@@ -3239,6 +3503,9 @@ static Object	enqueueCancelReqSegment(LtpXmitSeg *segment,
 	}
 
 	sdr_write(sdr, segmentObj, (char *) segment, sizeof(LtpXmitSeg));
+#if BURST_SIGNALS_ENABLED
+	enqueueBurst(segment, span, 0, CANCELSEGMENT_BURST);
+#endif
 	return segmentObj;
 }
 
@@ -3653,6 +3920,9 @@ static int	constructRs(LtpXmitSeg *rs, int claimCount,
 	}
 
 	sdr_write(sdr, rsObj, (char *) rs, sizeof(LtpXmitSeg));
+#if BURST_SIGNALS_ENABLED
+	enqueueBurst(rs, span, session->rsSegments, REPORTSEGMENT_BURST);
+#endif
 	signalLso(span->engineId);
 #if LTPDEBUG
 char	buf[256];
@@ -3985,6 +4255,9 @@ static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 	}
 
 	sdr_write(sdr, segmentObj, (char *) &segment, sizeof(LtpXmitSeg));
+#if BURST_SIGNALS_ENABLED
+	enqueueAckBurst(&segment, spanObj, REPORTACK_BURST);
+#endif
 	signalLso(span->engineId);
 	return 0;
 }
@@ -4242,6 +4515,15 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		return 0;			/*	Overlap.	*/
 	}
 
+	/*	If we're low on heap space we can't accept the segment,
+	 *	because we don't have enough space for the necessary
+	 *	accounting objects.					*/
+
+	if (sdr_heap_depleted(sdr))
+	{
+		return 0;
+	}
+
 	/*	Okay to insert this segment into the list.		*/
 
 	session->redPartReceived += segment->pdu.length;
@@ -4496,6 +4778,8 @@ static int	handleGreenDataSegment(LtpPdu *pdu, char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	ImportSession	sessionBuf;
+	ReqTicket	ticket;
+	vast		pduLength = 0;
 	Object		pduObj;
 
 	ltpSpanTally(vspan, IN_SEG_RECV_GREEN, pdu->length);
@@ -4551,6 +4835,24 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 
 	/*	Deliver the client service data.			*/
 
+	if (ionRequestZcoSpace(ZcoInbound, 0, 0, pdu->length, 0, 0, NULL,
+			&ticket) < 0)
+	{
+		putErrmsg("Failed on ionRequest.", NULL);
+		return -1;
+	}
+
+	if (ticket)	/*	Couldn't service request immediately.	*/
+	{
+		ionShred(ticket);
+		*clientSvcData = 0;
+#if LTPDEBUG
+putErrmsg("Can't handle green data, would exceed available ZCO space.",
+utoa(pdu->length));
+#endif
+		return 1;		/*	No Zco created.		*/
+	}
+
 	pduObj = sdr_insert(sdr, cursor, pdu->length);
 	if (pduObj == 0)
 	{
@@ -4558,8 +4860,12 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 		return -1;
 	}
 
-	*clientSvcData = ionCreateZco(ZcoSdrSource, pduObj, 0, pdu->length,
-			1, 0, ZcoInbound, NULL);
+	/*	Pass additive inverse of length to zco_create to
+ 	*	indicate that space has already been awarded.		*/
+
+	pduLength -= pdu->length;
+	*clientSvcData = zco_create(sdr, ZcoSdrSource, pduObj, 0, pduLength,
+			ZcoInbound, 0);
 	switch (*clientSvcData)
 	{
 	case (Object) ERROR:
@@ -4568,7 +4874,7 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 
 	case 0:	/*	No ZCO space.  Silently discard segment.	*/
 #if LTPDEBUG
-putErrmsg("Can't handle green data, would exceed available heap space.",
+putErrmsg("Can't handle green data, would exceed available ZCO space.",
 utoa(pdu->length));
 #endif
 		break;
@@ -5488,6 +5794,13 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 	}
 
 	sdr_write(sdr, segmentObj, (char *) &segment, sizeof(LtpXmitSeg));
+#if BURST_SIGNALS_ENABLED
+	if(isCheckpoint)
+	{
+		enqueueBurst(&segment, span, session->redSegments,
+				CHECKPOINT_BURST);
+	}
+#endif
 	signalLso(span->engineId);
 #if LTPDEBUG
 char	buf[256];
@@ -5705,9 +6018,24 @@ putErrmsg("Discarding report.", NULL);
 	CHKERR(sdr_begin_xn(sdr));
 	getSessionContext(ltpdb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
-	if (spanObj == 0)	/*	Invalid provenance, ignore.	*/
+	if (spanObj == 0)	/*	Invalid provenance.		*/
 	{
-		/*	Either session is unknown (or dead, i.e.,
+#if CLOSED_EXPORTS_ENABLED
+		MRELEASE(newClaims);
+		if (acknowledgeLateReport(sessionNbr, rptSerialNbr))
+		{
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't send RA segment.", NULL);
+				return -1;
+			}
+
+			return 0;
+		}
+#endif
+		/*	Default behavior for late report segment:
+		 *
+		 *	Either session is unknown (or dead, i.e.,
 		 *	session number has been re-used) or else
 		 *	this RS was received from an engine that is
 		 *	not supposed to be sending at this time.  In
@@ -5732,10 +6060,10 @@ putErrmsg("Discarding report.", NULL);
 		 *	and be retransmitted N times and then will
 		 *	cause the session to fail and be canceled
 		 *	by receiver -- exactly the correct result.	*/
-#if LTPDEBUG
-putErrmsg("Discarding report.", NULL);
-#endif
-		MRELEASE(newClaims);
+
+	#if LTPDEBUG
+		putErrmsg("Unknown session: discarding report.", NULL);
+	#endif
 		sdr_exit_xn(sdr);
 		return 0;
 	}
@@ -5776,7 +6104,7 @@ putErrmsg("Discarding report.", NULL);
 	}
 
 	/*	Acknowledge the report if possible.			*/
-
+#if !SKIP_STANDARD_RA
 	if (constructReportAckSegment(&spanBuf, spanObj, sessionNbr,
 			rptSerialNbr))
 	{
@@ -5785,7 +6113,7 @@ putErrmsg("Discarding report.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
-
+#endif
 	/*	Now process the report if possible.  First, discard
 	 *	the report if it is a retransmission of a report that
 	 *	has already been applied.				*/
@@ -6030,6 +6358,9 @@ putErrmsg("Discarding report.", NULL);
 			stopExportSession(&sessionBuf);
 			closeExportSession(sessionObj);
 			ltpSpanTally(vspan, EXPORT_COMPLETE, 0);
+#if CLOSED_EXPORTS_ENABLED
+			noteClosedExport(ltpdb, vspan, spanObj, sessionNbr);
+#endif
 		}
 		else
 		{
@@ -6120,7 +6451,8 @@ putErrmsg("Incomplete reception.  Claims:", utoa(claimCount));
 	{
 #if LTPDEBUG
 char	claimbuf[256];
-sprintf(claimbuf, "-   offset %u length %u", claim->offset, claim->length);
+sprintf(claimbuf, "-   offset %u length %u (%u-%u)", claim->offset,
+claim->length, claim->offset, claim->offset + claim->length);
 putErrmsg(claimbuf, itoa(sessionBuf.sessionNbr));
 #endif
 		claimEnd = claim->offset + claim->length;
@@ -6496,7 +6828,6 @@ static int	handleCAS(LtpDB *ltpdb, unsigned int sessionNbr,
 	Object		sessionElt;
 
 	endOfHeader = *cursor;
-
 #if LTPDEBUG
 putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 #endif
@@ -6509,8 +6840,16 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 			&spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
 	{
+		/*	Previously:
 		sdr_exit_xn(sdr);
 		return 0;
+			Now we assume that the referenced session
+			cancellation retransmission timer can be
+			found and disabled.
+		*/		
+
+		cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
+		return sdr_end_xn(sdr);
 	}
 
 	/*	At this point, the remaining bytes should all be
@@ -7463,6 +7802,10 @@ putErrmsg("Cancel by sender.", itoa(sessionNbr));
 		dsBuf.queueListElt = sdr_list_insert_last(sdr,
 				span->segments, dsObj);
 		sdr_write(sdr, dsObj, (char *) &dsBuf, sizeof(LtpXmitSeg));
+#if BURST_SIGNALS_ENABLED
+		enqueueBurst(&dsBuf, span, sessionBuf.redSegments,
+				CHECKPOINT_BURST);
+#endif
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendCP)
 		{
@@ -7614,6 +7957,10 @@ putErrmsg("Cancel by receiver.", itoa(sessionNbr));
 		rsBuf.queueListElt = sdr_list_insert_last(sdr,
 				span->segments, rsObj);
 		sdr_write(sdr, rsObj, (char *) &rsBuf, sizeof(LtpXmitSeg));
+#if BURST_SIGNALS_ENABLED
+		enqueueBurst(&rsBuf, span, sessionBuf.rsSegments,
+				REPORTSEGMENT_BURST);
+#endif
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendRS)
 		{

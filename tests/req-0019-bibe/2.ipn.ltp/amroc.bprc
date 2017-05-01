@@ -11,7 +11,7 @@ a outduct ltp 1 ltpclo
 a outduct ltp 3 ltpclo
 a protocol bibe 1400 100 -1
 a induct bibe * ''
-a outduct bibe * bibeclo
+a outduct bibe ipn:3.0 bibeclo
 r 'ipnadmin amroc.ipnrc'
 w 1
 s

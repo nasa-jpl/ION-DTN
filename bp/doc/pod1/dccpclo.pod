@@ -16,13 +16,7 @@ as DCCP datagrams to the remote host.
 
 If not specified, I<remote_port_nbr> defaults to 4556.
 
-Note that B<dccpclo> is not a "promiscuous" convergence layer daemon: it
-can transmit bundles only to the node to which it is connected, so
-scheme configuration directives that cite this outduct need only provide
-the protocol name and the outduct name as specified on the command line
-when B<dccpclo> is started.
-
-Note also that B<dccpclo> has no fragmentation support at all. Therefore, the
+Note that B<dccpclo> has no fragmentation support at all. Therefore, the
 largest bundle that can be sent via this convergence layer is limited to
 just under the link's MTU (typically 1500 bytes).
 

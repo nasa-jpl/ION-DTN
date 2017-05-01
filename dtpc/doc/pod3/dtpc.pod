@@ -51,7 +51,7 @@ data items is placed in I<*dtpcsapPtr>, the elision callback function
 I<elisionFn> (if not NULL) is associated with this topic, and 0 is returned.
 Returns -1 on any error.
 
-=item int dtpc_send(unsigned int profileID, DtpcSAP sap, char *destEid, unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit, int lifespan, BpExtendedCOS *extendedCOS, unsigned char srrFlags, BpCustodySwitch custodySwitch, char *reportToEid, int classOfService, Object item, unsigned int length)
+=item int dtpc_send(unsigned int profileID, DtpcSAP sap, char *destEid, unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit, int lifespan, BpAncillaryData *ancillaryData, unsigned char srrFlags, BpCustodySwitch custodySwitch, char *reportToEid, int classOfService, Object item, unsigned int length)
 
 Inserts an application data item into an outbound DTPC application data unit
 destined for I<destEid>.
@@ -59,11 +59,11 @@ destined for I<destEid>.
 Transmission of that outbound ADU will be subject to the profile identified
 by I<profileID>, as asserted by dtpcadmin(1), if I<profileID> is non-zero.  In
 that case, I<maxRtx>, I<aggrSizeLimit>, I<aggrTimeLimit>, I<lifespan>,
-I<extendedCOS>, I<srrFlags>, I<custodySwitch>, I<reportToEid>, and
+I<ancillaryData>, I<srrFlags>, I<custodySwitch>, I<reportToEid>, and
 I<classOfService> are ignored.
 
 If I<profileID> is zero then the profile asserted by dtpcadmin(1) that matches
-I<maxRtx>, I<aggrSizeLimit>, I<aggrTimeLimit>, I<lifespan>, I<extendedCOS>,
+I<maxRtx>, I<aggrSizeLimit>, I<aggrTimeLimit>, I<lifespan>, I<ancillaryData>,
 I<srrFlags>, I<custodySwitch>, I<reportToEid>, and I<classOfService> will
 govern transmission of the ADU, unless no such profile has been asserted,
 in which case dtpc_send() returns 0 indicating user error.
@@ -83,7 +83,7 @@ outbound ADU and requesting transmission of that ADU.  If I<aggrTimeLimit> is
 zero, then the DTPC transmission optimization features (aggregation and
 elision) are disabled for this profile.
 
-I<lifespan>, I<extendedCOS>, I<srrFlags>, I<custodySwitch>, I<reportToEid>,
+I<lifespan>, I<ancillaryData>, I<srrFlags>, I<custodySwitch>, I<reportToEid>,
 and I<classOfService> are as defined for bp_send (see bp(3)).
 
 I<item> must be an object allocated within ION's SDR "heap", and I<length>

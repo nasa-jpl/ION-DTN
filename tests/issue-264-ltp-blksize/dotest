@@ -59,7 +59,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../3.ipn.ltp
@@ -70,7 +70,7 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 echo "Starting bprecvfile on node 3..."

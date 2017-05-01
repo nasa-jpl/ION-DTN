@@ -67,7 +67,7 @@ a induct udp 0.0.0.0:4556 udpcli
 
 # Add an outduct. (since one UDP socket can address any IP, use '*' 
 # for the destination address, then this clo can send to any udp cli)
-a outduct udp * udpclo
+a outduct udp 127.0.0.1:4556 udpclo
 
 s
 ## end bpadmin 
@@ -78,8 +78,6 @@ s
 #	Bundles to be transmitted to element number 1 (that is, yourself).
 #	This element is named 'node1.'
 #	The plan is to queue for transmission (x) on protocol 'udp' using
-#	the outduct identified as '*,127.0.0.1:4556'.  This specification
-#   will match the udpclo '*' and pass it an auxiliary parameter
-#   (destination address) of '127.0.0.1:4556'
-a plan 1 udp/*,127.0.0.1:4556
+#	the outduct identified as '127.0.0.1:4556'.
+a plan 1 udp/127.0.0.1:4556
 ## end ipnadmin 

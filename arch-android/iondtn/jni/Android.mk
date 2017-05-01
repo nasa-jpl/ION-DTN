@@ -92,9 +92,10 @@ MY_BP		:= ../../../bp
 MY_BPSOURCES :=      \
 	$(MY_BP)/library/libbp.c      \
 	$(MY_BP)/library/libbpP.c     \
-	$(MY_BP)/library/libbpnm.c     \
+	$(MY_BP)/library/libbpnm.c    \
 	$(MY_BP)/daemon/bpclock.c     \
 	$(MY_BP)/daemon/bptransit.c   \
+	$(MY_BP)/daemon/bpclm.c       \
 	$(MY_BP)/utils/bpadmin.c      \
 	$(MY_BP)/utils/bpstats.c      \
 	$(MY_BP)/utils/bptrace.c      \
@@ -125,7 +126,8 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/stcp/stcpcli.c       \
 	$(MY_BP)/stcp/stcpclo.c       \
 	$(MY_BP)/stcp/libstcpcla.c    \
-	$(MY_BP)/dgr/dgrcla.c         \
+	$(MY_BP)/dgr/dgrcli.c         \
+	$(MY_BP)/dgr/dgrclo.c         \
 	$(MY_BP)/library/eureka.c     \
 	$(MY_BP)/library/bei.c        \
 	$(MY_BP)/library/ext/phn/phn.c \

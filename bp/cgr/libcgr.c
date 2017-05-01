@@ -88,13 +88,13 @@ typedef struct
 typedef struct
 {
 	uvast		neighborNodeNbr;
-	FwdDirective	directive;
 	time_t		forfeitTime;
 	float		arrivalConfidence;
 	time_t		arrivalTime;	/*	As from time(2).	*/
+	uvast		capacity;	/*	# bytes conveyed.	*/
+	int		hopCount;	/*	# hops from dest. node.	*/
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
 	Scalar		protected;	/*	Bytes not overbooked.	*/
-	int		hopCount;	/*	# hops from dest. node.	*/
 } ProximateNode;
 
 /*		Functions for managing the CGR database.		*/
@@ -242,7 +242,8 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	PsmAddress	elt;
 	IonRXref	*range;
 
-	if (contact->discovered || contact->confidence < 1.0)
+	*owlt = 0;		/*	Default.			*/
+	if (contact->discovered)
 	{
 		return 0;	/*	Physically adjacent nodes.	*/
 	}
@@ -281,7 +282,6 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 
 	/*	No applicable range.					*/
 
-	*owlt = 0;
 	return -1;
 }
 
@@ -302,7 +302,6 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		transmitTime;
 	time_t		arrivalTime;
 	IonCXref	*finalContact = NULL;
-	float		highestConfidence = 0.0;
 	time_t		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextContact;
 	time_t		earliestArrivalTime;
@@ -431,15 +430,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 				if (contact->toNode == terminusNode->nodeNbr)
 				{
-					if (contact->confidence >
-							highestConfidence
-					|| (contact->confidence ==
-							highestConfidence
-						&& work->arrivalTime
-						< earliestFinalArrivalTime))
+					if (work->arrivalTime
+						< earliestFinalArrivalTime)
 					{
-						highestConfidence
-							= contact->confidence;
 						earliestFinalArrivalTime
 							= work->arrivalTime;
 						finalContact = contact;
@@ -970,21 +963,21 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	}
 
 	/*	Finally, insert that route into the terminusNode's
-	 *	list of routes in confidence/arrivalTime order.	*/
+	 *	list of routes in arrivalTime/capacity order.	*/
 
 	newRoute = (CgrRoute *) psp(ionwm, routeAddr);
-	for (elt = sm_list_first(ionwm, routes); elt; elt =
-			sm_list_next(ionwm, elt))
+	for (elt = sm_list_first(ionwm, routes); elt;
+			elt = sm_list_next(ionwm, elt))
 	{
 		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (route->arrivalConfidence > newRoute->arrivalConfidence)
+		if (route->arrivalTime < newRoute->arrivalTime)
 		{
 			continue;
 		}
 
-		if (route->arrivalConfidence == newRoute->arrivalConfidence)
+		if (route->arrivalTime == newRoute->arrivalTime)
 		{
-			if (route->arrivalTime <= newRoute->arrivalTime)
+			if (route->maxCapacity >= newRoute->maxCapacity)
 			{
 				continue;
 			}
@@ -1029,14 +1022,12 @@ static int	isExcluded(uvast nodeNbr, Lyst excludedNodes)
 }
 
 static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
-			time_t currentTime, Outduct *outduct, 
-			Scalar *overbooked, Scalar *protected, time_t *eto)
+			time_t currentTime, BpPlan *plan, Scalar *overbooked,
+			Scalar *protected, time_t *eto)
 {
-	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
-	ClProtocol	protocol;
 	Scalar		priorClaims;
 	Scalar		totalBacklog;
 	IonCXref	arg;
@@ -1054,10 +1045,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	unsigned int	owltMargin;
 	time_t		arrivalTime;
 
-	sdr_read(sdr, (char *) &protocol, outduct->protocol,
-			sizeof(ClProtocol));
-	computePriorClaims(&protocol, outduct, bundle, &priorClaims,
-			&totalBacklog);
+	computePriorClaims(plan, bundle, &priorClaims, &totalBacklog);
 	copyScalar(protected, &totalBacklog);
 
 	/*	Reduce prior claims on the first contact in this route
@@ -1178,7 +1166,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	 *	Now considering the initial contact on the route.
 	 *	First, check for potential overbooking.			*/
 
-	eccc = computeECCC(guessBundleSize(bundle), &protocol);
+	eccc = computeECCC(guessBundleSize(bundle));
 	copyScalar(overbooked, &allotment);
 	increaseScalar(overbooked, eccc);
 	subtractFromScalar(overbooked, &capacity);
@@ -1301,57 +1289,49 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 }
 
 static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
-			Object plans, CgrLookupFn getDirective,
 			CgrTrace *trace, Lyst proximateNodes)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
-	FwdDirective	directive;
-	Outduct		outduct;
+	char		eid[SDRSTRING_BUFSZ];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	Object		planObj;
+	BpPlan		plan;
 	LystElt		elt2;
 	int		hopCount;
+	uvast		capacity;
 	time_t		arrivalTime;
 	Scalar		overbooked;
 	Scalar		protected;
 	time_t		eto;
 	ProximateNode	*proxNode;
 
-	if (getDirective(route->toNodeNbr, plans, bundle, &directive) == 0)
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
+			route->toNodeNbr);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
-		TRACE(CgrIgnoreRoute, CgrNoApplicableDirective);
-		return 0;		/*	No applicable directive.*/
+		TRACE(CgrIgnoreRoute, CgrNoPlan);
+		return 0;		/*	No egress plan to node.	*/
 	}
+
+	planObj = sdr_list_data(sdr, vplan->planElt);
+	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
 
 	/*	Now determine whether or not the bundle could be sent
-	 *	to this neighbor via the outduct for this directive
-	 *	in time to follow the route that is being considered.
-	 *	There are three criteria.  First, is the outduct
-	 *	blocked (e.g., no TCP connection or temporarily shut
-	 *	off by operations)?					*/
+	 *	to this neighbor via the applicable egress plan in
+	 *	time to follow the route that is being considered.
+	 *	There are two criteria.  First, is the egress plan
+	 *	blocked (i.e., temporarily shut off by operations)?	*/
 
-	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
-			directive.outductElt), sizeof(Outduct));
-	if (outduct.blocked)
+	if (plan.blocked)
 	{
-		TRACE(CgrIgnoreRoute, CgrBlockedOutduct);
-		return 0;		/*	Outduct is unusable.	*/
+		TRACE(CgrIgnoreRoute, CgrBlockedPlan);
+		return 0;		/*	Node is unreachable.	*/
 	}
 
-	/*	Second: if the bundle is flagged "do not fragment",
-	 *	does the length of its payload exceed the duct's
-	 *	payload size limit (if any)?				*/
-
-	if (bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT
-	&& outduct.maxPayloadLen != 0)
-	{
-		if (bundle->payload.length > outduct.maxPayloadLen)
-		{
-			TRACE(CgrIgnoreRoute, CgrMaxPayloadTooSmall);
-			return 0;	/*	Bundle can't be sent.	*/
-		}
-	}
-
-	/*	Third: if this bundle were sent on this route, given
+	/*	Second: if this bundle were sent on this route, given
 	 *	all other bundles enqueued ahead of it, could it make
 	 *	all of its contact connections in time to arrive
 	 *	before its expiration time?  For this purpose we need
@@ -1359,7 +1339,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	candidate neighbor.					*/
 
 	arrivalTime = computeArrivalTime(route, bundle, currentTime,
-			&outduct, &overbooked, &protected, &eto);
+			&plan, &overbooked, &protected, &eto);
 	if (arrivalTime == 0)	/*	Can't be delivered in time.	*/
 	{
 		TRACE(CgrIgnoreRoute, CgrRouteTooSlow);
@@ -1381,81 +1361,97 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	with transmission to that neighbor, i.e., among
 	 *	all plausible routes.
 	 *
-	 *	The hopCount noted here is the smallest among the
-	 *	hopCounts projected on all plausible paths to the
+	 *	The capacity noted here is the largest among the
+	 *	capacities projected on all plausible paths to the
 	 *	terminus node, starting at the candidate proximate
 	 *	node, that share the minimum arrivalTime.
 	 *
+	 *	The hopCount noted here is the smallest among the
+	 *	hopCounts projected on all plausible paths to the
+	 *	terminus node, starting at the candidate proximate
+	 *	node, that share the minimum arrivalTime and
+	 *	maximum capacity.
+	 *
 	 *	We set forfeit time to the forfeit time associated
-	 *	with the "best" (lowest-latency, shortest) path.
-	 *	Note that the best path might not have the lowest
-	 *	associated forfeit time.				*/
+	 *	with the "best" (lowest-latency, highest-cpacity,
+	 *	shortest) path.  Note that the best path might not
+	 *	have the lowest associated forfeit time.		*/
 
+	capacity = route->maxCapacity;
 	hopCount = sm_list_length(ionwm, route->hops);
 	for (elt2 = lyst_first(proximateNodes); elt2; elt2 = lyst_next(elt2))
 	{
 		proxNode = (ProximateNode *) lyst_data(elt2);
-		if (proxNode->neighborNodeNbr == route->toNodeNbr)
+		if (proxNode->neighborNodeNbr != route->toNodeNbr)
 		{
-			/*	This route starts with contact with a
-			 *	neighbor that's already in the list.	*/
+			continue;
+		}
 
-			if (route->arrivalConfidence >
-					proxNode->arrivalConfidence
-			|| (route->arrivalConfidence ==
-					proxNode->arrivalConfidence
-				&& arrivalTime < proxNode->arrivalTime))
-			{
-				proxNode->arrivalConfidence =
-						route->arrivalConfidence;
-				proxNode->arrivalTime = arrivalTime;
-				proxNode->hopCount = hopCount;
-				proxNode->forfeitTime = route->toTime;
-				copyScalar(&proxNode->overbooked, &overbooked);
-				copyScalar(&proxNode->protected, &protected);
-				TRACE(CgrUpdateProximateNode,
-						CgrLaterArrivalTime);
-			}
-			else
-			{
-				if (route->arrivalConfidence ==
-						proxNode->arrivalConfidence
-				&& arrivalTime == proxNode->arrivalTime)
-				{
-					if (hopCount < proxNode->hopCount)
-					{
-						proxNode->hopCount = hopCount;
-						proxNode->forfeitTime =
-							route->toTime;
-						copyScalar
-							(&proxNode->overbooked,
-							 &overbooked);
-						copyScalar
-							(&proxNode->protected,
-							 &protected);
-						TRACE(CgrUpdateProximateNode,
-								CgrMoreHops);
-					}
-					else if (hopCount > proxNode->hopCount)
-					{
-						TRACE(CgrIgnoreRoute,
-								CgrMoreHops);
-					}
-					else
-					{
-						TRACE(CgrIgnoreRoute,
-								CgrIdentical);
-					}
-				}
-				else
-				{
-					TRACE(CgrIgnoreRoute,
-							CgrLaterArrivalTime);
-				}
-			}
+		/*	This route starts with contact with a neighbor
+		 *	that's already in the list.			*/
 
+		if (arrivalTime < proxNode->arrivalTime)
+		{
+			proxNode->arrivalTime = arrivalTime;
+			proxNode->capacity = capacity;
+			proxNode->hopCount = hopCount;
+			proxNode->forfeitTime = route->toTime;
+			copyScalar(&proxNode->overbooked, &overbooked);
+			copyScalar(&proxNode->protected, &protected);
+			proxNode->arrivalConfidence = route->arrivalConfidence;
+			TRACE(CgrUpdateProximateNode, CgrLaterArrivalTime);
 			return 0;
 		}
+
+		if (arrivalTime > proxNode->arrivalTime)
+		{
+			TRACE(CgrIgnoreRoute, CgrLaterArrivalTime);
+			return 0;
+		}
+
+		/*	Same arrival time.				*/
+
+		if (capacity > proxNode->capacity)
+		{
+			proxNode->capacity = capacity;
+			proxNode->hopCount = hopCount;
+			proxNode->forfeitTime = route->toTime;
+			copyScalar(&proxNode->overbooked, &overbooked);
+			copyScalar(&proxNode->protected, &protected);
+			proxNode->arrivalConfidence = route->arrivalConfidence;
+			TRACE(CgrUpdateProximateNode, CgrLowerCapacity);
+			return 0;
+		}
+
+		if (capacity < proxNode->capacity)
+		{
+			TRACE(CgrIgnoreRoute, CgrLowerCapacity);
+			return 0;
+		}
+
+		/*	Same capacity.					*/
+
+		if (hopCount < proxNode->hopCount)
+		{
+			proxNode->hopCount = hopCount;
+			proxNode->forfeitTime = route->toTime;
+			copyScalar(&proxNode->overbooked, &overbooked);
+			copyScalar(&proxNode->protected, &protected);
+			proxNode->arrivalConfidence = route->arrivalConfidence;
+			TRACE(CgrUpdateProximateNode, CgrMoreHops);
+			return 0;
+		}
+
+		if (hopCount > proxNode->hopCount)
+		{
+			TRACE(CgrIgnoreRoute, CgrMoreHops);
+			return 0;
+		}
+
+		/*	Same route length.				*/
+
+		TRACE(CgrIgnoreRoute, CgrIdentical);
+		return 0;
 	}
 
 	/*	This neighbor is not yet in the list, so add it.	*/
@@ -1469,21 +1465,19 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	}
 
 	proxNode->neighborNodeNbr = route->toNodeNbr;
-	memcpy((char *) &(proxNode->directive), (char *) &directive,
-			sizeof(FwdDirective));
-	proxNode->arrivalConfidence = route->arrivalConfidence;
 	proxNode->arrivalTime = arrivalTime;
+	proxNode->capacity = capacity;
 	proxNode->hopCount = hopCount;
 	proxNode->forfeitTime = route->toTime;
 	copyScalar(&proxNode->overbooked, &overbooked);
 	copyScalar(&proxNode->protected, &protected);
+	proxNode->arrivalConfidence = route->arrivalConfidence;
 	TRACE(CgrAddProximateNode);
 	return 0;
 }
 
 static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
-			Object bundleObj, Lyst excludedNodes, Object plans,
-			CgrLookupFn getDirective, CgrTrace *trace,
+			Object bundleObj, Lyst excludedNodes, CgrTrace *trace,
 			Lyst proximateNodes, time_t currentTime)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -1628,8 +1622,8 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 		 *	neighbor is a candidate proximate node for
 		 *	forwarding the bundle to the terminus node.	*/
 
-		if (tryRoute(route, currentTime, bundle, plans,
-				getDirective, trace, proximateNodes) < 0)
+		if (tryRoute(route, currentTime, bundle, trace, proximateNodes)
+				< 0)
 		{
 			putErrmsg("Can't check route.", NULL);
 			return -1;
@@ -1693,6 +1687,9 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	PsmAddress	embElt;
 	Embargo		*embargo;
 	BpEvent		event;
+	char		neighborEid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 
 	/*	Note that a copy is being sent on the route through
 	 *	this neighbor.						*/
@@ -1758,7 +1755,7 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	 *	in case the bundle doesn't get transmitted during the
 	 *	contact in which we expect it to be transmitted.	*/
 
-	if (!(bundle->extendedCOS.flags & BP_MINIMUM_LATENCY))
+	if (!(bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
 		event.type = xmitOverdue;
 		event.time = proxNode->forfeitTime;
@@ -1775,12 +1772,16 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	}
 
 	/*	In any event, we enqueue the bundle for transmission.
-	 *	Since we've already determined that the outduct to
-	 *	this neighbor is not blocked (else the neighbor would
-	 *	not be in the list of proximate nodes), the bundle
-	 *	can't go into limbo at this point.			*/
+	 *	Since we've already determined that the plan to this
+	 *	neighbor is not blocked (else the neighbor would not
+	 *	be in the list of proximate nodes), the bundle can't
+	 *	go into limbo at this point.				*/
 
-	if (bpEnqueue(&proxNode->directive, bundle, bundleObj, terminusEid) < 0)
+	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
+			proxNode->neighborNodeNbr);
+	findPlan(neighborEid, &vplan, &vplanElt);
+	CHKERR(vplanElt);
+	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
 		return -1;
@@ -1796,7 +1797,7 @@ typedef struct
 	Object	limitElt;	/*	SDR list element.		*/
 } QueueControl;
 
-static Object	getUrgentLimitElt(Outduct *outduct, int ordinal)
+static Object	getUrgentLimitElt(BpPlan *plan, int ordinal)
 {
 	Sdr	sdr = getIonsdr();
 	int	i;
@@ -1811,14 +1812,14 @@ static Object	getUrgentLimitElt(Outduct *outduct, int ordinal)
 
 	for (i = ordinal + 1; i < 256; i++)
 	{
-		limitElt = outduct->ordinals[i].lastForOrdinal;
+		limitElt = plan->ordinals[i].lastForOrdinal;
 		if (limitElt)
 		{
 			return sdr_list_next(sdr, limitElt);
 		}
 	}
 
-	return sdr_list_first(sdr, outduct->urgentQueue);
+	return sdr_list_first(sdr, plan->urgentQueue);
 }
 
 static Object	nextBundle(QueueControl *queueControls, int *queueIdx)
@@ -1852,18 +1853,18 @@ static Object	nextBundle(QueueControl *queueControls, int *queueIdx)
 	return currentElt;
 }
 
-static int	manageOverbooking(ProximateNode *neighbor, Object plans,
-			Bundle *newBundle, CgrLookupFn getDirective,
+static int	manageOverbooking(ProximateNode *neighbor, Bundle *newBundle,
 			CgrTrace *trace)
 {
 	Sdr		sdr = getIonsdr();
+	char		neighborEid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	Object		planObj;
+	BpPlan		plan;
 	QueueControl	queueControls[] = { {0, 0}, {0, 0}, {0, 0} };
 	int		queueIdx = 0;
 	int		priority;
-	FwdDirective	directive;
-	Object		outductObj;
-	Outduct		outduct;
-	ClProtocol	protocol;
 	int		ordinal;
 	double		protected = 0.0;
 	double		overbooked = 0.0;
@@ -1872,6 +1873,8 @@ static int	manageOverbooking(ProximateNode *neighbor, Object plans,
 			OBJ_POINTER(Bundle, bundle);
 	int		eccc;
 
+	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
+			neighbor->neighborNodeNbr);
 	priority = COS_FLAGS(newBundle->bundleProcFlags) & 0x03;
 	if (priority == 0)
 	{
@@ -1899,32 +1902,30 @@ static int	manageOverbooking(ProximateNode *neighbor, Object plans,
 		TRACE(CgrFullOverbooking, overbooked);
 	}
 
-	if (getDirective(neighbor->neighborNodeNbr, plans, newBundle,
-			&directive) == 0)
+	findPlan(neighborEid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
-		TRACE(CgrIgnoreRoute, CgrNoApplicableDirective);
+		TRACE(CgrIgnoreRoute, CgrNoPlan);
 
-		return 0;		/*	No applicable directive.*/
+		return 0;		/*	No egress plan to node.	*/
 	}
 
-	outductObj = sdr_list_data(sdr, directive.outductElt);
-	sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
-	sdr_read(sdr, (char *) &protocol, outduct.protocol,
-			sizeof(ClProtocol));
-	queueControls[0].currentElt = sdr_list_last(sdr, outduct.bulkQueue);
-	queueControls[0].limitElt = sdr_list_first(sdr, outduct.bulkQueue);
+	planObj = sdr_list_data(sdr, vplan->planElt);
+	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+	queueControls[0].currentElt = sdr_list_last(sdr, plan.bulkQueue);
+	queueControls[0].limitElt = sdr_list_first(sdr, plan.bulkQueue);
 	if (priority > 1)
 	{
 		queueControls[1].currentElt = sdr_list_last(sdr,
-				outduct.stdQueue);
+				plan.stdQueue);
 		queueControls[1].limitElt = sdr_list_first(sdr,
-				outduct.stdQueue);
-		ordinal = bundle->extendedCOS.ordinal;
+				plan.stdQueue);
+		ordinal = bundle->ancillaryData.ordinal;
 		if (ordinal > 0)
 		{
 			queueControls[2].currentElt = sdr_list_last(sdr,
-					outduct.urgentQueue);
-			queueControls[2].limitElt = getUrgentLimitElt(&outduct,
+					plan.urgentQueue);
+			queueControls[2].limitElt = getUrgentLimitElt(&plan,
 					ordinal);
 		}
 	}
@@ -1939,7 +1940,7 @@ static int	manageOverbooking(ProximateNode *neighbor, Object plans,
 
 		bundleObj = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
-		eccc = computeECCC(guessBundleSize(bundle), &protocol);
+		eccc = computeECCC(guessBundleSize(bundle));
 
 		/*	Skip over all bundles that are protected
 		 *	from overbooking because they are in contacts
@@ -1955,8 +1956,7 @@ static int	manageOverbooking(ProximateNode *neighbor, Object plans,
 		/*	The new bundle has bumped this bundle out of
 		 *	its originally scheduled contact.  Rebook it.	*/
 
-		removeBundleFromQueue(bundle, bundleObj, &protocol, outductObj,
-				&outduct);
+		removeBundleFromQueue(bundle, bundleObj, planObj, &plan);
 		if (bpReforwardBundle(bundleObj) < 0)
 		{
 			putErrmsg("Overbooking management failed.", NULL);
@@ -2012,7 +2012,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			continue;
 		}
 
-		if (bundle->ductXmitElt)
+		if (bundle->planXmitElt)
 		{
 			/*	This copy of bundle has already
 			 *	been enqueued.				*/
@@ -2055,7 +2055,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 
 	/*	Must put bundle in limbo, keep on trying to send it.	*/
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	This copy of bundle has already been enqueued.	*/
 
@@ -2079,9 +2079,8 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 }
 
 static int 	cgrForward(Bundle *bundle, Object bundleObj,
-			uvast terminusNodeNbr, Object plans,
-			CgrLookupFn getDirective, time_t atTime,
-			CgrTrace *trace, int preview)
+			uvast terminusNodeNbr, time_t atTime, CgrTrace *trace,
+			int preview)
 {
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = getCgrVdb();
@@ -2122,7 +2121,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	final destination or an intermediate forwarding
 	 *	station.			 			*/
 
-	CHKERR(bundle && bundleObj && terminusNodeNbr && plans && getDirective);
+	CHKERR(bundle && bundleObj && terminusNodeNbr);
 
 	TRACE(CgrBuildRoutes, terminusNodeNbr, bundle->payload.length,
 			(unsigned int)(atTime));
@@ -2205,8 +2204,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	node(s) to forward the bundle to.			*/
 
 	if (identifyProximateNodes(terminusNode, bundle, bundleObj,
-			excludedNodes, plans, getDirective, trace,
-			proximateNodes, atTime) < 0)
+			excludedNodes, trace, proximateNodes, atTime) < 0)
 	{
 		putErrmsg("Can't identify proximate nodes for bundle.", NULL);
 		lyst_destroy(excludedNodes);
@@ -2214,19 +2212,19 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		return -1;
 	}
 
-	/*	Examine the list of proximate nodes.  If the bundle
-	 *	is critical, enqueue it on the outduct to EACH
-	 *	identified proximate receiving node.
+	/*	Examine the list of proximate nodes.  If the bundle is
+	 *	critical, enqueue it on the plan for EACH identified
+	 *	proximate receiving node.
 	 *
-	 *	Otherwise, enqueue the bundle on the outduct to the
+	 *	Otherwise, enqueue the bundle on the plan for the
 	 *	identified proximate receiving node for the path with
 	 *	the earliest worst-case arrival time.			*/
 
 	lyst_destroy(excludedNodes);
 	TRACE(CgrSelectProximateNodes);
-	if (bundle->extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
-		/*	Critical bundle; send on all paths.		*/
+		/*	Critical bundle; send to all capable neighbors.	*/
 
 		TRACE(CgrUseAllProximateNodes);
 		return sendCriticalBundle(bundle, bundleObj, terminusNode,
@@ -2265,23 +2263,10 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 
 		/*	Select this candidate if it's the best.		*/
 
-		if (selectedNeighbor == NULL)
+		if (selectedNeighbor == NULL)	/*	1st candidate.	*/
 		{
 			TRACE(CgrSelectProximateNode);
 			selectedNeighbor = proxNode;
-		}
-		else if (proxNode->arrivalConfidence >
-				selectedNeighbor->arrivalConfidence)
-		{
-			TRACE(CgrSelectProximateNode);
-			MRELEASE(selectedNeighbor);
-			selectedNeighbor = proxNode;
-		}
-		else if (proxNode->arrivalConfidence <
-				selectedNeighbor->arrivalConfidence)
-		{
-			TRACE(CgrIgnoreProximateNode, CgrLowerConfidence);
-			MRELEASE(proxNode);
 		}
 		else if (proxNode->arrivalTime <
 				selectedNeighbor->arrivalTime)
@@ -2294,6 +2279,17 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 				selectedNeighbor->arrivalTime)
 		{
 			TRACE(CgrIgnoreProximateNode, CgrLaterArrivalTime);
+			MRELEASE(proxNode);
+		}
+		else if (proxNode->capacity > selectedNeighbor->capacity)
+		{
+			TRACE(CgrSelectProximateNode);
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
+		}
+		else if (proxNode->capacity < selectedNeighbor->capacity)
+		{
+			TRACE(CgrIgnoreProximateNode, CgrLowerCapacity);
 			MRELEASE(proxNode);
 		}
 		else if (proxNode->hopCount < selectedNeighbor->hopCount)
@@ -2338,8 +2334,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			/*	Handle any contact overbooking caused
 			 *	by enqueuing this bundle.		*/
 
-			if (manageOverbooking(selectedNeighbor, plans, bundle,
-					getDirective, trace))
+			if (manageOverbooking(selectedNeighbor, bundle, trace))
 			{
 				putErrmsg("Can't manage overbooking", NULL);
 				return -1;
@@ -2368,7 +2363,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 
 	/*	Must put bundle in limbo, keep on trying to send it.	*/
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	This copy of bundle has already been enqueued.	*/
 
@@ -2392,11 +2387,10 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 }
 
 int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
-		uvast terminusNodeNbr, Object plans, CgrLookupFn getDirective,
-		time_t atTime, CgrTrace *trace)
+		uvast terminusNodeNbr, time_t atTime, CgrTrace *trace)
 {
-	if (cgrForward(bundle, bundleObj, terminusNodeNbr, plans,
-	        	getDirective, atTime, trace, 1) < 0)
+	if (cgrForward(bundle, bundleObj, terminusNodeNbr, atTime, trace, 1)
+			< 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
 		return -1;
@@ -2406,10 +2400,10 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 }
 
 int	cgr_forward(Bundle *bundle, Object bundleObj, uvast terminusNodeNbr,
-		Object plans, CgrLookupFn getDirective, CgrTrace *trace)
+		CgrTrace *trace)
 {
-	if (cgrForward(bundle, bundleObj, terminusNodeNbr, plans,
-	        	getDirective, getUTCTime(), trace, 0) < 0)
+	if (cgrForward(bundle, bundleObj, terminusNodeNbr, getUTCTime(), trace,
+			0) < 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
 		return -1;
@@ -2540,8 +2534,8 @@ small for this bundle",
 neighbor",
 	[CgrRouteTooSlow] = "route is too slow; radiation latency delays \
 arrival time too much",
-	[CgrNoApplicableDirective] = "no applicable directive",
-	[CgrBlockedOutduct] = "outduct is blocked",
+	[CgrNoPlan] = "no egress plan",
+	[CgrBlockedPlan] = "egress plan is blocked",
 	[CgrMaxPayloadTooSmall] = "max payload too small",
 	[CgrNoResidualCapacity] = "contact with this neighbor is already \
 fully subscribed",
@@ -2551,7 +2545,7 @@ capacity for this bundle",
 	[CgrMoreHops] = "more hops",
 	[CgrIdentical] = "identical to a previous route",
 	[CgrNoHelp] = "insufficient delivery confidence improvement",
-	[CgrLowerConfidence] = "lower delivery confidence",
+	[CgrLowerCapacity] = "lower path capacity",
 	[CgrLaterArrivalTime] = "later arrival time",
 	[CgrLargerNodeNbr] = "initial hop has larger node number",
 	};

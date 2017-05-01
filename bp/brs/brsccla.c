@@ -234,8 +234,6 @@ int	main(int argc, char *argv[])
 	Induct			induct;
 	Outduct			outduct;
 	ClProtocol		protocol;
-	Outflow			outflows[3];
-	int			i;
 	int			ductSocket;
 	time_t			timeTag;
 	char			registration[REGISTRATION_LEN];
@@ -249,8 +247,7 @@ int	main(int argc, char *argv[])
 	KeepaliveThreadParms	ktparms;
 	pthread_t		keepaliveThread;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
-	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent;
 
@@ -328,14 +325,6 @@ number>");
 			voutduct->outductElt), sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Send registration message: duct number (SDNV text),
 	 *	timestamp, and message authentication code.  If the
@@ -447,8 +436,7 @@ number>");
 	writeMemo("[i] brsccla is running....");
 	while (!(sm_SemEnded(brscclaSemaphore(NULL))))
 	{
-		if (bpDequeue(voutduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+		if (bpDequeue(voutduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;
@@ -468,13 +456,13 @@ number>");
 		bytesSent = sendBundleByStcp(protocol.name, ductName,
 				&ductSocket, bundleLength, bundleZco, buffer);
 		pthread_mutex_unlock(&mutex);
-		if (bytesSent <= 0)
+		if (bytesSent < 0)
 		{
 			/*	If this is just a transient connection
 			 *	anomaly then the outduct has been
 			 *	blocked, but we have to stop it
 			 *	altogether.  We can't just wait for
-			 *	a keepalive to retect reconnection
+			 *	a keepalive to detect reconnection
 			 *	and resume: we must re-authenticate.	*/
 
 			sm_SemEnd(brscclaSemaphore(NULL));

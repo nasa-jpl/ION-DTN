@@ -452,7 +452,11 @@ void ui_print_reports(agent_t* agent)
 	    	 printf("\nSTATISTICS:");
 	    	 printf("\nMIDs total "UVAST_FIELDSPEC" bytes", mid_sizes);
 	    	 printf("\nData total: "UVAST_FIELDSPEC" bytes", data_sizes);
-	    	 printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
+		 if ((mid_sizes + data_sizes) > 0)
+		 {
+	    	 	printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
+		 }
+
 	    	 printf("\n----------------------------------------\n\n\n");
 	     }
 	 }

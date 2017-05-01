@@ -43,7 +43,7 @@ then
 	echo ""
 else
 	echo "Node not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 # Start ltpdriver sending 10 red blocks to nonexistent engine 5.

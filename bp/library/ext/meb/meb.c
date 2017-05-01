@@ -18,30 +18,30 @@ int	meb_offer(ExtensionBlock *blk, Bundle *bundle)
 	Sdnv	lengthSdnv;
 	char	dataBuffer[3 + BP_MAX_METADATA_LEN];
 
-	if (bundle->extendedCOS.metadataType == 0)
+	if (bundle->ancillaryData.metadataType == 0)
 	{
 		return 0;	/*	ECOS block is unnecessary.	*/
 	}
 
-	if (bundle->extendedCOS.metadataLen > BP_MAX_METADATA_LEN)
+	if (bundle->ancillaryData.metadataLen > BP_MAX_METADATA_LEN)
 	{
-		bundle->extendedCOS.metadataLen = BP_MAX_METADATA_LEN;
+		bundle->ancillaryData.metadataLen = BP_MAX_METADATA_LEN;
 	}
 
 	blk->dataLength = 1;	/*	For metadata type byte.		*/
-	encodeSdnv(&lengthSdnv, bundle->extendedCOS.metadataLen);
+	encodeSdnv(&lengthSdnv, bundle->ancillaryData.metadataLen);
 	blk->dataLength += lengthSdnv.length;
 
 	/*	Note that lengthSdnv.length can't exceed 2 because
-	 *	bundle->extendedCOS.metadataLen is an unsigned char
+	 *	bundle->ancillaryData.metadataLen is an unsigned char
 	 *	and therefore has a maximum value of 255, which can
 	 *	always be encoded in a 2-byte SDNV.			*/
 
-	blk->dataLength += bundle->extendedCOS.metadataLen;
-	dataBuffer[0] = bundle->extendedCOS.metadataType;
+	blk->dataLength += bundle->ancillaryData.metadataLen;
+	dataBuffer[0] = bundle->ancillaryData.metadataType;
 	memcpy(dataBuffer + 1, lengthSdnv.text, lengthSdnv.length);
-	memcpy(dataBuffer + 1 + lengthSdnv.length, bundle->extendedCOS.metadata,
-			bundle->extendedCOS.metadataLen);
+	memcpy(dataBuffer + 1 + lengthSdnv.length, bundle->ancillaryData.metadata,
+			bundle->ancillaryData.metadataLen);
 	return serializeExtBlk(blk, NULL, dataBuffer);
 }
 
@@ -99,7 +99,7 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	bundle->extendedCOS.metadataType = *cursor;
+	bundle->ancillaryData.metadataType = *cursor;
 	cursor++;
 	bytesRemaining--;
 	extractSdnv(&metadataLength, &cursor, &bytesRemaining);
@@ -109,8 +109,8 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
-	bundle->extendedCOS.metadataLen = metadataLength;
-	memcpy(bundle->extendedCOS.metadata, cursor, metadataLength);
+	bundle->ancillaryData.metadataLen = metadataLength;
+	memcpy(bundle->ancillaryData.metadata, cursor, metadataLength);
 	cursor += metadataLength;
 	bytesRemaining -= metadataLength;
 	if (bytesRemaining != 0)
@@ -123,7 +123,7 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	meb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	return 0;
+	return 1;
 }
 
 void	meb_clear(AcqExtBlock *blk)

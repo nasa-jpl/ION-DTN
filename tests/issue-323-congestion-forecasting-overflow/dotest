@@ -54,7 +54,7 @@ then
 	echo ""
 else
 	echo "Node not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../

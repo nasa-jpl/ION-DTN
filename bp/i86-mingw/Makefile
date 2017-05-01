@@ -17,11 +17,15 @@ UDP = ../udp
 DCCP = ../dccp
 BIBE = ../bibe
 IPND = ../ipnd
+ICI = ../../ici
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC -DENABLE_BPACS
 # -Werror
 # -DENABLE_BPACS
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+
+#acsadmin on mingw
+CC += -I$(API)/acs -I$(ICI)/include -I$(API)/ext/cteb
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -39,22 +43,23 @@ BPINCLS = \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
 	$(STCP)/stcpcla.h \
-	$(LTP)/ltpcla.h
+	$(LTP)/ltpcla.h \
+	$(API)/acs/acs.h
 #	$(DCCP)/dccpcla.h
-#	$(API)/acs/acs.h
 
 BPLIBS = \
 	libbp.dll
 
 BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bpsec_bib.o bpsec_bcb.o
 # snid.o
-# acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
+BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
 # dccpcli dccpclo
+RUNTIMES += acsadmin acslist 
 # acsadmin acslist
 # bpstats2 bpchat
 
@@ -88,6 +93,10 @@ bpclock:	bpclock.o $(BPLIBS)
 bptransit:	bptransit.o $(BPLIBS)
 		$(CC) -o bptransit bptransit.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bptransit ./bin
+
+bpclm:		bpclm.o $(BPLIBS)
+		$(CC) -o bpclm bpclm.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpclm ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
@@ -147,13 +156,13 @@ hmackeys:	hmackeys.o $(BPLIBS)
 		$(CC) -o hmackeys hmackeys.o -L$(ROOT)/lib -lici -lpthread -lm
 		cp hmackeys ./bin
 
-#acsadmin:	acsadmin.o $(BPLIBS)
-#		$(CC) -o acsadmin acsadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-#		cp acsadmin ./bin
+acsadmin:	acsadmin.o $(BPLIBS)
+		$(CC) -o acsadmin acsadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp acsadmin ./bin
 
-#acslist:	acslist.o $(BPLIBS)
-#		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-#		cp acslist ./bin
+acslist:	acslist.o $(BPLIBS)
+		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp acslist ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 
@@ -241,11 +250,15 @@ dccpclo:	dccpclo.o $(BPLIBS)
 		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp dccpclo ./bin
 
-#	-	-	DGR executable	-	-	-	-	-
+#	-	-	DGR executables	-	-	-	-	-
 
-dgrcla:		dgrcla.o $(BPLIBS)
-		$(CC) -o dgrcla dgrcla.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lws2_32 -lm
-		cp dgrcla ./bin
+dgrcli:		dgrcli.o $(BPLIBS)
+		$(CC) -o dgrcli dgrcli.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lm
+		cp dgrcli ./bin
+
+dgrclo:		dgrclo.o $(BPLIBS)
+		$(CC) -o dgrclo dgrclo.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lm
+		cp dgrclo ./bin
 
 #	-	-	BRS executables	-	-	-	-
 
@@ -266,7 +279,7 @@ bibeclo:	bibeclo.o $(BPLIBS)
 #	-	-	IPND executable	-	-	-	-	-
 
 ipnd:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lws2_32 -lm
+		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
 		cp ipnd ./bin
 
 #	-	-	Test executables	-	-	-	-
@@ -314,7 +327,7 @@ libcgr.dll:	libcgr.o
 		cp libcgr.dll ./lib
 
 libipnfw.dll:	libipnfw.o
-		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib -lici -lpthread -lm
+		$(LD) -o libipnfw.dll libipnfw.o -Wl,--output-def,libipnfw.def -L./lib -L$(ROOT)/lib -lici -lpthread -lbp -lm
 		cp libipnfw.dll ./lib
 
 libimcfw.dll:	libimcfw.o
@@ -404,11 +417,11 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(BIBE)/%.c
 		$(CC) -c $<
 
-#%.o:		$(API)/acs/%.c
-#		$(CC) -c $<
+%.o:		$(API)/acs/%.c
+		$(CC) -c $<
 
-#%.o:		$(API)/ext/cteb/%.c
-#		$(CC) -c $<
+%.o:		$(API)/ext/cteb/%.c
+		$(CC) -c $<
 
 %.o:		$(IPND)/%.c
-		$(CC) -I$(IPND) -c $<
+		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<

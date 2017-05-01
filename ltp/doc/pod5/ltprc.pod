@@ -173,7 +173,7 @@ maximum bit error rate that LTP should provide for in computing the maximum
 number of transmission efforts to initiate in the transmission of a given
 block.  (Note that this computation is also sensitive to data segment size
 and to the size of the block that is to be transmitted.)  The default value
-is .000001 (10^-6).
+is .0001 (10^-4).
 
 =item B<x>
 

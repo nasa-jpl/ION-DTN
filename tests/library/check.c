@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <errno.h>
 #include "check.h"
 
 static int current_failures = 0;
@@ -20,6 +21,11 @@ void _fail_unless(int result, const char *file,
 
     if(!result) {
         va_list ap;
+
+	if (errno)
+	{
+		perror("ION encountered system error");
+	}
 
         va_start(ap, expr);
         msg = (const char *)va_arg(ap, char *);

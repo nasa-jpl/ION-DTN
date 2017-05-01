@@ -113,20 +113,15 @@ int	main(int argc, char *argv[])
 	char			*buffer;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
-	DuctExpression		ductExpression;
 	Sdr			sdr;
 	Outduct			duct;
 	ClProtocol		protocol;
-	Outflow			outflows[3];
-	int			i;
 	int			running = 1;
 	pthread_mutex_t		mutex;
 	KeepaliveThreadParms	parms;
 	pthread_t		keepaliveThread;
-	unsigned int		maxPayloadLength;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
-	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
@@ -172,29 +167,10 @@ int	main(int argc, char *argv[])
 	ipnInit();
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));		/*	Lock the heap.	*/
-	ductExpression.outductElt = vduct->outductElt;
-	ductExpression.destDuctName = NULL;	/*	Non-promiscuous.*/
-	vduct->neighborNodeNbr = ipn_planNodeNbr(&ductExpression);
-	if (vduct->neighborNodeNbr == 0)
-	{
-		/*	Must be using only dtn-scheme EIDs.		*/
-
-		writeMemoNote("[i] No node number for this STCP duct name",
-				ductName);
-	}
-
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);			/*	Unlock.		*/
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = duct.bulkQueue;
-	outflows[1].outboundBundles = duct.stdQueue;
-	outflows[2].outboundBundles = duct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -225,14 +201,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] stcpclo is running....");
 	while (!(sm_SemEnded(stcpcloSemaphore(NULL))))
 	{
-		if (!(maxPayloadLengthKnown(vduct, &maxPayloadLength)))
-		{
-			snooze(1);
-			continue;
-		}
-
-		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, maxPayloadLength, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;
@@ -240,7 +209,7 @@ int	main(int argc, char *argv[])
 
 		if (bundleZco == 0)	/*	Outduct closed.		*/
 		{
-			writeMemo("stcpclo outduct closed.");
+			writeMemo("[i] stcpclo outduct closed.");
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
 		}

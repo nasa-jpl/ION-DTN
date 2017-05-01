@@ -224,9 +224,9 @@ terminating.");
 			utParms.ctInterval = 0;
 			utParms.srrFlags = 0;
 			utParms.ackRequested = 0;
-			utParms.extendedCOS.flowLabel = 0;
-			utParms.extendedCOS.flags = 0;
-			utParms.extendedCOS.ordinal = 0;
+			utParms.ancillaryData.flowLabel = 0;
+			utParms.ancillaryData.flags = 0;
+			utParms.ancillaryData.ordinal = 0;
 		}
 
 		if (direction == 0)
@@ -280,9 +280,9 @@ terminating.");
 		}
 
 		if (bp_send(txSap, destEid, reportToEid, utParms.lifespan,
-				utParms.classOfService, utParms.custodySwitch,
-				utParms.srrFlags, utParms.ackRequested,
-				&utParms.extendedCOS, pduZco, &newBundle) <= 0)
+			utParms.classOfService, utParms.custodySwitch,
+			utParms.srrFlags, utParms.ackRequested,
+			&utParms.ancillaryData, pduZco, &newBundle) <= 0)
 		{
 			putErrmsg("bputa can't send PDU in bundle; terminated.",
 					NULL);

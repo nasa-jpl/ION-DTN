@@ -1,8 +1,0 @@
-#!/bin/sh
-# Samuel Jero <sj323707@ohio.edu>
-# Cleanup script
-IONSENDFILE=./ionsendfile.txt
-IONRECEIVEFILE=./ionreceivefile.txt
-
-killm
-rm -f ${IONSENDFILE} ${IONRECEIVEFILE} configs/ion.log /tmp/ion.sdrlog

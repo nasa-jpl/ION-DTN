@@ -24,13 +24,18 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
+	sleep(15);
+
 	/* Start ION */
 	ionstart_default_config("loopback-ltp/loopback.ionrc", 
-			 NULL,
-			 "loopback-ltp/loopback.ltprc",
-			 "loopback-ltp/loopback.bprc",
-			 "loopback-ltp/loopback.ipnrc",
-			 NULL);
+			"loopback-ltp/loopback.ionsecrc",
+			"loopback-ltp/loopback.ltprc",
+			"loopback-ltp/loopback.bprc",
+			"loopback-ltp/loopback.ipnrc",
+			NULL);
+	ionstart_default_config(NULL, NULL, NULL,
+			"loopback-ltp/loopbackstart.bprc",
+			NULL, NULL);
 
 	/* Attach to ION */
 	fail_unless(bp_attach() >= 0);
@@ -41,14 +46,16 @@ int main(int argc, char **argv)
 	txExtent = sdr_malloc(sdr, sizeof(testLine) - 1);
 	fail_unless(txExtent != 0);
 	sdr_write(sdr, txExtent, testLine, sizeof(testLine) - 1);
-	txBundleZco = ionCreateZco(ZcoSdrSource, txExtent, 0, sizeof(testLine) - 1, 0, 0, 0, NULL);
+	txBundleZco = ionCreateZco(ZcoSdrSource, txExtent, 0,
+			sizeof(testLine) - 1, 0, 0, 0, NULL);
 	fail_unless(sdr_end_xn(sdr) >= 0 && txBundleZco != 0);
 	fail_unless(bp_send(NULL, testEid, NULL, 300, BP_STD_PRIORITY,
 		NoCustodyRequested, 0, 0, NULL, txBundleZco, &txNewBundle) > 0);
 
 	/* Receive the loopback bundle */
 	fail_unless(bp_open(testEid, &rxSap) >= 0);
-	fail_unless(bp_receive(rxSap, &rxDlv, IONTEST_DEFAULT_RECEIVE_WAIT) >= 0);
+	fail_unless(bp_receive(rxSap, &rxDlv, IONTEST_DEFAULT_RECEIVE_WAIT)
+			>= 0);
 	fail_unless(rxDlv.result == BpPayloadPresent);
 	sdr_begin_xn(sdr);
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);

@@ -36,75 +36,69 @@ static void	handleStopBrsscla()
 	ionKillMainThread("brsscla");
 }
 
-/*	*	*	Sender thread functions	*	*	*	*/
+typedef struct
+{
+	char		outductName[32];
+	VOutduct	*vduct;
+	char		eid[MAX_EID_LEN];
+} SenderThreadParms;
 
 typedef struct
 {
-	VOutduct	*vduct;
-	int		baseDuctNbr;
-	int		lastDuctNbr;
-	int		*brsSockets;
-} SenderThreadParms;
+	VInduct			*vduct;
+	LystElt			elt;
+	pthread_mutex_t		*mutex;
+	int			bundleSocket;
+	pthread_t		receiverThread;
+	int			*running;
+	unsigned int		nodeNbr;
+	int			*authenticated;
+	pthread_t		senderThread;
+	int			hasSender;
+	SenderThreadParms	stp;
+} ReceiverThreadParms;
 
-static void	*terminateSenderThread(SenderThreadParms *parms)
+/*	*	*	Sender thread functions	*	*	*	*/
+
+static void	*terminateSenderThread()
 {
 	writeErrmsgMemos();
-	writeMemo("[i] sender thread stopping.");
+	writeMemo("[i] brsscla sender thread stopping.");
 	return NULL;
 }
 
 static void	*sendBundles(void *parm)
 {
-	/*	Main loop for single bundle transmission thread
-	 *	serving all BRS sockets.				*/
-
-	SenderThreadParms	*parms = (SenderThreadParms *) parm;
+	ReceiverThreadParms	*parms = (ReceiverThreadParms *) parm;
 	char			*procName = "brsscla";
 	char			*buffer;
-	Outduct			outduct;
 	Sdr			sdr;
-	Outflow			outflows[3];
-	int			i;
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
-	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
-	int			ductNbr;
 	int			bytesSent;
-	Object			bundleAddr;
-	Bundle			bundle;
 
+	parms->hasSender = 1;
 	snooze(1);	/*	Let main thread become interruptable.	*/
 	buffer = MTAKE(STCPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
 		putErrmsg("No memory for TCP buffer in brsscla.", NULL);
 		ionKillMainThread(procName);
-		return terminateSenderThread(parms);
+		return terminateSenderThread();
 	}
 
 	sdr = getIonsdr();
-	CHKNULL(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
-			parms->vduct->outductElt), sizeof(Outduct));
-	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Can now begin transmitting to clients.			*/
 
-	while (!(sm_SemEnded(parms->vduct->semaphore)))
+	while (!(sm_SemEnded(parms->stp.vduct->semaphore)))
 	{
-		if (bpDequeue(parms->vduct, outflows, &bundleZco,
-				&extendedCOS, destDuctName, 0, -1) < 0)
+		if (bpDequeue(parms->stp.vduct, &bundleZco, &ancillaryData, -1)
+				< 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
+			ionKillMainThread(procName);
 			break;
 		}
 
@@ -117,86 +111,21 @@ static void	*sendBundles(void *parm)
 		CHKNULL(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
-		ductNbr = atoi(destDuctName);
-		if (ductNbr >= parms->baseDuctNbr
-		&& ductNbr <= parms->lastDuctNbr
-		&& parms->brsSockets[(i = ductNbr - parms->baseDuctNbr)] != -1)
+		bytesSent = sendBundleByStcp("", "", &(parms->bundleSocket),
+				bundleLength, bundleZco, buffer);
+
+		/*	Note that TCP I/O errors never block the
+		 *	brsscla induct's output functions; those
+		 *	functions never connect to remote sockets
+		 *	and the outduct never behaves like a TCP
+		 *	outduct, so the _tcpOutductId table is never
+		 *	populated.					*/
+
+		if (bytesSent < 0)
 		{
-			bytesSent = sendBundleByStcp("", "",
-					parms->brsSockets + i, bundleLength,
-					bundleZco, buffer);
-
-			/*	Note that TCP I/O errors never block
-			 *	the brsscla induct's output functions;
-			 *	those functions never connect to remote
-			 *	sockets and never behave like a TCP
-			 *	outduct, so the _tcpOutductId table is
-			 *	never populated.			*/
-
-			if (bytesSent < 0)
-			{
-				putErrmsg("Can't send bundle.", NULL);
-				break;
-			}
-		}
-		else	/*	Can't send it; try again later?		*/
-		{
-			bytesSent = 0;
-		}
-
-		if (bytesSent < bundleLength)
-		{
-			/*	Couldn't send the bundle, so put it
-			 *	in limbo so we can try again later
-			 *	-- except that if bundle has already
-			 *	been destroyed then just lose the ADU.	*/
-
-			CHKNULL(sdr_begin_xn(sdr));
-			if (retrieveSerializedBundle(bundleZco, &bundleAddr))
-			{
-				putErrmsg("Can't locate unsent bundle.", NULL);
-				sdr_cancel_xn(sdr);
-				break;
-			}
-
-			if (bundleAddr == 0)
-			{
-				/*	Bundle not found, so we can't
-				 *	put it in limbo for another
-				 *	attempt later; discard the ADU.	*/
-
-				zco_destroy(sdr, bundleZco);
-			}
-			else
-			{
-				sdr_stage(sdr, (char *) &bundle, bundleAddr,
-						sizeof(Bundle));
-				if (bundle.extendedCOS.flags
-						& BP_MINIMUM_LATENCY)
-				{
-					/*	We never put critical
-					 *	bundles into limbo.	*/
-
-					zco_destroy(sdr, bundleZco);
-				}
-				else
-				{
-					if (enqueueToLimbo(&bundle, bundleAddr)
-							< 0)
-					{
-						putErrmsg("Can't save bundle.",
-								NULL);
-						sdr_cancel_xn(sdr);
-						break;
-					}
-				}
-			}
-
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Failed handling brss xmit.", NULL);
-				break;
-			}
+			putErrmsg("Can't send bundle.", NULL);
+			ionKillMainThread(procName);
+			break;
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -204,10 +133,9 @@ static void	*sendBundles(void *parm)
 		sm_TaskYield();
 	}
 
-	ionKillMainThread(procName);
 	writeMemo("[i] brsscla outduct has ended.");
 	MRELEASE(buffer);
-	return terminateSenderThread(parms);
+	return terminateSenderThread();
 }
 
 /*	*	*	Receiver thread functions	*	*	*/
@@ -227,8 +155,7 @@ static int	reforwardStrandedBundles()
 		if (releaseFromLimbo(elt, 0) < 0)
 		{
 			putErrmsg("Failed releasing bundle from limbo.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
+			break;
 		}
 	}
 
@@ -241,51 +168,93 @@ static int	reforwardStrandedBundles()
 	return 0;
 }
 
-typedef struct
-{
-	VInduct		*vduct;
-	LystElt		elt;
-	pthread_mutex_t	*mutex;
-	int		bundleSocket;
-	pthread_t	thread;
-	int		*running;
-	unsigned int	ductNbr;
-	int		*authenticated;
-	int		baseDuctNbr;
-	int		lastDuctNbr;
-	int		*brsSockets;
-} ReceiverThreadParms;
-
 static void	terminateReceiverThread(ReceiverThreadParms *parms)
 {
-	int	senderSocket;
-
 	writeErrmsgMemos();
 	writeMemo("[i] brsscla receiver thread stopping.");
 	pthread_mutex_lock(parms->mutex);
 	if (parms->bundleSocket != -1)
 	{
 		closesocket(parms->bundleSocket);
-		if (parms->ductNbr != (unsigned int) -1)
-		{
-			senderSocket = parms->ductNbr - parms->baseDuctNbr;
-			if (parms->brsSockets[senderSocket] ==
-					parms->bundleSocket)
-			{
-				/*	Stop sender thread transmission
-				 *	over this socket.  Note: does
-				 *	not halt the sender thread.	*/
-
-				parms->brsSockets[senderSocket] = -1;
-			}
-		}
-
 		parms->bundleSocket = -1;
 	}
 
 	lyst_delete(parms->elt);
 	pthread_mutex_unlock(parms->mutex);
 	MRELEASE(parms);
+}
+
+static int	startSendingThread(ReceiverThreadParms *rtp)
+{
+	PsmAddress	vductElt;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+
+	/*	Create automatic Outduct for this socket.		*/
+
+	isprintf(rtp->stp.outductName, sizeof rtp->stp.outductName,
+			"#:%d", rtp->bundleSocket);
+	if (addOutduct("brss", rtp->stp.outductName, "", 0) < 0)
+	{
+		putErrmsg("Can't add automatic outduct.",
+				rtp->stp.outductName);
+		return -1;
+	}
+
+	findOutduct("brss", rtp->stp.outductName, &(rtp->stp.vduct), &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("Can't find brsscla automatic outduct.",
+				rtp->stp.outductName);
+		return -1;
+	}
+
+	/*	Attach automatic Outduct to egress plan.		*/
+
+	isprintf(rtp->stp.eid, sizeof rtp->stp.eid,
+			"ipn:" UVAST_FIELDSPEC ".0", rtp->nodeNbr);
+	findPlan(rtp->stp.eid, &vplan, &vplanElt);
+	if (vplanElt == 0)	/*	Client initial connection.	*/
+	{
+		if (addPlan(rtp->stp.eid, ION_DEFAULT_XMIT_RATE) < 0
+		|| bpStartPlan(rtp->stp.eid) < 0)
+		{
+			putErrmsg("Can't add automatic egress plan.",
+					rtp->stp.eid);
+			return -1;
+		}
+
+		findPlan(rtp->stp.eid, &vplan, &vplanElt);
+	}
+
+	if (attachPlanDuct(rtp->stp.eid, rtp->stp.vduct->outductElt) < 0)
+	{
+		putErrmsg("Can't attach duct to plan.", rtp->stp.eid);
+		return -1;
+	}
+
+	if (pthread_begin(&(rtp->senderThread), NULL, sendBundles, rtp))
+	{
+		putSysErrmsg("brsscla can't create sender thread", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static void	stopSendingThread(ReceiverThreadParms *rtp)
+{
+	if (rtp->stp.vduct && rtp->stp.vduct->semaphore != SM_SEM_NONE)
+	{
+		sm_SemEnd(rtp->stp.vduct->semaphore);
+	}
+
+	if (rtp->hasSender)
+	{
+		pthread_join(rtp->senderThread, NULL);
+	}
+
+	removeOutduct("brss", rtp->stp.outductName);
 }
 
 static void	*receiveBundles(void *parm)
@@ -298,9 +267,8 @@ static void	*receiveBundles(void *parm)
 	time_t			currentTime;
 	unsigned char		sdnvText[10];
 	int			sdnvLength = 0;
-	unsigned int		ductNbr;
+	unsigned int		nodeNbr;
 	uvast			val;
-	int			senderSocket;
 	char			registration[24];
 	time_t			timeTag;
 	char			keyName[32];
@@ -311,6 +279,7 @@ static void	*receiveBundles(void *parm)
 	char			digest[DIGEST_LEN];
 	AcqWorkArea		*work;
 	char			*buffer;
+	int			running = 1;
 
 	currentTime = time(NULL);
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -355,26 +324,9 @@ static void	*receiveBundles(void *parm)
 	}
 
 	oK(decodeSdnv(&val, sdnvText));
-	ductNbr = val;
-	if (ductNbr < parms->baseDuctNbr || ductNbr > parms->lastDuctNbr)
-	{
-		putErrmsg("Duct number is too large.", utoa(ductNbr));
-		*parms->authenticated = 1;	/*	Inauthentic.	*/
-		terminateReceiverThread(parms);
-		return NULL;
-	}
-
-	parms->ductNbr = ductNbr;
-	senderSocket = ductNbr - parms->baseDuctNbr;
-	if (parms->brsSockets[senderSocket] != -1)
-	{
-		putErrmsg("Client is already connected.", utoa(ductNbr));
-		*parms->authenticated = 1;	/*	Inauthentic.	*/
-		terminateReceiverThread(parms);
-		return NULL;
-	}
-
-	isprintf(keyName, sizeof keyName, "%u.brs", ductNbr);
+	nodeNbr = val;
+	parms->nodeNbr = nodeNbr;
+	isprintf(keyName, sizeof keyName, "%u.brs", nodeNbr);
 	keyLen = sec_get_key(keyName, &keyBufLen, key);
 	if (keyLen == 0)
 	{
@@ -427,7 +379,6 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 	}
 
 	*parms->authenticated = 2;		/*	Authentic.	*/
-	parms->brsSockets[senderSocket] = parms->bundleSocket;
 
 	/*	Client is authenticated.  Now authenticate self to
 	 *	the client and continue.				*/
@@ -474,9 +425,19 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		return NULL;
 	}
 
+	/*	Start the sending thread for this socket.		*/
+
+	if (startSendingThread(parms) < 0)
+	{
+		putErrmsg("brsscla can't start sending thread.",
+				itoa(parms->bundleSocket));
+		terminateReceiverThread(parms);
+		return NULL;
+	}
+
 	/*	Now start receiving bundles.				*/
 
-	while (*(parms->running))
+	while (running && *(parms->running))
 	{
 		if (bpBeginAcq(work, 0, NULL) < 0)
 		{
@@ -492,11 +453,13 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
+			*(parms->running) = 0;
+			continue;
 
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:				/*	Normal stop.	*/
-			*(parms->running) = 0;
+			running = 0;
 			continue;
 
 		default:
@@ -516,6 +479,10 @@ time tag is %u, must be between %u and %u.", (unsigned int) timeTag,
 		sm_TaskYield();
 	}
 
+	/*	Shut down sender thread cleanly.			*/
+
+	stopSendingThread(parms);
+
 	/*	Finish releasing receiver thread's resources.		*/
 
 	bpReleaseAcqArea(work);
@@ -533,9 +500,6 @@ typedef struct
 	struct sockaddr_in	*inetName;
 	int			ductSocket;
 	int			running;
-	int			baseDuctNbr;
-	int			lastDuctNbr;
-	int			*brsSockets;
 } AccessThreadParms;
 
 static void	*spawnReceivers(void *parm)
@@ -567,7 +531,7 @@ static void	*spawnReceivers(void *parm)
 	}
 
 	/*	Can now begin accepting connections from clients.  On
-	 *	failure, take down the whole CLI.			*/
+	 *	failure, take down the whole CLA.			*/
 
 	while (atp->running)
 	{
@@ -617,12 +581,9 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->bundleSocket = newSocket;
 		authenticated = 0;		/*	Unknown.	*/
 		receiverParms->authenticated = &authenticated;
-		receiverParms->ductNbr = (unsigned int) -1;
-		receiverParms->baseDuctNbr = atp->baseDuctNbr;
-		receiverParms->lastDuctNbr = atp->lastDuctNbr;
-		receiverParms->brsSockets = atp->brsSockets;
+		receiverParms->nodeNbr = (unsigned int) -1;
 		receiverParms->running = &(atp->running);
-		if (pthread_begin(&(receiverParms->thread), NULL,
+		if (pthread_begin(&(receiverParms->receiverThread), NULL,
 				receiveBundles, receiverParms))
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
@@ -638,7 +599,7 @@ static void	*spawnReceivers(void *parm)
 		{
 			/*	Assume hung on DOS attack.  Bail out.	*/
 
-			thread = receiverParms->thread;
+			thread = receiverParms->receiverThread;
 			pthread_end(thread);
 			pthread_join(thread, NULL);
 			terminateReceiverThread(receiverParms);
@@ -663,7 +624,7 @@ static void	*spawnReceivers(void *parm)
 		/*	Trigger termination of thread.			*/
 
 		receiverParms = (ReceiverThreadParms *) lyst_data(elt);
-		thread = receiverParms->thread;
+		thread = receiverParms->receiverThread;
 #ifdef mingw
 		shutdown(receiverParms->bundleSocket, SD_BOTH);
 #else
@@ -682,12 +643,10 @@ static void	*spawnReceivers(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
-			int *brsSockets)
+static int	run_brsscla(char *ductName)
 {
-	VInduct			*vinduct;
+	VInduct			*vduct;
 	PsmAddress		vductElt;
-	VOutduct		*voutduct;
 	Sdr			sdr;
 	Induct			induct;
 	ClProtocol		protocol;
@@ -697,29 +656,20 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 	AccessThreadParms	atp;
 	socklen_t		nameLength;
 	ReqAttendant		attendant;
-	SenderThreadParms	senderParms;
-	pthread_t		senderThread;
 	pthread_t		accessThread;
 	int			fd;
 
-	findInduct("brss", ductName, &vinduct, &vductElt);
+	findInduct("brss", ductName, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
 		putErrmsg("No such brss induct.", ductName);
 		return 1;
 	}
 
-	if (vinduct->cliPid != ERROR && vinduct->cliPid != sm_TaskIdSelf())
+	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
-				itoa(vinduct->cliPid));
-		return 1;
-	}
-
-	findOutduct("brss", ductName, &voutduct, &vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("No such brss outduct.", ductName);
+				itoa(vduct->cliPid));
 		return 1;
 	}
 
@@ -727,7 +677,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vinduct->inductElt),
+	sdr_read(sdr, (char *) &induct, sdr_list_data(sdr, vduct->inductElt),
 			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, induct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
@@ -747,7 +697,7 @@ static int	run_brsscla(char *ductName, int baseDuctNbr, int lastDuctNbr,
 
 	portNbr = htons(portNbr);
 	hostNbr = htonl(hostNbr);
-	atp.vduct = vinduct;
+	atp.vduct = vduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
 	atp.inetName = (struct sockaddr_in *) &(atp.socketName);
 	atp.inetName->sin_family = AF_INET;
@@ -792,30 +742,11 @@ port 80)", NULL);
 #endif
 	isignal(SIGTERM, handleStopBrsscla);
 
-	/*	Start the sender thread; a single sender for all
-	 *	connections.						*/
-
-	senderParms.vduct = voutduct;
-	senderParms.baseDuctNbr = baseDuctNbr;
-	senderParms.lastDuctNbr = lastDuctNbr;
-	senderParms.brsSockets = brsSockets;
-	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
-	{
-		closesocket(atp.ductSocket);
-		putSysErrmsg("brsscla can't create sender thread", NULL);
-		return 1;
-	}
-
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	atp.baseDuctNbr = baseDuctNbr;
-	atp.lastDuctNbr = lastDuctNbr;
-	atp.brsSockets = brsSockets;
 	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
 	{
-		sm_SemEnd(voutduct->semaphore);
-		pthread_join(senderThread, NULL);
 		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create access thread", NULL);
 		return 1;
@@ -840,15 +771,6 @@ port 80)", NULL);
 	atp.running = 0;
 	ionPauseAttendant(&attendant);
 
-	/*	Shut down sender thread cleanly.			*/
-
-	if (voutduct->semaphore != SM_SEM_NONE)
-	{
-		sm_SemEnd(voutduct->semaphore);
-	}
-
-	pthread_join(senderThread, NULL);
-
 	/*	Wake up the access thread by connecting to it.		*/
 
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -868,38 +790,21 @@ port 80)", NULL);
 	return 0;
 }
 
-/*	Each member of the brsSockets table is the FD of the open
- *	socket (if any) that has been established for communication
- *	with the BRS client identified by the duct number whose value
- *	is the base duct number for this BRS daemon plus this member's
- *	position within the table.  That is, if the base duct number
- *	for the server is 1 then brsSockets[19] is the FD for
- *	communicating with the BRS client identified by BRS duct
- *	number 20.							*/
-
 #if defined (ION_LWT)
 int	brsscla(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*ductName = (char *) a1;
-	int	baseDuctNbr = a2 ? atoi((char *) a2) : 1;
-	int	lastDuctNbr = a3 ? atoi((char *) a3) : baseDuctNbr + 255;
 #else
 int	main(int argc, char *argv[])
 {
 	char	*ductName = argc > 1 ? argv[1] : NULL;
-	int	baseDuctNbr = argc > 2 ? atoi(argv[2]) : 1;
-	int	lastDuctNbr = argc > 3 ? atoi(argv[3]) : baseDuctNbr + 255;
 #endif
-	int	scope;
-	int	i;
 	int	result;
-	int	*brsSockets;
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: brsscla <local host name>[:<port number>] \
-[<first duct nbr in scope>[ <last duct nbr in scope>]]");
+		PUTS("Usage: brsscla <local host name>[:<port number>]");
 		return 0;
 	}
 
@@ -909,28 +814,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (baseDuctNbr < 1 || lastDuctNbr < baseDuctNbr)
-	{
-		putErrmsg("brsscla scope error: first duct nbr must be > 0, \
-last ductNbr must not be less than first.", itoa(baseDuctNbr));
-		return 1;
-	}
-
-	scope = lastDuctNbr - baseDuctNbr;
-	brsSockets = (int *) MTAKE(sizeof(int) * scope);
-	if (brsSockets == NULL)
-	{
-		putErrmsg("Can't allocate BRS sockets array.", itoa(scope));
-		return 1;
-	}
-
-	for (i = 0; i < scope; i++)
-	{
-		brsSockets[i] = -1;
-	}
-
-	result = run_brsscla(ductName, baseDuctNbr, lastDuctNbr, brsSockets);
-	MRELEASE(brsSockets);
+	result = run_brsscla(ductName);
 	bp_detach();
 	return result;
 }

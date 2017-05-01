@@ -71,214 +71,33 @@ static void	deleteNdpNeighbor(char *eid)
 	}
 }
 
-static int	getOutduct(char *protocolName, char *outductName,
-			char *daemon, VOutduct **vduct, PsmAddress *vductElt)
-{
-	char	namebuf[SDRSTRING_BUFSZ];
-
-	findOutduct(protocolName, outductName, vduct, vductElt);
-	if (*vductElt == 0)
-	{
-		isprintf(namebuf, sizeof namebuf, "%s/%s", protocolName,
-				outductName);
-		if (addOutduct(protocolName, outductName, daemon, 0) < 1)
-		{
-			putErrmsg("Can't add outduct.", namebuf);
-			return -1;
-		}
-
-		if (bpStartOutduct(protocolName, outductName) < 0)
-		{
-			putErrmsg("Can't start outduct.", namebuf);
-			return -1;
-		}
-
-		if (bpBlockOutduct(protocolName, outductName) < 0)
-		{
-			putErrmsg("Can't block outduct.", namebuf);
-			return -1;
-		}
-
-		findOutduct(protocolName, outductName, vduct, vductElt);
-		if (*vductElt == 0)
-		{
-			putErrmsg("Can't find newly added outduct.", namebuf);
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-static int	addIpnNeighbor(uvast nodeNbr, char *neighborEid,
-			ClProtocol *claProtocol, char *socketSpec, 
-			unsigned int xmitRate, unsigned int recvRate)
-{
-	uvast		ownNodeNbr = getOwnNodeNbr();
-	char		*outductName;
-	char		*outductDaemon;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
-	DuctExpression	ductExpression;
-	time_t		currentTime;
-	PsmAddress	xaddr;
-
-	/*	Add egress plan for the new neighbor.			*/
-
-	if (strcmp(claProtocol->name, "udp") == 0)
-	{
-		/*	Egress plan cites the protocol's promiscuous
-		 *	outduct.					*/
-
-		outductName = "*";
-		outductDaemon = "udpclo";
-		ductExpression.destDuctName = socketSpec;
-	}
-	else	/*	TCP.						*/
-	{
-		outductName = socketSpec;
-		outductDaemon = NULL;
-		ductExpression.destDuctName = NULL;
-	}
-
-	if (getOutduct(claProtocol->name, outductName, outductDaemon, &vduct,
-			&vductElt) < 0)
-	{
-		putErrmsg("No outduct for ipn neighbor.", neighborEid);
-		return -1;
-	}
-
-	ductExpression.outductElt = vduct->outductElt;
-	if (ipn_addPlan(nodeNbr, &ductExpression) < 0)
-	{
-		putErrmsg("Can't add plan for discovery.", neighborEid);
-		return -1;
-	}
-
-	/*	Insert contact into contact plan.  This is to enable
-	 *	CGR, regardless of outduct protocol.			*/
-
-	currentTime = getUTCTime();
-	if (rfx_insert_contact(currentTime, 0, ownNodeNbr, nodeNbr, xmitRate,
-			1.0, &xaddr) < 0 || xaddr == 0)
-	{
-		putErrmsg("Can't add transmission contact.", neighborEid);
-		return -1;
-	}
-
-	if (rfx_insert_contact(currentTime, 0, nodeNbr, ownNodeNbr, recvRate,
-			1.0, &xaddr) < 0 || xaddr == 0)
-	{
-		putErrmsg("Can't add reception contact.", neighborEid);
-		return -1;
-	}
-
-	/*	Add the NDP neighbor.					*/
-
-	if (addNdpNeighbor(neighborEid) < 0)
-	{
-		putErrmsg("Can't add discovered Neighbor.", neighborEid);
-		return -1;
-	}
-
-	/*	Unblock outduct to this neighbor, enabling reforward.	*/
-
-	if (bpUnblockOutduct(claProtocol->name, outductName) < 0)
-	{
-		putErrmsg("Can't unblock outduct.", neighborEid);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int	addDtn2Neighbor(char *neighborEid, ClProtocol *claProtocol,
-			char *socketSpec, unsigned int xmitRate,
-			unsigned int recvRate)
-{
-	Sdr		sdr = getIonsdr();
-	char		*outductName;
-	char		*outductDaemon;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
-	FwdDirective	directive;
-
-	/*	Add egress plan for the new neighbor.			*/
-
-	directive.action = xmit;
-	if (strcmp(claProtocol->name, "udp") == 0)
-	{
-		/*	Egress plan cites the protocol's promiscuous
-		 *	outduct.					*/
-
-		directive.protocolClass = BP_PROTOCOL_UNRELIABLE;
-		outductName = "*";
-		outductDaemon = "udpclo";
-		directive.destDuctName = sdr_string_create(sdr, socketSpec);
-		if (directive.destDuctName == 0)
-		{
-			putErrmsg("Can't note UDP destination duct name.",
-					socketSpec);
-			return -1;
-		}
-	}
-	else	/*	TCP.						*/
-	{
-		directive.protocolClass = BP_PROTOCOL_RELIABLE;
-		outductName = socketSpec;
-		outductDaemon = NULL;
-		directive.destDuctName = 0;
-	}
-
-	if (getOutduct(claProtocol->name, outductName, outductDaemon, &vduct,
-			&vductElt) < 0)
-	{
-		putErrmsg("No outduct for dtn2 neighbor.", neighborEid);
-		return -1;
-	}
-
-	directive.outductElt = vduct->outductElt;
-	if (dtn2_addPlan(neighborEid, &directive) < 0)
-	{
-		putErrmsg("Can't add plan for discovery.", neighborEid);
-		return -1;
-	}
-
-	/*	Add the NDP neighbor.					*/
-
-	if (addNdpNeighbor(neighborEid) < 0)
-	{
-		putErrmsg("Can't add discovered Neighbor.", neighborEid);
-		return -1;
-	}
-
-	/*	Unblock outduct to this neighbor, enabling reforward.	*/
-
-	if (bpUnblockOutduct(claProtocol->name, outductName) < 0)
-	{
-		putErrmsg("Can't unblock outduct.", neighborEid);
-		return -1;
-	}
-
-	return 0;
-}
-
 static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 			char *claProtocol, unsigned int xmitRate,
 			unsigned int recvRate)
 {
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	uvast		neighborNodeNbr;
+	int		cbhe = 0;
+	Object		elt;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	char		ductExpression[SDRSTRING_BUFSZ];
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
 	int		portNumber;
 	char		*inductDaemon;
+	char		*outductDaemon;
+	unsigned int	maxPayloadLength;
 	ClProtocol	protocol;
-	Object		elt;
-	unsigned int	ipAddress;
-	char		ipAddressString[16];
 	char		inductName[32];
-	uvast		nodeNbr;
+	time_t		currentTime;
+	PsmAddress	xaddr;
+	uvast		nodeNbrA;
+	uvast		nodeNbrB;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -294,15 +113,52 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		return -1;
 	}
 
+	neighborNodeNbr = metaEid.nodeNbr;
+	if (strcmp(metaEid.schemeName, "ipn") == 0)
+	{
+		cbhe = 1;
+	}
+
+	restoreEidString(&metaEid);
+	elt = bp_discover_find_neighbor(neighborEid);
+	if (elt)
+	{
+		writeMemoNote("[?] Neighbor previously discovered",
+				neighborEid);
+		return 0;
+	}
+
+	findPlan(neighborEid, &vplan, &vplanElt);
+	if (vplanElt)
+	{
+		writeMemoNote("[?] Neighbor is managed; no discovery",
+				neighborEid);
+		return 0;
+	}
+
+	isprintf(ductExpression, sizeof ductExpression, "%s/%s", claProtocol,
+			socketSpec);
+	findOutduct(claProtocol, socketSpec, &vduct, &vductElt);
+	if (vductElt)
+	{
+		writeMemoNote("[?] Outduct is managed; no discovery",
+				ductExpression);
+		return 0;
+	}
+
 	if (strcmp(claProtocol, "tcp") == 0)
 	{
 		portNumber = BpTcpDefaultPortNbr;
 		inductDaemon = "tcpcli";
+		outductDaemon = "";
+		maxPayloadLength = 0;
 	}
 	else if (strcmp(claProtocol, "udp") == 0)
 	{
 		portNumber = BpUdpDefaultPortNbr;
 		inductDaemon = "udpcli";
+		outductDaemon = "udpclo";
+		maxPayloadLength = 65000;
 	}
 	else
 	{
@@ -312,9 +168,9 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 	}
 
 	fetchProtocol(claProtocol, &protocol, &elt);
-	if (elt == 0)
+	if (elt == 0)		/*	Protocol not yet loaded.	*/
 	{
-		if (addProtocol(claProtocol, 1400, 100, -1, 0) < 0)
+		if (addProtocol(claProtocol, 1400, 100, 0) < 0)
 		{
 			putErrmsg("Can't add protocol for discovered contacts.",
 					NULL);
@@ -322,18 +178,11 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		}
 
 		fetchProtocol(claProtocol, &protocol, &elt);
-		ipAddress = getAddressOfHost();
-		if (ipAddress == 0)
-		{
-			putErrmsg("Can't get address of local host.", NULL);
-			return -1;
-		}
 
 		/*	Add induct for CLA and start it.		*/
 
-		printDottedString(ipAddress, ipAddressString);
-		isprintf(inductName, sizeof inductName, "%s:%d",
-				ipAddressString, portNumber);
+		isprintf(inductName, sizeof inductName, "0.0.0.0:%d",
+				portNumber);
 		if (addInduct(protocol.name, inductName, inductDaemon) < 0)
 		{
 			putErrmsg("Can't add induct.", inductName);
@@ -347,26 +196,94 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		}
 	}
 
-	if (strcmp(metaEid.schemeName, "dtn") == 0)
+	/*	Insert contact and range into contact plan.  This is
+	 *	to enable CGR, regardless of outduct protocol.		*/
+
+	if (cbhe)
 	{
-		restoreEidString(&metaEid);
-		return addDtn2Neighbor(neighborEid, &protocol, socketSpec,
-				xmitRate, recvRate);
+		currentTime = getUTCTime();
+		if (rfx_insert_contact(currentTime, 0, ownNodeNbr,
+				neighborNodeNbr, xmitRate, 1.0, &xaddr) < 0
+		|| xaddr == 0)
+		{
+			putErrmsg("Can't add transmission contact.",
+					neighborEid);
+			return -1;
+		}
+
+		if (rfx_insert_contact(currentTime, 0, neighborNodeNbr,
+				ownNodeNbr, recvRate, 1.0, &xaddr) < 0
+		|| xaddr == 0)
+		{
+			putErrmsg("Can't add reception contact.", neighborEid);
+			return -1;
+		}
+
+		if (ownNodeNbr < neighborNodeNbr)
+		{
+			nodeNbrA = ownNodeNbr;
+			nodeNbrB = neighborNodeNbr;
+		}
+		else
+		{
+			nodeNbrA = neighborNodeNbr;
+			nodeNbrB = ownNodeNbr;
+		}
+
+		if (rfx_insert_range(currentTime, 0, nodeNbrA, nodeNbrB, 0,
+				&xaddr) < 0 || xaddr == 0)
+		{
+			putErrmsg("Can't add range.", neighborEid);
+			return -1;
+		}
 	}
-	else if (strcmp(metaEid.schemeName, "ipn") == 0)
+
+	/*	Add outduct and start it.				*/
+
+	if (addOutduct(claProtocol, socketSpec, outductDaemon,
+				maxPayloadLength) < 0)
 	{
-		nodeNbr = metaEid.nodeNbr;
-		restoreEidString(&metaEid);
-		return addIpnNeighbor(nodeNbr, neighborEid, &protocol,
-				socketSpec, xmitRate, recvRate);
-	}
-	else
-	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] Neighbor discovery unsupported scheme name",
-				neighborEid);
+		putErrmsg("Can't add outduct.", ductExpression);
 		return -1;
 	}
+
+	findOutduct(claProtocol, socketSpec, &vduct, &vductElt);
+	CHKERR(vductElt);
+	if (bpStartOutduct(claProtocol, socketSpec) < 0)
+	{
+		putErrmsg("Can't start outduct.", ductExpression);
+		return -1;
+	}
+
+	/*	Add plan, attach duct, start it.			*/
+
+	if (addPlan(neighborEid, ION_DEFAULT_XMIT_RATE) < 0)
+	{
+		putErrmsg("Can't add egress plan.", neighborEid);
+		return -1;
+	}
+
+	if (attachPlanDuct(neighborEid, vduct->outductElt) < 0)
+	{
+		putErrmsg("Can't add plan duct.", neighborEid);
+		return -1;
+	}
+
+	if (bpStartPlan(neighborEid) < 0)
+	{
+		putErrmsg("Can't start egress plan.", neighborEid);
+		return -1;
+	}
+
+	/*	Add the NDP neighbor.					*/
+
+	if (addNdpNeighbor(neighborEid) < 0)
+	{
+		putErrmsg("Can't add discovered Neighbor.", neighborEid);
+		return -1;
+	}
+
+	return 0;
 }
 
 int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
@@ -390,16 +307,27 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 static int	discoverContactLost(char *socketSpec, char *neighborEid,
 			char *claProtocol)
 {
+	uvast		ownNodeNbr = getOwnNodeNbr();
+	PsmAddress	elt;
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	uvast		neighborNodeNbr;
+	int		cbhe = 0;
+	uvast		nodeNbrA;
+	uvast		nodeNbrB;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
 	CHKERR(neighborEid);
 	CHKERR(claProtocol);
+	elt = bp_discover_find_neighbor(neighborEid);
+	if (elt == 0)
+	{
+		return 0;	/*	Neighbor not discovered.	*/
+	}
+
 	result = parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt);
 	if (result == 0)
 	{
@@ -409,54 +337,56 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 	}
 
 	neighborNodeNbr = metaEid.nodeNbr;
+	if (strcmp(metaEid.schemeName, "ipn") == 0)
+	{
+		cbhe = 1;
+	}
+
 	restoreEidString(&metaEid);
+
+	/*	Stop transmission of bundles via this contact.		*/
+
+	bpStopPlan(neighborEid);
+
+	/*	No need to detach ducts, because removePlan will
+	 *	automatically do this.					*/
+
+	removePlan(neighborEid);
+	bpStopOutduct(claProtocol, socketSpec);
+	removeOutduct(claProtocol, socketSpec);
+
+	/*	Fix up NDP database.					*/
+
 	deleteNdpNeighbor(neighborEid);
-	if (strcmp(claProtocol, "tcp") == 0)
-	{
-		if (bpBlockOutduct("tcp", socketSpec) < 0)
-		{
-			putErrmsg("Can't block TCP outduct.", socketSpec);
-			return -1;
-		}
-	}
-	else
-	{
-		if (strcmp(claProtocol, "udp") != 0)
-		{
-			writeMemoNote("[?] Neighbor loss discovery protocol \
-name error", claProtocol);
-
-		/*	No need to return at this point; can continue
-		 *	removing neighbor.				*/
-		}
-	}
-
-	/*	Remove discovered egress plan for this neighbor's EID.	*/
-
-	if (strcmp(metaEid.schemeName, "dtn") == 0)
-	{
-		return dtn2_removePlan(neighborEid);
-	}
-
-	if (strcmp(metaEid.schemeName, "ipn") != 0)
-	{
-		writeMemoNote("[?] Neighbor discovery unsupported scheme name",
-				neighborEid);
-		return -1;
-	}
 
 	/*	For discovered ipn-scheme EID's egress plan, must
 	 *	manage contact and range as well as plan.		*/
 
-	if (ipn_removePlan(neighborNodeNbr) < 0)
+	if (cbhe)
 	{
-		return -1;
-	}
+		if (rfx_remove_discovered_contacts(neighborNodeNbr) < 0)
+		{
+			putErrmsg("Can't remove applicable contacts.",
+					neighborEid);
+			return -1;
+		}
 
-	if (rfx_remove_discovered_contacts(neighborNodeNbr) < 0)
-	{
-		putErrmsg("Can't remove applicable contacts.", neighborEid);
-		return -1;
+		if (ownNodeNbr < neighborNodeNbr)
+		{
+			nodeNbrA = ownNodeNbr;
+			nodeNbrB = neighborNodeNbr;
+		}
+		else
+		{
+			nodeNbrA = neighborNodeNbr;
+			nodeNbrB = ownNodeNbr;
+		}
+
+		if (rfx_remove_range(0, nodeNbrA, nodeNbrB) < 0)
+		{
+			putErrmsg("Can't remove range.", neighborEid);
+			return -1;
+		}
 	}
 
 	return 0;

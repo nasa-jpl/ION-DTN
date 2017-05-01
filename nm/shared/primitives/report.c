@@ -373,7 +373,7 @@ rpt_t*  rpt_deserialize_data(uint8_t *cursor, uint32_t size, uint32_t *bytes_use
 	/*	Inferred fix.  Needed to get past MacOS compile error
 	 *	but may not be what is intended.  TODO			*/
 
-	strcpy(tmp.name, rx);
+	istrcpy(tmp.name, rx, sizeof tmp.name);
 
 	/*	End of inferred fix.					*/
 

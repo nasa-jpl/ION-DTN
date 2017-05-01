@@ -133,9 +133,9 @@ static void	printProfile(Profile *vprofile)
 	isprintf(buffer, sizeof buffer, "reportToEid: %s", sdrBuf);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "Ordinal: %d Unreliable: %d  Critical: \
-%d", vprofile->extendedCOS.ordinal, 
-		vprofile->extendedCOS.flags & BP_BEST_EFFORT ? 1 : 0,
-		vprofile->extendedCOS.flags & BP_MINIMUM_LATENCY ? 1 : 0);
+%d", vprofile->ancillaryData.ordinal, 
+		vprofile->ancillaryData.flags & BP_BEST_EFFORT ? 1 : 0,
+		vprofile->ancillaryData.flags & BP_MINIMUM_LATENCY ? 1 : 0);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "rcvReport: %d ctReport: %d fwdReport: \
 %d dlvReport: %d delReport: %d", vprofile->srrFlags & BP_RECEIVED_RPT ? 1 : 0,

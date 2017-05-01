@@ -210,13 +210,6 @@ void* send_keepalives(void* param)
 			else
 			{
 				itp->active = 1;
-				pthread_mutex_unlock(&itp->mutex);
-				if (bpUnblockOutduct("dccp", itp->ductname) < 0)
-				{
-					putErrmsg("DCCPCLO connected but didn't unblock outduct.",
-								NULL);
-				}
-				pthread_mutex_lock(&itp->mutex);
 			}
 		}
 		pthread_mutex_unlock(&itp->mutex);
@@ -231,43 +224,39 @@ return NULL;
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-
-	/*	First mark the outduct as blocked, if possible.		*/
-	if (ductname)
-	{
-		if (bpBlockOutduct("dccp", ductname) < 0)
-		{
-			putErrmsg("Can't block outduct.", NULL);
-			return -1;
-		}
-	}
+	int	result;
 
 	/*	Handle the de-queued bundle.				*/
-	if (bpHandleXmitFailure(*bundleZco) < 0)
+	result = bpHandleXmitFailure(*bundleZco);
+       	if (result < 0)
 	{
 		putErrmsg("Can't handle DCCP xmit failure.", NULL);
 		return -1;
 	}
 
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, *bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (result == 1)
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		return -1;
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, *bundleZco);
+		if (sdr_end_xn(sdr) < 0	)
+		{
+			putErrmsg("Can't destroy bundle ZCO.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
 }
 
-int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedCOS,
-			char* dest, char* buffer)
+int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
+		BpAncillaryData *ancillaryData, char* buffer)
 {
-	Sdr			sdr;
+	Sdr		sdr;
 	ZcoReader	reader;
-	int			bytesSent;
-	int			bytesToSend;
-	int			bundleLength;
+	int		bytesSent;
+	int		bytesToSend;
+	int		bundleLength;
+	int		result;
 
 	/* Connect socket				*/
 	if (!itp->active)
@@ -328,20 +317,25 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco, BpExtendedCOS *extendedC
 	}while(1);
 
 	/* Notify BP of success transmitting		*/
-	if (bpHandleXmitSuccess(*bundleZco, 0) < 0)
+	result = bpHandleXmitSuccess(*bundleZco, 0);
+       	if (result < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		bytesSent=-1;
 	}
 
-	/* Cleanup ZCO					*/
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, *bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	if (result == 1)
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		bytesSent=-1;
+		/* Cleanup ZCO					*/
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, *bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy bundle ZCO.", NULL);
+			bytesSent=-1;
+		}
 	}
+
 	return bytesSent;
 }
 
@@ -355,28 +349,23 @@ int	main(int argc, char *argv[])
 {
 	char	*ductName = (argc > 1 ? argv[1] : NULL);
 #endif
-	VOutduct			*vduct;
-	PsmAddress			vductElt;
-	Sdr					sdr;
-	Outduct				outduct;
-	ClProtocol			protocol;
-	Outflow				outflows[3];
-	char* 				hostName;
+	VOutduct		*vduct;
+	PsmAddress		vductElt;
+	Sdr			sdr;
+	Outduct			outduct;
+	ClProtocol		protocol;
+	char* 			hostName;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	struct sockaddr_in	*inetName;
-	pthread_t			keepalive_thread;
-	clo_state			itp;
-	Object				bundleZco;
-	BpExtendedCOS		extendedCOS;
-	char				destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	pthread_t		keepalive_thread;
+	clo_state		itp;
+	Object			bundleZco;
+	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
-	int					running = 1;
+	int			running = 1;
 	unsigned int		sentLength;
-	char				*buffer;
-	int					i;
-
-
+	char			*buffer;
 
 	if (ductName == NULL)
 	{
@@ -423,16 +412,6 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
 
-	/*setup priority queues						*/
-	memset((char *) outflows, 0, sizeof(outflows));
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
-
 	/* get host to connect to from outduct				*/
 	hostName = ductName;
 	if (parseSocketSpec(hostName, &portNbr, &ipAddress) != 0)
@@ -478,8 +457,7 @@ int	main(int argc, char *argv[])
 	while (running && !(sm_SemEnded(vduct->semaphore)))
 	{
 		
-		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, 0, -1) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can'e dequeue bundle.", NULL);
 			break;
@@ -499,7 +477,8 @@ int	main(int argc, char *argv[])
 		if (bundleLength > DCCPCLA_BUFSZ)
 		{
 			/*Bundle Way Too Big--Terminate CLO 	*/
-			putErrmsg("Bundle is too big for DCCPCLO.", itoa(bundleLength));
+			putErrmsg("Bundle is too big for DCCPCLO.",
+					itoa(bundleLength));
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			running = 0;
 			continue;
@@ -508,7 +487,8 @@ int	main(int argc, char *argv[])
 
 		/* send bundle 						*/
 		pthread_mutex_lock(&itp.mutex);
-		sentLength = sendBundleByDCCP(&itp, &bundleZco, &extendedCOS, destDuctName, buffer);
+		sentLength = sendBundleByDCCP(&itp, &bundleZco, &ancillaryData,
+				buffer);
 		pthread_mutex_unlock(&itp.mutex);
 		if (sentLength < bundleLength)
 		{

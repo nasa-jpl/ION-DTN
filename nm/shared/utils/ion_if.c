@@ -269,9 +269,12 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
 
     /* Step 5: Set up the metadata. */
 
-    strcpy(meta->senderEid.name, dlv.bundleSourceEid);
-    strcpy(meta->originatorEid.name, dlv.bundleSourceEid);
-    strcpy(meta->recipientEid.name, iif->local_eid.name);
+    istrcpy(meta->senderEid.name, dlv.bundleSourceEid,
+		    sizeof meta->senderEid.name);
+    istrcpy(meta->originatorEid.name, dlv.bundleSourceEid,
+		    sizeof meta->originatorEid.name);
+    istrcpy(meta->recipientEid.name, iif->local_eid.name,
+		    sizeof meta->recipientEid.name);
 
     MRELEASE(dlv.bundleSourceEid);
 

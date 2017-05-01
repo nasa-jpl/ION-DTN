@@ -16,6 +16,8 @@ extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ionwarn(int, int, int, int, int, int, int, int, int, int);
 extern int	bpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclock(int, int, int, int, int, int, int, int, int, int);
+extern int	bptransit(int, int, int, int, int, int, int, int, int, int);
+extern int	bpclm(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnfw(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
@@ -23,7 +25,8 @@ extern int	udpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	udpclo(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpclo(int, int, int, int, int, int, int, int, int, int);
-extern int	dgrcla(int, int, int, int, int, int, int, int, int, int);
+extern int	dgrcli(int, int, int, int, int, int, int, int, int, int);
+extern int	dgrclo(int, int, int, int, int, int, int, int, int, int);
 extern int	lgagent(int, int, int, int, int, int, int, int, int, int);
 
 #if 0
@@ -61,6 +64,8 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ionwarn",	(FUNCPTR) ionwarn,	ICI_PRIORITY,	32768 },
 		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
 		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
+		{ "bptransit",	(FUNCPTR) bptransit,	ICI_PRIORITY,	24576 },
+		{ "bpclm",	(FUNCPTR) bpclm,	ICI_PRIORITY,	32768 },
 		{ "ipnadmin",	(FUNCPTR) ipnadmin,	ICI_PRIORITY,	32768 },
 		{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
 		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },
@@ -68,7 +73,8 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "udpclo",	(FUNCPTR) udpclo,	ICI_PRIORITY,	32768 },
 		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	32768 },
 		{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	32768 },
-		{ "dgrcla",	(FUNCPTR) dgrcla,	ICI_PRIORITY,	32768 },
+		{ "dgrcli",	(FUNCPTR) dgrcli,	ICI_PRIORITY,	32768 },
+		{ "dgrclo",	(FUNCPTR) dgrclo,	ICI_PRIORITY,	32768 },
 		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 }
 #if 0
 		{ "ionexit",	(FUNCPTR) ionexit,	ICI_PRIORITY,	32768 },

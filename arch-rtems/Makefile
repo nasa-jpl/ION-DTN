@@ -66,6 +66,7 @@ BPSOURCES =      \
 	libbpnm.c    \
 	bpclock.c    \
 	bptransit.c  \
+	bpclm.c      \
 	bpadmin.c    \
 	bpstats.c    \
 	bptrace.c    \

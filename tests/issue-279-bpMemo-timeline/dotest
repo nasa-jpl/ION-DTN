@@ -51,7 +51,7 @@ then
 	echo ""
 else
 	echo "Node not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 echo "Sending bundle with 60-second lifetime from ipn:1.1 to ipn:2.1.  Should

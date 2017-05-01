@@ -26,7 +26,7 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Test whether CGR will route bundles over 'loopback' interface.
-Configure a node with connectivity to another node and itself (via TCP
+Configure a node with connectivity to another node and itself (via LTP
 over loopback)."
 
 echo
@@ -60,7 +60,7 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../2.ipn.ltp
@@ -72,7 +72,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 

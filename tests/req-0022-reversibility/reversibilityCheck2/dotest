@@ -84,7 +84,7 @@ bpcounter ipn:2.1 15  > output1 &
 cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
-bpdriver 1000 ipn:1.1 ipn:2.1 -1000 t30 >& output1
+bpdriver 100 ipn:1.1 ipn:2.1 -1000 t30 >& output1
 sleep 10
 
 #Check that bpdriver terminated after aborting an SDR transaction
@@ -116,7 +116,8 @@ if ! [ -z "$text" ];then
 fi
 
 if [ $firstAbort -gt 1 ];then
-#Failed twice, so no daemons are running.  Use delivery to clear out some space.
+#Failed twice, so no daemons are running.  Use delivery to clear out some space
+#because bpclock won't time them out.
 	echo "Delivering queued data to bpcounter to free some heap space..."
 	bpcounter ipn:2.1 > output2 &
 	BPCOUNTER_PID=$!
@@ -131,10 +132,11 @@ if [ $firstAbort -gt 1 ];then
 	bpadmin restart.bprc
 fi
 
-echo "Waiting for all previously received bundles to expire..."
+echo "Waiting for all previously transmitted bundles to expire..."
 sleep 30
 
-#Try to send more bundles to ensure that transaction reversibility healed the system properly
+#Try to send more bundles to ensure that transaction reversibility healed the
+#system properly
 echo ""
 echo "Now try sending some more bundles..."
 bpcounter ipn:2.1 > output3 &

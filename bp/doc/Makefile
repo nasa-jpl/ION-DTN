@@ -24,7 +24,8 @@ MANFILES = \
 	./man/man1/bping.1 \
 	./man/man1/brsccla.1 \
 	./man/man1/brsscla.1 \
-	./man/man1/dgrcla.1 \
+	./man/man1/dgrcli.1 \
+	./man/man1/dgrclo.1 \
 	./man/man1/dtn2adminep.1 \
 	./man/man1/dtn2admin.1 \
 	./man/man1/dtn2fw.1 \
@@ -37,6 +38,7 @@ MANFILES = \
 	./man/man1/lgagent.1 \
 	./man/man1/lgsend.1 \
 	./man/man1/hmackeys.1 \
+	./man/man1/bpclm.1 \
 	./man/man1/ltpcli.1 \
 	./man/man1/ltpclo.1 \
 	./man/man1/stcpcli.1 \
@@ -80,7 +82,8 @@ HTMLFILES = \
 	./html/man1/bping.html \
 	./html/man1/brsccla.html \
 	./html/man1/brsscla.html \
-	./html/man1/dgrcla.html \
+	./html/man1/dgrcli.html \
+	./html/man1/dgrclo.html \
 	./html/man1/dtn2adminep.html \
 	./html/man1/dtn2admin.html \
 	./html/man1/dtn2fw.html \
@@ -93,6 +96,7 @@ HTMLFILES = \
 	./html/man1/lgagent.html \
 	./html/man1/lgsend.html \
 	./html/man1/hmackeys.html \
+	./html/man1/bpclm.html \
 	./html/man1/ltpcli.html \
 	./html/man1/ltpclo.html \
 	./html/man1/stcpcli.html \

@@ -160,8 +160,8 @@ static void	*migrateBundles(void *parm)
 		 *	it won't block.					*/
 
 		newPayload = ionCreateZco(ZcoZcoSource, bundle.payload.content,
-				0, bundle.payload.length, priority,
-				bundle.extendedCOS.ordinal, ZcoOutbound, NULL);
+			0, bundle.payload.length, priority,
+			bundle.ancillaryData.ordinal, ZcoOutbound, NULL);
 		switch (newPayload)
 		{
 		case (Object) ERROR:
@@ -333,7 +333,7 @@ int	main(int argc, char *argv[])
 
 		if (ionRequestZcoSpace(ZcoOutbound, fileSpaceNeeded,
 				bulkSpaceNeeded, heapSpaceNeeded, priority,
-				bundle.extendedCOS.ordinal,
+				bundle.ancillaryData.ordinal,
 				&attendant, &ticket) < 0)
 		{
 			putErrmsg("Failed trying to reserve ZCO space.", NULL);

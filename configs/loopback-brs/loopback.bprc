@@ -49,6 +49,3 @@ a protocol brsc 1450 68
 #   identify itself as node 1.
 a induct brsc localhost:4556_1 brsccla
 a outduct brsc localhost:4556_1 ''
-
-# Start the bp daemons and defined ducts.
-s
