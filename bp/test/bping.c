@@ -10,6 +10,8 @@
 #include <getopt.h>     /* getopt */
 #include <bp.h>
 #include <lyst.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /*	Note: bping originally used strtok_r to parse responses,
 	but neither strtok_r nor strok_s are provided by MinGW.		*/
@@ -34,7 +36,8 @@ const char usage[] =
 
 static int count = -1;        /* -1: Indefinite.  Set from command line, 
                                  never written again. */
-static int interval = 1;      /* Wait one second between bundles */
+static double interval = 1.0; /* Wait one second between bundles */
+static int payloadSize = 64;  /* Number of bytes of bping payload. */
 static int verbosity = 0;
 static int waitdelay = 10;    /* Number of seconds to wait after last 
                                  bundle for its response. */
@@ -55,7 +58,7 @@ static BpSAP    xmitsap;
 static BpSAP    recvsap;
 static char     *srcEid, *dstEid, *rptEid;
 
-#define BPING_PAYLOAD_MAX_LEN 256
+#define BPING_PAYLOAD_MAX_LEN 65537
 
 /* These exit codes are the same as iputils' ping. */
 #define BPING_EXIT_SUCCESS              (0)
@@ -280,6 +283,7 @@ static Object bping_new_ping(void)
 	struct timeval tvNow;
 	char    pingPayload[BPING_PAYLOAD_MAX_LEN];
 	int     pingPayloadLen;
+	pid_t	myPid;
 
 
 	if(gettimeofday(&tvNow, NULL) < 0) {
@@ -288,24 +292,28 @@ static Object bping_new_ping(void)
 		return 0;
 	}
 
+	myPid = getpid();
+
 	/* Construct the bundle payload */
 	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload), 
-			"%d %lu %lu bping payload", totalsent,
+			"%d %lu %lu %lu bping payload", totalsent,
 			(unsigned long) tvNow.tv_sec, 
-			(unsigned long)tvNow.tv_usec);
+			(unsigned long) tvNow.tv_usec,
+			(unsigned long) myPid);
 	if(pingPayloadLen < 0) {
 		putErrmsg("Couldn't construct bping payload.", NULL);
 		fprintf(stderr, "Couldn't construct bping payload.");
 		return 0;
 	}
-    if(pingPayloadLen >= sizeof(pingPayload)) {
-        pingPayloadLen = sizeof(pingPayload) - 1;
-    }
+
+	//if(pingPayloadLen >= sizeof(pingPayload)) {
+	//	pingPayloadLen = sizeof(pingPayload) - 1;
+	//}
 
 	CHKZERO(sdr_begin_xn(sdr));
-	bundleMessage = sdr_malloc(sdr, pingPayloadLen);
+	bundleMessage = sdr_malloc(sdr, payloadSize);
 	if(bundleMessage) {
-		sdr_write(sdr, bundleMessage, pingPayload, pingPayloadLen);
+		sdr_write(sdr, bundleMessage, pingPayload, payloadSize);
 	}
 
 	if(sdr_end_xn(sdr)) {
@@ -316,7 +324,7 @@ static Object bping_new_ping(void)
 
 	/* Craft the bundle object */
 	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0, 
-			pingPayloadLen, priority, 0, ZcoOutbound, NULL);
+			payloadSize, priority, 0, ZcoOutbound, NULL);
 	if(bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("bping can't create bundle ZCO", NULL);
@@ -370,7 +378,7 @@ static void *sendRequests(void *x)
 
 		++totalsent;    /* Successful send */
 		if(interval > 0 && (count == -1 || totalsent < count)) {
-			snooze(interval);
+			microsnooze((unsigned int) (interval*1000000));
 		}
 	}
 	if(verbosity) fprintf(stderr, "Sent %d bundles.\n", totalsent);
@@ -414,7 +422,7 @@ int	bping(	int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	count = a1 ? strtol((char *) a1, NULL, 0) : -1;
-	interval = a2 ? strtol((char *) a2, NULL, 0) : 1;
+	interval = a2 ? strtod((char *) a2, NULL, 0) : 1;
 	priority = a3 ? strtol((char *) a3, NULL, 0) : 0;
 	waitdelay = a4 ? strtol((char *) a4, NULL, 0) : 10;
 	if (a5)
@@ -452,7 +460,8 @@ int main(int argc, char **argv)
 				count = atoi(optarg);
 				break;
 			case 'i':
-				interval = atoi(optarg);
+				interval = atof(optarg);
+				printf("read interval of %s ad %f\n", optarg, interval);
 				break;
 			case 'h':
 				fprintf(stderr, usage);
@@ -466,6 +475,10 @@ int main(int argc, char **argv)
 				break;
 			case 'r':
 				parse_report_flags(&rrFlags, optarg);
+				break;
+			case 's':
+				payloadSize = atoi(optarg);
+				printf("payloadSize is: %d\n", payloadSize);
 				break;
 			case 't':
 				ttl = atoi(optarg);
@@ -498,7 +511,7 @@ int main(int argc, char **argv)
 
 	if(verbosity) {
 		fprintf(stderr, "Sending %d bundles from %s to %s (rpt-to: %s) "
-				"every %d seconds\n", count, srcEid, dstEid, 
+				"every %0.2f seconds\n", count, srcEid, dstEid, 
 				rptEid ? rptEid : "none", interval);
 	}
 
@@ -513,6 +526,7 @@ int main(int argc, char **argv)
 		putErrmsg("Can't open source endpoint.", srcEid);
 		fprintf(stderr, "Can't open source endpoint (%s).\n", 
 				srcEid);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
@@ -521,6 +535,7 @@ int main(int argc, char **argv)
 		putErrmsg("Can't open reception endpoint.", srcEid);
 		fprintf(stderr, "Can't open reception endpoint (%s).\n", 
 				srcEid);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
@@ -533,6 +548,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
 		bp_close(xmitsap);
 		bp_close(recvsap);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 
@@ -543,6 +559,7 @@ int main(int argc, char **argv)
 		bp_interrupt(recvsap);
 		bp_close(xmitsap);
 		bp_close(recvsap);
+		bp_detach();
 		exit(BPING_EXIT_ERROR);
 	}
 

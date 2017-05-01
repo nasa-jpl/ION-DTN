@@ -97,7 +97,7 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	unsigned int	ttl = 86400;
-	BpExtendedCOS	ecos = { 0, 0, 255 };
+	BpAncillaryData	ancillary = { 0, 0, 255 };
 	Sdr		sdr = getIonsdr();
 	Object		sourceData;
 	Object		payloadZco;
@@ -132,8 +132,8 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 
 	isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
-			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
-			payloadZco, NULL, BP_MULTICAST_PETITION))
+			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
+			&ancillary, payloadZco, NULL, BP_MULTICAST_PETITION))
 	{
 	case -1:
 		putErrmsg("Can't send IMC petition.", NULL);

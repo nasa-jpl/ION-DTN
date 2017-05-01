@@ -75,12 +75,16 @@ static void	printUsage()
 	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
 	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>' [max \
 payload length]");
+	PUTS("\t   a plan <endpoint name> [<transmission rate>]");
+	PUTS("\ta\tAttach an outduct to an egress plan");
+	PUTS("\t   a planduct <endpoint name> <protocol name> <duct name>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
 	PUTS("\t   c endpoint <endpoint name> {q|x} ['<recv script>']");
 	PUTS("\t   c induct <protocol name> <duct name> '<CLI command>'");
 	PUTS("\t   c outduct <protocol name> <duct name> '<CLO command>' [max \
 payload length");
+	PUTS("\t   c plan <endpoint name> <transmission rate>");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} scheme <scheme name>");
@@ -88,16 +92,22 @@ payload length");
 	PUTS("\t   {d|i} protocol <protocol name>");
 	PUTS("\t   {d|i} induct <protocol name> <duct name>");
 	PUTS("\t   {d|i} outduct <protocol name> <duct name>");
+	PUTS("\t   {d|i} plan <endpoint name>");
+	PUTS("\td\tDetach an outduct from an egress plan");
+	PUTS("\t   d planduct <endpoint name> <protocol name> <duct name>");
 	PUTS("\tl\tList");
 	PUTS("\t   l scheme");
 	PUTS("\t   l endpoint");
 	PUTS("\t   l protocol");
 	PUTS("\t   l induct [<protocol name>]");
 	PUTS("\t   l outduct [<protocol name>]");
-	PUTS("\tb\tBlock an outduct");
-	PUTS("\t   b outduct <protocol name> <duct name>");
-	PUTS("\tu\tUnblock an outduct");
-	PUTS("\t   u outduct <protocol name> <duct name>");
+	PUTS("\t   l plan");
+	PUTS("\tb\tBlock an egress plan");
+	PUTS("\t   b plan <endpoint name>");
+	PUTS("\tu\tUnblock an egress plan");
+	PUTS("\t   u plan <endpoint name>");
+	PUTS("\tg\tSet gateway 'via' EID for an egress plan");
+	PUTS("\t   g plan <endpoint name> <via endpoint name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
 	PUTS("\tr\tRun another admin program");
@@ -109,6 +119,7 @@ payload length");
 	PUTS("\t   {s|x} protocol <protocol name>");
 	PUTS("\t   {s|x} induct <protocol name> <duct name>");
 	PUTS("\t   {s|x} outduct <protocol name> <duct name>");
+	PUTS("\t   {s|x} plan <endpoint name>");
 	PUTS("\tw\tWatch BP activity");
 	PUTS("\t   w { 0 | 1 | <activity spec> }");
 	PUTS("\t\tActivity spec is a string of all requested activity \
@@ -155,25 +166,60 @@ static void	executeStart(int tokenCount, char **tokens)
 {
 	if (strcmp(tokens[1], "scheme") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartScheme(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartProtocol(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "induct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartInduct(tokens[2], tokens[3]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStartOutduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+		}
+
+		bpStartPlan(tokens[2]);
 		return;
 	}
 
@@ -184,25 +230,60 @@ static void	executeStop(int tokenCount, char **tokens)
 {
 	if (strcmp(tokens[1], "scheme") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopScheme(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopProtocol(tokens[2]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "induct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopInduct(tokens[2], tokens[3]);
 		return;
 	}
 
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
 		bpStopOutduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+		}
+
+		bpStopPlan(tokens[2]);
 		return;
 	}
 
@@ -213,9 +294,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
 	BpRecvRule	rule;
-	int		nominalRate = 0;
 	int		protocolClass = 0;
 	unsigned int	maxPayloadLength;
+	unsigned int	xmitRate;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
 
 	if (tokenCount < 2)
 	{
@@ -267,24 +350,19 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
-		if (tokenCount < 5 || tokenCount > 7)
+		if (tokenCount < 5 || tokenCount > 6)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (tokenCount == 7)
-		{
-			protocolClass = atol(tokens[6]);
-		}
-
 		if (tokenCount == 6)
 		{
-			nominalRate = atol(tokens[5]);
+			protocolClass = atol(tokens[5]);
 		}
 
 		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),
-				nominalRate, protocolClass);
+				protocolClass);
 		return;
 	}
 
@@ -321,6 +399,46 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		switch (tokenCount)
+		{
+		case 4:
+			xmitRate = strtoul(tokens[3], NULL, 0);
+			break;
+
+		case 3:
+			xmitRate = 0;
+			break;
+
+		default:
+			SYNTAX_ERROR;
+			return;
+		}
+
+		addPlan(tokens[2], xmitRate);
+		return;
+	}
+
+	if (strcmp(tokens[1], "planduct") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		findOutduct(tokens[3], tokens[4], &vduct, &vductElt);
+		if (vductElt == 0)
+		{
+			printText("Unknown outduct.");
+			return;
+		}
+
+		attachPlanDuct(tokens[2], vduct->outductElt);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -329,6 +447,7 @@ static void	executeChange(int tokenCount, char **tokens)
 	char		*script;
 	BpRecvRule	rule;
 	unsigned int	maxPayloadLen;
+	unsigned int	xmitRate;
 
 	if (tokenCount < 2)
 	{
@@ -411,11 +530,27 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		xmitRate = strtoul(tokens[3], NULL, 0);
+		updatePlan(tokens[2], xmitRate);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -479,6 +614,37 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		removeOutduct(tokens[2], tokens[3]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		if (tokenCount != 3)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		removePlan(tokens[2]);
+		return;
+	}
+
+	if (strcmp(tokens[1], "planduct") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		findOutduct(tokens[3], tokens[4], &vduct, &vductElt);
+		if (vductElt == 0)
+		{
+			printText("Unknown outduct.");
+			return;
+		}
+
+		detachPlanDuct(tokens[2], vduct->outductElt);
 		return;
 	}
 
@@ -646,7 +812,7 @@ static void	infoProtocol(int tokenCount, char **tokens)
 
 static void	printInduct(VInduct *vduct)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Induct, duct);
 		OBJ_POINTER(ClProtocol, clp);
 	char	cliCmdBuffer[SDRSTRING_BUFSZ];
@@ -698,7 +864,7 @@ static void	infoInduct(int tokenCount, char **tokens)
 
 static void	printOutduct(VOutduct *vduct)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Outduct, duct);
 		OBJ_POINTER(ClProtocol, clp);
 	char	cloCmdBuffer[SDRSTRING_BUFSZ];
@@ -753,6 +919,44 @@ static void	infoOutduct(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
+static void	printPlan(VPlan *vplan)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(BpPlan, plan);
+	char	buffer[1024];
+
+	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
+	isprintf(buffer, sizeof buffer, "%.256s\tpid: %d xmit rate: %lu",
+			plan->neighborEid, vplan->clmPid, plan->nominalRate);
+	printText(buffer);
+}
+
+static void	infoPlan(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	findPlan(tokens[2], &vplan, &vplanElt);
+	if (vplanElt == 0)
+	{
+		printText("Unknown plan.");
+	}
+	else
+	{
+		printPlan(vplan);
+	}
+
+	sdr_exit_xn(sdr);
+}
+
 static void	executeInfo(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -788,6 +992,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "outduct") == 0)
 	{
 		infoOutduct(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		infoPlan(tokenCount, tokens);
 		return;
 	}
 
@@ -1013,6 +1223,30 @@ static void	listOutducts(int tokenCount, char **tokens)
 	}
 }
 
+static void	listPlans(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	VPlan		*vplan;
+
+	if (tokenCount != 2)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(ionwm, (getBpVdb())->plans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vplan = (VPlan *) psp(ionwm, sm_list_data(ionwm, elt));
+		printPlan(vplan);
+	}
+
+	sdr_exit_xn(sdr);
+}
+
 static void	executeList(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1051,6 +1285,12 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "plan") == 0)
+	{
+		listPlans(tokenCount, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -1062,15 +1302,15 @@ static void	executeBlock(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "outduct") == 0)
+	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(bpBlockOutduct(tokens[2], tokens[3]));
+		oK(bpBlockPlan(tokens[2]));
 		return;
 	}
 
@@ -1085,19 +1325,30 @@ static void	executeUnblock(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "outduct") == 0)
+	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(bpUnblockOutduct(tokens[2], tokens[3]));
+		oK(bpUnblockPlan(tokens[2]));
 		return;
 	}
 
 	SYNTAX_ERROR;
+}
+
+static void	executeGateway(int tokenCount, char **tokens)
+{
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	setPlanViaEid(tokens[2], tokens[3]);
 }
 
 static void	manageHeapmax(int tokenCount, char **tokens)
@@ -1500,6 +1751,14 @@ static int	processLine(char *line, int lineLength, int *rc)
 			if (attachToBp() == 0)
 			{
 				executeUnblock(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'g':
+			if (attachToBp() == 0)
+			{
+				executeGateway(tokenCount, tokens);
 			}
 
 			return 0;

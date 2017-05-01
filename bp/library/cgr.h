@@ -103,8 +103,8 @@ typedef enum
 	CgrRouteCapacityTooSmall,
 	CgrInitialContactExcluded,
 	CgrRouteTooSlow,
-	CgrNoApplicableDirective,
-	CgrBlockedOutduct,
+	CgrNoPlan,
+	CgrBlockedPlan,
 	CgrMaxPayloadTooSmall,
 	CgrNoResidualCapacity,
 	CgrResidualCapacityTooSmall,
@@ -115,15 +115,13 @@ typedef enum
 	CgrMoreHops,
 	CgrIdentical,
 	CgrNoHelp,
-	CgrLowerConfidence,
+	CgrLowerCapacity,
 	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 
 	CgrReasonMax,
 } CgrReason;
 
-typedef int		(*CgrLookupFn)(uvast nodeNbr, Object plans,
-				Bundle *bundle, FwdDirective *directive);
 typedef void		(*CgrTraceFn)(void *data, unsigned int lineNbr,
 				CgrTraceType traceType, ...);
 
@@ -137,11 +135,9 @@ extern int		cgr_predict_contacts();
 
 extern void		cgr_start();
 extern int		cgr_forward(Bundle *bundle, Object bundleObj,
-				uvast terminusNode, Object plans,
-				CgrLookupFn getDirective, CgrTrace *trace);
+				uvast terminusNode, CgrTrace *trace);
 extern int		cgr_preview_forward(Bundle *bundle, Object bundleObj,
-				uvast terminusNode, Object plans,
-				CgrLookupFn getDirective, time_t atTime,
+				uvast terminusNode, time_t atTime,
 				CgrTrace *trace);
 extern float		cgr_prospect(uvast terminusNode, unsigned int deadline);
 extern const char	*cgr_tracepoint_text(CgrTraceType traceType);

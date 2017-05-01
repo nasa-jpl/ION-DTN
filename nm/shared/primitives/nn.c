@@ -172,8 +172,8 @@ int oid_nn_add_parm(uvast id, char *oid, char *name, char *version)
 	memcpy(&(tmp.raw), data, datasize);
 	tmp.raw_size = datasize;
 
-	strncpy(tmp.adm_name, name, 16);
-	strncpy(tmp.adm_ver, version, 16);
+	istrcpy(tmp.adm_name, name, 16);
+	istrcpy(tmp.adm_ver, version, 16);
 
 	/* Step 2: Add the NN entry. */
 	result = oid_nn_add(&tmp);

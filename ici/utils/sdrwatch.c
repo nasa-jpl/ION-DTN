@@ -77,7 +77,7 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 		return 0;
 	}
 
-	isignal(SIGTERM, handleQuit);
+	isignal(SIGINT, handleQuit);
 	while (sdrwatch_count(NULL) > 0)
 	{
 		secRemaining = interval;
@@ -95,6 +95,7 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 		oK(sdrwatch_count(&decrement));
 	}
 
+	PUTS("Stopping bptrace.");
 	sdr_stop_trace(sdr);
 	sdr_stop_using(sdr);
 	writeErrmsgMemos();

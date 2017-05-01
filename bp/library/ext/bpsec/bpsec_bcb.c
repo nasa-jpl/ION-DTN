@@ -1406,6 +1406,7 @@ Object bpsec_bcbStoreOverflow(uint32_t suite,
 	Object cipherBuffer = 0;
 
 	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
+	ciphertext.len = 0;
 	ciphertext.contents = NULL;
 	if((readOffset < blocksize->plaintextLen) || (cipherOverflow > 0))
 	{
@@ -1465,25 +1466,20 @@ Object bpsec_bcbStoreOverflow(uint32_t suite,
  */
 
 
-int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
-									  csi_cipherparms_t parms,
-									  uint8_t	 *context,
-									  csi_blocksize_t *blocksize,
-									  Object dataObj,
-									  ZcoReader *dataReader,
-									  uvast cipherBufLen,
-									  Object *cipherBuffer,
-									  uint8_t function)
+int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
+		uint8_t	 *context, csi_blocksize_t *blocksize, Object dataObj,
+		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherBuffer,
+		uint8_t function)
 {
-	Sdr bpSdr = getIonsdr();
-	csi_val_t plaintext[2];
-	csi_val_t ciphertext;
-	uint8_t     cur_idx = 0;
-	uvast chunkSize = 0;
+	Sdr		bpSdr = getIonsdr();
+	csi_val_t	plaintext[2];
+	csi_val_t	ciphertext;
+	uint8_t		cur_idx = 0;
+	uvast		chunkSize = 0;
 
-	uvast    readOffset = 0;
-	uvast    writeOffset = 0;
-	uvast    cipherOverflow = 0;
+	uvast		readOffset = 0;
+	uvast		writeOffset = 0;
+	uvast		cipherOverflow = 0;
 
 	CHKERR(context);
 	CHKERR(blocksize);
@@ -1491,6 +1487,7 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 
 	*cipherBuffer = 0;
 	chunkSize = blocksize->chunkSize;
+	ciphertext.len = 0;
 	ciphertext.contents = NULL;
 
 	/* Step 1: Allocate read buffers. */
@@ -1550,7 +1547,8 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
  	while (writeOffset < blocksize->plaintextLen)
 	{
 
- 		/* Step 3.1: Generate ciphertext from earliest plaintext buffer. */
+ 		/* Step 3.1: Generate ciphertext from earliest plaintext
+		 * buffer. */
 
  		/* Step 3.1: If there is no data left to encrypt... */
  		if(plaintext[cur_idx].len == 0)
@@ -1558,8 +1556,8 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
  			break;
  		}
 
- 		ciphertext = csi_crypt_update(suite, context, function, plaintext[cur_idx]);
-
+ 		ciphertext = csi_crypt_update(suite, context, function,
+				plaintext[cur_idx]);
 		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
 		{
 			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace: Could not encrypt.", NULL);
@@ -1571,27 +1569,30 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 		}
 
 		/*
-		 * Step 3.2: If the ciphertext will no longer fit into the existing payload, then
-		 *           just copy the bits of ciphertext that will fit and save the rest for
-		 *           later.
+		 * Step 3.2: If the ciphertext will no longer fit into the
+		 * existing payload, then just copy the bits of ciphertext
+		 * that will fit and save the rest for later.
 		 */
 		if((writeOffset + ciphertext.len) > blocksize->plaintextLen)
 		{
-			if((zco_revise(bpSdr,
-					       dataObj,
-					       writeOffset,
-					       (char *) ciphertext.contents,
-					       blocksize->plaintextLen - writeOffset)) == -1)
+			if((zco_revise(bpSdr, dataObj, writeOffset,
+					(char *) ciphertext.contents,
+					blocksize->plaintextLen - writeOffset))
+				       	== -1)
 			{
 				BCB_DEBUG_ERR("bpsec_bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
 				break;
 			}
-			cipherOverflow = ciphertext.len - (blocksize->plaintextLen - writeOffset);
+
+			cipherOverflow = ciphertext.len -
+					(blocksize->plaintextLen - writeOffset);
 			writeOffset = blocksize->plaintextLen;
 		}
 		else
 		{
-			if((zco_revise(bpSdr, dataObj, writeOffset, (char *) ciphertext.contents, ciphertext.len)) == -1)
+			if((zco_revise(bpSdr, dataObj, writeOffset,
+					(char *) ciphertext.contents,
+					ciphertext.len)) == -1)
 			{
 				BCB_DEBUG_ERR("bpsec_bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
 				break;
@@ -1604,14 +1605,22 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 			{
 				plaintext[cur_idx].len = 0;
 			}
-			else if((readOffset + chunkSize) < blocksize->plaintextLen)
+			else if((readOffset + chunkSize)
+					< blocksize->plaintextLen)
 			{
-				plaintext[cur_idx].len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext[cur_idx].contents);
+				plaintext[cur_idx].len = zco_transmit(bpSdr,
+						dataReader, chunkSize, (char *)
+						plaintext[cur_idx].contents);
 			}
 			else
 			{
-				plaintext[cur_idx].len = zco_transmit(bpSdr, dataReader, blocksize->plaintextLen - readOffset, (char*) plaintext[cur_idx].contents);
+				plaintext[cur_idx].len = zco_transmit(bpSdr,
+						dataReader,
+						blocksize->plaintextLen
+						- readOffset, (char*)
+						plaintext[cur_idx].contents);
 			}
+
 			readOffset += plaintext[cur_idx].len;
 			cur_idx = 1 - cur_idx;
 		}
@@ -1620,18 +1629,9 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 	}
 
 	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
-	*cipherBuffer = bpsec_bcbStoreOverflow(suite,
-			                              context,
-										  dataReader,
-										  readOffset,
-										  writeOffset,
-										  cipherBufLen,
-										  cipherOverflow,
-										  plaintext[0],
-										  ciphertext,
-										  blocksize);
-
-
+	*cipherBuffer = bpsec_bcbStoreOverflow(suite, context, dataReader,
+			readOffset, writeOffset, cipherBufLen, cipherOverflow,
+			plaintext[0], ciphertext, blocksize);
 
 	MRELEASE(plaintext[0].contents);
 	MRELEASE(plaintext[1].contents);
@@ -1652,8 +1652,6 @@ int32_t bpsec_bcbUpdatePayloadInPlace(uint32_t suite,
 
 	return 0;
 }
-
-
 
 /**
  * > 0 Success

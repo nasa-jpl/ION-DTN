@@ -39,6 +39,14 @@
 extern "C" {
 #endif
 
+#ifndef CLOSED_EXPORTS_ENABLED
+#define	CLOSED_EXPORTS_ENABLED	1
+#endif
+
+#ifndef BURST_SIGNALS_ENABLED
+#define	BURST_SIGNALS_ENABLED	1
+#endif
+
 #define LTP_MAX_NBR_OF_CLIENTS	8
 
 #define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
@@ -52,7 +60,7 @@ extern "C" {
 #endif
 
 #ifndef DEFAULT_MAX_BER
-#define	DEFAULT_MAX_BER		(.000001)
+#define	DEFAULT_MAX_BER		(.0001)
 #endif
 
 #ifndef MAX_CLAIMS_PER_RS
@@ -325,6 +333,16 @@ typedef struct
 	unsigned int	length;
 } ExportExtent;
 
+
+#if CLOSED_EXPORTS_ENABLED
+typedef struct
+{
+	Object		span;		/*	sending span address	*/
+	unsigned int	sessionNbr;	/*	identifies session	*/
+	int		responseLimit;	/*	Defense against DOS.	*/
+} ClosedExport;
+#endif
+
 /* Timeline event structure */
 
 typedef enum
@@ -333,7 +351,10 @@ typedef enum
 	LtpResendXmitCancel,
 	LtpResendReport,
 	LtpResendRecvCancel,
-	LtpForgetSession
+#if CLOSED_EXPORTS_ENABLED
+	LtpForgetExportSession,
+#endif
+	LtpForgetImportSession
 } LtpEventType;
 
 typedef struct
@@ -550,6 +571,9 @@ typedef struct
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;
 	Object		exportSessionsHash;
+#if CLOSED_EXPORTS_ENABLED
+	Object		closedExports;	/*	SDR list: CLosedExport	*/
+#endif
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
@@ -669,6 +693,22 @@ extern int		ltpResendRecvCancel(uvast engineId,
 
 extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,
 				unsigned int size);
+#if CLOSED_EXPORTS_ENABLED
+extern void 		ltpForgetClosedExport(Object elt);
+#endif
+#if 0
+extern int		addClosedExport(LtpDB *ltpdb, LtpVspan *vspan,
+				Object spanObj, unsigned int sessionNbr,
+				unsigned int segmentLength);
+extern int 		ackFromClosedExport(unsigned int sessionNbr,
+				unsigned int rptSerialNbr);
+#endif
+#if BURST_SIGNALS_ENABLED
+extern int		enqueueBurst(LtpXmitSeg *segment, LtpSpan *span,
+				Object where, int burstType);
+extern int 		enqueueAckBurst(LtpXmitSeg *segment, Object spanObj,
+				int burstType);
+#endif
 #ifdef __cplusplus
 }
 #endif

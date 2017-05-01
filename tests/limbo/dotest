@@ -2,47 +2,48 @@
 #
 # Scott Burleigh
 # October 11, 2010
+# Revised March 6, 2017
 #
 # Tests "limbo" system:
 #
-#	a.  When an outduct is blocked, all bundles currently queued
-#	    for that outduct are removed from their queues and are
+#	a.  When an egress plan is blocked, all bundles currently queued
+#	    for that plan are removed from their queues and are
 #	    reforwarded; if no other outbound route is available, those
 #	    bundles are appended to the "limbo" queue.  In addition,
 #	    any new bundles that would otherwise be queued to the
-#	    blocked outduct are likewise appended to the "limbo" queue.
+#	    blocked plan are likewise appended to the "limbo" queue.
 #
-#	b.  When a blocked outduct is unblocked, all bundles in the
+#	b.  When a blocked plan is unblocked, all bundles in the
 #	    "limbo" queue are automatically reforwarded in hopes that
 #	    some or all of them may be transmitted via the newly
-#	    unblocked duct.
+#	    unblocked plan
 #
-#	c.  Ducts may be manually blocked and unblocked by bpadmin
+#	c.  Plans are manually blocked and unblocked by bpadmin
 #	    directives.
 #
-#	d.  Also, an EPIPE error on transmission over a TCP outduct
-#	    will cause that outduct to be blocked automatically;
-#	    a subsequent successful connection for that outduct (as
-#	    by a keepalive thread) will automatically unblock it.
+#	d.  A termination of convergence-layer connectivity (e.g., a
+#	    lost STCP connection) does NOT cause the egress plan
+#	    using that outduct to be blocked.  Bundles simply
+#	    remain queued for transmission to the affected node,
+#	    waiting for connectivity to be re-established.
 #
-# This test first sends a file over a TCP outduct, then uses bpadmin
-# to block the duct and tries to send a second file; the second file
-# goes into limbo and is released from limbo when we then use bpadmin
-# to unblock the duct.
+# This test first sends a file over a STCP outduct, then uses bpadmin
+# to block the plan for that node and tries to send a second file; the
+# second file goes into limbo and is released from limbo when we thenk
+# use bpadmin to unblock the plan.
 #
-# Then we test automatic TCP outduct blockage.  We again send a file,
+# Then we test automatic STCP outduct management.  We again send a file,
 # then shut down the receiving node altogether, let the keepalive
-# thread detect the socket closure, blocking the outduct, and then
-# send another file.  The second file goes into limbo and is released
-# from limbo when the receiving node is restarted and reopens its TCP
-# socket, enabling the keepalive thread to unblock the outduct.
+# thread detect the socket closure, pausing the CL manager, and then
+# send another file.  The second file is likewise queued for transmission
+# but not dequeued by the convergence-layer output daemon; it is dequeued
+# when the receiving node is restarted and reopens its STCP socket.
 #
-# Finally, we trigger an automatic blockage again. But, this time with
-# a backup contact active for the bundle to reForward through
-# when the preferred contact is blocked.
-
+# Finally, we trigger another egress plan pause.  But this time we
+# provide an active backup contact for the bundle to reForward through
+# when the original contact is removed.
 #
-# Get the latest bp stat printed to an ion.log file
+# Get the latest bp stat printed to an ion.log file.
 #
 function getStatsCounter() {
 	TYPE=$1
@@ -70,7 +71,7 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../5.ipn.tcp
@@ -82,7 +83,7 @@ then
 	echo ""
 else
 	echo "Node 5 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../2.ipn.tcp
@@ -94,7 +95,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 echo "Sleeping 30 sec to give keepalive threads time to detect open sockets..."
@@ -128,7 +129,7 @@ fi
 echo ""
 # Now block transmission to node 3.
 cd ../2.ipn.tcp
-echo "Blocking outduct to node 3."
+echo "Blocking transmission to node 3."
 bpadmin block.bprc
 sleep 2
 
@@ -153,7 +154,7 @@ fi
 echo ""
 # Now unblock transmission to node 3; file should flow automatically.
 cd ../2.ipn.tcp
-echo "Unblocking outduct to node 3.  Bundle should flow out of limbo (k)..."
+echo "Unblocking transmission to node 3; bundle should flow out of limbo (k)..."
 bpadmin unblock.bprc
 sleep 2
 
@@ -173,7 +174,7 @@ fi
 echo ""
 # Send third file from node 2.
 cd ../2.ipn.tcp
-echo "Sending third file from node 2 to node 3 to test unblocked outduct..."
+echo "Sending third file from node 2 to node 3 to test unblocked plan..."
 bpsendfile ipn:2.1 ipn:3.1 testfilez
 sleep 2
 
@@ -191,8 +192,8 @@ else
 fi
 
 echo ""
-# Now break TCP connectivity to node 3.
-echo "Breaking STCP connection to node 3 to test automatic blocking..."
+# Now break STCP connectivity to node 3.
+echo "Breaking STCP connection to node 3 to test CLM pause..."
 cd ../3.ipn.tcp
 ./ionstop
 echo "Node 3 is stopped."
@@ -201,7 +202,7 @@ sleep 30
 
 # Send fourth file from node 2.
 cd ../2.ipn.tcp
-echo "Sending fourth file from node 2 to node 3 (should go into limbo -- j)..."
+echo "Sending fourth file from node 2 to node 3 (should simply be enqueued)..."
 bpsendfile ipn:2.1 ipn:3.1 testfiley
 sleep 2
 
@@ -219,18 +220,21 @@ else
 fi
 
 echo ""
-# Restore node 3's TCP socket.
-echo "Restoring STCP connectivity to node 3 to test automatic release."
+# Restore node 3's STCP socket.
+echo "Restoring STCP connectivity to node 3 to test CLM resume..."
 cd ../3.ipn.tcp
 rm testfile*
-./ionstart
-sleep 1
+ionadmin restart
+sleep 2
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
+sleep 2
+echo "Restarting BP agent..."
+bpadmin restart
 echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
 sleep 30
 echo ""
-echo "Bundle for 4th file should have been released from limbo -- k."
+echo "Bundle for 4th file should have been transmitted."
 
 # Verify that the fourth file arrived.
 COUNT=`ls -l testfile1 | egrep 1070 | wc -l`
@@ -312,29 +316,18 @@ else
 	RETVAL=1
 fi
 
-cd ../5.ipn.tcp
-NODE_5_TCPCLO_PID=`echo "i outduct stcp localhost:5001" | bpadmin | grep 'pid:' | sed 's/^.*pid: \([0-9]*\) .*$/\1/'`
 echo ""
-echo "Pausing node 5's stcpclo to node 2 ($NODE_5_TCPCLO_PID), so it won't dequeue bundles."
-kill -STOP $NODE_5_TCPCLO_PID
-echo "Node 5's stcpclo to node 2 has been paused."
+echo "Blocking node 5's egress to node 2, to force use of node-3 plan instead."
+cd ../5.ipn.tcp
+bpadmin block.bprc
+sleep 2
 
 echo ""
-# Now break TCP connectivity to node 2.
-echo "Shutting down node 2 to test re-routing..."
-cd ../2.ipn.tcp
-./ionstop
-echo "Node 2 has been shut down."
-
-# Send file from node 5 to node 3
-cd ../5.ipn.tcp
-echo "Sending seventh file twice from node 5 to node 3 (should try to go through clo to node 2, but then be re-routed to go out the clo to node 3)."
+echo "Sending seventh file twice from node 5 to node 3 (wants to go through node 2, but because egress to node 2 is blocked the bundle must be sent to node 3 directly)."
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
 bpsendfile ipn:5.1 ipn:3.1 testfile5b
-
-sleep 5
-echo "Resuming node 5's stcpclo to node 2 (which no longer exists)..."
-kill -CONT $NODE_5_TCPCLO_PID
+echo ""
+echo "Sleeping 30 sec to wait for contact from 5 to 3 to start..."
 sleep 30
 
 # Verify that this file has arrived twice.

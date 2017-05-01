@@ -123,7 +123,7 @@ unsigned long utils_atox(char *s, int *success)
 	}
 
 	*success = 0;
-	if((s == NULL))
+	if(s == NULL)
 	{
 		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
 		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);

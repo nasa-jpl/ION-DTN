@@ -4,24 +4,28 @@ udpclo - UDP-based BP convergence layer output task
 
 =head1 SYNOPSIS
 
-B<udpclo>
+B<udpclo> I<remote_hostname>[:I<remote_port_nbr>] [I<round_trip_time>]
 
 =head1 DESCRIPTION
 
 B<udpclo> is a background "daemon" task that extracts bundles from the
-queues of bundles ready for transmission via UDP to remote bundle protocol
-agents, encapsulates them in UDP datagrams, and sends those datagrams to
-the appropriate remote UDP sockets as indicated by the host names and
-UDP port numbers (destination induct names) associated with the bundles
-by the routing daemons that enqueued them.
+queues of bundles ready for transmission via UDP to a remote node's UDP
+socket at I<remote_hostname> and I<remote_port_nbr>, encapsulates those
+bundles in UDP datagrams, and sends those datagrams to that remote UDP socket.
 
-Note that B<udpclo> is a "promiscuous" CLO daemon, able to transmit bundles
-to any UDP destination induct.  Its duct name is '*' rather than
-the induct name of any single UDP destination induct to which it might be
-dedicated, so scheme configuration directives that cite this outduct must
-provide destination induct IDs.  For the UDP convergence-layer protocol,
-destination induct IDs are identical to induct names, i.e., they are of
-the form I<local_hostname>[:I<local_port_nbr>].
+Because UDP is not itself a "reliable" transmission protocol (i.e., it
+performs no retransmission of lost data), it may be used in conjunction
+with BP custodial retransmission.  BP custodial retransmission is triggered
+only by expiration of a timer whose interval is nominally the round-trip
+time between the sending BP node and the next node in the bundle's end-to-end
+path that is expected to take custody of the bundle; notionally, if no custody
+signal citing the transmitted bundle has been received before the end of this
+interval it can be assumed that either the bundle or the custody signal was
+lost in transmission and therefore the bundle should be retransmitted.  The
+value of the custodial retransmission timer interval (the expected round-trip
+time between the sending node and the anticipated next custodian) may be
+provided as a run-time argument to B<udpclo>.  If this parameter is omitted
+the default value is zero, which disables custodial retransmission.
 
 B<udpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
 command that starts operation of the Bundle Protocol, and it is terminated by
@@ -71,9 +75,9 @@ ION system error.  Check errtext, correct problem, and restart UDP.
 
 =item No such udp duct.
 
-No UDP outduct with duct name '*' has been added to the BP database.  Use
-B<bpadmin> to stop the UDP convergence-layer protocol, add the outduct, and
-then restart the UDP protocol.
+No UDP outduct with duct name I<remote_hostname>[:<remote_port_nbr>] has been
+added to the BP database.  Use B<bpadmin> to stop the UDP convergence-layer
+protocol, add the outduct, and then restart the UDP protocol.
 
 =item CLO task is already started for this engine.
 

@@ -10,10 +10,10 @@
 #include <bpP.h>
 
 static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
-			char *svcClass)
+			int ttl, char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
@@ -29,7 +29,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &extendedCOS,
+		if (!bp_parse_class_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
@@ -58,6 +58,13 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 
 	aduLength = statbuf.st_size;
+	if (aduLength == 0)
+	{
+		writeMemoNote("[?] bpsendfile can't send file of length zero",
+				fileName);
+		return 0;
+	}
+
 	sdr = bp_get_sdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	if (sdr_heap_depleted(sdr))
@@ -77,15 +84,15 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
-			priority, extendedCOS.ordinal, ZcoOutbound, NULL);
+			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
 	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
 		putErrmsg("bpsendfile can't create ZCO.", NULL);
 	}
 	else
 	{
-		if (bp_send(sap, destEid, NULL, 300, priority, custodySwitch,
-				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
+		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
+			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));
@@ -114,6 +121,7 @@ int	bpsendfile(int a1, int a2, int a3, int a4, int a5,
 	char	*destEid = (char *) a2;
 	char	*fileName = (char *) a3;
 	char	*classOfService = (char *) a4;
+	int	ttl = atoi((char *) a5);
 #else
 int	main(int argc, char **argv)
 {
@@ -121,10 +129,13 @@ int	main(int argc, char **argv)
 	char	*destEid = NULL;
 	char	*fileName = NULL;
 	char	*classOfService = NULL;
+	int	ttl = 300;
 
-	if (argc > 5) argc = 5;
+	if (argc > 6) argc = 6;
 	switch (argc)
 	{
+	case 6:
+		ttl = atoi(argv[5]);
 	case 5:
 		classOfService = argv[4];
 	case 4:
@@ -140,10 +151,10 @@ int	main(int argc, char **argv)
 	if (ownEid == NULL || destEid == NULL || fileName == NULL)
 	{
 		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
-endpoint ID> <file name> [<class of service>]");
+endpoint ID> <file name> [<time to live (seconds)> [<class of service>]]");
 		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
 		return 0;
 	}
 
-	return run_bpsendfile(ownEid, destEid, fileName, classOfService);
+	return run_bpsendfile(ownEid, destEid, fileName, ttl, classOfService);
 }

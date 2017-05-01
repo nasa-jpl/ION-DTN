@@ -17,7 +17,13 @@ FAILEDFILE="retest"
 
 
 function find_tests_in () {
-    find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
+if [ "$VERSION" == "windows" ]; then
+	for directory in $@dotest $@/*/dotest $@/*/*/dotest; do
+		echo ${directory%%dotest}
+	done
+else
+	    find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
+fi
 }
 
 
@@ -46,6 +52,12 @@ function run_a_test () {
     # see, you can make bash read like perl if you try
     TEST=${TEST##./}
     TEST=${TEST%%/}
+
+    if [ -f "$TEST/.exclude_$VERSION" -o -f "$TEST/.exclude_all" ]; then
+    	echo "Test Excluded, skipping"
+    	skip_test $TEST
+    	return
+    fi
 
     if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
         echo "test $TEST doesnt exist!"
@@ -93,8 +105,7 @@ function run_a_test () {
         skip_test $TEST
     else 
         echo "test returned unknown value $TEST_RETVAL"
-        echo "skipping"
-        skip_test $TEST
+        fail_test $TEST
     fi
 
     popd > /dev/null
@@ -139,13 +150,12 @@ function cleanup_tests () {
     done
 }
 
-
-
-
 # these track how much of the test suite is passing/failing/skipped
 NUM_PASSED=0
 NUM_FAILED=0
 NUM_SKIPPED=0
+NUM_EXCLUDED=0
+NUM_UNKNOWN=0
 
 # these track the names of the tests passed/failed/skipped
 # each is a string consisting of the names of all the tests in that category, separated by spaces
@@ -153,6 +163,22 @@ TESTS_PASSED=''
 TESTS_FAILED=''
 TESTS_SKIPPED=''
 
+#For Exclusion of tests
+VERSION=''
+version=`uname -a`
+if [[ $version == *"MINGW"* ]] || [[ $version == *"Msys"* ]] 
+then
+	VERSION=windows;
+elif [[ $version == *"Linux"* ]] || [[ $version == *"LINUX"* ]]
+then
+	VERSION=linux;
+elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]]
+then
+	VERSION=mac;
+elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
+then
+    VERSION=solaris;
+fi
 
 CLEANUP=""
 if [ "$1" = "cleanup" ]; then

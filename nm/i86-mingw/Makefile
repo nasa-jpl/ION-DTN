@@ -174,11 +174,11 @@ install:
 #	-	-	NM executables	-	-	-	-	-
 
 nm_agent:	adm_objs msg_objs primitive_objs util_objs agent_objs
-		$(LD) -DAGENT_ROLE -o nm_agent $(AGENT_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lm
+		$(LD) -DAGENT_ROLE -o nm_agent $(AGENT_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lws2_32 -lm
 		cp nm_agent ./bin
 
 nm_mgr:		adm_objs msg_objs primitive_objs util_objs mgr_objs
-		$(LD) -o nm_mgr $(MGR_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lm
+		$(LD) -o nm_mgr $(MGR_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lws2_32 -lm
 		cp nm_mgr ./bin
 
 #	-	-	Object modules	-	-	-	-	-

@@ -29,6 +29,8 @@ extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpmeter(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclock(int, int, int, int, int, int, int, int, int, int);
+extern int	bptransit(int, int, int, int, int, int, int, int, int, int);
+extern int	bpclm(int, int, int, int, int, int, int, int, int, int);
 extern int	ipnfw(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
@@ -65,6 +67,8 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
 		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
 		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
+		{ "bptransit",	(FUNCPTR) bptransit,	ICI_PRIORITY,	4096  },
+		{ "bpclm",	(FUNCPTR) bpclm,	ICI_PRIORITY,	4096  },
 		{ "ipnfw",	(FUNCPTR) ipnfw,	ICI_PRIORITY,	65536 },
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },

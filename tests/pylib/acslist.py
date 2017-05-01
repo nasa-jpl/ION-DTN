@@ -45,7 +45,15 @@ def acslist():
     or, returns None if there is a problem parsing the output of acslist.
     """
     # bufsize = 1 --> line buffered
-    acslist_p = subprocess.Popen("acslist -s", shell = True, close_fds = True, stdout=subprocess.PIPE, bufsize = 1)
+
+    import sys
+    mswindows = (sys.platform == 'win32')
+
+    if mswindows:
+      #close_fds raises a ValueError exception on windows.
+      acslist_p = subprocess.Popen("acslist -s", shell = True, stdout=subprocess.PIPE, bufsize = 1)
+    else:
+      acslist_p = subprocess.Popen("acslist -s", shell = True, close_fds = True, stdout=subprocess.PIPE, bufsize = 1)
 
     return acslist_lines_to_cbids(acslist_p.stdout)
 

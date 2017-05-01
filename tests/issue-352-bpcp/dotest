@@ -60,7 +60,7 @@ then
 	echo ""
 else
 	echo "Node 1 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 cd ../2.ipn.cfdp.bp.tcp
 ./ionstart
@@ -71,7 +71,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 cd ../3.ipn.cfdp.bp.tcp
 ./ionstart
@@ -82,13 +82,13 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ..
 
 #Test 1 L2R
-sleep 3
+sleep 12
 echo "Test 1 --- Local to Remote Copy"
 cd 1.ipn.cfdp.bp.tcp
 echo "Starting bpcp..."

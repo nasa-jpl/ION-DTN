@@ -260,7 +260,7 @@ static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 	if (fdu->utParmsLength == sizeof(BpUtParms))
 	{
 		bpUtParms = (BpUtParms *) &(fdu->utParms);
-		if (bpUtParms->extendedCOS.flags & BP_BEST_EFFORT)
+		if (bpUtParms->ancillaryData.flags & BP_BEST_EFFORT)
 		{
 			bestEfforts = 1;
 		}

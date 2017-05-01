@@ -31,7 +31,7 @@ cd 1.ipn.tcp/
 
 if [ $? -ne 2 ]; then
     echo "Node 1 not started: Aborting Test"
-    exit 0
+    exit 1
 fi
 
 # Set up node 2
@@ -41,7 +41,7 @@ cd ../2.ipn.tcp/
 
 if [ $? -ne 2 ]; then
     echo "Node 2 not started: Aborting Test"
-    exit 0
+    exit 1
 fi
 
 # Start file receiver on node 2.

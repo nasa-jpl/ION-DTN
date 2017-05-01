@@ -48,7 +48,7 @@ then
 	echo ""
 else
 	echo "Node not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ..
@@ -73,8 +73,8 @@ sleep 5
 echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
-echo "Killing TCPCL..."
-pkill -15 tcpcli >/dev/null 2>&1
+echo "Killing stcpcli..."
+pkill -15 stcpcli >/dev/null 2>&1
 
 #Waiting
 echo "Waiting 5 seconds for inactivity deadline trigger..."

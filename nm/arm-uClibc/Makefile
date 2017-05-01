@@ -142,7 +142,7 @@ MGR_OBJS =	mgt_adm.o \
 OPT = -g -fPIC -Wall -Werror -Wno-unused-variable -DuClibc
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I../../bp/library/ext/bpsec -I$(ROOT)/include
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I$(ROOT)/include
 # For database support, append -I/usr/local/mysql/include -I/user/include/mysql
 
 CC = $(TCC) $(OPT) $(INCLDIRS)
@@ -172,11 +172,11 @@ install:
 #	-	-	NM executables	-	-	-	-	-
 
 nm_agent:	adm_objs msg_objs primitive_objs util_objs agent_objs
-		$(LD) -DAGENT_ROLE -o nm_agent $(AGENT_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lm
+		$(LD) -DAGENT_ROLE -o nm_agent $(AGENT_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lltpP -lici -lpthread -lm
 		cp nm_agent ./bin
 
 nm_mgr:		adm_objs msg_objs primitive_objs util_objs mgr_objs
-		$(LD) -o nm_mgr $(MGR_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lici -lpthread -lm
+		$(LD) -o nm_mgr $(MGR_OBJS) $(LIBDIRS) -lcfdp $(LBP) -lltp -lltpP -lici -lpthread -lm
 		cp nm_mgr ./bin
 
 #	-	-	Object modules	-	-	-	-	-

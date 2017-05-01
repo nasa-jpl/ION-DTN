@@ -24,7 +24,7 @@ extern "C" {
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
 /* As of 2016-02-10 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.5.0"
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.6.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -195,7 +195,7 @@ typedef struct
 
 typedef struct
 {
-	int		nominalRate;	/*	In bytes per second.	*/
+	unsigned int	nominalRate;	/*	In bytes per second.	*/
 	vast		capacity;	/*	Bytes, current second.	*/
 } Throttle;
 

@@ -211,14 +211,15 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"Ordinal                 %d",
-		       	bundle->extendedCOS.ordinal);
+		       	bundle->ancillaryData.ordinal);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
-			"Unreliable:             %d", bundle->extendedCOS.flags
-			& BP_BEST_EFFORT ? 1 : 0);
+			"Unreliable:             %d",
+			bundle->ancillaryData.flags & BP_BEST_EFFORT ? 1 : 0);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
-			"Critical:               %d", bundle->extendedCOS.flags
+			"Critical:               %d",
+			bundle->ancillaryData.flags
 			& BP_MINIMUM_LATENCY ? 1 : 0);
 	PUTS(buf);
 	oK(printEid(&(bundle->destination), dictionary, &eid));
@@ -252,8 +253,7 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 
 static void	printUsage()
 {
-	PUTS("Usage: bplist [ { count | detail } \
-[<protocolName>/<outductName>/<priority>]]");
+	PUTS("Usage: bplist [{count | detail} [<node ID (EID)>/<priority>]]");
 }
 
 #if defined (ION_LWT)
@@ -270,21 +270,20 @@ int	main(int argc, char **argv)
 #endif
 	int		count = 0;
 	char		*cursor;
-	char		*protocolName = NULL;
-	char		*ductName = NULL;
+	char		*eid = NULL;
 	int		priority = 0;
 	char		msgbuf[256];
 	Sdr		sdr;
 	BpDB		*bpConstants;
 	Object		list;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 	Object		elt;
 	Object		addr;
 			OBJ_POINTER(BpEvent, event);
 			OBJ_POINTER(Bundle, bundle);
 	int		bundlesCount = 0;
-			OBJ_POINTER(Outduct, duct);
+			OBJ_POINTER(BpPlan, plan);
 
 	if (bp_attach() < 0)
 	{
@@ -306,17 +305,8 @@ int	main(int argc, char **argv)
 
 		if (queue)
 		{
-			protocolName = queue;
-			cursor = strchr(protocolName, '/');
-			if (cursor == NULL)
-			{
-				printUsage();
-				return 0;
-			}
-
-			*cursor = '\0';
-			ductName = cursor + 1;
-			cursor = strchr(ductName, '/');
+			eid = queue;
+			cursor = strchr(eid, '/');
 			if (cursor == NULL)
 			{
 				printUsage();
@@ -332,8 +322,7 @@ int	main(int argc, char **argv)
 			}
 
 			isprintf(msgbuf, sizeof msgbuf, "reporting on bundles \
-in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
-					priority);
+queued for node '%.255s', priority %d.", eid, priority);
 			writeMemo(msgbuf);
 		}
 	}
@@ -341,7 +330,7 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 	sdr = bp_get_sdr();
 	CHKZERO(sdr_begin_xn(sdr));	/*	Lock db for duration.	*/
 	isignal(SIGINT, handleQuit);
-	if (protocolName == NULL)	/*	All bundles.		*/
+	if (eid == NULL)		/*	All bundles.		*/
 	{
 		bpConstants = getBpConstants();
 		list = bpConstants->timeline;
@@ -375,28 +364,28 @@ in outduct '%.64s' of protocol '%.16s', priority %d.", ductName, protocolName,
 	}
 	else				/*	Bundles in one queue.	*/
 	{
-		findOutduct(protocolName, ductName, &vduct, &vductElt);
-		if (vductElt == 0)
+		findPlan(eid, &vplan, &vplanElt);
+		if (vplanElt == 0)
 		{
-			writeMemo("No such outduct.");
+			writeMemo("No such egress plan.");
 		}
 		else
 		{
-			addr = sdr_list_data(sdr, vduct->outductElt);
-			GET_OBJ_POINTER(sdr, Outduct, duct, addr);
-			CHKZERO(duct);
+			addr = sdr_list_data(sdr, vplan->planElt);
+			GET_OBJ_POINTER(sdr, BpPlan, plan, addr);
+			CHKZERO(plan);
 			switch (priority)
 			{
 			case 2:
-				list = duct->urgentQueue;
+				list = plan->urgentQueue;
 				break;
 		
 			case 1:
-				list = duct->stdQueue;
+				list = plan->stdQueue;
 				break;
 		
 			default:
-				list = duct->bulkQueue;
+				list = plan->bulkQueue;
 			}
 
 			if (count)

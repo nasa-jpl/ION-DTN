@@ -272,8 +272,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     Scheme          scheme;
     Object          elt2;
     Endpoint        endpoint;
-    ClProtocol      protocol;
-    Outduct         duct;
+    BpPlan          plan;
     BpDelStats      delStats;
     BpCtStats       ctStats;
     BpDbStats       dbStats;
@@ -285,23 +284,14 @@ void    bpnm_disposition_get(NmbpDisposition * results)
 
     sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
     results->currentForwardPending = sdr_list_length(sdr, bpdb.limboQueue);
-    for (elt = sdr_list_first(sdr, bpdb.protocols); elt;
-            elt = sdr_list_next(sdr, elt))
+    for (elt = sdr_list_first(sdr, bpdb.plans); elt;
+                    elt = sdr_list_next(sdr, elt))
     {
-	    sdr_read(sdr, (char *) & protocol, sdr_list_data(sdr, elt),
-                    sizeof(ClProtocol));
-	    for (elt2 = sdr_list_first(sdr, protocol.outducts); elt2;
-                    elt2 = sdr_list_next(sdr, elt2))
-	    {
-	        sdr_read(sdr, (char *) & duct, sdr_list_data(sdr, elt2),
-                        sizeof(Outduct));
-                results->currentForwardPending
-		        += sdr_list_length(sdr, duct.urgentQueue);
-                results->currentForwardPending
-		        += sdr_list_length(sdr, duct.stdQueue);
-                results->currentForwardPending
-		        += sdr_list_length(sdr, duct.bulkQueue);
-	    }
+        sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, elt), sizeof(BpPlan));
+	results->currentForwardPending += sdr_list_length(sdr,
+			plan.urgentQueue);
+	results->currentForwardPending += sdr_list_length(sdr, plan.stdQueue);
+	results->currentForwardPending += sdr_list_length(sdr, plan.bulkQueue);
     }
 
     results->currentDispatchPending = 0;

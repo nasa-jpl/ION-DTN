@@ -1940,7 +1940,6 @@ void	sm_SemGive(sm_SemId i)
 	sem = sembase->semaphores + i;
 	if (sem->key == -1)	/*	semaphore deleted		*/
 	{
-		putErrmsg("Can't give deleted semaphore.", itoa(i));
 		return;
 	}
 

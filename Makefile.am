@@ -840,6 +840,7 @@ bpbin = \
 	bplist \
 	bpsendfile \
 	bprecvfile \
+	bpclm \
 	bpclock \
 	bptransit \
 	ipnadmin \
@@ -864,7 +865,8 @@ bpbin = \
 	bibeclo \
 	dccpcli \
 	dccpclo	\
-	dgrcla \
+	dgrcli \
+	dgrclo \
 	ltpcli \
 	ltpclo \
 	lgsend \
@@ -895,8 +897,7 @@ bplib = \
 	libudpcla.la
 #	libphn.la
 #	libecos.la
-#	libipnfw.la
-#	libdtn2fw.la
+
 bpinclude = \
 	bp/include/bp.h \
 	bp/include/eureka.h
@@ -923,6 +924,7 @@ bpextra = \
 	bp/doc/pod1/bptransit.pod \
 	bp/doc/pod1/bpcounter.pod \
 	bp/doc/pod1/bpcancel.pod \
+	bp/doc/pod1/bpclm.pod \
 	bp/doc/pod1/bplist.pod \
 	bp/doc/pod1/bpdriver.pod \
 	bp/doc/pod1/bpecho.pod \
@@ -934,7 +936,8 @@ bpextra = \
 	bp/doc/pod1/bptrace.pod \
 	bp/doc/pod1/brsccla.pod \
 	bp/doc/pod1/brsscla.pod \
-	bp/doc/pod1/dgrcla.pod \
+	bp/doc/pod1/dgrcli.pod \
+	bp/doc/pod1/dgrclo.pod \
 	bp/doc/pod1/dtn2adminep.pod \
 	bp/doc/pod1/dtn2admin.pod \
 	bp/doc/pod1/dtn2fw.pod \
@@ -988,33 +991,7 @@ bpextra = \
 	bp/library/ext/bpsec/profiles.h \
 	bp/library/ext/bpsec/profiles.c \
 	ici/include/crypto.h \
-	ici/include/csi.h
-# Removed in 3.3.0 per the new BSP rule structure
-#	bp/library/ext/bsp/extbsputil.h \
-#	bp/library/ext/bsp/extbsputil.c \
-#	bp/library/ext/bsp/extbspbab.h \
-#	bp/library/ext/bsp/extbspbab.c \
-#	bp/library/ext/bsp/extbsppcb.h \
-#	bp/library/ext/bsp/extbsppcb.c \
-#	bp/library/ext/bsp/extbsppib.h \
-#	bp/library/ext/bsp/extbsppib.c
-
-#	bp/library/ext/bsp/bspbab.h \
-#	bp/library/ext/bsp/bspbab.c \
-#	bp/library/ext/bsp/bspbcb.h \
-#	bp/library/ext/bsp/bspbcb.c \
-#	bp/library/ext/bsp/bspbib.h \
-#	bp/library/ext/bsp/bspbib.c \
-#	bp/library/ext/bsp/bsputil.h \
-#	bp/library/ext/bsp/bsputil.c \
-#	bp/library/ext/bsp/ciphersuites.h \
-#	bp/library/ext/bsp/ciphersuites.c \
-#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
-#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
-#	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
-#	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
-#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
-#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c 
+	ici/include/csi.h 
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -1039,7 +1016,8 @@ bpmans = \
 	$(top_builddir)/bp/doc/bptrace.1 \
 	$(top_builddir)/bp/doc/brsccla.1 \
 	$(top_builddir)/bp/doc/brsscla.1 \
-	$(top_builddir)/bp/doc/dgrcla.1 \
+	$(top_builddir)/bp/doc/dgrcli.1 \
+	$(top_builddir)/bp/doc/dgrclo.1 \
 	$(top_builddir)/bp/doc/dtn2adminep.1 \
 	$(top_builddir)/bp/doc/dtn2admin.1 \
 	$(top_builddir)/bp/doc/dtn2fw.1 \
@@ -1104,14 +1082,6 @@ $(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
 
 # -- Libraries --- #
 
-#libipnfw_la_SOURCES = bp/ipn/libipnfw.c
-#libipnfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libipnfw_la_LIBADD = libici.la
-
-#libdtn2fw_la_SOURCES = bp/dtn2/libdtn2fw.c
-#libdtn2fw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libdtn2fw_la_LIBADD = libici.la
-
 libstcpcla_la_SOURCES = bp/stcp/libstcpcla.c
 libstcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libstcpcla_la_LIBADD = libbp.la libici.la
@@ -1155,28 +1125,6 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/murmurhash2.h \
 	ici/libbloom-master/murmur2/MurmurHash2.c
-# Removed in 3.3.0 per the new BSP rule structure
-#	bp/library/ext/bsp/extbsputil.c \
-#	bp/library/ext/bsp/extbspbab.c \
-#	bp/library/ext/bsp/extbsppcb.c \
-#	bp/library/ext/bsp/extbsppib.c
-
-#	bp/library/ext/bsp/bspbab.h \
-#	bp/library/ext/bsp/bspbab.c \
-#	bp/library/ext/bsp/bspbcb.h \
-#	bp/library/ext/bsp/bspbcb.c \
-#	bp/library/ext/bsp/bspbib.h \
-#	bp/library/ext/bsp/bspbib.c \
-#	bp/library/ext/bsp/bsputil.h \
-#	bp/library/ext/bsp/bsputil.c \
-#	bp/library/ext/bsp/ciphersuites.h \
-#	bp/library/ext/bsp/ciphersuites.c \
-#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.h \
-#	bp/library/ext/bsp/ciphersuites/bab_hmac_sha1.c \
-#	bp/library/ext/bsp/ciphersuites/bcb_arc4.h \
-#	bp/library/ext/bsp/ciphersuites/bcb_arc4.c \
-#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.h \
-#	bp/library/ext/bsp/ciphersuites/bib_hmac_sha256.c 
 
 if CRYPTO
 libici_la_SOURCES+= \
@@ -1380,9 +1328,13 @@ dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
-dgrcla_SOURCES = bp/dgr/dgrcla.c
-dgrcla_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
-dgrcla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+dgrcli_SOURCES = bp/dgr/dgrcli.c
+dgrcli_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+dgrclo_SOURCES = bp/dgr/dgrclo.c
+dgrclo_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 
@@ -1453,6 +1405,10 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bptransit_SOURCES = bp/daemon/bptransit.c
 bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpclm_SOURCES = bp/daemon/bpclm.c
+bpclm_LDADD = libbp.la libici.la $(LIBOBJS)
+bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ##########################
 #
@@ -2148,7 +2104,6 @@ tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # If a test uses the testutil helpers, include $(TESTUTILOBJS) in _LDADD,
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
-	tests/1300.loopback-tcp/dotest \
 	tests/1500.loopback-brs/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
@@ -2158,7 +2113,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 if !ION_NASA_B
 check_PROGRAMS+= \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-333-cfdp-orig-ID-type/send \
 	tests/issue-334-cfdp-transaction-id/dotest
 endif
 
@@ -2166,9 +2120,10 @@ tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
-tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
-tests_1300_loopback_tcp_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
-tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+#Disabled this test in ION 3.6.0 because tcpcl does not support loopback
+#tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
+#tests_1300_loopback_tcp_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+#tests_1300_loopback_tcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 # Disabled this test in ION 3.2.2 due to crashes.  Restore after fixing crashes.
 # tests_1400_loopback_stcp_dotest_SOURCES = tests/1400.loopback-stcp/dotest.c
@@ -2199,12 +2154,6 @@ if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-endif
-
-if !ION_NASA_B
-tests_issue_333_cfdp_orig_ID_type_send_SOURCES = tests/issue-333-cfdp-orig-ID-type/send.c
-tests_issue_333_cfdp_orig_ID_type_send_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
-tests_issue_333_cfdp_orig_ID_type_send_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 endif
 
 if !ION_NASA_B

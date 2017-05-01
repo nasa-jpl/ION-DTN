@@ -9,7 +9,6 @@ a protocol stcp 1400 100
 a induct stcp localhost:5201 stcpcli
 a outduct stcp localhost:5001 stcpclo
 a outduct stcp localhost:5101 stcpclo
-a outduct stcp localhost:5201 stcpclo
 r 'ipnadmin amroc.ipnrc'
 w 1
 s

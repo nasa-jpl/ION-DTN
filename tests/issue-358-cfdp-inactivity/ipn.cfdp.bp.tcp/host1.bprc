@@ -6,7 +6,7 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 x
 a endpoint ipn:1.64 x
 a endpoint ipn:1.65 x
-a protocol tcp 1400 100
-a induct tcp 127.0.0.1:2556 tcpcli
-a outduct tcp 127.0.0.1:2556 ''
+a protocol stcp 1400 100
+a induct stcp 127.0.0.1:2556 stcpcli
+a outduct stcp 127.0.0.1:2556 stcpclo
 s

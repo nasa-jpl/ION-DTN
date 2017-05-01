@@ -1063,19 +1063,19 @@ void ui_add_parmspec(char *mid_str,
 	spec->mid = mid_from_string(mid_str);
 	spec->num_parms = num;
 
-	if(n1 != NULL) strncpy(spec->parm_name[0], n1, MAX_PARM_NAME);
+	if(n1 != NULL) istrcpy(spec->parm_name[0], n1, MAX_PARM_NAME);
 	spec->parm_type[0] = p1;
 
-	if(n2 != NULL) strncpy(spec->parm_name[1], n2, MAX_PARM_NAME);
+	if(n2 != NULL) istrcpy(spec->parm_name[1], n2, MAX_PARM_NAME);
 	spec->parm_type[1] = p2;
 
-	if(n3 != NULL) strncpy(spec->parm_name[2], n3, MAX_PARM_NAME);
+	if(n3 != NULL) istrcpy(spec->parm_name[2], n3, MAX_PARM_NAME);
 	spec->parm_type[2] = p3;
 
-	if(n4 != NULL) strncpy(spec->parm_name[3], n4, MAX_PARM_NAME);
+	if(n4 != NULL) istrcpy(spec->parm_name[3], n4, MAX_PARM_NAME);
 	spec->parm_type[3] = p4;
 
-	if(n5 != NULL) strncpy(spec->parm_name[4], n5, MAX_PARM_NAME);
+	if(n5 != NULL) istrcpy(spec->parm_name[4], n5, MAX_PARM_NAME);
 	spec->parm_type[4] = p5;
 
 	lyst_insert_last(gParmSpec, spec);

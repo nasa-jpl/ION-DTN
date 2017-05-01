@@ -49,7 +49,7 @@ then
 	echo ""
 else
 	echo "Node not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 echo "Issuing erroneous screening and ownqtime mgt commands in ltpadmin."

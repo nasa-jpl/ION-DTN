@@ -23,7 +23,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpExtendedCOS	extendedCOS = { 0, 10, 0 };
+	BpAncillaryData	ancillaryData = { 0, 10, 0 };
 			/*	Note: flag value 10 directs BP to send
 			 *	bundles using a streaming protocol.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
@@ -45,7 +45,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &extendedCOS,
+		if (!bp_parse_class_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
@@ -103,7 +103,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 
 		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
 				sizeof(framePayload), priority,
-				extendedCOS.ordinal, ZcoOutbound, NULL);
+				ancillaryData.ordinal, ZcoOutbound, NULL);
 		if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
 		|| bundleZco == 0)
 		{
@@ -115,7 +115,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 		/*	Send the bundle payload.	*/
 
 		if (bp_send(sap, destEid, NULL, 86400, priority, custodySwitch,
-				0, 0, &extendedCOS, bundleZco, &newBundle) <= 0)
+			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bssdriver can't send frame.", NULL);
 			break;

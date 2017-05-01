@@ -2122,6 +2122,11 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	 *	transmissions from B to A.				*/
 
 	CHKERR(fromTime);
+	if (toTime == 0)			/*	Discovered.	*/
+	{
+		toTime = MAX_POSIX_TIME;
+	}
+
 	CHKERR(toTime > fromTime);
 	CHKERR(fromNode);
 	CHKERR(toNode);

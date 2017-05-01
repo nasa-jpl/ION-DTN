@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# March 6, 2017
+#
+# A very simple test of neighbor discovery.
+#
+# For this test we set up a network of 5 nodes:
+#	2 - notionally stationary source
+#	3 - notional data mule that contacts node 2
+#
+# All traffic is by TCP convergence layer.  All contacts are discovered
+# dynamically in the course of simulated movement by node 3.
+#
+# Note that IPND was designed for the discovery of bundle
+# protocol agents in nodes residing on different IP hosts, not
+# nodes residing on the same IP host as in ION regression
+# testing; since the ipnd daemon that listens on a given port
+# owns that port exclusively, only one IPND listener can be
+# active in this test at any time.
+#
+# So to simulate the movement and discovery of the data mules
+# we control everything by starting and stopping the neighbor
+# discovery protocol daemons:
+#
+#	-	Start both nodes at the same time without
+#		starting any ipnd tasks.
+#
+#	-	Node 2 issues a bundle containing a file destined
+#		for node 3, which is immediately abandoned as unforwardable.
+#
+#	-	Start an ipnd for node 3 that only sends beacons.
+#		Start an ipnd for node 2 that receives beacons.
+#		Node 2 discovers node 3 and creates an outduct
+#		for transmission to node 3.
+#
+#	-	Node 2 issues a bundle containing a file destined for node 3,
+#		which is immediately forwarded to node 3, which delivers it.
+#
+#	-	Kill all ipnd tasks.
+#
+#	-	Verify: node 3 should have received one file.
+
+./cleanup
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start both nodes.  Contact plans are empty.
+echo "Starting both nodes..."
+
+sleep 1
+cd 2.ipn.tcp
+./ionstart
+
+sleep 2
+cd ../3.ipn.tcp
+./ionstart
+
+sleep 1
+bprecvfile ipn:3.1 &
+
+# After 5 seconds, issue file from node 2 to node 3.
+sleep 5
+cd ../2.ipn.tcp
+echo ""
+echo "Sending file z (885 bytes) from node 2 destined for node 3..."
+bpsendfile ipn:2.2 ipn:3.1 testfilez
+sleep 1
+echo "File should have been abandoned as unroutable."
+
+# After 5 seconds, start ipnd for nodes 2 and 3 so that the file
+# destined for node 3 will be forwarded to node 3.
+sleep 5
+echo ""
+echo "Starting ipnd for nodes 2 and 3..."
+cd ../3.ipn.tcp
+./startbeacon
+sleep 1
+cd ../2.ipn.tcp
+./startlisten
+
+sleep 2
+echo "Sending file x (915 bytes) from node 2 destined for node 3..."
+bpsendfile ipn:2.2 ipn:3.1 testfilex
+sleep 1
+echo "File should have been forwarded from 2 to 3 and delivered."
+
+# After 5 seconds, stop all ipnd tasks.
+sleep 5
+echo ""
+echo "Killing all ipnd tasks..."
+killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
+
+# After 5 seconds, check all results.
+sleep 5
+echo ""
+echo "Checking results..."
+cd ../3.ipn.tcp
+
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 3 got file x."
+else
+	echo ""
+	echo "Error: node 3 didn't get file x."
+	RETVAL=1
+fi
+
+# After 2 seconds, shut down all nodes.
+sleep 2
+echo ""
+echo "Stopping ION..."
+cd ../2.ipn.tcp
+./ionstop &
+cd ../3.ipn.tcp
+./ionstop &
+
+# Give the nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "IPND test completed."
+exit $RETVAL

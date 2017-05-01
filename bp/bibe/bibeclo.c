@@ -1,9 +1,6 @@
 /*
 	bibeclo.c:	BP BIBE-based convergence-layer output
-			daemon.  Note that this convergence-layer
-			output daemon is a "promiscuous" CLO daemon
-			which can transmit bundles to any number of
-			different peers.
+			daemon.
 
 	Author:		Scott Burleigh, JPL
 
@@ -37,22 +34,21 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 int	bibeclo(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+	char			*endpointSpec = (char *) a1;
 #else
 int	main(int argc, char *argv[])
 {
+	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
 #endif
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
 	Sdr			sdr;
 	Outduct			outduct;
 	ClProtocol		protocol;
-	Outflow			outflows[3];
-	int			i;
 	unsigned char		*buffer;
 	char			adminHeader[1];
 	Object			bundleZco;
-	BpExtendedCOS		extendedCOS;
-	char			destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	BpAncillaryData		ancillaryData;
 	Bundle			image;
 	char			*dictionary = 0;
 	unsigned int		bundleLength;
@@ -61,16 +57,22 @@ int	main(int argc, char *argv[])
 	unsigned int		ttl;
 	Object			newBundle;
 
+	if (endpointSpec == NULL)
+	{
+		PUTS("Usage: bibeclo <remote node's ID>");
+		return 0;
+	}
+
 	if (bpAttach() < 0)
 	{
 		putErrmsg("bibeclo can't attach to BP.", NULL);
 		return -1;
 	}
 
-	findOutduct("bibe", "*", &vduct, &vductElt);
+	findOutduct("bibe", endpointSpec, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("No such bibe duct.", "*");
+		putErrmsg("No such bibe outduct.", endpointSpec);
 		return -1;
 	}
 
@@ -90,11 +92,6 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	vduct->xmitThrottle.nominalRate = -1;
-
-	/*	Note: no rate control for BIBE, regardless of what
-	 *	may have been asserted when the Protocol was added.	*/
-
 	adminHeader[0] = BP_ENCAPSULATED_BUNDLE << 4;
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
@@ -102,14 +99,6 @@ int	main(int argc, char *argv[])
 			sizeof(Outduct));
 	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
-	memset((char *) outflows, 0, sizeof outflows);
-	outflows[0].outboundBundles = outduct.bulkQueue;
-	outflows[1].outboundBundles = outduct.stdQueue;
-	outflows[2].outboundBundles = outduct.urgentQueue;
-	for (i = 0; i < 3; i++)
-	{
-		outflows[i].svcFactor = 1 << i;
-	}
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -121,8 +110,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] bibeclo is running.");
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, outflows, &bundleZco, &extendedCOS,
-				destDuctName, outduct.maxPayloadLen, 0) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			shutDownClo();
@@ -159,9 +147,9 @@ int	main(int argc, char *argv[])
 		bundleAge = currentTime -
 			(image.id.creationTime.seconds + EPOCH_2000_SEC);
 		ttl = image.timeToLive - bundleAge;
-		switch (bpSend(NULL, destDuctName, NULL, ttl,
+		switch (bpSend(NULL, endpointSpec, NULL, ttl,
 				COS_FLAGS(image.bundleProcFlags),
-				NoCustodyRequested, 0, 0, &extendedCOS,
+				NoCustodyRequested, 0, 0, &ancillaryData,
 				bundleZco, &newBundle, BP_ENCAPSULATED_BUNDLE))
 		{
 		case -1:	/*	System error.			*/

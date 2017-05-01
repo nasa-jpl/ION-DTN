@@ -8,18 +8,14 @@ dtn2rc - "dtn" scheme configuration commands file
 file of text lines or interactively at B<dtn2admin>'s command prompt (:).
 Commands are interpreted line-by line, with exactly one command per line.
 
-"dtn" scheme configuration commands mainly establish static routing rules
+"dtn" scheme configuration commands establish static routing rules
 for forwarding bundles to "dtn"-scheme destination endpoints, identified by
-node names and demux names.
+node ID.  (Each node ID is simply a BP endpoint ID.)
 
 Static routes are expressed as B<plan>s in the "dtn"-scheme routing database.
-A plan that is established for a given node name associates a default routing
-B<directive> with the named node, and that default directive may be
-overridden by more narrowly scoped B<rule>s in specific circumstances: a
-different directive may apply when the destination endpoint ID specifies
-a particular demux name.
-
-Each directive is a string of one of two possible forms:
+A plan that is established for a given node name associates a routing
+B<directive> with the named node.  Each directive is a string of one of
+two possible forms:
 
 =over 4
 
@@ -31,7 +27,7 @@ f I<endpoint_ID>
 
 =over 4
 
-x I<protocol_name>/I<outduct_name>[,I<destination_induct_name>],
+x I<protocol_name>/I<outduct_name>
 
 =back
 
@@ -40,22 +36,17 @@ endpoint, requiring that it be re-queued for processing by the forwarder
 for that endpoint (which might, but need not, be identified by another
 "dtn"-scheme endpoint ID).  The latter form signifies that the bundle is
 to be queued for transmission via the indicated convergence layer protocol
-outduct.  I<destination_induct_name> must be provided when the indicated
-outduct is "promiscuous", i.e., not configured for transmission only to
-a single neighboring node; this is protocol-specific.
+outduct.
 
-The node names and demux names cited in dtn2rc plans and overriding rules
-may be "wild-carded".  That is, when the last character of a node name is
-either '*' or '~' (these two wild-card characters are equivalent for this
-purpose), the plan or rule applies to all nodes whose names are identical
-to the wild-carded node name up to the wild-card character; wild-carded
-demux names function in the same way.  For example, a bundle whose
-destination EID's node name is "//foghorn" would be routed by plans citing
-the following node names: "//foghorn", "//fogh*", "//fog~", "//*".  When
-multiple plans are all applicable to the same destination EID, the one citing
-the longest (i.e., most narrowly targeted) node name will be applied; when
-multiple rules overriding the same plan are all applicable to the same
-destination EID, the one citing the longest demux name will be applied.
+The node IDs cited in dtn2rc plans may be "wild-carded".  That is, when
+the last character of a node ID is either '*' or '~' (these two wild-card
+characters are equivalent for this purpose), the plan applies to all nodes
+whose IDs are identical to the wild-carded node name up to the wild-card
+character.  For example, a bundle whose destination EID name is "dtn://foghorn"
+would be routed by plans citing the following node IDs: "dtn://foghorn",
+"dtn://fogh*", "dtn://fog~", "//*".  When multiple plans are all applicable
+to the same destination EID, the one citing the longest (i.e., most narrowly
+targeted) node ID will be applied.
 
 The formats and effects of the DTN scheme configuration commands are
 described below.
@@ -94,22 +85,20 @@ formats.  It is the same as the B<?> command.
 
 =over 4
 
-=item B<a plan> I<node_name> I<default_directive>
+=item B<a plan> I<node_ID> I<default_directive>
 
 The B<add plan> command.  This command establishes a static route for
-the bundles destined for the node identified by I<node_name>.  A general
-plan must be in place for a node before any more specific routing rules
-are declared.
+the bundles destined for the node(s) identified by I<node_ID>.
 
-=item B<d plan> I<node_name>
+=item B<d plan> I<node_ID>
 
 The B<delete plan> command.  This command deletes the static route for
-the node identified by I<node_name>, including all associated rules.
+the node(s) identified by I<node_ID>.
 
-=item B<i plan> I<node_name>
+=item B<i plan> I<node_ID>
 
-This command will print information (the default directive and all
-specific rules) about the static route for the node identified by I<node_name>.
+This command will print information about the static route for the node(s)
+identified by I<node_ID>.
 
 =item B<l plan>
 
@@ -118,60 +107,21 @@ the local node.
 
 =back
 
-=head1 RULE COMMANDS
-
-=over 4
-
-=item B<a rule> I<node_name> I<demux_name> I<directive>
-
-The B<add rule> command.  This command establishes a rule, i.e., a
-directive that overrides the default directive of the plan for the node
-identified by I<node_name> in the event that the demux name of the subject
-bundle's destination endpoint ID matches I<demux_name>.
-
-=item B<c rule> I<node_name> I<demux_name> I<directive>
-
-The B<change rule> command.  This command changes the directive for the
-indicated rule.
-
-=item B<d rule> I<node_name> I<demux_name>
-
-The B<delete rule> command.  This command deletes the rule identified
-by I<node_name> and I<demux_name>.
-
-=item B<i rule> I<node_name> I<demux_name>
-
-This command will print information (the directive) about the rule
-identified by I<node_name> and I<demux_name>.
-
-=item B<l rule> I<node_name>
-
-This command lists all rules in the plan for the indicated node.
-
-=back
-
 =head1 EXAMPLES
 
 =over 4
 
-=item a plan //bbn2 f ipn:8.41
+=item a plan dtn://bbn2 f ipn:8.41
 
-Declares a static route from the local node to node "//bbn2".  By default, any
-bundle destined for any endpoint whose node name is "//bbn2" will be forwarded
+Declares a static route from the local node to node "//bbn2".  Any bundle
+destined for any endpoint whose node name is "//bbn2" will be forwarded
 to endpoint "ipn:8.41".
 
-=item a plan //mitre1 x ltp/6
+=item a plan dtn://mitre1* x ltp/6
 
-Declares a static route from the local node to node "//mitre1".  By default,
-any bundle destined for any endpoint whose node name is "mitre1" will
+Declares a static route from the local node to node "//mitre1".  Any bundle
+destined for any endpoint whose node ID begins with "mitre1" will
 be queued for transmission on LTP outduct 6.
-
-=item a rule //mitre1 fwd x ltp/18
-
-Declares an overriding static routing rule for any bundle destined for node
-"//mitre1" whose destination demux name is "fwd".  Each such bundle must be
-queued for transmission on LTP outduct 18 rather than the default (LTP
-outduct 6).
 
 =back
 

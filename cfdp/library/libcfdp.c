@@ -130,7 +130,7 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 	}
 }
 
-void	cfdp_update_checksum(unsigned char octet, uvast *offset,
+void	cfdp_update_checksum(unsigned char octet, vast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
 	addToChecksum(octet, offset, checksum, ckType);
@@ -141,13 +141,13 @@ static int	defaultReader(int fd, unsigned int *checksum,
 {
 	static char	defaultReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
-	uvast		offset;
+	vast		offset;
 	int		length;
 	int		i;
 	char		*octet;
 
-	offset = (uvast) lseek(fd, 0, SEEK_CUR);
-	if (offset == (uvast) -1)
+	offset = ilseek(fd, 0, SEEK_CUR);
+	if (offset < 0)
 	{
 		putSysErrmsg("CFDP can't get current file offset", NULL);
 		return -1;
@@ -174,15 +174,15 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum,
 {
 	static char	pktReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
-	uvast		offset;
+	vast		offset;
 	int		length;
 	int		i;
 	char		*octet;
 	unsigned int	recordLen;
 	unsigned short	pktlen;
 
-	offset = (uvast) lseek(fd, 0, SEEK_CUR);
-	if (offset == (uvast) -1)
+	offset = ilseek(fd, 0, SEEK_CUR);
+	if (offset < 0)
 	{
 		putSysErrmsg("CFDP can't get current file offset", NULL);
 		return -1;
@@ -244,7 +244,7 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum,
 	/*	Now know the record length, so reposition to the
 	 *	end of this record for next read.			*/
 
-	if (lseek(fd, offset + length, SEEK_SET) < 0)
+	if (ilseek(fd, offset + length, SEEK_SET) < 0)
 	{
 		putSysErrmsg("CFDP space packet reader failed", NULL);
 		return -1;
@@ -266,13 +266,13 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum,
 {
 	static char	textReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
-	uvast		offset;
+	vast		offset;
 	int		length;
 	int		i;
 	char		*octet;
 
-	offset = (uvast) lseek(fd, 0, SEEK_CUR);
-	if (offset == (uvast) -1)
+	offset = ilseek(fd, 0, SEEK_CUR);
+	if (offset < 0)
 	{
 		putSysErrmsg("CFDP can't get current file offset", NULL);
 		return -1;
@@ -310,7 +310,7 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum,
 	/*	Now know the record length, so reposition to the
 	 *	end of this record for next read.			*/
 
-	if (lseek(fd, offset + length, SEEK_SET) < 0)
+	if (ilseek(fd, offset + length, SEEK_SET) < 0)
 	{
 		putSysErrmsg("CFDP text line reader failed", NULL);
 		return -1;
@@ -1276,8 +1276,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			return -1;
 		}
 
-		fileSize = lseek(sourceFile, 0, SEEK_END);
-		if (fileSize < 0 || lseek(sourceFile, 0, SEEK_SET) < 0)
+		fileSize = ilseek(sourceFile, 0, SEEK_END);
+		if (fileSize < 0 || ilseek(sourceFile, 0, SEEK_SET) < 0)
 		{
 			close(sourceFile);
 			sdr_exit_xn(sdr);
@@ -1329,7 +1329,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 			if (recordLength == 0)
 			{
-				if (lseek(sourceFile, 0, SEEK_CUR)
+				if (ilseek(sourceFile, 0, SEEK_CUR)
 						== fdu.fileSize)
 				{
 					break;	/*	No more records.*/
@@ -2221,7 +2221,7 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 		return -1;
 	}
 
-	if (lseek(fd, offset, SEEK_SET) == (off_t) -1)
+	if (ilseek(fd, offset, SEEK_SET) < 0)
 	{
 		close(fd);
 		truncatedOffset = offset;

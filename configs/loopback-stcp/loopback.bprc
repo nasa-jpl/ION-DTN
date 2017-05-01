@@ -45,6 +45,3 @@ a induct stcp 0.0.0.0:4556 stcpcli
 #	IANA assigned default DTN TCP port of 4556.
 #	The outduct itself is implemented by the 'stcpclo' command.
 a outduct stcp 127.0.0.1:4556 stcpclo
-
-# Start the Daemons.
-s

@@ -74,44 +74,58 @@ for the local CFDP entity.
 
 The B<manage discard> command.  This command enables or disables the
 discarding of partially received files upon cancellation of a file reception.
+The default value is 1;
 
 =item B<m requirecrc> { 0 | 1 }
 
 The B<manage CRC data integrity> command.  This command enables or disables the
-attachment of CRCs to all PDUs issued by the local CFDP entity.
+attachment of CRCs to all PDUs issued by the local CFDP entity.  The default
+value is 0;
 
 =item B<m fillchar> I<file_fill_character>
 
 The B<manage fill character> command.  This command establishes the fill
 character to use for the portions of an incoming file that have not yet
-been received.  The fill character is normally expressed in hex, e.g., 0xaa.
+been received.  The fill character is normally expressed in hex, e.g., 
+the default value is 0xaa.
 
 =item B<m ckperiod> I<check_cycle_period>
 
 The B<manage check interval> command.  This command establishes the number
 of seconds following reception of the EOF PDU -- or following expiration
 of a prior check cycle -- after which the local CFDP will check for 
-completion of a file that is being received.
+completion of a file that is being received.  Default value is 86400 (i.e.,
+one day).
 
 =item B<m maxtimeouts> I<check_cycle_limit>
 
 The B<manage check limit> command.  This command establishes the number
 of check cycle expirations after which the local CFDP entity will invoke
 the check cycle expiration fault handler upon expiration of a check cycle.
+Default value is 7.
+
+=item B<m maxevents> I<event_queue_limit>
+
+The B<manage event queue limit> command.  This command establishes the
+maximum number of unread service indications (CFDP "events") that may be
+queued up for delivery at any time.  When the events queue length exceeds
+this figure, events are simply deleted (in decreasing age order, oldest
+first) until the the limit is no longer exceeded.  Default value is 20.
 
 =item B<m maxtrnbr> I<max_transaction_number>
 
 The B<manage transaction numbers> command.  This command establishes the
 largest possible transaction number used by the local CFDP entity for file
 transmission transactions.  After this number has been used, the 
-transaction number assigned to the next transaction will be 1.
+transaction number assigned to the next transaction will be 1.  The
+default value is 999999999.
 
 =item B<m segsize> I<max_bytes_per_file_data_segment>
 
 The B<manage segment size> command.  This command establishes the
 number of bytes of file data in each file data PDU transmitted by the
 local CFDP entity in the absence of an application-supplied reader
-function.
+function.  The default value is 65000.
 
 =item B<m inactivity> I<inactivity_period>
 

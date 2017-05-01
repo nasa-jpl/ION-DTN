@@ -217,12 +217,6 @@ static int	initializeIpnd()
 		return -1;
 	}
 
-	if (dtn2Init() < 0)
-	{
-		putErrmsg("Can't load DTN2 routing database.", NULL);
-		return -1;
-	}
-
 	printText("[i] IPND initialized.");
 
 	return 0;
@@ -234,7 +228,10 @@ void updateCtxNbf(char* eid, int eidLen)
 	IPNDCtx	*ctx = getIPNDCtx();
 
 	if (!ctx) return;
-	oK(bloom_add(&ctx->nbf, eid, eidLen));
+	if (bloom_add(&ctx->nbf, eid, eidLen) < 0)
+	{
+		putErrmsg("Can't add EID to Bloom filter", eid);
+	}
 
 	/* find service 127 NBF-Bits and update it with bytes */
 

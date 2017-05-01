@@ -1,4 +1,5 @@
 a plan 2 ltp/2
-a plan 4 udp/*,127.0.0.1:8888
-a planrule 4 * 2 ltp/4
-a planrule 4 3 * ltp/4
+a plan 4 ltp/4
+a plan 5 udp/127.0.0.1:8888
+a exit 1 1 ipn:2.0
+a exit 5 7 ipn:4.0

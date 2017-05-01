@@ -205,7 +205,7 @@ int	checkFile(char *fileName)
 #endif
 }
 
-static void	addToModularChecksum(unsigned char octet, uvast *offset,
+static void	addToModularChecksum(unsigned char octet, vast *offset,
 			unsigned int *checksum)
 {
 	unsigned int	octetVal;
@@ -312,7 +312,7 @@ static void	addToCrc32(unsigned char octet, unsigned int *checksum)
 	*checksum = (crc32 ^ 0xFFFFFFFF );
 }
 
-void	addToChecksum(unsigned char octet, uvast *offset,
+void	addToChecksum(unsigned char octet, vast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
 	CHKVOID(checksum);
@@ -534,6 +534,7 @@ int	cfdpInit()
 		cfdpdbBuf.transactionInactivityLimit = 86400;
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;
+		cfdpdbBuf.maxQueuedEvents = 20;
 
 		/*	Management information.				*/
 
@@ -2733,9 +2734,10 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 int	enqueueCfdpEvent(CfdpEvent *event)
 {
 	Sdr	sdr = getIonsdr();
-	CfdpDB	*cfdpConstants = _cfdpConstants();
 	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
 	Object	eventObj;
+	CfdpDB	cfdpdb;
+	Object	elt;
 
 	CHKERR(ionLocked());
 	CHKERR(event);
@@ -2746,13 +2748,23 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 		return -1;
 	}
 
-	if (sdr_list_insert_last(sdr, cfdpConstants->events, eventObj) == 0)
+	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+	if (sdr_list_insert_last(sdr, cfdpdb.events, eventObj) == 0)
 	{
 		putErrmsg("Can't enqueue CFDP event.", NULL);
 		return -1;
 	}
 
 	sdr_write(sdr, eventObj, (char *) event, sizeof(CfdpEvent));
+
+	/*	Discard unread events as necessary.			*/
+
+	while (sdr_list_length(sdr, cfdpdb.events) > cfdpdb.maxQueuedEvents)
+	{
+		elt = sdr_list_first(sdr, cfdpdb.events);
+		sdr_free(sdr, sdr_list_data(sdr, elt));
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 
 	/*	Tell user application that an event is waiting.		*/
 
@@ -3746,7 +3758,7 @@ static int	handleFilestoreRejection(InFdu *fdu, int returnCode,
 }
 
 static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
-			int *bytesRemaining, uvast *segmentOffset,
+			int *bytesRemaining, vast *segmentOffset,
 			int bytesToWrite)
 {
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -3789,7 +3801,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	CfdpEvent	event;
 	int		offsetLength;
 	int		i;
-	uvast		segmentOffset;
+	vast		segmentOffset;
 	uvast		segmentEnd;
 	CfdpHandler	handler;
 	Sdr		sdr = getIonsdr();
@@ -3803,7 +3815,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	uvast		bytesToSkip;
 	char		stringBuf[256];
 	char		workingNameBuffer[MAXPATHLEN + 1];
-	off_t		endOfFile;
+	vast		endOfFile;
 	uvast		fileLength;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
@@ -4022,8 +4034,8 @@ extent.offset, extent.offset + extent.length);
 
 	/*	Write leading fill characters as necessary.		*/
 
-	endOfFile = lseek(cfdpvdb->currentFile, 0, SEEK_END);
-	if (endOfFile == (off_t) -1)
+	endOfFile = ilseek(cfdpvdb->currentFile, 0, SEEK_END);
+	if (endOfFile < 0)
 	{
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
 		return handleFilestoreRejection(fdu, -1, &handler);
@@ -4044,7 +4056,7 @@ extent.offset, extent.offset + extent.length);
 
 	/*	Reposition at offset of new file data bytes.		*/
 
-	if (lseek(cfdpvdb->currentFile, segmentOffset, SEEK_SET) == (off_t) -1)
+	if (ilseek(cfdpvdb->currentFile, segmentOffset, SEEK_SET) < 0)
 	{
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
 		return handleFilestoreRejection(fdu, -1, &handler);

@@ -33,7 +33,7 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 cd ../2.ipn.tcp
@@ -45,7 +45,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 echo "Sleeping 30 sec to give keepalive threads time to detect open sockets..."

@@ -106,6 +106,8 @@ B<j>	bundle is placed in "limbo" for possible future re-forwarding
 
 B<k>	bundle is removed from "limbo" and queued for re-forwarding
 
+B<$>	bundle's custodial retransmission timeout interval expired
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their
@@ -343,23 +345,117 @@ all locally established outducts, regardless of protocol.
 The B<start outduct> command.  This command starts the indicated outduct 
 task as defined for the indicated CL protocol on the local node.
 
-=item B<b outduct> I<protocol_name> I<duct_name>
-
-The B<block outduct> command.  This command disables transmission of
-bundles via the indicated outduct and reforwards all non-critical bundles
-currently queued for transmission via this outduct.
-
-=item B<u outduct> I<protocol_name> I<duct_name>
-
-The B<unblock outduct> command.  This command re-enables transmission of
-bundles via the indicated outduct and reforwards all bundles in "limbo"
-in the hope that the unblocking of this outduct will enable some of them
-to be transmitted.
-
 =item B<x outduct> I<protocol_name> I<duct_name>
 
 The B<stop outduct> command.  This command stops the indicated outduct 
 task as defined for the indicated CL protocol on the local node.
+
+=back
+
+=head1 EGRESS PLAN COMMANDS
+
+=over 4
+
+=item B<a plan> I<endpoint_name> [I<transmission_rate>]
+
+The B<add plan> command.  This command establishes an egress plan governing
+transmission to the neighboring node[s] identified by I<endpoint_name>.  The
+plan is functionally enacted by a bpclm(1) daemon dedicated to managing
+bundles queued for transmission to the indicated neighboring node[s].
+
+NOTE that these "plan" commands supersede and generalize the egress plan
+commands documented in the ipnrc(5) and dtn2rc(5) man pages, which are
+retained for backward compatibility.  The I<endpoint_name> identifying
+an egress plan is normally the node ID for a single node but may instead
+be "wild-carded".  That is, when the last character of an endpoint name
+ID is either '*' or '~' (these two wild-card characters are equivalent
+for this purpose), the plan applies to all nodes whose IDs are identical
+to the wild-carded node name up to the wild-card character.  For example,
+a bundle whose destination EID name is "dtn://foghorn" would be routed
+by plans citing the following node IDs: "dtn://foghorn", "dtn://fogh*",
+"dtn://fog~", "//*".  When multiple plans are all applicable to the same
+destination EID, the one citing the longest (i.e., most narrowly targeted)
+node ID will be applied.
+
+An egress plan may direct that bundles queued for transmission to the
+node[s] matching I<endpoint_name> be transmitted using one of the
+convergence-layer protocol "outducts" that have been attached to the
+plan, or instead that those bundles be routed to some other "gateway"
+endpoint (resulting in transmission according to some other egress
+plan).  In the event that both a gateway endpoint and one or more
+outducts have been declared for a given plan, the gateway declaration prevails.
+
+A I<transmission_rate> may be asserted for an egress plan; this rate is
+used as the basis for transmission rate control in the absence of applicable
+contacts (in the node's contact plan, as per ionrc(5)).  A transmission
+rate of zero (absent applicable contacts) disables rate control completely;
+this is the default.
+
+=item B<c plan> I<endpoint_name> [I<transmission_rate>]
+
+The B<change plan> command.  This command sets a new value for the indicated
+plan's transmission rate.
+
+=item B<d plan> I<endpoint_name>
+
+The B<delete plan> command.  This command deletes the outduct identified
+by I<endpoint_name>.  The command will fail if any bundles are currently
+pending transmission per this plan.
+
+=item B<i plan> I<endpoint_name>
+
+This command will print information (the transmission rate) about
+the plan identified by I<endpoint_name>.
+
+=item B<l plan>
+
+This command lists all locally established egress plans.
+
+=item B<s plan> I<endpoint_name>
+
+The B<start plan> command.  This command starts the bpclm(1) task for
+the indicated egress plan.
+
+=item B<x plan> I<endpoint_name>
+
+The B<stop plan> command.  This command stops the bpclm(1) task for
+the indicated egress plan. 
+
+=item B<b plan> I<endpoint_name>
+
+The B<block plan> command.  This command disables transmission of bundles
+queued for transmission to the indicated node and reforwards all non-critical
+bundles currently queued for transmission to this node.  This may result in
+some or all of these bundles being enqueued for transmission (actually just
+retention) to the pseudo-node "limbo".
+
+=item B<u plan> I<endpoint_name>
+
+The B<unblock plan> command.  This command re-enables transmission of
+bundles to the indicated node and reforwards all bundles in "limbo"
+in the hope that the unblocking of this egress plan will enable some of them
+to be transmitted.
+
+=item B<g plan> I<endpoint_name> I<gateway_endpoint_name>
+
+The B<declare gateway> command.  This command declares the name of the
+endpoint to which bundles queued for transmission to the node[s]
+identified byI<endpoint_name> must be re-routed.  Declaring
+I<gateway_endpoint_name> to be the zero-length string "''" disables
+re-routing: bundles will instead be transmitted using the plan's attached
+convergence-layer protocol outduct[s].
+
+=item B<a planduct> I<endpoint_name> I<protocol_name> I<duct_name>
+
+The B<attach outduct> command.  This command declares that the indicated
+convergence-layer protocol outduct is now a viable device for transmitting
+bundles to the node[s] identified by I<endpoint_name>.
+
+=item B<d planduct> I<endpoint_name> I<protocol_name> I<duct_name>
+
+The B<detach outduct> command.  This command declares that the indicated
+convergence-layer protocol outduct is no longer a viable device for
+transmitting bundles to the node[s] identified by I<endpoint_name>.
 
 =back
 
@@ -388,3 +484,45 @@ Runs the administrative program I<ipnadmin> from within I<bpadmin>.
 =head1 SEE ALSO
 
 bpadmin(1), ipnadmin(1), dtn2admin(1)
+-------------------
+
+=head1 NAME
+
+dtn2rc - "dtn" scheme configuration commands file
+
+=head1 DESCRIPTION
+
+"dtn" scheme configuration commands are passed to B<dtn2admin> either in a
+file of text lines or interactively at B<dtn2admin>'s command prompt (:).
+Commands are interpreted line-by line, with exactly one command per line.
+
+"dtn" scheme configuration commands establish static routing rules
+for forwarding bundles to "dtn"-scheme destination endpoints, identified by
+node ID.  (Each node ID is simply a BP endpoint ID.)
+
+Static routes are expressed as B<plan>s in the "dtn"-scheme routing database.
+A plan that is established for a given node name associates a routing
+B<directive> with the named node.  Each directive is a string of one of
+two possible forms:
+
+=over 4
+
+f I<endpoint_ID>
+
+=back
+
+...or...
+
+=over 4
+
+x I<protocol_name>/I<outduct_name>
+
+=back
+
+The former form signifies that the bundle is to be forwarded to the indicated
+endpoint, requiring that it be re-queued for processing by the forwarder
+for that endpoint (which might, but need not, be identified by another
+"dtn"-scheme endpoint ID).  The latter form signifies that the bundle is
+to be queued for transmission via the indicated convergence layer protocol
+outduct.
+

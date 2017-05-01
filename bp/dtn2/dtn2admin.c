@@ -57,145 +57,52 @@ static void	printSyntaxError(int lineNbr)
 
 static void	printUsage()
 {
+	PUTS("Syntax of 'duct expression' is:");
+	PUTS("\t<protocol name>/<outduct name>");
 	PUTS("Syntax of 'directive' is:");
-	PUTS("\t{ f <endpoint ID> | x <protocol name>/<outduct name>[,dest \
-induct name] }");
-	PUTS("Note that, by convention, each node name must start with '//'.");
+	PUTS("\t{ f <endpoint ID> | x <duct expression>");
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node name> <default directive>");
-	PUTS("\t   a rule <node name> <demux name> <directive>");
+	PUTS("\t   a plan <node ID> [<directive>] [xmit rate]");
 	PUTS("\tc\tChange");
-	PUTS("\t   c plan <node name> <default directive>");
-	PUTS("\t   c rule <node name> <demux name> <directive>");
+	PUTS("\t   c plan <node ID> [<directive>] [xmit rate]");
 	PUTS("\td\tDelete");
-	PUTS("\t   d plan <node name>");
-	PUTS("\t   d rule <node name> <demux name>");
+	PUTS("\t   d plan <node ID>");
 	PUTS("\ti\tInfo");
-	PUTS("\t   i plan <node name>");
-	PUTS("\t   i rule <node name> <demux name>");
+	PUTS("\t   i plan <node ID>");
 	PUTS("\tl\tList");
 	PUTS("\t   l plan");
-	PUTS("\t   l rule <node name>");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
 
 static int	parseDirective(char *actionToken, char *parmToken,
-			FwdDirective *dir)
+			char **viaEid, char **ductExpression)
 {
-	Sdr		sdr = getIonsdr();
-	char		*protocolName;
-	char		*cursor = NULL;
-	char		*outductName;
-	char		*destDuctName;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
-	Object		outductAddr;
-			OBJ_POINTER(Outduct, outduct);
-			OBJ_POINTER(ClProtocol, protocol);
-
-	memset((char *) dir, 0, sizeof(FwdDirective));
-	switch (*actionToken)
+	switch (actionToken[0])
 	{
 	case 'f':
-		if (strlen(parmToken) >= SDRSTRING_BUFSZ)
-		{
-			putErrmsg("Station EID is too long.", parmToken);
-			return -1;
-		}
-
-		dir->action = fwd;
-		CHKZERO(sdr_begin_xn(sdr));
-		dir->eid = sdr_string_create(sdr, parmToken);
-		if (sdr_end_xn(sdr))
-		{
-			putErrmsg("Can't write station EID.", NULL);
-			return 0;
-		}
-
+		*viaEid = parmToken;
 		return 1;
 
 	case 'x':
-		dir->action = xmit;
-		cursor = parmToken;
-		protocolName = cursor;
-		cursor = strchr(cursor, '/');
-		if (cursor == NULL)
-		{
-			putErrmsg("Malformed directive: <protocol>/<duct>",
-					parmToken);
-			return 0;
-		}
-
-		*cursor = '\0';		/*	Delimit protocol name.	*/
-		cursor++;
-		outductName = cursor;
-
-		/*	If there's a destination duct name, note end
-		 *	of outduct name and start of destination duct
-		 *	name.						*/
-
-		cursor = strchr(cursor, ',');
-		if (cursor == NULL)
-		{
-			/*	End of token delimits outduct name.	*/
-
-			destDuctName = NULL;
-			dir->destDuctName = 0;
-		}
-		else	/*	Delimit outduct name.			*/
-		{
-			*cursor = '\0';
-			cursor++;
-			destDuctName = cursor;
-			if (strlen(destDuctName) >= SDRSTRING_BUFSZ)
-			{
-				putErrmsg("Destination duct name is too long.",
-						destDuctName);
-				return 0;
-			}
-		}
-
-		findOutduct(protocolName, outductName, &vduct, &vductElt);
-		if (vductElt == 0)
-		{
-			putErrmsg("Unknown outduct.", outductName);
-			return 0;
-		}
-
-		dir->outductElt = vduct->outductElt;
-		outductAddr = sdr_list_data(sdr, dir->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, outduct, outductAddr);
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
-		dir->protocolClass = protocol->protocolClass;
-		if (destDuctName)
-		{
-			CHKZERO(sdr_begin_xn(sdr));
-			dir->destDuctName = sdr_string_create(sdr,
-					destDuctName);
-			if (sdr_end_xn(sdr))
-			{
-				putErrmsg("Can't write duct name.", NULL);
-				return 0;
-			}
-		}
-
+		*ductExpression = parmToken;
 		return 1;
 
 	default:
-		putErrmsg("Invalid action code in directive", cursor);
 		return 0;
 	}
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	FwdDirective	directive;
+	unsigned int	nominalRate = 0;
+	char		*viaEid = NULL;
+	char		*ductExpression = NULL;
 
 	if (tokenCount < 2)
 	{
@@ -205,41 +112,60 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 5)
+		if (tokenCount < 4 || tokenCount > 6)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (parseDirective(tokens[3], tokens[4], &directive) < 1)
+		if (tokenCount == 6)
 		{
-			return;
+			if (isdigit(tokens[5][0]))
+			{
+				nominalRate = atoi(tokens[5]);
+				if (parseDirective(tokens[3], tokens[4],
+					&viaEid, &ductExpression) == 0)
+				{
+					SYNTAX_ERROR;
+					return;
+				}
+			}
+			else
+			{
+				nominalRate = atoi(tokens[3]);
+				if (parseDirective(tokens[4], tokens[5],
+					&viaEid, &ductExpression) == 0)
+				{
+					SYNTAX_ERROR;
+					return;
+				}
+			}
 		}
 
-		if (dtn2_addPlan(tokens[2], &directive) < 1)
+		if (tokenCount == 5)
 		{
-			dtn2_destroyDirective(&directive);
+			if (parseDirective(tokens[3], tokens[4],
+				&viaEid, &ductExpression) == 0)
+			{
+				SYNTAX_ERROR;
+				return;
+			}
 		}
 
-		return;
-	}
-
-	if (strcmp(tokens[1], "rule") == 0)
-	{
-		if (tokenCount != 6)
+		if (tokenCount == 4)
 		{
-			SYNTAX_ERROR;
-			return;
+			nominalRate = atoi(tokens[3]);
 		}
 
-		if (parseDirective(tokens[4], tokens[5], &directive) < 1)
+		dtn2_addPlan(tokens[2], nominalRate);
+		if (ductExpression)
 		{
-			return;
+			dtn2_addPlanDuct(tokens[2], ductExpression);
 		}
 
-		if (dtn2_addRule(tokens[2], tokens[3], &directive) < 1)
+		if (viaEid)
 		{
-			dtn2_destroyDirective(&directive);
+			dtn2_setPlanViaEid(tokens[2], viaEid);
 		}
 
 		return;
@@ -250,7 +176,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeChange(int tokenCount, char **tokens)
 {
-	FwdDirective	directive;
+	unsigned int	nominalRate;
+	int		rateChanged = 0;
+	char		*viaEid = NULL;
+	char		*ductExpression = NULL;
 
 	if (tokenCount < 2)
 	{
@@ -260,41 +189,68 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 5)
+		if (tokenCount < 4 || tokenCount > 6)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (parseDirective(tokens[3], tokens[4], &directive) < 1)
+		if (tokenCount == 6)
 		{
-			return;
+			if (isdigit(tokens[5][0]))
+			{
+				nominalRate = atoi(tokens[5]);
+				rateChanged = 1;
+				if (parseDirective(tokens[3], tokens[4],
+					&viaEid, &ductExpression) == 0)
+				{
+					SYNTAX_ERROR;
+					return;
+				}
+			}
+			else
+			{
+				nominalRate = atoi(tokens[3]);
+				rateChanged = 1;
+				if (parseDirective(tokens[4], tokens[5],
+					&viaEid, &ductExpression) == 0)
+				{
+					SYNTAX_ERROR;
+					return;
+				}
+			}
 		}
 
-		if (dtn2_updatePlan(tokens[2], &directive) < 1)
+		if (tokenCount == 5)
 		{
-			dtn2_destroyDirective(&directive);
+			if (parseDirective(tokens[3], tokens[4],
+				&viaEid, &ductExpression) == 0)
+			{
+				SYNTAX_ERROR;
+				return;
+			}
 		}
 
-		return;
-	}
-
-	if (strcmp(tokens[1], "rule") == 0)
-	{
-		if (tokenCount != 6)
+		if (tokenCount == 4)
 		{
-			SYNTAX_ERROR;
-			return;
+			nominalRate = atoi(tokens[3]);
+			rateChanged = 1;
 		}
 
-		if (parseDirective(tokens[4], tokens[5], &directive) < 1)
+		if (rateChanged)
 		{
-			return;
+			dtn2_updatePlan(tokens[2], nominalRate);
 		}
 
-		if (dtn2_updateRule(tokens[2], tokens[3], &directive) < 1)
+		if (ductExpression)
 		{
-			dtn2_destroyDirective(&directive);
+			dtn2_removePlanDuct(tokens[2], NULL);
+			dtn2_addPlanDuct(tokens[2], ductExpression);
+		}
+
+		if (viaEid)
+		{
+			dtn2_setPlanViaEid(tokens[2], viaEid);
 		}
 
 		return;
@@ -323,103 +279,49 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "rule") == 0)
-	{
-		if (tokenCount != 4)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-
-		dtn2_removeRule(tokens[2], tokens[3]);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
-static void	printDirective(char *context, FwdDirective *dir)
+static void	printPlan(BpPlan *plan)
 {
 	Sdr	sdr = getIonsdr();
-	char	eidString[SDRSTRING_BUFSZ];
-	Object	ductObj;
-		OBJ_POINTER(Outduct, duct);
-		OBJ_POINTER(ClProtocol, clp);
-	char	*ductName;
-	char	*protocolName;
-	char	ductNameBuf[MAX_CL_DUCT_NAME_LEN + 1 + SDRSTRING_BUFSZ];
-	char	destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	char	*action = "none";
+	char	viaEid[SDRSTRING_BUFSZ];
+	char	*spec = "none";
+	Object	ductElt;
+	Object	outductElt;
+	Outduct	outduct;
 	char	buffer[1024];
 
-	switch (dir->action)
+	if (plan->viaEid)
 	{
-	case fwd:
-		if (sdr_string_read(sdr, eidString, dir->eid) < 1)
-		{
-			isprintf(buffer, sizeof buffer, "%.255s f ?", context);
-			printText(buffer);
-		}
-		else
-		{
-			isprintf(buffer, sizeof buffer, "%.255s f %.255s\n",
-					context, eidString);
-			printText(buffer);
-		}
-
-		return;
-
-	case xmit:
-		ductObj = sdr_list_data(sdr, dir->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
-		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
-		protocolName = clp->name;
-		istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
-		if (dir->destDuctName)
-		{
-			istrcat(ductNameBuf, ",", sizeof ductNameBuf);
-			if (sdr_string_read(sdr, destDuctName,
-					dir->destDuctName) < 1)
-			{
-				destDuctName[0] = '?';
-				destDuctName[1] = '\0';
-			}
-
-			istrcat(ductNameBuf, destDuctName, sizeof ductNameBuf);
-		}
-
-		ductName = ductNameBuf;
-		isprintf(buffer, sizeof buffer, "%.255s x %.8s/%.255s",
-				context, protocolName, ductName);
-		printText(buffer);
-		return;
-
-	default:
-		printText("?");
-	}
-}
-
-static void	printPlan(Dtn2Plan *plan)
-{
-	char	nameBuf[SDRSTRING_BUFSZ];
-	char	*nodeName;
-
-	if (sdr_string_read(getIonsdr(), nameBuf, plan->nodeName) < 0)
-	{
-		nodeName = "?";
+		action = "relay";
+		sdr_string_read(sdr, viaEid, plan->viaEid);
+		spec = viaEid;
 	}
 	else
 	{
-		nodeName = nameBuf;
+		action = "xmit";
+		ductElt = sdr_list_first(sdr, plan->ducts);
+		if (ductElt)
+		{
+			outductElt = sdr_list_data(sdr, ductElt);
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					outductElt), sizeof(Outduct));
+			spec = outduct.name;
+		}
 	}
 
-	printDirective(nodeName, &plan->defaultDirective);
+	isprintf(buffer, sizeof buffer, "%s %s %s", plan->neighborEid,
+			action, spec);
+	printText(buffer);
 }
 
 static void	infoPlan(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 	Object	planAddr;
-		OBJ_POINTER(Dtn2Plan, plan);
+		OBJ_POINTER(BpPlan, plan);
 	Object	elt;
 
 	if (tokenCount != 3)
@@ -436,69 +338,8 @@ static void	infoPlan(int tokenCount, char **tokens)
 	}
 	else
 	{
-		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
+		GET_OBJ_POINTER(sdr, BpPlan, plan, planAddr);
 		printPlan(plan);
-	}
-
-	sdr_exit_xn(sdr);
-}
-
-static void	printRule(Dtn2Plan *plan, Dtn2Rule *rule)
-{
-	Sdr	sdr = getIonsdr();
-	char	toNodeName[SDRSTRING_BUFSZ];
-	char	demux[SDRSTRING_BUFSZ];
-	char	context[128];
-
-	if (sdr_string_read(sdr, toNodeName, plan->nodeName) < 0)
-	{
-		istrcpy(toNodeName, "?", sizeof toNodeName);
-	}
-
-	if (sdr_string_read(sdr, demux, rule->demux) < 0)
-	{
-		istrcpy(demux, "?", sizeof toNodeName);
-	}
-
-	isprintf(context, sizeof context, "%.64s, for %.32s =", toNodeName,
-			demux);
-	printDirective(context, &rule->directive);
-}
-
-static void	infoRule(int tokenCount, char **tokens)
-{
-	Sdr	sdr = getIonsdr();
-	Object	planAddr;
-		OBJ_POINTER(Dtn2Plan, plan);
-	Object	ruleAddr;
-		OBJ_POINTER(Dtn2Rule, rule);
-	Object	elt;
-
-	if (tokenCount != 4)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	dtn2_findPlan(tokens[2], &planAddr, &elt);
-	if (elt == 0)
-	{
-		printText("Unknown plan.");
-	}
-	else
-	{
-		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
-		dtn2_findRule(tokens[2], tokens[3], plan, &ruleAddr, &elt);
-		if (elt == 0)
-		{
-			printText("Unknown rule.");
-		}
-		else
-		{
-			GET_OBJ_POINTER(sdr, Dtn2Rule, rule, ruleAddr);
-			printRule(plan, rule);
-		}
 	}
 
 	sdr_exit_xn(sdr);
@@ -518,12 +359,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "rule") == 0)
-	{
-		infoRule(tokenCount, tokens);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
@@ -531,40 +366,21 @@ static void	listPlans()
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
-		OBJ_POINTER(Dtn2Plan, plan);
+		OBJ_POINTER(BpPlan, plan);
 
 	CHKVOID(sdr_begin_xn(sdr));
-	for (elt = sdr_list_first(sdr, (getDtn2Constants())->plans); elt;
+	for (elt = sdr_list_first(sdr, (getBpConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(sdr, Dtn2Plan, plan, sdr_list_data(sdr, elt));
+		GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, elt));
 		printPlan(plan);
 	}
 
 	sdr_exit_xn(sdr);
 }
 
-static void	listRules(Dtn2Plan *plan)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(Dtn2Rule, rule);
-
-	for (elt = sdr_list_first(sdr, plan->rules); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, Dtn2Rule, rule, sdr_list_data(sdr, elt));
-		printRule(plan, rule);
-	}
-}
-
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	planAddr;
-		OBJ_POINTER(Dtn2Plan, plan);
-	Object	elt;
-
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -574,31 +390,6 @@ static void	executeList(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "plan") == 0)
 	{
 		listPlans();
-		return;
-	}
-
-	if (strcmp(tokens[1], "rule") == 0)
-	{
-		if (tokenCount < 3)
-		{
-			printText("Must specify node name for rules list.");
-			return;
-		}
-
-		CHKVOID(sdr_begin_xn(sdr));
-		dtn2_findPlan(tokens[2], &planAddr, &elt);
-		if (elt == 0)
-		{
-			printText("Unknown plan.");
-		}
-		else
-		{
-			GET_OBJ_POINTER(sdr, Dtn2Plan, plan, planAddr);
-			printPlan(plan);
-			listRules(plan);
-		}
-
-		sdr_exit_xn(sdr);
 		return;
 	}
 
@@ -735,12 +526,6 @@ static int	run_dtn2admin(char *cmdFileName)
 	if (bpAttach() < 0)
 	{
 		putErrmsg("dtn2admin can't attach to BP.", NULL);
-		return -1;
-	}
-
-	if (dtn2Init() < 0)
-	{
-		putErrmsg("dtn2admin can't initialize routing database", NULL);
 		return -1;
 	}
 

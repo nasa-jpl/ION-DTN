@@ -32,6 +32,6 @@ a protocol udp 1400 100
 
 # Add an outduct. (since one UDP socket can address any IP, use '*' 
 # for the destination address, then this clo can send to any udp cli)
-a outduct udp * udpclo
+a outduct udp 127.0.0.1:4556 udpclo
 
 s

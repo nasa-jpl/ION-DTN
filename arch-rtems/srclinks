@@ -68,6 +68,7 @@ ln -s ../bp/library/ext/bpsec/profiles.c
 ln -s ../bp/library/ext/bpsec/profiles.h
 ln -s ../bp/daemon/bpclock.c
 ln -s ../bp/daemon/bptransit.c
+ln -s ../bp/daemon/bpclm.c
 ln -s ../bp/utils/bpadmin.c
 ln -s ../bp/utils/bpstats.c
 ln -s ../bp/utils/bptrace.c
@@ -94,8 +95,8 @@ ln -s ../bp/ipnd/node.h
 ln -s ../bp/ltp/ltpcli.c
 ln -s ../bp/ltp/ltpclo.c
 ln -s ../bp/ltp/ltpcla.h
-ln -s ../bp/stcp/stcpcla.h
-ln -s ../bp/udp/udpcla.h
+#ln -s ../bp/stcp/stcpcla.h
+#ln -s ../bp/udp/udpcla.h
 ln -s ../bp/bibe/bibeclo.c
 ln -s ../nm/shared/adm/adm.c
 ln -s ../nm/shared/adm/adm.h

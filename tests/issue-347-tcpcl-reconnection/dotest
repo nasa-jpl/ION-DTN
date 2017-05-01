@@ -24,7 +24,7 @@ then
 	echo ""
 else
 	echo "Node 1 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 #Set up node 2
@@ -37,7 +37,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 # Start file receiver on node 2.

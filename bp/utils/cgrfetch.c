@@ -382,17 +382,6 @@ static void traceFnQuiet(void *data, unsigned int lineNbr,
 	va_end(args);
 }
 
-// Callback function used by cgr
-static int getDirective(uvast nodeNbr, Object plans, Bundle *bundle,
-                        FwdDirective *directive)
-{
-	*directive = (FwdDirective) {
-		.outductElt = vduct->outductElt,
-	};
-
-	return 1;
-}
-
 // Check if the contact exists in the route's hops.
 static int contactIsHop(const IonCXref *contact, Route *route)
 {
@@ -639,7 +628,6 @@ static void run_cgrfetch(void)
 	time_t expirationTime;
 
 	Lyst routes;
-	Object plans;
 
 	localNode = getOwnNodeNbr();
 
@@ -648,7 +636,7 @@ static void run_cgrfetch(void)
 	expirationTime = nowTime + expirationOffset;
 
 	Bundle bundle = {
-		.extendedCOS = {
+		.ancillaryData = {
 			.flags = minLatency ? BP_MINIMUM_LATENCY
 			                    : BP_BEST_EFFORT,
 		},
@@ -693,7 +681,7 @@ static void run_cgrfetch(void)
 	cgr_start();
 
 	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
-		(Object)(&plans), getDirective, dispatchTime, &trace) < 0)
+			dispatchTime, &trace) < 0)
 	{
 		DIES("unable to simulate cgr");
 	}

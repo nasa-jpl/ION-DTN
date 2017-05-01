@@ -11,4 +11,4 @@
 #	The plan is to queue for transmission (x) on protocol 'tcp' using
 #	the outduct identified by IP address 127.0.0.1
 #	See your bprc file or bpadmin for outducts/protocols you can use.
-a plan //host1.dtn x stcp/127.0.0.1:4556
+a plan dtn://host1.dtn* x stcp/127.0.0.1:4556

@@ -215,7 +215,7 @@ void	bp_close(BpSAP sap)
 	MRELEASE(sap);
 }
 
-int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
+int	bp_parse_class_of_service(const char *token, BpAncillaryData *ancillaryData,
 			BpCustodySwitch *custodySwitch, int *priority)
 {
 	int	count;
@@ -267,30 +267,30 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 
 	/*	Syntax and bounds-checking passed; assign to outputs.	*/
 
-	extendedCOS->flags = 0;
+	ancillaryData->flags = 0;
 	if (count >= 6)
 	{
-		extendedCOS->flowLabel = myFlowLabel;
-		extendedCOS->flags |= BP_FLOW_LABEL_PRESENT;
+		ancillaryData->flowLabel = myFlowLabel;
+		ancillaryData->flags |= BP_FLOW_LABEL_PRESENT;
 	}
 	else
 	{
-		extendedCOS->flowLabel = 0;
+		ancillaryData->flowLabel = 0;
 	}
 
 	if (count >= 5)
 	{
-		extendedCOS->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
+		ancillaryData->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
 				| (myCritical ? BP_MINIMUM_LATENCY : 0));
 	}
 	else
 	{
-		extendedCOS->flags = 0;
+		ancillaryData->flags = 0;
 	}
 
 	if (count >= 3)
 	{
-		extendedCOS->ordinal = myOrdinal;
+		ancillaryData->ordinal = myOrdinal;
 	}
  
 	*priority = myPriority;
@@ -301,10 +301,10 @@ int	bp_parse_class_of_service(const char *token, BpExtendedCOS *extendedCOS,
 
 int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		int classOfService, BpCustodySwitch custodySwitch,
-		unsigned char srrFlags, int ackRequested, BpExtendedCOS *ecos,
-		Object adu, Object *bundleObj)
+		unsigned char srrFlags, int ackRequested,
+		BpAncillaryData *ancillaryData, Object adu, Object *bundleObj)
 {
-	BpExtendedCOS	defaultECOS = { 0, 0, 0 };
+	BpAncillaryData	defaultAncillaryData = { 0, 0, 0 };
 	MetaEid		*sourceMetaEid;
 
 	if (adu == 0)
@@ -313,15 +313,15 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		return 0;
 	}
 
-	if (ecos == NULL)
+	if (ancillaryData == NULL)
 	{
-		ecos = &defaultECOS;
+		ancillaryData = &defaultAncillaryData;
 	}
 	else
 	{
-		if (ecos->ordinal == 255)	/*	Reserved.	*/
+		if (ancillaryData->ordinal == 255)	/*	Reserve	*/
 		{
-			ecos->ordinal = 254;
+			ancillaryData->ordinal = 254;
 		}
 	}
 
@@ -357,7 +357,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 
 	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan,
 			classOfService, custodySwitch, srrFlags, ackRequested,
-			ecos, adu, bundleObj, 0);
+			ancillaryData, adu, bundleObj, 0);
 }
 
 int	bp_track(Object bundleObj, Object trackingElt)
@@ -437,14 +437,13 @@ int	bp_suspend(Object bundleObj)
 	Sdr		sdr = getIonsdr();
 	Bundle		bundle;
 	Object		queue;
-	Object		outductObj;
-	Outduct		outduct;
-	ClProtocol	protocol;
+	Object		planObj;
+	BpPlan		plan;
 
 	CHKERR(bundleObj);
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
-	if (bundle.extendedCOS.flags & BP_MINIMUM_LATENCY)
+	if (bundle.ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		writeMemo("[?] Attempt to suspend a 'critical' bundle.");
 		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
@@ -458,9 +457,9 @@ int	bp_suspend(Object bundleObj)
 	}
 
 	bundle.suspended = 1;
-	queue = sdr_list_list(sdr, bundle.ductXmitElt);
-	outductObj = sdr_list_user_data(sdr, queue);
-	if (outductObj == 0)
+	queue = sdr_list_list(sdr, bundle.planXmitElt);
+	planObj = sdr_list_user_data(sdr, queue);
+	if (planObj == 0)
 	{
 		/*	Object is already in limbo for other reasons.
 		 *	Just record the suspension flag.		*/
@@ -472,11 +471,8 @@ int	bp_suspend(Object bundleObj)
 		/*	Must reverse the enqueuing of this bundle
 		 *	and place it in limbo.				*/
 
-		sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
-		sdr_read(sdr, (char *) &protocol, outduct.protocol,
-				sizeof(ClProtocol));
-		if (reverseEnqueue(bundle.ductXmitElt, &protocol, outductObj,
-				&outduct, 1))
+		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		if (reverseEnqueue(bundle.planXmitElt, planObj, &plan, 1))
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);
@@ -779,9 +775,9 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	dlvBuffer->adu = bundle.payload.content;
 	dlvBuffer->ackRequested = bundle.bundleProcFlags & BDL_APP_ACK_REQUEST;
 
-	dlvBuffer->metadataType = bundle.extendedCOS.metadataType;
-	dlvBuffer->metadataLen = bundle.extendedCOS.metadataLen;
-	memcpy(dlvBuffer->metadata, bundle.extendedCOS.metadata,
+	dlvBuffer->metadataType = bundle.ancillaryData.metadataType;
+	dlvBuffer->metadataLen = bundle.ancillaryData.metadataLen;
+	memcpy(dlvBuffer->metadata, bundle.ancillaryData.metadata,
 			BP_MAX_METADATA_LEN);
 
 	/*	Now before returning we send delivery status report

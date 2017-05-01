@@ -89,6 +89,11 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			break;		/*	Out of switch.		*/
 
 		case ctDue:
+			if ((getBpVdb())->watching & WATCH_retransmit)
+			{
+				iwatch('$');
+			}
+
 			result = bpReforwardBundle(event->ref);
 
 			/*	Note that bpReforwardBundle() always
@@ -200,69 +205,36 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 static void	applyRateControl(Sdr sdr)
 {
 	PsmPartition	ionwm = getIonwm();
-	IonVdb		*ionvdb = getIonVdb();
 	BpVdb		*bpvdb = getBpVdb();
 	PsmAddress	elt;
-	IonNeighbor	*neighbor;
+	VPlan		*vplan;
 	Throttle	*throttle;
-	VOutduct	*outduct;
 
-	/*	Rate control is effected at Outduct granularity
-	 *	but is normally regulated at (neighboring) Node
-	 *	granularity, because it is nominally controlled
-	 *	by the contact plan and the contact information
-	 *	in the contact plan is at Node granularity.  So we
-	 *	blip the throttles of all Neighbors once per second.
+	/*	Rate control is regulated and effected at node --
+	 *	that is, neighbor egress plan -- granularity.
+	 *	We want to blip the throttles of all neighboring
+	 *	nodes once per second.
 	 *
-	 *	However, not all Outducts can be matched to Neighbors:
-	 *	an Outduct might be cited only in dtn-scheme egress
-	 *	plans, or it might be for a "promiscuous" protocol,
-	 *	or it might be cited in the egress plan for a node
-	 *	for which there are no contacts in the contact plan
-	 *	(hence no Neighbor has been created).  When this is
-	 *	the case, we must drop back to simply using the
-	 *	nominal data rate of the Protocol for the Outduct
-	 *	to regulate transmission.  For this purpose we also
-	 *	blip the throttles of all Outducts once per second,
-	 *	in case they are needed.
-	 *
-	 *	Whenever rate control is enacted at a given Outduct,
-	 *	we first try to identify the corresponding Neighbor
-	 *	and use its throttle to control the duct.  When no
-	 *	Neighbor can be identified, we use the duct's own
-	 *	throttle instead.					*/
+	 *	However, not all egress plans can be matched to
+	 *	Neighbors: a given plan might be for a neighbor
+	 *	that is only identified by a dtn-scheme endpoint
+	 *	ID, or it might be cited in the egress plan for a
+	 *	node for which there are no contacts in the contact
+	 *	plan (hence no Neighbor has been created).  When
+	 *	this is the case, we must drop back to simply using
+	 *	the nominal data rate arbitrarily asserted for the
+	 *	plan.							*/
 
 	CHKVOID(sdr_begin_xn(sdr));
 
-	/*	Enable some bundle transmission to each Neighbor.	*/
+	/*	Enable some bundle transmission on each egress plan.	*/
 
-	for (elt = sm_rbt_first(ionwm, ionvdb->neighbors); elt;
-			elt = sm_rbt_next(ionwm, elt))
-	{
-		neighbor = (IonNeighbor *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		throttle = &(neighbor->xmitThrottle);
-
-		/*	If throttle is rate controlled, added capacity
-		 *	is 1 second's worth of transmission.  If not,
-		 *	no change.					*/
-
-		if (throttle->nominalRate > 0)
-		{
-			throttle->capacity += throttle->nominalRate;
-			if (throttle->capacity > throttle->nominalRate)
-			{
-				throttle->capacity = throttle->nominalRate;
-			}
-		}
-	}
-
-	/*	Enable some bundle transmission on each Outduct.	*/
-
-	for (elt = sm_list_first(ionwm, bpvdb->outducts); elt;
+	for (elt = sm_list_first(ionwm, bpvdb->plans); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
-		outduct = (VOutduct *) psp(ionwm, sm_list_data(ionwm, elt));
-		throttle = &(outduct->xmitThrottle);
+		vplan = (VPlan *) psp(ionwm, sm_list_data(ionwm, elt));
+		throttle = applicableThrottle(vplan);
+		CHKVOID(throttle);
 
 		/*	If throttle is rate controlled, added capacity
 		 *	is 1 second's worth of transmission.  If not,
@@ -281,6 +253,57 @@ static void	applyRateControl(Sdr sdr)
 	oK(sdr_end_xn(sdr));
 }
 
+static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
+			time_t *previousFlush)
+{
+	int	length;
+	int	batchesNeeded;
+	int	elapsed;
+	int	batchesAvbl;
+	Object	elt;
+	Object	nextElt;
+
+	/*	We don't want this feature to slow down the operation
+	 *	of the node, so we limit it.  We flush at most once
+	 *	every 4 seconds, and each 4 seconds we are okay with
+	 *	releasing a "batch" of up to 256 bundles in limbo.
+	 *	But we can't just release one batch every 4 seconds
+	 *	because we may miss some or release some multiple
+	 *	times, because reforwarding may put one or more
+	 *	bundles back in limbo.  So we defer flushing until
+	 *	the total elapsed time since the previous flush is
+	 *	enough to justify flushing all bundles currently in
+	 *	limbo.							*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	length = sdr_list_length(sdr, limboList);
+	batchesNeeded = (length >> 8) & 0x00ffffff;
+	if (*previousFlush == 0)
+	{
+		*previousFlush = currentTime;	/*	Initialize.	*/
+	}
+
+	elapsed = currentTime - *previousFlush;
+	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
+	if (batchesAvbl > 0 && batchesAvbl >= batchesNeeded)
+	{
+		for (elt = sdr_list_first(sdr, limboList); elt; elt = nextElt)
+		{
+			nextElt = sdr_list_next(sdr, elt);
+			if (releaseFromLimbo(elt, 0) < 0)
+			{
+				putErrmsg("Failed releasing bundle from limbo.",
+						NULL);
+				break;
+			}
+		}
+
+		*previousFlush = currentTime;
+	}
+
+	return sdr_end_xn(sdr);
+}
+
 #if defined (ION_LWT)
 int	bpclock(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -293,6 +316,7 @@ int	main(int argc, char *argv[])
 	BpDB	*bpConstants;
 	uaddr	state = 1;
 	time_t	currentTime;
+	time_t	previousFlush = 0;
 
 	if (bpAttach() < 0)
 	{
@@ -332,6 +356,18 @@ int	main(int argc, char *argv[])
 		/*	Then apply rate control.			*/
 
 		applyRateControl(sdr);
+
+		/*	Finally, possibly give bundles in limbo an
+		 *	opportunity to be forwarded, in case an
+		 *	Outduct was temporarily stuck.			*/
+
+		if (flushLimbo(sdr, bpConstants->limboQueue, currentTime,
+				&previousFlush) < 0)
+		{
+			putErrmsg("Can't flush limbo queue.", NULL);
+			state = 0;
+			oK(_running(&state));
+		}
 	}
 
 	writeErrmsgMemos();

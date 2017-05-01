@@ -107,7 +107,7 @@ then
 	echo ""
 else
 	echo "Node 2 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 cd ../3.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
@@ -117,7 +117,7 @@ then
 	echo ""
 else
 	echo "Node 3 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 cd ../5.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
@@ -127,7 +127,7 @@ then
 	echo ""
 else
 	echo "Node 5 not started: Aborting Test"
-	exit 0
+	exit 1
 fi
 
 echo "Starting bpsink on ipn:5.1 ..."

@@ -58,99 +58,35 @@ static void	printSyntaxError(int lineNbr)
 static void	printUsage()
 {
 	PUTS("Syntax of 'duct expression' is:");
-	PUTS("\t<protocol name>/<outduct name>[,<dest induct name>]");
-	PUTS("Syntax of 'qualifier' is:");
-	PUTS("\t{ <source service nbr> | * } { <source node nbr> | * }");
+	PUTS("\t<protocol name>/<outduct name>");
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node nbr> <default duct expression>");
-	PUTS("\t   a planrule <node nbr> <qualifier> <duct expression>");
+	PUTS("\t   a plan <node nbr> [<duct expression>] [<xmit rate>]");
 	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   a exitrule <first node nbr> <last node nbr> <qualifier> \
-<endpoint ID>");
 	PUTS("\tc\tChange");
-	PUTS("\t   c plan <node nbr> <default duct expression>");
-	PUTS("\t   c planrule <node nbr> <qualifier> <duct expression>");
+	PUTS("\t   c plan <node nbr> [<duct expression>] [<xmit rate>]");
 	PUTS("\t   c exit <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   c exitrule <first node nbr> <last node nbr> <qualifier> \
-<endpoint ID>");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} plan <node nbr>");
-	PUTS("\t   {d|i} planrule <node nbr> <qualifier>");
 	PUTS("\t   {d|i} exit <first node nbr> <last node nbr>");
-	PUTS("\t   {d|i} exitrule <first node nbr> <last node nbr> \
-<qualifier>");
 	PUTS("\tl\tList");
 	PUTS("\t   l exit");
 	PUTS("\t   l plan");
-	PUTS("\t   l planrule <node nbr>");
-	PUTS("\t   l exitrule <first node nbr> <last node nbr>");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
 
-static int	parseDuctExpression(char *token, DuctExpression *expression)
-{
-	char		*cursor = NULL;
-	char		*protocolName;
-	char		*outductName;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
-
-	memset((char *) expression, 0, sizeof(DuctExpression));
-	protocolName = token;
-	cursor = strchr(token, '/');
-	if (cursor == NULL)
-	{
-		putErrmsg("Malformed duct expression: <protocol>/<duct name>",
-				protocolName);
-		return 0;
-	}
-
-	*cursor = '\0';			/*	Delimit protocol name.	*/
-	cursor++;
-	outductName = cursor;
-
-	/*	If there's a destination duct name, note end of
-	 *	outduct name and start of destination duct name.	*/
-
-	cursor = strchr(outductName, ',');
-	if (cursor == NULL)
-	{
-		/*	End of token delimits outduct name.		*/
-
-		expression->destDuctName = NULL;
-	}
-	else
-	{
-		*cursor = '\0';		/*	Delimit outduct name.	*/
-		cursor++;
-		expression->destDuctName = cursor;
-	}
-
-	findOutduct(protocolName, outductName, &vduct, &vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("Unknown outduct.", outductName);
-		return 0;
-	}
-
-	expression->outductElt = vduct->outductElt;
-	return 1;
-}
-
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	DuctExpression	expression;
-	int		sourceServiceNbr;
-	int		sourceNodeNbr;
+	unsigned int	nominalRate = 0;
+	char		*spec = NULL;
 
 	if (tokenCount < 2)
 	{
@@ -160,54 +96,42 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount < 4 || tokenCount > 5)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (parseDuctExpression(tokens[3], &expression) == 0)
+		if (tokenCount == 5)
 		{
-			return;
+			if (isdigit((int) tokens[4][0]))
+			{
+				nominalRate = atoi(tokens[4]);
+			}
+			else
+			{
+				spec = tokens[4];
+			}
 		}
 
-		ipn_addPlan(strtouvast(tokens[2]), &expression);
-		return;
-	}
-
-	if (strcmp(tokens[1], "planrule") == 0)
-	{
-		if (tokenCount != 6)
+		if (tokenCount == 4)
 		{
-			SYNTAX_ERROR;
-			return;
+			if (isdigit((int) tokens[3][0]))
+			{
+				nominalRate = atoi(tokens[3]);
+			}
+			else
+			{
+				spec = tokens[3];
+			}
 		}
 
-		if (strcmp(tokens[3], "*") == 0)
+		ipn_addPlan(strtouvast(tokens[2]), nominalRate);
+		if (spec)
 		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
+			ipn_addPlanDuct(strtouvast(tokens[2]), spec);
 		}
 
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[4]);
-		}
-
-		if (parseDuctExpression(tokens[5], &expression) == 0)
-		{
-			return;
-		}
-
-		ipn_addPlanRule(strtouvast(tokens[2]), sourceServiceNbr,
-				sourceNodeNbr, &expression);
 		return;
 	}
 
@@ -225,46 +149,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "exitrule") == 0
-	|| strcmp(tokens[1], "grouprule") == 0)
-	{
-		if (tokenCount != 7)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
-		}
-
-		if (strcmp(tokens[5], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[5]);
-		}
-
-		ipn_addExitRule(strtouvast(tokens[2]), strtouvast(tokens[3]),
-				sourceServiceNbr, sourceNodeNbr, tokens[6]);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
 static void	executeChange(int tokenCount, char **tokens)
 {
-	DuctExpression	expression;
-	int		sourceServiceNbr;
-	int		sourceNodeNbr;
+	unsigned int	nominalRate;
+	int		rateChanged = 0;
+	char		*spec = NULL;
 
 	if (tokenCount < 2)
 	{
@@ -274,54 +166,49 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount < 4 || tokenCount > 5)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (parseDuctExpression(tokens[3], &expression) == 0)
+		if (tokenCount == 5)
 		{
-			return;
+			if (isdigit((int) tokens[4][0]))
+			{
+				nominalRate = atoi(tokens[4]);
+				rateChanged = 1;
+			}
+			else
+			{
+				spec = tokens[4];
+			}
 		}
 
-		ipn_updatePlan(strtouvast(tokens[2]), &expression);
-		return;
-	}
-
-	if (strcmp(tokens[1], "planrule") == 0)
-	{
-		if (tokenCount != 6)
+		if (tokenCount == 4)
 		{
-			SYNTAX_ERROR;
-			return;
+			if (isdigit((int) tokens[3][0]))
+			{
+				nominalRate = atoi(tokens[3]);
+				rateChanged = 1;
+			}
+			else
+			{
+				spec = tokens[3];
+			}
 		}
 
-		if (strcmp(tokens[3], "*") == 0)
+		if (rateChanged)
 		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
+			ipn_updatePlan(strtouvast(tokens[2]), nominalRate);
 		}
 
-		if (strcmp(tokens[4], "*") == 0)
+		if (spec)
 		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[4]);
+			ipn_removePlanDuct(strtouvast(tokens[2]), NULL);
+			ipn_addPlanDuct(strtouvast(tokens[2]), spec);
 		}
 
-		if (parseDuctExpression(tokens[5], &expression) == 0)
-		{
-			return;
-		}
-
-		ipn_updatePlanRule(strtouvast(tokens[2]),
-				sourceServiceNbr, sourceNodeNbr, &expression);
 		return;
 	}
 
@@ -339,47 +226,11 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "exitrule") == 0
-	|| strcmp(tokens[1], "grouprule") == 0)
-	{
-		if (tokenCount != 7)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
-		}
-
-		if (strcmp(tokens[5], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[5]);
-		}
-
-		ipn_updateExitRule(strtouvast(tokens[2]),
-				strtouvast(tokens[3]), sourceServiceNbr,
-				sourceNodeNbr, tokens[6]);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	int	sourceServiceNbr;
-	int	sourceNodeNbr;
-
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -398,37 +249,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "planrule") == 0)
-	{
-		if (tokenCount != 5)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-
-		if (strcmp(tokens[3], "*") == 0)
-		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
-		}
-
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[4]);
-		}
-
-		ipn_removePlanRule(strtouvast(tokens[2]), sourceServiceNbr,
-				sourceNodeNbr);
-		return;
-	}
-
 	if (strcmp(tokens[1], "exit") == 0
 	|| strcmp(tokens[1], "group") == 0)
 	{
@@ -442,105 +262,42 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "exitrule") == 0
-	|| strcmp(tokens[1], "grouprule") == 0)
-	{
-		if (tokenCount != 6)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
-		}
-
-		if (strcmp(tokens[5], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[5]);
-		}
-
-		ipn_removeExitRule(strtouvast(tokens[2]),
-				strtouvast(tokens[3]), sourceServiceNbr,
-				sourceNodeNbr);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
-static void	printDirective(char *context, FwdDirective *dir)
+static void	printPlan(BpPlan *plan)
 {
 	Sdr	sdr = getIonsdr();
-	char	eidString[SDRSTRING_BUFSZ];
-	Object	ductObj;
-		OBJ_POINTER(Outduct, duct);
-		OBJ_POINTER(ClProtocol, clp);
-	char	*ductName;
-	char	*protocolName;
-	char	ductNameBuf[MAX_CL_DUCT_NAME_LEN + 1 + SDRSTRING_BUFSZ];
-	char	destDuctName[MAX_CL_DUCT_NAME_LEN + 1];
+	char	*action = "none";
+	char	viaEid[SDRSTRING_BUFSZ];
+	char	*spec = "none";
+	Object	ductElt;
+	Object	outductElt;
+	Outduct	outduct;
 	char	buffer[1024];
 
-	switch (dir->action)
+	if (plan->viaEid)
 	{
-	case xmit:
-		ductObj = sdr_list_data(sdr, dir->outductElt);
-		GET_OBJ_POINTER(sdr, Outduct, duct, ductObj);
-		GET_OBJ_POINTER(sdr, ClProtocol, clp, duct->protocol);
-		protocolName = clp->name;
-		istrcpy(ductNameBuf, duct->name, sizeof ductNameBuf);
-		if (dir->destDuctName)
-		{
-			istrcat(ductNameBuf, ",", sizeof ductNameBuf);
-			if (sdr_string_read(sdr, destDuctName,
-					dir->destDuctName) < 1)
-			{
-				destDuctName[0] = '?';
-				destDuctName[1] = '\0';
-			}
-
-			istrcat(ductNameBuf, destDuctName, sizeof ductNameBuf);
-		}
-
-		ductName = ductNameBuf;
-		isprintf(buffer, sizeof buffer, "%.80s x %.8s/%.255s",
-				context, protocolName, ductName);
-		printText(buffer);
-		break;
-
-	case fwd:
-		if (sdr_string_read(sdr, eidString, dir->eid) < 0)
-		{
-			istrcpy(eidString, "?", sizeof eidString);
-		}
-
-		isprintf(buffer, sizeof buffer, "%.80s f %.255s", context,
-				eidString);
-		printText(buffer);
-		break;
-
-	default:
-		isprintf(buffer, sizeof buffer, "%.128s ?", context);
-		printText(buffer);
+		action = "relay";
+		sdr_string_read(sdr, viaEid, plan->viaEid);
+		spec = viaEid;
 	}
-}
+	else
+	{
+		action = "xmit";
+		ductElt = sdr_list_first(sdr, plan->ducts);
+		if (ductElt)
+		{
+			outductElt = sdr_list_data(sdr, ductElt);
+			sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr,
+					outductElt), sizeof(Outduct));
+			spec = outduct.name;
+		}
+	}
 
-static void	printPlan(IpnPlan *plan)
-{
-	char	context[32];
-
-	isprintf(context, sizeof context, UVAST_FIELDSPEC, plan->nodeNbr);
-	printDirective(context, &plan->defaultDirective);
+	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s %s",
+			plan->neighborNodeNbr, action, spec);
+	printText(buffer);
 }
 
 static void	infoPlan(int tokenCount, char **tokens)
@@ -549,7 +306,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 	int	nodeNbr;
 	Object	planAddr;
 	Object	elt;
-		OBJ_POINTER(IpnPlan, plan);
+		OBJ_POINTER(BpPlan, plan);
 
 	if (tokenCount != 3)
 	{
@@ -566,102 +323,8 @@ static void	infoPlan(int tokenCount, char **tokens)
 	}
 	else
 	{
-		GET_OBJ_POINTER(getIonsdr(), IpnPlan, plan, planAddr);
+		GET_OBJ_POINTER(getIonsdr(), BpPlan, plan, planAddr);
 		printPlan(plan);
-	}
-
-	sdr_exit_xn(sdr);
-}
-
-static void	printRule(IpnRule *rule)
-{
-	char	sourceServiceString[21];
-	char	sourceNodeString[21];
-	char	context[80];
-
-	if (rule->srcServiceNbr == 0)
-	{
-		istrcpy(sourceServiceString, "*", sizeof sourceServiceString);
-	}
-	else
-	{
-		isprintf(sourceServiceString, sizeof sourceServiceString,
-				"%ld", rule->srcServiceNbr);
-	}
-
-	if (rule->srcNodeNbr == 0)
-	{
-		istrcpy(sourceNodeString, "*", sizeof sourceNodeString);
-	}
-	else
-	{
-		isprintf(sourceNodeString, sizeof sourceNodeString, "%ld",
-				rule->srcNodeNbr);
-	}
-
-	isprintf(context, sizeof context, "rule for service %s from node %s =",
-			sourceServiceString, sourceNodeString);
-	printDirective(context, &rule->directive);
-}
-
-static void	infoPlanRule(int tokenCount, char **tokens)
-{
-	Sdr	sdr = getIonsdr();
-	uvast	nodeNbr;
-	Object	planAddr;
-	Object	elt;
-		OBJ_POINTER(IpnPlan, plan);
-	int	sourceServiceNbr;
-	uvast	sourceNodeNbr;
-	Object	ruleAddr;
-		OBJ_POINTER(IpnRule, rule);
-
-	if (tokenCount != 5)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	nodeNbr = strtouvast(tokens[2]);
-	CHKVOID(sdr_begin_xn(sdr));
-	ipn_findPlan(nodeNbr, &planAddr, &elt);
-	if (elt == 0)
-	{
-		printText("Unknown node.");
-	}
-	else
-	{
-		GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
-		printPlan(plan);
-		if (strcmp(tokens[3], "*") == 0)
-		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[3], NULL, 0);
-		}
-
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[4]);
-		}
-
-		ipn_findPlanRule(nodeNbr, sourceServiceNbr, sourceNodeNbr, plan,
-				&ruleAddr, &elt);
-		if (elt == 0)
-		{
-			printText("Unknown rule.");
-		}
-		else
-		{
-			GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
-			printRule(rule);
-		}
 	}
 
 	sdr_exit_xn(sdr);
@@ -672,7 +335,7 @@ static void	printExit(IpnExit *exit)
 	char	eidString[SDRSTRING_BUFSZ];
 	char	buffer[384];
 
-	sdr_string_read(getIonsdr(), eidString, exit->defaultDirective.eid);
+	sdr_string_read(getIonsdr(), eidString, exit->eid);
 	isprintf(buffer, sizeof buffer, "From " UVAST_FIELDSPEC " \
 through " UVAST_FIELDSPEC ", forward via %.256s.",
 			exit->firstNodeNbr, exit->lastNodeNbr, eidString);
@@ -722,71 +385,6 @@ static void	infoExit(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
-static void	infoExitRule(int tokenCount, char **tokens)
-{
-	Sdr		sdr = getIonsdr();
-	uvast		firstNodeNbr;
-	uvast		lastNodeNbr;
-	Object		exitAddr;
-	Object		elt;
-			OBJ_POINTER(IpnExit, exit);
-	unsigned int	sourceServiceNbr;
-	uvast		sourceNodeNbr;
-	Object		ruleAddr;
-			OBJ_POINTER(IpnRule, rule);
-
-	if (tokenCount != 6)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	firstNodeNbr = strtouvast(tokens[2]);
-	lastNodeNbr = strtouvast(tokens[3]);
-	CHKVOID(sdr_begin_xn(sdr));
-	ipn_findExit(firstNodeNbr, lastNodeNbr, &exitAddr, &elt);
-	if (elt == 0)
-	{
-		printText("Unknown node.");
-	}
-	else
-	{
-		GET_OBJ_POINTER(sdr, IpnExit, exit, exitAddr);
-		printExit(exit);
-		if (strcmp(tokens[4], "*") == 0)
-		{
-			sourceServiceNbr = -1;
-		}
-		else
-		{
-			sourceServiceNbr = strtoul(tokens[4], NULL, 0);
-		}
-
-		if (strcmp(tokens[5], "*") == 0)
-		{
-			sourceNodeNbr = -1;
-		}
-		else
-		{
-			sourceNodeNbr = strtouvast(tokens[5]);
-		}
-
-		ipn_findExitRule(firstNodeNbr, lastNodeNbr, sourceServiceNbr,
-				sourceNodeNbr, exit, &ruleAddr, &elt);
-		if (elt == 0)
-		{
-			printText("Unknown rule.");
-		}
-		else
-		{
-			GET_OBJ_POINTER(sdr, IpnRule, rule, ruleAddr);
-			printRule(rule);
-		}
-	}
-
-	sdr_exit_xn(sdr);
-}
-
 static void	executeInfo(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -801,23 +399,10 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "planrule") == 0)
-	{
-		infoPlanRule(tokenCount, tokens);
-		return;
-	}
-
 	if (strcmp(tokens[1], "exit") == 0
 	|| strcmp(tokens[1], "group") == 0)
 	{
 		infoExit(tokenCount, tokens);
-		return;
-	}
-
-	if (strcmp(tokens[1], "exitrule") == 0
-	|| strcmp(tokens[1], "grouprule") == 0)
-	{
-		infoExitRule(tokenCount, tokens);
 		return;
 	}
 
@@ -828,31 +413,22 @@ static void	listPlans()
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
-		OBJ_POINTER(IpnPlan, plan);
+		OBJ_POINTER(BpPlan, plan);
 
 	CHKVOID(sdr_begin_xn(sdr));
-	for (elt = sdr_list_first(sdr, (getIpnConstants())->plans); elt;
+	for (elt = sdr_list_first(sdr, (getBpConstants())->plans); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(sdr, IpnPlan, plan, sdr_list_data(sdr, elt));
+		GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, elt));
+		if (plan->neighborNodeNbr == 0)	/*	Not CBHE.	*/
+		{
+			continue;
+		}
+
 		printPlan(plan);
 	}
 
 	sdr_exit_xn(sdr);
-}
-
-static void	listRules(Object rules)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(IpnRule, rule);
-
-	for (elt = sdr_list_first(sdr, rules); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, IpnRule, rule, sdr_list_data(sdr, elt));
-		printRule(rule);
-	}
 }
 
 static void	listExits()
@@ -874,16 +450,6 @@ static void	listExits()
 
 static void	executeList(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	uvast	nodeNbr;
-	Object	planAddr;
-	Object	elt;
-		OBJ_POINTER(IpnPlan, plan);
-	uvast	firstNodeNbr;
-	uvast	lastNodeNbr;
-	Object	exitAddr;
-		OBJ_POINTER(IpnExit, exit);
-
 	if (tokenCount < 2)
 	{
 		printText("List what?");
@@ -896,64 +462,10 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "planrule") == 0)
-	{
-		if (tokenCount < 3)
-		{
-			printText("Must specify plan node nbr.");
-			return;
-		}
-
-		nodeNbr = strtouvast(tokens[2]);
-		CHKVOID(sdr_begin_xn(sdr));
-		ipn_findPlan(nodeNbr, &planAddr, &elt);
-		if (elt == 0)
-		{
-			printText("Unknown plan.");
-		}
-		else
-		{
-			GET_OBJ_POINTER(sdr, IpnPlan, plan, planAddr);
-			printPlan(plan);
-			listRules(plan->rules);
-		}
-
-		sdr_exit_xn(sdr);
-		return;
-	}
-
 	if (strcmp(tokens[1], "exit") == 0
 	|| strcmp(tokens[1], "group") == 0)
 	{
 		listExits();
-		return;
-	}
-
-	if (strcmp(tokens[1], "exitrule") == 0
-	|| strcmp(tokens[1], "grouprule") == 0)
-	{
-		if (tokenCount < 4)
-		{
-			printText("Must specify exit first & last node nbrs.");
-			return;
-		}
-
-		firstNodeNbr = strtouvast(tokens[2]);
-		lastNodeNbr = strtouvast(tokens[3]);
-		CHKVOID(sdr_begin_xn(sdr));
-		ipn_findExit(firstNodeNbr, lastNodeNbr, &exitAddr, &elt);
-		if (elt == 0)
-		{
-			printText("Unknown exit.");
-		}
-		else
-		{
-			GET_OBJ_POINTER(sdr, IpnExit, exit, exitAddr);
-			printExit(exit);
-			listRules(exit->rules);
-		}
-
-		sdr_exit_xn(sdr);
 		return;
 	}
 

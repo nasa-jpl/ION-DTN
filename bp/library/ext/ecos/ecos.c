@@ -19,16 +19,17 @@ int	ecos_offer(ExtensionBlock *blk, Bundle *bundle)
 	Sdnv	flowLabelSdnv;
 	char	dataBuffer[32];
 
-	if (bundle->extendedCOS.flags == 0 && bundle->extendedCOS.ordinal == 0)
+	if (bundle->ancillaryData.flags == 0 && bundle->ancillaryData.ordinal
+			== 0)
 	{
 		return 0;	/*	ECOS block is unnecessary.	*/
 	}
 
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	blk->dataLength = 2;
-	if (bundle->extendedCOS.flags & BP_FLOW_LABEL_PRESENT)
+	if (bundle->ancillaryData.flags & BP_FLOW_LABEL_PRESENT)
 	{
-		encodeSdnv(&flowLabelSdnv, bundle->extendedCOS.flowLabel);
+		encodeSdnv(&flowLabelSdnv, bundle->ancillaryData.flowLabel);
 	}
 	else
 	{
@@ -38,8 +39,8 @@ int	ecos_offer(ExtensionBlock *blk, Bundle *bundle)
 	blk->dataLength += flowLabelSdnv.length;
 	blk->size = 0;
 	blk->object = 0;
-	dataBuffer[0] = bundle->extendedCOS.flags;
-	dataBuffer[1] = bundle->extendedCOS.ordinal;
+	dataBuffer[0] = bundle->ancillaryData.flags;
+	dataBuffer[1] = bundle->ancillaryData.ordinal;
 	memcpy(dataBuffer + 2, flowLabelSdnv.text, flowLabelSdnv.length);
 	return serializeExtBlk(blk, NULL, dataBuffer);
 }
@@ -97,19 +98,19 @@ int	ecos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	bundle->extendedCOS.flags = *cursor;
+	bundle->ancillaryData.flags = *cursor;
 	cursor++;
-	bundle->extendedCOS.ordinal = *cursor;
+	bundle->ancillaryData.ordinal = *cursor;
 	cursor++;
 	bytesRemaining -= 2;
-	if (bundle->extendedCOS.flags & BP_FLOW_LABEL_PRESENT)
+	if (bundle->ancillaryData.flags & BP_FLOW_LABEL_PRESENT)
 	{
-		extractSmallSdnv(&(bundle->extendedCOS.flowLabel), &cursor,
+		extractSmallSdnv(&(bundle->ancillaryData.flowLabel), &cursor,
 				&bytesRemaining);
 	}
 	else
 	{
-		bundle->extendedCOS.flowLabel = 0;
+		bundle->ancillaryData.flowLabel = 0;
 	}
 
 	if (bytesRemaining != 0)

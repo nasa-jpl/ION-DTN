@@ -14,12 +14,6 @@ protocol agent identified by I<remote_node_nbr> and passes them to the
 local LTP engine for aggregation, segmentation, and transmission to the
 remote node.
 
-Note that B<ltpclo> is not a "promiscuous" convergence layer daemon: it
-can transmit bundles only to the node for which it is configured, so
-scheme configuration directives that cite this outduct need only provide
-the protocol name and the outduct name (the remote node number) as
-specified on the command line when B<ltpclo> is started.
-
 B<ltpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
 command that starts operation of the Bundle Protocol, and it is terminated by
 B<bpadmin> in response to an 'x' (STOP) command.  B<ltpclo> can also be

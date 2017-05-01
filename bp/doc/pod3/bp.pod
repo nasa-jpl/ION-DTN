@@ -65,7 +65,7 @@ subject to immediate destruction upon transmission.)  On success, places a
 value in I<*ionsapPtr> that can be supplied to future bp function invocations
 and returns 0.  Returns -1 on any error.
 
-=item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpExtendedCOS *extendedCOS, Object adu, Object *newBundle)
+=item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
 
 Sends a bundle to the endpoint identified by I<destEid>, from the
 source endpoint as provided to the bp_open() call that returned I<sap>.
@@ -108,7 +108,7 @@ I<ackRequested> is a Boolean parameter indicating whether or not the recipient
 application should be notified that the source application requests some sort
 of application-specific end-to-end acknowledgment upon receipt of the bundle.
 
-I<extendedCOS>, if not NULL, is used to populate the Extended Class Of
+I<ancillaryData>, if not NULL, is used to populate the Extended Class Of
 Service block for this bundle.  The block's I<ordinal> value is used to
 provide fine-grained ordering within "expedited" traffic: ordinal values
 from 0 (the default) to 254 (used to designate the most urgent traffic)
@@ -125,7 +125,7 @@ available, may be used to transmit the bundle.  Notably, the bundle may be
 sent as "green" data rather than "red" data when issued via LTP.
 
 BP_FLOW_LABEL_PRESENT signifies whether or not the value of I<flowLabel>
-in I<extendedCOS> must be encoded into the ECOS block when the bundle is
+in I<ancillaryData> must be encoded into the ECOS block when the bundle is
 transmitted.
 
 =back
