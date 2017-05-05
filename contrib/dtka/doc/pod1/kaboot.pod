@@ -18,7 +18,7 @@ UTC time plus I<delay> seconds.  If omitted, I<delay> defaults to 5.
 
 =over 4
 
-=item 0
+=item "0"
 
 Successful generation of DTKA authority initialization file.
 
