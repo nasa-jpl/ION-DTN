@@ -1,2 +1,0 @@
-Excluding on Windows because when testing with buildbot may be leaving something behind. And 
-cause the script to hang.
