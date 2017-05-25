@@ -51,14 +51,14 @@ extern "C" {
 typedef struct
 {
 	int	wmKey;
-	long	wmSize;
+	size_t	wmSize;
 	char	*wmAddress;
 	char	sdrName[MAX_SDR_NAME + 1];
-	long	sdrWmSize;
+	size_t	sdrWmSize;
 	int	configFlags;
-	long	heapWords;
+	size_t	heapWords;
 	int	heapKey;
-	int	logSize;
+	size_t	logSize;
 	int	logKey;
 	char	pathName[MAXPATHLEN + 1];
 } IonParms;
@@ -378,7 +378,7 @@ extern IonVdb		*getIonVdb();
 extern char		*getIonWorkingDirectory();
 extern uvast		getOwnNodeNbr();
 
-extern int		startIonMemTrace(int size);
+extern int		startIonMemTrace(size_t size);
 extern void		printIonMemTrace(int verbose);
 extern void		clearIonMemTrace();
 extern void		stopIonMemTrace();

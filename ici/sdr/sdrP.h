@@ -88,6 +88,7 @@ typedef struct sdr_str
 	int		xnDepth;
 	int		xnCanceled;		/*	Boolean.	*/
 	int		logLength;		/*	All entries.	*/
+	int		maxLogLength;		/*	Max Log Length  */
 	PsmAddress	logEntries;		/*	Offsets in log.	*/
 
 		/*	SDR trace data access.			*/
@@ -134,6 +135,11 @@ typedef struct	/*	Non-volatile state at front of SDR.		*/
 	Address		endOfLargePool;
 	Address		firstLargeFree[LARGE_ORDERS];
 	long		unassignedSpace;
+
+	uvast		inUse;
+	uvast		maxInUse;
+	uvast		smallPoolFree;
+	uvast		largePoolFree;
 } SdrMap;
 
 /*	SdrView is an object that encapsulates a single process's

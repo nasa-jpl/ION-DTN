@@ -10158,34 +10158,83 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 	 *	the queue ahead of bundles of the same priority that
 	 *	were enqueued more recently.				*/
 
-	GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
-	while (enqueueTime < bundle->enqueueTime)
+	//dzdebug
+	if (lastElt == 0)
 	{
-		lastElt = sdr_list_prev(bpSdr, lastElt);
+		/*	Requeueing a bundle so it likely belongs near the front of the list. */
+		lastElt = sdr_list_first(bpSdr, queue);
+
 		if (lastElt == 0)
 		{
-			break;		/*	Reached head of queue.	*/
+			/* This should never happen if we made it into this function. */
+			putErrmsg("Queue list of bundles unexpectedly empty.", NULL);
+			return sdr_list_insert_first(bpSdr, queue, bundleAddr);
 		}
 
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle,
-				sdr_list_data(bpSdr, lastElt));
-		if (priority < 2)
+		GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
+		while (enqueueTime >= bundle->enqueueTime)
 		{
-			continue;	/*	Don't check ordinal.	*/
+			lastElt = sdr_list_next(bpSdr, lastElt);
+			if (lastElt == 0)
+			{
+				break;		/*	Reached end of queue.	*/
+			}
+
+			GET_OBJ_POINTER(bpSdr, Bundle, bundle,
+					sdr_list_data(bpSdr, lastElt));
+			if (priority < 2)
+			{
+				continue;	/*	Don't check ordinal.	*/
+			}
+
+			if ((enqueueTime > bundle->enqueueTime) || 
+				(bundle->ancillaryData.ordinal <= ordinal))
+			{
+				continue;	/* keep going until tail end of the ordinal subqueue */
+			}
+
+			break;
 		}
 
-		if (bundle->ancillaryData.ordinal > ordinal)
+		if (lastElt)
 		{
-			break;		/*	At head of subqueue.	*/
+			return sdr_list_insert_before(bpSdr, lastElt, bundleAddr);
 		}
+		return sdr_list_insert_last(bpSdr, queue, bundleAddr);
+
 	}
-
-	if (lastElt)
+	else
 	{
-		return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
+		/* time queueing this bundle so it should be near the end of the list. */
+		GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
+		while (enqueueTime < bundle->enqueueTime)
+		{
+			lastElt = sdr_list_prev(bpSdr, lastElt);
+			if (lastElt == 0)
+			{
+				break;		/*	Reached head of queue.	*/
+			}
+
+			GET_OBJ_POINTER(bpSdr, Bundle, bundle,
+					sdr_list_data(bpSdr, lastElt));
+			if (priority < 2)
+			{
+				continue;	/*	Don't check ordinal.	*/
+			}
+
+			if (bundle->ancillaryData.ordinal > ordinal)
+			{
+				break;		/*	At head of subqueue.	*/
+			}
+		}
+
+		if (lastElt)
+		{
+			return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
+		}
+		return sdr_list_insert_first(bpSdr, queue, bundleAddr);
 	}
 
-	return sdr_list_insert_first(bpSdr, queue, bundleAddr);
 }
 
 static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
@@ -10265,6 +10314,11 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	int		priority;
 	Object		lastElt;
 
+	//dzdebug
+	int		bundleRequeue = 1;
+
+
+
 	CHKERR(ionLocked());
 	CHKERR(vplan && bundle && bundleObj);
 	CHKERR(bundle->planXmitElt == 0);
@@ -10304,6 +10358,9 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	if (bundle->enqueueTime == 0)
 	{
 		bundle->enqueueTime = enqueueTime = getUTCTime();
+
+		//dzdebug
+		bundleRequeue = 0;
 	}
 	else
 	{
@@ -10325,6 +10382,11 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		}
 		else
 		{
+			//dzdebug
+			if ( bundleRequeue )
+			{
+				lastElt = 0; // insert will start from the beginning
+			}
 			bundle->planXmitElt =
 				insertBundleIntoQueue(plan.bulkQueue,
 				lastElt, bundleObj, 0, 0, enqueueTime);
@@ -10342,6 +10404,11 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		}
 		else
 		{
+			//dzdebug
+			if ( bundleRequeue )
+			{
+				lastElt = 0; // insert will start from the beginning
+			}
 			bundle->planXmitElt =
 			       	insertBundleIntoQueue(plan.stdQueue,
 				lastElt, bundleObj, 1, 0, enqueueTime);

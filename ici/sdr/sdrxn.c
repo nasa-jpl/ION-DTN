@@ -955,6 +955,11 @@ static void	initSdrMap(SdrMap *map, SdrState *sdr)
 	map->startOfLargePool = map->endOfLargePool;
 	memset(map->firstLargeFree, 0, sizeof map->firstLargeFree);
 	map->unassignedSpace = map->startOfLargePool - map->endOfSmallPool;
+
+	map->inUse = 0;
+	map->maxInUse = 0;
+	map->smallPoolFree = 0;
+	map->largePoolFree = 0;
 }
 
 static int	createDsFile(SdrState *sdr, char *dsfilename)
@@ -1948,8 +1953,10 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 	{
 		if (sdr->logLength + length > sdr->logSize)
 		{
-			_putErrmsg(file, line, "Log max size exceeded.",
-					itoa(length));
+			char buf[256];
+			snprintf(buf, sizeof(buf), "Log max size exceeded. SDR: %s  logSize: %ld logLength: %d length: %ld Depth: %d",
+				 sdr->name, sdr->logSize, sdr->logLength, length, sdr->xnDepth );
+			_putErrmsg(file, line, buf, NULL);
 			return -1;
 		}
 
@@ -1957,6 +1964,12 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 	}
 
 	sdr->logLength += length;
+
+	if ( sdr->logLength > sdr->maxLogLength )
+	{
+		sdr->maxLogLength = sdr->logLength;
+	}
+
 	return length;
 }
 

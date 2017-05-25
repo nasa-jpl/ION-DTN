@@ -57,9 +57,23 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 
 	/*	Initial state.						*/
 
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_usage(sdr, &sdrsummary);
-	sdr_report(&sdrsummary);
+	if (-1 == interval)
+	{
+		sdr_stats(sdr);
+		interval = 0;
+	}
+	else if (-2 == interval)
+	{
+		sdr_reset_stats(sdr);
+		interval = 0;
+	}
+	else
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_usage(sdr, &sdrsummary);
+		sdr_report(&sdrsummary);
+	}
+
 	sdr_exit_xn(sdr);
 	if (interval == 0)	/*	One-time poll.			*/
 	{
@@ -123,28 +137,48 @@ int	main(int argc, char **argv)
 	int	count;
 	int	verbose = 0;
 
-	if (argc < 4)
+	if (argc < 2)
 	{
-		PUTS("Usage: sdrwatch <sdr name> <interval> <count> [verbose]");
+		PUTS("Usage: sdrwatch <sdr name> [ -s stats | -r reset stats | <interval> <count> [verbose] ]");
 		return 0;
 	}
 
 	sdrName = argv[1];
-	interval = strtol(argv[2], NULL, 0);
-	if (interval < 0)
-	{
-		interval = 0;
-	}
 
-	count = strtol(argv[3], NULL, 0);
-	if (count < 1)
+	if (!strcmp ( argv[2], "-s" ))
 	{
-		count = 1;
+		interval = -1;
+		count = 0;
 	}
-
-	if (argc > 4)
+	else if (!strcmp(argv[2], "-r"))
 	{
-		verbose = 1;
+		interval = -2;
+		count = 0;
+	}
+	else
+	{
+		if (argc < 4)
+		{
+			PUTS("Usage: sdrwatch <sdr name> [ -s stats | -r reset stats | <interval> <count> [verbose] ]");
+			return 0;
+		}
+
+		interval = strtol(argv[2], NULL, 0);
+		if (interval < 0)
+		{
+			interval = 0;
+		}
+
+		count = strtol(argv[3], NULL, 0);
+		if (count < 1)
+		{
+			count = 1;
+		}
+
+		if (argc > 4)
+		{
+			verbose = 1;
+		}
 	}
 #endif
 	oK(sdrwatch_count(&count));

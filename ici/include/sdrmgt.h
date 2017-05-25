@@ -27,6 +27,7 @@ typedef struct
 {
 	char		sdrName[MAX_SDR_NAME + 1];
 	long		dsSize;
+	long		heapSize;
 	long		smallPoolSize;
 	long		smallPoolFreeBlockCount[SMALL_SIZES];
 	long		smallPoolFree;
@@ -36,6 +37,12 @@ typedef struct
 	long		largePoolFree;
 	long		largePoolAllocated;
 	long		unusedSize;
+
+	long		runningTotalSmallPoolFree;
+	long		runningTotalLargePoolFree;
+	long		inUse;
+	long		maxInUse;
+	long		maxLogSize;
 } SdrUsageSummary;
 
 /*		Low-level SDR space management functions.		*/
@@ -75,6 +82,14 @@ extern void		sdr_report(SdrUsageSummary *);
 			/*	Sends to log a snapshot of the
 				SDR's usage status.			*/
 
+extern void		sdr_stats(Sdr sdrv);
+			/*	Sends to log an overview of the
+				SDR's usage status.			*/
+
+extern void		sdr_reset_stats(Sdr sdrv);
+			/*	Reset stats max values 			*/
+
+extern int		sdr_heap_depleted_calc(Sdr sdrv);
 extern int		sdr_heap_depleted(Sdr sdrv);
 			/*	A Boolean function: returns 1 if total
 			 *	available space in the SDR's data space

@@ -3958,7 +3958,7 @@ extent.offset, extent.offset + extent.length);
 			cursor += bytesToSkip;
 			bytesRemaining -= bytesToSkip;
 #if CFDPDEBUG
-printf("Skipping %d bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
+printf("Skipping " UVAST_FIELDSPEC " bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
 bytesToSkip, segmentOffset);
 #endif
 		}
@@ -4042,16 +4042,37 @@ extent.offset, extent.offset + extent.length);
 	}
 
 	fileLength = endOfFile;
-	while (fileLength < segmentOffset)
+	if ( fileLength < segmentOffset )
 	{
-		if (write(cfdpvdb->currentFile,
-				&(cfdpdb.fillCharacter), 1) < 0)
+		//dzdebug
+		char buf[256];
+		isprintf(buf, sizeof(buf), "Start fill char write " UVAST_FIELDSPEC, (segmentOffset - fileLength));
+		putErrmsg(buf, NULL);
+
+		unsigned char fillChars[64*1024];
+		memset(fillChars, cfdpdb.fillCharacter, sizeof(fillChars));
+
+		while (fileLength < segmentOffset)
 		{
-			putSysErrmsg("Can't write to file", workingNameBuffer);
-			return handleFilestoreRejection(fdu, -1, &handler);
+			size_t szFillToWrite = sizeof(fillChars);
+			bytesToWrite = segmentOffset - fileLength;
+
+			if (bytesToWrite < sizeof(fillChars))
+			{
+				szFillToWrite = (size_t) bytesToWrite;
+			}
+
+			if (write(cfdpvdb->currentFile, fillChars, szFillToWrite) < 0)
+			{
+				putSysErrmsg("Can't write fill characters to file", workingNameBuffer);
+				return handleFilestoreRejection(fdu, -1, &handler);
+			}
+	
+			fileLength += szFillToWrite;
 		}
 
-		fileLength++;
+		//dzdebug
+		putErrmsg( "completed fill char write ", NULL);
 	}
 
 	/*	Reposition at offset of new file data bytes.		*/

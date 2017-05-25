@@ -140,7 +140,7 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 
 	if (parms)
 	{
-		if (parms->wmSize == -1)	/*	Destroy.	*/
+		if (parms->wmName == NULL)	/*	Destroy.	*/
 		{
 			if (ionwm)
 			{
@@ -1106,8 +1106,9 @@ void	ionTerminate()
 
 	oK(_iondbObject(&obj));
 	ionwmParms.wmKey = 0;
-	ionwmParms.wmSize = -1;
+	ionwmParms.wmSize = 0;
 	ionwmParms.wmAddress = NULL;
+	ionwmParms.wmName = NULL;
 	oK(_ionwm(&ionwmParms));
 	oK(_ionvdb(&ionvdbName));
 }
@@ -1173,7 +1174,7 @@ int	ionClockIsSynchronized()
 
 /*	*	*	Shared-memory tracing 	*	*	*	*/
 
-int	startIonMemTrace(int size)
+int	startIonMemTrace(size_t size)
 {
 	return psm_start_trace(_ionwm(NULL), size, NULL);
 }
@@ -1430,6 +1431,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	int	i;
 	char	*tokens[2];
 	int	tokenCount;
+	uvast	size;
 
 	/*	Set defaults.						*/
 
@@ -1552,7 +1554,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "wmSize") == 0)
 		{
-			parms->wmSize = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->wmSize = size;
+			if (parms->wmSize != size)
+			{
+				size = parms->wmSize;
+				isprintf(buffer, sizeof buffer, "[?] wmSize \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1571,7 +1585,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "sdrWmSize") == 0)
 		{
-			parms->sdrWmSize = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->sdrWmSize = size;
+			if (parms->sdrWmSize != size)
+			{
+				size = parms->sdrWmSize;
+				isprintf(buffer, sizeof buffer, "[?] sdrWmSize \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1583,7 +1609,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "heapWords") == 0)
 		{
-			parms->heapWords = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->heapWords = size;
+			if (parms->heapWords != size)
+			{
+				size = parms->heapWords;
+				isprintf(buffer, sizeof buffer, "[?] heapWords \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1595,7 +1633,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "logSize") == 0)
 		{
-			parms->logSize = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->logSize = size;
+			if (parms->logSize != size)
+			{
+				size = parms->logSize;
+				isprintf(buffer, sizeof buffer, "[?] logSize \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
