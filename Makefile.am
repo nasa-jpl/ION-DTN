@@ -371,6 +371,7 @@ icilib = \
 #	librfx.la
 
 iciinclude = \
+	ici/include/crypto.h \
 	ici/include/llcv.h \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
