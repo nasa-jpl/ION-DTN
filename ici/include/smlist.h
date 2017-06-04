@@ -54,7 +54,7 @@ extern PsmAddress	sm_list_user_data(PsmPartition partition,
 				PsmAddress list);
 extern int		sm_list_user_data_set(PsmPartition partition,
 				PsmAddress list, PsmAddress userData);
-extern int		sm_list_length(PsmPartition partition, PsmAddress list);
+extern size_t		sm_list_length(PsmPartition partition, PsmAddress list);
 
 #define sm_list_insert(partition, list, data, fn, arg) \
 Sm_list_insert(__FILE__, __LINE__, partition, list, data, fn, arg)

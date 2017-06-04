@@ -18,7 +18,7 @@
 struct LystStruct {
    LystElt           first,   /* points to the first element in the lyst */
                      last;    /* points to the last element in the lyst */
-   unsigned long     length;  /* the number of elements in the lyst */
+   size_t	     length;  /* the number of elements in the lyst */
 
    LystCompareFn     compare; /* element comparison function for sorted lysts */
    LystSortDirection dir;     /* direction of sort */

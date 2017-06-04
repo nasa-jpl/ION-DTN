@@ -118,8 +118,8 @@ typedef struct
 	Object		ranges;		/*	SDR list: IonRange	*/
 	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	uvast		ownNodeNbr;
-	long		productionRate;	/*	Bundles sent by apps.	*/
-	long		consumptionRate;/*	Bundles rec'd by apps.	*/
+	size_t		productionRate;	/*	Bundles sent by apps.	*/
+	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
 	double		maxForecastOccupancy;
 	Object		alarmScript;	/*	Congestion alarm.	*/

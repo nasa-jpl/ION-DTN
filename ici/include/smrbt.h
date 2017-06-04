@@ -65,7 +65,7 @@ extern PsmAddress	sm_rbt_user_data(PsmPartition partition,
 				PsmAddress rbt);
 extern void		sm_rbt_user_data_set( PsmPartition partition,
 				PsmAddress rbt, PsmAddress userData);
-extern long		sm_rbt_length(PsmPartition partition, PsmAddress rbt);
+extern size_t		sm_rbt_length(PsmPartition partition, PsmAddress rbt);
 
 #define sm_rbt_insert(partition, rbt, data, compare, dataBuffer) \
 Sm_rbt_insert(__FILE__, __LINE__, partition, rbt, data, compare, dataBuffer)

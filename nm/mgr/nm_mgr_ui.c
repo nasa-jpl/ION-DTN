@@ -897,13 +897,20 @@ void ui_print_menu_ctrl()
 
 	printf("\n------------- ADM Information --------------\n");
 	printf("1) List supported ADMs.\n");
-	printf("2) List Atomic Data MIDs by Index.   (%ld Known)\n", lyst_length(gAdmData));
-	printf("3) List Computed Data MIDs by Index. (%ld Known)\n", lyst_length(gAdmComputed));
-	printf("4) List Control MIDs by Index.       (%ld Known)\n", lyst_length(gAdmCtrls));
-	printf("5) List Literal MIDs by Index.       (%ld Known)\n", lyst_length(gAdmLiterals));
-	printf("6) List Macro MIDs by Index.         (%ld Known)\n", lyst_length(gAdmMacros));
-	printf("7) List Operator MIDs by Index.      (%ld Known)\n", lyst_length(gAdmOps));
-	printf("8) List Reports MIDs by Index.       (%ld Known)\n", lyst_length(gAdmRpts));
+	printf("2) List Atomic Data MIDs by Index.   (%lu Known)\n",
+			(unsigned long) lyst_length(gAdmData));
+	printf("3) List Computed Data MIDs by Index. (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmComputed));
+	printf("4) List Control MIDs by Index.       (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmCtrls));
+	printf("5) List Literal MIDs by Index.       (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmLiterals));
+	printf("6) List Macro MIDs by Index.         (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmMacros));
+	printf("7) List Operator MIDs by Index.      (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmOps));
+	printf("8) List Reports MIDs by Index.       (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmRpts));
 
 	printf("\n-------------- Perform Control -------------\n");
 	printf("9) Build Arbitrary Control.\n");
