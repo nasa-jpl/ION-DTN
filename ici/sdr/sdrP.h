@@ -209,8 +209,8 @@ sizeof (V), SystemPut)
 extern void		_sdrfetch(Sdr, char *, Address, size_t);
 #define sdrFetch(V,A)	_sdrfetch(sdrv, (char *) &(V), (A), sizeof (V))
 
-extern Object		_sdrzalloc(Sdr, unsigned size_t);
-extern Object		_sdrmalloc(Sdr, unsigned size_t);
+extern Object		_sdrzalloc(Sdr, size_t);
+extern Object		_sdrmalloc(Sdr, size_t);
 extern void		_sdrfree(Sdr, Object, PutSrc);
 #define sdrFree(Obj)	_sdrfree(sdrv, Obj, SystemPut)
 
