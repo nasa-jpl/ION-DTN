@@ -652,7 +652,6 @@ typedef struct
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cloPid;		/*	For stopping the CLO.	*/
 	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
-	int		prevBufferLength;
 	time_t		timeOfLastXmit;
 } VOutduct;
 

@@ -68,8 +68,6 @@
 #define LTP_VERSION		0;
 
 static Object	insertLtpTimelineEvent(LtpEvent *newEvent);
-static int	setTimer(LtpTimer *timer, Address timerAddr, time_t currentSec,
-			LtpVspan *vspan, int segmentLength, LtpEvent *event);
 static int	constructReportAckSegment(LtpSpan *span, Object spanObj,
 			unsigned int sessionNbr, unsigned int reportSerialNbr);
 static Object	enqueueAckSegment(Object spanObj, Object segmentObj);
@@ -195,13 +193,17 @@ static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
 		return -1;
 	}
 
+	elt = sdr_list_insert_first(sdr, ltpdb->closedExports, closedExportObj);
+	if (elt == 0)
+	{
+		putErrmsg("Can't insert closed export.", NULL);
+		return -1;
+	}
+
 	memset((char *) &closedExportBuf, 0, sizeof(ClosedExport));
 	closedExportBuf.span = spanObj;
 	closedExportBuf.sessionNbr = sessionNbr;
 	closedExportBuf.responseLimit = vspan->maxTimeouts;
-	sdr_write(sdr, closedExportObj, (char *) &closedExportBuf,
-			sizeof(ClosedExport));
-	elt = sdr_list_insert_first(sdr, ltpdb->closedExports, closedExportObj);
 
 	/*	Set timer for removal of closed export session.		*/
 
@@ -211,19 +213,27 @@ static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
 			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
 			 * (vspan->owltOutbound + vspan->owltInbound));
 	closedExportEvent.type = LtpForgetExportSession;
-	oK(insertLtpTimelineEvent(&closedExportEvent));
+	closedExportBuf.timeout = insertLtpTimelineEvent(&closedExportEvent);
+	if (closedExportBuf.timeout == 0)
+	{
+		putErrmsg("Can't insert closed export timeout event.", NULL);
+		return -1;
+	}
 
+	/*	Record the closed export session.			*/
+
+	sdr_write(sdr, closedExportObj, (char *) &closedExportBuf,
+			sizeof(ClosedExport));
 #if LTPDEBUG
 char	rsbuf[256];
-Object 	elt;
-putErrmsg("List of closed export sessions:", NULL );
-for (elt = sdr_list_first(sdr, (_ltpConstants())->closedExports); elt;
+putErrmsg("List of closed export sessions:", NULL);
+for (elt = sdr_list_first(sdr, ltpdb->closedExports); elt;
 		elt = sdr_list_next(sdr, elt))
 {
 	closedExportObj = sdr_list_data(sdr, elt);
 	sdr_read(sdr, (char *) &closedExportBuf, closedExportObj,
 			sizeof(ClosedExport));
-	sprintf(rsbuf, "Span:%lu SessionNumber:%u", closedExportBuf.span,
+	sprintf(rsbuf, "span: %lu session number: %u", closedExportBuf.span,
 			closedExportBuf.sessionNbr);
 	putErrmsg(rsbuf, NULL);
 }
@@ -248,8 +258,10 @@ static int	acknowledgeLateReport(unsigned int sessionNbr,
 				sizeof(ClosedExport));
 		if (closedExportBuf.sessionNbr == sessionNbr)
 		{
+#if LTPDEBUG
 			writeMemoNote("[i] Ack from closed export session",
 					utoa(sessionNbr));
+#endif
 			sdr_read(sdr, (char *) &spanBuf, closedExportBuf.span,
 					sizeof(LtpSpan));
 			if (constructReportAckSegment(&spanBuf,
@@ -263,8 +275,12 @@ static int	acknowledgeLateReport(unsigned int sessionNbr,
 			closedExportBuf.responseLimit--;
 			if (closedExportBuf.responseLimit < 1)
 			{
+#if LTPDEBUG
 				writeMemoNote("[i] Forget session, retries \
 exceeded", utoa(closedExportBuf.sessionNbr));
+#endif
+				sdr_list_delete(sdr, closedExportBuf.timeout,
+						NULL, NULL);
 				sdr_free(sdr, closedExportObj);
 				sdr_list_delete(sdr, elt, NULL, NULL);
 			}

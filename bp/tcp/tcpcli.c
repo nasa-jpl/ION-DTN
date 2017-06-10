@@ -85,8 +85,10 @@ typedef struct
 {
 	int			sock;
 	struct tcpcl_neighbor	*neighbor;	/*	Back reference	*/
-	pthread_mutex_t		mutex;
-	int			hasMutex;	/*	Boolean.	*/
+	pthread_mutex_t		socketMutex;	/*	for socket	*/
+	int			hasSocketMutex;	/*	Boolean.	*/
+	pthread_mutex_t		plMutex;	/*	for pipeline	*/
+	int			hasPlMutex;	/*	Boolean.	*/
 
 	/*	Configuration settings and session state.		*/
 
@@ -383,14 +385,19 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 
 	rtp->neighbors = lyst_lyst(neighborElt);
 	rtp->session = session;
-	pthread_mutex_init(&(session->mutex), NULL);
-	session->hasMutex = 1;
+	pthread_mutex_init(&(session->socketMutex), NULL);
+	session->hasSocketMutex = 1;
+	pthread_mutex_init(&(session->plMutex), NULL);
+	session->hasPlMutex = 1;
 	if (pthread_begin(&(session->receiver), NULL, handleContacts, rtp))
 	{
 		MRELEASE(rtp);
-		pthread_mutex_unlock(&(session->mutex));
-		pthread_mutex_destroy(&(session->mutex));
-		session->hasMutex = 0;
+		pthread_mutex_unlock(&(session->socketMutex));
+		pthread_mutex_destroy(&(session->socketMutex));
+		session->hasSocketMutex = 0;
+		pthread_mutex_unlock(&(session->plMutex));
+		pthread_mutex_destroy(&(session->plMutex));
+		session->hasPlMutex = 0;
 		llcv_close(session->throttle);
 		session->hasThrottle = 0;
 		lyst_destroy(session->pipeline);
@@ -516,9 +523,9 @@ static int	sendShutdown(TcpclSession *session, char reason,
 		len++;
 	}
 
-	pthread_mutex_lock(&(session->mutex));
+	pthread_mutex_lock(&(session->socketMutex));
 	result = itcp_send(&session->sock, shutdown, len);
-	pthread_mutex_unlock(&(session->mutex));
+	pthread_mutex_unlock(&(session->socketMutex));
 	return result;
 }
 
@@ -598,9 +605,14 @@ static void	endSession(TcpclSession *session, char reason)
 		llcv_close(session->throttle);
 	}
 
-	if (session->hasMutex)
+	if (session->hasSocketMutex)
 	{
-		pthread_mutex_destroy(&(session->mutex));
+		pthread_mutex_destroy(&(session->socketMutex));
+	}
+
+	if (session->hasPlMutex)
+	{
+		pthread_mutex_destroy(&(session->plMutex));
 	}
 
 	if (session->outductName)
@@ -676,9 +688,9 @@ failed.", session->outductName);
 			return -1;
 		}
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_insert_last(session->pipeline, (void *) bundleZco);
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		if (elt == NULL)
 		{
 			putErrmsg("Can't append transmitted ZCO to tcpcli \
@@ -718,10 +730,10 @@ pipeline.", session->outductName);
 		encodeSdnv(&segLengthSdnv, bytesToLoad);
 		memcpy(segHeader + 1, segLengthSdnv.text, segLengthSdnv.length);
 		segHeaderLen = 1 + segLengthSdnv.length;
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->socketMutex));
 		if (itcp_send(&session->sock, segHeader, segHeaderLen) < 1)
 		{
-			pthread_mutex_unlock(&(session->mutex));
+			pthread_mutex_unlock(&(session->socketMutex));
 			writeMemoNote("[?] tcpcl session lost (seg header)",
 					neighbor->vplan->neighborEid);
 			return 0;
@@ -729,13 +741,13 @@ pipeline.", session->outductName);
 
 		if (itcp_send(&session->sock, stp->buffer, bytesToSend) < 1)
 		{
-			pthread_mutex_unlock(&(session->mutex));
+			pthread_mutex_unlock(&(session->socketMutex));
 			writeMemoNote("[?] tcpcl session lost (seg content)",
 					neighbor->vplan->neighborEid);
 			return 0;
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->socketMutex));
 		flags = 0x00;			/*	No longer 1st.	*/
 		bytesRemaining -= bytesToSend;
 	}
@@ -875,9 +887,9 @@ static int	sendContactHeader(TcpclSession *session)
 
 	/*	session->sock is known to be a connected socket.	*/
 
-	pthread_mutex_lock(&(session->mutex));
+	pthread_mutex_lock(&(session->socketMutex));
 	result = itcp_send(&session->sock, contactHeader, len);
-	pthread_mutex_unlock(&(session->mutex));
+	pthread_mutex_unlock(&(session->socketMutex));
 	return result;
 }
 
@@ -1025,7 +1037,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				 *	affect this session.		*/
 
 				session->sock = -1;
-				session->hasMutex = 0;
+				session->hasSocketMutex = 0;
+				session->hasPlMutex = 0;
 				session->hasReceiver = 0;
 				session->hasSender = 0;
 				session->outductName = NULL;
@@ -1145,9 +1158,9 @@ static int	sendAck(TcpclSession *session)
 	encodeSdnv(&ackLengthSdnv, session->lengthReceived);
 	memcpy(ack + 1, ackLengthSdnv.text, ackLengthSdnv.length);
 	len = 1 + ackLengthSdnv.length;
-	pthread_mutex_lock(&(session->mutex));
+	pthread_mutex_lock(&(session->socketMutex));
 	result = itcp_send(&session->sock, ack, len);
-	pthread_mutex_unlock(&(session->mutex));
+	pthread_mutex_unlock(&(session->socketMutex));
 	return result;
 }
 
@@ -1281,14 +1294,14 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		/*	Must get the oldest bundle, to which this ack
 		 *	pertains.					*/
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
 			bundleZco = (Object) lyst_data(elt);
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		if (bundleZco == 0)
 		{
 			/*	Nothing to acknowledge.			*/
@@ -1309,7 +1322,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		/*	Acknowledgment sequence is violated, so 
 		 *	didn't ack the end of the oldest bundle.	*/
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
@@ -1317,7 +1330,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 			lyst_delete(elt);
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		llcv_signal(session->throttle, pipeline_not_full);
 		if (bundleZco == 0)
 		{
@@ -1343,7 +1356,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 		/*	Entire bundle has been received.		*/
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
@@ -1351,7 +1364,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 			lyst_delete(elt);
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		llcv_signal(session->throttle, pipeline_not_full);
 		if (bundleZco == 0)
 		{
@@ -2098,9 +2111,9 @@ static int	sendKeepalive(TcpclSession *session)
 		return 0;
 	}
 
-	pthread_mutex_lock(&(session->mutex));
+	pthread_mutex_lock(&(session->socketMutex));
 	result = itcp_send(&session->sock, &keepalive, 1);
-	pthread_mutex_unlock(&(session->mutex));
+	pthread_mutex_unlock(&(session->socketMutex));
 	if (result < 1)
 	{
 		writeMemoNote("[?] tcpcl session lost (keepalive)",

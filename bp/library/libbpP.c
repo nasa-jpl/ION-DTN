@@ -7547,6 +7547,15 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	{
 		source = ZcoFileSource;
 		fileSpaceNeeded = length;
+
+		/*	We don't really need any heap space for the
+		 *	ZCO, but we do claim a need for 1 byte of heap
+		 *	space.  This is just to prevent the file space
+		 *	request from succeeding so long as heap space
+		 *	is fully occupied (i.e., available heap space
+		 *	is zero which is less than 1).			*/
+
+		heapSpaceNeeded = 1;
 	}
 
 	/*	Reserve space for new ZCO extent.			*/
@@ -7671,8 +7680,8 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		}
 
 		acqCount++;
-		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u", cwd,
-				ION_PATH_DELIMITER, acqCount);
+		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u.%u", cwd,
+				ION_PATH_DELIMITER, sm_TaskIdSelf(), acqCount);
 		fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
@@ -10145,12 +10154,13 @@ int	bpAccept(Object bundleObj, Bundle *bundle)
 	return 0;
 }
 
-static Object	insertBundleIntoQueue(Object queue, Object lastElt,
-			Object bundleAddr, int priority,
+static Object	insertBundleIntoQueue(Object queue, Object firstElt,
+			Object lastElt, Object bundleAddr, int priority,
 			unsigned char ordinal, time_t enqueueTime)
 {
 	Sdr	bpSdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
+	Object	nextElt;
 
 	/*	Bundles have transmission seniority which must be
 	 *	honored.  A bundle that was enqueued for transmission
@@ -10158,91 +10168,52 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 	 *	the queue ahead of bundles of the same priority that
 	 *	were enqueued more recently.				*/
 
-	//dzdebug
-	if (lastElt == 0)
+	GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
+	if (enqueueTime < bundle->enqueueTime)
 	{
-		/*	Requeueing a bundle so it likely belongs near the front of the list. */
-		lastElt = sdr_list_first(bpSdr, queue);
+		/*	Must be re-enqueuing a previously queued
+		 *	bundle.						*/
 
-		if (lastElt == 0)
+		nextElt = firstElt;
+		while (1)
 		{
-			/* This should never happen if we made it into this function. */
-			putErrmsg("Queue list of bundles unexpectedly empty.", NULL);
-			return sdr_list_insert_first(bpSdr, queue, bundleAddr);
-		}
-
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
-		while (enqueueTime >= bundle->enqueueTime)
-		{
-			lastElt = sdr_list_next(bpSdr, lastElt);
-			if (lastElt == 0)
+			if (nextElt == lastElt)
 			{
-				break;		/*	Reached end of queue.	*/
+				/*	Insert just before last elt.	*/
+
+				return sdr_list_insert_before(bpSdr, nextElt,
+						bundleAddr);
 			}
 
 			GET_OBJ_POINTER(bpSdr, Bundle, bundle,
-					sdr_list_data(bpSdr, lastElt));
-			if (priority < 2)
+					sdr_list_data(bpSdr, nextElt));
+			if (enqueueTime < bundle->enqueueTime)
 			{
-				continue;	/*	Don't check ordinal.	*/
+				/*	Insert before this one.		*/
+
+				return sdr_list_insert_before(bpSdr, nextElt,
+						bundleAddr);
 			}
 
-			if ((enqueueTime > bundle->enqueueTime) || 
-				(bundle->ancillaryData.ordinal <= ordinal))
-			{
-				continue;	/* keep going until tail end of the ordinal subqueue */
-			}
-
-			break;
+			nextElt = sdr_list_next(bpSdr, nextElt);
 		}
-
-		if (lastElt)
-		{
-			return sdr_list_insert_before(bpSdr, lastElt, bundleAddr);
-		}
-		return sdr_list_insert_last(bpSdr, queue, bundleAddr);
-
-	}
-	else
-	{
-		/* time queueing this bundle so it should be near the end of the list. */
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
-		while (enqueueTime < bundle->enqueueTime)
-		{
-			lastElt = sdr_list_prev(bpSdr, lastElt);
-			if (lastElt == 0)
-			{
-				break;		/*	Reached head of queue.	*/
-			}
-
-			GET_OBJ_POINTER(bpSdr, Bundle, bundle,
-					sdr_list_data(bpSdr, lastElt));
-			if (priority < 2)
-			{
-				continue;	/*	Don't check ordinal.	*/
-			}
-
-			if (bundle->ancillaryData.ordinal > ordinal)
-			{
-				break;		/*	At head of subqueue.	*/
-			}
-		}
-
-		if (lastElt)
-		{
-			return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
-		}
-		return sdr_list_insert_first(bpSdr, queue, bundleAddr);
 	}
 
+	/*	Enqueue time >= last elt's enqueue time, so insert
+	 *	after the last elt.					*/
+
+	return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
 }
 
 static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned char	ordinal = bundle->ancillaryData.ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
-	Object		lastElt = 0;	// initialized to avoid warning
+	Object		lastElt = 0;
+	Object		lastForPriorOrdinal = 0;
+	Object		firstElt = 0;
 	int		i;
 	Object		xmitElt;
 
@@ -10250,24 +10221,48 @@ static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 	 *	currently enqueued bundle whose ordinal is equal to
 	 *	or greater than that of the new bundle.			*/
 
-	for (i = ordinal; i < 256; i++)
+	for (i = 0; i < 256; i++)
 	{
 		lastElt = plan->ordinals[i].lastForOrdinal;
-		if (lastElt)
+		if (lastElt == 0)
 		{
-			break;
+			continue;
 		}
+
+		if (i < ordinal)
+		{
+			lastForPriorOrdinal = lastElt;
+			continue;
+		}
+
+		/*	i >= ordinal, so we have found the end of
+		 *	the applicable sub-list.  The first bundle
+		 *	after the last bundle of the last preceding
+		 *	non-empty sub-list (if any) must be the first
+		 *	bundle of the applicable sub-list.  (Possibly
+		 *	also the last.)					*/
+
+		if (lastForPriorOrdinal)
+		{
+			firstElt = sdr_list_next(sdr, lastForPriorOrdinal);
+		}
+		else
+		{
+			firstElt = lastElt;
+		}
+
+		break;
 	}
 
 	if (i == 256)	/*	No more urgent bundle to enqueue after.	*/
 	{
-		xmitElt = sdr_list_insert_first(getIonsdr(), plan->urgentQueue,
-				bundleObj);
+		xmitElt = sdr_list_insert_first(sdr, plan->urgentQueue,
+			bundleObj);
 	}
 	else		/*	Enqueue after this one.			*/
 	{
-		xmitElt = insertBundleIntoQueue(plan->urgentQueue, lastElt,
-				bundleObj, 2, ordinal, bundle->enqueueTime);
+		xmitElt = insertBundleIntoQueue(plan->urgentQueue, firstElt,
+			lastElt, bundleObj, 2, ordinal, bundle->enqueueTime);
 	}
 
 	if (xmitElt)
@@ -10314,11 +10309,6 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	int		priority;
 	Object		lastElt;
 
-	//dzdebug
-	int		bundleRequeue = 1;
-
-
-
 	CHKERR(ionLocked());
 	CHKERR(vplan && bundle && bundleObj);
 	CHKERR(bundle->planXmitElt == 0);
@@ -10358,9 +10348,6 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	if (bundle->enqueueTime == 0)
 	{
 		bundle->enqueueTime = enqueueTime = getUTCTime();
-
-		//dzdebug
-		bundleRequeue = 0;
 	}
 	else
 	{
@@ -10382,13 +10369,9 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		}
 		else
 		{
-			//dzdebug
-			if ( bundleRequeue )
-			{
-				lastElt = 0; // insert will start from the beginning
-			}
 			bundle->planXmitElt =
 				insertBundleIntoQueue(plan.bulkQueue,
+				sdr_list_first(bpSdr, plan.bulkQueue),
 				lastElt, bundleObj, 0, 0, enqueueTime);
 		}
 
@@ -10404,13 +10387,9 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		}
 		else
 		{
-			//dzdebug
-			if ( bundleRequeue )
-			{
-				lastElt = 0; // insert will start from the beginning
-			}
 			bundle->planXmitElt =
 			       	insertBundleIntoQueue(plan.stdQueue,
+				sdr_list_first(bpSdr, plan.stdQueue),
 				lastElt, bundleObj, 1, 0, enqueueTime);
 		}
 
@@ -10659,7 +10638,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 int	bpUnblockPlan(char *eid)
@@ -10905,6 +10884,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
 	bundle.ductXmitElt = 0;
+	vduct->timeOfLastXmit = getUTCTime();
 	if (bundle.proxNodeEid)
 	{
 		sdr_string_read(bpSdr, proxNodeEid, bundle.proxNodeEid);
@@ -11023,12 +11003,12 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		}
 	}
 
-	/*	Finally, if the bundle is anonymous then its key can
-	 *	never be guaranteed to be unique (because the sending
-	 *	EID that qualifies the creation time and sequence
-	 *	number is omitted), so the bundle can't reliably be
-	 *	retrieved via the hash table.  So again stewardship
-	 *	cannot be successfully accepted.			*/
+	/*	Last check: if the bundle is anonymous then its key
+	 *	can never be guaranteed to be unique (because the
+	 *	sending EID that qualifies the creation time and
+	 *	sequence number is omitted), so the bundle can't
+	 *	reliably be retrieved via the hash table.  So again
+	 *	stewardship cannot be successfully accepted.		*/
 
 	if (bundle.anonymous)
 	{

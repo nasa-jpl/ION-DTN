@@ -340,6 +340,7 @@ typedef struct
 	Object		span;		/*	sending span address	*/
 	unsigned int	sessionNbr;	/*	identifies session	*/
 	int		responseLimit;	/*	Defense against DOS.	*/
+	Object		timeout;	/*	timeline event list elt	*/
 } ClosedExport;
 #endif
 

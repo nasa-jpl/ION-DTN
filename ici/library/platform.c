@@ -1419,7 +1419,7 @@ void	writeMemoNote(char *text, char *note)
 
 	if (text)
 	{
-		isprintf(textBuffer, sizeof textBuffer, "%.900s: %.64s",
+		isprintf(textBuffer, sizeof textBuffer, "%.500s: %.500s",
 				text, noteText);
 		(_logOneMessage(NULL))(textBuffer);
 	}
