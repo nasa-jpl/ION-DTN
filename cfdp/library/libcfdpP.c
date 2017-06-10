@@ -3817,6 +3817,9 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	char		workingNameBuffer[MAXPATHLEN + 1];
 	vast		endOfFile;
 	uvast		fileLength;
+	uvast		fillBufSize;
+	char		*fillBuf;
+	uvast		fillSize;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
 	uvast		bytesToWrite;
@@ -4042,37 +4045,54 @@ extent.offset, extent.offset + extent.length);
 	}
 
 	fileLength = endOfFile;
-	if ( fileLength < segmentOffset )
+	if (fileLength < segmentOffset)
 	{
-		//dzdebug
-		char buf[256];
-		isprintf(buf, sizeof(buf), "Start fill char write " UVAST_FIELDSPEC, (segmentOffset - fileLength));
-		putErrmsg(buf, NULL);
+		/*	Temporarily take large working memory
+		 *	buffer for fill characters.			*/
 
-		unsigned char fillChars[64*1024];
-		memset(fillChars, cfdpdb.fillCharacter, sizeof(fillChars));
-
-		while (fileLength < segmentOffset)
+		fillBufSize = segmentOffset - fileLength;
+		while (1)
 		{
-			size_t szFillToWrite = sizeof(fillChars);
-			bytesToWrite = segmentOffset - fileLength;
-
-			if (bytesToWrite < sizeof(fillChars))
+			fillBuf = MTAKE(fillBufSize);
+			if (fillBuf)
 			{
-				szFillToWrite = (size_t) bytesToWrite;
+				break;	/*	Got large buffer.	*/
 			}
 
-			if (write(cfdpvdb->currentFile, fillChars, szFillToWrite) < 0)
+			/*	Try to grab a smaller buffer.		*/
+
+			fillBufSize /= 2;
+			if (fillBufSize < 1)
 			{
-				putSysErrmsg("Can't write fill characters to file", workingNameBuffer);
-				return handleFilestoreRejection(fdu, -1, &handler);
+				putErrmsg("No working memory for fill buffer.",
+						NULL);
+				return handleFilestoreRejection(fdu, 0,
+						&handler);
 			}
-	
-			fileLength += szFillToWrite;
 		}
 
-		//dzdebug
-		putErrmsg( "completed fill char write ", NULL);
+		memset(fillBuf, cfdpdb.fillCharacter, fillBufSize);
+		while (fileLength < segmentOffset)
+		{
+			fillSize = segmentOffset - fileLength;
+			if (fillSize > fillBufSize)
+			{
+				fillSize = fillBufSize;
+			}
+
+			if (write(cfdpvdb->currentFile, fillBuf, fillSize) < 0)
+			{
+				putSysErrmsg("Can't write to file",
+						workingNameBuffer);
+				MRELEASE(fillBuf);
+				return handleFilestoreRejection(fdu, -1,
+						&handler);
+			}
+	
+			fileLength += fillSize;
+		}
+
+		MRELEASE(fillBuf);
 	}
 
 	/*	Reposition at offset of new file data bytes.		*/
