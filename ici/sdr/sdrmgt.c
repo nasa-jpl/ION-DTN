@@ -1030,26 +1030,12 @@ size_t	sdr_unused(Sdr sdrv)
 	return map->unassignedSpace;
 }
 
-void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
+static void	computeFreeSpace(SdrMap *map, SdrUsageSummary *usage)
 {
-	SdrState	*sdr;
-	SdrMap		*map;
-	int		i;
-	size_t		size;
-	size_t		freeTotal;
+	int	i;
+	size_t	size;
+	size_t	freeTotal;
 
-	CHKVOID(sdrFetchSafe(sdrv));
-	CHKVOID(usage);
-
-	sdr = sdrv->sdr;
-	istrcpy(usage->sdrName, sdr->name, sizeof usage->sdrName);
-#if 0
-	usage->dsSize = sdr->dsSize;
-#endif
-	usage->heapSize = sdr->heapSize;
-
-	map = _mapImage(sdrv);
-	usage->smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	freeTotal = 0;
 	size = 0;
 	for (i = 0; i < SMALL_SIZES; i++)
@@ -1062,7 +1048,6 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 
 	usage->smallPoolFree = freeTotal;
 	usage->smallPoolAllocated = usage->smallPoolSize - freeTotal;
-	usage->largePoolSize = map->endOfLargePool - map->startOfLargePool;
 	freeTotal = 0;
 	for (i = 0; i < LARGE_ORDERS; i++)
 	{
@@ -1073,15 +1058,25 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 
 	usage->largePoolFree = freeTotal;
 	usage->largePoolAllocated = usage->largePoolSize - freeTotal;
+}
+
+void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
+{
+	SdrState	*sdr;
+	SdrMap		*map;
+
+	CHKVOID(sdrFetchSafe(sdrv));
+	CHKVOID(usage);
+
+	sdr = sdrv->sdr;
+	istrcpy(usage->sdrName, sdr->name, sizeof usage->sdrName);
+	usage->heapSize = sdr->heapSize;
+	map = _mapImage(sdrv);
+	usage->smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
+	usage->largePoolSize = map->endOfLargePool - map->startOfLargePool;
+	computeFreeSpace(map, usage);
 	usage->unusedSize = map->unassignedSpace;
-#if 0
-	usage->runningTotalSmallPoolFree = map->smallPoolFree;
-	usage->runningTotalLargePoolFree = map->largePoolFree;
-	usage->inUse = map->inUse;
-	usage->maxInUse = map->maxInUse;
-	usage->maxLogSize = sdr->maxLogLength;
-	return;
-#endif
+	usage->maxLogLength = sdr->maxLogLength;
 }
 
 void	sdr_report(SdrUsageSummary *usage)
@@ -1146,7 +1141,6 @@ void	sdr_report(SdrUsageSummary *usage)
 	isprintf(buf, sizeof buf, "total heap size:   %12ld",
 			usage->heapSize);
 	writeMemo(buf);
-
 	isprintf(buf, sizeof buf, "total unused:      %12ld",
 		       	usage->unusedSize);
         writeMemo(buf);
@@ -1158,7 +1152,8 @@ void	sdr_report(SdrUsageSummary *usage)
 			usage->heapSize - usage->unusedSize);
 	writeMemo(buf);
 
-	istrcpy(buf, " ", sizeof buf);
+	isprintf(buf, sizeof buf, "max xn log len:    %12ld",
+			usage->maxLogLength);
 	writeMemo(buf);
 #if 0
 	istrcpy(buf, "Running Totals", sizeof buf);
@@ -1195,9 +1190,6 @@ void	sdr_report(SdrUsageSummary *usage)
 			usage->heapSize - usage->unusedSize);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "    max transaction log len: %12d",
-			usage->maxLogSize);
-	writeMemo(buf);
 #endif
 }
 #if 0
@@ -1238,99 +1230,99 @@ int	sdr_heap_depleted(Sdr sdrv)
 	return (available < (map->heapSize / 16));
 }
 
-#if 0
 void	sdr_stats(Sdr sdrv)
 {
 	SdrState	*sdr;
+	SdrState	sdrSnap;
 	SdrMap		*map;
+	SdrMap		mapSnap;
 	char		buf[100];
-	uvast		poolSize;
+	SdrUsageSummary	usage;
 
-	// allowing access in the middle of another app's transaction
+	/*	Race condition possible but unlikely, as sdr is
+	 *	not likely to be destroyed while this brief operation
+	 *	completes.						*/
+
 	sdr = sdrv->sdr;
+	memcpy((char *) &sdrSnap, sdr, sizeof(SdrState));
 	map = _mapImage(sdrv);
-
+	memcpy((char *) &mapSnap, map, sizeof(SdrMap));
 
 	isprintf(buf, sizeof buf, "-- sdr '%s' statistics report --",
-			sdr->name);
+			sdrSnap.name);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "          transaction depth: %14d",
-			sdr->xnDepth);
+			sdrSnap.xnDepth);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "       transaction log size: %14ld",
-			sdr->logSize);
+			sdrSnap.logSize);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "     transaction log length: %14d",
-			sdr->logLength);
+			sdrSnap.logLength);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, " max transaction log length: %14d",
-			sdr->maxLogLength);
+			sdrSnap.maxLogLength);
 	writeMemo(buf);
 
 	istrcpy(buf, " ", sizeof buf);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "                   sdr size: %14ld",
-			sdr->dsSize);
+			sdrSnap.dsSize);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "              sdr heap size: %14ld",
-			sdr->heapSize);
+			sdrSnap.heapSize);
 	writeMemo(buf);
 
-	poolSize = map->endOfSmallPool - map->startOfSmallPool;
+	computeFreeSpace(&mapSnap, &usage);
+
 	isprintf(buf, sizeof buf, "            small pool size: %14ld",
-			poolSize);
+			mapSnap.endOfSmallPool - mapSnap.startOfSmallPool);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "            small pool free: %14ld",
-			map->smallPoolFree);
+			usage.smallPoolFree);
 	writeMemo(buf);
 
-	poolSize = map->endOfLargePool - map->startOfLargePool;
 	isprintf(buf, sizeof buf, "            large pool size: %14ld",
-			poolSize);
+			mapSnap.endOfLargePool - mapSnap.startOfLargePool);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "            large pool free: %14ld",
-			map->largePoolFree);
+			usage.largePoolFree);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "            unassigned free: %14ld",
-			map->unassignedSpace);
+			mapSnap.unassignedSpace);
 	writeMemo(buf);
 
 	istrcpy(buf, " ", sizeof buf);
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "            sdr heap in use: %14ld",
-			map->inUse);
+			sdrSnap.heapSize - (usage.smallPoolFree
+			+ usage.largePoolFree + mapSnap.unassignedSpace));
 	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "        max sdr heap in use: %14ld",
-			map->maxInUse);
+			sdrSnap.heapSize - mapSnap.unassignedSpace);
 	writeMemo(buf);
-
 }
 
 void	sdr_reset_stats(Sdr sdrv)
 {
 	SdrState	*sdr;
-	SdrMap		*map;
 
-	// purposefully allowing access in the middle of another app's transaction
-	// to monitor depth and log size
+	/*	Race condition possible but unlikely, as sdr is
+	 *	not likely to be destroyed while this brief operation
+	 *	completes.						*/
+
 	sdr = sdrv->sdr;
-	map = _mapImage(sdrv);
-
         sdr->maxLogLength = 0;
-	map->maxInUse = 0;
-
-        // output current stats
 	sdr_stats(sdrv);
 }
-#endif

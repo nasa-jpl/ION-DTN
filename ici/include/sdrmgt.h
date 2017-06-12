@@ -36,6 +36,7 @@ typedef struct
 	size_t		largePoolFree;
 	size_t		largePoolAllocated;
 	size_t		unusedSize;
+	size_t		maxLogLength;
 } SdrUsageSummary;
 
 /*		Low-level SDR space management functions.		*/
@@ -81,7 +82,7 @@ extern void		sdr_stats(Sdr sdrv);
 				SDR's usage status.			*/
 
 extern void		sdr_reset_stats(Sdr sdrv);
-			/*	Reset stats max values 			*/
+			/*	Reset max log length, print stats.	*/
 
 extern int		sdr_heap_depleted(Sdr sdrv);
 			/*	A Boolean function: returns 1 if total

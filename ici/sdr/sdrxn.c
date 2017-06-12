@@ -1966,7 +1966,7 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 		{
 			char buf[256];
 			isprintf(buf, sizeof(buf), "Log max size exceeded. \
-SDR: %s  logSize: %lu logLength: %lu length: %lu Depth: %d", sdr->name,
+SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d", sdr->name,
 					sdr->logSize, sdr->logLength,
 					length, sdr->xnDepth);
 			_putErrmsg(file, line, buf, NULL);
@@ -1977,7 +1977,6 @@ SDR: %s  logSize: %lu logLength: %lu length: %lu Depth: %d", sdr->name,
 	}
 
 	sdr->logLength += length;
-
 	if ( sdr->logLength > sdr->maxLogLength )
 	{
 		sdr->maxLogLength = sdr->logLength;
