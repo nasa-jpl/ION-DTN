@@ -39,11 +39,10 @@ static void	shutDown()	/*	Commands bpclm termination.	*/
 	sm_SemEnd(_bpclmSemaphore(NULL));
 }
 
-static int	maxPayloadLengthKnown(VPlan *vplan,
-			unsigned int *maxPayloadLength)
+static size_t	maxPayloadLengthKnown(VPlan *vplan, size_t *maxPayloadLength)
 {
-	unsigned int	secRemaining;
-	unsigned int	xmitRate;
+	size_t	secRemaining;
+	size_t	xmitRate;
 
 	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
 	if (vplan->neighborNodeNbr)	/*	Known neighbor node.	*/
@@ -465,7 +464,7 @@ int	main(int argc, char *argv[])
 	Outflow		outflows[3];
 	int		i;
 	int		running = 1;
-	unsigned int	maxPayloadLength;
+	size_t		maxPayloadLength;
 	Object		bundleElt;
 	Object		bundleObj;
 	Bundle		bundle;

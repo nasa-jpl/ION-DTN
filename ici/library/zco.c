@@ -216,17 +216,17 @@ void	zco_status(Sdr sdr)
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	for (i = 0, book = db->books; i < 2; i++, book++)
 	{
-		isprintf(buffer, sizeof buffer, "[i] %s file  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->fileOccupancy,
-				book->maxFileOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s file  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxFileOccupancy, book->fileOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s bulk  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->bulkOccupancy,
-				book->maxBulkOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s bulk  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxBulkOccupancy, book->bulkOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s heap  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->heapOccupancy,
-				book->maxHeapOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s heap  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxHeapOccupancy, book->heapOccupancy);
 		writeMemo(buffer);
 	}
 }

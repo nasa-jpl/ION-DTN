@@ -964,6 +964,7 @@ static void	initSdrMap(SdrMap *map, SdrState *sdr)
 	map->endOfLargePool = sdr->dsSize;
 	map->startOfLargePool = map->endOfLargePool;
 	memset(map->largePoolFree, 0, sizeof map->largePoolFree);
+	map->largePoolSearchLimit = 0;
 	map->unassignedSpace = map->startOfLargePool - map->endOfSmallPool;
 #if 0
 	map->inUse = 0;

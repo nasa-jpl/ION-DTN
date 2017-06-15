@@ -1295,8 +1295,7 @@ else puts("(contact not found in index)");
 	return 0;
 }
 
-void	rfx_contact_state(uvast nodeNbr, unsigned int *secRemaining,
-		unsigned int *xmitRate)
+void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -1350,7 +1349,7 @@ void	rfx_contact_state(uvast nodeNbr, unsigned int *secRemaining,
 	*secRemaining = 0;
 	if (candidateContacts == 0)	/*	Contact plan n/a.	*/
 	{
-		*xmitRate = ((unsigned int) -1);
+		*xmitRate = ((size_t) -1);
 	}
 	else
 	{

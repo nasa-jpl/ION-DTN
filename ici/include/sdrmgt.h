@@ -61,6 +61,15 @@ Sdr_free(__FILE__, __LINE__, sdr, object)
 extern void		Sdr_free(const char *file, int line,
 				Sdr sdr, Object object);
 
+extern void		sdr_set_search_limit(Sdr sdr, unsigned int newLimit);
+			/*	Sets limit on the number of free
+			 *	blocks sdr_malloc will search through
+			 *	in the nominal free space bucket,
+			 *	looking for a sufficiently large free
+			 *	block, before giving up and switching
+			 *	to the next higher non-empty free space
+			 *	bucket.					*/
+
 extern void		sdr_stage(Sdr sdr, char *into, Object from,
 				size_t size);
 

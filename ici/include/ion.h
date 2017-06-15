@@ -195,21 +195,21 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	nominalRate;	/*	In bytes per second.	*/
+	size_t		nominalRate;	/*	In bytes per second.	*/
 	vast		capacity;	/*	Bytes, current second.	*/
 } Throttle;
 
 typedef struct
 {
 	uvast		nodeNbr;	/*	As from IonContact.	*/
-	unsigned int	xmitRate;	/*	Xmit *to* neighbor.	*/
-	unsigned int	fireRate;	/*	Xmit *from* neighbor.	*/
-	unsigned int	recvRate;	/*	Recv from neighbor.	*/
-	unsigned int	prevXmitRate;	/*	Xmit *to* neighbor.	*/
-	unsigned int	prevRecvRate;	/*	Recv from neighbor.	*/
+	size_t		xmitRate;	/*	Xmit *to* neighbor.	*/
+	size_t		fireRate;	/*	Xmit *from* neighbor.	*/
+	size_t		recvRate;	/*	Recv from neighbor.	*/
+	size_t		prevXmitRate;	/*	Xmit *to* neighbor.	*/
+	size_t		prevRecvRate;	/*	Recv from neighbor.	*/
 	PsmAddress	node;		/*	Points to IonNode.	*/
-	unsigned int	owltOutbound;	/*	In seconds.		*/
-	unsigned int	owltInbound;	/*	In seconds.		*/
+	size_t		owltOutbound;	/*	In seconds.		*/
+	size_t		owltInbound;	/*	In seconds.		*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } IonNeighbor;
 
@@ -334,7 +334,7 @@ extern int		ionAttach();
 extern void		ionDetach();
 extern void		ionProd(	uvast fromNode,
 					uvast toNode,
-					unsigned int xmitRate,
+					size_t xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate();
 

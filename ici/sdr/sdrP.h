@@ -147,6 +147,7 @@ typedef struct	/*	Non-volatile state at front of SDR.		*/
 	Address		startOfLargePool;
 	Address		endOfLargePool;
 	LargeFreeBucket	largePoolFree[LARGE_ORDERS];
+	unsigned int	largePoolSearchLimit;
 	size_t		unassignedSpace;
 } SdrMap;
 

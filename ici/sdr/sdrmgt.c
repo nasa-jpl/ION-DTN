@@ -592,10 +592,19 @@ static void	removeFromBucket(Sdr sdrv, int bucket, Address leader,
 	sdrPatch(trailer, trailing);
 }
 
+void	sdr_set_search_limit(Sdr sdrv, unsigned int newLimit)
+{
+	SdrMap	*map;
+
+	map = _mapImage(sdrv);
+	patchMap(largePoolSearchLimit, newLimit);
+}
+
 static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 {
 	SdrMap		*map;
 	int		bucket;
+	unsigned int	searchLimit;
 	Address		leader = 0;
 	BigOhd1		leading;
 	Address		trailer;
@@ -608,6 +617,7 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 	Address		newTrailer;
 	BigOhd2		newTrailing;
 	size_t		surplus;
+	int		bucketForSurplus;
 
 	/*	Increase nbytes to align it properly: must be an
 		integral multiple of LG_OHD_SIZE (which is equal to
@@ -619,53 +629,92 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 	map = _mapImage(sdrv);
 
 	/*	Determine which bucket a block of this size would be
-		stored in if free, but then (unless nbytes is the
-		minimum block size for that bucket) allocate from the
-		NEXT bucket because every free block in that bucket is
-		certain to be at least of size nbytes -- so you can
-		take the first one instead of searching for a match.	*/
+		stored in if free.					*/
 
 	bucket = computeBucket(nbytes);
-	if (nbytes != (1 << (bucket + LARGE_ORDER1)))
-	{
-		bucket++;
-	}
 
-	while (bucket < LARGE_ORDERS
-	&& (leader = map->largePoolFree[bucket].firstFreeBlock) == 0)
-	{
-		bucket++;
-	}
+	/*	Search for block in that bucket.  But searching is
+	 *	time-consuming, so we restrict the search to a user-
+	 *	defined limit (which defaults to zero) or to just the
+	 *	first block (if any) if the user-defined limit is zero
+	 *	but nbytes is the minimum block size for that bucket
+	 *	(in which case the first block is guaranteed to be
+	 *	large enough).						*/
 
-	if (leader)	/*	Found free block that's big enough.	*/
+	searchLimit = map->largePoolSearchLimit;
+	if (searchLimit == 0)
 	{
-		sdrFetch(leading, leader);
-	}
-	else	/*	Need to increase pool size.			*/
-	{
-		increment = nbytes + LARGE_BLOCK_OHD;
-		if (map->unassignedSpace >= increment)
+		if (nbytes == (1 << (bucket + LARGE_ORDER1)))
 		{
-			newStart = map->startOfLargePool - increment;
-			patchMap(startOfLargePool, newStart);
-			newUnassigned = map->unassignedSpace - increment;
-			patchMap(unassignedSpace, newUnassigned);
-			leader = newStart;	/*	Created block.	*/
-			leading.userDataSize = nbytes;
-			leading.next = LARGE_IN_USE;
-			sdrPatch(leader, leading);
-			trailer = leader + sizeof(BigOhd1) + nbytes;
-			trailing.start = leader;
-			trailing.prev = LARGE_IN_USE;
-			sdrPatch(trailer, trailing);
-			return (Object) (leader + LG_OHD_SIZE);
+			searchLimit = 1;
+		}
+	}
+
+	leader = map->largePoolFree[bucket].firstFreeBlock;
+	while (leader != 0)
+	{
+		if (searchLimit == 0)
+		{
+			leader = 0;
+			break;
 		}
 
-		/*	Can't allocate block from unassigned space.	*/
+		sdrFetch(leading, leader);
+		if (leading.userDataSize >= nbytes)
+		{
+			break;	/*	Found adequate free block.	*/
+		}
 
-		putErrmsg("Can't increase large pool size.", NULL);
-		crashXn(sdrv);
-		return 0;
+		searchLimit--;
+		leader = leading.next;
+	}
+
+	if (leader == 0)
+	{
+		/*	No free block of adequate size was found, so
+		 *	allocate from the NEXT non-empty bucket because
+		 *	every free block in that bucket is certain to
+		 *	be at least of size nbytes -- so you can take
+		 *	the first one instead of searching for a match.	*/
+
+		bucket++;
+		while (bucket < LARGE_ORDERS
+		&& (leader = map->largePoolFree[bucket].firstFreeBlock) == 0)
+		{
+			bucket++;
+		}
+
+		if (leader)	/*	Found large enough free block.	*/
+		{
+			sdrFetch(leading, leader);
+		}
+		else		/*	Need to increase pool size.	*/
+		{
+			increment = nbytes + LARGE_BLOCK_OHD;
+			if (map->unassignedSpace >= increment)
+			{
+				newStart = map->startOfLargePool - increment;
+				patchMap(startOfLargePool, newStart);
+				newUnassigned = map->unassignedSpace
+						- increment;
+				patchMap(unassignedSpace, newUnassigned);
+				leader = newStart;
+				leading.userDataSize = nbytes;
+				leading.next = LARGE_IN_USE;
+				sdrPatch(leader, leading);
+				trailer = leader + sizeof(BigOhd1) + nbytes;
+				trailing.start = leader;
+				trailing.prev = LARGE_IN_USE;
+				sdrPatch(trailer, trailing);
+				return (Object) (leader + LG_OHD_SIZE);
+			}
+
+			/*	Can't allocate from unassigned space.	*/
+
+			putErrmsg("Can't increase large pool size.", NULL);
+			crashXn(sdrv);
+			return 0;
+		}
 	}
 
 	/*	Free block found.  Must remove from bucket.		*/
@@ -674,10 +723,22 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 	sdrFetch(trailing, trailer);
 	removeFromBucket(sdrv, bucket, leader, trailer);
 
-	/*	Split off surplus, if any, as separate free block.	*/
+	/*	Split off surplus, if large enough to be a block, as
+	 *	separate free block -- but only if the new free block
+	 *	would be of the same order or the next lower order.
+	 *	Don't split off any tiny free blocks, as this can
+	 *	fragment the heap in ways that are difficult to
+	 *	recover from.						*/
 
 	surplus = leading.userDataSize - nbytes;
-	if (surplus >= MIN_LARGE_BLOCK)	/*	Must bisect block.	*/
+	if (surplus < MIN_LARGE_BLOCK)
+	{
+		return (Object) (leader + LG_OHD_SIZE);
+	}
+
+	bucketForSurplus = computeBucket(surplus);
+	if (bucketForSurplus == bucket
+	|| (bucket > 0 && bucketForSurplus == (bucket - 1)))
 	{
 		/*	Shorten original block.				*/
 
@@ -1144,13 +1205,13 @@ void	sdr_report(SdrUsageSummary *usage)
 	isprintf(buf, sizeof buf, "total unused:      %12ld",
 		       	usage->unusedSize);
         writeMemo(buf);
+	isprintf(buf, sizeof buf, "max total used:    %12ld",
+			usage->heapSize - usage->unusedSize);
+	writeMemo(buf);
 	isprintf(buf, sizeof buf, "total now in use:  %12ld",
 			usage->heapSize - (usage->smallPoolFree +
 			usage->largePoolFree + usage->unusedSize));
         writeMemo(buf);
-	isprintf(buf, sizeof buf, "max total used:    %12ld",
-			usage->heapSize - usage->unusedSize);
-	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "max xn log len:    %12ld",
 			usage->maxLogLength);
@@ -1260,12 +1321,12 @@ void	sdr_stats(Sdr sdrv)
 			sdrSnap.logSize);
 	writeMemo(buf);
 
-	isprintf(buf, sizeof buf, "     transaction log length: %14d",
-			sdrSnap.logLength);
-	writeMemo(buf);
-
 	isprintf(buf, sizeof buf, " max transaction log length: %14d",
 			sdrSnap.maxLogLength);
+	writeMemo(buf);
+
+	isprintf(buf, sizeof buf, "     transaction log length: %14d",
+			sdrSnap.logLength);
 	writeMemo(buf);
 
 	istrcpy(buf, " ", sizeof buf);

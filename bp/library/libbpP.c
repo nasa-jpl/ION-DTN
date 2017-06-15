@@ -11093,7 +11093,7 @@ static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Shift buffer left by length of prior buffer.		*/
 
 	*bytesBuffered -= bytesParsed;
-	memcpy(buffer, buffer + bytesParsed, *bytesBuffered);
+	memmove(buffer, buffer + bytesParsed, *bytesBuffered);
 
 	/*	Now read from ZCO to fill the buffer space that was
 	 *	vacated.						*/

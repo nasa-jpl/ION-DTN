@@ -238,6 +238,18 @@ used for the storage of outbound zero-copy objects.  A value of -1 for either
 limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
 data space's total heap size.  The default file system limit is 1 Terabyte.
 
+=item B<m search> I<max_free_blocks_to_search_through>
+
+This management command sets the limit on the number of free blocks
+the heap space allocation function will search through in the nominal
+free space bucket, looking for a sufficiently large free block, before
+giving up and switching to the next higher non-empty free space bucket.
+The default value is 0, which yields the highest memory management speed
+but may leave heap space under-utilized: data objects may be stored in
+unnecessarily large heap space blocks.  Increasing the value of the heap
+space search limit will manage space more efficiently - with less waste -
+but more slowly.
+
 =item B<m horizon> { 0 | I<end_time_for_congestion_forecasts> }
 
 This management command sets the end time for computed congestion
