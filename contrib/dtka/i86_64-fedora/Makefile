@@ -9,7 +9,7 @@ BP = ../bp
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
-CCZFEC = gcc -g -Wall -Dlinux -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
+CCZFEC = gcc -g -Wall -Dlinux -fPIC -DSPACE_ORDER=3 -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -18,7 +18,7 @@ DTKAINCLS = \
 	$(KNODE)/knode.h \
 	$(INCL)/dtka.h
 
-LBP = -lbp -limcfw
+LBP = -lbp
 
 RUNTIMES = karecv kacompile kaadmin kaboot knadmin kapublish knmgr knclock
 

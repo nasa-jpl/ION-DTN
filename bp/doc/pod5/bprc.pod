@@ -108,6 +108,18 @@ B<k>	bundle is removed from "limbo" and queued for re-forwarding
 
 B<$>	bundle's custodial retransmission timeout interval expired
 
+Note that a slightly amended interpretation should be applied to watch
+characters printed in the course of multicast transmission.  The '~'
+character, meaning Abandoned (node did not forward this bundle), is printed
+by a node that is a leaf of the multicast tree, i.e., a node with no children;
+it cannot forward the bundle because it's got nobody to forward it to.  The
+'!' character, meaning Destroyed (node destroyed a physical copy of a bundle),
+is printed by a node that has forwarded copies of the bundle to all of its
+children and no longer needs to retain the original - so it does an immediate
+permanent bundle destruction just as if the bundle's time to live had expired.
+Neither condition is anomalous.
+
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their

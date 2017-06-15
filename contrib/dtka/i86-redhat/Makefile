@@ -18,7 +18,7 @@ DTKAINCLS = \
 	$(KNODE)/knode.h \
 	$(INCL)/dtka.h
 
-LBP = -lbp -limcfw
+LBP = -lbp
 
 RUNTIMES = karecv kacompile kaadmin kaboot knadmin kapublish knmgr knclock
 
