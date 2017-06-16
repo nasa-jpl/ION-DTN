@@ -219,7 +219,7 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	int result, tmpCustody, tmpPriority, lifespan, ackRequested;
 	unsigned char srrFlags;
 	BpCustodySwitch custodySwitch;
-	BpExtendedCOS extendedCOS = { 0, 0, 0 };
+	BpAncillaryData extendedCOS = { 0, 0, 0 };
 	/* Set option bundle */
 	reportEid = al_ion_endpoint_id(spec->replyto);
 	lifespan = (int) spec->expiration;
