@@ -1043,7 +1043,7 @@ void	ionDetach()
 #endif	/*	end of #ifdef ION_LWT					*/
 }
 
-void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
+void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 		unsigned int owlt)
 {
 	Sdr		ionsdr = _ionsdr(NULL);

@@ -713,7 +713,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 int	rfx_insert_contact(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, unsigned int xmitRate,
+			uvast fromNode, uvast toNode, size_t xmitRate,
 			float confidence, PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
@@ -977,7 +977,7 @@ puts("Duplicate log entry is rejected.");
 }
 
 void	rfx_log_discovered_contact(time_t fromTime, time_t toTime,
-		uvast fromNode, uvast toNode, unsigned int xmitRate, int idx)
+		uvast fromNode, uvast toNode, size_t xmitRate, int idx)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getIonDbObject();
@@ -1370,7 +1370,7 @@ typedef struct
 	uvast		toNode;
 	time_t		fromTime;
 	time_t		toTime;
-	unsigned int	xmitRate;
+	size_t		xmitRate;
 } PbContact;
 
 static int	removePredictedContacts(uvast fromNode, uvast toNode)
@@ -1603,7 +1603,7 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime)
 	float		contactConfidence;
 	float		gapConfidence;
 	float		netConfidence;
-	unsigned int	xmitRate;
+	size_t		xmitRate;
 	PsmAddress	cxaddr;
 char	buf[255];
 

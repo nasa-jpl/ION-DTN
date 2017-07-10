@@ -41,7 +41,7 @@ extern int		rfx_insert_contact(time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
-				unsigned int xmitRate,
+				size_t xmitRate,
 				float confidence,
 				PsmAddress *cxaddr);
 			/*	Creates a new IonContact object,

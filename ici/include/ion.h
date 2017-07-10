@@ -87,7 +87,7 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	int		discovered;	/*	Boolean.		*/
 } IonContact;
@@ -98,7 +98,7 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
 } PastContact;
 
 typedef struct
@@ -229,7 +229,7 @@ typedef struct
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	int		discovered;	/*	Boolean.		*/
 	time_t		startXmit;	/*	Computed when inserted.	*/

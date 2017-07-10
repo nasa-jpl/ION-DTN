@@ -101,10 +101,10 @@ typedef struct
 	int			secUntilReconnect;
 	int			secSinceReception;
 	int			timeoutCount;
-	int			segmentAcks;	/*	Boolean		*/
-	int			reactiveFrags;	/*	Boolean		*/
-	int			bundleRefusals;	/*	Boolean		*/
-	int			lengthMessages;	/*	Boolean		*/
+	int			segmentAcks;	/*	Boolean.	*/
+	int			reactiveFrags;	/*	Boolean.	*/
+	int			bundleRefusals;	/*	Boolean.	*/
+	int			lengthMessages;	/*	Boolean.	*/
 
 	/*	Reception function.					*/
 
@@ -130,8 +130,9 @@ typedef struct tcpcl_neighbor
 {
 	VPlan			*vplan;		/*	Remote node.	*/
 	VInduct			*induct;	/*	(Common.)	*/
-	int			mustDelete;	/*	Boolean		*/
+	int			mustDelete;	/*	Boolean.	*/
 	TcpclSession		sessions[2];
+	size_t			receptionRate;	/*	Bytes/sec.	*/
 } TcpclNeighbor;
 
 static void	*handleContacts(void *parm);
@@ -286,6 +287,7 @@ static LystElt	addTcpclNeighbor(VPlan *vplan, VInduct *induct, Lyst neighbors)
 		session->secUntilKeepalive = -1;
 	}
 
+	neighbor->receptionRate = 0;
 	elt = lyst_insert_last(neighbors, (void *) neighbor);
 	if (elt == NULL)
 	{
@@ -1171,6 +1173,8 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	TcpclNeighbor	*neighbor = session->neighbor;
 	int		result;
 	uvast		dataLength;
+	size_t		receptionRate;
+	float		snoozeInterval;
 	uvast		bytesRemaining;
 	int		bytesToRead;
 	int		extentSize;
@@ -1203,6 +1207,19 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 			return -1;
 		}
 	}
+
+	/*	Enforce rate control: snooze appropriate interval
+	 *	as dictated by contact plan reception rate.		*/
+
+	receptionRate = rtp->session->neighbor->receptionRate;
+	if (receptionRate > 0)
+	{
+		snoozeInterval = ((float) dataLength / (float) receptionRate)
+		       		* 1000000.0;
+		microsnooze((int) snoozeInterval);
+	}
+
+	/*	Now finish reading the data segment.			*/
 
 	bytesRemaining = dataLength;
 	while (bytesRemaining > 0)
@@ -1629,7 +1646,7 @@ static void	*handleContacts(void *parm)
 		tag = neighbor->vplan->neighborEid;
 	}
 
-	/*	Load other required receiver thread parms.		*/
+	/*	Load other required receiver thread parmss.		*/
 
 	rtp->work = bpGetAcqArea(neighbor->induct);
 	if (rtp->work == NULL)
@@ -2271,6 +2288,9 @@ static void	*handleEvents(void *parm)
 	LystElt			elt;
 	LystElt			nextElt;
 	TcpclNeighbor		*neighbor;
+	IonVdb			*ionvdb = getIonVdb();
+	PsmAddress		nextNeighbor;
+	IonNeighbor		*ionNeighbor;
 	int			i;
 
 	while (ctp->running)
@@ -2326,6 +2346,18 @@ static void	*handleEvents(void *parm)
 				deleteTcpclNeighbor(neighbor);
 				lyst_delete(elt);
 				continue;
+			}
+
+			if (neighbor->vplan)
+			{
+				ionNeighbor = findNeighbor(ionvdb,
+					neighbor->vplan->neighborNodeNbr,
+					&nextNeighbor);
+				if (ionNeighbor)
+				{
+					neighbor->receptionRate
+						= ionNeighbor->recvRate;
+				}
 			}
 
 			for (i = 0; i < 2; i++)
