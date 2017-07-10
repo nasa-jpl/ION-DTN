@@ -1481,8 +1481,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
-		vdb->confirmedTransitSemaphore = SM_SEM_NONE;
-		vdb->provisionalTransitSemaphore = SM_SEM_NONE;
+		vdb->transitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
@@ -1619,8 +1618,7 @@ int	bpInit()
 				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
-		bpdbBuf.confirmedTransit = sdr_list_create(bpSdr);
-		bpdbBuf.provisionalTransit = sdr_list_create(bpSdr);
+		bpdbBuf.transit = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(bpSdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
@@ -1833,15 +1831,12 @@ int	bpStart()
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->transitCmd);
 		bpvdb->transitPid = pseudoshell(cmdString);
-		bpvdb->confirmedTransitSemaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-		bpvdb->provisionalTransitSemaphore = sm_SemCreate(SM_NO_KEY,
+		bpvdb->transitSemaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 
-		/*	Lock both transit semaphores.			*/
+		/*	Lock transit semaphore.			*/
 
-		sm_SemTake(bpvdb->confirmedTransitSemaphore);
-		sm_SemTake(bpvdb->provisionalTransitSemaphore);
+		sm_SemTake(bpvdb->transitSemaphore);
 	}
 
 	/*	Start forwarders and admin endpoints for all schemes.	*/
@@ -1932,8 +1927,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
-	sm_SemEnd(bpvdb->confirmedTransitSemaphore);
-	sm_SemEnd(bpvdb->provisionalTransitSemaphore);
+	sm_SemEnd(bpvdb->transitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->transitPid, SIGTERM);
@@ -7280,19 +7274,9 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	/*	Queue the bundle for insertion into Outbound ZCO
 	 *	space.							*/
 
-	if (zco_is_provisional(bpSdr, bundle->payload.content))
-	{
-		bundle->transitElt = sdr_list_insert_last(bpSdr,
-				db->provisionalTransit, bundleObj);
-		sm_SemGive(vdb->provisionalTransitSemaphore);
-	}
-	else
-	{
-		bundle->transitElt = sdr_list_insert_last(bpSdr,
-				db->confirmedTransit, bundleObj);
-		sm_SemGive(vdb->confirmedTransitSemaphore);
-	}
-
+	bundle->transitElt = sdr_list_insert_last(bpSdr, db->transit,
+			bundleObj);
+	sm_SemGive(vdb->transitSemaphore);
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	releaseDictionary(dictionary);
 	return 0;
@@ -7500,7 +7484,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 }
 
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
-		ReqAttendant *attendant)
+		ReqAttendant *attendant, unsigned char priority)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
@@ -7561,7 +7545,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	/*	Reserve space for new ZCO extent.			*/
 
 	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, 0, heapSpaceNeeded,
-			0, 0, attendant, &ticket) < 0)
+			priority, 0, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve ZCO space.", NULL);
 		return -1;
@@ -7603,8 +7587,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	CHKERR(sdr_begin_xn(sdr));
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
-		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound,
-				0);
+		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
 		if (work->zco == (Object) ERROR)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
@@ -9170,7 +9153,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
-			0 - ctSignalLength, ZcoOutbound, 0);
+			0 - ctSignalLength, ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -9451,7 +9434,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
-			ZcoOutbound, 0);
+			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);

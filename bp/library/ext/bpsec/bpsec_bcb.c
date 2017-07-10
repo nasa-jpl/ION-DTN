@@ -1715,7 +1715,7 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 	/* Pass additive inverse of cipherBufLen to tell ZCO that space has already been
 	 * allocated.
 	 */
-	if((*cipherZco = zco_create(bpSdr, ZcoSdrSource, cipherBuffer, 0, 0 - cipherBufLen, ZcoOutbound, 0)) == 0)
+	if((*cipherZco = zco_create(bpSdr, ZcoSdrSource, cipherBuffer, 0, 0 - cipherBufLen, ZcoOutbound)) == 0)
 	{
 		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Cannot create zco.", NULL);
 

@@ -1187,10 +1187,10 @@ Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
 	entity.inboundFdus = sdr_list_create(sdr);
 	entityObj = sdr_malloc(sdr, sizeof(Entity));
 	if (entity.inboundFdus == 0 || entityObj == 0
-	|| (elt == 0	?
+	|| (nextElt == 0	?
 		sdr_list_insert_last(sdr, db->entities, entityObj)
 		: 
-		sdr_list_insert_before(sdr, elt, entityObj)) == 0)
+		sdr_list_insert_before(sdr, nextElt, entityObj)) == 0)
 	{
 		return 0;	/*	System failure.		*/
 	}
@@ -2934,7 +2934,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		 *	to note that space has already been awarded.	*/
 
 		*pdu = zco_create(sdr, ZcoSdrSource, fdu->metadataPdu, 0,
-				0 - length, ZcoOutbound, 0);
+				0 - length, ZcoOutbound);
 		switch (*pdu)
 		{
 		case (Object) ERROR:
@@ -3025,7 +3025,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 			 *	already been awarded.			*/
 
 			*pdu = zco_create(sdr, ZcoSdrSource, header, 0,
-					0 - length, ZcoOutbound, 0);
+					0 - length, ZcoOutbound);
 			switch (*pdu)
 			{
 			case (Object) ERROR:
@@ -3064,7 +3064,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 	 *	that space has already been awarded.			*/
 
 	*pdu = zco_create(sdr, ZcoSdrSource, fdu->eofPdu, 0, 0 - length,
-			ZcoOutbound, 0);
+			ZcoOutbound);
 	switch (*pdu)
 	{
 	case (Object) ERROR:
@@ -3101,7 +3101,7 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 		 *	to note that space has already been awarded.	*/
 
 		*pdu = zco_create(sdr, ZcoSdrSource, fpdu->pdu, 0,
-				0 - length, ZcoOutbound, 0);
+				0 - length, ZcoOutbound);
 		switch (*pdu)
 		{
 		case (Object) ERROR:

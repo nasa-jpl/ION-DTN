@@ -190,6 +190,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/library/ltpnm.h
 ln -s ../ltp/library/ltpei.h
 ln -s ../ltp/daemon/ltpclock.c
+ln -s ../ltp/daemon/ltpdeliv.c
 ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
 ln -s ../bssp/library/libbssp.c

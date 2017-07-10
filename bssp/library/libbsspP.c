@@ -2302,7 +2302,7 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 
 	if (ticket)	/*	Couldn't service request immediately.	*/
 	{
-		ionShred(ticket);
+//		ionShred(ticket);
 #if BSSPDEBUG
 putErrmsg("Can't handle data block, would exceed available ZCO space.",
 utoa(pdu->length));
@@ -2323,7 +2323,7 @@ utoa(pdu->length));
 
 	pduLength -= pdu->length;
 	clientSvcData = zco_create(bsspSdr, ZcoSdrSource, pduObj, 0, pduLength,
-			ZcoInbound, 0);
+			ZcoInbound);
 	switch (clientSvcData)
 	{
 	case (Object) ERROR:

@@ -1988,9 +1988,6 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	vast		totalFileSpaceAvbl;
 	vast		totalBulkSpaceAvbl;
 	vast		totalHeapSpaceAvbl;
-	vast		restrictedFileSpaceAvbl;
-	vast		restrictedBulkSpaceAvbl;
-	vast		restrictedHeapSpaceAvbl;
 	vast		fileSpaceAvbl;
 	vast		bulkSpaceAvbl;
 	vast		heapSpaceAvbl;
@@ -2009,17 +2006,6 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	totalFileSpaceAvbl = maxFileOccupancy - currentFileOccupancy;
 	totalBulkSpaceAvbl = maxBulkOccupancy - currentBulkOccupancy;
 	totalHeapSpaceAvbl = maxHeapOccupancy - currentHeapOccupancy;
-
-	/*	Requestors that are willing to wait for space are not
-	 *	allowed to fill up all available space; for these
-	 *	requestors, maximum occupancy is reduced by 1/2.  This
-	 *	is to ensure that these requestors cannot prevent
-	 *	allocation of ZCO space to requestors that cannot
-	 *	wait for it.						*/
-
-	restrictedFileSpaceAvbl = (maxFileOccupancy / 2) - currentFileOccupancy;
-	restrictedBulkSpaceAvbl = (maxBulkOccupancy / 2) - currentBulkOccupancy;
-	restrictedHeapSpaceAvbl = (maxHeapOccupancy / 2) - currentHeapOccupancy;
 	for (elt = sm_list_first(ionwm, vdb->requisitions[acct]); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
@@ -2035,25 +2021,12 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 			totalFileSpaceAvbl -= req->fileSpaceNeeded;
 			totalBulkSpaceAvbl -= req->bulkSpaceNeeded;
 			totalHeapSpaceAvbl -= req->heapSpaceNeeded;
-			restrictedFileSpaceAvbl -= req->fileSpaceNeeded;
-			restrictedBulkSpaceAvbl -= req->bulkSpaceNeeded;
-			restrictedHeapSpaceAvbl -= req->heapSpaceNeeded;
 			continue;	/*	Req already serviced.	*/
 		}
 
-		if (req->semaphore == SM_SEM_NONE)
-		{
-			fileSpaceAvbl = totalFileSpaceAvbl;
-			bulkSpaceAvbl = totalBulkSpaceAvbl;
-			heapSpaceAvbl = totalHeapSpaceAvbl;
-		}
-		else
-		{
-			fileSpaceAvbl = restrictedFileSpaceAvbl;
-			bulkSpaceAvbl = restrictedBulkSpaceAvbl;
-			heapSpaceAvbl = restrictedHeapSpaceAvbl;
-		}
-
+		fileSpaceAvbl = totalFileSpaceAvbl;
+		bulkSpaceAvbl = totalBulkSpaceAvbl;
+		heapSpaceAvbl = totalHeapSpaceAvbl;
 		if (fileSpaceAvbl < 0)
 		{
 			fileSpaceAvbl = 0;
@@ -2090,9 +2063,6 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 		totalFileSpaceAvbl -= req->fileSpaceNeeded;
 		totalBulkSpaceAvbl -= req->bulkSpaceNeeded;
 		totalHeapSpaceAvbl -= req->heapSpaceNeeded;
-		restrictedFileSpaceAvbl -= req->fileSpaceNeeded;
-		restrictedBulkSpaceAvbl -= req->bulkSpaceNeeded;
-		restrictedHeapSpaceAvbl -= req->heapSpaceNeeded;
 	}
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
@@ -2105,7 +2075,6 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = getIonVdb();
-	unsigned char	provisional;
 	vast		fileSpaceNeeded = 0;
 	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
@@ -2114,11 +2083,10 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 	CHKERR(vdb);
 	CHKERR(acct == ZcoInbound || acct == ZcoOutbound);
-	provisional = (acct == ZcoInbound && attendant == NULL ? 1 : 0);
 	if (location == 0)	/*	No initial extent to write.	*/
 	{
 		oK(sdr_begin_xn(sdr));
-		zco = zco_create(sdr, source, 0, 0, 0, acct, provisional);
+		zco = zco_create(sdr, source, 0, 0, 0, acct);
 		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
@@ -2200,8 +2168,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
  	*	indicate that space has already been awarded.		*/
 
 	oK(sdr_begin_xn(sdr));
-	zco = zco_create(sdr, source, location, offset, 0 - length, acct,
-			provisional);
+	zco = zco_create(sdr, source, location, offset, 0 - length, acct);
 	if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR || zco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);

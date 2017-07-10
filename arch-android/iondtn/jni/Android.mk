@@ -69,6 +69,7 @@ MY_DGRSOURCES :=     \
 #		$(MY_LTP)/library/libltp.c    \
 #		$(MY_LTP)/library/libltpP.c   \
 #		$(MY_LTP)/daemon/ltpclock.c   \
+#		$(MY_LTP)/daemon/ltpdeliv.c   \
 #		$(MY_LTP)/daemon/ltpmeter.c   \
 #		$(MY_LTP)/udp/udplsi.c        \
 #		$(MY_LTP)/udp/udplso.c        \

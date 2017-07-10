@@ -341,7 +341,7 @@ int	receiveBundleByStcp(int *sock, AcqWorkArea *work, char *buffer,
 
 		/*	Acquire the received data.			*/
 
-		if (bpContinueAcq(work, buffer, extentSize, attendant) < 0)
+		if (bpContinueAcq(work, buffer, extentSize, attendant, 0) < 0)
 		{
 			return -1;
 		}

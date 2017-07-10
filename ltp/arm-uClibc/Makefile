@@ -22,7 +22,7 @@ LTPINCLS = \
 	$(UDP)/udplsa.h \
 	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
 #dccplsi dccplso
 
 ALL = check libltp.so $(RUNTIMES)
@@ -51,6 +51,10 @@ install:
 ltpclock:	ltpclock.o libltp.so
 		$(CC) -o ltpclock ltpclock.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpclock ./bin
+
+ltpdeliv:	ltpdeliv.o libltp.so
+		$(CC) -o ltpdeliv ltpdeliv.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpdeliv ./bin
 
 ltpmeter:	ltpmeter.o libltp.so
 		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
