@@ -842,6 +842,10 @@ static void	*sendBundles(void *parm)
 						session->keepaliveInterval;
 			}
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	writeErrmsgMemos();
@@ -1255,6 +1259,10 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 				return result;
 			}
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	if (msgtypeByte & 0x01)		/*	End of bundle.		*/

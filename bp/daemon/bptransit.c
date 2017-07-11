@@ -294,6 +294,10 @@ int	main(int argc, char *argv[])
 			putErrmsg("Failed migrating bundle.", NULL);
 			mtp.running = 0;
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	shutDown();

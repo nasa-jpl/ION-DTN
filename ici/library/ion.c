@@ -1845,7 +1845,11 @@ void	ionShred(ReqTicket ticket)
 	/*	Ticket is address of an sm_list element in a shared
 	 *	memory list of requisitions in the IonVdb.		*/
 
-	CHKVOID(ticket);
+	if (ticket == 0)
+	{
+		return;	/*	ZCO space request refused, not queued.	*/
+	}
+
 	CHKVOID(sdr_begin_xn(sdr));	/*	Must be atomic.		*/
 	psm_free(ionwm, sm_list_data(ionwm, ticket));
 	sm_list_delete(ionwm, ticket, NULL, NULL);
@@ -1873,7 +1877,7 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 	CHKERR(heapSpaceNeeded >= 0);
 	CHKERR(ticket);
 	CHKERR(vdb);
-	*ticket = 0;			/*	Default: serviced.	*/
+	*ticket = 0;			/*	Default: refused.	*/
 	oK(sdr_begin_xn(sdr));		/*	Just to lock memory.	*/
 	reqAddr = psm_zalloc(ionwm, sizeof(Requisition));
 	if (reqAddr == 0)
@@ -1956,14 +1960,19 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 	ionProvideZcoSpace(acct);
 	if (req->secondsUnclaimed < 0)
 	{
-		/*	Request can't be serviced yet.			*/
+		/*	Request can't be serviced at this time.		*/
 
-		if (attendant)
+		if (attendant)	/*	Willing to wait.		*/
 		{
 			/*	Ready attendant to wait for service.	*/
 
 			sm_SemGive(attendant->semaphore);
 			sm_SemTake(attendant->semaphore);
+		}
+		else		/*	Request is simply refused.	*/
+		{
+			ionShred(*ticket);
+			*ticket = 0;
 		}
 	}
 
@@ -1975,6 +1984,11 @@ int	ionSpaceAwarded(ReqTicket ticket)
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	reqAddr;
 	Requisition	*req;
+
+	if (ticket == 0)
+	{
+		return 0;	/*	Request refused, not queued.	*/
+	}
 
 	reqAddr = sm_list_data(ionwm, ticket);
 	req = (Requisition *) psp(ionwm, reqAddr);

@@ -350,6 +350,10 @@ int	main(int argc, char *argv[])
 			putErrmsg("LTP delivery failed.", NULL);
 			break;
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	shutDown();
