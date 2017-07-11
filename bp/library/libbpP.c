@@ -7551,12 +7551,14 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		return -1;
 	}
 
-	if (ticket)		/*	Space not currently available.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
+		/*	Space not currently available.			*/
+
 		if (attendant == NULL)	/*	Non-blocking.		*/
 		{
 			work->congestive = 1;
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;	/*	Out of ZCO space.	*/
 		}
 
@@ -7566,20 +7568,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("Failed taking attendant semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	ZCO space has now been reserved.		*/
-
-		ionShred(ticket);
 	}
 
 	/*	At this point, ZCO space is known to be available.	*/
@@ -7592,6 +7592,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7601,6 +7602,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7634,6 +7636,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			case 0:
 				putErrmsg("Can't append heap extent.", NULL);
 				sdr_cancel_xn(sdr);
+				ionShred(ticket);	/*	Cancel.	*/
 				return -1;
 
 			default:
@@ -7644,9 +7647,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't acquire extent into heap.", NULL);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
+		ionShred(ticket);	/*	Dismiss reservation.	*/
 		return 0;
 	}
 
@@ -7659,6 +7664,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't get CWD for acq file name.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7670,6 +7676,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putSysErrmsg("Can't create acq file", fileName);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7681,6 +7688,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			putErrmsg("Can't create file ref.", NULL);
 			sdr_cancel_xn(sdr);
 			close(fd);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7693,6 +7701,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7701,6 +7710,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			putSysErrmsg("Can't get acq file length", fileName);
 			sdr_cancel_xn(sdr);
 			close(fd);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7710,6 +7720,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		putSysErrmsg("Can't append to acq file", fileName);
 		sdr_cancel_xn(sdr);
 		close(fd);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
@@ -7725,6 +7736,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	case 0:
 		putErrmsg("Can't append file extent.", NULL);
 		sdr_cancel_xn(sdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 
 	default:
@@ -7738,9 +7750,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return 0;
 }
 

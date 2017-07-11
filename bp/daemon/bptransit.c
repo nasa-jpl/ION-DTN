@@ -42,10 +42,7 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 
 static void	shutDown()	/*	Commands bptransit termination.	*/
 {
-	BpVdb	*vdb;
-
-	vdb = getBpVdb();
-	sm_SemEnd(vdb->transitSemaphore);
+	sm_SemEnd((getBpVdb())->transitSemaphore);
 	ionPauseAttendant(_attendant(NULL));
 }
 
@@ -191,23 +188,22 @@ int	main(int argc, char *argv[])
 
 		if (ionRequestZcoSpace(ZcoOutbound, fileSpaceNeeded,
 				bulkSpaceNeeded, heapSpaceNeeded, priority,
-				bundle.ancillaryData.ordinal,
-				&attendant, &ticket) < 0)
+				bundle.ancillaryData.ordinal, &attendant,
+				&ticket) < 0)
 		{
 			putErrmsg("Failed trying to reserve ZCO space.", NULL);
 			mtp.running = 0;
 			continue;
 		}
 
-		if (ticket)	/*	Space not currently available.	*/
+		if (!(ionSpaceAwarded(ticket)))
 		{
-			/*	Ticket is req list element for the
-			 *	request.  Wait until space available.	*/
+			/*	Space not currently available.		*/
 
 			if (sm_SemTake(attendant.semaphore) < 0)
 			{
 				putErrmsg("Failed taking semaphore.", NULL);
-				ionShred(ticket);
+				ionShred(ticket);	/*	Cancel.	*/
 				mtp.running = 0;
 				continue;
 			}
@@ -215,13 +211,12 @@ int	main(int argc, char *argv[])
 			if (sm_SemEnded(attendant.semaphore))
 			{
 				writeMemo("[i] ZCO request interrupted.");
-				ionShred(ticket);
+				ionShred(ticket);	/*	Cancel.	*/
+				mtp.running = 0;
 				continue;
 			}
 
 			/*	ZCO space has now been reserved.	*/
-
-			ionShred(ticket);
 		}
 
 		/*	At this point ZCO space is known to be avbl.	*/
@@ -236,6 +231,7 @@ int	main(int argc, char *argv[])
 			 *	and start over again.			*/
 
 			sdr_exit_xn(sdr);
+			ionShred(ticket);		/*	Cancel.	*/
 			continue;
 		}
 
@@ -256,6 +252,7 @@ int	main(int argc, char *argv[])
 			 *	start over again.			*/
 
 			sdr_exit_xn(sdr);
+			ionShred(ticket);		/*	Cancel.	*/
 			continue;
 		}
 
@@ -272,13 +269,15 @@ int	main(int argc, char *argv[])
 		case 0:
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create payload ZCO.", NULL);
+			ionShred(ticket);		/*	Cancel.	*/
 			mtp.running = 0;
 			continue;
 
 		default:
-			break;			/*	Out of switch.	*/
+			break;		/*	Out of switch.		*/
 		}
 
+		ionShred(ticket);	/*	Dismiss reservation.	*/
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.transitElt = 0;
 		if (initiateBundleForwarding(sdr, &bundle, bundleAddr,

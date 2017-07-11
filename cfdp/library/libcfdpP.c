@@ -3186,28 +3186,25 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		return -1;
 	}
 
-	if (ticket)	/*	Space is not currently available.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		/*	Ticket is request list element for the request.
-		 *	Wait until space is available.			*/
+		/*	Space is not currently available.		*/
 
 		if (sm_SemTake(cfdpvdb->attendant.semaphore) < 0)
 		{
 			putErrmsg("Failed taking semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		if (sm_SemEnded(cfdpvdb->attendant.semaphore))
 		{
 			writeMemo("[i] CFDP UTO ZCO request interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		/*	ZCO space has now been reserved.		*/
-	
-		ionShred(ticket);
 	}
 
 	/*	At this point it is known that there's sufficient
@@ -3219,9 +3216,11 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	{
 		putErrmsg("UTO can't get outbound PDU.", NULL);
 		sdr_cancel_xn(sdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	while (*pdu == 0)
 	{
 		sdr_exit_xn(sdr);

@@ -1951,27 +1951,39 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
 
-	/*	See if request can be serviced immediately.		*/
+	/*	Try to service the request immediately.			*/
 
 	ionProvideZcoSpace(acct);
-	if (req->secondsUnclaimed >= 0)	/*	Got it!			*/
+	if (req->secondsUnclaimed < 0)
 	{
-		ionShred(*ticket);
-		*ticket = 0;		/*	Nothing to wait for.	*/
-		return 0;
-	}
+		/*	Request can't be serviced yet.			*/
 
-	/*	Request can't be serviced yet.				*/
+		if (attendant)
+		{
+			/*	Ready attendant to wait for service.	*/
 
-	if (attendant)
-	{
-		/*	Get attendant ready to wait for service.	*/
-
-		sm_SemGive(attendant->semaphore);	/*	Unlock.	*/
-		sm_SemTake(attendant->semaphore);	/*	Lock.	*/
+			sm_SemGive(attendant->semaphore);
+			sm_SemTake(attendant->semaphore);
+		}
 	}
 
 	return 0;
+}
+
+int	ionSpaceAwarded(ReqTicket ticket)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	reqAddr;
+	Requisition	*req;
+
+	reqAddr = sm_list_data(ionwm, ticket);
+	req = (Requisition *) psp(ionwm, reqAddr);
+	if (req->secondsUnclaimed < 0)
+	{
+		return 0;	/*	Still waiting for service.	*/
+	}
+
+	return 1;		/*	Request has been serviced.	*/
 }
 
 static void	ionProvideZcoSpace(ZcoAcct acct)
@@ -2135,12 +2147,14 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		return ((Object) ERROR);
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		if (attendant == NULL)	/*	Non-blocking.		*/
+		/*	Couldn't service request immediately.		*/
+
+		if (attendant == NULL)		/*	Non-blocking.	*/
 		{
-			ionShred(ticket);
-			return 0;	/*	No Zco created.		*/
+			ionShred(ticket);	/*	Cancel request.	*/
+			return 0;		/*	No Zco created.	*/
 		}
 
 		/*	Ticket is req list element for the request.	*/
@@ -2148,20 +2162,18 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("ionCreateZco can't take semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return ((Object) ERROR);
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO creation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	Request has been serviced; can now create ZCO.	*/
-
-		ionShred(ticket);
 	}
 
 	/*	Pass additive inverse of length to zco_create to
@@ -2172,9 +2184,11 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR || zco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return ((Object) ERROR);
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return zco;
 }
 
@@ -2228,12 +2242,14 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		return ERROR;
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		if (attendant == NULL)	/*	Non-blocking.		*/
+		/*	Couldn't service request immediately.		*/
+
+		if (attendant == NULL)		/*	Non-blocking.	*/
 		{
-			ionShred(ticket);
-			return 0;	/*	No extent created.	*/
+			ionShred(ticket);	/*	Cancel request.	*/
+			return 0;		/*	No extent.	*/
 		}
 
 		/*	Ticket is req list element for the request.	*/
@@ -2242,20 +2258,18 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		{
 			putErrmsg("ionAppendZcoExtent can't take semaphore.",
 					NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return ERROR;
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO extent creation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	Request has been serviced; now create extent.	*/
-
-		ionShred(ticket);
 	}
 
 	/*	Pass additive inverse of length to zco_append_extent
@@ -2267,9 +2281,11 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	if (sdr_end_xn(sdr) < 0 || result == ERROR || result == 0)
 	{
 		putErrmsg("Can't create ZCO extent.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return ERROR;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return result;
 }
 

@@ -350,6 +350,7 @@ extern int		ionRequestZcoSpace(ZcoAcct acct,
 					unsigned char finePriority,
 					ReqAttendant *attendant,
 					ReqTicket *ticket);
+extern int		ionSpaceAwarded(ReqTicket ticket);
 extern void		ionShred(	ReqTicket ticket);
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,

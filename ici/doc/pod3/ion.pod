@@ -157,23 +157,36 @@ Destroys the semaphore in I<attendant>, preventing a potential resource leak.
 
 =item int ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded, vast bulkSpaceNeeded, vast heapSpaceNeeded, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant, ReqTicket *ticket)
 
-Lodges a request for space in the pool identified by I<acct>.  If the requested
-space can be provided immediately, it is reserved for use by the calling task
-and I<*ticket> is set to zero.  Otherwise, if I<attendant> is NULL, no space
-is reserved and again I<*ticket> is set to zero.  Otherwise, the request has
-been queued for service when space becomes available and I<*ticket> is set
-to the address of a ticket referencing this request; the calling task should
-pend on the semaphore in I<attendant>, and upon taking the semaphore it must
-ionShred() the ticket and may then consider the requested space reserved for
-its use.  Return 0 on success, -1 on any failure.
+Lodges a request for ZCO space in the pool identified by I<acct>.  If the
+requested space can be provided immediately, it is reserved for use by the
+calling task.  Otherwise, if I<attendant> is non-NULL then the request is
+queued for service when space becomes available.  In any case, I<*ticket>
+is set to the address of a "ticket" referencing this request.  The status
+of the request can be interrogated by calling ionSpaceAwarded().  If this
+function returns 1 (True) then ZCO space may be consumed immediately and
+the ticket must then be destroyed by a call to ionShred().  Otherwise, if
+an attendant was provided, then the calling task should pend on the semaphore
+in I<attendant> and upon successfully taking the semaphore it must
+consume the requested ZCO space and then ionShred() the ticket.  Otherwise
+the request for ZCO space has been definitively denied and, as always, the
+ticket must by destroyed by an invocation of ionShred().  Returns 0 on success,
+-1 on any failure.
+
+=item int ionSpaceAwarded(ReqTicket *ticket)
+
+Returns 1 if I<ticket> is for a ZCO space request that has been serviced
+(ZCO space has been reserved per this request), 0 otherwise.
 
 =item void ionShred(ReqTicket *ticket)
 
-Acknowledges the reservation of ZCO space requested by the call to
-ionRequestZcoSpace() that returned I<ticket>.  Note that failure to
-acknowledge a serviced ticket promptly (within 3 seconds of receiving it)
-will be interpreted as refusal of the reserved ZCO space, resulting in that
-space being made available for use by other tasks.
+Dismisses the reservation of ZCO space (if any) requested by the call to
+ionRequestZcoSpace() that returned I<ticket>.  Calling ionShred() indicates
+either that the requested space was reserved (i.e., the request was "serviced")
+and has been claimed (consumed by the appending of a ZCO extent) or that the
+request has been canceled.  Note that failure to promptly (within 3 seconds of
+reception) ionShred() the ticket for a service request will be interpreted as
+refusal of the reserved ZCO space, resulting in that space being made
+available for use by other tasks.
 
 =item Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ZcoAcct acct, ReqAttendant *attendant)
 

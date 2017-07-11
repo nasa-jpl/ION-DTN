@@ -4820,9 +4820,11 @@ putErrmsg("Cancel by receiver.", itoa(sessionBuf.sessionNbr));
 		return -1;
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		ionShred(ticket);
+		/*	Couldn't service request immediately.		*/
+
+		ionShred(ticket);	/*	Cancel request.		*/
 		*clientSvcData = 0;
 #if LTPDEBUG
 putErrmsg("Can't handle green data, would exceed available ZCO space.",
@@ -4835,6 +4837,7 @@ utoa(pdu->length));
 	if (pduObj == 0)
 	{
 		putErrmsg("Can't record green segment data.", NULL);
+		ionShred(ticket);	/*	Cancel request.		*/
 		return -1;
 	}
 
@@ -4848,6 +4851,7 @@ utoa(pdu->length));
 	{
 	case (Object) ERROR:
 		putErrmsg("Can't record green segment data.", NULL);
+		ionShred(ticket);	/*	Cancel request.		*/
 		return -1;
 
 	case 0:	/*	No ZCO space.  Silently discard segment.	*/
@@ -4855,9 +4859,11 @@ utoa(pdu->length));
 putErrmsg("Can't handle green data, would exceed available ZCO space.",
 utoa(pdu->length));
 #endif
-		break;
+		ionShred(ticket);	/*	Cancel request.		*/
+		return 1;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return 1;
 }
 

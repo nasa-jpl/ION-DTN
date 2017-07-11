@@ -11,10 +11,22 @@
 #include "ltpP.h"
 #include "ltpei.h"
 
+static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
+{
+	static ReqAttendant	*attendant = NULL;
+
+	if (newAttendant)
+	{
+		attendant = newAttendant;
+	}
+
+	return attendant;
+}
+
 static void	shutDown()
 {
-	isignal(SIGTERM, shutDown);
 	sm_SemEnd((getLtpVdb())->deliverySemaphore);
+	ionPauseAttendant(_attendant(NULL));
 }
 
 static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
@@ -72,31 +84,32 @@ static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
 	}
 
 	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, 0, heapSpaceNeeded,
-				0, 0, attendant, &ticket) < 0)
+			0, 0, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve Zco space.", NULL);
 		return -1;
 	}
 
-	if (ticket)		/*	Space not currently available.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		/*	Ticket is req list element for the request.
-		 *	Wait until space is available.  Shredding the
-		 *	ticket acknowledges space reservation; failing
-		 *	to shred the ticket lets the reservation lapse
-		 *	after three seconds, enabling the space to be
-		 *	awarded to another requestor.			*/;
+		/*	Space not currently available.			*/
 
 		sdr_exit_xn(sdr);
+
+		/*	Ticket is req list element for the request.
+		 *	Wait until space is available.			*/
+
 		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("Failed taking attendant semaphore.", NULL);
-			return -1;
+			ionShred(ticket);	/*	Cancel request.	*/
+			return 0;
 		}
 
 		if (sm_SemEnded(attendant->semaphore) < 0)
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
@@ -109,18 +122,19 @@ static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
 		findSpan(sourceEngineId, &vspan, &vspanElt);
 		if (vspanElt == 0)
 		{
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 1;	/*	Discard deliverable.	*/
 		}
 
 		getImportSession(vspan, sessionNbr, &vsession, &sessionObj);
 		if (sessionObj == 0)
 		{
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 1;	/*	Discard deliverable.	*/
 		}
 
 		sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
 				sizeof(ImportSession));
-		ionShred(ticket);	/*	Accept reservation.	*/
 	}
 
 	/*	At this point, ZCO space is known to be available
@@ -133,6 +147,7 @@ static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
 	case (Object) ERROR:
 	case 0:				/*	Out of ZCO space.	*/
 		putErrmsg("Can't create service data object.", NULL);
+		ionShred(ticket);	/*	Cancel request.		*/
 		return -1;
 	}
 
@@ -159,7 +174,8 @@ static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
 		{
 		case (Object) ERROR:
 		case 0:
-			putErrmsg("Can't deliver ZCO extent.", NULL);
+			putErrmsg("Can't append ZCO extent.", NULL);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 
 		default:
@@ -177,7 +193,8 @@ static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
 		{
 		case (Object) ERROR:
 		case 0:
-			putErrmsg("Can't deliver ZCO extent.", NULL);
+			putErrmsg("Can't append ZCO extent.", NULL);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 
 		default:
@@ -187,6 +204,8 @@ static int	deliverSvcData(int clientSvcId, uvast sourceEngineId,
 		zco_destroy_file_ref(sdr, sessionBuf.blockFileRef);
 		sessionBuf.blockFileRef = 0;
 	}
+
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 
 	/*	Can now discard all red segments.			*/
 
@@ -271,6 +290,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	oK(_attendant(&attendant));
 	isignal(SIGTERM, shutDown);
 
 	/*	Main loop: wait until deliverables queue is non-
@@ -309,9 +329,9 @@ int	main(int argc, char *argv[])
 
 		if (result == 0)
 		{
-			/*	ZCO space reservation interrupted.	*/
+			/*	ZCO space reservation failed, no
+			 *	longer in transaction.			*/
 
-			sdr_exit_xn(sdr);
 			break;
 		}
 
@@ -332,7 +352,7 @@ int	main(int argc, char *argv[])
 		}
 	}
 
-	ionPauseAttendant(&attendant);
+	shutDown();
 	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] ltpdeliv has ended.");
