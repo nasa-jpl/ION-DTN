@@ -244,12 +244,14 @@ typedef struct
 	int		redPartLength;
 	int		redPartReceived;
 	unsigned char	endOfBlockRecd;	/*	Boolean.		*/
+	unsigned char	delivered;	/*	Boolean.		*/
+	unsigned char	finalRptAcked;	/*	Boolean.		*/
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
 	unsigned int	nextRptSerialNbr;
-	unsigned int	lastRptSerialNbr;
+	unsigned int	finalRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
 	int		reportsCount;
 
@@ -393,6 +395,7 @@ typedef struct
 	Object		lsoCmd;		/*	For starting the LSO.	*/
 	unsigned int	maxExportSessions;
 	unsigned int	maxImportSessions;
+	unsigned int	importBufferCount;
 	unsigned int	aggrSizeLimit;	/*	Bytes.			*/
 	unsigned int	aggrTimeLimit;	/*	Seconds.		*/
 	unsigned int	maxSegmentSize;	/*	MTU size, in bytes.	*/
@@ -675,6 +678,9 @@ extern void		getImportSession(LtpVspan *vspan,
 				unsigned int sessionNbr,
 				VImportSession **vsessionPtr,
 				Object *sessionObj);
+extern void		clearImportSession(ImportSession *session);
+extern void		stopImportSession(ImportSession *session);
+extern void		closeImportSession(Object sessionObj);
 
 extern int		ltpAttachClient(unsigned int clientSvcId);
 extern void		ltpDetachClient(unsigned int clientSvcId);

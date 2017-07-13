@@ -235,6 +235,7 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		bundleAddr = sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
 				bundle.payload.length, &fileSpaceNeeded,

@@ -2433,25 +2433,13 @@ static int	recycleImportBuffer(Sdr sdr, LtpSpan *span,
 	return 0;
 }
 
-static void	stopImportSession(ImportSession *session)
+void	clearImportSession(ImportSession *session)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	segObj;
-		OBJ_POINTER(LtpXmitSeg, rs);
 		OBJ_POINTER(LtpRecvSeg, ds);
 	LtpSpan	span;
-
-	CHKVOID(ionLocked());
-	while ((elt = sdr_list_first(sdr, session->rsSegments)) != 0)
-	{
-		segObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, LtpXmitSeg, rs, segObj);
-		destroyRsXmitSeg(elt, segObj, rs);
-	}
-
-	sdr_list_destroy(sdr, session->rsSegments, NULL, NULL);
-	session->rsSegments = 0;
 
 	/*	Terminate reception of red-part data, release space,
 	 *	and reduce heap reservation occupancy.			*/
@@ -2484,24 +2472,8 @@ static void	stopImportSession(ImportSession *session)
 		session->redSegments = 0;
 	}
 
-	stopVImportSession(session);
 	sdr_read(sdr, (char *) &span, session->span, sizeof(LtpSpan));
 	oK(recycleImportBuffer(sdr, &span, session));
-
-	/*	If service data not delivered, then destroying the
-	 *	object ref immediately causes the referenced heap
-	 *	object to be freed.  Otherwise, the service data
-	 *	object passed to the client is a ZCO, one of whose
-	 *	extents references this object reference; the object
-	 *	ref is retained until the last reference to that ZCO
-	 *	is destroyed, at which time the object ref is
-	 *	destroyed and the referenced heap object is freed.	*/
-
-	if (session->blockFileRef)
-	{
-		zco_destroy_file_ref(sdr, session->blockFileRef);
-		session->blockFileRef = 0;
-	}
 
 	/*	If service data not delivered, then destroying the
 	 *	file ref immediately causes its cleanup script to
@@ -2511,6 +2483,32 @@ static void	stopImportSession(ImportSession *session)
 	 *	file ref is retained until the last reference to that
 	 *	ZCO is destroyed, at which time the file ref is
 	 *	destroyed and the file is consequently unlinked.	*/
+
+	if (session->blockFileRef)
+	{
+		zco_destroy_file_ref(sdr, session->blockFileRef);
+		session->blockFileRef = 0;
+	}
+}
+
+void	stopImportSession(ImportSession *session)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	segObj;
+		OBJ_POINTER(LtpXmitSeg, rs);
+
+	CHKVOID(ionLocked());
+	while ((elt = sdr_list_first(sdr, session->rsSegments)) != 0)
+	{
+		segObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, LtpXmitSeg, rs, segObj);
+		destroyRsXmitSeg(elt, segObj, rs);
+	}
+
+	sdr_list_destroy(sdr, session->rsSegments, NULL, NULL);
+	session->rsSegments = 0;
+	stopVImportSession(session);
 #if LTPDEBUG
 putErrmsg("Stopped import session.", itoa(session->sessionNbr));
 #endif
@@ -2581,7 +2579,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 	oK(insertLtpTimelineEvent(&event));
 }
 
-static void	closeImportSession(Object sessionObj)
+void	closeImportSession(Object sessionObj)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(ImportSession, session);
@@ -2591,7 +2589,6 @@ static void	closeImportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, ImportSession, session, sessionObj);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
-	oK(recycleImportBuffer(sdr, span, session));
 
 	/*	Remove the rest of the import session.			*/
 
@@ -3744,7 +3741,6 @@ static int	cancelSessionByReceiver(ImportSession *session,
 	Sdr	sdr = getIonsdr();
 	LtpVdb	*ltpvdb = _ltpvdb(NULL);
 		OBJ_POINTER(LtpSpan, span);
-	Object	elt;
 
 	CHKERR(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
@@ -3761,20 +3757,18 @@ static int	cancelSessionByReceiver(ImportSession *session,
 		iwatch('[');
 	}
 
+	clearImportSession(session);
 	stopImportSession(session);
 	session->reasonCode = reasonCode;	/*	For resend.	*/
 	sdr_write(sdr, sessionObj, (char *) session, sizeof(ImportSession));
 
-	/*	Remove session from active sessions pool, so that the
-	 *	cancellation won't affect flow control.			*/
+	/*	Insert into list of canceled sessions.			*/
 
-	sdr_hash_remove(sdr, span->importSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
-
-	/*	Insert into list of canceled sessions instead.		*/
-
-	elt = sdr_list_insert_last(sdr, span->deadImports, sessionObj);
+	if (sdr_list_insert_last(sdr, span->deadImports, sessionObj) == 0)
+	{
+		putErrmsg("Can't insert into list of canceled sessions.", NULL);
+		return -1;
+	}
 
 	/*	Finally, inform sender of cancellation.			*/
 
@@ -4005,7 +3999,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 	return 0;
 }
 
-static int	sendLastReport(ImportSession *session, Object sessionObj,
+static int	sendFinalRpt(ImportSession *session, Object sessionObj,
 			unsigned int checkpointSerialNbr)
 {
 	Sdr		sdr = getIonsdr();
@@ -4050,7 +4044,7 @@ static int	sendLastReport(ImportSession *session, Object sessionObj,
 #if LTPDEBUG
 putErrmsg("Reporting all data received.", itoa(session->sessionNbr));
 #endif
-	session->lastRptSerialNbr = rsBuf.pdu.rptSerialNbr;
+	session->finalRptSerialNbr = rsBuf.pdu.rptSerialNbr;
 	sdr_write(sdr, sessionObj, (char *) session, sizeof(ImportSession));
 	return 0;
 }
@@ -4075,7 +4069,7 @@ static int	sendReport(ImportSession *session, Object sessionObj,
 	unsigned int	segmentEnd;
 
 	CHKERR(ionLocked());
-	if (session->lastRptSerialNbr != 0)
+	if (session->finalRptSerialNbr != 0)
 	{
 		/*	Have already sent final report to sender.
 		 *	No need to send any more reports; ignore
@@ -4109,7 +4103,7 @@ static int	sendReport(ImportSession *session, Object sessionObj,
 	if (session->redPartLength > 0
 	&& session->redPartReceived == session->redPartLength)
 	{
-		return sendLastReport(session, sessionObj, checkpointSerialNbr);
+		return sendFinalRpt(session, sessionObj, checkpointSerialNbr);
 	}
 
 	if (session->reportsCount >= session->maxReports)
@@ -4367,7 +4361,7 @@ static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 			LtpPdu *pdu, VImportSession **vsessionPtr)
 {
 	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(LtpSpan, span);
+	LtpSpan	span;
 	uvast	heapBufferSize;
 	uvast	blockSize;
 	Object	importBuffer = 0;
@@ -4375,79 +4369,68 @@ static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 	Object	elt;
 
 	CHKERR(ionLocked());
-	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
-	if (sdr_list_length(sdr, span->importSessions)
-			>= span->maxImportSessions)
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+	heapBufferSize = db->maxAcqInHeap;
+
+	/*	Override the default heapBufferSize if it is known
+	 *	that the total block size is smaller.			*/
+
+	if (pdu->segTypeCode == LtpDsRedEORP || pdu->segTypeCode == LtpDsRedEOB)
 	{
-		/*	Limit reached.  Can't start any more sessions.	*/
+		/*	First segment received for this session is
+		 *	end of red part.  Its offset + length is the
+		 *	total size of the block.			*/
+
+		blockSize = pdu->offset + pdu->length;
+		if (blockSize < heapBufferSize)
+		{
+			heapBufferSize = blockSize;
+		}
+	}
+
+	/*	Must grab one of the import heap buffers.		*/
+
+	if (sdr_list_length(sdr, span.importBuffers) == 0)
+	{
+		if (span.importBufferCount >= span.maxImportSessions)
+		{
+			/*	All import buffers are currently in
+			 *	use; can't start another session.	*/
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 #endif
-		return 0;
-	}
-
-	if (db->maxAcqInHeap == 0)
-	{
-		heapBufferSize = 0;
-	}
-	else	/*	Need a heap buffer for at least part of block.	*/
-	{
-		heapBufferSize = db->maxAcqInHeap;
-
-		/*	Override the default heapBufferSize if it is
-		 *	known that the total block size is smaller.	*/
-
-		if (pdu->segTypeCode == LtpDsRedEORP
-		|| pdu->segTypeCode == LtpDsRedEOB)
-		{
-			/*	First segment received for this
-			 *	session is end of red part.  Its
-			 *	offset + length is the total size
-			 *	of the block.				*/
-
-			blockSize = pdu->offset + pdu->length;
-			if (blockSize < heapBufferSize)
-			{
-				heapBufferSize = blockSize;
-			}
-		}
-	}
-
-	if (heapBufferSize > 0)
-	{
-		/*	Must grab one of the import heap buffers.	*/
-
-		if (sdr_list_length(sdr, span->importBuffers) == 0)
-		{
-			/*	Must add another import buffer.		*/
-
-			importBuffer = sdr_malloc(sdr, db->maxAcqInHeap);
-			if (importBuffer == 0
-			|| (importBufferElt = sdr_list_insert_last(sdr,
-				span->importBuffers, importBuffer)) == 0)
-			{
-				putErrmsg("Can't allocate import buffer.",
-						NULL);
-				return -1;
-			}
+			return 0;
 		}
 
-		/*	Allocate first available import buffer.  All
-		 *	buffers are the same size, may be more than
-		 *	is needed for this block Red Part.  But after
-		 *	initial allocations there is no further need
-		 *	for dynamic heap buffer allocation.		*/
+		/*	Must add another import buffer.		*/
 
-		importBufferElt = sdr_list_first(sdr, span->importBuffers);
-		CHKERR(importBufferElt);
-		importBuffer = sdr_list_data(sdr, importBufferElt);
-		CHKERR(importBuffer);
+		importBuffer = sdr_malloc(sdr, db->maxAcqInHeap);
+		if (importBuffer == 0
+		|| (importBufferElt = sdr_list_insert_last(sdr,
+				span.importBuffers, importBuffer)) == 0)
+		{
+			putErrmsg("Can't allocate import buffer.", NULL);
+			return -1;
+		}
 
-		/*	Leave the allocated buffer in the list of all
-		 *	available buffers for now, in case transaction
-		 *	needs to be reversed.  Remove it only at the
-		 *	end.						*/
+		span.importBufferCount++;
+		sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 	}
+
+	/*	Allocate first available import buffer.  All buffers
+	 *	are the same size, may be more than is needed for
+	 *	this block Red Part.  But after initial allocations
+	 *	there is no further need for dynamic heap buffer
+	 *	allocation.
+	 *
+	 *	Leave the allocated buffer in the list of all
+	 *	available buffers for now, in case transaction needs
+	 *	to be reversed.  Remove it only at the end.		*/
+
+	importBufferElt = sdr_list_first(sdr, span.importBuffers);
+	CHKERR(importBufferElt);
+	importBuffer = sdr_list_data(sdr, importBufferElt);
+	CHKERR(importBuffer);
 
 	/*	importSessions list element points to the session
 	 *	structure.  importSessionsHash entry points to the
@@ -4455,9 +4438,9 @@ putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 
 	*sessionObj = sdr_malloc(sdr, sizeof(ImportSession));
 	if (*sessionObj == 0
-	|| (elt = sdr_list_insert_last(sdr, span->importSessions,
+	|| (elt = sdr_list_insert_last(sdr, span.importSessions,
 			*sessionObj)) == 0
-	|| sdr_hash_insert(sdr, span->importSessionsHash,
+	|| sdr_hash_insert(sdr, span.importSessionsHash,
 			(char *) &sessionNbr, elt, NULL) < 0)
 	{
 		return -1;
@@ -4486,8 +4469,7 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	/*	Make sure the initialized session is recorded to
 	 *	the database.						*/
 
-	sdr_write(sdr, *sessionObj, (char *) sessionBuf,
-			sizeof(ImportSession));
+	sdr_write(sdr, *sessionObj, (char *) sessionBuf, sizeof(ImportSession));
 
 	/*	Also add volatile reference to this session.		*/
 
@@ -6664,7 +6646,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 char	buf[256];
 sprintf(buf, "Acknowledged report is %u, lowerBound %d, upperBound %d, \
 last report serial number %u.", rsBuf.pdu.rptSerialNbr, rsBuf.pdu.lowerBound,
-rsBuf.pdu.upperBound, session.lastRptSerialNbr);
+rsBuf.pdu.upperBound, session.finalRptSerialNbr);
 putErrmsg(buf, itoa(sessionNbr));
 #endif
 		/*	This may be an opportunity to close the import
@@ -6673,15 +6655,24 @@ putErrmsg(buf, itoa(sessionNbr));
 		 *	entire red part has been received, then we no
 		 *	longer need to keep the import session open.	*/
 
-		if (rsBuf.pdu.rptSerialNbr == session.lastRptSerialNbr)
+		if (rsBuf.pdu.rptSerialNbr == session.finalRptSerialNbr)
 		{
-			stopImportSession(&session);
-			sdr_write(sdr, sessionObj, (char *) &session,
-					sizeof(ImportSession));
-			closeImportSession(sessionObj);
-			ltpSpanTally(vspan, IMPORT_COMPLETE, 0);
+			if (session.delivered)
+			{
+				stopImportSession(&session);
+				closeImportSession(sessionObj);
+				sessionObj = 0;
+				ltpSpanTally(vspan, IMPORT_COMPLETE, 0);
+			}
+			else
+			{
+				session.finalRptAcked = 1;
+				sdr_write(sdr, sessionObj, (char *) &session,
+						sizeof(ImportSession));
+			}
 		}
-		else	/*	Can't close the import session yet.	*/
+
+		if (sessionObj) /*	Can't close import session yet.	*/
 		{
 			/*	We just deactivate the report segment.
 			 *	It has been received, so there will
@@ -6821,9 +6812,8 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 			iwatch('}');
 		}
 
+		clearImportSession(session);
 		stopImportSession(session);
-		sdr_write(sdr, sessionObj, (char *) session,
-				sizeof(ImportSession));
 		closeImportSession(sessionObj);
 	}
 
@@ -7076,8 +7066,6 @@ static int	handleCAR(uvast sourceEngineId, LtpDB *ltpdb,
 	PsmAddress	vspanElt;
 	Object		sessionObj;
 	Object		sessionElt;
-			OBJ_POINTER(LtpSpan, span);
-			OBJ_POINTER(ImportSession, session);
 
 	endOfHeader = *cursor;
 
@@ -7151,12 +7139,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	/*	No need to change state of session's timer because
 	 *	the whole session is about to vanish.			*/
 
-	GET_OBJ_POINTER(sdr, ImportSession, session, sessionObj);
-	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr,
-				vspan->spanElt));
-	noteClosedImport(sdr, span, session);
-	sdr_list_delete(sdr, sessionElt, NULL, NULL);
-	sdr_free(sdr, sessionObj);
+	closeImportSession(sessionObj);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't handle ack of cancel by destination.", NULL);
@@ -8010,7 +7993,6 @@ int	ltpResendRecvCancel(uvast engineId, unsigned int sessionNbr)
 	Object		sessionElt;
 	ImportSession	sessionBuf;
 			OBJ_POINTER(LtpSpan, span);
-
 #if LTPDEBUG
 putErrmsg("Resending cancel by receiver.", itoa(sessionNbr));
 #endif
@@ -8039,9 +8021,7 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 #endif
-		noteClosedImport(sdr, span, &sessionBuf);
-		sdr_list_delete(sdr, sessionElt, NULL, NULL);
-		sdr_free(sdr, sessionObj);
+		closeImportSession(sessionObj);
 	}
 	else	/*	Haven't given up yet.				*/
 	{
