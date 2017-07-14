@@ -34,7 +34,9 @@
 #define	MAX_PIPELINE_LENGTH	(100)
 #endif
 
+#ifndef TCPCL_SEGMENT_ACKS
 #define	TCPCL_SEGMENT_ACKS	(1)
+#endif
 #define	TCPCL_REACTIVE		(0)
 #define	TCPCL_REFUSALS		(0)
 #define	TCPCL_LENGTH_MSGS	(0)
@@ -1783,6 +1785,17 @@ static void	*handleContacts(void *parm)
 		{
 			ionKillMainThread(procName());
 			running = 0;
+		}
+
+		if (session->lengthReceived > 0)
+		{
+			/*	Must discard partially received
+			 *	bundle; otherwise, next contact will
+			 *	begin out of bundle acquisition sync,
+			 *	resulting in bundle parsing failures.	*/
+
+			bpCancelAcq(rtp->work);
+			session->lengthReceived = 0;
 		}
 
 		stopSenderThread(session);

@@ -1971,18 +1971,24 @@ static void	stopExportSession(ExportSession *session)
 		OBJ_POINTER(LtpXmitSeg, ds);
 
 	CHKVOID(ionLocked());
-	while ((elt = sdr_list_first(sdr, session->redSegments)) != 0)
+	if (session->redSegments)
 	{
-		segObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, LtpXmitSeg, ds, segObj);
-		destroyDataXmitSeg(elt, segObj, ds);
+		while ((elt = sdr_list_first(sdr, session->redSegments)) != 0)
+		{
+			segObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, LtpXmitSeg, ds, segObj);
+			destroyDataXmitSeg(elt, segObj, ds);
+		}
 	}
 
-	while ((elt = sdr_list_first(sdr, session->greenSegments)) != 0)
+	if (session->greenSegments)
 	{
-		segObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, LtpXmitSeg, ds, segObj);
-		destroyDataXmitSeg(elt, segObj, ds);
+		while ((elt = sdr_list_first(sdr, session->greenSegments)) != 0)
+		{
+			segObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, LtpXmitSeg, ds, segObj);
+			destroyDataXmitSeg(elt, segObj, ds);
+		}
 	}
 }
 
@@ -2246,32 +2252,38 @@ void	getImportSession(LtpVspan *vspan, unsigned int sessionNbr,
 
 		sdr_read(sdr, (char *) &session, *sessionObj,
 				sizeof(ImportSession));
-		for (elt2 = sdr_list_first(sdr, session.redSegments); elt2;
-				elt2 = sdr_list_next(sdr, elt2))
+		if (session.redSegments)
 		{
-			segObj = sdr_list_data(sdr, elt2);
-			GET_OBJ_POINTER(sdr, LtpRecvSeg, segment, segObj);
-			refbuf.offset = segment->pdu.offset;
-			refbuf.length = segment->pdu.length;
-			refbuf.sessionListElt = segment->sessionListElt;
-			addr = psm_zalloc(ltpwm, sizeof(LtpSegmentRef));
-			if (addr == 0)
+			for (elt2 = sdr_list_first(sdr, session.redSegments);
+					elt2; elt2 = sdr_list_next(sdr, elt2))
 			{
-				putErrmsg("Failed resurrecting VImportSession.",
-						NULL);
-				*sessionObj = 0;
-				return;
-			}
+				segObj = sdr_list_data(sdr, elt2);
+				GET_OBJ_POINTER(sdr, LtpRecvSeg, segment,
+						segObj);
+				refbuf.offset = segment->pdu.offset;
+				refbuf.length = segment->pdu.length;
+				refbuf.sessionListElt = segment->sessionListElt;
+				addr = psm_zalloc(ltpwm, sizeof(LtpSegmentRef));
+				if (addr == 0)
+				{
+					putErrmsg("Failed resurrecting \
+VImportSession.", NULL);
+					*sessionObj = 0;
+					return;
+				}
 
-			memcpy((char *) psp(ltpwm, addr), (char *) &refbuf,
-					sizeof(LtpSegmentRef));
-			if (sm_rbt_insert(ltpwm, vsession->redSegmentsIdx,
-					addr, orderRedSegments, &refbuf) == 0)
-			{
-				putErrmsg("Failed resurrecting VImportSession.",
-						NULL);
-				*sessionObj = 0;
-				return;
+				memcpy((char *) psp(ltpwm, addr), (char *)
+						&refbuf, sizeof(LtpSegmentRef));
+				if (sm_rbt_insert(ltpwm,
+						vsession->redSegmentsIdx,
+						addr, orderRedSegments, &refbuf)
+						== 0)
+				{
+					putErrmsg("Failed resurrecting \
+VImportSession.", NULL);
+					*sessionObj = 0;
+					return;
+				}
 			}
 		}
 	}
@@ -2362,10 +2374,13 @@ static void	destroyRsXmitSeg(Object rsElt, Object rsObj, LtpXmitSeg *rs)
 	/*	No need to change state of rs->pdu.timer because the
 		whole segment is about to vanish.			*/
 
-	while ((elt = sdr_list_first(sdr, rs->pdu.receptionClaims)))
+	if (rs->pdu.receptionClaims)
 	{
-		sdr_free(sdr, sdr_list_data(sdr, elt));
-		sdr_list_delete(sdr, elt, NULL, NULL);
+		while ((elt = sdr_list_first(sdr, rs->pdu.receptionClaims)))
+		{
+			sdr_free(sdr, sdr_list_data(sdr, elt));
+			sdr_list_delete(sdr, elt, NULL, NULL);
+		}
 	}
 
 	if (rs->pdu.timer.expirationCount != -1)	/*	(burst)	*/
@@ -2499,15 +2514,19 @@ void	stopImportSession(ImportSession *session)
 		OBJ_POINTER(LtpXmitSeg, rs);
 
 	CHKVOID(ionLocked());
-	while ((elt = sdr_list_first(sdr, session->rsSegments)) != 0)
+	if (session->rsSegments)
 	{
-		segObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, LtpXmitSeg, rs, segObj);
-		destroyRsXmitSeg(elt, segObj, rs);
+		while ((elt = sdr_list_first(sdr, session->rsSegments)) != 0)
+		{
+			segObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, LtpXmitSeg, rs, segObj);
+			destroyRsXmitSeg(elt, segObj, rs);
+		}
+
+		sdr_list_destroy(sdr, session->rsSegments, NULL, NULL);
+		session->rsSegments = 0;
 	}
 
-	sdr_list_destroy(sdr, session->rsSegments, NULL, NULL);
-	session->rsSegments = 0;
 	stopVImportSession(session);
 #if LTPDEBUG
 putErrmsg("Stopped import session.", itoa(session->sessionNbr));
@@ -2640,6 +2659,13 @@ static void	findCheckpoint(ExportSession *session,
 	Object	obj;
 		OBJ_POINTER(LtpCkpt, cp);
 
+	*dsElt = 0;			/*	Default.		*/
+	*dsObj = 0;			/*	Default.		*/
+	if (session->checkpoints == 0)	/*	Export session cleared.	*/
+	{
+		return;
+	}
+
 	for (elt = sdr_list_first(sdr, session->checkpoints); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -2654,14 +2680,10 @@ static void	findCheckpoint(ExportSession *session,
 		{
 			*dsElt = cp->sessionListElt;
 			*dsObj = sdr_list_data(sdr, cp->sessionListElt);
-			return;
 		}
 
-		break;		/*	Not in list.			*/
+		return;
 	}
-
-	*dsElt = 0;
-	*dsObj = 0;
 }
 
 /*	*	*	Segment issuance functions	*	*	*/
@@ -5370,8 +5392,9 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	/*	Based on the segment type code, infer additional
 	 *	session information and do additional processing.	*/
 
-	if (pdu->segTypeCode == LtpDsRedEORP
+	if ((pdu->segTypeCode == LtpDsRedEORP
 	|| pdu->segTypeCode == LtpDsRedEOB)
+	&& sessionBuf.redSegments != 0)
 	{
 		/*	This segment is the end of the red part of
 		 *	the block, so the end of its data is the end
@@ -7445,6 +7468,11 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 
 		/*	Suspend report retransmission timers.		*/
 
+		if (rsessionBuf.rsSegments == 0)
+		{
+			continue;
+		}
+
 		for (elt2 = sdr_list_first(sdr, rsessionBuf.rsSegments);
 				elt2; elt2 = sdr_list_next(sdr, elt2))
 		{
@@ -7495,6 +7523,11 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 				sizeof(ExportSession));
 
 		/*	Suspend chkpt retransmission timers.		*/
+
+		if (xsessionBuf.checkpoints == 0)
+		{
+			continue;
+		}
 
 		for (elt2 = sdr_list_first(sdr, xsessionBuf.checkpoints);
 				elt2; elt2 = sdr_list_next(sdr, elt2))
@@ -7625,6 +7658,11 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 
 		/*	Resume report retransmission timers.		*/
 
+		if (rsessionBuf.rsSegments == 0)
+		{
+			continue;
+		}
+
 		for (elt2 = sdr_list_first(sdr, rsessionBuf.rsSegments);
 				elt2; elt2 = sdr_list_next(sdr, elt2))
 		{
@@ -7701,6 +7739,11 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 				sizeof(ExportSession));
 
 		/*	Resume chkpt retransmission timers.		*/
+
+		if (xsessionBuf.checkpoints == 0)
+		{
+			continue;
+		}
 
 		for (elt2 = sdr_list_first(sdr, xsessionBuf.checkpoints);
 				elt2; elt2 = sdr_list_next(sdr, elt2))

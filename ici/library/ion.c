@@ -2073,9 +2073,13 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 		|| heapSpaceAvbl < req->heapSpaceNeeded)
 		{
 			/*	Can't provide ZCO space to this
-			 *	requisition at this time.		*/
+			 *	requisition at this time.  Other
+			 *	requisitions might be for smaller
+			 *	amounts, but if we service those
+			 *	requisitions we delay service to
+			 *	this one.				*/
 
-			continue;
+			break;
 		}
 
 		/*	Can service this requisition.			*/
