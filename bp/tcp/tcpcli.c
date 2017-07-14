@@ -1246,7 +1246,7 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		}
 
 		if (bpContinueAcq(rtp->work, rtp->buffer, extentSize,
-				&(rtp->attendant), 255) < 0)
+				&(rtp->attendant), 0) < 0)
 		{
 			return -1;
 		}
