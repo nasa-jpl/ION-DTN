@@ -941,7 +941,7 @@ static size_t	getBigBuffer(char **buffer)
 		bufsize = bufsize / 2;
 		if (bufsize == 0)
 		{
-			return -1;
+			return 0;
 		}
 
 		*buffer = MTAKE(bufsize);
@@ -984,7 +984,7 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 	SdrMap	map;
 
 	bufsize = getBigBuffer(&buffer);
-	if (bufsize < 0)
+	if (bufsize < 1)
 	{
 		putErrmsg("Can't get buffer in sdrwm.", NULL);
 		return -1;
@@ -1038,7 +1038,7 @@ static int	restageDsFromFile(SdrState *sdr, int dsfile, char *dssm)
 {
 	size_t	bytesRemaining = sdr->dsSize;
 	size_t	offset;
-	size_t	bytesRead;
+	vast	bytesRead;
 
 	offset = 0;
 	while (bytesRemaining > 0)

@@ -2611,6 +2611,8 @@ void	closeImportSession(Object sessionObj)
 
 	/*	Remove the rest of the import session.			*/
 
+	cancelEvent(LtpResendRecvCancel, span->engineId, session->sessionNbr,
+			0);
 	noteClosedImport(sdr, span, session);
 	sdr_hash_remove(sdr, span->importSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
@@ -7156,8 +7158,6 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
 		return sdr_end_xn(sdr);
 	}
-
-	cancelEvent(LtpResendRecvCancel, sourceEngineId, sessionNbr, 0);
 
 	/*	No need to change state of session's timer because
 	 *	the whole session is about to vanish.			*/

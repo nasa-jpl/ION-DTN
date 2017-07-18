@@ -3407,6 +3407,13 @@ int	removeScheme(char *schemeName)
 	sdr_exit_xn(bpSdr);
 	waitForScheme(vscheme);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetScheme(vscheme);
 	schemeElt = vscheme->schemeElt;
 	addr = sdr_list_data(bpSdr, schemeElt);
@@ -3497,6 +3504,13 @@ void	bpStopScheme(char *name)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForScheme(vscheme);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findScheme(name, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return;
+	}
+
 	resetScheme(vscheme);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -4018,6 +4032,13 @@ int	removePlan(char *eidIn)
 	sdr_exit_xn(bpSdr);
 	waitForPlan(vplan);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetPlan(vplan);
 	planElt = vplan->planElt;
 	addr = sdr_list_data(bpSdr, planElt);
@@ -4102,6 +4123,13 @@ void	bpStopPlan(char *eid)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForPlan(vplan);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)	/*	This is an unknown egress plan.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetPlan(vplan);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -4742,6 +4770,13 @@ int	removeInduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);
 	waitForInduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetInduct(vduct);
 	ductElt = vduct->inductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
@@ -4810,6 +4845,13 @@ void	bpStopInduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForInduct(vduct);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetInduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -5144,6 +5186,13 @@ int	removeOutduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);
 	waitForOutduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetOutduct(vduct);
 	outductElt = vduct->outductElt;
 	outductObj = sdr_list_data(bpSdr, outductElt);
@@ -5236,6 +5285,13 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForOutduct(vduct);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetOutduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
