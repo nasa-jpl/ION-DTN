@@ -602,6 +602,7 @@ ltpbin = \
 	ltpadmin \
 	ltpclock \
 	ltpmeter \
+	ltpdeliv \
 	udplsi \
 	udplso \
 	aoslsi \
@@ -706,6 +707,10 @@ ltpclock_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 ltpmeter_SOURCES = ltp/daemon/ltpmeter.c
 ltpmeter_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpmeter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpdeliv_SOURCES = ltp/daemon/ltpdeliv.c
+ltpdeliv_LDADD = libltp.la libici.la $(LIBOBJS)
+ltpdeliv_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
