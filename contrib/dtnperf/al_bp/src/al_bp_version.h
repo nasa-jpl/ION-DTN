@@ -18,7 +18,7 @@
 #define AL_BP_VERSION_PATCH		0
 */
 
-#define AL_BP_VERSION_STRING	"1.5.0"
+#define AL_BP_VERSION_STRING	"1.5.1"
 
 extern const char* al_bp_version;
 
