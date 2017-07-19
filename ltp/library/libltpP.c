@@ -34,11 +34,6 @@
 #define	LTPDEBUG		0
 #endif
 
-//if 1, the standard RA will not be not enqueued for transmission, just use it for debug purpose
-#ifndef SKIP_STANDARD_RA
-#define	SKIP_STANDARD_RA	0
-#endif
-
 #if (!(defined(SIGNAL_REDUNDANCY)) || SIGNAL_REDUNDANCY < 1)
 #define SIGNAL_REDUNDANCY	1.0
 #endif
@@ -5169,8 +5164,12 @@ putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
 	/*	Enforce rate control.					*/
 
 	pdu->contentLength = (*cursor - endOfHeader) + pdu->length;
+
 	snoozeInterval = ((float) (pdu->contentLength) /
 			(float) (vspan->receptionRate)) * 1000000.0;
+#if 0
+printf("rate control: length %u converted to %f, rate %u converted to %f, interval %f converted to %d.\n", (pdu->contentLength), (float) (pdu->contentLength), (vspan->receptionRate), (float) (vspan->receptionRate), snoozeInterval, (int) snoozeInterval);
+#endif
 	microsnooze((int) snoozeInterval);
 
 	/*	At this point, the remaining bytes should all be
@@ -6135,7 +6134,7 @@ putErrmsg("Discarding report.", NULL);
 	}
 
 	/*	Acknowledge the report if possible.			*/
-#if !SKIP_STANDARD_RA
+
 	if (constructReportAckSegment(&spanBuf, spanObj, sessionNbr,
 			rptSerialNbr))
 	{
@@ -6144,7 +6143,7 @@ putErrmsg("Discarding report.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
-#endif
+
 	/*	Now process the report if possible.  First, discard
 	 *	the report if it is a retransmission of a report that
 	 *	has already been applied.				*/

@@ -208,8 +208,7 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, size_t length)
 	}
 
 	to = addr + length;
-	if (addr < 0 || to < addr || (to == addr && length != 0)
-			|| to > sdr->dsSize)
+	if (to < addr || (to == addr && length != 0) || to > sdr->dsSize)
 	{
 		putErrmsg(_violationMsg(), "stage");
 		crashXn(sdrv);

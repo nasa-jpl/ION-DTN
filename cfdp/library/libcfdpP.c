@@ -13,7 +13,11 @@
 #include "lyst.h"
 
 #ifndef CFDPDEBUG
-#define	CFDPDEBUG	0
+#define	CFDPDEBUG		0
+#endif
+
+#ifndef	CFDP_FILLBUF_LIMIT
+#define	CFDP_FILLBUF_LIMIT	65536
 #endif
 
 /*	*	*	Helpful utility functions	*	*	*/
@@ -3797,6 +3801,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 			InFdu *fdu, Object fduObj, Object fduElt, int largeFile,
 			int recordStructure, int haveMetadata)
 {
+	PsmPartition	wm = getIonwm();
 	CfdpEvent	event;
 	int		offsetLength;
 	int		i;
@@ -3817,6 +3822,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	vast		endOfFile;
 	uvast		fileLength;
 	uvast		fillBufSize;
+	uvast		bufSizeLimit;
+	PsmUsageSummary	usage;
 	char		*fillBuf;
 	uvast		fillSize;
 	Object		nextAddr;
@@ -4047,9 +4054,23 @@ extent.offset, extent.offset + extent.length);
 	if (fileLength < segmentOffset)
 	{
 		/*	Temporarily take large working memory
-		 *	buffer for fill characters.			*/
+		 *	buffer for fill characters.  Try to use
+		 *	all free large pool space; if sparse, try
+		 *	for configured maximum.				*/
 
 		fillBufSize = segmentOffset - fileLength;
+		bufSizeLimit = CFDP_FILLBUF_LIMIT;
+		psm_usage(wm, &usage);
+		if (usage.largePoolFree > bufSizeLimit)
+		{
+			bufSizeLimit = usage.largePoolFree;
+		}
+
+		if (fillBufSize > bufSizeLimit)
+		{
+			fillBufSize = bufSizeLimit;
+		}
+
 		while (1)
 		{
 			fillBuf = MTAKE(fillBufSize);
