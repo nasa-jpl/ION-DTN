@@ -17,13 +17,7 @@ FAILEDFILE="retest"
 
 
 function find_tests_in () {
-if [ "$VERSION" == "windows" ]; then
-	for directory in $@dotest $@/*/dotest $@/*/*/dotest; do
-		echo ${directory%%dotest}
-	done
-else
-	    find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
-fi
+	find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
 }
 
 
