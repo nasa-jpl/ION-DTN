@@ -69,7 +69,7 @@ int	dtn2_addPlanDuct(char *eid, char *spec)
 	{
 		writeMemoNote("[?] Duct expression lacks duct name",
 				spec);
-		writeMemoNote("[?] (Attaching duct to plan", eid);
+		writeMemoNote("[?]   Attaching duct to plan", eid);
 		return -1;
 	}
 
@@ -79,7 +79,7 @@ int	dtn2_addPlanDuct(char *eid, char *spec)
 	if (vductElt == 0)
 	{
 		writeMemoNote("[?] Unknown duct", spec);
-		writeMemoNote("[?] (Attaching duct to plan", eid);
+		writeMemoNote("[?]   Attaching duct to plan", eid);
 		return -1;
 	}
 

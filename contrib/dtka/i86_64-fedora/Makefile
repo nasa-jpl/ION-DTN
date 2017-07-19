@@ -7,10 +7,10 @@ ZFEC = ../zfec
 BP = ../bp
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux
+OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
-CCZFEC = gcc -g -Wall -Dlinux -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
-LDFLAGS = -fPIC -shared -rdynamic
+CCZFEC = gcc -g -Wall -Dlinux -fPIC -DSPACE_ORDER=3 -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
+LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
 DTKAINCLS = \

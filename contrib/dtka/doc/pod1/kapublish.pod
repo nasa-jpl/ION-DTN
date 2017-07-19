@@ -22,13 +22,13 @@ B<kaadmin> in response to an 'x' (STOP) command.
 
 =over 4
 
-=item 0
+=item "0"
 
 B<kapublish> terminated, for reasons noted in the B<ion.log> file.  If this
 termination was not commanded, investigate and solve the problem identified
 in the log file and use B<kaadmin> to restart B<kapublish>.
 
-=item 1
+=item "1"
 
 B<kapublish> was unable to attach to DTKA operations, probably because
 B<kaadmin> has not yet been run.
