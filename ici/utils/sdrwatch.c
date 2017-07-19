@@ -11,6 +11,9 @@
 
 #include "platform.h"
 #include "sdr.h"
+#include "ion.h"
+#include "zco.h"
+#include "sdrxn.h"
 
 static unsigned int	sdrwatch_count(int *newValue)
 {
@@ -57,10 +60,33 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 
 	/*	Initial state.						*/
 
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_usage(sdr, &sdrsummary);
-	sdr_report(&sdrsummary);
-	sdr_exit_xn(sdr);
+	if (-1 == interval)
+	{
+		sdr_stats(sdr);
+		interval = 0;
+	}
+	else if (-2 == interval)
+	{
+		sdr_stats(sdr);
+		CHKERR(sdr_begin_xn(sdr));
+		printf("\n");
+		zco_status(sdr);
+		sdr_exit_xn(sdr);
+		interval = 0;
+	}
+	else if (-3 == interval)
+	{
+		sdr_reset_stats(sdr);
+		interval = 0;
+	}
+	else
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_usage(sdr, &sdrsummary);
+		sdr_report(&sdrsummary);
+		sdr_exit_xn(sdr);
+	}
+
 	if (interval == 0)	/*	One-time poll.			*/
 	{
 		sdr_stop_using(sdr);
@@ -102,6 +128,17 @@ static int	run_sdrwatch(char *sdrName, int interval, int verbose)
 	return 0;
 }
 
+static void	printUsage()
+{
+	PUTS("Usage: sdrwatch <sdr name> [ -s | -r | -z | <interval> <count> \
+[verbose] ]");
+	PUTS("\t-s to print stats for current transaction");
+	PUTS("\t-s to reset log length high-water mark and then print stats \
+for current transaction");
+	PUTS("\t-z to print stats for current transaction and print ZCO \
+status after that transaction ends");
+}
+
 #if defined (ION_LWT)
 int	sdrwatch(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -123,28 +160,52 @@ int	main(int argc, char **argv)
 	int	count;
 	int	verbose = 0;
 
-	if (argc < 4)
+	if (argc < 2)
 	{
-		PUTS("Usage: sdrwatch <sdr name> <interval> <count> [verbose]");
-		return 0;
+		printUsage();
 	}
 
 	sdrName = argv[1];
-	interval = strtol(argv[2], NULL, 0);
-	if (interval < 0)
-	{
-		interval = 0;
-	}
 
-	count = strtol(argv[3], NULL, 0);
-	if (count < 1)
+	if (!strcmp ( argv[2], "-s" ))
 	{
-		count = 1;
+		interval = -1;
+		count = 0;
 	}
-
-	if (argc > 4)
+	else if (!strcmp(argv[2], "-z"))
 	{
-		verbose = 1;
+		interval = -2;
+		count = 0;
+	}
+	else if (!strcmp(argv[2], "-r"))
+	{
+		interval = -3;
+		count = 0;
+	}
+	else
+	{
+		if (argc < 4)
+		{
+			printUsage();
+			return 0;
+		}
+
+		interval = strtol(argv[2], NULL, 0);
+		if (interval < 0)
+		{
+			interval = 0;
+		}
+
+		count = strtol(argv[3], NULL, 0);
+		if (count < 1)
+		{
+			count = 1;
+		}
+
+		if (argc > 4)
+		{
+			verbose = 1;
+		}
 	}
 #endif
 	oK(sdrwatch_count(&count));

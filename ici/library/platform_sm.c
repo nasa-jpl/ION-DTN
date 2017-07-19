@@ -45,7 +45,7 @@ static SmShm	*_shmTbl()
 }
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
+sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
 	int	i;
 	SmShm	*shm;
@@ -295,10 +295,10 @@ static void	_smSegment(char *shmPtr, int *key)
 }
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
+sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
 	char	memName[32];
-	int	minSegSize = 16;
+	size_t	minSegSize = 16;
 	HANDLE	mappingObj;
 	void	*mem;
 	int	newSegment = 0;
@@ -397,9 +397,9 @@ sm_ShmDestroy(uaddr id)
 	/* ---- Shared Memory services (Unix) ------------------------- */
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
+sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
-	int		minSegSize = 16;
+	size_t		minSegSize = 16;
 	int		result;
 	char		*mem;
 	struct shmid_ds	stat;

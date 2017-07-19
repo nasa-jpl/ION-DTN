@@ -25,7 +25,7 @@ typedef struct
 	PsmAddress	userData;
 	PsmAddress	first;	/*	first element in the list	*/
 	PsmAddress	last;	/*	last element in the list	*/
-	unsigned long	length;	/*	number of elements in the list	*/
+	size_t		length;	/*	number of elements in the list	*/
 	sm_SemId	lock;	/*	mutex for list			*/
 } SmList;
 
@@ -221,7 +221,7 @@ int	sm_list_user_data_set(PsmPartition partition, PsmAddress list,
 	return 0;
 }
 
-int	sm_list_length(PsmPartition partition, PsmAddress list)
+size_t	sm_list_length(PsmPartition partition, PsmAddress list)
 {
 	SmList	*listBuffer;
 	int	length;

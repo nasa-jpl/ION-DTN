@@ -125,6 +125,7 @@ relative times (+ss) are computed.");
 -1 means \"unchanged\"> [<new inbound ZCO file occupancy limit, in MB>]");
 	PUTS("\t   m outbound <new outbound ZCO heap occupancy limit, in MB; \
 -1 means \"unchanged\"> [<new outbound ZCO file occupancy limit, in MB>]");
+	PUTS("\t   m search <max free blocks to search through>");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
@@ -650,6 +651,21 @@ static void	manageOutbound(int tokenCount, char **tokens)
 	manageOccupancy(tokenCount, tokens, ZcoOutbound);
 }
 
+static void	manageSearch(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	newLimit;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newLimit = atoi(tokens[2]);
+	sdr_set_search_limit(sdr, newLimit);
+}
+
 static void	manageHorizon(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -819,6 +835,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	|| strcmp(tokens[1], "out") == 0)
 	{
 		manageOutbound(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "search") == 0)
+	{
+		manageSearch(tokenCount, tokens);
 		return;
 	}
 

@@ -12,6 +12,8 @@
 #ifndef _LYST_H_
 #define _LYST_H_
 
+#include "platform.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,7 +53,7 @@ void lyst_delete_set(Lyst,LystCallback,void *);
 void lyst_delete_get(Lyst,LystCallback *,void **);
 void lyst_insert_set(Lyst,LystCallback,void *);
 void lyst_insert_get(Lyst,LystCallback *,void **);
-unsigned long lyst_length(Lyst);
+size_t lyst_length(Lyst);
 
 #define lyst_insert(list, data)	Lyst_insert(__FILE__, __LINE__, list, data)
 LystElt Lyst_insert(const char*,int,Lyst,void *);

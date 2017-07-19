@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-extern PsmPartition	sptrace_start(int key, int size, char *region,
+extern PsmPartition	sptrace_start(int key, size_t size, char *region,
 					PsmPartition psm, char *name);
 			/*	Begins an episode of heap usage
 				tracing.  The shared memory key
@@ -57,7 +57,7 @@ extern PsmPartition	sptrace_start(int key, int size, char *region,
 				PSM-managed shared memory region.
 				Returns NULL on any error.		*/
 
-extern PsmPartition	sptrace_join(int key, int size, char *region,
+extern PsmPartition	sptrace_join(int key, size_t size, char *region,
 					PsmPartition psm, char *name);
 			/*	Locates the sptrace episode identified
 				by key (see sptrace_start), verifies
@@ -73,7 +73,7 @@ extern PsmPartition	sptrace_join(int key, int size, char *region,
 				other error, returns NULL.		*/
 
 extern void		sptrace_log_alloc(PsmPartition trace,
-					unsigned long addr, int size,
+					uaddr addr, size_t size,
 					const char *fileName, int lineNbr);
 			/*	Causes sptrace to log a space allocation
 				event in the indicated sptrace episode.
@@ -83,7 +83,7 @@ extern void		sptrace_log_alloc(PsmPartition trace,
 				application source code at which the
 				activity being logged was initiated.	*/
 
-extern void		sptrace_log_free(PsmPartition trace, unsigned long addr,
+extern void		sptrace_log_free(PsmPartition trace, uaddr addr,
 					const char *fileName, int lineNbr);
 			/*	Causes sptrace to log a space release
 				event.  addr is the address of the newly
@@ -92,7 +92,7 @@ extern void		sptrace_log_free(PsmPartition trace, unsigned long addr,
 				code at which the activity being logged
 				was initiated.				*/
 
-extern void		sptrace_log_memo(PsmPartition trace, unsigned long addr,
+extern void		sptrace_log_memo(PsmPartition trace, uaddr addr,
 					char *msg, const char *fileName,
 					int lineNbr);
 			/*	Causes sptrace to log a heap management

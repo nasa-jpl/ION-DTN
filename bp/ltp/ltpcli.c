@@ -153,7 +153,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		}
 
 		memset(*buffer, 0, fillLength);
-		if (bpContinueAcq(work, *buffer, (int) fillLength, 0) < 0)
+		if (bpContinueAcq(work, *buffer, (int) fillLength, 0, 0) < 0)
 		{
 			putErrmsg("Can't insert bundle fill data.", NULL);
 			return -1;
@@ -205,7 +205,7 @@ static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 		return -1;
 	}
 
-	if (bpContinueAcq(work, *buffer, (int) length, 0) < 0)
+	if (bpContinueAcq(work, *buffer, (int) length, 0, 0) < 0)
 	{
 		putErrmsg("Can't continue bundle acquisition.", NULL);
 		return -1;

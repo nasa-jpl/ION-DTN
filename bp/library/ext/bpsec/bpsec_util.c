@@ -1560,7 +1560,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	/* Step 1: If we don't have a ZCO, we need to make one. */
 	if (*resultZco == 0)     /*      First extent of acquisition.    */
 	{
-		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoOutbound, 0);
+		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoOutbound);
 		if (*resultZco == (Object) ERROR)
 		{
 			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't start file source ZCO.", NULL);

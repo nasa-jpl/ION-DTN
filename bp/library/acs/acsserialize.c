@@ -134,7 +134,7 @@ unsigned long serializeAcs(Object signalAddr, Object *serializedZco,
 
 	extentLength = args.iBuf;
 	serializedZcoAddr = zco_create(bpSdr, ZcoSdrSource,
-			serializedSdrAddr, 0, 0 - extentLength, ZcoOutbound, 0);
+			serializedSdrAddr, 0, 0 - extentLength, ZcoOutbound);
 	if (serializedZcoAddr == (Object) ERROR || serializedZcoAddr == 0)
 	{
 		putErrmsg("Can't put ACS payload into a ZCO",

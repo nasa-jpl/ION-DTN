@@ -11,10 +11,6 @@
 									*/
 #include "bpP.h"
 
-#ifndef	MAX_CLO_INACTIVITY
-#define	MAX_CLO_INACTIVITY	(3)
-#endif
-
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;
@@ -43,11 +39,10 @@ static void	shutDown()	/*	Commands bpclm termination.	*/
 	sm_SemEnd(_bpclmSemaphore(NULL));
 }
 
-static int	maxPayloadLengthKnown(VPlan *vplan,
-			unsigned int *maxPayloadLength)
+static size_t	maxPayloadLengthKnown(VPlan *vplan, size_t *maxPayloadLength)
 {
-	unsigned int	secRemaining;
-	unsigned int	xmitRate;
+	size_t	secRemaining;
+	size_t	xmitRate;
 
 	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
 	if (vplan->neighborNodeNbr)	/*	Known neighbor node.	*/
@@ -450,57 +445,6 @@ static void	noteFragmentation(Bundle *bundle)
 	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
 }
 
-static int	flushOutduct(Outduct *outduct)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	nextElt;
-	Object	bundleObj;
-	Bundle	bundle;
-
-	/*	Any bundle previously enqueued for transmission via
-	 *	this outduct that has not yet been transmitted is
-	 *	assumed to be waiting on to a stuck CLO, and is
-	 *	therefore placed in the limbo list for eventual
-	 *	reforwarding.  We don't reforward immediately because
-	 *	the presumably stuck outduct is not detached from
-	 *	the plan, so upon presentation to the CLM daemon the
-	 *	bundle would simply be allocated to the same stuck
-	 *	outduct again.						*/
-
-	for (elt = sdr_list_first(sdr, outduct->xmitBuffer); elt; elt = nextElt)
-	{
-		nextElt = sdr_list_next(sdr, elt);
-		bundleObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
-		if (bundle.ductXmitElt)
-		{
-			sdr_list_delete(sdr, bundle.ductXmitElt, NULL, NULL);
-			bundle.ductXmitElt = 0;
-		}
-
-		if (bundle.overdueElt)
-		{
-			destroyBpTimelineEvent(bundle.overdueElt);
-			bundle.overdueElt = 0;
-		}
-
-		if (bundle.ctDueElt)
-		{
-			destroyBpTimelineEvent(bundle.ctDueElt);
-			bundle.ctDueElt = 0;
-		}
-
-		if (enqueueToLimbo(&bundle, bundleObj) < 0)
-		{
-			putErrmsg("Failed enqueuing to limbo list.", NULL);
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
 #if defined (ION_LWT)
 int	bpclm(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
@@ -520,7 +464,7 @@ int	main(int argc, char *argv[])
 	Outflow		outflows[3];
 	int		i;
 	int		running = 1;
-	unsigned int	maxPayloadLength;
+	size_t		maxPayloadLength;
 	Object		bundleElt;
 	Object		bundleObj;
 	Bundle		bundle;
@@ -531,8 +475,6 @@ int	main(int argc, char *argv[])
 	Bundle		secondBundle;
 	Object		secondBundleObj;
 	Object		queue;
-	int		bufferLength;
-	time_t		currentTime;
 
 	if (!nodeName)
 	{
@@ -791,48 +733,6 @@ int	main(int argc, char *argv[])
 		 *	queue.						*/
 
 		removeBundleFromQueue(&bundle, bundleObj, planObj, &plan);
-
-		/*	Manage outduct's transmission buffer.		*/
-
-		bufferLength = sdr_list_length(sdr, outduct->xmitBuffer);
-		currentTime = getUTCTime();
-		if (bufferLength < vduct->prevBufferLength)
-		{
-			vduct->timeOfLastXmit = currentTime;
-		}
-
-		if (bufferLength > 0)
-		{
-			if ((currentTime - vduct->timeOfLastXmit)
-					> MAX_CLO_INACTIVITY)
-			{
-				/*	Assume outduct is blocked.
-				 *	Flush bundles in buffer to
-				 *	the Limbo list.			*/
-
-				if (flushOutduct(outduct) < 0)
-				{
-					sdr_cancel_xn(sdr);
-					running = 0;
-					continue;
-				}
-
-				bufferLength = 0;
-
-				/*	Note that the current
-				 *	bundle will be appended
-				 *	to the outduct's buffer
-				 *	even if we have assumed
-				 *	that the outduct is blocked.
-				 *	This enables us to keep
-				 *	checking for CLO resumption
-				 *	but keep on placing bundles
-				 *	in limbo until the CLO
-				 *	resumes operation.		*/
-			}
-		}
-
-		vduct->prevBufferLength = bufferLength + 1;
 
 		/*	Pass the bundle to the outduct.			*/
 

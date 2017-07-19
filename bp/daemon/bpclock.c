@@ -16,6 +16,10 @@
 #include "acs.h"		/* provides sendAcs */
 #endif /* ENABLE_ACS */
 
+#ifndef MAX_CLO_INACTIVITY
+#define	MAX_CLO_INACTIVITY	(3)
+#endif
+
 static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
@@ -253,13 +257,204 @@ static void	applyRateControl(Sdr sdr)
 	oK(sdr_end_xn(sdr));
 }
 
+typedef struct
+{
+	char	protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char	ductName[MAX_CL_DUCT_NAME_LEN + 1];
+} DuctRef;
+
+static int	flushOutduct(DuctRef *dr)
+{
+	Sdr		sdr = getIonsdr();
+			OBJ_POINTER(Outduct, outduct);
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+	int		flushCount;
+	Object		elt;
+	Object		bundleObj;
+	Bundle		bundle;
+
+	/*	Any bundle previously enqueued for transmission via
+	 *	this outduct that has not yet been transmitted is
+	 *	assumed to be waiting on to a stuck CLO, and is
+	 *	therefore placed in the limbo list for eventual
+	 *	reforwarding.  We don't reforward immediately because
+	 *	the presumably stuck outduct is not detached from
+	 *	the plan, so upon presentation to the CLM daemon the
+	 *	bundle would simply be allocated to the same stuck
+	 *	outduct again.						*/
+
+	while (1)
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		findOutduct(dr->protocolName, dr->ductName, &vduct, &vductElt);
+		if (vductElt == 0)	/*	Duct removed.		*/
+		{
+			sdr_exit_xn(sdr);
+			return 0;	/*	Done with this duct.	*/
+		}
+
+		GET_OBJ_POINTER(sdr, Outduct, outduct, vduct->outductElt);
+		flushCount = 0;
+		while (1)
+		{
+			elt = sdr_list_first(sdr, outduct->xmitBuffer);
+			if (elt == 0)	/*	No bundles to flush.	*/
+			{
+				break;
+			}
+
+			bundleObj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &bundle, bundleObj,
+					sizeof(Bundle));
+			if (bundle.ductXmitElt)
+			{
+				sdr_list_delete(sdr, bundle.ductXmitElt, NULL,
+						NULL);
+				bundle.ductXmitElt = 0;
+			}
+			else
+			{
+				sdr_list_delete(sdr, elt, NULL, NULL);
+			}
+
+			/*	(Normally the bundle's ductXmitElt
+			 *	== the elt by which we accessed this
+			 *	bundle, so need not sdr_delete(elt).)	*/
+
+			if (bundle.overdueElt)
+			{
+				destroyBpTimelineEvent(bundle.overdueElt);
+				bundle.overdueElt = 0;
+			}
+
+			if (bundle.ctDueElt)
+			{
+				destroyBpTimelineEvent(bundle.ctDueElt);
+				bundle.ctDueElt = 0;
+			}
+
+			if (enqueueToLimbo(&bundle, bundleObj) < 0)
+			{
+				sdr_cancel_xn(sdr);
+				putErrmsg("Failed enqueuing to limbo list.",
+						NULL);
+				return -1;
+			}
+
+			flushCount++;
+			if (flushCount > 999)
+			{
+				break;
+			}
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("flushOutduct failed.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static void	destroyDR(LystElt elt, void *userData)
+{
+	MRELEASE(lyst_data(elt));
+}
+
+static int	flushOutducts(Sdr sdr, time_t currentTime)
+{
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	Lyst		ductsToFlush;
+	PsmAddress	elt1;
+	DuctRef		*dr;
+	LystElt		elt2;
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	/*	May be multiple transactions, so we can't safely just
+	 *	step through the outducts list: an outduct might be
+	 *	deleted between transactions.				*/
+
+	ductsToFlush = lyst_create_using(getIonMemoryMgr());
+	CHKERR(ductsToFlush);
+	lyst_delete_set(ductsToFlush, destroyDR, NULL);
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	for (elt1 = sm_list_first(bpwm, vdb->outducts); elt1;
+			elt1 = sm_list_next(bpwm, elt1))
+	{
+		vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt1));
+		dr = (DuctRef *) MTAKE(sizeof(DuctRef));
+		if (dr == NULL)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("No memory for duct reference.", NULL);
+			lyst_destroy(ductsToFlush);
+			return -1;
+		}
+
+		istrcpy(dr->protocolName, vduct->protocolName,
+				sizeof(dr->protocolName));
+		istrcpy(dr->protocolName, vduct->protocolName,
+				sizeof(dr->protocolName));
+		elt2 = lyst_insert_last(ductsToFlush, dr);
+		if (elt2 == NULL)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("No memory for lyst element.", NULL);
+			lyst_destroy(ductsToFlush);
+			return -1;
+		}
+	}
+
+	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
+
+	/*	Have now got a stable list of outducts to flush.	*/
+
+	while (1)
+	{
+		elt2 = lyst_first(ductsToFlush);
+		if (elt2 == NULL)
+		{
+			break;
+		}
+
+		dr = (DuctRef *) lyst_data(elt2);
+		findOutduct(dr->protocolName, dr->ductName, &vduct, &vductElt);
+		if (vductElt)
+		{
+			if ((currentTime - vduct->timeOfLastXmit)
+					> MAX_CLO_INACTIVITY)
+			{
+				/*	Outduct might be stuck.		*/
+
+				if (flushOutduct(dr) < 0)
+				{
+					lyst_destroy(ductsToFlush);
+					return -1;
+				}
+			}
+		}
+
+		lyst_delete(elt2);
+	}
+
+	lyst_destroy(ductsToFlush);
+	return 0;
+}
+
 static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 			time_t *previousFlush)
 {
-	int	length;
+	int	bundlesToFlush;
 	int	batchesNeeded;
 	int	elapsed;
 	int	batchesAvbl;
+	int	bundlesFlushed;
+	int	flushCount;
 	Object	elt;
 	Object	nextElt;
 
@@ -275,9 +470,8 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 	 *	enough to justify flushing all bundles currently in
 	 *	limbo.							*/
 
-	CHKERR(sdr_begin_xn(sdr));
-	length = sdr_list_length(sdr, limboList);
-	batchesNeeded = (length >> 8) & 0x00ffffff;
+	bundlesToFlush = sdr_list_length(sdr, limboList);
+	batchesNeeded = (bundlesToFlush >> 8) & 0x00ffffff;
 	if (*previousFlush == 0)
 	{
 		*previousFlush = currentTime;	/*	Initialize.	*/
@@ -287,13 +481,55 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
 	if (batchesAvbl > 0 && batchesAvbl >= batchesNeeded)
 	{
-		for (elt = sdr_list_first(sdr, limboList); elt; elt = nextElt)
+		/*	Flush the limbo list.  Flush 1000 bundles at
+		 *	a time, to keep log file lengths reasonable.	*/
+
+		bundlesFlushed = 0;
+		while (bundlesFlushed < bundlesToFlush)
 		{
-			nextElt = sdr_list_next(sdr, elt);
-			if (releaseFromLimbo(elt, 0) < 0)
+			/*	Flush first 1000 bundles.		*/
+
+			CHKERR(sdr_begin_xn(sdr));
+			flushCount = 0;
+			for (elt = sdr_list_first(sdr, limboList); elt;
+					elt = nextElt)
 			{
-				putErrmsg("Failed releasing bundle from limbo.",
+				nextElt = sdr_list_next(sdr, elt);
+				bundlesFlushed++;
+				switch (releaseFromLimbo(elt, 0))
+				{
+				case 0:		/*	Suspended.	*/
+					break;	/*	No log impact.	*/
+	
+				case 1:		/*	Successful.	*/
+					flushCount++;
+					break;
+	
+				default:
+					putErrmsg("Failed releasing bundle \
+from limbo.", NULL);
+					flushCount = 1000;
+					bundlesFlushed = bundlesToFlush;
+				}
+
+				if (flushCount > 999)
+				{
+					break;
+				}
+			}
+
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Bundle flush transaction failed.",
 						NULL);
+				return -1;
+			}
+
+			/*	Limbo list might have been shortened
+			 *	by bundle expiration.			*/
+
+			if (sdr_list_length(sdr, limboList) < 1)
+			{
 				break;
 			}
 		}
@@ -301,7 +537,7 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 		*previousFlush = currentTime;
 	}
 
-	return sdr_end_xn(sdr);
+	return 0;
 }
 
 #if defined (ION_LWT)
@@ -356,6 +592,15 @@ int	main(int argc, char *argv[])
 		/*	Then apply rate control.			*/
 
 		applyRateControl(sdr);
+
+		/*	Flush all Outducts that appear to be stuck.	*/
+
+		if (flushOutducts(sdr, currentTime) < 0)
+		{
+			putErrmsg("Can't flush outducts.", NULL);
+			state = 0;
+			oK(_running(&state));
+		}
 
 		/*	Finally, possibly give bundles in limbo an
 		 *	opportunity to be forwarded, in case an

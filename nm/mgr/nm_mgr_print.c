@@ -436,7 +436,8 @@ void ui_print_reports(agent_t* agent)
 	    	 printf("\n----------------------------------------");
 	    	 printf("\nSent to   : %s", cur_report->recipient.name);
 	    	 printf("\nTimestamp : %s", ctime(&(cur_report->time)));
-	    	 printf("\n# Entries : %ld", lyst_length(cur_report->entries));
+	    	 printf("\n# Entries : %lu",
+			 (unsigned long) lyst_length(cur_report->entries));
 	    	 printf("\n----------------------------------------");
 
  	    	 /* For each MID in this report, print it. */

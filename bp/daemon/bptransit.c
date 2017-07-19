@@ -21,6 +21,11 @@
 extern void	noteBundleInserted(Bundle *bundle);
 extern void	noteBundleRemoved(Bundle *bundle);
 
+typedef struct
+{
+	int	running;
+} MigrationThreadParms;
+
 /*	*	*	Daemon termination control.			*/
 
 static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
@@ -37,11 +42,7 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 
 static void	shutDown()	/*	Commands bptransit termination.	*/
 {
-	BpVdb	*vdb;
-
-	vdb = getBpVdb();
-	sm_SemEnd(vdb->confirmedTransitSemaphore);
-	sm_SemEnd(vdb->provisionalTransitSemaphore);
+	sm_SemEnd((getBpVdb())->transitSemaphore);
 	ionPauseAttendant(_attendant(NULL));
 }
 
@@ -93,142 +94,6 @@ static int	initiateBundleForwarding(Sdr sdr, Bundle *bundle,
 	return 0;
 }
 
-/*	*	Functions for provisional transit migration thread	*/
-
-typedef struct
-{
-	int	running;
-} MigrationThreadParms;
-
-static void	*migrateBundles(void *parm)
-{
-	/*	Main loop for initiating the forwarding of received
-	 *	bundles whose payloads are provisional ZCOs.  These
-	 *	ZCOs occupy non-Restricted Inbound ZCO space, which
-	 *	is a critical resource.  Whenever a provisional ZCO
-	 *	cannot be immediately migrated to the Outbound ZCO
-	 *	pool, we destroy it (abandoning the bundle) instead
-	 *	of waiting for Outbound space to become available.
-	 *	This ensures that the Inbound space occupied by the
-	 *	ZCO is released, one way or another.			*/
-
-	Sdr			sdr = getIonsdr();
-	BpDB			*db = getBpConstants();
-	BpVdb			*vdb = getBpVdb();
-	MigrationThreadParms	*mtp = (MigrationThreadParms *) parm;
-	Object			elt;
-	Object			bundleAddr;
-	Bundle			bundle;
-	int			priority;
-	Object			newPayload;
-
-	snooze(1);	/*	Let main thread become interruptible.	*/
-	while (mtp->running)
-	{
-		CHKNULL(sdr_begin_xn(sdr));
-		elt = sdr_list_first(sdr, db->provisionalTransit);
-		if (elt == 0)	/*	Wait for in-transit notice.	*/
-		{
-			sdr_exit_xn(sdr);
-			if (sm_SemTake(vdb->provisionalTransitSemaphore) < 0)
-			{
-				putErrmsg("Can't take semaphore.", NULL);
-				mtp->running = 0;
-				shutDown();
-				continue;
-			}
-
-			if (sm_SemEnded(vdb->provisionalTransitSemaphore))
-			{
-				/*	Normal shutdown.		*/
-
-				mtp->running = 0;
-			}
-
-			continue;
-		}
-
-		/*	Note: still in transaction at this point.	*/
-
-		bundleAddr = (Object) sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-		priority = COS_FLAGS(bundle.bundleProcFlags) & 0x03;
-
-		/*	Note: it's safe to call ionCreateZco here
-		 *	(while we're in a transaction) because we
-		 *	don't pass it a pointer to an attendant, so
-		 *	it won't block.					*/
-
-		newPayload = ionCreateZco(ZcoZcoSource, bundle.payload.content,
-			0, bundle.payload.length, priority,
-			bundle.ancillaryData.ordinal, ZcoOutbound, NULL);
-		switch (newPayload)
-		{
-		case (Object) ERROR:
-			sdr_cancel_xn(sdr);
-			putErrmsg("Can't create payload ZCO.", NULL);
-			mtp->running = 0;
-			shutDown();
-			continue;
-
-		case 0:		/*	Not enough ZCO space.		*/
-
-			/*	Cannot immediately queue this bundle
-			 *	for forwarding, so must abandon it to
-			 *	free up Inbound ZCO space.		*/
-
-			sdr_list_delete(sdr, elt, NULL, NULL);
-			bundle.transitElt = 0;
-			sdr_write(sdr, bundleAddr, (char *) &bundle,
-					sizeof(Bundle));
-			if (bpAbandon(bundleAddr, &bundle, BP_REASON_DEPLETION)
-					< 0)
-			{
-				sdr_cancel_xn(sdr);
-				putErrmsg("bpAbandon failed.", NULL);
-				mtp->running = 0;
-				shutDown();
-				continue;
-			}
-
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Failed migrating bundle.", NULL);
-				mtp->running = 0;
-				shutDown();
-			}
-
-			continue;
-
-		default:
-			break;	/*	Out of switch.			*/
-		}
-
-		/*	New payload ZCO has been created; still in xn.	*/
-
-		sdr_list_delete(sdr, elt, NULL, NULL);
-		bundle.transitElt = 0;
-		if (initiateBundleForwarding(sdr, &bundle, bundleAddr,
-				newPayload) < 0)
-		{
-			sdr_cancel_xn(sdr);
-			putErrmsg("Can't initiate forwarding of bundle.", NULL);
-			mtp->running = 0;
-			shutDown();
-			continue;
-		}
-
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Failed migrating in-transit bundle.", NULL);
-			mtp->running = 0;
-			shutDown();
-		}
-	}
-
-	return NULL;
-}
-
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
@@ -244,7 +109,6 @@ int	main(int argc, char *argv[])
 	BpVdb			*vdb;
 	ReqAttendant		attendant;
 	MigrationThreadParms	mtp;
-	pthread_t		migrationThread;
 	Object			elt;
 	Object			bundleAddr;
 	Bundle			bundle;
@@ -274,32 +138,23 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+	mtp.running = 1;
 	oK(_attendant(&attendant));
 	isignal(SIGTERM, shutDown);
 
-	/*	Start the provisional transit forwarding thread.	*/
-
-	mtp.running = 1;
-	if (pthread_begin(&migrationThread, NULL, migrateBundles, &mtp))
-	{
-		putErrmsg("bptransit can't create migration thread", NULL);
-		ionStopAttendant(&attendant);
-		return -1;
-	}
-
-	/*	Main loop handles bundles in confirmed transit: get
-	 *	bundle, copy it into Outbound ZCO space as soon as
-	 *	space is available, delete it from Inbound ZCO space.	*/
+	/*	Main loop handles bundles in transit: get bundle,
+	 *	copy it into Outbound ZCO space as soon as space
+	 *	is available, delete it from Inbound ZCO space.		*/
 
 	writeMemo("[i] bptransit is running.");
 	while (mtp.running)
 	{
 		CHKERR(sdr_begin_xn(sdr));	/*	Lock database.	*/
-		elt = sdr_list_first(sdr, db->confirmedTransit);
+		elt = sdr_list_first(sdr, db->transit);
 		if (elt == 0)	/*	Wait for in-transit notice.	*/
 		{
 			sdr_exit_xn(sdr);	/*	Unlock.		*/
-			if (sm_SemTake(vdb->confirmedTransitSemaphore) < 0)
+			if (sm_SemTake(vdb->transitSemaphore) < 0)
 			{
 				putErrmsg("Can't take transit semaphore.",
 						NULL);
@@ -307,7 +162,7 @@ int	main(int argc, char *argv[])
 				continue;
 			}
 
-			if (sm_SemEnded(vdb->confirmedTransitSemaphore))
+			if (sm_SemEnded(vdb->transitSemaphore))
 			{
 				mtp.running = 0;
 			}
@@ -333,23 +188,22 @@ int	main(int argc, char *argv[])
 
 		if (ionRequestZcoSpace(ZcoOutbound, fileSpaceNeeded,
 				bulkSpaceNeeded, heapSpaceNeeded, priority,
-				bundle.ancillaryData.ordinal,
-				&attendant, &ticket) < 0)
+				bundle.ancillaryData.ordinal, &attendant,
+				&ticket) < 0)
 		{
 			putErrmsg("Failed trying to reserve ZCO space.", NULL);
 			mtp.running = 0;
 			continue;
 		}
 
-		if (ticket)	/*	Space not currently available.	*/
+		if (!(ionSpaceAwarded(ticket)))
 		{
-			/*	Ticket is req list element for the
-			 *	request.  Wait until space available.	*/
+			/*	Space not currently available.		*/
 
 			if (sm_SemTake(attendant.semaphore) < 0)
 			{
 				putErrmsg("Failed taking semaphore.", NULL);
-				ionShred(ticket);
+				ionShred(ticket);	/*	Cancel.	*/
 				mtp.running = 0;
 				continue;
 			}
@@ -357,19 +211,18 @@ int	main(int argc, char *argv[])
 			if (sm_SemEnded(attendant.semaphore))
 			{
 				writeMemo("[i] ZCO request interrupted.");
-				ionShred(ticket);
+				ionShred(ticket);	/*	Cancel.	*/
+				mtp.running = 0;
 				continue;
 			}
 
 			/*	ZCO space has now been reserved.	*/
-
-			ionShred(ticket);
 		}
 
 		/*	At this point ZCO space is known to be avbl.	*/
 
 		CHKERR(sdr_begin_xn(sdr));
-		elt = sdr_list_first(sdr, db->confirmedTransit);
+		elt = sdr_list_first(sdr, db->transit);
 		if (elt != currentElt)
 		{
 			/*	Something happened to this bundle
@@ -378,9 +231,11 @@ int	main(int argc, char *argv[])
 			 *	and start over again.			*/
 
 			sdr_exit_xn(sdr);
+			ionShred(ticket);		/*	Cancel.	*/
 			continue;
 		}
 
+		bundleAddr = sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
 				bundle.payload.length, &fileSpaceNeeded,
@@ -398,6 +253,7 @@ int	main(int argc, char *argv[])
 			 *	start over again.			*/
 
 			sdr_exit_xn(sdr);
+			ionShred(ticket);		/*	Cancel.	*/
 			continue;
 		}
 
@@ -407,20 +263,22 @@ int	main(int argc, char *argv[])
 		length = bundle.payload.length;
 		newPayload = zco_create(sdr, ZcoZcoSource,
 				bundle.payload.content, 0, 0 - length,
-				ZcoOutbound, 0);
+				ZcoOutbound);
 		switch (newPayload)
 		{
 		case (Object) ERROR:
 		case 0:
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't create payload ZCO.", NULL);
+			ionShred(ticket);		/*	Cancel.	*/
 			mtp.running = 0;
 			continue;
 
 		default:
-			break;			/*	Out of switch.	*/
+			break;		/*	Out of switch.		*/
 		}
 
+		ionShred(ticket);	/*	Dismiss reservation.	*/
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.transitElt = 0;
 		if (initiateBundleForwarding(sdr, &bundle, bundleAddr,
@@ -437,10 +295,13 @@ int	main(int argc, char *argv[])
 			putErrmsg("Failed migrating bundle.", NULL);
 			mtp.running = 0;
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	shutDown();
-	pthread_join(migrationThread, NULL);
 	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] bptransit has ended.");

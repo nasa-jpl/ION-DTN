@@ -60,6 +60,11 @@ static char	*_SdrSchName()
 	return "sdrsch";
 }
 
+static char	*_SdrWmName()
+{
+	return "sdrwm";
+}
+
 /*	*	*	SDR global system variables	*	*	*/
 
 static sm_SemId	_sdrlock(int delete)
@@ -124,9 +129,9 @@ static int	_sdrMemory(int *memmgrIdx)
 	return idx;
 }
 
-static long	_sdrwmSize(long *wmsize)
+static size_t	_sdrwmSize(size_t *wmsize)
 {
-	static long	size = 0;
+	static size_t	size = 0;
 
 	if (wmsize)
 	{
@@ -295,7 +300,7 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 
 	if (parms)
 	{
-		if (parms->wmSize == -1)	/*	Shutdown.	*/
+		if (parms->wmName == NULL)	/*	Shutdown.	*/
 		{
 			if (sdrwm)
 			{
@@ -443,7 +448,7 @@ void	releaseSdr(SdrState *sdr)
 
 /*	*	SDR system administration functions	*	*	*/
 
-int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
+int	Sdr_initialize(size_t wmSize, char *wmPtr, int wmKey, char *wmName)
 {
 	sm_SemId	lock;
 	sm_WmParms	wmparms;
@@ -470,6 +475,11 @@ int	Sdr_initialize(long wmSize, char *wmPtr, int wmKey, char *wmName)
         {
 		sm_SemGive(lock);
 		return 0;
+	}
+
+	if (wmName == NULL)
+	{
+		wmName = _SdrWmName();
 	}
 
 	wmparms.wmKey = wmKey;
@@ -499,7 +509,7 @@ void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 
 	if (_sdrwm(NULL) != NULL)
 	{
-		wmparms.wmSize = -1;
+		wmparms.wmName = NULL;
 		oK(_sdrwm(&wmparms));
 	}
 
@@ -560,7 +570,7 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 	each log entry being written back into the indicated start
 	address.							*/
 
-static int	readFromLog(int logfile, char *logsm, unsigned long offset,
+static int	readFromLog(int logfile, char *logsm, size_t offset,
 			char *into, size_t length, SdrState *sdr)
 {
 	if (logsm == NULL)		/*	Log is in file.		*/
@@ -593,8 +603,8 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 	PsmPartition	sdrwm = _sdrwm(NULL);
 	PsmAddress	elt;
 	size_t		length;
-	unsigned long	logEntryOffset;
-	unsigned long	logEntryControl[2];	/*	Offset, length.	*/
+	uaddr		logEntryOffset;
+	uaddr		logEntryControl[2];	/*	Offset, length.	*/
 	char		*buf;
 
 	if ((logfile == -1 && logsm == NULL))
@@ -605,7 +615,7 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 	for (elt = sm_list_last(sdrwm, sdr->logEntries); elt;
 			elt = sm_list_prev(sdrwm, elt))
 	{
-		logEntryOffset = (unsigned long) sm_list_data(sdrwm, elt);
+		logEntryOffset = (uaddr) sm_list_data(sdrwm, elt);
 		length = sizeof logEntryControl;
 		if (readFromLog(logfile, logsm, logEntryOffset,
 				(char *) logEntryControl, length, sdr) < 0)
@@ -843,8 +853,8 @@ void	crashXn(Sdr sdrv)
 static int	reloadLogEntries(SdrState *sdr, int logfile)
 {
 	PsmPartition	sdrwm = _sdrwm(NULL);
-	int		logFileLength;
-	unsigned long	logEntryControl[2];	/*	Offset, length.	*/
+	size_t		logFileLength;
+	uaddr		logEntryControl[2];	/*	Offset, length.	*/
 	size_t		lengthRead;
 	size_t		endOfEntry;
 
@@ -920,9 +930,9 @@ static int	reloadLogEntries(SdrState *sdr, int logfile)
 	}
 }
 
-static long	getBigBuffer(char **buffer)
+static size_t	getBigBuffer(char **buffer)
 {
-	long	bufsize = _sdrwmSize(NULL);
+	size_t	bufsize = _sdrwmSize(NULL);
 
 	/*	Temporarily take large buffer from SDR working memory.	*/
 
@@ -931,7 +941,7 @@ static long	getBigBuffer(char **buffer)
 		bufsize = bufsize / 2;
 		if (bufsize == 0)
 		{
-			return -1;
+			return 0;
 		}
 
 		*buffer = MTAKE(bufsize);
@@ -950,24 +960,31 @@ static void	initSdrMap(SdrMap *map, SdrState *sdr)
 	map->heapSize = sdr->heapSize;
 	map->startOfSmallPool = sizeof(SdrMap);
 	map->endOfSmallPool = map->startOfSmallPool;
-	memset(map->firstSmallFree, 0, sizeof map->firstSmallFree);
+	memset(map->smallPoolFree, 0, sizeof map->smallPoolFree);
 	map->endOfLargePool = sdr->dsSize;
 	map->startOfLargePool = map->endOfLargePool;
-	memset(map->firstLargeFree, 0, sizeof map->firstLargeFree);
+	memset(map->largePoolFree, 0, sizeof map->largePoolFree);
+	map->largePoolSearchLimit = 0;
 	map->unassignedSpace = map->startOfLargePool - map->endOfSmallPool;
+#if 0
+	map->inUse = 0;
+	map->maxInUse = 0;
+	map->smallPoolFree = 0;
+	map->largePoolFree = 0;
+#endif
 }
 
 static int	createDsFile(SdrState *sdr, char *dsfilename)
 {
-	long	bufsize;
+	size_t	bufsize;
 	char	*buffer;
 	int	dsfile;
-	long	lengthRemaining;
+	size_t	lengthRemaining;
 	size_t	lengthToWrite;
 	SdrMap	map;
 
 	bufsize = getBigBuffer(&buffer);
-	if (bufsize < 0)
+	if (bufsize < 1)
 	{
 		putErrmsg("Can't get buffer in sdrwm.", NULL);
 		return -1;
@@ -1019,9 +1036,9 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 
 static int	restageDsFromFile(SdrState *sdr, int dsfile, char *dssm)
 {
-	long	bytesRemaining = sdr->dsSize;
-	int	offset;
-	long	bytesRead;
+	size_t	bytesRemaining = sdr->dsSize;
+	size_t	offset;
+	vast	bytesRead;
 
 	offset = 0;
 	while (bytesRemaining > 0)
@@ -1132,8 +1149,8 @@ static void	destroySdr(SdrState *sdr)
 	sm_SemGive(lock);
 }
 
-int	sdr_load_profile(char *name, int configFlags, long heapWords,
-		int heapKey, int logSize, int logKey, char *pathName,
+int	sdr_load_profile(char *name, int configFlags, size_t heapWords,
+		int heapKey, size_t logSize, int logKey, char *pathName,
 		char *restartCmd)
 {
 	sm_SemId		lock = _sdrlock(0);
@@ -1142,7 +1159,7 @@ int	sdr_load_profile(char *name, int configFlags, long heapWords,
 	PsmAddress		elt;
 	SdrState		*sdr;
 	PsmAddress		newSdrAddress;
-	long			limit;
+	size_t			limit;
 	struct stat		statbuf;
 	char			logfilename[PATHLENMAX + 1 + 32 + 1 + 6 + 1];
 	int			logfile = -1;
@@ -1443,8 +1460,8 @@ in file and transaction reversibility", sdr->pathName);
 	return 0;
 }
 
-int	sdr_reload_profile(char *name, int configFlags, long heapWords,
-		int heapKey, int logSize, int logKey, char *pathName,
+int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
+		int heapKey, size_t logSize, int logKey, char *pathName,
 		char *restartCmd)
 {
 	sm_SemId		lock = _sdrlock(0);
@@ -1662,7 +1679,7 @@ char	*sdr_name(Sdr sdrv)
 	return sdrv->sdr->name;
 }
 
-long	sdr_heap_size(Sdr sdrv)
+size_t	sdr_heap_size(Sdr sdrv)
 {
 	CHKZERO(sdrv);
 	return sdrv->sdr->heapSize;
@@ -1923,7 +1940,7 @@ void	_sdrfree(Sdr sdrv, Object, PutSrc);
 	return;
 }
 
-int	sdrBoundaryViolated(SdrView *sdrv, Address offset, long length)
+int	sdrBoundaryViolated(SdrView *sdrv, Address offset, size_t length)
 {
 	return 0;
 }
@@ -1931,7 +1948,7 @@ int	sdrBoundaryViolated(SdrView *sdrv, Address offset, long length)
 #endif
 
 static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
-			long length)
+			size_t length)
 {
 	SdrState	*sdr = sdrv->sdr;
 
@@ -1948,8 +1965,12 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 	{
 		if (sdr->logLength + length > sdr->logSize)
 		{
-			_putErrmsg(file, line, "Log max size exceeded.",
-					itoa(length));
+			char buf[256];
+			isprintf(buf, sizeof(buf), "Log max size exceeded. \
+SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d", sdr->name,
+					sdr->logSize, sdr->logLength,
+					length, sdr->xnDepth);
+			_putErrmsg(file, line, buf, NULL);
 			return -1;
 		}
 
@@ -1957,17 +1978,22 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 	}
 
 	sdr->logLength += length;
+	if ( sdr->logLength > sdr->maxLogLength )
+	{
+		sdr->maxLogLength = sdr->logLength;
+	}
+
 	return length;
 }
 
 void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
-		long length, PutSrc src)
+		size_t length, PutSrc src)
 {
 	SdrState	*sdr;
 	Address		to;
-	unsigned long	logEntryControl[2];
+	uaddr		logEntryControl[2];
 	char		*buffer;
-	long		logOffset;
+	size_t		logOffset;
 
 	if (length == 0)
 	{
@@ -2088,7 +2114,7 @@ entry.", NULL);
 }
 
 void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
-		char *from, long length)
+		char *from, size_t length)
 {
 	if (!(sdr_in_xn(sdrv)))
 	{
@@ -2100,7 +2126,7 @@ void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
 	_sdrput(file, line, sdrv, into, from, length, UserPut);
 }
 
-void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
+void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 {
 	SdrState	*sdr;
 	Address		to;
@@ -2145,7 +2171,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, long length)
 	}
 }
 
-void	sdr_read(Sdr sdrv, char *into, Address from, long length)
+void	sdr_read(Sdr sdrv, char *into, Address from, size_t length)
 {
 	_sdrfetch(sdrv, into, from, length);
 }

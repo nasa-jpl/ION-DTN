@@ -323,8 +323,7 @@ extern Object	zco_create(	Sdr sdr,
 				Object firstExtentLocation,
 				vast firstExtentOffset,
 				vast firstExtentLength,
-				ZcoAcct acct,
-				unsigned char provisional);
+				ZcoAcct acct);
 			/*	The parameters "firstExtentLocation"
 			 *	and "firstExtentLength" must either
 			 *	both be zero (indicating that
@@ -357,15 +356,6 @@ extern Object	zco_create(	Sdr sdr,
 			 *	ZcoSdrSource then firstExtentLocation
 			 *	must be the SDR heap location of an
 			 *	SDR heap object.
-			 *
-			 *	A non-zero value of "provisional"
-			 *	indicates that this ZCO will occupy
-			 *	non-Restricted Inbound ZCO space.
-			 *	This space is a critical resource,
-			 *	so provisional ZCOs are subject
-			 *	to defensive destruction if they
-			 *	cannot immediately be migrated
-			 *	into the Outbound ZCO space pool.
 			 *
 			 *	Returns SDR location of a new ZCO
 			 *	object on success, 0 if there is
@@ -506,12 +496,6 @@ extern ZcoAcct	zco_acct(	Sdr sdr,
 				Object zco);
 			/*	Returns an indicator as to whether
 			 *	this ZCO is inbound or outbound.	*/
-
-extern int	zco_is_provisional(Sdr sdr,
-				Object zco);
-			/*	Returns 1 if this ZCO is "provisional"
-			 *	(occupies non-Restricted Inbound ZCO
-			 *	space), zero if it is not.		*/
 
 /*	*	Functions for copying ZCO source data.	*	*	*/
 

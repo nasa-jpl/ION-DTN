@@ -37,7 +37,7 @@ typedef struct
 	int		lineNbr;
 	int		opNbr;
 	int		opType;
-	unsigned long	objectAddress;
+	uaddr		objectAddress;
 	int		objectSize;
 	int		refTaskId;
 	PsmAddress	refFileName;
@@ -55,7 +55,7 @@ static void	sptracePrint(char *txt)
 	writeMemo(buffer);
 }
 
-PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
+PsmPartition	sptrace_start(int smkey, size_t smsize, char *sm,
 			PsmPartition trace, char *name)
 {
 	int		nameLen;
@@ -149,7 +149,7 @@ PsmPartition	sptrace_start(int smkey, int smsize, char *sm,
 	return trace;
 }
 
-PsmPartition	sptrace_join(int smkey, int smsize, char *sm,
+PsmPartition	sptrace_join(int smkey, size_t smsize, char *sm,
 			PsmPartition trace, char *name)
 {
 	int		nameLen;
@@ -256,8 +256,8 @@ static PsmAddress	findFileName(PsmPartition trace, TraceHeader *trh,
 	return filenameAddress;
 }
 
-static void	logEvent(PsmPartition trace, int opType, unsigned long
-			addr, int objectSize, char *msg, const char *fileName,
+static void	logEvent(PsmPartition trace, int opType, uaddr addr,
+			size_t objectSize, char *msg, const char *fileName,
 			int lineNbr, PsmAddress *eltp)
 {
 	PsmAddress	traceHeaderAddress;
@@ -323,21 +323,21 @@ static void	logEvent(PsmPartition trace, int opType, unsigned long
 	}
 }
 
-void	sptrace_log_alloc(PsmPartition trace, unsigned long addr, int size,
+void	sptrace_log_alloc(PsmPartition trace, uaddr addr, size_t size,
 		const char *fileName, int lineNbr)
 {
 	if (!trace) return;
 	logEvent(trace, OP_ALLOCATE, addr, size, NULL, fileName, lineNbr, NULL);
 }
 
-void	sptrace_log_memo(PsmPartition trace, unsigned long addr, char *text,
+void	sptrace_log_memo(PsmPartition trace, uaddr addr, char *text,
 		const char *fileName, int lineNbr)
 {
 	if (!trace) return;
 	logEvent(trace, OP_MEMO, addr, -1, text, fileName, lineNbr, NULL);
 }
 
-void	sptrace_log_free(PsmPartition trace, unsigned long addr,
+void	sptrace_log_free(PsmPartition trace, uaddr addr,
 		const char *fileName, int lineNbr)
 {
 	PsmAddress	elt;

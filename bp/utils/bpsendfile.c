@@ -50,6 +50,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		return 0;
 	}
 
+	writeMemo("bpsendfile is running.");
 	if (stat(fileName, &statbuf) < 0)
 	{
 		bp_close(sap);

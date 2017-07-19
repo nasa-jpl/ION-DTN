@@ -53,7 +53,7 @@ Sdr_list_user_data_set(__FILE__, __LINE__, sdr, list, userData)
 extern void		Sdr_list_user_data_set(const char *file, int line,
 				Sdr sdr, Object list, Address userData);
 
-extern long		sdr_list_length(Sdr sdr, Object list);
+extern size_t		sdr_list_length(Sdr sdr, Object list);
 
 #define sdr_list_insert(sdr, list, data, compare, arg) \
 Sdr_list_insert(__FILE__, __LINE__, sdr, list, data, compare, arg)
