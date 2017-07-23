@@ -250,7 +250,6 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
-	Object		cancelElt;	/*	In deadImports list.	*/
 	unsigned int	nextRptSerialNbr;
 	unsigned int	finalRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
@@ -330,8 +329,7 @@ typedef struct
 	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	Object		rsSerialNbrs;	/*	SDR list of serial nbrs	*/
-	Object		cancelElt;	/*	In deadExports list.	*/
-	unsigned int	prevCkptSerialNbr;
+	unsigned int	lastCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
 	 *	time of initial transmission, and only to support
@@ -411,9 +409,19 @@ typedef struct
 	unsigned int	clientSvcIdOfBufferedBlock;
 
 	Object		exportSessions;	/*	SDR list: ExportSession	*/
+
+	/*	Note: any given export session may be in the
+	 *	exportSessions list (and the LtpDB.exportSessionsHash)
+	 *	or in the LtpDB.deadExports list, but not both.		*/
+
 	Object		segments;	/*	SDR list: LtpXmitSeg	*/
 	Object		importBuffers;	/*	SDR list: Object	*/
 	Object		importSessions;	/*	SDR list: ImportSession	*/
+
+	/*	Note: any given import session may be in the
+	 *	importSessions list (and hash) or in the deadImports
+	 *	list, but not both.					*/
+
 	Object		importSessionsHash;
 	Object		closedImports;	/*	SDR list: session nbr	*/
 	Object		deadImports;	/*	SDR list: ImportSession	*/
