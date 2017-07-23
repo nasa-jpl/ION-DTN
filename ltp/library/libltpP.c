@@ -3702,16 +3702,20 @@ static int	cancelSessionBySender(ExportSession *session,
 	clearExportSession(session);
 	sdr_write(sdr, sessionObj, (char *) session, sizeof(ExportSession));
 
-	/*	Remove session from active sessions pool, so that the
-	 *	cancellation won't affect flow control.			*/
+	/*	Insert into list of canceled sessions...		*/
+
+	if (sdr_list_insert_last(sdr, db.deadExports, sessionObj) == 0)
+	{
+		putErrmsg("Can't insert into list of canceled sessions.", NULL);
+		return -1;
+	}
+
+	/*	...and remove session from active sessions pool, so
+	 *	that the cancellation won't affect flow control.	*/
 
 	sdr_hash_remove(sdr, db.exportSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(sdr, elt, NULL, NULL);
-
-	/*	Insert into list of canceled sessions instead.		*/
-
-	elt = sdr_list_insert_last(sdr, db.deadExports, sessionObj);
 
 	/*	Span now has room for another session to start.		*/
 
@@ -3803,7 +3807,7 @@ static int	cancelSessionByReceiver(ImportSession *session,
 	session->reasonCode = reasonCode;	/*	For resend.	*/
 	sdr_write(sdr, sessionObj, (char *) session, sizeof(ImportSession));
 
-	/*	Insert into list of canceled sessions.			*/
+	/*	Insert into list of canceled sessions...		*/
 
 	if (sdr_list_insert_last(sdr, span->deadImports, sessionObj) == 0)
 	{
@@ -3811,8 +3815,8 @@ static int	cancelSessionByReceiver(ImportSession *session,
 		return -1;
 	}
 
-	/*	Remove session from list of live imports, so that the
-	 *	cancellation won't affect flow control.			*/
+	/*	...and remove session from list of live imports, so
+	 *	that the cancellation won't affect flow control.	*/
 
 	removeImportSession(sessionObj);
 
@@ -5828,7 +5832,7 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 			return -1;
 		}
 
-		session->lastCkptSerialNbr = checkpointSerialNbr;
+		session->prevCkptSerialNbr = checkpointSerialNbr;
 		sdr_write(sdr, sessionObj, (char *) session,
 				sizeof(ExportSession));
 	}
@@ -6443,7 +6447,7 @@ putErrmsg("Discarding report.", NULL);
 	/*	Not all red data in the block has yet been received.	*/
 
 	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
-	ckptSerialNbr = sessionBuf.lastCkptSerialNbr + 1;
+	ckptSerialNbr = sessionBuf.prevCkptSerialNbr + 1;
 	if (ckptSerialNbr == 0	/*	Rollover.			*/
 	|| sdr_list_length(sdr, sessionBuf.checkpoints)
 			>= sessionBuf.maxCheckpoints)
@@ -6957,6 +6961,8 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
+	/*	Cancel retransmission of the CS segment.		*/
+
 	cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
 
 	/*	No need to change state of session's timer
@@ -7197,6 +7203,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	/*	No need to change state of session's timer because
 	 *	the whole session is about to vanish.			*/
 
+	sdr_list_delete(sdr, sessionElt, NULL, NULL);
 	closeImportSession(sessionObj);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -8099,6 +8106,7 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 #endif
+		sdr_list_delete(sdr, sessionElt, NULL, NULL);
 		closeImportSession(sessionObj);
 	}
 	else	/*	Haven't given up yet.				*/

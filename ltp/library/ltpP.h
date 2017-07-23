@@ -329,7 +329,7 @@ typedef struct
 	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	Object		rsSerialNbrs;	/*	SDR list of serial nbrs	*/
-	unsigned int	lastCkptSerialNbr;
+	unsigned int	prevCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
 	 *	time of initial transmission, and only to support
