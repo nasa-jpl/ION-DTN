@@ -2016,6 +2016,39 @@ reception claims", itoa(claimCount));
 	session->claims = 0;
 }
 
+static void	eraseExportSession(Object sessionObj)
+{
+	Sdr		sdr = getIonsdr();
+	Object		dbobj = getLtpDbObject();
+			OBJ_POINTER(ExportSession, session);
+			OBJ_POINTER(LtpSpan, span);
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	LtpDB		db;
+	Object		elt;
+
+	CHKVOID(ionLocked());
+	GET_OBJ_POINTER(sdr, ExportSession, session, sessionObj);
+	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
+	findSpan(span->engineId, &vspan, &vspanElt);
+	sdr_stage(sdr, (char *) &db, dbobj, sizeof(LtpDB));
+	if (session->cancelElt)
+	{
+		sdr_list_delete(sdr, session->cancelElt, NULL, NULL);
+		cancelEvent(LtpResendXmitCancel, span->engineId,
+				session->sessionNbr, 0);
+	}
+
+	/*	Erase the session itself, reducing the session list
+	 *	length and thereby possibly enabling a blocked
+	 *	client to append an SDU to the current block.		*/
+
+	sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt);
+	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_free(sdr, sessionObj);
+}
+
 static void	closeExportSession(Object sessionObj)
 {
 	Sdr		sdr = getIonsdr();
@@ -2074,7 +2107,8 @@ notice.", NULL);
 	}
 
 	clearExportSession(session);
-
+eraseExportSession(sessionObj);
+#if 0
 	/*	Finally erase the session itself, reducing the session
 	 *	list length and thereby possibly enabling a blocked
 	 *	client to append an SDU to the current block.		*/
@@ -2083,6 +2117,8 @@ notice.", NULL);
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(sdr, elt, NULL, NULL);
 	sdr_free(sdr, sessionObj);
+#endif
+
 #if LTPDEBUG
 putErrmsg("Closed export session.", itoa(session->sessionNbr));
 #endif
@@ -2606,8 +2642,13 @@ void	closeImportSession(Object sessionObj)
 
 	/*	Remove the rest of the import session.			*/
 
-	cancelEvent(LtpResendRecvCancel, span->engineId, session->sessionNbr,
-			0);
+	if (session->cancelElt)
+	{
+		sdr_list_delete(sdr, session->cancelElt, NULL, NULL);
+		cancelEvent(LtpResendRecvCancel, span->engineId,
+				session->sessionNbr, 0);
+	}
+
 	noteClosedImport(sdr, span, session);
 	sdr_hash_remove(sdr, span->importSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
@@ -3634,7 +3675,6 @@ static int	cancelSessionBySender(ExportSession *session,
 	Object		sdu;	/*	A ZcoRef object.		*/
 
 	CHKERR(ionLocked());
-	session->reasonCode = reasonCode;	/*	(For CS resend.)*/
 	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	findSpan(span.engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
@@ -3678,18 +3718,26 @@ static int	cancelSessionBySender(ExportSession *session,
 	sdr_list_destroy(sdr, session->svcDataObjects, NULL, NULL);
 	session->svcDataObjects = 0;
 	clearExportSession(session);
+	session->reasonCode = reasonCode;	/*	(For CS resend.)*/
+
+	/*	Insert into list of canceled sessions...		*/
+
+	session->cancelElt = sdr_list_insert_last(sdr, db.deadExports,
+			sessionObj);
+	if (session->cancelElt == 0)
+	{
+		putErrmsg("Can't insert into list of canceled sessions.", NULL);
+		return -1;
+	}
+
 	sdr_write(sdr, sessionObj, (char *) session, sizeof(ExportSession));
 
-	/*	Remove session from active sessions pool, so that the
-	 *	cancellation won't affect flow control.			*/
+	/*	...and remove session from active sessions pool, so
+	 *	that the cancellation won't affect flow control.	*/
 
 	sdr_hash_remove(sdr, db.exportSessionsHash,
 			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(sdr, elt, NULL, NULL);
-
-	/*	Insert into list of canceled sessions instead.		*/
-
-	elt = sdr_list_insert_last(sdr, db.deadExports, sessionObj);
 
 	/*	Span now has room for another session to start.		*/
 
@@ -3779,15 +3827,18 @@ static int	cancelSessionByReceiver(ImportSession *session,
 	clearImportSession(session);
 	stopImportSession(session);
 	session->reasonCode = reasonCode;	/*	For resend.	*/
-	sdr_write(sdr, sessionObj, (char *) session, sizeof(ImportSession));
 
 	/*	Insert into list of canceled sessions.			*/
 
-	if (sdr_list_insert_last(sdr, span->deadImports, sessionObj) == 0)
+	session->cancelElt = sdr_list_insert_last(sdr, span->deadImports,
+			sessionObj);
+       	if (session->cancelElt == 0)
 	{
 		putErrmsg("Can't insert into list of canceled sessions.", NULL);
 		return -1;
 	}
+
+	sdr_write(sdr, sessionObj, (char *) session, sizeof(ImportSession));
 
 	/*	Finally, inform sender of cancellation.			*/
 
@@ -5801,7 +5852,7 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 			return -1;
 		}
 
-		session->lastCkptSerialNbr = checkpointSerialNbr;
+		session->prevCkptSerialNbr = checkpointSerialNbr;
 		sdr_write(sdr, sessionObj, (char *) session,
 				sizeof(ExportSession));
 	}
@@ -6416,7 +6467,7 @@ putErrmsg("Discarding report.", NULL);
 	/*	Not all red data in the block has yet been received.	*/
 
 	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
-	ckptSerialNbr = sessionBuf.lastCkptSerialNbr + 1;
+	ckptSerialNbr = sessionBuf.prevCkptSerialNbr + 1;
 	if (ckptSerialNbr == 0	/*	Rollover.			*/
 	|| sdr_list_length(sdr, sessionBuf.checkpoints)
 			>= sessionBuf.maxCheckpoints)
@@ -6928,13 +6979,16 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
-
 	/*	No need to change state of session's timer
 	 *	because the whole session is about to vanish.		*/
 
+eraseExportSession(sessionObj);
+#if 0
+	sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt);
 	sdr_list_delete(sdr, sessionElt, NULL, NULL);
 	sdr_free(sdr, sessionObj);
+#endif
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't handle ack of cancel by source.", NULL);
@@ -7911,8 +7965,11 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 #endif
+eraseExportSession(sessionObj);
+#if 0
 		sdr_list_delete(sdr, sessionElt, NULL, NULL);
 		sdr_free(sdr, sessionObj);
+#endif
 	}
 	else	/*	Haven't given up yet.				*/
 	{

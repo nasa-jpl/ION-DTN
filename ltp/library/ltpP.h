@@ -250,6 +250,7 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
+	Object		cancelElt;	/*	In deadImports list.	*/
 	unsigned int	nextRptSerialNbr;
 	unsigned int	finalRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
@@ -329,7 +330,8 @@ typedef struct
 	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	Object		rsSerialNbrs;	/*	SDR list of serial nbrs	*/
-	unsigned int	lastCkptSerialNbr;
+	Object		cancelElt;	/*	In deadExports list.	*/
+	unsigned int	prevCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
 	 *	time of initial transmission, and only to support
