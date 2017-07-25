@@ -7161,14 +7161,6 @@ putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 	/*	Source of block is acknowledging destination's
 	 *	cancellation of session.				*/
 
-	CHKERR(sdr_begin_xn(sdr));
-	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
-	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
-	{
-		sdr_exit_xn(sdr);
-		return 0;
-	}
-
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Stray segment.			*/
 	{
@@ -7185,6 +7177,14 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		 *	to be sending at this time, so we treat it as
 		 *	a misdirected transmission.			*/
 
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
+	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
+	{
 		sdr_exit_xn(sdr);
 		return 0;
 	}
