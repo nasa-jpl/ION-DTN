@@ -6891,12 +6891,14 @@ static int	handleCAS(LtpDB *ltpdb, unsigned int sessionNbr,
 	LtpPdu		*pdu = &(segment->pdu);
 	char		*endOfHeader;
 	Object		sessionObj;
+	Object		sessionElt;
 	ExportSession	sessionBuf;
-	Object		spanObj;
 	LtpSpan		spanBuf;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
-	Object		sessionElt;
+#if 0
+	Object		spanObj;
+#endif
 
 	endOfHeader = *cursor;
 #if LTPDEBUG
@@ -6907,6 +6909,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	 *	cancellation of session.				*/
 
 	CHKERR(sdr_begin_xn(sdr));
+#if 0
 	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
 			&spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
@@ -6921,6 +6924,36 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 
 		cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
 		return sdr_end_xn(sdr);
+	}
+#endif
+	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
+	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
+	{
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &sessionBuf, sessionObj, sizeof(ExportSession));
+	sdr_read(sdr, (char *) &spanBuf, sessionBuf.span, sizeof(LtpSpan));
+	findSpan(spanBuf.engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		putErrmsg("Missing span.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (vspan->receptionRate == 0)
+	{
+#if LTPDEBUG
+putErrsmg("Discarding stray segment.", itoa(sessionNbr));
+#endif
+		/*	Segment is from an engine that is not supposed
+		 *	to be sending at this time, so we treat it as
+		 *	a misdirected transmission.			*/
+
+		sdr_exit_xn(sdr);
+		return 0;
 	}
 
 	/*	At this point, the remaining bytes should all be
@@ -6938,13 +6971,6 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	case 0:		/*	Parsing error.				*/
 		ltpSpanTally(vspan, IN_SEG_MALFORMED, pdu->length);
 		return sdr_end_xn(sdr);
-	}
-
-	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
-	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
-	{
-		sdr_exit_xn(sdr);
-		return 0;
 	}
 
 	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
@@ -7125,7 +7151,6 @@ static int	handleCAR(uvast sourceEngineId, LtpDB *ltpdb,
 	PsmAddress	vspanElt;
 	Object		sessionObj;
 	Object		sessionElt;
-			OBJ_POINTER(ImportSession, session);
 
 	endOfHeader = *cursor;
 
@@ -7137,6 +7162,13 @@ putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 	 *	cancellation of session.				*/
 
 	CHKERR(sdr_begin_xn(sdr));
+	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
+	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
+	{
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
 	findSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	Stray segment.			*/
 	{
@@ -7174,12 +7206,6 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	getCanceledImport(vspan, sessionNbr, &sessionObj, &sessionElt);
-	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
-	{
-		return sdr_end_xn(sdr);
-	}
-
 	switch (invokeInboundBeforeContentProcessingCallbacks(segment,
 			headerExtensions, trailerExtensions,
 			endOfHeader - pdu->headerLength, vspan))
@@ -7196,9 +7222,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 
 	/*	Cancel retransmission of the CR segment.		*/
 
-	GET_OBJ_POINTER(sdr, ImportSession, session, sessionObj);
-	cancelEvent(LtpResendRecvCancel, vspan->engineId,
-			session->sessionNbr, 0);
+	cancelEvent(LtpResendRecvCancel, vspan->engineId, sessionNbr, 0);
 
 	/*	No need to change state of session's timer because
 	 *	the whole session is about to vanish.			*/
