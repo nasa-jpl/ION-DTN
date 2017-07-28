@@ -59,7 +59,7 @@ typedef struct
 typedef struct
 {
 	tdc_hdr_t hdr;
-	Lyst datacol;   /* List of datacol_entry. */
+	Lyst datacol;   /* List of blob_t. */
 } tdc_t;
 
 
@@ -83,10 +83,11 @@ uint32_t         tdc_get_entry_size(tdc_t* tdc, uint8_t index);
 amp_type_e     tdc_get_type(tdc_t* tdc, uint8_t index);
 uint8_t          tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize);
 uint8_t          tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize);
+void           tdc_init(tdc_t *tdc);
 amp_type_e     tdc_insert(tdc_t* tdc, amp_type_e type, uint8_t* data, uint32_t size);
 uint8_t*         tdc_serialize(tdc_t *tdc, uint32_t *size);
 amp_type_e     tdc_set_type(tdc_t* tdc, uint8_t index, amp_type_e type);
 char*            tdc_to_str(tdc_t *tdc);
 
 
-#endif // DATALIST_H_INCLUDED
+#endif // TDC_H_INCLUDED

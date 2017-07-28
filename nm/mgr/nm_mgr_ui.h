@@ -27,6 +27,7 @@
  **  --------  ------------   ---------------------------------------------
  **  01/18/13  E. Birrane     Code comments and cleanup (JHU/APL)
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  07/26/17  E. Birrane     Added batch testing. (JHU/APL)
  *****************************************************************************/
 #ifndef _NM_MGR_UI_H
 #define _NM_MGR_UI_H
@@ -105,6 +106,8 @@ agent_t *ui_select_agent();
 
 void ui_build_control(agent_t* agent);
 void ui_send_raw(agent_t* agent, uint8_t enter_ts);
+void ui_send_file(agent_t* agent, uint8_t enter_ts);
+
 
 int ui_test_mid(mid_t *mid, const char *mid_str);
 
@@ -146,6 +149,8 @@ void ui_db_set_parms();
 void ui_db_print_parms();
 void ui_db_reset();
 void ui_db_clear_rpt();
+void ui_db_read();
+void ui_db_write();
 
 #endif
 

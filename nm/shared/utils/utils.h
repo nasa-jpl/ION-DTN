@@ -40,6 +40,14 @@
  * +--------------------------------------------------------------------------+
  */
 
+// Fatal system error. Typically resource exhausted or underlying system error
+#define AMP_SYSERR (-1)
+// Non-fatal failure to do something.
+#define AMP_FAIL (0)
+// Successfully did something.
+#define AMP_OK (1)
+
+
 #ifndef MIN
 #define MIN(x,y) (x < y ? x : y)
 #endif

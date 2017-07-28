@@ -66,8 +66,8 @@ void* utils_safe_take(size_t size)
 	void *result;
 
 	lockResource(&gMemMutex);
-	//result = MTAKE(size);
-	result = malloc(size);
+	result = MTAKE(size);
+	//result = malloc(size);
 	if(result != NULL)
 	{
 		memset(result,0,size);
@@ -79,8 +79,8 @@ void* utils_safe_take(size_t size)
 void utils_safe_release(void* ptr)
 {
 	lockResource(&gMemMutex);
-	//MRELEASE(ptr);
-	free(ptr);
+	MRELEASE(ptr);
+	//free(ptr);
 	unlockResource(&gMemMutex);
 }
 
@@ -468,7 +468,7 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
        pad = 1;
 	}
 
-	if((result = (uint8_t *) STAKE(*size)) == NULL)
+	if((result = (uint8_t *) STAKE(*size+1)) == NULL)
 	{
 		AMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", *size);
 		*size = 0;

@@ -252,6 +252,11 @@ mid_t *mid_construct(uint8_t id, uvast *issuer, uvast *tag, oid_t oid)
 			         id,
 			         (unsigned long) issuer, (unsigned long) tag);
 
+        if(id == MID_ANY)
+        {
+          AMP_DEBUG_ERR("mid_construct","Bad id.", NULL);
+          return NULL;
+        }
 
 	/* Step 1: Allocate the MID. */
 	if((mid = (mid_t *)STAKE(sizeof(mid_t))) == NULL)
