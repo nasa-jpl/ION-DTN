@@ -692,6 +692,7 @@ static void	dropEndpoint(VEndpoint *vpoint, PsmAddress vpointElt)
 	vpointAddr = sm_list_data(bpwm, vpointElt);
 	if (vpoint->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vpoint->semaphore);
 		sm_SemDelete(vpoint->semaphore);
 	}
 
@@ -806,6 +807,7 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 	vschemeAddr = sm_list_data(bpwm, vschemeElt);
 	if (vscheme->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vscheme->semaphore);
 		sm_SemDelete(vscheme->semaphore);
 	}
 
@@ -1058,6 +1060,7 @@ static void	dropPlan(VPlan *vplan, PsmAddress vplanElt)
 	vplanAddr = sm_list_data(bpwm, vplanElt);
 	if (vplan->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vplan->semaphore);
 		sm_SemDelete(vplan->semaphore);
 	}
 

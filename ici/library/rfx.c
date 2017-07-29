@@ -2535,6 +2535,7 @@ extern PsmAddress	rfx_insert_alarm(unsigned int term,
 	eventAddr = psm_zalloc(ionwm, sizeof(IonEvent));
 	if (eventAddr == 0)
 	{
+		sm_SemEnd(alarm->semaphore);
 		sm_SemDelete(alarm->semaphore);
 		psm_free(ionwm, alarmAddr);
 		sdr_exit_xn(sdr);
@@ -2549,6 +2550,7 @@ extern PsmAddress	rfx_insert_alarm(unsigned int term,
 			event) == 0)
 	{
 		psm_free(ionwm, eventAddr);
+		sm_SemEnd(alarm->semaphore);
 		sm_SemDelete(alarm->semaphore);
 		psm_free(ionwm, alarmAddr);
 		sdr_exit_xn(sdr);
@@ -2608,6 +2610,7 @@ extern int	rfx_remove_alarm(PsmAddress alarmAddr)
 	/*	Now remove the alarm.					*/
 
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
+	sm_SemEnd(alarm->semaphore);
 	sm_SemDelete(alarm->semaphore);
 	alarm->semaphore = SM_SEM_NONE;
 	event.time = alarm->nextTimeout;

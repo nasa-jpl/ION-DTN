@@ -298,6 +298,7 @@ destined for %s.\n", timebuf, datagramLen, stp->fromNode, stp->toNode);
 	pthread_end(stp->timerThread);
 	pthread_join(stp->timerThread, NULL);
 	lyst_destroy(stp->transmission);
+	sm_SemEnd(stp->mutex);
 	sm_SemDelete(stp->mutex);
 	if (stp->insock >= 0)
 	{

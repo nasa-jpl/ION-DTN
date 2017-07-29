@@ -269,6 +269,7 @@ microsnooze(10000);
 	}
 
 	close(inputFile);
+	sm_SemEnd(file2sdr_semaphore);
 	sm_SemDelete(file2sdr_semaphore);
 	sdr_shutdown();
 	ionDetach();

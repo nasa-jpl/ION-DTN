@@ -79,6 +79,7 @@ static sm_SemId	_sdrlock(int delete)
 	{
 		if (lock != SM_SEM_NONE)
 		{
+			sm_SemEnd(lock);
 			sm_SemDelete(lock);
 			lock = SM_SEM_NONE;
 		}
@@ -1077,6 +1078,7 @@ static void	destroySdr(SdrState *sdr)
 
 	if (sdr->sdrSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(sdr->sdrSemaphore);
 		sm_SemDelete(sdr->sdrSemaphore);
 	}
 
@@ -1518,6 +1520,7 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 		 *	force reversal of any incomplete transaction
 		 *	that is currently in progress.			*/
 
+		sm_SemEnd(sdr->sdrSemaphore);
 		sm_SemDelete(sdr->sdrSemaphore);
 		psm_free(sdrwm, sdrAddress);
 		oK(sm_list_delete(sdrwm, elt, NULL, NULL));
@@ -1764,7 +1767,8 @@ void	sdr_destroy(Sdr sdrv)
 	/*	Destroy local access handle to this SDR.		*/
 
 	sdr = sdrv->sdr;
-	sm_SemDelete(sdr->sdrSemaphore);	/*	Interrupt.	*/
+	sm_SemEnd(sdr->sdrSemaphore);		/*	Interrupt.	*/
+	sm_SemDelete(sdr->sdrSemaphore);
 	sdr->sdrSemaphore = SM_SEM_NONE;
 	sdr_stop_using(sdrv);
 

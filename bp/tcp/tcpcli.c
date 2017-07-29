@@ -463,9 +463,14 @@ static void	closeSession(TcpclSession *session)
 		return;
 	}
 
+	/*	Serialize this function in case sender and receiver
+	 *	threads try to close the session at the same time.	*/
+
+	pthread_mutex_lock(&(session->plMutex));
 	session->secUntilKeepalive = -1;
 	if (session->sock != -1)
 	{
+		pthread_mutex_unlock(&(session->plMutex));
 		closesocket(session->sock);
 		session->sock = -1;
 	}
@@ -498,6 +503,7 @@ static void	closeSession(TcpclSession *session)
 	}
 
 	session->isOpen = 0;
+	pthread_mutex_unlock(&(session->plMutex));
 }
 
 static int	sendShutdown(TcpclSession *session, char reason,
@@ -914,6 +920,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	char			*eidbuf;
 	LystElt			elt;
 	TcpclNeighbor		*knownNeighbor;
+	pthread_mutex_t		oldPlMutex;
+	TcpclSession		*chanceSession;
 	int			result = 1;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
@@ -1021,7 +1029,16 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			knownNeighbor = (TcpclNeighbor *) lyst_data(elt);
 			sdr_exit_xn(sdr);	/*	Unlock list.	*/
 			MRELEASE(eidbuf);	/*	Not needed.	*/
-			if (knownNeighbor->sessions[TCPCL_CHANCE].sock != -1)
+			chanceSession = knownNeighbor->sessions + TCPCL_CHANCE;
+
+			/*	Serialize this function: neighbor might
+			 *	be trying to reconnect while session is
+			 *	still being closed, in which case it
+			 *	still has a mutex that can be taken.	*/
+
+			oldPlMutex = chanceSession->plMutex;
+			pthread_mutex_lock(&oldPlMutex);
+			if (chanceSession->sock != -1)
 			{
 				result = 0;	/*	Rejected.	*/
 				oK(sendShutdown(session, 0x02, 0));
@@ -1031,14 +1048,10 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				/*	Copy this session into
 				 *	known neighbor.			*/
 
-				memcpy((char *) &(knownNeighbor->
-						sessions[TCPCL_CHANCE]),
-						(char *) session,
+				memcpy((char *) chanceSession, (char *) session,
 						sizeof(TcpclSession));
-				knownNeighbor->sessions[TCPCL_CHANCE].neighbor
-						= knownNeighbor;
-				rtp->session = &(knownNeighbor->
-						sessions[TCPCL_CHANCE]);
+				chanceSession->neighbor = knownNeighbor;
+				rtp->session = chanceSession;
 
 				/*	Make sure deletion of the
 				 *	tentative neighbor doesn't
@@ -1056,7 +1069,27 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				/*	Point to known neighbor session.*/
 
 				session = rtp->session;
+
+				/*	An optimization: since this node
+				 *	has just connected to us, we can
+				 *	guess that it will now accept
+				 *	a connection from us (if we know
+				 *	how to connect to it).  So our
+				 *	reconnect interval can now be
+				 *	reset to a small value, enabling
+				 *	rapid reconnection.		*/
+
+				if (knownNeighbor->sessions[TCPCL_PLANNED].
+						outductName)
+				{
+					knownNeighbor->sessions[TCPCL_PLANNED].
+							reconnectInterval = 2;
+					knownNeighbor->sessions[TCPCL_PLANNED].
+							secUntilReconnect = 2;
+				}
 			}
+
+			pthread_mutex_unlock(&oldPlMutex);
 
 			/*	In either case, if this session is
 			 *	part of a neighbor that has no planned

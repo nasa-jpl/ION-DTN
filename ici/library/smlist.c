@@ -153,6 +153,7 @@ static int	wipeList(const char *fileName, int lineNbr,
 	eraseList(listBuffer);
 	if (destroy)
 	{
+		sm_SemEnd(listBuffer->lock);
 		sm_SemDelete(listBuffer->lock);
 		listBuffer->lock = SM_SEM_NONE;
 		Psm_free(fileName, lineNbr, partition, list);

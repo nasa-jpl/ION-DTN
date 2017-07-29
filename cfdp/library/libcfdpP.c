@@ -593,11 +593,13 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	vdb = (CfdpVdb *) psp(wm, vdbAddress);
 	if (vdb->eventSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vdb->eventSemaphore);
 		sm_SemDelete(vdb->eventSemaphore);
 	}
 
 	if (vdb->fduSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vdb->fduSemaphore);
 		sm_SemDelete(vdb->fduSemaphore);
 	}
 

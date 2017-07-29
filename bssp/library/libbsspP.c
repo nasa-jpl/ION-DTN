@@ -208,16 +208,19 @@ static void	dropSpan(BsspVspan *vspan, PsmAddress vspanElt)
 	vspanAddr = sm_list_data(bsspwm, vspanElt);
 	if (vspan->bufOpenSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->bufOpenSemaphore);
 		sm_SemDelete(vspan->bufOpenSemaphore);
 	}
 
 	if (vspan->beSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->beSemaphore);
 		sm_SemDelete(vspan->beSemaphore);
 	}
 
 	if (vspan->rlSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->rlSemaphore);
 		sm_SemDelete(vspan->rlSemaphore);
 	}
 
@@ -610,6 +613,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	{
 		if (client->semaphore != SM_SEM_NONE)
 		{
+			sm_SemEnd(client->semaphore);
 			sm_SemDelete(client->semaphore);
 		}
 	}

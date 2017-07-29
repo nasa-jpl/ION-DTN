@@ -227,6 +227,7 @@ void	Sm_rbt_destroy(const char *file, int line, PsmPartition partition,
 
 	/*	Now destroy the tree itself.				*/
 
+	sm_SemEnd(rbtPtr->lock);
 	sm_SemDelete(rbtPtr->lock);
 
 	/*	just in case user mistakenly accesses later...		*/
