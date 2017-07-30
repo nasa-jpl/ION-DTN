@@ -273,6 +273,7 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
+#define	SD_BOTH			SHUT_RDWR
 
 #endif				/*	end of #ifdef ION4WIN		*/
 

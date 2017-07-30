@@ -346,6 +346,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 				/*	Time to remove alarm.		*/
 
 				sm_SemEnd(alarm->semaphore);
+				microsnooze(50000);
 				sm_SemDelete(alarm->semaphore);
 				sm_rbt_delete(ionwm, vdb->timeline,
 						rfx_order_events,
@@ -394,6 +395,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		if (addr == 0)
 		{
 			sm_SemEnd(alarm->semaphore);
+			microsnooze(50000);
 			sm_SemDelete(alarm->semaphore);
 			psm_free(ionwm, alarmAddr);
 			return -1;
@@ -408,6 +410,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			psm_free(ionwm, addr);
 			sm_SemEnd(alarm->semaphore);
+			microsnooze(50000);
 			sm_SemDelete(alarm->semaphore);
 			psm_free(ionwm, alarmAddr);
 			return -1;

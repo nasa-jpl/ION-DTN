@@ -270,6 +270,7 @@ microsnooze(10000);
 
 	close(inputFile);
 	sm_SemEnd(file2sdr_semaphore);
+	microsnooze(50000);
 	sm_SemDelete(file2sdr_semaphore);
 	sdr_shutdown();
 	ionDetach();

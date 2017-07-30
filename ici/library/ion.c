@@ -1835,6 +1835,7 @@ void	ionStopAttendant(ReqAttendant *attendant)
 {
 	CHKVOID(attendant);
 	sm_SemEnd(attendant->semaphore);
+	microsnooze(50000);
 	sm_SemDelete(attendant->semaphore);
 }
 

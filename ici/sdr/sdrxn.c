@@ -80,6 +80,7 @@ static sm_SemId	_sdrlock(int delete)
 		if (lock != SM_SEM_NONE)
 		{
 			sm_SemEnd(lock);
+			microsnooze(50000);
 			sm_SemDelete(lock);
 			lock = SM_SEM_NONE;
 		}
@@ -186,7 +187,7 @@ static SdrControlHeader	*_sch(SdrControlHeader **schp)
 				{
 					sm_SemTake(sdr->sdrSemaphore);
 					sm_SemEnd(sdr->sdrSemaphore);
-					microsnooze(500000);
+					microsnooze(50000);
 					sm_SemDelete(sdr->sdrSemaphore);
 					sdr->sdrSemaphore = SM_SEM_NONE;
 				}
@@ -1079,6 +1080,7 @@ static void	destroySdr(SdrState *sdr)
 	if (sdr->sdrSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(sdr->sdrSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(sdr->sdrSemaphore);
 	}
 
@@ -1521,6 +1523,7 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 		 *	that is currently in progress.			*/
 
 		sm_SemEnd(sdr->sdrSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(sdr->sdrSemaphore);
 		psm_free(sdrwm, sdrAddress);
 		oK(sm_list_delete(sdrwm, elt, NULL, NULL));
@@ -1741,7 +1744,7 @@ void	sdr_abort(Sdr sdrv)
 {
 	CHKVOID(sdrv);
 	sm_SemEnd(sdrv->sdr->sdrSemaphore);
-	microsnooze(500000);
+	microsnooze(50000);
 	sm_SemDelete(sdrv->sdr->sdrSemaphore);
 	sdrv->sdr->sdrSemaphore = -1;
 	sdr_shutdown();
@@ -1768,6 +1771,7 @@ void	sdr_destroy(Sdr sdrv)
 
 	sdr = sdrv->sdr;
 	sm_SemEnd(sdr->sdrSemaphore);		/*	Interrupt.	*/
+	microsnooze(50000);
 	sm_SemDelete(sdr->sdrSemaphore);
 	sdr->sdrSemaphore = SM_SEM_NONE;
 	sdr_stop_using(sdrv);

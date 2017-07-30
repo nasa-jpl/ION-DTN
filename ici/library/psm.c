@@ -361,6 +361,8 @@ void	psm_unmanage(PsmPartition partition)
 	/*	Wait for partition to be no longer in use; unmanage.	*/
 
 		sm_SemTake(map->semaphore);
+		sm_SemEnd(map->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(map->semaphore);
 		map->status = INITIALIZED;
 	}

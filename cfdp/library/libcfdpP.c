@@ -594,12 +594,14 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	if (vdb->eventSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vdb->eventSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vdb->eventSemaphore);
 	}
 
 	if (vdb->fduSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vdb->fduSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vdb->fduSemaphore);
 	}
 

@@ -619,24 +619,28 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	if (vspan->bufOpenRedSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vspan->bufOpenRedSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->bufOpenRedSemaphore);
 	}
 
 	if (vspan->bufOpenGreenSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vspan->bufOpenGreenSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->bufOpenGreenSemaphore);
 	}
 
 	if (vspan->bufClosedSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vspan->bufClosedSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->bufClosedSemaphore);
 	}
 
 	if (vspan->segSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vspan->segSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->segSemaphore);
 	}
 
@@ -935,6 +939,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 		if (client->semaphore != SM_SEM_NONE)
 		{
 			sm_SemEnd(client->semaphore);
+			microsnooze(50000);
 			sm_SemDelete(client->semaphore);
 		}
 	}
@@ -949,6 +954,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	if (vdb->deliverySemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vdb->deliverySemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vdb->deliverySemaphore);
 	}
 }

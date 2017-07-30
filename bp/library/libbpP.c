@@ -693,6 +693,7 @@ static void	dropEndpoint(VEndpoint *vpoint, PsmAddress vpointElt)
 	if (vpoint->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vpoint->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vpoint->semaphore);
 	}
 
@@ -808,6 +809,7 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 	if (vscheme->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vscheme->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vscheme->semaphore);
 	}
 
@@ -1061,6 +1063,7 @@ static void	dropPlan(VPlan *vplan, PsmAddress vplanElt)
 	if (vplan->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vplan->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vplan->semaphore);
 	}
 
@@ -1269,6 +1272,7 @@ static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
 	if (vduct->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vduct->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vduct->semaphore);
 	}
 

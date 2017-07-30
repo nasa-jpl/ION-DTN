@@ -567,11 +567,11 @@ static void	stopSenderThread(TcpclSession *session)
 
 	/*	Signal thread in case it's not already stopping.	*/
 
-#ifdef mingw
+//#ifdef mingw
 	shutdown(session->sock, SD_BOTH);
-#else
-	pthread_kill(session->sender, SIGINT);
-#endif
+//#else
+//	pthread_kill(session->sender, SIGINT);
+//#endif
 
 	/*	Forget session's sender.				*/
 
@@ -597,11 +597,11 @@ static void	endSession(TcpclSession *session, char reason)
 	if (session->hasReceiver
 	&& pthread_kill(session->receiver, SIGCONT) == 1)
 	{
-#ifdef mingw
+//#ifdef mingw
 		shutdown(session->sock, SD_BOTH);
-#else
-		pthread_kill(session->receiver, SIGINT);
-#endif
+//#else
+//		pthread_kill(session->receiver, SIGINT);
+//#endif
 		pthread_join(session->receiver, NULL);
 	}
 
