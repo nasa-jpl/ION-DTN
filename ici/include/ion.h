@@ -44,7 +44,7 @@ extern "C" {
 #define	ION_SDR_MARGIN	(20)		/*	Percent.		*/
 #endif
 #ifndef ION_OPS_ALLOC
-#define	ION_OPS_ALLOC	(20)		/*	Percent.		*/
+#define	ION_OPS_ALLOC	(40)		/*	Percent.		*/
 #endif
 #define	ION_SEQUESTERED	(ION_SDR_MARGIN + ION_OPS_ALLOC)
 

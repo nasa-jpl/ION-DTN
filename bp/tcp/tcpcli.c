@@ -1028,7 +1028,6 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 			knownNeighbor = (TcpclNeighbor *) lyst_data(elt);
 			sdr_exit_xn(sdr);	/*	Unlock list.	*/
-			MRELEASE(eidbuf);	/*	Not needed.	*/
 			chanceSession = knownNeighbor->sessions + TCPCL_CHANCE;
 
 			/*	Serialize this function: neighbor might
@@ -1104,6 +1103,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 			if (result == 0)
 			{
+				MRELEASE(eidbuf);
 				return result;
 			}
 		}
@@ -1124,6 +1124,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				{
 					writeMemoNote("[?] Can't add egress \
 plan for this TCPCL contact header", eidbuf);
+					MRELEASE(eidbuf);
 					return 0;
 				}
 
@@ -1131,6 +1132,7 @@ plan for this TCPCL contact header", eidbuf);
 				{
 					putErrmsg("Can't add automatic egress \
 plan for neighbor.", eidbuf);
+					MRELEASE(eidbuf);
 					return -1;
 				}
 
@@ -1143,6 +1145,7 @@ plan for neighbor.", eidbuf);
 		if (attachPlanDuct(eidbuf, vduct->outductElt) < 0)
 		{
 			putErrmsg("Can't attach duct to plan.", eidbuf);
+			MRELEASE(eidbuf);
 			return -1;
 		}
 	}

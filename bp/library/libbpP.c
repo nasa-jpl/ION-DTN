@@ -10918,9 +10918,9 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		sdr_exit_xn(bpSdr);
 		if (sm_SemTake(vduct->semaphore) < 0)
 		{
-			putErrmsg("CLO can't take duct semaphore.",
-					vduct->ductName);
-			return -1;
+			putErrmsg("CLO failed taking duct semaphore, handle \
+as non-fatal for now.", vduct->ductName);
+			return 0;
 		}
 
 		if (sm_SemEnded(vduct->semaphore))

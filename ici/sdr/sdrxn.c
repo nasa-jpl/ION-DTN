@@ -1178,7 +1178,6 @@ int	sdr_load_profile(char *name, int configFlags, size_t heapWords,
 	CHKERR(sch);
 	CHKERR(name);
 	CHKERR(heapWords >= 0);
-	CHKERR(logSize >= 0);
 	CHKERR(pathName);
 	if (!(configFlags & SDR_IN_DRAM || configFlags & SDR_IN_FILE))
 	{
@@ -2011,7 +2010,6 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 	CHKVOID(length > 0);
 	CHKVOID(sdrv);
 	CHKVOID(from);
-	CHKVOID(into >= 0);
 	sdr = sdrv->sdr;
 	to = into + length;
 	if (to > sdr->dsSize)
@@ -2147,7 +2145,6 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	CHKVOID(length > 0);
 	CHKVOID(sdrv);
 	CHKVOID(into);
-	CHKVOID(from >= 0);
 	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
 	CHKVOID(sdr);
