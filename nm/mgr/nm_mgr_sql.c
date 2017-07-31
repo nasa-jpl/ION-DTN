@@ -4,20 +4,19 @@
  **                         All rights reserved.
  ******************************************************************************/
 /*****************************************************************************
- ** \file nm_mgr_db.c
+ ** \file nm_mgr_sql.c
  **
- ** File Name: nm_mgr_db.c
+ ** File Name: nm_mgr_sql.c
  **
  **
  ** Subsystem:
  **          Network Manager Daemon: Database Utilities
  **
- ** Description: This file implements the DTNMP Manager interface to a back-
- **              end SQL database.
+ ** Description: This file implements a SQL interface to the ION AMP manager.
  **
  ** Notes:
  ** 	This software assumes that there are no other applications modifying
- ** 	the DTNMP database tables.
+ ** 	the AMP database tables.
  **
  ** 	These functions do not, generally, rollback DB writes on error.
  ** 	\todo: Add transactions.
@@ -30,11 +29,14 @@
  **  07/10/13  S. Jacobs      Initial Implementation (JHU/APL)
  **  08/19/13  E. Birrane     Documentation clean up and code review comments. (JHU/APL)
  **  08/22/15  E. Birrane     Updates for new schema and dynamic user permissions. (Secure DTN - NASA: NNX14CS58P)
+ **  01/24/17  E. Birrane     Updates to latest AMP IOS 3.5.0 (JHU/APL)
  *****************************************************************************/
 
 #ifdef HAVE_MYSQL
 
 #include <string.h>
+
+#include "ion.h"
 
 #include "nm_mgr.h"
 #include "nm_mgr_sql.h"
@@ -42,12 +44,16 @@
 
 #include "../shared/adm/adm_agent.h"
 #include "../shared/adm/adm_bp.h"
+#include "../shared/primitives/var.h"
 
 /* Global connection to the MYSQL Server. */
 static MYSQL *gConn;
 static ui_db_t gParms;
+static uint8_t gInTxn;
 
-
+//TODO - Add transactions
+//TODO - Make -1 the system error return and 0 the non-system-error return.
+//TODO - Update the comments.
 
 /******************************************************************************
  *
@@ -67,8 +73,9 @@ static ui_db_t gParms;
  * | OID     | int(10) unsigned | NO   | MUL | NULL    |                |
  * +---------+------------------+------+-----+---------+----------------+
  *
- * \return 0 Failure
- *        !0 The index of the inserted Agent.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in]  name     - The name of the ADM.
  * \param[in]  version  - Version of the ADM.
@@ -81,83 +88,62 @@ static ui_db_t gParms;
  *  --------  ------------   ---------------------------------------------
  *  08/29/15  E. Birrane     Initial implementation,
  *  04/02/16  E. Birrane     Check connection
+ *  01/24/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_add_adm(char *name, char *version, char *oid_root)
+int32_t db_add_adm(char *name, char *version, char *oid_root)
 {
-	char query[1024];
-	uint32_t result = 0;
-	oid_t *oid = NULL;
 	uint32_t oid_idx = 0;
-	uint8_t *data = NULL;
-	uint32_t datasize = 0;
+	uint32_t row_idx = 0;
+
+	AMP_DEBUG_ENTRY("db_add_adm,"UHF","UHF","UHF")",
+			        (uaddr)name, (uaddr)version, (uaddr)oid_root);
 
 	/* Step 0: Sanity check. */
 	if((name == NULL) || (version == NULL) || (oid_root == NULL))
 	{
-		DTNMP_DEBUG_ERR("db_add_adm","Bad Args.", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_adm","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_add_adm","-->0",NULL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	/* Step 1: if the adm is already in the DB, just return the index. */
-	if((result = db_fetch_adm_idx(name, version)) != 0)
+	/*
+	 * Step 1: If the adm is already in the DB, return the index.
+	 *         If there was a system error, return that.
+	 */
+	if((row_idx = db_fetch_adm_idx(name, version)) != 0)
 	{
-		return result;
+		return row_idx;
 	}
 
-	/* Step 2 - Build an OID to put into the DB. */
+	db_mgt_txn_start();
 
-	if((data = utils_string_to_hex(oid_root,&datasize)) == NULL)
+	/* Step 2 - Put the OID in the Database and save the index. */
+	if((oid_idx = db_add_oid_str(oid_root)) <= 0)
 	{
-		DTNMP_DEBUG_ERR("db_add_adm","Can't convert OID of %s.", oid_root);
-		return 0;
+		AMP_DEBUG_ERR("db_add_adm","Can't add ADM OID to DB.",NULL);
+
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_adm","-->%d",oid_idx);
+		return oid_idx;
 	}
 
-	if((oid = oid_construct(OID_TYPE_FULL, NULL, 0, data, datasize)) == NULL)
+	/* Step 3: Write the ADM entry into the DB. */
+	if(db_mgt_query_insert(&row_idx, "INSERT INTO dbtADMs(Label, Version, OID) "
+			"VALUES('%s','%s',%d)", name, version, oid_idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_adm","Can't create OID.",NULL);
-		SRELEASE(data);
-		DTNMP_DEBUG_EXIT("db_add_adm","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_adm","Can't add ADM to DB.",NULL);
+
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_adm","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	SRELEASE(data);
-
-	if((oid_idx = db_add_oid(oid)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_adm","Can't add ADM OID to DB.",NULL);
-		oid_release(oid);
-
-		DTNMP_DEBUG_EXIT("db_add_adm","-->0",NULL);
-		return 0;
-	}
-
-	oid_release(oid);
-
-	/* Step 2: Add the adm. */
-	sprintf(query, "INSERT INTO dbtADMs(Label, Version, OID) "
-			"VALUES('%s','%s',%d)", name, version, oid_idx);
-
-
-	if (mysql_query(gConn, query))
-	{
-		DTNMP_DEBUG_ERR("db_add_adm", "Database error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_adm", "-->0", NULL);
-		return 0;
-	}
-
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_adm", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_adm", "-->0", NULL);
-		return 0;
-	}
-
-	DTNMP_DEBUG_EXIT("db_add_adm", "-->%d", result);
-	return result;
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_add_adm", "-->%d", row_idx);
+	return row_idx;
 }
 
 
@@ -170,17 +156,16 @@ uint32_t db_add_adm(char *name, char *version, char *oid_root)
  *
  * Tables Effected:
  *    1. dbtRegisteredAgents
- *       +---------------+------------+---------------+--------------------------+
- *       | Column Object |   Type     | Default Value | Comment                  |
- *       +---------------+------------+---------------+--------------------------+
- *       |     ID*       | Int32      | (unsigned)    | Used as a primary key    |
- *       |               |            | Auto Incr.    |                          |
- *       +---------------+------------+---------------+--------------------------+
- *       |  AgentId      |VARCHAR(128)|  'ipn:0.0'    |                          |
- *       +---------------+------------+---------------+--------------------------+
+ *    +---------+------------------+------+-----+---------+----------------+
+ *    | Field   | Type             | Null | Key | Default | Extra          |
+ *    +---------+------------------+------+-----+---------+----------------+
+ *    | ID      | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+ *    | AgentId | varchar(128)     | NO   |     | ipn:0.0 |                |
+ *    +---------+------------------+------+-----+---------+----------------+
  *
- * \return 0 Failure
- *        !0 The index of the inserted Agent.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in]  agent_eid  - The Agent EID being added to the DB.
  *
@@ -193,83 +178,74 @@ uint32_t db_add_adm(char *name, char *version, char *oid_root)
  *  --------  ------------   ---------------------------------------------
  *  07/12/13  S. Jacobs      Initial implementation,
  *  08/22/15  E. Birrane     Updated to new database schema.
+ *  01/24/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
-uint32_t db_add_agent(eid_t agent_eid)
+int32_t db_add_agent(eid_t agent_eid)
 {
-	char query[1024];
-	uint32_t result = 0;
+	uint32_t row_idx = 0;
 
-	CHKCONN
-
-	/* Step 1: if the agent is already in the DB, just return the index. */
-	if((result = db_fetch_reg_agent_idx(&agent_eid)) != 0)
+	/* Step 1: if the agent is already in the DB, (or error) just return the index. */
+	if((row_idx = db_fetch_reg_agent_idx(&agent_eid)) != 0)
 	{
-		return result;
+		return row_idx;
 	}
 
-	/* Step 2: Add the agent. */
-	sprintf(query, "INSERT INTO dbtRegisteredAgents(AgentId) "
-			"VALUES('%s')", agent_eid.name);
+	db_mgt_txn_start();
 
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_insert(&row_idx, "INSERT INTO dbtRegisteredAgents(AgentId) "
+			"VALUES('%s')", agent_eid.name) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_agent", "Database error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_agent", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_agent","Can't add agent.",NULL);
+
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_agent","-->%d",AMP_FAIL);
+		return AMP_FAIL;
+
 	}
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_agent", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_agent", "-->0", NULL);
-		return 0;
-	}
+	db_mgt_txn_commit();
 
-	DTNMP_DEBUG_EXIT("db_add_agent", "-->%d", result);
-	return result;
+	AMP_DEBUG_EXIT("db_add_agent", "-->%d", row_idx);
+	return row_idx;
 }
+
 
 
 /******************************************************************************
  *
- * \par Function Name: db_add_dc
+ * \par Function Name: db_add_tdc
  *
- * \par Adds OID parameters to the database and returns the index of the
+ * \par Adds a TDC to the database and returns the index of the
  *      parameters table.
  *
  * Tables Effected:
  *    1. dbtDataCollections
- *       +---------------+------------+---------------+-----------------------+
- *       | Column Object |     Type   | Default Value | Comment               |
- *       +---------------+------------+---------------+-----------------------+
- *       |      ID*      | Int32      | auto-         | Used as primary key   |
- *       |               |(unsigned)  | incrementing  |                       |
- *       +---------------+------------+---------------+-----------------------+
- *       | Label         |VARCHAR(255)| Unnamed Data  | Description...        |
- *       +---------------+------------+---------------+-----------------------+
+ *
+ *   +-------+------------------+------+-----+-------------------------+----------------+
+ *   | Field | Type             | Null | Key | Default                 | Extra          |
+ *   +-------+------------------+------+-----+-------------------------+----------------+
+ *   | ID    | int(10) unsigned | NO   | PRI | NULL                    | auto_increment |
+ *   | Label | varchar(255)     | NO   |     | Unnamed Data Collection |                |
+ *   +-------+------------------+------+-----+-------------------------+----------------+
+ *
  *
  *    2. dbtDataCollection
- *       +---------------+------------+---------------+-----------------------+
- *       | Column Object |     Type   | Default Value | Comment               |
- *       +---------------+------------+---------------+-----------------------+
- *       | CollectionID* | Int32      | 0             | Used as primary key   |
- *       |               |(unsigned)  |               |                       |
- *       +---------------+------------+---------------+-----------------------+
- *       | Data Order    | Int32      | 0             | The order the data    |
- *       |               |(unsigned)  |               | appears in list.      |
- *       +---------------+------------+---------------+-----------------------+
- *       | Data Type     | Int32      |               | Foreign key to        |
- *       |               | (unsigned) |               | lvtDataTypes.ID       |
- *       +---------------+------------+---------------+-----------------------+
- *       | DataBlob      | BLOB       |               | Binary data           |
- *       +---------------+------------+---------------+-----------------------+
  *
- * \return 0 Failure or no Parameters
- *        !0 The index of the dbtDataCollections row for this collection.
+ *   +--------------+------------------+------+-----+---------+-------+
+ *   | Field        | Type             | Null | Key | Default | Extra |
+ *   +--------------+------------------+------+-----+---------+-------+
+ *   | CollectionID | int(10) unsigned | NO   | PRI | NULL    |       |
+ *   | DataOrder    | int(10) unsigned | NO   | PRI | 0       |       |
+ *   | DataType     | int(10) unsigned | NO   | MUL | NULL    |       |
+ *   | DataBlob     | blob             | YES  |     | NULL    |       |
+ *   +--------------+------------------+------+-----+---------+-------+
  *
- * \param[in]  dc   - The DC being added to the DB.
- * \param[in]  spec - The types of data held in the DC entry.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[in]  tdc  - The TDC being added to the DB.
  *
  * \par Notes:
  *		- Comments for the dc are not included.
@@ -279,100 +255,92 @@ uint32_t db_add_agent(eid_t agent_eid)
  *  --------  ------------   ---------------------------------------------
  *  08/22/15  E. Birrane     Initial Implementation
  *  09/10/15  E. Birrane     Update to to db spec.
+ *  11/12/16  E. Birrane     Update to new schema. Optimizations. (JHU/APL)
+ *  01/24/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_add_dc(Lyst dc, ui_parm_spec_t *spec)
+int32_t db_add_tdc(tdc_t tdc)
 {
-	char query[1024];
-	char *query2 = NULL;
-	uint32_t result = 0;
-	char *content = NULL;
-	uint32_t content_len = 0;
-	blob_t *entry = NULL;
-	dtnmp_type_e type;
+	uint32_t tdc_idx = 0;
 	LystElt elt;
-	int i = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_dc", "("ADDR_FIELDSPEC", %d)",
-					  (uaddr) entry, type);
+	AMP_DEBUG_ENTRY("db_add_tdc", "(%d)", tdc.hdr.length);
 
 	/* Step 0: Sanity check arguments. */
-	if(dc == NULL)
+	if(tdc.hdr.length == 0)
 	{
-		DTNMP_DEBUG_ERR("db_add_dc","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_dc","-->0",NULL);
-		return 0;
+		AMP_DEBUG_WARN("db_add_tdc","Not persisting empty TDC",NULL);
+		AMP_DEBUG_EXIT("db_add_tdc","-->0",NULL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
+	db_mgt_txn_start();
 
 	/*
 	 * Step 1: Build and execute query to add row to dbtDataCollections. Also, store the
-	 *         row ID of the inserted row.
+	 *         new DC index.
 	 */
-	sprintf(query,
-			"INSERT INTO dbtDataCollections (Label)"
-			"VALUE (NULL)");
 
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_insert(&tdc_idx, "INSERT INTO dbtDataCollections (Label) "
+			"VALUE(NULL)") != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_dc", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_dc", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_WARN("db_add_tdc","Can't insert TDC",NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_add_tdc","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
+	/*
+	 *  Step 2: For each BLOB in the data collection, add it to the data collection
+	 *          entries table.
+	 */
+	for(elt = lyst_first(tdc.datacol); elt; elt = lyst_next(elt))
 	{
-		DTNMP_DEBUG_ERR("db_add_dc", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_dc", "-->0", NULL);
-		return 0;
-	}
+		blob_t *entry = (blob_t *) lyst_data(elt);
+		int i = 0;
+		char *content = NULL;
+		uint32_t content_len = 0;
+		uint32_t dc_idx = 0;
 
-	for(elt = lyst_first(dc); elt; elt = lyst_next(elt))
-	{
-		entry = (blob_t *) lyst_data(elt);
-		type = spec->parm_type[i];
-		i++;
-
+		/* Step 2.1: Built sting version of the BLOB data. */
 		if((content = utils_hex_to_string(entry->value, entry->length)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_add_dc","Can't cvt %d bytes to hex str.", entry->length);
-			DTNMP_DEBUG_EXIT("db_add_dc", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_tdc","Can't cvt %d bytes to hex str.", entry->length);
+
+			db_mgt_txn_rollback();
+
+			AMP_DEBUG_EXIT("db_add_tdc", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
 		}
 
-		content_len = strlen(content);
-		if((query2 = (char *) STAKE(content_len + 256)) == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_add_dc","Can't alloc %d bytes.",
-					         content_len + 256);
-			SRELEASE(content);
-
-			DTNMP_DEBUG_EXIT("db_add_dc", "-->0", NULL);
-			return 0;
-		}
-
-		/*
-		 * Content starts with "0x" which we do not want in the DB
-		 * so we skip over the first 2 characters when making the query.
+		/* Step 2.2: Write the data into the DC collections table and associated
+		 *           the entry with the data collection idx.
+		 *           NOTE: content+2 is used to "skip over" the leading "0x"
+		 *           characters that preface the contents information.
 		 */
-		sprintf(query2,"INSERT INTO dbtDataCollection"
-				        "(CollectionID, DataOrder, DataType,DataBlob)"
-				 	    "VALUES(%d,1,%d,'%s')",result,type,content+2);
-		SRELEASE(content);
 
-		if (mysql_query(gConn, query2))
+		if(db_mgt_query_insert(&dc_idx,
+				           "INSERT INTO dbtDataCollection(CollectionID, DataOrder, DataType,DataBlob)"
+		 	                "VALUES(%d,1,%d,'%s')",
+							tdc_idx,
+							tdc.hdr.data[i],
+							content+2) != AMP_OK)
 		{
-			DTNMP_DEBUG_ERR("db_add_dc", "Database Error: %s", mysql_error(gConn));
-			SRELEASE(query2);
-			return 0;
+			AMP_DEBUG_ERR("db_add_tdc","Can't insert entry %d.", i);
+			SRELEASE(content);
+			db_mgt_txn_rollback();
+
+			AMP_DEBUG_EXIT("db_add_tdc", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
 		}
 
-		SRELEASE(query2);
+		i++;
+		SRELEASE(content);
 	}
 
-	DTNMP_DEBUG_EXIT("db_add_mid", "-->%d", result);
-	return result;
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_add_tdc", "-->%d", tdc_idx);
+	return tdc_idx;
 }
 
 
@@ -385,131 +353,137 @@ uint32_t db_add_dc(Lyst dc, ui_parm_spec_t *spec)
  *
  * Tables Effected:
  *    1. dbtMIDs
- *       +--------------+---------------------+------+-----+----------+-------------+
- *       | Field        | Type                | Null | Key | Default  | Extra       |
- *       +--------------+---------------------+------+-----+----------+-------------+
- *       | ID           | int(10) unsigned    | NO   | PRI | NULL     | auto_incr   |
- *       | NicknameID   | int(10) unsigned    | YES  | MUL | NULL     |             |
- *       | OID          | int(10) unsigned    | NO   | MUL | NULL     |             |
- *       | ParametersID | int(10) unsigned    | YES  | MUL | NULL     |             |
- *       | Type         | int(10) unsigned    | NO   | MUL | NULL     |             |
- *       | Category     | int(10) unsigned    | NO   | MUL | NULL     |             |
- *       | IssuerFlag   | bit(1)              | NO   |     | b'0'     |             |
- *       | TagFlag      | bit(1)              | NO   |     | b'0'     |             |
- *       | OIDType      | int(10) unsigned    | YES  | MUL | NULL     |             |
- *       | IssuerID     | bigint(20) unsigned | NO   |     | 0        |             |
- *       | TagValue     | bigint(20) unsigned | NO   |     | 0        |             |
- *       | DataType     | int(10) unsigned    | NO   | MUL | NULL     |             |
- *       | Name         | varchar(50)         | NO   |     | Unnamed  |             |
- *       | Description  | varchar(255)        | NO   |     | None     |             |
- *       +--------------+---------------------+------+-----+----------+-------------+
  *
- * \retval 0  Failure
- *         >0 The index of the inserted MID from the dbtMIDs table.
+ *    +--------------+---------------------+------+-----+--------------------+----------------+
+ *    | Field        | Type                | Null | Key | Default            | Extra          |
+ *    +--------------+---------------------+------+-----+--------------------+----------------+
+ *    | ID           | int(10) unsigned    | NO   | PRI | NULL               | auto_increment |
+ *    | NicknameID   | int(10) unsigned    | YES  | MUL | NULL               |                |
+ *    | OID          | int(10) unsigned    | NO   | MUL | NULL               |                |
+ *    | ParametersID | int(10) unsigned    | YES  | MUL | NULL               |                |
+ *    | Type         | int(10) unsigned    | NO   | MUL | NULL               |                |
+ *    | Category     | int(10) unsigned    | NO   | MUL | NULL               |                |
+ *    | IssuerFlag   | bit(1)              | NO   |     | b'0'               |                |
+ *    | TagFlag      | bit(1)              | NO   |     | b'0'               |                |
+ *    | OIDType      | int(10) unsigned    | YES  | MUL | NULL               |                |
+ *    | IssuerID     | bigint(20) unsigned | NO   |     | 0                  |                |
+ *    | TagValue     | bigint(20) unsigned | NO   |     | 0                  |                |
+ *    | DataType     | int(10) unsigned    | NO   | MUL | NULL               |                |
+ *    | Name         | varchar(50)         | NO   |     | Unnamed MID        |                |
+ *    | Description  | varchar(255)        | NO   |     | No MID Description |                |
+ *    +--------------+---------------------+------+-----+--------------------+----------------+
+ *
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in] mid     - The MID to be persisted in the DB.
- * \param[in] spec    - Parameter spec defining parameters for this MID.
- * \param[in] type    - The type of the MID.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/12/13  S. Jacobs      Initial implementation,
  *  08/23/15  E. Birrane     Update to new DB Schema.
+ *  01/24/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
-uint32_t db_add_mid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
+int32_t db_add_mid(mid_t *mid)
 {
-	char query[1024];
-	uint32_t result = 0;
-	uint32_t nn_idx = 0;
-	uint32_t oid_idx = 0;
-	uint32_t parm_idx = 0;
-	uint32_t num_parms = 0;
+	int32_t nn_idx = 0;
+	int32_t oid_idx = 0;
+	int32_t parm_idx = 0;
+	int32_t num_parms = 0;
+	uint32_t mid_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_mid", "("ADDR_FIELDSPEC")", (uaddr)mid);
+	AMP_DEBUG_ENTRY("db_add_mid", "("UHF",%d)", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_add_mid","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_mid","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_mid","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_mid","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	/* Step 1: Make sure the ID is not already in the DB. */
-	if ((result = db_fetch_mid_idx(mid)) > 0)
+	/* Step 1: Make sure the ID is not already in the DB (or not failure). */
+	if ((mid_idx = db_fetch_mid_idx(mid)) != 0)
 	{
-		DTNMP_DEBUG_EXIT("db_add_mid", "-->%d", result);
-		return result;
+		AMP_DEBUG_WARN("db_add_mid","MID already exists.",NULL);
+		AMP_DEBUG_EXIT("db_add_mid", "-->%d", mid_idx);
+		return mid_idx;
 	}
 
 	/* Step 2: If this MID has a nickname, grab the index. */
 	if((MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_FULL) ||
 	   (MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_PARAM))
 	{
-		if((nn_idx = db_fetch_nn_idx(mid->oid->nn_id)) == 0)
+		if((nn_idx = db_fetch_nn_idx(mid->oid.nn_id)) <= 0)
 		{
-			DTNMP_DEBUG_ERR("db_add_mid","MID references unknown Nickname %d", mid->oid->nn_id);
-			DTNMP_DEBUG_EXIT("db_add_mid", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_mid","MID references unknown Nickname %d", mid->oid.nn_id);
+			AMP_DEBUG_EXIT("db_add_mid", "-->%d", nn_idx);
+			return nn_idx;
 		}
 	}
 
+	db_mgt_txn_start();
+
 	/* Step 3: Get the index for the OID. */
-	if((oid_idx = db_add_oid(mid->oid)) == 0)
+	if((oid_idx = db_add_oid(mid->oid)) <= 0)
 	{
-		DTNMP_DEBUG_ERR("db_add_mid", "Can't add OID.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_mid", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_mid", "Can't add OID.", NULL);
+		AMP_DEBUG_EXIT("db_add_mid", "-->%d", oid_idx);
+		return oid_idx;
 	}
 
 	/* Step 4: Get the index for parameters, if any. */
 	if((num_parms = oid_get_num_parms(mid->oid)) > 0)
 	{
-		parm_idx = db_add_parms(mid->oid, spec);
+		if((parm_idx = db_add_parms(mid->oid)) <= 0)
+		{
+			AMP_DEBUG_ERR("db_add_mid", "Can't add PARMS.", NULL);
+
+			db_mgt_txn_rollback();
+
+			AMP_DEBUG_EXIT("db_add_mid", "-->%d", parm_idx);
+			return parm_idx;
+		}
 	}
 
 	/*
 	 * Step 5: Build and execute query to add row to dbtMIDs. Also, store the
 	 *         row ID of the inserted row.
 	 */
-	sprintf(query,
-			"INSERT INTO dbtMIDs"
-			"(NicknameID,OID,ParametersID,Type,Category,IssuerFlag,TagFlag,"
-			"OIDType,IssuerID,TagValue,DataType,Name,Description)"
-			"VALUES (%s, %d, %s, %d, %d, %d, %d, %d, "UVAST_FIELDSPEC","UVAST_FIELDSPEC",%d,'%s','%s')",
-			(nn_idx == 0) ? "NULL" : itoa(nn_idx),
-			oid_idx,
-			(parm_idx == 0) ? "NULL" : itoa(parm_idx),
-			MID_GET_FLAG_TYPE(mid->flags),
-			MID_GET_FLAG_CAT(mid->flags),
-			(MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
-			(MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
-			MID_GET_FLAG_OID(mid->flags),
-			mid->issuer,
-			mid->tag,
-			type,
-			"No Name",
-			"No Descr");
 
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_insert(&mid_idx,
+			            "INSERT INTO dbtMIDs(NicknameID,OID,ParametersID,Type,Category,IssuerFlag,TagFlag,"
+			            "OIDType,IssuerID,TagValue,DataType,Name,Description)"
+			            "VALUES (%s, %d, %s, %d, %d, %d, %d, %d, "UVAST_FIELDSPEC","UVAST_FIELDSPEC",%d,'%s','%s')",
+			            (nn_idx == 0) ? "NULL" : itoa(nn_idx),
+			            oid_idx,
+			            (parm_idx == 0) ? "NULL" : itoa(parm_idx),
+			            0,
+			            MID_GET_FLAG_ID(mid->flags),
+			            (MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
+			            (MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
+			            MID_GET_FLAG_OID(mid->flags),
+			            mid->issuer,
+			            mid->tag,
+			            AMP_TYPE_MID,
+			            "No Name",
+			            "No Descr") != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_mid", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_mid", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_mid", "Can't add MID.", NULL);
+
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_mid", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_mid", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_mid", "-->0", NULL);
-		return 0;
-	}
+	db_mgt_txn_commit();
 
-	DTNMP_DEBUG_EXIT("db_add_mid", "-->%d", result);
-	return result;
+	AMP_DEBUG_EXIT("db_add_mid", "-->%d", mid_idx);
+	return mid_idx;
 }
 
 
@@ -523,6 +497,14 @@ uint32_t db_add_mid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
  *
  * Tables Effected:
  *    1. dbtMIDCollections
+ *
+ *   +---------+------------------+------+-----+---------+----------------+
+ *   | Field   | Type             | Null | Key | Default | Extra          |
+ *   +---------+------------------+------+-----+---------+----------------+
+ *   | ID      | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+ *   | Comment | varchar(255)     | YES  |     | NULL    |                |
+ *   +---------+------------------+------+-----+---------+----------------+
+
  *       +---------------+------------+---------------+-----------------------+
  *       | Column Object |     Type   | Default Value | Comment               |
  *       +---------------+------------+---------------+-----------------------+
@@ -547,8 +529,9 @@ uint32_t db_add_mid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
  *       +---------------+------------+---------------+-----------------------+
  *
  *
- * \retval 0  Failure
- *         >0 The index of the inserted MC from the dbtMIDCollections table.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in] mc     - The MC being added to the DB.
  *
@@ -556,82 +539,86 @@ uint32_t db_add_mid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/23/15  E. Birrane     Initial Implementation
+ *  01/25/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
-uint32_t db_add_mc(Lyst mc)
+int32_t db_add_mc(Lyst mc)
 {
-	char query[1024];
-	uint32_t result = 0;
+	uint32_t mc_idx = 0;
 	LystElt elt = NULL;
-	mid_t *mid;
+	mid_t *mid = NULL;
 	uint32_t i = 0;
-	uint32_t mid_idx = 0;
+	int32_t mid_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_mc", "("ADDR_FIELDSPEC")", (uaddr)mc);
+	AMP_DEBUG_ENTRY("db_add_mc", "("UHF")", (uaddr)mc);
 
 	/* Step 0 - Sanity check arguments. */
 	if(mc == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_add_mc","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_mc","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_mc","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_mc","-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
 	}
 
-	CHKCONN
+	db_mgt_txn_start();
 
 	/* Step 1 - Create a new entry in the dbtMIDCollections DB. */
-	sprintf(query,
-			"INSERT INTO dbtMIDCollections (Comment) VALUES ('No Comment')");
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_insert(&mc_idx,
+			            "INSERT INTO dbtMIDCollections (Comment) VALUES ('No Comment')") != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_mc", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_mc", "-->0", NULL);
-		return 0;
-	}
+		AMP_DEBUG_ERR("db_add_mc","Can't insert MC",NULL);
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_mc", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_mc", "-->0", NULL);
-		return 0;
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_mc","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2 - For each MID in the MC, add the MID into the dbtMIDCollection. */
 	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
 	{
+		/* Step 2a: Extract nth MID from MC. */
 		if((mid = (mid_t *) lyst_data(elt)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_add_mc","Can't get MID.", NULL);
-			DTNMP_DEBUG_EXIT("db_add_mc", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_mc","Can't get MID.", NULL);
+
+			db_mgt_txn_rollback();
+			AMP_DEBUG_EXIT("db_add_mc", "-->%d", AMP_SYSERR);
+			return AMP_SYSERR;
 		}
 
-		if((mid_idx = db_fetch_mid_idx(mid)) == 0)
+		/* Step 2b: Make sure MID is in the DB. */
+		if((mid_idx = db_add_mid(mid)) > 0)
 		{
-			DTNMP_DEBUG_ERR("db_add_mc","Can't get MID Idx.", NULL);
-			DTNMP_DEBUG_EXIT("db_add_mc", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_mc","MID not there and can't insert.", NULL);
+
+			db_mgt_txn_rollback();
+			AMP_DEBUG_EXIT("db_add_mc", "-->%d", mid_idx);
+			return mid_idx;
 		}
 
-		sprintf(query,
-				"INSERT INTO dbtMIDCollection"
-				"(CollectionID, MIDID, MIDOrder)"
-				"VALUES (%d, %d, %d",
-				result, mid_idx, i);
-
-		if (mysql_query(gConn, query))
+		/* Step 2c - Insert entry into DB MC list from this MC. */
+		if(db_mgt_query_insert(NULL,
+				            "INSERT INTO dbtMIDCollection"
+							"(CollectionID, MIDID, MIDOrder)"
+							"VALUES (%d, %d, %d",
+							mc_idx, mid_idx, i) != AMP_OK)
 		{
-			DTNMP_DEBUG_ERR("db_add_mc", "Database Error: %s", mysql_error(gConn));
-			DTNMP_DEBUG_EXIT("db_add_mc", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_mc","Can't insert MID %d", i);
+
+			db_mgt_txn_rollback();
+
+			AMP_DEBUG_EXIT("db_add_mc","-->%d", AMP_FAIL);
+			return AMP_FAIL;
 		}
+
 		i++;
 	}
 
-	DTNMP_DEBUG_EXIT("db_add_mc", "-->%d", result);
-	return result;
-}
+	db_mgt_txn_commit();
 
+	AMP_DEBUG_EXIT("db_add_mc", "-->%d", mc_idx);
+	return mc_idx;
+}
 
 
 
@@ -656,8 +643,9 @@ uint32_t db_add_mc(Lyst mc)
  * +----------------+------------------+------+-----+--------------------------+----------------+
  *
  *
- * \retval 0  Failure
- *         >0 The index of the inserted NN from the dbtADMNicknames table.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in] nn     - The Nickname being added to the DB.
  *
@@ -665,88 +653,148 @@ uint32_t db_add_mc(Lyst mc)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/29/15  E. Birrane     Initial Implementation
+ *  01/25/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_add_nn(oid_nn_t *nn)
+int32_t db_add_nn(oid_nn_t *nn)
 {
-	char query[1024];
-	uint32_t result = 0;
-	oid_t *oid = NULL;
-	uint32_t oid_idx = 0;
-	uint32_t adm_idx = 0;
+	uint32_t nn_idx = 0;
+	oid_t oid;
+	int32_t oid_idx = 0;
+	int32_t adm_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_nn", "("ADDR_FIELDSPEC")", (uaddr)nn);
+	AMP_DEBUG_ENTRY("db_add_nn", "("UHF")", (uaddr)nn);
 
 	/* Step 0 - Sanity check arguments. */
 	if(nn == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_add_nn","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_nn","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_nn","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_nn","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
-
-	CHKCONN
 
 	/*
-	 * Step 1 - See if this nickname is already in the db.
-	 * If so, then return that as the index.
+	 * Step 1 - Duplicate check.
 	 */
-	if((result = db_fetch_nn_idx(nn->id)) != 0)
+	if((nn_idx = db_fetch_nn_idx(nn->id)) > 0)
 	{
-		DTNMP_DEBUG_EXIT("db_add_nn","-->%d", result);
-		return result;
+		AMP_DEBUG_EXIT("db_add_nn","-->%d", nn_idx);
+		return nn_idx;
 	}
 
-	/* Step 2 - Add the nickname's OID into the OID table. */
-	if((oid = oid_construct(OID_TYPE_FULL, NULL, 0, nn->raw, nn->raw_size)) == NULL)
+	db_mgt_txn_start();
+
+	/* Step 2 - Ensure OID. */
+	oid = oid_construct(OID_TYPE_FULL, NULL, 0, nn->raw, nn->raw_size);
+	if( (oid.type == OID_TYPE_UNK) ||
+	    ((oid_idx = db_add_oid(oid)) <= 0))
 	{
-		DTNMP_DEBUG_ERR("db_add_nn","Can't create OID.",NULL);
-		DTNMP_DEBUG_EXIT("db_add_nn","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_nn","Can't create OID.",NULL);
+		oid_release(&oid);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_add_nn","-->%d",oid_idx);
+		return oid_idx;
 	}
 
-	if((oid_idx = db_add_oid(oid)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_nn","Can't add nickname OID to DB.",NULL);
-		oid_release(oid);
+	oid_release(&oid);
 
-		DTNMP_DEBUG_EXIT("db_add_nn","-->0",NULL);
-		return 0;
+	/* Step 3 - Add the ADM. */
+	if((adm_idx = db_fetch_adm_idx(nn->adm_name, nn->adm_ver)) <= 0)
+	{
+		AMP_DEBUG_ERR("db_add_nn","Can't Find ADM.",NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_add_nn","-->%d",adm_idx);
+		return adm_idx;
 	}
 
-	oid_release(oid);
-
-	if((adm_idx = db_fetch_adm_idx(nn->adm_name, nn->adm_ver)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_nn","Can't Find ADM.",NULL);
-
-		DTNMP_DEBUG_EXIT("db_add_nn","-->0",NULL);
-		return 0;
-	}
 
 	/* Step 3 - Create a new entry in the dbtADMNicknames DB. */
-	sprintf(query,
-			"INSERT INTO dbtADMNicknames (ADM_ID, Nickname_UID, Nickname_Label, OID)"
-			"VALUES (%d, "UVAST_FIELDSPEC", 'No Comment', %d)",
-			adm_idx, nn->id, oid_idx);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_insert(&nn_idx,
+			            "INSERT INTO dbtADMNicknames (ADM_ID, Nickname_UID, Nickname_Label, OID)"
+						"VALUES (%d, "UVAST_FIELDSPEC", 'No Comment', %d)",
+						adm_idx, nn->id, oid_idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_nn", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_nn", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_nn","Can't insert Nickname", NULL);
+
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_nn","-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
 	}
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_add_nn", "-->%d", nn_idx);
+	return nn_idx;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_add_oid_str
+ *
+ * \par Adds an OID to the database given a serialized string rep of the OID.
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[in] oid_str - The string representation of the OID.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/29/15  E. Birrane     Initial Implementation
+ *  01/25/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
+ *****************************************************************************/
+
+int32_t db_add_oid_str(char *oid_str)
+{
+	uint8_t *data = NULL;
+	uint32_t datasize = 0;
+	int32_t result = 0;
+	oid_t oid;
+
+	AMP_DEBUG_ENTRY("db_add_oid_str", "("UHF")", (uaddr)oid_str);
+
+	/* Step 1: Sanity checks. */
+	if(oid_str == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_add_nn", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_nn", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_oid_str","Bad args", NULL);
+		AMP_DEBUG_EXIT("db_add_oid_str","-->%d", AMP_SYSERR);
+
+		return AMP_FAIL;
 	}
 
-	DTNMP_DEBUG_EXIT("db_add_nn", "-->%d", result);
+	/* Step 2: Assume input is not in hex and convert to hex string. */
+	if((data = utils_string_to_hex(oid_str,&datasize)) == NULL)
+	{
+		AMP_DEBUG_ERR("db_add_oid_str","Can't convert OID of %s.", oid_str);
+		return AMP_FAIL;
+	}
+
+	/* Step 3: Build an OID. */
+	oid = oid_construct(OID_TYPE_FULL, NULL, 0, data, datasize);
+	SRELEASE(data);
+
+	if(oid.type == OID_TYPE_UNK)
+	{
+		AMP_DEBUG_ERR("db_add_oid_str","Can't create OID.",NULL);
+		SRELEASE(data);
+		AMP_DEBUG_EXIT("db_add_oid_str","-->%d",AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	result = db_add_oid(oid);
+
+	oid_release(&oid);
+
+	AMP_DEBUG_EXIT("db_add_oid_str", "-->%d", result);
+
 	return result;
 }
+
+
 
 /******************************************************************************
  *
@@ -767,8 +815,9 @@ uint32_t db_add_nn(oid_nn_t *nn)
  *  | Description | varchar(255)     | NO   |     |                     |                |
  *  +-------------+------------------+------+-----+---------------------+----------------+
  *
- * \return 0 Failure
- *        !0 The index of the inserted OID.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in]  oid  - The OID being added to the DB.
  * \param[in]  spec - Listing of types of oid parms, if they exist.
@@ -780,74 +829,69 @@ uint32_t db_add_nn(oid_nn_t *nn)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/22/15  E. Birrane     Initial Implementation
+ *  01/25/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_add_oid(oid_t *oid)
+int32_t db_add_oid(oid_t oid)
 {
-	char query[1024];
-	uint32_t result = 0;
-	uint32_t num_parms = 0;
+	uint32_t oid_idx = 0;
+	int32_t num_parms = 0;
 	char *oid_str = NULL;
 
-	DTNMP_DEBUG_ENTRY("db_add_oid", "("ADDR_FIELDSPEC")",
-					  (uaddr) oid);
+	AMP_DEBUG_ENTRY("db_add_oid", "(%d)", oid.type);
 
 	/* Step 0: Sanity check arguments. */
-	if(oid == NULL)
+	if(oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("db_add_oid","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_oid","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_oid","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_oid","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
-
-	CHKCONN
 
 	/*
-	 * Step 1: Make sure the ID is not already in the DB.
-	 * If it is, we are done.
+	 * Step 1: Return existing ID, or failure code.
 	 */
-	if ((result = db_fetch_oid_idx(oid)) > 0)
+	if ((oid_idx = db_fetch_oid_idx(oid)) != 0)
 	{
-		DTNMP_DEBUG_EXIT("db_add_oid","-->%d", result);
-		return result;
+		AMP_DEBUG_EXIT("db_add_oid","-->%d", oid_idx);
+		return oid_idx;
 	}
 
+	/* Step 2: Convert OID to string for storage. */
 	if((oid_str = oid_to_string(oid)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_add_oid","Can't get string rep of OID.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_oid","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_oid","Can't get string rep of OID.", NULL);
+		AMP_DEBUG_EXIT("db_add_oid","-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
 	}
 
-	/*
-	 * Step 2: Build and execute query to add row to dbtOIDs. Also, store the
-	 *         row ID of the inserted row.
-	 */
-	sprintf(query,
-			"INSERT INTO dbtOIDs"
-			"(IRI_Label, Dot_Label, Encoded, Description)"
-			"VALUES ('empty','empty','%s','empty')",
-		    oid_str);
+	db_mgt_txn_start();
+
+	/* Step 3: Build and execute query to add row to dbtOIDs. */
+
+	if(db_mgt_query_insert(&oid_idx,
+			            "INSERT INTO dbtOIDs"
+						"(IRI_Label, Dot_Label, Encoded, Description)"
+						"VALUES ('empty','empty','%s','empty')",
+					    oid_str) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_add_oid","Can't insert Nickname", NULL);
+
+		SRELEASE(oid_str);
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_oid","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
 
 	SRELEASE(oid_str);
 
-	if (mysql_query(gConn, query))
-	{
-		DTNMP_DEBUG_ERR("db_add_oid", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_oid", "-->0", NULL);
-		return 0;
-	}
+	db_mgt_txn_commit();
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_oid", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_oid", "-->0", NULL);
-		return 0;
-	}
-
-	DTNMP_DEBUG_EXIT("db_add_oid", "-->%d", result);
-	return result;
+	AMP_DEBUG_EXIT("db_add_oid", "-->%d", oid_idx);
+	return oid_idx;
 }
+
 
 
 /******************************************************************************
@@ -859,45 +903,42 @@ uint32_t db_add_oid(oid_t *oid)
  *
  * Tables Effected:
  *
- * \return 0 Failure or no Parameters
- *        !0 The index of the dbtMIDParmaters row for these parameters.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in]  oid  - The OID whose parameters are being added to the DB.
- * \param[in]  spec - The parm spec that gives the types of OID parms.
  *
  * \par Notes:
  *		- Comments for the parameters are not included.
- *		- A return of 0 is only an error if the oid has parameters.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/22/15  E. Birrane     Initial Implementation
  *  09/10/15  E. Birrane     Removed dbtMIDParameters
+ *  01/24/17  E. Birrane     Updated to new AMP implementation for ION 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_add_parms(oid_t *oid, ui_parm_spec_t *spec)
+int32_t db_add_parms(oid_t oid)
 {
-	char query[1024];
+	int32_t result = 0;
 
-	uint32_t i = 0;
-	uint32_t num_parms = 0;
-	uint32_t result = 0;
-
-	DTNMP_DEBUG_ENTRY("db_add_parms", "("ADDR_FIELDSPEC")",
-					  (uaddr) oid);
+	AMP_DEBUG_ENTRY("db_add_parms", "(%d)", oid.type);
 
 	/* Step 0: Sanity check arguments. */
-	if((oid == NULL) || (spec == NULL))
+	if(oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("db_add_parms","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_parms","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_parms","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_parms","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
+	result = db_add_tdc(oid.params);
 
-	return db_add_dc(oid->params, spec);
+	AMP_DEBUG_EXIT("db_add_parms", "-->%d", result);
+
+	return result;
 }
 
 
@@ -928,46 +969,43 @@ uint32_t db_add_parms(oid_t *oid, ui_parm_spec_t *spec)
  * +--------------+------------------+------+-----+--------------------+----------------+
  *
  *
- * \retval 0  Failure
- *         >0 The index of the inserted MID from the dbtMIDs table.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in] mid     - The MID to be persisted in the DB.
- * \param[in] spec    - Parameter spec defining parameters types for this MID.
+ * \param[in] spec    - The parameter spec for this protomid.
  * \param[in] type    - The type of the MID.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/28/15  E. Birrane     Initial implementation,
+ *  01/24/17  E. Birrane     Update to latest version of AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
-uint32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
+int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type)
 {
-	char query[1024];
-	uint32_t result = 0;
+	int32_t result = 0;
 	uint32_t nn_idx = 0;
 	uint32_t oid_idx = 0;
 	uint32_t parm_idx = 0;
 	uint32_t num_parms = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_protomid",
-			          "("ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d)",
-			          (uaddr)mid, (uaddr) spec, type);
+	AMP_DEBUG_ENTRY("db_add_protomid", "("UHF","UHF",%d)",
+			       (uaddr)mid, (uaddr)spec, type);
 
 	/* Step 0: Sanity check arguments. */
-	if(mid == NULL)
+	if((mid == NULL) || (spec==NULL))
 	{
-		DTNMP_DEBUG_ERR("db_add_protomid","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_protomid","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_protomid","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_protomid","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
 	/* Step 1: Make sure the ID is not already in the DB. */
-	if ((result = db_fetch_protomid_idx(mid)) > 0)
+	if ((result = db_fetch_protomid_idx(mid)) != 0)
 	{
-		DTNMP_DEBUG_WARN("db_add_protomid", "Already in DB. Returning.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_protomid", "-->%d", result);
+		AMP_DEBUG_EXIT("db_add_protomid", "-->%d", result);
 		return result;
 	}
 
@@ -975,64 +1013,58 @@ uint32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
 	if((MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_FULL) ||
 	   (MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_PARAM))
 	{
-		if((nn_idx = db_fetch_nn_idx(mid->oid->nn_id)) == 0)
+		if((nn_idx = db_fetch_nn_idx(mid->oid.nn_id)) <= 0)
 		{
-			DTNMP_DEBUG_ERR("db_add_protomid","MID references unknown Nickname %d", mid->oid->nn_id);
-			DTNMP_DEBUG_EXIT("db_add_protomid", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_protomid","MID references unknown Nickname %d", mid->oid.nn_id);
+			AMP_DEBUG_EXIT("db_add_protomid", "-->%d", nn_idx);
+			return nn_idx;
 		}
 	}
 
+	db_mgt_txn_start();
+
 	/* Step 3: Get the index for the OID. */
-	if((oid_idx = db_add_oid(mid->oid)) == 0)
+	if((oid_idx = db_add_oid(mid->oid)) <= 0)
 	{
-		DTNMP_DEBUG_ERR("db_add_protomid", "Can't add OID.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_protomid", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_protomid", "Can't add OID.", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_add_protomid", "-->%d", oid_idx);
+		return oid_idx;
 	}
 
 	/* Step 4: Get the index for parameters, if any. */
-	if((parm_idx = db_add_protoparms(spec)) == 0)
+	if((parm_idx = db_add_protoparms(spec)) <= 0)
 	{
-		DTNMP_DEBUG_ERR("db_add_protomid", "Can't add protoparms.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_protomid", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_protomid", "Can't add protoparms.", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_add_protomid", "-->%d", parm_idx);
+		return parm_idx;
 	}
 
-	/*
-	 * Step 5: Build and execute query to add row to dbtMIDs. Also, store the
-	 *         row ID of the inserted row.
-	 */
-	sprintf(query,
+	if(db_mgt_query_insert((uint32_t*)&result,
 			"INSERT INTO dbtProtoMIDs"
-			"(NicknameID,OID,ParametersID,Type,Category,"
-			"OIDType,DataType,Name,Description)"
-			"VALUES (%s, %d, %d, %d, %d, %d, %d, '%s','%s')",
-			(nn_idx == 0) ? "NULL" : itoa(nn_idx),
-			oid_idx,
-			parm_idx,
-			MID_GET_FLAG_TYPE(mid->flags),
-			MID_GET_FLAG_CAT(mid->flags),
-			MID_GET_FLAG_OID(mid->flags),
-			type,
-			"No Name",
-			"No Descr");
-
-	if (mysql_query(gConn, query))
+						"(NicknameID,OID,ParametersID,Type,Category,"
+						"OIDType,DataType,Name,Description)"
+						"VALUES (%s, %d, %d, %d, %d, %d, %d, '%s','%s')",
+						(nn_idx == 0) ? "NULL" : itoa(nn_idx),
+						oid_idx,
+						parm_idx,
+						0,
+						MID_GET_FLAG_ID(mid->flags),
+						MID_GET_FLAG_OID(mid->flags),
+						type,
+						"No Name",
+						"No Descr") != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_protomid", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_protomid", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_protomid", "Can't add protomid.", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_add_protomid", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_protomid", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_protomid", "-->0", NULL);
-		return 0;
-	}
+	db_mgt_txn_commit();
 
-	DTNMP_DEBUG_EXIT("db_add_protomid", "-->%d", result);
+	AMP_DEBUG_EXIT("db_add_protomid", "-->%d", result);
 	return result;
 }
 
@@ -1067,67 +1099,61 @@ uint32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, dtnmp_type_e type)
  * | ParameterTypeID | int(10) unsigned | YES  | MUL | NULL    |                |
  * +-----------------+------------------+------+-----+---------+----------------+
  *
- * \return 0 Failure or no Parameters
- *        !0 The index of the dbtProtoMIDParmaters row for these parameters.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in]  spec - The parm spec that gives the types of OID parms.
  *
  * \par Notes:
  *		- Comments for the parameters are not included.
- *		- A return of 0 is only an error if the oid has parameters.
+ *		- A return of AMP_FAIL is only an error if the oid has parameters.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/28/15  E. Birrane     Initial Implementation
+ *  01/25/17  E. Birrane     Update to latest version of AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_add_protoparms(ui_parm_spec_t *spec)
+int32_t db_add_protoparms(ui_parm_spec_t *spec)
 {
-	char query[1024];
-
-	uint32_t i = 0;
-	uint32_t num_parms = 0;
+	int32_t i = 0;
+	int32_t num_parms = 0;
 	uint32_t result = 0;
+	uint32_t parm_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_add_protoparms", "("ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("db_add_protoparms", "("UHF")",
 					  (uaddr) spec);
 
 	/* Step 0: Sanity check arguments. */
 	if(spec == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_add_protoparms","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_add_protoparms","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_protoparms","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_add_protoparms","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
-
-	CHKCONN
 
 	if((spec->num_parms == 0) || (spec->num_parms >= MAX_PARMS))
 	{
-		DTNMP_DEBUG_ERR("db_add_protoparms","Bad # parms.",NULL);
-		DTNMP_DEBUG_EXIT("db_add_protoparms","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_add_protoparms","Bad # parms.",NULL);
+		AMP_DEBUG_EXIT("db_add_protoparms","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
 
+	db_mgt_txn_start();
 
 	/* Step 1: Add an entry in the parameters table. */
-	sprintf(query,
+	if(db_mgt_query_insert(&result,
 			"INSERT INTO dbtProtoMIDParameters (Comment) "
-			"VALUES ('No comment')");
-
-	if (mysql_query(gConn, query))
+						"VALUES ('No comment')") != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_add_protoparms", "Database Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_add_protoparms", "-->0", NULL);
-		return 0;
-	}
+		AMP_DEBUG_ERR("db_add_protoparms","Can't insert Protoparm", NULL);
 
-	if((result = (uint32_t) mysql_insert_id(gConn)) == 0)
-	{
-		DTNMP_DEBUG_ERR("db_add_protoparms", "Unknown last inserted row.", NULL);
-		DTNMP_DEBUG_EXIT("db_add_protoparms", "-->0", NULL);
-		return 0;
+		db_mgt_txn_rollback();
+
+		AMP_DEBUG_EXIT("db_add_protoparms","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: For each parameter, get the DC, add the DC into the DB,
@@ -1137,24 +1163,26 @@ uint32_t db_add_protoparms(ui_parm_spec_t *spec)
 	for(i = 0; i < spec->num_parms; i++)
 	{
 
-		/* Step 2.2: Add entry into dbtMIDParameter */
-		sprintf(query,
+		if(db_mgt_query_insert(&parm_idx,
 				"INSERT INTO dbtProtoMIDParameter "
-				"(CollectionID, ParameterOrder, ParameterTypeID) "
-				"VALUES (%d, %d, %d)",
-				result, i, spec->parm_type[i]);
-
-		if (mysql_query(gConn, query))
+								"(CollectionID, ParameterOrder, ParameterTypeID) "
+								"VALUES (%d, %d, %d)",
+								result, i, spec->parm_type[i]) != AMP_OK)
 		{
-			DTNMP_DEBUG_ERR("db_add_protoparms", "Database Error: %s", mysql_error(gConn));
-			DTNMP_DEBUG_EXIT("db_add_protoparms", "-->0", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_add_protoparms","Can't insert Parm", NULL);
+
+			db_mgt_txn_rollback();
+
+			AMP_DEBUG_EXIT("db_add_protoparms","-->%d", AMP_FAIL);
+			return AMP_FAIL;
 		}
 	}
 
-	DTNMP_DEBUG_EXIT("db_add_protoparms", "-->%d", result);
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_add_protoparms", "-->%d", result);
 	return result;
 }
+
 
 
 /******************************************************************************
@@ -1162,8 +1190,9 @@ uint32_t db_add_protoparms(ui_parm_spec_t *spec)
  *
  * \par Gets the ADM index given an ADM description
  *
- * \retval 0 Failure
- *        !0 The ADM index.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The fetched idx.
  *
  * \param[in] name    - The ADM name.
  * \param[in] version - The ADM version.
@@ -1172,43 +1201,32 @@ uint32_t db_add_protoparms(ui_parm_spec_t *spec)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/29/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to latest version of AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_fetch_adm_idx(char *name, char *version)
+int32_t db_fetch_adm_idx(char *name, char *version)
 {
-	uint32_t result = 0;
-	char query[1024];
+	int32_t result = 0;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_adm_idx","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("db_fetch_adm_idx","("UHF","UHF")",
 					  (uaddr)name, (uaddr) version);
 
 	if((name == NULL) || (version == NULL))
 	{
-		DTNMP_DEBUG_ERR("db_fetch_adm_idx","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_adm_idx","-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_adm_idx","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_adm_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	sprintf(query, "SELECT * FROM dbtADMs WHERE Label='%s' AND Version='%s'",
-			name, version);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			"SELECT * FROM dbtADMs WHERE Label='%s' AND Version='%s'",
+			name, version) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_adm_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_adm_idx", "-->0", NULL);
-		return 0;
-	}
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_adm_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_adm_idx", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_adm_idx","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_adm_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: Parse information out of the returned row. */
@@ -1220,7 +1238,7 @@ uint32_t db_fetch_adm_idx(char *name, char *version)
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_adm_idx","-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_adm_idx","-->%d", result);
 	return result;
 }
 
@@ -1228,85 +1246,71 @@ uint32_t db_fetch_adm_idx(char *name, char *version)
 
 /******************************************************************************
  *
- * \par Function Name: db_fetch_dc
+ * \par Function Name: db_fetch_tdc
  *
- * \par Creates a data collection from dbtDataCollections in the database
+ * \par Creates a typed data collection from dbtDataCollections in the database
  *
- * \retval NULL Failure
- *        !NULL The built Data collection.
+ * \retval a TDC object (with type UNKNOWN on error).
  *
  * \param[in] id - The Primary Key in the dbtDataCollections table.
  *
  * \par Notes:
+ *  - A TDC with a length of 0 indicates an error retrieving the TDC.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/23/13  S. Jacobs      Initial implementation,
  *  08/23/15  E. Birrane     Update to new schema.
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
-Lyst db_fetch_dc(int dc_idx)
+tdc_t db_fetch_tdc(int32_t tdc_idx)
 {
-	char query[1024];
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
-	Lyst result;
-	blob_t *dc_entry;
+	tdc_t result;
+	blob_t *entry;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_dc", "(%d)", dc_idx);
+	AMP_DEBUG_ENTRY("db_fetch_tdc", "(%d)", tdc_idx);
 
-	CHKCONN
+	tdc_init(&result);
 
 	/* Step 1: Construct/run the Query and capture results. */
-	sprintf(query, "SELECT * FROM dbtDataCollection "
-			"WHERE CollectionID=%d "
-			"ORDER BY DataOrder",
-			dc_idx);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtDataCollection "
+			              "WHERE CollectionID=%d "
+						  "ORDER BY DataOrder",
+						  tdc_idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_dc", "SQL Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_dc", "-->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("db_fetch_tdc","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_tdc","-->NULL", NULL);
+		return result;
 	}
 
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_dc", "SQL Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_dc", "-->NULL", NULL);
-		return NULL;
-	}
-
-	/* Step 2: Allocate a Lyst to hold the collection. */
-	if((result = lyst_create()) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_dc", "Can't alloc lyst", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_dc", "-->NULL", NULL);
-		return NULL;
-	}
-
-	/* Step 3: For each entry returned as part of the collection. */
+	/* Step 2: For each entry returned as part of the collection. */
 	while ((row = mysql_fetch_row(res)) != NULL)
 	{
-		if((dc_entry = db_fetch_data_col_entry_from_row(row)) == NULL)
+		amp_type_e type;
+
+		if((entry = db_fetch_tdc_entry_from_row(row, &type)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_fetch_dc", "Can't get entry.", NULL);
-			dc_destroy(&result);
+			AMP_DEBUG_ERR("db_fetch_tdc", "Can't get entry.", NULL);
+			tdc_clear(&result);
 			mysql_free_result(res);
 
-			DTNMP_DEBUG_EXIT("db_fetch_dc","-->NULL",NULL);
-			return NULL;
+			tdc_init(&result);
+
+			AMP_DEBUG_EXIT("db_fetch_tdc","-->NULL", NULL);
+			return result;
 		}
 
-		lyst_insert_last(result, dc_entry);
+		tdc_insert(&result, type, entry->value, entry->length);
 	}
 
 	/* Step 4: Free results. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_dc", "-->"ADDR_FIELDSPEC, (uaddr) result);
+	AMP_DEBUG_EXIT("db_fetch_dc", "-->%d", result.hdr.length);
 	return result;
 }
 
@@ -1327,50 +1331,42 @@ Lyst db_fetch_dc(int dc_idx)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  08/19/13  E. Birrane      Initial implementation,
+ *  08/19/13  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  ******************************************************************************/
 
-blob_t *db_fetch_data_col_entry_from_row(MYSQL_ROW row)
+blob_t* db_fetch_tdc_entry_from_row(MYSQL_ROW row, amp_type_e *type)
 {
 	blob_t *result = NULL;
+	uint8_t *value = NULL;
+	uint32_t length = 0;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_data_col_entry_from_row","(0x%#llx)",
-					  (unsigned long) row);
+	AMP_DEBUG_ENTRY("db_fetch_tdc_entry_from_row","("UHF","UHF")",
+					  (uaddr)row, (uaddr)type);
 
-	CHKCONN
-
-	/* Step 1: Allocate space for the entry. */
-	if((result = (blob_t*) STAKE(sizeof(blob_t))) == NULL)
+	/* Step 1: grab data from the row. */
+	value = utils_string_to_hex(row[3], &length);
+	if((value == NULL) || (length == 0))
 	{
-		DTNMP_DEBUG_ERR("db_fetch_data_col_entry_from_row",
-				        "Can't allocate %d bytes.",
-					    sizeof(blob_t));
-
-		DTNMP_DEBUG_EXIT("db_fetch_data_col_entry_from_row", "-->NULL", NULL);
+		AMP_DEBUG_ERR("db_fetch_tdc_entry_from_row", "Can't grab value for %s", row[3]);
+		AMP_DEBUG_EXIT("db_fetch_tdc_entry_from_row", "-->NULL", NULL);
 		return NULL;
 	}
 
-	/* Step 2: Populate the entry. */
-
-	result->value = utils_string_to_hex(row[3], &(result->length));
-
-	if((result->length == 0) || (result->value == 0))
+	/* Step 2: Create the blob representing the entry. */
+	if((result = blob_create(value,length)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_data_col_entry_from_row",
-				        "length : %lu",result->length);
-		DTNMP_DEBUG_ERR("db_fetch_data_col_entry_from_row",
-				        "value : %lu",result->value);
-
-		SRELEASE(result);
-
-		DTNMP_DEBUG_EXIT("db_fetch_data_col_entry_from_row", "-->NULL", NULL);
+		AMP_DEBUG_ERR("db_fetch_tdc_entry_from_row", "Can't make blob", NULL);
+		SRELEASE(value);
+		AMP_DEBUG_EXIT("db_fetch_tdc_entry_from_row", "-->NULL", NULL);
 		return NULL;
 	}
 
-	DTNMP_DEBUG_EXIT("db_fetch_data_col_entry_from_row", "-->%0x#llx",
-			         (unsigned long) result);
+	/* Step 3: Store the type. */
+	*type = atoi(row[2]);
+
+	AMP_DEBUG_EXIT("db_fetch_tdc_entry_from_row", "-->"UHF, (uaddr) result);
 	return result;
-
 }
 
 
@@ -1393,93 +1389,47 @@ blob_t *db_fetch_data_col_entry_from_row(MYSQL_ROW row)
  *  --------  ------------   ---------------------------------------------
  *  07/12/13  S. Jacobs      Initial implementation,
  *  08/23/15  E. Birrane     Update to new schema.
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-mid_t *db_fetch_mid(int idx)
+mid_t *db_fetch_mid(int32_t idx)
 {
-	char query[1024];
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 	mid_t *result = NULL;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_mid", "(%d)", idx);
-
-	CHKCONN
+	AMP_DEBUG_ENTRY("db_fetch_mid", "(%d)", idx);
 
 	/* Step 1: Construct and run the query to get the MID information. */
-	sprintf(query, "SELECT * FROM dbtMIDs WHERE ID=%d", idx);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtMIDs WHERE ID=%d", idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_mid", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid", "-->NULL", NULL);
-		return NULL;
-	}
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_mid", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid", "-->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("db_fetch_mid","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_mid","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: Parse information out of the returned row. */
-	if ((row = mysql_fetch_row(res)) != NULL)
+	if ((row = mysql_fetch_row(res)) == NULL)
 	{
-		uint32_t nn_idx   = (row[1] == NULL) ? 0 : atoi(row[1]);
-		uint32_t oid_idx  = (row[2] == NULL) ? 0 : atoi(row[2]);
-		uint32_t parm_idx = (row[3] == NULL) ? 0 : atoi(row[3]);
-		uint8_t type      = (row[4] == NULL) ? 0 : atoi(row[4]);
-		uint8_t cat       = (row[5] == NULL) ? 0 : atoi(row[5]);
-		uint8_t issFlag   = (row[6] == NULL) ? 0 : atoi(row[6]);
-		uint8_t tagFlag   = (row[7] == NULL) ? 0 : atoi(row[7]);
-		uint8_t oidType   = (row[8] == NULL) ? 0 : atoi(row[8]);
-		uvast issuer      = (uvast) (row[9] == NULL) ? 0 : atoll(row[9]);
-		uvast tag         = (uvast) (row[10] == NULL) ? 0 : atoll(row[10]);
-		uint32_t dtype    = (row[11] == NULL) ? 0 : atoi(row[11]);
-
-		oid_t *oid = NULL;
-
-		if((oid = db_fetch_oid(nn_idx, parm_idx, oid_idx)) == NULL)
-		{
-			DTNMP_DEBUG_ERR("db_fetch_mid","Cannot fetch the oid: %d", oid_idx);
-		}
-		else
-		{
-			oid->type = oidType;
-			if ((result = mid_construct(type,
-					                    cat,
-					                    issFlag ? &issuer : NULL,
-					                    tagFlag ? &tag : NULL,
-					                    oid)) == NULL)
-			{
-				DTNMP_DEBUG_ERR("db_fetch_mid", "Cannot construct MID", NULL);
-			}
-
-			/* mid_construct deep-copies the OID. We can release it either way. */
-			oid_release(oid);
-		}
-	}
-	else
-	{
-		DTNMP_DEBUG_ERR("db_fetch_mid", "Did not find MID with ID of %d\n", idx);
+		AMP_DEBUG_ERR("db_fetch_mid","Can't grab row", NULL);
+		mysql_free_result(res);
+		AMP_DEBUG_EXIT("db_fetch_mid","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	/* Step 3: Free database resources. */
+	/* Step 3: Build MID from the row. */
+	if((result = db_fetch_mid_from_row(row)) == NULL)
+	{
+		AMP_DEBUG_ERR("db_fetch_mid","Can't build MID from row", NULL);
+		mysql_free_result(res);
+		AMP_DEBUG_EXIT("db_fetch_mid","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
 	mysql_free_result(res);
 
-	/* Step 4: Sanity check the returned MID. */
-	if (mid_sanity_check(result) == 0)
-	{
-		char *data = mid_pretty_print(result);
-		DTNMP_DEBUG_ERR("db_fetch_mid", "Failed MID sanity check. %s", data);
-		SRELEASE(data);
-		mid_release(result);
-		result = NULL;
-	}
-
-	DTNMP_DEBUG_EXIT("db_fetch_mid", "-->"ADDR_FIELDSPEC, (uaddr) result);
+	AMP_DEBUG_EXIT("db_fetch_mid", "-->"UHF, (uaddr) result);
 	return result;
 }
 
@@ -1494,7 +1444,7 @@ mid_t *db_fetch_mid(int idx)
  * \retval NULL Failure
  *        !NULL The built MID collection.
  *
- * \param[in] id - The Primary Key in the dbtMIDCollection table.
+ * \param[in] idx - The Primary Key in the dbtMIDCollection table.
  *
  * \par Notes:
  *
@@ -1503,6 +1453,7 @@ mid_t *db_fetch_mid(int idx)
  *  --------  ------------   ---------------------------------------------
  *  07/12/13  S. Jacobs      Initial implementation
  *  08/23/15  E. Birrane     Update to new database schema
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 Lyst db_fetch_mid_col(int idx)
 {
@@ -1512,29 +1463,16 @@ Lyst db_fetch_mid_col(int idx)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_mid_col","(%d)", idx);
+	AMP_DEBUG_ENTRY("db_fetch_mid_col","(%d)", idx);
 
-	CHKCONN
-
-	/* Step 1: Construct and run the query to get MC DB info. */
-	sprintf(query,
-			"SELECT MIDID FROM dbtMIDCollection WHERE CollectionID=%d ORDER BY MIDOrder",
-			idx);
-
-	if (mysql_query(gConn, query))
+	/* Step 1: Construct and run the query to get the MID information. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT MIDID FROM dbtMIDCollection WHERE CollectionID=%d ORDER BY MIDOrder",
+						  idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_col", "SQL Error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid_col", "-->NULL",NULL);
-		return NULL;
-	}
-
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_col", "SQL Error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid_col", "-->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("db_fetch_mid_col","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_mid_col","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: For each MID in the collection... */
@@ -1544,13 +1482,13 @@ Lyst db_fetch_mid_col(int idx)
 		/* Step 2.1: For each row, build a MID and add it to the collection. */
 		if((new_mid = db_fetch_mid(atoi(row[0]))) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_fetch_mid_col", "Can't grab MID with ID %d.",
+			AMP_DEBUG_ERR("db_fetch_mid_col", "Can't grab MID with ID %d.",
 					        atoi(row[0]));
 
 			midcol_destroy(&result);
 			mysql_free_result(res);
 
-			DTNMP_DEBUG_EXIT("db_fetch_mid_col", "-->NULL", NULL);
+			AMP_DEBUG_EXIT("db_fetch_mid_col", "-->NULL", NULL);
 			return NULL;
 		}
 
@@ -1560,7 +1498,106 @@ Lyst db_fetch_mid_col(int idx)
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_mid_col", "-->%d", (unsigned long) result);
+	AMP_DEBUG_EXIT("db_fetch_mid_col", "-->"UHF, (uaddr) result);
+	return result;
+}
+
+
+
+/******************************************************************************
+ * \par Function Name: db_fetch_mid_from_row
+ *
+ * \par Gets a MID from the MID table.
+ *
+ * \retval  NULL Failure
+ *         !NULL The fetched MID
+ *
+ * \param[in] row  - The row containing the data col entry information.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/25/17  E. Birrane     Initial implementation, (JHU/APL)
+ *****************************************************************************/
+
+mid_t* db_fetch_mid_from_row(MYSQL_ROW row)
+{
+	oid_t oid;
+	mid_t *result = NULL;
+
+	AMP_DEBUG_ENTRY("db_fetch_mid_from_row", "("UHF")", (uaddr)row);
+
+	/* Step 0: Sanity check. */
+	if(row == NULL)
+	{
+		AMP_DEBUG_ERR("db_fetch_mid_from_row","Bad args", NULL);
+		AMP_DEBUG_EXIT("db_fetch_mid_from_row","-->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Build parametrs from row. */
+	uint32_t nn_idx   = (row[1] == NULL) ? 0 : atoi(row[1]);
+	uint32_t oid_idx  = (row[2] == NULL) ? 0 : atoi(row[2]);
+	uint32_t parm_idx = (row[3] == NULL) ? 0 : atoi(row[3]);
+	uint8_t type      = (row[4] == NULL) ? 0 : atoi(row[4]);
+	uint8_t cat       = (row[5] == NULL) ? 0 : atoi(row[5]);
+	uint8_t issFlag   = (row[6] == NULL) ? 0 : atoi(row[6]);
+	uint8_t tagFlag   = (row[7] == NULL) ? 0 : atoi(row[7]);
+	uint8_t oidType   = (row[8] == NULL) ? 0 : atoi(row[8]);
+	uvast issuer      = (uvast) (row[9] == NULL) ? 0 : atoll(row[9]);
+	uvast tag         = (uvast) (row[10] == NULL) ? 0 : atoll(row[10]);
+	uint32_t dtype    = (row[11] == NULL) ? 0 : atoi(row[11]);
+ 	uint32_t mid_type = 0;
+
+	/* Step 2: Create the OID. */
+	oid = db_fetch_oid(nn_idx, parm_idx, oid_idx);
+	if(oid.type == OID_TYPE_UNK)
+	{
+		AMP_DEBUG_ERR("db_fetch_mid_from_row","Cannot fetch the oid: %d", oid_idx);
+		oid_release(&oid);
+		AMP_DEBUG_EXIT("db_fetch_mid_from_row","-->NULL", NULL);
+		return NULL;
+	}
+
+	oid.type = oidType;
+
+        switch(cat)
+        {
+          case 0: mid_type = MID_ATOMIC; break;
+          case 1: mid_type = MID_COMPUTED; break;
+          case 2: mid_type = MID_REPORT; break;
+          case 3: mid_type = MID_CONTROL; break;
+	  case 4: mid_type = MID_SRL; break;
+          case 5: mid_type = MID_TRL; break;
+          case 6: mid_type = MID_MACRO; break;
+          case 7: mid_type = MID_LITERAL; break;
+          case 8: mid_type = MID_OPERATOR; break;
+          default: mid_type = MID_ANY;
+        }
+          
+	if ((result = mid_construct(mid_type,
+			                    issFlag ? &issuer : NULL,
+					            tagFlag ? &tag : NULL,
+				                oid)) == NULL)
+	{
+		AMP_DEBUG_ERR("db_fetch_mid_from_row", "Cannot construct MID", NULL);
+		oid_release(&oid);
+		AMP_DEBUG_EXIT("db_fetch_mid_from_row","-->NULL", NULL);
+		return NULL;
+	}
+
+	oid_release(&oid);
+
+	if (mid_sanity_check(result) == 0)
+	{
+		char *data = mid_pretty_print(result);
+		AMP_DEBUG_ERR("db_fetch_mid_from_row", "Failed MID sanity check. %s", data);
+		SRELEASE(data);
+		mid_release(result);
+		result = NULL;
+	}
+
+	AMP_DEBUG_EXIT("db_fetch_mid_from_row","-->"UHF, (uaddr)result);
 	return result;
 }
 
@@ -1583,86 +1620,72 @@ Lyst db_fetch_mid_col(int idx)
  *  --------  ------------   ---------------------------------------------
  *  07/23/13  S. Jacobs      Initial implementation,
  *  08/24/15  E. Birrane     Update to latest schema
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_fetch_mid_idx(mid_t *mid)
+int32_t db_fetch_mid_idx(mid_t *mid)
 {
-	char query[1024];
-	char query2[1024];
-	uint32_t result = 0;
-	uint32_t cur_idx = 0;
+	int32_t result = 0;
+	int32_t cur_idx = 0;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_mid_idx","("ADDR_FIELDSPEC")", (uaddr)mid);
+	AMP_DEBUG_ENTRY("db_fetch_mid_idx","("UHF")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_idx","Bad args",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_mid_idx","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_fetch_mid_idx","-->NULL", NULL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	/* Step 1: Build and execute query. */
-	sprintf(query,
-			"SELECT * FROM dbtMIDs WHERE "
-			"Type=%d AND Category=%d AND IssuerFlag=%d AND TagFlag=%d "
-			"AND OIDType=%d AND IssuerID="UVAST_FIELDSPEC" "
-			"AND TagValue="UVAST_FIELDSPEC,
-			MID_GET_FLAG_TYPE(mid->flags),
-			MID_GET_FLAG_CAT(mid->flags),
-			(MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
-			(MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
-			MID_GET_FLAG_OID(mid->flags),
-			mid->issuer,
-			mid->tag);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			            "SELECT * FROM dbtMIDs WHERE "
+						"Type=%d AND Category=%d AND IssuerFlag=%d AND TagFlag=%d "
+						"AND OIDType=%d AND IssuerID="UVAST_FIELDSPEC" "
+						"AND TagValue="UVAST_FIELDSPEC,
+						0,
+						MID_GET_FLAG_ID(mid->flags),
+						(MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
+						(MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
+						MID_GET_FLAG_OID(mid->flags),
+						mid->issuer,
+						mid->tag) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_idx", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid_idx", "-->0", 0);
-		return 0;
-	}
-
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_idx", "SQL Error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid_idx", "-->NULL", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_mid_col","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_mid_col","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: For each matching MID, check other items... */
+	result = AMP_FAIL;
+
 	while ((row = mysql_fetch_row(res)) != NULL)
 	{
 		cur_idx = (row[0] == NULL) ? 0 : atoi(row[0]);
 
-		uint32_t nn_idx = (row[1] == NULL) ? 0 : atoi(row[1]);
-		uint32_t oid_idx = (row[2] == NULL) ? 0 : atoi(row[2]);
-		uint32_t parm_idx = (row[3] == NULL) ? 0 : atoi(row[3]);
-		oid_t *oid = NULL;
+		int32_t nn_idx   = (row[1] == NULL) ? 0 : atoi(row[1]);
+		int32_t oid_idx  = (row[2] == NULL) ? 0 : atoi(row[2]);
+		int32_t parm_idx = (row[3] == NULL) ? 0 : atoi(row[3]);
+		oid_t   oid      = db_fetch_oid(nn_idx, parm_idx, oid_idx);
 
-
-		oid = db_fetch_oid(nn_idx, parm_idx, oid_idx);
-
-		if(oid_compare(oid, mid->oid, 1) == 0)
+		if((oid.type != OID_TYPE_UNK) &&
+	       (oid_compare(oid, mid->oid, 1) == 0))
 		{
-			oid_release(oid);
+			oid_release(&oid);
 			result = cur_idx;
 			break;
 		}
 
-		oid_release(oid);
+		oid_release(&oid);
 	}
 
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
 	/* Step 4: Return the IDX. */
-	DTNMP_DEBUG_EXIT("db_fetch_mid_idx", "-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_mid_idx", "-->%d", result);
 	return result;
 }
 
@@ -1673,8 +1696,9 @@ uint32_t db_fetch_mid_idx(mid_t *mid)
  *
  * \par Gets the nickname UID given a primary key index into the Nickname table.
  *
- * \retval 0 Failure
- *        !0 The nickname UID.
+ * \retval -1 system error
+ *          0 non-fatal error
+ *         >0 The nickname UID.
  *
  * \param[in] idx  - Index of the nickname UID being queried.
  *
@@ -1682,41 +1706,33 @@ uint32_t db_fetch_mid_idx(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/24/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_fetch_nn(uint32_t idx)
+int32_t db_fetch_nn(uint32_t idx)
 {
-	uint32_t result = 0;
-	char query[1024];
+	int32_t result = AMP_FAIL;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_nn","(%d)", idx);
+	AMP_DEBUG_ENTRY("db_fetch_nn","(%d)", idx);
 
+	/* Step 0: Sanity checks. */
 	if(idx == 0)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_nn","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_nn","-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_nn","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_nn","-->AMP_FAIL", NULL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	sprintf(query, "SELECT * FROM dbtADMNicknames WHERE ID=%d", idx);
-
-	if (mysql_query(gConn, query))
+	/* Step 1: Grab the NN row */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtADMNicknames WHERE ID=%d",
+						   idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_nn", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_nn", "-->0", NULL);
-		return 0;
-	}
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_nn", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_nn", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_nn","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_nn","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: Parse information out of the returned row. */
@@ -1726,13 +1742,13 @@ uint32_t db_fetch_nn(uint32_t idx)
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("db_fetch_nn", "Did not find NN with ID of %d\n", idx);
+		AMP_DEBUG_ERR("db_fetch_nn", "Did not find NN with ID of %d\n", idx);
 	}
 
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_nn","-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_nn","-->%d", result);
 	return result;
 }
 
@@ -1743,8 +1759,9 @@ uint32_t db_fetch_nn(uint32_t idx)
  *
  * \par Gets the index of a nickname UID.
  *
- * \retval 0 Failure
- *        !0 The nickname index.
+ * \retval -1 system error
+ *          0 non-fatal error
+ *         >0 The nickname index.
  *
  * \param[in] nn  - The nickname UID whose index is being queried.
  *
@@ -1752,34 +1769,25 @@ uint32_t db_fetch_nn(uint32_t idx)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/24/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_fetch_nn_idx(uint32_t nn)
+int32_t db_fetch_nn_idx(uint32_t nn)
 {
-	uint32_t result = 0;
-	char query[1024];
+	int32_t result = AMP_FAIL;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_nn_idx","(%d)", nn);
+	AMP_DEBUG_ENTRY("db_fetch_nn_idx","(%d)", nn);
 
-	CHKCONN
 
-	sprintf(query, "SELECT * FROM dbtADMNicknames WHERE Nickname_UID=%d", nn);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtADMNicknames WHERE Nickname_UID=%d",
+						  nn) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_nn_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_nn_idx", "-->0", NULL);
-		return 0;
-	}
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_nn_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_nn_idx", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_nn_idx","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_nn_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: Parse information out of the returned row. */
@@ -1791,9 +1799,10 @@ uint32_t db_fetch_nn_idx(uint32_t nn)
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_nn_idx","-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_nn_idx","-->%d", result);
 	return result;
 }
+
 
 
 /******************************************************************************
@@ -1811,42 +1820,33 @@ uint32_t db_fetch_nn_idx(uint32_t nn)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/24/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
 uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
 {
 	uint8_t *result = NULL;
-	char query[1024];
-	char valstr[256];
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"ADDR_FIELDSPEC")",
+	AMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"UHF")",
 			          idx, (uaddr)size);
 
+	/* Step 0: Sanity check. */
 	if((idx == 0) || (size == NULL))
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_val","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_oid_val","-->NULL", NULL);
+		AMP_DEBUG_ERR("db_fetch_oid_val","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_oid_val","-->NULL", NULL);
 		return NULL;
 	}
 
-	CHKCONN
 
-	sprintf(query, "SELECT Encoded FROM dbtOIDs WHERE ID=%d", idx);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			              "SELECT Encoded FROM dbtOIDs WHERE ID=%d",
+						  idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_val", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_oid_val", "-->NULL", NULL);
-		return NULL;
-	}
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_val", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_oid_val", "-->NULL", NULL);
+		AMP_DEBUG_ERR("db_fetch_oid_val","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_oid_val","-->NULL", NULL);
 		return NULL;
 	}
 
@@ -1857,13 +1857,13 @@ uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_val", "Did not find OID with ID of %d\n", idx);
+		AMP_DEBUG_ERR("db_fetch_oid_val", "Did not find OID with ID of %d\n", idx);
 	}
 
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_oid_val","-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_oid_val","-->%d", result);
 	return result;
 }
 
@@ -1888,42 +1888,44 @@ uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
  *  --------  ------------   ---------------------------------------------
  *  07/25/13  S. Jacobs      Initial implementation,
  *  08/24/15  E. Birrane     Updated to new schema.
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  ******************************************************************************/
 
-oid_t *db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx)
+oid_t db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx)
 {
-	oid_t *result = NULL;
-	Lyst parms = NULL;
+	oid_t result;
+	tdc_t parms;
 	uint32_t nn_id = 0;
 	uint32_t val_size = 0;
 	uint8_t *val = NULL;
 	uint32_t oid_type = OID_TYPE_FULL;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_oid","(%d, %d, %d)",
+	AMP_DEBUG_ENTRY("db_fetch_oid","(%d, %d, %d)",
 					  nn_idx, parm_idx, oid_idx);
+
+	oid_init(&result);
+	tdc_init(&parms);
 
 	/* Step 0: Sanity Check. */
 	if(oid_idx == 0)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_oid","-->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("db_fetch_oid","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_oid","-->OID_TYPE_UNK", NULL);
+		return result;
 	}
-
-	CHKCONN
 
 	/* Step 1: Grab the OID value string. */
 	if((val = db_fetch_oid_val(oid_idx, &val_size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid","Can't get OID for idx %d.", oid_idx);
-		DTNMP_DEBUG_EXIT("db_fetch_oid","-->NULL", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("db_fetch_oid","Can't get OID for idx %d.", oid_idx);
+		AMP_DEBUG_EXIT("db_fetch_oid","-->OID_TYPE_UNK", NULL);
+		return result;
 	}
 
 	/* Step 2: Grab parameters, if the OID has them. */
 	if(parm_idx > 0)
 	{
-		parms = db_fetch_dc(parm_idx);
+		parms = db_fetch_tdc(parm_idx);
 
 		if(nn_idx == 0)
 		{
@@ -1943,18 +1945,13 @@ oid_t *db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx)
 	 * Step 4: Construct the OID. This deep-copies parameters so we can
 	 *          release the parms and value afterwards.
 	 */
-	result = oid_construct(oid_type, parms, nn_id, val, val_size);
+	result = oid_construct(oid_type, &parms, nn_id, val, val_size);
 
-	if(val != NULL)
-	{
-		SRELEASE(val);
-	}
-	if(parms != NULL)
-	{
-		dc_destroy(&parms);
-	}
+	SRELEASE(val);
 
-	DTNMP_DEBUG_EXIT("db_fetch_oid","-->"ADDR_FIELDSPEC, (uaddr)result);
+	tdc_clear(&parms);
+
+	AMP_DEBUG_EXIT("db_fetch_oid","-->%d", result.type);
 	return result;
 }
 
@@ -1978,65 +1975,55 @@ oid_t *db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/24/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to newest AMP implementation
  ******************************************************************************/
 
-uint32_t db_fetch_oid_idx(oid_t *oid)
+int32_t db_fetch_oid_idx(oid_t oid)
 {
-
-	uint32_t result = 0;
-	char query[1024];
+	int32_t result = AMP_FAIL;
 	char *oid_str = NULL;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_oid_idx","("ADDR_FIELDSPEC")", (uaddr)oid);
+	AMP_DEBUG_ENTRY("db_fetch_oid_idx","(%d)", oid.type);
 
-	if(oid == NULL)
+	/* Step 0: Sanity checks. */
+	if(oid.type == OID_TYPE_UNK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_idx","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_oid_idx","-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_oid_idx","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_oid_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
+	/* Step 1: Build string version of OID for searching. */
 	if((oid_str = oid_to_string(oid)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_idx","Can't get string rep of OID.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_oid_idx","-->0",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_oid_idx","Can't get string rep of OID.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_oid_idx","-->%d",AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	sprintf(query, "SELECT * FROM dbtOIDs WHERE Encoded='%s'", oid_str);
-
-	SRELEASE(oid_str);
-
-	if (mysql_query(gConn, query))
+	/* Step 2: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtOIDs WHERE Encoded='%s'",
+						  oid_str) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_oid_idx", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_oid_idx","Can't fetch", NULL);
+		SRELEASE(oid_str);
+		AMP_DEBUG_EXIT("db_fetch_oid_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_oid_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_oid_idx", "-->0", NULL);
-		return 0;
-	}
-
-	/* Step 2: Parse information out of the returned row. */
+	/* Step 3: Grab the row idx. */
 	if ((row = mysql_fetch_row(res)) != NULL)
 	{
 		result = atoi(row[0]);
 	}
 
-	/* Step 3: Free database resources. */
 	mysql_free_result(res);
+	SRELEASE(oid_str);
 
-	DTNMP_DEBUG_EXIT("db_fetch_oid_idx","-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_oid_idx","-->%d", result);
 	return result;
 }
 
@@ -2063,69 +2050,59 @@ uint32_t db_fetch_oid_idx(oid_t *oid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/24/15  E. Birrane     Initial Implementation
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
 Lyst db_fetch_parms(uint32_t idx)
 {
-	char query[1024];
 	Lyst result = 0;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 	uint32_t dc_idx = 0;
 	blob_t* entry = NULL;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_parms", "(%d)", idx);
+	AMP_DEBUG_ENTRY("db_fetch_parms", "(%d)", idx);
 
 	/* Step 0: Sanity check arguments. */
 	if(idx == 0)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_parms","Bad args",NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_parms","-->NULL",NULL);
+		AMP_DEBUG_ERR("db_fetch_parms","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_fetch_parms","-->NULL",NULL);
 		return NULL;
 	}
 
-	CHKCONN
+	/* Step 1: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT DataCollectionID FROM dbtMIDParameter "
+			              "WHERE CollectionID=%d ORDER BY ItemOrder",
+			              idx) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_fetch_parms","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_parms","-->NULL", NULL);
+		return NULL;
+	}
 
-	/* Step 1: Allocate the return lyst. */
+	/* Step 2: Allocate the return lyst. */
 	if((result = lyst_create()) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_parms","Can't allocate lyst",NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_parms","-->NULL",NULL);
+		AMP_DEBUG_ERR("db_fetch_parms","Can't allocate lyst",NULL);
+		mysql_free_result(res);
+		AMP_DEBUG_EXIT("db_fetch_parms","-->NULL",NULL);
 		return NULL;
-	}
-
-	/* Step 2: Grab all of the DC IDs Associated with this parm set. */
-	sprintf(query,
-			"SELECT DataCollectionID FROM dbtMIDParameter "
-			"WHERE CollectionID=%d ORDER BY ItemOrder",
-			idx);
-
-	if (mysql_query(gConn, query))
-	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_idx", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid_idx", "-->0", 0);
-		return 0;
-	}
-
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_mid_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_mid_idx", "-->0", NULL);
-		return 0;
 	}
 
 	/* Step 3: For each matching parameter... */
 	while ((row = mysql_fetch_row(res)) != NULL)
 	{
-		if((entry = db_fetch_data_col_entry_from_row(row)) == NULL)
+		amp_type_e type;
+
+		if((entry = db_fetch_tdc_entry_from_row(row, &type)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_fetch_dc", "Can't get entry.", NULL);
+			AMP_DEBUG_ERR("db_fetch_parms", "Can't get entry.", NULL);
 			dc_destroy(&result);
 			mysql_free_result(res);
 
-			DTNMP_DEBUG_EXIT("db_fetch_dc","-->NULL",NULL);
+			AMP_DEBUG_EXIT("db_fetch_parms","-->NULL",NULL);
 			return NULL;
 		}
 
@@ -2135,10 +2112,9 @@ Lyst db_fetch_parms(uint32_t idx)
 	/* Step 4: Free results. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_parms", "-->"ADDR_FIELDSPEC, (uaddr)result);
+	AMP_DEBUG_EXIT("db_fetch_parms", "-->"UHF, (uaddr)result);
 	return result;
 }
-
 
 
 
@@ -2158,79 +2134,62 @@ Lyst db_fetch_parms(uint32_t idx)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/28/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_fetch_protomid_idx(mid_t *mid)
+int32_t db_fetch_protomid_idx(mid_t *mid)
 {
-	char query[1024];
-	char query2[1024];
-	uint32_t result = 0;
-	uint32_t cur_idx = 0;
+	int32_t result = AMP_FAIL;
+	int32_t cur_idx = 0;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_protomid_idx","("ADDR_FIELDSPEC")", (uaddr)mid);
+	AMP_DEBUG_ENTRY("db_fetch_protomid_idx","("UHF")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_protomid_idx","Bad args",NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_protomid_idx","Bad args",NULL);
+		AMP_DEBUG_EXIT("db_fetch_parms", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	/* Step 1: Build and execute query. */
-	sprintf(query,
-			"SELECT * FROM dbtProtoMIDs WHERE "
-			"Type=%d AND Category=%d AND OIDType=%d",
-			MID_GET_FLAG_TYPE(mid->flags),
-			MID_GET_FLAG_CAT(mid->flags),
-			MID_GET_FLAG_OID(mid->flags));
-
-	if (mysql_query(gConn, query))
+	/* Step 1: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtProtoMIDs WHERE "
+						  "Type=%d AND Category=%d AND OIDType=%d",
+						  0,
+						  MID_GET_FLAG_ID(mid->flags),
+						  MID_GET_FLAG_OID(mid->flags)) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_protomid_idx", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_protomid_idx", "-->0", 0);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_parms","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_parms","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
-
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_protomid_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_protomid_idx", "-->0", NULL);
-		return 0;
-	}
-
 
 	/* Step 2: For each matching MID, check other items... */
 	while ((row = mysql_fetch_row(res)) != NULL)
 	{
+
 		cur_idx = atoi(row[0]);
 
-		uint32_t nn_idx = atoi(row[1]);
-		uint32_t oid_idx = atoi(row[2]);
-		oid_t *oid = NULL;
-
-		oid = db_fetch_oid(nn_idx, 0, oid_idx);
+		int32_t nn_idx = atoi(row[1]);
+		int32_t oid_idx = atoi(row[2]);
+		oid_t oid = db_fetch_oid(nn_idx, 0, oid_idx);
 
 		if(oid_compare(oid, mid->oid, 0) == 0)
 		{
-			oid_release(oid);
+			oid_release(&oid);
 			result = cur_idx;
 			break;
 		}
 
-		oid_release(oid);
+		oid_release(&oid);
 	}
 
-	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	/* Step 4: Return the IDX. */
-	DTNMP_DEBUG_EXIT("db_fetch_protomid_idx", "-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_protomid_idx", "-->%d", result);
 	return result;
 }
 
@@ -2251,35 +2210,24 @@ uint32_t db_fetch_protomid_idx(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/12/13  S. Jacobs      Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-adm_reg_agent_t *db_fetch_reg_agent(uint32_t id)
+adm_reg_agent_t *db_fetch_reg_agent(int32_t id)
 {
 	adm_reg_agent_t *result = NULL;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
-	char query[1024];
 
-	DTNMP_DEBUG_ENTRY("db_fetch_reg_agent","(%d)", id);
+	AMP_DEBUG_ENTRY("db_fetch_reg_agent","(%d)", id);
 
-	CHKCONN
-
-	/*Step 1: Build query. */
-	sprintf(query, "SELECT * FROM dbtRegisteredAgents WHERE ID=%d", id);
-	if (mysql_query(gConn, query))
+	/* Step 1: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtRegisteredAgents WHERE ID=%d",
+						  id) != AMP_OK)
 	{
-		DTNMP_DEBUG_ENTRY("db_fetch_reg_agent", "(%d)", id);
-		DTNMP_DEBUG_EXIT("db_fetch_reg_agent", "-->%ld",
-				(unsigned long) result);
-		return NULL;
-	}
-
-	/*Step 2: Parse results. */
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ENTRY("db_fetch_reg_agent", "(%d)", id);
-		DTNMP_DEBUG_EXIT("db_fetch_reg_agent", "-->%ld",
-				(unsigned long) result);
+		AMP_DEBUG_ERR("db_fetch_reg_agent","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_reg_agent","-->NULL", NULL);
 		return NULL;
 	}
 
@@ -2291,15 +2239,16 @@ adm_reg_agent_t *db_fetch_reg_agent(uint32_t id)
 		/* Step 3: Create structure for agent */
 		if((result = msg_create_reg_agent(eid)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_fetch_reg_agent","Cannot create a registered agent",NULL);
+			AMP_DEBUG_ERR("db_fetch_reg_agent","Cannot create a registered agent",NULL);
 			mysql_free_result(res);
+			AMP_DEBUG_EXIT("db_fetch_reg_agent","-->NULL", NULL);
 			return NULL;
 		}
 	}
 
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_reg_agent", "-->%ld", (unsigned long) result);
+	AMP_DEBUG_EXIT("db_fetch_reg_agent", "-->"UHF, (uaddr) result);
 	return result;
 }
 
@@ -2320,41 +2269,33 @@ adm_reg_agent_t *db_fetch_reg_agent(uint32_t id)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/29/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-uint32_t db_fetch_reg_agent_idx(eid_t *eid)
+int32_t db_fetch_reg_agent_idx(eid_t *eid)
 {
-	uint32_t result = 0;
-	char query[1024];
+	int32_t result = AMP_FAIL;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	DTNMP_DEBUG_ENTRY("db_fetch_reg_agent_idx","("ADDR_FIELDSPEC")", (uaddr) eid);
+	AMP_DEBUG_ENTRY("db_fetch_reg_agent_idx","("UHF")", (uaddr) eid);
 
-	if(eid == 0)
+	/* Step 0: Sanity Check.*/
+	if(eid == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_reg_agent_idx","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_reg_agent_idx","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	CHKCONN
-
-	sprintf(query, "SELECT * FROM dbtRegisteredAgents WHERE AgentId='%s'", eid->name);
-
-	if (mysql_query(gConn, query))
+	/* Step 1: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtRegisteredAgents WHERE AgentId='%s'",
+						  eid->name) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_fetch_reg_agent_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_reg_agent_idx", "-->0", NULL);
-		return 0;
-	}
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_fetch_reg_agent_idx", "Database error: %s",
-				        mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_fetch_reg_agent_idx", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_fetch_reg_agent_idx","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	/* Step 2: Parse information out of the returned row. */
@@ -2364,13 +2305,13 @@ uint32_t db_fetch_reg_agent_idx(eid_t *eid)
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("db_fetch_reg_agent_idx", "Did not find EID with ID of %s\n", eid->name);
+		AMP_DEBUG_ERR("db_fetch_reg_agent_idx", "Did not find EID with ID of %s\n", eid->name);
 	}
 
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", result);
+	AMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", result);
 	return result;
 }
 
@@ -2381,8 +2322,9 @@ uint32_t db_fetch_reg_agent_idx(eid_t *eid)
  *
  * \par Returns the id of the last insert into dbtIncoming.
  *
- * \retval 0 message was not inserted.
- *        !0 message was inserted into database.
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in] timestamp  - the generated timestamp
  * \param[in] sender_eid - Who sent the messages.
@@ -2392,76 +2334,69 @@ uint32_t db_fetch_reg_agent_idx(eid_t *eid)
  *  --------  ------------   ---------------------------------------------
  *  08/07/13  S. Jacobs      Initial implementation,
  *  08/29/15  E. Birrane     Added sender EID.
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-int db_incoming_initialize(time_t timestamp, eid_t *sender_eid)
+int32_t db_incoming_initialize(time_t timestamp, eid_t *sender_eid)
 {
 	MYSQL_RES *res = NULL;
     MYSQL_ROW row;
-	char query[1024];
-	int result = 0;
+	char timebuf[256];
+	uint32_t result = 0;
 	uint32_t agent_idx = 0;
 
-	DTNMP_DEBUG_ENTRY("db_incoming_initialize","(%llu)", timestamp);
+	AMP_DEBUG_ENTRY("db_incoming_initialize","("UHF","UHF")",
+			        (uaddr)timestamp, (uaddr) sender_eid);
 
 	/* Step 0: Sanity check. */
 	if(sender_eid == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_incoming_initialize","Bad Args.", NULL);
-		DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
+		AMP_DEBUG_ERR("db_incoming_initialize","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
 		return result;
 	}
 
-	CHKCONN
+	db_mgt_txn_start();
 
 	/* Step 1: Find the agent ID, or try to add it. */
 	if((agent_idx = db_fetch_reg_agent_idx(sender_eid)) == 0)
 	{
-		if((agent_idx = db_add_agent(*sender_eid)) == 0)
+		if((agent_idx = db_add_agent(*sender_eid)) <= 0)
 		{
-			DTNMP_DEBUG_ERR("db_incoming_initialize","Can't find agent id.", NULL);
-			DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
-			return result;
+			AMP_DEBUG_ERR("db_incoming_initialize","Can't find agent id.", NULL);
+			db_mgt_txn_rollback();
+			AMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", agent_idx);
+			return agent_idx;
 		}
 	}
 
-	/* Step 1: insert message into dbtIncoming*/
-	sprintf(query, "INSERT INTO dbtIncomingMessageGroup(ReceivedTS,GeneratedTS,State,AgentID) "
-		    			  "VALUES(NOW(),%lu,0,%d)", (unsigned long) timestamp, agent_idx);
+	/* Step 2: Create a SQL time */
+	struct tm tminfo;
+	localtime_r(&timestamp, &tminfo);
 
-	if (mysql_query(gConn, query))
-    {
-		DTNMP_DEBUG_ERR("db_incoming_initialize", "Database Error: %s",
-		    	  		mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
-		return 0;
-    }
+	isprintf(timebuf, 256, "%d-%d-%d %d:%d:%d",
+			tminfo.tm_year+1900,
+			tminfo.tm_mon,
+			tminfo.tm_mday,
+			tminfo.tm_hour,
+			tminfo.tm_min,
+			tminfo.tm_sec);
 
-	/* Step 2: Get the id of the inserted message*/
-	sprintf(query, "SELECT LAST_INSERT_ID() FROM dbtIncomingMessageGroup");
-    if (mysql_query(gConn, query))
-    {
-		DTNMP_DEBUG_ERR("db_incoming_initialize", "Database Error: %s",
-		    	    	mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
-		return 0;
+	/* Step 2: Insert the TS. */
+	if(db_mgt_query_insert(&result,
+			              "INSERT INTO dbtIncomingMessageGroup"
+			              "(ReceivedTS,GeneratedTS,State,AgentID) "
+					      "VALUES(NOW(),'%s',0,%d)",
+						  timebuf, agent_idx) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_incoming_initialize","Can't insert Timestamp", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_initialize","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
-    /* Step 3: Store the result*/
-    if((res = mysql_store_result(gConn)) == NULL)
-    {
-		DTNMP_DEBUG_ERR("db_incoming_initialize", "Database Error: %s",
-		    	    	mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
-		return 0;
-    }
 
-    if ((row = mysql_fetch_row(res)) != NULL)
-    {
-    	result = atoi(row[0]);
-    }
-
-    mysql_free_result(res);
-
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_incoming_initialize","-->%d", result);
 	return result;
 }
 
@@ -2473,8 +2408,9 @@ int db_incoming_initialize(time_t timestamp, eid_t *sender_eid)
  *
  * \par Finalize processing of the incoming messages.
  *
- * \retval 0 failure
- *        !0 success
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
  *
  * \param[in] id - The incoming message group ID.
  *
@@ -2482,25 +2418,28 @@ int db_incoming_initialize(time_t timestamp, eid_t *sender_eid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/07/13  S. Jacobs      Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-int db_incoming_finalize(uint32_t id)
+int32_t db_incoming_finalize(uint32_t id)
 {
-	char query[1024];
 
-	CHKCONN
+	db_mgt_txn_start();
 
-	/* Step 1: Update dbtIncoming to processed */
-	sprintf(query,"UPDATE dbtIncomingMessageGroup SET State = State + 1 WHERE ID = %d", id);
-	if (mysql_query(gConn, query))
+	/* Step 2: Insert the TS. */
+	if(db_mgt_query_insert(NULL,
+			               "UPDATE dbtIncomingMessageGroup SET State = State + 1 WHERE ID = %d",
+						   id) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_incoming_finalize", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_incoming_finalize", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_ERR("db_incoming_finalize","Can't insert Timestamp", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_finalize","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	return 1;
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_incoming_finalize","-->%d", AMP_OK);
+	return AMP_OK;
 }
 
 
@@ -2511,8 +2450,7 @@ int db_incoming_finalize(uint32_t id)
  *
  * \par Returns number of incoming message groups.
  *
- * \retval 0 no message groups ready.
- *        !0 There are message groups ready.
+ * \return # groups. -1 on error.
  *
  * \param[in] id     - The ID for the incoming message.
  * \param[in] cursor - Cursor pointing to start of message.
@@ -2522,58 +2460,72 @@ int db_incoming_finalize(uint32_t id)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  08/07/13  S. Jacobs      Initial implementation,
+ *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
-int db_incoming_process_message(int id, uint8_t *cursor, uint32_t size)
+int32_t db_incoming_process_message(int32_t id, uint8_t *cursor, uint32_t size)
 {
 	char *query = NULL;
 	char *result_data = NULL;
-	int result_size = 0;
+	int32_t result_size = 0;
 
+	AMP_DEBUG_ENTRY("db_incoming_process_message","(%d,"UHF",%d)",
+			        id, (uaddr)cursor, size);
 
-	CHKCONN
+	/* Step 0: Sanity Check. */
+	if(cursor == NULL)
+	{
+		AMP_DEBUG_ERR("db_incoming_process_message","Bad args.",NULL);
+		AMP_DEBUG_EXIT("db_incoming_process_message", "-->-1", NULL);
+		return -1;
+	}
 
+	/* Step 1: Convert the incoming message to a string for processing.*/
 	if((result_data = utils_hex_to_string(cursor, size)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_incoming_process_message","Can't cvt %d bytes to hex str.",
+		AMP_DEBUG_ERR("db_incoming_process_message","Can't cvt %d bytes to hex str.",
 				        size);
-		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
-		return 0;
+		AMP_DEBUG_EXIT("db_incoming_process_message", "-->-1", NULL);
+		return -1;
 	}
 
 	result_size = strlen(result_data);
+
+	db_mgt_txn_start();
+
+	/*
+	 * Step 2: Allocate a query for inserting into the DB. We allocate our own
+	 *         because this could be large.
+	 */
 	if((query = (char *) STAKE(result_size + 256)) == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_incoming_process_message","Can't alloc %d bytes.",
+		AMP_DEBUG_ERR("db_incoming_process_message","Can't alloc %d bytes.",
 				        result_size + 256);
 		SRELEASE(result_data);
-
-		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
 		return 0;
 	}
 
-	/*
-	 * result_data starts with "0x" which we do not want in the DB
-	 * so we skip over the first 2 characters when making the query.
-	 */
-	sprintf(query,"INSERT INTO dbtIncomingMessages(IncomingID,Content)"
-			       "VALUES(%d,'%s')",id, result_data+2);
+	/* Step 3: Convert the query using allocated query structure. */
+	snprintf(query,result_size + 255,"INSERT INTO dbtIncomingMessages(IncomingID,Content)"
+			   "VALUES(%d,'%s')",id, result_data+2);
 	SRELEASE(result_data);
 
-	if (mysql_query(gConn, query))
+	/* Step 4: Run the query. */
+	if(db_mgt_query_insert(NULL, query) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_incoming_process_message", "Database Error: %s",
-				mysql_error(gConn));
+		AMP_DEBUG_ERR("db_incoming_process_message","Can't insert Timestamp", NULL);
 		SRELEASE(query);
-
-		DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
-		return 0;
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_process_message","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
 	SRELEASE(query);
-	DTNMP_DEBUG_EXIT("db_incoming_process_message", "-->1", NULL);
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_incoming_process_message", "-->1", NULL);
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -2582,7 +2534,7 @@ int db_incoming_process_message(int id, uint8_t *cursor, uint32_t size)
  *
  * \par Returns number of outgoing message groups ready to be sent.
  *
- * \return Thread Information...
+ * \return  .
  *
  * \param[in] threadId - The POSIX thread.
  *
@@ -2597,6 +2549,7 @@ int db_incoming_process_message(int id, uint8_t *cursor, uint32_t size)
  *  07/13/13  S. Jacobs      Initial implementation,
  *  08/29/15  E. Birrane     Only query DB if we have an active connection.
  *  04/24/16  E. Birrane     Accept global "running" flag.
+ *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
 void *db_mgt_daemon(int *running)
@@ -2605,9 +2558,9 @@ void *db_mgt_daemon(int *running)
 	struct timeval start_time;
 	vast delta = 0;
 
-	DTNMP_DEBUG_ENTRY("db_mgt_daemon","(0x%#llx)", running);
+	AMP_DEBUG_ENTRY("db_mgt_daemon","("UHF")", (uaddr)running);
 
-	DTNMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
+	AMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
 
 	while (*running)
 	{
@@ -2617,10 +2570,11 @@ void *db_mgt_daemon(int *running)
     	{
     		if (db_outgoing_ready(&sql_res))
     		{
-    			db_outgoing_process(sql_res);
-    			mysql_free_result(sql_res);
-    			sql_res = NULL;
+    			db_tx_msg_groups(sql_res);
     		}
+
+			mysql_free_result(sql_res);
+			sql_res = NULL;
     	}
 
         delta = utils_time_cur_delta(&start_time);
@@ -2632,11 +2586,11 @@ void *db_mgt_daemon(int *running)
         }
 	}
 
-	DTNMP_DEBUG_ALWAYS("db_mgt_daemon","Cleaning up Manager Database Daemon", NULL);
+	AMP_DEBUG_ALWAYS("db_mgt_daemon","Cleaning up Manager Database Daemon", NULL);
 
 	db_mgt_close();
 
-	DTNMP_DEBUG_ALWAYS("db_mgt_daemon","Manager Database Daemon Finished.",NULL);
+	AMP_DEBUG_ALWAYS("db_mgt_daemon","Manager Database Daemon Finished.",NULL);
 	pthread_exit(NULL);
 }
 
@@ -2660,24 +2614,33 @@ void *db_mgt_daemon(int *running)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/12/13  S. Jacobs      Initial implementation,
+ *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
-uint32_t db_mgt_init(ui_db_t parms, uint32_t clear)
+uint32_t db_mgt_init(ui_db_t parms, uint32_t clear, uint32_t log)
 {
 
-	DTNMP_DEBUG_ENTRY("db_mgt_init","(parms, %d)", clear);
+	AMP_DEBUG_ENTRY("db_mgt_init","(parms, %d)", clear);
 
-	gConn = mysql_init(NULL);
-	gParms = parms;
+	if(gConn == NULL)
+	{
+		gConn = mysql_init(NULL);
+		gParms = parms;
+		gInTxn = 0;
 
-	DTNMP_DEBUG_ENTRY("db_mgt_init", "(%s,%s,%s,%s)", parms.server, parms.username, parms.password, parms.database);
+		AMP_DEBUG_ENTRY("db_mgt_init", "(%s,%s,%s,%s)", parms.server, parms.username, parms.password, parms.database);
 
-	if (!mysql_real_connect(gConn, parms.server, parms.username, parms.password, parms.database, 0, NULL, 0)) {
-		//DTNMP_DEBUG_ERR("db_mgt_init", "SQL Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_mgt_init", "-->0", NULL);
-		return 0;
+		if (!mysql_real_connect(gConn, parms.server, parms.username, parms.password, parms.database, 0, NULL, 0))
+		{
+			if(log > 0)
+            {
+				AMP_DEBUG_WARN("db_mgt_init", "SQL Error: %s", mysql_error(gConn));
+            }
+			AMP_DEBUG_EXIT("db_mgt_init", "-->0", NULL);
+			return 0;
+		}
+
+		AMP_DEBUG_INFO("db_mgt_init", "Connected to Database.", NULL);
 	}
-
-	DTNMP_DEBUG_INFO("db_mgt_init", "Connected to Database.", NULL);
 
 	if(clear != 0)
 	{
@@ -2687,7 +2650,7 @@ uint32_t db_mgt_init(ui_db_t parms, uint32_t clear)
 	/* Step 2: Make sure the DB knows about the MIDs we need. */
    // db_mgt_verify_mids();
 
-	DTNMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
+	AMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
 	return 1;
 }
 
@@ -2717,7 +2680,7 @@ uint32_t db_mgt_init(ui_db_t parms, uint32_t clear)
 int db_mgt_clear()
 {
 
-	DTNMP_DEBUG_ENTRY("db_mgt_clear", "()", NULL);
+	AMP_DEBUG_ENTRY("db_mgt_clear", "()", NULL);
 
 	if( db_mgt_clear_table("dbtMIDs") ||
 		db_mgt_clear_table("dbtIncomingMessages") ||
@@ -2734,12 +2697,12 @@ int db_mgt_clear()
 		db_mgt_clear_table("dbtMIDParameters") ||
 		db_mgt_clear_table("dbtMIDParameter"))
 	{
-		DTNMP_DEBUG_ERR("db_mgt_clear", "SQL Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_mgt_clear", "--> 0", NULL);
+		AMP_DEBUG_ERR("db_mgt_clear", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear", "--> 0", NULL);
 		return 0;
 	}
 
-	DTNMP_DEBUG_EXIT("db_mgt_clear", "--> 1", NULL);
+	AMP_DEBUG_EXIT("db_mgt_clear", "--> 1", NULL);
 	return 1;
 }
 
@@ -2767,42 +2730,33 @@ int db_mgt_clear()
 
 int db_mgt_clear_table(char *table)
 {
-	char query[1024];
-
 	if(table == NULL)
 	{
 		return 1;
 	}
 
-
-	sprintf(query,"SET FOREIGN_KEY_CHECKS=0");
-
-	if (mysql_query(gConn, query))
+	if (db_mgt_query_insert(NULL,"SET FOREIGN_KEY_CHECKS=0",NULL) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
 		return 1;
 	}
 
-	sprintf(query,"TRUNCATE %s", table);
-
-	if (mysql_query(gConn, query))
+	if (db_mgt_query_insert(NULL,"TRUNCATE %s", table) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
 		return 1;
 	}
 
-	sprintf(query,"SET FOREIGN_KEY_CHECKS=1");
-	if (mysql_query(gConn, query))
+	if (db_mgt_query_insert(NULL,"SET FOREIGN_KEY_CHECKS=1", NULL) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
 		return 1;
 	}
 
-
-	DTNMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+	AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
 	return 0;
 }
 
@@ -2821,24 +2775,29 @@ int db_mgt_clear_table(char *table)
 
 void db_mgt_close()
 {
-	DTNMP_DEBUG_ENTRY("db_mgt_close","()",NULL);
+	AMP_DEBUG_ENTRY("db_mgt_close","()",NULL);
 	if(gConn != NULL)
 	{
 		mysql_close(gConn);
+		mysql_library_end();
 		gConn = NULL;
 	}
-	DTNMP_DEBUG_EXIT("db_mgt_close","-->.", NULL);
+	AMP_DEBUG_EXIT("db_mgt_close","-->.", NULL);
 }
+
 
 
 /******************************************************************************
  *
  * \par Function Name: db_mgt_connected
  *
- * \par Adds MIDS to the DB, if necessary, to make sure that dbtMIDs and
- *      dbtMIDDetails contain all MIDs known to this manager.
+ * \par Checks to see if the database connection is still active and, if not,
+ *      try to reconnect up to some configured number of times.
  *
  * \par Notes:
+ *
+ * \retval !0 Error
+ *          0 Success
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -2861,7 +2820,7 @@ int   db_mgt_connected()
 	{
 		while(num_tries < SQL_CONN_TRIES)
 		{
-			db_mgt_init(gParms, 0);
+			db_mgt_init(gParms, 0, 0);
 			if((result = mysql_ping(gConn)) == 0)
 			{
 				return 0;
@@ -2875,12 +2834,19 @@ int   db_mgt_connected()
 	return result;
 }
 
+
+
 /******************************************************************************
  *
- * \par Function Name: db_mgt_verify_mids
+ * \par Function Name: db_mgt_insert_mid
  *
- * \par Adds MIDS to the DB, if necessary, to make sure that dbtMIDs and
- *      dbtMIDDetails contain all MIDs known to this manager.
+ * \par Add a MID to the appropriate table in the DB.
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[in] mid    - The mid to be inserted.
  *
  * \par Notes:
  *
@@ -2890,38 +2856,225 @@ int   db_mgt_connected()
  *  07/13/13  E. Birrane      Initial implementation,
  *  08/01/13  S. Jacobs	      Reflect Changes in MIDs
  *  08/27/15  E. Birrane      Update to latest schema and data model.
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-void handle_mid(mid_t *mid)
+int32_t db_mgt_insert_mid(mid_t *mid)
 {
-	if(mid != NULL)
-	{
-		char *name = names_get_name(mid);
-		ui_parm_spec_t* spec = ui_get_parmspec(mid);
+	char *name = NULL;
+	ui_parm_spec_t *spec = NULL;
 
-		/* If this is a MID defined in an ADM with no parameters, it
-		 * is a regular MID.
-		 */
-		if((spec == NULL) || (spec->num_parms == 0))
-		{
-			db_add_mid(mid, spec, DTNMP_TYPE_MID);
-		}
-		/* Otherwise, if this MID is in the ADM and takes parameters
-		 * it is a MID template, so it goes in protomids.
-		 */
-		else
-		{
-			db_add_protomid(mid, spec, DTNMP_TYPE_MID);
-		}
+	AMP_DEBUG_ENTRY("db_mgt_insert_mid","("UHF")", (uaddr)mid);
+
+	/* Step 0: Sanity check. */
+	if(mid == NULL)
+	{
+		AMP_DEBUG_ERR("db_mgt_insert_mid","Bad args.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_insert_mid","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
+
+	/* Step 1: Go get the parm spec for this MID. */
+	name = names_get_name(mid);
+	spec = ui_get_parmspec(mid);
+
+	SRELEASE(name);
+
+	/*
+	 * Step 2: Determine if this is a mid or a protomid and insert
+	 *         accordingly. If there is no spec, then the MID takes
+	 *         no parameters which means it cannot be a protomid.
+	 */
+
+	if((spec == NULL) || (spec->num_parms == 0))
+	{
+		return db_add_mid(mid);
+	}
+
+	return db_add_protomid(mid, spec, AMP_TYPE_MID);
 }
 
 
-void db_mgt_verify_mids()
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_query_fetch
+ *
+ * \par Runs a fetch in the database given a query and returns the result, if
+ *      a result field is provided..
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[out] res    - The result.
+ * \param[in]  format - Format to build query
+ * \param[in]  ...    - Var args to build query given format string.
+ *
+ * \par Notes:
+ *   - The res structure should be a pointer but without being allocated. This
+ *     function will create the storage.
+ *   - If res is NULL that's ok, but no result will be returned.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+int32_t db_mgt_query_fetch(MYSQL_RES **res, char *format, ...)
+{
+	char query[1024];
+
+	AMP_DEBUG_ENTRY("db_mgt_query_fetch","("UHF","UHF")",
+			        (uaddr)res, (uaddr)format);
+
+	/* Step 0: Sanity check. */
+	if(format == NULL)
+	{
+		AMP_DEBUG_ERR("db_mgt_query_fetch", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/*
+	 * Step 1: Assert the DB connection. This should not only check
+	 *         the connection as well as try and re-establish it.
+	 */
+	if(db_mgt_connected() == 0)
+	{
+		va_list args;
+
+		va_start(args, format); // format is last parameter before "..."
+		vsnprintf(query, 1024, format, args);
+		va_end(args);
+
+		if (mysql_query(gConn, query))
+		{
+			AMP_DEBUG_ERR("db_mgt_query_fetch", "Database Error: %s",
+					mysql_error(gConn));
+			AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
+		}
+
+		if((*res = mysql_store_result(gConn)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_mgt_query_fetch", "Can't get result.", NULL);
+			AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
+		}
+	}
+	else
+	{
+		AMP_DEBUG_ERR("db_mgt_query_fetch", "DB not connected.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
+	}
+
+	AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_OK);
+	return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_query_insert
+ *
+ * \par Runs an insert in the database given a query and returns the
+ *      index of the inserted item.
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[out] idx    - The index of the inserted row.
+ * \param[in]  format - Format to build query
+ * \param[in]  ...    - Var args to build query given format string.
+ *
+ * \par Notes:
+ *   - The idx may be NULL if the insert index is not needed.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+int32_t db_mgt_query_insert(uint32_t *idx, char *format, ...)
+{
+	char query[SQL_MAX_QUERY];
+
+	AMP_DEBUG_ENTRY("db_mgt_query_insert","("UHF","UHF")",(uaddr)idx, (uaddr)format);
+/*EJB
+	if(idx == NULL)
+	{
+		AMP_DEBUG_ERR("db_mgt_query_insert", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+*/
+	if(db_mgt_connected() == 0)
+	{
+		va_list args;
+
+		va_start(args, format); // format is last parameter before "..."
+		if(vsnprintf(query, SQL_MAX_QUERY, format, args) == SQL_MAX_QUERY)
+		{
+			AMP_DEBUG_ERR("db_mgt_query_insert", "query is too long. Maximum length is %d", SQL_MAX_QUERY);
+		}
+		va_end(args);
+
+		if (mysql_query(gConn, query))
+		{
+			AMP_DEBUG_ERR("db_mgt_query_insert", "Database Error: %s",
+					mysql_error(gConn));
+			AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
+		}
+
+		if(idx != NULL)
+		{
+			if((*idx = (uint32_t) mysql_insert_id(gConn)) == 0)
+			{
+				AMP_DEBUG_ERR("db_mgt_query_insert", "Unknown last inserted row.", NULL);
+				AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
+				return AMP_FAIL;
+			}
+		}
+	}
+	else
+	{
+		AMP_DEBUG_ERR("db_mgt_query_fetch", "DB not connected.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
+	}
+
+	AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_OK);
+	return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_reset_mids
+ *
+ * \par Populates the DB with MIDs known by this manager.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_reset_mids()
 {
 	LystElt elt;
 
-	DTNMP_DEBUG_ENTRY("db_mgt_verify_mids","()", NULL);
+	AMP_DEBUG_ENTRY("db_mgt_reset_mids","()", NULL);
 
 	/* Step 1: For each known ADM. */
 	if(db_fetch_adm_idx("AGENT","v0.1") == 0)
@@ -2934,7 +3087,6 @@ void db_mgt_verify_mids()
 		db_add_adm("BP","6", BP_ADM_ROOT_NN_STR);
 	}
 
-
 	/* Step 2: For each known nickname. */
 	for(elt = lyst_first(nn_db); elt; elt = lyst_next(elt))
 	{
@@ -2946,52 +3098,52 @@ void db_mgt_verify_mids()
 	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
 	{
 		adm_datadef_t *data = (adm_datadef_t *) lyst_data(elt);
-		handle_mid(data->mid);
+		db_mgt_insert_mid(data->mid);
 	}
 
 	/* Step 4: For each ADM computed data defined... */
 	for(elt = lyst_first(gAdmComputed); elt; elt = lyst_next(elt))
 	{
-		cd_t *data = (cd_t *) lyst_data(elt);
-		handle_mid(data->id);
+		var_t *data = (var_t *) lyst_data(elt);
+		db_mgt_insert_mid(data->id);
 	}
 
 	/* Step 5: For each ADM control defined... */
 	for(elt = lyst_first(gAdmCtrls); elt; elt = lyst_next(elt))
 	{
 		adm_ctrl_t *data = (adm_ctrl_t *) lyst_data(elt);
-		handle_mid(data->mid);
+		db_mgt_insert_mid(data->mid);
 	}
 
 	/* Step 6: For each ADM literal defined... */
 	for(elt = lyst_first(gAdmLiterals); elt; elt = lyst_next(elt))
 	{
 		lit_t *data = (lit_t *) lyst_data(elt);
-		handle_mid(data->id);
+		db_mgt_insert_mid(data->id);
 	}
 
 	/* Step 7: For each ADM literal defined... */
 	for(elt = lyst_first(gAdmOps); elt; elt = lyst_next(elt))
 	{
 		adm_op_t *data = (adm_op_t *) lyst_data(elt);
-		handle_mid(data->mid);
+		db_mgt_insert_mid(data->mid);
 	}
 
 	/* Step 8: For each ADM report defined... */
 	for(elt = lyst_first(gAdmRpts); elt; elt = lyst_next(elt))
 	{
 		def_gen_t *data = (def_gen_t *) lyst_data(elt);
-		handle_mid(data->id);
+		db_mgt_insert_mid(data->id);
 	}
 
 	/* Step 8: For each ADM report defined... */
 	for(elt = lyst_first(gAdmMacros); elt; elt = lyst_next(elt))
 	{
 		def_gen_t *data = (def_gen_t *) lyst_data(elt);
-		handle_mid(data->id);
+		db_mgt_insert_mid(data->id);
 	}
 
-	DTNMP_DEBUG_EXIT("db_mgt_verify_mid","-->.", NULL);
+	AMP_DEBUG_EXIT("db_mgt_reset_mids","-->.", NULL);
 	return;
 }
 
@@ -2999,12 +3151,108 @@ void db_mgt_verify_mids()
 
 /******************************************************************************
  *
- * \par Function Name: db_outgoing_process
+ * \par Function Name: db_mgt_txn_start
+ *
+ * \par Starts a transaction in the database, if we are not already in a txn.
+ *
+ * \par Notes:
+ *   - This function is not multi-threaded. We assume that we are the only
+ *     input into the database and that there is only one "active" transaction
+ *     at a time.
+ *   - This function does not support nested transactions.
+ *   - If a transaction is already open, this function assumes that is the
+ *     transaction to use.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_txn_start()
+{
+	if(gInTxn == 0)
+	{
+		if(db_mgt_query_insert(NULL,"START TRANSACTION",NULL) == AMP_OK)
+		{
+			gInTxn = 1;
+		}
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_txn_commit
+ *
+ * \par Commits a transaction in the database, if we are in a txn.
+ *
+ * \par Notes:
+ *   - This function is not multi-threaded. We assume that we are the only
+ *     input into the database and that there is only one "active" transaction
+ *     at a time.
+ *   - This function does not support nested transactions.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_txn_commit()
+{
+	if(gInTxn == 1)
+	{
+		if(db_mgt_query_insert(NULL,"COMMIT",NULL) == AMP_OK)
+		{
+			gInTxn = 0;
+		}
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_txn_rollback
+ *
+ * \par Rolls back a transaction in the database, if we are in a txn.
+ *
+ * \par Notes:
+ *   - This function is not multi-threaded. We assume that we are the only
+ *     input into the database and that there is only one "active" transaction
+ *     at a time.
+ *   - This function does not support nested transactions.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_txn_rollback()
+{
+	if(gInTxn == 1)
+	{
+		if(db_mgt_query_insert(NULL,"ROLLBACK",NULL) == AMP_OK)
+		{
+			gInTxn = 0;
+		}
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_tx_msg_groups
  *
  * \par Returns 1 if the message is ready to be sent
  *
- * \retval 0 no message groups ready.
- *        !0 There are message groups ready to be sent.
+ * \retval AMP_SYSERR on system error
+ *         AMP_FAIL   if no message groups ready.
+ *         AMP_OK     If there are message groups ready to be sent.
  *
  * \param[out] sql_res - The outgoing messages.
  *
@@ -3015,27 +3263,27 @@ void db_mgt_verify_mids()
  *  07/18/13  S. Jacobs       Added outgoing agents
  *  09/27/13  E. Birrane      Configure each agent with custom rpt, if applicable.
  *  08/27/15  E. Birrane      Update to new data model, schema
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-int db_outgoing_process(MYSQL_RES *sql_res)
+int32_t db_tx_msg_groups(MYSQL_RES *sql_res)
 {
 	MYSQL_ROW row;
 	pdu_group_t *msg_group = NULL;
-	uint32_t idx = 0;
-	uint32_t agent_idx = 0;
-	mid_t *id;
-	def_gen_t *debugPrint;
-	LystElt elt;
-	LystElt def_elt;
-	def_gen_t *cur_entry = NULL;
-	def_gen_t *new_entry = NULL;
-	agent_t *agent = NULL;
+	int32_t idx = 0;
+	int32_t agent_idx = 0;
+	int32_t result = AMP_SYSERR;
 	adm_reg_agent_t *agent_reg = NULL;
-	char query[128];
 
-	DTNMP_DEBUG_ENTRY("db_outgoing_process","("ADDR_FIELDSPEC")",(uaddr) sql_res);
+	AMP_DEBUG_ENTRY("db_tx_msg_groups","("UHF")",(uaddr) sql_res);
 
-	CHKCONN
+	/* Step 0: Sanity Check. */
+	if(sql_res == NULL)
+	{
+		AMP_DEBUG_ERR("db_tx_msg_groups","Bad args.", NULL);
+		AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_FAIL);
+		return AMP_FAIL;
+	}
 
 	/* Step 1: For each message group that is ready to go... */
 	while ((row = mysql_fetch_row(sql_res)) != NULL)
@@ -3044,94 +3292,98 @@ int db_outgoing_process(MYSQL_RES *sql_res)
 		idx = atoi(row[0]);
 		agent_idx = atoi(row[4]);
 
+		/* Step 1.2: Create an AMP PDU for this outgoing message. */
 		if((msg_group = pdu_create_empty_group()) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_outgoing_process","Cannot create group.", NULL);
-			return 0;
+			AMP_DEBUG_ERR("db_tx_msg_groups","Cannot create group.", NULL);
+			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_SYSERR);
+			return AMP_SYSERR;
 		}
 
-		int result = db_outgoing_process_messages(idx, msg_group);
-
-		if(result != 0)
+		/*
+		 * Step 1.3: Populate the message group with outgoing messages.
+		 *           If there are no message groups, Quietly go home,
+		 *           it isn't an error, it's just disappointing.
+		 */
+		if((result = db_tx_build_group(idx, msg_group)) != AMP_OK)
 		{
-			agent_reg = db_fetch_reg_agent(agent_idx);
-
-			if(agent_reg == NULL)
-			{
-				DTNMP_DEBUG_ERR("db_outgoing_process","Can't get agent from idx %d", agent_idx);
-			}
-			else
-			{
-				DTNMP_DEBUG_INFO("db_outgoing_process", "Sending to name %s", agent_reg->agent_id.name);
-				iif_send(&ion_ptr, msg_group, agent_reg->agent_id.name);
-				msg_release_reg_agent(agent_reg);
-
-				/* Step 1.3.2: Make sure the manager knows about this agent. */
-				if((agent = mgr_agent_get(&(agent_reg->agent_id))) == NULL)
-				{
-					DTNMP_DEBUG_WARN("db_outgoing_process","DB Agent not known to Mgr. Adding.", NULL);
-
-					if(mgr_agent_add(agent_reg->agent_id) != 1)
-					{
-						DTNMP_DEBUG_WARN("db_outgoing_process","Sending to unknown agent.", NULL);
-					}
-					else
-					{
-						agent = mgr_agent_get(&(agent_reg->agent_id));
-
-						if(agent != NULL)
-						{
-							DTNMP_DEBUG_WARN("db_outgoing_process","Added DB agent to Mgr.", NULL);
-						}
-						else
-						{
-							DTNMP_DEBUG_ERR("db_outgoing_process","Failed to add DB agent to Mgr.", NULL);
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			DTNMP_DEBUG_ERR("db_outgoing_process","Cannot process out going message",NULL);
 			pdu_release_group(msg_group);
-			return 0;
+			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",result);
+			return result;
 		}
 
-		/* Step 1.4: Release the message group. */
+		/* Step 1.4: Figure out the agent receiving this message. */
+		if((agent_reg = db_fetch_reg_agent(agent_idx)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_tx_msg_groups","Can't get agent for idx %d", agent_idx);
+			pdu_release_group(msg_group);
+			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_FAIL);
+			return AMP_FAIL;
+		}
+
+		/*
+		 * Step 1.5: The database knows about the agent but the management
+		 *           daemon might not. Make sure that the management daemon
+		 *           knows about this agent so that it isn't a surprise when
+		 *           the agent starts sending data back.
+		 *
+		 *           If we can't add the agent to the manager daemon (which
+		 *           would be very odd) we send the message group along and
+		 *           accept that there might be confusion when the agent
+		 *           sends information back.
+		 */
+
+		if(mgr_agent_get(&(agent_reg->agent_id)) == NULL)
+		{
+			if(mgr_agent_add(agent_reg->agent_id) == -1)
+			{
+				AMP_DEBUG_WARN("db_tx_msg_groups","Sending to unknown agent.", NULL);
+			}
+		}
+
+		/* Step 1.6: Send the message group.*/
+		AMP_DEBUG_INFO("db_tx_msg_groups",
+				       "Sending to name %s",
+					   agent_reg->agent_id.name);
+
+		iif_send(&ion_ptr, msg_group, agent_reg->agent_id.name);
+
+		/* Step 1.7: Release resources. */
+		msg_release_reg_agent(agent_reg);
 		pdu_release_group(msg_group);
 		msg_group = NULL;
 
-		/* Step 1.5: Update the state of the message group in the database. */
-		sprintf(query, "UPDATE dbtOutgoingMessageGroup SET State=2 WHERE ID=%d", idx);
-		if (mysql_query(gConn, query)) {
-			DTNMP_DEBUG_ERR("db_outgoing_process", "Database Error: %s",
-					mysql_error(gConn));
-			DTNMP_DEBUG_EXIT("db_outgoing_process", "-->0", NULL);
-			return 0;
+		/*
+		 * Step 1.8: Update the state of the message group in the database.
+		 *           \todo: Consider aborting message group if this happens.
+		 */
+		if(db_mgt_query_insert(NULL,
+				               "UPDATE dbtOutgoingMessageGroup SET State=2 WHERE ID=%d",
+				               idx)!= AMP_OK)
+		{
+			AMP_DEBUG_WARN("db_tx_msg_groups","Could not update DB send status.", NULL);
 		}
-
 	}
 
-	DTNMP_DEBUG_EXIT("db_outgoing_process", "-->1", NULL);
+	AMP_DEBUG_EXIT("db_tx_msg_groups", "-->%d", AMP_OK);
 
-	return 1;
+	return AMP_OK;
 }
-
 
 
 /******************************************************************************
  *
- * \par Function Name: db_outgoing_process_messages
+ * \par Function Name: db_tx_build_group
  *
- * \par Returns 1 if the outgoing messages have been processed
+ * \par This function populates an AMP message group with messages
+ *      for this group from the database.
  *
- * \retval 0 no message groups ready.
- *        !0 There are message groups ready to be sent.
+ * \retval AMP_SYSERR on system error
+ *         AMP_FAIL   if no message groups ready.
+ *         AMP_OK     If there are message groups ready to be sent.
  *
- * \param[in] idx -       the index of the message that corresponds to
- * 			              outgoing messages
- * \param[in] msg_group - the group that the message is in.
+ * \param[in]  grp_idx   - The DB identifier of the message group
+ * \param[out] msg_group - The message group being populated
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -3139,78 +3391,108 @@ int db_outgoing_process(MYSQL_RES *sql_res)
  *  07/13/13  E. Birrane      Initial implementation,
  *  09/27/13  E. Birrane      Collect any rpt defs from this message.
  *  08/27/15  E. Birrane      Update to latest data model and schema.
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
+int32_t db_tx_build_group(int32_t grp_idx, pdu_group_t *msg_group)
 {
-	int result = 0;
-	char query[1024];
+	int32_t result = 0;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
-	uint32_t mc_idx = 0;
-	Lyst mc = NULL;
-	uint8_t *data = NULL;
-	uint32_t size = 0;
 
-	DTNMP_DEBUG_ENTRY("db_outgoing_process_messages",
-					  "(%d, "ADDR_FIELDSPEC")",
-			          idx, (uaddr) msg_group);
+	AMP_DEBUG_ENTRY("db_tx_build_group",
+					  "(%d, "UHF")",
+			          grp_idx, (uaddr) msg_group);
 
-	CHKCONN
-
-	/* Step 1: Find all messages for this outgoing group. */
-	sprintf(query,
-			"SELECT MidCollID FROM dbtOutgoingMessages WHERE OutgoingID=%d",
-			idx);
-
-	if (mysql_query(gConn, query))
+	/* Step 0: Sanity check. */
+	if(msg_group == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_outgoing_process_messages",
-				        "Database Error: %s",
-			 	        mysql_error(gConn));
-
-		DTNMP_DEBUG_EXIT("db_outgoing_process_messages",
-				         "-->%d",
-						 result);
-		return result;
+		AMP_DEBUG_ERR("db_tx_build_group","Bad args.", NULL);
+		AMP_DEBUG_EXIT("db_tx_build_group","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	/* Step 2: Parse the row and populate the structure. */
-    res = mysql_store_result(gConn);
+	/* Step 1: Find all messages for this outgoing group. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT MidCollID FROM dbtOutgoingMessages WHERE OutgoingID=%d",
+			              grp_idx) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_tx_build_group",
+					  "Can't find messages for %d", grp_idx);
+		AMP_DEBUG_EXIT("db_tx_build_group","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
 
-    while((row = mysql_fetch_row(res)) != NULL)
+	/* Step 2: For each message that belongs in this group....*/
+    while((res != NULL) && ((row = mysql_fetch_row(res)) != NULL))
     {
-		mc_idx = atoi(row[0]);
+    	int32_t mc_idx = atoi(row[0]);
+    	Lyst mc = NULL;
+    	uint32_t size = 0;
+    	uint8_t *data = NULL;
+    	pdu_msg_t *pdu_msg = NULL;
 
+    	/*
+    	 * Step 2.1: An outgoing message in AMP is a "run controls"
+    	 *           message, which accepts a series of controls to
+    	 *           run. This series is stored as a
+    	 *           MID Collection (MC). So, grab the MC.
+    	 */
 		if((mc = db_fetch_mid_col(mc_idx)) == NULL)
 		{
-			DTNMP_DEBUG_ERR("db_outgoing_process_messages",
+			AMP_DEBUG_ERR("db_tx_build_group",
 						    "Can't grab MC for idx %d", mc_idx);
-			result = 0;
+			result = AMP_FAIL;
 			break;
 		}
 
-		// \todo: SQL has no way of adding an offset to running a control!
+		/*
+		 * Step 2.2: Create the "run controls" message, passing in
+		 *           the MC of controls to run.
+		 *           \todo: SQL currently has no place to store a
+		 *                  time offset associated with a control. We
+		 *                  currently jam that to 0 (which means run
+		 *                  immediately).
+		 */
 		msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(0, mc);
 
-		/* Step 2: Construct a PDU to hold the primitive. */
-		uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
+		/* Step 2.3: Construct a PDU to hold the primitive. */
+		if((data = msg_serialize_perf_ctrl(ctrl, &size)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_tx_build_group",
+						    "Can't serialize control", NULL);
+			result = AMP_FAIL;
+			break;
+		}
 
+		/* Step 2.4: Some general debugging...*/
 		char *str = utils_hex_to_string(data, size);
-		DTNMP_DEBUG_ALWAYS("SQL Sending: ", "(size %d): %s", size, str);
+		AMP_DEBUG_ALWAYS("SQL Sending: ", "(size %d): %s", size, str);
 		SRELEASE(str);
 
-		/* This is a shallow copy. Do not release data. */
-		pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
+		/*
+		 * Step 2.5: Build the serialized "run control" message.
+		 *           pdu_create_msg shallow copies. Do not release
+		 *           "data" unless there was an error.
+		 */
+		if((pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL)) == NULL)
+		{
+			SRELEASE(data);
+			AMP_DEBUG_ERR("db_tx_build_group",
+						  "Can't build PDU message", NULL);
+			result = AMP_FAIL;
+			break;
+		}
 
 		/* This is a shallow copy. Do not release pdu_msg. */
 		pdu_add_msg_to_group(msg_group, pdu_msg);
 
-		result = 1;
+		result = AMP_OK;
 	}
 
 	mysql_free_result(res);
 
+	AMP_DEBUG_EXIT("db_tx_build_group","-->%d", result);
 	return result;
 }
 
@@ -3218,61 +3500,52 @@ int db_outgoing_process_messages(uint32_t idx, pdu_group_t *msg_group)
 
 /******************************************************************************
  *
- * \par Function Name: db_outgoing_process_recipients
+ * \par Function Name: db_tx_collect_agents
  *
  * \par Returns a lyst of the agents to send a message to
  *
- * \retval 0 no recipients.
- *        !0 There are recipients to be sent to.
+ * \retval NULL no recipients.
+ *        !NULL There are recipients to be sent to.
  *
- * \param[in] outgoingId - The id in the table that holds the receiving agents that
- * correspond to the id on the outgoing messages
+ * \param[in] grp_idx - The index of the message group being sent.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/18/13  S. Jacobs       Initial Implementation
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-Lyst db_outgoing_process_recipients(uint32_t outgoingId)
+Lyst db_tx_collect_agents(int32_t grp_idx)
 {
-	Lyst result;
+	Lyst result = NULL;
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 	adm_reg_agent_t *reg_agent = NULL;
-	char query[1024];
 	int cur_row = 0;
 	int max_row = 0;
 
-	DTNMP_DEBUG_ENTRY("db_outgoing_process_recipients","(%d)", outgoingId);
+	AMP_DEBUG_ENTRY("db_tx_collect_agents","(%d)", grp_idx);
 
-	CHKCONN
+	/*
+	 * Step 1: Grab the list of agents from the DB for this
+	 *         message group.
+	 */
 
-	result = lyst_create();
-
-	/* Step 1: Query the database */
-	sprintf(query, "SELECT AgentID FROM dbtOutgoingRecipients "
-			"WHERE OutgoingID=%d", outgoingId);
-
-	if (mysql_query(gConn, query))
+	if(db_mgt_query_fetch(&res,
+			              "SELECT AgentID FROM dbtOutgoingRecipients "
+			              "WHERE OutgoingID=%d", grp_idx) != AMP_OK)
 	{
-		DTNMP_DEBUG_ERR("db_outgoing_process_recipients", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_outgoing_process_recipients", "-->", NULL);
-		return NULL;
+		AMP_DEBUG_ERR("db_tx_collect_agents",
+				        "Can't get agents for grp: %d", grp_idx);
+		AMP_DEBUG_EXIT("db_tx_collect_agents","-->%d", AMP_FAIL);
+		return AMP_FAIL;
 	}
 
-	/* Step 2: Parse the results and fetch agent */
-	if((res = mysql_store_result(gConn)) == NULL)
-	{
-		DTNMP_DEBUG_ERR("db_outgoing_process_recipients", "Database Error: %s",
-				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_outgoing_process_recipients", "-->", NULL);
-		return NULL;
-	}
 
 	/* Step 3: For each row returned.... */
 	max_row = mysql_num_rows(res);
+	result = lyst_create();
 	for(cur_row = 0; cur_row < max_row; cur_row++)
 	{
 		if ((row = mysql_fetch_row(res)) != NULL)
@@ -3280,7 +3553,7 @@ Lyst db_outgoing_process_recipients(uint32_t outgoingId)
 			/* Step 3.1: Grab the agent information.. */
 			if((reg_agent = db_fetch_reg_agent(atoi(row[0]))) != NULL)
 			{
-				DTNMP_DEBUG_INFO("db_outgoing_process_recipients",
+				AMP_DEBUG_INFO("db_outgoing_process_recipients",
 						         "Adding agent name %s.",
 						         reg_agent->agent_id.name);
 
@@ -3288,7 +3561,7 @@ Lyst db_outgoing_process_recipients(uint32_t outgoingId)
 			}
 			else
 			{
-				DTNMP_DEBUG_ERR("db_outgoing_process_recipients",
+				AMP_DEBUG_ERR("db_outgoing_process_recipients",
 						        "Cannot fetch registered agent",NULL);
 			}
 		}
@@ -3296,7 +3569,7 @@ Lyst db_outgoing_process_recipients(uint32_t outgoingId)
 
 	mysql_free_result(res);
 
-	DTNMP_DEBUG_EXIT("db_outgoing_process_recipients","-->0x%#llx",
+	AMP_DEBUG_EXIT("db_outgoing_process_recipients","-->0x%#llx",
 			         (unsigned long) result);
 
 	return result;
@@ -3334,15 +3607,15 @@ int db_outgoing_ready(MYSQL_RES **sql_res)
 
 	*sql_res = NULL;
 
-	DTNMP_DEBUG_ENTRY("db_outgoing_ready","("ADDR_FIELDSPEC")", (uaddr) sql_res);
+	AMP_DEBUG_ENTRY("db_outgoing_ready","("UHF")", (uaddr) sql_res);
 
 	CHKCONN
 
 	/* Step 0: Sanity check. */
 	if(sql_res == NULL)
 	{
-		DTNMP_DEBUG_ERR("db_outgoing_ready", "Bad Parms.", NULL);
-		DTNMP_DEBUG_EXIT("db_outgoing_ready","-->0",NULL);
+		AMP_DEBUG_ERR("db_outgoing_ready", "Bad Parms.", NULL);
+		AMP_DEBUG_EXIT("db_outgoing_ready","-->0",NULL);
 		return 0;
 	}
 
@@ -3350,9 +3623,9 @@ int db_outgoing_ready(MYSQL_RES **sql_res)
 	sprintf(query, "SELECT * FROM dbtOutgoingMessageGroup WHERE State=%d", TX_READY);
 	if (mysql_query(gConn, query))
 	{
-		DTNMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
+		AMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
 				mysql_error(gConn));
-		DTNMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
+		AMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
 		return result;
 	}
 
@@ -3363,15 +3636,21 @@ int db_outgoing_ready(MYSQL_RES **sql_res)
 	}
 	else
 	{
-		DTNMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
+		AMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
 				mysql_error(gConn));
 	}
 
+        //EJB
+        if(result > 0)
+        {
+          AMP_DEBUG_ERR("db_outgoing_ready","There are %d rows ready.", result);
+        }
+
 	/* Step 3: Return whether we have results waiting. */
-	DTNMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
+	AMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
 	return result;
 }
 
+#endif
 
-
-#endif // HAVE_MYSQL
+//#endif // HAVE_MYSQL

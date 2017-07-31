@@ -40,16 +40,16 @@
 #include "../shared/msg/msg_ctrl.h"
 #include "../shared/msg/msg_admin.h"
 
+#ifdef HAVE_MYSQL
+#include "nm_mgr_sql.h"
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
 
-#define UI_SQL_SERVERLEN (80)
-#define UI_SQL_ACCTLEN   (20)
-#define UI_SQL_DBLEN     (20)
-#define UI_SQL_TOTLEN    (UI_SQL_SERVERLEN + UI_SQL_ACCTLEN + UI_SQL_ACCTLEN + UI_SQL_DBLEN)
 
 /*
  * +--------------------------------------------------------------------------+
@@ -71,30 +71,6 @@
  * +--------------------------------------------------------------------------+
  */
 
-
-
-typedef struct
-{
-	Object itemObj;     /**> Location of definition in SDR. */
-	uint32_t size; 		/**> Size of definition in the SDR */
-
-	Object descObj;    /**> Location of this descr in SDR. */
-
-} ui_db_desc_t;
-
-/*
- * This structure holds the constants needed to store SQL database
- * information.
- */
-typedef struct
-{
-	char server[UI_SQL_SERVERLEN];
-	char username[UI_SQL_ACCTLEN];
-	char password[UI_SQL_ACCTLEN];
-	char database[UI_SQL_DBLEN];
-
-	ui_db_desc_t desc;
-} ui_db_t;
 
 
 /*
@@ -149,7 +125,9 @@ typedef struct
 	Lyst  reports;
 	Lyst  trls;
 	Lyst  srls;
+#ifdef HAVE_MYSQL
 	ui_db_t sqldb;
+#endif
 
 	ResourceLock compdata_mutex;
 	ResourceLock ctrls_mutex;
@@ -182,9 +160,10 @@ int  mgr_db_srl_forget(mid_t *mid);
 int  mgr_db_srl_persist(srl_t* item);
 int  mgr_db_trl_forget(mid_t *mid);
 int  mgr_db_trl_persist(trl_t* item);
+#ifdef HAVE_MYSQL
 int  mgr_db_sql_forget(ui_db_t* item);
 int  mgr_db_sql_persist(ui_db_t* item);
-
+#endif
 
 
 
@@ -221,10 +200,11 @@ void       mgr_vdb_trls_init(Sdr sdr);
 trl_t*     mgr_vdb_trl_find(mid_t *mid);
 void       mgr_vdb_trl_forget(mid_t *mid);
 
+#ifdef HAVE_MYSQL
 void       mgr_vdb_sql_init(Sdr sdr);
 ui_db_t*   mgr_vdb_sql_find();
 void       mgr_vdb_sql_forget();
-
+#endif
 
 extern MgrVDB gMgrVDB;
 extern MgrDB gMgrDB;

@@ -279,6 +279,11 @@ void *mgr_rx_thread(int *running)
         }
     }
    
+
+#ifdef HAVE_MYSQL
+	db_mgt_close();
+#endif
+
     AMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
     AMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);
     pthread_exit(NULL);

@@ -363,8 +363,9 @@ int  mgr_db_init()
 			gMgrDB.reports = sdr_list_create(sdr);
 			gMgrDB.trls = sdr_list_create(sdr);
 			gMgrDB.srls = sdr_list_create(sdr);
+#ifdef HAVE_MYSQL
 			gMgrDB.sqldb = sdr_list_create(sdr);
-
+#endif
 			sdr_write(sdr, gMgrDB.descObj, (char *) &gMgrDB, sizeof(MgrDB));
 			sdr_catlg(sdr, "mgrdb", 0, gMgrDB.descObj);
 
@@ -646,7 +647,7 @@ int  mgr_db_trl_persist(trl_t *item)
 }
 
 
-
+#ifdef HAVE_MYSQL
 
 /******************************************************************************
  *
@@ -737,7 +738,7 @@ int  mgr_db_sql_persist(ui_db_t* item)
 		cursor += UI_SQL_ACCTLEN;
 
 		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
-				            &(item->desc), sizeof(ui_db_desc_t), &(item->desc.descObj),
+				            &(item->desc), sizeof(def_gen_desc_t), &(item->desc.descObj),
 				            gMgrDB.sqldb);
 
 		if(result != 1)
@@ -748,13 +749,13 @@ int  mgr_db_sql_persist(ui_db_t* item)
 	}
 	else
 	{
-		ui_db_desc_t temp;
+		def_gen_desc_t temp;
 
 		CHKERR(sdr_begin_xn(sdr));
 
 		sdr_stage(sdr, (char*) &temp, item->desc.descObj, 0);
 		temp = item->desc;
-		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(ui_db_desc_t));
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(def_gen_desc_t));
 
 		if(sdr_end_xn(sdr))
 		{
@@ -766,6 +767,7 @@ int  mgr_db_sql_persist(ui_db_t* item)
 	return 1;
 }
 
+#endif
 
 /******************************************************************************
  *
@@ -1006,7 +1008,7 @@ uint32_t mgr_vdb_defgen_init(Sdr sdr, Object db, Lyst list, ResourceLock *mutex)
 		}
 		else
 		{
-			/* Step 1.3: Grab the serialized rule */
+			/* Step 1.3: Grab the serialized def */
 			sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
 
 			/* Step 1.4: Deserialize into a rule object. */
@@ -1101,7 +1103,7 @@ void mgr_vdb_destroy()
 	def_lyst_clear(&(gMgrVDB.compdata),    &(gMgrVDB.compdata_mutex), 1);
     ctrl_clear_lyst(&(gMgrVDB.ctrls),     &(gMgrVDB.ctrls_mutex),    1);
     def_lyst_clear(&(gMgrVDB.macros),      &(gMgrVDB.macros_mutex),   1);
-    rpt_clear_lyst(&(gMgrVDB.reports),    &(gMgrVDB.reports_mutex),  1);
+    def_lyst_clear(&(gMgrVDB.reports),    &(gMgrVDB.reports_mutex),  1);
     trl_lyst_clear(&(gMgrVDB.trls),&(gMgrVDB.trls_mutex),    1);
     srl_lyst_clear(&(gMgrVDB.srls),&(gMgrVDB.srls_mutex),    1);
 
@@ -1170,9 +1172,10 @@ int  mgr_vdb_init()
 	if((gMgrVDB.srls = lyst_create()) == NULL) result = -1;
     if(initResourceLock(&(gMgrVDB.srls_mutex))) result = -1;
     mgr_vdb_srls_init(sdr);
-
+#ifdef HAVE_MYSQL
     if(initResourceLock(&(gMgrVDB.sqldb_mutex))) result = -1;
     mgr_vdb_sql_init(sdr);
+#endif
 
     AMP_DEBUG_EXIT("mgr_vdb_init","-->%d",result);
 
@@ -1452,7 +1455,7 @@ void       mgr_vdb_trl_forget(mid_t *mid)
 
 
 
-
+#ifdef HAVE_MYSQL
 void mgr_vdb_sql_init(Sdr sdr)
 {
 	Object elt;
@@ -1546,3 +1549,4 @@ void mgr_vdb_sql_forget()
 	unlockResource(&(gMgrVDB.sqldb_mutex));
 }
 
+#endif

@@ -265,13 +265,22 @@ tdc_t* tdc_copy(tdc_t *tdc)
 
 	result->hdr.index = tdc->hdr.index;
 	result->hdr.length = tdc->hdr.length;
-	if((result->hdr.data = (uint8_t *) STAKE(result->hdr.length)) == NULL)
+
+	if(result->hdr.length > 0)
 	{
-		AMP_DEBUG_ERR("tdc_copy","Can't Copy header type data.",NULL);
-		SRELEASE(result);
-		return NULL;
+
+		if((result->hdr.data = (uint8_t *) STAKE(result->hdr.length)) == NULL)
+		{
+			AMP_DEBUG_ERR("tdc_copy","Can't Copy header type data.",NULL);
+			SRELEASE(result);
+			return NULL;
+		}
+		memcpy(result->hdr.data, tdc->hdr.data, result->hdr.length);
 	}
-	memcpy(result->hdr.data, tdc->hdr.data, result->hdr.length);
+	else
+	{
+		result->hdr.data = NULL;
+	}
 
 	if((result->datacol = dc_copy(tdc->datacol)) == NULL)
 	{
@@ -686,6 +695,7 @@ amp_type_e tdc_get_type(tdc_t* tdc, uint8_t index)
  *  --------  ------------   ---------------------------------------------
  *  03/13/15  J.P Mayer      Initial implementation,
  *  06/27/15  E. Birrane     Ported from datalist to TDC.
+ *  07/27/17  E. Birrane     Allow 0 length data
  *****************************************************************************/
 
 uint8_t tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize)
@@ -704,7 +714,15 @@ uint8_t tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize)
 	}
 
 
-	header->data = (uint8_t*) STAKE(dataSize);
+	if(dataSize > 0)
+	{
+		header->data = (uint8_t*) STAKE(dataSize);
+	}
+	else
+	{
+		header->data = NULL;
+	}
+
 	header->length = dataSize;
 	header->index=0;
 
@@ -773,6 +791,14 @@ uint8_t tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize)
 	return newSize;
 }
 
+
+void tdc_init(tdc_t *tdc)
+{
+	if(tdc != NULL)
+	{
+		memset(tdc, 0, sizeof(tdc_t));
+	}
+}
 
 
 /******************************************************************************
@@ -986,6 +1012,8 @@ amp_type_e tdc_set_type(tdc_t* tdc, uint8_t index, amp_type_e type)
 
 /*
  * Extremely inefficient. Only call on the ground.
+ *
+ * 07/27/2017: Allow 0 length header in TDC.
  */
 
 char* tdc_to_str(tdc_t *tdc)
@@ -1004,6 +1032,18 @@ char* tdc_to_str(tdc_t *tdc)
 	{
 		AMP_DEBUG_ERR("tdc_to_str","Bad Args", NULL);
 		return NULL;
+	}
+
+	if(tdc->hdr.length <= 0)
+	{
+		if((result = (char *) STAKE(11)) == NULL)
+		{
+			AMP_DEBUG_ERR("tdc_to_str","Can't allocate storage.",NULL);
+			return NULL;
+		}
+
+		isprintf(result,11,"Empty TDC.", NULL);
+		return result;
 	}
 
 	entries = (char **) STAKE(tdc->hdr.length * (sizeof(char *)));

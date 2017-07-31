@@ -261,11 +261,11 @@ value_t adm_bpsec_get_keys(tdc_t params)
 		uint32_t size = strlen(tmp) + 1;
 		if((result.value.as_ptr = STAKE(size)) == NULL)
 		{
-			MRELEASE(tmp);
+			SRELEASE(tmp);
 			return result;
 		}
 		memcpy(result.value.as_ptr, tmp, size);
-		MRELEASE(tmp);
+		SRELEASE(tmp);
 
 		result.type = AMP_TYPE_STRING;
 	}
@@ -287,11 +287,11 @@ value_t adm_bpsec_get_ciphs(tdc_t params)
 		uint32_t size = strlen(tmp) + 1;
 		if((result.value.as_ptr = STAKE(size)) == NULL)
 		{
-			MRELEASE(tmp);
+			SRELEASE(tmp);
 			return result;
 		}
 		memcpy(result.value.as_ptr, tmp, size);
-		MRELEASE(tmp);
+		SRELEASE(tmp);
 
 		result.type = AMP_TYPE_STRING;
 	}
@@ -313,11 +313,11 @@ value_t adm_bpsec_get_srcs(tdc_t params)
 		uint32_t size = strlen(tmp) + 1;
 		if((result.value.as_ptr = STAKE(size)) == NULL)
 		{
-			MRELEASE(tmp);
+			SRELEASE(tmp);
 			return result;
 		}
 		memcpy(result.value.as_ptr, tmp, size);
-		MRELEASE(tmp);
+		SRELEASE(tmp);
 
 		result.type = AMP_TYPE_STRING;
 	}
