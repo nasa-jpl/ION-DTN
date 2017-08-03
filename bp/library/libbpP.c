@@ -959,7 +959,7 @@ static void	waitForScheme(VScheme *vscheme)
 	{
 		while (sm_TaskExists(vscheme->fwdPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 
@@ -967,7 +967,7 @@ static void	waitForScheme(VScheme *vscheme)
 	{
 		while (sm_TaskExists(vscheme->admAppPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1100,7 +1100,7 @@ static void	waitForPlan(VPlan *vplan)
 	{
 		while (sm_TaskExists(vplan->clmPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1199,7 +1199,7 @@ static void	waitForInduct(VInduct *vduct)
 	{
 		while (sm_TaskExists(vduct->cliPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1314,12 +1314,27 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
-	if (vduct->cloPid != ERROR)
+	if (vduct->hasThread)
 	{
-		while (sm_TaskExists(vduct->cloPid))
+		/*	Duct is drained by a thread rather than a
+		 *	process.  Wait until it stops.			*/
+
+		while (pthread_kill(vduct->cloThread, SIGCONT) == 0)
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
+	}
+
+	if (vduct->cloPid == ERROR)
+	{
+		return;
+	}
+
+	/*	Duct is being drained by a process.			*/
+
+	while (sm_TaskExists(vduct->cloPid))
+	{
+		microsnooze(100000);
 	}
 }
 
@@ -10918,9 +10933,9 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		sdr_exit_xn(bpSdr);
 		if (sm_SemTake(vduct->semaphore) < 0)
 		{
-			putErrmsg("CLO failed taking duct semaphore, handle \
-as non-fatal for now.", vduct->ductName);
-			return 0;
+			putErrmsg("CLO failed taking duct semaphore.",
+					vduct->ductName);
+			return -1;
 		}
 
 		if (sm_SemEnded(vduct->semaphore))

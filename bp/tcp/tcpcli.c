@@ -454,6 +454,52 @@ static int	reopenSession(TcpclSession *session)
 	return 1;		/*	Reconnected.			*/
 }
 
+static int pipeline_not_full(Llcv llcv)
+{
+	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
+}
+
+static void	stopSenderThread(TcpclSession *session)
+{
+	/*	Enable sendOneBundle to exit.				*/
+
+	if (session->vduct)
+	{
+		sm_SemEnd(session->vduct->semaphore);
+	}
+
+	/*	Enable sendBundleByTcpcl to exit.			*/
+
+	if (session->hasThrottle)
+	{
+		llcv_signal(session->throttle, pipeline_not_full);
+	}
+
+	/*	Signal thread in case it's not already stopping.	*/
+
+	if (session->sock != -1)
+	{
+		shutdown(session->sock, SD_BOTH);
+		closesocket(session->sock);
+		session->sock = -1;
+	}
+
+//#ifdef mingw
+//	shutdown(session->sock, SD_BOTH);
+//#else
+//	pthread_kill(session->sender, SIGINT);
+//#endif
+
+	/*	Forget session's sender.				*/
+
+	if (pthread_kill(session->sender, SIGCONT) == 0)
+	{
+		pthread_join(session->sender, NULL);
+	}
+
+	session->hasSender = 0;
+}
+
 static void	closeSession(TcpclSession *session)
 {
 	Sdr	sdr = getIonsdr();
@@ -463,16 +509,23 @@ static void	closeSession(TcpclSession *session)
 		return;
 	}
 
-	/*	Serialize this function in case sender and receiver
+	/*	Serialize this function in case clock and receiver
 	 *	threads try to close the session at the same time.	*/
 
 	pthread_mutex_lock(&(session->plMutex));
 	session->secUntilKeepalive = -1;
-	if (session->sock != -1)
+	if (session->hasSender)
 	{
-		pthread_mutex_unlock(&(session->plMutex));
-		closesocket(session->sock);
-		session->sock = -1;
+		stopSenderThread(session);
+	}
+	else
+	{
+		if (session->sock != -1)
+		{
+			shutdown(session->sock, SD_BOTH);
+			closesocket(session->sock);
+			session->sock = -1;
+		}
 	}
 
 	oK(sdr_begin_xn(sdr));
@@ -539,66 +592,23 @@ static int	sendShutdown(TcpclSession *session, char reason,
 	return result;
 }
 
-static int pipeline_not_full(Llcv llcv)
-{
-	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
-}
-
-static void	stopSenderThread(TcpclSession *session)
-{
-	if (session->hasSender == 0)
-	{
-		return;
-	}
-
-	/*	Enable sendOneBundle to exit.				*/
-
-	if (session->vduct)
-	{
-		sm_SemEnd(session->vduct->semaphore);
-	}
-
-	/*	Enable sendBundleByTcpcl to exit.			*/
-
-	if (session->hasThrottle)
-	{
-		llcv_signal(session->throttle, pipeline_not_full);
-	}
-
-	/*	Signal thread in case it's not already stopping.	*/
-
-//#ifdef mingw
-	shutdown(session->sock, SD_BOTH);
-//#else
-//	pthread_kill(session->sender, SIGINT);
-//#endif
-
-	/*	Forget session's sender.				*/
-
-	if (pthread_kill(session->sender, SIGCONT) == 1)
-	{
-		pthread_join(session->sender, NULL);
-	}
-
-	session->hasSender = 0;
-}
-
 static void	endSession(TcpclSession *session, char reason)
 {
 	TcpclNeighbor	*neighbor = session->neighbor;
 
 	oK(sendShutdown(session, reason, 0));
-	if (session->hasSender)
+	closeSession(session);
+	if (session->outductName)
 	{
-		stopSenderThread(session);
+		MRELEASE(session->outductName);
+		session->outductName = NULL;
 	}
 
-	closeSession(session);
 	if (session->hasReceiver
-	&& pthread_kill(session->receiver, SIGCONT) == 1)
+	&& pthread_kill(session->receiver, SIGCONT) == 0)
 	{
 //#ifdef mingw
-		shutdown(session->sock, SD_BOTH);
+//		shutdown(session->sock, SD_BOTH);
 //#else
 //		pthread_kill(session->receiver, SIGINT);
 //#endif
@@ -623,11 +633,6 @@ static void	endSession(TcpclSession *session, char reason)
 	if (session->hasPlMutex)
 	{
 		pthread_mutex_destroy(&(session->plMutex));
-	}
-
-	if (session->outductName)
-	{
-		MRELEASE(session->outductName);
 	}
 
 	memset(session, 0, sizeof(TcpclSession));
@@ -810,6 +815,8 @@ static void	*sendBundles(void *parm)
 
 	session->hasSender = 1;
 	session->newlyAdded = 0;
+	writeMemoNote("[i] tcpcli sender thread has started",
+			neighbor->vplan->neighborEid);
 
 	/*	Load other required sender thread parms.		*/
 
@@ -825,6 +832,8 @@ static void	*sendBundles(void *parm)
 
 	/*	Ready to start sending bundles.				*/
 
+	session->vduct->hasThread = 1;
+	session->vduct->cloThread = pthread_self();
 	while (session->sock != -1)
 	{
 		switch (sendOneBundle(stp))
@@ -837,8 +846,7 @@ static void	*sendBundles(void *parm)
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:	/*	Protocol failure.			*/
-			closeSession(session);
-			continue;
+			break;		/*	Out of switch.		*/
 
 		case 1:	/*	Successful transmission.		*/
 
@@ -849,11 +857,14 @@ static void	*sendBundles(void *parm)
 				session->secUntilKeepalive =
 						session->keepaliveInterval;
 			}
+
+			/*	Make sure other tasks get to run.	*/
+
+			sm_TaskYield();
+			continue;
 		}
 
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
+		break;			/*	Out of loop.		*/
 	}
 
 	writeErrmsgMemos();
@@ -861,6 +872,7 @@ static void	*sendBundles(void *parm)
 			neighbor->vplan->neighborEid);
 	MRELEASE(stp->buffer);
 	MRELEASE(stp);
+	session->vduct->hasThread = 0;
 	return NULL;
 }
 
@@ -1791,14 +1803,12 @@ static void	*handleContacts(void *parm)
 			putErrmsg("Failure receiving contact header", tag);
 			ionKillMainThread(procName());
 			running = 0;
-			stopSenderThread(session);
 			closeSession(session);
 			continue;	/*	Terminate the loop.	*/
 
 		case 0:			/*	Protocol faiure.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					tag);
-			stopSenderThread(session);
 			closeSession(session);
 			continue;	/*	Try again.		*/
 		}
@@ -1834,7 +1844,6 @@ static void	*handleContacts(void *parm)
 			session->lengthReceived = 0;
 		}
 
-		stopSenderThread(session);
 		closeSession(session);
 	}
 
@@ -2313,7 +2322,6 @@ static void	checkSession(TcpclSession *session)
 	{
 		if (sendKeepalive(session) == 0)
 		{
-			stopSenderThread(session);
 			closeSession(session);
 		}
 		else
@@ -2617,7 +2625,7 @@ int	main(int argc, char *argv[])
 		shutDownNeighbors(neighbors);
 		snooze(2);	/*	Let clock thread clean up.	*/
 		ctp.running = 0;
-		if (pthread_kill(clockThread, SIGCONT) == 1)
+		if (pthread_kill(clockThread, SIGCONT) == 0)
 		{
 			pthread_join(clockThread, NULL);
 		}
@@ -2648,7 +2656,7 @@ int	main(int argc, char *argv[])
 
 	stp.running = 0;
 	wakeUpServerThread(&socketName);
-	if (pthread_kill(serverThread, SIGCONT) == 1)
+	if (pthread_kill(serverThread, SIGCONT) == 0)
 	{
 		pthread_join(serverThread, NULL);
 	}
@@ -2656,7 +2664,7 @@ int	main(int argc, char *argv[])
 	shutDownNeighbors(neighbors);
 	snooze(2);		/*	Let clock thread clean up.	*/
 	ctp.running = 0;
-	if (pthread_kill(clockThread, SIGCONT) == 1)
+	if (pthread_kill(clockThread, SIGCONT) == 0)
 	{
 		pthread_join(clockThread, NULL);
 	}

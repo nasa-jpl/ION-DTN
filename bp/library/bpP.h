@@ -650,6 +650,8 @@ typedef struct
 	Object		outductElt;	/*	Reference to Outduct.	*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
+	int		hasThread;	/*	Boolean.		*/
+	pthread_t	cloThread;	/*	For stopping the CLO.	*/
 	int		cloPid;		/*	For stopping the CLO.	*/
 	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
 	time_t		timeOfLastXmit;
