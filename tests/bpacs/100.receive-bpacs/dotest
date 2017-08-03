@@ -67,7 +67,7 @@ sleep 1
 #    PASS=0
 #fi
 
-NUMBUNDLES=`bplist | grep '**** Bundle' | wc -l`
+NUMBUNDLES=`bplist | fgrep '**** Bundle' | wc -l`
 if [ $NUMBUNDLES != $BUNDLESRX ]; then
     echo "ION only accepted custody of $NUMBUNDLES / $BUNDLESRX bundles."
     PASS=0
@@ -89,7 +89,7 @@ sleep 2
 #    PASS=0
 #fi
 
-NUMBUNDLES=`bplist | grep '**** Bundle' | wc -l`
+NUMBUNDLES=`bplist | fgrep '**** Bundle' | wc -l`
 if [ $NUMBUNDLES != 0 ]; then
     echo "ION thought the ACS didn't cover $NUMBUNDLES bundles."
     PASS=0
