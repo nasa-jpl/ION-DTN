@@ -1,0 +1,1 @@
+Verify that ION correctly handles semaphore operations that get interrupted by a signal. Issue-358 and issue-352 verify that the tcpclo, bpcp and bpcpd signal handlers work correctly.
