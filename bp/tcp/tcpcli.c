@@ -461,20 +461,6 @@ static int pipeline_not_full(Llcv llcv)
 
 static void	stopSenderThread(TcpclSession *session)
 {
-	/*	Enable sendOneBundle to exit.				*/
-
-	if (session->vduct)
-	{
-		sm_SemEnd(session->vduct->semaphore);
-	}
-
-	/*	Enable sendBundleByTcpcl to exit.			*/
-
-	if (session->hasThrottle)
-	{
-		llcv_signal(session->throttle, pipeline_not_full);
-	}
-
 	/*	Signal thread in case it's not already stopping.	*/
 
 	if (session->sock != -1)
@@ -484,17 +470,65 @@ static void	stopSenderThread(TcpclSession *session)
 		session->sock = -1;
 	}
 
+	/*	Enable sendBundleByTcpcl to exit.			*/
+
+	if (session->hasThrottle)
+	{
+		llcv_signal(session->throttle, pipeline_not_full);
+	}
+
+	/*	Enable sendOneBundle to exit, detach from Outduct.	*/
+
+	if (session->vduct)
+	{
+		/*	Here we need to simulate the procedures that
+		 *	libbpP.c performs when stopping an outduct.
+		 *	First, stopOutduct.				*/
+
+		if (session->vduct->semaphore != SM_SEM_NONE)
+		{
+			sm_SemEnd(session->vduct->semaphore);
+		}
+
+		/*	Then waitForOutduct.				*/
+
+		if (pthread_kill(session->sender, SIGCONT) == 0)
+		{
+			pthread_join(session->sender, NULL);
+		}
+
+		session->vduct->hasThread = 0;
+
+		/*	Then resetOutduct.				*/
+
+		if (session->vduct->semaphore == SM_SEM_NONE)
+		{
+			session->vduct->semaphore = sm_SemCreate(SM_NO_KEY,
+					SM_SEM_FIFO);
+		}
+		else
+		{
+			sm_SemUnend(session->vduct->semaphore);
+			sm_SemGive(session->vduct->semaphore);
+		}
+
+		sm_SemTake(session->vduct->semaphore);	/*	Lock.	*/
+
+		/*	Finally, detach the session from this outduct.	*/
+
+		session->vduct = NULL;
+	}
+	else	/*	Just forget session's sender thread.		*/
+	{
 //#ifdef mingw
 //	shutdown(session->sock, SD_BOTH);
 //#else
 //	pthread_kill(session->sender, SIGINT);
 //#endif
-
-	/*	Forget session's sender.				*/
-
-	if (pthread_kill(session->sender, SIGCONT) == 0)
-	{
-		pthread_join(session->sender, NULL);
+		if (pthread_kill(session->sender, SIGCONT) == 0)
+		{
+			pthread_join(session->sender, NULL);
+		}
 	}
 
 	session->hasSender = 0;
@@ -504,15 +538,16 @@ static void	closeSession(TcpclSession *session)
 {
 	Sdr	sdr = getIonsdr();
 
-	if (session->isOpen == 0)
-	{
-		return;
-	}
-
 	/*	Serialize this function in case clock and receiver
 	 *	threads try to close the session at the same time.	*/
 
 	pthread_mutex_lock(&(session->plMutex));
+	if (session->isOpen == 0)
+	{
+		pthread_mutex_unlock(&(session->plMutex));
+		return;
+	}
+
 	session->secUntilKeepalive = -1;
 	if (session->hasSender)
 	{
@@ -549,9 +584,12 @@ static void	closeSession(TcpclSession *session)
 			 *	socket connection ends.			*/
 
 			oK(removeOutduct("tcp", session->outductName));
+
+			/*	Reconnection is not possible, so lose
+			 *	the automatic outduct name.		*/
+
 			MRELEASE(session->outductName);
 			session->outductName = NULL;
-			session->vduct = NULL;
 		}
 	}
 
@@ -600,6 +638,13 @@ static void	endSession(TcpclSession *session, char reason)
 	closeSession(session);
 	if (session->outductName)
 	{
+		/*	outductName is erased in closeSession() for
+		 *	any automatic outducts created for accepted
+		 *	socket connections. So if not erased yet,
+		 *	must be for a managed outduct; that outduct's
+		 *	name must be erased from the session here to
+		 *	break receiver thread out of contact loop.	*/
+
 		MRELEASE(session->outductName);
 		session->outductName = NULL;
 	}

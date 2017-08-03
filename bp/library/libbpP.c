@@ -1217,7 +1217,6 @@ static void	resetOutduct(VOutduct *vduct)
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
-	vduct->cloPid = ERROR;
 }
 
 static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
@@ -1255,6 +1254,7 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 
 	vduct = (VOutduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VOutduct));
+	vduct->cloPid = ERROR;
 	vduct->outductElt = outductElt;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
@@ -1319,10 +1319,12 @@ static void	waitForOutduct(VOutduct *vduct)
 		/*	Duct is drained by a thread rather than a
 		 *	process.  Wait until it stops.			*/
 
-		while (pthread_kill(vduct->cloThread, SIGCONT) == 0)
+		if (pthread_kill(vduct->cloThread, SIGCONT) == 0)
 		{
-			microsnooze(100000);
+			pthread_join(vduct->cloThread, NULL);
 		}
+
+		vduct->hasThread = 0;
 	}
 
 	if (vduct->cloPid == ERROR)
@@ -1336,6 +1338,8 @@ static void	waitForOutduct(VOutduct *vduct)
 	{
 		microsnooze(100000);
 	}
+
+	vduct->cloPid = ERROR;
 }
 
 static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
@@ -1941,7 +1945,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		stopOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			stopOutduct(voutduct);
+		}
 	}
 
 	if (bpvdb->clockPid != ERROR)
@@ -1984,7 +1991,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		waitForOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			waitForOutduct(voutduct);
+		}
 	}
 
 	if (bpvdb->clockPid != ERROR)
@@ -2033,7 +2043,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		resetOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			resetOutduct(voutduct);
+		}
 	}
 
 	/*	Clear out any partially received bundles, then exit.	*/
@@ -4561,11 +4574,14 @@ void	bpStopProtocol(char *name)
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		if (strcmp(voutduct->protocolName, name) == 0)
 		{
-			stopOutduct(voutduct);
-			sdr_exit_xn(bpSdr);
-			waitForOutduct(voutduct);
-			CHKVOID(sdr_begin_xn(bpSdr));
-			resetOutduct(voutduct);
+			if (!(voutduct->hasThread))
+			{
+				stopOutduct(voutduct);
+				sdr_exit_xn(bpSdr);
+				waitForOutduct(voutduct);
+				CHKVOID(sdr_begin_xn(bpSdr));
+				resetOutduct(voutduct);
+			}
 		}
 	}
 
