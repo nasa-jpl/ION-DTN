@@ -1,5 +1,4 @@
 Test	Enabled	.exclude_all	.exclude_cbased	.exclude_expert	.exclude_mac	.exclude_windows	Description
-./1000.loopback	YES		<<EXCLUDED>> 				
 ./1001.sysctl-script	YES						Checks sysctl variable values on OSX to see if they are large enough to handle the shared memory requirements for ION
 
 ./1002.loopback-valgrind	DISABLED						Send a bundle over LTP. Uses the valgrind debugging/profiling tool.
@@ -10,7 +9,6 @@ Test	Enabled	.exclude_all	.exclude_cbased	.exclude_expert	.exclude_mac	.exclude_
 
 ./1021.dynamic-ep-valgrind	DISABLED						Ping-pongs 5 bundles with custody transfer from one BP endpoint to another over UDP. Uses the valgrind debugging/profiling tool.
 
-./1500.loopback-brs	YES		<<EXCLUDED>> 				
 ./asymmetric-range	YES					<<EXCLUDED>>  Hangs when trying to stop ltpadmin in ionstop script.	Test out behavior using asymmetrically configured ranges in the contact graph. Bundle forwarding, reforwarding, and expiration are expected.
 
 ./bpacs/100.receive-bpacs	YES						Verify that an ACS signal correctly signals that custody has been accepted for 8 bundles.
@@ -67,8 +65,6 @@ Test	Enabled	.exclude_all	.exclude_cbased	.exclude_expert	.exclude_mac	.exclude_
 ./issue-101-add-aoslso	YES					<<EXCLUDED>>  Didn't work in 3.5.0.	Test the functionality of an AOS link service adapter for ltp
 
 ./issue-132-udplso-tx-rate-limit	YES						Test the functionality of a transmission rate limit on upd link service adapter to ltp
-
-./issue-188-common-cos-syntax	YES		<<EXCLUDED>> 				Tests common class-of-service
 
 ./issue-196-checkforcongestion-looping	YES						Ensure that checkforcongestion() does not loop excessively
 
