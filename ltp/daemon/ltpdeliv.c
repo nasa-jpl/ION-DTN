@@ -319,6 +319,7 @@ int	main(int argc, char *argv[])
 		if (sessionBuf.finalRptAcked)
 		{
 			stopImportSession(&sessionBuf);
+			removeImportSession(sessionObj);
 			closeImportSession(sessionObj);
 			ltpSpanTally(vspan, IMPORT_COMPLETE, 0);
 		}

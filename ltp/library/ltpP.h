@@ -381,6 +381,12 @@ typedef struct
 	LtpEventType	type;
 } LtpEvent;
 
+typedef struct
+{
+	Object		segAddr;
+	unsigned int	sessionNbr;
+} XmitSegRef;
+
 /* Span structure characterizing the communication span between the
  * local engine and some remote engine.  Note that a single LTP span
  * might be serviced by multiple communication links, e.g., simultaneous
@@ -414,7 +420,7 @@ typedef struct
 	 *	exportSessions list (and the LtpDB.exportSessionsHash)
 	 *	or in the LtpDB.deadExports list, but not both.		*/
 
-	Object		segments;	/*	SDR list: LtpXmitSeg	*/
+	Object		segments;	/*	SDR list: XmitSegRef	*/
 	Object		importBuffers;	/*	SDR list: Object	*/
 	Object		importSessions;	/*	SDR list: ImportSession	*/
 
@@ -690,6 +696,7 @@ extern void		getImportSession(LtpVspan *vspan,
 				Object *sessionObj);
 extern void		clearImportSession(ImportSession *session);
 extern void		stopImportSession(ImportSession *session);
+extern void		removeImportSession(Object sessionObj);
 extern void		closeImportSession(Object sessionObj);
 
 extern int		ltpAttachClient(unsigned int clientSvcId);
@@ -740,12 +747,6 @@ extern int		addClosedExport(LtpDB *ltpdb, LtpVspan *vspan,
 				unsigned int segmentLength);
 extern int 		ackFromClosedExport(unsigned int sessionNbr,
 				unsigned int rptSerialNbr);
-#endif
-#if BURST_SIGNALS_ENABLED
-extern int		enqueueBurst(LtpXmitSeg *segment, LtpSpan *span,
-				Object where, int burstType);
-extern int 		enqueueAckBurst(LtpXmitSeg *segment, Object spanObj,
-				int burstType);
 #endif
 #ifdef __cplusplus
 }
