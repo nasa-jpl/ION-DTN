@@ -19,7 +19,7 @@ LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso ltpdriver ltpcounter sdatest
 
 ALL = check libltp.dll $(RUNTIMES)
 
@@ -51,6 +51,9 @@ ltpclock:	ltpclock.o libltp.dll
 ltpmeter:	ltpmeter.o libltp.dll
 		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpmeter ./bin
+ltpdeliv:	ltpdeliv.o libltp.dll
+		$(CC) -o ltpdeliv ltpdeliv.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpdeliv ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
