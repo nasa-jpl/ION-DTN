@@ -1,7 +1,7 @@
 OPT = /opt
 HEAP_PTRS = 0
-PLATFORMS = i86-redhat
-# i86_64-fedora
+PLATFORMS = i86_64-fedora
+# i86-redhat
 # sparc-sol9
 # i86-freebsd
 
