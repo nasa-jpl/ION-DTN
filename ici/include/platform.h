@@ -33,6 +33,20 @@ extern "C" {
  *	ment (and only Windows development), whether within Visual
  *	Studio or not.							*/
 
+#ifndef mingw
+#if (defined(__MINGW64__))
+#define mingw
+#endif
+#endif
+
+#if (defined(__MINGW32__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	2
+#elif (defined(__MINGW64__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	3
+#endif
+
 #ifdef uClibc
 #ifndef linux
 #define linux
