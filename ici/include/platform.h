@@ -34,17 +34,17 @@ extern "C" {
  *	Studio or not.							*/
 
 #ifndef mingw
-#if (defined(__MINGW64__))
+#if (defined(__MINGW32__))
 #define mingw
 #endif
 #endif
 
-#if (defined(__MINGW32__))
-#undef	SPACE_ORDER
-#define	SPACE_ORDER	2
-#elif (defined(__MINGW64__))
+#if (defined(__MINGW64__))
 #undef	SPACE_ORDER
 #define	SPACE_ORDER	3
+#elif (defined(__MINGW32__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	2
 #endif
 
 #ifdef uClibc
