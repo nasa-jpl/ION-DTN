@@ -37,6 +37,7 @@ ICISOURCES =     \
    rfxclock.c    \
    ionadmin.c    \
    sdrmend.c     \
+   ionunlock.c   \
    ionsec.c      \
    ionsecadmin.c \
    crypto.c      \

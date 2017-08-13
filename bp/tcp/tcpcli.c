@@ -538,6 +538,11 @@ static void	closeSession(TcpclSession *session)
 {
 	Sdr	sdr = getIonsdr();
 
+	if (session->hasPlMutex == 0)
+	{
+		return;		/*	Session has already been ended.	*/
+	}
+
 	/*	Serialize this function in case clock and receiver
 	 *	threads try to close the session at the same time.	*/
 
@@ -672,11 +677,15 @@ static void	endSession(TcpclSession *session, char reason)
 
 	if (session->hasSocketMutex)
 	{
+		pthread_mutex_unlock(&(session->socketMutex));
+		microsnooze(100000);
 		pthread_mutex_destroy(&(session->socketMutex));
 	}
 
 	if (session->hasPlMutex)
 	{
+		pthread_mutex_unlock(&(session->plMutex));
+		microsnooze(100000);
 		pthread_mutex_destroy(&(session->plMutex));
 	}
 

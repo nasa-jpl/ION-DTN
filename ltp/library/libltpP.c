@@ -1107,6 +1107,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	/*	Tell all LTP processes to stop.				*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	sm_SemEnd(ltpvdb->deliverySemaphore);
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
 	{
@@ -1124,11 +1125,6 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	if (ltpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(ltpvdb->clockPid, SIGTERM);
-	}
-
-	if (ltpvdb->delivPid != ERROR)
-	{
-		sm_TaskKill(ltpvdb->delivPid, SIGTERM);
 	}
 
 	for (elt = sm_list_first(ltpwm, ltpvdb->spans); elt;

@@ -190,7 +190,7 @@ int	main(int argc, char *argv[])
 				break;
 			}
 
-			if (sm_SemEnded(attendant.semaphore) < 0)
+			if (sm_SemEnded(attendant.semaphore))
 			{
 				writeMemo("[i] ZCO request interrupted.");
 				ionShred(ticket);	/*	Cancel.	*/

@@ -36,6 +36,7 @@ ln -s ../ici/daemon/rfxclock.c
 ln -s ../ici/utils/ionadmin.c
 ln -s ../ici/utils/ionsecadmin.c
 ln -s ../ici/utils/sdrmend.c
+ln -s ../ici/utils/ionunlock.c
 ln -s ../ici/utils/ionexit.c
 ln -s ../ici/utils/ionwarn.c
 ln -s ../bp/library/libbp.c
