@@ -354,6 +354,7 @@ icibin = \
 	ionexit \
 	ionsecadmin \
 	ionwarn \
+	ionunlock \
 	sdrmend \
 	file2sm \
 	sm2file \
@@ -404,6 +405,7 @@ iciextra = \
 	ici/library/symtab.c \
 	ici/doc/pod1/ionadmin.pod \
 	ici/doc/pod1/ionsecadmin.pod \
+	ici/doc/pod1/ionunlock.pod \
 	ici/doc/pod1/rfxclock.pod \
 	ici/doc/pod1/psmwatch.pod \
 	ici/doc/pod1/sdrwatch.pod \
@@ -437,6 +439,7 @@ iciextra = \
 icimans = \
 	$(top_builddir)/ici/doc/ionadmin.1 \
 	$(top_builddir)/ici/doc/ionsecadmin.1 \
+	$(top_builddir)/ici/doc/ionunlock.1 \
 	$(top_builddir)/ici/doc/rfxclock.1 \
 	$(top_builddir)/ici/doc/psmwatch.1 \
 	$(top_builddir)/ici/doc/sdrwatch.1 \
@@ -539,6 +542,10 @@ ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionwarn_SOURCES = ici/utils/ionwarn.c
 ionwarn_LDADD = libici.la $(LIBOBJS) -lm
 ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionunlock_SOURCES = ici/utils/ionunlock.c
+ionunlock_LDADD = libici.la $(LIBOBJS) -lm
+ionunlock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
