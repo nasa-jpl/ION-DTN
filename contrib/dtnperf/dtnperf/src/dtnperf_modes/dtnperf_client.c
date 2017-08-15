@@ -53,7 +53,7 @@ long tot_bundles;					// for data mode
 struct timeval start, end, now;			// time variables
 struct timeval bundle_sent, ack_recvd;	// time variables
 int sent_bundles = 0;					// sent bundles counter
-unsigned int sent_data = 0;				// sent byte counter
+unsigned long long sent_data = 0;				// sent byte counter
 int close_ack_receiver = 0;			// to signal the ack receiver to close
 unsigned int data_written = 0;			// num of bytes written on the source file
 long int wrong_crc;
