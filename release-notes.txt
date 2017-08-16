@@ -1,6 +1,6 @@
-= Release Notes for ION 3.6.0 =
+= Release Notes for ION 3.6.0b =
 
-April 21, 2017
+August 16, 2017
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,50 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.6.0b=
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Version 3.6.0b is an interim release aimed at improving the ability of ION to
+tolerate continuous heavy relay traffic at the DTN gateway for the
+International Space Station.  The changes made to accomplish this are mostly
+invisible, but they include the deployment of a new "ltpdeliv" daemon (for
+data acquisition rate control) and resolution of a particularly subtle race
+condition.
+
+In addition, this version includes the following upgrades:
+
+- A new "ionunlock" utility has been added, for unfreezing an ION node that
+     has gottent locked up due to some thread having been destroyed while
+     still the owner of the ION system mutex.
+
+- In the "contrib" directory, the build for DTKA has been modified to fit into
+     the ION 3.6 environment.
+
+- Also in the "contrib" directory, dtnperf has been tweaked to build properly
+     in the ION 3.6 environment and ECLSA has been updated in a number of ways.
+
+- The ION implementation of Asynchronous Management Protocol has been
+     upgraded in many ways, including optional support for data storage
+     in MySQL.
+
+-  Most regression test failures for ION running in recent versions of Mac
+     OS X have been addressed.  ION now once again runs in this environment,
+     though there still may be a few rough edges.
+
+- The build and test environment for Windows has been greatly improved.
+
+Version 3.6.1 will focus on some more visible enhancements to ION but will
+of course retain all of these upgrades as well.
+
+A note on Windows operating environments:
+Building ION on Windows requires at a minimum the MinGW-w64 [http://mingw-w64.org/] compiler package, and most likely a utilities package to provide a shell. For this release, testing was done with the following configurations:
+     - 32-bit Windows ION is built with i686-4.9.3-release-posix-dwarf-rt_v4-rev1.7z
+     - 64-bit Windows ION is built with x86_64-7.1.0-release-win32-seh-rt_v5-rev1.7z
+Both system variants use the MinGW-MSYS utiltites bundle MSYS-20111123.
+
+During testing of 3.6.0b the current set of instructions for installation and operation of ION on Windows was found to be partially outdated and in need of revision. In particular, running the built-in validation tests requires additional setup steps beyond the basic ION deployment. Revised documentation will be provided in release 3.6.1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.6.0 =
