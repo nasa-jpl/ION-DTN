@@ -23,7 +23,11 @@
  **  06/25/13  E. Birrane     Removed references to priority field. Add ISS flag. (JHU/APL)
  **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  07/26/17  E. Birrane     Added batch test file capabilities (JHU/APL)
  *****************************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "ctype.h"
 
@@ -115,7 +119,7 @@ agent_t* ui_select_agent()
 	}
 
 	sscanf(line, "%d", &idx);
-	if(idx < 0 || idx >= total)
+	if(idx < 0 || idx > total)
 	{
 		printf("Invalid option.\n");
 		AMP_DEBUG_ALWAYS("ui_select_agent", "User selected invalid option (%d).", idx);
@@ -264,9 +268,9 @@ void ui_postprocess_ctrl(mid_t *mid)
 			LystElt elt = NULL;
 			for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
 			{
-				mid_t *mid = (mid_t *)lyst_data(elt);
-				mgr_db_report_forget(mid);
-				mgr_vdb_report_forget(mid);
+				mid_t *tmpmid = (mid_t *)lyst_data(elt);
+				mgr_db_report_forget(tmpmid);
+				mgr_vdb_report_forget(tmpmid);
 			}
 			midcol_destroy(&mc);
 		}
@@ -292,14 +296,12 @@ void ui_postprocess_ctrl(mid_t *mid)
 			}
 			else
 			{
-				def_gen_t *def = def_create_gen(mid, AMP_TYPE_MACRO, mc);
+				def_gen_t *def = def_create_gen(tmp_mid, AMP_TYPE_MACRO, mc);
 				if(def != NULL)
 				{
 					mgr_db_macro_persist(def);
 					ADD_MACRO(def);
 				}
-				mid_release(tmp_mid);
-				midcol_destroy(&mc);
 			}
 		}
 	}
@@ -314,9 +316,9 @@ void ui_postprocess_ctrl(mid_t *mid)
 			LystElt elt = NULL;
 			for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
 			{
-				mid_t *mid = (mid_t *)lyst_data(elt);
-				mgr_db_macro_forget(mid);
-				mgr_vdb_macro_forget(mid);
+				mid_t *tmp_mid = (mid_t *)lyst_data(elt);
+				mgr_db_macro_forget(tmp_mid);
+				mgr_vdb_macro_forget(tmp_mid);
 			}
 			midcol_destroy(&mc);
 		}
@@ -422,6 +424,160 @@ void ui_build_control(agent_t* agent)
 	AMP_DEBUG_EXIT("ui_build_control","->.", NULL);
 }
 
+
+void ui_send_file(agent_t* agent, uint8_t enter_ts)
+{
+	mid_t *cur_mid = NULL;
+	uint32_t offset = 0;
+	uint32_t size = 0;
+	time_t ts = 0;
+	blob_t *contents = NULL;
+	char *cursor = NULL;
+	char *saveptr = NULL;
+	uint32_t bytes = 0;
+	uint8_t *value = NULL;
+	uint32_t len = 0;
+
+	if(agent == NULL)
+	{
+		AMP_DEBUG_ENTRY("ui_send_file","(NULL)", NULL);
+		AMP_DEBUG_ERR("ui_send_file", "No agent specified.", NULL);
+		AMP_DEBUG_EXIT("ui_send_file","->.",NULL);
+		return;
+	}
+	AMP_DEBUG_ENTRY("ui_send_file","(%s)", agent->agent_eid.name);
+
+	if(enter_ts != 0)
+	{
+		ts = ui_input_uint("Control Timestamp");
+	}
+	else
+	{
+		ts = 0;
+	}
+
+
+	if((contents = ui_input_file_contents("Enter file name containing commands:")) == NULL)
+	{
+		AMP_DEBUG_ERR("ui_send_file", "Can't read file contents.", NULL);
+		AMP_DEBUG_EXIT("ui_send_file","->.",NULL);
+		return;
+	}
+
+	cursor = strtok_r((char *) contents->value,"\n",&saveptr);
+
+	while(cursor != NULL)
+	{
+		if(strlen(cursor) <= 0)
+		{
+//			fprintf(stderr,"Ignoring blank line.\n");
+			cursor = strtok_r(NULL, "\n", &saveptr);
+
+			continue;
+		}
+//		fprintf(stderr,"Read line %s from file.\n", cursor);
+
+		if((cursor[0] == '#') || (cursor[0] == ' '))
+		{
+//			fprintf(stderr,"Ignoring comment or blank line.\n");
+			cursor = strtok_r(NULL, "\n", &saveptr);
+
+			continue;
+		}
+
+		if(strncmp(cursor,"WAIT",4) == 0)
+		{
+			int delay = 0;
+			sscanf(cursor,"WAIT %d", &delay);
+			fprintf(stderr,"Sleeping for %ds: ", delay);
+			int sum = 0;
+
+			int dur = 5;
+
+			if(delay < dur)
+			{
+				sleep(delay);
+			}
+			else
+			{
+				while(delay > 0)
+				{
+					if(delay >= dur)
+					{
+						sleep(dur);
+						delay -= dur;
+						sum += dur;
+						fprintf(stderr,"%d...", sum);
+					}
+					else
+					{
+						sleep(delay);
+						delay = 0;
+						sum += delay;
+						fprintf(stderr,"%d...", sum);
+					}
+				}
+			}
+			fprintf(stderr,"Done waiting!\n");
+			cursor = strtok_r(NULL, "\n", &saveptr);
+			continue;
+		}
+
+		if((value = utils_string_to_hex(cursor, &len)) == NULL)
+		{
+			AMP_DEBUG_ERR("ui_send_file", "Can't make value from %s", cursor);
+			blob_destroy(contents, 1);
+			return;
+		}
+
+		if((cur_mid = mid_deserialize(value, len, &bytes)) == NULL)
+		{
+			AMP_DEBUG_ERR("ui_send_file", "Can't make mid from %s", cursor);
+			SRELEASE(value);
+			blob_destroy(contents, 1);
+			return;
+		}
+		SRELEASE(value);
+
+
+		ui_postprocess_ctrl(cur_mid);
+
+		Lyst mc = lyst_create();
+		lyst_insert_first(mc, cur_mid);
+
+		/* This is a deep copy into ctrl. */
+		msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
+		midcol_destroy(&mc); // Also destroys mid.
+
+		/* Step 2: Construct a PDU to hold the primitive. */
+		uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
+		msg_destroy_perf_ctrl(ctrl);
+
+		char *str = utils_hex_to_string(data, size);
+		printf("Data is %s\n", str);
+		SRELEASE(str);
+
+		// Shallow copy data into pdu msg.
+		pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
+
+		// Shallow copy into group.
+		pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
+
+		/* Step 4: Send the PDU. */
+		iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
+
+		/* Step 5: Release remaining resources. */
+		pdu_release_group(pdu_group);
+
+
+		cursor = strtok_r(NULL, "\n", &saveptr);
+	}
+
+
+	blob_destroy(contents, 1);
+
+	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
+}
 
 
 void ui_send_raw(agent_t* agent, uint8_t enter_ts)
@@ -720,6 +876,7 @@ void ui_eventLoop(int *running)
 
 						case '9' : ui_build_control(ui_select_agent()); break;
 						case 'A' : ui_send_raw(ui_select_agent(),0); break;
+						case 'B' : ui_send_file(ui_select_agent(),0); break;
 
 						case 'Z' : gContext = UI_MAIN_MENU; break;
 						default: printf("Unknown command.\n"); break;
@@ -758,6 +915,8 @@ void ui_eventLoop(int *running)
 						  case '4' : ui_db_clear_rpt(); break; // Clear Received Reports
 						  case '5' : ui_db_disconn(); break; // Disconnect from DB
 						  case '6' : ui_db_conn(); break; // Connect to DB
+						  case '7' : ui_db_write(); break; // Write DB info to file.
+						  case '8' : ui_db_read(); break; // Read DB infor from file.
 
 						  case 'Z' : gContext = UI_MAIN_MENU;				break;
 
@@ -897,17 +1056,25 @@ void ui_print_menu_ctrl()
 
 	printf("\n------------- ADM Information --------------\n");
 	printf("1) List supported ADMs.\n");
-	printf("2) List Atomic Data MIDs by Index.   (%ld Known)\n", lyst_length(gAdmData));
-	printf("3) List Computed Data MIDs by Index. (%ld Known)\n", lyst_length(gAdmComputed));
-	printf("4) List Control MIDs by Index.       (%ld Known)\n", lyst_length(gAdmCtrls));
-	printf("5) List Literal MIDs by Index.       (%ld Known)\n", lyst_length(gAdmLiterals));
-	printf("6) List Macro MIDs by Index.         (%ld Known)\n", lyst_length(gAdmMacros));
-	printf("7) List Operator MIDs by Index.      (%ld Known)\n", lyst_length(gAdmOps));
-	printf("8) List Reports MIDs by Index.       (%ld Known)\n", lyst_length(gAdmRpts));
+	printf("2) List Atomic Data MIDs by Index.   (%lu Known)\n",
+			(unsigned long) lyst_length(gAdmData));
+	printf("3) List Computed Data MIDs by Index. (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmComputed));
+	printf("4) List Control MIDs by Index.       (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmCtrls));
+	printf("5) List Literal MIDs by Index.       (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmLiterals));
+	printf("6) List Macro MIDs by Index.         (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmMacros));
+	printf("7) List Operator MIDs by Index.      (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmOps));
+	printf("8) List Reports MIDs by Index.       (%lu Known)\n",
+		       (unsigned long) 	lyst_length(gAdmRpts));
 
 	printf("\n-------------- Perform Control -------------\n");
 	printf("9) Build Arbitrary Control.\n");
 	printf("A) Specify Raw Control.\n");
+	printf("B) Specify Control File.\n");
 
 	printf("\n--------------------------------------------\n");
 	printf("Z) Return to Main Menu.\n");
@@ -1116,6 +1283,11 @@ void *ui_thread(int *running)
 
 	AMP_DEBUG_EXIT("ui_thread","->.", NULL);
 
+#ifdef HAVE_MYSQL
+	db_mgt_close();
+#endif
+
+
 	pthread_exit(NULL);
 
 	return NULL;
@@ -1147,6 +1319,8 @@ void ui_print_menu_db()
 	printf("4) Clear Received Reports.\n");
 	printf("5) Disconnect From DB.\n");
 	printf("6) Connect to DB.\n");
+	printf("7) Write DB Info to File\n");
+	printf("8) Read DB Info from file\n");
 
 	printf("------------------------------------------------------------------\n");
 	printf("Z) Return to Main Menu.\n");
@@ -1158,6 +1332,8 @@ void ui_db_conn()
 {
 	ui_db_t parms;
 
+	ui_db_disconn();
+
 	memset(&parms, 0, sizeof(ui_db_t));
 
 	lockResource(&(gMgrVDB.sqldb_mutex));
@@ -1166,12 +1342,86 @@ void ui_db_conn()
 
 	unlockResource(&(gMgrVDB.sqldb_mutex));
 
-	db_mgt_init(parms, 0);
+	db_mgt_init(parms, 0, 1);
 }
 
 void ui_db_disconn()
 {
     db_mgt_close();
+}
+
+
+void ui_db_write()
+{
+  FILE *fp = 0;
+  char *tmp = NULL;
+  
+  tmp = ui_input_string("Enter file name.");
+
+  if((fp = fopen(tmp, "w+")) == NULL)
+  {
+    printf("Can't open or create %s.\n", tmp);
+    SRELEASE(tmp);
+    return; 
+  }
+
+
+ lockResource(&(gMgrVDB.sqldb_mutex));
+
+ fwrite(&(gMgrVDB.sqldb.server), UI_SQL_SERVERLEN-1, 1, fp);
+ fwrite(&(gMgrVDB.sqldb.database), UI_SQL_DBLEN-1, 1, fp);
+ fwrite(&(gMgrVDB.sqldb.username), UI_SQL_ACCTLEN-1,1, fp);
+ fwrite(&(gMgrVDB.sqldb.password), UI_SQL_ACCTLEN-1,1, fp);
+
+ unlockResource(&(gMgrVDB.sqldb_mutex));
+
+fclose(fp);
+  printf("Database infor written to %s.\n", tmp);
+ 
+ SRELEASE(tmp);
+}
+
+void ui_db_read()
+{
+  FILE *fp = NULL;
+  char *tmp = NULL;
+
+  tmp = ui_input_string("Enter file name.");
+
+  if(tmp == NULL)
+  {
+    printf("Error reading string.\n");
+    return;  
+  }
+  if ((fp = fopen(tmp, "r")) == NULL)
+  {
+    printf("Can't open file %s.\n", tmp);
+    SRELEASE(tmp);
+    return;
+  }
+
+  lockResource(&(gMgrVDB.sqldb_mutex));
+
+  if(fread(&(gMgrVDB.sqldb.server), UI_SQL_SERVERLEN-1, 1, fp) <= 0)
+    printf("Error reading server.\n");
+
+  if(fread(&(gMgrVDB.sqldb.database), UI_SQL_DBLEN-1, 1, fp) <= 0)
+    printf("Error reading database.\n");
+
+  if(fread(&(gMgrVDB.sqldb.username), UI_SQL_ACCTLEN-1,1, fp) <= 0)
+    printf("Error reading username.\n");
+
+  if(fread(&(gMgrVDB.sqldb.password), UI_SQL_ACCTLEN-1,1, fp) <= 0)
+    printf("Error reading password.r\n");
+ 
+  mgr_db_sql_persist(&gMgrVDB.sqldb);
+
+  unlockResource(&(gMgrVDB.sqldb_mutex));
+  fclose(fp);
+
+  printf("Read from %s.\n", tmp);
+  SRELEASE(tmp);
+  return;
 }
 
 

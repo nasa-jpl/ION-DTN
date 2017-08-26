@@ -33,6 +33,20 @@ extern "C" {
  *	ment (and only Windows development), whether within Visual
  *	Studio or not.							*/
 
+#ifndef mingw
+#if (defined(__MINGW32__))
+#define mingw
+#endif
+#endif
+
+#if (defined(__MINGW64__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	3
+#elif (defined(__MINGW32__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	2
+#endif
+
 #ifdef uClibc
 #ifndef linux
 #define linux
@@ -273,6 +287,7 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
+#define	SD_BOTH			SHUT_RDWR
 
 #endif				/*	end of #ifdef ION4WIN		*/
 
@@ -333,7 +348,7 @@ typedef void			(*SignalHandler)(int);
 
 typedef struct
 {
-	uvast			opaque[8];
+	uvast			opaque[12];
 } ResourceLock;
 
 #ifdef TORNADO_2_0_2

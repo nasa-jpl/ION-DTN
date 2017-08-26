@@ -37,6 +37,7 @@ ICISOURCES =     \
    rfxclock.c    \
    ionadmin.c    \
    sdrmend.c     \
+   ionunlock.c   \
    ionsec.c      \
    ionsecadmin.c \
    crypto.c      \
@@ -55,6 +56,7 @@ LTPSOURCES =     \
 	libltpnm.c   \
 	ltpei.c      \
 	ltpclock.c   \
+	ltpdeliv.c   \
 	ltpmeter.c   \
 	pmqlsi.c     \
 	pmqlso.c     \

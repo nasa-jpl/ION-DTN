@@ -304,6 +304,8 @@ of Service\n");
 				(void*) &recv_running))
 	{
 		dbgprintf(0, "Error: Can't start message thread\n");
+		sm_SemEnd(events_sem);
+		microsnooze(50000);
 		sm_SemDelete(events_sem);
 		exit(1);
 	}
@@ -1673,6 +1675,8 @@ void exit_nicely(int val)
 	}
 
 	/*Delete remote directory listing semaphore*/
+	sm_SemEnd(events_sem);
+	microsnooze(50000);
 	sm_SemDelete(events_sem);
 
 	/*End receiver thread*/

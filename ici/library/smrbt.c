@@ -26,7 +26,7 @@ typedef struct
 {
 	PsmAddress	userData;
 	PsmAddress	root;		/*	root node of the rbt	*/
-	unsigned long   length;		/*	number of nodes in rbt	*/
+	size_t		length;		/*	number of nodes in rbt	*/
 	sm_SemId	lock;		/*	mutex for tree		*/
 } SmRbt;
 
@@ -227,6 +227,8 @@ void	Sm_rbt_destroy(const char *file, int line, PsmPartition partition,
 
 	/*	Now destroy the tree itself.				*/
 
+	sm_SemEnd(rbtPtr->lock);
+	microsnooze(50000);
 	sm_SemDelete(rbtPtr->lock);
 
 	/*	just in case user mistakenly accesses later...		*/
@@ -271,10 +273,10 @@ void	sm_rbt_user_data_set(PsmPartition partition, PsmAddress rbt,
 	unlockSmrbt(rbtPtr);
 }
 
-long	sm_rbt_length(PsmPartition partition, PsmAddress rbt)
+size_t	sm_rbt_length(PsmPartition partition, PsmAddress rbt)
 {
 	SmRbt	*rbtPtr;
-	long	length;
+	size_t	length;
 
 	CHKERR(partition);
 	CHKERR(rbt);

@@ -89,6 +89,11 @@ int main(int argc, char *argv[])
     pthread_t rx_thr;
     pthread_t ui_thr;
 
+#ifdef HAVE_MYSQL
+    pthread_t db_thr;
+    char db_thr_name[] = "db_thread";
+#endif
+
     char rx_thr_name[]     = "rx_thread";
     char ui_thr_name[]     = "ui_thread";
     char daemon_thr_name[] = "run_daemon";
@@ -137,10 +142,10 @@ int main(int argc, char *argv[])
 
 #ifdef HAVE_MYSQL
 
-    if(pthread_begin(&daemon_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning))
+    if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning))
     {
     	AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-    			daemon_thr_name, strerror(errno));
+    			db_thr_name, strerror(errno));
     	exit(EXIT_FAILURE);
     }
 #endif
@@ -161,10 +166,10 @@ int main(int argc, char *argv[])
     pthread_kill(rx_thr, 0);
 
 #ifdef HAVE_MYSQL
-    if (pthread_join(daemon_thr, NULL))
+    if (pthread_join(db_thr, NULL))
     {
     	AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-    			        daemon_thr_name, strerror(errno));
+    			        db_thr_name, strerror(errno));
     	exit(EXIT_FAILURE);
     }
 #endif
@@ -578,6 +583,11 @@ int mgr_cleanup()
 
 	mgr_vdb_destroy();
 
+#ifdef HAVE_MYSQL
+	db_mgt_close();
+
+#endif
+
 	utils_mem_teardown();
 	return 0;
 }
@@ -663,7 +673,7 @@ int mgr_init(char *argv[])
 	mgr_vdb_init();
 
 #ifdef HAVE_MYSQL
-	db_mgt_init(gMgrVDB.sqldb, 0);
+	db_mgt_init(gMgrVDB.sqldb, 0, 1);
 #endif
 
 	AMP_DEBUG_EXIT("mgr_init","->0.",NULL);

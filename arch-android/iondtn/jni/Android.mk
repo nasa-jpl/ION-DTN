@@ -49,7 +49,8 @@ MY_ICISOURCES := \
 	$(MY_ICI)/utils/ionadmin.c      \
 	$(MY_ICI)/utils/sdrmend.c       \
 	$(MY_ICI)/utils/ionsecadmin.c 	\
-	$(MY_ICI)/utils/ionwarn.c
+	$(MY_ICI)/utils/ionwarn.c	\
+	$(MY_ICI)/utils/ionunlock.c
 
 #	$(MY_ICI)/utils/ionexit.c      \
 
@@ -69,6 +70,8 @@ MY_DGRSOURCES :=     \
 #		$(MY_LTP)/library/libltp.c    \
 #		$(MY_LTP)/library/libltpP.c   \
 #		$(MY_LTP)/daemon/ltpclock.c   \
+#		$(MY_LTP)/daemon/ltpdeliv.c   \
+#		$(MY_LTP)/daemon/ltpdeliv.c   \
 #		$(MY_LTP)/daemon/ltpmeter.c   \
 #		$(MY_LTP)/udp/udplsi.c        \
 #		$(MY_LTP)/udp/udplso.c        \
@@ -219,6 +222,7 @@ LOCAL_C_INCLUDES := $(MY_ICI)/include \
 	$(MY_ICI)/libbloom-master \
 	$(MY_ICI)/libbloom-master/murmur2 \
 	$(MY_ICI)/crypto \
+	$(MY_ICI)/sdr \
 	$(MY_DGR)/include \
 	$(MY_BP)/include \
 	$(MY_BP)/library \

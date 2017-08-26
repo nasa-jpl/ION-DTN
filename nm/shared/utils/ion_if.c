@@ -276,6 +276,7 @@ uint8_t *iif_receive(iif_t *iif, uint32_t *size, pdu_metadata_t *meta, int timeo
     istrcpy(meta->recipientEid.name, iif->local_eid.name,
 		    sizeof meta->recipientEid.name);
 
+    // Needs to be MRELEASE, not SRELEASE.
     MRELEASE(dlv.bundleSourceEid);
 
     AMP_DEBUG_EXIT("iif_receive", "->0x%x", (unsigned long) buffer);

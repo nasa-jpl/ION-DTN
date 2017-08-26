@@ -650,9 +650,10 @@ typedef struct
 	Object		outductElt;	/*	Reference to Outduct.	*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
+	int		hasThread;	/*	Boolean.		*/
+	pthread_t	cloThread;	/*	For stopping the CLO.	*/
 	int		cloPid;		/*	For stopping the CLO.	*/
 	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
-	int		prevBufferLength;
 	time_t		timeOfLastXmit;
 } VOutduct;
 
@@ -708,12 +709,11 @@ typedef struct
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 
-	/*	The Transit queues are lists of received in-transit
+	/*	The Transit queue is a list of received in-transit
 	 *	Bundles that are awaiting presentation to forwarder
 	 *	daemons, so that they can be enqueued for transmission.	*/
 
-	Object		confirmedTransit;
-	Object		provisionalTransit;
+	Object		transit;
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting bpclock.	*/
 	Object		transitCmd; 	/*	For starting bptransit.	*/
@@ -836,8 +836,7 @@ typedef struct
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
 	int		transitPid;	/*	For stopping bptransit.	*/
-	sm_SemId	confirmedTransitSemaphore;
-	sm_SemId	provisionalTransitSemaphore;
+	sm_SemId	transitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
 
 	/*	For finding structures in database.			*/
@@ -1217,7 +1216,8 @@ extern int		bpLoadAcq(	AcqWorkArea *workArea,
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
 					char *bytes,
 					int length,
-					ReqAttendant *attendant);
+					ReqAttendant *attendant,
+					unsigned char priority);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1256,6 +1256,14 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	is available or the attendant is
 			 *	paused or the function fails,
 			 *	whichever occurs first.
+			 *
+			 *	"priority" is normally zero, but for
+			 *	the TCPCL convergence-layer receiver
+			 *	threads it is very high (255) because
+			 *	any delay in allocating space to an
+			 *	extent of TCPCL data delays the
+			 *	processing of TCPCL control messages,
+			 *	potentially killing TCPCL performance.
 			 *	
 			 *	Returns 0 on success (even if
 			 *	"attendant" was paused or the

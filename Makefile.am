@@ -354,6 +354,7 @@ icibin = \
 	ionexit \
 	ionsecadmin \
 	ionwarn \
+	ionunlock \
 	sdrmend \
 	file2sm \
 	sm2file \
@@ -371,6 +372,7 @@ icilib = \
 #	librfx.la
 
 iciinclude = \
+	ici/include/crypto.h \
 	ici/include/llcv.h \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
@@ -403,6 +405,7 @@ iciextra = \
 	ici/library/symtab.c \
 	ici/doc/pod1/ionadmin.pod \
 	ici/doc/pod1/ionsecadmin.pod \
+	ici/doc/pod1/ionunlock.pod \
 	ici/doc/pod1/rfxclock.pod \
 	ici/doc/pod1/psmwatch.pod \
 	ici/doc/pod1/sdrwatch.pod \
@@ -436,6 +439,7 @@ iciextra = \
 icimans = \
 	$(top_builddir)/ici/doc/ionadmin.1 \
 	$(top_builddir)/ici/doc/ionsecadmin.1 \
+	$(top_builddir)/ici/doc/ionunlock.1 \
 	$(top_builddir)/ici/doc/rfxclock.1 \
 	$(top_builddir)/ici/doc/psmwatch.1 \
 	$(top_builddir)/ici/doc/sdrwatch.1 \
@@ -539,6 +543,10 @@ ionwarn_SOURCES = ici/utils/ionwarn.c
 ionwarn_LDADD = libici.la $(LIBOBJS) -lm
 ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+ionunlock_SOURCES = ici/utils/ionunlock.c
+ionunlock_LDADD = libici.la $(LIBOBJS) -lm
+ionunlock_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
 # --- Test Executables --- #
 
 psmshell_SOURCES = ici/test/psmshell.c
@@ -602,6 +610,7 @@ ltpbin = \
 	ltpadmin \
 	ltpclock \
 	ltpmeter \
+	ltpdeliv \
 	udplsi \
 	udplso \
 	aoslsi \
@@ -706,6 +715,10 @@ ltpclock_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 ltpmeter_SOURCES = ltp/daemon/ltpmeter.c
 ltpmeter_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpmeter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpdeliv_SOURCES = ltp/daemon/ltpdeliv.c
+ltpdeliv_LDADD = libltp.la libici.la $(LIBOBJS)
+ltpdeliv_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
@@ -1922,12 +1935,12 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 					
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
-# Use this to build the DTNMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
+# Use this to build the AMP Manager WITHOUT DB Support. 
+nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
 
-# Use this to build the DTNMP Manager WITH DB Support.
+# Use this to build the AMP Manager WITH DB Support.
 #nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
-#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
+#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 
 

@@ -1,0 +1,74 @@
+=head1 NAME
+
+ionunlock - utility for unlocking a locked ION node
+
+=head1 SYNOPSIS
+
+B<ionunlock> [I<sdr_name>]
+
+=head1 DESCRIPTION
+
+The B<ionunlock> program is designed to be run when some ION thread has
+terminated while it is the owner of the node's system mutex, i.e., while
+in the midst of an SDR transaction.  IT MUST NEVER BE RUN AT ANY OTHER TIME
+as it will totally corrupt a node that is not locked up. The program simply
+declares itself to be the owner of the incomplete transaction and cancels it,
+enabling the rest of the system to resume operations.
+
+If omitted, I<sdr_name> defaults to "ion".
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ionunlock> has terminated successfully.
+
+=item "1"
+
+B<ionunlock> has terminated unsuccessfully.  See diagnostic messages in the
+B<ion.log> log file for details.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't initialize the SDR system.
+
+Probable operations error: ION appears not to be initialized, in which case
+there is no point in running B<ionunlock>.
+
+=item Can't start using SDR.
+
+ION system error.  See earlier diagnostic messages posted to B<ion.log>
+for details.  In this event it is unlikely that B<ionunlock> can be run
+successfully, and it is also unlikely that it would have any effect if it
+did run successfully.
+
+=item ionunlock unnecessary; exiting.
+
+Either the indicated SDR is not initialized or it is not currently stuck in
+a transaction.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+sdr(3)

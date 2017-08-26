@@ -24,7 +24,7 @@ extern "C" {
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
 /* As of 2016-02-10 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.6.0"
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.6.0b"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -44,21 +44,21 @@ extern "C" {
 #define	ION_SDR_MARGIN	(20)		/*	Percent.		*/
 #endif
 #ifndef ION_OPS_ALLOC
-#define	ION_OPS_ALLOC	(20)		/*	Percent.		*/
+#define	ION_OPS_ALLOC	(40)		/*	Percent.		*/
 #endif
 #define	ION_SEQUESTERED	(ION_SDR_MARGIN + ION_OPS_ALLOC)
 
 typedef struct
 {
 	int	wmKey;
-	long	wmSize;
+	size_t	wmSize;
 	char	*wmAddress;
 	char	sdrName[MAX_SDR_NAME + 1];
-	long	sdrWmSize;
+	size_t	sdrWmSize;
 	int	configFlags;
-	long	heapWords;
+	size_t	heapWords;
 	int	heapKey;
-	int	logSize;
+	size_t	logSize;
 	int	logKey;
 	char	pathName[MAXPATHLEN + 1];
 } IonParms;
@@ -87,7 +87,7 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	int		discovered;	/*	Boolean.		*/
 } IonContact;
@@ -98,7 +98,7 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
 } PastContact;
 
 typedef struct
@@ -118,8 +118,8 @@ typedef struct
 	Object		ranges;		/*	SDR list: IonRange	*/
 	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	uvast		ownNodeNbr;
-	long		productionRate;	/*	Bundles sent by apps.	*/
-	long		consumptionRate;/*	Bundles rec'd by apps.	*/
+	size_t		productionRate;	/*	Bundles sent by apps.	*/
+	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
 	double		maxForecastOccupancy;
 	Object		alarmScript;	/*	Congestion alarm.	*/
@@ -195,21 +195,21 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	nominalRate;	/*	In bytes per second.	*/
+	size_t		nominalRate;	/*	In bytes per second.	*/
 	vast		capacity;	/*	Bytes, current second.	*/
 } Throttle;
 
 typedef struct
 {
 	uvast		nodeNbr;	/*	As from IonContact.	*/
-	unsigned int	xmitRate;	/*	Xmit *to* neighbor.	*/
-	unsigned int	fireRate;	/*	Xmit *from* neighbor.	*/
-	unsigned int	recvRate;	/*	Recv from neighbor.	*/
-	unsigned int	prevXmitRate;	/*	Xmit *to* neighbor.	*/
-	unsigned int	prevRecvRate;	/*	Recv from neighbor.	*/
+	size_t		xmitRate;	/*	Xmit *to* neighbor.	*/
+	size_t		fireRate;	/*	Xmit *from* neighbor.	*/
+	size_t		recvRate;	/*	Recv from neighbor.	*/
+	size_t		prevXmitRate;	/*	Xmit *to* neighbor.	*/
+	size_t		prevRecvRate;	/*	Recv from neighbor.	*/
 	PsmAddress	node;		/*	Points to IonNode.	*/
-	unsigned int	owltOutbound;	/*	In seconds.		*/
-	unsigned int	owltInbound;	/*	In seconds.		*/
+	size_t		owltOutbound;	/*	In seconds.		*/
+	size_t		owltInbound;	/*	In seconds.		*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
 } IonNeighbor;
 
@@ -229,7 +229,7 @@ typedef struct
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	unsigned int	xmitRate;	/*	In bytes per second.	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	int		discovered;	/*	Boolean.		*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
@@ -334,7 +334,7 @@ extern int		ionAttach();
 extern void		ionDetach();
 extern void		ionProd(	uvast fromNode,
 					uvast toNode,
-					unsigned int xmitRate,
+					size_t xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate();
 
@@ -350,6 +350,7 @@ extern int		ionRequestZcoSpace(ZcoAcct acct,
 					unsigned char finePriority,
 					ReqAttendant *attendant,
 					ReqTicket *ticket);
+extern int		ionSpaceAwarded(ReqTicket ticket);
 extern void		ionShred(	ReqTicket ticket);
 extern Object		ionCreateZco(	ZcoMedium source,
 					Object location,
@@ -378,7 +379,7 @@ extern IonVdb		*getIonVdb();
 extern char		*getIonWorkingDirectory();
 extern uvast		getOwnNodeNbr();
 
-extern int		startIonMemTrace(int size);
+extern int		startIonMemTrace(size_t size);
 extern void		printIonMemTrace(int verbose);
 extern void		clearIonMemTrace();
 extern void		stopIonMemTrace();

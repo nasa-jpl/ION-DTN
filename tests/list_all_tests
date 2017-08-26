@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# create a table listing all of the available tests, their attributes, and their exclusions
+#
+
+OUTFILE="testlist.txt"
+
+USAGE="usage: list_all_tests [-h] [-q]
+	-h print usage
+	-q quiet: don't print description or exclusion file contents
+"
+for ARG in $@; do
+    case ${ARG} in
+	-h)		echo "${USAGE}"; exit 0;;
+	-q)		QUIET=TRUE;;
+	*)		echo "${USAGE}"; exit 1;;
+    esac
+done
+
+
+#
+# find all test directories
+DIRECTORIES=`find . \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort`
+
+#
+# find all the exclusion files that are in use
+EXCLUSIONS=`find ${DIRECTORIES} -name '.exclude*' | xargs -L 1 basename | sort -u`
+
+# print table headers
+(
+echo -ne "Test\tEnabled\t"
+for EXC in ${EXCLUSIONS}; do
+    echo -ne "${EXC}\t"
+done
+
+if [[ -z "${QUIET}" ]]; then
+    echo -n "Description"
+fi
+echo
+
+
+for DIR in ${DIRECTORIES}; do
+	echo -n $DIR
+	(
+		cd $DIR
+
+		# if the "dotest" file is executable, then it's a real test, not disabled
+		echo -ne "\\t"
+		if [[ -x "dotest" ]]; then
+			echo -n "YES"
+		else
+			echo -n "DISABLED"
+		fi
+
+		#
+		# walk through the known exclusions
+		for EXC in ${EXCLUSIONS}; do
+			echo -ne "\\t"
+			if [[ -z "${QUIET}" ]]; then
+			    if [[ -f "${EXC}" ]]; then
+				echo -n "<<EXCLUDED>> " `cat "${EXC}"`
+			    fi
+			else
+			    if [[ -f "${EXC}" ]]; then
+				echo -n "EXCLUDED"
+			    else
+				echo -n " "
+			    fi
+			fi
+		done
+
+		# print the description, if there is one
+		if [[ -z "${QUIET}" ]]; then
+		    echo -ne "\\t"
+		    if [[ -f ".description" ]]; then
+			echo `cat ".description"`
+		    fi
+		fi
+
+		echo
+	)
+done
+) > ${OUTFILE}
+#
+column -t -s$'\t' ${OUTFILE}
+echo
+echo "Open file ${OUTFILE} in excel for neater output"
+#
+exit 0

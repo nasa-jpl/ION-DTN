@@ -100,7 +100,7 @@ static void	*receiveBundles(void *parm)
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound, 0);
+						ZcoOutbound);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -152,7 +152,7 @@ destroying bundle ZCO.", NULL);
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound, 0);
+						ZcoOutbound);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -234,7 +234,7 @@ destroying bundle ZCO.", NULL);
 
 		printDottedString(fromHostNbr, hostName);
 		if (bpBeginAcq(work, 0, NULL) < 0
-		|| bpContinueAcq(work, buffer, length, 0) < 0
+		|| bpContinueAcq(work, buffer, length, 0, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);

@@ -13,6 +13,13 @@
 #include "ltp.h"
 #include "bp.h"
 
+/*	When CFDP is included in the build, the test fails due to
+ *	insufficient memory resources.  Need to figure out how to
+ *	get RTEMS to allocate enough memory for the test, but for
+ *	now we just exclude CFDP from the build (since it is not
+ *	involved in sending the test bundle.				*/
+#define	NASA_PROTECTED_FLIGHT_CODE
+
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
 #endif

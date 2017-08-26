@@ -692,6 +692,8 @@ static void	dropEndpoint(VEndpoint *vpoint, PsmAddress vpointElt)
 	vpointAddr = sm_list_data(bpwm, vpointElt);
 	if (vpoint->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vpoint->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vpoint->semaphore);
 	}
 
@@ -806,6 +808,8 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 	vschemeAddr = sm_list_data(bpwm, vschemeElt);
 	if (vscheme->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vscheme->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vscheme->semaphore);
 	}
 
@@ -955,7 +959,7 @@ static void	waitForScheme(VScheme *vscheme)
 	{
 		while (sm_TaskExists(vscheme->fwdPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 
@@ -963,7 +967,7 @@ static void	waitForScheme(VScheme *vscheme)
 	{
 		while (sm_TaskExists(vscheme->admAppPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1058,6 +1062,8 @@ static void	dropPlan(VPlan *vplan, PsmAddress vplanElt)
 	vplanAddr = sm_list_data(bpwm, vplanElt);
 	if (vplan->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vplan->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vplan->semaphore);
 	}
 
@@ -1094,7 +1100,7 @@ static void	waitForPlan(VPlan *vplan)
 	{
 		while (sm_TaskExists(vplan->clmPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1193,7 +1199,7 @@ static void	waitForInduct(VInduct *vduct)
 	{
 		while (sm_TaskExists(vduct->cliPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1211,7 +1217,6 @@ static void	resetOutduct(VOutduct *vduct)
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
-	vduct->cloPid = ERROR;
 }
 
 static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
@@ -1249,6 +1254,7 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 
 	vduct = (VOutduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VOutduct));
+	vduct->cloPid = ERROR;
 	vduct->outductElt = outductElt;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
@@ -1266,6 +1272,7 @@ static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
 	if (vduct->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vduct->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vduct->semaphore);
 	}
 
@@ -1307,13 +1314,32 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
-	if (vduct->cloPid != ERROR)
+	if (vduct->hasThread)
 	{
-		while (sm_TaskExists(vduct->cloPid))
+		/*	Duct is drained by a thread rather than a
+		 *	process.  Wait until it stops.			*/
+
+		if (pthread_kill(vduct->cloThread, SIGCONT) == 0)
 		{
-			microsnooze(1000000);
+			pthread_join(vduct->cloThread, NULL);
 		}
+
+		vduct->hasThread = 0;
 	}
+
+	if (vduct->cloPid == ERROR)
+	{
+		return;
+	}
+
+	/*	Duct is being drained by a process.			*/
+
+	while (sm_TaskExists(vduct->cloPid))
+	{
+		microsnooze(100000);
+	}
+
+	vduct->cloPid = ERROR;
 }
 
 static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
@@ -1481,8 +1507,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
-		vdb->confirmedTransitSemaphore = SM_SEM_NONE;
-		vdb->provisionalTransitSemaphore = SM_SEM_NONE;
+		vdb->transitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
@@ -1619,8 +1644,7 @@ int	bpInit()
 				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
-		bpdbBuf.confirmedTransit = sdr_list_create(bpSdr);
-		bpdbBuf.provisionalTransit = sdr_list_create(bpSdr);
+		bpdbBuf.transit = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(bpSdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
@@ -1833,15 +1857,12 @@ int	bpStart()
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->transitCmd);
 		bpvdb->transitPid = pseudoshell(cmdString);
-		bpvdb->confirmedTransitSemaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-		bpvdb->provisionalTransitSemaphore = sm_SemCreate(SM_NO_KEY,
+		bpvdb->transitSemaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 
-		/*	Lock both transit semaphores.			*/
+		/*	Lock transit semaphore.			*/
 
-		sm_SemTake(bpvdb->confirmedTransitSemaphore);
-		sm_SemTake(bpvdb->provisionalTransitSemaphore);
+		sm_SemTake(bpvdb->transitSemaphore);
 	}
 
 	/*	Start forwarders and admin endpoints for all schemes.	*/
@@ -1924,7 +1945,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		stopOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			stopOutduct(voutduct);
+		}
 	}
 
 	if (bpvdb->clockPid != ERROR)
@@ -1932,8 +1956,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
-	sm_SemEnd(bpvdb->confirmedTransitSemaphore);
-	sm_SemEnd(bpvdb->provisionalTransitSemaphore);
+	sm_SemEnd(bpvdb->transitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->transitPid, SIGTERM);
@@ -1968,7 +1991,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		waitForOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			waitForOutduct(voutduct);
+		}
 	}
 
 	if (bpvdb->clockPid != ERROR)
@@ -2017,7 +2043,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		resetOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			resetOutduct(voutduct);
+		}
 	}
 
 	/*	Clear out any partially received bundles, then exit.	*/
@@ -3413,6 +3442,13 @@ int	removeScheme(char *schemeName)
 	sdr_exit_xn(bpSdr);
 	waitForScheme(vscheme);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetScheme(vscheme);
 	schemeElt = vscheme->schemeElt;
 	addr = sdr_list_data(bpSdr, schemeElt);
@@ -3503,6 +3539,13 @@ void	bpStopScheme(char *name)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForScheme(vscheme);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findScheme(name, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return;
+	}
+
 	resetScheme(vscheme);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -4024,6 +4067,13 @@ int	removePlan(char *eidIn)
 	sdr_exit_xn(bpSdr);
 	waitForPlan(vplan);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetPlan(vplan);
 	planElt = vplan->planElt;
 	addr = sdr_list_data(bpSdr, planElt);
@@ -4108,6 +4158,13 @@ void	bpStopPlan(char *eid)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForPlan(vplan);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)	/*	This is an unknown egress plan.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetPlan(vplan);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -4517,11 +4574,14 @@ void	bpStopProtocol(char *name)
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		if (strcmp(voutduct->protocolName, name) == 0)
 		{
-			stopOutduct(voutduct);
-			sdr_exit_xn(bpSdr);
-			waitForOutduct(voutduct);
-			CHKVOID(sdr_begin_xn(bpSdr));
-			resetOutduct(voutduct);
+			if (!(voutduct->hasThread))
+			{
+				stopOutduct(voutduct);
+				sdr_exit_xn(bpSdr);
+				waitForOutduct(voutduct);
+				CHKVOID(sdr_begin_xn(bpSdr));
+				resetOutduct(voutduct);
+			}
 		}
 	}
 
@@ -4748,6 +4808,13 @@ int	removeInduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);
 	waitForInduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetInduct(vduct);
 	ductElt = vduct->inductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
@@ -4816,6 +4883,13 @@ void	bpStopInduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForInduct(vduct);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetInduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -5150,6 +5224,13 @@ int	removeOutduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);
 	waitForOutduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetOutduct(vduct);
 	outductElt = vduct->outductElt;
 	outductObj = sdr_list_data(bpSdr, outductElt);
@@ -5242,6 +5323,13 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForOutduct(vduct);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetOutduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -7280,19 +7368,9 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	/*	Queue the bundle for insertion into Outbound ZCO
 	 *	space.							*/
 
-	if (zco_is_provisional(bpSdr, bundle->payload.content))
-	{
-		bundle->transitElt = sdr_list_insert_last(bpSdr,
-				db->provisionalTransit, bundleObj);
-		sm_SemGive(vdb->provisionalTransitSemaphore);
-	}
-	else
-	{
-		bundle->transitElt = sdr_list_insert_last(bpSdr,
-				db->confirmedTransit, bundleObj);
-		sm_SemGive(vdb->confirmedTransitSemaphore);
-	}
-
+	bundle->transitElt = sdr_list_insert_last(bpSdr, db->transit,
+			bundleObj);
+	sm_SemGive(vdb->transitSemaphore);
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	releaseDictionary(dictionary);
 	return 0;
@@ -7500,7 +7578,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 }
 
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
-		ReqAttendant *attendant)
+		ReqAttendant *attendant, unsigned char priority)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
@@ -7547,23 +7625,34 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	{
 		source = ZcoFileSource;
 		fileSpaceNeeded = length;
+
+		/*	We don't really need any heap space for the
+		 *	ZCO, but we do claim a need for 1 byte of heap
+		 *	space.  This is just to prevent the file space
+		 *	request from succeeding so long as heap space
+		 *	is fully occupied (i.e., available heap space
+		 *	is zero which is less than 1).			*/
+
+		heapSpaceNeeded = 1;
 	}
 
 	/*	Reserve space for new ZCO extent.			*/
 
 	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, 0, heapSpaceNeeded,
-			0, 0, attendant, &ticket) < 0)
+			priority, 0, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve ZCO space.", NULL);
 		return -1;
 	}
 
-	if (ticket)		/*	Space not currently available.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
+		/*	Space not currently available.			*/
+
 		if (attendant == NULL)	/*	Non-blocking.		*/
 		{
 			work->congestive = 1;
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;	/*	Out of ZCO space.	*/
 		}
 
@@ -7573,20 +7662,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("Failed taking attendant semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	ZCO space has now been reserved.		*/
-
-		ionShred(ticket);
 	}
 
 	/*	At this point, ZCO space is known to be available.	*/
@@ -7594,12 +7681,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	CHKERR(sdr_begin_xn(sdr));
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
-		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound,
-				0);
+		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
 		if (work->zco == (Object) ERROR)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7609,6 +7696,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7642,6 +7730,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			case 0:
 				putErrmsg("Can't append heap extent.", NULL);
 				sdr_cancel_xn(sdr);
+				ionShred(ticket);	/*	Cancel.	*/
 				return -1;
 
 			default:
@@ -7652,9 +7741,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't acquire extent into heap.", NULL);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
+		ionShred(ticket);	/*	Dismiss reservation.	*/
 		return 0;
 	}
 
@@ -7667,17 +7758,19 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't get CWD for acq file name.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		acqCount++;
-		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u", cwd,
-				ION_PATH_DELIMITER, acqCount);
+		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u.%u", cwd,
+				ION_PATH_DELIMITER, sm_TaskIdSelf(), acqCount);
 		fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
 			putSysErrmsg("Can't create acq file", fileName);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7689,6 +7782,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			putErrmsg("Can't create file ref.", NULL);
 			sdr_cancel_xn(sdr);
 			close(fd);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7701,6 +7795,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7709,6 +7804,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			putSysErrmsg("Can't get acq file length", fileName);
 			sdr_cancel_xn(sdr);
 			close(fd);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7718,6 +7814,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		putSysErrmsg("Can't append to acq file", fileName);
 		sdr_cancel_xn(sdr);
 		close(fd);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
@@ -7733,6 +7830,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	case 0:
 		putErrmsg("Can't append file extent.", NULL);
 		sdr_cancel_xn(sdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 
 	default:
@@ -7746,9 +7844,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return 0;
 }
 
@@ -9161,7 +9261,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
-			0 - ctSignalLength, ZcoOutbound, 0);
+			0 - ctSignalLength, ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -9442,7 +9542,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
-			ZcoOutbound, 0);
+			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
@@ -10145,12 +10245,13 @@ int	bpAccept(Object bundleObj, Bundle *bundle)
 	return 0;
 }
 
-static Object	insertBundleIntoQueue(Object queue, Object lastElt,
-			Object bundleAddr, int priority,
+static Object	insertBundleIntoQueue(Object queue, Object firstElt,
+			Object lastElt, Object bundleAddr, int priority,
 			unsigned char ordinal, time_t enqueueTime)
 {
 	Sdr	bpSdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
+	Object	nextElt;
 
 	/*	Bundles have transmission seniority which must be
 	 *	honored.  A bundle that was enqueued for transmission
@@ -10159,41 +10260,51 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 	 *	were enqueued more recently.				*/
 
 	GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
-	while (enqueueTime < bundle->enqueueTime)
+	if (enqueueTime < bundle->enqueueTime)
 	{
-		lastElt = sdr_list_prev(bpSdr, lastElt);
-		if (lastElt == 0)
-		{
-			break;		/*	Reached head of queue.	*/
-		}
+		/*	Must be re-enqueuing a previously queued
+		 *	bundle.						*/
 
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle,
-				sdr_list_data(bpSdr, lastElt));
-		if (priority < 2)
+		nextElt = firstElt;
+		while (1)
 		{
-			continue;	/*	Don't check ordinal.	*/
-		}
+			if (nextElt == lastElt)
+			{
+				/*	Insert just before last elt.	*/
 
-		if (bundle->ancillaryData.ordinal > ordinal)
-		{
-			break;		/*	At head of subqueue.	*/
+				return sdr_list_insert_before(bpSdr, nextElt,
+						bundleAddr);
+			}
+
+			GET_OBJ_POINTER(bpSdr, Bundle, bundle,
+					sdr_list_data(bpSdr, nextElt));
+			if (enqueueTime < bundle->enqueueTime)
+			{
+				/*	Insert before this one.		*/
+
+				return sdr_list_insert_before(bpSdr, nextElt,
+						bundleAddr);
+			}
+
+			nextElt = sdr_list_next(bpSdr, nextElt);
 		}
 	}
 
-	if (lastElt)
-	{
-		return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
-	}
+	/*	Enqueue time >= last elt's enqueue time, so insert
+	 *	after the last elt.					*/
 
-	return sdr_list_insert_first(bpSdr, queue, bundleAddr);
+	return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
 }
 
 static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned char	ordinal = bundle->ancillaryData.ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
-	Object		lastElt = 0;	// initialized to avoid warning
+	Object		lastElt = 0;
+	Object		lastForPriorOrdinal = 0;
+	Object		firstElt = 0;
 	int		i;
 	Object		xmitElt;
 
@@ -10201,24 +10312,48 @@ static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 	 *	currently enqueued bundle whose ordinal is equal to
 	 *	or greater than that of the new bundle.			*/
 
-	for (i = ordinal; i < 256; i++)
+	for (i = 0; i < 256; i++)
 	{
 		lastElt = plan->ordinals[i].lastForOrdinal;
-		if (lastElt)
+		if (lastElt == 0)
 		{
-			break;
+			continue;
 		}
+
+		if (i < ordinal)
+		{
+			lastForPriorOrdinal = lastElt;
+			continue;
+		}
+
+		/*	i >= ordinal, so we have found the end of
+		 *	the applicable sub-list.  The first bundle
+		 *	after the last bundle of the last preceding
+		 *	non-empty sub-list (if any) must be the first
+		 *	bundle of the applicable sub-list.  (Possibly
+		 *	also the last.)					*/
+
+		if (lastForPriorOrdinal)
+		{
+			firstElt = sdr_list_next(sdr, lastForPriorOrdinal);
+		}
+		else
+		{
+			firstElt = lastElt;
+		}
+
+		break;
 	}
 
 	if (i == 256)	/*	No more urgent bundle to enqueue after.	*/
 	{
-		xmitElt = sdr_list_insert_first(getIonsdr(), plan->urgentQueue,
-				bundleObj);
+		xmitElt = sdr_list_insert_first(sdr, plan->urgentQueue,
+			bundleObj);
 	}
 	else		/*	Enqueue after this one.			*/
 	{
-		xmitElt = insertBundleIntoQueue(plan->urgentQueue, lastElt,
-				bundleObj, 2, ordinal, bundle->enqueueTime);
+		xmitElt = insertBundleIntoQueue(plan->urgentQueue, firstElt,
+			lastElt, bundleObj, 2, ordinal, bundle->enqueueTime);
 	}
 
 	if (xmitElt)
@@ -10327,6 +10462,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		{
 			bundle->planXmitElt =
 				insertBundleIntoQueue(plan.bulkQueue,
+				sdr_list_first(bpSdr, plan.bulkQueue),
 				lastElt, bundleObj, 0, 0, enqueueTime);
 		}
 
@@ -10344,6 +10480,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		{
 			bundle->planXmitElt =
 			       	insertBundleIntoQueue(plan.stdQueue,
+				sdr_list_first(bpSdr, plan.stdQueue),
 				lastElt, bundleObj, 1, 0, enqueueTime);
 		}
 
@@ -10592,7 +10729,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 int	bpUnblockPlan(char *eid)
@@ -10812,7 +10949,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		sdr_exit_xn(bpSdr);
 		if (sm_SemTake(vduct->semaphore) < 0)
 		{
-			putErrmsg("CLO can't take duct semaphore.",
+			putErrmsg("CLO failed taking duct semaphore.",
 					vduct->ductName);
 			return -1;
 		}
@@ -10838,6 +10975,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
 	bundle.ductXmitElt = 0;
+	vduct->timeOfLastXmit = getUTCTime();
 	if (bundle.proxNodeEid)
 	{
 		sdr_string_read(bpSdr, proxNodeEid, bundle.proxNodeEid);
@@ -10956,12 +11094,12 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		}
 	}
 
-	/*	Finally, if the bundle is anonymous then its key can
-	 *	never be guaranteed to be unique (because the sending
-	 *	EID that qualifies the creation time and sequence
-	 *	number is omitted), so the bundle can't reliably be
-	 *	retrieved via the hash table.  So again stewardship
-	 *	cannot be successfully accepted.			*/
+	/*	Last check: if the bundle is anonymous then its key
+	 *	can never be guaranteed to be unique (because the
+	 *	sending EID that qualifies the creation time and
+	 *	sequence number is omitted), so the bundle can't
+	 *	reliably be retrieved via the hash table.  So again
+	 *	stewardship cannot be successfully accepted.		*/
 
 	if (bundle.anonymous)
 	{
@@ -11046,7 +11184,7 @@ static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Shift buffer left by length of prior buffer.		*/
 
 	*bytesBuffered -= bytesParsed;
-	memcpy(buffer, buffer + bytesParsed, *bytesBuffered);
+	memmove(buffer, buffer + bytesParsed, *bytesBuffered);
 
 	/*	Now read from ZCO to fill the buffer space that was
 	 *	vacated.						*/

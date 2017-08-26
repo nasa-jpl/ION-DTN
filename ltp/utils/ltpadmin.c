@@ -82,9 +82,9 @@ See man(5) for ltprc.");
 	PUTS("\t   l span");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
-	PUTS("\t   m screening { y | n }");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
+	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s '<LSI command>'");
 	PUTS("\tx\tStop");
@@ -461,44 +461,8 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 
 static void	manageScreening(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
-	Object	ltpdbObj = getLtpDbObject();
-	LtpDB	ltpdb;
-	int	newEnforceSchedule;
-
-	if (tokenCount != 3)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	switch (*(tokens[2]))
-	{
-	case 'y':
-	case 'Y':
-	case '1':
-		newEnforceSchedule = 1;
-		break;
-
-	case 'n':
-	case 'N':
-	case '0':
-		newEnforceSchedule = 0;
-		break;
-
-	default:
-		writeMemoNote("Screening must be 'y' or 'n'", tokens[2]);
-		return;
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
-	ltpdb.enforceSchedule = newEnforceSchedule;
-	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't change LTP screening control.", NULL);
-	}
+	writeMemo("[!] Note: LTP screening is now always on, cannot be \
+disabled.");
 }
 
 static void	manageOwnqtime(int tokenCount, char **tokens)
@@ -572,6 +536,36 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxBacklog(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	LtpDB		ltpdb;
+	unsigned int	maxBacklog;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	maxBacklog = strtoul(tokens[2], NULL, 0);
+	if (maxBacklog < 2)
+	{
+		writeMemoNote("[?] maxbacklog must be at least 2", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.maxBacklog = maxBacklog;
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxBacklog.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -601,6 +595,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "maxber") == 0)
 	{
 		manageMaxBER(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxbacklog") == 0)
+	{
+		manageMaxBacklog(tokenCount, tokens);
 		return;
 	}
 

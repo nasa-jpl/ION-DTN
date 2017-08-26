@@ -182,7 +182,7 @@ int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
 	{
 		writeMemoNote("[?] Duct expression lacks duct name",
 				ductExpression);
-		writeMemoNote("[?] (Attaching duct to plan", eid);
+		writeMemoNote("[?]   Attaching duct to plan", eid);
 		return -1;
 	}
 
@@ -192,7 +192,7 @@ int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
 	if (vductElt == 0)
 	{
 		writeMemoNote("[?] Unknown duct", ductExpression);
-		writeMemoNote("[?] (Attaching duct to plan", eid);
+		writeMemoNote("[?]   Attaching duct to plan", eid);
 		return -1;
 	}
 

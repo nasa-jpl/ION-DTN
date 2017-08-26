@@ -208,16 +208,22 @@ static void	dropSpan(BsspVspan *vspan, PsmAddress vspanElt)
 	vspanAddr = sm_list_data(bsspwm, vspanElt);
 	if (vspan->bufOpenSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->bufOpenSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->bufOpenSemaphore);
 	}
 
 	if (vspan->beSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->beSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->beSemaphore);
 	}
 
 	if (vspan->rlSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->rlSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->rlSemaphore);
 	}
 
@@ -610,6 +616,8 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	{
 		if (client->semaphore != SM_SEM_NONE)
 		{
+			sm_SemEnd(client->semaphore);
+			microsnooze(50000);
 			sm_SemDelete(client->semaphore);
 		}
 	}
@@ -2300,9 +2308,11 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 		return -1;
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		ionShred(ticket);
+		/*	Couldn't service request immediately.	*/
+
+		ionShred(ticket);		/*	Cancel request.	*/
 #if BSSPDEBUG
 putErrmsg("Can't handle data block, would exceed available ZCO space.",
 utoa(pdu->length));
@@ -2310,11 +2320,14 @@ utoa(pdu->length));
 		return sdr_end_xn(bsspSdr);
 	}
 
+	/*	ZCO space has been awarded.				*/
+
 	pduObj = sdr_insert(bsspSdr, *cursor, pdu->length);
 	if (pduObj == 0)
 	{
 		putErrmsg("Can't record data block.", NULL);
 		sdr_cancel_xn(bsspSdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
@@ -2323,12 +2336,13 @@ utoa(pdu->length));
 
 	pduLength -= pdu->length;
 	clientSvcData = zco_create(bsspSdr, ZcoSdrSource, pduObj, 0, pduLength,
-			ZcoInbound, 0);
+			ZcoInbound);
 	switch (clientSvcData)
 	{
 	case (Object) ERROR:
 		putErrmsg("Can't record data block.", NULL);
 		sdr_cancel_xn(bsspSdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 
 	case 0:	/*	No ZCO space.  Silently discard block.	*/
@@ -2336,6 +2350,7 @@ utoa(pdu->length));
 putErrmsg("Can't handle data block, would exceed available ZCO space.",
 utoa(pdu->length));
 #endif
+		ionShred(ticket);		/*	Cancel request.	*/
 		return sdr_end_xn(bsspSdr);
 	}
 
@@ -2343,6 +2358,7 @@ utoa(pdu->length));
 			BsspRecvSuccess, 0, clientSvcData) < 0)
 	{
 		putErrmsg("Can't enqueue notice to bssp client.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return sdr_end_xn(bsspSdr);
 	}
 
@@ -2350,15 +2366,18 @@ utoa(pdu->length));
 	{
 		putErrmsg("Can't send reception acknowledgement.", NULL);
 		sdr_cancel_xn(bsspSdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
 	if (sdr_end_xn(bsspSdr) < 0)
 	{
 		putErrmsg("Can't handle data block.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);		/*	Dismiss reservation.	*/
 	return 0;	/*	 Data block handled okay.		*/
 }
 

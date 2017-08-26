@@ -13,7 +13,11 @@
 #include "lyst.h"
 
 #ifndef CFDPDEBUG
-#define	CFDPDEBUG	0
+#define	CFDPDEBUG		0
+#endif
+
+#ifndef	CFDP_FILLBUF_LIMIT
+#define	CFDP_FILLBUF_LIMIT	65536
 #endif
 
 /*	*	*	Helpful utility functions	*	*	*/
@@ -589,11 +593,15 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	vdb = (CfdpVdb *) psp(wm, vdbAddress);
 	if (vdb->eventSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vdb->eventSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vdb->eventSemaphore);
 	}
 
 	if (vdb->fduSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vdb->fduSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vdb->fduSemaphore);
 	}
 
@@ -1187,10 +1195,10 @@ Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
 	entity.inboundFdus = sdr_list_create(sdr);
 	entityObj = sdr_malloc(sdr, sizeof(Entity));
 	if (entity.inboundFdus == 0 || entityObj == 0
-	|| (elt == 0	?
+	|| (nextElt == 0	?
 		sdr_list_insert_last(sdr, db->entities, entityObj)
 		: 
-		sdr_list_insert_before(sdr, elt, entityObj)) == 0)
+		sdr_list_insert_before(sdr, nextElt, entityObj)) == 0)
 	{
 		return 0;	/*	System failure.		*/
 	}
@@ -2934,7 +2942,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 		 *	to note that space has already been awarded.	*/
 
 		*pdu = zco_create(sdr, ZcoSdrSource, fdu->metadataPdu, 0,
-				0 - length, ZcoOutbound, 0);
+				0 - length, ZcoOutbound);
 		switch (*pdu)
 		{
 		case (Object) ERROR:
@@ -3025,7 +3033,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 			 *	already been awarded.			*/
 
 			*pdu = zco_create(sdr, ZcoSdrSource, header, 0,
-					0 - length, ZcoOutbound, 0);
+					0 - length, ZcoOutbound);
 			switch (*pdu)
 			{
 			case (Object) ERROR:
@@ -3064,7 +3072,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 	 *	that space has already been awarded.			*/
 
 	*pdu = zco_create(sdr, ZcoSdrSource, fdu->eofPdu, 0, 0 - length,
-			ZcoOutbound, 0);
+			ZcoOutbound);
 	switch (*pdu)
 	{
 	case (Object) ERROR:
@@ -3101,7 +3109,7 @@ static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 		 *	to note that space has already been awarded.	*/
 
 		*pdu = zco_create(sdr, ZcoSdrSource, fpdu->pdu, 0,
-				0 - length, ZcoOutbound, 0);
+				0 - length, ZcoOutbound);
 		switch (*pdu)
 		{
 		case (Object) ERROR:
@@ -3186,28 +3194,25 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		return -1;
 	}
 
-	if (ticket)	/*	Space is not currently available.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		/*	Ticket is request list element for the request.
-		 *	Wait until space is available.			*/
+		/*	Space is not currently available.		*/
 
 		if (sm_SemTake(cfdpvdb->attendant.semaphore) < 0)
 		{
 			putErrmsg("Failed taking semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		if (sm_SemEnded(cfdpvdb->attendant.semaphore))
 		{
 			writeMemo("[i] CFDP UTO ZCO request interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		/*	ZCO space has now been reserved.		*/
-	
-		ionShred(ticket);
 	}
 
 	/*	At this point it is known that there's sufficient
@@ -3219,9 +3224,11 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 	{
 		putErrmsg("UTO can't get outbound PDU.", NULL);
 		sdr_cancel_xn(sdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	while (*pdu == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -3798,6 +3805,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 			InFdu *fdu, Object fduObj, Object fduElt, int largeFile,
 			int recordStructure, int haveMetadata)
 {
+	PsmPartition	wm = getIonwm();
 	CfdpEvent	event;
 	int		offsetLength;
 	int		i;
@@ -3817,6 +3825,11 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	char		workingNameBuffer[MAXPATHLEN + 1];
 	vast		endOfFile;
 	uvast		fileLength;
+	uvast		fillBufSize;
+	uvast		bufSizeLimit;
+	PsmUsageSummary	usage;
+	char		*fillBuf;
+	uvast		fillSize;
 	Object		nextAddr;
 	CfdpExtent	nextExtent;
 	uvast		bytesToWrite;
@@ -3958,7 +3971,7 @@ extent.offset, extent.offset + extent.length);
 			cursor += bytesToSkip;
 			bytesRemaining -= bytesToSkip;
 #if CFDPDEBUG
-printf("Skipping %d bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
+printf("Skipping " UVAST_FIELDSPEC " bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
 bytesToSkip, segmentOffset);
 #endif
 		}
@@ -4042,16 +4055,68 @@ extent.offset, extent.offset + extent.length);
 	}
 
 	fileLength = endOfFile;
-	while (fileLength < segmentOffset)
+	if (fileLength < segmentOffset)
 	{
-		if (write(cfdpvdb->currentFile,
-				&(cfdpdb.fillCharacter), 1) < 0)
+		/*	Temporarily take large working memory
+		 *	buffer for fill characters.  Try to use
+		 *	all free large pool space; if sparse, try
+		 *	for configured maximum.				*/
+
+		fillBufSize = segmentOffset - fileLength;
+		bufSizeLimit = CFDP_FILLBUF_LIMIT;
+		psm_usage(wm, &usage);
+		if (usage.largePoolFree > bufSizeLimit)
 		{
-			putSysErrmsg("Can't write to file", workingNameBuffer);
-			return handleFilestoreRejection(fdu, -1, &handler);
+			bufSizeLimit = usage.largePoolFree;
 		}
 
-		fileLength++;
+		if (fillBufSize > bufSizeLimit)
+		{
+			fillBufSize = bufSizeLimit;
+		}
+
+		while (1)
+		{
+			fillBuf = MTAKE(fillBufSize);
+			if (fillBuf)
+			{
+				break;	/*	Got large buffer.	*/
+			}
+
+			/*	Try to grab a smaller buffer.		*/
+
+			fillBufSize /= 2;
+			if (fillBufSize < 1)
+			{
+				putErrmsg("No working memory for fill buffer.",
+						NULL);
+				return handleFilestoreRejection(fdu, 0,
+						&handler);
+			}
+		}
+
+		memset(fillBuf, cfdpdb.fillCharacter, fillBufSize);
+		while (fileLength < segmentOffset)
+		{
+			fillSize = segmentOffset - fileLength;
+			if (fillSize > fillBufSize)
+			{
+				fillSize = fillBufSize;
+			}
+
+			if (write(cfdpvdb->currentFile, fillBuf, fillSize) < 0)
+			{
+				putSysErrmsg("Can't write to file",
+						workingNameBuffer);
+				MRELEASE(fillBuf);
+				return handleFilestoreRejection(fdu, -1,
+						&handler);
+			}
+	
+			fileLength += fillSize;
+		}
+
+		MRELEASE(fillBuf);
 	}
 
 	/*	Reposition at offset of new file data bytes.		*/

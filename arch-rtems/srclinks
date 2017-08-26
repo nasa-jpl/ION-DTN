@@ -36,6 +36,7 @@ ln -s ../ici/daemon/rfxclock.c
 ln -s ../ici/utils/ionadmin.c
 ln -s ../ici/utils/ionsecadmin.c
 ln -s ../ici/utils/sdrmend.c
+ln -s ../ici/utils/ionunlock.c
 ln -s ../ici/utils/ionexit.c
 ln -s ../ici/utils/ionwarn.c
 ln -s ../bp/library/libbp.c
@@ -190,6 +191,7 @@ ln -s ../ltp/library/ltpP.h
 ln -s ../ltp/library/ltpnm.h
 ln -s ../ltp/library/ltpei.h
 ln -s ../ltp/daemon/ltpclock.c
+ln -s ../ltp/daemon/ltpdeliv.c
 ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
 ln -s ../bssp/library/libbssp.c

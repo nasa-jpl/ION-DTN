@@ -236,7 +236,7 @@ al_bp_bundle_status_report_t ion_al_bundle_status_report(BpStatusRpt bundle_stat
 	return bp_statusRpt;
 }
 
-Payload al_ion_bundle_payload(al_bp_bundle_payload_t bundle_payload, int  priority,BpExtendedCOS extendedCOS)
+Payload al_ion_bundle_payload(al_bp_bundle_payload_t bundle_payload, int  priority,BpAncillaryData ancillaryData)
 {
 	Payload payload;
 	memset(&payload,0,sizeof(Payload));
@@ -249,7 +249,7 @@ Payload al_ion_bundle_payload(al_bp_bundle_payload_t bundle_payload, int  priori
 		sdr_write(bpSdr, buff, bundle_payload.buf.buf_val, bundle_payload.buf.buf_len);
 		#ifdef NEW_ZCO
 			payload.content = ionCreateZco(ZcoSdrSource, buff, 0, bundle_payload.buf.buf_len, priority,
-				extendedCOS.ordinal, ZcoOutbound, NULL);
+				ancillaryData.ordinal, ZcoOutbound, NULL);
 		#else
 			payload.content = zco_create(bpSdr, ZcoSdrSource, buff, 0, bundle_payload.buf.buf_len);
 		#endif
@@ -275,7 +275,7 @@ Payload al_ion_bundle_payload(al_bp_bundle_payload_t bundle_payload, int  priori
 		}
 		#ifdef NEW_ZCO
 			payload.content = ionCreateZco(ZcoFileSource, fileRef, 0, (unsigned int) dimFile, priority,
-			extendedCOS.ordinal, ZcoOutbound, NULL);
+			ancillaryData.ordinal, ZcoOutbound, NULL);
 		#else
 			payload.content = zco_create(bpSdr, ZcoFileSource, fileRef, 0, (unsigned int) dimFile);
 		#endif

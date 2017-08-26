@@ -14,6 +14,7 @@ extern int	ionadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ionwarn(int, int, int, int, int, int, int, int, int, int);
+extern int	ionunlock(int, int, int, int, int, int, int, int, int, int);
 extern int	bpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bptransit(int, int, int, int, int, int, int, int, int, int);
@@ -34,6 +35,7 @@ extern int	ionexit(int, int, int, int, int, int, int, int, int, int);
 extern int	ionrestart(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclock(int, int, int, int, int, int, int, int, int, int);
+extern int	ltpdeliv(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpmeter(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
@@ -62,6 +64,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "rfxclock",	(FUNCPTR) rfxclock,	ICI_PRIORITY,	32768 },
 		{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
 		{ "ionwarn",	(FUNCPTR) ionwarn,	ICI_PRIORITY,	32768 },
+		{ "ionunlock",	(FUNCPTR) ionunlock,	ICI_PRIORITY,	32768 },
 		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
 		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
 		{ "bptransit",	(FUNCPTR) bptransit,	ICI_PRIORITY,	24576 },
@@ -81,6 +84,7 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ionrestart",	(FUNCPTR) ionrestart,	ICI_PRIORITY,	32768 },
 		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
 		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
+		{ "ltpdeliv",	(FUNCPTR) ltpdeliv,	ICI_PRIORITY,	32768 },
 		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },

@@ -140,7 +140,7 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 
 	if (parms)
 	{
-		if (parms->wmSize == -1)	/*	Destroy.	*/
+		if (parms->wmName == NULL)	/*	Destroy.	*/
 		{
 			if (ionwm)
 			{
@@ -1043,7 +1043,7 @@ void	ionDetach()
 #endif	/*	end of #ifdef ION_LWT					*/
 }
 
-void	ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate,
+void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 		unsigned int owlt)
 {
 	Sdr		ionsdr = _ionsdr(NULL);
@@ -1106,8 +1106,9 @@ void	ionTerminate()
 
 	oK(_iondbObject(&obj));
 	ionwmParms.wmKey = 0;
-	ionwmParms.wmSize = -1;
+	ionwmParms.wmSize = 0;
 	ionwmParms.wmAddress = NULL;
+	ionwmParms.wmName = NULL;
 	oK(_ionwm(&ionwmParms));
 	oK(_ionvdb(&ionvdbName));
 }
@@ -1173,7 +1174,7 @@ int	ionClockIsSynchronized()
 
 /*	*	*	Shared-memory tracing 	*	*	*	*/
 
-int	startIonMemTrace(int size)
+int	startIonMemTrace(size_t size)
 {
 	return psm_start_trace(_ionwm(NULL), size, NULL);
 }
@@ -1430,6 +1431,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	int	i;
 	char	*tokens[2];
 	int	tokenCount;
+	uvast	size;
 
 	/*	Set defaults.						*/
 
@@ -1552,7 +1554,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "wmSize") == 0)
 		{
-			parms->wmSize = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->wmSize = size;
+			if (parms->wmSize != size)
+			{
+				size = parms->wmSize;
+				isprintf(buffer, sizeof buffer, "[?] wmSize \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1571,7 +1585,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "sdrWmSize") == 0)
 		{
-			parms->sdrWmSize = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->sdrWmSize = size;
+			if (parms->sdrWmSize != size)
+			{
+				size = parms->sdrWmSize;
+				isprintf(buffer, sizeof buffer, "[?] sdrWmSize \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1583,7 +1609,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "heapWords") == 0)
 		{
-			parms->heapWords = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->heapWords = size;
+			if (parms->heapWords != size)
+			{
+				size = parms->heapWords;
+				isprintf(buffer, sizeof buffer, "[?] heapWords \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1595,7 +1633,19 @@ configuration file line (%d).", lineNbr);
 
 		if (strcmp(tokens[0], "logSize") == 0)
 		{
-			parms->logSize = atoi(tokens[1]);
+			size = strtouvast(tokens[1]);
+			parms->logSize = size;
+			if (parms->logSize != size)
+			{
+				size = parms->logSize;
+				isprintf(buffer, sizeof buffer, "[?] logSize \
+too large for this architecture, would have been truncated to " \
+UVAST_FIELDSPEC ".", size);
+				writeMemo(buffer);
+				result = -1;
+				break;
+			}
+
 			continue;
 		}
 
@@ -1784,6 +1834,8 @@ void	ionResumeAttendant(ReqAttendant *attendant)
 void	ionStopAttendant(ReqAttendant *attendant)
 {
 	CHKVOID(attendant);
+	sm_SemEnd(attendant->semaphore);
+	microsnooze(50000);
 	sm_SemDelete(attendant->semaphore);
 }
 
@@ -1795,7 +1847,11 @@ void	ionShred(ReqTicket ticket)
 	/*	Ticket is address of an sm_list element in a shared
 	 *	memory list of requisitions in the IonVdb.		*/
 
-	CHKVOID(ticket);
+	if (ticket == 0)
+	{
+		return;	/*	ZCO space request refused, not queued.	*/
+	}
+
 	CHKVOID(sdr_begin_xn(sdr));	/*	Must be atomic.		*/
 	psm_free(ionwm, sm_list_data(ionwm, ticket));
 	sm_list_delete(ionwm, ticket, NULL, NULL);
@@ -1823,7 +1879,7 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 	CHKERR(heapSpaceNeeded >= 0);
 	CHKERR(ticket);
 	CHKERR(vdb);
-	*ticket = 0;			/*	Default: serviced.	*/
+	*ticket = 0;			/*	Default: refused.	*/
 	oK(sdr_begin_xn(sdr));		/*	Just to lock memory.	*/
 	reqAddr = psm_zalloc(ionwm, sizeof(Requisition));
 	if (reqAddr == 0)
@@ -1901,27 +1957,49 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
 
-	/*	See if request can be serviced immediately.		*/
+	/*	Try to service the request immediately.			*/
 
 	ionProvideZcoSpace(acct);
-	if (req->secondsUnclaimed >= 0)	/*	Got it!			*/
+	if (req->secondsUnclaimed < 0)
 	{
-		ionShred(*ticket);
-		*ticket = 0;		/*	Nothing to wait for.	*/
-		return 0;
-	}
+		/*	Request can't be serviced at this time.		*/
 
-	/*	Request can't be serviced yet.				*/
+		if (attendant)	/*	Willing to wait.		*/
+		{
+			/*	Ready attendant to wait for service.	*/
 
-	if (attendant)
-	{
-		/*	Get attendant ready to wait for service.	*/
-
-		sm_SemGive(attendant->semaphore);	/*	Unlock.	*/
-		sm_SemTake(attendant->semaphore);	/*	Lock.	*/
+			sm_SemGive(attendant->semaphore);
+			sm_SemTake(attendant->semaphore);
+		}
+		else		/*	Request is simply refused.	*/
+		{
+			ionShred(*ticket);
+			*ticket = 0;
+		}
 	}
 
 	return 0;
+}
+
+int	ionSpaceAwarded(ReqTicket ticket)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	reqAddr;
+	Requisition	*req;
+
+	if (ticket == 0)
+	{
+		return 0;	/*	Request refused, not queued.	*/
+	}
+
+	reqAddr = sm_list_data(ionwm, ticket);
+	req = (Requisition *) psp(ionwm, reqAddr);
+	if (req->secondsUnclaimed < 0)
+	{
+		return 0;	/*	Still waiting for service.	*/
+	}
+
+	return 1;		/*	Request has been serviced.	*/
 }
 
 static void	ionProvideZcoSpace(ZcoAcct acct)
@@ -1938,9 +2016,6 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	vast		totalFileSpaceAvbl;
 	vast		totalBulkSpaceAvbl;
 	vast		totalHeapSpaceAvbl;
-	vast		restrictedFileSpaceAvbl;
-	vast		restrictedBulkSpaceAvbl;
-	vast		restrictedHeapSpaceAvbl;
 	vast		fileSpaceAvbl;
 	vast		bulkSpaceAvbl;
 	vast		heapSpaceAvbl;
@@ -1959,17 +2034,6 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	totalFileSpaceAvbl = maxFileOccupancy - currentFileOccupancy;
 	totalBulkSpaceAvbl = maxBulkOccupancy - currentBulkOccupancy;
 	totalHeapSpaceAvbl = maxHeapOccupancy - currentHeapOccupancy;
-
-	/*	Requestors that are willing to wait for space are not
-	 *	allowed to fill up all available space; for these
-	 *	requestors, maximum occupancy is reduced by 1/2.  This
-	 *	is to ensure that these requestors cannot prevent
-	 *	allocation of ZCO space to requestors that cannot
-	 *	wait for it.						*/
-
-	restrictedFileSpaceAvbl = (maxFileOccupancy / 2) - currentFileOccupancy;
-	restrictedBulkSpaceAvbl = (maxBulkOccupancy / 2) - currentBulkOccupancy;
-	restrictedHeapSpaceAvbl = (maxHeapOccupancy / 2) - currentHeapOccupancy;
 	for (elt = sm_list_first(ionwm, vdb->requisitions[acct]); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
@@ -1985,25 +2049,12 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 			totalFileSpaceAvbl -= req->fileSpaceNeeded;
 			totalBulkSpaceAvbl -= req->bulkSpaceNeeded;
 			totalHeapSpaceAvbl -= req->heapSpaceNeeded;
-			restrictedFileSpaceAvbl -= req->fileSpaceNeeded;
-			restrictedBulkSpaceAvbl -= req->bulkSpaceNeeded;
-			restrictedHeapSpaceAvbl -= req->heapSpaceNeeded;
 			continue;	/*	Req already serviced.	*/
 		}
 
-		if (req->semaphore == SM_SEM_NONE)
-		{
-			fileSpaceAvbl = totalFileSpaceAvbl;
-			bulkSpaceAvbl = totalBulkSpaceAvbl;
-			heapSpaceAvbl = totalHeapSpaceAvbl;
-		}
-		else
-		{
-			fileSpaceAvbl = restrictedFileSpaceAvbl;
-			bulkSpaceAvbl = restrictedBulkSpaceAvbl;
-			heapSpaceAvbl = restrictedHeapSpaceAvbl;
-		}
-
+		fileSpaceAvbl = totalFileSpaceAvbl;
+		bulkSpaceAvbl = totalBulkSpaceAvbl;
+		heapSpaceAvbl = totalHeapSpaceAvbl;
 		if (fileSpaceAvbl < 0)
 		{
 			fileSpaceAvbl = 0;
@@ -2024,9 +2075,13 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 		|| heapSpaceAvbl < req->heapSpaceNeeded)
 		{
 			/*	Can't provide ZCO space to this
-			 *	requisition at this time.		*/
+			 *	requisition at this time.  Other
+			 *	requisitions might be for smaller
+			 *	amounts, but if we service those
+			 *	requisitions we delay service to
+			 *	this one.				*/
 
-			continue;
+			break;
 		}
 
 		/*	Can service this requisition.			*/
@@ -2040,9 +2095,6 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 		totalFileSpaceAvbl -= req->fileSpaceNeeded;
 		totalBulkSpaceAvbl -= req->bulkSpaceNeeded;
 		totalHeapSpaceAvbl -= req->heapSpaceNeeded;
-		restrictedFileSpaceAvbl -= req->fileSpaceNeeded;
-		restrictedBulkSpaceAvbl -= req->bulkSpaceNeeded;
-		restrictedHeapSpaceAvbl -= req->heapSpaceNeeded;
 	}
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
@@ -2055,7 +2107,6 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = getIonVdb();
-	unsigned char	provisional;
 	vast		fileSpaceNeeded = 0;
 	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
@@ -2064,11 +2115,10 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 
 	CHKERR(vdb);
 	CHKERR(acct == ZcoInbound || acct == ZcoOutbound);
-	provisional = (acct == ZcoInbound && attendant == NULL ? 1 : 0);
 	if (location == 0)	/*	No initial extent to write.	*/
 	{
 		oK(sdr_begin_xn(sdr));
-		zco = zco_create(sdr, source, 0, 0, 0, acct, provisional);
+		zco = zco_create(sdr, source, 0, 0, 0, acct);
 		if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR)
 		{
 			putErrmsg("Can't create ZCO.", NULL);
@@ -2117,12 +2167,14 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		return ((Object) ERROR);
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		if (attendant == NULL)	/*	Non-blocking.		*/
+		/*	Couldn't service request immediately.		*/
+
+		if (attendant == NULL)		/*	Non-blocking.	*/
 		{
-			ionShred(ticket);
-			return 0;	/*	No Zco created.		*/
+			ionShred(ticket);	/*	Cancel request.	*/
+			return 0;		/*	No Zco created.	*/
 		}
 
 		/*	Ticket is req list element for the request.	*/
@@ -2130,34 +2182,33 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("ionCreateZco can't take semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return ((Object) ERROR);
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO creation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	Request has been serviced; can now create ZCO.	*/
-
-		ionShred(ticket);
 	}
 
 	/*	Pass additive inverse of length to zco_create to
  	*	indicate that space has already been awarded.		*/
 
 	oK(sdr_begin_xn(sdr));
-	zco = zco_create(sdr, source, location, offset, 0 - length, acct,
-			provisional);
+	zco = zco_create(sdr, source, location, offset, 0 - length, acct);
 	if (sdr_end_xn(sdr) < 0 || zco == (Object) ERROR || zco == 0)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return ((Object) ERROR);
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return zco;
 }
 
@@ -2211,12 +2262,14 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		return ERROR;
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		if (attendant == NULL)	/*	Non-blocking.		*/
+		/*	Couldn't service request immediately.		*/
+
+		if (attendant == NULL)		/*	Non-blocking.	*/
 		{
-			ionShred(ticket);
-			return 0;	/*	No extent created.	*/
+			ionShred(ticket);	/*	Cancel request.	*/
+			return 0;		/*	No extent.	*/
 		}
 
 		/*	Ticket is req list element for the request.	*/
@@ -2225,20 +2278,18 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		{
 			putErrmsg("ionAppendZcoExtent can't take semaphore.",
 					NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return ERROR;
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO extent creation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	Request has been serviced; now create extent.	*/
-
-		ionShred(ticket);
 	}
 
 	/*	Pass additive inverse of length to zco_append_extent
@@ -2250,9 +2301,11 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 	if (sdr_end_xn(sdr) < 0 || result == ERROR || result == 0)
 	{
 		putErrmsg("Can't create ZCO extent.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return ERROR;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return result;
 }
 

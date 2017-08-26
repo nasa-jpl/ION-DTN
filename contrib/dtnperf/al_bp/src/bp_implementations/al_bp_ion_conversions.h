@@ -85,6 +85,6 @@ BpStatusRpt al_ion_bundle_status_report(al_bp_bundle_status_report_t bundle_stat
 al_bp_bundle_status_report_t ion_al_bundle_status_report(BpStatusRpt bundle_status_report);
 
 al_bp_bundle_payload_t ion_al_bundle_payload(Payload bundle_payload,al_bp_bundle_payload_location_t location,char * filename);
-Payload al_ion_bundle_payload(al_bp_bundle_payload_t bundle_payload, int  priority, BpExtendedCOS extendedCOS);
+Payload al_ion_bundle_payload(al_bp_bundle_payload_t bundle_payload, int  priority, BpAncillaryData extendedCOS);
 #endif  /* AL_BP_DTN_CONVERSIONS_H_ */
 #endif /* ION_IMPLEMENTAION */

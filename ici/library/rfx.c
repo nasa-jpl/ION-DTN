@@ -713,7 +713,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 int	rfx_insert_contact(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, unsigned int xmitRate,
+			uvast fromNode, uvast toNode, size_t xmitRate,
 			float confidence, PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
@@ -977,7 +977,7 @@ puts("Duplicate log entry is rejected.");
 }
 
 void	rfx_log_discovered_contact(time_t fromTime, time_t toTime,
-		uvast fromNode, uvast toNode, unsigned int xmitRate, int idx)
+		uvast fromNode, uvast toNode, size_t xmitRate, int idx)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getIonDbObject();
@@ -1295,8 +1295,7 @@ else puts("(contact not found in index)");
 	return 0;
 }
 
-void	rfx_contact_state(uvast nodeNbr, unsigned int *secRemaining,
-		unsigned int *xmitRate)
+void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -1350,7 +1349,7 @@ void	rfx_contact_state(uvast nodeNbr, unsigned int *secRemaining,
 	*secRemaining = 0;
 	if (candidateContacts == 0)	/*	Contact plan n/a.	*/
 	{
-		*xmitRate = ((unsigned int) -1);
+		*xmitRate = ((size_t) -1);
 	}
 	else
 	{
@@ -1371,7 +1370,7 @@ typedef struct
 	uvast		toNode;
 	time_t		fromTime;
 	time_t		toTime;
-	unsigned int	xmitRate;
+	size_t		xmitRate;
 } PbContact;
 
 static int	removePredictedContacts(uvast fromNode, uvast toNode)
@@ -1604,7 +1603,7 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime)
 	float		contactConfidence;
 	float		gapConfidence;
 	float		netConfidence;
-	unsigned int	xmitRate;
+	size_t		xmitRate;
 	PsmAddress	cxaddr;
 char	buf[255];
 
@@ -2536,6 +2535,8 @@ extern PsmAddress	rfx_insert_alarm(unsigned int term,
 	eventAddr = psm_zalloc(ionwm, sizeof(IonEvent));
 	if (eventAddr == 0)
 	{
+		sm_SemEnd(alarm->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(alarm->semaphore);
 		psm_free(ionwm, alarmAddr);
 		sdr_exit_xn(sdr);
@@ -2550,6 +2551,8 @@ extern PsmAddress	rfx_insert_alarm(unsigned int term,
 			event) == 0)
 	{
 		psm_free(ionwm, eventAddr);
+		sm_SemEnd(alarm->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(alarm->semaphore);
 		psm_free(ionwm, alarmAddr);
 		sdr_exit_xn(sdr);
@@ -2609,6 +2612,8 @@ extern int	rfx_remove_alarm(PsmAddress alarmAddr)
 	/*	Now remove the alarm.					*/
 
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
+	sm_SemEnd(alarm->semaphore);
+	microsnooze(50000);
 	sm_SemDelete(alarm->semaphore);
 	alarm->semaphore = SM_SEM_NONE;
 	event.time = alarm->nextTimeout;

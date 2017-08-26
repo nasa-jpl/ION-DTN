@@ -207,7 +207,8 @@ int	main(int argc, char *argv[])
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		isendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
+		oK(isendto(fd, &quit, 1, 0, &socketName,
+				sizeof(struct sockaddr)));
 		closesocket(fd);
 	}
 

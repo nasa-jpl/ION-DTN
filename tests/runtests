@@ -17,13 +17,7 @@ FAILEDFILE="retest"
 
 
 function find_tests_in () {
-if [ "$VERSION" == "windows" ]; then
-	for directory in $@dotest $@/*/dotest $@/*/*/dotest; do
-		echo ${directory%%dotest}
-	done
-else
-	    find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
-fi
+	find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
 }
 
 
@@ -53,11 +47,36 @@ function run_a_test () {
     TEST=${TEST##./}
     TEST=${TEST%%/}
 
-    if [ -f "$TEST/.exclude_$VERSION" -o -f "$TEST/.exclude_all" ]; then
+    if [ -f "$TEST/.exclude_all" ]; then
     	echo "Test Excluded, skipping"
     	skip_test $TEST
     	return
     fi
+
+    # check for environment variable to skip these	
+    if [ -f "$TEST/.exclude_expert" ]; then
+	    if [ -n "$ION_EXCLUDE_EXPERT" ]; then
+		echo "Test Excluded by expertise class, skipping"
+		skip_test $TEST
+		return
+	    fi
+    fi
+
+    # check for environment variable to skip these	
+    if [ -f "$TEST/.exclude_cbased" ]; then
+	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
+		echo "Test Excluded because of C code, skipping"
+		skip_test $TEST
+		return
+	    fi
+    fi
+
+    if [ -f "$TEST/.exclude_$VERSION" ]; then
+    	echo "Test Excluded by OS type, skipping"
+    	skip_test $TEST
+    	return
+    fi
+
 
     if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
         echo "test $TEST doesnt exist!"
@@ -172,12 +191,12 @@ then
 elif [[ $version == *"Linux"* ]] || [[ $version == *"LINUX"* ]]
 then
 	VERSION=linux;
-elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]]
+elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]] || [[ $version == *"Darwin"* ]]
 then
 	VERSION=mac;
 elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
 then
-    VERSION=solaris;
+        VERSION=solaris;
 fi
 
 CLEANUP=""

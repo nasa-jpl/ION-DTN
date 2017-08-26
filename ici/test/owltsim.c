@@ -71,7 +71,8 @@ static void	*sendUdp(void *parm)
 	{
 		microsnooze(100000);	/*	Sleep 1/10 second.	*/
 		getCurrentTime(&currentTime);
-		if (sm_SemTake(stp->mutex) < 0)
+		if (sm_SemTake(stp->mutex) < 0
+		|| sm_SemEnded(stp->mutex))
 		{
 			owltsimExit(0);
 		}
@@ -269,7 +270,8 @@ a dg of length %d from %s destined for %s.\n", timebuf, datagramLen,
 		dg->xmitTime.tv_usec = currentTime.tv_usec;
 		dg->length = datagramLen;
 		memcpy(dg->content, buffer, datagramLen);
-		if (sm_SemTake(stp->mutex) < 0)
+		if (sm_SemTake(stp->mutex) < 0
+		|| sm_SemEnded(stp->mutex))
 		{
 			owltsimExit(0);
 		}
@@ -295,10 +297,16 @@ destined for %s.\n", timebuf, datagramLen, stp->fromNode, stp->toNode);
 	/*	Free resources.						*/
 
 	free(buffer);
+#if 0
 	pthread_end(stp->timerThread);
 	pthread_join(stp->timerThread, NULL);
 	lyst_destroy(stp->transmission);
+#endif
+	sm_SemEnd(stp->mutex);
+	microsnooze(50000);
 	sm_SemDelete(stp->mutex);
+pthread_join(stp->timerThread, NULL);
+lyst_destroy(stp->transmission);
 	if (stp->insock >= 0)
 	{
 		close(stp->insock);

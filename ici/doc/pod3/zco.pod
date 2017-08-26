@@ -264,7 +264,7 @@ the extents of the zco at I<location>, from I<offset> to I<offset + length>.
 If I<offset> isn't the start of an extent or I<offset + length> isn't the
 end of an extent, returns -1 in all three fields.
 
-=item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, vast firstExtentOffset, vast firstExtentLength, ZcoAcct acct, unsigned char provisional)
+=item Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, vast firstExtentOffset, vast firstExtentLength, ZcoAcct acct)
 
 Creates a new inbound or outbound ZCO.  I<firstExtentLocation> and
 I<firstExtentLength> must either both be zero (indicating that
@@ -278,13 +278,9 @@ data object should be skipped over when adding the initial source data
 extent to the new ZCO.  A negative value for
 I<firstExtentLength> indicates that the extent is already known not to be
 too large for the available ZCO space, and the actual length of the extent
-is the additive inverse of this value.  A non-zero value for I<provisional>
-indicates that this ZCO will occupy non-Restricted Inbound ZCO space.  This
-space is a critical resource, so provisional ZCOs are subject to defensive
-destruction if they cannot immediately be migrated into the Outbound ZCO
-space pool.  On success, returns the SDR location of the new ZCO.  Returns
-0 if there is insufficient ZCO space for creation of the new ZCO; returns
-((Object) -1) on any error.
+is the additive inverse of this value.  On success, returns the SDR location
+of the new ZCO.  Returns 0 if there is insufficient ZCO space for creation
+of the new ZCO; returns ((Object) -1) on any error.
 
 =item int zco_append_extent(Sdr sdr, Object zco, ZcoMedium sourceMedium, Object location, vast offset, vast length)
 
@@ -374,10 +370,6 @@ a single serialized object.
 =item ZcoAcct zco_acct(Sdr sdr, Object zco)
 
 Returns an indicator as to whether I<zco> is inbound or outbound.
-
-=item int zco_is_provisional(Sdr sdr, Object zco)
-
-Returns an indicator as to whether or not I<zco> is flagged as "provisional".
 
 =item void zco_start_transmitting(Object zco, ZcoReader *reader)
 

@@ -202,8 +202,8 @@ static void *Recieve_DCCP(void *param)
 
 		pthread_mutex_lock(rtp->elk);
 		if (bpBeginAcq(work, 0, NULL) < 0 
-				|| bpContinueAcq(work, buffer, bundleLength, 0) < 0
-				|| bpEndAcq(work) < 0)
+		|| bpContinueAcq(work, buffer, bundleLength, 0, 0) < 0
+		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
 			pthread_mutex_unlock(rtp->elk);

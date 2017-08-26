@@ -52,6 +52,8 @@ typedef struct rlock_str
 	short	count;
 	short	init;
 } Rlock;		/*	Private-memory semaphore.		*/ 
+/* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
+int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
 int	createFile(const char *filename, int flags)
 {
@@ -416,6 +418,8 @@ typedef struct rlock_str
 	unsigned char	init;		/*	Boolean.		*/
 	unsigned char	owned;		/*	Boolean.		*/
 } Rlock;		/*	Private-memory semaphore.		*/ 
+/* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
+int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
 int	initResourceLock(ResourceLock *rl)
 {
@@ -1419,7 +1423,7 @@ void	writeMemoNote(char *text, char *note)
 
 	if (text)
 	{
-		isprintf(textBuffer, sizeof textBuffer, "%.900s: %.64s",
+		isprintf(textBuffer, sizeof textBuffer, "%.500s: %.500s",
 				text, noteText);
 		(_logOneMessage(NULL))(textBuffer);
 	}

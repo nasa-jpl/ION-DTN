@@ -146,14 +146,6 @@ typedef struct
 	vast		totalLength;		/*	incl. capsules	*/
 
 	ZcoAcct		acct;
-
-	/*	A ZCO is flagged "provisional" if it occupies non-
-	 *	Restricted Inbound ZCO space.  This space is a critical
-	 *	resource, so the ZCO is subject to destruction if it
-	 *	cannot be immediately relocated to the Outbound space
-	 *	pool.							*/
-
-	unsigned char	provisional;		/*	Boolean		*/
 } Zco;
 
 static char	*_badArgsMemo()
@@ -216,17 +208,17 @@ void	zco_status(Sdr sdr)
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	for (i = 0, book = db->books; i < 2; i++, book++)
 	{
-		isprintf(buffer, sizeof buffer, "[i] %s file  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->fileOccupancy,
-				book->maxFileOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s file  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxFileOccupancy, book->fileOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s bulk  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->bulkOccupancy,
-				book->maxBulkOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s bulk  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxBulkOccupancy, book->bulkOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s heap  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->heapOccupancy,
-				book->maxHeapOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s heap  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxHeapOccupancy, book->heapOccupancy);
 		writeMemo(buffer);
 	}
 }
@@ -1620,7 +1612,7 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 
 Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 		Object firstExtentLocation, vast firstExtentOffset,
-		vast firstExtentLength, ZcoAcct acct, unsigned char provisional)
+		vast firstExtentLength, ZcoAcct acct)
 {
 	Object	zcoObj;
 	Zco	zco;
@@ -1728,7 +1720,6 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 	zco_increase_heap_occupancy(sdr, sizeof(Zco), acct);
 	memset((char *) &zco, 0, sizeof(Zco));
 	zco.acct = acct;
-	zco.provisional = provisional;
 	sdr_write(sdr, zcoObj, (char *) &zco, sizeof(Zco));
 	if (firstExtentLocation)
 	{
@@ -2471,8 +2462,7 @@ Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 	CHKZERO(offset >= 0);
 	CHKZERO(length > 0);
 	sdr_read(sdr, (char *) &fromZco, fromZcoObj, sizeof(Zco));
-	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct,
-			fromZco.provisional);
+	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct);
 	if (toZcoObj == (Object) ERROR)
 	{
 		putErrmsg("Can't create clone ZCO.", NULL);
@@ -2854,16 +2844,6 @@ ZcoAcct	zco_acct(Sdr sdr, Object zcoObj)
 	CHKZERO(zcoObj);
 	GET_OBJ_POINTER(sdr, Zco, zco, zcoObj);
 	return zco->acct;
-}
-
-int	zco_is_provisional(Sdr sdr, Object zcoObj)
-{
-		OBJ_POINTER(Zco, zco);
-
-	CHKZERO(sdr);
-	CHKZERO(zcoObj);
-	GET_OBJ_POINTER(sdr, Zco, zco, zcoObj);
-	return zco->provisional;
 }
 
 static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,

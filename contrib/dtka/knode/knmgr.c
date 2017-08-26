@@ -732,8 +732,9 @@ fflush(stdout);
 	sdr_write(sdr, bulletinObj, (char *) &bulletin, sizeof(DtkaBulletin));
 	if (bulletin.sharesAnnounced < DTKA_FEC_K)
 	{
-#if DTKA_DEBUG
-puts("Bulletin can't be complete yet.");
+#if dTKA_DEBUG
+printf("Bulletin can't be complete yet, sharesAnnounced = %u.\n",
+bulletin.sharesAnnounced);
 fflush(stdout);
 #endif
 		return 0;	/*	Bulletin can't be complete.	*/

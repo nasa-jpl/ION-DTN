@@ -18,7 +18,7 @@ extern "C" {
 typedef struct
 {
 	int		wmKey;
-	long		wmSize;
+	size_t		wmSize;
 	char		*wmAddress;
 	char		*wmName;
 } sm_WmParms;
@@ -68,7 +68,7 @@ extern sm_SemId		sm_GetTaskSemaphore(int taskId);
 
 /*	Portable shared-memory region access routines.			*/
 
-extern int		sm_ShmAttach(int key, int size, char **shmPtr,
+extern int		sm_ShmAttach(int key, size_t size, char **shmPtr,
 					uaddr *id);
 extern void		sm_ShmDetach(char *shmPtr);
 extern void		sm_ShmDestroy(uaddr id);

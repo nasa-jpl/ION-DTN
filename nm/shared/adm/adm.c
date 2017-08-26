@@ -1223,7 +1223,10 @@ uvast adm_extract_sdnv(tdc_t params, uint32_t idx, int8_t* success)
 	CHKZERO(success);
 	*success = 0;
 
-	if((type = tdc_get_type(&params, idx)) != AMP_TYPE_SDNV)
+	type = tdc_get_type(&params, idx);
+
+	/* Allow timestamps here, because timestamps are encoded in SDNVs */
+	if((type != AMP_TYPE_SDNV) && (type != AMP_TYPE_TS))
 	{
 		AMP_DEBUG_ERR("adm_extract_sdnv","Parm %d has wrong type %d", idx, type);
 		return 0;

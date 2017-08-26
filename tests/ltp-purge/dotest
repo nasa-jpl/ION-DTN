@@ -188,43 +188,25 @@ echo "All contacts have terminated.  Verifying results..."
 cd ../5.ipn.ltp
 RETVAL=0
 
-COUNT=`ls -l testfile1 | grep 915 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | grep 915 | wc -l`
+if [ $COUNT -eq 2 ]
 then
-	echo "OK: Got first copy of file x."
+	echo "OK: Got both copies of file x."
 else
-	echo "ERROR: Didn't get first copy of file x."
+	echo "ERROR: Didn't get both copies of file x."
 	RETVAL=1
 fi
 
-COUNT=`ls -l testfile2 | grep 1070 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=`ls -l testfile* | grep 1070 | wc -l`
+if [ $COUNT -eq 2 ]
 then
-	echo "OK: Got first copy of file y."
+	echo "OK: Got both copies of file y."
 else
-	echo "ERROR: Didn't get first copy of file y."
+	echo "ERROR: Didn't get both copies of file y."
 	RETVAL=1
 fi
 
-COUNT=`ls -l testfile3 | grep 915 | wc -l`
-if [ $COUNT -eq 1 ]
-then
-	echo "OK: Got second copy of file x."
-else
-	echo "ERROR: Didn't get second copy of file x."
-	RETVAL=1
-fi
-
-COUNT=`ls -l testfile4 | grep 1070 | wc -l`
-if [ $COUNT -eq 1 ]
-then
-	echo "OK: Got second copy of file y."
-else
-	echo "ERROR: Didn't get second copy of file y."
-	RETVAL=1
-fi
-
-COUNT=`ls -l testfile5 | grep 885 | wc -l`
+COUNT=`ls -l testfile* | grep 885 | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo "OK: Got file z."
