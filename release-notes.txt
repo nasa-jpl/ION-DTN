@@ -79,7 +79,7 @@ condition.
 In addition, this version includes the following upgrades:
 
 - A new "ionunlock" utility has been added, for unfreezing an ION node that
-     has gottent locked up due to some thread having been destroyed while
+     has gotten locked up due to some thread having been destroyed while
      still the owner of the ION system mutex.
 
 - In the "contrib" directory, the build for DTKA has been modified to fit into
@@ -101,13 +101,21 @@ In addition, this version includes the following upgrades:
 Version 3.6.1 will focus on some more visible enhancements to ION but will
 of course retain all of these upgrades as well.
 
-A note on Windows operating environments:
-Building ION on Windows requires at a minimum the MinGW-w64 [http://mingw-w64.org/] compiler package, and most likely a utilities package to provide a shell. For this release, testing was done with the following configurations:
-     - 32-bit Windows ION is built with i686-4.9.3-release-posix-dwarf-rt_v4-rev1.7z
-     - 64-bit Windows ION is built with x86_64-7.1.0-release-win32-seh-rt_v5-rev1.7z
+--- A note on Windows operating environments ---
+
+Building ION on Windows requires at a minimum the MinGW-w64
+[http://mingw-w64.org/] compiler package, and most likely a utilities
+package to provide a shell. For this release, testing was done with the
+following configurations:
+- 32-bit Windows ION is built with i686-4.9.3-release-posix-dwarf-rt_v4-rev1.7z
+- 64-bit Windows ION is built with x86_64-7.1.0-release-win32-seh-rt_v5-rev1.7z
 Both system variants use the MinGW-MSYS utiltites bundle MSYS-20111123.
 
-During testing of 3.6.0b the current set of instructions for installation and operation of ION on Windows was found to be partially outdated and in need of revision. In particular, running the built-in validation tests requires additional setup steps beyond the basic ION deployment. Revised documentation will be provided in release 3.6.1.
+During testing of 3.6.0b the current set of instructions for installation
+and operation of ION on Windows was found to be partially outdated and in
+need of revision. In particular, running the built-in validation tests
+requires additional setup steps beyond the basic ION deployment. Revised
+documentation will be provided in release 3.6.1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.6.0 =
@@ -157,28 +165,73 @@ During testing of 3.6.0b the current set of instructions for installation and op
 
 --- ION interface changes in version 3.6.0 ---
  
-In ION version 3.6.0 we introduce a new degree of indirection between routing (next-hop bundle-layer endpoint selection) and forwarding (next-hop convergence-layer endpoint selection).  This new capability, named “convergence layer management” (CLM), provides a number of important benefits.  Unfortunately, in order to realize those benefits we had to revise some ION interfaces more drastically than we usually do in moving to a new version.  Please be aware of the following significant changes as you adjust your test and deployment environments to utilize ION 3.6.0.
+In ION version 3.6.0 we introduce a new degree of indirection between routing
+(next-hop bundle-layer endpoint selection) and forwarding (next-hop
+convergence-layer endpoint selection).  This new capability, named "convergence
+layer management" (CLM), provides a number of important benefits.
+Unfortunately, in order to realize those benefits we had to revise some ION
+interfaces more drastically than we usually do in moving to a new version.
+Please be aware of the following significant changes as you adjust your test
+and deployment environments to utilize ION 3.6.0.
  
--- API changes –
+-- API changes
  
-None of the “public” application programming interfaces in ION are affected by the introduction of CLM, but the Bundle Protocol private internal API has changed in some significant ways; these changes particularly affect the implementation of convergence-layer adapters.  Most important of these is a change to the function prototype for bpDequeue; see the comments in the bpP.h header file.
+None of the "public" application programming interfaces in ION are affected
+by the introduction of CLM, but the Bundle Protocol private internal API has
+changed in some significant ways; these changes particularly affect the
+implementation of convergence-layer adapters.  Most important of these is a
+change to the function prototype for bpDequeue; see the comments in the bpP.h
+header file.
  
--- Behavioral changes –
+-- Behavioral changes
  
-BP flow control is now exerted at node granularity, in a new daemon process named “bpclm”, rather than at outduct granularity. One effect of this change is that the data rates declared in the contact plan now are enforced for all convergence-layer protocols, not just LTP.  Another is that the plan for bundle egress to a given neighboring node may now comprise multiple convergence-layer outducts, not just one; the ipnadmin and dtn2admin utilities don’t support this option, but new commands implemented in the bpadmin utility do.
+BP flow control is now exerted at node granularity, in a new daemon process
+named "bpclm", rather than at outduct granularity. One effect of this change
+is that the data rates declared in the contact plan now are enforced for all
+convergence-layer protocols, not just LTP.  Another is that the plan for
+bundle egress to a given neighboring node may now comprise multiple
+convergence-layer outducts, not just one; the ipnadmin and dtn2admin utilities
+don't support this option, but new commands implemented in the bpadmin utility
+do.
  
--- Configuration changes –
+-- Configuration changes
  
 Several changes in ION 3.6.0 may affect your configuration files.
  
-There are no longer any “promiscuous” outducts.  The “*” command-line argument to udpclo is no longer valid: you need a separate udpclo task, allocated to an explicit socket expression (<ip_address> [:<port_number>]), for each neighbor to which you will transmit bundle by UDP.  This change affects “outduct” commands passed to bpadmin and also “plan” commands passed to ipnadmin and dtn2admin.  There is a similar impact on the DGR convergence-layer adapter: the dgrcla daemon no longer exists, having been replaced by dgrcli and dgrclo daemons; see the man pages for these new daemon programs.
+There are no longer any "promiscuous" outducts.  The "*" command-line argument
+to udpclo is no longer valid: you need a separate udpclo task, allocated to an
+explicit socket expression (<ip_address> [:<port_number>]), for each neighbor
+to which you will transmit bundle by UDP.  This change affects "outduct"
+commands passed to bpadmin and also "plan" commands passed to ipnadmin and
+dtn2admin.  There is a similar impact on the DGR convergence-layer adapter:
+the dgrcla daemon no longer exists, having been replaced by dgrcli and dgrclo
+daemons; see the man pages for these new daemon programs.
  
-There are no longer any “plan rules” that override default egress plan directives.  User-written outduct selection functions may be inserted at compile time to achieve the objectives of plan rules (and much more), but at this time no such functions are delivered with ION 3.6.0.
+There are no longer any "plan rules" that override default egress plan
+directives.  User-written outduct selection functions may be inserted at
+compile time to achieve the objectives of plan rules (and much more), but
+at this time no such functions are delivered with ION 3.6.0.
  
-The operation of the dtn2admin utility has been expanded, conceptually enabling the declaration of egress plans for sets of nodes whose EIDs conform to any wild-carded EID string regardless of URL scheme, without any sensitivity to trailing “/” characters or “demux” strings.  Enabling this expansion, though, it is now necessary to include scheme name and “:” (in addition to the scheme-specific part of the EID) when declaring, editing, or deleting a plan.
+The operation of the dtn2admin utility has been expanded, conceptually
+enabling the declaration of egress plans for sets of nodes whose EIDs conform
+to any wild-carded EID string regardless of URL scheme, without any sensitivity
+to trailing "/" characters or "demux" strings.  Enabling this expansion,
+though, it is now necessary to include scheme name and ":" (in addition to
+the scheme-specific part of the EID) when declaring, editing, or deleting a
+plan.
  
-Finally, the TCP convergence-layer protocol implementation has been significantly revised: it now enables bundle to be transmitted to a neighboring node over a TCP connection that was established by that node, i.e., not declared a priori in local outduct commands.  That is, it is no longer necessary to declare outducts for all neighboring nodes to which you want to be able to send bundles by tcpcl.  However, these revisions are fairly complex and were time-consuming to debug; tcpcl loopback introduces a whole additional layer of complexity, particularly in fault handling, so at least for now tcpcl loopback is not supported in ION 3.6.0.  Everything one might want to demonstrate or test using tcpcl loopback can be more cleanly and convincingly accomplished using two nodes exercising tcpcl on the same machine, so we don’t see removal of this limitation as urgent.
-
+Finally, the TCP convergence-layer protocol implementation has been
+significantly revised: it now enables bundle to be transmitted to a
+neighboring node over a TCP connection that was established by that node,
+i.e., not declared a priori in local outduct commands.  That is, it is
+no longer necessary to declare outducts for all neighboring nodes to which
+you want to be able to send bundles by tcpcl.  However, these revisions
+are fairly complex and were time-consuming to debug; tcpcl loopback
+introduces a whole additional layer of complexity, particularly in fault
+handling, so at least for now tcpcl loopback is not supported in ION 3.6.0.
+Everything one might want to demonstrate or test using tcpcl loopback can be
+more cleanly and convincingly accomplished using two nodes exercising tcpcl
+on the same machine, so we don't see removal of this limitation as urgent.
 
 - NOTE for MacOS X users:  At this time, ION 3.6.0 will NOT run on any recent
      version of MacOS. Our tests on MacOS 10.11 show failures in the semaphore
@@ -303,7 +356,7 @@ Finally, the TCP convergence-layer protocol implementation has been significantl
      congestion loss would increase to the point of degrading visual quality.
 
 - SourceForge Bug #88: Fixed a bug where the CFDP UTO ZCO request could become
-     interrupted by moving the “attendant” structure into the BP volatile
+     interrupted by moving the "attendant" structure into the BP volatile
      database to keep it stable.
 
 - SourceForge Feature Request #29: The ION testing subsystem has been updated
@@ -361,8 +414,8 @@ Operational interface changes:
               specifying their UT-layer endpoints.
 
      - ipnadmin (ipnrc):
-            - “groups” have been renamed “exits” to avoid a terminology clash
-              with multicast “groups”.  However, the older “group” terminology
+            - "groups" have been renamed "exits" to avoid a terminology clash
+              with multicast "groups".  However, the older "group" terminology
               is still accepted by ipnadmin for backward compatibility.
 
 BUILD NOTE:
@@ -656,6 +709,7 @@ An additional daemon task named "bptransit" has been added to standard
 
 - SourceForge Bug #57: ION now has PARTIAL support for FreeBSD.
      - ION now builds properly under FreeBSD 10.
+
      - IMPORTANT NOTE: Several key ION applications have not yet been updated
                        to run properly in a FreeBSD environment.  These
                        applications will be updated in a later ION release.
@@ -688,7 +742,7 @@ An additional daemon task named "bptransit" has been added to standard
      better documented support for using pointer de-references rather than
      memcpy() when executing read-only database operations.
 
-- SourceForge Feature Request #24: ION’s mechanisms to prevent resource leaks
+- SourceForge Feature Request #24: ION's mechanisms to prevent resource leaks
      when ION is killed and restarted rather than shut down cleanly have been
      modified to support the CFS environment.  Note that this problem occurs
      most commonly when transaction reversibility is disabled because task
@@ -703,12 +757,15 @@ An additional daemon task named "bptransit" has been added to standard
      required when the specification revisions are completed and approved by
      CCSDS.
 
-     The interface changes are as follows:
-     - The function prototypes for the CFDP functions cfdp_put() and
-       cfdp_preview() have changed to accommodate proposed updates to the CFDP
-       specification. File offsets and lengths in all CFDP function calls are
-       now of type uvast (rather than unsigned int), because CFDP can now be
-       used to send files larger than 4 GB.
+     - The interface changes are as follows:
+
+           The function prototypes for the CFDP functions cfdp_put() and
+           cfdp_preview() have changed to accommodate proposed updates to the CFDP
+           specification.
+
+           File offsets and lengths in all CFDP function calls are
+           now of type uvast (rather than unsigned int), because CFDP can now be
+           used to send files larger than 4 GB.
 
            See the cfdp(3) man page for details.
 
@@ -1772,7 +1829,6 @@ An additional daemon task named "bptransit" has been added to standard
   rewritten.
 
 - Various bug fixes.
-
 
 - 2008-11-11 Added the ION Design and Operation manual v1.6.
 
