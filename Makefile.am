@@ -2200,13 +2200,13 @@ mans_as_ps_sorted := $(mans_1_as_ps) $(mans_3_as_ps) $(mans_5_as_ps)
 
 
 %.1.ps: %.1
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 %.3.ps: %.3
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 %.5.ps: %.5
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 doc/appendix-a-contents.txt: $(mans_as_ps)
 	@rm -f $@
