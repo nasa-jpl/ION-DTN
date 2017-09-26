@@ -43,6 +43,7 @@
 #include "../adm/adm_ion.h"
 #include "../adm/adm_agent.h"
 #include "../adm/adm_bpsec.h"
+#include "adm_LtpAgent.h"
 
 Lyst gAdmData;
 Lyst gAdmComputed;
@@ -80,6 +81,16 @@ Lyst gAdmMacros; // Type def_gen_t
  *  --------  ------------   ---------------------------------------------
  *  07/04/15  E. Birrane     Added type information.
  *****************************************************************************/
+
+int adm_add_edd(char *mid_str,
+        amp_type_e type,
+ 	 	int num_parms,
+   	 	adm_data_collect_fn collect,
+ 	 	adm_string_fn to_string,
+ 	 	adm_size_fn get_size)
+{
+	return adm_add_datadef(mid_str, type, num_parms, collect, to_string, get_size);
+}
 
 int adm_add_datadef(char *mid_str,
 		            amp_type_e type,
@@ -1288,13 +1299,71 @@ char* adm_extract_string(tdc_t params, uint32_t idx, int8_t* success)
 
 uint32_t adm_extract_uint(tdc_t params, uint32_t idx, int8_t* success)
 {
-	return (uint32_t) adm_extract_int(params, idx, success);
+	blob_t *entry = NULL;
+	uint32_t bytes = 0;
+	uint32_t result = 0;
+	amp_type_e type = AMP_TYPE_UNK;
+
+	CHKZERO(success);
+	*success = 0;
+
+	if((type = tdc_get_type(&params, idx)) != AMP_TYPE_UINT)
+	{
+		AMP_DEBUG_ERR("adm_extract_uint","Parm %d has wrong type %d", idx, type);
+		return 0;
+	}
+
+	if((entry = tdc_get_colentry(&params, idx)) == NULL)
+	{
+		AMP_DEBUG_ERR("adm_extract_uint","Can't get item %d", idx);
+		return 0;
+	}
+
+	result = utils_deserialize_int(entry->value, entry->length, &bytes);
+
+	if(bytes != entry->length)
+	{
+		AMP_DEBUG_ERR("adm_extract_uint","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
 }
 
 
 uvast adm_extract_uvast(tdc_t params, uint32_t idx, int8_t* success)
 {
-	return (uvast) adm_extract_vast(params, idx, success);
+	blob_t *entry = NULL;
+	uint32_t bytes = 0;
+	uvast result = 0;
+	amp_type_e type = AMP_TYPE_UNK;
+
+	CHKZERO(success);
+	*success = 0;
+
+	if((type = tdc_get_type(&params, idx)) != AMP_TYPE_UVAST)
+	{
+		AMP_DEBUG_ERR("adm_extract_uvast","Parm %d has wrong type %d", idx, type);
+		return 0;
+	}
+
+	if((entry = tdc_get_colentry(&params, idx)) == NULL)
+	{
+		AMP_DEBUG_ERR("adm_extract_uvast","Can't get item %d", idx);
+		return 0;
+	}
+
+	result = utils_deserialize_vast(entry->value, entry->length, &bytes);
+
+	if(bytes != entry->length)
+	{
+		AMP_DEBUG_ERR("adm_extract_uvast","mismatched deserialize (%d != %d)", bytes, entry->length);
+		return 0;
+	}
+
+	*success = 1;
+	return result;
 }
 
 
@@ -1842,6 +1911,10 @@ void adm_init()
 	adm_bpsec_init();
 #endif
 
+//#ifdef _HAVE_LTPAGENT_ADM_
+//	adm_ltpAgent_init();
+//#endif
+	adm_LtpAgent_init();
 
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);
 }

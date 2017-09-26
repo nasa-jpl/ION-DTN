@@ -60,6 +60,7 @@
 #define ADM_LTP   3
 #define ADM_ION   4
 #define ADM_BPSEC 5
+#define ADM_LTPAGENT 6
 
 
 /*
@@ -175,6 +176,8 @@ extern Lyst gAdmMacros; // Type def_gen_t
  * +--------------------------------------------------------------------------+
  */
 
+
+int         adm_add_edd(char *mid_str, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
 int         adm_add_datadef(char *mid_str, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
 
 int		 	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr);

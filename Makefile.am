@@ -1896,6 +1896,7 @@ nmbin= nm_agent nm_mgr
 nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
                     nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
+                    nm/agent/adm_LtpAgent_impl.c nm/agent/adm_LtpAgent_agent.c \
                     nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
 					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
 					nm/shared/adm/adm_agent.c nm/shared/adm/adm_bpsec.c	nm/agent/adm_bpsec_impl.c \
@@ -1920,6 +1921,7 @@ nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library 
 nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
 					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
 					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
+					nm/mgr/adm_LtpAgent_mgr.c \
 					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
 					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
 					nm/shared/adm/adm_bpsec.c	\
