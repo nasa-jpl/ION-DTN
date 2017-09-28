@@ -2184,7 +2184,7 @@ endif
 
 if ENABLE_AUTODOC
 
-ION.pdf-full: doc/ION-beginning.pdf doc/ION-manpages.ps
+ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
 	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
 
