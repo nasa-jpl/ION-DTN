@@ -2184,7 +2184,7 @@ endif
 
 if ENABLE_AUTODOC
 
-ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
+ION.pdf-full: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
 	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
 
@@ -2249,7 +2249,40 @@ doc/ION-beginning.ps: doc/ION-beginning.pdf
 else
 
 ION.pdf: doc/ION-beginning.pdf
-	@echo "ION.pdf will not have appendix."
-	cp $^ $@
+	@echo "ION.pdf will remain unchanged."
+#	@echo "ION.pdf will not have appendix."
+#	cp $^ $@
 
 endif #ENABLE_AUTODOC
+
+##########################
+#
+# DISTRIBUTION SECTION
+#
+##########################
+
+DOC_VERSION_NUMBER := $(shell cat version.txt)
+DOC_VERSION_MAJOR := $(shell cat version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat version.txt | sed 's/[0-9]*\.//')
+DOC_DATE := $(shell date -I)
+
+distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
+	@echo ""
+	@echo "UPDATING VERSION NUMBER IN:"
+	@echo "configure.ac"
+	sed -r -i.bak 's/ion, open source [0-9]+\.[0-9]+\.[0-9]+[a-Z]*/ion, open source $(DOC_VERSION_NUMBER)/' configure.ac
+	@echo "ici/include/ion.h"
+	sed -r -i.bak 's/[0-9]+\-[0-9]+\-[0-9]+/$(DOC_DATE)/' ./ici/include/ion.h
+	sed -r -i.bak 's/[0-9]+\.[0-9]+\.[0-9]+[a-Z]*/$(DOC_VERSION_NUMBER)/' ./ici/include/ion.h
+	@echo "arch-uClib/ion.package/ion.mk"
+	sed -r -i.bak 's/ION_VERSION_MAJOR=[0-9]+/ION_VERSION_MAJOR=$(DOC_VERSION_MAJOR)/' ./arch-uClibc/ion.package/ion.mk
+	sed -r -i.bak 's/ION_VERSION_MINOR=[0-9]+\.[0-9]+[a-Z]*+/ION_VERSION_MINOR=$(DOC_VERSION_MINOR)/' ./arch-uClibc/ion.package/ion.mk
+	@echo ""
+	@echo "Archiving the directory to ~/releases/ion-$(DOC_VERSION_NUMBER)."
+	@echo ""
+	hg archive ~/releases/ion-$(DOC_VERSION_NUMBER)
+	@echo "Now creating ION.pdf"
+	$(PS2PDF) doc/ION-manpages.ps
+	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
+	rm ION-manpages.pdf
+
