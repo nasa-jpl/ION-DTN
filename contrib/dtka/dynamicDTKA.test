@@ -1,0 +1,258 @@
+#! /bin/bash
+#
+# Author:       Michael Stadler
+# Date:         07/23/17
+# Description:  This script is intended to test to correct execution of the
+# ./dynamicDTKA script and DTKA itself. The dynamicDTKA script is executed
+# multiple times with different options and arguments. The exit code after each
+# simulation run is verified and any number not equal to 0 means that something
+# unexpected happened and therefore the test can be accounted as failed. If a
+# test run failed, all the log and output files are stored in a directory that
+# has the name of the test number followed by a .test.failed suffix. When
+# running the shell script that tests DTKA, one can chose whether to stop
+# the execution of the test script as soon as one test scenario failed or not;
+# this is indicated with the -e option. Furthermore, it can be decided to run
+# the test script in an infinite manner (producing infinite random test cases)
+# so that only a forced exit by the user stops the execution of the test
+# script. A summary of all failed and successful tests is printed to standard
+# output when exiting the test script.
+
+###############################################################################
+# Print information about how to use the script.
+# Globals:
+#   None
+# Arguments:
+#   None
+###############################################################################
+help(){
+  echo 'Usage:'
+  echo -e '  ./dynamicDTKA.test \t [[-e] [-n RANDOM_TESTS | -i]'\
+    ' | [-c]]'
+  echo
+  echo 'Executing the script without any options and arguments is identical'\
+    'to:'
+  echo -e '  ./dynamicDTKA -n 2'
+  echo
+  echo 'Options Description:'
+  echo -e '  -e \t\t\t (e)xit on fail: exit as soon as the first test '\
+    'has failed.'
+  echo -e '  -n RANDOM_TESTS\t (n)umber of random tests executed after the defualt tests.'
+  echo -e '  -i \t\t\t (i)nfinite number of random tests are executed until the script is stopped by the user.'
+  echo -e '  -c \t\t\t (c)lean any leftover files (failed test direcories).'
+  echo -e '  -h \t\t\t (h)elp: show how to use the script.'
+
+}
+
+###############################################################################
+# Print status message with the current date and time.
+# Globals:
+#   None
+# Arguments:
+#   $1 the message to print
+###############################################################################
+print_message(){
+  echo -e "  [$(date "+%Y/%m/%d - %H:%M:%S")] $1"
+}
+
+###############################################################################
+# Print summary of the executed tests and determine exit code.
+# Globals:
+#   FAIL_COUNTER
+#   SUCCESS_COUNTER
+#   LATEST_TEST_OUTPUT
+# Arguments:
+#   None
+###############################################################################
+terminate(){
+  echo
+  echo 'Summary:'
+  print_message "  $FAIL_COUNTER Tests FAILED"
+  print_message "  $SUCCESS_COUNTER Tests SUCCESSFUL"
+  print_message "  $(($FAIL_COUNTER+$SUCCESS_COUNTER)) Tests executed"
+  echo '---'
+  if [[ "$FAIL_COUNTER" -ne 0 ]]; then
+    exit 1
+  else
+    rm -f "$LATEST_TEST_OUTPUT"
+    exit 0
+  fi
+}
+
+###############################################################################
+# Save output and files of a failed test.
+# Globals:
+#   TEST_COUNTER
+#   LATEST_TEST_OUTPUT
+# Arguments:
+#   None
+###############################################################################
+save_output_files(){
+  local dir
+
+  dir="$TEST_COUNTER.test.failed"
+  rm -rf "$dir"
+  mkdir "$TEST_COUNTER.test.failed"
+
+  cp --parents */node.*.stdout "$dir"
+  cp --parents */ion.log "$dir"
+  cp "$LATEST_TEST_OUTPUT" "$dir/test.stdout"
+}
+
+###############################################################################
+# Determine the number of DTKA user nodes (between 2 and 4).
+# Globals:
+#   None
+# Arguments:
+#   None
+###############################################################################
+determine_user_nodes(){
+  USER_NODES="$(shuf -i2-4 -n1)"
+}
+
+###############################################################################
+# Execute one test by invoking the dynamicDTKA script with a certain
+# configuration.
+# Globals:
+#   TEST_COUNTER
+#   LATEST_TEST_OUTPUT
+#   FAIL_COUNTER
+#   SUCCESS_COUNTER
+# Arguments:
+#   $1 number of key authority nodes
+#   $2 number of user nodes
+#   $3 number of original bulletin blocks (k)
+#   $4 number of blocks in total (m)
+###############################################################################
+execute_test(){
+  local arguments_text
+  local arguments
+
+  arguments_text="  DTKA_NUM_AUTHS: $1; USER_NODES: $2; DTKA_FEC_K: $3; DTKA_FEC_M: $4"
+  arguments="-a $1 -u $2 -k $3 -m $4"
+  if [[ "$5" = true ]]; then
+    arguments_text="$arguments_text; best-case"
+    arguments="$arguments -b"
+  else
+    arguments_text="$arguments_text; worst-case"
+  fi
+
+  TEST_COUNTER=$(($TEST_COUNTER+1))
+  print_message "Execute test #$TEST_COUNTER"
+  print_message "$arguments_text"
+  ./dynamicDTKA $arguments > "$LATEST_TEST_OUTPUT"
+
+  if [[ "$?" -ne 0 ]]; then
+    print_message 'FAILED'
+    FAIL_COUNTER=$(($FAIL_COUNTER+1))
+    killm > '/dev/null'
+    killm > '/dev/null'
+    save_output_files
+    RET=1
+  else
+    print_message 'SUCCESS'
+    SUCCESS_COUNTER=$(($SUCCESS_COUNTER+1))
+    RET=0
+  fi
+
+  echo '---'
+}
+
+###############################################################################
+
+# return the exit status of the last command that threw a non-zero exit code
+set -o pipefail
+# exit when script tries to use undeclared variables
+set -o nounset
+# uncomment the line below in order to trace what gets executed
+#set -o xtrace
+
+TEST_COUNTER=0
+SUCCESS_COUNTER=0
+FAIL_COUNTER=0
+LATEST_TEST_OUTPUT='latest.test.out'
+RET=0
+RANDOM_TESTS=2
+INFINITE=false
+
+while getopts en:ich param; do
+  case "$param" in
+  e)
+    # make script exit when a test fails
+    set -o errexit
+    ;;
+  n)
+    RANDOM_TESTS="$OPTARG"
+    ;;
+  i)
+    INFINITE=true
+    ;;
+  c)
+    rm -rf *.test.failed
+    exit 0
+    ;;
+  h)
+    help
+    exit 0
+    ;;
+  ?)
+    echo 'Unknown option...'
+    exit 0
+    ;;
+  esac
+done
+shift "$(($OPTIND - 1))"
+
+trap "terminate" EXIT
+
+# make sure that all leftover processes are gone
+killm > '/dev/null'
+killm > '/dev/null'
+
+# default configuration
+execute_test 6 3 50 60 false
+#execute_test 6 3 50 60 true
+
+determine_user_nodes
+execute_test 9 "$USER_NODES" 47 207 false
+#execute_test 9 "$USER_NODES" 47 207 true
+
+execute_test 2 2 2 2 false
+#execute_test 2 2 2 2 true
+
+determine_user_nodes
+execute_test 20 "$USER_NODES" 20 20 false
+#execute_test 20 "$USER_NODES" 20 20 true
+
+determine_user_nodes
+execute_test 5 "$USER_NODES" 255 255 false
+#execute_test 5 "$USER_NODES" 255 255 true
+
+determine_user_nodes
+execute_test 20 "$USER_NODES" 240 240 false
+#execute_test 20 "$USER_NODES" 240 240 true
+
+determine_user_nodes
+execute_test 2 "$USER_NODES" 2 255 false
+#execute_test 2 "$USER_NODES" 2 255 true
+
+determine_user_nodes
+execute_test 18 "$USER_NODES" 2 252 false
+#execute_test 20 "$USER_NODES" 2 240 true
+
+i=0
+while [[ "$INFINITE" = true || "$i" -lt "$RANDOM_TESTS" ]]; do
+
+  determine_user_nodes
+  a="$(shuf -i2-20 -n1)"
+  k="$(shuf -i2-255 -n1)"
+  m="$(shuf -i$k-255 -n1)"
+
+  best_case=false
+  if [[ "$(shuf -i0-1 -n1)" -eq 1 ]]; then
+    best_case=true
+  fi
+
+  execute_test "$a" "$USER_NODES" "$k" "$m" "$best_case"
+
+  i=$(($i+1))
+done

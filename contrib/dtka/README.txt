@@ -49,3 +49,16 @@ and "make install".
 To test the build, cd into ion-open-source/tests/dtka and enter "./dotest".
 But note that the test will not succeed until you build with cryptography
 software installed as discussed on the knclock(1) man page.
+
+The prototype now includes key authority configuration assessment tools
+developed by Michael Stadler.  The dtka_workbook.xlsm file is an Excel
+spreadsheet that automatically computes a number of useful metrics based
+on the user-supplied values of several configuration parameters.  The
+dynamicDTKA script is a generalization of the ion-open-source/tests/dtka
+test system, enabling the configuration of the test network to be declared
+at runtime; the dynamicDTKA.test script tests that generalized test script.
+
+In addition, Michael heavily annotated the dtka source code to help make
+it easier for developers to work with.  The annotated source deviates somewhat
+from the ION Style Guide, so the revised code will be included in the next
+release of ION following some reformatting.
