@@ -1220,7 +1220,8 @@ void ui_add_parmspec(char *mid_str,
 		                       char *n2, uint8_t p2,
 		                       char *n3, uint8_t p3,
 		                       char *n4, uint8_t p4,
-		                       char *n5, uint8_t p5)
+		                       char *n5, uint8_t p5,
+							   char *n6, uint8_t p6)
 {
 	ui_parm_spec_t *spec = STAKE(sizeof(ui_parm_spec_t));
 	CHKVOID(spec);
@@ -1244,6 +1245,9 @@ void ui_add_parmspec(char *mid_str,
 
 	if(n5 != NULL) istrcpy(spec->parm_name[4], n5, MAX_PARM_NAME);
 	spec->parm_type[4] = p5;
+
+	if(n6 != NULL) istrcpy(spec->parm_name[5], n6, MAX_PARM_NAME);
+	spec->parm_type[5] = p6;
 
 	lyst_insert_last(gParmSpec, spec);
 }

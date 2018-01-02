@@ -1119,6 +1119,10 @@ am_nm_agent_OBJECTS = nm/agent/nm_agent-ingest.$(OBJEXT) \
 	nm/agent/nm_agent-agent_db.$(OBJEXT) \
 	nm/agent/nm_agent-adm_ion_priv.$(OBJEXT) \
 	nm/agent/nm_agent-adm_ltp_priv.$(OBJEXT) \
+	nm/agent/nm_agent-adm_IonAdmin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_IonAdmin_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_IonBpAdmin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_IonBpAdmin_agent.$(OBJEXT) \
 	nm/agent/nm_agent-adm_LtpAgent_impl.$(OBJEXT) \
 	nm/agent/nm_agent-adm_LtpAgent_agent.$(OBJEXT) \
 	nm/shared/adm/nm_agent-adm.$(OBJEXT) \
@@ -1167,6 +1171,8 @@ am_nm_mgr_OBJECTS = nm/mgr/nm_mgr-nm_mgr.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT) \
 	nm/mgr/nm_mgr-mgr_db.$(OBJEXT) \
 	nm/mgr/nm_mgr-adm_LtpAgent_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_IonAdmin_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm_bp.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT) \
@@ -1773,7 +1779,7 @@ ECHO_N = -n
 ECHO_T = 
 EGREP = /bin/grep -E
 EXEEXT = 
-EXPAT_LIBS = 
+EXPAT_LIBS = -lexpat
 FGREP = /bin/grep -F
 GREP = /bin/grep
 GROFF = /usr/bin/groff
@@ -3213,6 +3219,8 @@ nmbin = nm_agent nm_mgr
 nm_agent_SOURCES = nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
                     nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
+                    nm/agent/adm_IonAdmin_impl.c nm/agent/adm_IonAdmin_agent.c \
+                    nm/agent/adm_IonBpAdmin_impl.c nm/agent/adm_IonBpAdmin_agent.c \
                     nm/agent/adm_LtpAgent_impl.c nm/agent/adm_LtpAgent_agent.c \
                     nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
 					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
@@ -3237,6 +3245,8 @@ nm_mgr_SOURCES = nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/
 					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
 					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
 					nm/mgr/adm_LtpAgent_mgr.c \
+					nm/mgr/adm_IonAdmin_mgr.c \
+					nm/mgr/adm_IonBpAdmin_mgr.c \
 					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
 					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
 					nm/shared/adm/adm_bpsec.c	\
@@ -4764,6 +4774,14 @@ nm/agent/nm_agent-adm_ion_priv.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-adm_ltp_priv.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_IonAdmin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_IonAdmin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_IonBpAdmin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_IonBpAdmin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-adm_LtpAgent_impl.$(OBJEXT):  \
 	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-adm_LtpAgent_agent.$(OBJEXT):  \
@@ -4903,6 +4921,10 @@ nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 nm/mgr/nm_mgr-mgr_db.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-adm_LtpAgent_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_IonAdmin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_mgr-adm.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
@@ -5660,6 +5682,10 @@ include ltp/test/$(DEPDIR)/sdatest-sdatest.Po
 include ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
 include ltp/udp/$(DEPDIR)/udplso-udplso.Po
 include ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Po
@@ -5674,6 +5700,8 @@ include nm/agent/$(DEPDIR)/nm_agent-lcc.Po
 include nm/agent/$(DEPDIR)/nm_agent-ldc.Po
 include nm/agent/$(DEPDIR)/nm_agent-nmagent.Po
 include nm/agent/$(DEPDIR)/nm_agent-rda.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
@@ -7893,6 +7921,62 @@ nm/agent/nm_agent-adm_ltp_priv.obj: nm/agent/adm_ltp_priv.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_priv.obj `if test -f 'nm/agent/adm_ltp_priv.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_priv.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_priv.c'; fi`
 
+nm/agent/nm_agent-adm_IonAdmin_impl.o: nm/agent/adm_IonAdmin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonAdmin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Tpo -c -o nm/agent/nm_agent-adm_IonAdmin_impl.o `test -f 'nm/agent/adm_IonAdmin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_IonAdmin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonAdmin_impl.c' object='nm/agent/nm_agent-adm_IonAdmin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonAdmin_impl.o `test -f 'nm/agent/adm_IonAdmin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_IonAdmin_impl.c
+
+nm/agent/nm_agent-adm_IonAdmin_impl.obj: nm/agent/adm_IonAdmin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonAdmin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Tpo -c -o nm/agent/nm_agent-adm_IonAdmin_impl.obj `if test -f 'nm/agent/adm_IonAdmin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_IonAdmin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonAdmin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonAdmin_impl.c' object='nm/agent/nm_agent-adm_IonAdmin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonAdmin_impl.obj `if test -f 'nm/agent/adm_IonAdmin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_IonAdmin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonAdmin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_IonAdmin_agent.o: nm/agent/adm_IonAdmin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonAdmin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Tpo -c -o nm/agent/nm_agent-adm_IonAdmin_agent.o `test -f 'nm/agent/adm_IonAdmin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_IonAdmin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonAdmin_agent.c' object='nm/agent/nm_agent-adm_IonAdmin_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonAdmin_agent.o `test -f 'nm/agent/adm_IonAdmin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_IonAdmin_agent.c
+
+nm/agent/nm_agent-adm_IonAdmin_agent.obj: nm/agent/adm_IonAdmin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonAdmin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Tpo -c -o nm/agent/nm_agent-adm_IonAdmin_agent.obj `if test -f 'nm/agent/adm_IonAdmin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_IonAdmin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonAdmin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonAdmin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonAdmin_agent.c' object='nm/agent/nm_agent-adm_IonAdmin_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonAdmin_agent.obj `if test -f 'nm/agent/adm_IonAdmin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_IonAdmin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonAdmin_agent.c'; fi`
+
+nm/agent/nm_agent-adm_IonBpAdmin_impl.o: nm/agent/adm_IonBpAdmin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonBpAdmin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Tpo -c -o nm/agent/nm_agent-adm_IonBpAdmin_impl.o `test -f 'nm/agent/adm_IonBpAdmin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_IonBpAdmin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonBpAdmin_impl.c' object='nm/agent/nm_agent-adm_IonBpAdmin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonBpAdmin_impl.o `test -f 'nm/agent/adm_IonBpAdmin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_IonBpAdmin_impl.c
+
+nm/agent/nm_agent-adm_IonBpAdmin_impl.obj: nm/agent/adm_IonBpAdmin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonBpAdmin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Tpo -c -o nm/agent/nm_agent-adm_IonBpAdmin_impl.obj `if test -f 'nm/agent/adm_IonBpAdmin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_IonBpAdmin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonBpAdmin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonBpAdmin_impl.c' object='nm/agent/nm_agent-adm_IonBpAdmin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonBpAdmin_impl.obj `if test -f 'nm/agent/adm_IonBpAdmin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_IonBpAdmin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonBpAdmin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_IonBpAdmin_agent.o: nm/agent/adm_IonBpAdmin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonBpAdmin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Tpo -c -o nm/agent/nm_agent-adm_IonBpAdmin_agent.o `test -f 'nm/agent/adm_IonBpAdmin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_IonBpAdmin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonBpAdmin_agent.c' object='nm/agent/nm_agent-adm_IonBpAdmin_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonBpAdmin_agent.o `test -f 'nm/agent/adm_IonBpAdmin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_IonBpAdmin_agent.c
+
+nm/agent/nm_agent-adm_IonBpAdmin_agent.obj: nm/agent/adm_IonBpAdmin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_IonBpAdmin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Tpo -c -o nm/agent/nm_agent-adm_IonBpAdmin_agent.obj `if test -f 'nm/agent/adm_IonBpAdmin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_IonBpAdmin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonBpAdmin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_IonBpAdmin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_IonBpAdmin_agent.c' object='nm/agent/nm_agent-adm_IonBpAdmin_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_IonBpAdmin_agent.obj `if test -f 'nm/agent/adm_IonBpAdmin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_IonBpAdmin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_IonBpAdmin_agent.c'; fi`
+
 nm/agent/nm_agent-adm_LtpAgent_impl.o: nm/agent/adm_LtpAgent_impl.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_LtpAgent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Tpo -c -o nm/agent/nm_agent-adm_LtpAgent_impl.o `test -f 'nm/agent/adm_LtpAgent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_LtpAgent_impl.c
 	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Po
@@ -8494,6 +8578,34 @@ nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj: nm/mgr/adm_LtpAgent_mgr.c
 #	$(AM_V_CC)source='nm/mgr/adm_LtpAgent_mgr.c' object='nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj `if test -f 'nm/mgr/adm_LtpAgent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_LtpAgent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_LtpAgent_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_IonAdmin_mgr.o: nm/mgr/adm_IonAdmin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_IonAdmin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_IonAdmin_mgr.o `test -f 'nm/mgr/adm_IonAdmin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_IonAdmin_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_IonAdmin_mgr.c' object='nm/mgr/nm_mgr-adm_IonAdmin_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_IonAdmin_mgr.o `test -f 'nm/mgr/adm_IonAdmin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_IonAdmin_mgr.c
+
+nm/mgr/nm_mgr-adm_IonAdmin_mgr.obj: nm/mgr/adm_IonAdmin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_IonAdmin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_IonAdmin_mgr.obj `if test -f 'nm/mgr/adm_IonAdmin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_IonAdmin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_IonAdmin_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_IonAdmin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_IonAdmin_mgr.c' object='nm/mgr/nm_mgr-adm_IonAdmin_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_IonAdmin_mgr.obj `if test -f 'nm/mgr/adm_IonAdmin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_IonAdmin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_IonAdmin_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o: nm/mgr/adm_IonBpAdmin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o `test -f 'nm/mgr/adm_IonBpAdmin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_IonBpAdmin_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_IonBpAdmin_mgr.c' object='nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o `test -f 'nm/mgr/adm_IonBpAdmin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_IonBpAdmin_mgr.c
+
+nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj: nm/mgr/adm_IonBpAdmin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj `if test -f 'nm/mgr/adm_IonBpAdmin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_IonBpAdmin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_IonBpAdmin_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_IonBpAdmin_mgr.c' object='nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj `if test -f 'nm/mgr/adm_IonBpAdmin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_IonBpAdmin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_IonBpAdmin_mgr.c'; fi`
 
 nm/shared/adm/nm_mgr-adm.o: nm/shared/adm/adm.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Tpo -c -o nm/shared/adm/nm_mgr-adm.o `test -f 'nm/shared/adm/adm.c' || echo '$(srcdir)/'`nm/shared/adm/adm.c

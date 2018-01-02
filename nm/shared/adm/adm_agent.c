@@ -189,96 +189,90 @@ void adm_agent_init_controls()
 #else
 	adm_add_ctrl(ADM_AGENT_CTL_LSTADM_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_LSTADM_MID", "List ADMs", ADM_AGENT, ADM_AGENT_CTL_LSTADM_MID);
-//	ui_add_parmspec(ADM_AGENT_CTL_LSTADM_MID, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_ADDCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDCD_MID", "Add Computed Definition", ADM_AGENT, ADM_AGENT_CTL_ADDCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDCD_MID, 3, "Name", AMP_TYPE_MID, "Expression", AMP_TYPE_EXPR, "Type", AMP_TYPE_SDNV, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_3(ADM_AGENT_CTL_ADDCD_MID, "Name", AMP_TYPE_MID, "Expression", AMP_TYPE_EXPR, "Type", AMP_TYPE_SDNV);
+
 
     adm_add_ctrl(ADM_AGENT_CTL_DELCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELCD_MID", "Delete Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DELCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELCD_MID, 1, "MC to Delete", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELCD_MID, "MC to Delete", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTCD_MID", "List Computed Definition", ADM_AGENT, ADM_AGENT_CTL_LSTCD_MID);
-//	ui_add_parmspec(ADM_AGENT_CTL_LSTCD_MID, 0, 0, 0, 0, 0, 0);
 
 	adm_add_ctrl(ADM_AGENT_CTL_DSCCD_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCCD_MID", "Describe Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DSCCD_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCCD_MID, 1, "MC to Describe", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCCD_MID, "MC to Describe", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_ADDRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_ADDRPT_MID", "Add Report", ADM_AGENT, ADM_AGENT_CTL_ADDRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDRPT_MID, 2, "Report Name", AMP_TYPE_MID, "Rpt Def.", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_2(ADM_AGENT_CTL_ADDRPT_MID, "Report Name", AMP_TYPE_MID, "Rpt Def.", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_DELRPT_MID", "Delete Report", ADM_AGENT, ADM_AGENT_CTL_DELRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELRPT_MID, 1, "Rpts To Del", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELRPT_MID, "Rpts To Del", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_LSTRPT_MID", "List Report", ADM_AGENT, ADM_AGENT_CTL_LSTRPT_MID);
-//	ui_add_parmspec(ADM_AGENT_CTL_LSTRPT_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCRPT_MID, NULL);
 	names_add_name("ADM_AGENT_CTL_DSCRPT_MID", "Describe Report", ADM_AGENT, ADM_AGENT_CTL_DSCRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCRPT_MID, 1, "Rpts to Descr.", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCRPT_MID, "Rpts to Descr.", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_GENRPT_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_GENRPT_MID", "Generate Report", ADM_AGENT, ADM_AGENT_CTL_GENRPT_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_GENRPT_MID, 2, "Rpts to Gen.", AMP_TYPE_MC, "Mgr to Send", AMP_TYPE_DC, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_2(ADM_AGENT_CTL_GENRPT_MID, "Rpts to Gen.", AMP_TYPE_MC, "Mgr to Send", AMP_TYPE_DC);
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDMAC_MID", "Add Macro", ADM_AGENT, ADM_AGENT_CTL_ADDMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDMAC_MID, 3, "Name", AMP_TYPE_STRING, "MID ID", AMP_TYPE_MID, "Macro Def", AMP_TYPE_MC, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_3(ADM_AGENT_CTL_ADDMAC_MID, "Name", AMP_TYPE_STRING, "MID ID", AMP_TYPE_MID, "Macro Def", AMP_TYPE_MC);
 
 	adm_add_ctrl(ADM_AGENT_CTL_DELMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELMAC_MID", "Delete Macro", ADM_AGENT, ADM_AGENT_CTL_DELMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELMAC_MID, 1, "Macros to Del", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELMAC_MID, "Macros to Del", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTMAC_MID", "List Macro", ADM_AGENT, ADM_AGENT_CTL_LSTMAC_MID);
-//	ui_add_parmspec(ADM_AGENT_CTL_LSTMAC_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCMAC_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCMAC_MID", "Describe Macro", ADM_AGENT, ADM_AGENT_CTL_DSCMAC_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCMAC_MID, 1, "Macros to Desc", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCMAC_MID, "Macros to Desc", AMP_TYPE_MC);
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDTRL_MID", "Add Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDTRL_MID, 5, "TRL ID", AMP_TYPE_MID, "Timestamp", AMP_TYPE_SDNV, "Period", AMP_TYPE_SDNV, "Count", AMP_TYPE_SDNV, "Action", AMP_TYPE_MC);
+	UI_ADD_PARMSPEC_5(ADM_AGENT_CTL_ADDTRL_MID, "TRL ID", AMP_TYPE_MID, "Timestamp", AMP_TYPE_SDNV, "Period", AMP_TYPE_SDNV, "Count", AMP_TYPE_SDNV, "Action", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELTRL_MID", "Delete Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DELTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELTRL_MID, 1, "TRLs to Del", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELTRL_MID, "TRLs to Del", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTTRL_MID", "List Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_LSTTRL_MID);
-//	ui_add_parmspec(ADM_AGENT_CTL_LSTTRL_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCTRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCTRL_MID", "Describe Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCTRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCTRL_MID, 1, "TRLs to Desc", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCTRL_MID, "TRLs to Desc", AMP_TYPE_MC);
 
 	adm_add_ctrl(ADM_AGENT_CTL_ADDSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDSRL_MID", "Add State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_ADDSRL_MID, 5, "SRL ID", AMP_TYPE_MID, "Timestamp", AMP_TYPE_SDNV, "State Expr", AMP_TYPE_EXPR, "Count", AMP_TYPE_SDNV, "Action", AMP_TYPE_MC);
+	UI_ADD_PARMSPEC_5(ADM_AGENT_CTL_ADDSRL_MID, "SRL ID", AMP_TYPE_MID, "Timestamp", AMP_TYPE_SDNV, "State Expr", AMP_TYPE_EXPR, "Count", AMP_TYPE_SDNV, "Action", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_DELSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DELSRL_MID", "Delete State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DELSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DELSRL_MID, 1, "SRLs to Del", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELSRL_MID, "SRLs to Del", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_LSTSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTSRL_MID", "List State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_LSTSRL_MID);
-//	ui_add_parmspec(ADM_AGENT_CTL_LSTSRL_MID, 0, 0, 0, 0, 0, 0);
 
     adm_add_ctrl(ADM_AGENT_CTL_DSCSRL_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCSRL_MID", "Describe State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCSRL_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_DSCSRL_MID, 1, "SRLs to Desc", AMP_TYPE_MC, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
-
+	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCSRL_MID, "SRLs to Desc", AMP_TYPE_MC);
 
     adm_add_ctrl(ADM_AGENT_CTL_STOR_MID,  NULL);
 	names_add_name("ADM_AGENT_CTL_STOR_MID", "Store EXPR to CD", ADM_AGENT, ADM_AGENT_CTL_STOR_MID);
-	ui_add_parmspec(ADM_AGENT_CTL_STOR_MID, 2, "CD MID", AMP_TYPE_MID, "Expression", AMP_TYPE_EXPR, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_2(ADM_AGENT_CTL_STOR_MID, "CD MID", AMP_TYPE_MID, "Expression", AMP_TYPE_EXPR);
 
     adm_add_ctrl(ADM_AGENT_CTL_RESET_CNTS,  NULL);
 	names_add_name("ADM_AGENT_CTL_RESET_CNTS", "Reset Counts", ADM_AGENT, ADM_AGENT_CTL_RESET_CNTS);
@@ -314,22 +308,22 @@ void adm_agent_init_literals()
 	names_add_name("ADM_AGENT_LIT_EPOCH_MID", "DTNMP EPOCH", ADM_AGENT, ADM_AGENT_LIT_EPOCH_MID);
 
 	names_add_name("ADM_AGENT_LIT_USRVAST_MID", "User-Defined Signed Vast", ADM_AGENT, ADM_AGENT_LIT_USRVAST_MID);
-	ui_add_parmspec(ADM_AGENT_LIT_USRVAST_MID, 1, "8 byte VAST", AMP_TYPE_VAST, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_LIT_USRVAST_MID, "8 byte VAST", AMP_TYPE_VAST);
 
 	names_add_name("ADM_AGENT_LIT_USRUVAST_MID", "User-Defined Unsigned Vast", ADM_AGENT, ADM_AGENT_LIT_USRUVAST_MID);
-	ui_add_parmspec(ADM_AGENT_LIT_USRUVAST_MID, 1, "UVAST", AMP_TYPE_SDNV, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_LIT_USRUVAST_MID, "UVAST", AMP_TYPE_SDNV);
 
 	names_add_name("ADM_AGENT_LIT_USRFLT_MID", "User-Defined Float", ADM_AGENT, ADM_AGENT_LIT_USRFLT_MID);
-	ui_add_parmspec(ADM_AGENT_LIT_USRFLT_MID, 1, "Serialized Float", AMP_TYPE_BLOB, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_LIT_USRFLT_MID, "Serialized Float", AMP_TYPE_BLOB);
 
 	names_add_name("ADM_AGENT_LIT_USRDBL_MID", "User-Defined Double", ADM_AGENT, ADM_AGENT_LIT_USRDBL_MID);
-	ui_add_parmspec(ADM_AGENT_LIT_USRDBL_MID, 1, "Serialized Double", AMP_TYPE_BLOB, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_LIT_USRDBL_MID, "Serialized Double", AMP_TYPE_BLOB);
 
 	names_add_name("ADM_AGENT_LIT_USRSTR_MID", "User-Defined String", ADM_AGENT, ADM_AGENT_LIT_USRSTR_MID);
-	ui_add_parmspec(ADM_AGENT_LIT_USRSTR_MID, 1, "Value", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_LIT_USRSTR_MID, "Value", AMP_TYPE_STRING);
 
 	names_add_name("ADM_AGENT_LIT_USRBLOB_MID", "User-Defined Blob", ADM_AGENT, ADM_AGENT_LIT_USRBLOB_MID);
-	ui_add_parmspec(ADM_AGENT_LIT_USRSTR_MID, 1, "Value", AMP_TYPE_BLOB, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_AGENT_LIT_USRSTR_MID, "Value", AMP_TYPE_BLOB);
 
 #endif
 }

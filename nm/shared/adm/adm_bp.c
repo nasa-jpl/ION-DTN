@@ -244,19 +244,19 @@ void adm_bp_init_atomic()
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_NAME_MID,                AMP_TYPE_STRING, 1, NULL,  adm_print_string, bp_size_endpoint_name);
 	names_add_name("ADM_BP_AD_ENDPT_NAME_MID", "Endpoint Names", ADM_BP, ADM_BP_AD_ENDPT_NAME_MID);
-	ui_add_parmspec(ADM_BP_AD_ENDPT_NAME_MID, 1, "Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_BP_AD_ENDPT_NAME_MID, "Endpt Name", AMP_TYPE_STRING);
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_ACTIVE_MID,              AMP_TYPE_UINT, 1, NULL,  NULL, NULL);
 	names_add_name("ADM_BP_AD_ENDPT_ACTIVE_MID", "Active Endpoint", ADM_BP, ADM_BP_AD_ENDPT_ACTIVE_MID);
-	ui_add_parmspec(ADM_BP_AD_ENDPT_ACTIVE_MID, 1, "Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_BP_AD_ENDPT_ACTIVE_MID, "Endpt Name", AMP_TYPE_STRING);
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_SINGLETON_MID,           AMP_TYPE_UINT, 1, NULL,  NULL, NULL);
 	names_add_name("ADM_BP_AD_ENDPT_SINGLETON_MID", "Singleton Endpoint", ADM_BP, ADM_BP_AD_ENDPT_SINGLETON_MID);
-	ui_add_parmspec(ADM_BP_AD_ENDPT_SINGLETON_MID, 1, "Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_BP_AD_ENDPT_SINGLETON_MID, "Endpt Name", AMP_TYPE_STRING);
 
 	adm_add_datadef(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, AMP_TYPE_UINT, 1, NULL,  NULL, NULL);
 	names_add_name("ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID", "Abandon On Del Fail", ADM_BP, ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID);
-	ui_add_parmspec(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, 1,"Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID, "Endpt Name", AMP_TYPE_STRING);
 
 #endif
 
@@ -399,7 +399,7 @@ void adm_bp_init_reports()
 #ifndef AGENT_ROLE
 	names_add_name("ADM_BP_RPT_FULL_MID", "Full Report", ADM_BP, ADM_BP_RPT_FULL_MID);
 	names_add_name("ADM_BP_ENDPT_FULL_MID", "Endpoint Full Report", ADM_BP, ADM_BP_ENDPT_FULL_MID);
-	ui_add_parmspec(ADM_BP_ENDPT_FULL_MID, 1,"Endpt Name", AMP_TYPE_STRING, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	UI_ADD_PARMSPEC_1(ADM_BP_ENDPT_FULL_MID, "Endpt Name", AMP_TYPE_STRING);
 
 #endif
 

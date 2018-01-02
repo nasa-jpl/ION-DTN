@@ -44,6 +44,8 @@
 #include "../adm/adm_agent.h"
 #include "../adm/adm_bpsec.h"
 #include "adm_LtpAgent.h"
+#include "adm_IonBpAdmin.h"
+#include "adm_IonAdmin.h"
 
 Lyst gAdmData;
 Lyst gAdmComputed;
@@ -1899,22 +1901,13 @@ void adm_init()
 	adm_agent_init();
 
 
-#ifdef _HAVE_LTP_ADM_
-	adm_ltp_init();
-#endif /* _HAVE_LTP_ADM_ */
-
-#ifdef _HAVE_ION_ADM_
-	adm_ion_init();
-#endif /* _HAVE_ION_ADM_ */
-
 #ifdef _HAVE_BPSEC_ADM_
 	adm_bpsec_init();
 #endif
 
-//#ifdef _HAVE_LTPAGENT_ADM_
-//	adm_ltpAgent_init();
-//#endif
 	adm_LtpAgent_init();
+	adm_IonBpAdmin_init();
+	adm_IonAdmin_init();
 
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);
 }

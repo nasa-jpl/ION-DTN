@@ -58,10 +58,10 @@
 #define ADM_AGENT 1
 #define ADM_BP    2
 #define ADM_LTP   3
-#define ADM_ION   4
+#define ADM_IONADMIN   4
 #define ADM_BPSEC 5
 #define ADM_LTPAGENT 6
-
+#define ADM_IONBPADMIN 7
 
 /*
  * +--------------------------------------------------------------------------+

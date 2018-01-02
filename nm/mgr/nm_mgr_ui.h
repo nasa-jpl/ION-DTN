@@ -51,25 +51,27 @@ extern int gContext;
 extern Lyst gParmSpec;
 
 
-#define MAX_PARMS 5
+#define MAX_PARMS 6
 #define MAX_PARM_NAME 16
 
 
 #define UI_ADD_PARMSPEC_1(str, n1, p1) \
-	   ui_add_parmspec(str, 1, n1, p1, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+	   ui_add_parmspec(str, 1, n1, p1, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 #define UI_ADD_PARMSPEC_2(str, n1, p1, n2, p2) \
-	   ui_add_parmspec(str, 2, n1, p1, n2, p2, NULL, 0, NULL, 0, NULL, 0);
+	   ui_add_parmspec(str, 2, n1, p1, n2, p2, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 
 #define UI_ADD_PARMSPEC_3(str, n1, p1, n2, p2, n3, p3) \
-	   ui_add_parmspec(str, 3, n1, p1, n2, p2, n3, p3, NULL, 0, NULL, 0);
+	   ui_add_parmspec(str, 3, n1, p1, n2, p2, n3, p3, NULL, 0, NULL, 0, NULL, 0);
 
 #define UI_ADD_PARMSPEC_4(str, n1, p1, n2, p2, n3, p3, n4, p4) \
-	   ui_add_parmspec(str, 4, n1, p1, n2, p2, n3, p3, n4, p4, NULL, 0);
+	   ui_add_parmspec(str, 4, n1, p1, n2, p2, n3, p3, n4, p4, NULL, 0, NULL, 0);
 
 #define UI_ADD_PARMSPEC_5(str, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5) \
-	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5);
+	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, NULL, 0);
 
+#define UI_ADD_PARMSPEC_6(str, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6) \
+	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6);
 
 /*
  * The parameter spec keeps a list of known parameters
@@ -92,7 +94,8 @@ void           ui_add_parmspec(char *mid_str,
 		                       char *n2, uint8_t p2,
 		                       char *n3, uint8_t p3,
 		                       char *n4, uint8_t p4,
-		                       char *n5, uint8_t p5);
+		                       char *n5, uint8_t p5,
+							   char *n6, uint8_t p6);
 
 ui_parm_spec_t* ui_get_parmspec(mid_t *mid);
 

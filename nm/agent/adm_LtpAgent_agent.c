@@ -18,8 +18,6 @@
 #include "lyst.h"
 #include "platform.h"
 
-#include "ltp.h"
-
 #include "../shared/adm/adm_LtpAgent.h"
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/def.h"
@@ -32,9 +30,6 @@
 #ifdef _HAVE_LTPAGENT_ADM_
 void adm_LtpAgent_init()
 {
-
-        ltp_attach();
-
 	adm_LtpAgent_init_edd();
 	adm_LtpAgent_init_variables();
 	adm_LtpAgent_init_controls();
