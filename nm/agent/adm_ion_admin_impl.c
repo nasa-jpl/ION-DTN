@@ -98,7 +98,7 @@ table_t* adm_ion_admin_tbl_contacts()
 	if(
 		(table_add_col(table, "start_time", AMP_TYPE_TS) == ERROR) ||
 		(table_add_col(table, "stop_time", AMP_TYPE_TS) == ERROR) ||
-		(table_add_col(table, "source_node", AMP_TYPE_UNIT) == ERROR) ||
+		(table_add_col(table, "source_node", AMP_TYPE_UINT) == ERROR) ||
 		(table_add_col(table, "dest_node", AMP_TYPE_STR) == ERROR) ||
 		(table_add_col(table, "xmit_data", AMP_TYPE_REAL32) == ERROR) ||
 		(table_add_col(table, "prob", AMP_TYPE_REAL32) == ERROR))
