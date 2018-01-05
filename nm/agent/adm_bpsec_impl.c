@@ -107,6 +107,11 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 
 value_t adm_bpsec_get_tot_good_tx_bcb_blks(tdc_t params)
 {
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_numSuccTxBCBBlock BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
 }
 
@@ -497,8 +502,13 @@ value_t adm_bpsec_get_last_reset(tdc_t params)
 
 
 
-tdc_t* adm_bpsec_ctl_reset_all(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_reset_all(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_ctrl_reset_all BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	CHKNULL(status);
 
 	bpsec_instr_reset();
@@ -507,12 +517,11 @@ tdc_t* adm_bpsec_ctl_reset_all(eid_t *def_mgr, tdc_t params, int8_t *status)
 	return NULL;
 }
 
-tdc_t* adm_bpsec_ctl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
-	int8_t success = 0;
-
 	*status = CTRL_FAILURE;
+	int8_t success = 0;
 
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((src = adm_extract_string(params,0,&success)) == NULL)
@@ -533,13 +542,11 @@ tdc_t* adm_bpsec_ctl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
  /*
   * DeleteKey(STR keyname)
   */
-tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+	*status = CTRL_FAILURE;
 	char *name = NULL;
 	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
-
 	/* Step 1: Grab the name of the key to delete. */
 	if((name = adm_extract_string(params,0,&success)) == NULL)
 	{
@@ -552,7 +559,7 @@ tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 	 */
 	if(sec_activeKey(name) != 0)
 	{
-		AMP_DEBUG_WARN("adm_bpsec_ctl_del_key","Can't remove active key %s", name);
+		AMP_DEBUG_WARN("adm_bpsec_ctrl_del_key","Can't remove active key %s", name);
 		SRELEASE(name);
 		return NULL;
 	}
@@ -570,14 +577,13 @@ tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * AddKey(STR keyname, BLOB key)
  */
-tdc_t* adm_bpsec_ctl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+
+	*status = CTRL_FAILURE;
 	char *name = NULL;
 	blob_t *value = NULL;
 	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
-
 	/* Step 1: Grab the name of the new key. */
 	if((name = adm_extract_string(params,0,&success)) == NULL)
 	{
@@ -604,17 +610,16 @@ tdc_t* adm_bpsec_ctl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  *  AddBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+
+	*status = CTRL_FAILURE;
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	char *cs = NULL;
 	char *key = NULL;
 	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
-
 	/* Step 1: Grab the name of the new key. */
 	src = adm_extract_string(params, 0, &success);
 	dst = adm_extract_string(params, 1, &success);
@@ -638,17 +643,17 @@ tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bibrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bibrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -662,15 +667,15 @@ tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * RemoveBibRule(STR src, STR dest, INT tgt)
  */
-tdc_t* adm_bpsec_ctl_del_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_del_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+
+	*status = CTRL_FAILURE;
+
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
-
 	/* Step 1: Grab the name of the new key. */
 	src = adm_extract_string(params, 0, &success);
 	dst = adm_extract_string(params, 1, &success);
@@ -702,6 +707,7 @@ tdc_t* adm_bpsec_ctl_del_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 table_t *get_bib_rules()
 {
+
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
@@ -738,6 +744,7 @@ table_t *get_bib_rules()
 		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot add columns.", NULL);
 		return NULL;
 	}
+	
 
 	if (sdr_begin_xn(sdr) < 0)
 	{
@@ -956,7 +963,7 @@ table_t *get_bcb_rules()
 	return table;
 }
 
-tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 
 	tdc_t *retval = NULL;
@@ -965,10 +972,9 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	uint32_t len = 0;
 
 	*status = CTRL_FAILURE;
-
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bibrule", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -976,7 +982,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bibrule","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -986,7 +992,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 		table_destroy(table, 1);
 		tdc_destroy(&retval);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bibrule","Can't serialize table.", NULL);
 		return NULL;
 	}
 
@@ -1003,7 +1009,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * AddBcbRule(STR src, STR dst, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1038,17 +1044,17 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Can't add rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bcbrule", "Can't add rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Ciphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bcbrule", "Ciphersuite %s not supported.", cs);
 	}
 
 
@@ -1063,14 +1069,14 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * RemoveBcbRule(STR src, STR dest, INT tgt)
  */
-tdc_t* adm_bpsec_ctl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+
+	*status = CTRL_FAILURE;
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the name of the new key. */
 	src = adm_extract_string(params, 0, &success);
@@ -1091,19 +1097,19 @@ tdc_t* adm_bpsec_ctl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * ListBcbRules()
  */
-tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 
+
+	*status = CTRL_FAILURE;
 	tdc_t *retval = NULL;
 	table_t *table = get_bcb_rules();
 	uint8_t *data = NULL;
 	uint32_t len = 0;
 
-	*status = CTRL_FAILURE;
-
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcbrule", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -1111,7 +1117,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcbrule","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -1121,7 +1127,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 		table_destroy(table, 1);
 		tdc_destroy(&retval);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcbrule","Can't serialize table.", NULL);
 		return NULL;
 	}
 
@@ -1139,7 +1145,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  *  UpdateBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1174,17 +1180,17 @@ tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bibrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bibrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -1200,7 +1206,7 @@ tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status
 /*
  *  UpdateBcbRule(STR src, STR dest, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1236,17 +1242,17 @@ tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bcbrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bcbrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
