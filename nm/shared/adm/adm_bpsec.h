@@ -1,450 +1,427 @@
-/*****************************************************************************
+/****************************************************************************
  **
  ** File Name: adm_bpsec.h
  **
- ** Description: This implements the public portions of a AMP BPSEC ADM.
+ ** Description: TODO
  **
- ** Notes:
+ ** Notes: TODO
  **
- ** Assumptions:
+ ** Assumptions: TODO
  **
- ** Modification History:
- **  MM/DD/YY  AUTHOR         DESCRIPTION
- **  --------  ------------   ---------------------------------------------
- **            E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
- **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
- *****************************************************************************/
+ ** Modification History: 
+ **  YYYY-MM-DD  AUTHOR           DESCRIPTION
+ **  ----------  --------------   --------------------------------------------
+ **  2018-01-05  AUTO             Auto-generated header file 
+ **
+ ****************************************************************************/
+
 
 #ifndef ADM_BPSEC_H_
 #define ADM_BPSEC_H_
-
 #define _HAVE_BPSEC_ADM_
-
 #ifdef _HAVE_BPSEC_ADM_
 
 #include "lyst.h"
-#include "bpsec_instr.h"
-
-
 #include "../utils/nm_types.h"
-#include "../adm/adm.h"
-
-
+#include "adm.h"
 
 /*
- * +--------------------------------------------------------------------------+
- * |				     ADM TEMPLATE DOCUMENTATION  						  +
- * +--------------------------------------------------------------------------+
+ * +----------------------------------------------------------------------------------------------------------+
+ * |			              ADM TEMPLATE DOCUMENTATION                                              +
+ * +----------------------------------------------------------------------------------------------------------+
  *
- * ADM ROOT STRING    : iso.identified-organization.dod.internet.mgmt.amp.bpsec
- * ADM ROOT ID STRING : 1.3.6.1.2.3.9
- * ADM ROOT OID       : 2B 06 01 02 03 09
- * ADM NICKNAMES      : 0 -> 0x2B0601020309
- *
- *
- *                             BPSEC ADM ROOT
- *                             (1.3.6.1.2.3.9)
- *                                   |
- *                                   |
- *   Meta-   Atomic  Computed        |
- *   Data    Data      Data    Rpts  |  Ctrls  Literals  Macros   Ops
- *    (.0)   (.1)      (.2)    (.3)  |  (.4)    (.5)      (.6)    (.7)
- *      +-------+---------+------+------+--------+----------+---------+
- *
+ * ADM ROOT STRING:arn:DTN:bpsec
  */
-
 
 /*
- * +--------------------------------------------------------------------------+
- * |					    AGENT NICKNAME DEFINITIONS  					  +
- * +--------------------------------------------------------------------------+
- *
- * 40 -> 0x2B060102030900
- * 41 -> 0x2B060102030901
- * 42 -> 0x2B060102030902
- * 43 -> 0x2B060102030903
- * 44 -> 0x2B060102030904
- * 45 -> 0x2B060102030905
- * 46 -> 0x2B060102030906
- * 47 -> 0x2B060102030907
- * 49 -> 0x2B0601020309
+ * +----------------------------------------------------------------------------------------------------------+
+ * |				             AGENT NICKNAME DEFINITIONS                                       +
+ * +----------------------------------------------------------------------------------------------------------+
  */
+#define BPSEC_ADM_META_NN_IDX 40
+#define BPSEC_ADM_META_NN_STR "40"
 
+#define BPSEC_ADM_EDD_NN_IDX 41
+#define BPSEC_ADM_EDD_NN_STR "41"
 
-#define BPSEC_ADM_MD_NN_IDX 40
-#define BPSEC_ADM_MD_NN_STR "2B060102030900"
-
-#define BPSEC_ADM_AD_NN_IDX 41
-#define BPSEC_ADM_AD_NN_STR "2B060102030901"
-
-#define BPSEC_ADM_CD_NN_IDX 42
-#define BPSEC_ADM_CD_NN_STR "2B060102030902"
+#define BPSEC_ADM_VAR_NN_IDX 42
+#define BPSEC_ADM_VAR_NN_STR "42"
 
 #define BPSEC_ADM_RPT_NN_IDX 43
-#define BPSEC_ADM_RPT_NN_STR "2B060102030903"
+#define BPSEC_ADM_RPT_NN_STR "43"
 
 #define BPSEC_ADM_CTRL_NN_IDX 44
-#define BPSEC_ADM_CTRL_NN_STR "2B060102030904"
+#define BPSEC_ADM_CTRL_NN_STR "44"
 
-#define BPSEC_ADM_LTRL_NN_IDX 45
-#define BPSEC_ADM_LTRL_NN_STR "2B060102030905"
+#define BPSEC_ADM_CONST_NN_IDX 45
+#define BPSEC_ADM_CONST_NN_STR "45"
 
-#define BPSEC_ADM_MAC_NN_IDX 46
-#define BPSEC_ADM_MAC_NN_STR "2B060102030906"
+#define BPSEC_ADM_MACRO_NN_IDX 46
+#define BPSEC_ADM_MACRO_NN_STR "46"
 
 #define BPSEC_ADM_OP_NN_IDX 47
-#define BPSEC_ADM_OP_NN_STR "2B060102030907"
+#define BPSEC_ADM_OP_NN_STR "47"
+
+#define BPSEC_ADM_TBL_NN_IDX 48
+#define BPSEC_ADM_TBL_NN_STR "48"
 
 #define BPSEC_ADM_ROOT_NN_IDX 49
-#define BPSEC_ADM_ROOT_NN_STR "2B0601020309"
+#define BPSEC_ADM_ROOT_NN_STR "49"
 
 
 /*
- * +--------------------------------------------------------------------------+
- * |					  BPSEC META-DATA DEFINITIONS  						  +
- * +--------------------------------------------------------------------------+
-   +------------------+----------+---------+----------------+----------+
-   |       Name       |   MID    |   OID   |  Description   |   Type   |
-   +------------------+----------+---------+----------------+----------+
-   |     Name         | 80280100 |  [40].0  |   ADM Name     |   STR    |
-   +------------------+----------+---------+----------------+----------+
-   |     Version      | 80280101 |  [40].1  |  ADM Version   |   STR    |
-   +------------------+----------+---------+----------------+----------+
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC META-DATA DEFINITIONS                                                          
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |name                         |0x87280100  |The human-readable name of the ADM.               |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |namespace                    |0x87280101  |The namespace of the ADM.                         |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |version                      |0x87280102  |The version of the ADM.                           |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |organization                 |0x87280103  |The name of the issuing organization of the ADM.  |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+// "name"
+#define ADM_BPSEC_META_NAME_MID 0x87280100
+// "namespace"
+#define ADM_BPSEC_META_NAMESPACE_MID 0x87280101
+// "version"
+#define ADM_BPSEC_META_VERSION_MID 0x87280102
+// "organization"
+#define ADM_BPSEC_META_ORGANIZATION_MID 0x87280103
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC EXTERNALLY DEFINED DATA DEFINITIONS                                               
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bcb_blk          |0x80290100  |Total successfully Tx BCB blocks                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bcb_blk           |0x80290101  |Total unsuccessfully Tx BCB blocks                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bcb_blk          |0x80290102  |Total successfully Rx BCB blocks                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bcb_blk           |0x80290103  |Total unsuccessfully Rx BCB blocks                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_missing_rx_bcb_blks      |0x80290104  |Total missing-on-RX BCB blocks                    |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bcb_blks             |0x80290105  |Total forward BCB blocks                          |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bcb_bytes        |0x80290106  |Total successfully Tx bcb bytes                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bcb_bytes         |0x80290107  |Total unsuccessfully Tx bcb bytes                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bcb_bytes        |0x80290108  |Total successfully Rx bcb bytes                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bcb_bytes         |0x80290109  |Total unsuccessfully Rx bcb bytes                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_missing_rx_bcb_bytes     |0x8029010a  |Total missing-on-Rx bcb bytes                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bcb_bytes            |0x8029010b  |Total forwarded bcb bytes                         |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bib_blks         |0x8029010c  |Total successfully Tx BIB blocks                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bib_blks          |0x8029010d  |Total unsuccessfully Tx BIB blocks                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bib_blks         |0x8029010e  |Total successfully Rx BIB blocks                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bib_blks          |0x8029010f  |Total unsuccessfully Rx BIB blocks                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_miss_rx_bib_blks         |0x80290110  |Total missing-on-Rx BIB blocks                    |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bib_blks             |0x80290111  |Total forwarded BIB blocks                        |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bib_bytes        |0x80290112  |Total successfully Tx BIB bytes                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bib_bytes         |0x80290113  |Total unsuccessfully Tx BIB bytes                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bib_bytes        |0x80290114  |Total successfully Rx BIB bytes                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bib_bytes         |0x80290115  |Total unsuccessfully Rx BIB bytes                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_miss_rx_bib_bytes        |0x80290116  |Total missing-on-Rx BIB bytes                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bib_bytes            |0x80290117  |Total forwarded BIB bytes                         |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |last_update                  |0x80290118  |Last BPSEC update                                 |TS           |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_known_keys               |0x80290119  |Number of known keys                              |Uint         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |key_names                    |0x8029011a  |Known key names                                   |STRING       |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |ciphersuite_names            |0x8029011b  |Known ciphersuite names                           |STRING       |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |rule_source                  |0x8029011c  |Known rule sources                                |STRING       |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bcb_blks_src     |0xc029011d  |Successfully Tx BCB blocks from SRC               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bcb_blks_src      |0xc029011e  |Failed TX BCB blocks from SRC                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bcb_blks_src     |0xc029011f  |Successfully Rx BCB blocks from SRC               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bcb_blks_src      |0xc0290120  |Failed RX BCB blocks from SRC                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_missing_rx_bcb_blks_src  |0xc0290121  |Missing-onRX BCB blocks from SRC                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bcb_blks_src         |0xc0290122  |Forwarded BCB blocks from SRC                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bcb_bytes_src    |0xc0290123  |Successfullt Tx bcb bytes from SRC                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bcb_bytes_src     |0xc0290124  |Failed Tx bcb bytes from SRC                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bcb_bytes_src    |0xc0290125  |Successfully Rx bcb bytes from SRC                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bcb_bytes_src     |0xc0290126  |Failed Rx bcb bytes from SRC                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_missing_rx_bcb_bytes_src |0xc0290127  |Missin-on-Rx bcb bytes from SRC                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bcb_bytes_src        |0xc0290128  |Forwarded bcb bytes from SRC                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bib_blks_src     |0xc0290129  |Successfully Tx BIB blocks from SRC               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bib_blks_src      |0xc029012a  |Failed Tx BIB blocks from SRC                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bib_blks_src     |0xc029012b  |Successfully Rx BIB blocks from SRC               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bib_blks_src      |0xc029012c  |Failed Rx BIB blocks from SRC                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_miss_rx_bib_blks_src     |0xc029012d  |Missing-on-Rx BIB blocks from SRC                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bib_blks_src         |0xc029012e  |Forwarded BIB blocks from SRC                     |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_tx_bib_bytes_src    |0xc029012f  |Successfully Tx BIB bytes from SRC                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_tx_bib_bytes_src     |0xc0290130  |Failed Tx BIB bytes from SRC                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_good_rx_bib_bytes_src    |0xc0290131  |Successfully Rx BIB bytes from SRC                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bad_rx_bib_bytes_src     |0xc0290132  |Failed Rx BIB bytes from SRC                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_missing_rx_bib_bytes_src |0xc0290133  |Missing-on-Rx BIB bytes from SRC                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fwd_bib_bytes_src        |0xc0290134  |Forwarded BIB bytes from SRC                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |last_update_src              |0xc0290135  |Last BPSEC Update from SRC                        |TS           |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |last_reset                   |0xc0290136  |Last reset                                        |TS           |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID 0x80290100
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID 0x80290101
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID 0x80290102
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLK_MID 0x80290103
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_MID 0x80290104
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_MID 0x80290105
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_MID 0x80290106
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_MID 0x80290107
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_MID 0x80290108
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_MID 0x80290109
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_MID 0x8029010a
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_MID 0x8029010b
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_MID 0x8029010c
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID 0x8029010d
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID 0x8029010e
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID 0x8029010f
+#define ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID 0x80290110
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID 0x80290111
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID 0x80290112
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID 0x80290113
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_MID 0x80290114
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_MID 0x80290115
+#define ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BYTES_MID 0x80290116
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_MID 0x80290117
+#define ADM_BPSEC_EDD_LAST_UPDATE_MID 0x80290118
+#define ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID 0x80290119
+#define ADM_BPSEC_EDD_KEY_NAMES_MID 0x8029011a
+#define ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID 0x8029011b
+#define ADM_BPSEC_EDD_RULE_SOURCE_MID 0x8029011c
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID 0xc029011d
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID 0xc029011e
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID 0xc029011f
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID 0xc0290120
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID 0xc0290121
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID 0xc0290122
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID 0xc0290123
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID 0xc0290124
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID 0xc0290125
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID 0xc0290126
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID 0xc0290127
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID 0xc0290128
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID 0xc0290129
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID 0xc029012a
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID 0xc029012b
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID 0xc029012c
+#define ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID 0xc029012d
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID 0xc029012e
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID 0xc029012f
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID 0xc0290130
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID 0xc0290131
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID 0xc0290132
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID 0xc0290133
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID 0xc0290134
+#define ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID 0xc0290135
+#define ADM_BPSEC_EDD_LAST_RESET_MID 0xc0290136
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC VARIABLE DEFINITIONS                                                          
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |total_bad_tx_blks            |0x812a0100  |This is the number of failed TX blocks (# failed B|             |
+   |                             |            |IB + # failed bcb).                               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+#define ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID 0x812a0100
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC REPORT DEFINITIONS                                                           
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |full_report                  |0x822b0100  |all known meta-data, externally defined data, and |             |
+   |                             |            |variables                                         |?            |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |source_report                |0x822b0101  |security info by source                           |?            |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+#define ADM_BPSEC_RPT_FULL_REPORT_MID 0x822b0100
+#define ADM_BPSEC_RPT_SOURCE_REPORT_MID 0x822b0101
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC CONTROL DEFINITIONS                                                         
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |rst_all_cnts                 |0x832c0100  |This control causes the Agent to reset all counts |             |
+   |                             |            |associated with block or byte statistics and to se|             |
+   |                             |            |t the Last Reset Time of the BPsec EDD data to the|             |
+   |                             |            | time when the control was run.                   |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |rst_src_cnts                 |0xc32c0101  |This control causes the Agent to reset all counts |             |
+   |                             |            |(blocks and bytes) associated with a given bundle |             |
+   |                             |            |source and set the Last Reset Time of the source s|             |
+   |                             |            |tatistics to the time when the control was run.   |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |delete_key                   |0xc32c0102  |This control deletes a key from the BPsec system. |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |add_key                      |0xc32c0103  |This control adds a key to the BPsec system.      |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |add_bib_rule                 |0xc32c0104  |This control configures policy on the BPsec protoc|             |
+   |                             |            |ol implementation that describes how BIB blocks sh|             |
+   |                             |            |ould be applied to bundles in the system. This pol|             |
+   |                             |            |icy is captured as a rule which states when transm|             |
+   |                             |            |itting a bundle from the given source endpoint ID |             |
+   |                             |            |to the given destination endpoint ID, blocks of ty|             |
+   |                             |            |pe target should have a BIB added to them using th|             |
+   |                             |            |e given ciphersuite and the given key.            |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |del_bib_rule                 |0xc32c0105  |This control removes any configured policy on the |             |
+   |                             |            |BPsec protocol implementation that describes how B|             |
+   |                             |            |IB blocks should be applied to bundles in the syst|             |
+   |                             |            |em. A BIB policy is uniquely identified by a sourc|             |
+   |                             |            |e endpoint Id, a destination Id, and a target bloc|             |
+   |                             |            |k type.                                           |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_bib_rules               |0x832c0106  |This control returns a table describinng all of th|             |
+   |                             |            |e BIB policy rules that are known to the BPsec imp|             |
+   |                             |            |lementation.                                      |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |add_bcb_rule                 |0xc32c0107  |This control configures policy on the BPsec protoc|             |
+   |                             |            |ol implementation that describes how BCB blocks sh|             |
+   |                             |            |ould be applied to bundles in the system. This pol|             |
+   |                             |            |icy is captured as a rule which states when transm|             |
+   |                             |            |itting a bundle from the given source endpoint id |             |
+   |                             |            |to the given destination endpoint id, blocks of ty|             |
+   |                             |            |pe target should have a bcb added to them using th|             |
+   |                             |            |e given ciphersuite and the given key.            |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |del_bcb_rule                 |0xc32c0108  |This control removes any configured policy on the |             |
+   |                             |            |BPsec protocol implementation that describes how B|             |
+   |                             |            |CB blocks should be applied to bundles in the syst|             |
+   |                             |            |em. A bcb policy is uniquely identified by a sourc|             |
+   |                             |            |e endpoint id, a destination endpoint id, and a ta|             |
+   |                             |            |rget block type.                                  |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_bcb_rules               |0x832c0109  |This control returns a table describing all of the|             |
+   |                             |            | bcb policy rules that are known to the BPsec impl|             |
+   |                             |            |ementation                                        |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+#define ADM_BPSEC_CTRL_RST_ALL_CNTS_MID 0x832c0100
+#define ADM_BPSEC_CTRL_RST_SRC_CNTS_MID 0xc32c0101
+#define ADM_BPSEC_CTRL_DELETE_KEY_MID 0xc32c0102
+#define ADM_BPSEC_CTRL_ADD_KEY_MID 0xc32c0103
+#define ADM_BPSEC_CTRL_ADD_BIB_RULE_MID 0xc32c0104
+#define ADM_BPSEC_CTRL_DEL_BIB_RULE_MID 0xc32c0105
+#define ADM_BPSEC_CTRL_LIST_BIB_RULES_MID 0x832c0106
+#define ADM_BPSEC_CTRL_ADD_BCB_RULE_MID 0xc32c0107
+#define ADM_BPSEC_CTRL_DEL_BCB_RULE_MID 0xc32c0108
+#define ADM_BPSEC_CTRL_LIST_BCB_RULES_MID 0x832c0109
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC CONSTANT DEFINITIONS                                                         
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 
-// "BPSEC ADM"
-#define ADM_BPSEC_MD_NAME_MID	"80280100"
-
-// "2016_05_16"
-#define ADM_BPSEC_MD_VER_MID    "80280101"
-
-
-
 
 /*
- * +--------------------------------------------------------------------------+
- * |					  BPSEC ATOMIC DATA DEFINITIONS  					  +
- * +--------------------------------------------------------------------------+
-
-   +-------------------------------------+------------+-----------+-----------+
-   |       Name                          |    MID     |    OID    |    Type   |
-   +-------------------------------------+------------+-----------+-----------+
-   | Total Successfully Tx BCB blocks    |  80290100  |  [41].0   |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Tx BCB blocks  |  80290101  |  [41].1   |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Rx BCB blocks    |  80290102  |  [41].2   |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Rx BCB blocks  |  80290103  |  [41].3   |    UINT   |
-   |                                     |            |           |           |
-   | Total Missing-on-Rx BCB blocks      |  80290104  |  [41].4   |    UINT   |
-   |                                     |            |           |           |
-   | Total Forwarded BCB blocks          |  80290105  |  [41].5   |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Tx BCB bytes     |  80290106  |  [41].6   |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Tx BCB bytes   |  80290107  |  [41].7   |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Rx BCB bytes     |  80290108  |  [41].8   |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Rx BCB bytes   |  80290109  |  [41].9   |    UINT   |
-   |                                     |            |           |           |
-   | Total Missing-on-Rx BCB bytes       |  8029010A  |  [41].A   |    UINT   |
-   |                                     |            |           |           |
-   | Total Forwarded BCB bytes           |  8029010B  |  [41].B   |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Tx BIB blocks    |  8029010C  |  [41].C   |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Tx BIB blocks  |  8029010D  |  [41].D   |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Rx BIB blocks    |  8029010E  |  [41].E   |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Rx BIB blocks  |  8029010F  |  [41].F   |    UINT   |
-   |                                     |            |           |           |
-   | Total Missing-on-Rx BIB blocks      |  80290110  |  [41].10  |    UINT   |
-   |                                     |            |           |           |
-   | Total Forwarded BIB blocks          |  80290111  |  [41].11  |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Tx BIB bytes     |  80290112  |  [41].12  |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Tx BIB bytes   |  80290113  |  [41].13  |    UINT   |
-   |                                     |            |           |           |
-   | Total Successfully Rx BIB bytes     |  80290114  |  [41].14  |    UINT   |
-   |                                     |            |           |           |
-   | Total Unsuccessfully Rx BIB bytes   |  80290115  |  [41].15  |    UINT   |
-   |                                     |            |           |           |
-   | Total Missing-on-Rx BIB bytes       |  80290116  |  [41].16  |    UINT   |
-   |                                     |            |           |           |
-   | Total Forwarded BIB bytes           |  80290117  |  [41].17  |    UINT   |
-   |                                     |            |           |           |
-   | Last BPSEC Update                   |  80290118  |  [41].18  |    TS     |
-   |                                     |            |           |           |
-   | Number of Known Keys                |  80290119  |  [41].19  |    UINT   |
-   |                                     |            |           |           |
-   | Known Key Names                     |  8029011A  |  [41].1A  |    UINT   |
-   |                                     |            |           |           |
-   | Known Ciphersuite Names             |  8029011B  |  [41].1B  |    BLOB   |
-   |                                     |            |           |           |
-   | Known Rule Sources                  |  8029011C  |  [41].1C  |    BLOB   |
-   |                                     |            |           |           |
-   | Successfully Tx BCB blocks from SRC |  C029011D  |  [41].1D  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Tx BCB blocks from SRC       |  C029011E  |  [41].1E  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Rx BCB blocks from SRC |  C029011F  |  [41].1F  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Rx BCB blocks from SRC       |  C0290120  |  [41].20  |    UINT   |
-   |                                     |            |           |           |
-   | Missing-on-Rx BCB blocks from SRC   |  C0290121  |  [41].21  |    UINT   |
-   |                                     |            |           |           |
-   | Forwarded BCB blocks from SRC       |  C0290122  |  [41].22  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Tx BCB bytes from SRC  |  C0290123  |  [41].23  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Tx BCB bytes from SRC        |  C0290124  |  [41].24  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Rx BCB bytes from SRC  |  C0290125  |  [41].25  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Rx BCB bytes from SRC        |  C0290126  |  [41].26  |    UINT   |
-   |                                     |            |           |           |
-   | Missing-on-Rx BCB bytes from SRC    |  C0290127  |  [41].27  |    UINT   |
-   |                                     |            |           |           |
-   | Forwarded BCB bytes from SRC        |  C0290128  |  [41].28  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Tx BIB blocks from SRC |  C0290129  |  [41].29  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Tx BIB blocks from SRC       |  C029012A  |  [41].2A  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Rx BIB blocks from SRC |  C029012B  |  [41].2B  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Rx BIB blocks from SRC       |  C029012C  |  [41].2C  |    UINT   |
-   |                                     |            |           |           |
-   | Missing-on-Rx BIB blocks from SRC   |  C029012D  |  [41].2D  |    UINT   |
-   |                                     |            |           |           |
-   | Forwarded BIB blocks from SRC       |  C029012E  |  [41].2E  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Tx BIB bytes from SRC  |  C029012F  |  [41].2F  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Tx BIB bytes from SRC        |  C0290130  |  [41].30  |    UINT   |
-   |                                     |            |           |           |
-   | Successfully Rx BIB bytes from SRC  |  C0290131  |  [41].31  |    UINT   |
-   |                                     |            |           |           |
-   | Failed Rx BIB bytes from SRC        |  C0290132  |  [41].32  |    UINT   |
-   |                                     |            |           |           |
-   | Missing-on-Rx BIB bytes from SRC    |  C0290133  |  [41].33  |    UINT   |
-   |                                     |            |           |           |
-   | Forwarded BIB bytes from SRC        |  C0290134  |  [41].34  |    UINT   |
-   |                                     |            |           |           |
-   | Last BPSEC Update from SRC          |  C0290135  |  [41].35  |    TS     |
-   |                                     |            |           |           |
-   | Last Reset                          |  C0290136  |  [41].36  |    TS     |
-   |                                     |            |           |           |
-   +-------------------------------------+------------+-----------+-----------+
-
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC MACRO DEFINITIONS                                                            
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |rst_all_cnts_twice           |0x862e0100  |This macro resets counts twice.                   |mc           |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |rst_src_cnts_twice           |0x862e0101  |This macro resets counts twice.                   |mc           |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
+#define ADM_BPSEC_MACRO_RST_ALL_CNTS_TWICE_MID 0x862e0100
+#define ADM_BPSEC_MACRO_RST_SRC_CNTS_TWICE_MID 0x862e0101
 
-
-//EJB:
-//Make an IDX per AD. Pass the IDX as first argument.
-
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BCB_BLKS "80290100"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BCB_BLKS "80290101"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BCB_BLKS "80290102"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BCB_BLKS "80290103"
-#define ADM_BPSEC_AD_TOT_MISSING_BCB_BLKS "80290104"
-#define ADM_BPSEC_AD_TOT_FORWARD_BCB_BLKS "80290105"
-
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BCB_BYTES "80290106"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BCB_BYTES "80290107"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BCB_BYTES "80290108"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BCB_BYTES "80290109"
-#define ADM_BPSEC_AD_TOT_MISSING_BCB_BYTES "8029010A"
-#define ADM_BPSEC_AD_TOT_FORWARD_BCB_BYTES "8029010B"
-
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BIB_BLKS "8029010C"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BIB_BLKS "8029010D"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BIB_BLKS "8029010E"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BIB_BLKS "8029010F"
-#define ADM_BPSEC_AD_TOT_MISSING_BIB_BLKS "80290110"
-#define ADM_BPSEC_AD_TOT_FORWARD_BIB_BLKS "80290111"
-
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BIB_BYTES "80290112"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BIB_BYTES "80290113"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BIB_BYTES "80290114"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BIB_BYTES "80290115"
-#define ADM_BPSEC_AD_TOT_MISSING_BIB_BYTES "80290116"
-#define ADM_BPSEC_AD_TOT_FORWARD_BIB_BYTES "80290117"
-
-#define ADM_BPSEC_AD_LAST_UPDATE "80290118"
-#define ADM_BPSEC_AD_NUM_KEYS "80290119"
-#define ADM_BPSEC_AD_KEYS "8029011A"
-#define ADM_BPSEC_AD_CIPHS "8029011B"
-#define ADM_BPSEC_AD_SRCS "8029011C"
-
-
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BCB_BLKS "C029011D"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BCB_BLKS "C029011E"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BCB_BLKS "C029011F"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BCB_BLKS "C0290120"
-#define ADM_BPSEC_AD_SRC_MISSING_BCB_BLKS "C0290121"
-#define ADM_BPSEC_AD_SRC_FORWARD_BCB_BLKS "C0290122"
-
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BCB_BYTES "C0290123"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BCB_BYTES "C0290124"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BCB_BYTES "C0290125"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BCB_BYTES "C0290126"
-#define ADM_BPSEC_AD_SRC_MISSING_BCB_BYTES "C0290127"
-#define ADM_BPSEC_AD_SRC_FORWARD_BCB_BYTES "C0290128"
-
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BIB_BLKS "C0290129"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BIB_BLKS "C029012A"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BIB_BLKS "C029012B"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BIB_BLKS "C029012C"
-#define ADM_BPSEC_AD_SRC_MISSING_BIB_BLKS "C029012D"
-#define ADM_BPSEC_AD_SRC_FORWARD_BIB_BLKS "C029012E"
-
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BIB_BYTES "C029012F"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BIB_BYTES "C0290130"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BIB_BYTES "C0290131"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BIB_BYTES "C0290132"
-#define ADM_BPSEC_AD_SRC_MISSING_BIB_BYTES "C0290133"
-#define ADM_BPSEC_AD_SRC_FORWARD_BIB_BYTES "C0290134"
-
-#define ADM_BPSEC_AD_SRC_LAST_UPDATE "C0290135"
-
-#define ADM_BPSEC_AD_LAST_RESET "C0290136"
 
 /*
- *
- * +--------------------------------------------------------------------------+
- * |				    BPSEC COMPUTED DATA DEFINITIONS 					  +
- * +--------------------------------------------------------------------------+
-
-   +------------------+----------+---------+----------------+----------+
-   |       Name       |   MID    |   OID   |  Description   |   Type   |
-   +------------------+----------+---------+----------------+----------+
-   |                  |          | [42].0  |                |          |
-   +------------------+----------+---------+----------------+----------+
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BPSEC OPERATOR DEFINITIONS                                                          
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |plus_uint                    |0x882f0100  |Uint32 addition                                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |				    	BPSEC REPORT DEFINITIONS						  +
- * +--------------------------------------------------------------------------+
-
-   +------------+----------+---------+------------------+--------------+
-   |    Name    |   MID    |   OID   |   Description    |     Type     |
-   +------------+----------+---------+------------------+--------------+
-   | FullReport | 822B0100 | [43].0  |  Report of all   |      DC      |
-   |            |          |         |   atomic data    |              |
-   |            |          |         |      items       |              |
-   +------------+----------+---------+------------------+--------------+
-   | SRC Report | C22B0101 | [43].1  |  Report of all   |      DC      |
-   |            |          |         |   atomic data    |              |
-   |            |          |         |   from SRC       |              |
-   +------------+----------+---------+------------------+--------------+
-
- */
-
-#define ADM_BPSEC_RPT_FULL_MID  "822B0100"
-#define ADM_BPSEC_RPT_SRC_MID  "C22B0101"
-
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |				    BPSEC CONTROL DEFINITIONS CONSTANTS  				  +
- * +--------------------------------------------------------------------------+
-
-   +----------------+-----------+----------+----------------------------------+
-   |      Name      |    MID    |   OID    |           Description            |
-   +----------------+-----------+----------+----------------------------------+
-   |    Reset All   |  832C0100 |  [44].0  | ResetAll()                       |
-   |                |           |          |                                  |
-   |    Reset SRC   |  C32C0101 |  [44].1  | ResetSrc(STR src)                |
-   |                |           |          |                                  |
-   |  DeleteKey     |  C32C0102 |  [44].2  | DeleteKey(STR keyname)           |
-   |                |           |          |                                  |
-   |  Add Key       |  C32C0103 |  [44].3  | AddKey(STR keyname, BLOB key)    |
-   |                |           |          |                                  |
-   | AddBibRule     |  C32C0104 |  [44].4  | AddBibRule(STR src, STR dest,    |
-   |                |           |          |            INT tgt, STR cs,      |
-   |                |           |          |            STR key)              |
-   |                |           |          |                                  |
-   | RemoveBibRule  |  C32C0105 |  [44].5  | RemoveBibRule(STR src, STR dest, |
-   |                |           |          |              INT tgt)            |
-   |                |           |          |                                  |
-   | ListBibRules   |  832C0106 |  [44].6  | ListBibRules()                   |
-   |                |           |          |                                  |
-   | AddBcbRule     |  C32C0107 |  [44].7  | AddBcbRule(STR src, STR dst,     |
-   |                |           |          |            INT tgt, STR cs,      |
-   |                |           |          |            STR key)              |
-   |                |           |          |                                  |
-   | RemoveBcbRule  |  C32C0108 |  [44].8  | RemoveBcbRule(STR src, STR dest, |
-   |                |           |          |               INT tgt)           |
-   |                |           |          |                                  |
-   | ListBcbRule    |  832C0109 |  [44].9  | ListBcbRules()                   |
-   +----------------+-----------+----------+----------------------------------+
- */
-
-#define ADM_BPSEC_CTL_RESET_ALL_MID     "832C0100"
-#define ADM_BPSEC_CTL_RESET_SRC_MID     "C32C0101"
-#define ADM_BPSEC_CTL_DEL_KEY_MID       "C32C0102"
-#define ADM_BPSEC_CTL_ADD_KEY_MID       "C32C0103"
-#define ADM_BPSEC_CTL_ADD_BIB_RULE_MID  "C32C0104"
-#define ADM_BPSEC_CTL_DEL_BIB_RULE_MID  "C32C0105"
-#define ADM_BPSEC_CTL_LIST_BIB_RULE_MID "832C0106"
-#define ADM_BPSEC_CTL_ADD_BCB_RULE_MID  "C32C0107"
-#define ADM_BPSEC_CTL_DEL_BCB_RULE_MID  "C32C0108"
-#define ADM_BPSEC_CTL_LIST_BCB_RULE_MID "832C0109"
-#define ADM_BPSEC_CTL_UP_BIB_RULE_MID   "C32C010A"
-#define ADM_BPSEC_CTL_UP_BCB_RULE_MID   "C32C010B"
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |					  BPSEC LITERAL DEFINTIONS  						  +
- * +--------------------------------------------------------------------------+
-
-   +----------------+-----------+----------+---------------------------------+
-   |      Name      |    MID    |   OID    |           Description           |
-   +----------------+-----------+----------+---------------------------------+
- */
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |					    BPSEC MACRO DEFINTIONS  						  +
- * +--------------------------------------------------------------------------+
-
-   +----------------+-----------+----------+---------------------------+
-   |      Name      |    MID    |   OID    |        Description        |
-   +----------------+-----------+----------+---------------------------+
-*/
-
-/*
- * +--------------------------------------------------------------------------+
- * |				    	BPSEC OPERATOR DEFINITIONS						  +
- * +--------------------------------------------------------------------------+
-
-   +------------+-----------+----------+-------------------------------+
-   |    Name    |    MID    |   OID    |          Description          |
-   +------------+-----------+----------+-------------------------------+
-*/
-
-
+#define ADM_BPSEC_OP_PLUS_UINT_MID 0x882f0100
 
 /* Initialization functions. */
 void adm_bpsec_init();
-void adm_bpsec_init_atomic();
-void adm_bpsec_init_computed();
+void adm_bpsec_init_edd();
+void adm_bpsec_init_variables();
 void adm_bpsec_init_controls();
-void adm_bpsec_init_literals();
+void adm_bpsec_init_constants();
 void adm_bpsec_init_macros();
 void adm_bpsec_init_metadata();
 void adm_bpsec_init_ops();
 void adm_bpsec_init_reports();
-
 #endif /* _HAVE_BPSEC_ADM_ */
 #endif //ADM_BPSEC_H_
