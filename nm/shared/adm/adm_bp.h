@@ -1,412 +1,303 @@
-/******************************************************************************
- **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
- **                         All rights reserved.
- ******************************************************************************/
-/*****************************************************************************
+/****************************************************************************
  **
  ** File Name: adm_bp.h
  **
- ** Description: This file contains the definitions of the Bundle Protocol
- **              ADM.
+ ** Description: TODO
  **
- ** Notes:
+ ** Notes: TODO
  **
- ** Assumptions:
- **      1. We current use a non-official OID root tree for DTN Bundle Protocol
- **         identifiers.
+ ** Assumptions: TODO
  **
- ** Modification History:
- **  MM/DD/YY  AUTHOR         DESCRIPTION
- **  --------  ------------   ---------------------------------------------
- **            E. Birrane     Initial Implementation (JHU/APL)
- **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
- *****************************************************************************/
+ ** Modification History: 
+ **  YYYY-MM-DD  AUTHOR           DESCRIPTION
+ **  ----------  --------------   --------------------------------------------
+ **  2018-01-04  AUTO             Auto-generated header file 
+ **
+ ****************************************************************************/
+
 
 #ifndef ADM_BP_H_
 #define ADM_BP_H_
+#define _HAVE_BP_ADM_
+#ifdef _HAVE_BP_ADM_
 
 #include "lyst.h"
-#include "bpnm.h"
-
 #include "../utils/nm_types.h"
-
-
-#include "../adm/adm.h"
-
+#include "adm.h"
 
 /*
- * +--------------------------------------------------------------------------+
- * |				     ADM TEMPLATE DOCUMENTATION  						  +
- * +--------------------------------------------------------------------------+
+ * +----------------------------------------------------------------------------------------------------------+
+ * |			              ADM TEMPLATE DOCUMENTATION                                              +
+ * +----------------------------------------------------------------------------------------------------------+
  *
- * ADM ROOT STRING    : iso.identified-organization.dod.internet.mgmt.dtnmp.bp
- * ADM ROOT ID STRING : 1.3.6.1.2.3.1
- * ADM ROOT OID       : 2B 06 01 02 03 01
- * ADM NICKNAMES      : 0 -> 0x2B0601020301
- *
- *
- *                             AGENT ADM ROOT
- *                             (1.3.6.1.2.3.1)
- *                                   |
- *                                   |
- *   Meta-   Atomic  Computed        |
- *   Data    Data      Data    Rpts  |  Ctrls  Literals  Macros   Ops
- *    (.0)   (.1)      (.2)    (.3)  |  (.4)    (.5)      (.6)    (.7)
- *      +-------+---------+------+------+--------+----------+---------+
- *
+ * ADM ROOT STRING:arn:DTN:bp
  */
-
 
 /*
- * +--------------------------------------------------------------------------+
- * |					      BP NICKNAME DEFINITIONS    					  +
- * +--------------------------------------------------------------------------+
- *
- * 10 -> 0x2B060102030100
- * 11 -> 0x2B060102030101
- * 12 -> 0x2B060102030102
- * 13 -> 0x2B060102030103
- * 14 -> 0x2B060102030104
- * 15 -> 0x2B060102030105
- * 16 -> 0x2B060102030106
- * 17 -> 0x2B060102030107
- * 18 -> 0x2B0601020301
+ * +----------------------------------------------------------------------------------------------------------+
+ * |				             AGENT NICKNAME DEFINITIONS                                       +
+ * +----------------------------------------------------------------------------------------------------------+
  */
+#define BP_ADM_META_NN_IDX 10
+#define BP_ADM_META_NN_STR "10"
 
-#define BP_ADM_MD_NN_IDX 10
-#define BP_ADM_MD_NN_STR "2B060102030100"
+#define BP_ADM_EDD_NN_IDX 11
+#define BP_ADM_EDD_NN_STR "11"
 
-#define BP_ADM_AD_NN_IDX 11
-#define BP_ADM_AD_NN_STR "2B060102030101"
-
-#define BP_ADM_CD_NN_IDX 12
-#define BP_ADM_CD_NN_STR "2B060102030102"
+#define BP_ADM_VAR_NN_IDX 12
+#define BP_ADM_VAR_NN_STR "12"
 
 #define BP_ADM_RPT_NN_IDX 13
-#define BP_ADM_RPT_NN_STR "2B060102030103"
+#define BP_ADM_RPT_NN_STR "13"
 
 #define BP_ADM_CTRL_NN_IDX 14
-#define BP_ADM_CTRL_NN_STR "2B060102030104"
+#define BP_ADM_CTRL_NN_STR "14"
 
-#define BP_ADM_LTRL_NN_IDX 15
-#define BP_ADM_LTRL_NN_STR "2B060102030105"
+#define BP_ADM_CONST_NN_IDX 15
+#define BP_ADM_CONST_NN_STR "15"
 
-#define BP_ADM_MAC_NN_IDX 16
-#define BP_ADM_MAC_NN_STR "2B060102030106"
+#define BP_ADM_MACRO_NN_IDX 16
+#define BP_ADM_MACRO_NN_STR "16"
 
 #define BP_ADM_OP_NN_IDX 17
-#define BP_ADM_OP_NN_STR "2B060102030107"
+#define BP_ADM_OP_NN_STR "17"
 
-#define BP_ADM_ROOT_NN_IDX 18
-#define BP_ADM_ROOT_NN_STR "2B0601020301"
+#define BP_ADM_TBL_NN_IDX 18
+#define BP_ADM_TBL_NN_STR "18"
 
-
+#define BP_ADM_ROOT_NN_IDX 19
+#define BP_ADM_ROOT_NN_STR "19"
 
 
 /*
- * +--------------------------------------------------------------------------+
- * |					  AGENT META-DATA DEFINITIONS  						  +
- * +--------------------------------------------------------------------------+
-   +------------------+----------+---------+----------------+----------+
-   |       Name       |   MID    |   OID   |  Description   |   Type   |
-   +------------------+----------+---------+----------------+----------+
-   |     Name         | 800A0100 |  [10].0 |   ADM Name     |   STR    |
-   +------------------+----------+---------+----------------+----------+
-   |     Version      | 800A0101 |  [10].1 |  ADM Version   |   STR    |
-   +------------------+----------+---------+----------------+----------+
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP META-DATA DEFINITIONS                                                          
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |name                         |0x870a100100|The human-readable name of the ADM.               |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |namespace                    |0x870a100101|The namespace of the ADM.                         |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |version                      |0x870a100102|The version of the ADM                            |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |organization                 |0x870a100103|The name of the issuing organization of the ADM.  |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-
-// "BP ADM"
-#define ADM_BP_MD_NAME_MID	"800A0100"
-
-// "2014_12_31"
-#define ADM_BP_MD_VER_MID    "800A0101"
-
+// "name"
+#define ADM_BP_META_NAME_MID 0x870a100100
+// "namespace"
+#define ADM_BP_META_NAMESPACE_MID 0x870a100101
+// "version"
+#define ADM_BP_META_VERSION_MID 0x870a100102
+// "organization"
+#define ADM_BP_META_ORGANIZATION_MID 0x870a100103
 
 
 /*
- * +--------------------------------------------------------------------------+
- * |					  AGENT ATOMIC DATA DEFINITIONS  					  +
- * +--------------------------------------------------------------------------+
-
-  See the BP MIB for data descriptions.
-
-   +------------------------+----------+---------+----------+----------+
-   |       Name             |   MID    |   OID   |  Descr   |   Type   |
-   +------------------------+----------+---------+----------+----------+
-   |   BP Node ID           | 800B0100 | [11].0  |          |   STR    |
-   |                        |          |         |          |          |
-   | BP Node Version        | 800B0101 | [11].1  |          |   STR    |
-   |                        |          |         |          |          |
-   | Avail Storage          | 800B0102 | [11].2  |          |  UVAST   |
-   |                        |          |         |          |          |
-   | Last Reset Time        | 800B0103 | [11].3  |          |  UVAST   |
-   |                        |          |         |          |          |
-   | # Registrations        | 800B0104 | [11].4  |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Pending Fwds         | 800B0105 | [11].5  |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Dispatch Pending     | 800B0106 | [11].6  |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Bundles in Custody   | 800B0107 | [11].7  |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Pending Reassembly   | 800B0108 | [11].8  |          |   UINT   |
-   |                        |          |         |          |          |
-   | Bulk Priority Bundles  | 800B0109 | [11].9  |          |   UINT   |
-   |                        |          |         |          |          |
-   |Normal Priority Bundles | 800B010A | [11].A  |          |   UINT   |
-   |                        |          |         |          |          |
-   |Express Priority Bundles| 800B010B | [11].B  |          |   UINT   |
-   |                        |          |         |          |          |
-   | Bulk Priority Bytes    | 800B010C | [11].C  |          |   UINT   |
-   |                        |          |         |          |          |
-   | Normal Pririty Bytes   | 800B010D | [11].D  |          |   UINT   |
-   |                        |          |         |          |          |
-   | Express Priority Bytes | 800B010E | [11].E  |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Bulk Src Count       | 800B010F | [11].F  |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Norm Src Count       | 800B0110 | [11].10 |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Express Src Count    | 800B0111 | [11].11 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Bulk Src Bytes         | 800B0112 | [11].12 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Norm Src Bytes         | 800B0113 | [11].13 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Express Src Bytes      | 800B0114 | [11].14 |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Fragmented Bundles   | 800B0115 | [11].15 |          |   UINT   |
-   |                        |          |         |          |          |
-   | # Fragments Produced   | 800B0116 | [11].16 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted For No Info    | 800B0117 | [11].17 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted For Expired    | 800B0118 | [11].18 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted for UniFwd     | 800B0119 | [11].19 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted for Cancelled  | 800B011A | [11].1A |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted for No Strg    | 800B011B | [11].1B |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted for Bad EID    | 800B011C | [11].1C |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted No Route       | 800B011D | [11].1D |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted No Contact     | 800B011E | [11].1E |          |   UINT   |
-   |                        |          |         |          |          |
-   | Deleted Bad Block      | 800B011F | [11].1F |          |   UINT   |
-   |                        |          |         |          |          |
-   | Bundles Deleted        | 800B0120 | [11].20 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Fail Cstody Xfer       | 800B0121 | [11].21 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Fail Cstody Xfer Bytes | 800B0122 | [11].22 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Fail Forward           | 800B0123 | [11].23 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Fail Fwd Bytes         | 800B0124 | [11].24 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Abandoned              | 800B0125 | [11].25 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Abandoned Bytes        | 800B0126 | [11].26 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Discard Count          | 800B0127 | [11].27 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Discard Bytes          | 800B0128 | [11].28 |          |   UINT   |
-   |                        |          |         |          |          |
-   | Endpoint Names         | 800B0129 | [11].29 |          |   STR    |
-   |                        |          |         |          |          |
-   +------------------------+----------+---------+----------+----------+
-   |	   	   	   	      Endpoint-Specific Information                |
-   +------------------------+----------+---------+----------+----------+
-   |                        |          |         |          |          |
-   | Endpoint Name          | C00B012A | [11].2A |          |   STR    |
-   |                        |          |         |          |          |
-   | Endpoint Active        | C00B012B | [11].2B |          |   UINT   |
-   |                        |          |         |          |          |
-   | Endpoint Singleton     | C00B012C | [11].2C |          |   UINT   |
-   |                        |          |         |          |          |
-   | EP Abandon ON Del Fail | C00B012D | [11].2D |          |   UINT   |
-   |                        |          |         |          |          |
-   +------------------------+----------+---------+----------+----------+
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP EXTERNALLY DEFINED DATA DEFINITIONS                                               
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |bp_node_id                   |0x800b100100|The node administration endpoint                  |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |bp_node_version              |0x800b100101|The latest version of the BP supported by this nod|             |
+   |                             |            |e                                                 |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |available_storage            |0x800b100102|Bytes available for bundle storage                |UVAST        |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |last_reset_time              |0x800b100103|The last time that BP counters were reset, either |             |
+   |                             |            |due to execution of a reset control or a restart o|             |
+   |                             |            |f the node itself                                 |UVAST        |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_registrations            |0x800b100104|number of registrations                           |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_pend_fwd                 |0x800b100105|number of bundles pending forwarding              |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_pend_dis                 |0x800b100106|number of bundles awaiting dispatch               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_in_cust                  |0x800b100107|number of bundles                                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_pend_reassembly          |0x800b100108|number of bundles pending reassembly              |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |bundles_by_priority          |0x800b100109|number of bundles for the given priority. Priority|             |
+   |                             |            | is given as a priority mask where Bulk=0x1, norma|             |
+   |                             |            |l=0x2, express=0x4. Any bundles matching any of th|             |
+   |                             |            |e masked priorities will be included in the return|             |
+   |                             |            |ed count                                          |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |bytes_by_priority            |0x800b10010a|number of bytes of the given priority. Priority is|             |
+   |                             |            | given as a priority mask where bulk=0x1, normal=0|             |
+   |                             |            |x2, express=0x4. Any bundles matching any of the m|             |
+   |                             |            |asked priorities will be included in the returned |             |
+   |                             |            |count.                                            |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |src_bundles_by_priority      |0x800b10010b|number of bundles sourced by this node of the give|             |
+   |                             |            |n priority. Priority is given as a priority mask w|             |
+   |                             |            |here bulk=0x1, normal=0x2, express=0x4. Any bundle|             |
+   |                             |            |s sourced by this node and matching any of the mas|             |
+   |                             |            |ked priorities will be included in the returned co|             |
+   |                             |            |unt.                                              |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |src_bytes_by_priority        |0x800b10010c|number of bytes sourced by this node of the given |             |
+   |                             |            |priority. Priority is given as a priority mask whe|             |
+   |                             |            |re bulk=0x1, normal=0x2, express=0x4. Any bundles |             |
+   |                             |            |sourced by this node and matching any of the maske|             |
+   |                             |            |d priorities will be included in the returned coun|             |
+   |                             |            |t                                                 |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fragmented_bundles       |0x800b10010d|number of fragmented bundles                      |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_fragments_produced       |0x800b10010e|number of bundles with fragmentary payloads produc|             |
+   |                             |            |ed by this node                                   |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_failed_by_reason         |0x800b10010f|number of bundles failed for any of the given reas|             |
+   |                             |            |ons. (noInfo=0x1, Expired=0x2, UniFwd=0x4, Cancell|             |
+   |                             |            |ed=0x8, NoStorage=0x10, BadEID=0x20, NoRoute=0x40,|             |
+   |                             |            | NoContact=0x80, BadBlock=0x100)                  |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |num_bundles_deleted          |0x800b100110|number of bundles deleted by this node            |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |failed_custody_bundles       |0x800b100111|number of bundle fails at this node               |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |failed_custody_bytes         |0x800b100112|number bytes of fails at this node                |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |failed_forward_bundles       |0x800b100113|number bundles not forwarded by this node         |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |failed_forward_bytes         |0x800b100114|number of bytes not forwaded by this node         |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |abandoned_bundles            |0x800b100115|number of bundles abandoned by this node          |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |abandoned_bytes              |0x800b100116|number of bytes abandoned by this node            |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |discarded_bundles            |0x800b100117|number of bundles discarded by this node          |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |discarded_bytes              |0x800b100118|number of bytes discarded by this node            |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |endpoint_names               |0x800b100119|CSV list of endpoint names for this node          |STR          |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |endpoint_active              |0x800b10011a|is the given endpoint active? (0=no)              |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |endpoint_singleton           |0x800b10011b|is the given endpoint singleton? (0=no)           |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |endpoint_policy              |0x800b10011c|Does the endpoint abandon on fail (0=no)          |UINT         |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-
-
-#define ADM_BP_AD_NODE_ID_MID                    "800B0100"
-#define ADM_BP_AD_NODE_VER_MID                   "800B0101"
-#define ADM_BP_AD_AVAIL_STOR_MID                 "800B0102"
-#define ADM_BP_AD_RESET_TIME_MID                 "800B0103"
-#define ADM_BP_AD_NUM_REG_MID                    "800B0104"
-#define ADM_BP_AD_BNDL_CUR_FWD_PEND_CNT_MID      "800B0105"
-#define ADM_BP_AD_BNDL_CUR_DISPATCH_PEND_CNT_MID "800B0106"
-#define ADM_BP_AD_BNDL_CUR_IN_CUSTODY_CNT_MID    "800B0107"
-#define ADM_BP_AD_BNDL_CUR_REASSMBL_PEND_CNT_MID "800B0108"
-#define ADM_BP_AD_BNDL_CUR_BULK_RES_CNT_MID      "800B0109"
-#define ADM_BP_AD_BNDL_CUR_NORM_RES_CNT_MID 	 "800B010A"
-#define ADM_BP_AD_BNDL_CUR_EXP_RES_CNT_MID 		 "800B010B"
-#define ADM_BP_AD_BNDL_CUR_BULK_RES_BYTES_MID 	 "800B010C"
-#define ADM_BP_AD_BNDL_CUR_NORM_BYTES_MID 		 "800B010D"
-#define ADM_BP_AD_BNDL_CUR_EXP_BYTES_MID 		 "800B010E"
-#define ADM_BP_AD_BNDL_BULK_SRC_CNT_MID 		 "800B010F"
-#define ADM_BP_AD_BNDL_NORM_SRC_CNT_MID 		 "800B0110"
-#define ADM_BP_AD_BNDL_EXP_SRC_CNT_MID 			 "800B0111"
-#define ADM_BP_AD_BNDL_BULK_SRC_BYTES_MID 		 "800B0112"
-#define ADM_BP_AD_BNDL_NORM_SRC_BYTES_MID 		 "800B0113"
-#define ADM_BP_AD_BNDL_EXP_SRC_BYTES_MID 		 "800B0114"
-#define ADM_BP_AD_BNDL_FRAGMENTED_CNT_MID 		 "800B0115"
-#define ADM_BP_AD_BNDL_FRAG_PRODUCED_MID 		 "800B0116"
-#define ADM_BP_AD_RPT_NOINFO_DEL_CNT_MID 		 "800B0117"
-#define ADM_BP_AD_RPT_EXPIRED_DEL_CNT_MID 		 "800B0118"
-#define ADM_BP_AD_RPT_UNI_FWD_DEL_CNT_MID 		 "800B0119"
-#define ADM_BP_AD_RPT_CANCEL_DEL_CNT_MID 		 "800B011A"
-#define ADM_BP_AD_RPT_NO_STRG_DEL_CNT_MID 		 "800B011B"
-#define ADM_BP_AD_RPT_BAD_EID_DEL_CNT_MID 		 "800B011C"
-#define ADM_BP_AD_RPT_NO_ROUTE_DEL_CNT_MID 		 "800B011D"
-#define ADM_BP_AD_RPT_NO_CONTACT_DEL_CNT_MID 	 "800B011E"
-#define ADM_BP_AD_RPT_BAD_BLOCK_DEL_CNT_MID 	 "800B011F"
-#define ADM_BP_AD_RPT_BUNDLES_DEL_CNT_MID 		 "800B0120"
-#define ADM_BP_AD_RPT_FAIL_CUST_XFER_CNT_MID 	 "800B0121"
-#define ADM_BP_AD_RPT_FAIL_CUST_XFER_BYTES_MID   "800B0122"
-#define ADM_BP_AD_RPT_FAIL_FWD_CNT_MID 			 "800B0123"
-#define ADM_BP_AD_RPT_FAIL_FWD_BYTES_MID 		 "800B0124"
-#define ADM_BP_AD_RPT_ABANDONED_CNT_MID 		 "800B0125"
-#define ADM_BP_AD_RPT_ABANDONED_BYTES_MID 		 "800B0126"
-#define ADM_BP_AD_RPT_DISCARD_CNT_MID 			 "800B0127"
-#define ADM_BP_AD_RPT_DISCARD_BYTES_MID 		 "800B0128"
-#define ADM_BP_AD_ENDPT_NAMES_MID 		         "800B0129"
-#define ADM_BP_AD_ENDPT_NAME_MID 				 "C00B012A"
-#define ADM_BP_AD_ENDPT_ACTIVE_MID 				 "C00B012B"
-#define ADM_BP_AD_ENDPT_SINGLETON_MID 			 "C00B012C"
-#define ADM_BP_AD_ENDPT_ABANDON_ON_DEL_FAIL_MID  "C00B012D"
+#define ADM_BP_EDD_BP_NODE_ID_MID 0x800b100100
+#define ADM_BP_EDD_BP_NODE_VERSION_MID 0x800b100101
+#define ADM_BP_EDD_AVAILABLE_STORAGE_MID 0x800b100102
+#define ADM_BP_EDD_LAST_RESET_TIME_MID 0x800b100103
+#define ADM_BP_EDD_NUM_REGISTRATIONS_MID 0x800b100104
+#define ADM_BP_EDD_NUM_PEND_FWD_MID 0x800b100105
+#define ADM_BP_EDD_NUM_PEND_DIS_MID 0x800b100106
+#define ADM_BP_EDD_NUM_IN_CUST_MID 0x800b100107
+#define ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID 0x800b100108
+#define ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID 0x800b100109
+#define ADM_BP_EDD_BYTES_BY_PRIORITY_MID 0x800b10010a
+#define ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID 0x800b10010b
+#define ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID 0x800b10010c
+#define ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID 0x800b10010d
+#define ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID 0x800b10010e
+#define ADM_BP_EDD_NUM_FAILED_BY_REASON_MID 0x800b10010f
+#define ADM_BP_EDD_NUM_BUNDLES_DELETED_MID 0x800b100110
+#define ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID 0x800b100111
+#define ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID 0x800b100112
+#define ADM_BP_EDD_FAILED_FORWARD_BUNDLES_MID 0x800b100113
+#define ADM_BP_EDD_FAILED_FORWARD_BYTES_MID 0x800b100114
+#define ADM_BP_EDD_ABANDONED_BUNDLES_MID 0x800b100115
+#define ADM_BP_EDD_ABANDONED_BYTES_MID 0x800b100116
+#define ADM_BP_EDD_DISCARDED_BUNDLES_MID 0x800b100117
+#define ADM_BP_EDD_DISCARDED_BYTES_MID 0x800b100118
+#define ADM_BP_EDD_ENDPOINT_NAMES_MID 0x800b100119
+#define ADM_BP_EDD_ENDPOINT_ACTIVE_MID 0x800b10011a
+#define ADM_BP_EDD_ENDPOINT_SINGLETON_MID 0x800b10011b
+#define ADM_BP_EDD_ENDPOINT_POLICY_MID 0x800b10011c
 
 
 /*
- * +--------------------------------------------------------------------------+
- * |				    BP COMPUTED DATA DEFINITIONS 					  +
- * +--------------------------------------------------------------------------+
-
-   +------------------+----------+---------+----------------+----------+
-   |       Name       |   MID    |   OID   |  Description   |   Type   |
-   +------------------+----------+---------+----------------+----------+
-   |                  |          | [12].X  |                |          |
-   +------------------+----------+---------+----------------+----------+
- */
-
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |				    	  BP REPORT DEFINITIONS			     			  +
- * +--------------------------------------------------------------------------+
-
-   +------------+----------+---------+------------------+--------------+
-   |    Name    |   MID    |   OID   |   Description    |     Type     |
-   +------------+----------+---------+------------------+--------------+
-   | BundleRpt  | 820D0100 | [13].0  |  Report of all   |      DC      |
-   |            |          |         |   Bundle data    |              |
-   |            |          |         |                  |              |
-   | EndpointRpt| 820D0101 | [13].1  | All Endpoint Info|      DC      |
-   +------------+----------+---------+------------------+--------------+
- */
-
-#define ADM_BP_RPT_FULL_MID   "820D0100"
-#define ADM_BP_ENDPT_FULL_MID "C20D0101"
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |				    BP CONTROL DEFINITIONS CONSTANTS  				      +
- * +--------------------------------------------------------------------------+
-
-   +----------------+-----------+----------+---------------------------+
-   |      Name      |    MID    |   OID    |        Description        |
-   +----------------+-----------+----------+---------------------------+
-   | Reset BP Counts| 830E0100  | [14].0   | Resets all BP counters.   |
-   +----------------+-----------+----------+---------------------------+
-*/
-
-#define ADM_BP_CTL_RESET_BP_COUNTS "830E0100"
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |					  BP LITERAL DEFINTIONS  						      +
- * +--------------------------------------------------------------------------+
-
-   +----------------+-----------+----------+---------------------------------+
-   |      Name      |    MID    |   OID    |           Description           |
-   +----------------+-----------+----------+---------------------------------+
-   |                |           |  [15].X  |                                 |
-   +----------------+-----------+----------+---------------------------------+
-*/
-
-
-/*
- * +--------------------------------------------------------------------------+
- * |					  BP MACRO DEFINTIONS  						          +
- * +--------------------------------------------------------------------------+
-
-   +----------------+-----------+----------+---------------------------+
-   |      Name      |    MID    |   OID    |        Description        |
-   +----------------+-----------+----------+---------------------------+
-   |                |           |  [16].0  |                           |
-   +----------------+-----------+----------+---------------------------+
-
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP VARIABLE DEFINITIONS                                                          
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 
 
 /*
- * +--------------------------------------------------------------------------+
- * |				    	BP OPERATOR DEFINITIONS						      +
- * +--------------------------------------------------------------------------+
-
-   +------------+-----------+----------+-------------------------------+
-   |    Name    |    MID    |   OID    |          Description          |
-   +------------+-----------+----------+-------------------------------+
-   |            |           | [17].0   |                               |
-   +------------+-----------+----------+-------------------------------+
-*/
-
-
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP REPORT DEFINITIONS                                                           
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |full_report                  |0x820d100100|This is all known meta-data, EDD, and VAR values k|             |
+   |                             |            |nown by the agent.                                |?            |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |endpoint_report              |0x820d100101|This is all known endpoint information            |?            |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+#define ADM_BP_RPT_FULL_REPORT_MID 0x820d100100
+#define ADM_BP_RPT_ENDPOINT_REPORT_MID 0x820d100101
 
 
 /*
- * [3] arrays ar eby classes of service.
- * 0 - BULK
- * 1 - NORM
- * 2 - EXP
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP CONTROL DEFINITIONS                                                         
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |reset_all_counts             |0x830e100100|This control causes the Agent to reset all counts |             |
+   |                             |            |associated with bundle or byte statistics and to s|             |
+   |                             |            |et the last reset time of the BP primitive data to|             |
+   |                             |            | the time when the control was run                |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
+#define ADM_BP_CTRL_RESET_ALL_COUNTS_MID 0x830e100100
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP CONSTANT DEFINITIONS                                                         
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 
 
 /*
- * +--------------------------------------------------------------------------+
- * |					        FUNCTION PROTOTYPES  						  +
- * +--------------------------------------------------------------------------+
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP MACRO DEFINITIONS                                                            
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 
- void adm_bp_init();
- void adm_bp_init_atomic();
- void adm_bp_init_computed();
- void adm_bp_init_controls();
- void adm_bp_init_literals();
- void adm_bp_init_macros();
- void adm_bp_init_metadata();
- void adm_bp_init_names();
- void adm_bp_init_ops();
- void adm_bp_init_reports();
 
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |		                    BP OPERATOR DEFINITIONS                                                          
+ * +-----------------------------------------------------------------------------------------------------------+
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+ */
 
-/* Custom Size Functions. */
-uint32_t bp_size_node_all(uint8_t* buffer, uint64_t buffer_len);
-uint32_t bp_size_endpoint_all(uint8_t* buffer, uint64_t buffer_len);
-uint32_t bp_size_node_id(uint8_t* buffer, uint64_t buffer_len);
-uint32_t bp_size_node_version(uint8_t* buffer, uint64_t buffer_len);
-uint32_t bp_size_node_restart_time(uint8_t* buffer, uint64_t buffer_len);
-uint32_t bp_size_node_num_reg(uint8_t* buffer, uint64_t buffer_len);
-uint32_t bp_size_endpoint_name(uint8_t* buffer, uint64_t buffer_len);
-
-
+/* Initialization functions. */
+void adm_bp_init();
+void adm_bp_init_edd();
+void adm_bp_init_variables();
+void adm_bp_init_controls();
+void adm_bp_init_constants();
+void adm_bp_init_macros();
+void adm_bp_init_metadata();
+void adm_bp_init_ops();
+void adm_bp_init_reports();
+#endif /* _HAVE_BP_ADM_ */
 #endif //ADM_BP_H_
