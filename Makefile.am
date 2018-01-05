@@ -1896,7 +1896,7 @@ nmbin= nm_agent nm_mgr
 nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
                     nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
-                    nm/agent/adm_IonAdmin_impl.c nm/agent/adm_IonAdmin_agent.c \
+                    nm/agent/adm_ion_admin_impl.c nm/agent/adm_ion_admin_agent.c \
                     nm/agent/adm_IonBpAdmin_impl.c nm/agent/adm_IonBpAdmin_agent.c \
                     nm/agent/adm_LtpAgent_impl.c nm/agent/adm_LtpAgent_agent.c \
                     nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
@@ -1925,7 +1925,7 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
 					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
 					nm/mgr/adm_LtpAgent_mgr.c \
-					nm/mgr/adm_IonAdmin_mgr.c \
+					nm/mgr/adm_ion_admin_mgr.c \
 					nm/mgr/adm_IonBpAdmin_mgr.c \
 					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
 					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
