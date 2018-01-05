@@ -669,6 +669,23 @@ mid_t* mid_from_string(char *mid_str)
 	return result;
 }
 
+
+/*
+ * Retrieve mid from unsigned long value representing mid in hex
+ * 0x31801...
+ *
+ * 1/5/18
+ *
+ */
+
+mid_t*   mid_from_value(unsigned long mid_val)
+{
+	uint32_t tmp = 0;
+
+	return mid_deserialize(&mid_val, sizeof(unsigned long), &tmp);
+}
+
+
 blob_t *mid_get_param(mid_t *id, int i, amp_type_e *type)
 {
 	AMP_DEBUG_ENTRY("mid_get_param","(%#llx, i)",(unsigned long) id, i);

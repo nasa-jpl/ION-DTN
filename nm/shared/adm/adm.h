@@ -177,21 +177,14 @@ extern Lyst gAdmMacros; // Type def_gen_t
  */
 
 
-int         adm_add_edd(char *mid_str, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
-int         adm_add_datadef(char *mid_str, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
+int         adm_add_edd(mid_t *mid, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
+int		 	adm_add_var(mid_t *mid, amp_type_e type, expr_t *expr);
+int         adm_add_ctrl(mid_t *mid, adm_ctrl_run_fn run);
+int			adm_add_lit(mid_t *mid, value_t result, lit_val_fn calc);
+int			adm_add_macro(mid_t *mid, Lyst midcol);
+int 		adm_add_op(mid_t *mid, uint8_t num_parms, adm_op_fn run);
+int 		adm_add_rpt(mid_t *mid, Lyst midcol);
 
-int		 	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr);
-
-
-int         adm_add_ctrl(char *mid_str, adm_ctrl_run_fn run);
-
-int			adm_add_lit(char *mid_str, value_t result, lit_val_fn calc);
-
-int			adm_add_macro(char *mid_str, Lyst midcol);
-
-int 		adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn run);
-
-int 		adm_add_rpt(char *mid_str, Lyst midcol);
 
 void        adm_build_mid_str(uint8_t flag, char *nn, int nn_len, int offset, uint8_t *mid_str);
 

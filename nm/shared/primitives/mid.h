@@ -176,6 +176,8 @@ mid_t*   mid_deserialize_str(char *buffer,
 
 mid_t*   mid_from_string(char *mid_str);
 
+mid_t*   mid_from_value(unsigned long mid_val);
+
 blob_t *mid_get_param(mid_t *id, int i, amp_type_e *type);
 
 uint8_t  mid_get_num_parms(mid_t *mid);

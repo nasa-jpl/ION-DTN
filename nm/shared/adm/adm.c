@@ -57,14 +57,14 @@ Lyst gAdmMacros; // Type def_gen_t
 
 /******************************************************************************
  *
- * \par Function Name: adm_add_datadef
+ * \par Function Name: adm_add_edd
  *
- * \par Registers a pre-configured ADM data definition with the local DTNMP actor.
+ * \par Registers a pre-configured ADM EDD with the local AMP actor.
  *
- * \retval 0  Failure - The datadef was not added.
- *         !0 Success - The datadef was added.
+ * \retval 0  Failure - The edd was not added.
+ *         !0 Success - The edd was added.
  *
- * \param[in] mid_str   Serialized MID value
+ * \param[in] mid       The MID value
  * \param[in] type      The type of the data definition.
  * \param[in] num_parms # parms needed for parameterized OIDs.
  * \param[in] collect   The data collection function.
@@ -77,24 +77,16 @@ Lyst gAdmMacros; // Type def_gen_t
  *		2. ADM names will be truncated after ADM_MAX_NAME bytes.
  *		3. If a NULL to_string is given, we assume it is unsigned long.
  *		4. If a NULL get_size is given, we assume is it unsigned long.
+ *		5. On error, the passed-in MID is ALWAYS destroyed.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  07/04/15  E. Birrane     Added type information.
+ *  01/05/18  E. Birrane     Renamed add_edd and take mid_t.
  *****************************************************************************/
 
-int adm_add_edd(char *mid_str,
-        amp_type_e type,
- 	 	int num_parms,
-   	 	adm_data_collect_fn collect,
- 	 	adm_string_fn to_string,
- 	 	adm_size_fn get_size)
-{
-	return adm_add_datadef(mid_str, type, num_parms, collect, to_string, get_size);
-}
-
-int adm_add_datadef(char *mid_str,
+int adm_add_edd_str(mid_t *mid,
 		            amp_type_e type,
 		     	 	int num_parms,
   		     	 	adm_data_collect_fn collect,
@@ -103,33 +95,36 @@ int adm_add_datadef(char *mid_str,
 {
 	adm_datadef_t *new_entry = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_datadef","(%llx, %d, %llx, %llx)",
-			          mid_str, num_parms, to_string, get_size);
+	AMP_DEBUG_ENTRY("adm_add_edd_str","(%llx, %d, %llx, %llx)",
+			          mid, num_parms, to_string, get_size);
 
-	/* Step 0 - Sanity Checks. */
-	if(mid_str == NULL)
+	/* Step 1 - Sanity Checks. */
+	if(mid == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_datadef","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_add_datadef","-> 0.", NULL);
+		AMP_DEBUG_ERR("adm_add_edd_str","NULL MID.", NULL);
+		AMP_DEBUG_EXIT("adm_add_edd_str","-> 0.", NULL);
 		return 0;
 	}
+
 	if(gAdmData == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_datadef","Global data list not initialized.", NULL);
-		AMP_DEBUG_EXIT("adm_add_datadef","-> 0.", NULL);
+		AMP_DEBUG_ERR("adm_add_edd_str","Global data list not initialized.", NULL);
+		mid_release(mid);
+		AMP_DEBUG_EXIT("adm_add_edd_str","-> 0.", NULL);
 		return 0;
 	}
 
 	/* Step 2 - Allocate a Data Definition. */
 	if((new_entry = (adm_datadef_t *) STAKE(sizeof(adm_datadef_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_datadef","Can't allocate new entry of size %d.",
+		AMP_DEBUG_ERR("adm_add_edd_str","Can't allocate new entry of size %d.",
 				        sizeof(adm_datadef_t));
-		AMP_DEBUG_EXIT("adm_add_datadef","-> 0.", NULL);
+		mid_release(mid);
+		AMP_DEBUG_EXIT("adm_add_edd_str","-> 0.", NULL);
 		return 0;
 	}
 
-	new_entry->mid = mid_from_string(mid_str);
+	new_entry->mid = mid;
 
 	new_entry->type = type;
 	new_entry->num_parms = num_parms;
@@ -140,90 +135,28 @@ int adm_add_datadef(char *mid_str,
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmData, new_entry);
 
-	AMP_DEBUG_EXIT("adm_add_datadef","-> 1.", NULL);
+	AMP_DEBUG_EXIT("adm_add_edd_str","-> 1.", NULL);
 	return 1;
 }
 
 
-/******************************************************************************
- *
- * \par Function Name: adm_add_datadef_collect
- *
- * \par Registers a collection function to a data definition.
- *
- * \param[in] mid_hex   serialized MID value
- * \param[in] collect   The data collection function.
- *
- * \par Notes:
- *		1. When working with parameterized OIDs, the given MID should
- *		   be all information excluding the parameterized portion of the OID.
- *		2. ADM names will be truncated after ADM_MAX_NAME bytes.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/25/12  E. Birrane     Initial implementation.
- *  07/27/13  E. BIrrane     Updated ADM to use Lysts.
- *****************************************************************************/
-void adm_add_datadef_collect(uint8_t *mid_hex, adm_data_collect_fn collect)
-{
-	uint32_t used = 0;
-	mid_t *mid = NULL;
-	adm_datadef_t *entry = NULL;
-
-	AMP_DEBUG_ENTRY("adm_add_datadef_collect","(%lld, %lld)", mid_hex, collect);
-
-	if((mid_hex == NULL) || (collect == NULL))
-	{
-		AMP_DEBUG_ERR("adm_add_datadef_collect","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_add_datadef_collect","->.", NULL);
-		return;
-	}
-
-	if((mid = mid_deserialize(mid_hex, ADM_MID_ALLOC, &used)) == NULL)
-	{
-		char *tmp = utils_hex_to_string(mid_hex, ADM_MID_ALLOC);
-		AMP_DEBUG_ERR("adm_add_datadef_collect","Can't deserialize MID str %s.",tmp);
-		SRELEASE(tmp);
-
-		AMP_DEBUG_EXIT("adm_add_datadef_collect","->.", NULL);
-		return;
-	}
-
-	if((entry = adm_find_datadef(mid)) == NULL)
-	{
-		char *tmp = mid_to_string(mid);
-		AMP_DEBUG_ERR("adm_add_datadef_collect","Can't find data for MID %s.", tmp);
-		SRELEASE(tmp);
-	}
-	else
-	{
-		entry->collect = collect;
-	}
-
-	mid_release(mid);
-
-	AMP_DEBUG_EXIT("adm_add_datadef_collect","->.", NULL);
-}
-
-
-
 
 /******************************************************************************
  *
- * \par Function Name: adm_add_computeddef
+ * \par Function Name: adm_add_var
  *
- * \par Registers a pre-configured ADM computed data definition with the local
- *      DTNMP actor.
+ * \par Registers a pre-configured ADM variable with the local AMP actor.
  *
- * \retval 0  Failure - The computeddef was not added.
- *         !0 Success - The computeddef was added.
+ * \retval 0  Failure - The var was not added.
+ *         !0 Success - The var was added.
  *
- * \param[in] mid_str   serialized MID value
- * \param[in] type      The type of the computed data definition result.
- * \param[in] def       The MID Collection defining the computed value.
+ * \param[in] mid     serialized MID value
+ * \param[in] type    The type of the variable.
+ * \param[in] expr    The MID Collection defining the initial value.
  *
  * \par Notes:
+ *
+ *		1. On error, the passed-in MID is ALWAYS destroyed.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -232,34 +165,28 @@ void adm_add_datadef_collect(uint8_t *mid_hex, adm_data_collect_fn collect)
  *  07/04/15  E. Birrane     Added type information.
  *  08/10/15  E. Birrane     Updated to def_gen_t.
  *  04/09/16  E. Birrane     Updated to new CD definitions.
-  *****************************************************************************/
+ *  01/05/18  E. Birrane     Renamed add_var and take mid_t.
+ *****************************************************************************/
 
-int	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr)
+int	adm_add_var(mid_t *mid, amp_type_e type, expr_t *expr)
 {
 	var_t *new_entry = NULL;
-	mid_t *mid = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_computeddef", "(0x" ADDR_FIELDSPEC ",%d,0x" ADDR_FIELDSPEC ")", (uaddr) mid_str, type, (uaddr) expr);
+	AMP_DEBUG_ENTRY("adm_add_var_helper", "(0x" ADDR_FIELDSPEC ",%d,0x" ADDR_FIELDSPEC ")", (uaddr) mid, type, (uaddr) expr);
 
 	/* Step 0 - Sanity Checks. */
-	if((mid_str == NULL) || expr == NULL)
+	if((mid == NULL) || expr == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_computeddef","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
+		AMP_DEBUG_ERR("adm_add_var_helper","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("adm_add_var_helper","-> 0.", NULL);
 		return 0;
 	}
 
 	if(gAdmComputed == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_computeddef","Global data list not initialized.", NULL);
-		AMP_DEBUG_EXIT("adm_add_computeddef","-> 0.", NULL);
-		return 0;
-	}
-
-	/* Step 2 - Make the MID. */
-	if((mid = mid_from_string(mid_str)) == NULL)
-	{
-		AMP_DEBUG_ERR("adm_add_computeddef", "Cannot allocate mid.", NULL);
+		AMP_DEBUG_ERR("adm_add_var_helper","Global data list not initialized.", NULL);
+		mid_release(mid);
+		AMP_DEBUG_EXIT("adm_add_var_helper","-> 0.", NULL);
 		return 0;
 	}
 
@@ -268,7 +195,7 @@ int	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr)
 	val_init(&val);
 	if((new_entry = var_create(mid, type, expr, val)) == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_computeddef", "Cannot allocate def.", NULL);
+		AMP_DEBUG_ERR("adm_add_var_helper", "Cannot allocate def.", NULL);
 		mid_release(mid);
 		return 0;
 	}
@@ -276,43 +203,45 @@ int	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr)
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmComputed, new_entry);
 
-	AMP_DEBUG_EXIT("adm_add_computeddef","-> 1.", NULL);
+	AMP_DEBUG_EXIT("adm_add_var_helper","-> 1.", NULL);
 	return 1;
 }
-
-
 
 
 /******************************************************************************
  *
  * \par Function Name: adm_add_ctrl
  *
- * \par Registers a pre-configured ADM control with the local DTNMP actor.
+ * \par Registers a pre-configured ADM control with the local AMP actor.
  *
  * \retval 0  Failure - The control was not added.
  *         !0 Success - The control was added.
  *
- * \param[in] mid_str   MID value, as a string.
- * \param[in] parm      The parameter conversion function
- * \param[in] run       The control function.
+ * \param[in] mid    The MID value.
+ * \param[in] parm   The parameter conversion function
+ * \param[in] run    The control function.
  *
  * \par Notes:
- *		1. When working with parameterized OIDs, the given MID string should
- *		   be all information excluding the parameterized portion of the OID.
+ *		1. MIDs should not have their actual parameter values since this
+ *		   function defines a control definition, not a call to a control.
  *		2. ADM names will be truncated after ADM_MAX_NAME bytes.
+ *		3. On error, the passed-in MID is ALWAYS destroyed.
  *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/05/18  E. Birrane     Changed to accept mid_t.
  *****************************************************************************/
 
-int adm_add_ctrl(char *mid_str,
+int adm_add_ctrl(mid_t *mid,
 				 adm_ctrl_run_fn run)
 {
 	adm_ctrl_t *new_entry = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_ctrl","(%#llx, %#llx)",
-			          mid_str, run);
+	AMP_DEBUG_ENTRY("adm_add_ctrl","(%#llx, %#llx)", mid, run);
 
 	/* Step 0 - Sanity Checks. */
-	if(mid_str == NULL)
+	if(mid == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_ctrl","Bad Args.", NULL);
 		AMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
@@ -322,6 +251,7 @@ int adm_add_ctrl(char *mid_str,
 	if(gAdmCtrls == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_ctrl","Global Controls list not initialized.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
 		return 0;
 	}
@@ -331,20 +261,12 @@ int adm_add_ctrl(char *mid_str,
 	{
 		AMP_DEBUG_ERR("adm_add_ctrl","Can't allocate new entry of size %d.",
 				        sizeof(adm_ctrl_t));
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
 		return 0;
 	}
 
-	new_entry->mid = mid_from_string(mid_str);
-
-	if(new_entry->mid == NULL)
-	{
-		SRELEASE(new_entry);
-		AMP_DEBUG_ERR("adm_add_ctrl","Can't get mid from %s.", mid_str);
-		AMP_DEBUG_EXIT("adm_add_ctrl","-> 0.", NULL);
-		return 0;
-	}
-
+	new_entry->mid = mid;
 	new_entry->num_parms = mid_get_num_parms(new_entry->mid);
 	new_entry->run = run;
 
@@ -356,75 +278,39 @@ int adm_add_ctrl(char *mid_str,
 }
 
 
+
+
 /******************************************************************************
  *
- * \par Function Name: adm_add_ctrl_run
+ * \par Function Name: adm_add_lit
  *
- * \par Registers a control function with a Control MID.
+ * \par Registers a pre-configured ADM literal with the local AMP actor.
  *
- * \param[in] mid_str   MID value, as a string.
- * \param[in] control   The control function.
+ * \retval 0  Failure - The control was not added.
+ *         !0 Success - The control was added.
+ *
+ * \param[in] mid    The MID value.
+ * \param[in] calc   The function to caluclate the value.
  *
  * \par Notes:
- *		1. When working with parameterized OIDs, the given MID string should
- *		   be all information excluding the parameterized portion of the OID.
+ *		1. On error, the passed-in MID is ALWAYS destroyed.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  07/28/13  E. Birrane     Initial implementation.
+ *  01/05/18  E. Birrane     Changed to accept mid_t.
  *****************************************************************************/
 
-void adm_add_ctrl_run(uint8_t *mid_str, adm_ctrl_run_fn run)
-{
-	uint32_t used = 0;
-	mid_t *mid = NULL;
-	adm_ctrl_t *entry = NULL;
-
-	AMP_DEBUG_ENTRY("adm_add_ctrl_run","(%lld, %lld)", mid_str, run);
-
-	if((mid_str == NULL) || (run == NULL))
-	{
-		AMP_DEBUG_ERR("adm_add_ctrl_run","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_add_ctrl_run","->.",NULL);
-		return;
-	}
-
-	if((mid = mid_deserialize(mid_str, ADM_MID_ALLOC, &used)) == NULL)
-	{
-		char *tmp = utils_hex_to_string(mid_str, ADM_MID_ALLOC);
-		AMP_DEBUG_ERR("adm_add_ctrl_run","Can't deserialized MID %s", tmp);
-		SRELEASE(tmp);
-		AMP_DEBUG_EXIT("adm_add_ctrl_run","->.",NULL);
-		return;
-	}
-
-	if((entry = adm_find_ctrl(mid)) == NULL)
-	{
-		char *tmp = mid_to_string(mid);
-		AMP_DEBUG_ERR("adm_add_ctrl_run","Can't find control for MID %s", tmp);
-		SRELEASE(tmp);
-	}
-	else
-	{
-		entry->run = run;
-	}
-
-	mid_release(mid);
-
-	AMP_DEBUG_EXIT("adm_add_ctrl_run","->.",NULL);
-}
-
-int adm_add_lit(char *mid_str, value_t result, lit_val_fn calc)
+int adm_add_lit(mid_t *mid, value_t result, lit_val_fn calc)
 {
 	lit_t *new_entry = NULL;
 
 	AMP_DEBUG_ENTRY("adm_add_lit","(0x%lx, (%d,%d), 0x%lx)",
-			          (unsigned long) mid_str, result.type, result.value.as_int,
+			          (unsigned long) mid, result.type, result.value.as_int,
 			          (unsigned long) calc);
 
 	/* Step 0 - Sanity Checks. */
-	if(mid_str == NULL)
+	if(mid == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_lit","Bad Args.", NULL);
 		AMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
@@ -434,26 +320,19 @@ int adm_add_lit(char *mid_str, value_t result, lit_val_fn calc)
 	if(gAdmLiterals == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_lit","Global Literals list not initialized.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
 		return 0;
 	}
 
 	/* Step 1 - Build the literal definition. */
-	mid_t *id = mid_from_string(mid_str);
-
-	if(id == NULL)
-	{
-		AMP_DEBUG_ERR("adm_add_lit","Can't make mid from %s.", mid_str);
-		AMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
-		return 0;
-	}
-
-	new_entry = lit_create(id, result, calc);
+	new_entry = lit_create(mid, result, calc);
 
 	if(new_entry == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_lit","Can't allocate new entry of size %d.",
 				        sizeof(lit_t));
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_lit","-> 0.", NULL);
 		return 0;
 	}
@@ -465,19 +344,42 @@ int adm_add_lit(char *mid_str, value_t result, lit_val_fn calc)
 	return 1;
 }
 
-int adm_add_macro(char *mid_str, Lyst midcol)
+
+
+/******************************************************************************
+ *
+ * \par Function Name: adm_add_macro
+ *
+ * \par Registers a pre-configured ADM macro with the local AMP actor.
+ *
+ * \retval 0  Failure - The control was not added.
+ *         !0 Success - The control was added.
+ *
+ * \param[in] mid     The MID value.
+ * \param[in] midcol  The ordered list of items comprising the macro.
+ *
+ * \par Notes:
+ *		1. On error, the passed-in MID is ALWAYS destroyed.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/05/18  E. Birrane     Changed to accept mid_t.
+ *****************************************************************************/
+
+int adm_add_macro(mid_t *mid, Lyst midcol)
 {
 	int success = 0;
-	mid_t *mid = NULL;
 	def_gen_t *new_entry = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_macro","(%s, 0x%lx)",
-			          mid_str, (unsigned long) midcol);
+	AMP_DEBUG_ENTRY("adm_add_macro","(0x%llx, 0x%llx)",
+			          (unsigned long) mid, (unsigned long) midcol);
 
 	/* Step 0 - Sanity Checks. */
-	if((mid_str == NULL) || (midcol == NULL))
+	if((mid == NULL) || (midcol == NULL))
 	{
 		AMP_DEBUG_ERR("adm_add_macro","Bad Args.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
 		return success;
 	}
@@ -485,26 +387,19 @@ int adm_add_macro(char *mid_str, Lyst midcol)
 	if(gAdmMacros == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_macro","Global Macros list not initialized.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
 		return success;
 	}
 
 	/* Step 1 - Build the MID. */
-	mid = mid_from_string(mid_str);
-
-	if(mid == NULL)
-	{
-		AMP_DEBUG_ERR("adm_add_macro","Can't make mid from %s.", mid_str);
-		AMP_DEBUG_EXIT("adm_add_macro","-> 0.", NULL);
-		return success;
-	}
 
 	Lyst newdefs = midcol_copy(midcol);
 
 	/* Step 2 - Build the definition to hold the macro. */
 	if((new_entry = def_create_gen(mid, AMP_TYPE_MC, newdefs)) == NULL)
 	{
-		SRELEASE(mid);
+		mid_release(mid);
 		midcol_destroy(&newdefs);
 
 		AMP_DEBUG_ERR("adm_add_macro","Can't allocate new macro entry.", NULL);
@@ -531,21 +426,29 @@ int adm_add_macro(char *mid_str, Lyst midcol)
  * \retval 0 - Failure - The op was not added.
  *        !0 - Success - The op was added.
  *
- * \param[in] mid_str   MID value, as a string.
+ * \param[in] mid       The MID value
  * \param[in] num_parms # parms needed for parameterized OIDs.
  * \param[in] apply     Function for applying the operator
  *
+ * \par Notes:
+ *		1. On error, the passed-in MID is ALWAYS destroyed.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/05/18  E. Birrane     Changed to accept mid_t.
+ *
  *****************************************************************************/
 
-int adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn apply)
+int adm_add_op(mid_t *mid, uint8_t num_parms, adm_op_fn apply)
 {
 	adm_op_t *new_entry = NULL;
 
 	AMP_DEBUG_ENTRY("adm_add_op","(%#llx, %d, %#llx)",
-			          mid_str, num_parms, apply);
+			          (unsigned long) mid, num_parms, (unsigned long) apply);
 
 	/* Step 0 - Sanity Checks. */
-	if(mid_str == NULL)
+	if(mid == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_op","Bad Args.", NULL);
 		AMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
@@ -556,6 +459,7 @@ int adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn apply)
 	if(apply == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_op","Bad Apply Function.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
 		return 0;
 	}
@@ -564,6 +468,7 @@ int adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn apply)
 	if(gAdmOps == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_op","Global Operators list not initialized.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
 		return 0;
 	}
@@ -573,22 +478,12 @@ int adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn apply)
 	{
 		AMP_DEBUG_ERR("adm_add_op","Can't allocate new entry of size %d.",
 				        sizeof(adm_op_t));
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
 		return 0;
 	}
 
-	new_entry->mid = mid_from_string(mid_str);
-
-	/* Step 2 - Copy the ADM information. */
-	if(new_entry->mid == NULL)
-	{
-		SRELEASE(new_entry);
-		AMP_DEBUG_ERR("adm_add_op","Can't make MID from %s.", mid_str);
-		AMP_DEBUG_EXIT("adm_add_op","-> 0.", NULL);
-		return 0;
-	}
-
-
+	new_entry->mid = mid;
 	new_entry->num_parms = num_parms;
 	new_entry->apply = apply;
 
@@ -600,19 +495,41 @@ int adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn apply)
 }
 
 
-int adm_add_rpt(char *mid_str, Lyst midcol)
+/******************************************************************************
+ *
+ * \par Function Name: adm_add_rpt
+ *
+ * \par Registers a pre-configured ADM report template with the local DTNMP actor.
+ *
+ * \retval 0 - Failure - The op was not added.
+ *        !0 - Success - The op was added.
+ *
+ * \param[in] mid       The MID value
+ * \param[in] num_parms # parms needed for parameterized OIDs.
+ * \param[in] apply     Function for applying the operator
+ *
+ * \par Notes:
+ *		1. On error, the passed-in MID is ALWAYS destroyed.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/05/18  E. Birrane     Changed to accept mid_t.
+ *****************************************************************************/
+
+int adm_add_rpt(mid_t *mid, Lyst midcol)
 {
 	int success = 0;
-	mid_t *mid = NULL;
 	def_gen_t *new_entry = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_rpt","(%s, 0x%lx)",
-			          mid_str, (unsigned long) midcol);
+	AMP_DEBUG_ENTRY("adm_add_rpt","(%llx, 0x%lx)",
+			          (unsigned long) mid, (unsigned long) midcol);
 
 	/* Step 0 - Sanity Checks. */
-	if((mid_str == NULL) || (midcol == NULL))
+	if((mid == NULL) || (midcol == NULL))
 	{
 		AMP_DEBUG_ERR("adm_add_rpt","Bad Args.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
 		return success;
 	}
@@ -620,26 +537,18 @@ int adm_add_rpt(char *mid_str, Lyst midcol)
 	if(gAdmRpts == NULL)
 	{
 		AMP_DEBUG_ERR("adm_add_rpt","Global Reports list not initialized.", NULL);
+		mid_release(mid);
 		AMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
 		return success;
 	}
 
 	/* Step 1 - Build the MID. */
-	mid = mid_from_string(mid_str);
-
-	if(mid == NULL)
-	{
-		AMP_DEBUG_ERR("adm_add_rpt","Can't make mid from %s.", mid_str);
-		AMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
-		return success;
-	}
-
 	Lyst newdefs = midcol_copy(midcol);
 
 	/* Step 2 - Build the definition to hold the macro. */
 	if((new_entry = def_create_gen(mid, AMP_TYPE_MC, newdefs)) == NULL)
 	{
-		SRELEASE(mid);
+		mid_release(mid);
 		midcol_destroy(&newdefs);
 
 		AMP_DEBUG_ERR("adm_add_rpt","Can't allocate new macro entry.", NULL);
@@ -729,62 +638,7 @@ void adm_build_mid_str(uint8_t flag, char *nn, int nn_len, int offset, uint8_t *
 }
 
 
-/******************************************************************************
- *
- * \par Function Name: adm_copy_integer
- *
- * \par Copies and serializes integer values of various sizes.
- *
- * \retval NULL Failure
- *         !NULL The serialized integer.
- *
- * \param[in]  value    Byte pointer to integer value.
- * \param[in]  size     Byte size of integer value.
- * \param[out] length   Size of returned integer copy.
- *
- * \par Notes:
- *		1. The serialized integer copy is allocated on the heap and must be
- *		   released when no longer needed.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/25/12  E. Birrane     Initial implementation.
- *  07/27/13  E. Birrane     Hold data defs in a Lyst.
- *
- *****************************************************************************/
-
-uint8_t *adm_copy_integer(uint8_t *value, uint8_t size, uint32_t *length)
-{
-	uint8_t *result = NULL;
-
-	AMP_DEBUG_ENTRY("adm_copy_integer","(%#llx, %d, %#llx)", value, size, length);
-
-	/* Step 0 - Sanity Check. */
-	if((value == NULL) || (size <= 0) || (length == NULL))
-	{
-		AMP_DEBUG_ERR("adm_copy_integer","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_copy_integer","->NULL.", NULL);
-		return NULL;
-	}
-
-	/* Step 1 - Alloc new space. */
-	if((result = (uint8_t *) STAKE(size)) == NULL)
-	{
-		AMP_DEBUG_ERR("adm_copy_integer","Can't alloc %d bytes.", size);
-		AMP_DEBUG_EXIT("adm_copy_integer","->NULL.", NULL);
-		return NULL;
-	}
-
-	/* Step 2 - Copy data in. */
-	*length = size;
-	memcpy(result, value, size);
-
-	/* Step 3 - Return. */
-	AMP_DEBUG_EXIT("adm_copy_integer","->%#llx", result);
-	return (uint8_t*)result;
-}
-
+// TODO: Remove this...
 uint8_t* adm_copy_string(char *value, uint32_t *length)
 {
 	uint8_t *result = NULL;
@@ -1502,61 +1356,6 @@ adm_datadef_t *adm_find_datadef(mid_t *mid)
 
 
 
-/******************************************************************************
- *
- * \par Function Name: adm_find_datadef_by_name
- *
- * \par Find an ADM entry that corresponds to a user-readable name.
- *
- * \retval NULL Failure
- *         !NULL The found ADM entry
- *
- * \param[in]  name  The name whose ADM-match is being queried.
- *
- * \par Notes:
- *		1. The returned entry is a direct pointer to the official ADM entry,
- *		   it must be treated as read-only.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/27/13  E. Birrane     Initial implementation.
- ***************************************************************************** /
-
-adm_datadef_t* adm_find_datadef_by_name(char *name)
-{
-	LystElt elt = 0;
-	adm_datadef_t *cur = NULL;
-
-	AMP_DEBUG_ENTRY("adm_find_datadef_by_name","(%s)", name);
-
-	/ * Step 0 - Sanity Check. * /
-	if(name == NULL)
-	{
-		AMP_DEBUG_ERR("adm_find_datadef_by_name", "Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_find_datadef_by_name", "->NULL.", NULL);
-		return NULL;
-	}
-
-	/ * Step 1 - Go lookin'. * /
-	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
-	{
-		cur = (adm_datadef_t*) lyst_data(elt);
-
-		if(memcmp(name, cur->name, strlen(cur->name)) == 0)
-		{
-			break;
-		}
-
-		cur = NULL;
-	}
-
-	/ * Step 2 - Return what we found, or NULL. * /
-
-	AMP_DEBUG_EXIT("adm_find_datadef_by_name", "->%llx.", cur);
-	return cur;
-}
-************/
 
 adm_datadef_t* adm_find_datadef_by_idx(int idx)
 {
@@ -1678,60 +1477,6 @@ adm_ctrl_t*  adm_find_ctrl(mid_t *mid)
 
 
 
-/******************************************************************************
- *
- * \par Function Name: adm_find_ctrl_by_name
- *
- * \par Find an ADM control that corresponds to a user-readable name.
- *
- * \retval NULL Failure
- *         !NULL The found ADM entry
- *
- * \param[in]  name  The name whose ADM-match is being queried.
- *
- * \par Notes:
- *		1. The returned entry is a direct pointer to the official ADM entry,
- *		   it must be treated as read-only.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/27/13  E. Birrane     Initial implementation.
- ***************************************************************************** /
-
-adm_ctrl_t* adm_find_ctrl_by_name(char *name)
-{
-	LystElt elt = 0;
-	adm_ctrl_t *cur = NULL;
-
-	AMP_DEBUG_ENTRY("adm_find_ctrl_by_name","(%s)", name);
-
-	/ * Step 0 - Sanity Check. * /
-	if(name == NULL)
-	{
-		AMP_DEBUG_ERR("adm_find_ctrl_by_name", "Bad Args.", NULL);
-		AMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->NULL.", NULL);
-		return NULL;
-	}
-
-	/ * Step 1 - Go lookin'. * /
-	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
-	{
-		cur = (adm_ctrl_t*) lyst_data(elt);
-
-		if(memcmp(name, cur->name, strlen(cur->name)) == 0)
-		{
-			break;
-		}
-
-		cur = NULL;
-	}
-
-	/ * Step 2 - Return what we found, or NULL. * /
-	AMP_DEBUG_EXIT("adm_find_ctrl_by_name", "->%llx.", cur);
-	return cur;
-}
-*****/
 
 
 adm_ctrl_t* adm_find_ctrl_by_idx(int idx)
