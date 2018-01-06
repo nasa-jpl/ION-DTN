@@ -149,11 +149,12 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-static void	printBspBabRule(Object ruleAddr);
-static void	printBspBibRule(Object ruleAddr);
-static void printBspBcbRule(Object ruleAddr);
-static void	printLtpRecvAuthRule(Object ruleAddr);
-static void	printLtpXmitAuthRule(Object ruleAddr);
+//static void	printBspBabRule(Object ruleAddr);
+//static void	printBspBibRule(Object ruleAddr);
+//static void printBspBcbRule(Object ruleAddr);
+//static void	printLtpRecvAuthRule(Object ruleAddr);
+//static void	printLtpXmitAuthRule(Object ruleAddr);
+
 /*	*	Functions for managing security information.		*/
 
 extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);

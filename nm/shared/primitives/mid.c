@@ -682,7 +682,7 @@ mid_t*   mid_from_value(unsigned long mid_val)
 {
 	uint32_t tmp = 0;
 
-	return mid_deserialize(&mid_val, sizeof(unsigned long), &tmp);
+	return mid_deserialize((unsigned char *)&mid_val, sizeof(unsigned long), &tmp);
 }
 
 

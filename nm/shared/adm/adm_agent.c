@@ -64,58 +64,58 @@ void adm_agent_init_atomic()
 {
 
 #ifdef AGENT_ROLE
-	adm_add_datadef(ADM_AGENT_AD_NUMRPT_MID,  AMP_TYPE_UINT, 0, adm_agent_get_num_rpt,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_SENTRPT_MID, AMP_TYPE_UINT, 0, adm_agent_get_sent_rpt, NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMTRL_MID,  AMP_TYPE_UINT, 0, adm_agent_get_num_trl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNTRL_MID,  AMP_TYPE_UINT, 0, adm_agent_get_run_trl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMSRL_MID,  AMP_TYPE_UINT, 0, adm_agent_get_num_srl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNSRL_MID,  AMP_TYPE_UINT, 0, adm_agent_get_run_srl,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMLIT_MID,  AMP_TYPE_UINT, 0, adm_agent_get_num_lit,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMCUST_MID, AMP_TYPE_UINT, 0, adm_agent_get_num_var,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMMAC_MID,  AMP_TYPE_UINT, 0, adm_agent_get_num_mac,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNMAC_MID,  AMP_TYPE_UINT, 0, adm_agent_get_run_mac,  NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_NUMCTRL_MID, AMP_TYPE_UINT, 0, adm_agent_get_num_ctrl, NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_RUNCTRL_MID, AMP_TYPE_UINT, 0, adm_agent_get_run_ctrl, NULL, NULL);
-	adm_add_datadef(ADM_AGENT_AD_CURTIME_MID, AMP_TYPE_TS,   0, adm_agent_get_curtime, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMRPT_MID),  AMP_TYPE_UINT, 0, adm_agent_get_num_rpt,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_SENTRPT_MID), AMP_TYPE_UINT, 0, adm_agent_get_sent_rpt, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMTRL_MID),  AMP_TYPE_UINT, 0, adm_agent_get_num_trl,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNTRL_MID),  AMP_TYPE_UINT, 0, adm_agent_get_run_trl,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMSRL_MID),  AMP_TYPE_UINT, 0, adm_agent_get_num_srl,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNSRL_MID),  AMP_TYPE_UINT, 0, adm_agent_get_run_srl,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMLIT_MID),  AMP_TYPE_UINT, 0, adm_agent_get_num_lit,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMCUST_MID), AMP_TYPE_UINT, 0, adm_agent_get_num_var,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMMAC_MID),  AMP_TYPE_UINT, 0, adm_agent_get_num_mac,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNMAC_MID),  AMP_TYPE_UINT, 0, adm_agent_get_run_mac,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMCTRL_MID), AMP_TYPE_UINT, 0, adm_agent_get_num_ctrl, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNCTRL_MID), AMP_TYPE_UINT, 0, adm_agent_get_run_ctrl, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_CURTIME_MID), AMP_TYPE_TS,   0, adm_agent_get_curtime, NULL, NULL);
 
 #else
-	adm_add_datadef(ADM_AGENT_AD_NUMRPT_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMRPT_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMRPT_MID", "# Reports", ADM_AGENT, ADM_AGENT_AD_NUMRPT_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_SENTRPT_MID, AMP_TYPE_UINT, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_SENTRPT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_SENTRPT_MID", "# Sent Reports", ADM_AGENT, ADM_AGENT_AD_SENTRPT_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMTRL_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMTRL_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMTRL_MID", "# Time-Based Rules", ADM_AGENT, ADM_AGENT_AD_NUMTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNTRL_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNTRL_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNTRL_MID", "# Time-Based Rules Run", ADM_AGENT, ADM_AGENT_AD_RUNTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMSRL_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMSRL_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMSRL_MID", "# State-Based Rules", ADM_AGENT, ADM_AGENT_AD_NUMSRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNSRL_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNSRL_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNSRL_MID", "# State-Based Rules Run", ADM_AGENT, ADM_AGENT_AD_RUNSRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMLIT_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMLIT_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMLIT_MID", "# Literals", ADM_AGENT, ADM_AGENT_AD_NUMLIT_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMCUST_MID, AMP_TYPE_UINT, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMCUST_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMCUST_MID", "# Custom Definitions", ADM_AGENT, ADM_AGENT_AD_NUMCUST_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMMAC_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMMAC_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMMAC_MID", "# Macros", ADM_AGENT, ADM_AGENT_AD_NUMMAC_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNMAC_MID,  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNMAC_MID),  AMP_TYPE_UINT, 0, NULL,  NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNMAC_MID", "# Macros Run", ADM_AGENT, ADM_AGENT_AD_RUNMAC_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_NUMCTRL_MID, AMP_TYPE_UINT, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_NUMCTRL_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_NUMCTRL_MID", "# Controls", ADM_AGENT, ADM_AGENT_AD_NUMCTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_RUNCTRL_MID, AMP_TYPE_UINT, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_RUNCTRL_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_RUNCTRL_MID", "# Controls Run", ADM_AGENT, ADM_AGENT_AD_RUNCTRL_MID);
 
-	adm_add_datadef(ADM_AGENT_AD_CURTIME_MID, AMP_TYPE_TS,   0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_AGENT_AD_CURTIME_MID), AMP_TYPE_TS,   0, NULL, NULL, NULL);
 	names_add_name("ADM_AGENT_AD_CURTIME_MID", "Agent Time", ADM_AGENT, ADM_AGENT_AD_CURTIME_MID);
 
 #endif
@@ -129,19 +129,19 @@ void adm_agent_init_computed()
 
     // NUMRULE = #_TRL  #_SRL  +
 	Lyst def = lyst_create();
-	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_AD_NUMTRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_AD_NUMSRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(def,mid_deserialize_str(ADM_AGENT_OP_PLUS_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(def,mid_from_value(ADM_AGENT_AD_NUMTRL_MID));
+	lyst_insert_last(def,mid_from_value(ADM_AGENT_AD_NUMSRL_MID));
+	lyst_insert_last(def,mid_from_value(ADM_AGENT_OP_PLUS_MID));
 
 	expr_t *expr = expr_create(AMP_TYPE_UINT, def);
 
-	adm_add_computeddef(ADM_AGENT_CD_NUMRULE_MID, AMP_TYPE_EXPR, expr);
+	adm_add_var(mid_from_value(ADM_AGENT_CD_NUMRULE_MID), AMP_TYPE_EXPR, expr);
 	expr_release(expr);
 
 //	midcol_destroy(&def);
 
 #ifndef AGENT_ROLE
-	adm_add_datadef(ADM_AGENT_CD_NUMRULE_MID, AMP_TYPE_UINT, 1, NULL, adm_print_unsigned_long, adm_size_unsigned_long);
+	adm_add_edd(mid_from_value(ADM_AGENT_CD_NUMRULE_MID), AMP_TYPE_UINT, 1, NULL, adm_print_unsigned_long, adm_size_unsigned_long);
 	names_add_name("ADM_AGENT_CD_NUMRULE_MID", "Total # Rules", ADM_AGENT, ADM_AGENT_CD_NUMRULE_MID);
 
 #endif
@@ -154,127 +154,127 @@ void adm_agent_init_controls()
 {
 
 #ifdef AGENT_ROLE
-	adm_add_ctrl(ADM_AGENT_CTL_LSTADM_MID, adm_agent_ctl_adm_lst);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTADM_MID), adm_agent_ctl_adm_lst);
 
-    adm_add_ctrl(ADM_AGENT_CTL_ADDCD_MID,  adm_agent_ctl_var_add);
-    adm_add_ctrl(ADM_AGENT_CTL_DELCD_MID,  adm_agent_ctl_var_del);
-    adm_add_ctrl(ADM_AGENT_CTL_LSTCD_MID,  adm_agent_ctl_var_lst);
-    adm_add_ctrl(ADM_AGENT_CTL_DSCCD_MID,  adm_agent_ctl_var_dsc);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDCD_MID),  adm_agent_ctl_var_add);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELCD_MID),  adm_agent_ctl_var_del);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTCD_MID),  adm_agent_ctl_var_lst);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCCD_MID),  adm_agent_ctl_var_dsc);
 
-    adm_add_ctrl(ADM_AGENT_CTL_ADDRPT_MID, adm_agent_ctl_rptt_add);
-    adm_add_ctrl(ADM_AGENT_CTL_DELRPT_MID, adm_agent_ctl_rptt_del);
-    adm_add_ctrl(ADM_AGENT_CTL_LSTRPT_MID, adm_agent_ctl_rptt_lst);
-    adm_add_ctrl(ADM_AGENT_CTL_DSCRPT_MID, adm_agent_ctl_rptt_dsc);
-    adm_add_ctrl(ADM_AGENT_CTL_GENRPT_MID, adm_agent_ctl_rpt_gen);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDRPT_MID), adm_agent_ctl_rptt_add);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELRPT_MID), adm_agent_ctl_rptt_del);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTRPT_MID), adm_agent_ctl_rptt_lst);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCRPT_MID), adm_agent_ctl_rptt_dsc);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_GENRPT_MID), adm_agent_ctl_rpt_gen);
 
-	adm_add_ctrl(ADM_AGENT_CTL_ADDMAC_MID,  adm_agent_ctl_mac_add);
-    adm_add_ctrl(ADM_AGENT_CTL_DELMAC_MID,  adm_agent_ctl_mac_del);
-    adm_add_ctrl(ADM_AGENT_CTL_LSTMAC_MID,  adm_agent_ctl_mac_lst);
-    adm_add_ctrl(ADM_AGENT_CTL_DSCMAC_MID,  adm_agent_ctl_mac_dsc);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDMAC_MID),  adm_agent_ctl_mac_add);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELMAC_MID),  adm_agent_ctl_mac_del);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTMAC_MID),  adm_agent_ctl_mac_lst);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCMAC_MID),  adm_agent_ctl_mac_dsc);
 
-	adm_add_ctrl(ADM_AGENT_CTL_ADDTRL_MID,  adm_agent_ctl_trl_add);
-    adm_add_ctrl(ADM_AGENT_CTL_DELTRL_MID,  adm_agent_ctl_trl_del);
-    adm_add_ctrl(ADM_AGENT_CTL_LSTTRL_MID,  adm_agent_ctl_trl_lst);
-    adm_add_ctrl(ADM_AGENT_CTL_DSCTRL_MID,  adm_agent_ctl_trl_dsc);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDTRL_MID),  adm_agent_ctl_trl_add);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELTRL_MID),  adm_agent_ctl_trl_del);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTTRL_MID),  adm_agent_ctl_trl_lst);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCTRL_MID),  adm_agent_ctl_trl_dsc);
 
-	adm_add_ctrl(ADM_AGENT_CTL_ADDSRL_MID,  adm_agent_ctl_srl_add);
-    adm_add_ctrl(ADM_AGENT_CTL_DELSRL_MID,  adm_agent_ctl_srl_del);
-    adm_add_ctrl(ADM_AGENT_CTL_LSTSRL_MID,  adm_agent_ctl_srl_lst);
-    adm_add_ctrl(ADM_AGENT_CTL_DSCSRL_MID,  adm_agent_ctl_srl_dsc);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDSRL_MID),  adm_agent_ctl_srl_add);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELSRL_MID),  adm_agent_ctl_srl_del);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTSRL_MID),  adm_agent_ctl_srl_lst);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCSRL_MID),  adm_agent_ctl_srl_dsc);
 
-    adm_add_ctrl(ADM_AGENT_CTL_STOR_MID,    adm_agent_ctl_stor);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_STOR_MID),    adm_agent_ctl_stor);
 
-    adm_add_ctrl(ADM_AGENT_CTL_RESET_CNTS,  adm_agent_ctl_reset_cnt);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_RESET_CNTS),  adm_agent_ctl_reset_cnt);
 
 #else
-	adm_add_ctrl(ADM_AGENT_CTL_LSTADM_MID, NULL);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTADM_MID), NULL);
 	names_add_name("ADM_AGENT_CTL_LSTADM_MID", "List ADMs", ADM_AGENT, ADM_AGENT_CTL_LSTADM_MID);
 
-    adm_add_ctrl(ADM_AGENT_CTL_ADDCD_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDCD_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDCD_MID", "Add Computed Definition", ADM_AGENT, ADM_AGENT_CTL_ADDCD_MID);
 	UI_ADD_PARMSPEC_3(ADM_AGENT_CTL_ADDCD_MID, "Name", AMP_TYPE_MID, "Expression", AMP_TYPE_EXPR, "Type", AMP_TYPE_SDNV);
 
 
-    adm_add_ctrl(ADM_AGENT_CTL_DELCD_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELCD_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DELCD_MID", "Delete Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DELCD_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELCD_MID, "MC to Delete", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_LSTCD_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTCD_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTCD_MID", "List Computed Definition", ADM_AGENT, ADM_AGENT_CTL_LSTCD_MID);
 
-	adm_add_ctrl(ADM_AGENT_CTL_DSCCD_MID,  NULL);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCCD_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCCD_MID", "Describe Computed Definition", ADM_AGENT, ADM_AGENT_CTL_DSCCD_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCCD_MID, "MC to Describe", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_ADDRPT_MID, NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDRPT_MID), NULL);
 	names_add_name("ADM_AGENT_CTL_ADDRPT_MID", "Add Report", ADM_AGENT, ADM_AGENT_CTL_ADDRPT_MID);
 	UI_ADD_PARMSPEC_2(ADM_AGENT_CTL_ADDRPT_MID, "Report Name", AMP_TYPE_MID, "Rpt Def.", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DELRPT_MID, NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELRPT_MID), NULL);
 	names_add_name("ADM_AGENT_CTL_DELRPT_MID", "Delete Report", ADM_AGENT, ADM_AGENT_CTL_DELRPT_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELRPT_MID, "Rpts To Del", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_LSTRPT_MID, NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTRPT_MID), NULL);
 	names_add_name("ADM_AGENT_CTL_LSTRPT_MID", "List Report", ADM_AGENT, ADM_AGENT_CTL_LSTRPT_MID);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DSCRPT_MID, NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCRPT_MID), NULL);
 	names_add_name("ADM_AGENT_CTL_DSCRPT_MID", "Describe Report", ADM_AGENT, ADM_AGENT_CTL_DSCRPT_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCRPT_MID, "Rpts to Descr.", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_GENRPT_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_GENRPT_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_GENRPT_MID", "Generate Report", ADM_AGENT, ADM_AGENT_CTL_GENRPT_MID);
 	UI_ADD_PARMSPEC_2(ADM_AGENT_CTL_GENRPT_MID, "Rpts to Gen.", AMP_TYPE_MC, "Mgr to Send", AMP_TYPE_DC);
 
-	adm_add_ctrl(ADM_AGENT_CTL_ADDMAC_MID,  NULL);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDMAC_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDMAC_MID", "Add Macro", ADM_AGENT, ADM_AGENT_CTL_ADDMAC_MID);
 	UI_ADD_PARMSPEC_3(ADM_AGENT_CTL_ADDMAC_MID, "Name", AMP_TYPE_STRING, "MID ID", AMP_TYPE_MID, "Macro Def", AMP_TYPE_MC);
 
-	adm_add_ctrl(ADM_AGENT_CTL_DELMAC_MID,  NULL);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELMAC_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DELMAC_MID", "Delete Macro", ADM_AGENT, ADM_AGENT_CTL_DELMAC_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELMAC_MID, "Macros to Del", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_LSTMAC_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTMAC_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTMAC_MID", "List Macro", ADM_AGENT, ADM_AGENT_CTL_LSTMAC_MID);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DSCMAC_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCMAC_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCMAC_MID", "Describe Macro", ADM_AGENT, ADM_AGENT_CTL_DSCMAC_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCMAC_MID, "Macros to Desc", AMP_TYPE_MC);
 
-	adm_add_ctrl(ADM_AGENT_CTL_ADDTRL_MID,  NULL);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDTRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDTRL_MID", "Add Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDTRL_MID);
 	UI_ADD_PARMSPEC_5(ADM_AGENT_CTL_ADDTRL_MID, "TRL ID", AMP_TYPE_MID, "Timestamp", AMP_TYPE_SDNV, "Period", AMP_TYPE_SDNV, "Count", AMP_TYPE_SDNV, "Action", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DELTRL_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELTRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DELTRL_MID", "Delete Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DELTRL_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELTRL_MID, "TRLs to Del", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_LSTTRL_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTTRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTTRL_MID", "List Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_LSTTRL_MID);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DSCTRL_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCTRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCTRL_MID", "Describe Time-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCTRL_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCTRL_MID, "TRLs to Desc", AMP_TYPE_MC);
 
-	adm_add_ctrl(ADM_AGENT_CTL_ADDSRL_MID,  NULL);
+	adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_ADDSRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_ADDSRL_MID", "Add State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_ADDSRL_MID);
 	UI_ADD_PARMSPEC_5(ADM_AGENT_CTL_ADDSRL_MID, "SRL ID", AMP_TYPE_MID, "Timestamp", AMP_TYPE_SDNV, "State Expr", AMP_TYPE_EXPR, "Count", AMP_TYPE_SDNV, "Action", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DELSRL_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DELSRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DELSRL_MID", "Delete State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DELSRL_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DELSRL_MID, "SRLs to Del", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_LSTSRL_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_LSTSRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_LSTSRL_MID", "List State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_LSTSRL_MID);
 
-    adm_add_ctrl(ADM_AGENT_CTL_DSCSRL_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_DSCSRL_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_DSCSRL_MID", "Describe State-Based Rule", ADM_AGENT, ADM_AGENT_CTL_DSCSRL_MID);
 	UI_ADD_PARMSPEC_1(ADM_AGENT_CTL_DSCSRL_MID, "SRLs to Desc", AMP_TYPE_MC);
 
-    adm_add_ctrl(ADM_AGENT_CTL_STOR_MID,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_STOR_MID),  NULL);
 	names_add_name("ADM_AGENT_CTL_STOR_MID", "Store EXPR to CD", ADM_AGENT, ADM_AGENT_CTL_STOR_MID);
 	UI_ADD_PARMSPEC_2(ADM_AGENT_CTL_STOR_MID, "CD MID", AMP_TYPE_MID, "Expression", AMP_TYPE_EXPR);
 
-    adm_add_ctrl(ADM_AGENT_CTL_RESET_CNTS,  NULL);
+    adm_add_ctrl(mid_from_value(ADM_AGENT_CTL_RESET_CNTS),  NULL);
 	names_add_name("ADM_AGENT_CTL_RESET_CNTS", "Reset Counts", ADM_AGENT, ADM_AGENT_CTL_RESET_CNTS);
 
 #endif
@@ -291,18 +291,18 @@ void adm_agent_init_literals()
     result.value.as_uint = 1348025776;
 //    result.length = sizeof(uint32_t);
 
-    adm_add_lit(ADM_AGENT_LIT_EPOCH_MID, result, NULL);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_EPOCH_MID), result, NULL);
 
     result.type = AMP_TYPE_UNK;
     result.value.as_uint = 0;
  //   result.length = 0;
 
-    adm_add_lit(ADM_AGENT_LIT_USRVAST_MID,  result, adm_agent_user_vast);
-    adm_add_lit(ADM_AGENT_LIT_USRUVAST_MID, result, adm_agent_user_uvast);
-    adm_add_lit(ADM_AGENT_LIT_USRFLT_MID,   result, adm_agent_user_float);
-    adm_add_lit(ADM_AGENT_LIT_USRDBL_MID,   result, adm_agent_user_double);
-    adm_add_lit(ADM_AGENT_LIT_USRSTR_MID,   result, adm_agent_user_string);
-    adm_add_lit(ADM_AGENT_LIT_USRBLOB_MID,  result, adm_agent_user_blob);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_USRVAST_MID),  result, adm_agent_user_vast);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_USRUVAST_MID), result, adm_agent_user_uvast);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_USRFLT_MID),   result, adm_agent_user_float);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_USRDBL_MID),   result, adm_agent_user_double);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_USRSTR_MID),   result, adm_agent_user_string);
+    adm_add_lit(mid_from_value(ADM_AGENT_LIT_USRBLOB_MID),  result, adm_agent_user_blob);
 
 #ifndef AGENT_ROLE
 	names_add_name("ADM_AGENT_LIT_EPOCH_MID", "DTNMP EPOCH", ADM_AGENT, ADM_AGENT_LIT_EPOCH_MID);
@@ -335,14 +335,14 @@ void adm_agent_init_macros()
 
 	/* Step 8: Register Macros. */
 	Lyst macro = lyst_create();
-	lyst_insert_last(macro,mid_deserialize_str(ADM_AGENT_CTL_LSTCD_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(macro,mid_from_value(ADM_AGENT_CTL_LSTCD_MID));
 
-	lyst_insert_last(macro,mid_deserialize_str(ADM_AGENT_CTL_LSTRPT_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(macro,mid_deserialize_str(ADM_AGENT_CTL_LSTMAC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(macro,mid_deserialize_str(ADM_AGENT_CTL_LSTTRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(macro,mid_deserialize_str(ADM_AGENT_CTL_LSTSRL_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(macro,mid_from_value(ADM_AGENT_CTL_LSTRPT_MID));
+	lyst_insert_last(macro,mid_from_value(ADM_AGENT_CTL_LSTMAC_MID));
+	lyst_insert_last(macro,mid_from_value(ADM_AGENT_CTL_LSTTRL_MID));
+	lyst_insert_last(macro,mid_from_value(ADM_AGENT_CTL_LSTSRL_MID));
 
-	adm_add_macro(ADM_AGENT_MAC_FULL_MID, macro);
+	adm_add_macro(mid_from_value(ADM_AGENT_MAC_FULL_MID), macro);
 
 	midcol_destroy(&macro);
 
@@ -370,13 +370,13 @@ void adm_agent_init_metadata()
 
 	/* Step 2: Register Metadata Information. */
 #ifdef AGENT_ROLE
-	adm_add_datadef(ADM_AGENT_MD_NAME_MID, AMP_TYPE_STRING, 0, adm_agent_md_name, adm_print_string, adm_size_string);
-	adm_add_datadef(ADM_AGENT_MD_VER_MID,  AMP_TYPE_STRING, 0, adm_agent_md_ver,  adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_AGENT_MD_NAME_MID), AMP_TYPE_STRING, 0, adm_agent_md_name, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_AGENT_MD_VER_MID),  AMP_TYPE_STRING, 0, adm_agent_md_ver,  adm_print_string, adm_size_string);
 #else
-	adm_add_datadef(ADM_AGENT_MD_NAME_MID, AMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_AGENT_MD_NAME_MID), AMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
 	names_add_name("ADM_AGENT_MD_NAME_MID", "Agent Name", ADM_AGENT, ADM_AGENT_MD_NAME_MID);
 
-	adm_add_datadef(ADM_AGENT_MD_VER_MID,  AMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_AGENT_MD_VER_MID),  AMP_TYPE_STRING, 0, NULL, adm_print_string, adm_size_string);
 	names_add_name("ADM_AGENT_MD_VER_MID", "Agent Version", ADM_AGENT, ADM_AGENT_MD_VER_MID);
 #endif
 
@@ -387,55 +387,55 @@ void adm_agent_init_ops()
 {
 	/* Step 9: Register Ops. */
 #ifdef AGENT_ROLE
-	adm_add_op(ADM_AGENT_OP_PLUS_MID,   2, adm_agent_op_plus);
-	adm_add_op(ADM_AGENT_OP_MINUS_MID,  2, adm_agent_op_minus);
-	adm_add_op(ADM_AGENT_OP_MULT_MID,   2, adm_agent_op_mult);
-	adm_add_op(ADM_AGENT_OP_DIV_MID,    2, adm_agent_op_div);
-	adm_add_op(ADM_AGENT_OP_MOD_MID,    2, adm_agent_op_mod);
-	adm_add_op(ADM_AGENT_OP_EXP_MID,    2, adm_agent_op_exp);
-	adm_add_op(ADM_AGENT_OP_BITAND_MID, 2, adm_agent_op_bitand);
-	adm_add_op(ADM_AGENT_OP_BITOR_MID,  2, adm_agent_op_bitor);
-	adm_add_op(ADM_AGENT_OP_BITXOR_MID, 2, adm_agent_op_bitxor);
-	adm_add_op(ADM_AGENT_OP_BITNOT_MID, 1, adm_agent_op_bitnot);
-	adm_add_op(ADM_AGENT_OP_LOGAND_MID, 2, adm_agent_op_logand);
-	adm_add_op(ADM_AGENT_OP_LOGOR_MID,  2, adm_agent_op_logor);
-	adm_add_op(ADM_AGENT_OP_LOGNOT_MID, 1, adm_agent_op_lognot);
-	adm_add_op(ADM_AGENT_OP_ABS_MID,    1, adm_agent_op_abs);
-	adm_add_op(ADM_AGENT_OP_LT_MID,     2, adm_agent_op_lt);
-	adm_add_op(ADM_AGENT_OP_GT_MID,     2, adm_agent_op_gt);
-	adm_add_op(ADM_AGENT_OP_LTE_MID,    2, adm_agent_op_lte);
-	adm_add_op(ADM_AGENT_OP_GTE_MID,    2, adm_agent_op_gte);
-	adm_add_op(ADM_AGENT_OP_NEQ_MID,    2, adm_agent_op_neq);
-	adm_add_op(ADM_AGENT_OP_EQ_MID,     2, adm_agent_op_eq);
-	adm_add_op(ADM_AGENT_OP_LSFHT_MID,  2, adm_agent_op_lshft);
-	adm_add_op(ADM_AGENT_OP_RSHFT_MID,  2, adm_agent_op_rshft);
-	adm_add_op(ADM_AGENT_OP_ASSGN_MID,  2, adm_agent_op_stor);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_PLUS_MID),   2, adm_agent_op_plus);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_MINUS_MID),  2, adm_agent_op_minus);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_MULT_MID),   2, adm_agent_op_mult);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_DIV_MID),    2, adm_agent_op_div);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_MOD_MID),    2, adm_agent_op_mod);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_EXP_MID),    2, adm_agent_op_exp);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITAND_MID), 2, adm_agent_op_bitand);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITOR_MID),  2, adm_agent_op_bitor);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITXOR_MID), 2, adm_agent_op_bitxor);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITNOT_MID), 1, adm_agent_op_bitnot);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LOGAND_MID), 2, adm_agent_op_logand);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LOGOR_MID),  2, adm_agent_op_logor);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LOGNOT_MID), 1, adm_agent_op_lognot);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_ABS_MID),    1, adm_agent_op_abs);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LT_MID),     2, adm_agent_op_lt);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_GT_MID),     2, adm_agent_op_gt);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LTE_MID),    2, adm_agent_op_lte);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_GTE_MID),    2, adm_agent_op_gte);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_NEQ_MID),    2, adm_agent_op_neq);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_EQ_MID),     2, adm_agent_op_eq);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LSFHT_MID),  2, adm_agent_op_lshft);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_RSHFT_MID),  2, adm_agent_op_rshft);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_ASSGN_MID),  2, adm_agent_op_stor);
 
 
 #else
-	adm_add_op(ADM_AGENT_OP_PLUS_MID,   2, NULL);
-	adm_add_op(ADM_AGENT_OP_MINUS_MID,  2, NULL);
-	adm_add_op(ADM_AGENT_OP_MULT_MID,   2, NULL);
-	adm_add_op(ADM_AGENT_OP_DIV_MID,    2, NULL);
-	adm_add_op(ADM_AGENT_OP_MOD_MID,    2, NULL);
-	adm_add_op(ADM_AGENT_OP_EXP_MID,    2, NULL);
-	adm_add_op(ADM_AGENT_OP_BITAND_MID, 2, NULL);
-	adm_add_op(ADM_AGENT_OP_BITOR_MID,  2, NULL);
-	adm_add_op(ADM_AGENT_OP_BITXOR_MID, 2, NULL);
-	adm_add_op(ADM_AGENT_OP_BITNOT_MID, 1, NULL);
-	adm_add_op(ADM_AGENT_OP_LOGAND_MID, 2, NULL);
-	adm_add_op(ADM_AGENT_OP_LOGOR_MID,  2, NULL);
-	adm_add_op(ADM_AGENT_OP_LOGNOT_MID, 1, NULL);
-	adm_add_op(ADM_AGENT_OP_ABS_MID,    1, NULL);
-	adm_add_op(ADM_AGENT_OP_LT_MID,     2, NULL);
-	adm_add_op(ADM_AGENT_OP_GT_MID,     2, NULL);
-	adm_add_op(ADM_AGENT_OP_LTE_MID,    2, NULL);
-	adm_add_op(ADM_AGENT_OP_GTE_MID,    2, NULL);
-	adm_add_op(ADM_AGENT_OP_NEQ_MID,    2, NULL);
-	adm_add_op(ADM_AGENT_OP_EQ_MID,     2, NULL);
-	adm_add_op(ADM_AGENT_OP_LSFHT_MID,  2, NULL);
-	adm_add_op(ADM_AGENT_OP_RSHFT_MID,  2, NULL);
-	adm_add_op(ADM_AGENT_OP_ASSGN_MID,  2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_PLUS_MID),   2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_MINUS_MID),  2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_MULT_MID),   2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_DIV_MID),    2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_MOD_MID),    2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_EXP_MID),    2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITAND_MID), 2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITOR_MID),  2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITXOR_MID), 2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_BITNOT_MID), 1, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LOGAND_MID), 2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LOGOR_MID),  2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LOGNOT_MID), 1, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_ABS_MID),    1, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LT_MID),     2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_GT_MID),     2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LTE_MID),    2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_GTE_MID),    2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_NEQ_MID),    2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_EQ_MID),     2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_LSFHT_MID),  2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_RSHFT_MID),  2, NULL);
+	adm_add_op(mid_from_value(ADM_AGENT_OP_ASSGN_MID),  2, NULL);
 
 	names_add_name("ADM_AGENT_OP_PLUS_MID", "+", ADM_AGENT, ADM_AGENT_OP_PLUS_MID);
 	names_add_name("ADM_AGENT_OP_MINUS_MID", "-", ADM_AGENT, ADM_AGENT_OP_MINUS_MID);
@@ -471,23 +471,23 @@ void adm_agent_init_reports()
 	uint32_t used = 0;
 	Lyst rpt = lyst_create();
 
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_MD_NAME_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_MD_VER_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMRPT_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_SENTRPT_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMTRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNTRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMSRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNSRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMLIT_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMCUST_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMMAC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNMAC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_NUMCTRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_AD_RUNCTRL_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_AGENT_CD_NUMRULE_MID, ADM_MID_ALLOC, &used));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_MD_NAME_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_MD_VER_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMRPT_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_SENTRPT_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMTRL_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNTRL_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMSRL_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNSRL_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMLIT_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMCUST_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMMAC_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNMAC_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMCTRL_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNCTRL_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_CD_NUMRULE_MID));
 
-	adm_add_rpt(ADM_AGENT_RPT_FULL_MID, rpt);
+	adm_add_rpt(mid_from_value(ADM_AGENT_RPT_FULL_MID), rpt);
 
 	midcol_destroy(&rpt);
 

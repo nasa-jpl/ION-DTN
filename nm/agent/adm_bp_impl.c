@@ -16,7 +16,9 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
+#include "ion.h"
+#include "bpnm.h"
+
 /*   STOP CUSTOM INCLUDES HERE  */
 
 #include "adm_bp_impl.h"
@@ -1170,13 +1172,10 @@ tdc_t* adm_bp_ctrl_reset_all_counts(eid_t *def_mgr, tdc_t params, int8_t *status
 	 * |START CUSTOM FUNCTION ctrl_reset_all_counts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	tdc_t result;
 
 	bpnm_disposition_reset();
 	*status = CTRL_SUCCESS;
 
-	memset(&result, 0, sizeof(tdc_t));
-	return NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_reset_all_counts BODY

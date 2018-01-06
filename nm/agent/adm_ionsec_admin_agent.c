@@ -55,15 +55,15 @@ void adm_ionsec_admin_init_variables()
 
 void adm_ionsec_admin_init_controls()
 {
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_KEY_ADD,adm_ionsec_admin_ctrl_key_add);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE,adm_ionsec_admin_ctrl_key_change);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_KEY_DEL,adm_ionsec_admin_ctrl_key_del);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_ADD,adm_ionsec_admin_ctrl_ltp_rx_rule_add);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_CHANGE,adm_ionsec_admin_ctrl_ltp_rx_rule_change);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_DEL,adm_ionsec_admin_ctrl_ltp_rx_rule_del);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_ADD,adm_ionsec_admin_ctrl_ltp_tx_rule_add);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_CHANGE,adm_ionsec_admin_ctrl_ltp_tx_rule_change);
-	adm_add_ctrl(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL,adm_ionsec_admin_ctrl_ltp_tx_rule_del);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID),adm_ionsec_admin_ctrl_key_add);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID),adm_ionsec_admin_ctrl_key_change);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_DEL_MID),adm_ionsec_admin_ctrl_key_del);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_ADD_MID),adm_ionsec_admin_ctrl_ltp_rx_rule_add);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_CHANGE_MID),adm_ionsec_admin_ctrl_ltp_rx_rule_change);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_DEL_MID),adm_ionsec_admin_ctrl_ltp_rx_rule_del);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_ADD_MID),adm_ionsec_admin_ctrl_ltp_tx_rule_add);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_CHANGE_MID),adm_ionsec_admin_ctrl_ltp_tx_rule_change);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID),adm_ionsec_admin_ctrl_ltp_tx_rule_del);
 }
 
 void adm_ionsec_admin_init_constants()
@@ -88,10 +88,10 @@ void adm_ionsec_admin_init_metadata()
 	oid_nn_add_parm(IONSEC_ADMIN_ADM_ROOT_NN_IDX, IONSEC_ADMIN_ADM_ROOT_NN_STR, "IONSEC_ADMIN", "2017-08-17");
 
 	/* Step 2: Register Metadata Information. */
-	adm_add_edd(ADM_IONSEC_ADMIN_META_NAME_MID, AMP_TYPE_STR, 0, adm_ionsec_admin_meta_name, adm_print_string, adm_size_string);
-	adm_add_edd(ADM_IONSEC_ADMIN_META_NAMESPACE_MID, AMP_TYPE_STR, 0, adm_ionsec_admin_meta_namespace, adm_print_string, adm_size_string);
-	adm_add_edd(ADM_IONSEC_ADMIN_META_VERSION_MID, AMP_TYPE_STR, 0, adm_ionsec_admin_meta_version, adm_print_string, adm_size_string);
-	adm_add_edd(ADM_IONSEC_ADMIN_META_ORGANIZATION_MID, AMP_TYPE_STR, 0, adm_ionsec_admin_meta_organization, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_IONSEC_ADMIN_META_NAME_MID), AMP_TYPE_STR, 0, adm_ionsec_admin_meta_name, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_IONSEC_ADMIN_META_NAMESPACE_MID), AMP_TYPE_STR, 0, adm_ionsec_admin_meta_namespace, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_IONSEC_ADMIN_META_VERSION_MID), AMP_TYPE_STR, 0, adm_ionsec_admin_meta_version, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_IONSEC_ADMIN_META_ORGANIZATION_MID), AMP_TYPE_STR, 0, adm_ionsec_admin_meta_organization, adm_print_string, adm_size_string);
 }
 
 void adm_ionsec_admin_init_ops()

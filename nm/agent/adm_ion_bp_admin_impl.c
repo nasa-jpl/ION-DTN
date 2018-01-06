@@ -96,10 +96,11 @@ table_t* adm_ion_bp_admin_table_tbl_endpoints()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "endpointId", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "type", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "rcvScript", AMP_TYPE_STR) == ERROR)))
+	if(
+			(table_add_col(table, "endpointId", AMP_TYPE_STR) == ERROR) ||
+			(table_add_col(table, "type", AMP_TYPE_UINT) == ERROR) ||
+			(table_add_col(table, "rcvScript", AMP_TYPE_STR) == ERROR)
+	)
 	{
 		table_destroy(table, 1);
 		return NULL;

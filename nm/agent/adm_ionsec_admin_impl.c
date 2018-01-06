@@ -16,12 +16,14 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
+#include "ion.h"
+
 /*   STOP CUSTOM INCLUDES HERE  */
 
 #include "adm_ionsec_admin_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
+/***
 static void	printText(char *text)
 {
 	if (_echo(NULL))
@@ -116,6 +118,7 @@ static void	printLtpXmitAuthRule(Object ruleAddr)
 	printText(buf);
 }
 
+***/
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 

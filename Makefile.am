@@ -1889,29 +1889,30 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 #
 # NETWORK MANAGEMENT SECTION
 #
+#                                        
 ##########################
 
 nmbin= nm_agent nm_mgr
 
 nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
-                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
-                    nm/agent/adm_ion_admin_impl.c nm/agent/adm_ion_admin_agent.c \
-                    nm/agent/adm_IonBpAdmin_impl.c nm/agent/adm_IonBpAdmin_agent.c \
-                    nm/agent/adm_LtpAgent_impl.c nm/agent/adm_LtpAgent_agent.c \
-                    nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
-					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
+                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
+                   	nm/agent/adm_ion_admin_impl.c 		nm/agent/adm_ion_admin_agent.c \
+					nm/agent/adm_ion_bp_admin_impl.c 	nm/agent/adm_ion_bp_admin_agent.c \
+					nm/agent/adm_ionsec_admin_impl.c	nm/agent/adm_ionsec_admin_agent.c \
+					nm/agent/adm_LtpAgent_impl.c 		nm/agent/adm_LtpAgent_agent.c \
+                    nm/shared/adm/adm.c	nm/shared/adm/adm_ion.c \
+					nm/shared/adm/adm_ltp.c	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
 					nm/shared/adm/adm_agent.c 	nm/agent/adm_bpsec_impl.c \
 					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
 					nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
 					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
 					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\
 					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c   nm/agent/adm_ionsec_admin_impl.c    nm/agent/adm_ionsec_admin_agent.c\
-					nm/agent/adm_bpsec_impl.c    nm/agent/adm_bpsec_agent.c   
+					nm/shared/utils/nm_types.c  
 				
 					
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -1922,7 +1923,7 @@ nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library 
 					
 					
 nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
+					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
 					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
 					nm/mgr/adm_LtpAgent_mgr.c \
 					nm/mgr/adm_ion_admin_mgr.c \
@@ -1934,7 +1935,7 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
 					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
 					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
 					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c    nm/shared/primitives/table.c \
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
 					nm/shared/utils/nm_types.c   nm/mgr/adm_ionsec_admin_mgr.c  nm/mgr/adm_bpsec_mgr.c
