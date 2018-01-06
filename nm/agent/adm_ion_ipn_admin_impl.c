@@ -16,7 +16,7 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "ipnfw.h"
+
 /*   STOP CUSTOM INCLUDES HERE  */
 
 #include "adm_ion_ipn_admin_impl.h"
@@ -100,7 +100,7 @@ if(
 	(table_add_col(table, "first_node_nbr", AMP_TYPE_UINT) == ERROR) ||
 	(table_add_col(table, "last_node_nbr", AMP_TYPE_UINT) == ERROR) ||
 	(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR)))
+	(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -135,7 +135,7 @@ table_t* adm_ion_ipn_admin_table_tbl_exits()
 if(
 	(table_add_col(table, "first_node_nbr", AMP_TYPE_UINT) == ERROR) ||
 	(table_add_col(table, "last_node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR)))
+	(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -170,7 +170,7 @@ table_t* adm_ion_ipn_admin_table_tbl_plan_rules()
 if(
 	(table_add_col(table, "node_nbr", AMP_TYPE_UINT) == ERROR) ||
 	(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR)))
+	(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -205,7 +205,7 @@ table_t* adm_ion_ipn_admin_table_tbl_plans()
 
 if(
 	(table_add_col(table, "node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR)))
+	(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -266,6 +266,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 	uvast firstNodeNbr = 0;
 	uvast lastNodeNbr = 0;
 	char *endpointId = NULL;
+	void ipn_addExit(uvast,uvast,char*);
 
 	firstNodeNbr = adm_extract_uvast(params,0,&success);
 	if(success){
@@ -278,13 +279,8 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 		ipn_addExit(firstNodeNbr,lastNodeNbr,endpointId);
 		*status = CTRL_SUCCESS;
 	}
-	SRELEASE(firstNodeNbr);
-	SRELEASE(lastNodeNbr);
 	SRELEASE(endpointId);
-	
-	if(success){
-		*status = CTRL_SUCCESS;
-	}
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_add BODY
@@ -311,6 +307,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_change(eid_t *def_mgr, tdc_t params, int8_t *
 	uvast firstNodeNbr = 0;
 	uvast lastNodeNbr = 0;
 	char *endpointId = NULL;
+	void ipn_updateExit(uvast,uvast,char*);
 
 	firstNodeNbr = adm_extract_uvast(params,0,&success);
 	if(success){
@@ -323,9 +320,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_change(eid_t *def_mgr, tdc_t params, int8_t *
 		ipn_updateExit(firstNodeNbr,lastNodeNbr,endpointId);
 		*status = CTRL_SUCCESS;
 	}
-	SRELEASE(firstNodeNbr)
-	SRELEASE(lastNodeNbr)
-	SRELEASE(endpointId)
+	SRELEASE(endpointId);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_change BODY
@@ -350,6 +345,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 	int8_t success = 0;
 	uvast firstNodeNbr = 0;
 	uvast lastNodeNbr = 0;
+	void ipn_removeExit(uvast,uvast);
 
 	firstNodeNbr = adm_extract_uvast(params,0,&success);
 	if(success){
@@ -359,8 +355,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 		ipn_removeExit(firstNodeNbr,lastNodeNbr);
 		*status = CTRL_SUCCESS;
 	}
-	SRELEASE(firstNodeNbr);
-	SRELEASE(lastNodeNbr);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_del BODY
@@ -447,9 +442,10 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 	 * +-------------------------------------------------------------------------+
 	 */
 	int8_t success = 0;
-	uvast nodeNbr = NULL;
+	uvast nodeNbr = 0;
 	char *ductExpression = NULL;
 	char *xmitRate = NULL;
+	void ipn_addPlan(uvast,char*);
 
 	nodeNbr = adm_extract_uvast(params,0,&success);
 	if(success){
@@ -462,7 +458,6 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 		ipn_addPlan(nodeNbr,xmitRate);
 		*status = CTRL_SUCCESS;
 	}
-	SRELEASE(nodeNbr);
 	SRELEASE(ductExpression);
 	SRELEASE(xmitRate);
 	/*
@@ -490,6 +485,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_change(eid_t *def_mgr, tdc_t params, int8_t *
 	uvast nodeNbr = 0;
 	char *ductExpression = NULL;
 	char *xmitRate = NULL;
+	void ipn_updatePlan(uvast,char*);
 
 	nodeNbr = adm_extract_uvast(params,0,&success);
 	if(success){
@@ -502,7 +498,6 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_change(eid_t *def_mgr, tdc_t params, int8_t *
 		ipn_updatePlan(nodeNbr,xmitRate);
 		*status = CTRL_SUCCESS;
 	}
-	SRELEASE(nodeNbr);
 	SRELEASE(ductExpression);
 	SRELEASE(xmitRate);
 	/*
@@ -528,13 +523,13 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 	 */
 	int8_t success = 0;
 	uvast nodeNbr = 0;
+	void ipn_removePlan(uvast);
 
 	nodeNbr = adm_extract_uvast(params,0,&success);
 	if(success){
 		ipn_removePlan(nodeNbr);
 		*status = CTRL_SUCCESS;
 	}
-	SRELEASE(nodeNbr);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_del BODY

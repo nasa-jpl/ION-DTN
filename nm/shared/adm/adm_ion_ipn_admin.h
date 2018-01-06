@@ -76,23 +76,23 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |name                         |0x873c600100|The human-readable name of the ADM.               |STR          |
+   |name                         |0x873c0100  |The human-readable name of the ADM.               |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |namespace                    |0x873c600101|The namespace of the ADM                          |STR          |
+   |namespace                    |0x873c0101  |The namespace of the ADM                          |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |version                      |0x873c600102|The version of the ADM                            |STR          |
+   |version                      |0x873c0102  |The version of the ADM                            |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |organization                 |0x873c600103|The name of the issuing organization of the ADM   |STR          |
+   |organization                 |0x873c0103  |The name of the issuing organization of the ADM   |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 // "name"
-#define ADM_ION_IPN_ADMIN_META_NAME_MID 0x873c600100
+#define ADM_ION_IPN_ADMIN_META_NAME_MID 0x873c0100
 // "namespace"
-#define ADM_ION_IPN_ADMIN_META_NAMESPACE_MID 0x873c600101
+#define ADM_ION_IPN_ADMIN_META_NAMESPACE_MID 0x873c0101
 // "version"
-#define ADM_ION_IPN_ADMIN_META_VERSION_MID 0x873c600102
+#define ADM_ION_IPN_ADMIN_META_VERSION_MID 0x873c0102
 // "organization"
-#define ADM_ION_IPN_ADMIN_META_ORGANIZATION_MID 0x873c600103
+#define ADM_ION_IPN_ADMIN_META_ORGANIZATION_MID 0x873c0103
 
 
 /*
@@ -102,11 +102,11 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |ion_version                  |0x803d600100|This is the version of ion is that currently insta|             |
+   |ion_version                  |0x803d0100  |This is the version of ion is that currently insta|             |
    |                             |            |lled.                                             |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_ION_IPN_ADMIN_EDD_ION_VERSION_MID 0x803d600100
+#define ADM_ION_IPN_ADMIN_EDD_ION_VERSION_MID 0x803d0100
 
 
 /*
@@ -136,51 +136,51 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |exit_add                     |0x8340600100|This control establishes an "exit" for static defa|             |
+   |exit_add                     |0x83400100  |This control establishes an "exit" for static defa|             |
    |                             |            |ult routing.                                      |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |exit_change                  |0x8340600101|This control changes the gateway node number for t|             |
+   |exit_change                  |0x83400101  |This control changes the gateway node number for t|             |
    |                             |            |he exit identified by firstNodeNbr and lastNodeNbr|             |
    |                             |            |.                                                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |exit_del                     |0x8340600102|This control deletes the exit identified by firstN|             |
+   |exit_del                     |0x83400102  |This control deletes the exit identified by firstN|             |
    |                             |            |odeNbr and lastNodeNbr.                           |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |exit_rule_add                |0x8340600103|This control adds an exit rule.                   |             |
+   |exit_rule_add                |0x83400103  |This control adds an exit rule.                   |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |exit_rule_change             |0x8340600104|This control changes an exit rule.                |             |
+   |exit_rule_change             |0x83400104  |This control changes an exit rule.                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |exit_rule_del                |0x8340600105|This control deletes an exit rule.                |             |
+   |exit_rule_del                |0x83400105  |This control deletes an exit rule.                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |plan_add                     |0x8340600106|This control establishes an egress plan for the bu|             |
+   |plan_add                     |0x83400106  |This control establishes an egress plan for the bu|             |
    |                             |            |ndles that must be transmitted to the neighboring |             |
    |                             |            |node that is identified by it's nodeNbr.          |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |plan_change                  |0x8340600107|This control changes the duct expression for the i|             |
+   |plan_change                  |0x83400107  |This control changes the duct expression for the i|             |
    |                             |            |ndicated plan.                                    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |plan_del                     |0x8340600108|This control deletes the egress plan for the node |             |
+   |plan_del                     |0x83400108  |This control deletes the egress plan for the node |             |
    |                             |            |that is identified by it's nodeNbr.               |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |plan_rule_add                |0x8340600109|This control adds a plan rule.                    |             |
+   |plan_rule_add                |0x83400109  |This control adds a plan rule.                    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |plan_rule_change             |0x834060010a|This control changes the plan rule.               |             |
+   |plan_rule_change             |0x8340010a  |This control changes the plan rule.               |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |plan_rule_del                |0x834060010b|This control deletes a plan rule.                 |             |
+   |plan_rule_del                |0x8340010b  |This control deletes a plan rule.                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID 0x8340600100
-#define ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID 0x8340600101
-#define ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID 0x8340600102
-#define ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_ADD_MID 0x8340600103
-#define ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_CHANGE_MID 0x8340600104
-#define ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_DEL_MID 0x8340600105
-#define ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID 0x8340600106
-#define ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID 0x8340600107
-#define ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID 0x8340600108
-#define ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_ADD_MID 0x8340600109
-#define ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_CHANGE_MID 0x834060010a
-#define ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_DEL_MID 0x834060010b
+#define ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID 0x83400100
+#define ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID 0x83400101
+#define ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID 0x83400102
+#define ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_ADD_MID 0x83400103
+#define ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_CHANGE_MID 0x83400104
+#define ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_DEL_MID 0x83400105
+#define ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID 0x83400106
+#define ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID 0x83400107
+#define ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID 0x83400108
+#define ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_ADD_MID 0x83400109
+#define ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_CHANGE_MID 0x8340010a
+#define ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_DEL_MID 0x8340010b
 
 
 /*

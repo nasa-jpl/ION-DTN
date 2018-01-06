@@ -318,7 +318,7 @@ value_t adm_ion_admin_get_congestion_end_time_forecasts(tdc_t params)
 	sdr_begin_xn(sdr);
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = val_from_uint(iondb.horizon);
-    sdr_end_xn(sdr);
+	sdr_end_xn(sdr);
 	
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -436,7 +436,15 @@ value_t adm_ion_admin_get_number(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 
+	Sdr     sdr = getIonsdr();
+	Object  iondbObj = getIonDbObject();
+	IonDB   iondb;
 	
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	result = val_from_uvast(iondb.ownNodeNbr);
+	sdr_end_xn(sdr);
+	  
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_number BODY
@@ -523,6 +531,14 @@ value_t adm_ion_admin_get_production_rate(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 
+	Sdr sdr = getIonsdr();
+	Object iondbObj = getIonDbObject();
+	IonDB iondb;
+	  
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	result = val_from_int(iondb.productionRate);
+	sdr_end_xn(sdr);
 	
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -572,7 +588,15 @@ value_t adm_ion_admin_get_utc_delta(tdc_t params)
 	 * |START CUSTOM FUNCTION get_utc_delta BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-
+	
+	Sdr sdr = getIonsdr();
+	Object iondbObj = getIonDbObject();
+	IonDB iondb;
+	  
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	result = val_from_int(iondb.deltaFromUTC);
+	sdr_end_xn(sdr);
 	
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -595,6 +619,9 @@ value_t adm_ion_admin_get_version(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 
+	char buffer[80]; // pulled from ionadmin.c
+	isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
+	result = val_from_string(buffer);
 	
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1110,6 +1137,45 @@ tdc_t* adm_ion_admin_ctrl_node_range_add(eid_t *def_mgr, tdc_t params, int8_t *s
 	 * +-------------------------------------------------------------------------+
 	 */
 
+	time_t  start = 0;
+	time_t  stop  = 0;
+	uint    from_node = 0;
+	uint    to_node   = 0;
+	uint    distance  = 0;
+	int8_t 	success   = 0;
+	PsmAddress xaddr;
+
+	start = adm_extract_uint(params,0,&success);
+
+	if(success)
+	{
+	  stop = adm_extract_uint(params,1,&success);
+	}
+	if(success)
+	{
+	  from_node = adm_extract_uint(params,2,&success);
+	}
+	if(success)
+	{
+	  to_node = adm_extract_uint(params, 3, &success);
+	}
+	if(success)
+	{
+	  distance = adm_extract_uint(params, 4, &success);
+	}   
+
+	if(success)
+	{
+	  if(stop <= start) 
+	  {
+	    return NULL;
+	  }
+	  
+	  if(rfx_insert_range(start, stop, from_node, to_node, distance, &xaddr) >= 0 && xaddr != 0)
+	  {
+	    *status = CTRL_SUCCESS;
+	  }
+	}
 	
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1133,7 +1199,31 @@ tdc_t* adm_ion_admin_ctrl_node_range_del(eid_t *def_mgr, tdc_t params, int8_t *s
 	 * |START CUSTOM FUNCTION ctrl_node_range_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	
+	time_t  start = 0;
+	uint    from_node = 0;
+	uint    to_node   = 0;
+	int8_t 	success   = 0;
+	PsmAddress xaddr;
 
+	start = adm_extract_uint(params,0,&success);
+
+	if(success)
+	{
+	  from_node = adm_extract_uint(params, 1, &success);
+	}
+	if(success)
+	{
+	  to_node = adm_extract_uint(params, 2, &success);
+	}
+
+	if(success)
+	{
+	  if(rfx_remove_range(start, from_node, to_node) >= 0)
+	  {
+	    *status = CTRL_SUCCESS;
+	  }
+	}
 	
 	/*
 	 * +-------------------------------------------------------------------------+

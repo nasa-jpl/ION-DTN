@@ -24,271 +24,7 @@
 #include "adm_bp_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
-value_t adm_bp_node_get_blk_src_cnt(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bundleSourceCount[0];
-
-	return result;
-}
-
-value_t adm_bp_node_get_norm_src_cnt(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bundleSourceCount[1];
-
-	return result;
-}
-
-value_t adm_bp_node_get_exp_src_cnt(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bundleSourceCount[2];
-
-	return result;
-}
-
-
-value_t adm_bp_node_get_blk_src_bytes(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bundleSourceBytes[0];
-
-	return result;
-}
-
-value_t adm_bp_node_get_norm_src_bytes(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bundleSourceBytes[1];
-
-	return result;
-}
-
-value_t adm_bp_node_get_exp_src_bytes(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bundleSourceBytes[2];
-
-	return result;
-}
-
-value_t adm_bp_node_get_blk_res_cnt(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.currentResidentCount[0];
-
-	return result;
-}
-
-value_t adm_bp_node_get_norm_res_cnt(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.currentResidentCount[1];
-
-	return result;
-}
-
-value_t adm_bp_node_get_exp_res_cnt(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.currentResidentCount[2];
-
-	return result;
-}
-
-
-value_t adm_bp_node_get_blk_res_bytes(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.currentResidentBytes[0];
-
-	return result;
-}
-
-value_t adm_bp_node_get_norm_res_bytes(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.currentResidentBytes[1];
-
-	return result;
-}
-
-value_t adm_bp_node_get_exp_res_bytes(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.currentResidentBytes[2];
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_none(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delNoneCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_expired(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delExpiredCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_fwd_uni(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delFwdUnidirCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_cancel(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delCanceledCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_deplete(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delDepletionCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_bad_eid(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delEidMalformedCount;
-
-	return result;
-}
-
-
-value_t adm_bp_node_get_del_no_route(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delNoRouteCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_no_contact(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delNoContactCount;
-
-	return result;
-}
-
-value_t adm_bp_node_get_del_bad_blk(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.delBlkMalformedCount;
-
-	return result;
-}
-value_t adm_bp_get_numbytesdeleted(tdc_t params)
-{
-	value_t result;
-	NmbpDisposition state;
-	bpnm_disposition_get(&state);
-
-	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = state.bytesDeletedToDate;
-
-	return result;
-}
+/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_bp_setup(){
@@ -440,13 +176,17 @@ value_t adm_bp_get_last_reset_time(tdc_t params)
 	 * |START CUSTOM FUNCTION get_last_reset_time BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	NmbpNode node_state;
-	bpnm_node_get(&node_state);
+	Sdr sdr = getIonsdr();
+	Object dbobj = getBpDbObject();
+	BpDB db;
 
 	result.type = AMP_TYPE_UVAST;
-	result.value.as_uvast = node_state.lastRestartTime;
+// TODO Check return call for sdr_begin_xn
+	sdr_begin_xn(sdr);
+	sdr_stage(sdr, (char *) &db, dbobj, sizeof(BpDB));
+	result.value.as_uvast = db.resetTime;
+	oK(sdr_end_xn(sdr));
 
-	
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_last_reset_time BODY
@@ -602,6 +342,29 @@ value_t adm_bp_get_bundles_by_priority(tdc_t params)
 	 * |START CUSTOM FUNCTION get_bundles_by_priority BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	NmbpDisposition state;
+	bpnm_disposition_get(&state);
+
+  	uvast val = adm_extract_uvast(params, 0, &success);
+
+  	result.type = AMP_TYPE_UVAST;
+
+  	switch(val)
+  	{
+	  	case 0x1: 
+	  		result.value.as_uvast = state.currentResidentCount[0];
+	  		break;
+	  	case 0x2:
+	  		result.value.as_uvast = state.currentResidentCount[1];
+	  		break;
+	  	case 0x4:
+	  		result.value.as_uvast = state.currentResidentCount[2];
+	  		break;
+	  	default:
+	  		AMP_DEBUG_ERR("get_bundles_by_priority","Invalid priority",NULL);
+	  		break;
+	}
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_bundles_by_priority BODY
@@ -624,6 +387,28 @@ value_t adm_bp_get_bytes_by_priority(tdc_t params)
 	 * |START CUSTOM FUNCTION get_bytes_by_priority BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	NmbpDisposition state;
+	bpnm_disposition_get(&state);
+
+  	uvast val = adm_extract_uvast(params, 0, &success);
+
+  	result.type = AMP_TYPE_UVAST;
+
+  	switch(val)
+  	{
+	  	case 0x1: 
+	  		result.value.as_uvast = state.currentResidentBytes[0];
+	  		break;
+	  	case 0x2:
+	  		result.value.as_uvast = state.currentResidentBytes[1];
+	  		break;
+	  	case 0x4:
+	  		result.value.as_uvast = state.currentResidentBytes[2];
+	  		break;
+	  	default:
+	  		AMP_DEBUG_ERR("get_bytes_by_priority","Invalid priority",NULL);
+	  		break;
+	}
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_bytes_by_priority BODY
@@ -646,6 +431,28 @@ value_t adm_bp_get_src_bundles_by_priority(tdc_t params)
 	 * |START CUSTOM FUNCTION get_src_bundles_by_priority BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	NmbpDisposition state;
+	bpnm_disposition_get(&state);
+
+  	uvast val = adm_extract_uvast(params, 0, &success);
+
+  	result.type = AMP_TYPE_UVAST;
+
+  	switch(val)
+  	{
+	  	case 0x1: 
+	  		result.value.as_uvast = state.bundleSourceCount[0];
+	  		break;
+	  	case 0x2:
+	  		result.value.as_uvast = state.bundleSourceCount[1];
+	  		break;
+	  	case 0x4:
+	  		result.value.as_uvast = state.bundleSourceCount[2];
+	  		break;
+	  	default:
+	  		AMP_DEBUG_ERR("get_src_bundles_by_priority","Invalid priority",NULL);
+	  		break;
+	}
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_src_bundles_by_priority BODY
@@ -668,6 +475,28 @@ value_t adm_bp_get_src_bytes_by_priority(tdc_t params)
 	 * |START CUSTOM FUNCTION get_src_bytes_by_priority BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	NmbpDisposition state;
+	bpnm_disposition_get(&state);
+
+  	uvast val = adm_extract_uvast(params, 0, &success);
+
+  	result.type = AMP_TYPE_UVAST;
+
+  	switch(val)
+  	{
+	  	case 0x1: 
+	  		result.value.as_uvast = state.bundleSourceBytes[0];
+	  		break;
+	  	case 0x2:
+	  		result.value.as_uvast = state.bundleSourceBytes[1];
+	  		break;
+	  	case 0x4:
+	  		result.value.as_uvast = state.bundleSourceBytes[2];
+	  		break;
+	  	default:
+	  		AMP_DEBUG_ERR("get_src_bytes_by_priority","Invalid priority",NULL);
+	  		break;
+	}
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_src_bytes_by_priority BODY
@@ -688,6 +517,12 @@ value_t adm_bp_get_num_fragmented_bundles(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fragmented_bundles BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+
+
+
+
+
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
@@ -743,6 +578,47 @@ value_t adm_bp_get_num_failed_by_reason(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_failed_by_reason BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	NmbpDisposition state;
+	bpnm_disposition_get(&state);
+
+  uvast val = adm_extract_uvast(params, 0, &success);
+
+  result.type = AMP_TYPE_UVAST;
+
+  switch(val)
+  {
+  	case 0x01: 
+  		result.value.as_uvast = state.delNoneCount;
+  		break;
+  	case 0x02:
+  		result.value.as_uvast = state.delExpiredCount;
+  		break;
+  	case 0x04:
+  		result.value.as_uvast = state.UniFwd;
+  		break;
+  	case 0x08:
+  		result.value.as_uvast = state.delCanceledCount;
+  		break;
+  	case 0x10:
+  		result.value.as_uvast = state.delDepletionCount;
+  		break;
+  	case 0x20:
+  		result.value.as_uvast = state.delEidMalformedCount;
+  		break;
+  	case 0x40:
+  		result.value.as_uvast = state.delNoRouteCount;
+  		break;
+  	case 0x80:
+  		result.value.as_uvast = state.delNoContactCount;
+  		break;
+  	case 0x100:
+  		result.value.as_uvast = state.delBlkMalformedCount;
+  		break;
+  	default:
+  		AMP_DEBUG_ERR("get_num_failed_by_reason","Invalid number failed reason",NULL);
+  		break;
+  }
+ 
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_failed_by_reason BODY
@@ -763,6 +639,12 @@ value_t adm_bp_get_num_bundles_deleted(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bundles_deleted BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	NmbpDisposition state;
+	bpnm_disposition_get(&state);
+
+	result.type = AMP_TYPE_UVAST;
+	result.value.as_uvast = state.bytesDeletedToDate;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bundles_deleted BODY
@@ -1147,6 +1029,28 @@ value_t adm_bp_get_endpoint_policy(tdc_t params)
 	 * |START CUSTOM FUNCTION get_endpoint_policy BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	char *name = NULL;
+	NmbpEndpoint endpoint;
+	int success = 0;
+	int8_t adm_success = 0;
+
+	val_init(&result);
+
+	if((name = adm_extract_string(params, 0, &adm_success)) == NULL)
+	{
+		AMP_DEBUG_ERR("adm_get_endpoint_policy","Can't extract first parm.", NULL);
+		return result;
+	}
+
+	result.value.as_uint = 0;
+	bpnm_endpoint_get(name, &endpoint, &success);
+	if(success != 0)
+	{
+		result.type = AMP_TYPE_UINT;
+		result.value.as_uint = endpoint.policy;
+	}
+
+	SRELEASE(name);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_endpoint_policy BODY
