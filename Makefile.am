@@ -1899,7 +1899,8 @@ nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 
                     nm/agent/adm_IonAdmin_impl.c nm/agent/adm_IonAdmin_agent.c \
                     nm/agent/adm_IonBpAdmin_impl.c nm/agent/adm_IonBpAdmin_agent.c \
                     nm/agent/adm_LtpAgent_impl.c nm/agent/adm_LtpAgent_agent.c \
-                    nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
+                    nm/agent/adm_ion_ipn_admin_impl.c nm/agent/adm_ion_ipn_admin_agent.c \
+                    nm/shared/adm/adm.c          nm/shared/adm/adm_bp_agent.c         nm/shared/adm/adm_ion.c \
 					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
 					nm/shared/adm/adm_agent.c nm/shared/adm/adm_bpsec.c	nm/agent/adm_bpsec_impl.c \
 					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
@@ -1926,6 +1927,8 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 					nm/mgr/adm_LtpAgent_mgr.c \
 					nm/mgr/adm_IonAdmin_mgr.c \
 					nm/mgr/adm_IonBpAdmin_mgr.c \
+					nm/mgr/adm_bp_mgr.c \
+					nm/mgr/adm_ion_ipn_admin_mgr.c \
 					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
 					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
 					nm/shared/adm/adm_bpsec.c	\
