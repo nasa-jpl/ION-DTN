@@ -31,8 +31,6 @@
 
 #include "../shared/adm/adm_agent.h"
 #include "../shared/adm/adm_bp.h"
-#include "../shared/adm/adm_ion.h"
-#include "../shared/adm/adm_ltp.h"
 #include "instr.h"
 #include "../shared/primitives/expr.h"
 

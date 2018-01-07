@@ -22,11 +22,12 @@
 
 Lyst gMgrNames;
 
-int names_add_name(char *name, char *desc, int adm, char *mid_str)
+int names_add_name(char *name, char *desc, int adm, uvast mid_val)
 {
 
 	mgr_name_t *entry = NULL;
 	uint32_t used = 0;
+	mid_t *mid = NULL;
 
 	if(gMgrNames == NULL)
 	{
@@ -38,6 +39,12 @@ int names_add_name(char *name, char *desc, int adm, char *mid_str)
 		return 0;
 	}
 
+	if((mid = mid_from_value(mid_val)) == NULL)
+	{
+		SRELEASE(entry);
+		return 0;
+	}
+
 	entry->adm = adm;
 	memcpy(entry->name, name, NAMES_NAME_MAX-1);
 	entry->name[NAMES_NAME_MAX-1] = '\0';
@@ -45,23 +52,7 @@ int names_add_name(char *name, char *desc, int adm, char *mid_str)
 	memcpy(entry->descr, desc, NAMES_DESCR_MAX-1);
 	entry->descr[NAMES_DESCR_MAX-1] = '\0';
 
-	uint32_t hex_size = 0;
-	uint8_t *mid_hex = utils_string_to_hex(mid_str, &hex_size);
-	if(mid_hex == NULL)
-	{
-		AMP_DEBUG_ERR("names_add_name","Can't made hex from %s.", mid_str);
-		SRELEASE(entry);
-		AMP_DEBUG_EXIT("names_add_name","-> 0.", NULL);
-		return 0;
-	}
-	entry->mid = mid_deserialize(mid_hex, hex_size, &used);
-	SRELEASE(mid_hex);
-
-	if(entry->mid == NULL)
-	{
-		SRELEASE(entry);
-		return 0;
-	}
+	entry->mid = mid;
 
 	lyst_insert_last(gMgrNames, entry);
 

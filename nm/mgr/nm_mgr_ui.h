@@ -88,7 +88,7 @@ typedef struct
 } ui_parm_spec_t;
 
 
-void           ui_add_parmspec(char *mid_str,
+void           ui_add_parmspec(uvast mid_val,
 						       uint8_t num,
 		                       char *n1, uint8_t p1,
 		                       char *n2, uint8_t p2,
@@ -112,7 +112,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts);
 void ui_send_file(agent_t* agent, uint8_t enter_ts);
 
 
-int ui_test_mid(mid_t *mid, const char *mid_str);
+int ui_test_mid(mid_t *mid, uvast mid_val);
 
 void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid);
 

@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated c file 
+ **  2018-01-06  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -46,7 +46,7 @@ void adm_ion_bp_admin_init()
 
 void adm_ion_bp_admin_init_edd()
 {
-	adm_add_edd(ADM_ION_BP_ADMIN_EDD_VERSION_MID, AMP_TYPE_STR, 0, adm_ion_bp_admin_get_version, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_ION_BP_ADMIN_EDD_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_bp_admin_get_version, NULL, NULL);
 
 }
 
@@ -56,35 +56,35 @@ void adm_ion_bp_admin_init_variables()
 
 void adm_ion_bp_admin_init_controls()
 {
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_ENDPOINTADD,adm_ion_bp_admin_ctrl_endpointAdd);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_ENDPOINTCHANGE,adm_ion_bp_admin_ctrl_endpointChange);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_ENDPOINTDEL,adm_ion_bp_admin_ctrl_endpointDel);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_INDUCTADD,adm_ion_bp_admin_ctrl_inductAdd);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_INDUCTCHANGE,adm_ion_bp_admin_ctrl_inductChange);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_INDUCTDEL,adm_ion_bp_admin_ctrl_inductDel);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_INDUCTSTART,adm_ion_bp_admin_ctrl_inductStart);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_INDUCTSTOP,adm_ion_bp_admin_ctrl_inductStop);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_INIT,adm_ion_bp_admin_ctrl_init);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_MANAGEHEAPMAX,adm_ion_bp_admin_ctrl_manageHeapMax);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTADD,adm_ion_bp_admin_ctrl_outductAdd);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTCHANGE,adm_ion_bp_admin_ctrl_outductChange);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTDEL,adm_ion_bp_admin_ctrl_outductDel);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTART,adm_ion_bp_admin_ctrl_outductStart);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTBLOCK,adm_ion_bp_admin_ctrl_outductBlock);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTUNBLOCK,adm_ion_bp_admin_ctrl_outductUnblock);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTOP,adm_ion_bp_admin_ctrl_outductStop);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_PROTOCOLADD,adm_ion_bp_admin_ctrl_protocolAdd);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_PROTOCOLDEL,adm_ion_bp_admin_ctrl_protocolDel);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTART,adm_ion_bp_admin_ctrl_protocolStart);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTOP,adm_ion_bp_admin_ctrl_protocolStop);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_SCHEMEADD,adm_ion_bp_admin_ctrl_schemeAdd);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_SCHEMECHANGE,adm_ion_bp_admin_ctrl_schemeChange);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_SCHEMEDEL,adm_ion_bp_admin_ctrl_schemeDel);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_SCHEMESTART,adm_ion_bp_admin_ctrl_schemeStart);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_SCHEMESTOP,adm_ion_bp_admin_ctrl_schemeStop);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_START,adm_ion_bp_admin_ctrl_start);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_STOP,adm_ion_bp_admin_ctrl_stop);
-	adm_add_ctrl(ADM_ION_BP_ADMIN_CTRL_WATCH,adm_ion_bp_admin_ctrl_watch);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_ENDPOINTADD_MID),adm_ion_bp_admin_ctrl_endpointadd);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_ENDPOINTCHANGE_MID),adm_ion_bp_admin_ctrl_endpointchange);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_ENDPOINTDEL_MID),adm_ion_bp_admin_ctrl_endpointdel);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_INDUCTADD_MID),adm_ion_bp_admin_ctrl_inductadd);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_INDUCTCHANGE_MID),adm_ion_bp_admin_ctrl_inductchange);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_INDUCTDEL_MID),adm_ion_bp_admin_ctrl_inductdel);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_INDUCTSTART_MID),adm_ion_bp_admin_ctrl_inductstart);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_INDUCTSTOP_MID),adm_ion_bp_admin_ctrl_inductstop);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_INIT_MID),adm_ion_bp_admin_ctrl_init);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_MANAGEHEAPMAX_MID),adm_ion_bp_admin_ctrl_manageheapmax);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTADD_MID),adm_ion_bp_admin_ctrl_outductadd);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTCHANGE_MID),adm_ion_bp_admin_ctrl_outductchange);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTDEL_MID),adm_ion_bp_admin_ctrl_outductdel);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTART_MID),adm_ion_bp_admin_ctrl_outductstart);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTBLOCK_MID),adm_ion_bp_admin_ctrl_outductblock);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTUNBLOCK_MID),adm_ion_bp_admin_ctrl_outductunblock);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTOP_MID),adm_ion_bp_admin_ctrl_outductstop);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_PROTOCOLADD_MID),adm_ion_bp_admin_ctrl_protocoladd);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_PROTOCOLDEL_MID),adm_ion_bp_admin_ctrl_protocoldel);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTART_MID),adm_ion_bp_admin_ctrl_protocolstart);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTOP_MID),adm_ion_bp_admin_ctrl_protocolstop);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_SCHEMEADD_MID),adm_ion_bp_admin_ctrl_schemeadd);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_SCHEMECHANGE_MID),adm_ion_bp_admin_ctrl_schemechange);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_SCHEMEDEL_MID),adm_ion_bp_admin_ctrl_schemedel);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_SCHEMESTART_MID),adm_ion_bp_admin_ctrl_schemestart);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_SCHEMESTOP_MID),adm_ion_bp_admin_ctrl_schemestop);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_START_MID),adm_ion_bp_admin_ctrl_start);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_STOP_MID),adm_ion_bp_admin_ctrl_stop);
+	adm_add_ctrl(mid_from_value(ADM_ION_BP_ADMIN_CTRL_WATCH_MID),adm_ion_bp_admin_ctrl_watch);
 }
 
 void adm_ion_bp_admin_init_constants()
@@ -109,10 +109,10 @@ void adm_ion_bp_admin_init_metadata()
 	oid_nn_add_parm(ION_BP_ADMIN_ADM_ROOT_NN_IDX, ION_BP_ADMIN_ADM_ROOT_NN_STR, "ION_BP_ADMIN", "2017-08-17");
 
 	/* Step 2: Register Metadata Information. */
-	adm_add_edd(ADM_ION_BP_ADMIN_META_NAME_MID, AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_name, adm_print_string, adm_size_string);
-	adm_add_edd(ADM_ION_BP_ADMIN_META_NAMESPACE_MID, AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_namespace, adm_print_string, adm_size_string);
-	adm_add_edd(ADM_ION_BP_ADMIN_META_VERSION_MID, AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_version, adm_print_string, adm_size_string);
-	adm_add_edd(ADM_ION_BP_ADMIN_META_ORGANIZATION_MID, AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_organization, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_BP_ADMIN_META_NAME_MID), AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_name, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_BP_ADMIN_META_NAMESPACE_MID), AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_namespace, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_BP_ADMIN_META_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_version, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_BP_ADMIN_META_ORGANIZATION_MID), AMP_TYPE_STR, 0, adm_ion_bp_admin_meta_organization, adm_print_string, adm_size_string);
 }
 
 void adm_ion_bp_admin_init_ops()

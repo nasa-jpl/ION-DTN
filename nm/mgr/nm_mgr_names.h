@@ -75,7 +75,7 @@ typedef struct
 extern Lyst gMgrNames;
 
 
-int    names_add_name(char *name, char *desc, int adm, char *mid_str);
+int    names_add_name(char *name, char *desc, int adm, uvast mid_val);
 
 mid_t* names_get_mid(int adm_type, int mid_id, int idx);
 

@@ -1,19 +1,21 @@
-/*****************************************************************************
+/****************************************************************************
  **
  ** File Name: adm_bpsec_impl.c
  **
- ** Description: This implements the private aspects of a BPSEC ADM.
+ ** Description: TODO
  **
- ** Notes:
+ ** Notes: TODO
  **
- ** Assumptions:
+ ** Assumptions: TODO
  **
- ** Modification History:
- **  MM/DD/YY  AUTHOR         DESCRIPTION
- **  --------  ------------   ---------------------------------------------
- **            E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
- **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
- *****************************************************************************/
+ ** Modification History: 
+ **  YYYY-MM-DD  AUTHOR           DESCRIPTION
+ **  ----------  --------------   --------------------------------------------
+ **  2018-01-06  AUTO             Auto-generated c file 
+ **
+ ****************************************************************************/
+
+/*   START CUSTOM INCLUDES HERE  */
 #include <math.h>
 
 #include "../shared/adm/adm.h"
@@ -28,19 +30,11 @@
 
 #include "../shared/adm/adm_bpsec.h"
 #include "profiles.h"
+/*   STOP CUSTOM INCLUDES HERE  */
 
-/* Meta-Data Functions. */
-value_t adm_bpsec_md_name(tdc_t params)
-{
-	return val_from_string("BPSEC ADM");
-}
+#include "adm_bpsec_impl.h"
 
-value_t adm_bpsec_md_ver(tdc_t params)
-{
-	return val_from_string("2016_05_16");
-}
-
-/* Retrieval Functions. */
+/*   START CUSTOM FUNCTIONS HERE */
 
 
 static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, query_type_e query)
@@ -103,611 +97,161 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 	return result;
 }
 
+/*   STOP CUSTOM FUNCTIONS HERE  */
 
+void adm_bpsec_setup(){
 
-value_t adm_bpsec_get_tot_good_tx_bcb_blks(tdc_t params)
-{
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_numSuccTxBCBBlock BODY
+	 * |START CUSTOM FUNCTION setup BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_fail_tx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_good_rx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_fail_rx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_missing_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_forward_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_good_tx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_fail_tx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_good_rx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_fail_rx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_missing_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_forward_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_good_tx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_fail_tx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_good_rx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_fail_rx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_missing_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_forward_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BLK);
-}
-
-value_t adm_bpsec_get_tot_good_tx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_fail_tx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_good_rx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_fail_rx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_missing_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_tot_forward_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BYTES);
-}
-
-value_t adm_bpsec_get_last_update(tdc_t params)
-{
-	value_t result;
-	result.type = AMP_TYPE_UNK;
-	if(bpsec_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
-	{
-		result.type = AMP_TYPE_TS;
-	}
-	return result;
-}
-
-value_t adm_bpsec_get_num_keys(tdc_t params)
-{
-	value_t result;
-	uint32_t size = 0;
-
-	result.type = AMP_TYPE_UINT;
-	result.value.as_uint = bpsec_instr_get_num_keys((int*)&size);
-	return result;
-}
-
-
-value_t adm_bpsec_get_keys(tdc_t params)
-{
-	value_t result;
-	char *tmp = bpsec_instr_get_keynames();
-
-	result.type = AMP_TYPE_UNK;
-	/* TMP is allocated using MTAKE. We need to move it to
-	 * something using STAKE.
-	 */
-	if(tmp != NULL)
-	{
-		uint32_t size = strlen(tmp) + 1;
-		if((result.value.as_ptr = STAKE(size)) == NULL)
-		{
-			SRELEASE(tmp);
-			return result;
-		}
-		memcpy(result.value.as_ptr, tmp, size);
-		SRELEASE(tmp);
-
-		result.type = AMP_TYPE_STRING;
-	}
-
-	return result;
-}
-
-value_t adm_bpsec_get_ciphs(tdc_t params)
-{
-	value_t result;
-	char *tmp = bpsec_instr_get_csnames();
-
-	result.type = AMP_TYPE_UNK;
-	/* TMP is allocated using MTAKE. We need to move it to
-	 * something using STAKE.
-	 */
-	if(tmp != NULL)
-	{
-		uint32_t size = strlen(tmp) + 1;
-		if((result.value.as_ptr = STAKE(size)) == NULL)
-		{
-			SRELEASE(tmp);
-			return result;
-		}
-		memcpy(result.value.as_ptr, tmp, size);
-		SRELEASE(tmp);
-
-		result.type = AMP_TYPE_STRING;
-	}
-
-	return result;
-}
-
-value_t adm_bpsec_get_srcs(tdc_t params)
-{
-	value_t result;
-	char *tmp = bpsec_instr_get_srcnames();
-
-	result.type = AMP_TYPE_UNK;
-	/* TMP is allocated using MTAKE. We need to move it to
-	 * something using STAKE.
-	 */
-	if(tmp != NULL)
-	{
-		uint32_t size = strlen(tmp) + 1;
-		if((result.value.as_ptr = STAKE(size)) == NULL)
-		{
-			SRELEASE(tmp);
-			return result;
-		}
-		memcpy(result.value.as_ptr, tmp, size);
-		SRELEASE(tmp);
-
-		result.type = AMP_TYPE_STRING;
-	}
-
-	return result;
-}
-
-
-value_t adm_bpsec_get_src_good_tx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_fail_tx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_good_rx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_fail_rx_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_missing_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_forward_bcb_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_good_tx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_fail_tx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_good_rx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_fail_rx_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_missing_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_forward_bcb_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_good_tx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_fail_tx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_good_rx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_fail_rx_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_missing_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BLK);
-}
-
-value_t adm_bpsec_get_src_forward_bib_blks(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BLK);
-}
-
-
-value_t adm_bpsec_get_src_good_tx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_fail_tx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_good_rx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_fail_rx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_missing_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_forward_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BYTES);
-}
-
-
-value_t adm_bpsec_get_src_last_update(tdc_t params)
-{
-	value_t result;
-	time_t time = 0;
-	char *name = NULL;
-	int8_t success = 0;
-
-	result.type = AMP_TYPE_UNK;
-
-	if((name = adm_extract_string(params, 0, &success)) == NULL)
-	{
-		return result;
-	}
-
-	if(bpsec_instr_get_src_update(name, &time) != ERROR)
-	{
-		result.type = AMP_TYPE_TS;
-		result.value.as_uint = time;
-	}
-
-	SRELEASE(name);
-	return result;
-}
-
-
-
-value_t adm_bpsec_get_last_reset(tdc_t params)
-{
-	value_t result;
-	bpsec_instr_misc_t misc;
-
-	if(bpsec_instr_get_misc(&misc) == ERROR)
-	{
-		result.type = AMP_TYPE_UNK;
-		return result;
-	}
-
-	result.type = AMP_TYPE_UINT;
-	result.value.as_uint = misc.last_reset;
-	return result;
-}
-
-
-
-
-/* Control Functions */
-
-
-
-tdc_t* adm_bpsec_ctrl_reset_all(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_ctrl_reset_all BODY
+	 * |STOP CUSTOM FUNCTION setup BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	CHKNULL(status);
-
-	bpsec_instr_reset();
-	*status = CTRL_SUCCESS;
-
-	return NULL;
 }
 
-tdc_t* adm_bpsec_ctrl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
-	char *src = NULL;
-	*status = CTRL_FAILURE;
-	int8_t success = 0;
+void adm_bpsec_cleanup(){
 
-	/* Step 1: Grab the MID defining the new computed definition. */
-	if((src = adm_extract_string(params,0,&success)) == NULL)
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION cleanup BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION cleanup BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+}
+
+
+/* Metadata Functions */
+
+
+value_t adm_bpsec_meta_name(tdc_t params)
+{
+	return val_from_string("adm_bpsec");
+}
+
+
+value_t adm_bpsec_meta_namespace(tdc_t params)
+{
+	return val_from_string("arn:DTN:bpsec");
+}
+
+
+value_t adm_bpsec_meta_version(tdc_t params)
+{
+	return val_from_string("2016_05_16");
+}
+
+
+value_t adm_bpsec_meta_organization(tdc_t params)
+{
+	return val_from_string("JHUAPL");
+}
+
+
+/* Table Functions */
+
+
+/*
+ * This table lists all keys in the security policy database.
+ */
+
+table_t* adm_bpsec_tbl_keys()
+{
+	table_t *table = NULL;
+	if((table = table_create(NULL,NULL)) == NULL)
 	{
 		return NULL;
 	}
 
-	bpsec_instr_reset_src(src);
-
-	SRELEASE(src);
-
-	*status = CTRL_SUCCESS;
-	return NULL;
-}
-
-
-
- /*
-  * DeleteKey(STR keyname)
-  */
-tdc_t* adm_bpsec_ctrl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
-	*status = CTRL_FAILURE;
-	char *name = NULL;
-	int8_t success = 0;
-	/* Step 1: Grab the name of the key to delete. */
-	if((name = adm_extract_string(params,0,&success)) == NULL)
+	if(
+		(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR))
 	{
+		table_destroy(table, 1);
 		return NULL;
 	}
 
 	/*
-	 * Step 2: Make sure key to be deleted is not an active key. Deleting
-	 * an active key can lock someone out of the system
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tbl_keys BODY
+	 * +-------------------------------------------------------------------------+
 	 */
-	if(sec_activeKey(name) != 0)
-	{
-		AMP_DEBUG_WARN("adm_bpsec_ctrl_del_key","Can't remove active key %s", name);
-		SRELEASE(name);
-		return NULL;
-	}
-
-	if(sec_removeKey(name) == 1)
-	{
-		*status = CTRL_SUCCESS;
-	}
-
-	SRELEASE(name);
-
-	return NULL;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tbl_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return table;
 }
 
-/*
- * AddKey(STR keyname, BLOB key)
- */
-tdc_t* adm_bpsec_ctrl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
 
-	*status = CTRL_FAILURE;
-	char *name = NULL;
-	blob_t *value = NULL;
-	int8_t success = 0;
-	/* Step 1: Grab the name of the new key. */
-	if((name = adm_extract_string(params,0,&success)) == NULL)
+/*
+ * This table lists supported ciphersuites.
+ */
+
+table_t* adm_bpsec_tbl_ciphersuites()
+{
+	table_t *table = NULL;
+	if((table = table_create(NULL,NULL)) == NULL)
 	{
 		return NULL;
 	}
 
-	/* Step 2: Grab the key value. */
-	if((value = adm_extract_blob(params,1,&success)) == NULL)
+	if(
+		(table_add_col(table, "csname", AMP_TYPE_STR) == ERROR))
 	{
-		SRELEASE(name);
+		table_destroy(table, 1);
 		return NULL;
 	}
 
-	if(sec_addKeyValue(name, (char *)value->value, value->length) == 1)
-	{
-		*status = CTRL_SUCCESS;
-	}
-
-	SRELEASE(name);
-	blob_destroy(value,1);
-	return NULL;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tbl_ciphersuites BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tbl_ciphersuites BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return table;
 }
+
 
 /*
- *  AddBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
+ * BIB Rules.
  */
-tdc_t* adm_bpsec_ctrl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+
+table_t* adm_bpsec_tbl_bib_rules()
 {
-
-	*status = CTRL_FAILURE;
-	char *src = NULL;
-	char *dst = NULL;
-	uint32_t tgt = 0;
-	char *cs = NULL;
-	char *key = NULL;
-	int8_t success = 0;
-	/* Step 1: Grab the name of the new key. */
-	src = adm_extract_string(params, 0, &success);
-	dst = adm_extract_string(params, 1, &success);
-	tgt = adm_extract_uint(params, 2, &success);
-	cs = adm_extract_string(params, 3, &success);
-	key = adm_extract_string(params, 4, &success);
-
-	if(get_bib_prof_by_name(cs) != NULL)
+	table_t *table = NULL;
+	if((table = table_create(NULL,NULL)) == NULL)
 	{
-		Object addr;
-		Object elt;
-
-		/* Step 3: Check to see if key exists. */
-		sec_findKey(key, &addr, &elt);
-		if(elt != 0)
-		{
-			/* Step 4: Update the BCB Rule. */
-			if(sec_addBspBibRule(src, dst, tgt, cs, key) == 1)
-			{
-				*status = CTRL_SUCCESS;
-			}
-			else
-			{
-				AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bibrule", "Can't update rule.", NULL);
-			}
-		}
-		else
-		{
-			AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bibrule", "Key %s doesn't exist.", key);
-		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bibrule", "CIphersuite %s not supported.", cs);
+		return NULL;
 	}
 
-	SRELEASE(src);
-	SRELEASE(dst);
-	SRELEASE(cs);
-	SRELEASE(key);
-
-	return NULL;
-}
-
-/*
- * RemoveBibRule(STR src, STR dest, INT tgt)
- */
-tdc_t* adm_bpsec_ctrl_del_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
-
-	*status = CTRL_FAILURE;
-
-	char *src = NULL;
-	char *dst = NULL;
-	uint32_t tgt = 0;
-	int8_t success = 0;
-	/* Step 1: Grab the name of the new key. */
-	src = adm_extract_string(params, 0, &success);
-	dst = adm_extract_string(params, 1, &success);
-	tgt = adm_extract_uint(params, 2, &success);
-
-
-	if(sec_removeBspBibRule(src, dst, tgt) == 1)
+	if(
+		(table_add_col(table, "SrcEid", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "DestEid", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "TgtBlk", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "csName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "keyName", AMP_TYPE_STR) == ERROR))
 	{
-		*status = CTRL_SUCCESS;
+		table_destroy(table, 1);
+		return NULL;
 	}
 
-	SRELEASE(src);
-	SRELEASE(dst);
-
-	return NULL;
-}
-
-/* ListBibRules()
- *
- * Returns table
- *
- * +---------+---------+-------------+---------+---------+
- * | SrcEid  | DestEid | TargetBlock | CS Name | KeyName |
- * | STRING  | STRING  |    UINT     | STRING  | STRING  |
- * +---------+---------+-------------+---------+---------+
- *
- *
- * */
-
-table_t *get_bib_rules()
-{
-
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tbl_bib_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
@@ -715,7 +259,6 @@ table_t *get_bib_rules()
 	OBJ_POINTER(BspBibRule, rule);
 	int	 strLen = 0;
 	char strBuffer[SDRSTRING_BUFSZ];
-	table_t  *table = NULL;
 	Lyst cur_row = NULL;
 	uint8_t *data = NULL;
 	uint32_t len;
@@ -723,28 +266,9 @@ table_t *get_bib_rules()
 
 	if((listObj = sec_get_bspBibRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_tbl_bib_rules","Cannot get list.", NULL);
 		return NULL;
 	}
-
-
-	if((table = table_create(NULL, NULL)) == NULL)
-	{
-		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot allocate table.", NULL);
-		return NULL;
-	}
-
-	if((table_add_col(table, "SrcEid", AMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "DestEid", AMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "TgtBlk", AMP_TYPE_UINT) == ERROR) ||
-	   (table_add_col(table, "csName", AMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "keyName", AMP_TYPE_STRING) == ERROR))
-	{
-		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot add columns.", NULL);
-		return NULL;
-	}
-	
 
 	if (sdr_begin_xn(sdr) < 0)
 	{
@@ -804,7 +328,7 @@ table_t *get_bib_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					AMP_DEBUG_ERR("adm_bpsec_get_bib_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("adm_bpsec_tbl_bib_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -814,36 +338,53 @@ table_t *get_bib_rules()
 			}
 			else
 			{
-				AMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("adm_bpsec_tbl_bib_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("adm_bpsec_tbl_bib_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
 	sdr_exit_xn(sdr);
-
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tbl_bib_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	return table;
 }
 
 
+/*
+ * BCB Rules.
+ */
 
-/* ListBcbRules()
- *
- * Returns table
- *
- * +---------+---------+-------------+---------+---------+
- * | SrcEid  | DestEid | TargetBlock | CS Name | KeyName |
- * | STRING  | STRING  |    UINT     | STRING  | STRING  |
- * +---------+---------+-------------+---------+---------+
- *
- *
- * */
-
-table_t *get_bcb_rules()
+table_t* adm_bpsec_tbl_bcb_rules()
 {
+	table_t *table = NULL;
+	if((table = table_create(NULL,NULL)) == NULL)
+	{
+		return NULL;
+	}
+
+	if(
+		(table_add_col(table, "SrcEid", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "DestEid", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "TgtBlk", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "csName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "keyName", AMP_TYPE_STR) == ERROR))
+	{
+		table_destroy(table, 1);
+		return NULL;
+	}
+
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tbl_bcb_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
@@ -851,7 +392,6 @@ table_t *get_bcb_rules()
 	OBJ_POINTER(BspBcbRule, rule);
 	int	 strLen = 0;
 	char strBuffer[SDRSTRING_BUFSZ];
-	table_t  *table = NULL;
 	Lyst cur_row = NULL;
 	uint8_t *data = NULL;
 	uint32_t len;
@@ -859,25 +399,7 @@ table_t *get_bcb_rules()
 
 	if((listObj = sec_get_bspBcbRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("get_bcb_rules","Cannot get list.", NULL);
-		return NULL;
-	}
-
-
-	if((table = table_create(NULL, NULL)) == NULL)
-	{
-		AMP_DEBUG_ERR("get_bcb_rules","Cannot allocate table.", NULL);
-		return NULL;
-	}
-
-	if((table_add_col(table, "SrcEid", AMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "DestEid", AMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "TgtBlk", AMP_TYPE_UINT) == ERROR) ||
-	   (table_add_col(table, "csName", AMP_TYPE_STRING) == ERROR) ||
-	   (table_add_col(table, "keyName", AMP_TYPE_STRING) == ERROR))
-	{
-		table_destroy(table, 1);
-		AMP_DEBUG_ERR("get_bcb_rules","Cannot add columns.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_tbl_bcb_rules","Cannot get list.", NULL);
 		return NULL;
 	}
 
@@ -939,7 +461,7 @@ table_t *get_bcb_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					AMP_DEBUG_ERR("get_bcb_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("adm_bpsec_tbl_bcb_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -949,40 +471,1557 @@ table_t *get_bcb_rules()
 			}
 			else
 			{
-				AMP_DEBUG_WARN("get_bcb_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("adm_bpsec_tbl_bcb_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("get_bcb_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("adm_bpsec_tbl_bcb_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
 	sdr_exit_xn(sdr);
-
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tbl_bcb_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	return table;
 }
 
-tdc_t* adm_bpsec_ctrl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
 
-	tdc_t *retval = NULL;
-	table_t *table = get_bib_rules();
+/* Collect Functions */
+/*
+ * Total successfully Tx BCB blocks
+ */
+value_t adm_bpsec_get_num_good_tx_bcb_blk(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Tx BCB blocks
+ */
+value_t adm_bpsec_get_num_bad_tx_bcb_blk(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Rx BCB blocks
+ */
+value_t adm_bpsec_get_num_good_rx_bcb_blk(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Rx BCB blocks
+ */
+value_t adm_bpsec_get_num_bad_rx_bcb_blk(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total missing-on-RX BCB blocks
+ */
+value_t adm_bpsec_get_num_missing_rx_bcb_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total forward BCB blocks
+ */
+value_t adm_bpsec_get_num_fwd_bcb_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Tx bcb bytes
+ */
+value_t adm_bpsec_get_num_good_tx_bcb_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Tx bcb bytes
+ */
+value_t adm_bpsec_get_num_bad_tx_bcb_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Rx bcb bytes
+ */
+value_t adm_bpsec_get_num_good_rx_bcb_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Rx bcb bytes
+ */
+value_t adm_bpsec_get_num_bad_rx_bcb_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total missing-on-Rx bcb bytes
+ */
+value_t adm_bpsec_get_num_missing_rx_bcb_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total forwarded bcb bytes
+ */
+value_t adm_bpsec_get_num_fwd_bcb_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Tx BIB blocks
+ */
+value_t adm_bpsec_get_num_good_tx_bib_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Tx BIB blocks
+ */
+value_t adm_bpsec_get_num_bad_tx_bib_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Rx BIB blocks
+ */
+value_t adm_bpsec_get_num_good_rx_bib_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Rx BIB blocks
+ */
+value_t adm_bpsec_get_num_bad_rx_bib_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total missing-on-Rx BIB blocks
+ */
+value_t adm_bpsec_get_num_miss_rx_bib_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total forwarded BIB blocks
+ */
+value_t adm_bpsec_get_num_fwd_bib_blks(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Tx BIB bytes
+ */
+value_t adm_bpsec_get_num_good_tx_bib_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Tx BIB bytes
+ */
+value_t adm_bpsec_get_num_bad_tx_bib_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total successfully Rx BIB bytes
+ */
+value_t adm_bpsec_get_num_good_rx_bib_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total unsuccessfully Rx BIB bytes
+ */
+value_t adm_bpsec_get_num_bad_rx_bib_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total missing-on-Rx BIB bytes
+ */
+value_t adm_bpsec_get_num_miss_rx_bib_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Total forwarded BIB bytes
+ */
+value_t adm_bpsec_get_num_fwd_bib_bytes(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Last BPSEC update
+ */
+value_t adm_bpsec_get_last_update(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_last_update BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	result.type = AMP_TYPE_UNK;
+	if(bpsec_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
+	{
+		result.type = AMP_TYPE_TS;
+	}
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_last_update BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Number of known keys
+ */
+value_t adm_bpsec_get_num_known_keys(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_known_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	uint32_t size = 0;
+
+	result.type = AMP_TYPE_UINT;
+	result.value.as_uint = bpsec_instr_get_num_keys((int*)&size);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_known_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Known key names
+ */
+value_t adm_bpsec_get_key_names(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_key_names BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *tmp = bpsec_instr_get_keynames();
+
+	result.type = AMP_TYPE_UNK;
+	/* TMP is allocated using MTAKE. We need to move it to
+	 * something using STAKE.
+	 */
+	if(tmp != NULL)
+	{
+		uint32_t size = strlen(tmp) + 1;
+		if((result.value.as_ptr = STAKE(size)) == NULL)
+		{
+			SRELEASE(tmp);
+			return result;
+		}
+		memcpy(result.value.as_ptr, tmp, size);
+		SRELEASE(tmp);
+
+		result.type = AMP_TYPE_STRING;
+	}
+
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_key_names BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Known ciphersuite names
+ */
+value_t adm_bpsec_get_ciphersuite_names(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_ciphersuite_names BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *tmp = bpsec_instr_get_csnames();
+
+	result.type = AMP_TYPE_UNK;
+	/* TMP is allocated using MTAKE. We need to move it to
+	 * something using STAKE.
+	 */
+	if(tmp != NULL)
+	{
+		uint32_t size = strlen(tmp) + 1;
+		if((result.value.as_ptr = STAKE(size)) == NULL)
+		{
+			SRELEASE(tmp);
+			return result;
+		}
+		memcpy(result.value.as_ptr, tmp, size);
+		SRELEASE(tmp);
+
+		result.type = AMP_TYPE_STRING;
+	}
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_ciphersuite_names BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Known rule sources
+ */
+value_t adm_bpsec_get_rule_source(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_rule_source BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *tmp = bpsec_instr_get_srcnames();
+
+	result.type = AMP_TYPE_UNK;
+	/* TMP is allocated using MTAKE. We need to move it to
+	 * something using STAKE.
+	 */
+	if(tmp != NULL)
+	{
+		uint32_t size = strlen(tmp) + 1;
+		if((result.value.as_ptr = STAKE(size)) == NULL)
+		{
+			SRELEASE(tmp);
+			return result;
+		}
+		memcpy(result.value.as_ptr, tmp, size);
+		SRELEASE(tmp);
+
+		result.type = AMP_TYPE_STRING;
+	}
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_rule_source BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Tx BCB blocks from SRC
+ */
+value_t adm_bpsec_get_num_good_tx_bcb_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed TX BCB blocks from SRC
+ */
+value_t adm_bpsec_get_num_bad_tx_bcb_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Rx BCB blocks from SRC
+ */
+value_t adm_bpsec_get_num_good_rx_bcb_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed RX BCB blocks from SRC
+ */
+value_t adm_bpsec_get_num_bad_rx_bcb_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Missing-onRX BCB blocks from SRC
+ */
+value_t adm_bpsec_get_num_missing_rx_bcb_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Forwarded BCB blocks from SRC
+ */
+value_t adm_bpsec_get_num_fwd_bcb_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfullt Tx bcb bytes from SRC
+ */
+value_t adm_bpsec_get_num_good_tx_bcb_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed Tx bcb bytes from SRC
+ */
+value_t adm_bpsec_get_num_bad_tx_bcb_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Rx bcb bytes from SRC
+ */
+value_t adm_bpsec_get_num_good_rx_bcb_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed Rx bcb bytes from SRC
+ */
+value_t adm_bpsec_get_num_bad_rx_bcb_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Missin-on-Rx bcb bytes from SRC
+ */
+value_t adm_bpsec_get_num_missing_rx_bcb_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Forwarded bcb bytes from SRC
+ */
+value_t adm_bpsec_get_num_fwd_bcb_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Tx BIB blocks from SRC
+ */
+value_t adm_bpsec_get_num_good_tx_bib_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed Tx BIB blocks from SRC
+ */
+value_t adm_bpsec_get_num_bad_tx_bib_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Rx BIB blocks from SRC
+ */
+value_t adm_bpsec_get_num_good_rx_bib_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed Rx BIB blocks from SRC
+ */
+value_t adm_bpsec_get_num_bad_rx_bib_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Missing-on-Rx BIB blocks from SRC
+ */
+value_t adm_bpsec_get_num_miss_rx_bib_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Forwarded BIB blocks from SRC
+ */
+value_t adm_bpsec_get_num_fwd_bib_blks_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BLK);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Tx BIB bytes from SRC
+ */
+value_t adm_bpsec_get_num_good_tx_bib_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed Tx BIB bytes from SRC
+ */
+value_t adm_bpsec_get_num_bad_tx_bib_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Successfully Rx BIB bytes from SRC
+ */
+value_t adm_bpsec_get_num_good_rx_bib_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Failed Rx BIB bytes from SRC
+ */
+value_t adm_bpsec_get_num_bad_rx_bib_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Missing-on-Rx BIB bytes from SRC
+ */
+value_t adm_bpsec_get_num_missing_rx_bib_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_missing_rx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Forwarded BIB bytes from SRC
+ */
+value_t adm_bpsec_get_num_fwd_bib_bytes_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BYTES);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Last BPSEC Update from SRC
+ */
+value_t adm_bpsec_get_last_update_src(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_last_update_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	time_t time = 0;
+	char *name = NULL;
+	int8_t success = 0;
+
+	result.type = AMP_TYPE_UNK;
+
+	if((name = adm_extract_string(params, 0, &success)) == NULL)
+	{
+		return result;
+	}
+
+	if(bpsec_instr_get_src_update(name, &time) != ERROR)
+	{
+		result.type = AMP_TYPE_TS;
+		result.value.as_uint = time;
+	}
+
+	SRELEASE(name);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_last_update_src BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Last reset
+ */
+value_t adm_bpsec_get_last_reset(tdc_t params)
+{
+	value_t result;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION get_last_reset BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	bpsec_instr_misc_t misc;
+
+	if(bpsec_instr_get_misc(&misc) == ERROR)
+	{
+		result.type = AMP_TYPE_UNK;
+		return result;
+	}
+
+	result.type = AMP_TYPE_UINT;
+	result.value.as_uint = misc.last_reset;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION get_last_reset BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+
+/* Control Functions */
+
+/*
+ * This control causes the Agent to reset all counts associated with block or byte statistics and to se
+ * t the Last Reset Time of the BPsec EDD data to the time when the control was run.
+ */
+tdc_t* adm_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_rst_all_cnts BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	bpsec_instr_reset();
+	*status = CTRL_SUCCESS;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_rst_all_cnts BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control causes the Agent to reset all counts (blocks and bytes) associated with a given bundle 
+ * source and set the Last Reset Time of the source statistics to the time when the control was run.
+ */
+tdc_t* adm_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_rst_src_cnts BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *src = NULL;
+	int8_t success = 0;
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	if((src = adm_extract_string(params,0,&success)) != NULL)
+	{
+		bpsec_instr_reset_src(src);
+		SRELEASE(src);
+		*status = CTRL_SUCCESS;
+	}
+
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_rst_src_cnts BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control deletes a key from the BPsec system.
+ */
+tdc_t* adm_bpsec_ctrl_delete_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_delete_key BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *name = NULL;
+	int8_t success = 0;
+	/* Step 1: Grab the name of the key to delete. */
+	if((name = adm_extract_string(params,0,&success)) == NULL)
+	{
+		return NULL;
+	}
+
+	/*
+	 * Step 2: Make sure key to be deleted is not an active key. Deleting
+	 * an active key can lock someone out of the system
+	 */
+	if(sec_activeKey(name) != 0)
+	{
+		AMP_DEBUG_WARN("adm_bpsec_ctrl_delete_key","Can't remove active key %s", name);
+		SRELEASE(name);
+		return NULL;
+	}
+
+	if(sec_removeKey(name) == 1)
+	{
+		*status = CTRL_SUCCESS;
+	}
+
+	SRELEASE(name);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_delete_key BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control adds a key to the BPsec system.
+ */
+tdc_t* adm_bpsec_ctrl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_add_key BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *name = NULL;
+	blob_t *value = NULL;
+	int8_t success = 0;
+	/* Step 1: Grab the name of the new key. */
+	if((name = adm_extract_string(params,0,&success)) == NULL)
+	{
+		return NULL;
+	}
+
+	/* Step 2: Grab the key value. */
+	if((value = adm_extract_blob(params,1,&success)) == NULL)
+	{
+		SRELEASE(name);
+		return NULL;
+	}
+
+	if(sec_addKeyValue(name, (char *)value->value, value->length) == 1)
+	{
+		*status = CTRL_SUCCESS;
+	}
+
+	SRELEASE(name);
+	blob_destroy(value,1);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_add_key BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control configures policy on the BPsec protocol implementation that describes how BIB blocks sh
+ * ould be applied to bundles in the system. This policy is captured as a rule which states when transm
+ * itting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of ty
+ * pe target should have a BIB added to them using the given ciphersuite and the given key.
+ */
+tdc_t* adm_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_add_bib_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *src = NULL;
+	char *dst = NULL;
+	uint32_t tgt = 0;
+	char *cs = NULL;
+	char *key = NULL;
+	int8_t success = 0;
+	/* Step 1: Grab the name of the new key. */
+	src = adm_extract_string(params, 0, &success);
+	dst = adm_extract_string(params, 1, &success);
+	tgt = adm_extract_uint(params, 2, &success);
+	cs = adm_extract_string(params, 3, &success);
+	key = adm_extract_string(params, 4, &success);
+
+	if(get_bib_prof_by_name(cs) != NULL)
+	{
+		Object addr;
+		Object elt;
+
+		/* Step 3: Check to see if key exists. */
+		sec_findKey(key, &addr, &elt);
+		if(elt != 0)
+		{
+			/* Step 4: Update the BCB Rule. */
+			if(sec_addBspBibRule(src, dst, tgt, cs, key) == 1)
+			{
+				*status = CTRL_SUCCESS;
+			}
+			else
+			{
+				AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bib_rule", "Can't update rule.", NULL);
+			}
+		}
+		else
+		{
+			AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bib_rule", "Key %s doesn't exist.", key);
+		}
+	}
+	else
+	{
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bib_rule", "CIphersuite %s not supported.", cs);
+	}
+
+	SRELEASE(src);
+	SRELEASE(dst);
+	SRELEASE(cs);
+	SRELEASE(key);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_add_bib_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control removes any configured policy on the BPsec protocol implementation that describes how B
+ * IB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a sourc
+ * e endpoint Id, a destination Id, and a target block type.
+ */
+tdc_t* adm_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_del_bib_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	char *src = NULL;
+	char *dst = NULL;
+	uint32_t tgt = 0;
+	int8_t success = 0;
+	/* Step 1: Grab the name of the new key. */
+	src = adm_extract_string(params, 0, &success);
+	dst = adm_extract_string(params, 1, &success);
+	tgt = adm_extract_uint(params, 2, &success);
+
+
+	if(sec_removeBspBibRule(src, dst, tgt) == 1)
+	{
+		*status = CTRL_SUCCESS;
+	}
+
+	SRELEASE(src);
+	SRELEASE(dst);
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_del_bib_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control returns a table describinng all of the BIB policy rules that are known to the BPsec imp
+ * lementation.
+ */
+tdc_t* adm_bpsec_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_bib_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	table_t *table = adm_bpsec_tbl_bib_rules();
 	uint8_t *data = NULL;
 	uint32_t len = 0;
 
-	*status = CTRL_FAILURE;
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bibrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bib_rules", "Can't get rules.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Allocate the return value. */
-	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	if((result = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bibrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bib_rules","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -990,35 +2029,48 @@ tdc_t* adm_bpsec_ctrl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((data = table_serialize(table, &len)) == NULL)
 	{
 		table_destroy(table, 1);
-		tdc_destroy(&retval);
+		tdc_destroy(&result);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bibrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bib_rules","Can't serialize table.", NULL);
 		return NULL;
 	}
 
 	table_destroy(table, 1);
 
-	tdc_insert(retval, AMP_TYPE_TABLE, data, len);
+	tdc_insert(result, AMP_TYPE_TABLE, data, len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
-
-	return retval;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_bib_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
 }
 
+
 /*
- * AddBcbRule(STR src, STR dst, INT tgt, STR cs, STR key)
+ * This control configures policy on the BPsec protocol implementation that describes how BCB blocks sh
+ * ould be applied to bundles in the system. This policy is captured as a rule which states when transm
+ * itting a bundle from the given source endpoint id to the given destination endpoint id, blocks of ty
+ * pe target should have a bcb added to them using the given ciphersuite and the given key.
  */
-tdc_t* adm_bpsec_ctrl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_add_bcb_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	char *cs = NULL;
 	char *key = NULL;
 	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
 
 	/* Step 1: Grab the name of the new key. */
 	src = adm_extract_string(params, 0, &success);
@@ -1062,17 +2114,29 @@ tdc_t* adm_bpsec_ctrl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	SRELEASE(dst);
 	SRELEASE(cs);
 	SRELEASE(key);
-
-	return NULL;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_add_bcb_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
 }
 
-/*
- * RemoveBcbRule(STR src, STR dest, INT tgt)
- */
-tdc_t* adm_bpsec_ctrl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
 
+/*
+ * This control removes any configured policy on the BPsec protocol implementation that describes how B
+ * CB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a sourc
+ * e endpoint id, a destination endpoint id, and a target block type.
+ */
+tdc_t* adm_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_del_bcb_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
@@ -1090,175 +2154,71 @@ tdc_t* adm_bpsec_ctrl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	SRELEASE(src);
 	SRELEASE(dst);
-
-	return NULL;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_del_bcb_rule BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
 }
 
+
 /*
- * ListBcbRules()
+ * This control returns a table describing all of the bcb policy rules that are known to the BPsec impl
+ * ementation
  */
-tdc_t* adm_bpsec_ctrl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_bpsec_ctrl_list_bcb_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
-
-
+	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
-	tdc_t *retval = NULL;
-	table_t *table = get_bcb_rules();
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_bcb_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	table_t *table = adm_bpsec_tbl_bcb_rules();
 	uint8_t *data = NULL;
 	uint32_t len = 0;
 
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcbrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcb_rules", "Can't get rules.", NULL);
 		return NULL;
 	}
 
 	/* Step 2: Allocate the return value. */
-	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
+	if((result = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcbrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcb_rules","Can't make TDC.", NULL);
 		return NULL;
 	}
 
-	/* Step 3: Populate the retval. */
+	/* Step 3: Populate the result. */
 	if((data = table_serialize(table, &len)) == NULL)
 	{
 		table_destroy(table, 1);
-		tdc_destroy(&retval);
+		tdc_destroy(&result);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcbrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcb_rules","Can't serialize table.", NULL);
 		return NULL;
 	}
 
 	table_destroy(table, 1);
 
-	tdc_insert(retval, AMP_TYPE_TABLE, data, len);
+	tdc_insert(result, AMP_TYPE_TABLE, data, len);
 	SRELEASE(data);
 
 	*status = CTRL_SUCCESS;
 
-	return retval;
-}
-
-
-/*
- *  UpdateBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
- */
-tdc_t* adm_bpsec_ctrl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
-	char *src = NULL;
-	char *dst = NULL;
-	uint32_t tgt = 0;
-	char *cs = NULL;
-	char *key = NULL;
-	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
-
-	/* Step 1: Grab the name of the new key. */
-	src = adm_extract_string(params, 0, &success);
-	dst = adm_extract_string(params, 1, &success);
-	tgt = adm_extract_uint(params, 2, &success);
-	cs = adm_extract_string(params, 3, &success);
-	key = adm_extract_string(params, 4, &success);
-
-
-	if(get_bib_prof_by_name(cs) != NULL)
-	{
-		Object addr;
-		Object elt;
-
-		/* Step 3: Check to see if key exists. */
-		sec_findKey(key, &addr, &elt);
-		if(elt != 0)
-		{
-			/* Step 4: Update the BCB Rule. */
-			if(sec_updateBspBibRule(src, dst, tgt, cs, key) == 1)
-			{
-				*status = CTRL_SUCCESS;
-			}
-			else
-			{
-				AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bibrule", "Can't update rule.", NULL);
-			}
-		}
-		else
-		{
-			AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bibrule", "Key %s doesn't exist.", key);
-		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bibrule", "CIphersuite %s not supported.", cs);
-	}
-
-	SRELEASE(src);
-	SRELEASE(dst);
-	SRELEASE(cs);
-	SRELEASE(key);
-
-	return NULL;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_bcb_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
 }
 
 
 
-/*
- *  UpdateBcbRule(STR src, STR dest, INT tgt, STR cs, STR key)
- */
-tdc_t* adm_bpsec_ctrl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
-{
-	char *src = NULL;
-	char *dst = NULL;
-	uint32_t tgt = 0;
-	char *cs = NULL;
-	char *key = NULL;
-	int8_t success = 0;
-
-	*status = CTRL_FAILURE;
-
-	/* Step 1: Grab the name of the new key. */
-	src = adm_extract_string(params, 0, &success);
-	dst = adm_extract_string(params, 1, &success);
-	tgt = adm_extract_uint(params, 2, &success);
-	cs = adm_extract_string(params, 3, &success);
-	key = adm_extract_string(params, 4, &success);
-
-
-	/* Step 2: Check to make sure Ciphersuite is supported. */
-	if(get_bcb_prof_by_name(cs) != NULL)
-	{
-		Object addr;
-		Object elt;
-
-		/* Step 3: Check to see if key exists. */
-		sec_findKey(key, &addr, &elt);
-		if(elt != 0)
-		{
-			/* Step 4: Update the BCB Rule. */
-			if(sec_updateBspBcbRule(src, dst, tgt, cs, key) == 1)
-			{
-				*status = CTRL_SUCCESS;
-			}
-			else
-			{
-				AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bcbrule", "Can't update rule.", NULL);
-			}
-		}
-		else
-		{
-			AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bcbrule", "Key %s doesn't exist.", key);
-		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_update_bcbrule", "CIphersuite %s not supported.", cs);
-	}
-
-	SRELEASE(src);
-	SRELEASE(dst);
-	SRELEASE(cs);
-	SRELEASE(key);
-
-	return NULL;
-}
+/* OP Functions */

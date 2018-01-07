@@ -76,23 +76,23 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |name                         |0x870a100100|The human-readable name of the ADM.               |STR          |
+   |name                         |0x870a0100|The human-readable name of the ADM.               |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |namespace                    |0x870a100101|The namespace of the ADM.                         |STR          |
+   |namespace                    |0x870a0101|The namespace of the ADM.                         |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |version                      |0x870a100102|The version of the ADM                            |STR          |
+   |version                      |0x870a0102|The version of the ADM                            |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |organization                 |0x870a100103|The name of the issuing organization of the ADM.  |STR          |
+   |organization                 |0x870a0103|The name of the issuing organization of the ADM.  |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 // "name"
-#define ADM_BP_META_NAME_MID 0x870a100100
+#define ADM_BP_META_NAME_MID 0x870a0100
 // "namespace"
-#define ADM_BP_META_NAMESPACE_MID 0x870a100101
+#define ADM_BP_META_NAMESPACE_MID 0x870a0101
 // "version"
-#define ADM_BP_META_VERSION_MID 0x870a100102
+#define ADM_BP_META_VERSION_MID 0x870a0102
 // "organization"
-#define ADM_BP_META_ORGANIZATION_MID 0x870a100103
+#define ADM_BP_META_ORGANIZATION_MID 0x870a0103
 
 
 /*
@@ -102,119 +102,119 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |bp_node_id                   |0x800b100100|The node administration endpoint                  |STR          |
+   |bp_node_id                   |0x800b0100|The node administration endpoint                  |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |bp_node_version              |0x800b100101|The latest version of the BP supported by this nod|             |
+   |bp_node_version              |0x800b0101|The latest version of the BP supported by this nod|             |
    |                             |            |e                                                 |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |available_storage            |0x800b100102|Bytes available for bundle storage                |UVAST        |
+   |available_storage            |0x800b0102|Bytes available for bundle storage                |UVAST        |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |last_reset_time              |0x800b100103|The last time that BP counters were reset, either |             |
+   |last_reset_time              |0x800b0103|The last time that BP counters were reset, either |             |
    |                             |            |due to execution of a reset control or a restart o|             |
    |                             |            |f the node itself                                 |UVAST        |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_registrations            |0x800b100104|number of registrations                           |UINT         |
+   |num_registrations            |0x800b0104|number of registrations                           |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_pend_fwd                 |0x800b100105|number of bundles pending forwarding              |UINT         |
+   |num_pend_fwd                 |0x800b0105|number of bundles pending forwarding              |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_pend_dis                 |0x800b100106|number of bundles awaiting dispatch               |UINT         |
+   |num_pend_dis                 |0x800b0106|number of bundles awaiting dispatch               |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_in_cust                  |0x800b100107|number of bundles                                 |UINT         |
+   |num_in_cust                  |0x800b0107|number of bundles                                 |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_pend_reassembly          |0x800b100108|number of bundles pending reassembly              |UINT         |
+   |num_pend_reassembly          |0x800b0108|number of bundles pending reassembly              |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |bundles_by_priority          |0x800b100109|number of bundles for the given priority. Priority|             |
+   |bundles_by_priority          |0x800b0109|number of bundles for the given priority. Priority|             |
    |                             |            | is given as a priority mask where Bulk=0x1, norma|             |
    |                             |            |l=0x2, express=0x4. Any bundles matching any of th|             |
    |                             |            |e masked priorities will be included in the return|             |
    |                             |            |ed count                                          |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |bytes_by_priority            |0x800b10010a|number of bytes of the given priority. Priority is|             |
+   |bytes_by_priority            |0x800b010a|number of bytes of the given priority. Priority is|             |
    |                             |            | given as a priority mask where bulk=0x1, normal=0|             |
    |                             |            |x2, express=0x4. Any bundles matching any of the m|             |
    |                             |            |asked priorities will be included in the returned |             |
    |                             |            |count.                                            |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |src_bundles_by_priority      |0x800b10010b|number of bundles sourced by this node of the give|             |
+   |src_bundles_by_priority      |0x800b010b|number of bundles sourced by this node of the give|             |
    |                             |            |n priority. Priority is given as a priority mask w|             |
    |                             |            |here bulk=0x1, normal=0x2, express=0x4. Any bundle|             |
    |                             |            |s sourced by this node and matching any of the mas|             |
    |                             |            |ked priorities will be included in the returned co|             |
    |                             |            |unt.                                              |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |src_bytes_by_priority        |0x800b10010c|number of bytes sourced by this node of the given |             |
+   |src_bytes_by_priority        |0x800b010c|number of bytes sourced by this node of the given |             |
    |                             |            |priority. Priority is given as a priority mask whe|             |
    |                             |            |re bulk=0x1, normal=0x2, express=0x4. Any bundles |             |
    |                             |            |sourced by this node and matching any of the maske|             |
    |                             |            |d priorities will be included in the returned coun|             |
    |                             |            |t                                                 |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_fragmented_bundles       |0x800b10010d|number of fragmented bundles                      |UINT         |
+   |num_fragmented_bundles       |0x800b010d|number of fragmented bundles                      |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_fragments_produced       |0x800b10010e|number of bundles with fragmentary payloads produc|             |
+   |num_fragments_produced       |0x800b010e|number of bundles with fragmentary payloads produc|             |
    |                             |            |ed by this node                                   |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_failed_by_reason         |0x800b10010f|number of bundles failed for any of the given reas|             |
+   |num_failed_by_reason         |0x800b010f|number of bundles failed for any of the given reas|             |
    |                             |            |ons. (noInfo=0x1, Expired=0x2, UniFwd=0x4, Cancell|             |
    |                             |            |ed=0x8, NoStorage=0x10, BadEID=0x20, NoRoute=0x40,|             |
    |                             |            | NoContact=0x80, BadBlock=0x100)                  |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_bundles_deleted          |0x800b100110|number of bundles deleted by this node            |UINT         |
+   |num_bundles_deleted          |0x800b0110|number of bundles deleted by this node            |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |failed_custody_bundles       |0x800b100111|number of bundle fails at this node               |UINT         |
+   |failed_custody_bundles       |0x800b0111|number of bundle fails at this node               |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |failed_custody_bytes         |0x800b100112|number bytes of fails at this node                |UINT         |
+   |failed_custody_bytes         |0x800b0112|number bytes of fails at this node                |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |failed_forward_bundles       |0x800b100113|number bundles not forwarded by this node         |UINT         |
+   |failed_forward_bundles       |0x800b0113|number bundles not forwarded by this node         |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |failed_forward_bytes         |0x800b100114|number of bytes not forwaded by this node         |UINT         |
+   |failed_forward_bytes         |0x800b0114|number of bytes not forwaded by this node         |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |abandoned_bundles            |0x800b100115|number of bundles abandoned by this node          |UINT         |
+   |abandoned_bundles            |0x800b0115|number of bundles abandoned by this node          |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |abandoned_bytes              |0x800b100116|number of bytes abandoned by this node            |UINT         |
+   |abandoned_bytes              |0x800b0116|number of bytes abandoned by this node            |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |discarded_bundles            |0x800b100117|number of bundles discarded by this node          |UINT         |
+   |discarded_bundles            |0x800b0117|number of bundles discarded by this node          |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |discarded_bytes              |0x800b100118|number of bytes discarded by this node            |UINT         |
+   |discarded_bytes              |0x800b0118|number of bytes discarded by this node            |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpoint_names               |0x800b100119|CSV list of endpoint names for this node          |STR          |
+   |endpoint_names               |0x800b0119|CSV list of endpoint names for this node          |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpoint_active              |0x800b10011a|is the given endpoint active? (0=no)              |UINT         |
+   |endpoint_active              |0x800b011a|is the given endpoint active? (0=no)              |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpoint_singleton           |0x800b10011b|is the given endpoint singleton? (0=no)           |UINT         |
+   |endpoint_singleton           |0x800b011b|is the given endpoint singleton? (0=no)           |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpoint_policy              |0x800b10011c|Does the endpoint abandon on fail (0=no)          |UINT         |
+   |endpoint_policy              |0x800b011c|Does the endpoint abandon on fail (0=no)          |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_BP_EDD_BP_NODE_ID_MID 0x800b100100
-#define ADM_BP_EDD_BP_NODE_VERSION_MID 0x800b100101
-#define ADM_BP_EDD_AVAILABLE_STORAGE_MID 0x800b100102
-#define ADM_BP_EDD_LAST_RESET_TIME_MID 0x800b100103
-#define ADM_BP_EDD_NUM_REGISTRATIONS_MID 0x800b100104
-#define ADM_BP_EDD_NUM_PEND_FWD_MID 0x800b100105
-#define ADM_BP_EDD_NUM_PEND_DIS_MID 0x800b100106
-#define ADM_BP_EDD_NUM_IN_CUST_MID 0x800b100107
-#define ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID 0x800b100108
-#define ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID 0x800b100109
-#define ADM_BP_EDD_BYTES_BY_PRIORITY_MID 0x800b10010a
-#define ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID 0x800b10010b
-#define ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID 0x800b10010c
-#define ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID 0x800b10010d
-#define ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID 0x800b10010e
-#define ADM_BP_EDD_NUM_FAILED_BY_REASON_MID 0x800b10010f
-#define ADM_BP_EDD_NUM_BUNDLES_DELETED_MID 0x800b100110
-#define ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID 0x800b100111
-#define ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID 0x800b100112
-#define ADM_BP_EDD_FAILED_FORWARD_BUNDLES_MID 0x800b100113
-#define ADM_BP_EDD_FAILED_FORWARD_BYTES_MID 0x800b100114
-#define ADM_BP_EDD_ABANDONED_BUNDLES_MID 0x800b100115
-#define ADM_BP_EDD_ABANDONED_BYTES_MID 0x800b100116
-#define ADM_BP_EDD_DISCARDED_BUNDLES_MID 0x800b100117
-#define ADM_BP_EDD_DISCARDED_BYTES_MID 0x800b100118
-#define ADM_BP_EDD_ENDPOINT_NAMES_MID 0x800b100119
-#define ADM_BP_EDD_ENDPOINT_ACTIVE_MID 0x800b10011a
-#define ADM_BP_EDD_ENDPOINT_SINGLETON_MID 0x800b10011b
-#define ADM_BP_EDD_ENDPOINT_POLICY_MID 0x800b10011c
+#define ADM_BP_EDD_BP_NODE_ID_MID 0x800b0100
+#define ADM_BP_EDD_BP_NODE_VERSION_MID 0x800b0101
+#define ADM_BP_EDD_AVAILABLE_STORAGE_MID 0x800b0102
+#define ADM_BP_EDD_LAST_RESET_TIME_MID 0x800b0103
+#define ADM_BP_EDD_NUM_REGISTRATIONS_MID 0x800b0104
+#define ADM_BP_EDD_NUM_PEND_FWD_MID 0x800b0105
+#define ADM_BP_EDD_NUM_PEND_DIS_MID 0x800b0106
+#define ADM_BP_EDD_NUM_IN_CUST_MID 0x800b0107
+#define ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID 0x800b0108
+#define ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID 0x800b0109
+#define ADM_BP_EDD_BYTES_BY_PRIORITY_MID 0x800b010a
+#define ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID 0x800b010b
+#define ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID 0x800b010c
+#define ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID 0x800b010d
+#define ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID 0x800b010e
+#define ADM_BP_EDD_NUM_FAILED_BY_REASON_MID 0x800b010f
+#define ADM_BP_EDD_NUM_BUNDLES_DELETED_MID 0x800b0110
+#define ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID 0x800b0111
+#define ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID 0x800b0112
+#define ADM_BP_EDD_FAILED_FORWARD_BUNDLES_MID 0x800b0113
+#define ADM_BP_EDD_FAILED_FORWARD_BYTES_MID 0x800b0114
+#define ADM_BP_EDD_ABANDONED_BUNDLES_MID 0x800b0115
+#define ADM_BP_EDD_ABANDONED_BYTES_MID 0x800b0116
+#define ADM_BP_EDD_DISCARDED_BUNDLES_MID 0x800b0117
+#define ADM_BP_EDD_DISCARDED_BYTES_MID 0x800b0118
+#define ADM_BP_EDD_ENDPOINT_NAMES_MID 0x800b0119
+#define ADM_BP_EDD_ENDPOINT_ACTIVE_MID 0x800b011a
+#define ADM_BP_EDD_ENDPOINT_SINGLETON_MID 0x800b011b
+#define ADM_BP_EDD_ENDPOINT_POLICY_MID 0x800b011c
 
 
 /*
@@ -234,14 +234,14 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |full_report                  |0x820d100100|This is all known meta-data, EDD, and VAR values k|             |
+   |full_report                  |0x820d0100|This is all known meta-data, EDD, and VAR values k|             |
    |                             |            |nown by the agent.                                |?            |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpoint_report              |0x820d100101|This is all known endpoint information            |?            |
+   |endpoint_report              |0x820d0101|This is all known endpoint information            |?            |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_BP_RPT_FULL_REPORT_MID 0x820d100100
-#define ADM_BP_RPT_ENDPOINT_REPORT_MID 0x820d100101
+#define ADM_BP_RPT_FULL_REPORT_MID 0x820d0100
+#define ADM_BP_RPT_ENDPOINT_REPORT_MID 0x820d0101
 
 
 /*
@@ -251,13 +251,13 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |reset_all_counts             |0x830e100100|This control causes the Agent to reset all counts |             |
+   |reset_all_counts             |0x830e0100|This control causes the Agent to reset all counts |             |
    |                             |            |associated with bundle or byte statistics and to s|             |
    |                             |            |et the last reset time of the BP primitive data to|             |
    |                             |            | the time when the control was run                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_BP_CTRL_RESET_ALL_COUNTS_MID 0x830e100100
+#define ADM_BP_CTRL_RESET_ALL_COUNTS_MID 0x830e0100
 
 
 /*

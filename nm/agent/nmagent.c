@@ -40,8 +40,6 @@
 
 #include "../shared/adm/adm_bp.h"
 #include "../shared/adm/adm_agent.h"
-#include "adm_ltp_priv.h"
-#include "adm_ion_priv.h"
 
 #include "../shared/primitives/nn.h"
 #include "instr.h"

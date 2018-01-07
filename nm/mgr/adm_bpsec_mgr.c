@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated c file 
+ **  2018-01-06  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -332,78 +332,80 @@ void adm_bpsec_init_metadata()
 
 void adm_bpsec_init_ops()
 {
-	adm_add_op(ADM_BPSEC_OP_PLUS_UINT_MID, NULL);
-	names_add_name("PLUS_UINT", "Uint32 addition", ADM_BPSEC, ADM_BPSEC_OP_PLUS_UINT_MID);
-
 }
 
 
 void adm_bpsec_init_reports()
 {
 	uint32_t used= 0;
-	Lyst rpt = NULL;
-	rpt = lyst_create();
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BCB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BCB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BCB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BCB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BCB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BCB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BCB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BCB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BCB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BCB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BCB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BCB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BIB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BIB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BIB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BIB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BIB_BLKS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BIB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BIB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BIB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BIB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BIB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BIB_BYTES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_LAST_UPDATE_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_KNOWN_KEYS_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_KEY_NAMES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_CIPHERSUITE_NAMES_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_RULE_SOURCE_MID, ADM_MID_ALLOC, &used));
-	adm_add_rpt(ADM_BPSEC_RPT_FULL_REPORT_MID, rpt);
-	midcol_destroy(&rpt);
+		Lyst rpt = lyst_create();
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLK_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID));
 
-	rpt = lyst_create();
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BCB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BCB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BCB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BCB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BCB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BCB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BCB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BCB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BCB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BCB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BCB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BCB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BIB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BIB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BIB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_RX_BIB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BIB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BIB_BLKS_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_TX_BIB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_BAD_TX_BIB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_GOOD_RX_BIB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FAILED_RX_BIB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_MISS_RX_BIB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_NUM_FWD_BIB_BYTES_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_LAST_UPDATE_SRC_MID, ADM_MID_ALLOC, &used));
-	lyst_insert_last(rpt,mid_deserialize_str(ADM_BPSEC_LAST_RESET_MID, ADM_MID_ALLOC, &used));
-	adm_add_rpt(ADM_BPSEC_RPT_SOURCE_REPORT_MID, rpt);
-	midcol_destroy(&rpt);
+		adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_FULL_REPORT_MID), rpt);
+
+		midcol_destroy(&rpt);
+
+		rpt = lyst_create();
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_RESET_MID));
+
+		adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_SOURCE_REPORT_MID), rpt);
+
+		midcol_destroy(&rpt);
+
+		names_add_name("ADM_BPSEC_RPT_FULL_REPORT_MID", "all known meta-data, externally defined data, and variables", ADM_BPSEC, ADM_BPSEC_RPT_FULL_REPORT_MID);
+		names_add_name("ADM_BPSEC_RPT_SOURCE_REPORT_MID", "security info by source", ADM_BPSEC, ADM_BPSEC_RPT_SOURCE_REPORT_MID);
 
 }
 

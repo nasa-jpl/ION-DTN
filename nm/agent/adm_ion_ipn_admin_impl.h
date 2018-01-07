@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated header file 
+ **  2018-01-06  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -28,9 +28,8 @@
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/table.h"
-/******************
- * TODO: typeENUM *
- *****************/
+/*   START typeENUM */
+/*   STOP typeENUM  */
 
 void name_adm_init_agent();
 
@@ -40,32 +39,6 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-value_t adm_bp_node_get_blk_src_cnt(tdc_t params);
-value_t adm_bp_node_get_norm_src_cnt(tdc_t params);
-value_t adm_bp_node_get_exp_src_cnt(tdc_t params);
-value_t adm_bp_node_get_blk_src_bytes(tdc_t params);
-value_t adm_bp_node_get_norm_src_bytes(tdc_t params);
-value_t adm_bp_node_get_exp_src_bytes(tdc_t params);
-value_t adm_bp_node_get_blk_res_cnt(tdc_t params);
-value_t adm_bp_node_get_norm_res_cnt(tdc_t params);
-value_t adm_bp_node_get_exp_res_cnt(tdc_t params);
-value_t adm_bp_node_get_blk_res_bytes(tdc_t params);
-value_t adm_bp_node_get_norm_res_bytes(tdc_t params);
-value_t adm_bp_node_get_exp_res_bytes(tdc_t params);
-value_t adm_bp_node_get_del_none(tdc_t params);
-value_t adm_bp_node_get_del_expired(tdc_t params);
-value_t adm_bp_node_get_del_fwd_uni(tdc_t params);
-value_t adm_bp_node_get_del_cancel(tdc_t params);
-value_t adm_bp_node_get_del_deplete(tdc_t params);
-value_t adm_bp_node_get_del_bad_eid(tdc_t params);
-value_t adm_bp_node_get_del_no_route(tdc_t params);
-value_t adm_bp_node_get_del_no_contact(tdc_t params);
-value_t adm_bp_node_get_del_bad_blk(tdc_t params);
-value_t adm_bp_node_get_del_bytes(tdc_t params);
-
-value_t adm_bp_node_get_fail_fwd_cnt(tdc_t params);
-value_t adm_bp_node_get_fail_fwd_bytes(tdc_t params);
-value_t adm_bp_node_get_del_bytes(tdc_t params);
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_ion_ipn_admin_setup();

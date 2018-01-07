@@ -17,6 +17,8 @@
 
 /*   START CUSTOM INCLUDES HERE  */
 #include "ion.h"
+#include "bp.h"
+#include "bpP.h"
 #include "bpnm.h"
 
 /*   STOP CUSTOM INCLUDES HERE  */
@@ -343,6 +345,8 @@ value_t adm_bp_get_bundles_by_priority(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 	NmbpDisposition state;
+	int8_t success = 0;
+
 	bpnm_disposition_get(&state);
 
   	uvast val = adm_extract_uvast(params, 0, &success);
@@ -388,6 +392,7 @@ value_t adm_bp_get_bytes_by_priority(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 	NmbpDisposition state;
+	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
   	uvast val = adm_extract_uvast(params, 0, &success);
@@ -432,6 +437,7 @@ value_t adm_bp_get_src_bundles_by_priority(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 	NmbpDisposition state;
+	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
   	uvast val = adm_extract_uvast(params, 0, &success);
@@ -476,6 +482,7 @@ value_t adm_bp_get_src_bytes_by_priority(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 	NmbpDisposition state;
+	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
   	uvast val = adm_extract_uvast(params, 0, &success);
@@ -579,6 +586,7 @@ value_t adm_bp_get_num_failed_by_reason(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 	NmbpDisposition state;
+	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
   uvast val = adm_extract_uvast(params, 0, &success);
@@ -594,7 +602,7 @@ value_t adm_bp_get_num_failed_by_reason(tdc_t params)
   		result.value.as_uvast = state.delExpiredCount;
   		break;
   	case 0x04:
-  		result.value.as_uvast = state.UniFwd;
+  		result.value.as_uvast = state.delFwdUnidirCount;
   		break;
   	case 0x08:
   		result.value.as_uvast = state.delCanceledCount;
@@ -1047,7 +1055,7 @@ value_t adm_bp_get_endpoint_policy(tdc_t params)
 	if(success != 0)
 	{
 		result.type = AMP_TYPE_UINT;
-		result.value.as_uint = endpoint.policy;
+		result.value.as_uint = endpoint.abandonOnDelivFailure;
 	}
 
 	SRELEASE(name);

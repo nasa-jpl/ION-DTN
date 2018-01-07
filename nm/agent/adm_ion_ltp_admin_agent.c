@@ -1,0 +1,109 @@
+/****************************************************************************
+ **
+ ** File Name: adm_ion_ltp_admin_agent.c
+ **
+ ** Description: TODO
+ **
+ ** Notes: TODO
+ **
+ ** Assumptions: TODO
+ **
+ ** Modification History: 
+ **  YYYY-MM-DD  AUTHOR           DESCRIPTION
+ **  ----------  --------------   --------------------------------------------
+ **  2018-01-06  AUTO             Auto-generated c file 
+ **
+ ****************************************************************************/
+
+
+#include "ion.h"
+#include "lyst.h"
+#include "platform.h"
+#include "../shared/adm/adm_ion_ltp_admin.h"
+#include "../shared/utils/utils.h"
+#include "../shared/primitives/def.h"
+#include "../shared/primitives/nn.h"
+#include "../shared/primitives/report.h"
+#include "../shared/primitives/blob.h"
+#include "adm_ion_ltp_admin_impl.h"
+#include "rda.h"
+
+#define _HAVE_ION_LTP_ADMIN_ADM_
+#ifdef _HAVE_ION_LTP_ADMIN_ADM_
+
+void adm_ion_ltp_admin_init()
+{
+	adm_ion_ltp_admin_setup();
+	adm_ion_ltp_admin_init_edd();
+	adm_ion_ltp_admin_init_variables();
+	adm_ion_ltp_admin_init_controls();
+	adm_ion_ltp_admin_init_constants();
+	adm_ion_ltp_admin_init_macros();
+	adm_ion_ltp_admin_init_metadata();
+	adm_ion_ltp_admin_init_ops();
+	adm_ion_ltp_admin_init_reports();
+}
+
+void adm_ion_ltp_admin_init_edd()
+{
+	adm_add_edd(mid_from_value(ADM_ION_LTP_ADMIN_EDD_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_ltp_admin_get_version, NULL, NULL);
+
+}
+
+void adm_ion_ltp_admin_init_variables()
+{
+}
+
+void adm_ion_ltp_admin_init_controls()
+{
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_INIT_MID),adm_ion_ltp_admin_ctrl_init);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGEHEAP_MID),adm_ion_ltp_admin_ctrl_manageheap);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGEMAXBER_MID),adm_ion_ltp_admin_ctrl_managemaxber);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGEOWNQUEUETIME_MID),adm_ion_ltp_admin_ctrl_manageownqueuetime);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGESCREENING_MID),adm_ion_ltp_admin_ctrl_managescreening);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPANADD_MID),adm_ion_ltp_admin_ctrl_spanadd);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPANCHANGE_MID),adm_ion_ltp_admin_ctrl_spanchange);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPANDEL_MID),adm_ion_ltp_admin_ctrl_spandel);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_STOP_MID),adm_ion_ltp_admin_ctrl_stop);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_WATCHSET_MID),adm_ion_ltp_admin_ctrl_watchset);
+}
+
+void adm_ion_ltp_admin_init_constants()
+{
+}
+
+void adm_ion_ltp_admin_init_macros()
+{
+}
+
+void adm_ion_ltp_admin_init_metadata()
+{
+	/* Step 1: Register Nicknames */
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_META_NN_IDX, ION_LTP_ADMIN_ADM_META_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_EDD_NN_IDX, ION_LTP_ADMIN_ADM_EDD_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_VAR_NN_IDX, ION_LTP_ADMIN_ADM_VAR_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_RPT_NN_IDX, ION_LTP_ADMIN_ADM_RPT_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_CTRL_NN_IDX, ION_LTP_ADMIN_ADM_CTRL_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_CONST_NN_IDX, ION_LTP_ADMIN_ADM_CONST_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_MACRO_NN_IDX, ION_LTP_ADMIN_ADM_MACRO_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_OP_NN_IDX, ION_LTP_ADMIN_ADM_OP_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+	oid_nn_add_parm(ION_LTP_ADMIN_ADM_ROOT_NN_IDX, ION_LTP_ADMIN_ADM_ROOT_NN_STR, "ION_LTP_ADMIN", "2017-08-17");
+
+	/* Step 2: Register Metadata Information. */
+	adm_add_edd(mid_from_value(ADM_ION_LTP_ADMIN_META_NAME_MID), AMP_TYPE_STR, 0, adm_ion_ltp_admin_meta_name, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_LTP_ADMIN_META_NAMESPACE_MID), AMP_TYPE_STR, 0, adm_ion_ltp_admin_meta_namespace, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_LTP_ADMIN_META_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_ltp_admin_meta_version, adm_print_string, adm_size_string);
+	adm_add_edd(mid_from_value(ADM_ION_LTP_ADMIN_META_ORGANIZATION_MID), AMP_TYPE_STR, 0, adm_ion_ltp_admin_meta_organization, adm_print_string, adm_size_string);
+}
+
+void adm_ion_ltp_admin_init_ops()
+{
+}
+
+void adm_ion_ltp_admin_init_reports()
+{
+	uint32_t used= 0;
+
+}
+
+#endif // _HAVE_ION_LTP_ADMIN_ADM_

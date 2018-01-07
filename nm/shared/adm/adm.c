@@ -38,14 +38,17 @@
 #include "../adm/adm.h"
 
 #include "../primitives/var.h"
-#include "../adm/adm_bp.h"
-#include "../adm/adm_ltp.h"
-#include "../adm/adm_ion.h"
-#include "../adm/adm_agent.h"
-#include "../adm/adm_bpsec.h"
-#include "adm_LtpAgent.h"
-#include "adm_IonBpAdmin.h"
+
+
+#include "adm_agent.h"
+#include "adm_bp.h"
+#include "adm_bpsec.h"
 #include "adm_ion_admin.h"
+#include "adm_ion_bp_admin.h"
+#include "adm_ion_ipn_admin.h"
+#include "adm_ionsec_admin.h"
+#include "adm_ion_ltp_admin.h"
+#include "adm_ltp_agent.h"
 
 Lyst gAdmData;
 Lyst gAdmComputed;
@@ -86,41 +89,41 @@ Lyst gAdmMacros; // Type def_gen_t
  *  01/05/18  E. Birrane     Renamed add_edd and take mid_t.
  *****************************************************************************/
 
-int adm_add_edd_str(mid_t *mid,
-		            amp_type_e type,
-		     	 	int num_parms,
-  		     	 	adm_data_collect_fn collect,
-		     	 	adm_string_fn to_string,
-		     	 	adm_size_fn get_size)
+int adm_add_edd(mid_t *mid,
+		        amp_type_e type,
+		     	int num_parms,
+  		     	adm_data_collect_fn collect,
+		     	adm_string_fn to_string,
+		     	adm_size_fn get_size)
 {
 	adm_datadef_t *new_entry = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_edd_str","(%llx, %d, %llx, %llx)",
+	AMP_DEBUG_ENTRY("adm_add_edd","(%llx, %d, %llx, %llx)",
 			          mid, num_parms, to_string, get_size);
 
 	/* Step 1 - Sanity Checks. */
 	if(mid == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_edd_str","NULL MID.", NULL);
-		AMP_DEBUG_EXIT("adm_add_edd_str","-> 0.", NULL);
+		AMP_DEBUG_ERR("adm_add_edd","NULL MID.", NULL);
+		AMP_DEBUG_EXIT("adm_add_edd","-> 0.", NULL);
 		return 0;
 	}
 
 	if(gAdmData == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_edd_str","Global data list not initialized.", NULL);
+		AMP_DEBUG_ERR("adm_add_edd","Global data list not initialized.", NULL);
 		mid_release(mid);
-		AMP_DEBUG_EXIT("adm_add_edd_str","-> 0.", NULL);
+		AMP_DEBUG_EXIT("adm_add_edd","-> 0.", NULL);
 		return 0;
 	}
 
 	/* Step 2 - Allocate a Data Definition. */
 	if((new_entry = (adm_datadef_t *) STAKE(sizeof(adm_datadef_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_edd_str","Can't allocate new entry of size %d.",
+		AMP_DEBUG_ERR("adm_add_edd","Can't allocate new entry of size %d.",
 				        sizeof(adm_datadef_t));
 		mid_release(mid);
-		AMP_DEBUG_EXIT("adm_add_edd_str","-> 0.", NULL);
+		AMP_DEBUG_EXIT("adm_add_edd","-> 0.", NULL);
 		return 0;
 	}
 
@@ -135,7 +138,7 @@ int adm_add_edd_str(mid_t *mid,
 	/* Step 4 - Add the new entry. */
 	lyst_insert_last(gAdmData, new_entry);
 
-	AMP_DEBUG_EXIT("adm_add_edd_str","-> 1.", NULL);
+	AMP_DEBUG_EXIT("adm_add_edd","-> 1.", NULL);
 	return 1;
 }
 
@@ -1641,18 +1644,18 @@ void adm_init()
 	gAdmRpts = lyst_create();
 	gAdmMacros = lyst_create();
 
-	adm_bp_init();
+
+
 
 	adm_agent_init();
-
-
-#ifdef _HAVE_BPSEC_ADM_
+	adm_bp_init();
 	adm_bpsec_init();
-#endif
-
-	adm_LtpAgent_init();
-	adm_IonBpAdmin_init();
 	adm_ion_admin_init();
+	adm_ion_bp_admin_init();
+	adm_ion_ipn_admin_init();
+	adm_ionsec_admin_init();
+	adm_ion_ltp_admin_init();
+	adm_ltp_agent_init();
 
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);
 }

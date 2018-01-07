@@ -1110,99 +1110,101 @@ ltpmeter_DEPENDENCIES = libltp.la libici.la $(LIBOBJS)
 ltpmeter_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ltpmeter_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am_nm_agent_OBJECTS = nm/agent/nm_agent-ingest.$(OBJEXT) \
+am_nm_agent_OBJECTS = nm/agent/nm_agent-agent_db.$(OBJEXT) \
+	nm/agent/nm_agent-ingest.$(OBJEXT) \
+	nm/agent/nm_agent-instr.$(OBJEXT) \
 	nm/agent/nm_agent-lcc.$(OBJEXT) \
 	nm/agent/nm_agent-ldc.$(OBJEXT) \
 	nm/agent/nm_agent-nmagent.$(OBJEXT) \
 	nm/agent/nm_agent-rda.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-expr.$(OBJEXT) \
-	nm/agent/nm_agent-agent_db.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ion_priv.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ltp_priv.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ion_admin_impl.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ion_admin_agent.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ion_bp_admin_impl.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ion_bp_admin_agent.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ionsec_admin_impl.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ionsec_admin_agent.$(OBJEXT) \
-	nm/agent/nm_agent-adm_LtpAgent_impl.$(OBJEXT) \
-	nm/agent/nm_agent-adm_LtpAgent_agent.$(OBJEXT) \
 	nm/shared/adm/nm_agent-adm.$(OBJEXT) \
-	nm/shared/adm/nm_agent-adm_ion.$(OBJEXT) \
-	nm/shared/adm/nm_agent-adm_ltp.$(OBJEXT) \
-	nm/agent/nm_agent-adm_agent_impl.$(OBJEXT) \
-	nm/agent/nm_agent-adm_bp_impl.$(OBJEXT) \
 	nm/shared/adm/nm_agent-adm_agent.$(OBJEXT) \
-	nm/agent/nm_agent-adm_bpsec_impl.$(OBJEXT) \
 	nm/shared/msg/nm_agent-msg_admin.$(OBJEXT) \
 	nm/shared/msg/nm_agent-msg_ctrl.$(OBJEXT) \
 	nm/shared/msg/nm_agent-pdu.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-var.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-blob.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-admin.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-blob.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-ctrl.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-dc.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-def.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-expr.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-lit.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-mid.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-nn.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-oid.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-report.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-rules.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-dc.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-value.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-lit.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-nn.$(OBJEXT) \
-	nm/agent/nm_agent-instr.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-tdc.$(OBJEXT) \
-	nm/shared/primitives/nm_agent-ctrl.$(OBJEXT) \
 	nm/shared/primitives/nm_agent-table.$(OBJEXT) \
-	nm/shared/utils/nm_agent-ion_if.$(OBJEXT) \
-	nm/shared/utils/nm_agent-utils.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-tdc.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-value.$(OBJEXT) \
+	nm/shared/primitives/nm_agent-var.$(OBJEXT) \
 	nm/shared/utils/nm_agent-db.$(OBJEXT) \
-	nm/shared/utils/nm_agent-nm_types.$(OBJEXT)
+	nm/shared/utils/nm_agent-ion_if.$(OBJEXT) \
+	nm/shared/utils/nm_agent-nm_types.$(OBJEXT) \
+	nm/shared/utils/nm_agent-utils.$(OBJEXT) \
+	nm/agent/nm_agent-adm_agent_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_bp_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_bp_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_bpsec_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_bpsec_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_admin_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_admin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_bp_admin_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_bp_admin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_ipn_admin_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_ipn_admin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ionsec_admin_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ionsec_admin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_ltp_admin_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ion_ltp_admin_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ltp_agent_agent.$(OBJEXT) \
+	nm/agent/nm_agent-adm_ltp_agent_impl.$(OBJEXT)
 nm_agent_OBJECTS = $(am_nm_agent_OBJECTS)
 nm_agent_DEPENDENCIES = libici.la libbp.la libltp.la $(LIBOBJS)
 nm_agent_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(nm_agent_CFLAGS) \
 	$(CFLAGS) $(nm_agent_LDFLAGS) $(LDFLAGS) -o $@
-am_nm_mgr_OBJECTS = nm/mgr/nm_mgr-nm_mgr.$(OBJEXT) \
-	nm/mgr/nm_mgr-nm_mgr_rx.$(OBJEXT) \
-	nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT) \
+am_nm_mgr_OBJECTS = nm/mgr/nm_mgr-mgr_db.$(OBJEXT) \
+	nm/mgr/nm_mgr-nm_mgr.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr_names.$(OBJEXT) \
-	nm/mgr/nm_mgr-nm_mgr_sql.$(OBJEXT) \
-	nm/mgr/nm_mgr-ui_input.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT) \
-	nm/mgr/nm_mgr-mgr_db.$(OBJEXT) \
-	nm/mgr/nm_mgr-adm_LtpAgent_mgr.$(OBJEXT) \
-	nm/mgr/nm_mgr-adm_ion_admin_mgr.$(OBJEXT) \
-	nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-nm_mgr_rx.$(OBJEXT) \
+	nm/mgr/nm_mgr-nm_mgr_sql.$(OBJEXT) \
+	nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT) \
+	nm/mgr/nm_mgr-ui_input.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm.$(OBJEXT) \
-	nm/shared/adm/nm_mgr-adm_bp.$(OBJEXT) \
-	nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT) \
-	nm/shared/adm/nm_mgr-adm_ion.$(OBJEXT) \
 	nm/shared/adm/nm_mgr-adm_agent.$(OBJEXT) \
 	nm/shared/msg/nm_mgr-msg_admin.$(OBJEXT) \
 	nm/shared/msg/nm_mgr-msg_ctrl.$(OBJEXT) \
 	nm/shared/msg/nm_mgr-pdu.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-var.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-expr.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-admin.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-blob.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-ctrl.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-def.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-dc.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-expr.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-lit.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-mid.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-nn.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-oid.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-report.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-rules.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-dc.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-value.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-lit.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-nn.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-tdc.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-ctrl.$(OBJEXT) \
-	nm/shared/primitives/nm_mgr-blob.$(OBJEXT) \
 	nm/shared/primitives/nm_mgr-table.$(OBJEXT) \
-	nm/shared/utils/nm_mgr-ion_if.$(OBJEXT) \
-	nm/shared/utils/nm_mgr-utils.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-tdc.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-value.$(OBJEXT) \
+	nm/shared/primitives/nm_mgr-var.$(OBJEXT) \
 	nm/shared/utils/nm_mgr-db.$(OBJEXT) \
+	nm/shared/utils/nm_mgr-ion_if.$(OBJEXT) \
 	nm/shared/utils/nm_mgr-nm_types.$(OBJEXT) \
+	nm/shared/utils/nm_mgr-utils.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_bp_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_bpsec_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_ion_admin_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.$(OBJEXT) \
 	nm/mgr/nm_mgr-adm_ionsec_admin_mgr.$(OBJEXT) \
-	nm/mgr/nm_mgr-adm_bpsec_mgr.$(OBJEXT)
+	nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.$(OBJEXT) \
+	nm/mgr/nm_mgr-adm_ltp_agent_mgr.$(OBJEXT)
 nm_mgr_OBJECTS = $(am_nm_mgr_OBJECTS)
 nm_mgr_DEPENDENCIES = libici.la libbp.la libltp.la $(LIBOBJS)
 nm_mgr_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -3218,25 +3220,55 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 #                                        
 ##########################
 nmbin = nm_agent nm_mgr
-nm_agent_SOURCES = nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
-                    nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
-                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
-                   	nm/agent/adm_ion_admin_impl.c 		nm/agent/adm_ion_admin_agent.c \
-					nm/agent/adm_ion_bp_admin_impl.c 	nm/agent/adm_ion_bp_admin_agent.c \
-					nm/agent/adm_ionsec_admin_impl.c	nm/agent/adm_ionsec_admin_agent.c \
-					nm/agent/adm_LtpAgent_impl.c 		nm/agent/adm_LtpAgent_agent.c \
-                    nm/shared/adm/adm.c	nm/shared/adm/adm_ion.c \
-					nm/shared/adm/adm_ltp.c	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
-					nm/shared/adm/adm_agent.c 	nm/agent/adm_bpsec_impl.c \
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c  
+nm_agent_SOURCES = nm/agent/agent_db.c 			\
+					nm/agent/ingest.c  				\
+					nm/agent/instr.c				\
+					nm/agent/lcc.c     				\
+					nm/agent/ldc.c 					\
+					nm/agent/nmagent.c 				\
+                    nm/agent/rda.c 					\
+                    nm/shared/adm/adm.c				\
+                    nm/shared/adm/adm_agent.c 		\
+					nm/shared/msg/msg_admin.c		\
+					nm/shared/msg/msg_ctrl.c 		\
+					nm/shared/msg/pdu.c				\
+					nm/shared/primitives/admin.c 	\
+					nm/shared/primitives/blob.c		\
+					nm/shared/primitives/ctrl.c		\
+					nm/shared/primitives/dc.c 		\
+					nm/shared/primitives/def.c		\
+					nm/shared/primitives/expr.c		\
+					nm/shared/primitives/lit.c		\
+					nm/shared/primitives/mid.c		\
+					nm/shared/primitives/nn.c		\
+					nm/shared/primitives/oid.c		\
+					nm/shared/primitives/report.c 	\
+					nm/shared/primitives/rules.c 	\
+				 	nm/shared/primitives/table.c 	\
+ 	    			nm/shared/primitives/tdc.c		\
+					nm/shared/primitives/value.c    \
+					nm/shared/primitives/var.c 	   	\
+					nm/shared/utils/db.c			\
+					nm/shared/utils/ion_if.c		\
+					nm/shared/utils/nm_types.c 		\
+					nm/shared/utils/utils.c         \
+					nm/agent/adm_agent_impl.c 		\
+					nm/agent/adm_bp_agent.c 		\
+					nm/agent/adm_bp_impl.c			\
+					nm/agent/adm_bpsec_agent.c 		\
+					nm/agent/adm_bpsec_impl.c		\
+					nm/agent/adm_ion_admin_agent.c 	\
+					nm/agent/adm_ion_admin_impl.c	\
+					nm/agent/adm_ion_bp_admin_agent.c 	\
+					nm/agent/adm_ion_bp_admin_impl.c	\
+					nm/agent/adm_ion_ipn_admin_agent.c 	\
+					nm/agent/adm_ion_ipn_admin_impl.c	\
+					nm/agent/adm_ionsec_admin_agent.c 	\
+					nm/agent/adm_ionsec_admin_impl.c	\
+					nm/agent/adm_ion_ltp_admin_agent.c	\
+					nm/agent/adm_ion_ltp_admin_impl.c	\
+					nm/agent/adm_ltp_agent_agent.c	\
+					nm/agent/adm_ltp_agent_impl.c 		 
 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -lm -lpthread
@@ -3244,23 +3276,47 @@ nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library 
                   -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
 
-nm_mgr_SOURCES = nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
-					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
-					nm/mgr/adm_LtpAgent_mgr.c \
-					nm/mgr/adm_ion_admin_mgr.c \
-					nm/mgr/adm_IonBpAdmin_mgr.c \
-					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
-					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c    nm/shared/primitives/expr.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c    nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c   nm/mgr/adm_ionsec_admin_mgr.c  nm/mgr/adm_bpsec_mgr.c
+nm_mgr_SOURCES = nm/mgr/mgr_db.c 				\
+					nm/mgr/nm_mgr.c					\
+					nm/mgr/nm_mgr_names.c        	\
+					nm/mgr/nm_mgr_print.c 		 	\
+					nm/mgr/nm_mgr_rx.c             	\
+					nm/mgr/nm_mgr_sql.c             \
+					nm/mgr/nm_mgr_ui.c 				\
+					nm/mgr/ui_input.c 				\
+					nm/shared/adm/adm.c          	\
+					nm/shared/adm/adm_agent.c 		\
+					nm/shared/msg/msg_admin.c    	\
+					nm/shared/msg/msg_ctrl.c       	\
+					nm/shared/msg/pdu.c 			\
+					nm/shared/primitives/admin.c 	\
+					nm/shared/primitives/blob.c    	\
+					nm/shared/primitives/ctrl.c  	\
+					nm/shared/primitives/def.c     	\
+					nm/shared/primitives/dc.c  	 	\
+					nm/shared/primitives/expr.c 	\
+					nm/shared/primitives/lit.c 		\
+					nm/shared/primitives/mid.c 		\
+					nm/shared/primitives/nn.c 	  	\
+					nm/shared/primitives/oid.c   	\
+					nm/shared/primitives/report.c  	\
+					nm/shared/primitives/rules.c 	\
+					nm/shared/primitives/table.c 	\
+					nm/shared/primitives/tdc.c		\
+					nm/shared/primitives/value.c   	\
+					nm/shared/primitives/var.c    	\
+					nm/shared/utils/db.c 			\
+					nm/shared/utils/ion_if.c     	\
+					nm/shared/utils/nm_types.c   	\
+					nm/shared/utils/utils.c        	\
+					nm/mgr/adm_bp_mgr.c				\
+					nm/mgr/adm_bpsec_mgr.c			\
+					nm/mgr/adm_ion_admin_mgr.c 		\
+					nm/mgr/adm_ion_bp_admin_mgr.c	\
+					nm/mgr/adm_ion_ipn_admin_mgr.c	\
+					nm/mgr/adm_ionsec_admin_mgr.c  	\
+					nm/mgr/adm_ion_ltp_admin_mgr.c	\
+					nm/mgr/adm_ltp_agent_mgr.c 		
 
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
@@ -4751,7 +4807,11 @@ nm/agent/$(am__dirstamp):
 nm/agent/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) nm/agent/$(DEPDIR)
 	@: > nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-agent_db.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-ingest.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-instr.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-lcc.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
@@ -4761,37 +4821,6 @@ nm/agent/nm_agent-nmagent.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-rda.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/$(am__dirstamp):
-	@$(MKDIR_P) nm/shared/primitives
-	@: > nm/shared/primitives/$(am__dirstamp)
-nm/shared/primitives/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) nm/shared/primitives/$(DEPDIR)
-	@: > nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-expr.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-agent_db.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ion_priv.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ltp_priv.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ion_admin_impl.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ion_admin_agent.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ion_bp_admin_impl.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ion_bp_admin_agent.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ionsec_admin_impl.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ionsec_admin_agent.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_LtpAgent_impl.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_LtpAgent_agent.$(OBJEXT):  \
-	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/$(am__dirstamp):
 	@$(MKDIR_P) nm/shared/adm
 	@: > nm/shared/adm/$(am__dirstamp)
@@ -4800,21 +4829,9 @@ nm/shared/adm/$(DEPDIR)/$(am__dirstamp):
 	@: > nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_agent-adm.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_agent-adm_ion.$(OBJEXT):  \
-	nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_agent-adm_ltp.$(OBJEXT):  \
-	nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_agent_impl.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_bp_impl.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_agent-adm_agent.$(OBJEXT):  \
 	nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_bpsec_impl.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/shared/msg/$(am__dirstamp):
 	@$(MKDIR_P) nm/shared/msg
 	@: > nm/shared/msg/$(am__dirstamp)
@@ -4829,19 +4846,37 @@ nm/shared/msg/nm_agent-msg_ctrl.$(OBJEXT):  \
 	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
 nm/shared/msg/nm_agent-pdu.$(OBJEXT): nm/shared/msg/$(am__dirstamp) \
 	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-var.$(OBJEXT):  \
+nm/shared/primitives/$(am__dirstamp):
+	@$(MKDIR_P) nm/shared/primitives
+	@: > nm/shared/primitives/$(am__dirstamp)
+nm/shared/primitives/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) nm/shared/primitives/$(DEPDIR)
+	@: > nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_agent-admin.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_agent-blob.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-admin.$(OBJEXT):  \
+nm/shared/primitives/nm_agent-ctrl.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_agent-dc.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_agent-def.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_agent-expr.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_agent-lit.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_agent-mid.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_agent-nn.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_agent-oid.$(OBJEXT):  \
@@ -4853,27 +4888,16 @@ nm/shared/primitives/nm_agent-report.$(OBJEXT):  \
 nm/shared/primitives/nm_agent-rules.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-dc.$(OBJEXT):  \
+nm/shared/primitives/nm_agent-table.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_agent-tdc.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_agent-value.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-lit.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-nn.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-instr.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-tdc.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-ctrl.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_agent-table.$(OBJEXT):  \
+nm/shared/primitives/nm_agent-var.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/$(am__dirstamp):
@@ -4882,18 +4906,52 @@ nm/shared/utils/$(am__dirstamp):
 nm/shared/utils/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) nm/shared/utils/$(DEPDIR)
 	@: > nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/shared/utils/nm_agent-ion_if.$(OBJEXT):  \
-	nm/shared/utils/$(am__dirstamp) \
-	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/shared/utils/nm_agent-utils.$(OBJEXT):  \
-	nm/shared/utils/$(am__dirstamp) \
-	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/nm_agent-db.$(OBJEXT):  \
+	nm/shared/utils/$(am__dirstamp) \
+	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
+nm/shared/utils/nm_agent-ion_if.$(OBJEXT):  \
 	nm/shared/utils/$(am__dirstamp) \
 	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/nm_agent-nm_types.$(OBJEXT):  \
 	nm/shared/utils/$(am__dirstamp) \
 	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
+nm/shared/utils/nm_agent-utils.$(OBJEXT):  \
+	nm/shared/utils/$(am__dirstamp) \
+	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_agent_impl.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_bp_agent.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_bp_impl.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_bpsec_agent.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_bpsec_impl.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_admin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_admin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_bp_admin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_bp_admin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_ipn_admin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_ipn_admin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ionsec_admin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ionsec_admin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_ltp_admin_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ion_ltp_admin_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ltp_agent_agent.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-adm_ltp_agent_impl.$(OBJEXT):  \
+	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
 
 nm_agent$(EXEEXT): $(nm_agent_OBJECTS) $(nm_agent_DEPENDENCIES) $(EXTRA_nm_agent_DEPENDENCIES) 
 	@rm -f nm_agent$(EXEEXT)
@@ -4904,35 +4962,23 @@ nm/mgr/$(am__dirstamp):
 nm/mgr/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) nm/mgr/$(DEPDIR)
 	@: > nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-mgr_db.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-nm_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-nm_mgr_rx.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-nm_mgr_names.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-nm_mgr_rx.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-nm_mgr_sql.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-ui_input.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-nm_mgr_print.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-mgr_db.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-adm_LtpAgent_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-adm_ion_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
-	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_mgr-adm.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_mgr-adm_bp.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_mgr-adm_ltp.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
-	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
-nm/shared/adm/nm_mgr-adm_ion.$(OBJEXT): nm/shared/adm/$(am__dirstamp) \
 	nm/shared/adm/$(DEPDIR)/$(am__dirstamp)
 nm/shared/adm/nm_mgr-adm_agent.$(OBJEXT):  \
 	nm/shared/adm/$(am__dirstamp) \
@@ -4945,19 +4991,31 @@ nm/shared/msg/nm_mgr-msg_ctrl.$(OBJEXT):  \
 	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
 nm/shared/msg/nm_mgr-pdu.$(OBJEXT): nm/shared/msg/$(am__dirstamp) \
 	nm/shared/msg/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-var.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-expr.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_mgr-admin.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_mgr-blob.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_mgr-ctrl.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_mgr-def.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_mgr-dc.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_mgr-expr.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_mgr-lit.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_mgr-mid.$(OBJEXT):  \
+	nm/shared/primitives/$(am__dirstamp) \
+	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/primitives/nm_mgr-nn.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_mgr-oid.$(OBJEXT):  \
@@ -4969,44 +5027,44 @@ nm/shared/primitives/nm_mgr-report.$(OBJEXT):  \
 nm/shared/primitives/nm_mgr-rules.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-dc.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-value.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-lit.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-nn.$(OBJEXT):  \
+nm/shared/primitives/nm_mgr-table.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
 nm/shared/primitives/nm_mgr-tdc.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-ctrl.$(OBJEXT):  \
+nm/shared/primitives/nm_mgr-value.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-blob.$(OBJEXT):  \
+nm/shared/primitives/nm_mgr-var.$(OBJEXT):  \
 	nm/shared/primitives/$(am__dirstamp) \
 	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
-nm/shared/primitives/nm_mgr-table.$(OBJEXT):  \
-	nm/shared/primitives/$(am__dirstamp) \
-	nm/shared/primitives/$(DEPDIR)/$(am__dirstamp)
+nm/shared/utils/nm_mgr-db.$(OBJEXT): nm/shared/utils/$(am__dirstamp) \
+	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/nm_mgr-ion_if.$(OBJEXT):  \
+	nm/shared/utils/$(am__dirstamp) \
+	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
+nm/shared/utils/nm_mgr-nm_types.$(OBJEXT):  \
 	nm/shared/utils/$(am__dirstamp) \
 	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
 nm/shared/utils/nm_mgr-utils.$(OBJEXT):  \
 	nm/shared/utils/$(am__dirstamp) \
 	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/shared/utils/nm_mgr-db.$(OBJEXT): nm/shared/utils/$(am__dirstamp) \
-	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/shared/utils/nm_mgr-nm_types.$(OBJEXT):  \
-	nm/shared/utils/$(am__dirstamp) \
-	nm/shared/utils/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-adm_ionsec_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+nm/mgr/nm_mgr-adm_bp_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-adm_bpsec_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_ion_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_ionsec_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+	nm/mgr/$(DEPDIR)/$(am__dirstamp)
+nm/mgr/nm_mgr-adm_ltp_agent_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 
 nm_mgr$(EXEEXT): $(nm_mgr_OBJECTS) $(nm_mgr_DEPENDENCIES) $(EXTRA_nm_mgr_DEPENDENCIES) 
@@ -5683,19 +5741,23 @@ include ltp/test/$(DEPDIR)/sdatest-sdatest.Po
 include ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
 include ltp/udp/$(DEPDIR)/udplso-udplso.Po
 include ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
-include nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Po
-include nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Po
-include nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Po
 include nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Po
-include nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-agent_db.Po
 include nm/agent/$(DEPDIR)/nm_agent-ingest.Po
 include nm/agent/$(DEPDIR)/nm_agent-instr.Po
@@ -5703,11 +5765,14 @@ include nm/agent/$(DEPDIR)/nm_agent-lcc.Po
 include nm/agent/$(DEPDIR)/nm_agent-ldc.Po
 include nm/agent/$(DEPDIR)/nm_agent-nmagent.Po
 include nm/agent/$(DEPDIR)/nm_agent-rda.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-adm_ionsec_admin_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
@@ -5718,13 +5783,8 @@ include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
 include nm/shared/adm/$(DEPDIR)/nm_agent-adm.Po
 include nm/shared/adm/$(DEPDIR)/nm_agent-adm_agent.Po
-include nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Po
-include nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Po
 include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Po
-include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Po
-include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Po
-include nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
 include nm/shared/msg/$(DEPDIR)/nm_agent-msg_admin.Po
 include nm/shared/msg/$(DEPDIR)/nm_agent-msg_ctrl.Po
 include nm/shared/msg/$(DEPDIR)/nm_agent-pdu.Po
@@ -7797,6 +7857,20 @@ ltp/daemon/ltpmeter-ltpmeter.obj: ltp/daemon/ltpmeter.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ltpmeter_CFLAGS) $(CFLAGS) -c -o ltp/daemon/ltpmeter-ltpmeter.obj `if test -f 'ltp/daemon/ltpmeter.c'; then $(CYGPATH_W) 'ltp/daemon/ltpmeter.c'; else $(CYGPATH_W) '$(srcdir)/ltp/daemon/ltpmeter.c'; fi`
 
+nm/agent/nm_agent-agent_db.o: nm/agent/agent_db.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-agent_db.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo -c -o nm/agent/nm_agent-agent_db.o `test -f 'nm/agent/agent_db.c' || echo '$(srcdir)/'`nm/agent/agent_db.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo nm/agent/$(DEPDIR)/nm_agent-agent_db.Po
+#	$(AM_V_CC)source='nm/agent/agent_db.c' object='nm/agent/nm_agent-agent_db.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-agent_db.o `test -f 'nm/agent/agent_db.c' || echo '$(srcdir)/'`nm/agent/agent_db.c
+
+nm/agent/nm_agent-agent_db.obj: nm/agent/agent_db.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-agent_db.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo -c -o nm/agent/nm_agent-agent_db.obj `if test -f 'nm/agent/agent_db.c'; then $(CYGPATH_W) 'nm/agent/agent_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/agent_db.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo nm/agent/$(DEPDIR)/nm_agent-agent_db.Po
+#	$(AM_V_CC)source='nm/agent/agent_db.c' object='nm/agent/nm_agent-agent_db.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-agent_db.obj `if test -f 'nm/agent/agent_db.c'; then $(CYGPATH_W) 'nm/agent/agent_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/agent_db.c'; fi`
+
 nm/agent/nm_agent-ingest.o: nm/agent/ingest.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-ingest.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-ingest.Tpo -c -o nm/agent/nm_agent-ingest.o `test -f 'nm/agent/ingest.c' || echo '$(srcdir)/'`nm/agent/ingest.c
 	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-ingest.Tpo nm/agent/$(DEPDIR)/nm_agent-ingest.Po
@@ -7810,6 +7884,20 @@ nm/agent/nm_agent-ingest.obj: nm/agent/ingest.c
 #	$(AM_V_CC)source='nm/agent/ingest.c' object='nm/agent/nm_agent-ingest.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-ingest.obj `if test -f 'nm/agent/ingest.c'; then $(CYGPATH_W) 'nm/agent/ingest.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/ingest.c'; fi`
+
+nm/agent/nm_agent-instr.o: nm/agent/instr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-instr.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-instr.Tpo -c -o nm/agent/nm_agent-instr.o `test -f 'nm/agent/instr.c' || echo '$(srcdir)/'`nm/agent/instr.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-instr.Tpo nm/agent/$(DEPDIR)/nm_agent-instr.Po
+#	$(AM_V_CC)source='nm/agent/instr.c' object='nm/agent/nm_agent-instr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-instr.o `test -f 'nm/agent/instr.c' || echo '$(srcdir)/'`nm/agent/instr.c
+
+nm/agent/nm_agent-instr.obj: nm/agent/instr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-instr.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-instr.Tpo -c -o nm/agent/nm_agent-instr.obj `if test -f 'nm/agent/instr.c'; then $(CYGPATH_W) 'nm/agent/instr.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/instr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-instr.Tpo nm/agent/$(DEPDIR)/nm_agent-instr.Po
+#	$(AM_V_CC)source='nm/agent/instr.c' object='nm/agent/nm_agent-instr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-instr.obj `if test -f 'nm/agent/instr.c'; then $(CYGPATH_W) 'nm/agent/instr.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/instr.c'; fi`
 
 nm/agent/nm_agent-lcc.o: nm/agent/lcc.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-lcc.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-lcc.Tpo -c -o nm/agent/nm_agent-lcc.o `test -f 'nm/agent/lcc.c' || echo '$(srcdir)/'`nm/agent/lcc.c
@@ -7867,174 +7955,6 @@ nm/agent/nm_agent-rda.obj: nm/agent/rda.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-rda.obj `if test -f 'nm/agent/rda.c'; then $(CYGPATH_W) 'nm/agent/rda.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/rda.c'; fi`
 
-nm/shared/primitives/nm_agent-expr.o: nm/shared/primitives/expr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-expr.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo -c -o nm/shared/primitives/nm_agent-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Po
-#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_agent-expr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
-
-nm/shared/primitives/nm_agent-expr.obj: nm/shared/primitives/expr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-expr.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo -c -o nm/shared/primitives/nm_agent-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Po
-#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_agent-expr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
-
-nm/agent/nm_agent-agent_db.o: nm/agent/agent_db.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-agent_db.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo -c -o nm/agent/nm_agent-agent_db.o `test -f 'nm/agent/agent_db.c' || echo '$(srcdir)/'`nm/agent/agent_db.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo nm/agent/$(DEPDIR)/nm_agent-agent_db.Po
-#	$(AM_V_CC)source='nm/agent/agent_db.c' object='nm/agent/nm_agent-agent_db.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-agent_db.o `test -f 'nm/agent/agent_db.c' || echo '$(srcdir)/'`nm/agent/agent_db.c
-
-nm/agent/nm_agent-agent_db.obj: nm/agent/agent_db.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-agent_db.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo -c -o nm/agent/nm_agent-agent_db.obj `if test -f 'nm/agent/agent_db.c'; then $(CYGPATH_W) 'nm/agent/agent_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/agent_db.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-agent_db.Tpo nm/agent/$(DEPDIR)/nm_agent-agent_db.Po
-#	$(AM_V_CC)source='nm/agent/agent_db.c' object='nm/agent/nm_agent-agent_db.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-agent_db.obj `if test -f 'nm/agent/agent_db.c'; then $(CYGPATH_W) 'nm/agent/agent_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/agent_db.c'; fi`
-
-nm/agent/nm_agent-adm_ion_priv.o: nm/agent/adm_ion_priv.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_priv.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Tpo -c -o nm/agent/nm_agent-adm_ion_priv.o `test -f 'nm/agent/adm_ion_priv.c' || echo '$(srcdir)/'`nm/agent/adm_ion_priv.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_priv.c' object='nm/agent/nm_agent-adm_ion_priv.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_priv.o `test -f 'nm/agent/adm_ion_priv.c' || echo '$(srcdir)/'`nm/agent/adm_ion_priv.c
-
-nm/agent/nm_agent-adm_ion_priv.obj: nm/agent/adm_ion_priv.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_priv.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Tpo -c -o nm/agent/nm_agent-adm_ion_priv.obj `if test -f 'nm/agent/adm_ion_priv.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_priv.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_priv.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_priv.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_priv.c' object='nm/agent/nm_agent-adm_ion_priv.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_priv.obj `if test -f 'nm/agent/adm_ion_priv.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_priv.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_priv.c'; fi`
-
-nm/agent/nm_agent-adm_ltp_priv.o: nm/agent/adm_ltp_priv.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_priv.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Tpo -c -o nm/agent/nm_agent-adm_ltp_priv.o `test -f 'nm/agent/adm_ltp_priv.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_priv.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Po
-#	$(AM_V_CC)source='nm/agent/adm_ltp_priv.c' object='nm/agent/nm_agent-adm_ltp_priv.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_priv.o `test -f 'nm/agent/adm_ltp_priv.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_priv.c
-
-nm/agent/nm_agent-adm_ltp_priv.obj: nm/agent/adm_ltp_priv.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_priv.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Tpo -c -o nm/agent/nm_agent-adm_ltp_priv.obj `if test -f 'nm/agent/adm_ltp_priv.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_priv.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_priv.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_priv.Po
-#	$(AM_V_CC)source='nm/agent/adm_ltp_priv.c' object='nm/agent/nm_agent-adm_ltp_priv.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_priv.obj `if test -f 'nm/agent/adm_ltp_priv.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_priv.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_priv.c'; fi`
-
-nm/agent/nm_agent-adm_ion_admin_impl.o: nm/agent/adm_ion_admin_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_impl.o `test -f 'nm/agent/adm_ion_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_admin_impl.c' object='nm/agent/nm_agent-adm_ion_admin_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_impl.o `test -f 'nm/agent/adm_ion_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_impl.c
-
-nm/agent/nm_agent-adm_ion_admin_impl.obj: nm/agent/adm_ion_admin_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_impl.obj `if test -f 'nm/agent/adm_ion_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_admin_impl.c' object='nm/agent/nm_agent-adm_ion_admin_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_impl.obj `if test -f 'nm/agent/adm_ion_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_impl.c'; fi`
-
-nm/agent/nm_agent-adm_ion_admin_agent.o: nm/agent/adm_ion_admin_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_agent.o `test -f 'nm/agent/adm_ion_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_agent.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_admin_agent.c' object='nm/agent/nm_agent-adm_ion_admin_agent.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_agent.o `test -f 'nm/agent/adm_ion_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_agent.c
-
-nm/agent/nm_agent-adm_ion_admin_agent.obj: nm/agent/adm_ion_admin_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_agent.obj `if test -f 'nm/agent/adm_ion_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_agent.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_admin_agent.c' object='nm/agent/nm_agent-adm_ion_admin_agent.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_agent.obj `if test -f 'nm/agent/adm_ion_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_agent.c'; fi`
-
-nm/agent/nm_agent-adm_ion_bp_admin_impl.o: nm/agent/adm_ion_bp_admin_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.o `test -f 'nm/agent/adm_ion_bp_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_impl.c' object='nm/agent/nm_agent-adm_ion_bp_admin_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.o `test -f 'nm/agent/adm_ion_bp_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_impl.c
-
-nm/agent/nm_agent-adm_ion_bp_admin_impl.obj: nm/agent/adm_ion_bp_admin_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.obj `if test -f 'nm/agent/adm_ion_bp_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_impl.c' object='nm/agent/nm_agent-adm_ion_bp_admin_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.obj `if test -f 'nm/agent/adm_ion_bp_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_impl.c'; fi`
-
-nm/agent/nm_agent-adm_ion_bp_admin_agent.o: nm/agent/adm_ion_bp_admin_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.o `test -f 'nm/agent/adm_ion_bp_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_agent.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_agent.c' object='nm/agent/nm_agent-adm_ion_bp_admin_agent.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.o `test -f 'nm/agent/adm_ion_bp_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_agent.c
-
-nm/agent/nm_agent-adm_ion_bp_admin_agent.obj: nm/agent/adm_ion_bp_admin_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.obj `if test -f 'nm/agent/adm_ion_bp_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_agent.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_agent.c' object='nm/agent/nm_agent-adm_ion_bp_admin_agent.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.obj `if test -f 'nm/agent/adm_ion_bp_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_agent.c'; fi`
-
-nm/agent/nm_agent-adm_ionsec_admin_impl.o: nm/agent/adm_ionsec_admin_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.o `test -f 'nm/agent/adm_ionsec_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_impl.c' object='nm/agent/nm_agent-adm_ionsec_admin_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.o `test -f 'nm/agent/adm_ionsec_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_impl.c
-
-nm/agent/nm_agent-adm_ionsec_admin_impl.obj: nm/agent/adm_ionsec_admin_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.obj `if test -f 'nm/agent/adm_ionsec_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_impl.c' object='nm/agent/nm_agent-adm_ionsec_admin_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.obj `if test -f 'nm/agent/adm_ionsec_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_impl.c'; fi`
-
-nm/agent/nm_agent-adm_ionsec_admin_agent.o: nm/agent/adm_ionsec_admin_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.o `test -f 'nm/agent/adm_ionsec_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_agent.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_agent.c' object='nm/agent/nm_agent-adm_ionsec_admin_agent.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.o `test -f 'nm/agent/adm_ionsec_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_agent.c
-
-nm/agent/nm_agent-adm_ionsec_admin_agent.obj: nm/agent/adm_ionsec_admin_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.obj `if test -f 'nm/agent/adm_ionsec_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_agent.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_agent.c' object='nm/agent/nm_agent-adm_ionsec_admin_agent.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.obj `if test -f 'nm/agent/adm_ionsec_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_agent.c'; fi`
-
-nm/agent/nm_agent-adm_LtpAgent_impl.o: nm/agent/adm_LtpAgent_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_LtpAgent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Tpo -c -o nm/agent/nm_agent-adm_LtpAgent_impl.o `test -f 'nm/agent/adm_LtpAgent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_LtpAgent_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_LtpAgent_impl.c' object='nm/agent/nm_agent-adm_LtpAgent_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_LtpAgent_impl.o `test -f 'nm/agent/adm_LtpAgent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_LtpAgent_impl.c
-
-nm/agent/nm_agent-adm_LtpAgent_impl.obj: nm/agent/adm_LtpAgent_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_LtpAgent_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Tpo -c -o nm/agent/nm_agent-adm_LtpAgent_impl.obj `if test -f 'nm/agent/adm_LtpAgent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_LtpAgent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_LtpAgent_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_LtpAgent_impl.c' object='nm/agent/nm_agent-adm_LtpAgent_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_LtpAgent_impl.obj `if test -f 'nm/agent/adm_LtpAgent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_LtpAgent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_LtpAgent_impl.c'; fi`
-
-nm/agent/nm_agent-adm_LtpAgent_agent.o: nm/agent/adm_LtpAgent_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_LtpAgent_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Tpo -c -o nm/agent/nm_agent-adm_LtpAgent_agent.o `test -f 'nm/agent/adm_LtpAgent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_LtpAgent_agent.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_LtpAgent_agent.c' object='nm/agent/nm_agent-adm_LtpAgent_agent.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_LtpAgent_agent.o `test -f 'nm/agent/adm_LtpAgent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_LtpAgent_agent.c
-
-nm/agent/nm_agent-adm_LtpAgent_agent.obj: nm/agent/adm_LtpAgent_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_LtpAgent_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Tpo -c -o nm/agent/nm_agent-adm_LtpAgent_agent.obj `if test -f 'nm/agent/adm_LtpAgent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_LtpAgent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_LtpAgent_agent.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_LtpAgent_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_LtpAgent_agent.c' object='nm/agent/nm_agent-adm_LtpAgent_agent.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_LtpAgent_agent.obj `if test -f 'nm/agent/adm_LtpAgent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_LtpAgent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_LtpAgent_agent.c'; fi`
-
 nm/shared/adm/nm_agent-adm.o: nm/shared/adm/adm.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_agent-adm.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_agent-adm.Tpo -c -o nm/shared/adm/nm_agent-adm.o `test -f 'nm/shared/adm/adm.c' || echo '$(srcdir)/'`nm/shared/adm/adm.c
 	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_agent-adm.Tpo nm/shared/adm/$(DEPDIR)/nm_agent-adm.Po
@@ -8049,62 +7969,6 @@ nm/shared/adm/nm_agent-adm.obj: nm/shared/adm/adm.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_agent-adm.obj `if test -f 'nm/shared/adm/adm.c'; then $(CYGPATH_W) 'nm/shared/adm/adm.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm.c'; fi`
 
-nm/shared/adm/nm_agent-adm_ion.o: nm/shared/adm/adm_ion.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_agent-adm_ion.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Tpo -c -o nm/shared/adm/nm_agent-adm_ion.o `test -f 'nm/shared/adm/adm_ion.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ion.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Tpo nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ion.c' object='nm/shared/adm/nm_agent-adm_ion.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_agent-adm_ion.o `test -f 'nm/shared/adm/adm_ion.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ion.c
-
-nm/shared/adm/nm_agent-adm_ion.obj: nm/shared/adm/adm_ion.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_agent-adm_ion.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Tpo -c -o nm/shared/adm/nm_agent-adm_ion.obj `if test -f 'nm/shared/adm/adm_ion.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ion.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ion.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Tpo nm/shared/adm/$(DEPDIR)/nm_agent-adm_ion.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ion.c' object='nm/shared/adm/nm_agent-adm_ion.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_agent-adm_ion.obj `if test -f 'nm/shared/adm/adm_ion.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ion.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ion.c'; fi`
-
-nm/shared/adm/nm_agent-adm_ltp.o: nm/shared/adm/adm_ltp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_agent-adm_ltp.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Tpo -c -o nm/shared/adm/nm_agent-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_agent-adm_ltp.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_agent-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
-
-nm/shared/adm/nm_agent-adm_ltp.obj: nm/shared/adm/adm_ltp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_agent-adm_ltp.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Tpo -c -o nm/shared/adm/nm_agent-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_agent-adm_ltp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_agent-adm_ltp.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_agent-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
-
-nm/agent/nm_agent-adm_agent_impl.o: nm/agent/adm_agent_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_agent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_agent_impl.o `test -f 'nm/agent/adm_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_agent_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_agent_impl.c' object='nm/agent/nm_agent-adm_agent_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_agent_impl.o `test -f 'nm/agent/adm_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_agent_impl.c
-
-nm/agent/nm_agent-adm_agent_impl.obj: nm/agent/adm_agent_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_agent_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_agent_impl.obj `if test -f 'nm/agent/adm_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_agent_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_agent_impl.c' object='nm/agent/nm_agent-adm_agent_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_agent_impl.obj `if test -f 'nm/agent/adm_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_agent_impl.c'; fi`
-
-nm/agent/nm_agent-adm_bp_impl.o: nm/agent/adm_bp_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bp_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo -c -o nm/agent/nm_agent-adm_bp_impl.o `test -f 'nm/agent/adm_bp_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bp_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_bp_impl.c' object='nm/agent/nm_agent-adm_bp_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bp_impl.o `test -f 'nm/agent/adm_bp_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bp_impl.c
-
-nm/agent/nm_agent-adm_bp_impl.obj: nm/agent/adm_bp_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bp_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo -c -o nm/agent/nm_agent-adm_bp_impl.obj `if test -f 'nm/agent/adm_bp_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bp_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bp_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_bp_impl.c' object='nm/agent/nm_agent-adm_bp_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bp_impl.obj `if test -f 'nm/agent/adm_bp_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bp_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bp_impl.c'; fi`
-
 nm/shared/adm/nm_agent-adm_agent.o: nm/shared/adm/adm_agent.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_agent-adm_agent.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_agent-adm_agent.Tpo -c -o nm/shared/adm/nm_agent-adm_agent.o `test -f 'nm/shared/adm/adm_agent.c' || echo '$(srcdir)/'`nm/shared/adm/adm_agent.c
 	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_agent-adm_agent.Tpo nm/shared/adm/$(DEPDIR)/nm_agent-adm_agent.Po
@@ -8118,20 +7982,6 @@ nm/shared/adm/nm_agent-adm_agent.obj: nm/shared/adm/adm_agent.c
 #	$(AM_V_CC)source='nm/shared/adm/adm_agent.c' object='nm/shared/adm/nm_agent-adm_agent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_agent-adm_agent.obj `if test -f 'nm/shared/adm/adm_agent.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_agent.c'; fi`
-
-nm/agent/nm_agent-adm_bpsec_impl.o: nm/agent/adm_bpsec_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bpsec_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo -c -o nm/agent/nm_agent-adm_bpsec_impl.o `test -f 'nm/agent/adm_bpsec_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bpsec_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_bpsec_impl.c' object='nm/agent/nm_agent-adm_bpsec_impl.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bpsec_impl.o `test -f 'nm/agent/adm_bpsec_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bpsec_impl.c
-
-nm/agent/nm_agent-adm_bpsec_impl.obj: nm/agent/adm_bpsec_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bpsec_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo -c -o nm/agent/nm_agent-adm_bpsec_impl.obj `if test -f 'nm/agent/adm_bpsec_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bpsec_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bpsec_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_bpsec_impl.c' object='nm/agent/nm_agent-adm_bpsec_impl.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bpsec_impl.obj `if test -f 'nm/agent/adm_bpsec_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bpsec_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bpsec_impl.c'; fi`
 
 nm/shared/msg/nm_agent-msg_admin.o: nm/shared/msg/msg_admin.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/msg/nm_agent-msg_admin.o -MD -MP -MF nm/shared/msg/$(DEPDIR)/nm_agent-msg_admin.Tpo -c -o nm/shared/msg/nm_agent-msg_admin.o `test -f 'nm/shared/msg/msg_admin.c' || echo '$(srcdir)/'`nm/shared/msg/msg_admin.c
@@ -8175,19 +8025,19 @@ nm/shared/msg/nm_agent-pdu.obj: nm/shared/msg/pdu.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_agent-pdu.obj `if test -f 'nm/shared/msg/pdu.c'; then $(CYGPATH_W) 'nm/shared/msg/pdu.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/pdu.c'; fi`
 
-nm/shared/primitives/nm_agent-var.o: nm/shared/primitives/var.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-var.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo -c -o nm/shared/primitives/nm_agent-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-var.Po
-#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_agent-var.o' libtool=no \
+nm/shared/primitives/nm_agent-admin.o: nm/shared/primitives/admin.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-admin.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo -c -o nm/shared/primitives/nm_agent-admin.o `test -f 'nm/shared/primitives/admin.c' || echo '$(srcdir)/'`nm/shared/primitives/admin.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Po
+#	$(AM_V_CC)source='nm/shared/primitives/admin.c' object='nm/shared/primitives/nm_agent-admin.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-admin.o `test -f 'nm/shared/primitives/admin.c' || echo '$(srcdir)/'`nm/shared/primitives/admin.c
 
-nm/shared/primitives/nm_agent-var.obj: nm/shared/primitives/var.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-var.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo -c -o nm/shared/primitives/nm_agent-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-var.Po
-#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_agent-var.obj' libtool=no \
+nm/shared/primitives/nm_agent-admin.obj: nm/shared/primitives/admin.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-admin.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo -c -o nm/shared/primitives/nm_agent-admin.obj `if test -f 'nm/shared/primitives/admin.c'; then $(CYGPATH_W) 'nm/shared/primitives/admin.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/admin.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Po
+#	$(AM_V_CC)source='nm/shared/primitives/admin.c' object='nm/shared/primitives/nm_agent-admin.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-admin.obj `if test -f 'nm/shared/primitives/admin.c'; then $(CYGPATH_W) 'nm/shared/primitives/admin.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/admin.c'; fi`
 
 nm/shared/primitives/nm_agent-blob.o: nm/shared/primitives/blob.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-blob.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-blob.Tpo -c -o nm/shared/primitives/nm_agent-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
@@ -8203,19 +8053,33 @@ nm/shared/primitives/nm_agent-blob.obj: nm/shared/primitives/blob.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
 
-nm/shared/primitives/nm_agent-admin.o: nm/shared/primitives/admin.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-admin.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo -c -o nm/shared/primitives/nm_agent-admin.o `test -f 'nm/shared/primitives/admin.c' || echo '$(srcdir)/'`nm/shared/primitives/admin.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Po
-#	$(AM_V_CC)source='nm/shared/primitives/admin.c' object='nm/shared/primitives/nm_agent-admin.o' libtool=no \
+nm/shared/primitives/nm_agent-ctrl.o: nm/shared/primitives/ctrl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-ctrl.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo -c -o nm/shared/primitives/nm_agent-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Po
+#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_agent-ctrl.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-admin.o `test -f 'nm/shared/primitives/admin.c' || echo '$(srcdir)/'`nm/shared/primitives/admin.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
 
-nm/shared/primitives/nm_agent-admin.obj: nm/shared/primitives/admin.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-admin.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo -c -o nm/shared/primitives/nm_agent-admin.obj `if test -f 'nm/shared/primitives/admin.c'; then $(CYGPATH_W) 'nm/shared/primitives/admin.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/admin.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-admin.Po
-#	$(AM_V_CC)source='nm/shared/primitives/admin.c' object='nm/shared/primitives/nm_agent-admin.obj' libtool=no \
+nm/shared/primitives/nm_agent-ctrl.obj: nm/shared/primitives/ctrl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-ctrl.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo -c -o nm/shared/primitives/nm_agent-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Po
+#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_agent-ctrl.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-admin.obj `if test -f 'nm/shared/primitives/admin.c'; then $(CYGPATH_W) 'nm/shared/primitives/admin.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/admin.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
+
+nm/shared/primitives/nm_agent-dc.o: nm/shared/primitives/dc.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-dc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo -c -o nm/shared/primitives/nm_agent-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Po
+#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_agent-dc.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
+
+nm/shared/primitives/nm_agent-dc.obj: nm/shared/primitives/dc.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-dc.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo -c -o nm/shared/primitives/nm_agent-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Po
+#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_agent-dc.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
 
 nm/shared/primitives/nm_agent-def.o: nm/shared/primitives/def.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-def.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-def.Tpo -c -o nm/shared/primitives/nm_agent-def.o `test -f 'nm/shared/primitives/def.c' || echo '$(srcdir)/'`nm/shared/primitives/def.c
@@ -8231,6 +8095,34 @@ nm/shared/primitives/nm_agent-def.obj: nm/shared/primitives/def.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-def.obj `if test -f 'nm/shared/primitives/def.c'; then $(CYGPATH_W) 'nm/shared/primitives/def.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/def.c'; fi`
 
+nm/shared/primitives/nm_agent-expr.o: nm/shared/primitives/expr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-expr.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo -c -o nm/shared/primitives/nm_agent-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Po
+#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_agent-expr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
+
+nm/shared/primitives/nm_agent-expr.obj: nm/shared/primitives/expr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-expr.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo -c -o nm/shared/primitives/nm_agent-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-expr.Po
+#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_agent-expr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
+
+nm/shared/primitives/nm_agent-lit.o: nm/shared/primitives/lit.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-lit.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo -c -o nm/shared/primitives/nm_agent-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Po
+#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_agent-lit.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
+
+nm/shared/primitives/nm_agent-lit.obj: nm/shared/primitives/lit.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-lit.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo -c -o nm/shared/primitives/nm_agent-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Po
+#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_agent-lit.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
+
 nm/shared/primitives/nm_agent-mid.o: nm/shared/primitives/mid.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-mid.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-mid.Tpo -c -o nm/shared/primitives/nm_agent-mid.o `test -f 'nm/shared/primitives/mid.c' || echo '$(srcdir)/'`nm/shared/primitives/mid.c
 	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-mid.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-mid.Po
@@ -8244,6 +8136,20 @@ nm/shared/primitives/nm_agent-mid.obj: nm/shared/primitives/mid.c
 #	$(AM_V_CC)source='nm/shared/primitives/mid.c' object='nm/shared/primitives/nm_agent-mid.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-mid.obj `if test -f 'nm/shared/primitives/mid.c'; then $(CYGPATH_W) 'nm/shared/primitives/mid.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/mid.c'; fi`
+
+nm/shared/primitives/nm_agent-nn.o: nm/shared/primitives/nn.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-nn.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo -c -o nm/shared/primitives/nm_agent-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Po
+#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_agent-nn.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
+
+nm/shared/primitives/nm_agent-nn.obj: nm/shared/primitives/nn.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-nn.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo -c -o nm/shared/primitives/nm_agent-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Po
+#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_agent-nn.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
 
 nm/shared/primitives/nm_agent-oid.o: nm/shared/primitives/oid.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-oid.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-oid.Tpo -c -o nm/shared/primitives/nm_agent-oid.o `test -f 'nm/shared/primitives/oid.c' || echo '$(srcdir)/'`nm/shared/primitives/oid.c
@@ -8287,75 +8193,19 @@ nm/shared/primitives/nm_agent-rules.obj: nm/shared/primitives/rules.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-rules.obj `if test -f 'nm/shared/primitives/rules.c'; then $(CYGPATH_W) 'nm/shared/primitives/rules.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/rules.c'; fi`
 
-nm/shared/primitives/nm_agent-dc.o: nm/shared/primitives/dc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-dc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo -c -o nm/shared/primitives/nm_agent-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_agent-dc.o' libtool=no \
+nm/shared/primitives/nm_agent-table.o: nm/shared/primitives/table.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-table.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo -c -o nm/shared/primitives/nm_agent-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-table.Po
+#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_agent-table.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
 
-nm/shared/primitives/nm_agent-dc.obj: nm/shared/primitives/dc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-dc.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo -c -o nm/shared/primitives/nm_agent-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-dc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_agent-dc.obj' libtool=no \
+nm/shared/primitives/nm_agent-table.obj: nm/shared/primitives/table.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-table.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo -c -o nm/shared/primitives/nm_agent-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-table.Po
+#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_agent-table.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
-
-nm/shared/primitives/nm_agent-value.o: nm/shared/primitives/value.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-value.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo -c -o nm/shared/primitives/nm_agent-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-value.Po
-#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_agent-value.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
-
-nm/shared/primitives/nm_agent-value.obj: nm/shared/primitives/value.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-value.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo -c -o nm/shared/primitives/nm_agent-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-value.Po
-#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_agent-value.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
-
-nm/shared/primitives/nm_agent-lit.o: nm/shared/primitives/lit.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-lit.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo -c -o nm/shared/primitives/nm_agent-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Po
-#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_agent-lit.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
-
-nm/shared/primitives/nm_agent-lit.obj: nm/shared/primitives/lit.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-lit.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo -c -o nm/shared/primitives/nm_agent-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-lit.Po
-#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_agent-lit.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
-
-nm/shared/primitives/nm_agent-nn.o: nm/shared/primitives/nn.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-nn.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo -c -o nm/shared/primitives/nm_agent-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Po
-#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_agent-nn.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
-
-nm/shared/primitives/nm_agent-nn.obj: nm/shared/primitives/nn.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-nn.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo -c -o nm/shared/primitives/nm_agent-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-nn.Po
-#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_agent-nn.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
-
-nm/agent/nm_agent-instr.o: nm/agent/instr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-instr.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-instr.Tpo -c -o nm/agent/nm_agent-instr.o `test -f 'nm/agent/instr.c' || echo '$(srcdir)/'`nm/agent/instr.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-instr.Tpo nm/agent/$(DEPDIR)/nm_agent-instr.Po
-#	$(AM_V_CC)source='nm/agent/instr.c' object='nm/agent/nm_agent-instr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-instr.o `test -f 'nm/agent/instr.c' || echo '$(srcdir)/'`nm/agent/instr.c
-
-nm/agent/nm_agent-instr.obj: nm/agent/instr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-instr.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-instr.Tpo -c -o nm/agent/nm_agent-instr.obj `if test -f 'nm/agent/instr.c'; then $(CYGPATH_W) 'nm/agent/instr.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/instr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-instr.Tpo nm/agent/$(DEPDIR)/nm_agent-instr.Po
-#	$(AM_V_CC)source='nm/agent/instr.c' object='nm/agent/nm_agent-instr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-instr.obj `if test -f 'nm/agent/instr.c'; then $(CYGPATH_W) 'nm/agent/instr.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/instr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
 
 nm/shared/primitives/nm_agent-tdc.o: nm/shared/primitives/tdc.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-tdc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-tdc.Tpo -c -o nm/shared/primitives/nm_agent-tdc.o `test -f 'nm/shared/primitives/tdc.c' || echo '$(srcdir)/'`nm/shared/primitives/tdc.c
@@ -8371,61 +8221,33 @@ nm/shared/primitives/nm_agent-tdc.obj: nm/shared/primitives/tdc.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-tdc.obj `if test -f 'nm/shared/primitives/tdc.c'; then $(CYGPATH_W) 'nm/shared/primitives/tdc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/tdc.c'; fi`
 
-nm/shared/primitives/nm_agent-ctrl.o: nm/shared/primitives/ctrl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-ctrl.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo -c -o nm/shared/primitives/nm_agent-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Po
-#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_agent-ctrl.o' libtool=no \
+nm/shared/primitives/nm_agent-value.o: nm/shared/primitives/value.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-value.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo -c -o nm/shared/primitives/nm_agent-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-value.Po
+#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_agent-value.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
 
-nm/shared/primitives/nm_agent-ctrl.obj: nm/shared/primitives/ctrl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-ctrl.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo -c -o nm/shared/primitives/nm_agent-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-ctrl.Po
-#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_agent-ctrl.obj' libtool=no \
+nm/shared/primitives/nm_agent-value.obj: nm/shared/primitives/value.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-value.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo -c -o nm/shared/primitives/nm_agent-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-value.Po
+#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_agent-value.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
 
-nm/shared/primitives/nm_agent-table.o: nm/shared/primitives/table.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-table.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo -c -o nm/shared/primitives/nm_agent-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-table.Po
-#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_agent-table.o' libtool=no \
+nm/shared/primitives/nm_agent-var.o: nm/shared/primitives/var.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-var.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo -c -o nm/shared/primitives/nm_agent-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-var.Po
+#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_agent-var.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
 
-nm/shared/primitives/nm_agent-table.obj: nm/shared/primitives/table.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-table.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo -c -o nm/shared/primitives/nm_agent-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-table.Po
-#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_agent-table.obj' libtool=no \
+nm/shared/primitives/nm_agent-var.obj: nm/shared/primitives/var.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_agent-var.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo -c -o nm/shared/primitives/nm_agent-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_agent-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_agent-var.Po
+#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_agent-var.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
-
-nm/shared/utils/nm_agent-ion_if.o: nm/shared/utils/ion_if.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-ion_if.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo -c -o nm/shared/utils/nm_agent-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Po
-#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_agent-ion_if.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
-
-nm/shared/utils/nm_agent-ion_if.obj: nm/shared/utils/ion_if.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-ion_if.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo -c -o nm/shared/utils/nm_agent-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Po
-#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_agent-ion_if.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
-
-nm/shared/utils/nm_agent-utils.o: nm/shared/utils/utils.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-utils.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo -c -o nm/shared/utils/nm_agent-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-utils.Po
-#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_agent-utils.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
-
-nm/shared/utils/nm_agent-utils.obj: nm/shared/utils/utils.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-utils.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo -c -o nm/shared/utils/nm_agent-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-utils.Po
-#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_agent-utils.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_agent-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
 
 nm/shared/utils/nm_agent-db.o: nm/shared/utils/db.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-db.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-db.Tpo -c -o nm/shared/utils/nm_agent-db.o `test -f 'nm/shared/utils/db.c' || echo '$(srcdir)/'`nm/shared/utils/db.c
@@ -8441,6 +8263,20 @@ nm/shared/utils/nm_agent-db.obj: nm/shared/utils/db.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-db.obj `if test -f 'nm/shared/utils/db.c'; then $(CYGPATH_W) 'nm/shared/utils/db.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/db.c'; fi`
 
+nm/shared/utils/nm_agent-ion_if.o: nm/shared/utils/ion_if.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-ion_if.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo -c -o nm/shared/utils/nm_agent-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Po
+#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_agent-ion_if.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
+
+nm/shared/utils/nm_agent-ion_if.obj: nm/shared/utils/ion_if.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-ion_if.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo -c -o nm/shared/utils/nm_agent-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-ion_if.Po
+#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_agent-ion_if.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
+
 nm/shared/utils/nm_agent-nm_types.o: nm/shared/utils/nm_types.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-nm_types.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-nm_types.Tpo -c -o nm/shared/utils/nm_agent-nm_types.o `test -f 'nm/shared/utils/nm_types.c' || echo '$(srcdir)/'`nm/shared/utils/nm_types.c
 	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-nm_types.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-nm_types.Po
@@ -8455,103 +8291,257 @@ nm/shared/utils/nm_agent-nm_types.obj: nm/shared/utils/nm_types.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-nm_types.obj `if test -f 'nm/shared/utils/nm_types.c'; then $(CYGPATH_W) 'nm/shared/utils/nm_types.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/nm_types.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr.o: nm/mgr/nm_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo -c -o nm/mgr/nm_mgr-nm_mgr.o `test -f 'nm/mgr/nm_mgr.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr.c' object='nm/mgr/nm_mgr-nm_mgr.o' libtool=no \
+nm/shared/utils/nm_agent-utils.o: nm/shared/utils/utils.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-utils.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo -c -o nm/shared/utils/nm_agent-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-utils.Po
+#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_agent-utils.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr.o `test -f 'nm/mgr/nm_mgr.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
 
-nm/mgr/nm_mgr-nm_mgr.obj: nm/mgr/nm_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo -c -o nm/mgr/nm_mgr-nm_mgr.obj `if test -f 'nm/mgr/nm_mgr.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr.c' object='nm/mgr/nm_mgr-nm_mgr.obj' libtool=no \
+nm/shared/utils/nm_agent-utils.obj: nm/shared/utils/utils.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_agent-utils.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo -c -o nm/shared/utils/nm_agent-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_agent-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_agent-utils.Po
+#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_agent-utils.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr.obj `if test -f 'nm/mgr/nm_mgr.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_agent-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr_rx.o: nm/mgr/nm_mgr_rx.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_rx.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_rx.o `test -f 'nm/mgr/nm_mgr_rx.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_rx.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_rx.c' object='nm/mgr/nm_mgr-nm_mgr_rx.o' libtool=no \
+nm/agent/nm_agent-adm_agent_impl.o: nm/agent/adm_agent_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_agent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_agent_impl.o `test -f 'nm/agent/adm_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_agent_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_agent_impl.c' object='nm/agent/nm_agent-adm_agent_impl.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_rx.o `test -f 'nm/mgr/nm_mgr_rx.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_rx.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_agent_impl.o `test -f 'nm/agent/adm_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_agent_impl.c
 
-nm/mgr/nm_mgr-nm_mgr_rx.obj: nm/mgr/nm_mgr_rx.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_rx.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_rx.obj `if test -f 'nm/mgr/nm_mgr_rx.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_rx.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_rx.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_rx.c' object='nm/mgr/nm_mgr-nm_mgr_rx.obj' libtool=no \
+nm/agent/nm_agent-adm_agent_impl.obj: nm/agent/adm_agent_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_agent_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_agent_impl.obj `if test -f 'nm/agent/adm_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_agent_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_agent_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_agent_impl.c' object='nm/agent/nm_agent-adm_agent_impl.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_rx.obj `if test -f 'nm/mgr/nm_mgr_rx.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_rx.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_rx.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_agent_impl.obj `if test -f 'nm/agent/adm_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_agent_impl.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr_ui.o: nm/mgr/nm_mgr_ui.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_ui.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_ui.o `test -f 'nm/mgr/nm_mgr_ui.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_ui.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_ui.c' object='nm/mgr/nm_mgr-nm_mgr_ui.o' libtool=no \
+nm/agent/nm_agent-adm_bp_agent.o: nm/agent/adm_bp_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bp_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Tpo -c -o nm/agent/nm_agent-adm_bp_agent.o `test -f 'nm/agent/adm_bp_agent.c' || echo '$(srcdir)/'`nm/agent/adm_bp_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_bp_agent.c' object='nm/agent/nm_agent-adm_bp_agent.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_ui.o `test -f 'nm/mgr/nm_mgr_ui.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_ui.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bp_agent.o `test -f 'nm/agent/adm_bp_agent.c' || echo '$(srcdir)/'`nm/agent/adm_bp_agent.c
 
-nm/mgr/nm_mgr-nm_mgr_ui.obj: nm/mgr/nm_mgr_ui.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_ui.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_ui.obj `if test -f 'nm/mgr/nm_mgr_ui.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_ui.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_ui.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_ui.c' object='nm/mgr/nm_mgr-nm_mgr_ui.obj' libtool=no \
+nm/agent/nm_agent-adm_bp_agent.obj: nm/agent/adm_bp_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bp_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Tpo -c -o nm/agent/nm_agent-adm_bp_agent.obj `if test -f 'nm/agent/adm_bp_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_bp_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bp_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bp_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_bp_agent.c' object='nm/agent/nm_agent-adm_bp_agent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_ui.obj `if test -f 'nm/mgr/nm_mgr_ui.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_ui.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_ui.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bp_agent.obj `if test -f 'nm/agent/adm_bp_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_bp_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bp_agent.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr_names.o: nm/mgr/nm_mgr_names.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_names.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_names.o `test -f 'nm/mgr/nm_mgr_names.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_names.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_names.c' object='nm/mgr/nm_mgr-nm_mgr_names.o' libtool=no \
+nm/agent/nm_agent-adm_bp_impl.o: nm/agent/adm_bp_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bp_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo -c -o nm/agent/nm_agent-adm_bp_impl.o `test -f 'nm/agent/adm_bp_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bp_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_bp_impl.c' object='nm/agent/nm_agent-adm_bp_impl.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_names.o `test -f 'nm/mgr/nm_mgr_names.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_names.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bp_impl.o `test -f 'nm/agent/adm_bp_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bp_impl.c
 
-nm/mgr/nm_mgr-nm_mgr_names.obj: nm/mgr/nm_mgr_names.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_names.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_names.obj `if test -f 'nm/mgr/nm_mgr_names.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_names.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_names.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_names.c' object='nm/mgr/nm_mgr-nm_mgr_names.obj' libtool=no \
+nm/agent/nm_agent-adm_bp_impl.obj: nm/agent/adm_bp_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bp_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo -c -o nm/agent/nm_agent-adm_bp_impl.obj `if test -f 'nm/agent/adm_bp_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bp_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bp_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bp_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_bp_impl.c' object='nm/agent/nm_agent-adm_bp_impl.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_names.obj `if test -f 'nm/mgr/nm_mgr_names.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_names.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_names.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bp_impl.obj `if test -f 'nm/agent/adm_bp_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bp_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bp_impl.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr_sql.o: nm/mgr/nm_mgr_sql.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_sql.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_sql.o `test -f 'nm/mgr/nm_mgr_sql.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_sql.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_sql.c' object='nm/mgr/nm_mgr-nm_mgr_sql.o' libtool=no \
+nm/agent/nm_agent-adm_bpsec_agent.o: nm/agent/adm_bpsec_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bpsec_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Tpo -c -o nm/agent/nm_agent-adm_bpsec_agent.o `test -f 'nm/agent/adm_bpsec_agent.c' || echo '$(srcdir)/'`nm/agent/adm_bpsec_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_bpsec_agent.c' object='nm/agent/nm_agent-adm_bpsec_agent.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_sql.o `test -f 'nm/mgr/nm_mgr_sql.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_sql.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bpsec_agent.o `test -f 'nm/agent/adm_bpsec_agent.c' || echo '$(srcdir)/'`nm/agent/adm_bpsec_agent.c
 
-nm/mgr/nm_mgr-nm_mgr_sql.obj: nm/mgr/nm_mgr_sql.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_sql.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_sql.obj `if test -f 'nm/mgr/nm_mgr_sql.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_sql.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_sql.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_sql.c' object='nm/mgr/nm_mgr-nm_mgr_sql.obj' libtool=no \
+nm/agent/nm_agent-adm_bpsec_agent.obj: nm/agent/adm_bpsec_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bpsec_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Tpo -c -o nm/agent/nm_agent-adm_bpsec_agent.obj `if test -f 'nm/agent/adm_bpsec_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_bpsec_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bpsec_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_bpsec_agent.c' object='nm/agent/nm_agent-adm_bpsec_agent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_sql.obj `if test -f 'nm/mgr/nm_mgr_sql.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_sql.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_sql.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bpsec_agent.obj `if test -f 'nm/agent/adm_bpsec_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_bpsec_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bpsec_agent.c'; fi`
 
-nm/mgr/nm_mgr-ui_input.o: nm/mgr/ui_input.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-ui_input.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo -c -o nm/mgr/nm_mgr-ui_input.o `test -f 'nm/mgr/ui_input.c' || echo '$(srcdir)/'`nm/mgr/ui_input.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
-#	$(AM_V_CC)source='nm/mgr/ui_input.c' object='nm/mgr/nm_mgr-ui_input.o' libtool=no \
+nm/agent/nm_agent-adm_bpsec_impl.o: nm/agent/adm_bpsec_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bpsec_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo -c -o nm/agent/nm_agent-adm_bpsec_impl.o `test -f 'nm/agent/adm_bpsec_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bpsec_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_bpsec_impl.c' object='nm/agent/nm_agent-adm_bpsec_impl.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.o `test -f 'nm/mgr/ui_input.c' || echo '$(srcdir)/'`nm/mgr/ui_input.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bpsec_impl.o `test -f 'nm/agent/adm_bpsec_impl.c' || echo '$(srcdir)/'`nm/agent/adm_bpsec_impl.c
 
-nm/mgr/nm_mgr-ui_input.obj: nm/mgr/ui_input.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-ui_input.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
-#	$(AM_V_CC)source='nm/mgr/ui_input.c' object='nm/mgr/nm_mgr-ui_input.obj' libtool=no \
+nm/agent/nm_agent-adm_bpsec_impl.obj: nm/agent/adm_bpsec_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_bpsec_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo -c -o nm/agent/nm_agent-adm_bpsec_impl.obj `if test -f 'nm/agent/adm_bpsec_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bpsec_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bpsec_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_bpsec_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_bpsec_impl.c' object='nm/agent/nm_agent-adm_bpsec_impl.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_bpsec_impl.obj `if test -f 'nm/agent/adm_bpsec_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_bpsec_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_bpsec_impl.c'; fi`
 
-nm/mgr/nm_mgr-nm_mgr_print.o: nm/mgr/nm_mgr_print.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_print.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_print.o `test -f 'nm/mgr/nm_mgr_print.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_print.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_print.c' object='nm/mgr/nm_mgr-nm_mgr_print.o' libtool=no \
+nm/agent/nm_agent-adm_ion_admin_agent.o: nm/agent/adm_ion_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_agent.o `test -f 'nm/agent/adm_ion_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_admin_agent.c' object='nm/agent/nm_agent-adm_ion_admin_agent.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_print.o `test -f 'nm/mgr/nm_mgr_print.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_print.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_agent.o `test -f 'nm/agent/adm_ion_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_agent.c
 
-nm/mgr/nm_mgr-nm_mgr_print.obj: nm/mgr/nm_mgr_print.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_print.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_print.obj `if test -f 'nm/mgr/nm_mgr_print.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_print.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_print.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
-#	$(AM_V_CC)source='nm/mgr/nm_mgr_print.c' object='nm/mgr/nm_mgr-nm_mgr_print.obj' libtool=no \
+nm/agent/nm_agent-adm_ion_admin_agent.obj: nm/agent/adm_ion_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_agent.obj `if test -f 'nm/agent/adm_ion_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_admin_agent.c' object='nm/agent/nm_agent-adm_ion_admin_agent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_print.obj `if test -f 'nm/mgr/nm_mgr_print.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_print.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_print.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_agent.obj `if test -f 'nm/agent/adm_ion_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_agent.c'; fi`
+
+nm/agent/nm_agent-adm_ion_admin_impl.o: nm/agent/adm_ion_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_impl.o `test -f 'nm/agent/adm_ion_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_admin_impl.c' object='nm/agent/nm_agent-adm_ion_admin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_impl.o `test -f 'nm/agent/adm_ion_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_admin_impl.c
+
+nm/agent/nm_agent-adm_ion_admin_impl.obj: nm/agent/adm_ion_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_admin_impl.obj `if test -f 'nm/agent/adm_ion_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_admin_impl.c' object='nm/agent/nm_agent-adm_ion_admin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_admin_impl.obj `if test -f 'nm/agent/adm_ion_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_admin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_ion_bp_admin_agent.o: nm/agent/adm_ion_bp_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.o `test -f 'nm/agent/adm_ion_bp_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_agent.c' object='nm/agent/nm_agent-adm_ion_bp_admin_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.o `test -f 'nm/agent/adm_ion_bp_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_agent.c
+
+nm/agent/nm_agent-adm_ion_bp_admin_agent.obj: nm/agent/adm_ion_bp_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.obj `if test -f 'nm/agent/adm_ion_bp_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_agent.c' object='nm/agent/nm_agent-adm_ion_bp_admin_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_agent.obj `if test -f 'nm/agent/adm_ion_bp_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_agent.c'; fi`
+
+nm/agent/nm_agent-adm_ion_bp_admin_impl.o: nm/agent/adm_ion_bp_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.o `test -f 'nm/agent/adm_ion_bp_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_impl.c' object='nm/agent/nm_agent-adm_ion_bp_admin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.o `test -f 'nm/agent/adm_ion_bp_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_bp_admin_impl.c
+
+nm/agent/nm_agent-adm_ion_bp_admin_impl.obj: nm/agent/adm_ion_bp_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_bp_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.obj `if test -f 'nm/agent/adm_ion_bp_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_bp_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_bp_admin_impl.c' object='nm/agent/nm_agent-adm_ion_bp_admin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_bp_admin_impl.obj `if test -f 'nm/agent/adm_ion_bp_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_bp_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_bp_admin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_ion_ipn_admin_agent.o: nm/agent/adm_ion_ipn_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ipn_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_ipn_admin_agent.o `test -f 'nm/agent/adm_ion_ipn_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ipn_admin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ipn_admin_agent.c' object='nm/agent/nm_agent-adm_ion_ipn_admin_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ipn_admin_agent.o `test -f 'nm/agent/adm_ion_ipn_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ipn_admin_agent.c
+
+nm/agent/nm_agent-adm_ion_ipn_admin_agent.obj: nm/agent/adm_ion_ipn_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ipn_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_ipn_admin_agent.obj `if test -f 'nm/agent/adm_ion_ipn_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ipn_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ipn_admin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ipn_admin_agent.c' object='nm/agent/nm_agent-adm_ion_ipn_admin_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ipn_admin_agent.obj `if test -f 'nm/agent/adm_ion_ipn_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ipn_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ipn_admin_agent.c'; fi`
+
+nm/agent/nm_agent-adm_ion_ipn_admin_impl.o: nm/agent/adm_ion_ipn_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ipn_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_ipn_admin_impl.o `test -f 'nm/agent/adm_ion_ipn_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ipn_admin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ipn_admin_impl.c' object='nm/agent/nm_agent-adm_ion_ipn_admin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ipn_admin_impl.o `test -f 'nm/agent/adm_ion_ipn_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ipn_admin_impl.c
+
+nm/agent/nm_agent-adm_ion_ipn_admin_impl.obj: nm/agent/adm_ion_ipn_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ipn_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_ipn_admin_impl.obj `if test -f 'nm/agent/adm_ion_ipn_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ipn_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ipn_admin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ipn_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ipn_admin_impl.c' object='nm/agent/nm_agent-adm_ion_ipn_admin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ipn_admin_impl.obj `if test -f 'nm/agent/adm_ion_ipn_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ipn_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ipn_admin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_ionsec_admin_agent.o: nm/agent/adm_ionsec_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.o `test -f 'nm/agent/adm_ionsec_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_agent.c' object='nm/agent/nm_agent-adm_ionsec_admin_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.o `test -f 'nm/agent/adm_ionsec_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_agent.c
+
+nm/agent/nm_agent-adm_ionsec_admin_agent.obj: nm/agent/adm_ionsec_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.obj `if test -f 'nm/agent/adm_ionsec_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_agent.c' object='nm/agent/nm_agent-adm_ionsec_admin_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_agent.obj `if test -f 'nm/agent/adm_ionsec_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_agent.c'; fi`
+
+nm/agent/nm_agent-adm_ionsec_admin_impl.o: nm/agent/adm_ionsec_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.o `test -f 'nm/agent/adm_ionsec_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_impl.c' object='nm/agent/nm_agent-adm_ionsec_admin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.o `test -f 'nm/agent/adm_ionsec_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ionsec_admin_impl.c
+
+nm/agent/nm_agent-adm_ionsec_admin_impl.obj: nm/agent/adm_ionsec_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ionsec_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.obj `if test -f 'nm/agent/adm_ionsec_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ionsec_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ionsec_admin_impl.c' object='nm/agent/nm_agent-adm_ionsec_admin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ionsec_admin_impl.obj `if test -f 'nm/agent/adm_ionsec_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ionsec_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ionsec_admin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_ion_ltp_admin_agent.o: nm/agent/adm_ion_ltp_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ltp_admin_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_ltp_admin_agent.o `test -f 'nm/agent/adm_ion_ltp_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ltp_admin_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ltp_admin_agent.c' object='nm/agent/nm_agent-adm_ion_ltp_admin_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ltp_admin_agent.o `test -f 'nm/agent/adm_ion_ltp_admin_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ltp_admin_agent.c
+
+nm/agent/nm_agent-adm_ion_ltp_admin_agent.obj: nm/agent/adm_ion_ltp_admin_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ltp_admin_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Tpo -c -o nm/agent/nm_agent-adm_ion_ltp_admin_agent.obj `if test -f 'nm/agent/adm_ion_ltp_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ltp_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ltp_admin_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ltp_admin_agent.c' object='nm/agent/nm_agent-adm_ion_ltp_admin_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ltp_admin_agent.obj `if test -f 'nm/agent/adm_ion_ltp_admin_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ltp_admin_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ltp_admin_agent.c'; fi`
+
+nm/agent/nm_agent-adm_ion_ltp_admin_impl.o: nm/agent/adm_ion_ltp_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ltp_admin_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_ltp_admin_impl.o `test -f 'nm/agent/adm_ion_ltp_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ltp_admin_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ltp_admin_impl.c' object='nm/agent/nm_agent-adm_ion_ltp_admin_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ltp_admin_impl.o `test -f 'nm/agent/adm_ion_ltp_admin_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ion_ltp_admin_impl.c
+
+nm/agent/nm_agent-adm_ion_ltp_admin_impl.obj: nm/agent/adm_ion_ltp_admin_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ion_ltp_admin_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Tpo -c -o nm/agent/nm_agent-adm_ion_ltp_admin_impl.obj `if test -f 'nm/agent/adm_ion_ltp_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ltp_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ltp_admin_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ion_ltp_admin_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ion_ltp_admin_impl.c' object='nm/agent/nm_agent-adm_ion_ltp_admin_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ion_ltp_admin_impl.obj `if test -f 'nm/agent/adm_ion_ltp_admin_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ion_ltp_admin_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ion_ltp_admin_impl.c'; fi`
+
+nm/agent/nm_agent-adm_ltp_agent_agent.o: nm/agent/adm_ltp_agent_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_agent.o `test -f 'nm/agent/adm_ltp_agent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_agent.c' object='nm/agent/nm_agent-adm_ltp_agent_agent.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_agent.o `test -f 'nm/agent/adm_ltp_agent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_agent.c
+
+nm/agent/nm_agent-adm_ltp_agent_agent.obj: nm/agent/adm_ltp_agent_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_agent.obj `if test -f 'nm/agent/adm_ltp_agent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_agent.c' object='nm/agent/nm_agent-adm_ltp_agent_agent.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_agent.obj `if test -f 'nm/agent/adm_ltp_agent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_agent.c'; fi`
+
+nm/agent/nm_agent-adm_ltp_agent_impl.o: nm/agent/adm_ltp_agent_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_impl.o `test -f 'nm/agent/adm_ltp_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_impl.c' object='nm/agent/nm_agent-adm_ltp_agent_impl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_impl.o `test -f 'nm/agent/adm_ltp_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_impl.c
+
+nm/agent/nm_agent-adm_ltp_agent_impl.obj: nm/agent/adm_ltp_agent_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_impl.obj `if test -f 'nm/agent/adm_ltp_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_impl.c' object='nm/agent/nm_agent-adm_ltp_agent_impl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_impl.obj `if test -f 'nm/agent/adm_ltp_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_impl.c'; fi`
 
 nm/mgr/nm_mgr-mgr_db.o: nm/mgr/mgr_db.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-mgr_db.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-mgr_db.Tpo -c -o nm/mgr/nm_mgr-mgr_db.o `test -f 'nm/mgr/mgr_db.c' || echo '$(srcdir)/'`nm/mgr/mgr_db.c
@@ -8567,47 +8557,103 @@ nm/mgr/nm_mgr-mgr_db.obj: nm/mgr/mgr_db.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-mgr_db.obj `if test -f 'nm/mgr/mgr_db.c'; then $(CYGPATH_W) 'nm/mgr/mgr_db.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/mgr_db.c'; fi`
 
-nm/mgr/nm_mgr-adm_LtpAgent_mgr.o: nm/mgr/adm_LtpAgent_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_LtpAgent_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_LtpAgent_mgr.o `test -f 'nm/mgr/adm_LtpAgent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_LtpAgent_mgr.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_LtpAgent_mgr.c' object='nm/mgr/nm_mgr-adm_LtpAgent_mgr.o' libtool=no \
+nm/mgr/nm_mgr-nm_mgr.o: nm/mgr/nm_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo -c -o nm/mgr/nm_mgr-nm_mgr.o `test -f 'nm/mgr/nm_mgr.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr.c' object='nm/mgr/nm_mgr-nm_mgr.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_LtpAgent_mgr.o `test -f 'nm/mgr/adm_LtpAgent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_LtpAgent_mgr.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr.o `test -f 'nm/mgr/nm_mgr.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr.c
 
-nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj: nm/mgr/adm_LtpAgent_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj `if test -f 'nm/mgr/adm_LtpAgent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_LtpAgent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_LtpAgent_mgr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_LtpAgent_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_LtpAgent_mgr.c' object='nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj' libtool=no \
+nm/mgr/nm_mgr-nm_mgr.obj: nm/mgr/nm_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo -c -o nm/mgr/nm_mgr-nm_mgr.obj `if test -f 'nm/mgr/nm_mgr.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr.c' object='nm/mgr/nm_mgr-nm_mgr.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_LtpAgent_mgr.obj `if test -f 'nm/mgr/adm_LtpAgent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_LtpAgent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_LtpAgent_mgr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr.obj `if test -f 'nm/mgr/nm_mgr.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr.c'; fi`
 
-nm/mgr/nm_mgr-adm_ion_admin_mgr.o: nm/mgr/adm_ion_admin_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_admin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.o `test -f 'nm/mgr/adm_ion_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_admin_mgr.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_ion_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_admin_mgr.o' libtool=no \
+nm/mgr/nm_mgr-nm_mgr_names.o: nm/mgr/nm_mgr_names.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_names.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_names.o `test -f 'nm/mgr/nm_mgr_names.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_names.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_names.c' object='nm/mgr/nm_mgr-nm_mgr_names.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.o `test -f 'nm/mgr/adm_ion_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_admin_mgr.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_names.o `test -f 'nm/mgr/nm_mgr_names.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_names.c
 
-nm/mgr/nm_mgr-adm_ion_admin_mgr.obj: nm/mgr/adm_ion_admin_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_admin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_admin_mgr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_ion_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_admin_mgr.obj' libtool=no \
+nm/mgr/nm_mgr-nm_mgr_names.obj: nm/mgr/nm_mgr_names.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_names.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_names.obj `if test -f 'nm/mgr/nm_mgr_names.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_names.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_names.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_names.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_names.c' object='nm/mgr/nm_mgr-nm_mgr_names.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_admin_mgr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_names.obj `if test -f 'nm/mgr/nm_mgr_names.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_names.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_names.c'; fi`
 
-nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o: nm/mgr/adm_IonBpAdmin_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o `test -f 'nm/mgr/adm_IonBpAdmin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_IonBpAdmin_mgr.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_IonBpAdmin_mgr.c' object='nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o' libtool=no \
+nm/mgr/nm_mgr-nm_mgr_print.o: nm/mgr/nm_mgr_print.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_print.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_print.o `test -f 'nm/mgr/nm_mgr_print.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_print.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_print.c' object='nm/mgr/nm_mgr-nm_mgr_print.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.o `test -f 'nm/mgr/adm_IonBpAdmin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_IonBpAdmin_mgr.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_print.o `test -f 'nm/mgr/nm_mgr_print.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_print.c
 
-nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj: nm/mgr/adm_IonBpAdmin_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj `if test -f 'nm/mgr/adm_IonBpAdmin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_IonBpAdmin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_IonBpAdmin_mgr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_IonBpAdmin_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_IonBpAdmin_mgr.c' object='nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj' libtool=no \
+nm/mgr/nm_mgr-nm_mgr_print.obj: nm/mgr/nm_mgr_print.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_print.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_print.obj `if test -f 'nm/mgr/nm_mgr_print.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_print.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_print.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_print.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_print.c' object='nm/mgr/nm_mgr-nm_mgr_print.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_IonBpAdmin_mgr.obj `if test -f 'nm/mgr/adm_IonBpAdmin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_IonBpAdmin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_IonBpAdmin_mgr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_print.obj `if test -f 'nm/mgr/nm_mgr_print.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_print.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_print.c'; fi`
+
+nm/mgr/nm_mgr-nm_mgr_rx.o: nm/mgr/nm_mgr_rx.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_rx.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_rx.o `test -f 'nm/mgr/nm_mgr_rx.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_rx.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_rx.c' object='nm/mgr/nm_mgr-nm_mgr_rx.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_rx.o `test -f 'nm/mgr/nm_mgr_rx.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_rx.c
+
+nm/mgr/nm_mgr-nm_mgr_rx.obj: nm/mgr/nm_mgr_rx.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_rx.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_rx.obj `if test -f 'nm/mgr/nm_mgr_rx.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_rx.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_rx.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_rx.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_rx.c' object='nm/mgr/nm_mgr-nm_mgr_rx.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_rx.obj `if test -f 'nm/mgr/nm_mgr_rx.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_rx.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_rx.c'; fi`
+
+nm/mgr/nm_mgr-nm_mgr_sql.o: nm/mgr/nm_mgr_sql.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_sql.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_sql.o `test -f 'nm/mgr/nm_mgr_sql.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_sql.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_sql.c' object='nm/mgr/nm_mgr-nm_mgr_sql.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_sql.o `test -f 'nm/mgr/nm_mgr_sql.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_sql.c
+
+nm/mgr/nm_mgr-nm_mgr_sql.obj: nm/mgr/nm_mgr_sql.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_sql.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_sql.obj `if test -f 'nm/mgr/nm_mgr_sql.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_sql.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_sql.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_sql.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_sql.c' object='nm/mgr/nm_mgr-nm_mgr_sql.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_sql.obj `if test -f 'nm/mgr/nm_mgr_sql.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_sql.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_sql.c'; fi`
+
+nm/mgr/nm_mgr-nm_mgr_ui.o: nm/mgr/nm_mgr_ui.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_ui.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_ui.o `test -f 'nm/mgr/nm_mgr_ui.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_ui.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_ui.c' object='nm/mgr/nm_mgr-nm_mgr_ui.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_ui.o `test -f 'nm/mgr/nm_mgr_ui.c' || echo '$(srcdir)/'`nm/mgr/nm_mgr_ui.c
+
+nm/mgr/nm_mgr-nm_mgr_ui.obj: nm/mgr/nm_mgr_ui.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-nm_mgr_ui.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo -c -o nm/mgr/nm_mgr-nm_mgr_ui.obj `if test -f 'nm/mgr/nm_mgr_ui.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_ui.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_ui.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Tpo nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr_ui.Po
+#	$(AM_V_CC)source='nm/mgr/nm_mgr_ui.c' object='nm/mgr/nm_mgr-nm_mgr_ui.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-nm_mgr_ui.obj `if test -f 'nm/mgr/nm_mgr_ui.c'; then $(CYGPATH_W) 'nm/mgr/nm_mgr_ui.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/nm_mgr_ui.c'; fi`
+
+nm/mgr/nm_mgr-ui_input.o: nm/mgr/ui_input.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-ui_input.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo -c -o nm/mgr/nm_mgr-ui_input.o `test -f 'nm/mgr/ui_input.c' || echo '$(srcdir)/'`nm/mgr/ui_input.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
+#	$(AM_V_CC)source='nm/mgr/ui_input.c' object='nm/mgr/nm_mgr-ui_input.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.o `test -f 'nm/mgr/ui_input.c' || echo '$(srcdir)/'`nm/mgr/ui_input.c
+
+nm/mgr/nm_mgr-ui_input.obj: nm/mgr/ui_input.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-ui_input.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Tpo nm/mgr/$(DEPDIR)/nm_mgr-ui_input.Po
+#	$(AM_V_CC)source='nm/mgr/ui_input.c' object='nm/mgr/nm_mgr-ui_input.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
 
 nm/shared/adm/nm_mgr-adm.o: nm/shared/adm/adm.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Tpo -c -o nm/shared/adm/nm_mgr-adm.o `test -f 'nm/shared/adm/adm.c' || echo '$(srcdir)/'`nm/shared/adm/adm.c
@@ -8622,48 +8668,6 @@ nm/shared/adm/nm_mgr-adm.obj: nm/shared/adm/adm.c
 #	$(AM_V_CC)source='nm/shared/adm/adm.c' object='nm/shared/adm/nm_mgr-adm.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm.obj `if test -f 'nm/shared/adm/adm.c'; then $(CYGPATH_W) 'nm/shared/adm/adm.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm.c'; fi`
-
-nm/shared/adm/nm_mgr-adm_bp.o: nm/shared/adm/adm_bp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_bp.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Tpo -c -o nm/shared/adm/nm_mgr-adm_bp.o `test -f 'nm/shared/adm/adm_bp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_bp.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_bp.c' object='nm/shared/adm/nm_mgr-adm_bp.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_bp.o `test -f 'nm/shared/adm/adm_bp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_bp.c
-
-nm/shared/adm/nm_mgr-adm_bp.obj: nm/shared/adm/adm_bp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_bp.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Tpo -c -o nm/shared/adm/nm_mgr-adm_bp.obj `if test -f 'nm/shared/adm/adm_bp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_bp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_bp.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_bp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_bp.c' object='nm/shared/adm/nm_mgr-adm_bp.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_bp.obj `if test -f 'nm/shared/adm/adm_bp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_bp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_bp.c'; fi`
-
-nm/shared/adm/nm_mgr-adm_ltp.o: nm/shared/adm/adm_ltp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ltp.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo -c -o nm/shared/adm/nm_mgr-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_mgr-adm_ltp.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ltp.o `test -f 'nm/shared/adm/adm_ltp.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ltp.c
-
-nm/shared/adm/nm_mgr-adm_ltp.obj: nm/shared/adm/adm_ltp.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ltp.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo -c -o nm/shared/adm/nm_mgr-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ltp.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ltp.c' object='nm/shared/adm/nm_mgr-adm_ltp.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ltp.obj `if test -f 'nm/shared/adm/adm_ltp.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ltp.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ltp.c'; fi`
-
-nm/shared/adm/nm_mgr-adm_ion.o: nm/shared/adm/adm_ion.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ion.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Tpo -c -o nm/shared/adm/nm_mgr-adm_ion.o `test -f 'nm/shared/adm/adm_ion.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ion.c
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ion.c' object='nm/shared/adm/nm_mgr-adm_ion.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ion.o `test -f 'nm/shared/adm/adm_ion.c' || echo '$(srcdir)/'`nm/shared/adm/adm_ion.c
-
-nm/shared/adm/nm_mgr-adm_ion.obj: nm/shared/adm/adm_ion.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_ion.obj -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Tpo -c -o nm/shared/adm/nm_mgr-adm_ion.obj `if test -f 'nm/shared/adm/adm_ion.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ion.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ion.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Tpo nm/shared/adm/$(DEPDIR)/nm_mgr-adm_ion.Po
-#	$(AM_V_CC)source='nm/shared/adm/adm_ion.c' object='nm/shared/adm/nm_mgr-adm_ion.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/adm/nm_mgr-adm_ion.obj `if test -f 'nm/shared/adm/adm_ion.c'; then $(CYGPATH_W) 'nm/shared/adm/adm_ion.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/adm/adm_ion.c'; fi`
 
 nm/shared/adm/nm_mgr-adm_agent.o: nm/shared/adm/adm_agent.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm_agent.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm_agent.Tpo -c -o nm/shared/adm/nm_mgr-adm_agent.o `test -f 'nm/shared/adm/adm_agent.c' || echo '$(srcdir)/'`nm/shared/adm/adm_agent.c
@@ -8721,34 +8725,6 @@ nm/shared/msg/nm_mgr-pdu.obj: nm/shared/msg/pdu.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/msg/nm_mgr-pdu.obj `if test -f 'nm/shared/msg/pdu.c'; then $(CYGPATH_W) 'nm/shared/msg/pdu.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/msg/pdu.c'; fi`
 
-nm/shared/primitives/nm_mgr-var.o: nm/shared/primitives/var.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-var.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo -c -o nm/shared/primitives/nm_mgr-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
-#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_mgr-var.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
-
-nm/shared/primitives/nm_mgr-var.obj: nm/shared/primitives/var.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-var.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo -c -o nm/shared/primitives/nm_mgr-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
-#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_mgr-var.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
-
-nm/shared/primitives/nm_mgr-expr.o: nm/shared/primitives/expr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-expr.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo -c -o nm/shared/primitives/nm_mgr-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
-#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_mgr-expr.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
-
-nm/shared/primitives/nm_mgr-expr.obj: nm/shared/primitives/expr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-expr.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo -c -o nm/shared/primitives/nm_mgr-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
-#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_mgr-expr.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
-
 nm/shared/primitives/nm_mgr-admin.o: nm/shared/primitives/admin.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-admin.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-admin.Tpo -c -o nm/shared/primitives/nm_mgr-admin.o `test -f 'nm/shared/primitives/admin.c' || echo '$(srcdir)/'`nm/shared/primitives/admin.c
 	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-admin.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-admin.Po
@@ -8762,6 +8738,34 @@ nm/shared/primitives/nm_mgr-admin.obj: nm/shared/primitives/admin.c
 #	$(AM_V_CC)source='nm/shared/primitives/admin.c' object='nm/shared/primitives/nm_mgr-admin.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-admin.obj `if test -f 'nm/shared/primitives/admin.c'; then $(CYGPATH_W) 'nm/shared/primitives/admin.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/admin.c'; fi`
+
+nm/shared/primitives/nm_mgr-blob.o: nm/shared/primitives/blob.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-blob.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo -c -o nm/shared/primitives/nm_mgr-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
+#	$(AM_V_CC)source='nm/shared/primitives/blob.c' object='nm/shared/primitives/nm_mgr-blob.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
+
+nm/shared/primitives/nm_mgr-blob.obj: nm/shared/primitives/blob.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-blob.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo -c -o nm/shared/primitives/nm_mgr-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
+#	$(AM_V_CC)source='nm/shared/primitives/blob.c' object='nm/shared/primitives/nm_mgr-blob.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
+
+nm/shared/primitives/nm_mgr-ctrl.o: nm/shared/primitives/ctrl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-ctrl.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo -c -o nm/shared/primitives/nm_mgr-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
+#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_mgr-ctrl.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
+
+nm/shared/primitives/nm_mgr-ctrl.obj: nm/shared/primitives/ctrl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-ctrl.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo -c -o nm/shared/primitives/nm_mgr-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
+#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_mgr-ctrl.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
 
 nm/shared/primitives/nm_mgr-def.o: nm/shared/primitives/def.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-def.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-def.Tpo -c -o nm/shared/primitives/nm_mgr-def.o `test -f 'nm/shared/primitives/def.c' || echo '$(srcdir)/'`nm/shared/primitives/def.c
@@ -8777,6 +8781,48 @@ nm/shared/primitives/nm_mgr-def.obj: nm/shared/primitives/def.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-def.obj `if test -f 'nm/shared/primitives/def.c'; then $(CYGPATH_W) 'nm/shared/primitives/def.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/def.c'; fi`
 
+nm/shared/primitives/nm_mgr-dc.o: nm/shared/primitives/dc.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-dc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo -c -o nm/shared/primitives/nm_mgr-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
+#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_mgr-dc.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
+
+nm/shared/primitives/nm_mgr-dc.obj: nm/shared/primitives/dc.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-dc.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo -c -o nm/shared/primitives/nm_mgr-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
+#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_mgr-dc.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
+
+nm/shared/primitives/nm_mgr-expr.o: nm/shared/primitives/expr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-expr.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo -c -o nm/shared/primitives/nm_mgr-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
+#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_mgr-expr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-expr.o `test -f 'nm/shared/primitives/expr.c' || echo '$(srcdir)/'`nm/shared/primitives/expr.c
+
+nm/shared/primitives/nm_mgr-expr.obj: nm/shared/primitives/expr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-expr.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo -c -o nm/shared/primitives/nm_mgr-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-expr.Po
+#	$(AM_V_CC)source='nm/shared/primitives/expr.c' object='nm/shared/primitives/nm_mgr-expr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-expr.obj `if test -f 'nm/shared/primitives/expr.c'; then $(CYGPATH_W) 'nm/shared/primitives/expr.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/expr.c'; fi`
+
+nm/shared/primitives/nm_mgr-lit.o: nm/shared/primitives/lit.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-lit.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo -c -o nm/shared/primitives/nm_mgr-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
+#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_mgr-lit.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
+
+nm/shared/primitives/nm_mgr-lit.obj: nm/shared/primitives/lit.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-lit.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo -c -o nm/shared/primitives/nm_mgr-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
+#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_mgr-lit.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
+
 nm/shared/primitives/nm_mgr-mid.o: nm/shared/primitives/mid.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-mid.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-mid.Tpo -c -o nm/shared/primitives/nm_mgr-mid.o `test -f 'nm/shared/primitives/mid.c' || echo '$(srcdir)/'`nm/shared/primitives/mid.c
 	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-mid.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-mid.Po
@@ -8790,6 +8836,20 @@ nm/shared/primitives/nm_mgr-mid.obj: nm/shared/primitives/mid.c
 #	$(AM_V_CC)source='nm/shared/primitives/mid.c' object='nm/shared/primitives/nm_mgr-mid.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-mid.obj `if test -f 'nm/shared/primitives/mid.c'; then $(CYGPATH_W) 'nm/shared/primitives/mid.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/mid.c'; fi`
+
+nm/shared/primitives/nm_mgr-nn.o: nm/shared/primitives/nn.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-nn.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo -c -o nm/shared/primitives/nm_mgr-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
+#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_mgr-nn.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
+
+nm/shared/primitives/nm_mgr-nn.obj: nm/shared/primitives/nn.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-nn.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo -c -o nm/shared/primitives/nm_mgr-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
+#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_mgr-nn.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
 
 nm/shared/primitives/nm_mgr-oid.o: nm/shared/primitives/oid.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-oid.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-oid.Tpo -c -o nm/shared/primitives/nm_mgr-oid.o `test -f 'nm/shared/primitives/oid.c' || echo '$(srcdir)/'`nm/shared/primitives/oid.c
@@ -8833,61 +8893,19 @@ nm/shared/primitives/nm_mgr-rules.obj: nm/shared/primitives/rules.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-rules.obj `if test -f 'nm/shared/primitives/rules.c'; then $(CYGPATH_W) 'nm/shared/primitives/rules.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/rules.c'; fi`
 
-nm/shared/primitives/nm_mgr-dc.o: nm/shared/primitives/dc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-dc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo -c -o nm/shared/primitives/nm_mgr-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_mgr-dc.o' libtool=no \
+nm/shared/primitives/nm_mgr-table.o: nm/shared/primitives/table.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-table.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo -c -o nm/shared/primitives/nm_mgr-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
+#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_mgr-table.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-dc.o `test -f 'nm/shared/primitives/dc.c' || echo '$(srcdir)/'`nm/shared/primitives/dc.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
 
-nm/shared/primitives/nm_mgr-dc.obj: nm/shared/primitives/dc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-dc.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo -c -o nm/shared/primitives/nm_mgr-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-dc.Po
-#	$(AM_V_CC)source='nm/shared/primitives/dc.c' object='nm/shared/primitives/nm_mgr-dc.obj' libtool=no \
+nm/shared/primitives/nm_mgr-table.obj: nm/shared/primitives/table.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-table.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo -c -o nm/shared/primitives/nm_mgr-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
+#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_mgr-table.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-dc.obj `if test -f 'nm/shared/primitives/dc.c'; then $(CYGPATH_W) 'nm/shared/primitives/dc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/dc.c'; fi`
-
-nm/shared/primitives/nm_mgr-value.o: nm/shared/primitives/value.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-value.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo -c -o nm/shared/primitives/nm_mgr-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
-#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_mgr-value.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
-
-nm/shared/primitives/nm_mgr-value.obj: nm/shared/primitives/value.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-value.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo -c -o nm/shared/primitives/nm_mgr-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
-#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_mgr-value.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
-
-nm/shared/primitives/nm_mgr-lit.o: nm/shared/primitives/lit.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-lit.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo -c -o nm/shared/primitives/nm_mgr-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
-#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_mgr-lit.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-lit.o `test -f 'nm/shared/primitives/lit.c' || echo '$(srcdir)/'`nm/shared/primitives/lit.c
-
-nm/shared/primitives/nm_mgr-lit.obj: nm/shared/primitives/lit.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-lit.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo -c -o nm/shared/primitives/nm_mgr-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-lit.Po
-#	$(AM_V_CC)source='nm/shared/primitives/lit.c' object='nm/shared/primitives/nm_mgr-lit.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-lit.obj `if test -f 'nm/shared/primitives/lit.c'; then $(CYGPATH_W) 'nm/shared/primitives/lit.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/lit.c'; fi`
-
-nm/shared/primitives/nm_mgr-nn.o: nm/shared/primitives/nn.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-nn.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo -c -o nm/shared/primitives/nm_mgr-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
-#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_mgr-nn.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-nn.o `test -f 'nm/shared/primitives/nn.c' || echo '$(srcdir)/'`nm/shared/primitives/nn.c
-
-nm/shared/primitives/nm_mgr-nn.obj: nm/shared/primitives/nn.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-nn.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo -c -o nm/shared/primitives/nm_mgr-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-nn.Po
-#	$(AM_V_CC)source='nm/shared/primitives/nn.c' object='nm/shared/primitives/nm_mgr-nn.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-nn.obj `if test -f 'nm/shared/primitives/nn.c'; then $(CYGPATH_W) 'nm/shared/primitives/nn.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/nn.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
 
 nm/shared/primitives/nm_mgr-tdc.o: nm/shared/primitives/tdc.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-tdc.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-tdc.Tpo -c -o nm/shared/primitives/nm_mgr-tdc.o `test -f 'nm/shared/primitives/tdc.c' || echo '$(srcdir)/'`nm/shared/primitives/tdc.c
@@ -8903,75 +8921,33 @@ nm/shared/primitives/nm_mgr-tdc.obj: nm/shared/primitives/tdc.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-tdc.obj `if test -f 'nm/shared/primitives/tdc.c'; then $(CYGPATH_W) 'nm/shared/primitives/tdc.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/tdc.c'; fi`
 
-nm/shared/primitives/nm_mgr-ctrl.o: nm/shared/primitives/ctrl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-ctrl.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo -c -o nm/shared/primitives/nm_mgr-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
-#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_mgr-ctrl.o' libtool=no \
+nm/shared/primitives/nm_mgr-value.o: nm/shared/primitives/value.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-value.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo -c -o nm/shared/primitives/nm_mgr-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
+#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_mgr-value.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-ctrl.o `test -f 'nm/shared/primitives/ctrl.c' || echo '$(srcdir)/'`nm/shared/primitives/ctrl.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-value.o `test -f 'nm/shared/primitives/value.c' || echo '$(srcdir)/'`nm/shared/primitives/value.c
 
-nm/shared/primitives/nm_mgr-ctrl.obj: nm/shared/primitives/ctrl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-ctrl.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo -c -o nm/shared/primitives/nm_mgr-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-ctrl.Po
-#	$(AM_V_CC)source='nm/shared/primitives/ctrl.c' object='nm/shared/primitives/nm_mgr-ctrl.obj' libtool=no \
+nm/shared/primitives/nm_mgr-value.obj: nm/shared/primitives/value.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-value.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo -c -o nm/shared/primitives/nm_mgr-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-value.Po
+#	$(AM_V_CC)source='nm/shared/primitives/value.c' object='nm/shared/primitives/nm_mgr-value.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-ctrl.obj `if test -f 'nm/shared/primitives/ctrl.c'; then $(CYGPATH_W) 'nm/shared/primitives/ctrl.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/ctrl.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-value.obj `if test -f 'nm/shared/primitives/value.c'; then $(CYGPATH_W) 'nm/shared/primitives/value.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/value.c'; fi`
 
-nm/shared/primitives/nm_mgr-blob.o: nm/shared/primitives/blob.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-blob.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo -c -o nm/shared/primitives/nm_mgr-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
-#	$(AM_V_CC)source='nm/shared/primitives/blob.c' object='nm/shared/primitives/nm_mgr-blob.o' libtool=no \
+nm/shared/primitives/nm_mgr-var.o: nm/shared/primitives/var.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-var.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo -c -o nm/shared/primitives/nm_mgr-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
+#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_mgr-var.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-blob.o `test -f 'nm/shared/primitives/blob.c' || echo '$(srcdir)/'`nm/shared/primitives/blob.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-var.o `test -f 'nm/shared/primitives/var.c' || echo '$(srcdir)/'`nm/shared/primitives/var.c
 
-nm/shared/primitives/nm_mgr-blob.obj: nm/shared/primitives/blob.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-blob.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo -c -o nm/shared/primitives/nm_mgr-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-blob.Po
-#	$(AM_V_CC)source='nm/shared/primitives/blob.c' object='nm/shared/primitives/nm_mgr-blob.obj' libtool=no \
+nm/shared/primitives/nm_mgr-var.obj: nm/shared/primitives/var.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-var.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo -c -o nm/shared/primitives/nm_mgr-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-var.Po
+#	$(AM_V_CC)source='nm/shared/primitives/var.c' object='nm/shared/primitives/nm_mgr-var.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-blob.obj `if test -f 'nm/shared/primitives/blob.c'; then $(CYGPATH_W) 'nm/shared/primitives/blob.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/blob.c'; fi`
-
-nm/shared/primitives/nm_mgr-table.o: nm/shared/primitives/table.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-table.o -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo -c -o nm/shared/primitives/nm_mgr-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
-#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_mgr-table.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-table.o `test -f 'nm/shared/primitives/table.c' || echo '$(srcdir)/'`nm/shared/primitives/table.c
-
-nm/shared/primitives/nm_mgr-table.obj: nm/shared/primitives/table.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/primitives/nm_mgr-table.obj -MD -MP -MF nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo -c -o nm/shared/primitives/nm_mgr-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Tpo nm/shared/primitives/$(DEPDIR)/nm_mgr-table.Po
-#	$(AM_V_CC)source='nm/shared/primitives/table.c' object='nm/shared/primitives/nm_mgr-table.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-table.obj `if test -f 'nm/shared/primitives/table.c'; then $(CYGPATH_W) 'nm/shared/primitives/table.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/table.c'; fi`
-
-nm/shared/utils/nm_mgr-ion_if.o: nm/shared/utils/ion_if.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-ion_if.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo -c -o nm/shared/utils/nm_mgr-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Po
-#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_mgr-ion_if.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
-
-nm/shared/utils/nm_mgr-ion_if.obj: nm/shared/utils/ion_if.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-ion_if.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo -c -o nm/shared/utils/nm_mgr-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Po
-#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_mgr-ion_if.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
-
-nm/shared/utils/nm_mgr-utils.o: nm/shared/utils/utils.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-utils.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo -c -o nm/shared/utils/nm_mgr-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Po
-#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_mgr-utils.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
-
-nm/shared/utils/nm_mgr-utils.obj: nm/shared/utils/utils.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-utils.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo -c -o nm/shared/utils/nm_mgr-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
-	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Po
-#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_mgr-utils.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/primitives/nm_mgr-var.obj `if test -f 'nm/shared/primitives/var.c'; then $(CYGPATH_W) 'nm/shared/primitives/var.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/primitives/var.c'; fi`
 
 nm/shared/utils/nm_mgr-db.o: nm/shared/utils/db.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-db.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-db.Tpo -c -o nm/shared/utils/nm_mgr-db.o `test -f 'nm/shared/utils/db.c' || echo '$(srcdir)/'`nm/shared/utils/db.c
@@ -8987,6 +8963,20 @@ nm/shared/utils/nm_mgr-db.obj: nm/shared/utils/db.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-db.obj `if test -f 'nm/shared/utils/db.c'; then $(CYGPATH_W) 'nm/shared/utils/db.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/db.c'; fi`
 
+nm/shared/utils/nm_mgr-ion_if.o: nm/shared/utils/ion_if.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-ion_if.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo -c -o nm/shared/utils/nm_mgr-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Po
+#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_mgr-ion_if.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-ion_if.o `test -f 'nm/shared/utils/ion_if.c' || echo '$(srcdir)/'`nm/shared/utils/ion_if.c
+
+nm/shared/utils/nm_mgr-ion_if.obj: nm/shared/utils/ion_if.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-ion_if.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo -c -o nm/shared/utils/nm_mgr-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-ion_if.Po
+#	$(AM_V_CC)source='nm/shared/utils/ion_if.c' object='nm/shared/utils/nm_mgr-ion_if.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-ion_if.obj `if test -f 'nm/shared/utils/ion_if.c'; then $(CYGPATH_W) 'nm/shared/utils/ion_if.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/ion_if.c'; fi`
+
 nm/shared/utils/nm_mgr-nm_types.o: nm/shared/utils/nm_types.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-nm_types.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Tpo -c -o nm/shared/utils/nm_mgr-nm_types.o `test -f 'nm/shared/utils/nm_types.c' || echo '$(srcdir)/'`nm/shared/utils/nm_types.c
 	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-nm_types.Po
@@ -9000,6 +8990,90 @@ nm/shared/utils/nm_mgr-nm_types.obj: nm/shared/utils/nm_types.c
 #	$(AM_V_CC)source='nm/shared/utils/nm_types.c' object='nm/shared/utils/nm_mgr-nm_types.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-nm_types.obj `if test -f 'nm/shared/utils/nm_types.c'; then $(CYGPATH_W) 'nm/shared/utils/nm_types.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/nm_types.c'; fi`
+
+nm/shared/utils/nm_mgr-utils.o: nm/shared/utils/utils.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-utils.o -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo -c -o nm/shared/utils/nm_mgr-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Po
+#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_mgr-utils.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-utils.o `test -f 'nm/shared/utils/utils.c' || echo '$(srcdir)/'`nm/shared/utils/utils.c
+
+nm/shared/utils/nm_mgr-utils.obj: nm/shared/utils/utils.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/utils/nm_mgr-utils.obj -MD -MP -MF nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo -c -o nm/shared/utils/nm_mgr-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
+	$(AM_V_at)$(am__mv) nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Tpo nm/shared/utils/$(DEPDIR)/nm_mgr-utils.Po
+#	$(AM_V_CC)source='nm/shared/utils/utils.c' object='nm/shared/utils/nm_mgr-utils.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/shared/utils/nm_mgr-utils.obj `if test -f 'nm/shared/utils/utils.c'; then $(CYGPATH_W) 'nm/shared/utils/utils.c'; else $(CYGPATH_W) '$(srcdir)/nm/shared/utils/utils.c'; fi`
+
+nm/mgr/nm_mgr-adm_bp_mgr.o: nm/mgr/adm_bp_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_bp_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_bp_mgr.o `test -f 'nm/mgr/adm_bp_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_bp_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_bp_mgr.c' object='nm/mgr/nm_mgr-adm_bp_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_bp_mgr.o `test -f 'nm/mgr/adm_bp_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_bp_mgr.c
+
+nm/mgr/nm_mgr-adm_bp_mgr.obj: nm/mgr/adm_bp_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_bp_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_bp_mgr.obj `if test -f 'nm/mgr/adm_bp_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_bp_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_bp_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_bp_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_bp_mgr.c' object='nm/mgr/nm_mgr-adm_bp_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_bp_mgr.obj `if test -f 'nm/mgr/adm_bp_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_bp_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_bp_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_bpsec_mgr.o: nm/mgr/adm_bpsec_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_bpsec_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.o `test -f 'nm/mgr/adm_bpsec_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_bpsec_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_bpsec_mgr.c' object='nm/mgr/nm_mgr-adm_bpsec_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.o `test -f 'nm/mgr/adm_bpsec_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_bpsec_mgr.c
+
+nm/mgr/nm_mgr-adm_bpsec_mgr.obj: nm/mgr/adm_bpsec_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_bpsec_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.obj `if test -f 'nm/mgr/adm_bpsec_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_bpsec_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_bpsec_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_bpsec_mgr.c' object='nm/mgr/nm_mgr-adm_bpsec_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.obj `if test -f 'nm/mgr/adm_bpsec_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_bpsec_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_bpsec_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_ion_admin_mgr.o: nm/mgr/adm_ion_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_admin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.o `test -f 'nm/mgr/adm_ion_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_admin_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_admin_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.o `test -f 'nm/mgr/adm_ion_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_admin_mgr.c
+
+nm/mgr/nm_mgr-adm_ion_admin_mgr.obj: nm/mgr/adm_ion_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_admin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_admin_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_admin_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_admin_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.o: nm/mgr/adm_ion_bp_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.o `test -f 'nm/mgr/adm_ion_bp_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_bp_admin_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_bp_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.o `test -f 'nm/mgr/adm_ion_bp_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_bp_admin_mgr.c
+
+nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.obj: nm/mgr/adm_ion_bp_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_bp_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_bp_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_bp_admin_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_bp_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_bp_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_bp_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_bp_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_bp_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_bp_admin_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.o: nm/mgr/adm_ion_ipn_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.o `test -f 'nm/mgr/adm_ion_ipn_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_ipn_admin_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_ipn_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.o `test -f 'nm/mgr/adm_ion_ipn_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_ipn_admin_mgr.c
+
+nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.obj: nm/mgr/adm_ion_ipn_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_ipn_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_ipn_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_ipn_admin_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ipn_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_ipn_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_ipn_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_ipn_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_ipn_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_ipn_admin_mgr.c'; fi`
 
 nm/mgr/nm_mgr-adm_ionsec_admin_mgr.o: nm/mgr/adm_ionsec_admin_mgr.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ionsec_admin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ionsec_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ionsec_admin_mgr.o `test -f 'nm/mgr/adm_ionsec_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ionsec_admin_mgr.c
@@ -9015,19 +9089,33 @@ nm/mgr/nm_mgr-adm_ionsec_admin_mgr.obj: nm/mgr/adm_ionsec_admin_mgr.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ionsec_admin_mgr.obj `if test -f 'nm/mgr/adm_ionsec_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ionsec_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ionsec_admin_mgr.c'; fi`
 
-nm/mgr/nm_mgr-adm_bpsec_mgr.o: nm/mgr/adm_bpsec_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_bpsec_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.o `test -f 'nm/mgr/adm_bpsec_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_bpsec_mgr.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_bpsec_mgr.c' object='nm/mgr/nm_mgr-adm_bpsec_mgr.o' libtool=no \
+nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.o: nm/mgr/adm_ion_ltp_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.o `test -f 'nm/mgr/adm_ion_ltp_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_ltp_admin_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_ltp_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.o `test -f 'nm/mgr/adm_bpsec_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_bpsec_mgr.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.o `test -f 'nm/mgr/adm_ion_ltp_admin_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ion_ltp_admin_mgr.c
 
-nm/mgr/nm_mgr-adm_bpsec_mgr.obj: nm/mgr/adm_bpsec_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_bpsec_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.obj `if test -f 'nm/mgr/adm_bpsec_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_bpsec_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_bpsec_mgr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_bpsec_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_bpsec_mgr.c' object='nm/mgr/nm_mgr-adm_bpsec_mgr.obj' libtool=no \
+nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.obj: nm/mgr/adm_ion_ltp_admin_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_ltp_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_ltp_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_ltp_admin_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ion_ltp_admin_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ion_ltp_admin_mgr.c' object='nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_bpsec_mgr.obj `if test -f 'nm/mgr/adm_bpsec_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_bpsec_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_bpsec_mgr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ion_ltp_admin_mgr.obj `if test -f 'nm/mgr/adm_ion_ltp_admin_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ion_ltp_admin_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ion_ltp_admin_mgr.c'; fi`
+
+nm/mgr/nm_mgr-adm_ltp_agent_mgr.o: nm/mgr/adm_ltp_agent_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ltp_agent_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.o `test -f 'nm/mgr/adm_ltp_agent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ltp_agent_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ltp_agent_mgr.c' object='nm/mgr/nm_mgr-adm_ltp_agent_mgr.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.o `test -f 'nm/mgr/adm_ltp_agent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ltp_agent_mgr.c
+
+nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj: nm/mgr/adm_ltp_agent_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj `if test -f 'nm/mgr/adm_ltp_agent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ltp_agent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ltp_agent_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_ltp_agent_mgr.c' object='nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj `if test -f 'nm/mgr/adm_ltp_agent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ltp_agent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ltp_agent_mgr.c'; fi`
 
 bp/ipnd/node-node.o: bp/ipnd/node.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(node_CFLAGS) $(CFLAGS) -MT bp/ipnd/node-node.o -MD -MP -MF bp/ipnd/$(DEPDIR)/node-node.Tpo -c -o bp/ipnd/node-node.o `test -f 'bp/ipnd/node.c' || echo '$(srcdir)/'`bp/ipnd/node.c

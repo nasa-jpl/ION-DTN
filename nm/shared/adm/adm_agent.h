@@ -28,11 +28,12 @@
 #ifndef ADM_AGENT_H_
 #define ADM_AGENT_H_
 
-#include "lyst.h"
+//#include "lyst.h"
 
 #include "../utils/nm_types.h"
-#include "../adm/adm.h"
-#include "../primitives/lit.h"
+//#include "../adm/adm.h"
+#include "../primitives/mid.h"
+#include "../primitives/value.h"
 
 
 

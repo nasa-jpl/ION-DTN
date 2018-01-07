@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated c file 
+ **  2018-01-06  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -88,7 +88,7 @@ value_t adm_ion_bp_admin_meta_organization(tdc_t params)
  * Local endpoints, regardless of scheme name.
  */
 
-table_t* adm_ion_bp_admin_table_tbl_endpoints()
+table_t* adm_ion_bp_admin_tbl_endpoints()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -97,10 +97,11 @@ table_t* adm_ion_bp_admin_table_tbl_endpoints()
 	}
 
 	if(
-			(table_add_col(table, "endpointId", AMP_TYPE_STR) == ERROR) ||
-			(table_add_col(table, "type", AMP_TYPE_UINT) == ERROR) ||
-			(table_add_col(table, "rcvScript", AMP_TYPE_STR) == ERROR)
-	)
+		(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "endpointNSS", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "appPid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "recvRule", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "rcvScript", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -206,7 +207,7 @@ Sdr             sdr = getIonsdr();
  * Inducts established locally for the indicated CL protocol.
  */
 
-table_t* adm_ion_bp_admin_table_tbl_inducts()
+table_t* adm_ion_bp_admin_tbl_inducts()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -214,10 +215,10 @@ table_t* adm_ion_bp_admin_table_tbl_inducts()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "ductName", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "cliControl", AMP_TYPE_STR) == ERROR)))
+	if(
+		(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "ductName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "cliControl", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -242,7 +243,7 @@ if(
  *  protocol. Otherwise, it lists all locally established outducts, regardless of their protocol.
  */
 
-table_t* adm_ion_bp_admin_table_tbl_outducts()
+table_t* adm_ion_bp_admin_tbl_outducts()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -250,11 +251,12 @@ table_t* adm_ion_bp_admin_table_tbl_outducts()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "ductName", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "cloControl", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "maxPayloadLength", AMP_TYPE_STR) == ERROR)))
+	if(
+		(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "ductName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "cloPid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "cloControl", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "maxPayloadLength", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -278,7 +280,7 @@ if(
  * Convergence layer protocols that can currently be utilized at the local node.
  */
 
-table_t* adm_ion_bp_admin_table_tbl_protocols()
+table_t* adm_ion_bp_admin_tbl_protocols()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -286,11 +288,11 @@ table_t* adm_ion_bp_admin_table_tbl_protocols()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "payloadBytesPerFrame", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "overheadBytesPerFrame", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "nominalDataRate", AMP_TYPE_UINT) == ERROR)))
+	if(
+		(table_add_col(table, "Name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "payloadBPF", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "overheadBPF", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "nominalDataRate", AMP_TYPE_UINT) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -314,7 +316,7 @@ if(
  * Declared endpoint naming schemes.
  */
 
-table_t* adm_ion_bp_admin_table_tbl_schemes()
+table_t* adm_ion_bp_admin_tbl_schemes()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -322,10 +324,12 @@ table_t* adm_ion_bp_admin_table_tbl_schemes()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "forwarderControl", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "adminAppControl", AMP_TYPE_STR) == ERROR)))
+	if(
+		(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "fwdPid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "fwdCmd", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "adminAppPid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "adminAppCmd", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -339,6 +343,43 @@ if(
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION tbl_schemes BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return table;
+}
+
+
+/*
+ * Declared endpoint naming schemes.
+ */
+
+table_t* adm_ion_bp_admin_tbl_egress_plans()
+{
+	table_t *table = NULL;
+	if((table = table_create(NULL,NULL)) == NULL)
+	{
+		return NULL;
+	}
+
+	if(
+		(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "fwdPid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "fwdCmd", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "adminAppPid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "adminAppCmd", AMP_TYPE_STR) == ERROR))
+	{
+		table_destroy(table, 1);
+		return NULL;
+	}
+
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tbl_egress_plans BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tbl_egress_plans BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;

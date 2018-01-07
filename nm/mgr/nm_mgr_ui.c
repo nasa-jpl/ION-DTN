@@ -351,21 +351,21 @@ void ui_postprocess_ctrl(mid_t *mid)
 
 }
 
-int ui_test_mid(mid_t *mid, const char *mid_str)
+int ui_test_mid(mid_t *mid, uvast mid_val)
 {
 	int result = 0;
-	mid_t*  m2 =  NULL;
 
-	if((mid == NULL) || (mid_str == NULL))
+	if(mid == NULL)
 	{
 		AMP_DEBUG_ERR("ui_test_mid","Bad args.", NULL);
 		return 0;
 	}
 
-	m2 = mid_from_string((char *)mid_str);
+	mid_t *m2 = mid_from_value(mid_val);
 
 	result = mid_compare(mid, m2,0);
 	mid_release(m2);
+
 	return result;
 }
 
@@ -1214,7 +1214,7 @@ void ui_run_tests()
 /*
  * No double-checking, assumes code is correct...
  */
-void ui_add_parmspec(char *mid_str,
+void ui_add_parmspec(uvast mid_val,
 						       uint8_t num,
 		                       char *n1, uint8_t p1,
 		                       char *n2, uint8_t p2,
@@ -1228,7 +1228,7 @@ void ui_add_parmspec(char *mid_str,
 
 	memset(spec, 0, sizeof(ui_parm_spec_t));
 
-	spec->mid = mid_from_string(mid_str);
+	spec->mid = mid_from_value(mid_val);
 	spec->num_parms = num;
 
 	if(n1 != NULL) istrcpy(spec->parm_name[0], n1, MAX_PARM_NAME);

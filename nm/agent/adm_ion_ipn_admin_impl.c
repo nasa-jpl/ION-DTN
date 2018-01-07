@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-04  AUTO             Auto-generated c file 
+ **  2018-01-06  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -88,7 +88,7 @@ value_t adm_ion_ipn_admin_meta_organization(tdc_t params)
  * This table lists all of the exit rules.
  */
 
-table_t* adm_ion_ipn_admin_table_tbl_exit_rules()
+table_t* adm_ion_ipn_admin_tbl_exit_rules()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -96,11 +96,11 @@ table_t* adm_ion_ipn_admin_table_tbl_exit_rules()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "first_node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "last_node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR))
+	if(
+		(table_add_col(table, "firstNodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "lastNodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "gatewayEndpointId", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -108,12 +108,12 @@ if(
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_exit_rules BODY
+	 * |START CUSTOM FUNCTION tbl_exit_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_exit_rules BODY
+	 * |STOP CUSTOM FUNCTION tbl_exit_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -124,7 +124,7 @@ if(
  * This table lists all of the exits that are defined in the IPN database for the local node.
  */
 
-table_t* adm_ion_ipn_admin_table_tbl_exits()
+table_t* adm_ion_ipn_admin_tbl_exits()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -132,10 +132,10 @@ table_t* adm_ion_ipn_admin_table_tbl_exits()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "first_node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "last_node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR))
+	if(
+		(table_add_col(table, "firstNodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "lastNodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "gatewayEndpointId", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -143,12 +143,12 @@ if(
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_exits BODY
+	 * |START CUSTOM FUNCTION tbl_exits BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_exits BODY
+	 * |STOP CUSTOM FUNCTION tbl_exits BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -159,7 +159,7 @@ if(
  * This table lists all of the plan rules.
  */
 
-table_t* adm_ion_ipn_admin_table_tbl_plan_rules()
+table_t* adm_ion_ipn_admin_tbl_plan_rules()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -167,10 +167,10 @@ table_t* adm_ion_ipn_admin_table_tbl_plan_rules()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR))
+	if(
+		(table_add_col(table, "nodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "defaultDuctExpression", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -178,12 +178,12 @@ if(
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_plan_rules BODY
+	 * |START CUSTOM FUNCTION tbl_plan_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_plan_rules BODY
+	 * |STOP CUSTOM FUNCTION tbl_plan_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -195,7 +195,7 @@ if(
  * .
  */
 
-table_t* adm_ion_ipn_admin_table_tbl_plans()
+table_t* adm_ion_ipn_admin_tbl_plans()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -203,9 +203,9 @@ table_t* adm_ion_ipn_admin_table_tbl_plans()
 		return NULL;
 	}
 
-if(
-	(table_add_col(table, "node_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR))
+	if(
+		(table_add_col(table, "nodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "defaultDuctExpression", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -213,12 +213,12 @@ if(
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_plans BODY
+	 * |START CUSTOM FUNCTION tbl_plans BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_table_tbl_plans BODY
+	 * |STOP CUSTOM FUNCTION tbl_plans BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -234,12 +234,12 @@ value_t adm_ion_ipn_admin_get_ion_version(tdc_t params)
 	value_t result;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_get_ion_version BODY
+	 * |START CUSTOM FUNCTION get_ion_version BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_get_ion_version BODY
+	 * |STOP CUSTOM FUNCTION get_ion_version BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -258,10 +258,9 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_add BODY
+	 * |START CUSTOM FUNCTION ctrl_exit_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-
 	int8_t success = 0;
 	uvast firstNodeNbr = 0;
 	uvast lastNodeNbr = 0;
@@ -280,10 +279,9 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 		*status = CTRL_SUCCESS;
 	}
 	SRELEASE(endpointId);
-
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_add BODY
+	 * |STOP CUSTOM FUNCTION ctrl_exit_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -300,7 +298,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_change(eid_t *def_mgr, tdc_t params, int8_t *
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_change BODY
+	 * |START CUSTOM FUNCTION ctrl_exit_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	int8_t success = 0;
@@ -323,7 +321,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_change(eid_t *def_mgr, tdc_t params, int8_t *
 	SRELEASE(endpointId);
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_change BODY
+	 * |STOP CUSTOM FUNCTION ctrl_exit_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -339,7 +337,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_del BODY
+	 * |START CUSTOM FUNCTION ctrl_exit_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	int8_t success = 0;
@@ -355,10 +353,9 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 		ipn_removeExit(firstNodeNbr,lastNodeNbr);
 		*status = CTRL_SUCCESS;
 	}
-
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_del BODY
+	 * |STOP CUSTOM FUNCTION ctrl_exit_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -374,12 +371,12 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_rule_add(eid_t *def_mgr, tdc_t params, int8_t
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_rule_add BODY
+	 * |START CUSTOM FUNCTION ctrl_exit_rule_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_rule_add BODY
+	 * |STOP CUSTOM FUNCTION ctrl_exit_rule_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -395,12 +392,12 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_rule_change(eid_t *def_mgr, tdc_t params, int
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_rule_change BODY
+	 * |START CUSTOM FUNCTION ctrl_exit_rule_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_rule_change BODY
+	 * |STOP CUSTOM FUNCTION ctrl_exit_rule_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -416,12 +413,12 @@ tdc_t* adm_ion_ipn_admin_ctrl_exit_rule_del(eid_t *def_mgr, tdc_t params, int8_t
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_rule_del BODY
+	 * |START CUSTOM FUNCTION ctrl_exit_rule_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_exit_rule_del BODY
+	 * |STOP CUSTOM FUNCTION ctrl_exit_rule_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -438,7 +435,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_add BODY
+	 * |START CUSTOM FUNCTION ctrl_plan_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	int8_t success = 0;
@@ -462,7 +459,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_add(eid_t *def_mgr, tdc_t params, int8_t *sta
 	SRELEASE(xmitRate);
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_add BODY
+	 * |STOP CUSTOM FUNCTION ctrl_plan_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -478,7 +475,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_change(eid_t *def_mgr, tdc_t params, int8_t *
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_change BODY
+	 * |START CUSTOM FUNCTION ctrl_plan_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	int8_t success = 0;
@@ -502,7 +499,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_change(eid_t *def_mgr, tdc_t params, int8_t *
 	SRELEASE(xmitRate);
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_change BODY
+	 * |STOP CUSTOM FUNCTION ctrl_plan_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -518,7 +515,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_del BODY
+	 * |START CUSTOM FUNCTION ctrl_plan_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	int8_t success = 0;
@@ -532,7 +529,7 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_del(eid_t *def_mgr, tdc_t params, int8_t *sta
 	}
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_del BODY
+	 * |STOP CUSTOM FUNCTION ctrl_plan_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -548,12 +545,12 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_rule_add(eid_t *def_mgr, tdc_t params, int8_t
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_rule_add BODY
+	 * |START CUSTOM FUNCTION ctrl_plan_rule_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_rule_add BODY
+	 * |STOP CUSTOM FUNCTION ctrl_plan_rule_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -569,12 +566,12 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_rule_change(eid_t *def_mgr, tdc_t params, int
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_rule_change BODY
+	 * |START CUSTOM FUNCTION ctrl_plan_rule_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_rule_change BODY
+	 * |STOP CUSTOM FUNCTION ctrl_plan_rule_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -590,12 +587,12 @@ tdc_t* adm_ion_ipn_admin_ctrl_plan_rule_del(eid_t *def_mgr, tdc_t params, int8_t
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_rule_del BODY
+	 * |START CUSTOM FUNCTION ctrl_plan_rule_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION adm_ion_ipn_admin_ctrl_plan_rule_del BODY
+	 * |STOP CUSTOM FUNCTION ctrl_plan_rule_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;

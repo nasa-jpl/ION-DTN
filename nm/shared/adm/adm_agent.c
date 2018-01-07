@@ -28,13 +28,14 @@
 #include "ion.h"
 #include "platform.h"
 
-
-#include "../adm/adm_agent.h"
+#include "adm.h"
+#include "adm_agent.h"
 #include "../utils/utils.h"
 #include "../primitives/def.h"
 #include "../primitives/nn.h"
 #include "../primitives/report.h"
 #include "../primitives/blob.h"
+#include "../primitives/mid.h"
 
 #ifdef AGENT_ROLE
 #include "../../agent/adm_agent_impl.h"
@@ -58,7 +59,7 @@ void adm_agent_init()
 	adm_agent_init_reports();
 }
 
-
+#include "adm.h"
 
 void adm_agent_init_atomic()
 {

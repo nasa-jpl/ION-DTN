@@ -54,14 +54,18 @@
 #define ADM_MAX_NAME  (32)
 
 /* Known ADMs...*/
-#define ADM_ALL   0
-#define ADM_AGENT 1
-#define ADM_BP    2
-#define ADM_LTP   3
+#define ADM_ALL   		0
+#define ADM_AGENT 		1
+#define ADM_BP    		2
+#define ADM_LTP   		3
 #define ADM_ION_ADMIN   4
-#define ADM_BPSEC 5
-#define ADM_LTPAGENT 6
-#define ADM_IONBPADMIN 7
+#define ADM_BPSEC 		5
+#define ADM_IONBPADMIN 	6
+#define ADM_IPNADMIN	7
+#define ADM_IONSECADMIN	8
+#define ADM_IONLTPADMIN 9
+
+
 
 /*
  * +--------------------------------------------------------------------------+

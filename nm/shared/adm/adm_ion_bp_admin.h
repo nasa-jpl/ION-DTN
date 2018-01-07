@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated header file 
+ **  2018-01-06  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -76,23 +76,23 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |name                         |0x8732500100|The human-readable name of the ADM.               |STR          |
+   |name                         |0x87320100  |The human-readable name of the ADM.               |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |namespace                    |0x8732500101|The namespace of the ADM                          |STR          |
+   |namespace                    |0x87320101  |The namespace of the ADM                          |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |version                      |0x8732500102|The version of the ADM                            |STR          |
+   |version                      |0x87320102  |The version of the ADM                            |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |organization                 |0x8732500103|The name of the issuing organization of the ADM   |STR          |
+   |organization                 |0x87320103  |The name of the issuing organization of the ADM   |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 // "name"
-#define ADM_ION_BP_ADMIN_META_NAME_MID 0x8732500100
+#define ADM_ION_BP_ADMIN_META_NAME_MID 0x87320100
 // "namespace"
-#define ADM_ION_BP_ADMIN_META_NAMESPACE_MID 0x8732500101
+#define ADM_ION_BP_ADMIN_META_NAMESPACE_MID 0x87320101
 // "version"
-#define ADM_ION_BP_ADMIN_META_VERSION_MID 0x8732500102
+#define ADM_ION_BP_ADMIN_META_VERSION_MID 0x87320102
 // "organization"
-#define ADM_ION_BP_ADMIN_META_ORGANIZATION_MID 0x8732500103
+#define ADM_ION_BP_ADMIN_META_ORGANIZATION_MID 0x87320103
 
 
 /*
@@ -102,10 +102,10 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |version                      |0x8033500100|Version of installed ION BP Admin utility.        |STR          |
+   |version                      |0x80330100  |Version of installed ION BP Admin utility.        |STR          |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_ION_BP_ADMIN_EDD_VERSION_MID 0x8033500100
+#define ADM_ION_BP_ADMIN_EDD_VERSION_MID 0x80330100
 
 
 /*
@@ -135,7 +135,7 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpointAdd                  |0xc336500100|Establish DTN endpoint named endpointId on the loc|             |
+   |endpointAdd                  |0xc3360100  |Establish DTN endpoint named endpointId on the loc|             |
    |                             |            |al node. The remaining parameters indicate what is|             |
    |                             |            | to be done when bundles destined for this endpoin|             |
    |                             |            |t arrive at a time when no application has the end|             |
@@ -145,38 +145,38 @@
    |                             |            | to be enqueued for later delivery and, if recvScr|             |
    |                             |            |ipt is provided, recvScript is to be executed.    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpointChange               |0xc336500101|Change the action taken when bundles destined for |             |
+   |endpointChange               |0xc3360101  |Change the action taken when bundles destined for |             |
    |                             |            |this endpoint arrive at a time when no application|             |
    |                             |            | has the endpoint open for bundle reception.      |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpointDel                  |0xc336500102|Delete the endpoint identified by endpointId. The |             |
+   |endpointDel                  |0xc3360102  |Delete the endpoint identified by endpointId. The |             |
    |                             |            |control will fail if any bundles are currently pen|             |
    |                             |            |ding delivery to this endpoint.                   |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |inductAdd                    |0xc336500103|Establish a duct for reception of bundles via the |             |
+   |inductAdd                    |0xc3360103  |Establish a duct for reception of bundles via the |             |
    |                             |            |indicated CL protocol. The duct's data acquisition|             |
    |                             |            | structure is used and populated by the induct tas|             |
    |                             |            |k whose operation is initiated by cliControl at th|             |
    |                             |            |e time the duct is started.                       |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |inductChange                 |0xc336500104|Change the control used to initiate operation of t|             |
+   |inductChange                 |0xc3360104  |Change the control used to initiate operation of t|             |
    |                             |            |he induct task for the indicated duct.            |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |inductDel                    |0xc336500105|Delete the induct identified by protocolName and d|             |
+   |inductDel                    |0xc3360105  |Delete the induct identified by protocolName and d|             |
    |                             |            |uctName. The control will fail if any bundles are |             |
    |                             |            |currently pending acquisition via this induct.    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |inductStart                  |0xc336500106|Start the indicated induct task as defined for the|             |
+   |inductStart                  |0xc3360106  |Start the indicated induct task as defined for the|             |
    |                             |            | indicated CL protocol on the local node.         |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |inductStop                   |0xc336500107|Stop the indicated induct task as defined for the |             |
+   |inductStop                   |0xc3360107  |Stop the indicated induct task as defined for the |             |
    |                             |            |indicated CL protocol on the local node.          |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |init                         |0x8336500108|Until this control is executed, Bundle Protocol is|             |
+   |init                         |0x83360108  |Until this control is executed, Bundle Protocol is|             |
    |                             |            | not in operation on the local ION node and most b|             |
    |                             |            |padmin controls will fail.                        |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |manageHeapMax                |0xc336500109|Declare the maximum number of bytes of SDR heap sp|             |
+   |manageHeapMax                |0xc3360109  |Declare the maximum number of bytes of SDR heap sp|             |
    |                             |            |ace that will be occupied by any single bundle acq|             |
    |                             |            |uisition activity (nominally the acquisition of a |             |
    |                             |            |single bundle, but this is at the discretion of th|             |
@@ -189,7 +189,7 @@
    |                             |            |s is the minimum SDR heap space occupancy in the e|             |
    |                             |            |vent that all acquisition is into a file.         |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductAdd                   |0xc33650010a|Establish a duct for transmission of bundles via t|             |
+   |outductAdd                   |0xc336010a  |Establish a duct for transmission of bundles via t|             |
    |                             |            |he indicated CL protocol. the duct's data transmis|             |
    |                             |            |sion structure is serviced by the outduct task who|             |
    |                             |            |se operation is initiated by CLOcommand at the tim|             |
@@ -197,33 +197,33 @@
    |                             |            |oadLength indicates that bundles of any size can b|             |
    |                             |            |e accomodated;this is the default.                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductChange                |0xc33650010b|Set new values for the indicated duct's payload si|             |
+   |outductChange                |0xc336010b  |Set new values for the indicated duct's payload si|             |
    |                             |            |ze limit and the control that is used to initiate |             |
    |                             |            |operation of the outduct task for this duct.      |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductDel                   |0xc33650010c|Delete the outduct identified by protocolName and |             |
+   |outductDel                   |0xc336010c  |Delete the outduct identified by protocolName and |             |
    |                             |            |ductName. The control will fail if any bundles are|             |
    |                             |            | currently pending transmission via this outduct. |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductStart                 |0xc33650010d|Start the indicated outduct task as defined for th|             |
+   |outductStart                 |0xc336010d  |Start the indicated outduct task as defined for th|             |
    |                             |            |e indicated CL protocol on the local node.        |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductBlock                 |0xc33650010e|Disable transmission of bundles queued for transmi|             |
+   |outductBlock                 |0xc336010e  |Disable transmission of bundles queued for transmi|             |
    |                             |            |ssion to the indicated node and reforwards all non|             |
    |                             |            |-critical bundles currently queued for transmissio|             |
    |                             |            |n to this node. This may result in some or all of |             |
    |                             |            |these bundles being enqueued for transmission to t|             |
    |                             |            |he psuedo-node limbo.                             |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductUnblock               |0xc33650010f|Re-enable transmission of bundles to the indicated|             |
+   |outductUnblock               |0xc336010f  |Re-enable transmission of bundles to the indicated|             |
    |                             |            | node and reforwards all bundles in limbo in the h|             |
    |                             |            |ope that the unblocking of this egress plan will e|             |
    |                             |            |nable some of them to be transmitted.             |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |outductStop                  |0xc336500110|Stop the indicated outduct task as defined for the|             |
+   |outductStop                  |0xc3360110  |Stop the indicated outduct task as defined for the|             |
    |                             |            | indicated CL protocol on the local node.         |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |protocolAdd                  |0xc336500111|Establish access to the named convergence layer pr|             |
+   |protocolAdd                  |0xc3360111  |Establish access to the named convergence layer pr|             |
    |                             |            |otocol at the local node. The payloadBytesPerFrame|             |
    |                             |            | and overheadBytesPerFrame arguments are used in c|             |
    |                             |            |alculating the estimated transmission capacity con|             |
@@ -250,19 +250,19 @@
    |                             |            |ified contacts with the node to which the outduct |             |
    |                             |            |is mapped.                                        |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |protocolDel                  |0xc336500112|Delete the convergence layer protocol identified b|             |
+   |protocolDel                  |0xc3360112  |Delete the convergence layer protocol identified b|             |
    |                             |            |y protocolName. The control will fail if any ducts|             |
    |                             |            | are still locally declared for this protocol.    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |protocolStart                |0xc336500113|Start all induct and outduct tasks for inducts and|             |
+   |protocolStart                |0xc3360113  |Start all induct and outduct tasks for inducts and|             |
    |                             |            | outducts that have been defined for the indicated|             |
    |                             |            | CL protocol on the local node.                   |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |protocolStop                 |0xc336500114|Stop all induct and outduct tasks for inducts and |             |
+   |protocolStop                 |0xc3360114  |Stop all induct and outduct tasks for inducts and |             |
    |                             |            |outducts that have been defined for the indicated |             |
    |                             |            |CL protocol on the local node.                    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |schemeAdd                    |0xc336500115|Declares an endpoint naming scheme for use in endp|             |
+   |schemeAdd                    |0xc3360115  |Declares an endpoint naming scheme for use in endp|             |
    |                             |            |oint IDs, which are structured as URIs: schemeName|             |
    |                             |            |:schemeSpecificPart. forwarderControl will be exec|             |
    |                             |            |uted when the scheme is started on this node, to i|             |
@@ -274,30 +274,30 @@
    |                             |            |cieve and process custody signals and bundle statu|             |
    |                             |            |s reports.                                        |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |schemeChange                 |0xc336500116|Set the indicated scheme's forwarderControl and ad|             |
+   |schemeChange                 |0xc3360116  |Set the indicated scheme's forwarderControl and ad|             |
    |                             |            |minAppControl to the strings provided as arguments|             |
    |                             |            |.                                                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |schemeDel                    |0xc336500117|Delete the scheme identified by schemeName. The co|             |
+   |schemeDel                    |0xc3360117  |Delete the scheme identified by schemeName. The co|             |
    |                             |            |ntrol will fail if any bundles identified in this |             |
    |                             |            |scheme are pending forwarding, transmission, or de|             |
    |                             |            |livery.                                           |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |schemeStart                  |0xc336500118|Start the forwarder and administrative endpoint ta|             |
+   |schemeStart                  |0xc3360118  |Start the forwarder and administrative endpoint ta|             |
    |                             |            |sks for the indicated scheme task on the local nod|             |
    |                             |            |e.                                                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |schemeStop                   |0xc336500119|Stop the forwarder and administrative endpoint tas|             |
+   |schemeStop                   |0xc3360119  |Stop the forwarder and administrative endpoint tas|             |
    |                             |            |ks for the indicated scheme task on the local node|             |
    |                             |            |.                                                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |start                        |0x833650011a|Start all schemes and all protocols on the local n|             |
+   |start                        |0x8336011a  |Start all schemes and all protocols on the local n|             |
    |                             |            |ode.                                              |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |stop                         |0x833650011b|Stop all schemes and all protocols on the local no|             |
+   |stop                         |0x8336011b  |Stop all schemes and all protocols on the local no|             |
    |                             |            |de.                                               |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |watch                        |0xc33650011c|Enable/Disable production of a continuous stream o|             |
+   |watch                        |0xc336011c  |Enable/Disable production of a continuous stream o|             |
    |                             |            |f user selected Bundle Protocol activity indicatio|             |
    |                             |            |n characters. A watch parameter of 1 selects all B|             |
    |                             |            |P activity indication characters, 0 deselects allB|             |
@@ -323,35 +323,35 @@
    |                             |            |al retransmission timeout interval expired.       |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_ION_BP_ADMIN_CTRL_ENDPOINTADD_MID 0xc336500100
-#define ADM_ION_BP_ADMIN_CTRL_ENDPOINTCHANGE_MID 0xc336500101
-#define ADM_ION_BP_ADMIN_CTRL_ENDPOINTDEL_MID 0xc336500102
-#define ADM_ION_BP_ADMIN_CTRL_INDUCTADD_MID 0xc336500103
-#define ADM_ION_BP_ADMIN_CTRL_INDUCTCHANGE_MID 0xc336500104
-#define ADM_ION_BP_ADMIN_CTRL_INDUCTDEL_MID 0xc336500105
-#define ADM_ION_BP_ADMIN_CTRL_INDUCTSTART_MID 0xc336500106
-#define ADM_ION_BP_ADMIN_CTRL_INDUCTSTOP_MID 0xc336500107
-#define ADM_ION_BP_ADMIN_CTRL_INIT_MID 0x8336500108
-#define ADM_ION_BP_ADMIN_CTRL_MANAGEHEAPMAX_MID 0xc336500109
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTADD_MID 0xc33650010a
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTCHANGE_MID 0xc33650010b
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTDEL_MID 0xc33650010c
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTART_MID 0xc33650010d
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTBLOCK_MID 0xc33650010e
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTUNBLOCK_MID 0xc33650010f
-#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTOP_MID 0xc336500110
-#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLADD_MID 0xc336500111
-#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLDEL_MID 0xc336500112
-#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTART_MID 0xc336500113
-#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTOP_MID 0xc336500114
-#define ADM_ION_BP_ADMIN_CTRL_SCHEMEADD_MID 0xc336500115
-#define ADM_ION_BP_ADMIN_CTRL_SCHEMECHANGE_MID 0xc336500116
-#define ADM_ION_BP_ADMIN_CTRL_SCHEMEDEL_MID 0xc336500117
-#define ADM_ION_BP_ADMIN_CTRL_SCHEMESTART_MID 0xc336500118
-#define ADM_ION_BP_ADMIN_CTRL_SCHEMESTOP_MID 0xc336500119
-#define ADM_ION_BP_ADMIN_CTRL_START_MID 0x833650011a
-#define ADM_ION_BP_ADMIN_CTRL_STOP_MID 0x833650011b
-#define ADM_ION_BP_ADMIN_CTRL_WATCH_MID 0xc33650011c
+#define ADM_ION_BP_ADMIN_CTRL_ENDPOINTADD_MID 0xc3360100
+#define ADM_ION_BP_ADMIN_CTRL_ENDPOINTCHANGE_MID 0xc3360101
+#define ADM_ION_BP_ADMIN_CTRL_ENDPOINTDEL_MID 0xc3360102
+#define ADM_ION_BP_ADMIN_CTRL_INDUCTADD_MID 0xc3360103
+#define ADM_ION_BP_ADMIN_CTRL_INDUCTCHANGE_MID 0xc3360104
+#define ADM_ION_BP_ADMIN_CTRL_INDUCTDEL_MID 0xc3360105
+#define ADM_ION_BP_ADMIN_CTRL_INDUCTSTART_MID 0xc3360106
+#define ADM_ION_BP_ADMIN_CTRL_INDUCTSTOP_MID 0xc3360107
+#define ADM_ION_BP_ADMIN_CTRL_INIT_MID 0x83360108
+#define ADM_ION_BP_ADMIN_CTRL_MANAGEHEAPMAX_MID 0xc3360109
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTADD_MID 0xc336010a
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTCHANGE_MID 0xc336010b
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTDEL_MID 0xc336010c
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTART_MID 0xc336010d
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTBLOCK_MID 0xc336010e
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTUNBLOCK_MID 0xc336010f
+#define ADM_ION_BP_ADMIN_CTRL_OUTDUCTSTOP_MID 0xc3360110
+#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLADD_MID 0xc3360111
+#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLDEL_MID 0xc3360112
+#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTART_MID 0xc3360113
+#define ADM_ION_BP_ADMIN_CTRL_PROTOCOLSTOP_MID 0xc3360114
+#define ADM_ION_BP_ADMIN_CTRL_SCHEMEADD_MID 0xc3360115
+#define ADM_ION_BP_ADMIN_CTRL_SCHEMECHANGE_MID 0xc3360116
+#define ADM_ION_BP_ADMIN_CTRL_SCHEMEDEL_MID 0xc3360117
+#define ADM_ION_BP_ADMIN_CTRL_SCHEMESTART_MID 0xc3360118
+#define ADM_ION_BP_ADMIN_CTRL_SCHEMESTOP_MID 0xc3360119
+#define ADM_ION_BP_ADMIN_CTRL_START_MID 0x8336011a
+#define ADM_ION_BP_ADMIN_CTRL_STOP_MID 0x8336011b
+#define ADM_ION_BP_ADMIN_CTRL_WATCH_MID 0xc336011c
 
 
 /*
