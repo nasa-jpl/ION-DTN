@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -209,7 +209,7 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_init                    |0x83220100  |Until this control is executed, the local ION node|             |
+   |node_init                    |0xc3220100  |Until this control is executed, the local ION node|             |
    |                             |            | does not exist and most ionadmin controls will fa|             |
    |                             |            |il. The control configures the local node to be id|             |
    |                             |            |entified by node_number, a CBHE node number which |             |
@@ -225,21 +225,21 @@
    |                             |            |nconfig'; otherwise, ion_config_filename is taken |             |
    |                             |            |to be the explicit configuration file name.       |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_clock_error_set         |0x83220101  |This management control sets ION's understanding o|             |
+   |node_clock_error_set         |0xc3220101  |This management control sets ION's understanding o|             |
    |                             |            |f the accuracy of the scheduled start and stop tim|             |
    |                             |            |es of planned contacts, in seconds.  The default v|             |
    |                             |            |alue is 1.                                        |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_clock_sync_set          |0x83220102  |This management control reports whether or not the|             |
+   |node_clock_sync_set          |0xc3220102  |This management control reports whether or not the|             |
    |                             |            | computer on which the local ION node is running h|             |
    |                             |            |as a synchronized clock.                          |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_congestion_alarm_control|0x83220103  |This management control establishes a control whic|             |
+   |node_congestion_alarm_control|0xc3220103  |This management control establishes a control whic|             |
    |                             |            |h will automatically be executed whenever ionadmin|             |
    |                             |            | predicts that the node will become congested at s|             |
    |                             |            |ome future time.                                  |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_congestion_end_time_fore|0x83220104  |This management control sets the end time for comp|             |
+   |node_congestion_end_time_fore|0xc3220104  |This management control sets the end time for comp|             |
    |                             |            |uted congestion forecasts. Setting congestion fore|             |
    |                             |            |cast horizon to zero sets the congestion forecast |             |
    |                             |            |end time to infinite time in the future: if there |             |
@@ -249,7 +249,7 @@
    |                             |            |e predicted. The default value is zero, i.e., no e|             |
    |                             |            |nd time.                                          |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_consumption_rate_set    |0x83220105  |This management control sets ION's expectation of |             |
+   |node_consumption_rate_set    |0xc3220105  |This management control sets ION's expectation of |             |
    |                             |            |the mean rate of continuous data delivery to local|             |
    |                             |            | BP applications throughout the period of time ove|             |
    |                             |            |r which congestion forecasts are computed. For nod|             |
@@ -260,7 +260,7 @@
    |                             |            |tion is not considered in the computation of conge|             |
    |                             |            |stion forecasts.                                  |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_contact_add             |0x83220106  |This control schedules a period of data transmissi|             |
+   |node_contact_add             |0xc3220106  |This control schedules a period of data transmissi|             |
    |                             |            |on from source_node to dest_node. The period of tr|             |
    |                             |            |ansmission will begin at start_time and end at sto|             |
    |                             |            |p_time, and the rate of data transmission will be |             |
@@ -273,12 +273,12 @@
    |                             |            |case, confidence indicates our estimation of the l|             |
    |                             |            |ikelihood of this potential contact.              |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_contact_del             |0x83220107  |This control deletes the scheduled period of data |             |
+   |node_contact_del             |0xc3220107  |This control deletes the scheduled period of data |             |
    |                             |            |transmission from source_node to dest_node startin|             |
    |                             |            |g at start_time. To delete all contacts between so|             |
    |                             |            |me pair of nodes, use '*' as start_time.          |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_inbound_heap_occupancy_l|0x83220108  |This management control sets the maximum number of|             |
+   |node_inbound_heap_occupancy_l|0xc3220108  |This management control sets the maximum number of|             |
    |                             |            | megabytes of storage space in ION's SDR non-volat|             |
    |                             |            |ile heap that can be used for the storage of inbou|             |
    |                             |            |nd zero-copy objects. A value of -1 for either lim|             |
@@ -286,7 +286,7 @@
    |                             |            |imit is 30% of the SDR data space's total heap siz|             |
    |                             |            |e.                                                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_outbound_heap_occupancy_|0x83220109  |This management control sets the maximum number of|             |
+   |node_outbound_heap_occupancy_|0xc3220109  |This management control sets the maximum number of|             |
    |                             |            | megabytes of storage space in ION's SDR non-volat|             |
    |                             |            |ile heap that can be used for the storage of outbo|             |
    |                             |            |und zero-copy objects.  A value of -1 for either l|             |
@@ -294,7 +294,7 @@
    |                             |            | limit is 30% of the SDR data space's total heap s|             |
    |                             |            |ize.                                              |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_production_rate_set     |0x8322010a  |This management control sets ION's expectation of |             |
+   |node_production_rate_set     |0xc322010a  |This management control sets ION's expectation of |             |
    |                             |            |the mean rate of continuous data origination by lo|             |
    |                             |            |cal BP applications throughout the period of time |             |
    |                             |            |over which congestion forecasts are computed. For |             |
@@ -305,26 +305,26 @@
    |                             |            |ction is not considered in the computation of cong|             |
    |                             |            |estion forecasts.                                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_range_add               |0x8322010b  |This control predicts a period of time during whic|             |
+   |node_range_add               |0xc322010b  |This control predicts a period of time during whic|             |
    |                             |            |h the distance from node to other_node will be con|             |
    |                             |            |stant to within one light second. The period will |             |
    |                             |            |begin at start_time and end at stop_time, and the |             |
    |                             |            |distance between the nodes during that time will b|             |
    |                             |            |e distance light seconds.                         |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_range_del               |0x8322010c  |This control deletes the predicted period of const|             |
+   |node_range_del               |0xc322010c  |This control deletes the predicted period of const|             |
    |                             |            |ant distance between node and other_node starting |             |
    |                             |            |at start_time. To delete all ranges between some p|             |
    |                             |            |air of nodes, use '*' as start_time.              |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_ref_time_set            |0x8322010d  |This is used to set the reference time that will b|             |
+   |node_ref_time_set            |0xc322010d  |This is used to set the reference time that will b|             |
    |                             |            |e used for interpreting relative time values from |             |
    |                             |            |now until the next revision of reference time. Not|             |
    |                             |            |e that the new reference time can be a relative ti|             |
    |                             |            |me, i.e., an offset beyond the current reference t|             |
    |                             |            |ime.                                              |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |node_utc_delta_set           |0x8322010e  |This management control sets ION's understanding o|             |
+   |node_utc_delta_set           |0xc322010e  |This management control sets ION's understanding o|             |
    |                             |            |f the current difference between correct UTC time |             |
    |                             |            |and the time values reported by the clock for the |             |
    |                             |            |local ION node's computer. This delta is automatic|             |
@@ -332,21 +332,21 @@
    |                             |            |ver ION needs to know the current time.           |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_ION_ADMIN_CTRL_NODE_INIT_MID 0x83220100
-#define ADM_ION_ADMIN_CTRL_NODE_CLOCK_ERROR_SET_MID 0x83220101
-#define ADM_ION_ADMIN_CTRL_NODE_CLOCK_SYNC_SET_MID 0x83220102
-#define ADM_ION_ADMIN_CTRL_NODE_CONGESTION_ALARM_CONTROL_SET_MID 0x83220103
-#define ADM_ION_ADMIN_CTRL_NODE_CONGESTION_END_TIME_FORECASTS_SET_MID 0x83220104
-#define ADM_ION_ADMIN_CTRL_NODE_CONSUMPTION_RATE_SET_MID 0x83220105
-#define ADM_ION_ADMIN_CTRL_NODE_CONTACT_ADD_MID 0x83220106
-#define ADM_ION_ADMIN_CTRL_NODE_CONTACT_DEL_MID 0x83220107
-#define ADM_ION_ADMIN_CTRL_NODE_INBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID 0x83220108
-#define ADM_ION_ADMIN_CTRL_NODE_OUTBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID 0x83220109
-#define ADM_ION_ADMIN_CTRL_NODE_PRODUCTION_RATE_SET_MID 0x8322010a
-#define ADM_ION_ADMIN_CTRL_NODE_RANGE_ADD_MID 0x8322010b
-#define ADM_ION_ADMIN_CTRL_NODE_RANGE_DEL_MID 0x8322010c
-#define ADM_ION_ADMIN_CTRL_NODE_REF_TIME_SET_MID 0x8322010d
-#define ADM_ION_ADMIN_CTRL_NODE_UTC_DELTA_SET_MID 0x8322010e
+#define ADM_ION_ADMIN_CTRL_NODE_INIT_MID 0xc3220100
+#define ADM_ION_ADMIN_CTRL_NODE_CLOCK_ERROR_SET_MID 0xc3220101
+#define ADM_ION_ADMIN_CTRL_NODE_CLOCK_SYNC_SET_MID 0xc3220102
+#define ADM_ION_ADMIN_CTRL_NODE_CONGESTION_ALARM_CONTROL_SET_MID 0xc3220103
+#define ADM_ION_ADMIN_CTRL_NODE_CONGESTION_END_TIME_FORECASTS_SET_MID 0xc3220104
+#define ADM_ION_ADMIN_CTRL_NODE_CONSUMPTION_RATE_SET_MID 0xc3220105
+#define ADM_ION_ADMIN_CTRL_NODE_CONTACT_ADD_MID 0xc3220106
+#define ADM_ION_ADMIN_CTRL_NODE_CONTACT_DEL_MID 0xc3220107
+#define ADM_ION_ADMIN_CTRL_NODE_INBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID 0xc3220108
+#define ADM_ION_ADMIN_CTRL_NODE_OUTBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID 0xc3220109
+#define ADM_ION_ADMIN_CTRL_NODE_PRODUCTION_RATE_SET_MID 0xc322010a
+#define ADM_ION_ADMIN_CTRL_NODE_RANGE_ADD_MID 0xc322010b
+#define ADM_ION_ADMIN_CTRL_NODE_RANGE_DEL_MID 0xc322010c
+#define ADM_ION_ADMIN_CTRL_NODE_REF_TIME_SET_MID 0xc322010d
+#define ADM_ION_ADMIN_CTRL_NODE_UTC_DELTA_SET_MID 0xc322010e
 
 
 /*
