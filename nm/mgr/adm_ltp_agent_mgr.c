@@ -281,7 +281,7 @@ void adm_ltp_agent_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT_MID));
 	adm_add_rpt(mid_from_value(ADM_LTP_AGENT_RPT_ENDPOINTREPORT_MID), rpt);
 	midcol_destroy(&rpt);
-	names_add_name("ADM_LTP_AGENT_RPT_ENDPOINTREPORT_MID", "Full Report", ADM_LTP_AGENT, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_MID);
+	names_add_name("ENDPOINTREPORT", "This is all known endpoint information", ADM_LTP_AGENT, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_MID);
 
 }
 

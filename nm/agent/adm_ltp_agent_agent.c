@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -135,8 +135,9 @@ void adm_ltp_agent_init_ops()
 
 void adm_ltp_agent_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
-	Lyst rpt = lyst_create();
+	rpt = lyst_create();
 	lyst_insert_last(rpt,mid_from_value(ADM_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_LTP_AGENT_EDD_SPAN_CUR_OUT_SEG_MID));
@@ -183,6 +184,8 @@ void adm_ltp_agent_init_reports()
 	adm_add_rpt(mid_from_value(ADM_LTP_AGENT_RPT_ENDPOINTREPORT_MID), rpt);
 
 	midcol_destroy(&rpt);
+
+
 }
 
 #endif // _HAVE_LTP_AGENT_ADM_

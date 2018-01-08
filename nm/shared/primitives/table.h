@@ -20,7 +20,7 @@
 
 #include "lyst.h"
 
-#include "../primitives/dc.h"
+#include "../primitives/tdc.h"
 #include "../utils/nm_types.h"
 
 /*

@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -19,7 +19,8 @@
 #define ADM_LTP_AGENT_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
+#include "ltpnm.h"
+
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
@@ -29,7 +30,6 @@
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/table.h"
 /*   START typeENUM */
-/*             TODO              */
 /*   STOP typeENUM  */
 
 void name_adm_init_agent();
@@ -40,7 +40,6 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_ltp_agent_setup();
