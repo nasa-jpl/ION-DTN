@@ -681,8 +681,30 @@ mid_t* mid_from_string(char *mid_str)
 mid_t*   mid_from_value(unsigned long mid_val)
 {
 	uint32_t tmp = 0;
+	unsigned long result = 0;
 
-	return mid_deserialize((unsigned char *)&mid_val, sizeof(unsigned long), &tmp);
+	if((1 != htonl(1)))
+	{
+		uint8_t *a = (uint8_t *) &mid_val;
+		uint8_t *b = (uint8_t *) &result;
+		uint8_t max = sizeof(unsigned long);
+
+		if(mid_val < 0xFFFFFFFF)
+		{
+			max = 4;
+		}
+
+		for(int i = 0; i < max; i++)
+		{
+			b[i] = a[max-1-i];
+		}
+	}
+	else
+	{
+		result = mid_val;
+	}
+
+	return mid_deserialize((unsigned char *)&result, sizeof(unsigned long), &tmp);
 }
 
 
