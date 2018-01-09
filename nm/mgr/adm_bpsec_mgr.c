@@ -242,8 +242,8 @@ void adm_bpsec_init_edd()
 
 void adm_bpsec_init_variables()
 {
-	adm_add_edd(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), AMP_TYPE_UINT, 0, NULL, adm_print_unsigned_long, adm_size_unsigned_long);
-	names_add_name("TOTAL_BAD_TX_BLKS", "This is the number of failed TX blocks (# failed BIB + # failed bcb).", ADM_BPSEC, ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID);
+	adm_add_edd(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
+		names_add_name("TOTAL_BAD_TX_BLKS", "This is the number of failed TX blocks (# failed BIB + # failed bcb).", ADM_BPSEC, ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID);
 }
 
 
@@ -350,6 +350,7 @@ void adm_bpsec_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID));
@@ -364,7 +365,7 @@ void adm_bpsec_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID));
 	adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_FULL_REPORT_MID), rpt);
 	midcol_destroy(&rpt);
-	names_add_name("ADM_BPSEC_RPT_FULL_REPORT_MID", "Full Report", ADM_BPSEC, ADM_BPSEC_RPT_FULL_REPORT_MID);
+	names_add_name("FULL_REPORT", "all known meta-data, externally defined data, and variables", ADM_BPSEC, ADM_BPSEC_RPT_FULL_REPORT_MID);
 
 	rpt = lyst_create();
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID));
@@ -395,7 +396,7 @@ void adm_bpsec_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_RESET_MID));
 	adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_SOURCE_REPORT_MID), rpt);
 	midcol_destroy(&rpt);
-	names_add_name("ADM_BPSEC_RPT_SOURCE_REPORT_MID", "Endpoint Report", ADM_BPSEC, ADM_BPSEC_RPT_SOURCE_REPORT_MID);
+	names_add_name("SOURCE_REPORT", "security info by source", ADM_BPSEC, ADM_BPSEC_RPT_SOURCE_REPORT_MID);
 
 }
 

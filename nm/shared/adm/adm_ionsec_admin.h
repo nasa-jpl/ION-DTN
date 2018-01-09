@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -186,6 +186,15 @@
    |ltp_tx_rule_del              |0xc34a0108  |This control deletes the LTP segment signing rule |             |
    |                             |            |for the indicated LTP engine.                     |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_keys                    |0x834a0109  |This control lists the names of keys available in |             |
+   |                             |            |the key policy database.                          |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_ltp_rx_rules            |0x834a010a  |This control lists all LTP segment authentication |             |
+   |                             |            |rules in the security policy database.            |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_ltp_tx_rules            |0x834a010b  |This control lists all LTP segment signing rules i|             |
+   |                             |            |n the security policy database.                   |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 #define ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID 0xc34a0100
 #define ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID 0xc34a0101
@@ -196,6 +205,9 @@
 #define ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_ADD_MID 0xc34a0106
 #define ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_CHANGE_MID 0xc34a0107
 #define ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID 0xc34a0108
+#define ADM_IONSEC_ADMIN_CTRL_LIST_KEYS_MID 0x834a0109
+#define ADM_IONSEC_ADMIN_CTRL_LIST_LTP_RX_RULES_MID 0x834a010a
+#define ADM_IONSEC_ADMIN_CTRL_LIST_LTP_TX_RULES_MID 0x834a010b
 
 
 /*

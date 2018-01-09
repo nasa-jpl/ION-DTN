@@ -203,7 +203,8 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 
     cur_def = NULL;
 
-	if(MID_GET_FLAG_ID(entry->id->flags) == MID_ATOMIC)
+	if((MID_GET_FLAG_ID(entry->id->flags) == MID_ATOMIC) ||
+	   (MID_GET_FLAG_ID(entry->id->flags) == MID_LITERAL))
 	{
 		adm_datadef_t *ad_entry = adm_find_datadef(entry->id);
 
@@ -323,6 +324,12 @@ void ui_print_mid(mid_t *mid)
 	printf("%s", result);
 	SRELEASE(result);
 
+	if(mid_get_num_parms(mid) > 0)
+	{
+		char *parms = tdc_to_str(&(mid->oid.params));
+		printf("(%s)", parms);
+		SRELEASE(parms);
+	}
 }
 
 

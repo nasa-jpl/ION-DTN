@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -121,52 +121,139 @@ void adm_bp_init_ops()
 
 void adm_bp_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
-	Lyst rpt = lyst_create();
+	mid_t *cur_mid = NULL;
+	uint32_t val = 0;
 
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_META_NAME_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_META_VERSION_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BP_NODE_ID_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BP_NODE_VERSION_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_AVAILABLE_STORAGE_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_LAST_RESET_TIME_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_REGISTRATIONS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_FWD_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_DIS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_IN_CUST_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_BUNDLES_DELETED_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_FORWARD_BUNDLES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_FORWARD_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ABANDONED_BUNDLES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_DISCARDED_BUNDLES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_DISCARDED_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_NAMES_MID));
 
-	adm_add_rpt(mid_from_value(ADM_BP_RPT_FULL_REPORT_MID), rpt);
+	rpt = lyst_create();
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_META_NAME_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_META_VERSION_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BP_NODE_ID_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BP_NODE_VERSION_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_AVAILABLE_STORAGE_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_LAST_RESET_TIME_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_REGISTRATIONS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_FWD_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_DIS_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_IN_CUST_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID));
+
+		cur_mid = mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(1));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(2));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(4));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(1));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(2));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(4));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(1));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(2));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(4));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(1));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(2));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(4));
+		lyst_insert_last(rpt,cur_mid);
+
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID));
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x1));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x2));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x4));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x8));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x10));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x20));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x40));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x80));
+		lyst_insert_last(rpt,cur_mid);
+
+		cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+		mid_add_param_from_value(cur_mid, val_from_uint(0x100));
+		lyst_insert_last(rpt,cur_mid);
+
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_BUNDLES_DELETED_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_FORWARD_BUNDLES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_FORWARD_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ABANDONED_BUNDLES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_DISCARDED_BUNDLES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_DISCARDED_BYTES_MID));
+		lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_NAMES_MID));
+
+
+		adm_add_rpt(mid_from_value(ADM_BP_RPT_FULL_REPORT_MID), rpt);
 
 	midcol_destroy(&rpt);
 
 	rpt = lyst_create();
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_ACTIVE_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_SINGLETON_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_POLICY_MID));
+	cur_mid = mid_from_value(ADM_BP_EDD_ENDPOINT_ACTIVE_MID);
+	lyst_insert_last(rpt,cur_mid);
+	cur_mid = mid_from_value(ADM_BP_EDD_ENDPOINT_SINGLETON_MID);
+	lyst_insert_last(rpt,cur_mid);
+	cur_mid = mid_from_value(ADM_BP_EDD_ENDPOINT_POLICY_MID);
+	lyst_insert_last(rpt,cur_mid);
 
 	adm_add_rpt(mid_from_value(ADM_BP_RPT_ENDPOINT_REPORT_MID), rpt);
 
 	midcol_destroy(&rpt);
 
-//	names_add_name("ADM_BP_RPT_FULL_REPORT_MID", "This is all known meta-data, EDD, and VAR values known by the agent.", ADM_BP, ADM_BP_RPT_FULL_REPORT_MID);
-//	names_add_name("ADM_BP_RPT_ENDPOINT_REPORT_MID", "This is all known endpoint information", ADM_BP, ADM_BP_RPT_ENDPOINT_REPORT_MID);
 
 }
 

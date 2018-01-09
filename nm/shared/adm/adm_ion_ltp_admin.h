@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -149,7 +149,7 @@
    |                             |            | data exchange between the local LTP and neighbori|             |
    |                             |            |ng engines are non-trivial to determine.          |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |manageHeap                   |0xc35e0101  |This control declares the maximum number of bytes |             |
+   |manage_heap                  |0xc35e0101  |This control declares the maximum number of bytes |             |
    |                             |            |of SDR heap space that will be occupied by the acq|             |
    |                             |            |uisition of any single LTP block.  All data acquir|             |
    |                             |            |ed in excess of this limit will be written to a te|             |
@@ -160,7 +160,7 @@
    |                             |            |um SDR heap space occupancy in the event that all |             |
    |                             |            |acquisition is into a file.                       |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |manageMaxBER                 |0xc35e0102  |This control sets the expected maximum bit error r|             |
+   |manage_max_ber               |0xc35e0102  |This control sets the expected maximum bit error r|             |
    |                             |            |ate(BER) that LTP should provide for in computing |             |
    |                             |            |the maximum number of transmission efforts to init|             |
    |                             |            |iate in the transmission of a given block.(Note th|             |
@@ -169,14 +169,14 @@
    |                             |            |e transmitted.) The default value is .0001 (10^-4)|             |
    |                             |            |.                                                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |manageOwnQueueTime           |0xc35e0103  |This control sets the number of seconds of predict|             |
+   |manage_own_queue_time        |0xc35e0103  |This control sets the number of seconds of predict|             |
    |                             |            |ed additional latency attributable to processing d|             |
    |                             |            |elay within the local engine itself that should be|             |
    |                             |            | included whenever LTP computes the nominal round-|             |
    |                             |            |trip time for an exchange of data with any remote |             |
    |                             |            |engine. The default value is 1.                   |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |manageScreening              |0xc35e0104  |This control enables or disables the screening of |             |
+   |manage_screening             |0xc35e0104  |This control enables or disables the screening of |             |
    |                             |            |received LTP segments per the periods of scheduled|             |
    |                             |            | reception in the node's contact graph.  By defaul|             |
    |                             |            |t, screening is disabled. When screening is enable|             |
@@ -187,14 +187,14 @@
    |                             |            |iving at times other than the scheduled contact in|             |
    |                             |            |tervals and will be discarded.                    |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |spanAdd                      |0xc35e0105  |This control declares that a span of potential LTP|             |
+   |span_add                     |0xc35e0105  |This control declares that a span of potential LTP|             |
    |                             |            | data interchange exists between the local LTP eng|             |
    |                             |            |ine and the indicated (neighboring) LTP engine.   |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |spanChange                   |0xc35e0106  |This control sets the indicated span's configurati|             |
+   |span_change                  |0xc35e0106  |This control sets the indicated span's configurati|             |
    |                             |            |on parameters to the values provided as arguments |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |spanDel                      |0xc35e0107  |This control deletes the span identified by peerEn|             |
+   |span_del                     |0xc35e0107  |This control deletes the span identified by peerEn|             |
    |                             |            |gineNumber. The control will fail if any outbound |             |
    |                             |            |segments for this span are pending transmission or|             |
    |                             |            | any inbound blocks from the peer engine are incom|             |
@@ -203,7 +203,7 @@
    |stop                         |0x835e0108  |This control stops all link service input and outp|             |
    |                             |            |ut tasks for the local LTP engine.                |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |watchSet                     |0xc35e0109  |This control enables and disables production of a |             |
+   |watch_set                    |0xc35e0109  |This control enables and disables production of a |             |
    |                             |            |continuous stream of user- selected LTP activity i|             |
    |                             |            |ndication characters. Activity parameter of "1" se|             |
    |                             |            |lects all LTP activity indication characters; "0" |             |
@@ -235,15 +235,15 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 #define ADM_ION_LTP_ADMIN_CTRL_INIT_MID 0xc35e0100
-#define ADM_ION_LTP_ADMIN_CTRL_MANAGEHEAP_MID 0xc35e0101
-#define ADM_ION_LTP_ADMIN_CTRL_MANAGEMAXBER_MID 0xc35e0102
-#define ADM_ION_LTP_ADMIN_CTRL_MANAGEOWNQUEUETIME_MID 0xc35e0103
-#define ADM_ION_LTP_ADMIN_CTRL_MANAGESCREENING_MID 0xc35e0104
-#define ADM_ION_LTP_ADMIN_CTRL_SPANADD_MID 0xc35e0105
-#define ADM_ION_LTP_ADMIN_CTRL_SPANCHANGE_MID 0xc35e0106
-#define ADM_ION_LTP_ADMIN_CTRL_SPANDEL_MID 0xc35e0107
+#define ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID 0xc35e0101
+#define ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID 0xc35e0102
+#define ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID 0xc35e0103
+#define ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID 0xc35e0104
+#define ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID 0xc35e0105
+#define ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID 0xc35e0106
+#define ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID 0xc35e0107
 #define ADM_ION_LTP_ADMIN_CTRL_STOP_MID 0x835e0108
-#define ADM_ION_LTP_ADMIN_CTRL_WATCHSET_MID 0xc35e0109
+#define ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID 0xc35e0109
 
 
 /*

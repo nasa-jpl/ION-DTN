@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -57,15 +57,15 @@ void adm_ion_ltp_admin_init_variables()
 void adm_ion_ltp_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_INIT_MID),adm_ion_ltp_admin_ctrl_init);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGEHEAP_MID),adm_ion_ltp_admin_ctrl_manageheap);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGEMAXBER_MID),adm_ion_ltp_admin_ctrl_managemaxber);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGEOWNQUEUETIME_MID),adm_ion_ltp_admin_ctrl_manageownqueuetime);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGESCREENING_MID),adm_ion_ltp_admin_ctrl_managescreening);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPANADD_MID),adm_ion_ltp_admin_ctrl_spanadd);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPANCHANGE_MID),adm_ion_ltp_admin_ctrl_spanchange);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPANDEL_MID),adm_ion_ltp_admin_ctrl_spandel);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID),adm_ion_ltp_admin_ctrl_manage_heap);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID),adm_ion_ltp_admin_ctrl_manage_max_ber);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID),adm_ion_ltp_admin_ctrl_manage_own_queue_time);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID),adm_ion_ltp_admin_ctrl_manage_screening);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID),adm_ion_ltp_admin_ctrl_span_add);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID),adm_ion_ltp_admin_ctrl_span_change);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID),adm_ion_ltp_admin_ctrl_span_del);
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_STOP_MID),adm_ion_ltp_admin_ctrl_stop);
-	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_WATCHSET_MID),adm_ion_ltp_admin_ctrl_watchset);
+	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID),adm_ion_ltp_admin_ctrl_watch_set);
 }
 
 void adm_ion_ltp_admin_init_constants()
@@ -102,6 +102,7 @@ void adm_ion_ltp_admin_init_ops()
 
 void adm_ion_ltp_admin_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
 
 }

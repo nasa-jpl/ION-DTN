@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -33,7 +33,6 @@
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/table.h"
-
 /*   START typeENUM */
 typedef struct
 {
@@ -141,6 +140,7 @@ typedef struct
 } SecVdb;
 
 /*   STOP typeENUM  */
+
 void name_adm_init_agent();
 
 
@@ -190,6 +190,9 @@ tdc_t* adm_ionsec_admin_ctrl_ltp_rx_rule_del(eid_t *def_mgr, tdc_t params, int8_
 tdc_t* adm_ionsec_admin_ctrl_ltp_tx_rule_add(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ionsec_admin_ctrl_ltp_tx_rule_change(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ionsec_admin_ctrl_ltp_tx_rule_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ionsec_admin_ctrl_list_keys(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ionsec_admin_ctrl_list_ltp_rx_rules(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ionsec_admin_ctrl_list_ltp_tx_rules(eid_t *def_mgr, tdc_t params, int8_t *status);
 
 
 /* OP Functions */

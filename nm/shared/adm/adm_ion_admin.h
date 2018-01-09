@@ -331,6 +331,13 @@
    |                             |            |ally applied to locally obtained time values whene|             |
    |                             |            |ver ION needs to know the current time.           |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_contacts                |0x8322010f  |Lists all schedule periods of data transmission.  |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_usage                   |0x83220110  |Lists ION's current data space occupancy.         |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
+   |list_ranges                  |0x83220111  |Lists all predefined periods of constant distance |             |
+   |                             |            |between nodes.                                    |             |
+   +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 #define ADM_ION_ADMIN_CTRL_NODE_INIT_MID 0xc3220100
 #define ADM_ION_ADMIN_CTRL_NODE_CLOCK_ERROR_SET_MID 0xc3220101
@@ -347,6 +354,9 @@
 #define ADM_ION_ADMIN_CTRL_NODE_RANGE_DEL_MID 0xc322010c
 #define ADM_ION_ADMIN_CTRL_NODE_REF_TIME_SET_MID 0xc322010d
 #define ADM_ION_ADMIN_CTRL_NODE_UTC_DELTA_SET_MID 0xc322010e
+#define ADM_ION_ADMIN_CTRL_LIST_CONTACTS_MID 0x8322010f
+#define ADM_ION_ADMIN_CTRL_LIST_USAGE_MID 0x83220110
+#define ADM_ION_ADMIN_CTRL_LIST_RANGES_MID 0x83220111
 
 
 /*

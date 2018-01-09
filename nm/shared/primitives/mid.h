@@ -38,6 +38,8 @@
 
 #include "../utils/debug.h"
 #include "../primitives/oid.h"
+#include "../primitives/value.h"
+
 
 /*
  * +--------------------------------------------------------------------------+
@@ -152,7 +154,10 @@ typedef struct {
  */
 
 
+
 int      mid_add_param(mid_t *mid, amp_type_e type, blob_t *blob);
+
+int		 mid_add_param_from_value(mid_t *mid, value_t value);
 
 void     mid_clear(mid_t *mid);
 

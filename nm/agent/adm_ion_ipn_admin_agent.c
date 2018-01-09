@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -104,6 +104,7 @@ void adm_ion_ipn_admin_init_ops()
 
 void adm_ion_ipn_admin_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
 
 }

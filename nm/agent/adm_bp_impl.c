@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-04  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -154,9 +154,9 @@ value_t adm_bp_get_available_storage(tdc_t params)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result.type = AMP_TYPE_STRING;
+	result.type = AMP_TYPE_UVAST;
 
-	result.value.as_ptr = adm_copy_string((char *) node_state.bpVersionNbr, NULL);
+	result.value.as_uvast = node_state.avblStorage;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_available_storage BODY
@@ -349,7 +349,7 @@ value_t adm_bp_get_bundles_by_priority(tdc_t params)
 
 	bpnm_disposition_get(&state);
 
-  	uvast val = adm_extract_uvast(params, 0, &success);
+  	uint32_t val = adm_extract_uint(params, 0, &success);
 
   	result.type = AMP_TYPE_UVAST;
 
@@ -365,7 +365,7 @@ value_t adm_bp_get_bundles_by_priority(tdc_t params)
 	  		result.value.as_uvast = state.currentResidentCount[2];
 	  		break;
 	  	default:
-	  		AMP_DEBUG_ERR("get_bundles_by_priority","Invalid priority",NULL);
+	  		AMP_DEBUG_ERR("get_bundles_by_priority","Invalid priority %d",val);
 	  		break;
 	}
 
@@ -395,7 +395,7 @@ value_t adm_bp_get_bytes_by_priority(tdc_t params)
 	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
-  	uvast val = adm_extract_uvast(params, 0, &success);
+  	uint32_t val = adm_extract_uint(params, 0, &success);
 
   	result.type = AMP_TYPE_UVAST;
 
@@ -440,7 +440,7 @@ value_t adm_bp_get_src_bundles_by_priority(tdc_t params)
 	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
-  	uvast val = adm_extract_uvast(params, 0, &success);
+  	uint32_t val = adm_extract_uint(params, 0, &success);
 
   	result.type = AMP_TYPE_UVAST;
 
@@ -485,7 +485,7 @@ value_t adm_bp_get_src_bytes_by_priority(tdc_t params)
 	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
-  	uvast val = adm_extract_uvast(params, 0, &success);
+  	uint32_t val = adm_extract_uint(params, 0, &success);
 
   	result.type = AMP_TYPE_UVAST;
 
@@ -524,11 +524,6 @@ value_t adm_bp_get_num_fragmented_bundles(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fragmented_bundles BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-
-
-
-
-
 
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
@@ -589,7 +584,7 @@ value_t adm_bp_get_num_failed_by_reason(tdc_t params)
 	int8_t success = 0;
 	bpnm_disposition_get(&state);
 
-  uvast val = adm_extract_uvast(params, 0, &success);
+  uint32_t val = adm_extract_uint(params, 0, &success);
 
   result.type = AMP_TYPE_UVAST;
 

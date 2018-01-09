@@ -88,6 +88,7 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
     {
 
         /* Step 1.1: If this is an atomic data definition...*/
+    	case MID_LITERAL:
     	case MID_ATOMIC:
     	{
     	    adm_datadef_t *adm_def = NULL;

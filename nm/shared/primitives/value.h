@@ -28,7 +28,8 @@
 #define VALUE_H_
 
 #include "../utils/nm_types.h"
-#include "../primitives/mid.h"
+#include "../primitives/blob.h"
+//#include "../primitives/mid.h"
 
 // \todo: Make enum
 #define VAL_OPTYPE_ARITHMETIC 0

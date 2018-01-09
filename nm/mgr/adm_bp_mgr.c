@@ -75,15 +75,19 @@ void adm_bp_init_edd()
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("BUNDLES_BY_PRIORITY", "number of bundles for the given priority. Priority is given as a priority mask where Bulk=0x1, normal=0x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned count", ADM_BP, ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("BYTES_BY_PRIORITY", "number of bytes of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned count.", ADM_BP, ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_BYTES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SRC_BUNDLES_BY_PRIORITY", "number of bundles sourced by this node of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles sourced by this node and matching any of the masked priorities will be included in the returned count.", ADM_BP, ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SRC_BYTES_BY_PRIORITY", "number of bytes sourced by this node of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles sourced by this node and matching any of the masked priorities will be included in the returned count", ADM_BP, ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("NUM_FRAGMENTED_BUNDLES", "number of fragmented bundles", ADM_BP, ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID);
@@ -93,6 +97,7 @@ void adm_bp_init_edd()
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("NUM_FAILED_BY_REASON", "number of bundles failed for any of the given reasons. (noInfo=0x1, Expired=0x2, UniFwd=0x4, Cancelled=0x8, NoStorage=0x10, BadEID=0x20, NoRoute=0x40, NoContact=0x80, BadBlock=0x100)", ADM_BP, ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID, "mask", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_BUNDLES_DELETED_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("NUM_BUNDLES_DELETED", "number of bundles deleted by this node", ADM_BP, ADM_BP_EDD_NUM_BUNDLES_DELETED_MID);
@@ -126,12 +131,15 @@ void adm_bp_init_edd()
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_ACTIVE_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ENDPOINT_ACTIVE", "is the given endpoint active? (0=no)", ADM_BP, ADM_BP_EDD_ENDPOINT_ACTIVE_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_ENDPOINT_ACTIVE_MID, "endpoint_name", AMP_TYPE_STR);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_SINGLETON_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ENDPOINT_SINGLETON", "is the given endpoint singleton? (0=no)", ADM_BP, ADM_BP_EDD_ENDPOINT_SINGLETON_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_ENDPOINT_SINGLETON_MID, "endpoint_name", AMP_TYPE_STR);
 
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_POLICY_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("ENDPOINT_POLICY", "Does the endpoint abandon on fail (0=no)", ADM_BP, ADM_BP_EDD_ENDPOINT_POLICY_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_EDD_ENDPOINT_POLICY_MID, "endpoint_name", AMP_TYPE_STR);
 
 }
 
@@ -191,8 +199,11 @@ void adm_bp_init_ops()
 
 void adm_bp_init_reports()
 {
-	uint32_t used= 0;
 	Lyst rpt = NULL;
+	uint32_t used= 0;
+	mid_t *cur_mid = NULL;
+	uint32_t val = 0;
+
 
 	rpt = lyst_create();
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_META_NAME_MID));
@@ -206,13 +217,94 @@ void adm_bp_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_DIS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_IN_CUST_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID));
+
+	cur_mid = mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(1));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(2));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(4));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(1));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(2));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(4));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(1));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(2));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(4));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(1));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(2));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(4));
+	lyst_insert_last(rpt,cur_mid);
+
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID));
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x1));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x2));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x4));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x8));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x10));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x20));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x40));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x80));
+	lyst_insert_last(rpt,cur_mid);
+
+	cur_mid = mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID);
+	mid_add_param_from_value(cur_mid, val_from_uint(0x100));
+	lyst_insert_last(rpt,cur_mid);
+
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_NUM_BUNDLES_DELETED_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID));
@@ -222,20 +314,21 @@ void adm_bp_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_DISCARDED_BUNDLES_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_DISCARDED_BYTES_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_NAMES_MID));
+
+
 	adm_add_rpt(mid_from_value(ADM_BP_RPT_FULL_REPORT_MID), rpt);
+	names_add_name("BP_FULL_REPORT_MID", "Full BP Report.", ADM_BP, ADM_BP_RPT_FULL_REPORT_MID);
+
+
 	midcol_destroy(&rpt);
-
-	names_add_name("ADM_BP_RPT_FULL_REPORT_MID", "Full Report", ADM_BP, ADM_BP_RPT_FULL_REPORT_MID);
-
-
 	rpt = lyst_create();
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_ACTIVE_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_SINGLETON_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BP_EDD_ENDPOINT_POLICY_MID));
 	adm_add_rpt(mid_from_value(ADM_BP_RPT_ENDPOINT_REPORT_MID), rpt);
 	midcol_destroy(&rpt);
-
-	names_add_name("ADM_BP_RPT_ENDPOINT_REPORT_MID", "Full Report", ADM_BP, ADM_BP_RPT_ENDPOINT_REPORT_MID);
+	names_add_name("ENDPOINT_REPORT", "This is all known endpoint information", ADM_BP, ADM_BP_RPT_ENDPOINT_REPORT_MID);
+	UI_ADD_PARMSPEC_1(ADM_BP_RPT_ENDPOINT_REPORT_MID, "endpoint_name", AMP_TYPE_STR);
 
 }
 

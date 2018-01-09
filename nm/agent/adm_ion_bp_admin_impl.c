@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -97,11 +97,11 @@ table_t* adm_ion_bp_admin_tbl_endpoints()
 	}
 
 	if(
-		(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "endpointNSS", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "appPid", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "recvRule", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "rcvScript", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "scheme_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "endpoint_nss", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "app_pid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "recv_rule", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "rcv_script", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -216,9 +216,9 @@ table_t* adm_ion_bp_admin_tbl_inducts()
 	}
 
 	if(
-		(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "ductName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "cliControl", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "protocol_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "duct_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "cli_control", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -252,11 +252,11 @@ table_t* adm_ion_bp_admin_tbl_outducts()
 	}
 
 	if(
-		(table_add_col(table, "protocolName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "ductName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "cloPid", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "cloControl", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "maxPayloadLength", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "protocol_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "duct_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "clo_pid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "clo_control", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "max_payload_length", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -289,10 +289,10 @@ table_t* adm_ion_bp_admin_tbl_protocols()
 	}
 
 	if(
-		(table_add_col(table, "Name", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "payloadBPF", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "overheadBPF", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "nominalDataRate", AMP_TYPE_UINT) == ERROR))
+		(table_add_col(table, "name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "payload_bpf", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "overhead_bpf", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "nominal_data_rate", AMP_TYPE_UINT) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -325,11 +325,11 @@ table_t* adm_ion_bp_admin_tbl_schemes()
 	}
 
 	if(
-		(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "fwdPid", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "fwdCmd", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "adminAppPid", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "adminAppCmd", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "scheme_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "fwd_pid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "fwd_cmd", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "admin_app_pid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "admin_app_cmd", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -362,11 +362,11 @@ table_t* adm_ion_bp_admin_tbl_egress_plans()
 	}
 
 	if(
-		(table_add_col(table, "schemeName", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "fwdPid", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "fwdCmd", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "adminAppPid", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "adminAppCmd", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "scheme_name", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "fwd_pid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "fwd_cmd", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "admin_app_pid", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "admin_app_cmd", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -417,18 +417,18 @@ value_t adm_ion_bp_admin_get_version(tdc_t params)
  * immediately. If type is 'q', then such bundles are to be enqueued for later delivery and, if recvScr
  * ipt is provided, recvScript is to be executed.
  */
-tdc_t* adm_ion_bp_admin_ctrl_endpointadd(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_endpoint_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_endpointAdd BODY
+	 * |START CUSTOM FUNCTION ctrl_endpoint_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_endpointAdd BODY
+	 * |STOP CUSTOM FUNCTION ctrl_endpoint_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -439,18 +439,18 @@ tdc_t* adm_ion_bp_admin_ctrl_endpointadd(eid_t *def_mgr, tdc_t params, int8_t *s
  * Change the action taken when bundles destined for this endpoint arrive at a time when no application
  *  has the endpoint open for bundle reception.
  */
-tdc_t* adm_ion_bp_admin_ctrl_endpointchange(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_endpoint_change(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_endpointChange BODY
+	 * |START CUSTOM FUNCTION ctrl_endpoint_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_endpointChange BODY
+	 * |STOP CUSTOM FUNCTION ctrl_endpoint_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -461,18 +461,18 @@ tdc_t* adm_ion_bp_admin_ctrl_endpointchange(eid_t *def_mgr, tdc_t params, int8_t
  * Delete the endpoint identified by endpointId. The control will fail if any bundles are currently pen
  * ding delivery to this endpoint.
  */
-tdc_t* adm_ion_bp_admin_ctrl_endpointdel(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_endpoint_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_endpointDel BODY
+	 * |START CUSTOM FUNCTION ctrl_endpoint_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_endpointDel BODY
+	 * |STOP CUSTOM FUNCTION ctrl_endpoint_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -484,18 +484,18 @@ tdc_t* adm_ion_bp_admin_ctrl_endpointdel(eid_t *def_mgr, tdc_t params, int8_t *s
  *  structure is used and populated by the induct task whose operation is initiated by cliControl at th
  * e time the duct is started.
  */
-tdc_t* adm_ion_bp_admin_ctrl_inductadd(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_induct_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_inductAdd BODY
+	 * |START CUSTOM FUNCTION ctrl_induct_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_inductAdd BODY
+	 * |STOP CUSTOM FUNCTION ctrl_induct_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -505,18 +505,18 @@ tdc_t* adm_ion_bp_admin_ctrl_inductadd(eid_t *def_mgr, tdc_t params, int8_t *sta
 /*
  * Change the control used to initiate operation of the induct task for the indicated duct.
  */
-tdc_t* adm_ion_bp_admin_ctrl_inductchange(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_induct_change(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_inductChange BODY
+	 * |START CUSTOM FUNCTION ctrl_induct_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_inductChange BODY
+	 * |STOP CUSTOM FUNCTION ctrl_induct_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -527,18 +527,18 @@ tdc_t* adm_ion_bp_admin_ctrl_inductchange(eid_t *def_mgr, tdc_t params, int8_t *
  * Delete the induct identified by protocolName and ductName. The control will fail if any bundles are 
  * currently pending acquisition via this induct.
  */
-tdc_t* adm_ion_bp_admin_ctrl_inductdel(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_induct_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_inductDel BODY
+	 * |START CUSTOM FUNCTION ctrl_induct_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_inductDel BODY
+	 * |STOP CUSTOM FUNCTION ctrl_induct_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -548,18 +548,18 @@ tdc_t* adm_ion_bp_admin_ctrl_inductdel(eid_t *def_mgr, tdc_t params, int8_t *sta
 /*
  * Start the indicated induct task as defined for the indicated CL protocol on the local node.
  */
-tdc_t* adm_ion_bp_admin_ctrl_inductstart(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_induct_start(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_inductStart BODY
+	 * |START CUSTOM FUNCTION ctrl_induct_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_inductStart BODY
+	 * |STOP CUSTOM FUNCTION ctrl_induct_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -569,18 +569,18 @@ tdc_t* adm_ion_bp_admin_ctrl_inductstart(eid_t *def_mgr, tdc_t params, int8_t *s
 /*
  * Stop the indicated induct task as defined for the indicated CL protocol on the local node.
  */
-tdc_t* adm_ion_bp_admin_ctrl_inductstop(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_induct_stop(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_inductStop BODY
+	 * |START CUSTOM FUNCTION ctrl_induct_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_inductStop BODY
+	 * |STOP CUSTOM FUNCTION ctrl_induct_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -617,18 +617,18 @@ tdc_t* adm_ion_bp_admin_ctrl_init(eid_t *def_mgr, tdc_t params, int8_t *status)
  * minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; thi
  * s is the minimum SDR heap space occupancy in the event that all acquisition is into a file.
  */
-tdc_t* adm_ion_bp_admin_ctrl_manageheapmax(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_manage_heap_max(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_manageHeapMax BODY
+	 * |START CUSTOM FUNCTION ctrl_manage_heap_max BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_manageHeapMax BODY
+	 * |STOP CUSTOM FUNCTION ctrl_manage_heap_max BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -641,18 +641,18 @@ tdc_t* adm_ion_bp_admin_ctrl_manageheapmax(eid_t *def_mgr, tdc_t params, int8_t 
  * e the duct is started. A value of zero for maxPayloadLength indicates that bundles of any size can b
  * e accomodated;this is the default.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductadd(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductAdd BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductAdd BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -663,18 +663,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductadd(eid_t *def_mgr, tdc_t params, int8_t *st
  * Set new values for the indicated duct's payload size limit and the control that is used to initiate 
  * operation of the outduct task for this duct.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductchange(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_change(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductChange BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductChange BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -685,18 +685,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductchange(eid_t *def_mgr, tdc_t params, int8_t 
  * Delete the outduct identified by protocolName and ductName. The control will fail if any bundles are
  *  currently pending transmission via this outduct.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductdel(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductDel BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductDel BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -706,18 +706,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductdel(eid_t *def_mgr, tdc_t params, int8_t *st
 /*
  * Start the indicated outduct task as defined for the indicated CL protocol on the local node.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductstart(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_start(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductStart BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductStart BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -729,18 +729,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductstart(eid_t *def_mgr, tdc_t params, int8_t *
  * -critical bundles currently queued for transmission to this node. This may result in some or all of 
  * these bundles being enqueued for transmission to the psuedo-node limbo.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductblock(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_block(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductBlock BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_block BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductBlock BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_block BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -751,18 +751,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductblock(eid_t *def_mgr, tdc_t params, int8_t *
  * Re-enable transmission of bundles to the indicated node and reforwards all bundles in limbo in the h
  * ope that the unblocking of this egress plan will enable some of them to be transmitted.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductunblock(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_unblock(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductUnblock BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_unblock BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductUnblock BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_unblock BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -772,18 +772,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductunblock(eid_t *def_mgr, tdc_t params, int8_t
 /*
  * Stop the indicated outduct task as defined for the indicated CL protocol on the local node.
  */
-tdc_t* adm_ion_bp_admin_ctrl_outductstop(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_outduct_stop(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_outductStop BODY
+	 * |START CUSTOM FUNCTION ctrl_outduct_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_outductStop BODY
+	 * |STOP CUSTOM FUNCTION ctrl_outduct_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -805,18 +805,18 @@ tdc_t* adm_ion_bp_admin_ctrl_outductstop(eid_t *def_mgr, tdc_t params, int8_t *s
  * inal data rate may be the authority for rate control, in the event that the contact plan lacks ident
  * ified contacts with the node to which the outduct is mapped.
  */
-tdc_t* adm_ion_bp_admin_ctrl_protocoladd(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_protocol_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_protocolAdd BODY
+	 * |START CUSTOM FUNCTION ctrl_protocol_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_protocolAdd BODY
+	 * |STOP CUSTOM FUNCTION ctrl_protocol_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -827,18 +827,18 @@ tdc_t* adm_ion_bp_admin_ctrl_protocoladd(eid_t *def_mgr, tdc_t params, int8_t *s
  * Delete the convergence layer protocol identified by protocolName. The control will fail if any ducts
  *  are still locally declared for this protocol.
  */
-tdc_t* adm_ion_bp_admin_ctrl_protocoldel(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_protocol_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_protocolDel BODY
+	 * |START CUSTOM FUNCTION ctrl_protocol_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_protocolDel BODY
+	 * |STOP CUSTOM FUNCTION ctrl_protocol_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -849,18 +849,18 @@ tdc_t* adm_ion_bp_admin_ctrl_protocoldel(eid_t *def_mgr, tdc_t params, int8_t *s
  * Start all induct and outduct tasks for inducts and outducts that have been defined for the indicated
  *  CL protocol on the local node.
  */
-tdc_t* adm_ion_bp_admin_ctrl_protocolstart(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_protocol_start(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_protocolStart BODY
+	 * |START CUSTOM FUNCTION ctrl_protocol_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_protocolStart BODY
+	 * |STOP CUSTOM FUNCTION ctrl_protocol_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -871,18 +871,18 @@ tdc_t* adm_ion_bp_admin_ctrl_protocolstart(eid_t *def_mgr, tdc_t params, int8_t 
  * Stop all induct and outduct tasks for inducts and outducts that have been defined for the indicated 
  * CL protocol on the local node.
  */
-tdc_t* adm_ion_bp_admin_ctrl_protocolstop(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_protocol_stop(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_protocolStop BODY
+	 * |START CUSTOM FUNCTION ctrl_protocol_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_protocolStop BODY
+	 * |STOP CUSTOM FUNCTION ctrl_protocol_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -897,18 +897,18 @@ tdc_t* adm_ion_bp_admin_ctrl_protocolstop(eid_t *def_mgr, tdc_t params, int8_t *
  * nt identified within this scheme so that it can recieve and process custody signals and bundle statu
  * s reports.
  */
-tdc_t* adm_ion_bp_admin_ctrl_schemeadd(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_scheme_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_schemeAdd BODY
+	 * |START CUSTOM FUNCTION ctrl_scheme_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_schemeAdd BODY
+	 * |STOP CUSTOM FUNCTION ctrl_scheme_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -919,18 +919,18 @@ tdc_t* adm_ion_bp_admin_ctrl_schemeadd(eid_t *def_mgr, tdc_t params, int8_t *sta
  * Set the indicated scheme's forwarderControl and adminAppControl to the strings provided as arguments
  * .
  */
-tdc_t* adm_ion_bp_admin_ctrl_schemechange(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_scheme_change(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_schemeChange BODY
+	 * |START CUSTOM FUNCTION ctrl_scheme_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_schemeChange BODY
+	 * |STOP CUSTOM FUNCTION ctrl_scheme_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -941,18 +941,18 @@ tdc_t* adm_ion_bp_admin_ctrl_schemechange(eid_t *def_mgr, tdc_t params, int8_t *
  * Delete the scheme identified by schemeName. The control will fail if any bundles identified in this 
  * scheme are pending forwarding, transmission, or delivery.
  */
-tdc_t* adm_ion_bp_admin_ctrl_schemedel(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_scheme_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_schemeDel BODY
+	 * |START CUSTOM FUNCTION ctrl_scheme_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_schemeDel BODY
+	 * |STOP CUSTOM FUNCTION ctrl_scheme_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -963,18 +963,18 @@ tdc_t* adm_ion_bp_admin_ctrl_schemedel(eid_t *def_mgr, tdc_t params, int8_t *sta
  * Start the forwarder and administrative endpoint tasks for the indicated scheme task on the local nod
  * e.
  */
-tdc_t* adm_ion_bp_admin_ctrl_schemestart(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_scheme_start(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_schemeStart BODY
+	 * |START CUSTOM FUNCTION ctrl_scheme_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_schemeStart BODY
+	 * |STOP CUSTOM FUNCTION ctrl_scheme_start BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -985,18 +985,18 @@ tdc_t* adm_ion_bp_admin_ctrl_schemestart(eid_t *def_mgr, tdc_t params, int8_t *s
  * Stop the forwarder and administrative endpoint tasks for the indicated scheme task on the local node
  * .
  */
-tdc_t* adm_ion_bp_admin_ctrl_schemestop(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_bp_admin_ctrl_scheme_stop(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_schemeStop BODY
+	 * |START CUSTOM FUNCTION ctrl_scheme_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_schemeStop BODY
+	 * |STOP CUSTOM FUNCTION ctrl_scheme_stop BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;

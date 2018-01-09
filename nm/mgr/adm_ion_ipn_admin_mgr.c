@@ -61,39 +61,51 @@ void adm_ion_ipn_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID), NULL);
 	names_add_name("EXIT_ADD", "This control establishes an \"exit\" for static default routing.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID);
+	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "gateway_endpoint_id", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID), NULL);
 	names_add_name("EXIT_CHANGE", "This control changes the gateway node number for the exit identified by firstNodeNbr and lastNodeNbr.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID);
+	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "gatewayEndpointId", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID), NULL);
 	names_add_name("EXIT_DEL", "This control deletes the exit identified by firstNodeNbr and lastNodeNbr.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID);
+	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_ADD_MID), NULL);
 	names_add_name("EXIT_RULE_ADD", "This control adds an exit rule.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_ADD_MID);
+	UI_ADD_PARMSPEC_4(ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_ADD_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "qualifier", AMP_TYPE_STR, "gateway_endpoint_id", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_CHANGE_MID), NULL);
 	names_add_name("EXIT_RULE_CHANGE", "This control changes an exit rule.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_CHANGE_MID);
+	UI_ADD_PARMSPEC_4(ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_CHANGE_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "qualifier", AMP_TYPE_STR, "gateway_endpoint_id", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_DEL_MID), NULL);
 	names_add_name("EXIT_RULE_DEL", "This control deletes an exit rule.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_DEL_MID);
+	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_EXIT_RULE_DEL_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "qualifier", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID), NULL);
 	names_add_name("PLAN_ADD", "This control establishes an egress plan for the bundles that must be transmitted to the neighboring node that is identified by it's nodeNbr.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID);
+	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID, "node_nbr", AMP_TYPE_UINT, "default_duct_expression", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID), NULL);
 	names_add_name("PLAN_CHANGE", "This control changes the duct expression for the indicated plan.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID);
+	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID, "node_nbr", AMP_TYPE_UINT, "default_duct_expression", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID), NULL);
 	names_add_name("PLAN_DEL", "This control deletes the egress plan for the node that is identified by it's nodeNbr.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID);
+	UI_ADD_PARMSPEC_1(ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID, "node_nbr", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_ADD_MID), NULL);
 	names_add_name("PLAN_RULE_ADD", "This control adds a plan rule.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_ADD_MID);
+	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_ADD_MID, "node_nbr", AMP_TYPE_UINT, "qualifier", AMP_TYPE_STR, "default_duct_expression", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_CHANGE_MID), NULL);
 	names_add_name("PLAN_RULE_CHANGE", "This control changes the plan rule.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_CHANGE_MID);
+	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_CHANGE_MID, "first_node_nbr", AMP_TYPE_UINT, "qualifier", AMP_TYPE_STR, "default_duct_expression", AMP_TYPE_STR);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_DEL_MID), NULL);
 	names_add_name("PLAN_RULE_DEL", "This control deletes a plan rule.", ADM_ION_IPN_ADMIN, ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_DEL_MID);
+	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_PLAN_RULE_DEL_MID, "node_nbr", AMP_TYPE_UINT, "qualifier", AMP_TYPE_STR);
 
 }
 

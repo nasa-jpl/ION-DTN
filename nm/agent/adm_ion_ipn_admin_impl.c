@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -97,10 +97,10 @@ table_t* adm_ion_ipn_admin_tbl_exit_rules()
 	}
 
 	if(
-		(table_add_col(table, "firstNodeNbr", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "lastNodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "first_node_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "last_node_nbr", AMP_TYPE_UINT) == ERROR) ||
 		(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "gatewayEndpointId", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -133,9 +133,9 @@ table_t* adm_ion_ipn_admin_tbl_exits()
 	}
 
 	if(
-		(table_add_col(table, "firstNodeNbr", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "lastNodeNbr", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "gatewayEndpointId", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "first_node_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "last_node_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "gateway_endpoint_id", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -168,9 +168,9 @@ table_t* adm_ion_ipn_admin_tbl_plan_rules()
 	}
 
 	if(
-		(table_add_col(table, "nodeNbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "node_nbr", AMP_TYPE_UINT) == ERROR) ||
 		(table_add_col(table, "qualifier", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "defaultDuctExpression", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -204,8 +204,8 @@ table_t* adm_ion_ipn_admin_tbl_plans()
 	}
 
 	if(
-		(table_add_col(table, "nodeNbr", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "defaultDuctExpression", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "node_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "default_duct_expression", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;

@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -58,32 +58,32 @@ value_t adm_ion_bp_admin_get_version(tdc_t params);
 
 
 /* Control Functions */
-tdc_t* adm_ion_bp_admin_ctrl_endpointadd(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_endpointchange(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_endpointdel(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_inductadd(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_inductchange(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_inductdel(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_inductstart(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_inductstop(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_endpoint_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_endpoint_change(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_endpoint_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_induct_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_induct_change(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_induct_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_induct_start(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_induct_stop(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_bp_admin_ctrl_init(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_manageheapmax(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductadd(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductchange(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductdel(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductstart(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductblock(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductunblock(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_outductstop(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_protocoladd(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_protocoldel(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_protocolstart(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_protocolstop(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_schemeadd(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_schemechange(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_schemedel(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_schemestart(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_bp_admin_ctrl_schemestop(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_manage_heap_max(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_change(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_start(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_block(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_unblock(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_outduct_stop(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_protocol_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_protocol_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_protocol_start(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_protocol_stop(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_scheme_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_scheme_change(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_scheme_del(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_scheme_start(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_bp_admin_ctrl_scheme_stop(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_bp_admin_ctrl_start(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_bp_admin_ctrl_stop(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_bp_admin_ctrl_watch(eid_t *def_mgr, tdc_t params, int8_t *status);

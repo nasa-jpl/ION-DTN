@@ -126,6 +126,8 @@ typedef struct {
 
 int8_t   oid_add_param(oid_t *oid, amp_type_e type, blob_t *blob);
 
+//int8_t	 oid_add_param_from_value(oid_t *oid, value_t value);
+
 int8_t   oid_add_params(oid_t *oid, tdc_t *params);
 
 void     oid_clear(oid_t* oid);

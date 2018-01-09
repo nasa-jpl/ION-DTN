@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -152,7 +152,7 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |last_update                  |0x80290118  |Last BPSEC update                                 |TS           |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |num_known_keys               |0x80290119  |Number of known keys                              |Uint         |
+   |num_known_keys               |0x80290119  |Number of known keys                              |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |key_names                    |0x8029011a  |Known key names                                   |STRING       |
    +-----------------------------+------------+--------------------------------------------------+-------------+
@@ -291,14 +291,14 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |full_report                  |0x822b0100  |all known meta-data, externally defined data, and |             |
+   |full_report                  |0xc22b0100  |all known meta-data, externally defined data, and |             |
    |                             |            |variables                                         |?            |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |source_report                |0x822b0101  |security info by source                           |?            |
+   |source_report                |0xc22b0101  |security info by source                           |?            |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_BPSEC_RPT_FULL_REPORT_MID 0x822b0100
-#define ADM_BPSEC_RPT_SOURCE_REPORT_MID 0x822b0101
+#define ADM_BPSEC_RPT_FULL_REPORT_MID 0xc22b0100
+#define ADM_BPSEC_RPT_SOURCE_REPORT_MID 0xc22b0101
 
 
 /*

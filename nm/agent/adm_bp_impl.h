@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-04  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -28,9 +28,8 @@
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/table.h"
-/******************
- * TODO: typeENUM *
- *****************/
+/*   START typeENUM */
+/*   STOP typeENUM  */
 
 void name_adm_init_agent();
 
@@ -40,7 +39,6 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_bp_setup();

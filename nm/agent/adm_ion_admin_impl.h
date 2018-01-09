@@ -88,6 +88,9 @@ tdc_t* adm_ion_admin_ctrl_node_range_add(eid_t *def_mgr, tdc_t params, int8_t *s
 tdc_t* adm_ion_admin_ctrl_node_range_del(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_admin_ctrl_node_ref_time_set(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_admin_ctrl_node_utc_delta_set(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_admin_ctrl_list_contacts(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_admin_ctrl_list_usage(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_admin_ctrl_list_ranges(eid_t *def_mgr, tdc_t params, int8_t *status);
 
 
 /* OP Functions */

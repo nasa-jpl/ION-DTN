@@ -1061,14 +1061,25 @@ char* tdc_to_str(tdc_t *tdc)
 	{
 		cur_type = tdc->hdr.data[i];
 		cur_entry = (blob_t *) lyst_data(elt);
-		char *data_str = blob_to_str(cur_entry);
 
-		lens[i] = 20 + strlen(data_str);
+
+		value_t value = val_from_blob(cur_entry, cur_type);
+		char *data_str = val_to_string(value);
+		val_release(&value, 0);
+
+		lens[i] = 3 + strlen(data_str);
 		entries[i] = (char *) STAKE(lens[i]);
 
 		if(entries[i] != NULL)
 		{
-			sprintf(entries[i],"(%s) %s\n",  type_to_str(cur_type), data_str);
+			if(i == 0)
+			{
+				sprintf(entries[i],"%s", data_str);
+			}
+			else
+			{
+				sprintf(entries[i],", %s", data_str);
+			}
 			tot_size += lens[i];
 		}
 

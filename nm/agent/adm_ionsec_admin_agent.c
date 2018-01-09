@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -64,6 +64,9 @@ void adm_ionsec_admin_init_controls()
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_ADD_MID),adm_ionsec_admin_ctrl_ltp_tx_rule_add);
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_CHANGE_MID),adm_ionsec_admin_ctrl_ltp_tx_rule_change);
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID),adm_ionsec_admin_ctrl_ltp_tx_rule_del);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_KEYS_MID),adm_ionsec_admin_ctrl_list_keys);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_LTP_RX_RULES_MID),adm_ionsec_admin_ctrl_list_ltp_rx_rules);
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_LTP_TX_RULES_MID),adm_ionsec_admin_ctrl_list_ltp_tx_rules);
 }
 
 void adm_ionsec_admin_init_constants()
@@ -100,6 +103,7 @@ void adm_ionsec_admin_init_ops()
 
 void adm_ionsec_admin_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
 
 }

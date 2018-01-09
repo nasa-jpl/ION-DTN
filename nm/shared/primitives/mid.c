@@ -82,10 +82,39 @@ int mid_add_param(mid_t *mid, amp_type_e type, blob_t *blob)
 	/* Step 1: Add to the OID. */
 	result = oid_add_param(&(mid->oid), type, blob);
 
+	mid_internal_serialize(mid);
 	AMP_DEBUG_EXIT("mid_add_param","->%d.",result);
 	return result;
 }
 
+
+
+int		 mid_add_param_from_value(mid_t *mid, value_t value)
+{
+	int result = 0;
+
+	AMP_DEBUG_ENTRY("mid_add_param_from_value","(%#llx, %d)", mid, value.type);
+
+	/* Step 0: Sanity Check.*/
+	if((mid == NULL) || (value.type == AMP_TYPE_UNK))
+	{
+		AMP_DEBUG_ERR("mid_add_param_value","Bad Args", NULL);
+		AMP_DEBUG_EXIT("mid_add_param_value","->0.",NULL);
+		return 0;
+	}
+
+	/* Step 1: Add to the OID. */
+
+	// TODO: Make this better...
+	blob_t blob;
+	blob.value = val_serialize(value, &(blob.length), 0);
+	result = oid_add_param(&(mid->oid), value.type, &blob);
+	blob_destroy(&blob, 0);
+
+	mid_internal_serialize(mid);
+	AMP_DEBUG_EXIT("mid_add_param_from_value","->%d.",result);
+	return result;
+}
 
 
 /******************************************************************************

@@ -29,6 +29,7 @@
 #define LIT_H_
 
 #include "../primitives/value.h"
+#include "../primitives/mid.h"
 
 /*
  * +--------------------------------------------------------------------------+

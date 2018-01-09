@@ -120,6 +120,18 @@ int8_t    oid_add_param(oid_t *oid, amp_type_e type, blob_t *blob)
 }
 
 
+/* TODO
+int8_t	 oid_add_param_from_value(oid_t *oid, value_t value)
+{
+ TODO
+	EJB: Try and remove BLOB from TDC so this can all make sense.
+		a TDC structure should always be a value_t and only serialized into a blob
+		for "on the wire".
+
+	blob_t * blob_create((uint8_t*) value.value.as_ptr, uint32_t length);
+}
+*/
+
 
 /******************************************************************************
  *

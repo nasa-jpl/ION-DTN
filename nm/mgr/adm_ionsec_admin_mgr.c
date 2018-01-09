@@ -58,11 +58,11 @@ void adm_ionsec_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID), NULL);
 	names_add_name("KEY_ADD", "This control adds a named key value to the security policy database. The content of file_name is taken as the value of the key. Named keys can be referenced by other elements of the security policy database.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID);
-	UI_ADD_PARMSPEC_2(ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID, "key_name", AMP_TYPE_STR, "file_name", AMP_TYPE_BLOB);
+	UI_ADD_PARMSPEC_2(ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID, "key_name", AMP_TYPE_STR, "key_value", AMP_TYPE_BLOB);
 
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID), NULL);
 	names_add_name("KEY_CHANGE", "This control changes the value of the named key, obtaining the new key value from the content of file_name.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID);
-	UI_ADD_PARMSPEC_2(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID, "key_name", AMP_TYPE_STR, "file_name", AMP_TYPE_BLOB);
+	UI_ADD_PARMSPEC_2(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID, "key_name", AMP_TYPE_STR, "key_value", AMP_TYPE_BLOB);
 
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_DEL_MID), NULL);
 	names_add_name("KEY_DEL", "This control deletes the key identified by name.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_KEY_DEL_MID);
@@ -91,6 +91,15 @@ void adm_ionsec_admin_init_controls()
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID), NULL);
 	names_add_name("LTP_TX_RULE_DEL", "This control deletes the LTP segment signing rule for the indicated LTP engine.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID);
 	UI_ADD_PARMSPEC_1(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID, "ltp_engine_id", AMP_TYPE_UINT);
+
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_KEYS_MID), NULL);
+	names_add_name("LIST_KEYS", "This control lists the names of keys available in the key policy database.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_LIST_KEYS_MID);
+
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_LTP_RX_RULES_MID), NULL);
+	names_add_name("LIST_LTP_RX_RULES", "This control lists all LTP segment authentication rules in the security policy database.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_LIST_LTP_RX_RULES_MID);
+
+	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_LTP_TX_RULES_MID), NULL);
+	names_add_name("LIST_LTP_TX_RULES", "This control lists all LTP segment signing rules in the security policy database.", ADM_IONSEC_ADMIN, ADM_IONSEC_ADMIN_CTRL_LIST_LTP_TX_RULES_MID);
 
 }
 

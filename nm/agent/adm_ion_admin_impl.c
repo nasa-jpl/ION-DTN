@@ -1284,5 +1284,68 @@ tdc_t* adm_ion_admin_ctrl_node_utc_delta_set(eid_t *def_mgr, tdc_t params, int8_
 }
 
 
+/*
+ * Lists all schedule periods of data transmission.
+ */
+tdc_t* adm_ion_admin_ctrl_list_contacts(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_contacts BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_contacts BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Lists ION's current data space occupancy.
+ */
+tdc_t* adm_ion_admin_ctrl_list_usage(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_usage BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_usage BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * Lists all predefined periods of constant distance between nodes.
+ */
+tdc_t* adm_ion_admin_ctrl_list_ranges(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_ranges BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_ranges BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
 
 /* OP Functions */

@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -182,18 +182,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_init(eid_t *def_mgr, tdc_t params, int8_t *status)
  * d value (560 bytes), which is the approximate size of a ZCO file reference object; this is the minim
  * um SDR heap space occupancy in the event that all acquisition is into a file.
  */
-tdc_t* adm_ion_ltp_admin_ctrl_manageheap(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_manage_heap(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_manageHeap BODY
+	 * |START CUSTOM FUNCTION ctrl_manage_heap BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_manageHeap BODY
+	 * |STOP CUSTOM FUNCTION ctrl_manage_heap BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -206,18 +206,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_manageheap(eid_t *def_mgr, tdc_t params, int8_t *s
  * at this computation is also sensitive to data segment size and to the size of the block that is to b
  * e transmitted.) The default value is .0001 (10^-4).
  */
-tdc_t* adm_ion_ltp_admin_ctrl_managemaxber(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_manage_max_ber(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_manageMaxBER BODY
+	 * |START CUSTOM FUNCTION ctrl_manage_max_ber BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_manageMaxBER BODY
+	 * |STOP CUSTOM FUNCTION ctrl_manage_max_ber BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -229,18 +229,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_managemaxber(eid_t *def_mgr, tdc_t params, int8_t 
  * elay within the local engine itself that should be included whenever LTP computes the nominal round-
  * trip time for an exchange of data with any remote engine. The default value is 1.
  */
-tdc_t* adm_ion_ltp_admin_ctrl_manageownqueuetime(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_manage_own_queue_time(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_manageOwnQueueTime BODY
+	 * |START CUSTOM FUNCTION ctrl_manage_own_queue_time BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_manageOwnQueueTime BODY
+	 * |STOP CUSTOM FUNCTION ctrl_manage_own_queue_time BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -254,18 +254,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_manageownqueuetime(eid_t *def_mgr, tdc_t params, i
  *  the contact graph must be accurate and clocks must be synchronized; otherwise, segments will be arr
  * iving at times other than the scheduled contact intervals and will be discarded.
  */
-tdc_t* adm_ion_ltp_admin_ctrl_managescreening(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_manage_screening(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_manageScreening BODY
+	 * |START CUSTOM FUNCTION ctrl_manage_screening BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_manageScreening BODY
+	 * |STOP CUSTOM FUNCTION ctrl_manage_screening BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -276,18 +276,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_managescreening(eid_t *def_mgr, tdc_t params, int8
  * This control declares that a span of potential LTP data interchange exists between the local LTP eng
  * ine and the indicated (neighboring) LTP engine.
  */
-tdc_t* adm_ion_ltp_admin_ctrl_spanadd(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_span_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_spanAdd BODY
+	 * |START CUSTOM FUNCTION ctrl_span_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_spanAdd BODY
+	 * |STOP CUSTOM FUNCTION ctrl_span_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -297,18 +297,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_spanadd(eid_t *def_mgr, tdc_t params, int8_t *stat
 /*
  * This control sets the indicated span's configuration parameters to the values provided as arguments
  */
-tdc_t* adm_ion_ltp_admin_ctrl_spanchange(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_span_change(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_spanChange BODY
+	 * |START CUSTOM FUNCTION ctrl_span_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_spanChange BODY
+	 * |STOP CUSTOM FUNCTION ctrl_span_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -320,18 +320,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_spanchange(eid_t *def_mgr, tdc_t params, int8_t *s
  * segments for this span are pending transmission or any inbound blocks from the peer engine are incom
  * plete.
  */
-tdc_t* adm_ion_ltp_admin_ctrl_spandel(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_span_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_spanDel BODY
+	 * |START CUSTOM FUNCTION ctrl_span_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_spanDel BODY
+	 * |STOP CUSTOM FUNCTION ctrl_span_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -381,18 +381,18 @@ tdc_t* adm_ion_ltp_admin_ctrl_stop(eid_t *def_mgr, tdc_t params, int8_t *status)
  *  * [    import session canceled locally (by receiver)
  *  * ]    export session canceled by remote receiver
  */
-tdc_t* adm_ion_ltp_admin_ctrl_watchset(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_ion_ltp_admin_ctrl_watch_set(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_watchSet BODY
+	 * |START CUSTOM FUNCTION ctrl_watch_set BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_watchSet BODY
+	 * |STOP CUSTOM FUNCTION ctrl_watch_set BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;

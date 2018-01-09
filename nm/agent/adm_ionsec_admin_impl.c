@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-05  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -182,7 +182,7 @@ value_t adm_ionsec_admin_meta_organization(tdc_t params)
 
 
 /*
- * This table lists all keys in the security policy database.
+ * This table lists all key names in the security policy database.
  */
 
 table_t* adm_ionsec_admin_tbl_keys()
@@ -194,8 +194,7 @@ table_t* adm_ionsec_admin_tbl_keys()
 	}
 
 	if(
-	(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR) ||
-	(table_add_col(table, "key_value", AMP_TYPE_BLOB) == ERROR))
+		(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -228,9 +227,9 @@ table_t* adm_ionsec_admin_tbl_ltp_rx_rules()
 	}
 
 	if(
-	(table_add_col(table, "ltp_engine_id", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "ciphersuite_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "ltp_engine_id", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "ciphersuite_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -263,9 +262,9 @@ table_t* adm_ionsec_admin_tbl_ltp_tx_rules()
 	}
 
 	if(
-	(table_add_col(table, "ltp_engine_id", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "ciphersuite_nbr", AMP_TYPE_UINT) == ERROR) ||
-	(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR))
+		(table_add_col(table, "ltp_engine_id", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "ciphersuite_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "key_name", AMP_TYPE_STR) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;
@@ -545,6 +544,69 @@ tdc_t* adm_ionsec_admin_ctrl_ltp_tx_rule_del(eid_t *def_mgr, tdc_t params, int8_
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_ltp_tx_rule_del BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control lists the names of keys available in the key policy database.
+ */
+tdc_t* adm_ionsec_admin_ctrl_list_keys(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control lists all LTP segment authentication rules in the security policy database.
+ */
+tdc_t* adm_ionsec_admin_ctrl_list_ltp_rx_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_ltp_rx_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_ltp_rx_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return result;
+}
+
+
+/*
+ * This control lists all LTP segment signing rules in the security policy database.
+ */
+tdc_t* adm_ionsec_admin_ctrl_list_ltp_tx_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
+{
+	tdc_t* result = NULL;
+	*status = CTRL_FAILURE;
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION ctrl_list_ltp_tx_rules BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION ctrl_list_ltp_tx_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;

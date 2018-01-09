@@ -84,6 +84,9 @@ void adm_ion_admin_init_controls()
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_RANGE_DEL_MID),adm_ion_admin_ctrl_node_range_del);
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_REF_TIME_SET_MID),adm_ion_admin_ctrl_node_ref_time_set);
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_UTC_DELTA_SET_MID),adm_ion_admin_ctrl_node_utc_delta_set);
+	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_LIST_CONTACTS_MID),adm_ion_admin_ctrl_list_contacts);
+	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_LIST_USAGE_MID),adm_ion_admin_ctrl_list_usage);
+	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_LIST_RANGES_MID),adm_ion_admin_ctrl_list_ranges);
 }
 
 void adm_ion_admin_init_constants()
@@ -120,6 +123,7 @@ void adm_ion_admin_init_ops()
 
 void adm_ion_admin_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
 
 }

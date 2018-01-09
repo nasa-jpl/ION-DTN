@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated c file 
+ **  2018-01-08  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -106,7 +106,8 @@ void adm_bpsec_init_edd()
 
 void adm_bpsec_init_variables()
 {
-	// TODO implement. adm_add_var(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), adm_bpsec_var_total_bad_tx_blks);
+
+//	TODO adm_add_var(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), adm_bpsec_var_total_bad_tx_blks);
 }
 
 void adm_bpsec_init_controls()
@@ -157,8 +158,9 @@ void adm_bpsec_init_ops()
 
 void adm_bpsec_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
-	Lyst rpt = lyst_create();
+	rpt = lyst_create();
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID));
@@ -175,6 +177,7 @@ void adm_bpsec_init_reports()
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID));
+	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID));
 	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID));
@@ -223,6 +226,7 @@ void adm_bpsec_init_reports()
 	adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_SOURCE_REPORT_MID), rpt);
 
 	midcol_destroy(&rpt);
+
 
 }
 

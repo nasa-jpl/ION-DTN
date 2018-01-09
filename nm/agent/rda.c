@@ -1058,7 +1058,7 @@ void* rda_thread(int* running)
         {
             AMP_DEBUG_ERR("rda_thread","Problem scanning ctrls.", NULL);
             //pthread_exit(NULL);
-            continue;
+         //EJB - if we fail, drio to next line to clan up.   continue;
         }
 
         /* For now, remove/forget inactive controls. */
@@ -1079,37 +1079,25 @@ void* rda_thread(int* running)
         if(rda_scan_rules() == -1)
         {
             AMP_DEBUG_ERR("rda_thread","Problem scanning rule list. Exiting.", NULL);
-            //rda_cleanup();
-            //pthread_exit(NULL);
-            continue;
         }
-        
         /* Step 2: Evaluate each rule. */
-        if(rda_eval_pending_rules() == -1)
+        else if(rda_eval_pending_rules() == -1)
         {
             AMP_DEBUG_ERR("rda_thread","Problem evaluating rules. Exiting.", NULL);
-            //rda_cleanup();
-            //pthread_exit(NULL);
-            continue;
         }
-        
         /* Step 3: Send out any built reports. */
-        if(rda_send_reports() == -1)
+        else if(rda_send_reports() == -1)
         {
             AMP_DEBUG_ERR("rda_thread","Problem sending built reports. Exiting.", NULL);
-            //rda_cleanup();
-            //pthread_exit(NULL);
-            continue;
         }
-        
-        
+
         /* Step 4: Perform housekeeping for all evaluated rules. */
         if(rda_eval_cleanup() == -1)
         {
             AMP_DEBUG_ERR("rda_thread","Problem cleaning up after rules eval. Exiting.", NULL);
             //rda_cleanup();
             //pthread_exit(NULL);
-            continue;
+//            continue;
         }
 
         lockResource(&g_rda_cur_rpts_mutex);
