@@ -19,7 +19,6 @@
 #define ADM_ION_LTP_ADMIN_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
@@ -40,7 +39,6 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_ion_ltp_admin_setup();

@@ -16,13 +16,11 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
 /*   STOP CUSTOM INCLUDES HERE  */
 
 #include "adm_ion_ltp_admin_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
-/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_ion_ltp_admin_setup(){
@@ -98,14 +96,14 @@ table_t* adm_ion_ltp_admin_tbl_spans()
 	}
 
 	if(
-		(table_add_col(table, "peerEngineNbr", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "maxExportSessions", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "maxImportSessions", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "maxSegmentSize", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "aggregationSizeLimit", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "aggregationTimeLimit", AMP_TYPE_UINT) == ERROR) ||
-		(table_add_col(table, "lsoControl", AMP_TYPE_STR) == ERROR) ||
-		(table_add_col(table, "queueingLatency", AMP_TYPE_UINT) == ERROR))
+		(table_add_col(table, "peer_engine_nbr", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "max_export_sessions", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "max_import_sessions", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "max_segment_size", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "aggregation_size_limit", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "aggregation_time_limit", AMP_TYPE_UINT) == ERROR) ||
+		(table_add_col(table, "lso_control", AMP_TYPE_STR) == ERROR) ||
+		(table_add_col(table, "queueing_latency", AMP_TYPE_UINT) == ERROR))
 	{
 		table_destroy(table, 1);
 		return NULL;

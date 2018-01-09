@@ -61,35 +61,35 @@ void adm_ion_ltp_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_INIT_MID), NULL);
 	names_add_name("INIT", "Until this control is executed, LTP is not in operation on the local ION node and most ltpadmin controls will fail. The control uses estMaxExportSessions to configure the hashtable it will use to manage access to export transmission sessions that are currently in progress. For optimum performance, estMaxExportSessions should normally equal or exceed the summation of maxExportSessions over all spans as discussed below. Appropriate values for the parameters configuring each \"span\" of potential LTP data exchange between the local LTP and neighboring engines are non-trivial to determine.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_INIT_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_INIT_MID, "estMaxExportSessions", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_INIT_MID, "est_max_export_sessions", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID), NULL);
 	names_add_name("MANAGE_HEAP", "This control declares the maximum number of bytes of SDR heap space that will be occupied by the acquisition of any single LTP block.  All data acquired in excess of this limit will be written to a temporary file pending extraction and dispatching of the acquired block. Default is the minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; this is the minimum SDR heap space occupancy in the event that all acquisition is into a file.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID, "maxDatabaseHeapPerBlock", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID, "max_database_heap_per_block", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID), NULL);
 	names_add_name("MANAGE_MAX_BER", "This control sets the expected maximum bit error rate(BER) that LTP should provide for in computing the maximum number of transmission efforts to initiate in the transmission of a given block.(Note that this computation is also sensitive to data segment size and to the size of the block that is to be transmitted.) The default value is .0001 (10^-4).", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID, "maxExpectedBitErrorRate", AMP_TYPE_REAL32);
+	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID, "max_expected_bit_error_rate", AMP_TYPE_REAL32);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID), NULL);
 	names_add_name("MANAGE_OWN_QUEUE_TIME", "This control sets the number of seconds of predicted additional latency attributable to processing delay within the local engine itself that should be included whenever LTP computes the nominal round-trip time for an exchange of data with any remote engine. The default value is 1.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID, "ownQueingLatency", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID, "own_queing_latency", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID), NULL);
 	names_add_name("MANAGE_SCREENING", "This control enables or disables the screening of received LTP segments per the periods of scheduled reception in the node's contact graph.  By default, screening is disabled. When screening is enabled, such segments are silently discarded.  Note that when screening is enabled the ranges declared in the contact graph must be accurate and clocks must be synchronized; otherwise, segments will be arriving at times other than the scheduled contact intervals and will be discarded.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID, "newState", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID, "new_state", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID), NULL);
 	names_add_name("SPAN_ADD", "This control declares that a span of potential LTP data interchange exists between the local LTP engine and the indicated (neighboring) LTP engine.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID);
-	UI_ADD_PARMSPEC_8(ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID, "peerEngineNumber", AMP_TYPE_UINT, "maxExportSessions", AMP_TYPE_UINT, "maxImportSessions", AMP_TYPE_UINT, "maxSegmentSize", AMP_TYPE_UINT, "aggregtionSizeLimit", AMP_TYPE_UINT, "aggregationTimeLimit", AMP_TYPE_UINT, "lsoControl", AMP_TYPE_STR, "queuingLatency", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_8(ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID, "peer_engine_number", AMP_TYPE_UINT, "max_export_sessions", AMP_TYPE_UINT, "max_import_sessions", AMP_TYPE_UINT, "max_segment_size", AMP_TYPE_UINT, "aggregtion_size_limit", AMP_TYPE_UINT, "aggregation_time_limit", AMP_TYPE_UINT, "lso_control", AMP_TYPE_STR, "queuing_latency", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID), NULL);
 	names_add_name("SPAN_CHANGE", "This control sets the indicated span's configuration parameters to the values provided as arguments", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID);
-	UI_ADD_PARMSPEC_8(ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID, "peerEngineNumber", AMP_TYPE_UINT, "maxExportSessions", AMP_TYPE_UINT, "maxImportSessions", AMP_TYPE_UINT, "maxSegmentSize", AMP_TYPE_UINT, "aggregtionSizeLimit", AMP_TYPE_UINT, "aggregationTimeLimit", AMP_TYPE_UINT, "lsoControl", AMP_TYPE_STR, "queuingLatency", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_8(ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID, "peer_engine_number", AMP_TYPE_UINT, "max_export_sessions", AMP_TYPE_UINT, "max_import_sessions", AMP_TYPE_UINT, "max_segment_size", AMP_TYPE_UINT, "aggregtion_size_limit", AMP_TYPE_UINT, "aggregation_time_limit", AMP_TYPE_UINT, "lso_control", AMP_TYPE_STR, "queuing_latency", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID), NULL);
 	names_add_name("SPAN_DEL", "This control deletes the span identified by peerEngineNumber. The control will fail if any outbound segments for this span are pending transmission or any inbound blocks from the peer engine are incomplete.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID, "peerEngineNumber", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID, "peer_engine_number", AMP_TYPE_UINT);
 
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_STOP_MID), NULL);
 	names_add_name("STOP", "This control stops all link service input and output tasks for the local LTP engine.", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_STOP_MID);
@@ -110,7 +110,7 @@ void adm_ion_ltp_admin_init_controls()
  }    import session canceled by remote sender\
  [    import session canceled locally (by receiver)\
  ]    export session canceled by remote receiver", ADM_ION_LTP_ADMIN, ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID, "status&UINT:activity", AMP_TYPE_UINT);
+	UI_ADD_PARMSPEC_2(ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID, "status", AMP_TYPE_UINT, "activity", AMP_TYPE_UINT);
 
 }
 
