@@ -278,14 +278,14 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |reset                        |0x83180100  |Resets the counters associated with the engine and|             |
+   |reset                        |0xc3180100  |Resets the counters associated with the engine and|             |
    |                             |            | updates the last reset time for the span to be th|             |
    |                             |            |e time when this control was run.                 |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |list_engines                 |0x83180101  |Lists all remote engine IDs.                      |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_LTP_AGENT_CTRL_RESET_MID 0x83180100
+#define ADM_LTP_AGENT_CTRL_RESET_MID 0xc3180100
 #define ADM_LTP_AGENT_CTRL_LIST_ENGINES_MID 0x83180101
 
 

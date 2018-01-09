@@ -120,6 +120,7 @@ void adm_ion_admin_init_ops()
 
 void adm_ion_admin_init_reports()
 {
+	Lyst rpt = NULL;
 	uint32_t used= 0;
 
 }

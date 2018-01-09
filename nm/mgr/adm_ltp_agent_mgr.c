@@ -48,129 +48,171 @@ void adm_ltp_agent_init_edd()
 {
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_REMOTE_ENGINE_NBR", "The remote engine number of this span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_CUR_EXPT_SESS", "Expected sessions on this span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_CUR_OUT_SEG_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_CUR_OUT_SEG", "The current number of outbound segments for this span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_CUR_OUT_SEG_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_CUR_OUT_SEG_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_CUR_IMP_SESS_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_CUR_IMP_SESS", "The current number of import segments for this span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_CUR_IMP_SESS_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_CUR_IMP_SESS_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_CUR_IN_SEG_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_CUR_IN_SEG", "The current number of inbound segments for this span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_CUR_IN_SEG_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_CUR_IN_SEG_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_RESET_TIME_MID), AMP_TYPE_UVAST, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_RESET_TIME", "The last time the span counters were reset.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_RESET_TIME_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_RESET_TIME_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_SEG_Q_CNT", "The output segment queued count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_SEG_Q_BYTES", "The output segment queued bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_SEG_POP_CNT", "The output segment popped count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_SEG_POP_BYTES", "The output segment popped bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_CKPT_XMIT_CNT", "The output checkpoint transmit count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_POS_ACK_RX_CNT", "The output positive acknowledgement received count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_NEG_ACK_RX_CNT", "The output negative acknowledgement received count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_CANCEL_RX_CNT", "The output cancelled received count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_CKPT_REXMIT_CNT", "The output checkpoint retransmit count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_CANCEL_XMIT_CNT", "The output cancel retransmit count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_OUT_COMPLETE_CNT", "The output completed count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_RED_CNT", "The input segment received red count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_RED_BYTES", "The input segment received red bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_GREEN_CNT", "The input segment received green count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_GREEN_BYTES", "The input segment received green bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_REDUNDANT_CNT", "The input segment received redundant count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_REDUNDANT_BYTES", "The input segment received redundant bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_MAL_CNT", "The input segment malformed count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_MAL_BYTES", "The input segment malformed bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_UNK_SENDER_CNT", "The input segment unknown sender count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_UNK_SENDER_BYTES", "The input segment unknown sender bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_UNK_CLIENT_CNT", "The input segment unknown client count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_RX_UNK_CLIENT_BYTES", "The input segment unknown client bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_STRAY_CNT", "The input segment stray count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_STRAY_BYTES", "The input segment stray bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_MISCOLOR_CNT", "The input segment miscolored count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_MISCOLOR_BYTES", "The input segment miscolored bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_CLOSED_CNT", "The input segment closed count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_SEG_CLOSED_BYTES", "The input segment closed bytes for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_CKPT_RX_CNT", "The input checkpoint receive count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_POS_ACK_TX_CNT", "The input positive acknolwedgement transmitted count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_NEG_ACK_TX_CNT", "The input negative acknolwedgement transmitted count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_CANCEL_TX_CNT", "The input cancel transmitted count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_ACK_RETX_CNT", "The input acknolwedgement retransmit count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_CANCEL_RX_CNT", "The input cancel receive count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 	adm_add_edd(mid_from_value(ADM_LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("SPAN_IN_COMPLETE_CNT", "The input completed count for the span.", ADM_LTP_AGENT, ADM_LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT_MID);
+	UI_ADD_PARMSPEC_1(ADM_LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT_MID, "ltp_span", AMP_TYPE_UINT);
 
 }
 
