@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-06  AUTO             Auto-generated header file 
+ **  2018-01-08  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -19,7 +19,6 @@
 #define ADM_ION_LTP_ADMIN_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
@@ -40,7 +39,6 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_ion_ltp_admin_setup();
@@ -61,15 +59,15 @@ value_t adm_ion_ltp_admin_get_version(tdc_t params);
 
 /* Control Functions */
 tdc_t* adm_ion_ltp_admin_ctrl_init(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_manageheap(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_managemaxber(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_manageownqueuetime(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_managescreening(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_spanadd(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_spanchange(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_spandel(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_manage_heap(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_manage_max_ber(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_manage_own_queue_time(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_manage_screening(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_span_add(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_span_change(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_span_del(eid_t *def_mgr, tdc_t params, int8_t *status);
 tdc_t* adm_ion_ltp_admin_ctrl_stop(eid_t *def_mgr, tdc_t params, int8_t *status);
-tdc_t* adm_ion_ltp_admin_ctrl_watchset(eid_t *def_mgr, tdc_t params, int8_t *status);
+tdc_t* adm_ion_ltp_admin_ctrl_watch_set(eid_t *def_mgr, tdc_t params, int8_t *status);
 
 
 /* OP Functions */
