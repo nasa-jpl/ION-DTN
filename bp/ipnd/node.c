@@ -631,8 +631,8 @@ void	*receiveBeacons(void *attr)
 	char			buffer[1024];
 	IPNDCtx			*ctx = getIPNDCtx();
 	int			i, j;
-	int			numListenSockets;
-	int			*listenSockets;
+	static int		numListenSockets;
+	static int		*listenSockets;
 	int			recevingSocket;
 	fd_set			activeListenSocketsSet;
 	fd_set			readListenSocketsSet;
@@ -665,6 +665,8 @@ void	*receiveBeacons(void *attr)
 	listenSockets = setUpListenSockets(ctx->listenAddresses,
 			ctx->enabledBroadcastReceiving, &numListenSockets);
 	unlockResource(&ctx->configurationLock);
+	ctx->listenSockets = listenSockets;
+	ctx->numListenSockets = numListenSockets;
 
 	if (numListenSockets == 0 || listenSockets == NULL)
 	{

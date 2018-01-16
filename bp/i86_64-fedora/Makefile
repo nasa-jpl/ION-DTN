@@ -188,11 +188,11 @@ dtn2adminep:	dtn2adminep.o $(BPLIBS) libdtn2fw.so
 #	-	-	LTP executables	-	-	-	-	-
 
 ltpcli:		ltpcli.o $(BPLIBS)
-		$(CC) -o ltpcli ltpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lltpP -lici -lpthread -lm
+		$(CC) -o ltpcli ltpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lici -lpthread -lm
 		cp ltpcli ./bin
 
 ltpclo:		ltpclo.o $(BPLIBS)
-		$(CC) -o ltpclo ltpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lltpP -lici -lpthread -lm
+		$(CC) -o ltpclo ltpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lici -lpthread -lm
 		cp ltpclo ./bin
 
 #	-	-	TCP executables	-	-	-	-	-

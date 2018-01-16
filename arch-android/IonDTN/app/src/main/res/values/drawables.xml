@@ -1,0 +1,12 @@
+<resources>
+    <item name="ic_menu_contact" type="drawable">@drawable/ic_router</item>
+    <item name="ic_menu_range" type="drawable">@drawable/ic_leak_add</item>
+    <item name="ic_menu_scheme" type="drawable">@drawable/ic_translate</item>
+    <item name="ic_menu_endpoint" type="drawable">@drawable/ic_add_location</item>
+    <item name="ic_menu_protocol" type="drawable">@drawable/ic_filter_none</item>
+    <item name="ic_menu_inoutduct" type="drawable">@drawable/ic_io</item>
+    <item name="ic_menu_security" type="drawable">@drawable/ic_security</item>
+    <item name="ic_menu_imprint" type="drawable">@drawable/ic_info</item>
+    <item name="ic_menu_settings" type="drawable">@drawable/ic_settings</item>
+    <item name="ic_menu_status" type="drawable">@drawable/ic_phone_android</item>
+</resources>

@@ -140,8 +140,8 @@ status after that transaction ends");
 }
 
 #if defined (ION_LWT)
-int	sdrwatch(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	sdrwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*sdrName = (char *) a1;
 	int	interval = a2 ? strtol((char *) a2, NULL, 0) : 0;

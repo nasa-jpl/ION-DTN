@@ -716,8 +716,10 @@ int	reUseAddress(int fd)
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &i,
 			sizeof i);
 #if (defined (SO_REUSEPORT))
+#if (!defined(bionic))
 	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
 			sizeof i);
+#endif
 #endif
 	if (result < 0)
 	{
@@ -806,7 +808,9 @@ int	reUseAddress(int fd)
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &i, sizeof i);
 #if (defined (SO_REUSEPORT))
+#if (!defined(bionic))
 	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &i, sizeof i);
+#endif
 #endif
 	if (result < 0)
 	{
@@ -1139,8 +1143,10 @@ int	reUseAddress(int fd)
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
 			sizeof i);
 #if (defined (SO_REUSEPORT))
+#if (!defined(bionic))
 	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
 			sizeof i);
+#endif
 #endif
 	if (result < 0)
 	{

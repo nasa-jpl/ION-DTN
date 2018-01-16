@@ -308,6 +308,9 @@ static void	writeMemoToIonLog(char *text)
 	static char		msgbuf[256];
 
 	if (text == NULL) return;
+#if defined(bionic)
+	__android_log_print(ANDROID_LOG_DEBUG, "ION", "%s\n", text);
+#endif
 	if (*text == '\0')	/*	Claims that log file is closed.	*/
 	{
 		if (ionLogFile != -1)
@@ -332,10 +335,18 @@ static void	writeMemoToIonLog(char *text)
 	{
 		if (ionLogFileName[0] == '\0')
 		{
+#if defined(bionic)
+			isprintf(ionLogFileName, sizeof ionLogFileName,
+					"%.255s%c..%cion.log",
+					getIonWorkingDirectory(),
+					ION_PATH_DELIMITER,
+					ION_PATH_DELIMITER);
+#else
 			isprintf(ionLogFileName, sizeof ionLogFileName,
 					"%.255s%cion.log",
 					getIonWorkingDirectory(),
 					ION_PATH_DELIMITER);
+#endif
 		}
 
 		ionLogFile = iopen(ionLogFileName,

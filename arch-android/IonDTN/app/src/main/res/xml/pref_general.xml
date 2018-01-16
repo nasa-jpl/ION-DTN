@@ -1,0 +1,31 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- NOTE: EditTextPreference accepts EditText attributes. -->
+    <!-- NOTE: EditTextPreference's summary should be set to its value by the activity code. -->
+
+    <Preference android:title="@string/ResetButton"
+                android:key="@string/ResetButton"
+                android:summary="Reset the application and ION instance"/>
+    <EditTextPreference
+        android:defaultValue="1000"
+        android:key="@string/refresh_rate_log"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/header_refresh_rate_log"
+        android:inputType="number"/>
+    <EditTextPreference
+        android:defaultValue="300"
+        android:key="@string/log_tail_lines"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/header_log_tail_lines"
+        android:inputType="number"/>
+    <EditTextPreference
+        android:defaultValue="1000"
+        android:key="@string/threshold_data_file"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/header_threshold_data_file"
+        android:inputType="number"/>
+
+</PreferenceScreen>

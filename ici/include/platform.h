@@ -598,7 +598,8 @@ extern int getpriority(int, id_t);
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
+			saddr, saddr, saddr);
 
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 

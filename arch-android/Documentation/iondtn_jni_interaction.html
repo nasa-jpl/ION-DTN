@@ -1,0 +1,177 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>ION Interaction - JNI - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html" class="active"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="iondtn_jni_interaction.html#ion-interaction---jni" id="ion-interaction---jni"><h1>ION Interaction - JNI</h1></a>
+<p>The <a href="https://docs.oracle.com/javase/7/docs/technotes/guides/jni/">Java Native Interface (JNI)</a> allows the interaction between the Android Java application code and the ION-DTN code written in the C programming language.</p>
+<a class="header" href="iondtn_jni_interaction.html#declaration" id="declaration"><h4>Declaration</h4></a>
+<p>In order to call a native function (i.e. C function) from the Android code you have to declare the native function in your java class.</p>
+<pre><code class="language-java">private native String stopION();
+</code></pre>
+<a class="header" href="iondtn_jni_interaction.html#native-wrapper-functions" id="native-wrapper-functions"><h4>Native (Wrapper) functions</h4></a>
+<p>This <strong>native</strong> function call is then resolved in a C wrapper function that resides in the <code>jni</code> directory of the ION-DTN folder structure.</p>
+<p>In case of <code>stopION</code>, the wrapper function can be found in <code>iondtn_administration.c</code>:</p>
+<pre><code class="language-java">/*
+ * Stops running nodes.
+ */
+JNIEXPORT jstring JNICALL
+Java_gov_nasa_jpl_iondtn_backend_NativeAdapter_stopION(JNIEnv *env,
+                                                       jobject this)
+{
+
+    char    cmd[80];
+    char    *result = &quot;Node stopped&quot;;
+    int     count;
+
+    // Ensure that all receiving threads that are using ION functionality got
+    // notice of the shutdown and are no longer dependent on it --&gt; prevents
+    // crashes
+    snooze(5);
+
+    if (ipnd_pid != -1) {
+        sm_TaskKill(ipnd_pid, SIGTERM);
+        __android_log_write(ANDROID_LOG_DEBUG, &quot;STOP&quot;, &quot;Stopped the IPND threads&quot;);
+        ipnd_pid = -1;
+    }
+
+    ...
+
+    snooze(1);
+    return (*env)-&gt;NewStringUTF(env, result);
+}
+</code></pre>
+<p>The name of the native wrapper function has to follow this very specific naming pattern in order to be resolvable by the JNI. You can use Android Studio's <strong>Autogeneration tool</strong> (just hover over a nonexisting native function) to create the function and most of the housekeeping automatically.</p>
+<a class="header" href="iondtn_jni_interaction.html#memory-management" id="memory-management"><h4>Memory Management</h4></a>
+<p>Java usually uses a <em>Garbage Collector</em> to ensure that the memory management is sound. However, Java cannot use it's <em>Garbage Collector</em> for the native functions. This means that the programmer of native wrapper functions has to ensure that the memory allocation (in particular of function parameters and return values) is correct and consistent.</p>
+<pre><code class="language-java">JNIEXPORT jboolean JNICALL
+Java_gov_nasa_jpl_iondtn_gui_AddEditDialogFragments_ContactDialogFragment_deleteContactION(
+        JNIEnv *env, jobject instance, jstring timeFrom_, jstring nodeFrom_, jstring nodeTo_) {
+    const char *timeFrom = (*env)-&gt;GetStringUTFChars(env, timeFrom_, 0);
+    const char *nodeFrom = (*env)-&gt;GetStringUTFChars(env, nodeFrom_, 0);
+    const char *nodeTo = (*env)-&gt;GetStringUTFChars(env, nodeTo_, 0);
+</code></pre>
+<p>Whenever string variables are used as function parameters, these Java strings have to be converted to char types in order to use them within the native C code. Simple data types as integers and chars can be used without conversion.</p>
+<p>After using the converted variables in the native code and before returning, the native function has to release the memory allocated during the conversion. T</p>
+<pre><code class="language-java">(*env)-&gt;ReleaseStringUTFChars(env, timeFrom_, timeFrom);
+(*env)-&gt;ReleaseStringUTFChars(env, nodeFrom_, nodeFrom);
+(*env)-&gt;ReleaseStringUTFChars(env, nodeTo_, nodeTo);
+</code></pre>
+<p>Return values have to be transferred to the memory space where the Java <em>Garbage Collector</em> is responsible. This can be done by:</p>
+<pre><code class="language-java">return (*env)-&gt;NewStringUTF(env, result);
+</code></pre>
+<blockquote>
+<p><strong>Important:</strong> The return variable and, possibly, still used and previously provided parameters are the only variables that should endure the lifetime of the function. All other local variables have to be freed before returning to the Java code.</p>
+</blockquote>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="iondtn_overview.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="iondtn_services.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="iondtn_overview.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="iondtn_services.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

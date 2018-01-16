@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>License - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="../">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html" class="active">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./appendix/license.html#copyright" id="copyright"><h1>Copyright</h1></a>
+<p>Copyright (c) 2017, California Institute of Technology.</p>
+<p>ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.</p>
+<a class="header" href="./appendix/license.html#license" id="license"><h1>License</h1></a>
+<p>ION-DTN and subsequently the IonDTN Android application is released under the following license:</p>
+<blockquote>
+<p>Copyright (c) 2002-2017, California Institute of Technology.
+All rights reserved.  Based on Government Sponsored Research under contracts
+NAS7-1407 and/or NAS7-03001.</p>
+<p>Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the California Institute of Technology (Caltech),
+its operating division the Jet Propulsion Laboratory (JPL), the National
+Aeronautics and Space Administration (NASA), nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.</p>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE CALIFORNIA INSTITUTE OF TECHNOLOGY BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+</blockquote>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./resources/javadoc/index.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+
+            </div>
+
+            
+                <a href="./resources/javadoc/index.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

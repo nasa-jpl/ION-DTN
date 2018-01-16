@@ -456,6 +456,7 @@ static int	reopenSession(TcpclSession *session)
 
 static int pipeline_not_full(Llcv llcv)
 {
+	CHKZERO(llcv);
 	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
 }
 
@@ -927,6 +928,10 @@ static void	*sendBundles(void *parm)
 	MRELEASE(stp->buffer);
 	MRELEASE(stp);
 	session->vduct->hasThread = 0;
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -1908,6 +1913,10 @@ static void	*handleContacts(void *parm)
 	MRELEASE(rtp->buffer);
 	bpReleaseAcqArea(rtp->work);
 	MRELEASE(rtp);
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -1975,6 +1984,10 @@ static void	*spawnReceivers(void *parm)
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpcli server thread has ended.");
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -2490,6 +2503,10 @@ static void	*handleEvents(void *parm)
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpcli clock thread has ended.");
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -2523,8 +2540,8 @@ static void	wakeUpServerThread(struct sockaddr *socketName)
 }
 
 #if defined (ION_LWT)
-int	tcpcli(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	tcpcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else

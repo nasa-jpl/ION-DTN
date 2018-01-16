@@ -1,0 +1,144 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>GUI - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html" class="active"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="iondtn_gui.html#gui" id="gui"><h1>GUI</h1></a>
+<p>The Graphical User Interface (GUI) allows the user to configure, maintain and start/stop the underlying ION-DTN instance. In order to provide this functionality, the GUI consists of multiple activities, fragments and adapters (please refer to the Android documentation to learn more about these elements).</p>
+<a class="header" href="iondtn_gui.html#structure" id="structure"><h2>Structure</h2></a>
+<p><img src="./resources/iondtn_gui_frontend_archtecture.png" alt="iondtn frontend architecture" /></p>
+<p>The GUI can be organized by the activities that they belong to:</p>
+<ul>
+<li><strong>MainActivity:</strong> Handles the start/stop procedures and the actual configuration of the node.</li>
+<li><strong>SetupActivity:</strong> Creates a default or custom configuration at the first application startup and runs the user through the entire process.</li>
+<li><strong>SettingsActivity:</strong> Allows the modification of key values of the Android application and the ION-DTN instance that are not part of the normal configuration.</li>
+<li><strong>AboutActivity:</strong> Provides some information about the application.</li>
+</ul>
+<a class="header" href="iondtn_gui.html#configuration-fragments" id="configuration-fragments"><h2>Configuration Fragments</h2></a>
+<p>In order to minimize redundant code in the provider application, the configuration fragments are all implemented in a inheritance structure:</p>
+<p><img src="./resources/iondtn_gui_relationship_frontend.png" alt="iondtn relationship frontend" /></p>
+<p>All fragments are based on the <code>ConfigurationFragment</code>. This fragment is inheriting functionality of the standard <code>Fragment</code> class and is additionally adding some application-specific abstract functions that the child classes have to provide.</p>
+<p>The <code>Status Fragment</code> class is special in its behaviour and is therefore directly inheriting the <code>ConfigurationFragment</code> class.</p>
+<p>The other fragments are all based on the <code>ConfigurationListFragment</code>. As all configuration views have to provide a list of the configured <code>ranges</code>/<code>routes</code>/<code>outducts</code> etc. their behaviour is excactly the same, the only difference is the dataset their working on.</p>
+<p>The different dataset is provided by the <code>RecyclerViewAdapters</code>. These adapters request a current dataset from the ION-DTN instance (via the JNI) and convert the returned string into a dataset. This dataset is the GUI list element and can be shown presented to the user.</p>
+<blockquote>
+<p><strong>Note:</strong> Function calls to native code are very expensive in regards of resource and time consumption. Therefore the number of native function calls should be reduced to a minimum. Furthermore, instantiating Java data types in native C code is very inefficient as well. Returning a <code>String</code> object and then parsing the <code>String</code> object in Java is way more efficient than creating a Java <code>Set</code> structure containing <code>Integers</code> and <code>Strings</code> in the native code.</p>
+</blockquote>
+<a class="header" href="iondtn_gui.html#setup-routine" id="setup-routine"><h2>Setup Routine</h2></a>
+<p>The setup routine is accomplished by the SetupActivity. This activity uses multiple fragments (which are not based on a custom <code>Fragment</code> parent class) that guide the user through the setup process. The process and the corresponding <code>Fragments</code> of the process is shown in the following diagram:</p>
+<p><img src="./resources/iondtn_gui_setup_process.png" alt="iondtn setup process" /></p>
+<p>All fragments and their operations are designed in a way to be self-explanatory. The actual configuration file generation depends on the settings that the user chooses in the <code>Fragments</code> of the <code>SetupActivity</code>.</p>
+<p>The easiest way to create a set of configuration files for all ION-DTN administration programs is to choose the <code>empty</code> configuration. This configuration creates minimal configuration files that only ensure that the administration deamon programs are started properly. The users have to add routes/contacts/outducts etc. on their own.</p>
+<p>The second option is to select the <code>custom</code> configuration. In this case, the user has to provide a standard <code>.rc</code> configuration file that is used to initialize ION-DTN on the first startup. On all subsequent startup an <code>empty</code> startup configuration file set is used. As the configuration is stored in persistent memory, a new initialization is not necessary.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="iondtn_services_node_administration_service.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="iondtn_backend.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="iondtn_services_node_administration_service.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="iondtn_backend.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

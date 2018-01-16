@@ -104,6 +104,8 @@ typedef struct
 	/* NetAddress lyst, unsorted. */
 	Lyst		listenAddresses;
 	ResourceLock	configurationLock;
+	int		numListenSockets;
+	int		*listenSockets;
 
 	/* Defined tags */
 	IpndTag		tags[256];

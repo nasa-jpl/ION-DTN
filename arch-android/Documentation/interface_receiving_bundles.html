@@ -1,0 +1,222 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Receiving Bundles - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html" class="active"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="interface_receiving_bundles.html#receiving-bundles" id="receiving-bundles"><h1>Receiving Bundles</h1></a>
+<p>The two key functions for receiving data from the <em>IonDTN</em> application are listed in the following code snippet:</p>
+<pre><code class="language-java">// Open an endpoint object with the specified source eid
+boolean openEndpoint(String src_eid, IBundleReceiverListener listener);
+
+// Close the previously opened endpoint object
+boolean closeEndpoint();
+</code></pre>
+<p>The process of receiving the payload of bundles addressed to the own EID follows the <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">publisher/subscriber software pattern</a> and consists of multiple steps. The payload can only be received if the client application has previously registered for the particular EID as a listener.</p>
+<a class="header" href="interface_receiving_bundles.html#ibundlereceiverlistener" id="ibundlereceiverlistener"><h3>IBundleReceiverListener</h3></a>
+<p>The registering can be done by calling the function <code>registerListener</code>. As a parameter for that, the client application has to implement the interface <code>IBundleReceiverListener</code> as defined in the <code>aidl</code> file:</p>
+<pre><code class="language-java">// IBundleReceiverListener.aidl
+package gov.nasa.jpl.iondtn;
+
+import gov.nasa.jpl.iondtn.Bundle;
+
+interface IBundleReceiverListener {
+    /**
+     * Is called when a bundle assigned to the subscribers eid has been
+     * received in ION
+     */
+    int notifyBundleReceived(in Bundle b);
+}
+
+</code></pre>
+<p>Whenever a bundle is received for the registered EID, the function of the implemented interface is called. If the payload is very small, the function returned <code>Bundle</code> object contains an ByteArray with the payload. However, if the payload exceeds a certain threshold, the <code>Bundle</code> containing a <code>ParcelFileDescriptor</code> pointing to a file with the data. The payload type of a particular bundle can be determined by the enum field <code>type</code> of <code>Bundle</code>. It is either <code>BYTE_ARRAY</code> or <code>FILE_DESCRIPTOR</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> The size threshold for switching from <code>BYTE_ARRAY</code> to <code>FILE_DESCRIPTOR</code> is defined as an integer value (representing bytes) in the settings of  <code>IonDTN</code> and can be changed via the GUI. Simply open the main navigation drawer, select &quot;Settings&quot; and then &quot;General&quot;.</p>
+</blockquote>
+<p>An implementation of the listener interface can be done within the calling class of the client application.</p>
+<p>The following example is an showing how the interface can be implemented if the payload bytes are representing text encoded in UTF-8.</p>
+<pre><code class="language-java">IBundleReceiverListener.Stub listener = new IBundleReceiverListener.Stub() {
+
+        @Override
+        public int notifyBundleReceived(gov.nasa.jpl.iondtn.Bundle b) throws RemoteException {
+            if (b.getPayloadType() == gov.nasa.jpl.iondtn.Bundle.payload_type
+                    .BYTE_ARRAY) {
+                try {
+                    received += &quot;Source: &quot; + b.getEID() + &quot; Payload: &quot;;
+                    received += new String(b.getPayloadByteArray(), &quot;UTF-8&quot;);
+                    received += &quot;\n&quot;;
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textViewReceive.setText(received);
+                        }
+                    });
+                }
+                catch (UnsupportedEncodingException e) {
+                    Log.e(TAG, &quot;notifyBundleReceived: UTF-8 encoding is not &quot; +
+                            &quot;supported on this device&quot;);
+                }
+            }
+            else {
+                String line;
+
+                FileInputStream in = new FileInputStream(b.getPayloadFD()
+                        .getFileDescriptor());
+                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                try {
+                    while ((line = br.readLine()) != null) {
+                        received += &quot;Source: &quot; + b.getEID() + &quot; Payload: &quot;;
+                        received += line;
+                        received += &quot;\n&quot;;
+                    }
+                }
+                catch (IOException e) {
+                    Log.e(TAG, &quot;notifyBundleReceived: Failed to parse file referenced &quot; +
+                            &quot;by file descriptor&quot;);
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        textViewReceive.setText(received);
+                    }
+                });
+            }
+
+            return 0;
+        }
+};
+</code></pre>
+<p>The return values of the function signal the success or failure of the reception process to the <em>IonDTN</em> application and have to follow the POSIX standard.</p>
+<blockquote>
+<p><strong>Note:</strong> Currently, the return values are not evaluated and thus the received data is discarded after the IPC call. This is to ensure that the memory management is sound.</p>
+</blockquote>
+<a class="header" href="interface_receiving_bundles.html#open-endpoints" id="open-endpoints"><h3>Open Endpoints</h3></a>
+<p>When having implemented the <code>IBundleReceiverListener</code> interface the client application can then register at the <em>IonDTN</em> application to receive the payload of bundles addressed to one (or more) EIDs of the local node.</p>
+<p>In order to register, the client application has to call</p>
+<pre><code class="language-java">// Open an endpoint object with the specified source eid
+boolean openEndpoint(String src_eid, IBundleReceiverListener listener);
+</code></pre>
+<p>The parameters are defined as follows:</p>
+<ul>
+<li><em>src_eid</em>: A local EID that the client wants to receive the payload of incoming bundles from. (This eid is also used for sent out bundles of the particular client application after the endpoint has been opened).</li>
+<li><em>listener</em>: The implemented <code>IBundleReceiverListener</code> interface.</li>
+</ul>
+<p>After the <code>openEndpoint</code> IPC function call, whenever bundles are received that are addressed to the registered EID, the <em>IonDTN</em> application is calling the appropriate receiver function of the client application.</p>
+<a class="header" href="interface_receiving_bundles.html#close-endpoints" id="close-endpoints"><h3>Close Endpoints</h3></a>
+<p>If the client application no longer wants to receive the payload of bundles addressed to a certain EID, it can call the unregistering routine:</p>
+<pre><code class="language-java">// Close the previously opened endpoint object
+boolean closeEndpoint();
+</code></pre>
+<p>This unregisters the <code>IBundleReceiverListener</code> interface and sent out bundles have <code>dtn:none</code> as source eid again.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="interface_sending_bundles.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="sample_application.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="interface_sending_bundles.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="sample_application.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>
