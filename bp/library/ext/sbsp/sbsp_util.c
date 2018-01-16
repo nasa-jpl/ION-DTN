@@ -5,22 +5,22 @@
  ******************************************************************************/
 
 /*****************************************************************************
- ** \file bpsec_util.c
+ ** \file sbsp_util.c
  ** 
- ** File Name: bpsec_util.c (originally extbsputil.c)
+ ** File Name: sbsp_util.c (originally extbsputil.c)
  **
  **
  ** Subsystem:
- **          Extensions: BPSEC
+ **          Extensions: SBSP
  **
  ** Description: This file provides a partial implementation of Bundle Protocol
- ** 			 Security (BPSEC).
+ ** 			 Security (SBSP).
  **              This implementation utilizes the ION Extension Interface to
  **              manage the creation, modification, evaluation, and removal
- **              of BPSEC blocks from Bundle Protocol (RFC 5050) bundles.
+ **              of SBSP blocks from Bundle Protocol (RFC 5050) bundles.
  **
  ** Notes:
- **         As of January 2016, the ION BPSEC implementation supports
+ **         As of January 2016, the ION SBSP implementation supports
  **         the Block Integrity Block (BIB) and Block Confidentiality Block
  **         (BCB) with the following constraints:
  **         - Only the ciphersuites implemented in the profiles.c file
@@ -28,12 +28,12 @@
  **         - There is currently no support for BIBs and BCBs comprising
  **           First and Last Blocks.
  **         - There is no support for the use of multiple ciphersuites to
- **           offer or acquire BPSEC blocks of a given type in the bundle
+ **           offer or acquire SBSP blocks of a given type in the bundle
  **           traffic between a given security source and a given security
  **           destination.  That is, the ciphersuite to be used for offering
- **           or acquiring a BPSEC block is a function of the block type,
+ **           or acquiring a SBSP block is a function of the block type,
  **           the security source node, and the security destination node.
- **           When an BPSEC block whose security destination is the local
+ **           When an SBSP block whose security destination is the local
  **           node is received, if that block was offered in the context
  **           of a ciphersuite other than the one that ION would select
  **           for that block type's type and security source and destination
@@ -61,7 +61,7 @@
  **  12/04/09  S. Burleigh          Revisions per DINET and DEN testing.
  **  01/14/11  B. Van Besien        Revised to use old security syntax. (JHU/APL)
  **  01/14/14  S. Burleigh          Revised for "streamlined" BSP.
- **  01/23/16  E. Birrane           Update to BPSEC
+ **  01/23/16  E. Birrane           Update to SBSP
  **                                 [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
@@ -69,7 +69,7 @@
  *                              FILE INCLUSIONS                              *
  *****************************************************************************/
 
-#include "bpsec_util.h"
+#include "sbsp_util.h"
 
 /*****************************************************************************
  *                            VARIABLE DEFINITIONS                           *
@@ -77,7 +77,7 @@
 
 /** \var gMsg
  * Global variable used to hold a constructed error message. NOT RE-ENTRANT! 
- * This is accessed by the BPSEC_DEBUG macros.
+ * This is accessed by the SBSP_DEBUG macros.
  */
 char	gMsg[GMSG_BUFLEN];
 
@@ -87,7 +87,7 @@ char	gMsg[GMSG_BUFLEN];
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_addSdnvToStream
+ * \par Function Name: sbsp_addSdnvToStream
  *
  * \par Purpose: This utility function adds the contents of an SDNV to a
  *               character stream and then returns the updated stream pointer.
@@ -114,20 +114,20 @@ char	gMsg[GMSG_BUFLEN];
  *  06/08/09  E. Birrane           Documentation updates.
  *  06/20/09  E. Birrane           Added Debugging Stmt, cmts for initial rel.
  *****************************************************************************/
-unsigned char	*bpsec_addSdnvToStream(unsigned char *stream, Sdnv* value)
+unsigned char	*sbsp_addSdnvToStream(unsigned char *stream, Sdnv* value)
 {
-	BPSEC_DEBUG_PROC("+ bpsec_addSdnvToStream(%x, %x)",
+	SBSP_DEBUG_PROC("+ sbsp_addSdnvToStream(%x, %x)",
 			(unsigned long) stream, (unsigned long) value);
 
 	if ((stream != NULL) && (value != NULL) && (value->length > 0))
 	{
-		BPSEC_DEBUG_INFO("i bpsec_addSdnvToStream: Adding %d bytes",
+		SBSP_DEBUG_INFO("i sbsp_addSdnvToStream: Adding %d bytes",
 				value->length);
 		memcpy(stream, value->text, value->length);
 		stream += value->length;
 	}
 
-	BPSEC_DEBUG_PROC("- bpsec_addSdnvToStream --> %x", (unsigned long) stream);
+	SBSP_DEBUG_PROC("- sbsp_addSdnvToStream --> %x", (unsigned long) stream);
 
 	return stream;
 }
@@ -136,7 +136,7 @@ unsigned char	*bpsec_addSdnvToStream(unsigned char *stream, Sdnv* value)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_build_sdr_parm
+ * \par Function Name: sbsp_build_sdr_parm
  *
  * \par Purpose: This utility function builds a parms field and writes it to
  *               the SDR. The parm field is a set of type-length-value fields
@@ -165,7 +165,7 @@ unsigned char	*bpsec_addSdnvToStream(unsigned char *stream, Sdnv* value)
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-SdrObject bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
+SdrObject sbsp_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
 {
 	SdrObject result = 0;
 	csi_val_t val;
@@ -178,7 +178,7 @@ SdrObject bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
 
 	if(val.len == 0)
 	{
-		BPSEC_DEBUG_ERR("bpsec_build_sdr_parm: Cannot serialize parameters.", NULL);
+		SBSP_DEBUG_ERR("sbsp_build_sdr_parm: Cannot serialize parameters.", NULL);
 		return 0;
 	}
 
@@ -188,7 +188,7 @@ SdrObject bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
 	/* Step 2 - Allocate the SDR space. */
 	if((result = sdr_malloc(sdr, *len)) == 0)
 	{
-		BPSEC_DEBUG_ERR("bpsec_build_sdr_parm: Can't allocate sdr result of length %d.",
+		SBSP_DEBUG_ERR("sbsp_build_sdr_parm: Can't allocate sdr result of length %d.",
 				*len);
 		*len = 0;
 		MRELEASE(val.contents);
@@ -208,7 +208,7 @@ SdrObject bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_build_sdr_result
+ * \par Function Name: sbsp_build_sdr_result
  *
  * \par Purpose: This utility function builds a result field and writes it to
  *               the SDR. Result fields are type-length-value fields where the
@@ -236,7 +236,7 @@ SdrObject bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-SdrObject bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t *len)
+SdrObject sbsp_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t *len)
 {
 	csi_val_t tmp;
 	SdrObject result = 0;
@@ -246,13 +246,13 @@ SdrObject bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t 
 
 	if(tmp.len == 0)
 	{
-		BPSEC_DEBUG_ERR("bpsec_build_result: Cannot create TLV.", NULL);
+		SBSP_DEBUG_ERR("sbsp_build_result: Cannot create TLV.", NULL);
 		return 0;
 	}
 
 	if((result = sdr_malloc(sdr, tmp.len)) == 0)
 	{
-		BPSEC_DEBUG_ERR("bpsec_build_result: Can't allocate sdr result of length %d.",
+		SBSP_DEBUG_ERR("sbsp_build_result: Can't allocate sdr result of length %d.",
 				tmp.len);
 		MRELEASE(tmp.contents);
 		return 0;
@@ -272,11 +272,11 @@ SdrObject bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t 
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_deserializeASB
+ * \par Function Name: sbsp_deserializeASB
  *
  * \par Purpose: This utility function accepts a serialized Abstract Security
  *               Block from a bundle during acquisition and places it in a
- *               bpsecInboundBlock structure stored in the Acquisition Extension
+ *               sbspInboundBlock structure stored in the Acquisition Extension
  *               Block's scratchpad area.
  *
  * \par Date Written:  5/30/09
@@ -308,25 +308,25 @@ SdrObject bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t 
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
+int	sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	int		result = 1;
-	BpsecInboundBlock	asb;
+	SbspInboundBlock	asb;
 	unsigned char	*cursor = NULL;
 	int	unparsedBytes = 0;
 	LystElt		elt;
 	uvast	 ltemp;
 	unsigned int itemp;
 
-	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB("ADDR_FIELDSPEC","ADDR_FIELDSPEC"%d)", (uaddr) blk, (uaddr) wk);
+	SBSP_DEBUG_PROC("+ sbsp_deserializeASB("ADDR_FIELDSPEC","ADDR_FIELDSPEC"%d)", (uaddr) blk, (uaddr) wk);
 
 	CHKERR(blk);
 	CHKERR(wk);
 
-	BPSEC_DEBUG_INFO("i bpsec_deserializeASB blk length %d", blk->length);
+	SBSP_DEBUG_INFO("i sbsp_deserializeASB blk length %d", blk->length);
 	unparsedBytes = blk->length;
 
-	memset((char *) &asb, 0, sizeof(BpsecInboundBlock));
+	memset((char *) &asb, 0, sizeof(SbspInboundBlock));
 
 	if (blk->eidReferences)
 	{
@@ -353,7 +353,7 @@ int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	asb.targetBlockType = itemp;
 
 	/*	The "subscript" portion of the compound security-
-	 *	target field of the inbound BPSEC block is the
+	 *	target field of the inbound SBSP block is the
 	 *	occurrence number of the target block.			*/
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
@@ -369,10 +369,10 @@ int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 	asb.ciphersuiteFlags = itemp;
 
-	BPSEC_DEBUG_INFO("i bpsec_deserializeASB: cipher %ld, flags %ld, length %d",
+	SBSP_DEBUG_INFO("i sbsp_deserializeASB: cipher %ld, flags %ld, length %d",
 		asb.ciphersuiteType, asb.ciphersuiteFlags, blk->dataLength);
 
-	if (asb.ciphersuiteFlags & BPSEC_ASB_PARM)
+	if (asb.ciphersuiteFlags & SBSP_ASB_PARM)
 	{
 		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 		asb.parmsLen = itemp;
@@ -380,12 +380,12 @@ int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 		{
 			if (asb.parmsLen > unparsedBytes)
 			{
-				BPSEC_DEBUG_WARN("? bpsec_deserializeASB: \
+				SBSP_DEBUG_WARN("? sbsp_deserializeASB: \
 parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 
 				result = 0;
 
-				BPSEC_DEBUG_PROC("- bpsec_deserializeASB -> %d",
+				SBSP_DEBUG_PROC("- sbsp_deserializeASB -> %d",
 						         result);
 				return result;
 			}
@@ -393,7 +393,7 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 			asb.parmsData = MTAKE(asb.parmsLen);
 			if (asb.parmsData == NULL)
 			{
-				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB parms %d",
+				SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB parms %d",
 						        utoa(asb.parmsLen));
 				return -1;
 			}
@@ -401,12 +401,12 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 			memcpy(asb.parmsData, cursor, asb.parmsLen);
 			cursor += asb.parmsLen;
 			unparsedBytes -= asb.parmsLen;
-			BPSEC_DEBUG_INFO("i bpsec_deserializeASB: parmsLen %ld",
+			SBSP_DEBUG_INFO("i sbsp_deserializeASB: parmsLen %ld",
 					asb.parmsLen);
 		}
 	}
 
-	if (asb.ciphersuiteFlags & BPSEC_ASB_RES)
+	if (asb.ciphersuiteFlags & SBSP_ASB_RES)
 	{
 		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 		asb.resultsLen = itemp;
@@ -414,7 +414,7 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 		{
 			if (asb.resultsLen > unparsedBytes)
 			{
-				BPSEC_DEBUG_WARN("? bpsec_deserializeASB: \
+				SBSP_DEBUG_WARN("? sbsp_deserializeASB: \
 resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 				if (asb.parmsData)
 				{
@@ -422,7 +422,7 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 				}
 
 				result = 0;
-				BPSEC_DEBUG_PROC("- bpsec_deserializeASB -> %d",
+				SBSP_DEBUG_PROC("- sbsp_deserializeASB -> %d",
 						result);
 				return result;
 			}
@@ -430,7 +430,7 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 			asb.resultsData = MTAKE(asb.resultsLen);
 			if (asb.resultsData == NULL)
 			{
-				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB results %d",
+				SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB results %d",
 						        utoa(asb.resultsLen));
 				return -1;
 			}
@@ -438,22 +438,22 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 			memcpy(asb.resultsData, cursor, asb.resultsLen);
 			cursor += asb.resultsLen;
 			unparsedBytes -= asb.resultsLen;
-			BPSEC_DEBUG_INFO("i bpsec_deserializeASB: resultsLen %ld",
+			SBSP_DEBUG_INFO("i sbsp_deserializeASB: resultsLen %ld",
 					asb.resultsLen);
 		}
 	}
 
-	blk->size = sizeof(BpsecInboundBlock);
-	blk->object = MTAKE(sizeof(BpsecInboundBlock));
+	blk->size = sizeof(SbspInboundBlock);
+	blk->object = MTAKE(sizeof(SbspInboundBlock));
 	if (blk->object == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB scratchpad", NULL);
+		SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB scratchpad", NULL);
 		return -1;
 	}
 
-	memcpy((char *) (blk->object), (char *) &asb, sizeof(BpsecInboundBlock));
+	memcpy((char *) (blk->object), (char *) &asb, sizeof(SbspInboundBlock));
 
-	BPSEC_DEBUG_PROC("- bpsec_deserializeASB -> %d", result);
+	SBSP_DEBUG_PROC("- sbsp_deserializeASB -> %d", result);
 
 	return result;
 }
@@ -467,7 +467,7 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_destinationIsLocal
+ * \par Function Name: sbsp_destinationIsLocal
  *
  * \par Purpose: Determines if the destination of the bundle is the local node.
  *
@@ -486,7 +486,7 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_destinationIsLocal(Bundle *bundle)
+int	sbsp_destinationIsLocal(Bundle *bundle)
 {
 	char		*dictionary;
 	VScheme		*vscheme;
@@ -496,7 +496,7 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_destinationIsLocal: Can't retrieve dictionary.", NULL);
+		SBSP_DEBUG_ERR("x sbsp_destinationIsLocal: Can't retrieve dictionary.", NULL);
 		return result;
 	}
 
@@ -519,25 +519,25 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_findAcqBlock
+ * \par Function Name: sbsp_findAcqBlock
  *
  * \par Purpose: This function searches the lists of extension blocks in
- * 		 an acquisition work area looking for a BPSEC block of the
+ * 		 an acquisition work area looking for a SBSP block of the
  * 		 indicated type and ordinality whose target is the block
  * 		 of indicated type and ordinality.
  *
  * \retval Object
  *
  * \param[in]  bundle      		The bundle within which to search.
- * \param[in]  type        		The type of BPSEC block to look for.
- * \param[in]  targetBlockType		Identifies target of the BPSEC block.
+ * \param[in]  type        		The type of SBSP block to look for.
+ * \param[in]  targetBlockType		Identifies target of the SBSP block.
  * \param[in]  targetBlockOccurrence		"
- * \param[in]  instance			The BPSEC block instance to look for.
+ * \param[in]  instance			The SBSP block instance to look for.
  *
  * \par Notes:
  *****************************************************************************/
 
-LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
+LystElt	sbsp_findAcqBlock(AcqWorkArea *wk,
 		                   uint8_t type,
 						   uint8_t targetBlockType,
 						   uint8_t targetBlockOccurrence,
@@ -546,7 +546,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
 	uint32_t	 idx;
 	LystElt		elt;
 	AcqExtBlock	*blk;
-	BpsecInboundBlock	*asb;
+	SbspInboundBlock	*asb;
 
 	CHKZERO(wk);
 	for (idx = 0; idx < 2; idx++)
@@ -560,7 +560,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
 				continue;
 			}
 
-			asb = (BpsecInboundBlock *) (blk->object);
+			asb = (SbspInboundBlock *) (blk->object);
 			if (asb->targetBlockType == targetBlockType
 			&& asb->targetBlockOccurrence == targetBlockOccurrence
 			&& asb->instance == instance)
@@ -578,20 +578,20 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_findBlock
+ * \par Function Name: sbsp_findBlock
  *
  * \par Purpose: This function searches the lists of extension blocks in
- * 		         a bundle looking for a BPSEC block of the indicated type
+ * 		         a bundle looking for a SBSP block of the indicated type
  * 		         and ordinality whose target is the block of indicated
  * 		         type and ordinality.
  *
  * \retval Object
  *
  * \param[in]  bundle      		The bundle within which to search.
- * \param[in]  type        		The type of BPSEC block to look for.
- * \param[in]  targetBlockType		Identifies target of the BPSEC block.
+ * \param[in]  type        		The type of SBSP block to look for.
+ * \param[in]  targetBlockType		Identifies target of the SBSP block.
  * \param[in]  targetBlockOccurrence		"
- * \param[in]  instance			The BPSEC block instance to look for.
+ * \param[in]  instance			The SBSP block instance to look for.
  *
  * \par Notes:
  *
@@ -603,7 +603,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-Object	bpsec_findBlock(Bundle *bundle,
+Object	sbsp_findBlock(Bundle *bundle,
 						uint8_t type,
 				        uint8_t targetBlockType,
 						uint8_t targetBlockOccurrence,
@@ -614,7 +614,7 @@ Object	bpsec_findBlock(Bundle *bundle,
 	Object	elt;
 	Object	addr;
 		OBJ_POINTER(ExtensionBlock, blk);
-		OBJ_POINTER(BpsecOutboundBlock, asb);
+		OBJ_POINTER(SbspOutboundBlock, asb);
 
 	CHKZERO(bundle);
 	for (idx = 0; idx < 2; idx++)
@@ -629,7 +629,7 @@ Object	bpsec_findBlock(Bundle *bundle,
 				continue;
 			}
 
-			GET_OBJ_POINTER(sdr, BpsecOutboundBlock, asb,
+			GET_OBJ_POINTER(sdr, SbspOutboundBlock, asb,
 					blk->object);
 			if (asb->targetBlockType == targetBlockType
 			&& asb->targetBlockOccurrence == targetBlockOccurrence
@@ -647,7 +647,7 @@ Object	bpsec_findBlock(Bundle *bundle,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getInboundSecurityEids
+ * \par Function Name: sbsp_getInboundSecurityEids
  *
  * \par Purpose: This function retrieves the inbound and outbound security
  *               EIDs associated with an inbound abstract security block.
@@ -676,9 +676,9 @@ Object	bpsec_findBlock(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int bpsec_getInboundSecurityEids(Bundle *bundle,
+int sbsp_getInboundSecurityEids(Bundle *bundle,
 		                            AcqExtBlock *blk,
-									BpsecInboundBlock *asb,
+									SbspInboundBlock *asb,
 									char **fromEid,
 									char **toEid)
 {
@@ -708,9 +708,9 @@ int bpsec_getInboundSecurityEids(Bundle *bundle,
 		return -1;
 	}
 
-	if (asb->ciphersuiteFlags & BPSEC_ASB_SEC_SRC)
+	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 	{
-		result = bpsec_getInboundSecuritySource(blk, dictionary, fromEid);
+		result = sbsp_getInboundSecuritySource(blk, dictionary, fromEid);
 	}
 	else
 	{
@@ -736,7 +736,7 @@ int bpsec_getInboundSecurityEids(Bundle *bundle,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getInboundSecuritySource
+ * \par Function Name: sbsp_getInboundSecuritySource
  *
  * \par Purpose: This function finds the security source associated with a
  *               given in-bound extension block.
@@ -746,10 +746,10 @@ int bpsec_getInboundSecurityEids(Bundle *bundle,
  *           >0 Success
  *
  * \param[in]  bundle      		The bundle within which to search.
- * \param[in]  type        		The type of BPSEC block to look for.
- * \param[in]  targetBlockType		Identifies target of the BPSEC block.
+ * \param[in]  type        		The type of SBSP block to look for.
+ * \param[in]  targetBlockType		Identifies target of the SBSP block.
  * \param[in]  targetBlockOccurrence		"
- * \param[in]  instance			The BPSEC block instance to look for.
+ * \param[in]  instance			The SBSP block instance to look for.
  *
  * \par Notes:
  *
@@ -763,7 +763,7 @@ int bpsec_getInboundSecurityEids(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_getInboundSecuritySource(AcqExtBlock *blk,
+int	sbsp_getInboundSecuritySource(AcqExtBlock *blk,
 		                                       char *dictionary,
 			                                   char **fromEid)
 {
@@ -794,7 +794,7 @@ int	bpsec_getInboundSecuritySource(AcqExtBlock *blk,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getLocalAdminEid
+ * \par Function Name: sbsp_getLocalAdminEid
  *
  * \par Purpose: Return the administrative endpoint ID for a given EID.
  *
@@ -812,7 +812,7 @@ int	bpsec_getInboundSecuritySource(AcqExtBlock *blk,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-char	*bpsec_getLocalAdminEid(char *peerEid)
+char	*sbsp_getLocalAdminEid(char *peerEid)
 {
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -841,19 +841,19 @@ char	*bpsec_getLocalAdminEid(char *peerEid)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getOutboundItem
+ * \par Function Name: sbsp_getOutboundItem
  *
  * \par Purpose: This function searches within a buffer (a ciphersuite
  *               parameters field or a security result field) of an outbound
- *               bpsec block for an information item of specified type.
+ *               sbsp block for an information item of specified type.
  *
  * \retval void
  *
  * \param[in]  itemNeeded  The code number of the type of item to search
  *                         for.  Valid item type codes are defined in
- *                         bpsec_util.h as BPSEC_CSPARM_xxx macros.
- * \param[in]  bpsecBuf      The data buffer in which to search for the item.
- * \param[in]  bpsecLen      The length of the data buffer.
+ *                         sbsp_util.h as SBSP_CSPARM_xxx macros.
+ * \param[in]  sbspBuf      The data buffer in which to search for the item.
+ * \param[in]  sbspLen      The length of the data buffer.
  * \param[in]  val         A pointer to a variable in which the function
  *                         should place the location (within the buffer)
  *                         of the first item of specified type that is
@@ -868,7 +868,7 @@ char	*bpsec_getLocalAdminEid(char *peerEid)
  * \par Notes:
  *****************************************************************************/
 
-void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
+void	sbsp_getOutboundItem(uint8_t itemNeeded, Object buf,
 		                      uint32_t bufLen, Address *val, uint32_t *len)
 {
 	unsigned char *temp;
@@ -892,7 +892,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
 	temp = MTAKE(bufLen);
 	if (temp == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_getOutboundItem: No space for temporary memory buffer %d.",
+		SBSP_DEBUG_ERR("x sbsp_getOutboundItem: No space for temporary memory buffer %d.",
 					    utoa(bufLen));
 		return;
 	}
@@ -946,7 +946,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getOutboundSecurityEids
+ * \par Function Name: sbsp_getOutboundSecurityEids
  *
  * \par Purpose: This function retrieves the inbound and outbound security
  *               EIDs associated with an outbound abstract security block.
@@ -975,9 +975,9 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_getOutboundSecurityEids(Bundle *bundle,
+int	sbsp_getOutboundSecurityEids(Bundle *bundle,
 		                              ExtensionBlock *blk,
-									  BpsecOutboundBlock *asb,
+									  SbspOutboundBlock *asb,
 									  char **fromEid,
 									  char **toEid)
 {
@@ -1008,9 +1008,9 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle,
 		return -1;
 	}
 
-	if (asb->ciphersuiteFlags & BPSEC_ASB_SEC_SRC)
+	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 	{
-		result = bpsec_getOutboundSecuritySource(blk, dictionary, fromEid);
+		result = sbsp_getOutboundSecuritySource(blk, dictionary, fromEid);
 	}
 	else
 	{
@@ -1036,7 +1036,7 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getOutboundSecuritySource
+ * \par Function Name: sbsp_getOutboundSecuritySource
  *
  * \par Purpose: This function finds the security source associated with a
  *               given outbound extension block.
@@ -1061,7 +1061,7 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
+int sbsp_getOutboundSecuritySource(ExtensionBlock *blk,
 		                                      char *dictionary,
 				  				 	          char **fromEid)
 {
@@ -1093,7 +1093,7 @@ int bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_insertSecuritySource
+ * \par Function Name: sbsp_insertSecuritySource
  *
  * \par Purpose: This function inserts the local node as the security
  *               source of an ASB.
@@ -1113,7 +1113,7 @@ int bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
+void	sbsp_insertSecuritySource(Bundle *bundle, SbspOutboundBlock *asb)
 {
 	char		*dictionary;
 	VEndpoint	*vpoint;
@@ -1155,7 +1155,7 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	 *	libbpP.c.  If possible, never implement this at all.	*/
 
 	writeMemo("[!] Insertion of local node as security source in outbound \
-BPSEC block is not yet implemented.");
+SBSP block is not yet implemented.");
 	releaseDictionary(dictionary);
 }
 
@@ -1163,7 +1163,7 @@ BPSEC block is not yet implemented.");
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_retrieveKey
+ * \par Function Name: sbsp_retrieveKey
  *
  * \par Purpose: Retrieves the key associated with a particular keyname.
  *
@@ -1189,13 +1189,13 @@ BPSEC block is not yet implemented.");
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-csi_val_t bpsec_retrieveKey(char *keyName)
+csi_val_t sbsp_retrieveKey(char *keyName)
 {
 	csi_val_t key;
 	char stdBuffer[100];
 	int  ReqBufLen = 0;
 
-	BPSEC_DEBUG_PROC("+ bpsec_retrieveKey(0x" ADDR_FIELDSPEC ")",
+	SBSP_DEBUG_PROC("+ sbsp_retrieveKey(0x" ADDR_FIELDSPEC ")",
 			(uaddr) keyName);
 
 	/*
@@ -1212,8 +1212,8 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 
 	if(keyName == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_retrieveKey: Bad Parms", NULL);
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Bad Parms", NULL);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
 	}
 
@@ -1228,17 +1228,17 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 	 */
 	if (key.len < 0)	/* Error. */
 	{
-		BPSEC_DEBUG_ERR("x bpsec_retrieveKey: Can't get length of key '%s'.",
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't get length of key '%s'.",
 				keyName);
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
 	}
 	else if(key.len > 0) /*	Key has been retrieved.		*/
 	{
 		if((key.contents = (unsigned char *) MTAKE(key.len)) == NULL)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_retrieveKey: Can't allocate key of size %d", key.len);
-			BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+			SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of size %d", key.len);
+			SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 			return key;
 		}
 
@@ -1249,12 +1249,12 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 
 		if((str = csi_val_print(key)) != NULL)
 		{
-			BPSEC_DEBUG_INFO("i bpsec_retrieveKey: Key  Len: %d  Val: %s...", key.len, str);
+			SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  Val: %s...", key.len, str);
 			MRELEASE(str);
 		}
 #endif
 
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 
 		return key;
 	}
@@ -1272,9 +1272,9 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 	/* Step 2a - If we did not find a key... */
 	if(ReqBufLen <= sizeof(stdBuffer))
 	{
-		BPSEC_DEBUG_WARN("? bpsec_retrieveKey: Unable to find key '%s'", keyName);
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey", NULL);
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+		SBSP_DEBUG_WARN("? sbsp_retrieveKey: Unable to find key '%s'", keyName);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey", NULL);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
 	}
 
@@ -1285,8 +1285,8 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 
 	if ((key.contents = MTAKE(ReqBufLen)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_retrieveKey: Can't allocate key of size %d", ReqBufLen);
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", ReqBufLen);
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of size %d", ReqBufLen);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", ReqBufLen);
 		return key;
 	}
 
@@ -1295,8 +1295,8 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 	if (sec_get_key(keyName, &ReqBufLen, (char *) (key.contents)) <= 0)
 	{
 		MRELEASE(key.contents);
-		BPSEC_DEBUG_ERR("x bpsec_retrieveKey:  Can't get key '%s'", keyName);
-		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey:  Can't get key '%s'", keyName);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
 	}
 
@@ -1307,12 +1307,12 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 
 			if((str = csi_val_print(key)) != NULL)
 			{
-				BPSEC_DEBUG_INFO("i bpsec_retrieveKey: Key  Len: %d  Val: %s...", key.len, str);
+				SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  Val: %s...", key.len, str);
 				MRELEASE(str);
 			}
 #endif
 
-	BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.len);
+	SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 	return key;
 }
 
@@ -1320,7 +1320,7 @@ csi_val_t bpsec_retrieveKey(char *keyName)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_securityPolicyViolated
+ * \par Function Name: sbsp_securityPolicyViolated
  *
  * \par Purpose: Determines if an incoming bundle/block has violated security
  *               policy.
@@ -1344,7 +1344,7 @@ csi_val_t bpsec_retrieveKey(char *keyName)
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
+int	sbsp_securityPolicyViolated(AcqWorkArea *wk)
 {
 	/*	TODO: eventually this function should do something like:
 	 *		1.  For each block in the bundle, find matching
@@ -1358,7 +1358,7 @@ int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_serializeASB
+ * \par Function Name: sbsp_serializeASB
  *
  * \par Purpose: Serializes an outbound bundle security block and returns the
  *               serialized representation.
@@ -1368,13 +1368,13 @@ int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
  * \retval unsigned char * - the serialized outbound bundle Security Block.
  *
  * \param[out] length The length of the serialized block.
- * \param[in]  asb    The BpsecOutboundBlock to serialize.
+ * \param[in]  asb    The SbspOutboundBlock to serialize.
  *
  * \par Notes:
  *      1. This function uses MTAKE to allocate space for the serialized ASB.
  *         This serialized ASB (if not NULL) must be freed using MRELEASE.
  *      2. This function only serializes the block-type-specific data of
- *         a BPSEC extension block, not the extension block header.
+ *         a SBSP extension block, not the extension block header.
  *
  * \par Revision History:
  *
@@ -1387,7 +1387,7 @@ int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
  *  06/20/09  E. Birrane           Fixed Debug stmts, pre for initial release.
  *****************************************************************************/
 
-unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
+unsigned char	*sbsp_serializeASB(uint32_t *length, SbspOutboundBlock *asb)
 {
 	Sdr		sdr = getIonsdr();
 	Sdnv		targetBlockType;
@@ -1399,7 +1399,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	unsigned char	*serializedAsb;
 	unsigned char	*cursor;
 
-	BPSEC_DEBUG_PROC("+ bpsec_serializeASB (%x, %x)",
+	SBSP_DEBUG_PROC("+ sbsp_serializeASB (%x, %x)",
 			(unsigned long) length, (unsigned long) asb);
 
 	CHKNULL(length);
@@ -1422,17 +1422,17 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	*length += ciphersuiteType.length;
 	encodeSdnv(&ciphersuiteFlags, asb->ciphersuiteFlags);
 	*length += ciphersuiteFlags.length;
-	if (asb->ciphersuiteFlags & BPSEC_ASB_PARM)
+	if (asb->ciphersuiteFlags & SBSP_ASB_PARM)
 	{
 		encodeSdnv(&parmsLen, asb->parmsLen);
 		*length += parmsLen.length;
 		*length += asb->parmsLen;
 	}
 
-	BPSEC_DEBUG_INFO("i bpsec_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
+	SBSP_DEBUG_INFO("i sbsp_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
 			asb->resultsLen);
 
-	if (asb->ciphersuiteFlags & BPSEC_ASB_RES)
+	if (asb->ciphersuiteFlags & SBSP_ASB_RES)
 	{
 		encodeSdnv(&resultsLen, asb->resultsLen);
 		*length += resultsLen.length;
@@ -1452,21 +1452,21 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 
 	if ((serializedAsb = MTAKE(*length)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_serializeASB Need %d bytes.", *length);
-		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+		SBSP_DEBUG_ERR("x sbsp_serializeASB Need %d bytes.", *length);
+		SBSP_DEBUG_PROC("- sbsp_serializeASB", NULL);
 		return NULL;
 	}
 
 	cursor = serializedAsb;
-	cursor = bpsec_addSdnvToStream(cursor, &targetBlockType);
-	cursor = bpsec_addSdnvToStream(cursor, &targetBlockOccurrence);
-	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteType);
-	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteFlags);
+	cursor = sbsp_addSdnvToStream(cursor, &targetBlockType);
+	cursor = sbsp_addSdnvToStream(cursor, &targetBlockOccurrence);
+	cursor = sbsp_addSdnvToStream(cursor, &ciphersuiteType);
+	cursor = sbsp_addSdnvToStream(cursor, &ciphersuiteFlags);
 
-	if (asb->ciphersuiteFlags & BPSEC_ASB_PARM)
+	if (asb->ciphersuiteFlags & SBSP_ASB_PARM)
 	{
-		cursor = bpsec_addSdnvToStream(cursor, &parmsLen);
-		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor %x, parms data \
+		cursor = sbsp_addSdnvToStream(cursor, &parmsLen);
+		SBSP_DEBUG_INFO("i sbsp_serializeASB: cursor %x, parms data \
 %u, parms length %ld", (unsigned long) cursor, (unsigned long) asb->parmsData,
 				asb->parmsLen);
 		if (asb->parmsData == 0)
@@ -1482,10 +1482,10 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		cursor += asb->parmsLen;
 	}
 
-	if (asb->ciphersuiteFlags & BPSEC_ASB_RES)
+	if (asb->ciphersuiteFlags & SBSP_ASB_RES)
 	{
-		cursor = bpsec_addSdnvToStream(cursor, &resultsLen);
-		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor " ADDR_FIELDSPEC
+		cursor = sbsp_addSdnvToStream(cursor, &resultsLen);
+		SBSP_DEBUG_INFO("i sbsp_serializeASB: cursor " ADDR_FIELDSPEC
 			", results data  0x%x, results length %d",
 			(uaddr) cursor, asb->resultsData, asb->resultsLen);
 		if (asb->resultsData != 0)
@@ -1496,9 +1496,9 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		}
 	}
 
-	BPSEC_DEBUG_INFO("i bpsec_serializeASB -> data: " ADDR_FIELDSPEC
+	SBSP_DEBUG_INFO("i sbsp_serializeASB -> data: " ADDR_FIELDSPEC
 			", length %d", (uaddr) serializedAsb, *length);
-	BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+	SBSP_DEBUG_PROC("- sbsp_serializeASB", NULL);
 
 	return serializedAsb;
 }
@@ -1507,7 +1507,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_transferToZcoFileSource
+ * \par Function Name: sbsp_transferToZcoFileSource
  *
  * \par Purpose: This utility function attains a zco object, a file reference, a
  *               character string and appends the string to a file. A file
@@ -1532,9 +1532,9 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
  *  MM/DD/YY  AUTHOR        DESCRIPTION
  *  --------  ------------  -----------------------------------------------
  *  08/20/11  R. Brown      Initial Implementation.
- *  01/31/16  E. Birrane    Update to BPSEC
+ *  01/31/16  E. Birrane    Update to SBSP
  *****************************************************************************/
-int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
+int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		Object *acqFileRef, char *fname, char *bytes, uvast length)
 {
 	static uint32_t	acqCount = 0;
@@ -1545,7 +1545,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 
 	CHKERR(bytes);
 
-	BPSEC_DEBUG_PROC("+bpsec_transferToZcoFileSource(sdr, 0x"
+	SBSP_DEBUG_PROC("+sbsp_transferToZcoFileSource(sdr, 0x"
 			         ADDR_FIELDSPEC ", 0x"
 			         ADDR_FIELDSPEC ", 0x"
 				 ADDR_FIELDSPEC ", 0x"
@@ -1563,7 +1563,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoOutbound);
 		if (*resultZco == (Object) ERROR)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't start file source ZCO.", NULL);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't start file source ZCO.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
@@ -1576,7 +1576,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	{
 		if (igetcwd(cwd, sizeof cwd) == NULL)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't get CWD for acq file name.", NULL);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't get CWD for acq file name.", NULL);
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
@@ -1587,7 +1587,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		fd = open(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't create acq file %s.", fileName);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't create acq file %s.", fileName);
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
@@ -1601,14 +1601,14 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		fd = open(fileName, O_WRONLY, 0666);
 		if (fd < 0)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't reopen acq file %s.", fileName);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't reopen acq file %s.", fileName);
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
 		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't get acq file length %s.", fileName);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't get acq file length %s.", fileName);
 			sdr_cancel_xn(sdr);
 			close(fd);
 			return 0;
@@ -1618,7 +1618,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	// Write the data to the file
 	if (write(fd, bytes, length) < 0)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't append to acq file %s.", fileName);
+		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't append to acq file %s.", fileName);
 		sdr_cancel_xn(sdr);
 		close(fd);
 		return 0;
@@ -1630,7 +1630,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
 					      fileLength, length) <= 0)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't append extent to ZCO.", NULL);
+		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't append extent to ZCO.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -1640,7 +1640,7 @@ int bpsec_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	zco_destroy_file_ref(sdr, *acqFileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't acquire extent into file..", NULL);
+		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't acquire extent into file..", NULL);
 		return -1;
 	}
 

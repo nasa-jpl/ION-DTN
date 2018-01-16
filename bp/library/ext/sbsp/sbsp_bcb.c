@@ -6,26 +6,26 @@
  ******************************************************************************/
 /*****************************************************************************
  **
- ** File Name: bpsec_bcb.c
+ ** File Name: sbsp_bcb.c
  **
  ** Description: Definitions supporting generic processing of BCB blocks.
- **              This includes both the BCB Interface to the ION BPSEC
+ **              This includes both the BCB Interface to the ION SBSP
  **              API as well as a default implementation of the BCB
  **              ASB processing for standard ciphersuite profiles.
  **
- **              BCB BPSEC Interface Call Order:
+ **              BCB SBSP Interface Call Order:
  **              -------------------------------------------------------------
  **
  **                     SEND SIDE                    RECEIVE SIDE
  **
- **              bpsec_bcbOffer
- **              bpsec_bcbProcessOnDequeue
- **              bpsec_bcbRelease
- **              bpsec_bcbCopy
- **                                                  bpsec_bcbAcquire
- **                                                  bpsec_bcbDecrypt
- **                                                  bpsec_bcbRecord
- **                                                  bpsec_bcbClear
+ **              sbsp_bcbOffer
+ **              sbsp_bcbProcessOnDequeue
+ **              sbsp_bcbRelease
+ **              sbsp_bcbCopy
+ **                                                  sbsp_bcbAcquire
+ **                                                  sbsp_bcbDecrypt
+ **                                                  sbsp_bcbRecord
+ **                                                  sbsp_bcbClear
  **
  **
  **              Default Ciphersuite Profile Implementation
@@ -33,11 +33,11 @@
  **
  **                    ENCRYPT SIDE                     DECRYPT SIDE
  **
- **              bpsec_bcbDefaultConstruct
- **              bpsec_bcbDefaultEncrypt
+ **              sbsp_bcbDefaultConstruct
+ **              sbsp_bcbDefaultEncrypt
  **
- **                                              bpsec_bcbDefaultConstruct
- **                                              bpsec_bcbDefaultDecrypt
+ **                                              sbsp_bcbDefaultConstruct
+ **                                              sbsp_bcbDefaultDecrypt
  **
  **
  ** Notes:
@@ -47,14 +47,14 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/05/10  E. Birrane     Implementation as extbpsecbcb.c (JHU/APL)
- **            S. Burleigh    Implementation as bpsecbcb.c for Sbpsec
+ **  07/05/10  E. Birrane     Implementation as extsbspbcb.c (JHU/APL)
+ **            S. Burleigh    Implementation as sbspbcb.c for Ssbsp
  **  11/07/15  E. Birrane     Update for generic proc and profiles
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 #include "zco.h"
-#include "bpsec_bcb.h"
-#include "bpsec_instr.h"
+#include "sbsp_bcb.h"
+#include "sbsp_instr.h"
 
 #if (BCB_DEBUGGING == 1)
 extern char		gMsg[];		/*	Debug message buffer.	*/
@@ -65,7 +65,7 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbAcquire
+ * \par Function Name: sbsp_bcbAcquire
  *
  * \par Purpose: This callback is called when a serialized BCB is
  *               encountered during bundle reception.  The callback
@@ -87,23 +87,23 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *  --------  ------------   ---------------------------------------------
  *  06/15/09  E. Birrane     Initial Implementation.
  *            S. Burleigh    Port from bsp_pibAcquire
- *  01/23/16  E. Birrane     BPSEC Update
+ *  01/23/16  E. Birrane     SBSP Update
  *****************************************************************************/
 
-int	bpsec_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	sbsp_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	int	result;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbAcquire(0x%x, 0x%x)", (unsigned long) blk,
+	BCB_DEBUG_PROC("+ sbsp_bcbAcquire(0x%x, 0x%x)", (unsigned long) blk,
 			(unsigned long) wk);
 
 	CHKERR(blk);
 	CHKERR(wk);
 
-	result = bpsec_deserializeASB(blk, wk);
-	BCB_DEBUG_INFO("i bpsec_bcbAcquire: Deserialize result %d", result);
+	result = sbsp_deserializeASB(blk, wk);
+	BCB_DEBUG_INFO("i sbsp_bcbAcquire: Deserialize result %d", result);
 
-	BCB_DEBUG_PROC("- bpsec_bcbAcquire -> %d", result);
+	BCB_DEBUG_PROC("- sbsp_bcbAcquire -> %d", result);
 
 	return result;
 }
@@ -112,9 +112,9 @@ int	bpsec_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbClear
+ * \par Function Name: sbsp_bcbClear
  *
- * \par Purpose: This callback removes all memory allocated by the bpsec module
+ * \par Purpose: This callback removes all memory allocated by the sbsp module
  *               during the block's acquisition process.
  *
  * \retval void
@@ -123,47 +123,47 @@ int	bpsec_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
  *
  * \par Notes:
  *      1. The block's memory pool objects have been allocated as specified
- *         by the bpsec module.
+ *         by the sbsp module.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/04/09  E. Birrane           Initial Implementation.
- *            S. Burleigh    Port from bpsec_pibCopy
+ *            S. Burleigh    Port from sbsp_pibCopy
  *****************************************************************************/
 
-void	bpsec_bcbClear(AcqExtBlock *blk)
+void	sbsp_bcbClear(AcqExtBlock *blk)
 {
-	BpsecInboundBlock	*asb;
+	SbspInboundBlock	*asb;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbClear(%x)", (unsigned long) blk);
+	BCB_DEBUG_PROC("+ sbsp_bcbClear(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
 	if (blk->object)
 	{
-		asb = (BpsecInboundBlock *) (blk->object);
+		asb = (SbspInboundBlock *) (blk->object);
 		if (asb->parmsData)
 		{
-			BCB_DEBUG_INFO("i bpsec_bcbClear: Release result len %ld",
+			BCB_DEBUG_INFO("i sbsp_bcbClear: Release result len %ld",
 					asb->parmsLen);
 			MRELEASE(asb->parmsData);
 		}
 
 		if (asb->resultsData)
 		{
-			BCB_DEBUG_INFO("i bpsec_bcbClear: Release result len %ld",
+			BCB_DEBUG_INFO("i sbsp_bcbClear: Release result len %ld",
 					asb->resultsLen);
 			MRELEASE(asb->resultsData);
 		}
 
-		BCB_DEBUG_INFO("i bpsec_bcbClear: Release ASB len %d", blk->size);
+		BCB_DEBUG_INFO("i sbsp_bcbClear: Release ASB len %d", blk->size);
 
 		MRELEASE(blk->object);
 		blk->object = NULL;
 		blk->size = 0;
 	}
 
-	BCB_DEBUG_PROC("- bpsec_bcbClear", NULL);
+	BCB_DEBUG_PROC("- sbsp_bcbClear", NULL);
 }
 
 
@@ -171,7 +171,7 @@ void	bpsec_bcbClear(AcqExtBlock *blk)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbCopy
+ * \par Function Name: sbsp_bcbCopy
  *
  * \par Purpose: This callback copies the scratchpad object of a BCB
  * 		 to a new block that is a copy of the original.
@@ -188,20 +188,20 @@ void	bpsec_bcbClear(AcqExtBlock *blk)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  04/02/12  S. Burleigh    Port from bpsec_pibCopy
+ *  04/02/12  S. Burleigh    Port from sbsp_pibCopy
  *  11/07/15  E. Birrane     Comments. [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
 
 
-int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
+int	sbsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
 	Sdr			bpSdr = getIonsdr();
-	BpsecOutboundBlock	asb;
+	SbspOutboundBlock	asb;
 	int			result = 0;
 	char		*buffer = NULL;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbCopy(0x%x, 0x%x)", (unsigned long) newBlk,
+	BCB_DEBUG_PROC("+ sbsp_bcbCopy(0x%x, 0x%x)", (unsigned long) newBlk,
 			(unsigned long) oldBlk);
 
 	/* Step 1 - Sanity Checks. */
@@ -212,7 +212,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	newBlk->size = sizeof(asb);
 	if((newBlk->object = sdr_malloc(bpSdr, sizeof(asb))) == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbCopy: Failed to allocate: %d",
+		BCB_DEBUG_ERR("x sbsp_bcbCopy: Failed to allocate: %d",
 				sizeof asb);
 		return -1;
 	}
@@ -233,7 +233,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		buffer = MTAKE(asb.parmsLen);
 		if (buffer == NULL)
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbCopy: Failed to allocate: %d",
+			BCB_DEBUG_ERR("x sbsp_bcbCopy: Failed to allocate: %d",
 					asb.parmsLen);
 			return -1;
 		}
@@ -242,7 +242,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen);
 		if (asb.parmsData == 0)
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbCopy: Failed to allocate: %d",
+			BCB_DEBUG_ERR("x sbsp_bcbCopy: Failed to allocate: %d",
 					asb.parmsLen);
 			MRELEASE(buffer);
 			return -1;
@@ -264,7 +264,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		buffer = MTAKE(asb.resultsLen);
 		if (buffer == NULL)
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbCopy: Failed to allocate: %d",
+			BCB_DEBUG_ERR("x sbsp_bcbCopy: Failed to allocate: %d",
 					asb.resultsLen);
 			return -1;
 		}
@@ -273,7 +273,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen);
 		if (asb.resultsData == 0)
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbCopy: Failed to allocate: %d",
+			BCB_DEBUG_ERR("x sbsp_bcbCopy: Failed to allocate: %d",
 					asb.resultsLen);
 			MRELEASE(buffer);
 			return -1;
@@ -286,7 +286,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	/* Step 4 - Write copied block to the SDR. */
 	sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
 
-	BCB_DEBUG_PROC("- bpsec_bcbCopy -> %d", result);
+	BCB_DEBUG_PROC("- sbsp_bcbCopy -> %d", result);
 
 	return result;
 }
@@ -295,7 +295,7 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbDecrypt
+ * \par Function Name: sbsp_bcbDecrypt
  *
  * \par Purpose: This callback decrypts the target block of a BCB.
  *
@@ -313,16 +313,16 @@ int	bpsec_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/03/09  E. Birrane     Initial Implementation.
- *            S. Burleigh    Port from bpsec_pibCopy
+ *            S. Burleigh    Port from sbsp_pibCopy
  *  11/10/15  E. Birrane     Update to profiles. [Secure DTN implementation
  *                           (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
+int	sbsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle;
 	char		*dictionary;
-	BpsecInboundBlock	*asb = NULL;
+	SbspInboundBlock	*asb = NULL;
 	char		*fromEid;
 	char		*toEid;
 	BspBcbRule	bcbRule;
@@ -330,17 +330,17 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	int		result;
 	uvast bytes = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbDecrypt(0x%x, 0x%x)", (unsigned long) blk,
+	BCB_DEBUG_PROC("+ sbsp_bcbDecrypt(0x%x, 0x%x)", (unsigned long) blk,
 			(unsigned long) wk);
 
 	if (blk == NULL || blk->object == NULL || wk == NULL)
 	{
 		ADD_BCB_RX_FAIL(NULL, 1, 0);
 
-		BCB_DEBUG_ERR("x bpsec_bcbDecrypt:  Blocks are NULL. %x",
+		BCB_DEBUG_ERR("x sbsp_bcbDecrypt:  Blocks are NULL. %x",
 				(unsigned long) blk);
 		result = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbDecrypt --> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbDecrypt --> %d", result);
 		return result;
 	}
 
@@ -359,7 +359,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;
 	}
 
-	asb = (BpsecInboundBlock *) (blk->object);
+	asb = (SbspInboundBlock *) (blk->object);
 	if (asb->securitySource.unicast)	/*	Waypoint source.*/
 	{
 		if (printEid(&(asb->securitySource), dictionary, &fromEid) < 0)
@@ -393,7 +393,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BCB rule.	*/
 
-	prof = bpsec_bcbGetProfile(fromEid, toEid, asb->targetBlockType, &bcbRule);
+	prof = sbsp_bcbGetProfile(fromEid, toEid, asb->targetBlockType, &bcbRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
@@ -407,13 +407,13 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 			 *	preserve the BCB in case somebody
 			 *	else does.				*/
 
-			BCB_DEBUG_INFO("- bpsec_bcbDecrypt - No rule.", NULL);
+			BCB_DEBUG_INFO("- sbsp_bcbDecrypt - No rule.", NULL);
 
 			ADD_BCB_RX_MISS(fromEid, 1, bytes);
 			MRELEASE(fromEid);
 
 			result = 1;
-			BCB_DEBUG_PROC("- bpsec_bcbDecrypt --> %d", result);
+			BCB_DEBUG_PROC("- sbsp_bcbDecrypt --> %d", result);
 			blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
 			return result;		/*	No information.	*/
 		}
@@ -426,18 +426,18 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 		MRELEASE(fromEid);
 
 		discardExtensionBlock(blk);
-	 	BCB_DEBUG_ERR("- bpsec_bcbDecrypt - Profile missing!", NULL);
+	 	BCB_DEBUG_ERR("- sbsp_bcbDecrypt - Profile missing!", NULL);
 		result = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbDecrypt --> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbDecrypt --> %d", result);
 		return 0;			/*	Block malformed.*/
 	}
 
 	/*	Fill in missing information in the scratchpad area.	*/
-	memcpy(asb->keyName, bcbRule.keyName, BPSEC_KEY_NAME_LEN);
+	memcpy(asb->keyName, bcbRule.keyName, SBSP_KEY_NAME_LEN);
 
 	/*	Invoke ciphersuite-specific check procedure.		*/
 	result = (prof->decrypt == NULL) ?
-				 bpsec_bcbDefaultDecrypt(prof->suiteId, wk, blk, &bytes) :
+				 sbsp_bcbDefaultDecrypt(prof->suiteId, wk, blk, &bytes) :
 				 prof->decrypt(wk, blk, &bytes);
 
 	/*	Discard the BCB if the local node is the destination
@@ -445,7 +445,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	 *	block is malformed and therefore the bundle is
 	 *	malformed); otherwise make sure the BCB is retained.	*/
 
-	if (result == 0 || bpsec_destinationIsLocal(&(wk->bundle)))
+	if (result == 0 || sbsp_destinationIsLocal(&(wk->bundle)))
 	{
 		if(result == 0)
 		{
@@ -466,7 +466,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 
 	MRELEASE(fromEid);
-	BCB_DEBUG_PROC("- bpsec_bcbDecrypt --> %d", result);
+	BCB_DEBUG_PROC("- sbsp_bcbDecrypt --> %d", result);
 	return result;
 }
 
@@ -474,7 +474,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbDefaultConstruct
+ * \par Function Name: sbsp_bcbDefaultConstruct
  *
  * \par Given a pre-allocated extension block and abstract security block,
  *      initialize the abstract security block for subsequent processing.
@@ -501,7 +501,7 @@ int	bpsec_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
  *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int	bpsec_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock *asb)
+int	sbsp_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, SbspOutboundBlock *asb)
 {
 
 	CHKERR(blk);
@@ -514,7 +514,7 @@ int	bpsec_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutbound
 	asb->resultsData = 0;
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
-	asb->ciphersuiteFlags = BPSEC_ASB_RES | BPSEC_ASB_PARM;
+	asb->ciphersuiteFlags = SBSP_ASB_RES | SBSP_ASB_PARM;
     asb->resultsLen = 0;
 
 	return 0;
@@ -525,16 +525,16 @@ int	bpsec_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutbound
 /*
  * Assume the asb key has been udpated with the key to use for decrypt.
  */
-int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, uvast *bytes)
+int sbsp_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, uvast *bytes)
 {
 
-	BpsecInboundBlock	*asb;
+	SbspInboundBlock	*asb;
 	csi_val_t longtermKey;
 	csi_val_t sessionKeyInfo;
 	csi_val_t sessionKeyClear;
 	csi_cipherparms_t parms;
 
-	BCB_DEBUG_INFO("+ bpsec_bcbDefaultDecrypt(%d, 0x%x, 0x%x)",
+	BCB_DEBUG_INFO("+ sbsp_bcbDefaultDecrypt(%d, 0x%x, 0x%x)",
 			       suite, (unsigned long) wk, (unsigned long) blk);
 
 	/* Step 0 - Sanity Checks. */
@@ -549,7 +549,7 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 
 
 	/* Step 1 - Initialization */
-	asb = (BpsecInboundBlock *) (blk->object);
+	asb = (SbspInboundBlock *) (blk->object);
 
 	/* Step 2 - Grab any ciphersuite parameters in the received BCB. */
 	parms = csi_build_parms(asb->parmsData, asb->parmsLen);
@@ -560,11 +560,11 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 	 */
 
 	/* Step 3.1 - Grab the long-term key used to protect the session key. */
-	longtermKey = bpsec_retrieveKey(asb->keyName);
+	longtermKey = sbsp_retrieveKey(asb->keyName);
 	if(longtermKey.len == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultDecrypt: Can't get longterm key for %s", asb->keyName);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultDecrypt--> 0", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultDecrypt: Can't get longterm key for %s", asb->keyName);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
 
@@ -580,10 +580,10 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 	 */
 	if((csi_crypt_key(suite, CSI_SVC_DECRYPT, &parms, longtermKey, sessionKeyInfo, &sessionKeyClear)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultDecrypt: Could not decrypt session key", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultDecrypt: Could not decrypt session key", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKeyInfo.contents);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultDecrypt--> 0", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
 
@@ -591,12 +591,12 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 
 	if((sessionKeyClear.contents == NULL) || (sessionKeyClear.len == 0))
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultDecrypt: Could not decrypt session key", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultDecrypt: Could not decrypt session key", NULL);
 		MRELEASE(sessionKeyClear.contents);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKeyInfo.contents);
 
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultDecrypt--> 0", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
 
@@ -610,15 +610,15 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 		case BLOCK_TYPE_PAYLOAD:
 			*bytes = wk->bundle.payload.length;
 
-			if(bpsec_bcbHelper(&(wk->bundle.payload.content),
+			if(sbsp_bcbHelper(&(wk->bundle.payload.content),
 							   csi_blocksize(suite),
 							   suite,
 							   sessionKeyClear,
 							   parms,
 							   CSI_SVC_DECRYPT) < 0)
 			{
-				BCB_DEBUG_ERR("x bpsec_bcbDefaultDecrypt: Can't decrypt payload.", NULL);
-				BCB_DEBUG_PROC("- bpsec_bcbDefaultDecrypt--> NULL", NULL);
+				BCB_DEBUG_ERR("x sbsp_bcbDefaultDecrypt: Can't decrypt payload.", NULL);
+				BCB_DEBUG_PROC("- sbsp_bcbDefaultDecrypt--> NULL", NULL);
 				MRELEASE(sessionKeyClear.contents);
 				return 0;
 			}
@@ -626,9 +626,9 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 		break;
 
 		default:
-			BCB_DEBUG_ERR("x bpsec_bcbDefaultDecrypt: Can't decrypt block type \
+			BCB_DEBUG_ERR("x sbsp_bcbDefaultDecrypt: Can't decrypt block type \
 %d: canonicalization not implemented.", asb->targetBlockType);
-			BCB_DEBUG_PROC("- bpsec_bcbDefaultDecrypt--> NULL", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbDefaultDecrypt--> NULL", NULL);
 			MRELEASE(sessionKeyClear.contents);
 			return 0;
 	}
@@ -639,10 +639,10 @@ int bpsec_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, u
 
 
 
-uint32_t bpsec_bcbDefaultEncrypt(uint32_t suite,
+uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
 		                    Bundle *bundle,
 		                    ExtensionBlock *blk,
-		                    BpsecOutboundBlock *asb,
+		                    SbspOutboundBlock *asb,
 							uvast *bytes)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -651,7 +651,7 @@ uint32_t bpsec_bcbDefaultEncrypt(uint32_t suite,
 	csi_val_t longtermKey;
 	csi_cipherparms_t parms;
 
-	BCB_DEBUG_INFO("+ bpsec_bcbDefaultEncrypt(%d, 0x%x, 0x%x, 0x%x",
+	BCB_DEBUG_INFO("+ sbsp_bcbDefaultEncrypt(%d, 0x%x, 0x%x, 0x%x",
 			       suite, (unsigned long) bundle, (unsigned long) blk,
 				   (unsigned long) asb);
 
@@ -670,11 +670,11 @@ uint32_t bpsec_bcbDefaultEncrypt(uint32_t suite,
 	 * Step 1 - Make sure we have a long-term key that we can use to
 	 * protect the session key.
 	 */
-	longtermKey = bpsec_retrieveKey(asb->keyName);
+	longtermKey = sbsp_retrieveKey(asb->keyName);
 	if(longtermKey.len == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt - Can't get longterm key.", NULL);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt--> 0", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get longterm key.", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> 0", NULL);
 		return 0;
 	}
 
@@ -683,10 +683,10 @@ uint32_t bpsec_bcbDefaultEncrypt(uint32_t suite,
 
 	if((sessionKey.contents == NULL) || (sessionKey.len == 0))
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt - Can't get session key.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get session key.", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt--> NULL", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
 		return 0;
 	}
 
@@ -704,20 +704,20 @@ uint32_t bpsec_bcbDefaultEncrypt(uint32_t suite,
 	 */
 	if((csi_crypt_key(suite, CSI_SVC_ENCRYPT, &parms, longtermKey, sessionKey, &encryptedSessionKey)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt: Could not decrypt session key", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Could not decrypt session key", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt--> 0", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> 0", NULL);
 		return 0;
 
 	}
 
 	if((encryptedSessionKey.contents == NULL) || (encryptedSessionKey.len == 0))
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt - Can't get encrypted session key.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get encrypted session key.", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt--> NULL", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
 		csi_cipherparms_free(parms);
 		return 0;
 	}
@@ -729,16 +729,16 @@ uint32_t bpsec_bcbDefaultEncrypt(uint32_t suite,
 
 		*bytes = bundle->payload.length;
 
-		if(bpsec_bcbHelper(&(bundle->payload.content),
+		if(sbsp_bcbHelper(&(bundle->payload.content),
 						  csi_blocksize(suite),
 						  suite,
 						  sessionKey,
 						  parms,
 						  CSI_SVC_ENCRYPT) < 0)
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt: Can't encrypt \
+			BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't encrypt \
 payload.", NULL);
-			BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt--> NULL", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
 			MRELEASE(longtermKey.contents);
 			MRELEASE(sessionKey.contents);
 			MRELEASE(encryptedSessionKey.contents);
@@ -749,9 +749,9 @@ payload.", NULL);
 		break;
 
 	default:
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt: Can't encrypt block type \
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't encrypt block type \
 %d: canonicalization not implemented.", asb->targetBlockType);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt--> NULL", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
 		MRELEASE(encryptedSessionKey.contents);
@@ -769,26 +769,26 @@ payload.", NULL);
 	 *         results field.
 	 */
 
-	asb->resultsData = bpsec_build_sdr_result(bpSdr, CSI_PARM_KEYINFO, encryptedSessionKey,
+	asb->resultsData = sbsp_build_sdr_result(bpSdr, CSI_PARM_KEYINFO, encryptedSessionKey,
 			           &(asb->resultsLen));
 	MRELEASE(encryptedSessionKey.contents);
 
 	if (asb->resultsData == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbDefaultEncrypt: Can't allocate heap \
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't allocate heap \
 space for ASB result.", NULL);
-		BCB_DEBUG_PROC("- bpsec_bcbDefaultEncrypt --> %d", 0);
+		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt --> %d", 0);
 		csi_cipherparms_free(parms);
 		return 0;
 	}
 
 	/* Step 8 - Place the parameters in the appropriate BCB field. */
-	asb->parmsData = bpsec_build_sdr_parm(bpSdr, parms, &(asb->parmsLen));
+	asb->parmsData = sbsp_build_sdr_parm(bpSdr, parms, &(asb->parmsLen));
 	csi_cipherparms_free(parms);
 
 	if (asb->parmsData == 0)
 	{
-		BCB_DEBUG_WARN("x bpsec_bcbDefaultEncrypt: Can't write cipher parameters.", NULL);
+		BCB_DEBUG_WARN("x sbsp_bcbDefaultEncrypt: Can't write cipher parameters.", NULL);
 	}
 
 	/*	BCB is now ready to be serialized.			*/
@@ -816,7 +816,7 @@ space for ASB result.", NULL);
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbGetProfile
+ * \par Function Name: sbsp_bcbGetProfile
  *
  * \par Purpose: Find the profile associated with a potential confidentiality service.
  *               The confidentiality security service within a bundle is uniquely
@@ -849,7 +849,7 @@ space for ASB result.", NULL);
  *  11/07/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-BcbProfile *bpsec_bcbGetProfile(char *secSrc, char *secDest,
+BcbProfile *sbsp_bcbGetProfile(char *secSrc, char *secDest,
 							  int secTgtType, BspBcbRule *bcbRule)
 {
 	Sdr	bpSdr = getIonsdr();
@@ -857,7 +857,7 @@ BcbProfile *bpsec_bcbGetProfile(char *secSrc, char *secDest,
 	Object	ruleElt;
 	BcbProfile *prof = NULL;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbGetProfile(%s, %s, %d, 0x%x)",
+	BCB_DEBUG_PROC("+ sbsp_bcbGetProfile(%s, %s, %d, 0x%x)",
 				   (secSrc == NULL) ? "NULL" : secSrc,
 				   (secDest == NULL) ? "NULL" : secDest,
 				   secTgtType, (unsigned long) bcbRule);
@@ -875,7 +875,7 @@ BcbProfile *bpsec_bcbGetProfile(char *secSrc, char *secDest,
 	if (ruleElt == 0)
 	{
 		memset((char *) bcbRule, 0, sizeof(BspBcbRule));
-		BCB_DEBUG_INFO("i bpsec_bcbGetProfile: No rule found \
+		BCB_DEBUG_INFO("i sbsp_bcbGetProfile: No rule found \
 for BCBs. No BCB processing for this bundle.", NULL);
 		return NULL;
 	}
@@ -885,12 +885,12 @@ for BCBs. No BCB processing for this bundle.", NULL);
 	sdr_read(bpSdr, (char *) bcbRule, ruleAddr, sizeof(BspBcbRule));
 	if((prof = get_bcb_prof_by_name(bcbRule->ciphersuiteName)) == NULL)
 	{
-		BCB_DEBUG_INFO("i bpsec_bcbGetProfile: Ciphersuite \
+		BCB_DEBUG_INFO("i sbsp_bcbGetProfile: Ciphersuite \
 of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
 						bcbRule->ciphersuiteName);
 	}
 
-	BCB_DEBUG_PROC("- bpsec_bcbGetProfile -> 0x%x", (unsigned long) prof);
+	BCB_DEBUG_PROC("- sbsp_bcbGetProfile -> 0x%x", (unsigned long) prof);
 
 	return prof;
 }
@@ -899,7 +899,7 @@ of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbAttach
+ * \par Function Name: sbsp_bcbAttach
  *
  * \par Purpose: Construct, compute, and attach a BCB block within the bundle.
  *               This function determines, through a policy lookup, whether
@@ -937,8 +937,8 @@ of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
  *  11/07/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
-						  BpsecOutboundBlock *bcbAsb)
+static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
+						  SbspOutboundBlock *bcbAsb)
 {
 	int		result = 0;
 	char		*fromEid = NULL;
@@ -948,7 +948,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	unsigned char	*serializedAsb = NULL;
 	uvast bytes = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbAttach (0x%x, 0x%x, 0x%x)", (unsigned long) bundle,
+	BCB_DEBUG_PROC("+ sbsp_bcbAttach (0x%x, 0x%x, 0x%x)", (unsigned long) bundle,
 			(unsigned long) bcbBlk, (unsigned long) bcbAsb);
 
 	/* Step 0 - Sanity checks. */
@@ -959,13 +959,13 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	/* Step 1 - Grab Policy for the candidate block. */
 
 	/* Step 1.1 - Retrieve the from/to EIDs that bound the integrity service. */
-	if ((result = bpsec_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb, &fromEid, &toEid)) <= 0)
+	if ((result = sbsp_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb, &fromEid, &toEid)) <= 0)
 	{
 		ADD_BCB_TX_FAIL(NULL, 1, 0);
 
-		BCB_DEBUG_ERR("x bpsec_bcbAttach: Can't get security EIDs.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't get security EIDs.", NULL);
 
-		BCB_DEBUG_PROC("- bpsec_bcbAttach -> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
 		return result;
 	}
 
@@ -975,7 +975,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	 *            is no policy for attaching BCBs in this instance.
 	 */
 
-	prof = bpsec_bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType, &bcbRule);
+	prof = sbsp_bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType, &bcbRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
@@ -985,7 +985,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		/*	No applicable valid construction rule.		*/
 		scratchExtensionBlock(bcbBlk);
 		result = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbAttach -> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
 		return result;
 	}
 
@@ -995,51 +995,51 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 
 	/* Step 2.1 - Grab the key name for this operation. */
 
-	memcpy(bcbAsb->keyName, bcbRule.keyName, BPSEC_KEY_NAME_LEN);
+	memcpy(bcbAsb->keyName, bcbRule.keyName, SBSP_KEY_NAME_LEN);
 
 	/* Step 2.2 - Initialize the BCB ASB. */
 	result = (prof->construct == NULL) ?
-			 bpsec_bcbDefaultConstruct(prof->suiteId, bcbBlk, bcbAsb) :
+			 sbsp_bcbDefaultConstruct(prof->suiteId, bcbBlk, bcbAsb) :
 			 prof->construct(bcbBlk, bcbAsb);
 
 	if(result < 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbAttach: Can't construct ASB.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't construct ASB.", NULL);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, 0);
 		MRELEASE(fromEid);
 
 		scratchExtensionBlock(bcbBlk);
 		bundle->corrupt = 1;
-		BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
 	/* Step 2.2 - Sign the target block and store the signature. */
 
 	result = (prof->encrypt == NULL) ?
-			 bpsec_bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk, bcbAsb, &bytes) :
+			 sbsp_bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk, bcbAsb, &bytes) :
 			 prof->encrypt(bundle, bcbBlk, bcbAsb, &bytes);
 
 	if (result <= 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbAttach: Can't encrypt target block.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't encrypt target block.", NULL);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
 		MRELEASE(fromEid);
 
 		scratchExtensionBlock(bcbBlk);
 		bundle->corrupt = 1;
-		BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
 	/* Step 3 - serialize the BCB ASB into the BCB blk. */
 
 	/* Step 3.1 - Create a serialized version of the BCB ASB. */
-	if((serializedAsb = bpsec_serializeASB((uint32_t *) &(bcbBlk->dataLength), bcbAsb)) == NULL)
+	if((serializedAsb = sbsp_serializeASB((uint32_t *) &(bcbBlk->dataLength), bcbAsb)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbAttach: Unable to serialize ASB.  bcbBlk->dataLength = %d",
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Unable to serialize ASB.  bcbBlk->dataLength = %d",
 				      bcbBlk->dataLength);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
@@ -1048,7 +1048,7 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		result = 0;
 		scratchExtensionBlock(bcbBlk);
 		bundle->corrupt = 1;
-		BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
@@ -1063,14 +1063,14 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	ADD_BCB_TX_PASS(fromEid, 1, bytes);
 	MRELEASE(fromEid);
 
-	BCB_DEBUG_PROC("- bpsec_bcbAttach --> %d", result);
+	BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 	return 1;
 }
 
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbOffer
+ * \par Function Name: sbsp_bcbOffer
  *
  * \par Purpose: This callback aims to ensure that the bundle contains
  * 		 a BCB for the block identified by tags 1, 2, and 3 of
@@ -1109,13 +1109,13 @@ static int	bpsec_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
  *                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
+int	sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 {
 	Sdr			bpSdr = getIonsdr();
-	BpsecOutboundBlock	asb;
+	SbspOutboundBlock	asb;
 	int			result = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbOffer(%x, %x)",
+	BCB_DEBUG_PROC("+ sbsp_bcbOffer(%x, %x)",
                   (unsigned long) blk, (unsigned long) bundle);
 
 	/* Step 1 - Sanity Checks. */
@@ -1133,45 +1133,45 @@ int	bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		(blk->tag1 == BLOCK_TYPE_BCB))
 	{
 		/*	Can't have a BCB for these types of block.	*/
-		BCB_DEBUG_ERR("x bpsec_bcbOffer - BCB can't target type %d", blk->tag1);
+		BCB_DEBUG_ERR("x sbsp_bcbOffer - BCB can't target type %d", blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
 		return result;
 	}
 
     /* Step 1.3 - Make sure OP(confidentiality, target) isn't already there. */
-	if(bpsec_findBlock(bundle, BLOCK_TYPE_BCB, blk->tag1, blk->tag2, blk->tag3))
+	if(sbsp_findBlock(bundle, BLOCK_TYPE_BCB, blk->tag1, blk->tag2, blk->tag3))
 	{
 		/*	Don't create a placeholder BCB for this block.	*/
-		BCB_DEBUG_ERR("x bpsec_bcbOffer - BCB already exists for tgt %d", blk->tag1);
+		BCB_DEBUG_ERR("x sbsp_bcbOffer - BCB already exists for tgt %d", blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
 		return result;
 	}
 
 	/* Step 2 - Initialize BCB structures. */
 
 	/* Step 2.1 - Populate the BCB ASB. */
-	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
-	bpsec_insertSecuritySource(bundle, &asb);
+	memset((char *) &asb, 0, sizeof(SbspOutboundBlock));
+	sbsp_insertSecuritySource(bundle, &asb);
 	asb.targetBlockType = blk->tag1;
 
 
 	CHKERR(sdr_begin_xn(bpSdr));
 
 	/* Step 2.2 Populate the BCB Extension Block. */
-	blk->size = sizeof(BpsecOutboundBlock);
+	blk->size = sizeof(SbspOutboundBlock);
 	if((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbOffer: Failed to SDR allocate object \
+		BCB_DEBUG_ERR("x sbsp_bcbOffer: Failed to SDR allocate object \
 of size: %d", blk->size);
 		result = -1;
 		sdr_cancel_xn(bpSdr);
-		BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
 		return result;
 	}
 
@@ -1204,7 +1204,7 @@ of size: %d", blk->size);
 		 *	block.						*/
 
 		result = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
+		BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
 		return result;
 	}
 
@@ -1212,7 +1212,7 @@ of size: %d", blk->size);
 	 * Step 4.2 If target is the payload, encrypt the target
 	 * and attach the BCB.
 	 */
-	if((result = bpsec_bcbAttach(bundle, blk, &asb)) <= 0)
+	if((result = sbsp_bcbAttach(bundle, blk, &asb)) <= 0)
 	{
 		CHKERR(sdr_begin_xn(bpSdr));
 		sdr_free(bpSdr, blk->object);
@@ -1222,7 +1222,7 @@ of size: %d", blk->size);
 		blk->size = 0;
 	}
 
-	BCB_DEBUG_PROC("- bpsec_bcbOffer -> %d", result);
+	BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
 	return result;
 }
 
@@ -1230,7 +1230,7 @@ of size: %d", blk->size);
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbProcessOnDequeue
+ * \par Function Name: sbsp_bcbProcessOnDequeue
  *
  * \par Purpose: This callback determines whether or not a block of the
  * 		 type that is the target of this proposed BCB exists in
@@ -1258,12 +1258,12 @@ of size: %d", blk->size);
  *                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
+int	sbsp_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 {
-	BpsecOutboundBlock	asb;
+	SbspOutboundBlock	asb;
 	int			result = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbProcessOnDequeue(0x%x, 0x%x, 0x%x)",
+	BCB_DEBUG_PROC("+ sbsp_bcbProcessOnDequeue(0x%x, 0x%x, 0x%x)",
 			(unsigned long) blk, (unsigned long) bundle,
 			(unsigned long) parm);
 
@@ -1273,14 +1273,14 @@ int	bpsec_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 
 	if (bundle == NULL || parm == NULL || blk == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbProcessOnDequeue: Bad Args.", NULL);
-		BCB_DEBUG_INFO("i bpsec_bcbProcessOnDequeue bundle 0x%x, parm 0x%x, \
+		BCB_DEBUG_ERR("x sbsp_bcbProcessOnDequeue: Bad Args.", NULL);
+		BCB_DEBUG_INFO("i sbsp_bcbProcessOnDequeue bundle 0x%x, parm 0x%x, \
 blk 0x%x, blk->size %d",
 					  (unsigned long) bundle, (unsigned long)parm,
 					  (unsigned long)blk, (blk == NULL) ? 0 : blk->size);
 
 		scratchExtensionBlock(blk);
-	    BCB_DEBUG_PROC("- bpsec_bcbProcessOnDequeue --> %d", -1);
+	    BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue --> %d", -1);
 		return -1;
 	}
 
@@ -1294,14 +1294,14 @@ blk 0x%x, blk->size %d",
 		 *	was serialized in the recordExtensionBlocks()
 		 *	function.					*/
 
-		BCB_DEBUG_PROC("- bpsec_bcbProcessOnDequeue(%d)", result);
+		BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue(%d)", result);
 		return 0;
 	} 
 
 
 	/*
 	 * Step 1.3 - If the target is the payload, the BIB was already
-	 *            handled in bpsec_bibOffer. Nothing left to do.
+	 *            handled in sbsp_bibOffer. Nothing left to do.
 	 */
 	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
 	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
@@ -1312,7 +1312,7 @@ blk 0x%x, blk->size %d",
 		 *	the payload block content was already final
 		 *	at that time.					*/
 
-		BCB_DEBUG_PROC("- bpsec_bcbProcessOnDequeue(%d)", result);
+		BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue(%d)", result);
 		return 0;
 	}
 
@@ -1320,9 +1320,9 @@ blk 0x%x, blk->size %d",
 	 * Step 2 - Calculate the BCB for the target and attached it
 	 *          to the bundle.
 	 */
-	result = bpsec_bcbAttach(bundle, blk, &asb);
+	result = sbsp_bcbAttach(bundle, blk, &asb);
 
-	BCB_DEBUG_PROC("- bpsec_bcbProcessOnDequeue(%d)", result);
+	BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue(%d)", result);
 	return result;
 }
 
@@ -1330,7 +1330,7 @@ blk 0x%x, blk->size %d",
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbRelease
+ * \par Function Name: sbsp_bcbRelease
  *
  * \par Purpose: This callback releases SDR heap space allocated to
  *               a block confidentiality block.
@@ -1347,21 +1347,21 @@ blk 0x%x, blk->size %d",
  *  --------  ------------   ---------------------------------------------
  *  05/30/09  E. Birrane     Initial Implementation.
  *            S. Burleigh    SBSP Update
- *  12/15/15  E. Birrane     BPSEC Update
+ *  12/15/15  E. Birrane     SBSP Update
  *****************************************************************************/
 
-void    bpsec_bcbRelease(ExtensionBlock *blk)
+void    sbsp_bcbRelease(ExtensionBlock *blk)
 {
 	Sdr			sdr = getIonsdr();
-	BpsecOutboundBlock	asb;
+	SbspOutboundBlock	asb;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbRelease(%x)", (unsigned long) blk);
+	BCB_DEBUG_PROC("+ sbsp_bcbRelease(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
 	if (blk->object)
 	{
 		sdr_read(sdr, (char *) &asb, blk->object,
-				sizeof(BpsecOutboundBlock));
+				sizeof(SbspOutboundBlock));
 		if (asb.parmsData)
 		{
 			sdr_free(sdr, asb.parmsData);
@@ -1375,7 +1375,7 @@ void    bpsec_bcbRelease(ExtensionBlock *blk)
 		sdr_free(sdr, blk->object);
 	}
 
-	BCB_DEBUG_PROC("- bpsec_bcbRelease(%c)", ' ');
+	BCB_DEBUG_PROC("- sbsp_bcbRelease(%c)", ' ');
 }
 
 
@@ -1390,7 +1390,7 @@ void    bpsec_bcbRelease(ExtensionBlock *blk)
 
 
 
-Object bpsec_bcbStoreOverflow(uint32_t suite,
+Object sbsp_bcbStoreOverflow(uint32_t suite,
 							  uint8_t	 *context,
 		                      ZcoReader *dataReader,
 							  uvast readOffset,
@@ -1441,8 +1441,8 @@ Object bpsec_bcbStoreOverflow(uint32_t suite,
 
 			if((ciphertext.contents == NULL) || (ciphertext.len == 0))
 			{
-				BCB_DEBUG_ERR("x bpsec_bcbCiphertextToSdr: Could not encrypt.", plaintext.len, chunkSize);
-				BCB_DEBUG_PROC("- bpsec_bcbCiphertextToSdr--> -1", NULL);
+				BCB_DEBUG_ERR("x sbsp_bcbCiphertextToSdr: Could not encrypt.", plaintext.len, chunkSize);
+				BCB_DEBUG_PROC("- sbsp_bcbCiphertextToSdr--> -1", NULL);
 				return 0;
 			}
 
@@ -1466,7 +1466,7 @@ Object bpsec_bcbStoreOverflow(uint32_t suite,
  */
 
 
-int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
+int32_t	sbsp_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 		uint8_t	 *context, csi_blocksize_t *blocksize, Object dataObj,
 		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherBuffer,
 		uint8_t function)
@@ -1493,13 +1493,13 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 	/* Step 1: Allocate read buffers. */
 	if((plaintext[0].contents = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.",
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.",
 				chunkSize);
 		return -1;
 	}
 	if((plaintext[1].contents = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.",
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.",
 				chunkSize);
 		MRELEASE(plaintext[0].contents);
 		return -1;
@@ -1537,7 +1537,7 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 
 	if((csi_crypt_start(suite, context, parms)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace: Could not start context.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadInPlace: Could not start context.", NULL);
 		MRELEASE(plaintext[0].contents);
 		MRELEASE(plaintext[1].contents);
 		MRELEASE(ciphertext.contents);
@@ -1560,11 +1560,11 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 				plaintext[cur_idx]);
 		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace: Could not encrypt.", NULL);
+			BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadInPlace: Could not encrypt.", NULL);
 			MRELEASE(plaintext[0].contents);
 			MRELEASE(plaintext[1].contents);
 			MRELEASE(ciphertext.contents);
-			BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadInPlace--> -1", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadInPlace--> -1", NULL);
 			return -1;
 		}
 
@@ -1580,7 +1580,7 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 					blocksize->plaintextLen - writeOffset))
 				       	== -1)
 			{
-				BCB_DEBUG_ERR("bpsec_bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
+				BCB_DEBUG_ERR("sbsp_bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
 				break;
 			}
 
@@ -1594,7 +1594,7 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 					(char *) ciphertext.contents,
 					ciphertext.len)) == -1)
 			{
-				BCB_DEBUG_ERR("bpsec_bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
+				BCB_DEBUG_ERR("sbsp_bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
 				break;
 			}
 
@@ -1629,7 +1629,7 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 	}
 
 	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
-	*cipherBuffer = bpsec_bcbStoreOverflow(suite, context, dataReader,
+	*cipherBuffer = sbsp_bcbStoreOverflow(suite, context, dataReader,
 			readOffset, writeOffset, cipherBufLen, cipherOverflow,
 			plaintext[0], ciphertext, blocksize);
 
@@ -1638,17 +1638,17 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 
 	if((csi_crypt_finish(suite, context, function, &parms)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadInPlace: Could not finish CSI context.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadInPlace: Could not finish CSI context.", NULL);
 		if (ciphertext.contents)
 		{
 			MRELEASE(ciphertext.contents);
 		}
 
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadInPlace--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadInPlace--> -1", NULL);
 		return -1;
 	}
 
-	BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadInPlace--> 0", NULL);
+	BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadInPlace--> 0", NULL);
 
 	return 0;
 }
@@ -1658,7 +1658,7 @@ int32_t	bpsec_bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
  * 0 BCB error
  * -1 System error
  */
-int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
+int32_t sbsp_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 		uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
 		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
 		uint8_t function)
@@ -1678,7 +1678,7 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 	CHKERR(dataReader);
 	CHKERR(cipherZco);
 
-	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromSdr(%d," ADDR_FIELDSPEC
+	BCB_DEBUG_PROC("+ sbsp_bcbUpdatePayloadFromSdr(%d," ADDR_FIELDSPEC
 			"," ADDR_FIELDSPEC "," UVAST_FIELDSPEC ","
 			ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC
 			", %d)", suite, (uaddr) context, (uaddr) blocksize,
@@ -1695,19 +1695,19 @@ int32_t bpsec_bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 	/* Step 2 - See if the ciphertext will fit into the existing SDR space. */
 	if(cipherBufLen > memmax)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Buffer len \
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr: Buffer len \
 will not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, cipherBufLen, memmax);
 		sdr_report(&summary);
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> 0", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> 0", NULL);
 
 		return 0;
 	}
 
 	if((cipherBuffer = sdr_malloc(bpSdr, cipherBufLen)) == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Cannot \
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr: Cannot \
 allocate " UVAST_FIELDSPEC " from SDR.", NULL);
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 
 		return -1;
 	}
@@ -1717,11 +1717,11 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 	 */
 	if((*cipherZco = zco_create(bpSdr, ZcoSdrSource, cipherBuffer, 0, 0 - cipherBufLen, ZcoOutbound)) == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Cannot create zco.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr: Cannot create zco.", NULL);
 
 		sdr_free(bpSdr, cipherBuffer);
 
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 
 		return -1;
 	}
@@ -1733,13 +1733,13 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 	/* Step 1: Allocate read buffers. */
 	if((plaintext.contents = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr - Can't allocate buffer of size %d.",
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr - Can't allocate buffer of size %d.",
 				chunkSize);
 
 		sdr_free(bpSdr, cipherBuffer);
 		zco_destroy(bpSdr, *cipherZco);
 		*cipherZco = 0;
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 
 		return -1;
 	}
@@ -1749,14 +1749,14 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 	/* Step 2 - Perform priming read of payload to prep for encryption. */
 	if((csi_crypt_start(suite, context, parms)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr - Can't start context.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr - Can't start context.", NULL);
 
 		MRELEASE(plaintext.contents);
 		sdr_free(bpSdr, cipherBuffer);
 		zco_destroy(bpSdr, *cipherZco);
 		*cipherZco = 0;
 
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 		return -1;
 	}
 
@@ -1775,7 +1775,7 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
  		plaintext.len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext.contents);
  		if(plaintext.len <= 0)
  		{
- 			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr - Can't do priming read of length %d.",
+ 			BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr - Can't do priming read of length %d.",
  						  chunkSize);
 
  			MRELEASE(plaintext.contents);
@@ -1783,7 +1783,7 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
  			zco_destroy(bpSdr, *cipherZco);
  			*cipherZco = 0;
 
-			BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 
  			return -1;
  		}
@@ -1794,14 +1794,14 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 
 		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Could not encrypt.", plaintext.len, chunkSize);
+			BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr: Could not encrypt.", plaintext.len, chunkSize);
 			MRELEASE(plaintext.contents);
 			MRELEASE(ciphertext.contents);
 			sdr_free(bpSdr, cipherBuffer);
 			zco_destroy(bpSdr, *cipherZco);
 			*cipherZco = 0;
 
-			BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 			return -1;
 		}
 
@@ -1815,16 +1815,16 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 
 	if(csi_crypt_finish(suite, context, function, &parms) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromSdr: Could not finish context.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromSdr: Could not finish context.", NULL);
 		sdr_free(bpSdr, cipherBuffer);
 		zco_destroy(bpSdr, *cipherZco);
 		*cipherZco = 0;
 
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromSdr--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromSdr--> -1", NULL);
 		return -1;
 	}
 
-	BCB_DEBUG_PROC("- bpsec_bcbCiphertextToSdr--> 1", NULL);
+	BCB_DEBUG_PROC("- sbsp_bcbCiphertextToSdr--> 1", NULL);
 
 	return 1;
 }
@@ -1834,7 +1834,7 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
  * 0 processing error
  * -1 system error
  */
-int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
+int32_t sbsp_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 		uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
 		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
 		uint8_t function)
@@ -1846,7 +1846,7 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 	uvast bytesRemaining = 0;
 	Object fileRef = 0;
 
-	BCB_DEBUG_PROC("+ bpsec_bcbUpdatePayloadFromFile(%d," ADDR_FIELDSPEC
+	BCB_DEBUG_PROC("+ sbsp_bcbUpdatePayloadFromFile(%d," ADDR_FIELDSPEC
 			"," ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ","
 			UVAST_FIELDSPEC "," ADDR_FIELDSPEC ",%d)",
 			suite, (uaddr)context, (uaddr)blocksize, dataObj,
@@ -1865,18 +1865,18 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 	/* Step 1: Allocate read buffers. */
 	if((plaintext.contents = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Can't allocate buffer of size %d.",
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromFile: Can't allocate buffer of size %d.",
 				chunkSize);
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> -1", NULL);
 
 		return -1;
 	}
 
 	if(csi_crypt_start(suite, context, parms) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Can't start context", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromFile: Can't start context", NULL);
 		MRELEASE(plaintext.contents);
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> -1", NULL);
 		return -1;
 	}
 
@@ -1895,11 +1895,11 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  		plaintext.len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext.contents);
  		if(plaintext.len <= 0)
  		{
- 			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Can't do priming read of length %d.",
+ 			BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromFile: Can't do priming read of length %d.",
  						  chunkSize);
 
  			MRELEASE(plaintext.contents);
-			BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> -1", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> -1", NULL);
  			return -1;
  		}
 
@@ -1909,20 +1909,20 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 
 		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Could not encrypt.", plaintext.len, chunkSize);
+			BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromFile: Could not encrypt.", plaintext.len, chunkSize);
 			MRELEASE(plaintext.contents);
 			MRELEASE(ciphertext.contents);
-			BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> -1", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> -1", NULL);
 			return -1;
 		}
 
-		if(bpsec_transferToZcoFileSource(bpSdr, cipherZco, &fileRef, BCB_FILENAME,
+		if(sbsp_transferToZcoFileSource(bpSdr, cipherZco, &fileRef, BCB_FILENAME,
 									     (char *) ciphertext.contents, ciphertext.len) <= 0)
 		{
-			BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Transfer of chunk has failed..", NULL);
+			BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromFile: Transfer of chunk has failed..", NULL);
 			MRELEASE(ciphertext.contents);
 			MRELEASE(plaintext.contents);
-			BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> -1", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> -1", NULL);
 			return -1;
 		}
 
@@ -1940,14 +1940,14 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 
 	if(csi_crypt_finish(suite, context, function, &parms) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbUpdatePayloadFromFile: Could not finish context.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbUpdatePayloadFromFile: Could not finish context.", NULL);
 
-		BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> -1", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> -1", NULL);
 		return -1;
 	}
 
 
-	BCB_DEBUG_PROC("- bpsec_bcbUpdatePayloadFromFile--> 1", NULL);
+	BCB_DEBUG_PROC("- sbsp_bcbUpdatePayloadFromFile--> 1", NULL);
 
 	return 1;
 }
@@ -1979,7 +1979,7 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_bcbHelper
+ * \par Function Name: sbsp_bcbHelper
  *
  * \par Calculate a digest given a set of data and associated key information
  *      in accordance with this ciphersuite specification.
@@ -2018,7 +2018,7 @@ int32_t bpsec_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *                           implementation (NASA: NNX14CS58P)]
  *
  *****************************************************************************/
-int bpsec_bcbHelper(Object *dataObj,
+int sbsp_bcbHelper(Object *dataObj,
   				  	           uint32_t chunkSize,
 						       uint32_t suite,
 						       csi_val_t key,
@@ -2033,7 +2033,7 @@ int bpsec_bcbHelper(Object *dataObj,
 	uint8_t		*context = NULL;
 	Object      cipherBuffer = 0;
 
-	BCB_DEBUG_INFO("+ bpsec_bcbHelper(0x%x, %d, %d, [0x%x, %d])",
+	BCB_DEBUG_INFO("+ sbsp_bcbHelper(0x%x, %d, %d, [0x%x, %d])",
 			       (unsigned long) dataObj, chunkSize, suite,
 				   (unsigned long) key.contents, key.len);
 
@@ -2042,8 +2042,8 @@ int bpsec_bcbHelper(Object *dataObj,
 
 	if((sdr_begin_xn(bpSdr)) == 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbHelper - Can't start txn.", NULL);
-		BCB_DEBUG_PROC("- bpsec_bcbHelper--> NULL", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper - Can't start txn.", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbHelper--> NULL", NULL);
 		return -1;
 	}
 
@@ -2054,22 +2054,22 @@ int bpsec_bcbHelper(Object *dataObj,
 
 	if((bytesRemaining = zco_length(bpSdr, *dataObj)) <= 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbHelper - data object has no length.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper - data object has no length.", NULL);
 		sdr_cancel_xn(bpSdr);
-		BCB_DEBUG_PROC("- bpsec_bcbHelper--> NULL", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbHelper--> NULL", NULL);
 		return -1;
 	}
 
 	zco_start_transmitting(*dataObj, &dataReader);
 
-	BCB_DEBUG_INFO("i bpsec_bcbHelper: bundle size is %d", bytesRemaining);
+	BCB_DEBUG_INFO("i sbsp_bcbHelper: bundle size is %d", bytesRemaining);
 
 	/* Step 4 - Grab and initialize a crypto context. */
 	if((context = csi_ctx_init(suite, key, function)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbHelper - Can't get context.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper - Can't get context.", NULL);
 		sdr_cancel_xn(bpSdr);
-		BCB_DEBUG_PROC("- bpsec_bcbHelper--> NULL", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbHelper--> NULL", NULL);
 		return -1;
 	}
 
@@ -2081,26 +2081,26 @@ int bpsec_bcbHelper(Object *dataObj,
 
 	if((cipherBufLen = csi_crypt_res_len(suite, context, blocksize, function)) <= 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbHelper: Predicted bad ciphertext length: %d",
+		BCB_DEBUG_ERR("x sbsp_bcbHelper: Predicted bad ciphertext length: %d",
 				      cipherBufLen);
 		csi_ctx_free(suite, context);
 		sdr_cancel_xn(bpSdr);
 
-		BCB_DEBUG_PROC("- bpsec_bcbHelper --> %d", -1);
+		BCB_DEBUG_PROC("- sbsp_bcbHelper --> %d", -1);
 		return -1;
 	}
 
-	BCB_DEBUG_INFO("i bpsec_bcbHelper - CipherBufLen is %d", cipherBufLen);
+	BCB_DEBUG_INFO("i sbsp_bcbHelper - CipherBufLen is %d", cipherBufLen);
 
 
 	if((function == CSI_SVC_ENCRYPT) || (function == CSI_SVC_DECRYPT))
 	{
-		if(BPSEC_ENCRYPT_IN_PLACE)
+		if(SBSP_ENCRYPT_IN_PLACE)
 		{
-			if((bpsec_bcbUpdatePayloadInPlace(suite, parms, context, &blocksize, *dataObj, &dataReader,
+			if((sbsp_bcbUpdatePayloadInPlace(suite, parms, context, &blocksize, *dataObj, &dataReader,
 					                      cipherBufLen, &cipherBuffer, function)) != 0)
 			{
-				BCB_DEBUG_ERR("x bpsec_bcbHelper: Cannot update ciphertext in place.", NULL);
+				BCB_DEBUG_ERR("x sbsp_bcbHelper: Cannot update ciphertext in place.", NULL);
 				csi_ctx_free(suite, context);
 				sdr_cancel_xn(bpSdr);
 			}
@@ -2110,23 +2110,23 @@ int bpsec_bcbHelper(Object *dataObj,
 			int32_t result;
 			Object cipherZco = 0;
 
-			result = bpsec_bcbUpdatePayloadFromSdr(suite, parms, context, &blocksize, *dataObj,
+			result = sbsp_bcbUpdatePayloadFromSdr(suite, parms, context, &blocksize, *dataObj,
 												   &dataReader, cipherBufLen, &cipherZco, function);
 
 			if(result <= 0)
 			{
-				result = bpsec_bcbUpdatePayloadFromFile(suite, parms, context, &blocksize, *dataObj,
+				result = sbsp_bcbUpdatePayloadFromFile(suite, parms, context, &blocksize, *dataObj,
 						   	   	   	   	   	   	   	   	&dataReader, cipherBufLen, &cipherZco, function);
 			}
 
 			if(result <= 0)
 			{
-				BCB_DEBUG_ERR("x bpsec_bcbHelper: Cannot allocate ZCO for ciphertext of size "UVAST_FIELDSPEC,
+				BCB_DEBUG_ERR("x sbsp_bcbHelper: Cannot allocate ZCO for ciphertext of size "UVAST_FIELDSPEC,
 						      cipherBufLen);
 				csi_ctx_free(suite, context);
 				sdr_cancel_xn(bpSdr);
 
-				BCB_DEBUG_PROC("- bpsec_bcbHelper --> %d", -1);
+				BCB_DEBUG_PROC("- sbsp_bcbHelper --> %d", -1);
 				return -1;
 			}
 
@@ -2136,11 +2136,11 @@ int bpsec_bcbHelper(Object *dataObj,
 	}
 	else
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbHelper: Invalid service: %d", function);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper: Invalid service: %d", function);
 		csi_ctx_free(suite, context);
 		sdr_cancel_xn(bpSdr);
 
-		BCB_DEBUG_PROC("- bpsec_bcbHelper --> %d", -1);
+		BCB_DEBUG_PROC("- sbsp_bcbHelper --> %d", -1);
 		return -1;
 	}
 
@@ -2148,7 +2148,7 @@ int bpsec_bcbHelper(Object *dataObj,
 
 	if (sdr_end_xn(bpSdr) < 0)
 	{
-		BCB_DEBUG_ERR("x bpsec_bcbHelper: Can't end encrypt txn.",NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper: Can't end encrypt txn.",NULL);
 		return -1;
 	}
 

@@ -366,36 +366,36 @@ extern void	sec_get_bspBcbRule(char *srcEid, char *destEid,
 
 extern Object	sec_get_bspBcbRuleList();
 
-extern int	sec_get_bpsecNumKeys(int *size);
+extern int	sec_get_sbspNumKeys(int *size);
 		/* Retrieves number of keys and maximum size
 		 * of each key name.
 		 */
 
-extern void	sec_get_bpsecKeys(char *buffer, int length);
+extern void	sec_get_sbspKeys(char *buffer, int length);
 		/* Populates a PRE-ALLOCATED buffer of length len
-		 * with bpsec key names. Key names are
+		 * with sbsp key names. Key names are
 		 * comma-separated as "K1,K2,K3".
 		 */
 
-extern int	sec_get_bpsecNumCSNames(int *size);
+extern int	sec_get_sbspNumCSNames(int *size);
 		/* Retrieves number of ciphersuites and maximum size
 		 * of each ciphersuite name.
 		 */
 
-extern void	sec_get_bpsecCSNames(char *buffer, int length);
+extern void	sec_get_sbspCSNames(char *buffer, int length);
 		/* Populates a PRE-ALLOCATED buffer of length len
-		 * with bpsec ciphersuite names. ciphersuite names
+		 * with sbsp ciphersuite names. ciphersuite names
 		 * are comma-separated as "CS1,CS2,CS3".
 		 */
 
-extern int	sec_get_bpsecNumSrcEIDs(int *size);
+extern int	sec_get_sbspNumSrcEIDs(int *size);
 		/* Retrieves number of rule src EIDs and maximum size
 		 * of each EID name.
 		 */
 
-extern void	sec_get_bpsecSrcEIDs(char *buffer, int length);
+extern void	sec_get_sbspSrcEIDs(char *buffer, int length);
 		/* Populates a PRE-ALLOCATED buffer of length len
-		 * with bpsec rule src EID names. Src names are
+		 * with sbsp rule src EID names. Src names are
 		 * comma-separated as "K1,K2,CS3".
 		 */
 

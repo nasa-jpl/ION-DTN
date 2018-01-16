@@ -87,13 +87,13 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
  *
  * \par Purpose: This function searches within a buffer (a ciphersuite
  *               parameters field or a security results field) of an
- *               inbound bpsec block for an information item of specified type.
+ *               inbound sbsp block for an information item of specified type.
  *
  * \retval The LV requested.  Len = 0 indicates not found.
  *
  * \param[in] itemNeeded The code number of the type of item to search
  *                       for.  Valid item type codes are defined in
- *                       bpsec_util.h as BPSEC_CSPARM_xxx macros.
+ *                       sbsp.h as SBSP_CSPARM_xxx macros.
  * \param[in] buf        The serialized parameters
  * \param[in] len        The length of the serialized parameters
  *

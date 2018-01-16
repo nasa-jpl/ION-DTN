@@ -22,7 +22,7 @@
 #ifndef PROFILES_H_
 #define PROFILES_H_
 
-#include "bpsec_util.h"
+#include "sbsp_util.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -44,16 +44,16 @@
  * +--------------------------------------------------------------------------+
  */
 
-typedef int	(*BabConstructFn)(ExtensionBlock *, BpsecOutboundBlock *);
-typedef int	(*BabSignFn)(Bundle *, ExtensionBlock *, BpsecOutboundBlock *);
+typedef int	(*BabConstructFn)(ExtensionBlock *, SbspOutboundBlock *);
+typedef int	(*BabSignFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *);
 typedef int	(*BabVerifyFn)(AcqWorkArea *, AcqExtBlock *);
 
-typedef int	(*BibConstructFn)(ExtensionBlock *, BpsecOutboundBlock *);
-typedef int	(*BibSignFn)(Bundle *, ExtensionBlock *, BpsecOutboundBlock *, uvast *);
+typedef int	(*BibConstructFn)(ExtensionBlock *, SbspOutboundBlock *);
+typedef int	(*BibSignFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *, uvast *);
 typedef int	(*BibVerifyFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
 
-typedef int	(*BcbConstructFn)(ExtensionBlock *, BpsecOutboundBlock *);
-typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *, BpsecOutboundBlock *, uvast *);
+typedef int	(*BcbConstructFn)(ExtensionBlock *, SbspOutboundBlock *);
+typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *, uvast *);
 typedef int	(*BcbDecryptFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
 
 /**

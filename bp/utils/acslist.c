@@ -17,8 +17,8 @@ static int printToStdout = 0;
 #define writeMemoOrStdout(args...) 								\
 	if (printToStdout == 0)										\
 	{															\
-		char acslistBuf[256];									\
-		snprintf(acslistBuf, sizeof(acslistBuf), args);			\
+		char acslistBuf[1024];									\
+		snprintf(acslistBuf, sizeof acslistBuf, args);			\
 		writeMemo(acslistBuf);									\
 	}															\
 	else														\
