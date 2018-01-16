@@ -839,7 +839,7 @@ static void	shutDownNeighbors(Lyst neighbors)
 		neighbor->mustDelete = 1;
 	}
 
-	oK(sdr_end_xn(sdr));
+	sdr_exit_xn(sdr);
 }
 
 /*	*	*	Sender thread functions		*	*	*/
@@ -2365,7 +2365,13 @@ static int	rescanPlans(ClockThreadParms *ctp)
 		}
 	}
 
-	return sdr_end_xn(sdr);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("tcpcli failed rescanning plans.", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 static int	noLongerReferenced(char *outductName)
@@ -2460,8 +2466,8 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	int		sock;
 	LystElt		neighborElt;
 	char		outductName[32];
+	int		result;
 
-	oK(sdr_begin_xn(sdr));
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
@@ -2471,13 +2477,14 @@ static int	clearBacklog(ClockThreadParms *ctp)
 		 *	header exchange we may be loading this
 		 *	session onto another existing neighbor.		*/
 
+		oK(sdr_begin_xn(sdr));		/*	Lock memory.	*/
 		neighborElt = addTcpclNeighbor(NULL, ctp->induct,
 				ctp->neighbors);
+		sdr_exit_xn(sdr);		/*	Unlock.		*/
 		if (neighborElt == NULL)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
-			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add temporary tcpcl neighbor.",
 					NULL);
 			return -1;
@@ -2490,7 +2497,6 @@ static int	clearBacklog(ClockThreadParms *ctp)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
-			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add automatic outduct.",
 					outductName);
 			return -1;
@@ -2498,12 +2504,14 @@ static int	clearBacklog(ClockThreadParms *ctp)
 
 		/*	Begin session for the new Outduct.		*/
 
-		if (beginSessionForDuct(ctp, neighborElt, NULL, outductName)
-				< 0)
+		oK(sdr_begin_xn(sdr));		/*	Lock memory.	*/
+		result = beginSessionForDuct(ctp, neighborElt, NULL,
+				outductName):
+		sdr_exit_xn(sdr);		/*	Unlock.		*/
+		if (result < 0)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
-			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add responsive session.", NULL);
 			return -1;
 		}
@@ -2516,12 +2524,6 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	}
 
 	pthread_mutex_unlock(ctp->backlogMutex);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("tcpcli failed adding responsive sessions.", NULL);
-		return -1;
-	}
-
 	return 0;
 }
 
