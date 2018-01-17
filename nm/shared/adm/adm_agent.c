@@ -470,27 +470,25 @@ void adm_agent_init_ops()
 void adm_agent_init_reports()
 {
 	uint32_t used = 0;
-	Lyst rpt = lyst_create();
+	Lyst rpttpl = lyst_create();
 
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_MD_NAME_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_MD_VER_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMRPT_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_SENTRPT_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMTRL_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNTRL_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMSRL_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNSRL_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMLIT_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMCUST_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMMAC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNMAC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_NUMCTRL_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_AD_RUNCTRL_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_AGENT_CD_NUMRULE_MID));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_MD_NAME_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_MD_VER_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMRPT_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_SENTRPT_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMTRL_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_RUNTRL_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMSRL_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_RUNSRL_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMLIT_MID) ,0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMCUST_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMMAC_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_RUNMAC_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_NUMCTRL_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_AD_RUNCTRL_MID),0));
+	lyst_insert_last(rpttpl,rpttpl_item_create(mid_from_value(ADM_AGENT_CD_NUMRULE_MID),0));
 
-	adm_add_rpt(mid_from_value(ADM_AGENT_RPT_FULL_MID), rpt);
-
-	midcol_destroy(&rpt);
+	adm_add_rpttpl(mid_from_value(ADM_AGENT_RPT_FULL_MID), rpttpl);
 
 #ifndef AGENT_ROLE
 	names_add_name("ADM_AGENT_RPT_FULL_MID", "Full Report", ADM_AGENT, ADM_AGENT_RPT_FULL_MID);

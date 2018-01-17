@@ -1310,3 +1310,65 @@ char *oid_to_string(oid_t oid)
 	return result;
 }
 
+
+
+/******************************************************************************
+ *
+ * \par Function Name: oid_update_parm
+ *
+ * \par Updates a parameter in an existing OID.
+ *
+ * \retval 0 Failure
+ *        !0 Success
+ *
+ * \param[in,out] oid    The OID whose parameters are being updated.
+ * \param[in]     idx    The 1-based index of the parameter being updated.
+ * \param[in]     type   The type of the updated parameter
+ * \param[in]     blob   The value of the updated parameter
+ *
+ * \par Notes:
+ *		1. The parameter must exist in the OID. Otherwise, call mid_app_parm()
+ *		2. The blob can never be NULL.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/11/18  E. Birrane     Initial Implementation (JHU/APL)
+ *****************************************************************************/
+
+int oid_update_param(oid_t *oid, uint32_t idx, amp_type_e type, blob_t *blob)
+{
+	blob_t *entry = NULL;
+
+	AMP_DEBUG_ENTRY("oid_update_param","(%#llx, %#llx)", oid, blob);
+
+	/* Step 0: Sanity Check.*/
+	if(blob == NULL)
+	{
+		AMP_DEBUG_ERR("oid_update_param","Bad Args", NULL);
+		AMP_DEBUG_EXIT("oid_update_param","->0.",NULL);
+		return 0;
+	}
+
+	/* Step 1: Make sure the OID is a parameterized one. */
+	if((oid->type != OID_TYPE_PARAM)  &&
+	   (oid->type != OID_TYPE_COMP_PARAM))
+	{
+		AMP_DEBUG_ERR("oid_update_param","Can't update parameter to OID of type %d.",
+				        oid->type);
+		AMP_DEBUG_EXIT("oid_update_param","->0.",NULL);
+		return 0;
+	}
+
+	/* Step 2: Add the parameter. */
+	if(tdc_update(&(oid->params), idx-1, type, blob->value, blob->length) == AMP_TYPE_UNK)
+	{
+		AMP_DEBUG_ERR("oid_update_param","Cannot update parameter.", NULL);
+		AMP_DEBUG_EXIT("oid_update_param","->0.",NULL);
+		return 0;
+	}
+
+	AMP_DEBUG_EXIT("oid_update_param","->%d.",1);
+	return 1;
+}
+

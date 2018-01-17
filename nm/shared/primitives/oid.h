@@ -33,6 +33,7 @@
  **  03/11/15  E. Birrane     Removed NN from OID into NN. (Secure DTN - NASA: NNX14CS58P)
  **  08/29/15  E. Birrane     Removed length restriction from OID parms. (Secure DTN - NASA: NNX14CS58P)
  **  06/11/16  E. Birrane     Updated parameters to be of type TDC. (Secure DTN - NASA: NNX14CS58P)
+ **  01/11/18  E. Birrane     Added ability to update parms in place. (JHU/APL)
  *****************************************************************************/
 
 #ifndef OID_H_
@@ -173,6 +174,8 @@ void     oid_release(oid_t* oid);
 uint8_t* oid_serialize(oid_t oid, uint32_t *size);
 
 char*    oid_to_string(oid_t oid);
+
+int      oid_update_param(oid_t *oid, uint32_t idx, amp_type_e type, blob_t *blob);
 
 
 #endif /* OID_H_ */

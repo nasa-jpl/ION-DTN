@@ -205,6 +205,73 @@ void ui_clear_reports(agent_t* agent)
 }
 
 
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_create_rpttpl_from_rpt_parms
+ *
+ * \par Release resources associated with a report template.
+ *
+ * \param[in|out]  rpttpl  The template to be released.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+rpttpl_t *ui_create_rpttpl_from_rpt_parms(tdc_t parms)
+{
+	rpttpl_t *result = NULL;
+	mid_t *mid = NULL;
+	Lyst mc = NULL;
+	Lyst items = NULL;
+	int8_t success = 0;
+
+	/* Step 0: Sanity Check. */
+	if(tdc_get_count(&parms) != 2)
+	{
+		AMP_DEBUG_ERR("ui_create_rpttpl_from_rpt_parms","Bad # params. Need 2, received %d", tdc_get_count(&parms));
+		return NULL;
+	}
+
+	/* Step 1: Grab the MID defining the new computed definition. */
+	if((mid = adm_extract_mid(parms, 0, &success)) == NULL)
+	{
+		return NULL;
+	}
+
+	/* Step 2: Grab the expression capturing the definition. */
+	if((mc = adm_extract_mc(parms, 1, &success)) == NULL)
+	{
+		mid_release(mid);
+		return NULL;
+	}
+
+	LystElt elt;
+	items = lyst_create();
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *cur_mid = (mid_t *) lyst_data(elt);
+		// todo add parm map support.
+		rpttpl_item_t *cur_item = rpttpl_item_create(cur_mid,0);
+
+		if(cur_item != NULL)
+		{
+			lyst_insert_last(items, cur_item);
+		}
+	}
+
+	lyst_clear(mc);
+	lyst_destroy(mc);
+	result = rpttpl_create(mid, items);
+
+	return result;
+}
+
+
 /******************************************************************************
  *
  * \par Function Name: ui_postprocess_ctrl
@@ -246,7 +313,7 @@ void ui_postprocess_ctrl(mid_t *mid)
 	/* If this is adding a report definition. */
 	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDRPT_MID) == 0)
 	{
-		def_gen_t *def = def_create_from_rpt_parms(mid->oid.params);
+		rpttpl_t *def = ui_create_rpttpl_from_rpt_parms(mid->oid.params);
 		if(def != NULL)
 		{
 			mgr_db_report_persist(def);
@@ -1069,7 +1136,7 @@ void ui_print_menu_ctrl()
 	printf("7) List Operator MIDs by Index.      (%lu Known)\n",
 		       (unsigned long) 	lyst_length(gAdmOps));
 	printf("8) List Reports MIDs by Index.       (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmRpts));
+		       (unsigned long) 	lyst_length(gAdmRptTpls));
 
 	printf("\n-------------- Perform Control -------------\n");
 	printf("9) Build Arbitrary Control.\n");

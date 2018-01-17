@@ -45,6 +45,8 @@
 #include "../shared/primitives/rules.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/def.h"
+#include "../shared/primitives/report.h"
+
 #include "../shared/msg/pdu.h"
 #include "../shared/msg/msg_ctrl.h"
 #include "../shared/msg/msg_admin.h"
@@ -162,7 +164,7 @@ int  agent_db_forget(Object db, Object itemObj, Object descObj);
 int  agent_db_init();
 int  agent_db_macro_persist(def_gen_t* item);
 int  agent_db_macro_forget(mid_t *mid);
-int  agent_db_report_persist(def_gen_t* item);
+int  agent_db_report_persist(rpttpl_t* item);
 int  agent_db_report_forget(mid_t *mid);
 int  agent_db_srl_persist(srl_t* item);
 int  agent_db_srl_forget(mid_t *mid);
@@ -194,7 +196,7 @@ def_gen_t* agent_vdb_macro_find(mid_t *mid);
 void       agent_vdb_macro_forget(mid_t *id);
 
 void       agent_vdb_reports_init(Sdr sdr);
-def_gen_t* agent_vdb_report_find(mid_t *mid);
+rpttpl_t*  agent_vdb_report_find(mid_t *mid);
 void       agent_vdb_report_forget(mid_t *id);
 
 void       agent_vdb_srls_init(Sdr sdr);

@@ -441,9 +441,65 @@ int  mgr_db_report_forget(mid_t *mid)
  *  06/10/13  E. Birrane     Initial implementation.
  *****************************************************************************/
 
-int  mgr_db_report_persist(def_gen_t* item)
+int  mgr_db_report_persist(rpttpl_t* item)
 {
-	return mgr_db_defgen_persist(gMgrDB.reports, item);
+
+	Sdr sdr = getIonsdr();
+
+	/* Step 0: Sanity Checks. */
+	if((item == NULL) ||
+	   ((item->desc.itemObj == 0) && (item->desc.itemObj != 0)) ||
+	   ((item->desc.itemObj != 0) && (item->desc.itemObj == 0)))
+	{
+		AMP_DEBUG_ERR("mgr_db_defgen_persist","bad params.",NULL);
+		return -1;
+	}
+
+
+	/*
+	 * Step 1: Determine if this is already in the SDR. We will assume
+	 *         it is in the SDR already if its Object fields are nonzero.
+	 */
+
+	if(item->desc.itemObj == 0)
+	{
+		uint8_t *data = NULL;
+		int result = 0;
+
+		/* Step 1.1: Serialize the item to go into the SDR.. */
+		if((data = rpttpl_serialize(item, &(item->desc.size))) == NULL)
+		{
+			AMP_DEBUG_ERR("mgr_db_defgen_persist",
+					       "Unable to serialize new item.", NULL);
+			return -1;
+		}
+
+		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
+				            &(item->desc), sizeof(rpttpl_t), &(item->desc.descObj),
+							gMgrDB.reports);
+
+		SRELEASE(data);
+		if(result != 1)
+		{
+			AMP_DEBUG_ERR("mgr_db_defgen_persist","Unable to persist def.",NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		def_gen_desc_t temp;
+
+		CHKERR(sdr_begin_xn(sdr));
+
+		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(def_gen_desc_t));
+		temp = item->desc;
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(def_gen_desc_t));
+
+		sdr_end_xn(sdr);
+	}
+
+
+	return 1;
 }
 
 

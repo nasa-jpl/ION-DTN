@@ -337,7 +337,7 @@ void *rx_thread(int *running) {
 
 void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
 {
-	def_gen_t* rpt_def = NULL;
+	rpttpl_t* rpttpl = NULL;
 	uint32_t bytes = 0;
 
 	AMP_DEBUG_ENTRY("rx_handle_rpt_def","(0x%#llx, %d, 0x%#llx)",
@@ -352,13 +352,13 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 	}
 
 	/* Step 1: Attempt to deserialize the message. */
-    rpt_def = def_deserialize_gen(cursor, size, &bytes);
+    rpttpl = rpttpl_deserialize(cursor, size, &bytes);
 
     /* Step 2: If the deserialization failed, complain. */
-    if((rpt_def == NULL) || (bytes == 0))
+    if((rpttpl == NULL) || (bytes == 0))
     {
     	AMP_DEBUG_ERR("rx_handle_rpt_def","Can't deserialize.",NULL);
-    	def_release_gen(rpt_def);
+    	rpttpl_release(rpttpl);
     	*bytes_used = 0;
     	AMP_DEBUG_EXIT("rx_handle_rpt_def","->.",NULL);
     	return;
@@ -371,11 +371,11 @@ void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uin
 
 
     /* Step 4: Persist this definition to our SDR. */
-    agent_db_report_persist(rpt_def);
+    agent_db_report_persist(rpttpl);
 
     /* Step 5: Persist this definition to our memory lists. */
 //	agent_vdb_reports_init(getIonsdr());
-	ADD_REPORT(rpt_def);
+	ADD_REPORT(rpttpl);
 
 	/* Step 6: Update instrumentation counters. */
 	gAgentInstr.num_rptt_defs++;

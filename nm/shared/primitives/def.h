@@ -49,7 +49,7 @@
  */
 
 
-
+// TODO Move this into db.h
 typedef struct
 {
 	Object itemObj;     /**> Location of definition in SDR. */
@@ -96,7 +96,6 @@ def_gen_t *def_create_gen(mid_t *id,
 						  uint32_t type,
 					      Lyst contents);
 
-def_gen_t *def_create_from_rpt_parms(tdc_t parms);
 
 def_gen_t *def_deserialize_gen(uint8_t *cursor,
 		                       uint32_t size,

@@ -32,7 +32,7 @@
 
 int ldc_fill_report_entry(rpt_entry_t *entry);
 int ldc_fill_atomic(adm_datadef_t *adm_def, rpt_entry_t *entry);
-int ldc_fill_custom(def_gen_t *rpt_def, rpt_entry_t *entry);
+int ldc_fill_report(rpttpl_t *rpttpl, rpt_entry_t *entry);
 int ldc_fill_computed(var_t *cd, rpt_entry_t *entry);
 
 

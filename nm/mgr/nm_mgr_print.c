@@ -240,14 +240,46 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 	else if(MID_GET_FLAG_ID(entry->id->flags) == MID_REPORT)
 	{
+		rpttpl_t *cur_tpl = NULL;
+
 	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
 	    {
-	    	cur_def = def_find_by_id(gAdmRpts, NULL, entry->id);
+	    	cur_tpl = rpttpl_find_by_id(gAdmRptTpls, NULL, entry->id);
 	    }
 	    else
 	    {
-	    	cur_def = def_find_by_id(gMgrVDB.reports, &(gMgrVDB.reports_mutex), entry->id);
+	    	cur_tpl= rpttpl_find_by_id(gMgrVDB.reports, &(gMgrVDB.reports_mutex), entry->id);
 	    }
+
+	    // Fake a def_gen just for this RPT item.
+	    if(cur_tpl != NULL)
+	    {
+	    	Lyst tmp = lyst_create();
+	    	uint32_t i = 0;
+
+	    	for(elt = lyst_first(cur_tpl->contents); elt; elt = lyst_next(elt))
+	    	{
+	    		rpttpl_item_t *item = lyst_data(elt);
+
+	    		if(item != NULL)
+	    		{
+	    			mid_t *cur_mid = mid_copy(item->mid);
+	    			amp_type_e tpl_type = AMP_TYPE_UNK;
+
+	    			for(i = 0; i < item->num_map; i++)
+	    			{
+	    				blob_t *src_parm = mid_get_param(entry->id, RPT_MAP_GET_SRC_IDX(item->parm_map[i])-1, &tpl_type);
+	    				blob_t *dest_parm = blob_copy(src_parm);
+	    				mid_update_parm(cur_mid, RPT_MAP_GET_DEST_IDX(item->parm_map[i]), 1, tpl_type, dest_parm);
+	    			}
+	    			lyst_insert_last(tmp, cur_mid);
+	    		}
+	    	}
+
+	    	cur_def = def_create_gen(mid_copy(cur_tpl->id), AMP_TYPE_RPT, tmp);
+	    	del_def = 1;
+	    }
+
 	}
 	else if(MID_GET_FLAG_ID(entry->id->flags) == MID_MACRO)
 	{

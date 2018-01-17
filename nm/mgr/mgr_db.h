@@ -155,7 +155,7 @@ int  mgr_db_init();
 int  mgr_db_macro_forget(mid_t *mid);
 int  mgr_db_macro_persist(def_gen_t* item);
 int  mgr_db_report_forget(mid_t *mid);
-int  mgr_db_report_persist(def_gen_t* item);
+int  mgr_db_report_persist(rpttpl_t* item);
 int  mgr_db_srl_forget(mid_t *mid);
 int  mgr_db_srl_persist(srl_t* item);
 int  mgr_db_trl_forget(mid_t *mid);

@@ -89,6 +89,8 @@ int mid_add_param(mid_t *mid, amp_type_e type, blob_t *blob)
 
 
 
+
+
 int		 mid_add_param_from_value(mid_t *mid, value_t value)
 {
 	int result = 0;
@@ -765,6 +767,7 @@ uint8_t  mid_get_num_parms(mid_t *mid)
 	return oid_get_num_parms(mid->oid);
 }
 
+
 /******************************************************************************
  *
  * \par Function Name: mid_internal_serialize
@@ -1291,6 +1294,64 @@ char *mid_to_string(mid_t *mid)
 
     AMP_DEBUG_EXIT("mid_to_string","->%s.", result);
 
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: mid_update_parm
+ *
+ * \par Updates a parameter in an existing MID.
+ *
+ * \retval 0 Failure
+ *        !0 Success
+ *
+ * \param[in,out] mid    The MID whose parameters are being updated.
+ * \param[in]     idx    The 1-based index of the parameter being updated.
+ * \param[in]     force  Whether to skip checks (force != 0) or not (force == 0)
+ * \param[in]     type   The type of the updated parameter
+ * \param[in]     blob   The value of the updated parameter
+ *
+ * \par Notes:
+ *		1. Unless force is on, the MID's idx'th payload MUST be of type UNK or
+ *		   be of the same type as the passed-in type.
+ *		2. The parameter must exist in the MID. Otherwise, call mid_app_parm()
+ *		3. Unless force is on, passed-in type MUST NOT be of type UNKNOWN.
+ *		4. The blob can never be NULL.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/11/18  E. Birrane     Initial implementation,
+ *****************************************************************************/
+int mid_update_parm(mid_t *mid, int idx, int force, amp_type_e type, blob_t *blob)
+{
+	int result = 0;
+
+	AMP_DEBUG_ENTRY("mid_update_parm","(%#llx, %#llx)", mid, blob);
+
+	/* Step 0: Sanity Check.*/
+	if((mid == NULL) || (blob == NULL) || (idx <= 0))
+	{
+		AMP_DEBUG_ERR("mid_update_parm","Bad Args", NULL);
+		AMP_DEBUG_EXIT("mid_update_parm","->0.",NULL);
+		return 0;
+	}
+
+	if((force == 0) && (type == AMP_TYPE_UNK))
+	{
+		AMP_DEBUG_ERR("mid_update_parm","Unknown type", NULL);
+		AMP_DEBUG_EXIT("mid_update_parm","->0.",NULL);
+		return 0;
+	}
+
+	/* Step 1: Add to the OID. */
+	result = oid_update_param(&(mid->oid), idx, type, blob);
+
+	mid_internal_serialize(mid);
+	AMP_DEBUG_EXIT("mid_add_param","->%d.",result);
 	return result;
 }
 

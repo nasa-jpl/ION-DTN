@@ -604,3 +604,44 @@ uint8_t *dc_serialize(Lyst datacol, uint32_t *size)
 	AMP_DEBUG_EXIT("dc_serialize","->%#llx",(unsigned long) result);
 	return result;
 }
+
+
+// idx is 0 based.
+int dc_update(Lyst dc, uint32_t idx, uint8_t *value, uint32_t length)
+{
+	LystElt elt = NULL;
+	blob_t *entry = NULL;
+	uint32_t cur = 0;
+
+	if((dc == NULL) || (value == NULL))
+	{
+		AMP_DEBUG_ERR("dc_update","Bad args",NULL);
+		return ERROR;
+	}
+
+	if(idx > lyst_length(dc))
+	{
+		AMP_DEBUG_ERR("dc_update","Can't as for %d in list of length %d", idx, lyst_length(dc));
+		return 0;
+	}
+
+	for(elt = lyst_first(dc); elt; elt = lyst_next(elt))
+	{
+		if(cur == idx)
+		{
+			entry = blob_create(value, length);
+			lyst_insert_after(elt, entry);
+
+			entry = (blob_t *) lyst_data(elt);
+			blob_destroy(entry,1); // TODO should we always do this?
+			lyst_delete(elt);
+			return 1;
+		}
+		cur++;
+	}
+
+	return 0;
+}
+
+
+

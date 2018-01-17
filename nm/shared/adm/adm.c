@@ -24,6 +24,7 @@
  **  10/22/11  E. Birrane     Initial Implementation (JHU/APL)
  **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
  **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
+ **  01/10/18  E. Birrane     CLean up reports, added report parameter maps. (JHU/APL)
  *****************************************************************************/
 
 #include "ion.h"
@@ -55,7 +56,7 @@ Lyst gAdmComputed;
 Lyst gAdmCtrls;
 Lyst gAdmLiterals;
 Lyst gAdmOps;
-Lyst gAdmRpts;
+Lyst gAdmRptTpls;
 Lyst gAdmMacros; // Type def_gen_t
 
 /******************************************************************************
@@ -500,70 +501,69 @@ int adm_add_op(mid_t *mid, uint8_t num_parms, adm_op_fn apply)
 
 /******************************************************************************
  *
- * \par Function Name: adm_add_rpt
+ * \par Function Name: adm_add_rpttpl
  *
  * \par Registers a pre-configured ADM report template with the local DTNMP actor.
  *
- * \retval 0 - Failure - The op was not added.
- *        !0 - Success - The op was added.
+ * \retval 0 - Failure - The template was not added.
+ *        !0 - Success - The template was added.
  *
- * \param[in] mid       The MID value
- * \param[in] num_parms # parms needed for parameterized OIDs.
- * \param[in] apply     Function for applying the operator
+ * \param[in] mid        The MID value.
+ * \param[in] midcol     Contents of the template.
  *
  * \par Notes:
- *		1. On error, the passed-in MID is ALWAYS destroyed.
+ *		1. On error, the passed-in MID and items are ALWAYS destroyed.
+ *		2. On success, items are shallow-copied in and MUST NOT be released.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/05/18  E. Birrane     Changed to accept mid_t.
+ *  01/09/18  E. Birrane     Renamed adm_add_rpt and added parm map support.
  *****************************************************************************/
 
-int adm_add_rpt(mid_t *mid, Lyst midcol)
+int adm_add_rpttpl(mid_t *mid, Lyst items)
 {
 	int success = 0;
-	def_gen_t *new_entry = NULL;
+	rpttpl_t *new_entry = NULL;
 
-	AMP_DEBUG_ENTRY("adm_add_rpt","(%llx, 0x%lx)",
-			          (unsigned long) mid, (unsigned long) midcol);
+	AMP_DEBUG_ENTRY("adm_add_rpttpl","(%llx, 0x%llx)",
+			          (unsigned long) mid, (unsigned long) items);
 
 	/* Step 0 - Sanity Checks. */
-	if((mid == NULL) || (midcol == NULL))
+	if((mid == NULL) || (items == NULL))
 	{
-		AMP_DEBUG_ERR("adm_add_rpt","Bad Args.", NULL);
+		AMP_DEBUG_ERR("adm_add_rpttpl","Bad Args.", NULL);
 		mid_release(mid);
-		AMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		AMP_DEBUG_EXIT("adm_add_rpttpl","-> 0.", NULL);
 		return success;
 	}
 
-	if(gAdmRpts == NULL)
+	if(gAdmRptTpls == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_rpt","Global Reports list not initialized.", NULL);
+		AMP_DEBUG_ERR("adm_add_rpttpl","Global Reports list not initialized.", NULL);
 		mid_release(mid);
-		AMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		AMP_DEBUG_EXIT("adm_add_rpttpl","-> 0.", NULL);
 		return success;
 	}
-
-	/* Step 1 - Build the MID. */
-	Lyst newdefs = midcol_copy(midcol);
 
 	/* Step 2 - Build the definition to hold the macro. */
-	if((new_entry = def_create_gen(mid, AMP_TYPE_MC, newdefs)) == NULL)
+	if((new_entry = rpttpl_create(mid, items)) == NULL)
 	{
 		mid_release(mid);
-		midcol_destroy(&newdefs);
+		rpttpl_item_release_lyst(items);
+		lyst_destroy(items);
 
-		AMP_DEBUG_ERR("adm_add_rpt","Can't allocate new macro entry.", NULL);
-		AMP_DEBUG_EXIT("adm_add_rpt","-> 0.", NULL);
+		AMP_DEBUG_ERR("adm_add_rpttpl","Can't allocate new report entry.", NULL);
+		AMP_DEBUG_EXIT("adm_add_rpttpl","-> 0.", NULL);
 		return success;
 	}
 
 	/* Step 3 - Add the new entry. */
-	lyst_insert_last(gAdmRpts, new_entry);
+	lyst_insert_last(gAdmRptTpls, new_entry);
 	success = 1;
 
-	AMP_DEBUG_EXIT("adm_add_rpt","-> 1.", NULL);
+	AMP_DEBUG_EXIT("adm_add_rpttpl","-> 1.", NULL);
 	return success;
 }
 
@@ -711,15 +711,15 @@ void adm_destroy()
    lyst_destroy(gAdmCtrls);
    gAdmCtrls = NULL;
 
-   for (elt = lyst_first(gAdmRpts); elt; elt = lyst_next(elt))
+   for (elt = lyst_first(gAdmRptTpls); elt; elt = lyst_next(elt))
    {
-	   def_gen_t *cur = (def_gen_t *) lyst_data(elt);
+	   rpttpl_t *cur = (rpttpl_t *) lyst_data(elt);
 
-	   def_release_gen(cur);
+	   rpttpl_release(cur);
    }
 
-   lyst_destroy(gAdmRpts);
-   gAdmRpts = NULL;
+   lyst_destroy(gAdmRptTpls);
+   gAdmRptTpls = NULL;
 
 
    for (elt = lyst_first(gAdmMacros); elt; elt = lyst_next(elt))
@@ -1641,7 +1641,7 @@ void adm_init()
 	gAdmCtrls = lyst_create();
 	gAdmLiterals = lyst_create();
 	gAdmOps = lyst_create();
-	gAdmRpts = lyst_create();
+	gAdmRptTpls = lyst_create();
 	gAdmMacros = lyst_create();
 
 

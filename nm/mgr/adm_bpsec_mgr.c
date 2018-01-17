@@ -331,72 +331,157 @@ void adm_bpsec_init_ops()
 
 void adm_bpsec_init_reports()
 {
-	uint32_t used= 0;
 	Lyst rpt = NULL;
-	rpt = lyst_create();
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLK_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID));
-	adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_FULL_REPORT_MID), rpt);
-	midcol_destroy(&rpt);
-	names_add_name("FULL_REPORT", "all known meta-data, externally defined data, and variables", ADM_BPSEC, ADM_BPSEC_RPT_FULL_REPORT_MID);
+	rpttpl_item_t *cur_item = NULL;
+	uint32_t used = 0;
 
 	rpt = lyst_create();
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID));
-	lyst_insert_last(rpt,mid_from_value(ADM_BPSEC_EDD_LAST_RESET_MID));
-	adm_add_rpt(mid_from_value(ADM_BPSEC_RPT_SOURCE_REPORT_MID), rpt);
-	midcol_destroy(&rpt);
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLK_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID), 0));
+	lyst_insert_last(rpt,rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID), 0));
+
+	adm_add_rpttpl(mid_from_value(ADM_BPSEC_RPT_FULL_REPORT_MID), rpt);
+
+	names_add_name("FULL_REPORT", "all known meta-data, externally defined data, and variables", ADM_BPSEC, ADM_BPSEC_RPT_FULL_REPORT_MID);
+
+
+
+	rpt = lyst_create();
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	cur_item = rpttpl_item_create(mid_from_value(ADM_BPSEC_EDD_LAST_RESET_MID),1);
+	rpttpl_item_add_parm_map(cur_item, 1, 1);
+	lyst_insert_last(rpt,cur_item);
+
+	adm_add_rpttpl(mid_from_value(ADM_BPSEC_RPT_SOURCE_REPORT_MID), rpt);
+
 	names_add_name("SOURCE_REPORT", "security info by source", ADM_BPSEC, ADM_BPSEC_RPT_SOURCE_REPORT_MID);
+	UI_ADD_PARMSPEC_1(ADM_BPSEC_RPT_SOURCE_REPORT_MID, "source_name", AMP_TYPE_STR);
 
 }
 

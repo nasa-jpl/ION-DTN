@@ -65,6 +65,7 @@ void     dc_destroy(Lyst *datacol);
 blob_t*  dc_get_entry(Lyst datacol, uint32_t idx);
 int      dc_remove_first(Lyst dc, int del);
 uint8_t* dc_serialize(Lyst datacol, uint32_t *size);
+int      dc_update(Lyst dc, uint32_t idx, uint8_t *value, uint32_t length);
 
 
 #endif // DC_H

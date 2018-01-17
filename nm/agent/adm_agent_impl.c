@@ -962,7 +962,7 @@ tdc_t *adm_agent_ctl_var_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 tdc_t *adm_agent_ctl_rptt_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	int8_t success = 0;
-	def_gen_t *result = NULL;
+	rpttpl_t *result = NULL;
 	mid_t *mid = NULL;
 	Lyst expr = NULL;
 
@@ -993,19 +993,22 @@ tdc_t *adm_agent_ctl_rptt_add(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	/* Step 4: Create the new definition. This is a shallow copy so
 	 * don't release the mid and expr.  */
-	if((result = def_create_gen(mid, AMP_TYPE_RPT, expr)) == NULL)
+	// TODO: Update create report to include parm map.
+	if((result = rpttpl_create_from_mc(mid, expr)) == NULL)
 	{
 		mid_release(mid);
 		midcol_destroy(&expr);
 		return NULL;
 	}
 
+	midcol_destroy(&expr);
+
 	/* Step 5: Add the report. */
 	agent_db_report_persist(result);
 	ADD_REPORT(result);
 
 	gAgentInstr.num_rptt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
-			                    agent_db_count(gAdmRpts, NULL);
+			                    agent_db_count(gAdmRptTpls, NULL);
 
 	*status = CTRL_SUCCESS;
 
@@ -1077,7 +1080,7 @@ tdc_t *adm_agent_ctl_rptt_del(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	/* Step 3: Update metrics. */
 	gAgentInstr.num_rptt_defs = agent_db_count(gAgentVDB.reports, &(gAgentVDB.reports_mutex)) +
-			                    agent_db_count(gAdmRpts, NULL);
+			                    agent_db_count(gAdmRptTpls, NULL);
 
 	*status = CTRL_SUCCESS;
 	return NULL;
@@ -1137,7 +1140,7 @@ tdc_t *adm_agent_ctl_rptt_lst(eid_t *def_mgr, tdc_t params, int8_t *status)
 	lockResource(&(gAgentVDB.reports_mutex));
 	for(elt = lyst_first(gAgentVDB.reports); elt; elt = lyst_next(elt))
 	{
-		def_gen_t *cur = (def_gen_t*) lyst_data(elt);
+		rpttpl_t *cur = (rpttpl_t*) lyst_data(elt);
 		lyst_insert_last(mc, mid_copy(cur->id));
 	}
 	unlockResource(&(gAgentVDB.reports_mutex));
@@ -1240,9 +1243,9 @@ tdc_t *adm_agent_ctl_rptt_dsc(eid_t *def_mgr, tdc_t params, int8_t *status)
 		mid_t *mid = lyst_data(elt);
 
 		/* do not release cur, it is a direct ptr. */
-		def_gen_t *cur = agent_vdb_report_find(mid);
+		rpttpl_t *cur = agent_vdb_report_find(mid);
 
-		data = def_serialize_gen(cur, &data_len);
+		data = rpttpl_serialize(cur, &data_len);
 		tdc_insert(retval, AMP_TYPE_RPT, data, data_len);
 		SRELEASE(data);
 	}

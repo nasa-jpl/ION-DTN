@@ -15,6 +15,7 @@
  **  --------  ------------   ---------------------------------------------
  **  06/24/15  J. P. Mayer    Initial Implementation.
  **  06/27/15  E. Birrane     Migrate from datalist to TDC. (Secure DTN - NASA: NNX14CS58P)
+ **  01/11/18  E. Birrane     Add update ability. (JHU/APL)
  *****************************************************************************/
 #ifndef TDC_H_
 #define TDC_H_
@@ -69,25 +70,26 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
-int8_t           tdc_append(tdc_t *dst, tdc_t *src);
-void             tdc_clear(tdc_t *tdc);
-tdc_t*           tdc_create(Lyst *dc, uint8_t *types, uint8_t type_cnt);
-int8_t           tdc_compare(tdc_t *t1, tdc_t *t2);
-tdc_t*           tdc_copy(tdc_t *tdc);
-tdc_t*           tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_used);
-void             tdc_destroy(tdc_t **tdc);
-amp_type_e     tdc_get(tdc_t* tdc, uint8_t index, amp_type_e type, uint8_t** optr, size_t* outsize);
-blob_t*          tdc_get_colentry(tdc_t* tdc, uint8_t index);
-int8_t           tdc_get_count(tdc_t* tdc);
-uint32_t         tdc_get_entry_size(tdc_t* tdc, uint8_t index);
-amp_type_e     tdc_get_type(tdc_t* tdc, uint8_t index);
-uint8_t          tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize);
-uint8_t          tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize);
-void           tdc_init(tdc_t *tdc);
-amp_type_e     tdc_insert(tdc_t* tdc, amp_type_e type, uint8_t* data, uint32_t size);
-uint8_t*         tdc_serialize(tdc_t *tdc, uint32_t *size);
-amp_type_e     tdc_set_type(tdc_t* tdc, uint8_t index, amp_type_e type);
-char*            tdc_to_str(tdc_t *tdc);
+int8_t      tdc_append(tdc_t *dst, tdc_t *src);
+void        tdc_clear(tdc_t *tdc);
+tdc_t*      tdc_create(Lyst *dc, uint8_t *types, uint8_t type_cnt);
+int8_t      tdc_compare(tdc_t *t1, tdc_t *t2);
+tdc_t*      tdc_copy(tdc_t *tdc);
+tdc_t*      tdc_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_used);
+void        tdc_destroy(tdc_t **tdc);
+amp_type_e  tdc_get(tdc_t* tdc, uint8_t index, amp_type_e type, uint8_t** optr, size_t* outsize);
+blob_t*     tdc_get_colentry(tdc_t* tdc, uint8_t index);
+int8_t      tdc_get_count(tdc_t* tdc);
+uint32_t    tdc_get_entry_size(tdc_t* tdc, uint8_t index);
+amp_type_e  tdc_get_type(tdc_t* tdc, uint8_t index);
+uint8_t     tdc_hdr_allocate(tdc_hdr_t* header, uint8_t dataSize);
+uint8_t     tdc_hdr_reallocate(tdc_hdr_t* header, uint8_t newSize);
+void        tdc_init(tdc_t *tdc);
+amp_type_e  tdc_insert(tdc_t* tdc, amp_type_e type, uint8_t* data, uint32_t size);
+uint8_t*    tdc_serialize(tdc_t *tdc, uint32_t *size);
+amp_type_e  tdc_set_type(tdc_t* tdc, uint8_t index, amp_type_e type);
+char*       tdc_to_str(tdc_t *tdc);
+int8_t      tdc_update(tdc_t *tdc, uint32_t idx, amp_type_e type, uint8_t*data, uint32_t size);
 
 
 #endif // TDC_H_INCLUDED

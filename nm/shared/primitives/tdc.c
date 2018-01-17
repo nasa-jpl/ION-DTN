@@ -1111,3 +1111,37 @@ char* tdc_to_str(tdc_t *tdc)
 }
 
 
+int8_t tdc_update(tdc_t *tdc, uint32_t idx, amp_type_e type, uint8_t*data, uint32_t size)
+{
+	uint8_t i = 0;
+	LystElt elt;
+
+	/* Step 0: Sanity Checks. */
+	if((tdc == NULL) || (data == NULL))
+	{
+		AMP_DEBUG_ERR("tdc_insert","Bad Args.",NULL);
+		return AMP_TYPE_UNK;
+	}
+
+	/* Step 1: Calculate the size of the new data. */
+	if(size == 0)
+	{
+		if((size = type_get_size(type)) == 0)
+		{
+			AMP_DEBUG_ERR("tdc_insert","Can't get size for type %d", type);
+			return AMP_TYPE_UNK;
+		}
+	}
+
+	/* Step 2: Update the DC parm. */
+	if(dc_update(tdc->datacol, idx, data, size) != 1)
+	{
+		AMP_DEBUG_ERR("tdc_insert","Can't update parm %d", idx);
+		return AMP_TYPE_UNK;
+	}
+
+	/* Step 3: Update type information and index. */
+	tdc_set_type(tdc,idx,type);
+
+	return type;
+}

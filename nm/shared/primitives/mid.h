@@ -187,6 +187,8 @@ blob_t *mid_get_param(mid_t *id, int i, amp_type_e *type);
 
 uint8_t  mid_get_num_parms(mid_t *mid);
 
+int      mid_init_parms(mid_t *mid);
+
 int      mid_internal_serialize(mid_t *mid);
 
 char*    mid_pretty_print(mid_t *mid);
@@ -198,6 +200,10 @@ int      mid_sanity_check(mid_t *mid);
 uint8_t* mid_serialize(mid_t *mid, uint32_t *size);
 
 char*    mid_to_string(mid_t *mid);
+
+int      mid_update_parm(mid_t *mid, int idx, int force, amp_type_e type, blob_t *blob);
+
+
 
 void     midcol_clear(Lyst mc);
 

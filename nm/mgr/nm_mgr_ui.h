@@ -144,6 +144,9 @@ void ui_list_mids();
 void ui_list_ops();
 void ui_list_rpts();
 
+rpttpl_t *ui_create_rpttpl_from_rpt_parms(tdc_t parms);
+
+
 void ui_postprocess_ctrl(mid_t *mid);
 
 void ui_print_menu_admin();

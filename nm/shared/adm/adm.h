@@ -39,6 +39,7 @@
 #include "../primitives/mid.h"
 #include "../primitives/value.h"
 #include "../primitives/lit.h"
+#include "../primitives/report.h"
 #include "../utils/nm_types.h"
 
 /*
@@ -156,6 +157,7 @@ typedef struct
 } adm_op_t;
 
 
+
 /*
  * +--------------------------------------------------------------------------+
  * |						  DATA DEFINITIONS  							  +
@@ -165,13 +167,13 @@ typedef struct
 /**
  * Global data collection of supported ADM information.
  */
-extern Lyst gAdmData;
+extern Lyst gAdmData;     // Type datadef_t
 extern Lyst gAdmComputed; // Type cd_t
-extern Lyst gAdmCtrls;
+extern Lyst gAdmCtrls;    // Type ctrl_t
 extern Lyst gAdmLiterals;
-extern Lyst gAdmOps;
-extern Lyst gAdmRpts; // Type def_gen_t
-extern Lyst gAdmMacros; // Type def_gen_t
+extern Lyst gAdmOps;      // Type adm_op_t
+extern Lyst gAdmRptTpls;  // Type rpt_tpl_t
+extern Lyst gAdmMacros;   // Type def_gen_t
 
 
 /*
@@ -187,7 +189,8 @@ int         adm_add_ctrl(mid_t *mid, adm_ctrl_run_fn run);
 int			adm_add_lit(mid_t *mid, value_t result, lit_val_fn calc);
 int			adm_add_macro(mid_t *mid, Lyst midcol);
 int 		adm_add_op(mid_t *mid, uint8_t num_parms, adm_op_fn run);
-int 		adm_add_rpt(mid_t *mid, Lyst midcol);
+
+int 		adm_add_rpttpl(mid_t *mid, Lyst items);
 
 
 void        adm_build_mid_str(uint8_t flag, char *nn, int nn_len, int offset, uint8_t *mid_str);
@@ -200,7 +203,7 @@ void         adm_destroy();
 
 
 /* Helper functions */
-blob_t*         adm_extract_blob(tdc_t params, uint32_t idx, int8_t *success);
+blob_t*          adm_extract_blob(tdc_t params, uint32_t idx, int8_t *success);
 uint8_t          adm_extract_byte(tdc_t params, uint32_t idx, int8_t *success);
 Lyst             adm_extract_dc(tdc_t params, uint32_t idx, int8_t *success);
 expr_t *         adm_extract_expr(tdc_t params, uint32_t idx, int8_t *success);

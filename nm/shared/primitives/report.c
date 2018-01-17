@@ -21,6 +21,7 @@
  **  01/11/13  E. Birrane     Redesign of primitives architecture. (JHU/APL)
  **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
  **  07/02/15  E. Birrane     Migrated to Typed Data Collections (TDCs) (Secure DTN - NASA: NNX14CS58P)
+ **  01/10/18  E. Birrane     Added report templates and parameter maps (JHU/APL)
  *****************************************************************************/
 
 #include "platform.h"
@@ -712,7 +713,7 @@ void rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy)
  * \retval NULL - Failure
  *         !NULL - The created Report Entry.
  *
- * \param[in]  mid       The identifier for this entry.
+ * \param[in]  mid          The identifier for this entry.
  *
  * \par Notes:
  *
@@ -1307,3 +1308,959 @@ char *rpt_entry_to_str(rpt_entry_t *entry)
 
 	return result;
 }
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_add_item
+ *
+ * \par Add an item to a report template.
+ *
+ * * \retval 1 Success
+ *           0 application error
+ *           -1 system error
+ *
+ * \param[in]  rpttpl   The report template receiving a new item
+ * \param[in]  item     THe item to add.
+ *
+ * \par Notes:
+ *  1. Items are added at the end of the report template.
+ *  2. This is a shallow-copy. The item MUST NOT be deleted by the caller.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/10/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+int rpttpl_add_item(rpttpl_t *rpttpl, rpttpl_item_t *item)
+{
+
+	if((rpttpl == NULL) || (item == NULL))
+	{
+		return ERROR;
+	}
+
+	if(rpttpl->contents == NULL)
+	{
+		if((rpttpl->contents = lyst_create()) == NULL)
+		{
+			return ERROR;
+		}
+	}
+
+	lyst_insert_last(rpttpl->contents, item);
+
+	return 1;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_create
+ *
+ * \par Create a new report template.
+ *
+ * * \retval !NULL - The created report template.
+ *            NULL - Error.
+ *
+ * \param[in]  mid   The identifier for the template
+ * \param[in]  items The items that comprise the template.
+ *
+ * \par Notes:
+ *  1. Only 256 parameters per report entry are supported.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+rpttpl_t* rpttpl_create(mid_t *mid, Lyst items)
+{
+	rpttpl_t *result = NULL;
+
+	if(mid == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_create","Bad args.", NULL);
+		return NULL;
+	}
+
+	if((result = (rpttpl_t *) STAKE(sizeof(rpttpl_t))) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_create","Can't allocate %d bytes.", sizeof(rpttpl_t));
+		return NULL;
+	}
+
+	memset(result, 0, sizeof(rpttpl_t));
+
+	result->id = mid;
+	result->contents = items;
+
+	return result;
+}
+
+rpttpl_t* rpttpl_create_from_mc(mid_t *mid, Lyst mc)
+{
+	Lyst items = lyst_create();
+	LystElt elt;
+
+	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
+	{
+		mid_t *cur_mid = (mid_t *)lyst_data(elt);
+		lyst_insert_last(items, rpttpl_item_create(cur_mid,0));
+	}
+
+	return rpttpl_create(mid, items);
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_find_by_id
+ *
+ * \par Find report template definition by MID.
+ *
+ * \return NULL - No definition found.
+ *         !NULL - The found definition.
+ *
+ * \param[in] rpttpls  The lyst of definitions.
+ * \param[in] mutex    Resource mutex protecting the defs list (or NULL)
+ * \param[in] id       The ID of the report we are looking for.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/11/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+rpttpl_t *rpttpl_find_by_id(Lyst rpttpls, ResourceLock *mutex, mid_t *id)
+{
+	LystElt elt;
+	rpttpl_t *cur_rpt = NULL;
+
+	AMP_DEBUG_ENTRY("rpttpl_find_by_id","(0x%x, 0x%x",
+			          (unsigned long) rpttpls, (unsigned long) id);
+
+	/* Step 0: Sanity Check. */
+	if((rpttpls == NULL) || (id == NULL))
+	{
+		AMP_DEBUG_ERR("rpttpl_find_by_id","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("rpttpl_find_by_id","->NULL.", NULL);
+		return NULL;
+	}
+
+	if(mutex != NULL)
+	{
+		lockResource(mutex);
+	}
+    for (elt = lyst_first(rpttpls); elt; elt = lyst_next(elt))
+    {
+        /* Grab the definition */
+        if((cur_rpt = (rpttpl_t *) lyst_data(elt)) == NULL)
+        {
+        	AMP_DEBUG_ERR("rpttpl_find_by_id","Can't grab def from lyst!", NULL);
+        }
+        else
+        {
+        	// EJB: Do not consider parms when matching a report.
+        	if(mid_compare(id, cur_rpt->id, 0) == 0)
+        	{
+        		AMP_DEBUG_EXIT("rpttpl_find_by_id","->0x%x.", cur_rpt);
+        	    if(mutex != NULL)
+        	    {
+        	    	unlockResource(mutex);
+        	    }
+        		return cur_rpt;
+        	}
+        }
+    }
+
+    if(mutex != NULL)
+    {
+    	unlockResource(mutex);
+    }
+
+	AMP_DEBUG_EXIT("rpttpl_find_by_id","->NULL.", NULL);
+	return NULL;
+}
+
+
+rpttpl_t* rpttpl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
+{
+	rpttpl_t *result = NULL;
+	uint32_t bytes = 0;
+	mid_t *mid = NULL;
+	Lyst contents = NULL;
+	uint32_t num_items;
+	uint32_t i = 0;
+
+	AMP_DEBUG_ENTRY("rpttpl_deserialize","(0x%x, %d, 0x%x)",
+			         (unsigned long)cursor,
+					 size, (unsigned long) bytes_used);
+
+	/* Step 0: Sanity Checks. */
+	if((cursor == NULL) || (bytes_used == 0))
+	{
+		AMP_DEBUG_ERR("rpttpl_deserialize","Bad Args.",NULL);
+		AMP_DEBUG_EXIT("rpttpl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Step 2: Deserialize the message. */
+
+	/* Grab the ID MID. */
+	if((mid = mid_deserialize(cursor, size, &bytes)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_deserialize","Can't grab ID MID.", NULL);
+		*bytes_used = 0;
+		AMP_DEBUG_EXIT("rpttpl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	if((result = rpttpl_create(mid, NULL)) == NULL)
+	{
+		mid_release(mid);
+		AMP_DEBUG_ERR("rpttpl_deserialize","Can't create report.", NULL);
+		*bytes_used = 0;
+		AMP_DEBUG_EXIT("rpttpl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+
+	/* Grab number of items. */
+	num_items = utils_deserialize_uint(cursor, size, &bytes);
+	if((bytes == 0) || (bytes > 4))
+	{
+		rpttpl_release(result);
+		AMP_DEBUG_ERR("rpttpl_deserialize","Can't deserialize num items.", NULL);
+		*bytes_used = 0;
+		AMP_DEBUG_EXIT("rpttpl_deserialize","->NULL",NULL);
+		return NULL;
+	}
+	else
+	{
+		cursor += bytes;
+		size -= bytes;
+		*bytes_used += bytes;
+	}
+
+	for(i = 0; i < num_items; i++)
+	{
+		rpttpl_item_t* cur_item = rpttpl_item_deserialize(cursor, size, &bytes);
+
+		if((cur_item == NULL) || (rpttpl_add_item(result, cur_item) != 1))
+		{
+			rpttpl_release(result);
+			AMP_DEBUG_ERR("rpttpl_deserialize","Can't deserialize item %d.", i);
+			*bytes_used = 0;
+			AMP_DEBUG_EXIT("rpttpl_deserialize","->NULL",NULL);
+			return NULL;
+		}
+		else
+		{
+			cursor += bytes;
+			size -= bytes;
+			*bytes_used += bytes;
+		}
+	}
+
+	return result;
+}
+
+
+rpttpl_t*	 rpttpl_duplicate(rpttpl_t *src)
+{
+	mid_t *mid = NULL;
+	Lyst items = NULL;
+	rpttpl_t *result = NULL;
+
+	if(src == NULL)
+	{
+		return NULL;
+	}
+
+	if((mid = mid_copy(src->id)) == NULL)
+	{
+		return NULL;
+	}
+
+	if((items = rpttpl_item_duplicate_lyst(src->contents)) == NULL)
+	{
+		mid_release(mid);
+		return NULL;
+	}
+
+	if((result = rpttpl_create(mid, items)) == NULL)
+	{
+		mid_release(mid);
+		rpttpl_item_release_lyst(items);
+		lyst_destroy(items);
+	}
+
+	return result;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_release
+ *
+ * \par Release resources associated with a report template.
+ *
+ * \param[in|out]  rpttpl  The template to be released.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+void rpttpl_release(rpttpl_t *rpttpl)
+{
+
+	if(rpttpl != NULL)
+	{
+		mid_release(rpttpl->id);
+
+		rpttpl_item_release_lyst(rpttpl->contents);
+		lyst_destroy(rpttpl->contents);
+
+		SRELEASE(rpttpl);
+	}
+}
+
+
+uint8_t* rpttpl_serialize(rpttpl_t *rpttpl, uint32_t *len)
+{
+	uint8_t *result = NULL;
+	uint8_t *cursor = NULL;
+	uint8_t *mid_val = NULL;
+	uint32_t mid_len = 0;
+	uint32_t num_items = 0;
+	uint32_t i = 0;
+	uint8_t **items = NULL;
+	uint32_t *item_lengths = NULL;
+
+	AMP_DEBUG_ENTRY("rpttpl_serialize","(%#llx, %#llx)",
+			          (unsigned long) rpttpl, (unsigned long) len);
+
+	/* Step 0: Sanity Check. */
+	if((rpttpl == NULL) || (len == NULL))
+	{
+		AMP_DEBUG_ERR("rpttpl_serialize","Bad args.", NULL);
+		AMP_DEBUG_EXIT("rpttpl_serialize","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Serialize the item MID.*/
+	if((mid_val = mid_serialize(rpttpl->id, &mid_len)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_serialize","Can't serialize MID.", NULL);
+		AMP_DEBUG_EXIT("rpttpl_serialize","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 2: Calculate the size of the overall serialized item. */
+	num_items = (uint32_t) lyst_length(rpttpl->contents);
+	uint32_t items_val_len = 0;
+	uint8_t *items_val = utils_serialize_uint(num_items, &items_val_len);
+
+	*len = mid_len + items_val_len;
+
+	if(num_items > 0)
+	{
+		LystElt elt;
+
+		items = STAKE(num_items * sizeof(uint8_t *));
+		item_lengths = STAKE(num_items * sizeof(uint32_t));
+
+		if((items == NULL) || (item_lengths == NULL))
+		{
+			AMP_DEBUG_ERR("rpttpl_serialize","Can't serialize MID.", NULL);
+			SRELEASE(items);
+			SRELEASE(items_val);
+			SRELEASE(item_lengths);
+			AMP_DEBUG_EXIT("rpttpl_serialize","->NULL", NULL);
+			return NULL;
+		}
+
+		for(elt = lyst_first(rpttpl->contents); elt; elt = lyst_next(elt))
+		{
+			rpttpl_item_t *cur_item = (rpttpl_item_t*) lyst_data(elt);
+
+			items[i] = rpttpl_item_serialize(cur_item, &(item_lengths[i]));
+			*len = *len + item_lengths[i];
+			i++;
+		}
+	}
+
+	/* Step 3: Allocate result. */
+	if((result = (uint8_t*) STAKE(*len)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_serialize","Can't alloc %d bytes.", *len);
+
+		SRELEASE(mid_val);
+		for(i = 0; i < num_items; i++)
+		{
+			SRELEASE(items[i]);
+		}
+		SRELEASE(items);
+		SRELEASE(items_val);
+		SRELEASE(item_lengths);
+		*len = 0;
+		AMP_DEBUG_EXIT("rpttpl_serialize","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 4: Copy in the result. */
+	cursor = result;
+
+	memcpy(cursor, mid_val, mid_len);
+	SRELEASE(mid_val);
+	cursor += mid_len;
+
+	memcpy(cursor, items_val, items_val_len);
+	SRELEASE(items_val);
+	cursor += items_val_len;
+
+	for(i = 0; i < num_items; i++)
+	{
+		memcpy(cursor, items[i], item_lengths[i]);
+		cursor += item_lengths[i];
+		SRELEASE(items[i]);
+	}
+	SRELEASE(items);
+	SRELEASE(item_lengths);
+
+    /* Step 5: Final sanity check. */
+    if((cursor - result) != *len)
+    {
+		AMP_DEBUG_ERR("rpttpl_serialize","Wrote %d bytes not %d bytes",
+				        (cursor - result), *len);
+		*len = 0;
+		SRELEASE(result);
+		AMP_DEBUG_EXIT("rpttpl_serialize","->NULL",NULL);
+		return NULL;
+    }
+
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_item_add_parm_map
+ *
+ * \par Adds a parm map entry to a report template item.
+ *
+ * \param[in|out]  item      The item receiving the new map entry.
+ * \param[in]      item_idx  The destination index of this map in the item MID
+ * \param[in]      rpt_idx   The source index of this map from the template MID.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+int rpttpl_item_add_parm_map(rpttpl_item_t *item, uint8_t item_idx, uint8_t rpt_idx)
+{
+	uint32_t i = 0;
+	uint16_t map = 0;
+	uint16_t* new_map = NULL;
+
+	/* Step 0 - Sanity Check */
+	if(item == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_add_parm_map","Bad args.", NULL);
+		return ERROR;
+	}
+
+	for(i = 0; i < item->num_map; i++)
+	{
+		if(RPT_MAP_GET_DEST_IDX(item->parm_map[i]) == 0)
+		{
+			RPT_MAP_SET_DEST_IDX(map, item_idx);
+			RPT_MAP_SET_SRC_IDX(map, rpt_idx);
+			item->parm_map[i] = map;
+			return 1;
+		}
+	}
+
+	/* If we get here, then there were no open items in the current parm map.
+	 * So we need to allocate another spot.
+	 */
+	if((new_map = STAKE(2 * (item->num_map + 1))) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_add_parm_map","Can't allocation space for nw parm spec.", NULL);
+		return ERROR;
+	}
+
+	memcpy(new_map, item->parm_map, (2* item->num_map));
+	RPT_MAP_SET_DEST_IDX(map, item_idx);
+	RPT_MAP_SET_SRC_IDX(map, rpt_idx);
+	item->parm_map[item->num_map] = map;
+	item->num_map += 1;
+
+	return 1;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_item_create
+ *
+ * \par Creates a report template item. An item is a MID and any parameter
+ *      mapping for this mid.
+ *
+ * \param[in|out]  mid       The id for the template.
+ * \param[in]      num_parm  The # mapped parameters fir this item
+ *
+ * \par Notes:
+ *    1. The MID is a shallow copy.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+rpttpl_item_t* rpttpl_item_create(mid_t *mid, uint32_t num_parm)
+{
+	rpttpl_item_t *item = NULL;
+
+	if(mid == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_create","Bad args.", NULL);
+		return NULL;
+	}
+
+
+	if((item = STAKE(sizeof(rpttpl_item_t))) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_create","Can't allocate %d bytes.", sizeof(rpttpl_item_t));
+		return NULL;
+	}
+
+	if(num_parm != 0)
+	{
+		if((item->parm_map = STAKE(num_parm * sizeof(uint16_t))) == NULL)
+		{
+			AMP_DEBUG_ERR("rpttpl_item_create","Can't allocate %d bytes.", sizeof(rpttpl_item_t));
+
+			SRELEASE(item);
+			return NULL;
+		}
+		memset(item->parm_map, 0, num_parm*sizeof(uint16_t));
+	}
+	else
+	{
+		item->parm_map = NULL;
+	}
+
+	item->mid = mid;
+	item->num_map = num_parm;
+
+	return item;
+}
+
+
+rpttpl_item_t* rpttpl_item_deserialize(uint8_t *buffer, uint32_t size, uint32_t *bytes_used)
+{
+	rpttpl_item_t *result = NULL;
+	mid_t *mid = NULL;
+    unsigned char *cursor = NULL;
+    uint32_t cur_bytes = 0;
+    uint32_t bytes_left=0;
+    uint32_t tmp = 0;
+    uint32_t num = 0;
+    uint32_t num_parms = 0;
+
+    AMP_DEBUG_ENTRY("rpttpl_item_deserialize","(%#llx, %d, %#llx)",
+                     (unsigned long) buffer,
+                     (unsigned long) size,
+                     (unsigned long) bytes_used);
+
+    /* Step 1: Sanity checks. */
+    if((buffer == NULL) || (size == 0) || (bytes_used == NULL))
+    {
+        AMP_DEBUG_ERR("rpttpl_item_deserialize","Bad params.",NULL);
+        AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+        return NULL;
+    }
+    else
+    {
+    	*bytes_used = 0;
+    	cursor = buffer;
+    	bytes_left = size;
+    }
+
+    /* Step 2: Grab the item MID */
+    if((mid = mid_deserialize(cursor, bytes_left, &tmp)) == NULL)
+    {
+        AMP_DEBUG_ERR("rpttpl_item_deserialize","Can't extract MID.",NULL);
+        AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+        return NULL;
+    }
+    else
+    {
+    	*bytes_used = tmp;
+    	cursor += tmp;
+    	bytes_left -= tmp;
+    }
+
+    /* Step 3: Grab number of parm maps for this item.*/
+    num_parms = utils_deserialize_uint(cursor, bytes_left, &num);
+    if(num != 4)
+    {
+        AMP_DEBUG_ERR("rpttpl_item_deserialize","Can't extract MID.",NULL);
+        mid_release(mid);
+
+        AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+        return NULL;
+    }
+    else
+    {
+    	cursor += num;
+    	bytes_left -= num;
+    	*bytes_used += num;
+    }
+
+    /* Step 4: Create the item */
+     if((result = rpttpl_item_create(mid,num_parms)) == NULL)
+     {
+         AMP_DEBUG_ERR("rpttpl_item_deserialize","Can't extract MID.",NULL);
+         mid_release(mid);
+         AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+         return NULL;
+     }
+
+    uint8_t i = 0;
+
+    for(i = 0; i < result->num_map; i++)
+    {
+    	uint8_t item_idx, rpt_idx;
+
+        if(utils_grab_byte(cursor, bytes_left, &item_idx) != 1)
+        {
+            AMP_DEBUG_ERR("rpttpl_item_deserialize","Can't extract MID.",NULL);
+            rpttpl_item_release(result);
+
+            AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+            return NULL;
+        }
+        else
+        {
+        	cursor += 1;
+        	bytes_left -= 1;
+        	*bytes_used += 1;
+        }
+
+        if(utils_grab_byte(cursor, bytes_left, &rpt_idx) != 1)
+        {
+            AMP_DEBUG_ERR("rpttpl_item_deserialize","Can't extract MID.",NULL);
+            rpttpl_item_release(result);
+
+            AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+            return NULL;
+        }
+        else
+        {
+        	cursor += 1;
+        	bytes_left -= 1;
+        	*bytes_used += 1;
+        }
+
+        if(rpttpl_item_add_parm_map(result, item_idx, rpt_idx) != 1)
+        {
+            AMP_DEBUG_ERR("rpttpl_item_deserialize","Can't add item.",NULL);
+            rpttpl_item_release(result);
+
+            AMP_DEBUG_EXIT("rpttpl_item_deserialize","-> NULL", NULL);
+            return NULL;
+        }
+    }
+
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_item_duplicate
+ *
+ * \par Duplicates a report template item.
+ *
+ * \retval !NULL - The duplicated item.
+ *         NULL  - Failure
+ *
+ * \param[in]  item  The template to be released.
+ *
+ * \par Notes:
+ *    1. This is a deep copy.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+rpttpl_item_t* rpttpl_item_duplicate(rpttpl_item_t *item)
+{
+	rpttpl_item_t *result = NULL;
+	mid_t *new_mid = NULL;
+
+	if(item == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_duplicate","Bad args.", NULL);
+		return NULL;
+	}
+
+	if((new_mid = mid_copy(item->mid)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_duplicate","Can't make new mid.", NULL);
+		return NULL;
+	}
+
+	if((result = rpttpl_item_create(new_mid, item->num_map)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_duplicate","Can't create new item.", NULL);
+		mid_release(new_mid);
+		return NULL;
+	}
+
+	memcpy(result->parm_map, item->parm_map, 2*item->num_map);
+
+	return result;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_item_duplicate_lyst
+ *
+ * \par Duplicates a list of report template items.
+ *
+ * \retval !NULL - The duplicated lyst.
+ *         NULL  - Failure
+ *
+ * \param[in]  items  - The lyst to duplicate.
+ *
+ * \par Notes:
+ *    1. This is a deep copy.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+Lyst rpttpl_item_duplicate_lyst(Lyst items)
+{
+	Lyst result = NULL;
+	LystElt elt;
+	rpttpl_item_t *cur_item = NULL;
+	rpttpl_item_t *new_item = NULL;
+
+	if(items == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_duplicate_lyst","Can't allocate %d bytes.", sizeof(rpttpl_item_t));
+		return NULL;
+	}
+
+	if((result = lyst_create()) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_duplicate_lyst","Can't allocate lyst.", NULL);
+		return NULL;
+	}
+
+	for(elt = lyst_first(items); elt; elt = lyst_next(elt))
+	{
+		if((cur_item = (rpttpl_item_t *) lyst_data(elt)) != NULL)
+		{
+			if((new_item = rpttpl_item_duplicate(cur_item)) != NULL)
+			{
+				lyst_insert_last(result, new_item);
+			}
+			else
+			{
+				AMP_DEBUG_ERR("rpttpl_item_duplicate_lyst","Can't dupliate item.", NULL);
+				rpttpl_item_release_lyst(result);
+				lyst_destroy(result);
+				return NULL;
+			}
+		}
+		else
+		{
+			AMP_DEBUG_ERR("rpttpl_item_duplicate_lyst","Empty list item?.", NULL);
+			rpttpl_item_release_lyst(result);
+			lyst_destroy(result);
+			return NULL;
+		}
+	}
+
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_item_release
+ *
+ * \par Release resources associated with a report template item.
+ *
+ * \param[in|out]  item      The item being released
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+void rpttpl_item_release(rpttpl_item_t *item)
+{
+	if(item != NULL)
+	{
+		mid_release(item->mid);
+		SRELEASE(item->parm_map);
+		SRELEASE(item);
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rpttpl_item_release_lyst
+ *
+ * \par Release all items associated with a report template.
+ *
+ * \param[in|out]  items      The items being released
+ *
+ * \par Notes:
+ * 	1. This only clears the items, it does not destroy the list.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/09/18  E. Birrane     Initial implementation.
+ *****************************************************************************/
+
+void rpttpl_item_release_lyst(Lyst items)
+{
+	LystElt elt;
+	rpttpl_item_t *cur_item = NULL;
+
+	if(items != NULL)
+	{
+		for (elt = lyst_first(items); elt; elt = lyst_next(elt))
+		{
+			/* Grab the current report */
+			if((cur_item = (rpttpl_item_t*) lyst_data(elt)) != NULL)
+			{
+				rpttpl_item_release(cur_item);
+			}
+		}
+		lyst_clear(items);
+	}
+}
+
+
+uint8_t* rpttpl_item_serialize(rpttpl_item_t *item, uint32_t *len)
+{
+	uint8_t *result = NULL;
+	uint8_t *cursor = NULL;
+	uint8_t *mid_val = NULL;
+	uint32_t mid_len = 0;
+	uint32_t i = 0;
+
+	AMP_DEBUG_ENTRY("rpttpl_item_serialize","(%#llx, %#llx)",
+			          (unsigned long) item, (unsigned long) len);
+
+	/* Step 0: Sanity Check. */
+	if((item == NULL) || (len == NULL))
+	{
+		AMP_DEBUG_ERR("rpttpl_item_serialize","Bad args.", NULL);
+		AMP_DEBUG_EXIT("rpttpl_item_serialize","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 1: Serialize the item MID.*/
+	if((mid_val = mid_serialize(item->mid, &mid_len)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_serialize","Can't serialize MID.", NULL);
+		AMP_DEBUG_EXIT("rpttpl_item_serialize","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 2: Calculate the size of the overall serialized item. */
+
+	*len = mid_len + 4 + (2 * item->num_map);
+
+	/* Step 3: Allocate result. */
+	if((result = (uint8_t*) STAKE(*len)) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_item_serialize","Can't alloc %d bytes.", *len);
+		SRELEASE(mid_val);
+		*len = 0;
+		AMP_DEBUG_EXIT("rpttpl_item_serialize","->NULL", NULL);
+		return NULL;
+	}
+
+	/* Step 4: Copy in the result. */
+	cursor = result;
+
+	memcpy(cursor, mid_val, mid_len);
+	SRELEASE(mid_val);
+	cursor += mid_len;
+
+	memcpy(cursor, &(item->num_map), 4);
+	cursor += 4;
+
+	//TODO: Revisit for endian issues.
+	if(item->num_map > 0)
+	{
+		uint32_t i = 0;
+
+		for(i = 0; i < item->num_map; i++)
+		{
+			cursor[0] = RPT_MAP_GET_DEST_IDX(item->parm_map[i]);
+			cursor[1] = RPT_MAP_GET_SRC_IDX(item->parm_map[i]);
+			cursor += 2;
+		}
+	}
+
+    /* Step 5: Final sanity check. */
+    if((cursor - result) != *len)
+    {
+		AMP_DEBUG_ERR("rpttpl_item_serialize","Wrote %d bytes not %d bytes",
+				        (cursor - result), *len);
+		*len = 0;
+		SRELEASE(result);
+		AMP_DEBUG_EXIT("rpttpl_item_serialize","->NULL",NULL);
+		return NULL;
+    }
+
+	return result;
+}
+

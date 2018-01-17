@@ -64,7 +64,7 @@ value_t  val_copy(value_t val)
 	switch(val.type)
 	{
 	case AMP_TYPE_VAR:    result.value.as_ptr = (uint8_t*) var_duplicate((var_t*)val.value.as_ptr); break;
-	case AMP_TYPE_RPT:   result.value.as_ptr = (uint8_t*) def_duplicate((def_gen_t *)val.value.as_ptr); break;
+	case AMP_TYPE_RPT:   result.value.as_ptr = (uint8_t*) rpttpl_duplicate((rpttpl_t *)val.value.as_ptr); break;
 	case AMP_TYPE_DC:    result.value.as_ptr = (uint8_t*) dc_copy((Lyst) val.value.as_ptr); break;
 	case AMP_TYPE_TDC:   result.value.as_ptr = (uint8_t*) tdc_copy((tdc_t*)val.value.as_ptr); break;
 	case AMP_TYPE_BLOB:  result.value.as_ptr = (uint8_t*) blob_copy((blob_t*)val.value.as_ptr); break;
@@ -404,7 +404,7 @@ value_t  val_deserialize(unsigned char *buffer,
 	switch(result.type)
 	{
 	case AMP_TYPE_VAR:     result.value.as_ptr = (uint8_t*) var_deserialize(cursor, bytes_left, &cur_bytes); break;
-	case AMP_TYPE_RPT:    result.value.as_ptr = (uint8_t*) def_deserialize_gen(cursor, bytes_left, &cur_bytes); break;
+	case AMP_TYPE_RPT:    result.value.as_ptr = (uint8_t*) rpttpl_deserialize(cursor, bytes_left, &cur_bytes); break;
 	case AMP_TYPE_SRL:    result.value.as_ptr = (uint8_t *)srl_deserialize(cursor, bytes_left, &cur_bytes); break;
 	case AMP_TYPE_TRL:    result.value.as_ptr = (uint8_t *)trl_deserialize(cursor, bytes_left, &cur_bytes); break;
 	case AMP_TYPE_MC:     result.value.as_ptr = (uint8_t *)midcol_deserialize(cursor, bytes_left, &cur_bytes); break;
@@ -470,7 +470,7 @@ value_t  val_from_blob(blob_t *blob, amp_type_e type)
 	switch(result.type)
 	{
 	case AMP_TYPE_VAR:     result.value.as_ptr = (uint8_t*) var_deserialize(cursor, bytes_left, &cur_bytes); break;
-	case AMP_TYPE_RPT:    result.value.as_ptr = (uint8_t*) def_deserialize_gen(cursor, bytes_left, &cur_bytes); break;
+	case AMP_TYPE_RPT:    result.value.as_ptr = (uint8_t*) rpttpl_deserialize(cursor, bytes_left, &cur_bytes); break;
 	case AMP_TYPE_SRL:    result.value.as_ptr = (uint8_t *)srl_deserialize(cursor, bytes_left, &cur_bytes); break;
 	case AMP_TYPE_TRL:    result.value.as_ptr = (uint8_t *)trl_deserialize(cursor, bytes_left, &cur_bytes); break;
 	case AMP_TYPE_MC:     result.value.as_ptr = (uint8_t *)midcol_deserialize(cursor, bytes_left, &cur_bytes); break;
@@ -729,7 +729,7 @@ void val_release(value_t *val, uint8_t destroy)
 		switch(val->type)
 		{
 		case AMP_TYPE_VAR:     var_release((var_t*)val->value.as_ptr); break;
-		case AMP_TYPE_RPT:    def_release_gen((def_gen_t *)val->value.as_ptr); break;
+		case AMP_TYPE_RPT:    rpttpl_release((rpttpl_t *)val->value.as_ptr); break;
 		case AMP_TYPE_DC:     dc_destroy((Lyst*) &(val->value.as_ptr)); break;
 		case AMP_TYPE_TDC:    tdc_destroy((tdc_t**)&(val->value.as_ptr)); break;
 		case AMP_TYPE_BLOB:   blob_destroy((blob_t*)val->value.as_ptr, 1); break;
@@ -794,7 +794,7 @@ uint8_t* val_serialize(value_t val, uint32_t *size, int use_type)
 	switch(val.type)
 	{
 	case AMP_TYPE_VAR:     data = var_serialize((var_t*)val.value.as_ptr, &data_size); break;
-	case AMP_TYPE_RPT:    data = def_serialize_gen((def_gen_t*)val.value.as_ptr, &data_size); break;
+	case AMP_TYPE_RPT:    data = rpttpl_serialize((rpttpl_t*)val.value.as_ptr, &data_size); break;
 	case AMP_TYPE_SRL:    data = srl_serialize((srl_t*) val.value.as_ptr, &data_size); break;
 	case AMP_TYPE_TRL:    data = trl_serialize((trl_t*)val.value.as_ptr, &data_size); break;
 	case AMP_TYPE_MC:     data = midcol_serialize((Lyst)val.value.as_ptr, &data_size); break;

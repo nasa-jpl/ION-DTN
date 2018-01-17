@@ -42,6 +42,7 @@ void adm_ion_admin_init()
 	adm_ion_admin_init_metadata();
 	adm_ion_admin_init_ops();
 	adm_ion_admin_init_reports();
+
 }
 
 void adm_ion_admin_init_edd()

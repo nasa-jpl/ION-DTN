@@ -21,6 +21,7 @@
  **  01/17/13  E. Birrane     Redesign of messaging architecture. (JHU/APL)
  **  06/21/15  E. Birrane     Added <type> for definitions. (Secure DTN - NASA: NNX14CS58P)
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  01/10/18  E. Birrane     Removed report template code and put in report.c (JHU/APL).
  *****************************************************************************/
 
 #include "platform.h"
@@ -83,40 +84,6 @@ def_gen_t *def_create_gen(mid_t *id,
 	return result;
 }
 
-// \todo: Move to utilities?
-def_gen_t *def_create_from_rpt_parms(tdc_t parms)
-{
-	def_gen_t *result = NULL;
-	mid_t *mid = NULL;
-	Lyst mc = NULL;
-	int8_t success = 0;
-
-	/* Step 0: Sanity Check. */
-	if(tdc_get_count(&parms) != 2)
-	{
-		AMP_DEBUG_ERR("def_create_from_rpt_parms","Bad # params. Need 2, received %d", tdc_get_count(&parms));
-		return NULL;
-	}
-
-	/* Step 1: Grab the MID defining the new computed definition. */
-	if((mid = adm_extract_mid(parms, 0, &success)) == NULL)
-	{
-		return NULL;
-	}
-
-	/* Step 2: Grab the expression capturing the definition. */
-	if((mc = adm_extract_mc(parms, 1, &success)) == NULL)
-	{
-		mid_release(mid);
-		return NULL;
-	}
-
-	/* Step 3: Create the new definition. This is a shallow copy sp
-	 * don't release the mis and expr.  */
-	result = def_create_gen(mid, AMP_TYPE_RPT, mc);
-
-	return result;
-}
 
 /**
  * \brief Duplicates a custom definition.

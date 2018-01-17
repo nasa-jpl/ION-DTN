@@ -21,6 +21,7 @@
  **  --------  ------------   ---------------------------------------------
  **  10/22/11  E. Birrane     Code comments and functional updates. (JHU/APL)
  **  01/10/13  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
+ **  01/11/18  E. Birrane     Update to use report templates and parm maps (JHU/APL)
  *****************************************************************************/
 
 #include "../shared/adm/adm.h"
@@ -52,6 +53,7 @@
  *  10/22/11  E. Birrane     Initial implementation.
  *  08/18/13  E. Birrane     Added nesting levels to limit recursion.
  *  07/04/15  E. Birrane     Updated to new reporting structure.
+ *  01/11/18  E. Birrane     Update to use report template structure
  *****************************************************************************/
 
 int ldc_fill_report_entry(rpt_entry_t *entry)
@@ -124,19 +126,19 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
    	    /* Step 1.2: If this is a data report...*/
     	case MID_REPORT:
     	{
-    	    def_gen_t *rpt_def = NULL;
+    	    rpttpl_t *rpttpl = NULL;
 
     		/* Step 1.3.1: Check if this is an ADM-defined report. */
-    		if((rpt_def = def_find_by_id(gAdmRpts, NULL, entry->id)) != NULL)
+    		if((rpttpl = rpttpl_find_by_id(gAdmRptTpls, NULL, entry->id)) != NULL)
     		{
     	       	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling ADM Report.", NULL);
-    	       	result = ldc_fill_custom(rpt_def, entry);
+    	       	result = ldc_fill_report(rpttpl, entry);
     		}
     		/* Step 1.3.2: Check if this is a user-defined report. */
-    		else if((rpt_def = def_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), entry->id)) != NULL)
+    		else if((rpttpl = rpttpl_find_by_id(gAgentVDB.reports, &(gAgentVDB.reports_mutex), entry->id)) != NULL)
     	    {
     	       	AMP_DEBUG_INFO("ldc_fill_report_entry","Filling User Report.", NULL);
-    	       	result = ldc_fill_custom(rpt_def, entry);
+    	       	result = ldc_fill_report(rpttpl, entry);
     	    }
     	}
     	break;
@@ -157,18 +159,20 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
 
 /******************************************************************************
  *
- * \par Function Name: ldc_fill_custom
+ * \par Function Name: ldc_fill_report
  *
- * \par Populate a report entry from a custom definition. This is somewhat
- *      tricky because a custom definition may, itself, contain other
- *      custom definitions.
+ * \par Populate a report entry from a report template. This is somewhat
+ *      tricky because a report template may, itself, contain other
+ *      report templates.
  *
- * \param[in]  def    The custom definition
- * \param[out] entry  The entry accepting the custom definition value.
+ * \param[in]  rpttpl  The report template
+ * \param[out] entry   The entry being filled in accordance with the template.
  *
  * \par Notes:
- *		- We impose a maximum nesting level of 5. A custom definition may
- *		  contain no more than 5 other custom definitions.
+ *		- We impose a maximum nesting level of 5. A template may
+ *		  contain no more than 5 nested templates.
+ *		- In this architecture, report generation is serialized and, therefore
+ *		  a static variable can be used to count nesting in a single report.
  *
  * \return 0 - Success
  *        !0 - Failure
@@ -179,11 +183,13 @@ int ldc_fill_report_entry(rpt_entry_t *entry)
  *  10/22/11  E. Birrane     Initial implementation.
  *  08/18/13  E. Birrane     Added nesting levels to limit recursion.
  *  07/04/15  E. Birrane     Updated to new reporting structure and TDCs
+ *  01/11/18  E. Birrane     Renamed ldc_fill_report. Use report templates and parm maps.
  *****************************************************************************/
 
-int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
+int ldc_fill_report(rpttpl_t *rpttpl, rpt_entry_t *entry)
 {
 	LystElt elt;
+	rpttpl_item_t *cur_item = NULL;
 	mid_t *cur_mid = NULL;
 	Lyst tmp_entries = NULL;
 	rpt_entry_t *tmp_entry = NULL;
@@ -191,16 +197,16 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 
 	static int nesting = 0;
 
-	AMP_DEBUG_ENTRY("ldc_fill_custom","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			          (uaddr) def, (uaddr) entry);
+	AMP_DEBUG_ENTRY("ldc_fill_report","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			          (uaddr) rpttpl, (uaddr) entry);
 
 	nesting++;
 
 	/* Step 0: Sanity Checks. */
-	if((def == NULL) || (entry == NULL))
+	if((rpttpl == NULL) || (entry == NULL))
 	{
-		AMP_DEBUG_ERR("ldc_fill_custom","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		AMP_DEBUG_ERR("ldc_fill_report","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("ldc_fill_report","-->-1", NULL);
 		nesting--;
 		return -1;
 	}
@@ -208,8 +214,8 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 	/* Step 1: Check for too much recursion. */
 	if(nesting > 5)
 	{
-		AMP_DEBUG_ERR("ldc_fill_custom","Too many nesting levels %d.", nesting);
-		AMP_DEBUG_EXIT("ldc_fill_custom","-->-1", NULL);
+		AMP_DEBUG_ERR("ldc_fill_report","Too many nesting levels %d.", nesting);
+		AMP_DEBUG_EXIT("ldc_fill_report","-->-1", NULL);
 		nesting--;
 		return -1;
 	}
@@ -217,7 +223,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
 	/* Step 2: Create a list to hold temporary entries. */
 	if((tmp_entries = lyst_create()) == NULL)
 	{
-		AMP_DEBUG_ERR("ldc_fill_custom","Can't create lyst.", NULL);
+		AMP_DEBUG_ERR("ldc_fill_report","Can't create lyst.", NULL);
 		nesting--;
 		return -1;
 	}
@@ -227,32 +233,65 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
      * Step 3: For each MID in the definition build the data for the
      *         entry and store the result.
      */
-    for (elt = lyst_first(def->contents); elt; elt = lyst_next(elt))
+    for (elt = lyst_first(rpttpl->contents); elt; elt = lyst_next(elt))
     {
     	uint8_t clear_parms = 0;
 
-        /* Step 3.1 Grab the mid */
-        if((cur_mid = (mid_t*)lyst_data(elt)) == NULL)
+        /* Step 3.1 Grab the mid. */
+        if((cur_item = (rpttpl_item_t *)lyst_data(elt)) == NULL)
         {
-        	AMP_DEBUG_ERR("ldc_fill_custom","Can't get mid from lyst!", NULL);
+        	AMP_DEBUG_ERR("ldc_fill_report","Can't get template item from lyst!", NULL);
         	result = -1;
         	break;
         }
 
-        /* Step 3.2 If this is a parameterized MID, and the MID does not have
-         * parameters, then take the parameters from the entry MID and copy them
-         * into this MID.  This handles the case of a parameterized report ID.
+        /* Step 3.2 - Apply parameter map, if one exists.
+         *
+         *  A parameter map associates parameters from the report template MID with
+         *  parameters in the current report element.
          */
-        if( ((MID_GET_FLAG_OID(cur_mid->flags) == OID_TYPE_PARAM) ||
-             (MID_GET_FLAG_OID(cur_mid->flags) == OID_TYPE_COMP_PARAM)) &&
+        if(cur_item->num_map > 0)
+        {
+        	uint32_t i = 0;
+    		blob_t *src_parm = NULL;
+    		blob_t *dest_parm = NULL;
+    		amp_type_e tpl_type = AMP_TYPE_UNK;
+    		uint8_t num_parms = 0;
+    		uint32_t cur_parm = 0;
 
-            (mid_get_num_parms(cur_mid) == 0)
-		  )
-		{
-        	mid_copy_parms(cur_mid, entry->id);
-        	clear_parms = 1;
-		}
+    		/*
+    		 * Make a copy of the MID template. This might have some parameters
+    		 * that are asserted in the template, but we need to add in those
+    		 * dynamic parameters that are copied in from the entry itself.
+    		 */
+            cur_mid = mid_copy(cur_item->mid);
 
+            clear_parms = 1;
+
+            num_parms = mid_get_num_parms(cur_mid);
+            for(cur_parm = 1; cur_parm <= num_parms; cur_parm++)
+            {
+            	for(i = 1; i <= cur_item->num_map; i++)
+            	{
+            		if(RPT_MAP_GET_DEST_IDX(cur_item->parm_map[i-1]) == cur_parm)
+            		{
+            			src_parm = mid_get_param(entry->id, RPT_MAP_GET_SRC_IDX(cur_item->parm_map[i-1])-1, &tpl_type);
+            			dest_parm = blob_copy(src_parm);
+            			mid_update_parm(cur_mid, RPT_MAP_GET_DEST_IDX(cur_item->parm_map[i-1]), 1, tpl_type, dest_parm);
+            		}
+            	}
+            }
+
+            /*
+             * For each parameter map, copy the parameter out of the entry MID
+             * and then put it into the template MID.
+             */
+        }
+        else
+        {
+        	cur_mid = cur_item->mid;
+        	clear_parms = 0;
+        }
 
         /* Step 3.2 Create a temporary entry for this item.
          * This deep-copies cur_mid. */
@@ -264,12 +303,12 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
          */
         if(clear_parms)
         {
-        	mid_clear_parms(cur_mid);
+        	mid_release(cur_mid);
         }
 
         if(tmp_entry == NULL)
         {
-        	AMP_DEBUG_ERR("ldc_fill_custom","Can't allocate entry.", NULL);
+        	AMP_DEBUG_ERR("ldc_fill_report","Can't allocate entry.", NULL);
         	result = -1;
         	break;
         }
@@ -277,7 +316,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         /* Step 3.3 Fill in the temporary entry. */
       	if(ldc_fill_report_entry(tmp_entry) != 0)
       	{
-      		AMP_DEBUG_ERR("ldc_fill_custom","Can't populate entry!", NULL);
+      		AMP_DEBUG_ERR("ldc_fill_report","Can't populate entry!", NULL);
       		result = -1;
       		break;
       	}
@@ -298,7 +337,7 @@ int ldc_fill_custom(def_gen_t *def, rpt_entry_t *entry)
         }
         lyst_destroy(tmp_entries);
 
-    	AMP_DEBUG_EXIT("ldc_fill_custom","->-1",NULL);
+    	AMP_DEBUG_EXIT("ldc_fill_report","->-1",NULL);
 
     	nesting--;
     	return -1;

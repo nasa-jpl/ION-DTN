@@ -422,16 +422,74 @@ int  agent_db_macro_forget(mid_t *mid)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/10/13  E. Birrane     Initial implementation.
+ *  01/10/18  E. Birrane     Use report templates.
  *****************************************************************************/
 
-int  agent_db_report_persist(def_gen_t* item)
+int  agent_db_report_persist(rpttpl_t* item)
 {
-	return agent_db_defgen_persist(gAgentDB.reports, item);
+	Sdr sdr = getIonsdr();
+
+	/* Step 0: Sanity Checks. */
+	if((item == NULL) ||
+	   ((item->desc.itemObj == 0) && (item->desc.descObj != 0)) ||
+	   ((item->desc.itemObj != 0) && (item->desc.descObj == 0)))
+	{
+		AMP_DEBUG_ERR("agent_db_report_persist","bad params.",NULL);
+		return -1;
+	}
+
+	/*
+	 * Step 1: Determine if this is already in the SDR. We will assume
+	 *         it is in the SDR already if its Object fields are nonzero.
+	 */
+
+	if(item->desc.itemObj == 0)
+	{
+		uint8_t *data = NULL;
+		int result = 0;
+
+		/* Step 1.1: Serialize the item to go into the SDR.. */
+		if((data = rpttpl_serialize(item, &(item->desc.size))) == NULL)
+		{
+			AMP_DEBUG_ERR("agent_db_report_persist",
+					       "Unable to serialize new report template.", NULL);
+			return -1;
+		}
+
+		result = db_persist(data, item->desc.size, &(item->desc.itemObj),
+				            &(item->desc), sizeof(def_gen_desc_t), &(item->desc.descObj),
+				            gAgentDB.reports);
+
+		SRELEASE(data);
+		if(result != 1)
+		{
+			AMP_DEBUG_ERR("agent_db_report_persist","Unable to persist rpt tpl.",NULL);
+			return -1;
+		}
+
+		AMP_DEBUG_INFO("agent_db_report_persist","Persisted new rpt tpl", NULL);
+	}
+	else
+	{
+		def_gen_desc_t temp;
+
+		oK(sdr_begin_xn(sdr));
+
+		sdr_stage(sdr, (char*) &temp, item->desc.descObj, sizeof(def_gen_desc_t));
+		temp = item->desc;
+		sdr_write(sdr, item->desc.descObj, (char *) &temp, sizeof(def_gen_desc_t));
+
+		AMP_DEBUG_INFO("agent_db_report_persist","Updated report", NULL);
+
+		sdr_end_xn(sdr);
+	}
+
+	return 1;
 }
 
 int  agent_db_report_forget(mid_t *mid)
 {
-	def_gen_t *item = agent_vdb_report_find(mid);
+	rpttpl_t *item = agent_vdb_report_find(mid);
 
 	if(item == NULL)
 	{
@@ -439,7 +497,31 @@ int  agent_db_report_forget(mid_t *mid)
 		return -1;
 	}
 
-	return agent_db_forget(gAgentDB.reports, item->desc.itemObj, item->desc.descObj);
+
+	/* Step 0: Sanity Checks. */
+	if(((item->desc.itemObj == 0) && (item->desc.descObj != 0)) ||
+	   ((item->desc.itemObj != 0) && (item->desc.descObj == 0)))
+	{
+		AMP_DEBUG_ERR("agent_db_report_forget","bad params.",NULL);
+		return -1;
+	}
+
+	/*
+	 * Step 1: Determine if this is already in the SDR. We will assume
+	 *         it is in the SDR already if its Object fields are nonzero.
+	 */
+	if(item->desc.itemObj != 0)
+	{
+		int result = db_forget(&(item->desc.itemObj), &(item->desc.descObj), gAgentDB.reports);
+
+		if(result != 1)
+		{
+			AMP_DEBUG_ERR("agent_db_report_forget","Unable to forget def.",NULL);
+			return -1;
+		}
+	}
+
+	return 1;
 }
 
 
@@ -1173,21 +1255,110 @@ void agent_vdb_macro_forget(mid_t *id)
 
 void agent_vdb_reports_init(Sdr sdr)
 {
+	Object elt;
+	Object descObj;
+	def_gen_desc_t cur_desc;
+	rpttpl_t *cur_item;
+	uint8_t *data;
+	uint32_t bytes_used = 0;
 	int num = 0;
 
-	num = agent_vdb_defgen_init(sdr, gAgentDB.reports, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+	CHKVOID(sdr_begin_xn(sdr));
+
+	/* Step 1: Walk through report definitions. */
+	for (elt = sdr_list_first(sdr, gAgentDB.reports); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+
+		/* Step 1.1: Grab the descriptor. */
+		descObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc));
+
+		cur_desc.descObj = descObj;
+
+		/* Step 1.2: Allocate space for the def. */
+		if((data = (uint8_t*) STAKE(cur_desc.size)) == NULL)
+		{
+			AMP_DEBUG_ERR("agent_vdb_reports_init","Can't allocate %d bytes.",
+					        cur_desc.size);
+		}
+		else
+		{
+			/* Step 1.3: Grab the serialized rule */
+			sdr_read(sdr, (char *) data, cur_desc.itemObj, cur_desc.size);
+
+			/* Step 1.4: Deserialize into a rule object. */
+			if((cur_item = rpttpl_deserialize(data,
+									  cur_desc.size,
+									  &bytes_used)) == NULL)
+			{
+				AMP_DEBUG_ERR("agent_vdb_reports_init","Can't deserialize rpt.", NULL);
+			}
+			else
+			{
+				/* Step 1.5: Copy current descriptor to cur_rule. */
+				cur_item->desc = cur_desc;
+
+				/* Step 1.6: Add report def to list of report defs. */
+				agent_vdb_add(cur_item, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+
+				/* Step 1.7: Note that we have read a new report.*/
+				num++;
+			}
+
+			/* Step 1.8: Release serialized rpt, we don't need it. */
+			SRELEASE(data);
+		}
+	}
+	sdr_end_xn(sdr);
 
 	AMP_DEBUG_ALWAYS("", "Added %d Reports from DB.", num);
 }
 
-def_gen_t *agent_vdb_report_find(mid_t *mid)
+
+
+rpttpl_t *agent_vdb_report_find(mid_t *mid)
 {
-	return agent_vdb_defgen_find(mid, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+	LystElt elt;
+	rpttpl_t *cur = NULL;
+
+	lockResource(&(gAgentVDB.reports_mutex));
+
+	for(elt = lyst_first(gAgentVDB.reports); elt; elt = lyst_next(elt))
+	{
+		cur = (rpttpl_t *) lyst_data(elt);
+		if(mid_compare(cur->id, mid, 1) == 0)
+		{
+			break;
+		}
+		cur = NULL;
+	}
+
+	unlockResource(&(gAgentVDB.reports_mutex));
+
+	return cur;
 }
+
 
 void agent_vdb_report_forget(mid_t *id)
 {
-	agent_vdb_defgen_forget(id, gAgentVDB.reports, &(gAgentVDB.reports_mutex));
+	LystElt elt;
+	rpttpl_t *cur = NULL;
+
+	lockResource(&(gAgentVDB.reports_mutex));
+
+	for(elt = lyst_first(gAgentVDB.reports); elt; elt = lyst_next(elt))
+	{
+		cur = (rpttpl_t *) lyst_data(elt);
+		if(mid_compare(cur->id, id, 1) == 0)
+		{
+			rpttpl_release(cur);
+			lyst_delete(elt);
+			break;
+		}
+	}
+
+	unlockResource(&(gAgentVDB.reports_mutex));
 }
 
 

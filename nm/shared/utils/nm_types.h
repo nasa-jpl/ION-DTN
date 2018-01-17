@@ -35,7 +35,7 @@ typedef enum
 {
   AMP_TYPE_EDD    = 0, /* Externally Defined Data              */
   AMP_TYPE_VAR    = 1, /* Modeled as a cd_t.                   */
-  AMP_TYPE_RPT    = 2,  /* Modeled as a def_gen_t.              */
+  AMP_TYPE_RPT    = 2,  /* Modeled as a rpttpl_t.              */
   AMP_TYPE_CTRL   = 3,  /* Modeled as a ctrl_t.                 */
   AMP_TYPE_SRL    = 4,  /* Modeled as a srl_t.                  */
   AMP_TYPE_TRL    = 5,  /* Modeled as a trl_t.                  */
