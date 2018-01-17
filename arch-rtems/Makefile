@@ -1,6 +1,6 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
--DNO_PROXY -DNO_DIRLIST
+-DNO_PROXY -DNO_DIRLIST -DNOEXPAT -DUDPTS -DTCPTS -DDGRTS
 # Add -DBPSEC if building with bpsec.
 # -DBPSEC
 # Add -DAGENT_ROLE if building with nm.
@@ -106,17 +106,6 @@ BPSOURCES =      \
 #	ipnd.c       \
 #	node.c       \
 
-#	Not yet included in srclinks
-#	libbssp.c    \
-#	libbsspP.c   \
-#	bsspclock.c  \
-#	udpbsi.c     \
-#	udpbso.c     \
-#	tcpbsi.c     \
-#	tcpbso.c     \
-#	libtcpbsa.c  \
-#	bsspadmin.c  \
-
 NMSOURCES =	     \
 	adm.c \
 	adm_agent.c \
@@ -169,7 +158,18 @@ BPSECSOURCES =       \
 
 BSSSOURCES =      \
 	libbss.c     \
-	libbssP.c    \
+	libbssP.c    
+
+BSSPSOURCES =      \
+	libbssp.c     \
+	libbsspP.c    \
+	bsspclock.c   \
+	bsspadmin.c   \
+	udpbsi.c      \
+	udpbso.c      \
+	libtcpbsa.c   \
+	tcpbsi.c      \
+	tcpbso.c 
 
 CFDPSOURCES =      \
 	bputa.c      \
@@ -178,6 +178,27 @@ CFDPSOURCES =      \
 	libcfdp.c    \
 	libcfdpP.c   \
 	libcfdpops.c 
+
+AMSSOURCES =      \
+	amscommon.c        \
+	amsd.c             \
+	crypt.c            \
+	marshal.c          \
+	libams.c           \
+	loadmib.c          \
+	dgrts.c            \
+	tcpts.c            \
+	udpts.c            \
+	librams.c          \
+	ramscommon.c       \
+	ramsgate.c         \
+	amsshell.c         \
+	amslog.c           \
+	amslogprt.c        \
+	amsmib.c           \
+	amsstop.c
+
+#	vmqts.c
 
 TESTSOURCES =      \
 	bpsource.c   \
@@ -193,14 +214,13 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES)
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES) $(BSSSOURCES) $(BSSPSOURCES) $(AMSSOURCES)
 #	*** NOTE *** ION will build with BPSECSOURCES and NMSOURCES included.
 #	But IT WON'T RUN.  The object file uses up too much of the RTEMS
 #	memory allocation in this configuration; there's not enough memory
 #	left for the ION node initialization to complete.
 # $(BPSECSOURCES)
 # $(NMSOURCES)
-# $(BSSSOURCES)
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
 CSRCS = $(CSRCS_I) $(CFDPSOURCES)
