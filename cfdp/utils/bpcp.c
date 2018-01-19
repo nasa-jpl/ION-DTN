@@ -65,8 +65,8 @@ pthread_t rcv_thread;		/*Pthread variable*/
 
 /*Start Here*/
 #if defined (ION_LWT)
-int	bpcp(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bpcp(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	int	t;
 	char*	argv[5];

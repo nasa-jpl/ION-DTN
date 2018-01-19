@@ -1,8 +1,8 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
 -DNO_PROXY -DNO_DIRLIST
-# Add -DBPSEC if building with bpsec.
-# -DBPSEC
+# Add -DSBSP if building with sbsp.
+# -DSBSP
 # Add -DAGENT_ROLE if building with nm.
 # -DAGENT_ROLE
 # -DENABLE_IMC
@@ -121,7 +121,7 @@ NMSOURCES =	     \
 	adm.c \
 	adm_agent.c \
 	adm_bp.c \
-	adm_bpsec.c \
+	adm_sbsp.c \
 	adm_ion.c \
 	adm_ltp.c \
 	msg_admin.c \
@@ -157,15 +157,15 @@ NMSOURCES =	     \
 	adm_ltp_priv.c \
 	adm_agent_impl.c \
 	adm_bp_impl.c \
-	adm_bpsec_impl.c \
+	adm_sbsp_impl.c \
 	nmagent.c
 
-BPSECSOURCES =       \
-	bpsec_util.c \
-	bpsec_instr.c\
+SBSPSOURCES =       \
+	sbsp_util.c \
+	sbsp_instr.c\
 	profiles.c   \
-	bpsec_bib.c  \
-	bpsec_bcb.c
+	sbsp_bib.c  \
+	sbsp_bcb.c
 
 BSSSOURCES =      \
 	libbss.c     \
@@ -194,11 +194,11 @@ TESTSOURCES =      \
 #	bprecvfile.c 
 
 CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES)
-#	*** NOTE *** ION will build with BPSECSOURCES and NMSOURCES included.
+#	*** NOTE *** ION will build with SBSPSOURCES and NMSOURCES included.
 #	But IT WON'T RUN.  The object file uses up too much of the RTEMS
 #	memory allocation in this configuration; there's not enough memory
 #	left for the ION node initialization to complete.
-# $(BPSECSOURCES)
+# $(SBSPSOURCES)
 # $(NMSOURCES)
 # $(BSSSOURCES)
 
@@ -223,7 +223,7 @@ INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
 -I../bp \
 -I../bp/library \
 -I../bp/library/ext \
--I../bp/library/ext/bpsec \
+-I../bp/library/ext/sbsp \
 -I.. \
 -I../nm \
 -I../nm/agent \

@@ -19,8 +19,8 @@ BIBE = ../bibe
 #IPND = ../ipnd
 
 # OPT = -O -DuClibc
-OPT = -g -fPIC -Wall -Werror -DuClibc -DENABLE_BPACS -DENABLE_IMC -DBPSEC
-CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/cteb -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+OPT = -g -fPIC -Wall -Werror -DuClibc -DENABLE_BPACS -DENABLE_IMC -DSBSP
+CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/cteb -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
@@ -44,7 +44,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o bpsec_util.o bpsec_instr.o profiles.o bpsec_bib.o bpsec_bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
 # snid.o
 
 #IPNDOBJS = ipnd.o beacon.o helper.o node.o
@@ -357,7 +357,7 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/ext/bae/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/bpsec/%.c
+%.o:		$(API)/ext/sbsp/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/phn/%.c

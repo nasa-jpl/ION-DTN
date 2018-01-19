@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="pref_ipnd_on_off"
+        android:title="Enable DTN IP Neighbor Discovery"/>
+    <PreferenceCategory
+        android:title="Listening"
+        android:key="listening">
+        <EditTextPreference
+            android:defaultValue="4550"
+            android:key="pref_ipnd_listen_port"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="Port where IPND listens for beacons"
+            android:title="Listening Port"/>
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="pref_ipnd_ip_listen_autoupdate"
+            android:summary="Use the current system IP at ION startup"
+            android:title="Auto-Update Listening IP"/>
+        <EditTextPreference
+            android:defaultValue="127.0.0.1"
+            android:enabled="false"
+            android:key="pref_ipnd_listen_adr"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="Address where IPND listens for beacons"
+            android:title="Listening Address"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:title="Beacons"
+        android:key="beacons">
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="pref_ipnd_eid_autoupdate"
+            android:summary="Use the EID set at ION startup"
+            android:title="Propagate Node EID"/>
+        <EditTextPreference
+            android:defaultValue="ipn:1.0"
+            android:key="pref_ipnd_propagated_eid"
+            android:enabled="false"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="EID that is used for sent beacons"
+            android:title="Propagated EID"/>
+        <EditTextPreference
+            android:defaultValue="1"
+            android:key="pref_ipnd_interval_unicast"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="In seconds"
+            android:title="Propagation Interval Unicast"/>
+        <EditTextPreference
+            android:defaultValue="1"
+            android:key="pref_ipnd_interval_multicast"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="In seconds"
+            android:title="Propagation Interval Multicast"/>
+        <EditTextPreference
+            android:defaultValue="10"
+            android:key="pref_ipnd_interval_broadcast"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="In seconds"
+            android:title="Propagation Interval Broadcast"/>
+        <EditTextPreference
+            android:defaultValue="1"
+            android:key="pref_ipnd_ttl_multicast"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="In seconds"
+            android:title="Time-to-Live Multicast"/>
+        <EditTextPreference
+            android:defaultValue="127.0.0.1"
+            android:key="pref_ipnd_destination_ip"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:summary="Uni-, Multi- or Broadcast"
+            android:title="Destination IP Address"/>
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="pref_ipnd_tcpcl_propagation"
+            android:summary="Encapsulate TCPCL Information in Beacon"
+            android:title="Propagate TCPCL Service"/>
+        <EditTextPreference
+            android:defaultValue="4556"
+            android:key="pref_ipnd_tcpcl_port"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:enabled="false"
+            android:summary="TCP listening port on this device"
+            android:title="TCPCL CLA Listening Port"/>
+    </PreferenceCategory>
+</PreferenceScreen>

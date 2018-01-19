@@ -1,0 +1,1119 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>License - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <p><img src="./resources/icon_ion.png" width="150" height="150" /></p>
+<a class="header" href="print.html#iondtn---a-dtn-provider-application-for-android" id="iondtn---a-dtn-provider-application-for-android"><h2>IonDTN - A DTN Provider Application for ANDROID</h2></a>
+<a class="header" href="print.html#introduction" id="introduction"><h2>Introduction</h2></a>
+<p>Thank you for your interest in <a href="https://sourceforge.net/projects/ion-dtn/">ION-DTN</a> and the IonDTN Android application!</p>
+<p>This documentation will help you getting started with developing client applications that use the IonDTN provider application to communicate with other DTN nodes.</p>
+<p>Furthermore, this documentation contains information about the structure of the IonDTN application and the design decisions that were taken during the development process. This might be helpful when modifying or maintaining the app.</p>
+<a class="header" href="print.html#table-of-contents" id="table-of-contents"><h2>Table of Contents</h2></a>
+<p>This documentation is split into multiple parts. After this introduction, the chapter <a href="requirements.html">Requirements</a> contains details regarding required development files and toolchains. <a href="getting_started_main.html">Chapter 3</a> gives a brief introduction in how to develop a minimal Android application that uses IonDTN. Subsequently, <a href="interface_main.html">Chapter 4</a> gives a detailed description of the interface that IonDTN provides.</p>
+<p>While reading the chapters 1-4 are sufficient in order to develop DTN-enhanced applications, <a href="architecture_provider_main.html">Chapter 5</a> and <a href="sample_application_main.html">Chapter 6</a> are giving a detailed insight into the architecture and operating principles of the provider application and the provided sample applications.</p>
+<a class="header" href="print.html#requirements" id="requirements"><h1>Requirements</h1></a>
+<p>Requirements depend on whether you have IonDTN already installed on your device, i.e. through</p>
+<ul>
+<li>Google Play,</li>
+<li>A third-party app store or</li>
+<li>By installing an <code>.apk</code>-archive.</li>
+</ul>
+<p>If that is the case, you only need the basic software elements. If you also have to build the IonDTN application, additional components are necessary.</p>
+<blockquote>
+<p><strong>Note:</strong>
+If you are using IonDTN from a third-party platform, please ensure that the app version version is corresponding to this documentation. Otherwise, you might end up with a malfunctioning interface interaction.</p>
+</blockquote>
+<a class="header" href="print.html#requirements-for-the-client-applications" id="requirements-for-the-client-applications"><h3>Requirements for the client applications</h3></a>
+<a class="header" href="print.html#android-studio" id="android-studio"><h4>Android Studio</h4></a>
+<p><a href="https://developer.android.com/studio/index.html">Android Studio</a> is the official IDE for Android and although there are also other IDEs for Android development, Android Studio is the way to go. Therefore, this documentation is assuming that you are using Android Studio when describing tasks.</p>
+<p>Android Studio is available for free for Windows, Mac and Linux and can be downloaded at the linked website.</p>
+<a class="header" href="print.html#android-sdk" id="android-sdk"><h4>Android SDK</h4></a>
+<p>The Android Software Development Kit (SDK) contains the actual source code that is used to compile your application into an installable <code>.apk</code> archive. As the source code and the operating system interfaces vary between Android versions, you need to have the appropriate SDK version installed on your development machine. Usually, Android Studio handles the installation itself and just asks you for permission to install the correct version. However, if that is not the case, you can always check and install different versions in Android Studio at <code>Tools -&gt; Android -&gt; SDK Manager</code>.</p>
+<p><img src="./resources/sdk_manager.png" alt="SDK_Manager" /></p>
+<a class="header" href="print.html#requirements-for-the-provider-application" id="requirements-for-the-provider-application"><h3>Requirements for the provider application</h3></a>
+<a class="header" href="print.html#android-ndk" id="android-ndk"><h4>Android NDK</h4></a>
+<p>The Android Native Development Kit (NDK) is required to interact with native code, in this case written in the programming languages C and C++. In order to use existing ION-DTN components, the NDK has to be installed on the development machine to build the provider app.</p>
+<p>You can install the NKD via the Android Studio at <code>Tools -&gt; Android -&gt; SDK Manager (Tab SDK-Tools)</code>.</p>
+<p><img src="./resources/ndk_install.png" alt="ndk_install" /></p>
+<p>Additionally, if you integrate the NDK by adding the following lines to your <code>build.gradle</code> file, Android Studio will ask you about installing the NDK:</p>
+<pre><code>externalNativeBuild {
+    ndkBuild {
+        path &quot;&lt;Path to your Android.mk file&gt;&quot;
+    }
+}
+</code></pre>
+<p>You can find more details on how to use the NDK in the chapter <a href="iondtn_jni_interaction.html">JNI Interaction</a>.</p>
+<a class="header" href="print.html#getting-started-hello-world" id="getting-started-hello-world"><h1>Getting Started: &quot;Hello World&quot;</h1></a>
+<p>In this introductory chapter we will create a small Android application that follows the <a href="https://en.wikipedia.org/wiki/%22Hello,_World!%22_program">&quot;Hello World&quot;</a> tradition and sends a bundle with the string payload &quot;Hello World!&quot; to a node selected by the user.</p>
+<blockquote>
+<p><strong>Note:</strong> This tutorial assumes some prior knowledge about the programming of Android applications and will mostly just cover the relevant parts in context of the IonDTN interaction. If you are new to Android programming, please refer to the (very good) tutorials at the <a href="https://developer.android.com/training/index.html">Android Website</a>. Besides the details of the Java programming language, Android has some special patterns and restrictions that are worth knowing.</p>
+</blockquote>
+<p>In order to accomplish this task, the app has to work through a few subtasks. These tasks are shown in the following diagram:</p>
+<p><center><img src="./resources/subtasks_hello_world.png" height="400" align="center" /></center></p>
+<ul>
+<li>First, we have to create an GUI that can take the destination EID as an user input.</li>
+<li>Then, we have to get a handle for the <em>IonDTN's</em> <code>BundleService</code> and then bind to that service using the handle.</li>
+<li>Whenever the user triggers an event by pressing an button in the GUI, we use the bound service to send out a bundle to the defined destination EID.</li>
+</ul>
+<a class="header" href="print.html#application-setup" id="application-setup"><h1>Application Setup</h1></a>
+<p>First, we have to create a new application, design an graphical user interface (GUI) and grant the application some necessary system permissions.</p>
+<blockquote>
+<p><strong>Note:</strong> The entire <em>DtnHelloWorld</em> project can be found at <code>arch_android/Demo_Applications/IonHelloWorld</code>. Instead of extracting all the code snippets from this tutorial you can simply open/copy it and then continue reading.</p>
+</blockquote>
+<a class="header" href="print.html#create-a-new-project" id="create-a-new-project"><h2>Create a new project</h2></a>
+<p>Assuming that you have already installed Android Studio as described in the chapter <a href="./requirements.html">&quot;Requirements&quot;</a>, please open Android Studio and select <code>File -&gt; New -&gt; New Project</code>. A new dialog pops up where you can setup the new project:</p>
+<p><img src="./resources/new_project_name.png" alt="new project name" /></p>
+<p>We are calling the application &quot;IonHelloWorld&quot; and after clicking <code>Next</code> we can select the &quot;Minimum SDK&quot;.</p>
+<p><img src="./resources/new_project_target_sdk.png" alt="new project target sdk" /></p>
+<p>Just use the standard settings and click <code>Next</code>.</p>
+<p><img src="./resources/new_project_activity.png" alt="new project activity" /></p>
+<p>In the following dialog we can pick a start activity. We're also going with the default selection here which is an &quot;Empty Activity&quot;. Click <code>Next</code>.</p>
+<p><img src="./resources/new_project_activity_name.png" alt="new project activity name" /></p>
+<p>Finally, we have to pick a name for your activity. Accept the default and click <code>Finish</code> to create the project. Android Studio will now create all required files and change it's layout. After the creation process has finished, you can find all project files in the top left corner of the window.</p>
+<p><img src="./resources/new_project_file_explorer.png" alt="new project file explorer" /></p>
+<a class="header" href="print.html#create-the-gui" id="create-the-gui"><h2>Create the GUI</h2></a>
+<p>As next step we have to create a GUI that allows the user to enter a destination EID and trigger the sending process. For entering the destination EID we are going to use an <code>editText</code> object and for triggering the event a basic <code>button</code> object:</p>
+<p><img src="./resources/hello_world_layout.png" alt="hello world layout" /></p>
+<p>The code for this layout has to be put into <code>app/res/layouy/activity_main.xml</code>:</p>
+<pre><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;android.support.constraint.ConstraintLayout
+    xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+    xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+    xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+    android:layout_width=&quot;match_parent&quot;
+    android:layout_height=&quot;match_parent&quot;
+    tools:context=&quot;gov.nasa.jpl.ionhelloworld.MainActivity&quot;&gt;
+
+    &lt;LinearLayout
+        android:layout_width=&quot;368dp&quot;
+        android:layout_height=&quot;wrap_content&quot;
+        android:orientation=&quot;vertical&quot;
+        tools:layout_editor_absoluteX=&quot;8dp&quot;
+        tools:layout_editor_absoluteY=&quot;8dp&quot;&gt;
+
+        &lt;TextView
+            android:id=&quot;@+id/textView&quot;
+            android:layout_width=&quot;match_parent&quot;
+            android:layout_height=&quot;wrap_content&quot;
+            android:layout_weight=&quot;1&quot;
+            android:text=&quot;EID:&quot;/&gt;
+
+        &lt;EditText
+            android:id=&quot;@+id/editText&quot;
+            android:layout_width=&quot;wrap_content&quot;
+            android:layout_height=&quot;wrap_content&quot;
+            android:layout_weight=&quot;1&quot;
+            android:ems=&quot;10&quot;
+            android:inputType=&quot;textPersonName&quot;
+            tools:layout_editor_absoluteX=&quot;82dp&quot;
+            tools:layout_editor_absoluteY=&quot;48dp&quot;/&gt;
+
+        &lt;Button
+            android:id=&quot;@+id/button&quot;
+            android:layout_width=&quot;wrap_content&quot;
+            android:layout_height=&quot;wrap_content&quot;
+            android:layout_weight=&quot;1&quot;
+            android:text=&quot;Send&quot;
+            tools:layout_editor_absoluteX=&quot;145dp&quot;
+            tools:layout_editor_absoluteY=&quot;122dp&quot;/&gt;
+    &lt;/LinearLayout&gt;
+
+&lt;/android.support.constraint.ConstraintLayout&gt;
+</code></pre>
+<p>For details on how to create a (more sophisticated) activity layout, please refer to the <a href="https://developer.android.com">Android documentation</a>.</p>
+<p>We now have an application that has a layout and that can be executed on any Android device.
+You can test this by connecting an Android device to your development machine, enabling debugging in the device's settings and pressing the <code>Run 'app'</code> icon in the toolbar:</p>
+<p><img src="./resources/run_app.png" alt="run app" /></p>
+<a class="header" href="print.html#disable-gui-elements" id="disable-gui-elements"><h2>Disable GUI elements</h2></a>
+<p>As the last step of this chapter, we want to disable the GUI elements for user interaction, in particular the button and the editText elements. These elements should only be selectable when the <code>BundleService</code> is connected.</p>
+<pre><code class="language-java">@Override
+    protected void onCreate(Bundle savedInstanceState) {
+        // Initialize parent class
+        super.onCreate(savedInstanceState);
+
+        // Inflate layout of activity
+        setContentView(R.layout.activity_main);
+
+        // Bind layout elements to Java objects
+        button = (Button)findViewById(R.id.button);
+        editText = (EditText)findViewById(R.id.editText);
+
+        // Disable elements (until service is available)
+        button.setEnabled(false);
+        editText.setEnabled(false);
+
+        // Define 'click' behavior for button
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ...
+            }
+        });
+    }
+</code></pre>
+<p>After initializing the parent class and inflating the layout, the layout elements have to be bound to Java object that can be used in the class. The two object should be available in other methods of this class, therefore they are defined class-wide and are just bound in the <code>onCreate()</code> function:</p>
+<pre><code class="language-java">public class MainActivity extends AppCompatActivity {
+    Button button;
+    EditText editText;
+...
+</code></pre>
+<p>Besides disabling the elements we are also assigning an <code>OnClickListener</code> to the button object. The content of this listener is defined in the chapter <a href="hello_world_hello_world.html">'Hello World'</a>.</p>
+<a class="header" href="print.html#iondtn-setup" id="iondtn-setup"><h1>IonDTN Setup</h1></a>
+<p>Besides creating an own application, we also need to have the <em>IonDTN</em> provider application installed and set up on the Android device.</p>
+<a class="header" href="print.html#iondtn-installation" id="iondtn-installation"><h2>IonDTN installation</h2></a>
+<p>If you have the IonDTN application already installed on your device, just make sure that the app version is compatible to this documentation. Otherwise you might use the provided interface in a wrong way.</p>
+<p>If you haven't installed the <em>IonDTN</em> application yet, you probably want to build and deploy it yourself. In order to do so, just open the <code>IonDTN</code> project located in <code>arch_android</code> directory of the ION-DTN archive in Android Studio. Due to Android Studio's feature detection, it will ask you for permission to install all required SDKs and NDKs. Please install all these packages, connect your Android device and then proceed by pressing the <code>Run 'app'</code> icon in the toolbar:</p>
+<p><img src="./resources/run_app.png" alt="run app" /></p>
+<p>Android Studio will build the app, install it on your device and open it.</p>
+<p>You should be greeted by the following screen of the application setup:</p>
+<p><img src="./resources/ion_dtn_setup_welcome.png" alt="iondtn setup welcome" /></p>
+<a class="header" href="print.html#iondtn-setup-1" id="iondtn-setup-1"><h2>IonDTN setup</h2></a>
+<p>Now we have to configure the app and the underlying <em>ION-DTN</em> instance.</p>
+<a class="header" href="print.html#node-number" id="node-number"><h3>Node Number</h3></a>
+<p>First, we have to select a node number:</p>
+<p><img src="./resources/ion_dtn_setup_node_number.png" alt="iondtn setup select node number" /></p>
+<p>Just choose <em>&quot;1&quot;</em> in order to ensure compatibility with the configuration file used in all subsequent steps.</p>
+<a class="header" href="print.html#setup-type" id="setup-type"><h3>Setup Type</h3></a>
+<p>After pressing the arrow button, you have to select one of the two setup options:</p>
+<p><img src="./resources/ion_dtn_setup_init_selection.png" alt="iondtn setup select node number" /></p>
+<p>The options are characterized as follows:</p>
+<ul>
+<li><strong>Empty Configuration</strong>: The all necessary daemons and services are started, but initially no <em>contacts</em>, <em>ranges</em>, etc. are created. The user has to use the <em>IonDTN's</em> GUI to set these up.</li>
+<li><strong>Configuration based on <code>.rc</code> file:</strong> The user can select an <code>.rc</code> file during the setup process and the configuration of that file is copied into the app configuration. Only the node number is overwritten. This overwriting allows the usage of the same configuration file for multiple devices.</li>
+</ul>
+<p>For our <em>&quot;Hello World&quot;</em> project, please choose <code>&quot;Setup configuration based on file&quot;</code> and proceed by taping on the arrow button.</p>
+<a class="header" href="print.html#permission" id="permission"><h3>Permission</h3></a>
+<p>Depending on the Android version of your device and your security settings, you might be asked to give <em>IonDTN</em> the permission to access the devices external memory (which is the the memory that is accessible by the user and all other applications). Grant the permission and tap the arrow button to proceed.</p>
+<a class="header" href="print.html#select-setup-file" id="select-setup-file"><h3>Select Setup File</h3></a>
+<p><img src="./resources/ion_dtn_setup_select_path.png" alt="iondtn setup select path" /></p>
+<p>In the upcoming dialog you have to select an appropriate configuration file. For the purpose of the <em>&quot;Hello World&quot;</em> project, please modify the linked configuration file <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a>, copy it to your device and select it in the file selection dialog.</p>
+<p>The following modifications are necessary:</p>
+<ul>
+<li>Assign a static IP address to your device (or use the already via DHCP assigned one, however, this might cause malfunction when a new IP address is assigned).</li>
+<li>Update both the in-/outducts and the plan details to correspond to the topology and your IP addresses.</li>
+</ul>
+<p>The topology for our test is as follows:</p>
+<p><img src="./resources/topology_hello_world.png" alt="iondtn setup topology" /></p>
+<p>You can use the linked <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> file to setup an <em>ION-DTN</em> file on your development machine or another computer.</p>
+<p>Please refer to the <em>ION-DTN</em> configuration for details on how to configure an ION node.</p>
+<p>Again, tap the arrow button in the <em>IonDTN</em> application and the app perform the setup of the node.</p>
+<a class="header" href="print.html#finish-setup" id="finish-setup"><h3>Finish setup</h3></a>
+<p>If the setup succeeded (i.e. the configuration file was consistent), you will see the following screen:</p>
+<p><img src="./resources/ion_dtn_setup_complete.png" alt="iondtn setup complete" /></p>
+<p>Congratulations, IonDTN Setup is now complete. Click on the button to leave setup and you will be redirected to the main status screen of the application.</p>
+<a class="header" href="print.html#startstop-ion-dtn" id="startstop-ion-dtn"><h2>Start/Stop ION-DTN</h2></a>
+<p><img src="./resources/ion_dtn_status_fragment.png" alt="iondtn status fragment" /></p>
+<p>On the main status screen you can start and stop the underlying <em>ION-DTN</em> instance. Just press the switch in the top right corner and <em>ION-DTN</em> will start. The startup process will take some time, but you will get notified when the instance is started and ready to use. You can also follow the log messages that appear in the log output view whenever functions and deamons are invoked. Besides the in-app status information there is also a persistent notification.</p>
+<p>The persistent notification serves two purposes:</p>
+<ol>
+<li>It ensures that the user is aware that <em>ION-DTN</em> is running in the background and that takes some resources.</li>
+<li>It prevents the service and the <em>ION-DTN</em> instance to get killed by the Android operating system. Android has a  rigorous resource management and stops applications that are running in the background and still claiming memory and cpu cycles. However, in the case of the <em>IonDTN</em> provider application the app has to run continuously to ensure that bundles can be received at any time. By displaying the notification to the user (i.e. <em>&quot;starting the service of the application in the foreground&quot;</em> in Android's terms) the likelihood of the Android OS killing <em>IonDTN</em> is negligible.</li>
+</ol>
+<p><strong>Please start the ION instance before continuing in order to use it with <em>DtnHelloWorld</em>.</strong></p>
+<a class="header" href="print.html#in-app-configuration" id="in-app-configuration"><h2>In-App configuration</h2></a>
+<p>After starting the <em>ION-DTN</em> instance, you can swipe right from the left side of the screen to open up the main navigation drawer. In this drawer you can select the various configuration elements to review and change the configuration of the node.</p>
+<p><img src="./resources/ion_dtn_nav_drawer.png" alt="iondtn navigation drawer" /></p>
+<p>Although not necessary for our project, you can have a look what options are available there. Furthermore, in the <em>&quot;Settings&quot;</em> menu you can change some default values and reset the application if necessary (i.e. to load a different initalization <code>.rc</code> file).</p>
+<a class="header" href="print.html#binding-to-iondtn" id="binding-to-iondtn"><h1>Binding to IonDTN</h1></a>
+<blockquote>
+<p><strong>Note:</strong> The entire <em>DtnHelloWorld</em> project can be found at <code>arch_android/Demo_Applications/IonHelloWorld</code>. Instead of extracting all the code snippets from this tutorial you can simply open/copy it and then continue reading.</p>
+</blockquote>
+<p>As next step, we will write the source code to bind the <code>BundleService</code> provided by the <em>IonDTN</em> app to our own application.</p>
+<p>The following picture depicts the interaction between our app <em>DtnHelloWorld</em> and <em>IonDtn</em>:</p>
+<p><img src="./resources/interaction_iondtn_dtnhelloworld.png" alt="interaction iondtn dtnhelloworld" /></p>
+<p>It becomes obvious that binding and unbinding from the <code>BundleService</code> is a very important part of the communication process.</p>
+<a class="header" href="print.html#android-interface-description-language-aidl" id="android-interface-description-language-aidl"><h2>Android Interface Description Language (AIDL)</h2></a>
+<p>Android has very strict rules in regards of inter-process/inter-app communication. Therefore, all communication has to follow a certain pattern that the OS can evaluate. In practice, every interface is defined by a so-called <code>.aidl</code> file. This file is written in the <em>Android Interface Description Language (AIDL)</em>. Android Studio will use this file to create actual Java source code for resolving and responding to communication requests.</p>
+<p>You can find out more about AIDL at this <a href="https://developer.android.com/guide/components/aidl.html">link</a>.</p>
+<p>As the <code>BundleService</code> is already implemented in <em>IonDTN</em>, you don't have to implement the AIDL file yourself. Instead, just create three <code>.aidl</code> files with the names <code>IBundleService.aidl</code>, <code>IBundleReceiverListener.aidl</code> and <code>DtnBundle.aidl</code> and copy the contents in there.</p>
+<p><img src="./resources/hello_world_add_aidl_file.png" alt="add aidl file" /></p>
+<p>The next time that you are building (<code>Build -&gt; Build Project</code>) or running the project, Android Studio will create the Java code and you are ready to use the interface functionality specified in the <code>.aidl</code> file. The functions are then also available via autocomplete.</p>
+<a class="header" href="print.html#ibundleserviceaidl" id="ibundleserviceaidl"><h3>IBundleService.aidl</h3></a>
+<p>The first of the thre <code>.aidl</code> files you copied earlier is the interface specification of the actual <code>BundleService</code>:</p>
+<pre><code class="language-java">// BundleService.aidl
+package gov.nasa.jpl.iondtn;
+
+import gov.nasa.jpl.iondtn.IBundleReceiverListener;
+import gov.nasa.jpl.iondtn.DtnBundle;
+
+interface IBundleService {
+    // Open an endpoint object with the specified source eid
+    boolean openEndpoint(String src_eid, IBundleReceiverListener listener);
+
+    // Close the previously opened endpoint object
+    boolean closeEndpoint();
+
+    boolean sendBundle(in DtnBundle b);
+}
+
+</code></pre>
+<p>You can see that three different interface functions are defined. What these functions do will be covered later. For now, it is only important that the <code>IBundleService.aidl</code> exists in the <em>DtnHelloWorld</em> project.</p>
+<a class="header" href="print.html#ibundlereceiverlisteneraidl" id="ibundlereceiverlisteneraidl"><h3>IBundleReceiverListener.aidl</h3></a>
+<p>As you may have noticed, the <code>IBundleService.aidl</code> file has the line:</p>
+<pre><code class="language-java">import gov.nasa.jpl.iondtn.IBundleReceiverListener;
+</code></pre>
+<p>Also, one of the function uses <code>IBundleReceiverListener</code> as a parameter. The reason for this is that there has to be a feedback path to notify the subscribed app about received bundles. A constant polling by the app is not very efficient. The solution is a listener interface that the calling app (i.e. DtnHelloWorld) creates and provides to the <em>IonDTN</em> application:</p>
+<pre><code class="language-java">// IBundleReceiverListener.aidl
+package gov.nasa.jpl.iondtn;
+
+import gov.nasa.jpl.iondtn.DtnBundle;
+
+interface IBundleReceiverListener {
+    /**
+     * Is called when a bundle assigned to the subscribers eid has been
+     * received in ION
+     */
+    int notifyBundleReceived(in DtnBundle b);
+}
+</code></pre>
+<p>The interface defines one callback (receiving) function. As we are not implementing any receiving functionality in the DtnHelloWorld application, this functions is not relevant yet. You can find out more about how to send bundles in the chapter <a href="interface_sending_bundles">&quot;Sending Bundles&quot;</a>.</p>
+<a class="header" href="print.html#dtnbundleaidl-and-dtnbundlejava" id="dtnbundleaidl-and-dtnbundlejava"><h3>DtnBundle.aidl and DtnBundle.java</h3></a>
+<p>Again, in <code>IBundleReceiverListener.aidl</code> the Type <code>DtnBundle</code> is used:</p>
+<pre><code class="language-java">import gov.nasa.jpl.iondtn.Bundle;
+...
+int notifyBundleReceived(in DtnBundle b);
+</code></pre>
+<p>This type is necessary to be able to use a custom object containing both the payload and additional bundle metrics (e.g. the source EID).</p>
+<p>In order to use the <code>DtnBundle</code> type you have to add the following content to <code>DtnBundle.aidl</code>:</p>
+<pre><code class="language-java">// IBundle.aidl
+package gov.nasa.jpl.iondtn;
+
+parcelable DtnBundle;
+</code></pre>
+<p>The only thing happening in this file is that Bundle is defined as <em>parcelable</em>, i.e being suitable for transmitting across process boundaries via IPC.</p>
+<p>To allow client applications to use the Bundle object, additionally the <code>gov.nasa.jpl.iondtn.DtnBundle.java</code> file (provided <a href="./resources/code/DtnBundle.java">here</a>) has to be added to the project. You can achieve this by first adding a new package <code>gov.nasa.jpl.iondtn</code> and then adding the <code>DtnBundle.java</code> source file in that package.</p>
+<a class="header" href="print.html#binding" id="binding"><h2>Binding</h2></a>
+<p>Now that the interfaces are defined, we can implement the binding process.</p>
+<p>The binding process itself is consisting of two steps. First, <em>DtnHelloWorld</em> has to request the service from the Android OS. This is accomplished by sending out an intent which requests the <code>BundleService</code> component of <em>IonDTN</em>.</p>
+<p>As we want to connect to the service as soon as we are starting our application, we send out the intent when the app is started, i.e. in <code>onStart()</code>:</p>
+<pre><code class="language-java">@Override
+protected void onStart() {
+    super.onStart();
+    if (mService == null) {
+        Log.d(TAG, &quot;onStart: (Re-)Binding service&quot;);
+        // Create Intent
+        Intent serviceIntent = new Intent()
+                .setComponent(new ComponentName(
+                        &quot;gov.nasa.jpl.iondtn&quot;,
+                        &quot;gov.nasa.jpl.iondtn.services.BundleService&quot;));
+        // Request to bind the service based on the intent
+        bindService(serviceIntent, mConnection, BIND_AUTO_CREATE);
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> There are different states that an Android activity can have and depending on that state, different functions (e.g. <code>onCreate()</code> or <code>onStart()</code>) are called. You can find out more about the activity lifecycle at this <a href="https://developer.android.com/guide/components/activities/activity-lifecycle.html">link</a>.</p>
+</blockquote>
+<p>We have to select the service we want to connect to by explicitly specifying its name, in our case <code>&quot;gov.nasa.jpl.iondtn.services.BundleService&quot;</code> of the component <code>&quot;gov.nasa.jpl.iondtn&quot;</code>. This ensures that we connect to the right interface and that the other app understands what we want when calling an interface function.</p>
+<p>The objects that are used in <code>onStart()</code> are also defined in MainActivity:</p>
+<pre><code class="language-java">// Tag for debug logging purposes
+public static final String TAG = &quot;MainActivity&quot;;
+</code></pre>
+<p>The tag is just for logging purposes and allows you to determine which part of your application has emitted a certain log message.</p>
+<pre><code class="language-java">// BundleService object
+private gov.nasa.jpl.iondtn.IBundleService mService;
+</code></pre>
+<p>The <code>mService</code> object holds the interface information. This object was created automatically when you included the <em>AIDL</em> file earlier.</p>
+<pre><code class="language-java">// Service connection object
+private ServiceConnection mConnection = new ServiceConnection() {
+
+    @Override
+    public void onServiceConnected(ComponentName className, IBinder service) {
+        ...
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName className) {
+        ...
+    }
+};
+</code></pre>
+<p>Finally, we have the <code>ServiceConnection</code> object. It holds all information regarding the particular connection with the <em>IonDTN</em> application and implements two functions <code>onServiceConnected()</code> and <code>onServiceDisconnected()</code>. The first function is called when a service connection was established after an intent request. The latter function is the counterpart and is called whenever the service connection is shut down, i.e. when the application providing the service is shut down (that the latter function is called is not guaranteed by the Operating System).</p>
+<p>First, lets implement the <code>onServiceConnected()</code> method:</p>
+<pre><code class="language-java">@Override
+public void onServiceConnected(ComponentName className, IBinder service) {
+    Log.d(TAG, &quot;onServiceConnected: Service bound!\n&quot;);
+
+    // Save the service object
+    mService = gov.nasa.jpl.iondtn.IBundleService.Stub.asInterface(service);
+
+    // Update GUI
+    button.setEnabled(true);
+    editText.setEnabled(true);
+}
+</code></pre>
+<p>The function is called by the operating system with an <code>IBinder</code> object as parameter. We have to save this object as it allows us to use the service. Furthermore, we can now activate the <code>button</code> and <code>editText</code> to allow user interaction.</p>
+<p>We should also output a log message if the service get disconnected. This can be done in the <code>onServiceDisconnected()</code> method:</p>
+<pre><code class="language-java">@Override
+public void onServiceDisconnected(ComponentName className) {
+    Log.d(TAG, &quot;onServiceDisconnected: Service unbound!\n&quot;);
+}
+</code></pre>
+<a class="header" href="print.html#unbinding" id="unbinding"><h2>Unbinding</h2></a>
+<p>When done using the service, our app <em>DtnHelloWorld</em> should close the connection to the service properly. This is relevant when the app is closed by the user. To close the service connection, we override the function <code>onStop()</code>:</p>
+<pre><code class="language-java">@Override
+protected void onStop() {
+    super.onStop();
+    Log.d(TAG, &quot;onStop: Unbinding service&quot;);
+
+    // Only unbind if bound in the first place
+    if (mService != null) {
+        // Disable GUI
+        button.setEnabled(false);
+        editText.setEnabled(false);
+
+        // Unbind service
+        unbindService(mConnection);
+
+        // Reset service element (GC will handle!)
+        mService = null;
+    }
+}
+</code></pre>
+<p>We are only unbinding if a connection was established in the first place. As the establishing of a connection is realized asynchronously there is a chance that that never happened.</p>
+<p>If we have a connection to close, we first disable the GUI and the call the OS unbinding function. After this function call we ensure that the garbage collection properly removes the old object by assigning <code>null</code> to <code>mService</code>.</p>
+<a class="header" href="print.html#imports" id="imports"><h2>Imports</h2></a>
+<p>In order to use all components that we just copied into the application, we also have to make sure that the correct includes are used. These includes should be included in the header of the <code>MainActivity.java</code> file.</p>
+<pre><code class="language-java">import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+</code></pre>
+<a class="header" href="print.html#hello-world" id="hello-world"><h1>&quot;Hello World&quot;</h1></a>
+<blockquote>
+<p><strong>Note:</strong> The entire <em>DtnHelloWorld</em> project can be found at <code>arch_android/Demo_Applications/IonHelloWorld</code>. Instead of extracting all the code snippets from this tutorial you can simply open/copy it and then continue reading.</p>
+</blockquote>
+<a class="header" href="print.html#sending" id="sending"><h2>Sending</h2></a>
+<p>Now that DtnHelloWorld successfully binds and unbinds from the <code>BundleService</code> we can implement the actual transmission of our bundle to the destination EID.</p>
+<p>Therefore we have to implement the <code>OnClickListener</code> of our button:</p>
+<pre><code class="language-java">...
+      // Define 'click' behavior for button
+      button.setOnClickListener(new View.OnClickListener() {
+          @Override
+          public void onClick(View view) {
+              String payload = &quot;Hello World&quot;;
+
+              // (1) Check if editText for the destination EID is empty, abort
+              // in that case
+              if (editDestEID.getText().toString().isEmpty()) {
+                  Toast.makeText(getApplicationContext(), &quot;Destination &quot; +
+                          &quot;EID &quot; +
+                          &quot;cannot be empty!&quot;, Toast
+                          .LENGTH_SHORT).show();
+                  return;
+              }
+
+              // (2) Ensure that the service is actually available
+              if (mService == null) {
+                  Toast.makeText(getApplicationContext(), &quot;Service not &quot; +
+                          &quot;available!&quot;, Toast.LENGTH_LONG).show();
+                  return;
+              }
+
+              try {
+                  // (3) Create a Bundle object that holds all required
+                  // metadata and the payload
+                  DtnBundle b = new DtnBundle(editDestEID.getText()
+                          .toString(),
+                          0,
+                          300,
+                          DtnBundle.Priority.EXPEDITED,
+                          payload.getBytes(&quot;UTF-8&quot;));
+
+                  // (4) Trigger sending of bundle by handing the bundle
+                  // over to the BundleService
+                  mService.sendBundle(b);
+              }
+              // (5) Catch error linked to BundleService (i.e. connection
+              // broke)
+              catch (RemoteException e) {
+                      Toast.makeText(getApplicationContext(), &quot;Failed to &quot; +
+                              &quot;open endpoint!&quot;, Toast
+                              .LENGTH_SHORT).show();
+              }
+              // (6) Catch error, when the payload cannot be encoded into
+              // UTF-8
+              catch (UnsupportedEncodingException e) {
+                  Log.e(TAG, &quot;onClick: UTF-8 encoding seems not to be &quot; +
+                          &quot;available on this platform&quot;);
+                  Toast.makeText(getApplicationContext(), &quot;Failed to send bundle!&quot;, Toast
+                          .LENGTH_SHORT).show();
+              }
+          }
+      });
+...
+</code></pre>
+<p>In the following, all steps of that listener are explained in detail:</p>
+<ol>
+<li>Within our click handling routine, we first check if the user has entered a destination EID. We could do a sanity check on the entered EID here (i.e. check if a certain format is met), but to keep our application simple we just assume that the user enters a sound EID.</li>
+<li>If we discover that the service is not available, we have to abort.</li>
+<li>The payload that is provided as a string literal is encoded as UTF-8 and is then put into a new <code>Bundle</code> object , together with the EID and a Quality-of-Service indicator.</li>
+<li>The <code>Bundle</code> object ist then handed over to the Bundle service by calling the interface function <code>sendBundle(Bundle b)</code>.</li>
+<li>We also abort if the connection to the service was interrupted or the remote function call failed.</li>
+<li>In case that the UTF-8 encoding scheme is not available on the device we abort.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> We use the easier direct <code>ByteArray</code> encapsulation of the payload in the <code>Bundle</code> object. There is also another handover method available that allows the transmission of larger chunks of data by employing an file descriptor that is shared between app and service. You can find more details in the chapter <a href="interface_sending_bundles.md">&quot;Sending Bundles&quot;</a>.</p>
+</blockquote>
+<a class="header" href="print.html#testing" id="testing"><h2>Testing</h2></a>
+<p>To check that the application is doing what it is supposed to do you can run the app on your Android device (along with the started IonDTN app) and use the testing topology as described in the chapter <a href="hello_world_iondtn_setup.html#select-setup-file">&quot;IonDTN Setup&quot;</a>. Also start <em>ION-DTN</em> on your PC and launch <code>bpsink &lt;sink-eid&gt;</code> with the correct sink EID to receive the bundles from our <em>DtnHelloWorld</em> app.</p>
+<a class="header" href="print.html#congratulations" id="congratulations"><h2>Congratulations!</h2></a>
+<p>The simple <em>DtnHelloWorld</em> app is complete and the messages directed to the EID of your computer should appear in your command shell.</p>
+<a class="header" href="print.html#interface" id="interface"><h1>Interface</h1></a>
+<p>This chapter will introduce the functionality that is provided by the <em>BundleService</em> of the <em>IonDTN</em> application in more detail.</p>
+<p>The basis for communicating with the <em>BundleService</em> is a proper binding to the client application. Only after the binding process has been completed successfully the sending/receiving procedures can be invoked.</p>
+<blockquote>
+<p><strong>Note:</strong> Please refer to the chapter <a href="hello_world_binding_iondtn.html">&quot;Binding to IonDTN&quot;</a> for more details on the binding process.</p>
+</blockquote>
+<p>The chapter <a href="interface_sending_bundles.html">&quot;Sending Bundles&quot;</a> introduces the sending routines that the interface provides and the chapter <a href="interface_receiving_bundles.html">&quot;Receiving Bundles&quot;</a> explains how a listener mechanism for receiving bundles can be established.</p>
+<a class="header" href="print.html#sending-bundles" id="sending-bundles"><h1>Sending Bundles</h1></a>
+<p>The Service &quot;BundleService&quot; provides a function that can be used to trigger ION to send out a bundle with a given payload:</p>
+<pre><code class="language-java">// Send provided data, the payload is encapsulated in the DtnBundle object or provided as a file references
+boolean sendBundle(in DtnBundle b);
+</code></pre>
+<a class="header" href="print.html#sending-a-byte-array" id="sending-a-byte-array"><h3>Sending a byte array</h3></a>
+<pre><code class="language-java">/**
+ * Constructor that allows the instantiation of a DtnBundle with a ByteArray.
+ * @param eid The source EID
+ * @param creation_time The time that the DtnBundle was created. Is ignored
+ *                      when DtnBundle is sent.
+ * @param time_to_live The time-to-live value that the DtnBundle had when
+ *                     being received by ION-DTN
+ * @param priority The priority class of the DtnBundle (Bulk, Standard,
+ *                 Expedited)
+ * @param payload_byte_array The raw payload as byte array.
+ */
+public DtnBundle(String eid,
+                 long creation_time,
+                 int time_to_live,
+                 Priority priority,
+                 byte[] payload_byte_array) {
+...
+</code></pre>
+<p>For small sizes the payload can be handed over to ION as a byte array. The conversion of intrinsic variable types to a byte array is very easy, e.g. for Strings this can be accomplished by the following code snippet.</p>
+<pre><code class="language-java">String s = new String(&quot;This is a string!&quot;);
+ByteArray b;
+
+try {
+    b = s.getBytes(&quot;UTF-8&quot;)
+}
+catch (UnsupportedEncodingException e) {
+    // ... catch error here ...
+}
+</code></pre>
+<p>Besides the payload parameter, the constructor of <code>Bundle</code> also requires the destination identifier (EID) as a string, the Time-to-Live and a quality-of-service parameter as an int.</p>
+<p>The available quality-of-service classes are defined as an enum with the following values:</p>
+<pre><code class="language-java">// The priority class of the (sending) bundle, invalid for received bundles
+public enum Priority {BULK, STANDARD, EXPEDITED, INVALID}
+</code></pre>
+<p>The <code>ByteArray</code> constructor is feasible for small portions of data, however, if the data size increases, the usage of <em>FileDescriptors</em> is recommended. The reason for this is the overall size limitation for IPC data in Android. As of now, Android limits the transaction size to 1 MB in total<sup class="footnote-reference"><a href="print.html#1">1</a></sup>. This means that all applications running on an Android device have to share this small amount of memory. The limit might be increased in the future, but considering the back compatibility to older devices and Android versions, using as little memory as possible is recommended.</p>
+<blockquote>
+<p><strong>Note:</strong> Using the IPC memory in an excessive way cannot be prevented from IonDTN as it just gets the information about the size of the payload when the data has already been stored in the reserved memory region. However, if the IPC memory is exhausted, the IPC call will fail before even reaching IonDTN.</p>
+</blockquote>
+<a class="header" href="print.html#sending-a-file-descriptor" id="sending-a-file-descriptor"><h3>Sending a file descriptor</h3></a>
+<pre><code class="language-java">/**
+ * Constructor that allows the instantiation of a DtnBundle with a
+ * {@link ParcelFileDescriptor}.
+ * @param eid The EID
+ * @param creation_time The time that the DtnBundle was created. Is ignored
+ *                      when DtnBundle is sent.
+ * @param time_to_live The time-to-live value that the DtnBundle had when
+ *                     being received by ION-DTN.
+ * @param priority The priority class of the DtnBundle (Bulk, Standard,
+ *                 Expedited)
+ * @param payload_fd The {@link ParcelFileDescriptor} pointing to the
+ *                   payload of the DtnBundle.
+ */
+public DtnBundle(String eid,
+                 long creation_time,
+                 int time_to_live,
+                 Priority priority,
+                 ParcelFileDescriptor payload_fd) {
+...
+</code></pre>
+<p>In order to send larger portions of data, the constructor of <code>DtnBundle</code> allows the handover of a file descriptor. This file descriptor is of the type <code>ParcelFileDescriptor</code> because it has to be transparent to the Android OS.</p>
+<p>The procedure for using <code>sendFile</code> is as follows:</p>
+<a class="header" href="print.html#create-file" id="create-file"><h4>Create File</h4></a>
+<p>Create a new file or open an existing one in your app. This will give you a <code>FileDescriptor</code> for that file.</p>
+<pre><code class="language-java">  File f = new File(...);
+  FileOutputStream fos = new FileOutputStream(f);
+</code></pre>
+<a class="header" href="print.html#optional-write-data-to-file" id="optional-write-data-to-file"><h4><em>(Optional) Write data to file</em></h4></a>
+<p>You can then create a <code>FileOutputStream</code> for that file and use the <code>write</code> method of the <code>FileOutputStream</code> to write your data into the file. If your file already contains the data that you want to send you can skip this step.</p>
+<pre><code class="language-java">  FileOutputStream fos = new FileOutputStream(f);
+  fos.write(&lt;data&gt;);
+  fos.close();
+</code></pre>
+<a class="header" href="print.html#open-a-parcelfiledescriptor-for-your-file" id="open-a-parcelfiledescriptor-for-your-file"><h4>Open a ParcelFileDescriptor for your file</h4></a>
+<p>Open a <code>ParcelFileDescriptor</code> based on your file:</p>
+<pre><code class="language-java">  ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+</code></pre>
+<p>The <code>pfd</code> object now holds a reference to your file that can be sent to <em>IonDTN</em> via IPC and that allows it to read the data of the file.</p>
+<a class="header" href="print.html#create-dtnbundle-object" id="create-dtnbundle-object"><h4>Create <code>DtnBundle</code> object</h4></a>
+<p>By calling the previously shown constructor, you can then create a Bundle object referencing the source file by holding the ParcelFileDescriptor <code>pdf</code>.</p>
+<pre><code class="language-java">DtnBundle b = new DtnBundle(destEID,
+                            0,
+                            300,
+                            DtnBundle.Priority.EXPEDITED,
+                            pfd);
+</code></pre>
+<a class="header" href="print.html#call-iondtn" id="call-iondtn"><h4>Call <em>IonDTN</em></h4></a>
+<p>Now you can hand over the <code>DtnBundle</code> object holding the <code>ParcelFileDescriptor</code> object by calling the <code>sendBundle</code> function. As all <code>AIDL</code> IPC calls are executed synchronously, <em>IonDTN</em> will read the data from the file and when the IPC call returns you can simply close the <code>file</code> and the <code>ParcelFileDescriptor</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> Using a file descriptor rather than a file object itself even allows the transmission of file content that is residing in the clients private application memory and would otherwise be inaccessible to <em>IonDTN</em>.</p>
+</blockquote>
+<a class="header" href="print.html#source-eid" id="source-eid"><h2>Source EID</h2></a>
+<p>As introduced in the Chapter <a href="interface_receiving_bundles.html">Receiving Bundles</a>, client applications can open endpoints in ION via the <code>BundleService</code> interface. Whenever an endpoint is opened for a specific client application, all bundles from that client application have the opened EID as source EID. If no endpoint is open (like in our <em>Hello World</em> example) the source EID <code>dtn:none</code> is used. This behaviour corresponds to the behaviour of the ION-DTN shell tool <code>bpsend</code>.</p>
+<hr />
+<p><em>[1] https://stackoverflow.com/questions/38175781/android-ipc-maximum-transaction-size</em></p>
+<a class="header" href="print.html#receiving-bundles" id="receiving-bundles"><h1>Receiving Bundles</h1></a>
+<p>The two key functions for receiving data from the <em>IonDTN</em> application are listed in the following code snippet:</p>
+<pre><code class="language-java">// Open an endpoint object with the specified source eid
+boolean openEndpoint(String src_eid, IBundleReceiverListener listener);
+
+// Close the previously opened endpoint object
+boolean closeEndpoint();
+</code></pre>
+<p>The process of receiving the payload of bundles addressed to the own EID follows the <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">publisher/subscriber software pattern</a> and consists of multiple steps. The payload can only be received if the client application has previously registered for the particular EID as a listener.</p>
+<a class="header" href="print.html#ibundlereceiverlistener" id="ibundlereceiverlistener"><h3>IBundleReceiverListener</h3></a>
+<p>The registering can be done by calling the function <code>registerListener</code>. As a parameter for that, the client application has to implement the interface <code>IBundleReceiverListener</code> as defined in the <code>aidl</code> file:</p>
+<pre><code class="language-java">// IBundleReceiverListener.aidl
+package gov.nasa.jpl.iondtn;
+
+import gov.nasa.jpl.iondtn.Bundle;
+
+interface IBundleReceiverListener {
+    /**
+     * Is called when a bundle assigned to the subscribers eid has been
+     * received in ION
+     */
+    int notifyBundleReceived(in Bundle b);
+}
+
+</code></pre>
+<p>Whenever a bundle is received for the registered EID, the function of the implemented interface is called. If the payload is very small, the function returned <code>Bundle</code> object contains an ByteArray with the payload. However, if the payload exceeds a certain threshold, the <code>Bundle</code> containing a <code>ParcelFileDescriptor</code> pointing to a file with the data. The payload type of a particular bundle can be determined by the enum field <code>type</code> of <code>Bundle</code>. It is either <code>BYTE_ARRAY</code> or <code>FILE_DESCRIPTOR</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> The size threshold for switching from <code>BYTE_ARRAY</code> to <code>FILE_DESCRIPTOR</code> is defined as an integer value (representing bytes) in the settings of  <code>IonDTN</code> and can be changed via the GUI. Simply open the main navigation drawer, select &quot;Settings&quot; and then &quot;General&quot;.</p>
+</blockquote>
+<p>An implementation of the listener interface can be done within the calling class of the client application.</p>
+<p>The following example is an showing how the interface can be implemented if the payload bytes are representing text encoded in UTF-8.</p>
+<pre><code class="language-java">IBundleReceiverListener.Stub listener = new IBundleReceiverListener.Stub() {
+
+        @Override
+        public int notifyBundleReceived(gov.nasa.jpl.iondtn.Bundle b) throws RemoteException {
+            if (b.getPayloadType() == gov.nasa.jpl.iondtn.Bundle.payload_type
+                    .BYTE_ARRAY) {
+                try {
+                    received += &quot;Source: &quot; + b.getEID() + &quot; Payload: &quot;;
+                    received += new String(b.getPayloadByteArray(), &quot;UTF-8&quot;);
+                    received += &quot;\n&quot;;
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textViewReceive.setText(received);
+                        }
+                    });
+                }
+                catch (UnsupportedEncodingException e) {
+                    Log.e(TAG, &quot;notifyBundleReceived: UTF-8 encoding is not &quot; +
+                            &quot;supported on this device&quot;);
+                }
+            }
+            else {
+                String line;
+
+                FileInputStream in = new FileInputStream(b.getPayloadFD()
+                        .getFileDescriptor());
+                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                try {
+                    while ((line = br.readLine()) != null) {
+                        received += &quot;Source: &quot; + b.getEID() + &quot; Payload: &quot;;
+                        received += line;
+                        received += &quot;\n&quot;;
+                    }
+                }
+                catch (IOException e) {
+                    Log.e(TAG, &quot;notifyBundleReceived: Failed to parse file referenced &quot; +
+                            &quot;by file descriptor&quot;);
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        textViewReceive.setText(received);
+                    }
+                });
+            }
+
+            return 0;
+        }
+};
+</code></pre>
+<p>The return values of the function signal the success or failure of the reception process to the <em>IonDTN</em> application and have to follow the POSIX standard.</p>
+<blockquote>
+<p><strong>Note:</strong> Currently, the return values are not evaluated and thus the received data is discarded after the IPC call. This is to ensure that the memory management is sound.</p>
+</blockquote>
+<a class="header" href="print.html#open-endpoints" id="open-endpoints"><h3>Open Endpoints</h3></a>
+<p>When having implemented the <code>IBundleReceiverListener</code> interface the client application can then register at the <em>IonDTN</em> application to receive the payload of bundles addressed to one (or more) EIDs of the local node.</p>
+<p>In order to register, the client application has to call</p>
+<pre><code class="language-java">// Open an endpoint object with the specified source eid
+boolean openEndpoint(String src_eid, IBundleReceiverListener listener);
+</code></pre>
+<p>The parameters are defined as follows:</p>
+<ul>
+<li><em>src_eid</em>: A local EID that the client wants to receive the payload of incoming bundles from. (This eid is also used for sent out bundles of the particular client application after the endpoint has been opened).</li>
+<li><em>listener</em>: The implemented <code>IBundleReceiverListener</code> interface.</li>
+</ul>
+<p>After the <code>openEndpoint</code> IPC function call, whenever bundles are received that are addressed to the registered EID, the <em>IonDTN</em> application is calling the appropriate receiver function of the client application.</p>
+<a class="header" href="print.html#close-endpoints" id="close-endpoints"><h3>Close Endpoints</h3></a>
+<p>If the client application no longer wants to receive the payload of bundles addressed to a certain EID, it can call the unregistering routine:</p>
+<pre><code class="language-java">// Close the previously opened endpoint object
+boolean closeEndpoint();
+</code></pre>
+<p>This unregisters the <code>IBundleReceiverListener</code> interface and sent out bundles have <code>dtn:none</code> as source eid again.</p>
+<a class="header" href="print.html#sample-applications" id="sample-applications"><h1>Sample Applications</h1></a>
+<p>Besides the project developed in the chapter <a href="hello_world.md">&quot;Hello World&quot;</a> there is another documented demo application available called &quot;minimalTextApplication&quot; and &quot;CameraShare&quot;.</p>
+<p>The sample applications might be helpful when developing an own application that should also include receiving functionality or that is sending/receiving large chunks of data.</p>
+<a class="header" href="print.html#minimaltextapplication" id="minimaltextapplication"><h2>MinimalTextApplication</h2></a>
+<p>The app &quot;minimalTextApplication&quot; can be found under <code>arch_android/demo_applications/minimalTextApplication</code>. It is more sophisticated than the &quot;Hello World&quot; example. It allows both sending and receiving text as bundles and comes with a GUI that lets the user choose both the payload and the destination EID.</p>
+<a class="header" href="print.html#camerashare" id="camerashare"><h2>CameraShare</h2></a>
+<p>The app &quot;CameraShare&quot; (<code>arch_android/demo_applications/CameraShare</code>) uses the Android's devices camera to take pictures and then sends these pictures to an specific EID. When the &quot;CameraShare&quot; application is at the receiving side, it displays the received images in a gallery.</p>
+<p>The app is compatible with ION's <code>bpsendfile</code> and <code>bprecvfile</code> command line tools (so you can take pictures on your phone and send it to your PC). This app is particularly helpful if you want to use the <code>FileDescriptor</code> functionality of the interface.</p>
+<a class="header" href="print.html#sample-applications-1" id="sample-applications-1"><h1>Sample Applications</h1></a>
+<p>Besides the project developed in the chapter <a href="hello_world.md">&quot;Hello World&quot;</a> there is another documented demo application available called &quot;minimalTextApplication&quot; and &quot;CameraShare&quot;.</p>
+<p>The sample applications might be helpful when developing an own application that should also include receiving functionality or that is sending/receiving large chunks of data.</p>
+<a class="header" href="print.html#minimaltextapplication-1" id="minimaltextapplication-1"><h2>MinimalTextApplication</h2></a>
+<p>The app &quot;minimalTextApplication&quot; can be found under <code>arch_android/demo_applications/minimalTextApplication</code>. It is more sophisticated than the &quot;Hello World&quot; example. It allows both sending and receiving text as bundles and comes with a GUI that lets the user choose both the payload and the destination EID.</p>
+<a class="header" href="print.html#camerashare-1" id="camerashare-1"><h2>CameraShare</h2></a>
+<p>The app &quot;CameraShare&quot; (<code>arch_android/demo_applications/CameraShare</code>) uses the Android's devices camera to take pictures and then sends these pictures to an specific EID. When the &quot;CameraShare&quot; application is at the receiving side, it displays the received images in a gallery.</p>
+<p>The app is compatible with ION's <code>bpsendfile</code> and <code>bprecvfile</code> command line tools (so you can take pictures on your phone and send it to your PC). This app is particularly helpful if you want to use the <code>FileDescriptor</code> functionality of the interface.</p>
+<a class="header" href="print.html#sample-applications-2" id="sample-applications-2"><h1>Sample Applications</h1></a>
+<p>Besides the project developed in the chapter <a href="hello_world.md">&quot;Hello World&quot;</a> there is another documented demo application available called &quot;minimalTextApplication&quot; and &quot;CameraShare&quot;.</p>
+<p>The sample applications might be helpful when developing an own application that should also include receiving functionality or that is sending/receiving large chunks of data.</p>
+<a class="header" href="print.html#minimaltextapplication-2" id="minimaltextapplication-2"><h2>MinimalTextApplication</h2></a>
+<p>The app &quot;minimalTextApplication&quot; can be found under <code>arch_android/demo_applications/minimalTextApplication</code>. It is more sophisticated than the &quot;Hello World&quot; example. It allows both sending and receiving text as bundles and comes with a GUI that lets the user choose both the payload and the destination EID.</p>
+<a class="header" href="print.html#camerashare-2" id="camerashare-2"><h2>CameraShare</h2></a>
+<p>The app &quot;CameraShare&quot; (<code>arch_android/demo_applications/CameraShare</code>) uses the Android's devices camera to take pictures and then sends these pictures to an specific EID. When the &quot;CameraShare&quot; application is at the receiving side, it displays the received images in a gallery.</p>
+<p>The app is compatible with ION's <code>bpsendfile</code> and <code>bprecvfile</code> command line tools (so you can take pictures on your phone and send it to your PC). This app is particularly helpful if you want to use the <code>FileDescriptor</code> functionality of the interface.</p>
+<a class="header" href="print.html#iondtn-provider-application" id="iondtn-provider-application"><h1>IonDTN Provider Application</h1></a>
+<p>This chapter will give an detailed insight into the architecture of the <em>IonDTN</em> provider application and will explain many design choices.</p>
+<p>This might be particularly helpful when the application has to be updated to interact with newer versions of Android or ION-DTN.</p>
+<p>The chapter <a href="iondtn_overview.html">Overview</a> provides a general architectural overview of the app. The chapter <a href="iondtn_jni_interaction.html">ION Integration - JNI</a> explains details about the way that the legacy C code of ION-DTN was integrated into the Java Environment.</p>
+<p>The <a href="iondtn_services.html">Services</a> chapters introduce the two internal and external services and their functions. Furthermore, some details about the Android Service Lifecycle Management and the imposed restrictions are explained in the chapter <a href="iondtn_services_lifecycle_management.html">Lifecycle Management</a>. The chapters in the section <a href="iondtn_gui.html">GUI</a> explain how the GUI is designed and what hereditary dependencies exist. In <a href="iondtn_backend.html">Backend</a> some internal classes and their important functions are presented and <a href="iondtn_types.html">Types</a> contains a brief introduction into the types that are included in the application and that represent certain ION-DTN objects.</p>
+<a class="header" href="print.html#overview" id="overview"><h1>Overview</h1></a>
+<p>The IonDTN follows the Android Design Guidelines and is structured in a encapsulated manner. The overall architecture is depicted in the following image:</p>
+<p><img src="./resources/iondtn_architecture.png" alt="iondtn setup welcome" /></p>
+<p>The provider application consists of 3 main components:</p>
+<ul>
+<li>the GUI elements,</li>
+<li>the <code>NodeAdministrationService</code> and</li>
+<li>the <code>BundleService</code>.</li>
+</ul>
+<p>The communication betweeen these main components is (mostly) realized through Android's <a href="https://developer.android.com/reference/android/os/Binder.html">IBinder IPC framework</a>. Furthermore, sometimes callback and listening functionality is realized by direct calls via interface implementations.</p>
+<a class="header" href="print.html#gui" id="gui"><h3>GUI</h3></a>
+<p>The GUI provides an interface to start and stop the underlying native ION-DTN instance and also allows the configuration of the ION-DTN node by the user.</p>
+<p>The GUI uses both the <code>NodeAdministrationService</code> to perform configuration and maintenance operations. It consists of multiple actions and fragments that are alsways handling a specific aspect of the ION-DTN instance (e.g. configuring the ION-DTN contacts or starting/stoping the instance).</p>
+<p>More details about the GUI structure and existing dependencies/inheritance structures can be found in the <a href="iondtn_gui.html">GUI</a> chapters.</p>
+<a class="header" href="print.html#nodeadministrationservice" id="nodeadministrationservice"><h3>NodeAdministrationService</h3></a>
+<p>The <code>NodeAdministrationService</code> is not accessible from the outside (i.e. other Android applications). It's sole purpose is the configuration and lifecycle management of the underlying ION-DTN instance. This configuration is done through the NativeAdapter/JNI interface.</p>
+<a class="header" href="print.html#bundleservice" id="bundleservice"><h3>BundleService</h3></a>
+<p>The <code>BundleService</code> provides all necessary functionality to send and receive data and is therefore propagated to other applications via the operating system. Other applications then can request a handle for the Service by explicitly addressing the service:</p>
+<pre><code class="language-java">// Bind to service
+Intent serviceIntent = new Intent()
+       .setComponent(new ComponentName(
+               &quot;gov.nasa.jpl.iondtn&quot;,
+               &quot;gov.nasa.jpl.iondtn.services.BundleService&quot;));
+</code></pre>
+<p>The <code>BundleService</code> internally uses the the NativeAdapter/JNI interface to communicate with the ION-DTN instance. Furthermore, it uses the IBinder framework to communicate with the <code>NodeAdministrationService</code> to perform necessary configuration operations.</p>
+<a class="header" href="print.html#nativeadapter" id="nativeadapter"><h3>NativeAdapter</h3></a>
+<p>The <code>NativeAdapter</code> class provides an internal abstraction layer of Java's <a href="https://docs.oracle.com/javase/7/docs/technotes/guides/jni/">Java Native Interface (JNI)</a>. This allows the reutilization of core functionality by multiple other application components (i.e. both <code>BundleService</code> and <code>NodeAdministrationService</code>) and simplifies the necessary function calls by hiding JNI-specific housekeeping tasks.</p>
+<a class="header" href="print.html#ion-interaction---jni" id="ion-interaction---jni"><h1>ION Interaction - JNI</h1></a>
+<p>The <a href="https://docs.oracle.com/javase/7/docs/technotes/guides/jni/">Java Native Interface (JNI)</a> allows the interaction between the Android Java application code and the ION-DTN code written in the C programming language.</p>
+<a class="header" href="print.html#declaration" id="declaration"><h4>Declaration</h4></a>
+<p>In order to call a native function (i.e. C function) from the Android code you have to declare the native function in your java class.</p>
+<pre><code class="language-java">private native String stopION();
+</code></pre>
+<a class="header" href="print.html#native-wrapper-functions" id="native-wrapper-functions"><h4>Native (Wrapper) functions</h4></a>
+<p>This <strong>native</strong> function call is then resolved in a C wrapper function that resides in the <code>jni</code> directory of the ION-DTN folder structure.</p>
+<p>In case of <code>stopION</code>, the wrapper function can be found in <code>iondtn_administration.c</code>:</p>
+<pre><code class="language-java">/*
+ * Stops running nodes.
+ */
+JNIEXPORT jstring JNICALL
+Java_gov_nasa_jpl_iondtn_backend_NativeAdapter_stopION(JNIEnv *env,
+                                                       jobject this)
+{
+
+    char    cmd[80];
+    char    *result = &quot;Node stopped&quot;;
+    int     count;
+
+    // Ensure that all receiving threads that are using ION functionality got
+    // notice of the shutdown and are no longer dependent on it --&gt; prevents
+    // crashes
+    snooze(5);
+
+    if (ipnd_pid != -1) {
+        sm_TaskKill(ipnd_pid, SIGTERM);
+        __android_log_write(ANDROID_LOG_DEBUG, &quot;STOP&quot;, &quot;Stopped the IPND threads&quot;);
+        ipnd_pid = -1;
+    }
+
+    ...
+
+    snooze(1);
+    return (*env)-&gt;NewStringUTF(env, result);
+}
+</code></pre>
+<p>The name of the native wrapper function has to follow this very specific naming pattern in order to be resolvable by the JNI. You can use Android Studio's <strong>Autogeneration tool</strong> (just hover over a nonexisting native function) to create the function and most of the housekeeping automatically.</p>
+<a class="header" href="print.html#memory-management" id="memory-management"><h4>Memory Management</h4></a>
+<p>Java usually uses a <em>Garbage Collector</em> to ensure that the memory management is sound. However, Java cannot use it's <em>Garbage Collector</em> for the native functions. This means that the programmer of native wrapper functions has to ensure that the memory allocation (in particular of function parameters and return values) is correct and consistent.</p>
+<pre><code class="language-java">JNIEXPORT jboolean JNICALL
+Java_gov_nasa_jpl_iondtn_gui_AddEditDialogFragments_ContactDialogFragment_deleteContactION(
+        JNIEnv *env, jobject instance, jstring timeFrom_, jstring nodeFrom_, jstring nodeTo_) {
+    const char *timeFrom = (*env)-&gt;GetStringUTFChars(env, timeFrom_, 0);
+    const char *nodeFrom = (*env)-&gt;GetStringUTFChars(env, nodeFrom_, 0);
+    const char *nodeTo = (*env)-&gt;GetStringUTFChars(env, nodeTo_, 0);
+</code></pre>
+<p>Whenever string variables are used as function parameters, these Java strings have to be converted to char types in order to use them within the native C code. Simple data types as integers and chars can be used without conversion.</p>
+<p>After using the converted variables in the native code and before returning, the native function has to release the memory allocated during the conversion. T</p>
+<pre><code class="language-java">(*env)-&gt;ReleaseStringUTFChars(env, timeFrom_, timeFrom);
+(*env)-&gt;ReleaseStringUTFChars(env, nodeFrom_, nodeFrom);
+(*env)-&gt;ReleaseStringUTFChars(env, nodeTo_, nodeTo);
+</code></pre>
+<p>Return values have to be transferred to the memory space where the Java <em>Garbage Collector</em> is responsible. This can be done by:</p>
+<pre><code class="language-java">return (*env)-&gt;NewStringUTF(env, result);
+</code></pre>
+<blockquote>
+<p><strong>Important:</strong> The return variable and, possibly, still used and previously provided parameters are the only variables that should endure the lifetime of the function. All other local variables have to be freed before returning to the Java code.</p>
+</blockquote>
+<a class="header" href="print.html#services" id="services"><h1>Services</h1></a>
+<p>As depicted in the diagram in the chapter <a href="iondtn_overview.html">Overview</a>, the IonDTN Android application runs multiple services to provide functionality to both internal and external components. This is in line with the Android design guidelines and ensures a proper encapsulation.</p>
+<p>The chapter <a href="iondtn_services_lifecycle_management.html">Lifecycle Management</a> covers some special characteristics of services that are relevant in the context of running as a background function provider.</p>
+<p>The subsequent chapters <a href="iondtn_services_bundle_service.html">BundleService</a> and <a href="iondtn_services_node_administration_service.html">NodeAdministrationService</a> provide some insight into the specific implementations of the services.</p>
+<a class="header" href="print.html#lifecycle-management" id="lifecycle-management"><h1>Lifecycle Management</h1></a>
+<a class="header" href="print.html#lifecycle" id="lifecycle"><h2>Lifecycle</h2></a>
+<p>Android provides two different service concepts:</p>
+<a class="header" href="print.html#on-demand" id="on-demand"><h4>On-Demand</h4></a>
+<p>The service is started and stopped whenever another application on the device requests it. Multiple applications can use the service at the same time but as soon as all clients have disconnected, the service will shutdown. As soon as a new client requests the service, it is started again. The <em>subscription</em> process is realized by <em>binding</em> through the IBinder framework:</p>
+<ol>
+<li>The client requests the service from the OS,</li>
+<li>the OS request a handle for the service from the service itself</li>
+<li>the OS hands this handle to the client.</li>
+</ol>
+<a class="header" href="print.html#continuous" id="continuous"><h4>Continuous</h4></a>
+<p>Instead of starting and stopping the service upon client requests, in the case of the <strong>continuous</strong> concept the service is started by the application providing the service itself (or whenever the first client request is received). The key difference to the <code>on-demand</code> concept is that the service will not be shutdown when the last client disconnects but rather continues running in the background until a new request is received. This approach is required when startup or shutdown of service structures may take very long.</p>
+<a class="header" href="print.html#foreground-execution" id="foreground-execution"><h2>Foreground Execution</h2></a>
+<p>Android is very restrictive in regards of resource management and thus limits the way and the duration that applications can run in the background. This also includes the service components of an application.</p>
+<p>If an application is moved to the background (e.g. when the user is switching to another application) all components of the application will eventually get stopped (whenever the operating systems deems appropriate). For a provider application like <strong>IonDTN</strong> this shutdown prevents proper functioning. The native code part in particular needs a stable, long-running environment and the startup and shutdown times in the order of multiple seconds render frequent status changes unfeasible.</p>
+<p>Android provides a way to prevent unwanted shutdowns by the OS, the start of a service in the <strong>foreground</strong>-mode. This foreground mode displays a continuous (non-dismissable) notification in the notification center of Android:</p>
+<p><img src="./resources/ion_dtn_notification.png" alt="iondtn notification" /></p>
+<p>In case of IonDTN this notification shows the current status of the underlying native ION-DTN instance and is visible as soon as the status of the instance is different than <code>stopped</code>. Other possible statuses are <code>starting</code>, <code>started</code> and <code>stopping</code>. This status output allows the user to easily check the status at any given time, even if the application is not in the foreground. The notification remains in the notification center until the ION-DTN instance is stopped again.</p>
+<p>The display of the continuous notification in the foreground will render the chance that Android is killing the service associated to the notification extremely unlikely.</p>
+<p>More information about the <code>startForeground()</code> functionality can be found at <a href="https://developer.android.com/guide/components/services.html#Foreground">this link</a>.</p>
+<a class="header" href="print.html#bundleservice-1" id="bundleservice-1"><h1>BundleService</h1></a>
+<p>The <code>BundleService</code> provides the interface and communication structures and methods that render communication between the client applications on the Android device and the native ION-DTN instance possible.</p>
+<a class="header" href="print.html#registering-with-the-operating-system" id="registering-with-the-operating-system"><h3>Registering with the Operating System</h3></a>
+<p>As the service has to be accessible from outside of the application scope, the <code>AndroidManifest.xml</code> project file has to include a reference to this service. This ensures that the service is registered correctly with the operating system and that subsequently client applications can bind to the service by sending a request to to the OS.</p>
+<pre><code class="language-xml">...
+&lt;service
+    android:name=&quot;.services.BundleService&quot;
+    android:exported=&quot;true&quot;
+    android:label=&quot;@string/app_name&quot;/&gt;
+...
+</code></pre>
+<p>The manifest registration contains the name of the service as well as the explicit command to export the service and thus make it available from the outside.</p>
+<a class="header" href="print.html#operation-type" id="operation-type"><h3>Operation Type</h3></a>
+<p>As the <code>BundleService</code> is using the underlying ION-DTN instance, the operation type has to be <em>continuous</em> (please refer to <a href="iondtn_services_lifecycle_management.html">Lifecycle Management</a> for details). Starting and stopping ION-DTN frequently would reduce the availability of the service significantly and would render real-world usage impossible.</p>
+<a class="header" href="print.html#core-functionality" id="core-functionality"><h3>Core Functionality</h3></a>
+<p>The service itself implements the interface functionality laid out in the <code>IBundleService.aidl</code> file. Most of the functionality is already described in the <a href="interface.html">Interface</a> chapters. Besides the visible functionality, the <code>BundleService</code> is also managing the listener management by starting and stopping <code>ReceiverRunnable</code> runnables when necessary. Details about the <code>ReceiverRunnable</code> can be found in the chapter <a href="iondtn_backend.html">Backend</a>.</p>
+<a class="header" href="print.html#nodeadministrationservice-1" id="nodeadministrationservice-1"><h1>NodeAdministrationService</h1></a>
+<p>The <code>NodeAdministrationService</code> serves the purpose of providing configuration management functionality to internal application components like the GUI elements.</p>
+<a class="header" href="print.html#why-only-internally" id="why-only-internally"><h3>Why only internally?</h3></a>
+<p>This functionality should only be available to the user via the GUI and not to be modified by the client applications. This is to ensure a consistent configuration at any time. There might be multiple clients running at the same time that want to configure the node differently. No proper long-term configuration exclusion can be provided (which in turn would render the usage by other client applications impossible). Also, multiple concurrently running ION-DTN instances would contradict the daemon concept and exhaust the resources of many Android devices.</p>
+<p>In conclusion, a proper configuration can only be ensured on a node-level and not on an application-level. Therefore only the user can configure the node. This is consistent with the way that nodes and their protocol stack is managed in nowadays internet. In the long run there might be additional DTN functionality that allows the auto-configuration of the node comparable to the Internets <code>DHCP</code>. ION-DTN already provides an <strong>DTN IP Neighbor Discovery Protocol (IPND)</strong> that (when activated and configured) automatically detects neighboring nodes and sets up contacts/ranges/inoutducts accordingly.</p>
+<a class="header" href="print.html#registering-with-the-operating-system-1" id="registering-with-the-operating-system-1"><h3>Registering with the Operating System</h3></a>
+<p>Like the <code>BundleService</code>, the <code>NodeAdministrationService</code> also has to be registered with the Operating System through the <code>AndroidManifest.xml</code> project file:</p>
+<pre><code class="language-xml">...
+&lt;service
+    android:name=&quot;.services.NodeAdministrationService&quot;
+    android:exported=&quot;false&quot;/&gt;
+...
+</code></pre>
+<p>However, as the <code>NodeAdministrationService</code> shall only be accessible from the inside, the service is not exported. Besides that the service is bound by internal components in the same way as client application bind to the <code>BundleService</code>.</p>
+<a class="header" href="print.html#core-functionality-1" id="core-functionality-1"><h3>Core Functionality</h3></a>
+<p>The <code>NodeAdministrationService</code> provides functionality to start and stop ION-DTN. These functions are run in <code>AsyncTasks</code> to prevent lag effects in the GUI.</p>
+<blockquote>
+<p><strong>Note:</strong> It is important to notice that despite being regarded as different components in the <em>Android Application Architecture</em>, the GUI and all services are still running in the same thread. Therefore, computation-expensive operations should be outsourced by e.g. using <code>AsyncTask</code>.</p>
+</blockquote>
+<p>Besides start and stop, the <code>NodeAdministrationService</code> also provides request functions for all relevant components of ION-DTN. Such requests can e.g. be getting all contacts currently scheduled in ION-DTN. The requests are handed to to the <code>NativeAdapter</code> (see chapter <a href="iondtn_backend.html">Backend</a>) and then resolved by the JNI native application code. The return value of all these functions is a String that then has to be parsed to application objects (see chapter <a href="iondtn_types.html">Types</a>). Please refer to the chapter <a href="iondtn_jni_interaction.html">Ion Interaction - JNI</a> on why returning a string is more effective than returning a more complex object.</p>
+<p>The actual object operations (like adding/removing/editing) are performed directly in the GUI's edit dialogs and these operations communicate with the JNI layer without the involvement of the <code>NodeAdministrationService</code>. This is to remove the (unnecessary) indirection of calling <code>NodeAdministrationService</code> and <code>NativeAdapter</code> and also reduces the complexity of these function calls.</p>
+<a class="header" href="print.html#gui-1" id="gui-1"><h1>GUI</h1></a>
+<p>The Graphical User Interface (GUI) allows the user to configure, maintain and start/stop the underlying ION-DTN instance. In order to provide this functionality, the GUI consists of multiple activities, fragments and adapters (please refer to the Android documentation to learn more about these elements).</p>
+<a class="header" href="print.html#structure" id="structure"><h2>Structure</h2></a>
+<p><img src="./resources/iondtn_gui_frontend_archtecture.png" alt="iondtn frontend architecture" /></p>
+<p>The GUI can be organized by the activities that they belong to:</p>
+<ul>
+<li><strong>MainActivity:</strong> Handles the start/stop procedures and the actual configuration of the node.</li>
+<li><strong>SetupActivity:</strong> Creates a default or custom configuration at the first application startup and runs the user through the entire process.</li>
+<li><strong>SettingsActivity:</strong> Allows the modification of key values of the Android application and the ION-DTN instance that are not part of the normal configuration.</li>
+<li><strong>AboutActivity:</strong> Provides some information about the application.</li>
+</ul>
+<a class="header" href="print.html#configuration-fragments" id="configuration-fragments"><h2>Configuration Fragments</h2></a>
+<p>In order to minimize redundant code in the provider application, the configuration fragments are all implemented in a inheritance structure:</p>
+<p><img src="./resources/iondtn_gui_relationship_frontend.png" alt="iondtn relationship frontend" /></p>
+<p>All fragments are based on the <code>ConfigurationFragment</code>. This fragment is inheriting functionality of the standard <code>Fragment</code> class and is additionally adding some application-specific abstract functions that the child classes have to provide.</p>
+<p>The <code>Status Fragment</code> class is special in its behaviour and is therefore directly inheriting the <code>ConfigurationFragment</code> class.</p>
+<p>The other fragments are all based on the <code>ConfigurationListFragment</code>. As all configuration views have to provide a list of the configured <code>ranges</code>/<code>routes</code>/<code>outducts</code> etc. their behaviour is excactly the same, the only difference is the dataset their working on.</p>
+<p>The different dataset is provided by the <code>RecyclerViewAdapters</code>. These adapters request a current dataset from the ION-DTN instance (via the JNI) and convert the returned string into a dataset. This dataset is the GUI list element and can be shown presented to the user.</p>
+<blockquote>
+<p><strong>Note:</strong> Function calls to native code are very expensive in regards of resource and time consumption. Therefore the number of native function calls should be reduced to a minimum. Furthermore, instantiating Java data types in native C code is very inefficient as well. Returning a <code>String</code> object and then parsing the <code>String</code> object in Java is way more efficient than creating a Java <code>Set</code> structure containing <code>Integers</code> and <code>Strings</code> in the native code.</p>
+</blockquote>
+<a class="header" href="print.html#setup-routine" id="setup-routine"><h2>Setup Routine</h2></a>
+<p>The setup routine is accomplished by the SetupActivity. This activity uses multiple fragments (which are not based on a custom <code>Fragment</code> parent class) that guide the user through the setup process. The process and the corresponding <code>Fragments</code> of the process is shown in the following diagram:</p>
+<p><img src="./resources/iondtn_gui_setup_process.png" alt="iondtn setup process" /></p>
+<p>All fragments and their operations are designed in a way to be self-explanatory. The actual configuration file generation depends on the settings that the user chooses in the <code>Fragments</code> of the <code>SetupActivity</code>.</p>
+<p>The easiest way to create a set of configuration files for all ION-DTN administration programs is to choose the <code>empty</code> configuration. This configuration creates minimal configuration files that only ensure that the administration deamon programs are started properly. The users have to add routes/contacts/outducts etc. on their own.</p>
+<p>The second option is to select the <code>custom</code> configuration. In this case, the user has to provide a standard <code>.rc</code> configuration file that is used to initialize ION-DTN on the first startup. On all subsequent startup an <code>empty</code> startup configuration file set is used. As the configuration is stored in persistent memory, a new initialization is not necessary.</p>
+<a class="header" href="print.html#backend" id="backend"><h1>Backend</h1></a>
+<p>The backend of the IonDTN application is consisting of 4 components. These components serve the purpose of providing a particular service/operation to other components of the application. However, in the sense of Android, these components are not regarded and registered as <strong>Services</strong>. Instead they are implemented as Java classes that are either accessed static or are instantiated by the client component.</p>
+<a class="header" href="print.html#configfilemanager" id="configfilemanager"><h3>ConfigFileManager</h3></a>
+<p>The <code>ConfigFileManager</code> is used during the initialization process and creates all necessary configuration files to start the ION-DTN instance for the first time. The <code>ConfigFileManager</code> supports the two initialization modes <code>empty</code> and <code>custom</code>. For <code>empty</code> the file manager simply creates empty configuration files that just contain the startup commands for the deamons. When the user selects a <code>custom</code> initialization and provides a <code>.rc</code> configuration file, the <code>ConfigFileManager</code> parses this file and creates a one-time startup configuration based on it. This first-time startup will setup the node as specified in the config file. From the second startup onwards, a <code>empty</code> configuration file just containing the startup commands for the deamons will be used.</p>
+<a class="header" href="print.html#ipndfileupdater" id="ipndfileupdater"><h3>IpndFileUpdater</h3></a>
+<p>The <code>IpndFileUpdater</code> updates the configuration file for the <em>DTN IP Neighbor Discovery Protocol (IPND)</em> deamon on each ION-DTN startup to represent the configuration by the user in the <em>SettingsActivity</em>. It uses the configuration values provided by the calling function and writes them in the file that is then used by the <code>IPND</code> deamon on startup.</p>
+<a class="header" href="print.html#nativeadapter-1" id="nativeadapter-1"><h3>NativeAdapter</h3></a>
+<p>The <code>NativeAdapter</code> is (for most cases) the link between the components of the Android app and the JNI native code interface. This indirection allows the clustering of similar requests and improves maintainability.</p>
+<p>In addition, the <code>NativeAdapter</code> provides a static file, read/write functionality and a subscriber system for managing ION-DTN instances status changes. This helps ensuring that service and GUI elements are always in sync with the underlying functionality.</p>
+<a class="header" href="print.html#receiverrunnable" id="receiverrunnable"><h3>ReceiverRunnable</h3></a>
+<p>The <code>ReceiverRunnable</code> is instantiated by the <code>BundleService</code> whenever a receiver subscription for a particular <code>EID</code> is received. The receiving procedure in ION-DTN requires a thread actively waiting for a semaphore that is signaling an incoming bundle. Therefore, the <code>ReceiverRunnable</code> threads are mostly locked. The waiting for an incoming bundle has a timeout of 1 second. This is to ensure that  the <code>ReceiverRunnable</code> is interrupted and stopped within a reasonable timeframe after a <code>unsubscribing</code> for that particular <code>EID</code> has been received.</p>
+<a class="header" href="print.html#types" id="types"><h1>Types</h1></a>
+<p>In the package <code>gov.nasa.jpl.iondtn.types</code> various types are implemented that represent a particular configurable object in the ION-DTN scope:</p>
+<ul>
+<li>DtnBabRule</li>
+<li>DtnBcbRule</li>
+<li>DtnBibRule</li>
+<li>DtnConfidence</li>
+<li>DtnContact</li>
+<li>DtnDataRate</li>
+<li>DtnEidScheme</li>
+<li>DtnEndpointIdentifier</li>
+<li>DtnInOutduct</li>
+<li>DtnKey</li>
+<li>DtnProtocol</li>
+<li>DtnRange</li>
+<li>DtnTime</li>
+</ul>
+<p>All these types are used when data received from the JNI layer is received and parsed. The representation as these objects is then used when populating the RecyclerViews of the GUI and when calling the <em>EditDialogs</em> for a paticular object. In order to allow the passage of a particular object to an <em>EditDialog</em> (which is basically another Activity), all <code>Dtn*</code> objects are implementing the <code>Parcelable</code> interface to correspond with the Android guidelines.</p>
+<p>All types have dedicated unit tests implemented in <code>gov.nasa.jpl.iondtn.types</code>.</p>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+<!-- NewPage -->
+<html lang="en">
+<head>
+<!-- Generated by javadoc (1.8.0_112-release) on Wed Dec 06 12:24:26 PST 2017 -->
+<title>Generated Documentation (Untitled)</title>
+<script type="text/javascript">
+    targetPage = "" + window.location.search;
+    if (targetPage != "" && targetPage != "undefined")
+        targetPage = targetPage.substring(1);
+    if (targetPage.indexOf(":") != -1 || (targetPage != "" && !validURL(targetPage)))
+        targetPage = "undefined";
+    function validURL(url) {
+        try {
+            url = decodeURIComponent(url);
+        }
+        catch (error) {
+            return false;
+        }
+        var pos = url.indexOf(".html");
+        if (pos == -1 || pos != url.length - 5)
+            return false;
+        var allowNumber = false;
+        var allowSep = false;
+        var seenDot = false;
+        for (var i = 0; i < url.length - 5; i++) {
+            var ch = url.charAt(i);
+            if ('a' <= ch && ch <= 'z' ||
+                    'A' <= ch && ch <= 'Z' ||
+                    ch == '$' ||
+                    ch == '_' ||
+                    ch.charCodeAt(0) > 127) {
+                allowNumber = true;
+                allowSep = true;
+            } else if ('0' <= ch && ch <= '9'
+                    || ch == '-') {
+                if (!allowNumber)
+                     return false;
+            } else if (ch == '/' || ch == '.') {
+                if (!allowSep)
+                    return false;
+                allowNumber = false;
+                allowSep = false;
+                if (ch == '.')
+                     seenDot = true;
+                if (ch == '/' && seenDot)
+                     return false;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    function loadFrames() {
+        if (targetPage != "" && targetPage != "undefined")
+             top.classFrame.location = top.targetPage;
+    }
+</script>
+</head>
+<frameset cols="20%,80%" title="Documentation frame" onload="top.loadFrames()">
+<frameset rows="30%,70%" title="Left frames" onload="top.loadFrames()">
+<frame src="overview-frame.html" name="packageListFrame" title="All Packages">
+<frame src="allclasses-frame.html" name="packageFrame" title="All classes and interfaces (except non-static nested types)">
+</frameset>
+<frame src="overview-summary.html" name="classFrame" title="Package, class and interface descriptions" scrolling="yes">
+<noframes>
+<noscript>
+<div>JavaScript is disabled on your browser.</div>
+</noscript>
+<a class="header" href="print.html#frame-alert" id="frame-alert"><h2>Frame Alert</h2></a>
+<p>This document is designed to be viewed using the frames feature. If you see this message, you are using a non-frame-capable web client. Link to <a href="overview-summary.html">Non-frame version</a>.</p>
+</noframes>
+</frameset>
+</html>
+<a class="header" href="print.html#copyright" id="copyright"><h1>Copyright</h1></a>
+<p>Copyright (c) 2017, California Institute of Technology.</p>
+<p>ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.</p>
+<a class="header" href="print.html#license" id="license"><h1>License</h1></a>
+<p>ION-DTN and subsequently the IonDTN Android application is released under the following license:</p>
+<blockquote>
+<p>Copyright (c) 2002-2017, California Institute of Technology.
+All rights reserved.  Based on Government Sponsored Research under contracts
+NAS7-1407 and/or NAS7-03001.</p>
+<p>Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the California Institute of Technology (Caltech),
+its operating division the Jet Propulsion Laboratory (JPL), the National
+Aeronautics and Space Administration (NASA), nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.</p>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE CALIFORNIA INSTITUTE OF TECHNOLOGY BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+</blockquote>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+
+            </div>
+
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>
