@@ -1,6 +1,6 @@
 /****************************************************************************
  **
- ** File Name: adm_bpsec_impl.c
+ ** File Name: adm_sbsp_impl.c
  **
  ** Description: TODO
  **
@@ -21,23 +21,23 @@
 #include "../shared/adm/adm.h"
 
 #include "../shared/primitives/value.h"
-#include "adm_bpsec_impl.h"
+#include "adm_sbsp_impl.h"
 #include "../shared/primitives/report.h"
 #include "rda.h"
 #include "../shared/primitives/ctrl.h"
 #include "agent_db.h"
 #include "../shared/primitives/table.h"
 
-#include "../shared/adm/adm_bpsec.h"
+#include "../shared/adm/adm_sbsp.h"
 #include "profiles.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
-#include "adm_bpsec_impl.h"
+#include "adm_sbsp_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
 
 
-static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, query_type_e query)
+static value_t adm_sbsp_get_src_val(tdc_t params, sbsp_instr_type_e type, query_type_e query)
 {
 	value_t result;
 	char *eid_id = NULL;
@@ -54,8 +54,8 @@ static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, quer
 
 	switch(query)
 	{
-	case SRC_BLK:     success = bpsec_instr_get_src_blk(eid_id, type, &num); break;
-	case SRC_BYTES:   success = bpsec_instr_get_src_bytes(eid_id, type, &num); break;
+	case SRC_BLK:     success = sbsp_instr_get_src_blk(eid_id, type, &num); break;
+	case SRC_BYTES:   success = sbsp_instr_get_src_bytes(eid_id, type, &num); break;
 	default: success = ERROR; break;
 	}
 
@@ -70,7 +70,7 @@ static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, quer
 	return result;
 }
 
-static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query)
+static value_t adm_sbsp_get_tot_val(sbsp_instr_type_e type, query_type_e query)
 {
 	value_t result;
 	uvast num = 0;
@@ -78,8 +78,8 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 
 	switch(query)
 	{
-	case TOTAL_BLK:   success = bpsec_instr_get_total_blk(type, &num); break;
-	case TOTAL_BYTES: success = bpsec_instr_get_total_bytes(type, &num); break;
+	case TOTAL_BLK:   success = sbsp_instr_get_total_blk(type, &num); break;
+	case TOTAL_BYTES: success = sbsp_instr_get_total_bytes(type, &num); break;
 	default: success = ERROR; break;
 	}
 
@@ -99,7 +99,7 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void adm_bpsec_setup(){
+void adm_sbsp_setup(){
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -113,7 +113,7 @@ void adm_bpsec_setup(){
 	 */
 }
 
-void adm_bpsec_cleanup(){
+void adm_sbsp_cleanup(){
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -131,25 +131,25 @@ void adm_bpsec_cleanup(){
 /* Metadata Functions */
 
 
-value_t adm_bpsec_meta_name(tdc_t params)
+value_t adm_sbsp_meta_name(tdc_t params)
 {
-	return val_from_string("adm_bpsec");
+	return val_from_string("adm_sbsp");
 }
 
 
-value_t adm_bpsec_meta_namespace(tdc_t params)
+value_t adm_sbsp_meta_namespace(tdc_t params)
 {
-	return val_from_string("arn:DTN:bpsec");
+	return val_from_string("arn:DTN:sbsp");
 }
 
 
-value_t adm_bpsec_meta_version(tdc_t params)
+value_t adm_sbsp_meta_version(tdc_t params)
 {
 	return val_from_string("2016_05_16");
 }
 
 
-value_t adm_bpsec_meta_organization(tdc_t params)
+value_t adm_sbsp_meta_organization(tdc_t params)
 {
 	return val_from_string("JHUAPL");
 }
@@ -162,7 +162,7 @@ value_t adm_bpsec_meta_organization(tdc_t params)
  * This table lists all keys in the security policy database.
  */
 
-table_t* adm_bpsec_tbl_keys()
+table_t* adm_sbsp_tbl_keys()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -195,7 +195,7 @@ table_t* adm_bpsec_tbl_keys()
  * This table lists supported ciphersuites.
  */
 
-table_t* adm_bpsec_tbl_ciphersuites()
+table_t* adm_sbsp_tbl_ciphersuites()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -228,7 +228,7 @@ table_t* adm_bpsec_tbl_ciphersuites()
  * BIB Rules.
  */
 
-table_t* adm_bpsec_tbl_bib_rules()
+table_t* adm_sbsp_tbl_bib_rules()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -266,7 +266,7 @@ table_t* adm_bpsec_tbl_bib_rules()
 
 	if((listObj = sec_get_bspBibRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_tbl_bib_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_tbl_bib_rules","Cannot get list.", NULL);
 		return NULL;
 	}
 
@@ -328,7 +328,7 @@ table_t* adm_bpsec_tbl_bib_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					AMP_DEBUG_ERR("adm_bpsec_tbl_bib_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("adm_sbsp_tbl_bib_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -338,12 +338,12 @@ table_t* adm_bpsec_tbl_bib_rules()
 			}
 			else
 			{
-				AMP_DEBUG_WARN("adm_bpsec_tbl_bib_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("adm_sbsp_tbl_bib_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("adm_bpsec_tbl_bib_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("adm_sbsp_tbl_bib_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -361,7 +361,7 @@ table_t* adm_bpsec_tbl_bib_rules()
  * BCB Rules.
  */
 
-table_t* adm_bpsec_tbl_bcb_rules()
+table_t* adm_sbsp_tbl_bcb_rules()
 {
 	table_t *table = NULL;
 	if((table = table_create(NULL,NULL)) == NULL)
@@ -399,7 +399,7 @@ table_t* adm_bpsec_tbl_bcb_rules()
 
 	if((listObj = sec_get_bspBcbRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_tbl_bcb_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_tbl_bcb_rules","Cannot get list.", NULL);
 		return NULL;
 	}
 
@@ -461,7 +461,7 @@ table_t* adm_bpsec_tbl_bcb_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					AMP_DEBUG_ERR("adm_bpsec_tbl_bcb_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("adm_sbsp_tbl_bcb_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -471,12 +471,12 @@ table_t* adm_bpsec_tbl_bcb_rules()
 			}
 			else
 			{
-				AMP_DEBUG_WARN("adm_bpsec_tbl_bcb_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("adm_sbsp_tbl_bcb_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("adm_bpsec_tbl_bcb_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("adm_sbsp_tbl_bcb_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -494,7 +494,7 @@ table_t* adm_bpsec_tbl_bcb_rules()
 /*
  * Total successfully Tx BCB blocks
  */
-value_t adm_bpsec_get_num_good_tx_bcb_blk(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bcb_blk(tdc_t params)
 {
 	value_t result;
 	/*
@@ -502,7 +502,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_blk(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
@@ -515,7 +515,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_blk(tdc_t params)
 /*
  * Total unsuccessfully Tx BCB blocks
  */
-value_t adm_bpsec_get_num_bad_tx_bcb_blk(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bcb_blk(tdc_t params)
 {
 	value_t result;
 	/*
@@ -523,7 +523,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_blk(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
@@ -536,7 +536,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_blk(tdc_t params)
 /*
  * Total successfully Rx BCB blocks
  */
-value_t adm_bpsec_get_num_good_rx_bcb_blk(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bcb_blk(tdc_t params)
 {
 	value_t result;
 	/*
@@ -544,7 +544,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_blk(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
@@ -557,7 +557,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_blk(tdc_t params)
 /*
  * Total unsuccessfully Rx BCB blocks
  */
-value_t adm_bpsec_get_num_bad_rx_bcb_blk(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bcb_blk(tdc_t params)
 {
 	value_t result;
 	/*
@@ -565,7 +565,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_blk(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
@@ -578,7 +578,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_blk(tdc_t params)
 /*
  * Total missing-on-RX BCB blocks
  */
-value_t adm_bpsec_get_num_missing_rx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_num_missing_rx_bcb_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -586,7 +586,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
@@ -599,7 +599,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_blks(tdc_t params)
 /*
  * Total forward BCB blocks
  */
-value_t adm_bpsec_get_num_fwd_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bcb_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -607,7 +607,7 @@ value_t adm_bpsec_get_num_fwd_bcb_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
@@ -620,7 +620,7 @@ value_t adm_bpsec_get_num_fwd_bcb_blks(tdc_t params)
 /*
  * Total successfully Tx bcb bytes
  */
-value_t adm_bpsec_get_num_good_tx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bcb_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -628,7 +628,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
@@ -641,7 +641,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_bytes(tdc_t params)
 /*
  * Total unsuccessfully Tx bcb bytes
  */
-value_t adm_bpsec_get_num_bad_tx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bcb_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -649,7 +649,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
@@ -662,7 +662,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_bytes(tdc_t params)
 /*
  * Total successfully Rx bcb bytes
  */
-value_t adm_bpsec_get_num_good_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bcb_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -670,7 +670,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
@@ -683,7 +683,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_bytes(tdc_t params)
 /*
  * Total unsuccessfully Rx bcb bytes
  */
-value_t adm_bpsec_get_num_bad_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bcb_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -691,7 +691,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
@@ -704,7 +704,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_bytes(tdc_t params)
 /*
  * Total missing-on-Rx bcb bytes
  */
-value_t adm_bpsec_get_num_missing_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_num_missing_rx_bcb_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -712,7 +712,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
@@ -725,7 +725,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_bytes(tdc_t params)
 /*
  * Total forwarded bcb bytes
  */
-value_t adm_bpsec_get_num_fwd_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bcb_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -733,7 +733,7 @@ value_t adm_bpsec_get_num_fwd_bcb_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
@@ -746,7 +746,7 @@ value_t adm_bpsec_get_num_fwd_bcb_bytes(tdc_t params)
 /*
  * Total successfully Tx BIB blocks
  */
-value_t adm_bpsec_get_num_good_tx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bib_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -754,7 +754,7 @@ value_t adm_bpsec_get_num_good_tx_bib_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
@@ -767,7 +767,7 @@ value_t adm_bpsec_get_num_good_tx_bib_blks(tdc_t params)
 /*
  * Total unsuccessfully Tx BIB blocks
  */
-value_t adm_bpsec_get_num_bad_tx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bib_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -775,7 +775,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
@@ -788,7 +788,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_blks(tdc_t params)
 /*
  * Total successfully Rx BIB blocks
  */
-value_t adm_bpsec_get_num_good_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bib_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -796,7 +796,7 @@ value_t adm_bpsec_get_num_good_rx_bib_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
@@ -809,7 +809,7 @@ value_t adm_bpsec_get_num_good_rx_bib_blks(tdc_t params)
 /*
  * Total unsuccessfully Rx BIB blocks
  */
-value_t adm_bpsec_get_num_bad_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bib_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -817,7 +817,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
@@ -830,7 +830,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_blks(tdc_t params)
 /*
  * Total missing-on-Rx BIB blocks
  */
-value_t adm_bpsec_get_num_miss_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_num_miss_rx_bib_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -838,7 +838,7 @@ value_t adm_bpsec_get_num_miss_rx_bib_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
@@ -851,7 +851,7 @@ value_t adm_bpsec_get_num_miss_rx_bib_blks(tdc_t params)
 /*
  * Total forwarded BIB blocks
  */
-value_t adm_bpsec_get_num_fwd_bib_blks(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bib_blks(tdc_t params)
 {
 	value_t result;
 	/*
@@ -859,7 +859,7 @@ value_t adm_bpsec_get_num_fwd_bib_blks(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks BODY
@@ -872,7 +872,7 @@ value_t adm_bpsec_get_num_fwd_bib_blks(tdc_t params)
 /*
  * Total successfully Tx BIB bytes
  */
-value_t adm_bpsec_get_num_good_tx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bib_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -880,7 +880,7 @@ value_t adm_bpsec_get_num_good_tx_bib_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
@@ -893,7 +893,7 @@ value_t adm_bpsec_get_num_good_tx_bib_bytes(tdc_t params)
 /*
  * Total unsuccessfully Tx BIB bytes
  */
-value_t adm_bpsec_get_num_bad_tx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bib_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -901,7 +901,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
@@ -914,7 +914,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_bytes(tdc_t params)
 /*
  * Total successfully Rx BIB bytes
  */
-value_t adm_bpsec_get_num_good_rx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bib_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -922,7 +922,7 @@ value_t adm_bpsec_get_num_good_rx_bib_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
@@ -935,7 +935,7 @@ value_t adm_bpsec_get_num_good_rx_bib_bytes(tdc_t params)
 /*
  * Total unsuccessfully Rx BIB bytes
  */
-value_t adm_bpsec_get_num_bad_rx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bib_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -943,7 +943,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
@@ -956,7 +956,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_bytes(tdc_t params)
 /*
  * Total missing-on-Rx BIB bytes
  */
-value_t adm_bpsec_get_num_miss_rx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_num_miss_rx_bib_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -964,7 +964,7 @@ value_t adm_bpsec_get_num_miss_rx_bib_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
@@ -977,7 +977,7 @@ value_t adm_bpsec_get_num_miss_rx_bib_bytes(tdc_t params)
 /*
  * Total forwarded BIB bytes
  */
-value_t adm_bpsec_get_num_fwd_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bib_bytes(tdc_t params)
 {
 	value_t result;
 	/*
@@ -985,7 +985,7 @@ value_t adm_bpsec_get_num_fwd_bib_bytes(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
@@ -996,9 +996,9 @@ value_t adm_bpsec_get_num_fwd_bib_bytes(tdc_t params)
 
 
 /*
- * Last BPSEC update
+ * Last SBSP update
  */
-value_t adm_bpsec_get_last_update(tdc_t params)
+value_t adm_sbsp_get_last_update(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1007,7 +1007,7 @@ value_t adm_bpsec_get_last_update(tdc_t params)
 	 * +-------------------------------------------------------------------------+
 	 */
 	result.type = AMP_TYPE_UNK;
-	if(bpsec_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
+	if(sbsp_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
 	{
 		result.type = AMP_TYPE_TS;
 	}
@@ -1023,7 +1023,7 @@ value_t adm_bpsec_get_last_update(tdc_t params)
 /*
  * Number of known keys
  */
-value_t adm_bpsec_get_num_known_keys(tdc_t params)
+value_t adm_sbsp_get_num_known_keys(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1034,7 +1034,7 @@ value_t adm_bpsec_get_num_known_keys(tdc_t params)
 	uint32_t size = 0;
 
 	result.type = AMP_TYPE_UINT;
-	result.value.as_uint = bpsec_instr_get_num_keys((int*)&size);
+	result.value.as_uint = sbsp_instr_get_num_keys((int*)&size);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_known_keys BODY
@@ -1047,7 +1047,7 @@ value_t adm_bpsec_get_num_known_keys(tdc_t params)
 /*
  * Known key names
  */
-value_t adm_bpsec_get_key_names(tdc_t params)
+value_t adm_sbsp_get_key_names(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1055,7 +1055,7 @@ value_t adm_bpsec_get_key_names(tdc_t params)
 	 * |START CUSTOM FUNCTION get_key_names BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *tmp = bpsec_instr_get_keynames();
+	char *tmp = sbsp_instr_get_keynames();
 
 	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
@@ -1087,7 +1087,7 @@ value_t adm_bpsec_get_key_names(tdc_t params)
 /*
  * Known ciphersuite names
  */
-value_t adm_bpsec_get_ciphersuite_names(tdc_t params)
+value_t adm_sbsp_get_ciphersuite_names(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1095,7 +1095,7 @@ value_t adm_bpsec_get_ciphersuite_names(tdc_t params)
 	 * |START CUSTOM FUNCTION get_ciphersuite_names BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *tmp = bpsec_instr_get_csnames();
+	char *tmp = sbsp_instr_get_csnames();
 
 	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
@@ -1126,7 +1126,7 @@ value_t adm_bpsec_get_ciphersuite_names(tdc_t params)
 /*
  * Known rule sources
  */
-value_t adm_bpsec_get_rule_source(tdc_t params)
+value_t adm_sbsp_get_rule_source(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1134,7 +1134,7 @@ value_t adm_bpsec_get_rule_source(tdc_t params)
 	 * |START CUSTOM FUNCTION get_rule_source BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *tmp = bpsec_instr_get_srcnames();
+	char *tmp = sbsp_instr_get_srcnames();
 
 	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
@@ -1165,7 +1165,7 @@ value_t adm_bpsec_get_rule_source(tdc_t params)
 /*
  * Successfully Tx BCB blocks from SRC
  */
-value_t adm_bpsec_get_num_good_tx_bcb_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bcb_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1173,7 +1173,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_TX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blks_src BODY
@@ -1186,7 +1186,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_blks_src(tdc_t params)
 /*
  * Failed TX BCB blocks from SRC
  */
-value_t adm_bpsec_get_num_bad_tx_bcb_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bcb_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1194,7 +1194,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_TX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blks_src BODY
@@ -1207,7 +1207,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_blks_src(tdc_t params)
 /*
  * Successfully Rx BCB blocks from SRC
  */
-value_t adm_bpsec_get_num_good_rx_bcb_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bcb_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1215,7 +1215,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_RX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blks_src BODY
@@ -1228,7 +1228,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_blks_src(tdc_t params)
 /*
  * Failed RX BCB blocks from SRC
  */
-value_t adm_bpsec_get_num_bad_rx_bcb_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bcb_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1236,7 +1236,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_RX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blks_src BODY
@@ -1249,7 +1249,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_blks_src(tdc_t params)
 /*
  * Missing-onRX BCB blocks from SRC
  */
-value_t adm_bpsec_get_num_missing_rx_bcb_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_missing_rx_bcb_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1257,7 +1257,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_RX_MISS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks_src BODY
@@ -1270,7 +1270,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_blks_src(tdc_t params)
 /*
  * Forwarded BCB blocks from SRC
  */
-value_t adm_bpsec_get_num_fwd_bcb_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bcb_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1278,7 +1278,7 @@ value_t adm_bpsec_get_num_fwd_bcb_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_FWD, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks_src BODY
@@ -1291,7 +1291,7 @@ value_t adm_bpsec_get_num_fwd_bcb_blks_src(tdc_t params)
 /*
  * Successfullt Tx bcb bytes from SRC
  */
-value_t adm_bpsec_get_num_good_tx_bcb_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bcb_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1299,7 +1299,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_TX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes_src BODY
@@ -1312,7 +1312,7 @@ value_t adm_bpsec_get_num_good_tx_bcb_bytes_src(tdc_t params)
 /*
  * Failed Tx bcb bytes from SRC
  */
-value_t adm_bpsec_get_num_bad_tx_bcb_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bcb_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1320,7 +1320,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_TX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes_src BODY
@@ -1333,7 +1333,7 @@ value_t adm_bpsec_get_num_bad_tx_bcb_bytes_src(tdc_t params)
 /*
  * Successfully Rx bcb bytes from SRC
  */
-value_t adm_bpsec_get_num_good_rx_bcb_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bcb_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1341,7 +1341,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_RX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes_src BODY
@@ -1354,7 +1354,7 @@ value_t adm_bpsec_get_num_good_rx_bcb_bytes_src(tdc_t params)
 /*
  * Failed Rx bcb bytes from SRC
  */
-value_t adm_bpsec_get_num_bad_rx_bcb_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bcb_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1362,7 +1362,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_RX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes_src BODY
@@ -1375,7 +1375,7 @@ value_t adm_bpsec_get_num_bad_rx_bcb_bytes_src(tdc_t params)
 /*
  * Missin-on-Rx bcb bytes from SRC
  */
-value_t adm_bpsec_get_num_missing_rx_bcb_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_missing_rx_bcb_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1383,7 +1383,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_RX_MISS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes_src BODY
@@ -1396,7 +1396,7 @@ value_t adm_bpsec_get_num_missing_rx_bcb_bytes_src(tdc_t params)
 /*
  * Forwarded bcb bytes from SRC
  */
-value_t adm_bpsec_get_num_fwd_bcb_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bcb_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1404,7 +1404,7 @@ value_t adm_bpsec_get_num_fwd_bcb_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_FWD, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes_src BODY
@@ -1417,7 +1417,7 @@ value_t adm_bpsec_get_num_fwd_bcb_bytes_src(tdc_t params)
 /*
  * Successfully Tx BIB blocks from SRC
  */
-value_t adm_bpsec_get_num_good_tx_bib_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bib_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1425,7 +1425,7 @@ value_t adm_bpsec_get_num_good_tx_bib_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_TX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks_src BODY
@@ -1438,7 +1438,7 @@ value_t adm_bpsec_get_num_good_tx_bib_blks_src(tdc_t params)
 /*
  * Failed Tx BIB blocks from SRC
  */
-value_t adm_bpsec_get_num_bad_tx_bib_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bib_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1446,7 +1446,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_TX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks_src BODY
@@ -1459,7 +1459,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_blks_src(tdc_t params)
 /*
  * Successfully Rx BIB blocks from SRC
  */
-value_t adm_bpsec_get_num_good_rx_bib_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bib_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1467,7 +1467,7 @@ value_t adm_bpsec_get_num_good_rx_bib_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_RX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks_src BODY
@@ -1480,7 +1480,7 @@ value_t adm_bpsec_get_num_good_rx_bib_blks_src(tdc_t params)
 /*
  * Failed Rx BIB blocks from SRC
  */
-value_t adm_bpsec_get_num_bad_rx_bib_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bib_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1488,7 +1488,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_RX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks_src BODY
@@ -1501,7 +1501,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_blks_src(tdc_t params)
 /*
  * Missing-on-Rx BIB blocks from SRC
  */
-value_t adm_bpsec_get_num_miss_rx_bib_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_miss_rx_bib_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1509,7 +1509,7 @@ value_t adm_bpsec_get_num_miss_rx_bib_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_RX_MISS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks_src BODY
@@ -1522,7 +1522,7 @@ value_t adm_bpsec_get_num_miss_rx_bib_blks_src(tdc_t params)
 /*
  * Forwarded BIB blocks from SRC
  */
-value_t adm_bpsec_get_num_fwd_bib_blks_src(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bib_blks_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1530,7 +1530,7 @@ value_t adm_bpsec_get_num_fwd_bib_blks_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_FWD, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks_src BODY
@@ -1543,7 +1543,7 @@ value_t adm_bpsec_get_num_fwd_bib_blks_src(tdc_t params)
 /*
  * Successfully Tx BIB bytes from SRC
  */
-value_t adm_bpsec_get_num_good_tx_bib_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_good_tx_bib_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1551,7 +1551,7 @@ value_t adm_bpsec_get_num_good_tx_bib_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_TX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes_src BODY
@@ -1564,7 +1564,7 @@ value_t adm_bpsec_get_num_good_tx_bib_bytes_src(tdc_t params)
 /*
  * Failed Tx BIB bytes from SRC
  */
-value_t adm_bpsec_get_num_bad_tx_bib_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_tx_bib_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1572,7 +1572,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_TX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes_src BODY
@@ -1585,7 +1585,7 @@ value_t adm_bpsec_get_num_bad_tx_bib_bytes_src(tdc_t params)
 /*
  * Successfully Rx BIB bytes from SRC
  */
-value_t adm_bpsec_get_num_good_rx_bib_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_good_rx_bib_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1593,7 +1593,7 @@ value_t adm_bpsec_get_num_good_rx_bib_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_RX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes_src BODY
@@ -1606,7 +1606,7 @@ value_t adm_bpsec_get_num_good_rx_bib_bytes_src(tdc_t params)
 /*
  * Failed Rx BIB bytes from SRC
  */
-value_t adm_bpsec_get_num_bad_rx_bib_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_bad_rx_bib_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1614,7 +1614,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_RX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes_src BODY
@@ -1627,7 +1627,7 @@ value_t adm_bpsec_get_num_bad_rx_bib_bytes_src(tdc_t params)
 /*
  * Missing-on-Rx BIB bytes from SRC
  */
-value_t adm_bpsec_get_num_missing_rx_bib_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_missing_rx_bib_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1635,7 +1635,7 @@ value_t adm_bpsec_get_num_missing_rx_bib_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_RX_MISS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bib_bytes_src BODY
@@ -1648,7 +1648,7 @@ value_t adm_bpsec_get_num_missing_rx_bib_bytes_src(tdc_t params)
 /*
  * Forwarded BIB bytes from SRC
  */
-value_t adm_bpsec_get_num_fwd_bib_bytes_src(tdc_t params)
+value_t adm_sbsp_get_num_fwd_bib_bytes_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1656,7 +1656,7 @@ value_t adm_bpsec_get_num_fwd_bib_bytes_src(tdc_t params)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_FWD, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
@@ -1667,9 +1667,9 @@ value_t adm_bpsec_get_num_fwd_bib_bytes_src(tdc_t params)
 
 
 /*
- * Last BPSEC Update from SRC
+ * Last SBSP Update from SRC
  */
-value_t adm_bpsec_get_last_update_src(tdc_t params)
+value_t adm_sbsp_get_last_update_src(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1688,7 +1688,7 @@ value_t adm_bpsec_get_last_update_src(tdc_t params)
 		return result;
 	}
 
-	if(bpsec_instr_get_src_update(name, &time) != ERROR)
+	if(sbsp_instr_get_src_update(name, &time) != ERROR)
 	{
 		result.type = AMP_TYPE_TS;
 		result.value.as_uint = time;
@@ -1707,7 +1707,7 @@ value_t adm_bpsec_get_last_update_src(tdc_t params)
 /*
  * Last reset
  */
-value_t adm_bpsec_get_last_reset(tdc_t params)
+value_t adm_sbsp_get_last_reset(tdc_t params)
 {
 	value_t result;
 	/*
@@ -1715,9 +1715,9 @@ value_t adm_bpsec_get_last_reset(tdc_t params)
 	 * |START CUSTOM FUNCTION get_last_reset BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	bpsec_instr_misc_t misc;
+	sbsp_instr_misc_t misc;
 
-	if(bpsec_instr_get_misc(&misc) == ERROR)
+	if(sbsp_instr_get_misc(&misc) == ERROR)
 	{
 		result.type = AMP_TYPE_UNK;
 		return result;
@@ -1741,7 +1741,7 @@ value_t adm_bpsec_get_last_reset(tdc_t params)
  * This control causes the Agent to reset all counts associated with block or byte statistics and to se
  * t the Last Reset Time of the BPsec EDD data to the time when the control was run.
  */
-tdc_t* adm_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_rst_all_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -1750,7 +1750,7 @@ tdc_t* adm_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_rst_all_cnts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	bpsec_instr_reset();
+	sbsp_instr_reset();
 	*status = CTRL_SUCCESS;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1765,7 +1765,7 @@ tdc_t* adm_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
  * This control causes the Agent to reset all counts (blocks and bytes) associated with a given bundle 
  * source and set the Last Reset Time of the source statistics to the time when the control was run.
  */
-tdc_t* adm_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_rst_src_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -1780,7 +1780,7 @@ tdc_t* adm_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((src = adm_extract_string(params,0,&success)) != NULL)
 	{
-		bpsec_instr_reset_src(src);
+		sbsp_instr_reset_src(src);
 		SRELEASE(src);
 		*status = CTRL_SUCCESS;
 	}
@@ -1797,7 +1797,7 @@ tdc_t* adm_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * This control deletes a key from the BPsec system.
  */
-tdc_t* adm_bpsec_ctrl_delete_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_delete_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -1820,7 +1820,7 @@ tdc_t* adm_bpsec_ctrl_delete_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 	 */
 	if(sec_activeKey(name) != 0)
 	{
-		AMP_DEBUG_WARN("adm_bpsec_ctrl_delete_key","Can't remove active key %s", name);
+		AMP_DEBUG_WARN("adm_sbsp_ctrl_delete_key","Can't remove active key %s", name);
 		SRELEASE(name);
 		return NULL;
 	}
@@ -1843,7 +1843,7 @@ tdc_t* adm_bpsec_ctrl_delete_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * This control adds a key to the BPsec system.
  */
-tdc_t* adm_bpsec_ctrl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -1890,7 +1890,7 @@ tdc_t* adm_bpsec_ctrl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
  * itting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of ty
  * pe target should have a BIB added to them using the given ciphersuite and the given key.
  */
-tdc_t* adm_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_add_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -1928,17 +1928,17 @@ tdc_t* adm_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bib_rule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_sbsp_ctrl_add_bib_rule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bib_rule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_sbsp_ctrl_add_bib_rule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bib_rule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_add_bib_rule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -1959,7 +1959,7 @@ tdc_t* adm_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
  * IB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a sourc
  * e endpoint Id, a destination Id, and a target block type.
  */
-tdc_t* adm_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_del_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -1998,7 +1998,7 @@ tdc_t* adm_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
  * This control returns a table describinng all of the BIB policy rules that are known to the BPsec imp
  * lementation.
  */
-tdc_t* adm_bpsec_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -2007,13 +2007,13 @@ tdc_t* adm_bpsec_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
 	 * |START CUSTOM FUNCTION ctrl_list_bib_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	table_t *table = adm_bpsec_tbl_bib_rules();
+	table_t *table = adm_sbsp_tbl_bib_rules();
 	uint8_t *data = NULL;
 	uint32_t len = 0;
 
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bib_rules", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_list_bib_rules", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -2021,7 +2021,7 @@ tdc_t* adm_bpsec_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
 	if((result = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bib_rules","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_list_bib_rules","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -2031,7 +2031,7 @@ tdc_t* adm_bpsec_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
 		table_destroy(table, 1);
 		tdc_destroy(&result);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bib_rules","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_list_bib_rules","Can't serialize table.", NULL);
 		return NULL;
 	}
 
@@ -2056,7 +2056,7 @@ tdc_t* adm_bpsec_ctrl_list_bib_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
  * itting a bundle from the given source endpoint id to the given destination endpoint id, blocks of ty
  * pe target should have a bcb added to them using the given ciphersuite and the given key.
  */
-tdc_t* adm_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_add_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -2096,17 +2096,17 @@ tdc_t* adm_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bcbrule", "Can't add rule.", NULL);
+				AMP_DEBUG_ERR("adm_sbsp_ctrl_add_bcbrule", "Can't add rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_sbsp_ctrl_add_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_add_bcbrule", "Ciphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_add_bcbrule", "Ciphersuite %s not supported.", cs);
 	}
 
 
@@ -2128,7 +2128,7 @@ tdc_t* adm_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
  * CB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a sourc
  * e endpoint id, a destination endpoint id, and a target block type.
  */
-tdc_t* adm_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_del_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -2167,7 +2167,7 @@ tdc_t* adm_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tdc_t params, int8_t *status)
  * This control returns a table describing all of the bcb policy rules that are known to the BPsec impl
  * ementation
  */
-tdc_t* adm_bpsec_ctrl_list_bcb_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctrl_list_bcb_rules(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	tdc_t* result = NULL;
 	*status = CTRL_FAILURE;
@@ -2176,13 +2176,13 @@ tdc_t* adm_bpsec_ctrl_list_bcb_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
 	 * |START CUSTOM FUNCTION ctrl_list_bcb_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	table_t *table = adm_bpsec_tbl_bcb_rules();
+	table_t *table = adm_sbsp_tbl_bcb_rules();
 	uint8_t *data = NULL;
 	uint32_t len = 0;
 
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcb_rules", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_list_bcb_rules", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -2190,7 +2190,7 @@ tdc_t* adm_bpsec_ctrl_list_bcb_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
 	if((result = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcb_rules","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_list_bcb_rules","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -2200,7 +2200,7 @@ tdc_t* adm_bpsec_ctrl_list_bcb_rules(eid_t *def_mgr, tdc_t params, int8_t *statu
 		table_destroy(table, 1);
 		tdc_destroy(&result);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctrl_list_bcb_rules","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctrl_list_bcb_rules","Can't serialize table.", NULL);
 		return NULL;
 	}
 
