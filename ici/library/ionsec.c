@@ -3413,7 +3413,7 @@ Object sec_get_bspBcbRuleList()
 }
 
 /* Size is the maximum size of a key name. */
-int	sec_get_bpsecNumKeys(int *size)
+int	sec_get_sbspNumKeys(int *size)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -3434,7 +3434,7 @@ int	sec_get_bpsecNumKeys(int *size)
  * Generates NULL-terminated, CSV of key names
  * in the PRE-ALLOCATED buffer of given length.
  */
-void sec_get_bpsecKeys(char *buffer, int length)
+void sec_get_sbspKeys(char *buffer, int length)
 {
 	Sdr	sdr = getIonsdr();
 /*		OBJ_POINTER(SecDB, db);		*/
@@ -3493,7 +3493,7 @@ void sec_get_bpsecKeys(char *buffer, int length)
 	sdr_end_xn(sdr);
 }
 
-int  sec_get_bpsecNumCSNames(int *size)
+int  sec_get_sbspNumCSNames(int *size)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -3513,7 +3513,7 @@ int  sec_get_bpsecNumCSNames(int *size)
 	return result;
 }
 
-void sec_get_bpsecCSNames(char *buffer, int length)
+void sec_get_sbspCSNames(char *buffer, int length)
 {
 	Sdr	sdr = getIonsdr();
 	/*	OBJ_POINTER(SecDB, db);		*/
@@ -3608,7 +3608,7 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 	sdr_exit_xn(sdr);
 }
 
-int  sec_get_bpsecNumSrcEIDs(int *size)
+int  sec_get_sbspNumSrcEIDs(int *size)
 {
 	Sdr	sdr = getIonsdr();
 	/*	OBJ_POINTER(SecDB, db);		*/
@@ -3628,7 +3628,7 @@ int  sec_get_bpsecNumSrcEIDs(int *size)
 	return result;
 }
 
-void sec_get_bpsecSrcEIDs(char *buffer, int length)
+void sec_get_sbspSrcEIDs(char *buffer, int length)
 {
 	Sdr	sdr = getIonsdr();
 	/*	OBJ_POINTER(SecDB, db);		*/

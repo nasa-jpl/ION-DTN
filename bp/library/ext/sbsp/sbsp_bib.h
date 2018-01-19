@@ -6,26 +6,26 @@
  ******************************************************************************/
 /*****************************************************************************
  **
- ** File Name: bpsec_bib.h
+ ** File Name: sbsp_bib.h
  **
  ** Description: Definitions supporting generic processing of BIB blocks.
- **              This includes both the BIB Interface to the ION BPSEC
+ **              This includes both the BIB Interface to the ION SBSP
  **              API as well as a default implementation of the BIB
  **              ASB processing for standard ciphersuite profiles.
  **
- **              BIB BPSEC Interface Call Order:
+ **              BIB SBSP Interface Call Order:
  **              -------------------------------------------------------------
  **
  **                     SEND SIDE                    RECEIVE SIDE
  **
- **              bpsec_bibOffer
- **              bpsec_bibProcessOnDequeue
- **              bpsec_bibRelease
- **              bpsec_bibCopy
- **                                                  bpsec_bibParse
- **                                                  bpsec_bibCheck
- **                                                  bpsec_bibRecord
- **                                                  bpsec_bibClear
+ **              sbsp_bibOffer
+ **              sbsp_bibProcessOnDequeue
+ **              sbsp_bibRelease
+ **              sbsp_bibCopy
+ **                                                  sbsp_bibParse
+ **                                                  sbsp_bibCheck
+ **                                                  sbsp_bibRecord
+ **                                                  sbsp_bibClear
  **
  **
  **              Default Ciphersuite Profile Implementation
@@ -33,12 +33,12 @@
  **
  **                    SIGN SIDE                     VERIFY SIDE
  **
- **              bpsec_bibDefaultConstruct
- **              bpsec_bibDefaultSign
+ **              sbsp_bibDefaultConstruct
+ **              sbsp_bibDefaultSign
  **
- **                                              bpsec_bibDefaultConstruct
- **                                              bpsec_bibDefaultSign
- **                                              bpsec_bibDefaultVerify
+ **                                              sbsp_bibDefaultConstruct
+ **                                              sbsp_bibDefaultSign
+ **                                              sbsp_bibDefaultVerify
  **
  **
  ** Notes:
@@ -55,14 +55,14 @@
  **  02/27/16  E. Birrane     Update to CSI interface.
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-#ifndef BPSEC_BIB_H_
-#define BPSEC_BIB_H_
+#ifndef SBSP_BIB_H_
+#define SBSP_BIB_H_
 
-#include "bpsec_util.h"
+#include "sbsp_util.h"
 #include "profiles.h"
 
-// If bpsec debugging is turned on, then turn on bib debugging.
-#if BPSEC_DEBUGGING == 1
+// If sbsp debugging is turned on, then turn on bib debugging.
+#if SBSP_DEBUGGING == 1
 #define BIB_DEBUGGING 1
 #endif
 
@@ -89,7 +89,7 @@
  *    through the BIB module.
  * 2: Information logging.  Information statements are peppered through the
  *    code to provide insight into the state of the module at processing
- *    points considered useful by BPSEC module software engineers.
+ *    points considered useful by SBSP module software engineers.
  * 3: Warning logging.  Warning statements are used to flag unexpected 
  *    values that, based on context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
@@ -142,57 +142,57 @@
 
 
 
-extern int	   bpsec_bibAttach(Bundle *bundle,
+extern int	   sbsp_bibAttach(Bundle *bundle,
 		                           ExtensionBlock *bibBlk,
-			                       BpsecOutboundBlock *bibAsb);
+			                       SbspOutboundBlock *bibAsb);
 
-extern int         bpsec_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk);
+extern int         sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern void        bpsec_bibClear(AcqExtBlock *blk);
+extern void        sbsp_bibClear(AcqExtBlock *blk);
 
-extern int         bpsec_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
+extern int         sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
 
-extern int      bpsec_bibDefaultCompute(Object dataObj,
+extern int      sbsp_bibDefaultCompute(Object dataObj,
  				   	                       uint32_t chunkSize,
  						                   uint32_t suite,
  						                   void *context,
  						                   csi_svcid_t svc);
 
-extern int	   bpsec_bibDefaultConstruct(uint32_t suite,
+extern int	   sbsp_bibDefaultConstruct(uint32_t suite,
  		                                     ExtensionBlock *blk,
- 											 BpsecOutboundBlock *asb);
+ 											 SbspOutboundBlock *asb);
 
 
-extern uint32_t    bpsec_bibDefaultResultLen(uint32_t suite,
+extern uint32_t    sbsp_bibDefaultResultLen(uint32_t suite,
  		                                     uint8_t tlv);
 
-extern int      bpsec_bibDefaultSign(uint32_t suite,
+extern int      sbsp_bibDefaultSign(uint32_t suite,
  		                                Bundle *bundle,
  		                                ExtensionBlock *blk,
- 		                                BpsecOutboundBlock *asb,
+ 		                                SbspOutboundBlock *asb,
 										uvast *bytes);
 
-extern int      bpsec_bibDefaultVerify(uint32_t suite,
+extern int      sbsp_bibDefaultVerify(uint32_t suite,
  		                                  AcqWorkArea *wk,
  					     				  AcqExtBlock *blk,
 										  uvast *bytes);
 
-extern BibProfile *bpsec_bibGetProfile(char *securitySource,
+extern BibProfile *sbsp_bibGetProfile(char *securitySource,
 		                               char *securityDest,
 			                           int8_t targetBlkType,
 							           BspBibRule *bibRule);
 
-extern int	       bpsec_bibOffer(ExtensionBlock *blk, Bundle *bundle);
+extern int	       sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle);
 
 
-extern int         bpsec_bibParse(AcqExtBlock *blk, AcqWorkArea *wk);
+extern int         sbsp_bibParse(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern int	   bpsec_bibProcessOnDequeue(ExtensionBlock *blk,
+extern int	   sbsp_bibProcessOnDequeue(ExtensionBlock *blk,
 		                              Bundle *bundle,
 		                              void *parm);
 
 
-extern void	       bpsec_bibRelease(ExtensionBlock *blk);
+extern void	       sbsp_bibRelease(ExtensionBlock *blk);
 
 
-#endif /* BPSEC_BIB_H_ */
+#endif /* SBSP_BIB_H_ */

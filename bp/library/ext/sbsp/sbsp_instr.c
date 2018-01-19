@@ -1,14 +1,14 @@
 /*****************************************************************************
  **
- ** File Name: bpsec_instr.c
+ ** File Name: sbsp_instr.c
  **
  ** Description: Definitions supporting the collection of instrumentation
- **              for the BPSEC implementation.
+ **              for the SBSP implementation.
  **
  ** Notes:
- **  - \todo: Consider implementing the BPSEC statistics using Shared Memory
+ **  - \todo: Consider implementing the SBSP statistics using Shared Memory
  **           instead of reading and writing directly to the SDR each time.
- **  - \todo: Consider a command/function to permanently remove BPSEC
+ **  - \todo: Consider a command/function to permanently remove SBSP
  **           instrumentation from the SDR space.
  **
  ** Assumptions:
@@ -20,10 +20,10 @@
  **  07/05/16  E. Birrane     Fixes to SDR recording.(Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-#include "bpsec_util.h"
-#include "bpsec_instr.h"
+#include "sbsp_util.h"
+#include "sbsp_instr.h"
 
-#if (BPSEC_DEBUGGING == 1)
+#if (SBSP_DEBUGGING == 1)
 extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
 
@@ -34,7 +34,7 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *
  * \par Function Name: getBpInstrDb
  *
- * \par Retrieve the BPSEC Instrumentation counters from the SDR.
+ * \par Retrieve the SBSP Instrumentation counters from the SDR.
  *
  * \param[out] result  The instrumentation DB from the SDR.
  * \param[out] addr    THe loaction of the DB in the SDR.
@@ -51,17 +51,17 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
+static int getBpInstrDb(SbspInstrDB *result, Object *addr)
 {
 	static Object dbObj = 0;
 	Sdr sdr = getIonsdr();
-	bpsec_instr_misc_t misc;
+	sbsp_instr_misc_t misc;
 
     CHKERR(sdr_begin_xn(sdr));
 
     if(dbObj == 0)
     {
-    	dbObj = sdr_find(sdr, BPSEC_INSTR_SDR_NAME, NULL);
+    	dbObj = sdr_find(sdr, SBSP_INSTR_SDR_NAME, NULL);
 
     	switch(dbObj)
     	{
@@ -73,23 +73,23 @@ static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
 
     	case 0: /* Not found; Must create new DB. */
 
-    		dbObj = sdr_malloc(sdr, sizeof(BpsecInstrDB));
+    		dbObj = sdr_malloc(sdr, sizeof(SbspInstrDB));
     		result->src = sdr_list_create(sdr);
-    		result->misc = sdr_malloc(sdr, sizeof(bpsec_instr_misc_t));
-    		memset(&misc, 0, sizeof(bpsec_instr_misc_t));
-    		sdr_write(sdr, result->misc, (char *) &misc, sizeof(bpsec_instr_misc_t));
-    		sdr_write(sdr, dbObj, (char *) result, sizeof(BpsecInstrDB));
-    		sdr_catlg(sdr, BPSEC_INSTR_SDR_NAME, 0, dbObj);
+    		result->misc = sdr_malloc(sdr, sizeof(sbsp_instr_misc_t));
+    		memset(&misc, 0, sizeof(sbsp_instr_misc_t));
+    		sdr_write(sdr, result->misc, (char *) &misc, sizeof(sbsp_instr_misc_t));
+    		sdr_write(sdr, dbObj, (char *) result, sizeof(SbspInstrDB));
+    		sdr_catlg(sdr, SBSP_INSTR_SDR_NAME, 0, dbObj);
     		break;
 
     	default: /* Found. */
-    		sdr_read(sdr, (char *) result, dbObj, sizeof(BpsecInstrDB));
+    		sdr_read(sdr, (char *) result, dbObj, sizeof(SbspInstrDB));
     		break;
     	}
     }
     else
     {
-		sdr_read(sdr, (char *) result, dbObj, sizeof(BpsecInstrDB));
+		sdr_read(sdr, (char *) result, dbObj, sizeof(SbspInstrDB));
     }
 
     *addr = dbObj;
@@ -103,9 +103,9 @@ static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_src
+ * \par Function Name: sbsp_instr_get_src
  *
- * \par Retrieve the BPSEC Instrumentation counters from the SDR.
+ * \par Retrieve the SBSP Instrumentation counters from the SDR.
  *
  * \param[in]  eid      The source being queried, or NULL for anonymous
  * \param[out] result   The data for the source.
@@ -125,10 +125,10 @@ static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdrElt, Object *sdrData)
+static int sbsp_instr_get_src(char *eid, sbsp_src_instr_t *result, Object *sdrElt, Object *sdrData)
 {
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB instr_db;
+	SbspInstrDB instr_db;
 	Object elt;
 	Object data;
 	Object dbObj;
@@ -145,8 +145,8 @@ static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdr
 
 	if(eid == NULL)
 	{
-		bpsec_instr_misc_t tmp;
-		sdr_read(sdr, (char *) &tmp, instr_db.misc, sizeof(bpsec_instr_misc_t));
+		sbsp_instr_misc_t tmp;
+		sdr_read(sdr, (char *) &tmp, instr_db.misc, sizeof(sbsp_instr_misc_t));
 		*result = tmp.anon;
 		*sdrData = instr_db.misc;
 		*sdrElt = 0;
@@ -163,7 +163,7 @@ static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdr
 		data = sdr_list_data(sdr, elt);
 
 		/* Read in source item. */
-		sdr_read(sdr, (char *) result, data, sizeof(bpsec_src_instr_t));
+		sdr_read(sdr, (char *) result, data, sizeof(sbsp_src_instr_t));
 
 		if(strcmp(result->eid, eid) == 0)
 		{
@@ -184,9 +184,9 @@ static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdr
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_update
+ * \par Function Name: sbsp_instr_update
  *
- * \par Update the BPSEC Instrumentation counters for a source.
+ * \par Update the SBSP Instrumentation counters for a source.
  *
  * \param[in]  eid      The source being updated, or NULL for anonymous
  * \param[in]  blk      The # blocks counter being updated
@@ -206,34 +206,34 @@ static int bpsec_instr_get_src(char *eid, bpsec_src_instr_t *result, Object *sdr
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e type)
+void sbsp_instr_update(char *src, uvast blk, uvast bytes, sbsp_instr_type_e type)
 {
 	Sdr sdr = getIonsdr();
-	bpsec_src_instr_t instr;
+	sbsp_src_instr_t instr;
 	Object sdrElt = 0;
 	Object sdrData = 0;
 
 	CHKVOID(sdr_begin_xn(sdr));
 
 	/* If we can't find the source to update, then add it. */
-	if((bpsec_instr_get_src(src, &instr, &sdrElt, &sdrData)) == ERROR)
+	if((sbsp_instr_get_src(src, &instr, &sdrElt, &sdrData)) == ERROR)
 	{
-		BpsecInstrDB result;
+		SbspInstrDB result;
 		Object dbObj;
 
 		if(getBpInstrDb(&result, &dbObj) == ERROR)
 		{
-			BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+			SBSP_DEBUG_ERR("Can't retrieve SBSP Instr DB.", NULL);
 			sdr_cancel_xn(sdr);
 			return;
 		}
 
-		memset(&instr, 0, sizeof(bpsec_src_instr_t));
+		memset(&instr, 0, sizeof(sbsp_src_instr_t));
 		istrcpy(instr.eid, src, MAX_EID_LEN);
 
-		if((sdrData = sdr_insert(sdr, (char *) &instr, sizeof(bpsec_src_instr_t))) == 0)
+		if((sdrData = sdr_insert(sdr, (char *) &instr, sizeof(sbsp_src_instr_t))) == 0)
 		{
-			BPSEC_DEBUG_ERR("Can't allocate %d bytes to SDR.", sizeof(bpsec_src_instr_t));
+			SBSP_DEBUG_ERR("Can't allocate %d bytes to SDR.", sizeof(sbsp_src_instr_t));
 			sdr_cancel_xn(sdr);
 			return;
 		}
@@ -296,7 +296,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 	instr.last_update = getUTCTime();
 
 
-	sdr_write(sdr, sdrData, (char *) &instr, sizeof(bpsec_src_instr_t));
+	sdr_write(sdr, sdrData, (char *) &instr, sizeof(sbsp_src_instr_t));
 
  	sdr_end_xn(sdr);
 }
@@ -305,7 +305,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_cleanup
+ * \par Function Name: sbsp_instr_cleanup
  *
  * \par Cleans up any memory resources taken by the instrumentation counters.
  *
@@ -319,7 +319,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_cleanup()
+void sbsp_instr_cleanup()
 {
 
 }
@@ -328,7 +328,7 @@ void bpsec_instr_cleanup()
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_clear_src
+ * \par Function Name: sbsp_instr_clear_src
  *
  * \par Clears the counters associated with a given source and updated the
  *      last reset time.
@@ -344,7 +344,7 @@ void bpsec_instr_cleanup()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_clear_src(Object sdrElt)
+void sbsp_instr_clear_src(Object sdrElt)
 {
 	Sdr sdr = getIonsdr();
 	Object sdrData = 0;
@@ -370,7 +370,7 @@ void bpsec_instr_clear_src(Object sdrElt)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_misc
+ * \par Function Name: sbsp_instr_get_misc
  *
  * \par Retrieve statistics for miscellaneous sources.
  *
@@ -388,10 +388,10 @@ void bpsec_instr_clear_src(Object sdrElt)
  *  07/05/16  E. Birrane     Init result to 0. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
+int sbsp_instr_get_misc(sbsp_instr_misc_t *result)
 {
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB instr_db;
+	SbspInstrDB instr_db;
 	Object dbObj;
 
 	CHKERR(result);
@@ -401,10 +401,10 @@ int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
 		return ERROR;
 	}
 
-	memset(result, 0, sizeof(bpsec_instr_misc_t));
+	memset(result, 0, sizeof(sbsp_instr_misc_t));
 
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) result, instr_db.misc, sizeof(bpsec_instr_misc_t));
+	sdr_read(sdr, (char *) result, instr_db.misc, sizeof(sbsp_instr_misc_t));
 	sdr_end_xn(sdr);
 
 	return 1;
@@ -413,9 +413,9 @@ int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_clear
+ * \par Function Name: sbsp_instr_clear
  *
- * \par Clear all BPSEC Instrumentation statistics.
+ * \par Clear all SBSP Instrumentation statistics.
  *
  * \par Notes:
  *
@@ -428,31 +428,31 @@ int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_clear()
+int sbsp_instr_clear()
 {
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB result;
-	bpsec_instr_misc_t tmp;
+	SbspInstrDB result;
+	sbsp_instr_misc_t tmp;
 	Object sdrElt;
 	Object dbObj;
 
 	if(getBpInstrDb(&result, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		SBSP_DEBUG_ERR("Can't retrieve SBSP Instr DB.", NULL);
 		return ERROR;
 	}
 
 	/* Clear misc instr. data. */
-	memset(&tmp, 0, sizeof(bpsec_instr_misc_t));
+	memset(&tmp, 0, sizeof(sbsp_instr_misc_t));
 
 	CHKERR(sdr_begin_xn(sdr));
 
-	sdr_write(sdr, result.misc, (char *) &tmp, sizeof(bpsec_instr_misc_t));
+	sdr_write(sdr, result.misc, (char *) &tmp, sizeof(sbsp_instr_misc_t));
 
 	/* Clear each source. */
 	for(sdrElt = sdr_list_first(sdr, result.src); sdrElt; sdrElt = sdr_list_first(sdr, sdrElt))
 	{
-		bpsec_instr_clear_src(sdrElt);
+		sbsp_instr_clear_src(sdrElt);
 	}
 
 	sdr_end_xn(sdr);
@@ -464,9 +464,9 @@ int bpsec_instr_clear()
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_src_blk
+ * \par Function Name: sbsp_instr_get_src_blk
  *
- * \par Retrieve block statistics for a single BPSEC source.
+ * \par Retrieve block statistics for a single SBSP source.
  *
  * \param[in]  src_id  The source whose statistics are being queried.
  * \param[in]  type    The type of block statistic being queried.
@@ -483,17 +483,17 @@ int bpsec_instr_clear()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *result)
+int  sbsp_instr_get_src_blk(char *src_id, sbsp_instr_type_e type, uvast *result)
 {
-	bpsec_src_instr_t src;
+	sbsp_src_instr_t src;
 	Object sdrElt = 0;
 	Object sdrData = 0;
 	CHKERR(result);
 
-	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
+	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
 		/* Not necessarily an error, if query a source that does not exist. */
-		BPSEC_DEBUG_INFO("bpsec_instr_get_src_blk","Can't get id for src %s", src_id);
+		SBSP_DEBUG_INFO("sbsp_instr_get_src_blk","Can't get id for src %s", src_id);
 		return ERROR;
 	}
 
@@ -512,7 +512,7 @@ int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *resul
 	case BIB_RX_MISS: *result = src.bib_blk_rx_miss; break;
 	case BIB_FWD:     *result = src.bib_blk_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_src_blk","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_src_blk","Unknown type %d", type);
 		return ERROR;
 	}
 
@@ -523,9 +523,9 @@ int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *resul
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_src_bytes
+ * \par Function Name: sbsp_instr_get_src_bytes
  *
- * \par Retrieve bytes statistics for a single BPSEC source.
+ * \par Retrieve bytes statistics for a single SBSP source.
  *
  * \param[in]  src_id  The source whose statistics are being queried.
  * \param[in]  type    The type of byte statistic being queried.
@@ -542,17 +542,17 @@ int  bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *resul
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *result)
+int  sbsp_instr_get_src_bytes(char *src_id, sbsp_instr_type_e type, uvast *result)
 {
-	bpsec_src_instr_t src;
+	sbsp_src_instr_t src;
 	Object sdrElt = 0;
 	Object sdrData = 0;
 	CHKERR(result);
 
-	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
+	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
 		/* Not necessarily an error, if query a source that does not exist. */
-		BPSEC_DEBUG_INFO("bpsec_instr_get_src_bytes","Can't get id for src %c", src_id);
+		SBSP_DEBUG_INFO("sbsp_instr_get_src_bytes","Can't get id for src %c", src_id);
 		return ERROR;
 	}
 
@@ -571,7 +571,7 @@ int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *res
 	case BIB_RX_MISS: *result = src.bib_byte_rx_miss; break;
 	case BIB_FWD:     *result = src.bib_byte_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_src_bytes","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_src_bytes","Unknown type %d", type);
 		return ERROR;
 	}
 
@@ -582,9 +582,9 @@ int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *res
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_src_update
+ * \par Function Name: sbsp_instr_get_src_update
  *
- * \par Retrieve the last update time for a BPSEC source.
+ * \par Retrieve the last update time for a SBSP source.
  *
  * \param[in]  src_id  The source whose update time is being queried.
  * \param[out] result  The update time.
@@ -600,17 +600,17 @@ int  bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *res
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_get_src_update(char *src_id, time_t *result)
+int sbsp_instr_get_src_update(char *src_id, time_t *result)
 {
-	bpsec_src_instr_t src;
+	sbsp_src_instr_t src;
 	Object sdrElt = 0;
 	Object sdrData = 0;
 
 	CHKERR(result);
 
-	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
+	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("bpsec_instr_get_src_bytes","Can't get id for src %c", src_id);
+		SBSP_DEBUG_ERR("sbsp_instr_get_src_bytes","Can't get id for src %c", src_id);
 		return ERROR;
 	}
 
@@ -623,7 +623,7 @@ int bpsec_instr_get_src_update(char *src_id, time_t *result)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_total_blk
+ * \par Function Name: sbsp_instr_get_total_blk
  *
  * \par Retrieve block statistics summed across all sources
  *
@@ -641,12 +641,12 @@ int bpsec_instr_get_src_update(char *src_id, time_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
+int sbsp_instr_get_total_blk(sbsp_instr_type_e type, uvast *result)
 {
-	bpsec_src_instr_t src;
-	bpsec_instr_misc_t misc;
+	sbsp_src_instr_t src;
+	sbsp_instr_misc_t misc;
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB instr_db;
+	SbspInstrDB instr_db;
 	Object elt;
 	Object addr;
 	Object dbObj;
@@ -657,13 +657,13 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		SBSP_DEBUG_ERR("Can't retrieve SBSP Instr DB.", NULL);
 		return ERROR;
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
 
-	sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(bpsec_instr_misc_t));
+	sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(sbsp_instr_misc_t));
 
 	switch(type)
 	{
@@ -680,7 +680,7 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result += misc.anon.bib_blk_rx_miss; break;
 	case BIB_FWD:     *result += misc.anon.bib_blk_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_total_blk","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_total_blk","Unknown type %d", type);
 		sdr_cancel_xn(sdr);
 
 		return ERROR;
@@ -690,7 +690,7 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &src, addr, sizeof(bpsec_src_instr_t));
+		sdr_read(sdr, (char *) &src, addr, sizeof(sbsp_src_instr_t));
 
 		switch(type)
 		{
@@ -707,7 +707,7 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 		case BIB_RX_MISS: *result += src.bib_blk_rx_miss; break;
 		case BIB_FWD:     *result += src.bib_blk_fwd; break;
 		default:
-			BPSEC_DEBUG_ERR("bpsec_instr_get_total_blk","Unknown type %d", type);
+			SBSP_DEBUG_ERR("sbsp_instr_get_total_blk","Unknown type %d", type);
 			sdr_cancel_xn(sdr);
 
 			return ERROR;
@@ -723,7 +723,7 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_total_bytes
+ * \par Function Name: sbsp_instr_get_total_bytes
  *
  * \par Retrieve byte statistics summed across all sources
  *
@@ -741,12 +741,12 @@ int bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
+int sbsp_instr_get_total_bytes(sbsp_instr_type_e type, uvast *result)
 {
-	bpsec_src_instr_t src;
-	bpsec_instr_misc_t misc;
+	sbsp_src_instr_t src;
+	sbsp_instr_misc_t misc;
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB instr_db;
+	SbspInstrDB instr_db;
 	Object elt;
 	Object addr;
 	Object dbObj;
@@ -757,13 +757,13 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		SBSP_DEBUG_ERR("Can't retrieve SBSP Instr DB.", NULL);
 		return ERROR;
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
 
-	oK(sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(bpsec_instr_misc_t)));
+	oK(sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(sbsp_instr_misc_t)));
 
 	switch(type)
 	{
@@ -780,7 +780,7 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result += misc.anon.bib_byte_rx_miss; break;
 	case BIB_FWD:     *result += misc.anon.bib_byte_fwd; break;
 	default:
-		BPSEC_DEBUG_ERR("bpsec_instr_get_total_byte","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_total_byte","Unknown type %d", type);
 		sdr_cancel_xn(sdr);
 
 		return ERROR;
@@ -789,7 +789,7 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &src, addr, sizeof(bpsec_src_instr_t));
+		sdr_read(sdr, (char *) &src, addr, sizeof(sbsp_src_instr_t));
 
 		switch(type)
 		{
@@ -806,7 +806,7 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 		case BIB_RX_MISS: *result += src.bib_byte_rx_miss; break;
 		case BIB_FWD:     *result += src.bib_byte_fwd; break;
 		default:
-			BPSEC_DEBUG_ERR("bpsec_instr_get_total_byte","Unknown type %d", type);
+			SBSP_DEBUG_ERR("sbsp_instr_get_total_byte","Unknown type %d", type);
 			sdr_cancel_xn(sdr);
 
 			return ERROR;
@@ -822,9 +822,9 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_tot_update
+ * \par Function Name: sbsp_instr_get_tot_update
  *
- * \par Retrieve the last update time for any BPSEC source.
+ * \par Retrieve the last update time for any SBSP source.
  *
  * \param[out] result  The last update time.
  *
@@ -839,11 +839,11 @@ int bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int  bpsec_instr_get_tot_update(time_t *result)
+int  sbsp_instr_get_tot_update(time_t *result)
 {
-	bpsec_src_instr_t src;
+	sbsp_src_instr_t src;
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB instr_db;
+	SbspInstrDB instr_db;
 	Object elt;
 	Object addr;
 	Object dbObj;
@@ -854,7 +854,7 @@ int  bpsec_instr_get_tot_update(time_t *result)
 
 	if(getBpInstrDb(&instr_db, &dbObj) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		SBSP_DEBUG_ERR("Can't retrieve SBSP Instr DB.", NULL);
 		return ERROR;
 	}
 
@@ -862,7 +862,7 @@ int  bpsec_instr_get_tot_update(time_t *result)
 	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &src, addr, sizeof(bpsec_src_instr_t));
+		sdr_read(sdr, (char *) &src, addr, sizeof(sbsp_src_instr_t));
 
 		if(src.last_update > *result)
 		{
@@ -877,9 +877,9 @@ int  bpsec_instr_get_tot_update(time_t *result)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_num_keys
+ * \par Function Name: sbsp_instr_get_num_keys
  *
- * \par Retrieve the number of keys known to BPSEC.
+ * \par Retrieve the number of keys known to SBSP.
  *
  * \par Notes:
  *
@@ -891,19 +891,19 @@ int  bpsec_instr_get_tot_update(time_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-uint32_t bpsec_instr_get_num_keys()
+uint32_t sbsp_instr_get_num_keys()
 {
 	int size;
-	return (uint32_t) sec_get_bpsecNumKeys(&size);
+	return (uint32_t) sec_get_sbspNumKeys(&size);
 }
 
 
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_keynames
+ * \par Function Name: sbsp_instr_get_keynames
  *
- * \par Retrieve the key names known to BPSEC as a comma-separated string.
+ * \par Retrieve the key names known to SBSP as a comma-separated string.
  *
  * \par Notes:
  *
@@ -916,14 +916,14 @@ uint32_t bpsec_instr_get_num_keys()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-char *bpsec_instr_get_keynames()
+char *sbsp_instr_get_keynames()
 {
 	int size = 0;
 	int num_keys = 0;
 	uint32_t total_size = 0;
 	char *result = NULL;
 
-	num_keys = sec_get_bpsecNumKeys(&size);
+	num_keys = sec_get_sbspNumKeys(&size);
 
 	/* Total size is size of each key, plus 1 character
 	 * per key for a comma to separate values, plus
@@ -932,11 +932,11 @@ char *bpsec_instr_get_keynames()
 	total_size = (num_keys * size) + num_keys + 1;
 	if((result = MTAKE(total_size)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_instr_get_keynames: Can't allocate %d bytes", total_size);
+		SBSP_DEBUG_ERR("x sbsp_instr_get_keynames: Can't allocate %d bytes", total_size);
 		return NULL;
 	}
 
-	sec_get_bpsecKeys(result, total_size);
+	sec_get_sbspKeys(result, total_size);
 
 	return result;
 }
@@ -944,9 +944,9 @@ char *bpsec_instr_get_keynames()
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_csnames
+ * \par Function Name: sbsp_instr_get_csnames
  *
- * \par Retrieve the ciphersuite names known to BPSEC as a comma-separated string.
+ * \par Retrieve the ciphersuite names known to SBSP as a comma-separated string.
  *
  * \par Notes:
  *
@@ -959,14 +959,14 @@ char *bpsec_instr_get_keynames()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-char * bpsec_instr_get_csnames()
+char * sbsp_instr_get_csnames()
 {
 	int size = 0;
 	int num = 0;
 	uint32_t total_size = 0;
 	char *result = NULL;
 
-	num = sec_get_bpsecNumCSNames(&size);
+	num = sec_get_sbspNumCSNames(&size);
 
 	/* Total size is size of each key, plus 1 character
 	 * per key for a comma to separate values, plus
@@ -975,11 +975,11 @@ char * bpsec_instr_get_csnames()
 	total_size = (num * size) + num + 1;
 	if((result = MTAKE(total_size)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_instr_get_csnames: Can't allocate %d bytes", total_size);
+		SBSP_DEBUG_ERR("x sbsp_instr_get_csnames: Can't allocate %d bytes", total_size);
 		return NULL;
 	}
 
-	sec_get_bpsecCSNames(result, total_size);
+	sec_get_sbspCSNames(result, total_size);
 
 	return result;
 }
@@ -988,9 +988,9 @@ char * bpsec_instr_get_csnames()
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_get_srcnames
+ * \par Function Name: sbsp_instr_get_srcnames
  *
- * \par Retrieve the sources known to BPSEC as a comma-separated string.
+ * \par Retrieve the sources known to SBSP as a comma-separated string.
  *
  * \par Notes:
  *    - \todo We pre-allocate space for full EID names, which is space wasteful,
@@ -1007,13 +1007,13 @@ char * bpsec_instr_get_csnames()
  *  07/05/16  E. Birrane     Updated to use source names from SDR. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-char * bpsec_instr_get_srcnames()
+char * sbsp_instr_get_srcnames()
 {
 	Sdr sdr = getIonsdr();
-	BpsecInstrDB result;
+	SbspInstrDB result;
 	Object addr = 0;
 	Object data = 0;
-	bpsec_src_instr_t tmp;
+	sbsp_src_instr_t tmp;
 	Object sdrElt = 0;
 	uint32_t num = 0;
 	uint32_t total_size = 0;
@@ -1023,7 +1023,7 @@ char * bpsec_instr_get_srcnames()
 
 	if(getBpInstrDb(&result, &addr) == ERROR)
 	{
-		BPSEC_DEBUG_ERR("Can't retrieve BPSEC Instr DB.", NULL);
+		SBSP_DEBUG_ERR("Can't retrieve SBSP Instr DB.", NULL);
 		return NULL;
 	}
 
@@ -1038,7 +1038,7 @@ char * bpsec_instr_get_srcnames()
 	total_size = (num * MAX_EID_LEN) + num + 1;
 	if((names = MTAKE(total_size)) == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_instr_get_srcnames: Can't allocate %d bytes", total_size);
+		SBSP_DEBUG_ERR("x sbsp_instr_get_srcnames: Can't allocate %d bytes", total_size);
 		sdr_cancel_xn(sdr);
 		return NULL;
 	}
@@ -1051,7 +1051,7 @@ char * bpsec_instr_get_srcnames()
 		data = sdr_list_data(sdr, sdrElt);
 
      	/* Read in source item. */
-		sdr_read(sdr, (char *) &tmp, data, sizeof(bpsec_src_instr_t));
+		sdr_read(sdr, (char *) &tmp, data, sizeof(sbsp_src_instr_t));
 
 		if(first == 0)
 		{
@@ -1074,9 +1074,9 @@ char * bpsec_instr_get_srcnames()
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_init
+ * \par Function Name: sbsp_instr_init
  *
- * \par Initialize the BPSEC Instrumentation.
+ * \par Initialize the SBSP Instrumentation.
  *
  * \par Notes:
  *    - \todo: This function may not be needed with the SDR_only approach, and
@@ -1091,9 +1091,9 @@ char * bpsec_instr_get_srcnames()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_init()
+int sbsp_instr_init()
 {
-	BpsecInstrDB tmp;
+	SbspInstrDB tmp;
 	Object dbObj;
 
 	return getBpInstrDb(&tmp, &dbObj);
@@ -1103,9 +1103,9 @@ int bpsec_instr_init()
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_reset
+ * \par Function Name: sbsp_instr_reset
  *
- * \par Reset all BPSEC instrumentation.
+ * \par Reset all SBSP instrumentation.
  *
  * \par Notes:
  *
@@ -1115,18 +1115,18 @@ int bpsec_instr_init()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_reset()
+void sbsp_instr_reset()
 {
-	bpsec_instr_clear();
+	sbsp_instr_clear();
 }
 
 
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_instr_reset_src
+ * \par Function Name: sbsp_instr_reset_src
  *
- * \par Reset BPSEC instrumentation for a specific source.
+ * \par Reset SBSP instrumentation for a specific source.
  *
  * \param [in]  src_id  The source whose counters should be reset.
  *
@@ -1138,18 +1138,18 @@ void bpsec_instr_reset()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_reset_src(char *src_id)
+void sbsp_instr_reset_src(char *src_id)
 {
-	bpsec_src_instr_t src;
+	sbsp_src_instr_t src;
 	Object sdrElt = 0;
 	Object sdrData = 0;
 
-	if(bpsec_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
+	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
 		return;
 	}
 
-	bpsec_instr_clear_src(sdrElt);
+	sbsp_instr_clear_src(sdrElt);
 
 }
 
@@ -1163,19 +1163,19 @@ typedef struct
 {
 	sm_SemId mutex;
 	PsmAddress src;
-	bpsec_instr_misc_t misc;
-} BpsecInstrVdb;
+	sbsp_instr_misc_t misc;
+} SbspInstrVdb;
 
 
-static BpsecInstrVdb *getBpInstrVDb()
+static SbspInstrVdb *getBpInstrVDb()
 {
-	static BpsecInstrVdb	*vdb = NULL;
+	static SbspInstrVdb	*vdb = NULL;
 	PsmPartition	wm;
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
 	Sdr		sdr;
 
-	char name[32] = "bpsec_instr";
+	char name[32] = "sbsp_instr";
 
 	/ * On the first function call, grab the virtual db. * /
 	if(vdb == NULL)
@@ -1186,37 +1186,37 @@ static BpsecInstrVdb *getBpInstrVDb()
 
 		if (psm_locate(wm, name, &vdbAddress, &elt) < 0)
 		{
-			putErrmsg("Failed searching for bpsec vdb.", NULL);
+			putErrmsg("Failed searching for sbsp vdb.", NULL);
 			return vdb;
 		}
 
 		if (elt)
 		{
-			vdb = (BpsecInstrVdb*) psp(wm, vdbAddress);
+			vdb = (SbspInstrVdb*) psp(wm, vdbAddress);
 			return vdb;
 		}
 		else
 		{
 			sdr = getIonsdr();
 			CHKNULL(sdr_begin_xn(sdr));	/ *	To lock memory.	* /
-			vdbAddress = psm_zalloc(wm, sizeof(BpsecInstrVdb));
+			vdbAddress = psm_zalloc(wm, sizeof(SbspInstrVdb));
 			if (vdbAddress == 0)
 			{
 				sdr_cancel_xn(sdr);
-				putErrmsg("No space for bpsec dynamic database.", NULL);
+				putErrmsg("No space for sbsp dynamic database.", NULL);
 				return NULL;
 			}
 
-			vdb = (BpsecInstrVdb *) psp(wm, vdbAddress);
+			vdb = (SbspInstrVdb *) psp(wm, vdbAddress);
 
-			memset((char *) vdb, 0, sizeof(BpsecInstrVdb));
+			memset((char *) vdb, 0, sizeof(SbspInstrVdb));
 
 			/ *	Volatile database doesn't exist yet.		* /
 			if(((vdb->src = sm_list_create(wm)) == 0) ||
 			  (psm_catlg(wm, name, vdbAddress) < 0))
 			{
 				sdr_cancel_xn(sdr);
-				putErrmsg("Can't initialize bpsec volatile database.", NULL);
+				putErrmsg("Can't initialize sbsp volatile database.", NULL);
 				return NULL;
 			}
 
@@ -1232,11 +1232,11 @@ static BpsecInstrVdb *getBpInstrVDb()
 }
 
 
-static bpsec_src_instr_t *bpsec_instr_get_src(char *eid, Object *addr)
+static sbsp_src_instr_t *sbsp_instr_get_src(char *eid, Object *addr)
 {
 	PsmAddress elt;
 	PsmPartition bpwm = getIonwm();
-	BpsecInstrVdb *instr_vdb = getBpInstrDb();
+	SbspInstrVdb *instr_vdb = getBpInstrDb();
 
 	CHKNULL(instr_vdb);
 
@@ -1248,7 +1248,7 @@ static bpsec_src_instr_t *bpsec_instr_get_src(char *eid, Object *addr)
 	for(elt = sm_list_first(bpwm, instr_vdb->src); elt; elt = sm_list_next(bpwm, elt))
 	{
 		PsmAddress addr = sm_list_data(bpwm, elt);
-		bpsec_src_instr_t *instr = (bpsec_src_instr_t*) psp(bpwm, addr);
+		sbsp_src_instr_t *instr = (sbsp_src_instr_t*) psp(bpwm, addr);
 
 		if(instr != NULL)
 		{
@@ -1266,10 +1266,10 @@ static bpsec_src_instr_t *bpsec_instr_get_src(char *eid, Object *addr)
 }
 
 
-void bpsec_instr_cleanup()
+void sbsp_instr_cleanup()
 {
 
-	BpsecInstrVdb *instr_vdb = getBpInstrDb();
+	SbspInstrVdb *instr_vdb = getBpInstrDb();
 	PsmAddress	elt;
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	addr;
@@ -1290,32 +1290,32 @@ void bpsec_instr_cleanup()
 
 
 	PsmAddress	vdbAddress;
-	char name[32] = "bpsec_instr";
+	char name[32] = "sbsp_instr";
 	psm_locate(bpwm, name, &vdbAddress, &elt);
 	psm_free(bpwm, vdbAddress);
 }
 
-int bpsec_instr_init()
+int sbsp_instr_init()
 {
 	Sdr sdr = getIonsdr();
-	BpsecInstrVdb *instr_vdb = getBpInstrDb();
-	BpsecInstrDB instr_db;
+	SbspInstrVdb *instr_vdb = getBpInstrDb();
+	SbspInstrDB instr_db;
 	Object dbObj;
     Object elt;
-    bpsec_src_instr_t* cur_src;
-    bpsec_src_instr_t* tmp_src;
+    sbsp_src_instr_t* cur_src;
+    sbsp_src_instr_t* tmp_src;
     PsmAddress	addr;
 	PsmPartition	bpwm = getIonwm();
 
     CHKERR(instr_vdb);
 
 	/ * Initialize the non-volatile database. * /
-	memset((char*) &instr_db, 0, sizeof(BpsecInstrDB));
+	memset((char*) &instr_db, 0, sizeof(SbspInstrDB));
 
-	/ * Recover the BPSEC Instr database, creating it if necessary. * /
+	/ * Recover the SBSP Instr database, creating it if necessary. * /
 	CHKERR(sdr_begin_xn(sdr));
 
-	dbObj = sdr_find(sdr, "bpsec_instr", NULL);
+	dbObj = sdr_find(sdr, "sbsp_instr", NULL);
 
 	switch(dbObj)
 	{
@@ -1325,37 +1325,37 @@ int bpsec_instr_init()
 			break;
 
 		case 0: / / Not found; Must create new DB. * /
-			dbObj = sdr_malloc(sdr, sizeof(BpsecInstrDB));
+			dbObj = sdr_malloc(sdr, sizeof(SbspInstrDB));
 			instr_db.src = sdr_list_create(sdr);
-			instr_db.misc = sdr_malloc(sdr, sizeof(bpsec_instr_misc_t));
+			instr_db.misc = sdr_malloc(sdr, sizeof(sbsp_instr_misc_t));
 
-			sdr_write(sdr, dbObj, (char *) &instr_db, sizeof(BpsecInstrDB));
-			sdr_catlg(sdr, "bpsec_instr", 0, dbObj);
+			sdr_write(sdr, dbObj, (char *) &instr_db, sizeof(SbspInstrDB));
+			sdr_catlg(sdr, "sbsp_instr", 0, dbObj);
 			break;
 
 		default:  / * Found DB in the SDR * /
 			/ * Read in the Database. * /
-			sdr_read(sdr, (char *) &instr_db, dbObj, sizeof(BpsecInstrDB));
-			sdr_read(sdr, (char *) &(instr_vdb->misc), instr_db.misc, sizeof(bpsec_instr_misc_t));
+			sdr_read(sdr, (char *) &instr_db, dbObj, sizeof(SbspInstrDB));
+			sdr_read(sdr, (char *) &(instr_vdb->misc), instr_db.misc, sizeof(sbsp_instr_misc_t));
 
 			for (elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_next(sdr, elt))
 			{
 
 				/ * Create space for source item being read in from DB. * /
-				if((addr = psm_malloc(bpwm, sizeof(bpsec_src_instr_t))) == 0)
+				if((addr = psm_malloc(bpwm, sizeof(sbsp_src_instr_t))) == 0)
 				{
 					sdr_cancel_xn(sdr);
 					return ERROR;
 				}
-				cur_src = (bpsec_src_instr_t *) psp(bpwm, addr);
+				cur_src = (sbsp_src_instr_t *) psp(bpwm, addr);
 
 				/ * Read in source item. * /
 				sdr_read(sdr, (char *) cur_src, sdr_list_data(sdr, elt),
-			                    sizeof(bpsec_src_instr_t));
+			                    sizeof(sbsp_src_instr_t));
 
 				/ * See if VDB already has this item. If so, DB overwrites DB.
 				 * if not, just add the read-in item to the list. * /
-				if((tmp_src = bpsec_instr_get_src(cur_src->eid)) == NULL)
+				if((tmp_src = sbsp_instr_get_src(cur_src->eid)) == NULL)
 				{
 					if((sm_list_insert_last(bpwm, instr_vdb->src, addr)) == 0)
 					{
@@ -1380,25 +1380,25 @@ int bpsec_instr_init()
 }
 
 
-void bpsec_instr_reset()
+void sbsp_instr_reset()
 {
 	PsmAddress elt;
 	PsmPartition bpwm = getIonwm();
-	bpsec_src_instr_t *instr = NULL;
-	BpsecInstrVdb *instr_vdb = getBpInstrDb();
+	sbsp_src_instr_t *instr = NULL;
+	SbspInstrVdb *instr_vdb = getBpInstrDb();
 
 	CHKVOID(instr_vdb);
 
 	sm_SemTake(instr_vdb->mutex);
 
-	bpsec_instr_clear_src(&(instr_vdb->misc.anon));
+	sbsp_instr_clear_src(&(instr_vdb->misc.anon));
 
 
 	for(elt = sm_list_first(bpwm, instr_vdb->src); elt; elt = sm_list_next(bpwm, elt))
 	{
 		PsmAddress addr = sm_list_data(bpwm, elt);
-		instr = (bpsec_src_instr_t *) psp(bpwm, addr);
-		bpsec_instr_clear_src(instr);
+		instr = (sbsp_src_instr_t *) psp(bpwm, addr);
+		sbsp_instr_clear_src(instr);
 	}
 	instr_vdb->misc.last_reset = getUTCTime();
 
@@ -1406,17 +1406,17 @@ void bpsec_instr_reset()
 }
 
 
-void bpsec_instr_reset_src(char *src)
+void sbsp_instr_reset_src(char *src)
 {
-	bpsec_src_instr_t *instr = NULL;
-	BpsecInstrVdb *instr_vdb = getBpInstrDb();
+	sbsp_src_instr_t *instr = NULL;
+	SbspInstrVdb *instr_vdb = getBpInstrDb();
 
 	CHKVOID(instr_vdb);
 	sm_SemTake(instr_vdb->mutex);
 
-	if((instr = bpsec_instr_get_src(src)) != NULL)
+	if((instr = sbsp_instr_get_src(src)) != NULL)
 	{
-		bpsec_instr_clear_src(instr);
+		sbsp_instr_clear_src(instr);
 	}
 
 	sm_SemGive(instr_vdb->mutex);

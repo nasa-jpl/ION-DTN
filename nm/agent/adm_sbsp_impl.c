@@ -1,8 +1,8 @@
 /*****************************************************************************
  **
- ** File Name: adm_bpsec_impl.c
+ ** File Name: adm_sbsp_impl.c
  **
- ** Description: This implements the private aspects of a BPSEC ADM.
+ ** Description: This implements the private aspects of an SBSP ADM.
  **
  ** Notes:
  **
@@ -19,23 +19,23 @@
 #include "../shared/adm/adm.h"
 
 #include "../shared/primitives/value.h"
-#include "adm_bpsec_impl.h"
+#include "adm_sbsp_impl.h"
 #include "../shared/primitives/report.h"
 #include "rda.h"
 #include "../shared/primitives/ctrl.h"
 #include "agent_db.h"
 #include "../shared/primitives/table.h"
 
-#include "../shared/adm/adm_bpsec.h"
+#include "../shared/adm/adm_sbsp.h"
 #include "profiles.h"
 
 /* Meta-Data Functions. */
-value_t adm_bpsec_md_name(tdc_t params)
+value_t adm_sbsp_md_name(tdc_t params)
 {
-	return val_from_string("BPSEC ADM");
+	return val_from_string("SBSP ADM");
 }
 
-value_t adm_bpsec_md_ver(tdc_t params)
+value_t adm_sbsp_md_ver(tdc_t params)
 {
 	return val_from_string("2016_05_16");
 }
@@ -43,7 +43,7 @@ value_t adm_bpsec_md_ver(tdc_t params)
 /* Retrieval Functions. */
 
 
-static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, query_type_e query)
+static value_t adm_sbsp_get_src_val(tdc_t params, sbsp_instr_type_e type, query_type_e query)
 {
 	value_t result;
 	char *eid_id = NULL;
@@ -60,8 +60,8 @@ static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, quer
 
 	switch(query)
 	{
-	case SRC_BLK:     success = bpsec_instr_get_src_blk(eid_id, type, &num); break;
-	case SRC_BYTES:   success = bpsec_instr_get_src_bytes(eid_id, type, &num); break;
+	case SRC_BLK:     success = sbsp_instr_get_src_blk(eid_id, type, &num); break;
+	case SRC_BYTES:   success = sbsp_instr_get_src_bytes(eid_id, type, &num); break;
 	default: success = ERROR; break;
 	}
 
@@ -76,7 +76,7 @@ static value_t adm_bpsec_get_src_val(tdc_t params, bpsec_instr_type_e type, quer
 	return result;
 }
 
-static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query)
+static value_t adm_sbsp_get_tot_val(sbsp_instr_type_e type, query_type_e query)
 {
 	value_t result;
 	uvast num = 0;
@@ -84,8 +84,8 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 
 	switch(query)
 	{
-	case TOTAL_BLK:   success = bpsec_instr_get_total_blk(type, &num); break;
-	case TOTAL_BYTES: success = bpsec_instr_get_total_bytes(type, &num); break;
+	case TOTAL_BLK:   success = sbsp_instr_get_total_blk(type, &num); break;
+	case TOTAL_BYTES: success = sbsp_instr_get_total_bytes(type, &num); break;
 	default: success = ERROR; break;
 	}
 
@@ -105,152 +105,152 @@ static value_t adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query
 
 
 
-value_t adm_bpsec_get_tot_good_tx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_tot_good_tx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_fail_tx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_tot_fail_tx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_good_rx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_tot_good_rx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_fail_rx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_tot_fail_rx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_missing_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_tot_missing_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_forward_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_tot_forward_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_good_tx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_good_tx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_fail_tx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_fail_tx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_good_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_good_rx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_fail_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_fail_rx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_missing_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_missing_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_forward_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_forward_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_good_tx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_tot_good_tx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_fail_tx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_tot_fail_tx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_good_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_tot_good_rx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_fail_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_tot_fail_rx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_missing_bib_blks(tdc_t params)
+value_t adm_sbsp_get_tot_missing_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_forward_bib_blks(tdc_t params)
+value_t adm_sbsp_get_tot_forward_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BLK);
 }
 
-value_t adm_bpsec_get_tot_good_tx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_good_tx_bib_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_fail_tx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_fail_tx_bib_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_good_rx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_good_rx_bib_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_fail_rx_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_fail_rx_bib_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_missing_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_missing_bib_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_tot_forward_bib_bytes(tdc_t params)
+value_t adm_sbsp_get_tot_forward_bib_bytes(tdc_t params)
 {
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BYTES);
 }
 
-value_t adm_bpsec_get_last_update(tdc_t params)
+value_t adm_sbsp_get_last_update(tdc_t params)
 {
 	value_t result;
 	result.type = AMP_TYPE_UNK;
-	if(bpsec_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
+	if(sbsp_instr_get_tot_update((time_t*)&(result.value.as_uint)) != ERROR)
 	{
 		result.type = AMP_TYPE_TS;
 	}
 	return result;
 }
 
-value_t adm_bpsec_get_num_keys(tdc_t params)
+value_t adm_sbsp_get_num_keys(tdc_t params)
 {
 	value_t result;
 	uint32_t size = 0;
 
 	result.type = AMP_TYPE_UINT;
-	result.value.as_uint = bpsec_instr_get_num_keys((int*)&size);
+	result.value.as_uint = sbsp_instr_get_num_keys((int*)&size);
 	return result;
 }
 
 
-value_t adm_bpsec_get_keys(tdc_t params)
+value_t adm_sbsp_get_keys(tdc_t params)
 {
 	value_t result;
-	char *tmp = bpsec_instr_get_keynames();
+	char *tmp = sbsp_instr_get_keynames();
 
 	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
@@ -273,10 +273,10 @@ value_t adm_bpsec_get_keys(tdc_t params)
 	return result;
 }
 
-value_t adm_bpsec_get_ciphs(tdc_t params)
+value_t adm_sbsp_get_ciphs(tdc_t params)
 {
 	value_t result;
-	char *tmp = bpsec_instr_get_csnames();
+	char *tmp = sbsp_instr_get_csnames();
 
 	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
@@ -299,10 +299,10 @@ value_t adm_bpsec_get_ciphs(tdc_t params)
 	return result;
 }
 
-value_t adm_bpsec_get_srcs(tdc_t params)
+value_t adm_sbsp_get_srcs(tdc_t params)
 {
 	value_t result;
-	char *tmp = bpsec_instr_get_srcnames();
+	char *tmp = sbsp_instr_get_srcnames();
 
 	result.type = AMP_TYPE_UNK;
 	/* TMP is allocated using MTAKE. We need to move it to
@@ -326,129 +326,129 @@ value_t adm_bpsec_get_srcs(tdc_t params)
 }
 
 
-value_t adm_bpsec_get_src_good_tx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_src_good_tx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_TX_PASS, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_fail_tx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_src_fail_tx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_TX_FAIL, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_good_rx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_src_good_rx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_RX_PASS, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_fail_rx_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_src_fail_rx_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_RX_FAIL, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_missing_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_src_missing_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_RX_MISS, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_forward_bcb_blks(tdc_t params)
+value_t adm_sbsp_get_src_forward_bcb_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BCB_FWD, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_good_tx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_src_good_tx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_TX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_TX_PASS, SRC_BYTES);
 }
 
-value_t adm_bpsec_get_src_fail_tx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_src_fail_tx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_TX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_TX_FAIL, SRC_BYTES);
 }
 
-value_t adm_bpsec_get_src_good_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_src_good_rx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_RX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_RX_PASS, SRC_BYTES);
 }
 
-value_t adm_bpsec_get_src_fail_rx_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_src_fail_rx_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_RX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_RX_FAIL, SRC_BYTES);
 }
 
-value_t adm_bpsec_get_src_missing_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_src_missing_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_RX_MISS, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_RX_MISS, SRC_BYTES);
 }
 
-value_t adm_bpsec_get_src_forward_bcb_bytes(tdc_t params)
+value_t adm_sbsp_get_src_forward_bcb_bytes(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BCB_FWD, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BCB_FWD, SRC_BYTES);
 }
 
-value_t adm_bpsec_get_src_good_tx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_src_good_tx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_TX_PASS, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_fail_tx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_src_fail_tx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_TX_FAIL, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_good_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_src_good_rx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_RX_PASS, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_fail_rx_bib_blks(tdc_t params)
+value_t adm_sbsp_get_src_fail_rx_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_RX_FAIL, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_missing_bib_blks(tdc_t params)
+value_t adm_sbsp_get_src_missing_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BLK);
+	return adm_sbsp_get_src_val(params, BIB_RX_MISS, SRC_BLK);
 }
 
-value_t adm_bpsec_get_src_forward_bib_blks(tdc_t params)
+value_t adm_sbsp_get_src_forward_bib_blks(tdc_t params)
 {
-	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BLK);
-}
-
-
-value_t adm_bpsec_get_src_good_tx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_TX_PASS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_fail_tx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_TX_FAIL, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_good_rx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_PASS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_fail_rx_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_FAIL, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_missing_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_RX_MISS, SRC_BYTES);
-}
-
-value_t adm_bpsec_get_src_forward_bib_bytes(tdc_t params)
-{
-	return adm_bpsec_get_src_val(params, BIB_FWD, SRC_BYTES);
+	return adm_sbsp_get_src_val(params, BIB_FWD, SRC_BLK);
 }
 
 
-value_t adm_bpsec_get_src_last_update(tdc_t params)
+value_t adm_sbsp_get_src_good_tx_bib_bytes(tdc_t params)
+{
+	return adm_sbsp_get_src_val(params, BIB_TX_PASS, SRC_BYTES);
+}
+
+value_t adm_sbsp_get_src_fail_tx_bib_bytes(tdc_t params)
+{
+	return adm_sbsp_get_src_val(params, BIB_TX_FAIL, SRC_BYTES);
+}
+
+value_t adm_sbsp_get_src_good_rx_bib_bytes(tdc_t params)
+{
+	return adm_sbsp_get_src_val(params, BIB_RX_PASS, SRC_BYTES);
+}
+
+value_t adm_sbsp_get_src_fail_rx_bib_bytes(tdc_t params)
+{
+	return adm_sbsp_get_src_val(params, BIB_RX_FAIL, SRC_BYTES);
+}
+
+value_t adm_sbsp_get_src_missing_bib_bytes(tdc_t params)
+{
+	return adm_sbsp_get_src_val(params, BIB_RX_MISS, SRC_BYTES);
+}
+
+value_t adm_sbsp_get_src_forward_bib_bytes(tdc_t params)
+{
+	return adm_sbsp_get_src_val(params, BIB_FWD, SRC_BYTES);
+}
+
+
+value_t adm_sbsp_get_src_last_update(tdc_t params)
 {
 	value_t result;
 	time_t time = 0;
@@ -462,7 +462,7 @@ value_t adm_bpsec_get_src_last_update(tdc_t params)
 		return result;
 	}
 
-	if(bpsec_instr_get_src_update(name, &time) != ERROR)
+	if(sbsp_instr_get_src_update(name, &time) != ERROR)
 	{
 		result.type = AMP_TYPE_TS;
 		result.value.as_uint = time;
@@ -474,12 +474,12 @@ value_t adm_bpsec_get_src_last_update(tdc_t params)
 
 
 
-value_t adm_bpsec_get_last_reset(tdc_t params)
+value_t adm_sbsp_get_last_reset(tdc_t params)
 {
 	value_t result;
-	bpsec_instr_misc_t misc;
+	sbsp_instr_misc_t misc;
 
-	if(bpsec_instr_get_misc(&misc) == ERROR)
+	if(sbsp_instr_get_misc(&misc) == ERROR)
 	{
 		result.type = AMP_TYPE_UNK;
 		return result;
@@ -497,17 +497,17 @@ value_t adm_bpsec_get_last_reset(tdc_t params)
 
 
 
-tdc_t* adm_bpsec_ctl_reset_all(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_reset_all(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	CHKNULL(status);
 
-	bpsec_instr_reset();
+	sbsp_instr_reset();
 	*status = CTRL_SUCCESS;
 
 	return NULL;
 }
 
-tdc_t* adm_bpsec_ctl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	int8_t success = 0;
@@ -520,7 +520,7 @@ tdc_t* adm_bpsec_ctl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
 		return NULL;
 	}
 
-	bpsec_instr_reset_src(src);
+	sbsp_instr_reset_src(src);
 
 	SRELEASE(src);
 
@@ -533,7 +533,7 @@ tdc_t* adm_bpsec_ctl_reset_src(eid_t *def_mgr, tdc_t params, int8_t *status)
  /*
   * DeleteKey(STR keyname)
   */
-tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *name = NULL;
 	int8_t success = 0;
@@ -552,7 +552,7 @@ tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 	 */
 	if(sec_activeKey(name) != 0)
 	{
-		AMP_DEBUG_WARN("adm_bpsec_ctl_del_key","Can't remove active key %s", name);
+		AMP_DEBUG_WARN("adm_sbsp_ctl_del_key","Can't remove active key %s", name);
 		SRELEASE(name);
 		return NULL;
 	}
@@ -570,7 +570,7 @@ tdc_t* adm_bpsec_ctl_del_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * AddKey(STR keyname, BLOB key)
  */
-tdc_t* adm_bpsec_ctl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *name = NULL;
 	blob_t *value = NULL;
@@ -604,7 +604,7 @@ tdc_t* adm_bpsec_ctl_add_key(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  *  AddBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -638,17 +638,17 @@ tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_sbsp_ctl_add_bibrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_sbsp_ctl_add_bibrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_add_bibrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_add_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -662,7 +662,7 @@ tdc_t* adm_bpsec_ctl_add_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * RemoveBibRule(STR src, STR dest, INT tgt)
  */
-tdc_t* adm_bpsec_ctl_del_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_del_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -717,14 +717,14 @@ table_t *get_bib_rules()
 
 	if((listObj = sec_get_bspBibRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_get_bib_rules","Cannot get list.", NULL);
 		return NULL;
 	}
 
 
 	if((table = table_create(NULL, NULL)) == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot allocate table.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_get_bib_rules","Cannot allocate table.", NULL);
 		return NULL;
 	}
 
@@ -735,7 +735,7 @@ table_t *get_bib_rules()
 	   (table_add_col(table, "keyName", AMP_TYPE_STRING) == ERROR))
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_get_bib_rules","Cannot add columns.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_get_bib_rules","Cannot add columns.", NULL);
 		return NULL;
 	}
 
@@ -797,7 +797,7 @@ table_t *get_bib_rules()
 					table_destroy(table, 1);
 					sdr_exit_xn(sdr);
 
-					AMP_DEBUG_ERR("adm_bpsec_get_bib_rules", "Error extracting rule", NULL);
+					AMP_DEBUG_ERR("adm_sbsp_get_bib_rules", "Error extracting rule", NULL);
 					return NULL;
 				}
 				else
@@ -807,12 +807,12 @@ table_t *get_bib_rules()
 			}
 			else
 			{
-				AMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("adm_sbsp_get_bib_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("adm_bpsec_get_bib_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("adm_sbsp_get_bib_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -956,7 +956,7 @@ table_t *get_bcb_rules()
 	return table;
 }
 
-tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 
 	tdc_t *retval = NULL;
@@ -968,7 +968,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_list_bibrule", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -976,7 +976,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_list_bibrule","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -986,7 +986,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 		table_destroy(table, 1);
 		tdc_destroy(&retval);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bibrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_list_bibrule","Can't serialize table.", NULL);
 		return NULL;
 	}
 
@@ -1003,7 +1003,7 @@ tdc_t* adm_bpsec_ctl_list_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * AddBcbRule(STR src, STR dst, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1038,17 +1038,17 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Can't add rule.", NULL);
+				AMP_DEBUG_ERR("adm_sbsp_ctl_add_bcbrule", "Can't add rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_sbsp_ctl_add_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_add_bcbrule", "Ciphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_add_bcbrule", "Ciphersuite %s not supported.", cs);
 	}
 
 
@@ -1063,7 +1063,7 @@ tdc_t* adm_bpsec_ctl_add_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * RemoveBcbRule(STR src, STR dest, INT tgt)
  */
-tdc_t* adm_bpsec_ctl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1091,7 +1091,7 @@ tdc_t* adm_bpsec_ctl_del_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  * ListBcbRules()
  */
-tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 
 	tdc_t *retval = NULL;
@@ -1103,7 +1103,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 
 	if(table == NULL)
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule", "Can't get rules.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_list_bcbrule", "Can't get rules.", NULL);
 		return NULL;
 	}
 
@@ -1111,7 +1111,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 	if((retval = tdc_create(NULL, NULL, 0)) == NULL)
 	{
 		table_destroy(table, 1);
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't make TDC.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_list_bcbrule","Can't make TDC.", NULL);
 		return NULL;
 	}
 
@@ -1121,7 +1121,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 		table_destroy(table, 1);
 		tdc_destroy(&retval);
 
-		AMP_DEBUG_ERR("adm_bpsec_ctl_list_bcbrule","Can't serialize table.", NULL);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_list_bcbrule","Can't serialize table.", NULL);
 		return NULL;
 	}
 
@@ -1139,7 +1139,7 @@ tdc_t* adm_bpsec_ctl_list_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 /*
  *  UpdateBibRule(STR src, STR dest, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1174,17 +1174,17 @@ tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_sbsp_ctl_update_bibrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_sbsp_ctl_update_bibrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_update_bibrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_update_bibrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);
@@ -1200,7 +1200,7 @@ tdc_t* adm_bpsec_ctl_update_bibrule(eid_t *def_mgr, tdc_t params, int8_t *status
 /*
  *  UpdateBcbRule(STR src, STR dest, INT tgt, STR cs, STR key)
  */
-tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
+tdc_t* adm_sbsp_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status)
 {
 	char *src = NULL;
 	char *dst = NULL;
@@ -1236,17 +1236,17 @@ tdc_t* adm_bpsec_ctl_update_bcbrule(eid_t *def_mgr, tdc_t params, int8_t *status
 			}
 			else
 			{
-				AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("adm_sbsp_ctl_update_bcbrule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("adm_sbsp_ctl_update_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("adm_bpsec_ctl_update_bcbrule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("adm_sbsp_ctl_update_bcbrule", "CIphersuite %s not supported.", cs);
 	}
 
 	SRELEASE(src);

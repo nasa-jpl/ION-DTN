@@ -1,8 +1,8 @@
 /*****************************************************************************
  **
- ** File Name: adm_bpsec.h
+ ** File Name: adm_sbsp.h
  **
- ** Description: This implements the public portions of a AMP BPSEC ADM.
+ ** Description: This implements the public portions of a AMP SBSP ADM.
  **
  ** Notes:
  **
@@ -15,15 +15,15 @@
  **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-#ifndef ADM_BPSEC_H_
-#define ADM_BPSEC_H_
+#ifndef ADM_SBSP_H_
+#define ADM_SBSP_H_
 
-#define _HAVE_BPSEC_ADM_
+#define _HAVE_SBSP_ADM_
 
-#ifdef _HAVE_BPSEC_ADM_
+#ifdef _HAVE_SBSP_ADM_
 
 #include "lyst.h"
-#include "bpsec_instr.h"
+#include "sbsp_instr.h"
 
 
 #include "../utils/nm_types.h"
@@ -36,13 +36,13 @@
  * |				     ADM TEMPLATE DOCUMENTATION  						  +
  * +--------------------------------------------------------------------------+
  *
- * ADM ROOT STRING    : iso.identified-organization.dod.internet.mgmt.amp.bpsec
+ * ADM ROOT STRING    : iso.identified-organization.dod.internet.mgmt.amp.sbsp
  * ADM ROOT ID STRING : 1.3.6.1.2.3.9
  * ADM ROOT OID       : 2B 06 01 02 03 09
  * ADM NICKNAMES      : 0 -> 0x2B0601020309
  *
  *
- *                             BPSEC ADM ROOT
+ *                             SBSP ADM ROOT
  *                             (1.3.6.1.2.3.9)
  *                                   |
  *                                   |
@@ -71,37 +71,37 @@
  */
 
 
-#define BPSEC_ADM_MD_NN_IDX 40
-#define BPSEC_ADM_MD_NN_STR "2B060102030900"
+#define SBSP_ADM_MD_NN_IDX 40
+#define SBSP_ADM_MD_NN_STR "2B060102030900"
 
-#define BPSEC_ADM_AD_NN_IDX 41
-#define BPSEC_ADM_AD_NN_STR "2B060102030901"
+#define SBSP_ADM_AD_NN_IDX 41
+#define SBSP_ADM_AD_NN_STR "2B060102030901"
 
-#define BPSEC_ADM_CD_NN_IDX 42
-#define BPSEC_ADM_CD_NN_STR "2B060102030902"
+#define SBSP_ADM_CD_NN_IDX 42
+#define SBSP_ADM_CD_NN_STR "2B060102030902"
 
-#define BPSEC_ADM_RPT_NN_IDX 43
-#define BPSEC_ADM_RPT_NN_STR "2B060102030903"
+#define SBSP_ADM_RPT_NN_IDX 43
+#define SBSP_ADM_RPT_NN_STR "2B060102030903"
 
-#define BPSEC_ADM_CTRL_NN_IDX 44
-#define BPSEC_ADM_CTRL_NN_STR "2B060102030904"
+#define SBSP_ADM_CTRL_NN_IDX 44
+#define SBSP_ADM_CTRL_NN_STR "2B060102030904"
 
-#define BPSEC_ADM_LTRL_NN_IDX 45
-#define BPSEC_ADM_LTRL_NN_STR "2B060102030905"
+#define SBSP_ADM_LTRL_NN_IDX 45
+#define SBSP_ADM_LTRL_NN_STR "2B060102030905"
 
-#define BPSEC_ADM_MAC_NN_IDX 46
-#define BPSEC_ADM_MAC_NN_STR "2B060102030906"
+#define SBSP_ADM_MAC_NN_IDX 46
+#define SBSP_ADM_MAC_NN_STR "2B060102030906"
 
-#define BPSEC_ADM_OP_NN_IDX 47
-#define BPSEC_ADM_OP_NN_STR "2B060102030907"
+#define SBSP_ADM_OP_NN_IDX 47
+#define SBSP_ADM_OP_NN_STR "2B060102030907"
 
-#define BPSEC_ADM_ROOT_NN_IDX 49
-#define BPSEC_ADM_ROOT_NN_STR "2B0601020309"
+#define SBSP_ADM_ROOT_NN_IDX 49
+#define SBSP_ADM_ROOT_NN_STR "2B0601020309"
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |					  BPSEC META-DATA DEFINITIONS  						  +
+ * |					  SBSP META-DATA DEFINITIONS  						  +
  * +--------------------------------------------------------------------------+
    +------------------+----------+---------+----------------+----------+
    |       Name       |   MID    |   OID   |  Description   |   Type   |
@@ -112,18 +112,18 @@
    +------------------+----------+---------+----------------+----------+
  */
 
-// "BPSEC ADM"
-#define ADM_BPSEC_MD_NAME_MID	"80280100"
+// "SBSP ADM"
+#define ADM_SBSP_MD_NAME_MID	"80280100"
 
 // "2016_05_16"
-#define ADM_BPSEC_MD_VER_MID    "80280101"
+#define ADM_SBSP_MD_VER_MID    "80280101"
 
 
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |					  BPSEC ATOMIC DATA DEFINITIONS  					  +
+ * |					  SBSP ATOMIC DATA DEFINITIONS  					  +
  * +--------------------------------------------------------------------------+
 
    +-------------------------------------+------------+-----------+-----------+
@@ -177,7 +177,7 @@
    |                                     |            |           |           |
    | Total Forwarded BIB bytes           |  80290117  |  [41].17  |    UINT   |
    |                                     |            |           |           |
-   | Last BPSEC Update                   |  80290118  |  [41].18  |    TS     |
+   | Last SBSP Update                   |  80290118  |  [41].18  |    TS     |
    |                                     |            |           |           |
    | Number of Known Keys                |  80290119  |  [41].19  |    UINT   |
    |                                     |            |           |           |
@@ -235,7 +235,7 @@
    |                                     |            |           |           |
    | Forwarded BIB bytes from SRC        |  C0290134  |  [41].34  |    UINT   |
    |                                     |            |           |           |
-   | Last BPSEC Update from SRC          |  C0290135  |  [41].35  |    TS     |
+   | Last SBSP Update from SRC          |  C0290135  |  [41].35  |    TS     |
    |                                     |            |           |           |
    | Last Reset                          |  C0290136  |  [41].36  |    TS     |
    |                                     |            |           |           |
@@ -247,77 +247,77 @@
 //EJB:
 //Make an IDX per AD. Pass the IDX as first argument.
 
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BCB_BLKS "80290100"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BCB_BLKS "80290101"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BCB_BLKS "80290102"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BCB_BLKS "80290103"
-#define ADM_BPSEC_AD_TOT_MISSING_BCB_BLKS "80290104"
-#define ADM_BPSEC_AD_TOT_FORWARD_BCB_BLKS "80290105"
+#define ADM_SBSP_AD_TOT_GOOD_TX_BCB_BLKS "80290100"
+#define ADM_SBSP_AD_TOT_FAIL_TX_BCB_BLKS "80290101"
+#define ADM_SBSP_AD_TOT_GOOD_RX_BCB_BLKS "80290102"
+#define ADM_SBSP_AD_TOT_FAIL_RX_BCB_BLKS "80290103"
+#define ADM_SBSP_AD_TOT_MISSING_BCB_BLKS "80290104"
+#define ADM_SBSP_AD_TOT_FORWARD_BCB_BLKS "80290105"
 
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BCB_BYTES "80290106"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BCB_BYTES "80290107"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BCB_BYTES "80290108"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BCB_BYTES "80290109"
-#define ADM_BPSEC_AD_TOT_MISSING_BCB_BYTES "8029010A"
-#define ADM_BPSEC_AD_TOT_FORWARD_BCB_BYTES "8029010B"
+#define ADM_SBSP_AD_TOT_GOOD_TX_BCB_BYTES "80290106"
+#define ADM_SBSP_AD_TOT_FAIL_TX_BCB_BYTES "80290107"
+#define ADM_SBSP_AD_TOT_GOOD_RX_BCB_BYTES "80290108"
+#define ADM_SBSP_AD_TOT_FAIL_RX_BCB_BYTES "80290109"
+#define ADM_SBSP_AD_TOT_MISSING_BCB_BYTES "8029010A"
+#define ADM_SBSP_AD_TOT_FORWARD_BCB_BYTES "8029010B"
 
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BIB_BLKS "8029010C"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BIB_BLKS "8029010D"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BIB_BLKS "8029010E"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BIB_BLKS "8029010F"
-#define ADM_BPSEC_AD_TOT_MISSING_BIB_BLKS "80290110"
-#define ADM_BPSEC_AD_TOT_FORWARD_BIB_BLKS "80290111"
+#define ADM_SBSP_AD_TOT_GOOD_TX_BIB_BLKS "8029010C"
+#define ADM_SBSP_AD_TOT_FAIL_TX_BIB_BLKS "8029010D"
+#define ADM_SBSP_AD_TOT_GOOD_RX_BIB_BLKS "8029010E"
+#define ADM_SBSP_AD_TOT_FAIL_RX_BIB_BLKS "8029010F"
+#define ADM_SBSP_AD_TOT_MISSING_BIB_BLKS "80290110"
+#define ADM_SBSP_AD_TOT_FORWARD_BIB_BLKS "80290111"
 
-#define ADM_BPSEC_AD_TOT_GOOD_TX_BIB_BYTES "80290112"
-#define ADM_BPSEC_AD_TOT_FAIL_TX_BIB_BYTES "80290113"
-#define ADM_BPSEC_AD_TOT_GOOD_RX_BIB_BYTES "80290114"
-#define ADM_BPSEC_AD_TOT_FAIL_RX_BIB_BYTES "80290115"
-#define ADM_BPSEC_AD_TOT_MISSING_BIB_BYTES "80290116"
-#define ADM_BPSEC_AD_TOT_FORWARD_BIB_BYTES "80290117"
+#define ADM_SBSP_AD_TOT_GOOD_TX_BIB_BYTES "80290112"
+#define ADM_SBSP_AD_TOT_FAIL_TX_BIB_BYTES "80290113"
+#define ADM_SBSP_AD_TOT_GOOD_RX_BIB_BYTES "80290114"
+#define ADM_SBSP_AD_TOT_FAIL_RX_BIB_BYTES "80290115"
+#define ADM_SBSP_AD_TOT_MISSING_BIB_BYTES "80290116"
+#define ADM_SBSP_AD_TOT_FORWARD_BIB_BYTES "80290117"
 
-#define ADM_BPSEC_AD_LAST_UPDATE "80290118"
-#define ADM_BPSEC_AD_NUM_KEYS "80290119"
-#define ADM_BPSEC_AD_KEYS "8029011A"
-#define ADM_BPSEC_AD_CIPHS "8029011B"
-#define ADM_BPSEC_AD_SRCS "8029011C"
+#define ADM_SBSP_AD_LAST_UPDATE "80290118"
+#define ADM_SBSP_AD_NUM_KEYS "80290119"
+#define ADM_SBSP_AD_KEYS "8029011A"
+#define ADM_SBSP_AD_CIPHS "8029011B"
+#define ADM_SBSP_AD_SRCS "8029011C"
 
 
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BCB_BLKS "C029011D"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BCB_BLKS "C029011E"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BCB_BLKS "C029011F"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BCB_BLKS "C0290120"
-#define ADM_BPSEC_AD_SRC_MISSING_BCB_BLKS "C0290121"
-#define ADM_BPSEC_AD_SRC_FORWARD_BCB_BLKS "C0290122"
+#define ADM_SBSP_AD_SRC_GOOD_TX_BCB_BLKS "C029011D"
+#define ADM_SBSP_AD_SRC_FAIL_TX_BCB_BLKS "C029011E"
+#define ADM_SBSP_AD_SRC_GOOD_RX_BCB_BLKS "C029011F"
+#define ADM_SBSP_AD_SRC_FAIL_RX_BCB_BLKS "C0290120"
+#define ADM_SBSP_AD_SRC_MISSING_BCB_BLKS "C0290121"
+#define ADM_SBSP_AD_SRC_FORWARD_BCB_BLKS "C0290122"
 
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BCB_BYTES "C0290123"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BCB_BYTES "C0290124"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BCB_BYTES "C0290125"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BCB_BYTES "C0290126"
-#define ADM_BPSEC_AD_SRC_MISSING_BCB_BYTES "C0290127"
-#define ADM_BPSEC_AD_SRC_FORWARD_BCB_BYTES "C0290128"
+#define ADM_SBSP_AD_SRC_GOOD_TX_BCB_BYTES "C0290123"
+#define ADM_SBSP_AD_SRC_FAIL_TX_BCB_BYTES "C0290124"
+#define ADM_SBSP_AD_SRC_GOOD_RX_BCB_BYTES "C0290125"
+#define ADM_SBSP_AD_SRC_FAIL_RX_BCB_BYTES "C0290126"
+#define ADM_SBSP_AD_SRC_MISSING_BCB_BYTES "C0290127"
+#define ADM_SBSP_AD_SRC_FORWARD_BCB_BYTES "C0290128"
 
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BIB_BLKS "C0290129"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BIB_BLKS "C029012A"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BIB_BLKS "C029012B"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BIB_BLKS "C029012C"
-#define ADM_BPSEC_AD_SRC_MISSING_BIB_BLKS "C029012D"
-#define ADM_BPSEC_AD_SRC_FORWARD_BIB_BLKS "C029012E"
+#define ADM_SBSP_AD_SRC_GOOD_TX_BIB_BLKS "C0290129"
+#define ADM_SBSP_AD_SRC_FAIL_TX_BIB_BLKS "C029012A"
+#define ADM_SBSP_AD_SRC_GOOD_RX_BIB_BLKS "C029012B"
+#define ADM_SBSP_AD_SRC_FAIL_RX_BIB_BLKS "C029012C"
+#define ADM_SBSP_AD_SRC_MISSING_BIB_BLKS "C029012D"
+#define ADM_SBSP_AD_SRC_FORWARD_BIB_BLKS "C029012E"
 
-#define ADM_BPSEC_AD_SRC_GOOD_TX_BIB_BYTES "C029012F"
-#define ADM_BPSEC_AD_SRC_FAIL_TX_BIB_BYTES "C0290130"
-#define ADM_BPSEC_AD_SRC_GOOD_RX_BIB_BYTES "C0290131"
-#define ADM_BPSEC_AD_SRC_FAIL_RX_BIB_BYTES "C0290132"
-#define ADM_BPSEC_AD_SRC_MISSING_BIB_BYTES "C0290133"
-#define ADM_BPSEC_AD_SRC_FORWARD_BIB_BYTES "C0290134"
+#define ADM_SBSP_AD_SRC_GOOD_TX_BIB_BYTES "C029012F"
+#define ADM_SBSP_AD_SRC_FAIL_TX_BIB_BYTES "C0290130"
+#define ADM_SBSP_AD_SRC_GOOD_RX_BIB_BYTES "C0290131"
+#define ADM_SBSP_AD_SRC_FAIL_RX_BIB_BYTES "C0290132"
+#define ADM_SBSP_AD_SRC_MISSING_BIB_BYTES "C0290133"
+#define ADM_SBSP_AD_SRC_FORWARD_BIB_BYTES "C0290134"
 
-#define ADM_BPSEC_AD_SRC_LAST_UPDATE "C0290135"
+#define ADM_SBSP_AD_SRC_LAST_UPDATE "C0290135"
 
-#define ADM_BPSEC_AD_LAST_RESET "C0290136"
+#define ADM_SBSP_AD_LAST_RESET "C0290136"
 
 /*
  *
  * +--------------------------------------------------------------------------+
- * |				    BPSEC COMPUTED DATA DEFINITIONS 					  +
+ * |				    SBSP COMPUTED DATA DEFINITIONS 					  +
  * +--------------------------------------------------------------------------+
 
    +------------------+----------+---------+----------------+----------+
@@ -330,7 +330,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |				    	BPSEC REPORT DEFINITIONS						  +
+ * |				    	SBSP REPORT DEFINITIONS						  +
  * +--------------------------------------------------------------------------+
 
    +------------+----------+---------+------------------+--------------+
@@ -347,14 +347,14 @@
 
  */
 
-#define ADM_BPSEC_RPT_FULL_MID  "822B0100"
-#define ADM_BPSEC_RPT_SRC_MID  "C22B0101"
+#define ADM_SBSP_RPT_FULL_MID  "822B0100"
+#define ADM_SBSP_RPT_SRC_MID  "C22B0101"
 
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |				    BPSEC CONTROL DEFINITIONS CONSTANTS  				  +
+ * |				    SBSP CONTROL DEFINITIONS CONSTANTS  				  +
  * +--------------------------------------------------------------------------+
 
    +----------------+-----------+----------+----------------------------------+
@@ -388,23 +388,23 @@
    +----------------+-----------+----------+----------------------------------+
  */
 
-#define ADM_BPSEC_CTL_RESET_ALL_MID     "832C0100"
-#define ADM_BPSEC_CTL_RESET_SRC_MID     "C32C0101"
-#define ADM_BPSEC_CTL_DEL_KEY_MID       "C32C0102"
-#define ADM_BPSEC_CTL_ADD_KEY_MID       "C32C0103"
-#define ADM_BPSEC_CTL_ADD_BIB_RULE_MID  "C32C0104"
-#define ADM_BPSEC_CTL_DEL_BIB_RULE_MID  "C32C0105"
-#define ADM_BPSEC_CTL_LIST_BIB_RULE_MID "832C0106"
-#define ADM_BPSEC_CTL_ADD_BCB_RULE_MID  "C32C0107"
-#define ADM_BPSEC_CTL_DEL_BCB_RULE_MID  "C32C0108"
-#define ADM_BPSEC_CTL_LIST_BCB_RULE_MID "832C0109"
-#define ADM_BPSEC_CTL_UP_BIB_RULE_MID   "C32C010A"
-#define ADM_BPSEC_CTL_UP_BCB_RULE_MID   "C32C010B"
+#define ADM_SBSP_CTL_RESET_ALL_MID     "832C0100"
+#define ADM_SBSP_CTL_RESET_SRC_MID     "C32C0101"
+#define ADM_SBSP_CTL_DEL_KEY_MID       "C32C0102"
+#define ADM_SBSP_CTL_ADD_KEY_MID       "C32C0103"
+#define ADM_SBSP_CTL_ADD_BIB_RULE_MID  "C32C0104"
+#define ADM_SBSP_CTL_DEL_BIB_RULE_MID  "C32C0105"
+#define ADM_SBSP_CTL_LIST_BIB_RULE_MID "832C0106"
+#define ADM_SBSP_CTL_ADD_BCB_RULE_MID  "C32C0107"
+#define ADM_SBSP_CTL_DEL_BCB_RULE_MID  "C32C0108"
+#define ADM_SBSP_CTL_LIST_BCB_RULE_MID "832C0109"
+#define ADM_SBSP_CTL_UP_BIB_RULE_MID   "C32C010A"
+#define ADM_SBSP_CTL_UP_BCB_RULE_MID   "C32C010B"
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |					  BPSEC LITERAL DEFINTIONS  						  +
+ * |					  SBSP LITERAL DEFINTIONS  						  +
  * +--------------------------------------------------------------------------+
 
    +----------------+-----------+----------+---------------------------------+
@@ -415,7 +415,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |					    BPSEC MACRO DEFINTIONS  						  +
+ * |					    SBSP MACRO DEFINTIONS  						  +
  * +--------------------------------------------------------------------------+
 
    +----------------+-----------+----------+---------------------------+
@@ -425,7 +425,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |				    	BPSEC OPERATOR DEFINITIONS						  +
+ * |				    	SBSP OPERATOR DEFINITIONS						  +
  * +--------------------------------------------------------------------------+
 
    +------------+-----------+----------+-------------------------------+
@@ -436,15 +436,15 @@
 
 
 /* Initialization functions. */
-void adm_bpsec_init();
-void adm_bpsec_init_atomic();
-void adm_bpsec_init_computed();
-void adm_bpsec_init_controls();
-void adm_bpsec_init_literals();
-void adm_bpsec_init_macros();
-void adm_bpsec_init_metadata();
-void adm_bpsec_init_ops();
-void adm_bpsec_init_reports();
+void adm_sbsp_init();
+void adm_sbsp_init_atomic();
+void adm_sbsp_init_computed();
+void adm_sbsp_init_controls();
+void adm_sbsp_init_literals();
+void adm_sbsp_init_macros();
+void adm_sbsp_init_metadata();
+void adm_sbsp_init_ops();
+void adm_sbsp_init_reports();
 
-#endif /* _HAVE_BPSEC_ADM_ */
-#endif //ADM_BPSEC_H_
+#endif /* _HAVE_SBSP_ADM_ */
+#endif //ADM_SBSP_H_

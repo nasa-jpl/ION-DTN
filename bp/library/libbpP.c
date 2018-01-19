@@ -23,8 +23,8 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
-#ifdef BPSEC
-#include "ext/bpsec/bpsec_instr.h"
+#ifdef SBSP
+#include "ext/sbsp/sbsp_instr.h"
 #endif
 
 #define MAX_STARVATION		10
@@ -50,10 +50,10 @@
 
 #if defined(ORIGINAL_BSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif defined(BPSEC)
-extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(SBSP)
+extern int	sbsp_securityPolicyViolated(AcqWorkArea *wk);
 #endif
 
 /*	We hitchhike on the ZCO heap space management system to 
@@ -1730,8 +1730,8 @@ int	bpInit()
 	}
 	else
 	{
-#ifdef BPSEC
-		bpsec_instr_init();
+#ifdef SBSP
+		sbsp_instr_init();
 #endif
 		writeMemo("[i] Bundle security is enabled.");
 	}
@@ -1913,8 +1913,8 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		nextElt;
 	Object		zco;
 
-#ifdef BPSEC
-	bpsec_instr_cleanup();
+#ifdef SBSP
+	sbsp_instr_cleanup();
 #endif
 
 	/*	Tell all BP processes to stop.				*/
@@ -8742,10 +8742,10 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 #if defined(ORIGINAL_BSP)
 	if (bsp_securityPolicyViolated(work))
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 	if (bsp_securityPolicyViolated(work))
-#elif defined(BPSEC)
-	if (bpsec_securityPolicyViolated(work))
+#elif defined(SBSP)
+	if (sbsp_securityPolicyViolated(work))
 #else
 	if(0)
 #endif

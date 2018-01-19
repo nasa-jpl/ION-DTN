@@ -7,26 +7,26 @@
 
 /*****************************************************************************
  **
- ** File Name: bpsec_bcb.h
+ ** File Name: sbsp_bcb.h
  **
  ** Description: Definitions supporting generic processing of BCB blocks.
- **              This includes both the BCB Interface to the ION BPSEC
+ **              This includes both the BCB Interface to the ION SBSP
  **              API as well as a default implementation of the BCB
  **              ASB processing for standard ciphersuite profiles.
  **
- **              BIB BPSEC Interface Call Order:
+ **              BIB SBSP Interface Call Order:
  **              -------------------------------------------------------------
  **
  **                     SEND SIDE                    RECEIVE SIDE
  **
- **              bpsec_bcbOffer
- **              bpsec_bcbProcessOnDequeue
- **              bpsec_bcbRelease
- **              bpsec_bcbCopy
- **                                                  bpsec_bcbAcquire
- **                                                  bpsec_bcbDecrypt
- **                                                  bpsec_bcbRecord
- **                                                  bpsec_bcbClear
+ **              sbsp_bcbOffer
+ **              sbsp_bcbProcessOnDequeue
+ **              sbsp_bcbRelease
+ **              sbsp_bcbCopy
+ **                                                  sbsp_bcbAcquire
+ **                                                  sbsp_bcbDecrypt
+ **                                                  sbsp_bcbRecord
+ **                                                  sbsp_bcbClear
  **
  **
  **              Default Ciphersuite Profile Implementation
@@ -34,12 +34,12 @@
  **
  **                    SIGN SIDE                     VERIFY SIDE
  **
- **              bpsec_bcbDefaultConstruct
- **              bpsec_bcbDefaultSign
+ **              sbsp_bcbDefaultConstruct
+ **              sbsp_bcbDefaultSign
  **
- **                                              bpsec_bcbDefaultConstruct
- **                                              bpsec_bcbDefaultSign
- **                                              bpsec_bcbDefaultVerify
+ **                                              sbsp_bcbDefaultConstruct
+ **                                              sbsp_bcbDefaultSign
+ **                                              sbsp_bcbDefaultVerify
  **
  **
  ** Notes:
@@ -49,24 +49,24 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  07/05/10  E. Birrane     Implementation as extbpsecbib.c (JHU/APL)
- **            S. Burleigh    Implementation as bpsecbib.c for Sbpsec
+ **  07/05/10  E. Birrane     Implementation as extsbspbib.c (JHU/APL)
+ **            S. Burleigh    Implementation as sbspbib.c for Sbsp
  **  11/07/15  E. Birrane     Update for generic proc and profiles
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-#ifndef BPSEC_BCB_H_
-#define BPSEC_BCB_H_
+#ifndef SBSP_BCB_H_
+#define SBSP_BCB_H_
 
-#include "bpsec_util.h"
+#include "sbsp_util.h"
 #include "profiles.h"
 #include "csi.h"
 
 
-#define BPSEC_ENCRYPT_IN_PLACE 0
+#define SBSP_ENCRYPT_IN_PLACE 0
 #define BCB_FILENAME "bcb_tmpfile"
-// If bpsec debugging is turned on, then turn on bcb debugging.
-#if BPSEC_DEBUGGING == 1
+// If sbsp debugging is turned on, then turn on bcb debugging.
+#if SBSP_DEBUGGING == 1
 #define BCB_DEBUGGING 1
 #endif
 
@@ -93,7 +93,7 @@
  *    through the BCB module.
  * 2: Information logging.  Information statements are peppered through the
  *    code to provide insight into the state of the module at processing
- *    points considered useful by bpsec module software engineers.
+ *    points considered useful by sbsp module software engineers.
  * 3: Warning logging.  Warning statements are used to flag unexpected 
  *    values that, based on context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
@@ -149,39 +149,39 @@
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
 
-extern int         bpsec_bcbAcquire(AcqExtBlock *blk,
+extern int         sbsp_bcbAcquire(AcqExtBlock *blk,
 		                            AcqWorkArea *wk);
 
- extern void       bpsec_bcbClear(AcqExtBlock *blk);
+ extern void       sbsp_bcbClear(AcqExtBlock *blk);
 
- extern int        bpsec_bcbCopy(ExtensionBlock *newBlk,
+ extern int        sbsp_bcbCopy(ExtensionBlock *newBlk,
  		                         ExtensionBlock *oldBlk);
 
 
-extern int         bpsec_bcbDecrypt(AcqExtBlock *blk,
+extern int         sbsp_bcbDecrypt(AcqExtBlock *blk,
 		                            AcqWorkArea *wk);
 
-extern int	       bpsec_bcbDefaultConstruct(uint32_t suite,
+extern int	       sbsp_bcbDefaultConstruct(uint32_t suite,
 		                                     ExtensionBlock *blk,
-											 BpsecOutboundBlock *asb);
+											 SbspOutboundBlock *asb);
 
-extern int     bpsec_bcbDefaultDecrypt(uint32_t suite,
+extern int     sbsp_bcbDefaultDecrypt(uint32_t suite,
 		                                   AcqWorkArea *wk,
 										   AcqExtBlock *blk,
 										   uvast *bytes);
 
-extern uint32_t    bpsec_bcbDefaultEncrypt(uint32_t suite,
+extern uint32_t    sbsp_bcbDefaultEncrypt(uint32_t suite,
 		                                   Bundle *bundle,
 		                                   ExtensionBlock *blk,
-		                                   BpsecOutboundBlock *asb,
+		                                   SbspOutboundBlock *asb,
 										   uvast *bytes);
 
-extern BcbProfile *bpsec_bcbGetProfile(char *secSrc,
+extern BcbProfile *sbsp_bcbGetProfile(char *secSrc,
 		                               char *secDest,
 							           int secTgtType,
 									   BspBcbRule *secBcbRule);
 
-extern  int     bpsec_bcbHelper(Object *dataObj,
+extern  int     sbsp_bcbHelper(Object *dataObj,
 				  	               uint32_t chunkSize,
 						           uint32_t suite,
 						           csi_val_t key,
@@ -189,12 +189,12 @@ extern  int     bpsec_bcbHelper(Object *dataObj,
 								   uint8_t function);
 
 
-extern int	       bpsec_bcbOffer(ExtensionBlock *blk, Bundle *bundle);
+extern int	       sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle);
 
-extern int	       bpsec_bcbProcessOnDequeue(ExtensionBlock *blk,
+extern int	       sbsp_bcbProcessOnDequeue(ExtensionBlock *blk,
 		                                     Bundle *bundle,
 		                                     void *parm);
 
-extern void	       bpsec_bcbRelease(ExtensionBlock *blk);
+extern void	       sbsp_bcbRelease(ExtensionBlock *blk);
 
-#endif /* BPSEC_BCB_H_ */
+#endif /* SBSP_BCB_H_ */
