@@ -386,7 +386,7 @@ static int	handleBulletin(unsigned char *buffer, int bufSize)
 	{
 		if (dtka_deserialize(&cursor, &bytesRemaining, DTKA_MAX_DATLEN,
 				&nodeNbr, &effectiveTime, &assertionTime,
-				&datLength, datValue) < 0)
+				&datLength, datValue) < 1)
 		{
 			writeMemo("[?] DTKA bulletin malformed, discarded.");
 			break;

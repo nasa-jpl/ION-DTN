@@ -158,12 +158,13 @@ fflush(stdout);
 	if (dtka_deserialize(&cursor, &len, DTKA_MAX_DATLEN, 
 			&(record.nodeNbr), &(record.effectiveTime),
 			&(record.assertionTime), &(record.datLength),
-			record.datValue) < 0)
+			record.datValue) < 1)
 	{
 #if DTKA_DEBUG
 puts("Deserialize failed.");
 fflush(stdout);
 #endif
+		writeMemo("Unable to deserialize record.");
 		restoreEidString(&metaEid);
 		return 0;
 	}

@@ -24,7 +24,9 @@
 extern "C" {
 #endif
 
+#ifndef DTKA_MAX_DATLEN
 #define	DTKA_MAX_DATLEN	1024
+#endif
 #define	DTKA_MAX_REC	(22 + DTKA_MAX_DATLEN)
 
 #define	DTKA_DECLARE	124
