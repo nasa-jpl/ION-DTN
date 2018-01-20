@@ -14,7 +14,31 @@
 #include "ion.h"
 #include <tlhelp32.h>
 
-char *processes[] = { "bsscounter.exe", "lt-bsscounter.exe", \
+char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
+"acslist.exe", "lt-acslist.exe", \
+"aoslsi.exe", "lt-aoslsi.exe", \
+"aoslso.exe", "lt-aoslso.exe", \
+"beacon.exe", "lt-beacon.exe", \
+"bibeclo.exe", "lt-bibeclo.exe", \
+"bpadmin.exe", "lt-bpadmin.exe", \
+"bpchat.exe", "lt-bpchat.exe", \
+"bpclock.exe", "lt-bpclock.exe", \
+"bpclm.exe", "lt-bpclm.exe", \
+"bpcounter.exe", "lt-bpcounter.exe", \
+"bpdriver.exe", "lt-bpdriver.exe", \
+"bpecho.exe", "lt-bpecho.exe", \
+"bping.exe", "lt-bping.exe", \
+"bprecvfile.exe", "lt-bprecvfile.exe", \
+"bpsendfile.exe", "lt-bpsendfile.exe", \
+"bpsink.exe", "lt-bpsink.exe", \
+"bpsource.exe", "lt-bpsource.exe", \
+"bpstats.exe", "lt-bpstats.exe", \
+"bpstats2.exe", "lt-bpstats2.exe", \
+"bptrace.exe", "lt-bptrace.exe", \
+"bptransit.exe", "lt-bptransit.exe", \
+"brsccla.exe", "lt-brsccla.exe", \
+"brsscla.exe", "lt-brsscla.exe", \
+"bsscounter.exe", "lt-bsscounter.exe", \
 "bssdriver.exe", "lt-bssdriver.exe", \
 "bssrecv.exe", "lt-bssrecv.exe", \
 "bssStreamingApp.exe", "lt-bssStreamingApp.exe", \
@@ -25,75 +49,79 @@ char *processes[] = { "bsscounter.exe", "lt-bsscounter.exe", \
 "bsspclock.exe", "lt-bsspclock.exe", \
 "bsspclock.exe", "lt-bsspclock.exe", \
 "cgrfetch.exe", "lt-cgrfetch.exe", \
-"bibeclo.exe", "lt-bibeclo.exe", \
-"imdadmin.exe", "lt-imdadmin.exe", \
-"imcfw.exe", "lt-imcfw.exe", \
+"dgr2file.exe", "lt-dgr2file.exe", \
+"dgrcli.exe", "lt-dgrcli.exe", \
+"dgrclo.exe", "lt-dgrclo.exe", \
+"dtn2admin.exe", "lt-dtn2admin.exe", \
+"dtn2adminep.exe", "lt-dtn2adminep.exe", \
+"dtn2fw.exe", "lt-dtn2fw.exe", \
 "dtpcadmin.exe", "lt-dtpcadmin.exe", \
 "dtpcclock.exe", "lt-dtpcclock.exe", \
 "dtpcd.exe", "lt-dtpcd.exe", \
 "dtpcreceive.exe", "lt-dtpcreceive.exe", \
 "dtpcsend.exe", "lt-dtpcsend.exe", \
+"file2dgr.exe", "lt-file2dgr.exe", \
+"file2sdr.exe", "lt-file2sdr.exe", \
+"file2sm.exe", "lt-file2sm.exe", \
+"file2tcp.exe", "lt-file2tcp.exe", \
+"file2udp.exe", "lt-file2udp.exe", \
+"imcfw.exe", "lt-imcfw.exe", \
+"imdadmin.exe", "lt-imdadmin.exe", \
+"ionadmin.exe", "lt-ionadmin.exe", \
 "ionrestart.exe", "lt-ionrestart.exe", \
-"ionwarn.exe", "lt-ionwarn.exe", \
 "ionsecadmin.exe", "lt-ionsecadmin.exe", \
+"ionunlock.exe", "lt-ionunlock.exe", \
+"ionwarn.exe", "lt-ionwarn.exe", \
+"ipnadmin.exe", "lt-ipnadmin.exe", \
+"ipnadminep.exe", "lt-ipnadminep.exe", \
+"ipnfw.exe", "lt-ipnfw.exe", \
+"lgagent.exe", "lt-lgagent.exe", \
+"lgsend.exe", "lt-lgsend.exe", \
+"ltpadmin.exe", "lt-ltpadmin.exe", \
+"ltpcli.exe", "lt-ltpcli.exe", \
+"ltpclo.exe", "lt-ltpclo.exe", \
+"ltpclock.exe", "lt-ltpclock.exe", \
+"ltpcounter.exe", "lt-ltpcounter.exe", \
+"ltpdeliv.exe", "lt-ltpdeliv.exe", \
+"ltpdriver.exe", "lt-ltpdriver.exe", \
+"ltpmeter.exe", "lt-ltpmeter.exe", \
 "nm_agent.exe", "lt-nm_agent.exe", \
 "nm_mgr.exe", "lt-nm_mgr.exe", \
+"owltsim.exe", "lt-owltsim.exe", \
+"owlttb.exe", "lt-owlttb.exe", \
+"psmshell.exe", "lt-psmshell.exe", \
+"psmwatch.exe", "lt-psmwatch.exe", \
 "ramsgate.exe", "lt-ramsgate.exe", \
-"bpadmin.exe", "lt-bpadmin.exe", \
-"bpchat.exe", "lt-bpchat.exe", \
-"bpclock.exe", "lt-bpclock.exe", \
-"bptransit.exe", "lt-bptransit.exe", \
-"bpclm.exe", "lt-bpclm.exe", \
-"bpcounter.exe", "lt-bpcounter.exe", \
-"bpdriver.exe", "lt-bpdriver.exe", \
-"bpecho.exe", "lt-bpecho.exe", "bping.exe", \
-"lt-bping.exe", "bprecvfile.exe", "lt-bprecvfile.exe", \
-"bpsendfile.exe", "lt-bpsendfile.exe", "bpsink.exe", \
-"lt-bpsink.exe", "bpsource.exe", "lt-bpsource.exe", \
-"bpstats.exe", "lt-bpstats.exe", "bpstats2.exe", \
-"lt-bpstats2.exe", "bptrace.exe", "lt-bptrace.exe", \
-"brsccla.exe", "lt-brsccla.exe", "brsscla.exe", \
-"lt-brsscla.exe", "dgr2file.exe", "lt-dgr2file.exe", \
-"dgrcli.exe", "lt-dgrcli.exe", \
-"dgrclo.exe", "lt-dgrclo.exe", \
-"dtn2admin.exe", "lt-dtn2admin.exe", \
-"dtn2adminep.exe", "lt-dtn2adminep.exe", \
-"dtn2fw.exe", "lt-dtn2fw.exe", "file2dgr.exe", \
-"lt-file2dgr.exe", "file2sdr.exe", "lt-file2sdr.exe", \
-"file2sm.exe", "lt-file2sm.exe", "file2tcp.exe", \
-"lt-file2tcp.exe", "file2udp.exe", "lt-file2udp.exe", \
-"ionadmin.exe", "lt-ionadmin.exe", "ipnadmin.exe", \
-"lt-ipnadmin.exe", "ipnadminep.exe", "lt-ipnadminep.exe", \
-"ipnfw.exe", "lt-ipnfw.exe", "lgagent.exe", \
-"lt-lgagent.exe", "lgsend.exe", "lt-lgsend.exe", \
-"ltpadmin.exe", "lt-ltpadmin.exe", "ltpcli.exe", \
-"lt-ltpcli.exe", "ltpclo.exe", "lt-ltpclo.exe", \
-"ltpclock.exe", "lt-ltpclock.exe", "ltpcounter.exe", \
-"lt-ltpcounter.exe", "ltpdriver.exe", "lt-ltpdriver.exe", \
-"ltpmeter.exe", "lt-ltpmeter.exe", "owltsim.exe", \
-"lt-owltsim.exe", "owlttb.exe", "lt-owlttb.exe", \
-"psmshell.exe", "lt-psmshell.exe", "psmwatch.exe", \
-"lt-psmwatch.exe", "ramstest.exe", "lt-ramstest.exe", \
-"rfxclock.exe", "lt-rfxclock.exe", "sdr2file.exe", \
-"lt-sdr2file.exe", "sdrmend.exe", "lt-sdrmend.exe", \
-"sdrwatch.exe", "lt-sdrwatch.exe", "sm2file.exe", \
-"lt-sm2file.exe", "smlistsh.exe", "lt-smlistsh.exe", \
-"tcpcli.exe", "lt-tcpcli.exe", "tcpclo.exe", \
-"lt-tcpclo.exe", "stcpcli.exe", "lt-stcpcli.exe", \
-"stcpclo.exe", "lt-stcpclo.exe", "tcp2file.exe", \
-"lt-tcp2file.exe", "udpcli.exe", "lt-udpcli.exe", \
-"udpclo.exe", "lt-udpclo.exe", "udplsi.exe", \
-"lt-udplsi.exe", "udplso.exe", "lt-udplso.exe", \
+"ramstest.exe", "lt-ramstest.exe", \
+"rfxclock.exe", "lt-rfxclock.exe", \
+"sdr2file.exe", "lt-sdr2file.exe", \
+"sdrmend.exe", "lt-sdrmend.exe", \
+"sdrwatch.exe", "lt-sdrwatch.exe", \
+"sm2file.exe", "lt-sm2file.exe", \
+"smlistsh.exe", "lt-smlistsh.exe", \
+"tcpcli.exe", "lt-tcpcli.exe", \
+"tcpclo.exe", "lt-tcpclo.exe", \
+"stcpcli.exe", "lt-stcpcli.exe", \
+"stcpclo.exe", "lt-stcpclo.exe", \
+"tcp2file.exe", "lt-tcp2file.exe", \
+"udpcli.exe", "lt-udpcli.exe", \
+"udpclo.exe", "lt-udpclo.exe", \
+"udplsi.exe", "lt-udplsi.exe", \
+"udplso.exe", "lt-udplso.exe", \
 "udp2file.exe", "lt-udp2file.exe"
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-,"amsbenchr.exe", "lt-amsbenchr.exe", "amsbenchs.exe", \
-"lt-amsbenchs.exe", "amsd.exe", "lt-amsd.exe", \
-"amshello.exe", "lt-amshello.exe", "amslog.exe", \
-"lt-amslog.exe", "amslogport.exe", "lt-amslogport.exe", \
-"amsshell.exe", "lt-amsshell.exe", "bputa.exe", \
-"lt-bputa.exe", "cfdpadmin.exe", "lt-cfdpadmin.exe", \
-"cfdpclock.exe", "lt-cfdpclock.exe", "cfdptest.exe", \
-"lt-cfdptest.exe", "bpcp.exe", "lt-bpcp.exe", \
+,"amsbenchr.exe", "lt-amsbenchr.exe", \
+"amsbenchs.exe", "lt-amsbenchs.exe", \
+"amsd.exe", "lt-amsd.exe", \
+"amshello.exe", "lt-amshello.exe", \
+"amslog.exe", "lt-amslog.exe", \
+"amslogport.exe", "lt-amslogport.exe", \
+"amsshell.exe", "lt-amsshell.exe", \
+"bputa.exe", "lt-bputa.exe", \
+"cfdpadmin.exe", "lt-cfdpadmin.exe", \
+"cfdpclock.exe", "lt-cfdpclock.exe", \
+"cfdptest.exe", "lt-cfdptest.exe", \
+"bpcp.exe", "lt-bpcp.exe", \
 "bpcpd.exe", "lt-bpcpd.exe"
 #endif
 };

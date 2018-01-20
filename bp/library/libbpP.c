@@ -4225,9 +4225,6 @@ int	setPlanViaEid(char *eid, char *viaEid)
 int	attachPlanDuct(char *eid, Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	char		ownEid[MAX_EID_LEN];
-			OBJ_POINTER(Outduct, outduct);
-			OBJ_POINTER(ClProtocol, protocol);
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 			OBJ_POINTER(BpPlan, plan);
@@ -4241,22 +4238,6 @@ int	attachPlanDuct(char *eid, Object outductElt)
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Unknown plan, can't attach duct", eid);
 		return 0;
-	}
-
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
-	if (strncmp(vplan->neighborEid, ownEid, sizeof ownEid) == 0)
-	{
-		GET_OBJ_POINTER(sdr, Outduct, outduct, sdr_list_data(sdr,
-					outductElt));
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
-		if (strcmp(protocol->name, "tcp") == 0)
-		{
-			sdr_exit_xn(sdr);
-			writeMemoNote("[?] No support for loopback TCPCL \
-at this time.  Maybe some day", outduct->name);
-			return 0;
-		}
 	}
 
 	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
@@ -5654,10 +5635,6 @@ cannot be retrieved by key", bundleKey);
 		bset.count++;
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		bundle->hashEntry = hashElt;
-#if 0
-		writeMemoNote("[?] Bundle hash key is not unique; bundles \
-cannot be retrieved by key", bundleKey);
-#endif
 		break;
 
 	default:	/*	No such pre-existing entry.		*/
