@@ -80,6 +80,25 @@ typedef struct
 typedef struct
 {
 	struct timeval	lastLoadTime;	/*	Add/del contacts/ranges	*/
+
+	/*	There is one entry in the routeLists list for each
+	 *	remote destination node.
+	 *
+	 *	The content of each routeLists list entry is, itself,
+	 *	the address of an SmList.
+	 *
+	 *	The *list user data* of the SmList at that address is
+	 *	the address of the IonNode structure for the remote
+	 *	destination node.
+	 *
+	 *	The *entries* of the SmList at that address contain
+	 *	the addresses of CgrRoute structures.
+	 *
+	 *	But the number of CgrRoutes in the route list for
+	 *	any single remote destination node is limited:
+	 *	there can be at most one for each neighbor of the
+	 *	local node.						*/
+
 	PsmAddress	routeLists;	/*	SM list: CgrRoute list	*/
 } CgrVdb;
 
@@ -106,9 +125,12 @@ static void	discardRouteList(PsmPartition ionwm, PsmAddress routes)
 	PsmAddress	addr;
 	CgrRoute	*route;
 
+	/*	Destroy all routes computed for one remote destination
+	 *	node.							*/
+
 	if (routes == 0)
 	{
-		return;
+		return;	/*	This node has no routes to destroy.	*/
 	}
 
 	/*	Erase all routes in the list.				*/
@@ -127,7 +149,7 @@ static void	discardRouteList(PsmPartition ionwm, PsmAddress routes)
 		sm_list_delete(ionwm, elt2, NULL, NULL);
 	}
 
-	/*	Destroy the list of routes to this remote node.	*/
+	/*	Destroy the list itself.				*/
 
 	sm_list_destroy(ionwm, routes, NULL, NULL);
 }
@@ -140,6 +162,8 @@ static void	discardRouteLists(CgrVdb *vdb)
 	PsmAddress	routes;		/*	SM list: CgrRoute	*/
 	PsmAddress	addr;
 	IonNode		*node;
+
+	/*	Destroy all route lists.				*/
 
 	for (elt = sm_list_first(ionwm, vdb->routeLists); elt; elt = nextElt)
 	{
@@ -168,6 +192,10 @@ static void	clearRoutingObjects(PsmPartition ionwm)
 	PsmAddress	elt;
 	IonNode		*node;
 	PsmAddress	routes;
+
+	/*	Discard all routes computed for all destination
+	 *	nodes, whether or not in route list (i.e., reachable
+	 *	from CGR vdb.						*/
 
 	for (elt = sm_rbt_first(ionwm, ionvdb->nodes); elt;
 			elt = sm_rbt_next(ionwm, elt))
@@ -305,6 +333,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		earliestFinalArrivalTime = MAX_TIME;
 	IonCXref	*nextContact;
 	time_t		earliestArrivalTime;
+	uvast		largestCapacity;
+	time_t		earliestStartTime;
 	time_t		earliestEndTime;
 	uvast		maxCapacity;
 	PsmAddress	addr;
@@ -317,8 +347,10 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	while (1)
 	{
-		/*	Consider all unvisited neighbors (i.e., next-
-		 *	hop contacts) of the current contact.		*/
+		/*	Consider all unvisited successors (i.e., next-
+		 *	hop contacts) of the current contact, in each
+		 *	case computing best-case arrival time for a
+		 *	bundle transmitted during that contact.		*/
 
 		arg.fromNode = current->toNode;
 		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
@@ -328,7 +360,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		{
 			contact = (IonCXref *) psp(ionwm,
 					sm_rbt_data(ionwm, elt));
-			if (contact->fromNode > arg.fromNode)
+			if (contact->fromNode > current->toNode)
 			{
 				/*	No more relevant contacts.	*/
 
@@ -395,7 +427,10 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			owlt += owltMargin;
 
 			/*	Compute cost of choosing this edge:
-			 *	earliest bundle arrival time.		*/
+			 *	earliest bundle arrival time, given
+			 *	that the bundle arrives at the sending
+			 *	node in the course of the current
+			 *	contact.				*/
 
 			if (contact->fromTime < currentWork->arrivalTime)
 			{
@@ -423,30 +458,31 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 			if (arrivalTime < work->arrivalTime)
 			{
+				/*	Bundle arrival time will
+				 *	vary with bundle transmit
+				 *	time, which may be delayed
+				 *	awaiting bundle arrival via
+				 *	the current contact.		*/
+
 				work->arrivalTime = arrivalTime;
 				work->predecessor = current;
-
-				/*	Note contact if could be final.	*/
-
-				if (contact->toNode == terminusNode->nodeNbr)
-				{
-					if (work->arrivalTime
-						< earliestFinalArrivalTime)
-					{
-						earliestFinalArrivalTime
-							= work->arrivalTime;
-						finalContact = contact;
-					}
-				}
 			}
 		}
 
+		/*	Have at this point computed the best-case
+		 *	bundle arrival times for all edges of the
+		 *	graph that originate at the current contact.	*/
+
 		currentWork->visited = 1;
 
-		/*	Select next contact to consider, if any.	*/
+		/*	Now select next contact to advance to, if
+		 *	any.  That is, select the successor contact
+		 *	(if any) with the lowest cost.			*/
 
 		nextContact = NULL;
 		earliestArrivalTime = MAX_TIME;
+		largestCapacity = 0;
+		earliestStartTime = MAX_TIME;
 		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
@@ -461,18 +497,65 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				continue;	/*	Ineligible.	*/
 			}
 
-			if (work->arrivalTime > earliestFinalArrivalTime)
+			/*	Dijkstra search edge cost function.	*/
+
+			if (work->arrivalTime > earliestArrivalTime)
 			{
-				/*	Not on optimal path; ignore.	*/
+				/*	Not the lowest-cost edge.	*/
 
 				continue;
 			}
 
 			if (work->arrivalTime < earliestArrivalTime)
 			{
+				/*	Best successor contact seen
+				 *	so far.				*/
+
 				nextContact = contact;
 				earliestArrivalTime = work->arrivalTime;
+				largestCapacity = work->capacity;
+				earliestStartTime = contact->fromTime;
+				continue;
 			}
+
+			/*	Same arrival time as current best
+			 *	candidate next contact.			*/
+
+			if (work->capacity < largestCapacity)
+			{
+				/*	Not the lowest-cost edge.	*/
+
+				continue;
+			}
+
+			if (work->capacity > largestCapacity)
+			{
+				/*	Best successor contact seen
+				 *	so far.				*/
+
+				nextContact = contact;
+				earliestArrivalTime = work->arrivalTime;
+				largestCapacity = work->capacity;
+				earliestStartTime = contact->fromTime;
+				continue;
+			}
+
+			/*	Same arrival time and capacity as
+			 *	current best candidate next contact.	*/
+
+			if (contact->fromTime >= earliestStartTime)
+			{
+				/*	Not the lowest-cost edge.	*/
+
+				continue;
+			}
+
+			/*	Best successor contact seen so far.	*/
+
+			nextContact = contact;
+			earliestArrivalTime = work->arrivalTime;
+			largestCapacity = work->capacity;
+			earliestStartTime = contact->fromTime;
 		}
 
 		/*	If search is complete, stop.  Else repeat,
@@ -480,7 +563,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 		if (nextContact == NULL)
 		{
-			/*	End of search.				*/
+			/*	End of search; can't proceed any
+			 *	further toward the terminal contact.	*/
 
 			break;
 		}
@@ -488,12 +572,18 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		current = nextContact;
 		currentWork = (CgrContactNote *)
 				psp(ionwm, nextContact->routingObject);
+		if (current->toNode == terminusNode->nodeNbr)
+		{
+			earliestFinalArrivalTime = currentWork->arrivalTime;
+			finalContact = current;
+			break;
+		}
 	}
 
-	/*	Have finished Dijkstra search of contact graph,
-	 *	excluding those contacts that were suppressed.		*/
+	/*	Have finished a single Dijkstra search of the contact
+	 *	graph, excluding those contacts that were suppressed.	*/
 
-	if (finalContact)	/*	Found a route to terminus node.	*/
+	if (finalContact)	/*	Got route to terminal contact.	*/
 	{
 		route->arrivalTime = earliestFinalArrivalTime;
 		route->arrivalConfidence = 1.0;
@@ -603,47 +693,6 @@ static int	findNextBestRoute(PsmPartition ionwm, IonCXref *rootContact,
 	return 0;
 }
 
-static void	endAnchoredSearch(PsmAddress routeAddr, CgrRoute *route)
-{
-	PsmPartition	ionwm = getIonwm();
-	IonVdb		*ionvdb = getIonVdb();
-	uvast		localNode = getOwnNodeNbr();
-	PsmAddress	elt;
-	IonCXref	*contact;
-	CgrContactNote	*work;
-
-	/*	No more routes through the anchor contact.  All
-	 *	suppressed contacts that are not initial contacts on
-	 *	routes were only temporarily suppressed to enable the
-	 *	discovery of more routes through the anchor contact,
-	 *	so un-suppress them while clearing all work areas for
-	 *	next search.						*/
-
-	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
-			elt = sm_rbt_next(ionwm, elt))
-	{
-		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
-		if (contact->fromNode != localNode)
-		{
-			/*	Not an initial contact, so end its
-			 *	temporary suppression.			*/
-
-			work->suppressed = 0;
-		}
-
-		work->arrivalTime = MAX_TIME;
-		work->predecessor = NULL;
-		work->visited = 0;
-	}
-
-	/*	Also, ditch this route because it may not be optimal
-	 *	per downstream contact suppression.			*/
-
-	sm_list_destroy(ionwm, route->hops, NULL, NULL);
-	psm_free(ionwm, routeAddr);
-}
-
 static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 				CgrTrace *trace)
 {
@@ -658,8 +707,6 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
 	IonCXref	*firstContact;
-	IonCXref	*limitContact;
-	IonCXref	*anchorContact = NULL;
 
 	CHKZERO(ionvdb);
 	CHKZERO(cgrvdb);
@@ -682,7 +729,7 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 		return 0;
 	}
 
-	/*	Now note the best routes (transmission sequences,
+	/*	Now discover the best routes (transmission sequences,
 	 *	paths, itineraries) from the local node that can
 	 *	result in arrival at the remote node.  To do this, we
 	 *	run a series of Dijkstra searches through the contact
@@ -690,8 +737,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 	 *	to itself and terminating in the "final contact"
 	 *	(which is the terminus node's contact with itself).
 	 *	Each time we search, we exclude from consideration
-	 *	the earliest-expiring contact in every previously
-	 *	computed route.						*/
+	 *	all contacts with neighboring nodes through which
+	 *	optimal contacts have already been discovered.		*/
 
 	rootContact.fromNode = getOwnNodeNbr();
 	rootContact.toNode = rootContact.fromNode;
@@ -721,7 +768,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 		work->arrivalTime = MAX_TIME;
 	}
 
-	/*	Find all routes through this contact graph.		*/
+	/*	Find best routes through this contact graph via each
+	 *	of the nodes that are neighbors of the local node.	*/
 
 	while (1)
 	{
@@ -738,36 +786,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 		}
 
 		/*	Found optimal route, given exclusion of all
-		 *	contacts that are the initial contacts on
-		 *	previously discovered optimal routes.		*/
-
-		route = (CgrRoute *) psp(ionwm, routeAddr);
-		firstContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
-				sm_list_first(ionwm, route->hops)));
-		if (anchorContact)
-		{
-			/*	This is a route found while doing a
-			 *	search that is anchored on some initial
-			 *	contact whose expiration time is later
-			 *	than that of some or all relevant
-			 *	downstream contacts.  If the most
-			 *	recently discovered route through
-			 *	this anchor contact was the last, then
-			 *	end the anchored search and try again
-			 *	with the anchor contact now suppressed.	*/
-
-			if (firstContact != anchorContact)
-			{
-				endAnchoredSearch(routeAddr, route);
-				work = (CgrContactNote *) psp(ionwm,
-						anchorContact->routingObject);
-				work->suppressed = 1;
-				anchorContact = NULL;
-				continue;
-			}
-		}
-
-		/*	This is a route that we want to record.		*/
+		 *	contacts with neighboring nodes through which
+		 *	optimal contacts have already been discovered.	*/
 
 		if (sm_list_insert_last(ionwm, terminusNode->routingObject,
 				routeAddr) == 0)
@@ -776,118 +796,82 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 			return 0;
 		}
 
-		/*	Now exclude the earliest-expiring contact in
-		 *	this optimal route.				*/
+		/*	Now exclude all contacts for transmission to
+		 *	that neighboring node to which we transmit in
+		 *	the course of the first contact in this
+		 *	optimal route.  That is, we have determined
+		 *	the best route through this neighboring node,
+		 *	so now we are no longer interested in routes
+		 *	that go through that node; we want the best
+		 *	route through any of the neighboring nodes
+		 *	for which we have not yet determined the
+		 *	best route.  Clear the work areas for all
+		 *	other contacts.					*/
 
 		route = (CgrRoute *) psp(ionwm, routeAddr);
 		firstContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
 				sm_list_first(ionwm, route->hops)));
-		if (route->toTime == firstContact->toTime)
+		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
+				elt = sm_rbt_next(ionwm, elt))
 		{
-			limitContact = firstContact;
-		}
-		else
-		{
-			/*	One of more downstream contacts in this
-			 *	route expire before the initial contact
-			 *	expires.  On next search, exclude the
-			 *	earliest-expiring contact in this route,
-			 *	rather than the first contact.  And
-			 *	remember that this first contact is now
-			 *	"anchoring" the searches.		*/
-
-			anchorContact = firstContact;
-			for (elt = sm_list_first(ionwm, route->hops);
-					elt; elt = sm_list_next(ionwm, elt))
+			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
+					elt));
+			work = (CgrContactNote *) psp(ionwm,
+					contact->routingObject);
+			if (contact->toNode == firstContact->toNode)
 			{
-				contact = (IonCXref *) psp(ionwm,
-						sm_list_data(ionwm, elt));
-				if (contact->toTime == route->toTime)
-				{
-					break;
-				}
+				work->suppressed = 1;
 			}
 
-			if (elt == 0)
+			if (work->suppressed)
 			{
-				putErrmsg("Bug in hops list!", NULL);
-				return 0;
+				continue;
 			}
 
-			limitContact = contact;
-		}
+			/*	Contact may still be useful, so clear
+			 *	its work area.				*/
 
-		work = (CgrContactNote *)
-				psp(ionwm, limitContact->routingObject);
-		work->suppressed = 1;
-
-		/*	Now clear work areas and look for next route.	*/
-
-		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex);
-			       	elt; elt = sm_rbt_next(ionwm, elt))
-		{
-			contact = (IonCXref *)
-				psp(ionwm, sm_rbt_data(ionwm, elt));
-			work = (CgrContactNote *)
-				psp(ionwm, contact->routingObject);
 			work->arrivalTime = MAX_TIME;
 			work->predecessor = NULL;
 			work->visited = 0;
 		}
+
+		/*	Now look for next route.			*/
 	}
 
 	return terminusNode->routingObject;
 }
 
-/*		Functions for identifying viable proximate nodes
- *		for forward transmission of a given bundle.		*/
+/*	Functions for identifying viable proximate nodes for forward
+ *	transmission of a given bundle.					*/
 
-static int	recomputeRouteForContact(uvast contactToNodeNbr,
-			time_t contactFromTime, IonNode *terminusNode,
-			time_t currentTime, CgrTrace *trace)
+static int	recomputeRouteThroughNeighbor(uvast neighborNodeNbr,
+			IonNode *terminusNode, time_t currentTime,
+			CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	PsmAddress	routes;
-	IonCXref	arg;
-	PsmAddress	cxelt;
-	PsmAddress	nextElt;
+	uvast		localNodeNbr = getOwnNodeNbr();
+	PsmAddress	elt;
 	IonCXref	*contact;
 	CgrContactNote	*work;
-	PsmAddress	elt;
-	CgrRoute	*route;
 	IonCXref	rootContact;
 	CgrContactNote	rootWork;
 	PsmAddress	routeAddr;
-	CgrRoute	*newRoute;
-	PsmAddress	elt2;
 
 	TRACE(CgrRecomputeRoute);
 	routes = terminusNode->routingObject;
-	arg.fromNode = getOwnNodeNbr();
-	arg.toNode = contactToNodeNbr;
-	arg.fromTime = contactFromTime;
-	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
-			&arg, &nextElt);
-	if (cxelt == 0)
-	{
-		return 0;	/*	Can't find the contact.		*/
-	}
 
-	contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
-	if (contact->toTime <= currentTime)
-	{
-		return 0;	/*	Contact is expired.		*/
-	}
+	/*	Suppress from consideration every contact that
+	 *	constitutes transmission from the local node to
+	 *	any node other than the subject neighbor.  Clear
+	 *	the work areas for all other contacts.			*/
 
-	/*	Recompute route through this leading contact.  First
-	 *	clear Dijkstra work areas for all contacts in the
-	 *	contactIndex.						*/
-
-	for (cxelt = sm_rbt_first(ionwm, vdb->contactIndex); cxelt;
-			cxelt = sm_rbt_next(ionwm, cxelt))
+	for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
 	{
-		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
 		if ((work = (CgrContactNote *) psp(ionwm,
 				contact->routingObject)) == 0)
 		{
@@ -903,52 +887,23 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 			}
 		}
 
-		memset((char *) work, 0, sizeof(CgrContactNote));
-		work->arrivalTime = MAX_TIME;
+		if (contact->fromNode == localNodeNbr
+		&& contact->toNode != neighborNodeNbr)
+		{
+			work->suppressed = 1;
+		}
+		else
+		{
+			memset((char *) work, 0, sizeof(CgrContactNote));
+			work->arrivalTime = MAX_TIME;
+		}
 	}
 
-	/*	Now suppress from consideration as lead contact
-	 *	every contact that is already the leading contact of
-	 *	any remaining route in terminusNode's list of routes.	*/
+	/*	Next invoke findNextBestRoute to discover the best
+	 *	route through this neighbor given the revised cotact
+	 *	graph.							*/
 
-	for (elt = sm_list_first(ionwm, routes); elt; elt =
-			sm_list_next(ionwm, elt))
-	{
-		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (route->toNodeNbr == contactToNodeNbr
-		&& route->fromTime == contactFromTime)
-		{
-			/*	Don't suppress the contact we are
-			 *	trying to compute a new route through.	*/
-
-			continue;
-		}
-
-		arg.fromNode = getOwnNodeNbr();
-		arg.toNode = route->toNodeNbr;
-		arg.fromTime = route->fromTime;
-		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
-				rfx_order_contacts, &arg, &nextElt);
-		if (cxelt == 0)
-		{
-			/*	This is an old route, for a contact
-			 *	that is already ended, but the route
-			 *	hasn't been purged yet because it
-			 *	hasn't been used recently.  Ignore it.	*/
-
-			continue;
-		}
-
-		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
-		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
-		work->suppressed = 1;
-	}
-
-	/*	Next invoke findNextBestRoute to produce a new route
-	 *	starting at the subject contact.			*/
-
-	rootContact.fromNode = getOwnNodeNbr();
-	rootContact.toNode = rootContact.fromNode;
+	rootContact.toNode = rootContact.fromNode = localNodeNbr;
 	rootWork.arrivalTime = currentTime;
 	if (findNextBestRoute(ionwm, &rootContact, &rootWork, terminusNode,
 			&routeAddr, trace) < 0)
@@ -963,39 +918,9 @@ static int	recomputeRouteForContact(uvast contactToNodeNbr,
 	}
 
 	/*	Finally, insert that route into the terminusNode's
-	 *	list of routes in arrivalTime/capacity order.	*/
+	 *	list of routes.						*/
 
-	newRoute = (CgrRoute *) psp(ionwm, routeAddr);
-	for (elt = sm_list_first(ionwm, routes); elt;
-			elt = sm_list_next(ionwm, elt))
-	{
-		route = (CgrRoute *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (route->arrivalTime < newRoute->arrivalTime)
-		{
-			continue;
-		}
-
-		if (route->arrivalTime == newRoute->arrivalTime)
-		{
-			if (route->maxCapacity >= newRoute->maxCapacity)
-			{
-				continue;
-			}
-		}
-
-		break;		/*	Insert before this route.	*/
-	}
-
-	if (elt)
-	{
-		elt2 = sm_list_insert_before(ionwm, elt, routeAddr);
-	}
-	else
-	{
-		elt2 = sm_list_insert_last(ionwm, routes, routeAddr);
-	}
-
-	if (elt2 == 0)
+	if (sm_list_insert_last(ionwm, routes, routeAddr) == 0)
 	{
 		putErrmsg("Can't insert recomputed route.", NULL);
 		return -1;
@@ -1048,9 +973,10 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	computePriorClaims(plan, bundle, &priorClaims, &totalBacklog);
 	copyScalar(protected, &totalBacklog);
 
-	/*	Reduce prior claims on the first contact in this route
-	 *	by all transmission to this contact's neighbor that will
-	 *	be performed during contacts that precede this contact.	*/
+	/*	Reduce prior claims on the first contact in this
+	 *	route by all transmission to this contact's neighbor
+	 *	that will be performed during contacts that precede
+	 *	this contact.						*/
 
 	loadScalar(&allotment, 0);
 	loadScalar(&capacity, 0);
@@ -1132,7 +1058,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 			loadScalar(protected, 0);
 		}
 
-		/*	Limit check.					*/
+		/*	Loop limit check.				*/
 
 		if (contact->fromTime >= route->fromTime)
 		{
@@ -1163,7 +1089,7 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 	/*	At this point, priorClaims contains the applicable
 	 *	"residual backlog."
 	 *
-	 *	Now considering the initial contact on the route.
+	 *	Now consider the initial contact on the route.
 	 *	First, check for potential overbooking.			*/
 
 	eccc = computeECCC(guessBundleSize(bundle));
@@ -1221,6 +1147,10 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 			 *	can't be fully transmitted during this
 			 *	contact.  So the route is unusable.
 			 *
+			 *	NOTE that the SABR concept of
+			 *	anticipatory fragmentation is NOT
+			 *	implemented in ION at this time.
+			 *
 			 *	Note that transmit time is computed
 			 *	using integer arithmetic, which will
 			 *	truncate any fractional seconds of
@@ -1253,7 +1183,9 @@ static time_t	computeArrivalTime(CgrRoute *route, Bundle *bundle,
 			break;	/*	End of route.			*/
 		}
 
-		/*	Must be forwarded from this node.		*/
+		/*	Not end of route, so the "to" node for this
+		 *	contact is not the terminus node, i.e., the
+		 *	bundle must be forwarded from this node.	*/
 
 		contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
 		if (arrivalTime > contact->fromTime)
@@ -1298,7 +1230,6 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	PsmAddress	vplanElt;
 	Object		planObj;
 	BpPlan		plan;
-	LystElt		elt2;
 	int		hopCount;
 	uvast		capacity;
 	time_t		arrivalTime;
@@ -1321,9 +1252,10 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 
 	/*	Now determine whether or not the bundle could be sent
 	 *	to this neighbor via the applicable egress plan in
-	 *	time to follow the route that is being considered.
-	 *	There are two criteria.  First, is the egress plan
-	 *	blocked (i.e., temporarily shut off by operations)?	*/
+	 *	time to follow the route that is being considered
+	 *	(i.e., the best route through this neighbor).  There
+	 *	are two criteria.  First, is the egress plan blocked
+	 *	(i.e., temporarily shut off by operations)?		*/
 
 	if (plan.blocked)
 	{
@@ -1348,114 +1280,27 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 
 	/*	This route is a plausible opportunity for getting
 	 *	the bundle forwarded to the terminus node before it
-	 *	expires, so we look to see if the route's initial
-	 *	proximate node is already in the list of candidate
-	 *	proximate nodes for this bundle.  If not, we add
-	 *	it; if so, we update the associated best arrival
-	 *	time, minimum hop count, and forfeit time as
-	 *	necessary.
+	 *	expires, so we add the route's entry node to the
+	 *	list of candidate proximate nodes for this bundle.
 	 *
 	 *	The arrivalTime noted for a proximate node is the
-	 *	earliest among the projected arrival times on all
-	 *	plausible paths to the terminus node that start
-	 *	with transmission to that neighbor, i.e., among
-	 *	all plausible routes.
+	 *	projected arrival time for the best route that
+	 *	starts with transmission to that neighboring node.
 	 *
-	 *	The capacity noted here is the largest among the
-	 *	capacities projected on all plausible paths to the
-	 *	terminus node, starting at the candidate proximate
-	 *	node, that share the minimum arrivalTime.
+	 *	The capacity noted here is the capacity of the
+	 *	best route that starts with transmission to the
+	 *	proximate node.
 	 *
-	 *	The hopCount noted here is the smallest among the
-	 *	hopCounts projected on all plausible paths to the
-	 *	terminus node, starting at the candidate proximate
-	 *	node, that share the minimum arrivalTime and
-	 *	maximum capacity.
+	 *	The hopCount noted here is the hop count for the
+	 *	best route that starts with transmission to the
+	 *	proximate node.
 	 *
 	 *	We set forfeit time to the forfeit time associated
-	 *	with the "best" (lowest-latency, highest-cpacity,
-	 *	shortest) path.  Note that the best path might not
-	 *	have the lowest associated forfeit time.		*/
+	 *	with the best route that starts with transmission
+	 *	to the proximate node.					*/
 
 	capacity = route->maxCapacity;
 	hopCount = sm_list_length(ionwm, route->hops);
-	for (elt2 = lyst_first(proximateNodes); elt2; elt2 = lyst_next(elt2))
-	{
-		proxNode = (ProximateNode *) lyst_data(elt2);
-		if (proxNode->neighborNodeNbr != route->toNodeNbr)
-		{
-			continue;
-		}
-
-		/*	This route starts with contact with a neighbor
-		 *	that's already in the list.			*/
-
-		if (arrivalTime < proxNode->arrivalTime)
-		{
-			proxNode->arrivalTime = arrivalTime;
-			proxNode->capacity = capacity;
-			proxNode->hopCount = hopCount;
-			proxNode->forfeitTime = route->toTime;
-			copyScalar(&proxNode->overbooked, &overbooked);
-			copyScalar(&proxNode->protected, &protected);
-			proxNode->arrivalConfidence = route->arrivalConfidence;
-			TRACE(CgrUpdateProximateNode, CgrLaterArrivalTime);
-			return 0;
-		}
-
-		if (arrivalTime > proxNode->arrivalTime)
-		{
-			TRACE(CgrIgnoreRoute, CgrLaterArrivalTime);
-			return 0;
-		}
-
-		/*	Same arrival time.				*/
-
-		if (capacity > proxNode->capacity)
-		{
-			proxNode->capacity = capacity;
-			proxNode->hopCount = hopCount;
-			proxNode->forfeitTime = route->toTime;
-			copyScalar(&proxNode->overbooked, &overbooked);
-			copyScalar(&proxNode->protected, &protected);
-			proxNode->arrivalConfidence = route->arrivalConfidence;
-			TRACE(CgrUpdateProximateNode, CgrLowerCapacity);
-			return 0;
-		}
-
-		if (capacity < proxNode->capacity)
-		{
-			TRACE(CgrIgnoreRoute, CgrLowerCapacity);
-			return 0;
-		}
-
-		/*	Same capacity.					*/
-
-		if (hopCount < proxNode->hopCount)
-		{
-			proxNode->hopCount = hopCount;
-			proxNode->forfeitTime = route->toTime;
-			copyScalar(&proxNode->overbooked, &overbooked);
-			copyScalar(&proxNode->protected, &protected);
-			proxNode->arrivalConfidence = route->arrivalConfidence;
-			TRACE(CgrUpdateProximateNode, CgrMoreHops);
-			return 0;
-		}
-
-		if (hopCount > proxNode->hopCount)
-		{
-			TRACE(CgrIgnoreRoute, CgrMoreHops);
-			return 0;
-		}
-
-		/*	Same route length.				*/
-
-		TRACE(CgrIgnoreRoute, CgrIdentical);
-		return 0;
-	}
-
-	/*	This neighbor is not yet in the list, so add it.	*/
-
 	proxNode = (ProximateNode *) MTAKE(sizeof(ProximateNode));
 	if (proxNode == NULL
 	|| lyst_insert_last(proximateNodes, (void *) proxNode) == 0)
@@ -1489,20 +1334,12 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 	IonCXref	*contact;
 	CgrRoute	*route;
 	uvast		contactToNodeNbr;
-	time_t		contactFromTime;
 
 	deadline = bundle->expirationTime + EPOCH_2000_SEC;
 
 	/*	Examine all opportunities for transmission to any
 	 *	neighboring node that would result in arrival at
-	 *	the terminus node.  Walk the list in ascending final
-	 *	arrival time order, stopping at the first route
-	 *	for which the final arrival time would be after
-	 *	the bundle's expiration time (deadline).  This
-	 *	ensures that we consider every route that might
-	 *	possibly be the best route to the node, possibly
-	 *	including some routes that are unsuitable for one
-	 *	reason or another.					*/
+	 *	the terminus node.					*/
 
 	routes = terminusNode->routingObject;
 	if (routes == 0)	/*	No current routes to this node.	*/
@@ -1531,7 +1368,6 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 			 *	has already ended; delete it.		*/
 
 			contactToNodeNbr = route->toNodeNbr;
-			contactFromTime = route->fromTime;
 			if (route->hops)
 			{
 				sm_list_destroy(ionwm, route->hops, NULL, NULL);
@@ -1539,23 +1375,30 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 
 			psm_free(ionwm, addr);
 			sm_list_delete(ionwm, elt, NULL, NULL);
-			switch (recomputeRouteForContact(contactToNodeNbr,
-					contactFromTime, terminusNode,
-					currentTime, trace))
+
+			/*	Now compute the best remaining route
+			 *	through this neighboring node.		*/
+
+			switch (recomputeRouteThroughNeighbor(contactToNodeNbr,
+					terminusNode, currentTime, trace))
 			{
 			case -1:
 				putErrmsg("Route recomputation failed.", NULL);
 				return -1;
 
 			case 0:
-				break;	/*	Lead contact defunct.	*/
+				/*	No more routes through this
+				 *	neighbor at this time.		*/
+
+				break;
 
 			default:
-				/*	Route through this lead contact
-				 *	has been recomputed and inserted
-				 *	into the list of routes.  Must
-				 *	start again from the beginning
-				 *	of the list.			*/
+				/*	Best remaining route through
+				 *	this neighboring node has been
+				 *	computed and inserted into the
+				 *	list of routes.  Must start
+				 *	again from the beginning of
+				 *	the list.			*/
 
 				nextElt = sm_list_first(ionwm, routes);
 			}
@@ -1597,7 +1440,9 @@ static int	identifyProximateNodes(IonNode *terminusNode, Bundle *bundle,
 		/*	Is the bundle's size greater that the
 		 *	capacity of whichever contact in this route
 		 *	has the least capacity?  If so, can't use
-		 *	this route.					*/
+		 *	this route.   (NOTE: the SABR concept of
+		 *	anticipatory fragmentation is not implemented
+		 *	in ION at this time.)				*/
 
 		if (bundle->payload.length > route->maxCapacity)
 		{
@@ -1718,8 +1563,8 @@ static int	enqueueToNeighbor(ProximateNode *proxNode, Bundle *bundle,
 	 *	for this final destination (i.e., one that has been
 	 *	refusing bundles destined for this final destination
 	 *	node), then this bundle serves as a "probe" aimed at
-	 *	that neighbor.  In that case, must now schedule the
-	 *	next probe to this neighbor.				*/
+	 *	that neighbor.  In that case, must now enable the
+	 *	scheduling of the next probe to this neighbor.		*/
 
 	ionwm = getIonwm();
 	for (embElt = sm_list_first(ionwm, terminusNode->embargoes);
@@ -2102,12 +1947,12 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	float		newDlvConfidence;
 	float		confidenceImprovement;
 
-	/*	Determine whether or not the contact graph for this
-	 *	node identifies one or more proximate nodes to
-	 *	which the bundle may be sent in order to get it
-	 *	delivered to the specified node.  If so, use
-	 *	the Plan asserted for the best proximate node(s)
-	 *	("dynamic route").
+	/*	Determine whether or not the contact graph for the
+	 *	terminus node identifies one or more proximate nodes
+	 *	to which the bundle may be sent in order to get it
+	 *	delivered to the terminus node.  If so, use the Plan
+	 *	asserted for the best proximate node(s) ("dynamic
+	 *	route").
 	 *
 	 *	Note that CGR can be used to compute a route to an
 	 *	intermediate "station" node selected by another
@@ -2217,8 +2062,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	proximate receiving node.
 	 *
 	 *	Otherwise, enqueue the bundle on the plan for the
-	 *	identified proximate receiving node for the path with
-	 *	the earliest worst-case arrival time.			*/
+	 *	most preferred identified proximate receiving node.	*/
 
 	lyst_destroy(excludedNodes);
 	TRACE(CgrSelectProximateNodes);
@@ -2231,9 +2075,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 				proximateNodes, preview);
 	}
 
-	/*	Non-critical bundle; send on the minimum-latency path.
-	 *	In case of a tie, select the path of minimum hopCount
-	 *	from the terminus node.					*/
+	/*	Non-critical bundle; send to the most preferred
+	 *	neighbor.						*/
 
 	selectedNeighbor = NULL;
 	for (elt = lyst_first(proximateNodes); elt; elt = nextElt)
@@ -2281,17 +2124,6 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			TRACE(CgrIgnoreProximateNode, CgrLaterArrivalTime);
 			MRELEASE(proxNode);
 		}
-		else if (proxNode->capacity > selectedNeighbor->capacity)
-		{
-			TRACE(CgrSelectProximateNode);
-			MRELEASE(selectedNeighbor);
-			selectedNeighbor = proxNode;
-		}
-		else if (proxNode->capacity < selectedNeighbor->capacity)
-		{
-			TRACE(CgrIgnoreProximateNode, CgrLowerCapacity);
-			MRELEASE(proxNode);
-		}
 		else if (proxNode->hopCount < selectedNeighbor->hopCount)
 		{
 			TRACE(CgrSelectProximateNode);
@@ -2301,6 +2133,17 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		else if (proxNode->hopCount > selectedNeighbor->hopCount)
 		{
 			TRACE(CgrIgnoreProximateNode, CgrMoreHops);
+			MRELEASE(proxNode);
+		}
+		else if (proxNode->forfeitTime > selectedNeighbor->forfeitTime)
+		{
+			TRACE(CgrSelectProximateNode);
+			MRELEASE(selectedNeighbor);
+			selectedNeighbor = proxNode;
+		}
+		else if (proxNode->forfeitTime < selectedNeighbor->forfeitTime)
+		{
+			TRACE(CgrIgnoreProximateNode, CgrEarlierTermination);
 			MRELEASE(proxNode);
 		}
 		else if (proxNode->neighborNodeNbr <
@@ -2543,7 +2386,7 @@ fully subscribed",
 capacity for this bundle",
 
 	[CgrMoreHops] = "more hops",
-	[CgrIdentical] = "identical to a previous route",
+	[CgrEarlierTermination] = "earlier route termination time",
 	[CgrNoHelp] = "insufficient delivery confidence improvement",
 	[CgrLowerCapacity] = "lower path capacity",
 	[CgrLaterArrivalTime] = "later arrival time",

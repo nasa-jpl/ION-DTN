@@ -34,7 +34,7 @@ extern "C" {
 #define STARTUP_TIMEOUT 15
 #endif
 
-#define	MAX_SPEED_MPH	(150000)
+#define	MAX_SPEED_MPH	(450000)
 #define	MAX_SPEED_MPS	(MAX_SPEED_MPH / 3600)
 
 #define	SENDER_NODE	(0)

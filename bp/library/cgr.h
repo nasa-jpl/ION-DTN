@@ -113,7 +113,7 @@ typedef enum
 	// CgrIgnoreProximateNode) or reasons a previously-selected proximate
 	// node was ignored (CgrUpdateProximateNode)
 	CgrMoreHops,
-	CgrIdentical,
+	CgrEarlierTermination,
 	CgrNoHelp,
 	CgrLowerCapacity,
 	CgrLaterArrivalTime,
