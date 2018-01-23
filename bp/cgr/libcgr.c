@@ -345,6 +345,11 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	current = rootContact;
 	currentWork = rootWork;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+
+	/*	Perform this interior loop until either the best route
+	 *	to the end vertex has been identified or else it is
+	 *	known that there is no such route.			*/
+
 	while (1)
 	{
 		/*	Consider all unvisited successors (i.e., next-
@@ -354,12 +359,23 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 		arg.fromNode = current->toNode;
 		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
+
+		/*	First, compute and note/revise/discard the
+		 *	best-case bundle arrival time for all contacts
+		 *	that are topologically adjacent to the current
+		 *	contact.					*/
+
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
 				elt; elt = sm_rbt_next(ionwm, elt))
 		{
 			contact = (IonCXref *) psp(ionwm,
 					sm_rbt_data(ionwm, elt));
+
+			/*	Note: contact->fromNode can't be less
+			 *	than current->toNode: we started at
+			 *	that node with sm_rbt_search.		*/
+
 			if (contact->fromNode > current->toNode)
 			{
 				/*	No more relevant contacts.	*/
@@ -407,6 +423,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				 *	these BP nodes at this time,
 				 *	so can't consider in CGR.	*/
 
+				work->suppressed = 1;
 				continue;
 			}
 
@@ -475,9 +492,11 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 		currentWork->visited = 1;
 
-		/*	Now select next contact to advance to, if
-		 *	any.  That is, select the successor contact
-		 *	(if any) with the lowest cost.			*/
+		/*	Now the second loop: among ALL non-suppressed
+		 *	contacts in the graph, select the one with
+		 *	the earliest arrival time (least distance
+		 *	from the root vertex) as the new "current"
+		 *	vertex to analyze.				*/
 
 		nextContact = NULL;
 		earliestArrivalTime = MAX_TIME;
@@ -495,6 +514,13 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			if (work->suppressed || work->visited)
 			{
 				continue;	/*	Ineligible.	*/
+			}
+
+			if (work->arrivalTime == MAX_TIME)
+			{
+				/*	Not reachable from root.	*/
+
+				continue;
 			}
 
 			/*	Dijkstra search edge cost function.	*/
@@ -711,6 +737,53 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 	CHKZERO(ionvdb);
 	CHKZERO(cgrvdb);
 
+	/*	Loading the list of routes from the local node to
+	 *	a given terminus node is a process involving three
+	 *	layers of loops.
+	 *
+	 *	The outermost "exterior" loop is performed once per
+	 *	neighbor of the local node, to find the best route
+	 *	(identified by initial contact) from the local node
+	 *	to the terminus through that neighbor.
+	 *
+	 *	Each execution of the exterior loop performs a
+	 *	Dijkstra search (an inner "interior" loop as
+	 *	described below) that finds the best route through
+	 *	all contacts that have not yet been suppressed,
+	 *	followed by a loop that flags as "suppressed" all
+	 *	contacts from the local node to the neighbor that
+	 *	is the entry node for that newly discovered route.
+	 *
+	 *	The interior loop is performed repeatedly, starting 
+	 *	with the "current" vertex being set to the root
+	 *	of the contact graph (an artificial pseudo-contact
+	 *	from the local node to itself).  Each execution of
+	 *	the interior loop performs two loops in succession.
+	 *
+	 *	The first of these innermost loops is a scan of
+	 *	all contacts that are topologically adjacent to the
+	 *	"current" contact.  For each such contact, the
+	 *	"distance" of that vertex from the root of the
+	 *	graph (the best-case arrival time of a bundle at
+	 *	the receiving node of this contact, assuming
+	 *	tranmission from the current contact) is computed;
+	 *	if that time is earlier than the previously noted
+	 *	best-case arrival time for that contact, then it
+	 *	is noted as the new best-case arrival time for
+	 *	that contact.
+	 *
+	 *	The second of these innermost loops through all
+	 *	(non-suppressed) contacts, seeking the contact that
+	 *	now has the earliest best-case arrival time (the
+	 *	vertex with lowest cost) in the entire graph, and
+	 *	selects that vertext as the new "current" contact.
+	 *
+	 *	The interior loop terminates when either no new
+	 *	current contact can be selected or else the new
+	 *	current contact is the end vertex of the graph
+	 *	(an artificial pseudo-contact from the terminus
+	 *	node to itself).					*/
+
 	/*	First create route list for this destination node.	*/
 
 	terminusNode->routingObject = sm_list_create(ionwm);
@@ -773,6 +846,8 @@ static PsmAddress	loadRouteList(IonNode *terminusNode, time_t currentTime,
 
 	while (1)
 	{
+		/*	Run Dijkstra search.				*/
+
 		if (findNextBestRoute(ionwm, &rootContact, &rootWork,
 				terminusNode, &routeAddr, trace) < 0)
 		{
