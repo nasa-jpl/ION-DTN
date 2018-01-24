@@ -19,10 +19,10 @@ BIBE = ../bibe
 IPND = ../ipnd
 ICI = ../../ici
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC -DENABLE_BPACS
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP -DENABLE_BPACS
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 
 #acsadmin on mingw
 CC += -I$(API)/acs -I$(ICI)/include -I$(API)/ext/cteb
@@ -50,7 +50,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bpsec_bib.o bpsec_bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
 # snid.o
 BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
@@ -363,7 +363,7 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/ext/bae/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/bpsec/%.c
+%.o:		$(API)/ext/sbsp/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/phn/%.c
