@@ -121,7 +121,6 @@ typedef struct
 	int			hasSigMutex;	/*	Boolean.	*/
 	struct llcv_str		triggerLlcv;
 	Llcv			trigger;	/*	On signals.	*/
-	int			hasTrigger;	/*	Boolean.	*/
 
 	/*	Transmission function.					*/
 
@@ -134,7 +133,6 @@ typedef struct
 	int			hasPlMutex;	/*	Boolean.	*/
 	struct llcv_str		throttleLlcv;
 	Llcv			throttle;	/*	On pipeline.	*/
-	int			hasThrottle;	/*	Boolean.	*/
 	uvast			lengthSent;	/*	Oldest out.	*/
 	uvast			lengthAcked;	/*	Oldest out.	*/
 } TcpclSession;
@@ -377,8 +375,9 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 	}
 
 	lyst_delete_set(session->pipeline, cancelXmit, NULL);
-	session->throttle = &(session->throttleLlcv);
-	if (llcv_open(session->pipeline, session->throttle) == NULL)
+	session->throttle = llcv_open(session->pipeline,
+			&(session->throttleLlcv));
+	if (session->throttle == NULL)
 	{
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
@@ -388,15 +387,13 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		return -1;
 	}
 
-	session->hasThrottle = 1;
-
 	/*	Administration signals queue.				*/
 
 	session->signals = lyst_create_using(getIonMemoryMgr());
 	if (session->signals == NULL)
 	{
 		llcv_close(session->throttle);
-		session->hasThrottle = 0;
+		session->throttle = NULL;
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
 		putErrmsg("tcpcli can't create signals list.", NULL);
@@ -404,13 +401,13 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		return -1;
 	}
 
-	session->trigger = &(session->triggerLlcv);
-	if (llcv_open(session->signals, session->trigger) == NULL)
+	session->trigger = llcv_open(session->signals, &(session->triggerLlcv));
+	if (session->trigger == NULL)
 	{
 		lyst_destroy(session->signals);
 		session->signals = NULL;
 		llcv_close(session->throttle);
-		session->hasThrottle = 0;
+		session->throttle = NULL;
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
 		putErrmsg("tcpcli can't open signals list.", NULL);
@@ -418,19 +415,17 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		return -1;
 	}
 
-	session->hasTrigger = 1;
-
 	/*	Receiver thread.					*/
 
 	rtp = (ReceiverThreadParms *) MTAKE(sizeof(ReceiverThreadParms));
 	if (rtp == NULL)
 	{
 		llcv_close(session->trigger);
-		session->hasTrigger = 0;
+		session->trigger = NULL;
 		lyst_destroy(session->signals);
 		session->signals = NULL;
 		llcv_close(session->throttle);
-		session->hasThrottle = 0;
+		session->throttle = NULL;
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
 		putErrmsg("tcpcli can't allocate new receiver parms.", NULL);
@@ -460,11 +455,11 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		pthread_mutex_destroy(&(session->socketMutex));
 		session->hasSocketMutex = 0;
 		llcv_close(session->trigger);
-		session->hasTrigger = 0;
+		session->trigger = NULL;
 		lyst_destroy(session->signals);
 		session->signals = NULL;
 		llcv_close(session->throttle);
-		session->hasThrottle = 0;
+		session->throttle = NULL;
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
 		putSysErrmsg("tcpcli can't create new receiver thread", NULL);
@@ -564,7 +559,7 @@ static void	stopSenderThread(TcpclSession *session)
 
 	/*	Enable sendBundleByTcpcl to exit.			*/
 
-	if (session->hasThrottle)
+	if (session->throttle)
 	{
 		llcv_signal(session->throttle, pipeline_not_full);
 	}
@@ -778,24 +773,26 @@ static void	endSession(TcpclSession *session, char reason)
 		pthread_mutex_destroy(&(session->socketMutex));
 	}
 
-	if (session->hasTrigger)
-	{
-		llcv_close(session->trigger);
-	}
-
-	if (session->signals)
-	{
-		lyst_destroy(session->signals);
-	}
-
-	if (session->hasThrottle)
+	if (session->throttle)
 	{
 		llcv_close(session->throttle);
+		session->throttle = NULL;
 	}
 
 	if (session->pipeline)
 	{
 		lyst_destroy(session->pipeline);
+	}
+
+	if (session->trigger)
+	{
+		llcv_close(session->trigger);
+		session->trigger = NULL;
+	}
+
+	if (session->signals)
+	{
+		lyst_destroy(session->signals);
 	}
 
 	memset(session, 0, sizeof(TcpclSession));
@@ -1111,7 +1108,6 @@ failed.", tag);
 				{
 					writeMemoNote("[?] tcpcl session \
 lost (keepalive)", tag);
-//abort();
 					ionKillMainThread(procName());
 					running = 0;
 					break;
@@ -1132,7 +1128,6 @@ lost (keepalive)", tag);
 			{
 				writeMemoNote("[?] tcpcl session lost \
 (ack)", tag);
-//abort();
 				ionKillMainThread(procName());
 				running = 0;
 				break;
@@ -1351,14 +1346,28 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				session->hasSender = 0;
 				session->hasAdmin = 0;
 				session->pipeline = NULL;
-				session->hasThrottle = 0;
 				session->signals = NULL;
-				session->hasTrigger = 0;
 				session->outductName = NULL;
 
 				/*	Point to known neighbor session.*/
 
 				session = rtp->session;
+				if (session->trigger)
+				{
+					llcv_close(session->trigger);
+					session->trigger = NULL;
+				}
+
+				session->trigger = llcv_open(session->signals,
+						&(session->triggerLlcv));
+				if (session->throttle)
+				{
+					llcv_close(session->throttle);
+					session->throttle = NULL;
+				}
+
+				session->throttle = llcv_open(session->pipeline,
+						&(session->throttleLlcv));
 
 				/*	An optimization: since this node
 				 *	has just connected to us, we can
