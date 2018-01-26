@@ -332,9 +332,9 @@ Lyst ui_input_mc(char *prompt)
 
 	for(i = 0; i < num; i++)
 	{
-		char prompt[20];
-		sprintf(prompt, "Enter MID %d", i);
-		mid_t *cur = ui_input_mid(prompt, ADM_ALL, MID_ANY);
+		char promptStr[20];
+		sprintf(promptStr, "Enter MID %d", i);
+		mid_t *cur = ui_input_mid(promptStr, ADM_ALL, MID_ANY);
 		lyst_insert_last(result, cur);
 	}
 

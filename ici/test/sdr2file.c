@@ -152,7 +152,12 @@ sdr_clear_trace(sdr);
 
 		/*	Delete line from SDR.				*/
 
-		CHKZERO(sdr_begin_xn(sdr));
+		if (!sdr_begin_xn(sdr))
+		{
+			close(outputFile);
+			return 0;
+		}
+
 		sdr_free(sdr, lineObj);
 		sdr_list_delete(sdr, lineListElt, (SdrListDeleteFn) NULL, NULL);
 		if (sdr_end_xn(sdr))

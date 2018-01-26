@@ -518,14 +518,17 @@ static int pipeline_not_full(Llcv llcv)
 
 static int	sendSignal(TcpclSession *session, saddr lengthReceived)
 {
+	LystElt	result;
+
 	pthread_mutex_lock(&session->sigMutex);
-	if (lyst_insert_last(session->signals, (void *) lengthReceived) == NULL)
+	result = lyst_insert_last(session->signals, (void *) lengthReceived);
+	pthread_mutex_unlock(&session->sigMutex);
+       	if (result== NULL)
 	{
 		putErrmsg("tcpcli can't enqueue admin signal", NULL);
 		return -1;
 	}
 
-	pthread_mutex_unlock(&session->sigMutex);
 	llcv_signal(session->trigger, llcv_lyst_not_empty);
 	return 0;
 }

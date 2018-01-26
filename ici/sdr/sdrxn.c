@@ -1177,7 +1177,6 @@ int	sdr_load_profile(char *name, int configFlags, size_t heapWords,
 	CHKERR(sdrwm);
 	CHKERR(sch);
 	CHKERR(name);
-	CHKERR(heapWords >= 0);
 	CHKERR(pathName);
 	if (!(configFlags & SDR_IN_DRAM || configFlags & SDR_IN_FILE))
 	{
