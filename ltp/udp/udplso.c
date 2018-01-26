@@ -385,7 +385,7 @@ int	main(int argc, char *argv[])
 	/*	Create one-use socket for the closing quit byte.	*/
 
 	portNbr = bindInetName->sin_port;	/*	From binding.	*/
-	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = (127 << 24) + 1;		/*	127.0.0.1	*/
 	ipAddress = htonl(ipAddress);
 	memset((char *) &ownSockName, 0, sizeof ownSockName);
 	ownInetName = (struct sockaddr_in *) &ownSockName;

@@ -201,6 +201,19 @@ int	main(int argc, char *argv[])
 
 	rtp.running = 0;
 
+	/*	Create one-use socket for the closing quit byte.	*/
+
+	if (ipAddress == 0)	/*	Receiving on INADDR_ANY.	*/
+	{
+		/*	Can't send to host number 0, so send to
+		 *	loopback address.				*/
+
+		ipAddress = (127 << 24) + 1;	/*	127.0.0.1	*/
+		ipAddress = htonl(ipAddress);
+		memcpy((char *) &(inetName->sin_addr.s_addr),
+				(char *) &ipAddress, 4);
+	}
+
 	/*	Wake up the receiver thread by sending it a 1-byte
 	 *	datagram.						*/
 
