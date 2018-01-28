@@ -59,8 +59,9 @@ static int	handleItem(uvast sourceEngineId, unsigned int clientId,
 
 typedef struct
 {
-	uvast	destEngineId;
-	int	running;
+	uvast		destEngineId;
+	ReqAttendant	attendant;
+	int		running;
 } SenderThreadParms;
 
 static void	*sendItems(void *parm)
@@ -92,7 +93,7 @@ static void	*sendItems(void *parm)
 		if (extent)
 		{
 			item = ionCreateZco(ZcoSdrSource, extent, 0, length,
-					0, 0, ZcoOutbound, NULL);
+					0, 0, ZcoOutbound, &(stp->attendant));
 		}
 
 		if (sdr_end_xn(sdr) < 0 || item == 0 || item == (Object) ERROR)
@@ -140,10 +141,17 @@ static int	run_sdatest(uvast destEngineId)
 		/*	Must start sender thread.			*/
 
 		parms.destEngineId = destEngineId;
+		if (ionStartAttendant(&parms.attendant) < 0)
+		{
+			putErrmsg("sdatest can't start attendant.", NULL);
+			return 1;
+		}
+
 		parms.running = 1;
 		if (pthread_begin(&senderThread, NULL, sendItems, &parms))
 		{
 			putSysErrmsg("sdatest can't create send thread", NULL);
+			ionStopAttendant(&parms.attendant);
 			return 1;
 		}
 	}
@@ -156,7 +164,9 @@ static int	run_sdatest(uvast destEngineId)
 	if (destEngineId)
 	{
 		parms.running = 0;
+		ionPauseAttendant(&parms.attendant);
 		pthread_join(senderThread, NULL);
+		ionStopAttendant(&parms.attendant);
 	}
 
 	writeErrmsgMemos();
