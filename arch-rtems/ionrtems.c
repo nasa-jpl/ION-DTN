@@ -17,8 +17,7 @@
  *	insufficient memory resources.  Need to figure out how to
  *	get RTEMS to allocate enough memory for the test, but for
  *	now we just exclude CFDP from the build (since it is not
- *	involved in sending the test bundle.				*/
-#define	NASA_PROTECTED_FLIGHT_CODE
+ *	involved in sending the test bundle).				*/
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"

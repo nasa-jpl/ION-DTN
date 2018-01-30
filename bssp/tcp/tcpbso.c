@@ -137,7 +137,7 @@ engine number>");
 
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	findSpan(remoteEngineId, &vspan, &vspanElt);
+	findBsspSpan(remoteEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 		sdr_exit_xn(sdr);

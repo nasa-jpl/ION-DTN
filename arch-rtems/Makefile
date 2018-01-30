@@ -1,6 +1,7 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
--DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
+-DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE \
 -DNO_PROXY -DNO_DIRLIST -DNOEXPAT -DUDPTS -DTCPTS -DDGRTS
+# -DION_NO_DNS 
 # Add -DSBSP if building with sbsp.
 # -DSBSP
 # Add -DAGENT_ROLE if building with nm.
@@ -180,10 +181,10 @@ CFDPSOURCES =      \
 	libcfdpops.c 
 
 AMSSOURCES =      \
+	libdgr.c	   \
 	amscommon.c        \
 	amsd.c             \
 	crypt.c            \
-	marshal.c          \
 	libams.c           \
 	loadmib.c          \
 	dgrts.c            \

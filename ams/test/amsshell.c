@@ -277,7 +277,7 @@ int	amsshell(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	char	*unitName = (char *) a1;
 	char	*roleName = (char *) a2;
 	char	*applicationName = (char *) a3;
-	char	*authorityName = a4;
+	char	*authorityName = (char *) a4;
 	char	*mode = (a5 == 0 ? "p" : (char *) a4);
 #else
 int	main(int argc, char **argv)
