@@ -23,8 +23,8 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
-#ifdef BPSEC
-#include "ext/bpsec/bpsec_instr.h"
+#ifdef SBSP
+#include "ext/sbsp/sbsp_instr.h"
 #endif
 
 #define MAX_STARVATION		10
@@ -50,10 +50,10 @@
 
 #if defined(ORIGINAL_BSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif defined(BPSEC)
-extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(SBSP)
+extern int	sbsp_securityPolicyViolated(AcqWorkArea *wk);
 #endif
 
 /*	We hitchhike on the ZCO heap space management system to 
@@ -1730,8 +1730,8 @@ int	bpInit()
 	}
 	else
 	{
-#ifdef BPSEC
-		bpsec_instr_init();
+#ifdef SBSP
+		sbsp_instr_init();
 #endif
 		writeMemo("[i] Bundle security is enabled.");
 	}
@@ -1913,8 +1913,8 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		nextElt;
 	Object		zco;
 
-#ifdef BPSEC
-	bpsec_instr_cleanup();
+#ifdef SBSP
+	sbsp_instr_cleanup();
 #endif
 
 	/*	Tell all BP processes to stop.				*/
@@ -4225,9 +4225,6 @@ int	setPlanViaEid(char *eid, char *viaEid)
 int	attachPlanDuct(char *eid, Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	char		ownEid[MAX_EID_LEN];
-			OBJ_POINTER(Outduct, outduct);
-			OBJ_POINTER(ClProtocol, protocol);
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 			OBJ_POINTER(BpPlan, plan);
@@ -4241,22 +4238,6 @@ int	attachPlanDuct(char *eid, Object outductElt)
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Unknown plan, can't attach duct", eid);
 		return 0;
-	}
-
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
-	if (strncmp(vplan->neighborEid, ownEid, sizeof ownEid) == 0)
-	{
-		GET_OBJ_POINTER(sdr, Outduct, outduct, sdr_list_data(sdr,
-					outductElt));
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
-		if (strcmp(protocol->name, "tcp") == 0)
-		{
-			sdr_exit_xn(sdr);
-			writeMemoNote("[?] No support for loopback TCPCL \
-at this time.  Maybe some day", outduct->name);
-			return 0;
-		}
 	}
 
 	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
@@ -5654,10 +5635,6 @@ cannot be retrieved by key", bundleKey);
 		bset.count++;
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		bundle->hashEntry = hashElt;
-#if 0
-		writeMemoNote("[?] Bundle hash key is not unique; bundles \
-cannot be retrieved by key", bundleKey);
-#endif
 		break;
 
 	default:	/*	No such pre-existing entry.		*/
@@ -8742,10 +8719,10 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 #if defined(ORIGINAL_BSP)
 	if (bsp_securityPolicyViolated(work))
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 	if (bsp_securityPolicyViolated(work))
-#elif defined(BPSEC)
-	if (bpsec_securityPolicyViolated(work))
+#elif defined(SBSP)
+	if (sbsp_securityPolicyViolated(work))
 #else
 	if(0)
 #endif

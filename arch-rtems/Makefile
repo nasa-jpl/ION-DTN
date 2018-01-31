@@ -1,8 +1,9 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
--DUSING_SDR_POINTERS  -DION_NO_DNS -DNO_SDR_TRACE -DNO_PSM_TRACE \
--DNO_PROXY -DNO_DIRLIST
-# Add -DBPSEC if building with bpsec.
-# -DBPSEC
+-DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE \
+-DNO_PROXY -DNO_DIRLIST -DNOEXPAT -DUDPTS -DTCPTS -DDGRTS
+# -DION_NO_DNS 
+# Add -DSBSP if building with sbsp.
+# -DSBSP
 # Add -DAGENT_ROLE if building with nm.
 # -DAGENT_ROLE
 # -DENABLE_IMC
@@ -106,22 +107,11 @@ BPSOURCES =      \
 #	ipnd.c       \
 #	node.c       \
 
-#	Not yet included in srclinks
-#	libbssp.c    \
-#	libbsspP.c   \
-#	bsspclock.c  \
-#	udpbsi.c     \
-#	udpbso.c     \
-#	tcpbsi.c     \
-#	tcpbso.c     \
-#	libtcpbsa.c  \
-#	bsspadmin.c  \
-
 NMSOURCES =	     \
 	adm.c \
 	adm_agent.c \
 	adm_bp.c \
-	adm_bpsec.c \
+	adm_sbsp.c \
 	adm_ion.c \
 	adm_ltp.c \
 	msg_admin.c \
@@ -157,19 +147,30 @@ NMSOURCES =	     \
 	adm_ltp_priv.c \
 	adm_agent_impl.c \
 	adm_bp_impl.c \
-	adm_bpsec_impl.c \
+	adm_sbsp_impl.c \
 	nmagent.c
 
-BPSECSOURCES =       \
-	bpsec_util.c \
-	bpsec_instr.c\
+SBSPSOURCES =       \
+	sbsp_util.c \
+	sbsp_instr.c\
 	profiles.c   \
-	bpsec_bib.c  \
-	bpsec_bcb.c
+	sbsp_bib.c  \
+	sbsp_bcb.c
 
 BSSSOURCES =      \
 	libbss.c     \
-	libbssP.c    \
+	libbssP.c    
+
+BSSPSOURCES =      \
+	libbssp.c     \
+	libbsspP.c    \
+	bsspclock.c   \
+	bsspadmin.c   \
+	udpbsi.c      \
+	udpbso.c      \
+	libtcpbsa.c   \
+	tcpbsi.c      \
+	tcpbso.c 
 
 CFDPSOURCES =      \
 	bputa.c      \
@@ -178,6 +179,27 @@ CFDPSOURCES =      \
 	libcfdp.c    \
 	libcfdpP.c   \
 	libcfdpops.c 
+
+AMSSOURCES =      \
+	libdgr.c	   \
+	amscommon.c        \
+	amsd.c             \
+	crypt.c            \
+	libams.c           \
+	loadmib.c          \
+	dgrts.c            \
+	tcpts.c            \
+	udpts.c            \
+	librams.c          \
+	ramscommon.c       \
+	ramsgate.c         \
+	amsshell.c         \
+	amslog.c           \
+	amslogprt.c        \
+	amsmib.c           \
+	amsstop.c
+
+#	vmqts.c
 
 TESTSOURCES =      \
 	bpsource.c   \
@@ -193,14 +215,13 @@ TESTSOURCES =      \
 #	bpsendfile.c \
 #	bprecvfile.c 
 
-CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES)
-#	*** NOTE *** ION will build with BPSECSOURCES and NMSOURCES included.
+CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES) $(BSSSOURCES) $(BSSPSOURCES) $(AMSSOURCES)
+#	*** NOTE *** ION will build with SBSPSOURCES and NMSOURCES included.
 #	But IT WON'T RUN.  The object file uses up too much of the RTEMS
 #	memory allocation in this configuration; there's not enough memory
 #	left for the ION node initialization to complete.
-# $(BPSECSOURCES)
+# $(SBSPSOURCES)
 # $(NMSOURCES)
-# $(BSSSOURCES)
 
 ifeq "$(ION_OPEN_SOURCE)" "1"
 CSRCS = $(CSRCS_I) $(CFDPSOURCES)
@@ -223,7 +244,7 @@ INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
 -I../bp \
 -I../bp/library \
 -I../bp/library/ext \
--I../bp/library/ext/bpsec \
+-I../bp/library/ext/sbsp \
 -I.. \
 -I../nm \
 -I../nm/agent \

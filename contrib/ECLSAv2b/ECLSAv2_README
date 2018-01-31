@@ -10,7 +10,7 @@ link server adapter mainly intended to be used under the Licklider Transmission
 Protocol (LTP), in ION (Interplanetary Overlay Network), the DTN package
 written by NASA-JPL.  https://sourceforge.net/projects/ion-dtn/
 
-ECLSAv2 is inspired by (if is not a compliant implementation of) what is
+ECLSAv2 is inspired by (but it is not a fully compliant implementation of) what
 described in the informative document CCSDS 131.5-O-1 Orange Book, Sept. 2014
 ERASURE CORRECTING CODES FOR USE IN NEAR-EARTH AND DEEP-SPACE COMMUNICATIONS.
 

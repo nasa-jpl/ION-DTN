@@ -90,8 +90,8 @@ static void	*handleDatagrams(void *parm)
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
-int	udplsi(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	udplsi(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*endpointSpec = (char *) a1;
 #else
@@ -200,6 +200,19 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	rtp.running = 0;
+
+	/*	Create one-use socket for the closing quit byte.	*/
+
+	if (ipAddress == 0)	/*	Receiving on INADDR_ANY.	*/
+	{
+		/*	Can't send to host number 0, so send to
+		 *	loopback address.				*/
+
+		ipAddress = (127 << 24) + 1;	/*	127.0.0.1	*/
+		ipAddress = htonl(ipAddress);
+		memcpy((char *) &(inetName->sin_addr.s_addr),
+				(char *) &ipAddress, 4);
+	}
 
 	/*	Wake up the receiver thread by sending it a 1-byte
 	 *	datagram.						*/

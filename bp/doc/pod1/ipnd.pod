@@ -96,13 +96,13 @@ provide that element's name.  E.g. it is enough to write Booleans:true
 instead of Booleans:BooleanValues:B:true, as BooleanValues is the only
 child of Booleans and B is the only child of BooleanValues.
 
-=item B<a listen> I<listen_socket_spec>
+=item B<a listen> I<IP_address>
 
 Listen socket specification command. This command asserts, in the form
-I<IP_address>:I<port_number>, the specification for a socket at which the
-IPND daemon is to listen for incoming beacons. The address can be an unicast,
-a multicast or a broadcast address. If a multicast address is provided
-all the configured unicast addresses will listen for multicast packets 
+I<IP_address>, the IP address of the socket at which the IPND daemon is to
+listen for incoming beacons; a default port number is used. The address can
+be an unicast, a multicast or a broadcast address. If a multicast address is
+provided all the configured unicast addresses will listen for multicast packets 
 in that group. If a broadcast address is provided all the unicast 
 addresses will listen for broadcasted packets.
 

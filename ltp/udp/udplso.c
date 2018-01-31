@@ -162,8 +162,8 @@ nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr),
 }
 
 #if defined (ION_LWT)
-int	udplso(int a1, int a2, int a3, int a4, int a5,
-	       int a6, int a7, int a8, int a9, int a10)
+int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*endpointSpec = (char *) a1;
 	unsigned int	txbps = (a2 != 0 ?  strtoul((char *) a2, NULL, 0) : 0);
@@ -385,7 +385,7 @@ int	main(int argc, char *argv[])
 	/*	Create one-use socket for the closing quit byte.	*/
 
 	portNbr = bindInetName->sin_port;	/*	From binding.	*/
-	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = (127 << 24) + 1;		/*	127.0.0.1	*/
 	ipAddress = htonl(ipAddress);
 	memset((char *) &ownSockName, 0, sizeof ownSockName);
 	ownInetName = (struct sockaddr_in *) &ownSockName;

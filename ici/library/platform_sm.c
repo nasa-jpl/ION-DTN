@@ -482,7 +482,7 @@ sm_ShmDestroy(uaddr id)
 #ifdef ION_LWT
 
 #define	ARG_BUFFER_CT	256
-#define	MAX_ARG_LENGTH	63
+#define	MAX_ARG_LENGTH	127
 
 typedef struct
 {
@@ -2232,6 +2232,10 @@ typedef struct
 
 static void	posixTaskExit(int sig)
 {
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	pthread_exit(0);
 }
 
@@ -2332,11 +2336,45 @@ static void	*_posixTasks(int *taskId, pthread_t *threadId, void **arg)
 		initialized = 1;
 	}
 
-	lockResource(&tasksLock);
+#if defined(bionic)
+
+	/*	Special case for bionic: need to clear the task
+	 *	table at ION shutdown, signaled by NULL taskId.		*/
+
+	if (taskId == NULL && threadId == NULL)
+	{
+		lockResource(&tasksLock);
+
+		/*	Let threads shut down properly.			*/
+
+		microsnooze(2500);
+
+		/*	Stop all tasks.					*/
+
+		for (i = 0, task = tasks; i < MAX_POSIX_TASKS; i++, task++)
+		{
+			if (task->inUse
+			&& task->threadId != 0
+			&& task->threadId != pthread_self())
+			{
+				writeMemo("[?] Task still running, sending \
+SIGTERM.");
+				pthread_kill(task->threadId, SIGTERM);
+			}
+		}
+
+		/*	Now reinitialize the task table.		*/
+
+		memset((char *) tasks, 0, sizeof tasks);
+		unlockResource(&tasksLock);
+		return NULL;
+	}
+#endif
 
 	/*	taskId must never be NULL; it is always needed.		*/
 
 	CHKNULL(taskId);
+	lockResource(&tasksLock);
 
 	/*	When *taskId is 0, processing depends on the value
 	 *	of threadID.  If threadId is NULL, then the task ID
@@ -2511,6 +2549,10 @@ int	sm_TaskExists(int taskId)
 		return 0;		/*	No such task.		*/
 	}
 
+#if defined(bionic)
+	return 1;			/*	Assume thread running.	*/
+#endif
+
 	/*	(Signal 0 in pthread_kill is rejected by RTEMS 4.9.)	*/
 
 	if (pthread_kill(threadId, SIGCONT) == 0)
@@ -2549,22 +2591,26 @@ void	sm_TaskYield()
 }
 
 #ifndef MAX_SPAWNS
+#if defined(bionic)
+#define	MAX_SPAWNS	16
+#else
 #define	MAX_SPAWNS	8
+#endif
 #endif
 
 typedef struct
 {
 	FUNCPTR	threadMainFunction;
-	int	arg1;
-	int	arg2;
-	int	arg3;
-	int	arg4;
-	int	arg5;
-	int	arg6;
-	int	arg7;
-	int	arg8;
-	int	arg9;
-	int	arg10;
+	saddr	arg1;
+	saddr	arg2;
+	saddr	arg3;
+	saddr	arg4;
+	saddr	arg5;
+	saddr	arg6;
+	saddr	arg7;
+	saddr	arg8;
+	saddr	arg9;
+	saddr	arg10;
 } SpawnParms;
 
 static void	*posixDriverThread(void *parm)
@@ -2589,6 +2635,10 @@ static void	*posixDriverThread(void *parm)
 	parms.threadMainFunction(parms.arg1, parms.arg2, parms.arg3,
 			parms.arg4, parms.arg5, parms.arg6,
 			parms.arg7, parms.arg8, parms.arg9, parms.arg10);
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -2708,6 +2758,11 @@ void	sm_TaskDelete(int taskId)
 	}
 
 	oK(_posixTasks(&taskId, NULL, NULL));
+}
+
+void	sm_TasksClear()
+{
+	_posixTasks(NULL, NULL, NULL);
 }
 
 void	sm_Abort()
@@ -3151,13 +3206,17 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 void	sm_ConfigurePthread(pthread_attr_t *attr, size_t stackSize)
 {
+#if (!defined(bionic))
 	struct sched_param	parms;
+#endif
 
 	CHKVOID(attr);
 	oK(pthread_attr_init(attr));
+#if (!defined(bionic))
 	oK(pthread_attr_setschedpolicy(attr, SCHED_FIFO));
 	parms.sched_priority = sched_get_priority_min(SCHED_FIFO);
 	oK(pthread_attr_setschedparam(attr, &parms));
+#endif
 	oK(pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE));
 	if (stackSize > 0)
 	{

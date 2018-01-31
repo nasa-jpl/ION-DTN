@@ -7,6 +7,7 @@
  **
  **  Copyright (c) 2013, Alma Mater Studiorum, University of Bologna
  **  All rights reserved.
+ **  Two minor fixes added on 29 Jan 2018
  ********************************************************/
 
 /*
@@ -770,7 +771,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			fprintf(stderr, "[DTNperf fatal error] unregisted endpoint: %s\n", strerror(errno));
 			if (create_log)
 				fprintf(log_file, "[DTNperf fatal error] unregisted endpoint: %s\n", strerror(errno));
-				client_clean_exit(1);
+			client_clean_exit(1);
 		}
 		else
 		{
@@ -940,7 +941,9 @@ void create_fill_payload_buf(boolean_t debug, int debug_level, boolean_t create_
 	}
 
 	buf = (char *) malloc(perf_opt->bundle_payload);
-	buf_stream = open_memstream(&buf, (size_t *) &perf_opt->bundle_payload);
+	double temp_bundle_payload = perf_opt->bundle_payload;
+        buf_stream = open_memstream(&buf, (size_t *) &temp_bundle_payload);
+//CC	buf_stream = open_memstream(&buf, (size_t *) &perf_opt->bundle_payload);
 
 	// prepare the payload
 	if(perf_opt->op_mode == 'F') // File mode

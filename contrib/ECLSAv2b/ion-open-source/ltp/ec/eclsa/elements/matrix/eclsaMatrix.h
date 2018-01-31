@@ -21,7 +21,7 @@ todo
 #include "../fec/eclsaFecManager.h"
 #include "../packet/eclsaSendingSequence.h"
 #include "../sys/eclsaTimer.h"
-#include "../../extensions/HSLTP_definitions.h"
+#include "../../extensions/HSLTP/HSLTP_def.h"
 #include <semaphore.h>
 
 
@@ -67,4 +67,4 @@ void eclsaMatrixDestroy(EclsaMatrix *matrix);
 void addSegmentToEclsaMatrix(EclsaMatrix *matrix, char *buffer, int bufferLength, int symbolID,bool copyLength);
 void flushEclsaMatrix(EclsaMatrix *matrix);
 
-#endif /* LTP_EC_ECLSA_TOOLS_ECLSAMATRIX_H_ */
+#endif

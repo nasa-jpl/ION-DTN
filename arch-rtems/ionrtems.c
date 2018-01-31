@@ -17,8 +17,7 @@
  *	insufficient memory resources.  Need to figure out how to
  *	get RTEMS to allocate enough memory for the test, but for
  *	now we just exclude CFDP from the build (since it is not
- *	involved in sending the test bundle.				*/
-#define	NASA_PROTECTED_FLIGHT_CODE
+ *	involved in sending the test bundle).				*/
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
@@ -333,8 +332,8 @@ static void	testLoopback()
 	puts("Loopback test ended.");
 }
 
-static int	stopDTN(int a1, int a2, int a3, int a4, int a5,
-			int a6, int a7, int a8, int a9, int a10)
+static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+			saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Stop CFDP.						*/

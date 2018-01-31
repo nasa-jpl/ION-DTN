@@ -1,0 +1,3 @@
+wmSize 10000000
+configFlags 6
+heapWords 1000000

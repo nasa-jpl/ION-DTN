@@ -65,8 +65,8 @@ pthread_t rcv_thread;		/*Pthread variable*/
 
 /*Start Here*/
 #if defined (ION_LWT)
-int	bpcp(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bpcp(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	int	t;
 	char*	argv[5];
@@ -647,10 +647,10 @@ void toremote(char *targ, int argc, char **argv)
 
 			/*Do copy*/
 			t.type=Remote_Remote;
-			snprintf(t.sfile, 255, "%.255s", src);
-			snprintf(t.shost, 255, "%.255s", host);
-			snprintf(t.dfile, 255, "%.255s", targ);
-			snprintf(t.dhost, 255, "%.255s", thost);
+			snprintf(t.sfile, 255, "%.256s", src);
+			snprintf(t.shost, 255, "%.256s", host);
+			snprintf(t.dfile, 255, "%.256s", targ);
+			snprintf(t.dhost, 255, "%.256s", thost);
 			manage_src(&t);
 
 		}
@@ -661,10 +661,10 @@ void toremote(char *targ, int argc, char **argv)
 			/*Do copy*/
 			src=argv[i];
 			t.type=Local_Remote;
-			snprintf(t.sfile, 255, "%.255s", src);
-			memset(t.shost, 0,255);
-			snprintf(t.dfile, 255, "%.255s", targ);
-			snprintf(t.dhost, 255, "%.255s", thost);
+			snprintf(t.sfile, 255, "%.256s", src);
+			memset(t.shost, 0, 256);
+			snprintf(t.dfile, 255, "%.256s", targ);
+			snprintf(t.dhost, 255, "%.256s", thost);
 			manage_src(&t);
 		}
 	}
@@ -685,9 +685,9 @@ void tolocal(int argc, char **argv)
 			/*If first path is not a remote path, this is a
 			 * local to local copy. Just call cp.*/
 			t.type=Local_Local;
-			snprintf(t.sfile, 255, "%.255s", argv[i]);
-			memset(t.shost, 0,256);
-			snprintf(t.dfile, 255, "%.255s", argv[argc-1]);
+			snprintf(t.sfile, 255, "%.256s", argv[i]);
+			memset(t.shost, 0, 256);
+			snprintf(t.dfile, 255, "%.256s", argv[argc-1]);
 			memset(t.dhost, 0,256);
 
 			/*Do Copy*/
@@ -718,9 +718,9 @@ void tolocal(int argc, char **argv)
 			/*Do Copy*/
 
 			t.type=Remote_Local;
-			snprintf(t.sfile, 255, "%.255s", src);
-			snprintf(t.shost, 255, "%.255s", host);
-			snprintf(t.dfile, 255, "%.255s", targ);
+			snprintf(t.sfile, 255, "%.256s", src);
+			snprintf(t.shost, 255, "%.256s", host);
+			snprintf(t.dfile, 255, "%.256s", targ);
 			memset(t.dhost, 0,256);
 			manage_src(&t);
 		}
@@ -772,8 +772,8 @@ int ion_cfdp_put(struct transfer* t)
 	entityId=strtoul(t->dhost, NULL, 0);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
-	snprintf(parms.destFileNameBuf, 255, "%.255s",t->dfile);
+	snprintf(parms.sourceFileNameBuf, 255, "%.256s", t->sfile);
+	snprintf(parms.destFileNameBuf, 255, "%.256s",t->dfile);
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	parms.destFileName=parms.destFileNameBuf;
 
@@ -861,8 +861,8 @@ int ion_cfdp_get(struct transfer* t)
 	entityId=strtouvast(t->shost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
-	snprintf(parms.destFileNameBuf, 255, "%.255s",t->dfile);
+	snprintf(parms.sourceFileNameBuf, 255, "%.256s", t->sfile);
+	snprintf(parms.destFileNameBuf, 255, "%.256s",t->dfile);
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	parms.destFileName=parms.destFileNameBuf;
 
@@ -961,8 +961,8 @@ int ion_cfdp_rput(struct transfer* t)
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	entityId=strtol(t->shost, NULL, 0);
 	cfdp_compress_number(&src, entityId);
-	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
-	snprintf(parms.destFileNameBuf, 255, "%.255s",t->dfile);
+	snprintf(parms.sourceFileNameBuf, 255, "%.256s", t->sfile);
+	snprintf(parms.destFileNameBuf, 255, "%.256s",t->dfile);
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	parms.destFileName=parms.destFileNameBuf;
 

@@ -51,7 +51,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	CHKERR(inOrder == 0 || inOrder == 1);
 	CHKERR(sessionId);
 	CHKERR(sdr_begin_xn(sdr));
-	findSpan(destinationEngineId, &vspan, &vspanElt);
+	findBsspSpan(destinationEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -155,7 +155,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	/*	Start an export session for the next block.	*/
 
-	if (startExportSession(sdr, spanObj, vspan) < 0)
+	if (startBsspExportSession(sdr, spanObj, vspan) < 0)
 	{
 		putErrmsg("bssp_send can't start new session.",
 				utoa(destinationEngineId));

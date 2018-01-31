@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#B83737</color>
+    <color name="colorPrimaryDark">#762323</color>
+    <color name="colorAccent">#3d7fda</color>
+
+    <color name="PendingOperationOrange">#d18503</color>
+    <color name="StartedGreen">#168c01</color>
+    <color name="StoppedRed">#ffcc0000</color>
+</resources>

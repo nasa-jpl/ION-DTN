@@ -14,8 +14,8 @@
 #include <smlist.h>
 
 #if defined (ION_LWT)
-int	sm2file(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	sm2file(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 #else
 int	main(int argc, char **argv)
 #endif

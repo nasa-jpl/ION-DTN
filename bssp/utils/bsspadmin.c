@@ -170,7 +170,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			}
 
 			engineId = strtouvast(tokens[2]);
-			oK(addSpan(engineId, strtol(tokens[3], NULL, 0),
+			oK(addBsspSpan(engineId, strtol(tokens[3], NULL, 0),
 				strtol(tokens[4], NULL, 0), tokens[5],
 				tokens[6], (unsigned int) qTime, purge));
 			return;
@@ -215,7 +215,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			}
 
 			engineId = strtouvast(tokens[2]);
-			oK(updateSpan(engineId, strtol(tokens[3], NULL, 0),
+			oK(updateBsspSpan(engineId, strtol(tokens[3], NULL, 0),
 				strtol(tokens[4], NULL, 0), tokens[5], 
 				tokens[6], (unsigned int) qTime, purge));
 			return;
@@ -243,7 +243,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		engineId = strtouvast(tokens[2]);
-		removeSpan(engineId);
+		removeBsspSpan(engineId);
 		return;
 	}
 
@@ -304,7 +304,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 
 	engineId = strtouvast(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	sdr_exit_xn(sdr);
 	if (vspanElt == 0)
 	{
@@ -769,8 +769,8 @@ best-effort or reliable BSI command.");
 }
 
 #if defined (ION_LWT)
-int	bsspadmin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bsspadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
 #else

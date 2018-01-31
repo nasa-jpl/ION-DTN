@@ -24,6 +24,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpadmin lt-bpadmin \
 	bpcancel lt-bpcancel \
 	bpchat lt-bpchat \
+	bpclm lt-bpclm \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
 	bpdriver lt-bpdriver \
@@ -55,7 +56,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	dccplsi lt-dccplsi \
 	dccplso lt-dccplso \
 	dgr2file lt-dgr2file \
-	dgrcla lt-dgrcla \
+	dgrcli lt-dgrcli \
+	dgrclo lt-dgrclo \
 	dtn2admin lt-dtn2admin \
 	dtn2adminep lt-dtn2adminep \
 	dtn2fw lt-dtn2fw \
@@ -76,6 +78,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ionexit lt-ionexit \
 	ionrestart lt-ionrestart \
 	ionsecadmin lt-ionsecadmin \
+	ionunlock lt-ionunlock \
 	ionwarn lt-ionwarn \
 	ipnadmin lt-ipnadmin \
 	ipnadminep lt-ipnadminep \
@@ -88,6 +91,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ltpclo lt-ltpclo \
 	ltpclock lt-ltpclock \
 	ltpcounter lt-ltpcounter \
+	ltpdeliv lt-ltpdeliv \
 	ltpdriver lt-ltpdriver \
 	ltpmeter lt-ltpmeter \
 	nm_agent lt-nm_agent \

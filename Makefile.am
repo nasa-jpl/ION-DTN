@@ -22,7 +22,7 @@ AM_CFLAGS += \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
-	-DBPSEC
+	-DSBSP
 
 if !ION_NASA_B
 AM_CFLAGS+= \
@@ -993,16 +993,16 @@ bpextra = \
 	bp/library/bei.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bpsec/bpsec_instr.h \
-	bp/library/ext/bpsec/bpsec_instr.c \
-	bp/library/ext/bpsec/bpsec_bcb.h \
-	bp/library/ext/bpsec/bpsec_bcb.c \
-	bp/library/ext/bpsec/bpsec_bib.h \
-	bp/library/ext/bpsec/bpsec_bib.c \
-	bp/library/ext/bpsec/bpsec_util.h \
-	bp/library/ext/bpsec/bpsec_util.c \
-	bp/library/ext/bpsec/profiles.h \
-	bp/library/ext/bpsec/profiles.c \
+	bp/library/ext/sbsp/sbsp_instr.h \
+	bp/library/ext/sbsp/sbsp_instr.c \
+	bp/library/ext/sbsp/sbsp_bcb.h \
+	bp/library/ext/sbsp/sbsp_bcb.c \
+	bp/library/ext/sbsp/sbsp_bib.h \
+	bp/library/ext/sbsp/sbsp_bib.c \
+	bp/library/ext/sbsp/sbsp_util.h \
+	bp/library/ext/sbsp/sbsp_util.c \
+	bp/library/ext/sbsp/profiles.h \
+	bp/library/ext/sbsp/profiles.c \
 	ici/include/crypto.h \
 	ici/include/csi.h 
 
@@ -1117,16 +1117,16 @@ libbp_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bpsec/bpsec_instr.h \
-	bp/library/ext/bpsec/bpsec_instr.c \
-	bp/library/ext/bpsec/bpsec_bcb.h \
-	bp/library/ext/bpsec/bpsec_bcb.c \
-	bp/library/ext/bpsec/bpsec_bib.h \
-	bp/library/ext/bpsec/bpsec_bib.c \
-	bp/library/ext/bpsec/bpsec_util.h \
-	bp/library/ext/bpsec/bpsec_util.c \
-	bp/library/ext/bpsec/profiles.h \
-	bp/library/ext/bpsec/profiles.c \
+	bp/library/ext/sbsp/sbsp_instr.h \
+	bp/library/ext/sbsp/sbsp_instr.c \
+	bp/library/ext/sbsp/sbsp_bcb.h \
+	bp/library/ext/sbsp/sbsp_bcb.c \
+	bp/library/ext/sbsp/sbsp_bib.h \
+	bp/library/ext/sbsp/sbsp_bib.c \
+	bp/library/ext/sbsp/sbsp_util.h \
+	bp/library/ext/sbsp/sbsp_util.c \
+	bp/library/ext/sbsp/profiles.h \
+	bp/library/ext/sbsp/profiles.c \
 	bp/library/ext/snid/snid.c \
 	bp/ipn/libipnfw.h \
 	bp/ipn/libipnfw.c \
@@ -1148,7 +1148,7 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
 endif
-libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/bpsec
+libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/sbsp
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
 #libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
@@ -1895,16 +1895,16 @@ nmbin= nm_agent nm_mgr
 
 nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
-                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
+                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
                     nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
 					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
-					nm/shared/adm/adm_agent.c nm/shared/adm/adm_bpsec.c	nm/agent/adm_bpsec_impl.c \
+					nm/shared/adm/adm_agent.c nm/shared/adm/adm_sbsp.c	nm/agent/adm_sbsp_impl.c \
 					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
 					nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
 					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
 					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\
 					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
 					nm/shared/utils/nm_types.c
@@ -1913,22 +1913,22 @@ nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -lm -lpthread
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
 					
 					
 nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
+					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
 					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
 					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
 					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
-					nm/shared/adm/adm_bpsec.c	\
+					nm/shared/adm/adm_sbsp.c	\
 					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
 					nm/shared/primitives/var.c    nm/shared/primitives/expr.c \
 					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
 					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
 					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\ 
+					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
 					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
 					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
 					nm/shared/utils/nm_types.c
@@ -1936,11 +1936,11 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Use this to build the AMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
+nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable 
 
 # Use this to build the AMP Manager WITH DB Support.
 #nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
-#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
+#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 
 
@@ -2186,7 +2186,7 @@ if ENABLE_AUTODOC
 
 ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
-	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --outfile ION.pdf
+	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)
@@ -2200,13 +2200,13 @@ mans_as_ps_sorted := $(mans_1_as_ps) $(mans_3_as_ps) $(mans_5_as_ps)
 
 
 %.1.ps: %.1
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 %.3.ps: %.3
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 %.5.ps: %.5
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 doc/appendix-a-contents.txt: $(mans_as_ps)
 	@rm -f $@
@@ -2249,7 +2249,40 @@ doc/ION-beginning.ps: doc/ION-beginning.pdf
 else
 
 ION.pdf: doc/ION-beginning.pdf
-	@echo "ION.pdf will not have appendix."
-	cp $^ $@
+	@echo "ION.pdf will remain unchanged."
+#	@echo "ION.pdf will not have appendix."
+#	cp $^ $@
 
 endif #ENABLE_AUTODOC
+
+##########################
+#
+# DISTRIBUTION SECTION
+#
+##########################
+
+DOC_VERSION_NUMBER := $(shell cat version.txt)
+DOC_VERSION_MAJOR := $(shell cat version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat version.txt | sed 's/[0-9]*\.//')
+DOC_DATE := $(shell date -I)
+
+distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
+	@echo ""
+	@echo "UPDATING VERSION NUMBER IN:"
+	@echo "configure.ac"
+	sed -r -i.bak 's/ion, open source [0-9]+\.[0-9]+\.[0-9]+[a-Z]*/ion, open source $(DOC_VERSION_NUMBER)/' configure.ac
+	@echo "ici/include/ion.h"
+	sed -r -i.bak 's/[0-9]+\-[0-9]+\-[0-9]+/$(DOC_DATE)/' ./ici/include/ion.h
+	sed -r -i.bak 's/[0-9]+\.[0-9]+\.[0-9]+[a-Z]*/$(DOC_VERSION_NUMBER)/' ./ici/include/ion.h
+	@echo "arch-uClib/ion.package/ion.mk"
+	sed -r -i.bak 's/ION_VERSION_MAJOR=[0-9]+/ION_VERSION_MAJOR=$(DOC_VERSION_MAJOR)/' ./arch-uClibc/ion.package/ion.mk
+	sed -r -i.bak 's/ION_VERSION_MINOR=[0-9]+\.[0-9]+[a-Z]*+/ION_VERSION_MINOR=$(DOC_VERSION_MINOR)/' ./arch-uClibc/ion.package/ion.mk
+	@echo ""
+	@echo "Archiving the directory to ~/releases/ion-$(DOC_VERSION_NUMBER)."
+	@echo ""
+	hg archive ~/releases/ion-$(DOC_VERSION_NUMBER)
+	@echo "Now creating ION.pdf"
+	$(PS2PDF) doc/ION-manpages.ps
+	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
+	rm ION-manpages.pdf
+

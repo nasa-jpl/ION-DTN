@@ -152,7 +152,12 @@ sdr_clear_trace(sdr);
 
 		/*	Delete line from SDR.				*/
 
-		CHKZERO(sdr_begin_xn(sdr));
+		if (!sdr_begin_xn(sdr))
+		{
+			close(outputFile);
+			return 0;
+		}
+
 		sdr_free(sdr, lineObj);
 		sdr_list_delete(sdr, lineListElt, (SdrListDeleteFn) NULL, NULL);
 		if (sdr_end_xn(sdr))
@@ -260,8 +265,8 @@ sdr_stop_trace(sdr);
 }
 
 #if defined (ION_LWT)
-int	sdr2file(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	sdr2file(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	int	configFlags = a1;
 #else

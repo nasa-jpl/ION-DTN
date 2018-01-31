@@ -80,7 +80,7 @@ int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
 	if (*bytesRemaining < 14)	/*	Times and key lengths.	*/
 	{
 		writeMemo("Malformed DTKA record: too short.");
-		return -1;
+		return 0;
 	}
 
 	memcpy((char *) &(effectiveTime->seconds), *cursor, 4);
@@ -103,13 +103,13 @@ int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
 	{
 		writeMemoNote("Malformed DTKA record: key is too long",
 				utoa(*datLength));
-		return -1;
+		return 0;
 	}
 
 	if (*bytesRemaining < *datLength)
 	{
 		writeMemo("Malformed DTKA record: key truncated.");
-		return -1;
+		return 0;
 	}
 
 	if (*datLength > 0)

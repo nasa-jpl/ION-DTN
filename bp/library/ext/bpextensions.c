@@ -22,13 +22,13 @@
 #include "extbspbab.h"
 #include "extbsppcb.h"
 #include "extbsppib.h"
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 #include "bspbab.h"
 #include "bspbib.h"
 #include "bspbcb.h"
-#elif defined(BPSEC)
-#include "bpsec_bib.h"
-#include "bpsec_bcb.h"
+#elif defined(SBSP)
+#include "sbsp_bib.h"
+#include "sbsp_bcb.h"
 #endif /* ORIGINAL_BSP */
 
 #ifdef ENABLE_BPACS
@@ -122,7 +122,7 @@ static ExtensionDef	extensionDefs[] =
                                 0,
 				bsp_pcbClear
 		},
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 		{ "bab", EXTENSION_TYPE_BAB,
 				bsp_babOffer,
 				{0,
@@ -171,38 +171,38 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				bsp_bibClear
 		},
-#elif defined(BPSEC)
+#elif defined(SBSP)
 		{ "bcb", BLOCK_TYPE_BCB,
-				bpsec_bcbOffer,
+				sbsp_bcbOffer,
 				{0,
 				0,
 				0,
-				bpsec_bcbProcessOnDequeue,
+				sbsp_bcbProcessOnDequeue,
 				0},
-				bpsec_bcbRelease,
-				bpsec_bcbCopy,
-				bpsec_bcbAcquire,
-				bpsec_bcbDecrypt,
+				sbsp_bcbRelease,
+				sbsp_bcbCopy,
+				sbsp_bcbAcquire,
+				sbsp_bcbDecrypt,
 				0,
 				0,
                                 0,
-				bpsec_bcbClear
+				sbsp_bcbClear
 		},
 		{ "bib", BLOCK_TYPE_BIB,
-				bpsec_bibOffer,
+				sbsp_bibOffer,
 				{0,
 				0,
 				0,
 				0,
 				0},
-				bpsec_bibRelease,
-				bpsec_bibCopy,
+				sbsp_bibRelease,
+				sbsp_bibCopy,
 				0,
 				0,
-				bpsec_bibParse,
-				bpsec_bibCheck,
+				sbsp_bibParse,
+				sbsp_bibCheck,
 				0,
-				bpsec_bibClear
+				sbsp_bibClear
 		},
 #endif /* ORIGINAL_BSP */
 		{ "ecos", EXTENSION_TYPE_ECOS,
@@ -285,7 +285,7 @@ static ExtensionSpec	extensionSpecs[] =
 			{
 #if defined(ORIGINAL_BSP)
 				{ BSP_BAB_TYPE, 0, 0, 0, 0 },
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0 },
 
 #endif /* ORIGINAL_BSP */
@@ -300,11 +300,11 @@ static ExtensionSpec	extensionSpecs[] =
 				{ BSP_PIB_TYPE, 0, 0, 0, 0 },
 				{ BSP_PCB_TYPE, 0, 0, 0, 0 },
 				{ BSP_BAB_TYPE, 0, 0, 1, 1 },
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
-#elif defined(BPSEC)
+#elif defined(SPSB)
 				{ BLOCK_TYPE_BIB, 1, 0, 0, 0 },
 				{ BLOCK_TYPE_BCB, 1, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */

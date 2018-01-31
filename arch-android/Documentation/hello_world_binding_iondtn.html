@@ -1,0 +1,290 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Binding to IonDTN - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html" class="active"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./hello_world_binding_iondtn.html#binding-to-iondtn" id="binding-to-iondtn"><h1>Binding to IonDTN</h1></a>
+<blockquote>
+<p><strong>Note:</strong> The entire <em>DtnHelloWorld</em> project can be found at <code>arch_android/Demo_Applications/IonHelloWorld</code>. Instead of extracting all the code snippets from this tutorial you can simply open/copy it and then continue reading.</p>
+</blockquote>
+<p>As next step, we will write the source code to bind the <code>BundleService</code> provided by the <em>IonDTN</em> app to our own application.</p>
+<p>The following picture depicts the interaction between our app <em>DtnHelloWorld</em> and <em>IonDtn</em>:</p>
+<p><img src="./resources/interaction_iondtn_dtnhelloworld.png" alt="interaction iondtn dtnhelloworld" /></p>
+<p>It becomes obvious that binding and unbinding from the <code>BundleService</code> is a very important part of the communication process.</p>
+<a class="header" href="./hello_world_binding_iondtn.html#android-interface-description-language-aidl" id="android-interface-description-language-aidl"><h2>Android Interface Description Language (AIDL)</h2></a>
+<p>Android has very strict rules in regards of inter-process/inter-app communication. Therefore, all communication has to follow a certain pattern that the OS can evaluate. In practice, every interface is defined by a so-called <code>.aidl</code> file. This file is written in the <em>Android Interface Description Language (AIDL)</em>. Android Studio will use this file to create actual Java source code for resolving and responding to communication requests.</p>
+<p>You can find out more about AIDL at this <a href="https://developer.android.com/guide/components/aidl.html">link</a>.</p>
+<p>As the <code>BundleService</code> is already implemented in <em>IonDTN</em>, you don't have to implement the AIDL file yourself. Instead, just create three <code>.aidl</code> files with the names <code>IBundleService.aidl</code>, <code>IBundleReceiverListener.aidl</code> and <code>DtnBundle.aidl</code> and copy the contents in there.</p>
+<p><img src="./resources/hello_world_add_aidl_file.png" alt="add aidl file" /></p>
+<p>The next time that you are building (<code>Build -&gt; Build Project</code>) or running the project, Android Studio will create the Java code and you are ready to use the interface functionality specified in the <code>.aidl</code> file. The functions are then also available via autocomplete.</p>
+<a class="header" href="./hello_world_binding_iondtn.html#ibundleserviceaidl" id="ibundleserviceaidl"><h3>IBundleService.aidl</h3></a>
+<p>The first of the thre <code>.aidl</code> files you copied earlier is the interface specification of the actual <code>BundleService</code>:</p>
+<pre><code class="language-java">// BundleService.aidl
+package gov.nasa.jpl.iondtn;
+
+import gov.nasa.jpl.iondtn.IBundleReceiverListener;
+import gov.nasa.jpl.iondtn.DtnBundle;
+
+interface IBundleService {
+    // Open an endpoint object with the specified source eid
+    boolean openEndpoint(String src_eid, IBundleReceiverListener listener);
+
+    // Close the previously opened endpoint object
+    boolean closeEndpoint();
+
+    boolean sendBundle(in DtnBundle b);
+}
+
+</code></pre>
+<p>You can see that three different interface functions are defined. What these functions do will be covered later. For now, it is only important that the <code>IBundleService.aidl</code> exists in the <em>DtnHelloWorld</em> project.</p>
+<a class="header" href="./hello_world_binding_iondtn.html#ibundlereceiverlisteneraidl" id="ibundlereceiverlisteneraidl"><h3>IBundleReceiverListener.aidl</h3></a>
+<p>As you may have noticed, the <code>IBundleService.aidl</code> file has the line:</p>
+<pre><code class="language-java">import gov.nasa.jpl.iondtn.IBundleReceiverListener;
+</code></pre>
+<p>Also, one of the function uses <code>IBundleReceiverListener</code> as a parameter. The reason for this is that there has to be a feedback path to notify the subscribed app about received bundles. A constant polling by the app is not very efficient. The solution is a listener interface that the calling app (i.e. DtnHelloWorld) creates and provides to the <em>IonDTN</em> application:</p>
+<pre><code class="language-java">// IBundleReceiverListener.aidl
+package gov.nasa.jpl.iondtn;
+
+import gov.nasa.jpl.iondtn.DtnBundle;
+
+interface IBundleReceiverListener {
+    /**
+     * Is called when a bundle assigned to the subscribers eid has been
+     * received in ION
+     */
+    int notifyBundleReceived(in DtnBundle b);
+}
+</code></pre>
+<p>The interface defines one callback (receiving) function. As we are not implementing any receiving functionality in the DtnHelloWorld application, this functions is not relevant yet. You can find out more about how to send bundles in the chapter <a href="interface_sending_bundles">&quot;Sending Bundles&quot;</a>.</p>
+<a class="header" href="./hello_world_binding_iondtn.html#dtnbundleaidl-and-dtnbundlejava" id="dtnbundleaidl-and-dtnbundlejava"><h3>DtnBundle.aidl and DtnBundle.java</h3></a>
+<p>Again, in <code>IBundleReceiverListener.aidl</code> the Type <code>DtnBundle</code> is used:</p>
+<pre><code class="language-java">import gov.nasa.jpl.iondtn.Bundle;
+...
+int notifyBundleReceived(in DtnBundle b);
+</code></pre>
+<p>This type is necessary to be able to use a custom object containing both the payload and additional bundle metrics (e.g. the source EID).</p>
+<p>In order to use the <code>DtnBundle</code> type you have to add the following content to <code>DtnBundle.aidl</code>:</p>
+<pre><code class="language-java">// IBundle.aidl
+package gov.nasa.jpl.iondtn;
+
+parcelable DtnBundle;
+</code></pre>
+<p>The only thing happening in this file is that Bundle is defined as <em>parcelable</em>, i.e being suitable for transmitting across process boundaries via IPC.</p>
+<p>To allow client applications to use the Bundle object, additionally the <code>gov.nasa.jpl.iondtn.DtnBundle.java</code> file (provided <a href="./resources/code/DtnBundle.java">here</a>) has to be added to the project. You can achieve this by first adding a new package <code>gov.nasa.jpl.iondtn</code> and then adding the <code>DtnBundle.java</code> source file in that package.</p>
+<a class="header" href="./hello_world_binding_iondtn.html#binding" id="binding"><h2>Binding</h2></a>
+<p>Now that the interfaces are defined, we can implement the binding process.</p>
+<p>The binding process itself is consisting of two steps. First, <em>DtnHelloWorld</em> has to request the service from the Android OS. This is accomplished by sending out an intent which requests the <code>BundleService</code> component of <em>IonDTN</em>.</p>
+<p>As we want to connect to the service as soon as we are starting our application, we send out the intent when the app is started, i.e. in <code>onStart()</code>:</p>
+<pre><code class="language-java">@Override
+protected void onStart() {
+    super.onStart();
+    if (mService == null) {
+        Log.d(TAG, &quot;onStart: (Re-)Binding service&quot;);
+        // Create Intent
+        Intent serviceIntent = new Intent()
+                .setComponent(new ComponentName(
+                        &quot;gov.nasa.jpl.iondtn&quot;,
+                        &quot;gov.nasa.jpl.iondtn.services.BundleService&quot;));
+        // Request to bind the service based on the intent
+        bindService(serviceIntent, mConnection, BIND_AUTO_CREATE);
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> There are different states that an Android activity can have and depending on that state, different functions (e.g. <code>onCreate()</code> or <code>onStart()</code>) are called. You can find out more about the activity lifecycle at this <a href="https://developer.android.com/guide/components/activities/activity-lifecycle.html">link</a>.</p>
+</blockquote>
+<p>We have to select the service we want to connect to by explicitly specifying its name, in our case <code>&quot;gov.nasa.jpl.iondtn.services.BundleService&quot;</code> of the component <code>&quot;gov.nasa.jpl.iondtn&quot;</code>. This ensures that we connect to the right interface and that the other app understands what we want when calling an interface function.</p>
+<p>The objects that are used in <code>onStart()</code> are also defined in MainActivity:</p>
+<pre><code class="language-java">// Tag for debug logging purposes
+public static final String TAG = &quot;MainActivity&quot;;
+</code></pre>
+<p>The tag is just for logging purposes and allows you to determine which part of your application has emitted a certain log message.</p>
+<pre><code class="language-java">// BundleService object
+private gov.nasa.jpl.iondtn.IBundleService mService;
+</code></pre>
+<p>The <code>mService</code> object holds the interface information. This object was created automatically when you included the <em>AIDL</em> file earlier.</p>
+<pre><code class="language-java">// Service connection object
+private ServiceConnection mConnection = new ServiceConnection() {
+
+    @Override
+    public void onServiceConnected(ComponentName className, IBinder service) {
+        ...
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName className) {
+        ...
+    }
+};
+</code></pre>
+<p>Finally, we have the <code>ServiceConnection</code> object. It holds all information regarding the particular connection with the <em>IonDTN</em> application and implements two functions <code>onServiceConnected()</code> and <code>onServiceDisconnected()</code>. The first function is called when a service connection was established after an intent request. The latter function is the counterpart and is called whenever the service connection is shut down, i.e. when the application providing the service is shut down (that the latter function is called is not guaranteed by the Operating System).</p>
+<p>First, lets implement the <code>onServiceConnected()</code> method:</p>
+<pre><code class="language-java">@Override
+public void onServiceConnected(ComponentName className, IBinder service) {
+    Log.d(TAG, &quot;onServiceConnected: Service bound!\n&quot;);
+
+    // Save the service object
+    mService = gov.nasa.jpl.iondtn.IBundleService.Stub.asInterface(service);
+
+    // Update GUI
+    button.setEnabled(true);
+    editText.setEnabled(true);
+}
+</code></pre>
+<p>The function is called by the operating system with an <code>IBinder</code> object as parameter. We have to save this object as it allows us to use the service. Furthermore, we can now activate the <code>button</code> and <code>editText</code> to allow user interaction.</p>
+<p>We should also output a log message if the service get disconnected. This can be done in the <code>onServiceDisconnected()</code> method:</p>
+<pre><code class="language-java">@Override
+public void onServiceDisconnected(ComponentName className) {
+    Log.d(TAG, &quot;onServiceDisconnected: Service unbound!\n&quot;);
+}
+</code></pre>
+<a class="header" href="./hello_world_binding_iondtn.html#unbinding" id="unbinding"><h2>Unbinding</h2></a>
+<p>When done using the service, our app <em>DtnHelloWorld</em> should close the connection to the service properly. This is relevant when the app is closed by the user. To close the service connection, we override the function <code>onStop()</code>:</p>
+<pre><code class="language-java">@Override
+protected void onStop() {
+    super.onStop();
+    Log.d(TAG, &quot;onStop: Unbinding service&quot;);
+
+    // Only unbind if bound in the first place
+    if (mService != null) {
+        // Disable GUI
+        button.setEnabled(false);
+        editText.setEnabled(false);
+
+        // Unbind service
+        unbindService(mConnection);
+
+        // Reset service element (GC will handle!)
+        mService = null;
+    }
+}
+</code></pre>
+<p>We are only unbinding if a connection was established in the first place. As the establishing of a connection is realized asynchronously there is a chance that that never happened.</p>
+<p>If we have a connection to close, we first disable the GUI and the call the OS unbinding function. After this function call we ensure that the garbage collection properly removes the old object by assigning <code>null</code> to <code>mService</code>.</p>
+<a class="header" href="./hello_world_binding_iondtn.html#imports" id="imports"><h2>Imports</h2></a>
+<p>In order to use all components that we just copied into the application, we also have to make sure that the correct includes are used. These includes should be included in the header of the <code>MainActivity.java</code> file.</p>
+<pre><code class="language-java">import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+</code></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./hello_world_iondtn_setup.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./hello_world_hello_world.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./hello_world_iondtn_setup.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./hello_world_hello_world.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

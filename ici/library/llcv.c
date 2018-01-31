@@ -15,12 +15,14 @@
 int	llcv_lyst_is_empty(Llcv llcv)
 {
 	CHKZERO(llcv);
+	CHKZERO(llcv->list);
 	return (lyst_length(llcv->list) == 0 ? 1 : 0);
 }
 
 int	llcv_lyst_not_empty(Llcv llcv)
 {
 	CHKZERO(llcv);
+	CHKZERO(llcv->list);
 	return (lyst_length(llcv->list) > 0 ? 1 : 0);
 }
 

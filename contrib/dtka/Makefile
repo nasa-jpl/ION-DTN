@@ -1,5 +1,6 @@
 OPT = /usr/local
-PLATFORMS = i86-redhat
+PLATFORMS = i86_64-fedora
+# i86-redhat
 
 all:
 		cd doc; \

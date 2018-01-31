@@ -8,7 +8,7 @@ ADM_SOURCES =	$(SHARED)/adm/adm.c \
 		$(SHARED)/adm/adm_ion.c \
 		$(SHARED)/adm/adm_ltp.c \
 		$(SHARED)/adm/adm_agent.c \
-		$(SHARED)/adm/adm_bpsec.c
+		$(SHARED)/adm/adm_sbsp.c
 
 MSG_SOURCES =	$(SHARED)/msg/msg_admin.c \
 		$(SHARED)/msg/msg_ctrl.c \
@@ -46,7 +46,7 @@ AGENT_SOURCES =	$(AGENT)/ingest.c \
 		$(AGENT)/adm_ltp_priv.c \
 		$(AGENT)/adm_agent_impl.c \
 		$(AGENT)/adm_bp_impl.c \
-		$(AGENT)/adm_bpsec_impl.c \
+		$(AGENT)/adm_sbsp_impl.c \
 		$(AGENT)/instr.c
 
 MGR_SOURCES =	$(MGR)/nm_mgr.c \
@@ -61,7 +61,7 @@ MGR_SOURCES =	$(MGR)/nm_mgr.c \
 AGENT_OBJS =	agt_adm.o \
 		agt_adm_agent.o \
 		agt_adm_bp.o \
-		agt_adm_bpsec.o \
+		agt_adm_sbsp.o \
 		adm_ion.o \
 		adm_ltp.o \
 		msg_admin.o \
@@ -97,13 +97,13 @@ AGENT_OBJS =	agt_adm.o \
 		adm_ltp_priv.o \
 		adm_agent_impl.o \
 		adm_bp_impl.o \
-		adm_bpsec_impl.o \
+		adm_sbsp_impl.o \
 		nmagent.o
 
 MGR_OBJS =	mgt_adm.o \
 		mgt_adm_agent.o \
 		mgt_adm_bp.o \
-		mgt_adm_bpsec.o \
+		mgt_adm_sbsp.o \
 		adm_ltp.o \
 		adm_ion.o \
 		msg_admin.o \
@@ -142,7 +142,7 @@ MGR_OBJS =	mgt_adm.o \
 OPT = -g -Wall -Werror -Wno-unused-variable -Dlinux -DHEAP_PTRS=$(PTRS) 
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I../../bp/library/ext/bpsec -I$(ROOT)/include
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I$(ROOT)/include
 # For database support, append -I/usr/local/mysql/include -I/user/include/mysql
 
 CC = gcc $(OPT) $(INCLDIRS)
@@ -188,8 +188,8 @@ adm_objs:	$(ADM_SOURCES)
 		$(CC) -c $(SHARED)/adm/adm_agent.c -o mgt_adm_agent.o
 		$(CC) -DAGENT_ROLE -c $(SHARED)/adm/adm_bp.c -o agt_adm_bp.o
 		$(CC) -c $(SHARED)/adm/adm_bp.c -o mgt_adm_bp.o
-		$(CC) -DAGENT_ROLE -c $(SHARED)/adm/adm_bpsec.c -o agt_adm_bpsec.o
-		$(CC) -c $(SHARED)/adm/adm_bpsec.c -o mgt_adm_bpsec.o
+		$(CC) -DAGENT_ROLE -c $(SHARED)/adm/adm_sbsp.c -o agt_adm_sbsp.o
+		$(CC) -c $(SHARED)/adm/adm_sbsp.c -o mgt_adm_sbsp.o
 		$(CC) -c $(SHARED)/adm/adm_ion.c
 		$(CC) -c $(SHARED)/adm/adm_ltp.c
 
@@ -226,7 +226,7 @@ util_objs:	$(UTIL_SOURCES)
 agent_objs:	$(AGENT_SOURCES)
 		$(CC) -c $(AGENT)/adm_agent_impl.c
 		$(CC) -c $(AGENT)/adm_bp_impl.c
-		$(CC) -c $(AGENT)/adm_bpsec_impl.c
+		$(CC) -c $(AGENT)/adm_sbsp_impl.c
 		$(CC) -c $(AGENT)/adm_ion_priv.c
 		$(CC) -c $(AGENT)/adm_ltp_priv.c
 		$(CC) -c $(AGENT)/agent_db.c

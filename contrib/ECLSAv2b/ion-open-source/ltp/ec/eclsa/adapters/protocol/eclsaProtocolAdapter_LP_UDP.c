@@ -38,12 +38,12 @@ float 				sleepSecPerBit; //eclso only
 } UdpEnvironment;
 
 UdpEnvironment udpEnv;
-void initEclsoLowerLevel(int argc, char *argv[], unsigned short portNbr, unsigned int ipAddress, int txbps)
+void initEclsoLowerLevel(int argc, char *argv[], EclsoEnvironment *env)
 {
 	//this function initialize UDP for eclso
-	udpEnv.sleepSecPerBit = 1.0 / txbps;
-	portNbr = htons(portNbr);
-	ipAddress = htonl(ipAddress);
+	udpEnv.sleepSecPerBit = 1.0 / env->txbps;
+	unsigned short portNbr = htons(env->portNbr);
+	unsigned int ipAddress = htonl(env->ipAddress);
 	memset((char *) &udpEnv.socketName, 0, sizeof udpEnv.socketName);
 	udpEnv.inetName = (struct sockaddr_in *) &udpEnv.socketName;
 	udpEnv.inetName->sin_family = AF_INET;
@@ -58,12 +58,12 @@ void initEclsoLowerLevel(int argc, char *argv[], unsigned short portNbr, unsigne
 		exit(1);
 	}
 }
-void initEclsiLowerLevel(int argc, char *argv[], unsigned short portNbr, unsigned int ipAddress)
+void initEclsiLowerLevel(int argc, char *argv[], EclsiEnvironment *env)
 {
 	//this function initialize UDP for eclsi
 	socklen_t			nameLength;
-	portNbr = htons(portNbr);
-	ipAddress = htonl(ipAddress);
+	unsigned short portNbr = htons(env->portNbr);
+	unsigned int ipAddress = htonl(env->ipAddress);
 	memset((char *) &udpEnv.socketName, 0, sizeof(udpEnv.socketName));
 	udpEnv.inetName = (struct sockaddr_in *) &udpEnv.socketName;
 	udpEnv.inetName->sin_family = AF_INET;

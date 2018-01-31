@@ -205,6 +205,8 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #ifdef RTEMS			/****	RTEMS			*********/
 typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 extern int			rtems_shell_main_cp(int argc, char *argv[]);
+
+#define	O_LARGEFILE		(0)
 #endif
 
 /*
@@ -598,7 +600,8 @@ extern int getpriority(int, id_t);
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
+			saddr, saddr, saddr);
 
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 

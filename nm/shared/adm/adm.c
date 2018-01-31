@@ -42,7 +42,7 @@
 #include "../adm/adm_ltp.h"
 #include "../adm/adm_ion.h"
 #include "../adm/adm_agent.h"
-#include "../adm/adm_bpsec.h"
+#include "../adm/adm_sbsp.h"
 
 Lyst gAdmData;
 Lyst gAdmComputed;
@@ -1838,8 +1838,8 @@ void adm_init()
 	adm_ion_init();
 #endif /* _HAVE_ION_ADM_ */
 
-#ifdef _HAVE_BPSEC_ADM_
-	adm_bpsec_init();
+#ifdef _HAVE_SBSP_ADM_
+	adm_sbsp_init();
 #endif
 
 

@@ -1,0 +1,156 @@
+<resources>
+    <!-- General -->
+    <string name="app_name">IonDTN</string>
+    <string name="iondtn_logo_description">IonDTN Logo</string>
+
+    <!-- Navigation Drawer -->
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <!-- Status Fragment -->
+    <string name="startION">ION Status</string>
+    <string name="labelLog">Log Output</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="ResetButton">Reset Application</string>
+    <string name="header_refresh_rate_log">Refresh rate of log window (in
+        ms)</string>
+    <string name="refresh_rate_log">refresh_rate_log</string>
+    <string name="log_tail_lines">log_tail_lines</string>
+    <string name="errorStartIonMessage">Couldn\'t start ION. Please restart
+        app!</string>
+    <string name="errorStopIonMessage">Couldn\'t stop ION! Please restart
+        app!</string>
+    <string name="errorRetrieveData">Couldn\'t retrieve data from ION instance!
+        Please restart!</string>
+    <string name="errorIonNotAvailable">ION is not started yet! Please
+        start!</string>
+
+
+    <!-- Notification -->
+    <string name="notification_title">IonDTN Status</string>
+    <string name="notification_channel_name">IonDTN Channel 1</string>
+    <string name="notification_message_starting">ION is starting</string>
+    <string name="notification_message_started">ION is started</string>
+    <string name="notification_message_stopping">ION is stopping</string>
+
+    <!-- Buttons -->
+    <string name="dialogButtonSave">Save</string>
+    <string name="dialogButtonCancel">Cancel</string>
+    <string name="dialogButtonDelete">Delete</string>
+    <string name="dialogButtonAdd">Add</string>
+    <string name="dialogButtonConfirm">Confirm</string>
+
+    <!-- Setup Process -->
+    <string name="welcome_message">Welcome to IonAndroid!</string>
+    <string name="welcome_setup_details">This application allows you to use
+        <a href="https://sourceforge.net/projects/ion-dtn/">ION DTN</a>
+        functionality on this Android device. By providing an easy-to-use
+        interface, other apps are facilitated to send and receive bundles
+        with very little programming effort. Please refer to the
+        <a href="https://sourceforge.net/projects/ion-dtn/">developer
+            documentation</a> to learn how to use the
+        interface.</string>
+    <string name="setup_message_permissions_header">Android Permission</string>
+    <string name="setup_message_permissions_message">This application needs
+        read access to the Android file system to function properly. Please
+        grant this permission in the upcoming system dialog.</string>
+    <string name="setup_radio_button_empty_config">Setup blank
+        configuration</string>
+    <string name="setup_message_initialization_header">Initialization</string>
+    <string name="setup_option_button_own_config_files_text">Setup
+        configuration based on file</string>
+    <string name="setup_message_initialization_message">IonAndroid can
+        initialize ION DTN either with an empty configuration file or can use
+        an preexisting configuration file for setup. After the
+        initialization, you can manually modify the configuration in the
+        app.</string>
+    <string name="setup_init_progress_message">Initializing...</string>
+    <string name="setup_message_select_nodenbr">Select Node Number</string>
+    <string name="setup_message_nodeNbr_message">The ION instance on this
+        device needs a unique identifier that will be used for communicating
+        with other nodes. Please enter an unique value.</string>
+    <string name="setup_textview_nodenbr">Node Number:</string>
+    <string name="setup_message_completed">Setup completed</string>
+    <string name="setup_message_complete">The setup was completed successfully!
+        After leaving this assistant you can start the ION instance by clicking
+        the lauch switch in the upcoming status window.</string>
+    <string name="setup_mesage_select_file_header">Custom Configuration File</string>
+    <string name="setup_message_select_file_message">In order to load a
+        predefined custom configuration file, please select the file in the
+        upcoming file explorer.</string>
+    <string name="setup_button_select_file">Select Configuration File</string>
+
+
+    <!-- Preferences -->
+    <string name="noFileSelected" type="id">no file selected</string>
+    <string name="preference_file_key">sharedPref</string>
+    <string name="resetDialogMessage">You are about to reset the entire
+        application and reset/remove all application data. Please
+        confirm!</string>
+    <string name="resetDialogHeader">Confirm reset</string>
+    <string name="header_log_tail_lines">Output of tailing lines of log
+        file</string>
+    <string name="header_threshold_data_file">Threshold Array/File (in
+        Bytes)</string>
+    <string name="threshold_data_file">threshold_data_file</string>
+    <string name="pref_header_ipnd">DTN IP Neighbor Discovery</string>
+    <string name="pref_header_general">General Settings</string>
+
+    <!-- Configuration List Fragment Contents -->
+    <string name="eid_option_queue">Queue (Q)</string>
+    <string name="eid_option_discard">"Discard (X)"</string>
+    <string name="label_status_starting">Starting</string>
+    <string name="label_status_started">Started</string>
+    <string name="label_status_stopping">Stopping</string>
+    <string name="label_status_stopped">Stopped</string>
+
+    <!-- Edit Dialogs -->
+    <string name="dialog_edit_babrule_title">Edit BabRule</string>
+    <string name="dialog_edit_label_source_eid">Source EID</string>
+    <string name="dialog_edit_label_destination_eid">Destination EID</string>
+    <string name="dialog_edit_label_cipher_identifier">Ciphersuite
+        Identifier</string>
+    <string name="dialog_edit_label_key_identifier">Key Identifier</string>
+    <string name="dialog_edit_bcbrule_title">Edit BcbRule</string>
+    <string name="dialog_edit_label_node_type_number">Node type number</string>
+    <string name="dialog_edit_bibrule_title">Edit BibRule</string>
+    <string name="dialog_edit_contact_title">Edit Contact</string>
+    <string name="dialog_edit_label_start_date">Start Date</string>
+    <string name="dialog_edit_label_start_time">Start Time</string>
+    <string name="dialog_edit_label_end_date">End Date</string>
+    <string name="dialog_edit_label_end_time">End Time</string>
+    <string name="dialog_edit_label_data_rate">Data Rate (bit/s)</string>
+    <string name="dialog_edit_label_confidence">Confidence (%)</string>
+    <string name="dialog_edit_eid_title">Edit Endpoint Identifier</string>
+    <string name="dialog_edit_label_endpoint_identifier">Endpoint
+        Identifier</string>
+    <string name="dialog_edit_label_receiving_behaviour">Receiving
+        Behaviour:</string>
+    <string name="dialog_edit_label_option_discard">Discard (X)</string>
+    <string name="dialog_edit_label_option_queue">Queue (Q)</string>
+    <string name="dialog_edit_induct_title">Edit Induct</string>
+    <string name="dialog_edit_label_induct_identifier">Induct
+        Identifier</string>
+    <string name="dialog_edit_label_protocol_name">Protocol Name</string>
+    <string name="dialog_edit_label_command_name">Command Name</string>
+    <string name="dialog_edit_key_title">Edit Key</string>
+    <string name="dialog_edit_label_key_name">Key Name</string>
+    <string name="dialog_edit_label_path">Path</string>
+    <string name="dialog_edit_label_select">Select</string>
+    <string name="dialog_edit_outduct_title">Edit Outduct</string>
+    <string name="dialog_edit_label_outduct_identifier">Outduct
+        Identifier</string>
+    <string name="dialog_edit_label_max_payload_length">Max Payload
+        Length</string>
+    <string name="dialog_edit_scheme_title">Edit Scheme</string>
+    <string name="dialog_edit_label_scheme_name">Scheme Name</string>
+    <string name="dialog_edit_label_forwarder_command">Forwarder
+        Command</string>
+    <string name="dialog_edit_label_admin_application_command">Admin Application
+        Command</string>
+    <string name="dialog_edit_range_title">Edit Range</string>
+    <string name="dialog_edit_label_source_node">Source Node</string>
+    <string name="dialog_edit_label_destination_node">Destination Node</string>
+    <string name="dialog_edit_label_owlt">OWLT (s)</string>
+
+</resources>

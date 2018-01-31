@@ -1,0 +1,9 @@
+gov.nasa.jpl.iondtn
+gov.nasa.jpl.iondtn.backend
+gov.nasa.jpl.iondtn.gui
+gov.nasa.jpl.iondtn.gui.AddEditDialogFragments
+gov.nasa.jpl.iondtn.gui.MainFragments
+gov.nasa.jpl.iondtn.gui.MainFragments.MainFragmentsAdapters
+gov.nasa.jpl.iondtn.gui.Setup
+gov.nasa.jpl.iondtn.services
+gov.nasa.jpl.iondtn.types

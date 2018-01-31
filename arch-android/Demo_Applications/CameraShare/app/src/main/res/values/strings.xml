@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">CameraShare</string>
+    <string name="dialog_start_select_operation">Configuration</string>
+    <string name="dialog_start_label_new_share">Open and activate own
+        share</string>
+    <string name="dialog_start_label_join_share">Join remote share</string>
+    <string name="dialog_start_own_eid">Share Sink Identifier</string>
+    <string name="dialog_start_label_join_share_eid">Share EID</string>
+    <string name="preference_file_key">settings_file</string>
+    <string name="dialog_start_label_button_connect">Confirm</string>
+    <string name="title_activity_gallery">GalleryActivity</string>
+    <string name="title_activity_camera">CameraActivity</string>
+</resources>

@@ -151,6 +151,7 @@ static int	processLine(char *line, int lineLength);
 static int	initializeIpnd()
 {
 	IPNDCtx	*ctx = NULL;
+	char	line[1024];
 
 	if (bpAttach() < 0)
 	{
@@ -208,7 +209,8 @@ static int	initializeIpnd()
 
 	for (i = 0; i < sizeof(tagDefLines) / sizeof(tagDefLines[0]); i++)
 	{
-		processLine(tagDefLines[i], strlen(tagDefLines[i]));
+		istrcpy(line, tagDefLines[i], sizeof line);
+		processLine(line, sizeof line);
 	}
 
 	if (ipnInit() < 0)
@@ -1189,12 +1191,20 @@ static int	processLine(char *line, int lineLength)
 	return 0;
 }
 
+#if defined (ION_LWT)
+int	ipnadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
+{
+	char	*cmdFileName = (char *) a1;
+#else
 int	main(int argc, char *argv[])
 {
 	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
+#endif
 	int	cmdFile, len, processLineResult;
 	char	line[1024];
 	IPNDCtx	*ctx = NULL;
+	int	i;
 
 #if 0
 	/* Block SIGUSR1 signals */
@@ -1291,6 +1301,13 @@ start command.");
 	releaseLystElements(ctx->neighbors);
 	releaseLystElements(ctx->listenAddresses);
 	MRELEASE(ctx);
+
+	/* Close all listening sockets */
+
+	for (i = 0; i < ctx->numListenSockets; i++)
+	{
+		close(ctx->listenSockets[i]);
+	}
 
 	return 0;
 }
