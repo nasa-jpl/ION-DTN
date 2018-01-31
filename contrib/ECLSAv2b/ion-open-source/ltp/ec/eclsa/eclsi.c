@@ -14,11 +14,24 @@ Service Induct daemon.
  * */
 
 #include "eclsi.h"
+
 #include <stdlib.h>		// exit, ..
 #include <unistd.h> 	// usleep
 #include <pthread.h>	// POSIX threads
 #include <string.h>		// memset
 #include <stdint.h> //uint_16t, uint_8...
+
+#include "adapters/protocol/eclsaProtocolAdapters.h"
+#include "adapters/codec/eclsaCodecAdapter.h"
+#include "elements/matrix/eclsaMatrixBuffer.h"
+#include "elements/packet/eclsaBlacklist.h"
+#include "elements/packet/eclsaPacket.h"
+#include "elements/packet/eclsaFeedback.h"
+#include "elements/sys/eclsaLogger.h"
+#include "extensions/HSLTP/HSLTP.h"
+//#include "elements/sys/eclsaTimer.h"
+//#include "elements/fec/eclsaFecManager.h"
+//#include "elements/matrix/eclsaCodecMatrix.h"
 
 
 #define PARSE_PARAMETER(PAR_NO) 	(argc > (PAR_NO) ? (int) strtoll(argv[PAR_NO], NULL, 10) : -1)
@@ -36,8 +49,8 @@ int	main(int argc, char *argv[])
 
 	parseCommandLineArgument(argc,argv,&eclsiEnv);
 
-	initEclsiUpperLevel(argc,argv,&eclsiEnv.portNbr,&eclsiEnv.ipAddress);
-	initEclsiLowerLevel(argc,argv,eclsiEnv.portNbr,eclsiEnv.ipAddress);
+	initEclsiUpperLevel(argc,argv,&eclsiEnv);
+	initEclsiLowerLevel(argc,argv,&eclsiEnv);
 
 	fecManagerInit(true,false,isContinuousModeAvailable(),eclsiEnv.maxK,eclsiEnv.maxN,eclsiEnv.maxT);
 
@@ -128,7 +141,7 @@ static void *fill_matrix_thread(void *parm) // thread T1
 
 		//todo remove comments only for debug purposes.
 		//todo decommentando alcune di queste righe verranno scartati i pacchetti indicati. questo
-		//può servire per fare dei test con un certo numero di perdite in modo deterministico
+		//puï¿½ servire per fare dei test con un certo numero di perdite in modo deterministico
 		//if(header.symbolID %2 == 0 || header.symbolID == 575 || header.symbolID==18431) continue;
 	    // if(header.symbolID %2 == 0 ) continue;
 		//if(header.symbolID  == 0 ) continue;
@@ -385,32 +398,6 @@ for(i=0;i < code->K;i++)
 	}
 }
 
-void passEclsaMatrix_HSLTP_MODE(EclsaMatrix*matrix , EclsiEnvironment *eclsiEnv)
-{
-unsigned int i;
-FecElement 	*code= 		  matrix->encodingCode;
-char *segment;
-uint16_t tmpSegLen;
-int segmentLength;
-char abstractCodecStatus;
-bool isFirst = true;
-abstractCodecStatus=convertToAbstractCodecStatus(matrix->codecStatus);
-
-for(i=0;i < code->K;i++)
-	{
-	segment= getSymbolFromCodecMatrix(matrix->abstractCodecMatrix,i);
-	memcpy(&tmpSegLen,segment, sizeof(uint16_t));
-	//Only the matrix segments that have a length > 0 (no padding) and have been flagged as valid
-	//by the decoder, must be sent to LTP (or to another upper protocol).
-
-	if(tmpSegLen > 0 && isValidSymbol(matrix->abstractCodecMatrix,i) )
-		{
-			segmentLength=(int)tmpSegLen;
-			sendSegmentToUpperProtocol_HSLTP_MODE((char *)(segment+ sizeof(uint16_t)),&segmentLength,abstractCodecStatus,isFirst);
-			isFirst = false;
-		}
-	}
-}
 /*Feedback functions*/
 void sendFeedback(EclsaMatrix *matrix,EclsiEnvironment *eclsiEnv)
 {

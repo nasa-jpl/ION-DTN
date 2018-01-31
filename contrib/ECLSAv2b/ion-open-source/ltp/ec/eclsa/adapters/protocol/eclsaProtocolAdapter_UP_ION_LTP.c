@@ -25,6 +25,7 @@ todo: ifdef LW_UDP
 #include <stdlib.h>
 #include "ltpP.h"
 #include "../../eclso.h"
+#include "../../elements/sys/eclsaLogger.h"
 
 #define LtpUdpDefaultPortNbr		1113
 #define LTP_VERSION	0;
@@ -37,51 +38,7 @@ typedef struct
 
 IonLtpEclsoEnvironment ltpEclsoEnv;
 
-static int	serializeHeaderInternal(LtpXmitSeg *segment, char *segmentBuffer,
-			Sdnv *engineIdSdnv)
-{
-	char		firstByte = LTP_VERSION;
-	char		*cursor = segmentBuffer;
-	Sdnv		sessionNbrSdnv;
-	char		extensionCounts;
-
-	firstByte <<= 4;
-	firstByte += segment->pdu.segTypeCode;
-	*cursor = firstByte;
-	cursor++;
-
-	memcpy(cursor, engineIdSdnv->text, engineIdSdnv->length);
-	cursor += engineIdSdnv->length;
-
-	encodeSdnv(&sessionNbrSdnv, segment->sessionNbr);
-	memcpy(cursor, sessionNbrSdnv.text, sessionNbrSdnv.length);
-	cursor += sessionNbrSdnv.length;
-
-	extensionCounts = segment->pdu.headerExtensionsCount;
-	extensionCounts <<= 4;
-	extensionCounts += segment->pdu.trailerExtensionsCount;
-	*cursor = extensionCounts;
-
-	return 0;
-}
-static void	serializeReportAckSegmentInternal(LtpXmitSeg *segment, char *buf,Sdnv *ownEngineIdSdnv)
-{
-	char	*cursor = buf;
-	Sdnv	serialNbrSdnv;
-
-	/*	Report is from remote engine, so origin is the local
-	 *	engine.							*/
-
-	serializeHeaderInternal(segment, cursor, ownEngineIdSdnv);
-	cursor += segment->pdu.headerLength;
-
-	/*	Append report serial number.				*/
-
-	encodeSdnv(&serialNbrSdnv, segment->pdu.rptSerialNbr);
-	memcpy(cursor, serialNbrSdnv.text, serialNbrSdnv.length);
-}
-
-void initEclsoUpperLevel(int argc, char *argv[], unsigned int *T, unsigned short *ownEngineId,unsigned short *portNbr,unsigned int *ipAddress)
+void initEclsoUpperLevel(int argc, char *argv[], EclsoEnvironment *env)
 {
 	/* ION declarations*/
 		Sdr					sdr;
@@ -129,24 +86,24 @@ void initEclsoUpperLevel(int argc, char *argv[], unsigned int *T, unsigned short
 		ltpDb= getLtpConstants();
 
 
-		*T=ltpEclsoEnv.vspan->maxXmitSegSize+ sizeof(uint16_t); //2B added for segmentLength
-		*ownEngineId=(unsigned short)ltpDb->ownEngineId;
+		env->T=ltpEclsoEnv.vspan->maxXmitSegSize+ sizeof(uint16_t); //2B added for segmentLength
+		env->ownEngineId=(unsigned short)ltpDb->ownEngineId;
 
 		ionNoteMainThread("eclso");
 
 		//Getting info for lower layer
 		getNameOfHost(ownHostName, MAXHOSTNAMELEN);
 
-		*portNbr=0;
-		*ipAddress=0;
-		parseSocketSpec(ltpEclsoEnv.endpointSpec, portNbr, ipAddress);
-		if (*ipAddress == 0)		//	Default to local host.
-				*ipAddress = getInternetAddress(ownHostName);
-		if (*portNbr == 0)
-				*portNbr = LtpUdpDefaultPortNbr;
+		env->portNbr=0;
+		env->ipAddress=0;
+		parseSocketSpec(ltpEclsoEnv.endpointSpec, &(env->portNbr), &(env->ipAddress));
+		if (env->ipAddress == 0)		//	Default to local host.
+				env->ipAddress = getInternetAddress(ownHostName);
+		if (env->portNbr == 0)
+				env->portNbr = LtpUdpDefaultPortNbr;
 
 }
-void initEclsiUpperLevel(int argc, char *argv[], unsigned short *portNbr, unsigned int *ipAddress)
+void initEclsiUpperLevel(int argc, char *argv[], EclsiEnvironment *env)
 {
 	LtpVdb	*vdb;
 
@@ -165,16 +122,16 @@ void initEclsiUpperLevel(int argc, char *argv[], unsigned short *portNbr, unsign
 			exit(1);
 		}
 
-	*portNbr=0;
-	*ipAddress = INADDR_ANY;
-	if (endpointSpec && parseSocketSpec(endpointSpec, portNbr, ipAddress) != 0)
+	env->portNbr=0;
+	env->ipAddress = INADDR_ANY;
+	if (endpointSpec && parseSocketSpec(endpointSpec, &(env->portNbr), &(env->ipAddress)) != 0)
 		{
 			putErrmsg("Can't get IP/port for endpointSpec.",endpointSpec);
 			exit(1);
 		}
 
-	if (*portNbr == 0)
-		*portNbr = LtpUdpDefaultPortNbr;
+	if (env->portNbr == 0)
+		env->portNbr = LtpUdpDefaultPortNbr;
 
 	ionNoteMainThread("eclsi");
 }
@@ -190,52 +147,6 @@ if (ltpHandleInboundSegment(buffer, *bufferLength) < 0)
 	//upper protocol. The origin of the dropping has not been thoroughly investigated yet.
 	usleep(500);
 }
-void sendSegmentToUpperProtocol_HSLTP_MODE		(char *buffer,int *bufferLength,int abstractCodecStatus,bool isFirst)
-{
-	static bool canceledSession;
-	LtpSegmentTypeCode segTypeCode;
-	bool isSignalingSegment;
-
-	if (isFirst) canceledSession = false;
-
-	//todo wait 0.5ms. this is a fix to avoid segments dropping in the interface with the
-	//upper protocol. The origin of the dropping has not been thoroughly investigated yet.
-	const int interval=500;
-
-	segTypeCode = buffer[0] & 0x0f;
-
-	isSignalingSegment= (segTypeCode & LTP_CTRL_FLAG) != 0;
-	if(abstractCodecStatus == STATUS_CODEC_NOT_DECODED || abstractCodecStatus == STATUS_CODEC_SUCCESS
-		|| isSignalingSegment)
-		{
-			if (ltpHandleInboundSegment(buffer, *bufferLength) < 0)
-				{
-				putErrmsg("Can't handle inbound segment.", NULL);
-				exit(1);
-				}
-			usleep(interval);
-		}
-
-	if(!isSignalingSegment && abstractCodecStatus == STATUS_CODEC_FAILED && !canceledSession)
-		{
-			debugPrint("Send a pair of miscolored segment");
-			canceledSession = true;
-			if (ltpHandleInboundSegment(buffer, *bufferLength) < 0)
-				{
-					putErrmsg("Can't handle inbound segment.", NULL);
-					exit(1);
-				}
-			usleep(interval);
-			// change color to the segment
-			buffer[0] = buffer[0] ^ LTP_EXC_FLAG;
-			if (ltpHandleInboundSegment(buffer, *bufferLength) < 0)
-				{
-					putErrmsg("Can't handle inbound segment.", NULL);
-					exit(1);
-				}
-			usleep(interval);
-		}
-}
 void receiveSegmentFromUpperProtocol	(char *buffer,int *bufferLength)
 {
 char *bufPtr;
@@ -247,110 +158,4 @@ if(*bufferLength <= 0)
 memcpy(buffer,bufPtr,*bufferLength);
 }
 
-int receiveSegmentFromUpperProtocol_HSLTP_MODE(char *buffer,int *bufferLength)
-{
-	char *bufPtr;
-	LtpSegmentTypeCode segTypeCode;
-	char		*cursor = buffer;
-	uvast		sourceEngineId;
-	unsigned int	sourceEngineIdLength;
-	unsigned int	sessionNbr;
-	unsigned int		rptSerialNbr;
-	unsigned int	ckptSerialNbr;
-	Sdnv		sdnv;
-	Sdnv sourceEngineIdSdnv;
-	unsigned int	sessionNbrLength;
-	unsigned int	serialNbrLength;
-	LtpXmitSeg	segment;
-	uint16_t tmpSegLen;
-	int segmentLength;
-	char *segmentBuffer;
-	int result;
-	int bytesRemaining;
-	Sdr		sdr;
-	Object		segmentObj;
-	Lyst		headerExtensions;
-	Lyst		trailerExtensions;
-	unsigned int	extensionOffset;
-	unsigned int	extensionCounts;
-	int i ;
-	unsigned headerExtensionsCount;
-
-	int processingType = ERROR_PROC;
-
-	*bufferLength=ltpDequeueOutboundSegment(ltpEclsoEnv.vspan,&bufPtr);
-	if(*bufferLength <= 0)
-		{
-		debugPrint("Can't acquire segment from LTP");
-		}
-	
-	memcpy(buffer,bufPtr,*bufferLength);
-	segTypeCode = buffer[0] & 0x0f;
-
-	// Data
-	if ((segTypeCode & LTP_CTRL_FLAG) == 0)
-		{
-			processingType = DEFAULT_PROC;
-		}
-
-	// EOB
-	if(segTypeCode == LtpDsGreenEOB || segTypeCode == LtpDsRedEOB)
-				processingType = END_OF_MATRIX;
-	
-	// Signaling Segment
-	if(segTypeCode == LtpRS || segTypeCode == LtpRAS
-		|| segTypeCode == LtpCS || segTypeCode == LtpCAS
-		|| segTypeCode == LtpCR || segTypeCode == LtpCAR)
-				processingType = SPECIAL_PROC;
-
-	
-	if(segTypeCode == LtpRS)
-	{	
-			bytesRemaining = *bufferLength;
-			cursor++;
-			bytesRemaining--;
-			extractSdnv(&sourceEngineId,&cursor, &bytesRemaining);
-			extractSmallSdnv(&sessionNbr, &cursor, &bytesRemaining);
-		
-			cursor++;
-			bytesRemaining--;
-	
-			extractSmallSdnv(&rptSerialNbr, &cursor, &bytesRemaining);
-	
-			memset((char *) &segment, 0, sizeof(LtpXmitSeg));
-			segment.sessionNbr = sessionNbr;
-			segment.remoteEngineId = sourceEngineId;
-			encodeSdnv(&sourceEngineIdSdnv, sourceEngineId);
-			sourceEngineIdLength = sourceEngineIdSdnv.length;
-			encodeSdnv(&sdnv, sessionNbr);
-			sessionNbrLength = sdnv.length;
-			encodeSdnv(&sdnv, rptSerialNbr);
-			serialNbrLength = sdnv.length;
-			segment.pdu.headerLength = 1 + sourceEngineIdLength + sessionNbrLength + 1;
-			segment.pdu.contentLength = serialNbrLength;
-			segment.pdu.trailerLength = 0;
-			segment.sessionListElt = 0;
-			segment.segmentClass = LtpMgtSeg;
-			segment.pdu.segTypeCode = LtpRAS;
-			segment.pdu.rptSerialNbr = rptSerialNbr;
-			segmentLength = segment.pdu.headerLength + segment.pdu.contentLength;
-			segmentBuffer = (char *)malloc(segmentLength);
-			serializeReportAckSegmentInternal(&segment,segmentBuffer,&sourceEngineIdSdnv);
-
-	
-			if (ltpHandleInboundSegment(segmentBuffer, segmentLength) < 0)
-				{
-					putErrmsg("Can't handle inbound segment.", NULL);
-					exit(1);
-				}
-			free(segmentBuffer);
-		}
-
-	if(processingType == ERROR_PROC)
-	{
-		debugPrint("Can't read processing type from segment");
-		exit(1);
-	}
-	return processingType;
-}
 

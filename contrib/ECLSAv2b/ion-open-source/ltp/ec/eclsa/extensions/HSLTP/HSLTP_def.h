@@ -1,5 +1,5 @@
 /*
-HSLTP_definitions.h
+HSLTP_def.h
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
  Co-author of HSLTP extensions: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
@@ -8,12 +8,12 @@ HSLTP_definitions.h
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
  All rights reserved.
 
-This file contains the definitions and the structures of the eclso daemon
+This file contains the structures of the eclso daemon
 
  * */
-#ifndef _HSLTP_H_
+#ifndef _HSLTP_DEF_H_
 
-#define _HSLTP_H_
+#define _HSLTP_DEF_H_
 
 
 #ifdef __cplusplus
@@ -39,8 +39,6 @@ typedef enum
 	ONLY_SIGNALING				= 1  ,
 	SIGNALING_AND_DATA 			= 2  ,
 	} HSLTPMatrixType;
-
-
 
 
 #ifdef __cplusplus

@@ -18,7 +18,7 @@ Compiling ECLSAv2
 To compile ECLSAv2 with OpenFEC codec library
   1. Compile ION the usual way, unless not already done (at present this is necessary to avoid errors with ECLSA Makefile).
   2. Install the following packets, if not present: cmake, autotools-dev and automake
-  3. Copy configure.ac, Makefile.am and configure_eclsa.sh from /contrib/ECLSAv2/ion-open-source into the ION root directory (keep a backup copy of 	 the original configure.ac and Makefile.am files)
+  3. Run install.sh
   4. The first time, you need to build the configure and Makefile; to this end run the configure_eclsa.sh file;
   5. then you can compile and install as usual, by entering (make install and ldconfig from root):
      make; make install; ldconfig
