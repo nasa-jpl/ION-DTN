@@ -1,6 +1,6 @@
-= Release Notes for ION 3.6.0b =
+= Release Notes for ION 3.6.1 =
 
-August 16, 2017
+January 31, 2018
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,38 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.6.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ION version 3.6.1 includes the following changes:
+
+- A new Android development kit for ION-based applications is now available.
+     It's large, so it's provided in a separate file.
+- A new installer for the Windows port of ION is also now available, likewise
+     in a separate file.
+- A "deadly embrace" in tcpcli was causing nodes to lock up during heavy
+     continuous bidirectional file transfer. That is now fixed.
+- The erasure-coded link service adapter from University of Bologna has been
+     updated, now including proactive fragmentation for improved performance.
+- The "bpsec" bundle security system has been renamed "sbsp" (Streamlined 
+     Bundle Security Protocol) to align with specifications that are being
+     standardized by the Consultative Committee for Space Data Systems (CCSDS).
+- Asynchronous Message Service and Bundle Streaming Service have been added to 
+     the RTEMs port.
+- Contact Graph Routing in the Bundle Protocol has been updated to align with 
+     the new Schedule-Aware Bundle Routing (SABR) specification that is being 
+     standardized by CCSDS.
+- The delay-tolerant key administration system in the "contrib" directory has 
+     been updated with a model for optimizing the configuration of an aggregate
+     key authority, plus scripts for testing various key authority 
+     configurations.
+- The ION Design Guide has finally been updated.
+- Loopback transmission has been restored to the TCPCL convergence-layer
+     adapter.
+
+No changes to operational interfaces or APIs this time.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.6.0b=
