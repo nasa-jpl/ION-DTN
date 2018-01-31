@@ -25,10 +25,8 @@ distribution; this is the project directory for the ION DTN Android project.
 named "libiondtn.so" in arch-android/iondtn/libs/armeabi.
 
 JNI development has come a long way since the original bionic port, however.
-The ION port to Java now comprises the following elements:
-
-	- The ION-DTN Provider Application (IonDTN)
-	- Documentation (Documentation)
-	- Demo applications (DemoApplications)
-
-Please open Documentation/index.html in your browser to get started!
+We now have a full-fledged ION Android development kit.  It is brand-new and
+likely still has some bugs, so we would welcome your help in evaluating and
+debugging it.  To try it out, please install ION as usual and then download
+(from the Files list on the ion-dtn SourceForge page) and unpack the file named
+ion-android-3.6.1.tar.gz.
