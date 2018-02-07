@@ -531,12 +531,12 @@ value_t  val_from_real64(double val)
 /*
  * Must release result...
  */
-value_t  val_from_string(char *str)
+value_t  val_from_str(char *str)
 {
 	value_t result;
 	uint32_t len;
 
-	AMP_DEBUG_ENTRY("val_from_string","(0x%lx)", (unsigned long) str);
+	AMP_DEBUG_ENTRY("val_from_str","(0x%lx)", (unsigned long) str);
 
 	result.type = AMP_TYPE_UNK;
 	result.value.as_ptr = NULL;
@@ -544,8 +544,8 @@ value_t  val_from_string(char *str)
 	/* Step 1 - Sanity Check. */
 	if(str == NULL)
 	{
-        AMP_DEBUG_ERR("val_from_string","Bad params.",NULL);
-        AMP_DEBUG_EXIT("val_from_string","-> Unk", NULL);
+        AMP_DEBUG_ERR("val_from_str","Bad params.",NULL);
+        AMP_DEBUG_EXIT("val_from_str","-> Unk", NULL);
         return result;
 	}
 
@@ -555,8 +555,8 @@ value_t  val_from_string(char *str)
 	/* Step 3 - Allocate storage for the string. */
 	if((result.value.as_ptr = STAKE(len)) == NULL)
 	{
-        AMP_DEBUG_ERR("val_from_string","Can't allocate %d bytes.",len);
-        AMP_DEBUG_EXIT("val_from_string","-> Unk", NULL);
+        AMP_DEBUG_ERR("val_from_str","Can't allocate %d bytes.",len);
+        AMP_DEBUG_EXIT("val_from_str","-> Unk", NULL);
         return result;
 	}
 
@@ -564,7 +564,7 @@ value_t  val_from_string(char *str)
 	result.type = AMP_TYPE_STRING;
 	memcpy(result.value.as_ptr,str, len);
 
-	AMP_DEBUG_EXIT("val_from_string","-> %s", str);
+	AMP_DEBUG_EXIT("val_from_str","-> %s", str);
 	return result;
 }
 

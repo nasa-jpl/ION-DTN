@@ -118,7 +118,7 @@ value_t  val_from_blob(blob_t *blob, amp_type_e type);
 value_t  val_from_int(int32_t val);
 value_t  val_from_real32(float val);
 value_t  val_from_real64(double val);
-value_t  val_from_string(char *str);
+value_t  val_from_str(char *str);
 value_t  val_from_uint(uint32_t val);
 value_t  val_from_uvast(uvast val);
 value_t  val_from_vast(vast val);
