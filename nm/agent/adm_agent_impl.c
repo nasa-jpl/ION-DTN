@@ -63,7 +63,7 @@
 
 value_t adm_agent_md_name(tdc_t params)
 {
-	return val_from_string("DTNMP ADM");
+	return val_from_str("DTNMP ADM");
 }
 
 
@@ -89,7 +89,7 @@ value_t adm_agent_md_name(tdc_t params)
 
 value_t adm_agent_md_ver(tdc_t params)
 {
-	return val_from_string("v0.2");
+	return val_from_str("v0.2");
 }
 
 
