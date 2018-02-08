@@ -22,7 +22,7 @@ AM_CFLAGS += \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
-	-DSBSP
+	-Dbpsec
 
 if !ION_NASA_B
 AM_CFLAGS+= \
@@ -993,16 +993,16 @@ bpextra = \
 	bp/library/bei.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/sbsp/sbsp_instr.h \
-	bp/library/ext/sbsp/sbsp_instr.c \
-	bp/library/ext/sbsp/sbsp_bcb.h \
-	bp/library/ext/sbsp/sbsp_bcb.c \
-	bp/library/ext/sbsp/sbsp_bib.h \
-	bp/library/ext/sbsp/sbsp_bib.c \
-	bp/library/ext/sbsp/sbsp_util.h \
-	bp/library/ext/sbsp/sbsp_util.c \
-	bp/library/ext/sbsp/profiles.h \
-	bp/library/ext/sbsp/profiles.c \
+	bp/library/ext/bpsec/bpsec_instr.h \
+	bp/library/ext/bpsec/bpsec_instr.c \
+	bp/library/ext/bpsec/bpsec_bcb.h \
+	bp/library/ext/bpsec/bpsec_bcb.c \
+	bp/library/ext/bpsec/bpsec_bib.h \
+	bp/library/ext/bpsec/bpsec_bib.c \
+	bp/library/ext/bpsec/bpsec_util.h \
+	bp/library/ext/bpsec/bpsec_util.c \
+	bp/library/ext/bpsec/profiles.h \
+	bp/library/ext/bpsec/profiles.c \
 	ici/include/crypto.h \
 	ici/include/csi.h 
 
@@ -1117,16 +1117,16 @@ libbp_la_SOURCES = \
 	bp/library/bei.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/sbsp/sbsp_instr.h \
-	bp/library/ext/sbsp/sbsp_instr.c \
-	bp/library/ext/sbsp/sbsp_bcb.h \
-	bp/library/ext/sbsp/sbsp_bcb.c \
-	bp/library/ext/sbsp/sbsp_bib.h \
-	bp/library/ext/sbsp/sbsp_bib.c \
-	bp/library/ext/sbsp/sbsp_util.h \
-	bp/library/ext/sbsp/sbsp_util.c \
-	bp/library/ext/sbsp/profiles.h \
-	bp/library/ext/sbsp/profiles.c \
+	bp/library/ext/bpsec/bpsec_instr.h \
+	bp/library/ext/bpsec/bpsec_instr.c \
+	bp/library/ext/bpsec/bpsec_bcb.h \
+	bp/library/ext/bpsec/bpsec_bcb.c \
+	bp/library/ext/bpsec/bpsec_bib.h \
+	bp/library/ext/bpsec/bpsec_bib.c \
+	bp/library/ext/bpsec/bpsec_util.h \
+	bp/library/ext/bpsec/bpsec_util.c \
+	bp/library/ext/bpsec/profiles.h \
+	bp/library/ext/bpsec/profiles.c \
 	bp/library/ext/snid/snid.c \
 	bp/ipn/libipnfw.h \
 	bp/ipn/libipnfw.c \
@@ -1148,7 +1148,7 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
 endif
-libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/sbsp
+libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/bpsec
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
 #libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
@@ -1929,8 +1929,8 @@ nm_agent_SOURCES =  nm/agent/agent_db.c 			\
 					nm/agent/adm_agent_impl.c 		\
 					nm/agent/adm_bp_agent.c 		\
 					nm/agent/adm_bp_impl.c			\
-					nm/agent/adm_sbsp_agent.c 		\
-					nm/agent/adm_sbsp_impl.c		\
+					nm/agent/adm_bpsec_agent.c 		\
+					nm/agent/adm_bpsec_impl.c		\
 					nm/agent/adm_ion_admin_agent.c 	\
 					nm/agent/adm_ion_admin_impl.c	\
 					nm/agent/adm_ion_bp_admin_agent.c 	\
@@ -1948,7 +1948,7 @@ nm_agent_SOURCES =  nm/agent/agent_db.c 			\
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -lm -lpthread
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
 					
 					
@@ -1986,7 +1986,7 @@ nm_mgr_SOURCES =    nm/mgr/mgr_db.c 				\
 					nm/shared/utils/nm_types.c   	\
 					nm/shared/utils/utils.c        	\
 					nm/mgr/adm_bp_mgr.c				\
-					nm/mgr/adm_sbsp_mgr.c			\
+					nm/mgr/adm_bpsec_mgr.c			\
 					nm/mgr/adm_ion_admin_mgr.c 		\
 					nm/mgr/adm_ion_bp_admin_mgr.c	\
 					nm/mgr/adm_ion_ipn_admin_mgr.c	\
@@ -1998,11 +1998,11 @@ nm_mgr_SOURCES =    nm/mgr/mgr_db.c 				\
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Use this to build the AMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable 
+nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
 
 # Use this to build the AMP Manager WITH DB Support.
 #nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
-#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
+#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 
 

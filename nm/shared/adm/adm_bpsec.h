@@ -1,6 +1,6 @@
 /****************************************************************************
  **
- ** File Name: adm_sbsp.h
+ ** File Name: adm_bpsec.h
  **
  ** Description: TODO
  **
@@ -16,10 +16,10 @@
  ****************************************************************************/
 
 
-#ifndef ADM_SBSP_H_
-#define ADM_SBSP_H_
-#define _HAVE_SBSP_ADM_
-#ifdef _HAVE_SBSP_ADM_
+#ifndef ADM_BPSEC_H_
+#define ADM_BPSEC_H_
+#define _HAVE_BPSEC_ADM_
+#ifdef _HAVE_BPSEC_ADM_
 
 #include "lyst.h"
 #include "../utils/nm_types.h"
@@ -30,7 +30,7 @@
  * |			              ADM TEMPLATE DOCUMENTATION                                              +
  * +----------------------------------------------------------------------------------------------------------+
  *
- * ADM ROOT STRING:arn:DTN:sbsp
+ * ADM ROOT STRING:arn:DTN:bpsec
  */
 
 /*
@@ -38,40 +38,40 @@
  * |				             AGENT NICKNAME DEFINITIONS                                       +
  * +----------------------------------------------------------------------------------------------------------+
  */
-#define SBSP_ADM_META_NN_IDX 40
-#define SBSP_ADM_META_NN_STR "40"
+#define BPSEC_ADM_META_NN_IDX 40
+#define BPSEC_ADM_META_NN_STR "40"
 
-#define SBSP_ADM_EDD_NN_IDX 41
-#define SBSP_ADM_EDD_NN_STR "41"
+#define BPSEC_ADM_EDD_NN_IDX 41
+#define BPSEC_ADM_EDD_NN_STR "41"
 
-#define SBSP_ADM_VAR_NN_IDX 42
-#define SBSP_ADM_VAR_NN_STR "42"
+#define BPSEC_ADM_VAR_NN_IDX 42
+#define BPSEC_ADM_VAR_NN_STR "42"
 
-#define SBSP_ADM_RPT_NN_IDX 43
-#define SBSP_ADM_RPT_NN_STR "43"
+#define BPSEC_ADM_RPT_NN_IDX 43
+#define BPSEC_ADM_RPT_NN_STR "43"
 
-#define SBSP_ADM_CTRL_NN_IDX 44
-#define SBSP_ADM_CTRL_NN_STR "44"
+#define BPSEC_ADM_CTRL_NN_IDX 44
+#define BPSEC_ADM_CTRL_NN_STR "44"
 
-#define SBSP_ADM_CONST_NN_IDX 45
-#define SBSP_ADM_CONST_NN_STR "45"
+#define BPSEC_ADM_CONST_NN_IDX 45
+#define BPSEC_ADM_CONST_NN_STR "45"
 
-#define SBSP_ADM_MACRO_NN_IDX 46
-#define SBSP_ADM_MACRO_NN_STR "46"
+#define BPSEC_ADM_MACRO_NN_IDX 46
+#define BPSEC_ADM_MACRO_NN_STR "46"
 
-#define SBSP_ADM_OP_NN_IDX 47
-#define SBSP_ADM_OP_NN_STR "47"
+#define BPSEC_ADM_OP_NN_IDX 47
+#define BPSEC_ADM_OP_NN_STR "47"
 
-#define SBSP_ADM_TBL_NN_IDX 48
-#define SBSP_ADM_TBL_NN_STR "48"
+#define BPSEC_ADM_TBL_NN_IDX 48
+#define BPSEC_ADM_TBL_NN_STR "48"
 
-#define SBSP_ADM_ROOT_NN_IDX 49
-#define SBSP_ADM_ROOT_NN_STR "49"
+#define BPSEC_ADM_ROOT_NN_IDX 49
+#define BPSEC_ADM_ROOT_NN_STR "49"
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP META-DATA DEFINITIONS                                                          
+ * |		                    BPSEC META-DATA DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -86,18 +86,18 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
 // "name"
-#define ADM_SBSP_META_NAME_MID 0x87280100
+#define ADM_BPSEC_META_NAME_MID 0x87280100
 // "namespace"
-#define ADM_SBSP_META_NAMESPACE_MID 0x87280101
+#define ADM_BPSEC_META_NAMESPACE_MID 0x87280101
 // "version"
-#define ADM_SBSP_META_VERSION_MID 0x87280102
+#define ADM_BPSEC_META_VERSION_MID 0x87280102
 // "organization"
-#define ADM_SBSP_META_ORGANIZATION_MID 0x87280103
+#define ADM_BPSEC_META_ORGANIZATION_MID 0x87280103
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP EXTERNALLY DEFINED DATA DEFINITIONS                                               
+ * |		                    BPSEC EXTERNALLY DEFINED DATA DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -150,7 +150,7 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |num_fwd_bib_bytes            |0x80290117  |Total forwarded BIB bytes                         |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |last_update                  |0x80290118  |Last SBSP update                                 |TS           |
+   |last_update                  |0x80290118  |Last BPSEC update                                 |TS           |
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |num_known_keys               |0x80290119  |Number of known keys                              |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
@@ -208,71 +208,71 @@
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |num_fwd_bib_bytes_src        |0xc0290134  |Forwarded BIB bytes from SRC                      |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
-   |last_update_src              |0xc0290135  |Last SBSP Update from SRC                        |TS           |
+   |last_update_src              |0xc0290135  |Last BPSEC Update from SRC                        |TS           |
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |last_reset                   |0xc0290136  |Last reset                                        |TS           |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BCB_BLK_MID 0x80290100
-#define ADM_SBSP_EDD_NUM_BAD_TX_BCB_BLK_MID 0x80290101
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BCB_BLK_MID 0x80290102
-#define ADM_SBSP_EDD_NUM_BAD_RX_BCB_BLK_MID 0x80290103
-#define ADM_SBSP_EDD_NUM_MISSING_RX_BCB_BLKS_MID 0x80290104
-#define ADM_SBSP_EDD_NUM_FWD_BCB_BLKS_MID 0x80290105
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BCB_BYTES_MID 0x80290106
-#define ADM_SBSP_EDD_NUM_BAD_TX_BCB_BYTES_MID 0x80290107
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BCB_BYTES_MID 0x80290108
-#define ADM_SBSP_EDD_NUM_BAD_RX_BCB_BYTES_MID 0x80290109
-#define ADM_SBSP_EDD_NUM_MISSING_RX_BCB_BYTES_MID 0x8029010a
-#define ADM_SBSP_EDD_NUM_FWD_BCB_BYTES_MID 0x8029010b
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BIB_BLKS_MID 0x8029010c
-#define ADM_SBSP_EDD_NUM_BAD_TX_BIB_BLKS_MID 0x8029010d
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BIB_BLKS_MID 0x8029010e
-#define ADM_SBSP_EDD_NUM_BAD_RX_BIB_BLKS_MID 0x8029010f
-#define ADM_SBSP_EDD_NUM_MISS_RX_BIB_BLKS_MID 0x80290110
-#define ADM_SBSP_EDD_NUM_FWD_BIB_BLKS_MID 0x80290111
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BIB_BYTES_MID 0x80290112
-#define ADM_SBSP_EDD_NUM_BAD_TX_BIB_BYTES_MID 0x80290113
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BIB_BYTES_MID 0x80290114
-#define ADM_SBSP_EDD_NUM_BAD_RX_BIB_BYTES_MID 0x80290115
-#define ADM_SBSP_EDD_NUM_MISS_RX_BIB_BYTES_MID 0x80290116
-#define ADM_SBSP_EDD_NUM_FWD_BIB_BYTES_MID 0x80290117
-#define ADM_SBSP_EDD_LAST_UPDATE_MID 0x80290118
-#define ADM_SBSP_EDD_NUM_KNOWN_KEYS_MID 0x80290119
-#define ADM_SBSP_EDD_KEY_NAMES_MID 0x8029011a
-#define ADM_SBSP_EDD_CIPHERSUITE_NAMES_MID 0x8029011b
-#define ADM_SBSP_EDD_RULE_SOURCE_MID 0x8029011c
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID 0xc029011d
-#define ADM_SBSP_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID 0xc029011e
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID 0xc029011f
-#define ADM_SBSP_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID 0xc0290120
-#define ADM_SBSP_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID 0xc0290121
-#define ADM_SBSP_EDD_NUM_FWD_BCB_BLKS_SRC_MID 0xc0290122
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID 0xc0290123
-#define ADM_SBSP_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID 0xc0290124
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID 0xc0290125
-#define ADM_SBSP_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID 0xc0290126
-#define ADM_SBSP_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID 0xc0290127
-#define ADM_SBSP_EDD_NUM_FWD_BCB_BYTES_SRC_MID 0xc0290128
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID 0xc0290129
-#define ADM_SBSP_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID 0xc029012a
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID 0xc029012b
-#define ADM_SBSP_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID 0xc029012c
-#define ADM_SBSP_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID 0xc029012d
-#define ADM_SBSP_EDD_NUM_FWD_BIB_BLKS_SRC_MID 0xc029012e
-#define ADM_SBSP_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID 0xc029012f
-#define ADM_SBSP_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID 0xc0290130
-#define ADM_SBSP_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID 0xc0290131
-#define ADM_SBSP_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID 0xc0290132
-#define ADM_SBSP_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID 0xc0290133
-#define ADM_SBSP_EDD_NUM_FWD_BIB_BYTES_SRC_MID 0xc0290134
-#define ADM_SBSP_EDD_LAST_UPDATE_SRC_MID 0xc0290135
-#define ADM_SBSP_EDD_LAST_RESET_MID 0xc0290136
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID 0x80290100
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID 0x80290101
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID 0x80290102
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLK_MID 0x80290103
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_MID 0x80290104
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_MID 0x80290105
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_MID 0x80290106
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_MID 0x80290107
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_MID 0x80290108
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_MID 0x80290109
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_MID 0x8029010a
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_MID 0x8029010b
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_MID 0x8029010c
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID 0x8029010d
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID 0x8029010e
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID 0x8029010f
+#define ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID 0x80290110
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID 0x80290111
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID 0x80290112
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID 0x80290113
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_MID 0x80290114
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_MID 0x80290115
+#define ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BYTES_MID 0x80290116
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_MID 0x80290117
+#define ADM_BPSEC_EDD_LAST_UPDATE_MID 0x80290118
+#define ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID 0x80290119
+#define ADM_BPSEC_EDD_KEY_NAMES_MID 0x8029011a
+#define ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID 0x8029011b
+#define ADM_BPSEC_EDD_RULE_SOURCE_MID 0x8029011c
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID 0xc029011d
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID 0xc029011e
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID 0xc029011f
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID 0xc0290120
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID 0xc0290121
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID 0xc0290122
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID 0xc0290123
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID 0xc0290124
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID 0xc0290125
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID 0xc0290126
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID 0xc0290127
+#define ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID 0xc0290128
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID 0xc0290129
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID 0xc029012a
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID 0xc029012b
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID 0xc029012c
+#define ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID 0xc029012d
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID 0xc029012e
+#define ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID 0xc029012f
+#define ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID 0xc0290130
+#define ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID 0xc0290131
+#define ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID 0xc0290132
+#define ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID 0xc0290133
+#define ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID 0xc0290134
+#define ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID 0xc0290135
+#define ADM_BPSEC_EDD_LAST_RESET_MID 0xc0290136
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP VARIABLE DEFINITIONS                                                          
+ * |		                    BPSEC VARIABLE DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -281,12 +281,12 @@
    |                             |            |IB + # failed bcb).                               |UINT         |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_SBSP_VAR_TOTAL_BAD_TX_BLKS_MID 0x812a0100
+#define ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID 0x812a0100
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP REPORT DEFINITIONS                                                           
+ * |		                    BPSEC REPORT DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -297,13 +297,13 @@
    |source_report                |0xc22b0101  |security info by source                           |?            |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_SBSP_RPT_FULL_REPORT_MID 0xc22b0100
-#define ADM_SBSP_RPT_SOURCE_REPORT_MID 0xc22b0101
+#define ADM_BPSEC_RPT_FULL_REPORT_MID 0xc22b0100
+#define ADM_BPSEC_RPT_SOURCE_REPORT_MID 0xc22b0101
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP CONTROL DEFINITIONS                                                         
+ * |		                    BPSEC CONTROL DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -363,21 +363,21 @@
    |                             |            |ementation                                        |             |
    +-----------------------------+------------+--------------------------------------------------+-------------+
  */
-#define ADM_SBSP_CTRL_RST_ALL_CNTS_MID 0x832c0100
-#define ADM_SBSP_CTRL_RST_SRC_CNTS_MID 0xc32c0101
-#define ADM_SBSP_CTRL_DELETE_KEY_MID 0xc32c0102
-#define ADM_SBSP_CTRL_ADD_KEY_MID 0xc32c0103
-#define ADM_SBSP_CTRL_ADD_BIB_RULE_MID 0xc32c0104
-#define ADM_SBSP_CTRL_DEL_BIB_RULE_MID 0xc32c0105
-#define ADM_SBSP_CTRL_LIST_BIB_RULES_MID 0x832c0106
-#define ADM_SBSP_CTRL_ADD_BCB_RULE_MID 0xc32c0107
-#define ADM_SBSP_CTRL_DEL_BCB_RULE_MID 0xc32c0108
-#define ADM_SBSP_CTRL_LIST_BCB_RULES_MID 0x832c0109
+#define ADM_BPSEC_CTRL_RST_ALL_CNTS_MID 0x832c0100
+#define ADM_BPSEC_CTRL_RST_SRC_CNTS_MID 0xc32c0101
+#define ADM_BPSEC_CTRL_DELETE_KEY_MID 0xc32c0102
+#define ADM_BPSEC_CTRL_ADD_KEY_MID 0xc32c0103
+#define ADM_BPSEC_CTRL_ADD_BIB_RULE_MID 0xc32c0104
+#define ADM_BPSEC_CTRL_DEL_BIB_RULE_MID 0xc32c0105
+#define ADM_BPSEC_CTRL_LIST_BIB_RULES_MID 0x832c0106
+#define ADM_BPSEC_CTRL_ADD_BCB_RULE_MID 0xc32c0107
+#define ADM_BPSEC_CTRL_DEL_BCB_RULE_MID 0xc32c0108
+#define ADM_BPSEC_CTRL_LIST_BCB_RULES_MID 0x832c0109
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP CONSTANT DEFINITIONS                                                         
+ * |		                    BPSEC CONSTANT DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -387,7 +387,7 @@
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP MACRO DEFINITIONS                                                            
+ * |		                    BPSEC MACRO DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -397,7 +397,7 @@
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    SBSP OPERATOR DEFINITIONS                                                          
+ * |		                    BPSEC OPERATOR DEFINITIONS
  * +-----------------------------------------------------------------------------------------------------------+
    +-----------------------------+------------+--------------------------------------------------+-------------+
    |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
@@ -405,14 +405,14 @@
  */
 
 /* Initialization functions. */
-void adm_sbsp_init();
-void adm_sbsp_init_edd();
-void adm_sbsp_init_variables();
-void adm_sbsp_init_controls();
-void adm_sbsp_init_constants();
-void adm_sbsp_init_macros();
-void adm_sbsp_init_metadata();
-void adm_sbsp_init_ops();
-void adm_sbsp_init_reports();
-#endif /* _HAVE_SBSP_ADM_ */
-#endif //ADM_SBSP_H_
+void adm_bpsec_init();
+void adm_bpsec_init_edd();
+void adm_bpsec_init_variables();
+void adm_bpsec_init_controls();
+void adm_bpsec_init_constants();
+void adm_bpsec_init_macros();
+void adm_bpsec_init_metadata();
+void adm_bpsec_init_ops();
+void adm_bpsec_init_reports();
+#endif /* _HAVE_BPSEC_ADM_ */
+#endif //ADM_BPSEC_H_

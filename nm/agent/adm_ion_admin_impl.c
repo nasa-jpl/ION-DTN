@@ -58,25 +58,25 @@ void adm_ion_admin_cleanup(){
 
 value_t adm_ion_admin_meta_name(tdc_t params)
 {
-	return val_from_string("adm_ion_admin");
+	return val_from_str("adm_ion_admin");
 }
 
 
 value_t adm_ion_admin_meta_namespace(tdc_t params)
 {
-	return val_from_string("arn:DTN:ion_admin");
+	return val_from_str("arn:DTN:ion_admin");
 }
 
 
 value_t adm_ion_admin_meta_version(tdc_t params)
 {
-	return val_from_string("V0.0");
+	return val_from_str("V0.0");
 }
 
 
 value_t adm_ion_admin_meta_organization(tdc_t params)
 {
-	return val_from_string("JHUAPL");
+	return val_from_str("JHUAPL");
 }
 
 
@@ -285,7 +285,7 @@ value_t adm_ion_admin_get_congestion_alarm_control(tdc_t params)
 	{
 		memset(alarmBuffer,0,sizeof(alarmBuffer));
 		sdr_string_read(sdr, alarmBuffer, iondb.alarmScript);
-		result = val_from_string(alarmBuffer);
+		result = val_from_str(alarmBuffer);
 	}
 
 	sdr_end_xn(sdr);
@@ -621,7 +621,7 @@ value_t adm_ion_admin_get_version(tdc_t params)
 
 	char buffer[80]; // pulled from ionadmin.c
 	isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
-	result = val_from_string(buffer);
+	result = val_from_str(buffer);
 	
 	/*
 	 * +-------------------------------------------------------------------------+

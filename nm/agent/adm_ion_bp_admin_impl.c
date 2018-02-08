@@ -59,25 +59,25 @@ void adm_ion_bp_admin_cleanup(){
 
 value_t adm_ion_bp_admin_meta_name(tdc_t params)
 {
-	return val_from_string("adm_ion_bp_admin");
+	return val_from_str("adm_ion_bp_admin");
 }
 
 
 value_t adm_ion_bp_admin_meta_namespace(tdc_t params)
 {
-	return val_from_string("arn:DTN:ion_bp_admin");
+	return val_from_str("arn:DTN:ion_bp_admin");
 }
 
 
 value_t adm_ion_bp_admin_meta_version(tdc_t params)
 {
-	return val_from_string("00");
+	return val_from_str("00");
 }
 
 
 value_t adm_ion_bp_admin_meta_organization(tdc_t params)
 {
-	return val_from_string("JHUAPL");
+	return val_from_str("JHUAPL");
 }
 
 

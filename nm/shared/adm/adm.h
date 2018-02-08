@@ -60,7 +60,7 @@
 #define ADM_BP    		2
 #define ADM_LTP_AGENT		3
 #define ADM_ION_ADMIN   	4
-#define ADM_SBSP 		5
+#define ADM_BPSEC 		5
 #define ADM_ION_BP_ADMIN 	6
 #define ADM_ION_IPN_ADMIN	7
 #define ADM_IONSEC_ADMIN	8

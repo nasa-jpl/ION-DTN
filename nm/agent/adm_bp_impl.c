@@ -63,25 +63,25 @@ void adm_bp_cleanup(){
 
 value_t adm_bp_meta_name(tdc_t params)
 {
-	return val_from_string("adm_bp");
+	return val_from_str("adm_bp");
 }
 
 
 value_t adm_bp_meta_namespace(tdc_t params)
 {
-	return val_from_string("arn:DTN:bp");
+	return val_from_str("arn:DTN:bp");
 }
 
 
 value_t adm_bp_meta_version(tdc_t params)
 {
-	return val_from_string("v0.1");
+	return val_from_str("v0.1");
 }
 
 
 value_t adm_bp_meta_organization(tdc_t params)
 {
-	return val_from_string("JHUAPL");
+	return val_from_str("JHUAPL");
 }
 
 

@@ -42,24 +42,24 @@ int8_t adm_ltpAgent_getspan(tdc_t params, NmltpSpan *stats)
 
 value_t adm_LtpAgent_meta_Name(tdc_t params)
 {
-	return val_from_string("adm_ltpAgent");
+	return val_from_str("adm_ltpAgent");
 }
 
 value_t adm_LtpAgent_meta_NameSpace(tdc_t params)
 {
-	return val_from_string("arn:ltpAgent");
+	return val_from_str("arn:ltpAgent");
 }
 
 
 value_t adm_LtpAgent_meta_Version(tdc_t params)
 {
-	return val_from_string("V0.1");
+	return val_from_str("V0.1");
 }
 
 
 value_t adm_LtpAgent_meta_Organization(tdc_t params)
 {
-	return val_from_string("JHUAPL");
+	return val_from_str("JHUAPL");
 }
 
 

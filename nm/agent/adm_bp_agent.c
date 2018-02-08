@@ -249,19 +249,19 @@ void adm_bp_init_reports()
 
 	cur_mid = mid_from_value(ADM_BP_EDD_ENDPOINT_ACTIVE_MID);
 	cur_item = rpttpl_item_create(cur_mid, 1);
-	mid_add_param_from_value(cur_mid, val_from_string(""));
+	mid_add_param_from_value(cur_mid, val_from_str(""));
 	rpttpl_item_add_parm_map(cur_item, 1, 1);
 	lyst_insert_last(rpt,cur_item);
 
 	cur_mid = mid_from_value(ADM_BP_EDD_ENDPOINT_SINGLETON_MID);
 	cur_item = rpttpl_item_create(cur_mid, 1);
-	mid_add_param_from_value(cur_mid, val_from_string(""));
+	mid_add_param_from_value(cur_mid, val_from_str(""));
 	rpttpl_item_add_parm_map(cur_item, 1, 1);
 	lyst_insert_last(rpt,cur_item);
 
 	cur_mid = mid_from_value(ADM_BP_EDD_ENDPOINT_POLICY_MID);
 	cur_item = rpttpl_item_create(cur_mid, 1);
-	mid_add_param_from_value(cur_mid, val_from_string(""));
+	mid_add_param_from_value(cur_mid, val_from_str(""));
 	rpttpl_item_add_parm_map(cur_item, 1, 1);
 	lyst_insert_last(rpt,cur_item);
 

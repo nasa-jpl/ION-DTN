@@ -645,3 +645,97 @@ int dc_update(Lyst dc, uint32_t idx, uint8_t *value, uint32_t length)
 
 
 
+// Extremely inefficient, only call on ground.
+char* dc_to_str(Lyst dc)
+{
+	char **entries = NULL;
+	uint32_t *lens = NULL;
+	LystElt elt = NULL;
+	blob_t *cur_entry = NULL;
+	int i = 0;
+	uint32_t tot_size = 0;
+	char *result = NULL;
+	char *cursor = NULL;
+	size_t dc_len = 0;
+
+	if(dc == NULL)
+	{
+		AMP_DEBUG_ERR("dc_to_str","Bad Args", NULL);
+		return NULL;
+	}
+
+	dc_len = lyst_length(dc);
+
+	if(dc_len <= 0)
+	{
+		if((result = (char *) STAKE(11)) == NULL)
+		{
+			AMP_DEBUG_ERR("tdc_to_str","Can't allocate storage.",NULL);
+			return NULL;
+		}
+
+		isprintf(result,11,"Empty DC.", NULL);
+		return result;
+	}
+
+
+	entries = (char **) STAKE(dc_len * (sizeof(char *)));
+	lens = (uint32_t *) STAKE(dc_len * (sizeof(uint32_t)));
+
+	if((entries == NULL) || (lens == NULL))
+	{
+		AMP_DEBUG_ERR("dc_to_str","Can't allocate storage.",NULL);
+		SRELEASE(entries);
+		SRELEASE(lens);
+		return NULL;
+	}
+
+	for(elt = lyst_first(dc); elt; elt = lyst_next(elt))
+	{
+		cur_entry = (blob_t *) lyst_data(elt);
+
+		char *data_str = blob_to_str(cur_entry);
+		lens[i] = 3 + strlen(data_str);
+
+		if((entries[i] = (char *) STAKE(lens[i])) != NULL)
+		{
+			if(i == 0)
+			{
+				sprintf(entries[i],"%s", data_str);
+			}
+			else
+			{
+				sprintf(entries[i],", %s", data_str);
+			}
+			tot_size += lens[i];
+		}
+
+		SRELEASE(data_str);
+
+		i++;
+	}
+
+	result = (char *) STAKE(tot_size);
+	cursor = result;
+
+	for(i = 0; i < dc_len; i++)
+	{
+		if(entries[i] != NULL)
+		{
+			if(cursor != NULL)
+			{
+				memcpy(cursor, entries[i], lens[i]);
+				cursor += lens[i];
+			}
+			SRELEASE(entries[i]);
+		}
+	}
+
+	SRELEASE(entries);
+	SRELEASE(lens);
+
+	return result;
+}
+
+
+

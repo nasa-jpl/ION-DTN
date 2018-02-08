@@ -923,7 +923,7 @@ char *val_to_string(value_t val)
 	case AMP_TYPE_MID:    val_str = mid_to_string((mid_t*)val.value.as_ptr); break;
 	case AMP_TYPE_EXPR:   val_str = expr_to_string((expr_t*)val.value.as_ptr); break;
 
-//	case DTNMP_TYPE_DC:     val_str = dc_to_str((Lyst)val.value.as_ptr); break;
+	case AMP_TYPE_DC:     val_str = dc_to_str((Lyst)val.value.as_ptr); break;
 	case AMP_TYPE_TDC:    val_str = tdc_to_str((tdc_t*)val.value.as_ptr); break;
 //	case DTNMP_TYPE_TABLE:  val_str = table_to_str((table_t*) val.value.as_ptr); break;
 

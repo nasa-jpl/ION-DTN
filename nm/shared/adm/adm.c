@@ -1,4 +1,5 @@
 /******************************************************************************
+#include <shared/adm/adm_bpsec.h>
  **                           COPYRIGHT NOTICE
  **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
@@ -43,7 +44,7 @@
 
 #include "adm_agent.h"
 #include "adm_bp.h"
-#include "adm_sbsp.h"
+#include "adm_bpsec.h"
 #include "adm_ion_admin.h"
 #include "adm_ion_bp_admin.h"
 #include "adm_ion_ipn_admin.h"
@@ -1649,7 +1650,7 @@ void adm_init()
 
 	adm_agent_init();
 	adm_bp_init();
-	adm_sbsp_init();
+	adm_bpsec_init();
 	adm_ion_admin_init();
 	adm_ion_bp_admin_init();
 	adm_ion_ipn_admin_init();

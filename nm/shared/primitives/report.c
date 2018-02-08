@@ -1874,7 +1874,7 @@ rpttpl_item_t* rpttpl_item_create(mid_t *mid, uint32_t num_parm)
 		item->parm_map = NULL;
 	}
 
-	item->mid = mid;
+	item->mid = mid_copy(mid);
 	item->num_map = num_parm;
 
 	return item;

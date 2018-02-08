@@ -72,25 +72,25 @@ void adm_ltp_agent_cleanup(){
 
 value_t adm_ltp_agent_meta_name(tdc_t params)
 {
-	return val_from_string("adm_ltp_agent");
+	return val_from_str("adm_ltp_agent");
 }
 
 
 value_t adm_ltp_agent_meta_namespace(tdc_t params)
 {
-	return val_from_string("arn:DTN:ltp_agent");
+	return val_from_str("arn:DTN:ltp_agent");
 }
 
 
 value_t adm_ltp_agent_meta_version(tdc_t params)
 {
-	return val_from_string("V0.0");
+	return val_from_str("V0.0");
 }
 
 
 value_t adm_ltp_agent_meta_organization(tdc_t params)
 {
-	return val_from_string("JHUAPL");
+	return val_from_str("JHUAPL");
 }
 
 
