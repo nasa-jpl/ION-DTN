@@ -1,0 +1,18 @@
+JSON validator notes:
+if you are validating a JSON file or are getting json from a url, use is_jsonFile, otherwise use is_jsonString.
+This is because jsonFile imports a file using json.load while the other one reads an inputted string using json.loads.
+For the parameters of open, use ('filename.json','r') because that means it will read the file instead of 'w' writing(truncating the file first), 'x' exclusive creation(failing if file already exists),'a' writing (appending to the end of the file if it exists), 'b' binary mode, 't' text mode, '+' open a disk file for updating (reading and writing) or 'U' universal newlines mode.
+If you are using a string of JSON, just input it as the parameter when calling the function is_jsonString().
+
+Right now, the validator will return an error message if the line is not valid json.
+
+For when an error is printed out, it will be of format "message line column character" aka the standard json.load/loads error message in python.
+
+Next task will be to figure out how to make a more user understandable error messages.
+
+When testing error messages in files, use agent-adm.json, but make sure to not commit changes to that file afterwards so that the file stays fully functioning for future testing use.
+
+for our amp:
+terminal at ~/Documents/yangAmp/JSON
+command:
+python ../../CAmpPython/CAmpPython/jsonvalidator.py

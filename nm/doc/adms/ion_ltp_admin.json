@@ -1,0 +1,120 @@
+{
+  "adm:constants": [
+    {
+      "name": "name",
+      "type": "STR",
+      "value": "ion_ltp_admin",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "arn:DTN:ion_ltp_admin",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "V0.0",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+  "adm:externally-defined-data": [
+    {
+      "name": "version",
+      "type": "STR",
+      "description": "This is the version of ION that is currently installed."
+    }
+  ],
+  "adm:tables": [
+    {
+      "name": "spans",
+      "columns": [
+        {"UINT": "peer_engine_nbr"},
+        {"UINT": "max_export_sessions"},
+        {"UINT": "max_import_sessions"},
+        {"UINT": "max_segment_size"},
+        {"UINT": "aggregation_size_limit"},
+        {"UINT": "aggregation_time_limit"},
+        {"STR" : "lso_control"},
+        {"UINT": "queueing_latency"}
+      ],
+      "description": "This table lists all spans of potential LTP data interchange that exists between the local LTP engine and the indicated (neighboring) LTP engine."
+    }
+  ],
+  "adm:controls": [
+    {
+      "name": "init",
+      "parmspec": [{"UINT":"est_max_export_sessions"}],
+      "description": "Until this control is executed, LTP is not in operation on the local ION node and most ltpadmin controls will fail. The control uses estMaxExportSessions to configure the hashtable it will use to manage access to export transmission sessions that are currently in progress. For optimum performance, estMaxExportSessions should normally equal or exceed the summation of maxExportSessions over all spans as discussed below. Appropriate values for the parameters configuring each \"span\" of potential LTP data exchange between the local LTP and neighboring engines are non-trivial to determine."
+    },
+    {
+      "name": "manage_heap",
+      "parmspec": [{"UINT":"max_database_heap_per_block"}],
+      "description": "This control declares the maximum number of bytes of SDR heap space that will be occupied by the acquisition of any single LTP block.  All data acquired in excess of this limit will be written to a temporary file pending extraction and dispatching of the acquired block. Default is the minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; this is the minimum SDR heap space occupancy in the event that all acquisition is into a file."
+    },
+    {
+      "name": "manage_max_ber",
+      "parmspec": [{"REAL32":"max_expected_bit_error_rate"}],
+      "description": "This control sets the expected maximum bit error rate(BER) that LTP should provide for in computing the maximum number of transmission efforts to initiate in the transmission of a given block.(Note that this computation is also sensitive to data segment size and to the size of the block that is to be transmitted.) The default value is .0001 (10^-4)."
+    },
+    {
+      "name": "manage_own_queue_time",
+      "parmspec": [{"UINT":"own_queing_latency"}],
+      "description": "This control sets the number of seconds of predicted additional latency attributable to processing delay within the local engine itself that should be included whenever LTP computes the nominal round-trip time for an exchange of data with any remote engine. The default value is 1."
+    },
+    {
+      "name": "manage_screening",
+      "parmspec": [{"UINT":"new_state"}],
+      "description": "This control enables or disables the screening of received LTP segments per the periods of scheduled reception in the node's contact graph.  By default, screening is disabled. When screening is enabled, such segments are silently discarded.  Note that when screening is enabled the ranges declared in the contact graph must be accurate and clocks must be synchronized; otherwise, segments will be arriving at times other than the scheduled contact intervals and will be discarded."
+    },
+    {
+      "name": "span_add",
+      "parmspec": [
+        {"UINT": "peer_engine_number"},
+        {"UINT": "max_export_sessions"},
+        {"UINT": "max_import_sessions"},
+        {"UINT": "max_segment_size"},
+        {"UINT": "aggregtion_size_limit"},
+        {"UINT": "aggregation_time_limit"},
+        {"STR" : "lso_control"},
+        {"UINT": "queuing_latency"}
+      ],
+      "description": "This control declares that a span of potential LTP data interchange exists between the local LTP engine and the indicated (neighboring) LTP engine."
+    },
+    {
+      "name": "span_change",
+      "parmspec": [
+        {"UINT": "peer_engine_number"},
+        {"UINT": "max_export_sessions"},
+        {"UINT": "max_import_sessions"},
+        {"UINT": "max_segment_size"},
+        {"UINT": "aggregtion_size_limit"},
+        {"UINT": "aggregation_time_limit"},
+        {"STR" : "lso_control"},
+        {"UINT": "queuing_latency"}
+      ],
+      "description": "This control sets the indicated span's configuration parameters to the values provided as arguments"
+    },
+    {
+      "name": "span_del",
+      "parmspec": [{"UINT":"peer_engine_number"}],
+      "description": "This control deletes the span identified by peerEngineNumber. The control will fail if any outbound segments for this span are pending transmission or any inbound blocks from the peer engine are incomplete."
+    },
+    {
+      "name": "stop",
+      "description": "This control stops all link service input and output tasks for the local LTP engine."
+    },
+    {
+	"name": "watch_set",
+	"parmspec": [{"UINT":"status"},{"UINT":"activity"}],
+	"description": "This control enables and disables production of a continuous stream of user- selected LTP activity indication characters. Activity parameter of \"1\" selects all LTP activity indication characters; \"0\" de-selects all LTP activity indication characters; any other activitySpec such as \"df{]\" selects all activity indication characters in the string, de-selecting all others. LTP will print each selected activity indication character to stdout every time a processing event of the associated type occurs:\n d    bundle appended to block for next session\n e    segment of block is queued for transmission\n f    block has been fully segmented for transmission\n g    segment popped from transmission queue\n h    positive ACK received for block, session ended\n s    segment received\n t    block has been fully received\n @    negative ACK received for block, segments retransmitted\n =    unacknowledged checkpoint was retransmitted\n +    unacknowledged report segment was retransmitted\n {    export session canceled locally (by sender)\n }    import session canceled by remote sender\n [    import session canceled locally (by receiver)\n ]    export session canceled by remote receiver"
+    }
+  ]
+}
