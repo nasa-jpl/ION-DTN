@@ -304,7 +304,7 @@ static ExtensionSpec	extensionSpecs[] =
 				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
-#elif defined(SPSB)
+#elif defined(SBSP)
 				{ BLOCK_TYPE_BIB, 1, 0, 0, 0 },
 				{ BLOCK_TYPE_BCB, 1, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */

@@ -55,7 +55,6 @@ MANFILES = \
 	./man/man5/bprc.5 \
 	./man/man5/ipnrc.5 \
 	./man/man5/imcrc.5 \
-	./man/man5/bssrc.5 \
 	./man/man5/dtn2rc.5 \
 	./man/man5/lgfile.5 \
 	./man/man3/bpextensions.3 \
@@ -113,7 +112,6 @@ HTMLFILES = \
 	./html/man5/bprc.html \
 	./html/man5/ipnrc.html \
 	./html/man5/imcrc.html \
-	./html/man5/bssrc.html \
 	./html/man5/dtn2rc.html \
 	./html/man5/lgfile.html \
 	./html/man3/bpextensions.html \

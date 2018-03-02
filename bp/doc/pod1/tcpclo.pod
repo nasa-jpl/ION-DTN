@@ -21,12 +21,6 @@ size of the bundle (in bytes).
 
 If not specified, I<remote_port_nbr> defaults to 4556.
 
-Note that B<tcpclo> is not a "promiscuous" convergence layer daemon: it
-can transmit bundles only to the node to which it is connected, so
-scheme configuration directives that cite this outduct need only provide
-the protocol name and the outduct name as specified on the command line
-when B<tcpclo> is started.
-
 B<tcpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
 command that starts operation of the Bundle Protocol, and it is terminated by
 B<bpadmin> in response to an 'x' (STOP) command.  B<tcpclo> can also be

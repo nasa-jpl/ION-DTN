@@ -71,7 +71,7 @@ static void	printUsage()
 	PUTS("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
 	PUTS("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
 	PUTS("\t   a protocol <protocol name> <payload bytes per frame> \
-<overhead bytes per frame> [<nominal data rate, in bytes/sec>]");
+<overhead bytes per frame> [<protocol class>]");
 	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
 	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>' [max \
 payload length]");
