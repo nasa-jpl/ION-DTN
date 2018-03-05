@@ -167,7 +167,7 @@ a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test2_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test3_trace" rcv,ct,fwd,dlv,del
 cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
