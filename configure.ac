@@ -4,8 +4,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.6.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
-IS_NASA_B=0
+AC_INIT(ion, NASA baseline 3.6.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+IS_NASA_B=1
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -197,8 +197,11 @@ if test "$IS_NASA_B" = "1"; then
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
 	if test x$crypto = xtrue; then
-		echo ""
-		#DoStuff
+		AC_CHECK_HEADER(
+		[/usr/local/include/mbedtls/platform.h],
+		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
+		[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
+		)
 	else
 		AC_SUBST( [CRYPTO_LIBS], [""] )
 	fi
@@ -212,11 +215,9 @@ fi
 #
 # Control whether AMS debugging info is printed.
 #
-if test "$IS_NASA_B" = "0"; then
 	AC_ARG_ENABLE([ams-debug],
 		[  --enable-ams-debug    Enable AMS debugging info],
 		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
-fi
 
 #
 # Dynamically choose whether or not to instrument code for gcov code coverage

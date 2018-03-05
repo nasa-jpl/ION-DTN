@@ -13,7 +13,7 @@ endif
 DIST_SUBDIRS= . contrib
 
 AM_CFLAGS += \
-	-Wall -Werror -g \
+	-Wall -Werror -g -fPIC\
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
@@ -22,13 +22,9 @@ AM_CFLAGS += \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
-	-DSBSP
-
-if !ION_NASA_B
-AM_CFLAGS+= \
+	-DSBSP \
 	-I$(srcdir)/ams/include \
 	-I$(srcdir)/cfdp/include
-endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -62,15 +58,11 @@ EXTRA_DIST = 	\
 	$(bpextra) \
 	$(bssextra) \
 	$(dtpcextra) \
-	$(bsspextra)
-#	$(twonodestcp_DATA) \
-#	$(threenodestcpltp_DATA)
-
-if !ION_NASA_B
-EXTRA_DIST+= \
+	$(bsspextra) \
 	$(amsextra) \
 	$(cfdpextra)
-endif
+#	$(twonodestcp_DATA) \
+#	$(threenodestcpltp_DATA)
 
 install-exec-hook:
 	@echo
@@ -116,11 +108,7 @@ endif
 
 
 # clean-local refers to existing documents.
-if !ION_NASA_B
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
-else
-clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local
-endif
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
@@ -130,10 +118,8 @@ build-man-directories:
 	mkdir -p $(top_builddir)/bss/doc
 	mkdir -p $(top_builddir)/dtpc/doc
 	mkdir -p $(top_builddir)/bssp/doc
-if !ION_NASA_B
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
-endif
 
 
 bin_PROGRAMS = \
@@ -145,13 +131,9 @@ bin_PROGRAMS = \
 	$(dtpcbin) \
 	$(bsspbin) \
 	$(restartbin) \
-	$(nmbin)
-
-if !ION_NASA_B
-bin_PROGRAMS+= \
+	$(nmbin) \
 	$(amsbin) \
 	$(cfdpbin)
-endif
 
 
 lib_LTLIBRARIES = \
@@ -161,13 +143,9 @@ lib_LTLIBRARIES = \
 	$(bplib) \
 	$(bsslib) \
 	$(dtpclib) \
-	$(bssplib)
-
-if !ION_NASA_B
-lib_LTLIBRARIES+= \
+	$(bssplib) \
 	$(amslib) \
 	$(cfdplib)
-endif
 
 include_HEADERS = \
 	$(iciinclude) \
@@ -176,12 +154,9 @@ include_HEADERS = \
 	$(bpinclude) \
 	$(bssinclude) \
 	$(dtpcinclude) \
-	$(bsspinclude)
-if !ION_NASA_B
-include_HEADERS+= \
+	$(bsspinclude) \
 	$(amsinclude) \
 	$(cfdpinclude)
-endif
 
 noinst_HEADERS = \
 	$(icinoinst) \
@@ -190,13 +165,9 @@ noinst_HEADERS = \
 	$(bpnoinst) \
 	$(bssnoinst) \
 	$(dtpcnoinst) \
-	$(bsspnoinst)
-
-if !ION_NASA_B
-noinst_HEADERS+= \
+	$(bsspnoinst) \
 	$(amsnoinst) \
 	$(cfdpnoinst)
-endif
 
 if ENABLE_MANPAGES
 man_MANS = \
@@ -207,13 +178,9 @@ man_MANS = \
 	$(bpmans) \
 	$(bssmans) \
 	$(dtpcmans) \
-	$(bsspmans)
-
-if !ION_NASA_B
-man_MANS += \
+	$(bsspmans) \
 	$(amsmans) \
 	$(cfdpmans)
-endif
 endif
 
 #################
@@ -511,7 +478,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LIBADD = -lm
+libici_la_LIBADD = $(CRYPTO_LIBS) -lm
 
 # --- Utility Programs --- #
 
@@ -1140,9 +1107,16 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/murmur2/MurmurHash2.c
 
 if CRYPTO
+AM_CFLAGS+= \
+	-I$(srcdir)/ici/crypto/MBEDTLS_SUITES \
+	-I$(srcdir)/ici/crypto
+
 libici_la_SOURCES+= \
-	ici/crypto/NULL_SUITES/crypto.c\
-	ici/crypto/NULL_SUITES/csi.c
+	ici/crypto/MBEDTLS_SUITES/crypto.c \
+	ici/crypto/MBEDTLS_SUITES/csi.c \
+	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
+	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
 else
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
@@ -1429,8 +1403,6 @@ bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #
 ##########################
 
-if !ION_NASA_B
-
 # Define pod2man stuff
 amsPODM1 = pod2man -s 1 -c "AMS executables"
 amsPODM3 = pod2man -s 3 -c "AMS library functions"
@@ -1569,15 +1541,11 @@ ramsgate_SOURCES = \
 ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
-endif
-
 ##############
 #
 # CFDP SECTION
 #
 ##############
-
-if !ION_NASA_B
 
 # Define pod2man stuff
 cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
@@ -1680,8 +1648,6 @@ cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
 cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-
-endif
 
 
 ##############
@@ -1914,7 +1880,7 @@ nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -lm -lpthread
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
-                  -DAGENT_ROLE
+                  -DAGENT_ROLE -fPIC
 					
 					
 nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
@@ -1936,11 +1902,11 @@ nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Use this to build the AMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable 
+nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable -fPIC
 
 # Use this to build the AMP Manager WITH DB Support.
 #nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
-#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
+#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -fPIC -DHAVE_MYSQL
 
 
 
@@ -2036,15 +2002,9 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 restartbin = ionrestart
 
 # --- Utility Programs --- #
-if ION_NASA_B
-ionrestart_SOURCES = restart/utils/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
-else
 ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
-endif
 
 
 ##########################
@@ -2121,13 +2081,9 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
 	tests/issue-279-bpMemo-timeline/driver \
-	tests/bug-0015-tcpclo-bpcp-sig-handling/test
-
-if !ION_NASA_B
-check_PROGRAMS+= \
+	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
 	tests/issue-334-cfdp-transaction-id/dotest
-endif
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -2163,17 +2119,13 @@ tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libici.la -lm libbp.la $(LIBOBJS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
 
-if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-endif
 
-if !ION_NASA_B
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-endif
 
 
 ##########################
