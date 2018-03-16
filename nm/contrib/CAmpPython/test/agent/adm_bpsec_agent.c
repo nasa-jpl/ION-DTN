@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -49,141 +49,60 @@ void adm_bpsec_init()
 void adm_bpsec_init_edd()
 {
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bcb_blk, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLK_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bcb_blk, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLK_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bcb_blk, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLK_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bcb_blk, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_missing_rx_bcb_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bcb_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bcb_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bcb_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bcb_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bcb_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_missing_rx_bcb_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bcb_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bib_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bib_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bib_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bib_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_miss_rx_bib_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bib_blks, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bib_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bib_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bib_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bib_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_miss_rx_bib_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bib_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_MID), AMP_TYPE_TS, 0, adm_bpsec_get_last_update, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_known_keys, NULL, NULL);
-
-	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID), AMP_TYPE_STRING, 0, adm_bpsec_get_key_names, NULL, NULL);
-
-	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID), AMP_TYPE_STRING, 0, adm_bpsec_get_ciphersuite_names, NULL, NULL);
-
-	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID), AMP_TYPE_STRING, 0, adm_bpsec_get_rule_source, NULL, NULL);
-
+	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID), AMP_TYPE_STR, 0, adm_bpsec_get_key_names, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID), AMP_TYPE_STR, 0, adm_bpsec_get_ciphersuite_names, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID), AMP_TYPE_STR, 0, adm_bpsec_get_rule_source, NULL, NULL);
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bcb_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bcb_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bcb_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bcb_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_missing_rx_bcb_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bcb_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_FWD_BCB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bcb_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bcb_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bcb_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_RX_BCB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bcb_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_RX_BCB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_missing_rx_bcb_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_MISSING_RX_BCB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bcb_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_FWD_BCB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bib_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bib_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bib_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bib_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_miss_rx_bib_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_MISS_RX_BIB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bib_blks_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_FWD_BIB_BLKS_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_tx_bib_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_TX_BIB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_tx_bib_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_good_rx_bib_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_GOOD_RX_BIB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_bad_rx_bib_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_BAD_RX_BIB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_missing_rx_bib_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_MISSING_RX_BIB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID), AMP_TYPE_UINT, 0, adm_bpsec_get_num_fwd_bib_bytes_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_NUM_FWD_BIB_BYTES_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID), AMP_TYPE_TS, 0, adm_bpsec_get_last_update_src, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_LAST_UPDATE_SRC_MID, "Src", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_LAST_RESET_MID), AMP_TYPE_TS, 0, adm_bpsec_get_last_reset, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_EDD_LAST_RESET_MID, "Src", AMP_TYPE_STR);
-
 
 }
 
@@ -195,15 +114,14 @@ void adm_bpsec_init_variables()
 	expr_t *expr   = NULL;
 	Lyst def       = NULL;
 
-	def = lyst_creat();
-	lyst_insert_last(def,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TXBLOCK('0')_MID));
-	lyst_insert_last(def,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TXBLOCK('1')_MID));
-	lyst_insert_last(def,mid_from_value(ADM_BPSEC_OP_+UINT_MID));
+	def = lyst_create();
+	lyst_insert_last(def,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BIB_BLKS_SRC_MID));
+	lyst_insert_last(def,mid_from_value(ADM_BPSEC_EDD_NUM_BAD_TX_BCB_BLKS_SRC_MID));
 
-	expr = expr_create(AM_TYPE_UINT, def);
+	expr = expr_create(AMP_TYPE_UINT, def);
 
-	adm_add_var(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), adm_bpsec_var_total_bad_tx_blks, expr);
-	expr_release(expr)
+	adm_add_var(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), AMP_TYPE_UINT, expr);
+	expr_release(expr);
 
 
 }
@@ -211,32 +129,15 @@ void adm_bpsec_init_variables()
 void adm_bpsec_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_RST_ALL_CNTS_MID), adm_bpsec_ctrl_rst_all_cnts);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_RST_SRC_CNTS_MID), adm_bpsec_ctrl_rst_src_cnts);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_CTRL_RST_SRC_CNTS_MID, "src", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_DELETE_KEY_MID), adm_bpsec_ctrl_delete_key);
-	UI_ADD_PARMSPEC_1(ADM_BPSEC_CTRL_DELETE_KEY_MID, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_ADD_KEY_MID), adm_bpsec_ctrl_add_key);
-	UI_ADD_PARMSPEC_2(ADM_BPSEC_CTRL_ADD_KEY_MID, "key_name", AMP_TYPE_STR, "keyData", AMP_TYPE_BLOB);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_ADD_BIB_RULE_MID), adm_bpsec_ctrl_add_bib_rule);
-	UI_ADD_PARMSPEC_5(ADM_BPSEC_CTRL_ADD_BIB_RULE_MID, "source", AMP_TYPE_STR, "destination", AMP_TYPE_STR, "target", AMP_TYPE_INT, "ciphersuiteId", AMP_TYPE_STR, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_DEL_BIB_RULE_MID), adm_bpsec_ctrl_del_bib_rule);
-	UI_ADD_PARMSPEC_3(ADM_BPSEC_CTRL_DEL_BIB_RULE_MID, "source", AMP_TYPE_STR, "destination", AMP_TYPE_STR, "target", AMP_TYPE_INT);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_LIST_BIB_RULES_MID), adm_bpsec_ctrl_list_bib_rules);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_ADD_BCB_RULE_MID), adm_bpsec_ctrl_add_bcb_rule);
-	UI_ADD_PARMSPEC_5(ADM_BPSEC_CTRL_ADD_BCB_RULE_MID, "source", AMP_TYPE_STR, "destination", AMP_TYPE_STR, "target", AMP_TYPE_INT, "ciphersuiteId", AMP_TYPE_STR, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_DEL_BCB_RULE_MID), adm_bpsec_ctrl_del_bcb_rule);
-	UI_ADD_PARMSPEC_3(ADM_BPSEC_CTRL_DEL_BCB_RULE_MID, "source", AMP_TYPE_STR, "destination", AMP_TYPE_STR, "target", AMP_TYPE_INT);
-
 	adm_add_ctrl(mid_from_value(ADM_BPSEC_CTRL_LIST_BCB_RULES_MID), adm_bpsec_ctrl_list_bcb_rules);
-
 
 }
 

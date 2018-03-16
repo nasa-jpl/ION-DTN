@@ -158,17 +158,17 @@
     },
     {
       "name": "key_names",
-      "type": "STRING",
+      "type": "STR",
       "description": "Known key names"
     },
     {
       "name": "ciphersuite_names",
-      "type": "STRING",
+      "type": "STR",
       "description": "Known ciphersuite names"
     },
     {
       "name": "rule_source",
-      "type": "STRING",
+      "type": "STR",
       "description": "Known rule sources"
     },
     {
@@ -366,7 +366,7 @@
       "type": "UINT",
       "initializer": {
         "type": "UINT",
-        "postfix-expr": ["EDD.num_bad_txBlock('0')","EDD.num_bad_txBlock('1')","OP.+UINT"]
+        "postfix-expr": ["EDD.num_bad_tx_bib_blks_src","EDD.num_bad_tx_bcb_blks_src"]
       },
       "description": "This is the number of failed TX blocks (# failed BIB + # failed bcb)."
     }

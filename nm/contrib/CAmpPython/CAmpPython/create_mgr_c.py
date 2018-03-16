@@ -133,12 +133,9 @@ def write_init_variables_function(c_file, name, variables):
 
 	for i in variables:
 		try:
-			mid = campch.make_mid_string(name, ttype, i)
+			amp_type = campch.make_amp_type(i)
 
-			# TODO: This is likely incorrect; wrong parameters for add_edd, and not
-			# sure why it's add 'edd' instead of var
-			body = body + campch.make_adm_add_generic_string("edd", mid, ["NULL"])
-			
+			body = body + campch.make_adm_add_var_string(name, i, amp_type, "NULL")			
 			body = body + make_names_add_name_string(name, ttype, i)
 		except KeyError, e:
 			print "[ Error ] Badly formatted ",ttype,". Key not found:"

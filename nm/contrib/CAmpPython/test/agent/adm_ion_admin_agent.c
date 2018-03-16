@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -49,33 +49,19 @@ void adm_ion_admin_init()
 void adm_ion_admin_init_edd()
 {
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_CLOCK_ERROR_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_clock_error, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_CLOCK_SYNC_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_clock_sync, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_CONGESTION_ALARM_CONTROL_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_congestion_alarm_control, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_CONGESTION_END_TIME_FORECASTS_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_congestion_end_time_forecasts, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_CONSUMPTION_RATE_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_consumption_rate, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_INBOUND_FILE_SYSTEM_OCCUPANCY_LIMIT_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_inbound_file_system_occupancy_limit, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_INBOUND_HEAP_OCCUPANCY_LIMIT_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_inbound_heap_occupancy_limit, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_NUMBER_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_number, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_OUTBOUND_FILE_SYSTEM_OCCUPANCY_LIMIT_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_outbound_file_system_occupancy_limit, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_OUTBOUND_HEAP_OCCUPANCY_LIMIT_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_outbound_heap_occupancy_limit, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_PRODUCTION_RATE_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_production_rate, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_REF_TIME_MID), AMP_TYPE_TS, 0, adm_ion_admin_get_ref_time, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_UTC_DELTA_MID), AMP_TYPE_UINT, 0, adm_ion_admin_get_utc_delta, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_ION_ADMIN_EDD_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_admin_get_version, NULL, NULL);
-
 
 }
 
@@ -93,56 +79,23 @@ void adm_ion_admin_init_variables()
 void adm_ion_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_INIT_MID), adm_ion_admin_ctrl_node_init);
-	UI_ADD_PARMSPEC_2(ADM_ION_ADMIN_CTRL_NODE_INIT_MID, "node_nbr", AMP_TYPE_UINT, "config_file", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CLOCK_ERROR_SET_MID), adm_ion_admin_ctrl_node_clock_error_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_CLOCK_ERROR_SET_MID, "known_maximum_clock_error", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CLOCK_SYNC_SET_MID), adm_ion_admin_ctrl_node_clock_sync_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_CLOCK_SYNC_SET_MID, "new_state", AMP_TYPE_BOOL);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CONGESTION_ALARM_CONTROL_SET_MID), adm_ion_admin_ctrl_node_congestion_alarm_control_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_CONGESTION_ALARM_CONTROL_SET_MID, "congestion_alarm_control", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CONGESTION_END_TIME_FORECASTS_SET_MID), adm_ion_admin_ctrl_node_congestion_end_time_forecasts_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_CONGESTION_END_TIME_FORECASTS_SET_MID, "end_time_for_congestion_forcasts", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CONSUMPTION_RATE_SET_MID), adm_ion_admin_ctrl_node_consumption_rate_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_CONSUMPTION_RATE_SET_MID, "planned_data_consumption_rate", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CONTACT_ADD_MID), adm_ion_admin_ctrl_node_contact_add);
-	UI_ADD_PARMSPEC_6(ADM_ION_ADMIN_CTRL_NODE_CONTACT_ADD_MID, "start", AMP_TYPE_TS, "stop", AMP_TYPE_TS, "node_id", AMP_TYPE_UINT, "dest", AMP_TYPE_STR, "data_rate", AMP_TYPE_FLOAT32, "prob", AMP_TYPE_FLOAT32);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_CONTACT_DEL_MID), adm_ion_admin_ctrl_node_contact_del);
-	UI_ADD_PARMSPEC_3(ADM_ION_ADMIN_CTRL_NODE_CONTACT_DEL_MID, "start", AMP_TYPE_TS, "node_id", AMP_TYPE_UINT, "dest", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_INBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID), adm_ion_admin_ctrl_node_inbound_heap_occupancy_limit_set);
-	UI_ADD_PARMSPEC_2(ADM_ION_ADMIN_CTRL_NODE_INBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID, "heap_occupancy_limit", AMP_TYPE_UINT, "file_system_occupancy_limit", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_OUTBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID), adm_ion_admin_ctrl_node_outbound_heap_occupancy_limit_set);
-	UI_ADD_PARMSPEC_2(ADM_ION_ADMIN_CTRL_NODE_OUTBOUND_HEAP_OCCUPANCY_LIMIT_SET_MID, "heap_occupancy_limit", AMP_TYPE_UINT, "file_system_occupancy_limit", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_PRODUCTION_RATE_SET_MID), adm_ion_admin_ctrl_node_production_rate_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_PRODUCTION_RATE_SET_MID, "planned_data_production_rate", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_RANGE_ADD_MID), adm_ion_admin_ctrl_node_range_add);
-	UI_ADD_PARMSPEC_5(ADM_ION_ADMIN_CTRL_NODE_RANGE_ADD_MID, "start", AMP_TYPE_TS, "stop", AMP_TYPE_TS, "node", AMP_TYPE_UINT, "other_node", AMP_TYPE_UINT, "distance", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_RANGE_DEL_MID), adm_ion_admin_ctrl_node_range_del);
-	UI_ADD_PARMSPEC_3(ADM_ION_ADMIN_CTRL_NODE_RANGE_DEL_MID, "start", AMP_TYPE_TS, "node", AMP_TYPE_UINT, "other_node", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_REF_TIME_SET_MID), adm_ion_admin_ctrl_node_ref_time_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_REF_TIME_SET_MID, "time", AMP_TYPE_TS);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_NODE_UTC_DELTA_SET_MID), adm_ion_admin_ctrl_node_utc_delta_set);
-	UI_ADD_PARMSPEC_1(ADM_ION_ADMIN_CTRL_NODE_UTC_DELTA_SET_MID, "local_time_sec_after_utc", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_LIST_CONTACTS_MID), adm_ion_admin_ctrl_list_contacts);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_LIST_USAGE_MID), adm_ion_admin_ctrl_list_usage);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_ADMIN_CTRL_LIST_RANGES_MID), adm_ion_admin_ctrl_list_ranges);
-
 
 }
 

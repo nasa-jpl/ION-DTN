@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated header file 
+ **  2018-03-16  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -19,7 +19,11 @@
 #define ADM_BPSEC_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-/*             TODO              */
+#include "../shared/adm/adm_bpsec.h"
+#include "../shared/adm/adm_bp.h"
+#include "../shared/primitives/expr.h"
+
+#include "bpsec_instr.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
@@ -30,7 +34,21 @@
 #include "../shared/primitives/table.h"
 
 /*   START typeENUM */
-/*             TODO              */
+
+typedef enum
+{
+	TOTAL_BLK,
+	TOTAL_BYTES,
+	SRC_BLK,
+	SRC_BYTES
+} query_type_e;
+
+typedef enum
+{
+    BIB_RULE,
+	BCB_RULE
+} bpsec_rule_type_e;
+
 /*   STOP typeENUM  */
 
 void name_adm_init_agent();
@@ -41,7 +59,6 @@ void name_adm_init_agent();
  ******************************************************************************/
 
 /*   START CUSTOM FUNCTIONS HERE */
-/*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
 void adm_bpsec_setup();

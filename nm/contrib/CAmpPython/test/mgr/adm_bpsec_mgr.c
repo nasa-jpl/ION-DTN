@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -126,13 +126,13 @@ void adm_bpsec_init_edd()
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
 	names_add_name("NUM_KNOWN_KEYS", "Number of known keys", ADM_BPSEC, ADM_BPSEC_EDD_NUM_KNOWN_KEYS_MID);
 
-	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID), AMP_TYPE_STRING, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_KEY_NAMES_MID), AMP_TYPE_STR, 0, NULL, NULL, NULL);
 	names_add_name("KEY_NAMES", "Known key names", ADM_BPSEC, ADM_BPSEC_EDD_KEY_NAMES_MID);
 
-	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID), AMP_TYPE_STRING, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID), AMP_TYPE_STR, 0, NULL, NULL, NULL);
 	names_add_name("CIPHERSUITE_NAMES", "Known ciphersuite names", ADM_BPSEC, ADM_BPSEC_EDD_CIPHERSUITE_NAMES_MID);
 
-	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID), AMP_TYPE_STRING, 0, NULL, NULL, NULL);
+	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_RULE_SOURCE_MID), AMP_TYPE_STR, 0, NULL, NULL, NULL);
 	names_add_name("RULE_SOURCE", "Known rule sources", ADM_BPSEC, ADM_BPSEC_EDD_RULE_SOURCE_MID);
 
 	adm_add_edd(mid_from_value(ADM_BPSEC_EDD_NUM_GOOD_TX_BCB_BLKS_SRC_MID), AMP_TYPE_UINT, 0, NULL, NULL, NULL);
@@ -244,7 +244,7 @@ void adm_bpsec_init_edd()
 
 void adm_bpsec_init_variables()
 {
-	adm_add_edd(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), NULL);
+	adm_add_var(mid_from_value(ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID), AMP_TYPE_UINT, NULL);
 	names_add_name("TOTAL_BAD_TX_BLKS", "This is the number of failed TX blocks (# failed BIB + # failed bcb).", ADM_BPSEC, ADM_BPSEC_VAR_TOTAL_BAD_TX_BLKS_MID);
 
 }

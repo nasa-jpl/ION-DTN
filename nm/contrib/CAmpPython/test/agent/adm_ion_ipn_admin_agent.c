@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -50,7 +50,6 @@ void adm_ion_ipn_admin_init_edd()
 {
 	adm_add_edd(mid_from_value(ADM_ION_IPN_ADMIN_EDD_ION_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_ipn_admin_get_ion_version, NULL, NULL);
 
-
 }
 
 void adm_ion_ipn_admin_init_variables()
@@ -67,23 +66,11 @@ void adm_ion_ipn_admin_init_variables()
 void adm_ion_ipn_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID), adm_ion_ipn_admin_ctrl_exit_add);
-	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_EXIT_ADD_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "gateway_endpoint_id", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID), adm_ion_ipn_admin_ctrl_exit_change);
-	UI_ADD_PARMSPEC_3(ADM_ION_IPN_ADMIN_CTRL_EXIT_CHANGE_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT, "gatewayEndpointId", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID), adm_ion_ipn_admin_ctrl_exit_del);
-	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_EXIT_DEL_MID, "first_node_nbr", AMP_TYPE_UINT, "last_node_nbr", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID), adm_ion_ipn_admin_ctrl_plan_add);
-	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_PLAN_ADD_MID, "node_nbr", AMP_TYPE_UINT, "default_duct_expression", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID), adm_ion_ipn_admin_ctrl_plan_change);
-	UI_ADD_PARMSPEC_2(ADM_ION_IPN_ADMIN_CTRL_PLAN_CHANGE_MID, "node_nbr", AMP_TYPE_UINT, "default_duct_expression", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID), adm_ion_ipn_admin_ctrl_plan_del);
-	UI_ADD_PARMSPEC_1(ADM_ION_IPN_ADMIN_CTRL_PLAN_DEL_MID, "node_nbr", AMP_TYPE_UINT);
-
 
 }
 

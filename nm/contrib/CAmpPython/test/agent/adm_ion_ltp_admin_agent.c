@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -50,7 +50,6 @@ void adm_ion_ltp_admin_init_edd()
 {
 	adm_add_edd(mid_from_value(ADM_ION_LTP_ADMIN_EDD_VERSION_MID), AMP_TYPE_STR, 0, adm_ion_ltp_admin_get_version, NULL, NULL);
 
-
 }
 
 void adm_ion_ltp_admin_init_variables()
@@ -67,34 +66,15 @@ void adm_ion_ltp_admin_init_variables()
 void adm_ion_ltp_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_INIT_MID), adm_ion_ltp_admin_ctrl_init);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_INIT_MID, "est_max_export_sessions", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID), adm_ion_ltp_admin_ctrl_manage_heap);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_HEAP_MID, "max_database_heap_per_block", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID), adm_ion_ltp_admin_ctrl_manage_max_ber);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_MAX_BER_MID, "max_expected_bit_error_rate", AMP_TYPE_REAL32);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID), adm_ion_ltp_admin_ctrl_manage_own_queue_time);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_OWN_QUEUE_TIME_MID, "own_queing_latency", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID), adm_ion_ltp_admin_ctrl_manage_screening);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_MANAGE_SCREENING_MID, "new_state", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID), adm_ion_ltp_admin_ctrl_span_add);
-	UI_ADD_PARMSPEC_8(ADM_ION_LTP_ADMIN_CTRL_SPAN_ADD_MID, "peer_engine_number", AMP_TYPE_UINT, "max_export_sessions", AMP_TYPE_UINT, "max_import_sessions", AMP_TYPE_UINT, "max_segment_size", AMP_TYPE_UINT, "aggregtion_size_limit", AMP_TYPE_UINT, "aggregation_time_limit", AMP_TYPE_UINT, "lso_control", AMP_TYPE_STR, "queuing_latency", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID), adm_ion_ltp_admin_ctrl_span_change);
-	UI_ADD_PARMSPEC_8(ADM_ION_LTP_ADMIN_CTRL_SPAN_CHANGE_MID, "peer_engine_number", AMP_TYPE_UINT, "max_export_sessions", AMP_TYPE_UINT, "max_import_sessions", AMP_TYPE_UINT, "max_segment_size", AMP_TYPE_UINT, "aggregtion_size_limit", AMP_TYPE_UINT, "aggregation_time_limit", AMP_TYPE_UINT, "lso_control", AMP_TYPE_STR, "queuing_latency", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID), adm_ion_ltp_admin_ctrl_span_del);
-	UI_ADD_PARMSPEC_1(ADM_ION_LTP_ADMIN_CTRL_SPAN_DEL_MID, "peer_engine_number", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_STOP_MID), adm_ion_ltp_admin_ctrl_stop);
-
 	adm_add_ctrl(mid_from_value(ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID), adm_ion_ltp_admin_ctrl_watch_set);
-	UI_ADD_PARMSPEC_2(ADM_ION_LTP_ADMIN_CTRL_WATCH_SET_MID, "status", AMP_TYPE_UINT, "activity", AMP_TYPE_UINT);
-
 
 }
 

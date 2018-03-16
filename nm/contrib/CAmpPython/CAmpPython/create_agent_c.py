@@ -47,7 +47,7 @@ def initialize_names(metadata, outpath):
 # c_file 
 #
 def make_parm_lyst_string(name, var):
-	out = "\tdef = lyst_creat();\n"
+	out = "\tdef = lyst_create();\n"
 
 	lyst_insert_str = "\tlyst_insert_last(def,mid_from_value({0}_{1}_{2}_MID));\n"
 		
@@ -117,8 +117,6 @@ def write_init_edd_function(c_file, name, edds):
 							
 			body = body + campch.make_adm_add_edd_string(mid, amp_type, "0", collect,
 								     "NULL", "NULL")
-			
-			body = body + campch.make_add_parmspec_string(name, ttype, i)
 		except KeyError, e:
 			print "[ Error ] Badly formatted ",ttype,". Key not found:"
 			print e
@@ -142,8 +140,7 @@ def write_init_control_function(c_file, name, controls):
 			add_ctrl_parameter = "{0}_{1}_{2}".format(name, ttype, i["name"])
 			
 			body = body + campch.make_adm_add_ctrl_string(name, i, add_ctrl_parameter)
-			
-			body = body + campch.make_add_parmspec_string(name, ttype, i)
+
 		except KeyError, e:
 			print "[ Error ] Badly formatted ",ttype,". Key not found:"
 			print e
@@ -166,7 +163,6 @@ def write_init_constant_function(c_file, name, constants):
 		try:
 			add_const_parameter = "{0}_{1}_{2}".format(name, ttype, i["name"])
 			body = body + campch.make_adm_add_const_string(name, i, add_const_parameter)
-			body = body + campch.make_add_parmspec_string(name, ttype, i)
 		except KeyError, e:
 			print "[ Error ] Badly formatted ",ttype,". Key not found:"
 			print e
@@ -190,7 +186,6 @@ def write_init_macro_function(c_file, name, macros):
 		try:
 			add_macro_parameter = "{0}_{1}_{2}".format(name, ttype, i["name"])
 			body = body + campch.make_adm_add_macro_string(name, i, add_macro_parameter)
-			body = body + campch.make_add_parmspec_string(name, ttype, i)
 		except KeyError, e:
 			print "[ Error ] Badly formatted ",ttype,". Key not found:"
 			print e
@@ -214,7 +209,6 @@ def write_init_op_function(c_file, name, operators):
 		try:
 			add_ops_parameter = "{0}_{1}_{2}".format(name, plural_ttype, i["name"])
 			body = body + campch.make_adm_add_ops_string(name, i, add_ops_parameter)
-			body = body + campch.make_add_parmspec_string(name, ttype, i)
 		except KeyError, e:
 			print "[ Error ] Badly formatted ",ttype,". Key not found:"
 			print e
@@ -234,8 +228,8 @@ def write_init_var_function(c_file, name, variables):
 		"expr_t *expr   = NULL;\n\t"
 		"Lyst def       = NULL;\n"
 		"\n")
-	create_template = "\texpr = expr_create(AM_TYPE_{0}, def);\n\n"
-	release_str     = "\texpr_release(expr)\n\n"
+	create_template = "\texpr = expr_create(AMP_TYPE_{0}, def);\n\n"
+	release_str     = "\texpr_release(expr);\n\n"
 
 	for i in variables:
 		try:
@@ -244,7 +238,8 @@ def write_init_var_function(c_file, name, variables):
 
 			add_var_parameter = "{0}_{1}_{2}".format(name, "var", i["name"])
 
-			body = body + campch.make_adm_add_var_string(name, i, add_var_parameter, "expr")
+			amp_type = campch.make_amp_type(i)
+			body = body + campch.make_adm_add_var_string(name, i, amp_type, "expr")
 
 			body = body + release_str
 

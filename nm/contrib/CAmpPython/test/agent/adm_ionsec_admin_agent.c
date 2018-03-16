@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -65,38 +65,17 @@ void adm_ionsec_admin_init_variables()
 void adm_ionsec_admin_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID), adm_ionsec_admin_ctrl_key_add);
-	UI_ADD_PARMSPEC_2(ADM_IONSEC_ADMIN_CTRL_KEY_ADD_MID, "key_name", AMP_TYPE_STR, "key_value", AMP_TYPE_BLOB);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID), adm_ionsec_admin_ctrl_key_change);
-	UI_ADD_PARMSPEC_2(ADM_IONSEC_ADMIN_CTRL_KEY_CHANGE_MID, "key_name", AMP_TYPE_STR, "key_value", AMP_TYPE_BLOB);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_KEY_DEL_MID), adm_ionsec_admin_ctrl_key_del);
-	UI_ADD_PARMSPEC_1(ADM_IONSEC_ADMIN_CTRL_KEY_DEL_MID, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_ADD_MID), adm_ionsec_admin_ctrl_ltp_rx_rule_add);
-	UI_ADD_PARMSPEC_3(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_ADD_MID, "ltp_engine_id", AMP_TYPE_UINT, "ciphersuite_nbr", AMP_TYPE_UINT, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_CHANGE_MID), adm_ionsec_admin_ctrl_ltp_rx_rule_change);
-	UI_ADD_PARMSPEC_3(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_CHANGE_MID, "ltp_engine_id", AMP_TYPE_UINT, "ciphersuite_nbr", AMP_TYPE_UINT, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_DEL_MID), adm_ionsec_admin_ctrl_ltp_rx_rule_del);
-	UI_ADD_PARMSPEC_1(ADM_IONSEC_ADMIN_CTRL_LTP_RX_RULE_DEL_MID, "ltp_engine_id", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_ADD_MID), adm_ionsec_admin_ctrl_ltp_tx_rule_add);
-	UI_ADD_PARMSPEC_3(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_ADD_MID, "ltp_engine_id", AMP_TYPE_UINT, "ciphersuite_nbr", AMP_TYPE_UINT, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_CHANGE_MID), adm_ionsec_admin_ctrl_ltp_tx_rule_change);
-	UI_ADD_PARMSPEC_3(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_CHANGE_MID, "ltp_engine_id", AMP_TYPE_UINT, "ciphersuite_nbr", AMP_TYPE_UINT, "key_name", AMP_TYPE_STR);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID), adm_ionsec_admin_ctrl_ltp_tx_rule_del);
-	UI_ADD_PARMSPEC_1(ADM_IONSEC_ADMIN_CTRL_LTP_TX_RULE_DEL_MID, "ltp_engine_id", AMP_TYPE_UINT);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_KEYS_MID), adm_ionsec_admin_ctrl_list_keys);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_LTP_RX_RULES_MID), adm_ionsec_admin_ctrl_list_ltp_rx_rules);
-
 	adm_add_ctrl(mid_from_value(ADM_IONSEC_ADMIN_CTRL_LIST_LTP_TX_RULES_MID), adm_ionsec_admin_ctrl_list_ltp_tx_rules);
-
 
 }
 

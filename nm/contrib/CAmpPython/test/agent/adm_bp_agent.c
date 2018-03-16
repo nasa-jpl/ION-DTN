@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-02-07  AUTO             Auto-generated c file 
+ **  2018-03-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -49,71 +49,34 @@ void adm_bp_init()
 void adm_bp_init_edd()
 {
 	adm_add_edd(mid_from_value(ADM_BP_EDD_BP_NODE_ID_MID), AMP_TYPE_STR, 0, adm_bp_get_bp_node_id, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_BP_NODE_VERSION_MID), AMP_TYPE_STR, 0, adm_bp_get_bp_node_version, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_AVAILABLE_STORAGE_MID), AMP_TYPE_UVAST, 0, adm_bp_get_available_storage, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_LAST_RESET_TIME_MID), AMP_TYPE_UVAST, 0, adm_bp_get_last_reset_time, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_REGISTRATIONS_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_registrations, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_PEND_FWD_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_pend_fwd, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_PEND_DIS_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_pend_dis, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_IN_CUST_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_in_cust, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_PEND_REASSEMBLY_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_pend_reassembly, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, adm_bp_get_bundles_by_priority, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_BUNDLES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_BYTES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, adm_bp_get_bytes_by_priority, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_BYTES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, adm_bp_get_src_bundles_by_priority, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_SRC_BUNDLES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID), AMP_TYPE_UINT, 0, adm_bp_get_src_bytes_by_priority, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_SRC_BYTES_BY_PRIORITY_MID, "mask", AMP_TYPE_UINT);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_FRAGMENTED_BUNDLES_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_fragmented_bundles, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_FRAGMENTS_PRODUCED_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_fragments_produced, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_failed_by_reason, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_NUM_FAILED_BY_REASON_MID, "mask", AMP_TYPE_UINT);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_NUM_BUNDLES_DELETED_MID), AMP_TYPE_UINT, 0, adm_bp_get_num_bundles_deleted, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BUNDLES_MID), AMP_TYPE_UINT, 0, adm_bp_get_failed_custody_bundles, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_FAILED_CUSTODY_BYTES_MID), AMP_TYPE_UINT, 0, adm_bp_get_failed_custody_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_FAILED_FORWARD_BUNDLES_MID), AMP_TYPE_UINT, 0, adm_bp_get_failed_forward_bundles, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_FAILED_FORWARD_BYTES_MID), AMP_TYPE_UINT, 0, adm_bp_get_failed_forward_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ABANDONED_BUNDLES_MID), AMP_TYPE_UINT, 0, adm_bp_get_abandoned_bundles, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ABANDONED_BYTES_MID), AMP_TYPE_UINT, 0, adm_bp_get_abandoned_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_DISCARDED_BUNDLES_MID), AMP_TYPE_UINT, 0, adm_bp_get_discarded_bundles, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_DISCARDED_BYTES_MID), AMP_TYPE_UINT, 0, adm_bp_get_discarded_bytes, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_NAMES_MID), AMP_TYPE_STR, 0, adm_bp_get_endpoint_names, NULL, NULL);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_ACTIVE_MID), AMP_TYPE_UINT, 0, adm_bp_get_endpoint_active, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_ENDPOINT_ACTIVE_MID, "endpoint_name", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_SINGLETON_MID), AMP_TYPE_UINT, 0, adm_bp_get_endpoint_singleton, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_ENDPOINT_SINGLETON_MID, "endpoint_name", AMP_TYPE_STR);
-
 	adm_add_edd(mid_from_value(ADM_BP_EDD_ENDPOINT_POLICY_MID), AMP_TYPE_UINT, 0, adm_bp_get_endpoint_policy, NULL, NULL);
-	UI_ADD_PARMSPEC_1(ADM_BP_EDD_ENDPOINT_POLICY_MID, "endpoint_name", AMP_TYPE_STR);
-
 
 }
 
@@ -131,7 +94,6 @@ void adm_bp_init_variables()
 void adm_bp_init_controls()
 {
 	adm_add_ctrl(mid_from_value(ADM_BP_CTRL_RESET_ALL_COUNTS_MID), adm_bp_ctrl_reset_all_counts);
-
 
 }
 
