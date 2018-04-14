@@ -511,12 +511,6 @@ int	main(int argc, char *argv[])
 	planObj = sdr_list_data(sdr, vplan->planElt);
 	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
 	throttle = applicableThrottle(vplan);
-	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
-
-	/*	NOTE: plan deletion doesn't remove a Plan until its
-	 *	clm pid is -1, so we don't need to re-find the Plan
-	 *	after transaction exit.					*/
-
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = plan.bulkQueue;
 	outflows[1].outboundBundles = plan.stdQueue;
@@ -525,6 +519,8 @@ int	main(int argc, char *argv[])
 	{
 		outflows[i].svcFactor = 1 << i;
 	}
+
+	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
 
 	/*	Set up signal handling.					*/
 
@@ -545,6 +541,7 @@ int	main(int argc, char *argv[])
 	while (running)
 	{
 		CHKZERO(sdr_begin_xn(sdr));
+		sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
 
 		/*	Wait until (a) there is at least one outduct,
 		 *	(b) maximum payload length is known, and (c)
