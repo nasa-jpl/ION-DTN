@@ -206,7 +206,7 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define CORE_FILE_NEEDED	(0)
 #endif
 
-#ifdef RTEMS || defined (STRSOE)	/****	RTEMS or STRSOE	     ****/
+#if defined RTEMS || defined (STRSOE)	/****	RTEMS or STRSOE	     ****/
 typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
