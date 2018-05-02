@@ -9,6 +9,10 @@
 
 #include "cfdpP.h"
 
+#ifdef STRSOE
+#include <strsoe_cfdpadmin.h>
+#endif
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -1135,3 +1139,15 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	cfdpadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	cfdpadmin_help(void)
+{
+	printUsage();
+}
+#endif
