@@ -10895,6 +10895,8 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	Bundle		bundle;
 	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 	DequeueContext	context;
 	char		*dictionary;
 
@@ -10964,6 +10966,16 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	findPlan(proxNodeEid, &vplan, &vplanElt);
+	if (vplanElt)
+	{
+		context.xmitRate = vplan->xmitThrottle.nominalRate;
+	}
+	else
+	{
+		context.xmitRate = 0;
+	}
+
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");

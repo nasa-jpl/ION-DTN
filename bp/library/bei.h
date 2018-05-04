@@ -167,6 +167,9 @@ typedef struct
  * three discriminator tags whose semantics are block-type-specific,
  * and list index, indicating whether the extension block is to be
  * inserted before or after the Payload block.
+ *
+ * listIdx is obsolete in sbsp, as *NO* blocks are ever inserted after
+ * the Payload block.
  */
 typedef struct
 {

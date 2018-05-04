@@ -49,11 +49,13 @@ typedef int	(*BabSignFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *);
 typedef int	(*BabVerifyFn)(AcqWorkArea *, AcqExtBlock *);
 
 typedef int	(*BibConstructFn)(ExtensionBlock *, SbspOutboundBlock *);
-typedef int	(*BibSignFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *, uvast *);
+typedef int	(*BibSignFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *,
+			uvast *);
 typedef int	(*BibVerifyFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
 
 typedef int	(*BcbConstructFn)(ExtensionBlock *, SbspOutboundBlock *);
-typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *, uvast *);
+typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *, SbspOutboundBlock *,
+			size_t, uvast *);
 typedef int	(*BcbDecryptFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
 
 /**

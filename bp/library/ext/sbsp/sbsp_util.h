@@ -193,14 +193,14 @@ typedef struct
 	EndpointId securitySource;
 	uint8_t	   targetBlockType;
 	uint8_t	   targetBlockOccurrence;
-	uint8_t    instance;	    /*  0: 1st, lone.  1: last.	*/
+	uint8_t    instance;	    /*  0: 1st, lone.  1: last.		*/
 	uint8_t	   ciphersuiteType;
 	char	   keyName[SBSP_KEY_NAME_LEN];
 	uint32_t   ciphersuiteFlags;
 	uint32_t   parmsLen;	    /*  IFF flags & sbsp_ASB_PARM	*/
 	uint8_t	  *parmsData;	    /*  IFF flags & sbsp_ASB_PARM	*/
 	uint32_t   resultsLen;	    /*  IFF flags & sbsp_ASB_RES	*/
-	uint8_t	  *resultsData;	/*  IFF flags & sbsp_ASB_RES	*/
+	uint8_t	  *resultsData;	    /*  IFF flags & sbsp_ASB_RES	*/
 } SbspInboundBlock;
 
 
@@ -217,14 +217,15 @@ typedef struct
 	EndpointId securitySource;
 	uint8_t	   targetBlockType;
 	uint8_t	   targetBlockOccurrence;
-	uint8_t	   instance;	/*  0: 1st, lone.  1: last.	*/
+	uint8_t	   instance;	/*  0: 1st, lone.  1: last.		*/
+	uint8_t	   encryptInPlace;	/*  Boolean			*/
 	uint8_t	   ciphersuiteType;
 	char       keyName[SBSP_KEY_NAME_LEN];
 	uint32_t   ciphersuiteFlags;
-	uint32_t   parmsLen;	/** IFF flags & sbsp_ASB_PARM	*/
-	Object     parmsData;	/** IFF flags & sbsp_ASB_PARM	*/
-	uint32_t   resultsLen;	/** IFF flags & sbsp_ASB_RES	*/
-	Object     resultsData;	/** IFF flags & sbsp_ASB_RES	*/
+	uint32_t   parmsLen;	/** IFF flags & sbsp_ASB_PARM		*/
+	Object     parmsData;	/** IFF flags & sbsp_ASB_PARM		*/
+	uint32_t   resultsLen;	/** IFF flags & sbsp_ASB_RES		*/
+	Object     resultsData;	/** IFF flags & sbsp_ASB_RES		*/
 } SbspOutboundBlock;
 
 
