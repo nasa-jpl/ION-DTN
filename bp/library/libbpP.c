@@ -1314,6 +1314,7 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
+	microsnooze(100000);	/*	Maybe thread stops.		*/
 	if (vduct->hasThread)
 	{
 		/*	Duct is drained by a thread rather than a
