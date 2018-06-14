@@ -165,12 +165,12 @@ static void outputTraceMsg(void *data, unsigned int lineNbr,
 	vfprintf(stderr, cgr_tracepoint_text(traceType), args);
 
 	switch (traceType) {
-	case CgrUpdateProximateNode:
+	case CgrUpdateRoute:
 		fputs("other route has", stderr);
 		// fallthrough
 	case CgrIgnoreContact:
 	case CgrIgnoreRoute:
-	case CgrIgnoreProximateNode:
+	case CgrSkipRoute:
 		fputc(' ', stderr);
 		fputs(cgr_reason_text(va_arg(args, CgrReason)), stderr);
 	default:
@@ -261,7 +261,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		}
 	break;
 
-	case CgrIdentifyProximateNodes:
+	case CgrIdentifyRoutes:
 		// Start walking from the first route.
 		traceState->routeElt = lyst_first(traceState->routes);
 	break;
@@ -282,7 +282,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		traceState->routeElt = lyst_next(traceState->routeElt);
 	break;
 
-	case CgrUpdateProximateNode:
+	case CgrUpdateRoute:
 		// Find the proximate node being replaced and mark it as no
 		// longer considered.
 		for (routeElt = nextConsidered(lyst_first(traceState->routes));
@@ -300,13 +300,13 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		}
 
 		// Fallthrough
-	case CgrAddProximateNode:
+	case CgrAddRoute:
 		// Mark the current route as considered and continue the walk.
 		traceState->route->flag = CONSIDERED;
 		traceState->routeElt = lyst_next(traceState->routeElt);
 	break;
 
-	case CgrSelectProximateNodes:
+	case CgrSelectRoutes:
 		// Set that no route has been selected and start walking from
 		// the first considered route.
 		traceState->route = NULL;
@@ -314,7 +314,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			nextConsidered(lyst_first(traceState->routes));
 	break;
 
-	case CgrSelectProximateNode:
+	case CgrSelectRoute:
 		// Mark the current route as selected and move to the next
 		// considered one.
 		traceState->route = lyst_data(traceState->routeElt);
@@ -322,8 +322,8 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			nextConsidered(lyst_next(traceState->routeElt));
 	break;
 
-	case CgrIgnoreProximateNode:
-		// Mark why the current route was ignored as a proximate node.
+	case CgrSkipRoute:
+		// Mark why the current route was not used for forwarding.
 		route = lyst_data(traceState->routeElt);
 		route->ignoreReason = va_arg(args, CgrReason);
 
@@ -331,7 +331,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			nextConsidered(lyst_next(traceState->routeElt));
 	break;
 
-	case CgrUseProximateNode:
+	case CgrUseRoute:
 		// CGR is done walking proximate nodes, so mark the current
 		// selected route (if there is one) as the final selected route..
 		if (traceState->route)
@@ -340,7 +340,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		}
 	break;
 
-	case CgrUseAllProximateNodes:
+	case CgrUseAllRoutes:
 		// CGR decided to use all proximate nodes, so mark all
 		// considered routes as selected.
 		for (routeElt = nextConsidered(lyst_first(traceState->routes));

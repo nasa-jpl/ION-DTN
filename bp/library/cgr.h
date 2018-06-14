@@ -45,40 +45,50 @@ typedef enum
 	CgrHop,
 
 	// CgrAcceptRoute(uvast firstHop, unsigned int fromTime,
-	//		unsigned int deliveryTime, uvast maxCapacity,
+	//		unsigned int deliveryTime, uvast maxVolume,
 	//		int payloadClass)
 	CgrAcceptRoute,
 	// CgrDiscardRoute(void)
 	CgrDiscardRoute,
 
-	// CgrIdentifyProximateNodes(unsigned int deadline)
-	CgrIdentifyProximateNodes,
+	// CgrIdentifyRoutes(unsigned int deadline)
+	CgrIdentifyRoutes,
+	// CgrFirstRoute(void)
+	CgrFirstRoute,
+	// CgrNoMoreRoutes(void)
+	CgrNoMoreRoutes,
 	// CgrCheckRoute(int payloadClass, uvast firstHop,
 	// 		unsigned int fromTime, unsigned int deliveryTime)
 	CgrCheckRoute,
+	// CgrExpiredRoute(void)
+	CgrExpiredRoute,
 	// CgrRecomputeRoute(void)
 	CgrRecomputeRoute,
 	// CgrIgnoreRoute(CgrReason reason)
 	CgrIgnoreRoute,
-	// CgrAddProximateNode(void)
-	CgrAddProximateNode,
-	// CgrUpdateProximateNode(CgrReason reason)
-	CgrUpdateProximateNode,
+	// CgrUncertainEntry(CgrReason reason)
+	CgrUncertainEntry,
+	// CgrWrongViaNode(void)
+	CgrWrongViaNode,
+	// CgrAddRoute(void)
+	CgrAddRoute,
+	// CgrUpdateRoute(CgrReason reason)
+	CgrUpdateRoute,
 
-	// CgrSelectProximateNodes(void)
-	CgrSelectProximateNodes,
-	// CgrUseAllProximateNodes(void)
-	CgrUseAllProximateNodes,
-	// CgrConsiderProximateNode(uvast proxNode)
-	CgrConsiderProximateNode,
-	// CgrSelectProximateNode(void)
-	CgrSelectProximateNode,
-	// CgrIgnoreProximateNode(CgrReason reason)
-	CgrIgnoreProximateNode,
-	// CgrUseProximateNode(uvast proxNode)
-	CgrUseProximateNode,
-	// CgrNoProximateNode(void)
-	CgrNoProximateNode,
+	// CgrSelectRoutes(void)
+	CgrSelectRoutes,
+	// CgrUseAllRoutes(void)
+	CgrUseAllRoutes,
+	// CgrConsiderRoute(uvast proxNode)
+	CgrConsiderRoute,
+	// CgrSelectRoute(void)
+	CgrSelectRoute,
+	// CgrSkipRoute(CgrReason reason)
+	CgrSkipRoute,
+	// CgrUseRoute(uvast proxNode)
+	CgrUseRoute,
+	// CgrNoRoute(void)
+	CgrNoRoute,
 	// CgrFullOverbooking(double overbooking)
 	CgrFullOverbooking,
 	// CgrPartialOverbooking(double overbooking)
@@ -95,27 +105,27 @@ typedef enum
 	CgrContactEndsEarly,
 	CgrSuppressed,
 	CgrVisited,
-	CgrCapacityTooSmall,
+	CgrVolumeTooSmall,
 	CgrNoRange,
 
 	// Reasons to ignore a route (CgrIgnoreRoute)
 	CgrRouteViaSelf,
-	CgrRouteCapacityTooSmall,
+	CgrRouteVolumeTooSmall,
 	CgrInitialContactExcluded,
 	CgrRouteTooSlow,
 	CgrNoPlan,
 	CgrBlockedPlan,
 	CgrMaxPayloadTooSmall,
-	CgrNoResidualCapacity,
-	CgrResidualCapacityTooSmall,
+	CgrNoResidualVolume,
+	CgrResidualVolumeTooSmall,
 
-	// Reasons to ignore a proximate node (CgrIgnoreRoute,
-	// CgrIgnoreProximateNode) or reasons a previously-selected proximate
-	// node was ignored (CgrUpdateProximateNode)
+	// Reasons to ignore a route (CgrIgnoreRoute,
+	// CgrSkipRoute) or reasons a previously-selected proximate
+	// node was ignored (CgrUpdateRoute)
 	CgrMoreHops,
 	CgrEarlierTermination,
 	CgrNoHelp,
-	CgrLowerCapacity,
+	CgrLowerVolume,
 	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 

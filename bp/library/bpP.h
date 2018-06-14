@@ -310,7 +310,7 @@ typedef struct
 		/*	fragment offset is in the id field.		*/
 	unsigned int	totalAduLength;
 
-	/*	Stuff in Extended COS and Metadata extension blocks.			*/
+	/*	Stuff in Extended COS and Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
 
