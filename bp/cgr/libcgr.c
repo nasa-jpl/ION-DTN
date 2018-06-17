@@ -125,12 +125,26 @@ typedef struct
 
 /*	Functions for managing the CGR database.			*/
 
+static void	destroyRoute(PsmPartition ionwm, PsmAddress elt)
+{
+	PsmAddress	addr;
+	CgrRoute	*route;
+
+	addr = sm_list_data(ionwm, elt);
+	route = (CgrRoute *) psp(ionwm, addr);
+	if (route->hops)
+	{
+		sm_list_destroy(ionwm, route->hops, NULL, NULL);
+	}
+
+	psm_free(ionwm, addr);
+	sm_list_delete(ionwm, elt, NULL, NULL);
+}
+
 static void	discardRouteList(PsmPartition ionwm, PsmAddress routes)
 {
 	PsmAddress	elt;
 	PsmAddress	nextElt;
-	PsmAddress	addr;
-	CgrRoute	*route;
 
 	/*	Destroy all routes in list.				*/
 
@@ -142,15 +156,7 @@ static void	discardRouteList(PsmPartition ionwm, PsmAddress routes)
 	for (elt = sm_list_first(ionwm, routes); elt; elt = nextElt)
 	{
 		nextElt = sm_list_next(ionwm, elt);
-		addr = sm_list_data(ionwm, elt);
-		route = (CgrRoute *) psp(ionwm, addr);
-		if (route->hops)
-		{
-			sm_list_destroy(ionwm, route->hops, NULL, NULL);
-		}
-
-		psm_free(ionwm, addr);
-		sm_list_delete(ionwm, elt, NULL, NULL);
+		destroyRoute(ionwm, elt);
 	}
 
 	/*	Destroy the list itself.				*/
@@ -175,7 +181,11 @@ static void	detachRoutingObject(PsmPartition ionwm,
 
 	/*	Destroy the list of proximate nodes.			*/
 
-	sm_list_destroy(ionwm, routingObject->proximateNodes, NULL, NULL);
+	if (routingObject->proximateNodes)
+	{
+		sm_list_destroy(ionwm, routingObject->proximateNodes, NULL,
+				NULL);
+	}
 }
 
 static void	destroyRoutingObjects(CgrVdb *vdb)
@@ -205,7 +215,7 @@ static void	destroyRoutingObjects(CgrVdb *vdb)
 		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
 }
-
+#if 0
 static void	clearRoutingObjects(PsmPartition ionwm)
 {
 	IonVdb		*ionvdb = getIonVdb();
@@ -232,7 +242,7 @@ static void	clearRoutingObjects(PsmPartition ionwm)
 		}
 	}
 }
-
+#endif
 static CgrVdb	*getCgrVdb()
 {
 	static char	*name = CGRVDB_NAME;
@@ -277,8 +287,9 @@ static CgrVdb	*getCgrVdb()
 		putErrmsg("Can't initialize CGR volatile database.", name);
 		return NULL;
 	}
-
+#if 0
 	clearRoutingObjects(ionwm);
+#endif
 	sdr_exit_xn(sdr);
 	return vdb;
 }
@@ -640,9 +651,14 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	at which the route will become unusable.	*/
 
 		earliestEndTime = MAX_TIME;
-		for (contact = finalContact; contact != rootContact;
+		for (contact = finalContact; contact;
 				contact = work->predecessor)
 		{
+if (contact == rootContact)
+{
+	writeMemo("[?] predecessor is root contact.");
+	break;
+}
 			if (contact->toTime < earliestEndTime)
 			{
 				earliestEndTime = contact->toTime;
@@ -1211,6 +1227,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 			 *	contact on the route has expired
 			 *	and has been removed (but the route
 			 *	itself has not yet been removed).
+			 *
 			 *	Note that nominal exit from this loop
 			 *	appears at the end, upon checking
 			 *	whether or not this contact is the
@@ -1419,7 +1436,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		 *	time among this contact and all successors.)	*/
 
 		effectiveStopTime = contact->toTime;
-		elt2 = sm_list_next(ionwm, elt2);
+		elt2 = sm_list_next(ionwm, elt);
 		while (elt2)
 		{
 			contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
@@ -1517,7 +1534,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
-		TRACE(CgrIgnoreRoute, CgrNoPlan);
+		TRACE(CgrExcludeRoute, CgrNoPlan);
 		return 0;		/*	No egress plan to node.	*/
 	}
 
@@ -1532,7 +1549,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 
 	if (plan.blocked)
 	{
-		TRACE(CgrIgnoreRoute, CgrBlockedPlan);
+		TRACE(CgrExcludeRoute, CgrBlockedPlan);
 		return 0;		/*	Node is unreachable.	*/
 	}
 
@@ -1547,7 +1564,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			&plan, &overbooked, &protected, &eto);
 	if (arrivalTime == 0)	/*	Can't be delivered in time.	*/
 	{
-		TRACE(CgrIgnoreRoute, CgrRouteTooSlow);
+		TRACE(CgrExcludeRoute, CgrRouteTooSlow);
 		return 0;		/*	Connections too tight.	*/
 	}
 
@@ -1644,6 +1661,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 		 *	ended; it is not usable.			*/
 
 		TRACE(CgrExpiredRoute);
+		destroyRoute(ionwm, *elt);
 		*elt = nextElt;
 		return 0;
 	}
@@ -1652,7 +1670,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	{
 		/*	Not a plausible route.				*/
 
-		TRACE(CgrIgnoreRoute, CgrRouteTooSlow);
+		TRACE(CgrExcludeRoute, CgrRouteTooSlow);
 		*elt = nextElt;
 		return 0;
 	}
@@ -1696,7 +1714,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 				- 1.0;
 			if (confidenceImprovement < MIN_CONFIDENCE_IMPROVEMENT)
 			{
-				TRACE(CgrIgnoreRoute, CgrNoHelp);
+				TRACE(CgrExcludeRoute, CgrNoHelp);
 				*elt = nextElt;
 				return 0;
 			}
@@ -1713,7 +1731,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 		{
 			/*	Never route via self -- a loop.		*/
 
-			TRACE(CgrIgnoreRoute, CgrRouteViaSelf);
+			TRACE(CgrExcludeRoute, CgrRouteViaSelf);
 			*elt = nextElt;
 			return 0;
 		}
@@ -1726,7 +1744,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	if (isExcluded(route->toNodeNbr, excludedNodes))
 	{
-		TRACE(CgrIgnoreRoute, CgrInitialContactExcluded);
+		TRACE(CgrExcludeRoute, CgrInitialContactExcluded);
 		*elt = nextElt;
 		return 0;
 	}
@@ -2426,6 +2444,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 			uvast terminusNodeNbr, time_t atTime, CgrTrace *trace,
 			int preview)
 {
+	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = getCgrVdb();
 	IonNode		*terminusNode;
@@ -2433,12 +2452,12 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	int		ionMemIdx;
 	Lyst		bestRoutes;
 	Lyst		excludedNodes;
-	PsmPartition	ionwm = getIonwm();
 	PsmAddress	embElt;
 	Embargo		*embargo;
 	LystElt		elt;
 	CgrRoute	*route;
-	PsmAddress	routes;
+	PsmAddress	routingObjectAddr;
+	CgrRtgObject	*routingObject;
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -2607,8 +2626,14 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		return 0;	/*	Potential future fwd unneeded.	*/
 	}
 
-	routes = terminusNode->routingObject;
-	if (routes == 0 || sm_list_length(getIonwm(), routes) == 0)
+	routingObjectAddr = terminusNode->routingObject;
+	if (routingObjectAddr == 0)
+	{
+		return 0;	/*	No potential future forwarding.	*/
+	}
+
+	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
+	if (sm_list_length(ionwm, routingObject->knownRoutes) == 0)
 	{
 		return 0;	/*	No potential future forwarding.	*/
 	}
@@ -2671,8 +2696,10 @@ float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 	time_t		currentTime = getUTCTime();
 	IonNode		*terminusNode;
 	PsmAddress	nextNode;
-	PsmAddress	routes;		/*	SmList of CgrRoutes.	*/
+	PsmAddress	routingObjectAddress;
+	CgrRtgObject	*routingObject;
 	PsmAddress	elt;
+	PsmAddress	nextElt;
 	PsmAddress	addr;
 	CgrRoute	*route;
 	float		prospect = 0.0;
@@ -2683,19 +2710,23 @@ float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 		return 0.0;		/*	Unknown node, no chance.*/
 	}
 
-	routes = terminusNode->routingObject;
-	if (routes == 0)
+	routingObjectAddress = terminusNode->routingObject;
+	if (routingObjectAddress == 0)
 	{
 		return 0.0;		/*	No routes, no chance.	*/
 	}
 
-	for (elt = sm_list_first(wm, routes); elt; elt = sm_list_next(wm, elt))
+	routingObject = (CgrRtgObject *) psp(wm, routingObjectAddress);
+	for (elt = sm_list_first(wm, routingObject->selectedRoutes); elt;
+			elt = nextElt)
 	{
+		nextElt = sm_list_next(wm, elt);
 		addr = sm_list_data(wm, elt);
 		route = (CgrRoute *) psp(wm, addr);
-		if (route->toTime < currentTime)
+		if (route->toTime <= currentTime)
 		{
-			continue;	/*	Obsolete route.		*/
+			destroyRoute(wm, elt);	/*	Expired.	*/
+			continue;
 		}
 
 		if (route->arrivalTime > deadline)
@@ -2747,8 +2778,7 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrCheckRoute] = "  CHECK firstHop:" UVAST_FIELDSPEC
 		" fromTime:%u arrivalTime:%u",
 	[CgrExpiredRoute] = "    EXPIRED",
-	[CgrRecomputeRoute] = "  RECOMPUTE",
-	[CgrIgnoreRoute] = "    IGNORE",
+	[CgrExcludeRoute] = "    EXCLUDE",
 	[CgrUncertainEntry] = "    UNCERTAIN",
 	[CgrWrongViaNode] = "    IRRELEVANT",
 
@@ -2822,10 +2852,10 @@ void	cgr_stop()
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
 	CgrVdb		*vdb;
-
+#if 0
 	/*Clear Route Caches*/
 	clearRoutingObjects(wm);
-
+#endif
 	/*Free volatile database*/
 	if (psm_locate(wm, name, &vdbAddress, &elt) < 0)
 	{

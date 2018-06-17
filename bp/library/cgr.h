@@ -62,10 +62,8 @@ typedef enum
 	CgrCheckRoute,
 	// CgrExpiredRoute(void)
 	CgrExpiredRoute,
-	// CgrRecomputeRoute(void)
-	CgrRecomputeRoute,
-	// CgrIgnoreRoute(CgrReason reason)
-	CgrIgnoreRoute,
+	// CgrExcludeRoute(CgrReason reason)
+	CgrExcludeRoute,
 	// CgrUncertainEntry(CgrReason reason)
 	CgrUncertainEntry,
 	// CgrWrongViaNode(void)
@@ -108,7 +106,7 @@ typedef enum
 	CgrVolumeTooSmall,
 	CgrNoRange,
 
-	// Reasons to ignore a route (CgrIgnoreRoute)
+	// Reasons to ignore a route (CgrExcludeRoute)
 	CgrRouteViaSelf,
 	CgrRouteVolumeTooSmall,
 	CgrInitialContactExcluded,
@@ -119,9 +117,9 @@ typedef enum
 	CgrNoResidualVolume,
 	CgrResidualVolumeTooSmall,
 
-	// Reasons to ignore a route (CgrIgnoreRoute,
-	// CgrSkipRoute) or reasons a previously-selected proximate
-	// node was ignored (CgrUpdateRoute)
+	// Reasons to ignore a route (CgrExcludeRoute,
+	// CgrSkipRoute) or reasons a previously-selected
+	// route was ignored (CgrUpdateRoute)
 	CgrMoreHops,
 	CgrEarlierTermination,
 	CgrNoHelp,
