@@ -103,7 +103,6 @@ typedef enum
 	CgrContactEndsEarly,
 	CgrSuppressed,
 	CgrVisited,
-	CgrVolumeTooSmall,
 	CgrNoRange,
 
 	// Reasons to ignore a route (CgrExcludeRoute)

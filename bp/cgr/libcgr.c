@@ -391,9 +391,9 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	return -1;
 }
 
-static int	computeDistanceToTerminus(IonCXref *rootContact,
-			CgrContactNote *rootWork, IonNode *terminusNode,
-			CgrRoute *route, CgrTrace *trace)
+static int	computeDistanceToTerminus(PsmAddress rootContactElt,
+			IonCXref *rootContact, CgrContactNote *rootWork,
+			IonNode *terminusNode, CgrRoute *route, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -419,7 +419,6 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	TRACE(CgrBeginRoute);
 	current = rootContact;
 	currentWork = rootWork;
-	memset((char *) &arg, 0, sizeof(IonCXref));
 
 	/*	First, clear all contact work areas.			*/
 
@@ -427,12 +426,21 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			elt = sm_rbt_next(ionwm, elt))
 	{
 		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		if (contact == rootContact)
+		{
+			/*	Preserve root arrival time.		*/
+
+			continue;	
+		}
+
 		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
 		work->predecessor = NULL;
 		work->arrivalTime = MAX_TIME;
 		work->visited = 0;
 		work->suppressed = 0;
 	}
+
+	memset((char *) &arg, 0, sizeof(IonCXref));
 
 	/*	Now perform this interior loop until either the best
 	 *	route to the end vertex has been identified or else
@@ -654,11 +662,6 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		for (contact = finalContact; contact;
 				contact = work->predecessor)
 		{
-if (contact == rootContact)
-{
-	writeMemo("[?] predecessor is root contact.");
-	break;
-}
 			if (contact->toTime < earliestEndTime)
 			{
 				earliestEndTime = contact->toTime;
@@ -741,8 +744,8 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 
 	/*	Run Dijkstra search.					*/
 
-	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
-			route, trace) < 0)
+	if (computeDistanceToTerminus(rootContactElt, rootContact, rootWork,
+			terminusNode, route, trace) < 0)
 	{
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
@@ -784,6 +787,7 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	PsmAddress	routeAddr;
 	CgrRtgObject	*routingObj;
 
+puts("***Inserting first route.***");
 	CHKERR(ionwm);
 	CHKERR(ionvdb);
 	CHKERR(cgrvdb);
@@ -889,6 +893,7 @@ static int	computeAnotherRoute(IonNode *terminusNode, time_t currentTime,
 	int		selectedRouteHopCount;
 	int		knownRouteHopCount;
 
+puts("*** Computing another route. ***");
 	*elt = 0;	/*	Default: no new route found.		*/
 
 	/*	This is an implementation of the Lawler improvement
@@ -1663,7 +1668,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 		TRACE(CgrExpiredRoute);
 		destroyRoute(ionwm, *elt);
 		*elt = nextElt;
-		return 0;
+		return 1;
 	}
 
 	if (route->arrivalTime > deadline)
@@ -1672,7 +1677,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 		TRACE(CgrExcludeRoute, CgrRouteTooSlow);
 		*elt = nextElt;
-		return 0;
+		return 1;
 	}
 
 	addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
@@ -1683,7 +1688,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 		TRACE(CgrUncertainEntry);
 		*elt = nextElt;
-		return 0;
+		return 1;
 	}
 
 	/*	If routing a critical bundle, this Selected route
@@ -1697,7 +1702,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 		{
 			TRACE(CgrWrongViaNode);
 			*elt = nextElt;
-			return 0;
+			return 1;
 		}
 	}
 	else		/*	Selecting single best route.		*/
@@ -1716,7 +1721,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 			{
 				TRACE(CgrExcludeRoute, CgrNoHelp);
 				*elt = nextElt;
-				return 0;
+				return 1;
 			}
 		}
 	}
@@ -1733,7 +1738,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 			TRACE(CgrExcludeRoute, CgrRouteViaSelf);
 			*elt = nextElt;
-			return 0;
+			return 1;
 		}
 
 		/*	Self is final destination.			*/
@@ -1746,7 +1751,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	{
 		TRACE(CgrExcludeRoute, CgrInitialContactExcluded);
 		*elt = nextElt;
-		return 0;
+		return 1;
 	}
 
 	/*	Route might work.  If this route is supported by
@@ -1763,7 +1768,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	}
 
 	*elt = nextElt;
-	return 0;
+	return 1;
 }
 
 static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
@@ -1782,18 +1787,20 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 	elt = sm_list_first(ionwm, routingObj->selectedRoutes);
 	while (lyst_length(bestRoutes) == 0)
 	{
-		if (checkRoute(terminusNode, viaNodeNbr, &elt, bundle,
+		switch (checkRoute(terminusNode, viaNodeNbr, &elt, bundle,
 				bundleObj, excludedNodes, trace, bestRoutes,
 				currentTime, deadline))
 		{
+		case -1:	/*	System failure.			*/
 			putErrmsg("Failed checking route to node.",
 					utoa(terminusNode->nodeNbr));
 			return -1;
-		}
 
-		if (elt == 0)	/*	No more routes to check.	*/
-		{
-			break;
+		case 0:		/*	No more routes to check.	*/
+			return 0;
+
+		default:	/*	Can continue checking.		*/
+			break;	/*	Out of switch; try again.	*/
 		}
 	}
 
@@ -2575,7 +2582,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	 *	EACH identified best route.				*/
 
 	lyst_destroy(excludedNodes);
-	TRACE(CgrSelectRoute);
+	TRACE(CgrSelectRoutes);
 	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		/*	Critical bundle; send to all capable neighbors.	*/
@@ -2785,7 +2792,7 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrAddRoute] = "    ADD",
 	[CgrUpdateRoute] = "    UPDATE",
 
-	[CgrSelectRoutes] = "SELECT",
+	[CgrSelectRoutes] = "SELECTING",
 	[CgrUseAllRoutes] = "  USE all best routes",
 	[CgrConsiderRoute] = "  CONSIDER " UVAST_FIELDSPEC,
 	[CgrSelectRoute] = "    SELECT",
