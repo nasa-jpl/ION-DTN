@@ -391,9 +391,9 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	return -1;
 }
 
-static int	computeDistanceToTerminus(PsmAddress rootContactElt,
-			IonCXref *rootContact, CgrContactNote *rootWork,
-			IonNode *terminusNode, CgrRoute *route, CgrTrace *trace)
+static int	computeDistanceToTerminus(IonCXref *rootContact,
+			CgrContactNote *rootWork, IonNode *terminusNode,
+			CgrRoute *route, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -426,18 +426,18 @@ static int	computeDistanceToTerminus(PsmAddress rootContactElt,
 			elt = sm_rbt_next(ionwm, elt))
 	{
 		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		if (contact == rootContact)
-		{
-			/*	Preserve root arrival time.		*/
-
-			continue;	
-		}
-
 		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
 		work->predecessor = NULL;
-		work->arrivalTime = MAX_TIME;
 		work->visited = 0;
 		work->suppressed = 0;
+
+		/*	Reset arrival time, except preserve arrival
+		 *	time of root contact.				*/
+
+		if (contact != rootContact)
+		{
+			work->arrivalTime = MAX_TIME;
+		}
 	}
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
@@ -659,9 +659,14 @@ static int	computeDistanceToTerminus(PsmAddress rootContactElt,
 		 *	at which the route will become unusable.	*/
 
 		earliestEndTime = MAX_TIME;
-		for (contact = finalContact; contact;
-				contact = work->predecessor)
+		contact = finalContact;
+		while (contact)
 		{
+//printf("***Checking hop from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC "...\n",
+//contact->fromNode, contact->toNode);
+//fflush(stdout);
+			work = (CgrContactNote *) psp(ionwm,
+					contact->routingObject);
 			if (contact->toTime < earliestEndTime)
 			{
 				earliestEndTime = contact->toTime;
@@ -675,6 +680,12 @@ static int	computeDistanceToTerminus(PsmAddress rootContactElt,
 				putErrmsg("Can't insert contact into route.",
 						NULL);
 				return -1;
+			}
+
+			contact = work->predecessor;
+			if (contact == rootContact)
+			{
+				break;
 			}
 		}
 
@@ -744,8 +755,8 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 
 	/*	Run Dijkstra search.					*/
 
-	if (computeDistanceToTerminus(rootContactElt, rootContact, rootWork,
-			terminusNode, route, trace) < 0)
+	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
+			route, trace) < 0)
 	{
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
@@ -787,7 +798,7 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	PsmAddress	routeAddr;
 	CgrRtgObject	*routingObj;
 
-puts("***Inserting first route.***");
+//puts("***Inserting first route.***");
 	CHKERR(ionwm);
 	CHKERR(ionvdb);
 	CHKERR(cgrvdb);
@@ -893,7 +904,7 @@ static int	computeAnotherRoute(IonNode *terminusNode, time_t currentTime,
 	int		selectedRouteHopCount;
 	int		knownRouteHopCount;
 
-puts("*** Computing another route. ***");
+//puts("*** Computing another route. ***");
 	*elt = 0;	/*	Default: no new route found.		*/
 
 	/*	This is an implementation of the Lawler improvement
@@ -2782,7 +2793,7 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrIdentifyRoutes] = "IDENTIFY deadline:%u",
 	[CgrFirstRoute] = "    FIRST",
 	[CgrNoMoreRoutes] = "    NO MORE",
-	[CgrCheckRoute] = "  CHECK firstHop:" UVAST_FIELDSPEC
+	[CgrCheckRoute] = "  CHECK firstHop to:" UVAST_FIELDSPEC
 		" fromTime:%u arrivalTime:%u",
 	[CgrExpiredRoute] = "    EXPIRED",
 	[CgrExcludeRoute] = "    EXCLUDE",

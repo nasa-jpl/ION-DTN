@@ -17,7 +17,7 @@
 #endif
 
 #ifndef CGR_DEBUG
-#define CGR_DEBUG	1
+#define CGR_DEBUG	0
 #endif
 
 #if CGR_DEBUG == 1
