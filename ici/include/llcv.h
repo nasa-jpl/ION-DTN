@@ -42,6 +42,9 @@ typedef struct llcv_str
 {
 	Lyst		list;
 	pthread_mutex_t	mutex;
+	int mutex_init;
+	pthread_mutex_t* mutex_init_addr;
+	int cond_wait;
 	pthread_cond_t	cv;
 } *Llcv;
 

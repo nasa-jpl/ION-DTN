@@ -30,9 +30,8 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 {
 	CHKNULL(list);
 	CHKNULL(llcv);
-	if (llcv->list != NULL && pthread_mutex_lock(&llcv->mutex) == 0)
+	if (llcv->list != NULL && llcv->mutex_init == 1 && llcv->mutex_init_addr == &llcv->mutex)
 	{
-		oK(pthread_mutex_unlock(&llcv->mutex));
 		return llcv;		/*	Already initialized.	*/
 	}
 
@@ -40,6 +39,9 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 	{
 		putSysErrmsg("can't open llcv, mutex init failed", NULL);
 		return NULL;
+	}else{
+		llcv->mutex_init = 1;
+		llcv->mutex_init_addr = &llcv->mutex;
 	}
 
 	if (pthread_cond_init(&llcv->cv, NULL))
@@ -48,7 +50,7 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 		putSysErrmsg("can't open llcv, condition init failed", NULL);
 		return NULL;
 	}
-
+	llcv->cond_wait = 0;
 	llcv->list = list;
 	return llcv;
 }
@@ -98,8 +100,9 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 			/*	Atomically, unlock the mutex and wait
 		 	*	for some thread to signal on the cv,
 		 	*	and then re-lock the mutex.		*/
-
+			llcv->cond_wait += 1;
 			result = pthread_cond_wait(&llcv->cv, &llcv->mutex);
+			llcv->cond_wait -= 1;
 			if (result)
 			{
 				errno = result;
@@ -128,9 +131,10 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 			/*	Atomically, unlock the mutex and wait
 		 	*	for some thread to signal on the cv,
 		 	*	and then re-lock the mutex.		*/
-
+			llcv->cond_wait += 1;
 			result = pthread_cond_timedwait(&llcv->cv, &llcv->mutex,
 					&deadline);
+			llcv->cond_wait -= 1;
 			if (result)
 			{
 				errno = result;
@@ -200,14 +204,18 @@ void	llcv_signal_while_locked(Llcv llcv, LlcvPredicate condition)
 void	llcv_close(Llcv llcv)
 {
 	int	result;
-
+	
 	if (llcv)
 	{
-		if (pthread_mutex_lock(&llcv->mutex) != 0)
+		if (llcv->mutex_init != 1 || llcv->mutex_init_addr != &llcv->mutex)
 		{
 			return;	/*	Already closed.			*/
 		}
 
+		if(llcv->cond_wait != 0){
+			return;
+		}
+		
 		result = pthread_cond_destroy(&llcv->cv);
 		oK(pthread_mutex_unlock(&llcv->mutex));
 		if (result != 0 || pthread_mutex_destroy(&llcv->mutex) != 0)
@@ -215,7 +223,7 @@ void	llcv_close(Llcv llcv)
 			writeMemo("[?] Can't close llcv.");
 			return;
 		}
-
+		
 		memset((char *) llcv, 0, sizeof(struct llcv_str));
 	}
 }
