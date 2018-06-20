@@ -2786,7 +2786,7 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrHop] = "    HOP fromNode:" UVAST_FIELDSPEC " toNode:"
 		UVAST_FIELDSPEC,
 
-	[CgrAcceptRoute] = "    ACCEPT firstHop:" UVAST_FIELDSPEC
+	[CgrAcceptRoute] = "    ACCEPT firstHop to:" UVAST_FIELDSPEC
 		" fromTime:%u arrivalTime:%u",
 	[CgrDiscardRoute] = "    DISCARD route",
 
