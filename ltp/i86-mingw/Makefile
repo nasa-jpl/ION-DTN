@@ -1,3 +1,4 @@
+AOS = ../aos
 API = ../library
 INCL = ../include
 UTILS = ../utils
@@ -19,7 +20,7 @@ LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
 
 ALL = check libltp.dll $(RUNTIMES)
 
@@ -83,7 +84,16 @@ udplsi:		udplsi.o libltp.dll
 
 udplso:		udplso.o libltp.dll
 		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
-		cp udplso ./bin
+
+#	-	-	AOS Executables	-	-	-	-	-
+
+aoslsi:		aoslsi.o libltp.dll
+		$(CC) -o aoslsi aoslsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp aoslsi ./bin
+
+aoslso:		aoslso.o libltp.dll
+		$(CC) -o aoslso aoslso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp aoslso ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
@@ -109,6 +119,9 @@ libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(AOS)/%.c
 		$(CC) -c $<
 
 %.o:		$(SDA)/%.c
