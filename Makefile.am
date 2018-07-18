@@ -1429,8 +1429,6 @@ bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #
 ##########################
 
-if !ION_NASA_B
-
 # Define pod2man stuff
 amsPODM1 = pod2man -s 1 -c "AMS executables"
 amsPODM3 = pod2man -s 3 -c "AMS library functions"
@@ -1445,6 +1443,7 @@ amsbin = \
 	amsshell \
 	amslog \
 	amslogprt \
+	amsmib \
 	amsbenchs \
 	amsbenchr \
 	amsstop \
@@ -1529,6 +1528,10 @@ amslogprt_SOURCES = ams/test/amslogprt.c
 amslogprt_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amslogprt_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
+amsmib_SOURCES = ams/utils/amsmib.c
+amsmib_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
+amsmib_CFLAGS = $(amscflags) $(AM_CFLAGS)
+
 # --- Test Executables --- #
 
 amshello_SOURCES = ams/test/amshello.c
@@ -1569,15 +1572,11 @@ ramsgate_SOURCES = \
 ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
-endif
-
 ##############
 #
 # CFDP SECTION
 #
 ##############
-
-if !ION_NASA_B
 
 # Define pod2man stuff
 cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
@@ -1592,7 +1591,8 @@ cfdpbin = \
 	bputa \
 	cfdptest \
 	bpcp \
-	bpcpd
+	bpcpd \
+	tcputa
 
 cfdplib = \
 	libcfdp.la
@@ -1681,7 +1681,11 @@ cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
 cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
-endif
+# --- TCP Executables --- #
+
+tcputa_SOURCES = cfdp/tcp/tcputa.c
+tcputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
+tcputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 
 ##############
