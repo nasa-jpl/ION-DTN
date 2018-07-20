@@ -8644,6 +8644,16 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
 			work->headerLength, bundle->payload.length);
 
+	/*	Make sure all required security blocks are present.	*/
+
+	if (reviewExtensionBlocks(work) == 0)
+	{
+		writeMemo("[?] Malformed bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
 	/*	Do all decryption indicated by extension blocks.	*/
 
 	if (decryptPerExtensionBlocks(work) < 0)

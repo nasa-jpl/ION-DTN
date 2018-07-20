@@ -173,6 +173,8 @@ extern int	secInitialize();
 extern int	secAttach();
 extern Object	getSecDbObject();
 extern SecVdb	*getSecVdb();
+extern int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
+			int secondEidLen);
 extern void	sec_clearBspRules(char *fromNode, char *toNode, char *blkType);
 
 /*	*	Functions for managing public keys.			*/

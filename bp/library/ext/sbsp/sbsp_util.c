@@ -13,8 +13,9 @@
  ** Subsystem:
  **          Extensions: SBSP
  **
- ** Description: This file provides a partial implementation of Bundle Protocol
- ** 			 Security (SBSP).
+ ** Description: This file provides a partial implementation of Streamlined
+ **		 Bundle Security Protocol (SBSP).
+ **
  **              This implementation utilizes the ION Extension Interface to
  **              manage the creation, modification, evaluation, and removal
  **              of SBSP blocks from Bundle Protocol (RFC 5050) bundles.
@@ -127,7 +128,8 @@ unsigned char	*sbsp_addSdnvToStream(unsigned char *stream, Sdnv* value)
 		stream += value->length;
 	}
 
-	SBSP_DEBUG_PROC("- sbsp_addSdnvToStream --> %x", (unsigned long) stream);
+	SBSP_DEBUG_PROC("- sbsp_addSdnvToStream --> %x",
+			(unsigned long) stream);
 
 	return stream;
 }
@@ -178,7 +180,8 @@ SdrObject sbsp_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
 
 	if(val.len == 0)
 	{
-		SBSP_DEBUG_ERR("sbsp_build_sdr_parm: Cannot serialize parameters.", NULL);
+		SBSP_DEBUG_ERR("sbsp_build_sdr_parm: Cannot serialize \
+parameters.", NULL);
 		return 0;
 	}
 
@@ -188,8 +191,8 @@ SdrObject sbsp_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
 	/* Step 2 - Allocate the SDR space. */
 	if((result = sdr_malloc(sdr, *len)) == 0)
 	{
-		SBSP_DEBUG_ERR("sbsp_build_sdr_parm: Can't allocate sdr result of length %d.",
-				*len);
+		SBSP_DEBUG_ERR("sbsp_build_sdr_parm: Can't allocate sdr \
+result of length %d.", *len);
 		*len = 0;
 		MRELEASE(val.contents);
 		return 0;
@@ -252,8 +255,8 @@ SdrObject sbsp_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t *
 
 	if((result = sdr_malloc(sdr, tmp.len)) == 0)
 	{
-		SBSP_DEBUG_ERR("sbsp_build_result: Can't allocate sdr result of length %d.",
-				tmp.len);
+		SBSP_DEBUG_ERR("sbsp_build_result: Can't allocate sdr \
+result of length %d.", tmp.len);
 		MRELEASE(tmp.contents);
 		return 0;
 	}
@@ -318,7 +321,8 @@ int	sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast	 ltemp;
 	unsigned int itemp;
 
-	SBSP_DEBUG_PROC("+ sbsp_deserializeASB("ADDR_FIELDSPEC","ADDR_FIELDSPEC"%d)", (uaddr) blk, (uaddr) wk);
+	SBSP_DEBUG_PROC("+ sbsp_deserializeASB(" ADDR_FIELDSPEC "," \
+ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 
 	CHKERR(blk);
 	CHKERR(wk);
@@ -369,8 +373,8 @@ int	sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 	asb.ciphersuiteFlags = itemp;
 
-	SBSP_DEBUG_INFO("i sbsp_deserializeASB: cipher %ld, flags %ld, length %d",
-		asb.ciphersuiteType, asb.ciphersuiteFlags, blk->dataLength);
+	SBSP_DEBUG_INFO("i sbsp_deserializeASB: cipher %ld, flags %ld, \
+length %d", asb.ciphersuiteType, asb.ciphersuiteFlags, blk->dataLength);
 
 	if (asb.ciphersuiteFlags & SBSP_ASB_PARM)
 	{
@@ -386,15 +390,15 @@ parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
 				result = 0;
 
 				SBSP_DEBUG_PROC("- sbsp_deserializeASB -> %d",
-						         result);
+						result);
 				return result;
 			}
 
 			asb.parmsData = MTAKE(asb.parmsLen);
 			if (asb.parmsData == NULL)
 			{
-				SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB parms %d",
-						        utoa(asb.parmsLen));
+				SBSP_DEBUG_ERR("x sbsp_deserializeASB: No \
+space for ASB parms %d", utoa(asb.parmsLen));
 				return -1;
 			}
 
@@ -430,8 +434,8 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 			asb.resultsData = MTAKE(asb.resultsLen);
 			if (asb.resultsData == NULL)
 			{
-				SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB results %d",
-						        utoa(asb.resultsLen));
+				SBSP_DEBUG_ERR("x sbsp_deserializeASB: No \
+space for ASB results %d", utoa(asb.resultsLen));
 				return -1;
 			}
 
@@ -447,7 +451,8 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 	blk->object = MTAKE(sizeof(SbspInboundBlock));
 	if (blk->object == NULL)
 	{
-		SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB scratchpad", NULL);
+		SBSP_DEBUG_ERR("x sbsp_deserializeASB: No space for ASB \
+scratchpad", NULL);
 		return -1;
 	}
 
@@ -457,12 +462,6 @@ resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
 
 	return result;
 }
-
-
-
-
-
-
 
 
 /******************************************************************************
@@ -496,7 +495,8 @@ int	sbsp_destinationIsLocal(Bundle *bundle)
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
-		SBSP_DEBUG_ERR("x sbsp_destinationIsLocal: Can't retrieve dictionary.", NULL);
+		SBSP_DEBUG_ERR("x sbsp_destinationIsLocal: Can't retrieve \
+dictionary.", NULL);
 		return result;
 	}
 
@@ -514,7 +514,6 @@ int	sbsp_destinationIsLocal(Bundle *bundle)
 	releaseDictionary(dictionary);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -572,8 +571,6 @@ LystElt	sbsp_findAcqBlock(AcqWorkArea *wk,
 
 	return 0;
 }
-
-
 
 
 /******************************************************************************
@@ -644,7 +641,6 @@ Object	sbsp_findBlock(Bundle *bundle,
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_getInboundSecurityEids
@@ -658,7 +654,7 @@ Object	sbsp_findBlock(Bundle *bundle,
  *
  * \param[in]   bundle   The inbound bundle.
  * \param[in]   blk      The inbound block.
- * \param[in]   asb		 The inbound Abstract Security Block.
+ * \param[in]   asb	 The inbound Abstract Security Block.
  * \param[out]  fromEid  The security source EID to populate.
  * \param[out]  toEid    The bundle destination EID to populate
  *
@@ -676,11 +672,8 @@ Object	sbsp_findBlock(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int sbsp_getInboundSecurityEids(Bundle *bundle,
-		                            AcqExtBlock *blk,
-									SbspInboundBlock *asb,
-									char **fromEid,
-									char **toEid)
+int	sbsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
+		SbspInboundBlock *asb, char **fromEid, char **toEid)
 {
 	char	*dictionary;
 	int	result;
@@ -692,6 +685,7 @@ int sbsp_getInboundSecurityEids(Bundle *bundle,
 	CHKERR(toEid);
 	*fromEid = NULL;	/*	Default.			*/
 	*toEid = NULL;		/*	Default.			*/
+
 	dictionary = retrieveDictionary(bundle);
 	if (dictionary == (char *) bundle)
 	{
@@ -708,13 +702,16 @@ int sbsp_getInboundSecurityEids(Bundle *bundle,
 		return -1;
 	}
 
+	result = 0;
 	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 	{
-		result = sbsp_getInboundSecuritySource(blk, dictionary, fromEid);
+		result = sbsp_getInboundSecuritySource(blk, dictionary,
+				fromEid);
 	}
-	else
+
+	if (result == 0)	/*	No security source in block.	*/
 	{
-		if(printEid(&bundle->id.source, dictionary, fromEid) < 0)
+		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 		{
 			result = -1;
 		}
@@ -731,7 +728,6 @@ int sbsp_getInboundSecurityEids(Bundle *bundle,
 
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -763,9 +759,8 @@ int sbsp_getInboundSecurityEids(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	sbsp_getInboundSecuritySource(AcqExtBlock *blk,
-		                                       char *dictionary,
-			                                   char **fromEid)
+int	sbsp_getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
+		char **fromEid)
 {
 	EndpointId	securitySource;
 	LystElt		elt1;
@@ -789,7 +784,6 @@ int	sbsp_getInboundSecuritySource(AcqExtBlock *blk,
 
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -892,8 +886,8 @@ void	sbsp_getOutboundItem(uint8_t itemNeeded, Object buf,
 	temp = MTAKE(bufLen);
 	if (temp == NULL)
 	{
-		SBSP_DEBUG_ERR("x sbsp_getOutboundItem: No space for temporary memory buffer %d.",
-					    utoa(bufLen));
+		SBSP_DEBUG_ERR("x sbsp_getOutboundItem: No space for \
+temporary memory buffer %d.", utoa(bufLen));
 		return;
 	}
 
@@ -975,11 +969,8 @@ void	sbsp_getOutboundItem(uint8_t itemNeeded, Object buf,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	sbsp_getOutboundSecurityEids(Bundle *bundle,
-		                              ExtensionBlock *blk,
-									  SbspOutboundBlock *asb,
-									  char **fromEid,
-									  char **toEid)
+int	sbsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
+		SbspOutboundBlock *asb, char **fromEid, char **toEid)
 {
 	char	*dictionary;
 	int	result;
@@ -1008,13 +999,16 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle,
 		return -1;
 	}
 
+	result = 0;
 	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 	{
-		result = sbsp_getOutboundSecuritySource(blk, dictionary, fromEid);
+		result = sbsp_getOutboundSecuritySource(blk, dictionary,
+				fromEid);
 	}
-	else
+
+	if (result == 0)	/*	No security source in block.	*/
 	{
-		if(printEid(&bundle->id.source, dictionary, fromEid) < 0)
+		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 		{
 			result = -1;
 		}
@@ -1033,7 +1027,6 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle,
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_getOutboundSecuritySource
@@ -1046,7 +1039,7 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle,
  *           >0 on Success.
  *
  * \param[in]   blk      	The outbound block.
- * \param[in]   dictionary  The bundle dictionary (or null).
+ * \param[in]   dictionary	The bundle dictionary (or null).
  * \param[out]  fromEid		The calculated security source.
  *
  * \par Notes:
@@ -1061,9 +1054,8 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int sbsp_getOutboundSecuritySource(ExtensionBlock *blk,
-		                                      char *dictionary,
-				  				 	          char **fromEid)
+int	sbsp_getOutboundSecuritySource(ExtensionBlock *blk, char *dictionary,
+		char **fromEid)
 {
 	Sdr		sdr = getIonsdr();
 	EndpointId	securitySource;
@@ -1088,7 +1080,6 @@ int sbsp_getOutboundSecuritySource(ExtensionBlock *blk,
 
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -1228,8 +1219,8 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 	 */
 	if (key.len < 0)	/* Error. */
 	{
-		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't get length of key '%s'.",
-				keyName);
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't get length of \
+key '%s'.", keyName);
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
 	}
@@ -1237,8 +1228,10 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 	{
 		if((key.contents = (unsigned char *) MTAKE(key.len)) == NULL)
 		{
-			SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of size %d", key.len);
-			SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
+			SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate \
+key of size %d", key.len);
+			SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)",
+					key.len);
 			return key;
 		}
 
@@ -1249,7 +1242,8 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 
 		if((str = csi_val_print(key)) != NULL)
 		{
-			SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  Val: %s...", key.len, str);
+			SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  \
+Val: %s...", key.len, str);
 			MRELEASE(str);
 		}
 #endif
@@ -1272,7 +1266,8 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 	/* Step 2a - If we did not find a key... */
 	if(ReqBufLen <= sizeof(stdBuffer))
 	{
-		SBSP_DEBUG_WARN("? sbsp_retrieveKey: Unable to find key '%s'", keyName);
+		SBSP_DEBUG_WARN("? sbsp_retrieveKey: Unable to find key '%s'",
+				keyName);
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey", NULL);
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
@@ -1285,8 +1280,10 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 
 	if ((key.contents = MTAKE(ReqBufLen)) == NULL)
 	{
-		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of size %d", ReqBufLen);
-		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", ReqBufLen);
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of \
+size %d", ReqBufLen);
+		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)",
+				ReqBufLen);
 		return key;
 	}
 
@@ -1295,7 +1292,8 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 	if (sec_get_key(keyName, &ReqBufLen, (char *) (key.contents)) <= 0)
 	{
 		MRELEASE(key.contents);
-		SBSP_DEBUG_ERR("x sbsp_retrieveKey:  Can't get key '%s'", keyName);
+		SBSP_DEBUG_ERR("x sbsp_retrieveKey:  Can't get key '%s'",
+				keyName);
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 		return key;
 	}
@@ -1307,7 +1305,8 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 
 			if((str = csi_val_print(key)) != NULL)
 			{
-				SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  Val: %s...", key.len, str);
+				SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  \
+Len: %d  Val: %s...", key.len, str);
 				MRELEASE(str);
 			}
 #endif
@@ -1350,6 +1349,135 @@ int	sbsp_securityPolicyViolated(AcqWorkArea *wk)
 	 *		1.  For each block in the bundle, find matching
 	 *		    BIB rule.  If rule found, find BIB for this
 	 *		    block.  If BIB not found, return 1.		*/
+
+	return 0;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: sbsp_requiredBlockExists
+ *
+ * \par Purpose: This function searches for the sbsp block that satisfies
+		 some sbsp security rule at the time of bundle acquisition..
+ *
+ * \retval  -1 on Fatal Error.
+ *           0 on Failure (block not found).
+ *           1 on Success (block was found).
+ *
+ * \param[in]   wk      	The bundle acquisition structure.
+ * \param[in]   sbspBlockType	The type of block to search for.
+ * \param[in]   targetBlockType	The type of block the block must target.
+ * \param[in]   secSrcEid	The EID of the node that must have attached
+ *				the block to the bundle.
+ *
+ * \par Notes:
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  07/19/18  S. Burleigh   Initial implementation.
+ *
+ *****************************************************************************/
+
+int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
+			uint8_t targetBlockType, char *secSrcEid)
+{
+	uint32_t		idx;
+	LystElt			elt;
+	AcqExtBlock		*blk;
+	SbspInboundBlock	*asb;
+	Bundle			*bundle;
+	char			*dictionary;
+	int			result;
+	char			*fromEid;
+
+	CHKZERO(wk);
+	bundle = &(wk->bundle);
+	dictionary = retrieveDictionary(bundle);
+	if (dictionary == (char *) bundle)
+	{
+		return 0;
+	}
+
+	for (idx = 0; idx < 2; idx++)
+	{
+		for (elt = lyst_first(wk->extBlocks[idx]); elt;
+				elt = lyst_next(elt))
+		{
+			blk = (AcqExtBlock *) lyst_data(elt);
+			if (blk->type != sbspBlockType)
+			{
+				continue;	/*	Not a BIB.	*/
+			}
+
+			asb = (SbspInboundBlock *) (blk->object);
+			if (asb->targetBlockType != targetBlockType)
+			{
+				continue;	/*	Wrong target.	*/
+			}
+
+			/*	Now see if source of BIB matches the
+				source EID for this BIB rule.		*/
+
+			result = 0;
+			fromEid = NULL;
+			if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
+			{
+				result = sbsp_getInboundSecuritySource(blk,
+						dictionary, &fromEid);
+			}
+
+			if (result == 0)
+			{
+				/*	No security source in block,
+					so source of BIB is the source
+					of the bundle.		.	*/
+
+				if (printEid(&bundle->id.source, dictionary,
+						&fromEid) < 0)
+				{
+					result = -1;
+				}
+				else
+				{
+					result = 1;
+				}
+			}
+
+			if (result == 1)
+			{
+				if (eidsMatch(secSrcEid, strlen(secSrcEid),
+						fromEid, strlen(fromEid)) == 0)
+				{
+					result = 0;
+				}
+			}
+
+			if (fromEid)
+			{
+				MRELEASE(fromEid);
+			}
+
+			if (result != 0)	/*	1 or -1.	*/
+			{
+				if (dictionary)
+				{
+					releaseDictionary(dictionary);
+				}
+
+				return result;
+			}
+		}
+	}
+
+	/*	Did not find any BIB that satisfies this rule.		*/
+
+	if (dictionary)
+	{
+		releaseDictionary(dictionary);
+	}
 
 	return 0;
 }
@@ -1560,10 +1688,12 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	/* Step 1: If we don't have a ZCO, we need to make one. */
 	if (*resultZco == 0)     /*      First extent of acquisition.    */
 	{
-		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoOutbound);
+		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0,
+				ZcoOutbound);
 		if (*resultZco == (Object) ERROR)
 		{
-			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't start file source ZCO.", NULL);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't \
+start file source ZCO.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
@@ -1576,7 +1706,8 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	{
 		if (igetcwd(cwd, sizeof cwd) == NULL)
 		{
-			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't get CWD for acq file name.", NULL);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't \
+get CWD for acq file name.", NULL);
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
@@ -1587,7 +1718,8 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		fd = open(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
-			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't create acq file %s.", fileName);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't \
+create acq file %s.", fileName);
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
@@ -1601,14 +1733,16 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 		fd = open(fileName, O_WRONLY, 0666);
 		if (fd < 0)
 		{
-			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't reopen acq file %s.", fileName);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't \
+reopen acq file %s.", fileName);
 			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
 		if ((fileLength = lseek(fd, 0, SEEK_END)) < 0)
 		{
-			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't get acq file length %s.", fileName);
+			SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't \
+get acq file length %s.", fileName);
 			sdr_cancel_xn(sdr);
 			close(fd);
 			return 0;
@@ -1618,7 +1752,8 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	// Write the data to the file
 	if (write(fd, bytes, length) < 0)
 	{
-		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't append to acq file %s.", fileName);
+		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't append \
+to acq file %s.", fileName);
 		sdr_cancel_xn(sdr);
 		close(fd);
 		return 0;
@@ -1630,7 +1765,8 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
 					      fileLength, length) <= 0)
 	{
-		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't append extent to ZCO.", NULL);
+		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't append \
+extent to ZCO.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -1640,11 +1776,10 @@ int sbsp_transferToZcoFileSource(Sdr sdr, Object *resultZco,
 	zco_destroy_file_ref(sdr, *acqFileRef);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't acquire extent into file..", NULL);
+		SBSP_DEBUG_ERR("x sbsp_transferToZcoFileSource: Can't acquire \
+extent into file..", NULL);
 		return -1;
 	}
 
 	return 1;
 }
-
-

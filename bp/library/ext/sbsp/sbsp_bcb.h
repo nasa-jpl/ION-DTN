@@ -24,6 +24,7 @@
  **              sbsp_bcbRelease
  **              sbsp_bcbCopy
  **                                                  sbsp_bcbAcquire
+ **                                                  sbsp_bcbReview
  **                                                  sbsp_bcbDecrypt
  **                                                  sbsp_bcbRecord
  **                                                  sbsp_bcbClear
@@ -156,6 +157,8 @@ extern void		sbsp_bcbClear(AcqExtBlock *blk);
 
 extern int		sbsp_bcbCopy(ExtensionBlock *newBlk,
 						ExtensionBlock *oldBlk);
+
+//	extern int		sbsp_bcbReview(AcqWorkArea *wk);
 
 extern int		sbsp_bcbDecrypt(AcqExtBlock *blk,
 						AcqWorkArea *wk);
