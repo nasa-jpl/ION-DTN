@@ -23,6 +23,7 @@
  **              sbsp_bcbRelease
  **              sbsp_bcbCopy
  **                                                  sbsp_bcbAcquire
+ **                                                  sbsp_bcbReview
  **                                                  sbsp_bcbDecrypt
  **                                                  sbsp_bcbRecord
  **                                                  sbsp_bcbClear
@@ -109,7 +110,6 @@ int	sbsp_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbClear
@@ -167,8 +167,6 @@ void	sbsp_bcbClear(AcqExtBlock *blk)
 }
 
 
-
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbCopy
@@ -191,8 +189,6 @@ void	sbsp_bcbClear(AcqExtBlock *blk)
  *  04/02/12  S. Burleigh    Port from sbsp_pibCopy
  *  11/07/15  E. Birrane     Comments. [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-
-
 
 int	sbsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
@@ -290,7 +286,6 @@ int	sbsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -393,7 +388,8 @@ int	sbsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BCB rule.	*/
 
-	prof = sbsp_bcbGetProfile(fromEid, toEid, asb->targetBlockType, &bcbRule);
+	prof = sbsp_bcbGetProfile(fromEid, toEid, asb->targetBlockType,
+			&bcbRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
@@ -469,7 +465,6 @@ int	sbsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	BCB_DEBUG_PROC("- sbsp_bcbDecrypt --> %d", result);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -803,44 +798,29 @@ parameters.", NULL);
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbGetProfile
  *
- * \par Purpose: Find the profile associated with a potential confidentiality service.
- *               The confidentiality security service within a bundle is uniquely
- *               identified as OP(confidentiality, target), where target is the
- *               identifier of the bundle block receiving the protection.
+ * \par Purpose: Find the profile associated with a potential confidentiality
+ *		 service.  The confidentiality security service within a
+ *		 bundle is uniquely identified as OP(confidentiality, target),
+ *		 where target is the identifier of the bundle block receiving
+ *		 the protection.
  *
- *               The ciphersuite profile captures all policy decisions associated
- *               with the application of confidentiality for the given target block
- *               from the given security source to the security destination. If
- *               no profile exists, then there is no policy requiring a BCB for
- *               the given block between the source and destination.
+ *               The ciphersuite profile captures all function implementations
+ *		 associated with the application of confidentiality for the
+ *		 given target block from the given security source to the
+ *		 security destination. If no profile exists, then there is no
+ *		 implementation of BCB for the given block between the source
+ *		 and destination; any securty policy rule requiring such an
+ *		 implementation has been violated..
  *
  * \retval BcbProfile *  NULL  - No profile found.
  *            -          !NULL - The appropriate BCB Profile
  *
- * \param[in]  secSrc     The EID of the node seeking to add the BCB
- * \param[in]  secDest    The bundle destination ultimately responsible
- *                        for verifying the integrity of the BCB.
+ * \param[in]  secSrc     The EID of the node that creates the BCB
+ * \param[in]  secDest    The EID of the node that uses the BCB.
  * \param[in]  secTgtType The block type of the target block.
  * \param[out] secBcbRule The BCB rule capturing security policy.
  *
@@ -855,13 +835,14 @@ parameters.", NULL);
  *  11/07/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-BcbProfile *sbsp_bcbGetProfile(char *secSrc, char *secDest,
-							  int secTgtType, BspBcbRule *bcbRule)
+
+BcbProfile	*sbsp_bcbGetProfile(char *secSrc, char *secDest, int secTgtType,
+			BspBcbRule *bcbRule)
 {
-	Sdr	bpSdr = getIonsdr();
-	Object	ruleAddr;
-	Object	ruleElt;
-	BcbProfile *prof = NULL;
+	Sdr		bpSdr = getIonsdr();
+	Object		ruleAddr;
+	Object		ruleElt;
+	BcbProfile 	*prof = NULL;
 
 	BCB_DEBUG_PROC("+ sbsp_bcbGetProfile(%s, %s, %d, 0x%x)",
 				   (secSrc == NULL) ? "NULL" : secSrc,
@@ -878,6 +859,7 @@ BcbProfile *sbsp_bcbGetProfile(char *secSrc, char *secDest,
 	 * Step 1.1 - If there is no matching rule, there is no policy
 	 * and without policy we do not apply a BCB.
 	 */
+
 	if (ruleElt == 0)
 	{
 		memset((char *) bcbRule, 0, sizeof(BspBcbRule));
@@ -889,18 +871,16 @@ for BCBs. No BCB processing for this bundle.", NULL);
 	/* Step 2 - Retrieve the Profile associated with this policy. */
 
 	sdr_read(bpSdr, (char *) bcbRule, ruleAddr, sizeof(BspBcbRule));
-	if((prof = get_bcb_prof_by_name(bcbRule->ciphersuiteName)) == NULL)
+	if( (prof = get_bcb_prof_by_name(bcbRule->ciphersuiteName)) == NULL)
 	{
-		BCB_DEBUG_INFO("i sbsp_bcbGetProfile: Ciphersuite \
-of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
-						bcbRule->ciphersuiteName);
+		BCB_DEBUG_INFO("i sbsp_bcbGetProfile: Profile of BCB rule is \
+unknown '%s'.  No BCB processing for this bundle.", bcbRule->ciphersuiteName);
 	}
 
 	BCB_DEBUG_PROC("- sbsp_bcbGetProfile -> 0x%x", (unsigned long) prof);
 
 	return prof;
 }
-
 
 
 /******************************************************************************
@@ -942,17 +922,20 @@ of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
  *            S. Burleigh    Initial Implementation
  *  11/07/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
+ *  07/20/18  S. Burleigh    Abandon bundle if can't attach BCB
  *****************************************************************************/
+
 static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			SbspOutboundBlock *bcbAsb, size_t xmitRate)
 {
 	int		result = 0;
 	char		*fromEid = NULL;
 	char		*toEid = NULL;
+	char		eidBuf[32];
 	BspBcbRule	bcbRule;
 	BcbProfile	*prof = NULL;
 	unsigned char	*serializedAsb = NULL;
-	uvast bytes = 0;
+	uvast		bytes = 0;
 
 	BCB_DEBUG_PROC("+ sbsp_bcbAttach (0x%x, 0x%x, 0x%x)",
 			(unsigned long) bundle, (unsigned long) bcbBlk,
@@ -963,9 +946,11 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	CHKERR(bcbBlk);
 	CHKERR(bcbAsb);
 
-	/* Step 1 - Grab Policy for the candidate block. */
+	/* Step 1 -	Grab Policy for the candidate block. 		*/
 
-	/* Step 1.1 - Retrieve the from/to EIDs that bound the integrity service. */
+	/* Step 1.1 -	Retrieve the from/to EIDs that bound the
+			confidentiality service. 			*/
+
 	if ((result = sbsp_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb,
 			&fromEid, &toEid)) <= 0)
 	{
@@ -973,16 +958,26 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 
 		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't get security EIDs.",
 				NULL);
-
+		result = -1;
 		BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
 		return result;
 	}
 
+	/*	We only attach a BCB per a rule for which the local
+		node is the security source.				*/
+
+	MRELEASE(fromEid);
+	isprintf(eidBuf, sizeof eidBuf, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	fromEid = eidBuf;
+
 	/*
 	 * Step 1.2 -	Grab the profile for encryption for the target
-	 *		block from the EIDs. If there is no profile,
-	 *		the assumption is that there is no policy for
-	 *		attaching BCBs in this instance.
+	 *		block from the EIDs. If there is no rule,
+	 *		then there is no policy for attaching BCBs
+	 *		in this instance.  If there is a rule but no
+	 *		matching profile then the bundle must not be
+	 *		forwarded.
 	 */
 
 	prof = sbsp_bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType,
@@ -990,13 +985,25 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
-		MRELEASE(fromEid);
-		BCB_DEBUG(2,"NOT adding BCB.", NULL);
+		if (bcbRule.destEid == 0)	/*	No rule.	*/
+		{
+			BCB_DEBUG(2,"NOT adding BCB; no rule.", NULL);
+
+			/*	No applicable valid construction rule.	*/
+
+			result = 0;
+			scratchExtensionBlock(bcbBlk);
+			BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
+			return result;
+		}
+
+		BCB_DEBUG(2,"NOT adding BCB; no profile.", NULL);
 
 		/*	No applicable valid construction rule.		*/
 
-		scratchExtensionBlock(bcbBlk);
 		result = 0;
+		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
 		return result;
 	}
@@ -1020,31 +1027,31 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't construct ASB.", NULL);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, 0);
-		MRELEASE(fromEid);
 
-		scratchExtensionBlock(bcbBlk);
+		result = -1;
 		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
-	/* Step 2.2 - Encrypt the target block and attach it. */
+	/* Step 2.2 - Encrypt the target block and attach it. 		*/
 
 	result = (prof->encrypt == NULL) ?
 			sbsp_bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk,
 			bcbAsb, xmitRate, &bytes) : prof->encrypt(bundle,
 			bcbBlk, bcbAsb, xmitRate, &bytes);
 
-	if (result <= 0)
+	if (result < 0)
 	{
 		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't encrypt target block.",
 				NULL);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
-		MRELEASE(fromEid);
 
-		scratchExtensionBlock(bcbBlk);
+		result = -1;
 		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
@@ -1060,16 +1067,16 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 bcbBlk->dataLength = %d", bcbBlk->dataLength);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
-		MRELEASE(fromEid);
 
-		result = 0;
-		scratchExtensionBlock(bcbBlk);
+		result = -1;
 		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
-	/* Step 3.2 - Copy the serializedBCB ASB into the BCB extension block. */
+	/* Step 3.2 - Copy serializedBCB ASB into the BCB extension block. */
+
 	if ((result = serializeExtBlk(bcbBlk, NULL, (char *) serializedAsb))
 			< 0)
 	{
@@ -1079,7 +1086,6 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 	MRELEASE(serializedAsb);
 
 	ADD_BCB_TX_PASS(fromEid, 1, bytes);
-	MRELEASE(fromEid);
 
 	BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 	return 1;
@@ -1358,17 +1364,6 @@ void    sbsp_bcbRelease(ExtensionBlock *blk)
 
 	BCB_DEBUG_PROC("- sbsp_bcbRelease(%c)", ' ');
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 Object sbsp_bcbStoreOverflow(uint32_t suite,
@@ -2165,4 +2160,74 @@ allocate ZCO for ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
 	}
 
 	return 0;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: sbsp_bcbReview
+ *
+ * \par Purpose: This callback is called once for each acquired bundle.
+ *		 It scans through all BCB security rules and ensures
+		 that each required BCB is included among the bundle's
+		 extension blocks.
+ *
+ * \retval int -- 1 - All required BCBs are present.
+ *                0 - At least one required BCB is missing.
+ *               -1 - There was a system error.
+ *
+ * \param[in]      wk   The work area associated with this bundle acquisition.
+ *
+ * \par Notes:
+ *****************************************************************************/
+
+int	sbsp_bcbReview(AcqWorkArea *wk)
+{
+	Sdr	sdr = getIonsdr();
+	char	secDestEid[32];
+	Object	rules;
+	Object	elt;
+	Object	ruleAddr;
+		OBJ_POINTER(BspBcbRule, rule);
+	char	eidBuffer[SDRSTRING_BUFSZ];
+	int	result = 1;	/*	Default: no problem.		*/
+
+	BCB_DEBUG_PROC("+ sbsp_bcbReview(%x)", (unsigned long) wk);
+
+	CHKERR(wk);
+
+	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	rules = sec_get_bspBcbRuleList();
+	CHKERR(rules);
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sdr_list_first(sdr, rules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		ruleAddr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBcbRule, rule, ruleAddr);
+		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
+		if (strcmp(eidBuffer, secDestEid) != 0)
+		{
+			/*	No requirement against local node.	*/
+
+			continue;
+		}
+
+		/*	A block satisfying this rule is required.	*/
+
+		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
+		result = sbsp_requiredBlockExists(wk, BLOCK_TYPE_BCB,
+				rule->blockTypeNbr, eidBuffer);
+		if (result != 1)
+		{
+			break;
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	BCB_DEBUG_PROC("- sbsp_bcbReview -> %d", result);
+
+	return result;
 }

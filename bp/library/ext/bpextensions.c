@@ -190,7 +190,7 @@ static ExtensionDef	extensionDefs[] =
 				sbsp_bcbRelease,
 				sbsp_bcbCopy,
 				sbsp_bcbAcquire,
-				0, 		//	sbsp_bcbReview,
+				sbsp_bcbReview,
 				sbsp_bcbDecrypt,
 				0,
 				0,

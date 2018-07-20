@@ -142,8 +142,9 @@
 #endif
 
 
-extern int	sbsp_bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
-			SbspOutboundBlock *bibAsb);
+/************************************************************************
+ *				FUNCTION DEFINITIONS			*
+ ************************************************************************/
 
 extern int	sbsp_bibReview(AcqWorkArea *wk);
 

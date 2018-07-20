@@ -5859,7 +5859,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
-	if(bundle->corrupt == 1)
+	if (bundle->corrupt == 1)
 	{
 		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
 	}
@@ -8646,8 +8646,14 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/*	Make sure all required security blocks are present.	*/
 
-	if (reviewExtensionBlocks(work) == 0)
+	switch (reviewExtensionBlocks(work))
 	{
+	case -1:
+		putErrmsg("Failed reviewing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+
+	case 0:
 		writeMemo("[?] Malformed bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
