@@ -44,10 +44,10 @@ typedef enum
 	// CgrHop(uvast fromNode, uvast toNode)
 	CgrHop,
 
-	// CgrAcceptRoute(uvast firstHop, unsigned int fromTime,
+	// CgrProposeRoute(uvast firstHop, unsigned int fromTime,
 	//		unsigned int deliveryTime, uvast maxVolume,
 	//		int payloadClass)
-	CgrAcceptRoute,
+	CgrProposeRoute,
 	// CgrDiscardRoute(void)
 	CgrDiscardRoute,
 
@@ -110,6 +110,7 @@ typedef enum
 	CgrRouteVolumeTooSmall,
 	CgrInitialContactExcluded,
 	CgrRouteTooSlow,
+	CgrRouteCongested,
 	CgrNoPlan,
 	CgrBlockedPlan,
 	CgrMaxPayloadTooSmall,

@@ -1063,6 +1063,14 @@ static void	deleteContact(PsmAddress cxaddr)
 	sdr_free(sdr, obj);
 	sdr_list_delete(sdr, cxref->contactElt, NULL, NULL);
 
+	/*	Delete routing object, if any.				*/
+
+	if (cxref->routingObject)
+	{
+		psm_free(ionwm, cxref->routingObject);
+		cxref->routingObject = 0;
+	}
+
 	/*	Delete contact events from timeline.			*/
 
 	event.ref = cxaddr;

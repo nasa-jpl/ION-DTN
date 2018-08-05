@@ -186,7 +186,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		lyst_insert_first(traceState->route->hops, hop);
 		break;
 
-	case CgrAcceptRoute:
+	case CgrProposeRoute:
 		route = traceState->route;
 
 		route->firstHop = va_arg(args, uvast);
@@ -196,8 +196,8 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		traceState->routeElt = lyst_last(traceState->routes);
 		break;
 
-	case CgrDiscardRoute:
-		// Discard the route being built.
+	case CgrNoRoute:
+		// The route that was constructed is null.
 		routeDestroy(traceState->route);
 		break;
 

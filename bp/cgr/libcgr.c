@@ -46,7 +46,8 @@
 
 typedef struct
 {
-	PsmAddress	spurRoot;	/*	Within *prior* route.	*/
+	PsmAddress	rootOfSpur;	/*	Within *prior* route.	*/
+	int		spursComputed;	/*	Boolean.		*/
 
 	/*	Contact that forms the initial hop of the route.	*/
 
@@ -71,10 +72,10 @@ typedef struct
 	Scalar		protected;	/*	Bytes not overbooked.	*/
 
 	/*	NOTE: initial transmission on the "spur" portion of
-	 *	this route is from the contact identified by spurRoot
+	 *	this route is from the contact identified by rootOfSpur
 	 *	to the contact identified by the first entry in the
 	 *	hops list.  For a route that is not a branch off of
-	 *	any other route, spurRoot is zero indicating that the
+	 *	any other route, rootOfSpur is zero indicating that the
 	 *	initial transmission on the "spur" portion of this
 	 *	route (which is the entire route) is from the root
 	 *	of the contact graph to the first contact in "hops".	*/
@@ -125,19 +126,25 @@ typedef struct
 
 /*	Functions for managing the CGR database.			*/
 
-static void	destroyRoute(PsmPartition ionwm, PsmAddress elt)
+static void	destroyRoute(PsmPartition ionwm, PsmAddress routeAddr)
 {
-	PsmAddress	addr;
 	CgrRoute	*route;
 
-	addr = sm_list_data(ionwm, elt);
-	route = (CgrRoute *) psp(ionwm, addr);
+	route = (CgrRoute *) psp(ionwm, routeAddr);
 	if (route->hops)
 	{
 		sm_list_destroy(ionwm, route->hops, NULL, NULL);
 	}
 
-	psm_free(ionwm, addr);
+	psm_free(ionwm, routeAddr);
+}
+
+static void	removeRoute(PsmPartition ionwm, PsmAddress elt)
+{
+	PsmAddress	addr;
+
+	addr = sm_list_data(ionwm, elt);
+	destroyRoute(ionwm, addr);
 	sm_list_delete(ionwm, elt, NULL, NULL);
 }
 
@@ -156,7 +163,7 @@ static void	discardRouteList(PsmPartition ionwm, PsmAddress routes)
 	for (elt = sm_list_first(ionwm, routes); elt; elt = nextElt)
 	{
 		nextElt = sm_list_next(ionwm, elt);
-		destroyRoute(ionwm, elt);
+		removeRoute(ionwm, elt);
 	}
 
 	/*	Destroy the list itself.				*/
@@ -215,34 +222,7 @@ static void	destroyRoutingObjects(CgrVdb *vdb)
 		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
 }
-#if 0
-static void	clearRoutingObjects(PsmPartition ionwm)
-{
-	IonVdb		*ionvdb = getIonVdb();
-	PsmAddress	elt;
-	IonNode		*node;
-	CgrRtgObject	*routingObject;
 
-	/*	Discard all routes computed for all destination nodes,
-	 *	whether or not in CGR vdb list of routing objects.	*/
-
-	for (elt = sm_rbt_first(ionwm, ionvdb->nodes); elt;
-			elt = sm_rbt_next(ionwm, elt))
-	{
-		node = (IonNode *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		if (node->routingObject)
-		{
-			routingObject = (CgrRtgObject *) psp(ionwm,
-					node->routingObject);
-			detachRoutingObject(ionwm, routingObject);
-
-			/*	Destroy the routing object itself.	*/
-
-			psm_free(ionwm, node->routingObject);
-		}
-	}
-}
-#endif
 static CgrVdb	*getCgrVdb()
 {
 	static char	*name = CGRVDB_NAME;
@@ -391,9 +371,62 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	return -1;
 }
 
+static CgrContactNote	*getWorkArea(PsmPartition ionwm, IonCXref *contact)
+{
+	CgrContactNote	*work;
+
+	if (contact->routingObject == 0)
+	{
+		contact->routingObject = psm_zalloc(ionwm,
+				sizeof(CgrContactNote));
+		if (contact->routingObject == 0)
+		{
+			return NULL;
+		}
+
+		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
+		memset((char *) work, 0, sizeof(CgrContactNote));
+	}
+	else
+	{
+		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
+	}
+
+	return work;
+}
+
+static int	clearWorkAreas(IonCXref *rootContact)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	PsmAddress	elt;
+	IonCXref	*contact;
+	CgrContactNote	*work;
+
+	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
+		CHKERR(work = getWorkArea(ionwm, contact));
+		work->predecessor = NULL;
+		work->visited = 0;
+		work->suppressed = 0;
+
+		/*	Reset arrival time, except preserve arrival
+		 *	time of root contact.				*/
+
+		if (contact != rootContact)
+		{
+			work->arrivalTime = MAX_TIME;
+		}
+	}
+
+	return 0;
+}
+
 static int	computeDistanceToTerminus(IonCXref *rootContact,
 			CgrContactNote *rootWork, IonNode *terminusNode,
-			CgrRoute *route, CgrTrace *trace)
+			time_t currentTime, CgrRoute *route, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -419,30 +452,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	TRACE(CgrBeginRoute);
 	current = rootContact;
 	currentWork = rootWork;
-
-	/*	First, clear all contact work areas.			*/
-
-	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
-			elt = sm_rbt_next(ionwm, elt))
-	{
-		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		work = (CgrContactNote *) psp(ionwm, contact->routingObject);
-		work->predecessor = NULL;
-		work->visited = 0;
-		work->suppressed = 0;
-
-		/*	Reset arrival time, except preserve arrival
-		 *	time of root contact.				*/
-
-		if (contact != rootContact)
-		{
-			work->arrivalTime = MAX_TIME;
-		}
-	}
-
 	memset((char *) &arg, 0, sizeof(IonCXref));
 
-	/*	Now perform this interior loop until either the best
+	/*	Perform this interior loop until either the best
 	 *	route to the end vertex has been identified or else
 	 *	it is known that there is no such route.		*/
 
@@ -467,6 +479,13 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		{
 			contact = (IonCXref *) psp(ionwm,
 					sm_rbt_data(ionwm, elt));
+			if (contact->toTime <= currentTime)
+			{
+				/*	Contact is ended, is about to
+				 *	be purged.			*/
+
+				continue;
+			}
 
 			/*	Note: contact->fromNode can't be less
 			 *	than current->toNode: we started at
@@ -481,21 +500,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 			TRACE(CgrConsiderContact, contact->fromNode,
 					contact->toNode);
-			if (contact->toTime <= currentWork->arrivalTime)
-			{
-				TRACE(CgrIgnoreContact, CgrContactEndsEarly);
-
-				/*	Can't be a next-hop contact:
-				 *	transmission has stopped by
-				 *	the time of arrival of data
-				 *	during the current contact.	*/
-
-				continue;
-			}
-
-			work = (CgrContactNote *) psp(ionwm,
-					contact->routingObject);
-			CHKERR(work);
+			CHKERR(work = getWorkArea(ionwm, contact));
 			if (work->suppressed)
 			{
 				TRACE(CgrIgnoreContact, CgrSuppressed);
@@ -505,6 +510,18 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			if (work->visited)
 			{
 				TRACE(CgrIgnoreContact, CgrVisited);
+				continue;
+			}
+
+			if (contact->toTime <= currentWork->arrivalTime)
+			{
+				TRACE(CgrIgnoreContact, CgrContactEndsEarly);
+
+				/*	Can't be a next-hop contact:
+				 *	transmission has stopped by
+				 *	the time of arrival of data
+				 *	during the current contact.	*/
+
 				continue;
 			}
 
@@ -594,9 +611,15 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
 					elt));
 			CHKERR(contact);
-			work = (CgrContactNote *) psp(ionwm,
-					contact->routingObject);
-			CHKERR(work);
+			if (contact->toTime <= currentTime)
+			{
+				/*	Contact is ended, is about to
+				 *	be purged.			*/
+
+				continue;
+			}
+
+			CHKERR(work = getWorkArea(ionwm, contact));
 			if (work->suppressed || work->visited)
 			{
 				continue;	/*	Ineligible.	*/
@@ -637,7 +660,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 		current = nextContact;
 		currentWork = (CgrContactNote *)
-				psp(ionwm, nextContact->routingObject);
+				psp(ionwm, current->routingObject);
 		if (current->toNode == terminusNode->nodeNbr)
 		{
 			earliestFinalArrivalTime = currentWork->arrivalTime;
@@ -662,9 +685,6 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		contact = finalContact;
 		while (contact)
 		{
-//printf("***Checking hop from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC "...\n",
-//contact->fromNode, contact->toNode);
-//fflush(stdout);
 			work = (CgrContactNote *) psp(ionwm,
 					contact->routingObject);
 			if (contact->toTime < earliestEndTime)
@@ -706,14 +726,44 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 			IonNode *terminusNode, time_t currentTime,
 		       	PsmAddress *routeAddr, CgrTrace *trace)
 {
+	IonCXref	*rootContact;
+	CgrContactNote	*rootWork;
+	PsmAddress	rootOfSpur;
 	PsmAddress	addr;
 	CgrRoute	*route;
 	IonCXref	graphRoot;
 	CgrContactNote	graphRootWork;
-	IonCXref	*rootContact;
-	CgrContactNote	*rootWork;
 
 	*routeAddr = 0;		/*	Default.			*/
+	if (rootContactElt)	/*	Computing a spur route.		*/
+	{
+//puts("*** Spur route, starting at a waypoint of the last selected route. ***");
+		rootContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
+				rootContactElt));
+		if (rootContact->toNode == terminusNode->nodeNbr)
+		{
+			/*	No forwarding from destination.		*/
+
+			return 0;
+		}
+
+		rootWork = (CgrContactNote *) psp(ionwm,
+				rootContact->routingObject);
+		rootOfSpur = rootContactElt;
+	}
+	else	 /*	Computing route from root of contact graph.	*/
+	{
+//puts("*** Starting at root of contact graph. ***");
+
+		memset((char *) &graphRoot, 0, sizeof graphRoot);
+		graphRoot.fromNode = graphRoot.toNode = getOwnNodeNbr();
+		rootContact = &graphRoot;
+		memset((char *) &graphRootWork, 0, sizeof graphRootWork);
+		graphRootWork.arrivalTime = currentTime;
+		rootWork = &graphRootWork;
+		rootOfSpur = 0;
+	}
+
 	addr = psm_zalloc(ionwm, sizeof(CgrRoute));
 	if (addr == 0)
 	{
@@ -731,32 +781,12 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 		return -1;
 	}
 
-	if (rootContactElt == 0)
-	{
-		/*	Computing route from root of contact graph.	*/
-
-		memset((char *) &graphRoot, 0, sizeof graphRoot);
-		graphRoot.fromNode = getOwnNodeNbr();
-		graphRoot.toNode = graphRoot.fromNode;
-		rootContact = &graphRoot;
-		memset((char *) &graphRootWork, 0, sizeof graphRootWork);
-		graphRootWork.arrivalTime = currentTime;
-		rootWork = &graphRootWork;
-		route->spurRoot = 0;
-	}
-	else	/*	Computing a spur route.				*/
-	{
-		rootContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
-				rootContactElt));
-		rootWork = (CgrContactNote *) psp(ionwm,
-				rootContact->routingObject);
-		route->spurRoot = rootContactElt;
-	}
+	route->rootOfSpur = rootOfSpur;
 
 	/*	Run Dijkstra search.					*/
 
 	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
-			route, trace) < 0)
+			currentTime, route, trace) < 0)
 	{
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
@@ -764,9 +794,9 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 
 	if (route->toNodeNbr == 0)
 	{
-		TRACE(CgrDiscardRoute);
+		TRACE(CgrNoRoute);
 
-		/*	No more routes found in graph.			*/
+		/*	No more routes in graph.			*/
 
 		sm_list_destroy(ionwm, route->hops, NULL, NULL);
 		psm_free(ionwm, addr);
@@ -774,7 +804,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	}
 	else
 	{
-		TRACE(CgrAcceptRoute, route->toNodeNbr,
+		TRACE(CgrProposeRoute, route->toNodeNbr,
 				(unsigned int)(route->fromTime),
 				(unsigned int)(route->arrivalTime));
 
@@ -792,9 +822,6 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb	= getCgrVdb();
-	PsmAddress	elt;
-	IonCXref	*contact;
-	CgrContactNote	*work;
 	PsmAddress	routeAddr;
 	CgrRtgObject	*routingObj;
 
@@ -803,31 +830,9 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	CHKERR(ionvdb);
 	CHKERR(cgrvdb);
 
-	/*	Initialize contact work areas as necessary.		*/
-
-	for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
-			elt = sm_rbt_next(ionwm, elt))
-	{
-		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		if ((work = (CgrContactNote *) psp(ionwm,
-				contact->routingObject)) == NULL)
-		{
-			contact->routingObject = psm_zalloc(ionwm,
-					sizeof(CgrContactNote));
-			work = (CgrContactNote *) psp(ionwm,
-					contact->routingObject);
-			if (work == NULL)
-			{
-				putErrmsg("Can't create contact note.", NULL);
-				return -1;
-			}
-
-			memset((char *) work, 0, sizeof(CgrContactNote));
-		}
-	}
-
 	/*	Find first route.					*/
 
+	clearWorkAreas(NULL);
 	if (computeRoute(ionwm, 0, terminusNode, currentTime, &routeAddr, trace)
 			< 0)
 	{
@@ -880,286 +885,269 @@ static int	loopFound(PsmPartition ionwm, CgrRoute *lastSelectedRoute,
 	return 0;
 }
 
-static int	computeAnotherRoute(IonNode *terminusNode, time_t currentTime,
+static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
+			CgrRoute *lastSelectedRoute, time_t currentTime, 
+			PsmAddress rootOfSpur, PsmAddress firstHop,
+			CgrRtgObject *routingObj, CgrTrace *trace)
+{
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+	CgrContactNote	*work;
+	PsmAddress	newRouteAddr;
+	CgrRoute	*newRoute;
+	PsmAddress	elt;
+
+	clearWorkAreas(rootOfSpur == 0 ? NULL : (IonCXref *) psp(ionwm,
+			sm_list_data(ionwm, rootOfSpur)));
+	if (firstHop)
+	{
+		/*	Don't recompute the same route.		*/
+
+		contactAddr = sm_list_data(ionwm, firstHop);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+//printf("*** Suppressing contact to node " UVAST_FIELDSPEC ".\n", contact->toNode);
+		CHKERR(work = getWorkArea(ionwm, contact));
+		work->suppressed = 1;
+	}
+
+	if (computeRoute(ionwm, rootOfSpur, terminusNode, currentTime,
+			&newRouteAddr, trace) < 0)
+	{
+		putErrmsg("Can't compute route.", NULL);
+		return -1;
+	}
+
+	if (newRouteAddr == 0)	/*	No route found.		*/
+	{
+//puts("*** No newly computed route reported. ***");
+		return 0;
+	}
+
+	newRoute = (CgrRoute *) psp(ionwm, newRouteAddr);
+
+	/*	New route is only a spur at this point.  Test for
+	 *	usability: can't use the route if it introduces a
+	 *	loop.							*/
+
+	if (loopFound(ionwm, lastSelectedRoute, newRoute))
+	{
+//puts("*** Newly computed route introduces a loop. ***");
+		/*	Not a usable route.				*/
+
+		destroyRoute(ionwm, newRouteAddr);
+		return 0;
+	}
+
+	/*	New route is usable.					*/
+
+	newRoute->rootOfSpur = rootOfSpur;
+
+	/*	Prepend common trunk route to the spur route.	*/
+
+	elt = rootOfSpur;
+	while (elt)
+	{
+//puts("*** Prepending a contact from trunk to spur route. ***");
+		contactAddr = sm_list_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		TRACE(CgrHop, contact->fromNode, contact->toNode);
+		if (sm_list_insert_first(ionwm, newRoute->hops, contactAddr)
+				== 0)
+		{
+			putErrmsg("Can't prepend trunk to spur route.", NULL);
+			return -1;
+		}
+
+		elt = sm_list_prev(ionwm, elt);
+	}
+
+	/*	Append new route into list of known routes.	*/
+
+//puts("*** Appending newly computed route to list B. ***");
+	if (sm_list_insert_last(ionwm, routingObj->knownRoutes, newRouteAddr)
+			== 0)
+	{
+		putErrmsg("Can't append known route.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	computeAnotherRoute(IonNode *terminusNode,
+			CgrRoute *lastSelectedRoute, time_t currentTime,
 			PsmAddress *elt, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
+	PsmAddress	rootOfSpur;	/*	An SmListElt in hops.	*/
+	PsmAddress	rootOfNextSpur;	/*	An SmListElt in hops.	*/
 	CgrRtgObject	*routingObj;
 	PsmAddress	elt2;
-	PsmAddress	addr;
-	CgrRoute	*lastSelectedRoute;
-	PsmAddress	spurRoot;	/*	An SmListElt in hops.	*/
-	PsmAddress	nextSpurRoot;	/*	An SmListElt in hops.	*/
-	PsmAddress	newRouteAddr;
-	CgrRoute	*newRoute;
-	PsmAddress	elt3;
-	PsmAddress	contactAddr;
-	PsmAddress	elt4;
 	PsmAddress	knownRouteAddr;
 	CgrRoute	*knownRoute;
-	PsmAddress	elt5;
-	PsmAddress	elt6;
-	PsmAddress	selectedRouteAddr;
-	CgrRoute	*selectedRoute;
-	int		selectedRouteHopCount;
 	int		knownRouteHopCount;
+	PsmAddress	bestKnownRouteElt;
+	PsmAddress	bestKnownRouteAddr;
+	CgrRoute	*bestKnownRoute;
+	int		bestKnownRouteHopCount;
 
 //puts("*** Computing another route. ***");
 	*elt = 0;	/*	Default: no new route found.		*/
 
-	/*	This is an implementation of the Lawler improvement
-	 *	on Yen's algorithm.					*/
+	/*	This code implements the Lawler modification of Yen's
+	 *	algorithm.						*/
 
-	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
-	elt2 = sm_list_last(ionwm, routingObj->selectedRoutes);
-	if (elt2 == 0)
+	rootOfSpur = lastSelectedRoute->rootOfSpur;
+	if (rootOfSpur == 0)
 	{
-		putErrmsg("Routing error: no last path to branch from!", NULL);
-		return -1;
-	}
-
-	addr = sm_list_data(ionwm, elt2);
-	lastSelectedRoute = (CgrRoute *) psp(ionwm, addr);
-	if (lastSelectedRoute->spurRoot == 0)
-	{
-		/*	Prior selected route branched from the root
+		/*	Last selected route branched from the root
 		 *	of the graph, so must compute spur routes
-		 *	from ALL hops of that prior selected route.	*/
+		 *	from ALL hops of the last selected route.	*/
 
-		spurRoot = 0;
-		nextSpurRoot = sm_list_first(ionwm, lastSelectedRoute->hops);
+		rootOfNextSpur = sm_list_first(ionwm, lastSelectedRoute->hops);
 	}
 	else
 	{
-		/*	Prior selected route branched off from some
+		/*	Last selected route branched off from some
 		 *	hop of the *previous* selected route, so must
 		 *	compute spur routes only from hops starting
 		 *	with that branch point - and then graft all
-		 *	earlier hops of the prior selected route onto
+		 *	earlier hops of the last selected route onto
 		 *	the front of each computed spur route.		*/
 
-		spurRoot = lastSelectedRoute->spurRoot;
-		nextSpurRoot = sm_list_next(ionwm, spurRoot);
+		rootOfNextSpur = sm_list_next(ionwm, rootOfSpur);
 	}
+
+	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
+
+	/*	Compute spur routes that branch off the current last
+	 *	selected route, inserting them into Yen's "list B").	*/
 
 	while (1)
 	{
-		if (computeRoute(ionwm, spurRoot, terminusNode, currentTime,
-				&newRouteAddr, trace) < 0)
+		if (computeSpurRoute(ionwm, terminusNode, lastSelectedRoute,
+				currentTime, rootOfSpur, rootOfNextSpur,
+				routingObj, trace) < 0)
 		{
-			putErrmsg("Can't compute route.", NULL);
+			putErrmsg("Failed computing spur route.", NULL);
 			return -1;
 		}
 
-		if (newRouteAddr == 0)	/*	No route found.		*/
+		rootOfSpur = rootOfNextSpur;
+		if (rootOfSpur == 0)
 		{
-			spurRoot = nextSpurRoot;
-			if (spurRoot == 0)
-			{
-				break;	/*	No more spur routes.	*/
-			}
+			/*	Receiver of prior root contact was
+			 *	the destination.			*/
 
-			nextSpurRoot = sm_list_next(ionwm, spurRoot);
-			continue;
-		}
-
-		newRoute = (CgrRoute *) psp(ionwm, newRouteAddr);
-
-		/*	New route is only a spur at this point.  Test
-		 *	for usability: can't use the route if it
-		 *	introduces a loop.				*/
-
-		if (loopFound(ionwm, lastSelectedRoute, newRoute))
-		{
-			/*	Not a usable route.			*/
-
-			spurRoot = nextSpurRoot;
-			if (spurRoot == 0)
-			{
-				break;	/*	No more spur routes.	*/
-			}
-
-			nextSpurRoot = sm_list_next(ionwm, spurRoot);
-			continue;
-		}
-
-		/*	New route is usable.				*/
-
-		newRoute->spurRoot = spurRoot;
-
-		/*	Prepend common trunk route to the spur route.	*/
-
-		elt3 = spurRoot;
-		while (elt3)
-		{
-			contactAddr = sm_list_data(ionwm, elt3);
-			if (sm_list_insert_first(ionwm, newRoute->hops,
-					contactAddr) == 0)
-			{
-				putErrmsg("Can't prepend trunk.", NULL);
-				return -1;
-			}
-
-			elt3 = sm_list_prev(ionwm, elt3);
-		}
-
-		/*	Insert new route into list of known routes,
-		 *	in ascending cost sequence.			*/
-
-		for (elt4 = sm_list_first(ionwm, routingObj->knownRoutes);
-				elt4; elt4 = sm_list_next(ionwm, elt4))
-		{
-			addr = sm_list_data(ionwm, elt4);
-			knownRoute = (CgrRoute *) psp(ionwm, addr);
-			if (knownRoute->arrivalTime > newRoute->arrivalTime)
-			{
-				if (sm_list_insert_before(ionwm, elt4,
-						newRouteAddr) == 0)
-				{
-					putErrmsg("Can't insert route.", NULL);
-					return -1;
-				}
-
-				break;
-			}
-		}
-
-		if (elt4 == 0)	/*	No costlier routes.		*/
-		{
-			if (sm_list_insert_last(ionwm, routingObj->knownRoutes,
-					newRouteAddr) == 0)
-			{
-				putErrmsg("Can't insert known route.", NULL);
-				return -1;
-			}
-		}
-
-		spurRoot = nextSpurRoot;
-		if (spurRoot == 0)
-		{
 			break;	/*	No more spur routes.		*/
 		}
 
-		nextSpurRoot = sm_list_next(ionwm, spurRoot);
+		rootOfNextSpur = sm_list_next(ionwm, rootOfSpur);
 	}
 
-	/*	Move the first (lowest-cost) route in the list of
+//puts("*** Finished computing all spur routes from last selected route. ***");
+
+	/*	Move the best (lowest-cost) route in the list of
 	 *	known routes (Yen's "list B") into the list of
 	 *	selected routes (Yen's "list A").			*/
 
-	elt5 = sm_list_first(ionwm, routingObj->knownRoutes);
-	if (elt5)
+	bestKnownRouteElt = 0;
+	for (elt2 = sm_list_first(ionwm, routingObj->knownRoutes); elt2;
+			elt2 = sm_list_next(ionwm, elt2))
 	{
-		/*	Can add another route to the list of selected
-		 *	routes.  Insert in preference order: ascending
-		 *	arrival time, ascending hop count, descending
-		 *	forfeit time, ascending proximate node number.	*/
+		/*	Determine whether or not this route is the
+		 *	best route in the B list. Preference is by
+		 *	ascending arrival time, ascending hop count,
+		 *	descending termination time, ascending entry
+		 *	node number.					*/
 
-		knownRouteAddr = sm_list_data(ionwm, elt5);
+//puts("*** Considering a B-list node for migration to A-list. ***");
+		knownRouteAddr = sm_list_data(ionwm, elt2);
 		knownRoute = (CgrRoute *) psp(ionwm, knownRouteAddr);
-		for (elt6 = sm_list_last(ionwm, routingObj->selectedRoutes);
-				elt6; elt6 = sm_list_prev(ionwm, elt6))
+		knownRouteHopCount = sm_list_length(ionwm, knownRoute->hops);
+		if (bestKnownRouteElt == 0)
 		{
-			selectedRouteAddr = sm_list_data(ionwm, elt6);
-			selectedRoute = (CgrRoute *) psp(ionwm,
-					selectedRouteAddr);
-			if (selectedRoute->arrivalTime
-					< knownRoute->arrivalTime)
-			{
-				/*	The route being inserted
-				 *	has later arrival time
-				 *	than this route.		*/
-
-				break;
-			}
-
-			if (selectedRoute->arrivalTime
-					> knownRoute->arrivalTime)
-			{
-				/*	The route being inserted
-				 *	has earlier arrival time
-				 *	than this route.		*/
-
-				continue;
-			}
-
-			/*	The route being inserted has the
-			 *	same arrival time as this route.	*/
-
-			selectedRouteHopCount = sm_list_length(ionwm,
-					selectedRoute->hops);
-			knownRouteHopCount = sm_list_length(ionwm,
-					knownRoute->hops);
-			if (selectedRouteHopCount < knownRouteHopCount)
-			{
-				/*	The route being inserted
-				 *	has more hops than this route.	*/
-
-				break;
-			}
-
-			if (selectedRouteHopCount < knownRouteHopCount)
-			{
-				/*	The route being inserted
-				 *	has fewer hops than this route.	*/
-
-				continue;
-			}
-
-			/*	The route being inserted has the
-			 *	same number of hops as this route.	*/
-
-			if (selectedRoute->toTime > knownRoute->toTime)
-			{
-				/*	The route being inserted has
-				 *	earlier termination time
-				 *	than this route.		*/
-
-				break;
-			}
-
-			if (selectedRoute->toTime < knownRoute->toTime)
-			{
-				/*	The route being inserted
-				 *	has later termination time
-				 *	than this route.		*/
-
-				continue;
-			}
-
-			/*	The route being inserted has the
-			 *	same termination time as this route.	*/
-
-			if (selectedRoute->toNodeNbr
-					< knownRoute->toNodeNbr)
-			{
-				/*	The route being inserted
-				 *	has larger neighbor node
-				 *	number than this route.		*/
-
-				break;
-			}
+			bestKnownRouteElt = elt2;
+			bestKnownRouteAddr = knownRouteAddr;
+			bestKnownRoute = knownRoute;
+			bestKnownRouteHopCount = knownRouteHopCount;
+			continue;
 		}
 
-		if (elt6 == 0)	/*	Known route is absolute best.	*/
+		/*	Earlier arrival time?				*/
+
+		if (knownRoute->arrivalTime > bestKnownRoute->arrivalTime)
 		{
-			*elt = sm_list_insert_first(ionwm,
-				routingObj->selectedRoutes, knownRouteAddr);
-		}
-		else
-		{
-			*elt = sm_list_insert_after(ionwm, elt6,
-				knownRouteAddr);
+			continue;	/*	Not better.		*/
 		}
 
+		if (knownRoute->arrivalTime < bestKnownRoute->arrivalTime)
+		{
+			bestKnownRouteElt = elt2;
+			bestKnownRouteAddr = knownRouteAddr;
+			bestKnownRoute = knownRoute;
+			bestKnownRouteHopCount = knownRouteHopCount;
+			continue;
+		}
+
+		/*	Fewer hops?					*/
+
+		if (knownRouteHopCount > bestKnownRouteHopCount)
+		{
+			continue;	/*	Not better.		*/
+		}
+
+		if (knownRouteHopCount < bestKnownRouteHopCount)
+		{
+			bestKnownRouteElt = elt2;
+			bestKnownRouteAddr = knownRouteAddr;
+			bestKnownRoute = knownRoute;
+			bestKnownRouteHopCount = knownRouteHopCount;
+			continue;
+		}
+
+		/*	Termination time?				*/
+
+		if (knownRoute->toTime < bestKnownRoute->toTime)
+		{
+			continue;	/*	Not better.		*/
+		}
+
+		if (knownRoute->toTime > bestKnownRoute->toTime)
+		{
+			bestKnownRouteElt = elt2;
+			bestKnownRouteAddr = knownRouteAddr;
+			bestKnownRoute = knownRoute;
+			bestKnownRouteHopCount = knownRouteHopCount;
+			continue;
+		}
+
+		/*	Entry node number?				*/
+
+		if (knownRoute->toNodeNbr > bestKnownRoute->toNodeNbr)
+		{
+			continue;	/*	Not better.		*/
+		}
+
+		bestKnownRouteElt = elt2;
+		bestKnownRouteAddr = knownRouteAddr;
+		bestKnownRoute = knownRoute;
+		bestKnownRouteHopCount = knownRouteHopCount;
+	}
+
+	if (bestKnownRouteElt)
+	{
+		*elt = sm_list_insert_last(ionwm, routingObj->selectedRoutes,
+				bestKnownRouteAddr);
 		if (*elt == 0)
 		{
 			putErrmsg("Can't insert selected route.", NULL);
 			return -1;
 		}
 
-		sm_list_delete(ionwm, elt5, NULL, NULL);
+		sm_list_delete(ionwm, bestKnownRouteElt, NULL, NULL);
 	}
+//else puts("*** No routes in list B to migrate into list A. ***");
 
 	return 0;
 }
@@ -1580,7 +1568,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			&plan, &overbooked, &protected, &eto);
 	if (arrivalTime == 0)	/*	Can't be delivered in time.	*/
 	{
-		TRACE(CgrExcludeRoute, CgrRouteTooSlow);
+		TRACE(CgrExcludeRoute, CgrRouteCongested);
 		return 0;		/*	Connections too tight.	*/
 	}
 
@@ -1607,8 +1595,10 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 			time_t currentTime, time_t deadline)
 {
 	PsmPartition	ionwm = getIonwm();
-	CgrRtgObject	*routingObj;
 	PsmAddress	nextElt;
+	CgrRtgObject	*routingObj;
+	PsmAddress	elt2;
+	PsmAddress	prevElt2;
 	PsmAddress	addr;
 	CgrRoute	*route;
 	IonCXref	*contact;
@@ -1627,37 +1617,84 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	else		/*	At end of selectedRoutes list.		*/
 	{
 		nextElt = 0;
+
+		/*	Must compute a new selected route.  This
+		 *	may entail computing spur routes that branch
+		 *	off of the last selected route from which
+		 *	spurs have not yet been computed.		*/
+
 		routingObj = (CgrRtgObject *) psp(ionwm,
 			       	terminusNode->routingObject);
-		if (sm_list_last(ionwm, routingObj->selectedRoutes) == 0)
+		for (elt2 = sm_list_last(ionwm, routingObj->selectedRoutes);
+				elt2; elt2 = prevElt2)
 		{
-			if (insertFirstRoute(terminusNode, currentTime, trace))
+			prevElt2 = sm_list_prev(ionwm, elt2);
+			addr = sm_list_data(ionwm, elt2);
+			route = (CgrRoute *) psp(ionwm, addr);
+			if (route->toTime <= currentTime)
 			{
-				putErrmsg("Failed computing first route.",
-						NULL);
-				return -1;
+				/*	This route includes a contact
+				 *	that has ended; can't use any
+				 *	branch from it.			*/
+
+				TRACE(CgrExpiredRoute);
+				removeRoute(ionwm, elt2);
+				continue;
 			}
 
-			*elt = sm_list_last(ionwm, routingObj->selectedRoutes);
-			if (*elt == 0)	/*	No possible routes.	*/
+			if (route->spursComputed)
 			{
-				TRACE(CgrFirstRoute);
-				return 0;
-			}
-		}
-		else
-		{
-			/*	Must compute another route for list.	*/
+				/*	Nothing new can come from
+				 *	branching off of this route.
+				 *	Try the one before it.		*/
 
-			if (computeAnotherRoute(terminusNode, currentTime, elt,
-					trace))
+				continue;
+			}
+
+			route->spursComputed = 1;
+			if (computeAnotherRoute(terminusNode, route,
+					currentTime, elt, trace))
 			{
 				putErrmsg("Failed computing another route.",
 						NULL);
 				return -1;
 			}
 
-			if (*elt == 0)	/*	No more possible routes.*/
+			if (*elt == 0)	/*	No more routes.		*/
+			{
+				TRACE(CgrNoMoreRoutes);
+				return 0;
+			}
+
+			break;
+		}
+
+		if (*elt == 0)	/*	No spur routes were computed.	*/
+		{
+			if (sm_list_length(ionwm, routingObj->selectedRoutes)
+					== 0)	/*	Starting fresh.	*/
+			{
+				TRACE(CgrFirstRoute);
+				if (insertFirstRoute(terminusNode, currentTime,
+						trace))
+				{
+					putErrmsg("Failed computing 1st route.",
+							NULL);
+					return -1;
+				}
+
+				/*	Get new last (i.e., first)
+				 *	route.				*/
+
+				*elt = sm_list_last(ionwm,
+						routingObj->selectedRoutes);
+				if (*elt == 0)	/*	No routes.	*/
+				{
+					TRACE(CgrNoMoreRoutes);
+					return 0;
+				}
+			}
+			else	/*	All routing options exhausted.	*/
 			{
 				TRACE(CgrNoMoreRoutes);
 				return 0;
@@ -1677,7 +1714,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 		 *	ended; it is not usable.			*/
 
 		TRACE(CgrExpiredRoute);
-		destroyRoute(ionwm, *elt);
+		removeRoute(ionwm, *elt);
 		*elt = nextElt;
 		return 1;
 	}
@@ -1852,6 +1889,14 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 						elt));
 			if (contact->fromNode != ownNodeNbr)
 			{
+				continue;
+			}
+
+			if (contact->toTime <= currentTime)
+			{
+				/*	Contact is ended, is about to
+				 *	be purged.			*/
+
 				continue;
 			}
 
@@ -2743,7 +2788,7 @@ float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 		route = (CgrRoute *) psp(wm, addr);
 		if (route->toTime <= currentTime)
 		{
-			destroyRoute(wm, elt);	/*	Expired.	*/
+			removeRoute(wm, elt);	/*	Expired.	*/
 			continue;
 		}
 
@@ -2786,9 +2831,9 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrHop] = "    HOP fromNode:" UVAST_FIELDSPEC " toNode:"
 		UVAST_FIELDSPEC,
 
-	[CgrAcceptRoute] = "    ACCEPT firstHop to:" UVAST_FIELDSPEC
+	[CgrProposeRoute] = "    PROPOSE firstHop to:" UVAST_FIELDSPEC
 		" fromTime:%u arrivalTime:%u",
-	[CgrDiscardRoute] = "    DISCARD route",
+	[CgrNoRoute] = "    NO ROUTE",
 
 	[CgrIdentifyRoutes] = "IDENTIFY deadline:%u",
 	[CgrFirstRoute] = "    FIRST",
@@ -2839,6 +2884,7 @@ small for this bundle",
 neighbor",
 	[CgrRouteTooSlow] = "route is too slow; radiation latency delays \
 arrival time too much",
+	[CgrRouteCongested] = "route is congested, timely arrival impossible",
 	[CgrNoPlan] = "no egress plan",
 	[CgrBlockedPlan] = "egress plan is blocked",
 	[CgrMaxPayloadTooSmall] = "max payload too small",
