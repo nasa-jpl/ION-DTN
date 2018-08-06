@@ -3,6 +3,7 @@ API = ../library
 INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
+DCCP = ../dccp
 UDP = ../udp
 SDA = ../sda
 TEST = ../test
@@ -20,7 +21,7 @@ LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso dccplsi dccplso ltpdriver ltpcounter sdatest
 
 ALL = check libltp.dll $(RUNTIMES)
 
@@ -95,6 +96,16 @@ aoslso:		aoslso.o libltp.dll
 		$(CC) -o aoslso aoslso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
 		cp aoslso ./bin
 
+#	-	-	DCCP Executables	-	-	-	-	-
+
+dccplsi:	dccplsi.o libltp.dll
+		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp dccplsi ./bin
+
+dccplso:	dccplso.o libltp.dll
+		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp dccplso ./bin
+
 #	-	-	Libraries	-	-	-	-	-
 
 libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
@@ -116,6 +127,9 @@ libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
 		$(CC) -c $<
 
 %.o:		$(DAEMON)/%.c
+		$(CC) -c $<
+
+%.o:		$(DCCP)/%.c
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
