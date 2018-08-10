@@ -50,7 +50,6 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 		putSysErrmsg("can't open llcv, condition init failed", NULL);
 		return NULL;
 	}
-	llcv->cond_wait = 0;
 	llcv->list = list;
 	return llcv;
 }
@@ -100,9 +99,7 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 			/*	Atomically, unlock the mutex and wait
 		 	*	for some thread to signal on the cv,
 		 	*	and then re-lock the mutex.		*/
-			llcv->cond_wait += 1;
 			result = pthread_cond_wait(&llcv->cv, &llcv->mutex);
-			llcv->cond_wait -= 1;
 			if (result)
 			{
 				errno = result;
@@ -131,10 +128,8 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 			/*	Atomically, unlock the mutex and wait
 		 	*	for some thread to signal on the cv,
 		 	*	and then re-lock the mutex.		*/
-			llcv->cond_wait += 1;
 			result = pthread_cond_timedwait(&llcv->cv, &llcv->mutex,
 					&deadline);
-			llcv->cond_wait -= 1;
 			if (result)
 			{
 				errno = result;
@@ -209,18 +204,28 @@ void	llcv_close(Llcv llcv)
 	{
 		if (llcv->mutex_init != 1 || llcv->mutex_init_addr != &llcv->mutex)
 		{
+			writeMemo("[?] Can't close llcv. Already closed.");
 			return;	/*	Already closed.			*/
 		}
 
-		if(llcv->cond_wait != 0){
+		if(pthread_cond_broadcast(&llcv->cv)){
+			writeMemo("[?] llcv_close: cond broadcast failed.");
+		}
+		pthread_mutex_lock(&llcv->mutex);
+		result = pthread_cond_destroy(&llcv->cv);
+		if(pthread_mutex_unlock(&llcv->mutex)){
+			writeMemo("[?] llcv_close: mutex unlock failed.");
+		}
+		if (result != 0)
+		{
+			writeMemo("[?] Can't close llcv. Cond destroy failed.");
 			return;
 		}
-		
-		result = pthread_cond_destroy(&llcv->cv);
-		oK(pthread_mutex_unlock(&llcv->mutex));
-		if (result != 0 || pthread_mutex_destroy(&llcv->mutex) != 0)
+
+		result = pthread_mutex_destroy(&llcv->mutex);
+		if (result != 0)
 		{
-			writeMemo("[?] Can't close llcv.");
+			writeMemo("[?] Can't close llcv. Mutex destroy failed.");
 			return;
 		}
 		
