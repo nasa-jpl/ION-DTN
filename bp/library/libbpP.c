@@ -5859,7 +5859,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
-	if (bundle->corrupt == 1)
+	if (bundle->corrupt)
 	{
 		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
 	}
@@ -8538,9 +8538,11 @@ static void	initAuthenticity(AcqWorkArea *work)
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+#ifdef ORIGINAL_BSP
 	Object		ruleAddr;
 	Object		elt;
 			OBJ_POINTER(BspBabRule, rule);
+#endif
 
 	work->authentic = work->allAuthentic;
 	if (work->authentic)		/*	Asserted by CL.		*/
@@ -8582,7 +8584,8 @@ static void	initAuthenticity(AcqWorkArea *work)
 		return;			/*	So can't be authentic.	*/
 	}
 
-	/*	Check the applicable BAB rule, if any.			*/
+#ifdef ORIGINAL_BSP
+/*	Check the applicable BAB rule, if any.			*/
 
 	sec_findBspBabRule(work->senderEid, vscheme->adminEid, &ruleAddr, &elt);
 	if (elt)
@@ -8593,6 +8596,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 			work->authentic = 1;	/*	Trusted node.	*/
 		}
 	}
+#endif
 }
 
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
@@ -10997,6 +11001,18 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		putErrmsg("Can't process extensions.", "dequeue");
 		sdr_cancel_xn(bpSdr);
 		return -1;
+	}
+
+	if (bundle.corrupt)
+	{
+		if (bpDestroyBundle(bundleObj, 1) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		return 0;
 	}
 
 	if (bundle.overdueElt)

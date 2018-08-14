@@ -509,8 +509,11 @@ int	sbsp_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, SbspOutboundBl
 	asb->resultsData = 0;
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
+#if 0
 	asb->ciphersuiteFlags = SBSP_ASB_RES | SBSP_ASB_PARM;
-    asb->resultsLen = 0;
+#endif
+	asb->ciphersuiteFlags = SBSP_ASB_PARM;
+	asb->resultsLen = 0;
 
 	return 0;
 }
@@ -1088,7 +1091,7 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 	ADD_BCB_TX_PASS(fromEid, 1, bytes);
 
 	BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
-	return 1;
+	return result;
 }
 
 

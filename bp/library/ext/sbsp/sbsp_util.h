@@ -160,9 +160,12 @@
  * PARM: Block contains ciphersuite parameters.
  * RES: Block contains a security result.
  */
+#if 0
 #define SBSP_ASB_SEC_SRC	0x04
 #define SBSP_ASB_PARM		0x02
 #define SBSP_ASB_RES		0x01
+#endif
+#define SBSP_ASB_PARM		0x01
 
 /**
  * Ciphersuite and Security Result Item Types - SBSP spec Section 2.7.
@@ -199,8 +202,8 @@ typedef struct
 	uint32_t   ciphersuiteFlags;
 	uint32_t   parmsLen;	    /*  IFF flags & sbsp_ASB_PARM	*/
 	uint8_t	  *parmsData;	    /*  IFF flags & sbsp_ASB_PARM	*/
-	uint32_t   resultsLen;	    /*  IFF flags & sbsp_ASB_RES	*/
-	uint8_t	  *resultsData;	    /*  IFF flags & sbsp_ASB_RES	*/
+	uint32_t   resultsLen;
+	uint8_t	  *resultsData;
 } SbspInboundBlock;
 
 
@@ -224,8 +227,8 @@ typedef struct
 	uint32_t   ciphersuiteFlags;
 	uint32_t   parmsLen;	/** IFF flags & sbsp_ASB_PARM		*/
 	Object     parmsData;	/** IFF flags & sbsp_ASB_PARM		*/
-	uint32_t   resultsLen;	/** IFF flags & sbsp_ASB_RES		*/
-	Object     resultsData;	/** IFF flags & sbsp_ASB_RES		*/
+	uint32_t   resultsLen;
+	Object     resultsData;
 } SbspOutboundBlock;
 
 

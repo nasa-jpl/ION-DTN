@@ -262,7 +262,7 @@ bibBlk->dataLength = %d", bibBlk->dataLength);
 	ADD_BIB_TX_PASS(fromEid, 1, bytes);
 
 	BIB_DEBUG_PROC("- sbsp_bibAttach --> %d", result);
-	return 1;
+	return result;
 }
 
 
@@ -776,8 +776,11 @@ int sbsp_bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, SbspOutboundBl
 	asb->resultsData = 0;
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
+#if 0
 	asb->ciphersuiteFlags = SBSP_ASB_RES;
-    asb->resultsLen = sbsp_bibDefaultResultLen(asb->ciphersuiteType, 1);
+#endif
+	asb->ciphersuiteFlags = 0;
+	asb->resultsLen = sbsp_bibDefaultResultLen(asb->ciphersuiteType, 1);
 
 	return 0;
 }
@@ -1050,11 +1053,13 @@ int sbsp_bibDefaultVerify(uint32_t suite,
 	*bytes = 0;
 	asb = (SbspInboundBlock *) (blk->object);
 
+#if 0
 	if ((asb->ciphersuiteFlags & SBSP_ASB_RES) == 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultVerify: No security result.", NULL);
 		return 0;
 	}
+#endif
 
 	/* Step 1 - Compute the security result for the target block. */
 	key = sbsp_retrieveKey(asb->keyName);

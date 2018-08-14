@@ -20,6 +20,7 @@
 
 									*/
 #include "ionsec.h"
+//	#include "profiles.h"
 
 static char	*_secDbName()
 {
@@ -302,8 +303,8 @@ int	secInitialize()
 		secdbBuf.ownPublicKeys = sdr_list_create(ionsdr);
 		secdbBuf.privateKeys = sdr_list_create(ionsdr);
 		secdbBuf.keys = sdr_list_create(ionsdr);
-		secdbBuf.bspBabRules = sdr_list_create(ionsdr);
 #ifdef ORIGINAL_BSP
+		secdbBuf.bspBabRules = sdr_list_create(ionsdr);
 		secdbBuf.bspPibRules = sdr_list_create(ionsdr);
 		secdbBuf.bspPcbRules = sdr_list_create(ionsdr);
 #else
@@ -1473,12 +1474,14 @@ int	sec_activeKey(char *keyName)
 	SecDB	*secdb = _secConstants();
 	Object	elt;
 	Object	ruleObj;
+#if 0
 		OBJ_POINTER(BspBabRule, babRule);
+#endif
 		OBJ_POINTER(BspBibRule, bibRule);
 		OBJ_POINTER(BspBcbRule, bcbRule);
 
 	CHKERR(sdr_begin_xn(sdr));
-
+#if 0
 	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1490,7 +1493,7 @@ int	sec_activeKey(char *keyName)
 			return 1;
 		}
 	}
-
+#endif
 	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1722,8 +1725,8 @@ void	sec_clearBspRules(char *srcEid, char *destEid, char *blockType)
 
 		rmCount = 0;
 		CHKVOID(sdr_begin_xn(sdr));
-		OBJ_POINTER(BspBabRule, rule);
 #ifdef ORIGINAL_BSP
+		OBJ_POINTER(BspBabRule, rule);
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 				elt = temp)
 		{
@@ -1747,7 +1750,8 @@ void	sec_clearBspRules(char *srcEid, char *destEid, char *blockType)
 				}
 			}
 		}
-#else
+#endif
+#if 0
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 				elt = temp)
 		{
@@ -2683,7 +2687,7 @@ int	sec_removeBspPcbRule(char *secSrcEid, char *secDestEid,
 }
 
 #else		/*	Streamlined Bundle Security Protocol		*/
-
+#if 0
 /*		Bundle Authentication Block Support			*/
 
 void	sec_get_bspBabRule(char *senderEid, char *receiverEid, Object *ruleAddr,
@@ -2914,7 +2918,7 @@ int	sec_removeBspBabRule(char *senderEid, char *receiverEid)
 
 	return 1;
 }
-
+#endif
 /*		Block Integrity Block Support				*/
 
 void	sec_get_bspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
@@ -3006,6 +3010,10 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength;
 	BspBibRule	rule;
 	Object		ruleObj;
 	Object		elt;
@@ -3015,16 +3023,49 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
 	CHKERR(secdb);
-	if (istrlen(ciphersuiteName, 32) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
 
-	if (istrlen(keyName, 32) > 31)
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BIB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3032,7 +3073,6 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	{
 		return 0;
 	}
-
 
 	if (sec_findBspBibRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj,
 			&elt) != 0)
@@ -3073,6 +3113,10 @@ int	sec_updateBspBibRule(char *secSrcEid, char *secDestEid,
 		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength;
 	Object		elt;
 	Object		ruleObj;
 	BspBibRule	rule;
@@ -3081,16 +3125,49 @@ int	sec_updateBspBibRule(char *secSrcEid, char *secDestEid,
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (istrlen(ciphersuiteName, 32) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
 
-	if (istrlen(keyName, 32) > 31)
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BIB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3245,6 +3322,10 @@ int	sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength;
 	BspBcbRule	rule;
 	Object		ruleObj;
 	Object		elt;
@@ -3254,16 +3335,49 @@ int	sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
 	CHKERR(secdb);
-	if (strlen(ciphersuiteName) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
-	
-	if (strlen(keyName) > 31)
+
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BCB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3313,6 +3427,10 @@ int	sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
 		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength;
 	Object		elt;
 	Object		ruleObj;
 	BspBcbRule	rule;
@@ -3321,16 +3439,49 @@ int	sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (strlen(ciphersuiteName) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BCB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)

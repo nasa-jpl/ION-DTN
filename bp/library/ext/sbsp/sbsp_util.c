@@ -409,9 +409,10 @@ space for ASB parms %d", utoa(asb.parmsLen));
 					asb.parmsLen);
 		}
 	}
-
+#if 0
 	if (asb.ciphersuiteFlags & SBSP_ASB_RES)
 	{
+#endif
 		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 		asb.resultsLen = itemp;
 		if (asb.resultsLen > 0)
@@ -445,7 +446,9 @@ space for ASB results %d", utoa(asb.resultsLen));
 			SBSP_DEBUG_INFO("i sbsp_deserializeASB: resultsLen %ld",
 					asb.resultsLen);
 		}
+#if 0
 	}
+#endif
 
 	blk->size = sizeof(SbspInboundBlock);
 	blk->object = MTAKE(sizeof(SbspInboundBlock));
@@ -703,6 +706,7 @@ int	sbsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 	}
 
 	result = 0;
+#if 0
 	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 	{
 		result = sbsp_getInboundSecuritySource(blk, dictionary,
@@ -711,6 +715,7 @@ int	sbsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 
 	if (result == 0)	/*	No security source in block.	*/
 	{
+#endif
 		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 		{
 			result = -1;
@@ -719,7 +724,9 @@ int	sbsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 		{
 			result = 1;
 		}
+#if 0
 	}
+#endif
 
 	if (dictionary)
 	{
@@ -1000,6 +1007,7 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 	}
 
 	result = 0;
+#if 0
 	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 	{
 		result = sbsp_getOutboundSecuritySource(blk, dictionary,
@@ -1008,6 +1016,7 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 
 	if (result == 0)	/*	No security source in block.	*/
 	{
+#endif
 		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 		{
 			result = -1;
@@ -1016,7 +1025,9 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 		{
 			result = 1;
 		}
+#if 0
 	}
+#endif
 
 	if (dictionary)
 	{
@@ -1423,6 +1434,7 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 
 			result = 0;
 			fromEid = NULL;
+#if 0
 			if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
 			{
 				result = sbsp_getInboundSecuritySource(blk,
@@ -1431,6 +1443,7 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 
 			if (result == 0)
 			{
+#endif
 				/*	No security source in block,
 					so source of BIB is the source
 					of the bundle.		.	*/
@@ -1444,7 +1457,9 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 				{
 					result = 1;
 				}
+#if 0
 			}
+#endif
 
 			if (result == 1)
 			{
@@ -1559,9 +1574,10 @@ unsigned char	*sbsp_serializeASB(uint32_t *length, SbspOutboundBlock *asb)
 
 	SBSP_DEBUG_INFO("i sbsp_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
 			asb->resultsLen);
-
+#if 0
 	if (asb->ciphersuiteFlags & SBSP_ASB_RES)
 	{
+#endif
 		encodeSdnv(&resultsLen, asb->resultsLen);
 		*length += resultsLen.length;
 
@@ -1572,7 +1588,9 @@ unsigned char	*sbsp_serializeASB(uint32_t *length, SbspOutboundBlock *asb)
 		 *	length must include resultsLen.			*/
 
 		*length += asb->resultsLen;
+#if 0
 	}
+#endif
 
 	/*********************************************************************
 	 *             Serialize the ASB into the allocated buffer           *
@@ -1610,8 +1628,10 @@ unsigned char	*sbsp_serializeASB(uint32_t *length, SbspOutboundBlock *asb)
 		cursor += asb->parmsLen;
 	}
 
+#if 0
 	if (asb->ciphersuiteFlags & SBSP_ASB_RES)
 	{
+#endif
 		cursor = sbsp_addSdnvToStream(cursor, &resultsLen);
 		SBSP_DEBUG_INFO("i sbsp_serializeASB: cursor " ADDR_FIELDSPEC
 			", results data  0x%x, results length %d",
@@ -1622,7 +1642,9 @@ unsigned char	*sbsp_serializeASB(uint32_t *length, SbspOutboundBlock *asb)
 					asb->resultsLen);
 			cursor += asb->resultsLen;
 		}
+#if 0
 	}
+#endif
 
 	SBSP_DEBUG_INFO("i sbsp_serializeASB -> data: " ADDR_FIELDSPEC
 			", length %d", (uaddr) serializedAsb, *length);
