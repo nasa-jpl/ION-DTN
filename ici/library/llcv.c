@@ -208,9 +208,6 @@ void	llcv_close(Llcv llcv)
 			return;	/*	Already closed.			*/
 		}
 
-		if(pthread_cond_broadcast(&llcv->cv)){
-			writeMemo("[?] llcv_close: cond broadcast failed.");
-		}
 		pthread_mutex_lock(&llcv->mutex);
 		result = pthread_cond_destroy(&llcv->cv);
 		if(pthread_mutex_unlock(&llcv->mutex)){

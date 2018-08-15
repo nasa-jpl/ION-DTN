@@ -789,6 +789,7 @@ static void	endSession(TcpclSession *session, char reason)
 
 	if (session->trigger)
 	{
+		llcv_signal(session->trigger, llcv_lyst_not_empty);
 		llcv_close(session->trigger);
 		session->trigger = NULL;
 	}
