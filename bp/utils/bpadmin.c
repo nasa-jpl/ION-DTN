@@ -756,17 +756,29 @@ static void	printEndpoint(VEndpoint *vpoint)
 static void	infoEndpoint(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
+	char		*delimiter;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
-	if (tokenCount != 4)
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	delimiter = strchr(tokens[2], ':');
+	if (delimiter)
+	{
+		*delimiter = '\0';
+	}
+	else
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	findEndpoint(tokens[2], tokens[3], NULL, &vpoint, &elt);
+	findEndpoint(tokens[2], delimiter + 1, NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown endpoint.");
@@ -776,6 +788,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		printEndpoint(vpoint);
 	}
 
+	*delimiter  = ':';
 	sdr_exit_xn(sdr);
 }
 
