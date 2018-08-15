@@ -2788,8 +2788,7 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
-		BpPlan *plan)
+void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned int	backlogDecrement;
@@ -2797,7 +2796,7 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 
 	/*	Removal from queue reduces plan's backlog.		*/
 
-	CHKVOID(bundle && bundleObj && planObj && plan);
+	CHKVOID(bundle && plan);
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
 	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
 	{
@@ -2820,13 +2819,13 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 		reduceScalar(&(plan->urgentBacklog), backlogDecrement);
 	}
 
-	sdr_write(bpSdr, planObj, (char *) plan, sizeof(BpPlan));
+	/*	Removal from queue detaches queue from bundle.		*/
+
 	sdr_list_delete(bpSdr, bundle->planXmitElt, NULL, NULL);
 	bundle->planXmitElt = 0;
-	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 }
 
-static void	purgePlanXmitElt(Bundle *bundle, Object bundleObj)
+static void	purgePlanXmitElt(Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	queue;
@@ -2843,7 +2842,8 @@ static void	purgePlanXmitElt(Bundle *bundle, Object bundleObj)
 	}
 
 	sdr_stage(bpSdr, (char *) &plan, planObj, sizeof(BpPlan));
-	removeBundleFromQueue(bundle, bundleObj, planObj, &plan);
+	removeBundleFromQueue(bundle, &plan);
+	sdr_write(bpSdr, planObj, (char *) &plan, sizeof(BpPlan));
 }
 
 void	destroyBpTimelineEvent(Object timelineElt)
@@ -2953,7 +2953,7 @@ incomplete bundle.", NULL);
 
 		if (bundle.planXmitElt)
 		{
-			purgePlanXmitElt(&bundle, bundleObj);
+			purgePlanXmitElt(&bundle);
 		}
 
 		if (bundle.ductXmitElt)
@@ -3002,6 +3002,7 @@ incomplete bundle.", NULL);
 		bundle.custodyTaken = 0;
 		bundle.detained = 0;
 		bpDelTally(SrLifetimeExpired);
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 
 	/*	Check for any remaining constraints on deletion.	*/
@@ -10528,17 +10529,16 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-int	reverseEnqueue(Object xmitElt, Object planObj, BpPlan *plan,
-		int sendToLimbo)
+int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
 
-	CHKERR(xmitElt && planObj && plan);
+	CHKERR(xmitElt && plan);
 	bundleAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	removeBundleFromQueue(&bundle, bundleAddr, planObj, plan);
+	removeBundleFromQueue(&bundle, plan);
 	if (bundle.proxNodeEid)
 	{
 		sdr_free(bpSdr, bundle.proxNodeEid);
@@ -10619,7 +10619,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10631,7 +10631,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10643,7 +10643,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -11814,7 +11814,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	purgeStationsStack(&bundle);
 	if (bundle.planXmitElt)
 	{
-		purgePlanXmitElt(&bundle, bundleAddr);
+		purgePlanXmitElt(&bundle);
 	}
 
 	if (bundle.ductXmitElt)

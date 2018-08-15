@@ -540,7 +540,6 @@ int	main(int argc, char *argv[])
 	while (running)
 	{
 		CHKZERO(sdr_begin_xn(sdr));
-		sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
 		throttle = applicableThrottle(vplan);
 
 		/*	Wait until (a) there is at least one outduct,
@@ -603,8 +602,11 @@ int	main(int argc, char *argv[])
 		getOutduct(vplan, &bundle, &vduct);
 		if (vduct == NULL)		/*	No usable duct.	*/
 		{
-			removeBundleFromQueue(&bundle, bundleObj, planObj,
-					&plan);
+			sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+			removeBundleFromQueue(&bundle, &plan);
+			sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+			sdr_write(sdr, bundleObj, (char *) &bundle,
+					sizeof(Bundle));
 			oK(enqueueToLimbo(&bundle, bundleObj));
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -638,8 +640,13 @@ int	main(int argc, char *argv[])
 				 *	neighboring node.  Reforward
 				 *	it and get another bundle.	*/
 
-				removeBundleFromQueue(&bundle, bundleObj,
-						planObj, &plan);
+				sdr_stage(sdr, (char *) &plan, planObj,
+						sizeof(BpPlan));
+				removeBundleFromQueue(&bundle, &plan);
+				sdr_write(sdr, planObj, (char *) &plan,
+						sizeof(BpPlan));
+				sdr_write(sdr, bundleObj, (char *) &bundle,
+						sizeof(Bundle));
 				if (bpReforwardBundle(bundleObj) < 0)
 				{
 					sdr_cancel_xn(sdr);
@@ -730,7 +737,9 @@ int	main(int argc, char *argv[])
 		/*	Pop the outbound bundle out of its issuance
 		 *	queue.						*/
 
-		removeBundleFromQueue(&bundle, bundleObj, planObj, &plan);
+		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		removeBundleFromQueue(&bundle, &plan);
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 
 		/*	Pass the bundle to the outduct.			*/
 

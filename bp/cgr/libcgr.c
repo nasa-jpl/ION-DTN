@@ -2296,7 +2296,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 	double		overbooked = 0.0;
 	Object		elt;
 	Object		bundleObj;
-			OBJ_POINTER(Bundle, bundle);
+	Bundle		bundle;
 	int		eccc;
 
 	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
@@ -2346,7 +2346,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 				plan.stdQueue);
 		queueControls[1].limitElt = sdr_list_first(sdr,
 				plan.stdQueue);
-		ordinal = bundle->ancillaryData.ordinal;
+		ordinal = newBundle->ancillaryData.ordinal;
 		if (ordinal > 0)
 		{
 			queueControls[2].currentElt = sdr_list_last(sdr,
@@ -2365,8 +2365,8 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 		}
 
 		bundleObj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
-		eccc = computeECCC(guessBundleSize(bundle));
+		sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+		eccc = computeECCC(guessBundleSize(&bundle));
 
 		/*	Skip over all bundles that are protected
 		 *	from overbooking because they are in contacts
@@ -2382,7 +2382,10 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 		/*	The new bundle has bumped this bundle out of
 		 *	its originally scheduled contact.  Rebook it.	*/
 
-		removeBundleFromQueue(bundle, bundleObj, planObj, &plan);
+		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		removeBundleFromQueue(&bundle, &plan);
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 		if (bpReforwardBundle(bundleObj) < 0)
 		{
 			putErrmsg("Overbooking management failed.", NULL);
