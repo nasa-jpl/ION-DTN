@@ -113,13 +113,13 @@ sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk 
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
@@ -156,14 +156,14 @@ cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key2 key2.hmk 
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key2
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key2
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
@@ -237,12 +237,12 @@ echo -e "Add same key, deliver BIG payload with BCB (should deliver)"
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 bprecvfile ipn:3.2 &
@@ -319,7 +319,7 @@ cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk 
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
@@ -331,7 +331,7 @@ cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
@@ -369,7 +369,7 @@ cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk 
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
@@ -382,7 +382,7 @@ cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
