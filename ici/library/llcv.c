@@ -154,6 +154,11 @@ pthread_cond error", itoa(usec));
 
 void	llcv_signal(Llcv llcv, LlcvPredicate condition)
 {
+	if (llcv->mutex_init != 1 || llcv->mutex_init_addr != &llcv->mutex)
+	{
+		writeMemo("[?] Can't signal llcv. Already closed.");
+		return;	/*	Already closed.			*/
+	}
 	CHKVOID(llcv);
 	CHKVOID(condition);
 
