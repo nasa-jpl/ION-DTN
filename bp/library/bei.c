@@ -958,7 +958,7 @@ int	reviewExtensionBlocks(AcqWorkArea *work)
 			if (def->review(work) == 0)
 			{
 				/*	A required extension block
-					is miissing.			*/
+					is missing.			*/
 
 				return 0;
 			}

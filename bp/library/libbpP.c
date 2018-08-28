@@ -11013,7 +11013,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 			return -1;
 		}
 
-		return 0;
+		return sdr_end_xn(bpSdr);
 	}
 
 	if (bundle.overdueElt)
