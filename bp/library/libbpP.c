@@ -11005,6 +11005,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	if (bundle.corrupt)
 	{
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 		if (bpDestroyBundle(bundleObj, 1) < 0)
 		{
 			putErrmsg("Failed trying to destroy bundle.", NULL);

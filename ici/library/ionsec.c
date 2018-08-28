@@ -1532,6 +1532,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 
 	CHKERR(keyName);
 	CHKERR(keyBufferLength);
+	CHKERR(*keyBufferLength > 0);
 	CHKERR(keyValueBuffer);
 	CHKERR(sdr_begin_xn(sdr));
 	sec_findKey(keyName, &keyAddr, &elt);
@@ -3013,7 +3014,7 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	int		csNameLen;
 	int		keyNameLen;
 	char		buffer[256];
-	int		bufferLength;
+	int		bufferLength = sizeof buffer;
 	BspBibRule	rule;
 	Object		ruleObj;
 	Object		elt;
@@ -3116,7 +3117,7 @@ int	sec_updateBspBibRule(char *secSrcEid, char *secDestEid,
 	int		csNameLen;
 	int		keyNameLen;
 	char		buffer[256];
-	int		bufferLength;
+	int		bufferLength = sizeof buffer;
 	Object		elt;
 	Object		ruleObj;
 	BspBibRule	rule;
@@ -3325,7 +3326,7 @@ int	sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	int		csNameLen;
 	int		keyNameLen;
 	char		buffer[256];
-	int		bufferLength;
+	int		bufferLength = sizeof buffer;
 	BspBcbRule	rule;
 	Object		ruleObj;
 	Object		elt;
@@ -3430,7 +3431,7 @@ int	sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
 	int		csNameLen;
 	int		keyNameLen;
 	char		buffer[256];
-	int		bufferLength;
+	int		bufferLength = sizeof buffer;
 	Object		elt;
 	Object		ruleObj;
 	BspBcbRule	rule;
