@@ -613,13 +613,28 @@ static void run_cgrfetch(void)
 
 	// Flush the cached routing tables.
 	cgr_stop();
+
+	if (bpAttach() < 0)
+	{
+		DIES("Can't attach to BP");
+	}
+
 	cgr_start();
+
+	Sdr	sdr = getIonsdr();
+	if (sdr_begin_xn(sdr) != 1)
+	{
+		DIES("Can't lock database");
+	}
 
 	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
 			dispatchTime, &trace) < 0)
 	{
 		DIES("unable to simulate cgr");
 	}
+
+	sdr_exit_xn(sdr);
+	ionDetach();
 
 	if (flags & OUTPUT_JSON)
 	{

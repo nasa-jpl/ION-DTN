@@ -22,6 +22,10 @@ The dot(1) tool from the Graphviz package is used to generate the contact graph
 images and is required for cgrfetch(1). The base64(1) tool from coreutils is
 used to embed the images in the JSON and is also required.
 
+Note that a trace of the route computation logic performed by CGR is printed
+to stderr; there is currently no cgrfetch option for redirecting this output
+to a file.
+
 =head1 OPTIONS
 
 =over 4
