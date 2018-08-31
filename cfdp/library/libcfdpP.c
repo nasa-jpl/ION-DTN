@@ -1799,7 +1799,7 @@ static void	frCreateFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	fd = iopen(firstFileName, O_CREAT, 0777);
+	fd = ifopen(firstFileName, O_CREAT, 0777);
 	if (fd < 0)
 	{
 		resp->status = 1;
@@ -1879,7 +1879,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	destFd = iopen(firstFileName, O_WRONLY | flag, 0);
+	destFd = ifopen(firstFileName, O_WRONLY | flag, 0);
 	if (destFd < 0)
 	{
 		MRELEASE(buf);
@@ -1888,7 +1888,7 @@ static void	frCopyFile(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-	sourceFd = iopen(secondFileName, O_RDONLY, 0);
+	sourceFd = ifopen(secondFileName, O_RDONLY, 0);
 	if (sourceFd < 0)
 	{
 		close(destFd);
@@ -4033,7 +4033,7 @@ extent.offset, extent.offset + extent.length);
 		}
 
 		cfdpvdb->currentFdu = 0;
-		cfdpvdb->currentFile = iopen(workingNameBuffer,
+		cfdpvdb->currentFile = ifopen(workingNameBuffer,
 				O_RDWR | O_CREAT, 0777);
 		if (cfdpvdb->currentFile < 0)
 		{

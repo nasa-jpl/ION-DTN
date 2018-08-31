@@ -190,6 +190,17 @@ iblock() simply prevents reception of the indicated signal by the calling
 thread.  It provides a means of controlling which of the threads in a process
 will receive the signal cited in an invocation of isignal().
 
+=item int ifopen(const char *fileName, int flags, int pmode)
+
+ifopen() is a portable function for opening "regular" files.  It operates
+in exactly the same way as open() except that it fails (returning -1) if 
+I<fileName> does not identify a regular file, i.e., it's a directory, a
+named pipe, etc.
+
+B<NOTE> that ION also provides iopen() which is nothing more than a
+portable wrapper for open().  iopen() can be used to open a directory, for
+example.
+
 =item char *igets(int fd, char *buffer, int buflen, int *lineLen)
 
 igets() reads a line of text, delimited by a newline character, from I<fd>
