@@ -505,6 +505,13 @@ static int	reopenSession(TcpclSession *session)
 
 	/*	Reconnection succeeded.					*/
 
+	if (watchSocket(session->sock) < 0)
+	{
+		closesocket(session->sock);
+		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		return -1;
+	}
+
 	session->lengthSent = 0;
 	session->lengthAcked = 0;
 	return 1;		/*	Reconnected.			*/
@@ -2189,6 +2196,15 @@ static void	*spawnReceivers(void *parm)
 			continue;
 		}
 
+		if (watchSocket(newSocket) < 0)
+		{
+			closesocket(newSocket);
+			putErrmsg("tcpcli can't watch socket.", NULL);
+			ionKillMainThread(procName());
+			stp->running = 0;
+			continue;
+		}
+
 		pthread_mutex_lock(stp->backlogMutex);
 		elt = lyst_insert_last(stp->backlog, (void *) newSocket);
 		pthread_mutex_unlock(stp->backlogMutex);
@@ -2302,6 +2318,13 @@ session with this neighbor", eid);
 
 	case 0:		/*	Protocol failure.			*/
 		return 0;
+	}
+
+	if (watchSocket(sock) < 0)
+	{
+		closesocket(sock);
+		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		return -1;
 	}
 
 	/*	TCP connection succeeded, so establish the TCPCL
