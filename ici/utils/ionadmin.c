@@ -1140,38 +1140,28 @@ no time.");
 					max = atoi(tokens[2]) * 4;
 				}
 
-				count = 1;
-				while (count <= max && ionAttach() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//ion system is not started
-					printText("ION system is not started");
-					return 1;
-				}
-
-				//attached to ion system
-
-				*rc = ion_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = rfx_system_is_started();
-			if (*rc)
-			{
-				printText("ION system is started");
 			}
 			else
 			{
-				printText("ION system is not started");
+				max = 1;
+			}
+			count = 1;
+			while (count <= max && ionAttach() == -1)
+			{
+				microsnooze(250000);
+				count++;
 			}
 
+			if (count > max)
+			{
+				//ion system is not started
+				printText("ION system is not started");
+				return 1;
+			}
+
+			//attached to ion system
+
+			*rc = ion_is_up(count, max);
 			return 1;
 
 		case 'q':
