@@ -293,7 +293,7 @@ exceeded", utoa(closedExportBuf.sessionNbr));
 
 	return 0;
 }
-#endif
+#endif		/*	CLOSED_EXPORTS_ENABLED			*/
 
 #if BURST_SIGNALS_ENABLED
 static int	enqueueBurst(LtpXmitSeg *segment, LtpSpan *span, Object where,
@@ -400,7 +400,7 @@ static int	enqueueAckBurst(LtpXmitSeg *segment, Object spanObj,
 	segment->pdu.timer.expirationCount = oldExpirationCount;
 	return 0;
 }
-#endif
+#endif		/*	BURST_SIGNALS_ENABLED				*/
 
 /*	*	*	LTP service control functions	*	*	*/
 
@@ -6007,6 +6007,11 @@ putErrmsg(buf, itoa(session->sessionNbr));
 	}
 
 	ltpSpanTally(vspan, OUT_SEG_QUEUED, length);
+	if (reportSerialNbr)
+	{
+		ltpSpanTally(vspan, SEG_RE_XMIT, length);
+	}
+
 	return 0;
 }
 

@@ -202,6 +202,15 @@ static void	*spawnReceivers(void *parm)
 			break;	/*	Main thread has shut down.	*/
 		}
 
+		if (watchSocket(newSocket) < 0)
+		{
+			putErrmsg("stcpcli can't watch socket.", NULL);
+			closesocket(newSocket);
+			ionKillMainThread(procName);
+			atp->running = 0;
+			continue;
+		}
+
 		parms = (ReceiverThreadParms *)
 				MTAKE(sizeof(ReceiverThreadParms));
 		if (parms == NULL)

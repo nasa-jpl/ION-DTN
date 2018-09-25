@@ -136,6 +136,13 @@ static int	connectToCLI(char *protocolName, char *ductName, int *sock)
 		break;		/*	Out of switch.			*/
 	}
 
+	if (watchSocket(*sock) < 0)
+	{
+		closesocket(*sock);
+		putErrmsg("CLO can't watch socket.", ductName);
+		return -1;
+	}
+
 	if (_stcpOutductId(protocolName, ductName, *sock) < 0)
 	{
 		putErrmsg("Can't record STCP outduct ID for connection.", NULL);
