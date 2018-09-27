@@ -1288,7 +1288,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 		return 0;
 	}
 
-	eidbuf = MTAKE(eidLength + 1);
+	eidbuf = MTAKE(eidLength + 3);	/*	May need / * at end.	*/
 	if (eidbuf == NULL)
 	{
 		putErrmsg("Not enough memory for EID in TCPCL contact header.",
@@ -1426,6 +1426,20 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			 *	until this contact header was received.	*/
 
 			sdr_exit_xn(sdr);	/*	Unlock list.	*/
+
+			/*	dtn-scheme EID identifying node is
+			 *	useless for routing if it lacks
+			 *	terminating wild-card demux; no
+			 *	bundle destination EIDs will match it.	*/
+
+			if (strncmp(eidbuf, "dtn:", 4) == 0
+			&& *(eidbuf + (eidLength - 1)) != '*')
+			{
+				/*	Make DTN plan name usable.	*/
+
+				istrcat(eidbuf, "/*", eidLength + 3);
+			}
+
 			findPlan(eidbuf, &vplan, &vplanElt);
 			if (vplanElt == 0)
 			{
