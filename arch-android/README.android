@@ -10,7 +10,7 @@ capabilities are provided in Solaris or in a more full-featured Linux.
 to be written that invoke the native C functions of ION to operate a complete,
 fully functional standard ION node on an Android device.
 
-This was the original procedure for building ION in bionic:
+This was the *original* procedure for building ION in bionic:
 
 1.	Download and install the Android software development kit.  For
 details, see http://developer.android.com/sdk/index.html.
@@ -27,6 +27,17 @@ named "libiondtn.so" in arch-android/iondtn/libs/armeabi.
 JNI development has come a long way since the original bionic port, however.
 We now have a full-fledged ION Android development kit.  It is brand-new and
 likely still has some bugs, so we would welcome your help in evaluating and
-debugging it.  To try it out, please install ION as usual and then download
-(from the Files list on the ion-dtn SourceForge page) and unpack the file named
-ion-android-3.6.1.tar.gz.
+debugging it.  To try it out:
+
+1.	Download the ION gzipped tarfile as usual and extract its contents,
+creating a directory tree whose root is ion-open-source.
+
+2.	From the Files list on the ion-dtn SourceForge page, download the file
+named ion-android-3.6.1.tar.gz into the ion-open-source/arch-android directory.
+
+3.	Download and install Android studio as described in the Android
+development kit documentation.  (See the "README" file in the same direcory
+as this "README.android" file.)
+
+4.	Run Android Studio and open the IonDTN (provider application) project
+from ion-open-source/arch-android/IonDTN.

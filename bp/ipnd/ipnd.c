@@ -1192,7 +1192,7 @@ static int	processLine(char *line, int lineLength)
 }
 
 #if defined (ION_LWT)
-int	ipnadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int	ipndadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
