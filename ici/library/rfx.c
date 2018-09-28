@@ -712,9 +712,9 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	return cxaddr;
 }
 
-int	rfx_insert_contact(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, size_t xmitRate,
-			float confidence, PsmAddress *cxaddr)
+int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
+		uvast toNode, size_t xmitRate, float confidence,
+		PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1013,6 +1013,94 @@ fromNode, toNode, buf1, buf2);
 	}
 }
 
+int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
+		size_t xmitRate, float confidence)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	time_t		currentTime = getUTCTime();
+	IonCXref	arg;
+	PsmAddress	cxelt;
+	PsmAddress	nextElt;
+	PsmAddress	cxaddr;
+	IonCXref	*cxref;
+	Object		obj;
+	IonContact	contact;
+	IonNeighbor	*neighbor;
+
+	CHKERR(confidence <= 1.0);
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = fromNode;
+	arg.toNode = toNode;
+	arg.fromTime = fromTime;
+	CHKERR(sdr_begin_xn(sdr));
+	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
+			&arg, &nextElt);
+	if (cxelt == 0)		/*	No such contact.		*/
+	{
+		writeMemo("[!] Attempt to revise a nonexistent contact.");
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	Update the contact and its xref.			*/
+
+	cxaddr = sm_rbt_data(ionwm, cxelt);
+	cxref = (IonCXref *) psp(ionwm, cxaddr);
+	obj = sdr_list_data(sdr, cxref->contactElt);
+	sdr_stage(sdr, (char *) &contact, obj, sizeof(IonContact));
+	contact.xmitRate = xmitRate;
+	cxref->xmitRate = xmitRate;
+	if (confidence >= 0.0)
+	{
+		contact.confidence = confidence;
+		cxref->confidence = confidence;
+	}
+
+	sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
+
+	/*	Apply to current state of affected neighbor, if any.	*/
+
+	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
+	{
+		neighbor = findNeighbor(vdb, cxref->toNode, &nextElt);
+		if (neighbor)
+		{
+			neighbor->xmitRate = xmitRate;
+		}
+	}
+
+	if (currentTime >= cxref->startFire && currentTime <= cxref->stopFire)
+	{
+		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		if (neighbor)
+		{
+			neighbor->fireRate = xmitRate;
+		}
+	}
+
+	if (currentTime >= cxref->startRecv && currentTime <= cxref->stopRecv)
+	{
+		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		if (neighbor)
+		{
+			neighbor->recvRate = xmitRate;
+		}
+	}
+
+	/*	Contact has been updated.  No change to contact graph,
+	 *	no need to recompute routes.				*/
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't revise contact.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 static void	deleteContact(PsmAddress cxaddr)
 {
 	Sdr		sdr = getIonsdr();
@@ -1130,7 +1218,7 @@ static void	deleteContact(PsmAddress cxaddr)
 				&event, rfx_erase_data, NULL);
 	}
 
-	/*	Apply to current state as necessary.			*/
+	/*	Apply to current state of affected neighbor, if any.	*/
 
 	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
 	{
