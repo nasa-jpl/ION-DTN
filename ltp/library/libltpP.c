@@ -1429,6 +1429,7 @@ int	updateSpan(uvast engineId, unsigned int maxExportSessions,
 		char *lsoCmd, unsigned int qTime, int purge)
 {
 	Sdr		sdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		addr;
@@ -1495,6 +1496,31 @@ string too long.", lsoCmd);
 
 	/*	All parameters validated, okay to update the span.	*/
 
+	if (maxSegmentSize > 0 && maxSegmentSize != spanBuf.maxSegmentSize)
+	{
+		/*	Never shrink segment buffer, as it has to be
+		 *	large enough for currently queued segments,
+		 *	but expand it as necessary.			*/
+
+		if (maxSegmentSize > spanBuf.maxSegmentSize)
+		{
+			psm_free(ltpwm, vspan->segmentBuffer);
+			vspan->segmentBuffer = psm_malloc(ltpwm,
+					maxSegmentSize);
+			if (vspan->segmentBuffer == 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("No space for new segment buffer.",
+						itoa(maxSegmentSize));
+				return -1;
+			}
+		}
+
+		spanBuf.maxSegmentSize = maxSegmentSize;
+		vspan->maxXmitSegSize = maxSegmentSize;
+		computeRetransmissionLimits(vspan);
+	}
+
 	spanBuf.maxExportSessions = maxExportSessions;
 	spanBuf.maxImportSessions = maxImportSessions;
 	if (lsoCmd)
@@ -1509,13 +1535,6 @@ string too long.", lsoCmd);
 
 	spanBuf.remoteQtime = qTime;
 	spanBuf.purge = purge ? 1 : 0;
-	if (maxSegmentSize > 0 && maxSegmentSize != spanBuf.maxSegmentSize)
-	{
-		spanBuf.maxSegmentSize = maxSegmentSize;
-		vspan->maxXmitSegSize = maxSegmentSize;
-		computeRetransmissionLimits(vspan);
-	}
-
 	spanBuf.aggrSizeLimit = aggrSizeLimit;
 	if (aggrTimeLimit)
 	{
