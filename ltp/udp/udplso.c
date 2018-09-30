@@ -166,13 +166,13 @@ int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*endpointSpec = (char *) a1;
-	unsigned int	txbps = (a2 != 0 ?  strtoul((char *) a2, NULL, 0) : 0);
+	uvast		txbps = (a2 != 0 ?  strtoul((char *) a2, NULL, 0) : 0);
 	uvast		remoteEngineId = a3 != 0 ?  strtouvast((char *) a3) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char		*endpointSpec = argc > 1 ? argv[1] : NULL;
-	unsigned int	txbps = (argc > 2 ?  strtoul(argv[2], NULL, 0) : 0);
+	uvast		txbps = (argc > 2 ?  strtoul(argv[2], NULL, 0) : 0);
 	uvast		remoteEngineId = argc > 3 ? strtouvast(argv[3]) : 0;
 #endif
 	Sdr			sdr;

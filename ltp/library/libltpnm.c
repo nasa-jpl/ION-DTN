@@ -162,6 +162,8 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
             results->outputNegAckRecvCount   = stats.tallies[NEG_RPT_RECV      ].currentCount;
             results->outputCancelRecvCount   = stats.tallies[EXPORT_CANCEL_RECV].currentCount;
             results->outputCkptReXmitCount   = stats.tallies[CKPT_RE_XMIT      ].currentCount;
+            results->outputSegReXmitCount   = stats.tallies[SEG_RE_XMIT      ].currentCount;
+            results->outputSegReXmitBytes   = stats.tallies[SEG_RE_XMIT      ].currentBytes;
             results->outputCancelXmitCount   = stats.tallies[EXPORT_CANCEL_XMIT].currentCount;
             results->outputCompleteCount     = stats.tallies[EXPORT_COMPLETE   ].currentCount;
         

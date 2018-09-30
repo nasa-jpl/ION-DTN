@@ -4,19 +4,22 @@ sdrwatch - SDR non-volatile data store activity monitor
 
 =head1 SYNOPSIS
 
-B<sdrwatch> I<sdr_name> I<interval> I<count> [ verbose ]
+B<sdrwatch> I<sdr_name> [ -t | -s | -r | -z ] [I<interval> [I<count> [ verbose ]]]
 
 =head1 DESCRIPTION
 
-For I<count> interations, B<sdrwatch> sleeps I<interval> seconds and then
-invokes the sdr_print_trace() function (see sdr(3)) to report on SDR data
-storage management activity in the SDR data store identified
-by I<sdr_name> during that interval.  If the optional B<verbose>
-parameter is specified, the printed SDR activity trace will be verbose
-as described in sdr(3).
+For I<count> interations (defaulting to 1), B<sdrwatch> sleeps I<interval>
+seconds and then performs the SDR operation indicated by the specified
+mode: 's' to print statistics, 'r' to reset statistics, 'z' to print ZCO
+space utilization, 't' (the default) to call the sdr_print_trace() function
+(see sdr(3)) to report on SDR data storage management activity in the SDR
+data store identified by I<sdr_name> during that interval.  If the optional
+B<verbose> parameter is specified, the printed SDR activity trace will be
+verbose as described in sdr(3).
 
-If I<interval> is zero, B<sdrwatch> merely prints a current usage summary
-for the indicated data store and terminates.
+If I<interval> is zero, B<sdrwatch> just performs the indicated operation
+once (for 't', it merely prints a current usage summary for the indicated
+data store) and terminates.
 
 B<sdrwatch> is helpful for detecting and diagnosing storage space leaks.  For
 debugging the ION protocol stack, I<sdr_name> is normally "ion" but might be

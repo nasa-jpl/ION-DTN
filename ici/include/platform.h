@@ -840,6 +840,7 @@ extern char			*istrcat(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));
 extern void			iblock(int);
+extern int			ifopen(const char *, int, int);
 extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 

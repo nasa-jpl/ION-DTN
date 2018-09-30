@@ -505,6 +505,13 @@ static int	reopenSession(TcpclSession *session)
 
 	/*	Reconnection succeeded.					*/
 
+	if (watchSocket(session->sock) < 0)
+	{
+		closesocket(session->sock);
+		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		return -1;
+	}
+
 	session->lengthSent = 0;
 	session->lengthAcked = 0;
 	return 1;		/*	Reconnected.			*/
@@ -1289,7 +1296,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 		return 0;
 	}
 
-	eidbuf = MTAKE(eidLength + 1);
+	eidbuf = MTAKE(eidLength + 3);	/*	May need / * at end.	*/
 	if (eidbuf == NULL)
 	{
 		putErrmsg("Not enough memory for EID in TCPCL contact header.",
@@ -1428,6 +1435,20 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			 *	until this contact header was received.	*/
 
 			sdr_exit_xn(sdr);	/*	Unlock list.	*/
+
+			/*	dtn-scheme EID identifying node is
+			 *	useless for routing if it lacks
+			 *	terminating wild-card demux; no
+			 *	bundle destination EIDs will match it.	*/
+
+			if (strncmp(eidbuf, "dtn:", 4) == 0
+			&& *(eidbuf + (eidLength - 1)) != '*')
+			{
+				/*	Make DTN plan name usable.	*/
+
+				istrcat(eidbuf, "/*", eidLength + 3);
+			}
+
 			findPlan(eidbuf, &vplan, &vplanElt);
 			if (vplanElt == 0)
 			{
@@ -2198,6 +2219,15 @@ static void	*spawnReceivers(void *parm)
 			continue;
 		}
 
+		if (watchSocket(newSocket) < 0)
+		{
+			closesocket(newSocket);
+			putErrmsg("tcpcli can't watch socket.", NULL);
+			ionKillMainThread(procName());
+			stp->running = 0;
+			continue;
+		}
+
 		pthread_mutex_lock(stp->backlogMutex);
 		elt = lyst_insert_last(stp->backlog, (void *) newSocket);
 		pthread_mutex_unlock(stp->backlogMutex);
@@ -2311,6 +2341,13 @@ session with this neighbor", eid);
 
 	case 0:		/*	Protocol failure.			*/
 		return 0;
+	}
+
+	if (watchSocket(sock) < 0)
+	{
+		closesocket(sock);
+		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		return -1;
 	}
 
 	/*	TCP connection succeeded, so establish the TCPCL

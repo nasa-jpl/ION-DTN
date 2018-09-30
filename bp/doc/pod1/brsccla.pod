@@ -42,12 +42,6 @@ integer in network byte order.
 The keepalive thread simply sends a "bundle length" value of zero (a 32-bit
 unsigned integer in network byte order) to the server once every 15 seconds.
 
-Note that B<brsccla> is not a "promiscuous" convergence layer daemon: it
-can transmit bundles only to the BRS server to which it is connected, so
-scheme configuration directives that cite this outduct need only provide
-the protocol name and the BRSC outduct name as specified on the command line
-when B<brsccla> is started.
-
 B<brsccla> is spawned automatically by B<bpadmin> in response to the 's'
 (START) command that starts operation of the Bundle Protocol, and it is
 terminated by B<bpadmin> in response to an 'x' (STOP) command.  B<brsccla>
