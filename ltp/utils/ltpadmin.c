@@ -10,6 +10,10 @@
 #include "ltpP.h"
 #include "ion.h"
 
+#ifdef STRSOE
+#include <strsoe_ltpadmin.h>
+#endif
+
 static int		_echo(int *newValue)
 {
 	static int	state = 0;
@@ -1095,3 +1099,16 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	ltpadmin_processLine(char *line, int lineLength, int *checkNeeded,
+		int *rc)
+{
+	return processLine(line, lineLength, checkNeeded, rc);
+}
+
+void	ltpadmin_help(void)
+{
+	printUsage();
+}
+#endif

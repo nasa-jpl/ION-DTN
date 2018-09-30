@@ -13,6 +13,10 @@
 #include "crypto.h"
 #include "csi.h"
 
+#ifdef STRSOE
+#include <strsoe_bpadmin.h>
+#endif
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -1944,3 +1948,15 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	bpadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	bpadmin_help(void)
+{
+	printUsage();
+}
+#endif

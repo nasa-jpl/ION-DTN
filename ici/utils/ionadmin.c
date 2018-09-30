@@ -10,6 +10,10 @@
 #include "zco.h"
 #include "rfx.h"
 
+#ifdef STRSOE
+#include <strsoe_ionadmin.h>
+#endif
+
 static time_t	_referenceTime(time_t *newValue)
 {
 	static time_t	reftime = 0;
@@ -1308,3 +1312,20 @@ int	main(int argc, char **argv)
 
 	return result;
 }
+
+#ifdef STRSOE
+int	ionadmin_pseudoshell(char *line)
+{
+	return pseudoshell(line);
+}
+
+int	ionadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	ionadmin_help(void)
+{
+	printUsage();
+}
+#endif
