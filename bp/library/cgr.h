@@ -44,41 +44,49 @@ typedef enum
 	// CgrHop(uvast fromNode, uvast toNode)
 	CgrHop,
 
-	// CgrAcceptRoute(uvast firstHop, unsigned int fromTime,
-	//		unsigned int deliveryTime, uvast maxCapacity,
+	// CgrProposeRoute(uvast firstHop, unsigned int fromTime,
+	//		unsigned int deliveryTime, uvast maxVolume,
 	//		int payloadClass)
-	CgrAcceptRoute,
+	CgrProposeRoute,
 	// CgrDiscardRoute(void)
 	CgrDiscardRoute,
 
-	// CgrIdentifyProximateNodes(unsigned int deadline)
-	CgrIdentifyProximateNodes,
+	// CgrIdentifyRoutes(unsigned int deadline)
+	CgrIdentifyRoutes,
+	// CgrFirstRoute(void)
+	CgrFirstRoute,
+	// CgrNoMoreRoutes(void)
+	CgrNoMoreRoutes,
 	// CgrCheckRoute(int payloadClass, uvast firstHop,
 	// 		unsigned int fromTime, unsigned int deliveryTime)
 	CgrCheckRoute,
-	// CgrRecomputeRoute(void)
-	CgrRecomputeRoute,
-	// CgrIgnoreRoute(CgrReason reason)
-	CgrIgnoreRoute,
-	// CgrAddProximateNode(void)
-	CgrAddProximateNode,
-	// CgrUpdateProximateNode(CgrReason reason)
-	CgrUpdateProximateNode,
+	// CgrExpiredRoute(void)
+	CgrExpiredRoute,
+	// CgrExcludeRoute(CgrReason reason)
+	CgrExcludeRoute,
+	// CgrUncertainEntry(CgrReason reason)
+	CgrUncertainEntry,
+	// CgrWrongViaNode(void)
+	CgrWrongViaNode,
+	// CgrAddRoute(void)
+	CgrAddRoute,
+	// CgrUpdateRoute(CgrReason reason)
+	CgrUpdateRoute,
 
-	// CgrSelectProximateNodes(void)
-	CgrSelectProximateNodes,
-	// CgrUseAllProximateNodes(void)
-	CgrUseAllProximateNodes,
-	// CgrConsiderProximateNode(uvast proxNode)
-	CgrConsiderProximateNode,
-	// CgrSelectProximateNode(void)
-	CgrSelectProximateNode,
-	// CgrIgnoreProximateNode(CgrReason reason)
-	CgrIgnoreProximateNode,
-	// CgrUseProximateNode(uvast proxNode)
-	CgrUseProximateNode,
-	// CgrNoProximateNode(void)
-	CgrNoProximateNode,
+	// CgrSelectRoutes(void)
+	CgrSelectRoutes,
+	// CgrUseAllRoutes(void)
+	CgrUseAllRoutes,
+	// CgrConsiderRoute(uvast proxNode)
+	CgrConsiderRoute,
+	// CgrSelectRoute(void)
+	CgrSelectRoute,
+	// CgrSkipRoute(CgrReason reason)
+	CgrSkipRoute,
+	// CgrUseRoute(uvast proxNode)
+	CgrUseRoute,
+	// CgrNoRoute(void)
+	CgrNoRoute,
 	// CgrFullOverbooking(double overbooking)
 	CgrFullOverbooking,
 	// CgrPartialOverbooking(double overbooking)
@@ -95,27 +103,27 @@ typedef enum
 	CgrContactEndsEarly,
 	CgrSuppressed,
 	CgrVisited,
-	CgrCapacityTooSmall,
 	CgrNoRange,
 
-	// Reasons to ignore a route (CgrIgnoreRoute)
+	// Reasons to ignore a route (CgrExcludeRoute)
 	CgrRouteViaSelf,
-	CgrRouteCapacityTooSmall,
+	CgrRouteVolumeTooSmall,
 	CgrInitialContactExcluded,
 	CgrRouteTooSlow,
+	CgrRouteCongested,
 	CgrNoPlan,
 	CgrBlockedPlan,
 	CgrMaxPayloadTooSmall,
-	CgrNoResidualCapacity,
-	CgrResidualCapacityTooSmall,
+	CgrNoResidualVolume,
+	CgrResidualVolumeTooSmall,
 
-	// Reasons to ignore a proximate node (CgrIgnoreRoute,
-	// CgrIgnoreProximateNode) or reasons a previously-selected proximate
-	// node was ignored (CgrUpdateProximateNode)
+	// Reasons to ignore a route (CgrExcludeRoute,
+	// CgrSkipRoute) or reasons a previously-selected
+	// route was ignored (CgrUpdateRoute)
 	CgrMoreHops,
 	CgrEarlierTermination,
 	CgrNoHelp,
-	CgrLowerCapacity,
+	CgrLowerVolume,
 	CgrLaterArrivalTime,
 	CgrLargerNodeNbr,
 

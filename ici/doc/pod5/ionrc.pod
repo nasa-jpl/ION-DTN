@@ -98,6 +98,12 @@ that occurrence of the contact is planned and scheduled rather than merely
 imputed from past node behavior.  In the latter case, I<confidence>
 indicates our estimation of the likelihood of this potential contact.
 
+=item B<c contact> I<start_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
+
+The B<change contact> command.  This command changes the data transmission
+rate and possibly our level of confidence in the scheduled period of data
+transmission from I<source_node> to I<dest_node> starting at I<start_time>.
+
 =item B<d contact> I<start_time> I<source_node> I<dest_node>
 
 The B<delete contact> command.  This command deletes the scheduled
