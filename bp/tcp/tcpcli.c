@@ -582,12 +582,20 @@ static void	stopSenderThread(TcpclSession *session)
 
 		/*	Then waitForOutduct.				*/
 
-		if (pthread_kill(session->sender, SIGCONT) == 0)
+		microsnooze(100000);	/*	Maybe thread stops.	*/
+		if (session->vduct->hasThread)
 		{
-			pthread_join(session->sender, NULL);
-		}
+			/*	Note: session->vduct->cloThread
+			 *	is the same as session->sender.		*/
 
-		session->vduct->hasThread = 0;
+			if (pthread_kill(session->vduct->cloThread, SIGCONT)
+					== 0)
+			{
+				pthread_join(session->vduct->cloThread, NULL);
+			}
+
+			session->vduct->hasThread = 0;
+		}
 
 		/*	Then resetOutduct.				*/
 
@@ -1347,6 +1355,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				session->hasSigMutex = 0;
 				session->hasReceiver = 0;
 				session->hasSender = 0;
+				session->vduct = NULL;
 				session->hasAdmin = 0;
 				session->pipeline = NULL;
 				session->signals = NULL;
