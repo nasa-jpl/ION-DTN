@@ -121,6 +121,7 @@ typedef int		(*BpExtBlkCopyFn)(ExtensionBlock *, ExtensionBlock *);
 
 /** Functions used in acquiring an inbound extension block. */
 typedef int		(*BpAcqExtBlkAcquireFn)(AcqExtBlock *, AcqWorkArea *);
+typedef int		(*BpAcqExtReviewFn)(AcqWorkArea *);
 typedef int		(*BpAcqExtBlkDecryptFn)(AcqExtBlock *, AcqWorkArea *);
 typedef int		(*BpAcqExtBlkParseFn)(AcqExtBlock *, AcqWorkArea *);
 typedef int		(*BpAcqExtBlkCheckFn)(AcqExtBlock *, AcqWorkArea *);
@@ -151,6 +152,7 @@ typedef struct
 	/*	Acquisition callbacks.					*/
 
 	BpAcqExtBlkAcquireFn	acquire;	/** Acquire 		*/
+	BpAcqExtReviewFn	review;		/** Review		*/
 	BpAcqExtBlkDecryptFn	decrypt;	/** Decrypt 		*/
 	BpAcqExtBlkParseFn	parse;		/** Parse 		*/
 	BpAcqExtBlkCheckFn	check;		/** Check 		*/
@@ -167,6 +169,9 @@ typedef struct
  * three discriminator tags whose semantics are block-type-specific,
  * and list index, indicating whether the extension block is to be
  * inserted before or after the Payload block.
+ *
+ * listIdx is obsolete in sbsp, as *NO* blocks are ever inserted after
+ * the Payload block.
  */
 typedef struct
 {
@@ -286,6 +291,7 @@ extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned int blockLength,
 			unsigned char blkType, unsigned int blkProcFlags,
 			Lyst *eidReferences, unsigned int dataLength);
+extern int	reviewExtensionBlocks(AcqWorkArea *wk);
 extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);
 extern int	parseExtensionBlocks(AcqWorkArea *wk);
 extern int	checkPerExtensionBlocks(AcqWorkArea *wk);

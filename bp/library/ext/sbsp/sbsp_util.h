@@ -16,11 +16,11 @@
  **             Extensions: SBSP
  **
  ** Description: This file provides all structures, variables, and function 
- **              definitions necessary for a full implementation of Bundle
- **              Protocol Security (SBSP).
- **		         This implementation utilizes the ION Extension Interface to
- **              manage the creation, modification, evaluation, and removal
- **              of SBSP blocks from Bundle Protocol (RFC 5050) bundles.
+ **              definitions necessary for a full implementation of Streamlined
+ **		 Bundle Protocol Security (SBSP).  This implementation utilizes
+ **		 the ION Extension Interface to manage the creation,
+ **		 modification, evaluation, and removal of SBSP blocks from
+ **		 Bundle Protocol (RFC 5050) bundles.
  **
  ** Notes:  The original implementation of this file (6/2009) only supported
  **         the Bundle Authentication Block (BAB) with the following
@@ -145,7 +145,7 @@
 #define sbsp_RX			1
 
 /** 
- * BAB Block Type Fields 
+ * Block Types
  */
 #define BLOCK_TYPE_PRIMARY	0x00	/*	Primary block type.	*/
 #define BLOCK_TYPE_PAYLOAD	0x01	/*	Payload block type.	*/
@@ -157,12 +157,15 @@
  * Ciphersuite Flags - From SBSP Spec.
  *
  * SEC_SRC: Block contains a security source EID.
- * PARM: Block contains ciphersuite parameters
+ * PARM: Block contains ciphersuite parameters.
  * RES: Block contains a security result.
  */
+#if 0
 #define SBSP_ASB_SEC_SRC	0x04
 #define SBSP_ASB_PARM		0x02
 #define SBSP_ASB_RES		0x01
+#endif
+#define SBSP_ASB_PARM		0x01
 
 /**
  * Ciphersuite and Security Result Item Types - SBSP spec Section 2.7.
@@ -174,7 +177,7 @@
 #define SBSP_CSPARM_SALT         0x07
 #define SBSP_CSPARM_ICV          0x08
 
-#define SBSP_KEY_NAME_LEN	32
+#define SBSP_KEY_NAME_LEN	 32
 
 
 /*****************************************************************************
@@ -193,14 +196,14 @@ typedef struct
 	EndpointId securitySource;
 	uint8_t	   targetBlockType;
 	uint8_t	   targetBlockOccurrence;
-	uint8_t    instance;	    /*  0: 1st, lone.  1: last.	*/
+	uint8_t    instance;	    /*  0: 1st, lone.  1: last.		*/
 	uint8_t	   ciphersuiteType;
 	char	   keyName[SBSP_KEY_NAME_LEN];
 	uint32_t   ciphersuiteFlags;
 	uint32_t   parmsLen;	    /*  IFF flags & sbsp_ASB_PARM	*/
 	uint8_t	  *parmsData;	    /*  IFF flags & sbsp_ASB_PARM	*/
-	uint32_t   resultsLen;	    /*  IFF flags & sbsp_ASB_RES	*/
-	uint8_t	  *resultsData;	/*  IFF flags & sbsp_ASB_RES	*/
+	uint32_t   resultsLen;
+	uint8_t	  *resultsData;
 } SbspInboundBlock;
 
 
@@ -217,14 +220,15 @@ typedef struct
 	EndpointId securitySource;
 	uint8_t	   targetBlockType;
 	uint8_t	   targetBlockOccurrence;
-	uint8_t	   instance;	/*  0: 1st, lone.  1: last.	*/
+	uint8_t	   instance;	/*  0: 1st, lone.  1: last.		*/
+	uint8_t	   encryptInPlace;	/*  Boolean			*/
 	uint8_t	   ciphersuiteType;
 	char       keyName[SBSP_KEY_NAME_LEN];
 	uint32_t   ciphersuiteFlags;
-	uint32_t   parmsLen;	/** IFF flags & sbsp_ASB_PARM	*/
-	Object     parmsData;	/** IFF flags & sbsp_ASB_PARM	*/
-	uint32_t   resultsLen;	/** IFF flags & sbsp_ASB_RES	*/
-	Object     resultsData;	/** IFF flags & sbsp_ASB_RES	*/
+	uint32_t   parmsLen;	/** IFF flags & sbsp_ASB_PARM		*/
+	Object     parmsData;	/** IFF flags & sbsp_ASB_PARM		*/
+	uint32_t   resultsLen;
+	Object     resultsData;
 } SbspOutboundBlock;
 
 
@@ -233,80 +237,68 @@ typedef struct
  *****************************************************************************/
 
 
+extern unsigned char	*sbsp_addSdnvToStream(unsigned char *stream, Sdnv* val);
 
-extern unsigned char *sbsp_addSdnvToStream(unsigned char *stream, Sdnv* val);
 
+extern SdrObject	sbsp_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms,
+				uint32_t *len);
 
-extern SdrObject      sbsp_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len);
+extern SdrObject	sbsp_build_sdr_result(Sdr sdr, uint8_t id,
+				csi_val_t value, uint32_t *len);
 
-extern SdrObject      sbsp_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t *len);
+extern int		sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern int         sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
+extern int		sbsp_destinationIsLocal(Bundle *bundle);
 
-extern int         sbsp_destinationIsLocal(Bundle *bundle);
+extern LystElt		sbsp_findAcqBlock(AcqWorkArea *wk, uint8_t type,
+				uint8_t targetBlockType,
+				uint8_t targetBlockOccurrence,
+				uint8_t instance);
 
-extern LystElt	      sbsp_findAcqBlock(AcqWorkArea *wk,
-		                                 uint8_t type,
-										 uint8_t targetBlockType,
-										 uint8_t targetBlockOccurrence,
-										 uint8_t instance);
+extern Object		sbsp_findBlock(Bundle *bundle, uint8_t type,
+				uint8_t targetBlockType,
+				uint8_t targetBlockOccurrence,
+				uint8_t instance);
 
-extern Object	      sbsp_findBlock(Bundle *bundle,
-		                             uint8_t type,
-									 uint8_t targetBlockType,
-									 uint8_t targetBlockOccurrence,
-									 uint8_t instance);
-/*
-extern void	          sbsp_getInboundItem(int itemNeeded,
-		                                   unsigned char *buf,
-			                               unsigned int bufLen,
-										   unsigned char **val,
-			                               unsigned int *len);
-*/
+extern void		sbsp_getInboundItem(int itemNeeded, unsigned char *buf,
+				unsigned int bufLen, unsigned char **val,
+				unsigned int *len);
 
-extern int	      sbsp_getInboundSecurityEids(Bundle *bundle,
-												   AcqExtBlock *blk,
-												   SbspInboundBlock *asb,
-												   char **fromEid,
-												   char **toEid);
+extern int		sbsp_getInboundSecurityEids(Bundle *bundle,
+				AcqExtBlock *blk, SbspInboundBlock *asb,
+				char **fromEid, char **toEid);
 
-extern int	      sbsp_getInboundSecuritySource(AcqExtBlock *blk,
-   		                                             char *dictionary,
-			                                         char **fromEid);
+extern int		sbsp_getInboundSecuritySource(AcqExtBlock *blk,
+				char *dictionary, char **fromEid);
 
-extern char	         *sbsp_getLocalAdminEid(char *eid);
+extern char		*sbsp_getLocalAdminEid(char *eid);
 
-extern void	          sbsp_getOutboundItem(uint8_t itemNeeded,
-		                                    Object buf,
-		                                    uint32_t bufLen,
-											Address *val,
-											uint32_t *len);
+extern void		sbsp_getOutboundItem(uint8_t itemNeeded, Object buf,
+				uint32_t bufLen, Address *val, uint32_t *len);
 
-extern int	      sbsp_getOutboundSecurityEids(Bundle *bundle,
-		                                            ExtensionBlock *blk,
-			                                        SbspOutboundBlock *asb,
-													char **fromEid,
-													char **toEid);
+extern int		sbsp_getOutboundSecurityEids(Bundle *bundle,
+				ExtensionBlock *blk, SbspOutboundBlock *asb,
+				char **fromEid, char **toEid);
 
-extern int         sbsp_getOutboundSecuritySource(ExtensionBlock *blk,
-		                                              char *dictionary,
-				  				 	                  char **fromEid);
+extern int		sbsp_getOutboundSecuritySource(ExtensionBlock *blk,
+				char *dictionary, char **fromEid);
 
-extern void	          sbsp_insertSecuritySource(Bundle *bundle,
-		                                         SbspOutboundBlock *asb);
+extern void		sbsp_insertSecuritySource(Bundle *bundle,
+				SbspOutboundBlock *asb);
 
-extern csi_val_t      sbsp_retrieveKey(char *keyName);
+extern csi_val_t	sbsp_retrieveKey(char *keyName);
 
-extern int	      sbsp_securityPolicyViolated(AcqWorkArea *wk);
+extern int		sbsp_securityPolicyViolated(AcqWorkArea *wk);
 
-extern unsigned char *sbsp_serializeASB(uint32_t *length,
-		                                 SbspOutboundBlock *blk);
+extern int		sbsp_requiredBlockExists(AcqWorkArea *wk,
+				uint8_t sbspBlockType, uint8_t targetBlockType,
+				char *secSrcEid);
 
-extern int         sbsp_transferToZcoFileSource(Sdr sdr,
-		                                            Object *resultZco,
-													Object *acqFileRef,
-													char *fname,
-													char *bytes,
-													uvast length);
+extern unsigned char	*sbsp_serializeASB(uint32_t *length,
+				SbspOutboundBlock *blk);
+
+extern int		sbsp_transferToZcoFileSource(Sdr sdr,
+				Object *resultZco, Object *acqFileRef,
+				char *fname, char *bytes, uvast length);
 
 #endif /* _SBSP_UTIL_H_ */

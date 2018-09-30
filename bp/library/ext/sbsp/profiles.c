@@ -22,7 +22,7 @@
 #include "profiles.h"
 #include "csi.h"
 
-
+#if 0
 /*		Bundle Authentication Block profiles		*/
 
 static BabProfile	*_bab_profiles(int *count)
@@ -83,6 +83,7 @@ BabProfile	*get_bab_prof_by_number(int profNbr)
 
 	return NULL;
 }
+#endif
 
 /*		Block Integrity Block profiles			*/
 
@@ -91,7 +92,7 @@ static BibProfile	*_bib_profiles(int *count)
 	static BibProfile	specs[] =
 	{
 		{	2, "BIB-HMAC-SHA256", CSTYPE_HMAC_SHA256, 0,
-		    NULL,
+			NULL,
 			NULL,
 			NULL
 		},

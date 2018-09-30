@@ -56,7 +56,7 @@
 
 static ExtensionDef	extensionDefs[] =
 			{
-				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0 }
+				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
 /*	NOTE: the order of appearance of extension definitions in the

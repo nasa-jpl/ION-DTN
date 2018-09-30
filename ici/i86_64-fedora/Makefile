@@ -6,10 +6,14 @@ DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
+#  BPINCL = ../../bp/include
+#  BPLIB = ../../bp/library
+#  SBSP = $(BPLIB)/ext/sbsp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
+# -I$(BPINCL) -I$(BPLIB) -I$(SBSP)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -39,6 +43,7 @@ LIBICIOBJS = \
 	sdrcatlg.o
 
 PUBINCLS = \
+#	$(SBSP)/profiles.h \
 	$(INCL)/llcv.h \
 	$(INCL)/platform.h \
 	$(INCL)/platform_sm.h \

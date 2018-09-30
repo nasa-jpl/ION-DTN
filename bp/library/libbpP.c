@@ -5859,7 +5859,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
-	if(bundle->corrupt == 1)
+	if (bundle->corrupt)
 	{
 		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
 	}
@@ -8532,8 +8532,9 @@ static char	*getCustodialSchemeName(Bundle *bundle)
 
 static void	initAuthenticity(AcqWorkArea *work)
 {
-	Sdr		bpSdr = getIonsdr();
 	Object		secdbObj;
+#ifdef ORIGINAL_BSP
+	Sdr		bpSdr = getIonsdr();
 			OBJ_POINTER(SecDB, secdb);
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
@@ -8541,6 +8542,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 	Object		ruleAddr;
 	Object		elt;
 			OBJ_POINTER(BspBabRule, rule);
+#endif
 
 	work->authentic = work->allAuthentic;
 	if (work->authentic)		/*	Asserted by CL.		*/
@@ -8557,6 +8559,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
 	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0)
 	{
@@ -8593,6 +8596,10 @@ static void	initAuthenticity(AcqWorkArea *work)
 			work->authentic = 1;	/*	Trusted node.	*/
 		}
 	}
+#else
+	work->authentic = 1;	/*	No BABs, check BIBs instead.	*/
+	return;
+#endif
 }
 
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
@@ -8643,6 +8650,22 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
 			work->headerLength, bundle->payload.length);
+
+	/*	Make sure all required security blocks are present.	*/
+
+	switch (reviewExtensionBlocks(work))
+	{
+	case -1:
+		putErrmsg("Failed reviewing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+
+	case 0:
+		writeMemo("[?] Malformed bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
@@ -10895,6 +10918,8 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	Bundle		bundle;
 	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 	DequeueContext	context;
 	char		*dictionary;
 
@@ -10964,11 +10989,34 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	findPlan(proxNodeEid, &vplan, &vplanElt);
+	if (vplanElt)
+	{
+		context.xmitRate = vplan->xmitThrottle.nominalRate;
+	}
+	else
+	{
+		context.xmitRate = 0;
+	}
+
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");
 		sdr_cancel_xn(bpSdr);
 		return -1;
+	}
+
+	if (bundle.corrupt)
+	{
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 1) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		return sdr_end_xn(bpSdr);
 	}
 
 	if (bundle.overdueElt)
