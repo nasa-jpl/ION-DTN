@@ -248,7 +248,7 @@ LOCAL_C_INCLUDES := $(MY_ICI)/include \
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp
 #	$(MY_CFDP)/include $(MY_CFDP)/library
 
-LOCAL_CFLAGS = -g -Werror -Wall -Wno-unused-variable -Wno-int-to-pointer-cast -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC -DSBSP -DAGENT_ROLE
+LOCAL_CFLAGS = -g -fsigned-char -Werror -Wall -Wno-unused-variable -Wno-int-to-pointer-cast -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC -DSBSP -DAGENT_ROLE
 #	-DENABLE_ACS -DNO_PROXY -DNO_DIRLIST
 
 LOCAL_LDLIBS :=  -llog
