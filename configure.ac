@@ -4,8 +4,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, NASA baseline 3.6.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
-IS_NASA_B=1
+AC_INIT(ion, open source 3.6.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and

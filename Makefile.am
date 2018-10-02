@@ -944,7 +944,6 @@ bpextra = \
 	bp/doc/pod1/hmackeys.pod \
 	bp/doc/pod5/bprc.pod \
 	bp/doc/pod5/ipnrc.pod \
-	bp/doc/pod5/bssrc.pod \
 	bp/doc/pod5/dtn2rc.pod \
 	bp/doc/pod5/lgfile.pod \
 	bp/doc/pod3/bp.pod \
@@ -1025,7 +1024,6 @@ bpmans = \
 	$(top_builddir)/bp/doc/hmackeys.1 \
 	$(top_builddir)/bp/doc/bprc.5 \
 	$(top_builddir)/bp/doc/ipnrc.5 \
-	$(top_builddir)/bp/doc/bssrc.5 \
 	$(top_builddir)/bp/doc/dtn2rc.5 \
 	$(top_builddir)/bp/doc/lgfile.5 \
 	$(top_builddir)/bp/doc/bp.3 \
@@ -1861,63 +1859,6 @@ dtpcPODM5 = pod2man -s 5 -c "DTPC configuration files"
 
 dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
-##########################
-#
-# NETWORK MANAGEMENT SECTION
-#
-##########################
-
-nmbin= nm_agent nm_mgr
-
-nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
-                    nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
-                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
-                    nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
-					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
-					nm/shared/adm/adm_agent.c nm/shared/adm/adm_sbsp.c	nm/agent/adm_sbsp_impl.c \
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
-				
-					
-nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_LDFLAGS = -lm -lpthread
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
-                  -DAGENT_ROLE -fPIC
-					
-					
-nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
-					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
-					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
-					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
-					nm/shared/adm/adm_sbsp.c	\
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c    nm/shared/primitives/expr.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
-					
-nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-
-# Use this to build the AMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable -fPIC
-
-# Use this to build the AMP Manager WITH DB Support.
-#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
-#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -fPIC -DHAVE_MYSQL
-
 dtpcbin = \
 	dtpcreceive \
 	dtpcsend \
@@ -2013,17 +1954,17 @@ nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 
                     nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
                     nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \
                     nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
-					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
-					nm/shared/adm/adm_agent.c nm/shared/adm/adm_sbsp.c	nm/agent/adm_sbsp_impl.c \
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
+		    nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c      nm/agent/adm_bp_impl.c \
+		    nm/shared/adm/adm_agent.c    nm/shared/adm/adm_sbsp.c	nm/agent/adm_sbsp_impl.c \
+		    nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
+		    nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
+		    nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
+		    nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
+		    nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
+		    nm/shared/primitives/nn.c 	 nm/agent/instr.c   		nm/shared/primitives/tdc.c\
+		    nm/shared/primitives/ctrl.c  nm/shared/primitives/table.c \
+		    nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
+		    nm/shared/utils/nm_types.c
 				
 					
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -2034,20 +1975,20 @@ nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library 
 					
 					
 nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \
-					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
-					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
-					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
-					nm/shared/adm/adm_sbsp.c	\
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c    nm/shared/primitives/expr.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\
-					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
+		    nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c            nm/mgr/ui_input.c \
+		    nm/mgr/nm_mgr_print.c 	 nm/mgr/mgr_db.c \
+		    nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c \
+		    nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
+		    nm/shared/adm/adm_sbsp.c	\
+		    nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
+		    nm/shared/primitives/var.c   nm/shared/primitives/expr.c \
+		    nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
+		    nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
+		    nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
+		    nm/shared/primitives/nn.c 	 nm/shared/primitives/tdc.c\
+		    nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c    nm/shared/primitives/table.c \
+		    nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
+		    nm/shared/utils/nm_types.c
 					
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
