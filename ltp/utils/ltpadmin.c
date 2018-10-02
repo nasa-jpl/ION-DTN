@@ -946,39 +946,29 @@ up, abandoned.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToLtp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//ltp engine is not started
-					printText("LTP engine is not started");
-					return 1;
-				}
-
-				//attached to ltp system
-				
-				*rc = ltp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = ltp_engine_is_started();
-			if (*rc)
-			{
-				printText("LTP engine is started");
 			}
 			else
 			{
-				printText("LTP engine is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToLtp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//ltp engine is not started
+				printText("LTP engine is not started");
+				return 1;
+			}
+
+			//attached to ltp system
+				
+			*rc = ltp_is_up(count, max);
 			return 1;
 
 		case 'q':

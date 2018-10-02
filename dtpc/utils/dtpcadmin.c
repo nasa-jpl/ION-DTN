@@ -608,39 +608,29 @@ command.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToDtpc() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//dtpc entity is not started
-					printText("DTPC entity is not started");
-					return 1;
-				}
-
-				//attached to dtpc system
-
-				*rc = dtpc_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = dtpc_entity_is_started();
-			if (*rc)
-			{
-				printText("DTPC entity is started");
 			}
 			else
 			{
-				printText("DTPC entity is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToDtpc() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//dtpc entity is not started
+				printText("DTPC entity is not started");
+				return 1;
+			}
+
+			//attached to dtpc system
+
+			*rc = dtpc_is_up(count, max);
 			return 1;
 
 		case 'q':

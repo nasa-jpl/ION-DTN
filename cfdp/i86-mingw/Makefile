@@ -22,7 +22,7 @@ CFDPINCLS = \
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = cfdpadmin cfdpclock bputa tcputa cfdptest
-# bpcp bpcpd
+# bpcp bpcpd - rely on system calls not implemented in mingw
 
 ALL = check libcfdp.dll $(RUNTIMES)
 

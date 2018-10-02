@@ -44,8 +44,8 @@ BPINCLS = \
 	$(UDP)/udpcla.h \
 	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
-	$(API)/acs/acs.h
-#	$(DCCP)/dccpcla.h
+	$(API)/acs/acs.h \
+	$(DCCP)/dccpcla.h
 
 BPLIBS = \
 	libbp.dll
@@ -57,11 +57,9 @@ BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest ipnd
-# dccpcli dccpclo
-RUNTIMES += acsadmin acslist 
-# acsadmin acslist
-# bpstats2 bpchat
+RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpcancel bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit brsccla brsscla bsspcli bsspclo cgrfetch dccpcli dccpclo dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+# bpstats2 - needs SIGUSR1 which is not implemented in mingw
+# bpchat - executable will build but the test does not work
 
 ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libstcpcla.dll libudpcla.dll $(RUNTIMES)
 
@@ -282,6 +280,14 @@ ipnd:		$(IPNDOBJS) $(BPLIBS)
 		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
 		cp ipnd ./bin
 
+beacon:		$(IPNDOBJS) $(BPLIBS)
+		$(CC) -o beacon $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
+		cp beacon ./bin
+		
+node:		$(IPNDOBJS) $(BPLIBS)
+		$(CC) -o node $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
+		cp node ./bin
+
 #	-	-	Test executables	-	-	-	-
 
 bpsource:	bpsource.o libbp.dll $(BPLIBS)
@@ -315,6 +321,10 @@ bprecvfile:	bprecvfile.o libbp.dll $(BPLIBS)
 bpnmtest:	bpnmtest.o libbp.dll $(BPLIBS)
 		$(CC) -o bpnmtest bpnmtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpnmtest ./bin
+
+cgrfetch:	cgrfetch.o $(BPLIBS)
+		$(CC) -o cgrfetch cgrfetch.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp cgrfetch ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 

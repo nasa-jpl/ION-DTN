@@ -995,39 +995,29 @@ command.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToCfdp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//cfdp entity is not started
-					printText("CFDP entity is not started");
-					return 1;
-				}
-
-				//attached to cfdp system
-
-				*rc = cfdp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = cfdp_entity_is_started();
-			if (*rc)
-			{
-				printText("CFDP entity is started");
 			}
 			else
 			{
-				printText("CFDP entity is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToCfdp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//cfdp entity is not started
+				printText("CFDP entity is not started");
+				return 1;
+			}
+
+			//attached to cfdp system
+
+			*rc = cfdp_is_up(count, max);
 			return 1;
 
 		case 'q':

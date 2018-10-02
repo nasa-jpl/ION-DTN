@@ -1817,39 +1817,29 @@ static int	processLine(char *line, int lineLength, int *rc)
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToBp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//bp agent is not started
-					printText("BP agent is not started");
-					return 1;
-				}
-
-				//attached to bp system
-
-				*rc = bp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = bp_agent_is_started();
-			if (*rc)
-			{
-				printText("BP agent is started");
 			}
 			else
 			{
-				printText("BP agent is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToBp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//bp agent is not started
+				printText("BP agent is not started");
+				return 1;
+			}
+
+			//attached to bp system
+
+			*rc = bp_is_up(count, max);
 			return 1;
 
 		case 'q':

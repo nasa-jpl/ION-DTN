@@ -1720,13 +1720,13 @@ void	sec_clearBspRules(char *srcEid, char *destEid, char *blockType)
 	CHKVOID(secdb);
 	srcEidLen = istrlen(srcEid, SDRSTRING_BUFSZ);
 	destEidLen = istrlen(destEid, SDRSTRING_BUFSZ);
+#ifdef ORIGINAL_BSP
 	if (blockType[0] == '~' || blockType[0] == '2')	/*	BAB	*/
 	{
 		/*	Remove matching authentication rules.		*/
 
 		rmCount = 0;
 		CHKVOID(sdr_begin_xn(sdr));
-#ifdef ORIGINAL_BSP
 		OBJ_POINTER(BspBabRule, rule);
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 				elt = temp)
@@ -1751,7 +1751,6 @@ void	sec_clearBspRules(char *srcEid, char *destEid, char *blockType)
 				}
 			}
 		}
-#endif
 #if 0
 		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 				elt = temp)
@@ -1790,6 +1789,7 @@ authentication rules.");
 authentication rules cleared.");
 		}
 	}
+#endif
 
 	if (blockType[0] == '~' || blockType[0] == '3')	/*	PIB/BIB	*/
 	{
