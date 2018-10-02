@@ -2836,7 +2836,6 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 
 	[CgrProposeRoute] = "    PROPOSE firstHop to:" UVAST_FIELDSPEC
 		" fromTime:%u arrivalTime:%u",
-	[CgrNoRoute] = "    NO ROUTE",
 
 	[CgrIdentifyRoutes] = "IDENTIFY deadline:%u",
 	[CgrFirstRoute] = "    FIRST",
