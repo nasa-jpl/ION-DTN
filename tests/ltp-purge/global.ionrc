@@ -7,5 +7,5 @@ a contact  +45 +65		3 2   120000
 #  Note half-duplex comm: 2/3 return traffic occurs after end of fwd contact.
 a contact  +45 +65		3 5   120000
 a contact  +45 +65		5 3   120000
-a contact  +70 +100		2 5   120000
-a contact  +70 +100		5 2   120000
+a contact  +70 +150		2 5   120000
+a contact  +70 +150		5 2   120000
