@@ -86,6 +86,7 @@ udplsi:		udplsi.o libltp.dll
 
 udplso:		udplso.o libltp.dll
 		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp udplso ./bin
 
 #	-	-	AOS Executables	-	-	-	-	-
 
