@@ -21,7 +21,8 @@ LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso dccplsi dccplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
+# dccplsi dccplso - excluded on platforms other than Linux in config.h
 
 ALL = check libltp.dll $(RUNTIMES)
 
