@@ -181,7 +181,7 @@ those files to node 5 is not affected.
 
 During interval C, node 2 transmits additional copies of files x and y
 to node 5, followed by file z."
-sleep 105
+sleep 150
 echo "All contacts have terminated.  Verifying results..."
 
 # Verify bundle arrival.
