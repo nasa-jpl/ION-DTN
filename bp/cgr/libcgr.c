@@ -737,7 +737,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	*routeAddr = 0;		/*	Default.			*/
 	if (rootContactElt)	/*	Computing a spur route.		*/
 	{
-//puts("*** Spur route, starting at a waypoint of the last selected route. ***");
+//puts("*** Starting at a waypoint of the last selected route. ***");
 		rootContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
 				rootContactElt));
 		if (rootContact->toNode == terminusNode->nodeNbr)
@@ -794,7 +794,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 
 	if (route->toNodeNbr == 0)
 	{
-		TRACE(CgrNoRoute);
+		TRACE(CgrNoMoreRoutes);
 
 		/*	No more routes in graph.			*/
 
@@ -858,57 +858,131 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	return 0;
 }
 
-static int	loopFound(PsmPartition ionwm, CgrRoute *lastSelectedRoute,
-			CgrRoute *newRoute)
-{
-	PsmAddress	elt;
-	IonCXref	*nrContact;
-	PsmAddress	elt2;
-	IonCXref	*lsrContact;
-
-	for (elt = sm_list_first(ionwm, newRoute->hops); elt;
-			elt = sm_list_next(ionwm, elt))
-	{
-		nrContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
-		for (elt2 = sm_list_first(ionwm, lastSelectedRoute->hops); elt2;
-				elt2 = sm_list_next(ionwm, elt2))
-		{
-			lsrContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
-						elt2));
-			if (lsrContact == nrContact)
-			{
-				return 1;
-			}
-		}
-	}
-
-	return 0;
-}
-
 static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			CgrRoute *lastSelectedRoute, time_t currentTime, 
-			PsmAddress rootOfSpur, PsmAddress firstHop,
-			CgrRtgObject *routingObj, CgrTrace *trace)
+			PsmAddress rootOfSpur, CgrRtgObject *routingObj,
+			CgrTrace *trace)
 {
+	PsmAddress	rootOfSpurAddr;
+	PsmAddress	contactElt;
+	PsmAddress	nextContactElt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
+	PsmAddress	routeElt;
+	PsmAddress	routeAddr;
+	CgrRoute	*route;
+	PsmAddress	rootPathContactElt;
+	PsmAddress	nextRootPathContactElt;
+	PsmAddress	rootPathContactAddr;
 	PsmAddress	newRouteAddr;
 	CgrRoute	*newRoute;
-	PsmAddress	elt;
 
+//puts("*** Computing a spur route. ***");
+	rootOfSpurAddr = sm_list_data(ionwm, rootOfSpur);
 	clearWorkAreas(rootOfSpur == 0 ? NULL : (IonCXref *) psp(ionwm,
-			sm_list_data(ionwm, rootOfSpur)));
-	if (firstHop)
-	{
-		/*	Don't recompute the same route.		*/
+				rootOfSpurAddr));
 
-		contactAddr = sm_list_data(ionwm, firstHop);
-		contact = (IonCXref *) psp(ionwm, contactAddr);
-//printf("*** Suppressing contact to node " UVAST_FIELDSPEC ".\n", contact->toNode);
-		CHKERR(work = getWorkArea(ionwm, contact));
-		work->suppressed = 1;
+	/*	Suppress contacts that would introduce loops, i.e.,
+	 *	all contacts on the root path for this spur path.	*/
+
+	if (rootOfSpur != 0)
+	{
+//puts("*** Suppressing contacts on root path. ***");
+		contactElt = sm_list_prev(ionwm, rootOfSpur);
+		while (contactElt)
+		{
+			contactAddr = sm_list_data(ionwm, contactElt);
+			contact = (IonCXref *) psp(ionwm, contactAddr);
+			CHKERR(work = getWorkArea(ionwm, contact));
+			work->suppressed = 1;
+//printf("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toNode);
+			contactElt = sm_list_prev(ionwm, contactElt);
+		}
 	}
+
+	/*	Exclude edges that would introduce duplicates: for
+	 *	each existing route that has this same root path,
+	 *	exclude the edge from the end of the root path to
+	 *	the first subsequent contact -- i.e., suppress the
+	 *	first contact after the end of the root path.		*/
+
+//printf("*** rootOfSpurAddr is " UVAST_FIELDSPEC ". ***\n", rootOfSpurAddr);
+	for (routeElt = sm_list_first(ionwm, routingObj->selectedRoutes);
+			routeElt; routeElt = sm_list_next(ionwm, routeElt))
+	{
+//puts("*** Looking for contacts to suppress on a selected route. ***");
+		routeAddr = sm_list_data(ionwm, routeElt);
+		route = (CgrRoute *) psp(ionwm, routeAddr);
+		nextContactElt = sm_list_first(ionwm, route->hops);
+		nextRootPathContactElt = sm_list_first(ionwm,
+				lastSelectedRoute->hops);
+		contactAddr = 0;
+		rootPathContactAddr = 0;
+		while (1)
+		{
+//printf("*** rootPathContactAddr is " UVAST_FIELDSPEC ". ***\n", rootPathContactAddr);
+			if (contactAddr != rootPathContactAddr)
+			{
+//puts("*** Root paths diverge at this point. ***");
+				/*	No shared root path, so
+				 *	end review of this route.	*/
+
+				break;
+			}
+
+//puts("*** Root path is the same up to this point. ***");
+		       	if (rootPathContactAddr == rootOfSpurAddr)
+			{
+				/*	Entire root path is shared,
+				 *	so suppress the next contact
+				 *	in this route and end review
+				 *	of this route.			*/
+
+				if (nextContactElt)
+				{
+					contactAddr = sm_list_data(ionwm,
+					       		nextContactElt);
+					contact = (IonCXref *) psp(ionwm,
+							contactAddr);
+					CHKERR(work = getWorkArea(ionwm,
+							contact));
+					work->suppressed = 1;
+//printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toNode);
+				}
+
+				break;
+			}
+
+			/*	Up to this point, this route's root
+			 *	path is the same as that of the new
+			 *	spur route we are computing.  Review
+			 *	of this route must continue.		*/
+
+			if (nextContactElt == 0 || nextRootPathContactElt == 0)
+			{
+//puts("*** Reached end of route before reaching root of spur. ***");
+				/*	Root paths diverge, end review.	*/
+
+				break;
+			}
+
+//puts("*** Checking next root path contact. ***");
+			contactElt = nextContactElt;
+			contactAddr = sm_list_data(ionwm, contactElt);
+			nextContactElt = sm_list_next(ionwm, contactElt);
+			rootPathContactElt = nextRootPathContactElt;
+			rootPathContactAddr = sm_list_data(ionwm,
+					rootPathContactElt);
+			nextRootPathContactElt = sm_list_next(ionwm,
+					rootPathContactElt);
+		}
+//puts("*** Done looking for contacts to suppress on that selected route. ***");
+	}
+
+//puts("*** Done looking for contacts to suppress on selected routes. ***");
+
+	/*	Compute best route, within these constraints.		*/
 
 	if (computeRoute(ionwm, rootOfSpur, terminusNode, currentTime,
 			&newRouteAddr, trace) < 0)
@@ -924,31 +998,15 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	}
 
 	newRoute = (CgrRoute *) psp(ionwm, newRouteAddr);
-
-	/*	New route is only a spur at this point.  Test for
-	 *	usability: can't use the route if it introduces a
-	 *	loop.							*/
-
-	if (loopFound(ionwm, lastSelectedRoute, newRoute))
-	{
-//puts("*** Newly computed route introduces a loop. ***");
-		/*	Not a usable route.				*/
-
-		destroyRoute(ionwm, newRouteAddr);
-		return 0;
-	}
-
-	/*	New route is usable.					*/
-
 	newRoute->rootOfSpur = rootOfSpur;
 
 	/*	Prepend common trunk route to the spur route.	*/
 
-	elt = rootOfSpur;
-	while (elt)
+	contactElt = rootOfSpur;
+	while (contactElt)
 	{
 //puts("*** Prepending a contact from trunk to spur route. ***");
-		contactAddr = sm_list_data(ionwm, elt);
+		contactAddr = sm_list_data(ionwm, contactElt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
 		TRACE(CgrHop, contact->fromNode, contact->toNode);
 		if (sm_list_insert_first(ionwm, newRoute->hops, contactAddr)
@@ -958,7 +1016,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			return -1;
 		}
 
-		elt = sm_list_prev(ionwm, elt);
+		contactElt = sm_list_prev(ionwm, contactElt);
 	}
 
 	/*	Append new route into list of known routes.	*/
@@ -1021,13 +1079,12 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
 
 	/*	Compute spur routes that branch off the current last
-	 *	selected route, inserting them into Yen's "list B").	*/
+	 *	selected route, inserting them into Yen's "list B".	*/
 
 	while (1)
 	{
 		if (computeSpurRoute(ionwm, terminusNode, lastSelectedRoute,
-				currentTime, rootOfSpur, rootOfNextSpur,
-				routingObj, trace) < 0)
+				currentTime, rootOfSpur, routingObj, trace) < 0)
 		{
 			putErrmsg("Failed computing spur route.", NULL);
 			return -1;
@@ -1137,6 +1194,7 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 
 	if (bestKnownRouteElt)
 	{
+//puts("*** Migrating best route in list B into list A. ***");
 		*elt = sm_list_insert_last(ionwm, routingObj->selectedRoutes,
 				bestKnownRouteAddr);
 		if (*elt == 0)
@@ -2699,7 +2757,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	}
 
 	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
-	if (sm_list_length(ionwm, routingObject->knownRoutes) == 0)
+	if (sm_list_length(ionwm, routingObject->selectedRoutes) == 0)
 	{
 		return 0;	/*	No potential future forwarding.	*/
 	}
