@@ -119,7 +119,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "udpcli.exe", "lt-udpcli.exe", \
 "udpclo.exe", "lt-udpclo.exe", \
 "udplsi.exe", "lt-udplsi.exe", \
-"udplso.exe", "lt-udplso.exe", \
+"udplso.exe", "lt-udplso.exe"
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 ,"amsbenchr.exe", "lt-amsbenchr.exe", \
 "amsbenchs.exe", "lt-amsbenchs.exe", \
