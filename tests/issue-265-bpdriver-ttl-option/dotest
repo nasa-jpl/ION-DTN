@@ -95,7 +95,7 @@ cd ../
 # Run the platform-specific netcat server
 run_netcat() {
 	if [ "$OS" = "SunOS" ]; then
-		netcat -u -l -p 4556 -s localhost > response.bpseg &
+		netcat -u -l -p 4556 > response.bpseg &
 		NETCAT_SVR_PID=$!
 	# GNU netcat has a -V (version) flag, so test for that.
 	elif netcat -V 2>/dev/null; then
