@@ -424,9 +424,27 @@ static int	clearWorkAreas(IonCXref *rootContact)
 	return 0;
 }
 
+static int	edgeIsExcluded(PsmPartition ionwm, PsmAddress excludedEdges,
+			PsmAddress contactAddr)
+{
+	PsmAddress	elt;
+
+	for (elt = sm_list_first(ionwm, excludedEdges); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		if (sm_list_data(ionwm, elt) == contactAddr)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static int	computeDistanceToTerminus(IonCXref *rootContact,
 			CgrContactNote *rootWork, IonNode *terminusNode,
-			time_t currentTime, CgrRoute *route, CgrTrace *trace)
+			time_t currentTime, PsmAddress excludedEdges,
+			CgrRoute *route, CgrTrace *trace)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -434,6 +452,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	CgrContactNote	*currentWork;
 	IonCXref	arg;
 	PsmAddress	elt;
+	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
 	unsigned int	owlt;
@@ -477,8 +496,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				rfx_order_contacts, &arg, &elt));
 				elt; elt = sm_rbt_next(ionwm, elt))
 		{
-			contact = (IonCXref *) psp(ionwm,
-					sm_rbt_data(ionwm, elt));
+			contactAddr = sm_rbt_data(ionwm, elt);
+			contact = (IonCXref *) psp(ionwm, contactAddr);
 			if (contact->toTime <= currentTime)
 			{
 				/*	Contact is ended, is about to
@@ -511,6 +530,16 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			{
 				TRACE(CgrIgnoreContact, CgrVisited);
 				continue;
+			}
+
+			if (current == rootContact)
+			{
+				if (edgeIsExcluded(ionwm, excludedEdges,
+							contactAddr))
+				{
+					TRACE(CgrIgnoreContact, CgrSuppressed);
+					continue;
+				}
 			}
 
 			if (contact->toTime <= currentWork->arrivalTime)
@@ -724,7 +753,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 			IonNode *terminusNode, time_t currentTime,
-		       	PsmAddress *routeAddr, CgrTrace *trace)
+		       	PsmAddress excludedEdges, PsmAddress *routeAddr,
+			CgrTrace *trace)
 {
 	IonCXref	*rootContact;
 	CgrContactNote	*rootWork;
@@ -735,7 +765,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	CgrContactNote	graphRootWork;
 
 	*routeAddr = 0;		/*	Default.			*/
-	if (rootContactElt)	/*	Computing a spur route.		*/
+	if (rootContactElt)	/*	Computing route from waypoint.	*/
 	{
 //puts("*** Starting at a waypoint of the last selected route. ***");
 		rootContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
@@ -786,7 +816,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	/*	Run Dijkstra search.					*/
 
 	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
-			currentTime, route, trace) < 0)
+			currentTime, excludedEdges, route, trace) < 0)
 	{
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
@@ -833,8 +863,8 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	/*	Find first route.					*/
 
 	clearWorkAreas(NULL);
-	if (computeRoute(ionwm, 0, terminusNode, currentTime, &routeAddr, trace)
-			< 0)
+	if (computeRoute(ionwm, 0, terminusNode, currentTime, 0, &routeAddr,
+			trace) < 0)
 	{
 		putErrmsg("Can't insert first route.", NULL);
 		return -1;
@@ -864,6 +894,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			CgrTrace *trace)
 {
 	PsmAddress	rootOfSpurAddr;
+	PsmAddress	excludedEdges;
 	PsmAddress	contactElt;
 	PsmAddress	nextContactElt;
 	PsmAddress	contactAddr;
@@ -875,6 +906,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	rootPathContactElt;
 	PsmAddress	nextRootPathContactElt;
 	PsmAddress	rootPathContactAddr;
+	int		result;
 	PsmAddress	newRouteAddr;
 	CgrRoute	*newRoute;
 
@@ -882,6 +914,8 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	rootOfSpurAddr = sm_list_data(ionwm, rootOfSpur);
 	clearWorkAreas(rootOfSpur == 0 ? NULL : (IonCXref *) psp(ionwm,
 				rootOfSpurAddr));
+	excludedEdges = sm_list_create(ionwm);
+	CHKERR(excludedEdges);
 
 	/*	Suppress contacts that would introduce loops, i.e.,
 	 *	all contacts on the root path for this spur path.	*/
@@ -904,14 +938,13 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	/*	Exclude edges that would introduce duplicates: for
 	 *	each existing route that has this same root path,
 	 *	exclude the edge from the end of the root path to
-	 *	the first subsequent contact -- i.e., suppress the
-	 *	first contact after the end of the root path.		*/
+	 *	the first subsequent contact.				*/
 
 //printf("*** rootOfSpurAddr is " UVAST_FIELDSPEC ". ***\n", rootOfSpurAddr);
 	for (routeElt = sm_list_first(ionwm, routingObj->selectedRoutes);
 			routeElt; routeElt = sm_list_next(ionwm, routeElt))
 	{
-//puts("*** Looking for contacts to suppress on a selected route. ***");
+//puts("*** Looking for edges to exclude on a selected route. ***");
 		routeAddr = sm_list_data(ionwm, routeElt);
 		route = (CgrRoute *) psp(ionwm, routeAddr);
 		nextContactElt = sm_list_first(ionwm, route->hops);
@@ -943,11 +976,20 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 				{
 					contactAddr = sm_list_data(ionwm,
 					       		nextContactElt);
-					contact = (IonCXref *) psp(ionwm,
-							contactAddr);
-					CHKERR(work = getWorkArea(ionwm,
-							contact));
-					work->suppressed = 1;
+					if (sm_list_insert_last(ionwm,
+							excludedEdges,
+							contactAddr) == 0)
+					{
+						putErrmsg("Can't add \
+excluded edge.", NULL);
+						sm_list_destroy(ionwm,
+							excludedEdges,
+							NULL, NULL);
+						return -1;
+					}
+
+//contact = (IonCXref *) psp(ionwm, contactAddr);
+//CHKERR(work = getWorkArea(ionwm, contact));
 //printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toNode);
 				}
 
@@ -961,13 +1003,13 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 
 			if (nextContactElt == 0 || nextRootPathContactElt == 0)
 			{
-//puts("*** Reached end of route before reaching root of spur. ***");
+//puts("*** Reached end of route before reaching root of spur! ***");
 				/*	Root paths diverge, end review.	*/
 
 				break;
 			}
 
-//puts("*** Checking next root path contact. ***");
+//puts("*** Preparing to check next root path contact. ***");
 			contactElt = nextContactElt;
 			contactAddr = sm_list_data(ionwm, contactElt);
 			nextContactElt = sm_list_next(ionwm, contactElt);
@@ -977,15 +1019,17 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			nextRootPathContactElt = sm_list_next(ionwm,
 					rootPathContactElt);
 		}
-//puts("*** Done looking for contacts to suppress on that selected route. ***");
+//puts("*** Done looking for contacts to exclude on that selected route. ***");
 	}
 
-//puts("*** Done looking for contacts to suppress on selected routes. ***");
+//puts("*** Done looking for contacts to exclude on selected routes. ***");
 
 	/*	Compute best route, within these constraints.		*/
 
-	if (computeRoute(ionwm, rootOfSpur, terminusNode, currentTime,
-			&newRouteAddr, trace) < 0)
+	result = computeRoute(ionwm, rootOfSpur, terminusNode, currentTime,
+			excludedEdges, &newRouteAddr, trace);
+	sm_list_destroy(ionwm, excludedEdges, NULL, NULL);
+	if (result < 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
 		return -1;
