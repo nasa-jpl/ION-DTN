@@ -54,10 +54,10 @@
 typedef struct {
 	unsigned long num_rptt_defs; // done
 	unsigned long num_sent_rpts; // done
-	unsigned long num_trls; // done
-	unsigned long num_trls_run; // done
-	unsigned long num_srls;
-	unsigned long num_srls_run;
+	unsigned long num_tbrs; // done
+	unsigned long num_tbrs_run; // done
+	unsigned long num_sbrs;
+	unsigned long num_sbrs_run;
 	unsigned long num_lits;
 	unsigned long num_vars;
 	unsigned long num_macros; // done

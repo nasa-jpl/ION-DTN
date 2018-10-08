@@ -8,7 +8,7 @@
  ** \file nm_mgr_ui.c
  **
  **
- ** Description: A text-based DTNMP Manager.
+ ** Description: A text-based AMP Manager.
  **
  ** Notes:
  **		1. Currently we do not support ACLs.
@@ -24,6 +24,7 @@
  **  06/25/13  E. Birrane     Renamed message "bundle" message "group". (JHU/APL)
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  **  07/26/17  E. Birrane     Added batch test file capabilities (JHU/APL)
+ **  10/07/18  E. Birrane     Update to AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
 #include <stdio.h>
@@ -35,19 +36,14 @@
 
 #include "../shared/utils/utils.h"
 #include "../shared/adm/adm.h"
-#include "../shared/adm/adm_agent.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/rules.h"
-#include "../shared/primitives/mid.h"
-#include "../shared/primitives/oid.h"
-#include "../shared/msg/pdu.h"
-#include "../shared/msg/msg_ctrl.h"
-#include "mgr/nm_mgr_names.h"
+#include "../shared/msg/msg.h"
 
 #include "nm_mgr_ui.h"
-#include "mgr/ui_input.h"
+#include "ui_input.h"
 #include "nm_mgr_print.h"
-#include "mgr_db.h"
+#include "metadata.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"
@@ -55,118 +51,39 @@
 
 int gContext;
 
-Lyst gParmSpec;
 
-
-/******************************************************************************
- *
- * \par Function Name: ui_select_agent
- *
- * \par Prompts the user to select a known agent from a list.
- *
- * \par Notes:
- *
- * \par Returns the selected agent's EID, or NULL if cancelled (or an error occurs).
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  04/18/13  V.Ramachandran Initial implementation
- *  06/17/13  E. Birrane     Working implementation
- *  07/04/16  E. Birrane     Auto-select if only 1 agent known.
- *****************************************************************************/
-agent_t* ui_select_agent()
+void ui_build_control(agent_t* agent)
 {
-	char line[10];
-	int idx = -1;
-	int total;
-	agent_t *agent = NULL;
-	LystElt elt;
+	ari_t *id = NULL;
+	uvast ts;
+	msg_ctrl_t *msg;
 
-	printf("Select an Agent:");
-	total = ui_print_agents();
+	AMP_DEBUG_ENTRY("ui_build_control","("ADDR_FIELDSPEC")", (uaddr)agent);
 
-	if(total == 0)
+	CHKVOID(agent);
+
+	ts = ui_input_uint("Control Timestamp");
+	if((id = ui_input_ari("Control MID:", ADM_ALL, AMP_TYPE_CTRL)) == NULL)
 	{
-		printf("No agents registered. Aborting.\n");
-		return NULL;
+		AMP_DEBUG_ERR("ui_build_control","Can't get control.",NULL);
+		return;
 	}
 
-	if(total == 1)
+	ui_postprocess_ctrl(id);
+
+	if((msg = msg_ctrl_create_ari(id)) != NULL)
 	{
-		if((agent = (agent_t *) lyst_data(lyst_first(known_agents))) == NULL)
-		{
-			AMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
-			AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
-			return NULL;
-		}
-
-		printf("Autoselecting sole known agent: %s.\n", agent->agent_eid.name);
-		return agent;
+		msg->start = ts;
+		iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
+		msg_ctrl_release(msg, 1);
 	}
-
-	if(ui_input_get_line("Agent (#), or 'x' to cancel:",
-			(char **) &line, 10) == 0)
+	else
 	{
-		AMP_DEBUG_ERR("ui_select_agent","Unable to read user input.", NULL);
-		AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
-		return NULL;
+		ari_release(id, 1);
 	}
-	else if(strcmp(line, "x") == 0)
-	{
-		AMP_DEBUG_EXIT("ui_select_agent","->[cancelled]", NULL);
-		return NULL;
-	}
-
-	sscanf(line, "%d", &idx);
-	if(idx < 0 || idx > total)
-	{
-		printf("Invalid option.\n");
-		AMP_DEBUG_ALWAYS("ui_select_agent", "User selected invalid option (%d).", idx);
-		AMP_DEBUG_EXIT("ui_select_agent", "->NULL", NULL);
-		return NULL;
-	}
-
-	if(idx == 0)
-	{
-		AMP_DEBUG_ALWAYS("ui_select_agent", "User opted to cancel.", NULL);
-		AMP_DEBUG_EXIT("ui_select_agent", "->NULL", NULL);
-		return NULL;
-	}
-
-	idx--; // Switch from 1-index to 0-index.
-
-	elt = lyst_first(known_agents);
-	if(elt == NULL)
-	{
-		AMP_DEBUG_ERR("ui_select_agent","Empty known_agents lyst.", NULL);
-		AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
-		return NULL;
-	}
-
-	while(idx != 0)
-	{
-		idx--;
-		elt = lyst_next(elt);
-		if(elt == NULL)
-		{
-			AMP_DEBUG_ERR("ui_select_agent","Out-of-bounds index in known_agents lyst (%d).", idx);
-			AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
-			return NULL;
-		}
-	}
-
-	if((agent = (agent_t *) lyst_data(elt)) == NULL)
-	{
-		AMP_DEBUG_ERR("ui_select_agent","Null EID in known_agents lyst.", NULL);
-		AMP_DEBUG_EXIT("ui_select_agent","->.", NULL);
-		return NULL;
-	}
-
-	AMP_DEBUG_EXIT("ui_select_agent","->%s", agent->agent_eid.name);
-
-	return agent;
 }
+
+
 
 /******************************************************************************
  *
@@ -184,26 +101,16 @@ agent_t* ui_select_agent()
  *  08/10/11  V.Ramachandran Initial implementation,
  *  01/18/13  E. Birrane     Debug updates.
  *  04/18/13  V.Ramachandran Multiple-agent support (added param)
+ *  10/06/18  E. Birrane     Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 void ui_clear_reports(agent_t* agent)
 {
-    if(agent == NULL)
-    {
-    	AMP_DEBUG_ENTRY("ui_clear_reports","(NULL)", NULL);
-    	AMP_DEBUG_ERR("ui_clear_reports", "No agent specified.", NULL);
-        AMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
-        return;
-    }
-    AMP_DEBUG_ENTRY("ui_clear_reports","(%s)",agent->agent_eid.name);
+	CHKVOID(agent);
 
-	int num = lyst_length(agent->reports);
-	rpt_clear_lyst(&(agent->reports), NULL, 0);
-	g_reports_total -= num;
+	gMgrDB.tot_rpts -= vec_size(agent->rpts);
 
-	AMP_DEBUG_ALWAYS("ui_clear_reports","Cleared %d reports.", num);
-    AMP_DEBUG_EXIT("ui_clear_reports","->.",NULL);
+	vec_clear(&(agent->rpts));
 }
-
 
 
 /******************************************************************************
@@ -220,55 +127,157 @@ void ui_clear_reports(agent_t* agent)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/09/18  E. Birrane     Initial implementation.
+ *  10/06/18  E. Birrane     Update for AMP v0.5 (JHU/APL)
  *****************************************************************************/
-
-rpttpl_t *ui_create_rpttpl_from_rpt_parms(tdc_t parms)
+rpttpl_t *ui_create_rpttpl_from_parms(tnvc_t parms)
 {
 	rpttpl_t *result = NULL;
-	mid_t *mid = NULL;
-	Lyst mc = NULL;
-	Lyst items = NULL;
-	int8_t success = 0;
 
-	/* Step 0: Sanity Check. */
-	if(tdc_get_count(&parms) != 2)
+	ari_t *ari = (ari_t *) adm_extract_parm(&parms, 0, AMP_TYPE_ARI);
+	ac_t *ac = (ac_t *) adm_extract_parm(&parms, 1, AMP_TYPE_AC);
+
+	CHKNULL(ari);
+	CHKNULL(ac);
+
+	ari_t *a1 = ari_copy_ptr(*ari);
+	ac_t ac2 = ac_copy(ac);
+
+	if((result = rpttpl_create(a1, ac2)) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_create_rpttpl_from_rpt_parms","Bad # params. Need 2, received %d", tdc_get_count(&parms));
-		return NULL;
+		ari_release(a1, 1);
+		ac_release(&ac2, 0);
+		result = NULL;
 	}
-
-	/* Step 1: Grab the MID defining the new computed definition. */
-	if((mid = adm_extract_mid(parms, 0, &success)) == NULL)
-	{
-		return NULL;
-	}
-
-	/* Step 2: Grab the expression capturing the definition. */
-	if((mc = adm_extract_mc(parms, 1, &success)) == NULL)
-	{
-		mid_release(mid);
-		return NULL;
-	}
-
-	LystElt elt;
-	items = lyst_create();
-	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
-	{
-		mid_t *cur_mid = (mid_t *) lyst_data(elt);
-		// todo add parm map support.
-		rpttpl_item_t *cur_item = rpttpl_item_create(cur_mid,0);
-
-		if(cur_item != NULL)
-		{
-			lyst_insert_last(items, cur_item);
-		}
-	}
-
-	lyst_clear(mc);
-	lyst_destroy(mc);
-	result = rpttpl_create(mid, items);
 
 	return result;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_deregister_agent
+ *
+ * \par Remove and deallocate an agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/23/13  V.Ramachandran Initial Implementation
+ *****************************************************************************/
+void ui_deregister_agent(agent_t* agent)
+{
+	CHKVOID(agent);
+	AMP_DEBUG_ENTRY("ui_deregister_agent","(%s)",agent->eid.name);
+	vec_del(&(gMgrDB.agents), agent->idx);
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_eventLoop
+ *
+ * \par Main event loop for the UI thread.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/18/13  E. Birrane     Initial Implementation
+ *  04/24/16  E. Birrane     Updated to accept global running flag
+ *****************************************************************************/
+void ui_eventLoop(int *running)
+{
+	int cmdFile = fileno(stdin);
+	char choice;
+
+	int gContext = UI_MAIN_MENU;
+
+
+	while(*running)
+	{
+		switch(gContext)
+		{
+			case UI_MAIN_MENU:  ui_print_menu_main();  break;
+			case UI_ADMIN_MENU: ui_menu_admin_show(); break;
+			case UI_CTRL_MENU:  ui_menu_ctrl_show();  break;
+			case UI_RPT_MENU:   ui_menu_rpt_show();   break;
+#ifdef HAVE_MYSQL
+			case UI_DB_MENU:    ui_menu_sql_show();    break;
+#endif
+			default: printf("Error. Unknown menu context.\n"); break;
+		}
+
+		choice = ui_input_byte("");
+		choice = toupper(choice);
+
+		switch(gContext)
+		{
+			case UI_MAIN_MENU:
+				switch(choice)
+				{
+					case '1' : gContext = UI_ADMIN_MENU; break;
+					case '2' : gContext = UI_RPT_MENU; break;
+					case '3' : gContext = UI_CTRL_MENU; break;
+#ifdef HAVE_MYSQL
+					case '4' : gContext = UI_DB_MENU; break;
+#endif
+					case 'Z' : *running = 0; return; break;
+					default: printf("Unknown command.\n");break;
+				}
+				break;
+
+			case UI_ADMIN_MENU:
+				ui_menu_admin_do(choice);
+				break;
+
+			case UI_CTRL_MENU:
+				ui_menu_ctrl_do(choice);
+				break;
+
+			case UI_RPT_MENU:
+				ui_menu_rpt_do(choice);
+				break;
+
+#ifdef HAVE_MYSQL
+			case UI_DB_MENU:
+				ui_menu_sql_do(choice);
+				break;
+#endif
+
+			default: printf("Error. Unknown menu context.\n"); break;
+		}
+	}
+}
+
+
+
+void ui_list_objs()
+{
+	uint8_t adm_id = 0;
+	uint8_t type = 0;
+
+	meta_col_t *col = NULL;
+	metadata_t *meta = NULL;
+	vec_idx_t i;
+
+	adm_id = ui_input_adm_id("");
+	printf("Enter the AMP Object Type:\n");
+
+	type = ui_input_ari_type();
+	col =  meta_filter(adm_id, type);
+
+	for(i = 0; i < vec_size(col->results); i++)
+	{
+		meta = vec_at(col->results, i);
+
+		printf("%d) %s\t%s\n", i, meta->name, meta->descr);
+	}
+
+	metacol_release(col, 1);
 }
 
 
@@ -290,238 +299,191 @@ rpttpl_t *ui_create_rpttpl_from_rpt_parms(tdc_t parms)
  *  07/18/15  E. Birrane      Initial implementation,
  *****************************************************************************/
 
-void ui_postprocess_ctrl(mid_t *mid)
+void ui_postprocess_ctrl(ari_t *id)
 {
+	metadata_t *meta;
 
-	if(mid == NULL)
-	{
-		AMP_DEBUG_ERR("ui_postprocess_ctrl","Bad Args.", NULL);
-		return;
-	}
+	CHKVOID(id);
+	CHKVOID(id->type == AMP_TYPE_CTRL);
 
+	// TODO: Put locks around these retrieve calls.
+	meta = rhht_retrieve_key(&(gMgrDB.metadata), id);
 
-	/* If this is a computed data definition...*/
-	if(ui_test_mid(mid, ADM_AGENT_CTL_ADDCD_MID) == 0)
-	{
+	CHKVOID(meta);
 
-	}
-	/* If this is removing a computed data definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELCD_MID) == 0)
+	if(strcmp(meta->name, AGENT_ADD_VAR_STR) == 0)
 	{
 
 	}
-	/* If this is adding a report definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDRPT_MID) == 0)
+	else if(strcmp(meta->name, AGENT_DEL_VAR_STR) == 0)
 	{
-		rpttpl_t *def = ui_create_rpttpl_from_rpt_parms(mid->oid.params);
+
+	}
+	else if(strcmp(meta->name, AGENT_ADD_RPTT_STR) == 0)
+	{
+		rpttpl_t *def = ui_create_rpttpl_from_parms(id->as_reg.parms);
 		if(def != NULL)
 		{
-			mgr_db_report_persist(def);
-			ADD_REPORT(def);
+			VDB_ADD_RPTT(def->id, def);
+			db_persist_rpttpl(def);
 		}
-		else
+	}
+	else if(strcmp(meta->name, AGENT_DEL_RPTT_STR) == 0)
+	{
+		rpttpl_t *def = VDB_FINDKEY_RPTT(id);
+		if(def != NULL)
 		{
-			AMP_DEBUG_ERR("ui_postprocess_ctrl", "Adding report definition.",NULL);
+			db_forget(&(def->desc), gDB.rpttpls);
+			VDB_DELKEY_RPTT(id);
 		}
 	}
-	/* If this is removing a report definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELRPT_MID) == 0)
-	{
-		int8_t success = 0;
-		Lyst mc = adm_extract_mc(mid->oid.params, 0, &success);
-
-		if(mc != NULL)
-		{
-			LystElt elt = NULL;
-			for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
-			{
-				mid_t *tmpmid = (mid_t *)lyst_data(elt);
-				mgr_db_report_forget(tmpmid);
-				mgr_vdb_report_forget(tmpmid);
-			}
-			midcol_destroy(&mc);
-		}
-		else
-		{
-			AMP_DEBUG_ERR("ui_postprocess_ctrl","Can't get entry.", NULL);
-		}
-	}
-	/* If this is adding a macro definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDMAC_MID) == 0)
-	{
-		int8_t success = 0;
-		mid_t *tmp_mid = NULL;
-		Lyst mc = NULL;
-
-		tmp_mid = adm_extract_mid(mid->oid.params, 1, &success);
-		if((tmp_mid != NULL) && (success != 0))
-		{
-			mc = adm_extract_mc(mid->oid.params, 2, &success);
-			if((mc == NULL) || (success == 0))
-			{
-				mid_release(tmp_mid);
-			}
-			else
-			{
-				def_gen_t *def = def_create_gen(tmp_mid, AMP_TYPE_MACRO, mc);
-				if(def != NULL)
-				{
-					mgr_db_macro_persist(def);
-					ADD_MACRO(def);
-				}
-			}
-		}
-	}
-	/* If this is removing a macro definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELMAC_MID) == 0)
-	{
-		int8_t success = 0;
-		Lyst mc = adm_extract_mc(mid->oid.params, 0, &success);
-
-		if(mc != NULL)
-		{
-			LystElt elt = NULL;
-			for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
-			{
-				mid_t *tmp_mid = (mid_t *)lyst_data(elt);
-				mgr_db_macro_forget(tmp_mid);
-				mgr_vdb_macro_forget(tmp_mid);
-			}
-			midcol_destroy(&mc);
-		}
-		else
-		{
-			AMP_DEBUG_ERR("ui_postprocess_ctrl","DEL Macro: Can't get entry.", NULL);
-		}
-	}
-	/* If this is adding a TRL definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDTRL_MID) == 0)
+	else if(strcmp(meta->name, AGENT_ADD_MAC_STR) == 0)
 	{
 
 	}
-	/* If this is removing a TRL definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELTRL_MID) == 0)
+	else if(strcmp(meta->name, AGENT_DEL_MAC_STR) == 0)
 	{
 
 	}
-	/* If this is adding an SRL definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_ADDSRL_MID) == 0)
+	else if(strcmp(meta->name, AGENT_ADD_SBR_STR) == 0)
 	{
 
 	}
-	/* If this is removing an SRL definition. */
-	else if (ui_test_mid(mid, ADM_AGENT_CTL_DELSRL_MID) == 0)
+	else if(strcmp(meta->name, AGENT_DEL_SBR_STR) == 0)
+	{
+
+	}
+	else if(strcmp(meta->name, AGENT_ADD_TBR_STR) == 0)
+	{
+
+	}
+	else if(strcmp(meta->name, AGENT_DEL_TBR_STR) == 0)
 	{
 
 	}
 
-
-}
-
-int ui_test_mid(mid_t *mid, uvast mid_val)
-{
-	int result = 0;
-
-	if(mid == NULL)
-	{
-		AMP_DEBUG_ERR("ui_test_mid","Bad args.", NULL);
-		return 0;
-	}
-
-	mid_t *m2 = mid_from_value(mid_val);
-
-	result = mid_compare(mid, m2,0);
-	mid_release(m2);
-
-	return result;
 }
 
 
 
-void ui_build_control(agent_t* agent)
+/******************************************************************************
+ *
+ * \par Function Name: ui_register_agent
+ *
+ * \par Register a new agent.
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/18/13  V.Ramachandran Initial Implementation
+ *****************************************************************************/
+void ui_register_agent()
 {
-	mid_t *mid = NULL;
-	uint32_t offset = 0;
-	uint32_t size = 0;
-	time_t ts = 0;
+	char line[AMP_MAX_EID_LEN];
+	eid_t agent_eid;
 
-	if(agent == NULL)
+	AMP_DEBUG_ENTRY("register_agent", "()", NULL);
+
+	/* Grab the new agent's EID. */
+	if(ui_input_get_line("Enter EID of new agent:",
+						 (char **)&line, AMP_MAX_EID_LEN) == 0)
 	{
-		AMP_DEBUG_ENTRY("ui_build_control","(NULL)", NULL);
-		AMP_DEBUG_ERR("ui_build_control", "No agent specified.", NULL);
-		AMP_DEBUG_EXIT("ui_build_control","->.",NULL);
+		AMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
+		AMP_DEBUG_EXIT("register_agent","->.", NULL);
 		return;
 	}
-	AMP_DEBUG_ENTRY("ui_build_control","(%s)", agent->agent_eid.name);
+	else
+		AMP_DEBUG_INFO("register_agent", "User entered agent EID name %s", line);
 
-	ts = ui_input_uint("Control Timestamp");
-	mid = ui_input_mid("Control MID:", ADM_ALL, MID_CONTROL);
 
-	if(mid == NULL)
+	/* Check if the agent is already known. */
+	sscanf(line, "%s", agent_eid.name);
+	agent_add(agent_eid);
+
+	AMP_DEBUG_EXIT("register_agent", "->.", NULL);
+}
+
+
+
+
+
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: ui_select_agent
+ *
+ * \par Prompts the user to select a known agent from a list.
+ *
+ * \par Notes:
+ *
+ * \par Returns the selected agent's EID, or NULL if cancelled (or an error occurs).
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/18/13  V.Ramachandran Initial implementation
+ *  06/17/13  E. Birrane     Working implementation
+ *  07/04/16  E. Birrane     Auto-select if only 1 agent known.
+ *  10/07/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
+ *****************************************************************************/
+agent_t* ui_select_agent()
+{
+	char line[10];
+	int idx = -1;
+	int total;
+	agent_t *agent = NULL;
+
+	printf("Select an Agent:");
+	total = ui_print_agents();
+
+	if(total == 0)
 	{
-		AMP_DEBUG_ERR("ui_build_control","Can't get control MID.",NULL);
-		return;
+		AMP_DEBUG_ERR("ui_select_agent", "No agents registered.\n", NULL);
+		return NULL;
 	}
 
-	ui_postprocess_ctrl(mid);
+	if(total == 1)
+	{
+		idx = 0;
+		printf("Auto-selecting sole known agent.");
+	}
+	else if((idx = ui_input_int("Agent (#), or 0 to cancel:")) == 0)
+	{
+		AMP_DEBUG_ERR("ui_select_agent","No agent selected.", NULL);
+		return NULL;
+	}
 
-	Lyst mc = lyst_create();
-	lyst_insert_first(mc, mid);
+	if((agent = vec_at(gMgrDB.agents, idx)) == NULL)
+	{
+		AMP_DEBUG_ERR("ui_select_agent","Error selecting agent #%d", idx);
+		return NULL;
+	}
 
-	msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
-
-	/* Step 2: Construct a PDU to hold the primitive. */
-	uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
-
-	char *str = utils_hex_to_string(data, size);
-	printf("Data is %s\n", str);
-	SRELEASE(str);
-
-	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
-	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
-
-	/* Step 4: Send the PDU. */
-	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
-
-	/* Step 5: Release remaining resources. */
-	pdu_release_group(pdu_group);
-	msg_destroy_perf_ctrl(ctrl);
-	midcol_destroy(&mc); // Also destroys mid.
-
-	AMP_DEBUG_EXIT("ui_build_control","->.", NULL);
+	return agent;
 }
+
 
 
 void ui_send_file(agent_t* agent, uint8_t enter_ts)
 {
-	mid_t *cur_mid = NULL;
+	ari_t *cur_id = NULL;
 	uint32_t offset = 0;
-	uint32_t size = 0;
 	time_t ts = 0;
 	blob_t *contents = NULL;
 	char *cursor = NULL;
 	char *saveptr = NULL;
 	uint32_t bytes = 0;
-	uint8_t *value = NULL;
-	uint32_t len = 0;
+	blob_t *value = NULL;
+	int success;
 
-	if(agent == NULL)
-	{
-		AMP_DEBUG_ENTRY("ui_send_file","(NULL)", NULL);
-		AMP_DEBUG_ERR("ui_send_file", "No agent specified.", NULL);
-		AMP_DEBUG_EXIT("ui_send_file","->.",NULL);
-		return;
-	}
-	AMP_DEBUG_ENTRY("ui_send_file","(%s)", agent->agent_eid.name);
+	CHKVOID(agent);
 
-	if(enter_ts != 0)
-	{
-		ts = ui_input_uint("Control Timestamp");
-	}
-	else
-	{
-		ts = 0;
-	}
+	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
 
 	if((contents = ui_input_file_contents("Enter file name containing commands:")) == NULL)
@@ -590,413 +552,77 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 			continue;
 		}
 
-		if((value = utils_string_to_hex(cursor, &len)) == NULL)
+		if((value = utils_string_to_hex(cursor)) == NULL)
 		{
 			AMP_DEBUG_ERR("ui_send_file", "Can't make value from %s", cursor);
-			blob_destroy(contents, 1);
+			blob_release(contents, 1);
 			return;
 		}
 
-		if((cur_mid = mid_deserialize(value, len, &bytes)) == NULL)
+		cur_id = ari_deserialize_raw(value, &success);
+		blob_release(value, 1);
+		if(cur_id == NULL)
 		{
 			AMP_DEBUG_ERR("ui_send_file", "Can't make mid from %s", cursor);
-			SRELEASE(value);
-			blob_destroy(contents, 1);
+			blob_release(contents, 1);
 			return;
 		}
-		SRELEASE(value);
 
+		//TODO: Make next several lines a helper function.
+		ui_postprocess_ctrl(cur_id);
+		msg_ctrl_t *msg;
+		if((msg = msg_ctrl_create(cur_id)) == NULL)
+		{
+			ari_release(cur_id, 1);
+			return;
+		}
 
-		ui_postprocess_ctrl(cur_mid);
+		msg->start = ts;
+		iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
 
-		Lyst mc = lyst_create();
-		lyst_insert_first(mc, cur_mid);
-
-		/* This is a deep copy into ctrl. */
-		msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
-		midcol_destroy(&mc); // Also destroys mid.
-
-		/* Step 2: Construct a PDU to hold the primitive. */
-		uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
-		msg_destroy_perf_ctrl(ctrl);
-
-		char *str = utils_hex_to_string(data, size);
-		printf("Data is %s\n", str);
-		SRELEASE(str);
-
-		// Shallow copy data into pdu msg.
-		pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
-
-		// Shallow copy into group.
-		pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
-
-		/* Step 4: Send the PDU. */
-		iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
-
-		/* Step 5: Release remaining resources. */
-		pdu_release_group(pdu_group);
-
-
+		msg_ctrl_release(msg, 1);
 		cursor = strtok_r(NULL, "\n", &saveptr);
 	}
 
-
-	blob_destroy(contents, 1);
+	blob_release(contents, 1);
 
 	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
 }
 
 
+
+
 void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 {
-	mid_t *mid = NULL;
-	uint32_t offset = 0;
-	uint32_t size = 0;
+	ari_t *id = NULL;
 	time_t ts = 0;
+	msg_ctrl_t *msg = NULL;
 
-	if(agent == NULL)
-	{
-		AMP_DEBUG_ENTRY("ui_send_raw","(NULL)", NULL);
-		AMP_DEBUG_ERR("ui_send_raw", "No agent specified.", NULL);
-		AMP_DEBUG_EXIT("ui_send_raw","->.",NULL);
-		return;
-	}
-	AMP_DEBUG_ENTRY("ui_send_raw","(%s)", agent->agent_eid.name);
+	CHKVOID(agent);
 
-	if(enter_ts != 0)
-	{
-		ts = ui_input_uint("Control Timestamp");
-	}
-	else
-	{
-		ts = 0;
-	}
+
+	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
 	printf("Enter raw MID to send.\n");
-	mid = ui_input_mid_raw(1);
+	id = ui_input_ari_raw(1);
 
-	if(mid == NULL)
+	if(id == NULL)
 	{
 		AMP_DEBUG_ERR("ui_send_raw","Can't get control MID.",NULL);
 		return;
 	}
 
-	ui_postprocess_ctrl(mid);
+	ui_postprocess_ctrl(id);
 
-	Lyst mc = lyst_create();
-	lyst_insert_first(mc, mid);
-
-	/* This is a deep copy into ctrl. */
-	msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(ts, mc);
-	midcol_destroy(&mc); // Also destroys mid.
-
-	/* Step 2: Construct a PDU to hold the primitive. */
-	uint8_t *data = msg_serialize_perf_ctrl(ctrl, &size);
-	msg_destroy_perf_ctrl(ctrl);
-
-	char *str = utils_hex_to_string(data, size);
-	printf("Data is %s\n", str);
-	SRELEASE(str);
-
-	// Shallow copy data into pdu msg.
-	pdu_msg_t *pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL);
-
-	// Shallow copy into group.
-	pdu_group_t *pdu_group = pdu_create_group(pdu_msg);
-
-	/* Step 4: Send the PDU. */
-	iif_send(&ion_ptr, pdu_group, agent->agent_eid.name);
-
-	/* Step 5: Release remaining resources. */
-	pdu_release_group(pdu_group);
-
-	AMP_DEBUG_EXIT("ui_send_raw","->.", NULL);
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_define_mid_params
- *
- * \par Allows user to input MID parameters.
- *
- * \par Notes:
- * \todo Find a way to name each parameter.
- *
- * \param[in]  name       The name of the MID needing parameters.
- * \param[out] num_parms  The number of parameters needed.
- * \param[out] mid        The augmented MID.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/11/16  E. Birrane     Updated to use parmspec.
- *****************************************************************************/
-
-void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid)
-{
-	char mid_str[256];
-	char line[256];
-	int cmdFile = fileno(stdin);
-	int len = 0;
-	int i = 0;
-	uint32_t size = 0;
-
-	AMP_DEBUG_ENTRY("ui_define_mid_params", "("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC"))", (uaddr) name, (uaddr)parmspec, (uaddr) mid);
-
-	if((name == NULL) || (parmspec == NULL) || (mid == NULL))
+	if((msg = msg_ctrl_create(id)) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_define_mid_params", "Bad Args.", NULL);
-		AMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
+		ari_release(id, 1);
 		return;
 	}
+	msg->start = ts;
+	iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
 
-	printf("MID %s needs %d parameters.\n", name, parmspec->num_parms);
-
-	for(i = 0; i < parmspec->num_parms; i++)
-	{
-		const char *parm_type = type_to_str(parmspec->parm_type[i]);
-		printf("Enter Parm %d (%s):\n",i,parm_type);
-	    if (igets(cmdFile, (char *)line, (int) sizeof(line), &len) == NULL)
-	    {
-	    	if (len != 0)
-	    	{
-	    		AMP_DEBUG_ERR("ui_define_mid_params","igets failed.", NULL);
-	    		AMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
-	    		return;
-	    	}
-	    }
-
-    	sscanf(line,"%s", mid_str);
-
-    	size = strlen(mid_str);
-    	blob_t b;
-    	b.length = size;
-    	b.value = (uint8_t*)mid_str;
-    	mid_add_param(mid, parmspec->parm_type[i], &b);
-	}
-
-	AMP_DEBUG_EXIT("ui_define_mid_params","->.", NULL);
-}
-
-/******************************************************************************
- *
- * \par Function Name: ui_register_agent
- *
- * \par Register a new agent.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  04/18/13  V.Ramachandran Initial Implementation
- *****************************************************************************/
-void ui_register_agent()
-{
-	char line[AMP_MAX_EID_LEN];
-	eid_t agent_eid;
-
-	AMP_DEBUG_ENTRY("register_agent", "()", NULL);
-
-	/* Grab the new agent's EID. */
-	if(ui_input_get_line("Enter EID of new agent:",
-						 (char **)&line, AMP_MAX_EID_LEN) == 0)
-	{
-		AMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
-		AMP_DEBUG_EXIT("register_agent","->.", NULL);
-		return;
-	}
-	else
-		AMP_DEBUG_INFO("register_agent", "User entered agent EID name %s", line);
-
-
-	/* Check if the agent is already known. */
-	sscanf(line, "%s", agent_eid.name);
-	mgr_agent_add(agent_eid);
-
-	AMP_DEBUG_EXIT("register_agent", "->.", NULL);
-}
-
-/******************************************************************************
- *
- * \par Function Name: ui_deregister_agent
- *
- * \par Remove and deallocate an agent.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  04/23/13  V.Ramachandran Initial Implementation
- *****************************************************************************/
-void ui_deregister_agent(agent_t* agent)
-{
-	AMP_DEBUG_ENTRY("ui_deregister_agent","(%llu)", (unsigned long)agent);
-
-	if(agent == NULL)
-	{
-		AMP_DEBUG_ERR("ui_deregister_agent", "No agent specified.", NULL);
-		AMP_DEBUG_EXIT("ui_deregister_agent","->.",NULL);
-		return;
-	}
-	AMP_DEBUG_ENTRY("ui_deregister_agent","(%s)",agent->agent_eid.name);
-
-	lockResource(&agents_mutex);
-
-	if(mgr_agent_remove(&(agent->agent_eid)) != 0)
-	{
-		AMP_DEBUG_WARN("ui_deregister_agent","No agent by that name is currently registered.\n", NULL);
-	}
-	else
-	{
-		AMP_DEBUG_ALWAYS("ui_deregister_agent","Successfully deregistered agent.\n", NULL);
-	}
-
-	unlockResource(&agents_mutex);
-}
-
-/******************************************************************************
- *
- * \par Function Name: ui_eventLoop
- *
- * \par Main event loop for the UI thread.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  04/24/16  E. Birrane     Updated to accept global running flag
- *****************************************************************************/
-void ui_eventLoop(int *running)
-{
-	int cmdFile = fileno(stdin);
-	char choice[3];
-	int len;
-
-	int gContext = UI_MAIN_MENU;
-
-
-	while(*running)
-	{
-		switch(gContext)
-		{
-			case UI_MAIN_MENU:  ui_print_menu_main();  break;
-			case UI_ADMIN_MENU: ui_print_menu_admin(); break;
-			case UI_CTRL_MENU:  ui_print_menu_ctrl();  break;
-			case UI_RPT_MENU:   ui_print_menu_rpt();   break;
-
-#ifdef HAVE_MYSQL
-			case UI_DB_MENU:    ui_print_menu_db();    break;
-#endif
-			default: printf("Error. Unknown menu context.\n"); break;
-		}
-
-		if ((igets(cmdFile, (char *)choice, (int) sizeof(choice), &len) != NULL) && (len > 0))
-		{
-			char cmd = toupper(choice[0]);
-
-			switch(gContext)
-			{
-				case UI_MAIN_MENU:
-					switch(cmd)
-					{
-						case '1' : gContext = UI_ADMIN_MENU; break;
-						case '2' : gContext = UI_RPT_MENU; break;
-						case '3' : gContext = UI_CTRL_MENU; break;
-#ifdef HAVE_MYSQL
-						case '4' : gContext = UI_DB_MENU; break;
-#endif
-						case 'Z' : *running = 0; return; break;
-						default: printf("Unknown command.\n");break;
-					}
-					break;
-
-				case UI_ADMIN_MENU:
-					switch(cmd)
-					{
-						case 'Z' : gContext = UI_MAIN_MENU; break;
-						case '1' : ui_register_agent(); break;
-						case '2' : ui_print_agents(); break;
-						case '3' : ui_deregister_agent(ui_select_agent()); break;
-						default: printf("Unknown command.\n"); break;
-					}
-					break;
-
-				case UI_CTRL_MENU:
-					switch(cmd)
-					{
-
-						// List Definitions (User or Static)
-						case '1' : ui_list_adms();      break; // List supported ADMs
-						case '2' : ui_list_atomic();    break; // List Data MIDS by Index
-						case '3' : ui_list_compdef();   break; // List Computed Data Items
-						case '4' : ui_list_ctrls();     break; // List Control MIDs by Index
-						case '5' : ui_list_literals();  break; // List Literal MIDs by Index
-						case '6' : ui_list_macros();    break; // List MACRO Definitions by Index
-						case '7' : ui_list_ops();       break; // List Operator MIDs by Index
-						case '8' : ui_list_rpts();      break; // List Reports by Index.
-
-						case '9' : ui_build_control(ui_select_agent()); break;
-						case 'A' : ui_send_raw(ui_select_agent(),0); break;
-						case 'B' : ui_send_file(ui_select_agent(),0); break;
-
-						case 'Z' : gContext = UI_MAIN_MENU; break;
-						default: printf("Unknown command.\n"); break;
-					}
-					break;
-
-				case UI_RPT_MENU:
-					switch(cmd)
-					{
-					  // Definitions List
-					  case '1' : ui_print_nop(); break; //ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
-					  case '2' : ui_print_nop(); break; //ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
-					  case '3' : ui_print_nop(); break; //ui_print_agent_macro_defs();    break; // LIst agent macro defs.
-
-					  // Report List
-					  case '4' : ui_print_reports(ui_select_agent());   break; // Print received reports.
-					  case '5' : ui_clear_reports(ui_select_agent());	break; // Clear received reports.
-
-					  // Production Schedules.
-					  case '6' : ui_print_nop(); break; //ui_print_agent_prod_rules();    break; // List agent production rules.
-
-					  case 'Z' : gContext = UI_MAIN_MENU;				break;
-
-					  default: printf("Unknown command.\n");			break;
-					}
-					break;
-
-#ifdef HAVE_MYSQL
-					case UI_DB_MENU:
-						switch(cmd)
-						{
-						  // Definitions List
-						  case '1' : ui_db_set_parms(); break; // New Connection Parameters
-						  case '2' : ui_db_print_parms(); break;
-						  case '3' : ui_db_reset(); break; // Reset Tables
-						  case '4' : ui_db_clear_rpt(); break; // Clear Received Reports
-						  case '5' : ui_db_disconn(); break; // Disconnect from DB
-						  case '6' : ui_db_conn(); break; // Connect to DB
-						  case '7' : ui_db_write(); break; // Write DB info to file.
-						  case '8' : ui_db_read(); break; // Read DB infor from file.
-
-						  case 'Z' : gContext = UI_MAIN_MENU;				break;
-
-						  default: printf("Unknown command.\n");			break;
-						}
-						break;
-
-#endif
-
-				default: printf("Error. Unknown menu context.\n"); break;
-			}
-		}
-	}
+	msg_ctrl_release(msg, 1);
 }
 
 
@@ -1006,104 +632,12 @@ void ui_eventLoop(int *running)
 
 
 
-void ui_list_adms()
-{
-
-}
-
-void ui_list_atomic()
-{
-	ui_list_gen(ADM_ALL, MID_ATOMIC);
-}
-
-void ui_list_compdef()
-{
-	ui_list_gen(ADM_ALL, MID_COMPUTED);
-}
-
-void ui_list_ctrls()
-{
-	ui_list_gen(ADM_ALL, MID_CONTROL);
-}
-
-mid_t * ui_get_mid(int adm_type, int mid_id, uint32_t opt)
-{
-	mid_t *result = NULL;
-
-	int i = 0;
-	LystElt elt = 0;
-	mgr_name_t *cur = NULL;
-
-	AMP_DEBUG_ENTRY("ui_print","(%d, %d)",adm_type, mid_id);
-
-	Lyst names = names_retrieve(adm_type, mid_id);
-
-	for(elt = lyst_first(names); elt; elt = lyst_next(elt))
-	{
-		if(i == opt)
-		{
-			cur = (mgr_name_t *) lyst_data(elt);
-			result = mid_copy(cur->mid);
-			break;
-		}
-		i++;
-	}
-
-	lyst_destroy(names);
-	AMP_DEBUG_EXIT("ui_print","->.", NULL);
-
-	return result;
-}
-
-
-void ui_list_gen(int adm_type, int mid_id)
-{
-	  int i = 0;
-	  LystElt elt = 0;
-	  mgr_name_t *cur = NULL;
-
-	  AMP_DEBUG_ENTRY("ui_print","(%d, %d)",adm_type, mid_id);
-
-	  Lyst result = names_retrieve(adm_type, mid_id);
-
-	  for(elt = lyst_first(result); elt; elt = lyst_next(elt))
-	  {
-		  cur = (mgr_name_t *) lyst_data(elt);
-		  printf("%3d) %-50s - %-25s\n", i, cur->name, cur->descr);
-		  i++;
-	  }
-
-	  lyst_destroy(result);
-	  AMP_DEBUG_EXIT("ui_print","->.", NULL);
-}
-
-void ui_list_literals()
-{
-	ui_list_gen(ADM_ALL, MID_LITERAL);
-}
-
-void ui_list_macros()
-{
-	ui_list_gen(ADM_ALL, MID_MACRO);
-}
-
-void ui_list_ops()
-{
-	ui_list_gen(ADM_ALL, MID_OPERATOR);
-}
-
-void ui_list_rpts()
-{
-	ui_list_gen(ADM_ALL, MID_REPORT);
-}
 
 
 
 
 
-
-
-void ui_print_menu_admin()
+void ui_menu_admin_show()
 {
 	printf("============ Administration Menu =============\n");
 
@@ -1117,37 +651,87 @@ void ui_print_menu_admin()
 
 }
 
-void ui_print_menu_ctrl()
+void ui_menu_admin_do(uint8_t choice)
+{
+	switch(choice)
+	{
+		case 'Z' : gContext = UI_MAIN_MENU; break;
+		case '1' : ui_register_agent(); break;
+		case '2' : ui_print_agents(); break;
+		case '3' : ui_deregister_agent(ui_select_agent()); break;
+		default: printf("Unknown command.\n"); break;
+	}
+}
+
+
+
+void ui_menu_ctrl_show()
 {
 	printf("=============== Controls Menu ================\n");
 
-	printf("\n------------- ADM Information --------------\n");
-	printf("1) List supported ADMs.\n");
-	printf("2) List Atomic Data MIDs by Index.   (%lu Known)\n",
-			(unsigned long) lyst_length(gAdmData));
-	printf("3) List Computed Data MIDs by Index. (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmComputed));
-	printf("4) List Control MIDs by Index.       (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmCtrls));
-	printf("5) List Literal MIDs by Index.       (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmLiterals));
-	printf("6) List Macro MIDs by Index.         (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmMacros));
-	printf("7) List Operator MIDs by Index.      (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmOps));
-	printf("8) List Reports MIDs by Index.       (%lu Known)\n",
-		       (unsigned long) 	lyst_length(gAdmRptTpls));
+	printf("\n------------- AMM Object Information --------------\n");
+	printf("0) List supported ADMs.\n");
+	printf("1) List Atomics (EDD, CNST, LIT) (%d Known)\n", gVDB.adm_atomics.num_elts);
+	printf("2) List Control Definitions      (%d Known)\n", gVDB.adm_ctrl_defs.num_elts);
+	printf("3) List Macro Definitions        (%d Known)\n", gVDB.macdefs.num_elts);
+	printf("4) List Operator Definitions     (%d Known)\n", gVDB.adm_ops.num_elts);
+	printf("5) List Rpt Template Definitions (%d Known)\n", gVDB.rpttpls.num_elts);
+	printf("6) List Rules                    (%d Known)\n", gVDB.rules.num_elts);
+	printf("7) List Tbl Template Definitions (%d Known)\n", gVDB.adm_tblts.num_elts);
+	printf("8) List Variables                (%d Known)\n", gVDB.vars.num_elts);
 
 	printf("\n-------------- Perform Control -------------\n");
 	printf("9) Build Arbitrary Control.\n");
 	printf("A) Specify Raw Control.\n");
-	printf("B) Specify Control File.\n");
+	printf("B) Run Control File.\n");
 
 	printf("\n--------------------------------------------\n");
 	printf("Z) Return to Main Menu.\n");
 }
 
 
+void ui_menu_ctrl_do(uint8_t choice)
+{
+	switch(choice)
+	{
+		case '0' : ui_list_objs(ADM_ALL, AMP_TYPE_UNK);
+				   break;
+
+		case '1' : ui_list_objs(ADM_ALL, AMP_TYPE_EDD);
+				   ui_list_objs(ADM_ALL, AMP_TYPE_CNST);
+				   ui_list_objs(ADM_ALL, AMP_TYPE_LIT);
+				   break;
+
+		case '2' : ui_list_objs(ADM_ALL, AMP_TYPE_CTRL);
+				   break;
+
+		case '3' : ui_list_objs(ADM_ALL, AMP_TYPE_MAC);
+				   break;
+
+		case '4' : ui_list_objs(ADM_ALL, AMP_TYPE_OPER);
+				   break;
+
+		case '5' : ui_list_objs(ADM_ALL, AMP_TYPE_RPTTPL);
+				   break;
+
+		case '6' : ui_list_objs(ADM_ALL, AMP_TYPE_SBR);
+				   ui_list_objs(ADM_ALL, AMP_TYPE_TBR);
+				   break;
+
+		case '7' : ui_list_objs(ADM_ALL, AMP_TYPE_TBLT);
+				   break;
+
+		case '8' : ui_list_objs(ADM_ALL, AMP_TYPE_VAR);
+				   break;
+
+		case '9' : ui_build_control(ui_select_agent()); break;
+		case 'A' : ui_send_raw(ui_select_agent(),0); break;
+		case 'B' : ui_send_file(ui_select_agent(),0); break;
+
+		case 'Z' : gContext = UI_MAIN_MENU; break;
+		default: printf("Unknown command.\n"); break;
+	}
+}
 
 /******************************************************************************
  *
@@ -1178,7 +762,7 @@ void ui_print_menu_main()
 
 }
 
-void ui_print_menu_rpt()
+void ui_menu_rpt_show()
 {
 
 	printf("========================= Reporting Menu =========================\n");
@@ -1191,7 +775,7 @@ void ui_print_menu_rpt()
 	printf("3) List Agent Macro Definitions.\n");
 
 	printf("\n-------------------------- Report List -------------------------\n");
-	printf("4) Print Reports Received from an Agent (We have %d reports).\n", g_reports_total);
+	printf("4) Print Reports Received from an Agent (We have %ld reports).\n", gMgrDB.tot_rpts);
 	printf("5) Clear Reports Received from an Agent.\n");
 
 	printf("\n---------------------- Production Schedules --------------------\n");
@@ -1201,150 +785,35 @@ void ui_print_menu_rpt()
 	printf("Z) Return to Main Menu.\n");
 }
 
-
-
-
-
-
-
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_run_tests
- *
- * \par Run local manager tests to test out libraries.
- *
- * \par Notes:
- * \todo Move this to a test file.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  06/25/13  E. Birrane     Removed references to priority field.
- *****************************************************************************/
-
-void ui_run_tests()
+void ui_menu_rpt_do(uint8_t choice)
 {
-	char *str;
-	unsigned char *msg;
-
-	/* Test 1: Construct an OID and serialize/deserialize it. */
-	// # bytes (SDNV), followe dby the bytes.
-	fprintf(stderr,"OID TEST 1\n----------------------------------------\n");
-	unsigned char tmp_oid[8] = {0x07,0x01,0x02,0x03,0x04,0x05,0x06,0x00};
-	uint32_t bytes = 0;
-
-	fprintf(stderr,"Initial is ");
-	utils_print_hex(tmp_oid,8);
-
-	oid_t oid = oid_deserialize_full(tmp_oid, 8, &bytes);
-
-	fprintf(stderr,"Deserialized %d bytes into:\n", bytes);
-	str = oid_pretty_print(oid);
-	fprintf(stderr,"%s",str);
-	SRELEASE(str);
-
-	msg = oid_serialize(oid,&bytes);
-	fprintf(stderr,"Serialized %d bytes into ", bytes);
-	utils_print_hex(msg,bytes);
-	SRELEASE(msg);
-	fprintf(stderr,"\n----------------------------------------\n");
-
-
-	/* Test 2: Construct a MID and serialize/deserialize it. */
-	fprintf(stderr,"MID TEST 1\n");
-	uvast issuer = 0, tag = 0;
-
-	mid_t *mid = mid_construct(0,NULL, NULL, oid);
-	msg = (unsigned char*)mid_to_string(mid);
-	fprintf(stderr,"Constructed mid: %s\n", msg);
-	SRELEASE(msg);
-
-	msg = mid_serialize(mid, &bytes);
-	fprintf(stderr,"Serialized %d bytes into ", bytes);
-	utils_print_hex(msg, bytes);
-
-	uint32_t b2;
-	mid_t *mid2 = mid_deserialize(msg, bytes, &b2);
-	SRELEASE(msg);
-	msg = (unsigned char *)mid_to_string(mid2);
-
-	fprintf(stderr,"Deserialized %d bytes into MID %s\n", b2, msg);
-	SRELEASE(msg);
-	mid_release(mid2);
-	mid_release(mid);
-}
-
-
-/*
- * No double-checking, assumes code is correct...
- */
-void ui_add_parmspec(uvast mid_val,
-						       uint8_t num,
-		                       char *n1, uint8_t p1,
-		                       char *n2, uint8_t p2,
-		                       char *n3, uint8_t p3,
-		                       char *n4, uint8_t p4,
-		                       char *n5, uint8_t p5,
-							   char *n6, uint8_t p6,
-							   char *n7, uint8_t p7,
-							   char *n8, uint8_t p8)
-{
-	ui_parm_spec_t *spec = STAKE(sizeof(ui_parm_spec_t));
-	CHKVOID(spec);
-
-	memset(spec, 0, sizeof(ui_parm_spec_t));
-
-	spec->mid = mid_from_value(mid_val);
-	spec->num_parms = num;
-
-	if(n1 != NULL) istrcpy(spec->parm_name[0], n1, MAX_PARM_NAME);
-	spec->parm_type[0] = p1;
-
-	if(n2 != NULL) istrcpy(spec->parm_name[1], n2, MAX_PARM_NAME);
-	spec->parm_type[1] = p2;
-
-	if(n3 != NULL) istrcpy(spec->parm_name[2], n3, MAX_PARM_NAME);
-	spec->parm_type[2] = p3;
-
-	if(n4 != NULL) istrcpy(spec->parm_name[3], n4, MAX_PARM_NAME);
-	spec->parm_type[3] = p4;
-
-	if(n5 != NULL) istrcpy(spec->parm_name[4], n5, MAX_PARM_NAME);
-	spec->parm_type[4] = p5;
-
-	if(n6 != NULL) istrcpy(spec->parm_name[5], n6, MAX_PARM_NAME);
-	spec->parm_type[5] = p6;
-
-	if(n7 != NULL) istrcpy(spec->parm_name[4], n7, MAX_PARM_NAME);
-	spec->parm_type[6] = p7;
-
-	if(n8 != NULL) istrcpy(spec->parm_name[5], n8, MAX_PARM_NAME);
-	spec->parm_type[7] = p8;
-
-	lyst_insert_last(gParmSpec, spec);
-}
-
-ui_parm_spec_t* ui_get_parmspec(mid_t *mid)
-{
-	ui_parm_spec_t *result = NULL;
-
-	LystElt elt;
-
-	for(elt = lyst_first(gParmSpec); elt; elt = lyst_next(elt))
+	switch(choice)
 	{
-		result = lyst_data(elt);
+		// Definitions List
+		case '1' : ui_print_nop(); break; //ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
+		case '2' : ui_print_nop(); break; //ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
+		case '3' : ui_print_nop(); break; //ui_print_agent_macro_defs();    break; // LIst agent macro defs.
 
-		if(mid_compare(mid, result->mid, 0) == 0)
-		{
-			return result;
-		}
+		// Report List
+		case '4' : ui_print_nop(); break; //ui_print_reports(ui_select_agent());   break; // Print received reports.
+		case '5' : ui_print_nop(); break; //ui_clear_reports(ui_select_agent());	break; // Clear received reports.
+
+		// Production Schedules.
+		case '6' : ui_print_nop(); break; //ui_print_agent_prod_rules();    break; // List agent production rules.
+
+		case 'Z' : gContext = UI_MAIN_MENU;				break;
+
+		default: printf("Unknown command.\n");			break;
 	}
-
-	return NULL;
 }
+
+
+
+
+
+
+
+
 
 void ui_print_nop()
 {
@@ -1377,7 +846,27 @@ void *ui_thread(int *running)
 
 #ifdef HAVE_MYSQL
 
-void ui_print_menu_db()
+void ui_menu_sql_do(uint8_t choice)
+{
+	switch(cmd)
+	{
+	  // Definitions List
+	  case '1' : ui_db_set_parms(); break; // New Connection Parameters
+	  case '2' : ui_db_print_parms(); break;
+	  case '3' : ui_db_reset(); break; // Reset Tables
+	  case '4' : ui_db_clear_rpt(); break; // Clear Received Reports
+	  case '5' : ui_db_disconn(); break; // Disconnect from DB
+	  case '6' : ui_db_conn(); break; // Connect to DB
+	  case '7' : ui_db_write(); break; // Write DB info to file.
+	  case '8' : ui_db_read(); break; // Read DB infor from file.
+	  case 'Z' : gContext = UI_MAIN_MENU;				break;
+
+	  default: printf("Unknown command.\n");			break;
+	}
+
+}
+
+void ui_menu_sql_show()
 {
 
 	printf("========================= Database Menu ==========================\n");

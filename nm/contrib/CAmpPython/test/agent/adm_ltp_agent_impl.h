@@ -19,12 +19,12 @@
 #define ADM_LTP_AGENT_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
+#include "../../../../shared/primitives/tnv.h"
 #include "ltpnm.h"
 
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/primitives/tdc.h"
 #include "../shared/primitives/value.h"
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/ctrl.h"

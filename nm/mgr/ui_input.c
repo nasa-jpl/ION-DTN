@@ -15,9 +15,11 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  05/24/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  10/06/18  E. Birrane     Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#include "mgr/ui_input.h"
+#include "ui_input.h"
+#include "metadata.h"
 
 
 /******************************************************************************
@@ -44,8 +46,6 @@
 int ui_input_get_line(char *prompt, char **line, int max_len)
 {
 	int len = 0;
-
-	AMP_DEBUG_ENTRY("ui_input_get_line","(%s,0x%x,%d)",prompt, *line, max_len);
 
 	while(len == 0)
 	{
@@ -126,7 +126,7 @@ blob_t *ui_input_file_contents(char *prompt)
 	}
 
 	/* Shallow copy. */
-	result = blob_create(data, file_size);
+	result = blob_create(data, file_size, file_size);
 
 	str = utils_hex_to_string(data, file_size);
 	AMP_DEBUG_ALWAYS("Read from %s: %.50s...", filename, str);
@@ -135,6 +135,13 @@ blob_t *ui_input_file_contents(char *prompt)
 	fclose(fp);
 
 	return result;
+}
+
+
+uint8_t ui_input_adm_id(char *prompt)
+{
+	// todo: implement.
+	return ADM_ALL;
 }
 
 
@@ -162,15 +169,13 @@ blob_t* ui_input_blob(char *prompt, uint8_t no_file)
 	{
 		case 1:
 			str = ui_input_string(prompt);
-			value = utils_string_to_hex(str, &len);
-			SRELEASE(str);
-			result = blob_create(value, len);
+			result = utils_string_to_hex(str);
 			break;
 		case 2:
 			result = ui_input_file_contents(prompt);
 			break;
 		default:
-			return NULL;
+			result = NULL;
 			break;
 	}
 
@@ -192,7 +197,7 @@ uint8_t  ui_input_byte(char *prompt)
 	return result;
 }
 
-double   ui_input_double(char *prompt)
+double   ui_input_real64(char *prompt)
 {
 	double result = 0;
 	char line[20];
@@ -204,7 +209,7 @@ double   ui_input_double(char *prompt)
 	return result;
 }
 
-float    ui_input_float(char *prompt)
+float    ui_input_real32(char *prompt)
 {
 	float result = 0;
 	char line[20];
@@ -290,52 +295,35 @@ vast     ui_input_vast(char *prompt)
 	return result;
 }
 
-Lyst ui_input_dc(char *prompt)
-{
-	uint32_t num = 0;
-	uint32_t i = 0;
-	Lyst result = lyst_create();
-	blob_t *entry = NULL;
 
-	printf("DC Input: %s", prompt);
-	num = ui_input_uint("# Items:");
-
-	if(num == 0)
-	{
-		entry = blob_create(NULL, 0);
-		lyst_insert_last(result, entry);
-		return result;
-	}
-
-	for(i = 0; i < num; i++)
-	{
-		char str[20];
-		sprintf(str,"Item #%d", i);
-
-		entry = ui_input_blob(str,0);
-		lyst_insert_last(result, entry);
-	}
-
-	return result;
-}
-
-
-Lyst ui_input_mc(char *prompt)
+ac_t *ui_input_ac(char *prompt)
 {
 	uint32_t i = 0;
 	uint32_t num = 0;
-	Lyst result = lyst_create();
+	ac_t *result = ac_create();
 
-	printf("MC: %s", prompt);
+	CHKNULL(result);
 
-	num = ui_input_uint("# MIDS:");
+	printf("\n\n");
+	printf("ARI COLLECTION (AC) Builder.\n");
+	printf("----------------------------\n");
+	printf("%s", prompt);
+
+
+	num = ui_input_uint("# ARIs in the collection:");
 
 	for(i = 0; i < num; i++)
 	{
 		char prompt[20];
-		sprintf(prompt, "Enter MID %d", i);
-		mid_t *cur = ui_input_mid(prompt, ADM_ALL, MID_ANY);
-		lyst_insert_last(result, cur);
+		sprintf(prompt, "Build ARI %d", i);
+		ari_t *cur = ui_input_ari(prompt, ADM_ALL, AMP_TYPE_UNK);
+		if(vec_push(&(result->values), cur) != VEC_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ac","Could not input ARI %d.", i);
+			ac_release(result, 1);
+			result = NULL;
+			break;
+		}
 	}
 
 	return result;
@@ -344,14 +332,14 @@ Lyst ui_input_mc(char *prompt)
 
 /******************************************************************************
  *
- * \par Function Name: ui_input_mid
+ * \par Function Name: ui_input_ari
  *
- * \par Construct a MID object completely from user input.
+ * \par Construct an ARI object completely from user input.
  *
  * \par Notes:
  *
- * \retval NULL  - Problem building the MID.
- * 		   !NULL - The constructed MID.
+ * \retval NULL  - Problem building the ARI.
+ * 		   !NULL - The constructed ARI.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -361,142 +349,132 @@ Lyst ui_input_mc(char *prompt)
  *  07/05/16  E. Birrane     Check for NULL result. Add File input.
  *****************************************************************************/
 
-mid_t *ui_input_mid(char *prompt, uint8_t adm_type, uint8_t id)
+ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 {
-	mid_t *result = NULL;
-	tdc_t *parms;
-	ui_parm_spec_t* spec = NULL;
+	ari_t *result = NULL;
+	metadata_t *meta = NULL;
 
 
 	/* Step 1: Print the prompt. */
-	printf("MID:%s\n.", prompt);
+	printf("\n\n");
+	printf("Entering ARI for: %s\n.", prompt);
 
-	printf("\n----------------------------------------------------\n");
-	printf("Welcome to MID Builder.\n You may enter a MID by:\n");
-	printf("\t1) Typing the entire MID in hex.\n");
-	printf("\t2) Selecting an existing MID from a list.\n");
-	printf("\t3) Building a MID in pieces.\n");
-	printf("\t4) CANCEL.\n");
-	printf("----------------------------------------------------\n\n");
+	printf("\n+--------------------------------------------------+");
+	printf("\n|       Welcome to the ARI Builder. You may:       |");
+	printf("\n+--------------------------------------------------+");
+	printf("\n| 1) Select an existing ARI from a list.           |");
+	printf("\n| 2) Build an ARI using a wizard.                  |");
+	printf("\n| 3) Type the entire ARI in hex.                   |");
+	printf("\n| 4) Cancel.                                       |");
+	printf("\n+--------------------------------------------------+");
+	printf("\n\n");
 
-	uint32_t opt = ui_input_uint("Select One:");
+	uint32_t opt = ui_input_uint("Select an option (1-4):");
 
 	switch(opt)
 	{
 		case 1:
-			result = ui_input_mid_raw(1);
+			result = ui_input_ari_list(adm_id, type);
 			break;
 		case 2:
-			result = ui_input_mid_list(adm_type, id);
+			result = ui_input_ari_build();
 			break;
 		case 3:
-			result = ui_input_mid_build();
+			result = ui_input_ari_raw(1);
 			break;
 		default:
 			return NULL;
 			break;
 	}
 
-	if(result == NULL)
+	CHKNULL(result);
+
+	if((result->type != AMP_TYPE_LIT) &&
+	   (ARI_GET_FLAG_PARM(result->as_reg.flags)))
 	{
-		return NULL;
+		if(ui_input_parms(result) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Unable to get parms.", NULL);
+			ari_release(result, 1);
+			result = NULL;
+		}
 	}
 
-	/* Step 7: If the MID is parameterized, find and
-	 * input the parameters. Re-create the MID.
-	 */
-	switch(MID_GET_FLAG_OID(result->flags))
-	{
-		case OID_TYPE_PARAM:
-		case OID_TYPE_COMP_PARAM:
-
-			/* Get the parameter spec for this MID. */
-			if((spec = ui_get_parmspec(result)) == NULL)
-			{
-				AMP_DEBUG_ERR("ui_input_mid", "No Parm Spec?", NULL);
-				mid_release(result);
-
-				AMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-				return NULL;
-			}
-
-			/* Get the parameters. */
-			parms = ui_input_parms(spec);
-
-			/* Add the parameters. */
-			oid_add_params(&(result->oid), parms);
-
-			/* Release the parameters. */
-			tdc_destroy(&parms);
-
-			mid_internal_serialize(result);
-
-			break;
-	}
-
-	/* Step 5: Sanity check this mid. */
-	if(mid_sanity_check(result) == 0)
-	{
-		AMP_DEBUG_ERR("ui_input_mid", "Sanity check failed.", NULL);
-		AMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-		mid_release(result);
-		return NULL;
-	}
-
-	char *mid_str = mid_to_string(result);
-	printf("ui_input_mid - Defined MID: %s\n", mid_str);
-	fflush(stdout);
-	SRELEASE(mid_str);
-
-	AMP_DEBUG_EXIT("ui_input_mid", "->0x%x", (unsigned long) result);
 	return result;
 }
 
-mid_t* ui_input_mid_build()
+ari_t* ui_input_ari_build()
 {
-	mid_t *result = NULL;
+	ari_t *result = ari_create();
+	uint8_t flags;
+	int success;
 
-	/* Step 0: Allocate the resultant MID. */
-	if((result = (mid_t*)STAKE(sizeof(mid_t))) == NULL)
+	CHKNULL(result);
+
+	ui_input_ari_flags(&flags);
+
+	if(ARI_GET_FLAG_TYPE(flags) == AMP_TYPE_LIT)
 	{
-		AMP_DEBUG_ERR("ui_input_mid","Can't alloc %d bytes.", sizeof(mid_t));
-		AMP_DEBUG_EXIT("ui_input_mid", "->NULL.", NULL);
-		return NULL;
-	}
-	else
-	{
-		memset(result,0,sizeof(mid_t));
-	}
+		result->type = AMP_TYPE_LIT;
+		tnv_t *tmp = ui_input_tnv(AMP_TYPE_LIT, "");
+		result->as_lit = tnv_copy(*tmp, &success);
+		tnv_release(tmp, 1);
 
-	/* Step 2: Get and process the MID flag. */
-	ui_input_mid_flag(&(result->flags));
-	result->id = MID_GET_FLAG_ID(result->flags);
-
-	/* Step 3: Grab Issuer, if necessary. */
-	if(MID_GET_FLAG_ISS(result->flags))
-	{
-		result->issuer = ui_input_uvast("Issuer:");
-	}
-
-	/* Step 4: Read in the OID sans Parms. */
-	result->oid = ui_input_oid(result->flags);
-	if(result->oid.type == OID_TYPE_UNK)
-	{
-		AMP_DEBUG_ERR("ui_input_mid", "Bad OID.", NULL);
-		mid_release(result);
-
-		AMP_DEBUG_EXIT("ui_input_mid","->NULL.", NULL);
-		return NULL;
+		if(result->as_lit.type == AMP_TYPE_UNK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari_build", "Problem building ARI.", NULL);
+			ari_release(result, 1);
+			result = NULL;
+		}
+		return result;
 	}
 
-	/* Step 5: Grab a tag, if necessary. */
-	if(MID_GET_FLAG_TAG(result->flags))
+	result->as_reg.flags = flags;
+
+	if(ARI_GET_FLAG_NN(flags))
 	{
-		result->tag = ui_input_uvast("Tag:");
+		uvast nn = ui_input_uvast("ARI Nickname:");
+		if(VDB_ADD_NN(nn, &(result->as_reg.nn_idx)) != VEC_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Unable to add nickname.", NULL);
+			ari_release(result, 1);
+			return NULL;
+		}
 	}
 
-	/* Step 6: Create a version of the MID. */
-	mid_internal_serialize(result);
+	if(ARI_GET_FLAG_ISS(flags))
+	{
+		uvast iss = ui_input_uvast("ARI Issuer:");
+		if(VDB_ADD_ISS(iss, &(result->as_reg.iss_idx)) != VEC_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
+			ari_release(result, 1);
+			return NULL;
+		}
+	}
+
+	if(ARI_GET_FLAG_TAG(flags))
+	{
+		blob_t *tag = ui_input_blob("ARI Tag:", 0);
+		if(VDB_ADD_TAG(*tag, &(result->as_reg.tag_idx)) != VEC_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
+			blob_release(tag, 1);
+			ari_release(result, 1);
+			return NULL;
+		}
+		blob_release(tag, 1);
+	}
+
+	if(ARI_GET_FLAG_PARM(flags))
+	{
+		if(ui_input_parms(result) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Unable to get parms.", NULL);
+			ari_release(result, 1);
+			result = NULL;
+		}
+	}
 
 	return result;
 }
@@ -504,14 +482,13 @@ mid_t* ui_input_mid_build()
 
 /******************************************************************************
  *
- * \par Function Name: ui_input_mid_flag
+ * \par Function Name: ui_input_ari_flags
  *
- * \par Construct a MID flag byte completely from user input.
+ * \par Construct an ARI flag byte completely from user input.
  *
  * \par Notes:
  *
- * \retval 0 - Can't construct flag byte
- * 		   1 - Flag byte constructed
+ * \retval AMP Status Code
  *
  * \param[out]  flag   The resulting flags
  *
@@ -520,380 +497,326 @@ mid_t* ui_input_mid_build()
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
  *  06/25/13  E. Birrane     Removed references to priority field.Add ISS Flag.
+ *  10/06/18  E. Birrane     Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-int ui_input_mid_flag(uint8_t *flag)
+int ui_input_ari_flags(uint8_t *flag)
 {
-	int result = 0;
-	char line[256];
-	int tmp;
+	int i = 0;
+	int type;
 
 	*flag = 0;
 
-	ui_input_get_line("Type: Data (0), Ctrl (1), Literal (2), Op (3):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag = (tmp & 0x3);
+	printf("\n\n");
+	printf("+--------------------------------+\n");
+	printf("|     Build an ARI Flag Byte.    |\n");
+	printf("+--------------------------------+\n\n");
 
-	ui_input_get_line("Cat: Atomic (0), Computed (1), Collection (2):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x3) << 2;
+	/* Step 1: Figure out the AMP type. */
+	type = ui_input_ari_type();
 
-	ui_input_get_line("Issuer Field Present? Yes (1)  No (0):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x1) << 4;
+	ARI_SET_FLAG_TYPE(*flag, type);
 
-	ui_input_get_line("Tag Field Present? Yes (1)  No (0):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x1) << 5;
-
-	ui_input_get_line("OID Type: Full (0), Parm (1), Comp (2), Parm+Comp(3):",
-			          (char**)&line, 256);
-	sscanf(line,"%d",&tmp);
-	*flag |= (tmp & 0x3) << 6;
-
-	printf("Constructed Flag Byte: 0x%x\n", *flag);
-
-	return 1;
-}
-
-
-mid_t *ui_input_mid_list(uint8_t adm_type, uint8_t mid_id)
-{
-	mid_t *result = NULL;
-	uint32_t opt = 0;
-	uint8_t selected_id = mid_id;
-
-	if(selected_id == MID_ANY)
+	if(type != AMP_TYPE_LIT)
 	{
-
-		printf("\n--------------------------------\n");
-		printf("What kind of MID?\n");
-		printf("\t1. Atomic Data   2. Computed Data\n");
-		printf("\t3. Literal       4. Control\n");
-		printf("\t5. Macro         6. Report\n");
-		printf("\t7. Operator\n");
-		printf("\n--------------------------------\n");
-
-		opt = ui_input_uint("Select One:");
-
-		switch(opt)
+		if(ui_input_int("Nickname Present? Yes (1)  No (0):") != 0)
 		{
-			case 1:
-				selected_id = MID_ATOMIC;
-				break;
-			case 2:
-				selected_id = MID_COMPUTED;
-				break;
-			case 3:
-				selected_id = MID_LITERAL;
-				break;
-			case 4:
-				selected_id = MID_CONTROL;
-				break;
-			case 5:
-				selected_id = MID_MACRO;
-				break;
-			case 6:
-				selected_id = MID_REPORT;
-				break;
-			case 7:
-				selected_id = MID_OPERATOR;
-				break;
-			default:
-				return NULL;
+			ARI_SET_FLAG_NN(*flag);
+		}
+
+		if(ui_input_int("Issuer Field Present? Yes (1)  No (0):") != 0)
+		{
+			ARI_SET_FLAG_ISS(*flag);
+		}
+
+		if(ui_input_int("Tag Field Present? Yes (1)  No (0):") != 0)
+		{
+			ARI_SET_FLAG_TAG(*flag);
+		}
+
+		if(ui_input_int("Parameters Present? Yes (1)  No (0):") != 0)
+		{
+			ARI_SET_FLAG_PARM(*flag);
 		}
 	}
 
-	ui_list_gen(adm_type, selected_id);
-
-	opt = ui_input_uint("Select One:");
-
-	result = ui_get_mid(adm_type, selected_id, opt);
-
-	return result;
+	return AMP_OK;
 }
 
 
-mid_t* ui_input_mid_raw(uint8_t no_file)
+ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 {
-	mid_t *result = NULL;
-	uint32_t size = 0;
-	uint32_t bytes = 0;
+	// TODO: Implement.
+	AMP_DEBUG_ERR("ui_input_ari_list","Not implemented yet.", NULL);
+	return NULL;
+	/*
+	if(type == AMP_TYPE_UNK)
+	{
+		type = ui_input_ari_type();
+	}
+
+	return ui_list_gen(adm_id, type);*/
+}
+
+
+ari_t* ui_input_ari_raw(uint8_t no_file)
+{
+	ari_t *result = NULL;
+	int success;
 
 	blob_t *data = ui_input_blob("0x", no_file);
 
-	result = mid_deserialize((unsigned char *)data->value, data->length, &bytes);
-	blob_destroy(data, 1);
+	result = ari_deserialize_raw(data, &success);
+	blob_release(data, 1);
 
 	return result;
 }
 
 
-
-oid_t ui_input_oid(uint8_t mid_flags)
+int ui_input_ari_type()
 {
-	uint8_t *data = NULL;
-	uint8_t *data2 = NULL;
-	uint32_t size = 0;
-	uint32_t size2 = 0;
-	uint32_t bytes = 0;
-	oid_t result;
-	char line[MAX_INPUT_BYTES];
-	Sdnv id;
+	int type;
+	int i;
 
-	oid_init(&result);
-
-	switch(MID_GET_FLAG_OID(mid_flags))
+	for(i = 0; i <= AMP_TYPE_UNK; i++)
 	{
-		case OID_TYPE_FULL:
-			printf("Entering a Full OID.\n");
-			printf("+------+\n");
-			printf("| OID  |\n");
-			printf("| [DC] |\n");
-			printf("+------+\n\n");
-			break;
-
-		case OID_TYPE_PARAM:
-			printf("Entering a FULL Parameterized OID.\n");
-			printf("+------+---------+--------+-----+--------+\n");
-			printf("| OID  | # Parms | Parm 1 | ... | Parm N |\n");
-			printf("| [DC] |  [SDNV] |  [DC]  |     |  [DC}  |\n");
-			printf("+------+---------+--------+-----+--------+\n\n");
-			break;
-
-		case OID_TYPE_COMP_FULL:
-			printf("Entering a Compressed Full OID.\n");
-			printf("+--------+------+\n");
-			printf("| NN ID  | OID  |\n");
-			printf("| [SDNV] | [DC] |\n");
-			printf("+--------+------+\n\n");
-			break;
-
-
-		case OID_TYPE_COMP_PARAM:
-			printf("Entering a Compressed Parameterized OID.\n");
-			printf("+--------+------+---------+--------+-----+--------+\n");
-			printf("| NN ID  | OID  | # Parms | Parm 1 | ... | Parm N |\n");
-			printf("| [SDNV] | [DC] |  [SDNV] |  [DC]  |     |  [DC}  |\n");
-			printf("+--------+------+---------+--------+-----+--------+\n\n");
-			break;
-
-		default:
-			AMP_DEBUG_ERR("ui_input_oid","Unknown OID Type %d",
-					    	 MID_GET_FLAG_OID(mid_flags));
-			return oid_get_null();
+		printf("%d) %s\t\t", i, type_to_str(i));
+		if((i > 0) && ((i%5) == 0))
+		{
+			printf("\n");
+		}
 	}
 
-	/* Get the non-parameterized parts of the OID. */
+	type = ui_input_int("Select ARI type (or UNK to cancel): ");
 
-	switch(MID_GET_FLAG_OID(mid_flags))
-	{
-		case OID_TYPE_FULL:
-		case OID_TYPE_PARAM:
-			ui_input_get_line("Enter [len][octet 1]...[octet N]: 0x", (char**)&line, MAX_INPUT_BYTES);
-			data = utils_string_to_hex(line, &size);
-			result = oid_deserialize_full(data, size, &bytes);
-			SRELEASE(data);
-			break;
-
-		case OID_TYPE_COMP_FULL:
-		case OID_TYPE_COMP_PARAM:
-
-			id = ui_input_sdnv("Compressed OID\nEnter NN Id:");
-			ui_input_get_line("Enter Root OID: [len][octet 1]...[octet N]: 0x", (char**)&line, MAX_INPUT_BYTES);
-			data2 = utils_string_to_hex(line, &size2);
-
-			size = size2 + id.length;
-			data = (uint8_t *) STAKE(size);
-			if (data == NULL)
-			{
-				putErrmsg("Failed allocating OID.", NULL);
-				return oid_get_null();
-			}
-
-			memcpy(data, id.text, id.length);
-			memcpy(data+id.length, data2, size2);
-			SRELEASE(data2);
-			result = oid_deserialize_comp(data, size, &bytes);
-			SRELEASE(data);
-			break;
-
-		default:
-			AMP_DEBUG_ERR("ui_input_mid","Unknown OID Type %d",
-					    MID_GET_FLAG_OID(mid_flags));
-			break;
-	}
-
-	return result;
+	return type;
 }
 
 
-/*
- * \todo: Network Byte Order.
- * \todo: check return values.
- */
-tdc_t *ui_input_parms(ui_parm_spec_t *spec)
+int ui_input_parms(ari_t *id)
 {
-	tdc_t *result = NULL;
+	metadata_t *meta = NULL;
+	int num;
+
 	uint8_t *data = NULL;
 	uint32_t size = 0;
 	char prompt[256];
 	int i;
 
-	if(spec == NULL)
+	CHKUSR(id, AMP_FAIL);
+
+	if((meta = rhht_retrieve_key(&(gMgrDB.metadata), id)) == NULL)
 	{
-		return NULL;
+		AMP_DEBUG_ERR("ui_input_parms","ARI has parms, but can't fine metadata.", NULL);
+		return AMP_FAIL;
 	}
 
-	if((result = tdc_create(NULL, 0, 0)) == NULL)
+	if((num = vec_size(meta->parmspec)) == 0)
 	{
-		return NULL;
+		return AMP_OK;
 	}
 
-	for(i = 0; i < spec->num_parms; i++)
-	{
-		data = NULL;
-		size = 0;
+	printf("\n\n");
+	printf("Your Selected ARI Needs %d Parameters.\n", num);
+	printf("You will now be asked to enter each parm.\n");
 
-		switch(spec->parm_type[i])
+	for(i = 0; i < num; i++)
+	{
+		parm_t *parm = vec_at(meta->parmspec, i);
+
+		sprintf(prompt,"Parameter %d: (%s) %s", i, type_to_str(parm->type), parm->name);
+		tnv_t *val = ui_input_tnv(parm->type, prompt);
+
+		if(vec_push(&(id->as_reg.parms.values), val) != VEC_OK)
 		{
-			case AMP_TYPE_BYTE:
-			{
-				sprintf(prompt,"(BYTE) %s", spec->parm_name[i]);
-				uint8_t val = ui_input_byte(prompt);
-				data = utils_serialize_byte(val, &size);
-			}
-				break;
-			case AMP_TYPE_INT:
-			{
-				sprintf(prompt,"(INT) %s", spec->parm_name[i]);
-				int32_t  val = ui_input_int(prompt);
-				data = utils_serialize_int(val, &size);
-			}
-				break;
-			case AMP_TYPE_UINT:
-			{
-				sprintf(prompt,"(UINT) %s", spec->parm_name[i]);
-				uint32_t  val = ui_input_uint(prompt);
-				data = utils_serialize_uint(val, &size);
-			}
-				break;
-			case AMP_TYPE_VAST:
-			{
-				sprintf(prompt,"(VAST) %s", spec->parm_name[i]);
-				vast  val = ui_input_vast(prompt);
-				data = utils_serialize_vast(val, &size);
-			}
-				break;
-			case AMP_TYPE_UVAST:
-			{
-				sprintf(prompt,"(UVAST) %s", spec->parm_name[i]);
-				uvast  val = ui_input_uvast(prompt);
-				data = utils_serialize_uvast(val, &size);
-			}
-				break;
-			case AMP_TYPE_REAL32:
-			{
-				sprintf(prompt,"(REAL32) %s", spec->parm_name[i]);
-				float  val = ui_input_float(prompt);
-				data = utils_serialize_real32(val, &size);
-			}
-				break;
-			case AMP_TYPE_REAL64:
-			{
-				sprintf(prompt,"(REAL64) %s", spec->parm_name[i]);
-				double  val = ui_input_double(prompt);
-				data = utils_serialize_real64(val, &size);
-			}
-				break;
-			case AMP_TYPE_STRING:
-			{
-				sprintf(prompt,"(STRING) %s", spec->parm_name[i]);
-				char *val = ui_input_string(prompt);
-				data = utils_serialize_string(val, &size);
-				SRELEASE(val);
-			}
-				break;
-			case AMP_TYPE_BLOB:
-			{
-				sprintf(prompt,"(BLOB) %s", spec->parm_name[i]);
-				blob_t *val = ui_input_blob(prompt, 0);
-				data = blob_serialize(val, &size);
-				SRELEASE(val);
-			}
-				break;
-			case AMP_TYPE_SDNV:
-			{
-				sprintf(prompt,"(SDNV) %s", spec->parm_name[i]);
-				Sdnv val = ui_input_sdnv(prompt);
-				data = (uint8_t *) STAKE(val.length);
-				if (data)
-				{
-					size = val.length;
-					memcpy(data, &(val.text), val.length);
-				}
-				else
-				{
-					putErrmsg("Can't allocate data.", NULL);
-				}
-			}
-				break;
-			case AMP_TYPE_TS:
-			{
-				sprintf(prompt,"(TS) %s", spec->parm_name[i]);
-				uint32_t  val = ui_input_uint(prompt);
-				data = utils_serialize_uint(val, &size);
-			}
-				break;
-			case AMP_TYPE_DC:
-			{
-				sprintf(prompt,"(DC) %s", spec->parm_name[i]);
-				Lyst user_dc = ui_input_dc(prompt);
-				data = dc_serialize(user_dc, &size);
-				dc_destroy(&user_dc);
-			}
-				break;
-			case AMP_TYPE_MID:
-			{
-				sprintf(prompt,"(MID) %s", spec->parm_name[i]);
-
-				mid_t *mid = ui_input_mid(prompt, ADM_ALL, MID_ANY);
-				data = mid_serialize(mid, &size);
-				mid_release(mid);
-			}
-				break;
-			case AMP_TYPE_MC:
-			{
-				sprintf(prompt,"(MID Collection) %s", spec->parm_name[i]);
-				Lyst mc = ui_input_mc(prompt);
-				data = midcol_serialize(mc, &size);
-				midcol_destroy(&mc);
-			}
-				break;
-			case AMP_TYPE_EXPR:
-			{
-				printf("(Expression) %s", spec->parm_name[i]);
-				uint8_t type = ui_input_uint("EXPR Type:");
-				Lyst mc = ui_input_mc("EXPR MID Collection:");
-				expr_t *expr = expr_create(type, mc);
-				data = expr_serialize(expr, &size);
-				expr_release(expr);
-			}
-				break;
+			AMP_DEBUG_ERR("ui_input_parms", "Can't add parameter.", NULL);
+			tnv_release(val, 1);
+			return AMP_FAIL;
 		}
+	}
 
-		if(data != NULL)
+	return AMP_OK;
+}
+
+
+tnv_t *ui_input_tnv(int type, char *prompt)
+{
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+
+	result->type = type;
+	switch(result->type)
+	{
+		case AMP_TYPE_BOOL:
+		case AMP_TYPE_BYTE:
+			*result = tnv_from_byte(ui_input_byte(prompt));
+			break;
+
+		case AMP_TYPE_INT:
+			*result = tnv_from_int(ui_input_int(prompt));
+			break;
+
+		case AMP_TYPE_UINT:
+			*result = tnv_from_uint(ui_input_uint(prompt));
+			break;
+
+		case AMP_TYPE_VAST:
+			*result = tnv_from_vast(ui_input_vast(prompt));
+			break;
+
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
+		case AMP_TYPE_UVAST:
+			*result = tnv_from_uvast(ui_input_uvast(prompt));
+			break;
+
+		case AMP_TYPE_REAL32:
+			*result = tnv_from_real32(ui_input_real32(prompt));
+			break;
+
+		case AMP_TYPE_REAL64:
+			*result = tnv_from_real64(ui_input_real64(prompt));
+			break;
+
+		case AMP_TYPE_STR:
+			*result = tnv_from_str(ui_input_string(prompt));
+			break;
+
+		case AMP_TYPE_BYTESTR:
+			result->value.as_ptr = ui_input_blob(prompt, 0);
+			TNV_SET_ALLOC(result->flags);
+			break;
+
+		case AMP_TYPE_CNST:
+		case AMP_TYPE_EDD:
+		case AMP_TYPE_LIT:
+		case AMP_TYPE_ARI:
+			result->value.as_ptr = ui_input_ari(prompt, ADM_ALL, AMP_TYPE_UNK);
+			TNV_SET_ALLOC(result->flags);
+			break;
+
+		case AMP_TYPE_MAC:
+		case AMP_TYPE_AC:
+			result->value.as_ptr = ui_input_ac(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+/*
+		case AMP_TYPE_CTRL:
+			result->value.as_ptr = ui_input_ctrl(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+
+		case AMP_TYPE_EXPR:
+			result->value.as_ptr = ui_input_expr(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+		case AMP_TYPE_OPER:
+			result->value.as_ptr = ui_input_oper(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+		case AMP_TYPE_RPT:
+			result->value.as_ptr = ui_input_rpt(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+		case AMP_TYPE_RPTTPL:
+			result->value.as_ptr = ui_input_rpttpl(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+		case AMP_TYPE_TBR:
+		case AMP_TYPE_SBR:
+			result->value.as_ptr = ui_input_rule(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+
+		case AMP_TYPE_TBL:
+			result->value.as_ptr = ui_input_tbl(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+		case AMP_TYPE_TBLT:
+			result->value.as_ptr = ui_input_tblt(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+		case AMP_TYPE_VAR:
+			result->value.as_ptr = ui_input_var(prompt);
+			TNV_SET_ALLOC(result->flags);
+			break;
+			*/
+		default:
+			tnv_release(result, 1);
+			result = NULL;
+	}
+
+	if(result != NULL)
+	{
+		if(TNV_IS_ALLOC(result->flags))
 		{
-			tdc_insert(result, spec->parm_type[i], data, size);
-			SRELEASE(data);
+			if(result->value.as_ptr == NULL)
+			{
+				tnv_release(result, 1);
+				result = NULL;
+			}
 		}
 	}
 
 	return result;
 }
+/*
+
+ctrl_t* ui_input_ctrl(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_ctrl", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+expr_t* ui_input_expr(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_expr", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+op_t* ui_input_oper(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_oper", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+rpt_t* ui_input_rpt(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_rpt", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+rpttpl_t* ui_input_rpttpl(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_rpttpl", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+rule_t *ui_input_rule(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_rule", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+tbl_t* ui_input_tbl(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_tbl", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+tblt_t* ui_input_tblt(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_tblt", "Not implemented yet.", NULL);
+	return NULL;
+}
+
+
+var_t* ui_input_var(prompt)
+{
+	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
+	return NULL;
+}
+*/
+
 
 

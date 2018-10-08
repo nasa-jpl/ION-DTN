@@ -134,7 +134,7 @@ typedef struct
 	char database[UI_SQL_DBLEN];
 
 	def_gen_desc_t desc;
-} ui_db_t;
+} sql_db_t;
 
 /*
  * +--------------------------------------------------------------------------+
@@ -154,6 +154,12 @@ int32_t db_add_oid_str(char *oid_str);
 int32_t db_add_parms(oid_t oid);
 int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type);
 int32_t db_add_protoparms(ui_parm_spec_t *spec);
+
+
+int32t db_add_ari(ari_t ari);
+
+ari_t *db_fetch_ari(int idx);
+ari_t *db_fetch_ari_idx(ari_t ari);
 
 /* Functions to fetch primitives from associated database tables. */
 
@@ -182,7 +188,7 @@ int32_t db_incoming_process_message(int32_t incomingID, uint8_t *cursor, uint32_
 
 /* Database Management Functions. */
 void    *db_mgt_daemon(int *running);
-uint32_t db_mgt_init(ui_db_t parms, uint32_t clear, uint32_t log);
+uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log);
 int      db_mgt_clear();
 int      db_mgt_clear_table(char *table);
 void     db_mgt_close();

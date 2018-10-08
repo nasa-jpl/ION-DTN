@@ -33,11 +33,26 @@
 #define _NM_MGR_UI_H
 
 #include "nm_mgr.h"
+#include "agents.h"
 
 #include "../shared/utils/nm_types.h"
 #include "../shared/adm/adm.h"
-#include "../shared/primitives/mid.h"
 #include "../shared/primitives/report.h"
+
+
+
+#define AGENT_ADD_VAR_STR "Add Var"
+#define AGENT_DEL_VAR_STR "Del Var"
+#define AGENT_ADD_RPTT_STR "Add Rptt"
+#define AGENT_DEL_RPTT_STR "Del Rptt"
+#define AGENT_ADD_MAC_STR "Add Mac"
+#define AGENT_DEL_MAC_STR "Del Mac"
+#define AGENT_ADD_SBR_STR "Add Sbr"
+#define AGENT_DEL_SBR_STR "Del Sbr"
+#define AGENT_ADD_TBR_STR "Add Tbr"
+#define AGENT_DEL_TBR_STR "Del Tbr"
+
+
 
 
 
@@ -48,114 +63,43 @@
 #define UI_DB_MENU	  4
 
 extern int gContext;
-extern Lyst gParmSpec;
 
-
-#define MAX_PARMS 8
-#define MAX_PARM_NAME 16
-
-
-#define UI_ADD_PARMSPEC_1(str, n1, p1) \
-	   ui_add_parmspec(str, 1, n1, p1, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
-
-#define UI_ADD_PARMSPEC_2(str, n1, p1, n2, p2) \
-	   ui_add_parmspec(str, 2, n1, p1, n2, p2, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
-
-#define UI_ADD_PARMSPEC_3(str, n1, p1, n2, p2, n3, p3) \
-	   ui_add_parmspec(str, 3, n1, p1, n2, p2, n3, p3, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
-
-#define UI_ADD_PARMSPEC_4(str, n1, p1, n2, p2, n3, p3, n4, p4) \
-	   ui_add_parmspec(str, 4, n1, p1, n2, p2, n3, p3, n4, p4, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
-
-#define UI_ADD_PARMSPEC_5(str, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5) \
-	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, NULL, 0, NULL, 0, NULL, 0);
-
-#define UI_ADD_PARMSPEC_6(str, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6) \
-	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6, NULL, 0, NULL, 0);
-
-#define UI_ADD_PARMSPEC_7(str, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6, n7, p7) \
-	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6, n7, p7, NULL, 0);
-
-#define UI_ADD_PARMSPEC_8(str, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6, n7, p7, n8, p8) \
-	   ui_add_parmspec(str, 5, n1, p1, n2, p2, n3, p3, n4, p4, n5, p5, n6, p6, n7, p7, n8, p8);
-
-/*
- * The parameter spec keeps a list of known parameters
- * for individual, known parameterized MIDs.
- *
- * Currently, only controls and literals can be parameterized.
- */
-typedef struct
-{
-	mid_t *mid;
-	uint8_t num_parms;
-	uint8_t parm_type[MAX_PARMS];
-	char parm_name[MAX_PARMS][MAX_PARM_NAME];
-} ui_parm_spec_t;
-
-
-void           ui_add_parmspec(uvast mid_val,
-						       uint8_t num,
-		                       char *n1, uint8_t p1,
-		                       char *n2, uint8_t p2,
-		                       char *n3, uint8_t p3,
-		                       char *n4, uint8_t p4,
-		                       char *n5, uint8_t p5,
-							   char *n6, uint8_t p6,
-							   char *n7, uint8_t p7,
-					           char *n8, uint8_t p8);
-
-ui_parm_spec_t* ui_get_parmspec(mid_t *mid);
-
-
+void ui_build_control(agent_t* agent);
 void ui_clear_reports(agent_t* agent);
+
+rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
+
+void ui_deregister_agent();
+void ui_event_loop();
+
+void ui_list_objs();
+
+void ui_postprocess_ctrl(ari_t *id);
+
+void ui_register_agent();
 
 agent_t *ui_select_agent();
 
-// \todo: Be able to select multiple agents.
-// \todo: Be able to have multiple commands in a command scratch area.
-
-void ui_build_control(agent_t* agent);
-void ui_send_raw(agent_t* agent, uint8_t enter_ts);
 void ui_send_file(agent_t* agent, uint8_t enter_ts);
 
+void ui_send_raw(agent_t* agent, uint8_t enter_ts);
 
-int ui_test_mid(mid_t *mid, uvast mid_val);
-
-void ui_define_mid_params(char *name, ui_parm_spec_t* parmspec, mid_t *mid);
-
-void ui_register_agent();
-void ui_deregister_agent();
-
-void ui_event_loop();
-
-
-mid_t * ui_get_mid(int adm_type, int mid_id, uint32_t opt);
-
-
-void ui_list_adms();
-void ui_list_atomic();
-void ui_list_compdef();
-void ui_list_ctrls();
-void ui_list_gen(int adm_type, int mid_id);
-void ui_list_literals();
-void ui_list_macros();
-void ui_list_mids();
-void ui_list_ops();
-void ui_list_rpts();
-
-rpttpl_t *ui_create_rpttpl_from_rpt_parms(tdc_t parms);
-
-
-void ui_postprocess_ctrl(mid_t *mid);
-
-void ui_print_menu_admin();
-void ui_print_menu_ctrl();
 void ui_print_menu_main();
-void ui_print_menu_rpt();
+void ui_menu_admin_do(uint8_t choice);
+void ui_menu_admin_show();
+void ui_menu_ctrl_do(uint8_t choice);
+void ui_menu_ctrl_show();
+
+void ui_menu_rpt_do(uint8_t choice);
+void ui_menu_rpt_show();
+
+void ui_print_nop();
+void *ui_thread(int *running);
 
 #ifdef HAVE_MYSQL
-void ui_print_menu_db();
+void ui_menu_sql_do(uint8_t choice);
+void ui_menu_sql_show();
+
 
 void ui_db_conn();
 void ui_db_disconn();
@@ -168,11 +112,5 @@ void ui_db_write();
 
 #endif
 
-void ui_print_nop();
-
-void ui_run_tests();
-
-
-void *ui_thread(int *running);
 
 #endif // _NM_MGR_UI_H

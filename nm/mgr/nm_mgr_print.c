@@ -23,7 +23,7 @@
 
 #include "nm_mgr_ui.h"
 #include "nm_mgr_print.h"
-#include "mgr_db.h"
+#include "agents.h"
 
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/blob.h"
@@ -44,113 +44,38 @@
  *  --------  ------------   ---------------------------------------------
  *  04/18/13  V.Ramachandran Initial Implementation
  *  07/04/16  E. Birrane     Correct return value and agent casting.
+ *  10/07/18  E. Birrane     Update top AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 int ui_print_agents()
 {
-  int i = 0;
-  LystElt element = NULL;
+  vec_idx_t i = 0;
   agent_t * agent = NULL;
 
-  AMP_DEBUG_ENTRY("ui_print_agents","()",NULL);
 
   printf("\n------------- Known Agents --------------\n");
 
-  element = lyst_first(known_agents);
-  if(element == NULL)
+  if(vec_size(gMgrDB.agents) == 0)
   {
 	  printf("[None]\n");
+	  return 0;
   }
-  while(element != NULL)
+
+  for(i = 0; i < vec_size(gMgrDB.agents); i++)
   {
-	  i++;
-	  if((agent = lyst_data(element)) == NULL)
-	  {
-		  printf("%d) NULL?\n", i);
-	  }
-	  else
-	  {
-		  printf("%d) %s\n", i, (char *) agent->agent_eid.name);
-	  }
-	  element = lyst_next(element);
+	  agent = (agent_t *) vec_at(gMgrDB.agents, i);
+
+	  printf("%d) %s\n", i,  (agent != NULL) ? agent->eid.name : "NULL");
   }
 
   printf("\n------------- ************ --------------\n");
   printf("\n");
 
-  AMP_DEBUG_EXIT("ui_print_agents","->%d", (i));
   return i;
 }
 
 
-/******************************************************************************
- *
- * \par Function Name: ui_print_custom_rpt_entry
- *
- * \par Prints the Typed Data Collection contained within a report entry.
- *
- * \par Notes:
- *
- * \param[in]  rpt_entry  The entry containing the report data to print.
- * \param[in]  rpt_def    The static definition of the report.
- *
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  07/10/15  E. Birrane     Updated to new reporting structure.
- *****************************************************************************
-
-void ui_print_custom_rpt_entry(rpt_entry_t *rpt_entry, def_gen_t *rpt_def)
-{
-	LystElt elt;
-	uint64_t idx = 0;
-	mid_t *cur_mid = NULL;
-	adm_datadef_t *adu = NULL;
-	uint64_t data_used;
-
-	for(elt = lyst_first(rpt_def->contents); elt; elt = lyst_next(elt))
-	{
-		char *mid_str;
-		cur_mid = (mid_t*)lyst_data(elt);
-		mid_str = mid_to_string(cur_mid);
-		if((adu = adm_find_datadef(cur_mid)) != NULL)
-		{
-			DTNMP_DEBUG_INFO("ui_print_custom_rpt","Printing MID %s", mid_str);
-			ui_print_predefined_rpt_entry(cur_mid, (uint8_t*)&(rpt_entry->contents[idx]),
-					                rpt_entry->size - idx, &data_used, adu);
-			idx += data_used;
-		}
-		else
-		{
-			DTNMP_DEBUG_ERR("ui_print_custom_rpt","Unable to find MID %s", mid_str);
-		}
-
-		SRELEASE(mid_str);
-	}
-}
-*/
-
-void ui_print_dc(Lyst dc)
-{
-	printf("ui_print_dc not implements.");
-
-}
-
-void ui_print_def(def_gen_t *def)
-{
-	if(def == NULL)
-	{
-		printf("NULL");
-	}
-	else
-	{
-		ui_print_mid(def->id);
-//		printf(",%s,", type_to_str(def->type));
-		ui_print_mc(def->contents);
-	}
-}
+#if 0
 
 /*
  * We need to find out a description for the entry so we can print it out.
@@ -269,8 +194,7 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	    			for(i = 0; i < item->num_map; i++)
 	    			{
 	    				blob_t *src_parm = mid_get_param(entry->id, RPT_MAP_GET_SRC_IDX(item->parm_map[i])-1, &tpl_type);
-	    				blob_t *dest_parm = blob_copy(src_parm);
-	    				mid_update_parm(cur_mid, RPT_MAP_GET_DEST_IDX(item->parm_map[i]), 1, tpl_type, dest_parm);
+	    				mid_update_parm(cur_mid, RPT_MAP_GET_DEST_IDX(item->parm_map[i]), 1, tpl_type, src_parm);
 	    			}
 	    			lyst_insert_last(tmp, cur_mid);
 	    		}
@@ -850,3 +774,4 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			printf("Unknown.");
 	}
 }
+#endif
