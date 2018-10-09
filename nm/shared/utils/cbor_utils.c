@@ -406,23 +406,23 @@ CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn e
 {
 	CborError err;
 	CborEncoder array_enc;
-	vec_idx_t i;
+	vecit_t it;
 	vec_idx_t max;
 	int success;
 
 	CHKUSR(encoder, CborErrorIO);
 	CHKUSR(vec, CborErrorIO);
 
-	max = vec_size(*vec);
+	max = vec_num_entries(*vec);
 	err = cbor_encoder_create_array(encoder, &array_enc, max);
 	if((err != CborNoError) && (err != CborErrorOutOfMemory))
 	{
 		return err;
 	}
 
-	for(i = 0; i < max; i++)
+	for(it = vecit_first(vec); vecit_valid(it); it = vecit_next(it))
 	{
-		blob_t *result = cut_serialize_wrapper(CUT_ENC_BUFSIZE, vec_at(*vec, i), enc_fn);
+		blob_t *result = cut_serialize_wrapper(CUT_ENC_BUFSIZE, vecit_data(it), enc_fn);
 
 		err = CborErrorIO;
 		if(result != NULL)
@@ -433,7 +433,7 @@ CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn e
 
 		if((err != CborNoError) && (err != CborErrorOutOfMemory))
 		{
-			AMP_DEBUG_ERR("cut_serialize_vector","Can't serialize item #%d. Err is %d.",i, err);
+			AMP_DEBUG_ERR("cut_serialize_vector","Can't serialize item #%d. Err is %d.",vecit_idx(it), err);
 			cbor_encoder_close_container(encoder, &array_enc);
 			return err;
 		}

@@ -49,7 +49,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 
 	while(len == 0)
 	{
-		printf("\nNote: Only the first %d characters will be read.\n%s\n",
+		printf("\nNote: Only the first %d characters will be read.\n%s",
 				max_len, prompt);
 
 		if (igets(fileno(stdin), (char *)line, max_len, &len) == NULL)
@@ -611,7 +611,7 @@ int ui_input_parms(ari_t *id)
 		return AMP_FAIL;
 	}
 
-	if((num = vec_size(meta->parmspec)) == 0)
+	if((num = vec_num_entries(meta->parmspec)) == 0)
 	{
 		return AMP_OK;
 	}

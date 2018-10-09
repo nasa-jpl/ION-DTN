@@ -115,7 +115,7 @@ int rda_init()
 
 msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
 {
-	vec_idx_t i;
+	vecit_t it;
 	int success;
 	msg_rpt_t *msg_rpt;
 
@@ -131,10 +131,9 @@ msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
     /* Step 1: See if we already have a report message going to
      * that recipient. If so, return it.
      */
-    for(i = 0; i < vec_size(gAgentDb.rpt_msgs); i++)
+    for(it = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it); it = vecit_next(it))
     {
-    	msg_rpt_t *cur = vec_at(gAgentDb.rpt_msgs, i);
-    	vec_idx_t j;
+    	msg_rpt_t *cur = vecit_data(it);
 
     	vec_find(&(cur->rpts), recipient.name, &success);
     	if(success == AMP_OK)
@@ -180,7 +179,7 @@ int rda_process_ctrls()
 	time_t curtime = getUTCTime();
 
 	vec_lock(&(gVDB.ctrls));
-	for(i = 0; i < vec_size(gVDB.ctrls); i++)
+	for(i = 0; i < vec_num_entries(gVDB.ctrls); i++)
 	{
 		int success;
 		ctrl = vec_at(gVDB.ctrls, i);
@@ -295,15 +294,15 @@ void rda_scan_sbrs_cb(void *value, void *tag)
 
 int rda_process_rules()
 {
-    vec_idx_t i;
+    vecit_t it;
     int success;
 
     rhht_foreach(&(gVDB.rules), rda_scan_tbrs_cb, &(gAgentDb.tbrs));
     rhht_foreach(&(gVDB.rules), rda_scan_sbrs_cb, &(gAgentDb.sbrs));
 
-    for(i = 0; i < vec_size(gAgentDb.tbrs); i++)
+    for(it = vecit_first(&(gAgentDb.tbrs)); vecit_valid(it); it = vecit_next(it))
     {
-    	rule_t *rule = vec_at(gAgentDb.tbrs, i);
+    	rule_t *rule = vecit_data(it);
 
     	/* Map any parameters to the action before we run it. */
     	tnvc_t *parms = ari_resolve_parms(&(rule->id.as_reg.parms), &(rule->action.ari->as_reg.parms));
@@ -336,9 +335,9 @@ int rda_process_rules()
     }
 
 
-    for(i = 0; i < vec_size(gAgentDb.sbrs); i++)
+    for(it = vecit_first(&(gAgentDb.sbrs)); vecit_valid(it); it = vecit_next(it))
     {
-    	rule_t *rule = (rule_t*) vec_at(gAgentDb.sbrs, i);
+    	rule_t *rule = (rule_t*) vecit_data(it);
 
     	rule->num_eval++;
     	if(sbr_should_fire(rule))
@@ -406,8 +405,8 @@ int rda_process_rules()
 
 int rda_send_reports()
 {
-    vec_idx_t i;
-    vec_idx_t j;
+    vecit_t it1;
+    vecit_t it2;
     int success;
     
     AMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
@@ -415,18 +414,18 @@ int rda_send_reports()
 
     vec_lock(&(gAgentDb.rpt_msgs));
 
-    for(i = 0; i < vec_size(gAgentDb.rpt_msgs); i++)
+    for(it1 = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it1); it1 = vecit_next(it1))
     {
-    	msg_rpt_t *msg_rpt = (msg_rpt_t*)vec_at(gAgentDb.rpt_msgs, i);
+    	msg_rpt_t *msg_rpt = (msg_rpt_t*)vecit_data(it1);
 
     	if(msg_rpt == NULL)
     	{
     		continue;
     	}
 
-    	for(j = 0; j < vec_size(msg_rpt->rx); j++)
+    	for(it2 = vecit_first(&(msg_rpt->rx)); vecit_valid(it2); it2 = vecit_next(it2))
     	{
-    		char *rx =	vec_at(msg_rpt->rx, i);
+    		char *rx = vecit_data(it2);
 
     		if(rx == NULL)
     		{
@@ -435,7 +434,7 @@ int rda_send_reports()
     		}
     		if(iif_send_msg(&ion_ptr, MSG_TYPE_RPT_SET, msg_rpt, rx) == AMP_OK)
     		{
-    			gAgentInstr.num_sent_rpts += vec_size(msg_rpt->rpts);
+    			gAgentInstr.num_sent_rpts += vec_num_entries(msg_rpt->rpts);
     		}
     		else
     		{

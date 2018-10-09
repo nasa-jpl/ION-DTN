@@ -349,8 +349,6 @@ int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb)
 	}
 	sdr_end_xn(sdr);
 
-	AMP_DEBUG_ALWAYS("vdb_init", "Added %d Variable Definitions from DB.", num);
-
 	return num;
 }
 
@@ -505,6 +503,7 @@ void db_destroy()
 int db_init(char *name)
 {
 	int success = AMP_FAIL;
+	int num;
 	memset(&gVDB, 0, sizeof(gVDB));
 
 	gVDB.adm_atomics = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, ari_cb_ht_del, &success);
@@ -548,19 +547,20 @@ int db_init(char *name)
 
 	success = db_read_objs(name);
 
-	success = vdb_obj_init(gDB.ctrls, vdb_db_init_ctrl);
-	CHKUSR(success == AMP_OK, success);
+	num = vdb_obj_init(gDB.ctrls, vdb_db_init_ctrl);
+	AMP_DEBUG_ALWAYS("vdb_init", "Added %d Controls from DB.", num);
 
-	success = vdb_obj_init(gDB.macdefs,  vdb_db_init_macdef);
-	CHKUSR(success == AMP_OK, success);
+	num = vdb_obj_init(gDB.macdefs,  vdb_db_init_macdef);
+	AMP_DEBUG_ALWAYS("vdb_init", "Added %d Macro Definitions from DB.", num);
 
-	success = vdb_obj_init(gDB.rpttpls, vdb_db_init_rpttpl);
-	CHKUSR(success == AMP_OK, success);
+	num = vdb_obj_init(gDB.rpttpls, vdb_db_init_rpttpl);
+	AMP_DEBUG_ALWAYS("vdb_init", "Added %d Report Template Definitions from DB.", num);
 
-	success = vdb_obj_init(gDB.rules,   vdb_db_init_rule);
-	CHKUSR(success == AMP_OK, success);
+	num = vdb_obj_init(gDB.rules,   vdb_db_init_rule);
+	AMP_DEBUG_ALWAYS("vdb_init", "Added %d Rule Definitions from DB.", num);
 
-	success = vdb_obj_init(gDB.vars,    vdb_db_init_var);
+	num = vdb_obj_init(gDB.vars,    vdb_db_init_var);
+	AMP_DEBUG_ALWAYS("vdb_init", "Added %d Variable Definitions from DB.", num);
 
 	return success;
 }

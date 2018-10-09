@@ -107,7 +107,7 @@ void ui_clear_reports(agent_t* agent)
 {
 	CHKVOID(agent);
 
-	gMgrDB.tot_rpts -= vec_size(agent->rpts);
+	gMgrDB.tot_rpts -= vec_num_entries(agent->rpts);
 
 	vec_clear(&(agent->rpts));
 }
@@ -194,12 +194,12 @@ void ui_eventLoop(int *running)
 	int cmdFile = fileno(stdin);
 	char choice;
 
-	int gContext = UI_MAIN_MENU;
+	int context = UI_MAIN_MENU;
 
 
 	while(*running)
 	{
-		switch(gContext)
+		switch(context)
 		{
 			case UI_MAIN_MENU:  ui_print_menu_main();  break;
 			case UI_ADMIN_MENU: ui_menu_admin_show(); break;
@@ -211,19 +211,20 @@ void ui_eventLoop(int *running)
 			default: printf("Error. Unknown menu context.\n"); break;
 		}
 
-		choice = ui_input_byte("");
+		choice = ui_input_byte(">");
 		choice = toupper(choice);
+		printf("UUser entered %c\n\n", choice);
 
-		switch(gContext)
+		switch(context)
 		{
 			case UI_MAIN_MENU:
 				switch(choice)
 				{
-					case '1' : gContext = UI_ADMIN_MENU; break;
-					case '2' : gContext = UI_RPT_MENU; break;
-					case '3' : gContext = UI_CTRL_MENU; break;
+					case '1' : context = UI_ADMIN_MENU; break;
+					case '2' : context = UI_RPT_MENU; break;
+					case '3' : context = UI_CTRL_MENU; break;
 #ifdef HAVE_MYSQL
-					case '4' : gContext = UI_DB_MENU; break;
+					case '4' : context = UI_DB_MENU; break;
 #endif
 					case 'Z' : *running = 0; return; break;
 					default: printf("Unknown command.\n");break;
@@ -231,24 +232,24 @@ void ui_eventLoop(int *running)
 				break;
 
 			case UI_ADMIN_MENU:
-				ui_menu_admin_do(choice);
+				context = ui_menu_admin_do(choice);
 				break;
 
 			case UI_CTRL_MENU:
-				ui_menu_ctrl_do(choice);
+				context = ui_menu_ctrl_do(choice);
 				break;
 
 			case UI_RPT_MENU:
-				ui_menu_rpt_do(choice);
+				context = ui_menu_rpt_do(choice);
 				break;
 
 #ifdef HAVE_MYSQL
 			case UI_DB_MENU:
-				ui_menu_sql_do(choice);
+				context = ui_menu_sql_do(choice);
 				break;
 #endif
 
-			default: printf("Error. Unknown menu context.\n"); break;
+			default: printf("Error. Unknown menu context: %d.\n", context); break;
 		}
 	}
 }
@@ -259,10 +260,11 @@ void ui_list_objs()
 {
 	uint8_t adm_id = 0;
 	uint8_t type = 0;
+	int i = 0;
 
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
-	vec_idx_t i;
+	vecit_t it;
 
 	adm_id = ui_input_adm_id("");
 	printf("Enter the AMP Object Type:\n");
@@ -270,11 +272,11 @@ void ui_list_objs()
 	type = ui_input_ari_type();
 	col =  meta_filter(adm_id, type);
 
-	for(i = 0; i < vec_size(col->results); i++)
+	for(it = vecit_first(&(col->results)); vecit_valid(it); it = vecit_next(it))
 	{
-		meta = vec_at(col->results, i);
+		meta = vecit_data(it);
 
-		printf("%d) %s\t%s\n", i, meta->name, meta->descr);
+		printf("%d) %s\t%s\n", i++, meta->name, meta->descr);
 	}
 
 	metacol_release(col, 1);
@@ -651,16 +653,18 @@ void ui_menu_admin_show()
 
 }
 
-void ui_menu_admin_do(uint8_t choice)
+int ui_menu_admin_do(uint8_t choice)
 {
+	int context = UI_ADMIN_MENU;
 	switch(choice)
 	{
-		case 'Z' : gContext = UI_MAIN_MENU; break;
+		case 'Z' : context = UI_MAIN_MENU; break;
 		case '1' : ui_register_agent(); break;
 		case '2' : ui_print_agents(); break;
 		case '3' : ui_deregister_agent(ui_select_agent()); break;
-		default: printf("Unknown command.\n"); break;
+		default: printf("Unknown command: %c.\n", choice); break;
 	}
+	return context;
 }
 
 
@@ -690,8 +694,9 @@ void ui_menu_ctrl_show()
 }
 
 
-void ui_menu_ctrl_do(uint8_t choice)
+int ui_menu_ctrl_do(uint8_t choice)
 {
+	int context = UI_CTRL_MENU;
 	switch(choice)
 	{
 		case '0' : ui_list_objs(ADM_ALL, AMP_TYPE_UNK);
@@ -728,9 +733,10 @@ void ui_menu_ctrl_do(uint8_t choice)
 		case 'A' : ui_send_raw(ui_select_agent(),0); break;
 		case 'B' : ui_send_file(ui_select_agent(),0); break;
 
-		case 'Z' : gContext = UI_MAIN_MENU; break;
-		default: printf("Unknown command.\n"); break;
+		case 'Z' : context = UI_MAIN_MENU; break;
+		default: printf("Unknown command %c.\n", choice); break;
 	}
+	return context;
 }
 
 /******************************************************************************
@@ -785,8 +791,9 @@ void ui_menu_rpt_show()
 	printf("Z) Return to Main Menu.\n");
 }
 
-void ui_menu_rpt_do(uint8_t choice)
+int ui_menu_rpt_do(uint8_t choice)
 {
+	int context = UI_RPT_MENU;
 	switch(choice)
 	{
 		// Definitions List
@@ -801,10 +808,11 @@ void ui_menu_rpt_do(uint8_t choice)
 		// Production Schedules.
 		case '6' : ui_print_nop(); break; //ui_print_agent_prod_rules();    break; // List agent production rules.
 
-		case 'Z' : gContext = UI_MAIN_MENU;				break;
+		case 'Z' : context = UI_MAIN_MENU;				break;
 
 		default: printf("Unknown command.\n");			break;
 	}
+	return context;
 }
 
 
@@ -846,8 +854,9 @@ void *ui_thread(int *running)
 
 #ifdef HAVE_MYSQL
 
-void ui_menu_sql_do(uint8_t choice)
+int ui_menu_sql_do(uint8_t choice)
 {
+	int context = UI_DB_MENU;
 	switch(cmd)
 	{
 	  // Definitions List
@@ -859,11 +868,11 @@ void ui_menu_sql_do(uint8_t choice)
 	  case '6' : ui_db_conn(); break; // Connect to DB
 	  case '7' : ui_db_write(); break; // Write DB info to file.
 	  case '8' : ui_db_read(); break; // Read DB infor from file.
-	  case 'Z' : gContext = UI_MAIN_MENU;				break;
+	  case 'Z' : context = UI_MAIN_MENU;				break;
 
-	  default: printf("Unknown command.\n");			break;
+	  default: printf("Unknown command %d.\n", choice);			break;
 	}
-
+	return context;
 }
 
 void ui_menu_sql_show()

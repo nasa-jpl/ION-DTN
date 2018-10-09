@@ -91,11 +91,11 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 	}
 	else
 	{
-		vec_idx_t i;
+		vecit_t it;
 
-		for(i = 0; i < vec_size(msg->rpts); i++)
+		for(it = vecit_first(&(msg->rpts)); vecit_valid(it); it = vecit_next(it))
 		{
-			rpt_t *rpt = vec_at(msg->rpts, i);
+			rpt_t *rpt = vecit_data(it);
 			vec_push(&(agent->rpts), rpt);
 			gMgrDB.tot_rpts++;
 		}
@@ -148,7 +148,7 @@ void *mgr_rx_thread(int *running)
     
     AMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
     
-    uint32_t i = 0;
+    vecit_t it;
 
     int success;
     blob_t *buf = NULL;
@@ -179,7 +179,7 @@ void *mgr_rx_thread(int *running)
     			break;
     		}
 
-    		AMP_DEBUG_INFO("mgr_rx_thread","Group had %d msgs", vec_size(grp->msgs));
+    		AMP_DEBUG_INFO("mgr_rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
     		AMP_DEBUG_INFO("mgr_rx_thread","Group timestamp %lu", grp->time);
 
 #ifdef HAVE_MYSQL
@@ -188,18 +188,19 @@ void *mgr_rx_thread(int *running)
 #endif
 
             /* For each message in the group. */
-            for(i = 0; i < vec_size(grp->msgs); i++)
+            for(it = vecit_first(&(grp->msgs)); vecit_valid(it); it = vecit_next(it))
             {
+            	vec_idx_t i = vecit_idx(it);
             	/* Get the message type. */
             	msg_type = msg_grp_get_type(grp, i);
 
             	switch(msg_type)
             	{
             		case MSG_TYPE_RPT_SET:
-            			rx_data_rpt(&meta, (msg_rpt_t *) vec_at(grp->msgs, i));
+            			rx_data_rpt(&meta, (msg_rpt_t *) vecit_data(it));
             			break;
             		case MSG_TYPE_REG_AGENT:
-            			rx_agent_reg(&meta, (msg_agent_t *) vec_at(grp->msgs, i));
+            			rx_agent_reg(&meta, (msg_agent_t *) vecit_data(it));
             			break;
             		default:
             			AMP_DEBUG_WARN("mgr_rx_thread","Unknown message type: %d", msg_type);

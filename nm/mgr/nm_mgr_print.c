@@ -49,23 +49,24 @@
 
 int ui_print_agents()
 {
-  vec_idx_t i = 0;
+  vecit_t it;
+  int i = 1;
   agent_t * agent = NULL;
 
 
   printf("\n------------- Known Agents --------------\n");
 
-  if(vec_size(gMgrDB.agents) == 0)
+  if(vec_num_entries(gMgrDB.agents) == 0)
   {
 	  printf("[None]\n");
 	  return 0;
   }
 
-  for(i = 0; i < vec_size(gMgrDB.agents); i++)
+  for(it = vecit_first(&(gMgrDB.agents)); vecit_valid(it); it = vecit_next(it))
   {
-	  agent = (agent_t *) vec_at(gMgrDB.agents, i);
+	  agent = (agent_t *) vecit_data(it);
 
-	  printf("%d) %s\n", i,  (agent != NULL) ? agent->eid.name : "NULL");
+	  printf("%d) %s\n", i++,  (agent != NULL) ? agent->eid.name : "NULL");
   }
 
   printf("\n------------- ************ --------------\n");

@@ -37,6 +37,7 @@ typedef struct
     void *value;
 } vector_entry_t;
 
+
 typedef struct
 {
 	uint8_t flags;
@@ -54,24 +55,39 @@ typedef struct
 	vector_entry_t *data;   // Values.
 } vector_t;
 
+typedef struct
+{
+	vec_idx_t idx;
+	vector_t *vector;
+} vecit_t;
 
-void*     vec_at(vector_t vec, vec_idx_t idx);
-void      vec_clear(vector_t *vec);
-vector_t  vec_copy(vector_t *src, int *success);
-vector_t  vec_create(uint8_t num, vec_del_fn delete_fn, vec_comp_fn compare_fn, vec_copy_fn copy, uint8_t flags, int *success);
-int       vec_del(vector_t *vec, vec_idx_t idx);
-vec_idx_t vec_find(vector_t *vec, void *key, int *success);
-int       vec_insert(vector_t *vec, void *value, vec_idx_t *idx);
-void      vec_lock(vector_t *vec);
-int       vec_make_room(vector_t *vec, vec_idx_t extra);
-vec_idx_t vec_num_entries(vector_t *vec);
-void*     vec_pop(vector_t *vec, int *success);
-int       vec_push(vector_t *vec, void *value);
-void      vec_release(vector_t *vec, int destroy);
-void*     vec_remove(vector_t *vec, vec_idx_t idx, int *success);
-void*     vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success);
-vec_idx_t vec_size(vector_t vec);
+
+void*      vec_at(vector_t vec, vec_idx_t idx);
+void       vec_clear(vector_t *vec);
+vector_t   vec_copy(vector_t *src, int *success);
+vector_t   vec_create(uint8_t num, vec_del_fn delete_fn, vec_comp_fn compare_fn, vec_copy_fn copy, uint8_t flags, int *success);
+int        vec_del(vector_t *vec, vec_idx_t idx);
+vec_idx_t  vec_find(vector_t *vec, void *key, int *success);
+int        vec_insert(vector_t *vec, void *value, vec_idx_t *idx);
+void       vec_lock(vector_t *vec);
+int        vec_make_room(vector_t *vec, vec_idx_t extra);
+vec_idx_t  vec_num_entries(vector_t vec);
+vec_idx_t  vec_num_entries_ptr(vector_t *vec);
+void*      vec_pop(vector_t *vec, int *success);
+int        vec_push(vector_t *vec, void *value);
+void       vec_release(vector_t *vec, int destroy);
+void*      vec_remove(vector_t *vec, vec_idx_t idx, int *success);
+void*      vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success);
+vec_idx_t  vec_size(vector_t vec);
 void       vec_unlock(vector_t *vec);
+
+void*    vecit_data(vecit_t it);
+
+vecit_t   vecit_first(vector_t *vec);
+vec_idx_t vecit_idx(vecit_t it);
+int       vecit_valid(vecit_t it);
+vecit_t   vecit_next(vecit_t it);
+
 
 /* Helper functions for simple vector types */
 

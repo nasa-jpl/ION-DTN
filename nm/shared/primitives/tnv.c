@@ -1338,12 +1338,12 @@ int tnvc_compare(tnvc_t *t1, tnvc_t *t2)
 	CHKERR(t1);
 	CHKERR(t2);
 
-	if(vec_size(t1->values) != vec_size(t2->values))
+	if(vec_num_entries(t1->values) != vec_num_entries(t2->values))
 	{
 		return 1;
 	}
 
-	for(i = 0; i < vec_size(t1->values); i++)
+	for(i = 0; i < vec_num_entries(t1->values); i++)
 	{
 		if((diff = tnv_compare(vec_at(t1->values, i), vec_at(t2->values, i))) != 0)
 		{
@@ -1712,7 +1712,7 @@ tnv_t* tnvc_get(tnvc_t* tnvc, uint8_t index)
 uint8_t tnvc_get_count(tnvc_t* tnvc)
 {
 	CHKZERO(tnvc);
-	return vec_size(tnvc->values);
+	return vec_num_entries(tnvc->values);
 }
 
 
@@ -1743,7 +1743,7 @@ blob_t    tnvc_get_types(tnvc_t *tnvc, int *success)
 	*success = AMP_FAIL;
 	CHKUSR(tnvc, types);
 
-	length = vec_size(tnvc->values);
+	length = vec_num_entries(tnvc->values);
 	blob_init(&types, NULL, 0, length);
 	for(i = 0; i < length; i++)
 	{
@@ -1942,7 +1942,7 @@ CborError tnvc_serialize_tvc(CborEncoder *encoder, tnvc_t *tnvc)
 
 
 	/* Step 1: Create the Array Encoder. */
-	err = cbor_encoder_create_array(encoder, &array_enc, vec_size(tnvc->values)+1);
+	err = cbor_encoder_create_array(encoder, &array_enc, vec_num_entries(tnvc->values)+1);
 	if((err != CborNoError) && (err != CborErrorOutOfMemory))
 	{
 		AMP_DEBUG_ERR("tnvc_serialize_tvc","Cbor Error: %d", err);
@@ -2004,7 +2004,7 @@ CborError tnvc_serialize_tvc(CborEncoder *encoder, tnvc_t *tnvc)
 int  tnvc_size(tnvc_t *tnvc)
 {
 	CHKZERO(tnvc);
-	return vec_num_entries(&(tnvc->values));
+	return vec_num_entries(tnvc->values);
 }
 
 

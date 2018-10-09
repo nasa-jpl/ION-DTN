@@ -109,18 +109,18 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms)
 
 int lcc_run_macro(macdef_t *mac, tnvc_t *parms)
 {
-	vec_idx_t i;
+	vecit_t it;
 	int result = AMP_OK;
 	int success;
 	CHKUSR(mac, AMP_FAIL);
 
 	gAgentInstr.num_macros_run++;
-	for(i = 0; i < vec_size(mac->ctrls); i++)
+	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
 	{
-		ctrl_t *ctrl = (ctrl_t*) vec_at(mac->ctrls, i);
+		ctrl_t *ctrl = (ctrl_t*) vecit_data(it);
 		if(lcc_run_ctrl(ctrl, parms) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("lcc_run_macro","Error running control %d", i);
+			AMP_DEBUG_ERR("lcc_run_macro","Error running control %d", vecit_idx(it));
 			result = AMP_FAIL;
 		}
 	}

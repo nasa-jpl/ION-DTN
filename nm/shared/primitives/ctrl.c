@@ -643,7 +643,7 @@ ctrl_t* macdef_get(macdef_t* mac, uint8_t index)
 uint8_t macdef_get_count(macdef_t* mac)
 {
 	CHKZERO(mac);
-	return vec_size(mac->ctrls);
+	return vec_num_entries(mac->ctrls);
 }
 
 void    macdef_release(macdef_t *mac, int destroy)
@@ -666,7 +666,7 @@ CborError macdef_serialize(CborEncoder *encoder, void *item)
 	blob_t *result;
 	int success;
 	vec_idx_t max;
-	vec_idx_t i;
+	vecit_t it;
 	CborEncoder array_enc;
 	macdef_t *mac = (macdef_t*) item;
 
@@ -678,15 +678,15 @@ CborError macdef_serialize(CborEncoder *encoder, void *item)
 
 	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
 
-	max = vec_size(mac->ctrls);
+	max = vec_num_entries(mac->ctrls);
 
 	err = cbor_encoder_create_array(encoder, &array_enc, max);
 	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
 
 
-	for(i = 0; i < vec_size(mac->ctrls); i++)
+	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
 	{
-		ctrl_t *cur_ctrl = vec_at(mac->ctrls, i);
+		ctrl_t *cur_ctrl = vecit_data(it);
 		result = ctrl_serialize_wrapper(cur_ctrl);
 		err = blob_serialize(&array_enc, result);
 		blob_release(result, 1);
@@ -703,5 +703,5 @@ blob_t*  macdef_serialize_wrapper(macdef_t *mac)
 {
 	CHKNULL(mac);
 
-	return cut_serialize_wrapper((vec_size(mac->ctrls) + 1) * ARI_DEFAULT_ENC_SIZE, mac, macdef_serialize);
+	return cut_serialize_wrapper((vec_num_entries(mac->ctrls) + 1) * ARI_DEFAULT_ENC_SIZE, mac, macdef_serialize);
 }

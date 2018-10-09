@@ -1727,7 +1727,7 @@ AUTOMAKE = ${SHELL} /home/ebirrane/amp-dev-2018/ion-open-source/missing automake
 AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -g -O2 -DNOEXPAT
+CFLAGS = -g  -DNOEXPAT
 CPP = gcc -E
 CPPFLAGS = 
 CRYPTO_LIBS = 

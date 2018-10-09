@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     gRunning = 1;
 
     /* Initialize the AMP Manager. */
-    if(mgr_init(argv) != 0)
+    if(mgr_init(argv) != AMP_OK)
     {
     	AMP_DEBUG_ERR("main","Can't init Manager.", NULL);
     	exit(EXIT_FAILURE);

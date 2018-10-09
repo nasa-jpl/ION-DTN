@@ -243,7 +243,7 @@ tnv_t *expr_eval(expr_t *expr)
 
 	vector_t stack;
 	vec_idx_t max;
-	vec_idx_t i;
+	vecit_t it;
 	int success;
 	ari_t *cur_ari = NULL;
 
@@ -256,7 +256,7 @@ tnv_t *expr_eval(expr_t *expr)
 	CHKNULL(result);
 
 
-	if((max = vec_num_entries(&(expr->rpn.values))) == 0)
+	if((max = vec_num_entries(expr->rpn.values)) == 0)
 	{
 		return NULL;
 	}
@@ -271,11 +271,11 @@ tnv_t *expr_eval(expr_t *expr)
 		return NULL;
 	}
 
-	for(i = 0; i < max; i++)
+	for(it = vecit_first(&(expr->rpn.values)); vecit_valid(it); it = vecit_next(it))
 	{
-		if((cur_ari = (ari_t *) vec_at(expr->rpn.values, i)) == NULL)
+		if((cur_ari = (ari_t *) vecit_data(it)) == NULL)
 		{
-			AMP_DEBUG_ERR("expr_eval","Bad ARI in expression at %d.", i);
+			AMP_DEBUG_ERR("expr_eval","Bad ARI in expression at %d.", vecit_idx(it));
 			vec_release(&stack, 0);
 			return NULL;
 		}
@@ -295,23 +295,23 @@ tnv_t *expr_eval(expr_t *expr)
 
 		if(result == NULL)
 		{
-			AMP_DEBUG_ERR("expr_eval","Can't apply Op at %d", i);
+			AMP_DEBUG_ERR("expr_eval","Can't apply Op at %d", vecit_idx(it));
 			vec_release(&stack, 0);
 			return NULL;
 		}
 
 		if(vec_push(&stack, result) != AMP_OK)
 		{
-			AMP_DEBUG_ERR("expr_eval","Can't push new values to stack at %d", i);
+			AMP_DEBUG_ERR("expr_eval","Can't push new values to stack at %d", vecit_idx(it));
 			vec_release(&stack, 0);
 			return NULL;
 		}
 	}
 
 	/* Step 3 - Sanity check. We should have 1 result on the stack. */
-	if(vec_num_entries(&stack) > 1)
+	if(vec_num_entries(stack) > 1)
 	{
-		AMP_DEBUG_ERR("expr_eval","Stack has %d items?", vec_num_entries(&stack));
+		AMP_DEBUG_ERR("expr_eval","Stack has %d items?", vec_num_entries(stack));
 		vec_release(&stack, 0);
 		return NULL;
 	}

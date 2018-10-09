@@ -59,7 +59,7 @@ void *rx_thread(int *running) {
     AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
     
 
-    uint32_t i = 0;
+    vecit_t it;
     blob_t *result = NULL;
     int success;
     msg_grp_t *grp = NULL;
@@ -90,19 +90,20 @@ void *rx_thread(int *running) {
     			break;
     		}
 
-            AMP_DEBUG_INFO("rx_thread","Group had %d msgs", vec_size(grp->msgs));
+            AMP_DEBUG_INFO("rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
             AMP_DEBUG_INFO("rx_thread","Group timestamp %lu", grp->time);
 
             /* For each message in the bundle. */
-            for(i = 0; i < vec_size(grp->msgs); i++)
+            for(it = vecit_first(&grp->msgs); vecit_valid(it); it = vecit_next(it))
             {
+            	vec_idx_t i = vecit_idx(it);
             	/* Get the message type. */
             	msg_type = msg_grp_get_type(grp, i);
 
             	switch(msg_type)
             	{
             		case MSG_TYPE_PERF_CTRL:
-            			rx_handle_perf_ctrl(&meta, vec_at(grp->msgs, i));
+            			rx_handle_perf_ctrl(&meta, vecit_data(it));
             			break;
             		default:
             			AMP_DEBUG_ERR("rx_thread","Unknown Msg. id %d, type %d.",i,msg_type);

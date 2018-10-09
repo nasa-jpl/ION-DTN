@@ -211,6 +211,8 @@ rhht_t rhht_create(rh_idx_t buckets, rh_comp_fn compare, rh_hash_fn hash, rh_del
 
 	*success = AMP_OK;
 
+	memset(&ht, 0, sizeof(rhht_t));
+
 	if((ht.buckets = STAKE(buckets * sizeof(rh_elt_t))) == NULL)
 	{
 		*success = RH_SYSERR;

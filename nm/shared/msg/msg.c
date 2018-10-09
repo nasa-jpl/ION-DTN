@@ -568,7 +568,7 @@ CborError msg_grp_serialize(CborEncoder *encoder, void *item)
 	CHKUSR(encoder, CborErrorIO);
 	CHKUSR(msg_grp, CborErrorIO);
 
-	max = vec_size(msg_grp->msgs) + 1;
+	max = vec_num_entries(msg_grp->msgs) + 1;
 	err = cbor_encoder_create_array(encoder, &array_enc, max);
 	if((err != CborNoError) && (err != CborErrorOutOfMemory))
 	{

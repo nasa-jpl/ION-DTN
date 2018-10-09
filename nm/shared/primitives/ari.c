@@ -839,7 +839,7 @@ ac_t *ac_create()
 
 ac_t ac_copy(ac_t *src)
 {
-	vec_idx_t i;
+	vecit_t it;
 	ari_t *cur_ari = NULL;
 	ari_t *new_ari = NULL;
 	int success = AMP_FAIL;
@@ -849,9 +849,9 @@ ac_t ac_copy(ac_t *src)
 
 	CHKUSR(src, result);
 
-	for(i = 0; i < vec_size(src->values); i++)
+	for(it = vecit_first(&(src->values)); vecit_valid(it); it = vecit_next(it))
 	{
-		cur_ari = vec_at(src->values, i);
+		cur_ari = vecit_data(it);
 		new_ari = ari_copy_ptr(*cur_ari);
 		if((success = vec_insert(&(result.values), new_ari, NULL)) != AMP_OK)
 		{
@@ -975,7 +975,7 @@ ari_t* ac_get(ac_t* ac, uint8_t index)
 uint8_t   ac_get_count(ac_t* ac)
 {
 	CHKZERO(ac);
-	return vec_size(ac->values);
+	return vec_num_entries(ac->values);
 }
 
 int ac_insert(ac_t* ac, ari_t *ari)
@@ -1007,7 +1007,7 @@ CborError ac_serialize(CborEncoder *encoder, void *item)
 	CHKUSR(encoder, CborErrorIO);
 	CHKUSR(ac, CborErrorIO);
 
-	max = vec_size(ac->values);
+	max = vec_num_entries(ac->values);
 	err = cbor_encoder_create_array(encoder, &array_enc, max);
 
 	for(i = 0; i < max; i++)
@@ -1037,7 +1037,7 @@ blob_t*  ac_serialize_wrapper(ac_t *ac)
 {
 	CHKNULL(ac);
 
-	return cut_serialize_wrapper(vec_size(ac->values) * ARI_DEFAULT_ENC_SIZE, ac, ac_serialize);
+	return cut_serialize_wrapper(vec_num_entries(ac->values) * ARI_DEFAULT_ENC_SIZE, ac, ac_serialize);
 }
 
 

@@ -260,7 +260,7 @@ void tbl_release(tbl_t *tbl, int destroy)
 int tbl_num_rows(tbl_t *tbl)
 {
 	CHKZERO(tbl);
-	return vec_num_entries(&(tbl->rows));
+	return vec_num_entries(tbl->rows);
 }
 
 CborError tbl_serialize(CborEncoder *encoder, void *item)
@@ -423,7 +423,7 @@ int tblt_check_row(tblt_t *tblt, tnvc_t *row)
 	CHKZERO(tblt);
 	CHKZERO(row);
 
-	max = vec_num_entries(&(tblt->cols));
+	max = vec_num_entries(tblt->cols);
 	if(tnvc_size(row) != max)
 	{
 		return 0;
@@ -692,7 +692,7 @@ tblt_t* tblt_deserialize_raw(blob_t *data, int *success)
 int tblt_num_cols(tblt_t *tblt)
 {
 	CHKZERO(tblt);
-	return vec_num_entries(&(tblt->cols));
+	return vec_num_entries(tblt->cols);
 }
 
 void tblt_release(tblt_t *tblt, int destroy)

@@ -166,12 +166,13 @@ vec_idx_t vec_find(vector_t *vec, void *key, int *success)
 	return result;
 }
 
+
 int vec_insert(vector_t *vec, void *value, vec_idx_t *idx)
 {
 	int success;
 
 	CHKERR(vec);
-	CHKERR(vec->next_idx < vec->total_slots);
+
 
 	lockResource(&(vec->lock));
 	success = vec_make_room(vec, 1);
@@ -190,14 +191,15 @@ int vec_insert(vector_t *vec, void *value, vec_idx_t *idx)
 		}
 
 		/* Find the next open spot. */
-		for(i = vec->next_idx + 1; i < vec->total_slots; i++)
+		for(i = 0; i < vec->total_slots; i++)
 		{
 			if(vec->data[i].occupied == 0)
 			{
 				break;
 			}
 		}
-		vec->next_idx = 1;
+		vec->next_idx = i;
+		vec->num_free--;
 	}
 
 	unlockResource(&(vec->lock));
@@ -266,10 +268,14 @@ int vec_make_room(vector_t *vec, vec_idx_t extra)
 	return VEC_OK;
 }
 
-vec_idx_t vec_num_entries(vector_t *vec)
+vec_idx_t vec_num_entries_ptr(vector_t *vec)
 {
 	CHKZERO(vec);
 	return vec->total_slots - vec->num_free;
+}
+vec_idx_t vec_num_entries(vector_t vec)
+{
+	return vec_num_entries_ptr(&vec);
 }
 
 void* vec_pop(vector_t *vec, int *success)
@@ -306,7 +312,7 @@ void* vec_remove(vector_t *vec, vec_idx_t idx, int *success)
 
 	*success = VEC_FAIL;
 	CHKNULL(vec);
-	CHKNULL(idx > vec->total_slots);
+	CHKNULL(idx < vec->total_slots);
 
 	/* If we are in stack mode, we can only pop the last thing. */
 	if(vec->flags & VEC_FLAG_AS_STACK)
@@ -327,6 +333,7 @@ void* vec_remove(vector_t *vec, vec_idx_t idx, int *success)
 		{
 			vec->next_idx = idx;
 		}
+		vec->num_free++;
 	}
 
 	return result;
@@ -368,6 +375,65 @@ void vec_unlock(vector_t *vec)
 {
 	CHKVOID(vec);
 	unlockResource(&(vec->lock));
+}
+
+
+
+void* vecit_data(vecit_t it)
+{
+	CHKNULL(it.vector);
+	CHKNULL(vecit_valid(it));
+	return it.vector->data[it.idx].value;
+}
+
+
+int vecit_valid(vecit_t it)
+{
+	return (it.idx < it.vector->total_slots);
+}
+
+
+vecit_t vecit_first(vector_t *vec)
+{
+	vecit_t result;
+	vec_idx_t i;
+
+	result.vector = vec;
+	result.idx = 0;
+	CHKUSR(vec, result);
+
+	for(i = 0; i < vec->total_slots; i++)
+	{
+		if(vec->data[i].occupied == 1)
+		{
+			break;
+		}
+	}
+	result.idx = i;
+
+	return result;
+}
+
+vec_idx_t vecit_idx(vecit_t it)
+{
+	return it.idx;
+}
+
+vecit_t vecit_next(vecit_t it)
+{
+	CHKUSR(it.vector, it);
+
+	it.idx++;
+	while(it.idx < it.vector->total_slots)
+	{
+		if(it.vector->data[it.idx].occupied == 1)
+		{
+			break;
+		}
+		it.idx++;
+	}
+
+	return it;
 }
 
 

@@ -85,12 +85,12 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts);
 void ui_send_raw(agent_t* agent, uint8_t enter_ts);
 
 void ui_print_menu_main();
-void ui_menu_admin_do(uint8_t choice);
+int ui_menu_admin_do(uint8_t choice);
 void ui_menu_admin_show();
-void ui_menu_ctrl_do(uint8_t choice);
+int ui_menu_ctrl_do(uint8_t choice);
 void ui_menu_ctrl_show();
 
-void ui_menu_rpt_do(uint8_t choice);
+int ui_menu_rpt_do(uint8_t choice);
 void ui_menu_rpt_show();
 
 void ui_print_nop();

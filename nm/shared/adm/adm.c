@@ -255,7 +255,7 @@ int adm_add_macdef(ari_t *id, vector_t ctrls)
 
 	CHKUSR(id, AMP_FAIL);
 
-	if((def = macdef_create(vec_size(ctrls), id)) == NULL)
+	if((def = macdef_create(vec_num_entries(ctrls), id)) == NULL)
 	{
 		ari_release(id, 1);
 		vec_release(&ctrls, 0);
