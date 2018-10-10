@@ -1917,7 +1917,9 @@ nm_agent_SOURCES =  nm/agent/ingest.c  				\
 					nm/shared/utils/nm_types.c 		\
 					nm/shared/utils/rhht.c	 		\
 					nm/shared/utils/utils.c         \
-					nm/shared/utils/vector.c 		
+					nm/shared/utils/vector.c 		\
+					nm/agent/adm_ltp_agent_impl.c	\
+					nm/agent/adm_ltp_agent_agent.c  
 				
 					 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -1954,7 +1956,8 @@ nm_mgr_SOURCES =    nm/mgr/agents.c 				\
 					nm/shared/utils/nm_types.c 		\
 					nm/shared/utils/rhht.c	 		\
 					nm/shared/utils/utils.c         \
-					nm/shared/utils/vector.c 		
+					nm/shared/utils/vector.c 		\
+					nm/mgr/adm_ltp_agent_mgr.c
 					 	
 					
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)

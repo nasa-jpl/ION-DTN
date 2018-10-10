@@ -190,7 +190,7 @@ ari_t*    ari_deserialize_ptr(CborValue *it, int *success);
 ari_t*    ari_deserialize_raw(blob_t *data, int *success);
 
 ari_t*    ari_from_uvast(uvast val);
-
+ari_t*    ari_from_parm_reg(uint8_t flags, uvast nn, uvast iss, blob_t *tag, blob_t *name, tnvc_t *parms);
 tnv_t*    ari_get_param(ari_t *id, int i);
 
 uint8_t   ari_get_num_parms(ari_t *ari);
@@ -223,7 +223,8 @@ ac_t*     ac_deserialize_ptr(CborValue *it, int *success);
 ari_t*    ac_get(ac_t* ac, uint8_t index);
 uint8_t   ac_get_count(ac_t* ac);
 
-int ac_insert(ac_t* ac, ari_t *ari);
+int       ac_init(ac_t *ac);
+int       ac_insert(ac_t* ac, ari_t *ari);
 
 void      ac_release(ac_t *ac, int destroy);
 

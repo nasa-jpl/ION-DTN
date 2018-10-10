@@ -524,6 +524,23 @@ rpttpl_t* rpttpl_create(ari_t *id, ac_t items)
 }
 
 
+rpttpl_t* rpttpl_create_id(ari_t *id)
+{
+	rpttpl_t *result = NULL;
+
+	if((result = (rpttpl_t *) STAKE(sizeof(rpttpl_t))) == NULL)
+	{
+		AMP_DEBUG_ERR("rpttpl_create","Can't allocate %d bytes.", sizeof(rpttpl_t));
+		return NULL;
+	}
+
+	result->id = id;
+	ac_init(&(result->contents));
+
+	return result;
+}
+
+
 rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success)
 {
 	rpttpl_t *result = NULL;

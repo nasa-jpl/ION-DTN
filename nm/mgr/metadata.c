@@ -59,7 +59,7 @@ void meta_cb_filter(void *value, void *tag)
 	meta_col_t *col = (meta_col_t*) tag;
 	metadata_t *meta = (metadata_t*) value;
 
-	if(((col->adm_id == ADM_ALL) || (meta->adm_id == col->adm_id)) &&
+	if(((col->adm_id == ADM_ENUM_ALL) || (meta->adm_id == col->adm_id)) &&
 	   ((col->type == AMP_TYPE_UNK) || (meta->id->type == col->type)))
 	{
 		vec_push(&(col->results), meta);
@@ -123,6 +123,49 @@ void meta_release(metadata_t *meta, int destroy)
 	{
 		SRELEASE(meta);
 	}
+}
+
+
+int meta_store_mac(metadata_t *meta, macdef_t *macdef)
+{
+	adm_add_macdef(macdef);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return AMP_OK;
+}
+
+int meta_store_rpttpl(metadata_t *meta, rpttpl_t *rpttpl)
+{
+	adm_add_rpttpl(rpttpl);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return AMP_OK;
+}
+
+int meta_store_obj(metadata_t *meta)
+{
+	CHKUSR(meta, AMP_FAIL);
+
+	switch(meta->id->type)
+	{
+	case AMP_TYPE_CNST:
+		adm_add_cnst(meta->id);
+		break;
+	case AMP_TYPE_CTRL:
+		adm_add_ctrldef(meta->id, vec_num_entries(meta->parmspec), meta->adm_id, NULL);
+		break;
+	case AMP_TYPE_EDD:
+		adm_add_edd(meta->id, NULL);
+		break;
+	case AMP_TYPE_LIT:
+		adm_add_lit(meta->id);
+		break;
+	case AMP_TYPE_OPER:
+		adm_add_op(meta->id,vec_num_entries(meta->parmspec), NULL);
+		break;
+	default:
+		break;
+	}
+	return AMP_OK;
+
 }
 
 meta_col_t* metacol_create()

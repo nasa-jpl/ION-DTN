@@ -63,7 +63,7 @@ void ui_build_control(agent_t* agent)
 	CHKVOID(agent);
 
 	ts = ui_input_uint("Control Timestamp");
-	if((id = ui_input_ari("Control MID:", ADM_ALL, AMP_TYPE_CTRL)) == NULL)
+	if((id = ui_input_ari("Control MID:", ADM_ENUM_ALL, AMP_TYPE_CTRL)) == NULL)
 	{
 		AMP_DEBUG_ERR("ui_build_control","Can't get control.",NULL);
 		return;
@@ -133,8 +133,8 @@ rpttpl_t *ui_create_rpttpl_from_parms(tnvc_t parms)
 {
 	rpttpl_t *result = NULL;
 
-	ari_t *ari = (ari_t *) adm_extract_parm(&parms, 0, AMP_TYPE_ARI);
-	ac_t *ac = (ac_t *) adm_extract_parm(&parms, 1, AMP_TYPE_AC);
+	ari_t *ari = (ari_t *) adm_get_parm_obj(&parms, 0, AMP_TYPE_ARI);
+	ac_t *ac = (ac_t *) adm_get_parm_obj(&parms, 1, AMP_TYPE_AC);
 
 	CHKNULL(ari);
 	CHKNULL(ac);
@@ -213,7 +213,6 @@ void ui_eventLoop(int *running)
 
 		choice = ui_input_byte(">");
 		choice = toupper(choice);
-		printf("UUser entered %c\n\n", choice);
 
 		switch(context)
 		{
@@ -460,7 +459,7 @@ agent_t* ui_select_agent()
 		return NULL;
 	}
 
-	if((agent = vec_at(gMgrDB.agents, idx)) == NULL)
+	if((agent = vec_at(gMgrDB.agents, idx-1)) == NULL)
 	{
 		AMP_DEBUG_ERR("ui_select_agent","Error selecting agent #%d", idx);
 		return NULL;
@@ -699,34 +698,34 @@ int ui_menu_ctrl_do(uint8_t choice)
 	int context = UI_CTRL_MENU;
 	switch(choice)
 	{
-		case '0' : ui_list_objs(ADM_ALL, AMP_TYPE_UNK);
+		case '0' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_UNK);
 				   break;
 
-		case '1' : ui_list_objs(ADM_ALL, AMP_TYPE_EDD);
-				   ui_list_objs(ADM_ALL, AMP_TYPE_CNST);
-				   ui_list_objs(ADM_ALL, AMP_TYPE_LIT);
+		case '1' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_EDD);
+				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CNST);
+				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_LIT);
 				   break;
 
-		case '2' : ui_list_objs(ADM_ALL, AMP_TYPE_CTRL);
+		case '2' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL);
 				   break;
 
-		case '3' : ui_list_objs(ADM_ALL, AMP_TYPE_MAC);
+		case '3' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_MAC);
 				   break;
 
-		case '4' : ui_list_objs(ADM_ALL, AMP_TYPE_OPER);
+		case '4' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_OPER);
 				   break;
 
-		case '5' : ui_list_objs(ADM_ALL, AMP_TYPE_RPTTPL);
+		case '5' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_RPTTPL);
 				   break;
 
-		case '6' : ui_list_objs(ADM_ALL, AMP_TYPE_SBR);
-				   ui_list_objs(ADM_ALL, AMP_TYPE_TBR);
+		case '6' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_SBR);
+				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBR);
 				   break;
 
-		case '7' : ui_list_objs(ADM_ALL, AMP_TYPE_TBLT);
+		case '7' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBLT);
 				   break;
 
-		case '8' : ui_list_objs(ADM_ALL, AMP_TYPE_VAR);
+		case '8' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_VAR);
 				   break;
 
 		case '9' : ui_build_control(ui_select_agent()); break;

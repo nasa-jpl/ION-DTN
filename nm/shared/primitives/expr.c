@@ -327,13 +327,10 @@ tnv_t *expr_eval(expr_t *expr)
 	vec_release(&stack, 0);
 
 	/* Step 5 - Convert the type. */
-	tnv_t tmp = tnv_cast(result, expr->type);
+	tnv_t *tmp = tnv_cast(result, expr->type);
 	tnv_release(result, 1);
-	if(tmp.type != AMP_TYPE_UNK)
-	{
-		result = tnv_copy_ptr(tmp);
-	}
-	else
+	result = tmp;
+	if(result == NULL)
 	{
 		AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", result->type, expr->type);
 		return NULL;

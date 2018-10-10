@@ -27,6 +27,7 @@
 
 #include "../shared/primitives/rules.h"
 #include "../shared/primitives/report.h"
+#include "../shared/msg/msg.h"
 
 
 #define RDA_DEF_NUM_RPTS 8

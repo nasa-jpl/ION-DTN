@@ -95,7 +95,6 @@ typedef struct rhht {
 
 
 
-
 /*
  * +--------------------------------------------------------------------------+
  * |						  FUNCTION PROTOTYPES  							  +
@@ -103,16 +102,14 @@ typedef struct rhht {
  */
 
 
-rhht_t   rhht_create(rh_idx_t buckets, rh_comp_fn compare, rh_hash_fn hash, rh_del_fn del, int *success);
-
-void   rhht_del_idx(rhht_t *ht, rh_idx_t idx);
-void   rhht_del_key(rhht_t *ht, void *key);
-int    rhht_find(rhht_t *ht, void *key, rh_idx_t *idx);
-void   rhht_foreach(rhht_t *ht, rh_foreach_fn, void *tag);
-int rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx);
-void   rhht_release(rhht_t *ht, int destroy);
-void*  rhht_retrieve_idx(rhht_t *ht, rh_idx_t idx);
-void*  rhht_retrieve_key(rhht_t *ht, void *key);
-
+rhht_t  rhht_create(rh_idx_t buckets, rh_comp_fn compare, rh_hash_fn hash, rh_del_fn del, int *success);
+void    rhht_del_idx(rhht_t *ht, rh_idx_t idx);
+void    rhht_del_key(rhht_t *ht, void *key);
+int     rhht_find(rhht_t *ht, void *key, rh_idx_t *idx);
+void    rhht_foreach(rhht_t *ht, rh_foreach_fn, void *tag);
+int     rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx);
+void    rhht_release(rhht_t *ht, int destroy);
+void*   rhht_retrieve_idx(rhht_t *ht, rh_idx_t idx);
+void*   rhht_retrieve_key(rhht_t *ht, void *key);
 
 #endif /* RHHT_H_ */

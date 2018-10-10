@@ -200,18 +200,21 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 	CHKNULL(result);
 
 	result->id = id;
-	if((result->value = tnv_create()) == NULL)
-	{
-		SRELEASE(result);
-		return NULL;
-	}
 
 	/* If the variable is an expression, store the expression. */
 	if(type == AMP_TYPE_EXPR)
 	{
-		result->value->type = type;
-		TNV_SET_ALLOC(result->value->flags);
-		result->value->value.as_ptr = expr;
+		if((result->value = tnv_create()) == NULL)
+		{
+			SRELEASE(result);
+			result = NULL;
+		}
+		else
+		{
+			result->value->type = type;
+			TNV_SET_ALLOC(result->value->flags);
+			result->value->value.as_ptr = expr;
+		}
 	}
 	/* If the var/expr types agree, calculate value. */
 	else if(type == expr->type)
@@ -221,18 +224,13 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 	/* If var/expr types differ, calc value and then cast. */
 	else
 	{
-		tnv_t tmp;
-		result->value = expr_eval(expr);
-		tmp = tnv_cast(result->value, type);
+		tnv_t *tmp = expr_eval(expr);
+		result->value = tnv_cast(tmp, type);
+		tnv_release(tmp, 1);
 
-		if(tmp.type != AMP_TYPE_UNK)
+		if(result->value == NULL)
 		{
-			tnv_release(result->value, 1);
-			result->value = tnv_copy_ptr(tmp);
-		}
-		else
-		{
-			var_release(result, 1);
+			SRELEASE(result);
 			result = NULL;
 		}
 	}

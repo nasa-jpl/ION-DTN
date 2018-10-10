@@ -49,8 +49,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 
 	while(len == 0)
 	{
-		printf("\nNote: Only the first %d characters will be read.\n%s",
-				max_len, prompt);
+		printf("%s", prompt);
 
 		if (igets(fileno(stdin), (char *)line, max_len, &len) == NULL)
 		{
@@ -141,7 +140,7 @@ blob_t *ui_input_file_contents(char *prompt)
 uint8_t ui_input_adm_id(char *prompt)
 {
 	// todo: implement.
-	return ADM_ALL;
+	return ADM_ENUM_ALL;
 }
 
 
@@ -170,6 +169,7 @@ blob_t* ui_input_blob(char *prompt, uint8_t no_file)
 		case 1:
 			str = ui_input_string(prompt);
 			result = utils_string_to_hex(str);
+			SRELEASE(str);
 			break;
 		case 2:
 			result = ui_input_file_contents(prompt);
@@ -316,7 +316,7 @@ ac_t *ui_input_ac(char *prompt)
 	{
 		char prompt[20];
 		sprintf(prompt, "Build ARI %d", i);
-		ari_t *cur = ui_input_ari(prompt, ADM_ALL, AMP_TYPE_UNK);
+		ari_t *cur = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
 		if(vec_push(&(result->values), cur) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ac","Could not input ARI %d.", i);
@@ -649,37 +649,37 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 	{
 		case AMP_TYPE_BOOL:
 		case AMP_TYPE_BYTE:
-			*result = tnv_from_byte(ui_input_byte(prompt));
+			result = tnv_from_byte(ui_input_byte(prompt));
 			break;
 
 		case AMP_TYPE_INT:
-			*result = tnv_from_int(ui_input_int(prompt));
+			result = tnv_from_int(ui_input_int(prompt));
 			break;
 
 		case AMP_TYPE_UINT:
-			*result = tnv_from_uint(ui_input_uint(prompt));
+			result = tnv_from_uint(ui_input_uint(prompt));
 			break;
 
 		case AMP_TYPE_VAST:
-			*result = tnv_from_vast(ui_input_vast(prompt));
+			result = tnv_from_vast(ui_input_vast(prompt));
 			break;
 
 		case AMP_TYPE_TV:
 		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:
-			*result = tnv_from_uvast(ui_input_uvast(prompt));
+			result = tnv_from_uvast(ui_input_uvast(prompt));
 			break;
 
 		case AMP_TYPE_REAL32:
-			*result = tnv_from_real32(ui_input_real32(prompt));
+			result = tnv_from_real32(ui_input_real32(prompt));
 			break;
 
 		case AMP_TYPE_REAL64:
-			*result = tnv_from_real64(ui_input_real64(prompt));
+			result = tnv_from_real64(ui_input_real64(prompt));
 			break;
 
 		case AMP_TYPE_STR:
-			*result = tnv_from_str(ui_input_string(prompt));
+			result = tnv_from_str(ui_input_string(prompt));
 			break;
 
 		case AMP_TYPE_BYTESTR:
@@ -691,7 +691,7 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 		case AMP_TYPE_EDD:
 		case AMP_TYPE_LIT:
 		case AMP_TYPE_ARI:
-			result->value.as_ptr = ui_input_ari(prompt, ADM_ALL, AMP_TYPE_UNK);
+			result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
 			TNV_SET_ALLOC(result->flags);
 			break;
 

@@ -146,7 +146,7 @@ typedef struct
 /*** TNV Functions ***/
 
 
-tnv_t tnv_cast(tnv_t *tnv, amp_type_e type);
+tnv_t* tnv_cast(tnv_t *tnv, amp_type_e type);
 
 int tnv_compare(tnv_t *v1, tnv_t *v2);
 
@@ -169,15 +169,15 @@ tnv_t *tnv_deserialize_ptr(CborValue *it, int *success);
 
 /* Conversion Functions. */
 
-tnv_t  tnv_from_bool(uint8_t val);
-tnv_t  tnv_from_byte(uint8_t val);
-tnv_t  tnv_from_int(int32_t val);
-tnv_t  tnv_from_real32(float val);
-tnv_t  tnv_from_real64(double val);
-tnv_t  tnv_from_str(char *str);
-tnv_t  tnv_from_uint(uint32_t val);
-tnv_t  tnv_from_uvast(uvast val);
-tnv_t  tnv_from_vast(vast val);
+tnv_t*  tnv_from_bool(uint8_t val);
+tnv_t*  tnv_from_byte(uint8_t val);
+tnv_t*  tnv_from_int(int32_t val);
+tnv_t*  tnv_from_real32(float val);
+tnv_t*  tnv_from_real64(double val);
+tnv_t*  tnv_from_str(char *str);
+tnv_t*  tnv_from_uint(uint32_t val);
+tnv_t*  tnv_from_uvast(uvast val);
+tnv_t*  tnv_from_vast(vast val);
 
 void tnv_init(tnv_t *val, amp_type_e type);
 

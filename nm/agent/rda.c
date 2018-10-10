@@ -373,7 +373,7 @@ int rda_process_rules()
     vec_clear(&(gAgentDb.tbrs));
 
     AMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
-    return 0;
+    return AMP_OK;
 }
 
 

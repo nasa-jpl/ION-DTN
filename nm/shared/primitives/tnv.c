@@ -68,12 +68,10 @@ void *tnv_cb_copy(void *item)
 	return tnv_copy_ptr(*tnv);
 }
 
-tnv_t tnv_cast(tnv_t *tnv, amp_type_e type)
+tnv_t* tnv_cast(tnv_t *tnv, amp_type_e type)
 {
-	tnv_t result;
+	tnv_t *result = NULL;
 	int success;
-
-	tnv_init(&result, AMP_TYPE_UNK);
 
 	/* Cannot cast non-numeric types. Also
 	 * Cannot cast a mapped parameter.
@@ -82,13 +80,13 @@ tnv_t tnv_cast(tnv_t *tnv, amp_type_e type)
 		(type_is_numeric(type) == 0) ||
 		(TNV_IS_MAP(tnv->flags)))
 	{
-		return result;
+		return NULL;
 	}
 
 	/* cast is just a copy. */
 	if(tnv->type == type)
 	{
-		return *tnv;
+		return NULL;
 	}
 
 	switch(type)
@@ -108,7 +106,7 @@ tnv_t tnv_cast(tnv_t *tnv, amp_type_e type)
 	if(success != AMP_OK)
 	{
 		AMP_DEBUG_ERR("tnv_cast","Cannot cast from type %d top type %d.", tnv->type, type);
-		tnv_init(&result, AMP_TYPE_UNK);
+		result = NULL;
 	}
 
 	return result;
@@ -557,45 +555,50 @@ static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 	return success;
 }
 
-tnv_t  tnv_from_bool(uint8_t val)
+tnv_t*  tnv_from_bool(uint8_t val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_BOOL);
-	result.value.as_byte = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_BOOL);
+	result->value.as_byte = val;
 	return result;
 }
 
-tnv_t  tnv_from_byte(uint8_t val)
+tnv_t*  tnv_from_byte(uint8_t val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_BYTE);
-	result.value.as_byte = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_BYTE);
+	result->value.as_byte = val;
 	return result;
 
 }
 
-tnv_t tnv_from_int(int32_t val)
+tnv_t* tnv_from_int(int32_t val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_INT);
-	result.value.as_int = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_INT);
+	result->value.as_int = val;
 	return result;
 }
 
 
-tnv_t tnv_from_real32(float val)
+tnv_t* tnv_from_real32(float val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_REAL32);
-	result.value.as_real32 = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_REAL32);
+	result->value.as_real32 = val;
 	return result;
 }
 
-tnv_t tnv_from_real64(double val)
+tnv_t* tnv_from_real64(double val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_REAL64);
-	result.value.as_real64 = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_REAL64);
+	result->value.as_real64 = val;
 	return result;
 }
 
@@ -604,65 +607,66 @@ tnv_t tnv_from_real64(double val)
 /*
  * Must release result...
  */
-tnv_t  tnv_from_str(char *str)
+tnv_t*  tnv_from_str(char *str)
 {
-	tnv_t result;
+	tnv_t* result = NULL;
 	uint32_t len;
 
 	AMP_DEBUG_ENTRY("tnv_from_str","(0x"ADDR_FIELDSPEC")", (uaddr) str);
 
-	tnv_init(&result, AMP_TYPE_UNK);
 
-	/* Step 1 - Sanity Check. */
-	if(str == NULL)
-	{
-        AMP_DEBUG_ERR("tnv_from_str","Bad params.",NULL);
-        AMP_DEBUG_EXIT("tnv_from_str","-> Unk", NULL);
-        return result;
-	}
+	CHKNULL(str);
+	result = tnv_create();
+	CHKNULL(result);
+
+
+	tnv_init(result, AMP_TYPE_STR);
 
 	/* Step 2 - Find out length of string. */
 	len = strlen(str) + 1;
 
-	/* Step 3 - Allocate storage for the string. */
-	if((result.value.as_ptr = STAKE(len)) == NULL)
+	if((result->value.as_ptr = STAKE(len)) == NULL)
 	{
-        AMP_DEBUG_ERR("tnv_from_str","Can't allocate %d bytes.",len);
-        AMP_DEBUG_EXIT("tnv_from_str","-> Unk", NULL);
-        return result;
+		tnv_release(result, 1);
+		result = NULL;
 	}
+	else
+	{
 
-	/* Step 4 - Populate the return value. */
-	result.type = AMP_TYPE_STR;
-	TNV_SET_ALLOC(result.flags);
+		/* Step 4 - Populate the return value. */
+		TNV_SET_ALLOC(result->flags);
 
-	memcpy(result.value.as_ptr,str, len);
+		memcpy(result->value.as_ptr,str, len);
+	}
 
 	AMP_DEBUG_EXIT("tnv_from_str","-> %s", str);
 	return result;
 }
 
-tnv_t  tnv_from_uint(uint32_t val)
+tnv_t*  tnv_from_uint(uint32_t val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_UINT);
-	result.value.as_uint = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_UINT);
+	result->value.as_uint = val;
 	return result;
 }
 
-tnv_t  tnv_from_uvast(uvast val)
+tnv_t*  tnv_from_uvast(uvast val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_UVAST);
-	result.value.as_uvast = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_UVAST);
+	result->value.as_uvast = val;
 	return result;
 }
 
-tnv_t  tnv_from_vast(vast val)
+tnv_t*  tnv_from_vast(vast val)
 {
-	tnv_t result;
-	tnv_init(&result, AMP_TYPE_VAST);
-	result.value.as_vast = val;
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_VAST);
+	result->value.as_vast = val;
 	return result;
 }
 

@@ -248,21 +248,9 @@ int adm_add_lit(ari_t *id)
  *  10/02/18  E. Birrane     Updated to AMP v0.5
  *****************************************************************************/
 
-int adm_add_macdef(ari_t *id, vector_t ctrls)
+int adm_add_macdef(macdef_t *def)
 {
-	macdef_t *def = NULL;
 	int success = 0;
-
-	CHKUSR(id, AMP_FAIL);
-
-	if((def = macdef_create(vec_num_entries(ctrls), id)) == NULL)
-	{
-		ari_release(id, 1);
-		vec_release(&ctrls, 0);
-		return AMP_FAIL;
-	}
-
-	def->ctrls = ctrls;
 
 	if((success = VDB_ADD_MACDEF(def->ari, def)) != AMP_OK)
 	{
@@ -352,21 +340,9 @@ int adm_add_op(ari_t *id, uint8_t num_parm, op_fn apply_fn)
  *  10/02/18  E. Birrane     Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-int adm_add_rpttpl(ari_t *id, ac_t contents)
+int adm_add_rpttpl(rpttpl_t *def)
 {
-	rpttpl_t *def = NULL;
 	int success;
-
-	CHKUSR(id, AMP_FAIL);
-
-
-
-	if((def = rpttpl_create(id, contents)) == NULL)
-	{
-		ari_release(id, 1);
-		ac_release(&contents, 0);
-		return AMP_FAIL;
-	}
 
 	if((success = VDB_ADD_RPTT(def->id, def)) != AMP_OK)
 	{
@@ -447,9 +423,34 @@ int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 	return success;
 }
 
+// Takes over name and parms, no matter what.
+ari_t* adm_build_reg_ari(uint8_t flags, vec_idx_t nn, uvast id, tnvc_t *parms)
+{
+	ari_t *result = ari_create();
+	CHKNULL(result);
+
+	result->type = ARI_GET_FLAG_TYPE(flags);
+	result->as_reg.flags = flags;
+	result->as_reg.nn_idx = nn;
+	result->as_reg.iss_idx = 0;
+	result->as_reg.tag_idx = 0;
+	blob_init(&(result->as_reg.name), (uint8_t*)&id, sizeof(id), sizeof(id));
+	if(parms != NULL)
+	{
+		tnvc_append(&(result->as_reg.parms), parms);
+		tnvc_release(parms, 1);
+	}
+	return result;
+}
 
 
-void *adm_extract_parm(tnvc_t *parms, uint8_t idx, amp_type_e type)
+int32_t adm_get_parm_int(tnvc_t *parms, uint8_t idx, int *success)
+{
+	tnv_t *val = tnvc_get(parms, idx);
+	return (val == NULL) ? 0 : tnv_to_int(*val, success);}
+
+
+void *adm_get_parm_obj(tnvc_t *parms, uint8_t idx, amp_type_e type)
 {
 	tnv_t *val = tnvc_get(parms, idx);
 
@@ -458,6 +459,32 @@ void *adm_extract_parm(tnvc_t *parms, uint8_t idx, amp_type_e type)
 	CHKNULL(val->type == type);
 
 	return val->value.as_ptr;
+}
+
+float adm_get_parm_real32(tnvc_t *parms, uint8_t idx, int *success)
+{
+	tnv_t *val = tnvc_get(parms, idx);
+	return (val == NULL) ? 0 : tnv_to_real32(*val, success);}
+
+double adm_get_parm_real64(tnvc_t *parms, uint8_t idx, int *success)
+{
+	tnv_t *val = tnvc_get(parms, idx);
+	return (val == NULL) ? 0 : tnv_to_real64(*val, success);}
+
+uint32_t adm_get_parm_uint(tnvc_t *parms, uint8_t idx, int *success)
+{
+	tnv_t *val = tnvc_get(parms, idx);
+	return (val == NULL) ? 0 : tnv_to_uint(*val, success);}
+
+uint32_t adm_get_parm_uvast(tnvc_t *parms, uint8_t idx, int *success)
+{
+	tnv_t *val = tnvc_get(parms, idx);
+	return (val == NULL) ? 0 : tnv_to_uvast(*val, success);}
+
+uint32_t adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
+{
+	tnv_t *val = tnvc_get(parms, idx);
+	return (val == NULL) ? 0 : tnv_to_vast(*val, success);
 }
 
 /******************************************************************************

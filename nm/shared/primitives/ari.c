@@ -570,6 +570,7 @@ ari_t* ari_deserialize_raw(blob_t *data, int *success)
 }
 
 
+
 /*
  * Retrieve mid from unsigned long value representing mid in hex
  * 0x31801...
@@ -811,6 +812,17 @@ void ac_clear(ac_t *ac)
 	vec_clear(&(ac->values));
 }
 
+
+int ac_init(ac_t *ac)
+{
+	int success;
+
+	CHKUSR(ac, AMP_FAIL);
+
+	ac->values = vec_create(0, ari_cb_del_fn, ari_cb_comp_fn, ari_cb_copy_fn, VEC_FLAG_AS_STACK, &success);
+
+	return success;
+}
 
 
 ac_t *ac_create()

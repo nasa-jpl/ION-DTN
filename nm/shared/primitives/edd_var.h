@@ -46,9 +46,6 @@
 
 typedef tnv_t* (*edd_collect_fn)(tnvc_t *parms);
 
-extern rhht_t g_edd_db;
-
-extern rhht_t g_vardef_db;
 
 
 /*
