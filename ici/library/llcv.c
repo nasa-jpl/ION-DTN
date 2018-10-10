@@ -214,8 +214,6 @@ void	llcv_signal_while_locked(Llcv llcv, LlcvPredicate condition)
 
 void	llcv_close(Llcv llcv)
 {
-	int	result;
-
 	if (llcv)
 	{
 		if (llcv->mutex_initialized != 1
@@ -226,10 +224,11 @@ void	llcv_close(Llcv llcv)
 		}
 
 		pthread_mutex_lock(&llcv->mutex);
-		result = pthread_cond_destroy(&llcv->cv);
-		if (result != 0)
+
+		if (pthread_cond_destroy(&llcv->cv))
 		{
 			putSysErrmsg("llcv_close: cond_destroy failed.", NULL);
+			return;
 		}
 
 		if (pthread_mutex_unlock(&llcv->mutex))
@@ -237,14 +236,7 @@ void	llcv_close(Llcv llcv)
 			putSysErrmsg("llcv_close: mutex_unlock failed.", NULL);
 		}
 
-		if (result != 0)
-		{
-			writeMemo("[?] Can't close llcv.");
-			return;
-		}
-
-		result = pthread_mutex_destroy(&llcv->mutex);
-		if (result != 0)
+		if (pthread_mutex_destroy(&llcv->mutex))
 		{
 			putSysErrmsg("llcv_close: mutex_destroy failed.", NULL);
 			writeMemo("[?] Can't close llcv.");
