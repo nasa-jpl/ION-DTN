@@ -49,6 +49,11 @@ typedef struct
 	PsmAddress	rootOfSpur;	/*	Within *prior* route.	*/
 	int		spursComputed;	/*	Boolean.		*/
 
+	/*	Address of list element referencing this route, in
+		either a knownRoutes list or a selectedRoutes list.	*/
+
+	PsmAddress	referenceElt;
+
 	/*	Contact that forms the initial hop of the route.	*/
 
 	uvast		toNodeNbr;	/*	Initial-hop neighbor.	*/
@@ -131,6 +136,11 @@ static void	destroyRoute(PsmPartition ionwm, PsmAddress routeAddr)
 	CgrRoute	*route;
 
 	route = (CgrRoute *) psp(ionwm, routeAddr);
+	if (route->referenceElt)
+	{
+		sm_list_delete(ionwm, route->referenceElt, NULL, NULL);
+	}
+
 	if (route->hops)
 	{
 		sm_list_destroy(ionwm, route->hops, NULL, NULL);
@@ -854,6 +864,7 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	CgrVdb		*cgrvdb	= getCgrVdb();
 	PsmAddress	routeAddr;
 	CgrRtgObject	*routingObj;
+	CgrRoute	*route;
 
 //puts("***Inserting first route.***");
 	CHKERR(ionwm);
@@ -878,8 +889,10 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 	/*	Found best possible route.				*/
 
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
-	if (sm_list_insert_last(ionwm, routingObj->selectedRoutes, routeAddr)
-			== 0)
+	route = (CgrRoute *) psp(ionwm, routeAddr);
+	route->referenceElt = sm_list_insert_last(ionwm,
+			routingObj->selectedRoutes, routeAddr);
+	if (route->referenceElt == 0)
 	{
 		putErrmsg("Can't add route to list.", NULL);
 		return -1;
@@ -1066,8 +1079,9 @@ excluded edge.", NULL);
 	/*	Append new route into list of known routes.	*/
 
 //puts("*** Appending newly computed route to list B. ***");
-	if (sm_list_insert_last(ionwm, routingObj->knownRoutes, newRouteAddr)
-			== 0)
+	newRoute->referenceElt = sm_list_insert_last(ionwm,
+			routingObj->knownRoutes, newRouteAddr);
+	if (newRoute->referenceElt == 0)
 	{
 		putErrmsg("Can't append known route.", NULL);
 		return -1;
@@ -1248,6 +1262,7 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 		}
 
 		sm_list_delete(ionwm, bestKnownRouteElt, NULL, NULL);
+		bestKnownRoute->referenceElt = *elt;
 	}
 //else puts("*** No routes in list B to migrate into list A. ***");
 
