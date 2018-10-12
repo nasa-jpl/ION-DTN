@@ -584,7 +584,7 @@ CborError msg_grp_serialize(CborEncoder *encoder, void *item)
 
 	for(i = 1; i < max; i++)
 	{
-		blob_t *tmp = vec_at(msg_grp->msgs, i);
+		blob_t *tmp = vec_at(&msg_grp->msgs, i);
 
 		if(tmp == NULL)
 		{

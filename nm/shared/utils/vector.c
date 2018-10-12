@@ -31,11 +31,11 @@ int p_vec_default_comp(void *i1, void *i2)
  */
 
 
-void *vec_at(vector_t vec, vec_idx_t idx)
+void *vec_at(vector_t *vec, vec_idx_t idx)
 {
-	CHKNULL(idx < vec.total_slots);
+	CHKNULL(idx < vec->total_slots);
 
-	return (vec.data[idx].occupied) ? vec.data[idx].value : NULL;
+	return (vec->data[idx].occupied) ? vec->data[idx].value : NULL;
 }
 
 
@@ -61,6 +61,7 @@ void vec_clear(vector_t *vec)
 	}
 
 	vec->next_idx = 0;
+    vec->num_free = 0;
 	unlockResource(&vec->lock);
 }
 
@@ -84,7 +85,10 @@ vector_t vec_copy(vector_t *src, int *success)
 	{
 
 		result.data[i].occupied = src->data[i].occupied;
-		result.data[i].value = result.copy_fn(src->data[i].value);
+        if (result.data[i].occupied)
+        {
+           result.data[i].value = result.copy_fn(src->data[i].value);
+        }
 	}
 
 	result.next_idx = src->next_idx;
@@ -184,7 +188,7 @@ int vec_insert(vector_t *vec, void *value, vec_idx_t *idx)
 		/* Store the data */
 		vec->data[vec->next_idx].occupied = 1;
 		vec->data[vec->next_idx].value = value;
-
+        
 		if(idx != NULL)
 		{
 			*idx = vec->next_idx;
@@ -262,8 +266,8 @@ int vec_make_room(vector_t *vec, vec_idx_t extra)
 	 * Note, if next_idx has been pointing to total_num_slots (meaning the
 	 * vector was full) then it now points to the first open spot.
 	 */
+    vec->num_free += new_size - vec->total_slots;
 	vec->total_slots = new_size;
-	vec->num_free += (extra - vec->num_free);
 
 	return VEC_OK;
 }
@@ -293,9 +297,12 @@ void vec_release(vector_t *vec, int destroy)
 {
 	vec_clear(vec);
 
-	SRELEASE(vec->data);
-	vec->data = NULL;
-
+    if (vec->data != NULL)
+    {
+       SRELEASE(vec->data);
+       vec->data = NULL;
+    }
+    
 	if(destroy)
 	{
 
@@ -348,8 +355,8 @@ void* vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success)
 
 
 	if( (vec == NULL) ||
-		(idx < vec->total_slots) ||
-		(vec->data[idx].occupied == 0)
+		(idx >= vec->total_slots) ||
+		(vec->flags & VEC_FLAG_AS_STACK)
 	  )
 	{
 		*success = VEC_FAIL;
@@ -359,16 +366,26 @@ void* vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success)
 
 	*success = VEC_OK;
 
-	result = vec->data[idx].value;
+    if (vec->data[idx].occupied == 0)
+    {
+       vec->data[idx].occupied=1;
+       vec->num_free--;
+       result = NULL;
+    }
+    else
+    {
+       result = vec->data[idx].value;
+    }
+    
 	vec->data[idx].value = data;
 	unlockResource(&(vec->lock));
 
 	return result;
 }
 
-vec_idx_t   vec_size(vector_t vec)
+vec_idx_t   vec_size(vector_t *vec)
 {
-	return vec.total_slots;
+	return vec->total_slots;
 }
 
 void vec_unlock(vector_t *vec)

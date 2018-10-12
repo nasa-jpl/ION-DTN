@@ -1233,7 +1233,7 @@ int tnvc_append(tnvc_t *dst, tnvc_t *src)
 	CHKUSR(dst, AMP_FAIL);
 	CHKUSR(src, AMP_FAIL);
 
-	max = vec_size(src->values);
+	max = vec_size(&(src->values));
 	/* Appending an empty list is easy... */
 	if(max == 0)
 	{
@@ -1244,7 +1244,7 @@ int tnvc_append(tnvc_t *dst, tnvc_t *src)
 
 	for(i = 0; i < max; i++)
 	{
-		tnv_t *cur_tnv = (tnv_t *)vec_at(src->values, i);
+       tnv_t *cur_tnv = (tnv_t *)vec_at(&(src->values), i);
 		CHKUSR(cur_tnv != NULL, AMP_FAIL);
 		tnv_t *new_tnv = tnv_copy_ptr(*cur_tnv);
 		if(new_tnv == NULL)
@@ -1345,7 +1345,7 @@ int tnvc_compare(tnvc_t *t1, tnvc_t *t2)
 
 	for(i = 0; i < vec_num_entries(t1->values); i++)
 	{
-		if((diff = tnv_compare(vec_at(t1->values, i), vec_at(t2->values, i))) != 0)
+       if((diff = tnv_compare(vec_at(&(t1->values), i), vec_at(&(t2->values), i))) != 0)
 		{
 			return diff;
 		}
@@ -1431,7 +1431,7 @@ tnvc_t *tnvc_create(uint8_t num)
 
 tnvc_t* tnvc_copy(tnvc_t *src)
 {
-	tnvc_t *result = tnvc_create(vec_size(src->values));
+   tnvc_t *result = tnvc_create(vec_size(&(src->values)));
 
 	CHKNULL(result);
 	CHKNULL(src);
@@ -1687,7 +1687,7 @@ tnv_t* tnvc_get(tnvc_t* tnvc, uint8_t index)
 	tnv_t *result = NULL;
 
 	CHKNULL(tnvc);
-	result =  vec_at(tnvc->values, index);
+	result =  vec_at(&(tnvc->values), index);
 	return result;
 }
 
@@ -1729,7 +1729,7 @@ tnv_enc_e tnvc_get_type(tnvc_t *tnvc, uint8_t index)
 
 	CHKUSR(tnvc, TNVC_UNK);
 
-	tnv = (tnv_t *) vec_at(tnvc->values, index);
+	tnv = (tnv_t *) vec_at(&(tnvc->values), index);
 
 	return (tnv == NULL) ? TNVC_UNK : tnv->type;
 }
@@ -1966,7 +1966,7 @@ CborError tnvc_serialize_tvc(CborEncoder *encoder, tnvc_t *tnvc)
 	{
 		blob_t *data = NULL;
 
-		tnv_t *tnv = (tnv_t*) vec_at(tnvc->values,i);
+		tnv_t *tnv = (tnv_t*) vec_at(&(tnvc->values),i);
 
 		/* Go through the trouble of getting a serialized string because we don't
 		 * want the array encoder to think parts of the serialized value are

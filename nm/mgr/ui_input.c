@@ -622,7 +622,7 @@ int ui_input_parms(ari_t *id)
 
 	for(i = 0; i < num; i++)
 	{
-		parm_t *parm = vec_at(meta->parmspec, i);
+       parm_t *parm = vec_at(&(meta->parmspec), i);
 
 		sprintf(prompt,"Parameter %d: (%s) %s", i, type_to_str(parm->type), parm->name);
 		tnv_t *val = ui_input_tnv(parm->type, prompt);
