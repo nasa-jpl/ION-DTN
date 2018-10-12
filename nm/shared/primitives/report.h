@@ -134,6 +134,7 @@ rpttpl_t *rpttpl_copy_ptr(rpttpl_t *rpttpl);
 
 rpttpl_t* rpttpl_create(ari_t *id, ac_t items);
 
+rpttpl_t* rpttpl_create_id(ari_t *id);
 
 rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success);
 

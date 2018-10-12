@@ -485,6 +485,7 @@ int vdb_db_init_var(blob_t *data, db_desc_t desc)
 void db_destroy()
 {
 	rhht_release(&(gVDB.adm_atomics), 0);
+	rhht_release(&(gVDB.adm_edds), 0);
 	rhht_release(&(gVDB.adm_ctrl_defs), 0);
 	rhht_release(&(gVDB.adm_ops), 0);
 	rhht_release(&(gVDB.adm_tblts), 0);
@@ -507,6 +508,9 @@ int db_init(char *name)
 	memset(&gVDB, 0, sizeof(gVDB));
 
 	gVDB.adm_atomics = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, ari_cb_ht_del, &success);
+	CHKUSR(success == AMP_OK, success);
+
+	gVDB.adm_edds = rhht_create(DB_MAX_ATOMIC, edd_cb_comp_fn, ari_cb_hash, edd_cb_ht_del, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.ctrls =  vec_create(DB_MAX_CTRL, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, 0, &success);

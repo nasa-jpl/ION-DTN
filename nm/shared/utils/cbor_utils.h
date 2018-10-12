@@ -20,9 +20,11 @@
  **  08/31/18  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
-#include "tinycbor/cbor.h"
 #include "nm_types.h"
 #include "vector.h"
+
+#include "contrib/tinycbor/src/cbor.h"
+
 
 #define CUT_ENC_BUFSIZE 4096
 

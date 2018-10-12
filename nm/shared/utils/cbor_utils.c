@@ -21,9 +21,10 @@
  *****************************************************************************/
  
 #include "platform.h"
-#include "tinycbor/cbor.h"
 #include "cbor_utils.h"
 #include "utils.h"
+
+
 
  uint8_t gEncBuf[CUT_ENC_BUFSIZE];
  
@@ -103,50 +104,6 @@ char *cut_get_cbor_str(CborValue *value, int *success)
 }
 
 
-/*
- * Functions stolen from tinycbor internals.
- */
-void advance_ptr(CborEncoder *encoder, size_t n)
-{
-    if (encoder->end)
-        encoder->data.ptr += n;
-    else
-        encoder->data.bytes_needed += n;
-}
-
-
-bool would_overflow(CborEncoder *encoder, size_t len)
-{
-    ptrdiff_t remaining = (ptrdiff_t)encoder->end;
-    remaining -= remaining ? (ptrdiff_t)encoder->data.ptr : encoder->data.bytes_needed;
-    remaining -= (ptrdiff_t)len;
-    return (remaining < 0);
-}
-
-CborError append_to_buffer(CborEncoder *encoder, const void *data, size_t len)
-{
-    if (would_overflow(encoder, len)) {
-        if (encoder->end != NULL) {
-            len -= encoder->end - encoder->data.ptr;
-            encoder->end = NULL;
-            encoder->data.bytes_needed = 0;
-        }
-
-        advance_ptr(encoder, len);
-        return CborErrorOutOfMemory;
-    }
-
-    memcpy(encoder->data.ptr, data, len);
-    encoder->data.ptr += len;
-    return CborNoError;
-}
-
-CborError append_byte_to_buffer(CborEncoder *encoder, uint8_t byte)
-{
-    return append_to_buffer(encoder, &byte, 1);
-}
-
-
 
 CborError cut_enc_byte(CborEncoder *encoder, uint8_t byte)
 {
@@ -208,6 +165,7 @@ int cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val)
 	{
 		*((uint8_t*)val) = *((uint8_t*) value->ptr);
 		value->ptr++;
+		preparse_value(value);
 		return AMP_OK;
 	}
 
@@ -241,7 +199,7 @@ int cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val)
 			break;
 
 		case AMP_TYPE_VAST:
-			if(cbor_value_get_type(value) == CborDoubleType)
+			if(cbor_value_get_type(value) == CborIntegerType )
 			{
 				err = cbor_value_get_int64(value, (vast *)val);
 			}
@@ -250,7 +208,7 @@ int cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val)
 		case AMP_TYPE_TS:
 		case AMP_TYPE_TV:
 		case AMP_TYPE_UVAST:
-			if(cbor_value_get_type(value) == CborDoubleType)
+			if(cbor_value_get_type(value) == CborIntegerType )
 			{
 				err = cbor_value_get_uint64(value, (uvast *)val);
 			}
@@ -337,6 +295,8 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 		return NULL;
 	}
 
+	/* Note how many bytes of the blob we used in the encoding. */
+	result->length = cbor_encoder_get_buffer_size(&encoder, result->value);
 	return result;
 }
 

@@ -46,9 +46,9 @@ typedef enum
   /* AMM Objects */
   AMP_TYPE_CNST    =  0, /* Hex: 0x00. Struct: ari_t    */
   AMP_TYPE_CTRL    =  1, /* Hex: 0x01. Struct: ctrl_t   */
-  AMP_TYPE_EDD     =  2, /* Hex: 0x02. Struct: ari_t    */
-  AMP_TYPE_LIT     =  3, /* Hex: 0x03. Struct: lit_t    */
-  AMP_TYPE_MAC     =  4, /* Hex: 0x04.   Lyst: ari_t    */
+  AMP_TYPE_EDD     =  2, /* Hex: 0x02. Struct: edd_t    */
+  AMP_TYPE_LIT     =  3, /* Hex: 0x03. Struct: ari_t    */
+  AMP_TYPE_MAC     =  4, /* Hex: 0x04. Struct: mac_t    */
   AMP_TYPE_OPER    =  5, /* Hex: 0x05. Struct: op_t     */
   AMP_TYPE_RPT     =  6, /* Hex: 0x06. Struct: rpt_t    */
   AMP_TYPE_RPTTPL  =  7, /* Hex: 0x07. Struct: rpttpl_t */
@@ -75,7 +75,7 @@ typedef enum
   AMP_TYPE_TNV     = 34, /* Hex: 0x22. Struct: tnv_t    */
   AMP_TYPE_TNVC    = 35, /* Hex: 0x23. Struct: tnvc_t   */
   AMP_TYPE_ARI     = 36, /* Hex: 0x24. Struct: ari_t    */
-  AMP_TYPE_AC      = 37, /* Hex: 0x25.   Lyst: ari_t    */
+  AMP_TYPE_AC      = 37, /* Hex: 0x25. Struct: ac_t     */
   AMP_TYPE_EXPR    = 38, /* Hex: 0x26. Struct: expr_t   */
   AMP_TYPE_BYTESTR = 39, /* Hex: 0x27. Struct: blob_t   */
 

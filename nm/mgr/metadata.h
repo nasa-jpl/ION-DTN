@@ -82,7 +82,10 @@ metadata_t* meta_create(ari_t *id, uint32_t adm_id, char *name, char *desc);
 meta_col_t* meta_filter(uint32_t adm_id, amp_type_e type);
 parm_t*     meta_get_parm(metadata_t *meta, uint8_t idx);
 void        meta_release(metadata_t *meta, int destroy);
+
+int         meta_store_mac(metadata_t *meta, macdef_t *macdef);
 int         meta_store_obj(metadata_t *meta);
+int meta_store_rpttpl(metadata_t *meta, rpttpl_t *rpttpl);
 
 meta_col_t* metacol_create();
 void        metacol_release(meta_col_t*col, int destroy);

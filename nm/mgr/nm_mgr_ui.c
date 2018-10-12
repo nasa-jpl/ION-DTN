@@ -204,7 +204,6 @@ void ui_eventLoop(int *running)
 			case UI_MAIN_MENU:  ui_print_menu_main();  break;
 			case UI_ADMIN_MENU: ui_menu_admin_show(); break;
 			case UI_CTRL_MENU:  ui_menu_ctrl_show();  break;
-			case UI_RPT_MENU:   ui_menu_rpt_show();   break;
 #ifdef HAVE_MYSQL
 			case UI_DB_MENU:    ui_menu_sql_show();    break;
 #endif
@@ -220,10 +219,9 @@ void ui_eventLoop(int *running)
 				switch(choice)
 				{
 					case '1' : context = UI_ADMIN_MENU; break;
-					case '2' : context = UI_RPT_MENU; break;
-					case '3' : context = UI_CTRL_MENU; break;
+					case '2' : context = UI_CTRL_MENU; break;
 #ifdef HAVE_MYSQL
-					case '4' : context = UI_DB_MENU; break;
+					case '3' : context = UI_DB_MENU; break;
 #endif
 					case 'Z' : *running = 0; return; break;
 					default: printf("Unknown command.\n");break;
@@ -236,10 +234,6 @@ void ui_eventLoop(int *running)
 
 			case UI_CTRL_MENU:
 				context = ui_menu_ctrl_do(choice);
-				break;
-
-			case UI_RPT_MENU:
-				context = ui_menu_rpt_do(choice);
 				break;
 
 #ifdef HAVE_MYSQL
@@ -255,27 +249,48 @@ void ui_eventLoop(int *running)
 
 
 
-void ui_list_objs()
+void ui_list_objs(uint8_t adm_id, uint8_t type)
 {
-	uint8_t adm_id = 0;
-	uint8_t type = 0;
 	int i = 0;
 
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 	vecit_t it;
 
-	adm_id = ui_input_adm_id("");
-	printf("Enter the AMP Object Type:\n");
+	if(type == AMP_TYPE_UNK)
+	{
+		printf("Enter the AMP Object Type:\n");
+		type = ui_input_ari_type();
+	}
 
-	type = ui_input_ari_type();
 	col =  meta_filter(adm_id, type);
 
 	for(it = vecit_first(&(col->results)); vecit_valid(it); it = vecit_next(it))
 	{
 		meta = vecit_data(it);
 
-		printf("%d) %s\t%s\n", i++, meta->name, meta->descr);
+		printf("%d) %s", i++, meta->name);
+
+		if(vec_num_entries(meta->parmspec) > 0)
+		{
+			vecit_t it;
+			int j = 0;
+			printf("(");
+
+			for(it = vecit_first(&(meta->parmspec)); vecit_valid(it); it = vecit_next(it))
+			{
+				parm_t *parm = (parm_t *) vecit_data(it);
+				if(j != 0)
+				{
+					printf(",");
+					j = 1;
+				}
+				printf("%s %s", type_to_str(parm->type), parm->name);
+			}
+			printf(")");
+		}
+
+		printf("\t%s\n", meta->descr);
 	}
 
 	metacol_release(col, 1);
@@ -670,25 +685,31 @@ int ui_menu_admin_do(uint8_t choice)
 
 void ui_menu_ctrl_show()
 {
-	printf("=============== Controls Menu ================\n");
+	printf("==================== Controls Menu =====================\n");
 
-	printf("\n------------- AMM Object Information --------------\n");
+	printf("\n-------------- AMM Object Information ----------------\n");
 	printf("0) List supported ADMs.\n");
-	printf("1) List Atomics (EDD, CNST, LIT) (%d Known)\n", gVDB.adm_atomics.num_elts);
-	printf("2) List Control Definitions      (%d Known)\n", gVDB.adm_ctrl_defs.num_elts);
-	printf("3) List Macro Definitions        (%d Known)\n", gVDB.macdefs.num_elts);
-	printf("4) List Operator Definitions     (%d Known)\n", gVDB.adm_ops.num_elts);
-	printf("5) List Rpt Template Definitions (%d Known)\n", gVDB.rpttpls.num_elts);
-	printf("6) List Rules                    (%d Known)\n", gVDB.rules.num_elts);
-	printf("7) List Tbl Template Definitions (%d Known)\n", gVDB.adm_tblts.num_elts);
-	printf("8) List Variables                (%d Known)\n", gVDB.vars.num_elts);
+	printf("1) List External Data Definitions(%d Known)\n", gVDB.adm_edds.num_elts);
+	printf("2) List Atomics (CNST, LIT)      (%d Known)\n", gVDB.adm_atomics.num_elts);
+	printf("3) List Control Definitions      (%d Known)\n", gVDB.adm_ctrl_defs.num_elts);
+	printf("4) List Macro Definitions        (%d Known)\n", gVDB.macdefs.num_elts);
+	printf("5) List Operator Definitions     (%d Known)\n", gVDB.adm_ops.num_elts);
+	printf("6) List Report Templates         (%d Known)\n", gVDB.rpttpls.num_elts);
+	printf("7) List Rules                    (%d Known)\n", gVDB.rules.num_elts);
+	printf("8) List Table Templates          (%d Known)\n", gVDB.adm_tblts.num_elts);
+	printf("9) List Variables                (%d Known)\n", gVDB.vars.num_elts);
 
-	printf("\n-------------- Perform Control -------------\n");
-	printf("9) Build Arbitrary Control.\n");
-	printf("A) Specify Raw Control.\n");
-	printf("B) Run Control File.\n");
+	printf("\n------------------- Perform Control ------------------\n");
+	printf("A) Build Arbitrary Control.\n");
+	printf("B) Specify Raw Control.\n");
+	printf("C) Run Control File.\n");
 
-	printf("\n--------------------------------------------\n");
+	printf("\n-------------------------- Report List -------------------------\n");
+	printf("X) Print Agent Reports (We have %ld reports).\n", gMgrDB.tot_rpts);
+	printf("Y) Clear Agent Reports \n");
+
+
+	printf("\n------------------------------------------------------\n");
 	printf("Z) Return to Main Menu.\n");
 }
 
@@ -702,35 +723,42 @@ int ui_menu_ctrl_do(uint8_t choice)
 				   break;
 
 		case '1' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_EDD);
+			   	   break;
+
+		case '2':
 				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CNST);
 				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_LIT);
 				   break;
 
-		case '2' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL);
+		case '3' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL);
 				   break;
 
-		case '3' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_MAC);
+		case '4' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_MAC);
 				   break;
 
-		case '4' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_OPER);
+		case '5' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_OPER);
 				   break;
 
-		case '5' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_RPTTPL);
+		case '6' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_RPTTPL);
 				   break;
 
-		case '6' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_SBR);
+		case '7' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_SBR);
 				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBR);
 				   break;
 
-		case '7' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBLT);
+		case '8' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBLT);
 				   break;
 
-		case '8' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_VAR);
+		case '9' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_VAR);
 				   break;
 
-		case '9' : ui_build_control(ui_select_agent()); break;
-		case 'A' : ui_send_raw(ui_select_agent(),0); break;
-		case 'B' : ui_send_file(ui_select_agent(),0); break;
+		case 'A' : ui_build_control(ui_select_agent()); break;
+		case 'B' : ui_send_raw(ui_select_agent(),0); break;
+		case 'C' : ui_send_file(ui_select_agent(),0); break;
+
+		// Report List
+		case 'X' : ui_print_nop(); break; //ui_print_reports(ui_select_agent());   break; // Print received reports.
+		case 'Y' : ui_print_nop(); break; //ui_clear_reports(ui_select_agent());	break; // Clear received reports.
 
 		case 'Z' : context = UI_MAIN_MENU; break;
 		default: printf("Unknown command %c.\n", choice); break;
@@ -756,69 +784,15 @@ void ui_print_menu_main()
 {
 	printf("================== Main Menu =================\n");
 	printf("1) Administrative Menu.\n");
-	printf("2) Reporting Menu.\n");
-	printf("3) Control Menu. \n");
+	printf("2) Control Menu. \n");
 
 #ifdef HAVE_MYSQL
-	printf("4) Database Menu. \n");
+	printf("3) Database Menu. \n");
 #endif
 
 	printf("Z) Exit.\n");
 
 }
-
-void ui_menu_rpt_show()
-{
-
-	printf("========================= Reporting Menu =========================\n");
-
-	printf("\n--------------------------- Data List --------------------------\n");
-	printf("1) List Agent Computed Data Definitions.\n");
-
-	printf("\n------------------------ Definitions List ----------------------\n");
-	printf("2) List Agent Custom Report Definition.\n");
-	printf("3) List Agent Macro Definitions.\n");
-
-	printf("\n-------------------------- Report List -------------------------\n");
-	printf("4) Print Reports Received from an Agent (We have %ld reports).\n", gMgrDB.tot_rpts);
-	printf("5) Clear Reports Received from an Agent.\n");
-
-	printf("\n---------------------- Production Schedules --------------------\n");
-	printf("6) List Agent Production Rules.\n");
-
-	printf("------------------------------------------------------------------\n");
-	printf("Z) Return to Main Menu.\n");
-}
-
-int ui_menu_rpt_do(uint8_t choice)
-{
-	int context = UI_RPT_MENU;
-	switch(choice)
-	{
-		// Definitions List
-		case '1' : ui_print_nop(); break; //ui_print_agent_comp_data_def(); break; // LIst agent computed data defs
-		case '2' : ui_print_nop(); break; //ui_print_agent_cust_rpt_defs(); break; // List agent custom report defs
-		case '3' : ui_print_nop(); break; //ui_print_agent_macro_defs();    break; // LIst agent macro defs.
-
-		// Report List
-		case '4' : ui_print_nop(); break; //ui_print_reports(ui_select_agent());   break; // Print received reports.
-		case '5' : ui_print_nop(); break; //ui_clear_reports(ui_select_agent());	break; // Clear received reports.
-
-		// Production Schedules.
-		case '6' : ui_print_nop(); break; //ui_print_agent_prod_rules();    break; // List agent production rules.
-
-		case 'Z' : context = UI_MAIN_MENU;				break;
-
-		default: printf("Unknown command.\n");			break;
-	}
-	return context;
-}
-
-
-
-
-
-
 
 
 

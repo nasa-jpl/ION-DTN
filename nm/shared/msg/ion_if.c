@@ -188,7 +188,6 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 {
     BpDelivery dlv;
     ZcoReader reader;
-    int dataLength;
     int content_len;
     Sdr sdr = bp_get_sdr();
     blob_t *result;
@@ -257,9 +256,9 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
     }
 
     zco_start_receiving(dlv.adu, &reader);
-    dataLength = zco_receive_source(sdr, &reader, result->alloc, (char*)result->value);
+    result->length = zco_receive_source(sdr, &reader, result->alloc, (char*)result->value);
 
-    if(sdr_end_xn(sdr) < 0 || dataLength < 0)
+    if(sdr_end_xn(sdr) < 0 || result->length < 0)
     {
     	*success = AMP_SYSERR;
 
@@ -389,8 +388,17 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
     	return 0;
     }
 
+    if(data->length == 0)
+    {
+    	AMP_DEBUG_ERR("iif_send","Cannot send empty data.", NULL);
+    	blob_release(data, 1);
+    	return AMP_FAIL;
+    }
+
     /* Information on bitstream we are sending. */
-    AMP_DEBUG_ALWAYS("iif_send","Sending to %s:",rx);
+    char *msg_str = utils_hex_to_string(data->value, data->length);
+    AMP_DEBUG_ALWAYS("iif_send","Sending %s to %s:", msg_str, rx);
+    SRELEASE(msg_str);
 
 
     /* Step 2 - Get the SDR, insert the message as an SDR transaction.*/

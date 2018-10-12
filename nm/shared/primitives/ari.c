@@ -333,9 +333,11 @@ void ari_cb_ht_del(rh_elt_t *elt)
 	if(elt->key != elt->value)
 	{
 		ari_release((ari_t*)elt->key, 1);
+		elt->key = NULL;
 	}
 
 	ari_release((ari_t*)elt->value, 1);
+	elt->value = NULL;
 }
 
 /******************************************************************************
@@ -465,7 +467,7 @@ ari_t ari_copy(ari_t val, int *success)
 ari_t *ari_copy_ptr(ari_t val)
 {
 	ari_t *result = ari_create();
-	int success;
+	int success = AMP_OK;
 
 	CHKNULL(result);
 
@@ -1003,7 +1005,10 @@ void ac_release(ac_t *ac, int destroy)
 	CHKVOID(ac);
 
 	vec_release(&(ac->values), 0);
-	SRELEASE(ac);
+	if(destroy)
+	{
+		SRELEASE(ac);
+	}
 }
 
 

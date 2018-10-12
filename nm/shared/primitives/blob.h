@@ -24,7 +24,8 @@
 #define BLOB_H_
 
 #include "stdint.h"
-#include "tinycbor/cbor.h"
+#include "contrib/tinycbor/src/cbor.h"
+
 
 
 /*

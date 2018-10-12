@@ -52,6 +52,10 @@ void      edd_cb_del_fn(void *item)
 	edd_release((edd_t*)item, 1);
 }
 
+void edd_cb_ht_del(rh_elt_t *elt)
+{
+	edd_release((edd_t*)elt->value, 1);
+}
 
 rh_idx_t  edd_cb_hash(void *table, void *key)
 {

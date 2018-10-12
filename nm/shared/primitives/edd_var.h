@@ -103,6 +103,8 @@ int       edd_cb_comp_fn(void *i1, void *i2);
 
 void      edd_cb_del_fn(void *item);
 
+void      edd_cb_ht_del(rh_elt_t *elt);
+
 rh_idx_t  edd_cb_hash(void *table, void *key);
 
 edd_t*    edd_create(ari_t *id, tnvc_t *parms, edd_collect_fn collect);

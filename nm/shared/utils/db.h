@@ -63,7 +63,7 @@
  * +--------------------------------------------------------------------------+
  */
 
-#define VDB_ADD_EDD(key, value)     rhht_insert(&(gVDB.adm_atomics),  key, value, NULL)
+#define VDB_ADD_EDD(key, value)     rhht_insert(&(gVDB.adm_edds),  key, value, NULL)
 #define VDB_ADD_CONST(key, value)   rhht_insert(&(gVDB.adm_atomics),  key, value, NULL)
 #define VDB_ADD_LIT(key, value)     rhht_insert(&(gVDB.adm_atomics),  key, value, NULL)
 #define VDB_ADD_CTRL(value, idx)    vec_insert(&(gVDB.ctrls),         value, idx)
@@ -191,6 +191,7 @@ typedef struct
 typedef struct
 {
 	rhht_t adm_atomics;   /**> Set by ADM support only. */
+	rhht_t adm_edds;      /**> Set by ADM support only. */
 	vector_t ctrls;
 	rhht_t adm_ctrl_defs; /**> Set by ADM support only. */
 	rhht_t macdefs;

@@ -611,6 +611,7 @@ void ui_print_table(table_t *table)
 
 }
 
+char *ari_to_str(ari_t *ari);
 
 void ui_print_trl(trl_t *trl)
 {
@@ -707,8 +708,12 @@ void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
 			}
 			break;
 
-		case AMP_TYPE_MID:
+		case AMP_TYPE_ARI:
 			{
+				char * s =ari_to_str(ari_t *ari);
+				[print...]
+				 SRELEASE(s);
+
 				uint32_t bytes = 0;
 				mid_t *mid = mid_deserialize(data, length, &bytes);
 				ui_print_mid(mid);

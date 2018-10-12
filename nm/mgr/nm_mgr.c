@@ -37,6 +37,7 @@
 #include "../shared/primitives/rules.h"
 
 
+
 mgr_db_t gMgrDB;
 iif_t ion_ptr;
 int  gRunning;
@@ -223,7 +224,7 @@ int mgr_init(char *argv[])
 		return AMP_FAIL;
 	}
 
-	gMgrDB.metadata = rhht_create(0, ari_cb_comp_fn, ari_cb_hash, meta_cb_del, &success);
+	gMgrDB.metadata = rhht_create(NM_MGR_MAX_META, ari_cb_comp_fn, ari_cb_hash, meta_cb_del, &success);
 	if(success != RH_OK)
 	{
 		AMP_DEBUG_ERR("mgr_init", "Can't make parmspec ht.", NULL);
@@ -266,6 +267,7 @@ int mgr_init(char *argv[])
     	AMP_DEBUG_ERR("mgr_init","Unable to initialize DB.", NULL);
     	return AMP_FAIL;
     }
+
 
     success = AMP_OK;
 

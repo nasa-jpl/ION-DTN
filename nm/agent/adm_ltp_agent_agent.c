@@ -59,7 +59,7 @@ void adm_ltp_agent_init_ctrldefs()
 	vec_idx_t nn_idx;
 	VDB_ADD_NN(((ADM_ENUM_LTP_AGENT * 20) + ADM_CTRL_OFFSET), &nn_idx);
 
-	adm_add_ctrldef(adm_build_reg_ari(0x83, nn_idx, ADM_LTP_AGENT_CTRL_RESET_ARI_NAME, NULL), 0, ADM_ENUM_LTP_AGENT, adm_ltp_agent_ctrl_reset);
+	adm_add_ctrldef(adm_build_reg_ari(0x81, nn_idx, ADM_LTP_AGENT_CTRL_RESET_ARI_NAME, NULL), 0, ADM_ENUM_LTP_AGENT, adm_ltp_agent_ctrl_reset);
 }
 
 void adm_ltp_agent_init_constants()
@@ -90,19 +90,16 @@ void adm_ltp_agent_init_reports()
 {
 	ari_t *id;
 	vec_idx_t nn_idx;
-	rpttpl_t *rpttpl;
+	rpttpl_t *def;
 	VDB_ADD_NN(((ADM_ENUM_LTP_AGENT * 20) + ADM_RPTT_OFFSET), &nn_idx);
-/**
-	id = adm_build_reg_ari(0x83, nn_idx, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_ARI_NAME, NULL);
-	rpttpl = rpttpl_create_id(id);
 
-	rpttpl_add_item(rpttpl, adm_build_reg_ari(0x83, nn_idx, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_ARI_NAME, NULL));
+	id = adm_build_reg_ari(0x87, nn_idx, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_ARI_NAME, NULL);
+	def = rpttpl_create_id(id);
 
+	rpttpl_add_item(def, adm_build_reg_ari(0x82, nn_idx, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_ARI_NAME, NULL));
 
-	ac_insert(&entries, adm_build_reg_ari(0x80, nn_idx, ADM_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR_ARI_NAME, NULL));
+	adm_add_rpttpl(def);
 
-	adm_add_rpttpl(adm_build_reg_ari(0x87, nn_idx, ADM_LTP_AGENT_RPT_ENDPOINTREPORT_ARI_NAME, NULL), entries);
-	*/
 }
 
 #endif // _HAVE_LTP_AGENT_ADM_

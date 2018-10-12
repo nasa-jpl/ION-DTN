@@ -176,7 +176,7 @@ void *mgr_rx_thread(int *running)
     		if((grp == NULL) || (success != AMP_OK))
     		{
     			AMP_DEBUG_ERR("mgr_rx_thread","Discarding invalid message.", NULL);
-    			break;
+    			continue;
     		}
 
     		AMP_DEBUG_INFO("mgr_rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
@@ -191,17 +191,25 @@ void *mgr_rx_thread(int *running)
             for(it = vecit_first(&(grp->msgs)); vecit_valid(it); it = vecit_next(it))
             {
             	vec_idx_t i = vecit_idx(it);
+            	blob_t *msg_data = (blob_t*) vecit_data(it);
+
             	/* Get the message type. */
             	msg_type = msg_grp_get_type(grp, i);
 
             	switch(msg_type)
             	{
             		case MSG_TYPE_RPT_SET:
-            			rx_data_rpt(&meta, (msg_rpt_t *) vecit_data(it));
+            		{
+            			msg_rpt_t *rpt_msg = msg_rpt_deserialize(msg_data, &success);
+            			rx_data_rpt(&meta, rpt_msg);
             			break;
+            		}
             		case MSG_TYPE_REG_AGENT:
-            			rx_agent_reg(&meta, (msg_agent_t *) vecit_data(it));
+            		{
+            			msg_agent_t *agent_msg = msg_agent_deserialize(msg_data, &success);
+            			rx_agent_reg(&meta, agent_msg);
             			break;
+            		}
             		default:
             			AMP_DEBUG_WARN("mgr_rx_thread","Unknown message type: %d", msg_type);
             			break;
@@ -213,9 +221,10 @@ void *mgr_rx_thread(int *running)
             		db_incoming_process_message(incoming_idx, msg_type, msg);
             	}
 #endif
-
-            	msg_grp_release(grp, 1);
+            	blob_release(msg_data, 1);
             }
+
+            msg_grp_release(grp, 1);
 #ifdef HAVE_MYSQL
             db_incoming_finalize(incoming_idx);
 #endif

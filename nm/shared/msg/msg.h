@@ -126,6 +126,7 @@ CborError    msg_agent_serialize(CborEncoder *encoder, void *item);
 
 blob_t*      msg_agent_serialize_wrapper(msg_agent_t *msg);
 
+void         msg_agent_set_agent(msg_agent_t *msg, eid_t agent);
 
 
 msg_ctrl_t* msg_ctrl_create();

@@ -71,11 +71,13 @@ void agent_register()
 	msg_agent_t *msg = NULL;
 	int success;
 
-	if((msg = msg_agent_create(agent_eid)) == NULL)
+	if((msg = msg_agent_create()) == NULL)
 	{
 		AMP_DEBUG_ERR("agent_register","Unable to create agent registration.",NULL);
 		return;
 	}
+
+	msg_agent_set_agent(msg, agent_eid);
 
 	if(iif_send_msg(&ion_ptr, MSG_TYPE_REG_AGENT, msg, manager_eid.name) != AMP_OK)
 	{

@@ -459,7 +459,9 @@ void rpttpl_cb_del_fn(void *item)
 void rpttpl_cb_ht_del_fn(rh_elt_t *elt)
 {
 	CHKVOID(elt);
+	elt->key = NULL;
 	rpttpl_cb_del_fn(elt->value);
+	elt->value = NULL;
 }
 
 rpttpl_t *rpttpl_copy_ptr(rpttpl_t *rpttpl)
@@ -618,7 +620,7 @@ void rpttpl_release(rpttpl_t *rpttpl, int destroy)
 	CHKVOID(rpttpl);
 
 	ari_release(rpttpl->id, 1);
-	ac_clear(&(rpttpl->contents));
+	ac_release(&(rpttpl->contents), 0);
 
 	if(destroy)
 	{

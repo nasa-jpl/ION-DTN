@@ -251,7 +251,7 @@ blob_t blob_deserialize(CborValue *it, int *success)
 	}
 
 	/* Copy bytestring value into the BLOB */
-	if((err = cbor_value_copy_byte_string(it, result.value, &(result.length), NULL)) != CborNoError)
+	if((err = cbor_value_copy_byte_string(it, result.value, &(result.length), it)) != CborNoError)
 	{
 		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
 		blob_release(&result, 0);

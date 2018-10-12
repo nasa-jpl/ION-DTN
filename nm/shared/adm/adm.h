@@ -46,16 +46,16 @@
 
 /* Known ADMs Enumerations.*/
 #define ADM_ENUM_ALL   	    	   0
+/*
 #define ADM_ENUM_AGENT    		   1
 #define ADM_ENUM_BP_AGENT	       2
-#define ADM_ENUM_LTP_AGENT		   3
 #define ADM_ENUM_BPSEC_AGENT       4
 #define ADM_ENUM_ION_BP_ADMIN      5
 #define ADM_ENUM_ION_IPN_ADMIN     6
 #define ADM_ENUM_ION_ION_ADMIN 	   7
 #define ADM_ENUM_ION_IONSEC_ADMIN  8
 #define ADM_ENUM_ION_LTP_ADMIN 	   9
-
+*/
 
 #define ADM_CONST_OFFSET 0
 #define ADM_CTRL_OFFSET  1

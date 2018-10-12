@@ -40,6 +40,8 @@
 
 #include "../primitives/expr.h"
 
+#include "adm_ltp_agent.h"
+
 
 /*
 #include "adm_agent.h"
@@ -76,7 +78,7 @@
  *****************************************************************************/
 int adm_add_cnst(ari_t *id)
 {
-	int success;
+	int success = AMP_FAIL;
 
 	CHKUSR(id, AMP_FAIL);
 	if((success = VDB_ADD_CONST(id, id)) != AMP_OK)
@@ -164,7 +166,6 @@ int adm_add_edd(ari_t *id, edd_collect_fn collect)
 	int success;
 
 	CHKUSR(id, AMP_FAIL);
-	CHKUSR(collect, AMP_FAIL);
 
 	if((def = edd_create(id, NULL, collect)) == NULL)
 	{
@@ -504,6 +505,9 @@ uint32_t adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
 void adm_init()
 {
 	AMP_DEBUG_ENTRY("adm_init","()", NULL);
+
+	adm_ltp_agent_init();
+
 /*
 	adm_agent_init();
 	adm_bp_init();

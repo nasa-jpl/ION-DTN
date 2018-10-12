@@ -220,7 +220,7 @@ rhht_t rhht_create(rh_idx_t buckets, rh_comp_fn compare, rh_hash_fn hash, rh_del
 	else
 	{
 		ht.num_elts = ht.max_delta = 0;
-
+		ht.num_bkts = buckets;
 		if(initResourceLock(&(ht.lock)))
 		{
 	        AMP_DEBUG_ERR("rhht_create","Unable to initialize mutex, errno = %s",
@@ -302,8 +302,14 @@ int rhht_find(rhht_t *ht, void *key, rh_idx_t *idx)
 	rh_idx_t tmp;
 
 	CHKZERO(key);
-	CHKZERO(ht->num_elts > 0);
 	CHKZERO(idx);
+
+
+	/* The hash table is empty. */
+	if(ht->num_elts <= 0)
+	{
+		return 0;
+	}
 
 	/* Step 1: Hash the item. */
 	tmp = ht->hash(ht, key);

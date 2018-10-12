@@ -263,7 +263,7 @@ int vec_make_room(vector_t *vec, vec_idx_t extra)
 	 * vector was full) then it now points to the first open spot.
 	 */
 	vec->total_slots = new_size;
-	vec->num_free += (extra - vec->num_free);
+	vec->num_free += (new_size - vec->num_free);
 
 	return VEC_OK;
 }

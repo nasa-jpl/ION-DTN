@@ -419,7 +419,6 @@ ctrldef_t *ctrldef_create(ari_t *ari, uint8_t num, uint8_t adm, ctrldef_run_fn r
 	ctrldef_t *result = NULL;
 
 	CHKNULL(ari);
-	CHKNULL(run);
 
 	if((result = STAKE(sizeof(ctrldef_t))) == NULL)
 	{

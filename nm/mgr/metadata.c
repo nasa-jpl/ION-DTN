@@ -49,7 +49,6 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 
 void meta_cb_del(rh_elt_t *elt)
 {
-
 	CHKVOID(elt);
 	meta_release(elt->value, 1);
 }
@@ -116,7 +115,7 @@ parm_t *meta_get_parm(metadata_t *meta, uint8_t idx)
 void meta_release(metadata_t *meta, int destroy)
 {
 	CHKVOID(meta);
-	ari_release(meta->id, 1);
+
 	vec_release(&(meta->parmspec), 0);
 
 	if(destroy)
@@ -142,30 +141,42 @@ int meta_store_rpttpl(metadata_t *meta, rpttpl_t *rpttpl)
 
 int meta_store_obj(metadata_t *meta)
 {
+	int success = AMP_FAIL;
+
 	CHKUSR(meta, AMP_FAIL);
 
 	switch(meta->id->type)
 	{
 	case AMP_TYPE_CNST:
-		adm_add_cnst(meta->id);
+		success = adm_add_cnst(meta->id);
 		break;
 	case AMP_TYPE_CTRL:
-		adm_add_ctrldef(meta->id, vec_num_entries(meta->parmspec), meta->adm_id, NULL);
+		success = adm_add_ctrldef(meta->id, vec_num_entries(meta->parmspec), meta->adm_id, NULL);
 		break;
 	case AMP_TYPE_EDD:
-		adm_add_edd(meta->id, NULL);
+		success = adm_add_edd(meta->id, NULL);
 		break;
 	case AMP_TYPE_LIT:
-		adm_add_lit(meta->id);
+		success = adm_add_lit(meta->id);
 		break;
 	case AMP_TYPE_OPER:
-		adm_add_op(meta->id,vec_num_entries(meta->parmspec), NULL);
+		success = adm_add_op(meta->id,vec_num_entries(meta->parmspec), NULL);
 		break;
 	default:
+		return AMP_FAIL;
 		break;
 	}
-	return AMP_OK;
 
+	if(success == AMP_OK)
+	{
+		rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	}
+	else
+	{
+		AMP_DEBUG_ERR("meta_store_obj","Unable to add meta object for %s", meta->name);
+		meta_release(meta, 1);
+	}
+	return success;
 }
 
 meta_col_t* metacol_create()

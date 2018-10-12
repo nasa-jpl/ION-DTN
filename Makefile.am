@@ -1894,13 +1894,7 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
 nmbin= nm_agent nm_mgr
 
-nm_agent_SOURCES =  nm/agent/ingest.c  				\
-					nm/agent/instr.c				\
-					nm/agent/lcc.c     				\
-					nm/agent/ldc.c 					\
-					nm/agent/nmagent.c 				\
-                    nm/agent/rda.c 					\
-                    nm/shared/adm/adm.c				\
+nm_shared_src    =  nm/shared/adm/adm.c				\
 					nm/shared/msg/msg.c				\
 					nm/shared/msg/ion_if.c			\
 					nm/shared/primitives/ari.c		\
@@ -1918,20 +1912,30 @@ nm_agent_SOURCES =  nm/agent/ingest.c  				\
 					nm/shared/utils/rhht.c	 		\
 					nm/shared/utils/utils.c         \
 					nm/shared/utils/vector.c 		\
+					nm/contrib/tinycbor/src/cborparser.c \
+					nm/contrib/tinycbor/src/cborencoder.c 
+
+nm_agent_SOURCES =  $(nm_shared_src)				\
+					nm/agent/ingest.c  				\
+					nm/agent/instr.c				\
+					nm/agent/lcc.c     				\
+					nm/agent/ldc.c 					\
+					nm/agent/nmagent.c 				\
+                    nm/agent/rda.c 					\                   
 					nm/agent/adm_ltp_agent_impl.c	\
 					nm/agent/adm_ltp_agent_agent.c  
 				
 					 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-#nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread -lcbor
-nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread -ltinycbor
+nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
 					
 					
-nm_mgr_SOURCES =    nm/mgr/agents.c 				\
+nm_mgr_SOURCES =    $(nm_shared_src)				\
+					nm/mgr/agents.c 				\
 					nm/mgr/metadata.c				\
 					nm/mgr/nm_mgr_print.c 		 	\
 					nm/mgr/nm_mgr_rx.c             	\
@@ -1939,24 +1943,6 @@ nm_mgr_SOURCES =    nm/mgr/agents.c 				\
 					nm/mgr/nm_mgr_ui.c 				\
 					nm/mgr/nm_mgr.c					\
 					nm/mgr/ui_input.c 				\
-					nm/shared/adm/adm.c				\
-					nm/shared/msg/msg.c				\
-					nm/shared/msg/ion_if.c			\
-					nm/shared/primitives/ari.c		\
-					nm/shared/primitives/blob.c		\
-					nm/shared/primitives/ctrl.c		\
-					nm/shared/primitives/edd_var.c	\
-					nm/shared/primitives/expr.c		\
-					nm/shared/primitives/report.c 	\
-					nm/shared/primitives/rules.c 	\
-				 	nm/shared/primitives/table.c 	\
- 	    			nm/shared/primitives/tnv.c		\
- 	    			nm/shared/utils/cbor_utils.c	\
-					nm/shared/utils/db.c			\
-					nm/shared/utils/nm_types.c 		\
-					nm/shared/utils/rhht.c	 		\
-					nm/shared/utils/utils.c         \
-					nm/shared/utils/vector.c 		\
 					nm/mgr/adm_ltp_agent_mgr.c
 					 	
 					
@@ -1965,10 +1951,10 @@ nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 # Use this to build the AMP Manager WITHOUT DB Support. 
 nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
 
-nm_mgr_LDFLAGS = -L/usr/local/lib -ltinycbor -lpthread
+nm_mgr_LDFLAGS = -L/usr/local/lib -lpthread
 
 # Use this to build the AMP Manager WITH DB Support.
-#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread -ltinycbor
+#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread 
 #nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
 
 

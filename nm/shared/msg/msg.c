@@ -69,6 +69,7 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 	size_t len;
 	CborParser parser;
 	CborValue it;
+	eid_t tmp;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
@@ -88,7 +89,8 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 	}
 
 	len = AMP_MAX_EID_LEN;
-	err = cbor_value_copy_text_string(&it, result->agent_id.name, &len, &it);
+	err = cbor_value_copy_text_string(&it, tmp.name, &len, &it);
+	msg_agent_set_agent(result, tmp);
 
 	if(err != CborNoError)
 	{
@@ -121,7 +123,10 @@ CborError msg_agent_serialize(CborEncoder *encoder, void *item)
 	msg_agent_t *msg = (msg_agent_t *) item;
 
 	err = msg_hdr_serialize(encoder, msg->hdr);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	{
+		return err;
+	}
 
 	err = cbor_encode_text_stringz(encoder, msg->agent_id.name);
 
@@ -136,7 +141,11 @@ blob_t*   msg_agent_serialize_wrapper(msg_agent_t *msg)
 }
 
 
-
+void msg_agent_set_agent(msg_agent_t *msg, eid_t agent)
+{
+	CHKVOID(msg);
+	msg->agent_id = agent;
+}
 
 msg_ctrl_t* msg_ctrl_create()
 {
@@ -232,10 +241,18 @@ CborError msg_ctrl_serialize(CborEncoder *encoder, void *item)
 	msg_ctrl_t *msg = (msg_ctrl_t*) item;
 
 	err = msg_hdr_serialize(encoder, msg->hdr);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	{
+		return err;
+	}
+
 
 	err = cbor_encode_uint(encoder, msg->start);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	{
+		return err;
+	}
+
 
 	err = ac_serialize(encoder, msg->ac);
 
@@ -372,13 +389,20 @@ CborError msg_rpt_serialize(CborEncoder *encoder, msg_rpt_t *msg)
 	CborError err;
 
 	err = msg_hdr_serialize(encoder, msg->hdr);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	{
+		return err;
+	}
+
 
 	err = cut_serialize_vector(encoder, &(msg->rx), cut_char_serialize);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	{
+		return err;
+	}
+
 
 	err = cut_serialize_vector(encoder, &(msg->rpts), rpt_serialize);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
 
 	return err;
 }
@@ -503,8 +527,8 @@ msg_grp_t* msg_grp_deserialize(blob_t *data, int *success)
 	{
 		return NULL;
 	}
-
-	result = msg_grp_create(length);
+	// first element of the array is the timestamp.
+	result = msg_grp_create(length-1);
 	CHKNULL(result);
 
 	if((*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_TS, &(result->time))) != AMP_OK)
@@ -568,8 +592,8 @@ CborError msg_grp_serialize(CborEncoder *encoder, void *item)
 	CHKUSR(encoder, CborErrorIO);
 	CHKUSR(msg_grp, CborErrorIO);
 
-	max = vec_num_entries(msg_grp->msgs) + 1;
-	err = cbor_encoder_create_array(encoder, &array_enc, max);
+	max = vec_num_entries(msg_grp->msgs);
+	err = cbor_encoder_create_array(encoder, &array_enc, max+1);
 	if((err != CborNoError) && (err != CborErrorOutOfMemory))
 	{
 		return err;
@@ -582,7 +606,7 @@ CborError msg_grp_serialize(CborEncoder *encoder, void *item)
 		return err;
 	}
 
-	for(i = 1; i < max; i++)
+	for(i = 0; i < max; i++)
 	{
 		blob_t *tmp = vec_at(msg_grp->msgs, i);
 

@@ -52,6 +52,7 @@
 
 /* Constants */
 #define NM_RECEIVE_TIMEOUT_SEC (2)
+#define NM_MGR_MAX_META (1024)
 
 
 typedef struct
