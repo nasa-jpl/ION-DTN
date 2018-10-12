@@ -108,7 +108,7 @@ parm_t *meta_get_parm(metadata_t *meta, uint8_t idx)
 {
 	parm_t *result;
 	CHKNULL(meta);
-	return vec_at(meta->parmspec, idx);
+	return vec_at(&(meta->parmspec), idx);
 }
 
 

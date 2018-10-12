@@ -635,7 +635,7 @@ ctrl_t* macdef_get(macdef_t* mac, uint8_t index)
 	ctrl_t *result = NULL;
 	CHKNULL(mac);
 
-	result = (ctrl_t*) vec_at(mac->ctrls, index);
+	result = (ctrl_t*) vec_at(&mac->ctrls, index);
 	return result;
 }
 

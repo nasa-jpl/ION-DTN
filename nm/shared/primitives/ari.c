@@ -980,7 +980,7 @@ ari_t* ac_get(ac_t* ac, uint8_t index)
 
 	CHKNULL(ac);
 
-	result = (ari_t *) vec_at(ac->values, index);
+	result = (ari_t *) vec_at(&(ac->values), index);
 
 	return result;
 }
@@ -1029,7 +1029,7 @@ CborError ac_serialize(CborEncoder *encoder, void *item)
 
 	for(i = 0; i < max; i++)
 	{
-		blob_t *result = ari_serialize_wrapper((ari_t*) vec_at(ac->values, i));
+       blob_t *result = ari_serialize_wrapper((ari_t*) vec_at(&(ac->values), i));
 
 		err = CborErrorIO;
 		if(result != NULL)

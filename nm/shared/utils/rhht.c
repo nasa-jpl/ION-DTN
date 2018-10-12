@@ -220,7 +220,8 @@ rhht_t rhht_create(rh_idx_t buckets, rh_comp_fn compare, rh_hash_fn hash, rh_del
 	else
 	{
 		ht.num_elts = ht.max_delta = 0;
-		ht.num_bkts = buckets;
+                ht.num_bkts = buckets;
+
 		if(initResourceLock(&(ht.lock)))
 		{
 	        AMP_DEBUG_ERR("rhht_create","Unable to initialize mutex, errno = %s",
@@ -278,7 +279,7 @@ void rhht_del_key(rhht_t *ht, void *item)
  *
  * \par Finds and returns the index of the given value in the given hash table.
  *
- * \retval  Whether the item was found (!= 0) or not (0)
+ * \retval  Whether the item was found (RH_OK) or not (RH_NOT_FOUND, RH_ERROR, or RH_SYSERR)
  *
  * \param[in]  ht     The hash table being queried.
  * \param[in]  item   The item whose index is being queried.
@@ -302,14 +303,14 @@ int rhht_find(rhht_t *ht, void *key, rh_idx_t *idx)
 	rh_idx_t tmp;
 
 	CHKZERO(key);
+
+    if (ht->num_elts == 0)
+    {
+       // HT is empty. Nothing to be found (and not an error)
+       return RH_NOT_FOUND;
+    }
+    
 	CHKZERO(idx);
-
-
-	/* The hash table is empty. */
-	if(ht->num_elts <= 0)
-	{
-		return 0;
-	}
 
 	/* Step 1: Hash the item. */
 	tmp = ht->hash(ht, key);
@@ -320,7 +321,7 @@ int rhht_find(rhht_t *ht, void *key, rh_idx_t *idx)
 	if(ht->buckets[tmp].value == NULL)
 	{
 		unlockResource(&(ht->lock));
-		return 0;
+		return RH_NOT_FOUND;
 	}
 
 	for(i = 0; i < ht->num_bkts; i++)
@@ -409,7 +410,7 @@ int rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx)
 	rh_idx_t iter = 0;
 	rh_elt_t elt;
 
-	if(rhht_find(ht, key, &actual_idx) != 0)
+	if(rhht_find(ht, key, &actual_idx) == RH_OK)
 	{
 		return RH_DUPLICATE;
 	}
@@ -497,7 +498,7 @@ void rhht_release(rhht_t *ht, int destroy)
 
     for (i = 0; i < ht->num_bkts; i++)
     {
-    	if(ht->delete)
+    	if(ht->delete && ht->buckets[i].value != NULL)
     	{
     		elt = ht->buckets[i];
     		ht->delete(&elt);
