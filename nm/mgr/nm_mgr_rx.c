@@ -221,7 +221,6 @@ void *mgr_rx_thread(int *running)
             		db_incoming_process_message(incoming_idx, msg_type, msg);
             	}
 #endif
-            	blob_release(msg_data, 1);
             }
 
             msg_grp_release(grp, 1);
