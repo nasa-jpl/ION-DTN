@@ -182,7 +182,7 @@ int rda_process_ctrls()
 	for(i = 0; i < vec_num_entries(gVDB.ctrls); i++)
 	{
 		int success;
-		ctrl = vec_at(gVDB.ctrls, i);
+		ctrl = vec_at(&gVDB.ctrls, i);
 
 		if(ctrl != NULL)
 		{

@@ -100,9 +100,9 @@
 #define VDB_FINDIDX_RULE(idx)    rhht_retrieve_idx(&(gVDB.rules),         idx)
 #define VDB_FINDIDX_TBLT(idx)    rhht_retrieve_idx(&(gVDB.adm_tblts),     idx)
 #define VDB_FINDIDX_VAR(idx)     rhht_retrieve_idx(&(gVDB.vars),          idx)
-#define VDB_FINDIDX_NN(idx)    vec_at(gVDB.nicknames, idx)
-#define VDB_FINDIDX_ISS(idx)   vec_at(gVDB.issuers,   idx)
-#define VDB_FINDIDX_TAG(idx)   vec_at(gVDB.tags,      idx)
+#define VDB_FINDIDX_NN(idx)    vec_at(&gVDB.nicknames, idx)
+#define VDB_FINDIDX_ISS(idx)   vec_at(&gVDB.issuers,   idx)
+#define VDB_FINDIDX_TAG(idx)   vec_at(&gVDB.tags,      idx)
 
 #define VDB_DELKEY_EDD(key)     rhht_del_key(&(gVDB.adm_atomics),  key)
 #define VDB_DELKEY_CONST(key)   rhht_del_key(&(gVDB.adm_atomics),  key)

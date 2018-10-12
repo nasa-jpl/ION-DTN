@@ -240,7 +240,7 @@ tnvc_t*  tbl_get_row(tbl_t *tbl, int row_idx)
 {
 	tnvc_t *result = NULL;
 	CHKNULL(tbl);
-	result = (tnvc_t*) vec_at(tbl->rows, row_idx);
+	result = (tnvc_t*) vec_at(&tbl->rows, row_idx);
 	return result;
 }
 
@@ -505,7 +505,7 @@ amp_type_e tblt_get_type(tblt_t *tblt, int idx)
 
 	CHKUSR(tblt, AMP_TYPE_UNK);
 
-	col = vec_at(tblt->cols, idx);
+	col = vec_at(&tblt->cols, idx);
 	if(col == NULL)
 	{
 		return AMP_TYPE_UNK;
@@ -653,10 +653,10 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 
 		for(i = 0; i < num_col; i++)
 		{
-			tblt_col_t *cur_col = vec_at(result->cols, i);
+			tblt_col_t *cur_col = vec_at(&result->cols, i);
 			if(cur_col != NULL)
 			{
-				cur_col->name = (char*) vec_at(names, i);
+				cur_col->name = (char*) vec_at(&names, i);
 			}
 		}
 

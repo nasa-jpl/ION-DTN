@@ -187,7 +187,7 @@ agent_t* agent_get(eid_t* eid)
 
 	if(success == VEC_OK)
 	{
-		result = (agent_t *) vec_at(gMgrDB.agents, i);
+		result = (agent_t *) vec_at(&gMgrDB.agents, i);
 	}
 	return result;
 }

@@ -459,7 +459,7 @@ agent_t* ui_select_agent()
 		return NULL;
 	}
 
-	if((agent = vec_at(gMgrDB.agents, idx-1)) == NULL)
+	if((agent = vec_at(&(gMgrDB.agents), idx-1)) == NULL)
 	{
 		AMP_DEBUG_ERR("ui_select_agent","Error selecting agent #%d", idx);
 		return NULL;
