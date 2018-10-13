@@ -131,14 +131,21 @@ typedef struct
 
 /*	Functions for managing the CGR database.			*/
 
-static void	destroyRoute(PsmPartition ionwm, PsmAddress routeAddr)
+static void	removeRoute(PsmPartition ionwm, PsmAddress elt)
 {
+	PsmAddress	routeAddr;
 	CgrRoute	*route;
 
+	routeAddr = sm_list_data(ionwm, elt);
 	route = (CgrRoute *) psp(ionwm, routeAddr);
 	if (route->referenceElt)
 	{
 		sm_list_delete(ionwm, route->referenceElt, NULL, NULL);
+	}
+
+	if (elt != route->referenceElt)
+	{
+		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
 
 	if (route->hops)
@@ -147,15 +154,6 @@ static void	destroyRoute(PsmPartition ionwm, PsmAddress routeAddr)
 	}
 
 	psm_free(ionwm, routeAddr);
-}
-
-static void	removeRoute(PsmPartition ionwm, PsmAddress elt)
-{
-	PsmAddress	addr;
-
-	addr = sm_list_data(ionwm, elt);
-	destroyRoute(ionwm, addr);
-	sm_list_delete(ionwm, elt, NULL, NULL);
 }
 
 static void	discardRouteList(PsmPartition ionwm, PsmAddress routes)
@@ -439,12 +437,15 @@ static int	edgeIsExcluded(PsmPartition ionwm, PsmAddress excludedEdges,
 {
 	PsmAddress	elt;
 
-	for (elt = sm_list_first(ionwm, excludedEdges); elt;
-			elt = sm_list_next(ionwm, elt))
+	if (excludedEdges)
 	{
-		if (sm_list_data(ionwm, elt) == contactAddr)
+		for (elt = sm_list_first(ionwm, excludedEdges); elt;
+				elt = sm_list_next(ionwm, elt))
 		{
-			return 1;
+			if (sm_list_data(ionwm, elt) == contactAddr)
+			{
+				return 1;
+			}
 		}
 	}
 
@@ -545,7 +546,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			if (current == rootContact)
 			{
 				if (edgeIsExcluded(ionwm, excludedEdges,
-							contactAddr))
+						contactAddr))
 				{
 					TRACE(CgrIgnoreContact, CgrSuppressed);
 					continue;
@@ -924,9 +925,17 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	CgrRoute	*newRoute;
 
 //puts("*** Computing a spur route. ***");
-	rootOfSpurAddr = sm_list_data(ionwm, rootOfSpur);
-	clearWorkAreas(rootOfSpur == 0 ? NULL : (IonCXref *) psp(ionwm,
-				rootOfSpurAddr));
+	if (rootOfSpur == 0)
+	{
+		rootOfSpurAddr = 0;
+		clearWorkAreas(NULL);
+	}
+	else
+	{
+		rootOfSpurAddr = sm_list_data(ionwm, rootOfSpur);
+		clearWorkAreas((IonCXref *) psp(ionwm, rootOfSpurAddr));
+	}
+
 	excludedEdges = sm_list_create(ionwm);
 	CHKERR(excludedEdges);
 
