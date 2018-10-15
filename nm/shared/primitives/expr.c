@@ -469,7 +469,11 @@ CborError expr_serialize(CborEncoder *encoder, void *item)
 	/* Step 1: Encode the byte. */
 	err = cut_enc_byte(encoder, expr->type);
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("expr_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	result = ac_serialize_wrapper(&(expr->rpn));
 	err = blob_serialize(encoder, result);

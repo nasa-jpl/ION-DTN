@@ -309,7 +309,12 @@ static inline CborError encode_number_no_update(CborEncoder *encoder, uint64_t u
     return append_to_buffer(encoder, bufstart, bufend - bufstart);
 }
 
-static inline void saturated_decrement(CborEncoder *encoder)
+/*
+ * EJB
+ * static inline void saturated_decrement(CborEncoder *encoder)
+ *
+ */
+void saturated_decrement(CborEncoder *encoder)
 {
     if (encoder->remaining)
         --encoder->remaining;

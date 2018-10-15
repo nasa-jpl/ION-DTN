@@ -49,7 +49,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 
 	while(len == 0)
 	{
-		printf("%s", prompt);
+		printf("%s\n", prompt);
 
 		if (igets(fileno(stdin), (char *)line, max_len, &len) == NULL)
 		{
@@ -307,7 +307,7 @@ ac_t *ui_input_ac(char *prompt)
 	printf("\n\n");
 	printf("ARI COLLECTION (AC) Builder.\n");
 	printf("----------------------------\n");
-	printf("%s", prompt);
+	printf("%s\n", prompt);
 
 
 	num = ui_input_uint("# ARIs in the collection:");
@@ -387,7 +387,11 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 			break;
 	}
 
-	CHKNULL(result);
+	if(result == NULL)
+	{
+		AMP_DEBUG_INFO("ui_input_ari","User did not select ARI.", NULL);
+		return NULL;
+	}
 
 	if((result->type != AMP_TYPE_LIT) &&
 	   (ARI_GET_FLAG_PARM(result->as_reg.flags)))
@@ -405,16 +409,20 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 
 ari_t* ui_input_ari_build()
 {
-	ari_t *result = ari_create();
+	ari_t *result = NULL;
 	uint8_t flags;
 	int success;
 
-	CHKNULL(result);
 
 	ui_input_ari_flags(&flags);
 
-	if(ARI_GET_FLAG_TYPE(flags) == AMP_TYPE_LIT)
+
+	result = ari_create(ARI_GET_FLAG_TYPE(flags));
+	CHKNULL(result);
+
+	if(result->type == AMP_TYPE_LIT)
 	{
+
 		result->type = AMP_TYPE_LIT;
 		tnv_t *tmp = ui_input_tnv(AMP_TYPE_LIT, "");
 		result->as_lit = tnv_copy(*tmp, &success);
@@ -546,16 +554,23 @@ int ui_input_ari_flags(uint8_t *flag)
 
 ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 {
-	// TODO: Implement.
-	AMP_DEBUG_ERR("ui_input_ari_list","Not implemented yet.", NULL);
-	return NULL;
-	/*
-	if(type == AMP_TYPE_UNK)
-	{
-		type = ui_input_ari_type();
-	}
+	ari_t *result = NULL;
+	int idx = 0;
+	meta_col_t *col = NULL;
+	metadata_t *meta = NULL;
 
-	return ui_list_gen(adm_id, type);*/
+	ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL);
+	idx = ui_input_int("Which ARI?");
+
+	col =  meta_filter(adm_id, type);
+	meta = vec_at(&(col->results), idx);
+	if(meta != NULL)
+	{
+		result = ari_copy_ptr(*(meta->id));
+	}
+	metacol_release(col, 1);
+
+	return result;
 }
 
 
@@ -641,11 +656,9 @@ int ui_input_parms(ari_t *id)
 
 tnv_t *ui_input_tnv(int type, char *prompt)
 {
-	tnv_t *result = tnv_create();
-	CHKNULL(result);
+	tnv_t *result = NULL;
 
-	result->type = type;
-	switch(result->type)
+	switch(type)
 	{
 		case AMP_TYPE_BOOL:
 		case AMP_TYPE_BYTE:
@@ -683,22 +696,31 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			break;
 
 		case AMP_TYPE_BYTESTR:
-			result->value.as_ptr = ui_input_blob(prompt, 0);
-			TNV_SET_ALLOC(result->flags);
+			if((result = tnv_create()) != NULL)
+			{
+				result->value.as_ptr = ui_input_blob(prompt, 0);
+				TNV_SET_ALLOC(result->flags);
+			}
 			break;
 
 		case AMP_TYPE_CNST:
 		case AMP_TYPE_EDD:
 		case AMP_TYPE_LIT:
 		case AMP_TYPE_ARI:
-			result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
-			TNV_SET_ALLOC(result->flags);
+			if((result = tnv_create()) != NULL)
+			{
+				result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
+				TNV_SET_ALLOC(result->flags);
+			}
 			break;
 
 		case AMP_TYPE_MAC:
 		case AMP_TYPE_AC:
-			result->value.as_ptr = ui_input_ac(prompt);
-			TNV_SET_ALLOC(result->flags);
+			if((result = tnv_create()) == NULL)
+			{
+				result->value.as_ptr = ui_input_ac(prompt);
+				TNV_SET_ALLOC(result->flags);
+			}
 			break;
 /*
 		case AMP_TYPE_CTRL:
@@ -742,19 +764,15 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			break;
 			*/
 		default:
-			tnv_release(result, 1);
 			result = NULL;
 	}
 
-	if(result != NULL)
+	if((result != NULL) && (TNV_IS_ALLOC(result->flags)))
 	{
-		if(TNV_IS_ALLOC(result->flags))
+		if(result->value.as_ptr == NULL)
 		{
-			if(result->value.as_ptr == NULL)
-			{
-				tnv_release(result, 1);
-				result = NULL;
-			}
+			tnv_release(result, 1);
+			result = NULL;
 		}
 	}
 

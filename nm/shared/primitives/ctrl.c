@@ -338,7 +338,7 @@ CborError ctrl_serialize(CborEncoder *encoder, void *item)
 	tmp_ari = ari_copy_ptr(*ctrl_id);
 	CHKUSR(tmp_ari, err);
 
-	if(ari_add_parms(tmp_ari, ctrl->parms) == AMP_OK)
+	if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
 	{
 		err = ari_serialize(encoder, tmp_ari);
 	}
@@ -361,7 +361,7 @@ blob_t*   ctrl_serialize_wrapper(ctrl_t *ctrl)
 	tmp_ari = ari_copy_ptr(*ctrl_id);
 	CHKNULL(tmp_ari);
 
-	if(ari_add_parms(tmp_ari, ctrl->parms) == AMP_OK)
+	if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
 	{
 		result = ari_serialize_wrapper(tmp_ari);
 	}

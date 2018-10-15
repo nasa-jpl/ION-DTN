@@ -280,7 +280,12 @@ CborError tbl_serialize(CborEncoder *encoder, void *item)
 
 	/* Start a container. */
 	err = cbor_encoder_create_array(encoder, &array_enc, num);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("tbl_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(&(tbl->id));
@@ -724,7 +729,12 @@ CborError tblt_serialize(CborEncoder *encoder, void *item)
 
 	/* Start a container. */
 	err = cbor_encoder_create_array(encoder, &array_enc, 2);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("tblt_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(&(tblt->id));

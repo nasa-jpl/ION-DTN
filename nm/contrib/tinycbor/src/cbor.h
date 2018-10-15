@@ -218,6 +218,7 @@ static const size_t CborIndefiniteLength = SIZE_MAX;
 
 
 /* Modified to expose some helper functions. */
+CBOR_API void saturated_decrement(CborEncoder *encoder);
 CBOR_API CborError append_byte_to_buffer(CborEncoder *encoder, uint8_t byte);
 /* EJB End modification. */
 

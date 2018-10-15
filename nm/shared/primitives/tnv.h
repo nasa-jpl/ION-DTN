@@ -172,6 +172,7 @@ tnv_t *tnv_deserialize_ptr(CborValue *it, int *success);
 tnv_t*  tnv_from_bool(uint8_t val);
 tnv_t*  tnv_from_byte(uint8_t val);
 tnv_t*  tnv_from_int(int32_t val);
+tnv_t*  tnv_from_map(amp_type_e type, uint8_t map_idx);
 tnv_t*  tnv_from_real32(float val);
 tnv_t*  tnv_from_real64(double val);
 tnv_t*  tnv_from_str(char *str);

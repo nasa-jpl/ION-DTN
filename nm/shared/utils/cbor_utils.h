@@ -34,6 +34,8 @@ typedef void* (*vec_des_fn)(CborValue *it, int *success);
 int       cut_advance_it(CborValue *value);
 
 CborError cut_enc_byte(CborEncoder *encoder, uint8_t byte);
+int cut_enc_uvast(uvast num, blob_t *result);
+
 
 int cut_enter_array(CborValue *it, size_t min, size_t max, size_t *num, CborValue *array_it);
 

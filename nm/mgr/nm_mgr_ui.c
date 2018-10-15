@@ -265,6 +265,7 @@ void ui_list_objs(uint8_t adm_id, uint8_t type)
 
 	col =  meta_filter(adm_id, type);
 
+	printf("----------------------------------------\n");
 	for(it = vecit_first(&(col->results)); vecit_valid(it); it = vecit_next(it))
 	{
 		meta = vecit_data(it);
@@ -292,6 +293,7 @@ void ui_list_objs(uint8_t adm_id, uint8_t type)
 
 		printf("\t%s\n", meta->descr);
 	}
+	printf("----------------------------------------\n");
 
 	metacol_release(col, 1);
 }
@@ -423,12 +425,6 @@ void ui_register_agent()
 
 
 
-
-
-
-
-
-
 /******************************************************************************
  *
  * \par Function Name: ui_select_agent
@@ -454,23 +450,23 @@ agent_t* ui_select_agent()
 	int total;
 	agent_t *agent = NULL;
 
-	printf("Select an Agent:");
+	printf("Select an Agent:\n");
 	total = ui_print_agents();
 
 	if(total == 0)
 	{
-		AMP_DEBUG_ERR("ui_select_agent", "No agents registered.\n", NULL);
+		printf("No agents registered.\n");
 		return NULL;
 	}
 
 	if(total == 1)
 	{
 		idx = 0;
-		printf("Auto-selecting sole known agent.");
+		printf("Auto-selecting sole known agent.\n");
 	}
 	else if((idx = ui_input_int("Agent (#), or 0 to cancel:")) == 0)
 	{
-		AMP_DEBUG_ERR("ui_select_agent","No agent selected.", NULL);
+		printf("No agent selected.\n");
 		return NULL;
 	}
 
@@ -640,15 +636,6 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 	msg_ctrl_release(msg, 1);
 }
-
-
-
-
-
-
-
-
-
 
 
 

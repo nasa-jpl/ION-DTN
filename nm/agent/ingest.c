@@ -90,8 +90,8 @@ void *rx_thread(int *running) {
     			break;
     		}
 
-            AMP_DEBUG_INFO("rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
-            AMP_DEBUG_INFO("rx_thread","Group timestamp %lu", grp->time);
+            AMP_DEBUG_ALWAYS("rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
+            AMP_DEBUG_ALWAYS("rx_thread","Group timestamp %lu", grp->time);
 
             /* For each message in the bundle. */
             for(it = vecit_first(&grp->msgs); vecit_valid(it); it = vecit_next(it))
@@ -103,6 +103,7 @@ void *rx_thread(int *running) {
             	switch(msg_type)
             	{
             		case MSG_TYPE_PERF_CTRL:
+            			AMP_DEBUG_ALWAYS("rx_thread","Received perform control msg.", NULL);
             			rx_handle_perf_ctrl(&meta, vecit_data(it));
             			break;
             		default:

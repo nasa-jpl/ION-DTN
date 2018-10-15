@@ -424,23 +424,40 @@ int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 	return success;
 }
 
+
 // Takes over name and parms, no matter what.
-ari_t* adm_build_reg_ari(uint8_t flags, vec_idx_t nn, uvast id, tnvc_t *parms)
+ari_t* adm_build_reg_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id)
 {
-	ari_t *result = ari_create();
+	ari_t *result = ari_create(type);
 	CHKNULL(result);
 
-	result->type = ARI_GET_FLAG_TYPE(flags);
-	result->as_reg.flags = flags;
-	result->as_reg.nn_idx = nn;
-	result->as_reg.iss_idx = 0;
-	result->as_reg.tag_idx = 0;
-	blob_init(&(result->as_reg.name), (uint8_t*)&id, sizeof(id), sizeof(id));
-	if(parms != NULL)
+
+	/* Set the flags byte. Since this is coming from an ADM,
+	 * it MUST have a NNand MUST NOT have an ISS or TAG.
+	 * It will have parms iff parms are provided.
+	 */
+	result->as_reg.flags = 0;
+	ARI_SET_FLAG_TYPE(result->as_reg.flags, type);
+	ARI_SET_FLAG_NN(result->as_reg.flags);
+	if(has_parms)
 	{
-		tnvc_append(&(result->as_reg.parms), parms);
-		tnvc_release(parms, 1);
+		ARI_SET_FLAG_PARM(result->as_reg.flags);
 	}
+
+	result->as_reg.nn_idx = nn;
+
+	/*
+	 * The name will be provided as an integer, which we will store
+	 * in its CBOR encoded format for simplicity andto avoid issues
+	 * with endian encodings.
+	 */
+	if(cut_enc_uvast(id, &(result->as_reg.name)) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("adm_build_reg_ari","Cannot encode id.", NULL);
+		ari_release(result, 1);
+		return NULL;
+	}
+
 	return result;
 }
 

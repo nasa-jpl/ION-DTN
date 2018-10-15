@@ -101,7 +101,8 @@ int adm_add_rpttpl(rpttpl_t *def);
 int adm_add_tblt(tblt_t *def);
 int	adm_add_vardef(ari_t *id, amp_type_e type, expr_t *expr);
 
-ari_t* adm_build_reg_ari(uint8_t flags, vec_idx_t nn, uvast id, tnvc_t *parms);
+ari_t* adm_build_reg_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id);
+
 
 int32_t adm_get_parm_int(tnvc_t *parms, uint8_t idx, int *success);
 void *adm_get_parm_obj(tnvc_t *parms, uint8_t idx, amp_type_e type);

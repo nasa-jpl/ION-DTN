@@ -429,7 +429,11 @@ CborError rule_db_serialize(CborEncoder *encoder, void *item)
 	length = (rule->id.type == AMP_TYPE_SBR) ? 8 : 7;
 	err = cbor_encoder_create_array(encoder, &array_enc, length);
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_db_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 1: Encode the rule definition. */
 	err = rule_serialize_helper(&array_enc, rule);
@@ -509,7 +513,10 @@ CborError rule_serialize(CborEncoder *encoder, void *item)
 	length = (rule->id.type == AMP_TYPE_SBR) ? 6 : 5;
 	err = cbor_encoder_create_array(encoder, &array_enc, length);
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize","CBOR Error: %d", err);
+	}
 
 	err = rule_serialize_helper(&array_enc, rule);
 
@@ -527,11 +534,20 @@ CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
 
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 2: the start time. */
 	err = cbor_encode_uint(array_enc, rule->start);
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 3: Encode def. */
 	if(rule->id.type == AMP_TYPE_SBR)
@@ -543,7 +559,11 @@ CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
 		err = tbrdef_serialize(array_enc, &(rule->def.as_tbr));
 	}
 
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 4: Encode the action. */
 	result = macdef_serialize_wrapper(&(rule->action));
@@ -607,15 +627,22 @@ CborError sbrdef_serialize(CborEncoder *array_enc, sbr_def_t *def)
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
 
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 2: Encode max num evals. */
 	err = cbor_encode_uint(array_enc, def->max_eval);
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 3: Encode max num fires. */
 	err = cbor_encode_uint(array_enc, def->max_fire);
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
 
 	return err;
 }
@@ -627,7 +654,11 @@ tbr_def_t tbrdef_deserialize(CborValue *array_it, int *success)
 	tbr_def_t result;
 
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.period));
-	CHKUSR(*success == AMP_OK, result);
+	if(*success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("tbredef_deserialize","Failed to get period. %d", *success);
+		return result;
+	}
 
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
 
@@ -641,11 +672,15 @@ CborError tbrdef_serialize(CborEncoder *array_enc, tbr_def_t *def)
 
 	/* Step 1: Encode period. */
 	err = cbor_encode_uint(array_enc, def->period);
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("tbrdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 2: Encode max num fires. */
 	err = cbor_encode_uint(array_enc, def->max_fire);
-	CHKUSR((err != CborNoError) && (err != CborErrorOutOfMemory), err);
 
 	return err;
 }

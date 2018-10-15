@@ -170,8 +170,9 @@ typedef struct {
 
 /* ARI Functions */
 
-int       ari_add_param(ari_t *ari, tnv_t parm);
-int       ari_add_parms(ari_t *ari, tnvc_t *parms);
+
+int       ari_add_parm_set(ari_t *ari, tnvc_t *parms);
+int       ari_add_parm_val(ari_t *ari, tnv_t *parm);
 
 int       ari_cb_comp_fn(void *i1, void *i2);
 void*     ari_cb_copy_fn(void *item);
@@ -183,7 +184,7 @@ int       ari_compare(ari_t *ari1, ari_t *ari2);
 
 ari_t     ari_copy(ari_t val, int *success);
 ari_t*    ari_copy_ptr(ari_t ari);
-ari_t*    ari_create();
+ari_t*    ari_create(amp_type_e type);
 
 ari_t     ari_deserialize(CborValue *it, int *success);
 ari_t*    ari_deserialize_ptr(CborValue *it, int *success);

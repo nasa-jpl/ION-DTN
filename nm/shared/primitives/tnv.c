@@ -583,6 +583,17 @@ tnv_t* tnv_from_int(int32_t val)
 	return result;
 }
 
+tnv_t* tnv_from_map(amp_type_e type, uint8_t map_idx)
+{
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+
+	tnv_init(result, type);
+	TNV_SET_MAP(result->flags);
+
+	result->value.as_uint = map_idx;
+	return result;
+}
 
 tnv_t* tnv_from_real32(float val)
 {
@@ -1789,7 +1800,7 @@ int tnvc_init(tnvc_t *tnvc, size_t num)
  *                      required for variable length stuff and 0 otherwise
  *
  * \par Notes:
- *  - The data entry is deep-copied into the TDC, so the data parameter
+ *  - The data entry is shallow-copied into the TDC, so the data parameter
  *    MUST be de-allocated by the calling function.
  *
  * Modification History:
@@ -1798,26 +1809,20 @@ int tnvc_init(tnvc_t *tnvc, size_t num)
  *  03/13/15  J.P Mayer      Initial implementation,
  *  06/27/15  E. Birrane     Ported from datalist to TDC.
  *  06/11/16  E. Birrane     Update to handle inserting to empty TDC.
+ *  10/15/18  E. Birrane     Updtaed to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 int tnvc_insert(tnvc_t* tnvc, tnv_t *tnv)
 {
-	tnv_t *new_tnv = NULL;
 	int result;
 
 	CHKUSR(tnvc,AMP_FAIL);
 	CHKUSR(tnv,AMP_FAIL);
 
-	if((new_tnv = tnv_copy_ptr(*tnv)) == NULL)
-	{
-		AMP_DEBUG_ERR("tnvc_insert","Can't copy TNV.", NULL);
-		return AMP_SYSERR;
-	}
-
-	if((result = vec_insert(&(tnvc->values), new_tnv, NULL)) != AMP_OK)
+	if((result = vec_insert(&(tnvc->values), tnv, NULL)) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("tnvc_insert","Error vector inserting.", NULL);
-		tnv_release(new_tnv, 1);
+		tnv_release(tnv, 1);
 	}
 
 	return result;
@@ -1829,14 +1834,11 @@ void tnvc_release(tnvc_t *tnvc, int destroy)
 {
 	CHKVOID(tnvc);
 
+	vec_release(&(tnvc->values), 0);
+
 	if(destroy)
 	{
-		vec_release(&(tnvc->values), 0);
 		SRELEASE(tnvc);
-	}
-	else
-	{
-		vec_clear(&(tnvc->values));
 	}
 }
 
@@ -1968,24 +1970,14 @@ CborError tnvc_serialize_tvc(CborEncoder *encoder, tnvc_t *tnvc)
 	/* Step 4: For each value, encode it. */
 	for(i = 0; i < types.length; i++)
 	{
-		blob_t *data = NULL;
-
 		tnv_t *tnv = (tnv_t*) vec_at(&(tnvc->values),i);
 
 		/* Go through the trouble of getting a serialized string because we don't
 		 * want the array encoder to think parts of the serialized value are
 		 * different indices in the array...
 		 */
-		if((data = tnv_serialize_wrapper(tnv)) == NULL)
-		{
-			AMP_DEBUG_ERR("tnvc_serialize_tvc","Can't serialize TNV: %d", i);
-			err = CborErrorIO;
-			break;
-		}
 
-		/* Serialize as a bytestring for this array element. */
-		err = cbor_encode_byte_string(&array_enc, data->value, data->length);
-		blob_release(data, 1);
+		err = tnv_serialize_value(&array_enc, tnv);
 		if((err != CborNoError) && (err != CborErrorOutOfMemory))
 		{
 			AMP_DEBUG_ERR("tnvc_serialize_tvc","Can't serialize TNV: %d", i);

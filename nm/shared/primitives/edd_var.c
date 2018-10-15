@@ -411,7 +411,11 @@ CborError var_serialize(CborEncoder *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("var_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 2: Encode the value. */
 	result = tnv_serialize_wrapper(var->value);
@@ -507,11 +511,19 @@ CborError  vardef_serialize(CborEncoder *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("vardef_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 2: Encode the type. */
 	err = cut_enc_byte(encoder, def->type);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("vardef_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 3: Encode the expression. */
 	result = expr_serialize_wrapper(def->expr);

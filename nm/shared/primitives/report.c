@@ -367,7 +367,11 @@ CborError rpt_serialize(CborEncoder *encoder, void *item)
 
 	/* Start a container. */
 	err = cbor_encoder_create_array(encoder, &array_enc, num);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rpt_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(rpt->id);
@@ -645,7 +649,11 @@ CborError rpttpl_serialize(CborEncoder *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rpttpl_serialize","CBOR Error: %d", err);
+		return err;
+	}
 
 	/* Step 2: Encode the type. */
 	result = ac_serialize_wrapper(&(rpttpl->contents));

@@ -107,7 +107,37 @@ char *cut_get_cbor_str(CborValue *value, int *success)
 
 CborError cut_enc_byte(CborEncoder *encoder, uint8_t byte)
 {
+	saturated_decrement(encoder);
 	return append_byte_to_buffer(encoder, byte);
+}
+
+int cut_enc_uvast(uvast num, blob_t *result)
+{
+	CborEncoder encoder;
+	CborError err;
+
+	if(result == NULL)
+	{
+		return AMP_SYSERR;
+	}
+
+	if(blob_init(result, NULL, 0, 16) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("cut_enc_uvast","Unable to create space for value.", NULL);
+		return AMP_FAIL;
+	}
+
+	cbor_encoder_init(&encoder, result->value, result->alloc, 0);
+
+	if((err = cbor_encode_uint(&encoder, num)) != CborNoError)
+	{
+		AMP_DEBUG_ERR("cur_enc_uvast","Can;'t encode value. Err: %d", err);
+		blob_release(result, 0);
+		return AMP_FAIL;
+	}
+
+	result->length = cbor_encoder_get_buffer_size(&encoder, result->value);
+	return AMP_OK;
 }
 
 int cut_enter_array(CborValue *it, size_t min, size_t max, size_t *num, CborValue *array_it)

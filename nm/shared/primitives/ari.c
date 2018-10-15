@@ -188,8 +188,11 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
 
 	err = cut_enc_byte(encoder, ari->as_reg.flags);
 
-
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
+		return err;
+	}
 
 	if(ARI_GET_FLAG_NN(ari->as_reg.flags))
 	{
@@ -197,11 +200,19 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
 		err = (nn != NULL) ? cbor_encode_uint(encoder, *nn) : CborErrorIO;
 	}
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
+		return err;
+	}
 
 	err = blob_serialize(encoder, &(ari->as_reg.name));
 
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
+		return err;
+	}
 
 	if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
 	{
@@ -209,14 +220,24 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
 		err = blob_serialize(encoder, result);
 		blob_release(result, 1);
 	}
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
+		return err;
+	}
 
 	if(ARI_GET_FLAG_ISS(ari->as_reg.flags))
 	{
 		uvast *iss = (uvast *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
 		err = (iss != NULL) ? cbor_encode_uint(encoder, *iss) : CborErrorIO;
 	}
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
+		return err;
+	}
 
 	if(ARI_GET_FLAG_TAG(ari->as_reg.flags))
 	{
@@ -242,10 +263,18 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
  * +--------------------------------------------------------------------------+
  */
 
+int ari_add_parm_set(ari_t *ari, tnvc_t *parms)
+{
+	vec_idx_t idx;
+	CHKUSR(ari, AMP_FAIL);
+	CHKUSR(parms, AMP_FAIL);
+
+	return tnvc_append(&(ari->as_reg.parms), parms);
+}
 
 /******************************************************************************
  *
- * \par Function Name: ari_add_param
+ * \par Function Name: ari_add_parm_val
  *
  * \par Adds a parameter to an ARI.
  *
@@ -255,8 +284,8 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
  * \param[in]      parm  The new parameter.
  *
  * \par Notes:
- *		1. The new parameter is deep copied and the passed-in value may be
- *		   released if necessary.
+ *		1. The new parameter is shallow copied and the passed-in value MUST
+ *		NOT be referenced by the caller again.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -266,22 +295,19 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
  *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
  *  09/18/18  E. Birrane     Update to ARI. (JHU/APL)
  *****************************************************************************/
-int ari_add_param(ari_t *ari, tnv_t parm)
+int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 {
 	CHKUSR(ari, AMP_FAIL);
-	CHKUSR(ari->type != AMP_TYPE_LIT, AMP_FAIL);
-	return tnvc_insert(&(ari->as_reg.parms), &parm);
+
+	if(ari->type == AMP_TYPE_LIT)
+	{
+		return AMP_FAIL;
+	}
+
+	return tnvc_insert(&(ari->as_reg.parms), parm);
 }
 
 
-int ari_add_parms(ari_t *ari, tnvc_t *parms)
-{
-	vec_idx_t idx;
-	CHKUSR(ari, AMP_FAIL);
-	CHKUSR(parms, AMP_FAIL);
-
-	return tnvc_append(&(ari->as_reg.parms), parms);
-}
 
 
 int ari_cb_comp_fn(void *i1, void *i2)
@@ -315,12 +341,33 @@ rh_idx_t  ari_cb_hash(void *table, void *key)
 	unsigned int i    = 0;
 	rhht_t *ht = (rhht_t*) table;
 
-	uint8_t *val = (uint8_t*) key;
-	CHKUSR(val, ht->num_bkts);
+	ari_t *id = (ari_t*) key;
 
-	for (i = 0; i < sizeof(ari_t); ++i)
+	if(id == NULL)
 	{
-		hash = (hash * seed) + val[i];
+		AMP_DEBUG_ERR("ari_cb_hash","Hash c alled with no key.", NULL);
+		return ht->num_bkts;
+	}
+
+	/* Add the type */
+	hash = (hash * seed) + id->type;
+
+	/* Based on type hash ther body. */
+	if(id->type == AMP_TYPE_LIT)
+	{
+		hash = (hash * seed) + id->as_lit.flags;
+		hash = (hash * seed) + id->as_lit.value.as_uvast;
+	}
+	else
+	{
+		hash = (hash * seed) + id->as_reg.flags;
+		hash = (hash * seed) + id->as_reg.iss_idx;
+		hash = (hash * seed) + id->as_reg.nn_idx;
+		hash = (hash * seed) + id->as_reg.tag_idx;
+		for(i = 0; i < id->as_reg.name.length; i++)
+		{
+			hash = (hash * seed) + id->as_reg.name.value[i];
+		}
 	}
 
    return hash % ht->num_bkts;
@@ -466,9 +513,10 @@ ari_t ari_copy(ari_t val, int *success)
 
 ari_t *ari_copy_ptr(ari_t val)
 {
-	ari_t *result = ari_create();
+	ari_t *result = NULL;
 	int success = AMP_OK;
 
+	result = ari_create(val.type);
 	CHKNULL(result);
 
 	*result = ari_copy(val, &success);
@@ -483,9 +531,20 @@ ari_t *ari_copy_ptr(ari_t val)
 
 
 
-ari_t* ari_create()
+ari_t* ari_create(amp_type_e type)
 {
-	return STAKE(sizeof(ari_t));
+	ari_t *result = STAKE(sizeof(ari_t));
+	CHKNULL(result);
+	result->type = type;
+	if(type != AMP_TYPE_LIT)
+	{
+		if(tnvc_init(&(result->as_reg.parms), 0) != AMP_OK)
+		{
+			SRELEASE(result);
+			result = NULL;
+		}
+	}
+	return result;
 }
 
 
@@ -538,16 +597,16 @@ ari_t ari_deserialize(CborValue *it, int *success)
 
 ari_t *ari_deserialize_ptr(CborValue *it, int *success)
 {
-	ari_t *result = ari_create();
+	ari_t tmp;
+	ari_t *result = NULL;
 
 	*success = AMP_FAIL;
-	CHKNULL(result);
 
-	*result = ari_deserialize(it, success);
-	if(*success != AMP_OK)
+	tmp = ari_deserialize(it, success);
+	if(*success == AMP_OK)
 	{
-		ari_release(result, 1);
-		result = NULL;
+		result = ari_copy_ptr(tmp);
+		ari_release(&tmp, 0);
 	}
 
 	return result;
@@ -704,7 +763,7 @@ int ari_replace_parms(ari_t *ari, tnvc_t *new_parms)
 	CHKUSR((ari->type != AMP_TYPE_LIT), AMP_FAIL);
 
 	tnvc_clear(&(ari->as_reg.parms));
-	return ari_add_parms(ari, new_parms);
+	return ari_add_parm_set(ari, new_parms);
 }
 
 /*
@@ -1034,7 +1093,7 @@ CborError ac_serialize(CborEncoder *encoder, void *item)
 		err = CborErrorIO;
 		if(result != NULL)
 		{
-			err = cbor_encode_byte_string(encoder, result->value, result->length);
+			err = cbor_encode_byte_string(&array_enc, result->value, result->length);
 			blob_release(result, 1);
 		}
 
@@ -1046,7 +1105,8 @@ CborError ac_serialize(CborEncoder *encoder, void *item)
 		}
 	}
 
-	return cbor_encoder_close_container(encoder, &array_enc);
+	err = cbor_encoder_close_container(encoder, &array_enc);
+	return err;
 }
 
 
