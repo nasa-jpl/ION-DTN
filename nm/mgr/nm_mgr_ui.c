@@ -139,7 +139,7 @@ rpttpl_t *ui_create_rpttpl_from_parms(tnvc_t parms)
 	CHKNULL(ari);
 	CHKNULL(ac);
 
-	ari_t *a1 = ari_copy_ptr(*ari);
+	ari_t *a1 = ari_copy_ptr(ari);
 	ac_t ac2 = ac_copy(ac);
 
 	if((result = rpttpl_create(a1, ac2)) == NULL)
@@ -280,7 +280,7 @@ void ui_list_objs(uint8_t adm_id, uint8_t type)
 
 			for(it = vecit_first(&(meta->parmspec)); vecit_valid(it); it = vecit_next(it))
 			{
-				parm_t *parm = (parm_t *) vecit_data(it);
+				meta_fp_t *parm = (meta_fp_t *) vecit_data(it);
 				if(j != 0)
 				{
 					printf(",");

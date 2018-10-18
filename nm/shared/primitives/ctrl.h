@@ -69,7 +69,6 @@ typedef struct
     ari_t *ari;			  /**> The ID identifying this def.        */
 
     uint8_t num_parms;    /**> # params needed to complete this MID.*/
-    uint8_t adm_info;     /**> The ADM defining this CTRL. */
 
     ctrldef_run_fn run;  /**> Function implementing the control.   */
 
@@ -133,7 +132,7 @@ CborError ctrl_serialize(CborEncoder *encoder, void *item);
 blob_t* ctrl_serialize_wrapper(ctrl_t *ctrl);
 void    ctrl_set_exec(ctrl_t *ctrl, time_t start, eid_t caller);
 
-ctrldef_t *ctrldef_create(ari_t *ari, uint8_t num, uint8_t adm, ctrldef_run_fn run);
+ctrldef_t *ctrldef_create(ari_t *ari, uint8_t num, ctrldef_run_fn run);
 void       ctrldef_del_fn(rh_elt_t *elt);
 void       ctrldef_release(ctrldef_t *def, int destroy);
 

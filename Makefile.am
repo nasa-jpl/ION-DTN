@@ -1919,11 +1919,11 @@ nm_agent_SOURCES =  $(nm_shared_src)				\
 					nm/agent/ingest.c  				\
 					nm/agent/instr.c				\
 					nm/agent/lcc.c     				\
-					nm/agent/ldc.c 					\
 					nm/agent/nmagent.c 				\
-                    nm/agent/rda.c 					\                   
-					nm/agent/adm_ltp_agent_impl.c	\
-					nm/agent/adm_ltp_agent_agent.c  
+					nm/agent/ldc.c 					\
+                    nm/agent/rda.c 					\
+                    nm/agent/adm_amp_agent_impl.c   \
+                    nm/agent/adm_amp_agent_agent.c                     
 				
 					 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -1943,7 +1943,7 @@ nm_mgr_SOURCES =    $(nm_shared_src)				\
 					nm/mgr/nm_mgr_ui.c 				\
 					nm/mgr/nm_mgr.c					\
 					nm/mgr/ui_input.c 				\
-					nm/mgr/adm_ltp_agent_mgr.c
+					nm/mgr/adm_amp_agent_mgr.c      
 					 	
 					
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)

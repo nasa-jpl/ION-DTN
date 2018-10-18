@@ -183,7 +183,7 @@ void      ari_cb_ht_del(rh_elt_t *elt);
 int       ari_compare(ari_t *ari1, ari_t *ari2);
 
 ari_t     ari_copy(ari_t val, int *success);
-ari_t*    ari_copy_ptr(ari_t ari);
+ari_t*    ari_copy_ptr(ari_t *ari);
 ari_t*    ari_create(amp_type_e type);
 
 ari_t     ari_deserialize(CborValue *it, int *success);
@@ -212,6 +212,7 @@ char*     ari_to_string(ari_t *ari);
 
 
 /* ARI Collection Functions */
+int       ac_append(ac_t *dest, ac_t *src);
 void      ac_clear(ac_t *ac);
 ac_t*     ac_create();
 int       ac_compare(ac_t *a1, ac_t *a2);
@@ -231,9 +232,5 @@ void      ac_release(ac_t *ac, int destroy);
 
 CborError ac_serialize(CborEncoder *encoder, void *item);
 blob_t*   ac_serialize_wrapper(ac_t *ac);
-
-
-
-
 
 #endif

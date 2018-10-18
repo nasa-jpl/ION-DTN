@@ -82,8 +82,7 @@ tbl_t* tbl_copy_ptr(tbl_t *tbl)
 		return NULL;
 	}
 
-	result->id = ari_copy(tbl->id, &success);
-	if(success != AMP_OK)
+	if((result->id = ari_copy_ptr(tbl->id)) == NULL)
 	{
 		SRELEASE(result);
 		return NULL;
@@ -92,7 +91,7 @@ tbl_t* tbl_copy_ptr(tbl_t *tbl)
 	result->rows = vec_copy(&(tbl->rows), &success);
 	if(success != AMP_OK)
 	{
-		ari_release(&(result->id),0);
+		ari_release(result->id,1);
 		SRELEASE(result);
 		result = NULL;
 	}
@@ -112,8 +111,7 @@ tbl_t*   tbl_create(ari_t *id)
 		return NULL;
 	}
 
-	result->id = ari_copy(*id, &success);
-	if(success != AMP_OK)
+	if((result->id = ari_copy_ptr(id)) == NULL)
 	{
 		SRELEASE(result);
 		return NULL;
@@ -189,7 +187,7 @@ tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
 			break;
 		}
 
-		cur_row = tnvc_deserialize_raw(&bytestr, success);
+		cur_row = tnvc_deserialize_ptr_raw(&bytestr, success);
 		blob_release(&bytestr, 0);
 
 		if((cur_row == NULL) || (*success != AMP_OK))
@@ -248,7 +246,7 @@ tnvc_t*  tbl_get_row(tbl_t *tbl, int row_idx)
 void tbl_release(tbl_t *tbl, int destroy)
 {
 	CHKVOID(tbl);
-	ari_release(&(tbl->id), 0);
+	ari_release(tbl->id, 1);
 	vec_release(&(tbl->rows), 0);
 
 	if(destroy)
@@ -288,7 +286,7 @@ CborError tbl_serialize(CborEncoder *encoder, void *item)
 	}
 
 	/* Step 1: Encode the ARI. */
-	result = ari_serialize_wrapper(&(tbl->id));
+	result = ari_serialize_wrapper(tbl->id);
 	err = blob_serialize(&array_enc, result);
 	blob_release(result, 1);
 
@@ -407,7 +405,7 @@ int tblt_cb_comp_fn(void *i1, void *i2)
 	CHKUSR(t1, -1);
 	CHKUSR(t2, -1);
 
-	return ari_compare(&(t1->id), &(t2->id));
+	return ari_compare(t1->id, t2->id);
 }
 
 void* tblt_cb_copy_fn(void *item)
@@ -458,8 +456,7 @@ tblt_t* tblt_copy_ptr(tblt_t *tblt)
 		return NULL;
 	}
 
-	result->id = ari_copy(tblt->id, &success);
-	if(success != AMP_OK)
+	if((result->id = ari_copy_ptr(tblt->id)) == NULL)
 	{
 		SRELEASE(result);
 		return NULL;
@@ -468,7 +465,7 @@ tblt_t* tblt_copy_ptr(tblt_t *tblt)
 	result->cols = vec_copy(&(tblt->cols), &success);
 	if(success != AMP_OK)
 	{
-		ari_release(&(result->id),0);
+		ari_release(result->id,1);
 		SRELEASE(result);
 		result = NULL;
 	}
@@ -483,18 +480,19 @@ tblt_t* tblt_create(ari_t *id)
 	tblt_t *result = NULL;
 	int success;
 
+	if(id == NULL)
+	{
+		return NULL;
+	}
+
 	if((result = (tblt_t*) STAKE(sizeof(tblt_t))) == NULL)
 	{
 		return NULL;
 	}
 
-	result->id = ari_copy(*id, &success);
-	if(success != AMP_OK)
-	{
-		SRELEASE(result);
-		return NULL;
-	}
+	result->id = id;
 	result->cols = vec_create(0, tblt_col_cb_del_fn, NULL, tblt_col_cb_copy_fn, 0, &success);
+
 	if(success != VEC_OK)
 	{
 		tblt_release(result, 1);
@@ -614,7 +612,6 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 
 	/* Step 3: Create the table template object. */
 	result = tblt_create(id);
-	ari_release(id, 1);
 
 	if(result == NULL)
 	{
@@ -703,7 +700,7 @@ int tblt_num_cols(tblt_t *tblt)
 void tblt_release(tblt_t *tblt, int destroy)
 {
 	CHKVOID(tblt);
-	ari_release(&(tblt->id), 0);
+	ari_release(tblt->id, 1);
 	vec_release(&(tblt->cols), 0);
 
 	if(destroy)
@@ -737,7 +734,7 @@ CborError tblt_serialize(CborEncoder *encoder, void *item)
 	}
 
 	/* Step 1: Encode the ARI. */
-	result = ari_serialize_wrapper(&(tblt->id));
+	result = ari_serialize_wrapper(tblt->id);
 	err = blob_serialize(&array_enc, result);
 	blob_release(result, 1);
 

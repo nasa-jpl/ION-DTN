@@ -193,6 +193,7 @@ int cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val)
 	 */
 	if(type == AMP_TYPE_BYTE)
 	{
+//		preparse_next_value(value);
 		*((uint8_t*)val) = *((uint8_t*) value->ptr);
 		value->ptr++;
 		preparse_value(value);
@@ -265,8 +266,21 @@ int cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val)
 		AMP_DEBUG_ERR("cut_get_cbor_numeric","Cbor error %d", err);
 		return AMP_FAIL;
 	}
-
 	return cut_advance_it(value);
+}
+
+CborError cut_enc_refresh(CborValue *it)
+{
+	it->extra = 0;
+	it->type = 0;
+	it->remaining = 1;      /* there's one type altogether, usually an array or map */
+	return preparse_value(it);
+}
+
+// Expect this many more items.
+void cut_enc_expect_more(CborValue *it, int num)
+{
+	it->remaining += num;
 }
 
 

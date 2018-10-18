@@ -22,16 +22,75 @@
 
 
 
+/*
+ * Will release id on failure.
+ */
+metadata_t *meta_add_edd(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t *meta_add_cnst(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t* meta_add_op(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t* meta_add_var(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t* meta_add_ctrl(ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t* meta_add_macro(ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t* meta_add_rpttpl(ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
+
+metadata_t* meta_add_tblt(ari_t *id, uint8_t adm_id, char *name, char *descr)
+{
+	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
+	return meta;
+}
 
 int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 {
-	parm_t *new_parm;
+	meta_fp_t *new_parm;
 
-	CHKUSR(meta, AMP_FAIL);
-	CHKUSR(name, AMP_FAIL);
-	CHKUSR(type != AMP_TYPE_UNK, AMP_FAIL);
+	if((meta == NULL) || (name == NULL) || (type == AMP_TYPE_UNK))
+	{
+		return AMP_FAIL;
+	}
 
-	new_parm = (parm_t *) STAKE(sizeof(parm_t));
+	new_parm = (meta_fp_t *) STAKE(sizeof(meta_fp_t));
 	CHKUSR(new_parm, AMP_FAIL);
 
 	strncpy(new_parm->name, name, AMP_MAX_EID_LEN);
@@ -67,7 +126,7 @@ void meta_cb_filter(void *value, void *tag)
 
 
 // Shallow copy of ARI.
-metadata_t *meta_create(ari_t *id, uint32_t adm_id, char *name, char *desc)
+metadata_t *meta_create(amp_type_e type, ari_t *id, uint32_t adm_id, char *name, char *desc)
 {
 	metadata_t *result = NULL;
 	int success;
@@ -78,6 +137,7 @@ metadata_t *meta_create(ari_t *id, uint32_t adm_id, char *name, char *desc)
 	CHKNULL(result);
 	result->adm_id = adm_id;
 	result->id = id;
+	result->type = type;
 	strncpy(result->name, name, META_NAME_MAX);
 	strncpy(result->descr, desc, META_DESCR_MAX);
 
@@ -90,6 +150,9 @@ metadata_t *meta_create(ari_t *id, uint32_t adm_id, char *name, char *desc)
 
 	return result;
 }
+
+
+
 
 meta_col_t* meta_filter(uint32_t adm_id, amp_type_e type)
 {
@@ -104,9 +167,9 @@ meta_col_t* meta_filter(uint32_t adm_id, amp_type_e type)
 	return result;
 }
 
-parm_t *meta_get_parm(metadata_t *meta, uint8_t idx)
+meta_fp_t *meta_get_parm(metadata_t *meta, uint8_t idx)
 {
-	parm_t *result;
+	meta_fp_t *result;
 	CHKNULL(meta);
 	return vec_at(&(meta->parmspec), idx);
 }
@@ -132,52 +195,6 @@ int meta_store_mac(metadata_t *meta, macdef_t *macdef)
 	return AMP_OK;
 }
 
-int meta_store_rpttpl(metadata_t *meta, rpttpl_t *rpttpl)
-{
-	adm_add_rpttpl(rpttpl);
-	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
-	return AMP_OK;
-}
-
-int meta_store_obj(metadata_t *meta)
-{
-	int success = AMP_FAIL;
-
-	CHKUSR(meta, AMP_FAIL);
-
-	switch(meta->id->type)
-	{
-	case AMP_TYPE_CNST:
-		success = adm_add_cnst(meta->id);
-		break;
-	case AMP_TYPE_CTRL:
-		success = adm_add_ctrldef(meta->id, vec_num_entries(meta->parmspec), meta->adm_id, NULL);
-		break;
-	case AMP_TYPE_EDD:
-		success = adm_add_edd(meta->id, NULL);
-		break;
-	case AMP_TYPE_LIT:
-		success = adm_add_lit(meta->id);
-		break;
-	case AMP_TYPE_OPER:
-		success = adm_add_op(meta->id,vec_num_entries(meta->parmspec), NULL);
-		break;
-	default:
-		return AMP_FAIL;
-		break;
-	}
-
-	if(success == AMP_OK)
-	{
-		rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
-	}
-	else
-	{
-		AMP_DEBUG_ERR("meta_store_obj","Unable to add meta object for %s", meta->name);
-		meta_release(meta, 1);
-	}
-	return success;
-}
 
 meta_col_t* metacol_create()
 {
@@ -203,10 +220,3 @@ void metacol_release(meta_col_t*col, int destroy)
 		SRELEASE(col);
 	}
 }
-
-
-
-
-
-
-

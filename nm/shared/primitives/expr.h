@@ -100,12 +100,13 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
+int       expr_add_item(expr_t *expr, ari_t *item);
 
 tnv_t*    expr_apply_op(ari_t *id, vector_t *stack);
 
 int       expr_calc_result_type(int ltype, int rtype, int optype);
 
-expr_t*   expr_create(amp_type_e type, ac_t contents);
+expr_t*   expr_create(amp_type_e type);
 
 expr_t    expr_copy(expr_t expr);
 
@@ -129,6 +130,8 @@ blob_t*   expr_serialize_wrapper(expr_t *expr);
 
 void      op_cb_del_fn(void *item);
 int       op_cb_comp_fn(void *i1, void *i2);
+
+int       op_cb_ht_comp_fn(void *key, void *value);
 void      op_cb_ht_del_fn(rh_elt_t *elt);
 
 op_t*     op_copy_ptr(op_t *src);

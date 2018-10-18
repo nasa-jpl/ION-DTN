@@ -87,16 +87,18 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 
 	/* We got here through a peek, so we know this next byte is good. */
 	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &flags);
+	cut_enc_expect_more(it, 1);
 
 	result.type = ARI_GET_FLAG_TYPE(flags);
 	result.as_reg.flags = flags;
-
 
 	/* Get the nickname, if one exists. */
 	if((*success == AMP_OK) && ARI_GET_FLAG_NN(flags))
 	{
 		/* Get the UVAST nickname. */
 		*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
+		cut_enc_expect_more(it, 1);
+
 		VDB_ADD_NN(temp, &(result.as_reg.nn_idx));
 	}
 
@@ -104,16 +106,30 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 	if(*success == AMP_OK)
 	{
 		result.as_reg.name = blob_deserialize(it, success);
+		cut_enc_expect_more(it, 1);
 	}
 
 	if((*success == AMP_OK) && ARI_GET_FLAG_PARM(flags))
 	{
 
-		result.as_reg.parms = tnvc_deserialize(it, success);
+		blob_t blob;
+		tnvc_t tmp;
+
+		cut_enc_refresh(it);
+
+		blob = blob_deserialize(it, success);
+		tmp = tnvc_deserialize_raw(&blob, success);
+		blob_release(&blob, 0);
+
 		if(*success != AMP_OK)
 		{
 			ari_release(&result, 0);
 			return result;
+		}
+		else
+		{
+			result.as_reg.parms = tmp;
+			cut_enc_expect_more(it, 1);
 		}
 	}
 
@@ -121,12 +137,15 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 	{
 		/* Get the UVAST nickname. */
 		cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
+		cut_enc_expect_more(it, 1);
+
 		VDB_ADD_ISS(temp, &(result.as_reg.iss_idx));
 	}
 
 	if((*success == AMP_OK) && ARI_GET_FLAG_TAG(flags))
 	{
 		blob_t tag = blob_deserialize(it, success);
+		cut_enc_expect_more(it, 1);
 
 		if(*success == AMP_OK)
 		{
@@ -297,9 +316,9 @@ int ari_add_parm_set(ari_t *ari, tnvc_t *parms)
  *****************************************************************************/
 int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 {
-	CHKUSR(ari, AMP_FAIL);
-
-	if(ari->type == AMP_TYPE_LIT)
+	if((ari == NULL) ||
+	   (parm == NULL) ||
+	   (ari->type == AMP_TYPE_LIT))
 	{
 		return AMP_FAIL;
 	}
@@ -321,7 +340,7 @@ int ari_cb_comp_fn(void *i1, void *i2)
 void* ari_cb_copy_fn(void *item)
 {
 	CHKNULL(item);
-	return ari_copy_ptr(*((ari_t*)item));
+	return ari_copy_ptr((ari_t*)item);
 }
 
 void ari_cb_del_fn(void *item)
@@ -442,6 +461,21 @@ int ari_compare(ari_t *ari1, ari_t *ari2)
     	{
     		return 1;
     	}
+
+    	/* IFF both ARIs have actual parms, do a parm compare.
+    	 *
+    	 * We only get here if the flags for both ARIs are equal, so
+    	 * if both ARIs have the parm flag set, but only 1 (or 0) ARIs
+    	 * have actual parms, then we are comparing an ARI prototype
+    	 * versus an actual ARI, or comparing 2 ARI prototypes. In those
+    	 * cases, we do not (and cannot) compare parms, but that does
+    	 * not mean there isn't a match.
+    	 */
+    	if((tnvc_get_count(&(ari1->as_reg.parms)) > 0) &&
+    	   (tnvc_get_count(&(ari2->as_reg.parms)) > 0))
+    	{
+    		return tnvc_compare(&(ari1->as_reg.parms), &(ari2->as_reg.parms));
+    	}
     }
 
     return 0;
@@ -488,38 +522,43 @@ ari_t ari_copy(ari_t val, int *success)
     }
     else
     {
-    	*success = blob_copy(val.as_reg.name, &(result.as_reg.name));
-    	CHKUSR(*success == AMP_OK, result);
-
-    	*success = tnvc_init(&(result.as_reg.parms), tnvc_get_count(&(val.as_reg.parms)));
-    	if(*success != AMP_OK)
+    	if((*success = blob_copy(val.as_reg.name, &(result.as_reg.name))) != AMP_OK)
     	{
-    		blob_release(&(val.as_reg.name), 0);
     		return result;
     	}
 
-        *success = tnvc_append(&(result.as_reg.parms), &(val.as_reg.parms));
-        if(*success != AMP_OK)
-        {
-        	blob_release(&(val.as_reg.name), 0);
+    	if((*success = tnvc_init(&(result.as_reg.parms), tnvc_get_count(&(val.as_reg.parms)))) != AMP_OK)
+    	{
+    		blob_release(&(result.as_reg.name), 0);
+    		return result;
+    	}
+
+    	if((*success = tnvc_append(&(result.as_reg.parms), &(val.as_reg.parms))) != AMP_OK)
+    	{
+        	blob_release(&(result.as_reg.name), 0);
         	tnvc_release(&(result.as_reg.parms), 0);
         	return result;
-        }
+    	}
     }
 
     return result;
 }
 
 
-ari_t *ari_copy_ptr(ari_t val)
+ari_t *ari_copy_ptr(ari_t *val)
 {
 	ari_t *result = NULL;
 	int success = AMP_OK;
 
-	result = ari_create(val.type);
+	if(val == NULL)
+	{
+		return NULL;
+	}
+
+	result = ari_create(val->type);
 	CHKNULL(result);
 
-	*result = ari_copy(val, &success);
+	*result = ari_copy(*val, &success);
 	if(success != AMP_OK)
 	{
 		SRELEASE(result); // don't call ari_release here since ari_copy cleans up anyway.
@@ -605,7 +644,7 @@ ari_t *ari_deserialize_ptr(CborValue *it, int *success)
 	tmp = ari_deserialize(it, success);
 	if(*success == AMP_OK)
 	{
-		result = ari_copy_ptr(tmp);
+		result = ari_copy_ptr(&tmp);
 		ari_release(&tmp, 0);
 	}
 
@@ -866,6 +905,22 @@ char *ari_to_string(ari_t *ari)
 }
 
 
+int ac_append(ac_t *dest, ac_t *src)
+{
+	if((dest == NULL) || (src == NULL))
+	{
+		return AMP_FAIL;
+	}
+
+	if(vec_num_entries(src->values) <= 0)
+	{
+		return AMP_OK;
+	}
+
+	return vec_append(&(dest->values), &(src->values));
+}
+
+
 void ac_clear(ac_t *ac)
 {
 	CHKVOID(ac);
@@ -925,7 +980,7 @@ ac_t ac_copy(ac_t *src)
 	for(it = vecit_first(&(src->values)); vecit_valid(it); it = vecit_next(it))
 	{
 		cur_ari = vecit_data(it);
-		new_ari = ari_copy_ptr(*cur_ari);
+		new_ari = ari_copy_ptr(cur_ari);
 		if((success = vec_insert(&(result.values), new_ari, NULL)) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("ac_copy","Error copying AC.", NULL);
@@ -990,7 +1045,10 @@ ac_t ac_deserialize(CborValue *it, int *success)
 
 	for(i = 0; i < length; i++)
 	{
-		ari_t *cur_ari = ari_deserialize_ptr(&array_it, success);
+		blob_t *blob = blob_deserialize_ptr(&array_it, success);
+		ari_t *cur_ari = ari_deserialize_raw(blob, success);
+		blob_release(blob, 1);
+
 		if((*success = ac_insert(&result, cur_ari)) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("ac_deserialize","Can't grab ARI #%d.", i);
@@ -1061,7 +1119,10 @@ int ac_insert(ac_t* ac, ari_t *ari)
 
 void ac_release(ac_t *ac, int destroy)
 {
-	CHKVOID(ac);
+	if(ac == NULL)
+	{
+		return;
+	}
 
 	vec_release(&(ac->values), 0);
 	if(destroy)

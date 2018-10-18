@@ -1134,11 +1134,11 @@ am_nm_agent_OBJECTS = $(am__objects_5) \
 	nm/agent/nm_agent-ingest.$(OBJEXT) \
 	nm/agent/nm_agent-instr.$(OBJEXT) \
 	nm/agent/nm_agent-lcc.$(OBJEXT) \
-	nm/agent/nm_agent-ldc.$(OBJEXT) \
 	nm/agent/nm_agent-nmagent.$(OBJEXT) \
+	nm/agent/nm_agent-ldc.$(OBJEXT) \
 	nm/agent/nm_agent-rda.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ltp_agent_impl.$(OBJEXT) \
-	nm/agent/nm_agent-adm_ltp_agent_agent.$(OBJEXT)
+	nm/agent/nm_agent-adm_amp_agent_impl.$(OBJEXT) \
+	nm/agent/nm_agent-adm_amp_agent_agent.$(OBJEXT)
 nm_agent_OBJECTS = $(am_nm_agent_OBJECTS)
 nm_agent_DEPENDENCIES = libici.la libbp.la libltp.la $(LIBOBJS)
 nm_agent_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -1172,7 +1172,7 @@ am_nm_mgr_OBJECTS = $(am__objects_6) nm/mgr/nm_mgr-agents.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr_ui.$(OBJEXT) \
 	nm/mgr/nm_mgr-nm_mgr.$(OBJEXT) \
 	nm/mgr/nm_mgr-ui_input.$(OBJEXT) \
-	nm/mgr/nm_mgr-adm_ltp_agent_mgr.$(OBJEXT)
+	nm/mgr/nm_mgr-adm_amp_agent_mgr.$(OBJEXT)
 nm_mgr_OBJECTS = $(am_nm_mgr_OBJECTS)
 nm_mgr_DEPENDENCIES = libici.la libbp.la libltp.la $(LIBOBJS)
 nm_mgr_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -3213,11 +3213,11 @@ nm_agent_SOURCES = $(nm_shared_src)				\
 					nm/agent/ingest.c  				\
 					nm/agent/instr.c				\
 					nm/agent/lcc.c     				\
-					nm/agent/ldc.c 					\
 					nm/agent/nmagent.c 				\
+					nm/agent/ldc.c 					\
                     nm/agent/rda.c 					\
-					nm/agent/adm_ltp_agent_impl.c	\
-					nm/agent/adm_ltp_agent_agent.c  
+                    nm/agent/adm_amp_agent_impl.c   \
+                    nm/agent/adm_amp_agent_agent.c                     
 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
@@ -3234,7 +3234,7 @@ nm_mgr_SOURCES = $(nm_shared_src)				\
 					nm/mgr/nm_mgr_ui.c 				\
 					nm/mgr/nm_mgr.c					\
 					nm/mgr/ui_input.c 				\
-					nm/mgr/adm_ltp_agent_mgr.c
+					nm/mgr/adm_amp_agent_mgr.c      
 
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
@@ -4820,15 +4820,15 @@ nm/agent/nm_agent-instr.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-lcc.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-ldc.$(OBJEXT): nm/agent/$(am__dirstamp) \
-	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-nmagent.$(OBJEXT): nm/agent/$(am__dirstamp) \
+	nm/agent/$(DEPDIR)/$(am__dirstamp)
+nm/agent/nm_agent-ldc.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
 nm/agent/nm_agent-rda.$(OBJEXT): nm/agent/$(am__dirstamp) \
 	nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ltp_agent_impl.$(OBJEXT):  \
+nm/agent/nm_agent-adm_amp_agent_impl.$(OBJEXT):  \
 	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
-nm/agent/nm_agent-adm_ltp_agent_agent.$(OBJEXT):  \
+nm/agent/nm_agent-adm_amp_agent_agent.$(OBJEXT):  \
 	nm/agent/$(am__dirstamp) nm/agent/$(DEPDIR)/$(am__dirstamp)
 
 nm_agent$(EXEEXT): $(nm_agent_OBJECTS) $(nm_agent_DEPENDENCIES) $(EXTRA_nm_agent_DEPENDENCIES) 
@@ -4912,7 +4912,7 @@ nm/mgr/nm_mgr-nm_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 nm/mgr/nm_mgr-ui_input.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
-nm/mgr/nm_mgr-adm_ltp_agent_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
+nm/mgr/nm_mgr-adm_amp_agent_mgr.$(OBJEXT): nm/mgr/$(am__dirstamp) \
 	nm/mgr/$(DEPDIR)/$(am__dirstamp)
 
 nm_mgr$(EXEEXT): $(nm_mgr_OBJECTS) $(nm_mgr_DEPENDENCIES) $(EXTRA_nm_mgr_DEPENDENCIES) 
@@ -5590,8 +5590,8 @@ include ltp/test/$(DEPDIR)/sdatest-sdatest.Po
 include ltp/udp/$(DEPDIR)/udplsi-udplsi.Po
 include ltp/udp/$(DEPDIR)/udplso-udplso.Po
 include ltp/utils/$(DEPDIR)/ltpadmin-ltpadmin.Po
-include nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Po
-include nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Po
+include nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Po
 include nm/agent/$(DEPDIR)/nm_agent-ingest.Po
 include nm/agent/$(DEPDIR)/nm_agent-instr.Po
 include nm/agent/$(DEPDIR)/nm_agent-lcc.Po
@@ -5602,7 +5602,7 @@ include nm/contrib/tinycbor/src/$(DEPDIR)/nm_agent-cborencoder.Po
 include nm/contrib/tinycbor/src/$(DEPDIR)/nm_agent-cborparser.Po
 include nm/contrib/tinycbor/src/$(DEPDIR)/nm_mgr-cborencoder.Po
 include nm/contrib/tinycbor/src/$(DEPDIR)/nm_mgr-cborparser.Po
-include nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Po
+include nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-agents.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-metadata.Po
 include nm/mgr/$(DEPDIR)/nm_mgr-nm_mgr.Po
@@ -7995,20 +7995,6 @@ nm/agent/nm_agent-lcc.obj: nm/agent/lcc.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-lcc.obj `if test -f 'nm/agent/lcc.c'; then $(CYGPATH_W) 'nm/agent/lcc.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/lcc.c'; fi`
 
-nm/agent/nm_agent-ldc.o: nm/agent/ldc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-ldc.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo -c -o nm/agent/nm_agent-ldc.o `test -f 'nm/agent/ldc.c' || echo '$(srcdir)/'`nm/agent/ldc.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo nm/agent/$(DEPDIR)/nm_agent-ldc.Po
-#	$(AM_V_CC)source='nm/agent/ldc.c' object='nm/agent/nm_agent-ldc.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-ldc.o `test -f 'nm/agent/ldc.c' || echo '$(srcdir)/'`nm/agent/ldc.c
-
-nm/agent/nm_agent-ldc.obj: nm/agent/ldc.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-ldc.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo -c -o nm/agent/nm_agent-ldc.obj `if test -f 'nm/agent/ldc.c'; then $(CYGPATH_W) 'nm/agent/ldc.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/ldc.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo nm/agent/$(DEPDIR)/nm_agent-ldc.Po
-#	$(AM_V_CC)source='nm/agent/ldc.c' object='nm/agent/nm_agent-ldc.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-ldc.obj `if test -f 'nm/agent/ldc.c'; then $(CYGPATH_W) 'nm/agent/ldc.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/ldc.c'; fi`
-
 nm/agent/nm_agent-nmagent.o: nm/agent/nmagent.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-nmagent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-nmagent.Tpo -c -o nm/agent/nm_agent-nmagent.o `test -f 'nm/agent/nmagent.c' || echo '$(srcdir)/'`nm/agent/nmagent.c
 	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-nmagent.Tpo nm/agent/$(DEPDIR)/nm_agent-nmagent.Po
@@ -8022,6 +8008,20 @@ nm/agent/nm_agent-nmagent.obj: nm/agent/nmagent.c
 #	$(AM_V_CC)source='nm/agent/nmagent.c' object='nm/agent/nm_agent-nmagent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-nmagent.obj `if test -f 'nm/agent/nmagent.c'; then $(CYGPATH_W) 'nm/agent/nmagent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/nmagent.c'; fi`
+
+nm/agent/nm_agent-ldc.o: nm/agent/ldc.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-ldc.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo -c -o nm/agent/nm_agent-ldc.o `test -f 'nm/agent/ldc.c' || echo '$(srcdir)/'`nm/agent/ldc.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo nm/agent/$(DEPDIR)/nm_agent-ldc.Po
+#	$(AM_V_CC)source='nm/agent/ldc.c' object='nm/agent/nm_agent-ldc.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-ldc.o `test -f 'nm/agent/ldc.c' || echo '$(srcdir)/'`nm/agent/ldc.c
+
+nm/agent/nm_agent-ldc.obj: nm/agent/ldc.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-ldc.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo -c -o nm/agent/nm_agent-ldc.obj `if test -f 'nm/agent/ldc.c'; then $(CYGPATH_W) 'nm/agent/ldc.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/ldc.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-ldc.Tpo nm/agent/$(DEPDIR)/nm_agent-ldc.Po
+#	$(AM_V_CC)source='nm/agent/ldc.c' object='nm/agent/nm_agent-ldc.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-ldc.obj `if test -f 'nm/agent/ldc.c'; then $(CYGPATH_W) 'nm/agent/ldc.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/ldc.c'; fi`
 
 nm/agent/nm_agent-rda.o: nm/agent/rda.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-rda.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-rda.Tpo -c -o nm/agent/nm_agent-rda.o `test -f 'nm/agent/rda.c' || echo '$(srcdir)/'`nm/agent/rda.c
@@ -8037,33 +8037,33 @@ nm/agent/nm_agent-rda.obj: nm/agent/rda.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-rda.obj `if test -f 'nm/agent/rda.c'; then $(CYGPATH_W) 'nm/agent/rda.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/rda.c'; fi`
 
-nm/agent/nm_agent-adm_ltp_agent_impl.o: nm/agent/adm_ltp_agent_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_impl.o `test -f 'nm/agent/adm_ltp_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_impl.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_impl.c' object='nm/agent/nm_agent-adm_ltp_agent_impl.o' libtool=no \
+nm/agent/nm_agent-adm_amp_agent_impl.o: nm/agent/adm_amp_agent_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_amp_agent_impl.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_amp_agent_impl.o `test -f 'nm/agent/adm_amp_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_amp_agent_impl.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_amp_agent_impl.c' object='nm/agent/nm_agent-adm_amp_agent_impl.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_impl.o `test -f 'nm/agent/adm_ltp_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_impl.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_amp_agent_impl.o `test -f 'nm/agent/adm_amp_agent_impl.c' || echo '$(srcdir)/'`nm/agent/adm_amp_agent_impl.c
 
-nm/agent/nm_agent-adm_ltp_agent_impl.obj: nm/agent/adm_ltp_agent_impl.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_impl.obj `if test -f 'nm/agent/adm_ltp_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_impl.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_impl.Po
-#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_impl.c' object='nm/agent/nm_agent-adm_ltp_agent_impl.obj' libtool=no \
+nm/agent/nm_agent-adm_amp_agent_impl.obj: nm/agent/adm_amp_agent_impl.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_amp_agent_impl.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Tpo -c -o nm/agent/nm_agent-adm_amp_agent_impl.obj `if test -f 'nm/agent/adm_amp_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_amp_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_amp_agent_impl.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_impl.Po
+#	$(AM_V_CC)source='nm/agent/adm_amp_agent_impl.c' object='nm/agent/nm_agent-adm_amp_agent_impl.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_impl.obj `if test -f 'nm/agent/adm_ltp_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_impl.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_amp_agent_impl.obj `if test -f 'nm/agent/adm_amp_agent_impl.c'; then $(CYGPATH_W) 'nm/agent/adm_amp_agent_impl.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_amp_agent_impl.c'; fi`
 
-nm/agent/nm_agent-adm_ltp_agent_agent.o: nm/agent/adm_ltp_agent_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_agent.o `test -f 'nm/agent/adm_ltp_agent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_agent.c
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_agent.c' object='nm/agent/nm_agent-adm_ltp_agent_agent.o' libtool=no \
+nm/agent/nm_agent-adm_amp_agent_agent.o: nm/agent/adm_amp_agent_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_amp_agent_agent.o -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Tpo -c -o nm/agent/nm_agent-adm_amp_agent_agent.o `test -f 'nm/agent/adm_amp_agent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_amp_agent_agent.c
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_amp_agent_agent.c' object='nm/agent/nm_agent-adm_amp_agent_agent.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_agent.o `test -f 'nm/agent/adm_ltp_agent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_ltp_agent_agent.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_amp_agent_agent.o `test -f 'nm/agent/adm_amp_agent_agent.c' || echo '$(srcdir)/'`nm/agent/adm_amp_agent_agent.c
 
-nm/agent/nm_agent-adm_ltp_agent_agent.obj: nm/agent/adm_ltp_agent_agent.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_ltp_agent_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo -c -o nm/agent/nm_agent-adm_ltp_agent_agent.obj `if test -f 'nm/agent/adm_ltp_agent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_agent.c'; fi`
-	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_ltp_agent_agent.Po
-#	$(AM_V_CC)source='nm/agent/adm_ltp_agent_agent.c' object='nm/agent/nm_agent-adm_ltp_agent_agent.obj' libtool=no \
+nm/agent/nm_agent-adm_amp_agent_agent.obj: nm/agent/adm_amp_agent_agent.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -MT nm/agent/nm_agent-adm_amp_agent_agent.obj -MD -MP -MF nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Tpo -c -o nm/agent/nm_agent-adm_amp_agent_agent.obj `if test -f 'nm/agent/adm_amp_agent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_amp_agent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_amp_agent_agent.c'; fi`
+	$(AM_V_at)$(am__mv) nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Tpo nm/agent/$(DEPDIR)/nm_agent-adm_amp_agent_agent.Po
+#	$(AM_V_CC)source='nm/agent/adm_amp_agent_agent.c' object='nm/agent/nm_agent-adm_amp_agent_agent.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_ltp_agent_agent.obj `if test -f 'nm/agent/adm_ltp_agent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_ltp_agent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_ltp_agent_agent.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_agent_CFLAGS) $(CFLAGS) -c -o nm/agent/nm_agent-adm_amp_agent_agent.obj `if test -f 'nm/agent/adm_amp_agent_agent.c'; then $(CYGPATH_W) 'nm/agent/adm_amp_agent_agent.c'; else $(CYGPATH_W) '$(srcdir)/nm/agent/adm_amp_agent_agent.c'; fi`
 
 nm/shared/adm/nm_mgr-adm.o: nm/shared/adm/adm.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/shared/adm/nm_mgr-adm.o -MD -MP -MF nm/shared/adm/$(DEPDIR)/nm_mgr-adm.Tpo -c -o nm/shared/adm/nm_mgr-adm.o `test -f 'nm/shared/adm/adm.c' || echo '$(srcdir)/'`nm/shared/adm/adm.c
@@ -8457,19 +8457,19 @@ nm/mgr/nm_mgr-ui_input.obj: nm/mgr/ui_input.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-ui_input.obj `if test -f 'nm/mgr/ui_input.c'; then $(CYGPATH_W) 'nm/mgr/ui_input.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/ui_input.c'; fi`
 
-nm/mgr/nm_mgr-adm_ltp_agent_mgr.o: nm/mgr/adm_ltp_agent_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ltp_agent_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.o `test -f 'nm/mgr/adm_ltp_agent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ltp_agent_mgr.c
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_ltp_agent_mgr.c' object='nm/mgr/nm_mgr-adm_ltp_agent_mgr.o' libtool=no \
+nm/mgr/nm_mgr-adm_amp_agent_mgr.o: nm/mgr/adm_amp_agent_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_amp_agent_mgr.o -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_amp_agent_mgr.o `test -f 'nm/mgr/adm_amp_agent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_amp_agent_mgr.c
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_amp_agent_mgr.c' object='nm/mgr/nm_mgr-adm_amp_agent_mgr.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.o `test -f 'nm/mgr/adm_ltp_agent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_ltp_agent_mgr.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_amp_agent_mgr.o `test -f 'nm/mgr/adm_amp_agent_mgr.c' || echo '$(srcdir)/'`nm/mgr/adm_amp_agent_mgr.c
 
-nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj: nm/mgr/adm_ltp_agent_mgr.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj `if test -f 'nm/mgr/adm_ltp_agent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ltp_agent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ltp_agent_mgr.c'; fi`
-	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_ltp_agent_mgr.Po
-#	$(AM_V_CC)source='nm/mgr/adm_ltp_agent_mgr.c' object='nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj' libtool=no \
+nm/mgr/nm_mgr-adm_amp_agent_mgr.obj: nm/mgr/adm_amp_agent_mgr.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -MT nm/mgr/nm_mgr-adm_amp_agent_mgr.obj -MD -MP -MF nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Tpo -c -o nm/mgr/nm_mgr-adm_amp_agent_mgr.obj `if test -f 'nm/mgr/adm_amp_agent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_amp_agent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_amp_agent_mgr.c'; fi`
+	$(AM_V_at)$(am__mv) nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Tpo nm/mgr/$(DEPDIR)/nm_mgr-adm_amp_agent_mgr.Po
+#	$(AM_V_CC)source='nm/mgr/adm_amp_agent_mgr.c' object='nm/mgr/nm_mgr-adm_amp_agent_mgr.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_ltp_agent_mgr.obj `if test -f 'nm/mgr/adm_ltp_agent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_ltp_agent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_ltp_agent_mgr.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(nm_mgr_CFLAGS) $(CFLAGS) -c -o nm/mgr/nm_mgr-adm_amp_agent_mgr.obj `if test -f 'nm/mgr/adm_amp_agent_mgr.c'; then $(CYGPATH_W) 'nm/mgr/adm_amp_agent_mgr.c'; else $(CYGPATH_W) '$(srcdir)/nm/mgr/adm_amp_agent_mgr.c'; fi`
 
 bp/ipnd/node-node.o: bp/ipnd/node.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(node_CFLAGS) $(CFLAGS) -MT bp/ipnd/node-node.o -MD -MP -MF bp/ipnd/$(DEPDIR)/node-node.Tpo -c -o bp/ipnd/node-node.o `test -f 'bp/ipnd/node.c' || echo '$(srcdir)/'`bp/ipnd/node.c

@@ -220,7 +220,8 @@ tnvc_t*  tnvc_copy(tnvc_t *src);
 
 tnvc_t   tnvc_deserialize(CborValue *it, int *success);
 tnvc_t*  tnvc_deserialize_ptr(CborValue *it, int *success);
-tnvc_t*  tnvc_deserialize_raw(blob_t *data, int *success);
+tnvc_t*  tnvc_deserialize_ptr_raw(blob_t *data, int *success);
+tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success);
 
 
 

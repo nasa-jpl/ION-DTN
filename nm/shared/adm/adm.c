@@ -40,7 +40,7 @@
 
 #include "../primitives/expr.h"
 
-#include "adm_ltp_agent.h"
+#include "adm_amp_agent.h"
 
 
 /*
@@ -76,15 +76,25 @@
  *  --------  ------------   ---------------------------------------------
  *  10/02/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-int adm_add_cnst(ari_t *id)
+int adm_add_cnst(ari_t *id, edd_collect_fn collect)
 {
-	int success = AMP_FAIL;
+	edd_t *def = NULL;
+	int success;
 
 	CHKUSR(id, AMP_FAIL);
-	if((success = VDB_ADD_CONST(id, id)) != AMP_OK)
+
+	if((def = edd_create(id, NULL, collect)) == NULL)
 	{
 		ari_release(id, 1);
+		return AMP_FAIL;
 	}
+
+	if((success = VDB_ADD_CONST(def->def.id, def)) != AMP_OK)
+	{
+		edd_release(def, 1);
+	}
+
+	AMP_DEBUG_EXIT("adm_add_cnst","-> %d.", success);
 	return success;
 }
 
@@ -114,12 +124,13 @@ int adm_add_cnst(ari_t *id)
  *  --------  ------------   ---------------------------------------------
  *  10/02/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-int adm_add_ctrldef(ari_t *id, uint8_t num, uint8_t adm, ctrldef_run_fn run)
+int adm_add_ctrldef_ari(ari_t *id, uint8_t num, ctrldef_run_fn run)
 {
 	ctrldef_t *def;
 	int success;
 
-	if((def = ctrldef_create(id, num, adm, run)) == NULL)
+
+	if((def = ctrldef_create(id, num, run)) == NULL)
 	{
 		ari_release(id, 1);
 		return AMP_FAIL;
@@ -133,6 +144,14 @@ int adm_add_ctrldef(ari_t *id, uint8_t num, uint8_t adm, ctrldef_run_fn run)
 	AMP_DEBUG_EXIT("adm_add_ctrldef","-> %d.", success);
 
 	return success;
+
+}
+
+int adm_add_ctrldef(uint8_t nn, uvast name, uint8_t num, ctrldef_run_fn run)
+{
+	ari_t *id = adm_build_ari(AMP_TYPE_CTRL, (num > 0) ? 1 : 0, nn, name);
+
+	return adm_add_ctrldef_ari(id, num, run);
 }
 
 /******************************************************************************
@@ -262,7 +281,19 @@ int adm_add_macdef(macdef_t *def)
 	return success;
 }
 
+int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
+{
+	ctrl_t *ctrl;
 
+	if((ctrl = VDB_FINDKEY_CTRLDEF(id)) == NULL)
+	{
+		id->type = AMP_TYPE_MAC;
+		ARI_SET_FLAG_TYPE(id->as_reg.flags, AMP_TYPE_MAC);
+		ctrl = VDB_FINDKEY_MACDEF(id);
+	}
+
+	return macdef_append(def, ctrl_copy_ptr(ctrl));
+}
 
 /******************************************************************************
  *
@@ -288,13 +319,10 @@ int adm_add_macdef(macdef_t *def)
  *  01/05/18  E. Birrane     Changed to accept mid_t.
  *  10/02/18  E. Birrane     Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-int adm_add_op(ari_t *id, uint8_t num_parm, op_fn apply_fn)
+int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 {
 	op_t *def = NULL;
 	int success;
-
-	CHKUSR(id, AMP_FAIL);
-	CHKUSR(apply_fn, AMP_FAIL);
 
 	if((def = op_create(id, num_parm, apply_fn)) == NULL)
 	{
@@ -310,6 +338,11 @@ int adm_add_op(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 	AMP_DEBUG_EXIT("adm_add_op","-> %d.", success);
 	return success;
 
+}
+
+int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn)
+{
+	return adm_add_op_ari(adm_build_ari(AMP_TYPE_OPER, 1, nn, name),num_parm, apply_fn);
 }
 
 
@@ -362,7 +395,7 @@ int adm_add_tblt(tblt_t *def)
 
 	CHKUSR(def, AMP_FAIL);
 
-	if((success = VDB_ADD_TBLT(&(def->id), def)) != AMP_OK)
+	if((success = VDB_ADD_TBLT(def->id, def)) != AMP_OK)
 	{
 		tblt_release(def, 1);
 	}
@@ -426,11 +459,10 @@ int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 
 
 // Takes over name and parms, no matter what.
-ari_t* adm_build_reg_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id)
+ari_t* adm_build_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id)
 {
 	ari_t *result = ari_create(type);
 	CHKNULL(result);
-
 
 	/* Set the flags byte. Since this is coming from an ADM,
 	 * it MUST have a NNand MUST NOT have an ISS or TAG.
@@ -459,6 +491,21 @@ ari_t* adm_build_reg_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast
 	}
 
 	return result;
+}
+
+
+ari_t *adm_build_ari_parm_6(amp_type_e type, vec_idx_t nn, uvast id, tnv_t *p1, tnv_t *p2, tnv_t* p3, tnv_t *p4, tnv_t *p5, tnv_t *p6)
+{
+	ari_t *ari = adm_build_ari(type, 1, nn, id);
+
+	ari_add_parm_val(ari, p1);
+	ari_add_parm_val(ari, p2);
+	ari_add_parm_val(ari, p3);
+	ari_add_parm_val(ari, p4);
+	ari_add_parm_val(ari, p5);
+	ari_add_parm_val(ari, p6);
+
+	return ari;
 }
 
 
@@ -523,7 +570,7 @@ void adm_init()
 {
 	AMP_DEBUG_ENTRY("adm_init","()", NULL);
 
-	adm_ltp_agent_init();
+	amp_agent_init();
 
 /*
 	adm_agent_init();

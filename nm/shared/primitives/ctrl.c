@@ -153,6 +153,8 @@ ctrl_t *ctrl_create(ari_t *ari)
 		return NULL;
 	}
 
+	result->type = ari->type;
+
 	/* Step 1: Grab the basic information for this control. */
 	if(ari->type == AMP_TYPE_CTRL)
 	{
@@ -211,9 +213,9 @@ ctrl_t *ctrl_db_deserialize(blob_t *data)
 		return NULL;
 	}
 
-	/* Step 2: Deserialize the absolute start time and caller. */
-	if((cbor_value_get_uint64(&it, &start) != CborNoError) ||
-	   (cbor_value_copy_text_string(&it, caller.name, &len, &it) != CborNoError))
+	cut_enc_refresh(&it);
+
+	if (cut_get_cbor_numeric(&it, AMP_TYPE_TV, &start) != AMP_OK)
 	{
 		ctrl_release(result, 1);
 		return NULL;
@@ -335,7 +337,7 @@ CborError ctrl_serialize(CborEncoder *encoder, void *item)
 	ctrl_id = ctrl_get_id(ctrl);
 	CHKUSR(ctrl_id, err);
 
-	tmp_ari = ari_copy_ptr(*ctrl_id);
+	tmp_ari = ari_copy_ptr(ctrl_id);
 	CHKUSR(tmp_ari, err);
 
 	if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
@@ -358,7 +360,7 @@ blob_t*   ctrl_serialize_wrapper(ctrl_t *ctrl)
 	ctrl_id = ctrl_get_id(ctrl);
 	CHKNULL(ctrl_id);
 
-	tmp_ari = ari_copy_ptr(*ctrl_id);
+	tmp_ari = ari_copy_ptr(ctrl_id);
 	CHKNULL(tmp_ari);
 
 	if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
@@ -414,7 +416,7 @@ void ctrl_set_exec(ctrl_t *ctrl, time_t start, eid_t caller)
 
 
 // Shallow copy.
-ctrldef_t *ctrldef_create(ari_t *ari, uint8_t num, uint8_t adm, ctrldef_run_fn run)
+ctrldef_t *ctrldef_create(ari_t *ari, uint8_t num, ctrldef_run_fn run)
 {
 	ctrldef_t *result = NULL;
 
@@ -427,7 +429,6 @@ ctrldef_t *ctrldef_create(ari_t *ari, uint8_t num, uint8_t adm, ctrldef_run_fn r
 
 	result->ari = ari;
 	result->num_parms = num;
-	result->adm_info = adm;
 	result->run =run;
 
 	return result;
@@ -493,7 +494,7 @@ macdef_t macdef_copy(macdef_t *src, int *success)
 {
 	macdef_t result;
 
-	result.ari = ari_copy_ptr(*(src->ari));
+	result.ari = ari_copy_ptr(src->ari);
 	result.ctrls = vec_copy(&(src->ctrls), success);
 	if(*success != VEC_OK)
 	{
@@ -517,7 +518,7 @@ macdef_t*  macdef_create(size_t num, ari_t *ari)
 	{
 		return NULL;
 	}
-	result->ari = ari_copy_ptr(*ari);
+	result->ari = ari_copy_ptr(ari);
 	result->ctrls = vec_create(num, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, VEC_FLAG_AS_STACK, &success);
 
 	if(success != AMP_OK)
@@ -545,7 +546,7 @@ macdef_t  macdef_deserialize(CborValue *it, int *success)
 
 	*success = AMP_OK;
 
-	if(((err = cbor_value_is_array(it)) != CborNoError) ||
+	if((!cbor_value_is_array(it)) ||
 	   ((err = cbor_value_get_array_length(it, &array_len)) != CborNoError) ||
 	   (array_len <= 1))
 	{

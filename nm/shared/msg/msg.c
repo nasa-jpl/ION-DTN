@@ -211,6 +211,7 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 	}
 
 	/* Step 3: Grab the macro. */
+	cut_enc_refresh(&it);
 
 	result->ac = ac_deserialize_ptr(&it, success);
 	if(*success != AMP_OK)

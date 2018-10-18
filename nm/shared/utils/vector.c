@@ -30,6 +30,38 @@ int p_vec_default_comp(void *i1, void *i2)
  * +--------------------------------------------------------------------------+
  */
 
+int vec_append(vector_t *dest, vector_t *src)
+{
+	int result = VEC_OK;
+	vecit_t it;
+
+	if((dest == NULL) || (src == NULL))
+	{
+		return VEC_FAIL;
+	}
+
+	if(src->copy_fn == NULL)
+	{
+		return VEC_FAIL;
+	}
+
+	if(vec_num_entries(*src) <= 0)
+	{
+		return VEC_OK;
+	}
+
+	if(vec_make_room(dest, vec_num_entries(*src)) != VEC_OK)
+	{
+		return VEC_FAIL;
+	}
+
+	for(it = vecit_first(src); vecit_valid(it); it = vecit_next(it))
+	{
+		vec_push(dest, src->copy_fn(vecit_data(it)));
+	}
+
+	return VEC_OK;
+}
 
 void *vec_at(vector_t *vec, vec_idx_t idx)
 {
@@ -43,7 +75,10 @@ void vec_clear(vector_t *vec)
 {
 	vec_idx_t i;
 
-	CHKVOID(vec);
+	if((vec == NULL) || (vec->data == NULL))
+	{
+		return;
+	}
 
 	lockResource(&vec->lock);
 
@@ -537,7 +572,19 @@ int   vec_str_init(vector_t *vec, uint8_t num)
 int vec_uvast_add(vector_t *vec, uvast value, vec_idx_t *idx)
 {
 	int success = VEC_OK;
+	vecit_t it;
 	uvast *new_entry;
+
+	/* First, make sure we don't already have an entry. */
+	for(it = vecit_first(vec); vecit_valid(it); it = vecit_next(it))
+	{
+		new_entry = (uvast *) vecit_data(it);
+		if(*new_entry == value)
+		{
+			*idx = vecit_idx(it);
+			return VEC_OK;
+		}
+	}
 
 	if((new_entry = STAKE(sizeof(uvast))) == NULL)
 	{
@@ -587,5 +634,30 @@ void* vec_uvast_copy(void* item)
 	}
 	memcpy(new_item, item, sizeof(uvast));
 	return new_item;
+}
+
+
+int vec_uvast_find_idx(vector_t *vec, uvast value, vec_idx_t *idx)
+{
+	vecit_t it;
+
+	if((idx == NULL) || (vec == NULL))
+	{
+		return VEC_FAIL;
+	}
+
+	for(it = vecit_first(vec); vecit_valid(it); it=vecit_next(it))
+	{
+		uvast *data = (uvast *) vecit_data(it);
+		if(data != NULL)
+		{
+			if(*data == value)
+			{
+				*idx = vecit_idx(it);
+				return VEC_OK;
+			}
+		}
+	}
+	return VEC_FAIL;
 }
 

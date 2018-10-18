@@ -510,7 +510,7 @@ int db_init(char *name)
 	gVDB.adm_atomics = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, ari_cb_ht_del, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.adm_edds = rhht_create(DB_MAX_ATOMIC, edd_cb_comp_fn, ari_cb_hash, edd_cb_ht_del, &success);
+	gVDB.adm_edds = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, edd_cb_ht_del, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.ctrls =  vec_create(DB_MAX_CTRL, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, 0, &success);
@@ -522,7 +522,7 @@ int db_init(char *name)
 	gVDB.macdefs = rhht_create(DB_MAX_MACDEF, macdef_cb_comp_fn, ari_cb_hash, macdef_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.adm_ops = rhht_create(DB_MAX_OP, op_cb_comp_fn, ari_cb_hash, op_cb_ht_del_fn, &success);
+	gVDB.adm_ops = rhht_create(DB_MAX_OP, ari_cb_comp_fn, ari_cb_hash, op_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.rpttpls = rhht_create(DB_MAX_RPTT, rpttpl_cb_comp_fn, ari_cb_hash, rpttpl_cb_ht_del_fn, &success);

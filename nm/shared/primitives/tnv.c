@@ -223,6 +223,20 @@ tnv_t  tnv_copy(tnv_t val, int *success)
 	/* If this is not a basic type, we need to deep copy. */
 	switch(val.type)
 	{
+		case AMP_TYPE_BOOL:
+		case AMP_TYPE_BYTE:
+		case AMP_TYPE_INT:
+		case AMP_TYPE_UINT:
+		case AMP_TYPE_VAST:
+		case AMP_TYPE_UVAST:
+		case AMP_TYPE_REAL32:
+		case AMP_TYPE_REAL64:
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
+			/* memcpy took care of this. */
+			*success = AMP_OK;
+			break;
+
 		case AMP_TYPE_CNST:
 		case AMP_TYPE_CTRL:
 		case AMP_TYPE_EDD:
@@ -255,6 +269,7 @@ tnv_t  tnv_copy(tnv_t val, int *success)
 			break;
 
 		default:
+
 			break;
 	};
 
@@ -272,7 +287,7 @@ static int  tnv_copy_helper(tnv_t *val)
 		case AMP_TYPE_CNST:
 		case AMP_TYPE_EDD:
 		case AMP_TYPE_LIT:
-		case AMP_TYPE_ARI:  val->value.as_ptr = ari_copy_ptr(*((ari_t*)val->value.as_ptr));  break;
+		case AMP_TYPE_ARI:  val->value.as_ptr = ari_copy_ptr((ari_t*)val->value.as_ptr);  break;
 
 		case AMP_TYPE_CTRL: val->value.as_ptr = ctrl_copy_ptr((ctrl_t*) val->value.as_ptr);   break;
 
@@ -1248,7 +1263,7 @@ int tnvc_append(tnvc_t *dst, tnvc_t *src)
 	CHKUSR(dst, AMP_FAIL);
 	CHKUSR(src, AMP_FAIL);
 
-	max = vec_size(&(src->values));
+	max = vec_num_entries(src->values);
 	/* Appending an empty list is easy... */
 	if(max == 0)
 	{
@@ -1446,16 +1461,24 @@ tnvc_t *tnvc_create(uint8_t num)
 
 tnvc_t* tnvc_copy(tnvc_t *src)
 {
-   tnvc_t *result = tnvc_create(vec_size(&(src->values)));
+   tnvc_t *result = NULL;
 
-	CHKNULL(result);
-	CHKNULL(src);
+   if(src == NULL)
+   {
+	   return NULL;
+   }
 
-	if(tnvc_append(result, src) != AMP_OK)
-	{
-		tnvc_release(result, 1);
-		return NULL;
-	}
+   if((result = tnvc_create(vec_size(&(src->values)))) == NULL)
+   {
+	   return NULL;
+   }
+
+
+   if(tnvc_append(result, src) != AMP_OK)
+   {
+	   tnvc_release(result, 1);
+	   return NULL;
+   }
 
 	return result;
 }
@@ -1553,7 +1576,9 @@ tnvc_t *tnvc_deserialize_ptr(CborValue *it, int *success)
 	return result;
 }
 
-tnvc_t*  tnvc_deserialize_raw(blob_t *data, int *success)
+
+
+tnvc_t*  tnvc_deserialize_ptr_raw(blob_t *data, int *success)
 {
 	CborParser parser;
 	CborValue it;
@@ -1569,6 +1594,28 @@ tnvc_t*  tnvc_deserialize_raw(blob_t *data, int *success)
 
 	return tnvc_deserialize_ptr(&it, success);
 }
+
+tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+	tnvc_t result;
+
+	*success = AMP_FAIL;
+
+	if(data == NULL)
+	{
+		return result;
+	}
+
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) == CborNoError)
+	{
+		result = tnvc_deserialize(&it, success);
+	}
+
+	return result;
+}
+
 
 /*
  * This should look like [bytestring,E(v1),E(v2)...]
@@ -1589,7 +1636,7 @@ static tnvc_t tnvc_deserialize_tvc(CborValue *it, int *success)
 
 	*success = AMP_OK;
 
-	if(((err = cbor_value_is_array(it)) != CborNoError) ||
+	if((!cbor_value_is_array(it)) ||
 	   ((err = cbor_value_get_array_length(it, &array_len)) != CborNoError) ||
 	   (array_len <= 1))
 	{
@@ -1658,10 +1705,11 @@ static tnvc_t tnvc_deserialize_tvc(CborValue *it, int *success)
 		}
 	}
 
+	blob_release(&types, 0);
+
 	if(*success != AMP_OK)
 	{
 		AMP_DEBUG_ERR("tnv_deserialize_tvc","Failed to deserialize values (last was %d).", i);
-		blob_release(&types, 0);
 		vec_release(&(result.values), 0);
 		cbor_value_leave_container(it, &array_it);
 		return result;
@@ -1832,7 +1880,10 @@ int tnvc_insert(tnvc_t* tnvc, tnv_t *tnv)
 
 void tnvc_release(tnvc_t *tnvc, int destroy)
 {
-	CHKVOID(tnvc);
+	if(tnvc == NULL)
+	{
+		return;
+	}
 
 	vec_release(&(tnvc->values), 0);
 

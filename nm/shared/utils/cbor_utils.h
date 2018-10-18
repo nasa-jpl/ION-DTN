@@ -37,6 +37,9 @@ CborError cut_enc_byte(CborEncoder *encoder, uint8_t byte);
 int cut_enc_uvast(uvast num, blob_t *result);
 
 
+CborError cut_enc_refresh(CborValue *it);
+void cut_enc_expect_more(CborValue*it, int num);
+
 int cut_enter_array(CborValue *it, size_t min, size_t max, size_t *num, CborValue *array_it);
 
 int       cut_get_array_len(CborValue *it, size_t *result);

@@ -46,7 +46,7 @@
 #define DB_MAX_CTRL 50
 #define DB_MAX_CTRLDEF 25
 #define DB_MAX_MACDEF  50
-#define DB_MAX_OP   30
+#define DB_MAX_OP   60
 #define DB_MAX_RPTT 50
 #define DB_MAX_SBR  25
 #define DB_MAX_TBLT 20
@@ -78,7 +78,7 @@
 #define VDB_ADD_ISS(value, idx)     vec_uvast_add(&(gVDB.issuers),    value, idx)
 #define VDB_ADD_TAG(value, idx)     vec_blob_add(&(gVDB.tags),        value, idx)
 
-#define VDB_FINDKEY_EDD(key)     rhht_retrieve_key(&(gVDB.adm_atomics),  key)
+#define VDB_FINDKEY_EDD(key)     rhht_retrieve_key(&(gVDB.adm_edds),  key)
 #define VDB_FINDKEY_CONST(key)   rhht_retrieve_key(&(gVDB.adm_atomics),  key)
 #define VDB_FINDKEY_LIT(key)     rhht_retrieve_key(&(gVDB.adm_atomics),  key)
 #define VDB_FINDKEY_CTRLDEF(key) rhht_retrieve_key(&(gVDB.adm_ctrl_defs),key)
@@ -89,7 +89,7 @@
 #define VDB_FINDKEY_TBLT(key)    rhht_retrieve_key(&(gVDB.adm_tblts),    key)
 #define VDB_FINDKEY_VAR(key)     rhht_retrieve_key(&(gVDB.vars),         key)
 
-#define VDB_FINDIDX_EDD(idx)     rhht_retrieve_idx(&(gVDB.adm_atomics),   idx)
+#define VDB_FINDIDX_EDD(idx)     rhht_retrieve_idx(&(gVDB.adm_edds),   idx)
 #define VDB_FINDIDX_CONST(idx)   rhht_retrieve_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_FINDIDX_LIT(idx)     rhht_retrieve_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_FINDIDX_CTRL(idx, s) vec_at(&(gVDB.ctrls),     idx, s)
@@ -104,7 +104,7 @@
 #define VDB_FINDIDX_ISS(idx)   vec_at(&gVDB.issuers,   idx)
 #define VDB_FINDIDX_TAG(idx)   vec_at(&gVDB.tags,      idx)
 
-#define VDB_DELKEY_EDD(key)     rhht_del_key(&(gVDB.adm_atomics),  key)
+#define VDB_DELKEY_EDD(key)     rhht_del_key(&(gVDB.adm_edds),  key)
 #define VDB_DELKEY_CONST(key)   rhht_del_key(&(gVDB.adm_atomics),  key)
 #define VDB_DELKEY_LIT(key)     rhht_del_key(&(gVDB.adm_atomics),  key)
 #define VDB_DELKEY_CTRLDEF(key) rhht_del_key(&(gVDB.adm_ctrl_defs),key)
@@ -115,7 +115,7 @@
 #define VDB_DELKEY_TBLT(key)    rhht_del_key(&(gVDB.adm_tblts),    key)
 #define VDB_DELKEY_VAR(key)     rhht_del_key(&(gVDB.vars),         key)
 
-#define VDB_DELIDX_EDD(idx)     rhht_del_idx(&(gVDB.adm_atomics),   idx)
+#define VDB_DELIDX_EDD(idx)     rhht_del_idx(&(gVDB.adm_edds),   idx)
 #define VDB_DELIDX_CONST(idx)   rhht_del_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_DELIDX_LIT(idx)     rhht_del_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_DELIDX_CTRL(idx)    vec_del_idx(&(gVDB.ctrls),          idx)

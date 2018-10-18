@@ -99,8 +99,10 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms)
 	else if(retval != NULL)
 	{
 		lcc_send_retval(&rx_eid, retval, ctrl, parms);
-		tnv_release(retval, 1);
 	}
+
+	tnv_release(retval, 1);
+
 
 	AMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
 	return status;
@@ -176,7 +178,7 @@ void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 	 * ari_release at the end.
 	 */
 	ari_t *ctrl_ari = ctrl_get_id(ctrl);
-	ari = ari_copy_ptr(*ctrl_ari);
+	ari = ari_copy_ptr(ctrl_ari);
 	ari_replace_parms(ari, parms);
 	report = rpt_create(ari, getUTCTime(), NULL);
 	ari_release(ari,1);

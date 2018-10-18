@@ -161,13 +161,13 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 	CHKVOID(meta);
 	CHKVOID(contents);
 
-
 	/* Step 1: Deserialize the message. */
 	msg = msg_ctrl_deserialize(contents, &success);
 
 	if((msg == NULL) || (success != AMP_OK))
 	{
 		AMP_DEBUG_ERR("rx_handle_perf_ctrl", "Can't get control message.", NULL);
+		return;
 	}
 
 	/* Process each item in the ARI collection. */

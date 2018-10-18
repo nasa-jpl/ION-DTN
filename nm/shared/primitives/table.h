@@ -60,7 +60,7 @@ typedef struct
 
 typedef struct
 {
-	ari_t id;      /* The ID of the template. */
+	ari_t *id;      /* The ID of the template. */
 	vector_t cols; /* Column information for each col. (table_col_t*). */
 
 	db_desc_t desc;
@@ -69,7 +69,7 @@ typedef struct
 
 typedef struct
 {
-	ari_t    id;   /**> The ID of the table template that this populates. */
+	ari_t    *id;   /**> The ID of the table template that this populates. */
 	vector_t rows; /**> Vector of rows in the table. (tnvc_t*) */
 } tbl_t;
 

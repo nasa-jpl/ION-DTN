@@ -42,6 +42,17 @@ int gValNumCvtResult[6][6] = {
 };
 
 
+
+int expr_add_item(expr_t *expr, ari_t *item)
+{
+	if(expr == NULL)
+	{
+		return AMP_FAIL;
+	}
+
+	return ac_insert(&(expr->rpn), item);
+}
+
 // UNK means failure.
 tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
 {
@@ -106,7 +117,7 @@ int expr_calc_result_type(int ltype, int rtype, int optype)
 
 
 // Shallow copy.
-expr_t *expr_create(amp_type_e type, ac_t rpn)
+expr_t *expr_create(amp_type_e type)
 {
 	expr_t *result = NULL;
 
@@ -116,7 +127,7 @@ expr_t *expr_create(amp_type_e type, ac_t rpn)
 	}
 
 	result->type = type;
-	result->rpn = rpn;
+	ac_init(&(result->rpn));
 
 	return result;
 }
@@ -135,13 +146,21 @@ expr_t *expr_copy_ptr(expr_t *expr)
 {
 	ac_t rpn;
 	expr_t *result = NULL;
-	CHKNULL(expr);
 
-	rpn = ac_copy(&(expr->rpn));
-
-	if((result = (expr_create(expr->type, rpn))) == NULL)
+	if(expr == NULL)
 	{
-		ac_release(&rpn, 0);
+		return NULL;
+	}
+
+	if((result = expr_create(expr->type)) == NULL)
+	{
+		return NULL;
+	}
+
+	if(ac_append(&(result->rpn), &(expr->rpn)) != AMP_OK)
+	{
+		expr_release(result, 1);
+		return NULL;
 	}
 
 	return result;
@@ -373,6 +392,11 @@ tnv_t *expr_get_atomic(ari_t *ari)
 	      	AMP_DEBUG_INFO("expr_get_edd","Can't find def.", NULL);
 	    	return NULL;
 	    }
+		else if(edd->def.collect == NULL)
+		{
+			AMP_DEBUG_INFO("expr_get_edd","No collect function defined.", NULL);
+			return NULL;
+		}
 
 	    /* Step 2: Collect the value. */
 	    result = edd->def.collect(&(ari->as_reg.parms));
@@ -504,12 +528,20 @@ int     op_cb_comp_fn(void *i1, void *i2)
 	return ari_cb_comp_fn(o1->id, o2->id);
 }
 
+int     op_cb_ht_comp_fn(void *key, void *value)
+{
+	op_t *op = (op_t*) value;
+	CHKUSR(key, -1);
+	CHKUSR(op, -1);
+	return ari_cb_comp_fn(key, op->id);
+}
+
 op_t*     op_copy_ptr(op_t *src)
 {
 	ari_t *new_ari = NULL;
 
 	CHKNULL(src);
-	new_ari = ari_copy_ptr(*(src->id));
+	new_ari = ari_copy_ptr(src->id);
 	return op_create(new_ari, src->num_parms, src->apply);
 }
 

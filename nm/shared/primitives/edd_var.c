@@ -66,7 +66,7 @@ rh_idx_t  edd_cb_hash(void *table, void *key)
 
 	CHKUSR(edd, ht->num_bkts);
 
-	tmp = ari_copy_ptr(*(edd->def.id));
+	tmp = ari_copy_ptr(edd->def.id);
 	ari_replace_parms(tmp, edd->parms);
 	result = ari_cb_hash(ht, tmp);
 	ari_release(tmp, 1);
@@ -151,7 +151,7 @@ var_t*    var_copy_ptr(var_t *src)
 	result = (var_t *) STAKE(sizeof(var_t));
 	CHKNULL(result);
 
-	if((result->id = ari_copy_ptr(*(src->id))) == NULL)
+	if((result->id = ari_copy_ptr(src->id)) == NULL)
 	{
 		SRELEASE(result);
 		return NULL;

@@ -62,6 +62,7 @@ typedef struct
 } vecit_t;
 
 
+int        vec_append(vector_t *dest, vector_t *src);
 void*      vec_at(vector_t *vec, vec_idx_t idx);
 void       vec_clear(vector_t *vec);
 vector_t   vec_copy(vector_t *src, int *success);
@@ -124,6 +125,7 @@ int   vec_uvast_add(vector_t *vec, uvast value, vec_idx_t *idx);
 int   vec_uvast_init(vector_t *vec, uint8_t num);
 int   vec_uvast_comp(void *i1, void *i2);
 void* vec_uvast_copy(void* item);
+int vec_uvast_find_idx(vector_t *vec, uvast value, vec_idx_t *idx);
 
 
 

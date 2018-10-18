@@ -115,7 +115,7 @@ rpt_t* rpt_copy_ptr(rpt_t *src)
 	rpt_t *result;
 
 	CHKNULL(src);
-	new_ari = ari_copy_ptr(*(src->id));
+	new_ari = ari_copy_ptr(src->id);
 	new_entries = tnvc_copy(src->entries);
 
 	if((result = rpt_create(new_ari, src->time, new_entries)) == NULL)
@@ -476,7 +476,7 @@ rpttpl_t *rpttpl_copy_ptr(rpttpl_t *rpttpl)
 
 	CHKNULL(rpttpl);
 
-	new_ari = ari_copy_ptr(*(rpttpl->id));
+	new_ari = ari_copy_ptr(rpttpl->id);
 	new_ac = ac_copy(&(rpttpl->contents));
 
 	if(((result = rpttpl_create(new_ari, new_ac))) == NULL)

@@ -57,17 +57,18 @@
 #define ADM_ENUM_ION_LTP_ADMIN 	   9
 */
 
-#define ADM_CONST_OFFSET 0
-#define ADM_CTRL_OFFSET  1
-#define ADM_EDD_OFFSET   2
-#define ADM_MAC_OFFSET   3
-#define ADM_OPER_OFFSET  4
-#define ADM_RPTT_OFFSET  5
-#define ADM_SBR_OFFSET   6
-#define ADM_TBLT_OFFSET  7
-#define ADM_TBR_OFFSET   8
-#define ADM_VAR_OFFSET   9
-#define ADM_META_OFFSET  10
+#define ADM_CONST_IDX 0
+#define ADM_CTRL_IDX  1
+#define ADM_EDD_IDX   2
+#define ADM_MAC_IDX   3
+#define ADM_OPER_IDX  4
+#define ADM_RPTT_IDX  5
+#define ADM_SBR_IDX   6
+#define ADM_TBLT_IDX  7
+#define ADM_TBR_IDX   8
+#define ADM_VAR_IDX   9
+#define ADM_META_IDX  10
+
 
 
 /*
@@ -76,6 +77,12 @@
  * +--------------------------------------------------------------------------+
  */
 
+#define ADM_BUILD_ARI_PARM_1(t, n, i, p1) adm_build_ari_parm_6(t, n, i, p1, NULL, NULL, NULL, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_2(t, n, i, p1, p2) adm_build_ari_parm_6(t, n, i, p1, p2, NULL, NULL, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_3(t, n, i, p1, p2, p3) adm_build_ari_parm_6(t, n, i, p1, p2, p3, NULL, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_4(t, n, i, p1, p2, p3, p4) adm_build_ari_parm_6(t, n, i, p1, p2, p3, p4, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_5(t, n, i, p1, p2, p3, p4, p5) adm_build_ari_parm_6(t, n, i, p1, p2, p3, p4, p5, NULL)
+#define ADM_BUILD_ARI_PARM_6(t, n, i, p1, p2, p3, p4, p5, p6) adm_build_ari_parm_6(t, n, i, p1, p2, p3, p4, p5, p6)
 
 
 /*
@@ -91,17 +98,25 @@
  * +--------------------------------------------------------------------------+
  */
 
-int adm_add_cnst(ari_t *id);
-int adm_add_ctrldef(ari_t *id, uint8_t num, uint8_t adm, ctrldef_run_fn run);
+int adm_add_cnst(ari_t *id, edd_collect_fn collect);
+int adm_add_ctrldef(uint8_t nn, uvast id, uint8_t num, ctrldef_run_fn run);
+int adm_add_ctrldef_ari(ari_t *id, uint8_t num, ctrldef_run_fn run);
+
 int adm_add_edd(ari_t *id, edd_collect_fn collect);
 int adm_add_lit(ari_t *id);
 int adm_add_macdef(macdef_t *def);
-int adm_add_op(ari_t *id, uint8_t num_parm, op_fn apply_fn);
+int adm_add_macdef_ctrl(macdef_t *def, ari_t *id);
+int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn);
+int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn);
+
 int adm_add_rpttpl(rpttpl_t *def);
 int adm_add_tblt(tblt_t *def);
-int	adm_add_vardef(ari_t *id, amp_type_e type, expr_t *expr);
+int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr);
+int adm_add_var_from_tnv(ari_t *id, tnv_t value)
+;
 
-ari_t* adm_build_reg_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id);
+ari_t* adm_build_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id);
+ari_t *adm_build_ari_parm_6(amp_type_e type, vec_idx_t nn, uvast id, tnv_t *p1, tnv_t *p2, tnv_t* p3, tnv_t *p4, tnv_t *p5, tnv_t *p6);
 
 
 int32_t adm_get_parm_int(tnvc_t *parms, uint8_t idx, int *success);

@@ -566,7 +566,7 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 	meta = vec_at(&(col->results), idx);
 	if(meta != NULL)
 	{
-		result = ari_copy_ptr(*(meta->id));
+		result = ari_copy_ptr(meta->id);
 	}
 	metacol_release(col, 1);
 
@@ -637,7 +637,7 @@ int ui_input_parms(ari_t *id)
 
 	for(i = 0; i < num; i++)
 	{
-       parm_t *parm = vec_at(&(meta->parmspec), i);
+       meta_fp_t *parm = vec_at(&(meta->parmspec), i);
 
 		sprintf(prompt,"Parameter %d: (%s) %s", i, type_to_str(parm->type), parm->name);
 		tnv_t *val = ui_input_tnv(parm->type, prompt);
