@@ -157,7 +157,7 @@ metadata_t* meta_add_tblt(ari_t *id, uint8_t adm_id, char *name, char *descr);
 
 int         meta_add_parm(metadata_t *meta, char *name, amp_type_e type);
 void        meta_cb_del(rh_elt_t *elt);
-void        meta_cb_filter(void *value, void *tag);
+void        meta_cb_filter(rh_elt_t *elt, void *tag);
 metadata_t* meta_create(amp_type_e type, ari_t *id, uint32_t adm_id, char *name, char *desc);
 meta_col_t* meta_filter(uint32_t adm_id, amp_type_e type);
 meta_fp_t*  meta_get_parm(metadata_t *meta, uint8_t idx);

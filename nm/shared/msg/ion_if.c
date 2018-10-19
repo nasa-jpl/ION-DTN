@@ -206,6 +206,8 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 
 	*success = AMP_OK;
 
+	memset(&dlv, 0, sizeof(BpDelivery));
+
     /* Step 1: Receive the bundle.*/
     if((status = bp_receive(iif->sap, &dlv, timeout)) < 0)
     {
@@ -369,9 +371,9 @@ int iif_register_node(iif_t *iif, eid_t eid)
 
 int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 {
-    Object extent;
-    Object newBundle;
-    blob_t *data;
+    Object extent = 0;
+    Object newBundle = 0;
+    blob_t *data = NULL;
 
     AMP_DEBUG_ENTRY("iif_send","("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
     		(uaddr)iif, (uaddr)group, (uaddr)rx);

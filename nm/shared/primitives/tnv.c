@@ -362,10 +362,8 @@ tnv_t *tnv_create()
 {
 	tnv_t *result = NULL;
 
-	if((result = STAKE(sizeof(tnv_t))) != NULL)
-	{
-		memset(result,0,sizeof(tnv_t));
-	}
+	result = STAKE(sizeof(tnv_t));
+	CHKNULL(result);
 
 	tnv_init(result, AMP_TYPE_UNK);
 	return result;
@@ -534,7 +532,6 @@ static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 	   	case AMP_TYPE_RPTTPL: result->value.as_ptr = rpttpl_deserialize_ptr(it, &success); can_alloc = 1; break;
 
 	   	case AMP_TYPE_TBL:  result->value.as_ptr = tbl_deserialize_ptr(it, &success);  can_alloc = 1; break;
-	   	case AMP_TYPE_TBLT: result->value.as_ptr = tblt_deserialize_ptr(it, &success); can_alloc = 1; break;
 
 	   	case AMP_TYPE_TBR:
 	   	case AMP_TYPE_SBR:  result->value.as_ptr = rule_deserialize_ptr(it, &success);  can_alloc = 1; break;
@@ -557,6 +554,7 @@ static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 	   	case AMP_TYPE_REAL32: success = cut_get_cbor_numeric(it, result->type, (float*) &(result->value.as_real32));  break;
 	   	case AMP_TYPE_REAL64: success = cut_get_cbor_numeric(it, result->type, (double*) &(result->value.as_real64)); break;
 
+	   	case AMP_TYPE_TBLT: //result->value.as_ptr = tblt_deserialize_ptr(it, &success); can_alloc = 1; break;
 	   	case AMP_TYPE_OPER:
 	   	default:
 	   		break;
@@ -576,6 +574,16 @@ tnv_t*  tnv_from_bool(uint8_t val)
 	CHKNULL(result);
 	tnv_init(result, AMP_TYPE_BOOL);
 	result->value.as_byte = val;
+	return result;
+}
+
+tnv_t*  tnv_from_blob(blob_t *val)
+{
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_BYTESTR);
+	result->value.as_ptr = val;
+	TNV_SET_ALLOC(result->flags);
 	return result;
 }
 
@@ -699,10 +707,11 @@ tnv_t*  tnv_from_vast(vast val)
 
 void tnv_init(tnv_t *val, amp_type_e type)
 {
-	CHKVOID(val);
-
-	memset(val, 0, sizeof(tnv_t));
-	val->type = type;
+	if(val != NULL)
+	{
+		memset(val, 0, sizeof(tnv_t));
+		val->type = type;
+	}
 }
 
 
@@ -774,7 +783,6 @@ CborError tnv_serialize_value(CborEncoder *encoder, void *item)
 		case AMP_TYPE_SBR:  err = rule_serialize(encoder, (rule_t*)tnv->value.as_ptr);   break;
 
 		case AMP_TYPE_TBL:  err = tbl_serialize(encoder, (tbl_t*)tnv->value.as_ptr);   break;
-		case AMP_TYPE_TBLT: err = tblt_serialize(encoder,(tblt_t*)tnv->value.as_ptr);  break;
 
 		case AMP_TYPE_VAR:  err = var_serialize(encoder, (var_t*)tnv->value.as_ptr);   break;
 		case AMP_TYPE_AC:   err = ac_serialize(encoder, (ac_t*)tnv->value.as_ptr);     break;
@@ -796,6 +804,8 @@ CborError tnv_serialize_value(CborEncoder *encoder, void *item)
 		case AMP_TYPE_REAL32: err = cbor_encode_float(encoder, tnv->value.as_real32); break;
 		case AMP_TYPE_REAL64: err = cbor_encode_double(encoder, tnv->value.as_real64); break;
 
+
+		case AMP_TYPE_TBLT: //err = tblt_serialize(encoder,(tblt_t*)tnv->value.as_ptr);  break;
 		case AMP_TYPE_TNV:
 		case AMP_TYPE_TNVC:
 		case AMP_TYPE_OPER:

@@ -61,9 +61,6 @@
 typedef uint16_t rh_idx_t;
 
 
-typedef int (*rh_comp_fn)(void *key1, void *key2); /* Semantic compare elements */
-typedef rh_idx_t (*rh_hash_fn)(void *table, void *key); /* Hashing function */
-typedef void (*rh_foreach_fn)(void *value, void *tag); /* Foreach callback. */
 
 /**
  * A hash table is a collection of hash table entries.
@@ -76,6 +73,11 @@ typedef struct  {
 
 
 typedef void (*rh_del_fn)(rh_elt_t *elt); /* Item Delete Function. */
+typedef int (*rh_comp_fn)(void *key1, void *key2); /* Semantic compare elements */
+typedef rh_idx_t (*rh_hash_fn)(void *table, void *key); /* Hashing function */
+typedef void (*rh_foreach_fn)(rh_elt_t *elt, void *tag); /* Foreach callback. */
+
+
 /**
  * Meta-data for the hash table and a pointer to its first entry.
  */

@@ -57,7 +57,7 @@ int expr_add_item(expr_t *expr, ari_t *item)
 tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
 {
 	op_t *op = NULL;
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 
 	AMP_DEBUG_ENTRY("expr_apply_op","("ADDR_FIELDSPEC", "ADDR_FIELDSPEC")",
 			        (uaddr) id, (uaddr) stack);
@@ -258,24 +258,17 @@ expr_t* expr_deserialize_ptr(CborValue *it, int *success)
 
 tnv_t *expr_eval(expr_t *expr)
 {
-	tnv_t *result;
+	tnv_t *result = NULL;
 
 	vector_t stack;
 	vec_idx_t max;
 	vecit_t it;
 	int success;
-	ari_t *cur_ari = NULL;
 
 	AMP_DEBUG_ENTRY("expr_eval","(0x"ADDR_FIELDSPEC")", (uaddr) expr);
 
 	/* Sanity Checks. */
-
-	CHKNULL(expr);
-	result = tnv_create();
-	CHKNULL(result);
-
-
-	if((max = vec_num_entries(expr->rpn.values)) == 0)
+	if((expr == NULL) || ((max = vec_num_entries(expr->rpn.values)) == 0))
 	{
 		return NULL;
 	}
@@ -290,8 +283,11 @@ tnv_t *expr_eval(expr_t *expr)
 		return NULL;
 	}
 
+	printf("EJB: Stack has %d items.", max);
 	for(it = vecit_first(&(expr->rpn.values)); vecit_valid(it); it = vecit_next(it))
 	{
+		ari_t *cur_ari = NULL;
+
 		if((cur_ari = (ari_t *) vecit_data(it)) == NULL)
 		{
 			AMP_DEBUG_ERR("expr_eval","Bad ARI in expression at %d.", vecit_idx(it));
@@ -305,23 +301,29 @@ tnv_t *expr_eval(expr_t *expr)
 
 		if(cur_ari->type == AMP_TYPE_OPER)
 		{
+			printf("EJB: OP\n");
+
 			result = expr_apply_op(cur_ari, &stack);
 		}
 		else
 		{
+			printf("EJB: ELEM of type %d\n", cur_ari->type);
+
 			result = expr_get_val(cur_ari);
 		}
 
 		if(result == NULL)
 		{
-			AMP_DEBUG_ERR("expr_eval","Can't apply Op at %d", vecit_idx(it));
+			AMP_DEBUG_WARN("expr_eval","Can't apply Op at %d", vecit_idx(it));
 			vec_release(&stack, 0);
 			return NULL;
 		}
 
+		printf("EJB: Pushing item onto the stack.\n");
 		if(vec_push(&stack, result) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("expr_eval","Can't push new values to stack at %d", vecit_idx(it));
+			tnv_release(result, 1);
 			vec_release(&stack, 0);
 			return NULL;
 		}
@@ -337,22 +339,25 @@ tnv_t *expr_eval(expr_t *expr)
 
 	/* Step 4 - Get the last value and return it. */
 	result = vec_pop(&stack, &success);
-	if(success != AMP_OK)
+	vec_release(&stack, 0);
+
+	if((success != AMP_OK) || (result == NULL))
 	{
 		AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", result->type, expr->type);
 		tnv_release(result, 1);
 		return NULL;
 	}
-	vec_release(&stack, 0);
 
 	/* Step 5 - Convert the type. */
-	tnv_t *tmp = tnv_cast(result, expr->type);
-	tnv_release(result, 1);
-	result = tmp;
-	if(result == NULL)
+	if(expr->type != result->type)
 	{
-		AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", result->type, expr->type);
-		return NULL;
+		tnv_t *tmp = tnv_cast(result, expr->type);
+		if(tmp == NULL)
+		{
+			AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", result->type, expr->type);
+		}
+		tnv_release(result, 1);
+		result = tmp;
 	}
 
 	return result;
@@ -471,7 +476,7 @@ void expr_release(expr_t *expr, int destroy)
 {
 	CHKVOID(expr);
 
-	ac_release(&(expr->rpn), 1);
+	ac_release(&(expr->rpn), 0);
 
 	if(destroy)
 	{

@@ -374,7 +374,7 @@ void rhht_foreach(rhht_t *ht, rh_foreach_fn for_fn, void *tag)
 	{
 		if(ht->buckets[i].value != NULL)
 		{
-			for_fn(ht->buckets[i].value, tag);
+			for_fn(&(ht->buckets[i]), tag);
 		}
 	}
 	unlockResource(&(ht->lock));

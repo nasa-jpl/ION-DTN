@@ -54,8 +54,8 @@ msg_rpt_t*   rda_get_msg_rpt(eid_t recipient);
 
 int          rda_process_ctrls();
 
-void rda_scan_tbrs_cb(void *value, void *tag);
-void rda_scan_sbrs_cb(void *value, void *tag);
+void rda_scan_tbrs_cb(rh_elt_t *elt, void *tag);
+void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag);
 
 int          rda_process_rules();
 

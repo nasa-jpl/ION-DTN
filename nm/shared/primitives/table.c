@@ -361,7 +361,7 @@ int tblt_add_col(tblt_t *tblt, amp_type_e type, char *name)
 	CHKUSR(tblt, AMP_FAIL);
 	CHKUSR(type_is_known(type), AMP_FAIL);
 
-	if((new_col = STAKE(sizeof(tblt_col_t*))) == NULL)
+	if((new_col = STAKE(sizeof(tblt_col_t))) == NULL)
 	{
 		return AMP_SYSERR;
 	}
@@ -369,7 +369,7 @@ int tblt_add_col(tblt_t *tblt, amp_type_e type, char *name)
 	new_col->type = type;
 	if(name != NULL)
 	{
-		if((new_col->name = (char*) STAKE(strlen(name)+1)) == NULL)
+		if((new_col->name = (char*) STAKE(strlen(name)+2)) == NULL)
 		{
 			SRELEASE(new_col);
 			return AMP_SYSERR;
@@ -415,7 +415,10 @@ void* tblt_cb_copy_fn(void *item)
 
 void tblt_cb_ht_del_fn(rh_elt_t *elt)
 {
-	CHKVOID(elt);
+	if(elt == NULL)
+	{
+		return;
+	}
 	tblt_cb_del_fn(elt->value);
 }
 
@@ -475,7 +478,7 @@ tblt_t* tblt_copy_ptr(tblt_t *tblt)
 
 
 // Shallow copy.
-tblt_t* tblt_create(ari_t *id)
+tblt_t* tblt_create(ari_t *id, 	tblt_build_fn build)
 {
 	tblt_t *result = NULL;
 	int success;
@@ -492,6 +495,7 @@ tblt_t* tblt_create(ari_t *id)
 
 	result->id = id;
 	result->cols = vec_create(0, tblt_col_cb_del_fn, NULL, tblt_col_cb_copy_fn, 0, &success);
+	result->build = build;
 
 	if(success != VEC_OK)
 	{
@@ -517,7 +521,7 @@ amp_type_e tblt_get_type(tblt_t *tblt, int idx)
 	return col->type;
 }
 
-
+/*
 vector_t tblt_deserialize_names(CborValue *it, size_t num, int *success)
 {
 	CborValue names_it;
@@ -594,7 +598,7 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 					(uaddr)it, (uaddr)success);
 	*success = AMP_FAIL;
 
-	/* Step 1: Make sure array is correct and enter array. */
+	/ * Step 1: Make sure array is correct and enter array. * /
 	if((*success = cut_enter_array(it, 2, 3, &len, &array_it)) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("tblt_deserialize_ptr", "Bad Array.", NULL);
@@ -602,7 +606,7 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 	}
 
 
-	/* Step 2: grab the template Id. */
+	/ * Step 2: grab the template Id. * /
 	id = ari_deserialize_ptr(&array_it, success);
 	if((id == NULL) || (*success != AMP_OK))
 	{
@@ -610,7 +614,7 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 		return NULL;
 	}
 
-	/* Step 3: Create the table template object. */
+	/ * Step 3: Create the table template object. * /
 	result = tblt_create(id);
 
 	if(result == NULL)
@@ -619,7 +623,7 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 		return NULL;
 	}
 
-	/* Step 4: Grab the types for the columns. */
+	/ * Step 4: Grab the types for the columns. * /
 	types = blob_deserialize_ptr(&array_it, success);
 	if((id == NULL) || (*success != AMP_OK))
 	{
@@ -629,7 +633,7 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 	}
 	num_col = types->length;
 
-	/* Step 5: Create columns and populate with types. */
+	/ * Step 5: Create columns and populate with types.  * /
 	for(i = 0; i < num_col; i++)
 	{
 		if(tblt_add_col(result, types->value[i], NULL) != AMP_OK)
@@ -642,7 +646,7 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 	}
 	blob_release(types, 1);
 
-	/* Step 6: If we have names, too, we need to add them. */
+	/ * Step 6: If we have names, too, we need to add them. * /
 	if(len == 3)
 	{
 		vector_t names = tblt_deserialize_names(&array_it, num_col, success);
@@ -662,10 +666,10 @@ tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
 			}
 		}
 
-		/*
+		/ *
 		 * There is no delete function on thi vector because we copied ptrs
 		 * over to the tblt columns.
-		 */
+		 * /
 		vec_release(&names, 0);
 	}
 
@@ -690,6 +694,7 @@ tblt_t* tblt_deserialize_raw(blob_t *data, int *success)
 
 	return tblt_deserialize_ptr(&it, success);
 }
+*/
 
 int tblt_num_cols(tblt_t *tblt)
 {
@@ -699,7 +704,11 @@ int tblt_num_cols(tblt_t *tblt)
 
 void tblt_release(tblt_t *tblt, int destroy)
 {
-	CHKVOID(tblt);
+	if(tblt == NULL)
+	{
+		return;
+	}
+
 	ari_release(tblt->id, 1);
 	vec_release(&(tblt->cols), 0);
 
@@ -709,9 +718,11 @@ void tblt_release(tblt_t *tblt, int destroy)
 	}
 }
 
+
 /*
+/ *
  * We don'y serialize names in this implementation.
- */
+ * /
 CborError tblt_serialize(CborEncoder *encoder, void *item)
 {
 	CborError err;
@@ -724,7 +735,7 @@ CborError tblt_serialize(CborEncoder *encoder, void *item)
 	CHKUSR(encoder, CborErrorIO);
 	CHKUSR(tblt, CborErrorIO);
 
-	/* Start a container. */
+	/ * Start a container. * /
 	err = cbor_encoder_create_array(encoder, &array_enc, 2);
 
 	if((err != CborNoError) && (err != CborErrorOutOfMemory))
@@ -733,7 +744,7 @@ CborError tblt_serialize(CborEncoder *encoder, void *item)
 		return err;
 	}
 
-	/* Step 1: Encode the ARI. */
+	/ * Step 1: Encode the ARI. * /
 	result = ari_serialize_wrapper(tblt->id);
 	err = blob_serialize(&array_enc, result);
 	blob_release(result, 1);
@@ -745,7 +756,7 @@ CborError tblt_serialize(CborEncoder *encoder, void *item)
 	}
 
 
-	/* Step 2: Encode the column types. */
+	/ * Step 2: Encode the column types. * /
 	result = tblt_serialize_types(tblt);
 	err = blob_serialize(&array_enc, result);
 	blob_release(result, 1);
@@ -775,12 +786,17 @@ blob_t*   tblt_serialize_wrapper(tblt_t *tblt)
 {
 	return cut_serialize_wrapper(TBLT_DEFAULT_ENC_SIZE, tblt, tblt_serialize);
 }
-
+*/
 
 void tblt_col_cb_del_fn(void *item)
 {
 	tblt_col_t *col = (tblt_col_t*)item;
-	CHKVOID(col);
+
+	if(col == NULL)
+	{
+		return;
+	}
+
 	SRELEASE(col->name);
 	SRELEASE(col);
 }

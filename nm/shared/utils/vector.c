@@ -337,10 +337,10 @@ void vec_release(vector_t *vec, int destroy)
        SRELEASE(vec->data);
        vec->data = NULL;
     }
-    
+
+
 	if(destroy)
 	{
-
 		killResourceLock(&(vec->lock));
 		SRELEASE(vec);
 	}

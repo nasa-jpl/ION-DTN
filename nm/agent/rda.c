@@ -223,13 +223,17 @@ int rda_process_ctrls()
  *  10/04/18  E. Birrane     Updated to AMP v0.5 structures. (JHU/APL)
  *****************************************************************************/
 
-void rda_scan_tbrs_cb(void *value, void *tag)
+void rda_scan_tbrs_cb(rh_elt_t *elt, void *tag)
 {
-	rule_t *rule = (rule_t*) value;
+	rule_t *rule;
 	vector_t *vec = (vector_t *) tag;
 
-	CHKVOID(rule);
-	CHKVOID(vec);
+	if((elt == NULL) || (elt->value == NULL) || (tag == NULL))
+	{
+		return;
+	}
+
+	rule = (rule_t*) elt->value;
 
 	rule->ticks_left--;
 
@@ -242,14 +246,20 @@ void rda_scan_tbrs_cb(void *value, void *tag)
     	}
     }
 }
- 
-void rda_scan_sbrs_cb(void *value, void *tag)
+
+
+
+void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
 {
-	rule_t *rule = (rule_t*) value;
+	rule_t *rule;
 	vector_t *vec = (vector_t *) tag;
 
-	CHKVOID(rule);
-	CHKVOID(vec);
+	if((elt == NULL) || (elt->value == NULL) || (tag == NULL))
+	{
+		return;
+	}
+
+	rule = (rule_t*) elt->value;
 
 	rule->ticks_left--;
 

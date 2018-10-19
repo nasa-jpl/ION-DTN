@@ -93,7 +93,7 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 	new_parm = (meta_fp_t *) STAKE(sizeof(meta_fp_t));
 	CHKUSR(new_parm, AMP_FAIL);
 
-	strncpy(new_parm->name, name, AMP_MAX_EID_LEN);
+	strncpy(new_parm->name, name, META_PARM_NAME);
 	new_parm->type = type;
 
 	if(vec_push(&(meta->parmspec),new_parm) != VEC_OK)
@@ -112,10 +112,17 @@ void meta_cb_del(rh_elt_t *elt)
 	meta_release(elt->value, 1);
 }
 
-void meta_cb_filter(void *value, void *tag)
+void meta_cb_filter(rh_elt_t *elt, void *tag)
 {
 	meta_col_t *col = (meta_col_t*) tag;
-	metadata_t *meta = (metadata_t*) value;
+	metadata_t *meta;
+
+	if((elt == NULL) || (elt->value == NULL) || (tag == NULL))
+	{
+		return;
+	}
+
+	meta = (metadata_t*) elt->value;
 
 	if(((col->adm_id == ADM_ENUM_ALL) || (meta->adm_id == col->adm_id)) &&
 	   ((col->type == AMP_TYPE_UNK) || (meta->id->type == col->type)))
@@ -185,14 +192,6 @@ void meta_release(metadata_t *meta, int destroy)
 	{
 		SRELEASE(meta);
 	}
-}
-
-
-int meta_store_mac(metadata_t *meta, macdef_t *macdef)
-{
-	adm_add_macdef(macdef);
-	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
-	return AMP_OK;
 }
 
 

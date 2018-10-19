@@ -509,6 +509,7 @@ macdef_t macdef_copy(macdef_t *src, int *success)
 	return result;
 }
 
+// Shallow copy.
 macdef_t*  macdef_create(size_t num, ari_t *ari)
 {
 	macdef_t *result = NULL;
@@ -518,7 +519,7 @@ macdef_t*  macdef_create(size_t num, ari_t *ari)
 	{
 		return NULL;
 	}
-	result->ari = ari_copy_ptr(ari);
+	result->ari = ari;
 	result->ctrls = vec_create(num, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, VEC_FLAG_AS_STACK, &success);
 
 	if(success != AMP_OK)
@@ -651,7 +652,7 @@ void    macdef_release(macdef_t *mac, int destroy)
 	CHKVOID(mac);
 
 	ari_release(mac->ari, 1);
-	vec_release(&(mac->ctrls), 1);
+	vec_release(&(mac->ctrls), 0);
 
 	if(destroy)
 	{

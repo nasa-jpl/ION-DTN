@@ -507,7 +507,7 @@ int db_init(char *name)
 	int num;
 	memset(&gVDB, 0, sizeof(gVDB));
 
-	gVDB.adm_atomics = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, ari_cb_ht_del, &success);
+	gVDB.adm_atomics = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, edd_cb_ht_del, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.adm_edds = rhht_create(DB_MAX_ATOMIC, ari_cb_comp_fn, ari_cb_hash, edd_cb_ht_del, &success);
@@ -519,7 +519,7 @@ int db_init(char *name)
 	gVDB.adm_ctrl_defs = rhht_create(DB_MAX_CTRLDEF, ari_cb_comp_fn, ari_cb_hash, ctrldef_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.macdefs = rhht_create(DB_MAX_MACDEF, macdef_cb_comp_fn, ari_cb_hash, macdef_cb_ht_del_fn, &success);
+	gVDB.macdefs = rhht_create(DB_MAX_MACDEF, ari_cb_comp_fn, ari_cb_hash, macdef_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.adm_ops = rhht_create(DB_MAX_OP, ari_cb_comp_fn, ari_cb_hash, op_cb_ht_del_fn, &success);
@@ -531,7 +531,7 @@ int db_init(char *name)
 	gVDB.rules = rhht_create(DB_MAX_SBR, rule_cb_comp_fn, ari_cb_hash, rule_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.adm_tblts = rhht_create(DB_MAX_TBLT, NULL, ari_cb_hash, tblt_cb_ht_del_fn, &success);
+	gVDB.adm_tblts = rhht_create(DB_MAX_TBLT, ari_cb_comp_fn, ari_cb_hash, tblt_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.vars = rhht_create(DB_MAX_VAR, var_cb_comp_fn, ari_cb_hash, var_cb_ht_del_fn, &success);

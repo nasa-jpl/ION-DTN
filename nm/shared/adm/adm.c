@@ -277,10 +277,12 @@ int adm_add_macdef(macdef_t *def)
 		macdef_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_op","-> %d.", success);
+	AMP_DEBUG_EXIT("adm_add_macdef","-> %d.", success);
 	return success;
 }
 
+// takes over id.
+// TDDO document this pattern in the ADM functions.
 int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
 {
 	ctrl_t *ctrl;
@@ -292,6 +294,7 @@ int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
 		ctrl = VDB_FINDKEY_MACDEF(id);
 	}
 
+	ari_release(id, 1);
 	return macdef_append(def, ctrl_copy_ptr(ctrl));
 }
 
@@ -344,8 +347,6 @@ int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn)
 {
 	return adm_add_op_ari(adm_build_ari(AMP_TYPE_OPER, 1, nn, name),num_parm, apply_fn);
 }
-
-
 
 
 
@@ -416,12 +417,11 @@ int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 	// TODO: Make sure we don't leak expr.
 	if((new_var = var_create(id, type, expr)) == NULL)
 	{
-		ari_release(id, 1);
-		expr_release(expr, 1);
+		AMP_DEBUG_ERR("adm_add_var_from_expr","Unable to make new var.", NULL);
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_TBLT(new_var->id, new_var)) != AMP_OK)
+	if((success = VDB_ADD_VAR(new_var->id, new_var)) != AMP_OK)
 	{
 		var_release(new_var, 1);
 	}

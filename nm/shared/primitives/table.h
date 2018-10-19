@@ -49,6 +49,14 @@
  * |							  DATA TYPES  								  +
  * +--------------------------------------------------------------------------+
  */
+typedef struct
+{
+	ari_t    *id;   /**> The ID of the table template that this populates. */
+	vector_t rows; /**> Vector of rows in the table. (tnvc_t*) */
+} tbl_t;
+
+typedef tbl_t* (*tblt_build_fn)(ari_t *id);
+
 
 
 typedef struct
@@ -63,15 +71,10 @@ typedef struct
 	ari_t *id;      /* The ID of the template. */
 	vector_t cols; /* Column information for each col. (table_col_t*). */
 
+	tblt_build_fn build;
 	db_desc_t desc;
 } tblt_t;
 
-
-typedef struct
-{
-	ari_t    *id;   /**> The ID of the table template that this populates. */
-	vector_t rows; /**> Vector of rows in the table. (tnvc_t*) */
-} tbl_t;
 
 
 /*
@@ -119,25 +122,25 @@ int       tblt_check_row(tblt_t *tblt, tnvc_t *row);
 
 tblt_t*   tblt_copy_ptr(tblt_t *tblt);
 
-tblt_t*   tblt_create(ari_t *id);
+tblt_t*   tblt_create(ari_t *id, tblt_build_fn build);
 
 amp_type_e tblt_get_type(tblt_t *tblt, int idx);
 
-vector_t  tblt_deserialize_names(CborValue *it, size_t num, int *success);
-tblt_t*   tblt_deserialize_ptr(CborValue *it, int *success);
+//vector_t  tblt_deserialize_names(CborValue *it, size_t num, int *success);
+//tblt_t*   tblt_deserialize_ptr(CborValue *it, int *success);
 
-tblt_t*   tblt_deserialize_raw(blob_t *data, int *success);
+//tblt_t*   tblt_deserialize_raw(blob_t *data, int *success);
 
 int       tblt_num_cols(tblt_t *tblt);
 
 void      tblt_release(tblt_t *tblt, int destroy);
 
-CborError tblt_serialize(CborEncoder *encoder, void *item);
+//CborError tblt_serialize(CborEncoder *encoder, void *item);
 
-blob_t*   tblt_serialize_types(tblt_t* tblt);
+//blob_t*   tblt_serialize_types(tblt_t* tblt);
 
 
-blob_t*   tblt_serialize_wrapper(tblt_t *tblt);
+//blob_t*   tblt_serialize_wrapper(tblt_t *tblt);
 
 
 

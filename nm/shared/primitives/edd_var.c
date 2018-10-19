@@ -197,8 +197,10 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 	tnv_t val;
 	int success;
 
-	CHKNULL(id);
-	CHKNULL(expr);
+	if((id == NULL) || (expr == NULL))
+	{
+		return NULL;
+	}
 
 	result = STAKE(sizeof(var_t));
 	CHKNULL(result);
@@ -210,6 +212,8 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 	{
 		if((result->value = tnv_create()) == NULL)
 		{
+			expr_release(expr, 1);
+			ari_release(id, 1);
 			SRELEASE(result);
 			result = NULL;
 		}
@@ -224,16 +228,30 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 	else if(type == expr->type)
 	{
 		result->value = expr_eval(expr);
+		expr_release(expr, 1);
 	}
 	/* If var/expr types differ, calc value and then cast. */
 	else
 	{
 		tnv_t *tmp = expr_eval(expr);
-		result->value = tnv_cast(tmp, type);
-		tnv_release(tmp, 1);
+		expr_release(expr, 1);
+
+		result->value = NULL;
+		if(tmp != NULL)
+		{
+			if(tmp->type != type){
+				result->value = tnv_cast(tmp, type);
+				tnv_release(tmp, 1);
+			}
+			else
+			{
+				result->value = tmp;
+			}
+		}
 
 		if(result->value == NULL)
 		{
+			ari_release(id, 1);
 			SRELEASE(result);
 			result = NULL;
 		}
