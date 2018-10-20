@@ -48,6 +48,7 @@ extern int	amslog(int, int, int, int, int, int, int, int, int, int);
 extern int	amslogprt(int, int, int, int, int, int, int, int, int, int);
 extern int	amsmib(int, int, int, int, int, int, int, int, int, int);
 extern int	amsstop(int, int, int, int, int, int, int, int, int, int);
+extern int	amsd(int, int, int, int, int, int, int, int, int, int);
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
@@ -109,15 +110,16 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "amslogprt",	(FUNCPTR) amslogprt,	ICI_PRIORITY,	25576 },
 		{ "amsmib",	(FUNCPTR) amsmib,	ICI_PRIORITY,	25576 },
 		{ "amsstop",	(FUNCPTR) amsstop,	ICI_PRIORITY,	25576 }
+		{ "amsd",	(FUNCPTR) amsd,		ICI_PRIORITY,	25576 }
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-		,{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
+		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
 #endif
 #if 0
-		,{ "imcadmin",	(FUNCPTR) imcadmin,	ICI_PRIORITY,	32768 },
+		{ "imcadmin",	(FUNCPTR) imcadmin,	ICI_PRIORITY,	32768 },
 		{ "imcfw",	(FUNCPTR) imcfw,	ICI_PRIORITY,	65536 }
-		,{ "acsadmin",	(FUNCPTR) acsadmin,	ICI_PRIORITY,	32768 },
+		{ "acsadmin",	(FUNCPTR) acsadmin,	ICI_PRIORITY,	32768 },
 		{ "acslist",	(FUNCPTR) acslist,	ICI_PRIORITY,	32768 }
 #endif
 	};

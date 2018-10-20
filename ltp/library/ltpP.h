@@ -592,6 +592,7 @@ typedef struct
 	uvast		ownEngineId;
 	Sdnv		ownEngineIdSdnv;
 	unsigned int	maxBacklog;
+	char		lsiCmd[256];
 	Object		deliverables;	/*	SDR list: Deliverable	*/
 
 	/*	estMaxExportSessions is used to compute the number

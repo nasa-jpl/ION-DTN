@@ -1051,9 +1051,28 @@ int	ltpStart(char *lsiCmd)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
+	Object		ltpdbobj = getLtpDbObject();
+	LtpDB		ltpdb;
 	PsmAddress	elt;
 
-	if (lsiCmd == NULL)
+	if (lsiCmd)
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
+		istrcpy(ltpdb.lsiCmd, lsiCmd, sizeof ltpdb.lsiCmd);
+		sdr_write(sdr, ltpdbobj, (char *) &ltpdb, sizeof(LtpDB));
+		if (sdr_end_xn(sdr))
+		{
+			putErrmsg("Can't set lsi command.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		sdr_read(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
+	}
+
+	if (ltpdb.lsiCmd[0] == 0)	/*	No lsi command.		*/
 	{
 		putErrmsg("LTP can't start: no LSI command.", NULL);
 		return -1;
@@ -1065,7 +1084,7 @@ int	ltpStart(char *lsiCmd)
 
 	if (ltpvdb->lsiPid == ERROR || sm_TaskExists(ltpvdb->lsiPid) == 0)
 	{
-		ltpvdb->lsiPid = pseudoshell(lsiCmd);
+		ltpvdb->lsiPid = pseudoshell(ltpdb.lsiCmd);
 	}
 
 	/*	Start the LTP events clock if necessary.		*/

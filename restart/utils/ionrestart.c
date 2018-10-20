@@ -245,7 +245,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 
 	if (restart_ltp)
 	{
-		ltpStart();
+		ltpStart(NULL);
 		for (i = 0; i < 5; i++)
 		{
 			if (!ltp_engine_is_started())
