@@ -52,18 +52,13 @@
 
 
 typedef struct {
-	unsigned long num_rptt_defs; // done
-	unsigned long num_sent_rpts; // done
-	unsigned long num_tbrs; // done
-	unsigned long num_tbrs_run; // done
+	unsigned long num_sent_rpts;
+	unsigned long num_tbrs;
+	unsigned long num_tbrs_run;
 	unsigned long num_sbrs;
 	unsigned long num_sbrs_run;
-	unsigned long num_cnsts;
-	unsigned long num_vars;
-	unsigned long num_macros; // done
 	unsigned long num_macros_run;
-	unsigned long num_ctrls; // done
-	unsigned long num_ctrls_run; //done
+	unsigned long num_ctrls_run;
 } agent_instr_t;
 
 

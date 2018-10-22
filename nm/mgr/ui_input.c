@@ -559,7 +559,12 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
-	ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL);
+	if(type == AMP_TYPE_UNK)
+	{
+		type = ui_input_ari_type();
+	}
+
+	ui_list_objs(ADM_ENUM_ALL, type);
 	idx = ui_input_int("Which ARI?");
 
 	col =  meta_filter(adm_id, type);
@@ -716,12 +721,13 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 
 		case AMP_TYPE_MAC:
 		case AMP_TYPE_AC:
-			if((result = tnv_create()) == NULL)
+			if((result = tnv_create()) != NULL)
 			{
 				result->value.as_ptr = ui_input_ac(prompt);
 				TNV_SET_ALLOC(result->flags);
 			}
 			break;
+
 /*
 		case AMP_TYPE_CTRL:
 			result->value.as_ptr = ui_input_ctrl(prompt);

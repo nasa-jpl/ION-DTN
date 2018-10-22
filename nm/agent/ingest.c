@@ -200,8 +200,6 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 			ctrl_release(ctrl, 1);
 			break;
 		}
-
-		gAgentInstr.num_ctrls++;
 	}
 
 	msg_ctrl_release(msg, 1);
