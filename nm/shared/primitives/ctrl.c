@@ -538,7 +538,7 @@ macdef_t  macdef_deserialize(CborValue *it, int *success)
 	ari_t *new_ari = NULL;
 	int i;
 
-	CborError err;
+	CborError err = CborNoError;
 	CborValue array_it;
 	size_t array_len = 0;
 

@@ -1637,7 +1637,7 @@ static tnvc_t tnvc_deserialize_tvc(CborValue *it, int *success)
 	blob_t types;
 	int i;
 
-	CborError err;
+	CborError err = CborNoError;
 	CborValue array_it;
 	size_t array_len = 0;
 
