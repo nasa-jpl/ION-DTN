@@ -50,6 +50,12 @@
 #include "../shared/msg/msg.h"
 
 
+
+#ifdef HAVE_MYSQL
+#include "nm_mgr_sql.h"
+#endif
+
+
 /* Constants */
 #define NM_RECEIVE_TIMEOUT_SEC (2)
 #define NM_MGR_MAX_META (1024)
@@ -84,6 +90,7 @@ int      main(int argc, char *argv[]);
 int      mgr_cleanup();
 int      mgr_init(char *argv[]);
 void*    mgr_rx_thread(int *running);
+
 
 
 #endif // NM_MGR_H

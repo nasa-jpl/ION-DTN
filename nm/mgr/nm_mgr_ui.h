@@ -93,7 +93,7 @@ void ui_print_nop();
 void *ui_thread(int *running);
 
 #ifdef HAVE_MYSQL
-void ui_menu_sql_do(uint8_t choice);
+int ui_menu_sql_do(uint8_t choice);
 void ui_menu_sql_show();
 
 

@@ -817,7 +817,7 @@ void *ui_thread(int *running)
 int ui_menu_sql_do(uint8_t choice)
 {
 	int context = UI_DB_MENU;
-	switch(cmd)
+	switch(choice)
 	{
 	  // Definitions List
 	  case '1' : ui_db_set_parms(); break; // New Connection Parameters
@@ -867,17 +867,17 @@ void ui_menu_sql_show()
 
 void ui_db_conn()
 {
-	ui_db_t parms;
+	sql_db_t parms;
 
 	ui_db_disconn();
 
-	memset(&parms, 0, sizeof(ui_db_t));
+	memset(&parms, 0, sizeof(sql_db_t));
 
-	lockResource(&(gMgrVDB.sqldb_mutex));
+	lockResource(&(gMgrDB.sql_info.lock));
 
-	memcpy(&parms, &(gMgrVDB.sqldb), sizeof(ui_db_t));
+	memcpy(&parms, &(gMgrDB.sql_info), sizeof(sql_db_t));
 
-	unlockResource(&(gMgrVDB.sqldb_mutex));
+	unlockResource(&(gMgrDB.sql_info.lock));
 
 	db_mgt_init(parms, 0, 1);
 }
@@ -903,17 +903,17 @@ void ui_db_write()
   }
 
 
- lockResource(&(gMgrVDB.sqldb_mutex));
+  lockResource(&(gMgrDB.sql_info.lock));
 
- fwrite(&(gMgrVDB.sqldb.server), UI_SQL_SERVERLEN-1, 1, fp);
- fwrite(&(gMgrVDB.sqldb.database), UI_SQL_DBLEN-1, 1, fp);
- fwrite(&(gMgrVDB.sqldb.username), UI_SQL_ACCTLEN-1,1, fp);
- fwrite(&(gMgrVDB.sqldb.password), UI_SQL_ACCTLEN-1,1, fp);
+  fwrite(&(gMgrDB.sql_info.server), UI_SQL_SERVERLEN-1, 1, fp);
+  fwrite(&(gMgrDB.sql_info.database), UI_SQL_DBLEN-1, 1, fp);
+  fwrite(&(gMgrDB.sql_info.username), UI_SQL_ACCTLEN-1,1, fp);
+  fwrite(&(gMgrDB.sql_info.password), UI_SQL_ACCTLEN-1,1, fp);
 
- unlockResource(&(gMgrVDB.sqldb_mutex));
+ unlockResource(&(gMgrDB.sql_info.lock));
 
-fclose(fp);
-  printf("Database infor written to %s.\n", tmp);
+ fclose(fp);
+  printf("Database info written to %s.\n", tmp);
  
  SRELEASE(tmp);
 }
@@ -937,23 +937,23 @@ void ui_db_read()
     return;
   }
 
-  lockResource(&(gMgrVDB.sqldb_mutex));
+  lockResource(&(gMgrDB.sql_info.lock));
 
-  if(fread(&(gMgrVDB.sqldb.server), UI_SQL_SERVERLEN-1, 1, fp) <= 0)
+  if(fread(&(gMgrDB.sql_info.server), UI_SQL_SERVERLEN-1, 1, fp) <= 0)
     printf("Error reading server.\n");
 
-  if(fread(&(gMgrVDB.sqldb.database), UI_SQL_DBLEN-1, 1, fp) <= 0)
+  if(fread(&(gMgrDB.sql_info.database), UI_SQL_DBLEN-1, 1, fp) <= 0)
     printf("Error reading database.\n");
 
-  if(fread(&(gMgrVDB.sqldb.username), UI_SQL_ACCTLEN-1,1, fp) <= 0)
+  if(fread(&(gMgrDB.sql_info.username), UI_SQL_ACCTLEN-1,1, fp) <= 0)
     printf("Error reading username.\n");
 
-  if(fread(&(gMgrVDB.sqldb.password), UI_SQL_ACCTLEN-1,1, fp) <= 0)
+  if(fread(&(gMgrDB.sql_info.password), UI_SQL_ACCTLEN-1,1, fp) <= 0)
     printf("Error reading password.r\n");
  
-  mgr_db_sql_persist(&gMgrVDB.sqldb);
+  db_mgr_sql_persist();
 
-  unlockResource(&(gMgrVDB.sqldb_mutex));
+  unlockResource(&(gMgrDB.sql_info.lock));
   fclose(fp);
 
   printf("Read from %s.\n", tmp);
@@ -964,42 +964,36 @@ void ui_db_read()
 
 void ui_db_set_parms()
 {
-	ui_db_t parms;
-
 	char *tmp = NULL;
 	char prompt[80];
 
-	memset(&parms, 0, sizeof(ui_db_t));
-
 	printf("Enter SQL Database Connection Information:\n");
+
+	lockResource(&(gMgrDB.sql_info.lock));
 
 	sprintf(prompt,"Enter Database Server (up to %d characters", UI_SQL_SERVERLEN-1);
 	tmp = ui_input_string(prompt);
-	strncpy(parms.server, tmp, UI_SQL_SERVERLEN-1);
+	strncpy(gMgrDB.sql_info.server, tmp, UI_SQL_SERVERLEN-1);
 	SRELEASE(tmp);
 
 	sprintf(prompt,"Enter Database Name (up to %d characters", UI_SQL_DBLEN-1);
 	tmp = ui_input_string(prompt);
-	strncpy(parms.database, tmp, UI_SQL_DBLEN-1);
+	strncpy(gMgrDB.sql_info.database, tmp, UI_SQL_DBLEN-1);
 	SRELEASE(tmp);
 
 	sprintf(prompt,"Enter Database Username (up to %d characters", UI_SQL_ACCTLEN-1);
 	tmp = ui_input_string(prompt);
-	strncpy(parms.username, tmp, UI_SQL_ACCTLEN-1);
+	strncpy(gMgrDB.sql_info.username, tmp, UI_SQL_ACCTLEN-1);
 	SRELEASE(tmp);
 
 	sprintf(prompt,"Enter Database Password (up to %d characters", UI_SQL_ACCTLEN-1);
 	tmp = ui_input_string(prompt);
-	strncpy(parms.password, tmp, UI_SQL_ACCTLEN-1);
+	strncpy(gMgrDB.sql_info.password, tmp, UI_SQL_ACCTLEN-1);
 	SRELEASE(tmp);
 
-	mgr_db_sql_persist(&parms);
+	db_mgr_sql_persist();
 
-	lockResource(&(gMgrVDB.sqldb_mutex));
-
-	memcpy(&(gMgrVDB.sqldb), &parms, sizeof(ui_db_t));
-
-	unlockResource(&(gMgrVDB.sqldb_mutex));
+	unlockResource(&(gMgrDB.sql_info.lock));
 
 }
 
@@ -1007,7 +1001,7 @@ void ui_db_print_parms()
 {
 	printf("\n\n");
 	printf("Server: %s\nDatabase: %s\nUsername: %s\nPassword: %s\n",
-		gMgrVDB.sqldb.server, gMgrVDB.sqldb.database, gMgrVDB.sqldb.username, gMgrVDB.sqldb.password);
+		gMgrDB.sql_info.server, gMgrDB.sql_info.database, gMgrDB.sql_info.username, gMgrDB.sql_info.password);
 	printf("\n\n");
 }
 

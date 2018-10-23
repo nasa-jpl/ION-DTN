@@ -156,6 +156,7 @@ void *mgr_rx_thread(int *running)
     msg_metadata_t meta;
     int msg_type;
 
+
     /* 
      * g_running controls the overall execution of threads in the
      * NM Agent.
@@ -184,7 +185,7 @@ void *mgr_rx_thread(int *running)
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
-            incoming_idx = db_incoming_initialize(grp->time, meta->senderEid);
+            int32_t incoming_idx = db_incoming_initialize(grp->time, meta.senderEid);
 #endif
 
             /* For each message in the group. */
@@ -193,9 +194,16 @@ void *mgr_rx_thread(int *running)
             	vec_idx_t i = vecit_idx(it);
             	blob_t *msg_data = (blob_t*) vecit_data(it);
 
+#ifdef HAVE_MYSQL
+            	if(msg_data != NULL)
+            	{
+            		db_incoming_process_message(incoming_idx, msg_data);
+            	}
+#endif
+
             	/* Get the message type. */
             	msg_type = msg_grp_get_type(grp, i);
-
+            	success = AMP_FAIL;
             	switch(msg_type)
             	{
             		case MSG_TYPE_RPT_SET:
@@ -215,12 +223,6 @@ void *mgr_rx_thread(int *running)
             			break;
             	}
 
-#ifdef HAVE_MYSQL
-            	if(bytes > 0)
-            	{
-            		db_incoming_process_message(incoming_idx, msg_type, msg);
-            	}
-#endif
             }
 
             msg_grp_release(grp, 1);

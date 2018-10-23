@@ -178,7 +178,7 @@ int mgr_cleanup()
 {
 
 #ifdef HAVE_MYSQL
-	sql_close();
+	db_mgt_close();
 #endif
 
 	vec_release(&(gMgrDB.agents), 0);
@@ -231,9 +231,6 @@ int mgr_init(char *argv[])
 		return AMP_FAIL;
 	}
 
-#ifdef HAVE_MYSQL
-	success = sql_mgt_init(&(gMgrDB.sql_info), 0, 1);
-#endif
 
 	gMgrDB.tot_rpts = 0;
     istrcpy((char *) gMgrDB.mgr_eid.name, argv[1], AMP_MAX_EID_LEN);
@@ -268,6 +265,10 @@ int mgr_init(char *argv[])
     	return AMP_FAIL;
     }
 
+#ifdef HAVE_MYSQL
+	db_mgr_sql_init();
+	success = db_mgt_init(gMgrDB.sql_info, 0, 1);
+#endif
 
     success = AMP_OK;
 
