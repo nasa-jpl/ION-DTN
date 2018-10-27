@@ -70,7 +70,8 @@ int     ui_input_ari_type();
 
 int     ui_input_parms(ari_t *id);
 
-tnv_t *ui_input_tnv(int type, char *prompt);
+tnv_t*  ui_input_tnv(int type, char *prompt);
+tnvc_t* ui_input_tnvc(char *prompt);
 
 
 /* Input for helper types. */

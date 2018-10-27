@@ -377,7 +377,7 @@ tnv_t *expr_get_atomic(ari_t *ari)
     /* Step 1: Handle special case of literal. */
 	if(ari->type == AMP_TYPE_LIT)
 	{
-		result = tnv_copy_ptr(ari->as_lit);
+		result = tnv_copy_ptr(&(ari->as_lit));
 	}
 	else
 	{
@@ -464,7 +464,7 @@ tnv_t *expr_get_var(ari_t *ari)
     }
     else
     {
-        result = tnv_copy_ptr(*(var->value));
+        result = tnv_copy_ptr(var->value);
     }
 
 	return result;

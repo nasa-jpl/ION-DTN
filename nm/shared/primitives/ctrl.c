@@ -509,6 +509,24 @@ macdef_t macdef_copy(macdef_t *src, int *success)
 	return result;
 }
 
+macdef_t *macdef_copy_ptr(macdef_t *src)
+{
+	macdef_t *result = (macdef_t*) STAKE(sizeof(macdef_t));
+
+	if(result != NULL)
+	{
+		int success = AMP_FAIL;
+		*result = macdef_copy(src, &success);
+		if(success != AMP_OK)
+		{
+			macdef_release(result, 1);
+			result = NULL;
+		}
+	}
+
+	return result;
+}
+
 // Shallow copy.
 macdef_t*  macdef_create(size_t num, ari_t *ari)
 {

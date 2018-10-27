@@ -235,7 +235,7 @@ blob_t blob_deserialize(CborValue *it, int *success)
 		return result;
 	}
 
-	if((err = cbor_value_calculate_string_length(it, &len)) != CborNoError)
+	if((err = cbor_value_get_string_length(it, &len)) != CborNoError)
 	{
 		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
 		return result;
@@ -251,10 +251,12 @@ blob_t blob_deserialize(CborValue *it, int *success)
 	}
 
 	/* Copy bytestring value into the BLOB */
-	if((err = cbor_value_copy_byte_string(it, result.value, &(result.length), it)) != CborNoError)
+	err = cbor_value_copy_byte_string(it, result.value, &(result.length), it);
+	if((err != CborNoError) && (err != CborErrorUnexpectedEOF))
 	{
 		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
 		blob_release(&result, 0);
+		memset(&result, 0, sizeof(blob_t));
 		return result;
 	}
 

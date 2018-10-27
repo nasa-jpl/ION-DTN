@@ -215,7 +215,7 @@ char*     ari_to_string(ari_t *ari);
 int       ac_append(ac_t *dest, ac_t *src);
 void      ac_clear(ac_t *ac);
 ac_t*     ac_create();
-int       ac_compare(ac_t *a1, ac_t *a2);
+//int       ac_compare(ac_t *a1, ac_t *a2);
 ac_t      ac_copy(ac_t *src);
 ac_t*     ac_copy_ptr(ac_t *src);
 

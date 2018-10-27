@@ -704,6 +704,7 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			if((result = tnv_create()) != NULL)
 			{
 				result->value.as_ptr = ui_input_blob(prompt, 0);
+				result->type = type;
 				TNV_SET_ALLOC(result->flags);
 			}
 			break;
@@ -715,6 +716,7 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			if((result = tnv_create()) != NULL)
 			{
 				result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
+				result->type = type;
 				TNV_SET_ALLOC(result->flags);
 			}
 			break;
@@ -724,6 +726,15 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			if((result = tnv_create()) != NULL)
 			{
 				result->value.as_ptr = ui_input_ac(prompt);
+				result->type = type;
+				TNV_SET_ALLOC(result->flags);
+			}
+			break;
+		case AMP_TYPE_TNVC:
+			if((result = tnv_create()) != NULL)
+			{
+				result->value.as_ptr = ui_input_tnvc(prompt);
+				result->type = type;
 				TNV_SET_ALLOC(result->flags);
 			}
 			break;
@@ -784,6 +795,29 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 
 	return result;
 }
+
+
+tnvc_t* ui_input_tnvc(char *prompt)
+{
+	tnvc_t *result = NULL;
+	int num;
+	int i;
+	char tnv_prompt[32];
+
+	num = ui_input_int("Number of elements of the TNVC");
+	result = tnvc_create(num);
+
+	for(i = 0; i < num; i++)
+	{
+		int type = ui_input_ari_type();
+		snprintf(tnv_prompt,32, "TNV for Item %d", i);
+		tnv_t *cur = ui_input_tnv(type, tnv_prompt);
+		tnvc_insert(result, cur);
+	}
+
+	return result;
+}
+
 /*
 
 ctrl_t* ui_input_ctrl(prompt)

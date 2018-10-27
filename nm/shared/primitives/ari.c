@@ -837,7 +837,7 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms)
 		{
 			uint8_t src_idx = cur_val->value.as_uint;
 			tnv_t *src_val = tnvc_get(src_parms, src_idx);
-			tnv_t *new_tnv = tnv_copy_ptr(*src_val);
+			tnv_t *new_tnv = tnv_copy_ptr(src_val);
 			if(tnvc_update(result, idx, new_tnv) != AMP_OK)
 			{
 				AMP_DEBUG_ERR("ari_resolve_parms",
@@ -1008,6 +1008,19 @@ ac_t*     ac_copy_ptr(ac_t *src)
 
 	return result;
 }
+
+/*
+int ac_compare(ac_t *a1, ac_t *a2)
+{
+	if((a1 == NULL) || (a2 == NULL))
+	{
+		return -1;
+	}
+
+	return vec_
+}
+*/
+
 /*
  * If bad success, result is undefined.
  */

@@ -157,9 +157,9 @@ void     db_mgt_txn_start();
 void     db_mgt_txn_commit();
 void     db_mgt_txn_rollback();
 
-int       db_mgr_sql_persist();
-void      db_mgr_sql_info_deserialize(blob_t *data);
-blob_t*   db_mgr_sql_info_serialize();
+int      db_mgr_sql_persist();
+void     db_mgr_sql_info_deserialize(blob_t *data);
+blob_t*  db_mgr_sql_info_serialize();
 int      db_mgr_sql_init();
 
 

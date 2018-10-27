@@ -94,7 +94,7 @@ tnv_t *ldc_collect_edd(ari_t *id, tnvc_t *parms)
 tnv_t *ldc_collect_lit(ari_t *id)
 {
 	CHKNULL(id);
-	return tnv_copy_ptr(id->as_lit);
+	return tnv_copy_ptr(&(id->as_lit));
 }
 
 tnv_t *ldc_collect_rpt(ari_t *id, tnvc_t *parms)
@@ -149,7 +149,7 @@ tnv_t *ldc_collect_var(ari_t *id, tnvc_t *parms)
 	var = VDB_FINDKEY_VAR(id);
 	CHKNULL(var);
 
-	return tnv_copy_ptr(*(var->value));
+	return tnv_copy_ptr(var->value);
 }
 
 

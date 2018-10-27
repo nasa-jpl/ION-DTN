@@ -227,22 +227,22 @@
  */
 #define AMP_AGENT_ADD_VAR      0x00
 #define AMP_AGENT_DEL_VAR      0x01
-#define AMP_AGENT_ADD_RPTT     0x03
-#define AMP_AGENT_DEL_RPTT     0x04
-#define AMP_AGENT_DESC_RPTT    0x05
-#define AMP_AGENT_GEN_RPTS     0x06
-#define AMP_AGENT_GEN_TBLS     0x07
-#define AMP_AGENT_ADD_MACRO    0x08
-#define AMP_AGENT_DEL_MACRO    0x09
-#define AMP_AGENT_DESC_MACRO   0x0A
-#define AMP_AGENT_ADD_TBR      0x0B
-#define AMP_AGENT_DEL_TBR      0x0C
-#define AMP_AGENT_DESC_TBR     0x0D
-#define AMP_AGENT_ADD_SBR      0x0E
-#define AMP_AGENT_DEL_SBR      0x0F
-#define AMP_AGENT_DESC_SBR     0x10
-#define AMP_AGENT_STORE_VAR    0x11
-#define AMP_AGENT_RESET_COUNTS 0x12
+#define AMP_AGENT_ADD_RPTT     0x02
+#define AMP_AGENT_DEL_RPTT     0x03
+#define AMP_AGENT_DESC_RPTT    0x04
+#define AMP_AGENT_GEN_RPTS     0x05
+#define AMP_AGENT_GEN_TBLS     0x06
+#define AMP_AGENT_ADD_MACRO    0x07
+#define AMP_AGENT_DEL_MACRO    0x08
+#define AMP_AGENT_DESC_MACRO   0x09
+#define AMP_AGENT_ADD_TBR      0x0A
+#define AMP_AGENT_DEL_TBR      0x0B
+#define AMP_AGENT_DESC_TBR     0x0C
+#define AMP_AGENT_ADD_SBR      0x0D
+#define AMP_AGENT_DEL_SBR      0x0E
+#define AMP_AGENT_DESC_SBR     0x0F
+#define AMP_AGENT_STORE_VAR    0x10
+#define AMP_AGENT_RESET_COUNTS 0x11
 
 
 /*

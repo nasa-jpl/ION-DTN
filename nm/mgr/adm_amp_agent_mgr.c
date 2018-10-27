@@ -691,7 +691,7 @@ void amp_agent_init_ctrl()
 	meta_add_parm(meta, "ids", AMP_TYPE_AC);
 
 	/* RESET_COUNTS */
-	id = adm_build_ari(AMP_TYPE_CTRL, 1, gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_RESET_COUNTS);
+	id = adm_build_ari(AMP_TYPE_CTRL, 0, gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_RESET_COUNTS);
 	adm_add_ctrldef_ari(id, 0, NULL);
 	meta_add_ctrl(id, ADM_ENUM_AMP_AGENT, "RESET_COUNTS", "This control resets all Agent ADM statistics reported in the Agent ADM report.");
 }

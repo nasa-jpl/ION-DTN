@@ -148,6 +148,7 @@ void    macdef_cb_ht_del_fn(rh_elt_t *elt);
 void    macdef_clear(macdef_t *mac);
 
 macdef_t   macdef_copy(macdef_t *src, int *success);
+macdef_t*  macdef_copy_ptr(macdef_t *src);
 
 macdef_t*  macdef_create(size_t num, ari_t *ari);
 

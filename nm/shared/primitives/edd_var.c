@@ -157,7 +157,7 @@ var_t*    var_copy_ptr(var_t *src)
 		return NULL;
 	}
 
-	if((result->value = tnv_copy_ptr(*(src->value))) == NULL)
+	if((result->value = tnv_copy_ptr(src->value)) == NULL)
 	{
 		ari_release(result->id, 1);
 		SRELEASE(result);
@@ -275,7 +275,7 @@ var_t* var_create_from_tnv(ari_t *id, tnv_t val)
 	CHKNULL(result);
 
 	result->id = id;
-	result->value = tnv_copy_ptr(val);
+	result->value = tnv_copy_ptr(&val);
 
 	return result;
 

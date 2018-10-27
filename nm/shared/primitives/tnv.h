@@ -145,62 +145,40 @@ typedef struct
 
 /*** TNV Functions ***/
 
-
-tnv_t* tnv_cast(tnv_t *tnv, amp_type_e type);
-
-int tnv_compare(tnv_t *v1, tnv_t *v2);
-
-
-void tnv_cb_del(void *item);
-int  tnv_cb_comp(void *i1, void *i2);
-void *tnv_cb_copy(void *item);
-
-/* Creation Functions. */
-tnv_t  tnv_copy(tnv_t val, int *success);
-tnv_t *tnv_copy_ptr(tnv_t val);
-
-tnv_t *tnv_create();
-
-
-tnv_t  tnv_deserialize(CborValue *it, int *success);
-tnv_t *tnv_deserialize_ptr(CborValue *it, int *success);
-
-
-
-/* Conversion Functions. */
-
-tnv_t*  tnv_from_bool(uint8_t val);
-tnv_t*  tnv_from_blob(blob_t *val);
-tnv_t*  tnv_from_byte(uint8_t val);
-tnv_t*  tnv_from_int(int32_t val);
-tnv_t*  tnv_from_map(amp_type_e type, uint8_t map_idx);
-tnv_t*  tnv_from_real32(float val);
-tnv_t*  tnv_from_real64(double val);
-tnv_t*  tnv_from_str(char *str);
-tnv_t*  tnv_from_uint(uint32_t val);
-tnv_t*  tnv_from_uvast(uvast val);
-tnv_t*  tnv_from_vast(vast val);
-
-void tnv_init(tnv_t *val, amp_type_e type);
-
-
+tnv_t*    tnv_cast(tnv_t *tnv, amp_type_e type);
+int       tnv_compare(tnv_t *v1, tnv_t *v2);
+void      tnv_cb_del(void *item);
+int       tnv_cb_comp(void *i1, void *i2);
+void*     tnv_cb_copy(void *item);
+tnv_t     tnv_copy(tnv_t val, int *success);
+tnv_t*    tnv_copy_ptr(tnv_t *val);
+tnv_t*    tnv_create();
+tnv_t     tnv_deserialize(CborValue *it, int *success);
+tnv_t*    tnv_deserialize_ptr(CborValue *it, int *success);
+tnv_t*    tnv_from_bool(uint8_t val);
+tnv_t*    tnv_from_blob(blob_t *val);
+tnv_t*    tnv_from_byte(uint8_t val);
+tnv_t*    tnv_from_int(int32_t val);
+tnv_t*    tnv_from_map(amp_type_e type, uint8_t map_idx);
+tnv_t*    tnv_from_real32(float val);
+tnv_t*    tnv_from_real64(double val);
+tnv_t*    tnv_from_str(char *str);
+tnv_t*    tnv_from_uint(uint32_t val);
+tnv_t*    tnv_from_uvast(uvast val);
+tnv_t*    tnv_from_vast(vast val);
+void      tnv_init(tnv_t *val, amp_type_e type);
 CborError tnv_serialize(CborEncoder *encoder, void *item);
 CborError tnv_serialize_value(CborEncoder *encoder, void *item);
-blob_t* tnv_serialize_value_wrapper(tnv_t *tnv);
-blob_t*  tnv_serialize_wrapper(tnv_t *tnv);
-
-int    tnv_set_map(tnv_t *tnv, uint32_t map);
-
-void   tnv_release(tnv_t *val, int destroy);
-
-
-int32_t  tnv_to_int(tnv_t val, int *success);
-float    tnv_to_real32(tnv_t val, int *success);
-double	 tnv_to_real64(tnv_t val, int *success);
-int	     tnv_to_type(tnv_t *val, amp_type_e type);
-uint32_t tnv_to_uint(tnv_t val, int *success);
-uvast 	 tnv_to_uvast(tnv_t val, int *success);
-vast 	 tnv_to_vast(tnv_t val, int *success);
+blob_t*   tnv_serialize_value_wrapper(tnv_t *tnv);
+blob_t*   tnv_serialize_wrapper(tnv_t *tnv);
+int       tnv_set_map(tnv_t *tnv, uint32_t map);
+void      tnv_release(tnv_t *val, int destroy);
+int32_t   tnv_to_int(tnv_t val, int *success);
+float     tnv_to_real32(tnv_t val, int *success);
+double	  tnv_to_real64(tnv_t val, int *success);
+uint32_t  tnv_to_uint(tnv_t val, int *success);
+uvast 	  tnv_to_uvast(tnv_t val, int *success);
+vast 	  tnv_to_vast(tnv_t val, int *success);
 
 
 /*** TNVC Functions ***/
@@ -228,6 +206,7 @@ tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success);
 
 tnv_t*    tnvc_get(tnvc_t* tnvc, uint8_t index);
 uint8_t   tnvc_get_count(tnvc_t* tnvc);
+tnv_enc_e tnvc_get_encode_type(tnvc_t *tnvc);
 tnv_enc_e tnvc_get_type(tnvc_t *tnvc, uint8_t index);
 blob_t    tnvc_get_types(tnvc_t *tnvc, int *success);
 
