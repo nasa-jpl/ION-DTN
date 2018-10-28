@@ -209,21 +209,22 @@ void amp_agent_init_rptt()
 
 	/* Create the report template definition, including any entries. */
 	def = rpttpl_create_id(adm_build_ari(AMP_TYPE_RPTTPL, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_FULL_REPORT));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NAME));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_VERSION));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_RPT_TPLS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_TBL_TPLS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_SENT_REPORTS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_TBR));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_RUN_TBR));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_SBR));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_RUN_SBR));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_CONST));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_MACROS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_RUN_MACROS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_CONTROLS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_RUN_CONTROLS));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_VAR, 0, gAmpAgentIdx[ADM_RPTT_IDX], AMP_AGENT_NUM_RULES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_CNST, 0, gAmpAgentIdx[ADM_META_IDX], AMP_AGENT_NAME));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_CNST, 0, gAmpAgentIdx[ADM_META_IDX], AMP_AGENT_VERSION));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_RPT_TPLS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_TBL_TPLS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_SENT_REPORTS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_TBR));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_RUN_TBR));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_SBR));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_RUN_SBR));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_CONST));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_MACROS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_RUN_MACROS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_NUM_CONTROLS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, gAmpAgentIdx[ADM_EDD_IDX], AMP_AGENT_RUN_CONTROLS));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_VAR, 0, gAmpAgentIdx[ADM_VAR_IDX], AMP_AGENT_NUM_RULES));
+
 
 	/* When all entries are added to the report, add the report to the list of knwon templates. */
 	adm_add_rpttpl(def);

@@ -142,7 +142,12 @@ CborError   msg_ctrl_serialize(CborEncoder *encoder, void *item);
 blob_t*     msg_ctrl_serialize_wrapper(msg_ctrl_t *msg);
 
 
+
 int        msg_rpt_add_rpt(msg_rpt_t *msg_rpt, rpt_t *rpt);
+
+//int        msg_rpt_cb_comp_fn(void *i1, void *i2);
+
+void       msg_rpt_cb_del_fn(void *item);
 
 msg_rpt_t* msg_rpt_create(char *name);
 
@@ -150,7 +155,7 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success);
 
 void       msg_rpt_release(msg_rpt_t *pdu, int destroy);
 
-CborError  msg_rpt_serialize(CborEncoder *encoder, msg_rpt_t *msg);
+CborError  msg_rpt_serialize(CborEncoder *encoder, void *item);
 
 blob_t*    msg_rpt_serialize_wrapper(msg_rpt_t *msg);
 

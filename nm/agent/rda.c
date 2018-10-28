@@ -81,7 +81,7 @@ int rda_init()
 {
 	int success;
 
-	gAgentDb.rpt_msgs = vec_create(RDA_DEF_NUM_RPTS, rpt_cb_del_fn, rpt_cb_comp_fn, NULL, 0, &success);
+	gAgentDb.rpt_msgs = vec_create(RDA_DEF_NUM_RPTS, msg_rpt_cb_del_fn, NULL, NULL, 0, &success);
 
 	gAgentDb.tbrs = vec_create(RDA_DEF_NUM_TBRS, NULL, NULL, NULL, 0, &success);
 	gAgentDb.sbrs = vec_create(RDA_DEF_NUM_SBRS, NULL, NULL, NULL, 0, &success);
@@ -452,6 +452,9 @@ int rda_send_reports()
     		}
     	}
     }
+
+    /* Sent successfully or not, clear the reports. */
+    vec_clear(&(gAgentDb.rpt_msgs));
 
     vec_unlock(&(gAgentDb.rpt_msgs));
 

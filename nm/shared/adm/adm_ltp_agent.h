@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-01-08  AUTO             Auto-generated header file 
+ **  2018-10-27  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -24,273 +24,301 @@
 #include "../utils/nm_types.h"
 #include "adm.h"
 
-/*
- * +----------------------------------------------------------------------------------------------------------+
- * |			              ADM TEMPLATE DOCUMENTATION                                              +
- * +----------------------------------------------------------------------------------------------------------+
- */
 
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |                                        ADM TEMPLATE DOCUMENTATION                                        +
+ * +-----------------------------------------------------------------------------------------------------------+
+ *
+ * ADM ROOT STRING:DTN/ltp_agent
+ */
 #define ADM_ENUM_LTP_AGENT 3
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |                                        AGENT NICKNAME DEFINITIONS                                        +
+ * +-----------------------------------------------------------------------------------------------------------+
+ */
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |                                      LTP_AGENT META-DATA DEFINITIONS                                      +
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |         VALUE          |
+ * +---------------------+--------------+--------------------------------------+-------+------------------------+
+ * |name                 |4480184600    |The human-readable name of the ADM.   |STR    |ltp_agent               |
+ * +---------------------+--------------+--------------------------------------+-------+------------------------+
+ * |namespace            |4480184601    |The namespace of the ADM.             |STR    |DTN/ltp_agent           |
+ * +---------------------+--------------+--------------------------------------+-------+------------------------+
+ * |version              |4480184602    |The version of the ADM.               |STR    |v0.0                    |
+ * +---------------------+--------------+--------------------------------------+-------+------------------------+
+ * |organization         |4480184603    |The name of the issuing organization o|       |                        |
+ * |                     |              |f the ADM.                            |STR    |JHUAPL                  |
+ * +---------------------+--------------+--------------------------------------+-------+------------------------+
+ */
+// "name"
+#define LTP_AGENT_META_NAME 0x00
+// "namespace"
+#define LTP_AGENT_META_NAMESPACE 0x01
+// "version"
+#define LTP_AGENT_META_VERSION 0x02
+// "organization"
+#define LTP_AGENT_META_ORGANIZATION 0x03
 
 
 /*
- * +----------------------------------------------------------------------------------------------------------+
- * |				             AGENT NICKNAME DEFINITIONS                                       +
- * +----------------------------------------------------------------------------------------------------------+
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |                               LTP_AGENT EXTERNALLY DEFINED DATA DEFINITIONS                               +
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_remote_engine_nb|44c2183e00    |The remote engine number of this span.|UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_cur_expt_sess   |44c2183e01    |Expected sessions on this span.       |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_cur_out_seg     |44c2183e02    |The current number of outbound segment|       |
+ * |                     |              |s for this span.                      |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_cur_imp_sess    |44c2183e03    |The current number of import segments |       |
+ * |                     |              |for this span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_cur_in_seg      |44c2183e04    |The current number of inbound segments|       |
+ * |                     |              | for this span.                       |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_reset_time      |44c2183e05    |The last time the span counters were r|       |
+ * |                     |              |eset.                                 |UVAST  |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_seg_q_cnt   |44c2183e06    |The output segment queued count for th|       |
+ * |                     |              |e span.                               |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_seg_q_bytes |44c2183e07    |The output segment queued bytes for th|       |
+ * |                     |              |e span.                               |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_seg_pop_cnt |44c2183e08    |The output segment popped count for th|       |
+ * |                     |              |e span.                               |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_seg_pop_byte|44c2183e09    |The output segment popped bytes for th|       |
+ * |                     |              |e span.                               |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_ckpt_xmit_cn|44c2183e0a    |The output checkpoint transmit count f|       |
+ * |                     |              |or the span.                          |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_pos_ack_rx_c|44c2183e0b    |The output positive acknowledgement re|       |
+ * |                     |              |ceived count for the span.            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_neg_ack_rx_c|44c2183e0c    |The output negative acknowledgement re|       |
+ * |                     |              |ceived count for the span.            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_cancel_rx_cn|44c2183e0d    |The output cancelled received count fo|       |
+ * |                     |              |r the span.                           |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_ckpt_rexmit_|44c2183e0e    |The output checkpoint retransmit count|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_cancel_xmit_|44c2183e0f    |The output cancel retransmit count for|       |
+ * |                     |              | the span.                            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_out_complete_cnt|44c2183e10    |The output completed count for the spa|       |
+ * |                     |              |n.                                    |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_red_cn|44c2183e11    |The input segment received red count f|       |
+ * |                     |              |or the span.                          |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_red_by|44c2183e12    |The input segment received red bytes f|       |
+ * |                     |              |or the span.                          |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_green_|44c2183e13    |The input segment received green count|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_green_|44c2183e14    |The input segment received green bytes|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_redund|44c2183e15    |The input segment received redundant c|       |
+ * |                     |              |ount for the span.                    |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_redund|44c2183e16    |The input segment received redundant b|       |
+ * |                     |              |ytes for the span.                    |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_mal_cn|44c2183e17    |The input segment malformed count for |       |
+ * |                     |              |the span.                             |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_mal_by|45c2183e1818  |The input segment malformed bytes for |       |
+ * |                     |              |the span.                             |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_unk_se|45c2183e1819  |The input segment unknown sender count|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_unk_se|45c2183e181a  |The input segment unknown sender bytes|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_unk_cl|45c2183e181b  |The input segment unknown client count|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_rx_unk_cl|45c2183e181c  |The input segment unknown client bytes|       |
+ * |                     |              | for the span.                        |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_stray_cnt|45c2183e181d  |The input segment stray count for the |       |
+ * |                     |              |span.                                 |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_stray_byt|45c2183e181e  |The input segment stray bytes for the |       |
+ * |                     |              |span.                                 |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_miscolor_|45c2183e181f  |The input segment miscolored count for|       |
+ * |                     |              | the span.                            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_miscolor_|45c2183e1820  |The input segment miscolored bytes for|       |
+ * |                     |              | the span.                            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_closed_cn|45c2183e1821  |The input segment closed count for the|       |
+ * |                     |              | span.                                |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_seg_closed_by|45c2183e1822  |The input segment closed bytes for the|       |
+ * |                     |              | span.                                |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_ckpt_rx_cnt  |45c2183e1823  |The input checkpoint receive count for|       |
+ * |                     |              | the span.                            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_pos_ack_tx_cn|45c2183e1824  |The input positive acknolwedgement tra|       |
+ * |                     |              |nsmitted count for the span.          |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_neg_ack_tx_cn|45c2183e1825  |The input negative acknolwedgement tra|       |
+ * |                     |              |nsmitted count for the span.          |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_cancel_tx_cnt|45c2183e1826  |The input cancel transmitted count for|       |
+ * |                     |              | the span.                            |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_ack_retx_cnt |45c2183e1827  |The input acknolwedgement retransmit c|       |
+ * |                     |              |ount for the span.                    |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_cancel_rx_cnt|45c2183e1828  |The input cancel receive count for the|       |
+ * |                     |              | span.                                |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |span_in_complete_cnt |45c2183e1829  |The input completed count for the span|       |
+ * |                     |              |.                                     |UINT   |
+ * +---------------------+--------------+--------------------------------------+-------+
+ */
+#define LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR 0x00
+#define LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS 0x01
+#define LTP_AGENT_EDD_SPAN_CUR_OUT_SEG 0x02
+#define LTP_AGENT_EDD_SPAN_CUR_IMP_SESS 0x03
+#define LTP_AGENT_EDD_SPAN_CUR_IN_SEG 0x04
+#define LTP_AGENT_EDD_SPAN_RESET_TIME 0x05
+#define LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT 0x06
+#define LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES 0x07
+#define LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT 0x08
+#define LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES 0x09
+#define LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT 0x0a
+#define LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT 0x0b
+#define LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT 0x0c
+#define LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT 0x0d
+#define LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT 0x0e
+#define LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT 0x0f
+#define LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT 0x10
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT 0x11
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES 0x12
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT 0x13
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES 0x14
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT 0x15
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES 0x16
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT 0x17
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES 0x18
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT 0x19
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES 0x1a
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT 0x1b
+#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES 0x1c
+#define LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT 0x1d
+#define LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES 0x1e
+#define LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT 0x1f
+#define LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES 0x20
+#define LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT 0x21
+#define LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES 0x22
+#define LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT 0x23
+#define LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT 0x24
+#define LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT 0x25
+#define LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT 0x26
+#define LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT 0x27
+#define LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT 0x28
+#define LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT 0x29
+
+
+/*
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |                                      LTP_AGENT VARIABLE DEFINITIONS                                      +
+ * +-----------------------------------------------------------------------------------------------------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT META-DATA DEFINITIONS                                                          
+ * |                                       LTP_AGENT REPORT DEFINITIONS                                       +
  * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |name                         |0x87140100  |The human-readable name of the ADM.               |STR          |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |namespace                    |0x87140101  |The namespace of the ADM.                         |STR          |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |version                      |0x87140102  |The version of the ADM.                           |STR          |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |organization                 |0x87140103  |The name of the issuing organization of the ADM.  |STR          |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |endpointReport       |44c7184100    |This is all known endpoint information|TNVC   |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
-#define ADM_LTP_AGENT_META_NAME_ARI_NAME         0x00
-#define ADM_LTP_AGENT_META_NAMESPACE_ARI_NAME    0x01
-#define ADM_LTP_AGENT_META_VERSION_ARI_NAME      0x02
-#define ADM_LTP_AGENT_META_ORGANIZATION_ARI_NAME 0x03
+#define LTP_AGENT_RPTTPL_ENDPOINTREPORT 0x00
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT EXTERNALLY DEFINED DATA DEFINITIONS                                               
+ * |                                        LTP_AGENT TABLE DEFINITIONS                                        +
  * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_remote_engine_nbr       |0xc0150100  |The remote engine number of this span.            |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_cur_expt_sess           |0xc0150101  |Expected sessions on this span.                   |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_cur_out_seg             |0xc0150102  |The current number of outbound segments for this s|             |
-   |                             |            |pan.                                              |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_cur_imp_sess            |0xc0150103  |The current number of import segments for this spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_cur_in_seg              |0xc0150104  |The current number of inbound segments for this sp|             |
-   |                             |            |an.                                               |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_reset_time              |0xc0150105  |The last time the span counters were reset.       |UVAST        |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_seg_q_cnt           |0xc0150106  |The output segment queued count for the span.     |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_seg_q_bytes         |0xc0150107  |The output segment queued bytes for the span.     |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_seg_pop_cnt         |0xc0150108  |The output segment popped count for the span.     |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_seg_pop_bytes       |0xc0150109  |The output segment popped bytes for the span.     |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_ckpt_xmit_cnt       |0xc015010a  |The output checkpoint transmit count for the span.|UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_pos_ack_rx_cnt      |0xc015010b  |The output positive acknowledgement received count|             |
-   |                             |            | for the span.                                    |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_neg_ack_rx_cnt      |0xc015010c  |The output negative acknowledgement received count|             |
-   |                             |            | for the span.                                    |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_cancel_rx_cnt       |0xc015010d  |The output cancelled received count for the span. |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_ckpt_rexmit_cnt     |0xc015010e  |The output checkpoint retransmit count for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_cancel_xmit_cnt     |0xc015010f  |The output cancel retransmit count for the span.  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_out_complete_cnt        |0xc0150110  |The output completed count for the span.          |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_red_cnt       |0xc0150111  |The input segment received red count for the span.|UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_red_bytes     |0xc0150112  |The input segment received red bytes for the span.|UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_green_cnt     |0xc0150113  |The input segment received green count for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_green_bytes   |0xc0150114  |The input segment received green bytes for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_redundant_cnt |0xc0150115  |The input segment received redundant count for the|             |
-   |                             |            | span.                                            |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_redundant_byte|0xc0150116  |The input segment received redundant bytes for the|             |
-   |                             |            | span.                                            |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_mal_cnt       |0xc0150117  |The input segment malformed count for the span.   |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_mal_bytes     |0xc0150118  |The input segment malformed bytes for the span.   |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_unk_sender_cnt|0xc0150119  |The input segment unknown sender count for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_unk_sender_byt|0xc015011a  |The input segment unknown sender bytes for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_unk_client_cnt|0xc015011b  |The input segment unknown client count for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_rx_unk_client_byt|0xc015011c  |The input segment unknown client bytes for the spa|             |
-   |                             |            |n.                                                |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_stray_cnt        |0xc015011d  |The input segment stray count for the span.       |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_stray_bytes      |0xc015011e  |The input segment stray bytes for the span.       |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_miscolor_cnt     |0xc015011f  |The input segment miscolored count for the span.  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_miscolor_bytes   |0xc0150120  |The input segment miscolored bytes for the span.  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_closed_cnt       |0xc0150121  |The input segment closed count for the span.      |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_seg_closed_bytes     |0xc0150122  |The input segment closed bytes for the span.      |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_ckpt_rx_cnt          |0xc0150123  |The input checkpoint receive count for the span.  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_pos_ack_tx_cnt       |0xc0150124  |The input positive acknolwedgement transmitted cou|             |
-   |                             |            |nt for the span.                                  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_neg_ack_tx_cnt       |0xc0150125  |The input negative acknolwedgement transmitted cou|             |
-   |                             |            |nt for the span.                                  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_cancel_tx_cnt        |0xc0150126  |The input cancel transmitted count for the span.  |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_ack_retx_cnt         |0xc0150127  |The input acknolwedgement retransmit count for the|             |
-   |                             |            | span.                                            |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_cancel_rx_cnt        |0xc0150128  |The input cancel receive count for the span.      |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |span_in_complete_cnt         |0xc0150129  |The input completed count for the span.           |UINT         |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
- */
-#define ADM_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR_ARI_NAME   0x00
-#define ADM_LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS_ARI_NAME       0x01
-#define ADM_LTP_AGENT_EDD_SPAN_CUR_OUT_SEG_ARI_NAME         0x02
-#define ADM_LTP_AGENT_EDD_SPAN_CUR_IMP_SESS_ARI_NAME        0x03
-#define ADM_LTP_AGENT_EDD_SPAN_CUR_IN_SEG_ARI_NAME          0x04
-#define ADM_LTP_AGENT_EDD_SPAN_RESET_TIME_ARI_NAME          0x05
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT_ARI_NAME       0x06
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES_ARI_NAME     0x07
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT_ARI_NAME     0x08
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES_ARI_NAME   0x09
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT_ARI_NAME   0x0a
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT_ARI_NAME  0x0b
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT_ARI_NAME  0x0c
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT_ARI_NAME   0x0d
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT_ARI_NAME 0x0e
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT_ARI_NAME 0x0f
-#define ADM_LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT_ARI_NAME    0x10
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT_ARI_NAME   0x11
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES_ARI_NAME 0x12
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT_ARI_NAME 0x13
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES_ARI_NAME 0x14
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT_ARI_NAME 0x15
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES_ARI_NAME 0x16
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT_ARI_NAME   0x17
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES_ARI_NAME 0x18
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT_ARI_NAME 0x19
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES_ARI_NAME 0x1a
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT_ARI_NAME 0x1b
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES_ARI_NAME 0x1c
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT_ARI_NAME      0x1d
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES_ARI_NAME    0x1e
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT_ARI_NAME   0x1f
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES_ARI_NAME 0x20
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT_ARI_NAME     0x21
-#define ADM_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES_ARI_NAME   0x22
-#define ADM_LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT_ARI_NAME        0x23
-#define ADM_LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT_ARI_NAME     0x24
-#define ADM_LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT_ARI_NAME     0x25
-#define ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT_ARI_NAME      0x26
-#define ADM_LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT_ARI_NAME       0x27
-#define ADM_LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT_ARI_NAME      0x28
-#define ADM_LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT_ARI_NAME       0x29
-
-
-/*
- * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT VARIABLE DEFINITIONS                                                          
- * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT REPORT DEFINITIONS                                                           
+ * |                                       LTP_AGENT CONTROL DEFINITIONS                                       +
  * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |endpointReport               |0xc2170100  |This is all known endpoint information            |?            |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |reset                |44c1183d00    |Resets the counters associated with th|       |
+ * |                     |              |e engine and updates the last reset ti|       |
+ * |                     |              |me for the span to be the time when th|       |
+ * |                     |              |is control was run.                   |       |
+ * +---------------------+--------------+--------------------------------------+-------+
+ * |list_engines         |4481183d01    |Lists all remote engine IDs.          |       |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
-#define ADM_LTP_AGENT_RPT_ENDPOINTREPORT_ARI_NAME 0x00
+#define LTP_AGENT_CTRL_RESET 0x00
+#define LTP_AGENT_CTRL_LIST_ENGINES 0x01
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT CONTROL DEFINITIONS                                                         
+ * |                                      LTP_AGENT CONSTANT DEFINITIONS                                      +
  * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |reset                        |0xc3180100  |Resets the counters associated with the engine and|             |
-   |                             |            | updates the last reset time for the span to be th|             |
-   |                             |            |e time when this control was run.                 |             |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
- */
-#define ADM_LTP_AGENT_CTRL_RESET_ARI_NAME 0x00
-
-
-/*
- * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT CONSTANT DEFINITIONS                                                         
- * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |         VALUE          |
+ * +---------------------+--------------+--------------------------------------+-------+------------------------+
  */
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT MACRO DEFINITIONS                                                            
+ * |                                        LTP_AGENT MACRO DEFINITIONS                                        +
  * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |		                    LTP_AGENT OPERATOR DEFINITIONS                                                          
+ * |                                      LTP_AGENT OPERATOR DEFINITIONS                                      +
  * +-----------------------------------------------------------------------------------------------------------+
-   +-----------------------------+------------+--------------------------------------------------+-------------+
-   |             NAME            |    MID     |              DESCRIPTION                         |     TYPE    |
-   +-----------------------------+------------+--------------------------------------------------+-------------+
+ * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
 
 /* Initialization functions. */
-void adm_ltp_agent_init();
-void adm_ltp_agent_init_edd();
-void adm_ltp_agent_init_vars();
-void adm_ltp_agent_init_ctrldefs();
-void adm_ltp_agent_init_constants();
-void adm_ltp_agent_init_macros();
-void adm_ltp_agent_init_metadata();
-void adm_ltp_agent_init_ops();
-void adm_ltp_agent_init_reports();
+void ltp_agent_init();
+void ltp_agent_init_meta();
+void ltp_agent_init_rpttpl();
+void ltp_agent_init_edd();
+void ltp_agent_init_ctrl();
 #endif /* _HAVE_LTP_AGENT_ADM_ */
 #endif //ADM_LTP_AGENT_H_

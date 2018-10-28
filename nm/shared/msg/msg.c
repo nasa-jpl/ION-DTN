@@ -282,6 +282,24 @@ int msg_rpt_add_rpt(msg_rpt_t *msg, rpt_t *rpt)
 
 	return AMP_OK;
 }
+/*
+int msg_rpt_cb_comp_fn(void *i1, void *i2)
+{
+	msg_rpt_t *r1 = (msg_rpt_t*) i1;
+	msg_rpt_t *r2 = (msg_rpt_t*) i2;
+
+	CHKUSR(r1, -1);
+	CHKUSR(r2, -1);
+
+	return ari_cb_comp_fn(r1->id, r2->id);
+}
+*/
+
+void msg_rpt_cb_del_fn(void *item)
+{
+	msg_rpt_release((msg_rpt_t*)item, 1);
+}
+
 
 
 msg_rpt_t* msg_rpt_create(char *name)
@@ -385,9 +403,11 @@ void msg_rpt_release(msg_rpt_t *msg, int destroy)
 }
 
 
-CborError msg_rpt_serialize(CborEncoder *encoder, msg_rpt_t *msg)
+CborError msg_rpt_serialize(CborEncoder *encoder, void *item)
 {
 	CborError err;
+
+	msg_rpt_t *msg = (msg_rpt_t *)item;
 
 	err = msg_hdr_serialize(encoder, msg->hdr);
 	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
@@ -411,7 +431,7 @@ CborError msg_rpt_serialize(CborEncoder *encoder, msg_rpt_t *msg)
 
 blob_t* msg_rpt_serialize_wrapper(msg_rpt_t *msg)
 {
-	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, msg_ctrl_serialize);
+	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, msg_rpt_serialize);
 }
 
 

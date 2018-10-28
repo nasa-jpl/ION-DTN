@@ -288,9 +288,15 @@ tnv_t tnv_copy(tnv_t val, int *success)
 
 tnv_t *tnv_copy_ptr(tnv_t *val)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	int success = AMP_FAIL;
 
+	if(val == NULL)
+	{
+		return NULL;
+	}
+
+	result = tnv_create();
 	CHKNULL(result);
 
 	*result = tnv_copy(*val, &success);

@@ -62,7 +62,11 @@ tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
 	AMP_DEBUG_ENTRY("expr_apply_op","("ADDR_FIELDSPEC", "ADDR_FIELDSPEC")",
 			        (uaddr) id, (uaddr) stack);
 
-	CHKNULL(result);
+	if((id == NULL) || (stack == NULL))
+	{
+		AMP_DEBUG_ERR("expr_apply_op","Bad parms", NULL);
+		return NULL;
+	}
 
 	/* Grab the operator instance. */
 	if((op = VDB_FINDKEY_OP(id)) == NULL)

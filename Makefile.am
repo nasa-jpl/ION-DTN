@@ -1894,36 +1894,52 @@ dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
 nmbin= nm_agent nm_mgr
 
-nm_shared_src    =  nm/shared/adm/adm.c				\
-					nm/shared/msg/msg.c				\
-					nm/shared/msg/ion_if.c			\
-					nm/shared/primitives/ari.c		\
-					nm/shared/primitives/blob.c		\
-					nm/shared/primitives/ctrl.c		\
-					nm/shared/primitives/edd_var.c	\
-					nm/shared/primitives/expr.c		\
-					nm/shared/primitives/report.c 	\
-					nm/shared/primitives/rules.c 	\
-				 	nm/shared/primitives/table.c 	\
- 	    			nm/shared/primitives/tnv.c		\
- 	    			nm/shared/utils/cbor_utils.c	\
-					nm/shared/utils/db.c			\
-					nm/shared/utils/nm_types.c 		\
-					nm/shared/utils/rhht.c	 		\
-					nm/shared/utils/utils.c         \
-					nm/shared/utils/vector.c 		\
-					nm/contrib/tinycbor/src/cborparser.c \
-					nm/contrib/tinycbor/src/cborencoder.c 
+nm_shared_src    =  	nm/shared/adm/adm.c			\
+			nm/shared/msg/msg.c			\
+			nm/shared/msg/ion_if.c			\
+			nm/shared/primitives/ari.c		\
+			nm/shared/primitives/blob.c		\
+			nm/shared/primitives/ctrl.c		\
+			nm/shared/primitives/edd_var.c		\
+			nm/shared/primitives/expr.c		\
+			nm/shared/primitives/report.c 		\
+			nm/shared/primitives/rules.c 		\
+		 	nm/shared/primitives/table.c 		\
+ 	    		nm/shared/primitives/tnv.c		\
+ 	    		nm/shared/utils/cbor_utils.c		\
+			nm/shared/utils/db.c			\
+			nm/shared/utils/nm_types.c 		\
+			nm/shared/utils/rhht.c	 		\
+			nm/shared/utils/utils.c        		\
+			nm/shared/utils/vector.c 		\
+			nm/contrib/tinycbor/src/cborparser.c 	\
+			nm/contrib/tinycbor/src/cborencoder.c 
 
-nm_agent_SOURCES =  $(nm_shared_src)				\
-					nm/agent/ingest.c  				\
-					nm/agent/instr.c				\
-					nm/agent/lcc.c     				\
-					nm/agent/nmagent.c 				\
-					nm/agent/ldc.c 					\
-                    nm/agent/rda.c 					\
-                    nm/agent/adm_amp_agent_impl.c   \
-                    nm/agent/adm_amp_agent_agent.c                     
+nm_agent_SOURCES =  	$(nm_shared_src)		\
+			nm/agent/ingest.c  		\
+			nm/agent/instr.c		\
+			nm/agent/lcc.c     		\
+			nm/agent/nmagent.c 		\
+			nm/agent/ldc.c 			\
+               	     	nm/agent/rda.c 			\
+                    	nm/agent/adm_amp_agent_impl.c   \
+                    	nm/agent/adm_amp_agent_agent.c	
+#			nm/agent/adm_bp_agent_impl.c	\
+#			nm/agent/adm_bp_agent_agent.c	\
+#			nm/agent/adm_bpsec_impl.c	\
+#			nm/agent/adm_bpsec_agent.c	\
+#			nm/agent/adm_ion_admin_agent.c 	\	
+#			nm/agent/adm_ion_admin_impl.c	\
+#			nm/agent/adm_ion_bp_admin_impl.c	\
+#			nm/agent/adm_ion_bp_admin_agent.c	\
+#			nm/agent/adm_ion_ipn_admin_impl.c	\
+#			nm/agent/adm_ion_ipn_admin_agent.c	\
+#			nm/agent/adm_ion_ltp_admin_impl.c	\
+#			nm/agent/adm_ion_ltp_admin_agent.c	\
+#			nm/agent/ionsec_admin_impl.c	\
+#			nm/agent/ionsec_admin_agent.c	\
+#			nm/agent/adm_ltp_agent_impl.c	\
+#			nm/agent/adm_ltp_agent_agent.c 
 				
 					 
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -1934,16 +1950,24 @@ nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library 
                   -DAGENT_ROLE
 					
 					
-nm_mgr_SOURCES =    $(nm_shared_src)				\
-					nm/mgr/agents.c 				\
-					nm/mgr/metadata.c				\
-					nm/mgr/nm_mgr_print.c 		 	\
-					nm/mgr/nm_mgr_rx.c             	\
-					nm/mgr/nm_mgr_sql.c             \
-					nm/mgr/nm_mgr_ui.c 				\
-					nm/mgr/nm_mgr.c					\
-					nm/mgr/ui_input.c 				\
-					nm/mgr/adm_amp_agent_mgr.c      
+nm_mgr_SOURCES =	$(nm_shared_src)		\
+			nm/mgr/agents.c 		\
+			nm/mgr/metadata.c		\
+			nm/mgr/nm_mgr_print.c 	 	\
+			nm/mgr/nm_mgr_rx.c             	\
+			nm/mgr/nm_mgr_sql.c             \
+			nm/mgr/nm_mgr_ui.c 		\
+			nm/mgr/nm_mgr.c			\
+			nm/mgr/ui_input.c 		\
+			nm/mgr/adm_amp_agent_mgr.c      
+#			nm/mgr/adm_bp_agent_mgr.c	\
+#			nm/mgr/adm_bpsec_mgr.c		\
+#			nm/mgr/adm_ion_admin_mgr.c	\	
+#			nm/mgr/adm_ion_bp_admin_mgr.c	\
+#			nm/mgr/adm_ion_ipn_admin_mgr.c	\
+#			nm/mgr/adm_ion_ltp_admin_mgr.c	\
+#			nm/mgr/adm_ionsec_admin_mgr.c	\
+#			nm/mgr/adm_ltp_agent_mgr.c
 					 	
 					
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)

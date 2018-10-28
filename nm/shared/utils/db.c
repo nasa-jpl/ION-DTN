@@ -525,16 +525,16 @@ int db_init(char *name)
 	gVDB.adm_ops = rhht_create(DB_MAX_OP, ari_cb_comp_fn, ari_cb_hash, op_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.rpttpls = rhht_create(DB_MAX_RPTT, rpttpl_cb_comp_fn, ari_cb_hash, rpttpl_cb_ht_del_fn, &success);
+	gVDB.rpttpls = rhht_create(DB_MAX_RPTT, ari_cb_comp_fn, ari_cb_hash, rpttpl_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.rules = rhht_create(DB_MAX_SBR, rule_cb_comp_fn, ari_cb_hash, rule_cb_ht_del_fn, &success);
+	gVDB.rules = rhht_create(DB_MAX_SBR, ari_cb_comp_fn, ari_cb_hash, rule_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.adm_tblts = rhht_create(DB_MAX_TBLT, ari_cb_comp_fn, ari_cb_hash, tblt_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.vars = rhht_create(DB_MAX_VAR, var_cb_comp_fn, ari_cb_hash, var_cb_ht_del_fn, &success);
+	gVDB.vars = rhht_create(DB_MAX_VAR, ari_cb_comp_fn, ari_cb_hash, var_cb_ht_del_fn, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.nicknames = vec_create(DB_MAX_NN, vec_simple_del, vec_uvast_comp, vec_uvast_copy, 0, &success);

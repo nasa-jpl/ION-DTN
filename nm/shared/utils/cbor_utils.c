@@ -431,7 +431,7 @@ CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn e
 		err = CborErrorIO;
 		if(result != NULL)
 		{
-			err = cbor_encode_byte_string(encoder, result->value, result->length);
+			err = cbor_encode_byte_string(&array_enc, result->value, result->length);
 			blob_release(result, 1);
 		}
 
