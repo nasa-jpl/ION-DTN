@@ -2462,71 +2462,103 @@ int ui_menu_listing(
    char* status_msg, int default_idx, char* usage_msg,
    ui_menu_listing_cb_fn fn, int flags)
 {
-   int i, status;
+   int i, status, running = 1;
    char line[20];
 
-   ui_display_init(title);
-
-   for(i = 0; i < n_choices; i++)
+   while(running)
    {
-      printf("%i. %s", i, list[i].name);
-      if (list[i].description != NULL)
+      ui_display_init(title);
+
+      for(i = 0; i < n_choices; i++)
       {
-         printf("\t %s\n", list[i].description);
+         printf("%i. %s", i, list[i].name);
+         if (list[i].description != NULL)
+         {
+            printf("\t %s\n", list[i].description);
+         }
+         else
+         {
+            printf("\n");
+         }
+      }
+
+      if (status_msg != NULL)
+      {
+         printf("\n %s \n\n" ,status_msg);
+      }
+
+      if (usage_msg != NULL)
+      {
+         printf("\n %s \n\n" ,usage_msg);
+      }
+
+      if (n_choices == 0)
+      {
+         printf("Error: No choices given\n");
+         return -1;
+      }
+      else if (n_choices == 1)
+      {
+#if 0
+         printf("Automatically selecting sole choice\n");
+         i = 0;
+#else
+         printf("Press enter to select sole choice, or any other key to abort\n");
+         i = getchar();
+         if (i != '\n')
+         {
+            // Abort
+            i = -1;
+            running = 0;
+            break;
+         }
+         else
+         {
+            i = 0;
+         }
+#endif
       }
       else
       {
-         printf("\n");
+         i = ui_input_uint("Select by # (-1 to cancel)");
+
+         // TODO: Validate choice, and determine if it's a character-key or number
       }
-   }
 
-   if (status_msg != NULL)
-   {
-      printf("\n %s \n\n" ,status_msg);
-   }
-
-   if (usage_msg != NULL)
-   {
-      printf("\n %s \n\n" ,usage_msg);
-   }
-
-   if (n_choices == 0)
-   {
-      printf("Error: No choices given\n");
-      return -1;
-   }
-   else if (n_choices == 1)
-   {
-      printf("Automatically selecting sole choice\n");
-      i = 0;
-   }
-   else
-   {
-      i = ui_input_uint("Select by # (-1 to cancel)");
-   }
-
-   if (fn != NULL)
-   {
-      status = fn(i,
-                  0, // keypress not used in this mode
-                  list[i].data,
-                  status_msg
-      );
-      if (status < 0)
+      if (fn != NULL)
       {
-         i = status;
-      }
-      else if (status == UI_CB_RTV_STATUS)
-      {
-         if (status_msg != NULL)
+         status = fn(i,
+                     0, // keypress not used in this mode
+                     list[i].data,
+                     status_msg
+         );
+         if (status < 0)
          {
-            printf("\n%s\n", status_msg);
+            i = status;
+            running = 0;
          }
+         else if (status == UI_CB_RTV_STATUS)
+         {
+            if (status_msg != NULL)
+            {
+               printf("\n%s\n", status_msg);
+            }
+         }
+         else if (status == UI_CB_RTV_CHOICE)
+         {
+            running = 0;
+         }
+         // Else CONTINUE
       }
-      // NOTE: CONTINUE option is treated the same as CHOICE in STDIO mode
-   }
+      else
+      {
+         // If there is no callback, then we always exit after a selection
+         running = 0;
+      }
    
-   ui_display_exec();
+      ui_display_exec();
+
+   }
 
    return i;   
 
