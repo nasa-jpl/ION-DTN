@@ -24,10 +24,25 @@
 #include "nm_mgr_ui.h"
 #include "nm_mgr_print.h"
 #include "agents.h"
+#include "ui_input.h"
 
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/blob.h"
 #include "../shared/primitives/table.h"
+
+#ifdef USE_NCURSES
+#include <menu.h>
+#endif
+
+ui_menu_list_t agent_submenu_list[] = {
+   {"(D)e-register agent", NULL, NULL},
+   {"(B)uild Control", NULL, NULL},
+   {"Send (R)aw Command", NULL, NULL},
+   {"Send Command (F)ile", NULL, NULL},
+   {"(P)rint Agent Reports", NULL, NULL},
+   {"(W)rite Agent Reports to file", NULL, NULL},
+   {"(C)lear Agent Reports", NULL, NULL},
+};
 
 /******************************************************************************
  *
@@ -46,37 +61,167 @@
  *  07/04/16  E. Birrane     Correct return value and agent casting.
  *  10/07/18  E. Birrane     Update top AMP v0.5 (JHU/APL)
  *****************************************************************************/
+int ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
+   int choice;
+   agent_t *agent = (agent_t*)data;
+   char *subtitle = "";
+   char *tmp;
+
+#ifdef USE_NCURSES
+   if (keypress == KEY_ENTER || keypress == 10)
+   {
+#endif
+      // Switch below treats values corresponding to menu presses as ints instead of char
+
+      keypress = ui_menu_listing(agent->eid.name,
+                                 agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
+                                 NULL, 0,
+#ifdef USE_NCURSES
+                                 "F1 or 'e' to cancel. Arrow keys to navigate and enter to select. (x) indicates key that can be pressed directly from agent listing (parent) menu to perform this action.",
+#else
+                                 NULL,
+#endif
+                                 NULL,
+                                 UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
+#ifdef USE_NCURSES
+   }
+#endif
+   
+   switch(keypress)
+   {
+   case 'e':
+   case 'E':
+      return UI_CB_RTV_ERR; // Exit Listing
+   case 'd':
+   case 'D':
+   case 0:
+      choice = ui_prompt("Delete selected agent?", "Yes", "No", NULL);
+      if (choice == 0)
+      {
+         ui_deregister_agent(agent);
+         return UI_CB_RTV_ERR; // Exit from parent menu to force agent listing to be refreshed.
+      }
+      break;
+   case 'b':
+   case 'B':
+   case 1:
+      choice = ui_build_control(agent);
+      if (status_msg != NULL)
+      {
+         if (choice == 1)
+         {
+            sprintf(status_msg, "Succcessfully built & sent control to '%s'", agent->eid.name);
+         }
+         else
+         {
+            sprintf(status_msg, "Build Control aborted or transmission to '%s' failed", agent->eid.name);
+         }
+         return UI_CB_RTV_STATUS;
+      }
+      break;
+   case 'r':
+   case 'R':
+   case 2:
+      ui_send_raw(agent,0);
+      break;
+   case 'f':
+   case 'F':
+   case 3:
+      ui_send_file(agent,0);
+      break;
+   case 'p':
+   case 'P':
+   case 4:
+      ui_print_reports(agent);
+      break;
+   case 'w':
+   case 'W':
+   case 5:
+      tmp = ui_input_string("Enter file name");
+      if (tmp)
+      {
+         // Redirect the next display page to a file
+         ui_display_to_file(tmp);
+         SRELEASE(tmp);
+
+         // Print reports. ui_display_exec() will automatically close the file
+         ui_print_reports(agent);
+      }
+      break;
+   case 'c':
+   case 'C':
+   case 6:
+      // clear agent reports
+      choice = ui_prompt("Clear reports for this agent?", "Yes", "No", NULL);
+      if (choice == 0)
+      {
+         ui_clear_reports(agent);
+         return UI_CB_RTV_ERR; // Return from parent to force update of report counts in display
+      }
+   }
+   // Default behavior is to return 0, indicating parent menu should continue on.
+   return UI_CB_RTV_CONTINUE;
+}
 
 int ui_print_agents()
 {
   vecit_t it;
-  int i = 1;
+  int i = 0, tmp;
+  int num_agents = vec_num_entries(gMgrDB.agents);
   agent_t * agent = NULL;
+  ui_menu_list_t* list;
+  char status_msg[80] = "";
 
-
-  printf("\n------------- Known Agents --------------\n");
-
-  if(vec_num_entries(gMgrDB.agents) == 0)
+  if(num_agents == 0)
   {
 	  printf("[None]\n");
 	  return 0;
   }
 
+  list = calloc(num_agents, sizeof(ui_menu_list_t) );
+
   for(it = vecit_first(&(gMgrDB.agents)); vecit_valid(it); it = vecit_next(it))
   {
 	  agent = (agent_t *) vecit_data(it);
+      list[i].name = agent->eid.name;
 
-	  printf("%d) %s\n", i++,  (agent != NULL) ? agent->eid.name : "NULL");
+      tmp = vec_num_entries(agent->rpts);
+      if (tmp > 0)
+      {
+         list[i].description = malloc(32);
+         sprintf(list[i].description, "%d reports available", tmp);
+      }
+      else
+      {
+         // Nothing to describe except number of reports
+         list[i].description = NULL;
+      }
+
+      
+      list[i].data = (void*)agent;
+      i++;
   }
 
-  printf("\n------------- ************ --------------\n");
-  printf("\n");
-
-  return i;
+  ui_menu_listing("Known Agents", list, num_agents, status_msg, 0,
+#ifdef USE_NCURSES
+                  "F1 to exit, Enter for Agent actions menu & additional usage informationo",
+#else
+                  NULL,
+#endif
+                  ui_print_agents_cb_fn,
+                  UI_OPT_AUTO_LABEL);
+  
+  for(i = 0; i < num_agents; i++)
+  {
+     if (list[i].description != NULL)
+     {
+        free(list[i].description);
+     }
+  }
+  
+  free(list);
+  return num_agents;
 }
-
-
-#if 0
 
 /*
  * We need to find out a description for the entry so we can print it out.
@@ -84,11 +229,11 @@ int ui_print_agents()
  * to elements of the report definition.
  *
  */
-void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
+void ui_print_entry(tnvc_t *entry, uvast *mid_sizes, uvast *data_sizes)
 {
-	LystElt elt = NULL;
-	def_gen_t *cur_def = NULL;
-	uint8_t del_def = 0;
+//	def_gen_t *cur_def = NULL;
+//	uint8_t del_def = 0;
+    vecit_t it;
 
 	if((entry == NULL) || (mid_sizes == NULL) || (data_sizes == NULL))
 	{
@@ -97,20 +242,22 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 
 	/* Step 1: Calculate sizes...*/
-    *mid_sizes = *mid_sizes + entry->id->raw_size;
+    // TODO: This is num entries, not size as originally output
+    *mid_sizes = *mid_sizes + vec_num_entries(entry->values); 
 
-    for(elt = lyst_first(entry->contents->datacol); elt; elt = lyst_next(elt))
+    for(it = vecit_first(&(entry->values)); vecit_valid(it); it = vecit_next(it))
     {
-    	blob_t *cur = lyst_data(elt);
+       blob_t *cur = (blob_t*)vecit_data(it);
         *data_sizes = *data_sizes + cur->length;
     }
+
+#if 0 // TODO
     *data_sizes = *data_sizes + entry->contents->hdr.length;
 
 	/* Step 1: Print the MID associated with the Entry. */
-    printf(" (");
+    ui_printf(" (");
     ui_print_mid(entry->id);
-	printf(") has %d values.", entry->contents->hdr.length);
-
+	ui_printf(") has %d values.", entry->contents->hdr.length);
 
     /*
      * Step 2: Try and find the metadata associated with each
@@ -154,7 +301,6 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	    {
 	    	cd = var_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), entry->id);
 	    }
-
 	    // Fake a def_gen just for this CD item.
 	    if(cd != NULL)
 	    {
@@ -220,15 +366,20 @@ void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes)
 	}
 
 	/* Step 3: Print the TDC holding data for the entry. */
-    ui_print_tdc(entry->contents, cur_def);
-
-    if(del_def)
+    if (cur_def != NULL)
     {
-    	def_release_gen(cur_def);
+       ui_print_tdc(entry->contents, cur_def);
+
+       if(del_def)
+       {
+          def_release_gen(cur_def);
+       }
     }
+#endif
     return;
 }
 
+#if 0
 void ui_print_expr(expr_t *expr)
 {
 	char *str;
@@ -341,6 +492,7 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
 	val_release(&val, 0);
 }
 */
+#endif
 
 /******************************************************************************
  *
@@ -355,79 +507,71 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
  *****************************************************************************/
-
 void ui_print_reports(agent_t* agent)
 {
-	 LystElt report_elt;
-	 LystElt entry_elt;
-	 rpt_t *cur_report = NULL;
-	 rpt_entry_t *cur_entry = NULL;
+   CHKVOID(agent);
+   rpt_t *cur_report = NULL;
+   tnvc_t *cur_entry = NULL;
+   vecit_t rpt_it, entry_it;
+   int num_reports = vec_num_entries(agent->rpts);
+   
+   char title[40];
+   sprintf(title, "Agent Reports for %s", agent->eid.name);
+   ui_display_init(title);
+   
+   if (num_reports == 0)
+   {
+      ui_printf("No reports received from this agent");
+      AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
+      ui_display_exec();
+      AMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
+      return;
+   }
 
-	 if(agent == NULL)
-	 {
-		 AMP_DEBUG_ENTRY("ui_print_reports","(NULL)", NULL);
-		 AMP_DEBUG_ERR("ui_print_reports", "No agent specified", NULL);
-		 AMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
+   /* Iterate through all reports for this agent. */
+   for(rpt_it = vecit_first(&(agent->rpts)); vecit_valid(rpt_it); rpt_it = vecit_next(rpt_it))
+   {
+      /* Grab the current report */
+      cur_report = (rpt_t*)vecit_data(rpt_it);
+      
+      uvast mid_sizes = 0;
+      uvast data_sizes = 0;
+      int num_entries = vec_num_entries(cur_report->entries->values);
+      int i = 0;
 
-	 }
-	 AMP_DEBUG_ENTRY("ui_print_reports","(%s)", agent->agent_eid.name);
-
-	 if(lyst_length(agent->reports) == 0)
-	 {
-		 AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
-		 AMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
-		 return;
-	 }
-
-	 /* Free any reports left in the reports list. */
-	 for (report_elt = lyst_first(agent->reports); report_elt; report_elt = lyst_next(report_elt))
-	 {
-		 /* Grab the current report */
-	     if((cur_report = (rpt_t*)lyst_data(report_elt)) == NULL)
-	     {
-	        AMP_DEBUG_ERR("ui_print_reports","Unable to get report from lyst!", NULL);
-	     }
-	     else
-	     {
-	    	 uvast mid_sizes = 0;
-	    	 uvast data_sizes = 0;
-	    	 int i = 1;
-
-	    	 /* Print the Report Header */
-	    	 printf("\n----------------------------------------");
-	    	 printf("\n            DTNMP DATA REPORT           ");
-	    	 printf("\n----------------------------------------");
-	    	 printf("\nSent to   : %s", cur_report->recipient.name);
-	    	 printf("\nTimestamp : %s", ctime(&(cur_report->time)));
-	    	 printf("\n# Entries : %lu",
-			 (unsigned long) lyst_length(cur_report->entries));
-	    	 printf("\n----------------------------------------");
-
- 	    	 /* For each MID in this report, print it. */
-	    	 for(entry_elt = lyst_first(cur_report->entries); entry_elt; entry_elt = lyst_next(entry_elt))
-	    	 {
-	    		 printf("\nEntry %d ", i);
-	    		 cur_entry = (rpt_entry_t*)lyst_data(entry_elt);
-	    		 ui_print_entry(cur_entry, &mid_sizes, &data_sizes);
-	    		 i++;
-	    	 }
-
-	    	 printf("\n----------------------------------------");
-	    	 printf("\nSTATISTICS:");
-	    	 printf("\nMIDs total "UVAST_FIELDSPEC" bytes", mid_sizes);
-	    	 printf("\nData total: "UVAST_FIELDSPEC" bytes", data_sizes);
-		 if ((mid_sizes + data_sizes) > 0)
-		 {
-	    	 	printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
-		 }
-
-	    	 printf("\n----------------------------------------\n\n\n");
-	     }
-	 }
+      /* Print the Report Header */
+      ui_printf("\n----------------------------------------");
+      ui_printf("\n            DTNMP DATA REPORT           ");
+      ui_printf("\n----------------------------------------");
+      ui_printf("\nSent to   : %s", cur_report->recipient.name);
+      ui_printf("\nTimestamp : %s", ctime(&(cur_report->time)));
+      ui_printf("\n# Entries : %d", num_entries);
+      ui_printf("\n----------------------------------------");
+      
+      /* For each MID in this report, print it. */
+      for(entry_it = vecit_first(&(cur_report->entries->values)); vecit_valid(entry_it); entry_it = vecit_next(entry_it))
+      {
+         ui_printf("\nEntry %d ", i);
+         cur_entry = (tnvc_t*)vecit_data(rpt_it);
+         ui_print_entry(cur_entry, &mid_sizes, &data_sizes);
+         i++;
+      }
+      
+      ui_printf("\n----------------------------------------");
+      ui_printf("\nSTATISTICS:");
+      ui_printf("\nMIDs total "UVAST_FIELDSPEC" bytes", mid_sizes);
+      ui_printf("\nData total: "UVAST_FIELDSPEC" bytes", data_sizes);
+      if (mid_sizes > 0 && data_sizes > 0)
+      {
+         ui_printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
+      }
+      
+      ui_printf("\n----------------------------------------\n\n\n");
+   }
+   ui_display_exec();
 }
 
-
+#if 0
 void ui_print_srl(srl_t *srl)
 {
 	char *mid_str = NULL;

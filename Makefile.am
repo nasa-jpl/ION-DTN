@@ -13,7 +13,7 @@ endif
 DIST_SUBDIRS= . contrib
 
 AM_CFLAGS += \
-	-Wall -Werror -g \
+	-Wall -Werror -Wformat-truncation=0 -Wno-maybe-uninitialized \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
@@ -1905,8 +1905,8 @@ nm_shared_src    =  	nm/shared/adm/adm.c			\
 			nm/shared/primitives/report.c 		\
 			nm/shared/primitives/rules.c 		\
 		 	nm/shared/primitives/table.c 		\
- 	    		nm/shared/primitives/tnv.c		\
- 	    		nm/shared/utils/cbor_utils.c		\
+ 	    			nm/shared/primitives/tnv.c		\
+ 	    			nm/shared/utils/cbor_utils.c	\
 			nm/shared/utils/db.c			\
 			nm/shared/utils/nm_types.c 		\
 			nm/shared/utils/rhht.c	 		\
@@ -1940,16 +1940,16 @@ nm_agent_SOURCES =  	$(nm_shared_src)		\
 #			nm/agent/ionsec_admin_agent.c	\
 #			nm/agent/adm_ltp_agent_impl.c	\
 #			nm/agent/adm_ltp_agent_agent.c 
-				
-					 
+
+
 nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
-					
-					
+
+
 nm_mgr_SOURCES =	$(nm_shared_src)		\
 			nm/mgr/agents.c 		\
 			nm/mgr/metadata.c		\
@@ -1968,18 +1968,12 @@ nm_mgr_SOURCES =	$(nm_shared_src)		\
 #			nm/mgr/adm_ion_ltp_admin_mgr.c	\
 #			nm/mgr/adm_ionsec_admin_mgr.c	\
 #			nm/mgr/adm_ltp_agent_mgr.c
-					 	
-					
+
 nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
-# Use this to build the AMP Manager WITHOUT DB Support. 
-#nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
-
-#nm_mgr_LDFLAGS = -L/usr/local/lib -lpthread
-
-# Use this to build the AMP Manager WITH DB Support.
-nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread 
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
+# Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
+nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable
 
 
 

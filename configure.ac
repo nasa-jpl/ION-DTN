@@ -301,11 +301,31 @@ if test "x$enable_sysctl_check" = xyes; then
     echo "checking sysctl configuration..."
     echo
 
-    if ! ./sysctl_script.sh; then
+    if ! ${ac_confdir}/sysctl_script.sh; then
         echo "Reconfigure with --disable-sysctl-check to bypass this check."
         exit 1
     fi
 fi
+
+AC_ARG_ENABLE(
+    mysql,
+    [AC_HELP_STRING([--enable-mysql], [enable MySQL support for NM MGR])]
+    )
+# Can we make this != no  to make it on by default?
+AM_CONDITIONAL([ENABLE_MYSQL], [test "x$mysql" = "xyes"])
+AS_IF([test "x$enable_mysql" = "xyes"], [
+    AM_CFLAGS="$AM_CFLAGS -DHAVE_MYSQL"
+])
+
+
+AC_ARG_ENABLE(
+    ncurses,
+    [AC_HELP_STRING([--enable-ncurses], [enable Ncurses support for NM MGR])]
+    )
+AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" != "xno"])
+AS_IF([test "x$enable_ncurses" != "xno"], [
+    AM_CFLAGS="$AM_CFLAGS -DUSE_NCURSES"
+])
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -325,6 +345,19 @@ AC_CHECK_LIB(
 )
 CFLAGS="$ORIGCFLAGS"
 
+AC_CHECK_LIB(
+	[mysqlclient],
+	[mysql_real_connect],
+	[ AC_SUBST( [MYSQL_LIBS], ["-lmysqlclient"] ) ],
+    [ AM_COND_IF([ENABLE_MYSQL], AC_MSG_ERROR([You need to install the mysqlclient library to build with MySQL.  Run configure with --disable-mysql to turn off this feature.]), AC_MSG_WARN([If you wish to use MySQL for NM you will need to install the libmysqlclient.]) )]
+)
+
+AC_CHECK_LIB(
+	[ncurses],
+	[initscr],
+	[ AC_SUBST( [NCURSES_LIBS], ["-lncurses -lform -lmenu -lpanel"] ) ],
+	[ AM_COND_IF([ENABLE_NCURSES], AC_MSG_ERROR([You need to install the NCURSES library to build with NCURSES TUI support.  Run configure with --disable-ncurses to turn off this feature.]), AC_MSG_WARN([If you wish to use the NCURSES TUI for NM you will need to install the NCURSES library.]) )]
+)
 
 # Check for programs to build documentation
 AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )

@@ -79,22 +79,20 @@ blob_t*  ui_input_blob(char *prompt, uint8_t no_file);
 blob_t*  ui_input_file_contents(char *prompt);
 
 
-// EJB write these...
-/*
-ctrl_t* ui_input_ctrl(prompt);
-expr_t* ui_input_expr(prompt);
-op_t* ui_input_oper(prompt);
-rpt_t* ui_input_rpt(prompt);
-rpttpl_t* ui_input_rpttpl(prompt);
-rule_t *ui_input_rule(prompt);
+ctrl_t* ui_input_ctrl(char* prompt);
+expr_t* ui_input_expr(char* prompt);
+op_t* ui_input_oper(char* prompt);
+rpt_t* ui_input_rpt(char* prompt);
+rpttpl_t* ui_input_rpttpl(char* prompt);
+rule_t *ui_input_rule(char* prompt);
 
-tbl_t* ui_input_tbl(prompt);
-tblt_t* ui_input_tblt(prompt);
+tbl_t* ui_input_tbl(char* prompt);
+tblt_t* ui_input_tblt(char* prompt);
 
-rule_t *ui_input_tbr(prompt);
+rule_t *ui_input_tbr(char* prompt);
 
-var_t* ui_input_var(prompt);
-*/
+var_t* ui_input_var(char* prompt);
 
+tnvc_t* ui_input_tnvc(char* prompt);
 
 #endif // _UI_INPUT_H

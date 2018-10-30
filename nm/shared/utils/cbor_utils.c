@@ -355,7 +355,7 @@ int cut_deserialize_vector(vector_t *vec, CborValue *it, vec_des_fn des_fn)
 
 	/* Step 1: are we at an array? */
 
-	AMP_DEBUG_ENTRY("cut_deserialize_vector","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
+	AMP_DEBUG_ENTRY("cut_deserialize_vector","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)des_fn);
 
 	CHKUSR(vec, AMP_FAIL);
 	CHKUSR(it, AMP_FAIL);

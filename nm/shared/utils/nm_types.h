@@ -110,7 +110,7 @@ extern const char * const amp_type_str[];
 
 
 /**
- * AMP represents an EID as simply a stirng name.
+ * AMP represents an EID as simply a string name.
  */
 typedef struct
 {

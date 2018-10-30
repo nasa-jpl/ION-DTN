@@ -39,9 +39,9 @@ void ui_print_expr(expr_t *expr);
 void ui_print_mc(Lyst mc);
 void ui_print_mid(mid_t *mid);
 
-
+*/
 void ui_print_reports(agent_t *agent);
-
+/*
 void ui_print_srl(srl_t *srl);
 void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def);
 void ui_print_trl(trl_t *trl);

@@ -46,7 +46,6 @@
 int ui_input_get_line(char *prompt, char **line, int max_len)
 {
 	int len = 0;
-
 	while(len == 0)
 	{
 		printf("%s\n", prompt);
@@ -61,7 +60,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 			}
 		}
 	}
-
+    
 	AMP_DEBUG_INFO("ui_input_get_line","Read user input.", NULL);
 
 	AMP_DEBUG_EXIT("ui_input_get_line","->1.",NULL);
@@ -156,12 +155,7 @@ blob_t* ui_input_blob(char *prompt, uint8_t no_file)
 	/* Step 2: If we do not allow file input, default to text input.*/
 	if(no_file == 0)
 	{
-		printf("\n----------------------------------------------------\n");
-		printf("\t1) Typing the BLOB in hex.\n");
-		printf("\t2) Select a file to read in BLOB.\n");
-		printf("----------------------------------------------------\n\n");
-
-		opt = ui_input_uint("Select One:");
+       opt = ui_prompt("Select Blob Input Method", "Abort", "Enter in HEX", "Select File");
 	}
 
 	switch(opt)
@@ -232,7 +226,28 @@ Sdnv     ui_input_sdnv(char *prompt)
 	return val_sdnv;
 }
 
-
+#ifdef USE_NCURSES
+char *   ui_input_string(char *prompt)
+{
+   char line[MAX_INPUT_BYTES] = "";
+   char *result;
+   form_fields_t fields[] = {
+      {"String", line, MAX_INPUT_BYTES, 0, 0}
+   };
+   if (ui_form(prompt, NULL, fields, 1) == 1)
+   {
+      // Success
+      result = (char *)STAKE(strlen(line) + 1);
+      strcpy(result, line);
+      
+      return result;
+   }
+   else
+   {
+      return NULL;
+   }   
+}
+#else
 char *   ui_input_string(char *prompt)
 {
 	char *result = NULL;
@@ -246,6 +261,7 @@ char *   ui_input_string(char *prompt)
 
 	return result;
 }
+#endif
 
 int32_t     ui_input_int(char *prompt)
 {
@@ -356,21 +372,16 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 
 
 	/* Step 1: Print the prompt. */
-	printf("\n\n");
-	printf("Entering ARI for: %s\n.", prompt);
-
-	printf("\n+--------------------------------------------------+");
-	printf("\n|       Welcome to the ARI Builder. You may:       |");
-	printf("\n+--------------------------------------------------+");
-	printf("\n| 1) Select an existing ARI from a list.           |");
-	printf("\n| 2) Build an ARI using a wizard.                  |");
-	printf("\n| 3) Type the entire ARI in hex.                   |");
-	printf("\n| 4) Cancel.                                       |");
-	printf("\n+--------------------------------------------------+");
-	printf("\n\n");
-
-	uint32_t opt = ui_input_uint("Select an option (1-4):");
-
+    char *builder_menu[] = {
+       "Cancel",
+       "Select an existing ARI from a list.",
+       "Build an ARI using a wizard.",
+       "Type the entire ARI in hex.",
+    };
+    char title[64];
+    sprintf(title, "Entering ARI for: %s", prompt);
+    uint32_t opt = ui_menu(title, builder_menu, NULL, ARRAY_SIZE(builder_menu), NULL);
+    
 	switch(opt)
 	{
 		case 1:
@@ -464,7 +475,13 @@ ari_t* ui_input_ari_build()
 	if(ARI_GET_FLAG_TAG(flags))
 	{
 		blob_t *tag = ui_input_blob("ARI Tag:", 0);
-		if(VDB_ADD_TAG(*tag, &(result->as_reg.tag_idx)) != VEC_OK)
+        if (tag == NULL)
+        {
+			AMP_DEBUG_ERR("ui_input_ari","Invalid tag input.", NULL);
+			ari_release(result, 1);
+			return NULL;
+        }
+		else if(VDB_ADD_TAG(*tag, &(result->as_reg.tag_idx)) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
 			blob_release(tag, 1);
@@ -515,6 +532,49 @@ int ui_input_ari_flags(uint8_t *flag)
 
 	*flag = 0;
 
+#ifdef USE_NCURSES
+	/* Step 1: Figure out the AMP type. */
+    type = ui_input_ari_type();
+	ARI_SET_FLAG_TYPE(*flag, type);
+
+    if(type != AMP_TYPE_LIT)
+    {
+       char nn[4]="0", iss[4]="0", tag[4]="0", parm[4]="0";
+       form_fields_t fields[] = {
+          {"Nicename Present?", (char*)&nn, sizeof(int), 0, TYPE_CHECK_INT},
+          {"Issuer Field Present?", (char*)&iss, sizeof(int), 0, TYPE_CHECK_INT},
+          {"Tag Field Present?", (char*)&tag, sizeof(int), 0, TYPE_CHECK_INT},
+          {"Parameters Present?", (char*)&parm, sizeof(int), 0, TYPE_CHECK_INT}
+       };
+       // Current compiler settings do not support static initialization of above union
+       fields[0].args.num.padding=0;fields[0].args.num.vmin=0;fields[0].args.num.vmax=1;
+       fields[1].args.num.padding=0;fields[1].args.num.vmin=0;fields[1].args.num.vmax=1;
+       fields[2].args.num.padding=0;fields[2].args.num.vmin=0;fields[2].args.num.vmax=1;
+       fields[3].args.num.padding=0;fields[3].args.num.vmin=0;fields[3].args.num.vmax=1;
+       
+       ui_form("Build an ARI Flag Byte",
+               "Enter 1 for yes, 0 for no.  Enter or arrow keys to advance fields",
+               fields,
+               ARRAY_SIZE(fields)
+       );
+       if (atoi(nn) != 0)
+       {
+          ARI_SET_FLAG_NN(*flag);
+       }
+       if (atoi(iss) != 0)
+       {
+          ARI_SET_FLAG_ISS(*flag);
+       }
+       if (atoi(tag) != 0)
+       {
+          ARI_SET_FLAG_TAG(*flag);
+       }
+       if (atoi(parm) != 0)
+       {
+          ARI_SET_FLAG_PARM(*flag);
+       }
+    }
+#else
 	printf("\n\n");
 	printf("+--------------------------------+\n");
 	printf("|     Build an ARI Flag Byte.    |\n");
@@ -547,10 +607,10 @@ int ui_input_ari_flags(uint8_t *flag)
 			ARI_SET_FLAG_PARM(*flag);
 		}
 	}
+#endif
 
 	return AMP_OK;
 }
-
 
 ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 {
@@ -559,22 +619,23 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
-	if(type == AMP_TYPE_UNK)
-	{
-		type = ui_input_ari_type();
-	}
-
-	ui_list_objs(ADM_ENUM_ALL, type);
+    if (type == AMP_TYPE_UNK)
+    {
+       type = ui_input_ari_type();
+    }
+    
+	ui_list_objs(ADM_ENUM_ALL, type, &result);
+#if 0
 	idx = ui_input_int("Which ARI?");
 
 	col =  meta_filter(adm_id, type);
 	meta = vec_at(&(col->results), idx);
 	if(meta != NULL)
 	{
-		result = ari_copy_ptr(meta->id);
+		result = ari_copy_ptr(*(meta->id));
 	}
 	metacol_release(col, 1);
-
+#endif
 	return result;
 }
 
@@ -586,8 +647,11 @@ ari_t* ui_input_ari_raw(uint8_t no_file)
 
 	blob_t *data = ui_input_blob("0x", no_file);
 
-	result = ari_deserialize_raw(data, &success);
-	blob_release(data, 1);
+    if (data != NULL)
+    {
+       result = ari_deserialize_raw(data, &success);
+       blob_release(data, 1);
+    }
 
 	return result;
 }
@@ -597,7 +661,14 @@ int ui_input_ari_type()
 {
 	int type;
 	int i;
+#ifdef USE_NCURSES
+    type = ui_menu_select("Select AMP object (ari) type", amp_type_str, NULL, AMP_TYPE_UNK, NULL, 4);
 
+    if (type < 0)
+    {
+       type = AMP_TYPE_UNK;
+    }
+#else
 	for(i = 0; i <= AMP_TYPE_UNK; i++)
 	{
 		printf("%d) %s\t\t", i, type_to_str(i));
@@ -608,7 +679,7 @@ int ui_input_ari_type()
 	}
 
 	type = ui_input_int("Select ARI type (or UNK to cancel): ");
-
+#endif
 	return type;
 }
 
@@ -627,7 +698,7 @@ int ui_input_parms(ari_t *id)
 
 	if((meta = rhht_retrieve_key(&(gMgrDB.metadata), id)) == NULL)
 	{
-		AMP_DEBUG_ERR("ui_input_parms","ARI has parms, but can't fine metadata.", NULL);
+		AMP_DEBUG_ERR("ui_input_parms","ARI has parms, but can't find metadata.", NULL);
 		return AMP_FAIL;
 	}
 
@@ -647,6 +718,12 @@ int ui_input_parms(ari_t *id)
 		sprintf(prompt,"Parameter %d: (%s) %s", i, type_to_str(parm->type), parm->name);
 		tnv_t *val = ui_input_tnv(parm->type, prompt);
 
+        if (val == NULL)
+        {
+			AMP_DEBUG_ERR("ui_input_parms", "User failed to input a valid tnv, aborting", NULL);
+           return AMP_FAIL;
+        }
+        
 		if(vec_push(&(id->as_reg.parms.values), val) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_parms", "Can't add parameter.", NULL);
@@ -739,17 +816,18 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			}
 			break;
 
-/*
 		case AMP_TYPE_CTRL:
 			result->value.as_ptr = ui_input_ctrl(prompt);
 			TNV_SET_ALLOC(result->flags);
 			break;
-
-		case AMP_TYPE_EXPR:
-			result->value.as_ptr = ui_input_expr(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-		case AMP_TYPE_OPER:
+    case AMP_TYPE_EXPR:
+       if((result = tnv_create()) != NULL)
+       {       
+          result->value.as_ptr = ui_input_expr(prompt);
+          TNV_SET_ALLOC(result->flags);
+       }
+       break;
+    case AMP_TYPE_OPER:
 			result->value.as_ptr = ui_input_oper(prompt);
 			TNV_SET_ALLOC(result->flags);
 			break;
@@ -779,7 +857,6 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			result->value.as_ptr = ui_input_var(prompt);
 			TNV_SET_ALLOC(result->flags);
 			break;
-			*/
 		default:
 			result = NULL;
 	}
@@ -812,69 +889,103 @@ tnvc_t* ui_input_tnvc(char *prompt)
 		int type = ui_input_ari_type();
 		snprintf(tnv_prompt,32, "TNV for Item %d", i);
 		tnv_t *cur = ui_input_tnv(type, tnv_prompt);
-		tnvc_insert(result, cur);
+        if (cur == NULL || tnvc_insert(result, cur) != AMP_OK)
+        {
+           AMP_DEBUG_ERR("ui_input_tnvc", "Could not input TNV %d.", i);
+           tnvc_release(result, 1);
+           result = NULL;
+           break;
+        }
 	}
 
 	return result;
 }
 
-/*
 
-ctrl_t* ui_input_ctrl(prompt)
+
+ctrl_t* ui_input_ctrl(char * prompt)
 {
+
+   
 	AMP_DEBUG_ERR("ui_input_ctrl", "Not implemented yet.", NULL);
 	return NULL;
 }
 
-expr_t* ui_input_expr(prompt)
+expr_t* ui_input_expr(char* prompt)
 {
-	AMP_DEBUG_ERR("ui_input_expr", "Not implemented yet.", NULL);
-	return NULL;
+   expr_t* expr;
+   ari_t *val;
+   amp_type_e type = ui_input_ari_type();
+
+   // Check if user cancelled request
+   if (type == AMP_TYPE_UNK)
+   {
+      return NULL;
+   }
+   
+   expr = expr_create(type);
+
+   // Sanity check
+   if (expr == NULL)
+   {
+      return NULL;
+   }
+   
+   // Initialize expr->rpn.values vector
+   //ui_nav_push("Expression ARI Values"); // Adds string to vector, prints to wide pad, scrolls pad.
+
+   // Prompt user to enter one or more ARI's
+   while( (val = ui_input_ari("Expression ARI Value Input", ADM_ENUM_ALL, AMP_TYPE_UNK)) != NULL )
+   {
+      expr_add_item(expr, val);
+   }
+//   ui_nav_pop();
+   return expr;
 }
 
-op_t* ui_input_oper(prompt)
+op_t* ui_input_oper(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_oper", "Not implemented yet.", NULL);
 	return NULL;
 }
 
-rpt_t* ui_input_rpt(prompt)
+rpt_t* ui_input_rpt(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_rpt", "Not implemented yet.", NULL);
 	return NULL;
 }
 
-rpttpl_t* ui_input_rpttpl(prompt)
+rpttpl_t* ui_input_rpttpl(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_rpttpl", "Not implemented yet.", NULL);
 	return NULL;
 }
 
-rule_t *ui_input_rule(prompt)
+rule_t *ui_input_rule(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_rule", "Not implemented yet.", NULL);
 	return NULL;
 }
 
-tbl_t* ui_input_tbl(prompt)
+tbl_t* ui_input_tbl(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_tbl", "Not implemented yet.", NULL);
 	return NULL;
 }
 
-tblt_t* ui_input_tblt(prompt)
+tblt_t* ui_input_tblt(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_tblt", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 
-var_t* ui_input_var(prompt)
+var_t* ui_input_var(char* prompt)
 {
 	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
 	return NULL;
 }
-*/
+
 
 
 

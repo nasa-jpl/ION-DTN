@@ -139,3 +139,6 @@ tests/issue-260-teach-valgrind-mtake/domtake
 
 # Editor swap files
 \.*\.swp
+
+.git/*
+build*/*
