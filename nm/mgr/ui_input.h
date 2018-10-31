@@ -24,6 +24,7 @@
 #include "../shared/utils/nm_types.h"
 #include "../shared/adm/adm.h"
 #include "../shared/primitives/blob.h"
+#include "../shared/primitives/rules.h"
 
 #include "nm_mgr_ui.h"
 
