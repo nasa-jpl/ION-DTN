@@ -2497,32 +2497,36 @@ int ui_menu_listing(
          printf("Error: No choices given\n");
          return -1;
       }
+#if 0 // Disable: Accepting enter to continue does not work reliably due to seemingly phantom keystrokes from getchar()
       else if (n_choices == 1)
       {
-#if 0
-         printf("Automatically selecting sole choice\n");
-         i = 0;
-#else
          printf("Press enter to select sole choice, or any other key to abort\n");
          i = getchar();
-         if (i != '\n')
+         if (i == '0' || i == '\n')
+         {
+            // Select sole choice
+            i = 0;
+         }
+         else
          {
             // Abort
             i = -1;
             running = 0;
             break;
+
          }
-         else
-         {
-            i = 0;
-         }
-#endif
       }
+#endif
       else
       {
          i = ui_input_uint("Select by # (-1 to cancel)");
 
-         // TODO: Validate choice, and determine if it's a character-key or number
+         if (i < 0 || i >= n_choices)
+         {
+            printf("Cancelling ...\n");
+            running = 0;
+            break;
+         }
       }
 
       if (fn != NULL)
