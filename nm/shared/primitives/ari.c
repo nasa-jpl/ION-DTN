@@ -977,6 +977,9 @@ ac_t ac_copy(ac_t *src)
 
 	CHKUSR(src, result);
 
+	result.values = vec_create(0, ari_cb_del_fn, ari_cb_comp_fn, ari_cb_copy_fn, VEC_FLAG_AS_STACK, &success);
+
+
 	for(it = vecit_first(&(src->values)); vecit_valid(it); it = vecit_next(it))
 	{
 		cur_ari = vecit_data(it);

@@ -111,7 +111,7 @@ rpt_t*   rpt_copy_ptr(rpt_t *src);
 
 rpt_t*   rpt_create(ari_t *id, time_t time, tnvc_t *entries);
 
-rpt_t*   rpt_deserialize_ptr(CborValue *it, int *success);
+void*    rpt_deserialize_ptr(CborValue *it, int *success);
 
 rpt_t*   rpt_deserialize_raw(blob_t *data, int *success);
 

@@ -625,17 +625,17 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
     }
     
 	ui_list_objs(ADM_ENUM_ALL, type, &result);
-#if 0
+/*
 	idx = ui_input_int("Which ARI?");
 
 	col =  meta_filter(adm_id, type);
 	meta = vec_at(&(col->results), idx);
 	if(meta != NULL)
 	{
-		result = ari_copy_ptr(*(meta->id));
+		result = ari_copy_ptr(meta->id);
 	}
 	metacol_release(col, 1);
-#endif
+*/
 	return result;
 }
 
@@ -739,6 +739,7 @@ int ui_input_parms(ari_t *id)
 tnv_t *ui_input_tnv(int type, char *prompt)
 {
 	tnv_t *result = NULL;
+	int is_numeric = 1;
 
 	switch(type)
 	{
@@ -777,88 +778,39 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 			result = tnv_from_str(ui_input_string(prompt));
 			break;
 
-		case AMP_TYPE_BYTESTR:
-			if((result = tnv_create()) != NULL)
-			{
-				result->value.as_ptr = ui_input_blob(prompt, 0);
-				result->type = type;
-				TNV_SET_ALLOC(result->flags);
-			}
-			break;
-
-		case AMP_TYPE_CNST:
-		case AMP_TYPE_EDD:
-		case AMP_TYPE_LIT:
-		case AMP_TYPE_ARI:
-			if((result = tnv_create()) != NULL)
-			{
-				result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
-				result->type = type;
-				TNV_SET_ALLOC(result->flags);
-			}
-			break;
-
-		case AMP_TYPE_MAC:
-		case AMP_TYPE_AC:
-			if((result = tnv_create()) != NULL)
-			{
-				result->value.as_ptr = ui_input_ac(prompt);
-				result->type = type;
-				TNV_SET_ALLOC(result->flags);
-			}
-			break;
-		case AMP_TYPE_TNVC:
-			if((result = tnv_create()) != NULL)
-			{
-				result->value.as_ptr = ui_input_tnvc(prompt);
-				result->type = type;
-				TNV_SET_ALLOC(result->flags);
-			}
-			break;
-
-		case AMP_TYPE_CTRL:
-			result->value.as_ptr = ui_input_ctrl(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-    case AMP_TYPE_EXPR:
-       if((result = tnv_create()) != NULL)
-       {       
-          result->value.as_ptr = ui_input_expr(prompt);
-          TNV_SET_ALLOC(result->flags);
-       }
-       break;
-    case AMP_TYPE_OPER:
-			result->value.as_ptr = ui_input_oper(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-		case AMP_TYPE_RPT:
-			result->value.as_ptr = ui_input_rpt(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-		case AMP_TYPE_RPTTPL:
-			result->value.as_ptr = ui_input_rpttpl(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-		case AMP_TYPE_TBR:
-		case AMP_TYPE_SBR:
-			result->value.as_ptr = ui_input_rule(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-
-		case AMP_TYPE_TBL:
-			result->value.as_ptr = ui_input_tbl(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-		case AMP_TYPE_TBLT:
-			result->value.as_ptr = ui_input_tblt(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
-		case AMP_TYPE_VAR:
-			result->value.as_ptr = ui_input_var(prompt);
-			TNV_SET_ALLOC(result->flags);
-			break;
 		default:
-			result = NULL;
+			{
+				if((result = tnv_create()) != NULL)
+				{
+					result->type = type;
+					TNV_SET_ALLOC(result->flags);
+
+					switch(result->type)
+					{
+					case AMP_TYPE_BYTESTR:result->value.as_ptr = ui_input_blob(prompt, 0); break;
+					case AMP_TYPE_CNST:
+					case AMP_TYPE_EDD:
+					case AMP_TYPE_LIT:
+					case AMP_TYPE_ARI:    result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK); break;
+					case AMP_TYPE_MAC:
+					case AMP_TYPE_AC:     result->value.as_ptr = ui_input_ac(prompt);     break;
+					case AMP_TYPE_TNVC:   result->value.as_ptr = ui_input_tnvc(prompt);   break;
+					case AMP_TYPE_CTRL:   result->value.as_ptr = ui_input_ctrl(prompt);   break;
+					case AMP_TYPE_EXPR:   result->value.as_ptr = ui_input_expr(prompt);   break;
+					case AMP_TYPE_OPER:   result->value.as_ptr = ui_input_oper(prompt);   break;
+					case AMP_TYPE_RPTTPL: result->value.as_ptr = ui_input_rpttpl(prompt); break;
+					case AMP_TYPE_TBR:
+					case AMP_TYPE_SBR:    result->value.as_ptr = ui_input_rule(prompt);   break;
+					case AMP_TYPE_TBLT:   result->value.as_ptr = ui_input_tblt(prompt);   break;
+					case AMP_TYPE_VAR:    result->value.as_ptr = ui_input_var(prompt);    break;
+					default:
+						tnv_release(result, 1);
+						result = NULL;
+						break;
+					}
+				}
+				break;
+			}
 	}
 
 	if((result != NULL) && (TNV_IS_ALLOC(result->flags)))

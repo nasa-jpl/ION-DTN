@@ -24,28 +24,40 @@
 #ifndef MGR_PRINT_H_
 #define MGR_PRINT_H_
 
-#include "nm_mgr.h"
-
 #include "../shared/utils/nm_types.h"
-#include "../shared/adm/adm.h"
 #include "../shared/primitives/report.h"
 #include "../shared/primitives/rules.h"
 #include "../shared/primitives/expr.h"
+#include "../shared/adm/adm.h"
 
-int ui_print_agents();
-/*
-void ui_print_entry(rpt_entry_t *entry, uvast *mid_sizes, uvast *data_sizes);
-void ui_print_expr(expr_t *expr);
-void ui_print_mc(Lyst mc);
-void ui_print_mid(mid_t *mid);
+#include "nm_mgr.h"
+#include "metadata.h"
 
-*/
-void ui_print_reports(agent_t *agent);
-/*
-void ui_print_srl(srl_t *srl);
-void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def);
-void ui_print_trl(trl_t *trl);
-void ui_print_val(uint8_t type, uint8_t *data, uint32_t length);
-*/
+
+int   ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg);
+int   ui_print_agents();
+void  ui_print_report(rpt_t *rpt);
+void  ui_print_report_entry(char *name, tnv_t *val);
+void  ui_print_report_set(agent_t* agent);
+
+char* ui_str_from_ac(ac_t *ac);
+char* ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc);
+char* ui_str_from_blob(blob_t *blob);
+char* ui_str_from_ctrl(ctrl_t *ctrl);
+char* ui_str_from_edd(edd_t *edd);
+char* ui_str_from_expr(expr_t *expr);
+char* ui_str_from_fp(metadata_t *meta);
+char* ui_str_from_mac(macdef_t *mac);
+char* ui_str_from_op(op_t *op);
+char* ui_str_from_rpt(rpt_t *rpt);
+char* ui_str_from_rpttpl(rpt_t *rpt);
+char* ui_str_from_sbr(rule_t *rule);
+char* ui_str_from_tbl(tbl_t *tbl);
+char* ui_str_from_tblt(tblt_t *tbltt);
+char* ui_str_from_tbr(rule_t *tbr);
+char* ui_str_from_tnv(tnv_t *tnv);
+char* ui_str_from_tnvc(tnvc_t *tnvc);
+char* ui_str_from_var(var_t *var);
+
 
 #endif

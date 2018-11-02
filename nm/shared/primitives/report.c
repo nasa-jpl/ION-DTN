@@ -214,7 +214,7 @@ rpt_t* rpt_create(ari_t *id, time_t timestamp, tnvc_t *entries)
  *****************************************************************************/
 
 
-rpt_t* rpt_deserialize_ptr(CborValue *it, int *success)
+void* rpt_deserialize_ptr(CborValue *it, int *success)
 {
 	rpt_t *result = NULL;
 	size_t len;
@@ -250,7 +250,9 @@ rpt_t* rpt_deserialize_ptr(CborValue *it, int *success)
 	}
 
 	/* Step 2: grab the Id. */
-	id = ari_deserialize_ptr(&array_it, success);
+	blob_t *blob = blob_deserialize_ptr(&array_it, success);
+	id = ari_deserialize_raw(blob, success);
+	blob_release(blob, 1);
 
 	if((id == NULL) || (*success != AMP_OK))
 	{
@@ -273,7 +275,10 @@ rpt_t* rpt_deserialize_ptr(CborValue *it, int *success)
 		timestamp = 0;
 	}
 
-	entries = tnvc_deserialize_ptr(&array_it, success);
+
+	blob = blob_deserialize_ptr(&array_it, success);
+	entries = tnvc_deserialize_ptr_raw(blob, success);
+	blob_release(blob, 1);
 
 	cbor_value_leave_container(it, &array_it);
 

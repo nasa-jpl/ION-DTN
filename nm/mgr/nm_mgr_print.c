@@ -3,13 +3,8 @@
  ** \file nm_mgr_print.h
  **
  **
- ** Description: Helper file holding functions for printing DTNMP data to
- **              the screen.  These functions differ from the "to string"
- **              functions for individual DTNMP data types as these functions
- **              "pretty print" directly to stdout and are nly appropriate for
- **              ground-related applications. We do not anticipate these functions
- **              being appropriate for use in embedded systems.
- **
+ ** Description: Helper file holding functions for printing menus and AMP data
+ **              to the screen.
  **
  ** Notes:
  **
@@ -19,6 +14,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  07/10/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  11/01/18  E. Birrane     Update to latest AMP. (JHU/APL)
  *****************************************************************************/
 
 #include "nm_mgr_ui.h"
@@ -43,6 +39,9 @@ ui_menu_list_t agent_submenu_list[] = {
    {"(W)rite Agent Reports to file", NULL, NULL},
    {"(C)lear Agent Reports", NULL, NULL},
 };
+
+
+
 
 /******************************************************************************
  *
@@ -132,7 +131,7 @@ int ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
    case 'p':
    case 'P':
    case 4:
-      ui_print_reports(agent);
+      ui_print_report_set(agent);
       break;
    case 'w':
    case 'W':
@@ -145,7 +144,7 @@ int ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
          SRELEASE(tmp);
 
          // Print reports. ui_display_exec() will automatically close the file
-         ui_print_reports(agent);
+         ui_print_report_set(agent);
       }
       break;
    case 'c':
@@ -223,276 +222,102 @@ int ui_print_agents()
   return num_agents;
 }
 
-/*
- * We need to find out a description for the entry so we can print it out.
- * So, if entry is <RPT MID> <int d1><int d2><int d3> we need to match the items
- * to elements of the report definition.
- *
- */
-void ui_print_entry(tnvc_t *entry, uvast *mid_sizes, uvast *data_sizes)
-{
-//	def_gen_t *cur_def = NULL;
-//	uint8_t del_def = 0;
-    vecit_t it;
 
-	if((entry == NULL) || (mid_sizes == NULL) || (data_sizes == NULL))
+void ui_print_report(rpt_t *rpt)
+{
+	int num_entries = 0;
+	tnv_t *val = NULL;
+	char name[32];
+	metadata_t *rpt_info = NULL;
+	metadata_t *entry_info = NULL;
+
+	if((rpt == NULL) || (rpt->id == NULL))
 	{
-		AMP_DEBUG_ERR("ui_print_entry","Bad Args.", NULL);
 		return;
 	}
 
-	/* Step 1: Calculate sizes...*/
-    // TODO: This is num entries, not size as originally output
-    *mid_sizes = *mid_sizes + vec_num_entries(entry->values); 
+	/* Step 1: Print the report banner. This will include the report
+	 *         name.
+	 */
+	rpt_info = rhht_retrieve_key(&(gMgrDB.metadata), rpt->id);
+    num_entries = tnvc_get_count(rpt->entries);
 
-    for(it = vecit_first(&(entry->values)); vecit_valid(it); it = vecit_next(it))
-    {
-       blob_t *cur = (blob_t*)vecit_data(it);
-        *data_sizes = *data_sizes + cur->length;
-    }
+    ui_printf("\n----------------------------------------");
+    ui_printf("\n             AMP DATA REPORT            ");
+    ui_printf("\n----------------------------------------");
+    ui_printf("\nSent to   : %s", rpt->recipient.name);
+    ui_printf("\nRpt Name  : %s", (rpt_info == NULL) ? "Unknown" : rpt_info->name);
+    ui_printf("\nTimestamp : %s", ctime(&(rpt->time)));
+    ui_printf("\n# Entries : %d", num_entries);
+    ui_printf("\n----------------------------------------\n");
 
-#if 0 // TODO
-    *data_sizes = *data_sizes + entry->contents->hdr.length;
 
-	/* Step 1: Print the MID associated with the Entry. */
-    ui_printf(" (");
-    ui_print_mid(entry->id);
-	ui_printf(") has %d values.", entry->contents->hdr.length);
+    /* Step 2: Print individual entries, based on type. */
 
-    /*
-     * Step 2: Try and find the metadata associated with each
-     *         value in the TDC. Since the TDC is already typed, the
-     *         needed meta-data information is simply the
-     *         "name" of the data.
-     *
-     *         i Only computed data definitions, reports, and macros
-     *         need names. Literals, controls, and atomic data do
-     *         not (currently) define extra meta-data for their
-     *         definitions.
-     *
-     *         \todo: Consider printing names for each return
-     *         value from a control.
-     */
-
-    cur_def = NULL;
-
-	if((MID_GET_FLAG_ID(entry->id->flags) == MID_ATOMIC) ||
-	   (MID_GET_FLAG_ID(entry->id->flags) == MID_LITERAL))
+	if(rpt->id->type == AMP_TYPE_RPTTPL)
 	{
-		adm_datadef_t *ad_entry = adm_find_datadef(entry->id);
+		int i = 0;
+		rpttpl_t *tpl = VDB_FINDKEY_RPTT(rpt->id);
 
-		/* Fake a def_gen_t for now. */
-		if(ad_entry != NULL)
+		if((tpl != NULL) && (ac_get_count(&(tpl->contents)) != num_entries))
 		{
-	    	Lyst tmp = lyst_create();
-	    	lyst_insert(tmp,mid_copy(ad_entry->mid));
-	    	cur_def = def_create_gen(mid_copy(ad_entry->mid), ad_entry->type, tmp);
-	    	del_def = 1;
+			AMP_DEBUG_ERR("ui_print_report",
+					      "Template mismatch. Expected %d entries but have %d. Not using template.",
+						  ac_get_count(&(tpl->contents)),
+						  num_entries);
+			tpl = NULL;
+		}
+
+		for(i = 0; i < num_entries; i++)
+		{
+			val = tnvc_get(rpt->entries, i);
+			ari_t *entry_id = ac_get(&(tpl->contents), i);
+			entry_info = (tpl == NULL) ? NULL : rhht_retrieve_key(&(gMgrDB.metadata), entry_id);
+
+			if(entry_info == NULL)
+			{
+				sprintf(name, "Entry %d", i);
+			}
+			else
+			{
+				sprintf(name, "%30s", entry_info->name);
+			}
+
+			ui_print_report_entry(name, val);
 		}
 	}
-	else if(MID_GET_FLAG_ID(entry->id->flags) == MID_COMPUTED)
+	else
 	{
-		var_t *cd = NULL;
-	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
-	    {
-	    	cd = var_find_by_id(gAdmComputed, NULL, entry->id);
-	    }
-	    else
-	    {
-	    	cd = var_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), entry->id);
-	    }
-	    // Fake a def_gen just for this CD item.
-	    if(cd != NULL)
-	    {
-	    	Lyst tmp = lyst_create();
-	    	lyst_insert(tmp,mid_copy(cd->id));
-	    	cur_def = def_create_gen(mid_copy(cd->id), cd->value.type, tmp);
-	    	del_def = 1;
-	    }
-	}
-	else if(MID_GET_FLAG_ID(entry->id->flags) == MID_REPORT)
-	{
-		rpttpl_t *cur_tpl = NULL;
+		if(rpt_info == NULL)
+		{
+			sprintf(name, "Entry 1");
+		}
+		else
+		{
+			sprintf(name, "%30s", rpt_info->name);
+		}
 
-	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
-	    {
-	    	cur_tpl = rpttpl_find_by_id(gAdmRptTpls, NULL, entry->id);
-	    }
-	    else
-	    {
-	    	cur_tpl= rpttpl_find_by_id(gMgrVDB.reports, &(gMgrVDB.reports_mutex), entry->id);
-	    }
-
-	    // Fake a def_gen just for this RPT item.
-	    if(cur_tpl != NULL)
-	    {
-	    	Lyst tmp = lyst_create();
-	    	uint32_t i = 0;
-
-	    	for(elt = lyst_first(cur_tpl->contents); elt; elt = lyst_next(elt))
-	    	{
-	    		rpttpl_item_t *item = lyst_data(elt);
-
-	    		if(item != NULL)
-	    		{
-	    			mid_t *cur_mid = mid_copy(item->mid);
-	    			amp_type_e tpl_type = AMP_TYPE_UNK;
-
-	    			for(i = 0; i < item->num_map; i++)
-	    			{
-	    				blob_t *src_parm = mid_get_param(entry->id, RPT_MAP_GET_SRC_IDX(item->parm_map[i])-1, &tpl_type);
-	    				mid_update_parm(cur_mid, RPT_MAP_GET_DEST_IDX(item->parm_map[i]), 1, tpl_type, src_parm);
-	    			}
-	    			lyst_insert_last(tmp, cur_mid);
-	    		}
-	    	}
-
-	    	cur_def = def_create_gen(mid_copy(cur_tpl->id), AMP_TYPE_RPT, tmp);
-	    	del_def = 1;
-	    }
-
-	}
-	else if(MID_GET_FLAG_ID(entry->id->flags) == MID_MACRO)
-	{
-	    if(MID_GET_FLAG_ISS(entry->id->flags) == 0)
-	    {
-	    	cur_def = def_find_by_id(gAdmMacros, NULL, entry->id);
-	    }
-	    else
-	    {
-	    	cur_def = def_find_by_id(gMgrVDB.macros, &(gMgrVDB.macros_mutex), entry->id);
-	    }
-
+		ui_print_report_entry(name, val);
 	}
 
-	/* Step 3: Print the TDC holding data for the entry. */
-    if (cur_def != NULL)
-    {
-       ui_print_tdc(entry->contents, cur_def);
 
-       if(del_def)
-       {
-          def_release_gen(cur_def);
-       }
-    }
-#endif
-    return;
+	/* Step 3: Print report trailer. */
+    ui_printf("\n----------------------------------------\n\n");
 }
 
-#if 0
-void ui_print_expr(expr_t *expr)
-{
-	char *str;
 
-	if(expr == NULL)
+void ui_print_report_entry(char *name, tnv_t *val)
+{
+	if(val == NULL)
 	{
-		printf("NULL");
+		ui_printf("%s: null", name);
+		return;
 	}
 
-	str = expr_to_string(expr);
-	printf("%s", str);
+	char *str = ui_str_from_tnv(val);
+	ui_printf("%s : %s\n", name, (str == NULL) ? "null" : str);
 	SRELEASE(str);
-
 }
-
-void ui_print_mc(Lyst mc)
-{
-	LystElt elt = NULL;
-	int i = 0;
-	mid_t *mid = NULL;
-
-	printf("{ ");
-
-	for(elt = lyst_first(mc); elt; elt = lyst_next(elt))
-	{
-		if(i > 0)
-		{
-			printf(", ");
-		}
-		i++;
-		mid = lyst_data(elt);
-		ui_print_mid(mid);
-	}
-
-	printf(" }");
-
-}
-
-void ui_print_mid(mid_t *mid)
-{
-	char *result = NULL;
-
-	if(mid == NULL)
-	{
-		printf("NULL");
-		return;
-	}
-
-	result = names_get_name(mid);
-	printf("%s", result);
-	SRELEASE(result);
-
-	if(mid_get_num_parms(mid) > 0)
-	{
-		char *parms = tdc_to_str(&(mid->oid.params));
-		printf("(%s)", parms);
-		SRELEASE(parms);
-	}
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_predefined_rpt
- *
- * \par Prints a pre-defined report received by a DTNMP Agent.
- *
- * \par Notes:
- *
- * \param[in]  mid        The identifier of the data item being printed.
- * \param[in]  data       The contents of the data item.
- * \param[in]  data_size  The size of the data to be printed.
- * \param[out] data_used  The bytes of the data consumed by printing.
- * \param[in]  adu        The static definition of the report.
- *
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *  07/10/15  E. Birrane     Updated to new report structure.
- *****************************************************************************
-
-void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint64_t *data_used, adm_datadef_t *adu)
-{
-	uint64_t len;
-	char *mid_str = NULL;
-	//char *mid_name = NULL;
-	char *mid_val = NULL;
-	char *name = NULL;
-	uint32_t bytes = 0;
-
-	value_t val = val_deserialize(data, data_size, &bytes);  ;
-
-	uint32_t str_size = 0;
-
-	mid_str = mid_to_string(mid);
-	//mid_name = names_get_name(mid);
-
-	*data_used = bytes;
-	mid_val = val_to_string(val);
-	name = names_get_name(mid);
-
-	printf("Data Name: %s\n", name);
-	printf("MID      : %s\n", mid_str);
-	printf("Value    : %s\n", mid_val);
-	SRELEASE(name);
-	SRELEASE(mid_val);
-	SRELEASE(mid_str);
-	val_release(&val, 0);
-}
-*/
-#endif
 
 /******************************************************************************
  *
@@ -506,422 +331,356 @@ void ui_print_predefined_rpt(mid_t *mid, uint8_t *data, uint64_t data_size, uint
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/18/13  E. Birrane     Initial Implementation
+ *  11/01/18  E. Birrane     Update for AMP v0.5 (JHU/APL)
  *****************************************************************************/
-void ui_print_reports(agent_t* agent)
+void ui_print_report_set(agent_t* agent)
 {
-   CHKVOID(agent);
    rpt_t *cur_report = NULL;
-   tnvc_t *cur_entry = NULL;
-   vecit_t rpt_it, entry_it;
-   int num_reports = vec_num_entries(agent->rpts);
-   
+   vecit_t rpt_it;
+   int num_rpts;
    char title[40];
-   sprintf(title, "Agent Reports for %s", agent->eid.name);
+
+   if(agent == NULL)
+   {
+	   return;
+   }
+
+   num_rpts = vec_num_entries(agent->rpts);
+
+   snprintf(title, 39, "Agent Reports for %s", agent->eid.name);
    ui_display_init(title);
-   
-   if (num_reports == 0)
+
+   if (num_rpts == 0)
    {
       ui_printf("No reports received from this agent");
       AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
       ui_display_exec();
-      AMP_DEBUG_EXIT("ui_print_reports", "->.", NULL);
       return;
    }
 
    /* Iterate through all reports for this agent. */
    for(rpt_it = vecit_first(&(agent->rpts)); vecit_valid(rpt_it); rpt_it = vecit_next(rpt_it))
    {
-      /* Grab the current report */
-      cur_report = (rpt_t*)vecit_data(rpt_it);
-      
-      uvast mid_sizes = 0;
-      uvast data_sizes = 0;
-      int num_entries = vec_num_entries(cur_report->entries->values);
-      int i = 0;
-
-      /* Print the Report Header */
-      ui_printf("\n----------------------------------------");
-      ui_printf("\n            DTNMP DATA REPORT           ");
-      ui_printf("\n----------------------------------------");
-      ui_printf("\nSent to   : %s", cur_report->recipient.name);
-      ui_printf("\nTimestamp : %s", ctime(&(cur_report->time)));
-      ui_printf("\n# Entries : %d", num_entries);
-      ui_printf("\n----------------------------------------");
-      
-      /* For each MID in this report, print it. */
-      for(entry_it = vecit_first(&(cur_report->entries->values)); vecit_valid(entry_it); entry_it = vecit_next(entry_it))
-      {
-         ui_printf("\nEntry %d ", i);
-         cur_entry = (tnvc_t*)vecit_data(rpt_it);
-         ui_print_entry(cur_entry, &mid_sizes, &data_sizes);
-         i++;
-      }
-      
-      ui_printf("\n----------------------------------------");
-      ui_printf("\nSTATISTICS:");
-      ui_printf("\nMIDs total "UVAST_FIELDSPEC" bytes", mid_sizes);
-      ui_printf("\nData total: "UVAST_FIELDSPEC" bytes", data_sizes);
-      if (mid_sizes > 0 && data_sizes > 0)
-      {
-         ui_printf("\nEfficiency: %.2f%%", (double)(((double)data_sizes)/((double)mid_sizes + data_sizes)) * (double)100.0);
-      }
-      
-      ui_printf("\n----------------------------------------\n\n\n");
+      ui_print_report((rpt_t*)vecit_data(rpt_it));
    }
    ui_display_exec();
 }
 
-#if 0
-void ui_print_srl(srl_t *srl)
-{
-	char *mid_str = NULL;
 
-	if(srl == NULL)
+char *ui_str_from_ac(ac_t *ac)
+{
+	char *str = STAKE(1024);
+	vecit_t it;
+
+	for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 	{
-		printf("NULL");
-		return;
+		ari_t *id = (ari_t*) vecit_data(it);
+		char *alt_str = ui_str_from_ari(id, NULL, 0);
+		strcat(str, alt_str);
+		strcat(str, " ");
+		SRELEASE(alt_str);
 	}
 
-	mid_str = mid_to_string(srl->mid);
-
-	printf("SRL %s: T:%d E:", mid_str, (uint32_t) srl->time);
-	ui_print_expr(srl->expr);
-	printf(" C:"UVAST_FIELDSPEC" A:", srl->count);
-	ui_print_mc(srl->action);
-	SRELEASE(mid_str);
-
+	return str;
 }
 
-// THis is a DC of values? Generally, a typed data collection is a DC of values.
-void ui_print_tdc(tdc_t *tdc, def_gen_t *cur_def)
+char *ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc)
 {
-	LystElt elt = NULL;
-	LystElt def_elt = NULL;
-	uint32_t i = 0;
-	amp_type_e cur_type;
-	blob_t *cur_entry = NULL;
-	value_t *cur_val = NULL;
+	metadata_t *meta = NULL;
+	ari_t *print_id = NULL;
+	char *str = STAKE(1024);
 
-	if(tdc == NULL)
+	CHKNULL(str);
+
+	if(id == NULL)
 	{
-		AMP_DEBUG_ERR("ui_print_tdc","Bad Args.", NULL);
-		return;
+		strcat(str,"null");
+		return str;
 	}
 
-	if(cur_def != NULL)
+	if(id->type == AMP_TYPE_LIT)
 	{
-		if(lyst_length(cur_def->contents) != tdc->hdr.length)
-		{
-			AMP_DEBUG_WARN("ui_print_tdc","def and TDC length mismatch: %d != %d. Ignoring.",
-					        lyst_length(cur_def->contents), tdc->hdr.length);
-			cur_def = NULL;
-		}
+		SRELEASE(str);
+		return ui_str_from_tnv(&(id->as_lit));
 	}
 
+	meta = rhht_retrieve_key(&(gMgrDB.metadata), id);
 
-	elt = lyst_first(tdc->datacol);
-	if(cur_def != NULL)
+	if(ap != NULL)
 	{
-		def_elt = lyst_first(cur_def->contents);
+		print_id = ari_copy_ptr(id);
+		ari_replace_parms(print_id, ap);
+	}
+	else
+	{
+		print_id = id;
 	}
 
-	for(i = 0; ((i < tdc->hdr.length) && elt); i++)
+	if(meta == NULL)
 	{
-		cur_type = (amp_type_e) tdc->hdr.data[i];
+		blob_t *blob = ari_serialize_wrapper(print_id);
 
-		printf("\n\t");
-		if(cur_def != NULL)
+		if(blob != NULL)
 		{
-			printf("Value %d (", i);
-			ui_print_mid((mid_t *) lyst_data(def_elt));
-			printf(") ");
-		}
-
-		// \todo: Check return values.
-		if((cur_entry = lyst_data(elt)) == NULL)
-		{
-			printf("NULL\n");
+			char *nm_str = utils_hex_to_string(blob->value, blob->length);
+			blob_release(blob, 1);
+			sprintf(str, "Anonymous ARI: %s", nm_str);
+			SRELEASE(nm_str);
 		}
 		else
 		{
-			ui_print_val(cur_type, cur_entry->value, cur_entry->length);
-		}
-
-
-		elt = lyst_next(elt);
-
-		if(cur_def != NULL)
-		{
-			def_elt = lyst_next(def_elt);
+			sprintf(str, "NULL ARI");
 		}
 	}
-
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_table
- *
- * \par Purpose: Prints a table to stdout.
- *
- * \par
- * COL HDR: Name (Type), Name (Type), Name (Type)...
- * ROW   0: Value1, Value2, Value3...
- * ROW   1: Value1, Value2, Value3...
- *
- * \param[in]  table  The table to be printed
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  06/8/16  E. Birrane     Initial implementation,
- *****************************************************************************/
-void ui_print_table(table_t *table)
-{
-	int32_t i = 0;
-	uint32_t row_num = 1;
-	int8_t first = 0;
-
-	LystElt elt;
-	LystElt elt2;
-
-	char *temp = NULL;
-	blob_t *cur_blob = NULL;
-	table_row_t *cur_row = NULL;
-
-	if(table == NULL)
+	else
 	{
-		printf("NULL");
-		return;
-	}
+		char *parm_str = NULL;
 
-	printf("COL HDR: ");
-	for(elt = lyst_first(table->hdr.names); elt; elt = lyst_next(elt))
-	{
-		cur_blob = (blob_t*) lyst_data(elt);
-
-		if(first == 0)
+		/* If we have actual parameters, print those. */
+		if(ap != NULL)
 		{
-			first = 1;
+			parm_str = ui_str_from_tnvc(ap);
+		}
+		else if (vec_num_entries(meta->parmspec) > 0)
+		{
+			parm_str = ui_str_from_fp(meta);
+		}
+
+		if(parm_str != NULL)
+		{
+			sprintf(str,"%s(%s)\n", meta->name, parm_str);
+			SRELEASE(parm_str);
 		}
 		else
 		{
-			printf(", ");
+			sprintf(str,"%s\n", meta->name);
 		}
-		printf(" %s (%s)", (char *)cur_blob->value, type_to_str(table->hdr.types.value[i]));
-		i++;
-	}
-	printf("\n");
 
-	for(elt = lyst_first(table->rows); elt; elt = lyst_next(elt))
+		if(desc)
+		{
+			strcat(str,"\t: ");
+			strcat(str,meta->descr);
+		}
+		strcat(str,"\n");
+	}
+
+	if(print_id != id)
 	{
-		cur_row = (table_row_t*) lyst_data(elt);
-
-		printf("ROW %3d: ", row_num++);
-
-		if(cur_row == NULL)
-		{
-			printf("NULL");
-		}
-		else
-		{
-			first = 0;
-			i = 0;
-
-			for(elt2 = lyst_first(cur_row->cels); elt2; elt2 = lyst_next(elt2))
-			{
-				cur_blob = (blob_t *) lyst_data(elt2);
-				value_t  val = val_from_blob(cur_blob, table->hdr.types.value[i]);
-
-				if(first == 0)
-				{
-					first = 1;
-				}
-				else
-				{
-					printf(", ");
-				}
-
-				temp = val_to_string(val);
-				printf("%s", temp);
-				SRELEASE(temp);
-				val_release(&val, 0);
-				i++;
-			}
-			printf("\n");
-		}
+		ari_release(print_id, 1);
 	}
 
+	return str;
 }
 
-char *ari_to_str(ari_t *ari);
 
-void ui_print_trl(trl_t *trl)
+char *ui_str_from_blob(blob_t *blob)
 {
-	char *mid_str = NULL;
-
-	if(trl == NULL)
-	{
-		printf("NULL");
-		return;
-	}
-
-	mid_str = mid_to_string(trl->mid);
-
-	printf("TRL %s: T:%d P:"UVAST_FIELDSPEC" C:"UVAST_FIELDSPEC" A:", mid_str, (uint32_t) trl->time, trl->period, trl->count);
-	ui_print_mc(trl->action);
-	SRELEASE(mid_str);
+	CHKNULL(blob);
+	return utils_hex_to_string(blob->value, blob->length);
 }
 
-void ui_print_val(uint8_t type, uint8_t *data, uint32_t length)
-{
-	uint32_t bytes = 0;
 
-	if(data == NULL)
+char *ui_str_from_ctrl(ctrl_t *ctrl)
+{
+	return ui_str_from_ari(ctrl->def.as_ctrl->ari, ctrl->parms, 0);
+}
+
+
+char *ui_str_from_edd(edd_t *edd)
+{
+	return ui_str_from_ari(edd->def.id, edd->parms, 0);
+}
+
+char *ui_str_from_expr(expr_t *expr)
+{
+	char *str = STAKE(1024);
+	CHKNULL(expr);
+	CHKNULL(str);
+
+	char *alt_str = ui_str_from_ac(&(expr->rpn));
+	snprintf(str, 1023, "EXPR: (%s) %s", type_to_str(expr->type), (alt_str == NULL) ? "null" : alt_str);
+	SRELEASE(alt_str);
+	return str;
+}
+
+
+char *ui_str_from_fp(metadata_t *meta)
+{
+	char *str = STAKE(1024);
+	CHKNULL(str);
+
+    vecit_t itp;
+    int j = 0;
+
+    strcat(str, "(");
+
+    for(j=0, itp = vecit_first(&(meta->parmspec)); vecit_valid(itp); itp = vecit_next(itp), j++)
+    {
+    	meta_fp_t *parm = (meta_fp_t *) vecit_data(itp);
+    	if(j != 0)
+    	{
+    		strcat(str, ",");
+    	}
+    	if(parm == NULL)
+    	{
+    		strcat(str, "? ?");
+    	}
+    	else
+    	{
+    		strcat(str, type_to_str(parm->type));
+    		strcat(str, " ");
+    		strcat(str, parm->name);
+    	}
+    }
+
+    strcat(str, ")");
+
+	return str;
+}
+
+char *ui_str_from_mac(macdef_t *mac)
+{
+	// TODO
+	return NULL;
+}
+
+char *ui_str_from_op(op_t *op)
+{
+	return ui_str_from_ari(op->id, NULL, 0);
+}
+
+char *ui_str_from_rpt(rpt_t *rpt)
+{
+// TODO
+	return NULL;
+}
+
+char *ui_str_from_rpttpl(rpt_t *rpt)
+{
+// TODO
+	return NULL;
+}
+
+char *ui_str_from_sbr(rule_t *rule)
+{
+	// TODO
+	return NULL;
+}
+
+char *ui_str_from_tbl(tbl_t *tbl)
+{
+	// TODO
+	return NULL;
+}
+
+char *ui_str_from_tblt(tblt_t *tbltt)
+{
+	// TODO
+	return NULL;
+}
+
+char *ui_str_from_tbr(rule_t *tbr)
+{
+	// TODO
+
+	return NULL;
+}
+
+
+char *ui_str_from_tnv(tnv_t *tnv)
+{
+	char *str = STAKE(1024);
+	char *alt_str = NULL;
+	CHKNULL(str);
+
+	if(tnv == NULL)
 	{
-		printf("NULL");
-		return;
+		strcat(str, "null");
+		return str;
 	}
 
-
-
-	switch(type)
+	switch(tnv->type)
 	{
-		case AMP_TYPE_VAR:
-		{
-			var_t *cd = var_deserialize(data, length, &bytes);
-			char *str = var_to_string(cd);
-			printf("%s", str);
-			SRELEASE(str);
-			var_release(cd);
-		}
-			break;
+		case AMP_TYPE_CNST:
+		case AMP_TYPE_EDD:   alt_str = ui_str_from_edd(tnv->value.as_ptr);    break;
+		case AMP_TYPE_CTRL:  alt_str = ui_str_from_ctrl(tnv->value.as_ptr);   break;
+		case AMP_TYPE_LIT:
+		case AMP_TYPE_ARI:   alt_str = ui_str_from_ari(tnv->value.as_ptr, NULL, 0);    break;
+		case AMP_TYPE_MAC:   alt_str = ui_str_from_mac(tnv->value.as_ptr);    break;
+		case AMP_TYPE_OPER:  alt_str = ui_str_from_op(tnv->value.as_ptr);     break;
+		case AMP_TYPE_RPT:   alt_str = ui_str_from_rpt(tnv->value.as_ptr);    break;
+		case AMP_TYPE_RPTTPL:alt_str = ui_str_from_rpttpl(tnv->value.as_ptr); break;
+		case AMP_TYPE_SBR:   alt_str = ui_str_from_sbr(tnv->value.as_ptr);    break;
+		case AMP_TYPE_TBL:   alt_str = ui_str_from_tbl(tnv->value.as_ptr);    break;
+		case AMP_TYPE_TBLT:  alt_str = ui_str_from_tblt(tnv->value.as_ptr);   break;
+		case AMP_TYPE_TBR:   alt_str = ui_str_from_tbr(tnv->value.as_ptr);    break;
+		case AMP_TYPE_VAR:   alt_str = ui_str_from_var(tnv->value.as_ptr);    break;
 
-		case AMP_TYPE_INT:
-			printf("%d", utils_deserialize_int(data, length, &bytes));
-			break;
-
+		/* Primitive Types */
+		case AMP_TYPE_BOOL:
+		case AMP_TYPE_BYTE:  sprintf(str,"%d", tnv->value.as_byte);    break;
+		case AMP_TYPE_STR:   snprintf(str, 1023, "%s", (char*) tnv->value.as_ptr); break;
+		case AMP_TYPE_INT:   sprintf(str,"%d", tnv->value.as_int);     break;
+		case AMP_TYPE_UINT:  sprintf(str,"%d", tnv->value.as_uint);    break;
+		case AMP_TYPE_VAST:  sprintf(str,"%ld", tnv->value.as_vast);   break;
+		case AMP_TYPE_TV:
 		case AMP_TYPE_TS:
-		case AMP_TYPE_UINT:
-			printf("%d", utils_deserialize_uint(data, length, &bytes));
-			break;
+		case AMP_TYPE_UVAST: sprintf(str,"%ld", tnv->value.as_uvast);  break;
+		case AMP_TYPE_REAL32:sprintf(str,"%f", tnv->value.as_real32);  break;
+		case AMP_TYPE_REAL64:sprintf(str,"%lf", tnv->value.as_real64); break;
 
-		case AMP_TYPE_VAST:
-			printf(VAST_FIELDSPEC, utils_deserialize_vast(data, length, &bytes));
-			break;
-
-		case AMP_TYPE_SDNV:
-		case AMP_TYPE_UVAST:
-			printf(UVAST_FIELDSPEC, utils_deserialize_uvast(data, length, &bytes));
-			break;
-
-		case AMP_TYPE_REAL32:
-			printf("%f", utils_deserialize_real32(data, length, &bytes));
-			break;
-
-		case AMP_TYPE_REAL64:
-			printf("%f", utils_deserialize_real64(data, length, &bytes));
-			break;
-
-		case AMP_TYPE_STRING:
-			{
-				char* tmp = NULL;
-				tmp = utils_deserialize_string(data, length, &bytes);
-				printf("%s", tmp);
-				SRELEASE(tmp);
-			}
-			break;
-
-		case AMP_TYPE_BLOB:
-			{
-				blob_t *blob = blob_deserialize(data, length, &bytes);
-				char *str = blob_to_str(blob);
-				printf("%s", str);
-				SRELEASE(str);
-				SRELEASE(blob);
-			}
-			break;
-
-		case AMP_TYPE_DC:
-			{
-				uint32_t bytes = 0;
-				Lyst dc = dc_deserialize(data, length, &bytes);
-				ui_print_dc(dc);
-				dc_destroy(&dc);
-			}
-			break;
-
-		case AMP_TYPE_ARI:
-			{
-				char * s =ari_to_str(ari_t *ari);
-				[print...]
-				 SRELEASE(s);
-
-				uint32_t bytes = 0;
-				mid_t *mid = mid_deserialize(data, length, &bytes);
-				ui_print_mid(mid);
-				mid_release(mid);
-			}
-			break;
-
-		case AMP_TYPE_MC:
-			{
-				uint32_t bytes = 0;
-				Lyst mc = midcol_deserialize(data, length, &bytes);
-				ui_print_mc(mc);
-				midcol_destroy(&mc);
-			}
-			break;
-			// \todo: Expression has no priority. Need to re-think priority.
-
-		case AMP_TYPE_EXPR:
-			{
-				uint32_t bytes = 0;
-				expr_t *expr = expr_deserialize(data, length, &bytes);
-				ui_print_expr(expr);
-				expr_release(expr);
-			}
-			break;
-
-/*		case DTNMP_TYPE_DEF:
-			{
-				uint32_t bytes = 0;
-				def_gen_t *def = def_deserialize_gen(data, length, &bytes);
-				ui_print_def(def);
-				def_release_gen(def);
-			}
-			break;
-*/
-		case AMP_TYPE_TRL:
-			{
-				uint32_t bytes = 0;
-				trl_t *trl = trl_deserialize(data, length, &bytes);
-				ui_print_trl(trl);
-				trl_release(trl);
-			}
-			break;
-
-		case AMP_TYPE_TABLE:
-			{
-				uint32_t bytes = 0;
-				table_t *table = table_deserialize(data, length, &bytes);
-				ui_print_table(table);
-				table_destroy(table, 1);
-			}
-			break;
-
-		case AMP_TYPE_SRL:
-			{
-				uint32_t bytes = 0;
-				srl_t *srl = srl_deserialize(data, length, &bytes);
-				ui_print_srl(srl);
-				srl_release(srl);
-			}
-			break;
+		/* Compound Objects */
+		case AMP_TYPE_TNV:    alt_str = ui_str_from_tnv(tnv->value.as_ptr);  break;
+		case AMP_TYPE_TNVC:   alt_str = ui_str_from_tnvc(tnv->value.as_ptr); break;
+		case AMP_TYPE_AC:     alt_str = ui_str_from_ac(tnv->value.as_ptr);   break;
+		case AMP_TYPE_EXPR:   alt_str = ui_str_from_expr(tnv->value.as_ptr); break;
+		case AMP_TYPE_BYTESTR:alt_str = ui_str_from_blob(tnv->value.as_ptr); break;
 
 		default:
-			printf("Unknown.");
+			strcat(str, "UNK");
+			break;
 	}
+
+	if(alt_str != NULL)
+	{
+		strncat(str, alt_str, 1023);
+		SRELEASE(alt_str);
+	}
+
+	return str;
 }
-#endif
+
+
+char *ui_str_from_tnvc(tnvc_t *tnvc)
+{
+	char *str = STAKE(1024);
+	int i;
+	int max;
+	CHKNULL(str);
+
+	max = tnvc_get_count(tnvc);
+	for(i = 0; i < max; i++)
+	{
+		char *val_str = ui_str_from_tnv(tnvc_get(tnvc,i));
+		strcat(str, val_str);
+		if(i != 0)
+		{
+			strcat(str, ", ");
+		}
+		SRELEASE(val_str);
+	}
+
+	return str;
+}
+
+
+
+char *ui_str_from_var(var_t *var)
+{
+	return ui_str_from_tnv(var->value);
+}
+
+
+
+
+

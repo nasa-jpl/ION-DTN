@@ -149,7 +149,7 @@ int        msg_rpt_add_rpt(msg_rpt_t *msg_rpt, rpt_t *rpt);
 
 void       msg_rpt_cb_del_fn(void *item);
 
-msg_rpt_t* msg_rpt_create(char *name);
+msg_rpt_t* msg_rpt_create(char *rx_name);
 
 msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success);
 

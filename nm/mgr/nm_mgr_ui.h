@@ -119,6 +119,7 @@ typedef enum form_types_enum {
    TYPE_CHECK_NUM,
    TYPE_CHECK_REGEXP
 } form_types_enum;
+
 typedef struct form_fields_t {
    char* title;
    char* value;

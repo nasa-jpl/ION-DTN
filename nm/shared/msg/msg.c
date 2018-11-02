@@ -301,8 +301,8 @@ void msg_rpt_cb_del_fn(void *item)
 }
 
 
-
-msg_rpt_t* msg_rpt_create(char *name)
+// TODO: name?
+msg_rpt_t* msg_rpt_create(char *rx_name)
 {
 	int success;
 	msg_rpt_t *result = STAKE(sizeof(msg_rpt_t));
@@ -317,19 +317,22 @@ msg_rpt_t* msg_rpt_create(char *name)
 		return NULL;
 	}
 
-	if((name_copy = STAKE(strlen(name) + 1)) == NULL)
+	if(rx_name != NULL)
 	{
-		vec_release(&(result->rx), 0);
-		SRELEASE(result);
-		return NULL;
-	}
-	strncpy(name_copy, name, strlen(name) + 1);
-	if(vec_push(&(result->rx), name_copy) != VEC_OK)
-	{
-		vec_release(&(result->rx), 0);
-		SRELEASE(result);
-		SRELEASE(name_copy);
-		return NULL;
+		if((name_copy = STAKE(strlen(rx_name) + 1)) == NULL)
+		{
+			vec_release(&(result->rx), 0);
+			SRELEASE(result);
+			return NULL;
+		}
+		strncpy(name_copy, rx_name, strlen(rx_name) + 1);
+		if(vec_push(&(result->rx), name_copy) != VEC_OK)
+		{
+			vec_release(&(result->rx), 0);
+			SRELEASE(result);
+			SRELEASE(name_copy);
+			return NULL;
+		}
 	}
 
 	result->rpts = vec_create(0, rpt_cb_del_fn, rpt_cb_comp_fn, NULL, VEC_FLAG_AS_STACK, &success);
@@ -355,7 +358,7 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 	*success = AMP_FAIL;
 	CHKNULL(data);
 
-	result = msg_rpt_create("rpt");
+	result = msg_rpt_create(NULL);
 	CHKNULL(result);
 
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
@@ -370,6 +373,7 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 		msg_rpt_release(result, 1);
 		return NULL;
 	}
+	cut_enc_expect_more(&it, 1);
 
 	/* Step 2: Grab the array of recipients. */
 	if((err = cut_deserialize_vector(&(result->rx), &it, cut_char_deserialize)) != CborNoError)
@@ -379,8 +383,10 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 		return NULL;
 	}
 
+	cut_enc_expect_more(&it, 1);
+
 	/* Step 3: Grab the array of report entries. */
-	if((err = cut_deserialize_vector(&(result->rpts), &it, cut_char_deserialize)) != CborNoError)
+	if((err = cut_deserialize_vector(&(result->rpts), &it, rpt_deserialize_ptr)) != CborNoError)
 	{
 		*success = AMP_FAIL;
 		msg_rpt_release(result, 1);
@@ -403,6 +409,12 @@ void msg_rpt_release(msg_rpt_t *msg, int destroy)
 }
 
 
+/*
+ * First item: Header
+ * Second item: Vector of strings.
+ * Third item:Vector of reports.
+ *
+ */
 CborError msg_rpt_serialize(CborEncoder *encoder, void *item)
 {
 	CborError err;

@@ -1108,7 +1108,7 @@ tnv_t* amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			return result;
 		}
 
-		memcpy(&(mgr_eid.name), cur_mgr->value.as_ptr, sizeof(mgr_eid.name));
+		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, sizeof(mgr_eid.name));
 		msg_rpt = rda_get_msg_rpt(mgr_eid);
 
 		/* For each report being sent. */

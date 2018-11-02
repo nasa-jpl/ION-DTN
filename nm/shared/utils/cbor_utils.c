@@ -65,7 +65,9 @@ int cut_advance_it(CborValue *value)
 		return AMP_OK;
 	}
 
-	if((err = cbor_value_advance(value)) != CborNoError)
+	err = cbor_value_advance(value);
+
+	if((err != CborNoError) && (err != CborErrorUnexpectedEOF))
 	{
 		AMP_DEBUG_ERR("cut_advance_it","Cbor error advancing value %d", err);
 		return AMP_FAIL;
@@ -345,44 +347,40 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 }
 
 
-int cut_deserialize_vector(vector_t *vec, CborValue *it, vec_des_fn des_fn)
+CborError cut_deserialize_vector(vector_t *vec, CborValue *it, vec_des_fn des_fn)
 {
-	CborError err = CborNoError;
+	CborError err = CborErrorIO;
 	CborValue array_it;
 	size_t length;
 	size_t i;
-	int success;
 
 	/* Step 1: are we at an array? */
 
 	AMP_DEBUG_ENTRY("cut_deserialize_vector","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)des_fn);
 
-	CHKUSR(vec, AMP_FAIL);
-	CHKUSR(it, AMP_FAIL);
+	if((vec == NULL) || (it == NULL))
+	{
+		return err;
+	}
 
-	success = AMP_FAIL;
 
 	if((!cbor_value_is_container(it)) ||
+	   ((err = cbor_value_get_array_length(it, &length)) != CborNoError) ||
 	   ((err = cbor_value_enter_container(it, &array_it)) != CborNoError))
 	{
 		AMP_DEBUG_ERR("cut_deserialize_vector","Not a container. Error is %d", err);
-		return success;
-	}
-
-	if((err = cbor_value_get_array_length(it, &length)) != CborNoError)
-	{
-		AMP_DEBUG_ERR("cut_deserialize_vector","Can't get array length. Err is %d", err);
-		return success;
+		return err;
 	}
 
 	for(i = 0; i < length; i++)
 	{
+		int success;
 		void *cur_item = des_fn(&array_it, &success);
 
 		if((cur_item == NULL) || (success != AMP_OK))
 		{
 			AMP_DEBUG_ERR("cut_deserialize_vector","Can't get item %d",i);
-			return AMP_FAIL;
+			return err;
 		}
 
 		if(vec_insert(vec, cur_item, NULL) != VEC_OK)
@@ -391,18 +389,21 @@ int cut_deserialize_vector(vector_t *vec, CborValue *it, vec_des_fn des_fn)
 			{
 				vec->delete_fn(cur_item);
 			}
-			success = AMP_FAIL;
 		}
-
 	}
 
-	if((err = cbor_value_leave_container(it, &array_it)) != CborNoError)
+	err = cbor_value_leave_container(it, &array_it);
+
+	if((err != CborNoError) && (err != CborErrorUnexpectedEOF))
 	{
 		AMP_DEBUG_ERR("cut_deserialize_vector","Can't leave container. Err is %d.", err);
-		return AMP_FAIL;
+	}
+	else
+	{
+		err = CborNoError;
 	}
 
-	return AMP_OK;
+	return err;
 }
 
 
@@ -426,6 +427,15 @@ CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn e
 
 	for(it = vecit_first(vec); vecit_valid(it); it = vecit_next(it))
 	{
+		err = enc_fn(&array_enc, vecit_data(it));
+
+		if((err != CborNoError) && (err != CborErrorOutOfMemory))
+		{
+			AMP_DEBUG_ERR("cut_serialize_vector","Can't serialize item #%d. Err is %d.",vecit_idx(it), err);
+			cbor_encoder_close_container(encoder, &array_enc);
+			return err;
+		}
+		/*
 		blob_t *result = cut_serialize_wrapper(CUT_ENC_BUFSIZE, vecit_data(it), enc_fn);
 
 		err = CborErrorIO;
@@ -440,7 +450,7 @@ CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn e
 			AMP_DEBUG_ERR("cut_serialize_vector","Can't serialize item #%d. Err is %d.",vecit_idx(it), err);
 			cbor_encoder_close_container(encoder, &array_enc);
 			return err;
-		}
+		}*/
 	}
 
 	return cbor_encoder_close_container(encoder, &array_enc);
@@ -473,6 +483,10 @@ void *cut_char_deserialize(CborValue *it, int *success)
 	{
 		SRELEASE(new_item);
 		new_item = NULL;
+	}
+	else
+	{
+		*success = AMP_OK;
 	}
 
 
