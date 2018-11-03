@@ -221,12 +221,12 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
     	{
     		case BpEndpointStopped:
     			/* The endpoint stopped? Panic.*/
-    			AMP_DEBUG_INFO("iif_receive","Endpoint stopped.", NULL);
+//    			AMP_DEBUG_INFO("iif_receive","Endpoint stopped.", NULL);
     			return NULL;
 
     		case BpPayloadPresent:
     			/* Clear to process the payload. */
-    			AMP_DEBUG_INFO("iif_receive", "Payload present.", NULL);
+ //   			AMP_DEBUG_INFO("iif_receive", "Payload present.", NULL);
     			break;
 
     		default:

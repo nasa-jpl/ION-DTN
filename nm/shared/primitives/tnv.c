@@ -37,6 +37,7 @@
 
 /* Local functions. */
 static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result);
+static int tnv_deserialize_val_raw(blob_t *data, tnv_t *result);
 
 //static int tnvc_deserialize_vc(CborValue *it);
 //static int tnvc_deserialize_nc(CborValue *it);
@@ -461,6 +462,11 @@ static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 	int success = AMP_FAIL;
 	int can_alloc = 0;
 
+	if((it == NULL) || (result == NULL))
+	{
+		return AMP_FAIL;
+	}
+
 	TNV_CLEAR_ALLOC(result->flags);
 
 	switch(result->type)
@@ -511,6 +517,19 @@ static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 	}
 
 	return success;
+}
+
+static int tnv_deserialize_val_raw(blob_t *data, tnv_t *result)
+{
+	CborParser parser;
+	CborValue it;
+
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	{
+		return AMP_FAIL;
+	}
+
+	return tnv_deserialize_val_by_type(&it, result);
 }
 
 
@@ -632,6 +651,32 @@ tnv_t* tnv_from_map(amp_type_e type, uint8_t map_idx)
 	return result;
 }
 
+
+
+/******************************************************************************
+ * Create new TNV that holds an allocated object.
+ *
+ * \returns New TNV, or NULL
+ *
+ * \param[in]  type    The type of the object.
+ * \param[in]  item    The allocated object.
+ *
+ * \note
+ *   1. Result must be freed with tnv_release(<item>, 1);
+ *   2. The caller MUST NOT release the given object after this call.
+ *****************************************************************************/
+
+tnv_t* tnv_from_obj(amp_type_e type, void *item)
+{
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+
+	tnv_init(result, type);
+	TNV_SET_ALLOC(result->flags);
+
+	result->value.as_ptr = item;
+	return result;
+}
 
 
 /******************************************************************************
@@ -1736,13 +1781,16 @@ static tnvc_t tnvc_deserialize_tvc(CborValue *array_it, size_t array_len, int *s
 		tnv_t *val = tnv_create();
 		*success = AMP_FAIL;
 
-		if(val != NULL)
+		blob_t *blob = blob_deserialize_ptr(array_it, success);
+
+		if(blob != NULL)
 		{
 			val->type = types.value[i];
-			if((*success = tnv_deserialize_val_by_type(array_it, val)) == AMP_OK)
+			if((*success = tnv_deserialize_val_raw(blob, val)) == AMP_OK)
 			{
 				vec_insert(&(result.values), val, NULL);
 			}
+			blob_release(blob, 1);
 		}
 
 		if(*success != AMP_OK)
@@ -2116,8 +2164,10 @@ CborError tnvc_serialize_tvc(CborEncoder *encoder, tnvc_t *tnvc)
 		 * want the array encoder to think parts of the serialized value are
 		 * different indices in the array...
 		 */
-
-		err = tnv_serialize_value(&array_enc, tnv);
+		blob_t *blob = tnv_serialize_value_wrapper(tnv);
+		err = blob_serialize(&array_enc, blob);
+		blob_release(blob, 1);
+//		err = tnv_serialize_value(&array_enc, tnv);
 		if((err != CborNoError) && (err != CborErrorOutOfMemory))
 		{
 			AMP_DEBUG_ERR("tnvc_serialize_tvc","Can't serialize TNV: %d", i);

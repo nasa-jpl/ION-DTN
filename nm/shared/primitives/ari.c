@@ -339,14 +339,19 @@ int ari_cb_comp_fn(void *i1, void *i2)
 
 void* ari_cb_copy_fn(void *item)
 {
-	CHKNULL(item);
+	if(item == NULL)
+	{
+		return NULL;
+	}
 	return ari_copy_ptr((ari_t*)item);
 }
 
 void ari_cb_del_fn(void *item)
 {
-	CHKVOID(item);
-	ari_release((ari_t*)item, 1);
+	if(item != NULL)
+	{
+		ari_release((ari_t*)item, 1);
+	}
 }
 
 /*

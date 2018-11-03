@@ -287,7 +287,6 @@ tnv_t *expr_eval(expr_t *expr)
 		return NULL;
 	}
 
-	printf("EJB: Stack has %d items.", max);
 	for(it = vecit_first(&(expr->rpn.values)); vecit_valid(it); it = vecit_next(it))
 	{
 		ari_t *cur_ari = NULL;
@@ -305,14 +304,10 @@ tnv_t *expr_eval(expr_t *expr)
 
 		if(cur_ari->type == AMP_TYPE_OPER)
 		{
-			printf("EJB: OP\n");
-
 			result = expr_apply_op(cur_ari, &stack);
 		}
 		else
 		{
-			printf("EJB: ELEM of type %d\n", cur_ari->type);
-
 			result = expr_get_val(cur_ari);
 		}
 
@@ -323,7 +318,6 @@ tnv_t *expr_eval(expr_t *expr)
 			return NULL;
 		}
 
-		printf("EJB: Pushing item onto the stack.\n");
 		if(vec_push(&stack, result) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("expr_eval","Can't push new values to stack at %d", vecit_idx(it));

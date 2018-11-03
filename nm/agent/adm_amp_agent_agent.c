@@ -184,7 +184,7 @@ void amp_agent_init_ctrl()
 	adm_add_ctrldef(gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_DEL_SBR,   1, amp_agent_ctrl_del_sbr);
 	adm_add_ctrldef(gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_DESC_SBR,  1, amp_agent_ctrl_desc_sbr);
 	adm_add_ctrldef(gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_STORE_VAR, 1, amp_agent_ctrl_store_var);
-	adm_add_ctrldef(gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_RESET_COUNTS, 1, amp_agent_ctrl_reset_counts);
+	adm_add_ctrldef(gAmpAgentIdx[ADM_CTRL_IDX], AMP_AGENT_RESET_COUNTS, 0, amp_agent_ctrl_reset_counts);
 }
 
 void amp_agent_init_macro()
@@ -241,27 +241,27 @@ void amp_agent_init_tblt()
 
 	/* VARIABLE */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_VARIABLE), adm_amp_agent_tbl_variables);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* RPTT */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RPTT), adm_amp_agent_tbl_rptt);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* MACRO */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_MACRO), adm_amp_agent_tbl_macro);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* RULE */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RULE), adm_amp_agent_tbl_rule);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* TBLT */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_TBLT), adm_amp_agent_tbl_tblt);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 }
 

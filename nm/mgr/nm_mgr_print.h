@@ -53,7 +53,7 @@ char* ui_str_from_rpt(rpt_t *rpt);
 char* ui_str_from_rpttpl(rpt_t *rpt);
 char* ui_str_from_sbr(rule_t *rule);
 char* ui_str_from_tbl(tbl_t *tbl);
-char* ui_str_from_tblt(tblt_t *tbltt);
+char* ui_str_from_tblt(tblt_t *tblt);
 char* ui_str_from_tbr(rule_t *tbr);
 char* ui_str_from_tnv(tnv_t *tnv);
 char* ui_str_from_tnvc(tnvc_t *tnvc);

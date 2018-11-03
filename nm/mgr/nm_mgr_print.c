@@ -284,6 +284,25 @@ void ui_print_report(rpt_t *rpt)
 			}
 
 			ui_print_report_entry(name, val);
+			ui_printf("\n");
+		}
+	}
+	if(rpt->id->type == AMP_TYPE_TBLT)
+	{
+		int i = 0;
+		vecit_t it;
+		tbl_t *tbl = NULL;
+
+		for(i = 0; i < num_entries; i++)
+		{
+			val = tnvc_get(rpt->entries, i);
+			if(val->type == AMP_TYPE_TBL)
+			{
+				tbl = (tbl_t *) val->value.as_ptr;
+				char *tmp = ui_str_from_tbl(tbl);
+				ui_printf("%s\n", (tmp) ? tmp : "null");
+				SRELEASE(tmp);
+			}
 		}
 	}
 	else
@@ -298,6 +317,7 @@ void ui_print_report(rpt_t *rpt)
 		}
 
 		ui_print_report_entry(name, val);
+		ui_printf("\n");
 	}
 
 
@@ -315,7 +335,15 @@ void ui_print_report_entry(char *name, tnv_t *val)
 	}
 
 	char *str = ui_str_from_tnv(val);
-	ui_printf("%s : %s\n", name, (str == NULL) ? "null" : str);
+	if(name)
+	{
+		ui_printf("%s : %s", name, (str == NULL) ? "null" : str);
+	}
+	else
+	{
+		ui_printf("%s", (str == NULL) ? "null" : str);
+	}
+
 	SRELEASE(str);
 }
 
@@ -448,12 +476,12 @@ char *ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc)
 
 		if(parm_str != NULL)
 		{
-			sprintf(str,"%s(%s)\n", meta->name, parm_str);
+			sprintf(str,"%s(%s)", meta->name, parm_str);
 			SRELEASE(parm_str);
 		}
 		else
 		{
-			sprintf(str,"%s\n", meta->name);
+			sprintf(str,"%s", meta->name);
 		}
 
 		if(desc)
@@ -461,7 +489,6 @@ char *ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc)
 			strcat(str,"\t: ");
 			strcat(str,meta->descr);
 		}
-		strcat(str,"\n");
 	}
 
 	if(print_id != id)
@@ -569,14 +596,76 @@ char *ui_str_from_sbr(rule_t *rule)
 
 char *ui_str_from_tbl(tbl_t *tbl)
 {
-	// TODO
-	return NULL;
+	char *result = STAKE(4096); // todo dynamically size this.
+	vecit_t it;
+	int i, j;
+	size_t num_rows = 0;
+	tnvc_t *cur_row = NULL;
+	tblt_t *tblt = VDB_FINDKEY_TBLT(tbl->id);
+
+	/* Print table headers, if we have a table template. */
+	char *tmp = ui_str_from_tblt(tblt);
+	strcat(result, tmp);
+	SRELEASE(tmp);
+
+	num_rows = tbl_num_rows(tbl);
+
+	strcat(result, "----------------------------------------------------------------------\n");
+
+	/* For each row */
+	for(i = 0; i < num_rows; i++)
+	{
+		cur_row = tbl_get_row(tbl, i);
+
+		for(j = 0; j < tnvc_get_count(cur_row); j++)
+		{
+			tnv_t *val = tnvc_get(cur_row, j);
+			if(j == 0)
+			{
+				strcat(result, "|");
+			}
+			strcat(result, "\t");
+			char *tmp = ui_str_from_tnv(val);
+			strcat(result, tmp);
+			SRELEASE(tmp);
+			strcat(result, "\t|");
+		}
+		strcat(result, "\n");
+	}
+	strcat(result, "----------------------------------------------------------------------\n");
+
+	return result;
 }
 
-char *ui_str_from_tblt(tblt_t *tbltt)
+char *ui_str_from_tblt(tblt_t *tblt)
 {
-	// TODO
-	return NULL;
+	char *result = STAKE(1024);
+	int i = 0;
+	vecit_t it;
+
+	if(tblt != NULL)
+	{
+		i = 0;
+		strcat(result, "----------------------------------------------------------------------\n");
+		for(it = vecit_first(&(tblt->cols)); vecit_valid(it); it = vecit_next(it))
+		{
+			tblt_col_t *col = (tblt_col_t*) vecit_data(it);
+			char tmp[64];
+
+			if(i == 0)
+			{
+				strcat(result, "|");
+			}
+			sprintf(tmp, "\t(%s) %s\t|",
+					(col) ? type_to_str(col->type) : "null",
+					(col) ? col->name : "null");
+			strcat(result, tmp);
+			i = 1;
+		}
+		strcat(result, "\n");
+	}
+
+	return result;
 }
 
 char *ui_str_from_tbr(rule_t *tbr)

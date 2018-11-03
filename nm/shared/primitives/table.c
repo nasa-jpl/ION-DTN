@@ -54,7 +54,7 @@ int tbl_add_row(tbl_t *tbl, tnvc_t *row)
 	CHKUSR(tbl, AMP_FAIL);
 	CHKUSR(row, AMP_FAIL);
 
-	if(tblt_check_row(VDB_FINDKEY_TBLT(&(tbl->id)), row) != AMP_OK)
+	if(tblt_check_row(VDB_FINDKEY_TBLT(tbl->id), row) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("tbl_add_row", "row doesn't match template.", NULL);
 		return AMP_FAIL;
@@ -106,7 +106,7 @@ tbl_t*   tbl_create(ari_t *id)
 
 	CHKNULL(id);
 
-	if((result = (tbl_t*) STAKE(sizeof(tbl_t*))) == NULL)
+	if((result = (tbl_t*) STAKE(sizeof(tbl_t))) == NULL)
 	{
 		return NULL;
 	}
@@ -164,7 +164,9 @@ tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
 	}
 
 	/* Step 2: grab the Id. */
-	tpl_id = ari_deserialize_ptr(&array_it, success);
+	blob_t *blob = blob_deserialize_ptr(&array_it, success);
+	tpl_id = ari_deserialize_raw(blob, success);
+	blob_release(blob, 1);
 
 	if((tpl_id == NULL) || (*success != AMP_OK))
 	{
@@ -172,8 +174,19 @@ tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
 		return NULL;
 	}
 
+	/* Step 3: Create the table. */
+	result = tbl_create(tpl_id);
+	ari_release(tpl_id, 1);
+	tpl_id = NULL;
+
+	if(result == NULL)
+	{
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
 	/*
-	 * Step 3: Grab the rows. If any. Start at 1 for counting
+	 * Step 4: Grab the rows. If any. Start at 1 for counting
 	 * since we already grabbed the ARI from the array.
 	 */
 	for(i = 1; i < len; i++)

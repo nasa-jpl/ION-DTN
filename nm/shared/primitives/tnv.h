@@ -160,6 +160,7 @@ tnv_t*    tnv_from_blob(blob_t *val);
 tnv_t*    tnv_from_byte(uint8_t val);
 tnv_t*    tnv_from_int(int32_t val);
 tnv_t*    tnv_from_map(amp_type_e type, uint8_t map_idx);
+tnv_t*    tnv_from_obj(amp_type_e type, void *item);
 tnv_t*    tnv_from_real32(float val);
 tnv_t*    tnv_from_real64(double val);
 tnv_t*    tnv_from_str(char *str);

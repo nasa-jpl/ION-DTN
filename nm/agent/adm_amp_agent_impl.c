@@ -63,7 +63,7 @@ int amp_agent_build_ari_table(tbl_t *table, rhht_t *ht)
 	{
 		ari_t *ari = (ari_t*) vecit_data(it);
 		cur_row = tnvc_create(1);
-		tnvc_insert(cur_row, tnv_from_blob(ari_serialize_wrapper(ari)));
+		tnvc_insert(cur_row, tnv_from_obj(AMP_TYPE_ARI, ari_copy_ptr(ari)));
 		if(tbl_add_row(table, cur_row) != AMP_OK)
 		{
 			success = AMP_FAIL;
@@ -1082,7 +1082,7 @@ tnv_t* amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if((ids == NULL) || (mgrs == NULL))
 	{
-		AMP_DEBUG_ERR("DEL_RPTT", "Bad parameters.", NULL);
+		AMP_DEBUG_ERR("GEN_RPTT", "Bad parameters.", NULL);
 		return result;
 	}
 
@@ -1147,6 +1147,72 @@ tnv_t* amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_gen_tbls BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	vecit_t ac_it;
+	vecit_t mgr_it;
+
+	ac_t *ids = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+	tnvc_t *mgrs = adm_get_parm_obj(parms, 1, AMP_TYPE_TNVC);
+
+	if((ids == NULL) || (mgrs == NULL))
+	{
+		AMP_DEBUG_ERR("GEN_TBLT", "Bad parameters.", NULL);
+		return result;
+	}
+
+	if(tnvc_get_count(mgrs) == 0)
+	{
+		if((tnvc_insert(mgrs, tnv_from_str(def_mgr->name))) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("GEN_TBLT","Empty TNVC and can't add default mgr.", NULL);
+			return result;
+		}
+	}
+
+	/* For each manager receiving a report. */
+	for(mgr_it = vecit_first(&(mgrs->values)); vecit_valid(mgr_it); mgr_it = vecit_next(mgr_it))
+	{
+		tnv_t *cur_mgr = (tnv_t*)vecit_data(mgr_it);
+		eid_t mgr_eid;
+		msg_rpt_t* msg_rpt;
+
+		if((cur_mgr == NULL) || (cur_mgr->type != AMP_TYPE_STR))
+		{
+			AMP_DEBUG_ERR("GEN_TBLT","Cannot parse MGR EID to send to.", NULL);
+			return result;
+		}
+
+		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, sizeof(mgr_eid.name));
+		msg_rpt = rda_get_msg_rpt(mgr_eid);
+
+		/* For each report being sent. */
+		for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
+		{
+			ari_t *cur_id = vecit_data(ac_it);
+			tblt_t *def = VDB_FINDKEY_TBLT(cur_id);
+			rpt_t *rpt = NULL;
+			tbl_t *tbl = NULL;
+			tnv_t *val = NULL;
+
+			if( (def == NULL) ||
+				((rpt = rpt_create(ari_copy_ptr(cur_id), getUTCTime(), NULL)) == NULL) ||
+				((tbl = def->build(cur_id)) == NULL) ||
+				((val = tnv_from_obj(AMP_TYPE_TBL, tbl)) == NULL) ||
+				(rpt_add_entry(rpt, val) != AMP_OK))
+			{
+				rpt_release(rpt, 1);
+				tbl_release(tbl, 1);
+
+				AMP_DEBUG_ERR("GEN_TBLT","Cannot build table.", NULL);
+				continue;
+			}
+
+			msg_rpt_add_rpt(msg_rpt, rpt);
+		}
+	}
+
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_gen_tbls BODY

@@ -355,20 +355,34 @@ blob_t*   ctrl_serialize_wrapper(ctrl_t *ctrl)
 	ari_t *ctrl_id = NULL;
 	ari_t *tmp_ari = NULL;
 
-	CHKNULL(ctrl);
-
-	ctrl_id = ctrl_get_id(ctrl);
-	CHKNULL(ctrl_id);
-
-	tmp_ari = ari_copy_ptr(ctrl_id);
-	CHKNULL(tmp_ari);
-
-	if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
+	if(ctrl == NULL)
 	{
-		result = ari_serialize_wrapper(tmp_ari);
+		return NULL;
 	}
 
-	ari_release(tmp_ari, 1);
+	if((ctrl_id = ctrl_get_id(ctrl)) == NULL)
+	{
+		return NULL;
+	}
+
+	if(ctrl->parms != NULL)
+	{
+
+		tmp_ari = ari_copy_ptr(ctrl_id);
+		CHKNULL(tmp_ari);
+
+		if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
+		{
+			result = ari_serialize_wrapper(tmp_ari);
+		}
+
+		ari_release(tmp_ari, 1);
+	}
+	else
+	{
+		result = ari_serialize_wrapper(ctrl_id);
+	}
+
 	return result;
 
 }

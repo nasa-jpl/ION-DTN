@@ -755,31 +755,31 @@ void amp_agent_init_tblt()
 
 	/* VARIABLE */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_VARIABLE), NULL);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_AMP_AGENT, "VARIABLE", "This table lists the ARI for every variable that is known to the agent.");
 
 	/* RPTT */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RPTT), NULL);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_AMP_AGENT, "RPTT", "This table lists the ARI for every report template that is known to the agent.");
 
 	/* MACRO */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_MACRO), NULL);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_AMP_AGENT, "MACRO", "This table lists the ARI for every macro that is known to the agent.");
 
 	/* RULE */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RULE), NULL);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_AMP_AGENT, "RULE", "This table lists the ARI for every rule that is known to the agent.");
 
 	/* TBLT */
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, gAmpAgentIdx[ADM_TBLT_IDX], AMP_AGENT_TBLT_TBLT), NULL);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_AMP_AGENT, "TBLT", "This table lists the ARI for every table template that is known to the agent.");
 }
