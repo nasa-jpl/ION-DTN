@@ -36,8 +36,6 @@
 
 
 /* Local functions. */
-static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result);
-static int tnv_deserialize_val_raw(blob_t *data, tnv_t *result);
 
 //static int tnvc_deserialize_vc(CborValue *it);
 //static int tnvc_deserialize_nc(CborValue *it);
@@ -443,6 +441,24 @@ tnv_t *tnv_deserialize_ptr(CborValue *it, int *success)
 	return result;
 }
 
+tnv_t* tnv_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+
+	if((data == NULL) || (success == NULL))
+	{
+		return NULL;
+	}
+
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	{
+		return NULL;
+	}
+
+	return tnv_deserialize_ptr(&it, success);
+}
+
 
 /******************************************************************************
  * Deserializes only a TNV value from a CBOR value.
@@ -457,7 +473,7 @@ tnv_t *tnv_deserialize_ptr(CborValue *it, int *success)
  *   2. This function only updates the TNV's value, not name or type.
  *****************************************************************************/
 
-static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
+int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 {
 	int success = AMP_FAIL;
 	int can_alloc = 0;
@@ -519,10 +535,15 @@ static int tnv_deserialize_val_by_type(CborValue *it, tnv_t *result)
 	return success;
 }
 
-static int tnv_deserialize_val_raw(blob_t *data, tnv_t *result)
+int tnv_deserialize_val_raw(blob_t *data, tnv_t *result)
 {
 	CborParser parser;
 	CborValue it;
+
+	if((data == NULL) || (result == NULL))
+	{
+		return AMP_FAIL;
+	}
 
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
 	{

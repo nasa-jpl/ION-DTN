@@ -30,6 +30,10 @@
 
 #define MAX_INPUT_BYTES 1024
 
+#define TYPE_AS_MASK(type) (((uvast)1) << ((uvast)type))
+#define TYPE_MATCHES_MASK(type, mask) (TYPE_AS_MASK(type) & mask)
+#define TYPE_MASK_ALL (0xFFFFFFFFFFFFFFFF)
+
 int ui_input_get_line(char *prompt, char **line, int max_len);
 
 
@@ -62,13 +66,13 @@ vast     ui_input_vast(char *prompt);
 
 ac_t*   ui_input_ac(char *prompt);
 
-ari_t*  ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type);
-ari_t*  ui_input_ari_build();
+ari_t*  ui_input_ari(char *prompt, uint8_t adm_id, uvast mask);
+ari_t*  ui_input_ari_build(uvast mask);
 int     ui_input_ari_flags(uint8_t *flag);
-ari_t*  ui_input_ari_list(uint8_t adm_id, uint8_t type);
+ari_t*  ui_input_ari_list(uint8_t adm_id, uvast mask);
+ari_t*  ui_input_ari_lit(char *prompt);
 ari_t*  ui_input_ari_raw(uint8_t no_file);
-int     ui_input_ari_type();
-
+int     ui_input_ari_type(uvast mask);
 int     ui_input_parms(ari_t *id);
 
 tnv_t*  ui_input_tnv(int type, char *prompt);
@@ -95,5 +99,7 @@ rule_t *ui_input_tbr(char* prompt);
 var_t* ui_input_var(char* prompt);
 
 tnvc_t* ui_input_tnvc(char* prompt);
+
+macdef_t *ui_input_mac(char *prompt);
 
 #endif // _UI_INPUT_H

@@ -171,7 +171,7 @@ int ui_build_control(agent_t* agent)
 #else
     ts = ui_input_uint("Control Timestamp");
 #endif
-    if((id = ui_input_ari("Control MID:", ADM_ENUM_ALL, AMP_TYPE_CTRL)) == NULL)
+    if((id = ui_input_ari("Control MID:", ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_CTRL))) == NULL)
     {
        AMP_DEBUG_ERR("ui_build_control","Can't get control.",NULL);
        return AMP_FAIL;
@@ -376,7 +376,8 @@ void ui_eventLoop(int *running)
    ui_shutdown();
 }
 
-void ui_list_objs(uint8_t adm_id, uint8_t type, ari_t **result)
+// this is a mess. clean it up.
+void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
 {
    char title[100];
    ui_menu_list_t *list;
@@ -385,12 +386,22 @@ void ui_list_objs(uint8_t adm_id, uint8_t type, ari_t **result)
    meta_col_t *col;
    vecit_t it;
    metadata_t *meta = NULL;
+   amp_type_e type = AMP_TYPE_UNK;
 
-   if(type == AMP_TYPE_UNK)
-   {
-      type = ui_input_ari_type();
-   }
+   type = ui_input_ari_type(mask);
    
+   /* Unknown type means cancel. WThis selects ARIs, so no numerics. */
+   if((type == AMP_TYPE_UNK) || type_is_numeric(type))
+   {
+	   return;
+   }
+
+   /* We don't select literals from a list. We enter them as LIT ARIs.*/
+   if(type == AMP_TYPE_LIT)
+   {
+	   *result = ui_input_ari_lit(NULL);
+   }
+
     if (adm_id == ADM_ENUM_ALL)
     {
        sprintf(title, "Listing all %s objects", type_to_str(type));
@@ -799,10 +810,9 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 	CHKVOID(agent);
 
-
 	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
-	printf("Enter raw MID to send.\n");
+	printf("Enter raw ARI to send.\n");
 	id = ui_input_ari_raw(1);
 
 	if(id == NULL)
@@ -813,7 +823,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 	ui_postprocess_ctrl(id);
 
-	if((msg = msg_ctrl_create(id)) == NULL)
+	if((msg = msg_ctrl_create_ari(id)) == NULL)
 	{
 		ari_release(id, 1);
 		return;
@@ -891,39 +901,42 @@ void ui_menu_ctrl_show()
 int ui_menu_ctrl_do(uint8_t choice)
 {
 	int context = UI_CTRL_MENU;
+	uvast mask = 0;
+
 	switch(choice)
 	{
-		case '0' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_UNK, NULL);
+		case '0' : ui_list_objs(ADM_ENUM_ALL, TYPE_MASK_ALL, NULL);
 				   break;
 
-		case '1' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_EDD, NULL);
+		case '1' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
 			   	   break;
 
 		case '2':
-				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CNST, NULL);
-				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_LIT, NULL);
+				   mask = TYPE_AS_MASK(AMP_TYPE_CNST) | TYPE_AS_MASK(AMP_TYPE_LIT);
+				   ui_list_objs(ADM_ENUM_ALL, mask, NULL);
 				   break;
 
-		case '3' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL, NULL);
+		case '3' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
 				   break;
 
-		case '4' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_MAC, NULL);
+		case '4' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
 				   break;
 
-		case '5' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_OPER, NULL);
+		case '5' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
 				   break;
 
-		case '6' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_RPTTPL, NULL);
+		case '6' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
 				   break;
 
-		case '7' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_SBR, NULL);
-				   ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBR, NULL);
+		case '7' :
+				   mask = TYPE_AS_MASK(AMP_TYPE_SBR) | TYPE_AS_MASK(AMP_TYPE_TBR);
+				   ui_list_objs(ADM_ENUM_ALL, mask, NULL);
 				   break;
 
-		case '8' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBLT, NULL);
+		case '8' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
 				   break;
 
-		case '9' : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_VAR, NULL);
+		case '9' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
 				   break;
 
 		case 'A' : ui_build_control(ui_select_agent()); break;
@@ -1271,6 +1284,7 @@ void ui_ctrl_list_menu(int *running)
    char msg[128] = "";
    int new_msg = 0, i;
    char *ctrl_menu_list_descriptions[10];
+   uvast mask = 0;
 
    ctrl_menu_list_descriptions[0] = NULL;
    for(i = 1; i < 10; i++)
@@ -1303,35 +1317,36 @@ void ui_ctrl_list_menu(int *running)
       {
          switch(choice)
          {
-         case 0: ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_UNK, NULL);
+         case 0: ui_list_objs(ADM_ENUM_ALL, TYPE_MASK_ALL, NULL);
             break;
-         case 1 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_EDD, NULL);
+         case 1 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
             break;
          case 2:
-            ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CNST, NULL);
-            ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_LIT, NULL);
+        	 mask = TYPE_AS_MASK(AMP_TYPE_CNST) | TYPE_AS_MASK(AMP_TYPE_LIT);
+            ui_list_objs(ADM_ENUM_ALL, mask, NULL);
             break;
 
-         case 3 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_CTRL, NULL);
+         case 3 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
             break;
 
-         case 4 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_MAC, NULL);
+         case 4 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
             break;
 
-         case 5 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_OPER, NULL);
+         case 5 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
             break;
 
-         case 6 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_RPTTPL, NULL);
+         case 6 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
             break;
 
-         case 7 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_SBR, NULL);
-            ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBR, NULL);
+         case 7 :
+        	 mask = TYPE_AS_MASK(AMP_TYPE_SBR) | TYPE_AS_MASK(AMP_TYPE_TBR);
+             ui_list_objs(ADM_ENUM_ALL, mask, NULL);
             break;
 
-         case 8 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_TBLT, NULL);
+         case 8 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
             break;
 
-         case 9 : ui_list_objs(ADM_ENUM_ALL, AMP_TYPE_VAR, NULL);
+         case 9 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
             break;
 
          default:

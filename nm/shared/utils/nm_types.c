@@ -120,6 +120,8 @@ uint8_t type_is_numeric(amp_type_e type)
 
 	switch(type)
 	{
+		case AMP_TYPE_BOOL:
+		case AMP_TYPE_BYTE:
 		case AMP_TYPE_INT:
 		case AMP_TYPE_UINT:
 		case AMP_TYPE_VAST:

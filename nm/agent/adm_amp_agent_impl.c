@@ -845,9 +845,9 @@ tnv_t* amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	int success;
 	ari_t *id = adm_get_parm_obj(parms, 0, AMP_TYPE_ARI);
 	expr_t *expr = adm_get_parm_obj(parms, 1, AMP_TYPE_EXPR);
-	amp_type_e type = adm_get_parm_int(parms, 2, &success);
+	amp_type_e type = adm_get_parm_uint(parms, 2, &success);
 
-	if((id == NULL) || (expr == NULL) || (type = AMP_TYPE_UNK))
+	if((id == NULL) || (expr == NULL) || (type == AMP_TYPE_UNK))
 	{
 		AMP_DEBUG_ERR("ADD_VAR", "Bad parameters for control", NULL);
 		return result;
@@ -1115,10 +1115,19 @@ tnv_t* amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
 		{
 			ari_t *cur_id = vecit_data(ac_it);
-			rpttpl_t *def = VDB_FINDKEY_RPTT(cur_id);
 			rpt_t *rpt = rpt_create(ari_copy_ptr(cur_id), getUTCTime(), NULL);
 
-			ldc_fill_rpt(def, rpt);
+			if(cur_id->type == AMP_TYPE_RPTTPL)
+			{
+				rpttpl_t *def = VDB_FINDKEY_RPTT(cur_id);
+				ldc_fill_rpt(def, rpt);
+			}
+			else
+			{
+				tnv_t *cur_val = ldc_collect(cur_id, &(cur_id->as_reg.parms));
+				rpt_add_entry(rpt, cur_val);
+			}
+
 			msg_rpt_add_rpt(msg_rpt, rpt);
 		}
 	}

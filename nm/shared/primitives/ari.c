@@ -62,10 +62,12 @@ static ari_t p_ari_deserialize_lit(CborValue *it, int *success)
 	/* We got here through a peek, so we know this next byte is good. */
 	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &byte);
 
-	result.type = ARI_GET_FLAG_TYPE(byte);
-	result.as_lit.type = result.type;
+	result.type = byte & 0xF;
+	result.as_lit.type = ((byte >> 4) & 0xF) + AMP_TYPE_BOOL;
 
-	result.as_lit = tnv_deserialize(it, success);
+	*success = tnv_deserialize_val_by_type(it, &(result.as_lit));
+
+//	result.as_lit = tnv_deserialize(it, success);
 	if(*success != AMP_OK)
 	{
 		AMP_DEBUG_ERR("p_ari_deserialize_lit","Can't get ARI literal value.", NULL);
@@ -175,7 +177,7 @@ static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
 	CHKUSR(ari, CborErrorIO);
 
 
-	byte = (ari->as_lit.type << 4) | (AMP_TYPE_LIT % 0xF);
+	byte = ((ari->as_lit.type & 0xF) << 4) | (AMP_TYPE_LIT % 0xF);
 
 	err = cut_enc_byte(encoder, byte);
 	if((err != CborErrorOutOfMemory) && (err != CborNoError))
@@ -183,7 +185,8 @@ static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
 		return err;
 	}
 
-	if((result = tnv_serialize_value_wrapper(&(ari->as_lit))) == NULL)
+	err = tnv_serialize_value(encoder, &(ari->as_lit));
+/*	if((result = tnv_serialize_value_wrapper(&(ari->as_lit))) == NULL)
 	{
 		return CborErrorIO;
 	}
@@ -191,7 +194,7 @@ static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
 	err = blob_serialize(encoder, result);
 
 	blob_release(result, 1);
-
+*/
 	return err;
 }
 
@@ -1107,6 +1110,22 @@ ac_t* ac_deserialize_ptr(CborValue *it, int *success)
 	}
 
 	return result;
+}
+
+ac_t ac_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+
+	*success = AMP_FAIL;
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	{
+		ac_t tmp;
+		return tmp;
+	}
+
+	return ac_deserialize(&it, success);
+
 }
 
 /*

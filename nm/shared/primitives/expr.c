@@ -174,7 +174,7 @@ expr_t *expr_copy_ptr(expr_t *expr)
 expr_t expr_deserialize(CborValue *it, int *success)
 {
 	expr_t result;
-	uint8_t *byte;
+	blob_t *data = NULL;
 
 	AMP_DEBUG_ENTRY("expr_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
@@ -184,19 +184,28 @@ expr_t expr_deserialize(CborValue *it, int *success)
 
 	CHKUSR(it, result);
 
+	/* Unpack the byte string holding the expression. */
+	data = blob_deserialize_ptr(it, success);
 
-	/* Get the expression type. */
-	byte = (uint8_t *) cbor_value_get_next_byte(it);
-	CHKUSR(byte, result);
-	result.type = *byte;
+	/* Grab and verify the expression type. */
+	result.type = data->value[0];
     if(type_is_known(result.type) == 0)
     {
+    	AMP_DEBUG_ERR("expr_deserialize","Unknown expression type %d", result.type);
     	*success = AMP_FAIL;
+    	blob_release(data, 1);
     	return result;
     }
 
+    /* Create fake blob to point after first byte. */
+    blob_t tmp;
+    tmp.value = data->value + sizeof(uint8_t);
+    tmp.length = data->length - 1;
+    tmp.alloc = data->alloc-1;
+
     /* Deserialize the AC list holding the RPN expression. */
-    result.rpn = ac_deserialize(it, success);
+    result.rpn = ac_deserialize_raw(&tmp, success);
+    blob_release(data, 1);
     if(*success != AMP_OK)
     {
     	result.type = AMP_TYPE_UNK;
@@ -313,7 +322,6 @@ tnv_t *expr_eval(expr_t *expr)
 
 		if(result == NULL)
 		{
-			AMP_DEBUG_WARN("expr_eval","Can't apply Op at %d", vecit_idx(it));
 			vec_release(&stack, 0);
 			return NULL;
 		}
@@ -483,26 +491,30 @@ void expr_release(expr_t *expr, int destroy)
 }
 
 
-
 CborError expr_serialize(CborEncoder *encoder, void *item)
 {
-	CborError err;
-	blob_t *result;
+	CborError err = CborErrorIO;
+	blob_t *result = NULL;
+	blob_t *ac_data = NULL;
 	expr_t *expr = (expr_t*) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(expr, CborErrorIO);
-
-	/* Step 1: Encode the byte. */
-	err = cut_enc_byte(encoder, expr->type);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if((encoder == NULL) || (item == NULL))
 	{
-		AMP_DEBUG_ERR("expr_serialize","CBOR Error: %d", err);
 		return err;
 	}
 
-	result = ac_serialize_wrapper(&(expr->rpn));
+	result = blob_create((uint8_t*)&(expr->type), 1, 1);
+
+	if((ac_data = ac_serialize_wrapper(&(expr->rpn))) == NULL)
+	{
+		AMP_DEBUG_ERR("expr_serialize","Can't serialize AC.", NULL);
+		blob_release(result, 1);
+		return err;
+	}
+
+	blob_append(result, ac_data->value, ac_data->length);
+	blob_release(ac_data, 1);
+
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 

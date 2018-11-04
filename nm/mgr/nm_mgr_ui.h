@@ -71,7 +71,7 @@ rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
 void ui_deregister_agent();
 void ui_event_loop();
 
-void ui_list_objs(uint8_t adm_id, uint8_t type, ari_t **result);
+void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result);
 
 void ui_postprocess_ctrl(ari_t *id);
 

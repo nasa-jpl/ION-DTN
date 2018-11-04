@@ -221,6 +221,7 @@ ac_t*     ac_copy_ptr(ac_t *src);
 
 ac_t      ac_deserialize(CborValue *it, int *success);
 ac_t*     ac_deserialize_ptr(CborValue *it, int *success);
+ac_t      ac_deserialize_raw(blob_t *data, int *success);
 
 ari_t*    ac_get(ac_t* ac, uint8_t index);
 uint8_t   ac_get_count(ac_t* ac);

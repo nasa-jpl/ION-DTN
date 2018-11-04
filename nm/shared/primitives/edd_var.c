@@ -320,20 +320,25 @@ var_t *var_deserialize_ptr(CborValue *it, int *success)
 
 
     /* Grab the var ARI. */
-    result->id = ari_deserialize_ptr(it, success);
+    blob_t *tmp = blob_deserialize_ptr(it, success);
+    result->id = ari_deserialize_raw(tmp, success);
+    blob_release(tmp, 1);
     if((result->id == NULL) || (*success != AMP_OK))
     {
     	SRELEASE(result);
     	return NULL;
     }
 
+    cut_enc_refresh(it);
+
     /* Grab the TNV. */
-    result->value = tnv_deserialize_ptr(it, success);
+    tmp = blob_deserialize_ptr(it, success);
+    result->value = tnv_deserialize_raw(tmp, success);
+
     if((result->value == NULL) || (*success != AMP_OK))
     {
     	*success = AMP_FAIL;
-    	ari_release(result->id, 1);
-    	SRELEASE(result);
+    	var_release(result, 1);
     	return NULL;
     }
 

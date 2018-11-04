@@ -182,12 +182,20 @@ uint8_t  ui_input_byte(char *prompt)
 	uint8_t result = 0;
 	char line[3];
 
-	ui_input_get_line(prompt, (char**)&line, 2);
+	ui_input_get_line(prompt, (char**)&line, 3);
 
-	line[2] = '\0';
-
-	sscanf(line, "%c", &result);
-
+	blob_t *blob = utils_string_to_hex(line);
+	if(blob == NULL)
+	{
+		AMP_DEBUG_ERR("ui_input_byte","Problem reading value. Returning 0.", NULL);
+		return 0;
+	}
+	if(blob->length > 1)
+	{
+		ui_printf("Read %d bytes. Only selecting first.", blob->length);
+	}
+	result = blob->value[0];
+	blob_release(blob, 1);
 	return result;
 }
 
@@ -332,7 +340,7 @@ ac_t *ui_input_ac(char *prompt)
 	{
 		char prompt[20];
 		sprintf(prompt, "Build ARI %d", i);
-		ari_t *cur = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK);
+		ari_t *cur = ui_input_ari(prompt, ADM_ENUM_ALL, TYPE_MASK_ALL);
 		if(vec_push(&(result->values), cur) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ac","Could not input ARI %d.", i);
@@ -365,7 +373,7 @@ ac_t *ui_input_ac(char *prompt)
  *  07/05/16  E. Birrane     Check for NULL result. Add File input.
  *****************************************************************************/
 
-ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
+ari_t *ui_input_ari(char *prompt, uint8_t adm_id, uvast mask)
 {
 	ari_t *result = NULL;
 	metadata_t *meta = NULL;
@@ -385,10 +393,10 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 	switch(opt)
 	{
 		case 1:
-			result = ui_input_ari_list(adm_id, type);
+			result = ui_input_ari_list(adm_id, mask);
 			break;
 		case 2:
-			result = ui_input_ari_build();
+			result = ui_input_ari_build(mask);
 			break;
 		case 3:
 			result = ui_input_ari_raw(1);
@@ -405,6 +413,7 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 	}
 
 	if((result->type != AMP_TYPE_LIT) &&
+		(result->type != AMP_TYPE_OPER) &&
 	   (ARI_GET_FLAG_PARM(result->as_reg.flags)))
 	{
 		if(ui_input_parms(result) != AMP_OK)
@@ -418,7 +427,7 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, amp_type_e type)
 	return result;
 }
 
-ari_t* ui_input_ari_build()
+ari_t* ui_input_ari_build(uvast mask)
 {
 	ari_t *result = NULL;
 	uint8_t flags;
@@ -430,6 +439,13 @@ ari_t* ui_input_ari_build()
 
 	result = ari_create(ARI_GET_FLAG_TYPE(flags));
 	CHKNULL(result);
+
+	if(TYPE_MATCHES_MASK(result->type, mask) == 0)
+	{
+		AMP_DEBUG_ERR("ui_input_ari_build", "Invalid type of %s. Aborting...", type_to_str(result->type));
+		ari_release(result, 1);
+		return NULL;
+	}
 
 	if(result->type == AMP_TYPE_LIT)
 	{
@@ -501,6 +517,35 @@ ari_t* ui_input_ari_build()
 		}
 	}
 
+	blob_t *blob = ui_input_blob("ARI Name", 1);
+	if(blob != NULL)
+	{
+		blob_copy(*blob, &(result->as_reg.name));
+		blob_release(blob, 1);
+	}
+	else
+	{
+		AMP_DEBUG_ERR("ui_input_ari","Unable to get NAME.", NULL);
+		ari_release(result, 1);
+		result = NULL;
+	}
+
+	if(result != NULL)
+	{
+		if((blob = ari_serialize_wrapper(result)) != NULL)
+		{
+			char *ari_str = utils_hex_to_string(blob->value, blob->length);
+			ui_printf("Constructed ARI: 0x%s", ari_str);
+			SRELEASE(ari_str);
+			blob_release(blob, 1);
+		}
+		else
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Error checking built ARI.", NULL);
+			ari_release(result, 1);
+			result = NULL;
+		}
+	}
 	return result;
 }
 
@@ -581,7 +626,7 @@ int ui_input_ari_flags(uint8_t *flag)
 	printf("+--------------------------------+\n\n");
 
 	/* Step 1: Figure out the AMP type. */
-	type = ui_input_ari_type();
+	type = ui_input_ari_type(TYPE_MASK_ALL);
 
 	ARI_SET_FLAG_TYPE(*flag, type);
 
@@ -612,19 +657,14 @@ int ui_input_ari_flags(uint8_t *flag)
 	return AMP_OK;
 }
 
-ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
+ari_t *ui_input_ari_list(uint8_t adm_id, uvast mask)
 {
 	ari_t *result = NULL;
 	int idx = 0;
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
-    if (type == AMP_TYPE_UNK)
-    {
-       type = ui_input_ari_type();
-    }
-    
-	ui_list_objs(ADM_ENUM_ALL, type, &result);
+	ui_list_objs(ADM_ENUM_ALL, mask, &result);
 /*
 	idx = ui_input_int("Which ARI?");
 
@@ -636,6 +676,76 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uint8_t type)
 	}
 	metacol_release(col, 1);
 */
+	return result;
+}
+
+ari_t*  ui_input_ari_lit(char *prompt)
+{
+	ari_t *result = NULL;
+	uvast mask = 0;
+	amp_type_e type;
+
+	if(prompt != NULL)
+	{
+		ui_printf("%s", prompt);
+	}
+	else
+	{
+		ui_printf("Enter LITERAL value.\n");
+	}
+
+
+	ui_printf("Select type for the literal value:\n");
+	mask = TYPE_AS_MASK(AMP_TYPE_INT)  | TYPE_AS_MASK(AMP_TYPE_INT) |
+		   TYPE_AS_MASK(AMP_TYPE_UINT) | TYPE_AS_MASK(AMP_TYPE_VAST) | TYPE_AS_MASK(AMP_TYPE_UVAST) |
+		   TYPE_AS_MASK(AMP_TYPE_REAL32) | TYPE_AS_MASK(AMP_TYPE_REAL64);
+
+	if((type = ui_input_ari_type(mask)) == AMP_TYPE_UNK)
+	{
+		ui_printf("Aborting...\n");
+		return NULL;
+	}
+
+	result = ari_create(AMP_TYPE_LIT);
+	CHKNULL(result);
+
+	result->as_lit.flags = 0;
+	result->as_lit.type = type;
+
+	switch(type)
+	{
+		case AMP_TYPE_BOOL:
+		case AMP_TYPE_BYTE:
+			result->as_lit.value.as_byte = ui_input_byte("Enter Literal Value as BYTE");
+			break;
+		case AMP_TYPE_STR:
+			result->as_lit.value.as_ptr = ui_input_string("Enter Literal Value as STR");
+			TNV_SET_ALLOC(result->as_lit.flags);
+			break;
+		case AMP_TYPE_INT:
+			result->as_lit.value.as_int = ui_input_int("Enter Literal Value as INT");
+			break;
+		case AMP_TYPE_UINT:
+			result->as_lit.value.as_uint = ui_input_uint("Enter Literal Value as UINT");
+			break;
+		case AMP_TYPE_VAST:
+			result->as_lit.value.as_vast = ui_input_vast("Enter Literal Value as VAST");
+			break;
+		case AMP_TYPE_UVAST:
+			result->as_lit.value.as_uvast = ui_input_uvast("Enter Literal Value as UVAST");
+			break;
+		case AMP_TYPE_REAL32:
+			result->as_lit.value.as_real32 = ui_input_real32("Enter Literal Value as REAL32");
+			break;
+		case AMP_TYPE_REAL64:
+			result->as_lit.value.as_real64 = ui_input_real64("Enter Literal Value as REAL64");
+			break;
+		default:
+			ari_release(result, 1);
+			result = NULL;
+			break;
+	}
+
 	return result;
 }
 
@@ -657,30 +767,50 @@ ari_t* ui_input_ari_raw(uint8_t no_file)
 }
 
 
-int ui_input_ari_type()
+int ui_input_ari_type(uvast mask)
 {
-	int type;
-	int i;
-#ifdef USE_NCURSES
-    type = ui_menu_select("Select AMP object (ari) type", amp_type_str, NULL, AMP_TYPE_UNK, NULL, 4);
+	int i= 0;
+	int idx = 0;
+	int select = 0;
+	amp_type_e types[AMP_TYPE_UNK + 1];
 
-    if (type < 0)
+#ifdef USE_NCURSES
+    select = ui_menu_select("Select AMP object (ari) type", amp_type_str, NULL, AMP_TYPE_UNK, NULL, 4);
+
+    if (select < 0)
     {
-       type = AMP_TYPE_UNK;
+       select = AMP_TYPE_UNK;
     }
 #else
 	for(i = 0; i <= AMP_TYPE_UNK; i++)
 	{
-		printf("%d) %s\t\t", i, type_to_str(i));
-		if((i > 0) && ((i%5) == 0))
+		if(TYPE_MATCHES_MASK(i, mask) || (i == AMP_TYPE_UNK))
 		{
-			printf("\n");
+			types[idx++] = i;
 		}
 	}
 
-	type = ui_input_int("Select ARI type (or UNK to cancel): ");
+	/* If there was only 1 choice other than UNK, auto-select it. */
+	if(idx == 2)
+	{
+		select = 0;
+	}
+	else
+	{
+		for(i = 0; i < idx; i++)
+		{
+			ui_printf("%d) %s\t\t", i, type_to_str(types[i]));
+			if((i % 5) == 0)
+			{
+				ui_printf("\n");
+			}
+		}
+		select = ui_input_int("Select ARI type (or UNK to cancel): ");
+	}
+
 #endif
-	return type;
+
+	return types[select];
 }
 
 
@@ -707,9 +837,9 @@ int ui_input_parms(ari_t *id)
 		return AMP_OK;
 	}
 
-	printf("\n\n");
-	printf("Your Selected ARI Needs %d Parameters.\n", num);
-	printf("You will now be asked to enter each parm.\n");
+	ui_printf("\n\n");
+	ui_printf("Your Selected ARI Needs %d Parameters.\n", num);
+	ui_printf("You will now be asked to enter each parm.\n");
 
 	for(i = 0; i < num; i++)
 	{
@@ -721,7 +851,7 @@ int ui_input_parms(ari_t *id)
         if (val == NULL)
         {
 			AMP_DEBUG_ERR("ui_input_parms", "User failed to input a valid tnv, aborting", NULL);
-           return AMP_FAIL;
+			return AMP_FAIL;
         }
         
 		if(vec_push(&(id->as_reg.parms.values), val) != VEC_OK)
@@ -739,87 +869,44 @@ int ui_input_parms(ari_t *id)
 tnv_t *ui_input_tnv(int type, char *prompt)
 {
 	tnv_t *result = NULL;
-	int is_numeric = 1;
 
 	switch(type)
 	{
 		case AMP_TYPE_BOOL:
-		case AMP_TYPE_BYTE:
-			result = tnv_from_byte(ui_input_byte(prompt));
-			break;
-
-		case AMP_TYPE_INT:
-			result = tnv_from_int(ui_input_int(prompt));
-			break;
-
-		case AMP_TYPE_UINT:
-			result = tnv_from_uint(ui_input_uint(prompt));
-			break;
-
-		case AMP_TYPE_VAST:
-			result = tnv_from_vast(ui_input_vast(prompt));
-			break;
-
+		case AMP_TYPE_BYTE:  result = tnv_from_byte(ui_input_byte(prompt));     break;
+		case AMP_TYPE_INT:   result = tnv_from_int(ui_input_int(prompt));       break;
+		case AMP_TYPE_UINT:  result = tnv_from_uint(ui_input_uint(prompt));     break;
+		case AMP_TYPE_VAST:  result = tnv_from_vast(ui_input_vast(prompt));     break;
 		case AMP_TYPE_TV:
 		case AMP_TYPE_TS:
-		case AMP_TYPE_UVAST:
-			result = tnv_from_uvast(ui_input_uvast(prompt));
-			break;
-
-		case AMP_TYPE_REAL32:
-			result = tnv_from_real32(ui_input_real32(prompt));
-			break;
-
-		case AMP_TYPE_REAL64:
-			result = tnv_from_real64(ui_input_real64(prompt));
-			break;
-
-		case AMP_TYPE_STR:
-			result = tnv_from_str(ui_input_string(prompt));
-			break;
-
+		case AMP_TYPE_UVAST:  result = tnv_from_uvast(ui_input_uvast(prompt));   break;
+		case AMP_TYPE_REAL32: result = tnv_from_real32(ui_input_real32(prompt)); break;
+		case AMP_TYPE_REAL64: result = tnv_from_real64(ui_input_real64(prompt)); break;
+		case AMP_TYPE_STR:    result = tnv_from_obj(type, ui_input_string(prompt)); break;
+		case AMP_TYPE_BYTESTR:result = tnv_from_obj(type, ui_input_blob(prompt, 0)); break;
+		case AMP_TYPE_CNST:
+		case AMP_TYPE_EDD:
+		case AMP_TYPE_ARI:    result = tnv_from_obj(type, ui_input_ari(prompt, ADM_ENUM_ALL, TYPE_MASK_ALL)); break;
+		case AMP_TYPE_MAC:    result = tnv_from_obj(type, ui_input_mac(prompt));    break;
+		case AMP_TYPE_AC:     result = tnv_from_obj(type, ui_input_ac(prompt));     break;
+		case AMP_TYPE_TNVC:   result = tnv_from_obj(type, ui_input_tnvc(prompt));   break;
+		case AMP_TYPE_CTRL:   result = tnv_from_obj(type, ui_input_ctrl(prompt));   break;
+		case AMP_TYPE_EXPR:   result = tnv_from_obj(type, ui_input_expr(prompt));   break;
+		case AMP_TYPE_OPER:   result = tnv_from_obj(type, ui_input_oper(prompt));   break;
+		case AMP_TYPE_RPTTPL: result = tnv_from_obj(type, ui_input_rpttpl(prompt)); break;
+		case AMP_TYPE_TBR:
+		case AMP_TYPE_SBR:    result = tnv_from_obj(type, ui_input_rule(prompt));   break;
+		case AMP_TYPE_TBLT:   result = tnv_from_obj(type, ui_input_tblt(prompt));   break;
+		case AMP_TYPE_VAR:    result = tnv_from_obj(type, ui_input_var(prompt));    break;
+		case AMP_TYPE_LIT:    result = tnv_from_obj(type, ui_input_ari_lit(prompt));break;
 		default:
-			{
-				if((result = tnv_create()) != NULL)
-				{
-					result->type = type;
-					TNV_SET_ALLOC(result->flags);
-
-					switch(result->type)
-					{
-					case AMP_TYPE_BYTESTR:result->value.as_ptr = ui_input_blob(prompt, 0); break;
-					case AMP_TYPE_CNST:
-					case AMP_TYPE_EDD:
-					case AMP_TYPE_LIT:
-					case AMP_TYPE_ARI:    result->value.as_ptr = ui_input_ari(prompt, ADM_ENUM_ALL, AMP_TYPE_UNK); break;
-					case AMP_TYPE_MAC:
-					case AMP_TYPE_AC:     result->value.as_ptr = ui_input_ac(prompt);     break;
-					case AMP_TYPE_TNVC:   result->value.as_ptr = ui_input_tnvc(prompt);   break;
-					case AMP_TYPE_CTRL:   result->value.as_ptr = ui_input_ctrl(prompt);   break;
-					case AMP_TYPE_EXPR:   result->value.as_ptr = ui_input_expr(prompt);   break;
-					case AMP_TYPE_OPER:   result->value.as_ptr = ui_input_oper(prompt);   break;
-					case AMP_TYPE_RPTTPL: result->value.as_ptr = ui_input_rpttpl(prompt); break;
-					case AMP_TYPE_TBR:
-					case AMP_TYPE_SBR:    result->value.as_ptr = ui_input_rule(prompt);   break;
-					case AMP_TYPE_TBLT:   result->value.as_ptr = ui_input_tblt(prompt);   break;
-					case AMP_TYPE_VAR:    result->value.as_ptr = ui_input_var(prompt);    break;
-					default:
-						tnv_release(result, 1);
-						result = NULL;
-						break;
-					}
-				}
-				break;
-			}
+			break;
 	}
 
-	if((result != NULL) && (TNV_IS_ALLOC(result->flags)))
+	if((result != NULL) && (result->value.as_ptr == NULL))
 	{
-		if(result->value.as_ptr == NULL)
-		{
-			tnv_release(result, 1);
-			result = NULL;
-		}
+		tnv_release(result, 1);
+		result = NULL;
 	}
 
 	return result;
@@ -838,7 +925,7 @@ tnvc_t* ui_input_tnvc(char *prompt)
 
 	for(i = 0; i < num; i++)
 	{
-		int type = ui_input_ari_type();
+		int type = ui_input_ari_type(TYPE_MASK_ALL);
 		snprintf(tnv_prompt,32, "TNV for Item %d", i);
 		tnv_t *cur = ui_input_tnv(type, tnv_prompt);
         if (cur == NULL || tnvc_insert(result, cur) != AMP_OK)
@@ -865,33 +952,46 @@ ctrl_t* ui_input_ctrl(char * prompt)
 
 expr_t* ui_input_expr(char* prompt)
 {
-   expr_t* expr;
-   ari_t *val;
-   amp_type_e type = ui_input_ari_type();
+   expr_t* expr = NULL;
+   ari_t *val = NULL;
+   amp_type_e type = AMP_TYPE_UNK;
+   uvast mask;
 
-   // Check if user cancelled request
-   if (type == AMP_TYPE_UNK)
-   {
-      return NULL;
-   }
-   
-   expr = expr_create(type);
+   ui_printf("\n\n");
+   ui_printf("Expression Builder\n");
+   ui_printf("----------------------------------------\n");
 
-   // Sanity check
-   if (expr == NULL)
-   {
-      return NULL;
-   }
-   
-   // Initialize expr->rpn.values vector
-   //ui_nav_push("Expression ARI Values"); // Adds string to vector, prints to wide pad, scrolls pad.
+   ui_printf("Enter Expression type.\n");
+   ui_printf("----------------------------------------\n");
 
-   // Prompt user to enter one or more ARI's
-   while( (val = ui_input_ari("Expression ARI Value Input", ADM_ENUM_ALL, AMP_TYPE_UNK)) != NULL )
+   mask = TYPE_AS_MASK(AMP_TYPE_INT)  | TYPE_AS_MASK(AMP_TYPE_INT) |
+		  TYPE_AS_MASK(AMP_TYPE_UINT) | TYPE_AS_MASK(AMP_TYPE_VAST) | TYPE_AS_MASK(AMP_TYPE_UVAST) |
+		  TYPE_AS_MASK(AMP_TYPE_REAL32) | TYPE_AS_MASK(AMP_TYPE_REAL64);
+
+   if((type = ui_input_ari_type(mask)) == AMP_TYPE_UNK)
    {
-      expr_add_item(expr, val);
+	   ui_printf("Canceling Expression...\n");
+	   return NULL;
    }
-//   ui_nav_pop();
+
+   ui_printf("Enter Expression as AC list.\n");
+   ui_printf("Each ARI must be numeric or of type OPER, CNST, EDD, or VAR.\n");
+   ui_printf("Enter type UNK to end ARI entry for this expression.\n");
+
+   if((expr = expr_create(type)) == NULL)
+   {
+	   ui_printf("Error allocating expression. Aborting...");
+	   return NULL;
+   }
+
+   mask = TYPE_AS_MASK(AMP_TYPE_OPER) | TYPE_AS_MASK(AMP_TYPE_CNST) | TYPE_AS_MASK(AMP_TYPE_EDD) |
+		  TYPE_AS_MASK(AMP_TYPE_LIT) | TYPE_AS_MASK(AMP_TYPE_VAR);
+
+   while( (val = ui_input_ari("Expression ARI Value Input", ADM_ENUM_ALL, mask)) != NULL )
+   {
+	   expr_add_item(expr, val);
+   }
+
    return expr;
 }
 
@@ -938,6 +1038,10 @@ var_t* ui_input_var(char* prompt)
 	return NULL;
 }
 
-
+macdef_t *ui_input_mac(char *prompt)
+{
+	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
+	return NULL;
+}
 
 
