@@ -2199,6 +2199,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 	findPlan(plan->neighborEid, &vplan, &vplanElt);
 	CHKVOID(vplanElt);
 	throttle = applicableThrottle(vplan);
+	CHKVOID(throttle);
 
 	/*	Prior claims on the first contact along this route
 	 *	must include however much transmission the plan

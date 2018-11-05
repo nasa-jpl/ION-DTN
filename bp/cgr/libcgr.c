@@ -2286,7 +2286,9 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 	if (!(bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
 		event.type = xmitOverdue;
-		event.time = route->toTime;
+		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
+		contact = (IonCXref *) psp(ionwm, addr);
+		event.time = contact->toTime;
 		event.ref = bundleObj;
 		bundle->overdueElt = insertBpTimelineEvent(&event);
 		if (bundle->overdueElt == 0)

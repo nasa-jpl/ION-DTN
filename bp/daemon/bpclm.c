@@ -541,6 +541,7 @@ int	main(int argc, char *argv[])
 	{
 		CHKZERO(sdr_begin_xn(sdr));
 		throttle = applicableThrottle(vplan);
+		CHKZERO(throttle);
 
 		/*	Wait until (a) there is at least one outduct,
 		 *	(b) maximum payload length is known, and (c)

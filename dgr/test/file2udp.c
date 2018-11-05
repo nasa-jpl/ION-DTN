@@ -324,7 +324,7 @@ static int	rsend(int sock, char *line, int lineLen)
 	long		ack;
 
 	seqCounter++;
-	memcpy(buffer, (char *) &seqCounter, 40);
+	memcpy(buffer, (char *) &seqCounter, sizeof seqCounter);
 	memcpy(buffer + 4, line, lineLen);
 	while (1)
 	{
