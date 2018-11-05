@@ -12,6 +12,7 @@
  *	Version 2.0 DTN Neighbor Discovery 
  *		- ION IPND Implementation Assembly Part2
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
+ *	Version 2.2 Shared context ctx passed explicitely to threads to avoid shared library security change implications
  */
 
 #include "platform.h"
@@ -153,10 +154,10 @@ void	*sendBeacons(void *attr)
 #if IPND_DEBUG
 	char		buffer[200];
 #endif
-	IPNDCtx		*ctx = getIPNDCtx();
+	IPNDCtx		*ctx = (IPNDCtx *)attr;
 	int		sendSocket;
 	int		result;
-	Lyst		destinations = ctx->destinations;
+	Lyst		destinations;
 	LystElt		nDestinationElt = NULL;
 	Destination	*nDestination = NULL;
 	int		waitNextDestination = 0;
@@ -165,6 +166,10 @@ void	*sendBeacons(void *attr)
 	int		beaconHasChanged;
 
 	CHKNULL(ctx);
+
+	setIPNDCtx(ctx);
+
+	destinations = ctx->destinations;
 
 	printText("[i] send-thread: Send beacons thread started.");
 
@@ -629,7 +634,7 @@ bp_discover_contact_lost(%s, %s, %s)", socketSpec, eid, claProtocol);
 void	*receiveBeacons(void *attr)
 {
 	char			buffer[1024];
-	IPNDCtx			*ctx = getIPNDCtx();
+	IPNDCtx			*ctx = (IPNDCtx *)attr;
 	int			i, j;
 	static int		numListenSockets;
 	static int		*listenSockets;
@@ -655,6 +660,8 @@ void	*receiveBeacons(void *attr)
 	Destination		*newDest;
 
 	CHKNULL(ctx);
+
+	setIPNDCtx(ctx);
 
 	printText("[i] receive-thread: Receive beacons thread started.");
 #if 0
@@ -1030,13 +1037,15 @@ receive-thread: CLA notified that link %s:%d is down.", srcAddrStr,
 void	*expireNeighbors(void *attr)
 {
 	char		buffer[120];
-	IPNDCtx		*ctx = getIPNDCtx();
+	IPNDCtx		*ctx = (IPNDCtx *)attr;
 	int		i;
 	LystElt		nbOld, nbElt, destinationElt;
 	Destination	*dest;
 	IpndNeighbor	*nb;
 
 	CHKNULL(ctx);
+
+	setIPNDCtx(ctx);
 
 	printText("[i] expire-thread: Expire neighbors thread started.");
 #if 0
