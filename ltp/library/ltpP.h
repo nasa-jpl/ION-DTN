@@ -603,6 +603,7 @@ typedef struct
 
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
+	unsigned int	enforceSchedule;/*	Boolean.		*/
 	double		maxBER;		/*	Max. bit error rate.	*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;

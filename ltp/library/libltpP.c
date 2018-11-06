@@ -912,6 +912,7 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.deliverables = sdr_list_create(sdr);
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
+		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
 		ltpdbBuf.maxBER = DEFAULT_MAX_BER;
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
@@ -5309,12 +5310,12 @@ putErrmsg("Discarded mystery data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	/*	Note that we now always enforce the contact plan
-	 *	reception schedule, i.e., screening is always on.
+	/*	Note that we now enforce the contact plan reception
+	 *	schedule by default, i.e., screening is normally on.
 	 *	This is because we need a non-zero reception rate
 	 *	to enable rate control.					*/
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray data segment.", itoa(sessionNbr));
@@ -5339,16 +5340,18 @@ putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	/*	Enforce rate control.					*/
+	/*	Enforce reception rate control if possible.		*/
 
 	pdu->contentLength = (*cursor - endOfHeader) + pdu->length;
-
-	snoozeInterval = ((float) (pdu->contentLength) /
-			(float) (vspan->receptionRate)) * 1000000.0;
+	if (vspan->receptionRate > 0)
+	{
+		snoozeInterval = ((float) (pdu->contentLength) /
+				(float) (vspan->receptionRate)) * 1000000.0;
 #if 0
 printf("rate control: length %u converted to %f, rate %u converted to %f, interval %f converted to %d.\n", (pdu->contentLength), (float) (pdu->contentLength), (vspan->receptionRate), (float) (vspan->receptionRate), snoozeInterval, (int) snoozeInterval);
 #endif
-	microsnooze((int) snoozeInterval);
+		microsnooze((int) snoozeInterval);
+	}
 
 	/*	At this point, the remaining bytes should all be
 	 *	client service data and trailer extensions.  So
@@ -6124,7 +6127,8 @@ static void	getSessionContext(LtpDB *ltpdb, unsigned int sessionNbr,
 
 	sdr_read(sdr, (char *) spanBuf, *spanObj, sizeof(LtpSpan));
 	findSpan(spanBuf->engineId, vspan, vspanElt);
-	if (*vspanElt == 0 || (*vspan)->receptionRate == 0)
+	if (*vspanElt == 0
+	|| ((*vspan)->receptionRate == 0 && ltpdb->enforceSchedule == 1))
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));
@@ -6809,7 +6813,7 @@ putErrmsg("Handling report ack.", utoa(sessionNbr));
 		return 0;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));
@@ -6960,7 +6964,7 @@ putErrmsg("Handling cancel by sender.", utoa(sessionNbr));
 		return 0;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));
@@ -7112,7 +7116,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 		return -1;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrsmg("Discarding stray segment.", itoa(sessionNbr));
@@ -7338,7 +7342,7 @@ putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 		return 0;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));

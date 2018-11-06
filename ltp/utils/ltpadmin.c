@@ -86,6 +86,7 @@ See man(5) for ltprc.");
 	PUTS("\t   l span");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
+	PUTS("\t   m screening {y | n}");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
@@ -465,8 +466,44 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 
 static void	manageScreening(int tokenCount, char **tokens)
 {
-	writeMemo("[!] Note: LTP screening is now always on, cannot be \
-disabled.");
+	Sdr	sdr = getIonsdr();
+	Object	ltpdbobj = getLtpDbObject();
+	LtpDB	ltpdb;
+	int	newEnforceSchedule;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	switch (*(tokens[2]))
+	{
+	case 'Y':
+	case 'y':
+	case '1':
+		newEnforceSchedule = 1;
+		break;
+
+	case 'N':
+	case 'n':
+	case '0':
+		newEnforceSchedule = 0;
+		break;
+
+	default:
+		writeMemoNote("Screening must be 'y' or 'n'.", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
+	ltpdb.enforceSchedule = newEnforceSchedule;
+	sdr_write(sdr, ltpdbobj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change LTP screening control.", NULL);
+	}
 }
 
 static void	manageOwnqtime(int tokenCount, char **tokens)
