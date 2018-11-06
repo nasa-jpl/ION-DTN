@@ -160,7 +160,7 @@ int tnv_compare(tnv_t *v1, tnv_t *v2)
 		case AMP_TYPE_CNST:
 		case AMP_TYPE_EDD:
 		case AMP_TYPE_ARI:
-		case AMP_TYPE_LIT:     diff = ari_compare((ari_t*)v1->value.as_ptr, (ari_t*)v2->value.as_ptr);       break;
+		case AMP_TYPE_LIT:     diff = ari_compare((ari_t*)v1->value.as_ptr, (ari_t*)v2->value.as_ptr, 0);       break;
 		case AMP_TYPE_CTRL:    diff = ctrl_cb_comp_fn((ctrl_t*)v1->value.as_ptr, (ctrl_t*)v2->value.as_ptr); break;
 		case AMP_TYPE_OPER:    diff = op_cb_comp_fn((op_t*)v1->value.as_ptr, (op_t*)v2->value.as_ptr);       break;
 		case AMP_TYPE_RPT:     diff = rpt_cb_comp_fn((rpt_t*)v1->value.as_ptr, (rpt_t*)v2->value.as_ptr);    break;

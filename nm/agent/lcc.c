@@ -95,14 +95,12 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms)
 	if(status != CTRL_SUCCESS)
 	{
 		AMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
+		tnv_release(retval, 1);
 	}
 	else if(retval != NULL)
 	{
 		lcc_send_retval(&rx_eid, retval, ctrl, parms);
 	}
-
-	tnv_release(retval, 1);
-
 
 	AMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
 	return status;
@@ -181,7 +179,6 @@ void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 	ari = ari_copy_ptr(ctrl_ari);
 	ari_replace_parms(ari, parms);
 	report = rpt_create(ari, getUTCTime(), NULL);
-	ari_release(ari,1);
 	CHKVOID(report);
 
 	/* Add the single entry to this report. */

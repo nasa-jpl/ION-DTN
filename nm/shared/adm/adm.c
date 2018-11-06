@@ -377,11 +377,16 @@ int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn)
 
 int adm_add_rpttpl(rpttpl_t *def)
 {
-	int success;
+	int success = AMP_OK;
+	int rhht_code;
 
-	if((success = VDB_ADD_RPTT(def->id, def)) != AMP_OK)
+	rhht_code = VDB_ADD_RPTT(def->id, def);
+
+	if((rhht_code != RH_OK) && (rhht_code != RH_DUPLICATE))
 	{
+		AMP_DEBUG_ERR("adm_add_rpttpl","Error adding RPTTPL, code %d", rhht_code);
 		rpttpl_release(def, 1);
+		success = AMP_FAIL;
 	}
 
 	AMP_DEBUG_EXIT("adm_add_rpttpl","-> %d.", success);
@@ -519,9 +524,13 @@ void *adm_get_parm_obj(tnvc_t *parms, uint8_t idx, amp_type_e type)
 {
 	tnv_t *val = tnvc_get(parms, idx);
 
-	CHKNULL(val);
-	CHKNULL(val->value.as_ptr);
-	CHKNULL(val->type == type);
+	if((val == NULL) ||
+	   (val->value.as_ptr == NULL) ||
+	   (val->type != type))
+	{
+		AMP_DEBUG_ERR("adm_get_parm_obj","Parm error.", NULL);
+		return NULL;
+	}
 
 	return val->value.as_ptr;
 }

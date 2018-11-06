@@ -946,7 +946,7 @@ tnv_t* amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * +-------------------------------------------------------------------------+
 	 */
 	ari_t *id = adm_get_parm_obj(parms, 0, AMP_TYPE_ARI);
-	ac_t *template = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+	ac_t *template = adm_get_parm_obj(parms, 1, AMP_TYPE_AC);
 	rpttpl_t *def = NULL;
 
 	if((id == NULL) || (template == NULL))
@@ -1049,7 +1049,39 @@ tnv_t* amp_agent_ctrl_desc_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_desc_rptt BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-// todo: Remove from the JSON. This is replaced by a table.
+
+	vecit_t ac_it;
+	int i = 0;
+	ac_t *ids = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+
+	if(ids == NULL)
+	{
+		AMP_DEBUG_ERR("DESC_RPTT", "Bad parameters.", NULL);
+		return result;
+	}
+
+	tnvc_t *tnvc = tnvc_create(vec_num_entries(ids->values));
+
+	/* For each rptt being described. */
+	for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
+	{
+		ari_t *cur_id = vecit_data(ac_it);
+		rpttpl_t *def = VDB_FINDKEY_RPTT(cur_id);
+
+		if(def == NULL)
+		{
+			AMP_DEBUG_WARN("DESC_RPTT","Cannot find RPTT for item %d.", i);
+		}
+		else
+		{
+			tnv_t *val = tnv_from_obj(AMP_TYPE_RPTTPL, rpttpl_copy_ptr(def));
+			tnvc_insert(tnvc, val);
+		}
+	}
+
+	result = tnv_from_obj(AMP_TYPE_TNVC, tnvc);
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_desc_rptt BODY

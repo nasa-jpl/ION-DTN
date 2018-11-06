@@ -174,13 +174,15 @@ typedef struct {
 int       ari_add_parm_set(ari_t *ari, tnvc_t *parms);
 int       ari_add_parm_val(ari_t *ari, tnv_t *parm);
 
+
 int       ari_cb_comp_fn(void *i1, void *i2);
+int       ari_cb_comp_no_parm_fn(void *i1, void *i2);
 void*     ari_cb_copy_fn(void *item);
 void      ari_cb_del_fn(void *item);
 rh_idx_t  ari_cb_hash(void *table, void *key);
 void      ari_cb_ht_del(rh_elt_t *elt);
 
-int       ari_compare(ari_t *ari1, ari_t *ari2);
+int       ari_compare(ari_t *ari1, ari_t *ari2, int parms);
 
 ari_t     ari_copy(ari_t val, int *success);
 ari_t*    ari_copy_ptr(ari_t *ari);

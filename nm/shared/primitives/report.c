@@ -563,13 +563,20 @@ rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success)
 
 	CHKNULL(it);
 
-	ari = ari_deserialize_ptr(it, success);
+	blob_t *tmp = blob_deserialize_ptr(it, success);
+	ari = ari_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
+
 	if((ari == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
 	}
 
-	new_ac = ac_deserialize(it, success);
+    cut_enc_refresh(it);
+
+	tmp = blob_deserialize_ptr(it, success);
+	new_ac = ac_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
 	if(*success != AMP_OK)
 	{
 		ari_release(ari, 1);

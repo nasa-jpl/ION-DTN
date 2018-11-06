@@ -41,16 +41,16 @@
 
 #define NM_LOG_FILE "nm_mgr.log"
 
-#define AGENT_ADD_VAR_STR "Add Var"
-#define AGENT_DEL_VAR_STR "Del Var"
-#define AGENT_ADD_RPTT_STR "Add Rptt"
-#define AGENT_DEL_RPTT_STR "Del Rptt"
-#define AGENT_ADD_MAC_STR "Add Mac"
-#define AGENT_DEL_MAC_STR "Del Mac"
-#define AGENT_ADD_SBR_STR "Add Sbr"
-#define AGENT_DEL_SBR_STR "Del Sbr"
-#define AGENT_ADD_TBR_STR "Add Tbr"
-#define AGENT_DEL_TBR_STR "Del Tbr"
+#define AGENT_ADD_VAR_STR "ADD_VAR"
+#define AGENT_DEL_VAR_STR "DEL_VAR"
+#define AGENT_ADD_RPTT_STR "ADD_RPTT"
+#define AGENT_DEL_RPTT_STR "DEL_RPTT"
+#define AGENT_ADD_MAC_STR "ADD_MAC"
+#define AGENT_DEL_MAC_STR "DEL_MAC"
+#define AGENT_ADD_SBR_STR "ADD_SBR"
+#define AGENT_DEL_SBR_STR "DEL_SBR"
+#define AGENT_ADD_TBR_STR "ADD_TBR"
+#define AGENT_DEL_TBR_STR "DEL_TBR"
 
 
 
@@ -67,6 +67,7 @@ int ui_build_control(agent_t* agent);
 void ui_clear_reports(agent_t* agent);
 
 rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
+var_t* ui_create_var_from_parms(tnvc_t parms);
 
 void ui_deregister_agent();
 void ui_event_loop();

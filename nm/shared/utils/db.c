@@ -413,7 +413,7 @@ int vdb_db_init_rpttpl(blob_t *data, db_desc_t desc)
 
 	if((rptt = rpttpl_deserialize_raw(data, &success)) == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rptt","Can't deserialize raw report.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rpttpl","Can't deserialize raw report.", NULL);
 		return AMP_FAIL;
 	}
 
@@ -421,7 +421,7 @@ int vdb_db_init_rpttpl(blob_t *data, db_desc_t desc)
 
 	if(VDB_ADD_RPTT(rptt->id, rptt) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rptt","Can't add new report.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rpttpl","Can't add new report.", NULL);
 		rpttpl_release(rptt, 1);
 		return AMP_FAIL;
 	}

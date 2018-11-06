@@ -224,7 +224,7 @@ int mgr_init(char *argv[])
 		return AMP_FAIL;
 	}
 
-	gMgrDB.metadata = rhht_create(NM_MGR_MAX_META, ari_cb_comp_fn, ari_cb_hash, meta_cb_del, &success);
+	gMgrDB.metadata = rhht_create(NM_MGR_MAX_META, ari_cb_comp_no_parm_fn, ari_cb_hash, meta_cb_del, &success);
 	if(success != RH_OK)
 	{
 		AMP_DEBUG_ERR("mgr_init", "Can't make parmspec ht.", NULL);

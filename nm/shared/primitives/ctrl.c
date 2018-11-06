@@ -54,7 +54,7 @@ int  ctrl_cb_comp_fn(void *i1, void *i2)
 		return -1;
 	}
 
-	if((result = ari_compare(a1, a2)) == 0)
+	if((result = ari_compare(a1, a2, 0)) == 0)
 	{
 		if(ARI_GET_FLAG_PARM(a1->as_reg.flags) ||
     	   ARI_GET_FLAG_PARM(a2->as_reg.flags))

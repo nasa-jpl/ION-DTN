@@ -50,7 +50,7 @@ char* ui_str_from_fp(metadata_t *meta);
 char* ui_str_from_mac(macdef_t *mac);
 char* ui_str_from_op(op_t *op);
 char* ui_str_from_rpt(rpt_t *rpt);
-char* ui_str_from_rpttpl(rpt_t *rpt);
+char* ui_str_from_rpttpl(rpttpl_t *rpt);
 char* ui_str_from_sbr(rule_t *rule);
 char* ui_str_from_tbl(tbl_t *tbl);
 char* ui_str_from_tblt(tblt_t *tblt);

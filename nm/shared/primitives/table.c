@@ -418,7 +418,7 @@ int tblt_cb_comp_fn(void *i1, void *i2)
 	CHKUSR(t1, -1);
 	CHKUSR(t2, -1);
 
-	return ari_compare(t1->id, t2->id);
+	return ari_compare(t1->id, t2->id, 0);
 }
 
 void* tblt_cb_copy_fn(void *item)

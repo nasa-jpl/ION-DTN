@@ -264,6 +264,20 @@ rpttpl_t *ui_create_rpttpl_from_parms(tnvc_t parms)
 }
 
 
+var_t *ui_create_var_from_parms(tnvc_t parms)
+{
+	int success;
+	tnv_t tmp;
+
+
+	ari_t *id = adm_get_parm_obj(&parms, 0, AMP_TYPE_ARI);
+	amp_type_e type = adm_get_parm_uint(&parms, 2, &success);
+
+	tnv_init(&tmp, type);
+	/* We don't need the actual value, just the ID and type. */
+	return var_create_from_tnv(ari_copy_ptr(id), tmp);
+}
+
 /******************************************************************************
  *
  * \par Function Name: ui_deregister_agent
@@ -507,15 +521,46 @@ void ui_postprocess_ctrl(ari_t *id)
 	// TODO: Put locks around these retrieve calls.
 	meta = rhht_retrieve_key(&(gMgrDB.metadata), id);
 
-	CHKVOID(meta);
+	if(meta == NULL)
+	{
+		return;
+	}
 
 	if(strcmp(meta->name, AGENT_ADD_VAR_STR) == 0)
 	{
-
+		var_t *var = ui_create_var_from_parms(id->as_reg.parms);
+		if(var != NULL)
+		{
+			VDB_ADD_VAR(var->id, var);
+			db_persist_var(var);
+		}
+		else
+		{
+			AMP_DEBUG_ERR("ui_postprocess_ctrl","Unable to persist new VAR.", NULL);
+		}
 	}
 	else if(strcmp(meta->name, AGENT_DEL_VAR_STR) == 0)
 	{
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		vecit_t it;
 
+		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+		{
+			ari_t *id = vecit_data(it);
+			var_t *var = VDB_FINDKEY_VAR(id);
+
+			if(var != NULL)
+			{
+				db_forget(&(var->desc), gDB.vars);
+				VDB_DELKEY_VAR(id);
+			}
+			else
+			{
+				char *tmp = ui_str_from_ari(id, NULL, 0);
+				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find var %s ", tmp);
+				SRELEASE(tmp);
+			}
+		}
 	}
 	else if(strcmp(meta->name, AGENT_ADD_RPTT_STR) == 0)
 	{
@@ -525,14 +570,32 @@ void ui_postprocess_ctrl(ari_t *id)
 			VDB_ADD_RPTT(def->id, def);
 			db_persist_rpttpl(def);
 		}
+		else
+		{
+			AMP_DEBUG_ERR("ui_postprocess_ctrl","Unable to persist new RPTT.", NULL);
+		}
 	}
 	else if(strcmp(meta->name, AGENT_DEL_RPTT_STR) == 0)
 	{
-		rpttpl_t *def = VDB_FINDKEY_RPTT(id);
-		if(def != NULL)
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		vecit_t it;
+
+		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 		{
-			db_forget(&(def->desc), gDB.rpttpls);
-			VDB_DELKEY_RPTT(id);
+			ari_t *id = vecit_data(it);
+			rpttpl_t *def = VDB_FINDKEY_RPTT(id);
+
+			if(def != NULL)
+			{
+				db_forget(&(def->desc), gDB.rpttpls);
+				VDB_DELKEY_RPTT(id);
+			}
+			else
+			{
+				char *tmp = ui_str_from_ari(id, NULL, 0);
+				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find def for %s ", tmp);
+				SRELEASE(tmp);
+			}
 		}
 	}
 	else if(strcmp(meta->name, AGENT_ADD_MAC_STR) == 0)

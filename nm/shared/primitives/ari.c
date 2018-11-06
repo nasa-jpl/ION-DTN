@@ -330,14 +330,20 @@ int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 }
 
 
+int ari_cb_comp_no_parm_fn(void *i1, void *i2)
+ {
+ 	CHKUSR(i1, -2);
+ 	CHKUSR(i2, -2);
 
+ 	return ari_compare((ari_t*)i1, (ari_t*)i2, 0);
+ }
 
 int ari_cb_comp_fn(void *i1, void *i2)
 {
 	CHKUSR(i1, -2);
 	CHKUSR(i2, -2);
 
-	return ari_compare((ari_t*)i1, (ari_t*)i2);
+	return ari_compare((ari_t*)i1, (ari_t*)i2, 1);
 }
 
 void* ari_cb_copy_fn(void *item)
@@ -440,7 +446,7 @@ void ari_cb_ht_del(rh_elt_t *elt)
  *  09/18/18  E. Birrane     Update to ARI.
  *****************************************************************************/
 
-int ari_compare(ari_t *ari1, ari_t *ari2)
+int ari_compare(ari_t *ari1, ari_t *ari2, int parms)
 {
     AMP_DEBUG_ENTRY("ari_compare","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
     		         (uaddr) ari1, (uaddr) ari2);
@@ -479,10 +485,17 @@ int ari_compare(ari_t *ari1, ari_t *ari2)
     	 * cases, we do not (and cannot) compare parms, but that does
     	 * not mean there isn't a match.
     	 */
-    	if((tnvc_get_count(&(ari1->as_reg.parms)) > 0) &&
-    	   (tnvc_get_count(&(ari2->as_reg.parms)) > 0))
+    	if(parms)
     	{
-    		return tnvc_compare(&(ari1->as_reg.parms), &(ari2->as_reg.parms));
+    		if((tnvc_get_count(&(ari1->as_reg.parms)) > 0) &&
+    				(tnvc_get_count(&(ari2->as_reg.parms)) > 0))
+    		{
+    			return tnvc_compare(&(ari1->as_reg.parms), &(ari2->as_reg.parms));
+    		}
+    	}
+    	else
+    	{
+    		return 0;
     	}
     }
 

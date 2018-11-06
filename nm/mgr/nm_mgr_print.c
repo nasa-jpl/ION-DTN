@@ -246,7 +246,17 @@ void ui_print_report(rpt_t *rpt)
     ui_printf("\n             AMP DATA REPORT            ");
     ui_printf("\n----------------------------------------");
     ui_printf("\nSent to   : %s", rpt->recipient.name);
-    ui_printf("\nRpt Name  : %s", (rpt_info == NULL) ? "Unknown" : rpt_info->name);
+
+    if(rpt_info == NULL)
+    {
+    	char *rpt_str = ui_str_from_ari(rpt->id, NULL, 0);
+        ui_printf("\nRpt Name  : %s", (rpt_str == NULL) ? "Unknown" : rpt_str);
+        SRELEASE(rpt_str);
+    }
+    else
+    {
+        ui_printf("\nRpt Name  : %s", rpt_info->name);
+    }
     ui_printf("\nTimestamp : %s", ctime(&(rpt->time)));
     ui_printf("\n# Entries : %d", num_entries);
     ui_printf("\n----------------------------------------\n");
@@ -270,9 +280,9 @@ void ui_print_report(rpt_t *rpt)
 
 		for(i = 0; i < num_entries; i++)
 		{
+			ari_t *entry_id = (tpl == NULL) ? NULL : ac_get(&(tpl->contents), i);
+			entry_info = (entry_id == NULL) ? NULL : rhht_retrieve_key(&(gMgrDB.metadata), entry_id);
 			val = tnvc_get(rpt->entries, i);
-			ari_t *entry_id = ac_get(&(tpl->contents), i);
-			entry_info = (tpl == NULL) ? NULL : rhht_retrieve_key(&(gMgrDB.metadata), entry_id);
 
 			if(entry_info == NULL)
 			{
@@ -287,7 +297,7 @@ void ui_print_report(rpt_t *rpt)
 			ui_printf("\n");
 		}
 	}
-	if(rpt->id->type == AMP_TYPE_TBLT)
+	else if(rpt->id->type == AMP_TYPE_TBLT)
 	{
 		int i = 0;
 		vecit_t it;
@@ -315,6 +325,8 @@ void ui_print_report(rpt_t *rpt)
 		{
 			sprintf(name, "%30s", rpt_info->name);
 		}
+
+		val = tnvc_get(rpt->entries, 0);
 
 		ui_print_report_entry(name, val);
 		ui_printf("\n");
@@ -582,10 +594,35 @@ char *ui_str_from_rpt(rpt_t *rpt)
 	return NULL;
 }
 
-char *ui_str_from_rpttpl(rpt_t *rpt)
+char *ui_str_from_rpttpl(rpttpl_t *rpttpl)
 {
-// TODO
-	return NULL;
+	char *result = STAKE(4096);
+	char fmt[1024];
+	char *tmp = NULL;
+	int num = 0;
+	int i = 0;
+
+	tmp = ui_str_from_ari(rpttpl->id, NULL, 0);
+	sprintf(fmt,"%s = [", tmp);
+	SRELEASE(tmp);
+
+	strcat(result, fmt);
+
+	num = ac_get_count(&(rpttpl->contents));
+	for(i = 0; i < num; i++)
+	{
+		ari_t *cur_ari = ac_get(&(rpttpl->contents), i);
+		tmp = ui_str_from_ari(cur_ari, NULL, 0);
+		if(i != 0)
+		{
+			strcat(result,", ");
+		}
+		strcat(result, tmp);
+		SRELEASE(tmp);
+	}
+	strcat(result, "]");
+
+	return result;
 }
 
 char *ui_str_from_sbr(rule_t *rule)
