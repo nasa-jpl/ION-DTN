@@ -123,7 +123,7 @@ ctrl_t *ctrl_create(ari_t *ari);
 ctrl_t *ctrl_db_deserialize(blob_t *data);
 blob_t *ctrl_db_serialize(ctrl_t *ctrl);
 
-ctrl_t* ctrl_deserialize_ptr(CborValue *it, int *success);
+void*   ctrl_deserialize_ptr(CborValue *it, int *success);
 ctrl_t* ctrl_deserialize_raw(blob_t *data, int *success);
 ari_t*  ctrl_get_id(ctrl_t *ctrl);
 

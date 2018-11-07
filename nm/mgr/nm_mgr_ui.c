@@ -278,6 +278,32 @@ var_t *ui_create_var_from_parms(tnvc_t parms)
 	return var_create_from_tnv(ari_copy_ptr(id), tmp);
 }
 
+macdef_t *ui_create_macdef_from_parms(tnvc_t parms)
+{
+	int success;
+	int i, num;
+	ari_t *id = adm_get_parm_obj(&parms, 1, AMP_TYPE_ARI);
+	ac_t *def = adm_get_parm_obj(&parms, 2, AMP_TYPE_AC);
+	macdef_t *result = NULL;
+
+	if((id == NULL) || (def == NULL))
+	{
+		AMP_DEBUG_ERR("ADD_MACRO", "Bad parameters for control", NULL);
+		return result;
+	}
+
+	num = ac_get_count(def);
+	result = macdef_create(num, ari_copy_ptr(id));
+
+	for(i = 0; i < num; i++)
+	{
+		ctrl_t *cur_ctrl = ctrl_create(ac_get(def, i));
+		macdef_append(result, ctrl_copy_ptr(cur_ctrl));
+	}
+
+	return result;
+}
+
 /******************************************************************************
  *
  * \par Function Name: ui_deregister_agent
@@ -600,11 +626,38 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_ADD_MAC_STR) == 0)
 	{
-
+		macdef_t *macro = ui_create_macdef_from_parms(id->as_reg.parms);
+		if(adm_add_macdef(macro) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("ADD_MACRO", "Error adding new macro.", NULL);
+		}
+		else if(db_persist_macdef(macro) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("ADD_MACRO", "Unable to persist new macro.", NULL);
+		}
 	}
 	else if(strcmp(meta->name, AGENT_DEL_MAC_STR) == 0)
 	{
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		vecit_t it;
 
+		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+		{
+			ari_t *id = vecit_data(it);
+			macdef_t *def = VDB_FINDKEY_MACDEF(id);
+
+			if(def != NULL)
+			{
+				db_forget(&(def->desc), gDB.macdefs);
+				VDB_DELKEY_MACDEF(id);
+			}
+			else
+			{
+				char *tmp = ui_str_from_ari(id, NULL, 0);
+				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find def for %s ", tmp);
+				SRELEASE(tmp);
+			}
+		}
 	}
 	else if(strcmp(meta->name, AGENT_ADD_SBR_STR) == 0)
 	{

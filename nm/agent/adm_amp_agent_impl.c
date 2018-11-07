@@ -1275,6 +1275,47 @@ tnv_t* amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_add_macro BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	int success;
+	int i, num;
+	ari_t *id = adm_get_parm_obj(parms, 1, AMP_TYPE_ARI);
+	ac_t *def = adm_get_parm_obj(parms, 2, AMP_TYPE_AC);
+
+	if((id == NULL) || (def == NULL))
+	{
+		AMP_DEBUG_ERR("ADD_MACRO", "Bad parameters for control", NULL);
+		return result;
+	}
+
+	num = ac_get_count(def);
+	macdef_t *macro = macdef_create(num, ari_copy_ptr(id));
+
+	for(i = 0; i < num; i++)
+	{
+		ctrl_t *cur_ctrl = ctrl_create(ac_get(def, i));
+		macdef_append(macro, ctrl_copy_ptr(cur_ctrl));
+	}
+
+	if(adm_add_macdef(macro) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("ADD_MACRO", "Error adding new macro.", NULL);
+		return result;
+	}
+
+	if(VDB_FINDKEY_MACDEF(id) == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_MACRO", "Issue adding macro to RAM DB.", NULL);
+		return result;
+	}
+
+	if(db_persist_macdef(macro) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("ADD_MACRO", "Unable to persist new macro.", NULL);
+		return result;
+	}
+
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_add_macro BODY
@@ -1296,6 +1337,35 @@ tnv_t* amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_del_macro BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	vecit_t it;
+	ac_t *ids = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+
+	if(ids == NULL)
+	{
+		AMP_DEBUG_ERR("DEL_MACRO", "Bad parameters.", NULL);
+		return result;
+	}
+
+	for(it = vecit_first(&(ids->values)); vecit_valid(it); it = vecit_next(it))
+	{
+		ari_t *cur_id = vecit_data(it);
+		macdef_t *def = VDB_FINDKEY_MACDEF(cur_id);
+
+		if(def == NULL)
+		{
+			AMP_DEBUG_WARN("DEL_MACRO", "Cannot find template to be deleted.", NULL);
+		}
+		else
+		{
+			db_forget(&(def->desc), gDB.macdefs);
+			VDB_DELKEY_MACDEF(cur_id);
+		}
+	}
+
+	*status = CTRL_SUCCESS;
+
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_del_macro BODY
@@ -1318,6 +1388,39 @@ tnv_t* amp_agent_ctrl_desc_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_desc_macro BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	vecit_t ac_it;
+	int i = 0;
+	ac_t *ids = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+
+	if(ids == NULL)
+	{
+		AMP_DEBUG_ERR("DESC_MACRO", "Bad parameters.", NULL);
+		return result;
+	}
+
+	tnvc_t *tnvc = tnvc_create(vec_num_entries(ids->values));
+
+	/* For each macro being described. */
+	for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
+	{
+		ari_t *cur_id = vecit_data(ac_it);
+		macdef_t *def = VDB_FINDKEY_MACDEF(cur_id);
+
+		if(def == NULL)
+		{
+			AMP_DEBUG_WARN("DESC_MACRO","Cannot find MACRO for item %d.", i);
+		}
+		else
+		{
+			tnv_t *val = tnv_from_obj(AMP_TYPE_MAC, macdef_copy_ptr(def));
+			tnvc_insert(tnvc, val);
+		}
+	}
+
+	result = tnv_from_obj(AMP_TYPE_TNVC, tnvc);
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_desc_macro BODY
@@ -1486,6 +1589,9 @@ tnv_t* amp_agent_ctrl_reset_counts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	 * |START CUSTOM FUNCTION ctrl_reset_counts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	agent_instr_clear();
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_reset_counts BODY

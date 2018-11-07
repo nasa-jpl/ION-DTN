@@ -45,8 +45,8 @@
 #define AGENT_DEL_VAR_STR "DEL_VAR"
 #define AGENT_ADD_RPTT_STR "ADD_RPTT"
 #define AGENT_DEL_RPTT_STR "DEL_RPTT"
-#define AGENT_ADD_MAC_STR "ADD_MAC"
-#define AGENT_DEL_MAC_STR "DEL_MAC"
+#define AGENT_ADD_MAC_STR "ADD_MACRO"
+#define AGENT_DEL_MAC_STR "DEL_MACRO"
 #define AGENT_ADD_SBR_STR "ADD_SBR"
 #define AGENT_DEL_SBR_STR "DEL_SBR"
 #define AGENT_ADD_TBR_STR "ADD_TBR"
@@ -68,6 +68,8 @@ void ui_clear_reports(agent_t* agent);
 
 rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
 var_t* ui_create_var_from_parms(tnvc_t parms);
+macdef_t *ui_create_macdef_from_parms(tnvc_t parms);
+
 
 void ui_deregister_agent();
 void ui_event_loop();

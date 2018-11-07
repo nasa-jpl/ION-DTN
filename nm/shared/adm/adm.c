@@ -270,10 +270,13 @@ int adm_add_lit(ari_t *id)
 
 int adm_add_macdef(macdef_t *def)
 {
-	int success = 0;
+	int success = AMP_OK;
+	int rh_code = 0;
 
-	if((success = VDB_ADD_MACDEF(def->ari, def)) != AMP_OK)
+	rh_code = VDB_ADD_MACDEF(def->ari, def);
+	if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
 	{
+		success = AMP_FAIL;
 		macdef_release(def, 1);
 	}
 

@@ -243,7 +243,7 @@ int  db_forget(db_desc_t *desc, Object list);
 int  db_persist(blob_t *blob, db_desc_t *desc, Object list);
 
 int  db_persist_ctrl(void* item);
-int  db_persist_macro(void* item);
+int  db_persist_macdef(void* item);
 int  db_persist_rpttpl(void* item);
 int  db_persist_rule(void* item);
 int  db_persist_var(void* item);

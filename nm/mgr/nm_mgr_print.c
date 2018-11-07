@@ -290,7 +290,7 @@ void ui_print_report(rpt_t *rpt)
 			}
 			else
 			{
-				sprintf(name, "%30s", entry_info->name);
+				sprintf(name, "%.30s", entry_info->name);
 			}
 
 			ui_print_report_entry(name, val);
@@ -323,7 +323,7 @@ void ui_print_report(rpt_t *rpt)
 		}
 		else
 		{
-			sprintf(name, "%30s", rpt_info->name);
+			sprintf(name, "%.30s", rpt_info->name);
 		}
 
 		val = tnvc_get(rpt->entries, 0);
@@ -579,8 +579,34 @@ char *ui_str_from_fp(metadata_t *meta)
 
 char *ui_str_from_mac(macdef_t *mac)
 {
-	// TODO
-	return NULL;
+	char *result = STAKE(4096);
+	char fmt[1024];
+	char *tmp = NULL;
+	int i = 0;
+	vecit_t it;
+
+	tmp = ui_str_from_ari(mac->ari, NULL, 0);
+	sprintf(fmt,"%s = [", tmp);
+	SRELEASE(tmp);
+
+	strcat(result, fmt);
+
+	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
+	{
+		ctrl_t *cur_ctrl = (ctrl_t*) vecit_data(it);
+		tmp = ui_str_from_ctrl(cur_ctrl);
+		if(i != 0)
+		{
+			strcat(result,", ");
+		}
+		strcat(result, tmp);
+		SRELEASE(tmp);
+		i++;
+	}
+
+	strcat(result, "]");
+
+	return result;
 }
 
 char *ui_str_from_op(op_t *op)
@@ -785,14 +811,20 @@ char *ui_str_from_tnvc(tnvc_t *tnvc)
 	CHKNULL(str);
 
 	max = tnvc_get_count(tnvc);
+	if(max == 0)
+	{
+		strcat(str,"null");
+		return str;
+	}
+
 	for(i = 0; i < max; i++)
 	{
 		char *val_str = ui_str_from_tnv(tnvc_get(tnvc,i));
-		strcat(str, val_str);
 		if(i != 0)
 		{
 			strcat(str, ", ");
 		}
+		strcat(str, val_str);
 		SRELEASE(val_str);
 	}
 

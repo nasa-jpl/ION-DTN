@@ -279,12 +279,19 @@ blob_t *ctrl_db_serialize(ctrl_t *ctrl)
 
 
 
-ctrl_t*    ctrl_deserialize_ptr(CborValue *it, int *success)
+void*    ctrl_deserialize_ptr(CborValue *it, int *success)
 {
 	ctrl_t *result = NULL;
-	ari_t *ari = ari_deserialize_ptr(it, success);
 
-	CHKNULL(ari);
+	blob_t *blob = blob_deserialize_ptr(it, success);
+
+	ari_t *ari = ari_deserialize_raw(blob, success);
+
+	blob_release(blob, 1);
+	if((ari == NULL) || (*success != AMP_OK))
+	{
+		return NULL;
+	}
 
 	result = ctrl_create(ari);
 	ari_release(ari, 1);
@@ -328,24 +335,42 @@ CborError ctrl_serialize(CborEncoder *encoder, void *item)
 	ctrl_t *ctrl = (ctrl_t *) item;
 	CborError err = CborErrorIO;
 	ari_t *ctrl_id = NULL;
-	ari_t *tmp_ari = NULL;
+	tnvc_t parms;
 
-	CHKUSR(encoder, err);
-	CHKUSR(ctrl, err);
-
-
-	ctrl_id = ctrl_get_id(ctrl);
-	CHKUSR(ctrl_id, err);
-
-	tmp_ari = ari_copy_ptr(ctrl_id);
-	CHKUSR(tmp_ari, err);
-
-	if(ari_add_parm_set(tmp_ari, ctrl->parms) == AMP_OK)
+	if((encoder == NULL) || (ctrl == NULL))
 	{
-		err = ari_serialize(encoder, tmp_ari);
+		AMP_DEBUG_ERR("ctrl_serialize","Bad Parms", NULL);
+		return err;
 	}
 
-	ari_release(tmp_ari, 1);
+	if((ctrl_id = ctrl_get_id(ctrl)) == NULL)
+	{
+		return err;
+	}
+
+	/* If the control has parms, swap them in */
+	if(ctrl->parms != NULL)
+	{
+		parms = ctrl_id->as_reg.parms;
+		ctrl_id->as_reg.parms = *(ctrl->parms);
+	}
+
+	blob_t *blob = ari_serialize_wrapper(ctrl_id);
+	if(blob != NULL)
+	{
+		err = blob_serialize(encoder, blob);
+		blob_release(blob, 1);
+	}
+	else
+	{
+		AMP_DEBUG_ERR("ctrl_serialize","Error serializing control.", NULL);
+	}
+
+	if(ctrl->parms != NULL)
+	{
+		ctrl_id->as_reg.parms = parms;
+	}
+
 	return err;
 }
 
@@ -568,68 +593,37 @@ macdef_t  macdef_deserialize(CborValue *it, int *success)
 {
 	macdef_t result;
 	ari_t *new_ari = NULL;
-	int i;
-
 	CborError err = CborNoError;
-	CborValue array_it;
-	size_t array_len = 0;
 
 
-	AMP_DEBUG_ENTRY("macdef_deserialize_ptr","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) it, (uaddr) success);
+	*success = AMP_FAIL;
 
-	*success = AMP_OK;
+	blob_t *tmp = blob_deserialize_ptr(it, success);
+	new_ari = ari_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
 
-	if((!cbor_value_is_array(it)) ||
-	   ((err = cbor_value_get_array_length(it, &array_len)) != CborNoError) ||
-	   (array_len <= 1))
+	if((new_ari == NULL) || (*success != AMP_OK))
 	{
-		AMP_DEBUG_ERR("macdef_deserialize_ptr","CBOR Array Error %d with length %ld", err, array_len);
-		*success = AMP_FAIL;
 		return result;
 	}
 
-	if((err = cbor_value_enter_container(it, &array_it)) != CborNoError)
-	{
-		AMP_DEBUG_ERR("macdef_deserialize_ptr","Unable to enter array. Error %d.", err);
-		*success = AMP_FAIL;
-		return result;
-	}
-
-	if((new_ari = ari_deserialize_ptr(it, success)) == NULL)
-	{
-		AMP_DEBUG_ERR("macdef_deserialize_ptr","Unable to get Macro ARI.", NULL);
-		*success = AMP_FAIL;
-		cbor_value_leave_container(it, &array_it);
-		return result;
-	}
+    cut_enc_refresh(it);
 
 	result.ari = new_ari;
-	result.ctrls = vec_create(array_len, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, VEC_FLAG_AS_STACK, success);
+	result.ctrls = vec_create(0, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, VEC_FLAG_AS_STACK, success);
 
-	if(*success != VEC_OK)
-	{
-		AMP_DEBUG_ERR("macdef_deserialize_ptr","Unable to get Macro ARI.", NULL);
-		ari_release(new_ari, 1);
-		cbor_value_leave_container(it, &array_it);
-		*success = AMP_FAIL;
-		return result;
-	}
+    err = cut_deserialize_vector(&(result.ctrls), it, ctrl_deserialize_ptr);
+    if(err != CborNoError)
+    {
+    	AMP_DEBUG_ERR("macdef_deserialize", "Error deserializing ctrls: %d", err);
+    	macdef_release(&result, 0);
+    }
+    else
+    {
+    	*success = AMP_OK;
+    }
 
-	for(i = 0; i < array_len; i++)
-	{
-		ctrl_t* ctrl = ctrl_deserialize_ptr(&array_it, success);
-		if((*success = macdef_append(&result, ctrl)) != AMP_OK)
-		{
-			AMP_DEBUG_ERR("macdef_deserialize_ptr","Unable to create mac with %d ctrls.", array_len);
-			cbor_value_leave_container(it, &array_it);
-			*success = AMP_FAIL;
-			macdef_release(&result, 0);
-			return result;
-		}
-	}
-
-	cbor_value_leave_container(it, &array_it);
-	return result;
+    return result;
 }
 
 macdef_t*  macdef_deserialize_ptr(CborValue *it, int *success)
@@ -697,37 +691,26 @@ CborError macdef_serialize(CborEncoder *encoder, void *item)
 {
 	CborError err;
 	blob_t *result;
-	int success;
-	vec_idx_t max;
-	vecit_t it;
-	CborEncoder array_enc;
 	macdef_t *mac = (macdef_t*) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(mac, CborErrorIO);
-
-
-	err = ari_serialize(encoder, mac->ari);
-
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
-
-	max = vec_num_entries(mac->ctrls);
-
-	err = cbor_encoder_create_array(encoder, &array_enc, max);
-	CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
-
-
-	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
+	if((encoder == NULL) || (mac == NULL))
 	{
-		ctrl_t *cur_ctrl = vecit_data(it);
-		result = ctrl_serialize_wrapper(cur_ctrl);
-		err = blob_serialize(&array_enc, result);
-		blob_release(result, 1);
-		CHKUSR(((err != CborNoError) && (err != CborErrorOutOfMemory)), err);
+		return CborErrorIO;
 	}
 
-	err = cbor_encoder_close_container(encoder, &array_enc);
+	/* Step 1: Encode the ARI. */
+	result = ari_serialize_wrapper(mac->ari);
+	err = blob_serialize(encoder, result);
+	blob_release(result, 1);
 
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("macdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 2: Encode the contents. */
+	err = cut_serialize_vector(encoder, &(mac->ctrls), ctrl_serialize);
 	return err;
 }
 
