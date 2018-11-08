@@ -579,7 +579,7 @@ int ui_input_ari_flags(uint8_t *flag)
 
 #ifdef USE_NCURSES
 	/* Step 1: Figure out the AMP type. */
-    type = ui_input_ari_type();
+    type = ui_input_ari_type(TYPE_MASK_ALL);
 	ARI_SET_FLAG_TYPE(*flag, type);
 
     if(type != AMP_TYPE_LIT)
@@ -781,6 +781,7 @@ int ui_input_ari_type(uvast mask)
     {
        select = AMP_TYPE_UNK;
     }
+    return select;
 #else
 	for(i = 0; i <= AMP_TYPE_UNK; i++)
 	{
@@ -807,10 +808,10 @@ int ui_input_ari_type(uvast mask)
 		}
 		select = ui_input_int("Select ARI type (or UNK to cancel): ");
 	}
-
+    
+	return types[select];
 #endif
 
-	return types[select];
 }
 
 

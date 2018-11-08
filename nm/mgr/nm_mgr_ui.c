@@ -430,14 +430,14 @@ void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
 
    type = ui_input_ari_type(mask);
    
-   /* Unknown type means cancel. WThis selects ARIs, so no numerics. */
+   /* Unknown type means cancel. This selects ARIs, so no numerics. */
    if((type == AMP_TYPE_UNK) || type_is_numeric(type))
    {
 	   return;
    }
 
    /* We don't select literals from a list. We enter them as LIT ARIs.*/
-   if(type == AMP_TYPE_LIT)
+   if(type == AMP_TYPE_LIT && result != NULL)
    {
 	   *result = ui_input_ari_lit(NULL);
    }
@@ -456,7 +456,7 @@ void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
     num_objs = vec_num_entries(col->results);
     if (num_objs == 0)
     {
-       // TODO: Return message?
+       ui_prompt("No matching options.", "Continue", NULL, NULL);
        metacol_release(col, 1);
        return;
     }
@@ -1695,27 +1695,39 @@ int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC)
    PANEL *my_panel;
    int running = 1;
    int rtv = 0;
-   int c;
-
-   // Calculate Dialog Width
-   int maxChoiceLen = MAX(strlen(choiceA), strlen(choiceB));
+   int c, maxChoiceLen;
    int ncols = 8;
-   if(choiceC != NULL)
+
+   // Build first menu item
+   my_items[0] = new_item(choiceA, NULL);
+   
+   // Calculate Dialog Width
+   if (choiceB == NULL)
    {
-      maxChoiceLen = MAX(maxChoiceLen, strlen(choiceC));
-      ncols += maxChoiceLen + 4;
+      // This is a single-choice dialog
+      maxChoiceLen = strlen(choiceA);
+      my_items[1] = NULL;
    }
+   else
+   {
+      maxChoiceLen = MAX(strlen(choiceA), strlen(choiceB));
+      my_items[1] = new_item(choiceB, NULL);
+
+      if(choiceC != NULL)
+      {
+         maxChoiceLen = MAX(maxChoiceLen, strlen(choiceC));
+         ncols += maxChoiceLen + 4;
+         my_items[2] = new_item(choiceC, NULL);
+         my_items[3] = NULL;         
+      }
+      else
+      {
+         my_items[2] = NULL;
+      }
+   }
+
    ncols += maxChoiceLen*2;
    ncols = MAX(ncols, strlen(title)+4);
-
-   my_items[0] = new_item(choiceA, NULL);
-   my_items[1] = new_item(choiceB, NULL);
-   if (choiceC == NULL) {
-      my_items[2] = NULL;
-   } else {
-      my_items[2] = new_item(choiceC, NULL);
-      my_items[3] = NULL;
-   }
 
    my_menu = new_menu(my_items);
 
@@ -2538,22 +2550,30 @@ int ui_menu_select(char* title, const char* const* choices, const char* const* d
 
 int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC)
 {
-   int rtv;
+   int rtv, cnt = 0;
    ui_display_init(title);
-   if (choiceA != NULL)
+
+   if (choiceA != NULL && choiceB==NULL && choiceC == NULL)
    {
-      printf("0. %s\n", choiceA);
+      printf("\t %s\n", choiceA);
    }
-   if (choiceB != NULL)
+   else
    {
-      printf("1. %s\n", choiceB);
+      if (choiceA != NULL)
+      {
+         printf("0. %s\n", choiceA);
+      }
+      if (choiceB != NULL)
+      {
+         printf("1. %s\n", choiceB);
+      }
+      if (choiceC != NULL)
+      {
+         printf("2. %s\n", choiceC);
+      }
+      printf("\n");
+      rtv = ui_input_uint("Select by #:");
    }
-   if (choiceC != NULL)
-   {
-      printf("2. %s\n", choiceC);
-   }
-   printf("\n");
-   rtv = ui_input_uint("Select by #:");
    ui_display_exec();
    return rtv;
 }
