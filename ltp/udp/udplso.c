@@ -161,6 +161,28 @@ nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr),
 	}
 }
 
+static unsigned long	getUsecTimestamp()
+{
+	struct timespec	tms;
+	unsigned long	microseconds;
+
+	if (clock_gettime(CLOCK_REALTIME, &tms))
+	{
+		return 0;
+	}
+
+	microseconds = (tms.tv_sec * 1000000) + (tms.tv_nsec / 1000);
+
+	/*	Round to nearest microsecond.				*/
+
+	if (tms.tv_nsec % 1000 >= 500)
+	{
+		microseconds++;
+	}
+
+	return microseconds;
+}
+
 #if defined (ION_LWT)
 int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -193,11 +215,20 @@ int	main(int argc, char *argv[])
 	int			segmentLength;
 	char			*segment;
 	int			bytesSent;
-	float			sleepSecPerBit = 0;
-	float			sleep_secs;
-	unsigned int		usecs;
 	int			fd;
 	char			quit = '\0';
+
+	/*	Rate control calculation is based on treating elapsed
+	 *	time as a currency.					*/
+
+	float			timeCostPerBit;	/*	In seconds.	*/
+	unsigned long		startTimestamp;	/*	Billing cycle.	*/
+	unsigned int		totalPaid;	/*	Since last send.*/
+	unsigned int		currentPaid;	/*	Sending seg.	*/
+	float			totalCostSecs;	/*	For this seg.	*/
+	unsigned int		totalCost;	/*	Microseconds.	*/
+	unsigned int		balanceDue;	/*	Until next seg.	*/
+	unsigned int		prevPaid = 0;	/*	Prior snooze.	*/
 
 	if( txbps != 0 && remoteEngineId == 0 )
 	{
@@ -331,9 +362,14 @@ int	main(int argc, char *argv[])
 
 	if (txbps)
 	{
-		sleepSecPerBit = 1.0 / txbps;
+		timeCostPerBit = 1.0 / txbps;
+	}
+	else
+	{
+		timeCostPerBit = 0.0;
 	}
 
+	startTimestamp = getUsecTimestamp();
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
@@ -365,15 +401,42 @@ int	main(int argc, char *argv[])
 
 			if (txbps)
 			{
-				sleep_secs = sleepSecPerBit
-					* ((IPHDR_SIZE + segmentLength) * 8);
-				usecs = sleep_secs * 1000000.0;
-				if (usecs == 0)
+				totalPaid = getUsecTimestamp() - startTimestamp;
+
+				/*	Start clock for next bill.	*/
+
+				startTimestamp = getUsecTimestamp();
+
+				/*	Compute time balance due.	*/
+
+				if (totalPaid >= prevPaid)
 				{
-					usecs = 1;
+					/*	This should always be
+					 *	true provided that
+					 *	clock_gettime() is
+					 *	supported by the O/S.	*/
+
+					currentPaid = totalPaid - prevPaid;
+				}
+				else
+				{
+					currentPaid = 0;
 				}
 
-				microsnooze(usecs);
+				totalCostSecs = timeCostPerBit
+					* ((IPHDR_SIZE + segmentLength) * 8);
+				totalCost = totalCostSecs * 1000000.0;
+				if (totalCost > currentPaid)
+				{
+					balanceDue = totalCost - currentPaid;
+				}
+				else
+				{
+					balanceDue = 1;
+				}
+
+				microsnooze(balanceDue);
+				prevPaid = balanceDue;
 			}
 		}
 
@@ -412,3 +475,4 @@ int	main(int argc, char *argv[])
 	ionDetach();
 	return 0;
 }
+
