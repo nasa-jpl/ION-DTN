@@ -497,10 +497,34 @@ void    ctrldef_release(ctrldef_t *def, int destroy)
 
 int macdef_append(macdef_t *mac, ctrl_t *ctrl)
 {
-	CHKUSR(mac, AMP_FAIL);
-	CHKUSR(ctrl, AMP_FAIL);
+	if((mac == NULL) || (ctrl == NULL))
+	{
+		return AMP_FAIL;
+	}
 
 	return vec_push(&(mac->ctrls), ctrl);
+}
+
+int macdef_append_ac(macdef_t *mac, ac_t *ac)
+{
+	int i = 0;
+	int num = 0;
+	int success = AMP_FAIL;
+
+	if((mac == NULL) || (ac == NULL))
+	{
+		return success;
+	}
+
+	num = ac_get_count(ac);
+
+	for(i = 0; i < num; i++)
+	{
+		ctrl_t *cur_ctrl = ctrl_create(ac_get(ac, i));
+		macdef_append(mac, cur_ctrl);
+	}
+
+	return success;
 }
 
 void    macdef_cb_del_fn(void *item)
@@ -586,6 +610,20 @@ macdef_t*  macdef_create(size_t num, ari_t *ari)
 	}
 
 	return result;
+}
+
+int macdef_init(macdef_t *mac, size_t num, ari_t *ari)
+{
+	int success;
+
+	if((mac == NULL) || (ari == NULL))
+	{
+		return AMP_FAIL;
+	}
+	memset(mac, 0, sizeof(macdef_t));
+	mac->ari = ari;
+	mac->ctrls = vec_create(num, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, VEC_FLAG_AS_STACK, &success);
+	return success;
 }
 
 

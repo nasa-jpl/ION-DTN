@@ -304,6 +304,60 @@ macdef_t *ui_create_macdef_from_parms(tnvc_t parms)
 	return result;
 }
 
+rule_t *ui_create_tbr_from_parms(tnvc_t parms)
+{
+	tbr_def_t def;
+	macdef_t mac;
+	rule_t *tbr = NULL;
+	int success;
+
+	ari_t *id = adm_get_parm_obj(&parms, 0, AMP_TYPE_ARI);
+	uvast start = adm_get_parm_uvast(&parms, 1, &success);
+	def.period = adm_get_parm_uvast(&parms, 2, &success);
+	def.max_fire = adm_get_parm_uvast(&parms, 3, &success);
+	ac_t *action = adm_get_parm_obj(&parms, 4, AMP_TYPE_AC);
+
+	macdef_init(&mac, ac_get_count(action), id);
+	macdef_append_ac(&mac, action);
+
+	if((tbr = rule_create_tbr(*id, start, def, mac)) == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
+		return tbr;
+	}
+
+	return tbr;
+}
+
+rule_t *ui_create_sbr_from_parms(tnvc_t parms)
+{
+	sbr_def_t def;
+	macdef_t mac;
+	rule_t *sbr = NULL;
+	int success;
+
+	ari_t *id = adm_get_parm_obj(&parms, 0, AMP_TYPE_ARI);
+	uvast start = adm_get_parm_uvast(&parms, 1, &success);
+	expr_t *state = adm_get_parm_obj(&parms, 2, AMP_TYPE_EXPR);
+	def.expr = *state;
+	SRELEASE(state);
+	def.max_eval = 0;
+	def.max_fire = adm_get_parm_uvast(&parms, 3, &success);
+	ac_t *action = adm_get_parm_obj(&parms, 4, AMP_TYPE_AC);
+
+	macdef_init(&mac, ac_get_count(action), id);
+	macdef_append_ac(&mac, action);
+
+	if((sbr = rule_create_sbr(*id, start, def, mac)) == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
+		return sbr;
+	}
+
+	return sbr;
+}
+
+
 /******************************************************************************
  *
  * \par Function Name: ui_deregister_agent
@@ -661,19 +715,57 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_ADD_SBR_STR) == 0)
 	{
+		rule_t *sbr = ui_create_sbr_from_parms(id->as_reg.parms);
 
-	}
-	else if(strcmp(meta->name, AGENT_DEL_SBR_STR) == 0)
-	{
-
+		int rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
+		if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+		{
+			AMP_DEBUG_ERR("ADD_SBR", "Unable to remember SBR.", NULL);
+			rule_release(sbr, 1);
+		}
+		else if(db_persist_rule(sbr) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("ADD_TBR", "Unable to persist new rule.", NULL);
+		}
 	}
 	else if(strcmp(meta->name, AGENT_ADD_TBR_STR) == 0)
 	{
+		rule_t *tbr = ui_create_tbr_from_parms(id->as_reg.parms);
 
+		int rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
+		if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+		{
+			AMP_DEBUG_ERR("ADD_TBR", "Unable to remember TBR.", NULL);
+			rule_release(tbr, 1);
+		}
+		else if(db_persist_rule(tbr) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("ADD_TBR", "Unable to persist new rule.", NULL);
+		}
 	}
-	else if(strcmp(meta->name, AGENT_DEL_TBR_STR) == 0)
+	else if( (strcmp(meta->name, AGENT_DEL_TBR_STR) == 0) ||
+			 (strcmp(meta->name, AGENT_DEL_SBR_STR) == 0))
 	{
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		vecit_t it;
 
+		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+		{
+			ari_t *id = vecit_data(it);
+			rule_t *def = VDB_FINDKEY_RULE(id);
+
+			if(def != NULL)
+			{
+				db_forget(&(def->desc), gDB.rules);
+				VDB_DELKEY_RULE(id);
+			}
+			else
+			{
+				char *tmp = ui_str_from_ari(id, NULL, 0);
+				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find def for %s ", tmp);
+				SRELEASE(tmp);
+			}
+		}
 	}
 
 }
