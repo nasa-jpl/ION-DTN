@@ -313,7 +313,7 @@ AC_ARG_WITH([mysql],
 [])
 if test "x$mysql" = "xyes" ; then
 	echo "Build against libmysql... yes"
-	CFLAGS="$CFLAGS -DUSE_MYSQL"
+	CFLAGS="$CFLAGS -DHAVE_MYSQL"
 else
 	echo "Build against libmysql... no"
 fi
