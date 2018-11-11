@@ -2739,14 +2739,14 @@ extern int	rfx_remove_alarm(PsmAddress alarmAddr)
 
 	/*	Now remove the alarm.					*/
 
+	event.time = alarm->nextTimeout;
+	event.type = IonAlarmTimeout;
+	event.ref = alarmAddr;		/*	Needed for search.	*/
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	sm_SemEnd(alarm->semaphore);
 	microsnooze(50000);
 	sm_SemDelete(alarm->semaphore);
-	alarm->semaphore = SM_SEM_NONE;
-	event.time = alarm->nextTimeout;
-	event.type = IonAlarmTimeout;
-	event.ref = alarmAddr;
+	psm_free(ionwm, alarmAddr);	/*	Alarm no longer exists.	*/
 	sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events, &event,
 			rfx_erase_data, NULL);
 	sdr_exit_xn(sdr);
