@@ -271,8 +271,10 @@ void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
 		return;
 	}
 
-	rule->ticks_left--;
-
+	if(rule->ticks_left > 0)
+	{
+		rule->ticks_left--;
+	}
 
 	/* If rule is inactive or still waiting, skip it. */
 	if((rule->ticks_left <= 0) && (RULE_IS_ACTIVE(rule->flags)))
@@ -365,6 +367,8 @@ int rda_process_rules()
     	if((rule->num_eval >= rule->def.as_sbr.max_eval) ||
     	   (rule->num_fire >= rule->def.as_sbr.max_fire))
     	{
+    		AMP_DEBUG_ERR("EJB","FOrgetting SBR %d %d %d %d", rule->num_eval, rule->def.as_sbr.max_eval,
+		rule->num_fire, rule->def.as_sbr.max_fire);
     		/* Remove the rule. */
     		db_forget(&(rule->desc), gDB.rules);
     		VDB_DELKEY_RULE(&(rule->id));

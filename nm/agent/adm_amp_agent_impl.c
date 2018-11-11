@@ -80,11 +80,16 @@ int adm_agent_op_prep(uint8_t num, tnv_t **lval, tnv_t **rval, vector_t *stack)
 
 	if(num > 0)
 	{
+		*rval = vec_pop(stack, &success);
+	}
+	else
+	{
 		*lval = vec_pop(stack, &success);
 	}
+
 	if((success == VEC_OK) && (num > 1))
 	{
-		*rval = vec_pop(stack, &success);
+		*lval = vec_pop(stack, &success);
 	}
 
 	return success;

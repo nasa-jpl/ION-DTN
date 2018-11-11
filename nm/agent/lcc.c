@@ -43,12 +43,20 @@ int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms)
 
 	for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 	{
-		ctrl_t *ctrl = (ctrl_t*) vecit_data(it);
+		ari_t *id = (ari_t *) vecit_data(it);
+		ctrl_t *ctrl = ctrl_create(id);
 
-		if(lcc_run_ctrl(ctrl, parent_parms) != AMP_OK)
+		if(ctrl != NULL)
 		{
-			AMP_DEBUG_ERR("lcc_run_ac","Error running control %d", vecit_idx(it));
-			result = AMP_FAIL;
+			success = lcc_run_ctrl(ctrl, parent_parms);
+			ctrl_release(ctrl, 1);
+
+			if(success != AMP_OK)
+			{
+				AMP_DEBUG_ERR("lcc_run_ac","Error running control %d", vecit_idx(it));
+				result = AMP_FAIL;
+				break;
+			}
 		}
 	}
 

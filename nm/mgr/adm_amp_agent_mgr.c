@@ -648,7 +648,7 @@ void amp_agent_init_ctrl()
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_TBR);
 	adm_add_ctrldef_ari(id, 6, NULL);
 	meta = meta_add_ctrl(id, ADM_ENUM_AMP_AGENT, "add_tbr", "This control configures a new time-based rule(TBR) definition on the Agent.");
-
+ 
 	meta_add_parm(meta, "id", AMP_TYPE_ARI);
 	meta_add_parm(meta, "start", AMP_TYPE_TV);
 	meta_add_parm(meta, "period", AMP_TYPE_TV);
@@ -659,12 +659,13 @@ void amp_agent_init_ctrl()
 	/* ADD_SBR */
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_SBR);
-	adm_add_ctrldef_ari(id, 6, NULL);
+	adm_add_ctrldef_ari(id, 7, NULL);
 	meta = meta_add_ctrl(id, ADM_ENUM_AMP_AGENT, "add_sbr", "This control configures a new state-based rule(SBR) definition on the Agent.");
 
 	meta_add_parm(meta, "id", AMP_TYPE_ARI);
 	meta_add_parm(meta, "start", AMP_TYPE_TV);
 	meta_add_parm(meta, "state", AMP_TYPE_EXPR);
+	meta_add_parm(meta, "max_eval", AMP_TYPE_UVAST);
 	meta_add_parm(meta, "count", AMP_TYPE_UVAST);
 	meta_add_parm(meta, "action", AMP_TYPE_AC);
 	meta_add_parm(meta, "description", AMP_TYPE_STR);
@@ -710,8 +711,8 @@ void amp_agent_init_mac()
 
 	/* USER_DESC */
 	def = macdef_create(2, adm_build_ari(AMP_TYPE_MAC, 1, g_amp_agent_idx[ADM_MAC_IDX], AMP_AGENT_MAC_USER_DESC));
-	adm_add_macdef_ctrl(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_CTRL, g_amp_agent_idx[ADM_MAC_IDX], AMP_AGENT_CTRL_DESC_RPTT, tnv_from_map(AMP_TYPE_UINT, 0)));
-	adm_add_macdef_ctrl(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_CTRL, g_amp_agent_idx[ADM_MAC_IDX], AMP_AGENT_CTRL_DESC_RULE, tnv_from_map(AMP_TYPE_UINT, 0)));
+	adm_add_macdef_ctrl(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_CTRL, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_RPTT, tnv_from_map(AMP_TYPE_UINT, 0)));
+	adm_add_macdef_ctrl(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_CTRL, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_RULE, tnv_from_map(AMP_TYPE_UINT, 1)));
 	adm_add_macdef(def);
 	meta_add_macro(def->ari, ADM_ENUM_AMP_AGENT, "user_desc", "This macro lists all of the user defined data.");
 }

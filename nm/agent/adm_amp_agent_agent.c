@@ -182,7 +182,7 @@ void amp_agent_init_ctrl()
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DEL_MACRO, 1, amp_agent_ctrl_del_macro);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_MACRO, 1, amp_agent_ctrl_desc_macro);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_TBR, 6, amp_agent_ctrl_add_tbr);
-	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_SBR, 6, amp_agent_ctrl_add_sbr);
+	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_SBR, 7, amp_agent_ctrl_add_sbr);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DEL_RULE, 1, amp_agent_ctrl_del_rule);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_RULE, 1, amp_agent_ctrl_desc_rule);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_STORE_VAR, 2, amp_agent_ctrl_store_var);
