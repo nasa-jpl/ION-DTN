@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-10  AUTO             Auto-generated header file 
+ **  2018-11-11  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 

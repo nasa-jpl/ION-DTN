@@ -655,7 +655,7 @@ char *ui_str_from_sbr(rule_t *sbr)
 {
 	char *str = STAKE(1024);
 	char *id_str = ui_str_from_ari(&(sbr->id), NULL, 0);
-	char *ac_str = ui_str_from_mac(&(sbr->action));
+	char *ac_str = ui_str_from_ac(&(sbr->action));
 	char *expr_str = ui_str_from_expr(&(sbr->def.as_sbr.expr));
 
 	snprintf(str,
@@ -752,7 +752,7 @@ char *ui_str_from_tbr(rule_t *tbr)
 {
 	char *str = STAKE(1024);
 	char *id_str = ui_str_from_ari(&(tbr->id), NULL, 0);
-	char *ac_str = ui_str_from_mac(&(tbr->action));
+	char *ac_str = ui_str_from_ac(&(tbr->action));
 	snprintf(str,
 			 1024,
 			 "TBR: ID=%s, S=%ld, P=%ld, C=%ld, A=%s\n",

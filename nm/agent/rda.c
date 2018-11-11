@@ -324,7 +324,7 @@ int rda_process_rules()
 
 		gAgentInstr.num_tbrs_run++;
 
-    	lcc_run_macro(&(rule->action), &(rule->id.as_reg.parms));
+    	lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
 
 		rule->num_eval++;
 		rule->num_fire++;
@@ -357,7 +357,7 @@ int rda_process_rules()
     	{
         	gAgentInstr.num_sbrs_run++;
 
-    		lcc_run_macro(&(rule->action), &(rule->id.as_reg.parms));
+    		lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
 
         	rule->num_fire++;
     	}

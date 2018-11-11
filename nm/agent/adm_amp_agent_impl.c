@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-10  AUTO             Auto-generated c file 
+ **  2018-11-11  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -1773,18 +1773,15 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	uvast start = adm_get_parm_uvast(parms, 1, &success);
 	def.period = adm_get_parm_uvast(parms, 2, &success);
 	def.max_fire = adm_get_parm_uvast(parms, 3, &success);
-	ac_t *action = ac_copy_ptr(adm_get_parm_obj(parms, 4, AMP_TYPE_AC));
+	ac_t action = ac_copy(adm_get_parm_obj(parms, 4, AMP_TYPE_AC));
 
-	if((id == NULL) || (action == NULL))
+	if(id == NULL)
 	{
 		AMP_DEBUG_ERR("ADD_TBR", "Bad parameters for control", NULL);
 		return result;
 	}
 
-	macdef_init(&mac, ac_get_count(action), ari_copy_ptr(id));
-	macdef_append_ac(&mac, action);
-
-	if((tbr = rule_create_tbr(*id, start, def, mac)) == NULL)
+	if((tbr = rule_create_tbr(*id, start, def, action)) == NULL)
 	{
 		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
 		return result;
@@ -1829,7 +1826,6 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 */
 
 	sbr_def_t def;
-	macdef_t mac;
 	rule_t *sbr = NULL;
 	int success;
 	int rh_code;
@@ -1837,16 +1833,18 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	ari_t *id = adm_get_parm_obj(parms, 0, AMP_TYPE_ARI);
 	uvast start = adm_get_parm_uvast(parms, 1, &success);
 	expr_t *state = adm_get_parm_obj(parms, 2, AMP_TYPE_EXPR);
-	def.expr = *state;
-	SRELEASE(state);
-	def.max_eval = 0;
-	def.max_fire = adm_get_parm_uvast(parms, 3, &success);
-	ac_t *action = adm_get_parm_obj(parms, 4, AMP_TYPE_AC);
+	def.expr = expr_copy(*state);
+	def.max_eval = adm_get_parm_uvast(parms, 3, &success);
+	def.max_fire = adm_get_parm_uvast(parms, 4, &success);
+	ac_t action = ac_copy(adm_get_parm_obj(parms, 5, AMP_TYPE_AC));
 
-	macdef_init(&mac, ac_get_count(action), id);
-	macdef_append_ac(&mac, action);
+	if(id == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_SBR", "Bad parameters for control", NULL);
+		return result;
+	}
 
-	if((sbr = rule_create_sbr(*id, start, def, mac)) == NULL)
+	if((sbr = rule_create_sbr(*id, start, def, action)) == NULL)
 	{
 		AMP_DEBUG_ERR("ADD_SBR", "Unable to create SBR structure.", NULL);
 		return result;
@@ -1951,7 +1949,7 @@ tnv_t *amp_agent_ctrl_desc_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	tnvc_t *tnvc = tnvc_create(vec_num_entries(ids->values));
 
-	/* For each macro being described. */
+	/* For each rule being described. */
 	for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
 	{
 		ari_t *cur_id = vecit_data(ac_it);

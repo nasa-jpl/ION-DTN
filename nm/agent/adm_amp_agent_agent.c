@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-10  AUTO             Auto-generated c file 
+ **  2018-11-11  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -185,7 +185,7 @@ void amp_agent_init_ctrl()
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_SBR, 6, amp_agent_ctrl_add_sbr);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DEL_RULE, 1, amp_agent_ctrl_del_rule);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_RULE, 1, amp_agent_ctrl_desc_rule);
-	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_STORE_VAR, 1, amp_agent_ctrl_store_var);
+	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_STORE_VAR, 2, amp_agent_ctrl_store_var);
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_RESET_COUNTS, 0, amp_agent_ctrl_reset_counts);
 }
 

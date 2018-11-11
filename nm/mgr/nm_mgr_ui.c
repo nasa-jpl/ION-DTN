@@ -307,7 +307,6 @@ macdef_t *ui_create_macdef_from_parms(tnvc_t parms)
 rule_t *ui_create_tbr_from_parms(tnvc_t parms)
 {
 	tbr_def_t def;
-	macdef_t mac;
 	rule_t *tbr = NULL;
 	int success;
 
@@ -315,12 +314,9 @@ rule_t *ui_create_tbr_from_parms(tnvc_t parms)
 	uvast start = adm_get_parm_uvast(&parms, 1, &success);
 	def.period = adm_get_parm_uvast(&parms, 2, &success);
 	def.max_fire = adm_get_parm_uvast(&parms, 3, &success);
-	ac_t *action = adm_get_parm_obj(&parms, 4, AMP_TYPE_AC);
+	ac_t action = ac_copy(adm_get_parm_obj(&parms, 4, AMP_TYPE_AC));
 
-	macdef_init(&mac, ac_get_count(action), id);
-	macdef_append_ac(&mac, action);
-
-	if((tbr = rule_create_tbr(*id, start, def, mac)) == NULL)
+	if((tbr = rule_create_tbr(*id, start, def, action)) == NULL)
 	{
 		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
 		return tbr;
@@ -332,7 +328,6 @@ rule_t *ui_create_tbr_from_parms(tnvc_t parms)
 rule_t *ui_create_sbr_from_parms(tnvc_t parms)
 {
 	sbr_def_t def;
-	macdef_t mac;
 	rule_t *sbr = NULL;
 	int success;
 
@@ -341,14 +336,11 @@ rule_t *ui_create_sbr_from_parms(tnvc_t parms)
 	expr_t *state = adm_get_parm_obj(&parms, 2, AMP_TYPE_EXPR);
 	def.expr = *state;
 	SRELEASE(state);
-	def.max_eval = 0;
-	def.max_fire = adm_get_parm_uvast(&parms, 3, &success);
-	ac_t *action = adm_get_parm_obj(&parms, 4, AMP_TYPE_AC);
+	def.max_eval = adm_get_parm_uvast(&parms, 3, &success);
+	def.max_fire = adm_get_parm_uvast(&parms, 4, &success);
+	ac_t action = ac_copy(adm_get_parm_obj(&parms, 5, AMP_TYPE_AC));
 
-	macdef_init(&mac, ac_get_count(action), id);
-	macdef_append_ac(&mac, action);
-
-	if((sbr = rule_create_sbr(*id, start, def, mac)) == NULL)
+	if((sbr = rule_create_sbr(*id, start, def, action)) == NULL)
 	{
 		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
 		return sbr;

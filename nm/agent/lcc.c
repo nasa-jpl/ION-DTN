@@ -35,6 +35,25 @@
 
 
 
+int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms)
+{
+	vecit_t it;
+	int result = AMP_OK;
+	int success;
+
+	for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+	{
+		ctrl_t *ctrl = (ctrl_t*) vecit_data(it);
+
+		if(lcc_run_ctrl(ctrl, parent_parms) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("lcc_run_ac","Error running control %d", vecit_idx(it));
+			result = AMP_FAIL;
+		}
+	}
+
+	return result;
+}
 
 /******************************************************************************
  *
@@ -124,6 +143,7 @@ int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms)
 	CHKUSR(mac, AMP_FAIL);
 
 	gAgentInstr.num_macros_run++;
+
 	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
 	{
 		ctrl_t *ctrl = (ctrl_t*) vecit_data(it);

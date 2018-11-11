@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-10  AUTO             Auto-generated c file 
+ **  2018-11-11  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -688,10 +688,11 @@ void amp_agent_init_ctrl()
 	/* STORE_VAR */
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_STORE_VAR);
-	adm_add_ctrldef_ari(id, 1, NULL);
+	adm_add_ctrldef_ari(id, 2, NULL);
 	meta = meta_add_ctrl(id, ADM_ENUM_AMP_AGENT, "store_var", "This control stores variables.");
 
-	meta_add_parm(meta, "ids", AMP_TYPE_AC);
+	meta_add_parm(meta, "id", AMP_TYPE_ARI);
+	meta_add_parm(meta, "value", AMP_TYPE_EXPR);
 
 	/* RESET_COUNTS */
 
