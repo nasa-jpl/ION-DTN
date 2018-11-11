@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-08  AUTO             Auto-generated c file 
+ **  2018-11-10  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -637,7 +637,7 @@ tnv_t *amp_agent_get_amp_epoch(tnvc_t *parms)
 /*
  * This table lists all the adms that are supported by the agent.
  */
-tbl_t *amp_agent_tbl_adms(ari_t *id)
+tbl_t *amp_agent_tblt_adms(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -647,7 +647,7 @@ tbl_t *amp_agent_tbl_adms(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_adms BODY
+	 * |START CUSTOM FUNCTION tblt_adms BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	tnvc_t *cur_row = NULL;
@@ -662,7 +662,7 @@ tbl_t *amp_agent_tbl_adms(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_adms BODY
+	 * |STOP CUSTOM FUNCTION tblt_adms BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -672,7 +672,7 @@ tbl_t *amp_agent_tbl_adms(ari_t *id)
 /*
  * This table lists the ARI for every variable that is known to the agent.
  */
-tbl_t *amp_agent_tbl_variables(ari_t *id)
+tbl_t *amp_agent_tblt_variables(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -682,7 +682,7 @@ tbl_t *amp_agent_tbl_variables(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_variables BODY
+	 * |START CUSTOM FUNCTION tblt_variables BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	if(amp_agent_build_ari_table(table, &(gVDB.vars)) != AMP_OK)
@@ -693,7 +693,7 @@ tbl_t *amp_agent_tbl_variables(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_variables BODY
+	 * |STOP CUSTOM FUNCTION tblt_variables BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -703,7 +703,7 @@ tbl_t *amp_agent_tbl_variables(ari_t *id)
 /*
  * This table lists the ARI for every report template that is known to the agent.
  */
-tbl_t *amp_agent_tbl_rptts(ari_t *id)
+tbl_t *amp_agent_tblt_rptts(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -713,7 +713,7 @@ tbl_t *amp_agent_tbl_rptts(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_rptts BODY
+	 * |START CUSTOM FUNCTION tblt_rptts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	if(amp_agent_build_ari_table(table, &(gVDB.rpttpls)) != AMP_OK)
@@ -724,7 +724,7 @@ tbl_t *amp_agent_tbl_rptts(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_rptts BODY
+	 * |STOP CUSTOM FUNCTION tblt_rptts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -734,7 +734,7 @@ tbl_t *amp_agent_tbl_rptts(ari_t *id)
 /*
  * This table lists the ARI for every macro that is known to the agent.
  */
-tbl_t *amp_agent_tbl_macros(ari_t *id)
+tbl_t *amp_agent_tblt_macros(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -744,7 +744,7 @@ tbl_t *amp_agent_tbl_macros(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_macros BODY
+	 * |START CUSTOM FUNCTION tblt_macros BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
@@ -756,7 +756,7 @@ tbl_t *amp_agent_tbl_macros(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_macros BODY
+	 * |STOP CUSTOM FUNCTION tblt_macros BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -766,7 +766,7 @@ tbl_t *amp_agent_tbl_macros(ari_t *id)
 /*
  * This table lists the ARI for every rule that is known to the agent.
  */
-tbl_t *amp_agent_tbl_rules(ari_t *id)
+tbl_t *amp_agent_tblt_rules(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -776,7 +776,7 @@ tbl_t *amp_agent_tbl_rules(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_rules BODY
+	 * |START CUSTOM FUNCTION tblt_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
@@ -788,7 +788,7 @@ tbl_t *amp_agent_tbl_rules(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_rules BODY
+	 * |STOP CUSTOM FUNCTION tblt_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -798,7 +798,7 @@ tbl_t *amp_agent_tbl_rules(ari_t *id)
 /*
  * This table lists the ARI for every table template that is known to the agent.
  */
-tbl_t *amp_agent_tbl_tblts(ari_t *id)
+tbl_t *amp_agent_tblt_tblts(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -808,7 +808,7 @@ tbl_t *amp_agent_tbl_tblts(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_tblts BODY
+	 * |START CUSTOM FUNCTION tblt_tblts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
@@ -820,7 +820,7 @@ tbl_t *amp_agent_tbl_tblts(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_tblts BODY
+	 * |STOP CUSTOM FUNCTION tblt_tblts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;

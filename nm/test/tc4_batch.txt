@@ -4,8 +4,8 @@
 ###############################################################################
 # TC 4.1 Generate Reports based on a variable.
 ###############################################################################
-# This test will cause an ADM report to be generated
-# up to 5 times whenever Computed Data item C4 == 1.
+# This test will cause an Agent FULL REPORT to be generated
+# up to 5 times whenever Variable V1 == 1.
 #
 ###############################################################################
 

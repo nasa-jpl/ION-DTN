@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-08  AUTO             Auto-generated c file 
+ **  2018-11-10  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -51,12 +51,9 @@ void amp_agent_init()
 	amp_agent_init_cnst();
 	amp_agent_init_edd();
 	amp_agent_init_op();
-
 	amp_agent_init_var();
-
 	amp_agent_init_ctrl();
 	amp_agent_init_mac();
-
 	amp_agent_init_rpttpl();
 	amp_agent_init_tblt();
 }
@@ -238,38 +235,38 @@ void amp_agent_init_tblt()
 
 	/* ADMS */
 
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_ADMS), amp_agent_tbl_adms);
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_ADMS), amp_agent_tblt_adms);
 	tblt_add_col(def, AMP_TYPE_STR, "adm_name");
 	adm_add_tblt(def);
 
 	/* VARIABLES */
 
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_VARIABLES), amp_agent_tbl_variables);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_VARIABLES), amp_agent_tblt_variables);
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* RPTTS */
 
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RPTTS), amp_agent_tbl_rptts);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RPTTS), amp_agent_tblt_rptts);
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* MACROS */
 
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_MACROS), amp_agent_tbl_macros);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_MACROS), amp_agent_tblt_macros);
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* RULES */
 
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RULES), amp_agent_tbl_rules);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_RULES), amp_agent_tblt_rules);
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 
 	/* TBLTS */
 
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_TBLTS), amp_agent_tbl_tblts);
-	tblt_add_col(def, AMP_TYPE_AC, "ids");
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_amp_agent_idx[ADM_TBLT_IDX], AMP_AGENT_TBLT_TBLTS), amp_agent_tblt_tblts);
+	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 }
 

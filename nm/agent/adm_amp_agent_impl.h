@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-08  AUTO             Auto-generated header file 
+ **  2018-11-10  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -83,29 +83,29 @@ void amp_agent_cleanup();
 
 
 /* Metadata Functions */
-tnv_t *amp_agent_meta_name(tnvc_t *params);
-tnv_t *amp_agent_meta_namespace(tnvc_t *params);
-tnv_t *amp_agent_meta_version(tnvc_t *params);
-tnv_t *amp_agent_meta_organization(tnvc_t *params);
+tnv_t *amp_agent_meta_name(tnvc_t *parms);
+tnv_t *amp_agent_meta_namespace(tnvc_t *parms);
+tnv_t *amp_agent_meta_version(tnvc_t *parms);
+tnv_t *amp_agent_meta_organization(tnvc_t *parms);
 
 /* Constant Functions */
-tnv_t *amp_agent_get_amp_epoch(tnvc_t *params);
+tnv_t *amp_agent_get_amp_epoch(tnvc_t *parms);
 
 /* Collect Functions */
-tnv_t *amp_agent_get_num_rpt_tpls(tnvc_t *params);
-tnv_t *amp_agent_get_num_tbl_tpls(tnvc_t *params);
-tnv_t *amp_agent_get_sent_reports(tnvc_t *params);
-tnv_t *amp_agent_get_num_tbr(tnvc_t *params);
-tnv_t *amp_agent_get_run_tbr(tnvc_t *params);
-tnv_t *amp_agent_get_num_sbr(tnvc_t *params);
-tnv_t *amp_agent_get_run_sbr(tnvc_t *params);
-tnv_t *amp_agent_get_num_const(tnvc_t *params);
-tnv_t *amp_agent_get_num_var(tnvc_t *params);
-tnv_t *amp_agent_get_num_macros(tnvc_t *params);
-tnv_t *amp_agent_get_run_macros(tnvc_t *params);
-tnv_t *amp_agent_get_num_controls(tnvc_t *params);
-tnv_t *amp_agent_get_run_controls(tnvc_t *params);
-tnv_t *amp_agent_get_cur_time(tnvc_t *params);
+tnv_t *amp_agent_get_num_rpt_tpls(tnvc_t *parms);
+tnv_t *amp_agent_get_num_tbl_tpls(tnvc_t *parms);
+tnv_t *amp_agent_get_sent_reports(tnvc_t *parms);
+tnv_t *amp_agent_get_num_tbr(tnvc_t *parms);
+tnv_t *amp_agent_get_run_tbr(tnvc_t *parms);
+tnv_t *amp_agent_get_num_sbr(tnvc_t *parms);
+tnv_t *amp_agent_get_run_sbr(tnvc_t *parms);
+tnv_t *amp_agent_get_num_const(tnvc_t *parms);
+tnv_t *amp_agent_get_num_var(tnvc_t *parms);
+tnv_t *amp_agent_get_num_macros(tnvc_t *parms);
+tnv_t *amp_agent_get_run_macros(tnvc_t *parms);
+tnv_t *amp_agent_get_num_controls(tnvc_t *parms);
+tnv_t *amp_agent_get_run_controls(tnvc_t *parms);
+tnv_t *amp_agent_get_cur_time(tnvc_t *parms);
 
 
 /* Control Functions */
@@ -184,13 +184,11 @@ tnv_t *amp_agent_op_stor(vector_t *stack);
 
 
 /* Table Build Functions */
-tbl_t *amp_agent_tbl_adms(ari_t *id);
-tbl_t *amp_agent_tbl_variables(ari_t *id);
-tbl_t *amp_agent_tbl_rptts(ari_t *id);
-tbl_t *amp_agent_tbl_macros(ari_t *id);
-tbl_t *amp_agent_tbl_rules(ari_t *id);
-tbl_t *amp_agent_tbl_tblts(ari_t *id);
-
-
+tbl_t *amp_agent_tblt_adms(ari_t *id);
+tbl_t *amp_agent_tblt_variables(ari_t *id);
+tbl_t *amp_agent_tblt_rptts(ari_t *id);
+tbl_t *amp_agent_tblt_macros(ari_t *id);
+tbl_t *amp_agent_tblt_rules(ari_t *id);
+tbl_t *amp_agent_tblt_tblts(ari_t *id);
 
 #endif //ADM_AMP_AGENT_IMPL_H_

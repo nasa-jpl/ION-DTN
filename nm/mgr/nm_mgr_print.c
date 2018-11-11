@@ -651,10 +651,27 @@ char *ui_str_from_rpttpl(rpttpl_t *rpttpl)
 	return result;
 }
 
-char *ui_str_from_sbr(rule_t *rule)
+char *ui_str_from_sbr(rule_t *sbr)
 {
-	// TODO
-	return NULL;
+	char *str = STAKE(1024);
+	char *id_str = ui_str_from_ari(&(sbr->id), NULL, 0);
+	char *ac_str = ui_str_from_mac(&(sbr->action));
+	char *expr_str = ui_str_from_expr(&(sbr->def.as_sbr.expr));
+
+	snprintf(str,
+			 1024,
+			 "SBR: ID=%s, S=0x"ADDR_FIELDSPEC", E=%s, M=0x"ADDR_FIELDSPEC", C=0x"ADDR_FIELDSPEC", A=%s\n",
+			 (id_str == NULL) ? "null" :id_str,
+		     (uaddr)sbr->start,
+			 (expr_str == NULL) ? "null" : expr_str,
+			 (uaddr)sbr->def.as_sbr.max_eval,
+			 (uaddr)sbr->def.as_sbr.max_fire,
+		     (ac_str == NULL) ? "null" : ac_str);
+
+	SRELEASE(id_str);
+	SRELEASE(ac_str);
+	SRELEASE(expr_str);
+	return str;
 }
 
 char *ui_str_from_tbl(tbl_t *tbl)
@@ -733,9 +750,21 @@ char *ui_str_from_tblt(tblt_t *tblt)
 
 char *ui_str_from_tbr(rule_t *tbr)
 {
-	// TODO
+	char *str = STAKE(1024);
+	char *id_str = ui_str_from_ari(&(tbr->id), NULL, 0);
+	char *ac_str = ui_str_from_mac(&(tbr->action));
+	snprintf(str,
+			 1024,
+			 "TBR: ID=%s, S=%ld, P=%ld, C=%ld, A=%s\n",
+			 (id_str == NULL) ? "null" :id_str,
+		     tbr->start,
+			 tbr->def.as_tbr.period,
+			 tbr->def.as_tbr.max_fire,
+		     (ac_str == NULL) ? "null" : ac_str);
 
-	return NULL;
+	SRELEASE(id_str);
+	SRELEASE(ac_str);
+	return str;
 }
 
 
