@@ -1992,8 +1992,11 @@ int tnvc_insert(tnvc_t* tnvc, tnv_t *tnv)
 {
 	int result;
 
-	CHKUSR(tnvc,AMP_FAIL);
-	CHKUSR(tnv,AMP_FAIL);
+	/* It isn't necessarily an error if TNV is NULL. */
+	if((tnvc == NULL) || (tnv == NULL))
+	{
+		return AMP_FAIL;
+	}
 
 	if((result = vec_insert(&(tnvc->values), tnv, NULL)) != AMP_OK)
 	{

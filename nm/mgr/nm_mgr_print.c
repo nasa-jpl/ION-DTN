@@ -31,13 +31,13 @@
 #endif
 
 ui_menu_list_t agent_submenu_list[] = {
-   {"(D)e-register agent", NULL, NULL},
-   {"(B)uild Control", NULL, NULL},
-   {"Send (R)aw Command", NULL, NULL},
-   {"Send Command (F)ile", NULL, NULL},
-   {"(P)rint Agent Reports", NULL, NULL},
-   {"(W)rite Agent Reports to file", NULL, NULL},
-   {"(C)lear Agent Reports", NULL, NULL},
+   {"De-register agent", NULL, NULL},
+   {"Build Control", NULL, NULL},
+   {"Send Raw Command", NULL, NULL},
+   {"Send Command File", NULL, NULL},
+   {"Print Agent Reports", NULL, NULL},
+   {"Write Agent Reports to file", NULL, NULL},
+   {"Clear Agent Reports", NULL, NULL},
 };
 
 

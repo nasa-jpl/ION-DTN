@@ -97,7 +97,10 @@ ctrl_t *ctrl_copy_ptr(ctrl_t *src)
 {
 	ctrl_t *result = NULL;
 
-	CHKNULL(src);
+	if(src == NULL)
+	{
+		return NULL;
+	}
 
 	if((result = STAKE(sizeof(ctrl_t))) == NULL)
 	{

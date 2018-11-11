@@ -188,7 +188,7 @@ int rda_process_ctrls()
 		{
 			if(curtime > ctrl->start)
 			{
-				lcc_run_ctrl(ctrl, ctrl->parms);
+				lcc_run_ctrl(ctrl, NULL);
 				db_forget(&(ctrl->desc), gDB.ctrls);
 
 				/* Don't access ctrl after this call...*/
@@ -235,15 +235,20 @@ void rda_scan_tbrs_cb(rh_elt_t *elt, void *tag)
 
 	rule = (rule_t*) elt->value;
 
-	rule->ticks_left--;
+	if(rule->id.type == AMP_TYPE_SBR)
+	{
+		return;
+	}
+
+	if(rule->ticks_left > 0)
+	{
+		rule->ticks_left--;
+	}
 
 	/* If rule is inactive or still waiting, skip it. */
 	if((rule->ticks_left <= 0) && (RULE_IS_ACTIVE(rule->flags)))
 	{
-    	if(rule->id.type == AMP_TYPE_TBR)
-    	{
-    		vec_push(vec, rule);
-    	}
+		vec_push(vec, rule);
     }
 }
 
@@ -261,22 +266,25 @@ void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
 
 	rule = (rule_t*) elt->value;
 
+	if(rule->id.type == AMP_TYPE_TBR)
+	{
+		return;
+	}
+
 	rule->ticks_left--;
+
 
 	/* If rule is inactive or still waiting, skip it. */
 	if((rule->ticks_left <= 0) && (RULE_IS_ACTIVE(rule->flags)))
 	{
-		if(rule->id.type == AMP_TYPE_SBR)
+		if(rule->def.as_sbr.max_eval > rule->num_eval)
 		{
-			if(rule->def.as_sbr.max_eval > rule->num_eval)
-			{
-				vec_push(vec, rule);
-			}
-			else
-			{
-				/* Rule is SBR with no evals left. Disable and skip. */
-				RULE_CLEAR_ACTIVE(rule->flags);
-			}
+			vec_push(vec, rule);
+		}
+		else
+		{
+			/* Rule is SBR with no evals left. Disable and skip. */
+			RULE_CLEAR_ACTIVE(rule->flags);
 		}
     }
 }
@@ -314,19 +322,9 @@ int rda_process_rules()
     {
     	rule_t *rule = vecit_data(it);
 
-    	/* Map any parameters to the action before we run it. */
-    	tnvc_t *parms = ari_resolve_parms(&(rule->id.as_reg.parms), &(rule->action.ari->as_reg.parms));
-
-    	if(parms)
-    	{
-    		lcc_run_macro(&(rule->action), parms);
-    	}
-    	else
-    	{
-    		lcc_run_macro(&(rule->action), &(rule->id.as_reg.parms));
-    	}
-
 		gAgentInstr.num_tbrs_run++;
+
+    	lcc_run_macro(&(rule->action), &(rule->id.as_reg.parms));
 
 		rule->num_eval++;
 		rule->num_fire++;
@@ -335,12 +333,17 @@ int rda_process_rules()
 		{
 			/* Remove the rule. */
 			db_forget(&(rule->desc), gDB.rules);
+			RULE_CLEAR_ACTIVE(rule->flags);
 			VDB_DELKEY_RULE(&(rule->id));
 			gAgentInstr.num_tbrs--;
 		}
 		else
 		{
 			rule->ticks_left = rule->def.as_tbr.period;
+			if(db_persist_rule(rule) != AMP_OK)
+			{
+				AMP_DEBUG_ERR("rda_process_rules", "Unable to persist new TBR state.", NULL);
+			}
 		}
     }
 
@@ -352,19 +355,9 @@ int rda_process_rules()
     	rule->num_eval++;
     	if(sbr_should_fire(rule))
     	{
-        	/* Map any parameters to the action before we run it. */
-        	tnvc_t *parms = ari_resolve_parms(&(rule->id.as_reg.parms), &(rule->action.ari->as_reg.parms));
-
-        	if(parms)
-        	{
-        		lcc_run_macro(&(rule->action), parms);
-        	}
-        	else
-        	{
-        		lcc_run_macro(&(rule->action), &(rule->id.as_reg.parms));
-        	}
-
         	gAgentInstr.num_sbrs_run++;
+
+    		lcc_run_macro(&(rule->action), &(rule->id.as_reg.parms));
 
         	rule->num_fire++;
     	}

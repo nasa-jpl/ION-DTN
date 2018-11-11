@@ -274,7 +274,7 @@ int  db_persist_rule(void* item)
 {
 	int result;
 	rule_t *rule = (rule_t *) item;
-	blob_t *blob = rule_serialize_wrapper(rule);
+	blob_t *blob = rule_db_serialize_wrapper(rule);
 
 	CHKERR(blob);
 	result = db_persist(blob, &(rule->desc), gDB.rules);
@@ -436,17 +436,17 @@ int vdb_db_init_rule(blob_t *data, db_desc_t desc)
 
 	CHKUSR(data, AMP_FAIL);
 
-	if((rule = rule_deserialize_raw(data, &success)) == NULL)
+	if((rule = rule_db_deserialize_raw(data, &success)) == NULL)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rule","Can't deserialize raw SBR.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rule","Can't deserialize raw rule.", NULL);
 		return AMP_FAIL;
 	}
 
 	rule->desc = desc;
-// TODO: Make sure we don't store key in a way that makes this be freed twice.
+
 	if(VDB_ADD_RULE(&(rule->id), rule) != RH_OK)
 	{
-		AMP_DEBUG_ERR("vdb_db_init_rule","Can't add new SBR.", NULL);
+		AMP_DEBUG_ERR("vdb_db_init_rule","Can't add new rule.", NULL);
 		rule_release(rule, 1);
 		return AMP_FAIL;
 	}

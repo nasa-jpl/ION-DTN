@@ -38,8 +38,8 @@
 
 
 
-#define CTRL_SUCCESS (0)
-#define CTRL_FAILURE (1)
+#define CTRL_SUCCESS (AMP_OK)
+#define CTRL_FAILURE (AMP_FAIL)
 
 
 /*

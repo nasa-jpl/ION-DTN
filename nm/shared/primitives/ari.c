@@ -736,9 +736,13 @@ ari_t* ari_deserialize_raw(blob_t *data, int *success)
 	CborParser parser;
 	CborValue it;
 
-	CHKNULL(success);
 	*success = AMP_FAIL;
-	CHKNULL(data);
+
+	if(data == NULL)
+	{
+		return NULL;
+	}
+
 
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
 	{
@@ -896,13 +900,16 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms)
 	uint8_t idx;
 	tnvc_t *result = NULL;
 
-	CHKNULL(src_parms);
-	CHKNULL(cur_parms);
 
-	if((tnvc_size(src_parms) == 0) ||
-	   (tnvc_size(cur_parms) == 0))
+	if((src_parms == NULL) && (cur_parms == NULL))
 	{
 		return NULL;
+	}
+	else if((cur_parms == NULL) ||
+			(tnvc_size(src_parms) == 0) ||
+		    (tnvc_size(cur_parms) == 0))
+	{
+		return tnvc_copy(src_parms);
 	}
 
 	result = tnvc_copy(cur_parms);

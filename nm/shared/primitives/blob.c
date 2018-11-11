@@ -395,7 +395,10 @@ int blob_init(blob_t *blob, uint8_t *value, size_t length, size_t alloc)
 
 void blob_release(blob_t *blob, int destroy)
 {
-	CHKVOID(blob);
+	if(blob == NULL)
+	{
+		return;
+	}
 
 	if(blob->value != NULL)
 	{

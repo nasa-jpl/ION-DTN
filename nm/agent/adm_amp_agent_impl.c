@@ -1773,7 +1773,7 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	uvast start = adm_get_parm_uvast(parms, 1, &success);
 	def.period = adm_get_parm_uvast(parms, 2, &success);
 	def.max_fire = adm_get_parm_uvast(parms, 3, &success);
-	ac_t *action = adm_get_parm_obj(parms, 4, AMP_TYPE_AC);
+	ac_t *action = ac_copy_ptr(adm_get_parm_obj(parms, 4, AMP_TYPE_AC));
 
 	if((id == NULL) || (action == NULL))
 	{
@@ -1781,7 +1781,7 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		return result;
 	}
 
-	macdef_init(&mac, ac_get_count(action), id);
+	macdef_init(&mac, ac_get_count(action), ari_copy_ptr(id));
 	macdef_append_ac(&mac, action);
 
 	if((tbr = rule_create_tbr(*id, start, def, mac)) == NULL)

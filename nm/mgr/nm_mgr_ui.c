@@ -538,7 +538,7 @@ void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
              meta_fp_t *parm = (meta_fp_t *) vecit_data(itp);
              if(j != 0 && j != num_parms)
              {
-                strcat(list[i].name, ",");
+                strcat(list[i].name, ", ");
              }
              sprintf( (list[i].name + strlen(list[i].name)),
                       "%s %s",
@@ -2642,7 +2642,7 @@ int ui_menu_select(char* title, const char* const* choices, const char* const* d
 
 int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC)
 {
-   int rtv, cnt = 0;
+   int rtv = 0, cnt = 0;
    ui_display_init(title);
 
    if (choiceA != NULL && choiceB==NULL && choiceC == NULL)
@@ -2714,10 +2714,57 @@ int ui_menu_listing(
 
       for(i = 0; i < n_choices; i++)
       {
-         printf("%i. %s", i, list[i].name);
+         printf("%3d) %s", i, list[i].name);
          if (list[i].description != NULL)
          {
-            printf("\t %s\n", list[i].description);
+        	int len = strlen(list[i].description);
+        	printf("\n");
+        	printf("     ---------------------------------------------------------------------------\n");
+        	if(len > 74)
+        	{
+            	char tmp[75];
+            	int remaining = len;
+            	int idx = 0;
+            	int delta = 0;
+            	int space_idx;
+            	while(remaining > 0)
+            	{
+            		delta = (remaining > 74) ? 74 : remaining;
+
+            		if(delta == 74)
+            		{
+            			for(space_idx = delta; space_idx > 0; space_idx--)
+            			{
+            				if(list[i].description[idx+space_idx] == ' ')
+            				{
+            					space_idx++;
+            					break;
+            				}
+            			}
+            			if(space_idx < 0)
+            			{
+            				space_idx = delta;
+            			}
+            		}
+            		else
+            		{
+            			space_idx = delta;
+            		}
+
+            		memset(tmp, 0, 75);
+            		strncat(tmp, (char *) &(list[i].description[idx]), space_idx);
+            		printf("     %.74s", tmp);
+
+            		idx += space_idx;
+            		remaining -= space_idx;
+            		printf("\n");
+            	}
+        	}
+        	else
+        	{
+        		printf("     %s\n", list[i].description);
+        	}
+        	printf("\n");
          }
          else
          {

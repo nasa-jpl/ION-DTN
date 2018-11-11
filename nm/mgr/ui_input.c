@@ -535,7 +535,7 @@ ari_t* ui_input_ari_build(uvast mask)
 		if((blob = ari_serialize_wrapper(result)) != NULL)
 		{
 			char *ari_str = utils_hex_to_string(blob->value, blob->length);
-			ui_printf("Constructed ARI: 0x%s", ari_str);
+			ui_printf("Constructed ARI: %s\n", ari_str);
 			SRELEASE(ari_str);
 			blob_release(blob, 1);
 		}
@@ -902,12 +902,6 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 		case AMP_TYPE_LIT:    result = tnv_from_obj(type, ui_input_ari_lit(prompt));break;
 		default:
 			break;
-	}
-
-	if((result != NULL) && (result->value.as_ptr == NULL))
-	{
-		tnv_release(result, 1);
-		result = NULL;
 	}
 
 	return result;

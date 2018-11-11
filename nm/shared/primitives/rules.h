@@ -66,15 +66,15 @@
 typedef struct
 {
 	expr_t expr;       /**> If this evals to true, run action.      */
-	uint32_t max_fire; /**> # times to run action.                  */
-	uint32_t max_eval; /**> # times to eval expression.             */
+	uvast max_fire; /**> # times to run action.                  */
+	uvast max_eval; /**> # times to eval expression.             */
 } sbr_def_t;
 
 
 typedef struct
 {
-	uint32_t period;   /**> # ticks between rule firings.           */
-	uint32_t max_fire; /**> # times action can be run.              */
+	uvast period;   /**> # ticks between rule firings.           */
+	uvast max_fire; /**> # times action can be run.              */
 } tbr_def_t;
 
 

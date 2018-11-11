@@ -65,7 +65,10 @@ int vec_append(vector_t *dest, vector_t *src)
 
 void *vec_at(vector_t *vec, vec_idx_t idx)
 {
-	CHKNULL(idx < vec->total_slots);
+	if(idx >= vec->total_slots)
+	{
+		return NULL;
+	}
 
 	return (vec->data[idx].occupied) ? vec->data[idx].value : NULL;
 }
