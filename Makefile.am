@@ -1905,8 +1905,8 @@ nm_shared_src    =  	nm/shared/adm/adm.c			\
 			nm/shared/primitives/report.c 		\
 			nm/shared/primitives/rules.c 		\
 		 	nm/shared/primitives/table.c 		\
- 	    			nm/shared/primitives/tnv.c		\
- 	    			nm/shared/utils/cbor_utils.c	\
+ 	    	nm/shared/primitives/tnv.c		\
+ 	    	nm/shared/utils/cbor_utils.c	\
 			nm/shared/utils/db.c			\
 			nm/shared/utils/nm_types.c 		\
 			nm/shared/utils/rhht.c	 		\
@@ -1921,11 +1921,11 @@ nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/lcc.c     		\
 			nm/agent/nmagent.c 		\
 			nm/agent/ldc.c 			\
-               	     	nm/agent/rda.c 			\
-                    	nm/agent/adm_amp_agent_impl.c   \
-                    	nm/agent/adm_amp_agent_agent.c	
-#			nm/agent/adm_bp_agent_impl.c	\
-#			nm/agent/adm_bp_agent_agent.c	\
+			nm/agent/rda.c 			\
+			nm/agent/adm_amp_agent_impl.c   \
+			nm/agent/adm_amp_agent_agent.c	\
+			nm/agent/adm_bp_agent_impl.c	\
+			nm/agent/adm_bp_agent_agent.c	
 #			nm/agent/adm_bpsec_impl.c	\
 #			nm/agent/adm_bpsec_agent.c	\
 #			nm/agent/adm_ion_admin_agent.c 	\	
@@ -1959,8 +1959,8 @@ nm_mgr_SOURCES =	$(nm_shared_src)		\
 			nm/mgr/nm_mgr_ui.c 		\
 			nm/mgr/nm_mgr.c			\
 			nm/mgr/ui_input.c 		\
-			nm/mgr/adm_amp_agent_mgr.c      
-#			nm/mgr/adm_bp_agent_mgr.c	\
+			nm/mgr/adm_amp_agent_mgr.c   \   
+			nm/mgr/adm_bp_agent_mgr.c	
 #			nm/mgr/adm_bpsec_mgr.c		\
 #			nm/mgr/adm_ion_admin_mgr.c	\	
 #			nm/mgr/adm_ion_bp_admin_mgr.c	\

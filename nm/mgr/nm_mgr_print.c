@@ -255,7 +255,16 @@ void ui_print_report(rpt_t *rpt)
     }
     else
     {
-        ui_printf("\nRpt Name  : %s", rpt_info->name);
+    	if(vec_num_entries(rpt->id->as_reg.parms.values) > 0)
+    	{
+    		char *parm_str = ui_str_from_tnvc(&(rpt->id->as_reg.parms));
+    		ui_printf("\nRpt Name  : %s(%s)", rpt_info->name, (parm_str == NULL) ? "" : parm_str);
+    		SRELEASE(parm_str);
+    	}
+    	else
+    	{
+    		ui_printf("\nRpt Name  : %s", rpt_info->name);
+    	}
     }
     ui_printf("\nTimestamp : %s", ctime(&(rpt->time)));
     ui_printf("\n# Entries : %d", num_entries);
@@ -290,7 +299,27 @@ void ui_print_report(rpt_t *rpt)
 			}
 			else
 			{
-				sprintf(name, "%.30s", entry_info->name);
+				tnvc_t *parms = ari_resolve_parms(&(entry_id->as_reg.parms), &(rpt->id->as_reg.parms));
+				char *parm_str = NULL;
+
+				if(parms != NULL)
+				{
+					if(vec_num_entries(parms->values) > 0)
+					{
+						parm_str = ui_str_from_tnvc(parms);
+					}
+					tnvc_release(parms, 1);
+				}
+
+				if(parm_str != NULL)
+				{
+					sprintf(name, "%.40s(%s)", entry_info->name, parm_str);
+					SRELEASE(parm_str);
+				}
+				else
+				{
+					sprintf(name, "%.40s", entry_info->name);
+				}
 			}
 
 			ui_print_report_entry(name, val);

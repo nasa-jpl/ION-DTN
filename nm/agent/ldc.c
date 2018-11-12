@@ -221,7 +221,10 @@ int ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt)
 
 		if(cur_id->type != AMP_TYPE_LIT)
 		{
-			parms = ari_resolve_parms(&(rpttpl->id->as_reg.parms), &(cur_id->as_reg.parms));
+			/* Step 1: If a rpttpl is parameterized, then the acutal report
+			 * structure will contain the parameters.
+			 */
+			parms = ari_resolve_parms(&(cur_id->as_reg.parms), &(rpt->id->as_reg.parms));
 			if(parms == NULL)
 			{
 				parms = &(cur_id->as_reg.parms);

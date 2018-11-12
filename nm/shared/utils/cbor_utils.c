@@ -241,10 +241,18 @@ int cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val)
 		case AMP_TYPE_TS:
 		case AMP_TYPE_TV:
 		case AMP_TYPE_UVAST:
-			if(cbor_value_get_type(value) == CborIntegerType )
+			if(cbor_value_get_type(value) == CborIntegerType)
 			{
-				err = cbor_value_get_uint64(value, (uvast *)val);
+				if(cbor_value_is_unsigned_integer(value))
+				{
+				  err = cbor_value_get_uint64(value, (uvast *)val);
+				}
+				else
+				{
+				  err = cbor_value_get_int64(value, (vast *)val);
+				}
 			}
+
 			break;
 
 		case AMP_TYPE_REAL32:

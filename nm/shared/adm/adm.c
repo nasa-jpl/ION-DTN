@@ -41,19 +41,8 @@
 #include "../primitives/expr.h"
 
 #include "adm_amp_agent.h"
+#include "adm_bp_agent.h"
 
-
-/*
-#include "adm_agent.h"
-#include "adm_bp.h"
-#include "adm_bpsec.h"
-#include "adm_ion_admin.h"
-#include "adm_ion_bp_admin.h"
-#include "adm_ion_ipn_admin.h"
-#include "adm_ionsec_admin.h"
-#include "adm_ion_ltp_admin.h"
-#include "adm_ltp_agent.h"
-*/
 
 /******************************************************************************
  *
@@ -583,7 +572,7 @@ void adm_init()
 	AMP_DEBUG_ENTRY("adm_init","()", NULL);
 
 	amp_agent_init();
-
+	dtn_bp_agent_init();
 /*
 	adm_agent_init();
 	adm_bp_init();
