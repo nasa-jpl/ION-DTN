@@ -238,6 +238,26 @@ expr_t* expr_deserialize_ptr(CborValue *it, int *success)
 	return result;
 }
 
+expr_t* expr_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+
+	CHKNULL(success);
+	*success = AMP_FAIL;
+
+	if(data == NULL)
+	{
+		return NULL;
+	}
+
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	{
+		return NULL;
+	}
+
+	return expr_deserialize_ptr(&it, success);
+}
 
 
 /*

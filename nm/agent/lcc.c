@@ -35,6 +35,33 @@
 
 
 
+int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms)
+{
+	vecit_t it;
+	int result = AMP_OK;
+	int success;
+
+	for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+	{
+		ari_t *id = (ari_t *) vecit_data(it);
+		ctrl_t *ctrl = ctrl_create(id);
+
+		if(ctrl != NULL)
+		{
+			success = lcc_run_ctrl(ctrl, parent_parms);
+			ctrl_release(ctrl, 1);
+
+			if(success != AMP_OK)
+			{
+				AMP_DEBUG_ERR("lcc_run_ac","Error running control %d", vecit_idx(it));
+				result = AMP_FAIL;
+				break;
+			}
+		}
+	}
+
+	return result;
+}
 
 /******************************************************************************
  *
@@ -60,16 +87,19 @@
  *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms)
+int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parent_parms)
 {
 	int8_t status = CTRL_FAILURE;
     tnv_t* retval = NULL;
+    tnvc_t *new_parms = NULL;
     eid_t rx_eid;
 
 	AMP_DEBUG_ENTRY("lcc_run_ctrl","("ADDR_FIELDSPEC")", (uaddr) ctrl);
 
-	CHKUSR(ctrl,AMP_FAIL);
-
+	if(ctrl == NULL)
+	{
+		return AMP_FAIL;
+	}
 
 	if(strlen(ctrl->caller.name) <= 0)
 	{
@@ -83,13 +113,17 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms)
 
 	if(ctrl->type == AMP_TYPE_CTRL)
 	{
+
+		new_parms = ari_resolve_parms(ctrl->parms, parent_parms);
+
 		/* Run the control. */
-		retval = ctrl->def.as_ctrl->run(&rx_eid, parms, &status);
+		retval = ctrl->def.as_ctrl->run(&rx_eid, new_parms, &status);
 		gAgentInstr.num_ctrls_run++;
 	}
 	else
 	{
-		status = lcc_run_macro(ctrl->def.as_mac, parms);
+		new_parms = ari_resolve_parms(ctrl->parms, parent_parms);
+		status = lcc_run_macro(ctrl->def.as_mac, new_parms);
 	}
 
 	if(status != CTRL_SUCCESS)
@@ -99,15 +133,17 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms)
 	}
 	else if(retval != NULL)
 	{
-		lcc_send_retval(&rx_eid, retval, ctrl, parms);
+		lcc_send_retval(&rx_eid, retval, ctrl, new_parms);
 	}
+
+	tnvc_release(new_parms, 1);
 
 	AMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
 	return status;
 }
 
 
-int lcc_run_macro(macdef_t *mac, tnvc_t *parms)
+int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms)
 {
 	vecit_t it;
 	int result = AMP_OK;
@@ -115,10 +151,12 @@ int lcc_run_macro(macdef_t *mac, tnvc_t *parms)
 	CHKUSR(mac, AMP_FAIL);
 
 	gAgentInstr.num_macros_run++;
+
 	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
 	{
 		ctrl_t *ctrl = (ctrl_t*) vecit_data(it);
-		if(lcc_run_ctrl(ctrl, parms) != AMP_OK)
+
+		if(lcc_run_ctrl(ctrl, parent_parms) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("lcc_run_macro","Error running control %d", vecit_idx(it));
 			result = AMP_FAIL;

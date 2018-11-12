@@ -31,13 +31,13 @@
 #endif
 
 ui_menu_list_t agent_submenu_list[] = {
-   {"(D)e-register agent", NULL, NULL},
-   {"(B)uild Control", NULL, NULL},
-   {"Send (R)aw Command", NULL, NULL},
-   {"Send Command (F)ile", NULL, NULL},
-   {"(P)rint Agent Reports", NULL, NULL},
-   {"(W)rite Agent Reports to file", NULL, NULL},
-   {"(C)lear Agent Reports", NULL, NULL},
+   {"De-register agent", NULL, NULL},
+   {"Build Control", NULL, NULL},
+   {"Send Raw Command", NULL, NULL},
+   {"Send Command File", NULL, NULL},
+   {"Print Agent Reports", NULL, NULL},
+   {"Write Agent Reports to file", NULL, NULL},
+   {"Clear Agent Reports", NULL, NULL},
 };
 
 
@@ -255,7 +255,16 @@ void ui_print_report(rpt_t *rpt)
     }
     else
     {
-        ui_printf("\nRpt Name  : %s", rpt_info->name);
+    	if(vec_num_entries(rpt->id->as_reg.parms.values) > 0)
+    	{
+    		char *parm_str = ui_str_from_tnvc(&(rpt->id->as_reg.parms));
+    		ui_printf("\nRpt Name  : %s(%s)", rpt_info->name, (parm_str == NULL) ? "" : parm_str);
+    		SRELEASE(parm_str);
+    	}
+    	else
+    	{
+    		ui_printf("\nRpt Name  : %s", rpt_info->name);
+    	}
     }
     ui_printf("\nTimestamp : %s", ctime(&(rpt->time)));
     ui_printf("\n# Entries : %d", num_entries);
@@ -290,7 +299,27 @@ void ui_print_report(rpt_t *rpt)
 			}
 			else
 			{
-				sprintf(name, "%.30s", entry_info->name);
+				tnvc_t *parms = ari_resolve_parms(&(entry_id->as_reg.parms), &(rpt->id->as_reg.parms));
+				char *parm_str = NULL;
+
+				if(parms != NULL)
+				{
+					if(vec_num_entries(parms->values) > 0)
+					{
+						parm_str = ui_str_from_tnvc(parms);
+					}
+					tnvc_release(parms, 1);
+				}
+
+				if(parm_str != NULL)
+				{
+					sprintf(name, "%.40s(%s)", entry_info->name, parm_str);
+					SRELEASE(parm_str);
+				}
+				else
+				{
+					sprintf(name, "%.40s", entry_info->name);
+				}
 			}
 
 			ui_print_report_entry(name, val);
@@ -651,15 +680,33 @@ char *ui_str_from_rpttpl(rpttpl_t *rpttpl)
 	return result;
 }
 
-char *ui_str_from_sbr(rule_t *rule)
+char *ui_str_from_sbr(rule_t *sbr)
 {
-	// TODO
-	return NULL;
+	char *str = STAKE(1024);
+	char *id_str = ui_str_from_ari(&(sbr->id), NULL, 0);
+	char *ac_str = ui_str_from_ac(&(sbr->action));
+	char *expr_str = ui_str_from_expr(&(sbr->def.as_sbr.expr));
+
+	snprintf(str,
+			 1024,
+			 "SBR: ID=%s, S=0x"ADDR_FIELDSPEC", E=%s, M=0x"ADDR_FIELDSPEC", C=0x"ADDR_FIELDSPEC", A=%s\n",
+			 (id_str == NULL) ? "null" :id_str,
+		     (uaddr)sbr->start,
+			 (expr_str == NULL) ? "null" : expr_str,
+			 (uaddr)sbr->def.as_sbr.max_eval,
+			 (uaddr)sbr->def.as_sbr.max_fire,
+		     (ac_str == NULL) ? "null" : ac_str);
+
+	SRELEASE(id_str);
+	SRELEASE(ac_str);
+	SRELEASE(expr_str);
+	return str;
 }
 
 char *ui_str_from_tbl(tbl_t *tbl)
 {
 	char *result = STAKE(4096); // todo dynamically size this.
+	char fmt[100];
 	vecit_t it;
 	int i, j;
 	size_t num_rows = 0;
@@ -687,11 +734,11 @@ char *ui_str_from_tbl(tbl_t *tbl)
 			{
 				strcat(result, "|");
 			}
-			strcat(result, "\t");
 			char *tmp = ui_str_from_tnv(val);
-			strcat(result, tmp);
+			snprintf(fmt,100,"   %23s   ", tmp);
 			SRELEASE(tmp);
-			strcat(result, "\t|");
+			strcat(result, fmt);
+			strcat(result, "|");
 		}
 		strcat(result, "\n");
 	}
@@ -719,7 +766,7 @@ char *ui_str_from_tblt(tblt_t *tblt)
 			{
 				strcat(result, "|");
 			}
-			sprintf(tmp, "\t(%s) %s\t|",
+			sprintf(tmp, "   %7s %15s   |",
 					(col) ? type_to_str(col->type) : "null",
 					(col) ? col->name : "null");
 			strcat(result, tmp);
@@ -733,9 +780,21 @@ char *ui_str_from_tblt(tblt_t *tblt)
 
 char *ui_str_from_tbr(rule_t *tbr)
 {
-	// TODO
+	char *str = STAKE(1024);
+	char *id_str = ui_str_from_ari(&(tbr->id), NULL, 0);
+	char *ac_str = ui_str_from_ac(&(tbr->action));
+	snprintf(str,
+			 1024,
+			 "TBR: ID=%s, S=%ld, P=%ld, C=%ld, A=%s\n",
+			 (id_str == NULL) ? "null" :id_str,
+		     tbr->start,
+			 tbr->def.as_tbr.period,
+			 tbr->def.as_tbr.max_fire,
+		     (ac_str == NULL) ? "null" : ac_str);
 
-	return NULL;
+	SRELEASE(id_str);
+	SRELEASE(ac_str);
+	return str;
 }
 
 

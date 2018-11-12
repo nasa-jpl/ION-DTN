@@ -75,7 +75,7 @@ rule_t*   rule_copy_ptr(rule_t *src)
 		return NULL;
 	}
 
-	result->action = macdef_copy(&(src->action), &success);
+	result->action = ac_copy(&(src->action));
 	if(success != AMP_OK)
 	{
 		ari_release(&(result->id), 0);
@@ -90,7 +90,7 @@ rule_t*   rule_copy_ptr(rule_t *src)
 		if(success != AMP_OK)
 		{
 			ari_release(&(result->id), 0);
-			macdef_release(&(result->action), 0);
+			ac_release(&(result->action), 0);
 			SRELEASE(result);
 			return NULL;
 		}
@@ -113,9 +113,10 @@ rule_t*   rule_copy_ptr(rule_t *src)
 }
 
 
-rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, macdef_t action)
+rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action)
 {
 	rule_t *result = NULL;
+	int success;
 
 	/* Step 1: Allocate the message. */
 	if((result = (rule_t*) STAKE(sizeof(rule_t))) == NULL)
@@ -126,7 +127,7 @@ rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, macdef_t action)
 	}
 
 	/* Step 2: Populate the message. */
-	result->id = id;
+	result->id = ari_copy(id, &success);
 	result->start = start;
 	result->action = action;
 
@@ -149,9 +150,10 @@ rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, macdef_t action)
 	return result;
 }
 
-rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, macdef_t action)
+rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 {
 	rule_t *result = NULL;
+	int success;
 
 	/* Step 1: Allocate the message. */
 	if((result = (rule_t*) STAKE(sizeof(rule_t))) == NULL)
@@ -162,7 +164,14 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, macdef_t action)
 	}
 
 	/* Step 2: Populate the message. */
-	result->id = id;
+	result->id = ari_copy(id, &success);
+	if(success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("rule_create_tbr", "Can't copy ID.", NULL);
+		SRELEASE(result);
+		return NULL;
+	}
+
 	result->start = start;
 	result->action = action;
 
@@ -172,11 +181,11 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, macdef_t action)
 
 	if(start < AMP_RELATIVE_TIME_EPOCH)
 	{
-		result->ticks_left = start;
+		result->ticks_left = start + def.period;
 	}
 	else
 	{
-		result->ticks_left = (start - getUTCTime());
+		result->ticks_left = (start - getUTCTime()) + def.period;
 	}
 
 
@@ -190,55 +199,75 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, macdef_t action)
 rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 {
 	rule_t *result = NULL;
-	ari_t id;
+	ari_t *id;
 	uvast start;
-	macdef_t action;
+	ac_t action;
 	sbr_def_t as_sbr;
 	tbr_def_t as_tbr;
 
-	id = ari_deserialize(array_it, success);
+	blob_t *tmp = blob_deserialize_ptr(array_it, success);
+	id = ari_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
 	if(*success != AMP_OK)
 	{
-		ari_release(&id, 0);
 		return result;
 	}
+	cut_enc_refresh(array_it);
 
 	if((*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &start)) != AMP_OK)
 	{
-		ari_release(&id, 0);
+		ari_release(id, 1);
 		return result;
 	}
+	cut_enc_refresh(array_it);
 
-	action = macdef_deserialize(array_it, success);
-	if(*success != AMP_OK)
-	{
-		ari_release(&id, 0);
-		return result;
-	}
-
-	if(id.type == AMP_TYPE_SBR)
+	if(id->type == AMP_TYPE_SBR)
 	{
 		as_sbr = sbrdef_deserialize(array_it, success);
-		result = rule_create_sbr(id, start, as_sbr, action);
 	}
 	else
 	{
 		as_tbr = tbrdef_deserialize(array_it, success);
-		result = rule_create_tbr(id, start, as_tbr, action);
+	}
+	cut_enc_refresh(array_it);
+
+	tmp = blob_deserialize_ptr(array_it, success);
+	action = ac_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
+
+	if(*success != AMP_OK)
+	{
+		ari_release(id, 1);
+		return result;
+	}
+	cut_enc_refresh(array_it);
+
+	if(id->type == AMP_TYPE_SBR)
+	{
+		result = rule_create_sbr(*id, start, as_sbr, action);
+	}
+	else
+	{
+		result = rule_create_tbr(*id, start, as_tbr, action);
 	}
 
 	if((*success != AMP_OK) || (result == NULL))
 	{
-		if(id.type == AMP_TYPE_SBR)
+		if(id->type == AMP_TYPE_SBR)
 		{
 			expr_release(&(as_sbr.expr), 0);
 		}
 
-		ari_release(&id, 0);
-		macdef_release(&action, 0);
+		ari_release(id, 1);
+		ac_release(&action, 0);
 		SRELEASE(result);
 		*success = AMP_FAIL;
 		return NULL;
+	}
+	else
+	{
+		/* Release ari container only */
+		SRELEASE(id);
 	}
 
 	*success = AMP_OK;
@@ -277,7 +306,7 @@ rule_t*  rule_deserialize_ptr(CborValue *it, int *success)
 	 * and 6 for an SBR.
 	 */
 
-	err = cbor_value_get_array_length(&array_it, &length);
+	err = cbor_value_get_array_length(it, &length);
 	if((err != CborNoError) || (length < 5) || (length > 6))
 	{
 		AMP_DEBUG_ERR("rule_deserialize_ptr","Bad array length. Err: %d. Len %d",
@@ -344,7 +373,7 @@ rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
 	 * and 8 for an SBR to the database.
 	 */
 
-	err = cbor_value_get_array_length(&array_it, &length);
+	err = cbor_value_get_array_length(it, &length);
 	if((err != CborNoError) || (length < 7) || (length > 8))
 	{
 		AMP_DEBUG_ERR("rule_db_deserialize_ptr","Bad array length. Err: %d. Len %d",
@@ -369,6 +398,7 @@ rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
 		return NULL;
 	}
 
+	cut_enc_refresh(&array_it);
 	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UVAST, &(result->num_eval));
 	if(*success != AMP_OK)
 	{
@@ -377,6 +407,7 @@ rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
 		return NULL;
 	}
 
+	cut_enc_refresh(&array_it);
 	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UVAST, &(result->num_fire));
 	if(*success != AMP_OK)
 	{
@@ -385,6 +416,7 @@ rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
 		return NULL;
 	}
 
+	cut_enc_refresh(&array_it);
 	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_BYTE, &(result->flags));
 	if(*success != AMP_OK)
 	{
@@ -421,9 +453,10 @@ CborError rule_db_serialize(CborEncoder *encoder, void *item)
 	size_t length;
 	rule_t *rule = (rule_t *) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(rule, CborErrorIO);
-
+	if((encoder == NULL) || (item == NULL))
+	{
+		return CborErrorIO;
+	}
 
 	/* Start a container. */
 	length = (rule->id.type == AMP_TYPE_SBR) ? 8 : 7;
@@ -490,7 +523,7 @@ void rule_release(rule_t *rule, int destroy)
 	}
 
 	ari_release(&(rule->id), 0);
-	macdef_release(&(rule->action), 0);
+	ac_release(&(rule->action), 0);
 
 	if(destroy)
 	{
@@ -566,7 +599,7 @@ CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
 	}
 
 	/* Step 4: Encode the action. */
-	result = macdef_serialize_wrapper(&(rule->action));
+	result = ac_serialize_wrapper(&(rule->action));
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
 
@@ -606,13 +639,32 @@ sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success)
 {
 	sbr_def_t result;
 
-	result.expr = expr_deserialize(array_it, success);
-	CHKUSR(*success == AMP_OK, result);
+	// TODO: Clean this up, very messy.
+	blob_t *tmp = blob_deserialize_ptr(array_it, success);
+	expr_t *e = expr_deserialize_raw(tmp, success);
+	result.expr = *e;
+	SRELEASE(e); // Just release container since we shallow-copied contents.
+	blob_release(tmp, 1);
 
+	if(*success != AMP_OK)
+	{
+		return result;
+	}
+
+	cut_enc_refresh(array_it);
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_eval));
-	CHKUSR(*success == AMP_OK, result);
+	if(*success != AMP_OK)
+	{
+		expr_release(&(result.expr), 0);
+		return result;
+	}
 
+	cut_enc_refresh(array_it);
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
+	if(*success != AMP_OK)
+	{
+		expr_release(&(result.expr), 0);
+	}
 
 	return result;
 }
@@ -659,6 +711,8 @@ tbr_def_t tbrdef_deserialize(CborValue *array_it, int *success)
 		AMP_DEBUG_ERR("tbredef_deserialize","Failed to get period. %d", *success);
 		return result;
 	}
+
+	cut_enc_refresh(array_it);
 
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
 

@@ -1,37 +1,26 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
   ******************************************************************************/
-
 /*****************************************************************************
  **
- ** \file mid.c
+ ** File Name: ari.c
  **
  ** Description: This file contains the definitions, prototypes, constants, and
  **              other information necessary for the identification and
- **              processing of DTNMP Managed Identifiers (MIDs).
+ **              processing of AMM Resource Identifiers (ARIs). Every object in
+ **              the AMM can be uniquely identified using an ARI.
  **
  ** Notes:
- ** \todo 1. Need to make sure that all serialize and deserialize methods
- **          do regular bounds checking whenever writing and often when
- **          reading.
  **
  ** Assumptions:
- **      1. We limit the size of an OID in the system to reduce the amount
- **         of pre-allocated memory in this embedded system. Non-embedded
- **         implementations may wish to dynamically allocate MIDs as they are
- **         received.
- **
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/21/11  E. Birrane     Code comments and functional updates. (JHU/APL)
- **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
- **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs (JHU/APL)
- **  04/19/16  E. Birrane     Put OIDs on stack and not heap. (Secure DTN - NASA: NNX14CS58P)
- **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  09/18/18  E. Birrane     Initial implementation ported from previous
+ **                           implementation of MIDs for earlier AMP spec (JHU/APL)
  *****************************************************************************/
 
 #include "platform.h"
@@ -43,14 +32,23 @@
 #include "ari.h"
 #include "tnv.h"
 
-
-
 /*
  * +--------------------------------------------------------------------------+
  * |					   Private Functions  								  +
  * +--------------------------------------------------------------------------+
  */
 
+/******************************************************************************
+ * Private helper function to de-serialize a literal ARI.
+ *
+ * \returns The deserialized ARI.
+ *
+ * \param[in|out]  it       The first value of the serialized ARI.
+ * \param[out]     success  Whether the deserialization succeeded.
+ *
+ * \note
+ *   1. Assumes that parameter checking is performed by the caller.
+ *****************************************************************************/
 
 static ari_t p_ari_deserialize_lit(CborValue *it, int *success)
 {
@@ -67,7 +65,6 @@ static ari_t p_ari_deserialize_lit(CborValue *it, int *success)
 
 	*success = tnv_deserialize_val_by_type(it, &(result.as_lit));
 
-//	result.as_lit = tnv_deserialize(it, success);
 	if(*success != AMP_OK)
 	{
 		AMP_DEBUG_ERR("p_ari_deserialize_lit","Can't get ARI literal value.", NULL);
@@ -78,6 +75,18 @@ static ari_t p_ari_deserialize_lit(CborValue *it, int *success)
 }
 
 
+
+/******************************************************************************
+ * Private helper function to de-serialize a regular ARI.
+ *
+ * \returns The deserialized ARI.
+ *
+ * \param[in|out]  it       The first value of the serialized ARI.
+ * \param[out]     success  Whether the deserialization succeeded.
+ *
+ * \note
+ *   1. Assumes that parameter checking is performed by the caller.
+ *****************************************************************************/
 
 static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 {
@@ -113,7 +122,6 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 
 	if((*success == AMP_OK) && ARI_GET_FLAG_PARM(flags))
 	{
-
 		blob_t blob;
 		tnvc_t tmp;
 
@@ -166,17 +174,32 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 }
 
 
+/******************************************************************************
+ * Private helper function to serialize a literal ARI.
+ *
+ * \returns The serialization status code.
+ *
+ * \param[in|out]  encoder  The CBOR encoder.
+ * \param[in]      ari      The object being serialized.
+ *
+ * \note
+ *   1. Encoders track the extra memory needed if encoding continues past an
+ *      out-of-memory error. So, do not stop encoding in that instance. Out
+ *      of memory errors will be caught at a higher layer.
+ *****************************************************************************/
 
 static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
 {
-	CborError err;
+	CborError err = CborErrorIO;
 	uint8_t byte;
 	blob_t *result;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(ari, CborErrorIO);
+	if((encoder == NULL) || (ari == NULL))
+	{
+		return err;
+	}
 
-
+	/* Serialize the AMM Object type in accordance with spec. */
 	byte = ((ari->as_lit.type & 0xF) << 4) | (AMP_TYPE_LIT % 0xF);
 
 	err = cut_enc_byte(encoder, byte);
@@ -186,27 +209,34 @@ static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
 	}
 
 	err = tnv_serialize_value(encoder, &(ari->as_lit));
-/*	if((result = tnv_serialize_value_wrapper(&(ari->as_lit))) == NULL)
-	{
-		return CborErrorIO;
-	}
-
-	err = blob_serialize(encoder, result);
-
-	blob_release(result, 1);
-*/
 	return err;
 }
 
 
+/******************************************************************************
+ * Private helper function to serialize a regular ARI.
+ *
+ * \returns The serialization status code.
+ *
+ * \param[in|out]  encoder  The CBOR encoder.
+ * \param[in]      ari      The object being serialized.
+ *
+ * \note
+ *   1. Encoders track the extra memory needed if encoding continues past an
+ *      out-of-memory error. So, do not stop encoding in that instance. Out
+ *      of memory errors will be caught at a higher layer.
+ *****************************************************************************/
+
 static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
 {
-	CborError err;
+	CborError err = CborErrorIO;
 	blob_t *result;
 	int success;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(ari, CborErrorIO);
+	if((encoder == NULL) || (ari == NULL))
+	{
+		return err;
+	}
 
 	err = cut_enc_byte(encoder, ari->as_reg.flags);
 
@@ -273,55 +303,56 @@ static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
 
 
 
-
-
-
-
-
-
 /*
  * +--------------------------------------------------------------------------+
  * |					   Public Functions  								  +
  * +--------------------------------------------------------------------------+
  */
 
+/******************************************************************************
+ * Appends a set of parameters to an ARI.
+ *
+ * \returns AMP status code.
+ *
+ * \param[in|out]  ari    The SRI receiving the parameters.
+ * \param[in]      parms  The new parameters.
+ *
+ * \note
+ *****************************************************************************/
+
 int ari_add_parm_set(ari_t *ari, tnvc_t *parms)
 {
-	vec_idx_t idx;
-	CHKUSR(ari, AMP_FAIL);
-	CHKUSR(parms, AMP_FAIL);
+	if((ari == NULL) ||
+	   (ari->type == AMP_TYPE_LIT) ||
+	   (ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+	{
+		return AMP_FAIL;
+	}
 
 	return tnvc_append(&(ari->as_reg.parms), parms);
 }
 
+
+
 /******************************************************************************
  *
- * \par Function Name: ari_add_parm_val
+ * Appends a single parameter to the end of an ARI parm set.
  *
- * \par Adds a parameter to an ARI.
- *
- * \retval Success Value
+ * \returns AMP status code
  *
  * \param[in, out] ari   The ARI receiving the new parameter.
  * \param[in]      parm  The new parameter.
  *
- * \par Notes:
- *		1. The new parameter is shallow copied and the passed-in value MUST
- *		NOT be referenced by the caller again.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/25/12  E. Birrane     Initial implementation,
- *  04/15/16  E. Birrane     Updated to use blob_t
- *  06/11/16  E. Birrane     Cleanup parameters, use TDC.
- *  09/18/18  E. Birrane     Update to ARI. (JHU/APL)
+ * \notes
+ *  1. The new parameter is shallow copied and MUST NOT be
+ *     released by the calling function.
  *****************************************************************************/
+
 int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 {
 	if((ari == NULL) ||
-	   (parm == NULL) ||
-	   (ari->type == AMP_TYPE_LIT))
+	   (ari->type == AMP_TYPE_LIT) ||
+	   (ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
 	{
 		return AMP_FAIL;
 	}
@@ -331,54 +362,53 @@ int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 
 
 int ari_cb_comp_no_parm_fn(void *i1, void *i2)
- {
- 	CHKUSR(i1, -2);
- 	CHKUSR(i2, -2);
-
+{
  	return ari_compare((ari_t*)i1, (ari_t*)i2, 0);
- }
+}
 
 int ari_cb_comp_fn(void *i1, void *i2)
 {
-	CHKUSR(i1, -2);
-	CHKUSR(i2, -2);
-
 	return ari_compare((ari_t*)i1, (ari_t*)i2, 1);
 }
 
 void* ari_cb_copy_fn(void *item)
 {
-	if(item == NULL)
-	{
-		return NULL;
-	}
 	return ari_copy_ptr((ari_t*)item);
 }
 
 void ari_cb_del_fn(void *item)
 {
-	if(item != NULL)
-	{
-		ari_release((ari_t*)item, 1);
-	}
+	ari_release((ari_t*)item, 1);
 }
 
-/*
- * Based on sample BKDR hash function provided by
- * http://www.partow.net/programming/hashfunctions/
- */
+
+/******************************************************************************
+ *
+ * Hashes an ARI to an index in a rhht_t hash table.
+ *
+ * \returns The hash index, or # buckets on error.
+ *
+ * \param[in] table  The hash table that would receive the ARI.
+ * \param[in] key    The ARI identifying the object to be inserted.
+ *
+ * \notes
+ *  1. This is based on a sample BKDR hash function provided by
+ *     http://www.partow.net/programming/hashfunctions/
+ *  2. We assume this is only called from a hash table and, therefore, ht
+ *     cannot be NULL.
+ *****************************************************************************/
+
 rh_idx_t  ari_cb_hash(void *table, void *key)
 {
 	unsigned int seed = 131; /* 31 131 1313 13131 131313 etc.. */
     unsigned int hash = 0;
 	unsigned int i    = 0;
 	rhht_t *ht = (rhht_t*) table;
-
 	ari_t *id = (ari_t*) key;
 
 	if(id == NULL)
 	{
-		AMP_DEBUG_ERR("ari_cb_hash","Hash c alled with no key.", NULL);
+		AMP_DEBUG_ERR("ari_cb_hash","Bad parms.", NULL);
 		return ht->num_bkts;
 	}
 
@@ -407,28 +437,53 @@ rh_idx_t  ari_cb_hash(void *table, void *key)
 }
 
 
+
+/******************************************************************************
+ *
+ * Removes an entry in a hash table of ARIs.
+ *
+ * \param[in, out] elt  The hash table element being released.
+ *
+ * \notes
+ *  1. Since this is a hash table of ARIs, it is likely that they key and the
+ *     value are the same item, so be careful to not release the same ARI
+ *     two times in this function.
+ *****************************************************************************/
+
 void ari_cb_ht_del(rh_elt_t *elt)
 {
-	CHKVOID(elt);
+	if(elt == NULL)
+	{
+		return;
+	}
+
+	/*
+	 * Only release the key if it is different from the value. This is a
+	 * strange case that occurs if we have a hash tbale of ARIs where each
+	 * ARI is identified by itself.
+	 */
 	if(elt->key != elt->value)
 	{
 		ari_release((ari_t*)elt->key, 1);
-		elt->key = NULL;
 	}
 
 	ari_release((ari_t*)elt->value, 1);
 	elt->value = NULL;
+	elt->key = NULL;
 }
+
+
 
 /******************************************************************************
  *
- * \par Function Name: ari_compare
+ * Determines if 2 ARIs represent the same object. This comparison can be
+ * performed considering, or ignoring, parameters.
  *
- * \par Determines equivalence of two ARIs.
+ * \returns -1   : Error or ari1 < ari2
+ * 			 0   : ari1 == ari2
+ * 			 >0  : ari1 > ari2
  *
- * \retval -1   : Error or ari1 < ari2
- * 			0   : ari1 == ari2
- * 			>0  : ari1 > ari2
+ *
  *
  * \param[in] ari1      First ari being compared.
  * \param[in] ari2      Second ari being compared.
@@ -451,8 +506,10 @@ int ari_compare(ari_t *ari1, ari_t *ari2, int parms)
     AMP_DEBUG_ENTRY("ari_compare","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
     		         (uaddr) ari1, (uaddr) ari2);
 
-    CHKUSR(ari1, -1);
-    CHKUSR(ari2, -1);
+    if((ari1 == NULL) || (ari2 == NULL))
+    {
+    	return -1;
+    }
 
     if(ari1->type != ari2->type)
     {
@@ -678,9 +735,13 @@ ari_t* ari_deserialize_raw(blob_t *data, int *success)
 	CborParser parser;
 	CborValue it;
 
-	CHKNULL(success);
 	*success = AMP_FAIL;
-	CHKNULL(data);
+
+	if(data == NULL)
+	{
+		return NULL;
+	}
+
 
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
 	{
@@ -833,22 +894,26 @@ int ari_replace_parms(ari_t *ari, tnvc_t *new_parms)
  * returned parms must be freed.
  * TODO: Make more efficient. Do we really need the deep copies?
  */
-tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms)
+tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 {
 	uint8_t idx;
 	tnvc_t *result = NULL;
 
-	CHKNULL(src_parms);
-	CHKNULL(cur_parms);
 
-	if((tnvc_size(src_parms) == 0) ||
-	   (tnvc_size(cur_parms) == 0))
+	if((src_parms == NULL) && (parent_parms == NULL))
 	{
 		return NULL;
 	}
 
-	result = tnvc_copy(cur_parms);
+	result = tnvc_copy(src_parms);
 	CHKNULL(result);
+
+	if((parent_parms == NULL) ||
+	   (tnvc_size(src_parms) == 0) ||
+	   (tnvc_size(parent_parms) == 0))
+	{
+		return result;
+	}
 
 	for(idx = 0; idx < tnvc_size(result); idx++)
 	{
@@ -856,13 +921,13 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms)
 
 		if(TNV_IS_MAP(cur_val->flags))
 		{
-			uint8_t src_idx = cur_val->value.as_uint;
-			tnv_t *src_val = tnvc_get(src_parms, src_idx);
-			tnv_t *new_tnv = tnv_copy_ptr(src_val);
+			uint8_t parent_idx = cur_val->value.as_uint;
+			tnv_t *parent_val = tnvc_get(parent_parms, parent_idx);
+			tnv_t *new_tnv = tnv_copy_ptr(parent_val);
 			if(tnvc_update(result, idx, new_tnv) != AMP_OK)
 			{
 				AMP_DEBUG_ERR("ari_resolve_parms",
-						      "Can't apply parm map: %d -> %d", idx, src_idx);
+						      "Can't apply parm map: %d -> %d", idx, parent_idx);
 				tnv_release(new_tnv, 1);
 				tnvc_release(result, 1);
 				result = NULL;

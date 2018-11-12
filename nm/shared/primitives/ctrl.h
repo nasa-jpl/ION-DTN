@@ -38,8 +38,8 @@
 
 
 
-#define CTRL_SUCCESS (0)
-#define CTRL_FAILURE (1)
+#define CTRL_SUCCESS (AMP_OK)
+#define CTRL_FAILURE (AMP_FAIL)
 
 
 /*
@@ -140,6 +140,7 @@ void       ctrldef_release(ctrldef_t *def, int destroy);
 
 
 int     macdef_append(macdef_t *mac, ctrl_t *ctrl);
+int     macdef_append_ac(macdef_t *mac, ac_t *ac);
 
 void    macdef_cb_del_fn(void *item);
 int     macdef_cb_comp_fn(void *i1, void *i2);
@@ -159,6 +160,7 @@ macdef_t   macdef_deserialize_raw(blob_t *data, int *success);
 ctrl_t* macdef_get(macdef_t* mac, uint8_t index);
 uint8_t macdef_get_count(macdef_t* mac);
 
+int     macdef_init(macdef_t *mac, size_t num, ari_t *ari);
 void    macdef_release(macdef_t *mac, int destroy);
 
 CborError macdef_serialize(CborEncoder *encoder, void *item);

@@ -34,9 +34,13 @@
 
 // Todo: Talk about why we separate out parameters.
 
-int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parms);
+int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms);
 
-int lcc_run_macro(macdef_t *mac, tnvc_t *parms);
+int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parent_parms);
+
+int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms);
+
+
 
 void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms);
 

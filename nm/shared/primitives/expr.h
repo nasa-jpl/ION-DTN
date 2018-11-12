@@ -114,6 +114,7 @@ expr_t*   expr_copy_ptr(expr_t *expr);
 
 expr_t    expr_deserialize(CborValue *it, int *success);
 expr_t*   expr_deserialize_ptr(CborValue *it, int *success);
+expr_t*   expr_deserialize_raw(blob_t *data, int *success);
 
 tnv_t*    expr_eval(expr_t *expr);
 

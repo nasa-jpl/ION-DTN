@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-10-16  AUTO             Auto-generated c file 
+ **  2018-11-11  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -80,27 +80,34 @@ int adm_agent_op_prep(uint8_t num, tnv_t **lval, tnv_t **rval, vector_t *stack)
 
 	if(num > 0)
 	{
+		*rval = vec_pop(stack, &success);
+	}
+	else
+	{
 		*lval = vec_pop(stack, &success);
 	}
+
 	if((success == VEC_OK) && (num > 1))
 	{
-		*rval = vec_pop(stack, &success);
+		*lval = vec_pop(stack, &success);
 	}
 
 	return success;
 }
 
 
-int amp_agent_binary_num_op(tnv_t *result, amp_agent_op_e op, vector_t *stack, amp_type_e result_type)
+tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e result_type)
 {
 	int ls = 0;
 	int rs = 0;
 	tnv_t *lval = NULL;
 	tnv_t *rval = NULL;
+	tnv_t *result = NULL;
 
-	if((stack == NULL) || (result == NULL))
+
+	if(stack == NULL)
 	{
-		return AMP_FAIL;
+		return result;
 	}
 
 	if(adm_agent_op_prep(2, &lval, &rval, stack) != AMP_OK)
@@ -111,6 +118,13 @@ int amp_agent_binary_num_op(tnv_t *result, amp_agent_op_e op, vector_t *stack, a
 	}
 
 	// TODO more boundary checks.
+	if((result = tnv_create()) == NULL)
+	{
+		tnv_release(lval, 1);
+		tnv_release(rval, 1);
+		return NULL;
+	}
+
 	result->type = (result_type == AMP_TYPE_UNK) ? gValNumCvtResult[lval->type - AMP_TYPE_INT][rval->type - AMP_TYPE_INT] : result_type;
 
 	if(result->type == AMP_TYPE_UNK)
@@ -227,10 +241,331 @@ int amp_agent_binary_num_op(tnv_t *result, amp_agent_op_e op, vector_t *stack, a
 	if((ls != AMP_OK) || (rs != AMP_OK))
 	{
         AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
-        return AMP_FAIL;
+        tnv_release(result, 1);
+        result = NULL;
 	}
 
-	return AMP_OK;
+	return result;
+}
+
+tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e result_type)
+{
+	int ls = 0;
+	tnv_t *lval = NULL;
+	tnv_t *result = NULL;
+
+
+	if(stack == NULL)
+	{
+		return result;
+	}
+
+	if(adm_agent_op_prep(1, &lval, NULL, stack) != AMP_OK)
+	{
+		tnv_release(lval, 1);
+		return AMP_FAIL;
+	}
+
+	// TODO more boundary checks.
+	if((result = tnv_create()) == NULL)
+	{
+		tnv_release(lval, 1);
+		return NULL;
+	}
+
+	result->type = (result_type == AMP_TYPE_UNK) ? gValNumCvtResult[lval->type - AMP_TYPE_INT][lval->type - AMP_TYPE_INT] : result_type;
+
+	if(result->type == AMP_TYPE_UNK)
+	{
+		tnv_release(lval, 1);
+		return AMP_FAIL;
+	}
+
+    switch(result->type)
+	{
+	case AMP_TYPE_INT:
+		switch(op)
+		{
+		case BITNOT: result->value.as_int = ~(tnv_to_int(*lval, &ls)); break;
+		case ABS:    result->value.as_int = abs(tnv_to_int(*lval, &ls)); break;
+		case NEG:    result->value.as_int = -1 * (tnv_to_int(*lval, &ls)); break;
+		default:
+			ls = AMP_FAIL; break;
+		}
+		break;
+	case AMP_TYPE_UINT:
+		switch(op)
+		{
+		case BITNOT: result->value.as_uint = ~(tnv_to_uint(*lval, &ls)); break;
+		case ABS:    result->value.as_uint = abs(tnv_to_uint(*lval, &ls)); break;
+		case NEG:    result->value.as_uint = -1 * (tnv_to_uint(*lval, &ls)); break;
+		default:
+			ls = AMP_FAIL; break;
+		}
+		break;
+	case AMP_TYPE_VAST:
+		switch(op)
+		{
+		case BITNOT: result->value.as_vast = ~(tnv_to_vast(*lval, &ls)); break;
+		case ABS:    result->value.as_vast = abs(tnv_to_vast(*lval, &ls)); break;
+		case NEG:    result->value.as_vast = -1 * (tnv_to_vast(*lval, &ls)); break;
+		default:
+			ls = AMP_FAIL; break;
+		}
+		break;
+	case AMP_TYPE_UVAST:
+		switch(op)
+		{
+		case BITNOT: result->value.as_uvast = ~(tnv_to_uvast(*lval, &ls)); break;
+		case ABS:    result->value.as_uvast = abs(tnv_to_uvast(*lval, &ls)); break;
+		case NEG:    result->value.as_uvast = -1 * (tnv_to_uvast(*lval, &ls)); break;
+		default:
+			ls = AMP_FAIL; break;
+		}
+		break;
+	case AMP_TYPE_REAL32:
+		switch(op)
+		{
+		case ABS:    result->value.as_real32 = abs(tnv_to_real32(*lval, &ls)); break;
+		case NEG:    result->value.as_real32 = -1 * (tnv_to_real32(*lval, &ls)); break;
+		default:
+			ls = AMP_FAIL; break;
+		}
+		break;
+	case AMP_TYPE_REAL64:
+		switch(op)
+		{
+		case ABS:    result->value.as_real64 = abs(tnv_to_real64(*lval, &ls)); break;
+		case NEG:    result->value.as_real64 = -1 * (tnv_to_real64(*lval, &ls)); break;
+		default: ls = AMP_FAIL; break;
+		}
+		break;
+		default:
+			ls = AMP_FAIL; break;
+	}
+
+	tnv_release(lval, 1);
+
+	if(ls != AMP_OK)
+	{
+        AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type);
+        tnv_release(result, 1);
+        result = NULL;
+	}
+
+	return result;
+}
+
+tnv_t *adm_agent_unary_log_op(amp_agent_op_e op, vector_t *stack)
+{
+	tnv_t *result = NULL;
+	tnv_t *val = NULL;
+	int s = 0;
+
+	if(stack == NULL)
+	{
+		return result;
+	}
+
+	if(adm_agent_op_prep(1, &val, NULL, stack) != AMP_OK)
+	{
+		tnv_release(result, 1);
+		return NULL;
+	}
+
+	// TODO more boundary checks.
+	if((result = tnv_create()) == NULL)
+	{
+		tnv_release(result, 1);
+		return NULL;
+	}
+
+	result->type = AMP_TYPE_BOOL;
+
+    switch(val->type)
+	{
+	case AMP_TYPE_INT:
+		switch(op)
+		{
+			case LOGNOT: result->value.as_uint = tnv_to_int(*val, &s) ? 0 : 1; break;
+			default: s = 0; break;
+		}
+		break;
+	case AMP_TYPE_UINT:
+		switch(op)
+		{
+			case LOGNOT: result->value.as_uint = tnv_to_uint(*val, &s) ? 0 : 1; break;
+			default: s = 0; break;
+		}
+		break;
+	case AMP_TYPE_VAST:
+		switch(op)
+		{
+			case LOGNOT: result->value.as_uint = tnv_to_vast(*val, &s) ? 0 : 1; break;
+			default: s = 0; break;
+		}
+		break;
+	case AMP_TYPE_UVAST:
+		switch(op)
+		{
+			case LOGNOT: result->value.as_uint = tnv_to_uvast(*val, &s) ? 0 : 1; break;
+			default: s = 0; break;
+		}
+		break;
+	case AMP_TYPE_REAL32:
+		switch(op)
+		{
+			default: s = 0; break;
+		}
+		break;
+	case AMP_TYPE_REAL64:
+		switch(op)
+		{
+			default: s = 0; break;
+		}
+		break;
+	default:
+		s = 0;
+		break;
+	}
+
+	if(s == 0)
+	{
+        AMP_DEBUG_ERR("adm_agent_unary_log_op","Bad op (%d) or type (%d).",op, val->type);
+        tnv_release(result, 1);
+        result = NULL;
+	}
+
+	return result;
+}
+
+
+
+tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
+{
+	int ls = 0;
+	int rs = 0;
+	tnv_t *lval = NULL;
+	tnv_t *rval = NULL;
+	tnv_t *result = NULL;
+
+
+	if(stack == NULL)
+	{
+		return result;
+	}
+
+	if(adm_agent_op_prep(2, &lval, &rval, stack) != AMP_OK)
+	{
+		tnv_release(lval, 1);
+		tnv_release(rval, 1);
+		return AMP_FAIL;
+	}
+
+	// TODO more boundary checks.
+	if((result = tnv_create()) == NULL)
+	{
+		tnv_release(lval, 1);
+		tnv_release(rval, 1);
+		return NULL;
+	}
+
+	result->type = AMP_TYPE_BOOL;
+
+	/* Step 3: Based on result type, convert and perform operations. */
+    switch(lval->type)
+	{
+	case AMP_TYPE_INT:
+		switch(op)
+		{
+		case LOGAND: result->value.as_uint = tnv_to_int(*lval, &ls) && tnv_to_int(*rval, &rs); break;
+		case LOGOR:  result->value.as_uint = tnv_to_int(*lval, &ls) || tnv_to_int(*rval, &rs); break;
+		case LT:     result->value.as_uint = tnv_to_int(*lval, &ls) < tnv_to_int(*rval, &rs); break;
+		case GT:     result->value.as_uint = tnv_to_int(*lval, &ls) > tnv_to_int(*rval, &rs); break;
+		case LTE:    result->value.as_uint = tnv_to_int(*lval, &ls) <= tnv_to_int(*rval, &rs); break;
+		case GTE:    result->value.as_uint = tnv_to_int(*lval, &ls) >= tnv_to_int(*rval, &rs); break;
+		case EQ:     result->value.as_uint = tnv_to_int(*lval, &ls) == tnv_to_int(*rval, &rs); break;
+		default: ls = rs = 0; break;
+		}
+		break;
+	case AMP_TYPE_UINT:
+		switch(op)
+		{
+		case LOGAND: result->value.as_uint = tnv_to_uint(*lval, &ls) && tnv_to_uint(*rval, &rs); break;
+		case LOGOR:  result->value.as_uint = tnv_to_uint(*lval, &ls) || tnv_to_uint(*rval, &rs); break;
+		case LT:     result->value.as_uint = tnv_to_uint(*lval, &ls) < tnv_to_uint(*rval, &rs); break;
+		case GT:     result->value.as_uint = tnv_to_uint(*lval, &ls) > tnv_to_uint(*rval, &rs); break;
+		case LTE:    result->value.as_uint = tnv_to_uint(*lval, &ls) <= tnv_to_uint(*rval, &rs); break;
+		case GTE:    result->value.as_uint = tnv_to_uint(*lval, &ls) >= tnv_to_uint(*rval, &rs); break;
+		case EQ:     result->value.as_uint = tnv_to_uint(*lval, &ls) == tnv_to_uint(*rval, &rs); break;
+		default: ls = rs = 0; break;
+		}
+		break;
+	case AMP_TYPE_VAST:
+		switch(op)
+		{
+		case LOGAND: result->value.as_uint = tnv_to_vast(*lval, &ls) && tnv_to_vast(*rval, &rs); break;
+		case LOGOR:  result->value.as_uint = tnv_to_vast(*lval, &ls) || tnv_to_vast(*rval, &rs); break;
+		case LT:     result->value.as_uint = tnv_to_vast(*lval, &ls) < tnv_to_vast(*rval, &rs); break;
+		case GT:     result->value.as_uint = tnv_to_vast(*lval, &ls) > tnv_to_vast(*rval, &rs); break;
+		case LTE:    result->value.as_uint = tnv_to_vast(*lval, &ls) <= tnv_to_vast(*rval, &rs); break;
+		case GTE:    result->value.as_uint = tnv_to_vast(*lval, &ls) >= tnv_to_vast(*rval, &rs); break;
+		case EQ:     result->value.as_uint = tnv_to_vast(*lval, &ls) == tnv_to_vast(*rval, &rs); break;
+		default: ls = rs = 0; break;
+		}
+		break;
+	case AMP_TYPE_UVAST:
+		switch(op)
+		{
+		case LOGAND: result->value.as_uint = tnv_to_uvast(*lval, &ls) && tnv_to_uvast(*rval, &rs); break;
+		case LOGOR:  result->value.as_uint = tnv_to_uvast(*lval, &ls) || tnv_to_uvast(*rval, &rs); break;
+		case LT:     result->value.as_uint = tnv_to_uvast(*lval, &ls) < tnv_to_uvast(*rval, &rs); break;
+		case GT:     result->value.as_uint = tnv_to_uvast(*lval, &ls) > tnv_to_uvast(*rval, &rs); break;
+		case LTE:    result->value.as_uint = tnv_to_uvast(*lval, &ls) <= tnv_to_uvast(*rval, &rs); break;
+		case GTE:    result->value.as_uint = tnv_to_uvast(*lval, &ls) >= tnv_to_uvast(*rval, &rs); break;
+		case EQ:     result->value.as_uint = tnv_to_uvast(*lval, &ls) == tnv_to_uvast(*rval, &rs); break;
+		default: ls = rs = 0; break;
+		}
+		break;
+	case AMP_TYPE_REAL32:
+		switch(op)
+		{
+		case LOGAND: result->value.as_uint = tnv_to_real32(*lval, &ls) && tnv_to_real32(*rval, &rs); break;
+		case LOGOR:  result->value.as_uint = tnv_to_real32(*lval, &ls) || tnv_to_real32(*rval, &rs); break;
+		case LT:     result->value.as_uint = tnv_to_real32(*lval, &ls) < tnv_to_real32(*rval, &rs); break;
+		case GT:     result->value.as_uint = tnv_to_real32(*lval, &ls) > tnv_to_real32(*rval, &rs); break;
+		case LTE:    result->value.as_uint = tnv_to_real32(*lval, &ls) <= tnv_to_real32(*rval, &rs); break;
+		case GTE:    result->value.as_uint = tnv_to_real32(*lval, &ls) >= tnv_to_real32(*rval, &rs); break;
+		case EQ:     result->value.as_uint = tnv_to_real32(*lval, &ls) == tnv_to_real32(*rval, &rs); break;
+		default: ls = rs = 0; break;
+		}
+		break;
+	case AMP_TYPE_REAL64:
+		switch(op)
+		{
+		case LOGAND: result->value.as_uint = tnv_to_real64(*lval, &ls) && tnv_to_real64(*rval, &rs); break;
+		case LOGOR:  result->value.as_uint = tnv_to_real64(*lval, &ls) || tnv_to_real64(*rval, &rs); break;
+		case LT:     result->value.as_uint = tnv_to_real64(*lval, &ls) < tnv_to_real64(*rval, &rs); break;
+		case GT:     result->value.as_uint = tnv_to_real64(*lval, &ls) > tnv_to_real64(*rval, &rs); break;
+		case LTE:    result->value.as_uint = tnv_to_real64(*lval, &ls) <= tnv_to_real64(*rval, &rs); break;
+		case GTE:    result->value.as_uint = tnv_to_real64(*lval, &ls) >= tnv_to_real64(*rval, &rs); break;
+		case EQ:     result->value.as_uint = tnv_to_real64(*lval, &ls) == tnv_to_real64(*rval, &rs); break;
+		default: ls = rs = 0; break;
+		}
+		break;
+	default:
+		ls = rs = 0;
+		break;
+	}
+
+	if((ls == 0) || (rs == 0))
+	{
+        AMP_DEBUG_ERR("adm_agent_binary_log_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
+        tnv_release(result, 1);
+        result = NULL;
+	}
+
+	return result;
 }
 
 
@@ -273,7 +608,7 @@ void amp_agent_cleanup()
 
 tnv_t *amp_agent_meta_name(tnvc_t *parms)
 {
-	return tnv_from_str("adm_amp_agent");
+	return tnv_from_str("amp_agent");
 }
 
 
@@ -285,7 +620,7 @@ tnv_t *amp_agent_meta_namespace(tnvc_t *parms)
 
 tnv_t *amp_agent_meta_version(tnvc_t *parms)
 {
-	return tnv_from_str("v0.5");
+	return tnv_from_str("v3.1");
 }
 
 
@@ -295,11 +630,11 @@ tnv_t *amp_agent_meta_organization(tnvc_t *parms)
 }
 
 
-tnv_t* amp_agent_get_amp_epoch(tnvc_t *parms)
+/* Constant Functions */
+tnv_t *amp_agent_get_amp_epoch(tnvc_t *parms)
 {
 	return tnv_from_uvast(1504915200);
 }
-
 
 /* Table Functions */
 
@@ -307,10 +642,9 @@ tnv_t* amp_agent_get_amp_epoch(tnvc_t *parms)
 /*
  * This table lists all the adms that are supported by the agent.
  */
-tbl_t* adm_amp_agent_tbl_adms(ari_t *id)
+tbl_t *amp_agent_tblt_adms(ari_t *id)
 {
 	tbl_t *table = NULL;
-
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
@@ -318,7 +652,7 @@ tbl_t* adm_amp_agent_tbl_adms(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_adms BODY
+	 * |START CUSTOM FUNCTION tblt_adms BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	tnvc_t *cur_row = NULL;
@@ -333,7 +667,7 @@ tbl_t* adm_amp_agent_tbl_adms(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_adms BODY
+	 * |STOP CUSTOM FUNCTION tblt_adms BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -343,10 +677,9 @@ tbl_t* adm_amp_agent_tbl_adms(ari_t *id)
 /*
  * This table lists the ARI for every variable that is known to the agent.
  */
-tbl_t* adm_amp_agent_tbl_variables(ari_t *id)
+tbl_t *amp_agent_tblt_variables(ari_t *id)
 {
 	tbl_t *table = NULL;
-
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
@@ -354,7 +687,7 @@ tbl_t* adm_amp_agent_tbl_variables(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_variables BODY
+	 * |START CUSTOM FUNCTION tblt_variables BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	if(amp_agent_build_ari_table(table, &(gVDB.vars)) != AMP_OK)
@@ -365,7 +698,7 @@ tbl_t* adm_amp_agent_tbl_variables(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_variables BODY
+	 * |STOP CUSTOM FUNCTION tblt_variables BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -375,10 +708,9 @@ tbl_t* adm_amp_agent_tbl_variables(ari_t *id)
 /*
  * This table lists the ARI for every report template that is known to the agent.
  */
-tbl_t* adm_amp_agent_tbl_rptt(ari_t *id)
+tbl_t *amp_agent_tblt_rptts(ari_t *id)
 {
 	tbl_t *table = NULL;
-
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
@@ -386,7 +718,7 @@ tbl_t* adm_amp_agent_tbl_rptt(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_rptt BODY
+	 * |START CUSTOM FUNCTION tblt_rptts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	if(amp_agent_build_ari_table(table, &(gVDB.rpttpls)) != AMP_OK)
@@ -397,7 +729,7 @@ tbl_t* adm_amp_agent_tbl_rptt(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_rptt BODY
+	 * |STOP CUSTOM FUNCTION tblt_rptts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -407,10 +739,9 @@ tbl_t* adm_amp_agent_tbl_rptt(ari_t *id)
 /*
  * This table lists the ARI for every macro that is known to the agent.
  */
-tbl_t* adm_amp_agent_tbl_macro(ari_t *id)
+tbl_t *amp_agent_tblt_macros(ari_t *id)
 {
 	tbl_t *table = NULL;
-
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
@@ -418,7 +749,7 @@ tbl_t* adm_amp_agent_tbl_macro(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_macro BODY
+	 * |START CUSTOM FUNCTION tblt_macros BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
@@ -430,7 +761,7 @@ tbl_t* adm_amp_agent_tbl_macro(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_macro BODY
+	 * |STOP CUSTOM FUNCTION tblt_macros BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -438,12 +769,11 @@ tbl_t* adm_amp_agent_tbl_macro(ari_t *id)
 
 
 /*
- * This table lists the ARI for every tbr that is known to the agent.
+ * This table lists the ARI for every rule that is known to the agent.
  */
-tbl_t* adm_amp_agent_tbl_rule(ari_t *id)
+tbl_t *amp_agent_tblt_rules(ari_t *id)
 {
 	tbl_t *table = NULL;
-
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
@@ -451,7 +781,7 @@ tbl_t* adm_amp_agent_tbl_rule(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_tbr BODY
+	 * |START CUSTOM FUNCTION tblt_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
@@ -463,21 +793,19 @@ tbl_t* adm_amp_agent_tbl_rule(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_tbr BODY
+	 * |STOP CUSTOM FUNCTION tblt_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
 }
 
 
-
 /*
  * This table lists the ARI for every table template that is known to the agent.
  */
-tbl_t* adm_amp_agent_tbl_tblt(ari_t *id)
+tbl_t *amp_agent_tblt_tblts(ari_t *id)
 {
 	tbl_t *table = NULL;
-
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
@@ -485,7 +813,7 @@ tbl_t* adm_amp_agent_tbl_tblt(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tbl_tblt BODY
+	 * |START CUSTOM FUNCTION tblt_tblts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
@@ -497,7 +825,7 @@ tbl_t* adm_amp_agent_tbl_tblt(ari_t *id)
 
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tbl_tblt BODY
+	 * |STOP CUSTOM FUNCTION tblt_tblts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return table;
@@ -830,12 +1158,10 @@ tnv_t *amp_agent_get_cur_time(tnvc_t *parms)
 /*
  * This control configures a new variable definition on the Agent.
  */
-
-tnv_t* amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
-
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_var BODY
@@ -886,9 +1212,9 @@ tnv_t* amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control removes one or more variable definitions from the Agent.
  */
-tnv_t* amp_agent_ctrl_del_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_del_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -931,14 +1257,12 @@ tnv_t* amp_agent_ctrl_del_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 }
 
 
-
-
 /*
  * This control configures a new report template definition on the Agent.
  */
-tnv_t* amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -989,9 +1313,9 @@ tnv_t* amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control removes one or more report template definitions from the Agent.
  */
-tnv_t* amp_agent_ctrl_del_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_del_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1040,9 +1364,9 @@ tnv_t* amp_agent_ctrl_del_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
  * This control produces a detailed description of one or more report template  identifier(ARI) known t
  * o the Agent.
  */
-tnv_t* amp_agent_ctrl_desc_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_desc_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1095,9 +1419,9 @@ tnv_t* amp_agent_ctrl_desc_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
  * This control causes the Agent to produce a report entry for each identified report templates and sen
  * d them to one or more identified managers(ARIs).
  */
-tnv_t* amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1177,11 +1501,12 @@ tnv_t* amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control generates tables for each identified table template.
+ * This control causes the Agent to produce a table for each identified table templates and send them t
+ * o one or more identified managers(ARIs).
  */
-tnv_t* amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1266,9 +1591,9 @@ tnv_t* amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control configures a new macro definition on the Agent.
  */
-tnv_t* amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1328,9 +1653,9 @@ tnv_t* amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control removes one or more macro definitions from the Agent.
  */
-tnv_t* amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1379,9 +1704,9 @@ tnv_t* amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
  * This control produces a detailed description of one or more macro identifier(ARI) known to the Agent
  * .
  */
-tnv_t* amp_agent_ctrl_desc_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_desc_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1433,15 +1758,56 @@ tnv_t* amp_agent_ctrl_desc_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control configures a new time-based rule(TBR) definition on the Agent.
  */
-tnv_t* amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_tbr BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	int success;
+	int rh_code;
+	tbr_def_t def;
+	macdef_t mac;
+	rule_t *tbr = NULL;
+
+	ari_t *id = adm_get_parm_obj(parms, 0, AMP_TYPE_ARI);
+	uvast start = adm_get_parm_uvast(parms, 1, &success);
+	def.period = adm_get_parm_uvast(parms, 2, &success);
+	def.max_fire = adm_get_parm_uvast(parms, 3, &success);
+	ac_t action = ac_copy(adm_get_parm_obj(parms, 4, AMP_TYPE_AC));
+
+	if(id == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_TBR", "Bad parameters for control", NULL);
+		return result;
+	}
+
+	if((tbr = rule_create_tbr(*id, start, def, action)) == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_TBR", "Unable to create TBR structure.", NULL);
+		return result;
+	}
+
+	rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
+
+	if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+	{
+		AMP_DEBUG_ERR("ADD_TBR", "Error adding new TBR.", NULL);
+		return result;
+	}
+
+	if(db_persist_rule(tbr) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("ADD_TBR", "Unable to persist new TBR.", NULL);
+		return result;
+	}
+
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_add_tbr BODY
@@ -1452,59 +1818,59 @@ tnv_t* amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control removes one or more TBR definitions from the Agent.
- */
-tnv_t* amp_agent_ctrl_del_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
-{
-	tnv_t* result = NULL;
-	*status = CTRL_FAILURE;
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_del_tbr BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_del_tbr BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	return result;
-}
-
-
-/*
- * This control produces a detailed description of one or more TRL identifier(ARI)s known to the Agent.
- */
-tnv_t* amp_agent_ctrl_desc_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
-{
-	tnv_t* result = NULL;
-	*status = CTRL_FAILURE;
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_desc_tbr BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_desc_tbr BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	return result;
-}
-
-
-/*
  * This control configures a new state-based rule(SBR) definition on the Agent.
  */
-tnv_t* amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_sbr BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	sbr_def_t def;
+	rule_t *sbr = NULL;
+	int success;
+	int rh_code;
+
+	ari_t *id = adm_get_parm_obj(parms, 0, AMP_TYPE_ARI);
+	uvast start = adm_get_parm_uvast(parms, 1, &success);
+	expr_t *state = adm_get_parm_obj(parms, 2, AMP_TYPE_EXPR);
+	def.expr = expr_copy(*state);
+	def.max_eval = adm_get_parm_uvast(parms, 3, &success);
+	def.max_fire = adm_get_parm_uvast(parms, 4, &success);
+	ac_t action = ac_copy(adm_get_parm_obj(parms, 5, AMP_TYPE_AC));
+
+	if(id == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_SBR", "Bad parameters for control", NULL);
+		return result;
+	}
+
+	if((sbr = rule_create_sbr(*id, start, def, action)) == NULL)
+	{
+		AMP_DEBUG_ERR("ADD_SBR", "Unable to create SBR structure.", NULL);
+		return result;
+	}
+
+	rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
+
+	if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+	{
+		AMP_DEBUG_ERR("ADD_SBR", "Error adding new SBR.", NULL);
+		return result;
+	}
+
+	if(db_persist_rule(sbr) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("ADD_SBR", "Unable to persist new SBR.", NULL);
+		return result;
+	}
+
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_add_sbr BODY
@@ -1515,20 +1881,48 @@ tnv_t* amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control removes one or more SBR definitions from the Agent.
+ * This control removes one or more rule definitions from the Agent.
  */
-tnv_t* amp_agent_ctrl_del_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_del_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_del_sbr BODY
+	 * |START CUSTOM FUNCTION ctrl_del_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	vecit_t it;
+	ac_t *ids = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+
+	if(ids == NULL)
+	{
+		AMP_DEBUG_ERR("DEL_RULE", "Bad parameters.", NULL);
+		return result;
+	}
+
+	for(it = vecit_first(&(ids->values)); vecit_valid(it); it = vecit_next(it))
+	{
+		ari_t *cur_id = vecit_data(it);
+		rule_t *rule = VDB_FINDKEY_RULE(cur_id);
+
+		if(rule == NULL)
+		{
+			AMP_DEBUG_WARN("DEL_RULE", "Cannot find RULE to be deleted.", NULL);
+		}
+		else
+		{
+			db_forget(&(rule->desc), gDB.rules);
+			VDB_DELKEY_RULE(cur_id);
+		}
+	}
+
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_del_sbr BODY
+	 * |STOP CUSTOM FUNCTION ctrl_del_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -1536,20 +1930,53 @@ tnv_t* amp_agent_ctrl_del_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control produces a detailed description of one or more SBR identifier(ARI)s known to the Agent.
+ * This control produces a detailed description of one or more rules known to the Agent.
  */
-tnv_t* amp_agent_ctrl_desc_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_desc_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION ctrl_desc_sbr BODY
+	 * |START CUSTOM FUNCTION ctrl_desc_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	vecit_t ac_it;
+	int i = 0;
+	ac_t *ids = adm_get_parm_obj(parms, 0, AMP_TYPE_AC);
+
+	if(ids == NULL)
+	{
+		AMP_DEBUG_ERR("DESC_RULE", "Bad parameters.", NULL);
+		return result;
+	}
+
+	tnvc_t *tnvc = tnvc_create(vec_num_entries(ids->values));
+
+	/* For each rule being described. */
+	for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
+	{
+		ari_t *cur_id = vecit_data(ac_it);
+		rule_t *rule = VDB_FINDKEY_RULE(cur_id);
+
+		if(rule == NULL)
+		{
+			AMP_DEBUG_WARN("DESC_RULE","Cannot find RULE for item %d.", i);
+		}
+		else
+		{
+			tnv_t *val = tnv_from_obj(rule->id.type, rule_copy_ptr(rule));
+			tnvc_insert(tnvc, val);
+		}
+	}
+
+	result = tnv_from_obj(AMP_TYPE_TNVC, tnvc);
+	*status = CTRL_SUCCESS;
+
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION ctrl_desc_sbr BODY
+	 * |STOP CUSTOM FUNCTION ctrl_desc_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -1559,15 +1986,40 @@ tnv_t* amp_agent_ctrl_desc_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control stores variables.
  */
-tnv_t* amp_agent_ctrl_store_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_store_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_store_var BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	ari_t *id = adm_get_parm_obj(parms, 0, AMP_TYPE_ARI);
+	expr_t *expr = adm_get_parm_obj(parms, 1, AMP_TYPE_EXPR);
+
+	var_t *var = VDB_FINDKEY_VAR(id);
+
+	if(var == NULL)
+	{
+		AMP_DEBUG_ERR("stor_var","Cannot find variable.", NULL);
+		return result;
+	}
+
+	tnv_t *tmp = expr_eval(expr);
+	if(tmp != NULL)
+	{
+		tnv_release(var->value, 1);
+		var->value = tmp;
+		*status = CTRL_SUCCESS;
+	}
+	else
+	{
+		AMP_DEBUG_ERR("stor_var","unable to assign new value.", NULL);
+	}
+
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_store_var BODY
@@ -1580,9 +2032,9 @@ tnv_t* amp_agent_ctrl_store_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 /*
  * This control resets all Agent ADM statistics reported in the Agent ADM report.
  */
-tnv_t* amp_agent_ctrl_reset_counts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *amp_agent_ctrl_reset_counts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
-	tnv_t* result = NULL;
+	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1609,18 +2061,14 @@ tnv_t* amp_agent_ctrl_reset_counts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
  */
 tnv_t *amp_agent_op_plusint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_plusint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	if(amp_agent_binary_num_op(result, PLUS, stack, AMP_TYPE_INT) != AMP_OK)
-	{
-		tnv_release(result, 1);
-		result = NULL;
-	}
+	result = amp_agent_binary_num_op(PLUS, stack, AMP_TYPE_INT);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1636,17 +2084,14 @@ tnv_t *amp_agent_op_plusint(vector_t *stack)
  */
 tnv_t *amp_agent_op_plusuint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_plusuint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	if(amp_agent_binary_num_op(result, PLUS, stack, AMP_TYPE_UINT) != AMP_OK)
-	{
-		tnv_release(result, 1);
-		result = NULL;
-	}
+	result = amp_agent_binary_num_op(PLUS, stack, AMP_TYPE_UINT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_plusuint BODY
@@ -1661,12 +2106,14 @@ tnv_t *amp_agent_op_plusuint(vector_t *stack)
  */
 tnv_t *amp_agent_op_plusvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_plusvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(PLUS, stack, AMP_TYPE_VAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_plusvast BODY
@@ -1681,12 +2128,14 @@ tnv_t *amp_agent_op_plusvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_plusuvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_plusuvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(PLUS, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_plusuvast BODY
@@ -1701,12 +2150,15 @@ tnv_t *amp_agent_op_plusuvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_plusreal32(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_plusreal32 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	result = amp_agent_binary_num_op(PLUS, stack, AMP_TYPE_REAL32);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_plusreal32 BODY
@@ -1721,12 +2173,14 @@ tnv_t *amp_agent_op_plusreal32(vector_t *stack)
  */
 tnv_t *amp_agent_op_plusreal64(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_plusreal64 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(PLUS, stack, AMP_TYPE_REAL64);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_plusreal64 BODY
@@ -1741,12 +2195,14 @@ tnv_t *amp_agent_op_plusreal64(vector_t *stack)
  */
 tnv_t *amp_agent_op_minusint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_minusint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MINUS, stack, AMP_TYPE_INT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_minusint BODY
@@ -1761,12 +2217,13 @@ tnv_t *amp_agent_op_minusint(vector_t *stack)
  */
 tnv_t *amp_agent_op_minusuint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_minusuint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MINUS, stack, AMP_TYPE_UINT);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_minusuint BODY
@@ -1781,12 +2238,14 @@ tnv_t *amp_agent_op_minusuint(vector_t *stack)
  */
 tnv_t *amp_agent_op_minusvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_minusvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MINUS, stack, AMP_TYPE_VAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_minusvast BODY
@@ -1801,12 +2260,14 @@ tnv_t *amp_agent_op_minusvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_minusuvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_minusuvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MINUS, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_minusuvast BODY
@@ -1821,12 +2282,14 @@ tnv_t *amp_agent_op_minusuvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_minusreal32(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_minusreal32 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MINUS, stack, AMP_TYPE_REAL32);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_minusreal32 BODY
@@ -1841,12 +2304,14 @@ tnv_t *amp_agent_op_minusreal32(vector_t *stack)
  */
 tnv_t *amp_agent_op_minusreal64(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_minusreal64 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MINUS, stack, AMP_TYPE_REAL64);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_minusreal64 BODY
@@ -1861,12 +2326,14 @@ tnv_t *amp_agent_op_minusreal64(vector_t *stack)
  */
 tnv_t *amp_agent_op_multint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_multint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MULT, stack, AMP_TYPE_INT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_multint BODY
@@ -1881,12 +2348,14 @@ tnv_t *amp_agent_op_multint(vector_t *stack)
  */
 tnv_t *amp_agent_op_multuint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_multuint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MULT, stack, AMP_TYPE_UINT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_multuint BODY
@@ -1901,12 +2370,14 @@ tnv_t *amp_agent_op_multuint(vector_t *stack)
  */
 tnv_t *amp_agent_op_multvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_multvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MULT, stack, AMP_TYPE_VAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_multvast BODY
@@ -1921,12 +2392,14 @@ tnv_t *amp_agent_op_multvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_multuvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_multuvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MULT, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_multuvast BODY
@@ -1941,12 +2414,14 @@ tnv_t *amp_agent_op_multuvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_multreal32(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_multreal32 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MULT, stack, AMP_TYPE_REAL32);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_multreal32 BODY
@@ -1961,12 +2436,14 @@ tnv_t *amp_agent_op_multreal32(vector_t *stack)
  */
 tnv_t *amp_agent_op_multreal64(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_multreal64 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MULT, stack, AMP_TYPE_REAL64);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_multreal64 BODY
@@ -1981,12 +2458,14 @@ tnv_t *amp_agent_op_multreal64(vector_t *stack)
  */
 tnv_t *amp_agent_op_divint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_divint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(DIV, stack, AMP_TYPE_INT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_divint BODY
@@ -2001,12 +2480,14 @@ tnv_t *amp_agent_op_divint(vector_t *stack)
  */
 tnv_t *amp_agent_op_divuint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_divuint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(DIV, stack, AMP_TYPE_UINT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_divuint BODY
@@ -2021,12 +2502,14 @@ tnv_t *amp_agent_op_divuint(vector_t *stack)
  */
 tnv_t *amp_agent_op_divvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_divvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(DIV, stack, AMP_TYPE_VAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_divvast BODY
@@ -2041,12 +2524,14 @@ tnv_t *amp_agent_op_divvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_divuvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_divuvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(DIV, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_divuvast BODY
@@ -2061,12 +2546,14 @@ tnv_t *amp_agent_op_divuvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_divreal32(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_divreal32 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(DIV, stack, AMP_TYPE_REAL32);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_divreal32 BODY
@@ -2081,12 +2568,14 @@ tnv_t *amp_agent_op_divreal32(vector_t *stack)
  */
 tnv_t *amp_agent_op_divreal64(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_divreal64 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(DIV, stack, AMP_TYPE_REAL64);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_divreal64 BODY
@@ -2101,12 +2590,14 @@ tnv_t *amp_agent_op_divreal64(vector_t *stack)
  */
 tnv_t *amp_agent_op_modint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_modint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MOD, stack, AMP_TYPE_INT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_modint BODY
@@ -2121,12 +2612,14 @@ tnv_t *amp_agent_op_modint(vector_t *stack)
  */
 tnv_t *amp_agent_op_moduint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_moduint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	result = amp_agent_binary_num_op(MOD, stack, AMP_TYPE_UINT);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_moduint BODY
@@ -2141,12 +2634,14 @@ tnv_t *amp_agent_op_moduint(vector_t *stack)
  */
 tnv_t *amp_agent_op_modvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_modvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MOD, stack, AMP_TYPE_VAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_modvast BODY
@@ -2161,12 +2656,14 @@ tnv_t *amp_agent_op_modvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_moduvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_moduvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MOD, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_moduvast BODY
@@ -2181,12 +2678,15 @@ tnv_t *amp_agent_op_moduvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_modreal32(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_modreal32 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	result = amp_agent_binary_num_op(MOD, stack, AMP_TYPE_REAL32);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_modreal32 BODY
@@ -2201,12 +2701,14 @@ tnv_t *amp_agent_op_modreal32(vector_t *stack)
  */
 tnv_t *amp_agent_op_modreal64(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_modreal64 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(MOD, stack, AMP_TYPE_REAL64);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_modreal64 BODY
@@ -2221,12 +2723,14 @@ tnv_t *amp_agent_op_modreal64(vector_t *stack)
  */
 tnv_t *amp_agent_op_expint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_expint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(EXP, stack, AMP_TYPE_INT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_expint BODY
@@ -2241,12 +2745,14 @@ tnv_t *amp_agent_op_expint(vector_t *stack)
  */
 tnv_t *amp_agent_op_expuint(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_expuint BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(EXP, stack, AMP_TYPE_UINT);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_expuint BODY
@@ -2261,12 +2767,15 @@ tnv_t *amp_agent_op_expuint(vector_t *stack)
  */
 tnv_t *amp_agent_op_expvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_expvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	result = amp_agent_binary_num_op(EXP, stack, AMP_TYPE_VAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_expvast BODY
@@ -2281,12 +2790,14 @@ tnv_t *amp_agent_op_expvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_expuvast(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_expuvast BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(EXP, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_expuvast BODY
@@ -2301,12 +2812,14 @@ tnv_t *amp_agent_op_expuvast(vector_t *stack)
  */
 tnv_t *amp_agent_op_expreal32(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_expreal32 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(EXP, stack, AMP_TYPE_REAL32);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_expreal32 BODY
@@ -2321,12 +2834,14 @@ tnv_t *amp_agent_op_expreal32(vector_t *stack)
  */
 tnv_t *amp_agent_op_expreal64(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_expreal64 BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(EXP, stack, AMP_TYPE_REAL64);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_expreal64 BODY
@@ -2341,12 +2856,14 @@ tnv_t *amp_agent_op_expreal64(vector_t *stack)
  */
 tnv_t *amp_agent_op_bitand(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_bitand BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(BITAND, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_bitand BODY
@@ -2361,12 +2878,14 @@ tnv_t *amp_agent_op_bitand(vector_t *stack)
  */
 tnv_t *amp_agent_op_bitor(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_bitor BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(BITOR, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_bitor BODY
@@ -2381,12 +2900,14 @@ tnv_t *amp_agent_op_bitor(vector_t *stack)
  */
 tnv_t *amp_agent_op_bitxor(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_bitxor BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(BITXOR, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_bitxor BODY
@@ -2401,12 +2922,14 @@ tnv_t *amp_agent_op_bitxor(vector_t *stack)
  */
 tnv_t *amp_agent_op_bitnot(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_bitnot BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_unary_num_op(BITNOT, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_bitnot BODY
@@ -2421,12 +2944,15 @@ tnv_t *amp_agent_op_bitnot(vector_t *stack)
  */
 tnv_t *amp_agent_op_logand(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_logand BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	result = adm_agent_binary_log_op(LOGAND, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_logand BODY
@@ -2441,12 +2967,14 @@ tnv_t *amp_agent_op_logand(vector_t *stack)
  */
 tnv_t *amp_agent_op_logor(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_logor BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(LOGOR, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_logor BODY
@@ -2461,12 +2989,14 @@ tnv_t *amp_agent_op_logor(vector_t *stack)
  */
 tnv_t *amp_agent_op_lognot(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_lognot BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(LOGNOT, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_lognot BODY
@@ -2481,12 +3011,13 @@ tnv_t *amp_agent_op_lognot(vector_t *stack)
  */
 tnv_t *amp_agent_op_abs(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_abs BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_unary_num_op(ABS, stack, AMP_TYPE_UVAST);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_abs BODY
@@ -2497,16 +3028,18 @@ tnv_t *amp_agent_op_abs(vector_t *stack)
 
 
 /*
- * Less than
+ * <
  */
 tnv_t *amp_agent_op_lessthan(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_lessthan BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(LT, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_lessthan BODY
@@ -2517,16 +3050,18 @@ tnv_t *amp_agent_op_lessthan(vector_t *stack)
 
 
 /*
- * Greater than
+ * >
  */
 tnv_t *amp_agent_op_greaterthan(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_greaterthan BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(GT, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_greaterthan BODY
@@ -2537,16 +3072,18 @@ tnv_t *amp_agent_op_greaterthan(vector_t *stack)
 
 
 /*
- * Less than or equal to
+ * <=
  */
 tnv_t *amp_agent_op_lessequal(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_lessequal BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(LTE, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_lessequal BODY
@@ -2557,16 +3094,18 @@ tnv_t *amp_agent_op_lessequal(vector_t *stack)
 
 
 /*
- * Greater than or equal to
+ * >=
  */
 tnv_t *amp_agent_op_greaterequal(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_greaterequal BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(GTE, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_greaterequal BODY
@@ -2577,16 +3116,18 @@ tnv_t *amp_agent_op_greaterequal(vector_t *stack)
 
 
 /*
- * Not equal
+ * !=
  */
 tnv_t *amp_agent_op_notequal(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_notequal BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(NEQ, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_notequal BODY
@@ -2597,16 +3138,18 @@ tnv_t *amp_agent_op_notequal(vector_t *stack)
 
 
 /*
- * Equal to
+ * ==
  */
 tnv_t *amp_agent_op_equal(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_equal BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = adm_agent_binary_log_op(EQ, stack);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_equal BODY
@@ -2617,16 +3160,18 @@ tnv_t *amp_agent_op_equal(vector_t *stack)
 
 
 /*
- * Bitwise left shift
+ * <<
  */
 tnv_t *amp_agent_op_bitshiftleft(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_bitshiftleft BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	result = amp_agent_binary_num_op(BITLSHFT, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_bitshiftleft BODY
@@ -2637,16 +3182,19 @@ tnv_t *amp_agent_op_bitshiftleft(vector_t *stack)
 
 
 /*
- * Bitwise right shift
+ * >>
  */
 tnv_t *amp_agent_op_bitshiftright(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_bitshiftright BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	result = amp_agent_binary_num_op(BITRSHFT, stack, AMP_TYPE_UVAST);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_bitshiftright BODY
@@ -2661,12 +3209,14 @@ tnv_t *amp_agent_op_bitshiftright(vector_t *stack)
  */
 tnv_t *amp_agent_op_stor(vector_t *stack)
 {
-	tnv_t *result = tnv_create();
+	tnv_t *result = NULL;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_stor BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	AMP_DEBUG_ERR("stor","Not Implemented.", NULL);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION op_stor BODY

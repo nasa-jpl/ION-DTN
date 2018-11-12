@@ -21,6 +21,11 @@
 #include "ui_input.h"
 #include "metadata.h"
 
+#include "../shared/adm/adm.h"
+#include "../shared/adm/adm_amp_agent.h"
+#include "../shared/adm/adm_bp_agent.h"
+#include "../shared/adm/adm_bpsec.h"
+
 
 /******************************************************************************
  *
@@ -138,8 +143,26 @@ blob_t *ui_input_file_contents(char *prompt)
 
 uint8_t ui_input_adm_id(char *prompt)
 {
-	// todo: implement.
-	return ADM_ENUM_ALL;
+
+	ui_printf("\n\n1. All");
+	ui_printf("\n2. AMP Agent");
+	ui_printf("\n3. BP Agent");
+	ui_printf("\n4. BPSec Agent\n");
+
+	uint i = ui_input_uint("Select ADM:");
+
+	switch(i)
+	{
+
+	case 2: return ADM_ENUM_AMP_AGENT;
+	case 3: return ADM_ENUM_DTN_BP_AGENT;
+	case 4: return ADM_ENUM_DTN_BPSEC;
+
+	default:
+		break;
+	}
+
+    return ADM_ENUM_ALL;
 }
 
 
@@ -535,7 +558,7 @@ ari_t* ui_input_ari_build(uvast mask)
 		if((blob = ari_serialize_wrapper(result)) != NULL)
 		{
 			char *ari_str = utils_hex_to_string(blob->value, blob->length);
-			ui_printf("Constructed ARI: 0x%s", ari_str);
+			ui_printf("Constructed ARI: %s\n", ari_str);
 			SRELEASE(ari_str);
 			blob_release(blob, 1);
 		}
@@ -664,7 +687,8 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uvast mask)
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
-	ui_list_objs(ADM_ENUM_ALL, mask, &result);
+	int enum_id = ui_input_adm_id(NULL);
+	ui_list_objs(enum_id, mask, &result);
 /*
 	idx = ui_input_int("Which ARI?");
 
@@ -800,13 +824,13 @@ int ui_input_ari_type(uvast mask)
 	{
 		for(i = 0; i < idx; i++)
 		{
-			ui_printf("%d) %s\t\t", i, type_to_str(types[i]));
-			if((i % 5) == 0)
+			ui_printf("%2d) %-10s ", i, type_to_str(types[i]));
+			if((i > 0) && ((i % 7) == 0))
 			{
 				ui_printf("\n");
 			}
 		}
-		select = ui_input_int("Select ARI type (or UNK to cancel): ");
+		select = ui_input_int("\nSelect ARI type (or UNK to cancel): ");
 	}
     
 	return types[select];
@@ -902,12 +926,6 @@ tnv_t *ui_input_tnv(int type, char *prompt)
 		case AMP_TYPE_LIT:    result = tnv_from_obj(type, ui_input_ari_lit(prompt));break;
 		default:
 			break;
-	}
-
-	if((result != NULL) && (result->value.as_ptr == NULL))
-	{
-		tnv_release(result, 1);
-		result = NULL;
 	}
 
 	return result;

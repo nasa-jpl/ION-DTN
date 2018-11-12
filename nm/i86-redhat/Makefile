@@ -1,6 +1,5 @@
-# The following line is needed for GCC 7+, but should be disabled for prior versions
+# Check GCC Version.  GCC7 currently requires additional flags
 GCC_VERSION := "`gcc -dumpversion`"
-
 ifeq ($(shell test $(GCC_VERSION) -gt 6; echo $$?),0)
 	OPT = -Wno-maybe-uninitialized -Wformat-truncation=0 -Wno-format
 endif
@@ -41,7 +40,11 @@ AGENT_SOURCES = \
 	$(AGENT)/ldc.c 			\
 	$(AGENT)/rda.c 			\
 	$(AGENT)/adm_amp_agent_impl.c   \
-	$(AGENT)/adm_amp_agent_agent.c	
+	$(AGENT)/adm_amp_agent_agent.c	\
+	$(AGENT)/adm_bp_agent_impl.c	\
+	$(AGENT)/adm_bp_agent_agent.c	\
+	$(AGENT)/adm_bpsec_impl.c	\
+	$(AGENT)/adm_bpsec_agent.c	
 
 MGR_SOURCES = \
 	$(MGR)/agents.c 		\
@@ -52,7 +55,10 @@ MGR_SOURCES = \
 	$(MGR)/nm_mgr_ui.c 		\
 	$(MGR)/nm_mgr.c			\
 	$(MGR)/ui_input.c 		\
-	$(MGR)/adm_amp_agent_mgr.c      
+	$(MGR)/adm_amp_agent_mgr.c      \
+	$(MGR)/adm_bp_agent_mgr.c	\
+	$(MGR)/adm_bpsec_mgr.c		
+
 
 SHARED_OBJS := ${SHARED_SOURCES:c=o}
 MGR_OBJS := ${MGR_SOURCES:c=o}
@@ -67,7 +73,7 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I../../bp/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
 
 CC = gcc $(OPT) $(INCLDIRS)
 

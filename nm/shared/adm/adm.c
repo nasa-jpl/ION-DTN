@@ -41,19 +41,9 @@
 #include "../primitives/expr.h"
 
 #include "adm_amp_agent.h"
-
-
-/*
-#include "adm_agent.h"
-#include "adm_bp.h"
+#include "adm_bp_agent.h"
 #include "adm_bpsec.h"
-#include "adm_ion_admin.h"
-#include "adm_ion_bp_admin.h"
-#include "adm_ion_ipn_admin.h"
-#include "adm_ionsec_admin.h"
-#include "adm_ion_ltp_admin.h"
-#include "adm_ltp_agent.h"
-*/
+
 
 /******************************************************************************
  *
@@ -288,17 +278,17 @@ int adm_add_macdef(macdef_t *def)
 // TDDO document this pattern in the ADM functions.
 int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
 {
-	ctrl_t *ctrl;
+	ctrl_t *ctrl = NULL;
 
-	if((ctrl = VDB_FINDKEY_CTRLDEF(id)) == NULL)
+	if((def == NULL) || (id == NULL))
 	{
-		id->type = AMP_TYPE_MAC;
-		ARI_SET_FLAG_TYPE(id->as_reg.flags, AMP_TYPE_MAC);
-		ctrl = VDB_FINDKEY_MACDEF(id);
+		return AMP_FAIL;
 	}
 
+	ctrl = ctrl_create(id);
+
 	ari_release(id, 1);
-	return macdef_append(def, ctrl_copy_ptr(ctrl));
+	return macdef_append(def, ctrl);
 }
 
 /******************************************************************************
@@ -553,12 +543,12 @@ uint32_t adm_get_parm_uint(tnvc_t *parms, uint8_t idx, int *success)
 	tnv_t *val = tnvc_get(parms, idx);
 	return (val == NULL) ? 0 : tnv_to_uint(*val, success);}
 
-uint32_t adm_get_parm_uvast(tnvc_t *parms, uint8_t idx, int *success)
+uvast adm_get_parm_uvast(tnvc_t *parms, uint8_t idx, int *success)
 {
 	tnv_t *val = tnvc_get(parms, idx);
 	return (val == NULL) ? 0 : tnv_to_uvast(*val, success);}
 
-uint32_t adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
+vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
 {
 	tnv_t *val = tnvc_get(parms, idx);
 	return (val == NULL) ? 0 : tnv_to_vast(*val, success);
@@ -583,11 +573,9 @@ void adm_init()
 	AMP_DEBUG_ENTRY("adm_init","()", NULL);
 
 	amp_agent_init();
-
+	dtn_bp_agent_init();
+	dtn_bpsec_init();
 /*
-	adm_agent_init();
-	adm_bp_init();
-	adm_bpsec_init();
 	adm_ion_admin_init();
 	adm_ion_bp_admin_init();
 	adm_ion_ipn_admin_init();

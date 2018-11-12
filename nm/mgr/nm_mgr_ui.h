@@ -38,6 +38,7 @@
 #include "../shared/utils/nm_types.h"
 #include "../shared/adm/adm.h"
 #include "../shared/primitives/report.h"
+#include "../shared/primitives/rules.h"
 
 #define NM_LOG_FILE "nm_mgr.log"
 
@@ -69,6 +70,8 @@ void ui_clear_reports(agent_t* agent);
 rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
 var_t* ui_create_var_from_parms(tnvc_t parms);
 macdef_t *ui_create_macdef_from_parms(tnvc_t parms);
+rule_t *ui_create_sbr_from_parms(tnvc_t parms);
+rule_t *ui_create_tbr_from_parms(tnvc_t parms);
 
 
 void ui_deregister_agent();

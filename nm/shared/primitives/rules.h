@@ -66,15 +66,15 @@
 typedef struct
 {
 	expr_t expr;       /**> If this evals to true, run action.      */
-	uint32_t max_fire; /**> # times to run action.                  */
-	uint32_t max_eval; /**> # times to eval expression.             */
+	uvast max_fire; /**> # times to run action.                  */
+	uvast max_eval; /**> # times to eval expression.             */
 } sbr_def_t;
 
 
 typedef struct
 {
-	uint32_t period;   /**> # ticks between rule firings.           */
-	uint32_t max_fire; /**> # times action can be run.              */
+	uvast period;   /**> # ticks between rule firings.           */
+	uvast max_fire; /**> # times action can be run.              */
 } tbr_def_t;
 
 
@@ -98,7 +98,7 @@ typedef struct {
 		tbr_def_t as_tbr;
 	} def;
 
-	macdef_t action;      /**> Action to run if expr is true on eval.  */
+	ac_t action;      /**> Action to run if expr is true on eval.  */
 
 	/** Everything below is not part of a rule definition. **/
 
@@ -128,9 +128,9 @@ void      rule_cb_ht_del_fn(rh_elt_t *elt);
 
 rule_t*   rule_copy_ptr(rule_t *rule);
 
-rule_t*   rule_create_sbr(ari_t id, uvast start, sbr_def_t def, macdef_t action);
+rule_t*   rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action);
 
-rule_t*   rule_create_tbr(ari_t id, uvast start, tbr_def_t def, macdef_t action);
+rule_t*   rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action);
 
 rule_t*   rule_deserialize_helper(CborValue *it, int *success);
 

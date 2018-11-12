@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 /*****************************************************************************
@@ -9,28 +9,22 @@
  **
  ** Description: This file contains the definitions, prototypes, constants, and
  **              other information necessary for the identification and
- **              processing of DTNMP Managed Identifiers (MIDs).
+ **              processing of AMM Resource Identifiers (ARIs). Every object in
+ **              the AMM can be uniquely identified using an ARI.
  **
  ** Notes:
  **
  ** Assumptions:
- **      1. We limit the size of an OID in the system to reduce the amount
- **         of pre-allocated memory in this embedded system. Non-embedded
- **         implementations may wish to dynamically allocate MIDs as they are
- **         received.
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  10/21/11  E. Birrane     Code comments and functional updates. (JHU/APL)
- **  10/22/12  E. Birrane     Update to latest version of DTNMP. Cleanup. (JHU/APL)
- **  06/25/13  E. Birrane     New spec. rev. Remove priority from MIDs (JHU/APL)
- **  04/19/16  E. Birrane     Put OIDs on stack and not heap. (Secure DTN - NASA: NNX14CS58P)
- **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  09/18/18  E. Birrane     Initial implementation ported from previous
+ **                           implementation of MIDs for earlier AMP spec (JHU/APL)
  *****************************************************************************/
 
-#ifndef MID_H_
-#define MID_H_
+#ifndef ARI_H_
+#define ARI_H_
 
 #include "stdint.h"
 
@@ -50,12 +44,13 @@
  */
 
 /**
- * Defines the bits comprising the MID flags as follows.
+ * Defines the bits comprising the ARI flags as follows.
  *
- * Bits 0-3:  The struct id of the component identified by the MID
- * Bit 4: The issuer flag associated with the MID
- * Bit 5: The tag flag associated with the MID
- * Bits 6-7: The OID type encapsulated within the MID
+ * Bits 0-3:  The type of AMM Object identified by this ARI.
+ * Bit 4:     Whether the Tag field for this ARI is present.
+ * Bit 5:     Whether the Issue field for this ARI is present.
+ * Bit 6:     Whether this ARI contains parameters.
+ * Bit 7:     Whether this ARI uses Nicknames to compress its regular name.
  *
  */
 #define ARI_FLAG_TYPE     (0x0F)
@@ -64,25 +59,11 @@
 #define ARI_FLAG_PARM     (0x40)
 #define ARI_FLAG_NN       (0x80)
 
-/**
- * Maximum size, in bytes, supported for ARI fields.
- * WARNING: Changes to these values must be reflected in the associated ARI
- *          data type and associated functions.
+/*
+ * When encoding an ARI, the default encoding size to try.
  */
-
-#define MAX_NAME_SIZE (4)
-#define MAX_TAG_SIZE  (4)
-#define MAX_ISS_SIZE  (8)
-
-
 #define ARI_DEFAULT_ENC_SIZE 100
-/**
- * Maximum size, in bytes, supported for MID fields.
- * WARNING: Changes to these values must be reflected in the associated MID
- *          data type and associated functions.
- */
-#define MAX_TAG_LEN (4)
-#define MAX_NAME_LEN (4)
+
 
 
 /*
@@ -112,22 +93,26 @@
  */
 
 
-
-//Define the NN  array, the Issuer Array, the Tag Array.
-
 /**
- * Describes a Managed Identifier object.
+ * Describes a "regular" AMM Resource Identifier
  *
- * Notably with this structure is the fact that we keep a completely
- * serialized version of the MID in addition to bit-busting the values into
- * the other members of the structure.  This makes re-serialization of the MID
- * for re-use a very fast endeavor.
+ * A regular ARI identifies an object whose value is not itself captured in the
+ * identifier. Put another way, a regular ARI is one what identifies anything'
+ * other than a literal value.
  *
- * The mid_internal_serialize function may be used to re-serialize this
- * internal representation if something changes (such changing the OID type
- * to expand a nickname).
+ * Nicknames, Issuers, and Tags are stored in databases on the Agent and the
+ * Manager and the ARI structure stores an index into these databases. This is
+ * done for space compression. For example, a nickname may be up to 64 bits in
+ * length whereas an index into the NN database can be 16 bits. This results in
+ * an average savings of 18 bytes for ARIs that use nicknames, issuers, and
+ * 64-bit tags.
+ *
+ * The name field is an unparsed bytestring whose value is determined by naming
+ * rules for the ADM or user that defines the object being identified.
+ *
+ * \todo: Nicknames, Issuers, Tags, and Names might all more efficiently by
+ *        stored as an index into a tree structure, such as a radix tree.
  */
-
 
 typedef struct
 {
@@ -146,6 +131,22 @@ typedef struct
 } ari_reg_t;
 
 
+/*
+ * Defines a general-purpose ARI structure.
+ *
+ * The ARI being captured here can be either a "regular" ARI,
+ * in which case the structure should be interpreted as a
+ * ari_reg_t structure or a "literal" ARI, in which case the
+ * structure can be interpreted as a type/name/value.
+ *
+ * The use of a separate type field is redundant in that type
+ * information is already captured in both the "regular" ARI
+ * flag and the TYPE part of a literal ARI. However, extracting
+ * the type information makes processing simpler and any other
+ * method of distinguishing a regular and literal ARI would
+ * likely use up at least a byte of space anyway.
+ */
+
 typedef struct {
 
 	amp_type_e type;
@@ -157,59 +158,53 @@ typedef struct {
 } ari_t;
 
 
+
+/*
+ * An ARI Collection (AC) is an ordered collection of ARI structures.
+ *
+ * This is modeled as a vector acting as a stack.
+ */
 typedef struct {
-	vector_t values; // Types as ari_t pointers.
+	vector_t values; /* (ari_t*) */
 } ac_t;
+
+
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |			  FUNCTION PROTOTYPES  				  +
  * +--------------------------------------------------------------------------+
  */
 
 
 /* ARI Functions */
 
-
 int       ari_add_parm_set(ari_t *ari, tnvc_t *parms);
 int       ari_add_parm_val(ari_t *ari, tnv_t *parm);
-
-
 int       ari_cb_comp_fn(void *i1, void *i2);
 int       ari_cb_comp_no_parm_fn(void *i1, void *i2);
 void*     ari_cb_copy_fn(void *item);
 void      ari_cb_del_fn(void *item);
 rh_idx_t  ari_cb_hash(void *table, void *key);
 void      ari_cb_ht_del(rh_elt_t *elt);
-
 int       ari_compare(ari_t *ari1, ari_t *ari2, int parms);
-
 ari_t     ari_copy(ari_t val, int *success);
 ari_t*    ari_copy_ptr(ari_t *ari);
 ari_t*    ari_create(amp_type_e type);
-
 ari_t     ari_deserialize(CborValue *it, int *success);
 ari_t*    ari_deserialize_ptr(CborValue *it, int *success);
 ari_t*    ari_deserialize_raw(blob_t *data, int *success);
-
 ari_t*    ari_from_uvast(uvast val);
 ari_t*    ari_from_parm_reg(uint8_t flags, uvast nn, uvast iss, blob_t *tag, blob_t *name, tnvc_t *parms);
 tnv_t*    ari_get_param(ari_t *id, int i);
-
 uint8_t   ari_get_num_parms(ari_t *ari);
-
 void      ari_init(ari_t *ari);
-
 ari_t     ari_null();
-
 void      ari_release(ari_t *ari, int destroy);
-
 int       ari_replace_parms(ari_t *ari, tnvc_t *new_parms);
 tnvc_t*   ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms);
-
 CborError ari_serialize(CborEncoder *encoder, void *item);
 blob_t*   ari_serialize_wrapper(ari_t *ari);
-
 char*     ari_to_string(ari_t *ari);
 
 
@@ -220,19 +215,14 @@ ac_t*     ac_create();
 //int       ac_compare(ac_t *a1, ac_t *a2);
 ac_t      ac_copy(ac_t *src);
 ac_t*     ac_copy_ptr(ac_t *src);
-
 ac_t      ac_deserialize(CborValue *it, int *success);
 ac_t*     ac_deserialize_ptr(CborValue *it, int *success);
 ac_t      ac_deserialize_raw(blob_t *data, int *success);
-
 ari_t*    ac_get(ac_t* ac, uint8_t index);
 uint8_t   ac_get_count(ac_t* ac);
-
 int       ac_init(ac_t *ac);
 int       ac_insert(ac_t* ac, ari_t *ari);
-
 void      ac_release(ac_t *ac, int destroy);
-
 CborError ac_serialize(CborEncoder *encoder, void *item);
 blob_t*   ac_serialize_wrapper(ac_t *ac);
 
