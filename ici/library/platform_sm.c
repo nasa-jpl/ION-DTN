@@ -2273,7 +2273,7 @@ static void	*posixTaskEntrance(void *taskArg)
 	/*	Copy the information in parm into local stack
 	 *	variables, then free space allocated to parm.		*/
 
-	CHKVOID(parm);
+	CHKNULL(parm);
 	function = parm->function;
 	arg = parm->arg;
 	free(parm);
