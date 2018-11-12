@@ -2725,7 +2725,7 @@ int ui_menu_listing(
 
             		if(delta == 74)
             		{
-            			for(space_idx = delta; space_idx > 0; space_idx--)
+            			for(space_idx = delta-1; space_idx >= 0; space_idx--)
             			{
             				if(list[i].description[idx+space_idx] == ' ')
             				{
@@ -2744,7 +2744,7 @@ int ui_menu_listing(
             		}
 
             		memset(tmp, 0, 75);
-            		strncat(tmp, (char *) &(list[i].description[idx]), space_idx);
+            		strncat(tmp, (char *) list[i].description+idx, space_idx);
             		printf("     %.74s", tmp);
 
             		idx += space_idx;

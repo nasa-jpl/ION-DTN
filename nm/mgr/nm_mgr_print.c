@@ -706,6 +706,7 @@ char *ui_str_from_sbr(rule_t *sbr)
 char *ui_str_from_tbl(tbl_t *tbl)
 {
 	char *result = STAKE(4096); // todo dynamically size this.
+	char fmt[100];
 	vecit_t it;
 	int i, j;
 	size_t num_rows = 0;
@@ -733,11 +734,11 @@ char *ui_str_from_tbl(tbl_t *tbl)
 			{
 				strcat(result, "|");
 			}
-			strcat(result, "\t");
 			char *tmp = ui_str_from_tnv(val);
-			strcat(result, tmp);
+			snprintf(fmt,100,"   %23s   ", tmp);
 			SRELEASE(tmp);
-			strcat(result, "\t|");
+			strcat(result, fmt);
+			strcat(result, "|");
 		}
 		strcat(result, "\n");
 	}
@@ -765,7 +766,7 @@ char *ui_str_from_tblt(tblt_t *tblt)
 			{
 				strcat(result, "|");
 			}
-			sprintf(tmp, "\t(%s) %s\t|",
+			sprintf(tmp, "   %7s %15s   |",
 					(col) ? type_to_str(col->type) : "null",
 					(col) ? col->name : "null");
 			strcat(result, tmp);

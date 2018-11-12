@@ -247,18 +247,6 @@ void dtn_bpsec_init_tblt()
 
 	tblt_t *def = NULL;
 
-	/* KEYS */
-
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_bpsec_idx[ADM_TBLT_IDX], DTN_BPSEC_TBLT_KEYS), dtn_bpsec_tblt_keys);
-	tblt_add_col(def, AMP_TYPE_STR, "key_name");
-	adm_add_tblt(def);
-
-	/* CIPHERSUITES */
-
-	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_bpsec_idx[ADM_TBLT_IDX], DTN_BPSEC_TBLT_CIPHERSUITES), dtn_bpsec_tblt_ciphersuites);
-	tblt_add_col(def, AMP_TYPE_STR, "csname");
-	adm_add_tblt(def);
-
 	/* BIB_RULES */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_bpsec_idx[ADM_TBLT_IDX], DTN_BPSEC_TBLT_BIB_RULES), dtn_bpsec_tblt_bib_rules);

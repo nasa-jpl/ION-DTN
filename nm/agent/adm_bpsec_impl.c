@@ -159,56 +159,6 @@ tnv_t *dtn_bpsec_meta_organization(tnvc_t *parms)
 
 
 /*
- * This table lists all keys in the security policy database.
- */
-tbl_t *dtn_bpsec_tblt_keys(ari_t *id)
-{
-	tbl_t *table = NULL;
-	if((table = tbl_create(id)) == NULL)
-	{
-		return NULL;
-	}
-
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tblt_keys BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tblt_keys BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	return table;
-}
-
-
-/*
- * This table lists supported ciphersuites.
- */
-tbl_t *dtn_bpsec_tblt_ciphersuites(ari_t *id)
-{
-	tbl_t *table = NULL;
-	if((table = tbl_create(id)) == NULL)
-	{
-		return NULL;
-	}
-
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION tblt_ciphersuites BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	/*
-	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION tblt_ciphersuites BODY
-	 * +-------------------------------------------------------------------------+
-	 */
-	return table;
-}
-
-
-/*
  * BIB Rules.
  */
 tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
@@ -219,11 +169,91 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 		return NULL;
 	}
 
+	/**
+
+	 "columns": [{
+	          "type": "STR",
+	          "name": "SrcEid"
+	        }, {
+	          "type": "STR",
+	          "name": "DestEid"
+	        },
+	        {
+	          "type": "UINT",
+	          "name": "TgtBlk"
+	        },
+	        {
+	          "type": "STR",
+	          "name": "csName"
+	        },
+	        {
+	          "type": "STR",
+	          "name": "keyName"
+
+	          **/
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION tblt_bib_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	Sdr sdr = getIonsdr();
+	Object listObj = 0;
+	Object	elt = 0;
+	OBJ_POINTER(BspBibRule, rule);
+	char strBuffer[SDRSTRING_BUFSZ];
+	tnvc_t *cur_row = NULL;
+	int len = 0;
+
+	if((listObj = sec_get_bspBibRuleList()) == 0)
+	{
+		AMP_DEBUG_ERR("dtn_bpsec_tblt_bib_rules","Cannot get list.", NULL);
+		tbl_release(table, 1);
+		return NULL;
+	}
+
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		AMP_DEBUG_ERR("dtn_bpsec_tblt_bib_rules","Can't start transaction.", NULL);
+		tbl_release(table, 1);
+		return NULL;
+	}
+
+	for (elt = sdr_list_first(sdr, listObj); elt; elt = sdr_list_next(sdr, elt))
+	{
+
+		if((cur_row = tnvc_create(5)) != NULL)
+		{
+			GET_OBJ_POINTER(sdr, BspBibRule, rule, sdr_list_data(sdr, elt));
+
+			if(rule != NULL)
+			{
+				len = sdr_string_read(sdr, strBuffer, rule->securitySrcEid);
+				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
+
+				len = sdr_string_read(sdr, strBuffer, rule->destEid);
+				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
+
+				tnvc_insert(cur_row, tnv_from_uint(rule->blockTypeNbr));
+				tnvc_insert(cur_row, tnv_from_str(rule->ciphersuiteName));
+				tnvc_insert(cur_row, tnv_from_str(rule->keyName));
+
+				tbl_add_row(table, cur_row);
+			}
+			else
+			{
+				AMP_DEBUG_WARN("dtn_bpsec_tblt_bib_rules", "NULL rule?", NULL);
+			}
+		}
+		else
+		{
+			AMP_DEBUG_WARN("dtn_bpsec_tblt_bib_rules", "Can't allocate row. Skipping.", NULL);
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION tblt_bib_rules BODY
@@ -249,6 +279,62 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 	 * |START CUSTOM FUNCTION tblt_bcb_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	Sdr sdr = getIonsdr();
+	Object listObj = 0;
+	Object	elt = 0;
+	OBJ_POINTER(BspBcbRule, rule);
+	char strBuffer[SDRSTRING_BUFSZ];
+	tnvc_t *cur_row = NULL;
+	int len = 0;
+
+	if((listObj = sec_get_bspBcbRuleList()) == 0)
+	{
+		AMP_DEBUG_ERR("dtn_bpsec_tblt_bcb_rules","Cannot get list.", NULL);
+		tbl_release(table, 1);
+		return NULL;
+	}
+
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		AMP_DEBUG_ERR("dtn_bpsec_tblt_bcb_rules","Can't start transaction.", NULL);
+		tbl_release(table, 1);
+		return NULL;
+	}
+
+	for (elt = sdr_list_first(sdr, listObj); elt; elt = sdr_list_next(sdr, elt))
+	{
+		if((cur_row = tnvc_create(5)) != NULL)
+		{
+			GET_OBJ_POINTER(sdr, BspBcbRule, rule, sdr_list_data(sdr, elt));
+
+			if(rule != NULL)
+			{
+				len = sdr_string_read(sdr, strBuffer, rule->securitySrcEid);
+				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
+
+				len = sdr_string_read(sdr, strBuffer, rule->destEid);
+				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
+
+				tnvc_insert(cur_row, tnv_from_uint(rule->blockTypeNbr));
+				tnvc_insert(cur_row, tnv_from_str(rule->ciphersuiteName));
+				tnvc_insert(cur_row, tnv_from_str(rule->keyName));
+
+				tbl_add_row(table, cur_row);
+			}
+			else
+			{
+				AMP_DEBUG_WARN("dtn_bpsec_tblt_bcb_rules", "NULL rule?", NULL);
+			}
+		}
+		else
+		{
+			AMP_DEBUG_WARN("dtn_bpsec_tblt_bcb_rules", "Can't allocate row. Skipping.", NULL);
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION tblt_bcb_rules BODY

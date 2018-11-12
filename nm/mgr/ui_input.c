@@ -824,13 +824,13 @@ int ui_input_ari_type(uvast mask)
 	{
 		for(i = 0; i < idx; i++)
 		{
-			ui_printf("%d) %s\t\t", i, type_to_str(types[i]));
-			if((i % 5) == 0)
+			ui_printf("%2d) %-10s ", i, type_to_str(types[i]));
+			if((i > 0) && ((i % 7) == 0))
 			{
 				ui_printf("\n");
 			}
 		}
-		select = ui_input_int("Select ARI type (or UNK to cancel): ");
+		select = ui_input_int("\nSelect ARI type (or UNK to cancel): ");
 	}
     
 	return types[select];
