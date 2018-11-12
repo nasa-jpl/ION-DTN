@@ -21,6 +21,11 @@
 #include "ui_input.h"
 #include "metadata.h"
 
+#include "../shared/adm/adm.h"
+#include "../shared/adm/adm_amp_agent.h"
+#include "../shared/adm/adm_bp_agent.h"
+#include "../shared/adm/adm_bpsec.h"
+
 
 /******************************************************************************
  *
@@ -138,8 +143,26 @@ blob_t *ui_input_file_contents(char *prompt)
 
 uint8_t ui_input_adm_id(char *prompt)
 {
-	// todo: implement.
-	return ADM_ENUM_ALL;
+
+	ui_printf("\n\n1. All");
+	ui_printf("\n2. AMP Agent");
+	ui_printf("\n3. BP Agent");
+	ui_printf("\n4. BPSec Agent\n");
+
+	uint i = ui_input_uint("Select ADM:");
+
+	switch(i)
+	{
+
+	case 2: return ADM_ENUM_AMP_AGENT;
+	case 3: return ADM_ENUM_DTN_BP_AGENT;
+	case 4: return ADM_ENUM_DTN_BPSEC;
+
+	default:
+		break;
+	}
+
+    return ADM_ENUM_ALL;
 }
 
 
@@ -664,7 +687,8 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uvast mask)
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
-	ui_list_objs(ADM_ENUM_ALL, mask, &result);
+	int enum_id = ui_input_adm_id(NULL);
+	ui_list_objs(enum_id, mask, &result);
 /*
 	idx = ui_input_int("Which ARI?");
 

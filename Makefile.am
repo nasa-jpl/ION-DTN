@@ -1925,9 +1925,9 @@ nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/adm_amp_agent_impl.c   \
 			nm/agent/adm_amp_agent_agent.c	\
 			nm/agent/adm_bp_agent_impl.c	\
-			nm/agent/adm_bp_agent_agent.c	
-#			nm/agent/adm_bpsec_impl.c	\
-#			nm/agent/adm_bpsec_agent.c	\
+			nm/agent/adm_bp_agent_agent.c	\
+			nm/agent/adm_bpsec_impl.c	\
+			nm/agent/adm_bpsec_agent.c	
 #			nm/agent/adm_ion_admin_agent.c 	\	
 #			nm/agent/adm_ion_admin_impl.c	\
 #			nm/agent/adm_ion_bp_admin_impl.c	\
@@ -1960,8 +1960,8 @@ nm_mgr_SOURCES =	$(nm_shared_src)		\
 			nm/mgr/nm_mgr.c			\
 			nm/mgr/ui_input.c 		\
 			nm/mgr/adm_amp_agent_mgr.c   \   
-			nm/mgr/adm_bp_agent_mgr.c	
-#			nm/mgr/adm_bpsec_mgr.c		\
+			nm/mgr/adm_bp_agent_mgr.c	\
+			nm/mgr/adm_bpsec_mgr.c		
 #			nm/mgr/adm_ion_admin_mgr.c	\	
 #			nm/mgr/adm_ion_bp_admin_mgr.c	\
 #			nm/mgr/adm_ion_ipn_admin_mgr.c	\

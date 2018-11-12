@@ -28,7 +28,7 @@
 
 #define _HAVE_AMP_AGENT_ADM_
 #ifdef _HAVE_AMP_AGENT_ADM_
-static vec_idx_t g_amp_agent_idx[11];
+vec_idx_t g_amp_agent_idx[11];
 void amp_agent_init()
 {
 

@@ -24,7 +24,7 @@
 #include "../utils/nm_types.h"
 #include "adm.h"
 
-
+extern vec_idx_t g_amp_agent_idx[11];
 /*
  * +-----------------------------------------------------------------------------------------------------------+
  * |                                        ADM TEMPLATE DOCUMENTATION                                        +
