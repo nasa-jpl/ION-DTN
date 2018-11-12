@@ -367,8 +367,6 @@ int rda_process_rules()
     	if((rule->num_eval >= rule->def.as_sbr.max_eval) ||
     	   (rule->num_fire >= rule->def.as_sbr.max_fire))
     	{
-    		AMP_DEBUG_ERR("EJB","FOrgetting SBR %d %d %d %d", rule->num_eval, rule->def.as_sbr.max_eval,
-		rule->num_fire, rule->def.as_sbr.max_fire);
     		/* Remove the rule. */
     		db_forget(&(rule->desc), gDB.rules);
     		VDB_DELKEY_RULE(&(rule->id));

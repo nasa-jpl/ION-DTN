@@ -288,17 +288,17 @@ int adm_add_macdef(macdef_t *def)
 // TDDO document this pattern in the ADM functions.
 int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
 {
-	ctrl_t *ctrl;
+	ctrl_t *ctrl = NULL;
 
-	if((ctrl = VDB_FINDKEY_CTRLDEF(id)) == NULL)
+	if((def == NULL) || (id == NULL))
 	{
-		id->type = AMP_TYPE_MAC;
-		ARI_SET_FLAG_TYPE(id->as_reg.flags, AMP_TYPE_MAC);
-		ctrl = VDB_FINDKEY_MACDEF(id);
+		return AMP_FAIL;
 	}
 
+	ctrl = ctrl_create(id);
+
 	ari_release(id, 1);
-	return macdef_append(def, ctrl_copy_ptr(ctrl));
+	return macdef_append(def, ctrl);
 }
 
 /******************************************************************************

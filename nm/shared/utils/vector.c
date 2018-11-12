@@ -385,6 +385,9 @@ void* vec_remove(vector_t *vec, vec_idx_t idx, int *success)
 
 }
 
+/* We do not check for stack semantics here because
+ * we are swapping elements explicitely, not adding or removing.
+ */
 void* vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success)
 {
 	void *result = NULL;
@@ -393,8 +396,7 @@ void* vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success)
 
 
 	if( (vec == NULL) ||
-		(idx >= vec->total_slots) ||
-		(vec->flags & VEC_FLAG_AS_STACK)
+		(idx >= vec->total_slots)
 	  )
 	{
 		*success = VEC_FAIL;

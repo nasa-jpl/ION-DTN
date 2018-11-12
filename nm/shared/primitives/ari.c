@@ -485,7 +485,6 @@ void ari_cb_ht_del(rh_elt_t *elt)
  *
  *
  *
-EJB
  * \param[in] ari1      First ari being compared.
  * \param[in] ari2      Second ari being compared.
  * \param[in] use_parms Whether to compare paramaters as well.
@@ -895,25 +894,26 @@ int ari_replace_parms(ari_t *ari, tnvc_t *new_parms)
  * returned parms must be freed.
  * TODO: Make more efficient. Do we really need the deep copies?
  */
-tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms)
+tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 {
 	uint8_t idx;
 	tnvc_t *result = NULL;
 
 
-	if((src_parms == NULL) && (cur_parms == NULL))
+	if((src_parms == NULL) && (parent_parms == NULL))
 	{
 		return NULL;
 	}
-	else if((cur_parms == NULL) ||
-			(tnvc_size(src_parms) == 0) ||
-		    (tnvc_size(cur_parms) == 0))
-	{
-		return tnvc_copy(src_parms);
-	}
 
-	result = tnvc_copy(cur_parms);
+	result = tnvc_copy(src_parms);
 	CHKNULL(result);
+
+	if((parent_parms == NULL) ||
+	   (tnvc_size(src_parms) == 0) ||
+	   (tnvc_size(parent_parms) == 0))
+	{
+		return result;
+	}
 
 	for(idx = 0; idx < tnvc_size(result); idx++)
 	{
@@ -921,13 +921,13 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms)
 
 		if(TNV_IS_MAP(cur_val->flags))
 		{
-			uint8_t src_idx = cur_val->value.as_uint;
-			tnv_t *src_val = tnvc_get(src_parms, src_idx);
-			tnv_t *new_tnv = tnv_copy_ptr(src_val);
+			uint8_t parent_idx = cur_val->value.as_uint;
+			tnv_t *parent_val = tnvc_get(parent_parms, parent_idx);
+			tnv_t *new_tnv = tnv_copy_ptr(parent_val);
 			if(tnvc_update(result, idx, new_tnv) != AMP_OK)
 			{
 				AMP_DEBUG_ERR("ari_resolve_parms",
-						      "Can't apply parm map: %d -> %d", idx, src_idx);
+						      "Can't apply parm map: %d -> %d", idx, parent_idx);
 				tnv_release(new_tnv, 1);
 				tnvc_release(result, 1);
 				result = NULL;
