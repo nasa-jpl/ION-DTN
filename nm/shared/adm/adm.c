@@ -69,9 +69,12 @@
 int adm_add_cnst(ari_t *id, edd_collect_fn collect)
 {
 	edd_t *def = NULL;
-	int success;
+	int rh_code;
 
-	CHKUSR(id, AMP_FAIL);
+	if(id == NULL)
+	{
+		return AMP_FAIL;
+	}
 
 	if((def = edd_create(id, NULL, collect)) == NULL)
 	{
@@ -79,13 +82,18 @@ int adm_add_cnst(ari_t *id, edd_collect_fn collect)
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_CONST(def->def.id, def)) != AMP_OK)
+	rh_code = VDB_ADD_CONST(def->def.id, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_cnst","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		edd_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_cnst","-> %d.", success);
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 
@@ -117,8 +125,7 @@ int adm_add_cnst(ari_t *id, edd_collect_fn collect)
 int adm_add_ctrldef_ari(ari_t *id, uint8_t num, ctrldef_run_fn run)
 {
 	ctrldef_t *def;
-	int success;
-
+	int rh_code;
 
 	if((def = ctrldef_create(id, num, run)) == NULL)
 	{
@@ -126,15 +133,18 @@ int adm_add_ctrldef_ari(ari_t *id, uint8_t num, ctrldef_run_fn run)
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_CTRLDEF(def->ari, def)) != AMP_OK)
+	rh_code = VDB_ADD_CTRLDEF(def->ari, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_ctrldef_ari","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		ctrldef_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_ctrldef","-> %d.", success);
-
-	return success;
-
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 int adm_add_ctrldef(uint8_t nn, uvast name, uint8_t num, ctrldef_run_fn run)
@@ -172,7 +182,7 @@ int adm_add_ctrldef(uint8_t nn, uvast name, uint8_t num, ctrldef_run_fn run)
 int adm_add_edd(ari_t *id, edd_collect_fn collect)
 {
 	edd_t *def = NULL;
-	int success;
+	int rh_code;
 
 	CHKUSR(id, AMP_FAIL);
 
@@ -182,13 +192,18 @@ int adm_add_edd(ari_t *id, edd_collect_fn collect)
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_EDD(def->def.id, def)) != AMP_OK)
+	rh_code = VDB_ADD_EDD(def->def.id, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_edd","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		edd_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_edd","-> %d.", success);
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 
@@ -218,16 +233,25 @@ int adm_add_edd(ari_t *id, edd_collect_fn collect)
 
 int adm_add_lit(ari_t *id)
 {
-	int success;
+	int rh_code;
 
-	CHKUSR(id, AMP_FAIL);
-	if((success = VDB_ADD_LIT(id, id)) != AMP_OK)
+	if(id == NULL)
+	{
+		return AMP_FAIL;
+	}
+
+	rh_code = VDB_ADD_LIT(id, id);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_lit","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		ari_release(id, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_lit","-> %d.", success);
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 
@@ -260,22 +284,28 @@ int adm_add_lit(ari_t *id)
 
 int adm_add_macdef(macdef_t *def)
 {
-	int success = AMP_OK;
 	int rh_code = 0;
 
-	rh_code = VDB_ADD_MACDEF(def->ari, def);
-	if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+	if(def == NULL)
 	{
-		success = AMP_FAIL;
+		return AMP_FAIL;
+	}
+
+	rh_code = VDB_ADD_MACDEF(def->ari, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_macdef","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
+	{
 		macdef_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_macdef","-> %d.", success);
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
-// takes over id.
-// TDDO document this pattern in the ADM functions.
+
 int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
 {
 	ctrl_t *ctrl = NULL;
@@ -318,7 +348,7 @@ int adm_add_macdef_ctrl(macdef_t *def, ari_t *id)
 int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 {
 	op_t *def = NULL;
-	int success;
+	int rh_code;
 
 	if((def = op_create(id, num_parm, apply_fn)) == NULL)
 	{
@@ -326,14 +356,18 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_OP(def->id, def)) != AMP_OK)
+	rh_code = VDB_ADD_OP(def->id, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_op_ari","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		op_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_op","-> %d.", success);
-	return success;
-
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn)
@@ -370,47 +404,62 @@ int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn)
 
 int adm_add_rpttpl(rpttpl_t *def)
 {
-	int success = AMP_OK;
-	int rhht_code;
+	int rh_code;
 
-	rhht_code = VDB_ADD_RPTT(def->id, def);
-
-	if((rhht_code != RH_OK) && (rhht_code != RH_DUPLICATE))
+	if(def == NULL)
 	{
-		AMP_DEBUG_ERR("adm_add_rpttpl","Error adding RPTTPL, code %d", rhht_code);
-		rpttpl_release(def, 1);
-		success = AMP_FAIL;
+		return AMP_FAIL;
 	}
 
-	AMP_DEBUG_EXIT("adm_add_rpttpl","-> %d.", success);
-	return success;
+	rh_code = VDB_ADD_RPTT(def->id, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_rpttpl","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
+	{
+		rpttpl_release(def, 1);
+	}
+
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 
 
 int adm_add_tblt(tblt_t *def)
 {
-	int success;
+	int rh_code;
 
-	CHKUSR(def, AMP_FAIL);
+	if(def == NULL)
+	{
+		return AMP_FAIL;
+	}
 
-	if((success = VDB_ADD_TBLT(def->id, def)) != AMP_OK)
+	rh_code = VDB_ADD_TBLT(def->id, def);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_tblt","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		tblt_release(def, 1);
 	}
 
-	AMP_DEBUG_EXIT("adm_add_tblt","-> %d.", success);
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 
 int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 {
 	var_t *new_var = NULL;
-	int success;
+	int rh_code;
 
-	CHKUSR(id, AMP_FAIL);
-	CHKUSR(expr, AMP_FAIL);
+	if((id == NULL) || (expr == NULL))
+	{
+		return AMP_FAIL;
+	}
 
 	// TODO: Make sure we don't leak expr.
 	if((new_var = var_create(id, type, expr)) == NULL)
@@ -419,23 +468,29 @@ int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_VAR(new_var->id, new_var)) != AMP_OK)
+	rh_code = VDB_ADD_VAR(new_var->id, new_var);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_var_from_expr","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		var_release(new_var, 1);
 	}
 
-
-	AMP_DEBUG_EXIT("adm_add_var_from_expr","-> %d.", success);
-
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 {
 	var_t *new_var = NULL;
-	int success;
+	int rh_code;
 
-	CHKUSR(id, AMP_FAIL);
+	if(id == NULL)
+	{
+		return AMP_FAIL;
+	}
 
 	if((new_var = var_create_from_tnv(id, value)) == NULL)
 	{
@@ -444,15 +499,18 @@ int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 		return AMP_FAIL;
 	}
 
-	if((success = VDB_ADD_TBLT(new_var->id, new_var)) != AMP_OK)
+	rh_code = VDB_ADD_VAR(new_var->id, new_var);
+
+	if(rh_code == RH_DUPLICATE)
+	{
+		AMP_DEBUG_WARN("adm_add_var_from_expr","Ignoring duplicate item.", NULL);
+	}
+	if(rh_code != RH_OK)
 	{
 		var_release(new_var, 1);
 	}
 
-
-	AMP_DEBUG_EXIT("adm_add_var_from_tnv","-> %d.", success);
-
-	return success;
+	return ((rh_code == RH_OK) || (rh_code == RH_DUPLICATE)) ? AMP_OK : AMP_FAIL;
 }
 
 

@@ -88,7 +88,7 @@ char *cut_get_cbor_str(CborValue *value, int *success)
 		size_t len = 0;
 		err = cbor_value_calculate_string_length(value, &len);
 		CHKNULL(err == CborNoError);
-		result = STAKE(len);
+		result = STAKE(len+1);
 		CHKNULL(result);
 		err = cbor_value_copy_text_string(value, result, &len, NULL);
 		if(err != CborNoError)
