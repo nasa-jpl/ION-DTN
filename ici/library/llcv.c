@@ -225,15 +225,16 @@ void	llcv_close(Llcv llcv)
 
 		pthread_mutex_lock(&llcv->mutex);
 
+		if (pthread_cond_destroy(&llcv->cv))
+		{
+			pthread_mutex_unlock(&llcv->mutex);
+			putSysErrmsg("llcv_close: cond_destroy failed.", NULL);
+			return;
+		}
+
 		if (pthread_mutex_unlock(&llcv->mutex))
 		{
 			putSysErrmsg("llcv_close: mutex_unlock failed.", NULL);
-		}
-
-		if (pthread_cond_destroy(&llcv->cv))
-		{
-			putSysErrmsg("llcv_close: cond_destroy failed.", NULL);
-			return;
 		}
 
 		if (pthread_mutex_destroy(&llcv->mutex))
