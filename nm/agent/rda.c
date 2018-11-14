@@ -135,7 +135,7 @@ msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
     {
     	msg_rpt_t *cur = vecit_data(it);
 
-    	vec_find(&(cur->rpts), recipient.name, &success);
+    	vec_find(&(cur->rx), recipient.name, &success);
     	if(success == AMP_OK)
     	{
     		return cur;
@@ -317,6 +317,9 @@ int rda_process_rules()
     vecit_t it;
     int success;
 
+	lockResource(&(gVDB.rules.lock));
+    vec_lock(&(gAgentDb.rpt_msgs));
+
     rhht_foreach(&(gVDB.rules), rda_scan_tbrs_cb, &(gAgentDb.tbrs));
     rhht_foreach(&(gVDB.rules), rda_scan_sbrs_cb, &(gAgentDb.sbrs));
 
@@ -376,6 +379,9 @@ int rda_process_rules()
 
     vec_clear(&(gAgentDb.sbrs));
     vec_clear(&(gAgentDb.tbrs));
+
+    vec_unlock(&(gAgentDb.rpt_msgs));
+	unlockResource(&(gVDB.rules.lock));
 
     AMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
     return AMP_OK;

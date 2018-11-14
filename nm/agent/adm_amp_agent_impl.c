@@ -1179,26 +1179,34 @@ tnv_t *amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		return result;
 	}
 
-	if(adm_add_var_from_expr(ari_copy_ptr(id), type, expr_copy_ptr(expr)) != AMP_OK)
+	var_t *new_var = var_create(ari_copy_ptr(id), type, expr_copy_ptr(expr));
+
+	if(new_var == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_VAR", "Error adding new variable.", NULL);
+		AMP_DEBUG_ERR("ADD_VAR","Unable to make new var.", NULL);
 		return result;
 	}
 
-	var_t *var = VDB_FINDKEY_VAR(id);
-	if(var == NULL)
+	if(VDB_FINDKEY_VAR(new_var->id) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_VAR", "Issue adding var to RAM DB.", NULL);
-		return result;
-	}
+		int rh_code = VDB_ADD_VAR(new_var->id, new_var);
 
-	if(db_persist_var(var) != AMP_OK)
+		if(rh_code != RH_OK)
+		{
+			var_release(new_var, 1);
+		}
+		else
+		{
+			*status = CTRL_SUCCESS;
+			db_persist_var(new_var);
+		}
+	}
+	else
 	{
-		AMP_DEBUG_ERR("ADD_VAR", "Unable to persist new var.", NULL);
-		return result;
+		*status = CTRL_SUCCESS;
+		AMP_DEBUG_WARN("ADD_VAR","Ignoring duplicate item.", NULL);
+		var_release(new_var, 1);
 	}
-
-	*status = CTRL_SUCCESS;
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1281,25 +1289,27 @@ tnv_t *amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	def = rpttpl_create(ari_copy_ptr(id), ac_copy(template));
 
-	if(adm_add_rpttpl(def) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("ADD_RPTT", "Failure adding template.", NULL);
-		return result;
-	}
 
-	if((def = VDB_FINDKEY_RPTT(id)) == NULL)
+	if(VDB_FINDKEY_RPTT(def->id) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_RPTT", "Issue adding template to RAM DB.", NULL);
-		return result;
-	}
+		int rh_code = VDB_ADD_RPTT(def->id, def);
 
-	if(db_persist_rpttpl(def) != AMP_OK)
+		if(rh_code != RH_OK)
+		{
+			rpttpl_release(def, 1);
+		}
+		else
+		{
+			*status = CTRL_SUCCESS;
+			db_persist_rpttpl(def);
+		}
+	}
+	else
 	{
-		AMP_DEBUG_ERR("ADD_VAR", "Unable to persist new template.", NULL);
-		return result;
+		*status = CTRL_SUCCESS;
+		AMP_DEBUG_WARN("ADD_RPTT","Ignoring duplicate item.", NULL);
+		rpttpl_release(def, 1);
 	}
-
-	*status = CTRL_SUCCESS;
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1618,28 +1628,30 @@ tnv_t *amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	for(i = 0; i < num; i++)
 	{
 		ctrl_t *cur_ctrl = ctrl_create(ac_get(def, i));
-		macdef_append(macro, ctrl_copy_ptr(cur_ctrl));
+		macdef_append(macro, cur_ctrl);
 	}
 
-	if(adm_add_macdef(macro) != AMP_OK)
+	if(VDB_FINDKEY_MACDEF(macro->ari) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_MACRO", "Error adding new macro.", NULL);
-		return result;
-	}
+		int rh_code = VDB_ADD_MACDEF(macro->ari, macro);
 
-	if(VDB_FINDKEY_MACDEF(id) == NULL)
+		if(rh_code != RH_OK)
+		{
+			macdef_release(macro, 1);
+		}
+		else
+		{
+			*status = CTRL_SUCCESS;
+			db_persist_macdef(macro);
+		}
+	}
+	else
 	{
-		AMP_DEBUG_ERR("ADD_MACRO", "Issue adding macro to RAM DB.", NULL);
-		return result;
+		*status = CTRL_SUCCESS;
+		AMP_DEBUG_WARN("ADD_MACRO","Ignoring duplicate item.", NULL);
+		macdef_release(macro, 1);
 	}
 
-	if(db_persist_macdef(macro) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("ADD_MACRO", "Unable to persist new macro.", NULL);
-		return result;
-	}
-
-	*status = CTRL_SUCCESS;
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1792,21 +1804,27 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		return result;
 	}
 
-	rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
 
-	if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+	if(VDB_FINDKEY_RULE(&(tbr->id)) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_TBR", "Error adding new TBR.", NULL);
-		return result;
-	}
+		int rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
 
-	if(db_persist_rule(tbr) != AMP_OK)
+		if(rh_code != RH_OK)
+		{
+			rule_release(tbr, 1);
+		}
+		else
+		{
+			*status = CTRL_SUCCESS;
+			db_persist_rule(tbr);
+		}
+	}
+	else
 	{
-		AMP_DEBUG_ERR("ADD_TBR", "Unable to persist new TBR.", NULL);
-		return result;
+		*status = CTRL_SUCCESS;
+		AMP_DEBUG_WARN("ADD_TBR","Ignoring duplicate item.", NULL);
+		rule_release(tbr, 1);
 	}
-
-	*status = CTRL_SUCCESS;
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1855,21 +1873,26 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		return result;
 	}
 
-	rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
-
-	if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
+	if(VDB_FINDKEY_RULE(&(sbr->id)) == NULL)
 	{
-		AMP_DEBUG_ERR("ADD_SBR", "Error adding new SBR.", NULL);
-		return result;
-	}
+		int rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
 
-	if(db_persist_rule(sbr) != AMP_OK)
+		if(rh_code != RH_OK)
+		{
+			rule_release(sbr, 1);
+		}
+		else
+		{
+			*status = CTRL_SUCCESS;
+			db_persist_rule(sbr);
+		}
+	}
+	else
 	{
-		AMP_DEBUG_ERR("ADD_SBR", "Unable to persist new SBR.", NULL);
-		return result;
+		*status = CTRL_SUCCESS;
+		AMP_DEBUG_WARN("ADD_SBR","Ignoring duplicate item.", NULL);
+		rule_release(sbr, 1);
 	}
-
-	*status = CTRL_SUCCESS;
 
 	/*
 	 * +-------------------------------------------------------------------------+

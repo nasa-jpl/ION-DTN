@@ -337,7 +337,8 @@ int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb)
 
 	    	if(init_cb(data, cur_desc) != AMP_OK)
 	    	{
-		    	AMP_DEBUG_ERR("vdb_init","Unable to insert new data item.", NULL);
+		    	AMP_DEBUG_ERR("vdb_init","Unable to insert new data item. Removing item.", NULL);
+		    	//db_forget(&cur_desc, sdr_list);
 	    	}
 	    	else
 	    	{

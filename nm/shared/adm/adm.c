@@ -87,8 +87,9 @@ int adm_add_cnst(ari_t *id, edd_collect_fn collect)
 	if(rh_code == RH_DUPLICATE)
 	{
 		AMP_DEBUG_WARN("adm_add_cnst","Ignoring duplicate item.", NULL);
+		edd_release(def, 1);
 	}
-	if(rh_code != RH_OK)
+	else if(rh_code != RH_OK)
 	{
 		edd_release(def, 1);
 	}
@@ -474,6 +475,7 @@ int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 	{
 		AMP_DEBUG_WARN("adm_add_var_from_expr","Ignoring duplicate item.", NULL);
 	}
+
 	if(rh_code != RH_OK)
 	{
 		var_release(new_var, 1);
@@ -503,7 +505,7 @@ int adm_add_var_from_tnv(ari_t *id, tnv_t value)
 
 	if(rh_code == RH_DUPLICATE)
 	{
-		AMP_DEBUG_WARN("adm_add_var_from_expr","Ignoring duplicate item.", NULL);
+		AMP_DEBUG_WARN("adm_add_var_from_tnv","Ignoring duplicate item.", NULL);
 	}
 	if(rh_code != RH_OK)
 	{

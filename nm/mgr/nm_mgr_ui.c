@@ -909,18 +909,14 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	{
 		if(strlen(cursor) <= 0)
 		{
-//			fprintf(stderr,"Ignoring blank line.\n");
 			cursor = strtok_r(NULL, "\n", &saveptr);
 
 			continue;
 		}
-//		fprintf(stderr,"Read line %s from file.\n", cursor);
 
 		if((cursor[0] == '#') || (cursor[0] == ' '))
 		{
-//			fprintf(stderr,"Ignoring comment or blank line.\n");
 			cursor = strtok_r(NULL, "\n", &saveptr);
-
 			continue;
 		}
 
@@ -973,15 +969,15 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 		blob_release(value, 1);
 		if(cur_id == NULL)
 		{
-			AMP_DEBUG_ERR("ui_send_file", "Can't make mid from %s", cursor);
+			AMP_DEBUG_ERR("ui_send_file", "Can't make ari from %s", cursor);
 			blob_release(contents, 1);
 			return;
 		}
 
-		//TODO: Make next several lines a helper function.
 		ui_postprocess_ctrl(cur_id);
+
 		msg_ctrl_t *msg;
-		if((msg = msg_ctrl_create(cur_id)) == NULL)
+		if((msg = msg_ctrl_create_ari(cur_id)) == NULL)
 		{
 			ari_release(cur_id, 1);
 			return;
