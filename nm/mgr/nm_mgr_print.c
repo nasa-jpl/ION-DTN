@@ -40,7 +40,7 @@ ui_menu_list_t agent_submenu_list[] = {
    {"Clear Agent Reports", NULL, NULL},
 };
 
-
+static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* status_msg);
 
 
 /******************************************************************************
@@ -61,35 +61,55 @@ ui_menu_list_t agent_submenu_list[] = {
  *  10/07/18  E. Birrane     Update top AMP v0.5 (JHU/APL)
  *****************************************************************************/
 int ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
-   int choice;
+   int rtv = UI_CB_RTV_CONTINUE;
    agent_t *agent = (agent_t*)data;
-   char *subtitle = "";
-   char *tmp;
 
 #ifdef USE_NCURSES
    if (keypress == KEY_ENTER || keypress == 10)
    {
-#endif
-      // Switch below treats values corresponding to menu presses as ints instead of char
-
-      keypress = ui_menu_listing(agent->eid.name,
-                                 agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
-                                 NULL, 0,
-#ifdef USE_NCURSES
-                                 "F1 or 'e' to cancel. Arrow keys to navigate and enter to select. (x) indicates key that can be pressed directly from agent listing (parent) menu to perform this action.",
+      // User selected an agent. Let's loop on the sub-menu
+      while(rtv == UI_CB_RTV_CONTINUE )
+      {
+         keypress = ui_menu_listing(agent->eid.name,
+                                    agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
+                                    NULL, 0,
+                                    "F1 or 'e' to cancel. Arrow keys to navigate and enter to select. (x) indicates key that can be pressed directly from agent listing (parent) menu to perform this action.",
+                                    NULL,
+                                    UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
+         rtv = ui_print_agents_cb_parse(idx, keypress, data, status_msg);
+      }
+   }
+   else
+   {
+      return ui_print_agents_cb_parse(idx, keypress, data, status_msg);
+   }
 #else
-                                 NULL,
-#endif
-                                 NULL,
-                                 UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
-#ifdef USE_NCURSES
+   while(rtv == UI_CB_RTV_CONTINUE)
+   {
+         keypress = ui_menu_listing(agent->eid.name,
+                                    agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
+                                    NULL, 0,
+                                    NULL,
+                                    NULL,
+                                    UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
+      rtv = ui_print_agents_cb_parse(idx, keypress, data, status_msg);
    }
 #endif
+   return rtv;
+}
+
+static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* status_msg) {
+   int choice;
+   int rtv = UI_CB_RTV_CONTINUE;
+   agent_t *agent = (agent_t*)data;
+   char *subtitle = "";
+   char *tmp;
    
    switch(keypress)
    {
    case 'e':
    case 'E':
+   case -1:
       return UI_CB_RTV_ERR; // Exit Listing
    case 'd':
    case 'D':
