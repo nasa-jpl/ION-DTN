@@ -979,8 +979,10 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 		msg_ctrl_t *msg;
 		if((msg = msg_ctrl_create_ari(cur_id)) == NULL)
 		{
-			ari_release(cur_id, 1);
-			return;
+           AMP_DEBUG_ERR("ui_send_file", "Can't make ctrl from %s", cursor);
+           ari_release(cur_id, 1);
+           blob_release(contents, 1);
+           return;
 		}
 
 		msg->start = ts;
