@@ -141,28 +141,33 @@ blob_t *ui_input_file_contents(char *prompt)
 }
 
 
-uint8_t ui_input_adm_id(char *prompt)
+uint8_t ui_input_adm_id()
 {
+	vecit_t it;
+	int i = 0;
+	int max = 0;
 
-	ui_printf("\n\n1. All");
-	ui_printf("\n2. AMP Agent");
-	ui_printf("\n3. BP Agent");
-	ui_printf("\n4. BPSec Agent\n");
+	adm_info_t *info = NULL;
 
-	uint i = ui_input_uint("Select ADM:");
-
-	switch(i)
+	ui_printf("\n");
+	for(it = vecit_first(&g_adm_info); vecit_valid(it); it = vecit_next(it))
 	{
+		info = (adm_info_t*) vecit_data(it);
+		ui_printf("\n%d. %s", i, info->name);
+		i++;
+	}
+	max = i;
 
-	case 2: return ADM_ENUM_AMP_AGENT;
-	case 3: return ADM_ENUM_DTN_BP_AGENT;
-	case 4: return ADM_ENUM_DTN_BPSEC;
+	i = ui_input_uint("\nSelect ADM:");
 
-	default:
-		break;
+	if(i >= max)
+	{
+		i = 0;
 	}
 
-    return ADM_ENUM_ALL;
+	info = (adm_info_t*) vec_at(&g_adm_info, i);
+
+	return (info == NULL) ? 0 : info->id;
 }
 
 

@@ -42,7 +42,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len);
  * AMM Object Input Functions
  */
 
-uint8_t ui_input_adm_id(char *prompt);
+uint8_t ui_input_adm_id();
 
 
 

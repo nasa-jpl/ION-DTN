@@ -42,8 +42,21 @@
 
 #include "adm_amp_agent.h"
 #include "adm_bp_agent.h"
-#include "adm_bpsec.h"
+#include "adm_sbsp.h"
+#include "adm_ion_admin.h"
 
+vector_t g_adm_info;
+
+
+int adm_add_adm_info(char *name, int id)
+{
+	adm_info_t *info = STAKE(sizeof(adm_info_t));
+	CHKERR(info);
+
+	strncpy(info->name, name, ADM_MAX_NAME);
+	info->id = id;
+	return vec_push(&g_adm_info, info);
+}
 
 /******************************************************************************
  *
@@ -628,13 +641,21 @@ vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
 
 void adm_init()
 {
+	int success;
+
 	AMP_DEBUG_ENTRY("adm_init","()", NULL);
+
+	g_adm_info = vec_create(8, NULL, NULL, NULL, 0, &success);
+
+	adm_add_adm_info("ALL", 0);
 
 	amp_agent_init();
 	dtn_bp_agent_init();
-	dtn_bpsec_init();
-/*
-	adm_ion_admin_init();
+	dtn_sbsp_init();
+	dtn_ion_ionadmin_init();
+
+	/*
+
 	adm_ion_bp_admin_init();
 	adm_ion_ipn_admin_init();
 	adm_ionsec_admin_init();

@@ -45,17 +45,9 @@
 
 
 /* Known ADMs Enumerations.*/
-#define ADM_ENUM_ALL   	    	   0
-/*
-#define ADM_ENUM_AGENT    		   1
-#define ADM_ENUM_BP_AGENT	       2
-#define ADM_ENUM_BPSEC_AGENT       4
-#define ADM_ENUM_ION_BP_ADMIN      5
-#define ADM_ENUM_ION_IPN_ADMIN     6
-#define ADM_ENUM_ION_ION_ADMIN 	   7
-#define ADM_ENUM_ION_IONSEC_ADMIN  8
-#define ADM_ENUM_ION_LTP_ADMIN 	   9
-*/
+#define ADM_ENUM_ALL     0
+
+#define ADM_MAX_NAME 16
 
 #define ADM_CONST_IDX 0
 #define ADM_CTRL_IDX  1
@@ -70,6 +62,7 @@
 #define ADM_META_IDX  10
 
 
+extern vector_t g_adm_info;
 
 /*
  * +--------------------------------------------------------------------------+
@@ -91,12 +84,20 @@
  * +--------------------------------------------------------------------------+
  */
 
+typedef struct
+{
+	char name[ADM_MAX_NAME];
+	int  id;
+} adm_info_t;
+
 
 /*
  * +--------------------------------------------------------------------------+
  * |						  FUNCTION PROTOTYPES  							  +
  * +--------------------------------------------------------------------------+
  */
+
+int adm_add_adm_info(char *name, int id);
 
 int adm_add_cnst(ari_t *id, edd_collect_fn collect);
 int adm_add_ctrldef(uint8_t nn, uvast id, uint8_t num, ctrldef_run_fn run);
