@@ -251,7 +251,7 @@ rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 		result = rule_create_tbr(*id, start, as_tbr, action);
 	}
 
-	if((*success != AMP_OK) || (result == NULL))
+	if(result == NULL)
 	{
 		if(id->type == AMP_TYPE_SBR)
 		{
@@ -267,7 +267,7 @@ rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 	else
 	{
 		/* Release ari container only */
-		SRELEASE(id);
+		ari_release(id, 1);
 	}
 
 	*success = AMP_OK;

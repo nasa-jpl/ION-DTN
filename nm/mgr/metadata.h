@@ -40,10 +40,10 @@
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
-#define META_NAME_MAX 32
-#define META_DESCR_MAX 200
-#define META_PARM_NAME 16
-#
+#define META_NAME_MAX 64
+#define META_DESCR_MAX 1024
+#define META_PARM_NAME 32
+
 
 /*
  * +--------------------------------------------------------------------------+

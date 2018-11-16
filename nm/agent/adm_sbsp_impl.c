@@ -1,6 +1,6 @@
 /****************************************************************************
  **
- ** File Name: adm_bpsec_impl.c
+ ** File Name: adm_sbsp_impl.c
  **
  ** Description: TODO
  **
@@ -11,32 +11,31 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-09  AUTO             Auto-generated c file 
+ **  2018-11-15  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
 #include <math.h>
 
-#include "../shared/adm/adm.h"
-
-#include "adm_bpsec_impl.h"
+#include "adm_sbsp_impl.h"
 #include "../shared/primitives/report.h"
 #include "rda.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/table.h"
 
-#include "../shared/adm/adm_bpsec.h"
+#include "../shared/adm/adm_sbsp.h"
 #include "profiles.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "adm_bpsec_impl.h"
+#include "../shared/adm/adm.h"
+#include "adm_sbsp_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
 
 
-static tnv_t *adm_bpsec_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, query_type_e query)
+static tnv_t *adm_sbsp_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, query_type_e query)
 {
     tnv_t *result = tnv_create();
 	char *eid_id = NULL;
@@ -67,7 +66,7 @@ static tnv_t *adm_bpsec_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, quer
 	return result;
 }
 
-static tnv_t *adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query)
+static tnv_t *adm_sbsp_get_tot_val(bpsec_instr_type_e type, query_type_e query)
 {
         tnv_t *result = tnv_create();
 	uvast num = 0;
@@ -96,7 +95,7 @@ static tnv_t *adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query)
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_bpsec_setup()
+void dtn_sbsp_setup()
 {
 
 	/*
@@ -111,7 +110,7 @@ void dtn_bpsec_setup()
 	 */
 }
 
-void dtn_bpsec_cleanup()
+void dtn_sbsp_cleanup()
 {
 
 	/*
@@ -130,25 +129,25 @@ void dtn_bpsec_cleanup()
 /* Metadata Functions */
 
 
-tnv_t *dtn_bpsec_meta_name(tnvc_t *parms)
+tnv_t *dtn_sbsp_meta_name(tnvc_t *parms)
 {
-	return tnv_from_str("bpsec");
+	return tnv_from_str("sbsp");
 }
 
 
-tnv_t *dtn_bpsec_meta_namespace(tnvc_t *parms)
+tnv_t *dtn_sbsp_meta_namespace(tnvc_t *parms)
 {
-	return tnv_from_str("DTN/bpsec");
+	return tnv_from_str("DTN/sbsp");
 }
 
 
-tnv_t *dtn_bpsec_meta_version(tnvc_t *parms)
+tnv_t *dtn_sbsp_meta_version(tnvc_t *parms)
 {
 	return tnv_from_str("v1.0");
 }
 
 
-tnv_t *dtn_bpsec_meta_organization(tnvc_t *parms)
+tnv_t *dtn_sbsp_meta_organization(tnvc_t *parms)
 {
 	return tnv_from_str("JHUAPL");
 }
@@ -161,36 +160,13 @@ tnv_t *dtn_bpsec_meta_organization(tnvc_t *parms)
 /*
  * BIB Rules.
  */
-tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
+tbl_t *dtn_sbsp_tblt_bib_rules(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
 	{
 		return NULL;
 	}
-
-	/**
-
-	 "columns": [{
-	          "type": "STR",
-	          "name": "SrcEid"
-	        }, {
-	          "type": "STR",
-	          "name": "DestEid"
-	        },
-	        {
-	          "type": "UINT",
-	          "name": "TgtBlk"
-	        },
-	        {
-	          "type": "STR",
-	          "name": "csName"
-	        },
-	        {
-	          "type": "STR",
-	          "name": "keyName"
-
-	          **/
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -208,14 +184,14 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 
 	if((listObj = sec_get_bspBibRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("dtn_bpsec_tblt_bib_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("dtn_sbsp_tblt_bib_rules","Cannot get list.", NULL);
 		tbl_release(table, 1);
 		return NULL;
 	}
 
 	if (sdr_begin_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("dtn_bpsec_tblt_bib_rules","Can't start transaction.", NULL);
+		AMP_DEBUG_ERR("dtn_sbsp_tblt_bib_rules","Can't start transaction.", NULL);
 		tbl_release(table, 1);
 		return NULL;
 	}
@@ -243,12 +219,12 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 			}
 			else
 			{
-				AMP_DEBUG_WARN("dtn_bpsec_tblt_bib_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("dtn_sbsp_tblt_bib_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_bpsec_tblt_bib_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_sbsp_tblt_bib_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -266,7 +242,7 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 /*
  * BCB Rules.
  */
-tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
+tbl_t *dtn_sbsp_tblt_bcb_rules(ari_t *id)
 {
 	tbl_t *table = NULL;
 	if((table = tbl_create(id)) == NULL)
@@ -290,14 +266,14 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 
 	if((listObj = sec_get_bspBcbRuleList()) == 0)
 	{
-		AMP_DEBUG_ERR("dtn_bpsec_tblt_bcb_rules","Cannot get list.", NULL);
+		AMP_DEBUG_ERR("dtn_sbsp_tblt_bcb_rules","Cannot get list.", NULL);
 		tbl_release(table, 1);
 		return NULL;
 	}
 
 	if (sdr_begin_xn(sdr) < 0)
 	{
-		AMP_DEBUG_ERR("dtn_bpsec_tblt_bcb_rules","Can't start transaction.", NULL);
+		AMP_DEBUG_ERR("dtn_sbsp_tblt_bcb_rules","Can't start transaction.", NULL);
 		tbl_release(table, 1);
 		return NULL;
 	}
@@ -324,12 +300,12 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 			}
 			else
 			{
-				AMP_DEBUG_WARN("dtn_bpsec_tblt_bcb_rules", "NULL rule?", NULL);
+				AMP_DEBUG_WARN("dtn_sbsp_tblt_bcb_rules", "NULL rule?", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_bpsec_tblt_bcb_rules", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_sbsp_tblt_bcb_rules", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -348,7 +324,7 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 /*
  * Total successfully Tx Bundle Confidentiality blocks
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bcb_blk(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -356,7 +332,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
@@ -369,7 +345,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_blk(tnvc_t *parms)
 /*
  * Total unsuccessfully Tx Block Confidentiality Block (BCB) blocks
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blk(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -377,7 +353,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
@@ -390,7 +366,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blk(tnvc_t *parms)
 /*
  * Total successfully Rx BCB blocks
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bcb_blk(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -398,7 +374,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
@@ -411,7 +387,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_blk(tnvc_t *parms)
 /*
  * Total unsuccessfully Rx BCB blocks
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blk(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -419,7 +395,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
@@ -432,7 +408,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blk(tnvc_t *parms)
 /*
  * Total missing-on-RX BCB blocks
  */
-tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_missing_rx_bcb_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -440,7 +416,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
@@ -453,7 +429,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks(tnvc_t *parms)
 /*
  * Total forward BCB blocks
  */
-tnv_t *dtn_bpsec_get_num_fwd_bcb_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bcb_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -461,7 +437,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
@@ -474,7 +450,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_blks(tnvc_t *parms)
 /*
  * Total successfully Tx BCB bytes
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -482,7 +458,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
@@ -495,7 +471,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes(tnvc_t *parms)
 /*
  * Total unsuccessfully Tx BCB bytes
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -503,7 +479,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
@@ -516,7 +492,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
 /*
  * Total unsuccessfully Tx BCB blocks
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bcb_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -524,6 +500,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blks BODY
@@ -536,7 +513,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks(tnvc_t *parms)
 /*
  * Total successfully Rx BCB bytes
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -544,7 +521,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
@@ -557,7 +534,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes(tnvc_t *parms)
 /*
  * Total unsuccessfully Rx BCB bytes
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -565,7 +542,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
@@ -578,7 +555,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
 /*
  * Total missing-on-Rx BCB bytes
  */
-tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -586,7 +563,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
@@ -599,7 +576,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
 /*
  * Total forwarded BCB bytes
  */
-tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -607,7 +584,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BCB_FWD, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
@@ -620,7 +597,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes(tnvc_t *parms)
 /*
  * Total successfully Tx Block Integrity Block (BIB) blocks
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bib_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -628,7 +605,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
@@ -641,7 +618,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_blks(tnvc_t *parms)
 /*
  * Total unsuccessfully Tx BIB blocks
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -649,7 +626,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
@@ -662,7 +639,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks(tnvc_t *parms)
 /*
  * Total successfully Rx BIB blocks
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bib_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -670,7 +647,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
@@ -683,7 +660,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_blks(tnvc_t *parms)
 /*
  * Total unsuccessfully Rx BIB blocks
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -691,7 +668,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
@@ -704,7 +681,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks(tnvc_t *parms)
 /*
  * Total missing-on-Rx BIB blocks
  */
-tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_miss_rx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -712,7 +689,7 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
@@ -725,7 +702,7 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks(tnvc_t *parms)
 /*
  * Total forwarded BIB blocks
  */
-tnv_t *dtn_bpsec_get_num_fwd_bib_blks(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -733,7 +710,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BLK);
+	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks BODY
@@ -746,7 +723,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_blks(tnvc_t *parms)
 /*
  * Total successfully Tx BIB bytes
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -754,7 +731,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
@@ -767,7 +744,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes(tnvc_t *parms)
 /*
  * Total unsuccessfully Tx BIB bytes
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -775,7 +752,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
@@ -788,7 +765,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes(tnvc_t *parms)
 /*
  * Total successfully Rx BIB bytes
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -796,7 +773,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
@@ -809,7 +786,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes(tnvc_t *parms)
 /*
  * Total unsuccessfully Rx BIB bytes
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -817,7 +794,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
@@ -830,7 +807,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes(tnvc_t *parms)
 /*
  * Total missing-on-Rx BIB bytes
  */
-tnv_t *dtn_bpsec_get_num_miss_rx_bib_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_miss_rx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -838,7 +815,7 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
@@ -851,7 +828,7 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_bytes(tnvc_t *parms)
 /*
  * Total forwarded BIB bytes
  */
-tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -859,7 +836,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_tot_val( BIB_FWD, TOTAL_BYTES);
+	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
@@ -870,9 +847,9 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
 
 
 /*
- * Last BPSEC update
+ * Last sbsp update
  */
-tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_last_update(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -898,7 +875,7 @@ tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
 /*
  * Number of known keys
  */
-tnv_t *dtn_bpsec_get_num_known_keys(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_known_keys(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -922,7 +899,7 @@ tnv_t *dtn_bpsec_get_num_known_keys(tnvc_t *parms)
 /*
  * Known key names
  */
-tnv_t *dtn_bpsec_get_key_names(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_key_names(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -963,7 +940,7 @@ tnv_t *dtn_bpsec_get_key_names(tnvc_t *parms)
 /*
  * Known ciphersuite names
  */
-tnv_t *dtn_bpsec_get_ciphersuite_names(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_ciphersuite_names(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1003,7 +980,7 @@ tnv_t *dtn_bpsec_get_ciphersuite_names(tnvc_t *parms)
 /*
  * Known rule sources
  */
-tnv_t *dtn_bpsec_get_rule_source(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_rule_source(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1041,7 +1018,7 @@ tnv_t *dtn_bpsec_get_rule_source(tnvc_t *parms)
 /*
  * Number of successfully Tx BCB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bcb_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bcb_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1049,7 +1026,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_TX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BCB_TX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blks_src BODY
@@ -1062,7 +1039,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_blks_src(tnvc_t *parms)
 /*
  * Number of failed TX BCB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bcb_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1070,7 +1047,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_TX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BCB_TX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blks_src BODY
@@ -1083,7 +1060,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks_src(tnvc_t *parms)
 /*
  * Number of successfully Rx BCB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bcb_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bcb_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1091,7 +1068,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_RX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BCB_RX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blks_src BODY
@@ -1104,7 +1081,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_blks_src(tnvc_t *parms)
 /*
  * Number of failed RX BCB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bcb_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1112,7 +1089,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_RX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BCB_RX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blks_src BODY
@@ -1125,7 +1102,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blks_src(tnvc_t *parms)
 /*
  * Number of missing-onRX BCB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_missing_rx_bcb_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1133,7 +1110,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_RX_MISS, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BCB_RX_MISS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks_src BODY
@@ -1146,7 +1123,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks_src(tnvc_t *parms)
 /*
  * Number of forwarded BCB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_fwd_bcb_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bcb_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1154,7 +1131,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_FWD, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BCB_FWD, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks_src BODY
@@ -1167,7 +1144,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_blks_src(tnvc_t *parms)
 /*
  * Number of successfully Tx bcb bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bcb_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1175,7 +1152,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_TX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BCB_TX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes_src BODY
@@ -1188,7 +1165,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes_src(tnvc_t *parms)
 /*
  * Number of failed Tx bcb bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bcb_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1196,7 +1173,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_TX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BCB_TX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes_src BODY
@@ -1209,7 +1186,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes_src(tnvc_t *parms)
 /*
  * Number of successfully Rx bcb bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bcb_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1217,7 +1194,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_RX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BCB_RX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes_src BODY
@@ -1230,7 +1207,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes_src(tnvc_t *parms)
 /*
  * Number of failed Rx bcb bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bcb_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1238,7 +1215,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_RX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BCB_RX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes_src BODY
@@ -1251,7 +1228,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes_src(tnvc_t *parms)
 /*
  * Number of missing-on-Rx bcb bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_missing_rx_bcb_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1259,7 +1236,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_RX_MISS, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BCB_RX_MISS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes_src BODY
@@ -1272,7 +1249,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes_src(tnvc_t *parms)
 /*
  * Number of forwarded bcb bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bcb_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1280,7 +1257,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BCB_FWD, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BCB_FWD, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes_src BODY
@@ -1293,7 +1270,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes_src(tnvc_t *parms)
 /*
  * Number of successfully Tx BIB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bib_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bib_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1301,7 +1278,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_TX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BIB_TX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks_src BODY
@@ -1314,7 +1291,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_blks_src(tnvc_t *parms)
 /*
  * Number of failed Tx BIB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bib_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1322,7 +1299,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_TX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BIB_TX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks_src BODY
@@ -1335,7 +1312,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks_src(tnvc_t *parms)
 /*
  * Number of successfully Rx BIB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bib_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bib_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1343,7 +1320,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_RX_PASS, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BIB_RX_PASS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks_src BODY
@@ -1356,7 +1333,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_blks_src(tnvc_t *parms)
 /*
  * Number of failed Rx BIB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bib_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1364,7 +1341,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_RX_FAIL, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BIB_RX_FAIL, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks_src BODY
@@ -1377,7 +1354,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks_src(tnvc_t *parms)
 /*
  * Number of missing-on-Rx BIB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_miss_rx_bib_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1385,7 +1362,7 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_RX_MISS, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BIB_RX_MISS, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks_src BODY
@@ -1398,7 +1375,7 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks_src(tnvc_t *parms)
 /*
  * Number of forwarded BIB blocks from SRC
  */
-tnv_t *dtn_bpsec_get_num_fwd_bib_blks_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bib_blks_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1406,7 +1383,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_blks_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_FWD, SRC_BLK);
+	return adm_sbsp_get_src_val(parms, BIB_FWD, SRC_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks_src BODY
@@ -1419,7 +1396,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_blks_src(tnvc_t *parms)
 /*
  * Number of successfully Tx BIB bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_tx_bib_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1427,7 +1404,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_TX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BIB_TX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes_src BODY
@@ -1440,7 +1417,7 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes_src(tnvc_t *parms)
 /*
  * Number of failed Tx BIB bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_tx_bib_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1448,7 +1425,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_TX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BIB_TX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes_src BODY
@@ -1461,7 +1438,7 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes_src(tnvc_t *parms)
 /*
  * Number of successfully Rx BIB bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_good_rx_bib_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1469,7 +1446,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_RX_PASS, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BIB_RX_PASS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes_src BODY
@@ -1482,7 +1459,7 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes_src(tnvc_t *parms)
 /*
  * Number of failed Rx BIB bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_bad_rx_bib_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1490,7 +1467,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_RX_FAIL, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BIB_RX_FAIL, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes_src BODY
@@ -1503,7 +1480,7 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes_src(tnvc_t *parms)
 /*
  * Number of missing-on-Rx BIB bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_missing_rx_bib_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_missing_rx_bib_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1511,7 +1488,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_RX_MISS, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BIB_RX_MISS, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bib_bytes_src BODY
@@ -1524,7 +1501,7 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bib_bytes_src(tnvc_t *parms)
 /*
  * Number of forwarded BIB bytes from SRC
  */
-tnv_t *dtn_bpsec_get_num_fwd_bib_bytes_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_num_fwd_bib_bytes_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1532,7 +1509,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_bpsec_get_src_val(parms, BIB_FWD, SRC_BYTES);
+	return adm_sbsp_get_src_val(parms, BIB_FWD, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
@@ -1543,9 +1520,9 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes_src(tnvc_t *parms)
 
 
 /*
- * Last BPSEC update from SRC
+ * Last sbsp update from SRC
  */
-tnv_t *dtn_bpsec_get_last_update_src(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_last_update_src(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1583,7 +1560,7 @@ tnv_t *dtn_bpsec_get_last_update_src(tnvc_t *parms)
 /*
  * Last reset
  */
-tnv_t *dtn_bpsec_get_last_reset(tnvc_t *parms)
+tnv_t *dtn_sbsp_get_last_reset(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/*
@@ -1616,9 +1593,9 @@ tnv_t *dtn_bpsec_get_last_reset(tnvc_t *parms)
 
 /*
  * This control causes the Agent to reset all counts associated with block or byte statistics and to se
- * t the Last Reset Time of the BPsec EDD data to the time when the control was run.
+ * t the Last Reset Time of the sbsp EDD data to the time when the control was run.
  */
-tnv_t *dtn_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1642,7 +1619,7 @@ tnv_t *dtn_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
  * This control causes the Agent to reset all counts (blocks and bytes) associated with a given bundle 
  * source and set the Last Reset Time of the source statistics to the time when the control was run.
  */
-tnv_t *dtn_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1671,9 +1648,9 @@ tnv_t *dtn_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control deletes a key from the BPsec system.
+ * This control deletes a key from the sbsp system.
  */
-tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1696,7 +1673,7 @@ tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 */
 	if(sec_activeKey(name) != 0)
 	{
-		AMP_DEBUG_WARN("adm_bpsec_ctrl_delete_key","Can't remove active key %s", name);
+		AMP_DEBUG_WARN("adm_sbsp_ctrl_delete_key","Can't remove active key %s", name);
 		return NULL;
 	}
 
@@ -1714,9 +1691,9 @@ tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control adds a key to the BPsec system.
+ * This control adds a key to the sbsp system.
  */
-tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1755,12 +1732,12 @@ tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control configures policy on the BPsec protocol implementation that describes how BIB blocks sh
- * ould be applied to bundles in the system. This policy is captured as a rule which states when transm
- * itting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of ty
- * pe target should have a BIB added to them using the given ciphersuite and the given key.
+ * This control configures policy on the sbsp protocol implementation that describes how BIB blocks sho
+ * uld be applied to bundles in the system. This policy is captured as a rule which states when transmi
+ * tting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of typ
+ * e target should have a BIB added to them using the given ciphersuite and the given key.
  */
-tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1798,17 +1775,17 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 			}
 			else
 			{
-				AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bib_rule", "Can't update rule.", NULL);
+				AMP_DEBUG_ERR("dtn_sbsp_ctrl_add_bib_rule", "Can't update rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bib_rule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("dtn_sbsp_ctrl_add_bib_rule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bib_rule", "CIphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("dtn_sbsp_ctrl_add_bib_rule", "CIphersuite %s not supported.", cs);
 	}
 
 	/*
@@ -1821,11 +1798,11 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control removes any configured policy on the BPsec protocol implementation that describes how B
- * IB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a sourc
- * e endpoint Id, a destination Id, and a target block type.
+ * This control removes any configured policy on the sbsp protocol implementation that describes how BI
+ * B blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a source
+ *  endpoint Id, a destination Id, and a target block type.
  */
-tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1859,12 +1836,12 @@ tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control configures policy on the BPsec protocol implementation that describes how BCB blocks sh
- * ould be applied to bundles in the system. This policy is captured as a rule which states when transm
- * itting a bundle from the given source endpoint id to the given destination endpoint id, blocks of ty
- * pe target should have a bcb added to them using the given ciphersuite and the given key.
+ * This control configures policy on the sbsp protocol implementation that describes how BCB blocks sho
+ * uld be applied to bundles in the system. This policy is captured as a rule which states when transmi
+ * tting a bundle from the given source endpoint id to the given destination endpoint id, blocks of typ
+ * e target should have a bcb added to them using the given ciphersuite and the given key.
  */
-tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
@@ -1904,17 +1881,17 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 			}
 			else
 			{
-				AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bcbrule", "Can't add rule.", NULL);
+				AMP_DEBUG_ERR("dtn_sbsp_ctrl_add_bcbrule", "Can't add rule.", NULL);
 			}
 		}
 		else
 		{
-			AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bcbrule", "Key %s doesn't exist.", key);
+			AMP_DEBUG_ERR("dtn_sbsp_ctrl_add_bcbrule", "Key %s doesn't exist.", key);
 		}
 	}
 	else
 	{
-		AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bcbrule", "Ciphersuite %s not supported.", cs);
+		AMP_DEBUG_ERR("dtn_sbsp_ctrl_add_bcbrule", "Ciphersuite %s not supported.", cs);
 	}
 
 	/*
@@ -1927,11 +1904,11 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control removes any configured policy on the BPsec protocol implementation that describes how B
- * CB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a sourc
- * e endpoint id, a destination endpoint id, and a target block type.
+ * This control removes any configured policy on the sbsp protocol implementation that describes how BC
+ * B blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a source
+ *  endpoint id, a destination endpoint id, and a target block type.
  */
-tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
+tnv_t *dtn_sbsp_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;

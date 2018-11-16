@@ -44,16 +44,16 @@
  */
 #define DB_MAX_ATOMIC 250
 #define DB_MAX_CTRL 50
-#define DB_MAX_CTRLDEF 25
+#define DB_MAX_CTRLDEF 100
 #define DB_MAX_MACDEF  50
-#define DB_MAX_OP   60
+#define DB_MAX_OP   100
 #define DB_MAX_RPTT 50
-#define DB_MAX_SBR  25
-#define DB_MAX_TBLT 20
-#define DB_MAX_TBR  25
-#define DB_MAX_VAR  20
+#define DB_MAX_SBR  50
+#define DB_MAX_TBLT 50
+#define DB_MAX_TBR  50
+#define DB_MAX_VAR  50
 #define DB_MAX_NN   100
-#define DB_MAX_ISS  25
+#define DB_MAX_ISS  20
 #define DB_MAX_TAG  25
 
 

@@ -334,6 +334,7 @@ var_t *var_deserialize_ptr(CborValue *it, int *success)
     /* Grab the TNV. */
     tmp = blob_deserialize_ptr(it, success);
     result->value = tnv_deserialize_raw(tmp, success);
+    blob_release(tmp, 1);
 
     if((result->value == NULL) || (*success != AMP_OK))
     {

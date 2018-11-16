@@ -768,9 +768,9 @@ tnv_t*  tnv_from_str(char *str)
 	CHKNULL(result);
 
 	result->type = AMP_TYPE_STR;
-	len = strlen(str) + 1;
+	len = strlen(str);
 
-	if((result->value.as_ptr = STAKE(len)) == NULL)
+	if((result->value.as_ptr = STAKE(len+1)) == NULL)
 	{
 		tnv_release(result, 1);
 		result = NULL;
@@ -778,7 +778,7 @@ tnv_t*  tnv_from_str(char *str)
 	else
 	{
 		TNV_SET_ALLOC(result->flags);
-		memcpy(result->value.as_ptr,str, len);
+		memcpy(result->value.as_ptr, str, len);
 	}
 
 	return result;
