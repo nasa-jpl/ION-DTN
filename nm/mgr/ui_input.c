@@ -22,9 +22,6 @@
 #include "metadata.h"
 
 #include "../shared/adm/adm.h"
-#include "../shared/adm/adm_amp_agent.h"
-#include "../shared/adm/adm_bp_agent.h"
-#include "../shared/adm/adm_bpsec.h"
 
 
 /******************************************************************************
