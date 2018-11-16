@@ -32,6 +32,8 @@ vec_idx_t g_amp_agent_idx[11];
 void amp_agent_init()
 {
 
+	adm_add_adm_info("amp_agent", ADM_ENUM_AMP_AGENT);
+
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_OPER_IDX), &(g_amp_agent_idx[ADM_OPER_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_RPTT_IDX), &(g_amp_agent_idx[ADM_RPTT_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_CONST_IDX), &(g_amp_agent_idx[ADM_CONST_IDX]));

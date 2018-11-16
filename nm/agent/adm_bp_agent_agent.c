@@ -35,6 +35,8 @@ static vec_idx_t g_dtn_bp_agent_idx[11];
 void dtn_bp_agent_init()
 {
 
+	adm_add_adm_info("bp_agent", ADM_ENUM_DTN_BP_AGENT);
+
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_META_IDX), &(g_dtn_bp_agent_idx[ADM_META_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_RPTT_IDX), &(g_dtn_bp_agent_idx[ADM_RPTT_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_EDD_IDX), &(g_dtn_bp_agent_idx[ADM_EDD_IDX]));

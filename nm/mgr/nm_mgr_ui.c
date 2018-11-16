@@ -1101,38 +1101,38 @@ int ui_menu_ctrl_do(uint8_t choice)
 
 	switch(choice)
 	{
-		case '0' : ui_list_objs(ADM_ENUM_ALL, TYPE_MASK_ALL, NULL);
+		case '0' : ui_list_objs(ui_input_adm_id(), TYPE_MASK_ALL, NULL);
 				   break;
 
-		case '1' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
+		case '1' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
 			   	   break;
 
 		case '2':
 				   mask = TYPE_AS_MASK(AMP_TYPE_CNST) | TYPE_AS_MASK(AMP_TYPE_LIT);
-				   ui_list_objs(ADM_ENUM_ALL, mask, NULL);
+				   ui_list_objs(ui_input_adm_id(), mask, NULL);
 				   break;
 
-		case '3' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
+		case '3' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
 				   break;
 
-		case '4' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
+		case '4' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
 				   break;
 
-		case '5' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
+		case '5' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
 				   break;
 
-		case '6' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
+		case '6' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
 				   break;
 
 		case '7' :
 				   mask = TYPE_AS_MASK(AMP_TYPE_SBR) | TYPE_AS_MASK(AMP_TYPE_TBR);
-				   ui_list_objs(ADM_ENUM_ALL, mask, NULL);
+				   ui_list_objs(ui_input_adm_id(), mask, NULL);
 				   break;
 
-		case '8' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
+		case '8' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
 				   break;
 
-		case '9' : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
+		case '9' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
 				   break;
 
 		case 'A' : ui_build_control(ui_select_agent()); break;
@@ -1513,36 +1513,36 @@ void ui_ctrl_list_menu(int *running)
       {
          switch(choice)
          {
-         case 0: ui_list_objs(ADM_ENUM_ALL, TYPE_MASK_ALL, NULL);
+         case 0: ui_list_objs(ui_input_adm_id(), TYPE_MASK_ALL, NULL);
             break;
-         case 1 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
+         case 1 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
             break;
          case 2:
         	 mask = TYPE_AS_MASK(AMP_TYPE_CNST) | TYPE_AS_MASK(AMP_TYPE_LIT);
-            ui_list_objs(ADM_ENUM_ALL, mask, NULL);
+            ui_list_objs(ui_input_adm_id(), mask, NULL);
             break;
 
-         case 3 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
+         case 3 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
             break;
 
-         case 4 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
+         case 4 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
             break;
 
-         case 5 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
+         case 5 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
             break;
 
-         case 6 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
+         case 6 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
             break;
 
          case 7 :
         	 mask = TYPE_AS_MASK(AMP_TYPE_SBR) | TYPE_AS_MASK(AMP_TYPE_TBR);
-             ui_list_objs(ADM_ENUM_ALL, mask, NULL);
+             ui_list_objs(ui_input_adm_id(), mask, NULL);
             break;
 
-         case 8 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
+         case 8 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
             break;
 
-         case 9 : ui_list_objs(ADM_ENUM_ALL, TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
+         case 9 : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
             break;
 
          default:
