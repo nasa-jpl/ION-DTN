@@ -42,9 +42,12 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_amp_agent_impl.c   \
 	$(AGENT)/adm_amp_agent_agent.c	\
 	$(AGENT)/adm_bp_agent_impl.c	\
-	$(AGENT)/adm_bp_agent_agent.c	\
-	$(AGENT)/adm_bpsec_impl.c	\
-	$(AGENT)/adm_bpsec_agent.c	
+	$(AGENT)/adm_bp_agent_agent.c \
+	$(AGENT)/adm_sbsp_impl.c	\
+	$(AGENT)/adm_sbsp_agent.c	\
+	$(AGENT)/adm_ion_admin_agent.c 	\
+	$(AGENT)/adm_ion_admin_impl.c	
+
 
 MGR_SOURCES = \
 	$(MGR)/agents.c 		\
@@ -57,7 +60,11 @@ MGR_SOURCES = \
 	$(MGR)/ui_input.c 		\
 	$(MGR)/adm_amp_agent_mgr.c      \
 	$(MGR)/adm_bp_agent_mgr.c	\
-	$(MGR)/adm_bpsec_mgr.c		
+	$(MGR)/adm_sbsp_mgr.c	\
+	$(MGR)/adm_ion_admin_mgr.c
+
+
+#	$(MGR)/adm_bpsec_mgr.c		
 
 
 SHARED_OBJS := ${SHARED_SOURCES:c=o}
