@@ -302,11 +302,37 @@ if test "x$enable_sysctl_check" = xyes; then
     echo "checking sysctl configuration..."
     echo
 
-    if ! ./sysctl_script.sh; then
+    if ! ${ac_confdir}/sysctl_script.sh; then
         echo "Reconfigure with --disable-sysctl-check to bypass this check."
         exit 1
     fi
 fi
+
+AC_ARG_WITH([mysql],
+[AS_HELP_STRING([--with-mysql], [Enable MYSQL support for NM MGR])],
+[mysql=yes;],
+[])
+if test "x$mysql" = "xyes" ; then
+	echo "Build against libmysql... yes"
+	CFLAGS="$CFLAGS -DHAVE_MYSQL"
+else
+	echo "Build against libmysql... no"
+fi
+AM_CONDITIONAL([ENABLE_MYSQL], [test "x$mysql" = "xyes"])
+
+
+AC_ARG_WITH([ncurses],
+[AS_HELP_STRING([--with-ncurses], [Enable NCURSES support for NM MGR])],
+[ncurses=yes;],
+[])
+if test "x$ncurses" = "xyes" ; then
+	echo "Build against libncurses... yes"
+	CFLAGS="$CFLAGS -DUSE_NCURSES"
+else
+	echo "Build against libncurses... no"
+fi
+AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
+
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -326,6 +352,19 @@ AC_CHECK_LIB(
 )
 CFLAGS="$ORIGCFLAGS"
 
+AC_CHECK_LIB(
+	[mysqlclient],
+	[mysql_real_connect],
+	[ AC_SUBST( [MYSQL_LIBS], ["-lmysqlclient"] ) ],
+    [ AM_COND_IF([ENABLE_MYSQL], AC_MSG_ERROR([You need to install the mysqlclient library to build with MySQL.  Run configure with --with-mysql to turn on this feature.]), AC_MSG_WARN([If you wish to use MySQL for NM you will need to install the libmysqlclient.]) )]
+)
+
+AC_CHECK_LIB(
+	[ncurses],
+	[initscr],
+	[ AC_SUBST( [NCURSES_LIBS], ["-lncurses -lform -lmenu -lpanel"] ) ],
+	[ AM_COND_IF([ENABLE_NCURSES], AC_MSG_ERROR([You need to install the NCURSES library to build with NCURSES TUI support.  Run configure with --with-ncurses to turn on this feature.]), AC_MSG_WARN([If you wish to use the NCURSES TUI for NM you will need to install the NCURSES library.]) )]
+)
 
 # Check for programs to build documentation
 AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )

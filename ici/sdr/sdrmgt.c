@@ -1339,6 +1339,7 @@ void	sdr_stats(Sdr sdrv)
 			sdrSnap.heapSize);
 	writeMemo(buf);
 
+	sdr_usage(sdrv, &usage);
 	computeFreeSpace(&mapSnap, &usage);
 
 	isprintf(buf, sizeof buf, "            small pool size: %14ld",

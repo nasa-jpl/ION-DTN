@@ -372,7 +372,9 @@ bundles queued for transmission to the indicated neighboring node[s].
 
 NOTE that these "plan" commands supersede and generalize the egress plan
 commands documented in the ipnrc(5) and dtn2rc(5) man pages, which are
-retained for backward compatibility.  The I<endpoint_name> identifying
+retained for backward compatibility.  B<The syntax of the egress plan commands
+consumed by bpadmin is DIFFERENT from that of the commands consumed by
+ipnadmin and dtn2admin.>  The I<endpoint_name> identifying
 an egress plan is normally the node ID for a single node but may instead
 be "wild-carded".  That is, when the last character of an endpoint name
 ID is either '*' or '~' (these two wild-card characters are equivalent

@@ -1,0 +1,12 @@
+Metadata-Version: 1.0
+Name: CAmpPython
+Version: 1.0
+Summary: C code generator for Asychronous management protocols
+Home-page: UNKNOWN
+Author: David and Evana
+Author-email: UNKNOWN
+License: UNKNOWN
+Description-Content-Type: UNKNOWN
+Description: The camp command takes in a JSON file which models a protocol and returns c and h files. These files are created by using the formatted information of the different data types that are described in the JSON. Can create the implemented files and then general files.
+Keywords: AMP converter
+Platform: UNKNOWN

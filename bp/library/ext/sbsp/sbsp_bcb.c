@@ -2074,7 +2074,7 @@ length: %d", cipherBufLen);
 
 	if ((function == CSI_SVC_ENCRYPT) || (function == CSI_SVC_DECRYPT))
 	{
-		if (encryptInPlace)
+		if (encryptInPlace || xmitRate == 0)
 		{
 			if ((sbsp_bcbUpdatePayloadInPlace(suite, parms, context,
 					&blocksize, *dataObj, &dataReader,

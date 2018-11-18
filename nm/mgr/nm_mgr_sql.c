@@ -30,6 +30,7 @@
  **  08/19/13  E. Birrane     Documentation clean up and code review comments. (JHU/APL)
  **  08/22/15  E. Birrane     Updates for new schema and dynamic user permissions. (Secure DTN - NASA: NNX14CS58P)
  **  01/24/17  E. Birrane     Updates to latest AMP IOS 3.5.0 (JHU/APL)
+ **  10/20/18  E. Birrane     Updates for AMPv0.5 (JHU/APL)
  *****************************************************************************/
 
 #ifdef HAVE_MYSQL
@@ -40,16 +41,1486 @@
 
 #include "nm_mgr.h"
 #include "nm_mgr_sql.h"
-#include "nm_mgr_names.h"
 
-#include "../shared/adm/adm_agent.h"
-#include "../shared/adm/adm_bp.h"
-#include "../shared/primitives/var.h"
 
 /* Global connection to the MYSQL Server. */
 static MYSQL *gConn;
-static ui_db_t gParms;
+static sql_db_t gParms;
 static uint8_t gInTxn;
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_add_agent()
+ *
+ * \par Adds a Registered Agent to the dbtRegisteredAgents table.
+ *
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[in]  agent_eid  - The Agent EID being added to the DB.
+ *
+ * \par Notes:
+ *		- Only the agent EID is kept in the database, and used as a recipient
+ *		  ID.  No other agent information is persisted at this time.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/12/13  S. Jacobs      Initial implementation,
+ *  08/22/15  E. Birrane     Updated to new database schema.
+ *  01/24/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
+ *  10/20/18  E. Birrane     Update to AMPv0.5 (JHU/APL)
+ *****************************************************************************/
+int32_t db_add_agent(eid_t agent_eid)
+{
+	uint32_t row_idx = 0;
+
+	AMP_DEBUG_WARN("db_add_agent","Not implemented.", NULL);
+
+	return 0;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_incoming_initialize
+ *
+ * \par Returns the id of the last insert into dbtIncoming.
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[in] timestamp  - the generated timestamp
+ * \param[in] sender_eid - Who sent the messages.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/07/13  S. Jacobs      Initial implementation,
+ *  08/29/15  E. Birrane     Added sender EID.
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+int32_t db_incoming_initialize(time_t timestamp, eid_t sender_eid)
+{
+	MYSQL_RES *res = NULL;
+    MYSQL_ROW row;
+	char timebuf[256];
+	uint32_t result = 0;
+	uint32_t agent_idx = 0;
+
+	AMP_DEBUG_ENTRY("db_incoming_initialize","("ADDR_FIELDSPEC",%s)",
+			        (uaddr)timestamp, sender_eid.name);
+
+	db_mgt_txn_start();
+
+	/* Step 1: Find the agent ID, or try to add it. */
+	if((agent_idx = db_add_agent(sender_eid)) <= 0)
+	{
+		AMP_DEBUG_ERR("db_incoming_initialize","Can't find agent id.", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", agent_idx);
+		return agent_idx;
+	}
+
+	/* Step 2: Create a SQL time */
+	struct tm tminfo;
+	localtime_r(&timestamp, &tminfo);
+
+	isprintf(timebuf, 256, "%d-%d-%d %d:%d:%d",
+			tminfo.tm_year+1900,
+			tminfo.tm_mon,
+			tminfo.tm_mday,
+			tminfo.tm_hour,
+			tminfo.tm_min,
+			tminfo.tm_sec);
+
+	/* Step 2: Insert the TS. */
+	if(db_mgt_query_insert(&result,
+			              "INSERT INTO dbtIncomingMessageGroup"
+			              "(ReceivedTS,GeneratedTS,State,AgentID) "
+					      "VALUES(NOW(),'%s',0,%d)",
+						  timebuf, agent_idx) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_incoming_initialize","Can't insert Timestamp", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_initialize","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_incoming_initialize","-->%d", result);
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_incoming_finalize
+ *
+ * \par Finalize processing of the incoming messages.
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[in] id - The incoming message group ID.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/07/13  S. Jacobs      Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+int32_t db_incoming_finalize(uint32_t id)
+{
+
+	db_mgt_txn_start();
+
+	/* Step 2: Insert the TS. */
+	if(db_mgt_query_insert(NULL,
+			               "UPDATE dbtIncomingMessageGroup SET State = State + 1 WHERE ID = %d",
+						   id) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_incoming_finalize","Can't insert Timestamp", NULL);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_finalize","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_incoming_finalize","-->%d", AMP_OK);
+	return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_incoming_process_message
+ *
+ * \par Returns number of incoming message groups.
+ *
+ * \return # groups. -1 on error.
+ *
+ * \param[in] id     - The ID for the incoming message.
+ * \param[in] cursor - Cursor pointing to start of message.
+ * \param[in] size   - The size of the incoming message.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/07/13  S. Jacobs      Initial implementation,
+ *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+int32_t db_incoming_process_message(int32_t id, blob_t *data)
+{
+	char *query = NULL;
+	char *result_data = NULL;
+	int32_t result_size = 0;
+
+	AMP_DEBUG_ENTRY("db_incoming_process_message","(%d,"ADDR_FIELDSPEC")",
+			        id, (uaddr)data);
+
+	/* Step 0: Sanity Check. */
+	if(data == NULL)
+	{
+		AMP_DEBUG_ERR("db_incoming_process_message","Bad args.",NULL);
+		AMP_DEBUG_EXIT("db_incoming_process_message", "-->-1", NULL);
+		return -1;
+	}
+
+	/* Step 1: Convert the incoming message to a string for processing.*/
+	if((result_data = utils_hex_to_string(data->value, data->length)) == NULL)
+	{
+		AMP_DEBUG_ERR("db_incoming_process_message","Can't cvt %d bytes to hex str.",
+				        data->length);
+		AMP_DEBUG_EXIT("db_incoming_process_message", "-->-1", NULL);
+		return -1;
+	}
+
+	result_size = strlen(result_data);
+
+	db_mgt_txn_start();
+
+	/*
+	 * Step 2: Allocate a query for inserting into the DB. We allocate our own
+	 *         because this could be large.
+	 */
+	if((query = (char *) STAKE(result_size + 256)) == NULL)
+	{
+		AMP_DEBUG_ERR("db_incoming_process_message","Can't alloc %d bytes.",
+				        result_size + 256);
+		SRELEASE(result_data);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
+		return 0;
+	}
+
+	/* Step 3: Convert the query using allocated query structure. */
+	snprintf(query,result_size + 255,"INSERT INTO dbtIncomingMessages(IncomingID,Content)"
+			   "VALUES(%d,'%s')",id, result_data+2);
+	SRELEASE(result_data);
+
+	/* Step 4: Run the query. */
+	if(db_mgt_query_insert(NULL, query) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_incoming_process_message","Can't insert Timestamp", NULL);
+		SRELEASE(query);
+		db_mgt_txn_rollback();
+		AMP_DEBUG_EXIT("db_incoming_process_message","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	SRELEASE(query);
+	db_mgt_txn_commit();
+	AMP_DEBUG_EXIT("db_incoming_process_message", "-->1", NULL);
+	return 1;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_daemon
+ *
+ * \par Returns number of outgoing message groups ready to be sent.
+ *
+ * \return  .
+ *
+ * \param[in] threadId - The POSIX thread.
+ *
+ * \par Notes:
+ *  - We are being very inefficient here, as we grab the full result and
+ *    then ignore it, presumably to query it again later. We should
+ *    optimize this.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/13/13  S. Jacobs      Initial implementation,
+ *  08/29/15  E. Birrane     Only query DB if we have an active connection.
+ *  04/24/16  E. Birrane     Accept global "running" flag.
+ *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+void *db_mgt_daemon(int *running)
+{
+	MYSQL_RES *sql_res;
+	struct timeval start_time;
+	vast delta = 0;
+
+
+	AMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
+
+	while (*running)
+	{
+    	getCurrentTime(&start_time);
+
+    	if(db_mgt_connected() == 0)
+    	{
+    		if (db_outgoing_ready(&sql_res))
+    		{
+    			db_tx_msg_groups(sql_res);
+    		}
+
+			mysql_free_result(sql_res);
+			sql_res = NULL;
+    	}
+
+        delta = utils_time_cur_delta(&start_time);
+
+        // Sleep for 1 second (10^6 microsec) subtracting the processing time.
+        if((delta < 2000000) && (delta > 0))
+        {
+        	microsnooze((unsigned int)(2000000 - delta));
+        }
+	}
+
+	AMP_DEBUG_ALWAYS("db_mgt_daemon","Cleaning up Manager Database Daemon", NULL);
+
+	db_mgt_close();
+
+	AMP_DEBUG_ALWAYS("db_mgt_daemon","Manager Database Daemon Finished.",NULL);
+	pthread_exit(NULL);
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_init
+ *
+ * \par Initializes the gConnection to the database.
+ *
+ * \retval 0 Failure
+ *        !0 Success
+ *
+ * \param[in]  server - The machine hosting the SQL database.
+ * \param[in]  user - The username for the SQL database.
+ * \param[in]  pwd - The password for this user.
+ * \param[in]  database - The database housing the DTNMP tables.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/12/13  S. Jacobs      Initial implementation,
+ *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log)
+{
+
+	AMP_DEBUG_ENTRY("db_mgt_init","(parms, %d)", clear);
+
+	if(gConn == NULL)
+	{
+		gConn = mysql_init(NULL);
+		gParms = parms;
+		gInTxn = 0;
+
+		AMP_DEBUG_ENTRY("db_mgt_init", "(%s,%s,%s,%s)", parms.server, parms.username, parms.password, parms.database);
+
+		if (!mysql_real_connect(gConn, parms.server, parms.username, parms.password, parms.database, 0, NULL, 0))
+		{
+			if(log > 0)
+            {
+				AMP_DEBUG_WARN("db_mgt_init", "SQL Error: %s", mysql_error(gConn));
+            }
+			AMP_DEBUG_EXIT("db_mgt_init", "-->0", NULL);
+			return 0;
+		}
+
+		AMP_DEBUG_INFO("db_mgt_init", "Connected to Database.", NULL);
+	}
+
+	if(clear != 0)
+	{
+		db_mgt_clear();
+	}
+
+
+	AMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
+	return 1;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_clear
+ *
+ * \par Clears all of the database tables used by the DTNMP Management Daemon.
+ *
+ * \retval 0 Failure
+ *        !0 Success
+ *
+ *
+ * \todo Add support to clear all tables. Maybe add a parm to select a
+ *        table to clear (perhaps a string?)
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/12/13  S. Jacobs      Initial implementation,
+ *  08/27/15  E. Birrane     Updated to latest schema
+ *****************************************************************************/
+
+
+int db_mgt_clear()
+{
+
+	AMP_DEBUG_ENTRY("db_mgt_clear", "()", NULL);
+
+	if( db_mgt_clear_table("dbtMIDs") ||
+		db_mgt_clear_table("dbtIncomingMessages") ||
+		db_mgt_clear_table("dbtOIDs") ||
+		db_mgt_clear_table("dbtADMs") ||
+		db_mgt_clear_table("dbtADMNicknames") ||
+		db_mgt_clear_table("dbtIncomingMessageGroup") ||
+		db_mgt_clear_table("dbtOutgoingMessageGroup") ||
+		db_mgt_clear_table("dbtRegisteredAgents") ||
+		db_mgt_clear_table("dbtDataCollections") ||
+		db_mgt_clear_table("dbtDataCollection") ||
+		db_mgt_clear_table("dbtMIDCollections") ||
+		db_mgt_clear_table("dbtMIDCollection") ||
+		db_mgt_clear_table("dbtMIDParameters") ||
+		db_mgt_clear_table("dbtMIDParameter"))
+	{
+		AMP_DEBUG_ERR("db_mgt_clear", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear", "--> 0", NULL);
+		return 0;
+	}
+
+	AMP_DEBUG_EXIT("db_mgt_clear", "--> 1", NULL);
+	return 1;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_clear_table
+ *
+ * \par Clears a database table used by the DTNMP Management Daemon.
+ *
+ * Note:
+ *   We don't use truncate here because of foreign key constraints. Delete
+ *   is able to remove items from a table, but does not reseed the
+ *   auto-incrementing for the table, so an alter table command is also
+ *   used.
+ *
+ * \retval !0 Failure
+ *          0 Success
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/29/15  E. Birrane     Initial implementation,
+ *****************************************************************************/
+
+int db_mgt_clear_table(char *table)
+{
+	if(table == NULL)
+	{
+		return 1;
+	}
+
+	if (db_mgt_query_insert(NULL,"SET FOREIGN_KEY_CHECKS=0",NULL) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+		return 1;
+	}
+
+	if (db_mgt_query_insert(NULL,"TRUNCATE %s", table) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+		return 1;
+	}
+
+	if (db_mgt_query_insert(NULL,"SET FOREIGN_KEY_CHECKS=1", NULL) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+		return 1;
+	}
+
+	AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
+	return 0;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_close
+ *
+ * \par Close the database gConnection.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/12/13  S. Jacobs      Initial implementation,
+ *****************************************************************************/
+
+void db_mgt_close()
+{
+	AMP_DEBUG_ENTRY("db_mgt_close","()",NULL);
+	if(gConn != NULL)
+	{
+		mysql_close(gConn);
+		mysql_library_end();
+		gConn = NULL;
+	}
+	AMP_DEBUG_EXIT("db_mgt_close","-->.", NULL);
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_connected
+ *
+ * \par Checks to see if the database connection is still active and, if not,
+ *      try to reconnect up to some configured number of times.
+ *
+ * \par Notes:
+ *
+ * \retval !0 Error
+ *          0 Success
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/27/15  E. Birrane     Updated to try and reconnect to DB.
+ *****************************************************************************/
+
+int   db_mgt_connected()
+{
+	int result = -1;
+	uint8_t num_tries = 0;
+
+	if(gConn == NULL)
+	{
+		return -1;
+	}
+
+	result = mysql_ping(gConn);
+	if(result != 0)
+	{
+		while(num_tries < SQL_CONN_TRIES)
+		{
+			db_mgt_init(gParms, 0, 0);
+			if((result = mysql_ping(gConn)) == 0)
+			{
+				return 0;
+			}
+
+			microsnooze(SQL_RECONN_TIME_MSEC);
+			num_tries++;
+		}
+	}
+
+	return result;
+}
+
+
+int  db_mgr_sql_persist()
+{
+	int success = AMP_OK;
+	Sdr sdr = getIonsdr();
+
+	if(gMgrDB.sql_info.desc.descObj == 0)
+	{
+		gMgrDB.sql_info.desc.descObj = sdr_malloc(sdr, sizeof(gMgrDB.sql_info.desc));
+	}
+
+	blob_t *data = db_mgr_sql_info_serialize(&(gMgrDB.sql_info));
+
+	CHKERR(sdr_begin_xn(sdr));
+
+	if(gMgrDB.sql_info.desc.itemObj != 0)
+	{
+		sdr_free(sdr, gMgrDB.sql_info.desc.itemObj);
+	}
+
+	gMgrDB.sql_info.desc.itemObj = sdr_malloc(sdr, data->length);
+	gMgrDB.sql_info.desc.itemSize = data->length;
+
+	sdr_write(sdr, gMgrDB.sql_info.desc.itemObj, (char *) data->value, data->length);
+	sdr_write(sdr, gMgrDB.sql_info.desc.descObj, (char *) &(gMgrDB.sql_info.desc), sizeof(gMgrDB.sql_info.desc));
+
+	sdr_end_xn(sdr);
+
+	blob_release(data, 1);
+	return success;
+}
+
+
+void db_mgr_sql_info_deserialize(blob_t *data)
+{
+	CborError err = CborNoError;
+	CborValue array_it;
+	CborValue it;
+	CborParser parser;
+	size_t length;
+
+	cbor_parser_init(data->value, data->length, 0, &parser, &it);
+
+	if((!cbor_value_is_container(&it)) ||
+	   ((err = cbor_value_enter_container(&it, &array_it)) != CborNoError))
+	{
+		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Not a container. Error is %d", err);
+		return;
+	}
+
+	if((err = cbor_value_get_array_length(&it, &length)) != CborNoError)
+	{
+		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Can't get array length. Err is %d", err);
+		return;
+	}
+
+	if(length != 4)
+	{
+		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Bad length. %d not 4", length);
+		return;
+	}
+
+	length = UI_SQL_SERVERLEN;
+	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.server, &length, &array_it);
+
+	length = UI_SQL_ACCTLEN;
+	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.username, &length, &array_it);
+
+	length = UI_SQL_ACCTLEN;
+	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.password, &length, &array_it);
+
+	length = UI_SQL_DBLEN;
+	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.database, &length, &array_it);
+
+	return;
+}
+
+blob_t*   db_mgr_sql_info_serialize(sql_db_t *item)
+{
+	CborEncoder encoder;
+	CborEncoder array_enc;
+
+	blob_t *result = blob_create(NULL, 0, 2 * sizeof(sql_db_t));
+
+	cbor_encoder_init(&encoder, result->value,  result->alloc, 0);
+
+	cbor_encoder_create_array(&encoder, &array_enc, 4);
+
+	cbor_encode_text_stringz(&array_enc, item->server);
+	cbor_encode_text_stringz(&array_enc, item->username);
+	cbor_encode_text_stringz(&array_enc, item->password);
+	cbor_encode_text_stringz(&array_enc, item->database);
+
+	cbor_encoder_close_container(&encoder, &array_enc);
+	result->length = cbor_encoder_get_buffer_size(&encoder, result->value);
+	return result;
+}
+
+
+int  db_mgr_sql_init()
+{
+
+	Sdr sdr = getIonsdr();
+	char *name = "mgr_sql";
+
+	// * Initialize the non-volatile database. * /
+	memset((char*) &(gMgrDB.sql_info), 0, sizeof(gMgrDB.sql_info));
+
+	initResourceLock(&(gMgrDB.sql_info.lock));
+
+	/* Recover the Agent database, creating it if necessary. */
+	CHKERR(sdr_begin_xn(sdr));
+
+	gMgrDB.sql_info.desc.descObj = sdr_find(sdr, name, NULL);
+	switch(gMgrDB.sql_info.desc.descObj)
+	{
+		case -1:  // SDR error. * /
+			sdr_cancel_xn(sdr);
+			AMP_DEBUG_ERR("db_mgr_sql_init", "Can't search for DB in SDR.", NULL);
+			return -1;
+
+		case 0: // Not found; Must create new DB. * /
+
+			if((gMgrDB.sql_info.desc.descObj = sdr_malloc(sdr, sizeof(gMgrDB.sql_info.desc))) == 0)
+			{
+				sdr_cancel_xn(sdr);
+				AMP_DEBUG_ERR("db_mgr_sql_init", "No space for database.", NULL);
+				return -1;
+			}
+			AMP_DEBUG_ALWAYS("db_mgr_sql_init", "Creating DB: %s", name);
+
+			sdr_write(sdr, gMgrDB.sql_info.desc.descObj, (char *) &(gMgrDB.sql_info.desc), sizeof(gMgrDB.sql_info.desc));
+			sdr_catlg(sdr, name, 0, gMgrDB.sql_info.desc.descObj);
+
+			break;
+
+		default:  /* Found DB in the SDR */
+			/* Read in the Database. */
+			sdr_read(sdr, (char *) &(gMgrDB.sql_info.desc), gMgrDB.sql_info.desc.descObj, sizeof(gMgrDB.sql_info.desc));
+			AMP_DEBUG_ALWAYS("db_mgr_sql_init", "Found DB", NULL);
+
+			if(gMgrDB.sql_info.desc.itemSize > 0)
+			{
+				blob_t *data = blob_create(NULL, 0, gMgrDB.sql_info.desc.itemSize);
+				if(data != NULL)
+				{
+					sdr_read(sdr, (char *) data->value, gMgrDB.sql_info.desc.itemObj, gMgrDB.sql_info.desc.itemSize);
+					data->length = gMgrDB.sql_info.desc.itemSize;
+					db_mgr_sql_info_deserialize(data);
+					blob_release(data, 1);
+				}
+			}
+
+
+	}
+
+	if(sdr_end_xn(sdr))
+	{
+		AMP_DEBUG_ERR("db_mgr_sql_init", "Can't create Agent database.", NULL);
+		return -1;
+	}
+
+	return 1;
+}
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_query_fetch
+ *
+ * \par Runs a fetch in the database given a query and returns the result, if
+ *      a result field is provided..
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[out] res    - The result.
+ * \param[in]  format - Format to build query
+ * \param[in]  ...    - Var args to build query given format string.
+ *
+ * \par Notes:
+ *   - The res structure should be a pointer but without being allocated. This
+ *     function will create the storage.
+ *   - If res is NULL that's ok, but no result will be returned.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+int32_t db_mgt_query_fetch(MYSQL_RES **res, char *format, ...)
+{
+	char query[1024];
+
+	AMP_DEBUG_ENTRY("db_mgt_query_fetch","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			        (uaddr)res, (uaddr)format);
+
+	/* Step 0: Sanity check. */
+	if(format == NULL)
+	{
+		AMP_DEBUG_ERR("db_mgt_query_fetch", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/*
+	 * Step 1: Assert the DB connection. This should not only check
+	 *         the connection as well as try and re-establish it.
+	 */
+	if(db_mgt_connected() == 0)
+	{
+		va_list args;
+
+		va_start(args, format); // format is last parameter before "..."
+		vsnprintf(query, 1024, format, args);
+		va_end(args);
+
+		if (mysql_query(gConn, query))
+		{
+			AMP_DEBUG_ERR("db_mgt_query_fetch", "Database Error: %s",
+					mysql_error(gConn));
+			AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
+		}
+
+		if((*res = mysql_store_result(gConn)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_mgt_query_fetch", "Can't get result.", NULL);
+			AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
+		}
+	}
+	else
+	{
+		AMP_DEBUG_ERR("db_mgt_query_fetch", "DB not connected.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
+	}
+
+	AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_OK);
+	return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_query_insert
+ *
+ * \par Runs an insert in the database given a query and returns the
+ *      index of the inserted item.
+ *
+ * \return AMP_SYSERR - System Error
+ *         AMP_FAIL   - Non-fatal issue.
+ *         >0         - The index of the inserted item.
+ *
+ * \param[out] idx    - The index of the inserted row.
+ * \param[in]  format - Format to build query
+ * \param[in]  ...    - Var args to build query given format string.
+ *
+ * \par Notes:
+ *   - The idx may be NULL if the insert index is not needed.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+int32_t db_mgt_query_insert(uint32_t *idx, char *format, ...)
+{
+	char query[SQL_MAX_QUERY];
+
+	AMP_DEBUG_ENTRY("db_mgt_query_insert","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",(uaddr)idx, (uaddr)format);
+/*EJB
+	if(idx == NULL)
+	{
+		AMP_DEBUG_ERR("db_mgt_query_insert", "Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+*/
+	if(db_mgt_connected() == 0)
+	{
+		va_list args;
+
+		va_start(args, format); // format is last parameter before "..."
+		if(vsnprintf(query, SQL_MAX_QUERY, format, args) == SQL_MAX_QUERY)
+		{
+			AMP_DEBUG_ERR("db_mgt_query_insert", "query is too long. Maximum length is %d", SQL_MAX_QUERY);
+		}
+		va_end(args);
+
+		if (mysql_query(gConn, query))
+		{
+			AMP_DEBUG_ERR("db_mgt_query_insert", "Database Error: %s",
+					mysql_error(gConn));
+			AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
+			return AMP_FAIL;
+		}
+
+		if(idx != NULL)
+		{
+			if((*idx = (uint32_t) mysql_insert_id(gConn)) == 0)
+			{
+				AMP_DEBUG_ERR("db_mgt_query_insert", "Unknown last inserted row.", NULL);
+				AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
+				return AMP_FAIL;
+			}
+		}
+	}
+	else
+	{
+		AMP_DEBUG_ERR("db_mgt_query_fetch", "DB not connected.", NULL);
+		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_SYSERR);
+		return AMP_SYSERR;
+	}
+
+	AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_OK);
+	return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_txn_start
+ *
+ * \par Starts a transaction in the database, if we are not already in a txn.
+ *
+ * \par Notes:
+ *   - This function is not multi-threaded. We assume that we are the only
+ *     input into the database and that there is only one "active" transaction
+ *     at a time.
+ *   - This function does not support nested transactions.
+ *   - If a transaction is already open, this function assumes that is the
+ *     transaction to use.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_txn_start()
+{
+	if(gInTxn == 0)
+	{
+		if(db_mgt_query_insert(NULL,"START TRANSACTION",NULL) == AMP_OK)
+		{
+			gInTxn = 1;
+		}
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_txn_commit
+ *
+ * \par Commits a transaction in the database, if we are in a txn.
+ *
+ * \par Notes:
+ *   - This function is not multi-threaded. We assume that we are the only
+ *     input into the database and that there is only one "active" transaction
+ *     at a time.
+ *   - This function does not support nested transactions.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_txn_commit()
+{
+	if(gInTxn == 1)
+	{
+		if(db_mgt_query_insert(NULL,"COMMIT",NULL) == AMP_OK)
+		{
+			gInTxn = 0;
+		}
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_mgt_txn_rollback
+ *
+ * \par Rolls back a transaction in the database, if we are in a txn.
+ *
+ * \par Notes:
+ *   - This function is not multi-threaded. We assume that we are the only
+ *     input into the database and that there is only one "active" transaction
+ *     at a time.
+ *   - This function does not support nested transactions.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
+ *****************************************************************************/
+
+void db_mgt_txn_rollback()
+{
+	if(gInTxn == 1)
+	{
+		if(db_mgt_query_insert(NULL,"ROLLBACK",NULL) == AMP_OK)
+		{
+			gInTxn = 0;
+		}
+	}
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_tx_msg_groups
+ *
+ * \par Returns 1 if the message is ready to be sent
+ *
+ * \retval AMP_SYSERR on system error
+ *         AMP_FAIL   if no message groups ready.
+ *         AMP_OK     If there are message groups ready to be sent.
+ *
+ * \param[out] sql_res - The outgoing messages.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/13/13  E. Birrane      Initial implementation,
+ *  07/18/13  S. Jacobs       Added outgoing agents
+ *  09/27/13  E. Birrane      Configure each agent with custom rpt, if applicable.
+ *  08/27/15  E. Birrane      Update to new data model, schema
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+int32_t db_tx_msg_groups(MYSQL_RES *sql_res)
+{
+	MYSQL_ROW row;
+	msg_grp_t *msg_group = NULL;
+	int32_t idx = 0;
+	int32_t agent_idx = 0;
+	int32_t result = AMP_SYSERR;
+	agent_t *agent = NULL;
+
+	AMP_DEBUG_ENTRY("db_tx_msg_groups","("ADDR_FIELDSPEC")",(uaddr) sql_res);
+
+	/* Step 0: Sanity Check. */
+	if(sql_res == NULL)
+	{
+		AMP_DEBUG_ERR("db_tx_msg_groups","Bad args.", NULL);
+		AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/* Step 1: For each message group that is ready to go... */
+	while ((row = mysql_fetch_row(sql_res)) != NULL)
+	{
+		/* Step 1.1 Create and populate the message group. */
+		idx = atoi(row[0]);
+		agent_idx = atoi(row[4]);
+
+		/* Step 1.2: Create an AMP PDU for this outgoing message. */
+		if((msg_group = msg_grp_create(1)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_tx_msg_groups","Cannot create group.", NULL);
+			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_SYSERR);
+			return AMP_SYSERR;
+		}
+
+		/*
+		 * Step 1.3: Populate the message group with outgoing messages.
+		 *           If there are no message groups, Quietly go home,
+		 *           it isn't an error, it's just disappointing.
+		 */
+		if((result = db_tx_build_group(idx, msg_group)) != AMP_OK)
+		{
+			msg_grp_release(msg_group, 1);
+			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",result);
+			return result;
+		}
+
+		/* Step 1.4: Figure out the agent receiving this message. */
+		if((agent = db_fetch_agent(agent_idx)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_tx_msg_groups","Can't get agent for idx %d", agent_idx);
+			msg_grp_release(msg_group, 1);
+			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_FAIL);
+			return AMP_FAIL;
+		}
+
+		/*
+		 * Step 1.5: The database knows about the agent but the management
+		 *           daemon might not. Make sure that the management daemon
+		 *           knows about this agent so that it isn't a surprise when
+		 *           the agent starts sending data back.
+		 *
+		 *           If we can't add the agent to the manager daemon (which
+		 *           would be very odd) we send the message group along and
+		 *           accept that there might be confusion when the agent
+		 *           sends information back.
+		 */
+
+		if(agent_get(&(agent->eid)) == NULL)
+		{
+			if(agent_add(agent->eid) == -1)
+			{
+				AMP_DEBUG_WARN("db_tx_msg_groups","Sending to unknown agent.", NULL);
+			}
+		}
+
+		/* Step 1.6: Send the message group.*/
+		AMP_DEBUG_INFO("db_tx_msg_groups",
+				       "Sending to name %s",
+					   agent->eid.name);
+
+		iif_send_grp(&ion_ptr, msg_group, agent->eid.name);
+
+		/* Step 1.7: Release resources. */
+		agent_release(agent, 1);
+		msg_grp_release(msg_group, 1);
+		msg_group = NULL;
+
+		/*
+		 * Step 1.8: Update the state of the message group in the database.
+		 *           \todo: Consider aborting message group if this happens.
+		 */
+		if(db_mgt_query_insert(NULL,
+				               "UPDATE dbtOutgoingMessageGroup SET State=2 WHERE ID=%d",
+				               idx)!= AMP_OK)
+		{
+			AMP_DEBUG_WARN("db_tx_msg_groups","Could not update DB send status.", NULL);
+		}
+	}
+
+	AMP_DEBUG_EXIT("db_tx_msg_groups", "-->%d", AMP_OK);
+
+	return AMP_OK;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_tx_build_group
+ *
+ * \par This function populates an AMP message group with messages
+ *      for this group from the database.
+ *
+ * \retval AMP_SYSERR on system error
+ *         AMP_FAIL   if no message groups ready.
+ *         AMP_OK     If there are message groups ready to be sent.
+ *
+ * \param[in]  grp_idx   - The DB identifier of the message group
+ * \param[out] msg_group - The message group being populated
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/13/13  E. Birrane      Initial implementation,
+ *  09/27/13  E. Birrane      Collect any rpt defs from this message.
+ *  08/27/15  E. Birrane      Update to latest data model and schema.
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+int32_t db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group)
+{
+	int32_t result = 0;
+	MYSQL_RES *res = NULL;
+	MYSQL_ROW row;
+
+	AMP_DEBUG_ENTRY("db_tx_build_group",
+					  "(%d, "ADDR_FIELDSPEC")",
+			          grp_idx, (uaddr) msg_group);
+
+	/* Step 0: Sanity check. */
+	if(msg_group == NULL)
+	{
+		AMP_DEBUG_ERR("db_tx_build_group","Bad args.", NULL);
+		AMP_DEBUG_EXIT("db_tx_build_group","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/* Step 1: Find all messages for this outgoing group. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT MidCollID FROM dbtOutgoingMessages WHERE OutgoingID=%d",
+			              grp_idx) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_tx_build_group",
+					  "Can't find messages for %d", grp_idx);
+		AMP_DEBUG_EXIT("db_tx_build_group","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/* Step 2: For each message that belongs in this group....*/
+    while((res != NULL) && ((row = mysql_fetch_row(res)) != NULL))
+    {
+    	int32_t ac_idx = atoi(row[0]);
+    	ac_t *ac;
+
+    	/*
+    	 * Step 2.1: An outgoing message in AMP is a "run controls"
+    	 *           message, which accepts a series of controls to
+    	 *           run. This series is stored as a
+    	 *           MID Collection (MC). So, grab the MC.
+    	 */
+		if((ac = db_fetch_ari_col(ac_idx)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_tx_build_group",
+						    "Can't grab AC for idx %d", ac_idx);
+			result = AMP_FAIL;
+			break;
+		}
+
+		/*
+		 * Step 2.2: Create the "run controls" message, passing in
+		 *           the MC of controls to run.
+		 *           \todo: SQL currently has no place to store a
+		 *                  time offset associated with a control. We
+		 *                  currently jam that to 0 (which means run
+		 *                  immediately).
+		 */
+		msg_ctrl_t *ctrl = msg_ctrl_create();
+		ctrl->ac = ac;
+
+		result = msg_grp_add_msg_ctrl(msg_group, ctrl);
+	}
+
+	mysql_free_result(res);
+
+	AMP_DEBUG_EXIT("db_tx_build_group","-->%d", result);
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_tx_collect_agents
+ *
+ * \par Returns a vector of the agents to send a message to
+ *
+ * \retval NULL no recipients.
+ *        !NULL There are recipients to be sent to.
+ *
+ * \param[in] grp_idx - The index of the message group being sent.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/18/13  S. Jacobs       Initial Implementation
+ *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+int db_tx_collect_agents(int32_t grp_idx, vector_t *vec)
+{
+	MYSQL_RES *res = NULL;
+	MYSQL_ROW row;
+	agent_t *agent = NULL;
+	int cur_row = 0;
+	int max_row = 0;
+	int success;
+
+	AMP_DEBUG_ENTRY("db_tx_collect_agents","(%d)", grp_idx);
+
+	/*
+	 * Step 1: Grab the list of agents from the DB for this
+	 *         message group.
+	 */
+
+	if(db_mgt_query_fetch(&res,
+			              "SELECT AgentID FROM dbtOutgoingRecipients "
+			              "WHERE OutgoingID=%d", grp_idx) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_tx_collect_agents",
+				        "Can't get agents for grp: %d", grp_idx);
+		AMP_DEBUG_EXIT("db_tx_collect_agents","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+
+	/* Step 3: For each row returned.... */
+	max_row = mysql_num_rows(res);
+	*vec = vec_create(1, NULL, NULL, NULL, 0, &success);
+	for(cur_row = 0; cur_row < max_row; cur_row++)
+	{
+		if ((row = mysql_fetch_row(res)) != NULL)
+		{
+			/* Step 3.1: Grab the agent information.. */
+			if((agent = db_fetch_agent(atoi(row[0]))) != NULL)
+			{
+				AMP_DEBUG_INFO("db_outgoing_process_recipients",
+						         "Adding agent name %s.",
+						         agent->eid.name);
+
+				vec_push(vec, agent);
+			}
+			else
+			{
+				AMP_DEBUG_ERR("db_outgoing_process_recipients",
+						        "Cannot fetch registered agent",NULL);
+			}
+		}
+	}
+
+	mysql_free_result(res);
+
+	AMP_DEBUG_EXIT("db_outgoing_process_recipients","-->0x%#llx",
+			         vec_num_entries(*vec));
+
+	return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_outgoing_ready
+ *
+ * \par Returns number of outgoing message groups ready to be sent.
+ *
+ * \retval 0 no message groups ready.
+ *        !0 There are message groups ready to be sent.
+ *
+ * \param[out] sql_res - The outgoing messages.
+ *
+ * \par Notes:
+ *  - We are being very inefficient here, as we grab the full result and
+ *    then ignore it, presumably to query it again later. We should
+ *    optimize this.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/13/13  E. Birrane      Initial implementation,
+ *  08/27/15  E. Birrane      Updated to newer schema
+ *****************************************************************************/
+
+int db_outgoing_ready(MYSQL_RES **sql_res)
+{
+	int result = 0;
+	char query[1024];
+
+	*sql_res = NULL;
+
+	AMP_DEBUG_ENTRY("db_outgoing_ready","("ADDR_FIELDSPEC")", (uaddr) sql_res);
+
+	CHKCONN
+
+	/* Step 0: Sanity check. */
+	if(sql_res == NULL)
+	{
+		AMP_DEBUG_ERR("db_outgoing_ready", "Bad Parms.", NULL);
+		AMP_DEBUG_EXIT("db_outgoing_ready","-->0",NULL);
+		return 0;
+	}
+
+	/* Step 1: Build and execute query. */
+	sprintf(query, "SELECT * FROM dbtOutgoingMessageGroup WHERE State=%d", TX_READY);
+	if (mysql_query(gConn, query))
+	{
+		AMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
+				mysql_error(gConn));
+		AMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
+		return result;
+	}
+
+	/* Step 2: Parse the row and populate the structure. */
+	if ((*sql_res = mysql_store_result(gConn)) != NULL)
+	{
+		result = mysql_num_rows(*sql_res);
+	}
+	else
+	{
+		AMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
+				mysql_error(gConn));
+	}
+
+        //EJB
+        if(result > 0)
+        {
+          AMP_DEBUG_ERR("db_outgoing_ready","There are %d rows ready.", result);
+        }
+
+	/* Step 3: Return whether we have results waiting. */
+	AMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
+	return result;
+}
+
+
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_fetch_reg_agent
+ *
+ * \par Creates an adm_reg_agent_t structure from the database.
+ *
+ * \retval NULL Failure
+ *        !NULL The built adm_reg_agent_t  structure.
+ *
+ * \param[in] id - The Primary Key of the desired registered agent.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  07/12/13  S. Jacobs      Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+agent_t *db_fetch_agent(int32_t id)
+{
+	agent_t *result = NULL;
+	MYSQL_RES *res = NULL;
+	MYSQL_ROW row;
+
+	AMP_DEBUG_ENTRY("db_fetch_agent","(%d)", id);
+
+	/* Step 1: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtRegisteredAgents WHERE ID=%d",
+						  id) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_fetch_agent","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_agent","-->NULL", NULL);
+		return NULL;
+	}
+
+	if ((row = mysql_fetch_row(res)) != NULL)
+	{
+		eid_t eid;
+		strncpy(eid.name, row[1], AMP_MAX_EID_LEN);
+
+		/* Step 3: Create structure for agent */
+		if((result = agent_create(&eid)) == NULL)
+		{
+			AMP_DEBUG_ERR("db_fetch_agent","Cannot create a registered agent",NULL);
+			mysql_free_result(res);
+			AMP_DEBUG_EXIT("db_fetch_agent","-->NULL", NULL);
+			return NULL;
+		}
+	}
+
+	mysql_free_result(res);
+
+	AMP_DEBUG_EXIT("db_fetch_agent", "-->"ADDR_FIELDSPEC, (uaddr) result);
+	return result;
+}
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: db_fetch_reg_agent_idx
+ *
+ * \par Retrieves the index associated with an agent's EID.
+ *
+ * \retval 0 Failure
+ *        !0 The index of the agent.
+ *
+ * \param[in] eid - The EID of the agent being queried.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  08/29/15  E. Birrane     Initial implementation,
+ *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
+ *****************************************************************************/
+
+int32_t db_fetch_agent_idx(eid_t *eid)
+{
+	int32_t result = AMP_FAIL;
+	MYSQL_RES *res = NULL;
+	MYSQL_ROW row;
+
+	AMP_DEBUG_ENTRY("db_fetch_agent_idx","("ADDR_FIELDSPEC")", (uaddr) eid);
+
+	/* Step 0: Sanity Check.*/
+	if(eid == NULL)
+	{
+		AMP_DEBUG_ERR("db_fetch_agent_idx","Bad Args.", NULL);
+		AMP_DEBUG_EXIT("db_fetch_agent_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/* Step 1: Grab the OID row. */
+	if(db_mgt_query_fetch(&res,
+			              "SELECT * FROM dbtRegisteredAgents WHERE AgentId='%s'",
+						  eid->name) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("db_fetch_agent_idx","Can't fetch", NULL);
+		AMP_DEBUG_EXIT("db_fetch_agent_idx","-->%d", AMP_FAIL);
+		return AMP_FAIL;
+	}
+
+	/* Step 2: Parse information out of the returned row. */
+	if ((row = mysql_fetch_row(res)) != NULL)
+	{
+		result = atoi(row[0]);
+	}
+	else
+	{
+		AMP_DEBUG_ERR("db_fetch_agent_idx", "Did not find EID with ID of %s\n", eid->name);
+	}
+
+	/* Step 3: Free database resources. */
+	mysql_free_result(res);
+
+	AMP_DEBUG_EXIT("db_fetch_agent_idx","-->%d", result);
+	return result;
+}
+
+
+
+ac_t*    db_fetch_ari_col(int idx)
+{
+	AMP_DEBUG_ERR("db_fetch_ari_col","Not Implemented.", NULL);
+	return NULL;
+}
+
+
+#if 0
+
 
 //TODO - Add transactions
 //TODO - Make -1 the system error return and 0 the non-system-error return.
@@ -96,7 +1567,7 @@ int32_t db_add_adm(char *name, char *version, char *oid_root)
 	uint32_t oid_idx = 0;
 	uint32_t row_idx = 0;
 
-	AMP_DEBUG_ENTRY("db_add_adm,"UHF","UHF","UHF")",
+	AMP_DEBUG_ENTRY("db_add_adm,"ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 			        (uaddr)name, (uaddr)version, (uaddr)oid_root);
 
 	/* Step 0: Sanity check. */
@@ -147,68 +1618,6 @@ int32_t db_add_adm(char *name, char *version, char *oid_root)
 }
 
 
-
-/******************************************************************************
- *
- * \par Function Name: db_add_agent()
- *
- * \par Adds a Registered Agent to the dbtRegisteredAgents table.
- *
- * Tables Effected:
- *    1. dbtRegisteredAgents
- *    +---------+------------------+------+-----+---------+----------------+
- *    | Field   | Type             | Null | Key | Default | Extra          |
- *    +---------+------------------+------+-----+---------+----------------+
- *    | ID      | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
- *    | AgentId | varchar(128)     | NO   |     | ipn:0.0 |                |
- *    +---------+------------------+------+-----+---------+----------------+
- *
- * \return AMP_SYSERR - System Error
- *         AMP_FAIL   - Non-fatal issue.
- *         >0         - The index of the inserted item.
- *
- * \param[in]  agent_eid  - The Agent EID being added to the DB.
- *
- * \par Notes:
- *		- Only the agent EID is kept in the database, and used as a recipient
- *		  ID.  No other agent information is persisted at this time.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/12/13  S. Jacobs      Initial implementation,
- *  08/22/15  E. Birrane     Updated to new database schema.
- *  01/24/17  E. Birrane     Update to AMP IOS 3.5.0. (JHU/APL)
- *****************************************************************************/
-int32_t db_add_agent(eid_t agent_eid)
-{
-	uint32_t row_idx = 0;
-
-	/* Step 1: if the agent is already in the DB, (or error) just return the index. */
-	if((row_idx = db_fetch_reg_agent_idx(&agent_eid)) != 0)
-	{
-		return row_idx;
-	}
-
-	db_mgt_txn_start();
-
-	if(db_mgt_query_insert(&row_idx, "INSERT INTO dbtRegisteredAgents(AgentId) "
-			"VALUES('%s')", agent_eid.name) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_add_agent","Can't add agent.",NULL);
-
-		db_mgt_txn_rollback();
-
-		AMP_DEBUG_EXIT("db_add_agent","-->%d",AMP_FAIL);
-		return AMP_FAIL;
-
-	}
-
-	db_mgt_txn_commit();
-
-	AMP_DEBUG_EXIT("db_add_agent", "-->%d", row_idx);
-	return row_idx;
-}
 
 
 
@@ -395,7 +1804,7 @@ int32_t db_add_mid(mid_t *mid)
 	int32_t num_parms = 0;
 	uint32_t mid_idx = 0;
 
-	AMP_DEBUG_ENTRY("db_add_mid", "("UHF",%d)", (uaddr)mid);
+	AMP_DEBUG_ENTRY("db_add_mid", "("ADDR_FIELDSPEC",%d)", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -549,7 +1958,7 @@ int32_t db_add_mc(Lyst mc)
 	uint32_t i = 0;
 	int32_t mid_idx = 0;
 
-	AMP_DEBUG_ENTRY("db_add_mc", "("UHF")", (uaddr)mc);
+	AMP_DEBUG_ENTRY("db_add_mc", "("ADDR_FIELDSPEC")", (uaddr)mc);
 
 	/* Step 0 - Sanity check arguments. */
 	if(mc == NULL)
@@ -663,7 +2072,7 @@ int32_t db_add_nn(oid_nn_t *nn)
 	int32_t oid_idx = 0;
 	int32_t adm_idx = 0;
 
-	AMP_DEBUG_ENTRY("db_add_nn", "("UHF")", (uaddr)nn);
+	AMP_DEBUG_ENTRY("db_add_nn", "("ADDR_FIELDSPEC")", (uaddr)nn);
 
 	/* Step 0 - Sanity check arguments. */
 	if(nn == NULL)
@@ -755,7 +2164,7 @@ int32_t db_add_oid_str(char *oid_str)
 	int32_t result = 0;
 	oid_t oid;
 
-	AMP_DEBUG_ENTRY("db_add_oid_str", "("UHF")", (uaddr)oid_str);
+	AMP_DEBUG_ENTRY("db_add_oid_str", "("ADDR_FIELDSPEC")", (uaddr)oid_str);
 
 	/* Step 1: Sanity checks. */
 	if(oid_str == NULL)
@@ -991,7 +2400,7 @@ int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type)
 	uint32_t parm_idx = 0;
 	uint32_t num_parms = 0;
 
-	AMP_DEBUG_ENTRY("db_add_protomid", "("UHF","UHF",%d)",
+	AMP_DEBUG_ENTRY("db_add_protomid", "("ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d)",
 			       (uaddr)mid, (uaddr)spec, type);
 
 	/* Step 0: Sanity check arguments. */
@@ -1123,7 +2532,7 @@ int32_t db_add_protoparms(ui_parm_spec_t *spec)
 	uint32_t result = 0;
 	uint32_t parm_idx = 0;
 
-	AMP_DEBUG_ENTRY("db_add_protoparms", "("UHF")",
+	AMP_DEBUG_ENTRY("db_add_protoparms", "("ADDR_FIELDSPEC")",
 					  (uaddr) spec);
 
 	/* Step 0: Sanity check arguments. */
@@ -1210,7 +2619,7 @@ int32_t db_fetch_adm_idx(char *name, char *version)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	AMP_DEBUG_ENTRY("db_fetch_adm_idx","("UHF","UHF")",
+	AMP_DEBUG_ENTRY("db_fetch_adm_idx","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 					  (uaddr)name, (uaddr) version);
 
 	if((name == NULL) || (version == NULL))
@@ -1341,7 +2750,7 @@ blob_t* db_fetch_tdc_entry_from_row(MYSQL_ROW row, amp_type_e *type)
 	uint8_t *value = NULL;
 	uint32_t length = 0;
 
-	AMP_DEBUG_ENTRY("db_fetch_tdc_entry_from_row","("UHF","UHF")",
+	AMP_DEBUG_ENTRY("db_fetch_tdc_entry_from_row","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 					  (uaddr)row, (uaddr)type);
 
 	/* Step 1: grab data from the row. */
@@ -1365,7 +2774,7 @@ blob_t* db_fetch_tdc_entry_from_row(MYSQL_ROW row, amp_type_e *type)
 	/* Step 3: Store the type. */
 	*type = atoi(row[2]);
 
-	AMP_DEBUG_EXIT("db_fetch_tdc_entry_from_row", "-->"UHF, (uaddr) result);
+	AMP_DEBUG_EXIT("db_fetch_tdc_entry_from_row", "-->"ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -1429,7 +2838,7 @@ mid_t *db_fetch_mid(int32_t idx)
 
 	mysql_free_result(res);
 
-	AMP_DEBUG_EXIT("db_fetch_mid", "-->"UHF, (uaddr) result);
+	AMP_DEBUG_EXIT("db_fetch_mid", "-->"ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -1498,7 +2907,7 @@ Lyst db_fetch_mid_col(int idx)
 	/* Step 3: Free database resources. */
 	mysql_free_result(res);
 
-	AMP_DEBUG_EXIT("db_fetch_mid_col", "-->"UHF, (uaddr) result);
+	AMP_DEBUG_EXIT("db_fetch_mid_col", "-->"ADDR_FIELDSPEC, (uaddr) result);
 	return result;
 }
 
@@ -1525,7 +2934,7 @@ mid_t* db_fetch_mid_from_row(MYSQL_ROW row)
 	oid_t oid;
 	mid_t *result = NULL;
 
-	AMP_DEBUG_ENTRY("db_fetch_mid_from_row", "("UHF")", (uaddr)row);
+	AMP_DEBUG_ENTRY("db_fetch_mid_from_row", "("ADDR_FIELDSPEC")", (uaddr)row);
 
 	/* Step 0: Sanity check. */
 	if(row == NULL)
@@ -1597,7 +3006,7 @@ mid_t* db_fetch_mid_from_row(MYSQL_ROW row)
 		result = NULL;
 	}
 
-	AMP_DEBUG_EXIT("db_fetch_mid_from_row","-->"UHF, (uaddr)result);
+	AMP_DEBUG_EXIT("db_fetch_mid_from_row","-->"ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -1630,7 +3039,7 @@ int32_t db_fetch_mid_idx(mid_t *mid)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	AMP_DEBUG_ENTRY("db_fetch_mid_idx","("UHF")", (uaddr)mid);
+	AMP_DEBUG_ENTRY("db_fetch_mid_idx","("ADDR_FIELDSPEC")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -1829,7 +3238,7 @@ uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	AMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"UHF")",
+	AMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"ADDR_FIELDSPEC")",
 			          idx, (uaddr)size);
 
 	/* Step 0: Sanity check. */
@@ -2112,7 +3521,7 @@ Lyst db_fetch_parms(uint32_t idx)
 	/* Step 4: Free results. */
 	mysql_free_result(res);
 
-	AMP_DEBUG_EXIT("db_fetch_parms", "-->"UHF, (uaddr)result);
+	AMP_DEBUG_EXIT("db_fetch_parms", "-->"ADDR_FIELDSPEC, (uaddr)result);
 	return result;
 }
 
@@ -2144,7 +3553,7 @@ int32_t db_fetch_protomid_idx(mid_t *mid)
 	MYSQL_RES *res = NULL;
 	MYSQL_ROW row;
 
-	AMP_DEBUG_ENTRY("db_fetch_protomid_idx","("UHF")", (uaddr)mid);
+	AMP_DEBUG_ENTRY("db_fetch_protomid_idx","("ADDR_FIELDSPEC")", (uaddr)mid);
 
 	/* Step 0: Sanity check arguments. */
 	if(mid == NULL)
@@ -2195,1461 +3604,10 @@ int32_t db_fetch_protomid_idx(mid_t *mid)
 
 
 
-/******************************************************************************
- *
- * \par Function Name: db_fetch_reg_agent
- *
- * \par Creates an adm_reg_agent_t structure from the database.
- *
- * \retval NULL Failure
- *        !NULL The built adm_reg_agent_t  structure.
- *
- * \param[in] id - The Primary Key of the desired registered agent.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/12/13  S. Jacobs      Initial implementation,
- *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
 
-adm_reg_agent_t *db_fetch_reg_agent(int32_t id)
-{
-	adm_reg_agent_t *result = NULL;
-	MYSQL_RES *res = NULL;
-	MYSQL_ROW row;
 
-	AMP_DEBUG_ENTRY("db_fetch_reg_agent","(%d)", id);
 
-	/* Step 1: Grab the OID row. */
-	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtRegisteredAgents WHERE ID=%d",
-						  id) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_fetch_reg_agent","Can't fetch", NULL);
-		AMP_DEBUG_EXIT("db_fetch_reg_agent","-->NULL", NULL);
-		return NULL;
-	}
-
-	if ((row = mysql_fetch_row(res)) != NULL)
-	{
-		eid_t eid;
-		strncpy(eid.name, row[1], AMP_MAX_EID_LEN);
-
-		/* Step 3: Create structure for agent */
-		if((result = msg_create_reg_agent(eid)) == NULL)
-		{
-			AMP_DEBUG_ERR("db_fetch_reg_agent","Cannot create a registered agent",NULL);
-			mysql_free_result(res);
-			AMP_DEBUG_EXIT("db_fetch_reg_agent","-->NULL", NULL);
-			return NULL;
-		}
-	}
-
-	mysql_free_result(res);
-
-	AMP_DEBUG_EXIT("db_fetch_reg_agent", "-->"UHF, (uaddr) result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_fetch_reg_agent_idx
- *
- * \par Retrieves the index associated with an agent's EID.
- *
- * \retval 0 Failure
- *        !0 The index of the agent.
- *
- * \param[in] eid - The EID of the agent being queried.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  08/29/15  E. Birrane     Initial implementation,
- *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-int32_t db_fetch_reg_agent_idx(eid_t *eid)
-{
-	int32_t result = AMP_FAIL;
-	MYSQL_RES *res = NULL;
-	MYSQL_ROW row;
-
-	AMP_DEBUG_ENTRY("db_fetch_reg_agent_idx","("UHF")", (uaddr) eid);
-
-	/* Step 0: Sanity Check.*/
-	if(eid == NULL)
-	{
-		AMP_DEBUG_ERR("db_fetch_reg_agent_idx","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/* Step 1: Grab the OID row. */
-	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtRegisteredAgents WHERE AgentId='%s'",
-						  eid->name) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_fetch_reg_agent_idx","Can't fetch", NULL);
-		AMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/* Step 2: Parse information out of the returned row. */
-	if ((row = mysql_fetch_row(res)) != NULL)
-	{
-		result = atoi(row[0]);
-	}
-	else
-	{
-		AMP_DEBUG_ERR("db_fetch_reg_agent_idx", "Did not find EID with ID of %s\n", eid->name);
-	}
-
-	/* Step 3: Free database resources. */
-	mysql_free_result(res);
-
-	AMP_DEBUG_EXIT("db_fetch_reg_agent_idx","-->%d", result);
-	return result;
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: db_incoming_initialize
- *
- * \par Returns the id of the last insert into dbtIncoming.
- *
- * \return AMP_SYSERR - System Error
- *         AMP_FAIL   - Non-fatal issue.
- *         >0         - The index of the inserted item.
- *
- * \param[in] timestamp  - the generated timestamp
- * \param[in] sender_eid - Who sent the messages.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  08/07/13  S. Jacobs      Initial implementation,
- *  08/29/15  E. Birrane     Added sender EID.
- *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-int32_t db_incoming_initialize(time_t timestamp, eid_t *sender_eid)
-{
-	MYSQL_RES *res = NULL;
-    MYSQL_ROW row;
-	char timebuf[256];
-	uint32_t result = 0;
-	uint32_t agent_idx = 0;
-
-	AMP_DEBUG_ENTRY("db_incoming_initialize","("UHF","UHF")",
-			        (uaddr)timestamp, (uaddr) sender_eid);
-
-	/* Step 0: Sanity check. */
-	if(sender_eid == NULL)
-	{
-		AMP_DEBUG_ERR("db_incoming_initialize","Bad Args.", NULL);
-		AMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", result);
-		return result;
-	}
-
-	db_mgt_txn_start();
-
-	/* Step 1: Find the agent ID, or try to add it. */
-	if((agent_idx = db_fetch_reg_agent_idx(sender_eid)) == 0)
-	{
-		if((agent_idx = db_add_agent(*sender_eid)) <= 0)
-		{
-			AMP_DEBUG_ERR("db_incoming_initialize","Can't find agent id.", NULL);
-			db_mgt_txn_rollback();
-			AMP_DEBUG_EXIT("db_incoming_initialize", "-->%d", agent_idx);
-			return agent_idx;
-		}
-	}
-
-	/* Step 2: Create a SQL time */
-	struct tm tminfo;
-	localtime_r(&timestamp, &tminfo);
-
-	isprintf(timebuf, 256, "%d-%d-%d %d:%d:%d",
-			tminfo.tm_year+1900,
-			tminfo.tm_mon,
-			tminfo.tm_mday,
-			tminfo.tm_hour,
-			tminfo.tm_min,
-			tminfo.tm_sec);
-
-	/* Step 2: Insert the TS. */
-	if(db_mgt_query_insert(&result,
-			              "INSERT INTO dbtIncomingMessageGroup"
-			              "(ReceivedTS,GeneratedTS,State,AgentID) "
-					      "VALUES(NOW(),'%s',0,%d)",
-						  timebuf, agent_idx) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_incoming_initialize","Can't insert Timestamp", NULL);
-		db_mgt_txn_rollback();
-		AMP_DEBUG_EXIT("db_incoming_initialize","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	db_mgt_txn_commit();
-	AMP_DEBUG_EXIT("db_incoming_initialize","-->%d", result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_incoming_finalize
- *
- * \par Finalize processing of the incoming messages.
- *
- * \return AMP_SYSERR - System Error
- *         AMP_FAIL   - Non-fatal issue.
- *         >0         - The index of the inserted item.
- *
- * \param[in] id - The incoming message group ID.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  08/07/13  S. Jacobs      Initial implementation,
- *  01/25/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-int32_t db_incoming_finalize(uint32_t id)
-{
-
-	db_mgt_txn_start();
-
-	/* Step 2: Insert the TS. */
-	if(db_mgt_query_insert(NULL,
-			               "UPDATE dbtIncomingMessageGroup SET State = State + 1 WHERE ID = %d",
-						   id) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_incoming_finalize","Can't insert Timestamp", NULL);
-		db_mgt_txn_rollback();
-		AMP_DEBUG_EXIT("db_incoming_finalize","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	db_mgt_txn_commit();
-	AMP_DEBUG_EXIT("db_incoming_finalize","-->%d", AMP_OK);
-	return AMP_OK;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_incoming_process_message
- *
- * \par Returns number of incoming message groups.
- *
- * \return # groups. -1 on error.
- *
- * \param[in] id     - The ID for the incoming message.
- * \param[in] cursor - Cursor pointing to start of message.
- * \param[in] size   - The size of the incoming message.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  08/07/13  S. Jacobs      Initial implementation,
- *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-int32_t db_incoming_process_message(int32_t id, uint8_t *cursor, uint32_t size)
-{
-	char *query = NULL;
-	char *result_data = NULL;
-	int32_t result_size = 0;
-
-	AMP_DEBUG_ENTRY("db_incoming_process_message","(%d,"UHF",%d)",
-			        id, (uaddr)cursor, size);
-
-	/* Step 0: Sanity Check. */
-	if(cursor == NULL)
-	{
-		AMP_DEBUG_ERR("db_incoming_process_message","Bad args.",NULL);
-		AMP_DEBUG_EXIT("db_incoming_process_message", "-->-1", NULL);
-		return -1;
-	}
-
-	/* Step 1: Convert the incoming message to a string for processing.*/
-	if((result_data = utils_hex_to_string(cursor, size)) == NULL)
-	{
-		AMP_DEBUG_ERR("db_incoming_process_message","Can't cvt %d bytes to hex str.",
-				        size);
-		AMP_DEBUG_EXIT("db_incoming_process_message", "-->-1", NULL);
-		return -1;
-	}
-
-	result_size = strlen(result_data);
-
-	db_mgt_txn_start();
-
-	/*
-	 * Step 2: Allocate a query for inserting into the DB. We allocate our own
-	 *         because this could be large.
-	 */
-	if((query = (char *) STAKE(result_size + 256)) == NULL)
-	{
-		AMP_DEBUG_ERR("db_incoming_process_message","Can't alloc %d bytes.",
-				        result_size + 256);
-		SRELEASE(result_data);
-		db_mgt_txn_rollback();
-		AMP_DEBUG_EXIT("db_incoming_process_message", "-->0", NULL);
-		return 0;
-	}
-
-	/* Step 3: Convert the query using allocated query structure. */
-	snprintf(query,result_size + 255,"INSERT INTO dbtIncomingMessages(IncomingID,Content)"
-			   "VALUES(%d,'%s')",id, result_data+2);
-	SRELEASE(result_data);
-
-	/* Step 4: Run the query. */
-	if(db_mgt_query_insert(NULL, query) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_incoming_process_message","Can't insert Timestamp", NULL);
-		SRELEASE(query);
-		db_mgt_txn_rollback();
-		AMP_DEBUG_EXIT("db_incoming_process_message","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	SRELEASE(query);
-	db_mgt_txn_commit();
-	AMP_DEBUG_EXIT("db_incoming_process_message", "-->1", NULL);
-	return 1;
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_daemon
- *
- * \par Returns number of outgoing message groups ready to be sent.
- *
- * \return  .
- *
- * \param[in] threadId - The POSIX thread.
- *
- * \par Notes:
- *  - We are being very inefficient here, as we grab the full result and
- *    then ignore it, presumably to query it again later. We should
- *    optimize this.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/13/13  S. Jacobs      Initial implementation,
- *  08/29/15  E. Birrane     Only query DB if we have an active connection.
- *  04/24/16  E. Birrane     Accept global "running" flag.
- *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-void *db_mgt_daemon(int *running)
-{
-	MYSQL_RES *sql_res;
-	struct timeval start_time;
-	vast delta = 0;
-
-	AMP_DEBUG_ENTRY("db_mgt_daemon","("UHF")", (uaddr)running);
-
-	AMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
-
-	while (*running)
-	{
-    	getCurrentTime(&start_time);
-
-    	if(db_mgt_connected() == 0)
-    	{
-    		if (db_outgoing_ready(&sql_res))
-    		{
-    			db_tx_msg_groups(sql_res);
-    		}
-
-			mysql_free_result(sql_res);
-			sql_res = NULL;
-    	}
-
-        delta = utils_time_cur_delta(&start_time);
-
-        // Sleep for 1 second (10^6 microsec) subtracting the processing time.
-        if((delta < 2000000) && (delta > 0))
-        {
-        	microsnooze((unsigned int)(2000000 - delta));
-        }
-	}
-
-	AMP_DEBUG_ALWAYS("db_mgt_daemon","Cleaning up Manager Database Daemon", NULL);
-
-	db_mgt_close();
-
-	AMP_DEBUG_ALWAYS("db_mgt_daemon","Manager Database Daemon Finished.",NULL);
-	pthread_exit(NULL);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_init
- *
- * \par Initializes the gConnection to the database.
- *
- * \retval 0 Failure
- *        !0 Success
- *
- * \param[in]  server - The machine hosting the SQL database.
- * \param[in]  user - The username for the SQL database.
- * \param[in]  pwd - The password for this user.
- * \param[in]  database - The database housing the DTNMP tables.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/12/13  S. Jacobs      Initial implementation,
- *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-uint32_t db_mgt_init(ui_db_t parms, uint32_t clear, uint32_t log)
-{
-
-	AMP_DEBUG_ENTRY("db_mgt_init","(parms, %d)", clear);
-
-	if(gConn == NULL)
-	{
-		gConn = mysql_init(NULL);
-		gParms = parms;
-		gInTxn = 0;
-
-		AMP_DEBUG_ENTRY("db_mgt_init", "(%s,%s,%s,%s)", parms.server, parms.username, parms.password, parms.database);
-
-		if (!mysql_real_connect(gConn, parms.server, parms.username, parms.password, parms.database, 0, NULL, 0))
-		{
-			if(log > 0)
-            {
-				AMP_DEBUG_WARN("db_mgt_init", "SQL Error: %s", mysql_error(gConn));
-            }
-			AMP_DEBUG_EXIT("db_mgt_init", "-->0", NULL);
-			return 0;
-		}
-
-		AMP_DEBUG_INFO("db_mgt_init", "Connected to Database.", NULL);
-	}
-
-	if(clear != 0)
-	{
-		db_mgt_clear();
-	}
-
-	/* Step 2: Make sure the DB knows about the MIDs we need. */
-   // db_mgt_verify_mids();
-
-	AMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
-	return 1;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_clear
- *
- * \par Clears all of the database tables used by the DTNMP Management Daemon.
- *
- * \retval 0 Failure
- *        !0 Success
- *
- *
- * \todo Add support to clear all tables. Maybe add a parm to select a
- *        table to clear (perhaps a string?)
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/12/13  S. Jacobs      Initial implementation,
- *  08/27/15  E. Birrane     Updated to latest schema
- *****************************************************************************/
-
-
-int db_mgt_clear()
-{
-
-	AMP_DEBUG_ENTRY("db_mgt_clear", "()", NULL);
-
-	if( db_mgt_clear_table("dbtMIDs") ||
-		db_mgt_clear_table("dbtIncomingMessages") ||
-		db_mgt_clear_table("dbtOIDs") ||
-		db_mgt_clear_table("dbtADMs") ||
-		db_mgt_clear_table("dbtADMNicknames") ||
-		db_mgt_clear_table("dbtIncomingMessageGroup") ||
-		db_mgt_clear_table("dbtOutgoingMessageGroup") ||
-		db_mgt_clear_table("dbtRegisteredAgents") ||
-		db_mgt_clear_table("dbtDataCollections") ||
-		db_mgt_clear_table("dbtDataCollection") ||
-		db_mgt_clear_table("dbtMIDCollections") ||
-		db_mgt_clear_table("dbtMIDCollection") ||
-		db_mgt_clear_table("dbtMIDParameters") ||
-		db_mgt_clear_table("dbtMIDParameter"))
-	{
-		AMP_DEBUG_ERR("db_mgt_clear", "SQL Error: %s", mysql_error(gConn));
-		AMP_DEBUG_EXIT("db_mgt_clear", "--> 0", NULL);
-		return 0;
-	}
-
-	AMP_DEBUG_EXIT("db_mgt_clear", "--> 1", NULL);
-	return 1;
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_clear_table
- *
- * \par Clears a database table used by the DTNMP Management Daemon.
- *
- * Note:
- *   We don't use truncate here because of foreign key constraints. Delete
- *   is able to remove items from a table, but does not reseed the
- *   auto-incrementing for the table, so an alter table command is also
- *   used.
- *
- * \retval !0 Failure
- *          0 Success
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  08/29/15  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-int db_mgt_clear_table(char *table)
-{
-	if(table == NULL)
-	{
-		return 1;
-	}
-
-	if (db_mgt_query_insert(NULL,"SET FOREIGN_KEY_CHECKS=0",NULL) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
-		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
-		return 1;
-	}
-
-	if (db_mgt_query_insert(NULL,"TRUNCATE %s", table) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
-		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
-		return 1;
-	}
-
-	if (db_mgt_query_insert(NULL,"SET FOREIGN_KEY_CHECKS=1", NULL) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_mgt_clear_table", "SQL Error: %s", mysql_error(gConn));
-		AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
-		return 1;
-	}
-
-	AMP_DEBUG_EXIT("db_mgt_clear_table", "--> 0", NULL);
-	return 0;
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_close
- *
- * \par Close the database gConnection.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/12/13  S. Jacobs      Initial implementation,
- *****************************************************************************/
-
-void db_mgt_close()
-{
-	AMP_DEBUG_ENTRY("db_mgt_close","()",NULL);
-	if(gConn != NULL)
-	{
-		mysql_close(gConn);
-		mysql_library_end();
-		gConn = NULL;
-	}
-	AMP_DEBUG_EXIT("db_mgt_close","-->.", NULL);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_connected
- *
- * \par Checks to see if the database connection is still active and, if not,
- *      try to reconnect up to some configured number of times.
- *
- * \par Notes:
- *
- * \retval !0 Error
- *          0 Success
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  08/27/15  E. Birrane     Updated to try and reconnect to DB.
- *****************************************************************************/
-
-int   db_mgt_connected()
-{
-	int result = -1;
-	uint8_t num_tries = 0;
-
-	if(gConn == NULL)
-	{
-		return -1;
-	}
-
-	result = mysql_ping(gConn);
-	if(result != 0)
-	{
-		while(num_tries < SQL_CONN_TRIES)
-		{
-			db_mgt_init(gParms, 0, 0);
-			if((result = mysql_ping(gConn)) == 0)
-			{
-				return 0;
-			}
-
-			microsnooze(SQL_RECONN_TIME_MSEC);
-			num_tries++;
-		}
-	}
-
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_insert_mid
- *
- * \par Add a MID to the appropriate table in the DB.
- *
- * \return AMP_SYSERR - System Error
- *         AMP_FAIL   - Non-fatal issue.
- *         >0         - The index of the inserted item.
- *
- * \param[in] mid    - The mid to be inserted.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/13/13  E. Birrane      Initial implementation,
- *  08/01/13  S. Jacobs	      Reflect Changes in MIDs
- *  08/27/15  E. Birrane      Update to latest schema and data model.
- *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-int32_t db_mgt_insert_mid(mid_t *mid)
-{
-	char *name = NULL;
-	ui_parm_spec_t *spec = NULL;
-
-	AMP_DEBUG_ENTRY("db_mgt_insert_mid","("UHF")", (uaddr)mid);
-
-	/* Step 0: Sanity check. */
-	if(mid == NULL)
-	{
-		AMP_DEBUG_ERR("db_mgt_insert_mid","Bad args.", NULL);
-		AMP_DEBUG_EXIT("db_mgt_insert_mid","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/* Step 1: Go get the parm spec for this MID. */
-	name = names_get_name(mid);
-	spec = ui_get_parmspec(mid);
-
-	SRELEASE(name);
-
-	/*
-	 * Step 2: Determine if this is a mid or a protomid and insert
-	 *         accordingly. If there is no spec, then the MID takes
-	 *         no parameters which means it cannot be a protomid.
-	 */
-
-	if((spec == NULL) || (spec->num_parms == 0))
-	{
-		return db_add_mid(mid);
-	}
-
-	return db_add_protomid(mid, spec, AMP_TYPE_MID);
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_query_fetch
- *
- * \par Runs a fetch in the database given a query and returns the result, if
- *      a result field is provided..
- *
- * \return AMP_SYSERR - System Error
- *         AMP_FAIL   - Non-fatal issue.
- *         >0         - The index of the inserted item.
- *
- * \param[out] res    - The result.
- * \param[in]  format - Format to build query
- * \param[in]  ...    - Var args to build query given format string.
- *
- * \par Notes:
- *   - The res structure should be a pointer but without being allocated. This
- *     function will create the storage.
- *   - If res is NULL that's ok, but no result will be returned.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
- *****************************************************************************/
-
-int32_t db_mgt_query_fetch(MYSQL_RES **res, char *format, ...)
-{
-	char query[1024];
-
-	AMP_DEBUG_ENTRY("db_mgt_query_fetch","("UHF","UHF")",
-			        (uaddr)res, (uaddr)format);
-
-	/* Step 0: Sanity check. */
-	if(format == NULL)
-	{
-		AMP_DEBUG_ERR("db_mgt_query_fetch", "Bad Args.", NULL);
-		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/*
-	 * Step 1: Assert the DB connection. This should not only check
-	 *         the connection as well as try and re-establish it.
-	 */
-	if(db_mgt_connected() == 0)
-	{
-		va_list args;
-
-		va_start(args, format); // format is last parameter before "..."
-		vsnprintf(query, 1024, format, args);
-		va_end(args);
-
-		if (mysql_query(gConn, query))
-		{
-			AMP_DEBUG_ERR("db_mgt_query_fetch", "Database Error: %s",
-					mysql_error(gConn));
-			AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
-			return AMP_FAIL;
-		}
-
-		if((*res = mysql_store_result(gConn)) == NULL)
-		{
-			AMP_DEBUG_ERR("db_mgt_query_fetch", "Can't get result.", NULL);
-			AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_FAIL);
-			return AMP_FAIL;
-		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("db_mgt_query_fetch", "DB not connected.", NULL);
-		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_SYSERR);
-		return AMP_SYSERR;
-	}
-
-	AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_OK);
-	return AMP_OK;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_query_insert
- *
- * \par Runs an insert in the database given a query and returns the
- *      index of the inserted item.
- *
- * \return AMP_SYSERR - System Error
- *         AMP_FAIL   - Non-fatal issue.
- *         >0         - The index of the inserted item.
- *
- * \param[out] idx    - The index of the inserted row.
- * \param[in]  format - Format to build query
- * \param[in]  ...    - Var args to build query given format string.
- *
- * \par Notes:
- *   - The idx may be NULL if the insert index is not needed.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
- *****************************************************************************/
-
-int32_t db_mgt_query_insert(uint32_t *idx, char *format, ...)
-{
-	char query[SQL_MAX_QUERY];
-
-	AMP_DEBUG_ENTRY("db_mgt_query_insert","("UHF","UHF")",(uaddr)idx, (uaddr)format);
-/*EJB
-	if(idx == NULL)
-	{
-		AMP_DEBUG_ERR("db_mgt_query_insert", "Bad Args.", NULL);
-		AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-*/
-	if(db_mgt_connected() == 0)
-	{
-		va_list args;
-
-		va_start(args, format); // format is last parameter before "..."
-		if(vsnprintf(query, SQL_MAX_QUERY, format, args) == SQL_MAX_QUERY)
-		{
-			AMP_DEBUG_ERR("db_mgt_query_insert", "query is too long. Maximum length is %d", SQL_MAX_QUERY);
-		}
-		va_end(args);
-
-		if (mysql_query(gConn, query))
-		{
-			AMP_DEBUG_ERR("db_mgt_query_insert", "Database Error: %s",
-					mysql_error(gConn));
-			AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
-			return AMP_FAIL;
-		}
-
-		if(idx != NULL)
-		{
-			if((*idx = (uint32_t) mysql_insert_id(gConn)) == 0)
-			{
-				AMP_DEBUG_ERR("db_mgt_query_insert", "Unknown last inserted row.", NULL);
-				AMP_DEBUG_EXIT("db_mgt_query_insert", "-->%d", AMP_FAIL);
-				return AMP_FAIL;
-			}
-		}
-	}
-	else
-	{
-		AMP_DEBUG_ERR("db_mgt_query_fetch", "DB not connected.", NULL);
-		AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_SYSERR);
-		return AMP_SYSERR;
-	}
-
-	AMP_DEBUG_EXIT("db_mgt_query_fetch", "-->%d", AMP_OK);
-	return AMP_OK;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_reset_mids
- *
- * \par Populates the DB with MIDs known by this manager.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
- *****************************************************************************/
-
-void db_mgt_reset_mids()
-{
-	LystElt elt;
-
-	AMP_DEBUG_ENTRY("db_mgt_reset_mids","()", NULL);
-
-	/* Step 1: For each known ADM. */
-	if(db_fetch_adm_idx("AGENT","v0.1") == 0)
-	{
-		db_add_adm("AGENT","v0.1",AGENT_ADM_ROOT_NN_STR);
-	}
-
-	if(db_fetch_adm_idx("BP","6") == 0)
-	{
-		db_add_adm("BP","6", BP_ADM_ROOT_NN_STR);
-	}
-
-	/* Step 2: For each known nickname. */
-	for(elt = lyst_first(nn_db); elt; elt = lyst_next(elt))
-	{
-		oid_nn_t* nn = (oid_nn_t*) lyst_data(elt);
-		db_add_nn(nn);
-	}
-
-	/* Step 3: For each ADM atomic data defined... */
-	for(elt = lyst_first(gAdmData); elt; elt = lyst_next(elt))
-	{
-		adm_datadef_t *data = (adm_datadef_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->mid);
-	}
-
-	/* Step 4: For each ADM computed data defined... */
-	for(elt = lyst_first(gAdmComputed); elt; elt = lyst_next(elt))
-	{
-		var_t *data = (var_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->id);
-	}
-
-	/* Step 5: For each ADM control defined... */
-	for(elt = lyst_first(gAdmCtrls); elt; elt = lyst_next(elt))
-	{
-		adm_ctrl_t *data = (adm_ctrl_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->mid);
-	}
-
-	/* Step 6: For each ADM literal defined... */
-	for(elt = lyst_first(gAdmLiterals); elt; elt = lyst_next(elt))
-	{
-		lit_t *data = (lit_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->id);
-	}
-
-	/* Step 7: For each ADM literal defined... */
-	for(elt = lyst_first(gAdmOps); elt; elt = lyst_next(elt))
-	{
-		adm_op_t *data = (adm_op_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->mid);
-	}
-
-	/* Step 8: For each ADM report defined... */
-	for(elt = lyst_first(gAdmRpts); elt; elt = lyst_next(elt))
-	{
-		def_gen_t *data = (def_gen_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->id);
-	}
-
-	/* Step 8: For each ADM report defined... */
-	for(elt = lyst_first(gAdmMacros); elt; elt = lyst_next(elt))
-	{
-		def_gen_t *data = (def_gen_t *) lyst_data(elt);
-		db_mgt_insert_mid(data->id);
-	}
-
-	AMP_DEBUG_EXIT("db_mgt_reset_mids","-->.", NULL);
-	return;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_txn_start
- *
- * \par Starts a transaction in the database, if we are not already in a txn.
- *
- * \par Notes:
- *   - This function is not multi-threaded. We assume that we are the only
- *     input into the database and that there is only one "active" transaction
- *     at a time.
- *   - This function does not support nested transactions.
- *   - If a transaction is already open, this function assumes that is the
- *     transaction to use.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
- *****************************************************************************/
-
-void db_mgt_txn_start()
-{
-	if(gInTxn == 0)
-	{
-		if(db_mgt_query_insert(NULL,"START TRANSACTION",NULL) == AMP_OK)
-		{
-			gInTxn = 1;
-		}
-	}
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_txn_commit
- *
- * \par Commits a transaction in the database, if we are in a txn.
- *
- * \par Notes:
- *   - This function is not multi-threaded. We assume that we are the only
- *     input into the database and that there is only one "active" transaction
- *     at a time.
- *   - This function does not support nested transactions.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
- *****************************************************************************/
-
-void db_mgt_txn_commit()
-{
-	if(gInTxn == 1)
-	{
-		if(db_mgt_query_insert(NULL,"COMMIT",NULL) == AMP_OK)
-		{
-			gInTxn = 0;
-		}
-	}
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_mgt_txn_rollback
- *
- * \par Rolls back a transaction in the database, if we are in a txn.
- *
- * \par Notes:
- *   - This function is not multi-threaded. We assume that we are the only
- *     input into the database and that there is only one "active" transaction
- *     at a time.
- *   - This function does not support nested transactions.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/26/17  E. Birrane     Initial implementation (JHU/APL).
- *****************************************************************************/
-
-void db_mgt_txn_rollback()
-{
-	if(gInTxn == 1)
-	{
-		if(db_mgt_query_insert(NULL,"ROLLBACK",NULL) == AMP_OK)
-		{
-			gInTxn = 0;
-		}
-	}
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_tx_msg_groups
- *
- * \par Returns 1 if the message is ready to be sent
- *
- * \retval AMP_SYSERR on system error
- *         AMP_FAIL   if no message groups ready.
- *         AMP_OK     If there are message groups ready to be sent.
- *
- * \param[out] sql_res - The outgoing messages.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/13/13  E. Birrane      Initial implementation,
- *  07/18/13  S. Jacobs       Added outgoing agents
- *  09/27/13  E. Birrane      Configure each agent with custom rpt, if applicable.
- *  08/27/15  E. Birrane      Update to new data model, schema
- *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-int32_t db_tx_msg_groups(MYSQL_RES *sql_res)
-{
-	MYSQL_ROW row;
-	pdu_group_t *msg_group = NULL;
-	int32_t idx = 0;
-	int32_t agent_idx = 0;
-	int32_t result = AMP_SYSERR;
-	adm_reg_agent_t *agent_reg = NULL;
-
-	AMP_DEBUG_ENTRY("db_tx_msg_groups","("UHF")",(uaddr) sql_res);
-
-	/* Step 0: Sanity Check. */
-	if(sql_res == NULL)
-	{
-		AMP_DEBUG_ERR("db_tx_msg_groups","Bad args.", NULL);
-		AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/* Step 1: For each message group that is ready to go... */
-	while ((row = mysql_fetch_row(sql_res)) != NULL)
-	{
-		/* Step 1.1 Create and populate the message group. */
-		idx = atoi(row[0]);
-		agent_idx = atoi(row[4]);
-
-		/* Step 1.2: Create an AMP PDU for this outgoing message. */
-		if((msg_group = pdu_create_empty_group()) == NULL)
-		{
-			AMP_DEBUG_ERR("db_tx_msg_groups","Cannot create group.", NULL);
-			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_SYSERR);
-			return AMP_SYSERR;
-		}
-
-		/*
-		 * Step 1.3: Populate the message group with outgoing messages.
-		 *           If there are no message groups, Quietly go home,
-		 *           it isn't an error, it's just disappointing.
-		 */
-		if((result = db_tx_build_group(idx, msg_group)) != AMP_OK)
-		{
-			pdu_release_group(msg_group);
-			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",result);
-			return result;
-		}
-
-		/* Step 1.4: Figure out the agent receiving this message. */
-		if((agent_reg = db_fetch_reg_agent(agent_idx)) == NULL)
-		{
-			AMP_DEBUG_ERR("db_tx_msg_groups","Can't get agent for idx %d", agent_idx);
-			pdu_release_group(msg_group);
-			AMP_DEBUG_EXIT("db_tx_msg_groups","-->%d",AMP_FAIL);
-			return AMP_FAIL;
-		}
-
-		/*
-		 * Step 1.5: The database knows about the agent but the management
-		 *           daemon might not. Make sure that the management daemon
-		 *           knows about this agent so that it isn't a surprise when
-		 *           the agent starts sending data back.
-		 *
-		 *           If we can't add the agent to the manager daemon (which
-		 *           would be very odd) we send the message group along and
-		 *           accept that there might be confusion when the agent
-		 *           sends information back.
-		 */
-
-		if(mgr_agent_get(&(agent_reg->agent_id)) == NULL)
-		{
-			if(mgr_agent_add(agent_reg->agent_id) == -1)
-			{
-				AMP_DEBUG_WARN("db_tx_msg_groups","Sending to unknown agent.", NULL);
-			}
-		}
-
-		/* Step 1.6: Send the message group.*/
-		AMP_DEBUG_INFO("db_tx_msg_groups",
-				       "Sending to name %s",
-					   agent_reg->agent_id.name);
-
-		iif_send(&ion_ptr, msg_group, agent_reg->agent_id.name);
-
-		/* Step 1.7: Release resources. */
-		msg_release_reg_agent(agent_reg);
-		pdu_release_group(msg_group);
-		msg_group = NULL;
-
-		/*
-		 * Step 1.8: Update the state of the message group in the database.
-		 *           \todo: Consider aborting message group if this happens.
-		 */
-		if(db_mgt_query_insert(NULL,
-				               "UPDATE dbtOutgoingMessageGroup SET State=2 WHERE ID=%d",
-				               idx)!= AMP_OK)
-		{
-			AMP_DEBUG_WARN("db_tx_msg_groups","Could not update DB send status.", NULL);
-		}
-	}
-
-	AMP_DEBUG_EXIT("db_tx_msg_groups", "-->%d", AMP_OK);
-
-	return AMP_OK;
-}
-
-
-/******************************************************************************
- *
- * \par Function Name: db_tx_build_group
- *
- * \par This function populates an AMP message group with messages
- *      for this group from the database.
- *
- * \retval AMP_SYSERR on system error
- *         AMP_FAIL   if no message groups ready.
- *         AMP_OK     If there are message groups ready to be sent.
- *
- * \param[in]  grp_idx   - The DB identifier of the message group
- * \param[out] msg_group - The message group being populated
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/13/13  E. Birrane      Initial implementation,
- *  09/27/13  E. Birrane      Collect any rpt defs from this message.
- *  08/27/15  E. Birrane      Update to latest data model and schema.
- *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-int32_t db_tx_build_group(int32_t grp_idx, pdu_group_t *msg_group)
-{
-	int32_t result = 0;
-	MYSQL_RES *res = NULL;
-	MYSQL_ROW row;
-
-	AMP_DEBUG_ENTRY("db_tx_build_group",
-					  "(%d, "UHF")",
-			          grp_idx, (uaddr) msg_group);
-
-	/* Step 0: Sanity check. */
-	if(msg_group == NULL)
-	{
-		AMP_DEBUG_ERR("db_tx_build_group","Bad args.", NULL);
-		AMP_DEBUG_EXIT("db_tx_build_group","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/* Step 1: Find all messages for this outgoing group. */
-	if(db_mgt_query_fetch(&res,
-			              "SELECT MidCollID FROM dbtOutgoingMessages WHERE OutgoingID=%d",
-			              grp_idx) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_tx_build_group",
-					  "Can't find messages for %d", grp_idx);
-		AMP_DEBUG_EXIT("db_tx_build_group","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-	/* Step 2: For each message that belongs in this group....*/
-    while((res != NULL) && ((row = mysql_fetch_row(res)) != NULL))
-    {
-    	int32_t mc_idx = atoi(row[0]);
-    	Lyst mc = NULL;
-    	uint32_t size = 0;
-    	uint8_t *data = NULL;
-    	pdu_msg_t *pdu_msg = NULL;
-
-    	/*
-    	 * Step 2.1: An outgoing message in AMP is a "run controls"
-    	 *           message, which accepts a series of controls to
-    	 *           run. This series is stored as a
-    	 *           MID Collection (MC). So, grab the MC.
-    	 */
-		if((mc = db_fetch_mid_col(mc_idx)) == NULL)
-		{
-			AMP_DEBUG_ERR("db_tx_build_group",
-						    "Can't grab MC for idx %d", mc_idx);
-			result = AMP_FAIL;
-			break;
-		}
-
-		/*
-		 * Step 2.2: Create the "run controls" message, passing in
-		 *           the MC of controls to run.
-		 *           \todo: SQL currently has no place to store a
-		 *                  time offset associated with a control. We
-		 *                  currently jam that to 0 (which means run
-		 *                  immediately).
-		 */
-		msg_perf_ctrl_t *ctrl = msg_create_perf_ctrl(0, mc);
-
-		/* Step 2.3: Construct a PDU to hold the primitive. */
-		if((data = msg_serialize_perf_ctrl(ctrl, &size)) == NULL)
-		{
-			AMP_DEBUG_ERR("db_tx_build_group",
-						    "Can't serialize control", NULL);
-			result = AMP_FAIL;
-			break;
-		}
-
-		/* Step 2.4: Some general debugging...*/
-		char *str = utils_hex_to_string(data, size);
-		AMP_DEBUG_ALWAYS("SQL Sending: ", "(size %d): %s", size, str);
-		SRELEASE(str);
-
-		/*
-		 * Step 2.5: Build the serialized "run control" message.
-		 *           pdu_create_msg shallow copies. Do not release
-		 *           "data" unless there was an error.
-		 */
-		if((pdu_msg = pdu_create_msg(MSG_TYPE_CTRL_EXEC, data, size, NULL)) == NULL)
-		{
-			SRELEASE(data);
-			AMP_DEBUG_ERR("db_tx_build_group",
-						  "Can't build PDU message", NULL);
-			result = AMP_FAIL;
-			break;
-		}
-
-		/* This is a shallow copy. Do not release pdu_msg. */
-		pdu_add_msg_to_group(msg_group, pdu_msg);
-
-		result = AMP_OK;
-	}
-
-	mysql_free_result(res);
-
-	AMP_DEBUG_EXIT("db_tx_build_group","-->%d", result);
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_tx_collect_agents
- *
- * \par Returns a lyst of the agents to send a message to
- *
- * \retval NULL no recipients.
- *        !NULL There are recipients to be sent to.
- *
- * \param[in] grp_idx - The index of the message group being sent.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/18/13  S. Jacobs       Initial Implementation
- *  01/26/17  E. Birrane      Update to AMP 3.5.0 (JHU/APL)
- *****************************************************************************/
-
-Lyst db_tx_collect_agents(int32_t grp_idx)
-{
-	Lyst result = NULL;
-	MYSQL_RES *res = NULL;
-	MYSQL_ROW row;
-	adm_reg_agent_t *reg_agent = NULL;
-	int cur_row = 0;
-	int max_row = 0;
-
-	AMP_DEBUG_ENTRY("db_tx_collect_agents","(%d)", grp_idx);
-
-	/*
-	 * Step 1: Grab the list of agents from the DB for this
-	 *         message group.
-	 */
-
-	if(db_mgt_query_fetch(&res,
-			              "SELECT AgentID FROM dbtOutgoingRecipients "
-			              "WHERE OutgoingID=%d", grp_idx) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("db_tx_collect_agents",
-				        "Can't get agents for grp: %d", grp_idx);
-		AMP_DEBUG_EXIT("db_tx_collect_agents","-->%d", AMP_FAIL);
-		return AMP_FAIL;
-	}
-
-
-	/* Step 3: For each row returned.... */
-	max_row = mysql_num_rows(res);
-	result = lyst_create();
-	for(cur_row = 0; cur_row < max_row; cur_row++)
-	{
-		if ((row = mysql_fetch_row(res)) != NULL)
-		{
-			/* Step 3.1: Grab the agent information.. */
-			if((reg_agent = db_fetch_reg_agent(atoi(row[0]))) != NULL)
-			{
-				AMP_DEBUG_INFO("db_outgoing_process_recipients",
-						         "Adding agent name %s.",
-						         reg_agent->agent_id.name);
-
-				lyst_insert_last(result, reg_agent);
-			}
-			else
-			{
-				AMP_DEBUG_ERR("db_outgoing_process_recipients",
-						        "Cannot fetch registered agent",NULL);
-			}
-		}
-	}
-
-	mysql_free_result(res);
-
-	AMP_DEBUG_EXIT("db_outgoing_process_recipients","-->0x%#llx",
-			         (unsigned long) result);
-
-	return result;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: db_outgoing_ready
- *
- * \par Returns number of outgoing message groups ready to be sent.
- *
- * \retval 0 no message groups ready.
- *        !0 There are message groups ready to be sent.
- *
- * \param[out] sql_res - The outgoing messages.
- *
- * \par Notes:
- *  - We are being very inefficient here, as we grab the full result and
- *    then ignore it, presumably to query it again later. We should
- *    optimize this.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  07/13/13  E. Birrane      Initial implementation,
- *  08/27/15  E. Birrane      Updated to newer schema
- *****************************************************************************/
-
-int db_outgoing_ready(MYSQL_RES **sql_res)
-{
-	int result = 0;
-	char query[1024];
-
-	*sql_res = NULL;
-
-	AMP_DEBUG_ENTRY("db_outgoing_ready","("UHF")", (uaddr) sql_res);
-
-	CHKCONN
-
-	/* Step 0: Sanity check. */
-	if(sql_res == NULL)
-	{
-		AMP_DEBUG_ERR("db_outgoing_ready", "Bad Parms.", NULL);
-		AMP_DEBUG_EXIT("db_outgoing_ready","-->0",NULL);
-		return 0;
-	}
-
-	/* Step 1: Build and execute query. */
-	sprintf(query, "SELECT * FROM dbtOutgoingMessageGroup WHERE State=%d", TX_READY);
-	if (mysql_query(gConn, query))
-	{
-		AMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
-				mysql_error(gConn));
-		AMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
-		return result;
-	}
-
-	/* Step 2: Parse the row and populate the structure. */
-	if ((*sql_res = mysql_store_result(gConn)) != NULL)
-	{
-		result = mysql_num_rows(*sql_res);
-	}
-	else
-	{
-		AMP_DEBUG_ERR("db_outgoing_ready", "Database Error: %s",
-				mysql_error(gConn));
-	}
-
-        //EJB
-        if(result > 0)
-        {
-          AMP_DEBUG_ERR("db_outgoing_ready","There are %d rows ready.", result);
-        }
-
-	/* Step 3: Return whether we have results waiting. */
-	AMP_DEBUG_EXIT("db_outgoing_ready", "-->%d", result);
-	return result;
-}
+#endif
 
 #endif
 

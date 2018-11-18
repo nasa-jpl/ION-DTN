@@ -25,6 +25,7 @@
  **  07/10/13  S. Jacobs      Initial Implementation (JHU/APL)
  **  08/19/13  E. Birrane     Documentation clean up and code review comments. (JHU/APL)
  **  08/22/15  E. Birrane     Updates for new schema and dynamic user permissions. (Secure DTN - NASA: NNX14CS58P)
+ **  10/20/18  E. Birrane     Updates for AMPv0.5 (JHU/APL)
  *****************************************************************************/
 #ifdef HAVE_MYSQL
 
@@ -34,29 +35,25 @@
 /* System Headers */
 #include "stdio.h"
 #include "unistd.h"
-#include "mysql.h"
+#include <mysql.h>
 
 /* ION headers. */
 #include "platform.h"
-#include "lyst.h"
 
 /* Application headers. */
 #include "../shared/adm/adm.h"
-#include "../shared/msg/pdu.h"
-#include "../shared/primitives/admin.h"
-#include "../shared/primitives/def.h"
-#include "../shared/primitives/mid.h"
-#include "../shared/primitives/oid.h"
-#include "../shared/primitives/nn.h"
+#include "../shared/msg/ion_if.h"
+#include "../shared/msg/msg.h"
 #include "../shared/primitives/report.h"
 #include "../shared/primitives/rules.h"
 #include "../shared/primitives/ctrl.h"
 
 #include "../shared/utils/db.h"
-#include "../shared/utils/ion_if.h"
 #include "../shared/utils/utils.h"
+#include "../shared/utils/vector.h"
 
 #include "nm_mgr_ui.h"
+#include "agents.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -128,13 +125,15 @@
  */
 typedef struct
 {
+    ResourceLock lock;
+
 	char server[UI_SQL_SERVERLEN];
 	char username[UI_SQL_ACCTLEN];
 	char password[UI_SQL_ACCTLEN];
 	char database[UI_SQL_DBLEN];
 
-	def_gen_desc_t desc;
-} ui_db_t;
+	db_desc_t desc;
+} sql_db_t;
 
 /*
  * +--------------------------------------------------------------------------+
@@ -142,6 +141,46 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
+/* Functions to write primitives to associated database tables. */
+int32_t db_add_agent(eid_t agent_eid);
+
+/* Database Management Functions. */
+void    *db_mgt_daemon(int *running);
+uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log);
+int      db_mgt_clear();
+int      db_mgt_clear_table(char *table);
+void     db_mgt_close();
+int      db_mgt_connected();
+int32_t  db_mgt_query_fetch(MYSQL_RES **res, char *format, ...);
+int32_t  db_mgt_query_insert(uint32_t *idx, char *format, ...);
+void     db_mgt_txn_start();
+void     db_mgt_txn_commit();
+void     db_mgt_txn_rollback();
+
+int      db_mgr_sql_persist();
+void     db_mgr_sql_info_deserialize(blob_t *data);
+blob_t*  db_mgr_sql_info_serialize();
+int      db_mgr_sql_init();
+
+
+
+/* Functions to process outgoing message tables. */
+int32_t  db_tx_msg_groups(MYSQL_RES *sql_res);
+int32_t  db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group);
+int      db_tx_collect_agents(int32_t grp_idx, vector_t *vec);
+int      db_outgoing_ready(MYSQL_RES **sql_res);
+
+
+/* Functions to process incoming messages. */
+int32_t db_incoming_initialize(time_t timestamp, eid_t sender_eid);
+int32_t db_incoming_finalize(uint32_t incomingID);
+int32_t db_incoming_process_message(int32_t incomingID, blob_t *data);
+
+agent_t* db_fetch_agent(int32_t id);
+int32_t  db_fetch_agent_idx(eid_t *sender);
+ac_t*    db_fetch_ari_col(int idx);
+
+#if 0
 /* Functions to write primitives to associated database tables. */
 int32_t db_add_adm(char *name, char *version, char *oid_root);
 int32_t db_add_agent(eid_t agent_eid);
@@ -154,6 +193,7 @@ int32_t db_add_oid_str(char *oid_str);
 int32_t db_add_parms(oid_t oid);
 int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type);
 int32_t db_add_protoparms(ui_parm_spec_t *spec);
+
 
 /* Functions to fetch primitives from associated database tables. */
 
@@ -171,35 +211,11 @@ oid_t             db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_
 int32_t           db_fetch_oid_idx(oid_t oid);
 Lyst			  db_fetch_parms(uint32_t idx);
 int32_t           db_fetch_protomid_idx(mid_t *mid);
-adm_reg_agent_t  *db_fetch_reg_agent(int32_t id);
-int32_t           db_fetch_reg_agent_idx(eid_t *sender);
 
 
-/* Functions to process incoming messages. */
-int32_t db_incoming_initialize(time_t timestamp, eid_t *sender_eid);
-int32_t db_incoming_finalize(uint32_t incomingID);
-int32_t db_incoming_process_message(int32_t incomingID, uint8_t *cursor, uint32_t size);
 
-/* Database Management Functions. */
-void    *db_mgt_daemon(int *running);
-uint32_t db_mgt_init(ui_db_t parms, uint32_t clear, uint32_t log);
-int      db_mgt_clear();
-int      db_mgt_clear_table(char *table);
-void     db_mgt_close();
-int      db_mgt_connected();
-int32_t  db_mgt_insert_mid(mid_t *mid);
-int32_t  db_mgt_query_fetch(MYSQL_RES **res, char *format, ...);
-int32_t  db_mgt_query_insert(uint32_t *idx, char *format, ...);
-void     db_mgt_reset_mids();
-void     db_mgt_txn_start();
-void     db_mgt_txn_commit();
-void     db_mgt_txn_rollback();
 
-/* Functions to process outgoing message tables. */
-int32_t  db_tx_msg_groups(MYSQL_RES *sql_res);
-int32_t  db_tx_build_group(int32_t grp_idx, pdu_group_t *msg_group);
-Lyst     db_tx_collect_agents(int32_t grp_idx);
-int  db_outgoing_ready(MYSQL_RES **sql_res);
+#endif
 
 #endif
 
