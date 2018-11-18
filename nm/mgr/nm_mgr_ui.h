@@ -183,37 +183,124 @@ typedef enum ui_cb_return_values_t
    
 } ui_cb_return_values_t;
 
-/** Callback function for ui_menu_listing
- * @param status_msg A copy of the status_msg buffer given to ui_menu_listing. If not NULL,
+/** Callback function prototype for ui_menu_listing
+ * @param[in] idx Index into the menu listing configuration for the currently selected item.
+ * @param[in] keypress The key that the user pressed to make the current selection. 
+ *    For NCURSES mode, this is any keypress that does not cause the menu to navigate or cancel.
+ *    This is not applicable in stdio/fallback mode, where 0 will always be given here.
+ * @param[in,out] data The optional user data field associated with the list menu definition.  
+ * @param[in,out] status_msg A copy of the status_msg buffer given to ui_menu_listing. If not NULL,
  *    callback may update the contents of this message and return 2 to indicate menu should
  *    refresh status message and continue.
- * TODO: Create an enum for the callback return values.
+ * @returns ui_cb_return_values_t Return value determines the subsequent behavior of the menu.  See
+ *    the type description and ui_menu_listing for details.
  */
-typedef int (*ui_menu_listing_cb_fn)(int idx, int keypress, void* data, char* status_msg);
+typedef ui_cb_return_values_t (*ui_menu_listing_cb_fn)(int idx, int keypress, void* data, char* status_msg);
 
+/** Display a menu of options for the user to select from 
+ * @param title  A title to display for this menu
+ * @param choices An array of strings used or the menu selection names.
+ * @param descriptions An optional array of detailed descriptions for each menu item.
+ * @param n_choices The number of choices to present. This must match the length of the choices
+ *    array and, if present, the descriptions array.
+ * @param msg An optional user-defined message to display at the bottom of the menu.
+ *    This is intended for informational or error message from the previous action.
+ * @return -1 if the user cancels the operation or an error occurs, the 0-based index into the 
+ *    choices array representing the user selection otherwise.
+ */
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg);
+
+/** Display a form of one or more fields for the user to fill out.
+ * @param title A title to display for this form
+ * @param msg An optional user-defined message to display at the bottom of the menu.
+ * @param fields An array of field definitions.  See form_feilds_t for details.
+ *    Note: NCURSES is required for full functionality, such as regex validation.
+ * @param num_fields The number of elements in the fields array.
+ * @returns 1 on submission, 0 if user cancelled input, or -1 on error.
+ */
 int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields);
+
+/** Display the user with a simple confirmation dialog with 1-3 options.
+ *    Specify NULL or choiceB or C to suppress display of the corresponding choices.
+ * @returns User selection
+ */
 int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC);
+
+/** Displays a configurable menu of options for the user to select from with optional callback function.
+ * @param title  A title to display for this menu
+ * @param list An array of ui_menu_list_t entry definitions.  Each entry defines an item name, an optional
+ *    description, and an optional user data field that will be passed to the callback handler.
+ * @param n_choices The number of items in the list
+ * @param msg An optional user-defined message to display at the bottom of the menu.
+ *    This is intended for informational or error message from the previous action.
+ * @param default_idx If a positive value is defined, the corresponding list index will be selected by
+ *    default (NCURSES mode only).
+ * @param usage_msg Optional usage directions to be displayed below the menu.
+ * @param fn If defined, this callback function will be called:
+ *    - upon user selection of a menu item.
+ *    - NCURSES Mode Only: Any keypress not used for navigation or cancellation of menu.
+ *    The return value of the callback will determine if the menu will continue to be displayed,
+ *      a user defined status message updated, or if this menu shall exit.  
+ *      See ui_menu_lsiting_cb_fn definition for details.
+ * @returns Index of user selection.
+ */
 int ui_menu_listing(char* title, ui_menu_list_t* list, int n_choices,
                     char* status_msg, int default_idx, char* usage_msg,
                     ui_menu_listing_cb_fn fn, int flags);
+
+/** This is a variant of ui_menu supporting a multi-column layout (NCURSES-mode only) */
 int ui_menu_select(char* title, const char* const* choices, const char* const* descriptions, int n_choices, char* msg, int menu_cols);
 
+/** ui_display_to_file
+ *  Redirect subsequent ui_init() and ui_printf() output to the specified file.
+ *  The file will be closed and normal behavior restored when ui_display_exec() 
+ *  is called (or ui_display_to_file_close).
+ * @returns AMP_OK on success, AMP_FAIL otherwise.
+ */
 int ui_display_to_file(char* filename);
+
+/** This function will end the redirection of ui_printf() and close the open file (if any). 
+ *    See ui_display_to_file() for details.
+ */
 void ui_display_to_file_close();
+
+/** A wrapper function to output data to the UI using standard printf style formatting.
+ *   If file redirection (ui_display_to_file()) is active, then this function will write
+ *     the formatted string to the open file in place of the normal output mode.
+ *   In NCURSES mode, output is written to a special buffer displayed when ui_display_exec()
+ *     is called.
+ *   In stdio mode, this is a wrapper to printf.
+ */
 void ui_printf(const char* format, ...);
+
+/** Signals the completion of a ui_printf based dialog.
+ *    If file redirection is active, this function will cause the file to be closed
+ *      and normal ui_printf output behavior restored.
+ *    In NCURSES mode, this triggers the buffer to be displayed to the screen.
+ *    In STDIO mode, this prints demarcation text to indicate the end of an output section.
+ */
 int ui_display_exec();
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 /** The following functions have alternate prototypes or macro definitions dependent on USE_NCURSES flag */
 #ifdef USE_NCURSES
-/* ui_dialog_win is the target for ui_printf, and is displayed with ui_display_show() */
+
+/** Initialize the UI internal components.  This function should be called once on startup. */
 void ui_init();
+
+/** This function will reset the internal display buffer and output the specified title banner with
+ *    appropriate formatting to the buffer.  The buffer will be appended to be subsequent calls to 
+ *    ui_printf(), and displayed with ui_display_exec().  The display function can be suppressed
+ *    in favor of file logging by calling ui_display_to_file() first.
+ */
 void ui_display_init(char* title);
 #else
-/* Without ncurses, ui_printf() adn ui_display() options become simple macro wrappers */
+
+/** ui_init() is a placeholder macro when NCURSES support is disabled */
 #define ui_init()
+
+/** ui_display_init() Displays the specified title with demarcating line breaks for clarity. */
 #define ui_display_init(title) ui_printf("\n\n--------------------\n%s\n--------------------\n", title)
 #endif
 

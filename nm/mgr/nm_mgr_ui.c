@@ -1002,8 +1002,6 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 }
 
 
-
-
 void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 {
 	ari_t *id = NULL;
@@ -1037,160 +1035,6 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 }
 
 
-
-
-void ui_menu_admin_show()
-{
-	printf("============ Administration Menu =============\n");
-
-	printf("\n------------ Agent Registration ------------\n");
-	printf("1) Register Agent.\n");
-	printf("2) List Registered Agent.\n");
-	printf("3) De-Register Agent.\n");
-
-	printf("\n--------------------------------------------\n");
-	printf("Z) Return to Main Menu.\n");
-
-}
-
-int ui_menu_admin_do(uint8_t choice)
-{
-	int context = UI_ADMIN_MENU;
-	switch(choice)
-	{
-		case 'Z' : context = UI_MAIN_MENU; break;
-		case '1' : ui_register_agent(NULL); break;
-		case '2' : ui_print_agents(); break;
-		case '3' : ui_deregister_agent(ui_select_agent()); break;
-		default: printf("Unknown command: %c.\n", choice); break;
-	}
-	return context;
-}
-
-
-
-void ui_menu_ctrl_show()
-{
-	printf("==================== Controls Menu =====================\n");
-
-	printf("\n-------------- AMM Object Information ----------------\n");
-	printf("0) List supported ADMs.\n");
-	printf("1) List External Data Definitions(%d Known)\n", gVDB.adm_edds.num_elts);
-	printf("2) List Atomics (CNST, LIT)      (%d Known)\n", gVDB.adm_atomics.num_elts);
-	printf("3) List Control Definitions      (%d Known)\n", gVDB.adm_ctrl_defs.num_elts);
-	printf("4) List Macro Definitions        (%d Known)\n", gVDB.macdefs.num_elts);
-	printf("5) List Operator Definitions     (%d Known)\n", gVDB.adm_ops.num_elts);
-	printf("6) List Report Templates         (%d Known)\n", gVDB.rpttpls.num_elts);
-	printf("7) List Rules                    (%d Known)\n", gVDB.rules.num_elts);
-	printf("8) List Table Templates          (%d Known)\n", gVDB.adm_tblts.num_elts);
-	printf("9) List Variables                (%d Known)\n", gVDB.vars.num_elts);
-
-	printf("\n------------------- Perform Control ------------------\n");
-	printf("A) Build Arbitrary Control.\n");
-	printf("B) Specify Raw Control.\n");
-	printf("C) Run Control File.\n");
-
-	printf("\n-------------------------- Report List -------------------------\n");
-	printf("X) Print Agent Reports (We have %ld reports).\n", gMgrDB.tot_rpts);
-	printf("Y) Clear Agent Reports \n");
-
-
-	printf("\n------------------------------------------------------\n");
-	printf("Z) Return to Main Menu.\n");
-}
-
-
-int ui_menu_ctrl_do(uint8_t choice)
-{
-	int context = UI_CTRL_MENU;
-	uvast mask = 0;
-
-	switch(choice)
-	{
-		case '0' : ui_list_objs(ui_input_adm_id(), TYPE_MASK_ALL, NULL);
-				   break;
-
-		case '1' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_EDD), NULL);
-			   	   break;
-
-		case '2':
-				   mask = TYPE_AS_MASK(AMP_TYPE_CNST) | TYPE_AS_MASK(AMP_TYPE_LIT);
-				   ui_list_objs(ui_input_adm_id(), mask, NULL);
-				   break;
-
-		case '3' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_CTRL), NULL);
-				   break;
-
-		case '4' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_MAC), NULL);
-				   break;
-
-		case '5' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_OPER), NULL);
-				   break;
-
-		case '6' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_RPTTPL), NULL);
-				   break;
-
-		case '7' :
-				   mask = TYPE_AS_MASK(AMP_TYPE_SBR) | TYPE_AS_MASK(AMP_TYPE_TBR);
-				   ui_list_objs(ui_input_adm_id(), mask, NULL);
-				   break;
-
-		case '8' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_TBLT), NULL);
-				   break;
-
-		case '9' : ui_list_objs(ui_input_adm_id(), TYPE_AS_MASK(AMP_TYPE_VAR), NULL);
-				   break;
-
-		case 'A' : ui_build_control(ui_select_agent()); break;
-		case 'B' : ui_send_raw(ui_select_agent(),0); break;
-		case 'C' : ui_send_file(ui_select_agent(),0); break;
-
-		// Report List
-		case 'X' : ui_print_nop(); break; //ui_print_reports(ui_select_agent());   break; // Print received reports.
-		case 'Y' : ui_print_nop(); break; //ui_clear_reports(ui_select_agent());	break; // Clear received reports.
-
-		case 'Z' : context = UI_MAIN_MENU; break;
-		default: printf("Unknown command %c.\n", choice); break;
-	}
-	return context;
-}
-
-/******************************************************************************
- *
- * \par Function Name: ui_print_menu
- *
- * \par Prints the user menu.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/18/13  E. Birrane     Initial Implementation
- *****************************************************************************/
-
-void ui_print_menu_main()
-{
-	printf("================== Main Menu =================\n");
-	printf("1) Administrative Menu.\n");
-	printf("2) Control Menu. \n");
-
-#ifdef HAVE_MYSQL
-	printf("3) Database Menu. \n");
-#endif
-
-	printf("Z) Exit.\n");
-
-}
-
-
-
-void ui_print_nop()
-{
-	printf("This command is currently not implemented in this development version.\n\n");
-}
-
-
 void *ui_thread(int *running)
 {
 	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (unsigned long) running);
@@ -1210,8 +1054,6 @@ void *ui_thread(int *running)
 
 	return NULL;
 }
-
-
 
 
 #ifdef HAVE_MYSQL
@@ -1420,60 +1262,18 @@ void ui_db_parms(int do_edit)
 
 }
 
-void ui_db_set_parms()
-{
-	char *tmp = NULL;
-	char prompt[80];
-
-	printf("Enter SQL Database Connection Information:\n");
-	lockResource(&(gMgrDB.sql_info.lock));
-    
-	sprintf(prompt,"Enter Database Server (up to %d characters", UI_SQL_SERVERLEN-1);
-	tmp = ui_input_string(prompt);
-	strncpy(gMgrDB.sql_info.server, tmp, UI_SQL_SERVERLEN-1);
-	SRELEASE(tmp);
-
-	sprintf(prompt,"Enter Database Name (up to %d characters", UI_SQL_DBLEN-1);
-	tmp = ui_input_string(prompt);
-	strncpy(gMgrDB.sql_info.database, tmp, UI_SQL_DBLEN-1);
-	SRELEASE(tmp);
-
-	sprintf(prompt,"Enter Database Username (up to %d characters", UI_SQL_ACCTLEN-1);
-	tmp = ui_input_string(prompt);
-	strncpy(gMgrDB.sql_info.username, tmp, UI_SQL_ACCTLEN-1);
-	SRELEASE(tmp);
-
-	sprintf(prompt,"Enter Database Password (up to %d characters", UI_SQL_ACCTLEN-1);
-	tmp = ui_input_string(prompt);
-	strncpy(gMgrDB.sql_info.password, tmp, UI_SQL_ACCTLEN-1);
-	SRELEASE(tmp);
-
-	db_mgr_sql_persist();
-
-	unlockResource(&(gMgrDB.sql_info.lock));
-
-}
-
-void ui_db_print_parms()
-{
-	printf("\n\n");
-	printf("Server: %s\nDatabase: %s\nUsername: %s\nPassword: %s\n",
-		gMgrDB.sql_info.server, gMgrDB.sql_info.database, gMgrDB.sql_info.username, gMgrDB.sql_info.password);
-	printf("\n\n");
-}
-
 int ui_db_reset()
 {
    int rtv;
-	printf("Clearing non-ADM tables in the Database....\n");
+   ui_printf("Clearing non-ADM tables in the Database....\n");
 	rtv = db_mgt_clear();
-	printf("Done!\n\n");
+	ui_printf("Done!\n\n");
     return rtv;
 }
 
 int ui_db_clear_rpt()
 {
-	printf("Not implemented yet.\n");
+	ui_printf("Not implemented yet.\n");
     return 0;
 }
 

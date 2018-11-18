@@ -1,3 +1,12 @@
+# Makefile for NM Manager and Agent
+#
+# This Makefile should be valid or any native GCC compiler.
+#
+# The manager supports two optional features that can be enabled at compile time:
+#   make MYSQL=1      Enable MYSQL Database Support
+#   make NCURSES=1    Enable enhanced NCURSES-based UI
+#   make NCURSES=1 MYSQL=1     Enable all optional features.
+
 # Check GCC Version.  GCC7 currently requires additional flags
 GCC_VERSION := "`gcc -dumpversion`"
 ifeq ($(shell test $(GCC_VERSION) -gt 6; echo $$?),0)
