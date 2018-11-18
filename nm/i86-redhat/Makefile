@@ -55,7 +55,13 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_sbsp_impl.c	\
 	$(AGENT)/adm_sbsp_agent.c	\
 	$(AGENT)/adm_ion_admin_agent.c 	\
-	$(AGENT)/adm_ion_admin_impl.c	
+	$(AGENT)/adm_ion_admin_impl.c	\
+	$(AGENT)/adm_ion_bp_admin_impl.c	\
+	$(AGENT)/adm_ion_bp_admin_agent.c	\
+	$(AGENT)/adm_ionsec_admin_impl.c	\
+	$(AGENT)/adm_ionsec_admin_agent.c	\
+	$(AGENT)/adm_ion_ipn_admin_impl.c	\
+	$(AGENT)/adm_ion_ipn_admin_agent.c	
 
 
 MGR_SOURCES = \
@@ -70,7 +76,10 @@ MGR_SOURCES = \
 	$(MGR)/adm_amp_agent_mgr.c      \
 	$(MGR)/adm_bp_agent_mgr.c	\
 	$(MGR)/adm_sbsp_mgr.c	\
-	$(MGR)/adm_ion_admin_mgr.c
+	$(MGR)/adm_ion_admin_mgr.c \
+	$(MGR)/adm_ion_bp_admin_mgr.c	\
+	$(MGR)/adm_ionsec_admin_mgr.c	\
+	$(MGR)/adm_ion_ipn_admin_mgr.c	
 
 
 #	$(MGR)/adm_bpsec_mgr.c		
