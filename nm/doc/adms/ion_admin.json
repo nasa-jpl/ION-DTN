@@ -109,30 +109,16 @@
         "type": "UINT",
         "name": "source_node"
       }, {
-        "type": "STR",
+        "type": "UINT",
         "name": "dest_node"
       }, {
-        "type": "REAL32",
+        "type": "UVAST",
         "name": "xmit_data"
       }, {
-        "type": "REAL32",
+        "type": "UVAST",
         "name": "confidence"
       }],
       "description": "This table shows all scheduled periods of data transmission."
-    },
-    {
-      "name": "describe_usage",
-      "columns": [{
-        "type": "UINT",
-        "name": "current_data_space_occupancy"
-      }, {
-        "type": "UINT",
-        "name": "total_zcp_space_occupancy"
-      }, {
-        "type": "UINT",
-        "name": "max_lvl_occupancy"
-      }],
-      "description": "This table shows ION's current data space occupancy (the number of megabytes of space in the SDR non-volatile heap and file system that are occupied by inbound and outbound zero-copy objects), the total zero-copy-object space occupancy ceiling, and the maximum level of occupancy predicted by the most recent ionadmin congestion forecast computation."
     },
     {
       "name": "ranges",
@@ -217,15 +203,15 @@
         "name": "stop"
       }, {
         "type": "UINT",
-        "name": "node_id"
+        "name": "from_node_id"
       }, {
-        "type": "STR",
-        "name": "dest"
+        "type": "UINT",
+        "name": "to_node_id"
       }, {
-        "type": "REAL32",
+        "type": "UVAST",
         "name": "data_rate"
       }, {
-        "type": "REAL32",
+        "type": "UVAST",
         "name": "prob"
       }],
       "description": "This control schedules a period of data transmission from source_node to dest_node. The period of transmission will begin at start_time and end at stop_time, and the rate of data transmission will be xmit_data_rate bytes/second. Our confidence in the contact defaults to 1.0, indicating that the contact is scheduled - not that non-occurrence of the contact is impossible, just that occurrence of the contact is planned and scheduled rather than merely imputed from past node behavior. In the latter case, confidence indicates our estimation of the likelihood of this potential contact."
@@ -323,18 +309,6 @@
         "name": "local_time_sec_after_epoch"
       }],
       "description": "This management control sets ION's understanding of the current difference between correct time and the Unix Epoch time values reported by the clock for the local ION node's computer. This delta is automatically applied to locally obtained time values whenever ION needs to know the current time."
-    },
-    {
-      "name": "list_contacts",
-      "description": "Lists all schedule periods of data transmission."
-    },
-    {
-      "name": "list_usage",
-      "description": "Lists ION's current data space occupancy."
-    },
-    {
-      "name": "list_ranges",
-      "description": "Lists all predefined periods of constant distance between nodes."
     }
   ]
 }

@@ -44,6 +44,9 @@
 #include "adm_bp_agent.h"
 #include "adm_sbsp.h"
 #include "adm_ion_admin.h"
+#include "adm_ion_bp_admin.h"
+#include "adm_ion_ipn_admin.h"
+#include "adm_ionsec_admin.h"
 
 vector_t g_adm_info;
 
@@ -655,6 +658,10 @@ void adm_init()
 	dtn_bp_agent_init();
 	dtn_sbsp_init();
 	dtn_ion_ionadmin_init();
+	dtn_ion_bpadmin_init();
+	dtn_ion_ipnadmin_init();
+	dtn_ion_ionsecadmin_init();
+
 
 	/*
 
