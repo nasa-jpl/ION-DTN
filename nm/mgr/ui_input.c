@@ -22,9 +22,6 @@
 #include "metadata.h"
 
 #include "../shared/adm/adm.h"
-#include "../shared/adm/adm_amp_agent.h"
-#include "../shared/adm/adm_bp_agent.h"
-#include "../shared/adm/adm_bpsec.h"
 
 
 /******************************************************************************
@@ -132,7 +129,7 @@ blob_t *ui_input_file_contents(char *prompt)
 	result = blob_create(data, file_size, file_size);
 
 	str = utils_hex_to_string(data, file_size);
-	AMP_DEBUG_ALWAYS("Read from %s: %.50s...", filename, str);
+	AMP_DEBUG_ALWAYS("ui_input_file_contents", "Read from %s: %.50s...", filename, str);
 	SRELEASE(str);
 	SRELEASE(filename);
 	fclose(fp);

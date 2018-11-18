@@ -966,7 +966,7 @@ CborError tnv_serialize_value(CborEncoder *encoder, void *item)
 		case AMP_TYPE_BYTESTR:err = blob_serialize(encoder, (blob_t*)tnv->value.as_ptr);      break;
 		case AMP_TYPE_TNVC:   err = tnvc_serialize(encoder, (tnvc_t*)tnv->value.as_ptr);      break;
 		/* Primitive Types and Derived Types */
-		case AMP_TYPE_STR:    err = cbor_encode_text_string(encoder, (char*) tnv->value.as_ptr, strlen((char*)tnv->value.as_ptr)); break;
+		case AMP_TYPE_STR:    err = (tnv->value.as_ptr == NULL) ? CborErrorIO : cbor_encode_text_string(encoder, (char*) tnv->value.as_ptr, strlen((char*)tnv->value.as_ptr)); break;
 		case AMP_TYPE_BOOL:
 		case AMP_TYPE_BYTE:   err = cut_enc_byte(encoder, tnv->value.as_byte);                break;
 		case AMP_TYPE_INT:    err = cbor_encode_int(encoder, (int64_t) tnv->value.as_int);    break;

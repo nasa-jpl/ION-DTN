@@ -28,6 +28,7 @@
 #include "ingest.h"
 #include "instr.h"
 #include "nmagent.h"
+#include "lcc.h"
 #include "../shared/utils/db.h"
 #include "../shared/primitives/ctrl.h"
 
@@ -185,20 +186,31 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 
 		ctrl_set_exec(ctrl, msg->start, meta->senderEid);
 
-		if(db_persist_ctrl(ctrl) != AMP_OK)
-		{
-			AMP_DEBUG_ERR("rx_ingest_ctrl", "Cannot persist ctrl.", NULL);
-			ctrl_release(ctrl, 1);
-			break;
-		}
 
-		/* Load macro to VDB. */
-		if(VDB_ADD_CTRL(ctrl, NULL) != AMP_OK)
+		if(ctrl->start == 0)
 		{
-			db_forget(&(ctrl->desc), gDB.ctrls);
-			AMP_DEBUG_ERR("rx_ingest_ctrl", "Cannot store ctrl in RAM.", NULL);
+			lcc_run_ctrl(ctrl, NULL);
 			ctrl_release(ctrl, 1);
-			break;
+		}
+		else
+		{
+
+			if(db_persist_ctrl(ctrl) != AMP_OK)
+			{
+				AMP_DEBUG_ERR("rx_ingest_ctrl", "Cannot persist ctrl.", NULL);
+				ctrl_release(ctrl, 1);
+				break;
+			}
+
+
+			/* Load macro to VDB. */
+			if(VDB_ADD_CTRL(ctrl, NULL) != AMP_OK)
+			{
+				db_forget(&(ctrl->desc), gDB.ctrls);
+				AMP_DEBUG_ERR("rx_ingest_ctrl", "Cannot store ctrl in RAM.", NULL);
+				ctrl_release(ctrl, 1);
+				break;
+			}
 		}
 	}
 
