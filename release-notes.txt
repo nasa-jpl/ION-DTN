@@ -1,6 +1,6 @@
-= Release Notes for ION 3.6.1 =
+= Release Notes for ION 3.6.2 =
 
-January 31, 2018
+November 19, 2018
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,92 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.6.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+- SourceForge Bug #96: Defined a threshold bundle size above which the payload
+     to be encrypted will be copied to a temporary file but below which it
+     will be copied to a temporary SDR heap object.
+
+- SourceForge Bug #100: This bug could not be recreated as originall reported
+     in 2016 so the ticket has been closed.
+
+- SourceForge Bug #111: Fixed CGR route computation as identified in the
+     CCSDS Schedule-Aware Bundle Routing White Book.
+
+- SourceForge Bug #112: Uncommented acsadmin makefile commands for Windows and
+     added a couple include directories so that acsadmin now builds.
+
+- SourceForge Bug #118: Fixed deterministic crash in cgrfetch.
+
+- SourceForge Bug #120: Fixed unrecoverable SDR error when attempting to
+     transfer a directory using cfdp.
+
+- SourceForge Bug #121: Revised the heap size in the configuration for the
+     bench-ltp demo to prevent the test from crashing.
+
+- SourceForge Bug #122: Ensured that the ionunlock man page is installed.
+
+- SourceForge Bug #123: 
+
+- SourceForge Bug #124: ION Design and Deployment guides updated.
+
+- SourceForge Bug #125: Fixed bpadmin stop outduct segmentation fault.
+
+- SourceForge Bug #127: Fixed sdrwatch lockup when using the "-z" option.
+
+- SourceForge Bug #128: Added a call to watchSocket to TCPCL and STCP
+     to try to control an issue with TCPCL failing to disconnect a TCP
+     connection after a neighboring node is reset.
+
+- SourceForge Bug #130: This bug was an issue with how to install libexpat1-dev
+     on Centos 7 and was not related to the ION source code.
+
+- SourceForge Bug #131: Ensured that the bpclm man page is installed.
+
+- SourceForge Bug #132: Fixed bug in bpadmin "i endpoint" command syntax.
+
+- SourceForge Bug #133: 
+
+- SourceForge Bug #136: Fixed bugs in the Android development kit.
+
+- SourceForge Bug #139: Fixed complie error using memcpy in
+     dgr/test/file2udp.c.
+
+- SourceForge Bug #140: Changed overdue time to the end of the current contact.
+
+- SourceForge Bug #141: Fixed ipnd crash on Mac OSX versions 10.12 and 12.13.
+
+- SourceForge Feature Request #67: Added the ability to monitor the LTP
+     segment retransmission rate.
+
+- SourceForge Feature Request #72: The following programs cannot be built on
+     Windows using the MinGW/MSYS environment:
+     - amshello - uses fork which doesn't exist for mingw
+     - bpstats2 - uses SIGUSR1 which doesn't exist for mingw
+     - bpchat - builds but test does not pass - not building
+     - bpcp - relies on waitpid, kill, WIFEXITED, and WEXITSTATUS
+     - bpcpd - daemon for bpcp so doesn't make sense to build if bpcp doesn't
+     - owlttb - needs SIGPIPE which windows does not support
+     - dccplsi - excluded on platforms other than Linux in config.h
+     - dccplso - excluded on platforms other than Linux in config.h
+     - dccpcli - relies on dccplsi and dccplso which cannot be built
+     - dccpclo - relies on dccplsi and dccplso which cannot be built
+     * Also note that man pages are still needed for bpstats2 and bpchat.
+
+- SourceForge Feature Request #73: The following programs are now being built
+     on Windows:
+     - beacon
+     - node
+     - cgrfetch
+     - ionexit
+     - ionunlock
+
+- The outdated "tutorial.html" file and "tutorial_files/" directory have
+     been removed. Tutorials can now be found on the ION-DTN Sourceforge page
+     at https://sourceforge.net/p/ion-dtn/wiki/Tutorial_Home/.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.6.1 =
