@@ -49,7 +49,8 @@ see the instructions in the README.bionic text file.
 To build ION for RTEMS, cd into ion-open-source/arch-rtems and
 see the instructions in the README text file.
 
-To build ION for Windows, see the instructions in the winion.pdf document.
+To build ION for Windows, see the instructions in the "Building ION from source
+on Windows.pdf" document.
 
 To build ION for the ARM-based AT91SAM9G20 board, cd into
 ion-open-source/arch-uClibc and see the instructions in the
