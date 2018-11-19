@@ -32,11 +32,11 @@
   "Tblt": [{
       "name": "exits",
       "columns": [{
-          "type": "UINT",
+          "type": "UVAST",
           "name": "first_node_nbr"
         },
         {
-          "type": "UINT",
+          "type": "UVAST",
           "name": "last_node_nbr"
         },
         {
@@ -49,12 +49,16 @@
     {
       "name": "plans",
       "columns": [{
-          "type": "UINT",
+          "type": "UVAST",
           "name": "node_nbr"
         },
         {
           "type": "STR",
-          "name": "default_duct_expression"
+          "name": "action"
+        },
+        {
+          "type": "STR",
+          "name": "spec"
         }
       ],
       "description": "This table lists all of the egress plans that are established in the IPN database for the local node."
@@ -75,7 +79,7 @@
           "name": "gateway_endpoint_id"
         }
       ],
-      "description": "This control establishes an \"exit\" for static default routing."
+      "description": "This control establishes an exit for static default routing."
     },
     {
       "name": "exit_change",
@@ -110,12 +114,12 @@
     {
       "name": "plan_add",
       "parmspec": [{
-          "type": "UINT",
+          "type": "UVAST",
           "name": "node_nbr"
         },
         {
-          "type": "STR",
-          "name": "default_duct_expression"
+          "type": "UINT",
+          "name": "xmit_rate"
         }
       ],
       "description": "This control establishes an egress plan for the bundles that must be transmitted to the neighboring node that is identified by it's nodeNbr."

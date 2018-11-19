@@ -214,6 +214,12 @@ int mgr_init(char *argv[])
 
 	AMP_DEBUG_ENTRY("mgr_init","("ADDR_FIELDSPEC")",(uaddr) argv);
 
+    /* Step 2: Make sure that ION is running and we can attach. */
+	if (ionAttach() < 0)
+	{
+		AMP_DEBUG_ERR("mgr_init", "Manager can't attach to ION.", NULL);
+		return -1;
+	}
 
 
 	/* Step 1: Initialize MGR-specific data.*/

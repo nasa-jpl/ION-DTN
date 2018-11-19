@@ -47,7 +47,7 @@
 /* Known ADMs Enumerations.*/
 #define ADM_ENUM_ALL     0
 
-#define ADM_MAX_NAME 16
+#define ADM_MAX_NAME 32
 
 #define ADM_CONST_IDX 0
 #define ADM_CTRL_IDX  1
