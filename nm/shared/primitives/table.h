@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: table.h
@@ -126,22 +131,9 @@ tblt_t*   tblt_create(ari_t *id, tblt_build_fn build);
 
 amp_type_e tblt_get_type(tblt_t *tblt, int idx);
 
-//vector_t  tblt_deserialize_names(CborValue *it, size_t num, int *success);
-//tblt_t*   tblt_deserialize_ptr(CborValue *it, int *success);
-
-//tblt_t*   tblt_deserialize_raw(blob_t *data, int *success);
-
 int       tblt_num_cols(tblt_t *tblt);
 
 void      tblt_release(tblt_t *tblt, int destroy);
-
-//CborError tblt_serialize(CborEncoder *encoder, void *item);
-
-//blob_t*   tblt_serialize_types(tblt_t* tblt);
-
-
-//blob_t*   tblt_serialize_wrapper(tblt_t *tblt);
-
 
 
 void      tblt_col_cb_del_fn(void *item);

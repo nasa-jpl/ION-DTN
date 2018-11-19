@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: cbor_utils.c
@@ -443,22 +449,6 @@ CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn e
 			cbor_encoder_close_container(encoder, &array_enc);
 			return err;
 		}
-		/*
-		blob_t *result = cut_serialize_wrapper(CUT_ENC_BUFSIZE, vecit_data(it), enc_fn);
-
-		err = CborErrorIO;
-		if(result != NULL)
-		{
-			err = cbor_encode_byte_string(&array_enc, result->value, result->length);
-			blob_release(result, 1);
-		}
-
-		if((err != CborNoError) && (err != CborErrorOutOfMemory))
-		{
-			AMP_DEBUG_ERR("cut_serialize_vector","Can't serialize item #%d. Err is %d.",vecit_idx(it), err);
-			cbor_encoder_close_container(encoder, &array_enc);
-			return err;
-		}*/
 	}
 
 	return cbor_encoder_close_container(encoder, &array_enc);

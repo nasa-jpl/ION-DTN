@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 
@@ -19,6 +19,7 @@
  **  --------  ------------   ---------------------------------------------
  **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
  **  05/17/15  E. Birrane     Redesign around DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
+ **  11/18/18  E. Birrane     Update to latest AMP version. (JHU/APL)
  *****************************************************************************/
 #ifndef _CTRL_H
 #define _CTRL_H

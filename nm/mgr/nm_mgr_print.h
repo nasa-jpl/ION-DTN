@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file nm_mgr_print.h
@@ -19,6 +24,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  07/10/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  11/01/18  E. Birrane     Updated for AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 #ifndef MGR_PRINT_H_

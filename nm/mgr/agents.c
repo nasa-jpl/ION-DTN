@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 

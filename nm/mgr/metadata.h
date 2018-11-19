@@ -22,8 +22,7 @@
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  04/26/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
- **  10/06/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
+ **  10/06/18  E. Birrane     Inital Implementation  (JHU/APL)
  *****************************************************************************/
 
 #ifndef METADATA_H_

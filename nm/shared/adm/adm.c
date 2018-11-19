@@ -1,7 +1,6 @@
 /******************************************************************************
-#include <shared/adm/adm_bpsec.h>
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 /*****************************************************************************
@@ -47,6 +46,8 @@
 #include "adm_ion_bp_admin.h"
 #include "adm_ion_ipn_admin.h"
 #include "adm_ionsec_admin.h"
+#include "adm_ion_ltp_admin.h"
+#include "adm_ltp_agent.h"
 
 vector_t g_adm_info;
 
@@ -661,16 +662,8 @@ void adm_init()
 	dtn_ion_bpadmin_init();
 	dtn_ion_ipnadmin_init();
 	dtn_ion_ionsecadmin_init();
-
-
-	/*
-
-	adm_ion_bp_admin_init();
-	adm_ion_ipn_admin_init();
-	adm_ionsec_admin_init();
-	adm_ion_ltp_admin_init();
-	adm_ltp_agent_init();
-	*/
+	dtn_ion_ltpadmin_init();
+	dtn_ltp_agent_init();
 
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);
 }

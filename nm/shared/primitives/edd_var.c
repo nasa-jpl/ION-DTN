@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file var.c
@@ -562,9 +567,4 @@ blob_t*    vardef_serialize_wrapper(var_def_t *def)
 {
 	return cut_serialize_wrapper(VARDEF_DEFAULT_ENC_SIZE, def, vardef_serialize);
 }
-
-
-
-
-
 

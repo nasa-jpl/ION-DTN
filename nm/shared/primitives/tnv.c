@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: tdc.c
@@ -2083,35 +2088,6 @@ CborError tnvc_serialize(CborEncoder *encoder, void *item)
 
 
 
-/******************************************************************************
- *
- * \par Function Name: tdc_serialize
- *
- * \par Purpose: Generate full, serialized version of a Typed Data Collection.
- *               A serialized Typed Data Collection is of the form:
- *
- * \par +---------+-----------+-------------+     +-------------+
- *      | # BLOBs | TYPE BLOB | DATA BLOB 1 | ... | DATA BLOB N |
- *      |  [SDNV] |   [BLOB]  |   [BLOB]    |     |    [BLOB]   |
- *      +---------+-----------+-------------+     +-------------+
- *
- * \retval NULL - Failure serializing
- * 		   !NULL - Serialized collection.
- *
- * \param[in]  tdc    The Typed Data Collection to be serialized.
- * \param[out] size   The size of the resulting serialized Collection.
- *
- * \par Notes:
- *		1. The result is allocated on the memory pool and must be released when
- *         no longer needed.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  03/13/15  J.P Mayer      Initial implementation,
- *  06/27/15  E. Birrane     Ported from datalist to TDC.
- *  09/09/15  E. Birrane     Updated to latest AMP spec.
- *****************************************************************************/
 
 blob_t* tnvc_serialize_wrapper(tnvc_t *tnvc)
 {

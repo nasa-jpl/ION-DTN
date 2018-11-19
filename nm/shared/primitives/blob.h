@@ -1,3 +1,9 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: blob.h
@@ -18,6 +24,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  04/14/16  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  11/18/18  E. Birrane     Updates for new AMP. (JHU/APL).
  *****************************************************************************/
 
 #ifndef BLOB_H_

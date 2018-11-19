@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
  ******************************************************************************/
@@ -148,7 +148,11 @@ int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms)
 	vecit_t it;
 	int result = AMP_OK;
 	int success;
-	CHKUSR(mac, AMP_FAIL);
+
+	if(mac == NULL)
+	{
+		return AMP_FAIL;
+	}
 
 	gAgentInstr.num_macros_run++;
 
@@ -197,9 +201,10 @@ void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 	rpt_t *report = NULL;
 	ari_t *ari = NULL;
 
-	CHKVOID(rx);
-	CHKVOID(retval);
-	CHKVOID(ctrl);
+	if((rx == NULL) || (retval == NULL) || (ctrl == NULL))
+	{
+		return;
+	}
 
 	/* Find a message report heading to our recipient. */
 	msg_rpt = rda_get_msg_rpt(*rx);

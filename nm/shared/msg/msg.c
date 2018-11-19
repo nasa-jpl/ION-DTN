@@ -282,18 +282,6 @@ int msg_rpt_add_rpt(msg_rpt_t *msg, rpt_t *rpt)
 
 	return AMP_OK;
 }
-/*
-int msg_rpt_cb_comp_fn(void *i1, void *i2)
-{
-	msg_rpt_t *r1 = (msg_rpt_t*) i1;
-	msg_rpt_t *r2 = (msg_rpt_t*) i2;
-
-	CHKUSR(r1, -1);
-	CHKUSR(r2, -1);
-
-	return ari_cb_comp_fn(r1->id, r2->id);
-}
-*/
 
 void msg_rpt_cb_del_fn(void *item)
 {

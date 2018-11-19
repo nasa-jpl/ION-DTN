@@ -97,13 +97,4 @@ int      utils_time_delta(struct timeval *result, struct timeval *t1, struct tim
 vast     utils_time_cur_delta(struct timeval *t1);
 
 
-/* Vector Convenience Functions */
-
-
-
-
-
-
-
-
 #endif /* UTILS_H_ */

@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file var.h
@@ -144,9 +149,6 @@ void       vardef_release(var_def_t *def, int destroy);
 
 CborError  vardef_serialize(CborEncoder *encoder, void *item);
 blob_t*    vardef_serialize_wrapper(var_def_t *def);
-
-
-
 
 
 

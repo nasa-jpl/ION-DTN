@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 
@@ -42,9 +42,9 @@
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
-#define DB_MAX_ATOMIC 250
+#define DB_MAX_ATOMIC 300
 #define DB_MAX_CTRL 50
-#define DB_MAX_CTRLDEF 100
+#define DB_MAX_CTRLDEF 150
 #define DB_MAX_MACDEF  50
 #define DB_MAX_OP   100
 #define DB_MAX_RPTT 50
@@ -159,17 +159,7 @@
  * into a new tbr_t structure.  The meta-data associated with the rule will be
  * populated by additional meta-data in the rule's descriptor object.
  *
- * All entities in the DB operate in this way, as follows.
- *
- * LIST          Descriptor Type          Type that we deserialize into
- * -------------+-----------------------+------------------------------
- * vars         | var_desc_t            | var_t
- * ctrls        | ctrl_desc_t           | ctrl_t
- * macros       | def_gen_desc_t        | def_gen_t
- * reports      | def_gen_desc_t        | rpt_t
- * trls         | trl_desc_t            | trl_t
- * srls         | srl_desc_t            | srl_t
- *
+ * All entities in the DB operate in this way.
  */
 
 typedef struct
@@ -263,8 +253,6 @@ int vdb_db_init_macdef(blob_t *data, db_desc_t desc);
 int vdb_db_init_rpttpl(blob_t *data, db_desc_t desc);
 int vdb_db_init_rule(blob_t *data, db_desc_t desc);
 int vdb_db_init_var(blob_t *data, db_desc_t desc);
-
-
 
 
 #endif /* DB_H_ */
