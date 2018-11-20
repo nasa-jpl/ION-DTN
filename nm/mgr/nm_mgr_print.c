@@ -810,7 +810,10 @@ char *ui_str_from_tbr(rule_t *tbr)
 	char *ac_str = ui_str_from_ac(&(tbr->action));
 	snprintf(str,
 			 1024,
-			 "TBR: ID=%s, S=%ld, P=%ld, C=%ld, A=%s\n",
+			 "TBR: ID=%s, S=" \
+			UVAST_FIELDSPEC ", P=" \
+			UVAST_FIELDSPEC ", C=" \
+			UVAST_FIELDSPEC ", A=%s\n",
 			 (id_str == NULL) ? "null" :id_str,
 		     tbr->start,
 			 tbr->def.as_tbr.period,
@@ -858,10 +861,10 @@ char *ui_str_from_tnv(tnv_t *tnv)
 		case AMP_TYPE_STR:   snprintf(str, 1023, "%s", (char*) tnv->value.as_ptr); break;
 		case AMP_TYPE_INT:   sprintf(str,"%d", tnv->value.as_int);     break;
 		case AMP_TYPE_UINT:  sprintf(str,"%d", tnv->value.as_uint);    break;
-		case AMP_TYPE_VAST:  sprintf(str,"%ld", tnv->value.as_vast);   break;
+		case AMP_TYPE_VAST:  sprintf(str, VAST_FIELDSPEC , tnv->value.as_vast);   break;
 		case AMP_TYPE_TV:
 		case AMP_TYPE_TS:
-		case AMP_TYPE_UVAST: sprintf(str,"%ld", tnv->value.as_uvast);  break;
+		case AMP_TYPE_UVAST: sprintf(str, UVAST_FIELDSPEC , tnv->value.as_uvast);  break;
 		case AMP_TYPE_REAL32:sprintf(str,"%f", tnv->value.as_real32);  break;
 		case AMP_TYPE_REAL64:sprintf(str,"%lf", tnv->value.as_real64); break;
 
