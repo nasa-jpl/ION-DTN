@@ -1,3 +1,0 @@
-[console_scripts]
-camp = CAmpPython.CAmpPython:main
-

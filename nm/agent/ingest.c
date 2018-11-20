@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
  ******************************************************************************/
@@ -159,8 +159,10 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 	AMP_DEBUG_ENTRY("rx_handle_perf_ctrl","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 					(uaddr)meta, (uaddr) contents);
 
-	CHKVOID(meta);
-	CHKVOID(contents);
+	if((meta == NULL) || (contents == NULL))
+	{
+		return;
+	}
 
 	/* Step 1: Deserialize the message. */
 	msg = msg_ctrl_deserialize(contents, &success);

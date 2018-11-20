@@ -26,14 +26,6 @@
   ],
 
   "Tblt": [{
-      "name": "keys",
-      "columns": [{
-        "type": "STR",
-        "name": "key_name"
-      }],
-      "description": "This table lists all key names in the security policy database."
-    },
-    {
       "name": "ltp_rx_rules",
       "columns": [{
         "type": "UINT",

@@ -207,43 +207,178 @@
   "Rptt": [{
       "name": "full_report",
       "definition": [
-        "DTN/bp_agent/Mdat.name",
-        "DTN/bp_agent/Mdat.version",
-        "DTN/bp_agent/Edd.bp_node_id",
-        "DTN/bp_agent/Edd.bp_node_version",
-        "DTN/bp_agent/Edd.available_storage",
-        "DTN/bp_agent/Edd.last_reset_time",
-        "DTN/bp_agent/Edd.num_registrations",
-        "DTN/bp_agent/Edd.num_pend_fwd",
-        "DTN/bp_agent/Edd.num_pend_dis",
-        "DTN/bp_agent/Edd.num_in_cust",
-        "DTN/bp_agent/Edd.num_pend_reassembly",
-        "DTN/bp_agent/Edd.bundles_by_priority(0)",
-        "DTN/bp_agent/Edd.bundles_by_priority(1)",
-        "DTN/bp_agent/Edd.bundles_by_priority(2)",
-        "DTN/bp_agent/Edd.bytes_by_priority(0)",
-        "DTN/bp_agent/Edd.bytes_by_priority(1)",
-        "DTN/bp_agent/Edd.bytes_by_priority(2)",
-        "DTN/bp_agent/Edd.src_bundles_by_priority(0)",
-        "DTN/bp_agent/Edd.src_bundles_by_priority(1)",
-        "DTN/bp_agent/Edd.src_bundles_by_priority(2)",
-        "DTN/bp_agent/Edd.src_bytes_by_priority(0)",
-        "DTN/bp_agent/Edd.src_bytes_by_priority(1)",
-        "DTN/bp_agent/Edd.src_bytes_by_priority(2)",
-        "DTN/bp_agent/Edd.num_fragmented_bundles",
-        "DTN/bp_agent/Edd.num_fragments_produced",
-        "DTN/bp_agent/Edd.num_failed_by_reason(0)",
-        "DTN/bp_agent/Edd.num_failed_by_reason(1)",
-        "DTN/bp_agent/Edd.num_failed_by_reason(2)",
-        "DTN/bp_agent/Edd.num_bundles_deleted",
-        "DTN/bp_agent/Edd.failed_custody_bundles",
-        "DTN/bp_agent/Edd.failed_custody_bytes",
-        "DTN/bp_agent/Edd.failed_forward_bundles",
-        "DTN/bp_agent/Edd.failed_forward_bytes",
-        "DTN/bp_agent/Edd.abandoned_bundles",
-        "DTN/bp_agent/Edd.discarded_bundles",
-        "DTN/bp_agent/Edd.discarded_bytes",
-        "DTN/bp_agent/Edd.endpoint_names"
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Mdat.name"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Mdat.version"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bp_node_id"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bp_node_version"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.available_storage"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.last_reset_time"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_registrations"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_pend_fwd"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_pend_dis"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_in_cust"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_pend_reassembly"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bundles_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bundles_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bundles_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bytes_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bytes_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bytes_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bundles_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bundles_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bundles_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bytes_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bytes_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bytes_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_fragmented_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_fragments_produced"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(8)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(16)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(32)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(64)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(128)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(256)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_bundles_deleted"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_custody_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_custody_bytes"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_forward_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_forward_bytes"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.abandoned_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.discarded_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.discarded_bytes"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.endpoint_names"
+	}
       ],
       "description": "This is all known meta-data, EDD, and VAR values known by the agent."
     },

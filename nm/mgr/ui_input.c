@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file ui_input.h
@@ -691,17 +696,6 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uvast mask)
 
 	int enum_id = ui_input_adm_id(NULL);
 	ui_list_objs(enum_id, mask, &result);
-/*
-	idx = ui_input_int("Which ARI?");
-
-	col =  meta_filter(adm_id, type);
-	meta = vec_at(&(col->results), idx);
-	if(meta != NULL)
-	{
-		result = ari_copy_ptr(meta->id);
-	}
-	metacol_release(col, 1);
-*/
 	return result;
 }
 

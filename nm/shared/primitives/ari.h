@@ -205,7 +205,6 @@ int       ari_replace_parms(ari_t *ari, tnvc_t *new_parms);
 tnvc_t*   ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms);
 CborError ari_serialize(CborEncoder *encoder, void *item);
 blob_t*   ari_serialize_wrapper(ari_t *ari);
-char*     ari_to_string(ari_t *ari);
 
 
 /* ARI Collection Functions */

@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 
@@ -614,7 +614,4 @@ void op_release(op_t *op, int destroy)
 		SRELEASE(op);
 	}
 }
-
-
-
 

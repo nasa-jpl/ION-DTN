@@ -78,7 +78,7 @@
         "type": "STR",
         "name": "clo_control"
       }, {
-        "type": "STR",
+        "type": "UINT",
         "name": "max_payload_length"
       }],
       "description": "If protocolName is specified, this table lists all outducts established locally for the indicated CL protocol. Otherwise, it lists all locally established outducts, regardless of their protocol."
@@ -96,7 +96,7 @@
         "name": "overhead_bpf"
       }, {
         "type": "UINT",
-        "name": "nominal_data_rate"
+        "name": "protocol class"
       }],
       "description": "Convergence layer protocols that can currently be utilized at the local node."
     },
@@ -124,21 +124,15 @@
       "name": "egress_plans",
       "columns": [{
         "type": "STR",
-        "name": "scheme_name"
+        "name": "neighbor_eid"
       }, {
         "type": "UINT",
-        "name": "fwd_pid"
-      }, {
-        "type": "STR",
-        "name": "fwd_cmd"
+        "name": "clm_pid"
       }, {
         "type": "UINT",
-        "name": "admin_app_pid"
-      }, {
-        "type": "STR",
-        "name": "admin_app_cmd"
+        "name": "nominal_rate"
       }],
-      "description": "Declared endpoint naming schemes."
+      "description": "Egress plans."
     }
   ],
   "Ctrl": [{
@@ -237,10 +231,6 @@
         "name": "duct_name"
       }],
       "description": "Stop the indicated induct task as defined for the indicated CL protocol on the local node."
-    },
-    {
-      "name": "init",
-      "description": "Until this control is executed, Bundle Protocol is not in operation on the local ION node and most bpadmin controls will fail."
     },
     {
       "name": "manage_heap_max",
@@ -427,20 +417,12 @@
       "description": "Stop the forwarder and administrative endpoint tasks for the indicated scheme task on the local node."
     },
     {
-      "name": "start",
-      "description": "Start all schemes and all protocols on the local node."
-    },
-    {
-      "name": "stop",
-      "description": "Stop all schemes and all protocols on the local node."
-    },
-    {
       "name": "watch",
       "parmspec": [{
         "type": "UINT",
         "name": "status"
       }, {
-        "type": "UINT",
+        "type": "STR",
         "name": "activity_spec"
       }],
       "description": "Enable/Disable production of a continuous stream of user selected Bundle Protocol activity indication characters. A watch parameter of 1 selects all BP activity indication characters, 0 deselects allBP activity indication characters; any other activitySpec such as acz~ selects all activity indication characters in the string, deselecting all others. BP will print each selected activity indication character to stdout every time a processing event of the associated type occurs: a new bundle is queued for forwarding, b bundle is queued for transmission, c bundle is popped from its transmission queue, m custody acceptance signal is recieved, w custody of bundle is accepted, x custody of bundle is refused, y bundle is accepted upon arrival, z bundle is queued for delivery to an application, ~ bundle is abandoned (discarded) on attempt to forward it, ! bundle is destroyed due to TTL expiration, &amp; custody refusal signal is recieved, # bundle is queued for re-forwarding due to CL protocol failures, j bundle is placed in 'limbo' for possible future reforwarding, k bundle is removed from 'limbo' and queued for reforwarding, $ bundle's custodial retransmission timeout interval expired."

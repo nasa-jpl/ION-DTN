@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** \file nm_mgr_print.h
@@ -60,8 +65,8 @@ static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* sta
  *  07/04/16  E. Birrane     Correct return value and agent casting.
  *  10/07/18  E. Birrane     Update top AMP v0.5 (JHU/APL)
  *****************************************************************************/
-int ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
-   int rtv = UI_CB_RTV_CONTINUE;
+ui_cb_return_values_t ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
+   ui_cb_return_values_t rtv = UI_CB_RTV_CONTINUE;
    agent_t *agent = (agent_t*)data;
 
 #ifdef USE_NCURSES

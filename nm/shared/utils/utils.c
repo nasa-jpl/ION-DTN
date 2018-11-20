@@ -66,8 +66,8 @@ void* utils_safe_take(size_t size)
 	void *result;
 
 	lockResource(&gMemMutex);
-	//result = MTAKE(size);
-	result = malloc(size);
+	result = MTAKE(size);
+	//result = malloc(size); /* Use this when memory debugging with valgrind. */
 	if(result != NULL)
 	{
 		memset(result,0,size);
@@ -78,9 +78,14 @@ void* utils_safe_take(size_t size)
 
 void utils_safe_release(void* ptr)
 {
+	if(ptr == NULL)
+	{
+		return;
+	}
+
 	lockResource(&gMemMutex);
-	//MRELEASE(ptr);
-	free(ptr);
+	MRELEASE(ptr);
+	//free(ptr); /* Use this when memory debugging with valgrind. */
 	unlockResource(&gMemMutex);
 }
 

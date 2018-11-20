@@ -8,13 +8,19 @@
  **
  **
  ** Notes:
+ ** - Metadata can be quite large and long-lived because it includes strings and, in
+ **  particular, strings capturing descriptions of data and controls. Since
+ **  the nm_mgr is always meant to run on a non-embedded platform, this
+ **  meta-data is currently allocated/freed using malloc and free and not
+ **  through the ION PSM system. This reduces artificially constraining
+ **  ION memory for users who keep using default values.
  **
  ** Assumptions:
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **  04/26/15  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  10/06/18  E. Birrane     Inital Implementation  (JHU/APL)
  *****************************************************************************/
 
 #include "metadata.h"
@@ -90,7 +96,7 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 		return AMP_FAIL;
 	}
 
-	new_parm = (meta_fp_t *) STAKE(sizeof(meta_fp_t));
+	new_parm = (meta_fp_t *) malloc(sizeof(meta_fp_t));
 	CHKUSR(new_parm, AMP_FAIL);
 
 	strncpy(new_parm->name, name, META_PARM_NAME);
@@ -99,7 +105,7 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 	if(vec_push(&(meta->parmspec),new_parm) != VEC_OK)
 	{
 		AMP_DEBUG_ERR("meta_add_parm", "Error assing parm %s", name);
-		SRELEASE(new_parm);
+		free(new_parm);
 		return AMP_FAIL;
 	}
 
@@ -140,7 +146,7 @@ metadata_t *meta_create(amp_type_e type, ari_t *id, uint32_t adm_id, char *name,
 
 	CHKNULL(id);
 
-	result = STAKE(sizeof(metadata_t));
+	result = malloc(sizeof(metadata_t));
 	CHKNULL(result);
 	result->adm_id = adm_id;
 	result->id = id;
@@ -151,7 +157,7 @@ metadata_t *meta_create(amp_type_e type, ari_t *id, uint32_t adm_id, char *name,
 	result->parmspec = vec_create(0, vec_simple_del, NULL, NULL, VEC_FLAG_AS_STACK, &success);
 	if(success != VEC_OK)
 	{
-		SRELEASE(result);
+		free(result);
 		result = NULL;
 	}
 
@@ -190,21 +196,21 @@ void meta_release(metadata_t *meta, int destroy)
 
 	if(destroy)
 	{
-		SRELEASE(meta);
+		free(meta);
 	}
 }
 
 
 meta_col_t* metacol_create()
 {
-	meta_col_t *result = STAKE(sizeof(meta_col_t));
+	meta_col_t *result = malloc(sizeof(meta_col_t));
 	int success;
 
 	CHKNULL(result);
 	result->results = vec_create(0, NULL, NULL, NULL, 0, &success);
 	if(success != VEC_OK)
 	{
-		SRELEASE(result);
+		free(result);
 		result = NULL;
 	}
 	return result;
@@ -216,6 +222,6 @@ void metacol_release(meta_col_t*col, int destroy)
 	vec_release(&(col->results), 0);
 	if(destroy)
 	{
-		SRELEASE(col);
+		free(col);
 	}
 }

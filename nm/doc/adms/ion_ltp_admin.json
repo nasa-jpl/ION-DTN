@@ -32,7 +32,7 @@
   "Tblt": [{
     "name": "spans",
     "columns": [{
-      "type": "UINT",
+      "type": "UVAST",
       "name": "peer_engine_nbr"
     }, {
       "type": "UINT",
@@ -59,14 +59,6 @@
     "description": "This table lists all spans of potential LTP data interchange that exists between the local LTP engine and the indicated (neighboring) LTP engine."
   }],
   "Ctrl": [{
-      "name": "init",
-      "parmspec": [{
-        "type": "UINT",
-        "name": "est_max_export_sessions"
-      }],
-      "description": "Until this control is executed, LTP is not in operation on the local ION node and most ltpadmin controls will fail. The control uses estMaxExportSessions to configure the hashtable it will use to manage access to export transmission sessions that are currently in progress. For optimum performance, estMaxExportSessions should normally equal or exceed the summation of maxExportSessions over all spans as discussed below. Appropriate values for the parameters configuring each \"span\" of potential LTP data exchange between the local LTP and neighboring engines are non-trivial to determine."
-    },
-    {
       "name": "manage_heap",
       "parmspec": [{
         "type": "UINT",
@@ -101,7 +93,7 @@
     {
       "name": "span_add",
       "parmspec": [{
-        "type": "UINT",
+        "type": "UVAST",
         "name": "peer_engine_number"
       }, {
         "type": "UINT",
@@ -130,7 +122,7 @@
     {
       "name": "span_change",
       "parmspec": [{
-        "type": "UINT",
+        "type": "UVAST",
         "name": "peer_engine_number"
       }, {
         "type": "UINT",
@@ -159,7 +151,7 @@
     {
       "name": "span_del",
       "parmspec": [{
-        "type": "UINT",
+        "type": "UVAST",
         "name": "peer_engine_number"
       }],
       "description": "This control deletes the span identified by peerEngineNumber. The control will fail if any outbound segments for this span are pending transmission or any inbound blocks from the peer engine are incomplete."
@@ -171,13 +163,10 @@
     {
       "name": "watch_set",
       "parmspec": [{
-        "type": "UINT",
-        "name": "status"
-      }, {
-        "type": "UINT",
+        "type": "STR",
         "name": "activity"
       }],
-      "description": "This control enables and disables production of a continuous stream of user- selected LTP activity indication characters. Activity parameter of \"1\" selects all LTP activity indication characters; \"0\" de-selects all LTP activity indication characters; any other activitySpec such as \"df{]\" selects all activity indication characters in the string, de-selecting all others. LTP will print each selected activity indication character to stdout every time a processing event of the associated type occurs: d bundle appended to block for next session, e segment of block is queued for transmission, f block has been fully segmented for transmission, g segment popped from transmission queue, h positive ACK received for block and session ended, s segment received, t block has been fully received, @ negative ACK received for block and segments retransmitted, = unacknowledged checkpoint was retransmitted, + unacknowledged report segment was retransmitted, { export session canceled locally (by sender), } import session canceled by remote sender, [ import session canceled locally (by receiver), ] export session canceled by remote receiver"
+      "description": "This control enables and disables production of a continuous stream of user- selected LTP activity indication characters. Activity parameter of 1 selects all LTP activity indication characters; 0 de-selects all LTP activity indication characters; any other activitySpec such as df{] selects all activity indication characters in the string, de-selecting all others. LTP will print each selected activity indication character to stdout every time a processing event of the associated type occurs: d bundle appended to block for next session, e segment of block is queued for transmission, f block has been fully segmented for transmission, g segment popped from transmission queue, h positive ACK received for block and session ended, s segment received, t block has been fully received, @ negative ACK received for block and segments retransmitted, = unacknowledged checkpoint was retransmitted, + unacknowledged report segment was retransmitted, { export session canceled locally (by sender), } import session canceled by remote sender, [ import session canceled locally (by receiver), ] export session canceled by remote receiver"
     }
   ]
 }

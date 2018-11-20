@@ -1,3 +1,12 @@
+# Makefile for NM Manager and Agent
+#
+# This Makefile should be valid or any native GCC compiler.
+#
+# The manager supports two optional features that can be enabled at compile time:
+#   make MYSQL=1      Enable MYSQL Database Support
+#   make NCURSES=1    Enable enhanced NCURSES-based UI
+#   make NCURSES=1 MYSQL=1     Enable all optional features.
+
 # Check GCC Version.  GCC7 currently requires additional flags
 GCC_VERSION := "`gcc -dumpversion`"
 ifeq ($(shell test $(GCC_VERSION) -gt 6; echo $$?),0)
@@ -55,7 +64,17 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_sbsp_impl.c	\
 	$(AGENT)/adm_sbsp_agent.c	\
 	$(AGENT)/adm_ion_admin_agent.c 	\
-	$(AGENT)/adm_ion_admin_impl.c	
+	$(AGENT)/adm_ion_admin_impl.c	\
+	$(AGENT)/adm_ion_bp_admin_impl.c	\
+	$(AGENT)/adm_ion_bp_admin_agent.c	\
+	$(AGENT)/adm_ionsec_admin_impl.c	\
+	$(AGENT)/adm_ionsec_admin_agent.c	\
+	$(AGENT)/adm_ion_ipn_admin_impl.c	\
+	$(AGENT)/adm_ion_ipn_admin_agent.c	\
+	$(AGENT)/adm_ion_ltp_admin_impl.c	\
+	$(AGENT)/adm_ion_ltp_admin_agent.c	\
+	$(AGENT)/adm_ltp_agent_impl.c	\
+	$(AGENT)/adm_ltp_agent_agent.c 
 
 
 MGR_SOURCES = \
@@ -70,7 +89,12 @@ MGR_SOURCES = \
 	$(MGR)/adm_amp_agent_mgr.c      \
 	$(MGR)/adm_bp_agent_mgr.c	\
 	$(MGR)/adm_sbsp_mgr.c	\
-	$(MGR)/adm_ion_admin_mgr.c
+	$(MGR)/adm_ion_admin_mgr.c \
+	$(MGR)/adm_ion_bp_admin_mgr.c	\
+	$(MGR)/adm_ionsec_admin_mgr.c	\
+	$(MGR)/adm_ion_ipn_admin_mgr.c	\
+	$(MGR)/adm_ion_ltp_admin_mgr.c	\
+	$(MGR)/adm_ltp_agent_mgr.c
 
 <<<<<<< local
 AGENT_SOURCES =	$(AGENT)/ingest.c \
@@ -89,6 +113,7 @@ AGENT_SOURCES =	$(AGENT)/ingest.c \
 =======
 >>>>>>> other
 
+<<<<<<< local
 #	$(MGR)/adm_bpsec_mgr.c		
 
 <<<<<<< local
@@ -133,6 +158,8 @@ AGENT_OBJS =	agt_adm.o \
 		adm_bp_impl.o \
 		adm_sbsp_impl.o \
 		nmagent.o
+=======
+>>>>>>> other
 =======
 >>>>>>> other
 

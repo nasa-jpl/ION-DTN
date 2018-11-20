@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: table.c
@@ -534,180 +539,6 @@ amp_type_e tblt_get_type(tblt_t *tblt, int idx)
 	return col->type;
 }
 
-/*
-vector_t tblt_deserialize_names(CborValue *it, size_t num, int *success)
-{
-	CborValue names_it;
-	CborError err;
-	vector_t result;
-	size_t num_names;
-	size_t i;
-
-	if((*success = cut_enter_array(it, num, num, &num_names, &names_it)) != AMP_OK)
-	{
-		return result;
-	}
-
-	result = vec_create(num_names, NULL, NULL, NULL, 0, success);
-	if(*success != AMP_OK)
-	{
-		cbor_value_leave_container(it, &names_it);
-		return result;
-	}
-
-	for(i = 0; i < num_names; i++)
-	{
-		char *cur_name = NULL;
-		size_t cur_len;
-
-		*success = AMP_FAIL;
-		if((err = cbor_value_calculate_string_length(&names_it, &cur_len)) != CborNoError)
-		{
-			break;
-		}
-
-		if((cur_name = STAKE(cur_len + 1)) == NULL)
-		{
-			break;
-		}
-
-		if((err = cbor_value_copy_text_string(&names_it, cur_name, &cur_len, &names_it)) != CborNoError)
-		{
-			break;
-		}
-
-		if(vec_push(&result, cur_name) != VEC_OK)
-		{
-			SRELEASE(cur_name);
-			break;
-		}
-		*success = AMP_OK;
-	}
-
-	cbor_value_leave_container(it, &names_it);
-
-	if(*success != AMP_OK)
-	{
-		vec_release(&result, 0);
-	}
-
-	return result;
-}
-
-tblt_t* tblt_deserialize_ptr(CborValue *it, int *success)
-{
-	tblt_t *result = NULL;
-	size_t i;
-	size_t len;
-	size_t num_col;
-	ari_t *id;
-	blob_t *types;
-
-	CborError err;
-	CborValue array_it;
-
-	AMP_DEBUG_ENTRY("tblt_deserialize_ptr",
-			        "("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-					(uaddr)it, (uaddr)success);
-	*success = AMP_FAIL;
-
-	/ * Step 1: Make sure array is correct and enter array. * /
-	if((*success = cut_enter_array(it, 2, 3, &len, &array_it)) != AMP_OK)
-	{
-		AMP_DEBUG_ERR("tblt_deserialize_ptr", "Bad Array.", NULL);
-		return NULL;
-	}
-
-
-	/ * Step 2: grab the template Id. * /
-	id = ari_deserialize_ptr(&array_it, success);
-	if((id == NULL) || (*success != AMP_OK))
-	{
-		cbor_value_leave_container(it, &array_it);
-		return NULL;
-	}
-
-	/ * Step 3: Create the table template object. * /
-	result = tblt_create(id);
-
-	if(result == NULL)
-	{
-		cbor_value_leave_container(it, &array_it);
-		return NULL;
-	}
-
-	/ * Step 4: Grab the types for the columns. * /
-	types = blob_deserialize_ptr(&array_it, success);
-	if((id == NULL) || (*success != AMP_OK))
-	{
-		tblt_release(result, 1);
-		cbor_value_leave_container(it, &array_it);
-		return NULL;
-	}
-	num_col = types->length;
-
-	/ * Step 5: Create columns and populate with types.  * /
-	for(i = 0; i < num_col; i++)
-	{
-		if(tblt_add_col(result, types->value[i], NULL) != AMP_OK)
-		{
-			blob_release(types, 1);
-			tblt_release(result, 1);
-			cbor_value_leave_container(it, &array_it);
-			return NULL;
-		}
-	}
-	blob_release(types, 1);
-
-	/ * Step 6: If we have names, too, we need to add them. * /
-	if(len == 3)
-	{
-		vector_t names = tblt_deserialize_names(&array_it, num_col, success);
-		if(*success != AMP_OK)
-		{
-			tblt_release(result, 1);
-			cbor_value_leave_container(it, &array_it);
-			return NULL;
-		}
-
-		for(i = 0; i < num_col; i++)
-		{
-			tblt_col_t *cur_col = vec_at(&result->cols, i);
-			if(cur_col != NULL)
-			{
-				cur_col->name = (char*) vec_at(&names, i);
-			}
-		}
-
-		/ *
-		 * There is no delete function on thi vector because we copied ptrs
-		 * over to the tblt columns.
-		 * /
-		vec_release(&names, 0);
-	}
-
-	return result;
-}
-
-
-
-tblt_t* tblt_deserialize_raw(blob_t *data, int *success)
-{
-	CborParser parser;
-	CborValue it;
-
-	CHKNULL(success);
-	*success = AMP_FAIL;
-	CHKNULL(data);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
-
-	return tblt_deserialize_ptr(&it, success);
-}
-*/
 
 int tblt_num_cols(tblt_t *tblt)
 {
@@ -732,74 +563,6 @@ void tblt_release(tblt_t *tblt, int destroy)
 }
 
 
-/*
-/ *
- * We don'y serialize names in this implementation.
- * /
-CborError tblt_serialize(CborEncoder *encoder, void *item)
-{
-	CborError err;
-	CborEncoder array_enc;
-	blob_t *result;
-	int success;
-	size_t num;
-	tblt_t *tblt = (tblt_t *) item;
-
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(tblt, CborErrorIO);
-
-	/ * Start a container. * /
-	err = cbor_encoder_create_array(encoder, &array_enc, 2);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("tblt_serialize","CBOR Error: %d", err);
-		return err;
-	}
-
-	/ * Step 1: Encode the ARI. * /
-	result = ari_serialize_wrapper(tblt->id);
-	err = blob_serialize(&array_enc, result);
-	blob_release(result, 1);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		cbor_encoder_close_container(encoder, &array_enc);
-		return err;
-	}
-
-
-	/ * Step 2: Encode the column types. * /
-	result = tblt_serialize_types(tblt);
-	err = blob_serialize(&array_enc, result);
-	blob_release(result, 1);
-
-	cbor_encoder_close_container(encoder, &array_enc);
-	return err;
-}
-
-
-blob_t* tblt_serialize_types(tblt_t* tblt)
-{
-	blob_t *result = NULL;
-	int i;
-
-	result = blob_create(NULL, 0, tblt_num_cols(tblt));
-	CHKNULL(result);
-
-	for(i = 0; i < tblt_num_cols(tblt); i++)
-	{
-		result->value[i] = tblt_get_type(tblt, i);
-	}
-
-	return result;
-}
-
-blob_t*   tblt_serialize_wrapper(tblt_t *tblt)
-{
-	return cut_serialize_wrapper(TBLT_DEFAULT_ENC_SIZE, tblt, tblt_serialize);
-}
-*/
 
 void tblt_col_cb_del_fn(void *item)
 {
@@ -836,7 +599,4 @@ void*  tblt_col_cb_copy_fn(void *item)
 	}
 	return new_col;
 }
-
-
-
 

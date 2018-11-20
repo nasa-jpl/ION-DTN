@@ -785,7 +785,7 @@ ari_t*   ari_from_uvast(uvast val)
 }
 
 
-// Must not fre. Shallow pointer
+// Must not free. Shallow pointer
 tnv_t* ari_get_param(ari_t *ari, int i)
 {
 	CHKNULL(ari);
@@ -958,37 +958,6 @@ blob_t* ari_serialize_wrapper(ari_t *ari)
 }
 
 
-
-
-/******************************************************************************
- *
- * \par Function Name: ari_to_string
- *
- * \par Purpose: Create a string representation of the ARI.
- *
- * \retval  NULL - Failure
- *         !NULL - The string representation of the raw ARI.
- *
- * \param[in] mid The MID whose string representation is being calculated.
- *
- * \par Notes:
- *		1. The string is dynamically allocated from the memory pool and must
- *		   be deallocated when no longer needed.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/14/12  E. Birrane     Initial implementation,
- *****************************************************************************/
-
-char *ari_to_string(ari_t *ari)
-{
-    char *result = NULL;
-
-   // TODO
-
-	return result;
-}
 
 
 int ac_append(ac_t *dest, ac_t *src)
@@ -1295,7 +1264,5 @@ blob_t*  ac_serialize_wrapper(ac_t *ac)
 
 	return cut_serialize_wrapper(vec_num_entries(ac->values) * ARI_DEFAULT_ENC_SIZE, ac, ac_serialize);
 }
-
-
 
 

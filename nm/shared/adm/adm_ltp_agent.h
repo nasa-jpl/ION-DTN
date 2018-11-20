@@ -11,18 +11,20 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-10-27  AUTO             Auto-generated header file 
+ **  2018-11-18  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
 
 #ifndef ADM_LTP_AGENT_H_
 #define ADM_LTP_AGENT_H_
-#define _HAVE_LTP_AGENT_ADM_
-#ifdef _HAVE_LTP_AGENT_ADM_
+#define _HAVE_DTN_LTP_AGENT_ADM_
+#ifdef _HAVE_DTN_LTP_AGENT_ADM_
 
 #include "../utils/nm_types.h"
 #include "adm.h"
+
+extern vec_idx_t g_dtn_ltp_agent_idx[11];
 
 
 /*
@@ -32,7 +34,7 @@
  *
  * ADM ROOT STRING:DTN/ltp_agent
  */
-#define ADM_ENUM_LTP_AGENT 3
+#define ADM_ENUM_DTN_LTP_AGENT 3
 /*
  * +-----------------------------------------------------------------------------------------------------------+
  * |                                        AGENT NICKNAME DEFINITIONS                                        +
@@ -41,7 +43,7 @@
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                      LTP_AGENT META-DATA DEFINITIONS                                      +
+ * |                                    DTN_LTP_AGENT META-DATA DEFINITIONS                                    +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |         VALUE          |
  * +---------------------+--------------+--------------------------------------+-------+------------------------+
@@ -56,18 +58,18 @@
  * +---------------------+--------------+--------------------------------------+-------+------------------------+
  */
 // "name"
-#define LTP_AGENT_META_NAME 0x00
+#define DTN_LTP_AGENT_META_NAME 0x00
 // "namespace"
-#define LTP_AGENT_META_NAMESPACE 0x01
+#define DTN_LTP_AGENT_META_NAMESPACE 0x01
 // "version"
-#define LTP_AGENT_META_VERSION 0x02
+#define DTN_LTP_AGENT_META_VERSION 0x02
 // "organization"
-#define LTP_AGENT_META_ORGANIZATION 0x03
+#define DTN_LTP_AGENT_META_ORGANIZATION 0x03
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                               LTP_AGENT EXTERNALLY DEFINED DATA DEFINITIONS                               +
+ * |                             DTN_LTP_AGENT EXTERNALLY DEFINED DATA DEFINITIONS                             +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
@@ -196,53 +198,53 @@
  * |                     |              |.                                     |UINT   |
  * +---------------------+--------------+--------------------------------------+-------+
  */
-#define LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR 0x00
-#define LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS 0x01
-#define LTP_AGENT_EDD_SPAN_CUR_OUT_SEG 0x02
-#define LTP_AGENT_EDD_SPAN_CUR_IMP_SESS 0x03
-#define LTP_AGENT_EDD_SPAN_CUR_IN_SEG 0x04
-#define LTP_AGENT_EDD_SPAN_RESET_TIME 0x05
-#define LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT 0x06
-#define LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES 0x07
-#define LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT 0x08
-#define LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES 0x09
-#define LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT 0x0a
-#define LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT 0x0b
-#define LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT 0x0c
-#define LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT 0x0d
-#define LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT 0x0e
-#define LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT 0x0f
-#define LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT 0x10
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT 0x11
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES 0x12
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT 0x13
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES 0x14
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT 0x15
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES 0x16
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT 0x17
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES 0x18
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT 0x19
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES 0x1a
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT 0x1b
-#define LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES 0x1c
-#define LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT 0x1d
-#define LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES 0x1e
-#define LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT 0x1f
-#define LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES 0x20
-#define LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT 0x21
-#define LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES 0x22
-#define LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT 0x23
-#define LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT 0x24
-#define LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT 0x25
-#define LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT 0x26
-#define LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT 0x27
-#define LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT 0x28
-#define LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT 0x29
+#define DTN_LTP_AGENT_EDD_SPAN_REMOTE_ENGINE_NBR 0x00
+#define DTN_LTP_AGENT_EDD_SPAN_CUR_EXPT_SESS 0x01
+#define DTN_LTP_AGENT_EDD_SPAN_CUR_OUT_SEG 0x02
+#define DTN_LTP_AGENT_EDD_SPAN_CUR_IMP_SESS 0x03
+#define DTN_LTP_AGENT_EDD_SPAN_CUR_IN_SEG 0x04
+#define DTN_LTP_AGENT_EDD_SPAN_RESET_TIME 0x05
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_CNT 0x06
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_SEG_Q_BYTES 0x07
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_CNT 0x08
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_SEG_POP_BYTES 0x09
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_CKPT_XMIT_CNT 0x0a
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_POS_ACK_RX_CNT 0x0b
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_NEG_ACK_RX_CNT 0x0c
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_CANCEL_RX_CNT 0x0d
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_CKPT_REXMIT_CNT 0x0e
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_CANCEL_XMIT_CNT 0x0f
+#define DTN_LTP_AGENT_EDD_SPAN_OUT_COMPLETE_CNT 0x10
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_CNT 0x11
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_RED_BYTES 0x12
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_CNT 0x13
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_GREEN_BYTES 0x14
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_CNT 0x15
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_REDUNDANT_BYTES 0x16
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_CNT 0x17
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_MAL_BYTES 0x18
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_CNT 0x19
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_SENDER_BYTES 0x1a
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_CNT 0x1b
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_RX_UNK_CLIENT_BYTES 0x1c
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_CNT 0x1d
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_STRAY_BYTES 0x1e
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_CNT 0x1f
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_MISCOLOR_BYTES 0x20
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_CNT 0x21
+#define DTN_LTP_AGENT_EDD_SPAN_IN_SEG_CLOSED_BYTES 0x22
+#define DTN_LTP_AGENT_EDD_SPAN_IN_CKPT_RX_CNT 0x23
+#define DTN_LTP_AGENT_EDD_SPAN_IN_POS_ACK_TX_CNT 0x24
+#define DTN_LTP_AGENT_EDD_SPAN_IN_NEG_ACK_TX_CNT 0x25
+#define DTN_LTP_AGENT_EDD_SPAN_IN_CANCEL_TX_CNT 0x26
+#define DTN_LTP_AGENT_EDD_SPAN_IN_ACK_RETX_CNT 0x27
+#define DTN_LTP_AGENT_EDD_SPAN_IN_CANCEL_RX_CNT 0x28
+#define DTN_LTP_AGENT_EDD_SPAN_IN_COMPLETE_CNT 0x29
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                      LTP_AGENT VARIABLE DEFINITIONS                                      +
+ * |                                    DTN_LTP_AGENT VARIABLE DEFINITIONS                                    +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
@@ -251,28 +253,32 @@
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                       LTP_AGENT REPORT DEFINITIONS                                       +
+ * |                                     DTN_LTP_AGENT REPORT DEFINITIONS                                     +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
  * |endpointReport       |44c7184100    |This is all known endpoint information|TNVC   |
  * +---------------------+--------------+--------------------------------------+-------+
  */
-#define LTP_AGENT_RPTTPL_ENDPOINTREPORT 0x00
+#define DTN_LTP_AGENT_RPTTPL_ENDPOINTREPORT 0x00
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                        LTP_AGENT TABLE DEFINITIONS                                        +
+ * |                                      DTN_LTP_AGENT TABLE DEFINITIONS                                      +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
+ * |engines              |448a184300    |This table lists all known remote engi|       |
+ * |                     |              |ne ids.                               |       |
+ * +---------------------+--------------+--------------------------------------+-------+
  */
+#define DTN_LTP_AGENT_TBLT_ENGINES 0x00
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                       LTP_AGENT CONTROL DEFINITIONS                                       +
+ * |                                     DTN_LTP_AGENT CONTROL DEFINITIONS                                     +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
@@ -281,16 +287,13 @@
  * |                     |              |me for the span to be the time when th|       |
  * |                     |              |is control was run.                   |       |
  * +---------------------+--------------+--------------------------------------+-------+
- * |list_engines         |4481183d01    |Lists all remote engine IDs.          |       |
- * +---------------------+--------------+--------------------------------------+-------+
  */
-#define LTP_AGENT_CTRL_RESET 0x00
-#define LTP_AGENT_CTRL_LIST_ENGINES 0x01
+#define DTN_LTP_AGENT_CTRL_RESET 0x00
 
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                      LTP_AGENT CONSTANT DEFINITIONS                                      +
+ * |                                    DTN_LTP_AGENT CONSTANT DEFINITIONS                                    +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |         VALUE          |
  * +---------------------+--------------+--------------------------------------+-------+------------------------+
@@ -299,7 +302,7 @@
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                        LTP_AGENT MACRO DEFINITIONS                                        +
+ * |                                      DTN_LTP_AGENT MACRO DEFINITIONS                                      +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
@@ -308,17 +311,22 @@
 
 /*
  * +-----------------------------------------------------------------------------------------------------------+
- * |                                      LTP_AGENT OPERATOR DEFINITIONS                                      +
+ * |                                    DTN_LTP_AGENT OPERATOR DEFINITIONS                                    +
  * +-----------------------------------------------------------------------------------------------------------+
  * |        NAME         |     ARI      |             DESCRIPTION              | TYPE  |
  * +---------------------+--------------+--------------------------------------+-------+
  */
 
 /* Initialization functions. */
-void ltp_agent_init();
-void ltp_agent_init_meta();
-void ltp_agent_init_rpttpl();
-void ltp_agent_init_edd();
-void ltp_agent_init_ctrl();
-#endif /* _HAVE_LTP_AGENT_ADM_ */
+void dtn_ltp_agent_init();
+void dtn_ltp_agent_init_meta();
+void dtn_ltp_agent_init_cnst();
+void dtn_ltp_agent_init_edd();
+void dtn_ltp_agent_init_op();
+void dtn_ltp_agent_init_var();
+void dtn_ltp_agent_init_ctrl();
+void dtn_ltp_agent_init_mac();
+void dtn_ltp_agent_init_rpttpl();
+void dtn_ltp_agent_init_tblt();
+#endif /* _HAVE_DTN_LTP_AGENT_ADM_ */
 #endif //ADM_LTP_AGENT_H_

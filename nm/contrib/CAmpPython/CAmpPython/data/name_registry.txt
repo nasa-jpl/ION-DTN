@@ -1,9 +1,0 @@
-arn:DTN:bp=10
-arn:DTN:ltp_agent=20
-arn:DTN:ion_admin=30
-arn:DTN:bpsec=40
-arn:DTN:ion_bp_admin=50
-arn:DTN:ion_ipn_admin=60
-arn:DTN:ionsec_admin=70
-arn:DTN:AmpAgent=80
-arn:DTN:ion_ltp_admin=90
