@@ -35,7 +35,7 @@
 /*   START CUSTOM FUNCTIONS HERE */
 
 
-static tnv_t *adm_sbsp_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, query_type_e query)
+static tnv_t *adm_sbsp_get_src_val(tnvc_t *parms, sbsp_instr_type_e type, query_type_e query)
 {
     tnv_t *result = tnv_create();
 	char *eid_id = NULL;
@@ -52,8 +52,8 @@ static tnv_t *adm_sbsp_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, query
 
 	switch(query)
 	{
-	case SRC_BLK:     success = bpsec_instr_get_src_blk(eid_id, type, &num); break;
-	case SRC_BYTES:   success = bpsec_instr_get_src_bytes(eid_id, type, &num); break;
+	case SRC_BLK:     success = sbsp_instr_get_src_blk(eid_id, type, &num); break;
+	case SRC_BYTES:   success = sbsp_instr_get_src_bytes(eid_id, type, &num); break;
 	default: success = ERROR; break;
 	}
 
@@ -66,7 +66,7 @@ static tnv_t *adm_sbsp_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, query
 	return result;
 }
 
-static tnv_t *adm_sbsp_get_tot_val(bpsec_instr_type_e type, query_type_e query)
+static tnv_t *adm_sbsp_get_tot_val(sbsp_instr_type_e type, query_type_e query)
 {
         tnv_t *result = tnv_create();
 	uvast num = 0;
@@ -74,8 +74,8 @@ static tnv_t *adm_sbsp_get_tot_val(bpsec_instr_type_e type, query_type_e query)
 
 	switch(query)
 	{
-	case TOTAL_BLK:   success = bpsec_instr_get_total_blk(type, &num); break;
-	case TOTAL_BYTES: success = bpsec_instr_get_total_bytes(type, &num); break;
+	case TOTAL_BLK:   success = sbsp_instr_get_total_blk(type, &num); break;
+	case TOTAL_BYTES: success = sbsp_instr_get_total_bytes(type, &num); break;
 	default: success = ERROR; break;
 	}
 
@@ -859,7 +859,7 @@ tnv_t *dtn_sbsp_get_last_update(tnvc_t *parms)
 	 */
 	result = tnv_create();
 	result->type = AMP_TYPE_UNK;
-	if(bpsec_instr_get_tot_update((time_t*)&(result->value.as_uint)) != ERROR)
+	if(sbsp_instr_get_tot_update((time_t*)&(result->value.as_uint)) != ERROR)
 	{
 		result->type = AMP_TYPE_TS;
 	}
@@ -886,7 +886,7 @@ tnv_t *dtn_sbsp_get_num_known_keys(tnvc_t *parms)
 	uint32_t size = 0;
 	result = tnv_create();
 	result->type = AMP_TYPE_UINT;
-	result->value.as_uint = bpsec_instr_get_num_keys((int*)&size);
+	result->value.as_uint = sbsp_instr_get_num_keys((int*)&size);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_known_keys BODY
@@ -907,7 +907,7 @@ tnv_t *dtn_sbsp_get_key_names(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_key_names BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *tmp = bpsec_instr_get_keynames();
+	char *tmp = sbsp_instr_get_keynames();
 
 	result = tnv_create();
 	result->type = AMP_TYPE_UNK;
@@ -948,7 +948,7 @@ tnv_t *dtn_sbsp_get_ciphersuite_names(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_ciphersuite_names BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *tmp = bpsec_instr_get_csnames();
+	char *tmp = sbsp_instr_get_csnames();
 
 	result = tnv_create();
 	result->type = AMP_TYPE_UNK;
@@ -988,7 +988,7 @@ tnv_t *dtn_sbsp_get_rule_source(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_rule_source BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *tmp = bpsec_instr_get_srcnames();
+	char *tmp = sbsp_instr_get_srcnames();
 
 	result = tnv_create();
 	result->type = AMP_TYPE_UNK;
@@ -1542,7 +1542,7 @@ tnv_t *dtn_sbsp_get_last_update_src(tnvc_t *parms)
 		return result;
 	}
 
-	if(bpsec_instr_get_src_update(name, &time) != ERROR)
+	if(sbsp_instr_get_src_update(name, &time) != ERROR)
 	{
 		result->type = AMP_TYPE_TS;
 		result->value.as_uint = time;
@@ -1568,10 +1568,10 @@ tnv_t *dtn_sbsp_get_last_reset(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_last_reset BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	bpsec_instr_misc_t misc;
+	sbsp_instr_misc_t misc;
 
 	result = tnv_create();
-	if(bpsec_instr_get_misc(&misc) == ERROR)
+	if(sbsp_instr_get_misc(&misc) == ERROR)
 	{
 		result->type = AMP_TYPE_UNK;
 		return result;
@@ -1604,7 +1604,7 @@ tnv_t *dtn_sbsp_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_rst_all_cnts BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	bpsec_instr_reset();
+	sbsp_instr_reset();
 	*status = CTRL_SUCCESS;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1634,7 +1634,7 @@ tnv_t *dtn_sbsp_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	/* Step 1: Grab the MID defining the new computed definition. */
 	if((src = adm_get_parm_obj(parms, 0, AMP_TYPE_STR)) != NULL)
 	{
-		bpsec_instr_reset_src(src);
+		sbsp_instr_reset_src(src);
 		*status = CTRL_SUCCESS;
 	}
 

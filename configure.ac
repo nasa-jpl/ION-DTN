@@ -418,10 +418,10 @@ AC_SUBST([MANOPTS], $MANOPTS)
 
 AC_MSG_CHECKING([for tools to build autodoc])
 if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
-    AC_MSG_RESULT([(skipping autodoc)])
+#    AC_MSG_RESULT([(skipping autodoc)])
 # Comment out line above and uncomment the two below to enable automatic generation of ION.pdf
-#    AC_MSG_RESULT([found])
-#    buildautodoc="yes"
+    AC_MSG_RESULT([found])
+    buildautodoc="yes"
 else
     AC_MSG_RESULT([not found (skipping autodoc)])
     AC_MSG_NOTICE([Ensure the ghostscript, psutils, groff-base and groff packages are installed.])

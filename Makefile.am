@@ -48,7 +48,6 @@ EXTRA_DIST = 	\
 	$(loopbackstcp_DATA) \
 	$(iondtn2_DATA) \
 	$(otherstuff_DATA) \
-	$(tutorial_DATA) \
 	$(node5_DATA) \
 	$(node7_DATA) \
 	$(node10_DATA) \
@@ -200,18 +199,9 @@ stuff_SCRIPTS =	$(srcdir)/killm \
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
 	$(srcdir)/ionstart.awk \
-	$(srcdir)/tutorial.html \
 	$(srcdir)/ION.pdf \
 	$(srcdir)/ION-LTP-configuration.pdf \
 	$(srcdir)/ION-LTP-configuration.xls
-
-tutorialdir = $(pkgdatadir)/tutorial_files
-tutorial_DATA = \
-	$(srcdir)/tutorial_files/2node.png \
-	$(srcdir)/tutorial_files/3node.png \
-	$(srcdir)/tutorial_files/loopback.png \
-	$(srcdir)/tutorial_files/print.html
-
 
 #################
 #
@@ -984,6 +974,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/bptransit.1 \
 	$(top_builddir)/bp/doc/bpcounter.1 \
 	$(top_builddir)/bp/doc/bpcancel.1 \
+	$(top_builddir)/bp/doc/bpclm.1 \
 	$(top_builddir)/bp/doc/bplist.1 \
 	$(top_builddir)/bp/doc/bpdriver.1 \
 	$(top_builddir)/bp/doc/bpecho.1 \
@@ -2003,7 +1994,7 @@ nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
                   -DAGENT_ROLE
 
 
@@ -2030,7 +2021,7 @@ nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/bpsec -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable
 
 
 ##########################
@@ -2241,9 +2232,9 @@ doc/ION-beginning.ps: doc/ION-beginning.pdf
 else
 
 ION.pdf: doc/ION-beginning.pdf
-	@echo "ION.pdf will remain unchanged."
-#	@echo "ION.pdf will not have appendix."
-#	cp $^ $@
+#	@echo "ION.pdf will remain unchanged."
+	@echo "ION.pdf will not have appendix."
+	cp $^ $@
 
 endif #ENABLE_AUTODOC
 
