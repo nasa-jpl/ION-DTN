@@ -163,24 +163,10 @@ nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr),
 
 static unsigned long	getUsecTimestamp()
 {
-	struct timespec	tms;
-	unsigned long	microseconds;
+	struct timeval	tv;
 
-	if (clock_gettime(CLOCK_REALTIME, &tms))
-	{
-		return 0;
-	}
-
-	microseconds = (tms.tv_sec * 1000000) + (tms.tv_nsec / 1000);
-
-	/*	Round to nearest microsecond.				*/
-
-	if (tms.tv_nsec % 1000 >= 500)
-	{
-		microseconds++;
-	}
-
-	return microseconds;
+	getCurrentTime(&tv);
+	return ((tv.tv_sec * 1000000) + tv.tv_usec);
 }
 
 #if defined (ION_LWT)
