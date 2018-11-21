@@ -204,7 +204,7 @@ ctrl_t *ctrl_db_deserialize(blob_t *data)
 	int success;
 
 	CHKNULL(data);
-
+    memset(&caller, 0, sizeof(caller));
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
 	{
 		return NULL;
@@ -636,7 +636,7 @@ macdef_t  macdef_deserialize(CborValue *it, int *success)
 	ari_t *new_ari = NULL;
 	CborError err = CborNoError;
 
-
+    memset(&result,0,sizeof(result));
 	*success = AMP_FAIL;
 
 	blob_t *tmp = blob_deserialize_ptr(it, success);

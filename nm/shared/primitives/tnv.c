@@ -1597,6 +1597,7 @@ tnvc_t tnvc_deserialize(CborValue *it, int *success)
 	CborValue array_it;
 	size_t array_len = 0;
 
+    memset(&result,0,sizeof(result));
 
 	if((!cbor_value_is_array(it)) ||
 	   ((err = cbor_value_get_array_length(it, &array_len)) != CborNoError))
@@ -1741,7 +1742,7 @@ tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success)
 	tnvc_t result;
 
 	*success = AMP_FAIL;
-
+    memset(&result,0,sizeof(result));
 	if(data == NULL)
 	{
 		return result;
@@ -1774,7 +1775,7 @@ static tnvc_t tnvc_deserialize_tvc(CborValue *array_it, size_t array_len, int *s
 	CborError err = CborNoError;
 
 	AMP_DEBUG_ENTRY("tnvc_deserialize_tvc","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) array_it, (uaddr) success);
-
+    memset(&result,0,sizeof(result));
 	*success = AMP_OK;
 
 	types = blob_deserialize(array_it, success);
