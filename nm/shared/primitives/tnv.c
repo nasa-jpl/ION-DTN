@@ -1941,6 +1941,7 @@ blob_t tnvc_get_types(tnvc_t *tnvc, int *success)
 	uint8_t i = 0;
 
 	*success = AMP_FAIL;
+	memset(&types, 0, sizeof(blob_t));
 	if(tnvc == NULL)
 	{
 		return types;

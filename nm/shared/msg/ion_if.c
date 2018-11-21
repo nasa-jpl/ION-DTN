@@ -260,7 +260,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
     zco_start_receiving(dlv.adu, &reader);
     result->length = zco_receive_source(sdr, &reader, result->alloc, (char*)result->value);
 
-    if(sdr_end_xn(sdr) < 0 || result->length < 0)
+    if((sdr_end_xn(sdr) < 0) || (result->length == 0))
     {
     	*success = AMP_SYSERR;
 

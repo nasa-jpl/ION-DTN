@@ -906,7 +906,11 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 	}
 
 	result = tnvc_copy(src_parms);
-	CHKNULL(result);
+
+	if(result == NULL)
+	{
+		return NULL;
+	}
 
 	if((parent_parms == NULL) ||
 	   (tnvc_size(src_parms) == 0) ||
@@ -1094,6 +1098,8 @@ ac_t ac_deserialize(CborValue *it, int *success)
 
 	AMP_DEBUG_ENTRY("ac_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
+	memset(&result, 0, sizeof(ac_t));
+
 	CHKUSR(it, result);
 	CHKUSR(success, result);
 
@@ -1168,6 +1174,7 @@ ac_t ac_deserialize_raw(blob_t *data, int *success)
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
 	{
 		ac_t tmp;
+		memset(&tmp, 0, sizeof(ac_t));
 		return tmp;
 	}
 
