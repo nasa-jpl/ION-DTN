@@ -252,7 +252,7 @@ void ui_print_report(rpt_t *rpt)
 {
 	int num_entries = 0;
 	tnv_t *val = NULL;
-	char name[32];
+	char name[META_NAME_MAX+3];
 	metadata_t *rpt_info = NULL;
 	metadata_t *entry_info = NULL;
 
@@ -338,12 +338,14 @@ void ui_print_report(rpt_t *rpt)
 
 				if(parm_str != NULL)
 				{
-					sprintf(name, "%.40s(%s)", entry_info->name, parm_str);
+                   if(snprintf(name, sizeof(name),"%s(%s)", entry_info->name, parm_str) < 0) {
+                      snprintf(name, sizeof(name), "%s(.)", entry_info->name);
+                   }
 					SRELEASE(parm_str);
 				}
 				else
 				{
-					sprintf(name, "%.40s", entry_info->name);
+                   strncpy(name, entry_info->name, sizeof(name));
 				}
 			}
 
