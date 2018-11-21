@@ -694,7 +694,7 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uvast mask)
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
-	int enum_id = ui_input_adm_id(NULL);
+	int enum_id = ui_input_adm_id();
 	ui_list_objs(enum_id, mask, &result);
 	return result;
 }

@@ -1918,8 +1918,8 @@ tnv_enc_e tnvc_get_type(tnvc_t *tnvc, uint8_t index)
 	{
 		tnv = (tnv_t *) vec_at(&(tnvc->values), index);
 	}
-
-	return (tnv == NULL) ? AMP_TYPE_UNK : tnv->type;
+    // FIXME: Cast added to resolve OSX compiler warning, but incompatibility between enum types may still need to be addressed
+	return (tnv_enc_e)((tnv == NULL) ? AMP_TYPE_UNK : tnv->type);
 }
 
 

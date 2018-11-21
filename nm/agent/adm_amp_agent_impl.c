@@ -297,7 +297,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 		switch(op)
 		{
 		case BITNOT: result->value.as_uint = ~(tnv_to_uint(*lval, &ls)); break;
-		case ABS:    result->value.as_uint = abs(tnv_to_uint(*lval, &ls)); break;
+		case ABS:    result->value.as_uint = abs(tnv_to_int(*lval, &ls)); break;
 		case NEG:    result->value.as_uint = -1 * (tnv_to_uint(*lval, &ls)); break;
 		default:
 			ls = AMP_FAIL; break;
@@ -307,7 +307,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 		switch(op)
 		{
 		case BITNOT: result->value.as_vast = ~(tnv_to_vast(*lval, &ls)); break;
-		case ABS:    result->value.as_vast = abs(tnv_to_vast(*lval, &ls)); break;
+		case ABS:    result->value.as_vast = abs((int)tnv_to_vast(*lval, &ls)); break;
 		case NEG:    result->value.as_vast = -1 * (tnv_to_vast(*lval, &ls)); break;
 		default:
 			ls = AMP_FAIL; break;
@@ -317,7 +317,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 		switch(op)
 		{
 		case BITNOT: result->value.as_uvast = ~(tnv_to_uvast(*lval, &ls)); break;
-		case ABS:    result->value.as_uvast = abs(tnv_to_uvast(*lval, &ls)); break;
+		case ABS:    result->value.as_uvast = abs((int)tnv_to_vast(*lval, &ls)); break;
 		case NEG:    result->value.as_uvast = -1 * (tnv_to_uvast(*lval, &ls)); break;
 		default:
 			ls = AMP_FAIL; break;
@@ -326,7 +326,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 	case AMP_TYPE_REAL32:
 		switch(op)
 		{
-		case ABS:    result->value.as_real32 = abs(tnv_to_real32(*lval, &ls)); break;
+		case ABS:    result->value.as_real32 = fabs(tnv_to_real32(*lval, &ls)); break;
 		case NEG:    result->value.as_real32 = -1 * (tnv_to_real32(*lval, &ls)); break;
 		default:
 			ls = AMP_FAIL; break;
@@ -335,7 +335,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 	case AMP_TYPE_REAL64:
 		switch(op)
 		{
-		case ABS:    result->value.as_real64 = abs(tnv_to_real64(*lval, &ls)); break;
+		case ABS:    result->value.as_real64 = fabs(tnv_to_real64(*lval, &ls)); break;
 		case NEG:    result->value.as_real64 = -1 * (tnv_to_real64(*lval, &ls)); break;
 		default: ls = AMP_FAIL; break;
 		}
