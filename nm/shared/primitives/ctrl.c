@@ -688,6 +688,7 @@ macdef_t macdef_deserialize_raw(blob_t *data, int *success)
 	macdef_t result;
 
 	*success = AMP_FAIL;
+	memset(&result, 0, sizeof(macdef_t));
 	CHKUSR(data, result);
 
 	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
