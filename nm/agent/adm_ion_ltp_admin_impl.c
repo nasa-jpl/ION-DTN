@@ -411,7 +411,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	unsigned int qTime = adm_get_parm_uint(parms, 7, &success);
 	int purge = 0;
 
-	if (qTime < 0)
+	if (qTime == 0)
 	{
 		purge = 1;
 		qTime = 0 - qTime;
@@ -455,7 +455,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	unsigned int qTime = adm_get_parm_uint(parms, 7, &success);
 	int purge = 0;
 
-	if (qTime < 0)
+	if (qTime == 0)
 	{
 		purge = 1;
 		qTime = 0 - qTime;
