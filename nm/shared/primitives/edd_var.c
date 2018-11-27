@@ -467,7 +467,7 @@ var_def_t  vardef_deserialize(CborValue *it, int *success)
 	uint8_t *byte;
 
 	AMP_DEBUG_ENTRY("vardef_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
-
+	memset(&result,0,sizeof(var_def_t));
 	result.type = AMP_TYPE_UNK;
 
 	CHKUSR(success, result);

@@ -320,7 +320,10 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	CborEncoder encoder;
 	CborError err;
 
-	CHKNULL(item);
+	if(item == NULL)
+	{
+		return NULL;
+	}
 
 	if((result = blob_create(NULL, 0, size)) == NULL)
 	{

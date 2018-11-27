@@ -30,8 +30,8 @@
 #include "adm_amp_agent_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
-
-
+#define AMP_SAFE_MOD(a,b) ((b == 0) ? 0 : (a%b))
+#define AMP_SAFE_DIV(a,b) ((b == 0) ? 0 : (a/b))
 void amp_agent_collect_ari_keys(rh_elt_t *elt, void *tag)
 {
 	vector_t *vec = (vector_t *) tag;
@@ -103,18 +103,19 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 	tnv_t *lval = NULL;
 	tnv_t *rval = NULL;
 	tnv_t *result = NULL;
-
+	int success;
 
 	if(stack == NULL)
 	{
 		return result;
 	}
 
-	if(adm_agent_op_prep(2, &lval, &rval, stack) != AMP_OK)
+	success = adm_agent_op_prep(2, &lval, &rval, stack);
+	if( (success != AMP_OK) || (lval == NULL) || (rval == NULL))
 	{
 		tnv_release(lval, 1);
 		tnv_release(rval, 1);
-		return AMP_FAIL;
+		return NULL;
 	}
 
 	// TODO more boundary checks.
@@ -131,7 +132,7 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 	{
 		tnv_release(lval, 1);
 		tnv_release(rval, 1);
-		return AMP_FAIL;
+		return NULL;
 	}
 
     switch(result->type)
@@ -142,8 +143,8 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		case PLUS:   result->value.as_int = tnv_to_int(*lval, &ls) + tnv_to_int(*rval, &rs); break;
 		case MINUS:  result->value.as_int = tnv_to_int(*lval, &ls) - tnv_to_int(*rval, &rs); break;
 		case MULT:   result->value.as_int = tnv_to_int(*lval, &ls) * tnv_to_int(*rval, &rs); break;
-		case DIV:    result->value.as_int = tnv_to_int(*lval, &ls) / tnv_to_int(*rval, &rs); break;
-		case MOD:    result->value.as_int = tnv_to_int(*lval, &ls) % tnv_to_int(*rval, &rs); break;
+		case DIV:    result->value.as_int = AMP_SAFE_DIV(tnv_to_int(*lval, &ls), tnv_to_int(*rval, &rs)); break;
+		case MOD:    result->value.as_int = AMP_SAFE_MOD(tnv_to_int(*lval, &ls), tnv_to_int(*rval, &rs)); break;
 		case EXP:    result->value.as_int = (int32_t) pow(tnv_to_int(*lval, &ls), tnv_to_int(*rval, &rs)); break;
 		case BITAND: result->value.as_int = tnv_to_int(*lval, &ls) & tnv_to_int(*rval, &rs); break;
 		case BITOR:  result->value.as_int = tnv_to_int(*lval, &ls) | tnv_to_int(*rval, &rs); break;
@@ -160,8 +161,8 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		case PLUS:   result->value.as_uint = tnv_to_uint(*lval, &ls) + tnv_to_uint(*rval, &rs); break;
 		case MINUS:  result->value.as_uint = tnv_to_uint(*lval, &ls) - tnv_to_uint(*rval, &rs); break;
 		case MULT:   result->value.as_uint = tnv_to_uint(*lval, &ls) * tnv_to_uint(*rval, &rs); break;
-		case DIV:    result->value.as_uint = tnv_to_uint(*lval, &ls) / tnv_to_uint(*rval, &rs); break;
-		case MOD:    result->value.as_uint = tnv_to_uint(*lval, &ls) % tnv_to_uint(*rval, &rs); break;
+		case DIV:    result->value.as_uint = AMP_SAFE_DIV(tnv_to_uint(*lval, &ls), tnv_to_uint(*rval, &rs)); break;
+		case MOD:    result->value.as_uint = AMP_SAFE_MOD(tnv_to_uint(*lval, &ls), tnv_to_uint(*rval, &rs)); break;
 		case EXP:    result->value.as_uint = (uint32_t) pow(tnv_to_uint(*lval, &ls), tnv_to_uint(*rval, &rs)); break;
 		case BITAND: result->value.as_uint = tnv_to_uint(*lval, &ls) & tnv_to_uint(*rval, &rs); break;
 		case BITOR:  result->value.as_uint = tnv_to_uint(*lval, &ls) | tnv_to_uint(*rval, &rs); break;
@@ -178,8 +179,8 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		case PLUS:   result->value.as_vast = tnv_to_vast(*lval, &ls) + tnv_to_vast(*rval, &rs); break;
 		case MINUS:  result->value.as_vast = tnv_to_vast(*lval, &ls) - tnv_to_vast(*rval, &rs); break;
 		case MULT:   result->value.as_vast = tnv_to_vast(*lval, &ls) * tnv_to_vast(*rval, &rs); break;
-		case DIV:    result->value.as_vast = tnv_to_vast(*lval, &ls) / tnv_to_vast(*rval, &rs); break;
-		case MOD:    result->value.as_vast = tnv_to_vast(*lval, &ls) % tnv_to_vast(*rval, &rs); break;
+		case DIV:    result->value.as_vast = AMP_SAFE_DIV(tnv_to_vast(*lval, &ls), tnv_to_vast(*rval, &rs)); break;
+		case MOD:    result->value.as_vast = AMP_SAFE_MOD(tnv_to_vast(*lval, &ls), tnv_to_vast(*rval, &rs)); break;
 		case EXP:    result->value.as_vast = (vast) pow(tnv_to_vast(*lval, &ls), tnv_to_vast(*rval, &rs)); break;
 		case BITAND: result->value.as_vast = tnv_to_vast(*lval, &ls) & tnv_to_vast(*rval, &rs); break;
 		case BITOR:  result->value.as_vast = tnv_to_vast(*lval, &ls) | tnv_to_vast(*rval, &rs); break;
@@ -196,8 +197,8 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		case PLUS:   result->value.as_uvast = tnv_to_uvast(*lval, &ls) + tnv_to_uvast(*rval, &rs); break;
 		case MINUS:  result->value.as_uvast = tnv_to_uvast(*lval, &ls) - tnv_to_uvast(*rval, &rs); break;
 		case MULT:   result->value.as_uvast = tnv_to_uvast(*lval, &ls) * tnv_to_uvast(*rval, &rs); break;
-		case DIV:    result->value.as_uvast = tnv_to_uvast(*lval, &ls) / tnv_to_uvast(*rval, &rs); break;
-		case MOD:    result->value.as_uvast = tnv_to_uvast(*lval, &ls) % tnv_to_uvast(*rval, &rs); break;
+		case DIV:    result->value.as_uvast = AMP_SAFE_DIV(tnv_to_uvast(*lval, &ls), tnv_to_uvast(*rval, &rs)); break;
+		case MOD:    result->value.as_uvast = AMP_SAFE_MOD(tnv_to_uvast(*lval, &ls), tnv_to_uvast(*rval, &rs)); break;
 		case EXP:    result->value.as_uvast = (uvast) pow(tnv_to_uvast(*lval, &ls), tnv_to_uvast(*rval, &rs)); break;
 		case BITAND: result->value.as_uvast = tnv_to_uvast(*lval, &ls) & tnv_to_uvast(*rval, &rs); break;
 		case BITOR:  result->value.as_uvast = tnv_to_uvast(*lval, &ls) | tnv_to_uvast(*rval, &rs); break;
@@ -214,7 +215,7 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		case PLUS:   result->value.as_real32 = tnv_to_real32(*lval, &ls) + tnv_to_real32(*rval, &rs); break;
 		case MINUS:  result->value.as_real32 = tnv_to_real32(*lval, &ls) - tnv_to_real32(*rval, &rs); break;
 		case MULT:   result->value.as_real32 = tnv_to_real32(*lval, &ls) * tnv_to_real32(*rval, &rs); break;
-		case DIV:    result->value.as_real32 = tnv_to_real32(*lval, &ls) / tnv_to_real32(*rval, &rs); break;
+		case DIV:    result->value.as_real32 = AMP_SAFE_DIV(tnv_to_real32(*lval, &ls), tnv_to_real32(*rval, &rs)); break;
 		case EXP:    result->value.as_real32 = (float) pow(tnv_to_real32(*lval, &ls), tnv_to_real32(*rval, &rs)); break;
 		default:
 			ls = rs = AMP_FAIL; break;
@@ -226,7 +227,7 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		case PLUS:   result->value.as_real64 = tnv_to_real64(*lval, &ls) + tnv_to_real64(*rval, &rs); break;
 		case MINUS:  result->value.as_real64 = tnv_to_real64(*lval, &ls) - tnv_to_real64(*rval, &rs); break;
 		case MULT:   result->value.as_real64 = tnv_to_real64(*lval, &ls) * tnv_to_real64(*rval, &rs); break;
-		case DIV:    result->value.as_real64 = tnv_to_real64(*lval, &ls) / tnv_to_real64(*rval, &rs); break;
+		case DIV:    result->value.as_real64 = AMP_SAFE_DIV(tnv_to_real64(*lval, &ls), tnv_to_real64(*rval, &rs)); break;
 		case EXP:    result->value.as_real64 = (double) pow(tnv_to_real64(*lval, &ls), tnv_to_real64(*rval, &rs)); break;
 		default: ls = rs = 0; break;
 		}
@@ -235,15 +236,15 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 			ls = rs = AMP_FAIL; break;
 	}
 
-	tnv_release(lval, 1);
-	tnv_release(rval, 1);
-
 	if((ls != AMP_OK) || (rs != AMP_OK))
 	{
         AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
         tnv_release(result, 1);
         result = NULL;
 	}
+
+	tnv_release(lval, 1);
+	tnv_release(rval, 1);
 
 	return result;
 }
@@ -253,17 +254,18 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 	int ls = 0;
 	tnv_t *lval = NULL;
 	tnv_t *result = NULL;
-
+	int success;
 
 	if(stack == NULL)
 	{
 		return result;
 	}
 
-	if(adm_agent_op_prep(1, &lval, NULL, stack) != AMP_OK)
+	success = adm_agent_op_prep(1, &lval, NULL, stack);
+	if( (success != AMP_OK) || (lval == NULL))
 	{
 		tnv_release(lval, 1);
-		return AMP_FAIL;
+		return NULL;
 	}
 
 	// TODO more boundary checks.
@@ -278,7 +280,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 	if(result->type == AMP_TYPE_UNK)
 	{
 		tnv_release(lval, 1);
-		return AMP_FAIL;
+		return NULL;
 	}
 
     switch(result->type)
@@ -344,14 +346,14 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 			ls = AMP_FAIL; break;
 	}
 
-	tnv_release(lval, 1);
-
 	if(ls != AMP_OK)
 	{
         AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type);
         tnv_release(result, 1);
         result = NULL;
 	}
+
+	tnv_release(lval, 1);
 
 	return result;
 }
@@ -361,13 +363,15 @@ tnv_t *adm_agent_unary_log_op(amp_agent_op_e op, vector_t *stack)
 	tnv_t *result = NULL;
 	tnv_t *val = NULL;
 	int s = 0;
+	int success = AMP_FAIL;
 
 	if(stack == NULL)
 	{
 		return result;
 	}
 
-	if(adm_agent_op_prep(1, &val, NULL, stack) != AMP_OK)
+	success = adm_agent_op_prep(1, &val, NULL, stack);
+	if((success != AMP_OK) || (val == NULL))
 	{
 		tnv_release(result, 1);
 		return NULL;
@@ -376,13 +380,13 @@ tnv_t *adm_agent_unary_log_op(amp_agent_op_e op, vector_t *stack)
 	// TODO more boundary checks.
 	if((result = tnv_create()) == NULL)
 	{
-		tnv_release(result, 1);
+		tnv_release(val, 1);
 		return NULL;
 	}
 
 	result->type = AMP_TYPE_BOOL;
 
-    switch(val->type)
+	switch(val->type)
 	{
 	case AMP_TYPE_INT:
 		switch(op)
@@ -429,12 +433,14 @@ tnv_t *adm_agent_unary_log_op(amp_agent_op_e op, vector_t *stack)
 		break;
 	}
 
-	if(s == 0)
+    if(s == 0)
 	{
         AMP_DEBUG_ERR("adm_agent_unary_log_op","Bad op (%d) or type (%d).",op, val->type);
         tnv_release(result, 1);
         result = NULL;
 	}
+
+	tnv_release(val, 1);
 
 	return result;
 }
@@ -448,6 +454,7 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 	tnv_t *lval = NULL;
 	tnv_t *rval = NULL;
 	tnv_t *result = NULL;
+	int success;
 
 
 	if(stack == NULL)
@@ -455,11 +462,12 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 		return result;
 	}
 
-	if(adm_agent_op_prep(2, &lval, &rval, stack) != AMP_OK)
+	success = adm_agent_op_prep(2, &lval, &rval, stack);
+	if( (success != AMP_OK) || (lval == NULL) || (rval == NULL))
 	{
 		tnv_release(lval, 1);
 		tnv_release(rval, 1);
-		return AMP_FAIL;
+		return NULL;
 	}
 
 	// TODO more boundary checks.
@@ -558,12 +566,15 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 		break;
 	}
 
-	if((ls == 0) || (rs == 0))
+    if((ls == 0) || (rs == 0))
 	{
         AMP_DEBUG_ERR("adm_agent_binary_log_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
         tnv_release(result, 1);
         result = NULL;
 	}
+
+    tnv_release(lval, 1);
+	tnv_release(rval, 1);
 
 	return result;
 }
@@ -1474,7 +1485,7 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			return result;
 		}
 
-		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, sizeof(mgr_eid.name));
+		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, AMP_MAX_EID_LEN-1);
 		msg_rpt = rda_get_msg_rpt(mgr_eid);
 
 		/* For each report being sent. */
@@ -1558,7 +1569,7 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			return result;
 		}
 
-		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, sizeof(mgr_eid.name));
+		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, AMP_MAX_EID_LEN-1);
 		msg_rpt = rda_get_msg_rpt(mgr_eid);
 
 		/* For each report being sent. */
@@ -1815,6 +1826,7 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 		else
 		{
+			gAgentInstr.num_tbrs++;
 			*status = CTRL_SUCCESS;
 			db_persist_rule(tbr);
 		}
@@ -1883,6 +1895,7 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 		else
 		{
+			gAgentInstr.num_sbrs++;
 			*status = CTRL_SUCCESS;
 			db_persist_rule(sbr);
 		}

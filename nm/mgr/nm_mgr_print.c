@@ -472,7 +472,7 @@ char *ui_str_from_ac(ac_t *ac)
 	{
 		ari_t *id = (ari_t*) vecit_data(it);
 		char *alt_str = ui_str_from_ari(id, NULL, 0);
-		strcat(str, alt_str);
+		strcat(str, (alt_str==NULL) ? "null" : alt_str);
 		strcat(str, " ");
 		SRELEASE(alt_str);
 	}
@@ -642,7 +642,7 @@ char *ui_str_from_mac(macdef_t *mac)
 	vecit_t it;
 
 	tmp = ui_str_from_ari(mac->ari, NULL, 0);
-	sprintf(fmt,"%s = [", tmp);
+	sprintf(fmt,"%s = [", (tmp==NULL) ? "null" : tmp);
 	SRELEASE(tmp);
 
 	strcat(result, fmt);
@@ -685,7 +685,7 @@ char *ui_str_from_rpttpl(rpttpl_t *rpttpl)
 	int i = 0;
 
 	tmp = ui_str_from_ari(rpttpl->id, NULL, 0);
-	sprintf(fmt,"%s = [", tmp);
+	sprintf(fmt,"%s = [", (tmp==NULL) ? "null" : tmp);
 	SRELEASE(tmp);
 
 	strcat(result, fmt);
@@ -710,23 +710,26 @@ char *ui_str_from_rpttpl(rpttpl_t *rpttpl)
 char *ui_str_from_sbr(rule_t *sbr)
 {
 	char *str = STAKE(1024);
-	char *id_str = ui_str_from_ari(&(sbr->id), NULL, 0);
-	char *ac_str = ui_str_from_ac(&(sbr->action));
-	char *expr_str = ui_str_from_expr(&(sbr->def.as_sbr.expr));
 
-	snprintf(str,
-			 1024,
-			 "SBR: ID=%s, S=0x"ADDR_FIELDSPEC", E=%s, M=0x"ADDR_FIELDSPEC", C=0x"ADDR_FIELDSPEC", A=%s\n",
-			 (id_str == NULL) ? "null" :id_str,
-		     (uaddr)sbr->start,
-			 (expr_str == NULL) ? "null" : expr_str,
-			 (uaddr)sbr->def.as_sbr.max_eval,
-			 (uaddr)sbr->def.as_sbr.max_fire,
-		     (ac_str == NULL) ? "null" : ac_str);
+	if(str != NULL) {
+		char *id_str = ui_str_from_ari(&(sbr->id), NULL, 0);
+		char *ac_str = ui_str_from_ac(&(sbr->action));
+		char *expr_str = ui_str_from_expr(&(sbr->def.as_sbr.expr));
 
-	SRELEASE(id_str);
-	SRELEASE(ac_str);
-	SRELEASE(expr_str);
+		snprintf(str,
+				1023,
+				"SBR: ID=%s, S=0x"ADDR_FIELDSPEC", E=%s, M=0x"ADDR_FIELDSPEC", C=0x"ADDR_FIELDSPEC", A=%s\n",
+				(id_str == NULL) ? "null" :id_str,
+				(uaddr)sbr->start,
+				(expr_str == NULL) ? "null" : expr_str,
+				(uaddr)sbr->def.as_sbr.max_eval,
+				(uaddr)sbr->def.as_sbr.max_fire,
+				(ac_str == NULL) ? "null" : ac_str);
+
+		SRELEASE(id_str);
+		SRELEASE(ac_str);
+		SRELEASE(expr_str);
+	}
 	return str;
 }
 
@@ -739,9 +742,16 @@ char *ui_str_from_tbl(tbl_t *tbl)
 	size_t num_rows = 0;
 	tnvc_t *cur_row = NULL;
 	tblt_t *tblt = VDB_FINDKEY_TBLT(tbl->id);
+	char *tmp = NULL;
+
+	CHKNULL(result);
 
 	/* Print table headers, if we have a table template. */
-	char *tmp = ui_str_from_tblt(tblt);
+	if((tmp = ui_str_from_tblt(tblt)) == NULL)
+	{
+		SRELEASE(result);
+		return NULL;
+	}
 	strcat(result, tmp);
 	SRELEASE(tmp);
 
@@ -780,6 +790,8 @@ char *ui_str_from_tblt(tblt_t *tblt)
 	int i = 0;
 	vecit_t it;
 
+	CHKNULL(result);
+
 	if(tblt != NULL)
 	{
 		i = 0;
@@ -808,22 +820,26 @@ char *ui_str_from_tblt(tblt_t *tblt)
 char *ui_str_from_tbr(rule_t *tbr)
 {
 	char *str = STAKE(1024);
-	char *id_str = ui_str_from_ari(&(tbr->id), NULL, 0);
-	char *ac_str = ui_str_from_ac(&(tbr->action));
-	snprintf(str,
-			 1024,
-			 "TBR: ID=%s, S=" \
-			UVAST_FIELDSPEC ", P=" \
-			UVAST_FIELDSPEC ", C=" \
-			UVAST_FIELDSPEC ", A=%s\n",
-			 (id_str == NULL) ? "null" :id_str,
-		     tbr->start,
-			 tbr->def.as_tbr.period,
-			 tbr->def.as_tbr.max_fire,
-		     (ac_str == NULL) ? "null" : ac_str);
+	if(str != NULL)
+	{
+		char *id_str = ui_str_from_ari(&(tbr->id), NULL, 0);
+		char *ac_str = ui_str_from_ac(&(tbr->action));
+		snprintf(str,
+				1024,
+				"TBR: ID=%s, S=" \
+				UVAST_FIELDSPEC ", P=" \
+				UVAST_FIELDSPEC ", C=" \
+				UVAST_FIELDSPEC ", A=%s\n",
+				(id_str == NULL) ? "null" :id_str,
+				tbr->start,
+			    tbr->def.as_tbr.period,
+			    tbr->def.as_tbr.max_fire,
+		        (ac_str == NULL) ? "null" : ac_str);
 
-	SRELEASE(id_str);
-	SRELEASE(ac_str);
+		SRELEASE(id_str);
+		SRELEASE(ac_str);
+	}
+
 	return str;
 }
 

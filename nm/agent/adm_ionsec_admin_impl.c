@@ -226,18 +226,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_add(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 	 * |START CUSTOM FUNCTION ctrl_key_add BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *key_name;
-	char *file_name = 0;
-	int8_t 	success = 0;
+	char *key_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
+	char *file_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 
-	key_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-
-	if(success)
-	{
-		file_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
-	}
-
-	if(success)
+	if((key_name != NULL) && (file_name != NULL))
 	{
 		sec_addKey(key_name, file_name);
 		*status = CTRL_SUCCESS;
@@ -266,18 +258,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_change(eid_t *def_mgr, tnvc_t *parms, int8_t
 	 * |START CUSTOM FUNCTION ctrl_key_change BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *key_name;
-	char *file_name = 0;
-	int8_t 	success = 0;
+	char *key_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
+	char *file_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 
-	key_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-
-	if(success)
-	{
-		file_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
-	}
-
-	if(success)
+	if((key_name != NULL) && (file_name != NULL))
 	{
 		sec_updateKey(key_name, file_name);
 		*status = CTRL_SUCCESS;
@@ -304,16 +288,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_del(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 	 * |START CUSTOM FUNCTION ctrl_key_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	char *key_name;
-	int8_t 	success = 0;
+	char *key_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 
-	key_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-
-	if(success)
-	{
-		sec_removeKey(key_name);
-		*status = CTRL_SUCCESS;
-	}
+	sec_removeKey(key_name);
+	*status = CTRL_SUCCESS;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_key_del BODY

@@ -99,7 +99,7 @@ int meta_add_parm(metadata_t *meta, char *name, amp_type_e type)
 	new_parm = (meta_fp_t *) malloc(sizeof(meta_fp_t));
 	CHKUSR(new_parm, AMP_FAIL);
 
-	strncpy(new_parm->name, name, META_PARM_NAME);
+	strncpy(new_parm->name, name, META_PARM_NAME-1);
 	new_parm->type = type;
 
 	if(vec_push(&(meta->parmspec),new_parm) != VEC_OK)
@@ -151,8 +151,8 @@ metadata_t *meta_create(amp_type_e type, ari_t *id, uint32_t adm_id, char *name,
 	result->adm_id = adm_id;
 	result->id = id;
 	result->type = type;
-	strncpy(result->name, name, META_NAME_MAX);
-	strncpy(result->descr, desc, META_DESCR_MAX);
+	strncpy(result->name, name, META_NAME_MAX-1);
+	strncpy(result->descr, desc, META_DESCR_MAX-1);
 
 	result->parmspec = vec_create(0, vec_simple_del, NULL, NULL, VEC_FLAG_AS_STACK, &success);
 	if(success != VEC_OK)

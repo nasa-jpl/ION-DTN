@@ -74,26 +74,13 @@ rule_t*   rule_copy_ptr(rule_t *src)
 		SRELEASE(result);
 		return NULL;
 	}
-
+	// TODO: Check return value for these copies.
 	result->action = ac_copy(&(src->action));
-	if(success != AMP_OK)
-	{
-		ari_release(&(result->id), 0);
-		SRELEASE(result);
-		return NULL;
-	}
 
 	if(result->id.type == AMP_TYPE_SBR)
 	{
-
+		//TODO: Check return value for these copies.
 		result->def.as_sbr.expr = expr_copy(src->def.as_sbr.expr);
-		if(success != AMP_OK)
-		{
-			ari_release(&(result->id), 0);
-			ac_release(&(result->action), 0);
-			SRELEASE(result);
-			return NULL;
-		}
 		result->def.as_sbr.max_fire = src->def.as_sbr.max_fire;
 		result->def.as_sbr.max_eval = src->def.as_sbr.max_eval;
 	}
@@ -704,7 +691,7 @@ CborError sbrdef_serialize(CborEncoder *array_enc, sbr_def_t *def)
 tbr_def_t tbrdef_deserialize(CborValue *array_it, int *success)
 {
 	tbr_def_t result;
-
+	memset(&result, 0, sizeof(tbr_def_t));
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.period));
 	if(*success != AMP_OK)
 	{

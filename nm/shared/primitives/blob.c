@@ -453,7 +453,10 @@ CborError blob_serialize(CborEncoder *encoder, void *item)
 	CborError err;
 	blob_t *blob = (blob_t *) item;
 
-	CHKUSR(blob, CborErrorIO);
+	if(blob == NULL)
+	{
+		return CborErrorIO;
+	}
 
 	return cbor_encode_byte_string(encoder, blob->value, blob->length);
 }

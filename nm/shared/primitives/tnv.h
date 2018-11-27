@@ -211,13 +211,11 @@ tnvc_t*  tnvc_deserialize_ptr(CborValue *it, int *success);
 tnvc_t*  tnvc_deserialize_ptr_raw(blob_t *data, int *success);
 tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success);
 
-
-
-tnv_t*    tnvc_get(tnvc_t* tnvc, uint8_t index);
-uint8_t   tnvc_get_count(tnvc_t* tnvc);
-tnv_enc_e tnvc_get_encode_type(tnvc_t *tnvc);
-tnv_enc_e tnvc_get_type(tnvc_t *tnvc, uint8_t index);
-blob_t    tnvc_get_types(tnvc_t *tnvc, int *success);
+tnv_t*     tnvc_get(tnvc_t* tnvc, uint8_t index);
+uint8_t    tnvc_get_count(tnvc_t* tnvc);
+tnv_enc_e  tnvc_get_encode_type(tnvc_t *tnvc);
+amp_type_e tnvc_get_type(tnvc_t *tnvc, uint8_t index);
+blob_t     tnvc_get_types(tnvc_t *tnvc, int *success);
 
 int      tnvc_init(tnvc_t *tnvc, size_t num);
 int      tnvc_insert(tnvc_t* tnvc, tnv_t *tnv);

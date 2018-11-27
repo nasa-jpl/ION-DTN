@@ -239,7 +239,7 @@ tnv_t *dtn_ion_ionadmin_get_clock_error(tnvc_t *parms)
 	 Object  iondbObj = getIonDbObject();
 	 IonDB   iondb;
 
-	 sdr_begin_xn(sdr);
+	 CHKNULL(sdr_begin_xn(sdr));
 	 sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	 result = tnv_from_int(iondb.maxClockError);
 	 sdr_end_xn(sdr);
@@ -271,7 +271,7 @@ tnv_t *dtn_ion_ionadmin_get_clock_sync(tnvc_t *parms)
 
 	sdr = getIonsdr();
 	iondbObj = getIonDbObject();
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_int(iondb.clockIsSynchronized);
 	sdr_end_xn(sdr);
@@ -303,7 +303,7 @@ tnv_t *dtn_ion_ionadmin_get_congestion_alarm_control(tnvc_t *parms)
 	IonDB   iondb;
 	char    alarmBuffer[40 + TIMESTAMPBUFSZ]; // Pulled from ION
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 
 
@@ -341,7 +341,7 @@ tnv_t *dtn_ion_ionadmin_get_congestion_end_time_forecasts(tnvc_t *parms)
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_uint(iondb.horizon);
 	sdr_end_xn(sdr);
@@ -371,7 +371,7 @@ tnv_t *dtn_ion_ionadmin_get_consumption_rate(tnvc_t *parms)
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_uint(iondb.consumptionRate);
 	sdr_end_xn(sdr);
@@ -403,7 +403,7 @@ tnv_t *dtn_ion_ionadmin_get_inbound_file_system_occupancy_limit(tnvc_t *parms)
 	IonDB   iondb;
 	vast    fileLimit;
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	fileLimit = zco_get_max_file_occupancy(sdr, ZcoInbound);
 	result = tnv_from_vast(fileLimit);
 	sdr_end_xn(sdr);
@@ -436,7 +436,7 @@ tnv_t *dtn_ion_ionadmin_get_inbound_heap_occupancy_limit(tnvc_t *parms)
 	IonDB   iondb;
 	vast    heapLimit;
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	heapLimit = zco_get_max_heap_occupancy(sdr, ZcoInbound);
 	result = tnv_from_vast(heapLimit);
 	sdr_end_xn(sdr);
@@ -466,7 +466,7 @@ tnv_t *dtn_ion_ionadmin_get_number(tnvc_t *parms)
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
 	
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_uvast(iondb.ownNodeNbr);
 	sdr_end_xn(sdr);
@@ -498,7 +498,7 @@ tnv_t *dtn_ion_ionadmin_get_outbound_file_system_occupancy_limit(tnvc_t *parms)
 	IonDB   iondb;
 	vast    fileLimit;
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	fileLimit = zco_get_max_file_occupancy(sdr, ZcoOutbound);
 	result = tnv_from_vast(fileLimit);
 	sdr_end_xn(sdr);
@@ -531,7 +531,7 @@ tnv_t *dtn_ion_ionadmin_get_outbound_heap_occupancy_limit(tnvc_t *parms)
 	IonDB   iondb;
 	vast    heapLimit;
 
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	heapLimit = zco_get_max_heap_occupancy(sdr, ZcoOutbound);
 	result = tnv_from_vast(heapLimit);
 	sdr_end_xn(sdr);
@@ -561,7 +561,7 @@ tnv_t *dtn_ion_ionadmin_get_production_rate(tnvc_t *parms)
 	Object iondbObj = getIonDbObject();
 	IonDB iondb;
 	  
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_int(iondb.productionRate);
 	sdr_end_xn(sdr);
@@ -619,7 +619,7 @@ tnv_t *dtn_ion_ionadmin_get_time_delta(tnvc_t *parms)
 	Object iondbObj = getIonDbObject();
 	IonDB iondb;
 	  
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_int(iondb.deltaFromUTC);
 	sdr_end_xn(sdr);
@@ -792,14 +792,13 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_alarm_control_set(eid_t *def_mgr, t
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
 	char    *newAlarmScript;
-	int     success = 0;
 
 	newAlarmScript = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 
-	if((success) && (strlen(newAlarmScript) <= 255))
+	if(strlen(newAlarmScript) <= 255)
 	{
 
-		sdr_begin_xn(sdr);
+		CHKNULL(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
         if (iondb.alarmScript != 0)
         {
@@ -811,10 +810,6 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_alarm_control_set(eid_t *def_mgr, t
         sdr_end_xn(sdr);
         *status = CTRL_SUCCESS;
 	}
-
-	SRELEASE(newAlarmScript);
-
-
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -848,33 +843,26 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_end_time_forecasts_set(eid_t *def_m
 	time_t  refTime;
 	time_t  horizon;
 	IonDB   iondb;
-	int     success = 0;
 
 	horizonString = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 
-	if(success)
+	if (*horizonString == '0' && *(horizonString + 1) == 0)
 	{
-
-		if (*horizonString == '0' && *(horizonString + 1) == 0)
-		{
-			horizon = 0;    /*      Remove horizon from database.   */
-		}
-		else
-		{
-//			refTime = _referenceTime(NULL); TODO: Figure out how to get this
-			//horizon = readTimestampUTC(horizonString, refTime);
-			horizon = readTimestampUTC(horizonString, 0);
-		}
-
-		sdr_begin_xn(sdr);
-		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		iondb.horizon = horizon;
-		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-		sdr_end_xn(sdr);
-		*status = CTRL_SUCCESS;
+		horizon = 0;    /*      Remove horizon from database.   */
+	}
+	else
+	{
+//		refTime = _referenceTime(NULL); TODO: Figure out how to get this
+		//horizon = readTimestampUTC(horizonString, refTime);
+		horizon = readTimestampUTC(horizonString, 0);
 	}
 
-	SRELEASE(horizonString);
+	CHKNULL(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.horizon = horizon;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	sdr_end_xn(sdr);
+	*status = CTRL_SUCCESS;
 
 	/*
 	 * +-------------------------------------------------------------------------+

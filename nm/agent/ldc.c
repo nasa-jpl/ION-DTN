@@ -147,7 +147,10 @@ tnv_t *ldc_collect_var(ari_t *id, tnvc_t *parms)
 
 	CHKNULL(id);
 	var = VDB_FINDKEY_VAR(id);
-	CHKNULL(var);
+	if(var == NULL)
+	{
+		return NULL;
+	}
 
 	return tnv_copy_ptr(var->value);
 }

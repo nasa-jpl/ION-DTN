@@ -57,7 +57,7 @@ int adm_add_adm_info(char *name, int id)
 	adm_info_t *info = STAKE(sizeof(adm_info_t));
 	CHKERR(info);
 
-	strncpy(info->name, name, ADM_MAX_NAME);
+	strncpy(info->name, name, ADM_MAX_NAME-1);
 	info->id = id;
 	return vec_push(&g_adm_info, info);
 }

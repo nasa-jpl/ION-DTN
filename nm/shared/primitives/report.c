@@ -59,8 +59,10 @@
 
 int rpt_add_entry(rpt_t *rpt, tnv_t *entry)
 {
-	CHKUSR(rpt, AMP_FAIL);
-	CHKUSR(entry, AMP_FAIL);
+	if((rpt == NULL) || (entry == NULL))
+	{
+		return AMP_FAIL;
+	}
 
 	return tnvc_insert(rpt->entries, entry);
 }

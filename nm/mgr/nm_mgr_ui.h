@@ -209,7 +209,7 @@ typedef ui_cb_return_values_t (*ui_menu_listing_cb_fn)(int idx, int keypress, vo
  *    choices array representing the user selection otherwise.
  */
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg);
-
+#ifdef USE_NCURSES //EJB
 /** Display a form of one or more fields for the user to fill out.
  * @param title A title to display for this form
  * @param msg An optional user-defined message to display at the bottom of the menu.
@@ -219,7 +219,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
  * @returns 1 on submission, 0 if user cancelled input, or -1 on error.
  */
 int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields);
-
+#endif //EJB
 /** Display the user with a simple confirmation dialog with 1-3 options.
  *    Specify NULL or choiceB or C to suppress display of the corresponding choices.
  * @returns User selection

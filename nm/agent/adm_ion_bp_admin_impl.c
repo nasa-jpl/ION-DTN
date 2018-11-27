@@ -1430,6 +1430,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_watch(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	BpVdb	*vdb = getBpVdb();
 	int i;
 
+	CHKNULL(vdb);
 	*status = CTRL_SUCCESS;
 
 	if (strcmp(name, "1") == 0)
@@ -1469,7 +1470,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_watch(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	}
 
 
-	if (vdb != NULL && dbObj != 0)
+	if (dbObj != 0)
 	{
 		CHKNULL(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &db, dbObj, sizeof(BpDB));

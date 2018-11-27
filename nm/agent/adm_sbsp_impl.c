@@ -332,7 +332,7 @@ tnv_t *dtn_sbsp_get_num_good_tx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
@@ -353,7 +353,7 @@ tnv_t *dtn_sbsp_get_num_bad_tx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
@@ -374,7 +374,7 @@ tnv_t *dtn_sbsp_get_num_good_rx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
@@ -395,7 +395,7 @@ tnv_t *dtn_sbsp_get_num_bad_rx_bcb_blk(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
@@ -416,7 +416,7 @@ tnv_t *dtn_sbsp_get_num_missing_rx_bcb_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
@@ -437,7 +437,7 @@ tnv_t *dtn_sbsp_get_num_fwd_bcb_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
@@ -458,7 +458,7 @@ tnv_t *dtn_sbsp_get_num_good_tx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BCB_TX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
@@ -479,7 +479,7 @@ tnv_t *dtn_sbsp_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
@@ -500,7 +500,7 @@ tnv_t *dtn_sbsp_get_num_bad_tx_bcb_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BCB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bcb_blks BODY
@@ -521,7 +521,7 @@ tnv_t *dtn_sbsp_get_num_good_rx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BCB_RX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
@@ -542,7 +542,7 @@ tnv_t *dtn_sbsp_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BCB_RX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
@@ -563,7 +563,7 @@ tnv_t *dtn_sbsp_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BCB_RX_MISS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
@@ -584,7 +584,7 @@ tnv_t *dtn_sbsp_get_num_fwd_bcb_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BCB_FWD, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
@@ -605,7 +605,7 @@ tnv_t *dtn_sbsp_get_num_good_tx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
@@ -626,7 +626,7 @@ tnv_t *dtn_sbsp_get_num_bad_tx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
@@ -647,7 +647,7 @@ tnv_t *dtn_sbsp_get_num_good_rx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
@@ -668,7 +668,7 @@ tnv_t *dtn_sbsp_get_num_bad_rx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
@@ -689,7 +689,7 @@ tnv_t *dtn_sbsp_get_num_miss_rx_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
@@ -710,7 +710,7 @@ tnv_t *dtn_sbsp_get_num_fwd_bib_blks(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BLK);
+	result = adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BLK);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_blks BODY
@@ -731,7 +731,7 @@ tnv_t *dtn_sbsp_get_num_good_tx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BIB_TX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
@@ -752,7 +752,7 @@ tnv_t *dtn_sbsp_get_num_bad_tx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BIB_TX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
@@ -773,7 +773,7 @@ tnv_t *dtn_sbsp_get_num_good_rx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BIB_RX_PASS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
@@ -794,7 +794,7 @@ tnv_t *dtn_sbsp_get_num_bad_rx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BIB_RX_FAIL, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
@@ -815,7 +815,7 @@ tnv_t *dtn_sbsp_get_num_miss_rx_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BIB_RX_MISS, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
@@ -836,7 +836,7 @@ tnv_t *dtn_sbsp_get_num_fwd_bib_bytes(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BYTES);
+	result = adm_sbsp_get_tot_val( BIB_FWD, TOTAL_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
@@ -1509,7 +1509,7 @@ tnv_t *dtn_sbsp_get_num_fwd_bib_bytes_src(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	return adm_sbsp_get_src_val(parms, BIB_FWD, SRC_BYTES);
+	result = adm_sbsp_get_src_val(parms, BIB_FWD, SRC_BYTES);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fwd_bib_bytes_src BODY

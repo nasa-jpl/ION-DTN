@@ -369,7 +369,7 @@ tnv_t *expr_eval(expr_t *expr)
 
 	if((success != AMP_OK) || (result == NULL))
 	{
-		AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", result->type, expr->type);
+		AMP_DEBUG_ERR("expr_eval", "Cannot convert type.", NULL);
 		tnv_release(result, 1);
 		return NULL;
 	}

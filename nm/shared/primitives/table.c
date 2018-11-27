@@ -587,15 +587,6 @@ void*  tblt_col_cb_copy_fn(void *item)
 	{
 		new_col->type = col->type;
 		new_col->name = NULL;
-		if(col->name != NULL)
-		{
-			if((col->name = STAKE(strlen(col->name)+1)) == NULL)
-			{
-				SRELEASE(new_col);
-				return NULL;
-			}
-			memcpy(col->name, col->name, strlen(col->name));
-		}
 	}
 	return new_col;
 }

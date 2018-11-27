@@ -1684,6 +1684,7 @@ tnvc_t *tnvc_deserialize_ptr(CborValue *it, int *success)
 	{
 		AMP_DEBUG_ERR("tnvc_deserialize_ptr","Can't allocate new struct.", NULL);
 		*success = AMP_FAIL;
+		return NULL;
 	}
 
 	*result = tnvc_deserialize(it, success);
@@ -1909,7 +1910,7 @@ tnv_enc_e tnvc_get_encode_type(tnvc_t *tnvc)
  * \param[in]  index  The index of the TNV being queried.
  *****************************************************************************/
 
-tnv_enc_e tnvc_get_type(tnvc_t *tnvc, uint8_t index)
+amp_type_e tnvc_get_type(tnvc_t *tnvc, uint8_t index)
 {
 	tnv_t *tnv = NULL;
 	int success = AMP_OK;
@@ -1918,8 +1919,7 @@ tnv_enc_e tnvc_get_type(tnvc_t *tnvc, uint8_t index)
 	{
 		tnv = (tnv_t *) vec_at(&(tnvc->values), index);
 	}
-    // FIXME: Cast added to resolve OSX compiler warning, but incompatibility between enum types may still need to be addressed
-	return (tnv_enc_e)((tnv == NULL) ? AMP_TYPE_UNK : tnv->type);
+	return ((tnv == NULL) ? AMP_TYPE_UNK : tnv->type);
 }
 
 
@@ -1952,7 +1952,7 @@ blob_t tnvc_get_types(tnvc_t *tnvc, int *success)
 	blob_init(&types, NULL, 0, length);
 	for(i = 0; i < length; i++)
 	{
-		tnv_enc_e cur_type = tnvc_get_type(tnvc, i);
+		amp_type_e cur_type = tnvc_get_type(tnvc, i);
 		blob_append(&types, (uint8_t*)&cur_type, 1);
 	}
 

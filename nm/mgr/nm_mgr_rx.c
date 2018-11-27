@@ -229,6 +229,7 @@ void *mgr_rx_thread(int *running)
 #ifdef HAVE_MYSQL
             db_incoming_finalize(incoming_idx);
 #endif
+            memset(&meta, 0, sizeof(meta));
         }
     }
    

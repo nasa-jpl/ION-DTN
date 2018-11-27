@@ -132,6 +132,7 @@ blob_t *ui_input_file_contents(char *prompt)
 
 	/* Shallow copy. */
 	result = blob_create(data, file_size, file_size);
+	SRELEASE(data);
 
 	str = utils_hex_to_string(data, file_size);
 	AMP_DEBUG_ALWAYS("ui_input_file_contents", "Read from %s: %.50s...", filename, str);
@@ -211,8 +212,8 @@ uint8_t  ui_input_byte(char *prompt)
 {
 	uint8_t result = 0;
 	char line[3];
-
-	ui_input_get_line(prompt, (char**)&line, 3);
+	memset(line,0,3);
+	ui_input_get_line(prompt, (char**)&line, 2);
 
 	blob_t *blob = utils_string_to_hex(line);
 	if(blob == NULL)
@@ -290,8 +291,8 @@ char *   ui_input_string(char *prompt)
 {
 	char *result = NULL;
 	char line[MAX_INPUT_BYTES];
-
-	ui_input_get_line(prompt, (char**)&line, MAX_INPUT_BYTES);
+	memset(line, 0, MAX_INPUT_BYTES);
+	ui_input_get_line(prompt, (char**)&line, MAX_INPUT_BYTES-1);
 
 	result = (char *) STAKE(strlen(line) + 1);
 
@@ -368,9 +369,9 @@ ac_t *ui_input_ac(char *prompt)
 
 	for(i = 0; i < num; i++)
 	{
-		char prompt[20];
-		sprintf(prompt, "Build ARI %d", i);
-		ari_t *cur = ui_input_ari(prompt, ADM_ENUM_ALL, TYPE_MASK_ALL);
+		char ari_prompt[20];
+		sprintf(ari_prompt, "Build ARI %d", i);
+		ari_t *cur = ui_input_ari(ari_prompt, ADM_ENUM_ALL, TYPE_MASK_ALL);
 		if(vec_push(&(result->values), cur) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ac","Could not input ARI %d.", i);

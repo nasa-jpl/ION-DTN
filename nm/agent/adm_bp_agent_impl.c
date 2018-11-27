@@ -186,7 +186,7 @@ tnv_t *dtn_bp_agent_get_last_reset_time(tnvc_t *parms)
 	BpDB db;
 
 	// TODO Check return call for sdr_begin_xn
-	sdr_begin_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbobj, sizeof(BpDB));
 
 	result = tnv_from_uvast(db.resetTime);

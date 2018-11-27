@@ -618,8 +618,8 @@ void ui_postprocess_ctrl(ari_t *id)
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 		{
-			ari_t *id = vecit_data(it);
-			var_t *var = VDB_FINDKEY_VAR(id);
+			ari_t *var_id = vecit_data(it);
+			var_t *var = VDB_FINDKEY_VAR(var_id);
 
 			if(var != NULL)
 			{
@@ -628,7 +628,7 @@ void ui_postprocess_ctrl(ari_t *id)
 			}
 			else
 			{
-				char *tmp = ui_str_from_ari(id, NULL, 0);
+				char *tmp = ui_str_from_ari(var_id, NULL, 0);
 				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find var %s ", tmp);
 				SRELEASE(tmp);
 			}
@@ -654,8 +654,8 @@ void ui_postprocess_ctrl(ari_t *id)
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 		{
-			ari_t *id = vecit_data(it);
-			rpttpl_t *def = VDB_FINDKEY_RPTT(id);
+			ari_t *rppt_id = vecit_data(it);
+			rpttpl_t *def = VDB_FINDKEY_RPTT(rppt_id);
 
 			if(def != NULL)
 			{
@@ -664,7 +664,7 @@ void ui_postprocess_ctrl(ari_t *id)
 			}
 			else
 			{
-				char *tmp = ui_str_from_ari(id, NULL, 0);
+				char *tmp = ui_str_from_ari(rppt_id, NULL, 0);
 				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find def for %s ", tmp);
 				SRELEASE(tmp);
 			}
@@ -689,17 +689,17 @@ void ui_postprocess_ctrl(ari_t *id)
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 		{
-			ari_t *id = vecit_data(it);
-			macdef_t *def = VDB_FINDKEY_MACDEF(id);
+			ari_t *mac_id = vecit_data(it);
+			macdef_t *def = VDB_FINDKEY_MACDEF(mac_id);
 
 			if(def != NULL)
 			{
 				db_forget(&(def->desc), gDB.macdefs);
-				VDB_DELKEY_MACDEF(id);
+				VDB_DELKEY_MACDEF(mac_id);
 			}
 			else
 			{
-				char *tmp = ui_str_from_ari(id, NULL, 0);
+				char *tmp = ui_str_from_ari(mac_id, NULL, 0);
 				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find def for %s ", tmp);
 				SRELEASE(tmp);
 			}
@@ -743,17 +743,17 @@ void ui_postprocess_ctrl(ari_t *id)
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
 		{
-			ari_t *id = vecit_data(it);
-			rule_t *def = VDB_FINDKEY_RULE(id);
+			ari_t *rule_id = vecit_data(it);
+			rule_t *def = VDB_FINDKEY_RULE(rule_id);
 
 			if(def != NULL)
 			{
 				db_forget(&(def->desc), gDB.rules);
-				VDB_DELKEY_RULE(id);
+				VDB_DELKEY_RULE(rule_id);
 			}
 			else
 			{
-				char *tmp = ui_str_from_ari(id, NULL, 0);
+				char *tmp = ui_str_from_ari(rule_id, NULL, 0);
 				AMP_DEBUG_WARN("ui_postprocess_ctrl","Can't find def for %s ", tmp);
 				SRELEASE(tmp);
 			}
@@ -793,9 +793,9 @@ void ui_register_agent(char* msg)
     {
        // User cancelled form or an error occurred
 #else
+    memset(line,0, AMP_MAX_EID_LEN);
 	/* Grab the new agent's EID. */
-	if(ui_input_get_line("Enter EID of new agent:",
-						 (char **)&line, AMP_MAX_EID_LEN) == 0)
+	if(ui_input_get_line("Enter EID of new agent:", (char **)&line, AMP_MAX_EID_LEN-1) == 0)
 	{
 #endif
 		AMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);
@@ -2648,44 +2648,6 @@ int ui_menu_listing(
 
 }
 
-int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
-{
-   int len, i;
-   
-   // Print Title
-   ui_display_init(title);
-
-   if (msg != NULL)
-   {
-      printf("\t %s\n\n", msg);
-   }
-   
-   for( i = 0; i < num_fields; i++)
-   {
-      printf("%s :> %s\n", fields[i].title, fields[i].value);
-      if ( !(fields[i].opts_off & O_EDIT) )
-      {
-         while(1)
-         {
-            printf("\t Enter new value:->  ");
-            igets(fileno(stdin), fields[i].value, fields[i].width, &len);
-
-            // TODO: Field validation support, cancel support
-            if (len > 0)
-            {
-               break;
-            }
-         }
-      }
-      printf("\n");
-   }
-
-   // Print footer
-   ui_display_exec();
-
-   return 1;
-}
-
 void ui_printf(const char* format, ...)
 {
    va_list args;
@@ -2698,6 +2660,7 @@ void ui_printf(const char* format, ...)
    {
       vprintf(format, args);
    }
+   va_end(args);
 }
 
 int ui_display_exec()

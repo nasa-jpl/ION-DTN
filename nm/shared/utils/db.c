@@ -182,7 +182,7 @@ int  db_persist(blob_t *blob, db_desc_t *desc, Object list)
 
 	desc->itemSize = blob->length;
 
-	sdr_begin_xn(sdr);
+	CHKUSR(sdr_begin_xn(sdr), AMP_FAIL);
 
    /* Step 1: Allocate a descriptor object for this item in the SDR. */
    if((desc->descObj = sdr_malloc(sdr, sizeof(db_desc_t))) == 0)
@@ -289,7 +289,10 @@ int  db_persist_var(void* item)
 	var_t *var = (var_t *) item;
 	blob_t *blob = var_serialize_wrapper(var);
 
-	CHKERR(blob);
+	if(blob == NULL)
+	{
+		return AMP_FAIL;
+	}
 	result = db_persist(blob, &(var->desc), gDB.vars);
 	blob_release(blob, 1);
 	return result;
@@ -310,7 +313,7 @@ int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb)
 	uint32_t num = 0;
 	Sdr sdr = getIonsdr();
 
-	oK(sdr_begin_xn(sdr));
+	CHKUSR(sdr_begin_xn(sdr), AMP_FAIL);
 
 	/* Step 1: Walk through report definitions. */
 	for (elt = sdr_list_first(sdr, sdr_list); elt;
