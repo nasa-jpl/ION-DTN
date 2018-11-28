@@ -1,6 +1,6 @@
 = Release Notes for ION 3.6.2 =
 
-November 19, 2018
+November 28, 2018
 
 %%%%%%%%%%%
 = GENERAL =
