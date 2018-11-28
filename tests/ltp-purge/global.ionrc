@@ -1,11 +1,9 @@
 m horizon  +0
 a range    +0  +100		2 3   0
-a range    +0  +100		3 5   0
 a range    +0  +100		2 5   0
-a contact  +20 +40		2 3   120000
-a contact  +45 +65		3 2   120000
-#  Note half-duplex comm: 2/3 return traffic occurs after end of fwd contact.
-a contact  +45 +65		3 5   120000
-a contact  +45 +65		5 3   120000
-a contact  +70 +100		2 5   120000
-a contact  +70 +100		5 2   120000
+a contact  +10 +20		2 3   120000
+a contact  +10 +20		2 5   120000
+#  Note all transmission is simplex; there is no return traffic, so no
+#  sessions close.
+a contact  +30 +200		2 3   120000
+a contact  +30 +200		2 5   120000

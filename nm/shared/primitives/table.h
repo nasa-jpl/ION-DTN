@@ -1,10 +1,19 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: table.h
  **
- ** Description: This implements a typed table.
+ ** Description: This implements a typed table template and instances of that
+ **              template.
  **
  ** Notes:
+ **   - Tables are ephemeral and exist only when they are created to be
+ **     returned in reports.
+ **   - Table templates are AMM objects that are stored and updated.
  **
  ** Assumptions:
  **
@@ -12,22 +21,26 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  05/15/16  E. Birrane    Initial Implementation. (Secure DTN - NASA: NNX14CS58P)
+ **  09/30/18  E. Birrane    Updated to AMP v0.5. (JHU/APL)
  *****************************************************************************/
 #ifndef TABLE_H_
 #define TABLE_H_
 
 #include "stdint.h"
 
-#include "lyst.h"
-
-#include "../primitives/dc.h"
 #include "../utils/nm_types.h"
+#include "../utils/vector.h"
+#include "../utils/db.h"
+#include "ari.h"
 
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
+
+#define TBL_DEFAULT_ENC_SIZE  1024
+#define TBLT_DEFAULT_ENC_SIZE 1024
 
 /*
  * +--------------------------------------------------------------------------+
@@ -41,25 +54,32 @@
  * |							  DATA TYPES  								  +
  * +--------------------------------------------------------------------------+
  */
+typedef struct
+{
+	ari_t    *id;   /**> The ID of the table template that this populates. */
+	vector_t rows; /**> Vector of rows in the table. (tnvc_t*) */
+} tbl_t;
+
+typedef tbl_t* (*tblt_build_fn)(ari_t *id);
+
 
 
 typedef struct
 {
-	Lyst cels; /* Lyst of type blob_t. a DC. */
-} table_row_t;
+	amp_type_e type;
+	char *name;
+} tblt_col_t;
+
 
 typedef struct
 {
-	blob_t types; /* One byte per column type. */
+	ari_t *id;      /* The ID of the template. */
+	vector_t cols; /* Column information for each col. (table_col_t*). */
 
-	Lyst names; /* List of blob_t * */
-} table_hdr_t;
+	tblt_build_fn build;
+	db_desc_t desc;
+} tblt_t;
 
-typedef struct
-{
-	table_hdr_t hdr; /* Table header. */
-	Lyst rows;      /* Lyst of table_row_t. */
-} table_t;
 
 
 /*
@@ -68,23 +88,56 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
-int8_t    table_add_col(table_t *table, char *name, amp_type_e type);
-int8_t    table_add_row(table_t *table, Lyst new_cels);
-void      table_clear(table_t *table);
-table_t*  table_create(blob_t *col_desc, Lyst names);
-table_t*  table_copy(table_t *table);
-table_t*  table_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t* bytes_used);
-void      table_destroy(table_t *table, uint8_t destroy);
-tdc_t*    table_extract_col(table_t *table, uint32_t col_idx);
-tdc_t*    table_extract_row(table_t *table, uint32_t row_idx);
-blob_t*   table_extract_cel(table_t *table, uint32_t col_idx, uint32_t row_idx);
-int32_t   table_get_col_idx(table_t *table, blob_t *col_name);
+int      tbl_add_row(tbl_t *tbl, tnvc_t *row);
 
-int8_t   table_get_num_cols(table_t *table);
-int8_t   table_get_num_rows(table_t *table);
+void     tbl_clear(tbl_t *tbl);
 
-table_t*  table_make_subtable(table_t *table, Lyst col_names);
-int8_t    table_remove_row(table_t *table, uint32_t row_idx);
-uint8_t*  table_serialize(table_t *table, uint32_t *size);
+tbl_t*   tbl_copy_ptr(tbl_t *tbl);
+
+tbl_t*   tbl_create(ari_t *id);
+
+tbl_t*   tbl_deserialize_ptr(CborValue *it, int *success);
+
+tbl_t*   tbl_deserialize_raw(blob_t *data, int *success);
+
+tnvc_t*  tbl_get_row(tbl_t *tbl, int row_idx);
+
+void     tbl_release(tbl_t *tbl, int destroy);
+
+int      tbl_num_rows(tbl_t *tbl);
+
+CborError tbl_serialize(CborEncoder *encoder, void *item);
+
+blob_t*   tbl_serialize_wrapper(tbl_t *tbl);
+
+
+
+
+
+/* tbl Template Functions */
+
+int       tblt_add_col(tblt_t *tblt, amp_type_e type, char *name);
+
+
+void      tblt_cb_del_fn(void *item);
+void*     tblt_cb_copy_fn(void *item);
+void      tblt_cb_ht_del_fn(rh_elt_t *elt);
+
+int       tblt_check_row(tblt_t *tblt, tnvc_t *row);
+
+tblt_t*   tblt_copy_ptr(tblt_t *tblt);
+
+tblt_t*   tblt_create(ari_t *id, tblt_build_fn build);
+
+amp_type_e tblt_get_type(tblt_t *tblt, int idx);
+
+int       tblt_num_cols(tblt_t *tblt);
+
+void      tblt_release(tblt_t *tblt, int destroy);
+
+
+void      tblt_col_cb_del_fn(void *item);
+void*     tblt_col_cb_copy_fn(void *item);
+
 
 #endif // TABLE_H_

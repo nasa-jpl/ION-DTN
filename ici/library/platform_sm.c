@@ -2264,22 +2264,56 @@ void	sm_EndPthread(pthread_t threadId)
 	oK(pthread_kill(threadId, SIGUSR2));
 }
 
-static void	*posixTaskEntrance(void *arg)
+static void	*posixTaskEntrance(void *taskArg)
 {
-	IonPthreadParm	*parm = (IonPthreadParm *) arg;
+	IonPthreadParm	*parm = (IonPthreadParm *) taskArg;
+	void 		*(*function)(void *);
+	void		*arg;
+
+	/*	Copy the information in parm into local stack
+	 *	variables, then free space allocated to parm.		*/
+
+	CHKNULL(parm);
+	function = parm->function;
+	arg = parm->arg;
+	free(parm);
+
+	/*	Now initiate processing in the new task.		*/
 
 	sm_ArmPthread();
-	return (parm->function)(parm->arg);
+	return (function)(arg);
 }
 
 int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
 		void *(*function)(void *), void *arg)
 {
-	IonPthreadParm	parm;
+	IonPthreadParm	*parm;
+	int		result;
 
-	parm.function = function;
-	parm.arg = arg;
-	return pthread_create(threadId, attr, posixTaskEntrance, &parm);
+	/*	Store thread parameters in space allocated from
+	 *	main memory, in case caller exits.			*/
+
+	parm = (IonPthreadParm *) malloc(sizeof(IonPthreadParm));
+	if (parm == NULL)
+	{
+		putErrmsg("Can't allocate space for thread parameters.", NULL);
+		return -1;
+	}
+
+	parm->function = function;
+	parm->arg = arg;
+	result = pthread_create(threadId, attr, posixTaskEntrance, parm);
+
+	/*	Free the memory allocated for parm if the creation
+	 *	of the new thread has failed.  Need to do this to
+	 *	prevent memory leak.					*/
+
+	if (result != 0)
+	{
+		free(parm);
+	}
+
+	return result;
 }
 
 #endif	/*	End of #if defined bionic || uClibc			*/

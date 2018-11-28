@@ -93,7 +93,7 @@ echo "Test 1---Check bpsource default TTL (300 sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
 if [ "$OS" = "SunOS" ]; then
-	netcat -u -l -p 4556 -s localhost > response.bpseg &
+	netcat -u -l -p 4556 > response.bpseg &
 	NETCAT_SVR_PID=$!
 else
 	netcat -u -l -p 4556 > response.bpseg &
@@ -147,7 +147,7 @@ echo "Test 2---Try Increasing bpsource TTL (3000sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
 if [ "$OS" = "SunOS" ]; then
-	netcat -u -l -p 4556 -s localhost > response.bpseg &
+	netcat -u -l -p 4556 > response.bpseg &
 	NETCAT_SVR_PID=$!
 else
 	netcat -u -l -p 4556 > response.bpseg &
@@ -201,7 +201,7 @@ echo "Test 3--Try Decreasing bpsource TTL (30sec)"
 echo "Starting netcat server for test..."
 cd netcat_files/
 if [ "$OS" = "SunOS" ]; then
-	netcat -u -l -p 4556 -s localhost > response.bpseg &
+	netcat -u -l -p 4556 > response.bpseg &
 	NETCAT_SVR_PID=$!
 else
 	netcat -u -l -p 4556 > response.bpseg &

@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 /*****************************************************************************
@@ -22,47 +22,124 @@
  **  --------  ------------   ---------------------------------------------
  **  07/28/13  E. Birrane     Initial Implementation (JHU/APL)
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  09/25/18  E. Birrane     Update to AMP v05 (JHU/APL)
  *****************************************************************************/
 #ifndef EXPR_H_
 #define EXPR_H_
 
-#include "../utils/ion_if.h"
 #include "../utils/nm_types.h"
 
-#include "../primitives/mid.h"
-#include "../primitives/value.h"
+#include "ari.h"
+#include "tnv.h"
+
+
+/*
+ * +--------------------------------------------------------------------------+
+ * |							  CONSTANTS  								  +
+ * +--------------------------------------------------------------------------+
+ */
+#define VAL_OPTYPE_ARITHMETIC 0
+#define VAL_OPTYPE_LOGICAL    1
+
+#define EXPR_DEFAULT_ENC_SIZE 1024
+
+
+
+/*
+ * +--------------------------------------------------------------------------+
+ * |							  	MACROS  								  +
+ * +--------------------------------------------------------------------------+
+ */
+
+
+
+/*
+ * +--------------------------------------------------------------------------+
+ * |							  DATA TYPES  								  +
+ * +--------------------------------------------------------------------------+
+ */
+
+/*
+ * Arithmetic casting matrix.
+ *
+ * 			  INT     UINT	   VAST    UVAST     REAL32   REAL64
+ *         +--------+--------+--------+--------+--------+--------+
+ *  INT	   | INT    | INT	 | VAST   | UNK    | REAL32 | REAL64 |
+ *  UINT   | INT    | UINT   | VAST   | UVAST  | REAL32 | REAL64 |
+ *  VAST   | VAST   | VAST   | VAST   | VAST   | REAL32 | REAL64 |
+ *  UVAST  | UNK    | UVAST  | VAST   | UVAST  | REAL32 | REAL64 |
+ *  REAL32 | REAL32 | REAL32 | REAL32 | REAL32 | REAL32 | REAL64 |
+ *  REAL64 | REAL64 | REAL64 | REAL64 | REAL64 | REAL64 | REAL64 |
+ *         +--------+--------+--------+--------+--------+--------+
+ *
+ */
+extern int gValNumCvtResult[6][6];
+
+typedef tnv_t* (*op_fn)(vector_t *stack);
+
+
+typedef struct
+{
+	ari_t *id;		    /**> The ARI identifying this def.        */
+	uint8_t num_parms;  /**> # params needed to complete this MID.*/
+	op_fn apply;        /**> Configured operator apply function. */
+} op_t;
+
 
 typedef struct
 {
 	amp_type_e type;
-	Lyst contents; /* MidCol */
+	ac_t rpn;
 } expr_t;
 
 
-expr_t *expr_create(amp_type_e type, Lyst contents);
 
-expr_t *expr_copy(expr_t *expr);
+/*
+ * +--------------------------------------------------------------------------+
+ * |						  FUNCTION PROTOTYPES  							  +
+ * +--------------------------------------------------------------------------+
+ */
 
-expr_t *expr_deserialize(uint8_t *cursor,
-		             uint32_t size,
-		             uint32_t *bytes_used);
+int       expr_add_item(expr_t *expr, ari_t *item);
+
+tnv_t*    expr_apply_op(ari_t *id, vector_t *stack);
+
+int       expr_calc_result_type(int ltype, int rtype, int optype);
+
+expr_t*   expr_create(amp_type_e type);
+
+expr_t    expr_copy(expr_t expr);
+
+expr_t*   expr_copy_ptr(expr_t *expr);
+
+expr_t    expr_deserialize(CborValue *it, int *success);
+expr_t*   expr_deserialize_ptr(CborValue *it, int *success);
+expr_t*   expr_deserialize_raw(blob_t *data, int *success);
+
+tnv_t*    expr_eval(expr_t *expr);
+
+tnv_t*    expr_get_atomic(ari_t *ari);
+
+tnv_t*    expr_get_val(ari_t *ari);
+tnv_t*    expr_get_var(ari_t *ari);
+
+void      expr_release(expr_t *expr, int destroy);
+
+CborError expr_serialize(CborEncoder *encoder, void *item);
+
+blob_t*   expr_serialize_wrapper(expr_t *expr);
+
+void      op_cb_del_fn(void *item);
+int       op_cb_comp_fn(void *i1, void *i2);
+
+int       op_cb_ht_comp_fn(void *key, void *value);
+void      op_cb_ht_del_fn(rh_elt_t *elt);
+
+op_t*     op_copy_ptr(op_t *src);
+op_t*     op_create(ari_t *ari, uint8_t num, op_fn apply);
 
 
-void expr_release(expr_t *expr);
-
-uint8_t *expr_serialize(expr_t *expr, uint32_t *len);
-
-char *expr_to_string(expr_t *expr);
-
-
-
-value_t expr_get_atomic(mid_t *mid);
-value_t expr_get_computed(mid_t *mid);
-value_t expr_get_literal(mid_t *mid);
-value_t expr_get_val(mid_t *mid);
-value_t expr_apply_op(mid_t *op, Lyst *stack);
-
-value_t expr_eval(expr_t *expr);
+void      op_release(op_t *op, int destroy);
 
 
 #endif /* EXPR_H_ */

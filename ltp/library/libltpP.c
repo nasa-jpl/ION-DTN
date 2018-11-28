@@ -293,7 +293,7 @@ exceeded", utoa(closedExportBuf.sessionNbr));
 
 	return 0;
 }
-#endif
+#endif		/*	CLOSED_EXPORTS_ENABLED			*/
 
 #if BURST_SIGNALS_ENABLED
 static int	enqueueBurst(LtpXmitSeg *segment, LtpSpan *span, Object where,
@@ -400,7 +400,7 @@ static int	enqueueAckBurst(LtpXmitSeg *segment, Object spanObj,
 	segment->pdu.timer.expirationCount = oldExpirationCount;
 	return 0;
 }
-#endif
+#endif		/*	BURST_SIGNALS_ENABLED				*/
 
 /*	*	*	LTP service control functions	*	*	*/
 
@@ -912,6 +912,7 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.deliverables = sdr_list_create(sdr);
 		ltpdbBuf.estMaxExportSessions = estMaxExportSessions;
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
+		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
 		ltpdbBuf.maxBER = DEFAULT_MAX_BER;
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
@@ -1051,9 +1052,28 @@ int	ltpStart(char *lsiCmd)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
 	LtpVdb		*ltpvdb = _ltpvdb(NULL);
+	Object		ltpdbobj = getLtpDbObject();
+	LtpDB		ltpdb;
 	PsmAddress	elt;
 
-	if (lsiCmd == NULL)
+	if (lsiCmd)
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
+		istrcpy(ltpdb.lsiCmd, lsiCmd, sizeof ltpdb.lsiCmd);
+		sdr_write(sdr, ltpdbobj, (char *) &ltpdb, sizeof(LtpDB));
+		if (sdr_end_xn(sdr))
+		{
+			putErrmsg("Can't set lsi command.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		sdr_read(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
+	}
+
+	if (ltpdb.lsiCmd[0] == 0)	/*	No lsi command.		*/
 	{
 		putErrmsg("LTP can't start: no LSI command.", NULL);
 		return -1;
@@ -1065,7 +1085,7 @@ int	ltpStart(char *lsiCmd)
 
 	if (ltpvdb->lsiPid == ERROR || sm_TaskExists(ltpvdb->lsiPid) == 0)
 	{
-		ltpvdb->lsiPid = pseudoshell(lsiCmd);
+		ltpvdb->lsiPid = pseudoshell(ltpdb.lsiCmd);
 	}
 
 	/*	Start the LTP events clock if necessary.		*/
@@ -1429,6 +1449,7 @@ int	updateSpan(uvast engineId, unsigned int maxExportSessions,
 		char *lsoCmd, unsigned int qTime, int purge)
 {
 	Sdr		sdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		addr;
@@ -1495,6 +1516,31 @@ string too long.", lsoCmd);
 
 	/*	All parameters validated, okay to update the span.	*/
 
+	if (maxSegmentSize > 0 && maxSegmentSize != spanBuf.maxSegmentSize)
+	{
+		/*	Never shrink segment buffer, as it has to be
+		 *	large enough for currently queued segments,
+		 *	but expand it as necessary.			*/
+
+		if (maxSegmentSize > spanBuf.maxSegmentSize)
+		{
+			psm_free(ltpwm, vspan->segmentBuffer);
+			vspan->segmentBuffer = psm_malloc(ltpwm,
+					maxSegmentSize);
+			if (vspan->segmentBuffer == 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("No space for new segment buffer.",
+						itoa(maxSegmentSize));
+				return -1;
+			}
+		}
+
+		spanBuf.maxSegmentSize = maxSegmentSize;
+		vspan->maxXmitSegSize = maxSegmentSize;
+		computeRetransmissionLimits(vspan);
+	}
+
 	spanBuf.maxExportSessions = maxExportSessions;
 	spanBuf.maxImportSessions = maxImportSessions;
 	if (lsoCmd)
@@ -1509,13 +1555,6 @@ string too long.", lsoCmd);
 
 	spanBuf.remoteQtime = qTime;
 	spanBuf.purge = purge ? 1 : 0;
-	if (maxSegmentSize > 0 && maxSegmentSize != spanBuf.maxSegmentSize)
-	{
-		spanBuf.maxSegmentSize = maxSegmentSize;
-		vspan->maxXmitSegSize = maxSegmentSize;
-		computeRetransmissionLimits(vspan);
-	}
-
 	spanBuf.aggrSizeLimit = aggrSizeLimit;
 	if (aggrTimeLimit)
 	{
@@ -5271,12 +5310,12 @@ putErrmsg("Discarded mystery data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	/*	Note that we now always enforce the contact plan
-	 *	reception schedule, i.e., screening is always on.
+	/*	Note that we now enforce the contact plan reception
+	 *	schedule by default, i.e., screening is normally on.
 	 *	This is because we need a non-zero reception rate
 	 *	to enable rate control.					*/
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray data segment.", itoa(sessionNbr));
@@ -5301,16 +5340,18 @@ putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	/*	Enforce rate control.					*/
+	/*	Enforce reception rate control if possible.		*/
 
 	pdu->contentLength = (*cursor - endOfHeader) + pdu->length;
-
-	snoozeInterval = ((float) (pdu->contentLength) /
-			(float) (vspan->receptionRate)) * 1000000.0;
+	if (vspan->receptionRate > 0)
+	{
+		snoozeInterval = ((float) (pdu->contentLength) /
+				(float) (vspan->receptionRate)) * 1000000.0;
 #if 0
 printf("rate control: length %u converted to %f, rate %u converted to %f, interval %f converted to %d.\n", (pdu->contentLength), (float) (pdu->contentLength), (vspan->receptionRate), (float) (vspan->receptionRate), snoozeInterval, (int) snoozeInterval);
 #endif
-	microsnooze((int) snoozeInterval);
+		microsnooze((int) snoozeInterval);
+	}
 
 	/*	At this point, the remaining bytes should all be
 	 *	client service data and trailer extensions.  So
@@ -6007,6 +6048,11 @@ putErrmsg(buf, itoa(session->sessionNbr));
 	}
 
 	ltpSpanTally(vspan, OUT_SEG_QUEUED, length);
+	if (reportSerialNbr)
+	{
+		ltpSpanTally(vspan, SEG_RE_XMIT, length);
+	}
+
 	return 0;
 }
 
@@ -6081,7 +6127,8 @@ static void	getSessionContext(LtpDB *ltpdb, unsigned int sessionNbr,
 
 	sdr_read(sdr, (char *) spanBuf, *spanObj, sizeof(LtpSpan));
 	findSpan(spanBuf->engineId, vspan, vspanElt);
-	if (*vspanElt == 0 || (*vspan)->receptionRate == 0)
+	if (*vspanElt == 0
+	|| ((*vspan)->receptionRate == 0 && ltpdb->enforceSchedule == 1))
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));
@@ -6766,7 +6813,7 @@ putErrmsg("Handling report ack.", utoa(sessionNbr));
 		return 0;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));
@@ -6917,7 +6964,7 @@ putErrmsg("Handling cancel by sender.", utoa(sessionNbr));
 		return 0;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));
@@ -7069,7 +7116,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 		return -1;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrsmg("Discarding stray segment.", itoa(sessionNbr));
@@ -7295,7 +7342,7 @@ putErrmsg("Handling ack of cancel by receiver.", utoa(sessionNbr));
 		return 0;
 	}
 
-	if (vspan->receptionRate == 0)
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
 putErrmsg("Discarding stray segment.", itoa(sessionNbr));

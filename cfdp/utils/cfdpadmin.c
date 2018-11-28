@@ -9,6 +9,10 @@
 
 #include "cfdpP.h"
 
+#ifdef STRSOE
+#include <strsoe_cfdpadmin.h>
+#endif
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -826,7 +830,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -991,39 +998,29 @@ command.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToCfdp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//cfdp entity is not started
-					printText("CFDP entity is not started");
-					return 1;
-				}
-
-				//attached to cfdp system
-
-				*rc = cfdp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = cfdp_entity_is_started();
-			if (*rc)
-			{
-				printText("CFDP entity is started");
 			}
 			else
 			{
-				printText("CFDP entity is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToCfdp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//cfdp entity is not started
+				printText("CFDP entity is not started");
+				return 1;
+			}
+
+			//attached to cfdp system
+
+			*rc = cfdp_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -1093,7 +1090,7 @@ int	main(int argc, char **argv)
 	}
 	else					/*	Scripted.	*/
 	{
-		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
+		cmdFile = ifopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
 			PERROR("Can't open command file");
@@ -1135,3 +1132,15 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	cfdpadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	cfdpadmin_help(void)
+{
+	printUsage();
+}
+#endif

@@ -1314,6 +1314,7 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
+	microsnooze(100000);	/*	Maybe thread stops.		*/
 	if (vduct->hasThread)
 	{
 		/*	Duct is drained by a thread rather than a
@@ -2198,6 +2199,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 	findPlan(plan->neighborEid, &vplan, &vplanElt);
 	CHKVOID(vplanElt);
 	throttle = applicableThrottle(vplan);
+	CHKVOID(throttle);
 
 	/*	Prior claims on the first contact along this route
 	 *	must include however much transmission the plan
@@ -2788,8 +2790,7 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
-		BpPlan *plan)
+void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned int	backlogDecrement;
@@ -2797,7 +2798,7 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 
 	/*	Removal from queue reduces plan's backlog.		*/
 
-	CHKVOID(bundle && bundleObj && planObj && plan);
+	CHKVOID(bundle && plan);
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
 	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
 	{
@@ -2820,13 +2821,13 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 		reduceScalar(&(plan->urgentBacklog), backlogDecrement);
 	}
 
-	sdr_write(bpSdr, planObj, (char *) plan, sizeof(BpPlan));
+	/*	Removal from queue detaches queue from bundle.		*/
+
 	sdr_list_delete(bpSdr, bundle->planXmitElt, NULL, NULL);
 	bundle->planXmitElt = 0;
-	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 }
 
-static void	purgePlanXmitElt(Bundle *bundle, Object bundleObj)
+static void	purgePlanXmitElt(Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	queue;
@@ -2843,7 +2844,8 @@ static void	purgePlanXmitElt(Bundle *bundle, Object bundleObj)
 	}
 
 	sdr_stage(bpSdr, (char *) &plan, planObj, sizeof(BpPlan));
-	removeBundleFromQueue(bundle, bundleObj, planObj, &plan);
+	removeBundleFromQueue(bundle, &plan);
+	sdr_write(bpSdr, planObj, (char *) &plan, sizeof(BpPlan));
 }
 
 void	destroyBpTimelineEvent(Object timelineElt)
@@ -2953,7 +2955,7 @@ incomplete bundle.", NULL);
 
 		if (bundle.planXmitElt)
 		{
-			purgePlanXmitElt(&bundle, bundleObj);
+			purgePlanXmitElt(&bundle);
 		}
 
 		if (bundle.ductXmitElt)
@@ -3002,6 +3004,7 @@ incomplete bundle.", NULL);
 		bundle.custodyTaken = 0;
 		bundle.detained = 0;
 		bpDelTally(SrLifetimeExpired);
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 
 	/*	Check for any remaining constraints on deletion.	*/
@@ -5859,7 +5862,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
-	if(bundle->corrupt == 1)
+	if (bundle->corrupt)
 	{
 		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
 	}
@@ -8532,8 +8535,9 @@ static char	*getCustodialSchemeName(Bundle *bundle)
 
 static void	initAuthenticity(AcqWorkArea *work)
 {
-	Sdr		bpSdr = getIonsdr();
 	Object		secdbObj;
+#ifdef ORIGINAL_BSP
+	Sdr		bpSdr = getIonsdr();
 			OBJ_POINTER(SecDB, secdb);
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
@@ -8541,6 +8545,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 	Object		ruleAddr;
 	Object		elt;
 			OBJ_POINTER(BspBabRule, rule);
+#endif
 
 	work->authentic = work->allAuthentic;
 	if (work->authentic)		/*	Asserted by CL.		*/
@@ -8557,6 +8562,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
 	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0)
 	{
@@ -8593,6 +8599,10 @@ static void	initAuthenticity(AcqWorkArea *work)
 			work->authentic = 1;	/*	Trusted node.	*/
 		}
 	}
+#else
+	work->authentic = 1;	/*	No BABs, check BIBs instead.	*/
+	return;
+#endif
 }
 
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
@@ -8643,6 +8653,22 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
 			work->headerLength, bundle->payload.length);
+
+	/*	Make sure all required security blocks are present.	*/
+
+	switch (reviewExtensionBlocks(work))
+	{
+	case -1:
+		putErrmsg("Failed reviewing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+
+	case 0:
+		writeMemo("[?] Malformed bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
@@ -10528,17 +10554,16 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-int	reverseEnqueue(Object xmitElt, Object planObj, BpPlan *plan,
-		int sendToLimbo)
+int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
 
-	CHKERR(xmitElt && planObj && plan);
+	CHKERR(xmitElt && plan);
 	bundleAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	removeBundleFromQueue(&bundle, bundleAddr, planObj, plan);
+	removeBundleFromQueue(&bundle, plan);
 	if (bundle.proxNodeEid)
 	{
 		sdr_free(bpSdr, bundle.proxNodeEid);
@@ -10619,7 +10644,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10631,7 +10656,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10643,7 +10668,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10895,6 +10920,8 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	Bundle		bundle;
 	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 	DequeueContext	context;
 	char		*dictionary;
 
@@ -10964,11 +10991,34 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	findPlan(proxNodeEid, &vplan, &vplanElt);
+	if (vplanElt)
+	{
+		context.xmitRate = vplan->xmitThrottle.nominalRate;
+	}
+	else
+	{
+		context.xmitRate = 0;
+	}
+
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");
 		sdr_cancel_xn(bpSdr);
 		return -1;
+	}
+
+	if (bundle.corrupt)
+	{
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 1) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		return sdr_end_xn(bpSdr);
 	}
 
 	if (bundle.overdueElt)
@@ -11814,7 +11864,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	purgeStationsStack(&bundle);
 	if (bundle.planXmitElt)
 	{
-		purgePlanXmitElt(&bundle, bundleAddr);
+		purgePlanXmitElt(&bundle);
 	}
 
 	if (bundle.ductXmitElt)

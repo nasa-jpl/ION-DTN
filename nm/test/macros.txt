@@ -1,0 +1,39 @@
+# Create a Macro that dumps an AMP full report. Clears the AMP report. Produces new Report.
+# Type: Macro. NN=1, ISS=1, Name=1
+# 0xa401410101
+#
+c1154107584285054312242543624d3145a40141010158308354c11541054f840542252347814587181941004180448115410f54c11541054f840542252347814587181941004180
+WAIT 1
+
+#Describe Macro
+c11541094c83054125478145a401410101
+WAIT 1
+
+# Reboot manager and see if macro reloads.
+
+# Request table of known macros.
+#
+c11541064f84054225234781458a181b41034180
+WAIT 1
+
+# Reboot agent and see if macro comes back.
+
+# Request table of known macros. Make sure it is still there.
+c11541064f84054225234781458a181b41034180
+WAIT 1
+
+# Delete Macro
+c11541084c83054125478145a401410101
+WAIT 1
+
+# Request table of known macros and make sure macro is no longer listed.
+
+# Reboot agent and make sure macro doesn't come back.
+
+# Request table of known macros. Make sure it is no longer there.
+c11541064f84054225234781458a181b41034180
+
+
+
+
+

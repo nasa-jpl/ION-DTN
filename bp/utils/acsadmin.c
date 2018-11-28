@@ -220,7 +220,10 @@ static int	acsadmin_processLine(char *line)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 

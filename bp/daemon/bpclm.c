@@ -510,13 +510,6 @@ int	main(int argc, char *argv[])
 
 	planObj = sdr_list_data(sdr, vplan->planElt);
 	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
-	throttle = applicableThrottle(vplan);
-	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
-
-	/*	NOTE: plan deletion doesn't remove a Plan until its
-	 *	clm pid is -1, so we don't need to re-find the Plan
-	 *	after transaction exit.					*/
-
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = plan.bulkQueue;
 	outflows[1].outboundBundles = plan.stdQueue;
@@ -525,6 +518,8 @@ int	main(int argc, char *argv[])
 	{
 		outflows[i].svcFactor = 1 << i;
 	}
+
+	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
 
 	/*	Set up signal handling.					*/
 
@@ -545,6 +540,8 @@ int	main(int argc, char *argv[])
 	while (running)
 	{
 		CHKZERO(sdr_begin_xn(sdr));
+		throttle = applicableThrottle(vplan);
+		CHKZERO(throttle);
 
 		/*	Wait until (a) there is at least one outduct,
 		 *	(b) maximum payload length is known, and (c)
@@ -552,6 +549,7 @@ int	main(int argc, char *argv[])
 
 		if (sdr_list_length(sdr, plan.ducts) == 0
 		|| maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0
+		|| (throttle->nominalRate == 0 && maxPayloadLength > 0)
 		|| (throttle->nominalRate > 0 && throttle->capacity <= 0))
 		{
 			sdr_exit_xn(sdr);
@@ -605,8 +603,11 @@ int	main(int argc, char *argv[])
 		getOutduct(vplan, &bundle, &vduct);
 		if (vduct == NULL)		/*	No usable duct.	*/
 		{
-			removeBundleFromQueue(&bundle, bundleObj, planObj,
-					&plan);
+			sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+			removeBundleFromQueue(&bundle, &plan);
+			sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+			sdr_write(sdr, bundleObj, (char *) &bundle,
+					sizeof(Bundle));
 			oK(enqueueToLimbo(&bundle, bundleObj));
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -640,8 +641,13 @@ int	main(int argc, char *argv[])
 				 *	neighboring node.  Reforward
 				 *	it and get another bundle.	*/
 
-				removeBundleFromQueue(&bundle, bundleObj,
-						planObj, &plan);
+				sdr_stage(sdr, (char *) &plan, planObj,
+						sizeof(BpPlan));
+				removeBundleFromQueue(&bundle, &plan);
+				sdr_write(sdr, planObj, (char *) &plan,
+						sizeof(BpPlan));
+				sdr_write(sdr, bundleObj, (char *) &bundle,
+						sizeof(Bundle));
 				if (bpReforwardBundle(bundleObj) < 0)
 				{
 					sdr_cancel_xn(sdr);
@@ -732,7 +738,9 @@ int	main(int argc, char *argv[])
 		/*	Pop the outbound bundle out of its issuance
 		 *	queue.						*/
 
-		removeBundleFromQueue(&bundle, bundleObj, planObj, &plan);
+		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		removeBundleFromQueue(&bundle, &plan);
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 
 		/*	Pass the bundle to the outduct.			*/
 

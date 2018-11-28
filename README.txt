@@ -31,11 +31,12 @@ software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
 
-To build the entire ION system on a Linux, OS/X, or Solaris platform,
-just cd into ion-open-source and enter two commands:
+To build and install the entire ION system on a Linux, OS/X, or Solaris platform,
+just cd into ion-open-source and enter three commands:
 
 	./configure
-	./make
+	make
+	sudo make install
 
 NOTE: if you want to set overriding compile-time switches for a build, 
 the place to do this is in the ./configure command.  For details,
@@ -48,7 +49,8 @@ see the instructions in the README.bionic text file.
 To build ION for RTEMS, cd into ion-open-source/arch-rtems and
 see the instructions in the README text file.
 
-To build ION for Windows, see the instructions in the winion.pdf document.
+To build ION for Windows, see the instructions in the "Building ION from source
+on Windows.pdf" document.
 
 To build ION for the ARM-based AT91SAM9G20 board, cd into
 ion-open-source/arch-uClibc and see the instructions in the
@@ -78,6 +80,9 @@ directories of some of the subsystems.
 
 Note that all Makefiles are for gmake; on a freebsd platform, be sure
 to install gmake before trying to build ION.
+
+Tutorials can be found on the ION-DTN Sourceforge page at
+https://sourceforge.net/p/ion-dtn/wiki/Tutorial_Home/.
 
 Scott Burleigh, JPL
 scott.c.burleigh@jpl.nasa.gov 

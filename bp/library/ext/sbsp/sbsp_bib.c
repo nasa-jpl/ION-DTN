@@ -22,6 +22,7 @@
  **              sbsp_bibProcessOnDequeue
  **              sbsp_bibRelease
  **              sbsp_bibCopy
+ **                                                  sbsp_bibReview
  **                                                  sbsp_bibParse
  **                                                  sbsp_bibCheck
  **                                                  sbsp_bibRecord
@@ -53,8 +54,6 @@
  **  11/02/15  E. Birrane     Update for generic proc and profiles
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-
-
 #include "sbsp_bib.h"
 #include "csi.h"
 #include "sbsp_instr.h"
@@ -62,8 +61,6 @@
 #if (BIB_DEBUGGING == 1)
 extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
-
-
 
 
 /******************************************************************************
@@ -105,74 +102,106 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *            S. Burleigh    Initial Implementation
  *  11/03/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
+ *  07/19/18  S. Burleigh    Abandon bundle if can't attach BIB
  *****************************************************************************/
 
-int	sbsp_bibAttach(Bundle *bundle,
-                        ExtensionBlock *bibBlk,
-	                    SbspOutboundBlock *bibAsb)
+static int	sbsp_bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
+			SbspOutboundBlock *bibAsb)
 {
-	int8_t	    result = 0;
+	int8_t		result = 0;
 	char		*fromEid;
 	char		*toEid;
+	char		eidBuf[32];
 	BspBibRule	bibRule;
 	BibProfile	*prof;
-	uint8_t	    *serializedAsb;
-	uvast bytes = 0;
+	uint8_t		*serializedAsb;
+	uvast		bytes = 0;
 
-	BIB_DEBUG_PROC("+ sbsp_bibAttach("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr) bundle, (uaddr) bibBlk, (uaddr) bibAsb);
+	BIB_DEBUG_PROC("+ sbsp_bibAttach(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC
+			"," ADDR_FIELDSPEC ")", (uaddr) bundle, (uaddr) bibBlk,
+			(uaddr) bibAsb);
 
 	/* Step 0 - Sanity checks. */
 	CHKERR(bundle);
 	CHKERR(bibBlk);
 	CHKERR(bibAsb);
 
-	/* Step 1 - Grab Policy for the candidate block. */
+	/* Step 1 -	Grab Policy for the candidate block. 		*/
 
-	/* Step 1.1 - Retrieve the from/to EIDs that bound the integrity service. */
-	if (sbsp_getOutboundSecurityEids(bundle, bibBlk, bibAsb, &fromEid, &toEid) <= 0)
+	/* Step 1.1 -   Retrieve the from/to EIDs that bound the
+			integrity service.				*/
+
+	if (sbsp_getOutboundSecurityEids(bundle, bibBlk, bibAsb, &fromEid,
+			&toEid) <= 0)
 	{
-		BIB_DEBUG_ERR("x sbsp_bibAttach: Can't get security EIDs.", NULL);
+		BIB_DEBUG_ERR("x sbsp_bibAttach: Can't get security EIDs.",
+				NULL);
 		result = -1;
 		BIB_DEBUG_PROC("- sbsp_bibAttach -> %d", result);
 		return result;
 	}
 
+	/*	We only attach a BIB per a rule for which the local
+		node is the security source.				*/
+
+	MRELEASE(fromEid);
+	isprintf(eidBuf, sizeof eidBuf, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	fromEid = eidBuf;
+
 	/*
-	 * Step 1.2 - Grab the profile for integrity for the target block from the
-	 *            EIDs. If there is no profile, the assumption is that there
-	 *            is no policy for attaching BIBs in this instance.
+	 * Step 1.2 -	Grab the profile for integrity for the target
+	 *		block from the EIDs. If there is no rule,
+	 *		then there is no policy for attaching BIBs
+	 *		in this instance.  If there is a rule but
+	 *		no matching profile then the bundle must not
+	 *		be forwarded.
 	 */
-	prof = sbsp_bibGetProfile(fromEid, toEid, bibAsb->targetBlockType, &bibRule);
+
+	prof = sbsp_bibGetProfile(fromEid, toEid, bibAsb->targetBlockType,
+			&bibRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
-		BIB_DEBUG(2, "NOT Attaching BIB.", NULL);
+		if (bibRule.destEid == 0)	/*	No rule.	*/
+		{
+			BIB_DEBUG(2, "NOT Attaching BIB; no rule.", NULL);
 
-		/*	No applicable valid construction rule.		*/
-		scratchExtensionBlock(bibBlk);
+			/*	No applicable valid construction rule.	*/
+
+			result = 0;
+			scratchExtensionBlock(bibBlk);
+			BIB_DEBUG_PROC("- sbsp_bibAttach -> %d", result);
+			return result;
+		}
+
+		BIB_DEBUG(2, "NOT Attaching BIB; no profile.", NULL);
+
+		/*	No applicable ciphersuite profile.		*/
+
 		result = 0;
-		MRELEASE(fromEid);
+		bundle->corrupt = 1;
+		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- sbsp_bibAttach -> %d", result);
 		return result;
 	}
-
 
 	BIB_DEBUG(2, "Attaching BIB.", NULL);
 
 	/* Step 2 - Populate the BIB ASB. */
 
 	/* Step 2.1 - Grab the key name for this operation. */
+
 	memcpy(bibAsb->keyName, bibRule.keyName, SBSP_KEY_NAME_LEN);
 
 	/* Step 2.2 - Initialize the BIB ASB. */
-	result = (prof->construct == NULL) ?
-			 sbsp_bibDefaultConstruct(prof->suiteId, bibBlk, bibAsb) :
-			 prof->construct(bibBlk, bibAsb);
 
-	if(result < 0)
+	result = (prof->construct == NULL) ?
+			sbsp_bibDefaultConstruct(prof->suiteId, bibBlk, bibAsb)
+			: prof->construct(bibBlk, bibAsb);
+	if (result < 0)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, 0);
-		MRELEASE(fromEid);
 
 		BIB_DEBUG_ERR("x sbsp_bibAttach: Can't construct ASB.", NULL);
 		result = -1;
@@ -185,44 +214,45 @@ int	sbsp_bibAttach(Bundle *bundle,
 	/* Step 2.2 - Sign the target block and store the signature. */
 
 	result = (prof->sign == NULL) ?
-			 sbsp_bibDefaultSign(prof->suiteId, bundle, bibBlk, bibAsb, &bytes) :
-			 prof->sign(bundle, bibBlk, bibAsb, &bytes);
+			sbsp_bibDefaultSign(prof->suiteId, bundle, bibBlk,
+			bibAsb, &bytes)
+			: prof->sign(bundle, bibBlk, bibAsb, &bytes);
 
 	if (result < 0)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
-		MRELEASE(fromEid);
 
-		BIB_DEBUG_ERR("x sbsp_bibAttach: Can't sign target block.", NULL);
+		BIB_DEBUG_ERR("x sbsp_bibAttach: Can't sign target block.",
+				NULL);
 		result = -1;
 		bundle->corrupt = 1;
-
 		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- sbsp_bibAttach --> %d", result);
 		return result;
 	}
-
 
 	/* Step 3 - serialize the BIB ASB into the BIB blk. */
 
 	/* Step 3.1 - Create a serialized version of the BIB ASB. */
-	if((serializedAsb = sbsp_serializeASB((uint32_t *) &(bibBlk->dataLength), bibAsb)) == NULL)
+
+	if ((serializedAsb = sbsp_serializeASB((uint32_t *)
+			&(bibBlk->dataLength), bibAsb)) == NULL)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
-		MRELEASE(fromEid);
 
-		BIB_DEBUG_ERR("x sbsp_bibAttach: Unable to serialize ASB.  bibBlk->dataLength = %d",
-				      bibBlk->dataLength);
+		BIB_DEBUG_ERR("x sbsp_bibAttach: Unable to serialize ASB.  \
+bibBlk->dataLength = %d", bibBlk->dataLength);
 		result = -1;
 		bundle->corrupt = 1;
-
 		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- sbsp_bibAttach --> %d", result);
 		return result;
 	}
 
-	/* Step 3.2 - Copy the serializedBIB ASB into the BIB extension block. */
-	if((result = serializeExtBlk(bibBlk, NULL, (char *) serializedAsb)) < 0)
+	/* Step 3.2 - Copy serializedBIB ASB into the BIB extension block. */
+
+	if ((result = serializeExtBlk(bibBlk, NULL, (char *) serializedAsb))
+			< 0)
 	{
 		bundle->corrupt = 1;
 	}
@@ -230,12 +260,10 @@ int	sbsp_bibAttach(Bundle *bundle,
 	MRELEASE(serializedAsb);
 
 	ADD_BIB_TX_PASS(fromEid, 1, bytes);
-	MRELEASE(fromEid);
 
 	BIB_DEBUG_PROC("- sbsp_bibAttach --> %d", result);
-	return 1;
+	return result;
 }
-
 
 
 /******************************************************************************
@@ -260,15 +288,15 @@ int	sbsp_bibAttach(Bundle *bundle,
 
 int sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	Bundle		*bundle;
-	char		*dictionary;
+	Bundle			*bundle;
+	char			*dictionary;
 	SbspInboundBlock	*asb = NULL;
-	char		*fromEid;
-	char		*toEid;
-	BspBibRule	bibRule;
-	BibProfile	*prof;
-	int8_t		result;
-	uvast bytes = 0;
+	char			*fromEid;
+	char			*toEid;
+	BspBibRule		bibRule;
+	BibProfile		*prof;
+	int8_t			result;
+	uvast			bytes = 0;
 
 	BIB_DEBUG_PROC("+ sbsp_bibCheck(%x, %x)", (unsigned long) blk,
 			(unsigned long) wk);
@@ -328,7 +356,8 @@ int sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BIB rule.	*/
 
-	prof = sbsp_bibGetProfile(fromEid, toEid, asb->targetBlockType, &bibRule);
+	prof = sbsp_bibGetProfile(fromEid, toEid, asb->targetBlockType,
+			&bibRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
@@ -371,9 +400,8 @@ int sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	/*	Invoke ciphersuite-specific check procedure.		*/
 
 	result = (prof->verify == NULL) ?
-				 sbsp_bibDefaultVerify(prof->suiteId, wk, blk, &bytes) :
-				 prof->verify(wk, blk, &bytes);
-
+			sbsp_bibDefaultVerify(prof->suiteId, wk, blk, &bytes)
+			: prof->verify(wk, blk, &bytes);
 
 	/*	Discard the BIB if the local node is the destination
 	 *	of the bundle or the BIB is invalid or verification
@@ -382,18 +410,15 @@ int sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	 *	is retained.						*/
 
 	BIB_DEBUG_INFO("i sbsp_bibCheck: Verify result was %d", result);
-
-	if (result == 0 || result == 4 || sbsp_destinationIsLocal(&(wk->bundle)))
+	if ((result == 0) || (result == 4))
 	{
-		if((result == 0) || (result == 4))
-		{
-			ADD_BIB_RX_FAIL(fromEid, 1, bytes);
-		}
-		else
-		{
-			BIB_DEBUG(2, "BIB check passed.", NULL);
-			ADD_BIB_RX_PASS(fromEid, 1, bytes);
-		}
+		ADD_BIB_RX_FAIL(fromEid, 1, bytes);
+		discardExtensionBlock(blk);
+	}
+	else if (sbsp_destinationIsLocal(&(wk->bundle)))
+	{
+		BIB_DEBUG(2, "BIB check passed.", NULL);
+		ADD_BIB_RX_PASS(fromEid, 1, bytes);
 		discardExtensionBlock(blk);
 	}
 	else
@@ -407,7 +432,6 @@ int sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	BIB_DEBUG_PROC("- sbsp_bibCheck(%d)", result);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -506,7 +530,7 @@ int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	/* Step 2 - Allocate the new destination BIB. */
 	newBlk->size = sizeof(asb);
-	if((newBlk->object = sdr_malloc(bpSdr, sizeof asb)) == 0)
+	if ((newBlk->object = sdr_malloc(bpSdr, sizeof asb)) == 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibCopy: Failed to allocate: %d",
 				sizeof(asb));
@@ -528,7 +552,7 @@ int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	if (asb.parmsData)
 	{
-		if((buffer = MTAKE(asb.parmsLen)) == NULL)
+		if ((buffer = MTAKE(asb.parmsLen)) == NULL)
 		{
 			BIB_DEBUG_ERR("x sbsp_bibCopy: Failed to allocate: %d",
 					      asb.parmsLen);
@@ -539,7 +563,7 @@ int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 		sdr_read(bpSdr, (char *) buffer, asb.parmsData, asb.parmsLen);
 
-		if((asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen)) == 0)
+		if ((asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen)) == 0)
 		{
 			BIB_DEBUG_ERR("x sbsp_bibCopy: Failed to allocate: %d",
   					      asb.parmsLen);
@@ -561,7 +585,7 @@ int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	if (asb.resultsData)
 	{
-		if((buffer = MTAKE(asb.resultsLen)) == NULL)
+		if ((buffer = MTAKE(asb.resultsLen)) == NULL)
 		{
 			BIB_DEBUG_ERR("x sbsp_bibCopy: Failed to allocate: %d",
 					       asb.resultsLen);
@@ -569,7 +593,7 @@ int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		}
 
 		sdr_read(bpSdr, (char *) buffer, asb.resultsData, asb.resultsLen);
-		if((asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen)) == 0)
+		if ((asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen)) == 0)
 		{
 			BIB_DEBUG_ERR("x sbsp_bibCopy: Failed to allocate: %d",
 					asb.resultsLen);
@@ -588,7 +612,6 @@ int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	BIB_DEBUG_PROC("- sbsp_bibCopy -> %d", result);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -638,7 +661,7 @@ int sbsp_bibDefaultCompute(Object dataObj,
 	CHKERR(context);
 
 	/* Step 2 - Allocate a working buffer. */
-	if((dataBuffer = MTAKE(chunkSize)) == NULL)
+	if ((dataBuffer = MTAKE(chunkSize)) == NULL)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultCompute - Can't allocate buffer of size %d.",
 				chunkSize);
@@ -650,7 +673,7 @@ int sbsp_bibDefaultCompute(Object dataObj,
 	 *          The data object is the target block.
 	 */
 
-	if((bytesRemaining = zco_length(bpSdr, dataObj)) <= 0)
+	if ((bytesRemaining = zco_length(bpSdr, dataObj)) <= 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultCompute - data object has no length.", NULL);
 		MRELEASE(dataBuffer);
@@ -660,7 +683,7 @@ int sbsp_bibDefaultCompute(Object dataObj,
 
 	BIB_DEBUG_INFO("i sbsp_bibDefaultCompute bytesRemaining: %d", bytesRemaining);
 
-	if((sdr_begin_xn(bpSdr)) == 0)
+	if ((sdr_begin_xn(bpSdr)) == 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultCompute - Can't start txn.", NULL);
 		MRELEASE(dataBuffer);
@@ -711,7 +734,6 @@ int sbsp_bibDefaultCompute(Object dataObj,
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bibDefaultConstruct
@@ -754,12 +776,14 @@ int sbsp_bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, SbspOutboundBl
 	asb->resultsData = 0;
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
+#if 0
 	asb->ciphersuiteFlags = SBSP_ASB_RES;
-    asb->resultsLen = sbsp_bibDefaultResultLen(asb->ciphersuiteType, 1);
+#endif
+	asb->ciphersuiteFlags = 0;
+	asb->resultsLen = sbsp_bibDefaultResultLen(asb->ciphersuiteType, 1);
 
 	return 0;
 }
-
 
 
 /******************************************************************************
@@ -802,13 +826,13 @@ uint32_t sbsp_bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 	context = csi_ctx_init(suite, key, CSI_SVC_SIGN);
 	result = csi_sign_res_len(suite, context);
 
-	if(result == 0)
+	if (result == 0)
 	{
 		csi_ctx_free(suite, context);
 		return 0;
 	}
 
-	if(tlv != 0)
+	if (tlv != 0)
 	{
 		Sdnv resultSdnv;
 		encodeSdnv(&resultSdnv, result);
@@ -820,7 +844,6 @@ uint32_t sbsp_bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 	csi_ctx_free(suite, context);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -883,14 +906,14 @@ int sbsp_bibDefaultSign(uint32_t suite,
 	key = sbsp_retrieveKey(asb->keyName);
 
 	/* Step 2 - Grab and initialize a crypto context. */
-	if((context = csi_ctx_init(suite, key, CSI_SVC_SIGN)) == NULL)
+	if ((context = csi_ctx_init(suite, key, CSI_SVC_SIGN)) == NULL)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultSign - Can't get context.", NULL);
 		BIB_DEBUG_PROC("- sbsp_bibDefaultSign--> NULL", NULL);
 		return ERROR;
 	}
 
-	if(csi_sign_start(suite, context) == ERROR)
+	if (csi_sign_start(suite, context) == ERROR)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultSign - Can't start context.", NULL);
 		csi_ctx_free(suite, context);
@@ -921,7 +944,7 @@ int sbsp_bibDefaultSign(uint32_t suite,
 
 	MRELEASE(key.contents);
 
-	if(retval == ERROR)
+	if (retval == ERROR)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultSign: Can't compute hash.", NULL);
 		csi_ctx_free(suite, context);
@@ -929,7 +952,7 @@ int sbsp_bibDefaultSign(uint32_t suite,
 		return ERROR;
 	}
 
-	if((csi_sign_finish(suite, context, &digest, CSI_SVC_SIGN)) == ERROR)
+	if ((csi_sign_finish(suite, context, &digest, CSI_SVC_SIGN)) == ERROR)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultSign - Can't Finalize.", NULL);
 		csi_ctx_free(suite, context);
@@ -947,7 +970,7 @@ int sbsp_bibDefaultSign(uint32_t suite,
 
 	/* Step 2.2 Allocate space for the encoded result TLV */
 	resultsLen = 1 + digestSdnv.length + digest.len;
-	if((temp = (unsigned char *) MTAKE(resultsLen)) == NULL)
+	if ((temp = (unsigned char *) MTAKE(resultsLen)) == NULL)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultSign: Can't allocate result of len %ld.", resultsLen);
 		MRELEASE(digest.contents);
@@ -963,7 +986,7 @@ int sbsp_bibDefaultSign(uint32_t suite,
 
 	/* Step 3 - Store the security result in the ASB and on the SDR. */
 	asb->resultsLen = resultsLen;
-	if((asb->resultsData = sdr_malloc(bpSdr, resultsLen)) == 0)
+	if ((asb->resultsData = sdr_malloc(bpSdr, resultsLen)) == 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultSign: Can't allocate heap \
 space for ASB result, len %ld.", resultsLen);
@@ -978,8 +1001,6 @@ space for ASB result, len %ld.", resultsLen);
 
 	return 0;
 }
-
-
 
 
 /******************************************************************************
@@ -1032,24 +1053,26 @@ int sbsp_bibDefaultVerify(uint32_t suite,
 	*bytes = 0;
 	asb = (SbspInboundBlock *) (blk->object);
 
+#if 0
 	if ((asb->ciphersuiteFlags & SBSP_ASB_RES) == 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultVerify: No security result.", NULL);
 		return 0;
 	}
+#endif
 
 	/* Step 1 - Compute the security result for the target block. */
 	key = sbsp_retrieveKey(asb->keyName);
 
 	/* Step 2 - Grab and initialize a crypto context. */
-	if((context = csi_ctx_init(suite, key, CSI_SVC_VERIFY)) == NULL)
+	if ((context = csi_ctx_init(suite, key, CSI_SVC_VERIFY)) == NULL)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultVerify - Can't get context.", NULL);
 		BIB_DEBUG_PROC("- sbsp_bibDefaultVerify--> NULL", NULL);
 		return ERROR;
 	}
 
-	if(csi_sign_start(suite, context) == ERROR)
+	if (csi_sign_start(suite, context) == ERROR)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultVerify - Can't start context.", NULL);
 		csi_ctx_free(suite, context);
@@ -1083,7 +1106,7 @@ int sbsp_bibDefaultVerify(uint32_t suite,
 	MRELEASE(key.contents);
 
 
-	if(retval == ERROR)
+	if (retval == ERROR)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultVerify: Can't compute hash.", NULL);
 		csi_ctx_free(suite, context);
@@ -1094,7 +1117,7 @@ int sbsp_bibDefaultVerify(uint32_t suite,
 
 	assertedDigest = csi_extract_tlv(CSI_PARM_INTSIG, asb->resultsData, asb->resultsLen);
 
-	if((retval = csi_sign_finish(suite, context, &assertedDigest, CSI_SVC_VERIFY)) != 1)
+	if ((retval = csi_sign_finish(suite, context, &assertedDigest, CSI_SVC_VERIFY)) != 1)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibDefaultVerify - Can't Finalize and Verify.", NULL);
 	}
@@ -1107,7 +1130,6 @@ int sbsp_bibDefaultVerify(uint32_t suite,
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bibGetProfile
@@ -1118,18 +1140,19 @@ int sbsp_bibDefaultVerify(uint32_t suite,
  *               identifier of the bundle block receiving the integrity
  *               protection.
  *
- *               The ciphersuite profile captures all policy decisions associated
- *               with the application of integrity for the given target block
- *               from the given security source to the security destination. If
- *               no profile exists, then there is no policy requiring a BIB for
- *               the given block between the source and destination.
+ *               The ciphersuite profile captures all function implementations
+ *		 associated with the application of integrity for the given
+ *		 target block from the given security source to the security
+ *		 destination. If no profile exists, then there is no implemen-
+ *		 tation of BIB for the given block between the source and
+ *		 destination; any security policy rule requiring such an
+ *		 implementation has been violated.
  *
  * \retval BibProfile *  NULL  - No profile found.
  *            -          !NULL - The appropriate BIB Profile
  *
- * \param[in]  secSrc     The EID of the node seeking to add the BIB
- * \param[in]  secDest    The bundle destination ultimately responsible
- *                        for verifying the integrity of the BIB.
+ * \param[in]  secSrc     The EID of the node that creates the BIB.
+ * \param[in]  secDest    The EID of the node that verifies the BIB.
  * \param[in]  secTgtType The block type of the target block.
  * \param[out] secBibRule The BIB rule capturing security policy.
  *
@@ -1145,20 +1168,18 @@ int sbsp_bibDefaultVerify(uint32_t suite,
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-BibProfile *sbsp_bibGetProfile(char *securitySource,
-		                        char *securityDest,
-			                    int8_t targetBlkType,
-								BspBibRule *bibRule)
+BibProfile	*sbsp_bibGetProfile(char *securitySource, char *securityDest,
+			int8_t targetBlkType, BspBibRule *bibRule)
 {
-	BibProfile *result = NULL;
-	Sdr	bpSdr = getIonsdr();
-	Object	ruleAddr;
-	Object	ruleElt;
+	Sdr		bpSdr = getIonsdr();
+	Object		ruleAddr;
+	Object		ruleElt;
+	BibProfile	*prof = NULL;
 
 	BIB_DEBUG_PROC("+ sbsp_bibGetProfile(%s, %s, %d, 0x%x)",
-					   (securitySource == NULL) ? "NULL" : securitySource,
-					   (securityDest == NULL) ? "NULL" : securityDest,
-					   targetBlkType, (unsigned long) bibRule);
+			(securitySource == NULL) ? "NULL" : securitySource,
+			(securityDest == NULL) ? "NULL" : securityDest,
+			targetBlkType, (unsigned long) bibRule);
 
 	/* Step 1 - Sanity Checks. */
 	CHKNULL(bibRule);
@@ -1170,28 +1191,25 @@ BibProfile *sbsp_bibGetProfile(char *securitySource,
 	if (ruleElt == 0)	/*	No matching rule.		*/
 	{
 		memset((char *) bibRule, 0, sizeof(BspBibRule));
-		BIB_DEBUG_INFO("i sbsp_bibGetProfile: No rule found \
-for BIBs. No BIB processing for this bundle.", NULL);
+		BIB_DEBUG_INFO("i sbsp_bibGetProfile: No rule found for BIBs. \
+No BIB processing for this bundle.", NULL);
 		return NULL;
 	}
 
-	/*	Given the applicable BIB rule, get the ciphersuite profile.	*/
+	/*	Given applicable BIB rule, get the ciphersuite profile.	*/
 
 	sdr_read(bpSdr, (char *) bibRule, ruleAddr, sizeof(BspBibRule));
-	result = get_bib_prof_by_name(bibRule->ciphersuiteName);
-	if (result == NULL)
+	prof = get_bib_prof_by_name(bibRule->ciphersuiteName);
+	if (prof == NULL)
 	{
-		BIB_DEBUG_INFO("i sbsp_bibGetProfile: Profile \
-of BIB rule is unknown '%s'.  No BIB processing for this bundle.",
-				bibRule->ciphersuiteName);
+		BIB_DEBUG_INFO("i sbsp_bibGetProfile: Profile of BIB rule is \
+unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
 	}
 
-	return result;
+	BIB_DEBUG_PROC("- sbsp_bibGetProfile -> 0x%x", (unsigned long) prof);
+
+	return prof;
 }
-
-
-
-
 
 
 /******************************************************************************
@@ -1278,7 +1296,7 @@ int	sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	}
 
     /* Step 1.3 - Make sure OP(integrity, target) isn't already there. */
-	if(sbsp_findBlock(bundle, BLOCK_TYPE_BIB, blk->tag1, 0, 0))
+	if (sbsp_findBlock(bundle, BLOCK_TYPE_BIB, blk->tag1, 0, 0))
 	{
 		/*	Don't create a placeholder BIB for this block.	*/
 		BIB_DEBUG_ERR("x sbsp_bibOffer - BIB already exists for tgt %d", blk->tag1);
@@ -1301,7 +1319,7 @@ int	sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	CHKERR(sdr_begin_xn(bpSdr));
 
 	blk->size = sizeof(SbspOutboundBlock);
-	if((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
+	if ((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
 	{
 		BIB_DEBUG_ERR("x sbsp_bibOffer: Failed to SDR allocate %d bytes",
 				      blk->size);
@@ -1343,10 +1361,10 @@ int	sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	/*
 	 * Step 4.2 If target is the payload, sign the target
-	 * and attached the BIB.
+	 * and attach the BIB.
 	 */
 
-	if((result = sbsp_bibAttach(bundle, blk, &asb)) <= 0)
+	if ((result = sbsp_bibAttach(bundle, blk, &asb)) <= 1)
 	{
 		CHKERR(sdr_begin_xn(bpSdr));
 		sdr_free(bpSdr, blk->object);
@@ -1361,6 +1379,75 @@ int	sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	return result;
 }
 
+
+/******************************************************************************
+ *
+ * \par Function Name: sbsp_bibReview
+ *
+ * \par Purpose: This callback is called once for each acquired bundle.
+ *		 It scans through all BIB security rules and ensures
+		 that each required BIB is included among the bundle's
+		 extension blocks.
+ *
+ * \retval int -- 1 - All required BIBs are present.
+ *                0 - At least one required BIB is missing.
+ *               -1 - There was a system error.
+ *
+ * \param[in]      wk   The work area associated with this bundle acquisition.
+ *
+ * \par Notes:
+ *****************************************************************************/
+
+int	sbsp_bibReview(AcqWorkArea *wk)
+{
+	Sdr	sdr = getIonsdr();
+	char	secDestEid[32];
+	Object	rules;
+	Object	elt;
+	Object	ruleAddr;
+		OBJ_POINTER(BspBibRule, rule);
+	char	eidBuffer[SDRSTRING_BUFSZ];
+	int	result = 1;	/*	Default: no problem.		*/
+
+	BIB_DEBUG_PROC("+ sbsp_bibReview(%x)", (unsigned long) wk);
+
+	CHKERR(wk);
+
+	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	rules = sec_get_bspBibRuleList();
+	CHKERR(rules);
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sdr_list_first(sdr, rules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		ruleAddr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleAddr);
+		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
+		if (strcmp(eidBuffer, secDestEid) != 0)
+		{
+			/*	No requirement against local node.	*/
+
+			continue;
+		}
+
+		/*	A block satisfying this rule is required.	*/
+
+		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
+		result = sbsp_requiredBlockExists(wk, BLOCK_TYPE_BIB,
+				rule->blockTypeNbr, eidBuffer);
+		if (result != 1)
+		{
+			break;
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	BIB_DEBUG_PROC("- sbsp_bibReview -> %d", result);
+
+	return result;
+}
 
 
 /******************************************************************************
@@ -1401,8 +1488,6 @@ int	sbsp_bibParse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	return result;
 }
-
-
 
 
 /******************************************************************************
@@ -1496,7 +1581,7 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 	}
 
 	/*
-	 * Step 2 - Calculate the BIB for the target and attached it
+	 * Step 2 - Calculate the BIB for the target and attach it
 	 *          to the bundle.
 	 */
 	result = sbsp_bibAttach(bundle, blk, &asb);
@@ -1504,7 +1589,6 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 	BIB_DEBUG_PROC("- sbsp_bibProcessOnDequeue(%d)", result);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -1554,19 +1638,3 @@ void    sbsp_bibRelease(ExtensionBlock *blk)
 
 	BIB_DEBUG_PROC("- sbsp_bibRelease(%c)", ' ');
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -22,6 +22,7 @@
  **              sbsp_bibProcessOnDequeue
  **              sbsp_bibRelease
  **              sbsp_bibCopy
+ **                                                  sbsp_bibReview
  **                                                  sbsp_bibParse
  **                                                  sbsp_bibCheck
  **                                                  sbsp_bibRecord
@@ -141,58 +142,45 @@
 #endif
 
 
+/************************************************************************
+ *				FUNCTION DEFINITIONS			*
+ ************************************************************************/
 
-extern int	   sbsp_bibAttach(Bundle *bundle,
-		                           ExtensionBlock *bibBlk,
-			                       SbspOutboundBlock *bibAsb);
+extern int	sbsp_bibReview(AcqWorkArea *wk);
 
-extern int         sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk);
+extern int	sbsp_bibCheck(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern void        sbsp_bibClear(AcqExtBlock *blk);
+extern void	sbsp_bibClear(AcqExtBlock *blk);
 
-extern int         sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
+extern int	sbsp_bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
 
-extern int      sbsp_bibDefaultCompute(Object dataObj,
- 				   	                       uint32_t chunkSize,
- 						                   uint32_t suite,
- 						                   void *context,
- 						                   csi_svcid_t svc);
+extern int	sbsp_bibDefaultCompute(Object dataObj, uint32_t chunkSize,
+			uint32_t suite, void *context, csi_svcid_t svc);
 
-extern int	   sbsp_bibDefaultConstruct(uint32_t suite,
- 		                                     ExtensionBlock *blk,
- 											 SbspOutboundBlock *asb);
+extern int	sbsp_bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
+			SbspOutboundBlock *asb);
 
 
-extern uint32_t    sbsp_bibDefaultResultLen(uint32_t suite,
- 		                                     uint8_t tlv);
+extern uint32_t	sbsp_bibDefaultResultLen(uint32_t suite, uint8_t tlv);
 
-extern int      sbsp_bibDefaultSign(uint32_t suite,
- 		                                Bundle *bundle,
- 		                                ExtensionBlock *blk,
- 		                                SbspOutboundBlock *asb,
-										uvast *bytes);
+extern int	sbsp_bibDefaultSign(uint32_t suite, Bundle *bundle,
+			ExtensionBlock *blk, SbspOutboundBlock *asb,
+			uvast *bytes);
 
-extern int      sbsp_bibDefaultVerify(uint32_t suite,
- 		                                  AcqWorkArea *wk,
- 					     				  AcqExtBlock *blk,
-										  uvast *bytes);
+extern int	sbsp_bibDefaultVerify(uint32_t suite, AcqWorkArea *wk,
+			AcqExtBlock *blk, uvast *bytes);
 
-extern BibProfile *sbsp_bibGetProfile(char *securitySource,
-		                               char *securityDest,
-			                           int8_t targetBlkType,
-							           BspBibRule *bibRule);
+extern BibProfile *sbsp_bibGetProfile(char *securitySource, char *securityDest,
+			int8_t targetBlkType, BspBibRule *bibRule);
 
-extern int	       sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle);
+extern int	sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle);
 
+extern int	sbsp_bibParse(AcqExtBlock *blk, AcqWorkArea *wk);
 
-extern int         sbsp_bibParse(AcqExtBlock *blk, AcqWorkArea *wk);
+extern int	sbsp_bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
+			void *parm);
 
-extern int	   sbsp_bibProcessOnDequeue(ExtensionBlock *blk,
-		                              Bundle *bundle,
-		                              void *parm);
-
-
-extern void	       sbsp_bibRelease(ExtensionBlock *blk);
+extern void	sbsp_bibRelease(ExtensionBlock *blk);
 
 
 #endif /* SBSP_BIB_H_ */

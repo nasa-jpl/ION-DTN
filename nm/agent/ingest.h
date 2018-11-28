@@ -25,19 +25,9 @@
 #ifndef _INGEST_H_
 #define _INGEST_H_
 
-
-/* Validation function */
-int rx_validate_mid_mc(Lyst mids, int passEmpty);
-int rx_validate_rule(trl_t *rule);
-
+#include "../shared/msg/msg.h"
 
 void *rx_thread(int *running);
-
-/* Message Handling Functions. */
-void rx_handle_rpt_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
-void rx_handle_exec(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
-void rx_handle_time_prod(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
-void rx_handle_macro_def(pdu_metadata_t *meta, uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
-
+void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents);
 
 #endif /* _INGEST_H_ */

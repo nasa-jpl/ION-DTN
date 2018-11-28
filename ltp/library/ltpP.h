@@ -442,26 +442,27 @@ typedef struct
 #define	NEG_RPT_RECV		4
 #define	EXPORT_CANCEL_RECV	5
 #define	CKPT_RE_XMIT		6
-#define	EXPORT_CANCEL_XMIT	7
-#define	EXPORT_COMPLETE		8
-#define	CKPT_RECV		9
-#define	POS_RPT_XMIT		10
-#define	NEG_RPT_XMIT		11
-#define	IMPORT_CANCEL_RECV	12
-#define	RPT_RE_XMIT		13
-#define	IMPORT_CANCEL_XMIT	14
-#define	IMPORT_COMPLETE		15
-#define	IN_SEG_RECV_RED		16
-#define	IN_SEG_RECV_GREEN	17
-#define	IN_SEG_REDUNDANT	18
-#define	IN_SEG_MALFORMED	19
-#define	IN_SEG_UNK_SENDER	20
-#define	IN_SEG_UNK_CLIENT	21
-#define	IN_SEG_SCREENED		22
-#define	IN_SEG_MISCOLORED	23
-#define	IN_SEG_SES_CLOSED	24
-#define	IN_SEG_TOO_FAST		25
-#define	LTP_SPAN_STATS		26
+#define	SEG_RE_XMIT		7
+#define	EXPORT_CANCEL_XMIT	8
+#define	EXPORT_COMPLETE		9
+#define	CKPT_RECV		10
+#define	POS_RPT_XMIT		11
+#define	NEG_RPT_XMIT		12
+#define	IMPORT_CANCEL_RECV	13
+#define	RPT_RE_XMIT		14
+#define	IMPORT_CANCEL_XMIT	15
+#define	IMPORT_COMPLETE		16
+#define	IN_SEG_RECV_RED		17
+#define	IN_SEG_RECV_GREEN	18
+#define	IN_SEG_REDUNDANT	19
+#define	IN_SEG_MALFORMED	20
+#define	IN_SEG_UNK_SENDER	21
+#define	IN_SEG_UNK_CLIENT	22
+#define	IN_SEG_SCREENED		23
+#define	IN_SEG_MISCOLORED	24
+#define	IN_SEG_SES_CLOSED	25
+#define	IN_SEG_TOO_FAST		26
+#define	LTP_SPAN_STATS		27
 
 typedef struct
 {
@@ -591,6 +592,7 @@ typedef struct
 	uvast		ownEngineId;
 	Sdnv		ownEngineIdSdnv;
 	unsigned int	maxBacklog;
+	char		lsiCmd[256];
 	Object		deliverables;	/*	SDR list: Deliverable	*/
 
 	/*	estMaxExportSessions is used to compute the number
@@ -601,6 +603,7 @@ typedef struct
 
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
+	unsigned int	enforceSchedule;/*	Boolean.		*/
 	double		maxBER;		/*	Max. bit error rate.	*/
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;

@@ -21,13 +21,16 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "beacon.exe", "lt-beacon.exe", \
 "bibeclo.exe", "lt-bibeclo.exe", \
 "bpadmin.exe", "lt-bpadmin.exe", \
+"bpcancel.exe", "lt-bpcancel.exe", \
 "bpchat.exe", "lt-bpchat.exe", \
-"bpclock.exe", "lt-bpclock.exe", \
 "bpclm.exe", "lt-bpclm.exe", \
+"bpclock.exe", "lt-bpclock.exe", \
 "bpcounter.exe", "lt-bpcounter.exe", \
 "bpdriver.exe", "lt-bpdriver.exe", \
 "bpecho.exe", "lt-bpecho.exe", \
 "bping.exe", "lt-bping.exe", \
+"bplist.exe", "lt-bplist.exe", \
+"bpnmtest.exe", "lt-bpnmtest.exe", \
 "bprecvfile.exe", "lt-bprecvfile.exe", \
 "bpsendfile.exe", "lt-bpsendfile.exe", \
 "bpsink.exe", "lt-bpsink.exe", \
@@ -40,14 +43,12 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "brsscla.exe", "lt-brsscla.exe", \
 "bsscounter.exe", "lt-bsscounter.exe", \
 "bssdriver.exe", "lt-bssdriver.exe", \
-"bssrecv.exe", "lt-bssrecv.exe", \
-"bssStreamingApp.exe", "lt-bssStreamingApp.exe", \
-"bsspadmin.exe", "lt-bsspadmin.exe", \
 "bsspadmin.exe", "lt-bsspadmin.exe", \
 "bsspcli.exe", "lt-bsspcli.exe", \
 "bsspclo.exe", "lt-bsspclo.exe", \
 "bsspclock.exe", "lt-bsspclock.exe", \
-"bsspclock.exe", "lt-bsspclock.exe", \
+"bssrecv.exe", "lt-bssrecv.exe", \
+"bssStreamingApp.exe", "lt-bssStreamingApp.exe", \
 "cgrfetch.exe", "lt-cgrfetch.exe", \
 "dgr2file.exe", "lt-dgr2file.exe", \
 "dgrcli.exe", "lt-dgrcli.exe", \
@@ -65,15 +66,18 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "file2sm.exe", "lt-file2sm.exe", \
 "file2tcp.exe", "lt-file2tcp.exe", \
 "file2udp.exe", "lt-file2udp.exe", \
+"imcadmin.exe", "lt-imcadmin.exe", \
 "imcfw.exe", "lt-imcfw.exe", \
 "imdadmin.exe", "lt-imdadmin.exe", \
 "ionadmin.exe", "lt-ionadmin.exe", \
+"ionexit.exe", "lt-ionexit.exe", \
 "ionrestart.exe", "lt-ionrestart.exe", \
 "ionsecadmin.exe", "lt-ionsecadmin.exe", \
 "ionunlock.exe", "lt-ionunlock.exe", \
 "ionwarn.exe", "lt-ionwarn.exe", \
 "ipnadmin.exe", "lt-ipnadmin.exe", \
 "ipnadminep.exe", "lt-ipnadminep.exe", \
+"ipnd.exe", "lt-ipnd.exe", \
 "ipnfw.exe", "lt-ipnfw.exe", \
 "lgagent.exe", "lt-lgagent.exe", \
 "lgsend.exe", "lt-lgsend.exe", \
@@ -94,21 +98,28 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "ramsgate.exe", "lt-ramsgate.exe", \
 "ramstest.exe", "lt-ramstest.exe", \
 "rfxclock.exe", "lt-rfxclock.exe", \
+"sdatest.exe", "lt-sdatest.exe", \
 "sdr2file.exe", "lt-sdr2file.exe", \
 "sdrmend.exe", "lt-sdrmend.exe", \
 "sdrwatch.exe", "lt-sdrwatch.exe", \
 "sm2file.exe", "lt-sm2file.exe", \
 "smlistsh.exe", "lt-smlistsh.exe", \
-"tcpcli.exe", "lt-tcpcli.exe", \
-"tcpclo.exe", "lt-tcpclo.exe", \
+"smrbtsh.exe", "lt-smrbtsh.exe", \
 "stcpcli.exe", "lt-stcpcli.exe", \
 "stcpclo.exe", "lt-stcpclo.exe", \
 "tcp2file.exe", "lt-tcp2file.exe", \
+"tcpbsi.exe", "lt-tcpbsi.exe", \
+"tcpbso.exe", "lt-tcpbso.exe", \
+"tcpcli.exe", "lt-tcpcli.exe", \
+"tcpclo.exe", "lt-tcpclo.exe", \
+"tcputa.exe", "lt-tcputa.exe", \
+"udp2file.exe", "lt-udp2file.exe", \
+"udpbsi.exe", "lt-udpbsi.exe", \
+"udpbso.exe", "lt-udpbso.exe", \
 "udpcli.exe", "lt-udpcli.exe", \
 "udpclo.exe", "lt-udpclo.exe", \
 "udplsi.exe", "lt-udplsi.exe", \
-"udplso.exe", "lt-udplso.exe", \
-"udp2file.exe", "lt-udp2file.exe"
+"udplso.exe", "lt-udplso.exe"
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 ,"amsbenchr.exe", "lt-amsbenchr.exe", \
 "amsbenchs.exe", "lt-amsbenchs.exe", \
@@ -117,12 +128,13 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "amslog.exe", "lt-amslog.exe", \
 "amslogport.exe", "lt-amslogport.exe", \
 "amsshell.exe", "lt-amsshell.exe", \
+"bpcp.exe", "lt-bpcp.exe", \
+"bpcpd.exe", "lt-bpcpd.exe", \
 "bputa.exe", "lt-bputa.exe", \
 "cfdpadmin.exe", "lt-cfdpadmin.exe", \
 "cfdpclock.exe", "lt-cfdpclock.exe", \
-"cfdptest.exe", "lt-cfdptest.exe", \
-"bpcp.exe", "lt-bpcp.exe", \
-"bpcpd.exe", "lt-bpcpd.exe"
+"cfdptest.exe", "lt-cfdptest.exe"
+
 #endif
 };
 

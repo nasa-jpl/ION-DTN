@@ -13,6 +13,10 @@
 #include "crypto.h"
 #include "csi.h"
 
+#ifdef STRSOE
+#include <strsoe_bpadmin.h>
+#endif
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -71,7 +75,7 @@ static void	printUsage()
 	PUTS("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
 	PUTS("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
 	PUTS("\t   a protocol <protocol name> <payload bytes per frame> \
-<overhead bytes per frame> [<nominal data rate, in bytes/sec>]");
+<overhead bytes per frame> [<protocol class>]");
 	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
 	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>' [max \
 payload length]");
@@ -756,17 +760,29 @@ static void	printEndpoint(VEndpoint *vpoint)
 static void	infoEndpoint(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
+	char		*delimiter;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
-	if (tokenCount != 4)
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	delimiter = strchr(tokens[2], ':');
+	if (delimiter)
+	{
+		*delimiter = '\0';
+	}
+	else
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	findEndpoint(tokens[2], tokens[3], NULL, &vpoint, &elt);
+	findEndpoint(tokens[2], delimiter + 1, NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown endpoint.");
@@ -776,6 +792,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		printEndpoint(vpoint);
 	}
 
+	*delimiter  = ':';
 	sdr_exit_xn(sdr);
 }
 
@@ -1598,7 +1615,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -1800,39 +1820,29 @@ static int	processLine(char *line, int lineLength, int *rc)
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToBp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//bp agent is not started
-					printText("BP agent is not started");
-					return 1;
-				}
-
-				//attached to bp system
-
-				*rc = bp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = bp_agent_is_started();
-			if (*rc)
-			{
-				printText("BP agent is started");
 			}
 			else
 			{
-				printText("BP agent is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToBp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//bp agent is not started
+				printText("BP agent is not started");
+				return 1;
+			}
+
+			//attached to bp system
+
+			*rc = bp_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -1944,3 +1954,15 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	bpadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	bpadmin_help(void)
+{
+	printUsage();
+}
+#endif

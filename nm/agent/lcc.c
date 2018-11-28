@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
  ******************************************************************************/
@@ -23,124 +23,45 @@
  **  05/17/15  E. Birrane     Add Macro support, updated to DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-#include "../shared/adm/adm.h"
-#include "../shared/primitives/mid.h"
+#include "lcc.h"
+
 #include "../shared/primitives/rules.h"
 #include "instr.h"
 #include "../shared/primitives/ctrl.h"
 #include "../shared/primitives/report.h"
 
 #include "nmagent.h"
-#include "lcc.h"
 #include "rda.h"
 
 
 
-/******************************************************************************
- *
- * \par Function Name: lcc_run_ctrl_mid
- *
- * \par Run a control given the MID associated with that control.
- *
- * \param[in]  id   The MID identifying the control
- *
- * \par Notes:
- *
- * \return -1 - Error
- *         !(-1) - Value returned from the run control.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/22/13  E. Birrane     Initial implementation.
- *****************************************************************************/
-
-int lcc_run_ctrl_mid(mid_t *id)
+int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms)
 {
-	int result = 0;
-    int8_t status = 0;
-    adm_ctrl_t *adm_ctrl = NULL;
-    def_gen_t *macro_def = NULL;
-    static int nesting = 0;
-    char *msg = NULL;
+	vecit_t it;
+	int result = AMP_OK;
+	int success;
 
-    nesting++;
+	for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
+	{
+		ari_t *id = (ari_t *) vecit_data(it);
+		ctrl_t *ctrl = ctrl_create(id);
 
-    AMP_DEBUG_ENTRY("lcc_run_ctrl_mid","(0x%#llx)", (unsigned long) id);
+		if(ctrl != NULL)
+		{
+			success = lcc_run_ctrl(ctrl, parent_parms);
+			ctrl_release(ctrl, 1);
 
+			if(success != AMP_OK)
+			{
+				AMP_DEBUG_ERR("lcc_run_ac","Error running control %d", vecit_idx(it));
+				result = AMP_FAIL;
+				break;
+			}
+		}
+	}
 
-    /* Step 0: Sanity Check */
-    if((id == NULL) || (id->oid.type == OID_TYPE_UNK))
-    {
-    	AMP_DEBUG_ERR("lcc_run_ctrl_mid","Bad Args.",NULL);
-    	AMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
-    	nesting--;
-    	return -1;
-    }
-
-    if(nesting > 5)
-    {
-    	AMP_DEBUG_ERR("lcc_run_ctrl_mid","Too many nesting levels (%d).",nesting);
-    	AMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> -1",NULL);
-    	nesting--;
-    	return -1;
-    }
-
-    msg = mid_to_string(id);
-    AMP_DEBUG_INFO("lcc_run_ctrl_mid","Running control: %s", msg);
-
-    /* Step 1: See if this identifies an atomic control. */
-    if((adm_ctrl = adm_find_ctrl(id)) != NULL)
-    {
-        tdc_t *retval = NULL;
-
-    	AMP_DEBUG_INFO("lcc_run_ctrl_mid","Found control.", NULL);
-
-    	retval = adm_ctrl->run(&manager_eid, id->oid.params, &status);
-
-    	if(status != CTRL_SUCCESS)
-    	{
-    		AMP_DEBUG_WARN("lcc_run_ctrl_mid","Error running control.", NULL);
-    	}
-    	else if(retval != NULL)
-    	{
-    		lcc_send_retval(&manager_eid, retval, id);
-    		tdc_destroy(&retval);
-    	}
-
-    	gAgentInstr.num_ctrls_run++;
-    }
-    else
-    {
-    	if((macro_def = def_find_by_id(gAgentVDB.macros, &(gAgentVDB.macros_mutex), id)) == NULL)
-    	{
-    		macro_def = def_find_by_id(gAdmMacros, NULL, id);
-    	}
-
-    	if(macro_def != NULL)
-    	{
-    		if(lcc_run_macro(macro_def->contents) != 0)
-    		{
-    			AMP_DEBUG_ERR("lcc_run_ctrl_mid","Error running macro %s.", msg);
-    		}
-    	}
-        /* Step 3: Otherwise, give up. */
-        else
-        {
-        	AMP_DEBUG_ERR("lcc_run_ctrl_mid","Could not find control for MID %s",
-        			        msg);
-        	result = -1;
-        }
-    }
-
-    SRELEASE(msg);
-
-    nesting--;
-    AMP_DEBUG_EXIT("lcc_run_ctrl_mid","-> %d", result);
-    return result;
+	return result;
 }
-
-
 
 /******************************************************************************
  *
@@ -148,80 +69,105 @@ int lcc_run_ctrl_mid(mid_t *id)
  *
  * \par Run a control given a control execution structure.
  *
- * \param[in]  ctrl_p  The control execution structure.
+ * \return AMP Status Code
+ *
+ * \param[in]  ctrl The control execution structure.
+ * \param[in]  parms The parameters we should use with this CTRL.
  *
  * \par Notes:
+ *   - Parms MAY be the same as in the ctrl itself, but may also be a temporary
+ *     set of parameters that represent mapped parameters from an enclosing
+ *     object, like a macro.
  *
- * \return -1 - Error
- *         !(-1) - Value returned from the run control.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/22/13  E. Birrane     Initial implementation.
+ *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-int lcc_run_ctrl(ctrl_exec_t *ctrl_p)
+int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parent_parms)
 {
 	int8_t status = CTRL_FAILURE;
-    tdc_t* retval = NULL;
+    tnv_t* retval = NULL;
+    tnvc_t *new_parms = NULL;
+    eid_t rx_eid;
 
-	AMP_DEBUG_ENTRY("lcc_run_ctrl","(0x%x)", (unsigned long) ctrl_p);
+	AMP_DEBUG_ENTRY("lcc_run_ctrl","("ADDR_FIELDSPEC")", (uaddr) ctrl);
 
-	/* Step 0: Sanity Check */
-	if((ctrl_p == NULL) || (ctrl_p->adm_ctrl == NULL) || (ctrl_p->adm_ctrl->run == NULL))
+	if(ctrl == NULL)
 	{
-		AMP_DEBUG_ERR("lcc_run_ctrl","Bad Args.",NULL);
-		AMP_DEBUG_EXIT("lcc_run_ctrl","-> -1",NULL);
-		return -1;
+		return AMP_FAIL;
 	}
 
-	retval = ctrl_p->adm_ctrl->run(&(ctrl_p->sender), ctrl_p->mid->oid.params, &status);
+	if(strlen(ctrl->caller.name) <= 0)
+	{
+		rx_eid = manager_eid;
+	}
+	else
+	{
+		rx_eid = ctrl->caller;
+	}
 
-	gAgentInstr.num_ctrls_run++;
+
+	if(ctrl->type == AMP_TYPE_CTRL)
+	{
+
+		new_parms = ari_resolve_parms(ctrl->parms, parent_parms);
+
+		/* Run the control. */
+		retval = ctrl->def.as_ctrl->run(&rx_eid, new_parms, &status);
+		gAgentInstr.num_ctrls_run++;
+	}
+	else
+	{
+		new_parms = ari_resolve_parms(ctrl->parms, parent_parms);
+		status = lcc_run_macro(ctrl->def.as_mac, new_parms);
+	}
 
 	if(status != CTRL_SUCCESS)
 	{
 		AMP_DEBUG_WARN("lcc_run_ctrl","Error running control.", NULL);
+		tnv_release(retval, 1);
 	}
 	else if(retval != NULL)
 	{
-		eid_t *recipient = &(ctrl_p->sender);
-
-		if(recipient == NULL)
-		{
-			recipient = &manager_eid;
-		}
-
-		lcc_send_retval(recipient, retval, ctrl_p->mid);
-		tdc_destroy(&retval);
+		lcc_send_retval(&rx_eid, retval, ctrl, new_parms);
 	}
+
+	tnvc_release(new_parms, 1);
 
 	AMP_DEBUG_EXIT("lcc_run_ctrl","-> %d", status);
 	return status;
 }
 
 
-int lcc_run_macro(Lyst macro)
+int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms)
 {
-	LystElt elt = NULL;
-	mid_t *cur_mid = NULL;
+	vecit_t it;
+	int result = AMP_OK;
+	int success;
 
-	if(macro == NULL)
+	if(mac == NULL)
 	{
-		AMP_DEBUG_ERR("lcc_run_macro","Bad Args", NULL);
-		return -1;
+		return AMP_FAIL;
 	}
 
-	for(elt = lyst_first(macro); elt; elt = lyst_next(elt))
-	{
-		cur_mid = (mid_t *) lyst_data(elt);
+	gAgentInstr.num_macros_run++;
 
-		/* If one control is in error, we continue with the macro. */
-		lcc_run_ctrl_mid(cur_mid);
+	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
+	{
+		ctrl_t *ctrl = (ctrl_t*) vecit_data(it);
+
+		if(lcc_run_ctrl(ctrl, parent_parms) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("lcc_run_macro","Error running control %d", vecit_idx(it));
+			result = AMP_FAIL;
+		}
 	}
 
-	return 0;
+	return result;
 }
 
 
@@ -235,8 +181,9 @@ int lcc_run_macro(Lyst macro)
  * \todo Make the rx a list of managers.
  *
  * \param[in]  rx		The Manager to receive this result.
- * \param[in]  retval	The DC to send back, or NULL.
- * \param[in]  mid		The control MID generating this retval.
+ * \param[in]  retval	The report to send back.
+ * \param[in]  ctrl		The control generating this report.
+ * \param[in]  parms    The parameters used by the control
  *
  * \par Notes:
  *
@@ -245,36 +192,55 @@ int lcc_run_macro(Lyst macro)
  *  --------  ------------   ---------------------------------------------
  *  06/21/15  E. Birrane     Initial implementation.
  *  06/28/15  E. Birrane     Implemented TDCs
+ *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-void lcc_send_retval(eid_t *rx, tdc_t *retval, mid_t *mid)
+void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 {
+	msg_rpt_t *msg_rpt = NULL;
 	rpt_t *report = NULL;
-	rpt_entry_t *entry = NULL;
+	ari_t *ari = NULL;
 
-	/* Step 0: Sanity Checks. */
-	if((rx == NULL) || (mid == NULL))
+	if((rx == NULL) || (retval == NULL) || (ctrl == NULL))
 	{
-		AMP_DEBUG_ERR("lcc_send_retval","Bad Args.", NULL);
 		return;
 	}
 
+	/* Find a message report heading to our recipient. */
+	msg_rpt = rda_get_msg_rpt(*rx);
+	CHKVOID(msg_rpt);
 
 	/*
-	 * This function will grab an existing to-be-sent report or
-	 * create a new report and add it to the "built-reports" section.
-	 * Either way, it will be included in the next set of code to send
-	 * out reports built in this time slice.
+	 * Create a report whose template is the control.
+	 * If the ari copy or parm replace fail, this will be caught
+	 * by failing to create the report.
+	 *
+	 * The new parms are deep copied which is why it is OK to call
+	 * ari_release at the end.
 	 */
-	if((report = rda_get_report(*rx)) != NULL)
+	ari_t *ctrl_ari = ctrl_get_id(ctrl);
+	ari = ari_copy_ptr(ctrl_ari);
+	ari_replace_parms(ari, parms);
+	report = rpt_create(ari, getUTCTime(), NULL);
+	CHKVOID(report);
+
+	/* Add the single entry to this report. */
+	if(rpt_add_entry(report, retval) != AMP_OK)
 	{
-		if((entry = (rpt_entry_t*) STAKE(sizeof(rpt_entry_t))) != NULL)
-		{
-			entry->id = mid_copy(mid);
-			entry->contents = tdc_copy(retval);
-			lyst_insert_last(report->entries, entry);
-		}
+		rpt_release(report, 1);
+		AMP_DEBUG_ERR("lcc_send_retval", "Can't add retval to report.", NULL);
+	}
+	else if(msg_rpt_add_rpt(msg_rpt, report) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("lcc_send_retval", "Can't add report to msg_rpt.", NULL);
+		rpt_release(report, 1);
 	}
 
 }
+
+
+
+
+
+
 

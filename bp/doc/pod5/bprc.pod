@@ -218,7 +218,7 @@ This command lists all local endpoints, regardless of scheme name.
 
 =over 4
 
-=item B<a protocol> I<protocol_name> I<payload_bytes_per_frame> I<overhead_bytes_per_frame> [I<nominal_data_rate>]
+=item B<a protocol> I<protocol_name> I<payload_bytes_per_frame> I<overhead_bytes_per_frame> [I<protocol_class>]
 
 The B<add protocol> command.  This command establishes access to the named
 convergence layer protocol at the local node.  The I<payload_bytes_per_frame>
@@ -226,20 +226,15 @@ and I<overhead_bytes_per_frame> arguments are used in calculating the
 estimated transmission capacity consumption of each bundle, to aid in
 route computation and congestion forecasting.
 
-The optional I<nominal_data_rate> argument overrides the hard-coded default
-continuous data rate for the indicated protocol, for purposes of rate
-control.  For all "promiscuous" prototocols - that is, protocols whose
-outducts are not specifically dedicated to transmission to a single
-identified convergence-layer protocol endpoing - the protocol's applicable
-nominal continuous data rate is the data rate that is always used for
-rate control over links served by that protocol; data rates are not
-extracted from contact graph information.  This is because only the
-induct and outduct throttles for non-promiscuous protocols (LTP, TCP)
-can be dynamically adjusted in response to changes in data rate between
-the local node and its neighbors, as enacted per the contact plan.  Even
-for an outduct of a non-promiscuous protocol the nominal data rate may
-be the authority for rate control, in the event that the contact plan
-lacks identified contacts with the node to which the outduct is mapped.
+The optional I<protocol_class> argument indicates the reliability of the
+protocol.  The value 1 indicates that the protocol natively supports bundle
+streaming; currently the only protocol in class 1 is BSSP.  The value 2
+indicates that the protocol performs no retransmission; an example is UDP.
+The value 8 (which is the default) indicates that the protocol detects data
+loss and automatically retransmits data accordingly; an example is TCP.
+Protocol class need not be specified when I<protocol_name> is bssp, udp,
+tcp, stcp, brss, brsc, or ltp, as the protocol classes for these well-known
+protocols are hard-coded in ION.
 
 =item B<d protocol> I<protocol_name>
 
@@ -377,7 +372,9 @@ bundles queued for transmission to the indicated neighboring node[s].
 
 NOTE that these "plan" commands supersede and generalize the egress plan
 commands documented in the ipnrc(5) and dtn2rc(5) man pages, which are
-retained for backward compatibility.  The I<endpoint_name> identifying
+retained for backward compatibility.  B<The syntax of the egress plan commands
+consumed by bpadmin is DIFFERENT from that of the commands consumed by
+ipnadmin and dtn2admin.>  The I<endpoint_name> identifying
 an egress plan is normally the node ID for a single node but may instead
 be "wild-carded".  That is, when the last character of an endpoint name
 ID is either '*' or '~' (these two wild-card characters are equivalent

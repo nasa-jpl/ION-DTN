@@ -20,9 +20,7 @@
 
 									*/
 #include "ionsec.h"
-
-static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
-			int secondEidLen);
+//	#include "profiles.h"
 
 static char	*_secDbName()
 {
@@ -305,8 +303,8 @@ int	secInitialize()
 		secdbBuf.ownPublicKeys = sdr_list_create(ionsdr);
 		secdbBuf.privateKeys = sdr_list_create(ionsdr);
 		secdbBuf.keys = sdr_list_create(ionsdr);
-		secdbBuf.bspBabRules = sdr_list_create(ionsdr);
 #ifdef ORIGINAL_BSP
+		secdbBuf.bspBabRules = sdr_list_create(ionsdr);
 		secdbBuf.bspPibRules = sdr_list_create(ionsdr);
 		secdbBuf.bspPcbRules = sdr_list_create(ionsdr);
 #else
@@ -1097,262 +1095,6 @@ int	sec_get_private_key(BpTimestamp *effectiveTime, int *keyBufferLen,
 	return privateKey.length;
 }
 
-/******************************************************************************
- *
- * \par Function Name: sec_clearBspRules 
- *
- * \par Purpose: Clears bsp rules configured on the node.  Rules are 
- *		identified by their security source and security destination
- *		and targeted BSP block type.  For EIDs, ~ is accepted as a
- *		end-of-string wildcard.
- *
- * \param[in]	srcEid  The security source of all rules being cleared. This
- *			may be "~" to match all security sources.
- *		destEid The security destination of all rules being cleared.
- *			This may be "~" to match all security destinations.
- *		blockType This is the BSP block of the rule to be cleared. 
- *			This is one of "2", "3", "4", or "~" to match all
- *			block types.
- * \par Notes:
- *****************************************************************************/
-
-void	sec_clearBspRules(char *srcEid, char *destEid, char *blockType)
-{
-	Sdr	sdr = getIonsdr();
-	SecDB	*secdb = _secConstants();
-	Object	elt;
-	Object	temp;
-	Object	ruleObj;
-	int	rmCount;
-	char	rmStr [5];
-	int	srcEidLen;
-	int	destEidLen;
-	int	curEidLen;
-	char	eidBuffer[SDRSTRING_BUFSZ];
-
-	CHKVOID(srcEid);
-	CHKVOID(destEid);
-	CHKVOID(blockType);
-	CHKVOID(secdb);
-	srcEidLen = istrlen(srcEid, SDRSTRING_BUFSZ);
-	destEidLen = istrlen(destEid, SDRSTRING_BUFSZ);
-	if (blockType[0] == '~' || blockType[0] == '2')	/*	BAB	*/
-	{
-		/*	Remove matching authentication rules.		*/
-
-		rmCount = 0;
-		CHKVOID(sdr_begin_xn(sdr));
-		OBJ_POINTER(BspBabRule, rule);
-#ifdef ORIGINAL_BSP
-		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
-				elt = temp)
-		{
-			ruleObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
-			curEidLen = sdr_string_read(sdr, eidBuffer,
-					rule->securitySrcEid);
-			temp = sdr_list_next(sdr, elt);
-			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
-			{
-				curEidLen = sdr_string_read(sdr, eidBuffer,
-						rule->securityDestEid);
-				if (eidsMatch(destEid, destEidLen, eidBuffer,
-						curEidLen))
-				{
-					sdr_list_delete(sdr, elt, NULL, NULL);
-					sdr_free(sdr, rule->securitySrcEid);
-					sdr_free(sdr, rule->securityDestEid);
-					sdr_free(sdr, ruleObj);
-					rmCount++;
-				}
-			}
-		}
-#else
-		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
-				elt = temp)
-		{
-			ruleObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
-			curEidLen = sdr_string_read(sdr, eidBuffer,
-					rule->senderEid);
-			temp = sdr_list_next(sdr, elt);
-			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
-			{
-				curEidLen = sdr_string_read(sdr, eidBuffer,
-						rule->receiverEid);
-				if (eidsMatch(destEid, destEidLen, eidBuffer,
-						curEidLen))
-				{
-					sdr_list_delete(sdr, elt, NULL, NULL);
-					sdr_free(sdr, rule->senderEid);
-					sdr_free(sdr, rule->receiverEid);
-					sdr_free(sdr, ruleObj);
-					rmCount++;
-				}
-			}
-		}
-#endif
-		isprintf(rmStr, 5, "%d", rmCount);
-		writeMemoNote("[i] authentication rules removed", rmStr);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			writeMemo("[?] sec_clearBspRules: failed deleting \
-authentication rules.");
-		}
-		else
-		{
-			writeMemo("[i] sec_clearBspRules: matching \
-authentication rules cleared.");
-		}
-	}
-
-	if (blockType[0] == '~' || blockType[0] == '3')	/*	PIB/BIB	*/
-	{
-		/*	Remove matching integrity rules.		*/
-
-		rmCount = 0;
-		CHKVOID(sdr_begin_xn(sdr));
-#ifdef ORIGINAL_BSP
-		OBJ_POINTER(BspPibRule, rule);
-		for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
-				elt = temp)
-		{
-			ruleObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BspPibRule, rule, ruleObj);
-			curEidLen = sdr_string_read(sdr, eidBuffer,
-					rule->securitySrcEid);
-			temp = sdr_list_next(sdr, elt);
-			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
-			{
-				curEidLen = sdr_string_read(sdr, eidBuffer,
-						rule->securityDestEid);
-				if (eidsMatch(destEid, destEidLen, eidBuffer,
-						curEidLen))
-				{
-					sdr_list_delete(sdr, elt, NULL, NULL);
-					sdr_free(sdr, rule->securitySrcEid);
-					sdr_free(sdr, rule->securityDestEid);
-					sdr_free(sdr, ruleObj);
-					rmCount++;
-				}
-			}
-		}
-#else
-		OBJ_POINTER(BspBibRule, rule);
-		for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
-				elt = temp)
-		{
-			ruleObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleObj);
-			curEidLen = sdr_string_read(sdr, eidBuffer,
-					rule->securitySrcEid);
-			temp = sdr_list_next(sdr, elt);
-			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
-			{
-				curEidLen = sdr_string_read(sdr, eidBuffer,
-						rule->destEid);
-				if (eidsMatch(destEid, destEidLen, eidBuffer,
-						curEidLen))
-				{
-					sdr_list_delete(sdr, elt, NULL, NULL);
-					sdr_free(sdr, rule->securitySrcEid);
-					sdr_free(sdr, rule->destEid);
-					sdr_free(sdr, ruleObj);
-					rmCount++;
-				}
-			}
-		}
-#endif
-		isprintf(rmStr, 5, "%d", rmCount);
-		writeMemoNote("[i] integrity rules removed", rmStr);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			writeMemo("[?] sec_clearBspRules: failed deleting \
-integrity rules.");
-		}
-		else
-		{
-			writeMemo("[i] sec_clearBspRules: matching integrity \
-rules cleared.");
-		}
-	}
-
-	if (blockType[0] == '~' || blockType[0] == '4')	/*	PCB/BCB	*/
-	{
-		/*	Remove matching confidentiality rules.		*/
-
-		rmCount = 0;
-		CHKVOID(sdr_begin_xn(sdr));
-#ifdef ORIGINAL_BSP
-		OBJ_POINTER(BspPcbRule, rule);
-		for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
-				elt = temp)
-		{
-			ruleObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleObj);
-			curEidLen = sdr_string_read(sdr, eidBuffer,
-					rule->securitySrcEid);
-			temp = sdr_list_next(sdr, elt);
-			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
-			{
-				curEidLen = sdr_string_read(sdr, eidBuffer,
-						rule->securityDestEid);
-				if (eidsMatch(destEid, destEidLen, eidBuffer,
-						curEidLen))
-				{
-					sdr_list_delete(sdr, elt, NULL, NULL);
-					sdr_free(sdr, rule->securitySrcEid);
-					sdr_free(sdr, rule->securityDestEid);
-					sdr_free(sdr, ruleObj);
-					rmCount++;
-				}
-			}
-		}
-#else
-		OBJ_POINTER(BspBcbRule, rule);
-		for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt;
-				elt = temp)
-		{
-			ruleObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BspBcbRule, rule, ruleObj);
-			curEidLen = sdr_string_read(sdr, eidBuffer,
-					rule->securitySrcEid);
-			temp = sdr_list_next(sdr, elt);
-			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
-			{
-				curEidLen = sdr_string_read(sdr, eidBuffer,
-						rule->destEid);
-				if (eidsMatch(destEid, destEidLen, eidBuffer,
-						curEidLen))
-				{
-					sdr_list_delete(sdr, elt, NULL, NULL);
-					sdr_free(sdr, rule->securitySrcEid);
-					sdr_free(sdr, rule->destEid);
-					sdr_free(sdr, ruleObj);
-					rmCount++;
-				}
-			}
-		}
-#endif
-
-		isprintf(rmStr, 5, "%d", rmCount);
-		writeMemoNote("[i] confidentiality rules removed", rmStr);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			writeMemo("[?] sec_clearBspRules: failed deleting \
-confidentiality rules.");
-		}
-		else
-		{
-			writeMemo("[i] sec_clearBspRules: matching \
-confidentiality rules cleared.");
-		}
-
-	}
- 
-	return;
-}
-
 static Object	locateKey(char *keyName, Object *nextKey)
 {
 	Sdr	sdr = getIonsdr();
@@ -1732,12 +1474,14 @@ int	sec_activeKey(char *keyName)
 	SecDB	*secdb = _secConstants();
 	Object	elt;
 	Object	ruleObj;
+#if 0
 		OBJ_POINTER(BspBabRule, babRule);
+#endif
 		OBJ_POINTER(BspBibRule, bibRule);
 		OBJ_POINTER(BspBcbRule, bcbRule);
 
 	CHKERR(sdr_begin_xn(sdr));
-
+#if 0
 	for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1749,7 +1493,7 @@ int	sec_activeKey(char *keyName)
 			return 1;
 		}
 	}
-
+#endif
 	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1788,6 +1532,7 @@ int	sec_get_key(char *keyName, int *keyBufferLength, char *keyValueBuffer)
 
 	CHKERR(keyName);
 	CHKERR(keyBufferLength);
+	CHKERR(*keyBufferLength > 0);
 	CHKERR(keyValueBuffer);
 	CHKERR(sdr_begin_xn(sdr));
 	sec_findKey(keyName, &keyAddr, &elt);
@@ -1846,6 +1591,17 @@ static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)
 	return 1;
 }
 
+
+/******************************************************************************
+ *
+ *	Support for multiple flavors of Bundle Security Protocol.
+ *
+ *****************************************************************************/
+
+
+/*		General BSP Support					*/
+
+
 /******************************************************************************
  *
  * \par Function Name: eidsMatch 
@@ -1866,8 +1622,8 @@ static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)
  * \par Notes:
  *****************************************************************************/
 
-static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
-			int secondEidLen)
+int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
+		int secondEidLen)
 {
 	int	result = 1;
 	int	firstPos = -1;
@@ -1925,7 +1681,265 @@ static int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
 	return (result == 0);
 }
 
+/******************************************************************************
+ *
+ * \par Function Name: sec_clearBspRules 
+ *
+ * \par Purpose: Clears bsp rules configured on the node.  Rules are 
+ *		identified by their security source and security destination
+ *		and targeted BSP block type.  For EIDs, ~ is accepted as a
+ *		end-of-string wildcard.
+ *
+ * \param[in]	srcEid  The security source of all rules being cleared. This
+ *			may be "~" to match all security sources.
+ *		destEid The security destination of all rules being cleared.
+ *			This may be "~" to match all security destinations.
+ *		blockType This is the BSP block of the rule to be cleared. 
+ *			This is one of "2", "3", "4", or "~" to match all
+ *			block types.
+ * \par Notes:
+ *****************************************************************************/
+
+void	sec_clearBspRules(char *srcEid, char *destEid, char *blockType)
+{
+	Sdr	sdr = getIonsdr();
+	SecDB	*secdb = _secConstants();
+	Object	elt;
+	Object	temp;
+	Object	ruleObj;
+	int	rmCount;
+	char	rmStr [5];
+	int	srcEidLen;
+	int	destEidLen;
+	int	curEidLen;
+	char	eidBuffer[SDRSTRING_BUFSZ];
+
+	CHKVOID(srcEid);
+	CHKVOID(destEid);
+	CHKVOID(blockType);
+	CHKVOID(secdb);
+	srcEidLen = istrlen(srcEid, SDRSTRING_BUFSZ);
+	destEidLen = istrlen(destEid, SDRSTRING_BUFSZ);
 #ifdef ORIGINAL_BSP
+	if (blockType[0] == '~' || blockType[0] == '2')	/*	BAB	*/
+	{
+		/*	Remove matching authentication rules.		*/
+
+		rmCount = 0;
+		CHKVOID(sdr_begin_xn(sdr));
+		OBJ_POINTER(BspBabRule, rule);
+		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
+				elt = temp)
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
+			curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
+			temp = sdr_list_next(sdr, elt);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->securityDestEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
+				{
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->securitySrcEid);
+					sdr_free(sdr, rule->securityDestEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
+		}
+#if 0
+		for (elt = sdr_list_first(sdr, secdb->bspBabRules); elt;
+				elt = temp)
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleObj);
+			curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->senderEid);
+			temp = sdr_list_next(sdr, elt);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->receiverEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
+				{
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->senderEid);
+					sdr_free(sdr, rule->receiverEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
+		}
+#endif
+		isprintf(rmStr, 5, "%d", rmCount);
+		writeMemoNote("[i] authentication rules removed", rmStr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			writeMemo("[?] sec_clearBspRules: failed deleting \
+authentication rules.");
+		}
+		else
+		{
+			writeMemo("[i] sec_clearBspRules: matching \
+authentication rules cleared.");
+		}
+	}
+#endif
+
+	if (blockType[0] == '~' || blockType[0] == '3')	/*	PIB/BIB	*/
+	{
+		/*	Remove matching integrity rules.		*/
+
+		rmCount = 0;
+		CHKVOID(sdr_begin_xn(sdr));
+#ifdef ORIGINAL_BSP
+		OBJ_POINTER(BspPibRule, rule);
+		for (elt = sdr_list_first(sdr, secdb->bspPibRules); elt;
+				elt = temp)
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, BspPibRule, rule, ruleObj);
+			curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
+			temp = sdr_list_next(sdr, elt);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->securityDestEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
+				{
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->securitySrcEid);
+					sdr_free(sdr, rule->securityDestEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
+		}
+#else
+		OBJ_POINTER(BspBibRule, rule);
+		for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
+				elt = temp)
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleObj);
+			curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
+			temp = sdr_list_next(sdr, elt);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->destEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
+				{
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->securitySrcEid);
+					sdr_free(sdr, rule->destEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
+		}
+#endif
+		isprintf(rmStr, 5, "%d", rmCount);
+		writeMemoNote("[i] integrity rules removed", rmStr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			writeMemo("[?] sec_clearBspRules: failed deleting \
+integrity rules.");
+		}
+		else
+		{
+			writeMemo("[i] sec_clearBspRules: matching integrity \
+rules cleared.");
+		}
+	}
+
+	if (blockType[0] == '~' || blockType[0] == '4')	/*	PCB/BCB	*/
+	{
+		/*	Remove matching confidentiality rules.		*/
+
+		rmCount = 0;
+		CHKVOID(sdr_begin_xn(sdr));
+#ifdef ORIGINAL_BSP
+		OBJ_POINTER(BspPcbRule, rule);
+		for (elt = sdr_list_first(sdr, secdb->bspPcbRules); elt;
+				elt = temp)
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, BspPcbRule, rule, ruleObj);
+			curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
+			temp = sdr_list_next(sdr, elt);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->securityDestEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
+				{
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->securitySrcEid);
+					sdr_free(sdr, rule->securityDestEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
+		}
+#else
+		OBJ_POINTER(BspBcbRule, rule);
+		for (elt = sdr_list_first(sdr, secdb->bspBcbRules); elt;
+				elt = temp)
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, BspBcbRule, rule, ruleObj);
+			curEidLen = sdr_string_read(sdr, eidBuffer,
+					rule->securitySrcEid);
+			temp = sdr_list_next(sdr, elt);
+			if (eidsMatch(srcEid, srcEidLen, eidBuffer, curEidLen))
+			{
+				curEidLen = sdr_string_read(sdr, eidBuffer,
+						rule->destEid);
+				if (eidsMatch(destEid, destEidLen, eidBuffer,
+						curEidLen))
+				{
+					sdr_list_delete(sdr, elt, NULL, NULL);
+					sdr_free(sdr, rule->securitySrcEid);
+					sdr_free(sdr, rule->destEid);
+					sdr_free(sdr, ruleObj);
+					rmCount++;
+				}
+			}
+		}
+#endif
+
+		isprintf(rmStr, 5, "%d", rmCount);
+		writeMemoNote("[i] confidentiality rules removed", rmStr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			writeMemo("[?] sec_clearBspRules: failed deleting \
+confidentiality rules.");
+		}
+		else
+		{
+			writeMemo("[i] sec_clearBspRules: matching \
+confidentiality rules cleared.");
+		}
+
+	}
+ 
+	return;
+}
+
+#ifdef ORIGINAL_BSP
+
 void	sec_get_bspBabRule(char *srcEid, char *destEid, Object *ruleAddr,
 		Object *eltp)
 {
@@ -2672,7 +2686,9 @@ int	sec_removeBspPcbRule(char *secSrcEid, char *secDestEid,
 
 	return 1;
 }
-#else
+
+#else		/*	Streamlined Bundle Security Protocol		*/
+#if 0
 /*		Bundle Authentication Block Support			*/
 
 void	sec_get_bspBabRule(char *senderEid, char *receiverEid, Object *ruleAddr,
@@ -2903,7 +2919,7 @@ int	sec_removeBspBabRule(char *senderEid, char *receiverEid)
 
 	return 1;
 }
-
+#endif
 /*		Block Integrity Block Support				*/
 
 void	sec_get_bspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
@@ -2930,6 +2946,11 @@ void	sec_get_bspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		return;
 	}
 
+	if (blockTypeNbr == 0)
+	{
+		return;		/*	Cannot match any valid rule.	*/
+	}
+
 	CHKVOID(sdr_begin_xn(sdr));
 
 	for (elt = sdr_list_first(sdr, secdb->bspBibRules); elt;
@@ -2938,7 +2959,7 @@ void	sec_get_bspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		*ruleAddr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BspBibRule, rule, *ruleAddr);
 
-		if (blockTypeNbr != 0 && rule->blockTypeNbr != blockTypeNbr)
+		if (rule->blockTypeNbr != blockTypeNbr)
 		{
 			continue;	/*	Wrong target blk type.	*/
 		}
@@ -2946,15 +2967,14 @@ void	sec_get_bspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 		eidLen = sdr_string_read(sdr, eidBuffer, rule->destEid);
 
 		/* If destinations match... */
-		if ((rule->blockTypeNbr == blockTypeNbr)
-		&& (eidsMatch(eidBuffer, eidLen, secDestEid,
-				strlen(secDestEid))))
+		if (eidsMatch(eidBuffer, eidLen, secDestEid,
+				strlen(secDestEid)))
 		{
 			eidLen = sdr_string_read(sdr, eidBuffer,
 					rule->securitySrcEid);
 			/* If sources match ... */
 			if (eidsMatch(eidBuffer, eidLen, secSrcEid,
-					strlen(secSrcEid)) == 1)
+					strlen(secSrcEid)))
 			{
 				*eltp = elt;	/*	Exact match.	*/
 				break;		/*	Stop searching.	*/
@@ -2991,6 +3011,10 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength = sizeof buffer;
 	BspBibRule	rule;
 	Object		ruleObj;
 	Object		elt;
@@ -3000,16 +3024,49 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
 	CHKERR(secdb);
-	if (istrlen(ciphersuiteName, 32) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
 
-	if (istrlen(keyName, 32) > 31)
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BIB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3017,7 +3074,6 @@ int	sec_addBspBibRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	{
 		return 0;
 	}
-
 
 	if (sec_findBspBibRule(secSrcEid, secDestEid, blockTypeNbr, &ruleObj,
 			&elt) != 0)
@@ -3058,6 +3114,10 @@ int	sec_updateBspBibRule(char *secSrcEid, char *secDestEid,
 		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength = sizeof buffer;
 	Object		elt;
 	Object		ruleObj;
 	BspBibRule	rule;
@@ -3066,16 +3126,49 @@ int	sec_updateBspBibRule(char *secSrcEid, char *secDestEid,
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (istrlen(ciphersuiteName, 32) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
 
-	if (istrlen(keyName, 32) > 31)
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BIB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3230,6 +3323,10 @@ int	sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength = sizeof buffer;
 	BspBcbRule	rule;
 	Object		ruleObj;
 	Object		elt;
@@ -3239,16 +3336,49 @@ int	sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
 	CHKERR(secdb);
-	if (strlen(ciphersuiteName) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
-	
-	if (strlen(keyName) > 31)
+
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BCB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3298,6 +3428,10 @@ int	sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
 		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
+	int		csNameLen;
+	int		keyNameLen;
+	char		buffer[256];
+	int		bufferLength = sizeof buffer;
 	Object		elt;
 	Object		ruleObj;
 	BspBcbRule	rule;
@@ -3306,16 +3440,49 @@ int	sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
 	CHKERR(secDestEid);
 	CHKERR(ciphersuiteName);
 	CHKERR(keyName);
-	if (strlen(ciphersuiteName) > 31)
+	csNameLen = istrlen(ciphersuiteName, 32);
+       	if (csNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid ciphersuiteName", ciphersuiteName);
+		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
 		return 0;
 	}
 
-	if (strlen(keyName) > 31)
+	keyNameLen = istrlen(keyName, 32);
+	if (keyNameLen > 31)
 	{
-		writeMemoNote("[?] Invalid keyName", keyName);
+		writeMemoNote("[?] Key name too long", keyName);
 		return 0;
+	}
+
+	if (csNameLen == 0)
+	{
+		if (keyNameLen != 0)
+		{
+			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			return 0;
+		}
+	}
+	else
+	{
+		if (keyNameLen == 0)
+		{
+			writeMemoNote("[?] Key name omitted", ciphersuiteName);
+			return 0;
+		}
+
+		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		{
+			writeMemoNote("[?] Invalid key name", keyName);
+			return 0;
+		}
+#if 0
+		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		{
+			writeMemoNote("[?] Not a known BCB ciphersuite",
+					ciphersuiteName);
+			return 0;
+		}
+#endif
 	}
 
 	if ((filterEid(secSrcEid, secSrcEid, 1) == 0)
@@ -3387,6 +3554,8 @@ int	sec_removeBspBcbRule(char *secSrcEid, char *secDestEid,
 
 	return 1;
 }
+
+/*		General SBSP Support					*/
 
 Object sec_get_bspBibRuleList()
 {
@@ -3726,7 +3895,7 @@ void sec_get_sbspSrcEIDs(char *buffer, int length)
 
 }
 
-#endif
+#endif		/*	ORIGINAL_BSP					*/
 
 /******************************************************************************
  *

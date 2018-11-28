@@ -134,7 +134,7 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-ionstop
+./ionstop
 killm
 echo "Asymmetric range test completed."
 exit $RETVAL

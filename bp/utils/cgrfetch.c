@@ -64,8 +64,6 @@ typedef struct {
 	// Current route being built by CGR when building routes OR
 	// Current route selected by CGR when selecting proximate nodes
 	Route *route;
-	// Whether CGR is recomputing a route
-	int recomputing;
 } TraceState;
 
 // Command line arguments
@@ -139,42 +137,22 @@ static LystElt nextConsidered(LystElt routeElt)
 	return routeElt;
 }
 
-// Find where to insert a route so the list remains sorted. (copied from libcgr)
-static LystElt findSpotForRoute(Lyst routes, Route *newRoute)
-{
-	LystElt routeElt;
-	Route *route;
-
-	for (routeElt = lyst_first(routes); routeElt;
-	     routeElt = lyst_next(routeElt))
-	{
-		route = lyst_data(routeElt);
-
-		if (route->deliveryTime > newRoute->deliveryTime)
-		{
-			return routeElt;
-		}
-	}
-
-	return 0;
-}
-
 static void outputTraceMsg(void *data, unsigned int lineNbr,
 		           CgrTraceType traceType, va_list args)
 {
 	vfprintf(stderr, cgr_tracepoint_text(traceType), args);
 
 	switch (traceType) {
-	case CgrUpdateProximateNode:
+	case CgrUpdateRoute:
 		fputs("other route has", stderr);
 		// fallthrough
 	case CgrIgnoreContact:
-	case CgrIgnoreRoute:
-	case CgrIgnoreProximateNode:
+	case CgrExcludeRoute:
+	case CgrSkipRoute:
 		fputc(' ', stderr);
 		fputs(cgr_reason_text(va_arg(args, CgrReason)), stderr);
 	default:
-	break;
+		break;
 	}
 
 	fputc('\n', stderr);
@@ -184,7 +162,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		             CgrTraceType traceType, va_list args)
 {
 	TraceState *traceState = data;
-	LystElt routeElt, nextElt;
+	LystElt routeElt;
 	Route *route;
 	Hop *hop;
 
@@ -195,7 +173,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		traceState->route->ignoreReason = CgrReasonMax;
 		traceState->route->hops = lyst_create();
 		lyst_delete_set(traceState->route->hops, hopDeleteFn, NULL);
-	break;
+		break;
 
 	case CgrHop:
 		// Create a new hop and add to the current route.
@@ -206,83 +184,40 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		// Hops are traced from destination node to local node, so
 		// insert in reverse order.
 		lyst_insert_first(traceState->route->hops, hop);
-	break;
+		break;
 
-	case CgrAcceptRoute:
+	case CgrProposeRoute:
 		route = traceState->route;
 
 		route->firstHop = va_arg(args, uvast);
 		route->fromTime = va_arg(args, unsigned int);
 		route->deliveryTime = va_arg(args, unsigned int);
-		route->maxCapacity = va_arg(args, uvast);
-		route->payloadClass = va_arg(args, int);
+		lyst_insert_last(traceState->routes, route);
+		traceState->routeElt = lyst_last(traceState->routes);
+		break;
 
-		if (traceState->recomputing)
-		{
-			// If recomputing, we need to find the right place to
-			// insert the route and restart the walk from the
-			// beginning (to keep in sync with CGR.)
-
-			routeElt = findSpotForRoute(traceState->routes, route);
-
-			if (routeElt)
-			{
-				lyst_insert_before(routeElt, route);
-			}
-			else
-			{
-				lyst_insert_last(traceState->routes, route);
-			}
-
-			traceState->routeElt = lyst_first(traceState->routes);
-			traceState->recomputing = 0;
-		}
-		else
-		{
-			// CGR traces route building in the correct order, so
-			// just insert as normal.
-			lyst_insert_last(traceState->routes, route);
-		}
-	break;
-
-	case CgrDiscardRoute:
-		// Discard the route being built.
+	case CgrNoRoute:
+		// The route that was constructed is null.
 		routeDestroy(traceState->route);
+		break;
 
-		if (traceState->recomputing)
-		{
-			// If recomputing, remove the route being recomputed and
-			// move on the next route in the walk (to keep in sync
-			// with CGR).
-			nextElt = lyst_next(traceState->routeElt);
-			lyst_delete(traceState->routeElt);
-			traceState->routeElt = nextElt;
-			traceState->recomputing = 0;
-		}
-	break;
-
-	case CgrIdentifyProximateNodes:
+	case CgrIdentifyRoutes:
 		// Start walking from the first route.
 		traceState->routeElt = lyst_first(traceState->routes);
-	break;
+		break;
 
 	case CgrCheckRoute:
 		traceState->route = lyst_data(traceState->routeElt);
-	break;
+		break;
 
-	case CgrRecomputeRoute:
-		// CGR is going to be recomputing a route.
-		traceState->recomputing = 1;
-	break;
-
-	case CgrIgnoreRoute:
+	case CgrExcludeRoute:
 		// Mark why the current route was ignored and move on to the
 		// next.
 		traceState->route->ignoreReason = va_arg(args, CgrReason);
 		traceState->routeElt = lyst_next(traceState->routeElt);
-	break;
+		break;
 
-	case CgrUpdateProximateNode:
+	case CgrUpdateRoute:
 		// Find the proximate node being replaced and mark it as no
 		// longer considered.
 		for (routeElt = nextConsidered(lyst_first(traceState->routes));
@@ -294,53 +229,53 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			{
 				route->flag = IDENTIFIED;
 				route->ignoreReason = va_arg(args, CgrReason);
-
 				break;
 			}
 		}
 
 		// Fallthrough
-	case CgrAddProximateNode:
+	case CgrAddRoute:
 		// Mark the current route as considered and continue the walk.
 		traceState->route->flag = CONSIDERED;
 		traceState->routeElt = lyst_next(traceState->routeElt);
-	break;
+		break;
 
-	case CgrSelectProximateNodes:
+	case CgrSelectRoutes:
 		// Set that no route has been selected and start walking from
 		// the first considered route.
 		traceState->route = NULL;
 		traceState->routeElt =
 			nextConsidered(lyst_first(traceState->routes));
-	break;
+		break;
 
-	case CgrSelectProximateNode:
+	case CgrSelectRoute:
 		// Mark the current route as selected and move to the next
 		// considered one.
 		traceState->route = lyst_data(traceState->routeElt);
 		traceState->routeElt =
 			nextConsidered(lyst_next(traceState->routeElt));
-	break;
+		break;
 
-	case CgrIgnoreProximateNode:
-		// Mark why the current route was ignored as a proximate node.
+	case CgrSkipRoute:
+		// Mark why the current route was not used for forwarding.
 		route = lyst_data(traceState->routeElt);
 		route->ignoreReason = va_arg(args, CgrReason);
 
 		traceState->routeElt =
 			nextConsidered(lyst_next(traceState->routeElt));
-	break;
+		break;
 
-	case CgrUseProximateNode:
+	case CgrUseRoute:
 		// CGR is done walking proximate nodes, so mark the current
-		// selected route (if there is one) as the final selected route..
+		// selected route (if there is one) as the final selected route.
 		if (traceState->route)
 		{
 			traceState->route->flag = SELECTED;
 		}
-	break;
 
-	case CgrUseAllProximateNodes:
+		break;
+
+	case CgrUseAllRoutes:
 		// CGR decided to use all proximate nodes, so mark all
 		// considered routes as selected.
 		for (routeElt = nextConsidered(lyst_first(traceState->routes));
@@ -349,10 +284,11 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 			route = lyst_data(routeElt);
 			route->flag = SELECTED;
 		}
-	break;
+
+		break;
 
 	default:
-	break;
+		break;
 	}
 }
 
@@ -672,19 +608,33 @@ static void run_cgrfetch(void)
 		.fn = traceFn,
 		.data = &(TraceState) {
 			.routes = routes,
-			.recomputing = 0,
 		},
 	};
 
 	// Flush the cached routing tables.
 	cgr_stop();
+
+	if (bpAttach() < 0)
+	{
+		DIES("Can't attach to BP");
+	}
+
 	cgr_start();
+
+	Sdr	sdr = getIonsdr();
+	if (sdr_begin_xn(sdr) != 1)
+	{
+		DIES("Can't lock database");
+	}
 
 	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
 			dispatchTime, &trace) < 0)
 	{
 		DIES("unable to simulate cgr");
 	}
+
+	sdr_exit_xn(sdr);
+	ionDetach();
 
 	if (flags & OUTPUT_JSON)
 	{
@@ -849,15 +799,15 @@ int	main(int argc, char **argv)
 		case 'h':
 			usage(argv[0]);
 			exit(EXIT_SUCCESS);
-		break;
+			break;
 
 		case 'q':
 			flags &= ~OUTPUT_TRACE_MSG;
-		break;
+			break;
 
 		case 'j':
 			flags &= ~OUTPUT_JSON;
-		break;
+			break;
 
 		case 't':
 			dispatchOffset = strtoul(optarg, &end, 10);
@@ -866,7 +816,8 @@ int	main(int argc, char **argv)
 			{
 				DIEF("invalid dispatch offset '%s'", optarg);
 			}
-		break;
+
+			break;
 
 		case 'e':
 			expirationOffset = strtoul(optarg, &end, 10);
@@ -875,7 +826,8 @@ int	main(int argc, char **argv)
 			{
 				DIEF("invalid expiration offset '%s'", optarg);
 			}
-		break;
+
+			break;
 
 		case 's':
 			bundleSize = strtoul(optarg, &end, 10);
@@ -884,11 +836,12 @@ int	main(int argc, char **argv)
 			{
 				DIEF("invalid bundle size '%s'", optarg);
 			}
-		break;
+
+			break;
 
 		case 'm':
 			minLatency = 1;
-		break;
+			break;
 
 		case 'o':
 			outputFile = fopen(optarg, "w");
@@ -897,7 +850,8 @@ int	main(int argc, char **argv)
 			{
 				DIEF("unable to open '%s'", optarg);
 			}
-		break;
+
+			break;
 
 		case 'd':
 			if (strcmp(optarg, "list") == 0)
@@ -910,15 +864,16 @@ int	main(int argc, char **argv)
 			{
 				DIEF("invalid outduct '%s'", optarg);
 			}
-		break;
+
+			break;
 
 		case ':':
 			DIEF("option '-%c' takes an argument", optopt);
-		break;
+			break;
 
 		case '?':
 			fprintf(stderr, "unknown option '-%c'\n", optopt);
-		break;
+			break;
 		}
 	}
 #endif

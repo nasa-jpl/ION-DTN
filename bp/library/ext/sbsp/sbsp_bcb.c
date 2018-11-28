@@ -23,6 +23,7 @@
  **              sbsp_bcbRelease
  **              sbsp_bcbCopy
  **                                                  sbsp_bcbAcquire
+ **                                                  sbsp_bcbReview
  **                                                  sbsp_bcbDecrypt
  **                                                  sbsp_bcbRecord
  **                                                  sbsp_bcbClear
@@ -109,7 +110,6 @@ int	sbsp_bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbClear
@@ -167,8 +167,6 @@ void	sbsp_bcbClear(AcqExtBlock *blk)
 }
 
 
-
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbCopy
@@ -191,8 +189,6 @@ void	sbsp_bcbClear(AcqExtBlock *blk)
  *  04/02/12  S. Burleigh    Port from sbsp_pibCopy
  *  11/07/15  E. Birrane     Comments. [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-
-
 
 int	sbsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
@@ -290,7 +286,6 @@ int	sbsp_bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -393,7 +388,8 @@ int	sbsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BCB rule.	*/
 
-	prof = sbsp_bcbGetProfile(fromEid, toEid, asb->targetBlockType, &bcbRule);
+	prof = sbsp_bcbGetProfile(fromEid, toEid, asb->targetBlockType,
+			&bcbRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
@@ -471,7 +467,6 @@ int	sbsp_bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbDefaultConstruct
@@ -514,8 +509,11 @@ int	sbsp_bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, SbspOutboundBl
 	asb->resultsData = 0;
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
+#if 0
 	asb->ciphersuiteFlags = SBSP_ASB_RES | SBSP_ASB_PARM;
-    asb->resultsLen = 0;
+#endif
+	asb->ciphersuiteFlags = SBSP_ASB_PARM;
+	asb->resultsLen = 0;
 
 	return 0;
 }
@@ -610,11 +608,11 @@ int sbsp_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, uv
 		case BLOCK_TYPE_PAYLOAD:
 			*bytes = wk->bundle.payload.length;
 
-			if(sbsp_bcbHelper(&(wk->bundle.payload.content),
+			if (sbsp_bcbHelper(&(wk->bundle.payload.content),
 							   csi_blocksize(suite),
 							   suite,
 							   sessionKeyClear,
-							   parms,
+							   parms, 0, 0,
 							   CSI_SVC_DECRYPT) < 0)
 			{
 				BCB_DEBUG_ERR("x sbsp_bcbDefaultDecrypt: Can't decrypt payload.", NULL);
@@ -640,20 +638,21 @@ int sbsp_bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk, uv
 
 
 uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
-		                    Bundle *bundle,
-		                    ExtensionBlock *blk,
-		                    SbspOutboundBlock *asb,
-							uvast *bytes)
+			Bundle *bundle,
+			ExtensionBlock *blk,
+			SbspOutboundBlock *asb,
+			size_t xmitRate,
+			uvast *bytes)
 {
 	Sdr		bpSdr = getIonsdr();
-	csi_val_t sessionKey;
-	csi_val_t encryptedSessionKey;
-	csi_val_t longtermKey;
+	csi_val_t	sessionKey;
+	csi_val_t	encryptedSessionKey;
+	csi_val_t	longtermKey;
 	csi_cipherparms_t parms;
 
 	BCB_DEBUG_INFO("+ sbsp_bcbDefaultEncrypt(%d, 0x%x, 0x%x, 0x%x",
-			       suite, (unsigned long) bundle, (unsigned long) blk,
-				   (unsigned long) asb);
+			suite, (unsigned long) bundle, (unsigned long) blk,
+			(unsigned long) asb);
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(bundle);
@@ -671,9 +670,10 @@ uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
 	 * protect the session key.
 	 */
 	longtermKey = sbsp_retrieveKey(asb->keyName);
-	if(longtermKey.len == 0)
+	if (longtermKey.len == 0)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get longterm key.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get longterm \
+key.", NULL);
 		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> 0", NULL);
 		return 0;
 	}
@@ -681,9 +681,10 @@ uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
 	/* Step 2 - Grab session key to use for the encryption. */
 	sessionKey = csi_crypt_parm_get(suite, CSI_PARM_BEK);
 
-	if((sessionKey.contents == NULL) || (sessionKey.len == 0))
+	if ((sessionKey.contents == NULL) || (sessionKey.len == 0))
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get session key.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get session \
+key.", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
 		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
@@ -702,9 +703,11 @@ uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
 	 *          make sure we can encrypt all the keys before doing
 	 *          surgery on the target block itself.
 	 */
-	if((csi_crypt_key(suite, CSI_SVC_ENCRYPT, &parms, longtermKey, sessionKey, &encryptedSessionKey)) == ERROR)
+	if ((csi_crypt_key(suite, CSI_SVC_ENCRYPT, &parms, longtermKey,
+			sessionKey, &encryptedSessionKey)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Could not decrypt session key", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Could not decrypt \
+session key", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
 		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> 0", NULL);
@@ -712,9 +715,11 @@ uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
 
 	}
 
-	if((encryptedSessionKey.contents == NULL) || (encryptedSessionKey.len == 0))
+	if ((encryptedSessionKey.contents == NULL)
+	|| (encryptedSessionKey.len == 0))
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get encrypted session key.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt - Can't get encrypted \
+session key.", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
 		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
@@ -729,16 +734,15 @@ uint32_t sbsp_bcbDefaultEncrypt(uint32_t suite,
 
 		*bytes = bundle->payload.length;
 
-		if(sbsp_bcbHelper(&(bundle->payload.content),
-						  csi_blocksize(suite),
-						  suite,
-						  sessionKey,
-						  parms,
-						  CSI_SVC_ENCRYPT) < 0)
+		if (sbsp_bcbHelper(&(bundle->payload.content),
+				csi_blocksize(suite), suite, sessionKey, parms,
+			       	asb->encryptInPlace, xmitRate, CSI_SVC_ENCRYPT)
+				< 0)
 		{
-			BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't encrypt \
-payload.", NULL);
-			BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
+			BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't \
+encrypt payload.", NULL);
+			BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL",
+					NULL);
 			MRELEASE(longtermKey.contents);
 			MRELEASE(sessionKey.contents);
 			MRELEASE(encryptedSessionKey.contents);
@@ -749,8 +753,8 @@ payload.", NULL);
 		break;
 
 	default:
-		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't encrypt block type \
-%d: canonicalization not implemented.", asb->targetBlockType);
+		BCB_DEBUG_ERR("x sbsp_bcbDefaultEncrypt: Can't encrypt block \
+type %d: canonicalization not implemented.", asb->targetBlockType);
 		BCB_DEBUG_PROC("- sbsp_bcbDefaultEncrypt--> NULL", NULL);
 		MRELEASE(longtermKey.contents);
 		MRELEASE(sessionKey.contents);
@@ -758,7 +762,6 @@ payload.", NULL);
 		csi_cipherparms_free(parms);
 		return 0;
 	}
-
 
 	/* Step 6 - Free plaintext keys post-encryption. */
 	MRELEASE(longtermKey.contents);
@@ -769,8 +772,8 @@ payload.", NULL);
 	 *         results field.
 	 */
 
-	asb->resultsData = sbsp_build_sdr_result(bpSdr, CSI_PARM_KEYINFO, encryptedSessionKey,
-			           &(asb->resultsLen));
+	asb->resultsData = sbsp_build_sdr_result(bpSdr, CSI_PARM_KEYINFO,
+			encryptedSessionKey, &(asb->resultsLen));
 	MRELEASE(encryptedSessionKey.contents);
 
 	if (asb->resultsData == 0)
@@ -788,7 +791,8 @@ space for ASB result.", NULL);
 
 	if (asb->parmsData == 0)
 	{
-		BCB_DEBUG_WARN("x sbsp_bcbDefaultEncrypt: Can't write cipher parameters.", NULL);
+		BCB_DEBUG_WARN("x sbsp_bcbDefaultEncrypt: Can't write cipher \
+parameters.", NULL);
 	}
 
 	/*	BCB is now ready to be serialized.			*/
@@ -797,44 +801,29 @@ space for ASB result.", NULL);
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /******************************************************************************
  *
  * \par Function Name: sbsp_bcbGetProfile
  *
- * \par Purpose: Find the profile associated with a potential confidentiality service.
- *               The confidentiality security service within a bundle is uniquely
- *               identified as OP(confidentiality, target), where target is the
- *               identifier of the bundle block receiving the protection.
+ * \par Purpose: Find the profile associated with a potential confidentiality
+ *		 service.  The confidentiality security service within a
+ *		 bundle is uniquely identified as OP(confidentiality, target),
+ *		 where target is the identifier of the bundle block receiving
+ *		 the protection.
  *
- *               The ciphersuite profile captures all policy decisions associated
- *               with the application of confidentiality for the given target block
- *               from the given security source to the security destination. If
- *               no profile exists, then there is no policy requiring a BCB for
- *               the given block between the source and destination.
+ *               The ciphersuite profile captures all function implementations
+ *		 associated with the application of confidentiality for the
+ *		 given target block from the given security source to the
+ *		 security destination. If no profile exists, then there is no
+ *		 implementation of BCB for the given block between the source
+ *		 and destination; any securty policy rule requiring such an
+ *		 implementation has been violated..
  *
  * \retval BcbProfile *  NULL  - No profile found.
  *            -          !NULL - The appropriate BCB Profile
  *
- * \param[in]  secSrc     The EID of the node seeking to add the BCB
- * \param[in]  secDest    The bundle destination ultimately responsible
- *                        for verifying the integrity of the BCB.
+ * \param[in]  secSrc     The EID of the node that creates the BCB
+ * \param[in]  secDest    The EID of the node that uses the BCB.
  * \param[in]  secTgtType The block type of the target block.
  * \param[out] secBcbRule The BCB rule capturing security policy.
  *
@@ -849,13 +838,14 @@ space for ASB result.", NULL);
  *  11/07/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-BcbProfile *sbsp_bcbGetProfile(char *secSrc, char *secDest,
-							  int secTgtType, BspBcbRule *bcbRule)
+
+BcbProfile	*sbsp_bcbGetProfile(char *secSrc, char *secDest, int secTgtType,
+			BspBcbRule *bcbRule)
 {
-	Sdr	bpSdr = getIonsdr();
-	Object	ruleAddr;
-	Object	ruleElt;
-	BcbProfile *prof = NULL;
+	Sdr		bpSdr = getIonsdr();
+	Object		ruleAddr;
+	Object		ruleElt;
+	BcbProfile 	*prof = NULL;
 
 	BCB_DEBUG_PROC("+ sbsp_bcbGetProfile(%s, %s, %d, 0x%x)",
 				   (secSrc == NULL) ? "NULL" : secSrc,
@@ -872,6 +862,7 @@ BcbProfile *sbsp_bcbGetProfile(char *secSrc, char *secDest,
 	 * Step 1.1 - If there is no matching rule, there is no policy
 	 * and without policy we do not apply a BCB.
 	 */
+
 	if (ruleElt == 0)
 	{
 		memset((char *) bcbRule, 0, sizeof(BspBcbRule));
@@ -883,18 +874,16 @@ for BCBs. No BCB processing for this bundle.", NULL);
 	/* Step 2 - Retrieve the Profile associated with this policy. */
 
 	sdr_read(bpSdr, (char *) bcbRule, ruleAddr, sizeof(BspBcbRule));
-	if((prof = get_bcb_prof_by_name(bcbRule->ciphersuiteName)) == NULL)
+	if( (prof = get_bcb_prof_by_name(bcbRule->ciphersuiteName)) == NULL)
 	{
-		BCB_DEBUG_INFO("i sbsp_bcbGetProfile: Ciphersuite \
-of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
-						bcbRule->ciphersuiteName);
+		BCB_DEBUG_INFO("i sbsp_bcbGetProfile: Profile of BCB rule is \
+unknown '%s'.  No BCB processing for this bundle.", bcbRule->ciphersuiteName);
 	}
 
 	BCB_DEBUG_PROC("- sbsp_bcbGetProfile -> 0x%x", (unsigned long) prof);
 
 	return prof;
 }
-
 
 
 /******************************************************************************
@@ -936,60 +925,93 @@ of BCB rule is unknown '%s'.  No BCB processing for this bundle.",
  *            S. Burleigh    Initial Implementation
  *  11/07/15  E. Birrane     Update to profiles, error checks [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
+ *  07/20/18  S. Burleigh    Abandon bundle if can't attach BCB
  *****************************************************************************/
+
 static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
-						  SbspOutboundBlock *bcbAsb)
+			SbspOutboundBlock *bcbAsb, size_t xmitRate)
 {
 	int		result = 0;
 	char		*fromEid = NULL;
 	char		*toEid = NULL;
+	char		eidBuf[32];
 	BspBcbRule	bcbRule;
 	BcbProfile	*prof = NULL;
 	unsigned char	*serializedAsb = NULL;
-	uvast bytes = 0;
+	uvast		bytes = 0;
 
-	BCB_DEBUG_PROC("+ sbsp_bcbAttach (0x%x, 0x%x, 0x%x)", (unsigned long) bundle,
-			(unsigned long) bcbBlk, (unsigned long) bcbAsb);
+	BCB_DEBUG_PROC("+ sbsp_bcbAttach (0x%x, 0x%x, 0x%x)",
+			(unsigned long) bundle, (unsigned long) bcbBlk,
+			(unsigned long) bcbAsb);
 
 	/* Step 0 - Sanity checks. */
 	CHKERR(bundle);
 	CHKERR(bcbBlk);
 	CHKERR(bcbAsb);
 
-	/* Step 1 - Grab Policy for the candidate block. */
+	/* Step 1 -	Grab Policy for the candidate block. 		*/
 
-	/* Step 1.1 - Retrieve the from/to EIDs that bound the integrity service. */
-	if ((result = sbsp_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb, &fromEid, &toEid)) <= 0)
+	/* Step 1.1 -	Retrieve the from/to EIDs that bound the
+			confidentiality service. 			*/
+
+	if ((result = sbsp_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb,
+			&fromEid, &toEid)) <= 0)
 	{
 		ADD_BCB_TX_FAIL(NULL, 1, 0);
 
-		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't get security EIDs.", NULL);
-
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't get security EIDs.",
+				NULL);
+		result = -1;
 		BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
 		return result;
 	}
 
+	/*	We only attach a BCB per a rule for which the local
+		node is the security source.				*/
+
+	MRELEASE(fromEid);
+	isprintf(eidBuf, sizeof eidBuf, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	fromEid = eidBuf;
+
 	/*
-	 * Step 1.2 - Grab the profile for integrity for the target block from the
-	 *            EIDs. If there is no profile, the assumption is that there
-	 *            is no policy for attaching BCBs in this instance.
+	 * Step 1.2 -	Grab the profile for encryption for the target
+	 *		block from the EIDs. If there is no rule,
+	 *		then there is no policy for attaching BCBs
+	 *		in this instance.  If there is a rule but no
+	 *		matching profile then the bundle must not be
+	 *		forwarded.
 	 */
 
-	prof = sbsp_bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType, &bcbRule);
+	prof = sbsp_bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType,
+			&bcbRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
-		MRELEASE(fromEid);
-		BCB_DEBUG(2,"NOT adding BCB.", NULL);
+		if (bcbRule.destEid == 0)	/*	No rule.	*/
+		{
+			BCB_DEBUG(2,"NOT adding BCB; no rule.", NULL);
+
+			/*	No applicable valid construction rule.	*/
+
+			result = 0;
+			scratchExtensionBlock(bcbBlk);
+			BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
+			return result;
+		}
+
+		BCB_DEBUG(2,"NOT adding BCB; no profile.", NULL);
 
 		/*	No applicable valid construction rule.		*/
-		scratchExtensionBlock(bcbBlk);
+
 		result = 0;
+		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach -> %d", result);
 		return result;
 	}
 
-	BCB_DEBUG(2,"Adding BCB", NULL);
+	BCB_DEBUG(2, "Adding BCB", NULL);
 
 	/* Step 2 - Populate the BCB ASB. */
 
@@ -998,38 +1020,41 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	memcpy(bcbAsb->keyName, bcbRule.keyName, SBSP_KEY_NAME_LEN);
 
 	/* Step 2.2 - Initialize the BCB ASB. */
-	result = (prof->construct == NULL) ?
-			 sbsp_bcbDefaultConstruct(prof->suiteId, bcbBlk, bcbAsb) :
-			 prof->construct(bcbBlk, bcbAsb);
 
-	if(result < 0)
+	result = (prof->construct == NULL) ?
+			sbsp_bcbDefaultConstruct(prof->suiteId, bcbBlk, bcbAsb)
+			: prof->construct(bcbBlk, bcbAsb);
+
+	if (result < 0)
 	{
 		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't construct ASB.", NULL);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, 0);
-		MRELEASE(fromEid);
 
-		scratchExtensionBlock(bcbBlk);
+		result = -1;
 		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
-	/* Step 2.2 - Sign the target block and store the signature. */
+	/* Step 2.2 - Encrypt the target block and attach it. 		*/
 
 	result = (prof->encrypt == NULL) ?
-			 sbsp_bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk, bcbAsb, &bytes) :
-			 prof->encrypt(bundle, bcbBlk, bcbAsb, &bytes);
+			sbsp_bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk,
+			bcbAsb, xmitRate, &bytes) : prof->encrypt(bundle,
+			bcbBlk, bcbAsb, xmitRate, &bytes);
 
-	if (result <= 0)
+	if (result < 0)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't encrypt target block.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Can't encrypt target block.",
+				NULL);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
-		MRELEASE(fromEid);
 
-		scratchExtensionBlock(bcbBlk);
+		result = -1;
 		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
@@ -1037,23 +1062,26 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	/* Step 3 - serialize the BCB ASB into the BCB blk. */
 
 	/* Step 3.1 - Create a serialized version of the BCB ASB. */
-	if((serializedAsb = sbsp_serializeASB((uint32_t *) &(bcbBlk->dataLength), bcbAsb)) == NULL)
+
+	if ((serializedAsb = sbsp_serializeASB((uint32_t *)
+			&(bcbBlk->dataLength), bcbAsb)) == NULL)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbAttach: Unable to serialize ASB.  bcbBlk->dataLength = %d",
-				      bcbBlk->dataLength);
+		BCB_DEBUG_ERR("x sbsp_bcbAttach: Unable to serialize ASB.  \
+bcbBlk->dataLength = %d", bcbBlk->dataLength);
 
 		ADD_BCB_TX_FAIL(fromEid, 1, bytes);
-		MRELEASE(fromEid);
 
-		result = 0;
-		scratchExtensionBlock(bcbBlk);
+		result = -1;
 		bundle->corrupt = 1;
+		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
 		return result;
 	}
 
-	/* Step 3.2 - Copy the serializedBCB ASB into the BCB extension block. */
-	if((result = serializeExtBlk(bcbBlk, NULL, (char *) serializedAsb)) < 0)
+	/* Step 3.2 - Copy serializedBCB ASB into the BCB extension block. */
+
+	if ((result = serializeExtBlk(bcbBlk, NULL, (char *) serializedAsb))
+			< 0)
 	{
 		bundle->corrupt = 1;
 	}
@@ -1061,10 +1089,9 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	MRELEASE(serializedAsb);
 
 	ADD_BCB_TX_PASS(fromEid, 1, bytes);
-	MRELEASE(fromEid);
 
 	BCB_DEBUG_PROC("- sbsp_bcbAttach --> %d", result);
-	return 1;
+	return result;
 }
 
 
@@ -1073,20 +1100,21 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
  * \par Function Name: sbsp_bcbOffer
  *
  * \par Purpose: This callback aims to ensure that the bundle contains
- * 		 a BCB for the block identified by tags 1, 2, and 3 of
+ * 		 a BCB for the block identified by tags 1 and 2 of
  * 		 the proposed BCB contents.  If the bundle already
  * 		 contains such a BCB (inserted by an upstream node)
  * 		 then the function simply returns 0.  Otherwise the
  * 		 function creates a BCB for the target block identified
- * 		 by blk->tag1, tag2, and tag3.  If the target block is
- * 		 the payload block, then the BCB is fully constructed
- * 		 -- and its target encrypted -- at this time (because
- * 		 the final content of the payload block is complete).
- * 		 Otherwise, only a placeholder BCB is constructed; in
- * 		 effect, the placeholder BCB signals to later processing
- * 		 that such a BCB may or may not need to be attached to
+ * 		 by blk->tag1 and tag2.  Note that only a placeholder
+ * 		 BCB is constructed at this time; in effect, the
+ * 		 placeholder BCB signals to later processing that
+ * 		 such a BCB may or may not need to be attached to
  * 		 the bundle, depending on the final contents of other
- * 		 bundle blocks.
+ * 		 bundle blocks.  (Even encryption of the payload block is
+ * 		 deferred, because in order ot make accurate decisions
+ * 		 about in-place encryption we need the current data
+ * 		 rate, which is only available at the time the bundle
+ * 		 is dequeued.)
  *
  * \retval int 0 - The BCB was successfully created, or not needed.
  *            -1 - There was a system error.
@@ -1095,11 +1123,12 @@ static int	sbsp_bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
  * \param[in]      bundle The bundle that would hold this new block.
  *
  * \par Assumptions:
- *      1. The blk has been pre-initialized such that the tag1-3 values
+ *      1. The blk has been pre-initialized such that the tag1-2 values
  *         are initialized sufficiently to identify the target block.
  *
  * \par Notes:
  *      1. All block memory is allocated using sdr_malloc.
+ *      2. tag3 is used to request destructive encryption (i.e., in-place).
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -1133,7 +1162,8 @@ int	sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		(blk->tag1 == BLOCK_TYPE_BCB))
 	{
 		/*	Can't have a BCB for these types of block.	*/
-		BCB_DEBUG_ERR("x sbsp_bcbOffer - BCB can't target type %d", blk->tag1);
+		BCB_DEBUG_ERR("x sbsp_bcbOffer - BCB can't target type %d",
+				blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
@@ -1142,10 +1172,12 @@ int	sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	}
 
     /* Step 1.3 - Make sure OP(confidentiality, target) isn't already there. */
-	if(sbsp_findBlock(bundle, BLOCK_TYPE_BCB, blk->tag1, blk->tag2, blk->tag3))
+	if(sbsp_findBlock(bundle, BLOCK_TYPE_BCB, blk->tag1, blk->tag2,
+			blk->tag3))
 	{
 		/*	Don't create a placeholder BCB for this block.	*/
-		BCB_DEBUG_ERR("x sbsp_bcbOffer - BCB already exists for tgt %d", blk->tag1);
+		BCB_DEBUG_ERR("x sbsp_bcbOffer - BCB already exists for tgt %d",
+				blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
@@ -1159,7 +1191,7 @@ int	sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	memset((char *) &asb, 0, sizeof(SbspOutboundBlock));
 	sbsp_insertSecuritySource(bundle, &asb);
 	asb.targetBlockType = blk->tag1;
-
+	asb.encryptInPlace = blk->tag3;
 
 	CHKERR(sdr_begin_xn(bpSdr));
 
@@ -1175,7 +1207,6 @@ of size: %d", blk->size);
 		return result;
 	}
 
-
 	/* Step 3 - Write the ASB into the block. */
 
 	sdr_write(bpSdr, blk->object, (char *) &asb, blk->size);
@@ -1183,49 +1214,25 @@ of size: %d", blk->size);
 	sdr_end_xn(bpSdr);
 
 
-	/* Step 4 - Attach BCB if possible. */
+	/* Step 4 - We always defer encryption until dequeue time. */
 
-	/*
-	 * Step 4.1 - If the target is not the payload, we have
-	 *            to defer integrity until a later date.
-	 */
+	/*	We can't construct the block at this time because we
+	 *	can't assume that the target block exists in final
+	 *	form yet.  (Except for the payload block, and we defer
+	 *	encryption of the payload as well because we need the
+	 *	current xmit data rate in order to encrypt that block
+	 *	efficiently, and that rate is only known at dequeue
+	 *	time.)  All we do is tell the BP agent that we want
+	 *	this BCB to be considered for construction at the
+	 *	time the bundle is dequeued for transmission.  For
+	 *	this purpose, we stop after initializing the block's
+	 *	scratchpad area, resulting in insertion of a
+	 *	placeholder BCB for the target block.			*/
 
-	if (asb.targetBlockType != BLOCK_TYPE_PAYLOAD)
-	{
-		/*	We can't construct the block at this time
-		 *	because we can't assume that the target block
-		 *	exists in final form yet.  All we do is tell
-		 *	the BP agent that we want this BCB to be
-		 *	considered for construction at the time the
-		 *	bundle is dequeued for transmission.  For
-		 *	this purpose, we stop after initializing
-		 *	the block's scratchpad area, resulting in
-		 *	insertion of a placeholder BCB for the target
-		 *	block.						*/
-
-		result = 0;
-		BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
-		return result;
-	}
-
-	/*
-	 * Step 4.2 If target is the payload, encrypt the target
-	 * and attach the BCB.
-	 */
-	if((result = sbsp_bcbAttach(bundle, blk, &asb)) <= 0)
-	{
-		CHKERR(sdr_begin_xn(bpSdr));
-		sdr_free(bpSdr, blk->object);
-		sdr_end_xn(bpSdr);
-
-		blk->object = 0;
-		blk->size = 0;
-	}
-
+	result = 0;
 	BCB_DEBUG_PROC("- sbsp_bcbOffer -> %d", result);
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -1235,8 +1242,7 @@ of size: %d", blk->size);
  * \par Purpose: This callback determines whether or not a block of the
  * 		 type that is the target of this proposed BCB exists in
  * 		 the bundle and discards the BCB if it does not.  If the
- * 		 target block exists and no BCB for that block has yet
- * 		 been constructed, the BCB is constructed.
+ * 		 target block exists, the BCB is constructed.
  *
  * \retval int 0 - The block was successfully constructed or deleted.
  *            -1 - There was a system error.
@@ -1258,10 +1264,12 @@ of size: %d", blk->size);
  *                           [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	sbsp_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
+int	sbsp_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
+		void *parm)
 {
 	SbspOutboundBlock	asb;
 	int			result = 0;
+	DequeueContext		*context = (DequeueContext *) parm;
 
 	BCB_DEBUG_PROC("+ sbsp_bcbProcessOnDequeue(0x%x, 0x%x, 0x%x)",
 			(unsigned long) blk, (unsigned long) bundle,
@@ -1274,13 +1282,12 @@ int	sbsp_bcbProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 	if (bundle == NULL || parm == NULL || blk == NULL)
 	{
 		BCB_DEBUG_ERR("x sbsp_bcbProcessOnDequeue: Bad Args.", NULL);
-		BCB_DEBUG_INFO("i sbsp_bcbProcessOnDequeue bundle 0x%x, parm 0x%x, \
-blk 0x%x, blk->size %d",
-					  (unsigned long) bundle, (unsigned long)parm,
-					  (unsigned long)blk, (blk == NULL) ? 0 : blk->size);
-
+		BCB_DEBUG_INFO("i sbsp_bcbProcessOnDequeue bundle 0x%x, \
+parm 0x%x, blk 0x%x, blk->size %d", (unsigned long) bundle,
+		(unsigned long) parm, (unsigned long)blk,
+		(blk == NULL) ? 0 : blk->size);
 		scratchExtensionBlock(blk);
-	    BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue --> %d", -1);
+		BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue --> %d", -1);
 		return -1;
 	}
 
@@ -1298,30 +1305,13 @@ blk 0x%x, blk->size %d",
 		return 0;
 	} 
 
-
 	/*
-	 * Step 1.3 - If the target is the payload, the BIB was already
-	 *            handled in sbsp_bibOffer. Nothing left to do.
-	 */
-	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
-	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
-	{
-		/*	Do nothing; the block's bytes are correct
-		 *	and ready for transmission.  The block was
-		 *	constructed by the offer() function, because
-		 *	the payload block content was already final
-		 *	at that time.					*/
-
-		BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue(%d)", result);
-		return 0;
-	}
-
-	/*
-	 * Step 2 - Calculate the BCB for the target and attached it
+	 * Step 2 - Calculate the BCB for the target and attach it
 	 *          to the bundle.
 	 */
-	result = sbsp_bcbAttach(bundle, blk, &asb);
 
+	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
+	result = sbsp_bcbAttach(bundle, blk, &asb, context->xmitRate);
 	BCB_DEBUG_PROC("- sbsp_bcbProcessOnDequeue(%d)", result);
 	return result;
 }
@@ -1377,17 +1367,6 @@ void    sbsp_bcbRelease(ExtensionBlock *blk)
 
 	BCB_DEBUG_PROC("- sbsp_bcbRelease(%c)", ' ');
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 Object sbsp_bcbStoreOverflow(uint32_t suite,
@@ -1981,7 +1960,7 @@ int32_t sbsp_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *
  * \par Function Name: sbsp_bcbHelper
  *
- * \par Calculate a digest given a set of data and associated key information
+ * \par Calculate ciphertext given a set of data and associated key information
  *      in accordance with this ciphersuite specification.
  *
  * \retval unsigned char * - The security result.
@@ -1991,6 +1970,8 @@ int32_t sbsp_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  * \param[in]  suite       - Which ciphersuite to use to caluclate the value.
  * \param[in]  key         - The key to use.
  * \param[in]  parms       - Ciphersuite Parameters
+ * \param[in]  destructive - Boolean: encrypt plaintext in place.
+ * \param[in]  xmitRate    - Transmission data rate, for buffer selection
  * \param[in]  function    - Encrypt or Decrypt
  *
  * \par Assumptions
@@ -2018,20 +1999,17 @@ int32_t sbsp_bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *                           implementation (NASA: NNX14CS58P)]
  *
  *****************************************************************************/
-int sbsp_bcbHelper(Object *dataObj,
-  				  	           uint32_t chunkSize,
-						       uint32_t suite,
-						       csi_val_t key,
-							   csi_cipherparms_t parms,
-							   uint8_t function)
+int	sbsp_bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
+		csi_val_t key, csi_cipherparms_t parms, uint8_t encryptInPlace,
+	       	size_t xmitRate, uint8_t function)
 {
 	Sdr		bpSdr = getIonsdr();
 	csi_blocksize_t blocksize;
-	uint32_t    cipherBufLen = 0;
-	uint32_t    bytesRemaining = 0;
+	uint32_t	cipherBufLen = 0;
+	uint32_t	bytesRemaining = 0;
 	ZcoReader	dataReader;
 	uint8_t		*context = NULL;
-	Object      cipherBuffer = 0;
+	Object		cipherBuffer = 0;
 
 	BCB_DEBUG_INFO("+ sbsp_bcbHelper(0x%x, %d, %d, [0x%x, %d])",
 			       (unsigned long) dataObj, chunkSize, suite,
@@ -2040,7 +2018,7 @@ int sbsp_bcbHelper(Object *dataObj,
 	/* Step 0 - Sanity Check. */
 	CHKERR(key.contents);
 
-	if((sdr_begin_xn(bpSdr)) == 0)
+	if ((sdr_begin_xn(bpSdr)) == 0)
 	{
 		BCB_DEBUG_ERR("x sbsp_bcbHelper - Can't start txn.", NULL);
 		BCB_DEBUG_PROC("- sbsp_bcbHelper--> NULL", NULL);
@@ -2052,9 +2030,10 @@ int sbsp_bcbHelper(Object *dataObj,
 	 *          The data object is the target block.
 	 */
 
-	if((bytesRemaining = zco_length(bpSdr, *dataObj)) <= 0)
+	if ((bytesRemaining = zco_length(bpSdr, *dataObj)) <= 0)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbHelper - data object has no length.", NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper - data object has no length.",
+				NULL);
 		sdr_cancel_xn(bpSdr);
 		BCB_DEBUG_PROC("- sbsp_bcbHelper--> NULL", NULL);
 		return -1;
@@ -2065,7 +2044,7 @@ int sbsp_bcbHelper(Object *dataObj,
 	BCB_DEBUG_INFO("i sbsp_bcbHelper: bundle size is %d", bytesRemaining);
 
 	/* Step 4 - Grab and initialize a crypto context. */
-	if((context = csi_ctx_init(suite, key, function)) == NULL)
+	if ((context = csi_ctx_init(suite, key, function)) == NULL)
 	{
 		BCB_DEBUG_ERR("x sbsp_bcbHelper - Can't get context.", NULL);
 		sdr_cancel_xn(bpSdr);
@@ -2074,15 +2053,16 @@ int sbsp_bcbHelper(Object *dataObj,
 	}
 
 	/* Step 5: Calculate the maximum size of the ciphertext. */
-	memset(&blocksize,0,sizeof(blocksize));
+	memset(&blocksize, 0, sizeof(blocksize));
 	blocksize.chunkSize = chunkSize;
 	blocksize.keySize = key.len;
 	blocksize.plaintextLen = bytesRemaining;
 
-	if((cipherBufLen = csi_crypt_res_len(suite, context, blocksize, function)) <= 0)
+	if ((cipherBufLen = csi_crypt_res_len(suite, context, blocksize,
+			function)) <= 0)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbHelper: Predicted bad ciphertext length: %d",
-				      cipherBufLen);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper: Predicted bad ciphertext \
+length: %d", cipherBufLen);
 		csi_ctx_free(suite, context);
 		sdr_cancel_xn(bpSdr);
 
@@ -2092,37 +2072,66 @@ int sbsp_bcbHelper(Object *dataObj,
 
 	BCB_DEBUG_INFO("i sbsp_bcbHelper - CipherBufLen is %d", cipherBufLen);
 
-
-	if((function == CSI_SVC_ENCRYPT) || (function == CSI_SVC_DECRYPT))
+	if ((function == CSI_SVC_ENCRYPT) || (function == CSI_SVC_DECRYPT))
 	{
-		if(SBSP_ENCRYPT_IN_PLACE)
+		if (encryptInPlace || xmitRate == 0)
 		{
-			if((sbsp_bcbUpdatePayloadInPlace(suite, parms, context, &blocksize, *dataObj, &dataReader,
-					                      cipherBufLen, &cipherBuffer, function)) != 0)
+			if ((sbsp_bcbUpdatePayloadInPlace(suite, parms, context,
+					&blocksize, *dataObj, &dataReader,
+					cipherBufLen, &cipherBuffer, function))
+					!= 0)
 			{
-				BCB_DEBUG_ERR("x sbsp_bcbHelper: Cannot update ciphertext in place.", NULL);
+				BCB_DEBUG_ERR("x sbsp_bcbHelper: Cannot update \
+ciphertext in place.", NULL);
 				csi_ctx_free(suite, context);
 				sdr_cancel_xn(bpSdr);
 			}
 		}
 		else
 		{
-			int32_t result;
-			Object cipherZco = 0;
+			int32_t	result;
+			Object	cipherZco = 0;
+			uvast	minFileBuffer;
+			double	siestaBytes;
+			double	siestaUsec;
 
-			result = sbsp_bcbUpdatePayloadFromSdr(suite, parms, context, &blocksize, *dataObj,
-												   &dataReader, cipherBufLen, &cipherZco, function);
-
-			if(result <= 0)
+			minFileBuffer = xmitRate / MAX_TEMP_FILES_PER_SECOND;
+			result = 0;
+			if (cipherBufLen < minFileBuffer)
 			{
-				result = sbsp_bcbUpdatePayloadFromFile(suite, parms, context, &blocksize, *dataObj,
-						   	   	   	   	   	   	   	   	&dataReader, cipherBufLen, &cipherZco, function);
+				result = sbsp_bcbUpdatePayloadFromSdr(suite,
+						parms, context, &blocksize,
+						*dataObj, &dataReader,
+						cipherBufLen, &cipherZco,
+						function);
 			}
 
-			if(result <= 0)
+			if (result <= 0)
 			{
-				BCB_DEBUG_ERR("x sbsp_bcbHelper: Cannot allocate ZCO for ciphertext of size "UVAST_FIELDSPEC,
-						      cipherBufLen);
+				if (cipherBufLen < minFileBuffer)
+				{
+					/*	Slow down to avoid
+					 *	over-stressing the
+					 *	file system.		*/
+
+					siestaBytes = minFileBuffer
+							- cipherBufLen;
+					siestaUsec = (1000000.0 * siestaBytes)
+							/ xmitRate;
+					microsnooze((unsigned int) siestaUsec);
+				}
+
+				result = sbsp_bcbUpdatePayloadFromFile(suite,
+						parms, context, &blocksize,
+						*dataObj, &dataReader,
+						cipherBufLen, &cipherZco,
+						function);
+			}
+
+			if (result <= 0)
+			{
+				BCB_DEBUG_ERR("x sbsp_bcbHelper: Cannot \
+allocate ZCO for ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
 				csi_ctx_free(suite, context);
 				sdr_cancel_xn(bpSdr);
 
@@ -2136,7 +2145,8 @@ int sbsp_bcbHelper(Object *dataObj,
 	}
 	else
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbHelper: Invalid service: %d", function);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper: Invalid service: %d",
+				function);
 		csi_ctx_free(suite, context);
 		sdr_cancel_xn(bpSdr);
 
@@ -2148,7 +2158,7 @@ int sbsp_bcbHelper(Object *dataObj,
 
 	if (sdr_end_xn(bpSdr) < 0)
 	{
-		BCB_DEBUG_ERR("x sbsp_bcbHelper: Can't end encrypt txn.",NULL);
+		BCB_DEBUG_ERR("x sbsp_bcbHelper: Can't end encrypt txn.", NULL);
 		return -1;
 	}
 
@@ -2156,5 +2166,71 @@ int sbsp_bcbHelper(Object *dataObj,
 }
 
 
+/******************************************************************************
+ *
+ * \par Function Name: sbsp_bcbReview
+ *
+ * \par Purpose: This callback is called once for each acquired bundle.
+ *		 It scans through all BCB security rules and ensures
+		 that each required BCB is included among the bundle's
+		 extension blocks.
+ *
+ * \retval int -- 1 - All required BCBs are present.
+ *                0 - At least one required BCB is missing.
+ *               -1 - There was a system error.
+ *
+ * \param[in]      wk   The work area associated with this bundle acquisition.
+ *
+ * \par Notes:
+ *****************************************************************************/
 
+int	sbsp_bcbReview(AcqWorkArea *wk)
+{
+	Sdr	sdr = getIonsdr();
+	char	secDestEid[32];
+	Object	rules;
+	Object	elt;
+	Object	ruleAddr;
+		OBJ_POINTER(BspBcbRule, rule);
+	char	eidBuffer[SDRSTRING_BUFSZ];
+	int	result = 1;	/*	Default: no problem.		*/
 
+	BCB_DEBUG_PROC("+ sbsp_bcbReview(%x)", (unsigned long) wk);
+
+	CHKERR(wk);
+
+	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	rules = sec_get_bspBcbRuleList();
+	CHKERR(rules);
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sdr_list_first(sdr, rules); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		ruleAddr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BspBcbRule, rule, ruleAddr);
+		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
+		if (strcmp(eidBuffer, secDestEid) != 0)
+		{
+			/*	No requirement against local node.	*/
+
+			continue;
+		}
+
+		/*	A block satisfying this rule is required.	*/
+
+		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
+		result = sbsp_requiredBlockExists(wk, BLOCK_TYPE_BCB,
+				rule->blockTypeNbr, eidBuffer);
+		if (result != 1)
+		{
+			break;
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	BCB_DEBUG_PROC("- sbsp_bcbReview -> %d", result);
+
+	return result;
+}

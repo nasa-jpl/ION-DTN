@@ -1,0 +1,431 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "ion_bp_admin",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/ION/bpadmin",
+      "description": "The namespace of the ADM"
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.0",
+      "description": "The version of the ADM"
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM"
+    }
+  ],
+  "Edd": [{
+    "name": "bp_version",
+    "type": "STR",
+    "description": "Version of installed ION BP Admin utility."
+  }],
+  "Tblt": [{
+      "name": "endpoints",
+      "columns": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }, {
+        "type": "STR",
+        "name": "endpoint_nss"
+      }, {
+        "type": "UINT",
+        "name": "app_pid"
+      }, {
+        "type": "STR",
+        "name": "recv_rule"
+      }, {
+        "type": "STR",
+        "name": "rcv_script"
+      }],
+      "description": "Local endpoints, regardless of scheme name."
+    },
+    {
+      "name": "inducts",
+      "columns": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }, {
+        "type": "STR",
+        "name": "cli_control"
+      }],
+      "description": "Inducts established locally for the indicated CL protocol."
+    },
+    {
+      "name": "outducts",
+      "columns": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }, {
+        "type": "UINT",
+        "name": "clo_pid"
+      }, {
+        "type": "STR",
+        "name": "clo_control"
+      }, {
+        "type": "UINT",
+        "name": "max_payload_length"
+      }],
+      "description": "If protocolName is specified, this table lists all outducts established locally for the indicated CL protocol. Otherwise, it lists all locally established outducts, regardless of their protocol."
+    },
+    {
+      "name": "protocols",
+      "columns": [{
+        "type": "STR",
+        "name": "name"
+      }, {
+        "type": "UINT",
+        "name": "payload_bpf"
+      }, {
+        "type": "UINT",
+        "name": "overhead_bpf"
+      }, {
+        "type": "UINT",
+        "name": "protocol class"
+      }],
+      "description": "Convergence layer protocols that can currently be utilized at the local node."
+    },
+    {
+      "name": "schemes",
+      "columns": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }, {
+        "type": "UINT",
+        "name": "fwd_pid"
+      }, {
+        "type": "STR",
+        "name": "fwd_cmd"
+      }, {
+        "type": "UINT",
+        "name": "admin_app_pid"
+      }, {
+        "type": "STR",
+        "name": "admin_app_cmd"
+      }],
+      "description": "Declared endpoint naming schemes."
+    },
+    {
+      "name": "egress_plans",
+      "columns": [{
+        "type": "STR",
+        "name": "neighbor_eid"
+      }, {
+        "type": "UINT",
+        "name": "clm_pid"
+      }, {
+        "type": "UINT",
+        "name": "nominal_rate"
+      }],
+      "description": "Egress plans."
+    }
+  ],
+  "Ctrl": [{
+      "name": "endpoint_add",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_id"
+      }, {
+        "type": "UINT",
+        "name": "type"
+      }, {
+        "type": "STR",
+        "name": "rcv_script"
+      }],
+      "description": "Establish DTN endpoint named endpointId on the local node. The remaining parameters indicate what is to be done when bundles destined for this endpoint arrive at a time when no application has the endpoint open for bundle reception. If type is 'x', then such bundles are to be discarded silently and immediately. If type is 'q', then such bundles are to be enqueued for later delivery and, if recvScript is provided, recvScript is to be executed."
+    },
+    {
+      "name": "endpoint_change",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_id"
+      }, {
+        "type": "UINT",
+        "name": "type"
+      }, {
+        "type": "STR",
+        "name": "rcv_script"
+      }],
+      "description": "Change the action taken when bundles destined for this endpoint arrive at a time when no application has the endpoint open for bundle reception."
+    },
+    {
+      "name": "endpoint_del",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_id"
+      }],
+      "description": "Delete the endpoint identified by endpointId. The control will fail if any bundles are currently pending delivery to this endpoint."
+    },
+    {
+      "name": "induct_add",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }, {
+        "type": "STR",
+        "name": "cli_control"
+      }],
+      "description": "Establish a duct for reception of bundles via the indicated CL protocol. The duct's data acquisition structure is used and populated by the induct task whose operation is initiated by cliControl at the time the duct is started."
+    },
+    {
+      "name": "induct_change",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }, {
+        "type": "STR",
+        "name": "cli_control"
+      }],
+      "description": "Change the control used to initiate operation of the induct task for the indicated duct."
+    },
+    {
+      "name": "induct_del",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }],
+      "description": "Delete the induct identified by protocolName and ductName. The control will fail if any bundles are currently pending acquisition via this induct."
+    },
+    {
+      "name": "induct_start",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }],
+      "description": "Start the indicated induct task as defined for the indicated CL protocol on the local node."
+    },
+    {
+      "name": "induct_stop",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }],
+      "description": "Stop the indicated induct task as defined for the indicated CL protocol on the local node."
+    },
+    {
+      "name": "manage_heap_max",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "max_database_heap_per_acquisition"
+      }],
+      "description": "Declare the maximum number of bytes of SDR heap space that will be occupied by any single bundle acquisition activity (nominally the acquisition of a single bundle, but this is at the discretion of the convergence-layer input task). All data acquired in excess of this limit will be written to a temporary file pending extraction and dispatching of the acquired bundle or bundles. The default is the minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; this is the minimum SDR heap space occupancy in the event that all acquisition is into a file."
+    },
+    {
+      "name": "outduct_add",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }, {
+        "type": "STR",
+        "name": "clo_command"
+      }, {
+        "type": "UINT",
+        "name": "max_payload_length"
+      }],
+      "description": "Establish a duct for transmission of bundles via the indicated CL protocol. the duct's data transmission structure is serviced by the outduct task whose operation is initiated by CLOcommand at the time the duct is started. A value of zero for maxPayloadLength indicates that bundles of any size can be accomodated; this is the default."
+    },
+    {
+      "name": "outduct_change",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }, {
+        "type": "STR",
+        "name": "clo_control"
+      }, {
+        "type": "UINT",
+        "name": "max_payload_length"
+      }],
+      "description": "Set new values for the indicated duct's payload size limit and the control that is used to initiate operation of the outduct task for this duct."
+    },
+    {
+      "name": "outduct_del",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }],
+      "description": "Delete the outduct identified by protocolName and ductName. The control will fail if any bundles are currently pending transmission via this outduct."
+    },
+    {
+      "name": "outduct_start",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }],
+      "description": "Start the indicated outduct task as defined for the indicated CL protocol on the local node."
+    },
+    {
+      "name": "egress_plan_block",
+      "parmspec": [{
+        "type": "STR",
+        "name": "plan_name"
+      }],
+      "description": "Disable transmission of bundles queued for transmission to the indicated node and reforwards all non-critical bundles currently queued for transmission to this node. This may result in some or all of these bundles being enqueued for transmission to the psuedo-node limbo."
+    },
+    {
+      "name": "egress_plan_unblock",
+      "parmspec": [{
+        "type": "STR",
+        "name": "plan_name"
+      }],
+      "description": "Re-enable transmission of bundles to the indicated node and reforwards all bundles in limbo in the hope that the unblocking of this egress plan will enable some of them to be transmitted."
+    },
+    {
+      "name": "outduct_stop",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "STR",
+        "name": "duct_name"
+      }],
+      "description": "Stop the indicated outduct task as defined for the indicated CL protocol on the local node."
+    },
+    {
+      "name": "protocol_add",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }, {
+        "type": "UINT",
+        "name": "payload_bytes_per_frame"
+      }, {
+        "type": "UINT",
+        "name": "overhead_bytes_per_frame"
+      }, {
+        "type": "UINT",
+        "name": "nominal_data_rate"
+      }],
+      "description": "Establish access to the named convergence layer protocol at the local node. The payloadBytesPerFrame and overheadBytesPerFrame arguments are used in calculating the estimated transmission capacity consumption of each bundle, to aid in route computation and congesting forecasting. The optional nominalDataRate argument overrides the hard coded default continuous data rate for the indicated protocol for purposes of rate control. For all promiscuous prototocols-that is, protocols whose outducts are not specifically dedicated to transmission to a single identified convergence-layer protocol endpoint- the protocol's applicable nominal continuous data rate is the data rate that is always used for rate control over links served by that protocol; data rates are not extracted from contact graph information. This is because only the induct and outduct throttles for non-promiscuous protocols (LTP, TCP) can be dynamically adjusted in response to changes in data rate between the local node and its neighbors, as enacted per the contact plan. Even for an outduct of a non-promiscuous protocol the nominal data rate may be the authority for rate control, in the event that the contact plan lacks identified contacts with the node to which the outduct is mapped."
+    },
+    {
+      "name": "protocol_del",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }],
+      "description": "Delete the convergence layer protocol identified by protocolName. The control will fail if any ducts are still locally declared for this protocol."
+    },
+    {
+      "name": "protocol_start",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }],
+      "description": "Start all induct and outduct tasks for inducts and outducts that have been defined for the indicated CL protocol on the local node."
+    },
+    {
+      "name": "protocol_stop",
+      "parmspec": [{
+        "type": "STR",
+        "name": "protocol_name"
+      }],
+      "description": "Stop all induct and outduct tasks for inducts and outducts that have been defined for the indicated CL protocol on the local node."
+    },
+    {
+      "name": "scheme_add",
+      "parmspec": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }, {
+        "type": "STR",
+        "name": "forwarder_control"
+      }, {
+        "type": "STR",
+        "name": "admin_app_control"
+      }],
+      "description": "Declares an endpoint naming scheme for use in endpoint IDs, which are structured as URIs: schemeName:schemeSpecificPart. forwarderControl will be executed when the scheme is started on this node, to initiate operation of a forwarding daemon for this scheme. adminAppControl will also be executed when the scheme is started on this node, to initiate operation of a daemon that opens a custodian endpoint identified within this scheme so that it can recieve and process custody signals and bundle status reports."
+    },
+    {
+      "name": "scheme_change",
+      "parmspec": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }, {
+        "type": "STR",
+        "name": "forwarder_control"
+      }, {
+        "type": "STR",
+        "name": "admin_app_control"
+      }],
+      "description": "Set the indicated scheme's forwarderControl and adminAppControl to the strings provided as arguments."
+    },
+    {
+      "name": "scheme_del",
+      "parmspec": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }],
+      "description": "Delete the scheme identified by schemeName. The control will fail if any bundles identified in this scheme are pending forwarding, transmission, or delivery."
+    },
+    {
+      "name": "scheme_start",
+      "parmspec": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }],
+      "description": "Start the forwarder and administrative endpoint tasks for the indicated scheme task on the local node."
+    },
+    {
+      "name": "scheme_stop",
+      "parmspec": [{
+        "type": "STR",
+        "name": "scheme_name"
+      }],
+      "description": "Stop the forwarder and administrative endpoint tasks for the indicated scheme task on the local node."
+    },
+    {
+      "name": "watch",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "status"
+      }, {
+        "type": "STR",
+        "name": "activity_spec"
+      }],
+      "description": "Enable/Disable production of a continuous stream of user selected Bundle Protocol activity indication characters. A watch parameter of 1 selects all BP activity indication characters, 0 deselects allBP activity indication characters; any other activitySpec such as acz~ selects all activity indication characters in the string, deselecting all others. BP will print each selected activity indication character to stdout every time a processing event of the associated type occurs: a new bundle is queued for forwarding, b bundle is queued for transmission, c bundle is popped from its transmission queue, m custody acceptance signal is recieved, w custody of bundle is accepted, x custody of bundle is refused, y bundle is accepted upon arrival, z bundle is queued for delivery to an application, ~ bundle is abandoned (discarded) on attempt to forward it, ! bundle is destroyed due to TTL expiration, &amp; custody refusal signal is recieved, # bundle is queued for re-forwarding due to CL protocol failures, j bundle is placed in 'limbo' for possible future reforwarding, k bundle is removed from 'limbo' and queued for reforwarding, $ bundle's custodial retransmission timeout interval expired."
+    }
+  ]
+}

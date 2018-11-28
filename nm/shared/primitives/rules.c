@@ -22,6 +22,7 @@
  **  11/04/12  E. Birrane     Redesign of messaging architecture. (JHU/APL)
  **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
  **  07/05/16  E. Birrane     Fixed time offsets when creating TRL & SRL (Secure DTN - NASA: NNX14CS58P)
+ **  09/29/18  E. Birrane     Updated to AMPv0.5 (JHU/APL)
  *****************************************************************************/
 #include "platform.h"
 
@@ -29,728 +30,698 @@
 
 #include "../utils/utils.h"
 
-#include "../msg/pdu.h"
 
-#include "../msg/msg_ctrl.h"
-
-#include "../primitives/mid.h"
-#include "../primitives/rules.h"
-
-
-/* 9/4/2015 */
-srl_t*   srl_copy(srl_t *srl)
+int rule_cb_comp_fn(void *i1, void *i2)
 {
-	srl_t *result = NULL;
+	rule_t *r1 = (rule_t*)i1;
+	rule_t *r2 = (rule_t*)i2;
 
-	if(srl == NULL)
+	CHKUSR(r1, -1);
+	CHKUSR(r2, -1);
+
+	return ari_cb_comp_fn(&(r1->id), &(r2->id));
+}
+
+void rule_cb_del_fn(void *item)
+{
+	rule_release((rule_t*)item, 1);
+}
+
+void rule_cb_ht_del_fn(rh_elt_t *elt)
+{
+	CHKVOID(elt);
+	rule_cb_del_fn(elt->value);
+}
+
+/* 9/29/2018 */
+rule_t*   rule_copy_ptr(rule_t *src)
+{
+	rule_t *result = NULL;
+	int success;
+
+	CHKNULL(src);
+
+	if((result = (rule_t *) STAKE(sizeof(rule_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("srl_copy","Bad Args.", NULL);
+		AMP_DEBUG_ERR("rule_copy_ptr","Can't Alloc %d bytes.", sizeof(rule_t));
 		return NULL;
 	}
 
-	if((result = (srl_t *) STAKE(sizeof(srl_t))) == NULL)
+	/* Deep copy the hard things, checking as we go. */
+	result->id = ari_copy(src->id, &success);
+	if(success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("srl_copy","Can't Alloc %d bytes.", sizeof(srl_t));
+		SRELEASE(result);
 		return NULL;
 	}
+	// TODO: Check return value for these copies.
+	result->action = ac_copy(&(src->action));
 
-	result->mid = mid_copy(srl->mid);
-	result->time = srl->time;
-	result->expr = expr_copy(srl->expr);
-    result->count = srl->count;
-    result->action = midcol_copy(srl->action);
+	if(result->id.type == AMP_TYPE_SBR)
+	{
+		//TODO: Check return value for these copies.
+		result->def.as_sbr.expr = expr_copy(src->def.as_sbr.expr);
+		result->def.as_sbr.max_fire = src->def.as_sbr.max_fire;
+		result->def.as_sbr.max_eval = src->def.as_sbr.max_eval;
+	}
+	else
+	{
+		result->def.as_tbr.period = src->def.as_tbr.period;
+		result->def.as_tbr.max_fire = src->def.as_tbr.max_fire;
+	}
 
-    result->countdown_ticks = srl->countdown_ticks;
-    result->desc = srl->desc;
+	/* Shallow copy the easy things. */
+	result->ticks_left = src->ticks_left;
+	result->flags = src->flags;
+	result->num_eval = src->num_eval;
+	result->num_fire = src->num_fire;
 
 	return result;
 }
 
-srl_t*   srl_create(mid_t *mid, time_t time, expr_t *expr, uvast count, Lyst action)
+
+rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action)
 {
-	srl_t *srl = NULL;
-
-	AMP_DEBUG_ENTRY("srl_create",
-			          "(0x" ADDR_FIELDSPEC ",0x" ADDR_FIELDSPEC ",0x" ADDR_FIELDSPEC ",0x" UHF ",0x" ADDR_FIELDSPEC ")",
-		(uaddr) mid, (uaddr) time, (uaddr) expr, count, (uaddr) action);
-
-	/* Step 0: Sanity Check. */
-	if((mid == NULL) || (expr == NULL) || (action == NULL))
-	{
-		AMP_DEBUG_ERR("srl_create","Bad Args.",NULL);
-		AMP_DEBUG_EXIT("srl_create","->NULL",NULL);
-		return NULL;
-	}
+	rule_t *result = NULL;
+	int success;
 
 	/* Step 1: Allocate the message. */
-	if((srl = (srl_t*) STAKE(sizeof(srl_t))) == NULL)
+	if((result = (rule_t*) STAKE(sizeof(rule_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("srl_create","Can't alloc %d bytes.", sizeof(srl_t));
-		AMP_DEBUG_EXIT("srl_create","->NULL",NULL);
+		AMP_DEBUG_ERR("rule_create_sbr","Can't alloc %d bytes.", sizeof(rule_t));
+		AMP_DEBUG_EXIT("rule_create_sbr","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the message. */
-	srl->mid = mid_copy(mid);
-	srl->time = time;
-	srl->expr = expr_copy(expr);
-	srl->count = count;
-	srl->action = midcol_copy(action);
+	result->id = ari_copy(id, &success);
+	result->start = start;
+	result->action = action;
 
-	if((srl->mid == NULL) || (srl->expr == NULL) || (srl->action == NULL))
+	result->def.as_sbr = def;
+
+	RULE_SET_ACTIVE(result->flags);
+
+	if(start < AMP_RELATIVE_TIME_EPOCH)
 	{
-		srl_release(srl);
-		srl = NULL;
-		AMP_DEBUG_ERR("srl_create","Can't alloc SRL.", NULL);
-		AMP_DEBUG_EXIT("srl_create","->NULL",NULL);
-		return NULL;
-	}
-
-	srl->desc.num_evals = srl->count;
-
-	if(srl->time <= AMP_RELATIVE_TIME_EPOCH)
-	{
-		srl->countdown_ticks = srl->time;
+		result->ticks_left = start;
 	}
 	else
 	{
-		srl->countdown_ticks = (srl->time - getUTCTime());
+		result->ticks_left = (start - getUTCTime());
 	}
 
 
-	AMP_DEBUG_EXIT("srl_create", ADDR_FIELDSPEC, (uaddr) srl);
-
-	return srl;
-}
-
-
-srl_t*   srl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
-{
-	srl_t *srl = NULL;
-	uvast tmp = 0;
-	uint32_t bytes = 0;
-
-	AMP_DEBUG_ENTRY("srl_deserialize",ADDR_FIELDSPEC ", %d, " ADDR_FIELDSPEC ")", (uaddr)cursor, size, (uaddr) bytes_used);
-
-	/* Step 0: Sanity Checks. */
-	if((cursor == NULL) || (bytes_used == 0))
-	{
-		AMP_DEBUG_ERR("srl_deserialize","Bad Args.",NULL);
-		AMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 1: Allocate the new message structure. */
-	if((srl = (srl_t*) STAKE(sizeof(srl_t))) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_deserialize","Can't Alloc %d Bytes.", sizeof(srl_t));
-		*bytes_used = 0;
-		AMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		memset(srl,0,sizeof(srl_t));
-	}
-
-	/* Step 2: Deserialize the SRL MID. */
-	if((srl->mid = mid_deserialize(cursor, size, &bytes)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_deserialize","Can't grab MID.",NULL);
-
-		*bytes_used = 0;
-		srl_release(srl);
-		AMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		cursor += bytes;
-		size -= bytes;
-		*bytes_used += bytes;
-	}
-
-	/* Step 3: Grab the time. */
-	bytes = decodeSdnv(&tmp, cursor);
-	srl->time = tmp;
-    cursor += bytes;
-    size -= bytes;
-    *bytes_used += bytes;
-
-    /* Step 4: Grab the expression. */
-	if((srl->expr = expr_deserialize(cursor, size, &bytes)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_deserialize","Can't grab expression.",NULL);
-
-		*bytes_used = 0;
-		srl_release(srl);
-		AMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		cursor += bytes;
-		size -= bytes;
-		*bytes_used += bytes;
-	}
-
-	/* Step 5: Grab the count. */
-	bytes = decodeSdnv(&tmp, cursor);
-	srl->count = tmp;
-    cursor += bytes;
-    size -= bytes;
-    *bytes_used += bytes;
-
-    /* Step 6: Grab the action macro. */
-	if((srl->action = midcol_deserialize(cursor, size, &bytes)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_deserialize","Can't grab action.",NULL);
-
-		*bytes_used = 0;
-		srl_release(srl);
-		AMP_DEBUG_EXIT("srl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		cursor += bytes;
-		size -= bytes;
-		*bytes_used += bytes;
-	}
-
-	AMP_DEBUG_EXIT("srl_deserialize","->" ADDR_FIELDSPEC, (uaddr) srl);
-
-	return srl;
-}
-
-
-/*
- * NULL mutex OK.
- */
-void srl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
-{
-	LystElt elt;
-	srl_t *entry = NULL;
-
-	AMP_DEBUG_ENTRY("srl_lyst_clear",
-			          "(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ", %d)",
-			          (uaddr) list, (uaddr) mutex, destroy);
-
-    if((list == NULL) || (*list == NULL))
-    {
-    	AMP_DEBUG_ERR("srl_lyst_clear","Bad Params.", NULL);
-    	return;
-    }
-
-	if(mutex != NULL)
-	{
-		lockResource(mutex);
-	}
-
-	/* Free any reports left in the reports list. */
-	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
-	{
-		/* Grab the current item */
-		if((entry = (srl_t *) lyst_data(elt)) == NULL)
-		{
-			AMP_DEBUG_ERR("srl_lyst_clear","Can't get SRL from lyst!", NULL);
-		}
-		else
-		{
-			srl_release(entry);
-		}
-	}
-	lyst_clear(*list);
-
-	if(destroy != 0)
-	{
-		lyst_destroy(*list);
-		*list = NULL;
-	}
-
-	if(mutex != NULL)
-	{
-		unlockResource(mutex);
-	}
-
-	AMP_DEBUG_EXIT("srl_lyst_clear","->.",NULL);
-
-}
-
-
-
-void     srl_release(srl_t *srl)
-{
-	if(srl == NULL)
-	{
-		return;
-	}
-
-	if(srl->mid != NULL)
-	{
-		mid_release(srl->mid);
-	}
-
-	if(srl->expr != NULL)
-	{
-		expr_release(srl->expr);
-	}
-
-	if(srl->action != NULL)
-	{
-		midcol_destroy(&(srl->action));
-	}
-
-	SRELEASE(srl);
-}
-
-
-uint8_t* srl_serialize(srl_t *srl, uint32_t *len)
-{
-	uint8_t *result = NULL;
-	uint8_t *cursor = NULL;
-
-	Sdnv time_sdnv;
-	Sdnv count_sdnv;
-
-	uint8_t *mid = NULL;
-	uint32_t mid_len = 0;
-
-	uint8_t *expr = NULL;
-	uint32_t expr_len = 0;
-
-	uint8_t *action = NULL;
-	uint32_t action_len = 0;
-
-	AMP_DEBUG_ENTRY("srl_serialize","(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")", (uaddr) srl, (uaddr) len);
-
-	/* Step 0: Sanity Checks. */
-	if((srl == NULL) || (len == NULL))
-	{
-		AMP_DEBUG_ERR("srl_serialize","Bad Args",NULL);
-		AMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	*len = 0;
-
-	/* Step 1: Serialize contents individually. */
-	encodeSdnv(&time_sdnv, srl->time);
-	encodeSdnv(&count_sdnv, srl->count);
-
-	if((mid = mid_serialize(srl->mid, &mid_len)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_serialize","Can't serialize contents.",NULL);
-
-		AMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	if((expr = expr_serialize(srl->expr, &expr_len)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_serialize","Can't serialize contents.",NULL);
-
-		SRELEASE(mid);
-		AMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	if((action = midcol_serialize(srl->action, &action_len)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_serialize","Can't serialize contents.",NULL);
-
-		SRELEASE(mid);
-		SRELEASE(expr);
-
-		AMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-
-	/* Step 2: Figure out the length. */
-	*len = mid_len + time_sdnv.length + count_sdnv.length + expr_len + action_len;
-
-	/* STEP 3: Allocate the serialized message. */
-	if((result = (uint8_t*)STAKE(*len)) == NULL)
-	{
-		AMP_DEBUG_ERR("srl_serialize","Can't alloc %d bytes", *len);
-		*len = 0;
-		SRELEASE(mid);
-		SRELEASE(expr);
-		SRELEASE(action);
-
-		AMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 4: Populate the serialized message. */
-	cursor = result;
-
-	memcpy(cursor, mid, mid_len);
-	cursor += mid_len;
-
-	memcpy(cursor,time_sdnv.text,time_sdnv.length);
-	cursor += time_sdnv.length;
-
-	memcpy(cursor,expr,expr_len);
-	cursor += expr_len;
-
-	memcpy(cursor,count_sdnv.text,count_sdnv.length);
-	cursor += count_sdnv.length;
-
-	memcpy(cursor, action, action_len);
-	cursor += action_len;
-
-	SRELEASE(mid);
-	SRELEASE(expr);
-	SRELEASE(action);
-
-	/* Step 5: Last sanity check. */
-	if((cursor - result) != *len)
-	{
-		AMP_DEBUG_ERR("srl_serialize","Wrote %d bytes but allocated %d",
-				(unsigned long) (cursor - result), *len);
-		*len = 0;
-		SRELEASE(result);
-
-		AMP_DEBUG_EXIT("srl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	AMP_DEBUG_EXIT("srl_serialize", "->" ADDR_FIELDSPEC, (uaddr)result);
+	AMP_DEBUG_EXIT("rule_create_sbr", ADDR_FIELDSPEC, (uaddr) result);
 
 	return result;
 }
 
-
-
-trl_t*   trl_create(mid_t *mid, time_t time, uvast period, uvast count, Lyst action)
+rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 {
-	trl_t *trl = NULL;
-
-	AMP_DEBUG_ENTRY("trl_create",
-			          "(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC ")",
-		(uaddr) mid, (uaddr) time, period, count, (uaddr) action);
-
-	/* Step 0: Sanity Check. */
-	if((mid == NULL) || (action == NULL))
-	{
-		AMP_DEBUG_ERR("trl_create","Bad Args.",NULL);
-		AMP_DEBUG_EXIT("trl_create","->NULL",NULL);
-		return NULL;
-	}
+	rule_t *result = NULL;
+	int success;
 
 	/* Step 1: Allocate the message. */
-	if((trl = (trl_t*) STAKE(sizeof(trl_t))) == NULL)
+	if((result = (rule_t*) STAKE(sizeof(rule_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("trl_create","Can't alloc %d bytes.", sizeof(trl_t));
-		AMP_DEBUG_EXIT("trl_create","->NULL",NULL);
+		AMP_DEBUG_ERR("rule_create_tbr","Can't alloc %d bytes.", sizeof(rule_t));
+		AMP_DEBUG_EXIT("rule_create_tbr","->NULL",NULL);
 		return NULL;
 	}
 
 	/* Step 2: Populate the message. */
-	trl->mid = mid_copy(mid);
-	trl->time = time;
-	trl->period = period;
-	trl->count = count;
-	trl->action = midcol_copy(action);
-
-	if((trl->mid == NULL) || (trl->action == NULL))
+	result->id = ari_copy(id, &success);
+	if(success != AMP_OK)
 	{
-		trl_release(trl);
-		trl = NULL;
-		AMP_DEBUG_ERR("trl_create","Can't alloc SRL.", NULL);
-		AMP_DEBUG_EXIT("trl_create","->NULL",NULL);
-		return NULL;
-	}
-
-	trl->desc.num_evals = trl->count;
-	trl->desc.interval_ticks = trl->period;
-
-	if(trl->time <= AMP_RELATIVE_TIME_EPOCH)
-	{
-		trl->countdown_ticks = trl->time;
-	}
-	else
-	{
-		trl->countdown_ticks = (trl->time - getUTCTime());
-	}
-
-
-	AMP_DEBUG_EXIT("trl_create", ADDR_FIELDSPEC, (uaddr) trl);
-
-	return trl;
-}
-
-
-trl_t*   trl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
-{
-	trl_t *trl = NULL;
-	uvast tmp = 0;
-	uint32_t bytes = 0;
-
-	AMP_DEBUG_ENTRY("trl_deserialize", ADDR_FIELDSPEC ", %d, " ADDR_FIELDSPEC ")", (uaddr) cursor, size, (uaddr) bytes_used);
-
-	/* Step 0: Sanity Checks. */
-	if((cursor == NULL) || (bytes_used == 0))
-	{
-		AMP_DEBUG_ERR("trl_deserialize","Bad Args.",NULL);
-		AMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 1: Allocate the new message structure. */
-	if((trl = (trl_t*) STAKE(sizeof(trl_t))) == NULL)
-	{
-		AMP_DEBUG_ERR("trl_deserialize","Can't Alloc %d Bytes.", sizeof(trl_t));
-		*bytes_used = 0;
-		AMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		memset(trl,0,sizeof(trl_t));
-	}
-
-	/* Step 2: Deserialize the TRL MID. */
-	if((trl->mid = mid_deserialize(cursor, size, &bytes)) == NULL)
-	{
-		AMP_DEBUG_ERR("trl_deserialize","Can't grab MID.",NULL);
-
-		*bytes_used = 0;
-		trl_release(trl);
-		AMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		cursor += bytes;
-		size -= bytes;
-		*bytes_used += bytes;
-	}
-
-	/* Step 3: Grab the time. */
-	bytes = decodeSdnv(&tmp, cursor);
-	trl->time = tmp;
-    cursor += bytes;
-    size -= bytes;
-    *bytes_used += bytes;
-
-    /* Step 4: Grab the period. */
-	bytes = decodeSdnv(&tmp, cursor);
-	trl->period = tmp;
-    cursor += bytes;
-    size -= bytes;
-    *bytes_used += bytes;
-
-    /* Step 5: Grab the count. */
-	bytes = decodeSdnv(&tmp, cursor);
-	trl->count = tmp;
-    cursor += bytes;
-    size -= bytes;
-    *bytes_used += bytes;
-
-    /* Step 6: Grab the action macro. */
-	if((trl->action = midcol_deserialize(cursor, size, &bytes)) == NULL)
-	{
-		AMP_DEBUG_ERR("trl_deserialize","Can't grab action.",NULL);
-
-		*bytes_used = 0;
-		trl_release(trl);
-		AMP_DEBUG_EXIT("trl_deserialize","->NULL",NULL);
-		return NULL;
-	}
-	else
-	{
-		cursor += bytes;
-		size -= bytes;
-		*bytes_used += bytes;
-	}
-
-	AMP_DEBUG_EXIT("trl_deserialize", "->" ADDR_FIELDSPEC, (uaddr) trl);
-
-	return trl;
-}
-
-
-/*
- * NULL mutex OK.
- */
-void trl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy)
-{
-	LystElt elt;
-	trl_t *entry = NULL;
-
-	AMP_DEBUG_ENTRY("trl_lyst_clear",
-			          "(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ", %d)",
-			          (uaddr) list, (uaddr) mutex, destroy);
-
-    if((list == NULL) || (*list == NULL))
-    {
-    	AMP_DEBUG_ERR("trl_lyst_clear","Bad Params.", NULL);
-    	return;
-    }
-
-	if(mutex != NULL)
-	{
-		lockResource(mutex);
-	}
-
-	/* Free any reports left in the reports list. */
-	for (elt = lyst_first(*list); elt; elt = lyst_next(elt))
-	{
-		/* Grab the current item */
-		if((entry = (trl_t *) lyst_data(elt)) == NULL)
-		{
-			AMP_DEBUG_ERR("trl_lyst_clear","Can't get TRL from lyst!", NULL);
-		}
-		else
-		{
-			trl_release(entry);
-		}
-	}
-	lyst_clear(*list);
-
-	if(destroy != 0)
-	{
-		lyst_destroy(*list);
-		*list = NULL;
-	}
-
-	if(mutex != NULL)
-	{
-		unlockResource(mutex);
-	}
-
-	AMP_DEBUG_EXIT("trl_lyst_clear","->.",NULL);
-
-}
-
-
-
-void     trl_release(trl_t *trl)
-{
-	if(trl == NULL)
-	{
-		return;
-	}
-
-	if(trl->mid != NULL)
-	{
-		mid_release(trl->mid);
-		trl->mid = NULL;
-	}
-
-	if(trl->action != NULL)
-	{
-		midcol_destroy(&(trl->action));
-		trl->action = NULL;
-	}
-
-	SRELEASE(trl);
-}
-
-
-uint8_t* trl_serialize(trl_t *trl, uint32_t *len)
-{
-	uint8_t *result = NULL;
-	uint8_t *cursor = NULL;
-
-	Sdnv time_sdnv;
-	Sdnv period_sdnv;
-	Sdnv count_sdnv;
-
-	uint8_t *mid = NULL;
-	uint32_t mid_len = 0;
-
-	uint8_t *action = NULL;
-	uint32_t action_len = 0;
-
-	AMP_DEBUG_ENTRY("trl_serialize", "(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")", (uaddr) trl, (uaddr) len);
-
-	/* Step 0: Sanity Checks. */
-	if((trl == NULL) || (len == NULL))
-	{
-		AMP_DEBUG_ERR("trl_serialize","Bad Args",NULL);
-		AMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	*len = 0;
-
-	/* Step 1: Serialize contents individually. */
-	encodeSdnv(&time_sdnv,   trl->time);
-	encodeSdnv(&period_sdnv, trl->period);
-	encodeSdnv(&count_sdnv,  trl->count);
-
-	if((mid = mid_serialize(trl->mid, &mid_len)) == NULL)
-	{
-		AMP_DEBUG_ERR("trl_serialize","Can't serialize contents.",NULL);
-
-		AMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	if((action = midcol_serialize(trl->action, &action_len)) == NULL)
-	{
-		AMP_DEBUG_ERR("trl_serialize","Can't serialize contents.",NULL);
-
-		SRELEASE(mid);
-
-		AMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-
-	/* Step 2: Figure out the length. */
-	*len = mid_len + time_sdnv.length + period_sdnv.length + count_sdnv.length + action_len;
-
-	/* STEP 3: Allocate the serialized message. */
-	if((result = (uint8_t*)STAKE(*len)) == NULL)
-	{
-		AMP_DEBUG_ERR("trl_serialize","Can't alloc %d bytes", *len);
-		*len = 0;
-		SRELEASE(mid);
-		SRELEASE(action);
-
-		AMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-	/* Step 4: Populate the serialized message. */
-	cursor = result;
-
-	memcpy(cursor, mid, mid_len);
-	cursor += mid_len;
-
-	memcpy(cursor,time_sdnv.text,time_sdnv.length);
-	cursor += time_sdnv.length;
-
-	memcpy(cursor,period_sdnv.text,period_sdnv.length);
-	cursor += period_sdnv.length;
-
-	memcpy(cursor,count_sdnv.text,count_sdnv.length);
-	cursor += count_sdnv.length;
-
-	memcpy(cursor, action, action_len);
-	cursor += action_len;
-
-	SRELEASE(mid);
-	SRELEASE(action);
-
-	/* Step 5: Last sanity check. */
-	if((cursor - result) != *len)
-	{
-		AMP_DEBUG_ERR("trl_serialize","Wrote %d bytes but allocated %d",
-				(unsigned long) (cursor - result), *len);
-		*len = 0;
+		AMP_DEBUG_ERR("rule_create_tbr", "Can't copy ID.", NULL);
 		SRELEASE(result);
-
-		AMP_DEBUG_EXIT("trl_serialize","->NULL",NULL);
 		return NULL;
 	}
 
-	AMP_DEBUG_EXIT("trl_serialize","->" ADDR_FIELDSPEC, (uaddr)result);
+	result->start = start;
+	result->action = action;
+
+	result->def.as_tbr = def;
+
+	RULE_SET_ACTIVE(result->flags);
+
+	if(start < AMP_RELATIVE_TIME_EPOCH)
+	{
+		result->ticks_left = start + def.period;
+	}
+	else
+	{
+		result->ticks_left = (start - getUTCTime()) + def.period;
+	}
+
+
+	AMP_DEBUG_EXIT("rule_create_tbr", ADDR_FIELDSPEC, (uaddr) result);
 
 	return result;
+}
+
+
+
+rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
+{
+	rule_t *result = NULL;
+	ari_t *id;
+	uvast start;
+	ac_t action;
+	sbr_def_t as_sbr;
+	tbr_def_t as_tbr;
+
+	blob_t *tmp = blob_deserialize_ptr(array_it, success);
+	id = ari_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
+	if(*success != AMP_OK)
+	{
+		return result;
+	}
+	cut_enc_refresh(array_it);
+
+	if((*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &start)) != AMP_OK)
+	{
+		ari_release(id, 1);
+		return result;
+	}
+	cut_enc_refresh(array_it);
+
+	if(id->type == AMP_TYPE_SBR)
+	{
+		as_sbr = sbrdef_deserialize(array_it, success);
+	}
+	else
+	{
+		as_tbr = tbrdef_deserialize(array_it, success);
+	}
+	cut_enc_refresh(array_it);
+
+	tmp = blob_deserialize_ptr(array_it, success);
+	action = ac_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
+
+	if(*success != AMP_OK)
+	{
+		ari_release(id, 1);
+		return result;
+	}
+	cut_enc_refresh(array_it);
+
+	if(id->type == AMP_TYPE_SBR)
+	{
+		result = rule_create_sbr(*id, start, as_sbr, action);
+	}
+	else
+	{
+		result = rule_create_tbr(*id, start, as_tbr, action);
+	}
+
+	if(result == NULL)
+	{
+		if(id->type == AMP_TYPE_SBR)
+		{
+			expr_release(&(as_sbr.expr), 0);
+		}
+
+		ari_release(id, 1);
+		ac_release(&action, 0);
+		SRELEASE(result);
+		*success = AMP_FAIL;
+		return NULL;
+	}
+	else
+	{
+		/* Release ari container only */
+		ari_release(id, 1);
+	}
+
+	*success = AMP_OK;
+	return result;
+}
+
+
+rule_t*  rule_deserialize_ptr(CborValue *it, int *success)
+{
+	CborError err = CborNoError;
+	CborValue array_it;
+	size_t length = 0;
+	rule_t *result = NULL;
+
+
+	AMP_DEBUG_ENTRY("rule_deserialize_ptr","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+				        (uaddr)it, (uaddr)success);
+
+	CHKNULL(success);
+	*success = AMP_FAIL;
+	CHKNULL(it);
+
+	/*
+	 * Make sure we are in a container. All rules are captured as
+	 * arrays.
+	 */
+	if((!cbor_value_is_container(it)) ||
+	   ((err = cbor_value_enter_container(it, &array_it)) != CborNoError))
+	{
+		AMP_DEBUG_ERR("rule_deserialize_ptr","Not a container. Error is %d", err);
+		return NULL;
+	}
+
+	/*
+	 * See how many items are in the container. Should be 5 for a TBR
+	 * and 6 for an SBR.
+	 */
+
+	err = cbor_value_get_array_length(it, &length);
+	if((err != CborNoError) || (length < 5) || (length > 6))
+	{
+		AMP_DEBUG_ERR("rule_deserialize_ptr","Bad array length. Err: %d. Len %d",
+					       err, length);
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	result = rule_deserialize_helper(&array_it, success);
+	cbor_value_leave_container(it, &array_it);
+	return result;
+}
+
+
+
+rule_t* rule_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+
+	CHKNULL(success);
+	*success = AMP_FAIL;
+	CHKNULL(data);
+
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	{
+		return NULL;
+	}
+
+	return rule_deserialize_ptr(&it, success);
+}
+
+
+
+
+rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
+{
+	CborError err = CborNoError;
+	CborValue array_it;
+	size_t length = 0;
+	rule_t *result = NULL;
+
+
+	AMP_DEBUG_ENTRY("rule_db_deserialize_ptr","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			        (uaddr)it, (uaddr)success);
+
+	CHKNULL(success);
+	*success = AMP_FAIL;
+	CHKNULL(it);
+
+	/*
+	 * Make sure we are in a container. All rules are captured as
+	 * arrays.
+	 */
+	if((!cbor_value_is_container(it)) ||
+		((err = cbor_value_enter_container(it, &array_it)) != CborNoError))
+	{
+		AMP_DEBUG_ERR("rule_db_deserialize_ptr","Not a container. Error is %d", err);
+		return NULL;
+	}
+
+	/*
+	 * See how many items are in the container. Should be 7 for a TBR
+	 * and 8 for an SBR to the database.
+	 */
+
+	err = cbor_value_get_array_length(it, &length);
+	if((err != CborNoError) || (length < 7) || (length > 8))
+	{
+		AMP_DEBUG_ERR("rule_db_deserialize_ptr","Bad array length. Err: %d. Len %d",
+				       err, length);
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	result = rule_deserialize_helper(&array_it, success);
+
+	if((*success != AMP_OK) || (result == NULL))
+	{
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UINT, &(result->ticks_left));
+	if(*success != AMP_OK)
+	{
+		rule_release(result, 1);
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	cut_enc_refresh(&array_it);
+	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UVAST, &(result->num_eval));
+	if(*success != AMP_OK)
+	{
+		rule_release(result, 1);
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	cut_enc_refresh(&array_it);
+	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UVAST, &(result->num_fire));
+	if(*success != AMP_OK)
+	{
+		rule_release(result, 1);
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	cut_enc_refresh(&array_it);
+	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_BYTE, &(result->flags));
+	if(*success != AMP_OK)
+	{
+		rule_release(result, 1);
+		cbor_value_leave_container(it, &array_it);
+		return NULL;
+	}
+
+	return result;
+}
+
+rule_t*  rule_db_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+
+	CHKNULL(success);
+	*success = AMP_FAIL;
+	CHKNULL(data);
+
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	{
+		return NULL;
+	}
+
+	return rule_db_deserialize_ptr(&it, success);
+}
+
+
+CborError rule_db_serialize(CborEncoder *encoder, void *item)
+{
+	CborError err;
+	CborEncoder array_enc;
+	size_t length;
+	rule_t *rule = (rule_t *) item;
+
+	if((encoder == NULL) || (item == NULL))
+	{
+		return CborErrorIO;
+	}
+
+	/* Start a container. */
+	length = (rule->id.type == AMP_TYPE_SBR) ? 8 : 7;
+	err = cbor_encoder_create_array(encoder, &array_enc, length);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_db_serialize","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 1: Encode the rule definition. */
+	err = rule_serialize_helper(&array_enc, rule);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		cbor_encoder_close_container(encoder, &array_enc);
+		return err;
+	}
+
+	/* Step 2: Encode the ticks left. */
+	err = cbor_encode_uint(&array_enc, rule->ticks_left);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		cbor_encoder_close_container(encoder, &array_enc);
+		return err;
+	}
+
+	err = cbor_encode_uint(&array_enc, rule->num_eval);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		cbor_encoder_close_container(encoder, &array_enc);
+		return err;
+	}
+
+	err = cbor_encode_uint(&array_enc, rule->num_fire);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		cbor_encoder_close_container(encoder, &array_enc);
+		return err;
+	}
+
+	/* Step 3:Encode the flag byte. */
+	err = cut_enc_byte(&array_enc, rule->flags);
+
+	cbor_encoder_close_container(encoder, &array_enc);
+	return err;
+}
+
+
+
+blob_t*   rule_db_serialize_wrapper(rule_t *rule)
+{
+	return cut_serialize_wrapper(RULE_DEFAULT_ENC_SIZE, rule, rule_db_serialize);
+}
+
+
+void rule_release(rule_t *rule, int destroy)
+{
+	CHKVOID(rule);
+
+	if(rule->id.type == AMP_TYPE_SBR)
+	{
+		expr_release(&(rule->def.as_sbr.expr), 0);
+	}
+
+	ari_release(&(rule->id), 0);
+	ac_release(&(rule->action), 0);
+
+	if(destroy)
+	{
+		SRELEASE(rule);
+	}
+}
+
+CborError rule_serialize(CborEncoder *encoder, void *item)
+{
+	CborError err;
+	CborEncoder array_enc;
+	size_t length;
+	rule_t *rule = (rule_t *) item;
+
+	CHKUSR(encoder, CborErrorIO);
+	CHKUSR(rule, CborErrorIO);
+
+
+	/* Start a container. */
+	length = (rule->id.type == AMP_TYPE_SBR) ? 6 : 5;
+	err = cbor_encoder_create_array(encoder, &array_enc, length);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize","CBOR Error: %d", err);
+	}
+
+	err = rule_serialize_helper(&array_enc, rule);
+
+	cbor_encoder_close_container(encoder, &array_enc);
+	return err;
+}
+
+CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
+{
+	CborError err;
+	blob_t *result;
+
+	/* Step 1: Encode the ARI. */
+	result = ari_serialize_wrapper(&(rule->id));
+	err = blob_serialize(array_enc, result);
+	blob_release(result, 1);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 2: the start time. */
+	err = cbor_encode_uint(array_enc, rule->start);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 3: Encode def. */
+	if(rule->id.type == AMP_TYPE_SBR)
+	{
+		err = sbrdef_serialize(array_enc, &(rule->def.as_sbr));
+	}
+	else
+	{
+		err = tbrdef_serialize(array_enc, &(rule->def.as_tbr));
+	}
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 4: Encode the action. */
+	result = ac_serialize_wrapper(&(rule->action));
+	err = blob_serialize(array_enc, result);
+	blob_release(result, 1);
+
+	return err;
+}
+
+blob_t* rule_serialize_wrapper(rule_t *rule)
+{
+	return cut_serialize_wrapper(RULE_DEFAULT_ENC_SIZE, rule, rule_serialize);
+}
+
+// 0 means no. 1 means yes.
+int sbr_should_fire(rule_t *rule)
+{
+	int result = 0;
+	int success = AMP_FAIL;
+	tnv_t *eval_result;
+
+	CHKZERO(rule);
+	CHKZERO(rule->id.type == AMP_TYPE_SBR);
+
+	eval_result = expr_eval(&(rule->def.as_sbr.expr));
+	CHKZERO(eval_result);
+
+	if(type_is_numeric(eval_result->type))
+	{
+	   	result = tnv_to_int(*eval_result, &success);
+	   	result = (success != AMP_OK) ? 0 : result;
+	}
+
+   	tnv_release(eval_result, 1);
+
+   	return result;
+}
+
+sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success)
+{
+	sbr_def_t result;
+
+	// TODO: Clean this up, very messy.
+	blob_t *tmp = blob_deserialize_ptr(array_it, success);
+	expr_t *e = expr_deserialize_raw(tmp, success);
+	result.expr = *e;
+	SRELEASE(e); // Just release container since we shallow-copied contents.
+	blob_release(tmp, 1);
+
+	if(*success != AMP_OK)
+	{
+		return result;
+	}
+
+	cut_enc_refresh(array_it);
+	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_eval));
+	if(*success != AMP_OK)
+	{
+		expr_release(&(result.expr), 0);
+		return result;
+	}
+
+	cut_enc_refresh(array_it);
+	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
+	if(*success != AMP_OK)
+	{
+		expr_release(&(result.expr), 0);
+	}
+
+	return result;
+}
+
+CborError sbrdef_serialize(CborEncoder *array_enc, sbr_def_t *def)
+{
+	CborError err;
+	blob_t *result;
+
+	/* Step 1: Encode the Expr. */
+	result = expr_serialize_wrapper(&(def->expr));
+	err = blob_serialize(array_enc, result);
+	blob_release(result, 1);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 2: Encode max num evals. */
+	err = cbor_encode_uint(array_enc, def->max_eval);
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 3: Encode max num fires. */
+	err = cbor_encode_uint(array_enc, def->max_fire);
+
+	return err;
+}
+
+
+
+tbr_def_t tbrdef_deserialize(CborValue *array_it, int *success)
+{
+	tbr_def_t result;
+	memset(&result, 0, sizeof(tbr_def_t));
+	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.period));
+	if(*success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("tbredef_deserialize","Failed to get period. %d", *success);
+		return result;
+	}
+
+	cut_enc_refresh(array_it);
+
+	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
+
+	return result;
+}
+
+
+CborError tbrdef_serialize(CborEncoder *array_enc, tbr_def_t *def)
+{
+	CborError err;
+
+	/* Step 1: Encode period. */
+	err = cbor_encode_uint(array_enc, def->period);
+
+	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	{
+		AMP_DEBUG_ERR("tbrdef_serialize","CBOR Error: %d", err);
+		return err;
+	}
+
+	/* Step 2: Encode max num fires. */
+	err = cbor_encode_uint(array_enc, def->max_fire);
+
+	return err;
 }

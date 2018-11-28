@@ -10,6 +10,7 @@
  *	Version 2.0 DTN Neighbor Discovery
  *		- ION IPND Implementation Assembly Part2
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
+ *	Version 2.2 Shared context ctx passed explicitely to threads to avoid shared library security change implications
  */
 
 #include <stdlib.h>
@@ -93,6 +94,14 @@ static IPNDCtx	*_IPNDCtx(IPNDCtx *newCtx)
 IPNDCtx	*getIPNDCtx()
 {
 	return _IPNDCtx(NULL);
+}
+
+/**
+ * Sets IPNDCtx context.
+ */
+void setIPNDCtx(IPNDCtx *newctx)
+{
+	 _IPNDCtx(newctx);
 }
 
 /**
@@ -202,7 +211,7 @@ static int	initializeIpnd()
 		return -1;
 	}
 
-	_IPNDCtx(ctx);
+	setIPNDCtx(ctx);
 
 	/* process tagDefLines */
 	int i;
@@ -1135,7 +1144,7 @@ static int	processLine(char *line, int lineLength)
 		}
 
 		if (pthread_begin(&ctx->sendBeaconsThread, NULL, sendBeacons,
-				NULL))
+				ctx))
 		{
 			putSysErrmsg("IPND can't start sendBeacons thread.",
 					NULL);
@@ -1144,7 +1153,7 @@ static int	processLine(char *line, int lineLength)
 
 		ctx->haveSendThread = 1;
 		if (pthread_begin(&ctx->receiveBeaconsThread, NULL,
-				receiveBeacons, NULL))
+				receiveBeacons, ctx))
 		{
 			putSysErrmsg("IPND can't start receiveBeacons thread.",
 					NULL);
@@ -1153,7 +1162,7 @@ static int	processLine(char *line, int lineLength)
 
 		ctx->haveReceiveThread = 1;
 		if (pthread_begin(&ctx->expireNeighborsThread, NULL,
-					expireNeighbors, NULL))
+					expireNeighbors, ctx))
 		{
 			putSysErrmsg("IPND can't start expireNeighbors thread.",
 					NULL);
@@ -1192,7 +1201,7 @@ static int	processLine(char *line, int lineLength)
 }
 
 #if defined (ION_LWT)
-int	ipnadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int	ipndadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;

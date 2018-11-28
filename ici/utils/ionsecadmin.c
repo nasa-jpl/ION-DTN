@@ -92,9 +92,9 @@ static void	printUsage()
 	PUTS("\ta\tAdd");
 	PUTS("\t   a key <key name> <name of file containing key value>");
 	PUTS("\t   a pubkey <node nbr> <eff. time sec> <key len> <key>");
+#ifdef ORIGINAL_BSP
 	PUTS("\t   a bspbabrule <sender eid expression> <receiver eid \
 expression> { '' |  <ciphersuite name> <key name> }");
-#ifdef ORIGINAL_BSP
 	PUTS("\t\tAn eid expression may be either an EID or a wild card, \
 i.e., a partial eid expression ending in '*'.");
 	PUTS("\t   a bsppibrule <sender eid expression> <receiver eid \
@@ -102,10 +102,10 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   a bsppcbrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 #else
-	PUTS("\t\tEvery eid expression must be a node identification \
-expression, i.e., a partial eid expression ending in '*' or '~'.");
 	PUTS("\t   a bspbibrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
+	PUTS("\t\tEvery eid expression must be a node identification \
+expression, i.e., a partial eid expression ending in '*' or '~'.");
 	PUTS("\t   a bspbcbrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 #endif
@@ -119,9 +119,9 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 [<key name>]");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
+#ifdef ORIGINAL_BSP
 	PUTS("\t   c bspbabrule <sender eid expression> <receiver eid \
 expression> { '' | <ciphersuite name> <key name> }");
-#ifdef ORIGINAL_BSP
 	PUTS("\t   c bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   c bsppcbrule <sender eid expression> <receiver eid \
@@ -140,9 +140,9 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
 	PUTS("\t   {d|i} pubkey <node nbr> <eff. time sec>");
+#ifdef ORIGINAL_BSP
 	PUTS("\t   {d|i} bspbabrule <sender eid expression> <receiver eid \
 expression>");
-#ifdef ORIGINAL_BSP
 	PUTS("\t   {d|i} bsppibrule <sender eid expression> <receiver eid \
 expression> <block type number>");
 	PUTS("\t   {d|i} bsppcbrule <sender eid expression> <receiver eid \
@@ -158,9 +158,14 @@ expression> <block type number>");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
 	PUTS("\t   l pubkey");
+#ifdef ORIGINAL_BSP
 	PUTS("\t   l bspbabrule");
 	PUTS("\t   l bsppibrule");
 	PUTS("\t   l bsppcbrule");
+#else
+	PUTS("\t   l bspbibrule");
+	PUTS("\t   l bspbcbrule");
+#endif
 	PUTS("\t   l ltprecvauthrule");
 	PUTS("\t   l ltpxmitauthrule");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
@@ -251,6 +256,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		switch (tokenCount)
@@ -272,7 +278,6 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		switch (tokenCount)
@@ -429,6 +434,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		switch (tokenCount)
@@ -450,7 +456,6 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		switch (tokenCount)
@@ -655,6 +660,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		if (tokenCount != 4)
@@ -673,7 +679,6 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		sec_removeBspPibRule(tokens[2], tokens[3], atoi(tokens[4]));
@@ -686,6 +691,12 @@ static void	executeDelete(int tokenCount, char **tokens)
                 return;
         }
 #else
+        if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
 	if (strcmp(tokens[1], "bspbibrule") == 0)
 	{
 		sec_removeBspBibRule(tokens[2], tokens[3], atoi(tokens[4]));
@@ -806,22 +817,6 @@ type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
         printText(buf);
 }
 #else
-static void	printBspBabRule(Object ruleAddr)
-{
-	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(BspBabRule, rule);
-	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
-	char	buf[512];
-
-	GET_OBJ_POINTER(sdr, BspBabRule, rule, ruleAddr);
-	sdr_string_read(sdr, srcEidBuf, rule->senderEid);
-	sdr_string_read(sdr, destEidBuf, rule->receiverEid);
-	isprintf(buf, sizeof buf, "rule sender eid '%.255s' receiver eid \
-'%.255s' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-		rule->ciphersuiteName, rule->keyName);
-	printText(buf);
-}
-
 static void	printBspBibRule(Object ruleAddr)
 {
 	Sdr	sdr = getIonsdr();
@@ -954,6 +949,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -970,7 +966,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
 		return;
 	}
-#ifdef ORIGINAL_BSP
+
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -1043,7 +1039,6 @@ static void	executeInfo(int tokenCount, char **tokens)
                 return;
         }
 #endif
-
 	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -1129,6 +1124,7 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	if (strcmp(tokens[1], "bspbabrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -1142,7 +1138,7 @@ static void	executeList(int tokenCount, char **tokens)
 		sdr_exit_xn(sdr);
 		return;
 	}
-#ifdef ORIGINAL_BSP
+
 	if (strcmp(tokens[1], "bsppibrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -1199,7 +1195,6 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
         }
 #endif
-
 	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
 	{
 		CHKVOID(sdr_begin_xn(sdr));
@@ -1277,7 +1272,10 @@ int	ionsecadmin_processLine(char *line, int lineLength)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 

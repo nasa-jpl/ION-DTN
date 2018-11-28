@@ -173,6 +173,8 @@ extern int	secInitialize();
 extern int	secAttach();
 extern Object	getSecDbObject();
 extern SecVdb	*getSecVdb();
+extern int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
+			int secondEidLen);
 extern void	sec_clearBspRules(char *fromNode, char *toNode, char *blkType);
 
 /*	*	Functions for managing public keys.			*/
@@ -251,6 +253,7 @@ extern int	sec_removeKey(char *keyName);
 extern int	sec_activeKey(char *keyName);
 extern int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen);
 
+#ifdef ORIGINAL_BSP
 /*	Bundle Security Protocol Bundle Authentication Blocks		*/
 extern int	sec_findBspBabRule(char *senderEid, char *destEid,
 			Object *ruleAddr, Object *eltp);
@@ -260,7 +263,6 @@ extern int	sec_updateBspBabRule(char *senderEid, char *destEid,
 			char *ciphersuiteName, char *keyName);
 extern int	sec_removeBspBabRule(char *senderEid, char *destEid);
 
-#ifdef ORIGINAL_BSP
 /*	Bundle Security Protocol Payload Integrity Blocks		*/
 extern int	sec_findBspPibRule(char *srcEid, char *destEid, int type,
 			Object *ruleAddr, Object *eltp);
@@ -336,6 +338,7 @@ extern int	sec_get_key(char *keyName,
 		 *	value in *keyBufferLength unchanged.  On
 		 *	system failure returns -1.			*/
 
+#ifdef ORIGINAL_BSP
 extern void	sec_get_bspBabRule(char *senderEid, char *receiverEid,
 			Object *ruleAddr, Object *eltp);
 		/*	Finds the BAB rule that most narrowly applies
@@ -344,6 +347,15 @@ extern void	sec_get_bspBabRule(char *senderEid, char *receiverEid,
 		 *	populates ruleAddr and eltp; otherwise, sets
 		 *	*eltp to 0.					*/
 
+extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr,
+			Object *ruleAddr, Object *eltp);
+extern int	sec_get_bspPibRxRule(char *srcEid,  int blockTypeNbr,
+			Object *ruleAddr, Object *eltp);
+extern int	sec_get_bspPibRule(char *srcEid, char *destEid,
+			int blockTypeNbr, Object *ruleAddr, Object *eltp);
+extern int	sec_get_bspPcbRule(char *srcEid, char *destEid,
+			int blockTypeNbr, Object *ruleAddr, Object *eltp);
+#else
 extern void	sec_get_bspBibRule(char *srcEid, char *destEid,
 			int type, Object *ruleAddr, Object *eltp);
 		/*	Finds the BIB rule that most narrowly applies
@@ -398,16 +410,6 @@ extern void	sec_get_sbspSrcEIDs(char *buffer, int length);
 		 * with sbsp rule src EID names. Src names are
 		 * comma-separated as "K1,K2,CS3".
 		 */
-
-#ifdef ORIGINAL_BSP
-extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspPibRxRule(char *srcEid,  int blockTypeNbr,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspPibRule(char *srcEid, char *destEid,
-			int blockTypeNbr, Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspPcbRule(char *srcEid, char *destEid,
-			int blockTypeNbr, Object *ruleAddr, Object *eltp);
 #endif
 
 #ifdef __cplusplus

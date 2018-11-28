@@ -171,6 +171,7 @@ typedef struct
 {
 	char		*protocolName;
 	char		*proxNodeEid;
+	size_t		xmitRate;
 } DequeueContext;
 
 /*	*	*	Bundle structures	*	*	*	*/
@@ -310,7 +311,7 @@ typedef struct
 		/*	fragment offset is in the id field.		*/
 	unsigned int	totalAduLength;
 
-	/*	Stuff in Extended COS and Metadata extension blocks.			*/
+	/*	Stuff in Extended COS and Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
 
@@ -1405,8 +1406,7 @@ extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void		releaseCustody(Object bundleObj, Bundle *bundle);
 
-extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			        Object planObj, BpPlan *plan);
+extern void	        removeBundleFromQueue(Bundle *bundle, BpPlan *plan);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
@@ -1453,8 +1453,8 @@ extern int		deliverBundle(Object bundleObj, Bundle *bundle,
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		reverseEnqueue(Object xmitElt, Object planObj,
-				BpPlan *plan, int sendToLimbo);
+extern int		reverseEnqueue(Object xmitElt, BpPlan *plan,
+				int sendToLimbo);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);

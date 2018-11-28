@@ -1,15 +1,14 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 
-
 /*****************************************************************************
  **
- ** \file nm_types.h
+ ** \file debug.h
  **
- ** Description: AMP Structures and Data Types
+ ** Description: AMP debugging tools
  **
  ** Notes:
  **

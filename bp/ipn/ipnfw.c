@@ -28,11 +28,20 @@ static void	printCgrTraceLine(void *data, unsigned int lineNbr,
 	const char *text;
 
 	va_start(args, traceType);
-
 	text = cgr_tracepoint_text(traceType);
 	vprintf(text, args);
-	putchar('\n');
+	switch(traceType)
+	{
+	case CgrIgnoreContact:
+	case CgrExcludeRoute:
+	case CgrSkipRoute:
+		fputc(' ', stdout);
+		fputs(cgr_reason_text(va_arg(args, CgrReason)), stdout);
+	default:
+		break;
+	}
 
+	putchar('\n');
 	va_end(args);
 }
 #endif
@@ -141,8 +150,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 
 	nodeNbr = metaEid.nodeNbr;
 	restoreEidString(&metaEid);
-	if (cgr_forward(bundle, bundleObj, nodeNbr, trace)
-			< 0)
+	if (cgr_forward(bundle, bundleObj, nodeNbr, trace) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
 		return -1;

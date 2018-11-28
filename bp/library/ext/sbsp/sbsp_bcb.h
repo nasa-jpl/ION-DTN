@@ -24,6 +24,7 @@
  **              sbsp_bcbRelease
  **              sbsp_bcbCopy
  **                                                  sbsp_bcbAcquire
+ **                                                  sbsp_bcbReview
  **                                                  sbsp_bcbDecrypt
  **                                                  sbsp_bcbRecord
  **                                                  sbsp_bcbClear
@@ -62,9 +63,9 @@
 #include "profiles.h"
 #include "csi.h"
 
+#define BCB_FILENAME			"bcb_tmpfile"
+#define	MAX_TEMP_FILES_PER_SECOND	5
 
-#define SBSP_ENCRYPT_IN_PLACE 0
-#define BCB_FILENAME "bcb_tmpfile"
 // If sbsp debugging is turned on, then turn on bcb debugging.
 #if SBSP_DEBUGGING == 1
 #define BCB_DEBUGGING 1
@@ -149,52 +150,55 @@
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
 
-extern int         sbsp_bcbAcquire(AcqExtBlock *blk,
-		                            AcqWorkArea *wk);
+extern int		sbsp_bcbAcquire(AcqExtBlock *blk,
+						AcqWorkArea *wk);
 
- extern void       sbsp_bcbClear(AcqExtBlock *blk);
+extern void		sbsp_bcbClear(AcqExtBlock *blk);
 
- extern int        sbsp_bcbCopy(ExtensionBlock *newBlk,
- 		                         ExtensionBlock *oldBlk);
+extern int		sbsp_bcbCopy(ExtensionBlock *newBlk,
+						ExtensionBlock *oldBlk);
 
+extern int		sbsp_bcbReview(AcqWorkArea *wk);
 
-extern int         sbsp_bcbDecrypt(AcqExtBlock *blk,
-		                            AcqWorkArea *wk);
+extern int		sbsp_bcbDecrypt(AcqExtBlock *blk,
+						AcqWorkArea *wk);
 
-extern int	       sbsp_bcbDefaultConstruct(uint32_t suite,
-		                                     ExtensionBlock *blk,
-											 SbspOutboundBlock *asb);
+extern int		sbsp_bcbDefaultConstruct(uint32_t suite,
+						ExtensionBlock *blk,
+						SbspOutboundBlock *asb);
 
-extern int     sbsp_bcbDefaultDecrypt(uint32_t suite,
-		                                   AcqWorkArea *wk,
-										   AcqExtBlock *blk,
-										   uvast *bytes);
+extern int		sbsp_bcbDefaultDecrypt(uint32_t suite,
+	       					AcqWorkArea *wk,
+						AcqExtBlock *blk,
+						uvast *bytes);
 
-extern uint32_t    sbsp_bcbDefaultEncrypt(uint32_t suite,
-		                                   Bundle *bundle,
-		                                   ExtensionBlock *blk,
-		                                   SbspOutboundBlock *asb,
-										   uvast *bytes);
+extern uint32_t		sbsp_bcbDefaultEncrypt(uint32_t suite,
+						Bundle *bundle,
+						ExtensionBlock *blk,
+						SbspOutboundBlock *asb,
+						size_t xmitRate,
+						uvast *bytes);
 
-extern BcbProfile *sbsp_bcbGetProfile(char *secSrc,
-		                               char *secDest,
-							           int secTgtType,
-									   BspBcbRule *secBcbRule);
+extern BcbProfile	*sbsp_bcbGetProfile(char *secSrc,
+						char *secDest,
+						int secTgtType,
+						BspBcbRule *secBcbRule);
 
-extern  int     sbsp_bcbHelper(Object *dataObj,
-				  	               uint32_t chunkSize,
-						           uint32_t suite,
-						           csi_val_t key,
-								   csi_cipherparms_t parms,
-								   uint8_t function);
+extern  int		sbsp_bcbHelper(Object *dataObj,
+						uint32_t chunkSize,
+						uint32_t suite,
+						csi_val_t key,
+						csi_cipherparms_t parms,
+						uint8_t encryptInPlace,
+						size_t xmitRate,
+						uint8_t function);
 
+extern int		sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle);
 
-extern int	       sbsp_bcbOffer(ExtensionBlock *blk, Bundle *bundle);
+extern int		sbsp_bcbProcessOnDequeue(ExtensionBlock *blk,
+						Bundle *bundle,
+						void *parm);
 
-extern int	       sbsp_bcbProcessOnDequeue(ExtensionBlock *blk,
-		                                     Bundle *bundle,
-		                                     void *parm);
-
-extern void	       sbsp_bcbRelease(ExtensionBlock *blk);
+extern void		sbsp_bcbRelease(ExtensionBlock *blk);
 
 #endif /* SBSP_BCB_H_ */

@@ -1,0 +1,811 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "amp_agent",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "Amp/Agent",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v3.1",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+
+  "Edd": [{
+      "name": "num_rpt_tpls",
+      "type": "UINT",
+      "description": "This is the number of report templates known to the Agent."
+    },
+    {
+      "name": "num_tbl_tpls",
+      "type": "UINT",
+      "description": "This is the number of table templates known to the Agent."
+    },
+    {
+      "name": "sent_reports",
+      "type": "UINT",
+      "description": "This is the number of reports sent by the agent."
+    },
+    {
+      "name": "num_tbr",
+      "type": "UINT",
+      "description": "This is the number of time-based rules running on the agent."
+    },
+    {
+      "name": "run_tbr",
+      "type": "UINT",
+      "description": "This is the number of time-based rules run by the agent since the last reset."
+    },
+    {
+      "name": "num_sbr",
+      "type": "UINT",
+      "description": "This is the number of state-based rules running on the agent."
+    },
+    {
+      "name": "run_sbr",
+      "type": "UINT",
+      "description": "This is the number of state-based rules run by the agent since the last reset."
+    },
+    {
+      "name": "num_const",
+      "type": "UINT",
+      "description": "This is the number of constants known by the agent."
+    },
+    {
+      "name": "num_var",
+      "type": "UINT",
+      "description": "This is the number of variables known by the agent."
+    },
+    {
+      "name": "num_macros",
+      "type": "UINT",
+      "description": "This is the number of macros known by the agent."
+    },
+    {
+      "name": "run_macros",
+      "type": "UINT",
+      "description": "This is the number of macros run by the agent since the last reset."
+    },
+    {
+      "name": "num_controls",
+      "type": "UINT",
+      "description": "This is the number of controls known by the agent."
+    },
+    {
+      "name": "run_controls",
+      "type": "UINT",
+      "description": "This is the number of controls run by the agent since the last reset."
+    },
+    {
+      "name": "cur_time",
+      "type": "TV",
+      "description": "This is the current system time."
+    }
+  ],
+
+  "Var": [{
+    "name": "num_rules",
+    "type": "UINT",
+    "initializer": {
+      "type": "UINT",
+      "postfix-expr": [{
+        "ns": "Amp/Agent",
+        "nm": "edd.num_tbr"
+      }, {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_sbr"
+      }, {
+        "ns": "Amp/Agent",
+        "nm": "oper.plusUINT"
+      }]
+    },
+    "description": "This is the number of rules known to the Agent (#TBR + #SBR)."
+  }],
+
+  "Tblt":[
+    {
+      "name":"adms",
+      "columns":[{
+          "type":"STR",
+          "name":"adm_name"
+      }],
+      "description":"This table lists all the adms that are supported by the agent."
+    },
+    {
+      "name":"variables",
+      "columns":[{
+        "type":"ARI",
+        "name":"ids"
+      }],
+      "description":"This table lists the ARI for every variable that is known to the agent."
+    },
+    {
+      "name":"rptts",
+      "columns":[{
+        "type":"ARI",
+        "name":"ids"
+      }],
+      "description":"This table lists the ARI for every report template that is known to the agent."
+    },
+    {
+      "name":"macros",
+      "columns":[{
+        "type":"ARI",
+        "name":"ids"
+      }],
+      "description":"This table lists the ARI for every macro that is known to the agent."
+    },
+    {
+      "name":"rules",
+      "columns":[{
+        "type":"ARI",
+        "name":"ids"
+      }],
+      "description":"This table lists the ARI for every rule that is known to the agent."
+    },
+    {
+      "name":"tblts",
+      "columns":[{
+        "type":"ARI",
+        "name":"ids"
+      }],
+      "description":"This table lists the ARI for every table template that is known to the agent."
+    }
+
+  ],
+
+  "Rptt": [{
+    "name": "full_report",
+    "definition": [{
+        "ns": "Amp/Agent",
+        "nm": "mdat.name"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "mdat.version"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_rpt_tpls"
+      },
+      {
+	"ns": "Amp/Agent",
+	"nm": "edd.num_tbl_tpls"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.sent_reports"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_tbr"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.run_tbr"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_sbr"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.run_sbr"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_const"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_var"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_macros"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.run_macros"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.num_controls"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "edd.run_controls"
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "var.num_rules"
+      }
+    ],
+    "description": "This is all known meta-data, EDD, and VAR values known by the agent."
+  }],
+
+  "Ctrl": [
+    {
+      "name": "add_var",
+      "parmspec": [{
+          "type": "ARI",
+          "name": "id"
+        },
+        {
+          "type": "EXPR",
+          "name": "def"
+        },
+        {
+          "type": "BYTE",
+          "name": "type"
+        }
+      ],
+      "description": "This control configures a new variable definition on the Agent."
+    },
+    {
+      "name": "del_var",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control removes one or more variable definitions from the Agent."
+    },
+    {
+      "name": "add_rptt",
+      "parmspec": [{
+          "type": "ARI",
+          "name": "id"
+        },
+        {
+          "type": "AC",
+          "name": "template"
+        }
+      ],
+      "description": "This control configures a new report template definition on the Agent."
+    },
+    {
+      "name": "del_rptt",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control removes one or more report template definitions from the Agent."
+    },
+    
+    {
+      "name": "desc_rptt",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control produces a detailed description of one or more report template  identifier(ARI) known to the Agent."
+    },
+    {
+      "name": "gen_rpts",
+      "parmspec": [{
+          "type": "AC",
+          "name": "ids"
+        },
+        {
+          "type": "TNVC",
+          "name": "rxmgrs"
+        }
+      ],
+      "description": "This control causes the Agent to produce a report entry for each identified report templates and send them to one or more identified managers(ARIs)."
+    },
+    {
+      "name":"gen_tbls",
+      "parmspec":[{
+          "type":"AC",
+          "name":"ids"
+        },
+        {
+          "type": "TNVC",
+          "name": "rxmgrs"
+        }
+      ],
+      "description": "This control causes the Agent to produce a table for each identified table templates and send them to one or more identified managers(ARIs)."
+    },
+    {
+      "name": "add_macro",
+      "parmspec": [{
+          "type": "STR",
+          "name": "name"
+        },
+        {
+          "type": "ARI",
+          "name": "id"
+        },
+        {
+          "type": "AC",
+          "name": "def"
+        }
+      ],
+      "description": "This control configures a new macro definition on the Agent."
+    },
+    {
+      "name": "del_macro",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control removes one or more macro definitions from the Agent."
+    },
+    {
+      "name": "desc_macro",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control produces a detailed description of one or more macro identifier(ARI) known to the Agent."
+    },
+    {
+      "name": "add_tbr",
+      "parmspec": [{
+          "type": "ARI",
+          "name": "id"
+        },
+        {
+          "type": "TV",
+          "name": "start"
+        },
+        {
+          "type": "TV",
+          "name": "period"
+        },
+        {
+          "type": "UVAST",
+          "name": "count"
+        },
+        {
+          "type": "AC",
+          "name": "action"
+        },
+        {
+          "type": "STR",
+          "name": "description"
+        }
+
+      ],
+      "description": "This control configures a new time-based rule(TBR) definition on the Agent."
+    },
+    {
+      "name": "add_sbr",
+      "parmspec": [{
+          "type": "ARI",
+          "name": "id"
+        },
+        {
+          "type": "TV",
+          "name": "start"
+        },
+        {
+          "type": "EXPR",
+          "name": "state"
+        },
+        {
+          "type": "UVAST",
+          "name": "max_eval"
+        },
+        {
+          "type": "UVAST",
+          "name": "count"
+        },
+        {
+          "type": "AC",
+          "name": "action"
+        },
+        {
+          "type": "STR",
+          "name": "description"
+        }
+
+      ],
+      "description": "This control configures a new state-based rule(SBR) definition on the Agent."
+    },
+    {
+      "name": "del_rule",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control removes one or more rule definitions from the Agent."
+    },
+    {
+      "name": "desc_rule",
+      "parmspec": [{
+        "type": "AC",
+        "name": "ids"
+      }],
+      "description": "This control produces a detailed description of one or more rules known to the Agent."
+    },
+    {
+      "name": "store_var",
+      "parmspec": [{
+        "type": "ARI",
+        "name": "id"
+      },
+      {
+        "type": "EXPR",
+        "name": "value"
+      }],
+      "description": "This control stores variables."
+    },
+    {
+      "name": "reset_counts",
+      "description": "This control resets all Agent ADM statistics reported in the Agent ADM report."
+    }
+  ],
+
+  "Const": [{
+    "name": "amp_epoch",
+    "type": "TS",
+    "value": "1504915200",
+    "description": "This constant is the time epoch for the Agent."
+  }],
+
+  "Mac": [{
+    "name": "user_desc",
+    "parmspec": [{
+        "type": "AC",
+        "name": "RPTTs"
+    },
+    {
+        "type": "AC",
+        "name": "Rules"
+    }],
+
+    "definition": [{
+        "ns": "Amp/Agent",
+        "nm": "ctrl.desc_rptt",
+        "ap": [{
+            "type": "ParmName",
+            "value": "RPTTs"
+        }]
+      },
+      {
+        "ns": "Amp/Agent",
+        "nm": "ctrl.desc_rule",
+        "ap": [{
+            "type": "ParmName",
+            "value": "Rules"
+        }]
+      }
+    ],
+    "description": "This macro lists all of the user defined data."
+  }],
+
+  "Oper": [{
+      "name": "plusINT",
+      "result-type": "INT",
+      "in-type": ["INT", "INT"],
+      "description": "Int32 addition"
+    },
+    {
+      "name": "plusUINT",
+      "result-type": "UINT",
+      "in-type": ["UINT", "UINT"],
+      "description": "Unsigned Int32 addition"
+    },
+    {
+      "name": "plusVAST",
+      "result-type": "VAST",
+      "in-type": ["VAST", "VAST"],
+      "description": "Int64 addition"
+    },
+    {
+      "name": "plusUVAST",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Unsigned Int64 addition"
+    },
+    {
+      "name": "plusREAL32",
+      "result-type": "REAL32",
+      "in-type": ["REAL32", "REAL32"],
+      "description": "Real32 addition"
+    },
+    {
+      "name": "plusREAL64",
+      "result-type": "REAL64",
+      "in-type": ["REAL64", "REAL64"],
+      "description": "Real64 addition"
+    },
+    {
+      "name": "minusINT",
+      "result-type": "INT",
+      "in-type": ["INT", "INT"],
+      "description": "Int32 subtraction"
+    },
+    {
+      "name": "minusUINT",
+      "result-type": "UINT",
+      "in-type": ["UINT", "UINT"],
+      "description": "Unsigned Int32 subtraction"
+    },
+    {
+      "name": "minusVAST",
+      "result-type": "VAST",
+      "in-type": ["VAST", "VAST"],
+      "description": "Int64 subtraction"
+    },
+    {
+      "name": "minusUVAST",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Unsigned Int64 subtraction"
+    },
+    {
+      "name": "minusREAL32",
+      "result-type": "REAL32",
+      "in-type": ["REAL32", "REAL32"],
+      "description": "Real32 subtraction"
+    },
+    {
+      "name": "minusREAL64",
+      "result-type": "REAL64",
+      "in-type": ["REAL64", "REAL64"],
+      "description": "Real64 subtraction"
+    },
+    {
+      "name": "multINT",
+      "result-type": "INT",
+      "in-type": ["INT", "INT"],
+      "description": "Int32 multiplication"
+    },
+    {
+      "name": "multUINT",
+      "result-type": "UINT",
+      "in-type": ["UINT", "UINT"],
+      "description": "Unsigned Int32 multiplication"
+    },
+    {
+      "name": "multVAST",
+      "result-type": "VAST",
+      "in-type": ["VAST", "VAST"],
+      "description": "Int64 multiplication"
+    },
+    {
+      "name": "multUVAST",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Unsigned Int64 multiplication"
+    },
+    {
+      "name": "multREAL32",
+      "result-type": "REAL32",
+      "in-type": ["REAL32", "REAL32"],
+      "description": "Real32 multiplication"
+    },
+    {
+      "name": "multREAL64",
+      "result-type": "REAL64",
+      "in-type": ["REAL64", "REAL64"],
+      "description": "Real64 multiplication"
+    },
+    {
+      "name": "divINT",
+      "result-type": "INT",
+      "in-type": ["INT", "INT"],
+      "description": "Int32 division"
+    },
+    {
+      "name": "divUINT",
+      "result-type": "UINT",
+      "in-type": ["UINT", "UINT"],
+      "description": "Unsigned Int32 division"
+    },
+    {
+      "name": "divVAST",
+      "result-type": "VAST",
+      "in-type": ["VAST", "VAST"],
+      "description": "Int64 division"
+    },
+    {
+      "name": "divUVAST",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Unsigned Int64 division"
+    },
+    {
+      "name": "divREAL32",
+      "result-type": "REAL32",
+      "in-type": ["REAL32", "REAL32"],
+      "description": "Real32 division"
+    },
+    {
+      "name": "divREAL64",
+      "result-type": "REAL64",
+      "in-type": ["REAL64", "REAL64"],
+      "description": "Real64 division"
+    },
+    {
+      "name": "modINT",
+      "result-type": "INT",
+      "in-type": ["INT", "INT"],
+      "description": "Int32 modulus division"
+    },
+    {
+      "name": "modUINT",
+      "result-type": "UINT",
+      "in-type": ["UINT", "UINT"],
+      "description": "Unsigned Int32 modulus division"
+    },
+    {
+      "name": "modVAST",
+      "result-type": "VAST",
+      "in-type": ["VAST", "VAST"],
+      "description": "Int64 modulus division"
+    },
+    {
+      "name": "modUVAST",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Unsigned Int64 modulus division"
+    },
+    {
+      "name": "modREAL32",
+      "result-type": "REAL32",
+      "in-type": ["REAL32", "REAL32"],
+      "description": "Real32 modulus division"
+    },
+    {
+      "name": "modREAL64",
+      "result-type": "REAL64",
+      "in-type": ["REAL64", "REAL64"],
+      "description": "Real64 modulus division"
+    },
+    {
+      "name": "expINT",
+      "result-type": "INT",
+      "in-type": ["INT", "INT"],
+      "description": "Int32 exponentiation"
+    },
+    {
+      "name": "expUINT",
+      "result-type": "UINT",
+      "in-type": ["UINT", "UINT"],
+      "description": "Unsigned int32 exponentiation"
+    },
+    {
+      "name": "expVAST",
+      "result-type": "VAST",
+      "in-type": ["VAST", "VAST"],
+      "description": "Int64 exponentiation"
+    },
+    {
+      "name": "expUVAST",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Unsigned Int64 exponentiation"
+    },
+    {
+      "name": "expREAL32",
+      "result-type": "REAL32",
+      "in-type": ["REAL32", "REAL32"],
+      "description": "Real32 exponentiation"
+    },
+    {
+      "name": "expREAL64",
+      "result-type": "REAL64",
+      "in-type": ["REAL64", "REAL64"],
+      "description": "Real64 exponentiation"
+    },
+    {
+      "name": "bitAND",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Bitwise and"
+    },
+    {
+      "name": "bitOR",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Bitwise or"
+    },
+    {
+      "name": "bitXOR",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "Bitwise xor"
+    },
+    {
+      "name": "bitNOT",
+      "result-type": "UVAST",
+      "in-type": ["UVAST"],
+      "description": "Bitwise not"
+    },
+    {
+      "name": "logAND",
+      "result-type": "BOOL",
+      "in-type": ["BOOL", "BOOL"],
+      "description": "Logical and"
+    },
+    {
+      "name": "logOR",
+      "result-type": "BOOL",
+      "in-type": ["BOOL", "BOOL"],
+      "description": "Logical or"
+    },
+    {
+      "name": "logNOT",
+      "result-type": "BOOL",
+      "in-type": ["BOOL"],
+      "description": "Logical not"
+    },
+    {
+      "name": "abs",
+      "result-type": "UVAST",
+      "in-type": ["VAST"],
+      "description": "absolute value"
+    },
+    {
+      "name": "lessThan",
+      "result-type": "BOOL",
+      "in-type": ["UNK", "UNK"],
+      "description": "<"
+    },
+    {
+      "name": "greaterThan",
+      "result-type": "BOOL",
+      "in-type": ["UNK", "UNK"],
+      "description": ">"
+    },
+    {
+      "name": "lessEqual",
+      "result-type": "BOOL",
+      "in-type": ["UNK", "UNK"],
+      "description": "<="
+    },
+    {
+      "name": "greaterEqual",
+      "result-type": "BOOL",
+      "in-type": ["UNK", "UNK"],
+      "description": ">="
+    },
+    {
+      "name": "notEqual",
+      "result-type": "BOOL",
+      "in-type": ["UNK", "UNK"],
+      "description": "!="
+    },
+    {
+      "name": "Equal",
+      "result-type": "BOOL",
+      "in-type": ["UNK", "UNK"],
+      "description": "=="
+    },
+    {
+      "name": "bitShiftLeft",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": "<<"
+    },
+    {
+      "name": "bitShiftRight",
+      "result-type": "UVAST",
+      "in-type": ["UVAST", "UVAST"],
+      "description": ">>"
+    },
+    {
+      "name": "STOR",
+      "result-type": "UNK",
+      "in-type": ["UNK", "UNK"],
+      "description": "Store value of parm 2 in parm 1"
+    }
+  ]
+}

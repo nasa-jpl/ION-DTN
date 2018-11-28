@@ -5,6 +5,8 @@
 
 	Author:	Scott Burleigh, JPL
 
+	Mutex locking fixes by John Huff, Ohio University, 2018.
+
 	Copyright (c) 2003, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
@@ -30,9 +32,10 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 {
 	CHKNULL(list);
 	CHKNULL(llcv);
-	if (llcv->list != NULL && pthread_mutex_lock(&llcv->mutex) == 0)
+	if (llcv->list != NULL
+	&& llcv->mutex_initialized == 1
+	&& llcv->mutex_address == &llcv->mutex)
 	{
-		oK(pthread_mutex_unlock(&llcv->mutex));
 		return llcv;		/*	Already initialized.	*/
 	}
 
@@ -40,6 +43,11 @@ Llcv	llcv_open(Lyst list, Llcv llcv)
 	{
 		putSysErrmsg("can't open llcv, mutex init failed", NULL);
 		return NULL;
+	}
+	else				/*	Mutex was initialized.	*/
+	{
+		llcv->mutex_initialized = 1;
+		llcv->mutex_address = &llcv->mutex;
 	}
 
 	if (pthread_cond_init(&llcv->cv, NULL))
@@ -158,6 +166,13 @@ void	llcv_signal(Llcv llcv, LlcvPredicate condition)
 	CHKVOID(llcv);
 	CHKVOID(condition);
 
+	if (llcv->mutex_initialized != 1
+	|| llcv->mutex_address != &llcv->mutex)
+	{
+		writeMemo("[?] Can't signal llcv, already closed.");
+		return;			/*	Already closed.		*/
+	}
+
 	/*	Lock the mutex to assure stable state when signaling.	*/
 
 	if (pthread_mutex_lock(&llcv->mutex))
@@ -199,23 +214,36 @@ void	llcv_signal_while_locked(Llcv llcv, LlcvPredicate condition)
 
 void	llcv_close(Llcv llcv)
 {
-	int	result;
-
 	if (llcv)
 	{
-		if (pthread_mutex_lock(&llcv->mutex) != 0)
+		if (llcv->mutex_initialized != 1
+		|| llcv->mutex_address != &llcv->mutex)
 		{
+			writeMemo("[?] Can't close llcv, already closed.");
 			return;	/*	Already closed.			*/
 		}
 
-		result = pthread_cond_destroy(&llcv->cv);
-		oK(pthread_mutex_unlock(&llcv->mutex));
-		if (result != 0 || pthread_mutex_destroy(&llcv->mutex) != 0)
+		pthread_mutex_lock(&llcv->mutex);
+
+		if (pthread_cond_destroy(&llcv->cv))
 		{
-			writeMemo("[?] Can't close llcv.");
+			pthread_mutex_unlock(&llcv->mutex);
+			putSysErrmsg("llcv_close: cond_destroy failed.", NULL);
 			return;
 		}
 
+		if (pthread_mutex_unlock(&llcv->mutex))
+		{
+			putSysErrmsg("llcv_close: mutex_unlock failed.", NULL);
+		}
+
+		if (pthread_mutex_destroy(&llcv->mutex))
+		{
+			putSysErrmsg("llcv_close: mutex_destroy failed.", NULL);
+			writeMemo("[?] Can't close llcv.");
+			return;
+		}
+		
 		memset((char *) llcv, 0, sizeof(struct llcv_str));
 	}
 }

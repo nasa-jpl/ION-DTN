@@ -1,0 +1,86 @@
+File contents
+----
+This directory contains the following files used to help test the AMP implementation:
+- nm2.supp : A (not complete) valgrind suppression file.
+- reports.txt: Basic report eneration tests.
+- var.txt : Basic variable tests.
+- macros.txt: Basic macro tests.
+- tbr.txt: Time-based rule tests.
+- sbr.txt: State-based rule tests.
+- amp_agent_suite.txt: A catenation of the reports, var, macro, tbr, and sbr tests.
+- BP_AGENT.TXT: The start of a BP agent test script.
+
+
+
+Test Script Syntax
+----
+Test scripts support a very simple syntax:
+
+1. The '#' character as the first character of the line comments out the line.
+2. Blank lines are ignored.
+3. the WAIT command will cause the text to pause for X number of seconds
+   Ex: WAIT 170
+4. Anything else is interpretted as a CBOR-encoded control
+   Ex: c11541064f84054225234781458a181b41034180
+
+
+
+How to write your own test scripts:
+-----
+
+1. Build a CBOR-encoded control. This is done using the nm_mgr text user interface,
+   creating a control and sending it to an amp agent (another nm_agent running on this or another  
+   machine). When a control is sent, the nm_mgr will print the outgoing message group containing
+   the control to the console. The control can be cut-n-paste from this output into a test script file.
+
+   An example of such an output is provided below:
+
+[nm/shared/msg/ion_if.c:402] : iif_send Sending 0x8200581802008154c11541064f84054225234781458a181b41034180 to ipn:1.2:
+
+2. Isolate the individual control from the message group by stripping away group and message headers.  
+
+0x  82     00   5818   02    00  8154   c11541064f84054225234781458a181b41034180
+   \__/   \__/  \__/   \/    \/  \__/   \______________________________________/
+   Group   TS   Msg   Perf   TV  Msg       Message Body - a single control.
+   Array        Len   Ctrl       Body
+                                 Len
+
+
+3. Tips on isolating the control
+
+   a. The message group is formatted as described in:
+      https://tools.ietf.org/html/draft-birrane-dtn-amp-05#section-9.2
+
+   b. The message type will always by 02 (perform control). Look for the 
+      first instance of 02 in the bytestream. It will be followed by a time
+      value and a message body length.
+
+   c. Look for the first byte of the control ARI. This will be one of:
+      0xc1 - Parameterized control
+      0x81 - Control without parameters
+
+   d. The message body is the first byte of the control ARI and everything that follows.
+
+   e. Using a different example:
+
+[nm/shared/msg/ion_if.c:402] : iif_send Sending 0x8200584d0200815848c1154107584285054312242543624d3145a40141010158308354c11541054f840542252347814587181941004180448115410f54c11541054f840542252347814587181941004180 to ipn:1.2:
+
+0x8200584d0200815848c1154107584285054312242543624d3145a40141010...
+          |         |
+          |         |0xc1 = Start of Control ARI.
+          |         \__________________________________________.../ 
+          |            Control to Paste Into Test Script
+          |
+          |
+          |0x02 = Perform Control message type
+            
+
+
+
+
+
+
+
+
+
+

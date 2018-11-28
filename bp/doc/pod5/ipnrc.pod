@@ -82,16 +82,25 @@ formats.  It is the same as the B<?> command.
 
 =over 4
 
-=item B<a plan> I<node_nbr> I<default_duct_expression>
+=item B<a plan> I<node_nbr> I<duct_expression> [I<nominal_data_rate>]
 
 The B<add plan> command.  This command establishes an egress plan for
 the bundles that must be transmitted to the neighboring node identified
-by I<node_nbr>.
+by I<node_nbr>.  The I<nominal_data_rate> is the assumed rate of
+transmission to this node in the absence of contact plan information.
+A I<nominal_data_rate> of zero (the default) in the absence of contact
+plan information completely disables rate control.
 
-=item B<c plan> I<node_nbr> I<default_duct_expression>
+B<Note that the plan commands consumed by ipnadmin are a simplified
+shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
+The syntax of these commands is DIFFERENT from that of the more general
+and more powerful bpadmin commands.>
+
+=item B<c plan> I<node_nbr> I<duct_expression> [I<nominal_data_rate>]
 
 The B<change plan> command.  This command changes the duct expression
-for the indicated plan.
+for the indicated plan.  The I<nominal_data_rate> is the assumed rate of
+transmission to this node in the absence of contact plan information.
 
 =item B<d plan> I<node_nbr>
 

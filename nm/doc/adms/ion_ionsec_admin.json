@@ -1,0 +1,173 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "ionsec_admin",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/ION/ionsecadmin",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.0",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+
+  "Tblt": [{
+      "name": "ltp_rx_rules",
+      "columns": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }, {
+        "type": "UINT",
+        "name": "ciphersuite_nbr"
+      }, {
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This table lists all LTP segment authentication rulesin the security policy database."
+    },
+    {
+      "name": "ltp_tx_rules",
+      "columns": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }, {
+        "type": "UINT",
+        "name": "ciphersuite_nbr"
+      }, {
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This table lists all LTP segment signing rules in the security policy database."
+    }
+  ],
+
+  "Ctrl": [{
+      "name": "key_add",
+      "parmspec": [{
+        "type": "STR",
+        "name": "key_name"
+      }, {
+        "type": "BYTESTR",
+        "name": "key_value"
+      }],
+      "description": "This control adds a named key value to the security policy database. The content of file_name is taken as the value of the key.Named keys can be referenced by other elements of thesecurity policy database."
+    },
+    {
+      "name": "key_change",
+      "parmspec": [{
+        "type": "STR",
+        "name": "key_name"
+      }, {
+        "type": "BYTESTR",
+        "name": "key_value"
+      }],
+      "description": "This control changes the value of the named key, obtaining the new key value from the content of file_name."
+    },
+    {
+      "name": "key_del",
+      "parmspec": [{
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This control deletes the key identified by name."
+    },
+    {
+      "name": "ltp_rx_rule_add",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }, {
+        "type": "UINT",
+        "name": "ciphersuite_nbr"
+      }, {
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This control adds a rule specifying the manner in which LTP segment authentication will be applied to LTP segmentsrecieved from the indicated LTP engine. A segment from the indicated LTP engine will only be deemed authentic if it contains an authentication extension computed via the ciphersuite identified by ciphersuite_nbr using the applicable key value. If ciphersuite_nbr is 255 then the applicable key value is a hard-coded constant and key_name must be omitted; otherwise key_nameis required and the applicable key value is the current value of the key named key_name in the local security policy database. Valid values of ciphersuite_nbr are: 0: HMAC-SHA1-80 1: RSA-SHA256 255: NULL"
+    },
+    {
+      "name": "ltp_rx_rule_change",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }, {
+        "type": "UINT",
+        "name": "ciphersuite_nbr"
+      }, {
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This control changes the parameters of the LTP segment authentication rule for the indicated LTP engine."
+    },
+    {
+      "name": "ltp_rx_rule_del",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }],
+      "description": "This control deletes the LTP segment authentication rule for the indicated LTP engine."
+    },
+    {
+      "name": "ltp_tx_rule_add",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }, {
+        "type": "UINT",
+        "name": "ciphersuite_nbr"
+      }, {
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This control adds a rule specifying the manner in which LTP segments transmitted to the indicated LTP engine mustbe signed. Signing a segment destined for the indicated LTP engineentails computing an authentication extension via the ciphersuite identified by ciphersuite_nbr using the applicable key value. If ciphersuite_nbr is 255 then the applicable key value is a hard-coded constant and key_name must be omitted; otherwise key_nameis required and the applicable key value is the current value of the key named key_name in the local security policy database.Valid values of ciphersuite_nbr are: 0:HMAC_SHA1-80 1: RSA_SHA256 255: NULL"
+    },
+    {
+      "name": "ltp_tx_rule_change",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }, {
+        "type": "UINT",
+        "name": "ciphersuite_nbr"
+      }, {
+        "type": "STR",
+        "name": "key_name"
+      }],
+      "description": "This control changes the parameters of the LTP segment signing rule for the indicated LTP engine."
+    },
+    {
+      "name": "ltp_tx_rule_del",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_engine_id"
+      }],
+      "description": "This control deletes the LTP segment signing rule forthe indicated LTP engine."
+    },
+    {
+      "name": "list_keys",
+      "description": "This control lists the names of keys available in the key policy database."
+    },
+    {
+      "name": "list_ltp_rx_rules",
+      "description": "This control lists all LTP segment authentication rules in the security policy database."
+    },
+    {
+      "name": "list_ltp_tx_rules",
+      "description": "This control lists all LTP segment signing rules in the security policy database."
+    }
+  ]
+}

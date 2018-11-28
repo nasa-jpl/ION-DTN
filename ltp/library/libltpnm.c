@@ -58,6 +58,13 @@ void ltpnm_spanEngineIds_get (unsigned int IdArray [], int * numIds)
     CHKVOID(IdArray);
     * numIds = 0;
     CHKVOID(sdr_begin_xn(sdr));
+
+    if(getLtpConstants() == NULL)
+    {
+        sdr_exit_xn(sdr);
+        return;
+    }
+
     for (sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          sdrElt = sdr_list_next(sdr, sdrElt))
@@ -65,6 +72,7 @@ void ltpnm_spanEngineIds_get (unsigned int IdArray [], int * numIds)
         spanObj = sdr_list_data(sdr, sdrElt);
         sdr_read(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
         IdArray [*numIds] = span.engineId;
+
         (*numIds)++;
 	if ((*numIds) == maxEngines)
 	{
@@ -123,6 +131,12 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
     CHKVOID(success);
     * success = 0;
     CHKVOID(sdr_begin_xn(sdr));
+    if(getLtpConstants() == NULL)
+    {
+        sdr_exit_xn(sdr);
+        return;
+    }
+
     for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))
@@ -162,6 +176,8 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
             results->outputNegAckRecvCount   = stats.tallies[NEG_RPT_RECV      ].currentCount;
             results->outputCancelRecvCount   = stats.tallies[EXPORT_CANCEL_RECV].currentCount;
             results->outputCkptReXmitCount   = stats.tallies[CKPT_RE_XMIT      ].currentCount;
+            results->outputSegReXmitCount   = stats.tallies[SEG_RE_XMIT      ].currentCount;
+            results->outputSegReXmitBytes   = stats.tallies[SEG_RE_XMIT      ].currentBytes;
             results->outputCancelXmitCount   = stats.tallies[EXPORT_CANCEL_XMIT].currentCount;
             results->outputCompleteCount     = stats.tallies[EXPORT_COMPLETE   ].currentCount;
         
@@ -216,6 +232,12 @@ void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
     CHKVOID(success);
     * success = 0;
     CHKVOID(sdr_begin_xn(sdr));
+    if(getLtpConstants() == NULL)
+    {
+        sdr_exit_xn(sdr);
+        return;
+    }
+
     for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
          eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))

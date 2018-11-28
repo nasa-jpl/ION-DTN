@@ -19,10 +19,12 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  10/03/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 #ifndef _NM_AGENT_H
 #define _NM_AGENT_H
+
 #define DEBUG 1
 
 // Standard includes
@@ -31,20 +33,16 @@
 
 // ION includes
 #include "platform.h"
-#include "lyst.h"
 
 // Application includes
-#include "agent_db.h"
 
 #include "../shared/utils/nm_types.h"
-#include "../shared/utils/ion_if.h"
+#include "../shared/msg/ion_if.h"
 
-#include "../shared/primitives/mid.h"
+#include "../shared/primitives/ari.h"
 #include "../shared/primitives/rules.h"
 
-#include "../shared/msg/pdu.h"
-#include "../shared/msg/msg_ctrl.h"
-#include "../shared/msg/msg_admin.h"
+#include "../shared/msg/msg.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -69,7 +67,6 @@ static const int32_t NM_RECEIVE_TIMEOUT_SEC = 1;
  * +--------------------------------------------------------------------------+
  */
 
-
 /*
  * +--------------------------------------------------------------------------+
  * |						  FUNCTION PROTOTYPES  							  +
@@ -84,6 +81,8 @@ int	nmagent(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 #endif
 
 void agent_register();
+
+
 
 
 
@@ -103,6 +102,7 @@ void agent_register();
 
 /**
  * The endpoint identifier (EID) of the network manager node.
+ * TODO: Make this a vector and handle multiple managers.
  **/
 extern eid_t manager_eid;
 

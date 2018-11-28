@@ -113,13 +113,13 @@ sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk 
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
@@ -150,43 +150,47 @@ fi
 # Test 3 
 
 echo -e "\n\n\n\n\n*****TEST 3*****"
-echo -e "Deliver payload with different BCB rules (shouldn't accept)"
-sleep ${TIMETODISPLAYTEXT}
-cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
-a key key2 key2.hmk 
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key2
-ENDOFIONSECADMINCOMMANDS
+echo -e "Send encrypted bundle to ipn:3.1 where nodes 2 and 3 use different"
+echo -e "keys.  s/b rejected, but because we are using NULL_SUITES the"
+echo -e "computed ciphertext for the two BCBs is the same regardless of"
+echo -e "the key that is used.  So we skip this test."
 
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
-a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
-
-cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test2_trace" rcv,ct,fwd,dlv,del
-cd ..
-
-sleep ${TIMETOWAITFORTESTFINISH}
-
-grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
-
-echo `pwd`
-rm -f expected.txt
-touch expected.txt
-echo "'test3_trace'" >> expected.txt
-sleep 1
-
-if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
-then
-	echo "SUCCESS (test3)"
-else 
-	echo "FAIL (test3)"
-	PASS=0
-fi
+#sleep ${TIMETODISPLAYTEXT}
+#cd 2.ipn.ltp
+#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+#x
+#a key key2 key2.hmk 
+#a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key2
+#ENDOFIONSECADMINCOMMANDS
+#
+#cd ../3.ipn.ltp
+#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+#x
+#a key key1 key1.hmk
+#a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
+#ENDOFIONSECADMINCOMMANDS
+#
+#cd ../2.ipn.ltp
+#bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test3_trace" rcv,ct,fwd,dlv,del
+#cd ..
+#
+#sleep ${TIMETOWAITFORTESTFINISH}
+#
+#grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+#
+#echo `pwd`
+#rm -f expected.txt
+#touch expected.txt
+#echo "'test3_trace'" >> expected.txt
+#sleep 1
+#
+#if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
+#then
+#	echo "SUCCESS (test3)"
+#else 
+#	echo "FAIL (test3)"
+#	PASS=0
+#fi
 
 #############
 # Test 4 ....
@@ -237,12 +241,12 @@ echo -e "Add same key, deliver BIG payload with BCB (should deliver)"
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 bprecvfile ipn:3.2 &
@@ -319,7 +323,7 @@ cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk 
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
@@ -331,7 +335,7 @@ cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
@@ -369,7 +373,7 @@ cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk 
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
@@ -382,7 +386,7 @@ cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 x
 a key key1 key1.hmk
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFIONSECADMINCOMMANDS
 
 cd ../2.ipn.ltp

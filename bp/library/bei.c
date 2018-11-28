@@ -942,6 +942,32 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	return 0;
 }
 
+int	reviewExtensionBlocks(AcqWorkArea *work)
+{
+	ExtensionDef	*extensions;
+	int		extensionsCt;
+	int		i;
+	ExtensionDef	*def;
+
+	CHKZERO(work);
+	getExtensionDefs(&extensions, &extensionsCt);
+	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	{
+		if (def->review)
+		{
+			if (def->review(work) == 0)
+			{
+				/*	A required extension block
+					is missing.			*/
+
+				return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
 int	decryptPerExtensionBlocks(AcqWorkArea *work)
 {
 	Bundle		*bundle = &(work->bundle);

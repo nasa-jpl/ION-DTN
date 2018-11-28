@@ -472,12 +472,14 @@ int	bp_suspend(Object bundleObj)
 		 *	and place it in limbo.				*/
 
 		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
-		if (reverseEnqueue(bundle.planXmitElt, planObj, &plan, 1))
+		if (reverseEnqueue(bundle.planXmitElt, &plan, 1))
 		{
 			putErrmsg("Can't reverse bundle enqueue.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
+
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 	}
 
 	if (sdr_end_xn(sdr) < 0)

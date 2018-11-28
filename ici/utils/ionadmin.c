@@ -10,6 +10,10 @@
 #include "zco.h"
 #include "rfx.h"
 
+#ifdef STRSOE
+#include <strsoe_ionadmin.h>
+#endif
+
 static time_t	_referenceTime(time_t *newValue)
 {
 	static time_t	reftime = 0;
@@ -106,6 +110,9 @@ relative times (+ss) are computed.");
 	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
+	PUTS("\tc\tChange");
+	PUTS("\t   c contact <from time> <from node#> <to node#> <xmit rate \
+in bytes per second> [confidence in occurrence]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} contact <from time> <from node#> <to node#>");
@@ -230,10 +237,61 @@ and earlier than 19 January 2038.");
 	SYNTAX_ERROR;
 }
 
+void	executeChange(int tokenCount, char **tokens)
+{
+	time_t		refTime;
+	time_t		fromTime;
+	uvast		fromNodeNbr;
+	uvast		toNodeNbr;
+	unsigned int	xmitRate;
+	float		confidence;
+
+	if (tokenCount < 2)
+	{
+		printText("Change what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "contact") != 0)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	switch (tokenCount)
+	{
+	case 7:
+		confidence = atof(tokens[6]);
+		break;
+
+	case 6:
+		confidence = -1.0;	/*	Meaning "no change".	*/
+		break;
+
+	default:
+		SYNTAX_ERROR;
+		return;
+	}
+
+	refTime = _referenceTime(NULL);
+	fromTime = readTimestampUTC(tokens[2], refTime);
+	if (fromTime == 0)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	fromNodeNbr = strtouvast(tokens[3]);
+	toNodeNbr = strtouvast(tokens[4]);
+	xmitRate = strtol(tokens[5], NULL, 0);
+	oK(rfx_revise_contact(fromTime, fromNodeNbr, toNodeNbr, xmitRate,
+			confidence));
+}
+
 void	executeDelete(int tokenCount, char **tokens)
 {
 	time_t	refTime;
-	time_t	timestamp;
+	time_t	fromTime;
 	uvast	fromNodeNbr;
 	uvast	toNodeNbr;
 
@@ -251,13 +309,13 @@ void	executeDelete(int tokenCount, char **tokens)
 
 	if (tokens[2][0] == '*')
 	{
-		timestamp = 0;
+		fromTime = 0;
 	}
 	else
 	{
 		refTime = _referenceTime(NULL);
-		timestamp = readTimestampUTC(tokens[2], refTime);
-		if (timestamp == 0)
+		fromTime = readTimestampUTC(tokens[2], refTime);
+		if (fromTime == 0)
 		{
 			SYNTAX_ERROR;
 			return;
@@ -268,14 +326,14 @@ void	executeDelete(int tokenCount, char **tokens)
 	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_contact(fromTime, fromNodeNbr, toNodeNbr));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		oK(rfx_remove_range(timestamp, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_range(fromTime, fromNodeNbr, toNodeNbr));
 		return;
 	}
 
@@ -955,7 +1013,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -1087,6 +1148,14 @@ no time.");
 
 			return 0;
 
+		case 'c':
+			if (ionAttach() == 0)
+			{
+				executeChange(tokenCount, tokens);
+			}
+
+			return 0;
+
 		case 'd':
 			if (ionAttach() == 0)
 			{
@@ -1139,39 +1208,29 @@ no time.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && ionAttach() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//ion system is not started
-					printText("ION system is not started");
-					return 1;
-				}
-
-				//attached to ion system
-
-				*rc = ion_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = rfx_system_is_started();
-			if (*rc)
-			{
-				printText("ION system is started");
 			}
 			else
 			{
-				printText("ION system is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && ionAttach() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//ion system is not started
+				printText("ION system is not started");
+				return 1;
+			}
+
+			//attached to ion system
+
+			*rc = ion_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -1308,3 +1367,20 @@ int	main(int argc, char **argv)
 
 	return result;
 }
+
+#ifdef STRSOE
+int	ionadmin_pseudoshell(char *line)
+{
+	return pseudoshell(line);
+}
+
+int	ionadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	ionadmin_help(void)
+{
+	printUsage();
+}
+#endif

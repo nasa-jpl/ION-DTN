@@ -21,16 +21,15 @@
  **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
  **  05/17/15  E. Birrane     Moved controls to ctrl.[h|c]. Updated TRL/SRL to DTNMP v0.1  (Secure DTN - NASA: NNX14CS58P)
  **  06/26/15  E. Birrane     Updated structures/functs to reflect TRL/SRL naming.  (Secure DTN - NASA: NNX14CS58P)
+ **  09/29/18  E. Birrane     Updated to AMPv0.5 (JHU/APL)
  *****************************************************************************/
 
 #ifndef _RULES_H_
 #define _RULES_H_
 
-#include "lyst.h"
-
 #include "../utils/nm_types.h"
-
-#include "../primitives/mid.h"
+#include "../utils/db.h"
+#include "../primitives/ctrl.h"
 #include "../primitives/expr.h"
 
 
@@ -40,11 +39,21 @@
  * +--------------------------------------------------------------------------+
  */
 
+#define RULE_DEFAULT_ENC_SIZE 1024
+
+#define RULE_ACTIVE    (0x1)
+
+#define AMP_RULE_EXEC_ALWAYS (-1)
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  	MACROS  								  +
  * +--------------------------------------------------------------------------+
  */
+
+#define RULE_IS_ACTIVE(flags)    (flags & RULE_ACTIVE)
+#define RULE_SET_ACTIVE(flags)   (flags |= RULE_ACTIVE)
+#define RULE_CLEAR_ACTIVE(flags) (flags &= (~RULE_ACTIVE))
 
 
 /*
@@ -54,62 +63,52 @@
  */
 
 
-
 typedef struct
 {
-	Object itemObj;           /**> Serialized rule in an SDR. */
-	uint32_t size;       /**> Size of rule in ruleObj.   */
-
-	/* Descriptor Information. */
-    int64_t  num_evals;       /**> # times left to eval rule. */
-    uint32_t interval_ticks;  /**> # 1Hz ticks between evals. */
-    eid_t    sender;          /**> Who sent this rule def.    */
-
-    /* Below is not kept in the SDR. */
-	Object descObj;   /** > This descriptor in SDR. */
-} trl_desc_t;
-
-
-typedef struct {
-	mid_t *mid;     /**> MID identifier for this TRL.        */
-    time_t time;    /**> The time to start the production.   */
-    uvast period;   /**> The delay between productions.      */
-    uvast count;    /**> The # times to produce the message. */
-    Lyst  action;   /**> Macro to run when rule triggers  .  */
-
-    /* Below is not serialized. */
-    uint32_t countdown_ticks; /**> # ticks before next eval.  */
-    trl_desc_t desc; /**> SDR descriptor. */
-} trl_t;
-
+	expr_t expr;       /**> If this evals to true, run action.      */
+	uvast max_fire; /**> # times to run action.                  */
+	uvast max_eval; /**> # times to eval expression.             */
+} sbr_def_t;
 
 
 typedef struct
 {
-	Object itemObj;           /**> Serialized rule in an SDR. */
-	uint32_t size;            /**> Size of rule in ruleObj.   */
-
-	/* Descriptor Information. */
-    int64_t  num_evals;       /**> # times left to eval rule. */
-    uint32_t interval_ticks;  /**> # 1Hz ticks between evals. */
-    eid_t    sender;          /**> Who sent this rule def.    */
-
-    /* Below is not kept in the SDR. */
-	Object descObj;           /** > This descriptor in SDR. */
-} srl_desc_t;
+	uvast period;   /**> # ticks between rule firings.           */
+	uvast max_fire; /**> # times action can be run.              */
+} tbr_def_t;
 
 
+/*
+ *  We support 2 serializations/deserializations. One for just
+ *  the rule definition when communicationg over the wire to the
+ *  AMP spec. And another for when we persist the object to a DB.
+ *
+ * +-----------+--------+--------+
+ * | sbr_def_t | ticks  | flags  |
+ * | [BYTESTR] | [UINT] | [BYTE] |
+ * +-----------+--------+--------+
+ *
+ */
 typedef struct {
-	mid_t *mid;    /**> MID identifier for this SRL.            */
-    time_t time;   /**> The time to start the production.       */
-    expr_t *expr;     /**> The predicate driving report production.*/
-    uvast count;   /**> The # times to produce the message.     */
-    Lyst action;   /**> Macro to run when the rule triggers.    */
+	ari_t id;          /**> The identifier for the SBR definition.  */
+	uvast start;       /**> When to start the evaluation.           */
 
-    /* Below is not serialized. */
-    uint32_t countdown_ticks;       /**> # ticks before next eval.  */
-    srl_desc_t desc; /**> SDR descriptor */
-} srl_t;
+	union {
+		sbr_def_t as_sbr;
+		tbr_def_t as_tbr;
+	} def;
+
+	ac_t action;      /**> Action to run if expr is true on eval.  */
+
+	/** Everything below is not part of a rule definition. **/
+
+	uint32_t ticks_left; /**> Number of ticks until next eval.      */
+	uvast    num_eval;   /**> Number of times rule evaluated.       */
+	uvast    num_fire;   /**> Number of times a rule action was run. */
+	uint8_t  flags;      /**> Status of rule: Active or not.        */
+
+	db_desc_t desc;      /**> SDR info. for persistent storage.     */
+} rule_t;
 
 
 
@@ -121,18 +120,50 @@ typedef struct {
  * +--------------------------------------------------------------------------+
  */
 
-srl_t*   srl_copy(srl_t *srl);
-srl_t*   srl_create(mid_t *mid, time_t time, expr_t *expr, uvast count, Lyst action);
-srl_t*   srl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
-void     srl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
-void     srl_release(srl_t *srl);
-uint8_t* srl_serialize(srl_t *srl, uint32_t *len);
+int       rule_cb_comp_fn(void *i1, void *i2);
 
-trl_t*   trl_create(mid_t *mid, time_t time, uvast period, uvast count, Lyst action);
-trl_t*   trl_deserialize(uint8_t *cursor, uint32_t size, uint32_t *bytes_used);
-void     trl_lyst_clear(Lyst *list, ResourceLock *mutex, int destroy);
-void     trl_release(trl_t *trl);
-uint8_t* trl_serialize(trl_t *trl, uint32_t *len);
+void      rule_cb_del_fn(void *item);
+void      rule_cb_ht_del_fn(rh_elt_t *elt);
+
+
+rule_t*   rule_copy_ptr(rule_t *rule);
+
+rule_t*   rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action);
+
+rule_t*   rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action);
+
+rule_t*   rule_deserialize_helper(CborValue *it, int *success);
+
+rule_t*   rule_deserialize_ptr(CborValue *it, int *success);
+
+rule_t*   rule_deserialize_raw(blob_t *data, int *success);
+
+rule_t*   rule_db_deserialize_ptr(CborValue *it, int *success);
+rule_t*   rule_db_deserialize_raw(blob_t *data, int *success);
+
+CborError rule_db_serialize(CborEncoder *encoder, void *item);
+blob_t*   rule_db_serialize_wrapper(rule_t *rule);
+
+
+void      rule_release(rule_t *rule, int destroy);
+
+
+CborError rule_serialize(CborEncoder *encoder, void *item);
+
+CborError rule_serialize_helper(CborEncoder *encoder, rule_t *rule);
+
+blob_t*   rule_serialize_wrapper(rule_t *rule);
+
+int	      sbr_should_fire(rule_t *rule);
+
+sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success);
+
+CborError sbrdef_serialize(CborEncoder *encoder, sbr_def_t *def);
+
+
+tbr_def_t tbrdef_deserialize(CborValue *it, int *success);
+
+CborError tbrdef_serialize(CborEncoder *encoder, tbr_def_t *def);
 
 
 #endif // _RULES_H_

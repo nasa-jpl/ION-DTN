@@ -1,7 +1,9 @@
+AOS = ../aos
 API = ../library
 INCL = ../include
 UTILS = ../utils
 DAEMON = ../daemon
+DCCP = ../dccp
 UDP = ../udp
 SDA = ../sda
 TEST = ../test
@@ -19,7 +21,8 @@ LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
+# dccplsi dccplso - excluded on platforms other than Linux in config.h
 
 ALL = check libltp.dll $(RUNTIMES)
 
@@ -85,6 +88,26 @@ udplso:		udplso.o libltp.dll
 		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
 		cp udplso ./bin
 
+#	-	-	AOS Executables	-	-	-	-	-
+
+aoslsi:		aoslsi.o libltp.dll
+		$(CC) -o aoslsi aoslsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp aoslsi ./bin
+
+aoslso:		aoslso.o libltp.dll
+		$(CC) -o aoslso aoslso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp aoslso ./bin
+
+#	-	-	DCCP Executables	-	-	-	-	-
+
+dccplsi:	dccplsi.o libltp.dll
+		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp dccplsi ./bin
+
+dccplso:	dccplso.o libltp.dll
+		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+		cp dccplso ./bin
+
 #	-	-	Libraries	-	-	-	-	-
 
 libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
@@ -108,7 +131,13 @@ libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
 %.o:		$(DAEMON)/%.c
 		$(CC) -c $<
 
+%.o:		$(DCCP)/%.c
+		$(CC) -c $<
+
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(AOS)/%.c
 		$(CC) -c $<
 
 %.o:		$(SDA)/%.c

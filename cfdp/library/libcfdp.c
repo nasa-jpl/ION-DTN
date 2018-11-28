@@ -1267,13 +1267,13 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			fdu.recordBoundsRespected = 1;
 		}
 
-		sourceFile = iopen(sourceFileName, O_RDONLY, 0);
+		sourceFile = ifopen(sourceFileName, O_RDONLY, 0);
 		if (sourceFile < 0)
 		{
 			sdr_exit_xn(sdr);
 			putSysErrmsg("CFDP can't open source file",
 					sourceFileName);
-			return -1;
+			return 0;
 		}
 
 		fileSize = ilseek(sourceFile, 0, SEEK_END);
@@ -2214,11 +2214,11 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 
 	sdr_string_read(sdr, fileName, fduBuf.workingFileName);
 	sdr_exit_xn(sdr);
-	fd = iopen(fileName, O_RDONLY, 0);
+	fd = ifopen(fileName, O_RDONLY, 0);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open working file", fileName);
-		return -1;
+		return 0;
 	}
 
 	if (ilseek(fd, offset, SEEK_SET) < 0)

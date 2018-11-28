@@ -8,7 +8,8 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*      R. Carper: modified for Mac OS X platform (darwin)		*/
-/*      J.Veregge: modified for all platforms to consolidate		*/
+/*      J. Veregge: modified for all platforms to consolidate		*/
+/*      S. Clancy: added STRSOE flag for building with JPL STRS OE	*/
 /*									*/
 #ifndef _PLATFORM_H_
 #define _PLATFORM_H_
@@ -17,7 +18,7 @@
 extern "C" {
 #endif
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS) || defined (STRSOE)
 #define ION_LWT
 #else
 #undef ION_LWT
@@ -74,7 +75,7 @@ extern "C" {
  *	64-bit numbers regardless of the native machine architecture
  *	(except as noted below).					*/
 
-#if (defined (RTEMS) || defined (uClibc))
+#if (defined (RTEMS) || defined (uClibc)) || defined (STRSOE)
 /*	In the RTEMS 4.9 development environment for Linux (for
  *	target sparc-rtems4.9), defining the first field of a struct
  *	as "long long" apparently doesn't cause the struct (nor that
@@ -97,6 +98,9 @@ extern "C" {
  *	libgcc_s.so.1 should set the -DLONG_LONG_OKAY compiler flag
  *	to 1 when building ION.						*/
 
+#ifndef	SEM_NSEMS_MAX
+#define	SEM_NSEMS_MAX		(256)
+#endif
 #ifndef LONG_LONG_OKAY
 #define	LONG_LONG_OKAY		0	/*	Default value.		*/
 #endif
@@ -104,7 +108,7 @@ extern "C" {
 #else					/*	Not RTEMS or uClibc.	*/
 
 #define	LONG_LONG_OKAY		1
-#endif	/*	RTEMS or uClibc						*/
+#endif	/*	RTEMS or uClibc	or STRSOE				*/
 
 #if (!LONG_LONG_OKAY)
 typedef long			vast;
@@ -202,7 +206,7 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define CORE_FILE_NEEDED	(0)
 #endif
 
-#ifdef RTEMS			/****	RTEMS			*********/
+#if defined RTEMS || defined (STRSOE)	/****	RTEMS or STRSOE	     ****/
 typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
@@ -439,7 +443,7 @@ typedef int			socklen_t;
 
 #endif				/****   End of #ifdef VXWORKS	*********/
 
-#ifdef RTEMS			/****	RTEMS			*********/
+#if defined (RTEMS) || defined (STRSOE)	/****	RTEMS or STRSOE	*********/
 
 #undef	SVR4_SHM
 #define RTOS_SHM
@@ -452,10 +456,14 @@ typedef int			socklen_t;
 
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
+#ifndef PRIVATE_SYMTAB
 #define PRIVATE_SYMTAB
+#endif
 
+#ifndef STRSOE
 #include <bsp.h>
 #include <rtems.h>
+#endif
 #include <pthread.h>
 #include <pwd.h>
 #include <netdb.h>
@@ -832,6 +840,7 @@ extern char			*istrcat(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));
 extern void			iblock(int);
+extern int			ifopen(const char *, int, int);
 extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 

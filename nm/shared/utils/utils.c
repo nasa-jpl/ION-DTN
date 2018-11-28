@@ -14,9 +14,6 @@
  ** Description:
  **
  ** Notes:
- **   1. TODO: more work needed to serialize/deserialize floating point. Approach
- **      is to captur ein a string. Some evident that an IEEE 754 double loses
- **      significant precision after ~16 digits.
  **
  ** Assumptions:
  **
@@ -30,6 +27,7 @@
  **                           Document Updates (Secure DTN - NASA: NNX14CS58P)
  **  07/04/16  E. Birrane     Added limited support for serialize/deserialize
  **                           floats and doubles. (Secure DTN - NASA: NNX14CS58P)
+ **  09/02/18  E. Birrane     Removed Serialize/Deserialize functions (JHU/APL)
  *****************************************************************************/
 
 #include "platform.h"
@@ -37,8 +35,10 @@
 
 #include "../utils/debug.h"
 #include "../utils/utils.h"
+#include "vector.h"
 
 static ResourceLock gMemMutex;
+
 
 #if AMP_DEBUGGING == 1
 char gAmpMsg[AMP_GMSG_BUFLEN];
@@ -49,10 +49,10 @@ int8_t utils_mem_int()
 	if(initResourceLock(&gMemMutex))
 	{
 		AMP_DEBUG_ERR("utils_mem_int", "Cannot allocate memory mutex.", NULL);
-		return ERROR;
+		return AMP_SYSERR;
 
 	}
-	return SUCCESS;
+	return AMP_OK;
 }
 
 void utils_mem_teardown()
@@ -67,7 +67,7 @@ void* utils_safe_take(size_t size)
 
 	lockResource(&gMemMutex);
 	result = MTAKE(size);
-	//result = malloc(size);
+	//result = malloc(size); /* Use this when memory debugging with valgrind. */
 	if(result != NULL)
 	{
 		memset(result,0,size);
@@ -78,9 +78,14 @@ void* utils_safe_take(size_t size)
 
 void utils_safe_release(void* ptr)
 {
+	if(ptr == NULL)
+	{
+		return;
+	}
+
 	lockResource(&gMemMutex);
 	MRELEASE(ptr);
-	//free(ptr);
+	//free(ptr); /* Use this when memory debugging with valgrind. */
 	unlockResource(&gMemMutex);
 }
 
@@ -102,6 +107,7 @@ void utils_safe_release(void* ptr)
  *  --------  ------------   ---------------------------------------------
  *  11/25/12  E. Birrane     Initial implementation. (JHU/APL)
  *  12/16/12  E. Birrane     Added success return, error checks, logging (JHU/APL)
+ *  09/02/18  E. Birrane     Updated to not hard-code success values. (JHU/APL)
  *****************************************************************************/
 
 unsigned long utils_atox(char *s, int *success)
@@ -119,15 +125,15 @@ unsigned long utils_atox(char *s, int *success)
 	{
 		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
 		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
-		return 0;
+		return AMP_FAIL;
 	}
 
-	*success = 0;
+	*success = AMP_FAIL;
 	if(s == NULL)
 	{
 		AMP_DEBUG_ERR("utils_atox","Bad Args.",NULL);
 		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
-		return 0;
+		return AMP_FAIL;
 	}
 
 	/*
@@ -140,7 +146,7 @@ unsigned long utils_atox(char *s, int *success)
 		s = s + 2;
 	}
 
-	*success = 1;
+	*success = AMP_OK;
 
 	/* Step 1 - Make sure string isn't too long. Since every character in the
 	 *          string represents a nibble, 2 characters are a byte, making
@@ -149,9 +155,9 @@ unsigned long utils_atox(char *s, int *success)
 	if(strlen(s) > (sizeof(unsigned long) * 2))
 	{
 		AMP_DEBUG_ERR("utils_atox","x UI: String %s too long to convert to hex unsigned long.", s);
-		*success = 0;
+		*success = AMP_FAIL;
 		AMP_DEBUG_ENTRY("utils_atox","->0.",NULL);
-		return 0;
+		return AMP_FAIL;
 	}
 
 	/* Step 2 - Walk through the string building the result. */
@@ -178,119 +184,17 @@ unsigned long utils_atox(char *s, int *success)
 		case 'F': case 'f': result += 15 * mult; break;
 		default:
 			AMP_DEBUG_ERR("utils_atox","x Non-hex character: %c", s[i]);
-			*success = 0;
+			*success = AMP_FAIL;
 			j--;
 			break;
 		}
 		j++;
 	}
 
-//	DTNMP_DEBUG_INFO("utils_atox","i UI: Turned string %s to number %x.", s, result);
+//	AMP_DEBUG_INFO("utils_atox","i UI: Turned string %s to number %x.", s, result);
 	return result;
 }
 
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_grab_byte
- *
- * \par Purpose: extracts a byte from a sized buffer.
- *
- * \return 0 - Failure.
- * 		   >0 - # bytes consumed from the buffer.
- *
- * \param[in,out]  cursor      Pointer into current buffer.
- * \param[in]      size        Remaining size of the buffer.
- * \param[out]     result      The extracted byte.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation, (JHU/APL)
- *****************************************************************************/
-
-int8_t utils_grab_byte(unsigned char *cursor,
-		  		       uint32_t size,
-				       uint8_t *result)
-{
-	AMP_DEBUG_ENTRY("utils_grab_byte","(%x,%d,%x)",
-			          (unsigned long) cursor, size,
-			          (unsigned long) result);
-
-	/* Do we have a byte to grab? */
-	if(size < 1)
-	{
-        AMP_DEBUG_ERR("utils_grab_byte","Bounds overrun. Size %d Used %d.",
-        				size, 1);
-        AMP_DEBUG_EXIT("utils_grab_byte","-> 0", NULL);
-        return 0;
-	}
-
-    *result = *cursor;
-
-    AMP_DEBUG_EXIT("utils_grab_byte","-> 1", NULL);
-
-    return 1;
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: utils_grab_sdnv
- *
- * \par Purpose: extracts an SDNV value from a sized buffer.
- *
- * \return 0 - Failure.
- * 		   >0 - # bytes consumed from the buffer.
- *
- * \param[in,out]  cursor      Pointer into current buffer.
- * \param[in]      size        Remaining size of the buffer.
- * \param[out]     result      The extracted value.
- *
- * \par Notes:
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  10/14/12  E. Birrane     Initial implementation, (JHU/APL)
- *  06/17/13  E. Birrane     Updated to ION 3.1.3, added uvast type. (JHU/APL)
- *****************************************************************************/
-
-uint32_t utils_grab_sdnv(unsigned char *cursor,
-		                 uint32_t size,
-		                 uvast *result)
-{
-	int result_len = 0;
-
-	AMP_DEBUG_ENTRY("utils_grab_sdnv","(%x,%d,%x)",
-			          (unsigned long) cursor,
-			          (unsigned long) size,
-			          (unsigned long) result);
-
-    if((result_len = decodeSdnv(result, cursor)) == 0)
-    {
-        AMP_DEBUG_ERR("utils_grab_sdnv","Bad SDNV extract.", NULL);
-		AMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
-        return 0;
-    }
-
-    /* Did we go too far? */
-	if (result_len > size)
-	{
-		AMP_DEBUG_ERR("utils_grab_sdnv","Bounds overrun. Size %d Used %d.",
-						size, result_len);
-
-		AMP_DEBUG_EXIT("utils_grab_sdnv","-> 0", NULL);
-		return 0;
-	}
-
-	AMP_DEBUG_EXIT("utils_grab_sdnv","-> %d", result_len);
-	return result_len;
-}
 
 
 
@@ -423,23 +327,16 @@ uint8_t getNibble(char c)
 
 
 
-uint8_t *utils_string_to_hex(char *value, uint32_t *size)
+blob_t* utils_string_to_hex(char *value)
 {
-	uint8_t *result = NULL;
+	blob_t *result = NULL;
 	char tmp_s[3];
 	int len = 0;
 	int success = 0;
 	int pad = 0; 
+	size_t size = 0;
 
-	AMP_DEBUG_ENTRY("utils_string_to_hex","(%#llx, %#llx)", value, size);
-
-	/* Step 0 - Sanity Checks. */
-	if((value == NULL) || (size == NULL))
-	{
-		AMP_DEBUG_ERR("utils_string_to_hex", "Bad Args.", NULL);
-		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
-		return NULL;
-	}
+	CHKNULL(value);
 
 	/*
 	 * Step 0.5 Handle case where string starts with "0x" by simply
@@ -460,19 +357,17 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 
 	if((len%2) == 0)
 	{
-	  *size = len/2;
+	  size = len/2;
 	}
 	else
 	{
-  	*size = (len/2) + 1;
+		size = (len/2) + 1;
        pad = 1;
 	}
 
-	if((result = (uint8_t *) STAKE(*size+1)) == NULL)
+	if((result = blob_create(NULL, 0, size+1)) == NULL)
 	{
-		AMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", *size);
-		*size = 0;
-
+		AMP_DEBUG_ERR("utils_string_to_hex","Can't Alloc %d bytes.", size);
 		AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 		return NULL;
 	}
@@ -480,7 +375,6 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 	/* Step 2 - For each byte, copy in the nibbles. */
 	tmp_s[2] = '\0';
 	int incr = 1;
-    int base = 0;
     int i = 0;
 
 	for(i = 0; i < len;)
@@ -491,22 +385,20 @@ uint8_t *utils_string_to_hex(char *value, uint32_t *size)
 			tmp_s[1] = value[i];
 			pad = 0;
 			incr = 1;
-			base = 1;
 		}
 		else
 		{
 			memcpy(tmp_s, &(value[i]), 2);
 			incr = 2;
 		}
-
-		result[(i+base)/2] = utils_atox(tmp_s, &success);
+		uint8_t tmp_x = (uint8_t) utils_atox(tmp_s, &success);
+		blob_append(result, &tmp_x, 1);
 	
 		i += incr;
 		if(success == 0)
 		{
 			AMP_DEBUG_ERR("utils_string_to_hex","Can't AtoX %s.", tmp_s);
-			SRELEASE(result);
-			*size = 0;
+			blob_release(result, 1);
 
 			AMP_DEBUG_EXIT("utils_string_to_hex", "->NULL.", NULL);
 			return NULL;
@@ -576,361 +468,6 @@ vast    utils_time_cur_delta(struct timeval *t1)
 
 
 
-int32_t  utils_deserialize_int(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-	return (int32_t) utils_deserialize_uint(buffer, bytes_left, bytes_used);
-}
 
 
 
-
-float    utils_deserialize_real32(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-	float result = 0;
-	char *endstr = NULL;
-
-	errno = 0;
-	result = strtof((char *)buffer, &endstr);
-
-	if(errno != 0)
-	{
-		AMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
-		*bytes_used = 0;
-		result = 0;
-	}
-	else
-	{
-		*bytes_used = endstr - (char *) buffer;
-	}
-
-	return result;
-}
-
-double   utils_deserialize_real64(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-	double result = 0;
-	char *endstr = NULL;
-
-	errno = 0;
-	result = strtod((char *)buffer, &endstr);
-
-	if(errno != 0)
-	{
-		AMP_DEBUG_ERR("utils_deserialize_real32","Error deserializing. Errno %d", errno);
-		*bytes_used = 0;
-		result = 0;
-	}
-	else
-	{
-		*bytes_used = endstr - (char *)buffer;
-	}
-
-	return result;
-}
-
-char*    utils_deserialize_string(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-	uint32_t blob_len = 0;
-	uint8_t *blob = NULL;
-	char *result = NULL;
-
-	/* Step 0: Sanity Check. */
-	if((buffer == NULL) || (bytes_used == NULL))
-	{
-		AMP_DEBUG_ERR("utils_deserialize_string","Bad Args.", NULL);
-		return NULL;
-	}
-
-	/* Step 1: Strings are null-terminated, so calculate length. */
-	blob_len = strlen((char*)buffer);
-
-	/* Step 2: Allocate string which is 1 extra character (null terminator). */
-	if((result = (char *) STAKE(blob_len + 1)) == NULL)
-	{
-		AMP_DEBUG_ERR("utils_deserialize_string","Can't allocate %d bytes.", blob_len + 1);
-		*bytes_used = 0;
-		return NULL;
-	}
-
-	memcpy(result, buffer, blob_len);
-	result[blob_len] = '\0';
-
-	return result;
-}
-
-uint32_t utils_deserialize_uint(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-	uint32_t result = 0;
-
-	/* Step 0: Sanity check. */
-	if((buffer == NULL) || (bytes_used == NULL))
-	{
-		AMP_DEBUG_ERR("utils_deserialize_uint","Bad Args.", NULL);
-		if(bytes_used != NULL)
-		{
-			*bytes_used = 0;
-		}
-		return 0;
-	}
-
-	// + 1 for length byte.
-	if(bytes_left < sizeof(uint32_t))
-	{
-		AMP_DEBUG_ERR("utils_deserialize_uint","Buffer size %d too small for %d.", bytes_left, sizeof(uint32_t));
-		*bytes_used = 0;
-		return 0;
-	}
-
-	/* Step 1: Populate the uint32_t. */
-
-	result |= buffer[0] << 24;
-	result |= buffer[1] << 16;
-	result |= buffer[2] << 8;
-	result |= buffer[3];
-
-	*bytes_used = 4;
-
-	/* Step 2: Check byte order. */
-	result = ntohl(result);
-
-	return result;
-}
-
-uvast    utils_deserialize_uvast(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-
-	uvast result = 0;
-
-	/* Step 0: Sanity check. */
-	if((buffer == NULL) || (bytes_used == NULL))
-	{
-		AMP_DEBUG_ERR("utils_deserialize_uvast","Bad Args.", NULL);
-		if(bytes_used != NULL)
-		{
-			*bytes_used = 0;
-		}
-		return 0;
-	}
-
-	if(bytes_left < sizeof(uvast))
-	{
-		AMP_DEBUG_ERR("utils_deserialize_uvast","Buffer size %d too small for %d.", bytes_left, sizeof(uvast));
-		*bytes_used = 0;
-		return 0;
-	}
-
-	/* Step 1: Populate the uvast. */
-	uvast tmp;
-
-#if LONG_LONG_OKAY
-	tmp = buffer[0]; tmp <<= 56;
-	result |= tmp;
-
-	tmp = buffer[1]; tmp <<= 48;
-	result |= tmp;
-
-	tmp = buffer[2]; tmp <<= 40;
-	result |= tmp;
-
-	tmp = buffer[3]; tmp <<= 32;
-	result |= tmp;
-
-	tmp = buffer[4]; tmp <<= 24;
-	result |= tmp;
-
-	tmp = buffer[5]; tmp <<= 16;
-	result |= tmp;
-
-	tmp = buffer[6]; tmp <<= 8;
-	result |= tmp;
-
-	result |= buffer[7];
-#else
-	tmp = buffer[0]; tmp <<= 24;
-	result |= tmp;
-
-	tmp = buffer[1]; tmp <<= 16;
-	result |= tmp;
-
-	tmp = buffer[2]; tmp <<= 8;
-	result |= tmp;
-
-	result |= buffer[3];
-#endif
-
-	*bytes_used = 8;
-
-	/* Step 2: Check byte order. */
-	result = ntohv(result);
-
-	return result;
-}
-
-vast     utils_deserialize_vast(uint8_t *buffer, uint32_t bytes_left, uint32_t *bytes_used)
-{
-	return (vast) utils_deserialize_uvast(buffer, bytes_left, bytes_used);
-}
-
-
-
-uint8_t *utils_serialize_byte(uint8_t value, uint32_t *size)
-{
-	uint8_t *result = NULL;
-
-	*size = 1;
-	if((result = (uint8_t *) STAKE(*size)) == NULL)
-	{
-		AMP_DEBUG_ERR("utils_serialize_byte","Cannot grab memory.", NULL);
-		return NULL;
-	}
-
-	result[0] = value;
-
-	return result;
-}
-
-uint8_t *utils_serialize_int(int32_t value, uint32_t *size)
-{
-	return utils_serialize_uint((uint32_t) value, size);
-}
-
-
-/*
- *
- */
-uint8_t *utils_serialize_real32(float value, uint32_t *size)
-{
-	char too_small[1];
-	uint8_t *result = NULL;
-
-	*size = snprintf(too_small, sizeof too_small, "%f", value) + 1;
-
-	if((result = STAKE(*size)) == NULL)
-	{
-		*size = 0;
-		return NULL;
-	}
-
-	snprintf((char *) result, *size, "%f", value);
-
-	return result;
-}
-
-uint8_t *utils_serialize_real64(double value, uint32_t *size)
-{
-	char too_small[1];
-	uint8_t *result = NULL;
-
-	*size = snprintf(too_small, sizeof too_small, "%f", value) + 1;
-
-	if((result = STAKE(*size)) == NULL)
-	{
-		*size = 0;
-		return NULL;
-	}
-
-	snprintf((char *)result, *size, "%f", value);
-
-	return result;
-}
-
-uint8_t *utils_serialize_string(char *value, uint32_t *size)
-{
-	uint8_t *result = NULL;
-
-	if((value == NULL) || (size == NULL))
-	{
-		AMP_DEBUG_ERR("utils_serialize_string","Bad Args", NULL);
-		return NULL;
-	}
-
-	*size = strlen(value) + 1;
-	if((result = (uint8_t *) STAKE(*size)) == NULL)
-	{
-		AMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", *size);
-		return NULL;
-	}
-	memcpy(result, value, *size);
-	return result;
-}
-
-uint8_t *utils_serialize_uint(uint32_t value, uint32_t *size)
-{
-	uint8_t *result = NULL;
-	uint32_t tmp;
-
-	if(size == NULL)
-	{
-		AMP_DEBUG_ERR("utils_serialize_uint", "Bad Args.", NULL);
-		return NULL;
-	}
-
-	if((result = (uint8_t *) STAKE(sizeof(uint32_t))) == NULL)
-	{
-		AMP_DEBUG_ERR("utils_serialize_uint", "Can't allocate %d bytes", sizeof(uint32_t));
-		return NULL;
-	}
-
-	tmp = htonl(value);
-	result[0] = (tmp >> 24) & (0xFF);
-	result[1] = (tmp >> 16) & (0xFF);
-	result[2] = (tmp >> 8) & (0xFF);
-	result[3] = tmp & (0xFF);
-
-	*size = 4;
-
-	return result;
-}
-
-
-uint8_t *utils_serialize_uvast(uvast value, uint32_t *size)
-{
-	uint8_t *result = NULL;
-	uvast tmp;
-
-	if(size == NULL)
-	{
-		AMP_DEBUG_ERR("utils_serialize_uvast", "Bad Args.", NULL);
-		return NULL;
-	}
-
-	if(sizeof(uvast) != 8)
-	{
-		AMP_DEBUG_ERR("utils_serialize_uvast","uvast isn't size 8?", NULL);
-		return NULL;
-	}
-
-	if((result = (uint8_t *) STAKE(sizeof(uvast))) == NULL)
-	{
-		AMP_DEBUG_ERR("utils_serialize_uvast", "Can't allocate %d bytes", sizeof(uvast));
-		return NULL;
-	}
-
-	tmp = htonv(value);
-
-#if LONG_LONG_OKAY
-	result[0] = (tmp >> 56) & (0xFF);
-	result[1] = (tmp >> 48) & (0xFF);
-	result[2] = (tmp >> 40) & (0xFF);
-	result[3] = (tmp >> 32) & (0xFF);
-	result[4] = (tmp >> 24) & (0xFF);
-	result[5] = (tmp >> 16) & (0xFF);
-	result[6] = (tmp >> 8) & (0xFF);
-	result[7] = tmp & (0xFF);
-#else
-	result[0] = (tmp >> 24) & (0xFF);
-	result[1] = (tmp >> 16) & (0xFF);
-	result[2] = (tmp >> 8) & (0xFF);
-	result[3] = tmp & (0xFF);
-#endif
-
-	*size = 8;
-
-	return result;
-}
-
-
-uint8_t *utils_serialize_vast(vast value, uint32_t *size)
-{
-	return utils_serialize_uvast((uvast) value, size);
-}

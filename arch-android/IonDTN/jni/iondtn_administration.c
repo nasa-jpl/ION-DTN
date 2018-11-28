@@ -303,7 +303,7 @@ Java_gov_nasa_jpl_iondtn_backend_NativeAdapter_stopION(JNIEnv
 
     snooze(1);
 
-    clearPosixTasks();
+    sm_TasksClear();
 
     return (*env)->NewStringUTF(env, result);
 

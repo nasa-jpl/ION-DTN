@@ -712,9 +712,9 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	return cxaddr;
 }
 
-int	rfx_insert_contact(time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, size_t xmitRate,
-			float confidence, PsmAddress *cxaddr)
+int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
+		uvast toNode, size_t xmitRate, float confidence,
+		PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -729,6 +729,7 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime,
 	char		buf2[TIMESTAMPBUFSZ];
 	char		contactIdString[128];
 	IonContact	contact;
+	uvast		volume;
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		obj;
@@ -848,6 +849,10 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime,
 	contact.xmitRate = xmitRate;
 	contact.confidence = confidence;
 	contact.discovered = discovered;
+	volume = xmitRate * (toTime - fromTime);
+	contact.mtv[0] = volume;	/*	Bulk.			*/
+	contact.mtv[1] = volume;	/*	Standard.		*/
+	contact.mtv[2] = volume;	/*	Expedited.		*/
 	obj = sdr_malloc(sdr, sizeof(IonContact));
 	if (obj)
 	{
@@ -1008,6 +1013,94 @@ fromNode, toNode, buf1, buf2);
 	}
 }
 
+int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
+		size_t xmitRate, float confidence)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	time_t		currentTime = getUTCTime();
+	IonCXref	arg;
+	PsmAddress	cxelt;
+	PsmAddress	nextElt;
+	PsmAddress	cxaddr;
+	IonCXref	*cxref;
+	Object		obj;
+	IonContact	contact;
+	IonNeighbor	*neighbor;
+
+	CHKERR(confidence <= 1.0);
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = fromNode;
+	arg.toNode = toNode;
+	arg.fromTime = fromTime;
+	CHKERR(sdr_begin_xn(sdr));
+	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
+			&arg, &nextElt);
+	if (cxelt == 0)		/*	No such contact.		*/
+	{
+		writeMemo("[!] Attempt to revise a nonexistent contact.");
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	/*	Update the contact and its xref.			*/
+
+	cxaddr = sm_rbt_data(ionwm, cxelt);
+	cxref = (IonCXref *) psp(ionwm, cxaddr);
+	obj = sdr_list_data(sdr, cxref->contactElt);
+	sdr_stage(sdr, (char *) &contact, obj, sizeof(IonContact));
+	contact.xmitRate = xmitRate;
+	cxref->xmitRate = xmitRate;
+	if (confidence >= 0.0)
+	{
+		contact.confidence = confidence;
+		cxref->confidence = confidence;
+	}
+
+	sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
+
+	/*	Apply to current state of affected neighbor, if any.	*/
+
+	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
+	{
+		neighbor = findNeighbor(vdb, cxref->toNode, &nextElt);
+		if (neighbor)
+		{
+			neighbor->xmitRate = xmitRate;
+		}
+	}
+
+	if (currentTime >= cxref->startFire && currentTime <= cxref->stopFire)
+	{
+		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		if (neighbor)
+		{
+			neighbor->fireRate = xmitRate;
+		}
+	}
+
+	if (currentTime >= cxref->startRecv && currentTime <= cxref->stopRecv)
+	{
+		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		if (neighbor)
+		{
+			neighbor->recvRate = xmitRate;
+		}
+	}
+
+	/*	Contact has been updated.  No change to contact graph,
+	 *	no need to recompute routes.				*/
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't revise contact.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 static void	deleteContact(PsmAddress cxaddr)
 {
 	Sdr		sdr = getIonsdr();
@@ -1057,6 +1150,14 @@ static void	deleteContact(PsmAddress cxaddr)
 	obj = sdr_list_data(sdr, cxref->contactElt);
 	sdr_free(sdr, obj);
 	sdr_list_delete(sdr, cxref->contactElt, NULL, NULL);
+
+	/*	Delete routing object, if any.				*/
+
+	if (cxref->routingObject)
+	{
+		psm_free(ionwm, cxref->routingObject);
+		cxref->routingObject = 0;
+	}
 
 	/*	Delete contact events from timeline.			*/
 
@@ -1117,7 +1218,7 @@ static void	deleteContact(PsmAddress cxaddr)
 				&event, rfx_erase_data, NULL);
 	}
 
-	/*	Apply to current state as necessary.			*/
+	/*	Apply to current state of affected neighbor, if any.	*/
 
 	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
 	{
@@ -1164,6 +1265,52 @@ static void	deleteContact(PsmAddress cxaddr)
 	}
 }
 
+static void	removeAllContacts(uvast fromNode, uvast toNode, IonCXref *arg)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	PsmAddress	cxelt;
+	PsmAddress	nextElt;
+	PsmAddress	cxaddr;
+	IonCXref	*cxref;
+
+	/*	Get first contact for this to/from node pair.		*/
+
+	oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts, arg,
+			&cxelt));
+
+	/*	Now delete contacts until a node number changes.	*/
+
+	while (cxelt)
+	{
+		cxaddr = sm_rbt_data(ionwm, cxelt);
+		cxref = (IonCXref *) psp(ionwm, cxaddr);
+		if (cxref->fromNode > fromNode
+		|| cxref->toNode > toNode)
+		{
+			break;	/*	No more matches.		*/
+		}
+
+		nextElt = sm_rbt_next(ionwm, cxelt); 
+		deleteContact(cxaddr);
+
+		/*	Now reposition at the next contact.		*/
+
+		if (nextElt == 0)
+		{
+			break;	/*	No more contacts.		*/
+		}
+
+		cxaddr = sm_rbt_data(ionwm, nextElt);
+		cxref = (IonCXref *) psp(ionwm, cxaddr);
+		arg->fromNode = cxref->fromNode;
+		arg->toNode = cxref->toNode;
+		arg->fromTime = cxref->fromTime;
+		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
+				rfx_order_contacts, arg, &nextElt);
+	}
+}
+
 int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 {
 	Sdr		sdr = getIonsdr();
@@ -1173,7 +1320,6 @@ int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
-	IonCXref	*cxref;
 
 	/*	Note: when the fromTime passed to ionadmin is '*'
 	 *	a fromTime of zero is passed to rfx_remove_contact,
@@ -1197,28 +1343,7 @@ int	rfx_remove_contact(time_t fromTime, uvast fromNode, uvast toNode)
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		while (1)
-		{
-			/*	Get first remaining contact for this
-			 *	to/from node pair.			*/
-
-			oK(sm_rbt_search(ionwm, vdb->contactIndex,
-					rfx_order_contacts, &arg, &cxelt));
-			if (cxelt == 0)
-			{
-				break;	/*	No more contacts.	*/
-			}
-
-			cxaddr = sm_rbt_data(ionwm, cxelt);
-			cxref = (IonCXref *) psp(ionwm, cxaddr);
-			if (cxref->fromNode > fromNode
-			|| cxref->toNode > toNode)
-			{
-				break;	/*	No more matches.	*/
-			}
-
-			deleteContact(cxaddr);
-		}
+		removeAllContacts(fromNode, toNode, &arg);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -2281,7 +2406,7 @@ node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10u seconds.",
 	return buffer;
 }
 
-static void	deleteRange(PsmAddress rxaddr, int conditional)
+static void	deleteRange(PsmAddress rxaddr, int retainIfAsserted)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -2293,18 +2418,17 @@ static void	deleteRange(PsmAddress rxaddr, int conditional)
 	IonNeighbor	*neighbor;
 	PsmAddress	nextElt;
 
+	/*	Remove assertion object from database if possible.	*/
+
 	rxref = (IonRXref *) psp(ionwm, rxaddr);
-
-	/*	Delete range from non-volatile database.		*/
-
-	if (rxref->rangeElt)		/*	An asserted range.	*/
+	if (rxref->rangeElt)	/*	Range is asserted, not imputed.	*/
 	{
-		if (conditional)	/*	Delete only if imputed.	*/
+		if (retainIfAsserted)
 		{
-			return;		/*	Retain asserted range.	*/
+			return;	/*	Must not delete this range.	*/
 		}
 
-		/*	Unconditional deletion; remove range from DB.	*/
+		/*	Remove range assertion object from DB.		*/
 
 		obj = sdr_list_data(sdr, rxref->rangeElt);
 		sdr_free(sdr, obj);
@@ -2373,6 +2497,53 @@ static void	deleteRange(PsmAddress rxaddr, int conditional)
 			rfx_erase_data, NULL);
 }
 
+static void	removeAllRanges(uvast fromNode, uvast toNode, IonRXref *arg,
+			int retainIfAsserted)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb 		*vdb = getIonVdb();
+	PsmAddress	rxelt;
+	PsmAddress	nextElt;
+	PsmAddress	rxaddr;
+	IonRXref	*rxref;
+
+	/*	Get first range for this to/from node pair.		*/
+
+	oK(sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges, arg,
+			&rxelt));
+
+	/*	Now delete ranges until a node number changes.		*/
+
+	while (rxelt)
+	{
+		rxaddr = sm_rbt_data(ionwm, rxelt);
+		rxref = (IonRXref *) psp(ionwm, rxaddr);
+		if (rxref->fromNode > fromNode
+		|| rxref->toNode > toNode)
+		{
+			break;	/*	No more matches.		*/
+		}
+
+		nextElt = sm_rbt_next(ionwm, rxelt); 
+		deleteRange(rxaddr, retainIfAsserted);
+
+		/*	Now reposition at the next range.		*/
+
+		if (nextElt == 0)
+		{
+			break;	/*	No more ranges.			*/
+		}
+
+		rxaddr = sm_rbt_data(ionwm, nextElt);
+		rxref = (IonRXref *) psp(ionwm, rxaddr);
+		arg->fromNode = rxref->fromNode;
+		arg->toNode = rxref->toNode;
+		arg->fromTime = rxref->fromTime;
+		rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
+				arg, &nextElt);
+	}
+}
+
 int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 {
 	Sdr		sdr = getIonsdr();
@@ -2382,7 +2553,6 @@ int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 	PsmAddress	rxelt;
 	PsmAddress	nextElt;
 	PsmAddress	rxaddr;
-	IonRXref	*rxref;
 
 	/*	Note: when the fromTime passed to ionadmin is '*'
 	 *	a fromTime of zero is passed to rfx_remove_range,
@@ -2406,28 +2576,7 @@ int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		while (1)
-		{
-			/*	Get first remaining range for this
-			 *	to/from node pair.			*/
-
-			oK(sm_rbt_search(ionwm, vdb->rangeIndex,
-					rfx_order_ranges, &arg, &rxelt));
-			if (rxelt == 0)
-			{
-				break;	/*	No more ranges.		*/
-			}
-
-			rxaddr = sm_rbt_data(ionwm, rxelt);
-			rxref = (IonRXref *) psp(ionwm, rxaddr);
-			if (rxref->fromNode > arg.fromNode
-			|| rxref->toNode > arg.toNode)
-			{
-				break;	/*	No more matches.	*/
-			}
-
-			deleteRange(rxaddr, 0);
-		}
+		removeAllRanges(fromNode, toNode, &arg, 0);
 	}
 
 	if (fromNode > toNode)
@@ -2465,28 +2614,7 @@ int	rfx_remove_range(time_t fromTime, uvast fromNode, uvast toNode)
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		while (1)
-		{
-			/*	Get first remaining range for this
-			 *	to/from node pair.			*/
-
-			oK(sm_rbt_search(ionwm, vdb->rangeIndex,
-					rfx_order_ranges, &arg, &rxelt));
-			if (rxelt == 0)
-			{
-				break;	/*	No more ranges.		*/
-			}
-
-			rxaddr = sm_rbt_data(ionwm, rxelt);
-			rxref = (IonRXref *) psp(ionwm, rxaddr);
-			if (rxref->fromNode > arg.fromNode
-			|| rxref->toNode > arg.toNode)
-			{
-				break;	/*	No more matches.	*/
-			}
-
-			deleteRange(rxaddr, 1);
-		}
+		removeAllRanges(fromNode, toNode, &arg, 1);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -2611,14 +2739,14 @@ extern int	rfx_remove_alarm(PsmAddress alarmAddr)
 
 	/*	Now remove the alarm.					*/
 
+	event.time = alarm->nextTimeout;
+	event.type = IonAlarmTimeout;
+	event.ref = alarmAddr;		/*	Needed for search.	*/
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	sm_SemEnd(alarm->semaphore);
 	microsnooze(50000);
 	sm_SemDelete(alarm->semaphore);
-	alarm->semaphore = SM_SEM_NONE;
-	event.time = alarm->nextTimeout;
-	event.type = IonAlarmTimeout;
-	event.ref = alarmAddr;
+	psm_free(ionwm, alarmAddr);	/*	Alarm no longer exists.	*/
 	sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events, &event,
 			rfx_erase_data, NULL);
 	sdr_exit_xn(sdr);

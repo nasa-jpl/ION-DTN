@@ -10,6 +10,10 @@
 #include "ltpP.h"
 #include "ion.h"
 
+#ifdef STRSOE
+#include <strsoe_ltpadmin.h>
+#endif
+
 static int		_echo(int *newValue)
 {
 	static int	state = 0;
@@ -82,6 +86,7 @@ See man(5) for ltprc.");
 	PUTS("\t   l span");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
+	PUTS("\t   m screening {y | n}");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
@@ -290,7 +295,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "span") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
@@ -461,8 +466,44 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 
 static void	manageScreening(int tokenCount, char **tokens)
 {
-	writeMemo("[!] Note: LTP screening is now always on, cannot be \
-disabled.");
+	Sdr	sdr = getIonsdr();
+	Object	ltpdbobj = getLtpDbObject();
+	LtpDB	ltpdb;
+	int	newEnforceSchedule;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	switch (*(tokens[2]))
+	{
+	case 'Y':
+	case 'y':
+	case '1':
+		newEnforceSchedule = 1;
+		break;
+
+	case 'N':
+	case 'n':
+	case '0':
+		newEnforceSchedule = 0;
+		break;
+
+	default:
+		writeMemoNote("Screening must be 'y' or 'n'.", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
+	ltpdb.enforceSchedule = newEnforceSchedule;
+	sdr_write(sdr, ltpdbobj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change LTP screening control.", NULL);
+	}
 }
 
 static void	manageOwnqtime(int tokenCount, char **tokens)
@@ -772,7 +813,10 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -942,39 +986,29 @@ up, abandoned.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToLtp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//ltp engine is not started
-					printText("LTP engine is not started");
-					return 1;
-				}
-
-				//attached to ltp system
-				
-				*rc = ltp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = ltp_engine_is_started();
-			if (*rc)
-			{
-				printText("LTP engine is started");
 			}
 			else
 			{
-				printText("LTP engine is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToLtp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//ltp engine is not started
+				printText("LTP engine is not started");
+				return 1;
+			}
+
+			//attached to ltp system
+				
+			*rc = ltp_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -1095,3 +1129,16 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	ltpadmin_processLine(char *line, int lineLength, int *checkNeeded,
+		int *rc)
+{
+	return processLine(line, lineLength, checkNeeded, rc);
+}
+
+void	ltpadmin_help(void)
+{
+	printUsage();
+}
+#endif

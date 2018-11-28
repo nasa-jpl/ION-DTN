@@ -146,17 +146,27 @@ a file.
 
 =item B<m screening> { y | n }
 
-The B<manage screening> command.  This command is deprecated; screening
-can no longer be disabled.  LTP segments from a given remote LTP engine
-(ION node) can no longer be accepted when they arrive during an interval
-when the contact plan says the data rate from that engine to the local
-LTP engine is zero; such segments are silently discarded, because without
-a known nominal reception rate we cannot enforce rate control, which is
-needed in order to prevent resource exhaustion at the receiving node.
-Note that this means that the ranges declared in the contact plan
-must be accurate and clocks must be synchronized; otherwise, segments
-will be arriving at times other than the scheduled contact intervals
-and will be discarded.
+The B<manage screening> command.  
+
+The B<manage screening> command.  This command disables or enables the
+screening of received LTP segments per the periods of scheduled reception
+in the node's contact graph.
+
+By default, screening is enabled - that is, LTP segments from a given
+remote LTP engine (ION node) will be silently discarded when they arrive
+during an interval when the contact graph says the data rate from that
+engine to the local LTP engine is zero.  The reason for this is that without
+a known nominal reception rate we cannot enforce reception rate control,
+which is needed in order to prevent resource exhaustion at the receiving node.
+
+Note, though, that the enabling of screening implies that the ranges declared
+in the contact graph must be accurate and clocks must be synchronized;
+otherwise, segments will be arriving at times other than the scheduled
+contact intervals and will be discarded.  
+
+For some research purposes this constraint may be difficult to satisfy.
+For such purposes ONLY, where resource exhaustion at the receiving node
+is not at issue, screening may be disabled.
 
 =item B<m ownqtime> I<own_queuing_latency>
 

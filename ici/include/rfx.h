@@ -80,6 +80,14 @@ extern void		rfx_log_discovered_contact(time_t fromTime,
 			 *	of the log entry is the contact's
 			 *	fromNode, otherwise RECEIVER_NODE.	*/
 
+extern int		rfx_revise_contact(time_t fromTime,
+				uvast fromNode,
+				uvast toNode,
+				size_t xmitRate,
+				float confidence);
+			/*	Revises the xmitRate of and possibly
+			 *	our confidence in an existing contact.	*/
+
 extern int		rfx_remove_contact(time_t fromTime,
 				uvast fromNode,
 				uvast toNode);

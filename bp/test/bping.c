@@ -422,7 +422,7 @@ int	bping(	saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	count = a1 ? strtol((char *) a1, NULL, 0) : -1;
-	interval = a2 ? strtod((char *) a2, NULL, 0) : 1;
+	interval = a2 ? strtod((char *) a2, NULL) : 1;
 	priority = a3 ? strtol((char *) a3, NULL, 0) : 0;
 	waitdelay = a4 ? strtol((char *) a4, NULL, 0) : 10;
 	if (a5)

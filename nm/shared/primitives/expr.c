@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 
@@ -22,20 +22,106 @@
  **  --------  ------------   ---------------------------------------------
  **  07/28/13  E. Birrane     Initial Implementation (JHU/APL)
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  09/21/18  E. Birrane     Update to AMP v03 (JHU/APL).
  *****************************************************************************/
 
 #include "expr.h"
 #include "../adm/adm.h"
 
-#ifdef AGENT_ROLE
-#include "../../agent/agent_db.h"
-#else
-#include "../../mgr/mgr_db.h"
-#endif
+#include "../utils/db.h"
+
+
+
+int gValNumCvtResult[6][6] = {
+{AMP_TYPE_INT,   AMP_TYPE_INT,   AMP_TYPE_VAST,  AMP_TYPE_UNK,   AMP_TYPE_REAL32,AMP_TYPE_REAL64},
+{AMP_TYPE_INT,   AMP_TYPE_UINT,  AMP_TYPE_VAST,  AMP_TYPE_UVAST, AMP_TYPE_REAL32,AMP_TYPE_REAL64},
+{AMP_TYPE_VAST,  AMP_TYPE_VAST,  AMP_TYPE_VAST,  AMP_TYPE_VAST,  AMP_TYPE_REAL32,AMP_TYPE_REAL64},
+{AMP_TYPE_UNK,   AMP_TYPE_UVAST, AMP_TYPE_VAST,  AMP_TYPE_UVAST, AMP_TYPE_REAL32,AMP_TYPE_REAL64},
+{AMP_TYPE_REAL32,AMP_TYPE_REAL32,AMP_TYPE_REAL32,AMP_TYPE_REAL32,AMP_TYPE_REAL32,AMP_TYPE_REAL64},
+{AMP_TYPE_REAL64,AMP_TYPE_REAL64,AMP_TYPE_REAL64,AMP_TYPE_REAL64,AMP_TYPE_REAL64,AMP_TYPE_REAL64}
+};
+
+
+
+int expr_add_item(expr_t *expr, ari_t *item)
+{
+	if(expr == NULL)
+	{
+		return AMP_FAIL;
+	}
+
+	return ac_insert(&(expr->rpn), item);
+}
+
+// UNK means failure.
+tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
+{
+	op_t *op = NULL;
+	tnv_t *result = NULL;
+
+	AMP_DEBUG_ENTRY("expr_apply_op","("ADDR_FIELDSPEC", "ADDR_FIELDSPEC")",
+			        (uaddr) id, (uaddr) stack);
+
+	if((id == NULL) || (stack == NULL))
+	{
+		AMP_DEBUG_ERR("expr_apply_op","Bad parms", NULL);
+		return NULL;
+	}
+
+	/* Grab the operator instance. */
+	if((op = VDB_FINDKEY_OP(id)) == NULL)
+	{
+		AMP_DEBUG_ERR("expr_apply_op","Can't find operator.", NULL);
+		return result;
+	}
+
+	/* Calculate the result. */
+	result = op->apply(stack);
+
+	if(result->type == AMP_TYPE_UNK)
+	{
+		AMP_DEBUG_ERR("expr_apply_op","Can't apply operator.", NULL);
+	}
+
+	AMP_DEBUG_EXIT("expr_apply_op","->%d", result->type);
+
+	return result;
+}
+
+
+
+
+
+/*
+ * optype: 0 - Arithmetic
+ *         1 - Logic
+ */
+int expr_calc_result_type(int ltype, int rtype, int optype)
+{
+
+	if(optype == 1)
+	{
+		return AMP_TYPE_UINT;
+	}
+	else if(ltype == rtype)
+	{
+		return ltype;
+	}
+	else if(type_is_numeric(ltype) && type_is_numeric(rtype))
+	{
+		/*
+		 * \todo: Reconsider this design. Right now we normalize int to have
+		 * DTNMP_TYPE_INT = 0 to do a lookup.
+		 */
+		return gValNumCvtResult[ltype-(int)AMP_TYPE_INT][rtype-(int)AMP_TYPE_INT];
+	}
+
+	return AMP_TYPE_UNK;
+}
 
 
 // Shallow copy.
-expr_t *expr_create(amp_type_e type, Lyst contents)
+expr_t *expr_create(amp_type_e type)
 {
 	expr_t *result = NULL;
 
@@ -45,298 +131,137 @@ expr_t *expr_create(amp_type_e type, Lyst contents)
 	}
 
 	result->type = type;
-	result->contents = contents;
+	ac_init(&(result->rpn));
 
 	return result;
 }
 
-expr_t *expr_copy(expr_t *expr)
+expr_t expr_copy(expr_t expr)
 {
-	CHKNULL(expr);
-	return (expr_create(expr->type, midcol_copy(expr->contents)));
+	expr_t result;
+
+	result.type = expr.type;
+	result.rpn = ac_copy(&(expr.rpn));
+
+	return result;
+}
+
+expr_t *expr_copy_ptr(expr_t *expr)
+{
+	ac_t rpn;
+	expr_t *result = NULL;
+
+	if(expr == NULL)
+	{
+		return NULL;
+	}
+
+	if((result = expr_create(expr->type)) == NULL)
+	{
+		return NULL;
+	}
+
+	if(ac_append(&(result->rpn), &(expr->rpn)) != AMP_OK)
+	{
+		expr_release(result, 1);
+		return NULL;
+	}
+
+	return result;
 }
 
 
-expr_t *expr_deserialize(uint8_t *cursor,
-		             uint32_t size,
-		             uint32_t *bytes_used)
+expr_t expr_deserialize(CborValue *it, int *success)
+{
+	expr_t result;
+	blob_t *data = NULL;
+
+	AMP_DEBUG_ENTRY("expr_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
+
+	result.type = AMP_TYPE_UNK;
+	CHKUSR(success, result);
+	*success = AMP_FAIL;
+
+	CHKUSR(it, result);
+
+	/* Unpack the byte string holding the expression. */
+	data = blob_deserialize_ptr(it, success);
+
+	/* Grab and verify the expression type. */
+	result.type = data->value[0];
+    if(type_is_known(result.type) == 0)
+    {
+    	AMP_DEBUG_ERR("expr_deserialize","Unknown expression type %d", result.type);
+    	*success = AMP_FAIL;
+    	blob_release(data, 1);
+    	return result;
+    }
+
+    /* Create fake blob to point after first byte. */
+    blob_t tmp;
+    tmp.value = data->value + sizeof(uint8_t);
+    tmp.length = data->length - 1;
+    tmp.alloc = data->alloc-1;
+
+    /* Deserialize the AC list holding the RPN expression. */
+    result.rpn = ac_deserialize_raw(&tmp, success);
+    blob_release(data, 1);
+    if(*success != AMP_OK)
+    {
+    	result.type = AMP_TYPE_UNK;
+    	ac_release(&(result.rpn), 0);
+    	return result;
+    }
+
+    *success = AMP_OK;
+
+    return result;
+}
+
+expr_t* expr_deserialize_ptr(CborValue *it, int *success)
 {
 	expr_t *result = NULL;
-	uint32_t bytes = 0;
 
-	amp_type_e type;
-	Lyst contents;
+	CHKNULL(success);
+	*success = AMP_FAIL;
 
-	type = *cursor;
-	cursor += 1;
+	result = STAKE(sizeof(expr_t));
+	CHKNULL(result);
 
-	if((contents = midcol_deserialize(cursor, size, &bytes)) == NULL)
+	*result = expr_deserialize(it, success);
+	if(*success != AMP_OK)
 	{
-		*bytes_used = 0;
+		expr_release(result, 1);
+		result = NULL;
+	}
+
+	return result;
+}
+
+expr_t* expr_deserialize_raw(blob_t *data, int *success)
+{
+	CborParser parser;
+	CborValue it;
+
+	CHKNULL(success);
+	*success = AMP_FAIL;
+
+	if(data == NULL)
+	{
 		return NULL;
 	}
 
-	if((result = expr_create(type, contents)) == NULL)
+	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
 	{
-		*bytes_used = 0;
 		return NULL;
 	}
 
-	*bytes_used = bytes + 1;
-
-	return result;
-}
-
-void expr_release(expr_t *expr)
-{
-	if(expr != NULL)
-	{
-		midcol_destroy(&(expr->contents));
-		SRELEASE(expr);
-	}
-}
-
-uint8_t *expr_serialize(expr_t *expr, uint32_t *len)
-{
-	uint8_t *result;
-	uint8_t *content;
-	uint32_t content_len;
-
-	CHKNULL(expr);
-	CHKNULL(len);
-
-	content = midcol_serialize(expr->contents, &content_len);
-	if((result = (uint8_t*) STAKE(content_len + 1)) == NULL)
-	{
-		SRELEASE(content);
-		*len = 0;
-		return NULL;
-	}
-	*len = content_len + 1;
-	result[0] = expr->type;
-	memcpy(&(result[1]), content, content_len);
-
-	SRELEASE(content);
-	return result;
-}
-
-char *expr_to_string(expr_t *expr)
-{
-	char *result = NULL;
-	char *contents = NULL;
-	uint32_t size = 0;
-
-	CHKNULL(expr);
-	if((contents = midcol_to_string(expr->contents)) == NULL)
-	{
-		AMP_DEBUG_ERR("expr_to_string","Can't to_str midcol.", NULL);
-		return NULL;
-	}
-
-	size = strlen(contents) + 13;
-	if((result = (char *) STAKE(size)) == NULL)
-	{
-		AMP_DEBUG_ERR("expr_to_string","Can't allocate %d bytes.", size);
-
-		SRELEASE(contents);
-		return NULL;
-	}
-
-	sprintf(result, "(%s) %s", type_to_str(expr->type), contents);
-	SRELEASE(contents);
-
-	return result;
-}
-
-
-value_t expr_get_atomic(mid_t *mid)
-{
-	value_t result;
-	adm_datadef_t *adm_def = NULL;
-
-    AMP_DEBUG_ENTRY("expr_get_atomic","(0x%x)", (unsigned long) mid);
-
-    val_init(&result);
-
-    /* Step 0: Sanity Checks. */
-    if(mid == NULL)
-    {
-    	AMP_DEBUG_ERR("expr_get_atomic","Bad Args", NULL);
-    	return result;
-    }
-
-    /* Step 1: Find the atomic definition. */
-    if((adm_def = adm_find_datadef(mid)) == NULL)
-    {
-      	AMP_DEBUG_INFO("expr_get_atomic","Can't find def.", NULL);
-    	return result;
-    }
-
-    /* Step 2: Collect the value. */
-    result = adm_def->collect(mid->oid.params);
-
-	AMP_DEBUG_EXIT("expr_get_atomic", "->%d", result.type);
-
-	return result;
-}
-
-
-
-value_t expr_get_computed(mid_t *mid)
-{
-	value_t result;
-	var_t *cd = NULL;
-
-    AMP_DEBUG_ENTRY("expr_get_computed","(0x%x)", (unsigned long) mid);
-
-    val_init(&result);
-
-    /* Step 0: Sanity Checks. */
-    if(mid == NULL)
-    {
-    	AMP_DEBUG_ERR("expr_get_computed","Bad Args", NULL);
-    	return result;
-    }
-
-    /* Step 1: Find the computed definition. */
-    if((cd = adm_find_computeddef(mid)) == NULL)
-    {
-
-#ifdef AGENT_ROLE
-    	if((cd = var_find_by_id(gAgentVDB.vars, &(gAgentVDB.var_mutex), mid)) == NULL)
-		{
-	      	AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
-	    	return result;
-		}
-#else
-		if((cd = var_find_by_id(gMgrVDB.compdata, &(gMgrVDB.compdata_mutex), mid)) == NULL)
-		{
-		  	AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
-		   	return result;
-		}
-#endif
-    }
-
-    /* Step 2: create ephermeral value to use in this evaluation. */
-    if(cd->value.type == AMP_TYPE_EXPR)
-    {
-    	/* \todo: limit recursion. */
-        result = expr_eval((expr_t*)cd->value.value.as_ptr);
-    }
-    else
-    {
-        result = val_copy(cd->value);
-    }
-
-	AMP_DEBUG_EXIT("expr_get_computed", "->%d", result.type);
-
-	return result;
-}
-
-
-
-value_t expr_get_literal(mid_t *mid)
-{
-	value_t result;
-	lit_t *lit = NULL;
-	mid_t *tmp_mid = NULL;
-
-	AMP_DEBUG_ENTRY("expr_get_literal","(%#llx)", (unsigned long) mid);
-
-	val_init(&result);
-
-	if(mid == NULL)
-	{
-		AMP_DEBUG_ERR("expr_get_literal","Bad Parms.", NULL);
-    	return result;
-	}
-
-	if((lit = adm_find_lit(mid)) == NULL)
-	{
-		AMP_DEBUG_ERR("expr_get_literal","Can't find literal.", NULL);
-    	return result;
-	}
-
-	/* Swap in MID with the actual parameters. */
-	tmp_mid = lit->id;
-	lit->id = mid;
-	result = lit_get_value(lit);
-	lit->id = tmp_mid;
-
-	AMP_DEBUG_EXIT("expr_get_literal", "->%d", result.type);
-
-	return result;
+	return expr_deserialize_ptr(&it, success);
 }
 
 
 /*
- * \todo Consider allowing value results from controls, macros.
- * \todo Check to exclude collections?
- */
-
-value_t expr_get_val(mid_t *mid)
-{
-	value_t result;
-
-	val_init(&result);
-
-	switch(MID_GET_FLAG_ID(mid->flags))
-	{
-	case MID_ATOMIC:
-		result = expr_get_atomic(mid);
-		break;
-	case MID_COMPUTED:
-		result = expr_get_computed(mid);
-		break;
-	case MID_LITERAL:
-		result = expr_get_literal(mid);
-		break;
-	default:
-		break;
-	}
-
-	return result;
-}
-
-
-value_t expr_apply_op(mid_t *op_mid, Lyst *stack)
-{
-	adm_op_t *op = NULL;
-	value_t result;
-	value_t *cur = NULL;
-
-	int i;
-	LystElt elt;
-
-	AMP_DEBUG_ENTRY("expr_apply_op","(%#llx, %#llx)", (unsigned long) op_mid, (unsigned long) stack);
-
-	val_init(&result);
-
-	if((op = adm_find_op(op_mid)) == NULL)
-	{
-		AMP_DEBUG_ERR("expr_apply_op","Can't find operator.", NULL);
-    	return result;
-	}
-
-	result = op->apply(*stack);
-
-	for(i = 0; i < op->num_parms; i++)
-	{
-		elt = lyst_first(*stack);
-		cur = (value_t *) lyst_data(elt);
-		val_release(cur, 1);
-		lyst_delete(elt);
-	}
-
-	AMP_DEBUG_EXIT("expr_apply_op","->%d", result.type);
-
-	return result;
-}
-
-
-/*
- * Lyst is a midcol representing the expression in postix.
- *
+ * TODO: Migrate some of this to top of file comments...?
  *
  * POSTFIX evaluation works as follows:
  * - An item is pulled from the expression. This item is either an
@@ -364,126 +289,329 @@ value_t expr_apply_op(mid_t *op_mid, Lyst *stack)
  *   The stack is a stack of value_t.
  */
 
-value_t expr_eval(expr_t *expr)
+tnv_t *expr_eval(expr_t *expr)
 {
-	value_t result;
-	value_t tmp;
-	Lyst stack = NULL;
-	mid_t *cur_mid = NULL;
-	LystElt elt;
+	tnv_t *result = NULL;
+
+	vector_t stack;
+	vec_idx_t max;
+	vecit_t it;
+	int success;
 
 	AMP_DEBUG_ENTRY("expr_eval","(0x"ADDR_FIELDSPEC")", (uaddr) expr);
 
-	val_init(&result);
-
-	/* Step 0 - Sanity Checks. */
-	if(expr == NULL)
+	/* Sanity Checks. */
+	if((expr == NULL) || ((max = vec_num_entries(expr->rpn.values)) == 0))
 	{
-		AMP_DEBUG_ERR("expr_eval","Bad Parms.", NULL);
-    	return result;
+		return NULL;
 	}
 
-	val_init(&result);
-	val_init(&tmp);
-
-	/* Step 2 - Create the stack. */
-	if((stack = lyst_create()) == NULL)
+	/*
+	 * Build the stack used to hold the results. This can't be larger than
+	 * the RPN used to build it.
+	 */
+	stack = vec_create(max, tnv_cb_del, tnv_cb_comp, tnv_cb_copy, VEC_FLAG_AS_STACK, &success);
+	if(success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("expr_eval","Can't create Stack Lyst.", NULL);
-		return result;
+		return NULL;
 	}
 
-	/* Step 3 - Walk the expression... */
-	for(elt = lyst_first(expr->contents); elt; elt = lyst_next(elt))
+	for(it = vecit_first(&(expr->rpn.values)); vecit_valid(it); it = vecit_next(it))
 	{
-		/* Step 2.1 - Grab the next item in the expression. */
-		cur_mid = (mid_t *) lyst_data(elt);
+		ari_t *cur_ari = NULL;
 
-		if(cur_mid == NULL)
+		if((cur_ari = (ari_t *) vecit_data(it)) == NULL)
 		{
-			valcol_destroy(&stack);
-
-			AMP_DEBUG_ERR("expr_eval","Bad MID in expression.", NULL);
-	    	return result;
+			AMP_DEBUG_ERR("expr_eval","Bad ARI in expression at %d.", vecit_idx(it));
+			vec_release(&stack, 0);
+			return NULL;
 		}
 
-		/* Step 2.2 - Figure out what kind of MID this is. */
-		if(MID_GET_FLAG_ID(cur_mid->flags) == MID_OPERATOR)
+		/* Step 2.2: Based on what kind of object this is,
+		 *           calculate the new value to push on the stack.
+		 */
+
+		if(cur_ari->type == AMP_TYPE_OPER)
 		{
-			/* Step 2.2.1 - Calculate the new value and put it on the stack. */
-			tmp = expr_apply_op(cur_mid, &stack);
-			if(tmp.type == AMP_TYPE_UNK)
-			{
-				char *msg = mid_to_string(cur_mid);
-
-				if(msg != NULL)
-				{
-					AMP_DEBUG_ERR("expr_eval","No value for MID %s.", msg);
-					SRELEASE(msg);
-				}
-				else
-				{
-					AMP_DEBUG_ERR("expr_eval","No value for MID ??.", NULL);
-				}
-
-				valcol_destroy(&stack);
-				AMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
-		    	return result;
-			}
-
-			/* Step 2.2.2 - Push the new result on th stack. */
-			lyst_insert(stack, val_ptr(tmp));
+			result = expr_apply_op(cur_ari, &stack);
 		}
 		else
 		{
-			tmp = expr_get_val(cur_mid);
-			if(tmp.type == AMP_TYPE_UNK)
-			{
-				char *msg = mid_to_string(cur_mid);
+			result = expr_get_val(cur_ari);
+		}
 
-				if(msg != NULL)
-				{
-					AMP_DEBUG_ERR("expr_eval","No value for MID %s.", msg);
-					SRELEASE(msg);
-				}
-				else
-				{
-					AMP_DEBUG_ERR("expr_eval","No value for MID ??.", NULL);
-				}
+		if(result == NULL)
+		{
+			vec_release(&stack, 0);
+			return NULL;
+		}
 
-				valcol_destroy(&stack);
-				AMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
-				return result;
-			}
-
-			lyst_insert(stack, val_ptr(tmp));
+		if(vec_push(&stack, result) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("expr_eval","Can't push new values to stack at %d", vecit_idx(it));
+			tnv_release(result, 1);
+			vec_release(&stack, 0);
+			return NULL;
 		}
 	}
 
 	/* Step 3 - Sanity check. We should have 1 result on the stack. */
-	if(lyst_length(stack) > 1)
+	if(vec_num_entries(stack) > 1)
 	{
-		AMP_DEBUG_ERR("expr_eval","Stack has %d items?", lyst_length(stack));
+		AMP_DEBUG_ERR("expr_eval","Stack has %d items?", vec_num_entries(stack));
+		vec_release(&stack, 0);
+		return NULL;
+	}
 
-		valcol_destroy(&stack);
-		AMP_DEBUG_EXIT("expr_eval","->Unk", NULL);
+	/* Step 4 - Get the last value and return it. */
+	result = vec_pop(&stack, &success);
+	vec_release(&stack, 0);
+
+	if((success != AMP_OK) || (result == NULL))
+	{
+		AMP_DEBUG_ERR("expr_eval", "Cannot convert type.", NULL);
+		tnv_release(result, 1);
+		return NULL;
+	}
+
+	/* Step 5 - Convert the type. */
+	if(expr->type != result->type)
+	{
+		tnv_t *tmp = tnv_cast(result, expr->type);
+		if(tmp == NULL)
+		{
+			AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", result->type, expr->type);
+		}
+		tnv_release(result, 1);
+		result = tmp;
+	}
+
+	return result;
+}
+
+
+
+
+tnv_t *expr_get_atomic(ari_t *ari)
+{
+	tnv_t *result = NULL;
+
+    AMP_DEBUG_ENTRY("expr_get_edd","("ADDR_FIELDSPEC")", (uaddr) ari);
+
+	CHKNULL(ari);
+
+    /* Step 1: Handle special case of literal. */
+	if(ari->type == AMP_TYPE_LIT)
+	{
+		result = tnv_copy_ptr(&(ari->as_lit));
+	}
+	else
+	{
+		edd_t *edd = NULL;
+
+		if(ari->type == AMP_TYPE_EDD)
+		{
+			edd = VDB_FINDKEY_EDD(ari);
+		}
+		else
+		{
+			edd = VDB_FINDKEY_CONST(ari);
+		}
+
+		if(edd == NULL)
+	    {
+	      	AMP_DEBUG_INFO("expr_get_edd","Can't find def.", NULL);
+	    	return NULL;
+	    }
+		else if(edd->def.collect == NULL)
+		{
+			AMP_DEBUG_INFO("expr_get_edd","No collect function defined.", NULL);
+			return NULL;
+		}
+
+	    /* Step 2: Collect the value. */
+	    result = edd->def.collect(&(ari->as_reg.parms));
+	}
+
+	AMP_DEBUG_EXIT("expr_get_edd", "("ADDR_FIELDSPEC")", (uaddr) result);
+
+	return result;
+}
+
+
+
+/*
+ * \todo Consider allowing value results from controls, macros.
+ * \todo Check to exclude collections?
+ */
+
+tnv_t *expr_get_val(ari_t *ari)
+{
+	tnv_t *result = NULL;
+
+	switch(ari->type)
+	{
+		case AMP_TYPE_LIT:
+		case AMP_TYPE_EDD:
+		case AMP_TYPE_CNST:
+			result = expr_get_atomic(ari);
+			break;
+		case AMP_TYPE_VAR:
+			result = expr_get_var(ari);
+			break;
+		default:
+			break;
+	}
+
+	return result;
+}
+
+
+tnv_t *expr_get_var(ari_t *ari)
+{
+	tnv_t *result = NULL;
+	var_t *var = NULL;
+
+    AMP_DEBUG_ENTRY("expr_get_var","("ADDR_FIELDSPEC")", (uaddr) ari);
+
+    CHKNULL(ari);
+
+    if((var = VDB_FINDKEY_VAR(ari)) == NULL)
+    {
+    	AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
     	return result;
 	}
 
-	elt = lyst_first(stack);
-	value_t *v_ptr = (value_t *) lyst_data(elt);
-
-	if(val_cvt_type(v_ptr, expr->type) != 1)
-	{
-		AMP_DEBUG_ERR("expr_eval", "Cannot convert from type %d to %d.", v_ptr->type, expr->type);
-		val_release(v_ptr, 1);
-		return result;
-	}
-
-	result = val_copy(*v_ptr);
-	val_release(v_ptr, 1);
-	lyst_destroy(stack);
+    /* Step 2: create ephermeral value to use in this evaluation. */
+    if(var->value->type == AMP_TYPE_EXPR)
+    {
+    	/* \todo: limit recursion. */
+        result = expr_eval((expr_t*)var->value->value.as_ptr);
+    }
+    else
+    {
+        result = tnv_copy_ptr(var->value);
+    }
 
 	return result;
+}
+
+
+
+void expr_release(expr_t *expr, int destroy)
+{
+	CHKVOID(expr);
+
+	ac_release(&(expr->rpn), 0);
+
+	if(destroy)
+	{
+		SRELEASE(expr);
+	}
+}
+
+
+CborError expr_serialize(CborEncoder *encoder, void *item)
+{
+	CborError err = CborErrorIO;
+	blob_t *result = NULL;
+	blob_t *ac_data = NULL;
+	expr_t *expr = (expr_t*) item;
+
+	if((encoder == NULL) || (item == NULL))
+	{
+		return err;
+	}
+
+	result = blob_create((uint8_t*)&(expr->type), 1, 1);
+
+	if((ac_data = ac_serialize_wrapper(&(expr->rpn))) == NULL)
+	{
+		AMP_DEBUG_ERR("expr_serialize","Can't serialize AC.", NULL);
+		blob_release(result, 1);
+		return err;
+	}
+
+	blob_append(result, ac_data->value, ac_data->length);
+	blob_release(ac_data, 1);
+
+	err = blob_serialize(encoder, result);
+	blob_release(result, 1);
+
+	return err;
+}
+
+
+blob_t*   expr_serialize_wrapper(expr_t *expr)
+{
+	return cut_serialize_wrapper(EXPR_DEFAULT_ENC_SIZE, expr, expr_serialize);
+}
+
+
+
+void    op_cb_del_fn(void *item)
+{
+	op_release((op_t*)item, 1);
+}
+
+int     op_cb_comp_fn(void *i1, void *i2)
+{
+	op_t *o1 = (op_t*) i1;
+	op_t *o2 = (op_t*) i2;
+	CHKUSR(o1, -1);
+	CHKUSR(o2, -1);
+	return ari_cb_comp_fn(o1->id, o2->id);
+}
+
+int     op_cb_ht_comp_fn(void *key, void *value)
+{
+	op_t *op = (op_t*) value;
+	CHKUSR(key, -1);
+	CHKUSR(op, -1);
+	return ari_cb_comp_fn(key, op->id);
+}
+
+op_t*     op_copy_ptr(op_t *src)
+{
+	ari_t *new_ari = NULL;
+
+	CHKNULL(src);
+	new_ari = ari_copy_ptr(src->id);
+	return op_create(new_ari, src->num_parms, src->apply);
+}
+
+void op_cb_ht_del_fn(rh_elt_t *elt)
+{
+	CHKVOID(elt);
+	op_cb_del_fn(elt->value);
+}
+
+// shallow copy.
+op_t* op_create(ari_t *ari, uint8_t num, op_fn apply)
+{
+	op_t *result = NULL;
+
+	if((result = STAKE(sizeof(op_t))) == NULL)
+	{
+		return result;
+	}
+	result->id = ari;
+	result->apply = apply;
+	result->num_parms = num;
+
+	return result;
+}
+
+
+
+void op_release(op_t *op, int destroy)
+{
+	CHKVOID(op);
+
+	ari_release(op->id, 1);
+	if(destroy)
+	{
+		SRELEASE(op);
+	}
 }
 

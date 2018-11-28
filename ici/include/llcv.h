@@ -28,6 +28,8 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
+/*	Mutex locking fixes by John Huff, Ohio University, 2018.	*/
+/*									*/
 #ifndef _LLCV_H_
 #define _LLCV_H_
 
@@ -40,9 +42,11 @@ extern "C" {
 
 typedef struct llcv_str
 {
-	Lyst		list;
-	pthread_mutex_t	mutex;
-	pthread_cond_t	cv;
+	Lyst			list;
+	pthread_mutex_t		mutex;
+	int 			mutex_initialized;
+	pthread_mutex_t* 	mutex_address;
+	pthread_cond_t		cv;
 } *Llcv;
 
 typedef int	(*LlcvPredicate)(Llcv);

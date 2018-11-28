@@ -1,3 +1,8 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2018 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
 /*****************************************************************************
  **
  ** File Name: blob.c
@@ -7,22 +12,27 @@
  **
  ** Description: This file contains the definitions, prototypes, constants, and
  **              other information necessary for the identification and
- **              processing of Binry Large Objects (BLOBs)
+ **              processing of Binary Large Objects (BLOBs)
  **
  ** Notes:
  **
  ** Assumptions:
+ **              BLOBs will be capped at 65KB in size, allowing for a 2 byte
+                 length. 
  **
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  04/14/16  E. Birrane     Initial Implementation (Secure DTN - NASA: NNX14CS58P)
+ **  08/30/18  E. Birrane     CBOR Updates and Structure Optimization (JHU/APL)
  *****************************************************************************/
 #include "platform.h"
+
 #include "../adm/adm.h"
 
 #include "../primitives/blob.h"
+
 
 
 /******************************************************************************
@@ -46,86 +56,87 @@
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/06/16  E. Birrane     Initial implementation (Secure DTN - NASA: NNX14CS58P)
+ *  08/30/18  E. Birrane     Support pre-allocated BLOBs. (JHU/APL)
  *****************************************************************************/
 
-int8_t blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
+int blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
 {
 	uint32_t new_len = 0;
-	uint8_t *new_data = NULL;
+	int success = AMP_OK;
 
 	if((blob == NULL) || (buffer == NULL) || (length == 0))
 	{
 		AMP_DEBUG_ERR("blob_append","Bad Args.", NULL);
-		return ERROR;
+		return AMP_FAIL;
 	}
 
-	new_len = blob->length + length;
-
-	if((new_data = STAKE(new_len)) == NULL)
+	if((success = blob_grow(blob, length)) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("blob_append","Can't allocate %d bytes.", new_len);
-		return ERROR;
+		AMP_DEBUG_ERR("blob_append","Cannot grow blob by %d bytes.", length);
+		return success;
 	}
 
-	if(blob->length > 0)
-	{
-		memcpy(new_data, blob->value, blob->length);
-	}
-	memcpy(new_data + blob->length, buffer, length);
+	memcpy(blob->value + blob->length, buffer, length);
 
-	if(blob->value != NULL)
-	{
-		SRELEASE(blob->value);
-	}
+	blob->length += length;
 
-	blob->value = new_data;
-	blob->length = new_len;
-
-	return 1;
+	return AMP_OK;
 }
+
+
 
 /******************************************************************************
  *
  * \par Function Name: blob_create
  *
- * \par Creates a BLOB object.
+ * \par Dynamically allocate a BLOB.
  *
- * \retval NULL - Failure
- *         !NULL - The created BLOB
+ * \retval NULL - The blob was not created.
+ *         !NULL - The created blob.
  *
- * \param[in] value  The BLOB value.
- * \param[in] length The length of the value in bytes
+ * \param[in]  value   The BLOB value. Or NULL if the BLOB is to be empty.
+ * \param[in]  length  The length of the initial data.
+ * \param[in]  alloc   The size of allocate. Must be at least length in size.
  *
  * \par Notes:
- *		1. The returned Blob is shallow copied and MUST NOT be freed.
+ *		2. The buffer is DEEP-Copied and must be released by the calling function.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  04/14/16  E. Birrane     Initial implementation,(Secure DTN - NASA: NNX14CS58P)
+ *  08/30/18  E. Birrane     Initial Implementation. (JHU/APL)
  *****************************************************************************/
-blob_t * blob_create(uint8_t *value, uint32_t length)
+
+blob_t * blob_create(uint8_t *value, size_t length, size_t alloc)
 {
+
 	blob_t *result = NULL;
 
-	if((length != 0) && (value == NULL))
-	{
-		AMP_DEBUG_ERR("blob_create","Bad args.", NULL);
-		return NULL;
-	}
+	result = (blob_t *) STAKE(sizeof(blob_t));
 
-	if((result = (blob_t*)STAKE(sizeof(blob_t))) == NULL)
+	if((blob_init(result, value, length, alloc) != AMP_OK))
 	{
-		AMP_DEBUG_ERR("blob_create","Can't allocate %d bytes.", sizeof(blob_t));
-		return NULL;
+		SRELEASE(result);
+		result = NULL;
 	}
-
-	result->value = value;
-	result->length = length;
 
 	return result;
+
 }
 
+
+int blob_compare(blob_t* v1, blob_t *v2)
+{
+	CHKERR(v1);
+	CHKERR(v2);
+
+	if(v1->length != v2->length)
+	{
+		return 1;
+	}
+
+	return memcmp(v1->value, v2->value, v1->length);
+}
 
 
 /******************************************************************************
@@ -134,61 +145,62 @@ blob_t * blob_create(uint8_t *value, uint32_t length)
  *
  * \par Duplicates a BLOB object.
  *
- * \retval NULL - Failure
- *         !NULL - The copied BLOB
+ * \retval AMP_SYSERR - System Error.
+ *         AMP_FAIL   - Logic Error
+ *         AMP_OK     - BLOB Initialized.
  *
- * \param[in] blob  The BLOB being copied.
+ * \param[in]  src  The BLOB being copied.
+ * \param[out] dest The deep-copy BLOB
  *
  * \par Notes:
- *		1. The returned BLOB is allocated and must be freed when
- *		   no longer needed.  This is a deep copy.
+ *		1. The dest BLOB is allocated and must be freed when no longer needed.
+ *		   This is a deep copy.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  04/14/16  E. Birrane     Initial implementation,(Secure DTN - NASA: NNX14CS58P)
+ *  08/30/18  E. Birrane     Support pre-allocated BLOBs. (JHU/APL)
  *****************************************************************************/
 
-blob_t* blob_copy(blob_t *blob)
+int blob_copy(blob_t src, blob_t *dest)
 {
-	blob_t *result = NULL;
-
 	/* Step 0: Sanity Checks. */
-	if(blob == NULL)
+	if (dest == NULL)
 	{
 		AMP_DEBUG_ERR("blob_copy","Bad Args.", NULL);
-		return NULL;
+		return AMP_FAIL;
 	}
 
-	/* Step 1: Allocate the new entry.*/
-	if((result = (blob_t*) STAKE(sizeof(blob_t))) == NULL)
+	/* Step 1: If the source blob is empty, create an empty dest blob. */
+	dest->length = src.length;
+	dest->alloc = src.alloc;
+
+	if(src.alloc == 0)
 	{
-		AMP_DEBUG_ERR("blob_copy","Can't allocate new entry.", NULL);
-		return NULL;
+		dest->value = NULL;
 	}
-
-	if(blob->length == 0)
+	else
 	{
-		result->length = 0;
-		result->value = NULL;
-		return result;
+		if((dest->value = (uint8_t *) STAKE(dest->alloc)) == NULL)
+		{
+			AMP_DEBUG_ERR("blob_copy","Can't allocate blob of size %d.", dest->alloc);
+			return AMP_SYSERR;
+		}
+		memcpy(dest->value, src.value, dest->length);
 	}
 
-	/* Step 2: Allocate the value. */
-	if((result->value = (uint8_t *) STAKE(blob->length)) == NULL)
-	{
-		AMP_DEBUG_ERR("blob_copy","Can't allocate blob value.", NULL);
-		SRELEASE(result);
-		return NULL;
-	}
-
-	memcpy(result->value, blob->value, blob->length);
-	result->length = blob->length;
-
-	return result;
+	return AMP_OK;
 }
 
 
+blob_t* blob_copy_ptr(blob_t *src)
+{
+	CHKNULL(src);
+
+	return blob_create(src->value, src->length, src->alloc);
+
+}
 
 /******************************************************************************
  *
@@ -200,9 +212,7 @@ blob_t* blob_copy(blob_t *blob)
  * \retval NULL - Failure
  *         !NULL - The created/deserialized BLOB.
  *
- * \param[in]  buffer       The byte buffer holding the data
- * \param[in]  buffer_size  The # bytes available in the buffer
- * \param[out] bytes_used   The # of bytes consumed in the deserialization.
+ * \param[in]  cborval  The CBOR value to be deserialized
  *
  * \par Notes:
  *
@@ -210,61 +220,70 @@ blob_t* blob_copy(blob_t *blob)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  04/14/16  E. Birrane     Initial implementation,(Secure DTN - NASA: NNX14CS58P)
+ *  08/31/18  E. Birrane     Update to CBOR. (JHU/APL)
  *****************************************************************************/
 
-blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_used)
+blob_t blob_deserialize(CborValue *it, int *success)
 {
-	unsigned char *cursor = NULL;
+	blob_t result;
+	CborError err;
+	size_t len = 0;
+
+	AMP_DEBUG_ENTRY("blob_deserialize","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) it, (uaddr) success);
+
+	memset(&result, 0, sizeof(blob_t));
+	*success = AMP_FAIL;
+
+	if(!cbor_value_is_byte_string(it))
+	{
+		AMP_DEBUG_ERR("blob_deserialize", "Bad CBOR encoding.", NULL);
+		return result;
+	}
+
+	if((err = cbor_value_get_string_length(it, &len)) != CborNoError)
+	{
+		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
+		return result;
+	}
+
+	/* Create an empty-but-allocated blob. */
+	result.length = len;
+	result.alloc = len;
+	if((result.value = STAKE(len)) == NULL)
+	{
+		AMP_DEBUG_ERR("blob_deserialize", "Can't make new blob.", NULL);
+		return result;
+	}
+
+	/* Copy bytestring value into the BLOB */
+	err = cbor_value_copy_byte_string(it, result.value, &(result.length), it);
+	if((err != CborNoError) && (err != CborErrorUnexpectedEOF))
+	{
+		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
+		blob_release(&result, 0);
+		memset(&result, 0, sizeof(blob_t));
+		return result;
+	}
+
+	*success = AMP_OK;
+	return result;
+}
+
+blob_t *blob_deserialize_ptr(CborValue *it, int *success)
+{
 	blob_t *result = NULL;
-	uint32_t bytes = 0;
-	uvast len = 0;
-	uint8_t *value = NULL;
 
-	AMP_DEBUG_ENTRY("blob_deserialize","(0x"ADDR_FIELDSPEC",%d,0x"ADDR_FIELDSPEC")",
-			          (uaddr) buffer, buffer_size, (uaddr) bytes_used);
-
-	/* Step 0: Sanity Check. */
-	if((buffer == NULL) || (buffer_size == 0) || (bytes_used == NULL))
+	if((result = (blob_t*)STAKE(sizeof(blob_t))) == NULL)
 	{
-		AMP_DEBUG_ERR("blob_deserialize","Bad Args", NULL);
-		AMP_DEBUG_EXIT("blob_deserialize","->NULL",NULL);
-		return NULL;
+		AMP_DEBUG_ERR("blob_deserialize_ptr","Can't allocate new struct.", NULL);
+		*success = AMP_FAIL;
 	}
 
-	*bytes_used = 0;
-	cursor = buffer;
-
-	/* Grab data item length. */
-	if((bytes = utils_grab_sdnv(cursor, buffer_size, &len)) == 0)
+	*result = blob_deserialize(it, success);
+	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("blob_deserialize","Can't parse SDNV.", NULL);
-		return NULL;
-	}
-
-	cursor += bytes;
-	buffer_size -= bytes;
-	*bytes_used += bytes;
-
-	if(len != 0)
-	{
-		/* Grab BLOB data. */
-		if((value = (uint8_t*)STAKE(len)) == NULL)
-		{
-			AMP_DEBUG_ERR("blob_deserialize","Can't allocate %d bytes.", len);
-			return NULL;
-		}
-
-		memcpy(value, cursor, len);
-		cursor += len;
-		buffer_size -= len;
-		*bytes_used += len;
-	}
-
-	if((result = blob_create(value, len)) == NULL)
-	{
-		AMP_DEBUG_ERR("blob_deserialize","Can't create blob of length %d", len);
-		SRELEASE(value);
-		return NULL;
+		SRELEASE(result);
+		result = NULL;
 	}
 
 	return result;
@@ -272,9 +291,99 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
 
 
 
+int blob_grow(blob_t *blob, uint32_t length)
+{
+	uint32_t new_len= 0;
+	CHKUSR(blob, AMP_FAIL);
+
+	new_len = blob->length + length;
+
+	/* Reallocate the BLOB if necessary. */
+	if(new_len > blob->alloc)
+	{
+		uint8_t *new_data = NULL;
+
+		if((new_data = STAKE(new_len)) == NULL)
+		{
+			AMP_DEBUG_ERR("blob_append","Can't allocate %d bytes.", new_len);
+			return AMP_SYSERR;
+		}
+
+		if(blob->length > 0)
+		{
+			memcpy(new_data, blob->value, blob->length);
+		}
+
+		if(blob->value != NULL)
+		{
+			SRELEASE(blob->value);
+		}
+
+		blob->value = new_data;
+		blob->alloc = new_len;
+	}
+
+	return AMP_OK;
+}
+
 /******************************************************************************
  *
- * \par Function Name: blob_destroy
+ * \par Function Name: blob_init
+ *
+ * \par Initializes a BLOB object.
+ *
+ * \retval AMP_SYSERR - System Error.
+ *         AMP_FAIL   - Logic Error
+ *         AMP_OK     - BLOB Initialized.
+ *
+ * \param[in|out] blob   The BLOB being initialized.
+ * \param[in]     value  The BLOB value.
+ * \param[in]     length The length of the value in bytes
+ * \param[in]     alloc  The size to allocate for the blob.
+ *
+ * \par Notes:
+ *   - This was previously blob_create
+ *   - This is a deep copy.
+ *   - value can be NULL. In which case we will allocate zero'd space.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/14/16  E. Birrane     Initial implementation,(Secure DTN - NASA: NNX14CS58P)
+ *  08/30/18  E. Birrane     Support pre-allocated BLOBs. (JHU/APL)
+ *****************************************************************************/
+
+int blob_init(blob_t *blob, uint8_t *value, size_t length, size_t alloc)
+{
+	if((blob == NULL) || (alloc == 0))
+	{
+		AMP_DEBUG_ERR("blob_create","Bad args.", NULL);
+		return AMP_FAIL;
+	}
+
+	if((blob->value = (uint8_t*)STAKE(alloc)) == NULL)
+	{
+		AMP_DEBUG_ERR("blob_create","Can't allocate %d bytes.", alloc);
+		return AMP_SYSERR;
+	}
+
+	memset(blob->value, 0, alloc);
+
+	blob->length = length;
+	blob->alloc = alloc;
+
+	if(value != NULL)
+	{
+		memcpy(blob->value, value, length);
+	}
+
+	return AMP_OK;
+}
+
+
+/******************************************************************************
+ *
+ * \par Function Name: blob_release
  *
  * \par Releases all memory allocated in the BLOB.
  *
@@ -286,52 +395,25 @@ blob_t *blob_deserialize(uint8_t* buffer, uint32_t buffer_size, uint32_t *bytes_
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  04/14/16  E. Birrane     Initial implementation,(Secure DTN - NASA: NNX14CS58P)
+ *  09/02/18  E. Birrane     Update to latest spec. (JHU/APL)
  *****************************************************************************/
 
-void blob_destroy(blob_t *blob, uint8_t destroy)
+void blob_release(blob_t *blob, int destroy)
 {
-
-	if(blob != NULL)
-	{
-		if(blob->value != NULL)
-		{
-			SRELEASE(blob->value);
-		}
-
-		if(destroy != 0)
-		{
-			SRELEASE(blob);
-		}
-	}
-}
-
-
-
-/******************************************************************************
- *
- * \par Function Name: blob_get_serialize_size
- *
- * \par Determine the size of the blob when it is serialized.
- *
- * \param[in]  blob   The BLOB whose serialized size is being queried.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  06/--/16  E. Birrane     Initial implementation,(Secure DTN - NASA: NNX14CS58P)
- *****************************************************************************/
-
-uint32_t blob_get_serialize_size(blob_t *blob)
-{
-	Sdnv tmp;
-
 	if(blob == NULL)
 	{
-		return 0;
+		return;
 	}
 
-	encodeSdnv(&tmp, blob->length);
-	return (blob->length + tmp.length);
+	if(blob->value != NULL)
+	{
+		SRELEASE(blob->value);
+	}
+
+	if(destroy != 0)
+	{
+		SRELEASE(blob);
+	}
 }
 
 
@@ -340,13 +422,8 @@ uint32_t blob_get_serialize_size(blob_t *blob)
  *
  * \par Function Name: blob_serialize
  *
- * \par Purpose: Generate full, serialized version of a BLOB. A
- *      serialized Data Collection is of the form:
- *
- *              +---------+--------+--------+     +--------+
- *              | # Bytes | BYTE 1 | BYTE 2 | ... | BYTE N |
- *              |  [SDNV] | [BYTE] | [BYTE] |     | [BYTE] |
- *              +---------+--------+--------+     +--------+
+ * \par Purpose: Generate full, serialized version of a BLOB as a CBOR
+ *               bytestring.
  *
  * \retval NULL - Failure serializing
  * 		   !NULL - Serialized blob.
@@ -362,105 +439,62 @@ uint32_t blob_get_serialize_size(blob_t *blob)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  04/14/16  E. Birrane     Initial implementation, (Secure DTN - NASA: NNX14CS58P)
+ *  08/31/18  E. Birrane     Update to CBOR. (JHU/APL)
  *****************************************************************************/
 
-uint8_t* blob_serialize(blob_t *blob, uint32_t *size)
+blob_t* blob_serialize_wrapper(blob_t *blob)
 {
-	uint8_t *result = NULL;
-	Sdnv num_sdnv;
-
-	AMP_DEBUG_ENTRY("blob_serialize","(0x"ADDR_FIELDSPEC")", (uaddr) blob);
-
-	/* Step 0: Sanity Check */
-	if(blob == NULL)
-	{
-		AMP_DEBUG_ERR("blob_serialize","Bad args.", NULL);
-		AMP_DEBUG_EXIT("blob_serialize","->NULL",NULL);
-		return NULL;
-	}
-
-
-	/* Step 1: Calculate the size. */
-
-	/* Consider the size of the SDNV holding # data entries.*/
-	encodeSdnv(&num_sdnv, blob->length);
-
-	*size = num_sdnv.length + blob->length;
-
-    /* Step 2: Allocate the space for the serialized BLOB. */
-    if((result = (uint8_t*) STAKE(*size)) == NULL)
-    {
-		AMP_DEBUG_ERR("blob_serialize","Can't alloc %d bytes", *size);
-		*size = 0;
-		return NULL;
-    }
-
-    /* Step 4: Walk through list again copying as we go. */
-    uint8_t *cursor = result;
-
-    /* Copy over the number of data entries in the collection. */
-    memcpy(cursor, num_sdnv.text, num_sdnv.length);
-    cursor += num_sdnv.length;
-
-    if(blob->length != 0)
-    {
-    	memcpy(cursor,blob->value, blob->length);
-    	cursor += blob->length;
-    }
-
-    /* Step 5: Final sanity check. */
-    if((cursor - result) != *size)
-    {
-		AMP_DEBUG_ERR("blob_serialize","Wrote %d bytes not %d bytes",
-				        (cursor - result), *size);
-		*size = 0;
-		SRELEASE(result);
-		return NULL;
-    }
-
-	return result;
+	return cut_serialize_wrapper(BLOB_DEFAULT_ENC_SIZE, blob, blob_serialize);
 }
 
 
-char* blob_to_str(blob_t *blob)
+CborError blob_serialize(CborEncoder *encoder, void *item)
 {
+	CborError err;
+	blob_t *blob = (blob_t *) item;
+
 	if(blob == NULL)
 	{
-		return NULL;
+		return CborErrorIO;
 	}
 
-	return utils_hex_to_string(blob->value, blob->length);
+	return cbor_encode_byte_string(encoder, blob->value, blob->length);
 }
 
 /*
  * For now, just adjust the length, no need to reallocate if shrinking.
  */
+/******************************************************************************
+ *
+ * \par Function Name: blob_trim
+ *
+ * \par Purpose: Shorten a blob by X bytes.
+ *
+ * \retval Whether the blob was trimmed or not.
+ *
+ * \param[in|out] blob    The BLOB to be trimmed.
+ * \param[in]     size    The # bytes to trim.
+ *
+ * \par Notes:
+ *		1. This does not reduce the allocated size of the blob.
+ *		2. Trying to trim more blob than exists is an error.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  04/14/16  E. Birrane     Initial implementation, (Secure DTN - NASA: NNX14CS58P)
+ *  08/31/18  E. Birrane     Update to CBOR. (JHU/APL)
+ *****************************************************************************/
 int8_t blob_trim(blob_t *blob, uint32_t length)
 {
 	CHKERR(blob);
 
 	if(blob->length <= length)
 	{
-		return ERROR;
+		return AMP_FAIL;
 	}
 
 	blob->length -= length;
 
-	return 1;
-}
-
-void blobcol_clear(Lyst *blobs)
-{
-	LystElt elt = NULL;
-	blob_t *blob = NULL;
-
-	CHKVOID(blobs);
-	CHKVOID(*blobs);
-
-	for(elt = lyst_first(*blobs); elt; elt = lyst_next(elt))
-	{
-		blob = (blob_t *) lyst_data(elt);
-		blob_destroy(blob, 1);
-	}
-	lyst_clear(*blobs);
+	return AMP_OK;
 }

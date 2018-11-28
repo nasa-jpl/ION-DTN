@@ -77,6 +77,14 @@
 <p>Android Studio will build the app, install it on your device and open it.</p>
 <p>You should be greeted by the following screen of the application setup:</p>
 <p><img src="./resources/ion_dtn_setup_welcome.png" alt="iondtn setup welcome" /></p>
+
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    If you encounter error like <code>No toolchains found in the NDK toolchains folder</code> after installing all required SDKs and NDKs as detected by Android Studio's feature detection, the appropriate version of NDK has to be installed on the development machine to build the provider app. The error may look like this:
+    <p><img src="./resources/error_no_toolchains_found.png"/></p>
+    In order to install the appropriate version of NDK, download the working older version of NDK from <a href="https://developer.android.com/ndk/downloads/older_releases"> here </a> (Android NDK, Revision 17c (June 2018) has been working fine.) Find your own local Android SDK location; you can check the location of the SDK directory itself via <p><code>Android Studio -> Preferences... -> Appearance & Behavior -> System Settings -> Android SDK -> Android SDK Location field near the top of the panel.</code></p> Go to that location and there will be a folder called "ndk-bundle". Replace the contents of this folder with the extracted content of the older version of NDK which you just downloaded.
+</i></b></p>
+
 <a class="header" href="./hello_world_iondtn_setup.html#iondtn-setup-1" id="iondtn-setup-1"><h2>IonDTN setup</h2></a>
 <p>Now we have to configure the app and the underlying <em>ION-DTN</em> instance.</p>
 <a class="header" href="./hello_world_iondtn_setup.html#node-number" id="node-number"><h3>Node Number</h3></a>
@@ -99,7 +107,7 @@
 <p>In the upcoming dialog you have to select an appropriate configuration file. For the purpose of the <em>&quot;Hello World&quot;</em> project, please modify the linked configuration file <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a>, copy it to your device and select it in the file selection dialog.</p>
 <p>The following modifications are necessary:</p>
 <ul>
-<li>Assign a static IP address to your device (or use the already via DHCP assigned one, however, this might cause malfunction when a new IP address is assigned).</li>
+<li>Assign a static IP address to your device (or use the already via DHCP assigned one, however, this might cause malfunction when a new IP address is assigned). <b><i><a href = "https://service.uoregon.edu/TDClient/KB/ArticleDet?ID=33742">Here</a> is the way to assign static ip for your android device. </i></b></li>
 <li>Update both the in-/outducts and the plan details to correspond to the topology and your IP addresses.</li>
 </ul>
 <p>The topology for our test is as follows:</p>
@@ -107,6 +115,54 @@
 <p>You can use the linked <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> file to setup an <em>ION-DTN</em> file on your development machine or another computer.</p>
 <p>Please refer to the <em>ION-DTN</em> configuration for details on how to configure an ION node.</p>
 <p>Again, tap the arrow button in the <em>IonDTN</em> application and the app perform the setup of the node.</p>
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    If you are using the linked configuration files: <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a> (Node 1) & <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> (Node 2), make sure to change the ip addresses in the configuration files to the ip addresses of your devices. The following changes are required in android_node.rc and pc_node.rc respectively. 
+</i></b></p>
+<p>
+<pre><code>
+    # FIXME the IP address has to be changed to your network structure
+    a induct tcp <strong>&lt;android_node_ip&gt;</strong>:4556 tcpcli
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;android_node_ip&gt;</strong>:4556 tcpclo
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;pc_node_ip&gt;</strong>:4556 tcpclo
+
+    s
+    ## end bpadmin
+
+    ## begin ipnadmin
+    # FIXME the IP address has to be changed to your network structure
+    a plan 1 tcp/<strong>&lt;android_node_ip&gt;</strong>:4556
+    # FIXME the IP address has to be changed to your network structure
+    a plan 2 tcp/<strong>&lt;pc_node_ip&gt;</strong>:4556
+    ## end ipnadmin
+</code></pre>
+
+<pre><code>
+    # FIXME the IP address has to be changed to your network structure
+    a induct tcp <strong>&lt;pc_node_ip&gt;</strong>:4556 tcpcli
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;pc_node_ip&gt;</strong>:4556 tcpclo
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;android_node_ip&gt;</strong>:4556 tcpclo
+
+    s
+    ## end bpadmin
+
+    ## begin ipnadmin
+    # FIXME the IP address has to be changed to your network structure
+    a plan 1 tcp/<strong>&lt;android_node_ip&gt;</strong>:4556
+    # FIXME the IP address has to be changed to your network structure
+    a plan 2 tcp/<strong>&lt;pc_node_ip&gt;</strong>:4556
+</code></pre>
+<i><b>Here, &lt;android_node_ip&gt; and &lt;pc_node_ip&gt; is the ip addresses of your android device and PC respectively. </b></i>
+</p>
+
 <a class="header" href="./hello_world_iondtn_setup.html#finish-setup" id="finish-setup"><h3>Finish setup</h3></a>
 <p>If the setup succeeded (i.e. the configuration file was consistent), you will see the following screen:</p>
 <p><img src="./resources/ion_dtn_setup_complete.png" alt="iondtn setup complete" /></p>

@@ -50,6 +50,7 @@ static ExtensionDef	extensionDefs[] =
 				phn_copy,
 				0,
 				0,
+				0,
 				phn_parse,
 				phn_check,
 				phn_record,
@@ -66,6 +67,7 @@ static ExtensionDef	extensionDefs[] =
 				snid_release,
 				snid_copy,
 				snid_acquire,
+				0,
 				0,
 				0
 				snid_check,
@@ -86,6 +88,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_babAcquire,
 				0,
 				0,
+				0,
 				bsp_babCheck,
 				0,
 				bsp_babClear
@@ -102,6 +105,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_pibAcquire,
 				0,
 				0,
+				0,
 				bsp_pibCheck,
 				0,
 				bsp_pibClear
@@ -116,6 +120,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_pcbRelease,
 				bsp_pcbCopy,
 				bsp_pcbAcquire,
+				0,
 				0,
 				0,
 				bsp_pcbCheck,
@@ -135,6 +140,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_babAcquire,
 				0,
 				0,
+				0,
 				bsp_babCheck,
 				0,
 				bsp_babClear
@@ -149,6 +155,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_bcbRelease,
 				bsp_bcbCopy,
 				bsp_bcbAcquire,
+				0,
 				bsp_bcbDecrypt,
 				0,
 				0,
@@ -164,6 +171,7 @@ static ExtensionDef	extensionDefs[] =
 				0},
 				bsp_bibRelease,
 				bsp_bibCopy,
+				0,
 				0,
 				0,
 				bsp_bibParse,
@@ -182,6 +190,7 @@ static ExtensionDef	extensionDefs[] =
 				sbsp_bcbRelease,
 				sbsp_bcbCopy,
 				sbsp_bcbAcquire,
+				sbsp_bcbReview,
 				sbsp_bcbDecrypt,
 				0,
 				0,
@@ -198,6 +207,7 @@ static ExtensionDef	extensionDefs[] =
 				sbsp_bibRelease,
 				sbsp_bibCopy,
 				0,
+				sbsp_bibReview,
 				0,
 				sbsp_bibParse,
 				sbsp_bibCheck,
@@ -214,6 +224,7 @@ static ExtensionDef	extensionDefs[] =
 				0},
 				ecos_release,
 				ecos_copy,
+				0,
 				0,
 				0,
 				ecos_parse,
@@ -233,6 +244,7 @@ static ExtensionDef	extensionDefs[] =
 				meb_acquire,
 				0,
 				0,
+				0,
 				meb_check,
 				meb_record,
 				meb_clear
@@ -246,6 +258,7 @@ static ExtensionDef	extensionDefs[] =
 				0},
 				bae_release,
 				bae_copy,
+				0,
 				0,
 				0,
 				bae_parse,
@@ -265,13 +278,14 @@ static ExtensionDef	extensionDefs[] =
 				cteb_copy,
 				0,
 				0,
+				0,
 				cteb_parse,
 				0,
 				cteb_record,
 				cteb_clear
        		},
 #endif /* ENABLE_BPACS */
-				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0 }
+				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
 /*	NOTE: the order of appearance of extension definitions in the
@@ -304,7 +318,7 @@ static ExtensionSpec	extensionSpecs[] =
 				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
-#elif defined(SPSB)
+#elif defined(SBSP)
 				{ BLOCK_TYPE_BIB, 1, 0, 0, 0 },
 				{ BLOCK_TYPE_BCB, 1, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */

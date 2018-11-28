@@ -3227,6 +3227,35 @@ void	iblock(int signbr)
 }
 #endif	/*	end of #ifdef mingw					*/
 
+int	ifopen(const char *fileName, int flags, int pmode)
+{
+	int		fd;
+	struct stat	statbuf;
+
+	fd = iopen(fileName, flags, pmode);
+	if (fd < 0)
+	{
+		putSysErrmsg("Open failed.", fileName);
+		return -1;
+	}
+
+	if (fstat(fd, &statbuf) < 0)
+	{
+		close(fd);
+		putSysErrmsg("Can't stat file.", fileName);
+		return -1;
+	}
+
+	if (S_ISREG(statbuf.st_mode))
+	{
+		return fd;
+	}
+
+	close(fd);
+	putErrmsg("Not a regular file.", fileName);
+	return -1;
+}
+
 char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 {
 	char	*cursor = buffer;

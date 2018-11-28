@@ -348,6 +348,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 				sm_SemEnd(alarm->semaphore);
 				microsnooze(50000);
 				sm_SemDelete(alarm->semaphore);
+				psm_free(ionwm, alarmAddr);
 				sm_rbt_delete(ionwm, vdb->timeline,
 						rfx_order_events,
 						event, rfx_erase_data, NULL);
@@ -376,8 +377,9 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		/*	Must repeat alarm.  Delete the expired event, 
 		 *	without deleting the alarm structure.		*/
 
+		event->ref = 0;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events, event,
-				NULL, NULL);
+				rfx_erase_data, NULL);
 		
 		/*	Now post next event for this alarm.		*/
 

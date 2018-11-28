@@ -145,7 +145,20 @@
 <p><strong>Note:</strong> We use the easier direct <code>ByteArray</code> encapsulation of the payload in the <code>Bundle</code> object. There is also another handover method available that allows the transmission of larger chunks of data by employing an file descriptor that is shared between app and service. You can find more details in the chapter <a href="interface_sending_bundles.md">&quot;Sending Bundles&quot;</a>.</p>
 </blockquote>
 <a class="header" href="./hello_world_hello_world.html#testing" id="testing"><h2>Testing</h2></a>
-<p>To check that the application is doing what it is supposed to do you can run the app on your Android device (along with the started IonDTN app) and use the testing topology as described in the chapter <a href="hello_world_iondtn_setup.html#select-setup-file">&quot;IonDTN Setup&quot;</a>. Also start <em>ION-DTN</em> on your PC and launch <code>bpsink &lt;sink-eid&gt;</code> with the correct sink EID to receive the bundles from our <em>DtnHelloWorld</em> app.</p>
+<p>To check that the application is doing what it is supposed to do you can run the app on your Android device (along with the started IonDTN app) and use the testing topology as described in the chapter <a href="hello_world_iondtn_setup.html#select-setup-file">&quot;IonDTN Setup&quot;</a>.Also start <em>ION-DTN</em> on your PC and launch <code>bpsink &lt;sink-eid&gt;</code> with the correct sink EID to receive the bundles from our <em>DtnHelloWorld</em> app.</p>
+
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    If you have used the linked configuration files: <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a> (Node 1) & <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> (Node 2), the available endpoints to test on node 2 are 2.1 and 2.2 (2.0 can not be used because it is for administrative traffic).
+    Therefore, correct sink id should be ipn:2.1 or ipn:2.2.
+    <p>For eg. Doing <code>bpsink ipn:2.2</code> on your PC will begin listening on the sink-EID with the endpoint_number 2 on service_number 2. The sink-EID needs to be same on both PC and android device for sucessfull data transmission. Below is the display screens of both nodes.
+      <p> <img src="./resources/hello_world_android_input.png"/> <img src="./resources/hello_world_terminal_output.png"></p>
+    </p>
+
+
+
+</i></b></p>
+
 <a class="header" href="./hello_world_hello_world.html#congratulations" id="congratulations"><h2>Congratulations!</h2></a>
 <p>The simple <em>DtnHelloWorld</em> app is complete and the messages directed to the EID of your computer should appear in your command shell.</p>
 

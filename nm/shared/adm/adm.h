@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 
@@ -25,21 +25,17 @@
  **  10/22/11  E. Birrane     Initial Implementation (JHU/APL)
  **  11/13/12  E. Birrane     Technical review, comment updates. (JHU/APL)
  **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
+ **  10/02/18  E. Birrane     Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 #ifndef ADM_H_
 #define ADM_H_
 
-#include "lyst.h"
-
-#include "../primitives/var.h"
-#include "../primitives/dc.h"
-#include "../primitives/def.h"
-#include "../primitives/tdc.h"
-#include "../primitives/mid.h"
-#include "../primitives/value.h"
-#include "../primitives/lit.h"
 #include "../utils/nm_types.h"
+#include "../primitives/edd_var.h"
+#include "../primitives/report.h"
+#include "../primitives/ctrl.h"
+#include "../primitives/table.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -47,20 +43,26 @@
  * +--------------------------------------------------------------------------+
  */
 
-/* The largest size of a supported MID, in bytes. */
-#define ADM_MID_ALLOC (15)
 
-/* The longest user name of a MID, in bytes. */
-#define ADM_MAX_NAME  (32)
+/* Known ADMs Enumerations.*/
+#define ADM_ENUM_ALL     0
 
-/* Known ADMs...*/
-#define ADM_ALL   0
-#define ADM_AGENT 1
-#define ADM_BP    2
-#define ADM_LTP   3
-#define ADM_ION   4
-#define ADM_SBSP  5
+#define ADM_MAX_NAME 32
 
+#define ADM_CONST_IDX 0
+#define ADM_CTRL_IDX  1
+#define ADM_EDD_IDX   2
+#define ADM_MAC_IDX   3
+#define ADM_OPER_IDX  4
+#define ADM_RPTT_IDX  5
+#define ADM_SBR_IDX   6
+#define ADM_TBLT_IDX  7
+#define ADM_TBR_IDX   8
+#define ADM_VAR_IDX   9
+#define ADM_META_IDX  10
+
+
+extern vector_t g_adm_info;
 
 /*
  * +--------------------------------------------------------------------------+
@@ -68,87 +70,12 @@
  * +--------------------------------------------------------------------------+
  */
 
-
-/**
- * Functions implementing key responsibilities for each ADM item:
- * - The data collect function collects data from the local agent.
- * - The string function generates a String representation of the data value.
- * - The size function returns the size of the data, in bytes.
- * - The ctrl function executes a control associated with this MID.
- */
-typedef value_t (*adm_data_collect_fn)(tdc_t parms);
-typedef char* (*adm_string_fn)(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
-typedef uint32_t (*adm_size_fn)(uint8_t* buffer, uint64_t buffer_len);
-
-typedef value_t (*adm_op_fn)(Lyst stack);
-
-
-typedef tdc_t* (*adm_ctrl_run_fn)(eid_t *def_mgr, tdc_t params, int8_t *status);
-
-
-/*
- * ADM structure definitions capture the generic information that defines a
- * particular data type. This may be separate from an individual instance of
- * the item, as instantiated in time, or with specific parameters.
- */
-
-/**
- * Describes an ADM data definition entry in the system.
- *
- * This structure captures general information for those ADM entries pre-
- * configured on the local machine.
- *
- * Note: The collect function is OPTIONAL and is only configured on DTNMP
- * Actors acting as Agents.
- */
-typedef struct
-{
-    mid_t *mid;					 /**> The MID identifying this def.        */
-
-    amp_type_e type;           /**> The data type of this MID.           */
-
-    uint8_t num_parms;           /**> # params needed to complete this MID.*/
-
-    adm_size_fn get_size;        /**> Configured sizing function.          */
-
-    adm_data_collect_fn collect; /**> Configured data collection function. */
-
-    adm_string_fn to_string;     /**> Configured to-string function.       */
-
-} adm_datadef_t;
-
-
-/**
- * Describes an ADM Control in the system.
- *
- * This structure captures general information about a control, including
- * its name an associated MID.
- */
-typedef struct
-{
-    mid_t *mid;					 /**> The MID identifying this def.        */
-
-    uint8_t num_parms;           /**> # params needed to complete this MID.*/
-
-    adm_ctrl_run_fn run;         /**> Function implementing the control.   */
-
-} adm_ctrl_t;
-
-
-/**
- * Describes an ADM Operator in the system.
- *
- * This structure captures general information about an operator, including
- * its associated MID.
- */
-typedef struct
-{
-    mid_t *mid;					 /**> The MID identifying this def.        */
-
-    uint8_t num_parms;           /**> # params needed to complete this MID.*/
-
-    adm_op_fn apply;             /**> Configured operator apply function. */
-} adm_op_t;
+#define ADM_BUILD_ARI_PARM_1(t, n, i, p1) adm_build_ari_parm_6(t, n, i, p1, NULL, NULL, NULL, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_2(t, n, i, p1, p2) adm_build_ari_parm_6(t, n, i, p1, p2, NULL, NULL, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_3(t, n, i, p1, p2, p3) adm_build_ari_parm_6(t, n, i, p1, p2, p3, NULL, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_4(t, n, i, p1, p2, p3, p4) adm_build_ari_parm_6(t, n, i, p1, p2, p3, p4, NULL, NULL)
+#define ADM_BUILD_ARI_PARM_5(t, n, i, p1, p2, p3, p4, p5) adm_build_ari_parm_6(t, n, i, p1, p2, p3, p4, p5, NULL)
+#define ADM_BUILD_ARI_PARM_6(t, n, i, p1, p2, p3, p4, p5, p6) adm_build_ari_parm_6(t, n, i, p1, p2, p3, p4, p5, p6)
 
 
 /*
@@ -157,16 +84,11 @@ typedef struct
  * +--------------------------------------------------------------------------+
  */
 
-/**
- * Global data collection of supported ADM information.
- */
-extern Lyst gAdmData;
-extern Lyst gAdmComputed; // Type cd_t
-extern Lyst gAdmCtrls;
-extern Lyst gAdmLiterals;
-extern Lyst gAdmOps;
-extern Lyst gAdmRpts; // Type def_gen_t
-extern Lyst gAdmMacros; // Type def_gen_t
+typedef struct
+{
+	char name[ADM_MAX_NAME];
+	int  id;
+} adm_info_t;
 
 
 /*
@@ -175,69 +97,37 @@ extern Lyst gAdmMacros; // Type def_gen_t
  * +--------------------------------------------------------------------------+
  */
 
-int         adm_add_datadef(char *mid_str, amp_type_e type, int num_parms, adm_data_collect_fn collect, adm_string_fn to_string, adm_size_fn get_size);
+int adm_add_adm_info(char *name, int id);
 
-int		 	adm_add_computeddef(char *mid_str, amp_type_e type, expr_t *expr);
+int adm_add_cnst(ari_t *id, edd_collect_fn collect);
+int adm_add_ctrldef(uint8_t nn, uvast id, uint8_t num, ctrldef_run_fn run);
+int adm_add_ctrldef_ari(ari_t *id, uint8_t num, ctrldef_run_fn run);
+
+int adm_add_edd(ari_t *id, edd_collect_fn collect);
+int adm_add_lit(ari_t *id);
+int adm_add_macdef(macdef_t *def);
+int adm_add_macdef_ctrl(macdef_t *def, ari_t *id);
+int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn);
+int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn);
+
+int adm_add_rpttpl(rpttpl_t *def);
+int adm_add_tblt(tblt_t *def);
+int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr);
+int adm_add_var_from_tnv(ari_t *id, tnv_t value)
+;
+
+ari_t* adm_build_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id);
+ari_t *adm_build_ari_parm_6(amp_type_e type, vec_idx_t nn, uvast id, tnv_t *p1, tnv_t *p2, tnv_t* p3, tnv_t *p4, tnv_t *p5, tnv_t *p6);
 
 
-int         adm_add_ctrl(char *mid_str, adm_ctrl_run_fn run);
+int32_t adm_get_parm_int(tnvc_t *parms, uint8_t idx, int *success);
+void *adm_get_parm_obj(tnvc_t *parms, uint8_t idx, amp_type_e type);
+float adm_get_parm_real32(tnvc_t *parms, uint8_t idx, int *success);
+double adm_get_parm_real64(tnvc_t *parms, uint8_t idx, int *success);
+uint32_t adm_get_parm_uint(tnvc_t *parms, uint8_t idx, int *success);
+uvast adm_get_parm_uvast(tnvc_t *parms, uint8_t idx, int *success);
+vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success);
 
-int			adm_add_lit(char *mid_str, value_t result, lit_val_fn calc);
-
-int			adm_add_macro(char *mid_str, Lyst midcol);
-
-int 		adm_add_op(char *mid_str, uint8_t num_parms, adm_op_fn run);
-
-int 		adm_add_rpt(char *mid_str, Lyst midcol);
-
-void        adm_build_mid_str(uint8_t flag, char *nn, int nn_len, int offset, uint8_t *mid_str);
-
-uint8_t*     adm_copy_integer(uint8_t *value, uint8_t size, uint32_t *length);
-uint8_t*     adm_copy_string(char *value, uint32_t *length);
-
-void         adm_destroy();
-
-
-
-/* Helper functions */
-blob_t*         adm_extract_blob(tdc_t params, uint32_t idx, int8_t *success);
-uint8_t          adm_extract_byte(tdc_t params, uint32_t idx, int8_t *success);
-Lyst             adm_extract_dc(tdc_t params, uint32_t idx, int8_t *success);
-expr_t *         adm_extract_expr(tdc_t params, uint32_t idx, int8_t *success);
-int32_t          adm_extract_int(tdc_t params, uint32_t idx, int8_t *success);
-Lyst             adm_extract_mc(tdc_t params, uint32_t idx, int8_t *success);
-mid_t*           adm_extract_mid(tdc_t params, uint32_t idx, int8_t *success);
-float            adm_extract_real32(tdc_t params, uint32_t idx, int8_t *success);
-double           adm_extract_real64(tdc_t params, uint32_t idx, int8_t *success);
-uvast            adm_extract_sdnv(tdc_t params, uint32_t idx, int8_t *success);
-char*            adm_extract_string(tdc_t params, uint32_t idx, int8_t *success);
-uint32_t         adm_extract_uint(tdc_t params, uint32_t idx, int8_t *success);
-uvast            adm_extract_uvast(tdc_t params, uint32_t idx, int8_t *success);
-vast             adm_extract_vast(tdc_t params, uint32_t idx, int8_t *success);
-
-var_t* adm_find_computeddef(mid_t *mid);
-
-adm_datadef_t* adm_find_datadef(mid_t *mid);
-adm_datadef_t* adm_find_datadef_by_idx(int idx);
-
-adm_ctrl_t*    adm_find_ctrl(mid_t *mid);
-adm_ctrl_t*    adm_find_ctrl_by_idx(int idx);
-
-lit_t*	       adm_find_lit(mid_t *mid);
-adm_op_t*	   adm_find_op(mid_t *mid);
-
-void         adm_init();
-
-char*        adm_print_string(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
-char*        adm_print_string_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
-char*        adm_print_unsigned_long(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
-char*        adm_print_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
-char*        adm_print_uvast(uint8_t* NULLbuffer, uint64_t buffer_len, uint64_t data_len, uint32_t *str_len);
-
-uint32_t     adm_size_string(uint8_t* buffer, uint64_t buffer_len);
-uint32_t     adm_size_string_list(uint8_t* buffer, uint64_t buffer_len);
-uint32_t     adm_size_unsigned_long(uint8_t* buffer, uint64_t buffer_len);
-uint32_t     adm_size_unsigned_long_list(uint8_t* buffer, uint64_t buffer_len);
-uint32_t     adm_size_uvast(uint8_t* buffer, uint64_t buffer_len);
+void adm_init();
 
 #endif /* ADM_H_*/

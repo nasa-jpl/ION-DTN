@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.6.1, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.6.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -197,8 +197,11 @@ if test "$IS_NASA_B" = "1"; then
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
 	if test x$crypto = xtrue; then
-		echo ""
-		#DoStuff
+		AC_CHECK_HEADER(
+		[/usr/local/include/mbedtls/platform.h],
+		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
+		[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
+		)
 	else
 		AC_SUBST( [CRYPTO_LIBS], [""] )
 	fi
@@ -212,11 +215,9 @@ fi
 #
 # Control whether AMS debugging info is printed.
 #
-if test "$IS_NASA_B" = "0"; then
 	AC_ARG_ENABLE([ams-debug],
 		[  --enable-ams-debug    Enable AMS debugging info],
 		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
-fi
 
 #
 # Dynamically choose whether or not to instrument code for gcov code coverage
@@ -301,11 +302,37 @@ if test "x$enable_sysctl_check" = xyes; then
     echo "checking sysctl configuration..."
     echo
 
-    if ! ./sysctl_script.sh; then
+    if ! ${ac_confdir}/sysctl_script.sh; then
         echo "Reconfigure with --disable-sysctl-check to bypass this check."
         exit 1
     fi
 fi
+
+AC_ARG_WITH([mysql],
+[AS_HELP_STRING([--with-mysql], [Enable MYSQL support for NM MGR])],
+[mysql=yes;],
+[])
+if test "x$mysql" = "xyes" ; then
+	echo "Build against libmysql... yes"
+	CFLAGS="$CFLAGS -DHAVE_MYSQL"
+else
+	echo "Build against libmysql... no"
+fi
+AM_CONDITIONAL([ENABLE_MYSQL], [test "x$mysql" = "xyes"])
+
+
+AC_ARG_WITH([ncurses],
+[AS_HELP_STRING([--with-ncurses], [Enable NCURSES support for NM MGR])],
+[ncurses=yes;],
+[])
+if test "x$ncurses" = "xyes" ; then
+	echo "Build against libncurses... yes"
+	CFLAGS="$CFLAGS -DUSE_NCURSES"
+else
+	echo "Build against libncurses... no"
+fi
+AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
+
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -325,6 +352,19 @@ AC_CHECK_LIB(
 )
 CFLAGS="$ORIGCFLAGS"
 
+AC_CHECK_LIB(
+	[mysqlclient],
+	[mysql_real_connect],
+	[ AC_SUBST( [MYSQL_LIBS], ["-lmysqlclient"] ) ],
+    [ AM_COND_IF([ENABLE_MYSQL], AC_MSG_ERROR([You need to install the mysqlclient library to build with MySQL.  Run configure with --with-mysql to turn on this feature.]), AC_MSG_WARN([If you wish to use MySQL for NM you will need to install the libmysqlclient.]) )]
+)
+
+AC_CHECK_LIB(
+	[ncurses],
+	[initscr],
+	[ AC_SUBST( [NCURSES_LIBS], ["-lncurses -lform -lmenu -lpanel"] ) ],
+	[ AM_COND_IF([ENABLE_NCURSES], AC_MSG_ERROR([You need to install the NCURSES library to build with NCURSES TUI support.  Run configure with --with-ncurses to turn on this feature.]), AC_MSG_WARN([If you wish to use the NCURSES TUI for NM you will need to install the NCURSES library.]) )]
+)
 
 # Check for programs to build documentation
 AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )
@@ -378,10 +418,10 @@ AC_SUBST([MANOPTS], $MANOPTS)
 
 AC_MSG_CHECKING([for tools to build autodoc])
 if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
-    AC_MSG_RESULT([(skipping autodoc)])
+#    AC_MSG_RESULT([(skipping autodoc)])
 # Comment out line above and uncomment the two below to enable automatic generation of ION.pdf
-#    AC_MSG_RESULT([found])
-#    buildautodoc="yes"
+    AC_MSG_RESULT([found])
+    buildautodoc="yes"
 else
     AC_MSG_RESULT([not found (skipping autodoc)])
     AC_MSG_NOTICE([Ensure the ghostscript, psutils, groff-base and groff packages are installed.])

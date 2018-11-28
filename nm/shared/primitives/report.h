@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2013 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
 /*****************************************************************************
@@ -8,12 +8,13 @@
  ** \file report.h
  **
  **
- ** Description: Defines report data types for DTNMP.
+ ** Description: This file defines the structure of reports and report
+ **              templates in the AMP.
  **
  ** Notes:
- **		1. Currently we do not support ACLs.
- **		2. Currently, report is destined to go to whoever requested the
- **		   production of the report.
+ **		1. The current implementation only supports a single report
+ **		   recipient.
+ **		2. Parameter maps only support 16 parameters.
  **
  ** Assumptions:
  **
@@ -23,18 +24,18 @@
  **  01/11/13  E. Birrane     Redesign of primitives architecture. (JHU/APL)
  **  06/24/13  E. Birrane     Migrated from uint32_t to time_t. (JHU/APL)
  **  07/02/15  E. Birrane     Migrated to Typed Data Collections (TDCs) (Secure DTN - NASA: NNX14CS58P)
+ **  09/28/18  E. Birrane     Update to latest AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
 
 #ifndef _REPORT_H_
 #define _REPORT_H_
 
-#include "lyst.h"
-
 #include "../utils/nm_types.h"
+#include "../utils/db.h"
+#include "tnv.h"
+#include "ari.h"
 
-#include "../primitives/def.h"
-#include "../primitives/tdc.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -42,13 +43,19 @@
  * +--------------------------------------------------------------------------+
  */
 
+#define RPT_DEFAULT_ENC_SIZE 1024
+#define RPTTPL_DEFAULT_ENC_SIZE 1024
 
 /*
  * +--------------------------------------------------------------------------+
  * |							  	MACROS  								  +
  * +--------------------------------------------------------------------------+
  */
+#define RPT_MAP_GET_SRC_IDX(map) (map >> 4)
+#define RPT_MAP_GET_DEST_IDX(map) (map & 0xF)
 
+#define RPT_MAP_SET_SRC_IDX(map, item) (map |= ((item & 0xF) << 4))
+#define RPT_MAP_SET_DEST_IDX(map, item) (map |= (item & 0xF))
 
 /*
  * +--------------------------------------------------------------------------+
@@ -59,30 +66,25 @@
 
 
 /**
- * Entry in a data report list, comprising a single report.
+ * Describes a report template.
+ *
  */
+
 typedef struct
 {
-	mid_t *id;		   /**> The report ID. */
+	ari_t *id;		   /**> The template id.   */
+	ac_t contents;     /**> Each item is of type (ari_t *)*/
 
-	tdc_t *contents;   /**> The typed data collection holding the report. */
-} rpt_entry_t;
+	db_desc_t desc;    /**> Descriptor of def in the SDR. */
+} rpttpl_t;
 
 
 
-/**
- * Associated Message Type(s): MSG_TYPE_RPT_DATA_RPT
- *
- * Purpose: A data report.
- * +------+---------+-----------+---------+   +---------+
- * | Time | RX Name | # Entries | ENTRY 1 |   | ENTRY N |
- * | [TS] |  [BLOB] |   [SDNV]  | [RPTE]  |...| [RPTE]  |
- * +------+---------+-----------+---------+   +---------+
- */
 typedef struct {
 
 	time_t time;        /**> Time the report entries were generated. */
-    Lyst entries;       /**> The report entries (lyst of rpt_entry_t */
+	ari_t *id;
+	tnvc_t *entries;
 
     /* Non-serialized portions. */
     eid_t recipient;
@@ -97,32 +99,51 @@ typedef struct {
  * +--------------------------------------------------------------------------+
  */
 
-int      rpt_add_entry(rpt_t *rpt, rpt_entry_t *entry);
-rpt_t*   rpt_create(time_t time, Lyst entries, eid_t recipient);
-void     rpt_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
+int      rpt_add_entry(rpt_t *rpt, tnv_t *entry);
 
-rpt_t*   rpt_deserialize_data(uint8_t *cursor,
-		                      uint32_t size,
-		                      uint32_t *bytes_used);
+int      rpt_cb_comp_fn(void *i1, void *i2);
 
-void     rpt_release(rpt_t *msg);
+void     rpt_cb_del_fn(void *item);
 
-uint8_t* rpt_serialize(rpt_t *msg, uint32_t *len);
+void     rpt_clear(rpt_t *rpt);
 
-char*    rpt_to_str(rpt_t *rpt);
+rpt_t*   rpt_copy_ptr(rpt_t *src);
 
+rpt_t*   rpt_create(ari_t *id, time_t time, tnvc_t *entries);
 
-void         rpt_entry_clear_lyst(Lyst *list, ResourceLock *mutex, int destroy);
-rpt_entry_t* rpt_entry_create();
-rpt_entry_t* rpt_entry_deserialize(uint8_t *cursor,
-		                           uint32_t size,
-		                           uint32_t *bytes_used);
-char*        rpt_entry_lst_to_str(Lyst entries);
-void         rpt_entry_release(rpt_entry_t *entry);
-uint8_t*     rpt_entry_serialize(rpt_entry_t *entry, uint32_t *len);
-uint8_t*     rpt_entry_serialize_lst(Lyst entries, uint32_t *len);
-char*        rpt_entry_to_str(rpt_entry_t *entry);
+void*    rpt_deserialize_ptr(CborValue *it, int *success);
+
+rpt_t*   rpt_deserialize_raw(blob_t *data, int *success);
+
+void     rpt_release(rpt_t *rpt, int destroy);
 
 
+CborError rpt_serialize(CborEncoder *encoder, void *item);
+
+blob_t*   rpt_serialize_wrapper(rpt_t *rpt);
+
+
+int       rpttpl_add_item(rpttpl_t *rpttpl, ari_t *item);
+
+
+int       rpttpl_cb_comp_fn(void *i1, void *i2);
+void      rpttpl_cb_del_fn(void *item);
+void      rpttpl_cb_ht_del_fn(rh_elt_t *elt);
+
+rpttpl_t *rpttpl_copy_ptr(rpttpl_t *rpttpl);
+
+rpttpl_t* rpttpl_create(ari_t *id, ac_t items);
+
+rpttpl_t* rpttpl_create_id(ari_t *id);
+
+rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success);
+
+rpttpl_t* rpttpl_deserialize_raw(blob_t *data, int *success);
+
+void      rpttpl_release(rpttpl_t *rpttpl, int destroy);
+
+CborError rpttpl_serialize(CborEncoder *encoder, void *item);
+
+blob_t*   rpttpl_serialize_wrapper(rpttpl_t *rpttpl);
 
 #endif /* _REPORT_H_ */

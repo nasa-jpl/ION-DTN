@@ -1,6 +1,6 @@
 /******************************************************************************
  **                           COPYRIGHT NOTICE
- **      (c) 2012 The Johns Hopkins University Applied Physics Laboratory
+ **      (c) 2011 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  **
  ******************************************************************************/
@@ -21,6 +21,7 @@
  **  09/01/11  V. Ramachandran Initial Implementation (JHU/APL)
  **  01/10/13  E. Birrane      Update to lasted DTNMP Spec. (JHU/APL)
  **  06/10/13  E. Birrane      Added SDR data persistence. (JHU/APL)
+ **  10/04/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 // System headers.
@@ -28,7 +29,6 @@
 
 // ION headers.
 #include "platform.h"
-#include "lyst.h"
 
 // Application headers.
 #include "../shared/adm/adm.h"
@@ -38,12 +38,6 @@
 #include "ingest.h"
 #include "rda.h"
 
-#include "../shared/adm/adm_bp.h"
-#include "../shared/adm/adm_agent.h"
-#include "adm_ltp_priv.h"
-#include "adm_ion_priv.h"
-
-#include "../shared/primitives/nn.h"
 #include "instr.h"
 
 static void agent_signal_handler(int);
@@ -54,9 +48,6 @@ iif_t        ion_ptr;
 uint8_t      gRunning;
 eid_t        manager_eid;
 eid_t        agent_eid;
-AgentDB      gAgentDB;
-AgentVDB     gAgentVDB;
-
 
 
 
@@ -72,60 +63,28 @@ AgentVDB     gAgentVDB;
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  06/10/13  E. Birrane     Initial implementation.
+ *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 void agent_register()
 {
-	adm_reg_agent_t *reg = NULL;
-	uint8_t *data = NULL;
-	uint32_t len = 0;
-	pdu_msg_t *pdu_msg = NULL;
-	pdu_group_t *pdu_group = NULL;
+	msg_agent_t *msg = NULL;
+	int success;
 
-	/* Step 0: Build an agent registration message. */
-	if((reg = msg_create_reg_agent(agent_eid)) == NULL)
+	if((msg = msg_agent_create()) == NULL)
 	{
 		AMP_DEBUG_ERR("agent_register","Unable to create agent registration.",NULL);
 		return;
 	}
 
-	/* Step 1: Serialize the message. */
-	if((data = msg_serialize_reg_agent(reg, &len)) == NULL)
+	msg_agent_set_agent(msg, agent_eid);
+
+	if(iif_send_msg(&ion_ptr, MSG_TYPE_REG_AGENT, msg, manager_eid.name) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("agent_register","Unable to serialize message.", NULL);
-		msg_release_reg_agent(reg);
-		return;
+		AMP_DEBUG_ERR("agent_register","Couldn't send agent reg.", NULL);
 	}
 
-	/* Step 2: Create the DTNMP message. */
-    if((pdu_msg = pdu_create_msg(MSG_TYPE_ADMIN_REG_AGENT, data, len, NULL)) == NULL)
-    {
-    	AMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
-    	msg_release_reg_agent(reg);
-    	SRELEASE(data);
-    	return;
-    }
-
-    /* Step 3: Create a group for this message. */
-    if((pdu_group = pdu_create_group(pdu_msg)) == NULL)
-    {
-    	AMP_DEBUG_ERR("agent_register","Unable to create PDU message.", NULL);
-    	msg_release_reg_agent(reg);
-    	SRELEASE(data);
-    	pdu_release_msg(pdu_msg);
-    	return;
-    }
-
-    /* Step 4: Send the message. */
-    iif_send(&ion_ptr, pdu_group, manager_eid.name);
-
-    /*
-     * Step 5: Release resources.  Releasing the group releases both the
-     *         PDU message as well as the data (which is shallow-copied
-     *         into the pdu_msg.
-     */
-    pdu_release_group(pdu_group);
-    msg_release_reg_agent(reg);
+	msg_agent_release(msg, 1);
 }
 
 
@@ -149,6 +108,7 @@ void agent_register()
  **  01/10/13  E. Birrane      Update to lasted DTNMP Spec.
  **  06/10/13  E. Birrane      Added SDR data persistence.
  **  02/23/15  E. Birrane      Updated to support ION_LWT targets
+ **  10/04/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
 #if defined (ION_LWT)
@@ -178,10 +138,11 @@ int	main(int argc, char *argv[])
     errno = 0;
 
 
-    AMP_DEBUG_ENTRY("agent_main","(%d, 0x%#llx)", argc, (unsigned long)argv);
+    AMP_DEBUG_ENTRY("agent_main","(%d,"ADDR_FIELDSPEC")", argc, (uaddr)argv);
 
-    /* Step 1: Sanity check. */
-    if(argc != 3) {
+    /* Step 1: Process Command Line Arguments. */
+    if(argc != 3)
+    {
         AMP_DEBUG_ALWAYS("main","Usage: nmagent <agent eid> <manager eid>\n", NULL);
         return 1;
     }
@@ -196,24 +157,21 @@ int	main(int argc, char *argv[])
 
     AMP_DEBUG_INFO("agent main","Agent EID: %s, Mgr EID: %s", argv[1], argv[2]);
     
-    /* Step 2: Note command-line arguments. */
     strcpy((char *) manager_eid.name, argv[2]);
     strcpy((char *) agent_eid.name, argv[1]);
-   
-    /* Step 3: Attach to ION and register. */
+
+
+    /* Step 2: Make sure that ION is running and we can attach. */
 	if (ionAttach() < 0)
 	{
-		AMP_DEBUG_ERR("agentDbInit", "Agent can't attach to ION.", NULL);
+		AMP_DEBUG_ERR("agent_main", "Agent can't attach to ION.", NULL);
 		return -1;
 	}
 
-	utils_mem_int();
-
     if(iif_register_node(&ion_ptr, agent_eid) != 1)
     {
-        AMP_DEBUG_ERR("agent_main","Unable to regster BP Node. Exiting.",
+        AMP_DEBUG_ERR("agent_main","Unable to register BP Node. Exiting.",
         		         NULL);
-    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
    
@@ -226,43 +184,28 @@ int	main(int argc, char *argv[])
     {
         AMP_DEBUG_ERR("agent_main","Failed to register agent with ION, EID %s",
         		         iif_get_local_eid(&ion_ptr).name);
-    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
     }
    
 
-    /* Step 4: Read information from SDR and initialize memory lists.*/
-    agent_instr_init();
+	/* Step 3: Initialize objects and instrumentation. */
 
+	if((utils_mem_int()       != AMP_OK) ||
+	   (db_init("nmagent_db") != AMP_OK))
+	{
+		db_destroy();
+		AMP_DEBUG_ERR("agent_main","Unable to initialize DB.", NULL);
+		return -1;
+	}
 
-    oid_nn_init();
+	agent_instr_init();
 
-
-
-    agent_db_init();
-
-    if(agent_vdb_init() == -1)
-    {
-    	agent_vdb_destroy();
-
-        AMP_DEBUG_ERR("agent_main","Unable to initialize VDB, errno = %s",
-        		        strerror(errno));
-       // SRELEASE(ion_ptr);
-    	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
-    	return -1;
-    }
-
-
-    /* Step 5: Initialize ADM support. */
-    adm_init();
-
-
-
-    /* Step 6: Register signal handlers. */
+    /* Step 4: Register signal handlers. */
     isignal(SIGINT, agent_signal_handler);
     isignal(SIGTERM, agent_signal_handler);
 
-    /* Step 7: Start agent threads. */
+
+    /* Step 5: Start agent threads. */
     gRunning = 1;
     /*! use pthread_begin() so thread can be named and have its stacksize adjusted on some OS's */
     /*! and provide threads with a pointer to gRunning, so threads will shutdown */
@@ -273,8 +216,8 @@ int	main(int argc, char *argv[])
     {
         AMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
         		ingest_thr_name, strerror(errno));
-        adm_destroy();
-        agent_vdb_destroy();
+
+        db_destroy();
 
     	AMP_DEBUG_EXIT("agent_main","->-1",NULL);
     	return -1;
@@ -287,8 +230,8 @@ int	main(int argc, char *argv[])
     {
        AMP_DEBUG_ERR("agent_main","Unable to create pthread %s, errno = %s",
     		           rda_thr_name, strerror(errno));
-       adm_destroy();
-       agent_vdb_destroy();
+
+       db_destroy();
 
        AMP_DEBUG_EXIT("agent_main","->-1",NULL);
        return -1;
@@ -297,16 +240,16 @@ int	main(int argc, char *argv[])
     AMP_DEBUG_ALWAYS("agent_main","Threads started...", NULL);
 
 
-    /* Step 8: Send out agent broadcast message. */
+    /* Step 6: Send out agent broadcast message. */
     agent_register();
 
-    /* Step 9: Join threads and wait for them to complete. */
+    /* Step 7: Join threads and wait for them to complete. */
     if (pthread_join(ingest_thr, NULL))
     {
         AMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
      		           ingest_thr_name, strerror(errno));
-        adm_destroy();
-        agent_vdb_destroy();
+
+        db_destroy();
 
         AMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
@@ -316,27 +259,23 @@ int	main(int argc, char *argv[])
     {
         AMP_DEBUG_ERR("agent_main","Unable to join pthread %s, errno = %s",
      		           rda_thr_name, strerror(errno));
-        adm_destroy();
-        agent_vdb_destroy();
+
+           db_destroy();
 
         AMP_DEBUG_EXIT("agent_main","->-1",NULL);
         return -1;
     }
    
-    /* Step 10: Cleanup. */
+    /* Step 8: Cleanup. */
     AMP_DEBUG_ALWAYS("agent_main","Cleaning Agent Resources.",NULL);
-    adm_destroy();
-    agent_vdb_destroy();
 
-    oid_nn_cleanup();
+    db_destroy();
 
     AMP_DEBUG_ALWAYS("agent_main","Stopping Agent.",NULL);
 
     AMP_DEBUG_INFO("agent_main","Exiting Agent after cleanup.", NULL);
 
 	utils_mem_teardown();
-
-
     return 0;
 }
 
@@ -363,7 +302,3 @@ static void agent_signal_handler(int i)
 
 	gRunning = 0;
 }
-
-
-
-

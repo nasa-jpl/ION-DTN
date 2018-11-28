@@ -26,20 +26,20 @@
  **  08/31/11  V. Ramachandran Initial Implementation (JHU/APL)
  **  08/19/13  E. Birrane      Documentation clean up and code review comments. (JHU/APL)
  **  08/21/16  E. Birrane      Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
+ **  10/07/18  E. Birrane      Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 #include "pthread.h"
 
 #include "nm_mgr.h"
 #include "platform.h"
+#include "agents.h"
 
-#include "../shared/utils/ion_if.h"
+#include "../shared/msg/ion_if.h"
 #include "../shared/utils/nm_types.h"
 #include "../shared/utils/utils.h"
 #include "../shared/utils/debug.h"
 
-#include "../shared/msg/pdu.h"
-#include "../shared/msg/msg_admin.h"
-#include "../shared/msg/msg_ctrl.h"
+#include "../shared/msg/msg.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"
@@ -72,59 +72,54 @@
  *  08/20/13  E. Birrane     Initial Implementation.
  *****************************************************************************/
 
-int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t *bytes_used)
+void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 {
     agent_t *agent = NULL;
     int result = -1;
 
-	AMP_DEBUG_ENTRY("msg_rx_data_rpt","()",NULL);
+    CHKVOID(meta);
+    CHKVOID(msg);
 
-
-	/* Step 0: Sanity Check */
-	if((sender_eid == NULL) || (cursor == NULL) || (bytes_used == NULL))
-	{
-		AMP_DEBUG_ERR("msg_rx_data_rpt","Bad Parms", NULL);
-		AMP_DEBUG_EXIT("msg_rx_data_rpt","-->-1",NULL);
-		return -1;
-	}
-
-//	DTNMP_DEBUG_ALWAYS("msg_rx_data_rpt", "Processing a data report.\n", NULL);
-	*bytes_used = 0;
+    // TODO: Check to see if we are listed as a recipient for this report.
 
 	/* Step 1: Retrieve stored information about this agent. */
-	if((agent = mgr_agent_get(sender_eid)) == NULL)
+	if((agent = agent_get(&(meta->senderEid))) == NULL)
 	{
 		AMP_DEBUG_WARN("msg_rx_data_rpt",
-				         "Received group is from an unknown sender (%s); ignoring it.",
-				         sender_eid->name);
+				        "Received group is from an unknown sender (%s); ignoring it.",
+						meta->senderEid);
 	}
 	else
 	{
-		rpt_t *report = NULL;
+		vecit_t it;
 
-		if((report = rpt_deserialize_data(cursor, size, bytes_used)) == NULL)
+		for(it = vecit_first(&(msg->rpts)); vecit_valid(it); it = vecit_next(it))
 		{
-			AMP_DEBUG_ERR("msg_rx_data_rpt","Can't deserialize rpt",NULL);
-		}
-		else
-		{
-			/* Step 1.1: Add the report. */
-			lockResource(&(agent->mutex));
-			lyst_insert_last(agent->reports, report);
-			unlockResource(&(agent->mutex));
-
-			result = 0;
-
-			/* Step 1.2: Update statistics. */
-			g_reports_total++;
+			rpt_t *rpt = vecit_data(it);
+			vec_push(&(agent->rpts), rpt);
+			gMgrDB.tot_rpts++;
 		}
 	}
 
-	AMP_DEBUG_EXIT("msg_rx_data_rpt","-->%d", result);
-	return result;
+	// Make sure we don't delete items when we delete report
+	// since we shallow-copied them into the agent report list.
+	msg->rpts.delete_fn = NULL;
+	msg_rpt_release(msg, 1);
 }
 
+void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
+{
+    CHKVOID(meta);
+    CHKVOID(msg);
 
+	agent_add(msg->agent_id);
+
+#ifdef HAVE_MYSQL
+	db_add_agent(msg->agent_id);
+#endif
+
+	msg_agent_release(msg, 1);
+}
 
 /******************************************************************************
  *
@@ -148,26 +143,19 @@ int msg_rx_data_rpt(eid_t *sender_eid, uint8_t *cursor, uint32_t size, uint32_t 
 
 void *mgr_rx_thread(int *running)
 {
-   
+
     AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) running);
     
     AMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
     
-    uint32_t num_msgs = 0;
-    uint8_t *buf = NULL;
-    uint8_t *cursor = NULL;
-    uint32_t bytes = 0;
-    uint32_t i = 0;
-    pdu_header_t *hdr = NULL;
-    pdu_acl_t *acl = NULL;
-    uint32_t size = 0;
-    pdu_metadata_t meta;
-    uvast val;
-    eid_t *sender_eid = NULL;
-    agent_t *agent = NULL;
-    time_t group_timestamp;
-    uint32_t incoming_idx = 0;
-    uint32_t hdr_len = 0;
+    vecit_t it;
+
+    int success;
+    blob_t *buf = NULL;
+    msg_grp_t *grp = NULL;
+    msg_metadata_t meta;
+    int msg_type;
+
 
     /* 
      * g_running controls the overall execution of threads in the
@@ -176,106 +164,72 @@ void *mgr_rx_thread(int *running)
     while(*running) {
 
         /* Step 1: Receive a message from the Bundle Protocol Agent. */
-        buf = iif_receive(&ion_ptr, &size, &meta, NM_RECEIVE_TIMEOUT_SEC);
-        
-        if(buf != NULL)
+        buf = iif_receive(&ion_ptr, &meta, NM_RECEIVE_TIMEOUT_SEC, &success);
+        if(success != AMP_OK)
         {
-            AMP_DEBUG_INFO("mgr_rx_thread","Received buf (%x) of size %d",
-            		(unsigned long) buf, size);
+        	*running = 0;
+        }
+        else if(buf != NULL)
+        {
+        	grp = msg_grp_deserialize(buf, &success);
+        	blob_release(buf, 1);
 
-            sender_eid = &(meta.originatorEid);
+    		if((grp == NULL) || (success != AMP_OK))
+    		{
+    			AMP_DEBUG_ERR("mgr_rx_thread","Discarding invalid message.", NULL);
+    			continue;
+    		}
 
-            /* Grab # messages in, and timestamp for, this group. */
-            cursor = buf;
-
-            bytes = utils_grab_sdnv(cursor, size, &val);
-            num_msgs = val;
-            cursor += bytes;
-            size -= bytes;
-
-            bytes = utils_grab_sdnv(cursor, size, &val);
-            group_timestamp = val;
-            cursor += bytes;
-            size -= bytes;
-
-            AMP_DEBUG_INFO("mgr_rx_thread","# Msgs %d, TS %llu", num_msgs, group_timestamp);
+    		AMP_DEBUG_INFO("mgr_rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
+    		AMP_DEBUG_INFO("mgr_rx_thread","Group timestamp %lu", grp->time);
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
-            incoming_idx = db_incoming_initialize(group_timestamp, sender_eid);
+            int32_t incoming_idx = db_incoming_initialize(grp->time, meta.senderEid);
 #endif
 
             /* For each message in the group. */
-            for(i = 0; i < num_msgs; i++)
+            for(it = vecit_first(&(grp->msgs)); vecit_valid(it); it = vecit_next(it))
             {
-            	hdr = pdu_deserialize_hdr(cursor, size, &bytes);
-            	cursor += bytes;
-            	size -= bytes;
-            	hdr_len = bytes;
-
-            	AMP_DEBUG_INFO("mgr_rx_thread","Header id %d with len %d", hdr->id, hdr_len);
-            	switch (hdr->id)
-            	{
-                	case MSG_TYPE_RPT_DATA_RPT:
-                	{
-                		AMP_DEBUG_ALWAYS("mgr_rx_thread",
-                				         "Received a data report.\n\n", NULL);
-
-                		msg_rx_data_rpt(sender_eid, cursor, size, &bytes);
-
-                		cursor += bytes;
-                		size -= bytes;
-                	}
-                	break;
-                
-                	case MSG_TYPE_ADMIN_REG_AGENT:
-                	{
-                		AMP_DEBUG_ALWAYS("mgr_rx_thread",
-                						   "Processing Agent Registration.\n\n",
-                						   NULL);
-
-                		adm_reg_agent_t *reg = NULL;
-                		reg = msg_deserialize_reg_agent(cursor, size, &bytes);
-                		cursor += bytes;
-                		size -= bytes;
-
-                		mgr_agent_add(reg->agent_id);
+            	vec_idx_t i = vecit_idx(it);
+            	blob_t *msg_data = (blob_t*) vecit_data(it);
 
 #ifdef HAVE_MYSQL
-                		/* Add agent to agent database. */
-                		db_add_agent(reg->agent_id);
-#endif
-
-                		msg_release_reg_agent(reg);
-
-                	}
-                	break;
-
-                	default:
-                	{
-                		AMP_DEBUG_WARN("mgr_rx_thread","Unknown message type: %d",
-                				hdr->type);
-                		bytes = 0;
-                	}
-                	break;
-            	}
-
-#ifdef HAVE_MYSQL
-            	if(bytes > 0)
+            	if(msg_data != NULL)
             	{
-            		db_incoming_process_message(incoming_idx, cursor - (hdr_len + bytes), hdr_len + bytes);
+            		db_incoming_process_message(incoming_idx, msg_data);
             	}
 #endif
 
-            	pdu_release_hdr(hdr);
-            	hdr = NULL;
+            	/* Get the message type. */
+            	msg_type = msg_grp_get_type(grp, i);
+            	success = AMP_FAIL;
+            	switch(msg_type)
+            	{
+            		case MSG_TYPE_RPT_SET:
+            		{
+            			msg_rpt_t *rpt_msg = msg_rpt_deserialize(msg_data, &success);
+            			rx_data_rpt(&meta, rpt_msg);
+            			break;
+            		}
+            		case MSG_TYPE_REG_AGENT:
+            		{
+            			msg_agent_t *agent_msg = msg_agent_deserialize(msg_data, &success);
+            			rx_agent_reg(&meta, agent_msg);
+            			break;
+            		}
+            		default:
+            			AMP_DEBUG_WARN("mgr_rx_thread","Unknown message type: %d", msg_type);
+            			break;
+            	}
+
             }
+
+            msg_grp_release(grp, 1);
 #ifdef HAVE_MYSQL
             db_incoming_finalize(incoming_idx);
 #endif
-
-            SRELEASE(buf);
-            buf = NULL;
+            memset(&meta, 0, sizeof(meta));
         }
     }
    
