@@ -61,6 +61,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 
 	/*	Initial state.						*/
 
+	CHKERR(sdr_begin_xn(sdr));
 	switch (*mode)
 	{
 	case 's':
@@ -73,17 +74,13 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 
 	case 'z':
 		sdr_stats(sdr);
-		CHKERR(sdr_begin_xn(sdr));
 		printf("\n");
 		zco_status(sdr);
-		sdr_exit_xn(sdr);
 		break;
 
 	case 't':
-		CHKERR(sdr_begin_xn(sdr));
 		sdr_usage(sdr, &sdrsummary);
 		sdr_report(&sdrsummary);
-		sdr_exit_xn(sdr);
 		break;
 
 	default:
@@ -91,6 +88,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 		interval = 0;	/*	Force immediate return.		*/
 	}
 
+	sdr_exit_xn(sdr);
 	if (interval == 0)	/*	One-time poll.			*/
 	{
 		sdr_stop_using(sdr);
@@ -120,6 +118,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 			secRemaining--;
 		}
 
+		CHKERR(sdr_begin_xn(sdr));
 		switch (*mode)
 		{
 		case 's':
@@ -132,10 +131,8 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 
 		case 'z':
 			sdr_stats(sdr);
-			CHKERR(sdr_begin_xn(sdr));
 			printf("\n");
 			zco_status(sdr);
-			sdr_exit_xn(sdr);
 			break;
 
 		default:
@@ -147,6 +144,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 			sdr_print_trace(sdr, verbose);
 		}
 
+		sdr_exit_xn(sdr);
 		oK(sdrwatch_count(&decrement));
 	}
 

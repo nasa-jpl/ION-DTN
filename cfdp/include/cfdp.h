@@ -204,8 +204,8 @@ typedef enum
 
 typedef struct
 {
-	uvast		offset;
-	unsigned int	length;
+	uvast	offset;
+	uvast	length;
 } CfdpExtent;
 
 typedef struct
