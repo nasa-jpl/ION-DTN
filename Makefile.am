@@ -468,7 +468,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LIBADD = $(CRYPTO_LIBS) -lm
+libici_la_LIBADD = -lm
 
 # --- Utility Programs --- #
 
@@ -1096,16 +1096,9 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/murmur2/MurmurHash2.c
 
 if CRYPTO
-AM_CFLAGS+= \
-	-I$(srcdir)/ici/crypto/MBEDTLS_SUITES \
-	-I$(srcdir)/ici/crypto
-
 libici_la_SOURCES+= \
-	ici/crypto/MBEDTLS_SUITES/crypto.c \
-	ici/crypto/MBEDTLS_SUITES/csi.c \
-	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
-	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
+	ici/crypto/NULL_SUITES/crypto.c\
+	ici/crypto/NULL_SUITES/csi.c
 else
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
