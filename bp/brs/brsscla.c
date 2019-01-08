@@ -108,6 +108,11 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
+		if (bundleZco == 1)		/*	Corrupt bundle.	*/
+		{
+			continue;		/*	Get next one.	*/
+		}
+
 		CHKNULL(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);

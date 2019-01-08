@@ -1031,11 +1031,22 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	outbound bundle ZCO].
 			 *
 			 *	On obtaining a bundle, bpDequeue
-			 *	catenates (serializes) the BP header
-			 *	information in the bundle and prepends
-			 *	that serialized header to the source
-			 *	data of the bundle's payload ZCO.  Then
-			 *	it returns the address of that ZCO in
+			 *	does DEQUEUE processing on the bundle's
+			 *	extension blocks; if this processing
+			 *	determines that the bundle is corrupt,
+			 *	the function returns zero while
+			 *	providing 1 (a nonsense address) in
+			 *	*bundleZco as the address of the
+			 *	outbound bundle ZCO.  The CLO should
+			 *	handle this result by simply calling
+			 *	bpDequeue again.
+			 *
+			 *	bpDequeue then catenates (serializes)
+			 *	the BP header information in the
+			 *	bundle and prepends that serialized
+			 *	header to the source data of the
+			 *	bundle's payload ZCO.  Then it
+			 *	returns the address of that ZCO in
 			 *	*bundleZco for transmission at the
 			 *	convergence layer (possibly entailing
 			 *	segmentation that would be invisible

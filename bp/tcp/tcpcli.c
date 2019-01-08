@@ -980,7 +980,12 @@ static int	sendOneBundle(SenderThreadParms *stp)
 			return 0;
 		}
 
-		/*	Send that bundle.				*/
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
+		/*	Send this bundle.				*/
 
 		return sendBundleByTcpcl(stp, bundleZco);
 	}
