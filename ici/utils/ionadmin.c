@@ -14,18 +14,6 @@
 #include <strsoe_ionadmin.h>
 #endif
 
-static time_t	_referenceTime(time_t *newValue)
-{
-	static time_t	reftime = 0;
-	
-	if (newValue)
-	{
-		reftime = *newValue;
-	}
-
-	return reftime;
-}
-
 static int	_forecastNeeded(int parm)
 {
 	static int	needed = 0;
@@ -205,7 +193,7 @@ void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	refTime = _referenceTime(NULL);
+	refTime = ionReferenceTime(NULL);
 	fromTime = readTimestampUTC(tokens[2], refTime);
 	toTime = readTimestampUTC(tokens[3], refTime);
 	if (toTime <= fromTime)
@@ -273,7 +261,7 @@ void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	refTime = _referenceTime(NULL);
+	refTime = ionReferenceTime(NULL);
 	fromTime = readTimestampUTC(tokens[2], refTime);
 	if (fromTime == 0)
 	{
@@ -313,7 +301,7 @@ void	executeDelete(int tokenCount, char **tokens)
 	}
 	else
 	{
-		refTime = _referenceTime(NULL);
+		refTime = ionReferenceTime(NULL);
 		fromTime = readTimestampUTC(tokens[2], refTime);
 		if (fromTime == 0)
 		{
@@ -368,7 +356,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
-	refTime = _referenceTime(NULL);
+	refTime = ionReferenceTime(NULL);
 	timestamp = readTimestampUTC(tokens[2], refTime);
 	fromNode = strtouvast(tokens[3]);
 	toNode = strtouvast(tokens[4]);
@@ -746,7 +734,7 @@ static void	manageHorizon(int tokenCount, char **tokens)
 	}
 	else
 	{
-		refTime = _referenceTime(NULL);
+		refTime = ionReferenceTime(NULL);
 		horizon = readTimestampUTC(horizonString, refTime);
 	}
 
@@ -1115,13 +1103,13 @@ no time.");
 					 *	the current time.	*/
 
 					currentTime = getUTCTime();
-					oK(_referenceTime(&currentTime));
+					oK(ionReferenceTime(&currentTime));
 				}
 				else
 				{
 					/*	Get current ref time.	*/
 
-					refTime = _referenceTime(NULL);
+					refTime = ionReferenceTime(NULL);
 
 					/*	Get new ref time, which
 					 *	may be an offset from
@@ -1134,7 +1122,7 @@ no time.");
 					 *	for use by subsequent
 					 *	command lines.		*/
 
-					oK(_referenceTime(&refTime));
+					oK(ionReferenceTime(&refTime));
 				}
 			}
 
@@ -1251,7 +1239,7 @@ static int	runIonadmin(char *cmdFileName)
 	int	len;
 
 	currentTime = getUTCTime();
-	oK(_referenceTime(&currentTime));
+	oK(ionReferenceTime(&currentTime));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER

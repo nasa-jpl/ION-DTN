@@ -548,6 +548,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				if (edgeIsExcluded(ionwm, excludedEdges,
 						contactAddr))
 				{
+					work->suppressed = 1;
 					TRACE(CgrIgnoreContact, CgrSuppressed);
 					continue;
 				}
@@ -952,7 +953,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			contact = (IonCXref *) psp(ionwm, contactAddr);
 			CHKERR(work = getWorkArea(ionwm, contact));
 			work->suppressed = 1;
-//printf("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toNode);
+//debugPrint("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toNode);
 			contactElt = sm_list_prev(ionwm, contactElt);
 		}
 	}
@@ -1011,7 +1012,6 @@ excluded edge.", NULL);
 					}
 
 //contact = (IonCXref *) psp(ionwm, contactAddr);
-//CHKERR(work = getWorkArea(ionwm, contact));
 //printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toNode);
 				}
 

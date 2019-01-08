@@ -295,6 +295,7 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
+	time_t		refTime;	/*	As set by ionadmin.	*/
 	struct timeval	lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -399,6 +400,7 @@ extern void		writeTimestampLocal(time_t timestamp,
 					char *timestampBuffer);
 extern void		writeTimestampUTC(time_t timestamp,
 					char *timestampBuffer);
+extern time_t		ionReferenceTime(time_t *newValue);
 
 #define extractSdnv(into, from, remnant) \
 if (_extractSdnv(into, (unsigned char **) from, remnant, __LINE__) < 1) \

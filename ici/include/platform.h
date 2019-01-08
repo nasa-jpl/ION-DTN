@@ -800,6 +800,14 @@ extern int			_coreFileNeeded(int *);
 
 extern void			printStackTrace();
 
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT		(0)
+#endif
+#ifndef DEBUG_PRINT_LOG
+#define DEBUG_PRINT_LOG		(0)
+#endif
+extern void			debugPrint(const char *format, ...);
+
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)
 

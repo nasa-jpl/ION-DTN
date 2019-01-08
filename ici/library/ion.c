@@ -1363,6 +1363,19 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
 }
 
+time_t	ionReferenceTime(time_t *newValue)
+{
+	IonVdb	*vdb = getIonVdb();
+
+	CHKZERO(vdb);
+	if (newValue)
+	{
+		vdb->refTime = *newValue;
+	}
+
+	return vdb->refTime;
+}
+
 /*	*	*	Parsing 	*	*	*	*	*/
 
 int	_extractSdnv(uvast *into, unsigned char **from, int *remnant,
