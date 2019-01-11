@@ -40,8 +40,6 @@
 	} \
 } while (0)
 
-#define	PAYLOAD_CLASSES		3
-
 /*		CGR-specific RFX data structures.			*/
 
 typedef struct
@@ -75,6 +73,8 @@ typedef struct
 
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
 	Scalar		protected;	/*	Bytes not overbooked.	*/
+	size_t		bundleECCC;
+	size_t		maxVolumeAvbl;
 
 	/*	NOTE: initial transmission on the "spur" portion of
 	 *	this route is from the contact identified by rootOfSpur
@@ -1297,9 +1297,32 @@ static int	isExcluded(uvast nodeNbr, Lyst excludedNodes)
 	return 0;
 }
 
+static size_t	carryingCapacity(size_t avblVolume)
+{
+	size_t	computedCapacity = avblVolume / 1.0625;
+	size_t	typicalCapacity;
+
+	if (avblVolume > TYPICAL_STACK_OVERHEAD)
+	{
+		typicalCapacity = avblVolume - TYPICAL_STACK_OVERHEAD;
+	}
+	else
+	{
+		typicalCapacity = 0;
+	}
+
+	if (computedCapacity < typicalCapacity)
+	{
+		return computedCapacity;
+	}
+	else
+	{
+		return typicalCapacity;
+	}
+}
+
 static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
-			time_t currentTime, BpPlan *plan, Scalar *overbooked,
-			Scalar *protected, time_t *eto)
+			time_t currentTime, BpPlan *plan, time_t *eto)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1312,12 +1335,12 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	IonCXref	*contact;
 	Scalar		volume;
 	Scalar		allotment;
-	int		eccc;	/*	Estimated volume consumption.	*/
 	time_t		startTime;
 	time_t		endTime;
 	int		secRemaining;
 	time_t		firstByteTransmitTime;
 	time_t		lastByteTransmitTime;
+	int		doNotFragment;
 	Scalar		radiationLatency;
 	unsigned int	owlt;
 	unsigned int	owltMargin;
@@ -1327,10 +1350,12 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	int		priority;
 	time_t		effectiveStartTime;
 	time_t		effectiveStopTime;
+	time_t		effectiveDuration;
+	vast		effectiveVolumeLimit;
 	PsmAddress	elt2;
 
 	computePriorClaims(plan, bundle, &priorClaims, &totalBacklog);
-	copyScalar(protected, &totalBacklog);
+	copyScalar(&(route->protected), &totalBacklog);
 
 	/*	Reduce prior claims on the first contact in this
 	 *	route by all transmission to this contact's neighbor
@@ -1393,7 +1418,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		 *	contact has.					*/
 
 		copyScalar(&allotment, &volume);
-		subtractFromScalar(&allotment, protected);
+		subtractFromScalar(&allotment, &(route->protected));
 		if (!scalarIsValid(&allotment))
 		{
 			/*	Volume is less than remaining
@@ -1410,19 +1435,19 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 			 *	contact, possibly with some volume
 			 *	left over.				*/
 
-			copyScalar(&allotment, protected);
+			copyScalar(&allotment, &(route->protected));
 		}
 
 		/*	Determine how much of the total backlog has
 		 *	been allotted to subsequent contacts.		*/
 
-		subtractFromScalar(protected, &volume);
-		if (!scalarIsValid(protected))
+		subtractFromScalar(&(route->protected), &volume);
+		if (!scalarIsValid(&(route->protected)))
 		{
 			/*	No bundles scheduled for transmission
 			 *	during any subsequent contacts.		*/
 
-			loadScalar(protected, 0);
+			loadScalar(&(route->protected), 0);
 		}
 
 		/*	Loop limit check.				*/
@@ -1458,13 +1483,13 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	 *	"residual backlog", so we can check for potential
 	 *	overbooking.						*/
 
-	eccc = computeECCC(guessBundleSize(bundle));
-	copyScalar(overbooked, &allotment);
-	increaseScalar(overbooked, eccc);
-	subtractFromScalar(overbooked, &volume);
-	if (!scalarIsValid(overbooked))
+	route->bundleECCC = computeECCC(guessBundleSize(bundle));
+	copyScalar(&(route->overbooked), &allotment);
+	increaseScalar(&(route->overbooked), route->bundleECCC);
+	subtractFromScalar(&(route->overbooked), &volume);
+	if (!scalarIsValid(&(route->overbooked)))
 	{
-		loadScalar(overbooked, 0);
+		loadScalar(&(route->overbooked), 0);
 	}
 
 	/*	Now consider the initial contact on the route.		*/
@@ -1501,10 +1526,16 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	/*	Add time to transmit everything preceding last byte.	*/
 
 	copyScalar(&radiationLatency, &priorClaims);
-	increaseScalar(&radiationLatency, eccc);
+	increaseScalar(&radiationLatency, route->bundleECCC);
 	divideScalar(&radiationLatency, contact->xmitRate);
 	lastByteTransmitTime += ((ONE_GIG * radiationLatency.gigs)
 			+ radiationLatency.units);
+
+	/*	Determine whether or not fragmentation of this bundle
+	 *	is prohibited.						*/
+
+	doNotFragment = bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT;
+	route->maxVolumeAvbl = route->bundleECCC;
 
 	/*	Now compute expected final arrival time by adding
 	 *	OWLTs, inter-contact delays, and per-hop radiation
@@ -1514,16 +1545,12 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 
 	while (1)
 	{
-		if (firstByteTransmitTime >= contact->toTime)
+		if (contact->toTime <= firstByteTransmitTime)
 		{
 			/*	Due to the volume of transmission
 			 *	that must precede it, this bundle
 			 *	can't be transmitted during this
 			 *	contact.  So the route is unusable.
-			 *
-			 *	NOTE that the SABR concept of
-			 *	anticipatory fragmentation is NOT
-			 *	implemented in ION at this time.
 			 *
 			 *	Note that transmit time is computed
 			 *	using integer arithmetic, which will
@@ -1531,7 +1558,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 			 *	total transmission time.  To account
 			 *	for this rounding error, we require
 			 *	that the computed first byte transmit
-			 *	time be less than the contact end
+			 *	time be LESS than the contact end
 			 *	time, rather than merely not greater.	*/
 
 			return 0;
@@ -1555,7 +1582,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		contactObj = sdr_list_data(sdr, contact->contactElt);
 		sdr_read(sdr, (char *) &contactBuf, contactObj,
 				sizeof(IonContact));
-		if (contactBuf.mtv[priority] < 0)
+		if (contactBuf.mtv[priority] <= 0)
 		{
 			return 0;	/*	Unconditional depletion.*/
 		}
@@ -1579,9 +1606,32 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 			elt2 = sm_list_next(ionwm, elt2);
 		}
 
-		if (effectiveStopTime < effectiveStartTime)
+		effectiveDuration = effectiveStopTime - effectiveStartTime;
+		if (effectiveDuration <= 0)
 		{
 			return 0;	/*	Conditional depletion.	*/
+		}
+
+		effectiveVolumeLimit = effectiveDuration * contactBuf.xmitRate;
+		if (contactBuf.mtv[priority] < effectiveVolumeLimit)
+		{
+			effectiveVolumeLimit = contactBuf.mtv[priority];
+		}
+
+		if (effectiveVolumeLimit < route->maxVolumeAvbl)
+		{
+			/*	Contact is too brief for transmission
+			 *	of entire bundle.			*/
+
+			if (doNotFragment)
+			{
+				/*	Fragmentation not permitted,
+				 *	so the route is unusable.	*/
+
+				return 0;
+			}
+
+			route->maxVolumeAvbl = effectiveVolumeLimit;
 		}
 
 		/*	Now check next contact in the end-to-end path.	*/
@@ -1613,7 +1663,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		 *	divided by data rate.				*/
 
 		lastByteTransmitTime = firstByteTransmitTime;
-		loadScalar(&radiationLatency, eccc);
+		loadScalar(&radiationLatency, route->bundleECCC);
 		divideScalar(&radiationLatency, contact->xmitRate);
 		lastByteTransmitTime += ((ONE_GIG * radiationLatency.gigs)
 				+ radiationLatency.units);
@@ -1691,7 +1741,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	candidate neighbor.					*/
 
 	arrivalTime = computeBundleArrivalTime(route, bundle, currentTime,
-			&plan, &overbooked, &protected, &eto);
+			&plan, &eto);
 	if (arrivalTime == 0)	/*	Can't be delivered in time.	*/
 	{
 		TRACE(CgrExcludeRoute, CgrRouteCongested);
@@ -1931,9 +1981,8 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	/*	Route might work.  If this route is supported by
 	 *	contacts with enough aggregate volume to convey
 	 *	this bundle and all currently queued bundles of
-	 *	equal or higher priority, then the neighbor is
-	 *	a candidate proximate node for forwarding the
-	 *	bundle to the terminus node.				*/
+	 *	equal or higher priority, then this is a candidate
+	 *	route for forwarding the bundle to the terminus node.	*/
 
 	if (tryRoute(route, currentTime, bundle, trace, bestRoutes) < 0)
 	{
@@ -2211,7 +2260,6 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	int		priority;
-	int		eccc;
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IonCXref	*contact;
@@ -2281,10 +2329,23 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 	/*	If the bundle is NOT critical, then we need to post
 	 *	an xmitOverdue timeout event to trigger re-forwarding
 	 *	in case the bundle doesn't get transmitted during the
-	 *	contact in which we expect it to be transmitted.	*/
+	 *	contact in which we expect it to be transmitted.
+	 *
+	 *	We also may need to pass an anticipatory fragmentation
+	 *	payload size limit to bpclm.				*/
 
 	if (!(bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
+		if (route->maxVolumeAvbl < route->bundleECCC)
+		{
+			bundle->maxFragmentLen =
+					carryingCapacity(route->maxVolumeAvbl);
+			if (bundle->maxFragmentLen == 0)
+			{
+				bundle->maxFragmentLen = 1;
+			}
+		}
+
 		event.type = xmitOverdue;
 		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
 		contact = (IonCXref *) psp(ionwm, addr);
@@ -2322,7 +2383,6 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 	 *	bundle.							*/
 
 	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
-	eccc = computeECCC(guessBundleSize(bundle));
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sm_list_first(ionwm, route->hops); elt;
 			elt = sm_list_next(ionwm, elt))
@@ -2334,7 +2394,7 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 				sizeof(IonContact));
 		for (i = priority; i >= 0; i--)
 		{
-			contactBuf.mtv[i] -= eccc;
+			contactBuf.mtv[i] -= route->bundleECCC;
 		}
 
 		sdr_write(sdr, contactObj, (char *) &contactBuf,

@@ -629,6 +629,16 @@ int	main(int argc, char *argv[])
 			maxPayloadLength = outduct->maxPayloadLen;
 		}
 
+		if (bundle.maxFragmentLen > 0
+		&& bundle.maxFragmentLen < maxPayloadLength)
+		{
+			/*	Anticipatory fragmentation has been
+			 *	found to be necessary.			*/
+
+			maxPayloadLength = bundle.maxFragmentLen;
+			bundle.maxFragmentLen = 0;
+		}
+
 		if (maxPayloadLength > 0
 		&& bundle.payload.length > maxPayloadLength)
 		{

@@ -98,6 +98,8 @@ extern "C" {
 #define	ION_DEFAULT_XMIT_RATE		(125000000)
 #endif
 
+#define	TYPICAL_STACK_OVERHEAD		(36)
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.
@@ -348,6 +350,7 @@ typedef struct
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
+	size_t		maxFragmentLen;	/*	Anticipatory frag.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
