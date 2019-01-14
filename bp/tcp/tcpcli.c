@@ -1081,6 +1081,7 @@ static void	*sendSignals(void *parm)
 	Sdnv			ackLengthSdnv;
 	int			len;
 
+	session->hasAdmin = 1;
 	if (neighbor->vplan)
 	{
 		tag = neighbor->vplan->neighborEid;
