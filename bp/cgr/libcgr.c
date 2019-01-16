@@ -2246,12 +2246,76 @@ static int	excludeNode(Lyst excludedNodes, uvast nodeNbr)
 	return 0;
 }
 
+static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
+			CgrRoute *route)
+{
+	Sdr		sdr = getIonsdr();
+	size_t		fragmentLength;
+	Bundle		firstBundle;
+	Object		firstBundleObj;
+	Bundle		secondBundle;
+	Object		secondBundleObj;
+	Object		stationEidElt;
+	Object		stationEid;
+	char		eid[SDRSTRING_BUFSZ];
+	MetaEid		stationMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Scheme		schemeBuf;
+
+	fragmentLength = carryingCapacity(route->maxVolumeAvbl);
+	if (fragmentLength == 0)
+	{
+		fragmentLength = 1;	/*	Assume rounding error.	*/
+	}
+
+	if (bpFragment(bundle, *bundleObj, NULL, fragmentLength,
+			&firstBundle, &firstBundleObj, &secondBundle,
+			&secondBundleObj) < 0)
+	{
+		return -1;
+	}
+
+	/*	Send the second fragment back through the routing
+	 *	procedure; adapted from forwardBundle().		*/
+
+	stationEidElt = sdr_list_first(sdr, secondBundle.stations);
+	CHKERR(stationEidElt);
+	stationEid = sdr_list_data(sdr, stationEidElt);
+	CHKERR(stationEid);
+	if (sdr_string_read(sdr, eid, stationEid) < 0)
+	{
+		return -1;
+	}
+
+	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
+	{
+		restoreEidString(&stationMetaEid);
+		putErrmsg("Bad station EID", eid);
+		return -1;
+	}
+
+	sdr_read(sdr, (char *) &schemeBuf, sdr_list_data(sdr,
+			vscheme->schemeElt), sizeof(Scheme));
+	secondBundle.fwdQueueElt = sdr_list_insert_first(sdr,
+			schemeBuf.forwardQueue, secondBundleObj);
+	sdr_write(sdr, secondBundleObj, (char *) &secondBundle, sizeof(Bundle));
+	if (vscheme->semaphore != SM_SEM_NONE)
+	{
+		sm_SemGive(vscheme->semaphore);
+	}
+
+	/*	Return the first fragment to be enqueued per plan.	*/
+
+	*bundleObj = firstBundleObj;
+	memcpy((char *) bundle, (char *) &firstBundle, sizeof(Bundle));
+	return 0;
+}
+
 static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 			Object bundleObj, IonNode *terminusNode)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned int	serviceNbr;
-	char		terminusEid[64];
 	PsmPartition	ionwm;
 	PsmAddress	embElt;
 	Embargo		*embargo;
@@ -2278,17 +2342,6 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 	bundle->xmitCopies[bundle->xmitCopiesCount] = route->toNodeNbr;
 	bundle->xmitCopiesCount++;
 	bundle->dlvConfidence = getNewDlvConfidence(bundle, route);
-	if (route->toNodeNbr == bundle->destination.c.nodeNbr)
-	{
-		serviceNbr = bundle->destination.c.serviceNbr;
-	}
-	else
-	{
-		serviceNbr = 0;
-	}
-
-	isprintf(terminusEid, sizeof terminusEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			route->toNodeNbr, serviceNbr);
 
 	/*	If this neighbor is a currently embargoed neighbor
 	 *	for this final destination (i.e., one that has been
@@ -2326,25 +2379,29 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 		break;
 	}
 
-	/*	If the bundle is NOT critical, then we need to post
-	 *	an xmitOverdue timeout event to trigger re-forwarding
-	 *	in case the bundle doesn't get transmitted during the
-	 *	contact in which we expect it to be transmitted.
-	 *
-	 *	We also may need to pass an anticipatory fragmentation
-	 *	payload size limit to bpclm.				*/
+	/*	If the bundle is NOT critical, then:			*/
 
 	if (!(bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
 	{
-		if (route->maxVolumeAvbl < route->bundleECCC)
+		/*	We may need to do anticipatory fragmentation
+		 *	of the bundle before enqueuing it for
+		 *	transmission.					*/
+
+		if (route->maxVolumeAvbl < route->bundleECCC
+		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
 		{
-			bundle->maxFragmentLen =
-					carryingCapacity(route->maxVolumeAvbl);
-			if (bundle->maxFragmentLen == 0)
+			if (proactivelyFragment(bundle, &bundleObj, route) < 0)
 			{
-				bundle->maxFragmentLen = 1;
+				putErrmsg("Anticipatory fragmentation failed.",
+						NULL);
+				return -1;
 			}
 		}
+
+		/*	In any case, we need to post an xmitOverdue
+		 *	timeout event to trigger re-forwarding in case
+		 *	the bundle doesn't get transmitted during the
+		 *	contact in which we expect that to happen.	*/
 
 		event.type = xmitOverdue;
 		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));

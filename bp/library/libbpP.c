@@ -10247,6 +10247,79 @@ int	bpAccept(Object bundleObj, Bundle *bundle)
 	return 0;
 }
 
+static void	noteFragmentation(Bundle *bundle)
+{
+	Sdr	sdr = getIonsdr();
+	Object	dbObject;
+	BpDB	db;
+
+	dbObject = getBpDbObject();
+	sdr_stage(sdr, (char *) &db, dbObject, sizeof(BpDB));
+	db.currentFragmentsProduced++;
+	db.totalFragmentsProduced++;
+	if (!(bundle->fragmented))
+	{
+		bundle->fragmented = 1;
+		db.currentBundlesFragmented++;
+		db.totalBundlesFragmented++;
+	}
+
+	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
+}
+
+int	bpFragment(Bundle *bundle, Object bundleObj,
+		Object *queueElt, size_t fragmentLength,
+		Bundle *firstBundle, Object *firstBundleObj,
+		Bundle *secondBundle, Object *secondBundleObj)
+{
+	Sdr	sdr = getIonsdr();
+
+	CHKERR(ionLocked());
+
+	/*	Create two clones of the original bundle with
+	 *	fragmentary payloads.					*/
+
+	if (bpClone(bundle, firstBundle, firstBundleObj, 0, fragmentLength) < 0
+	|| bpClone(bundle, secondBundle, secondBundleObj, fragmentLength,
+			bundle->payload.length - fragmentLength) < 0)
+	{
+		return -1;
+	}
+
+	/*	Lose the original bundle, inserting the two fragments
+	 *	in its place.  No significant change to resource
+	 *	occupancy.						*/
+
+	if (queueElt)
+	{
+		sdr_list_delete(sdr, *queueElt, NULL, NULL);
+		*queueElt = 0;
+	}
+
+	if (bundle->custodyTaken)
+	{
+		/*	Means that custody of the two clones is
+		 *	taken instead.					*/
+
+		releaseCustody(bundleObj, bundle);
+		bpCtTally(BP_CT_CUSTODY_ACCEPTED, firstBundle->payload.length);
+		bpCtTally(BP_CT_CUSTODY_ACCEPTED, secondBundle->payload.length);
+	}
+
+	/*	Destroy the original bundle.				*/
+
+	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	if (bpDestroyBundle(bundleObj, 0) < 0)
+	{
+		return -1;
+	}
+
+	/*	Note bundle has been fragmented, and return.		*/
+
+	noteFragmentation(secondBundle);
+	return 0;
+}
+
 static Object	insertBundleIntoQueue(Object queue, Object firstElt,
 			Object lastElt, Object bundleAddr, int priority,
 			unsigned char ordinal, time_t enqueueTime)

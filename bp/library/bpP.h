@@ -350,7 +350,6 @@ typedef struct
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
-	size_t		maxFragmentLen;	/*	Anticipatory frag.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
@@ -950,25 +949,6 @@ extern int		bpAbandon(	Object bundleObj,
 			 *	bundle.	 Returns 0 on success, -1 on
 			 *	any failure.				*/
 
-extern int		bpAccept(	Object bundleObj,
-					Bundle *bundle);
-			/*	This is the common processing for any
-			 *	bundle that a forwarder decides it
-			 *	can accept for forwarding, whether
-			 *	the bundle was sourced locally or
-			 *	was received from some other node.
-			 *	It updates statistics that are used
-			 *	to make future bundle acquisition
-			 *	decisions; if custody transfer is
-			 *	requested, it takes custody of the
-			 *	bundle; and it sends any applicable
-			 *	status reports.
-			 *
-			 *	This function may be called multiple
-			 *	times per bundle but will take effect
-			 *	only once.  Returns 0 on success, -1
-			 *	on any failure.				*/
-
 extern int		bpClone(	Bundle *originalBundle,
 					Bundle *newBundleBuffer,
 					Object *newBundleObj,
@@ -991,7 +971,35 @@ extern int		bpClone(	Bundle *originalBundle,
 			 *	new bundle's payload will be the
 			 *	indicated subset of the original
 			 *	payload.  Returns 0 on success,
-			 *	-1 on any error.			*/
+			 *	-1 on any failure.			*/
+
+extern int		bpAccept(	Object bundleObj,
+					Bundle *bundle);
+			/*	This is the common processing for any
+			 *	bundle that a forwarder decides it
+			 *	can accept for forwarding, whether
+			 *	the bundle was sourced locally or
+			 *	was received from some other node.
+			 *	It updates statistics that are used
+			 *	to make future bundle acquisition
+			 *	decisions; if custody transfer is
+			 *	requested, it takes custody of the
+			 *	bundle; and it sends any applicable
+			 *	status reports.
+			 *
+			 *	This function may be called multiple
+			 *	times per bundle but will take effect
+			 *	only once.  Returns 0 on success, -1
+			 *	on any failure.				*/
+
+extern int		bpFragment(	Bundle *bundle, Object bundleObj,
+					Object *queueElt, size_t fragmentLength,
+					Bundle *bundle1, Object *bundle1Obj,
+					Bundle *bundle2, Object *bundle2Obj);
+			/*	This function creates two fragmentary
+			 *	bundles from one original bundle and
+			 *	destroys the original bundle.  Returns
+			 *	0 on success, -1 on any failure.	*/
 
 extern int		bpEnqueue(	VPlan *vplan,
 					Bundle *bundle,
