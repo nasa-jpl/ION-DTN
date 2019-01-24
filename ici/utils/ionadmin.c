@@ -26,6 +26,18 @@ static time_t	_referenceTime(time_t *newValue)
 	return refTime;
 }
 
+static uvast	_regionNbr(uvast *newValue)
+{
+	static uvast	regionNbr = 0;
+
+	if (newValue)
+	{
+		regionNbr = *newValue;
+	}
+
+	return regionNbr;
+}
+
 static int	_forecastNeeded(int parm)
 {
 	static int	needed = 0;
@@ -104,6 +116,9 @@ static void	printUsage()
 	PUTS("\t\tor to set reference time to the current time use '@ 0'.");
 	PUTS("\t\tThe @ command sets the reference time from which subsequent \
 relative times (+ss) are computed.");
+	PUTS("\t   ^ <region number>");
+	PUTS("\t\tThe ^ command sets the region number identifying the contact \
+plan that will include contacts added here.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
@@ -206,19 +221,38 @@ void	executeAdd(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	fromTime = readTimestampUTC(tokens[2], refTime);
-	toTime = readTimestampUTC(tokens[3], refTime);
-	if (toTime <= fromTime)
-	{
-		printText("Interval end time must be later than start time \
-and earlier than 19 January 2038.");
-		return;
-	}
-
 	fromNodeNbr = strtouvast(tokens[4]);
 	toNodeNbr = strtouvast(tokens[5]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
+		if (strncmp(tokens[2], "0") == 0)
+		{
+			fromTime = 0;
+		}
+		else
+		{
+			fromTime = readTimestampUTC(tokens[2], refTime);
+		}
+
+		if (strncmp(tokens[3], "0") == 0)
+		{
+			toTime = 0;
+		}
+		else
+		{
+			toTime = readTimestampUTC(tokens[3], refTime);
+		}
+
+		if (toTime != 0)
+		{
+			if (toTime <= fromTime)
+			{
+				printText("Interval end time must be later \
+than start time and earlier than 19 January 2038.");
+				return;
+			}
+		}
+
 		xmitRate = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate, confidence, &xaddr));
@@ -228,6 +262,15 @@ and earlier than 19 January 2038.");
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
+		fromTime = readTimestampUTC(tokens[2], refTime);
+		toTime = readTimestampUTC(tokens[3], refTime);
+		if (toTime <= fromTime)
+		{
+			printText("Interval end time must be later than start \
+time and earlier than 19 January 2038.");
+			return;
+		}
+
 		owlt = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_range(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, owlt, &xaddr));
@@ -294,6 +337,8 @@ void	executeDelete(int tokenCount, char **tokens)
 	time_t	fromTime;
 	uvast	fromNodeNbr;
 	uvast	toNodeNbr;
+
+<<--  Revise to enable deletion of registration and latent contacts.
 
 	if (tokenCount < 2)
 	{
@@ -1000,6 +1045,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 	time_t		currentTime;
 	struct timeval	done_time;
 	struct timeval	cur_time;
+	uvast		regionNbr;
 	int		max = 0;
 	int		count = 0;
 
@@ -1139,6 +1185,22 @@ no time.");
 					 *	command lines.		*/
 
 					oK(_referenceTime(&refTime));
+				}
+			}
+
+			return 0;
+
+		case '^':
+			if (ionAttach() == 0)
+			{
+				if (tokenCount != 2)
+				{
+					SYNTAX_ERROR;
+				}
+				else
+				{
+					regionNbr = strtouvast(tokens[1]);
+					oK(_regionNbr(&regionNbr));
 				}
 			}
 

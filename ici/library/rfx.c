@@ -719,6 +719,7 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
+	ContactType	contactType;
 	int		discovered = 0;
 	IonCXref	newCx;
 	IonCXref	arg;
@@ -735,18 +736,43 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
 	Object		obj;
 	Object		elt;
 
-	CHKERR(fromTime);
-	if (toTime == 0)
-	{
-		discovered = 1;
-		toTime = MAX_POSIX_TIME;
-	}
-
-	CHKERR(toTime > fromTime);
 	CHKERR(fromNode);
 	CHKERR(toNode);
-	CHKERR(confidence > 0.0 && confidence <= 1.0);
+	CHKERR(confidence >= 0.0 && confidence <= 1.0);
 	CHKERR(cxaddr);
+	if (toTime == 0)
+	{
+		toTime = MAX_POSIX_TIME;
+		if (fromTime == 0)
+		{
+			if (confidence == 0.0)
+			{
+				contactType = CtLatent;
+			}
+			else
+			{
+				fromTime = MAX_POSIX_TIME;
+				contactType = CtRegistration;
+			}
+		}
+		else
+		{
+			contactType = CtDiscovered;
+		}
+	}
+	else
+	{
+		if (confidence == 1.0)
+		{
+			contactType = CtScheduled;
+		}
+		else
+		{
+			contactType = CtPredicted;
+		}
+	}
+
+	CHKERR(toTime >= fromTime);
 	CHKERR(sdr_begin_xn(sdr));
 	*cxaddr = 0;	/*	Default.				*/
 

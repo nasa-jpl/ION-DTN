@@ -728,10 +728,14 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr,
 				ZcoOutbound);
 		iondbBuf.occupancyCeiling += (limit/4);
-		iondbBuf.contacts = sdr_list_create(ionsdr);
-		iondbBuf.ranges = sdr_list_create(ionsdr);
-		iondbBuf.contactLog[0] = sdr_list_create(ionsdr);
-		iondbBuf.contactLog[1] = sdr_list_create(ionsdr);
+		iondbBuf.regions[0].contacts = sdr_list_create(ionsdr);
+		iondbBuf.regions[0].ranges = sdr_list_create(ionsdr);
+		iondbBuf.regions[0].contactLog[0] = sdr_list_create(ionsdr);
+		iondbBuf.regions[0].contactLog[1] = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].contacts = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].ranges = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].contactLog[0] = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].contactLog[1] = sdr_list_create(ionsdr);
 		iondbBuf.maxClockError = 0;
 		iondbBuf.clockIsSynchronized = 1;
                 memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));

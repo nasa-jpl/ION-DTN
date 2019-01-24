@@ -354,7 +354,7 @@ static IonRXref *findRange(const IonCXref *contact)
 		.toNode = contact->toNode,
 	};
 
-	if (contact->discovered || contact->confidence < 1.0)
+	if (contact->type == CtDiscovered || contact->confidence < 1.0)
 	{
 		discovery.owlt = 0;
 		return &discovery;

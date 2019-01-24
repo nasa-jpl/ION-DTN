@@ -57,7 +57,7 @@ extern "C" {
 #endif
 #endif
 
-#define	MAX_POSIX_TIME	2147483644
+#define	MAX_POSIX_TIME	2147483647
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
 

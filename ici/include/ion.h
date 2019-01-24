@@ -40,6 +40,9 @@ extern "C" {
 #define	SENDER_NODE	(0)
 #define	RECEIVER_NODE	(1)
 
+#define	HOME_REGION	(0)
+#define	OUTER_REGION	(1)
+
 #ifndef ION_SDR_MARGIN
 #define	ION_SDR_MARGIN	(20)		/*	Percent.		*/
 #endif
@@ -83,15 +86,40 @@ typedef struct
 
 typedef struct
 {
+	uvast		nodeNbr;
+	uvast		homeRegionNbr;
+	uvast		outerRegionNbr;
+} RegionMember;
+
+typedef enum
+{
+	CtRegistration = 1,
+	CtLatent,
+	CtDiscovered,
+	CtScheduled,
+	CtPredicted
+} ContactType;
+
+typedef struct
+{
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
-	int		discovered;	/*	Boolean.		*/
+	ContactType	type;		/*	For disambiguation.	*/
 	vast		mtv[3];		/*	Residual xmit volumes.	*/
 } IonContact;
+
+typedef struct
+{
+	time_t		fromTime;	/*	As from time(2).	*/
+	time_t		toTime;		/*	As from time(2).	*/
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	unsigned int	owlt;		/*	In seconds.		*/
+} IonRange;
 
 typedef struct
 {
@@ -104,21 +132,19 @@ typedef struct
 
 typedef struct
 {
-	time_t		fromTime;	/*	As from time(2).	*/
-	time_t		toTime;		/*	As from time(2).	*/
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	unsigned int	owlt;		/*	In seconds.		*/
-} IonRange;
+	uvast		regionNbr;
+	Object		members;	/*	SDR list: RegionMember	*/
+	Object		contacts;	/*	SDR list: IonContact	*/
+	Object		ranges;		/*	SDR list: IonRange	*/
+	Object		contactLog[2];	/*	SDR list: PastContact	*/
+} IonRegion;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
 typedef struct
 {
-	Object		contacts;	/*	SDR list: IonContact	*/
-	Object		ranges;		/*	SDR list: IonRange	*/
-	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	uvast		ownNodeNbr;
+	IonRegion	regions[2];	/*	Home, outer.		*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
@@ -135,11 +161,12 @@ typedef struct
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
- *	contains objects representing all nodes in the network other
- *	than the local node.  Each IonNode has a list of "embargoes"
- *	(described below), plus a "routing object" that points to
- *	data that has structure and function specific to the routing
- *	system established for the bundle protocol agent.
+ *	contains objects representing all identified potential
+ *	destination nodes in the network other than the local node.
+ *	Each IonNode has a list of "embargoes" (described below),
+ *	plus a "routing object" that points to data that has
+ *	structure and function specific to the routing system
+ *	established for the bundle protocol agent.
  *
  *	The IonVdb also contains red-black trees that (a) index all
  *	contacts in the non-volatile database, by "from" node, "to"
@@ -160,7 +187,7 @@ typedef struct
  *	able to compute a route to that destination node.  The
  *	existence of the embargo generally prevents consideration
  *	of this neighbor as proximate destination when routing to
- *	the affected destination node.  However, once each RTLT
+ *	the affected destination node.  However, once per RTLT
  *	(between the local node and the embargoed neighbor), one
  *	custodial bundle may be routed to the embargoed neighbor as
  *	a "probe", to determine whether or not the neighbor is still
@@ -178,6 +205,7 @@ typedef struct
 {
 	uvast		nodeNbr;	/*	As from IonContact.	*/
 	PsmAddress	embargoes;	/*	SM list: Embargo	*/
+	PsmAddress	passageways;	/*	SM list: node number	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 } IonNode;		/*	A potential bundle destination node.	*/
 
@@ -232,7 +260,7 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
-	int		discovered;	/*	Boolean.		*/
+	ContactType	type;		/*	For disambiguation.	*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
 	time_t		startFire;	/*	Computed when inserted.	*/
