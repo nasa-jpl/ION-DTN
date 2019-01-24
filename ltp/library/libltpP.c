@@ -6018,8 +6018,8 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 char	buf[256];
 if (segment.pdu.segTypeCode > 0)
 {
-sprintf(buf, "Sending checkpoint: ckpt %u rpt %u.", segment.pdu.ckptSerialNbr,
-segment.pdu.rptSerialNbr);
+sprintf(buf, "Sending checkpoint: ckpt %u rpt %u to node " UVAST_FIELDSPEC ".",
+segment.pdu.ckptSerialNbr, segment.pdu.rptSerialNbr, segment.remoteEngineId);
 putErrmsg(buf, itoa(session->sessionNbr));
 }
 #endif
@@ -7102,7 +7102,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
-putErrsmg("Discarding stray segment.", itoa(sessionNbr));
+putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 #endif
 		/*	Segment is from an engine that is not supposed
 		 *	to be sending at this time, so we treat it as
