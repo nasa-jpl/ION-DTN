@@ -15,7 +15,7 @@ for forwarding bundles to specified destination nodes.
 
 The egress B<plan> established for a given node associates a B<duct expression>
 with that node.  Each duct expression is a string of the form
-"I<protocol_name>/I<outduct_name>" signifying that the bundle isto be
+"I<protocol_name>/I<outduct_name>" signifying that the bundle is to be
 queued for transmission via the indicated convergence layer protocol outduct.
 
 Note that egress plans B<must> be established for all neighboring nodes,
@@ -96,11 +96,10 @@ shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
 The syntax of these commands is DIFFERENT from that of the more general
 and more powerful bpadmin commands.>
 
-=item B<c plan> I<node_nbr> I<duct_expression> [I<nominal_data_rate>]
+=item B<c plan> I<node_nbr> [I<duct_expression>] [I<nominal_data_rate>]
 
 The B<change plan> command.  This command changes the duct expression
-for the indicated plan.  The I<nominal_data_rate> is the assumed rate of
-transmission to this node in the absence of contact plan information.
+and/or nominal data rate for the indicated plan.
 
 =item B<d plan> I<node_nbr>
 

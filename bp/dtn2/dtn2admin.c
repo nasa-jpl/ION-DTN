@@ -67,7 +67,7 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node ID> [<directive>] [xmit rate]");
+	PUTS("\t   a plan <node ID> <directive> [xmit rate]");
 	PUTS("\tc\tChange");
 	PUTS("\t   c plan <node ID> [<directive>] [xmit rate]");
 	PUTS("\td\tDelete");
@@ -244,7 +244,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (ductExpression)
 		{
-			dtn2_removePlanDuct(tokens[2], NULL);
+			dtn2_removePlanDuct(tokens[2]);
 			dtn2_addPlanDuct(tokens[2], ductExpression);
 		}
 

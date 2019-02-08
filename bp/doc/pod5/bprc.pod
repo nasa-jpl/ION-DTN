@@ -460,11 +460,11 @@ The B<attach outduct> command.  This command declares that the indicated
 convergence-layer protocol outduct is now a viable device for transmitting
 bundles to the node[s] identified by I<endpoint_name>.
 
-=item B<d planduct> I<endpoint_name> I<protocol_name> I<duct_name>
+=item B<d planduct> I<protocol_name> I<duct_name>
 
 The B<detach outduct> command.  This command declares that the indicated
 convergence-layer protocol outduct is no longer a viable device for
-transmitting bundles to the node[s] identified by I<endpoint_name>.
+transmitting bundles to the node[s] to which it is currently assigned.
 
 =back
 
