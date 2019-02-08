@@ -3975,6 +3975,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 		sdr_list_user_data_set(bpSdr, planBuf.bulkQueue, addr);
 		sdr_list_user_data_set(bpSdr, planBuf.stdQueue, addr);
 		sdr_list_user_data_set(bpSdr, planBuf.urgentQueue, addr);
+		sdr_list_user_data_set(bpSdr, planBuf.ducts, addr);
 	}
 
 	if (sdr_end_xn(bpSdr) < 0 || elt == 0)
@@ -4046,6 +4047,7 @@ int	removePlan(char *eidIn)
 	Object		planElt;
 	Object		addr;
 	BpPlan		planBuf;
+	Object		elt;
 
 	CHKERR(eidIn);
 	if (filterEid(eid, eidIn) < 0)
@@ -4099,10 +4101,26 @@ int	removePlan(char *eidIn)
 	/*	Then remove the plan's non-volatile state.		*/
 
 	sdr_list_delete(bpSdr, planElt, NULL, NULL);
+	while (1)
+	{
+		elt = sdr_list_first(bpSdr, planBuf.ducts);
+		if (elt == 0)
+		{
+			break;
+		}
+
+		/*	Each member of planBuf.ducts points to an
+		 *	outducts list element referencing an outduct.
+		 *	Detaching that outduct from this plan's list
+		 *	of outducts removes it from planBuf.ducts.	*/ 
+
+		oK(detachPlanDuct(sdr_list_data(bpSdr, elt)));
+	}
+
+	sdr_list_destroy(bpSdr, planBuf.ducts, NULL,NULL);
 	sdr_list_destroy(bpSdr, planBuf.bulkQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.stdQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.urgentQueue, NULL,NULL);
-	sdr_list_destroy(bpSdr, planBuf.ducts, NULL,NULL);
 	if (planBuf.context)
 	{
 		sdr_free(bpSdr, planBuf.context);
@@ -4228,6 +4246,8 @@ int	setPlanViaEid(char *eid, char *viaEid)
 int	attachPlanDuct(char *eid, Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
+	Object		outductObj;
+	Outduct		outduct;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 			OBJ_POINTER(BpPlan, plan);
@@ -4235,6 +4255,16 @@ int	attachPlanDuct(char *eid, Object outductElt)
 	CHKERR(eid);
 	CHKERR(outductElt);
 	CHKERR(sdr_begin_xn(sdr));
+	outductObj = sdr_list_data(sdr, outductElt);
+	sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	if (outduct.planDuctListElt != 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Duct is already attached to a plan",
+				outduct.name);
+		return 0;
+	}
+
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -4244,64 +4274,44 @@ int	attachPlanDuct(char *eid, Object outductElt)
 	}
 
 	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
-	sdr_list_insert_last(sdr, plan->ducts, outductElt);
+	outduct.planDuctListElt = sdr_list_insert_last(sdr, plan->ducts,
+			outductElt);
+	sdr_write(sdr, outductObj, (char *) &outduct, sizeof(Outduct));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't attach duct to plan.", eid);
+		putErrmsg("Can't attach duct to this plan.", eid);
 		return -1;
 	}
 
 	return 1;
 }
 
-int	detachPlanDuct(char *eid, Object outductElt)
+int	detachPlanDuct(Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	VPlan		*vplan;
-	PsmAddress	vplanElt;
-	BpPlan		plan;
-	Object		elt;
+	Object		outductObj;
+	Outduct		outduct;
 
-	CHKERR(eid);
 	CHKERR(sdr_begin_xn(sdr));
-	findPlan(eid, &vplan, &vplanElt);
-	if (vplanElt == 0)
+	outductObj = sdr_list_data(sdr, outductElt);
+	sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	if (outduct.planDuctListElt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown plan, can't detach duct", eid);
+		writeMemoNote("[?] Duct is not attached to any plan",
+				outduct.name);
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
-			sizeof(BpPlan));
-	if (outductElt == 0)
-	{
-		/*	Hack, pending support for multiple ducts.	*/
+	/*	Remove this duct from the duct list of the plan
+	 *	that the duct is attached to.				*/
 
-		elt = sdr_list_first(sdr, plan.ducts);
-	}
-	else
-	{
-		for (elt = sdr_list_first(sdr, plan.ducts); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			if (sdr_list_data(sdr, elt) == outductElt)
-			{
-				break;
-			}
-		}
-	}
-
-	if (elt == 0)	/*	No such duct was found.		*/
-	{
-		sdr_exit_xn(sdr);
-		return 0;
-	}
-
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_list_delete(sdr, outduct.planDuctListElt, NULL, NULL);
+	outduct.planDuctListElt = 0;
+	sdr_write(sdr, outductObj, (char *) &outduct, sizeof(Outduct));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't detach duct from plan.", eid);
+		putErrmsg("Can't detach duct from its plan.", outduct.name);
 		return -1;
 	}
 
@@ -5146,35 +5156,6 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	return 1;
 }
 
-static void	detachFromAllPlans(Object outductElt)
-{
-	Sdr	sdr = getIonsdr();
-	Object	planElt;
-	Object	planObj;
-		OBJ_POINTER(BpPlan, plan);
-	Object	ductElt;
-	Object	attachedOutductElt;
-	Object	nextElt;
-
-	CHKVOID(ionLocked());
-	for (planElt = sdr_list_first(sdr, getBpConstants()->plans); planElt;
-			planElt = sdr_list_next(sdr, planElt))
-	{
-		planObj = sdr_list_data(sdr, planElt);
-		GET_OBJ_POINTER(sdr, BpPlan, plan, planObj);
-		for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
-				ductElt = nextElt)
-		{
-			nextElt = sdr_list_next(sdr, ductElt);
-			attachedOutductElt = sdr_list_data(sdr, ductElt);
-			if (attachedOutductElt == outductElt)
-			{
-				sdr_list_delete(sdr, ductElt, NULL, NULL);
-			}
-		}
-	}
-}
-
 int	removeOutduct(char *protocolName, char *ductName)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -5230,10 +5211,14 @@ int	removeOutduct(char *protocolName, char *ductName)
 		return -1;
 	}
 
-	/*	Then detach the outduct from every egress plan that 
-	 *	cites it.						*/
+	/*	Then detach the outduct from the egress plan that 
+	 *	cites it, if any.					*/
 
-	detachFromAllPlans(outductElt);
+	if (outduct.planDuctListElt)
+	{
+		sdr_list_delete(bpSdr, outduct.planDuctListElt, NULL, NULL);
+		outduct.planDuctListElt = 0;
+	}
 
 	/*	Can then remove the duct's volatile state.		*/
 

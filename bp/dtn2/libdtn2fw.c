@@ -96,32 +96,28 @@ int	dtn2_setPlanViaEid(char *eid, char *viaEid)
 	return setPlanViaEid(eid, viaEid);
 }
 
-int	dtn2_removePlanDuct(char *eid, char *spec)
+int	dtn2_removePlanDuct(char *eid)
 {
-	char		*cursor;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
+	Sdr		sdr = getIonsdr();
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+			OBJ_POINTER(BpPlan, plan);
+	Object		elt;
+	Object		outductElt;
 
-	cursor = strchr(spec, '/');
-	if (cursor == NULL)
+	CHKERR(eid);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
-		writeMemoNote("[?] Duct expression lacks duct name",
-				spec);
-		writeMemoNote("[?] (Detaching duct from plan", eid);
+		writeMemoNote("[?] No such plan", eid);
 		return -1;
 	}
 
-	*cursor = '\0';
-	findOutduct(spec, cursor + 1, &vduct, &vductElt);
-	*cursor = '/';
-	if (vductElt == 0)
-	{
-		writeMemoNote("[?] Unknown duct", spec);
-		writeMemoNote("[?] (Detaching duct from plan", eid);
-		return -1;
-	}
-
-	return detachPlanDuct(eid, vduct->outductElt);
+	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
+	CHKERR(plan);
+	elt = sdr_list_first(sdr, plan->ducts);
+	outductElt = sdr_list_data(sdr, elt);
+	return detachPlanDuct(outductElt);
 }
 
 int	dtn2_removePlan(char *eid)

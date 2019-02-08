@@ -97,8 +97,8 @@ payload length");
 	PUTS("\t   {d|i} induct <protocol name> <duct name>");
 	PUTS("\t   {d|i} outduct <protocol name> <duct name>");
 	PUTS("\t   {d|i} plan <endpoint name>");
-	PUTS("\td\tDetach an outduct from an egress plan");
-	PUTS("\t   d planduct <endpoint name> <protocol name> <duct name>");
+	PUTS("\td\tDetach an outduct from the egress plan that cites it");
+	PUTS("\t   d planduct <protocol name> <duct name>");
 	PUTS("\tl\tList");
 	PUTS("\t   l scheme");
 	PUTS("\t   l endpoint");
@@ -635,20 +635,20 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "planduct") == 0)
 	{
-		if (tokenCount != 5)
+		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		findOutduct(tokens[3], tokens[4], &vduct, &vductElt);
+		findOutduct(tokens[2], tokens[3], &vduct, &vductElt);
 		if (vductElt == 0)
 		{
 			printText("Unknown outduct.");
 			return;
 		}
 
-		detachPlanDuct(tokens[2], vduct->outductElt);
+		detachPlanDuct(vduct->outductElt);
 		return;
 	}
 
