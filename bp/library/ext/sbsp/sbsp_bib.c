@@ -1416,7 +1416,12 @@ int	sbsp_bibReview(AcqWorkArea *wk)
 	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
 	rules = sec_get_bspBibRuleList();
-	CHKERR(rules);
+	if (rules == 0)
+	{
+		BIB_DEBUG_PROC("- sbsp_bibReview -> no security database");
+		return result;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, rules); elt;
 			elt = sdr_list_next(sdr, elt))
