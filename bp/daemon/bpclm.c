@@ -528,6 +528,9 @@ int	main(int argc, char *argv[])
 		 *	rate control (if applicable) is satisfied.	*/
 
 		if (sdr_list_length(sdr, plan.ducts) == 0
+#ifdef CGR_IOT
+		|| (throttle->nominalRate == 0 && throttle->capacity == 0)
+#endif
 		|| maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0
 		|| (throttle->nominalRate == 0 && maxPayloadLength > 0)
 		|| (throttle->nominalRate > 0 && throttle->capacity <= 0))
@@ -651,6 +654,7 @@ int	main(int argc, char *argv[])
 
 			/*	Okay to fragment.			*/
 
+			queue = sdr_list_list(sdr, bundle.planXmitElt);
 			if (bpFragment(&bundle, bundleObj,
 					&(bundle.planXmitElt), maxPayloadLength,
 					&firstBundle, &firstBundleObj,
@@ -668,7 +672,6 @@ int	main(int argc, char *argv[])
 			 *	immediately transmittable at the front
 			 *	of the queue.				*/
 
-			queue = sdr_list_list(sdr, bundle.planXmitElt);
 			secondBundle.planXmitElt = sdr_list_insert_first(sdr,
 					queue, secondBundleObj);
 			sdr_write(sdr, secondBundleObj, (char *)

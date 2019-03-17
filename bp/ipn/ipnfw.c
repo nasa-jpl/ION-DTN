@@ -17,7 +17,11 @@
 #endif
 
 #ifndef CGR_DEBUG
+#ifdef	CGR_IOT
+#define CGR_DEBUG	1
+#else
 #define CGR_DEBUG	0
+#endif
 #endif
 
 #if CGR_DEBUG == 1
@@ -74,6 +78,7 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
+#ifndef CGR_IOT
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
@@ -111,6 +116,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	return 0;
 }
+#endif
 
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
@@ -159,6 +165,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
+#ifndef CGR_IOT
 	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
@@ -212,6 +219,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 			return -1;
 		}
 	}
+#endif
 
 	if (bundle->planXmitElt)
 	{

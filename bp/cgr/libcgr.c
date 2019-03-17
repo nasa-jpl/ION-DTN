@@ -28,7 +28,11 @@
 #endif
 
 #ifndef	MANAGE_OVERBOOKING
+#ifdef	CGR_IOT
+#define	MANAGE_OVERBOOKING	0
+#else
 #define	MANAGE_OVERBOOKING	1
+#endif
 #endif
 
 /*		Perform a trace if a trace callback exists.		*/
@@ -65,16 +69,23 @@ typedef struct
 	/*	Details of the route.					*/
 
 	float		arrivalConfidence;
-	time_t		arrivalTime;	/*	As from time(2).	*/
+	time_t		arrivalTime;	/*	Earliest arrival time.	*/
 	PsmAddress	hops;		/*	SM list: IonCXref addr.	*/
 
 	/*	Transient values, valid only for the routing of the
-	 *	current bundle.						*/
+	 *	current bundle.  Note that, to reduce possible
+	 *	confusion, we refer to "projected bundle arrival time"
+	 *	as "pbat", reserving the term "arrivalTime"
+	 *	to mean "earliest arrival time" - which is a property
+	 *	of the route's sequence of contacts, without reference
+	 *	to any particular bundle.				*/
 
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
 	Scalar		protected;	/*	Bytes not overbooked.	*/
 	size_t		bundleECCC;
 	size_t		maxVolumeAvbl;
+	time_t		eto;		/*	Earliest xmit oppor'ty.	*/
+	time_t		pbat;		/*	Proj. bundle arr. time.	*/
 
 	/*	NOTE: initial transmission on the "spur" portion of
 	 *	this route is from the contact identified by rootOfSpur
@@ -275,9 +286,7 @@ static CgrVdb	*getCgrVdb()
 		putErrmsg("Can't initialize CGR volatile database.", name);
 		return NULL;
 	}
-#if 0
-	clearRoutingObjects(ionwm);
-#endif
+
 	sdr_exit_xn(sdr);
 	return vdb;
 }
@@ -1110,11 +1119,9 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	PsmAddress	elt2;
 	PsmAddress	knownRouteAddr;
 	CgrRoute	*knownRoute;
-	int		knownRouteHopCount;
 	PsmAddress	bestKnownRouteElt;
 	PsmAddress	bestKnownRouteAddr;
 	CgrRoute	*bestKnownRoute;
-	int		bestKnownRouteHopCount;
 
 //puts("*** Computing another route. ***");
 	*elt = 0;	/*	Default: no new route found.		*/
@@ -1181,28 +1188,17 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	{
 		/*	Determine whether or not this route is the
 		 *	best route in the B list. Preference is by
-		 *	ascending arrival time, ascending hop count,
-		 *	descending termination time, ascending entry
-		 *	node number.					*/
+		 *	ascending arrival time.				*/
 
 //puts("*** Considering a B-list node for migration to A-list. ***");
 		knownRouteAddr = sm_list_data(ionwm, elt2);
 		knownRoute = (CgrRoute *) psp(ionwm, knownRouteAddr);
-		knownRouteHopCount = sm_list_length(ionwm, knownRoute->hops);
 		if (bestKnownRouteElt == 0)
 		{
 			bestKnownRouteElt = elt2;
 			bestKnownRouteAddr = knownRouteAddr;
 			bestKnownRoute = knownRoute;
-			bestKnownRouteHopCount = knownRouteHopCount;
 			continue;
-		}
-
-		/*	Earlier arrival time?				*/
-
-		if (knownRoute->arrivalTime > bestKnownRoute->arrivalTime)
-		{
-			continue;	/*	Not better.		*/
 		}
 
 		if (knownRoute->arrivalTime < bestKnownRoute->arrivalTime)
@@ -1210,53 +1206,7 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 			bestKnownRouteElt = elt2;
 			bestKnownRouteAddr = knownRouteAddr;
 			bestKnownRoute = knownRoute;
-			bestKnownRouteHopCount = knownRouteHopCount;
-			continue;
 		}
-
-		/*	Fewer hops?					*/
-
-		if (knownRouteHopCount > bestKnownRouteHopCount)
-		{
-			continue;	/*	Not better.		*/
-		}
-
-		if (knownRouteHopCount < bestKnownRouteHopCount)
-		{
-			bestKnownRouteElt = elt2;
-			bestKnownRouteAddr = knownRouteAddr;
-			bestKnownRoute = knownRoute;
-			bestKnownRouteHopCount = knownRouteHopCount;
-			continue;
-		}
-
-		/*	Termination time?				*/
-
-		if (knownRoute->toTime < bestKnownRoute->toTime)
-		{
-			continue;	/*	Not better.		*/
-		}
-
-		if (knownRoute->toTime > bestKnownRoute->toTime)
-		{
-			bestKnownRouteElt = elt2;
-			bestKnownRouteAddr = knownRouteAddr;
-			bestKnownRoute = knownRoute;
-			bestKnownRouteHopCount = knownRouteHopCount;
-			continue;
-		}
-
-		/*	Entry node number?				*/
-
-		if (knownRoute->toNodeNbr > bestKnownRoute->toNodeNbr)
-		{
-			continue;	/*	Not better.		*/
-		}
-
-		bestKnownRouteElt = elt2;
-		bestKnownRouteAddr = knownRouteAddr;
-		bestKnownRoute = knownRoute;
-		bestKnownRouteHopCount = knownRouteHopCount;
 	}
 
 	if (bestKnownRouteElt)
@@ -1321,8 +1271,8 @@ static size_t	carryingCapacity(size_t avblVolume)
 	}
 }
 
-static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
-			time_t currentTime, BpPlan *plan, time_t *eto)
+static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
+			time_t currentTime, BpPlan *plan)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1344,7 +1294,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	Scalar		radiationLatency;
 	unsigned int	owlt;
 	unsigned int	owltMargin;
-	time_t		arrivalTime;
+	time_t		acqTime;
 	Object		contactObj;
 	IonContact	contactBuf;
 	int		priority;
@@ -1521,7 +1471,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	divideScalar(&radiationLatency, contact->xmitRate);
 	firstByteTransmitTime += ((ONE_GIG * radiationLatency.gigs)
 			+ radiationLatency.units);
-	*eto = firstByteTransmitTime;
+	route->eto = firstByteTransmitTime;
 
 	/*	Add time to transmit everything preceding last byte.	*/
 
@@ -1537,7 +1487,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 	doNotFragment = bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT;
 	route->maxVolumeAvbl = route->bundleECCC;
 
-	/*	Now compute expected final arrival time by adding
+	/*	Now compute expected bundle delivery time by adding
 	 *	OWLTs, inter-contact delays, and per-hop radiation
 	 *	latencies along the path to the terminus node.  In
 	 *	so doing, ensure that EVL is not fully depleted at
@@ -1567,14 +1517,14 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		if (getApplicableRange(contact, &owlt) < 0)
 		{
 			/*	Can't determine owlt for this contact,
-			 *	so arrival time can't be computed.
+			 *	so delivery time can't be computed.
 			 *	Route is not usable.			*/
 
 			return 0;
 		}
 
 		owltMargin = ((MAX_SPEED_MPH / 3600) * owlt) / 186282;
-		arrivalTime = lastByteTransmitTime + owlt + owltMargin;
+		acqTime = lastByteTransmitTime + owlt + owltMargin;
 
 		/*	Ensure that the contact is not depleted.	*/
 
@@ -1647,9 +1597,9 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		 *	bundle must be forwarded from this node.	*/
 
 		contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
-		if (arrivalTime > contact->fromTime)
+		if (acqTime > contact->fromTime)
 		{
-			firstByteTransmitTime = arrivalTime;
+			firstByteTransmitTime = acqTime;
 		}
 		else
 		{
@@ -1669,15 +1619,16 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 				+ radiationLatency.units);
 	}
 
-	if (arrivalTime > (bundle->expirationTime + EPOCH_2000_SEC))
+	if (acqTime > (bundle->expirationTime + EPOCH_2000_SEC))
 	{
 		/*	Bundle will never arrive: it will expire
 		 *	before arrival.					*/
 
-		arrivalTime = 0;
+		acqTime = 0;
 	}
 
-	return arrivalTime;
+	route->pbat = acqTime;
+	return acqTime;
 }
 
 static float	getNewDlvConfidence(Bundle *bundle, CgrRoute *route)
@@ -1699,15 +1650,15 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 			CgrTrace *trace, Lyst bestRoutes)
 {
 	Sdr		sdr = getIonsdr();
+	PsmPartition	wm = getIonwm();
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		planObj;
 	BpPlan		plan;
-	time_t		arrivalTime;
-	Scalar		overbooked;
-	Scalar		protected;
-	time_t		eto;
+	time_t		pbat;
+	LystElt		candidateElt;
+	CgrRoute	*candidateRoute;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
 			route->toNodeNbr);
@@ -1740,9 +1691,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	 *	to scan the scheduled intervals of contact with the
 	 *	candidate neighbor.					*/
 
-	arrivalTime = computeBundleArrivalTime(route, bundle, currentTime,
-			&plan, &eto);
-	if (arrivalTime == 0)	/*	Can't be delivered in time.	*/
+	pbat = computePBAT(route, bundle, currentTime, &plan);
+	if (pbat == 0)			/*	Can't arrive in time.	*/
 	{
 		TRACE(CgrExcludeRoute, CgrRouteCongested);
 		return 0;		/*	Connections too tight.	*/
@@ -1750,11 +1700,87 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 
 	/*	This route is a plausible opportunity for getting
 	 *	the bundle forwarded to the terminus node before it
-	 *	expires, so we add the route to the list of best
-	 *	routes for this bundle.					*/
+	 *	expires.  But we want only a single route in the
+	 *	bestRoutes list.  If this route's arrival time is
+	 *	earlier than that of our current bestRoutes candidate
+	 *	(if any), or its arrival time is the same but other
+	 *	qualities make it better, then we add this route to
+	 *	the list of best routes for this bundle; the current
+	 *	bestRoutes candidate route (if any) is removed from
+	 *	the list.						*/
 
-	copyScalar(&route->overbooked, &overbooked);
-	copyScalar(&route->protected, &protected);
+	candidateElt = lyst_first(bestRoutes);
+	if (candidateElt)	/*	May need to replace this one.	*/
+	{
+		candidateRoute = (CgrRoute *) lyst_data(candidateElt);
+		CHKZERO(candidateRoute);
+		if (candidateRoute->pbat < pbat)
+		{
+			/*	Current candidate is better.		*/
+
+			return 0;
+		}
+
+		if (candidateRoute->pbat > pbat)
+		{
+			/*	This route is better.			*/
+
+//printf("Earlier delivery time: old %lu, new %lu.\n", candidateRoute->pbat, pbat);
+			lyst_delete(candidateElt);
+		}
+		else	/*	Same delivery time.			*/
+		{
+			if (sm_list_length(wm, candidateRoute->hops) <
+					sm_list_length(wm, route->hops))
+			{
+				/*	Current candidate is better.	*/
+
+				return 0;
+			}
+
+			if (sm_list_length(wm, candidateRoute->hops) >
+					sm_list_length(wm, route->hops))
+			{
+				/*	This route is better.		*/
+
+//puts("Fewer hops.");
+				lyst_delete(candidateElt);
+			}
+			else	/*	Same number of hops.		*/
+			{
+				if (candidateRoute->toTime > route->toTime)
+				{
+					/*	Current one is better.	*/
+
+					return 0;
+				}
+
+				if (candidateRoute->toTime < route->toTime)
+				{
+					/*	This one is better.	*/
+
+//puts("Later termination time.");
+					lyst_delete(candidateElt);
+				}
+				else	/*	Same termination time.	*/
+				{
+					if (candidateRoute->toNodeNbr <
+							route->toNodeNbr)
+					{
+						/*	Current better.	*/
+
+						return 0;
+					}
+
+					/*	This one is better.	*/
+
+//puts("Smaller entry node number.");
+					lyst_delete(candidateElt);
+				}
+			}
+		}
+	}
+
 	if (lyst_insert_last(bestRoutes, (void *) route) == 0)
 	{
 		putErrmsg("Can't add route.", NULL);
@@ -1788,10 +1814,19 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	if (*elt)	/*	Have got a route to examine.		*/
 	{
+		/*	We want to check the next route in the
+		 *	selectedRoutes list (if any) after we
+		 *	have checked this one.				*/
+
 		nextElt = sm_list_next(ionwm, *elt);
 	}
 	else		/*	At end of selectedRoutes list.		*/
 	{
+		/*	If we identify a new candidate route, then
+		 *	that route will by definition be at the
+		 *	end of the selectedRoutes list; in that case,
+		 *	there is no next route to check.		*/
+
 		nextElt = 0;
 
 		/*	Must compute a new selected route.  This
@@ -2003,31 +2038,46 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 	PsmAddress	elt;
 
 	/*	Perform route selection outer loop until the list
-	 *	of best routes is non-empty, i.e., at least one
-	 *	route from the local node to the terminus node
-	 *	has been identified.					*/
+	 *	of best routes contains the single best route for
+	 *	transmission of this bundle.				*/
 
 	elt = sm_list_first(ionwm, routingObj->selectedRoutes);
-	while (lyst_length(bestRoutes) == 0)
+	while (1)
 	{
 		switch (checkRoute(terminusNode, viaNodeNbr, &elt, bundle,
 				bundleObj, excludedNodes, trace, bestRoutes,
 				currentTime, deadline))
 		{
-		case -1:	/*	System failure.			*/
+		case 1:			/*	A route was checked.	*/
+			if (elt)	/*	There's another.	*/
+			{
+				continue;
+			}
+
+			/*	At end of selectedRoutes.		*/
+
+			if (lyst_length(bestRoutes) == 0)
+			{
+				/*	No candidate; force computation
+				 *	of another selected route.	*/
+
+				continue;
+			}
+
+			/*	Have checked all selectedRoutes and
+			 *	picked the best one as candidate.	*/
+
+			return 0;
+
+		case 0:			/*	No more possible routes.*/
+			return 0;
+
+		default:
 			putErrmsg("Failed checking route to node.",
 					utoa(terminusNode->nodeNbr));
 			return -1;
-
-		case 0:		/*	No more routes to check.	*/
-			return 0;
-
-		default:	/*	Can continue checking.		*/
-			break;	/*	Out of switch; try again.	*/
 		}
 	}
-
-	return 0;
 }
 
 static int	loadCriticalBestRoutesList(IonNode *terminusNode,
@@ -2250,18 +2300,34 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 			CgrRoute *route)
 {
 	Sdr		sdr = getIonsdr();
-	size_t		fragmentLength;
-	Bundle		firstBundle;
-	Object		firstBundleObj;
-	Bundle		secondBundle;
-	Object		secondBundleObj;
 	Object		stationEidElt;
 	Object		stationEid;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		stationMetaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	size_t		fragmentLength;
+	Bundle		firstBundle;
+	Object		firstBundleObj;
+	Bundle		secondBundle;
+	Object		secondBundleObj;
 	Scheme		schemeBuf;
+
+	stationEidElt = sdr_list_first(sdr, bundle->stations);
+	CHKERR(stationEidElt);
+	stationEid = sdr_list_data(sdr, stationEidElt);
+	CHKERR(stationEid);
+	if (sdr_string_read(sdr, eid, stationEid) < 0)
+	{
+		return -1;
+	}
+
+	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
+	{
+		restoreEidString(&stationMetaEid);
+		putErrmsg("Bad station EID", eid);
+		return -1;
+	}
 
 	fragmentLength = carryingCapacity(route->maxVolumeAvbl);
 	if (fragmentLength == 0)
@@ -2279,19 +2345,12 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	/*	Send the second fragment back through the routing
 	 *	procedure; adapted from forwardBundle().		*/
 
-	stationEidElt = sdr_list_first(sdr, secondBundle.stations);
-	CHKERR(stationEidElt);
-	stationEid = sdr_list_data(sdr, stationEidElt);
-	CHKERR(stationEid);
-	if (sdr_string_read(sdr, eid, stationEid) < 0)
+	restoreEidString(&stationMetaEid);
+	stationEid = sdr_string_create(sdr, eid);
+	if (stationEid == 0
+	|| sdr_list_insert_first(sdr, secondBundle.stations, stationEid) == 0)
 	{
-		return -1;
-	}
-
-	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
-	{
-		restoreEidString(&stationMetaEid);
-		putErrmsg("Bad station EID", eid);
+		putErrmsg("Can't note station for second fragment", eid);
 		return -1;
 	}
 
@@ -2390,6 +2449,7 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 		if (route->maxVolumeAvbl < route->bundleECCC
 		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
 		{
+//printf("*** fragmenting; to node %lu, volume avbl %lu, bundle ECCC %lu.\n", route->toNodeNbr, route->maxVolumeAvbl, route->bundleECCC);
 			if (proactivelyFragment(bundle, &bundleObj, route) < 0)
 			{
 				putErrmsg("Anticipatory fragmentation failed.",
@@ -2429,6 +2489,10 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 			route->toNodeNbr);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
+#ifdef CGR_IOT
+printf("Enqueuing bundle: to node " UVAST_FIELDSPEC ", eto %lu, pbat %lu.\n",
+route->toNodeNbr, route->eto, route->pbat);
+#endif
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
@@ -2662,11 +2726,11 @@ static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
 static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			IonNode *terminusNode, Lyst bestRoutes, int preview)
 {
-	PsmPartition	ionwm = getIonwm();
+//	PsmPartition	ionwm = getIonwm();
 	LystElt		elt;
 	LystElt		nextElt;
 	CgrRoute	*route;
-	CgrRtgObject	*routingObject;
+//	CgrRtgObject	*routingObject;
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -2711,6 +2775,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(bestRoutes);
+#ifndef	CGR_IOT
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
 	{
@@ -2747,6 +2812,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 		putErrmsg("Can't put bundle in limbo.", NULL);
 		return -1;
 	}
+#endif
 
 	return 0;
 }
@@ -2767,10 +2833,12 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	Embargo		*embargo;
 	LystElt		elt;
 	CgrRoute	*route;
+#ifndef CGR_IOT
 	PsmAddress	routingObjectAddr;
 	CgrRtgObject	*routingObject;
 	Bundle		newBundle;
 	Object		newBundleObj;
+#endif
 
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
@@ -2870,6 +2938,21 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		}
 	}
 
+#ifdef CGR_IOT
+if (bundle->ancillaryData.flowLabel == 86)
+{
+	if (excludeNode(excludedNodes, 524306))
+	{
+		putErrmsg("Can't exclude node 524306.", NULL);
+		lyst_destroy(excludedNodes);
+		lyst_destroy(bestRoutes);
+		return -1;
+	}
+
+	writeMemo("[i] Node 524306 has been added to the ExcludedNodes list.");
+}
+#endif
+
 	/*	Consult the contact graph to identify the neighboring
 	 *	node(s) to forward the bundle to.			*/
 
@@ -2930,6 +3013,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		TRACE(CgrNoRoute);
 	}
 
+#ifndef CGR_IOT
 	lyst_destroy(bestRoutes);
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
@@ -2970,6 +3054,7 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		putErrmsg("Can't put bundle in limbo.", NULL);
 		return -1;
 	}
+#endif
 
 	return 0;
 }
@@ -3064,7 +3149,7 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	int			i = traceType;
 	static const char	*tracepointText[] =
 	{
-	[CgrBuildRoutes] = "BUILD terminusNode:" UVAST_FIELDSPEC
+	[CgrBuildRoutes] = "\n\nBUILD terminusNode:" UVAST_FIELDSPEC
 		" payloadLength:%u atTime:%u",
 	[CgrInvalidTerminusNode] = "    INVALID terminus node",
 
@@ -3102,8 +3187,8 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrSkipRoute] = "    SKIP",
 	[CgrUseRoute] = "  USE " UVAST_FIELDSPEC,
 	[CgrNoRoute] = "  NO route",
-	[CgrFullOverbooking] = "	Full OVERBOOKING (amount in bytes):%f",
-	[CgrPartialOverbooking] = " Partial OVERBOOKING (amount in bytes):%f",
+	[CgrFullOverbooking] = "	Full OVERBOOKING (amount in bytes): %f",
+	[CgrPartialOverbooking] = " Partial OVERBOOKING (amount in bytes): %f",
 	};
 
 	if (i < 0 || i >= CgrTraceTypeMax)
@@ -3163,11 +3248,9 @@ void	cgr_stop()
 	PsmAddress	vdbAddress;
 	PsmAddress	elt;
 	CgrVdb		*vdb;
-#if 0
-	/*Clear Route Caches*/
-	clearRoutingObjects(wm);
-#endif
-	/*Free volatile database*/
+
+	/*	Free volatile database					*/
+
 	if (psm_locate(wm, name, &vdbAddress, &elt) < 0)
 	{
 		putErrmsg("Failed searching for vdb.", NULL);

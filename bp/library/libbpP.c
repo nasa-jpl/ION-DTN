@@ -7840,15 +7840,22 @@ void	bpCancelAcq(AcqWorkArea *work)
 unsigned int	guessBundleSize(Bundle *bundle)
 {
 	CHKZERO(bundle);
+#ifdef CGR_IOT
+	return bundle->payload.length;
+#else
 	return (NOMINAL_PRIMARY_BLKSIZE
 		+ bundle->dictionaryLength
 		+ bundle->extensionsLength[PRE_PAYLOAD]
 		+ bundle->payload.length
 		+ bundle->extensionsLength[POST_PAYLOAD]);
+#endif
 }
 
 unsigned int	computeECCC(unsigned int bundleSize)
 {
+#ifdef CGR_IOT
+	return bundleSize;
+#else
 	unsigned int	stackOverhead;
 
 	/*	Assume 6.25% convergence-layer overhead.		*/
@@ -7860,6 +7867,7 @@ unsigned int	computeECCC(unsigned int bundleSize)
 	}
 
 	return bundleSize + stackOverhead;
+#endif
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -11825,6 +11833,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 
 int	bpHandleXmitFailure(Object bundleZco)
 {
+#ifndef CGR_IOT
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
@@ -11874,6 +11883,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		putErrmsg("Can't handle transmission failure.", NULL);
 		return -1;
 	}
+#endif
 
 	return 1;
 }
