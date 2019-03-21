@@ -94,6 +94,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 	unsigned int	maxPayloadLength;
 	ClProtocol	protocol;
 	char		inductName[32];
+	int		regionIdx;
 	time_t		currentTime;
 	PsmAddress	xaddr;
 	uvast		nodeNbrA;
@@ -201,8 +202,9 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 
 	if (cbhe)
 	{
+		regionIdx = ionRegionOf(neighborNodeNbr, 0);
 		currentTime = getUTCTime();
-		if (rfx_insert_contact(currentTime, 0, ownNodeNbr,
+		if (rfx_insert_contact(regionIdx, currentTime, 0, ownNodeNbr,
 				neighborNodeNbr, xmitRate, 1.0, &xaddr) < 0
 		|| xaddr == 0)
 		{
@@ -211,8 +213,9 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 			return -1;
 		}
 
-		if (rfx_insert_contact(currentTime, 0, neighborNodeNbr,
-				ownNodeNbr, recvRate, 1.0, &xaddr) < 0
+		if (rfx_insert_contact(regionIdx, currentTime, 0,
+				neighborNodeNbr, ownNodeNbr, recvRate, 1.0,
+				&xaddr) < 0
 		|| xaddr == 0)
 		{
 			putErrmsg("Can't add reception contact.", neighborEid);

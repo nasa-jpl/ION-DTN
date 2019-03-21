@@ -88,14 +88,16 @@ i.e., an offset beyond the current reference time.
 
 =item B<^> I<region_number>
 
-The B<region> command.  This is used to identify the region corresponding
-to the contact plan that will include all contacts added until this execution
-of ionadmin terminates, or until the next B<region> command is processed.
+The B<region> command.  This is used to identify the region to which
+all ensuing "add contact" operations (until this execution of ionadmin
+terminates, or until the next B<region> command is processed) pertain.
 A B<region> is an arbitarily managed set of nodes that customarily are able
 to use contact graph routing to compute forwarding routes among themselves,
-which consequently share a common contact plan.  Regions are notionally quite
-small sets (on the order of 16-32 nodes) because contact graph routing is
-computationally intensive.
+and which consequently share a common contact plan.  As such, there is a
+one-to-one correspondence between regions and contact plans, so in
+effect the B<region> command is used to switch between contact plans.
+Regions are notionally quite small sets (on the order of 16-32 nodes)
+because contact graph routing is computationally intensive.
 
 =item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
 
@@ -113,71 +115,30 @@ The period of time between the start and stop times of a contact is termed
 the contact's "interval".  The intervals of scheduled contacts are not
 allowed to overlap.
 
-Five different types of contact can be intermixed within an .ionrc file that
+Two different types of contact can be intermixed within an .ionrc file that
 defines a contact plan.
 
 =over 4
 
-=item 1  registration
+=item 1  Registration
 
-When both I<start_time> and I<stop_time> are zero, I<confidence> is 1.0,
-and I<source_node> and I<dest_node> are identical, the contact signifies
-the "registration" of this node in the region corresponding to the contact
-plan of which this contact is a part.  A registration contact simply affirms
-the source node's permanent membership in this region, persisting even during
-periods when the node is able neither to send nor to receive data.  When
-inserted into the contact plan, the contact's start and stop times are both
-automatically changed from zero to the maximum POSIX time and its data rate
-is set to zero.
+When I<stop_time> is zero, the contact signifies the "registration" of a
+node in the region corresponding to the contact plan of which this contact
+is a part.  In this case, I<start_time> must also be zero, I<confidence>
+must be 1.0, and I<source_node> and I<dest_node> must be identical and
+non-zero.  A registration contact simply affirms the source node's permanent
+membership in this region, persisting even during periods when the node
+is able neither to send nor to receive data.  When inserted into the
+contact plan, the contact's start and stop times are both automatically
+changed from zero to the maximum POSIX time and its data rate is set to zero.
 
-=item 2  latent
+=item 2  Scheduled
 
-When both I<start_time> and I<stop_time> are zero, I<confidence> is 0.0, and
-I<source_node> or I<dest_node> (but not both) identify the local node, the
-contact is "latent".  A latent contact is an opportunity to transmit data
-either to or from the local node that is expected to occur at some time in
-the future, under unknown conditions.  When the indicated communication
-opportunity subsequently occurs, the latent contact is automatically
-transformed into a "discovered" contact, simulating the addition of a
-new discovered contact as discussed below.  Latent contacts are included
-in the computation of routes to destination nodes, but a route that
-commences with a latent (rather than discovered) contact cannot be
-selected for the forwarding of data.  When inserted into the contact plan,
-the contact's stop time is automatically changed from zero to the maximum
-POSIX time and its data rate is set to zero.
-
-=item 3  discovered
-
-When both I<start_time> and I<stop_time> are zero, I<confidence> is 1.0, and
-I<source_node> or I<dest_node> (but not both) identify the local node, the
-contact is "discovered".  A discovered contact is an opportunity to transmit
-data either to or from the local node that has spontaneously occurred in
-real time.  I<data_rate> must be greater than zero (the discovered data
-rate).  When inserted into the contact plan, the contact's start time is
-automatically changed to the current time and its stop time is automatically
-changed from zero to the maximum POSIX time or to the start time of the
-earliest subsequent scheduled contact in the contact plan with the same
-source and destination, whichever is earlier.  When the discovered contact
-ends, the discovered contact is automatically transformed into a latent
-contact, simulating the addition of a latent contact as discussed above:
-its I<start_time>, I<stop_time>, I<confidence>, I<data_rate> are all set
-to zero.
-
-=item 4  scheduled
-
-When I<stop_time> is greater than zero and I<confidence> is 1.0, the contact
-is "scheduled".  A scheduled contact is a managed opportunity to transmit data
-between nodes, as inferred (for example) from a spacecraft or ground station
-operating plan.  I<stop_time> must be greater than I<start_time> and
-I<data_rate> must be greater than zero.
-
-=item 5  predicted
-
-When I<stop_time> is greater than zero and I<confidence> is less than 1.0,
-the contact is "predicted".  A predicted contact is a statistically likely
-opportunity to transmit data between nodes, as inferred from the network's
-history of contact discoveries.  As for a scheduled contact, I<stop_time>
-must be greater than I<start_time> and I<data_rate> must be greater than zero.
+When I<stop_time> is greater than zero, the contact is "scheduled".  A
+scheduled contact is a managed opportunity to transmit data between nodes,
+as inferred (for example) from a spacecraft or ground station operating
+plan.  I<start_time> must be less than I<stop_time> and I<data_rate>
+and I<confidence> must both be greater than zero.
 
 =back
 
@@ -362,6 +323,21 @@ that are occupied by inbound and outbound zero-copy objects), the total
 zero-copy-object space occupancy ceiling, and the maximum level
 of occupancy predicted by the most recent I<ionadmin> congestion forecast
 computation.
+
+=item B<m home> I<home_region_number>
+
+This management command asserts that the node's home region is the region
+that is identified by I<home_region_number>.  If no home region is asserted,
+home region number defaults to zero, the "root region".
+
+=item B<m outer> I<outer_region_number>
+
+This management command asserts that the node's outer region is the region
+that is identified by I<outer_region_number>.  Outer region number defaults
+to -1, "no region", indicating that the node is a "terminal node".  When a
+node's outer region number is not -1, the node is able to function as a
+"passageway" by which bundles are conveyed between nodes in the home
+region and nodes in the outer region.
 
 =item B<r> 'I<command_text>'
 

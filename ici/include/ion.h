@@ -91,13 +91,72 @@ typedef struct
 	uvast		outerRegionNbr;
 } RegionMember;
 
+/*	Four different types of Contact may be intermixed within a
+ *	contact plan.
+ *
+ *	(1)  A "registration" contact constitutes the registration
+ *	of the indicated node (noted as both From and To) in the
+ *	region corresponding to the contact plan of which this
+ *	contact is a part.  A registration contact simply affirms
+ *	the source node's permanent membership in this region,
+ *	persisting even during periods when the node is able
+ *	neither to send nor to receive data.  The start and stop
+ *	times of a registration contact are both set to the
+ *	maximum POSIX time, data rate is always zero, confidence
+ *	is 1.0.
+ *
+ *	(2)  A "scheduled" contact is an asserted opportunity to
+ *	transmit data between nodes, as inferred (for example)
+ *	from a spacecraft or ground station operating plan.  The
+ *	confidence value of a scheduled contact may be 1.0 if
+ *	the contact is planned and managed; alternatively, it may
+ *	be less than 1.0 if the contact is a statistically likely
+ *	transmission opportunity as inferred from the network's
+ *	history of contact discoveries.
+ *
+ *	(3)  A "latent" contact is an opportunity to transmit data
+ *	between two distinct nodes that is expected to occur at
+ *	some time in the future, under unknown conditions.  If
+ *	either the From or To node is the local node, and the
+ *	indicated communication opportunity subsequently occurs,
+ *	the latent contact is automatically transformed
+ *	into a discovered contact as discussed below.  Latent
+ *	contacts are included in the computation of routes to
+ *	destination nodes, but a route that commences with a
+ *	latent (rather than discovered) contact cannot be selected
+ *	for the forwarding of data.  The start time of a latent
+ *	contact is zero, the stop time is the maximum POSIX time,
+ *	and the data rate and confidence are computed as a function
+ *	of contact discovery history.
+ *
+ *	(4)  A "discovered" contact is an opportunity to transmit
+ *	data either to or from the local node that has spontaneously
+ *	occurred in real time.  Discovery of a contact simply causes
+ *	the corresponding latent contact (which is automatically
+ *	created if not pre-existing) to be updated with confidence
+ *	set to 1.0 and data rate set to the discovered data rate,
+ *	and it temporarily suppresses from routing consideration
+ *	all scheduled contacts for the same From and To nodes.
+ *	When the discovered contact ends, any suppressed
+ *	scheduled contacts are restored to consideration and the
+ *	discovered contact becomes latent once again: data rate
+ *	and confidence are re-computed based on the newly updated
+ *	contact discovery history.
+ *
+ *	Scheduled and latent contacts between the same two nodes
+ *	never coexist in a contact plan.  Insertion of a scheduled
+ *	contact automatically removes any corresponding latent
+ *	contact.  Termination of a discovered contact automatically
+ *	removes the corresponding latent contact if any scheduled
+ *	contacts exist in the contact plan.				*/
+
 typedef enum
 {
 	CtRegistration = 1,
+	CtScheduled,
 	CtLatent,
 	CtDiscovered,
-	CtScheduled,
-	CtPredicted
+	CtSuppressed
 } ContactType;
 
 typedef struct
@@ -132,11 +191,9 @@ typedef struct
 
 typedef struct
 {
-	uvast		regionNbr;
+	vast		regionNbr;
 	Object		members;	/*	SDR list: RegionMember	*/
 	Object		contacts;	/*	SDR list: IonContact	*/
-	Object		ranges;		/*	SDR list: IonRange	*/
-	Object		contactLog[2];	/*	SDR list: PastContact	*/
 } IonRegion;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
@@ -145,6 +202,8 @@ typedef struct
 {
 	uvast		ownNodeNbr;
 	IonRegion	regions[2];	/*	Home, outer.		*/
+	Object		ranges;		/*	SDR list: IonRange	*/
+	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
@@ -367,6 +426,11 @@ extern void		ionProd(	uvast fromNode,
 					size_t xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate();
+
+extern int		ionJoinRegion(int i, vast regionNbr);
+extern int		ionPickRegion(vast regionNbr);
+extern void		ionLeaveRegion(int i);
+extern int		ionRegionOf(uvast nodeA, uvast nodeB);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

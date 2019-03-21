@@ -712,16 +712,63 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	return cxaddr;
 }
 
-int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
-		uvast toNode, size_t xmitRate, float confidence,
+static void	insertContact(int regionIdx, time_t fromTime, time_t toTime,
+		uvast fromNode, uvast toNode, size_t xmitRate, float confidence,
+		ContactType contactType, PsmAddress *cxaddr)
+{
+	Sdr		sdr = getIonsdr();
+	IonContact	contact;
+	uvast		volume;
+	Object		obj;
+	Object		iondbObj;
+	IonDB		iondb;
+	Object		elt;
+	IonCXref	newCx;
+
+	contact.fromTime = fromTime;
+	contact.toTime = toTime;
+	contact.fromNode = fromNode;
+	contact.toNode = toNode;
+	contact.xmitRate = xmitRate;
+	contact.confidence = confidence;
+	contact.type = contactType;
+	volume = xmitRate * (toTime - fromTime);
+	contact.mtv[0] = volume;	/*	Bulk.			*/
+	contact.mtv[1] = volume;	/*	Standard.		*/
+	contact.mtv[2] = volume;	/*	Expedited.		*/
+	obj = sdr_malloc(sdr, sizeof(IonContact));
+	if (obj)
+	{
+		sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
+		iondbObj = getIonDbObject();
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		elt = sdr_list_insert_last(sdr,
+				iondb.regions[regionIdx].contacts, obj);
+		if (elt)
+		{
+			memset((char *) &newCx, 0, sizeof(IonCXref));
+			newCx.fromTime = fromTime;
+			newCx.toTime = toTime;
+			newCx.fromNode = fromNode;
+			newCx.toNode = toNode;
+			newCx.xmitRate = xmitRate;
+			newCx.confidence = confidence;
+			newCx.type = contactType;
+			newCx.routingObject = 0;
+			newCx.contactElt = elt;
+			*cxaddr = insertCXref(&newCx);
+		}
+	}
+}
+
+int	rfx_insert_contact(int regionIdx, time_t fromTime, time_t toTime,
+		uvast fromNode, uvast toNode, size_t xmitRate, float confidence,
 		PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
 	ContactType	contactType;
-	int		discovered = 0;
-	IonCXref	newCx;
 	IonCXref	arg;
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
@@ -729,70 +776,182 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
 	char		buf1[TIMESTAMPBUFSZ];
 	char		buf2[TIMESTAMPBUFSZ];
 	char		contactIdString[128];
-	IonContact	contact;
-	uvast		volume;
-	Object		iondbObj;
-	IonDB		iondb;
-	Object		obj;
-	Object		elt;
 
-	CHKERR(fromNode);
-	CHKERR(toNode);
-	CHKERR(confidence >= 0.0 && confidence <= 1.0);
 	CHKERR(cxaddr);
+	*cxaddr = 0;			/*	Default.		*/
+	if (regionIdx < 0)
+	{
+		writeMemo("[?] Can't insert contact, nodes not in any \
+common region.");
+		return 0;
+	}
+
+	if (fromNode == 0)
+	{
+		writeMemo("[?] Can't insert contact From node 0.");
+		return 0;
+	}
+
+	if (toNode == 0)
+	{
+		writeMemo("[?] Can't insert contact To node 0.");
+		return 0;
+	}
+
+	if (confidence < 0.0 || confidence > 1.0)
+	{
+		writeMemo("[?] Can't insert contact: confidence must be \
+between 0.0 and 1.0.");
+		return 0;
+	}
+
 	if (toTime == 0)
 	{
 		toTime = MAX_POSIX_TIME;
-		if (fromTime == 0)
+		xmitRate = 0;
+		if (confidence == 0.0)
 		{
-			if (confidence == 0.0)
-			{
-				contactType = CtLatent;
-			}
-			else
-			{
-				fromTime = MAX_POSIX_TIME;
-				contactType = CtRegistration;
-			}
+			fromTime = 0;
+			contactType = CtLatent;
 		}
 		else
 		{
-			contactType = CtDiscovered;
+			CHKZERO(fromNode == toNode);
+			fromTime = MAX_POSIX_TIME;
+			confidence = 1.0;
+			contactType = CtRegistration;
 		}
 	}
-	else
+	else	/*	Scheduled.					*/
 	{
-		if (confidence == 1.0)
+		if (toTime <= fromTime)
 		{
-			contactType = CtScheduled;
+			writeMemo("[?] Can't insert contact, To time must \
+be later than From time.");
+			return 0;
 		}
-		else
+
+		if (xmitRate == 0)
 		{
-			contactType = CtPredicted;
+			writeMemo("[?] Can't insert contact with xmit rate 0.");
+			return 0;
 		}
+
+		/*	No artificial parameter values, nothing to
+		 *	override.					*/
+
+		contactType = CtScheduled;
 	}
 
-	CHKERR(toTime >= fromTime);
-	CHKERR(sdr_begin_xn(sdr));
 	*cxaddr = 0;	/*	Default.				*/
-
-	/*	Navigate to the first contact for this node pair.	*/
-
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
-	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
-			&arg, &nextElt);
-	if (cxelt)	/*	A contact with start time zero exists.	*/
+	CHKERR(sdr_begin_xn(sdr));
+
+	/*	Insert registration contact, if applicable.		*/
+
+	if (contactType == CtRegistration)
 	{
-		putErrmsg("Contact with start time 0 exists from node",
-				itoa(fromNode));
-		writeMemoNote("...to node", itoa(toNode));
-		sdr_exit_xn(sdr);
-		return 0;	/*	Do not insert.			*/
+		arg.fromTime = fromTime;	/*	MAX_POSIX_TIME	*/
+		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
+				rfx_order_contacts, &arg, &nextElt);
+		if (cxelt)	/*	Registration contact exists.	*/
+		{
+			writeMemo("[?] Won't insert redundant registration \
+contact.");
+			sdr_exit_xn(sdr);
+			return 0;	/*	Do not insert.		*/
+		}
+
+		insertContact(regionIdx, fromTime, toTime, fromNode, toNode,
+				xmitRate, confidence, contactType, cxaddr);
+		return sdr_end_xn(sdr);
 	}
 
-	cxelt = nextElt;	/*	First contact for node pair.	*/
+	/*	New contact is either Latent or Scheduled.
+	 *
+	 *	Navigate to the first contact for this node pair;
+	 *	arg's To and From times are both zero at this point.	*/
+
+	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
+			&arg, &nextElt);
+	if (cxelt)	/*	Found contact with start time 0.	*/
+	{
+		*cxaddr = sm_rbt_data(ionwm, cxelt);
+		cxref = (IonCXref *) psp(ionwm, *cxaddr);
+		if (cxref->type == CtLatent)
+		{
+			/*	New contact replaces this contact.	*/
+
+			if (rfx_remove_contact(cxref->fromTime, cxref->fromNode,
+					cxref->toNode) < 0)
+			{
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+
+			insertContact(regionIdx, fromTime, toTime, fromNode,
+					toNode, xmitRate, confidence,
+					contactType, cxaddr);
+			return sdr_end_xn(sdr);
+		}
+
+		/*	Existing first contact must be Discovered,
+		 *	Scheduled, or Suppressed (scheduled).		*/
+
+		if (contactType == CtLatent)
+		{
+			writeMemo("[?] New Latent contact ignored.");
+			sdr_exit_xn(sdr);
+			return 0;	/*	Do not insert.		*/
+		}
+
+		/*	New contact is Scheduled.  Check for overlap.	*/
+	}
+	else	/*	1st contact, if any, is Scheduled or Reg.	*/
+	{
+		cxelt = nextElt;
+		if (cxelt == 0)
+		{
+			/*	No contacts for this node pair; okay
+			 *	to insert this one, whatever it is.	*/
+
+			insertContact(regionIdx, fromTime, toTime,
+					fromNode, toNode, xmitRate, confidence,
+					contactType, cxaddr);
+			return sdr_end_xn(sdr);
+		}
+
+		/*	Existing first contact must be Scheduled,
+		 *	Suppressed (scheduled), or Registration.	*/
+
+		*cxaddr = sm_rbt_data(ionwm, cxelt);
+		cxref = (IonCXref *) psp(ionwm, *cxaddr);
+		if (cxref->type == CtRegistration)
+		{
+			/*	No Scheduled or Suppressed contacts
+			 *	for this node pair; okay to insert
+			 *	this one, whatever it is.		*/
+
+			insertContact(regionIdx, fromTime, toTime,
+					fromNode, toNode, xmitRate, confidence,
+					contactType, cxaddr);
+			return sdr_end_xn(sdr);
+		}
+
+		/*	Existing first contact must be Scheduled or
+		 *	Suppressed (scheduled).				*/
+
+		if (contactType == CtLatent)
+		{
+			writeMemo("[?] New Latent contact ignored.");
+			sdr_exit_xn(sdr);
+			return 0;	/*	Do not insert.		*/
+		}
+
+		/*	New contact is Scheduled.  Check for overlap.	*/
+	}
 
 	/*	Now look for overlapping contacts.			*/
 
@@ -868,51 +1027,9 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
 
 	/*	Contact isn't already in database; okay to add.		*/
 
-	contact.fromTime = fromTime;
-	contact.toTime = toTime;
-	contact.fromNode = fromNode;
-	contact.toNode = toNode;
-	contact.xmitRate = xmitRate;
-	contact.confidence = confidence;
-	contact.discovered = discovered;
-	volume = xmitRate * (toTime - fromTime);
-	contact.mtv[0] = volume;	/*	Bulk.			*/
-	contact.mtv[1] = volume;	/*	Standard.		*/
-	contact.mtv[2] = volume;	/*	Expedited.		*/
-	obj = sdr_malloc(sdr, sizeof(IonContact));
-	if (obj)
-	{
-		sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
-		iondbObj = getIonDbObject();
-		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		elt = sdr_list_insert_last(sdr, iondb.contacts, obj);
-		if (elt)
-		{
-			memset((char *) &newCx, 0, sizeof(IonCXref));
-			newCx.fromTime = fromTime;
-			newCx.toTime = toTime;
-			newCx.fromNode = fromNode;
-			newCx.toNode = toNode;
-			newCx.xmitRate = xmitRate;
-			newCx.confidence = confidence;
-			newCx.discovered = discovered;
-			newCx.routingObject = 0;
-			newCx.contactElt = elt;
-			*cxaddr = insertCXref(&newCx);
-			if (*cxaddr == 0)
-			{
-				sdr_cancel_xn(sdr);
-			}
-		}
-	}
-
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't insert contact.", NULL);
-		return -1;
-	}
-
-	return 0;
+	insertContact(regionIdx, fromTime, toTime, fromNode, toNode, xmitRate,
+			confidence, contactType, cxaddr);
+	return sdr_end_xn(sdr);
 }
 
 char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
@@ -1147,7 +1264,7 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	/*	Possibly write to contact log.				*/
 
-	if (cxref->discovered)
+	if (cxref->type == CtDiscovered)
 	{
 		if (cxref->fromNode == ownNodeNbr)
 		{
@@ -1387,6 +1504,7 @@ int	rfx_remove_discovered_contacts(uvast peerNode)
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
 	uvast		self = getOwnNodeNbr();
+	int		regionIdx;
 	IonDB		iondb;
 	Object		obj;
 	Object		elt;
@@ -1397,15 +1515,17 @@ int	rfx_remove_discovered_contacts(uvast peerNode)
 	PsmAddress	nextCxelt;
 	PsmAddress	cxaddr;
 
+	regionIdx = ionRegionOf(peerNode, 0);
 puts("In rfx_remove_discovered_contacts....");
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	for (elt = sdr_list_first(sdr, iondb.contacts); elt; elt = nextElt)
+	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].contacts); elt;
+			elt = nextElt)
 	{
 		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		if (contact.discovered == 0)
+		if (contact.type != CtDiscovered)
 		{
 puts("(contact not discovered)");
 			continue;	/*	Not discovered.		*/
@@ -1528,6 +1648,7 @@ static int	removePredictedContacts(uvast fromNode, uvast toNode)
 {
 	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
+	int		i;
 	Object		obj;
 	Object		elt;
 	Object		nextElt;
@@ -1535,32 +1656,38 @@ static int	removePredictedContacts(uvast fromNode, uvast toNode)
 
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	for (elt = sdr_list_first(sdr, iondb.contacts); elt; elt = nextElt)
+	for (i = 0; i < 2; i++)
 	{
-		nextElt = sdr_list_next(sdr, elt);
-		obj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		if (contact.confidence == 1.0)
+		for (elt = sdr_list_first(sdr, iondb.regions[i].contacts); elt;
+			       	elt = nextElt)
 		{
-			continue;	/*	Managed or discovered.	*/
-		}
-
-		/*	This is a predicted contact.			*/
-
-		if (fromNode)		/*	Selective removal.	*/
-		{
-			if (contact.fromNode != fromNode
-			|| contact.toNode != toNode)
+			nextElt = sdr_list_next(sdr, elt);
+			obj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &contact, obj,
+					sizeof(IonContact));
+			if (contact.confidence == 1.0)
 			{
-				continue;	/*	N/A		*/
+				continue;	/*	Not predicted.	*/
 			}
-		}
 
-		if (rfx_remove_contact(contact.fromTime, contact.fromNode,
-				contact.toNode) < 0)
-		{
-			putErrmsg("Failure in rfx_remove_contact.", NULL);
-			break;
+			/*	This is a predicted contact.		*/
+
+			if (fromNode)	/*	Selective removal.	*/
+			{
+				if (contact.fromNode != fromNode
+				|| contact.toNode != toNode)
+				{
+					continue;	/*	N/A	*/
+				}
+			}
+
+			if (rfx_remove_contact(contact.fromTime,
+					contact.fromNode, contact.toNode) < 0)
+			{
+				putErrmsg("Failure in rfx_remove_contact.",
+						NULL);
+				break;
+			}
 		}
 	}
 
@@ -1730,6 +1857,7 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime)
 {
 	uvast		fromNode;
 	uvast		toNode;
+	int		regionIdx;
 	time_t		horizon;
 	LystElt		elt;
 	PbContact	*contact;
@@ -1766,6 +1894,13 @@ char	buf[255];
 	contact = (PbContact *) lyst_data(start);
 	fromNode = contact->fromNode;
 	toNode = contact->toNode;
+	regionIdx = ionRegionOf(fromNode, toNode);
+	if (regionIdx < 0)	/*	Nodes not in a common region.	*/
+	{
+puts("Contact's from/to nodes don't co-reside in the home or outer region.");
+		return 0;
+	}
+
 	horizon = currentTime + (currentTime - contact->fromTime);
 writeTimestampLocal(currentTime, buf);
 printf("Current time: %s\n", buf);
@@ -1793,8 +1928,7 @@ printf("Gap duration " UVAST_FIELDSPEC ".\n", gapDuration);
 		}
 
 		prevElt = elt;
-//		if (lyst_data(elt) == lyst_data(end))
-		if (elt == end)
+		if (lyst_data(elt) == lyst_data(end))
 		{
 			break;
 		}
@@ -1834,8 +1968,7 @@ meanCapacity, meanContactDuration, meanGapDuration);
 		}
 
 		prevElt = elt;
-//		if (lyst_data(elt) == lyst_data(end))
-		if (elt == end)
+		if (lyst_data(elt) == lyst_data(end))
 		{
 			break;
 		}
@@ -1859,7 +1992,7 @@ UVAST_FIELDSPEC ".\n", contactStdDev, gapStdDev);
 	else
 	{
 		contactDoubt = MAX(0.1,
-				((double) contactStdDev) / meanContactDuration);
+			((double) contactStdDev) / meanContactDuration);
 	}
 
 printf("Contact doubt %f.\n", contactDoubt);
@@ -1886,8 +2019,8 @@ printf("Net confidence %f.\n", netConfidence);
 	xmitRate = totalCapacity / (horizon - currentTime);
 	if (xmitRate > 1)
 	{
-		if (rfx_insert_contact(currentTime, horizon, fromNode, toNode,
-				xmitRate, netConfidence, &cxaddr) < 0)
+		if (rfx_insert_contact(regionIdx, currentTime, horizon,
+			fromNode, toNode, xmitRate, netConfidence, &cxaddr) < 0)
 		{
 			putErrmsg("Can't insert contact.", NULL);
 			return -1;
@@ -2826,7 +2959,7 @@ static int	loadContact(Object elt)
 	cxref.toTime = contact.toTime;
 	cxref.xmitRate = contact.xmitRate;
 	cxref.confidence = contact.confidence;
-	cxref.discovered = contact.discovered;
+	cxref.type = contact.type;
 	cxref.contactElt = elt;
 	cxref.routingObject = 0;
 	if (insertCXref(&cxref) == 0)
@@ -2844,6 +2977,7 @@ int	rfx_start()
 	IonVdb		*vdb = getIonVdb();
 	Object		iondbObj;
 	IonDB		iondb;
+	int		i;
 	Object		elt;
 
 	iondbObj = getIonDbObject();
@@ -2881,14 +3015,17 @@ int	rfx_start()
 
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	for (elt = sdr_list_first(sdr, iondb.contacts); elt;
-			elt = sdr_list_next(sdr, elt))
+	for (i = 0; i < 2; i++)
 	{
-		if (loadContact(elt) < 0)
+		for (elt = sdr_list_first(sdr, iondb.regions[i].contacts); elt;
+				elt = sdr_list_next(sdr, elt))
 		{
-			putErrmsg("Can't load contact.", NULL);
-			sdr_exit_xn(sdr);
-			return -1;
+			if (loadContact(elt) < 0)
+			{
+				putErrmsg("Can't load contact.", NULL);
+				sdr_exit_xn(sdr);
+				return -1;
+			}
 		}
 	}
 

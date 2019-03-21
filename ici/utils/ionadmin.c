@@ -26,9 +26,9 @@ static time_t	_referenceTime(time_t *newValue)
 	return refTime;
 }
 
-static uvast	_regionNbr(uvast *newValue)
+static vast	_regionNbr(vast *newValue)
 {
-	static uvast	regionNbr = 0;
+	static vast	regionNbr = -1;
 
 	if (newValue)
 	{
@@ -117,8 +117,8 @@ static void	printUsage()
 	PUTS("\t\tThe @ command sets the reference time from which subsequent \
 relative times (+ss) are computed.");
 	PUTS("\t   ^ <region number>");
-	PUTS("\t\tThe ^ command sets the region number identifying the contact \
-plan that will include contacts added here.");
+	PUTS("\t\tThe ^ command identifies the region to which all ensuing \
+'add contact' operations pertain.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
@@ -151,6 +151,8 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
+	PUTS("\t   m home <home region number>");
+	PUTS("\t   m outer <outer region number>");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
@@ -212,7 +214,7 @@ void	executeAdd(int tokenCount, char **tokens)
 		break;
 
 	case 7:
-		confidence = 1.0;
+		confidence = 1.0;	/*	Default value.		*/
 		break;
 
 	default:
@@ -223,9 +225,27 @@ void	executeAdd(int tokenCount, char **tokens)
 	refTime = _referenceTime(NULL);
 	fromNodeNbr = strtouvast(tokens[4]);
 	toNodeNbr = strtouvast(tokens[5]);
+	if (fromNodeNbr <= 0)
+	{
+		printText("'From' node number must be greater than zero.");
+		return;
+	}
+
+	if (toNodeNbr <= 0)
+	{
+		printText("'To' node number must be greater than zero.");
+		return;
+	}
+
+	if (confidence < 0.0 || confidence > 1.0)
+	{
+		printText("Confidence must be in the range 0.0 to 1.0.");
+		return;
+	}
+
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		if (strncmp(tokens[2], "0") == 0)
+		if (strncmp(tokens[2], "0", 1) == 0)
 		{
 			fromTime = 0;
 		}
@@ -234,7 +254,7 @@ void	executeAdd(int tokenCount, char **tokens)
 			fromTime = readTimestampUTC(tokens[2], refTime);
 		}
 
-		if (strncmp(tokens[3], "0") == 0)
+		if (strncmp(tokens[3], "0", 1) == 0)
 		{
 			toTime = 0;
 		}
@@ -243,7 +263,22 @@ void	executeAdd(int tokenCount, char **tokens)
 			toTime = readTimestampUTC(tokens[3], refTime);
 		}
 
-		if (toTime != 0)
+		if (toTime == 0)
+		{
+			/*	Must be a registration contact.		*/
+
+			if (fromTime != 0
+			|| fromNodeNbr != toNodeNbr)
+			{
+				printText("For registration contact, from \
+and to times must both be zero, from and to nodes must be identical.");
+				return;
+			}
+
+			xmitRate = 0;
+			confidence = 1.0;
+		}
+		else			/*	Scheduled contact.	*/
 		{
 			if (toTime <= fromTime)
 			{
@@ -251,11 +286,12 @@ void	executeAdd(int tokenCount, char **tokens)
 than start time and earlier than 19 January 2038.");
 				return;
 			}
+
+			xmitRate = strtol(tokens[6], NULL, 0);
 		}
 
-		xmitRate = strtol(tokens[6], NULL, 0);
-		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, xmitRate, confidence, &xaddr));
+		oK(rfx_insert_contact(_regionNbr(NULL), fromTime, toTime,
+			fromNodeNbr, toNodeNbr, xmitRate, confidence, &xaddr));
 		oK(_forecastNeeded(1));
 		return;
 	}
@@ -338,7 +374,7 @@ void	executeDelete(int tokenCount, char **tokens)
 	uvast	fromNodeNbr;
 	uvast	toNodeNbr;
 
-<<--  Revise to enable deletion of registration and latent contacts.
+//<<--  Revise to enable deletion of registration and latent contacts.
 
 	if (tokenCount < 2)
 	{
@@ -887,6 +923,90 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 	printText(buffer);
 }
 
+static void	manageRegion(int tokenCount, char **tokens, int i)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj;
+	IonDB		iondb;
+	char		buffer[128];
+	vast		regionNbr;
+	IonRegion	*region; 
+
+	iondbObj = getIonDbObject();
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	if (tokenCount == 2)
+	{
+		isprintf(buffer, sizeof buffer, "home region is "
+VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
+				iondb.regions[0].regionNbr,
+				iondb.regions[1].regionNbr);
+		sdr_exit_xn(sdr);
+		printText(buffer);
+		return;
+	}
+
+	if (tokenCount != 3)
+	{
+		sdr_exit_xn(sdr);
+		SYNTAX_ERROR;
+		return;
+	}
+
+	region = &(iondb.regions[i]);
+	regionNbr = strtovast(tokens[2]);
+	if (regionNbr < 0)
+	{
+		if (regionNbr != -1)	/*	Only -1 is valid.	*/
+		{
+			sdr_exit_xn(sdr);
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (i == 0)	/*	Trying to leave home region.	*/
+		{
+			sdr_exit_xn(sdr);
+			printText("Attempt to leave network, not supported.");
+			return;
+		}
+
+		/*	Node is ceasing to be a passageway to its
+		 *	outer region.					*/
+
+		ionLeaveRegion(1);
+		oK(sdr_end_xn(sdr));
+		return;
+	}
+
+	/*	Node is joining a new region.				*/
+
+	if (ionPickRegion(regionNbr) != -1)
+	{
+		/*	Node already resides in the indicated region.	*/
+
+		sdr_exit_xn(sdr);
+		printText("Attempt to join a region the node is already in.");
+		return;
+	}
+
+	if (region->regionNbr != -1)
+	{
+		/*	Must leave old region first.			*/
+
+		ionLeaveRegion(i);
+	}
+
+	if (ionJoinRegion(i, regionNbr) < 0)
+	{
+		sdr_cancel_xn(sdr);
+		return;
+	}
+
+	oK(sdr_end_xn(sdr));
+	return;
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -962,6 +1082,18 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "usage") == 0)
 	{
 		manageUsage(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "home") == 0)
+	{
+		manageRegion(tokenCount, tokens, 0);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outer") == 0)
+	{
+		manageRegion(tokenCount, tokens, 1);
 		return;
 	}
 
@@ -1045,7 +1177,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 	time_t		currentTime;
 	struct timeval	done_time;
 	struct timeval	cur_time;
-	uvast		regionNbr;
+	vast		regionNbr;
 	int		max = 0;
 	int		count = 0;
 
@@ -1199,8 +1331,16 @@ no time.");
 				}
 				else
 				{
-					regionNbr = strtouvast(tokens[1]);
-					oK(_regionNbr(&regionNbr));
+					regionNbr = strtovast(tokens[1]);
+					if (ionPickRegion(regionNbr) < 0)
+					{
+						printText("Node does not \
+reside in this region.");
+					}
+					else
+					{
+						oK(_regionNbr(&regionNbr));
+					}
 				}
 			}
 

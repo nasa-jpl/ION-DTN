@@ -944,6 +944,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	time_t      toTime = 0;
 	uvast       fromNodeNbr = 0;
 	uvast       toNodeNbr = 0;
+	int         regionIdx;
 	PsmAddress  xaddr;
 	uvast    	xmitRate;
 	uvast       confidence;
@@ -971,6 +972,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 		toNodeNbr = adm_get_parm_uvast(parms, 3, &success);
 	}
 
+	regionIdx = ionRegionOf(fromNodeNbr, toNodeNbr);
 	if(success)
 	{
 		xmitRate = adm_get_parm_uvast(parms, 4, &success);
@@ -983,7 +985,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		if(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
+		if(rfx_insert_contact(regionIdx, fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate, confidence, &xaddr) == 0)
 		{
 			*status = CTRL_SUCCESS;
