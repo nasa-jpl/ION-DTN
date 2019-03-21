@@ -1,0 +1,52 @@
+=head1 NAME
+
+ionlog - utility for redirecting stdin to the ION log file
+
+=head1 SYNOPSIS
+
+B<ionlog>
+
+=head1 DESCRIPTION
+
+The B<ionlog> program simply reads lines of text from stdin and uses
+writeMemo to copy them into the ion.log file.  It terminates when it
+reaches EOF in stdin.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ionlog> has terminated successfully.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item ionlog unable to attach to ION.
+
+Probable operations error: ION appears not to be initialized, in which case
+there is no point in running B<ionlog>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+amslogprt(1)
