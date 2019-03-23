@@ -114,47 +114,45 @@ typedef struct
  *	transmission opportunity as inferred from the network's
  *	history of contact discoveries.
  *
- *	(3)  A "latent" contact is an opportunity to transmit data
- *	between two distinct nodes that is expected to occur at
- *	some time in the future, under unknown conditions.  If
- *	either the From or To node is the local node, and the
- *	indicated communication opportunity subsequently occurs,
- *	the latent contact is automatically transformed
- *	into a discovered contact as discussed below.  Latent
- *	contacts are included in the computation of routes to
- *	destination nodes, but a route that commences with a
- *	latent (rather than discovered) contact cannot be selected
- *	for the forwarding of data.  The start time of a latent
- *	contact is zero, the stop time is the maximum POSIX time,
- *	and the data rate and confidence are computed as a function
- *	of contact discovery history.
+ *	(3)  A "predicted" contact is an asserted opportunity to
+ *	transmit data between nodes (neither of which is the
+ *	local node), as inferred from the network's history of
+ *	discovered contacts.  The data rate and confidence of a
+ *	predicted contact are computed as a function of the
+ *	contact history between the two nodes.  
  *
- *	(4)  A "discovered" contact is an opportunity to transmit
+ *	(4)  A "hypothetical" contact is an opportunity to transmit
+ *	data between the local node and some other node that is
+ *	expected to occur at some time in the future, under unknown
+ *	conditions.  If the indicated communication opportunity
+ *	subsequently occurs, the hypothetical contact is
+ *	automatically transformed into a discovered contact as
+ *	discussed below.  Hypothetical contacts are included in
+ *	the computation of routes to destination nodes, but a
+ *	route that commences with a hypothetical (rather than
+ *	discovered) contact cannot be selected for the
+ *	forwarding of data.  The start time of a hypothetical
+ *	contact is zero, the stop time is the maximum POSIX time,
+ *	and the data rate and confidence are both zero.
+ *
+ *	(5)  A "discovered" contact is an opportunity to transmit
  *	data either to or from the local node that has spontaneously
  *	occurred in real time.  Discovery of a contact simply causes
- *	the corresponding latent contact (which is automatically
+ *	the corresponding hypothetical contact (which is automatically
  *	created if not pre-existing) to be updated with confidence
  *	set to 1.0 and data rate set to the discovered data rate,
  *	and it temporarily suppresses from routing consideration
  *	all scheduled contacts for the same From and To nodes.
  *	When the discovered contact ends, any suppressed
  *	scheduled contacts are restored to consideration and the
- *	discovered contact becomes latent once again: data rate
- *	and confidence are re-computed based on the newly updated
- *	contact discovery history.
- *
- *	Scheduled and latent contacts between the same two nodes
- *	never coexist in a contact plan.  Insertion of a scheduled
- *	contact automatically removes any corresponding latent
- *	contact.  Termination of a discovered contact automatically
- *	removes the corresponding latent contact if any scheduled
- *	contacts exist in the contact plan.				*/
+ *	discovered contact becomes hypothetical once again.		*/
 
 typedef enum
 {
 	CtRegistration = 1,
 	CtScheduled,
-	CtLatent,
+	CtPredicted,
+	CtHypothetical,
 	CtDiscovered,
 	CtSuppressed
 } ContactType;

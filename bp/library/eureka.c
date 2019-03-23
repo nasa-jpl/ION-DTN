@@ -13,65 +13,207 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-static int 	compareNeighbors(PsmPartition partition, PsmAddress eltData,
+static int 	compareDiscoveries(PsmPartition partition, PsmAddress eltData,
 			void *argData)
 {
-	NdpNeighbor	 *neighbor = psp(partition, eltData);
+	Discovery	*discovery = psp(partition, eltData);
 	char		*targetEid = (char *) argData;
 
-	return strncmp(neighbor->eid, targetEid, MAX_EID_LEN);
+	return strncmp(discovery->eid, targetEid, MAX_EID_LEN);
 }
 
-static int	addNdpNeighbor(char *eid)
+static int	addDiscovery(char *eid)
 {
 	PsmPartition	wm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
 	PsmAddress	elt;
-	PsmAddress	neighborAddr;
-	NdpNeighbor	*neighbor;
+	PsmAddress	discoveryAddr;
+	Discovery	*discovery;
 
-	elt = bp_discover_find_neighbor(eid);
+	elt = bp_find_discovery(eid);
 	if (elt)
 	{
 		return 0;
 	}
 
-	neighborAddr = psm_malloc(wm, sizeof(NdpNeighbor));
-	if (neighborAddr == 0)
+	discoveryAddr = psm_malloc(wm, sizeof(Discovery));
+	if (discoveryAddr == 0)
 	{
-		putErrmsg("Can't add NdpNeighbor.", eid);
+		putErrmsg("Can't add Discovery.", eid);
 		return -1;
 	}
 
-	neighbor = (NdpNeighbor *) psp(wm, neighborAddr);
-	istrcpy(neighbor->eid, eid, sizeof neighbor->eid);
-	neighbor->lastContactTime = getUTCTime();
-	if (sm_list_insert(wm, vdb->neighbors, neighborAddr, compareNeighbors,
-			eid) == 0)
+	discovery = (Discovery *) psp(wm, discoveryAddr);
+	istrcpy(discovery->eid, eid, sizeof discovery->eid);
+	discovery->startOfContact = getUTCTime();
+	discovery->lastContactTime = getUTCTime();
+	if (sm_list_insert(wm, vdb->discoveries, discoveryAddr,
+			compareDiscoveries, eid) == 0)
 	{
-		putErrmsg("Can't add NdpNeighbor.", eid);
+		putErrmsg("Can't add Discovery.", eid);
 		return -1;
 	}
 
 	return 0;
 }
 
-static void	deleteNdpNeighbor(char *eid)
+static void	deleteDiscovery(char *eid)
 {
 	PsmPartition	wm = getIonwm();
 	PsmAddress	elt;
-	PsmAddress	neighborAddr;
+	PsmAddress	discoveryAddr;
 
-	elt = bp_discover_find_neighbor(eid);
+	elt = bp_find_discovery(eid);
 	if (elt)
 	{
-		neighborAddr = sm_list_data(wm, elt);
-		psm_free(wm, neighborAddr);
+		discoveryAddr = sm_list_data(wm, elt);
+		psm_free(wm, discoveryAddr);
 		sm_list_delete(wm, elt, NULL, NULL);
 	}
 }
 
-static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
+static void	toggleScheduledContacts(uvast fromNode, uvast toNode,
+			ContactType fromType, ContactType toType)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	IonCXref	arg;
+	PsmAddress	elt;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = fromNode;
+	arg.toNode = toNode;
+	for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
+			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
+	{
+		contactAddr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		if (contact->fromNode > fromNode || contact->toNode > toNode)
+		{
+			return;		/*	Done.			*/
+		}
+
+		if (contact->type == fromType)
+		{
+			contact->type = toType;
+		}
+	}
+}
+
+static int	noteContactAcquired(uvast discoveryNodeNbr,
+			unsigned int xmitRate, unsigned int recvRate)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	uvast		ownNodeNbr = getOwnNodeNbr();
+	int		regionIdx;
+	IonCXref	arg;
+	PsmAddress	elt;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+	time_t		currentTime;
+	PsmAddress	xaddr;
+	uvast		nodeNbrA;
+	uvast		nodeNbrB;
+
+	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+	if (regionIdx < 0)
+	{
+		writeMemo("Not adding contact for node; region unknown.",
+				itoa(discoveryNodeNbr));
+		return 0;
+	}
+
+	currentTime = getUTCTime();
+
+	/*	Find matching latent contact TO discovered neighbor.	*/
+
+	contact = NULL;
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = ownNodeNbr;
+	arg.toNode = discoveryNodeNbr;
+	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
+			&arg, &elt));
+	if (elt)
+	{
+		contactAddr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		if (contact->fromNode > ownNodeNbr
+		|| contact->toNode > discoveryNodeNbr)
+		{
+			contact = NULL;	/*	No latent contact.	*/
+		}
+	}
+
+	if (contact == NULL)	/*	Must insert latent contact.	*/
+	{
+		if (rfx_insert_contact(regionIdx, 0, MAX_POSIX_TIME, ownNodeNbr,
+			discoveryNodeNbr, 0, 0.0, &xaddr) < 0
+		|| xaddr == 0)
+		{
+			putErrmsg("Can't add latent contact.", discoveryEid);
+			return -1;
+		}
+
+		contact = (IonCXref *) psp(ionwm, xaddr);
+	}
+
+	if (contact->type == CtLatent)
+	{
+		contact->type = CtDiscovered;
+		contact->xmitRate = xmitRate;
+		contact->confidence = 1.0;
+		toggleScheduledContacts(ownNodeNbr, discoveryNodeNbr,
+				CtScheduled, CtSuppressed);
+	}
+
+	/*	Find matching latent contact FROM discovered neighbor.	*/
+
+	contact = NULL;
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = discoveryNodeNbr;
+	arg.toNode = ownNodeNbr;
+	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
+			&arg, &elt));
+	if (elt)
+	{
+		contactAddr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		if (contact->fromNode > discoveryNodeNbr
+		|| contact->toNode > ownNodeNbr)
+		{
+			contact = NULL;	/*	No latent contact.	*/
+		}
+	}
+
+	if (contact == NULL)	/*	Must insert latent contact.	*/
+	{
+		if (rfx_insert_contact(regionIdx, 0, MAX_POSIX_TIME,
+			discoveryNodeNbr, ownNodeNbr, 0, 0.0, &xaddr) < 0
+		|| xaddr == 0)
+		{
+			putErrmsg("Can't add latent contact.", discoveryEid);
+			return -1;
+		}
+
+		contact = (IonCXref *) psp(ionwm, xaddr);
+	}
+
+	if (contact->type == CtLatent)
+	{
+		contact->type = CtDiscovered;
+		contact->xmitRate = recvRate;
+		contact->confidence = 1.0;
+		toggleScheduledContacts(discoveryNodeNbr, ownNodeNbr,
+				CtScheduled, CtSuppressed);
+	}
+
+	return 0;
+}
+
+static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 			char *claProtocol, unsigned int xmitRate,
 			unsigned int recvRate)
 {
@@ -80,7 +222,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	uvast		neighborNodeNbr;
+	uvast		discoveryNodeNbr;
 	int		cbhe = 0;
 	Object		elt;
 	VPlan		*vplan;
@@ -94,46 +236,40 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 	unsigned int	maxPayloadLength;
 	ClProtocol	protocol;
 	char		inductName[32];
-	int		regionIdx;
-	time_t		currentTime;
-	PsmAddress	xaddr;
-	uvast		nodeNbrA;
-	uvast		nodeNbrB;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
-	CHKERR(neighborEid);
+	CHKERR(discoveryEid);
 	CHKERR(claProtocol);
 	CHKERR(xmitRate);
 	CHKERR(recvRate);
-	result = parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt);
+	result = parseEidString(discoveryEid, &metaEid, &vscheme, &vschemeElt);
 	if (result == 0)
 	{
-		writeMemoNote("[?] Neighbor discovery neighbor EID error",
-				neighborEid);
+		writeMemoNote("[?] Neighbor discovery EID error",
+				discoveryEid);
 		return -1;
 	}
 
-	neighborNodeNbr = metaEid.nodeNbr;
+	discoveryNodeNbr = metaEid.nodeNbr;
 	if (strcmp(metaEid.schemeName, "ipn") == 0)
 	{
 		cbhe = 1;
 	}
 
 	restoreEidString(&metaEid);
-	elt = bp_discover_find_neighbor(neighborEid);
+	elt = bp_find_discovery(discoveryEid);
 	if (elt)
 	{
-		writeMemoNote("[?] Neighbor previously discovered",
-				neighborEid);
+		writeMemoNote("[?] Not a new discovery", discoveryEid);
 		return 0;
 	}
 
-	findPlan(neighborEid, &vplan, &vplanElt);
+	findPlan(discoveryEid, &vplan, &vplanElt);
 	if (vplanElt)
 	{
 		writeMemoNote("[?] Neighbor is managed; no discovery",
-				neighborEid);
+				discoveryEid);
 		return 0;
 	}
 
@@ -197,46 +333,15 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 		}
 	}
 
-	/*	Insert contact and range into contact plan.  This is
-	 *	to enable CGR, regardless of outduct protocol.		*/
-
 	if (cbhe)
 	{
-		regionIdx = ionRegionOf(neighborNodeNbr, 0);
-		currentTime = getUTCTime();
-		if (rfx_insert_contact(regionIdx, currentTime, 0, ownNodeNbr,
-				neighborNodeNbr, xmitRate, 1.0, &xaddr) < 0
-		|| xaddr == 0)
-		{
-			putErrmsg("Can't add transmission contact.",
-					neighborEid);
-			return -1;
-		}
+		/*	Insert contact into contact plan.  This is
+	 	 *	to enable CGR, regardless of outduct protocol.	*/
 
-		if (rfx_insert_contact(regionIdx, currentTime, 0,
-				neighborNodeNbr, ownNodeNbr, recvRate, 1.0,
-				&xaddr) < 0
-		|| xaddr == 0)
+		if (noteContactAcquired(discoveryNodeNbr, xmitRate, recvRate))
 		{
-			putErrmsg("Can't add reception contact.", neighborEid);
-			return -1;
-		}
-
-		if (ownNodeNbr < neighborNodeNbr)
-		{
-			nodeNbrA = ownNodeNbr;
-			nodeNbrB = neighborNodeNbr;
-		}
-		else
-		{
-			nodeNbrA = neighborNodeNbr;
-			nodeNbrB = ownNodeNbr;
-		}
-
-		if (rfx_insert_range(currentTime, 0, nodeNbrA, nodeNbrB, 0,
-				&xaddr) < 0 || xaddr == 0)
-		{
-			putErrmsg("Can't add range.", neighborEid);
+			putErrmsg("Can't note contact discovered.",
+					discoveryEid);
 			return -1;
 		}
 	}
@@ -260,43 +365,43 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 
 	/*	Add plan, attach duct, start it.			*/
 
-	if (addPlan(neighborEid, ION_DEFAULT_XMIT_RATE) < 0)
+	if (addPlan(discoveryEid, ION_DEFAULT_XMIT_RATE) < 0)
 	{
-		putErrmsg("Can't add egress plan.", neighborEid);
+		putErrmsg("Can't add egress plan.", discoveryEid);
 		return -1;
 	}
 
-	if (attachPlanDuct(neighborEid, vduct->outductElt) < 0)
+	if (attachPlanDuct(discoveryEid, vduct->outductElt) < 0)
 	{
-		putErrmsg("Can't add plan duct.", neighborEid);
+		putErrmsg("Can't add plan duct.", discoveryEid);
 		return -1;
 	}
 
-	if (bpStartPlan(neighborEid) < 0)
+	if (bpStartPlan(discoveryEid) < 0)
 	{
-		putErrmsg("Can't start egress plan.", neighborEid);
+		putErrmsg("Can't start egress plan.", discoveryEid);
 		return -1;
 	}
 
-	/*	Add the NDP neighbor.					*/
+	/*	Add the discovery.					*/
 
-	if (addNdpNeighbor(neighborEid) < 0)
+	if (addDiscovery(discoveryEid) < 0)
 	{
-		putErrmsg("Can't add discovered Neighbor.", neighborEid);
+		putErrmsg("Can't add discovered Neighbor.", discoveryEid);
 		return -1;
 	}
 
 	return 0;
 }
 
-int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
+int	bp_discovery_acquired(char *socketSpec, char *discoveryEid,
 		char *claProtocol, unsigned int xmitRate, unsigned int recvRate)
 {
 	Sdr	sdr = getIonsdr();
 	int	result;
 
 	oK(sdr_begin_xn(sdr));
-	result = discoverContactAcquired(socketSpec, neighborEid, claProtocol,
+	result = discoveryAcquired(socketSpec, discoveryEid, claProtocol,
 			xmitRate, recvRate);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -307,39 +412,141 @@ int	bp_discover_contact_acquired(char *socketSpec, char *neighborEid,
 	return result;
 }
 
-static int	discoverContactLost(char *socketSpec, char *neighborEid,
+static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*ionvdb = getIonVdb();
+	uvast		ownNodeNbr = getOwnNodeNbr();
+	int		regionIdx;
+	IonCXref	arg;
+	PsmAddress	elt;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+	time_t		currentTime;
+	PsmAddress	xaddr;
+	uvast		nodeNbrA;
+	uvast		nodeNbrB;
+
+	currentTime = getUTCTime();
+	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+
+	/*	Find matching discovered contact TO neighbor.		*/
+
+	contact = NULL;
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = ownNodeNbr;
+	arg.toNode = discoveryNodeNbr;
+	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
+			&arg, &elt));
+	if (elt)
+	{
+		contactAddr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		if (contact->fromNode > ownNodeNbr
+		|| contact->toNode > discoveryNodeNbr)
+		{
+			contact = NULL;	/*	No discovered contact.	*/
+		}
+	}
+
+	if (contact == NULL)		/*	Functional error.	*/
+	{
+		putErrmsg("Discovered contact not found!",
+				itoa(discoveryNodeNbr));
+	}
+	else
+	{
+		if (contact->type == CtDiscovered)
+		{
+			rfx_log_discovered_contact(startTime, currentTime,
+					ownNodeNbr, discoveryNodeNbr,
+					contact->xmitRate, regionIdx);
+			contact->type = CtLatent;
+			contact->xmitRate = 0;
+			contact->confidence = 0.0;
+			toggleScheduledContacts(ownNodeNbr, discoveryNodeNbr,
+					CtSuppressed, CtScheduled);
+		}
+	}
+
+	/*	Find matching discovered contact FROM neighbor.		*/
+
+	contact = NULL;
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.fromNode = discoveryNodeNbr;
+	arg.toNode = ownNodeNbr;
+	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
+			&arg, &elt));
+	if (elt)
+	{
+		contactAddr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
+		if (contact->fromNode > discoveryNodeNbr
+		|| contact->toNode > ownNodeNbr)
+		{
+			contact = NULL;	/*	No discovered contact.	*/
+		}
+	}
+
+	if (contact == NULL)		/*	Functional error.	*/
+	{
+		putErrmsg("Discovered contact not found!",
+				itoa(discoveryNodeNbr));
+	}
+	else
+	{
+		if (contact->type == CtDiscovered)
+		{
+			rfx_log_discovered_contact(startTime, currentTime,
+					discoveryNodeNbr, ownNodeNbr
+					contact->xmitRate, regionIdx);
+			contact->type = CtLatent;
+			contact->xmitRate = 0;
+			contact->confidence = 0.0;
+			toggleScheduledContacts(discoveryNodeNbr, ownNodeNbr,
+					CtSuppressed, CtScheduled);
+		}
+	}
+
+	return 0;
+}
+
+static int	discoveryLost(char *socketSpec, char *discoveryEid,
 			char *claProtocol)
 {
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	PsmAddress	elt;
+	PsmAddress	discoveryAddr;
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	uvast		neighborNodeNbr;
+	uvast		discoveryNodeNbr;
 	int		cbhe = 0;
 	uvast		nodeNbrA;
 	uvast		nodeNbrB;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
-	CHKERR(neighborEid);
+	CHKERR(discoveryEid);
 	CHKERR(claProtocol);
-	elt = bp_discover_find_neighbor(neighborEid);
+	elt = bp_find_discovery(discoveryEid);
 	if (elt == 0)
 	{
 		return 0;	/*	Neighbor not discovered.	*/
 	}
 
-	result = parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt);
+	discoveryAddr = sm_list_data(wm, elt);
+	discovery = (Discovery *) psp(wm, discoveryAddr);
+	result = parseEidString(discoveryEid, &metaEid, &vscheme, &vschemeElt);
 	if (result == 0)
 	{
-		writeMemoNote("[?] Neighbor loss discovery neighbor EID error",
-				neighborEid);
+		writeMemoNote("[?] Neighbor loss discovery EID error",
+				discoveryEid);
 		return -1;
 	}
 
-	neighborNodeNbr = metaEid.nodeNbr;
+	discoveryNodeNbr = metaEid.nodeNbr;
 	if (strcmp(metaEid.schemeName, "ipn") == 0)
 	{
 		cbhe = 1;
@@ -349,79 +556,61 @@ static int	discoverContactLost(char *socketSpec, char *neighborEid,
 
 	/*	Stop transmission of bundles via this contact.		*/
 
-	bpStopPlan(neighborEid);
+	bpStopPlan(discoveryEid);
 
 	/*	No need to detach ducts, because removePlan will
 	 *	automatically do this.					*/
 
-	removePlan(neighborEid);
+	removePlan(discoveryEid);
 	bpStopOutduct(claProtocol, socketSpec);
 	removeOutduct(claProtocol, socketSpec);
 
-	/*	Fix up NDP database.					*/
-
-	deleteNdpNeighbor(neighborEid);
-
-	/*	For discovered ipn-scheme EID's egress plan, must
-	 *	manage contact and range as well as plan.		*/
+	/*	Fix up NDP data.					*/
 
 	if (cbhe)
 	{
-		if (rfx_remove_discovered_contacts(neighborNodeNbr) < 0)
-		{
-			putErrmsg("Can't remove applicable contacts.",
-					neighborEid);
-			return -1;
-		}
+		/*	For discovered ipn-scheme EID's egress plan,
+		 *	must manage contact as well as plan.		*/
 
-		if (ownNodeNbr < neighborNodeNbr)
+		if (noteContactLost(discoveryNodeNbr,
+				discovery->startOfContact) < 0)
 		{
-			nodeNbrA = ownNodeNbr;
-			nodeNbrB = neighborNodeNbr;
-		}
-		else
-		{
-			nodeNbrA = neighborNodeNbr;
-			nodeNbrB = ownNodeNbr;
-		}
-
-		if (rfx_remove_range(0, nodeNbrA, nodeNbrB) < 0)
-		{
-			putErrmsg("Can't remove range.", neighborEid);
+			putErrmsg("Can't note contact lost.", discoveryEid);
 			return -1;
 		}
 	}
 
+	deleteDiscovery(discoveryEid);
 	return 0;
 }
 
-int	bp_discover_contact_lost(char *socketSpec, char *neighborEid,
+int	bp_discovery_lost(char *socketSpec, char *discoveryEid,
 		char *claProtocol)
 {
 	Sdr	sdr = getIonsdr();
 	int	result;
 
 	oK(sdr_begin_xn(sdr));
-	result = discoverContactLost(socketSpec, neighborEid, claProtocol);
+	result = discoveryLost(socketSpec, discoveryEid, claProtocol);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("bp_discover_contact_lost failed.", NULL);
+		putErrmsg("bp_discovery_lost failed.", NULL);
 		return -1;
 	}
 
 	return result;
 }
 
-PsmAddress	bp_discover_find_neighbor(char *eid)
+PsmAddress	bp_find_discovery(char *eid)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	wm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
-	PsmAddress	neighbor;
+	PsmAddress	discovery;
 
 	oK(sdr_begin_xn(sdr));		/*	Just to lock database.	*/
-	neighbor = sm_list_search(wm, sm_list_first(wm, vdb->neighbors),
-			compareNeighbors, eid);
+	discovery = sm_list_search(wm, sm_list_first(wm, vdb->discoveries),
+			compareDiscoveries, eid);
 	sdr_exit_xn(sdr);
-	return neighbor;
+	return discovery;
 }

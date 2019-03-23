@@ -344,7 +344,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	IonRXref	*range;
 
 	*owlt = 0;		/*	Default.			*/
-	if (contact->type == CtDiscovered)
+	if (contact->type == CtLatent || contact->type == CtDiscovered)
 	{
 		return 0;	/*	Physically adjacent nodes.	*/
 	}
