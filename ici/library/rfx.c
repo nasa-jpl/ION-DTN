@@ -729,7 +729,7 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
 	char		buf2[TIMESTAMPBUFSZ];
 	char		contactIdString[128];
 	IonContact	contact;
-	uvast		volume;
+	Scalar		volume;
 	Object		iondbObj;
 	IonDB		iondb;
 	Object		obj;
@@ -849,10 +849,11 @@ int	rfx_insert_contact(time_t fromTime, time_t toTime, uvast fromNode,
 	contact.xmitRate = xmitRate;
 	contact.confidence = confidence;
 	contact.discovered = discovered;
-	volume = xmitRate * (toTime - fromTime);
-	contact.mtv[0] = volume;	/*	Bulk.			*/
-	contact.mtv[1] = volume;	/*	Standard.		*/
-	contact.mtv[2] = volume;	/*	Expedited.		*/
+	loadScalar(&volume, xmitRate);
+	multiplyScalar(&volume, (toTime - fromTime));
+	copyScalar(&(contact.mtv[0]), &volume);	/*	Bulk.		*/
+	copyScalar(&(contact.mtv[1]), &volume);	/*	Standard.	*/
+	copyScalar(&(contact.mtv[2]), &volume);	/*	Expedited.	*/
 	obj = sdr_malloc(sdr, sizeof(IonContact));
 	if (obj)
 	{
