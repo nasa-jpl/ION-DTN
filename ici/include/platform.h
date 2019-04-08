@@ -107,7 +107,10 @@ extern "C" {
 
 #else					/*	Not RTEMS or uClibc.	*/
 
-#define	LONG_LONG_OKAY		1
+#ifndef LONG_LONG_OKAY
+#define	LONG_LONG_OKAY		1	/*	Default value.		*/
+#endif
+
 #endif	/*	RTEMS or uClibc	or STRSOE				*/
 
 #if (!LONG_LONG_OKAY)

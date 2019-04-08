@@ -37,7 +37,11 @@
 
 #define TYPE_AS_MASK(type) (((uvast)1) << ((uvast)type))
 #define TYPE_MATCHES_MASK(type, mask) (TYPE_AS_MASK(type) & mask)
+#if (LONG_LONG_OKAY)
 #define TYPE_MASK_ALL (0xFFFFFFFFFFFFFFFF)
+#else
+#define TYPE_MASK_ALL (0xFFFFFFFF)
+#endif
 
 int ui_input_get_line(char *prompt, char **line, int max_len);
 
