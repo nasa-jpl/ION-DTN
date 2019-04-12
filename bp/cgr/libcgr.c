@@ -2490,8 +2490,8 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
 #ifdef CGR_IOT
-printf("Enqueuing bundle: to node " UVAST_FIELDSPEC ", eto %lu, pbat %lu.\n",
-route->toNodeNbr, route->eto, route->pbat);
+printf("Enqueuing bundle: to node " UVAST_FIELDSPEC ", eccc %lu, eto %lu, \
+pbat %lu.\n", route->toNodeNbr, route->bundleECCC, route->eto, route->pbat);
 #endif
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
@@ -2726,11 +2726,15 @@ static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
 static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			IonNode *terminusNode, Lyst bestRoutes, int preview)
 {
-//	PsmPartition	ionwm = getIonwm();
+#ifdef CGR_IOT
+	PsmPartition	ionwm = getIonwm();
+#endif
 	LystElt		elt;
 	LystElt		nextElt;
 	CgrRoute	*route;
-//	CgrRtgObject	*routingObject;
+#ifdef CGR_IOT
+	CgrRtgObject	*routingObject;
+#endif
 	Bundle		newBundle;
 	Object		newBundleObj;
 

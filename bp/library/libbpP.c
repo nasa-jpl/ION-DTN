@@ -7840,21 +7840,17 @@ void	bpCancelAcq(AcqWorkArea *work)
 unsigned int	guessBundleSize(Bundle *bundle)
 {
 	CHKZERO(bundle);
-#ifdef CGR_IOT
-	return bundle->payload.length;
-#else
 	return (NOMINAL_PRIMARY_BLKSIZE
 		+ bundle->dictionaryLength
 		+ bundle->extensionsLength[PRE_PAYLOAD]
 		+ bundle->payload.length
 		+ bundle->extensionsLength[POST_PAYLOAD]);
-#endif
 }
 
 unsigned int	computeECCC(unsigned int bundleSize)
 {
 #ifdef CGR_IOT
-	return bundleSize;
+	return bundleSize * 1.03;
 #else
 	unsigned int	stackOverhead;
 
