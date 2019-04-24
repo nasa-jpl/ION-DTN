@@ -113,20 +113,15 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
-	time_t		currentTime;
 	PsmAddress	xaddr;
-	uvast		nodeNbrA;
-	uvast		nodeNbrB;
 
 	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
 	if (regionIdx < 0)
 	{
-		writeMemo("Not adding contact for node; region unknown.",
+		writeMemoNote("Not adding contact for node; region unknown.",
 				itoa(discoveryNodeNbr));
 		return 0;
 	}
-
-	currentTime = getUTCTime();
 
 	/*	Find matching latent contact TO discovered neighbor.	*/
 
@@ -153,14 +148,15 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 			discoveryNodeNbr, 0, 0.0, &xaddr) < 0
 		|| xaddr == 0)
 		{
-			putErrmsg("Can't add latent contact.", discoveryEid);
+			putErrmsg("Can't add hypothetical contact.",
+					itoa(discoveryNodeNbr));
 			return -1;
 		}
 
 		contact = (IonCXref *) psp(ionwm, xaddr);
 	}
 
-	if (contact->type == CtLatent)
+	if (contact->type == CtHypothetical)
 	{
 		contact->type = CtDiscovered;
 		contact->xmitRate = xmitRate;
@@ -194,14 +190,15 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 			discoveryNodeNbr, ownNodeNbr, 0, 0.0, &xaddr) < 0
 		|| xaddr == 0)
 		{
-			putErrmsg("Can't add latent contact.", discoveryEid);
+			putErrmsg("Can't add hypothetical contact.",
+					itoa(discoveryNodeNbr));
 			return -1;
 		}
 
 		contact = (IonCXref *) psp(ionwm, xaddr);
 	}
 
-	if (contact->type == CtLatent)
+	if (contact->type == CtHypothetical)
 	{
 		contact->type = CtDiscovered;
 		contact->xmitRate = recvRate;
@@ -217,7 +214,6 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 			char *claProtocol, unsigned int xmitRate,
 			unsigned int recvRate)
 {
-	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -423,9 +419,6 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	time_t		currentTime;
-	PsmAddress	xaddr;
-	uvast		nodeNbrA;
-	uvast		nodeNbrB;
 
 	currentTime = getUTCTime();
 	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
@@ -461,7 +454,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 			rfx_log_discovered_contact(startTime, currentTime,
 					ownNodeNbr, discoveryNodeNbr,
 					contact->xmitRate, regionIdx);
-			contact->type = CtLatent;
+			contact->type = CtHypothetical;
 			contact->xmitRate = 0;
 			contact->confidence = 0.0;
 			toggleScheduledContacts(ownNodeNbr, discoveryNodeNbr,
@@ -498,9 +491,9 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 		if (contact->type == CtDiscovered)
 		{
 			rfx_log_discovered_contact(startTime, currentTime,
-					discoveryNodeNbr, ownNodeNbr
+					discoveryNodeNbr, ownNodeNbr,
 					contact->xmitRate, regionIdx);
-			contact->type = CtLatent;
+			contact->type = CtHypothetical;
 			contact->xmitRate = 0;
 			contact->confidence = 0.0;
 			toggleScheduledContacts(discoveryNodeNbr, ownNodeNbr,
@@ -514,17 +507,16 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 static int	discoveryLost(char *socketSpec, char *discoveryEid,
 			char *claProtocol)
 {
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	PsmAddress	discoveryAddr;
+	Discovery	*discovery;
 	int		result;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	uvast		discoveryNodeNbr;
 	int		cbhe = 0;
-	uvast		nodeNbrA;
-	uvast		nodeNbrB;
 
 	CHKERR(socketSpec);
 	CHKERR(*socketSpec);
@@ -536,8 +528,8 @@ static int	discoveryLost(char *socketSpec, char *discoveryEid,
 		return 0;	/*	Neighbor not discovered.	*/
 	}
 
-	discoveryAddr = sm_list_data(wm, elt);
-	discovery = (Discovery *) psp(wm, discoveryAddr);
+	discoveryAddr = sm_list_data(ionwm, elt);
+	discovery = (Discovery *) psp(ionwm, discoveryAddr);
 	result = parseEidString(discoveryEid, &metaEid, &vscheme, &vschemeElt);
 	if (result == 0)
 	{
@@ -604,13 +596,13 @@ int	bp_discovery_lost(char *socketSpec, char *discoveryEid,
 PsmAddress	bp_find_discovery(char *eid)
 {
 	Sdr		sdr = getIonsdr();
-	PsmPartition	wm = getIonwm();
+	PsmPartition	ionwm = getIonwm();
 	BpVdb		*vdb = getBpVdb();
 	PsmAddress	discovery;
 
 	oK(sdr_begin_xn(sdr));		/*	Just to lock database.	*/
-	discovery = sm_list_search(wm, sm_list_first(wm, vdb->discoveries),
-			compareDiscoveries, eid);
+	discovery = sm_list_search(ionwm, sm_list_first(ionwm,
+			vdb->discoveries), compareDiscoveries, eid);
 	sdr_exit_xn(sdr);
 	return discovery;
 }

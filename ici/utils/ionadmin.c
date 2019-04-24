@@ -117,17 +117,20 @@ static void	printUsage()
 	PUTS("\t\tThe @ command sets the reference time from which subsequent \
 relative times (+ss) are computed.");
 	PUTS("\t   ^ <region number>");
-	PUTS("\t\tThe ^ command identifies the region to which all ensuing \
+	PUTS("\t\tThe ^ command identifies the region to which subsequent \
 'add contact' operations pertain.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
 	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
-	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
+	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss,");
+	PUTS("\t\texcept time '0' indicates a hypothetical contact");
+	PUTS("\t\tand time '-1' indicates a 'registration' contact.");
 	PUTS("\tc\tChange");
 	PUTS("\t   c contact <from time> <from node#> <to node#> <xmit rate \
 in bytes per second> [confidence in occurrence]");
+	PUTS("\t\tNot applicable for hypothetical and registration contacts.");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} contact <from time> <from node#> <to node#>");
@@ -191,6 +194,7 @@ static void	initializeNode(int tokenCount, char **tokens)
 
 void	executeAdd(int tokenCount, char **tokens)
 {
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	time_t		refTime;
 	time_t		fromTime;
 	time_t		toTime;
@@ -249,6 +253,10 @@ void	executeAdd(int tokenCount, char **tokens)
 		{
 			fromTime = 0;
 		}
+		else if (strncmp(tokens[2], "-1", 1) == 0)
+		{
+			fromTime = (time_t) -1;
+		}
 		else
 		{
 			fromTime = readTimestampUTC(tokens[2], refTime);
@@ -258,27 +266,46 @@ void	executeAdd(int tokenCount, char **tokens)
 		{
 			toTime = 0;
 		}
+		else if (strncmp(tokens[3], "-1", 1) == 0)
+		{
+			toTime = (time_t) -1;
+		}
 		else
 		{
 			toTime = readTimestampUTC(tokens[3], refTime);
 		}
 
-		if (toTime == 0)
+		if (fromTime == (time_t) -1)
 		{
 			/*	Must be a registration contact.		*/
 
-			if (fromTime != 0
-			|| fromNodeNbr != toNodeNbr)
+			if (fromNodeNbr != toNodeNbr)
 			{
 				printText("For registration contact, from \
-and to times must both be zero, from and to nodes must be identical.");
+and to nodes must be identical.");
 				return;
 			}
 
 			xmitRate = 0;
 			confidence = 1.0;
 		}
-		else			/*	Scheduled contact.	*/
+		else if (fromTime == 0)
+		{
+			/*	Must be a hypothetical contact.		*/
+
+			if (fromNodeNbr == toNodeNbr
+			|| (fromNodeNbr != ownNodeNbr
+				&& toNodeNbr != ownNodeNbr))
+			{
+				printText("For hypothetical contact, either \
+from or to node must be the local node and the other must not.");
+				return;
+			}
+
+			xmitRate = 0;
+			confidence = 0.0;
+		}
+		else	/*	Scheduled contact.			*/
 		{
 			if (toTime <= fromTime)
 			{
@@ -371,10 +398,9 @@ void	executeDelete(int tokenCount, char **tokens)
 {
 	time_t	refTime;
 	time_t	fromTime;
+	time_t	*scope = &fromTime;
 	uvast	fromNodeNbr;
 	uvast	toNodeNbr;
-
-//<<--  Revise to enable deletion of registration and latent contacts.
 
 	if (tokenCount < 2)
 	{
@@ -388,11 +414,19 @@ void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokens[2][0] == '*')
+	if (tokens[2][0] == '*')		/*	All.		*/
+	{
+		scope = NULL;
+	}
+	else if (strcmp(tokens[2], "0") == 0)	/*	Hypothetical.	*/
 	{
 		fromTime = 0;
 	}
-	else
+	else if (strcmp(tokens[2], "-1") == 0)	/*	Registration.	*/
+	{
+		fromTime = (time_t) -1;
+	}
+	else				/*	Predicted or Scheduled.	*/
 	{
 		refTime = _referenceTime(NULL);
 		fromTime = readTimestampUTC(tokens[2], refTime);
@@ -407,14 +441,14 @@ void	executeDelete(int tokenCount, char **tokens)
 	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(fromTime, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_contact(scope, fromNodeNbr, toNodeNbr));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		oK(rfx_remove_range(fromTime, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_range(scope, fromNodeNbr, toNodeNbr));
 		return;
 	}
 
@@ -427,7 +461,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
-	time_t		timestamp;
+	time_t		fromTime;
 	uvast		fromNode;
 	uvast		toNode;
 	IonCXref	arg1;
@@ -450,7 +484,19 @@ static void	executeInfo(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	timestamp = readTimestampUTC(tokens[2], refTime);
+	if (strcmp(tokens[2], "0") == 0)	/*	Hypothetical.	*/
+	{
+		fromTime = 0;
+	}
+	else if (strcmp(tokens[2], "-1") == 0)	/*	Registration.	*/
+	{
+		fromTime = (time_t) -1;
+	}
+	else				/*	Predicted or Scheduled.	*/
+	{
+		fromTime = readTimestampUTC(tokens[2], refTime);
+	}
+
 	fromNode = strtouvast(tokens[3]);
 	toNode = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
@@ -458,7 +504,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		memset((char *) &arg1, 0, sizeof(IonCXref));
 		arg1.fromNode = fromNode;
 		arg1.toNode = toNode;
-		arg1.fromTime = timestamp;
+		arg1.fromTime = fromTime;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg1, &nextElt);
@@ -482,7 +528,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		memset((char *) &arg2, 0, sizeof(IonRXref));
 		arg2.fromNode = fromNode;
 		arg2.toNode = toNode;
-		arg2.fromTime = timestamp;
+		arg2.fromTime = fromTime;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
 				rfx_order_ranges, &arg2, &nextElt);
@@ -981,7 +1027,7 @@ VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
 
 	/*	Node is joining a new region.				*/
 
-	if (ionPickRegion(regionNbr) != -1)
+	if (ionPickRegion(regionNbr) < 2)
 	{
 		/*	Node already resides in the indicated region.	*/
 
@@ -1332,7 +1378,7 @@ no time.");
 				else
 				{
 					regionNbr = strtovast(tokens[1]);
-					if (ionPickRegion(regionNbr) < 0)
+					if (ionPickRegion(regionNbr) > 1)
 					{
 						printText("Node does not \
 reside in this region.");

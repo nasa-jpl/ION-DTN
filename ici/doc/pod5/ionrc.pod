@@ -115,30 +115,44 @@ The period of time between the start and stop times of a contact is termed
 the contact's "interval".  The intervals of scheduled contacts are not
 allowed to overlap.
 
-Two different types of contact can be intermixed within an .ionrc file that
+Three different types of contact can be intermixed within an .ionrc file that
 defines a contact plan.
 
 =over 4
 
 =item 1  Registration
 
-When I<stop_time> is zero, the contact signifies the "registration" of a
-node in the region corresponding to the contact plan of which this contact
-is a part.  In this case, I<start_time> must also be zero, I<confidence>
-must be 1.0, and I<source_node> and I<dest_node> must be identical and
+When I<start_time> is "-1", the contact signifies the "registration" of a
+node in the region corresponding to the contact plan of which this contact is
+a part.  In this case, I<source_node> and I<dest_node> must be identical and
 non-zero.  A registration contact simply affirms the source node's permanent
 membership in this region, persisting even during periods when the node
 is able neither to send nor to receive data.  When inserted into the
 contact plan, the contact's start and stop times are both automatically
-changed from zero to the maximum POSIX time and its data rate is set to zero.
+set to the maximum POSIX time, its data rate is set to zero, and its
+confidence value is set to 1.0.
 
-=item 2  Scheduled
+=item 2  Hypothetical
 
-When I<stop_time> is greater than zero, the contact is "scheduled".  A
-scheduled contact is a managed opportunity to transmit data between nodes,
-as inferred (for example) from a spacecraft or ground station operating
-plan.  I<start_time> must be less than I<stop_time> and I<data_rate>
-and I<confidence> must both be greater than zero.
+When I<stop_time> is "0", the contact is "hypothetical".  A hypothetical
+contact is an anticipated opportunity for the local node to transmit data,
+or received data from, some potentially neighboring node in the same
+region.  The nature of that contact is completely unknown; if and when
+the contact occurs, the hypothetical contact will be transformed into
+a "discovered" contact for the duration of the opportunity, after which
+it will revert to being hypothetical.  I<source_node> and I<dest_node> must
+B<NOT> be identical, and one or the other must identify the local node.  When
+inserted into the contact plan, the contact's start time is automatically
+set to zero, its stop time is set to the maximum POSIX time, its data rate
+is set to zero, and its confidence value is set to 0.0.
+
+=item 3  Scheduled
+
+Otherwise, the contact is "scheduled".  A scheduled contact is a managed
+opportunity to transmit data between nodes, as inferred (for example)
+from a spacecraft or ground station operating plan.  I<start_time> must
+be less than I<stop_time> and I<data_rate> and I<confidence> must both
+be greater than zero.
 
 =back
 
@@ -153,11 +167,12 @@ transmission from I<source_node> to I<dest_node> starting at I<start_time>.
 The B<delete contact> command.  This command deletes the scheduled
 period of data transmission from I<source_node> to I<dest_node> starting
 at I<start_time>.  To delete all contacts between some pair of nodes,
-use '*' as I<start_time>.
+use '*' as I<start_time>.  To delete a registration contact, use "-1"
+as I<start_time>.  To delete a hypothetical contact, use "0" as I<start_time>.
 
 =item B<i contact> I<start_time> I<source_node> I<dest_node>
 
-This command will print information (the stop time and data rate) about
+This command will print information (stop time, data rate, confidence) about
 the scheduled period of transmission from I<source_node> to I<dest_node>
 that starts at I<start_time>.
 

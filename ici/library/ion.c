@@ -1163,11 +1163,11 @@ int	ionPickRegion(vast regionNbr)
 	{
 		if (iondb.regions[i].regionNbr == regionNbr)
 		{
-			return i;
+			break;
 		}
 	}
 
-	return -1;
+	return i;
 }
 
 void	ionLeaveRegion(int i)
@@ -1212,7 +1212,7 @@ void	ionLeaveRegion(int i)
 
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		oK(rfx_remove_contact(contact.fromTime, contact.fromNode,
+		oK(rfx_remove_contact(&contact.fromTime, contact.fromNode,
 				contact.toNode));
 
 		/*	rfx_remove_contact deletes the contact from

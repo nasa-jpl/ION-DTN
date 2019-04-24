@@ -1514,7 +1514,7 @@ static BpVdb	*_bpvdb(char **name)
 		|| (vdb->plans = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
-		|| (vdb->neighbors = sm_list_create(wm)) == 0
+		|| (vdb->discoveries = sm_list_create(wm)) == 0
 		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
@@ -1777,7 +1777,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 
 	sm_list_destroy(wm, vdb->outducts, NULL, NULL);
-	sm_list_destroy(wm, vdb->neighbors, NULL, NULL);
+	sm_list_destroy(wm, vdb->discoveries, NULL, NULL);
 	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
 }
 
@@ -6211,8 +6211,8 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	Object		bpDbObject = getBpDbObject();
 	PsmPartition	bpwm = getIonwm();
 	BpDB		bpdb;
-	PsmAddress	neighborElt;
-	NdpNeighbor	*neighbor;
+	PsmAddress	discoveryElt;
+	Discovery	*discovery;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
@@ -6254,7 +6254,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
-	neighborElt = bp_discover_find_neighbor(destEidString);
+	discoveryElt = bp_find_discovery(destEidString);
 	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
@@ -6278,11 +6278,11 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 
 	/*	Prevent unnecessary NDP beaconing.			*/
 
-	if (neighborElt)
+	if (discoveryElt)
 	{
-		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
-				neighborElt));
-		neighbor->lastContactTime = getUTCTime();
+		discovery = (Discovery *) psp(bpwm, sm_list_data(bpwm,
+				discoveryElt));
+		discovery->lastContactTime = getUTCTime();
 	}
 
 	/*	Set bundle processing flags.				*/

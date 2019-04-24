@@ -142,25 +142,76 @@ typedef struct
 
 /*	Functions for managing the CGR database.			*/
 
-static void	removeRoute(PsmPartition ionwm, PsmAddress elt)
+static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 {
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
+	PsmAddress	citation;
+	PsmAddress	nextCitation;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+	PsmAddress	citationElt;
 
-	routeAddr = sm_list_data(ionwm, elt);
+	routeAddr = sm_list_data(ionwm, routeElt);
 	route = (CgrRoute *) psp(ionwm, routeAddr);
 	if (route->referenceElt)
 	{
 		sm_list_delete(ionwm, route->referenceElt, NULL, NULL);
 	}
 
-	if (elt != route->referenceElt)
+	if (routeElt != route->referenceElt)
 	{
-		sm_list_delete(ionwm, elt, NULL, NULL);
+		sm_list_delete(ionwm, routeElt, NULL, NULL);
 	}
+
+	/*	Each member of the "hops" list of this route is one
+	 *	among possibly many citations of some specific contact,
+	 *	i.e., its content is the address of that contact.
+	 *	For many-to-many cross-referencing, we append the
+	 *	address of each citation - that is, the address of
+	 *	the list element that cites some contact - to the
+	 *	cited contact's list of citations; the content of
+	 *	each member of a contact's citations list is the
+	 *	address of one among possibly many citations of that
+	 *	contact, each of which is a member of some route's
+	 *	list of hops.
+	 *
+	 *	When a route is removed, we must detach the route
+	 *	from every contact that is cited in one of that
+	 *	route's hops.  That is, for each hop of the route,
+	 *	we must go through the citations list of the contact
+	 *	cited by that hop and remove from that list the list
+	 *	member whose content is the address of this citation
+	 *	- the address of this "hops" list element.		*/
 
 	if (route->hops)
 	{
+		for (citation = sm_list_first(ionwm, route->hops); citation;
+				citation = nextCitation)
+		{
+			nextCitation = sm_list_next(ionwm, citation);
+			contactAddr = sm_list_data(ionwm, citation);
+			contact = (IonCXref *) psp(ionwm, contactAddr);
+			for (citationElt = sm_list_first(ionwm,
+				contact->citations); citationElt;
+				citationElt = sm_list_next(ionwm, citationElt))
+			{
+				/*	Does this list element point 
+				 *	at this route's citation of
+				 *	that contact?  If so, delete.	*/
+
+				if (sm_list_data(ionwm, citationElt)
+						== citation);
+				{
+					sm_list_delete(ionwm, citationElt,
+							NULL, NULL);
+					break;
+				}
+			}
+
+			sm_list_delete(ionwm, citation, NULL, NULL);
+		}
+
 		sm_list_destroy(ionwm, route->hops, NULL, NULL);
 	}
 
@@ -240,6 +291,30 @@ static void	destroyRoutingObjects(CgrVdb *vdb)
 
 		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
+}
+
+static int	disabledRoute(PsmPartition ionwm, PsmAddress routeElt,
+			PsmAddress *routeAddr, CgrRoute **route)
+{
+	PsmAddress	elt;
+
+	*routeAddr = sm_list_data(ionwm, routeElt);
+	*route = (CgrRoute *) psp(ionwm, *routeAddr);
+	for (elt = sm_list_first(ionwm, (*route)->hops); elt;
+				elt = sm_list_next(ionwm, elt))
+	{
+		if (sm_list_data(ionwm, elt) == 0)
+		{
+			/*	At least one of the contacts in this
+			 *	route has been deleted, so the route
+			 *	is no longer usable.			*/
+
+			removeRoute(ionwm, routeElt);
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 static CgrVdb	*getCgrVdb()
@@ -344,7 +419,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	IonRXref	*range;
 
 	*owlt = 0;		/*	Default.			*/
-	if (contact->type == CtLatent || contact->type == CtDiscovered)
+	if (contact->type == CtHypothetical || contact->type == CtDiscovered)
 	{
 		return 0;	/*	Physically adjacent nodes.	*/
 	}
@@ -485,6 +560,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		earliestArrivalTime;
 	time_t		earliestEndTime;
 	PsmAddress	addr;
+	PsmAddress	citation;
 
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
@@ -745,7 +821,20 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			route->arrivalConfidence *= contact->confidence;
 			addr = psa(ionwm, contact);
 			TRACE(CgrHop, contact->fromNode, contact->toNode);
-			if (sm_list_insert_first(ionwm, route->hops, addr) == 0)
+			citation = sm_list_insert_first(ionwm, route->hops,
+					addr);
+
+			/*	Content of citation (which is a list
+			 *	element) is the address of the contact
+			 *	that is this hop of this route.
+			 *
+			 *	Content of new member of contact's
+			 *	citations list is the address of this
+			 *	list element.				*/
+
+			if (citation == 0
+			|| sm_list_insert_last(ionwm, contact->citations,
+					citation) == 0)
 			{
 				putErrmsg("Can't insert contact into route.",
 						NULL);
@@ -925,6 +1014,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	IonCXref	*contact;
 	CgrContactNote	*work;
 	PsmAddress	routeElt;
+	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
 	PsmAddress	rootPathContactElt;
@@ -974,11 +1064,15 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 
 //printf("*** rootOfSpurAddr is " UVAST_FIELDSPEC ". ***\n", rootOfSpurAddr);
 	for (routeElt = sm_list_first(ionwm, routingObj->selectedRoutes);
-			routeElt; routeElt = sm_list_next(ionwm, routeElt))
+			routeElt; routeElt = nextRouteElt)
 	{
+		nextRouteElt = sm_list_next(ionwm, routeElt);
+		if (disabledRoute(ionwm, routeElt, &routeAddr, &route))
+		{
+			continue;
+		}
+
 //puts("*** Looking for edges to exclude on a selected route. ***");
-		routeAddr = sm_list_data(ionwm, routeElt);
-		route = (CgrRoute *) psp(ionwm, routeAddr);
 		nextContactElt = sm_list_first(ionwm, route->hops);
 		nextRootPathContactElt = sm_list_first(ionwm,
 				lastSelectedRoute->hops);
@@ -1117,6 +1211,7 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	PsmAddress	rootOfNextSpur;	/*	An SmListElt in hops.	*/
 	CgrRtgObject	*routingObj;
 	PsmAddress	elt2;
+	PsmAddress	nextRouteElt;
 	PsmAddress	knownRouteAddr;
 	CgrRoute	*knownRoute;
 	PsmAddress	bestKnownRouteElt;
@@ -1184,15 +1279,19 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 
 	bestKnownRouteElt = 0;
 	for (elt2 = sm_list_first(ionwm, routingObj->knownRoutes); elt2;
-			elt2 = sm_list_next(ionwm, elt2))
+			elt2 = nextRouteElt)
 	{
+//puts("*** Considering a B-list node for migration to A-list. ***");
+		nextRouteElt = sm_list_next(ionwm, elt2);
+		if (disabledRoute(ionwm, elt2, &knownRouteAddr, &knownRoute))
+		{
+			continue;
+		}
+
 		/*	Determine whether or not this route is the
 		 *	best route in the B list. Preference is by
 		 *	ascending arrival time.				*/
 
-//puts("*** Considering a B-list node for migration to A-list. ***");
-		knownRouteAddr = sm_list_data(ionwm, elt2);
-		knownRoute = (CgrRoute *) psp(ionwm, knownRouteAddr);
 		if (bestKnownRouteElt == 0)
 		{
 			bestKnownRouteElt = elt2;
@@ -1840,8 +1939,11 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 				elt2; elt2 = prevElt2)
 		{
 			prevElt2 = sm_list_prev(ionwm, elt2);
-			addr = sm_list_data(ionwm, elt2);
-			route = (CgrRoute *) psp(ionwm, addr);
+			if (disabledRoute(ionwm, elt2, &addr, &route))
+			{
+				continue;
+			}
+
 			if (route->toTime <= currentTime)
 			{
 				/*	This route includes a contact
@@ -1915,8 +2017,13 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	/*	Check this Selected route.				*/
 
-	addr = sm_list_data(ionwm, *elt);
-	route = (CgrRoute *) psp(ionwm, addr);
+	if (disabledRoute(ionwm, elt2, &addr, &route))
+	{
+		TRACE(CgrExpiredRoute);
+		*elt = nextElt;
+		return 1;
+	}
+
 	TRACE(CgrCheckRoute, route->toNodeNbr, (unsigned int)(route->fromTime),
 			(unsigned int)(route->arrivalTime));
 	if (route->toTime <= currentTime)
@@ -2726,15 +2833,11 @@ static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
 static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			IonNode *terminusNode, Lyst bestRoutes, int preview)
 {
-#ifdef CGR_IOT
 	PsmPartition	ionwm = getIonwm();
-#endif
 	LystElt		elt;
 	LystElt		nextElt;
 	CgrRoute	*route;
-#ifdef CGR_IOT
 	CgrRtgObject	*routingObject;
-#endif
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -3063,11 +3166,11 @@ if (bundle->ancillaryData.flowLabel == 86)
 	return 0;
 }
 
-int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
-		uvast terminusNodeNbr, time_t atTime, CgrTrace *trace)
+int	cgr_forward(Bundle *bundle, Object bundleObj, uvast terminusNodeNbr,
+		CgrTrace *trace)
 {
-	if (cgrForward(bundle, bundleObj, terminusNodeNbr, atTime, trace, 1)
-			< 0)
+	if (cgrForward(bundle, bundleObj, terminusNodeNbr, getUTCTime(), trace,
+			0) < 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
 		return -1;
@@ -3076,11 +3179,11 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
-int	cgr_forward(Bundle *bundle, Object bundleObj, uvast terminusNodeNbr,
-		CgrTrace *trace)
+int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
+		uvast terminusNodeNbr, time_t atTime, CgrTrace *trace)
 {
-	if (cgrForward(bundle, bundleObj, terminusNodeNbr, getUTCTime(), trace,
-			0) < 0)
+	if (cgrForward(bundle, bundleObj, terminusNodeNbr, atTime, trace, 1)
+			< 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
 		return -1;

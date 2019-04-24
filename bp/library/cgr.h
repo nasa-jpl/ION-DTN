@@ -132,14 +132,11 @@ typedef enum
 
 typedef void		(*CgrTraceFn)(void *data, unsigned int lineNbr,
 				CgrTraceType traceType, ...);
-
 typedef struct
 {
 	CgrTraceFn	fn;	/*	Function to call at tracepoint.	*/
 	void		*data;	/*	Data to pass to the function.	*/
 } CgrTrace;
-
-extern int		cgr_predict_contacts();
 
 extern void		cgr_start();
 extern int		cgr_forward(Bundle *bundle, Object bundleObj,

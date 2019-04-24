@@ -1042,7 +1042,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 		{
 			return NULL;
 		}
-		if(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr) == 0)
+		if(rfx_remove_contact(&timestamp, fromNodeNbr, toNodeNbr) == 0)
 		{
 			// TODO _forecastNeeded(1);
 			*status = CTRL_SUCCESS;
@@ -1235,7 +1235,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	if(success)
 	{
-	  if(rfx_remove_range(start, from_node, to_node) >= 0)
+	  if(rfx_remove_range(&start, from_node, to_node) >= 0)
 	  {
 	    *status = CTRL_SUCCESS;
 	  }

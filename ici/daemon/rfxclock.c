@@ -92,11 +92,6 @@ static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
 	return neighbor;
 }
 
-static void	addContactToHistory(IonCXref *cxref)
-{
-	return;		/*	Develop this in next phase.		*/
-}
-
 static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -122,7 +117,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_range(rxref->fromTime,
+		return rfx_remove_range(&(rxref->fromTime),
 				rxref->fromNode, rxref->toNode);
 
 	case IonStopXmit:
@@ -324,16 +319,12 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonPurgeContact:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->fromNode == getOwnNodeNbr())
-		{
-			addContactToHistory(cxref);
-		}
 
 		/*	rfx_remove_contact deletes all contact events
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_contact(cxref->fromTime,
+		return rfx_remove_contact(&(cxref->fromTime),
 				cxref->fromNode, cxref->toNode);
 
 	case IonAlarmTimeout:

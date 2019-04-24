@@ -90,17 +90,18 @@ extern int		rfx_revise_contact(time_t fromTime,
 			/*	Revises the xmitRate of and possibly
 			 *	our confidence in an existing contact.	*/
 
-extern int		rfx_remove_contact(time_t fromTime,
+extern int		rfx_remove_contact(time_t *fromTime,
 				uvast fromNode,
 				uvast toNode);
 			/*	Removes the indicated IonContact
 				object from the time-ordered contacts
 				list in the ION database.		*/
-
+#if 0
 extern int		rfx_remove_discovered_contacts(uvast peerNode);
 			/*	Removes all discovered contacts
 			 *	involving the indicated node,
 			 *	either as sender or receiver.		*/
+#endif
 
 extern int		rfx_predict_contacts(uvast fromNode, uvast toNode);
 			/*	Removes all existing predicted contacts
@@ -137,7 +138,7 @@ extern char		*rfx_print_range(PsmAddress range, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern int		rfx_remove_range(time_t fromTime,
+extern int		rfx_remove_range(time_t *fromTime,
 				uvast fromNode,
 				uvast toNode);
 			/*	Removes the indicated IonRange

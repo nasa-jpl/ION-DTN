@@ -91,7 +91,7 @@ typedef struct
 	uvast		outerRegionNbr;
 } RegionMember;
 
-/*	Four different types of Contact may be intermixed within a
+/*	Six different types of Contact may be intermixed within a
  *	contact plan.
  *
  *	(1)  A "registration" contact constitutes the registration
@@ -99,53 +99,91 @@ typedef struct
  *	region corresponding to the contact plan of which this
  *	contact is a part.  A registration contact simply affirms
  *	the source node's permanent membership in this region,
- *	persisting even during periods when the node is able
- *	neither to send nor to receive data.  The start and stop
+ *	persisting even during periods when no other contact in
+ *	the contact plan cites that node.  The start and stop
  *	times of a registration contact are both set to the
  *	maximum POSIX time, data rate is always zero, confidence
- *	is 1.0.
+ *	is 1.0.  Registration contacts are always posted via
+ *	ionadmin or equivalent.
  *
  *	(2)  A "scheduled" contact is an asserted opportunity to
  *	transmit data between nodes, as inferred (for example)
  *	from a spacecraft or ground station operating plan.  The
- *	confidence value of a scheduled contact may be 1.0 if
- *	the contact is planned and managed; alternatively, it may
- *	be less than 1.0 if the contact is a statistically likely
- *	transmission opportunity as inferred from the network's
- *	history of contact discoveries.
+ *	confidence value of a scheduled contact is normally 1.0
+ *	but may be less if there is uncertainty in the inferred
+ *	opportunity.  Scheduled contacts must never overlap in
+ *	time.  They are always posted via ionadmin or equivalent.
  *
- *	(3)  A "predicted" contact is an asserted opportunity to
- *	transmit data between nodes (neither of which is the
- *	local node), as inferred from the network's history of
- *	discovered contacts.  The data rate and confidence of a
- *	predicted contact are computed as a function of the
- *	contact history between the two nodes.  
+ *	(3)  A "suppressed" contact is a scheduled contact
+ *	BETWEEN THE LOCAL NODE AND SOME NEIGHBORING NODE for
+ *	which there is now a discovered contact.  All scheduled
+ *	contacts with the indicated neighbor are automatically
+ *	suppressed by the ipnd neighbor discovery daemon (or
+ *	equivalent), which simply changes the contact type of
+ *	each such contact.  So long as a scheduled contact
+ *	remains suppressed, its asserted data rates between
+ *	the local node and the indicated neighbor node are
+ *	operationally ignored.  But suppression of a contact
+ *	has no effect on the contact's inclusion in computed
+ *	routes nor on the possible selection of such routes
+ *	for the forwarding of data.  New suppressed contacts
+ *	are never posted in any way.
  *
- *	(4)  A "hypothetical" contact is an opportunity to transmit
- *	data between the local node and some other node that is
- *	expected to occur at some time in the future, under unknown
- *	conditions.  If the indicated communication opportunity
- *	subsequently occurs, the hypothetical contact is
- *	automatically transformed into a discovered contact as
- *	discussed below.  Hypothetical contacts are included in
- *	the computation of routes to destination nodes, but a
- *	route that commences with a hypothetical (rather than
- *	discovered) contact cannot be selected for the
- *	forwarding of data.  The start time of a hypothetical
- *	contact is zero, the stop time is the maximum POSIX time,
- *	and the data rate and confidence are both zero.
+ *	(4)  A "predicted" contact is a statistically likely
+ *	transmission opportunity BETWEEN ANY TWO NODES OTHER
+ *	THAN THE LOCAL NODE as inferred from the network's
+ *	history of contact discoveries.  Predicted contacts
+ *	are used ONLY in route computation.  The confidence
+ *	value of a predicted contact is always less than 1.0.
+ *	The data rate and confidence of a predicted contact
+ *	are computed as a function of the contact history
+ *	between the two nodes.  The (sole) predicted contact
+ *	for a given pair of nodes is automatically re-computed
+ *	by ipnd, in the course of neighbor discovery, whenever
+ *	one or more new contact history records for that pair
+ *	of nodes are received; new predicted contacts are never
+ *	posted in any other way.  
  *
- *	(5)  A "discovered" contact is an opportunity to transmit
- *	data either to or from the local node that has spontaneously
- *	occurred in real time.  Discovery of a contact simply causes
- *	the corresponding hypothetical contact (which is automatically
- *	created if not pre-existing) to be updated with confidence
- *	set to 1.0 and data rate set to the discovered data rate,
- *	and it temporarily suppresses from routing consideration
- *	all scheduled contacts for the same From and To nodes.
- *	When the discovered contact ends, any suppressed
- *	scheduled contacts are restored to consideration and the
- *	discovered contact becomes hypothetical once again.		*/
+ *	(5)  A "hypothetical" contact is an opportunity to
+ *	transmit data BETWEEN THE LOCAL NODE AND SOME OTHER
+ *	(POTENTIAL NEIGHBOR) NODE whose occurrence is thought
+ *	to be possible at some time in the future, under
+ *	unknown conditions.  If the indicated communication
+ *	opportunity subsequently does occur, the hypothetical
+ *	contact is automatically transformed into a discovered
+ *	contact as discussed below and all scheduled contacts
+ *	between this pair of nodes are automatically transformed
+ *	into suppressed contacts as discussed above.  The start
+ *	time of a hypothetical contact is zero, the stop time
+ *	is the maximum POSIX time, and the data rate and
+ *	confidence are both zero.  Hypothetical contacts are
+ *	included in the computation of routes to destination
+ *	nodes, but a route that commences with a hypothetical
+ *	(rather than discovered) contact cannot be selected
+ *	for the forwarding of data, as its confidence value
+ *	is zero.  Hypothetical contacts are always posted
+ *	either automatically by ipnd or equivalent, as
+ *	discussed below, or via ionadmin or equivalent.
+ *
+ *	(6)  A "discovered" contact is an opportunity to transmit
+ *	data BETWEEN THE LOCAL NODE AND SOME OTHER NODE (THAT
+ *	IS NOW KNOWN TO BE A NEIGHBOR) that has spontaneously
+ *	occurred in real time.  Discovery of a contact is
+ *	asserted by the ipnd neighbor discovery daemon (or
+ *	equivalent), which simply causes the corresponding
+ *	hypothetical contact (which is automatically created
+ *	if not pre-existing) to be updated with confidence
+ *	set to 1.0 and data rate set to the discovered data rate
+ *	and (as noted above) temporarily suppresses from routing
+ *	consideration all scheduled contacts for the same From
+ *	and To nodes.  When the discovered contact ends, any
+ *	suppressed scheduled contacts are restored to consideration
+ *	(i.e., their types are changed back to Scheduled) and the
+ *	discovered contact reverts: its contact type is changed
+ *	back to Hypoothencial and its data rate and confidence
+ *	are reset to zero.  New discovered contacts are never
+ *	posted in any other way.					*/
+
 
 typedef enum
 {
@@ -327,6 +365,7 @@ typedef struct
 	time_t		purgeTime;	/*	Computed when inserted.	*/
 	Object		contactElt;	/*	In iondb->contacts.	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
+	PsmAddress	citations;	/*	SM list of SmList elts.	*/
 } IonCXref;
 
 typedef enum
