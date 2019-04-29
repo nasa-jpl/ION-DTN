@@ -714,8 +714,6 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.regions[0].regionNbr = -1;
 		iondbBuf.regions[1].regionNbr = -1;
 		iondbBuf.ranges = sdr_list_create(ionsdr);
-		iondbBuf.contactLog[0] = sdr_list_create(ionsdr);
-		iondbBuf.contactLog[1] = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
 		limit = (sdr_heap_size(ionsdr) / 100) * (100 - ION_SEQUESTERED);
@@ -1147,7 +1145,6 @@ int	ionJoinRegion(int i, vast regionNbr)
 	return 0;
 }
 	
-
 int	ionPickRegion(vast regionNbr)
 {
 	Sdr	sdr = getIonsdr();
@@ -1276,6 +1273,91 @@ int	ionRegionOf(uvast nodeA, uvast nodeB)
 	}
 
 	return i;	/*	May be -1 meaning "No common region".	*/
+}
+
+void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
+	Object		elt;
+	Object		memberObj;
+	RegionMember	member;
+
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].members); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		memberObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &member, memberObj,
+				sizeof(RegionMember));
+		if (member.nodeNbr == nodeNbr)
+		{
+			sdr_free(sdr, memberObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			return;
+		}
+	}
+}
+
+void	ionNoteMember(int regionIdx, uvast nodeNbr, vast homeRegionNbr,
+		vast outerRegionNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
+	Object		elt;
+	Object		memberObj;
+	RegionMember	member;
+	uvast		otherRegionNbr;
+
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].members); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		memberObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &member, memberObj,
+				sizeof(RegionMember));
+		if (member.nodeNbr == nodeNbr)
+		{
+			break;
+		}
+	}
+
+	if (elt == 0)	/*	Not in membership list.			*/
+	{
+		member.nodeNbr = nodeNbr;
+		member.homeRegionNbr = homeRegionNbr;
+		member.outerRegionNbr = outerRegionNbr;
+		memberObj = sdr_malloc(sdr, sizeof(RegionMember));
+		if (memberObj)
+		{
+			sdr_write(sdr, memberObj, (char *) &member,
+					sizeof(RegionMember));
+			sdr_list_insert_last(sdr,
+					iondb.regions[regionIdx].members,
+					memberObj);
+		}
+	}
+	else		/*	A known member of this region.		*/
+	{
+		if (member.homeRegionNbr != homeRegionNbr
+		|| member.outerRegionNbr != outerRegionNbr)
+		{
+			member.homeRegionNbr = homeRegionNbr;
+			member.outerRegionNbr = outerRegionNbr;
+			sdr_write(sdr, memberObj, (char *) &member,
+					sizeof(RegionMember));
+		}
+	}
+
+	/*	Remove from other region if necessary.			*/
+
+	otherRegionNbr = iondb.regions[1 - regionIdx].regionNbr;
+	if (homeRegionNbr != otherRegionNbr && outerRegionNbr != otherRegionNbr)
+	{
+		ionNoteNonMember(1 - regionIdx, nodeNbr);
+	}
 }
 
 Sdr	getIonsdr()

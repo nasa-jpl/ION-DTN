@@ -1637,6 +1637,8 @@ int	bpInit()
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
 		bpdbBuf.inducts = sdr_list_create(bpSdr);
 		bpdbBuf.outducts = sdr_list_create(bpSdr);
+		bpdbBuf.saga[0] = sdr_list_create(bpSdr);
+		bpdbBuf.saga[1] = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
 		bpdbBuf.bundles = sdr_hash_create(bpSdr,
 				BUNDLES_HASH_KEY_LEN,
@@ -2467,7 +2469,7 @@ static int	printCbheEid(char *schemeName, CbheEid *eid, char **result)
 	 * 	where xxx is either "ipn" or "imc" (multicast).
 	 *	So max EID string length is 3 for "xxx" plus 1 for
 	 *	':' plus max length of nodeNbr (which is a 64-bit
-	 *	number, so 20 digits) plus 1 for '.' plus max lengthx
+	 *	number, so 20 digits) plus 1 for '.' plus max length
 	 *	of serviceNbr (which is a 64-bit number, so 20 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
@@ -9653,6 +9655,150 @@ static void	bpEraseStatusRpt(BpStatusRpt *rpt)
 	MRELEASE(rpt->sourceEid);
 }
 
+static void	deleteEncounter(LystElt elt, void *userdata)
+{
+	MRELEASE(lyst_data(elt));
+}
+
+static int	extractSagaSdnv(uvast *into, unsigned char **from, int *remnant)
+{
+	int	sdnvLength;
+
+	if (*remnant < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(into, *from);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	(*from) += sdnvLength;
+	(*remnant) -= sdnvLength;
+	return sdnvLength;
+}
+
+static int	parseSagaMessage(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes)
+{
+	Lyst		encounters;
+	Encounter	*encounter;
+	uvast		value;
+
+	if (adminRecordType != BP_SAGA_MESSAGE)
+	{
+		return -2;
+	}
+
+	encounters = lyst_create_using(getIonMemoryMgr());
+	if (encounters == NULL)
+	{
+		putErrmsg("Can't create encounters lyst.", NULL);
+		return -1;
+	}
+
+	lyst_delete_set(encounters, deleteEncounter, NULL);
+	*otherPtr = (void *) encounters;
+
+	/*	First value in message is region number.		*/
+
+	if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+	{
+		putErrmsg("No region number in Saga message.", NULL);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	encounter = (Encounter *) MTAKE(sizeof(Encounter));
+	if (encounter == NULL)
+	{
+		putErrmsg("Can't create bogus encounter.", NULL);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	memset((char *) &encounter, 0, sizeof(Encounter));
+	encounter->fromNode = value;
+	if (lyst_insert_last(encounters, encounter) == NULL)
+	{
+		putErrmsg("Can't post bogus encounter.", NULL);
+		MRELEASE(encounter);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	/*	Now extract all encounters.				*/
+
+	while (unparsedBytes > 0)
+	{
+		encounter = (Encounter *) MTAKE(sizeof(Encounter));
+		if (encounter == NULL)
+		{
+			putErrmsg("Can't create encounter.", NULL);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		memset((char *) &encounter, 0, sizeof(Encounter));
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->fromNode = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->toNode = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->fromTime = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->toTime = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->xmitRate = value;
+		if (lyst_insert_last(encounters, encounter) == NULL)
+		{
+			putErrmsg("Can't post encounter.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
 static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 			BpCtSignal *csig, void **otherPtr, Object payload)
 {
@@ -9728,6 +9874,13 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 		}
 
 		result = parseImcPetition(*adminRecordType, otherPtr,
+				(unsigned char *) cursor, unparsedBytes);
+		if (result != -2)	/*	Parsed the record.	*/
+		{
+			break;
+		}
+
+		result = parseSagaMessage(*adminRecordType, otherPtr,
 				(unsigned char *) cursor, unparsedBytes);
 		if (result != -2)	/*	Parsed the record.	*/
 		{
@@ -12294,6 +12447,98 @@ static int	handleEncapsulatedBundle(BpDelivery *dlv)
 	return 0;
 }
 
+static int	handleSagaMessage(Lyst encounters)
+{
+	Sdr		sdr = getIonsdr();
+	vast		regionNbr;
+	int		regionIdx;
+	LystElt		elt;
+	Encounter	*encounter;
+	BpDB		*bpConstants = getBpConstants();
+	Object		bundleElt;
+	Object		nextBundleElt;
+
+	/*	parseSagaMessage has created a Lyst of Encounter
+	 *	objects and stored the applicable region number in
+	 *	the fromNode field of a bogus Encounter object that
+	 *	is inserted at the front of the encounters Lyst.
+	 *
+	 *	Extract all encounters from the Lyst, insert them
+	 *	into the applicable local saga (discarding any
+	 *	duplicates), and destroy the Lyst.			*/
+
+	elt = lyst_first(encounters);
+	CHKERR(elt);
+	encounter = (Encounter *) lyst_data(elt);
+	regionNbr = encounter->fromNode;
+	regionIdx = ionPickRegion(regionNbr);
+	if (regionIdx < 0 || regionIdx > 1)
+	{
+		/*	This message is for a region of which the
+		 *	local node is not a member, so the message
+		 *	is not usable.					*/
+
+		lyst_destroy(encounters);
+		return 0;
+	}
+
+	elt = lyst_next(elt);
+	while (elt)
+	{
+		encounter = (Encounter *) lyst_data(elt);
+		saga_insert(encounter->fromTime, encounter->toTime,
+				encounter->fromNode, encounter->toNode,
+				encounter->xmitRate, regionIdx);
+		elt = lyst_next(elt);
+	}
+
+	lyst_destroy(encounters);
+
+	/*	Now call saga_receive to erase all existing predicted
+	 *	contacts and compute new (hopefully better and/or
+	 *	additional) ones.					*/
+
+	if (saga_receive(regionIdx) < 0)
+	{
+		putErrmsg("Can't process contact discovery msg from neighbor.",
+				NULL);
+		return -1;
+	}
+
+	/*	Finally, release all bundles from limbo, to take
+	 *	advantage of the new predicted contacts.		*/
+
+	for (bundleElt = sdr_list_first(sdr, bpConstants->limboQueue);
+			bundleElt; bundleElt = nextBundleElt)
+	{
+		nextBundleElt = sdr_list_next(sdr, bundleElt);
+		if (releaseFromLimbo(bundleElt, 0) < 0)
+		{
+			putErrmsg("Failed releasing bundle from limbo.", NULL);
+			return-1;
+		}
+	}
+
+	return 0;
+}
+
+static int	applySagaMessage(int adminRecType, void *other, BpDelivery *dlv)
+{
+	if (adminRecType != BP_SAGA_MESSAGE)
+	{
+		return -2;
+	}
+
+	/*	parseSagaMessage (called from parseAdminRecord)
+	 *	has created a Lyst of Encounter objects, stored
+	 *	the applicable regionIdx in the fromNode field of
+	 *	a bogus Encounter object that is inserted at the
+	 *	front of the Lyst, and placed the address of the
+	 *	Lyst in "other".					*/
+
+	return handleSagaMessage((Lyst) other);
+}
+
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		CtSignalCB handleCtSignal)
 {
@@ -12355,7 +12600,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		}
 
 		switch (parseAdminRecord(&adminRecType, &rpt, &cts, &other,
-				dlv.adu))
+					dlv.adu))
 		{
 		case 1: 			/*	No problem.	*/
 			break;
@@ -12443,6 +12688,17 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			}
 
 			result = applyImcPetition(adminRecType, other, &dlv);
+			if (result != -2)	/*	Applied record.	*/
+			{
+				if (result < 0)
+				{
+					running = 0;
+				}
+
+				break;		/*	Out of switch.	*/
+			}
+
+			result = applySagaMessage(adminRecType, other, &dlv);
 			if (result != -2)	/*	Applied record.	*/
 			{
 				if (result < 0)

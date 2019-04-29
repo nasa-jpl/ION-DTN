@@ -20,6 +20,7 @@
 #include "rfx.h"
 #include "ionsec.h"
 #include "bp.h"
+#include "saga.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -202,6 +203,7 @@ typedef struct
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
 #define	BP_ENCAPSULATED_BUNDLE	(7)
+#define	BP_SAGA_MESSAGE		(42)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -680,6 +682,17 @@ typedef struct
 
 #define	EPOCH_2000_SEC	946684800
 
+/*	Encounter is a record of a past discovered contact.		*/
+
+typedef struct
+{
+	uvast		fromNode;	/*	CBHE node number	*/
+	uvast		toNode;		/*	CBHE node number	*/
+	time_t		fromTime;	/*	As from getUTCTime()	*/
+	time_t		toTime;		/*	As from getUTCTime()	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
+} Encounter;
+
 typedef enum
 {
 	expiredTTL = 1,
@@ -708,6 +721,7 @@ typedef struct
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
+	Object		saga[2];	/*	SDR list of Encounters	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/

@@ -66,22 +66,6 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern void		rfx_log_discovered_contact(time_t fromTime,
-				time_t toTime,
-				uvast fromNode,
-				uvast toNode,
-				size_t xmitRate,
-				int idx);
-			/*	Notes termination of a discovered
-			 *	contact in the appropriate contact
-			 *	log.  toTime should be the time at
-			 *	which the discovered contact was lost.
-			 *	idx indicates which contact log the
-			 *	contact should be inserted into: it
-			 *	must be SENDER_NODE if the source
-			 *	of the log entry is the contact's
-			 *	fromNode, otherwise RECEIVER_NODE.	*/
-
 extern int		rfx_revise_contact(time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
@@ -96,22 +80,6 @@ extern int		rfx_remove_contact(time_t *fromTime,
 			/*	Removes the indicated IonContact
 				object from the time-ordered contacts
 				list in the ION database.		*/
-#if 0
-extern int		rfx_remove_discovered_contacts(uvast peerNode);
-			/*	Removes all discovered contacts
-			 *	involving the indicated node,
-			 *	either as sender or receiver.		*/
-#endif
-
-extern int		rfx_predict_contacts(uvast fromNode, uvast toNode);
-			/*	Removes all existing predicted contacts
-			 *	for this from/to node pair and computes
-			 *	new predicted contacts.			*/
-
-extern int		rfx_predict_all_contacts();
-			/*	Removes all existing predicted contacts
-			 *	and computes new predicted contacts for
-			 *	all from/to node pairs.			*/
 
 /*	*	Functions for inserting and removing range notes.	*/
 
@@ -182,6 +150,8 @@ extern IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
 				PsmAddress *nextElt);
 
 extern IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr);
+
+extern IonNeighbor	*getNeighbor(IonVdb *ionvdb, uvast nodeNbr);
 
 extern IonNode		*findNode(IonVdb *ionvdb, uvast nodeNbr,
 				PsmAddress *nextElt);

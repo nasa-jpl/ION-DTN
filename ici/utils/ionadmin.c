@@ -154,8 +154,11 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
-	PUTS("\t   m home <home region number>");
-	PUTS("\t   m outer <outer region number>");
+	PUTS("\t   m home <home region nbr>");
+	PUTS("\t   m outer <outer region nbr>");
+	PUTS("\t   m passageway <node number> <home region nbr> <outer region nbr>");
+	PUTS("\t\tSetting outer region nbr to -1 makes node a non-passageway.");
+	PUTS("\t\tSetting home region nbr to -1 removes the passageway.");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
@@ -317,8 +320,9 @@ than start time and earlier than 19 January 2038.");
 			xmitRate = strtol(tokens[6], NULL, 0);
 		}
 
-		oK(rfx_insert_contact(_regionNbr(NULL), fromTime, toTime,
-			fromNodeNbr, toNodeNbr, xmitRate, confidence, &xaddr));
+		oK(rfx_insert_contact(ionPickRegion(_regionNbr(NULL)),
+				fromTime, toTime, fromNodeNbr, toNodeNbr,
+				xmitRate, confidence, &xaddr));
 		oK(_forecastNeeded(1));
 		return;
 	}
@@ -1053,6 +1057,65 @@ VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
 	return;
 }
 
+static void	managePassageway(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	uvast	nodeNbr;
+	vast	homeRegionNbr;
+	vast	outerRegionNbr;
+	int	regionIdx;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	nodeNbr	 = strtouvast(tokens[2]);
+	homeRegionNbr = strtovast(tokens[3]);
+	outerRegionNbr = strtovast(tokens[4]);
+	if (homeRegionNbr == -1)	/*	Forget this node.	*/
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		ionNoteNonMember(0, nodeNbr);
+		ionNoteNonMember(1, nodeNbr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't remove passageway.", NULL);
+		}
+	}
+	else
+	{
+		regionIdx = ionPickRegion(homeRegionNbr);
+		if (regionIdx >= 0 && regionIdx <= 1)
+		{
+			/*	Passageway is a member of this region.	*/
+
+			CHKVOID(sdr_begin_xn(sdr));
+			ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
+					outerRegionNbr);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't update passageway.", NULL);
+			}
+		}
+
+		regionIdx = ionPickRegion(outerRegionNbr);
+		if (regionIdx >= 0 && regionIdx <= 1)
+		{
+			/*	Passageway is a member of this region.	*/
+
+			CHKVOID(sdr_begin_xn(sdr));
+			ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
+					outerRegionNbr);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't update passageway.", NULL);
+			}
+		}
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1140,6 +1203,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "outer") == 0)
 	{
 		manageRegion(tokenCount, tokens, 1);
+		return;
+	}
+
+	if (strcmp(tokens[1], "passageway") == 0)
+	{
+		managePassageway(tokenCount, tokens);
 		return;
 	}
 

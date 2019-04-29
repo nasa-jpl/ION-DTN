@@ -77,10 +77,29 @@ static void	toggleScheduledContacts(uvast fromNode, uvast toNode,
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
+	time_t		currentTime = getUTCTime();
+	uvast		neighborNodeNbr;
+	IonNeighbor	*neighbor = NULL;
 	IonCXref	arg;
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
+
+	if (toType == CtScheduled)
+	{
+		/*	We are restoring suppressed contacts.		*/
+
+		if (fromNode == getOwnNodeNbr())
+		{
+			neighborNodeNbr = toNode;
+		}
+		else
+		{
+			neighborNodeNbr = fromNode;
+		}
+		
+		neighbor = getNeighbor(ionvdb, neighborNodeNbr);
+	}
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.fromNode = fromNode;
@@ -97,7 +116,31 @@ static void	toggleScheduledContacts(uvast fromNode, uvast toNode,
 
 		if (contact->type == fromType)
 		{
+			/*	Must toggle the type of this contact.	*/
+
 			contact->type = toType;
+
+			/*	May need to apply this contact, if
+			 *	it was previously suppressed.		*/
+
+			if (neighbor == NULL)
+			{
+				continue;
+			}
+			
+			if (contact->fromTime <= currentTime
+			&& contact->toTime > currentTime)
+			{
+				if (toNode == neighborNodeNbr)
+				{
+					neighbor->xmitRate = contact->xmitRate;
+				}
+				else 	/*	Contact FROM neighbor.	*/
+				{
+					neighbor->fireRate = contact->xmitRate;
+					neighbor->recvRate = contact->xmitRate;
+				}
+			}
 		}
 	}
 }
@@ -109,21 +152,24 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		regionIdx;
+	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
-	PsmAddress	xaddr;
 
 	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
 	if (regionIdx < 0)
 	{
-		writeMemoNote("Not adding contact for node; region unknown.",
+		writeMemoNote("[?] Can't add contact for node; region unknown.",
 				itoa(discoveryNodeNbr));
 		return 0;
 	}
 
-	/*	Find matching latent contact TO discovered neighbor.	*/
+	neighbor = getNeighbor(ionvdb, discoveryNodeNbr);
+	CHKZERO(neighbor);
+
+	/*	Find matching hypothetical contact TO new neighbor.	*/
 
 	contact = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
@@ -131,29 +177,23 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	arg.toNode = discoveryNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
 			&arg, &elt));
-	if (elt)
+	if (elt)	/*	Found hypothetical contact.		*/
 	{
 		contactAddr = sm_rbt_data(ionwm, elt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
-		if (contact->fromNode > ownNodeNbr
-		|| contact->toNode > discoveryNodeNbr)
-		{
-			contact = NULL;	/*	No latent contact.	*/
-		}
 	}
-
-	if (contact == NULL)	/*	Must insert latent contact.	*/
+	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, MAX_POSIX_TIME, ownNodeNbr,
-			discoveryNodeNbr, 0, 0.0, &xaddr) < 0
-		|| xaddr == 0)
+		if (rfx_insert_contact(regionIdx, 0, 0, ownNodeNbr,
+				discoveryNodeNbr, 0, 0.0, &contactAddr) < 0
+		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",
 					itoa(discoveryNodeNbr));
 			return -1;
 		}
 
-		contact = (IonCXref *) psp(ionwm, xaddr);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
 	}
 
 	if (contact->type == CtHypothetical)
@@ -161,11 +201,12 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 		contact->type = CtDiscovered;
 		contact->xmitRate = xmitRate;
 		contact->confidence = 1.0;
+		neighbor->xmitRate = xmitRate;
 		toggleScheduledContacts(ownNodeNbr, discoveryNodeNbr,
 				CtScheduled, CtSuppressed);
 	}
 
-	/*	Find matching latent contact FROM discovered neighbor.	*/
+	/*	Find matching hypothetical contact FROM new neighbor.	*/
 
 	contact = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
@@ -173,29 +214,23 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	arg.toNode = ownNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
 			&arg, &elt));
-	if (elt)
+	if (elt)	/*	Found hypothetical contact.		*/
 	{
 		contactAddr = sm_rbt_data(ionwm, elt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
-		if (contact->fromNode > discoveryNodeNbr
-		|| contact->toNode > ownNodeNbr)
-		{
-			contact = NULL;	/*	No latent contact.	*/
-		}
 	}
-
-	if (contact == NULL)	/*	Must insert latent contact.	*/
+	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, MAX_POSIX_TIME,
-			discoveryNodeNbr, ownNodeNbr, 0, 0.0, &xaddr) < 0
-		|| xaddr == 0)
+		if (rfx_insert_contact(regionIdx, 0, 0, discoveryNodeNbr,
+				ownNodeNbr, 0, 0.0, &contactAddr) < 0
+		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",
 					itoa(discoveryNodeNbr));
 			return -1;
 		}
 
-		contact = (IonCXref *) psp(ionwm, xaddr);
+		contact = (IonCXref *) psp(ionwm, contactAddr);
 	}
 
 	if (contact->type == CtHypothetical)
@@ -203,8 +238,20 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 		contact->type = CtDiscovered;
 		contact->xmitRate = recvRate;
 		contact->confidence = 1.0;
+		neighbor->fireRate = recvRate;
+		neighbor->recvRate = recvRate;
 		toggleScheduledContacts(discoveryNodeNbr, ownNodeNbr,
 				CtScheduled, CtSuppressed);
+	}
+
+	/*	Exchange discovered contact history with newly
+	 *	identified (temporary) neighbor.			*/
+
+	if (saga_send(discoveryNodeNbr, regionIdx) < 0)
+	{
+		putErrmsg("Can't send contact history message to neighbor.",
+				itoa(discoveryNodeNbr));
+		return -1;
 	}
 
 	return 0;
@@ -383,7 +430,7 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 
 	if (addDiscovery(discoveryEid) < 0)
 	{
-		putErrmsg("Can't add discovered Neighbor.", discoveryEid);
+		putErrmsg("Can't add discovered neighbor.", discoveryEid);
 		return -1;
 	}
 
@@ -414,14 +461,32 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		regionIdx;
+	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	time_t		currentTime;
 
+	/*	Note: this is where discovered contacts get
+	 *	inserted into ION's distributed history of
+	 *	contacts.  However, to prevent double-posting
+	 *	of contacts (which might disagree due to clock
+	 *	misalignment between nodes), we only post new
+	 *	discovered contacts from whichever participating
+	 *	node has got the lower node number.			*/
+
 	currentTime = getUTCTime();
 	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+	if (regionIdx < 0)
+	{
+		writeMemoNote("[?] Can't lose contact to node; region unknown.",
+				itoa(discoveryNodeNbr));
+		return 0;
+	}
+
+	neighbor = getNeighbor(ionvdb, discoveryNodeNbr);
+	CHKZERO(neighbor);
 
 	/*	Find matching discovered contact TO neighbor.		*/
 
@@ -431,15 +496,10 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	arg.toNode = discoveryNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
 			&arg, &elt));
-	if (elt)
+	if (elt)		/*	Found discovered contact.	*/
 	{
 		contactAddr = sm_rbt_data(ionwm, elt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
-		if (contact->fromNode > ownNodeNbr
-		|| contact->toNode > discoveryNodeNbr)
-		{
-			contact = NULL;	/*	No discovered contact.	*/
-		}
 	}
 
 	if (contact == NULL)		/*	Functional error.	*/
@@ -451,12 +511,17 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	{
 		if (contact->type == CtDiscovered)
 		{
-			rfx_log_discovered_contact(startTime, currentTime,
+			if (ownNodeNbr < discoveryNodeNbr)
+			{
+				saga_insert(startTime, currentTime,
 					ownNodeNbr, discoveryNodeNbr,
 					contact->xmitRate, regionIdx);
+			}
+
 			contact->type = CtHypothetical;
 			contact->xmitRate = 0;
 			contact->confidence = 0.0;
+			neighbor->xmitRate = 0;
 			toggleScheduledContacts(ownNodeNbr, discoveryNodeNbr,
 					CtSuppressed, CtScheduled);
 		}
@@ -470,15 +535,10 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	arg.toNode = ownNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
 			&arg, &elt));
-	if (elt)
+	if (elt)	/*	Found discovered contact.		*/
 	{
 		contactAddr = sm_rbt_data(ionwm, elt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
-		if (contact->fromNode > discoveryNodeNbr
-		|| contact->toNode > ownNodeNbr)
-		{
-			contact = NULL;	/*	No discovered contact.	*/
-		}
 	}
 
 	if (contact == NULL)		/*	Functional error.	*/
@@ -490,12 +550,18 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	{
 		if (contact->type == CtDiscovered)
 		{
-			rfx_log_discovered_contact(startTime, currentTime,
+			if (ownNodeNbr < discoveryNodeNbr)
+			{
+				saga_insert(startTime, currentTime,
 					discoveryNodeNbr, ownNodeNbr,
 					contact->xmitRate, regionIdx);
+			}
+
 			contact->type = CtHypothetical;
 			contact->xmitRate = 0;
 			contact->confidence = 0.0;
+			neighbor->fireRate = 0;
+			neighbor->recvRate = 0;
 			toggleScheduledContacts(discoveryNodeNbr, ownNodeNbr,
 					CtSuppressed, CtScheduled);
 		}

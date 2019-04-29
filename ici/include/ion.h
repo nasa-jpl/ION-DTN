@@ -82,16 +82,9 @@ typedef struct
  *	Additionally, IonContacts for which either the fromNode or the
  *	toNode is the local node's own node number are used in
  *	congestion forecasting, by computation of maximum scheduled
- *	bundle space occupancy.						*/
-
-typedef struct
-{
-	uvast		nodeNbr;
-	uvast		homeRegionNbr;
-	uvast		outerRegionNbr;
-} RegionMember;
-
-/*	Six different types of Contact may be intermixed within a
+ *	bundle space occupancy.	
+ *
+ *	Six different types of contact may be intermixed within a
  *	contact plan.
  *
  *	(1)  A "registration" contact constitutes the registration
@@ -218,12 +211,10 @@ typedef struct
 
 typedef struct
 {
-	time_t		fromTime;	/*	As from time(2).	*/
-	time_t		toTime;		/*	As from time(2).	*/
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	size_t		xmitRate;	/*	In bytes per second.	*/
-} PastContact;
+	uvast		nodeNbr;
+	uvast		homeRegionNbr;
+	uvast		outerRegionNbr;
+} RegionMember;
 
 typedef struct
 {
@@ -239,7 +230,6 @@ typedef struct
 	uvast		ownNodeNbr;
 	IonRegion	regions[2];	/*	Home, outer.		*/
 	Object		ranges;		/*	SDR list: IonRange	*/
-	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
@@ -300,7 +290,6 @@ typedef struct
 {
 	uvast		nodeNbr;	/*	As from IonContact.	*/
 	PsmAddress	embargoes;	/*	SM list: Embargo	*/
-	PsmAddress	passageways;	/*	SM list: node number	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 } IonNode;		/*	A potential bundle destination node.	*/
 
@@ -468,6 +457,12 @@ extern int		ionJoinRegion(int i, vast regionNbr);
 extern int		ionPickRegion(vast regionNbr);
 extern void		ionLeaveRegion(int i);
 extern int		ionRegionOf(uvast nodeA, uvast nodeB);
+extern void		ionNoteMember(int regionIdx,
+					uvast nodeNbr,
+					vast homeRegionNbr,
+					vast outerRegionNbr);
+extern void		ionNoteNonMember(int regionIdx,
+					uvast nodeNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);
