@@ -1,0 +1,1 @@
+Test the bug fix that prevents deletion of a non-custodial bundle prior to convergence-layer notification that all transmission procedures for this bundle have been concluded, either successfully or unsuccessfully
