@@ -2841,6 +2841,9 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	Bundle		newBundle;
 	Object		newBundleObj;
 
+	/*	Enqueue the bundle on the plan for the entry node of
+	 *	EACH identified best route.				*/
+
 	for (elt = lyst_first(bestRoutes); elt; elt = nextElt)
 	{
 		nextElt = lyst_next(elt);
@@ -2922,6 +2925,63 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 #endif
 
 	return 0;
+}
+
+static unsigned char	initializeSnw(unsigned int ttl, uvast toNode)
+{
+	/*	Compute spray-and-wait "L" value.  The only required
+	 *	parameters are the required expected delay "aEDopt"
+	 *	and the number of nodes "M".  Expected delay is
+	 *	computed as the product of the delay constraint "a"
+	 *	(we choose 8 for this value), the expected delay for
+	 *	direct transmission (1 second), and the TTL less
+	 *	some margin for safety (we discount by 1/8) -- so
+	 *	7 * TTL.  The number of nodes is the length of the
+	 *	list of members for the region in which the local
+	 *	node and the initial contact's "to" node both reside.
+	 *
+	 *	The computation is very complex, left for later.	*/
+
+	return 16;	/*	Dummy result, for now.			*/
+}
+
+static int	forwardOkay(CgrRoute *route, Bundle *bundle)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	hopsElt;
+	PsmAddress	contactAddr;
+	IonCXref	*contact;
+
+	hopsElt = sm_list_first(ionwm, route->hops);
+	contactAddr = sm_list_data(ionwm, hopsElt);
+	contact = (IonCXref *) psp(ionwm, contactAddr);
+	if (contact->type != CtDiscovered)
+	{
+		return 1;	/*	No Spray and Wait rule applies.	*/
+	}
+
+	/*	Discovered contact, must check Spray and Wait.		*/
+
+	switch (bundle->permits)
+	{
+	case 0: 	/*	Not sprayed yet.			*/
+		bundle->permits = initializeSnw(bundle->timeToLive,
+				contact->toNode);
+
+		/*	Intentional fall-through to next case.		*/
+	case 1:
+		/*	When SNW permits count is 1, the bundle can only
+		 *	be forwarded to the final destination node.	*/
+
+		if (contact->toNode != bundle->destination.c.nodeNbr)
+		{
+			return 0;
+		}
+
+		/*	Intentional fall-through to next case.		*/
+	default:
+		return 1;
+	}
 }
 
 static int 	cgrForward(Bundle *bundle, Object bundleObj,
@@ -3072,9 +3132,6 @@ if (bundle->ancillaryData.flowLabel == 86)
 		return -1;
 	}
 
-	/*	Enqueue the bundle on the plan for the entry node of
-	 *	EACH identified best route.				*/
-
 	lyst_destroy(excludedNodes);
 	TRACE(CgrSelectRoutes);
 	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
@@ -3094,7 +3151,7 @@ if (bundle->ancillaryData.flowLabel == 86)
 	{
 		route = (CgrRoute *) lyst_data_set(elt, NULL);
 		TRACE(CgrUseRoute, route->toNodeNbr);
-		if (!preview)
+		if (!preview && forwardOkay(route, bundle))
 		{
 			if (enqueueToNeighbor(route, bundle, bundleObj,
 					terminusNode))

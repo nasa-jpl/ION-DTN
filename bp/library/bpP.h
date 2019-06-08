@@ -324,6 +324,10 @@ typedef struct
 	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
 
+	/*	Stuff in Spray and Wait extension block.		*/
+
+	unsigned char	permits;	/*	# SnW fwd permits left.	*/
+
 	/*	Stuff in Payload block.					*/
 
 	unsigned int	payloadBlockProcFlags;

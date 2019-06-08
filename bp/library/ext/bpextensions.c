@@ -18,6 +18,7 @@
 #include "ecos.h"
 #include "meb.h"
 #include "bae.h"
+#include "snw.h"
 #if defined(ORIGINAL_BSP)
 #include "extbspbab.h"
 #include "extbsppcb.h"
@@ -266,6 +267,23 @@ static ExtensionDef	extensionDefs[] =
 				bae_record,
 				bae_clear
 		},
+		{ "snw", EXTENSION_TYPE_SNW,
+				snw_offer,
+				{snw_processOnFwd,
+				snw_processOnAccept,
+				snw_processOnEnqueue,
+				snw_processOnDequeue,
+				0},
+				snw_release,
+				snw_copy,
+				0,
+				0,
+				0,
+				snw_parse,
+				snw_check,
+				snw_record,
+				snw_clear
+		},
 #ifdef ENABLE_BPACS
         	{ "cteb", EXTENSION_TYPE_CTEB,
 				cteb_offer,
@@ -307,6 +325,7 @@ static ExtensionSpec	extensionSpecs[] =
 				{ EXTENSION_TYPE_ECOS, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_MEB, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAE, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_SNW, 0, 0, 0, 0 },
 #ifdef ENABLE_BPACS
         			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0 },
 #endif /* ENABLE_BPACS */
