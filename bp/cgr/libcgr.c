@@ -2968,10 +2968,11 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 				contact->toNode);
 	}
 
-	if (bundle->permits == 1)
+	if (bundle->permits < 2)	/*	(Should never be 0.)	*/
 	{
-		/*	When SNW permits count is 1, the bundle can only
-		 *	be forwarded to the final destination node.	*/
+		/*	When SNW permits count is 1 (or 0), the bundle
+		 *	can only be forwarded to the final destination
+		 *	node.						*/
 
 		if (contact->toNode != bundle->destination.c.nodeNbr)
 		{
