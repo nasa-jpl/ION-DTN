@@ -2962,14 +2962,14 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 
 	/*	Discovered contact, must check Spray and Wait.		*/
 
-	switch (bundle->permits)
+	if (bundle->permits == 0)	/*	Not sprayed yet.	*/
 	{
-	case 0: 	/*	Not sprayed yet.			*/
 		bundle->permits = initializeSnw(bundle->timeToLive,
 				contact->toNode);
+	}
 
-		/*	Intentional fall-through to next case.		*/
-	case 1:
+	if (bundle->permits == 1)
+	{
 		/*	When SNW permits count is 1, the bundle can only
 		 *	be forwarded to the final destination node.	*/
 
@@ -2977,11 +2977,9 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 		{
 			return 0;
 		}
-
-		/*	Intentional fall-through to next case.		*/
-	default:
-		return 1;
 	}
+
+	return 1;
 }
 
 static int 	cgrForward(Bundle *bundle, Object bundleObj,
