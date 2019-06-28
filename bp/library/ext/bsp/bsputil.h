@@ -70,7 +70,7 @@
 
 #include "bpP.h"
 #include "bei.h"
-#include "ionsec.h"
+#include "bpsec.h"
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *

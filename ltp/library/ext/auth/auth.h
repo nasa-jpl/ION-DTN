@@ -17,7 +17,7 @@
 #ifndef _LTPAUTH_H_
 #define _LTPAUTH_H_
 #include "ltpP.h"
-#include "ionsec.h"
+#include "ltpsec.h"
 #include "ltpei.h"
 
 /*
