@@ -5,6 +5,7 @@ PODH = pod2html --noindex
 
 MANFILES = \
 	./man/man1/ltpadmin.1 \
+	./man/man1/ltpsecadmin.1 \
 	./man/man1/ltpclock.1 \
 	./man/man1/ltpcounter.1 \
 	./man/man1/ltpdriver.1 \
@@ -15,11 +16,13 @@ MANFILES = \
 	./man/man1/dccplsi.1 \
 	./man/man1/dccplso.1 \
 	./man/man5/ltprc.5 \
+	./man/man5/ltpsecrc.5 \
 	./man/man3/ltp.3 \
 	./man/man3/sda.3
 
 HTMLFILES = \
 	./html/man1/ltpadmin.html \
+	./html/man1/ltpsecadmin.html \
 	./html/man1/ltpclock.html \
 	./html/man1/ltpcounter.html \
 	./html/man1/ltpdriver.html \
@@ -30,6 +33,7 @@ HTMLFILES = \
 	./html/man1/dccplsi.html \
 	./html/man1/dccplso.html \
 	./html/man5/ltprc.html \
+	./html/man5/ltpsecrc.html \
 	./html/man3/ltp.html \
 	./html/man3/sda.html
 
