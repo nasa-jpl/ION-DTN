@@ -7855,9 +7855,9 @@ unsigned int	guessBundleSize(Bundle *bundle)
 
 unsigned int	computeECCC(unsigned int bundleSize)
 {
-#ifdef CGR_IOT
-	return bundleSize * 1.03;
-#else
+//#ifdef CGR_IOT
+//	return bundleSize * 1.03;
+//#else
 	unsigned int	stackOverhead;
 
 	/*	Assume 6.25% convergence-layer overhead.		*/
@@ -7869,7 +7869,7 @@ unsigned int	computeECCC(unsigned int bundleSize)
 	}
 
 	return bundleSize + stackOverhead;
-#endif
+//#endif
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -11986,7 +11986,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 
 int	bpHandleXmitFailure(Object bundleZco)
 {
-#ifndef CGR_IOT
+//#ifndef CGR_IOT
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
@@ -12036,7 +12036,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		putErrmsg("Can't handle transmission failure.", NULL);
 		return -1;
 	}
-#endif
+//#endif
 
 	return 1;
 }

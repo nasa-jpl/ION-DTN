@@ -17,11 +17,11 @@
 #endif
 
 #ifndef CGR_DEBUG
-#ifdef	CGR_IOT
-#define CGR_DEBUG	1
-#else
+//#ifdef	CGR_IOT
+//#define CGR_DEBUG	1
+//#else
 #define CGR_DEBUG	0
-#endif
+//#endif
 #endif
 
 #if CGR_DEBUG == 1
@@ -144,7 +144,7 @@ static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
-#ifndef CGR_IOT
+//#ifndef CGR_IOT
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
@@ -182,7 +182,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	return 0;
 }
-#endif
+//#endif
 
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {

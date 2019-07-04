@@ -975,95 +975,48 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 
 static void	manageRegion(int tokenCount, char **tokens, int i)
 {
-	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
-	IonDB		iondb;
-	char		buffer[128];
-	vast		regionNbr;
-	IonRegion	*region; 
+	Sdr	sdr;
+	Object	iondbObj;
+	IonDB	iondb;
+	char	buffer[128];
+	vast	regionNbr;
 
-	iondbObj = getIonDbObject();
-	CHKVOID(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (tokenCount == 2)
 	{
+		sdr = getIonsdr();
+		iondbObj = getIonDbObject();
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		isprintf(buffer, sizeof buffer, "home region is "
 VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
 				iondb.regions[0].regionNbr,
 				iondb.regions[1].regionNbr);
-		sdr_exit_xn(sdr);
 		printText(buffer);
 		return;
 	}
 
 	if (tokenCount != 3)
 	{
-		sdr_exit_xn(sdr);
 		SYNTAX_ERROR;
 		return;
 	}
 
-	region = &(iondb.regions[i]);
+	/*	Manage node's own region membership.			*/
+
 	regionNbr = strtovast(tokens[2]);
-	if (regionNbr < 0)
+	if (regionNbr < -1)
 	{
-		if (regionNbr != -1)	/*	Only -1 is valid.	*/
-		{
-			sdr_exit_xn(sdr);
-			SYNTAX_ERROR;
-			return;
-		}
-
-		if (i == 0)	/*	Trying to leave home region.	*/
-		{
-			sdr_exit_xn(sdr);
-			printText("Attempt to leave network, not supported.");
-			return;
-		}
-
-		/*	Node is ceasing to be a passageway to its
-		 *	outer region.					*/
-
-		ionLeaveRegion(1);
-		oK(sdr_end_xn(sdr));
+		SYNTAX_ERROR;
 		return;
 	}
 
-	/*	Node is joining a new region.				*/
-
-	if (ionPickRegion(regionNbr) < 2)
-	{
-		/*	Node already resides in the indicated region.	*/
-
-		sdr_exit_xn(sdr);
-		printText("Attempt to join a region the node is already in.");
-		return;
-	}
-
-	if (region->regionNbr != -1)
-	{
-		/*	Must leave old region first.			*/
-
-		ionLeaveRegion(i);
-	}
-
-	if (ionJoinRegion(i, regionNbr) < 0)
-	{
-		sdr_cancel_xn(sdr);
-		return;
-	}
-
-	oK(sdr_end_xn(sdr));
-	return;
+	oK(ionManageRegion(i, regionNbr));
 }
 
 static void	managePassageway(int tokenCount, char **tokens)
 {
-	Sdr	sdr = getIonsdr();
 	uvast	nodeNbr;
 	vast	homeRegionNbr;
 	vast	outerRegionNbr;
-	int	regionIdx;
 
 	if (tokenCount != 5)
 	{
@@ -1074,46 +1027,7 @@ static void	managePassageway(int tokenCount, char **tokens)
 	nodeNbr	 = strtouvast(tokens[2]);
 	homeRegionNbr = strtovast(tokens[3]);
 	outerRegionNbr = strtovast(tokens[4]);
-	if (homeRegionNbr == -1)	/*	Forget this node.	*/
-	{
-		CHKVOID(sdr_begin_xn(sdr));
-		ionNoteNonMember(0, nodeNbr);
-		ionNoteNonMember(1, nodeNbr);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't remove passageway.", NULL);
-		}
-	}
-	else
-	{
-		regionIdx = ionPickRegion(homeRegionNbr);
-		if (regionIdx >= 0 && regionIdx <= 1)
-		{
-			/*	Passageway is a member of this region.	*/
-
-			CHKVOID(sdr_begin_xn(sdr));
-			ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
-					outerRegionNbr);
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't update passageway.", NULL);
-			}
-		}
-
-		regionIdx = ionPickRegion(outerRegionNbr);
-		if (regionIdx >= 0 && regionIdx <= 1)
-		{
-			/*	Passageway is a member of this region.	*/
-
-			CHKVOID(sdr_begin_xn(sdr));
-			ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
-					outerRegionNbr);
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't update passageway.", NULL);
-			}
-		}
-	}
+	oK(ionManagePassageway(nodeNbr, homeRegionNbr, outerRegionNbr));
 }
 
 static void	executeManage(int tokenCount, char **tokens)

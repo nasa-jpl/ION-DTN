@@ -453,16 +453,18 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-extern int		ionJoinRegion(int i, vast regionNbr);
 extern int		ionPickRegion(vast regionNbr);
-extern void		ionLeaveRegion(int i);
-extern int		ionRegionOf(uvast nodeA, uvast nodeB);
+extern int		ionRegionOf(uvast nodeA,
+					uvast nodeB);
 extern void		ionNoteMember(int regionIdx,
 					uvast nodeNbr,
 					vast homeRegionNbr,
 					vast outerRegionNbr);
-extern void		ionNoteNonMember(int regionIdx,
-					uvast nodeNbr);
+extern int		ionManageRegion(int i,
+					vast regionNbr);
+extern int		ionManagePassageway(uvast nodeNbr,
+					vast homeRegionNbr,
+					vast outerRegionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

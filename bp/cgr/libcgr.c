@@ -28,11 +28,11 @@
 #endif
 
 #ifndef	MANAGE_OVERBOOKING
-#ifdef	CGR_IOT
-#define	MANAGE_OVERBOOKING	0
-#else
+//#ifdef	CGR_IOT
+//#define	MANAGE_OVERBOOKING	0
+//#else
 #define	MANAGE_OVERBOOKING	1
-#endif
+//#endif
 #endif
 
 /*		Perform a trace if a trace callback exists.		*/
@@ -2596,9 +2596,11 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 			route->toNodeNbr);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
+#if 0
 #ifdef CGR_IOT
 printf("Enqueuing bundle: to node " UVAST_FIELDSPEC ", eccc %lu, eto %lu, \
 pbat %lu.\n", route->toNodeNbr, route->bundleECCC, route->eto, route->pbat);
+#endif
 #endif
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
@@ -2885,7 +2887,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(bestRoutes);
-#ifndef	CGR_IOT
+//#ifndef	CGR_IOT
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
 	{
@@ -2922,7 +2924,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 		putErrmsg("Can't put bundle in limbo.", NULL);
 		return -1;
 	}
-#endif
+//#endif
 
 	return 0;
 }
@@ -2968,10 +2970,11 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 				contact->toNode);
 	}
 
-	if (bundle->permits == 1)
+	if (bundle->permits < 2)	/*	(Should never be 0.)	*/
 	{
-		/*	When SNW permits count is 1, the bundle can only
-		 *	be forwarded to the final destination node.	*/
+		/*	When SNW permits count is 1 (or 0), the bundle
+		 *	can only be forwarded to the final destination
+		 *	node.						*/
 
 		if (contact->toNode != bundle->destination.c.nodeNbr)
 		{
@@ -2998,12 +3001,12 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 	Embargo		*embargo;
 	LystElt		elt;
 	CgrRoute	*route;
-#ifndef CGR_IOT
+//#ifndef CGR_IOT
 	PsmAddress	routingObjectAddr;
 	CgrRtgObject	*routingObject;
 	Bundle		newBundle;
 	Object		newBundleObj;
-#endif
+//#endif
 
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
@@ -3103,8 +3106,8 @@ static int 	cgrForward(Bundle *bundle, Object bundleObj,
 		}
 	}
 
-#ifdef CGR_IOT
-if (bundle->ancillaryData.flowLabel == 86)
+//#ifdef CGR_IOT
+if (bundle->ancillaryData.dataLabel == 86)
 {
 	if (excludeNode(excludedNodes, 524306))
 	{
@@ -3116,7 +3119,7 @@ if (bundle->ancillaryData.flowLabel == 86)
 
 	writeMemo("[i] Node 524306 has been added to the ExcludedNodes list.");
 }
-#endif
+//#endif
 
 	/*	Consult the contact graph to identify the neighboring
 	 *	node(s) to forward the bundle to.			*/
@@ -3175,7 +3178,7 @@ if (bundle->ancillaryData.flowLabel == 86)
 		TRACE(CgrNoRoute);
 	}
 
-#ifndef CGR_IOT
+//#ifndef CGR_IOT
 	lyst_destroy(bestRoutes);
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
@@ -3216,7 +3219,7 @@ if (bundle->ancillaryData.flowLabel == 86)
 		putErrmsg("Can't put bundle in limbo.", NULL);
 		return -1;
 	}
-#endif
+//#endif
 
 	return 0;
 }
