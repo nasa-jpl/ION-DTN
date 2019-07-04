@@ -71,8 +71,8 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 	Sdr		sdr;
 	Object		newBundle;
 
-	if (!bp_parse_class_of_service(svcClass, &ancillaryData, &custodySwitch,
-			&priority))
+	if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
+			&custodySwitch, &priority))
 	{
 		putErrmsg("Invalid class of service for bptrace.", svcClass);
 		return 0;

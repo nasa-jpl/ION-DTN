@@ -293,14 +293,14 @@ static void	printBundle(Object bundleObj)
 			& BDL_APP_ACK_REQUEST ? 1 : 0);
 	PUTS(buf);
 
-	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	priority = bundle->priority;
 	isprintf(buf, sizeof buf,
 			"Priority                %lu", priority);
 	PUTS(buf);
 
 	isprintf(buf, sizeof buf,
 			"Ordinal                 %d",
-		       	bundle->ancillaryData.ordinal);
+		       	bundle->ordinal);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"Unreliable:             %d",

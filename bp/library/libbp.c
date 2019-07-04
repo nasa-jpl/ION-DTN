@@ -215,8 +215,9 @@ void	bp_close(BpSAP sap)
 	MRELEASE(sap);
 }
 
-int	bp_parse_class_of_service(const char *token, BpAncillaryData *ancillaryData,
-			BpCustodySwitch *custodySwitch, int *priority)
+int	bp_parse_quality_of_service(const char *token,
+		BpAncillaryData *ancillaryData, BpCustodySwitch *custodySwitch,
+		int *priority)
 {
 	int	count;
 	unsigned int myCustodyRequested;
@@ -224,15 +225,15 @@ int	bp_parse_class_of_service(const char *token, BpAncillaryData *ancillaryData,
 	unsigned int myOrdinal;
 	unsigned int myUnreliable;
 	unsigned int myCritical;
-	unsigned int myFlowLabel;
+	unsigned int myDataLabel;
 
 	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
 			&myCustodyRequested, &myPriority, &myOrdinal,
-			&myUnreliable, &myCritical, &myFlowLabel);
+			&myUnreliable, &myCritical, &myDataLabel);
 	switch (count)
 	{
 	case 6:
-		/*	All unsigned ints are valid flow labels.	*/
+		/*	All unsigned ints are valid data labels.	*/
 		/*	Intentional fall-through to next case.		*/
 
 	case 5:
@@ -270,12 +271,12 @@ int	bp_parse_class_of_service(const char *token, BpAncillaryData *ancillaryData,
 	ancillaryData->flags = 0;
 	if (count >= 6)
 	{
-		ancillaryData->flowLabel = myFlowLabel;
-		ancillaryData->flags |= BP_FLOW_LABEL_PRESENT;
+		ancillaryData->dataLabel = myDataLabel;
+		ancillaryData->flags |= BP_DATA_LABEL_PRESENT;
 	}
 	else
 	{
-		ancillaryData->flowLabel = 0;
+		ancillaryData->dataLabel = 0;
 	}
 
 	if (count >= 5)

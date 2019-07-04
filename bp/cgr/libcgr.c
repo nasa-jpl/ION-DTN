@@ -1627,7 +1627,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 
 		/*	Ensure that the contact is not depleted.	*/
 
-		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+		priority = bundle->priority;
 		contactObj = sdr_list_data(sdr, contact->contactElt);
 		sdr_read(sdr, (char *) &contactBuf, contactObj,
 				sizeof(IonContact));
@@ -2610,7 +2610,7 @@ pbat %lu.\n", route->toNodeNbr, route->bundleECCC, route->eto, route->pbat);
 	 *	on every contact along the end-to-end path for the
 	 *	bundle.							*/
 
-	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	priority = bundle->priority;
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sm_list_first(ionwm, route->hops); elt;
 			elt = sm_list_next(ionwm, elt))
@@ -2717,7 +2717,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 
 	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
 			route->toNodeNbr);
-	priority = COS_FLAGS(newBundle->bundleProcFlags) & 0x03;
+	priority = newBundle->priority;
 	if (priority == 0)
 	{
 		/*	New bundle's priority is Bulk, can't possibly
@@ -2762,7 +2762,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 				plan.stdQueue);
 		queueControls[1].limitElt = sdr_list_first(sdr,
 				plan.stdQueue);
-		ordinal = newBundle->ancillaryData.ordinal;
+		ordinal = newBundle->ordinal;
 		if (ordinal > 0)
 		{
 			queueControls[2].currentElt = sdr_list_last(sdr,

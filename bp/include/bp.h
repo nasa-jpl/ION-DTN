@@ -59,7 +59,7 @@ typedef struct
 {
 	/*	From Extended Class of Service (ECOS) block.		*/
 
-	unsigned int	flowLabel;	/*	Optional.		*/
+	unsigned int	dataLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	See below.		*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
 
@@ -68,17 +68,18 @@ typedef struct
 	unsigned char	metadataType;	/*	See RFC 6258.		*/
 	unsigned char	metadataLen;
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
-
+#if 0
 	/*	From Sequence Number block.				*/
 
 	unsigned long	sequenceNumber;
 	struct timeval	arrivalTime;
+#endif
 } BpAncillaryData;
 
 /*	Extended class-of-service flags.				*/
 #define	BP_MINIMUM_LATENCY	(1)	/*	Forward on all routes.	*/
 #define	BP_BEST_EFFORT		(2)	/*	Unreliable CL needed.	*/
-#define	BP_FLOW_LABEL_PRESENT	(4)	/*	Ignore flow label if 0.	*/
+#define	BP_DATA_LABEL_PRESENT	(4)	/*	Ignore data label if 0.	*/
 #define	BP_RELIABLE		(8)	/*	Reliable CL needed.	*/
 #define	BP_RELIABLE_STREAMING	(BP_BEST_EFFORT | BP_RELIABLE)
 
@@ -179,9 +180,9 @@ extern int		bp_open_source(	char *eid,
 
 #define BP_PARSE_CLASS_OF_SERVICE_USAGE				\
 	"<custody-requested>.<priority>[.<ordinal>" 	\
-	"[.<unreliable>.<critical>[.<flow-label>]]]"
+	"[.<unreliable>.<critical>[.<data-label>]]]"
 
-extern int		bp_parse_class_of_service(	const char *token,
+extern int		bp_parse_quality_of_service(	const char *token,
 					BpAncillaryData *ancillaryData,
 					BpCustodySwitch *custodySwitch,
 					int *priority);
@@ -215,7 +216,7 @@ extern int		bp_send(	BpSAP sap,
 			 *	class of service block.  Flag values
 			 *	are OR'd together.  If this argument
 			 *	is NULL, the default flags and ordinal
-			 *	values are 0 and there is no flow
+			 *	values are 0 and there is no data
 			 *	label.
 			 *
 			 *	adu must be a "zero-copy object" as

@@ -2185,7 +2185,7 @@ Throttle	*applicableThrottle(VPlan *vplan)
 void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 		Scalar *totalBacklog)
 {
-	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority = bundle->priority;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Throttle	*throttle;
@@ -2287,7 +2287,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	/*	Priority is 2, i.e., urgent (expedited).		*/
 
-	if ((i = bundle->ancillaryData.ordinal) == 0)
+	if ((i = bundle->ordinal) == 0)
 	{
 		addToScalar(priorClaims, &(plan->urgentBacklog));
 		return;
@@ -2801,7 +2801,7 @@ void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 
 	CHKVOID(bundle && plan);
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
-	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
+	switch (bundle->priority)
 	{
 	case 0:				/*	Bulk priority.		*/
 		reduceScalar(&(plan->bulkBacklog), backlogDecrement);
@@ -2812,7 +2812,7 @@ void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 		break;
 
 	default:			/*	Urgent priority.	*/
-		ord = &(plan->ordinals[bundle->ancillaryData.ordinal]);
+		ord = &(plan->ordinals[bundle->ordinal]);
 		reduceScalar(&(ord->backlog), backlogDecrement);
 		if (ord->lastForOrdinal == bundle->planXmitElt)
 		{
@@ -3122,8 +3122,7 @@ incomplete bundle.", NULL);
 	}
 
 	sdr_free(bpSdr, bundleObj);
-	bpDiscardTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
-			bundle.payload.length);
+	bpDiscardTally(bundle.priority, bundle.payload.length);
 	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
 	return 0;
@@ -6457,6 +6456,7 @@ when asking for custody transfer and/or status reports.");
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle.acct = ZcoOutbound;
+	bundle.priority = classOfService;	/*	Default.	*/
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
@@ -6605,13 +6605,17 @@ when asking for custody transfer and/or status reports.");
 
 	if (ancillaryData)
 	{
-		bundle.ancillaryData.flowLabel = ancillaryData->flowLabel;
+		bundle.ancillaryData.dataLabel = ancillaryData->dataLabel;
 		bundle.ancillaryData.flags = ancillaryData->flags;
 		bundle.ancillaryData.ordinal = ancillaryData->ordinal;
 		bundle.ancillaryData.metadataType = ancillaryData->metadataType;
 		bundle.ancillaryData.metadataLen = ancillaryData->metadataLen;
 		memcpy(bundle.ancillaryData.metadata, ancillaryData->metadata,
 				sizeof bundle.ancillaryData.metadata);
+
+		/*	Default value of bundle's ordinal.		*/
+
+		bundle.ordinal = ancillaryData->ordinal;
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6681,7 +6685,7 @@ when asking for custody transfer and/or status reports.");
 				bundle.payload.length);
 	}
 
-	bpSourceTally(classOfService, bundle.payload.length);
+	bpSourceTally(bundle.priority, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
 		iwatch('a');
@@ -8920,7 +8924,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
-	bpRecvTally(COS_FLAGS(bundle->bundleProcFlags) & 0x03,
+	bpRecvTally(bundle->priority,
 			bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
@@ -10532,7 +10536,7 @@ static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned char	ordinal = bundle->ancillaryData.ordinal;
+	unsigned char	ordinal = bundle->ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
 	Object		lastElt = 0;
 	Object		lastForPriorOrdinal = 0;
@@ -10680,7 +10684,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	/*	Insert bundle into the appropriate transmission queue
 	 *	of the selected egress plan.				*/
 
-	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	priority = bundle->priority;
 	switch (priority)
 	{
 	case 0:

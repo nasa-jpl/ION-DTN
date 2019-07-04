@@ -78,7 +78,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &ancillaryData,
+		if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",

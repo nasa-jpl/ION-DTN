@@ -78,6 +78,72 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
+static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
+			uvast nodeNbr)
+{
+	Sdr		sdr = getIonsdr();
+	uvast		neighbor;
+	unsigned char	priority;
+	unsigned char	ordinal;
+	char		eid[MAX_EID_LEN + 1];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+	BpPlan		plan;
+
+	if (ipn_lookupOvrd(bundle->ancillaryData.dataLabel,
+			bundle->id.source.c.nodeNbr,
+			bundle->destination.c.nodeNbr, &neighbor,
+			&priority, &ordinal) == 0)
+	{
+		/*	No applicable routing override.			*/
+
+		return 0;
+	}
+
+	/*	Routing override found.					*/
+
+	if (neighbor == 0)
+	{
+		/*	Override neighbor not yet determined.		*/
+
+		bundle->ovrdPending = 1;
+		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+		return 0;
+	}
+
+	/*	Must forward to override neighbor.			*/
+
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", neighbor);
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)	/*	Unusable override.		*/
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
+			sizeof(BpPlan));
+	if (plan.blocked)	/*	Maybe later.			*/
+	{
+		if (enqueueToLimbo(bundle, bundleObj) < 0)
+		{
+			putErrmsg("Can't put bundle in limbo.", NULL);
+			return -1;
+		}
+
+		return 0;
+	}
+
+	/*	Invoke the routing override.				*/
+
+	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
+	{
+		putErrmsg("Can't enqueue bundle.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 #ifndef CGR_IOT
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
@@ -156,6 +222,27 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 
 	nodeNbr = metaEid.nodeNbr;
 	restoreEidString(&metaEid);
+
+	/*	Apply routing override, if any.				*/
+
+	if (applyRoutingOverride(bundle, bundleObj, nodeNbr) < 0)
+	{
+		putErrmsg("Can't send bundle to override neighbor.", NULL);
+		return -1;
+	}
+
+	/*	If override routing succeeded in enqueuing the bundle
+	 *	to a neighbor, accept the bundle and return.		*/
+
+	if (bundle->planXmitElt)
+	{
+		/*	Enqueued.					*/
+
+		return bpAccept(bundleObj, bundle);
+	}
+
+	/*	No override.  Try dynamic routing.			*/
+
 	if (cgr_forward(bundle, bundleObj, nodeNbr, trace) < 0)
 	{
 		putErrmsg("CGR failed.", NULL);
@@ -165,7 +252,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-#ifndef CGR_IOT
+//#ifndef CGR_IOT
 	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
@@ -219,18 +306,16 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 			return -1;
 		}
 	}
-#endif
+//#endif
 
 	if (bundle->planXmitElt)
 	{
-		/*	Enqueued to limbo.				*/
+		/*	Bundle was enqueued to limbo.			*/
 
 		return bpAccept(bundleObj, bundle);
 	}
-	else
-	{
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
-	}
+
+	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
 #if defined (ION_LWT)
@@ -249,6 +334,9 @@ int	main(int argc, char *argv[])
 	Object		elt;
 	Object		bundleAddr;
 	Bundle		bundle;
+	uvast		neighbor;
+	unsigned char	priority;
+	unsigned char	ordinal;
 
 	if (bpAttach() < 0)
 	{
@@ -305,6 +393,31 @@ int	main(int argc, char *argv[])
 
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+
+		/*	Note any applicable class of service override.	*/
+
+		if (ipn_lookupOvrd(bundle.ancillaryData.dataLabel,
+				bundle.id.source.c.nodeNbr,
+				bundle.destination.c.nodeNbr, &neighbor,
+				&priority, &ordinal))
+		{
+			if (bundle.priority == (unsigned char) -1)
+			{
+				/*	No CoS override.		*/
+
+				bundle.priority = COS_FLAGS
+					(bundle.bundleProcFlags) & 0x03;
+				bundle.ordinal = bundle.ancillaryData.ordinal;
+			}
+			else	/*	Override requested CoS.		*/
+			{
+				bundle.priority = priority;
+				bundle.ordinal = ordinal;
+			}
+		}
+
+		/*	Remove bundle from queue.			*/
+
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.fwdQueueElt = 0;
 

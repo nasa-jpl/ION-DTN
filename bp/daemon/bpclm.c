@@ -703,8 +703,7 @@ int	main(int argc, char *argv[])
 		/*	Track this transmission event.			*/
 
 		bpPlanTally(vplan, BP_PLAN_DEQUEUED, bundle.payload.length);
-		bpXmitTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
-				bundle.payload.length);
+		bpXmitTally(bundle.priority, bundle.payload.length);
 		if ((getBpVdb())->watching & WATCH_c)
 		{
 			iwatch('c');

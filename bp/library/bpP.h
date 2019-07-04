@@ -302,7 +302,7 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned int	bundleProcFlags;/*	Incl. CoS, SRR.		*/
+	unsigned int	bundleProcFlags;/*	Incl. CoS, SRRs.	*/
 	unsigned int	timeToLive;	/*	In seconds.		*/
 	EndpointId	destination;	/*	...of bundle's ADU	*/
 		/*	source of bundle's ADU is in the id field.	*/
@@ -318,6 +318,8 @@ typedef struct
 	/*	Stuff in Extended COS and Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
+	unsigned char	priority;	/*	Possibly an override.	*/
+	unsigned char	ordinal;	/*	Possibly an override.	*/
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
@@ -341,7 +343,7 @@ typedef struct
 
 	Object		extensions[2];
 	int		extensionsLength[2];	/*	Concatenated.	*/
-	Object		collabBlocks;	/*	SDR list of C. blocks.	*/
+	Object		collabBlocks;	/*	SDR list of c-blocks.	*/
 
 	/*	Internal housekeeping stuff.				*/
 
@@ -355,9 +357,10 @@ typedef struct
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
+	char		ovrdPending;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
-	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
+	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
