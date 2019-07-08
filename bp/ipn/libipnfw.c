@@ -407,21 +407,16 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 }
 
 int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
-		uvast sourceNodeNbr, uvast *neighbor, unsigned char *priority,
-		unsigned char *ordinal)
+		uvast sourceNodeNbr, Object *addr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
-	Object	addr;
 		OBJ_POINTER(IpnOverride, ovrd);
 
 	/*	This function determines the applicable egress plan
 	 *	for the specified eid, if any.				*/
 
 	CHKERR(ionLocked());
-	CHKERR(neighbor);
-	CHKERR(priority);
-	CHKERR(ordinal);
 
 	/*	Find best matching override.  Overrides are sorted by
 	 *	source node number within destination node number
@@ -431,8 +426,8 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	for (elt = sdr_list_first(sdr, (_ipnConstants())->overrides); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		addr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, IpnOverride, ovrd, addr);
+		*addr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, IpnOverride, ovrd, *addr);
 		if (ovrd->dataLabel < dataLabel)
 		{
 			continue;
@@ -480,9 +475,6 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
 		return 0;		/*	No matching override.	*/
 	}
 
-	*neighbor = ovrd->neighbor;
-	*priority = ovrd->priority;
-	*ordinal = ovrd->ordinal;
 	return 1;
 }
 

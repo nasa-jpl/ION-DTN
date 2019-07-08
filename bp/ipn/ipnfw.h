@@ -96,9 +96,7 @@ extern int		ipn_setOvrd(unsigned int dataLabel,
 extern int		ipn_lookupOvrd(unsigned int dataLabel,
 				uvast destNodeNbr,
 				uvast sourceNodeNbr,
-				uvast *neighbor,
-				unsigned char *priority,
-				unsigned char *ordinal);
+				Object *ovrdAddr);
 
 extern void		ipn_findExit(uvast firstNodeNbr,
 				uvast lastNodeNbr,
