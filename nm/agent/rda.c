@@ -176,7 +176,7 @@ int rda_process_ctrls()
 {
 	vec_idx_t i;
 	ctrl_t *ctrl;
-	time_t curtime = getUTCTime();
+	time_t curtime = getCtime();
 
 	vec_lock(&(gVDB.ctrls));
 	for(i = 0; i < vec_num_entries(gVDB.ctrls); i++)

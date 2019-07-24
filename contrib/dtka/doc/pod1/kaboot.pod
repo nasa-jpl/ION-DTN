@@ -12,7 +12,7 @@ B<kaboot> writes a DTKA authority administration command file that initializes
 the DTKA authority database.  The file, named "boot.karc", is written to the
 current working directory.  It simply contains a single "m compiletime"
 command, which sets the initial bulletin compilation time to the current
-UTC time plus I<delay> seconds.  If omitted, I<delay> defaults to 5.
+ctime plus I<delay> seconds.  If omitted, I<delay> defaults to 5.
 
 =head1 EXIT STATUS
 

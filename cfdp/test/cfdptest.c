@@ -28,7 +28,7 @@ typedef struct
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
 			unsigned int length, int sourceFileFd, char *buffer)
 {
-	writeTimestampLocal(getUTCTime(), buffer);
+	writeTimestampLocal(getCtime(), buffer);
 	return strlen(buffer) + 1;
 }
 

@@ -1360,7 +1360,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdubuf->inactivityDeadline = getUTCTime()
+	fdubuf->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 	sdr_write(sdr, fduObj, (char *) fdubuf, sizeof(InFdu));
 	return fduObj;
@@ -3887,7 +3887,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline = getUTCTime()
+	fdu->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 
 	event.offset = segmentOffset;
@@ -4548,7 +4548,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline = getUTCTime()
+	fdu->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = ((*cursor) >> 4) & 0x0f;
@@ -4624,7 +4624,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 		return -1;
 	}
 
-	fdu->checkTime = getUTCTime();
+	fdu->checkTime = getCtime();
 	fdu->checkTime += cfdpdb.checkTimerPeriod;
 	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
@@ -4665,7 +4665,7 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline = getUTCTime()
+	fdu->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->closureRequested = ((*cursor) >> 6) & 0x01;

@@ -89,7 +89,7 @@ static int	writeAddPubKeyCmd(BpTimestamp *effectiveTime,
 
 	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey " UVAST_FIELDSPEC 
 			" %d %d %d ", getOwnNodeNbr(), effectiveTime->seconds,
-			getUTCTime(), publicKeyLen);
+			getCtime(), publicKeyLen);
 	cursor += len;
 	bytesRemaining -= len;
 	cmdLen += len;
@@ -118,7 +118,7 @@ static int	writeAddPubKeyCmd(BpTimestamp *effectiveTime,
 static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 {
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	time_t			currentTime = getUTCTime();
+	time_t			currentTime = getCtime();
 	Sdr			sdr = getIonsdr();
 	BpTimestamp		effectiveTime;
 	entropy_context		entropy;
@@ -313,7 +313,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] knclock is running.");
 	while (_running(NULL))
 	{
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (currentTime < db.nextKeyGenTime)
 		{
 			secondsToWait = db.nextKeyGenTime - currentTime;

@@ -446,7 +446,7 @@ void ctrl_set_exec(ctrl_t *ctrl, time_t start, eid_t caller)
 
 	if(start < AMP_RELATIVE_TIME_EPOCH)
 	{
-		ctrl->start = getUTCTime() + start;
+		ctrl->start = getCtime() + start;
 	}
 	else
 	{

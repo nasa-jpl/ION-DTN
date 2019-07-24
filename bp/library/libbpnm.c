@@ -568,7 +568,7 @@ void    bpnm_disposition_reset()
     dbobj = getBpDbObject();
     CHKVOID(sdr_begin_xn(sdr));
     sdr_stage(sdr, (char *) &db, dbobj, sizeof(BpDB));
-    db.resetTime = getUTCTime();
+    db.resetTime = getCtime();
     resetSourceStats(&db);
     resetRecvStats(&db);
     resetDiscardStats(&db);

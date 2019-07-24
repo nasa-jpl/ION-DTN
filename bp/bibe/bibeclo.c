@@ -143,7 +143,7 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		bundleAge = currentTime -
 			(image.id.creationTime.seconds + EPOCH_2000_SEC);
 		ttl = image.timeToLive - bundleAge;

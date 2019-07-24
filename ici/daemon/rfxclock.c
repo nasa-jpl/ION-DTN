@@ -383,7 +383,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		
 		/*	Now post next event for this alarm.		*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (alarm->term == 0)	/*	Cleaning up.		*/
 		{
 			alarm->nextTimeout = currentTime + 1;
@@ -476,7 +476,7 @@ int	main(int argc, char *argv[])
 		 *	whose execution times have now been reached.	*/
 
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (!sdr_begin_xn(sdr))
 		{
 			putErrmsg("rfxclock failed to begin new transaction.",

@@ -385,10 +385,15 @@ extern void		printIonMemTrace(int verbose);
 extern void		clearIonMemTrace();
 extern void		stopIonMemTrace();
 
+/*	The term "ctime" is used in ION to signify "calendar time"
+	(as used in the Linux ctime(3) man page), i.e., Unix epoch
+	time, the number of seconds elapsed since 00:00 1 January
+	1970 UTC.							*/
+
 #define	TIMESTAMPBUFSZ	20
 
 extern int		setDeltaFromUTC(int newDelta);
-extern time_t		getUTCTime();	/*	UTC scale, 1970 epoch.	*/
+extern time_t		getCtime();	/*	Unix 1970 epoch time.	*/
 extern int		ionClockIsSynchronized();
 
 extern time_t		readTimestampLocal(char *timestampBuffer,

@@ -575,7 +575,7 @@ int	main(int argc, char *argv[])
 		 *	whose executions times have now been reached.	*/
 
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (dispatchEvents(sdr, bpConstants->timeline, currentTime) < 0)
 		{
 			putErrmsg("Can't dispatch events.", NULL);

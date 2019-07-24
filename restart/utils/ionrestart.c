@@ -215,7 +215,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 	/*	If it's safe, restart all ION tasks.			*/
 
 	prevRestartTime = sdrv->sdr->restartTime;
-	sdrv->sdr->restartTime = getUTCTime();
+	sdrv->sdr->restartTime = getCtime();
 	if ((sdrv->sdr->restartTime - prevRestartTime) < RESTART_LOOP_INTERVAL)
 	{
 		writeMemo("[!] Inferred restart loop.  Tasks not restarted.");

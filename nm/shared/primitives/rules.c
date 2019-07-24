@@ -128,7 +128,7 @@ rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action)
 	}
 	else
 	{
-		result->ticks_left = (start - getUTCTime());
+		result->ticks_left = (start - getCtime());
 	}
 
 
@@ -172,7 +172,7 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 	}
 	else
 	{
-		result->ticks_left = (start - getUTCTime()) + def.period;
+		result->ticks_left = (start - getCtime()) + def.period;
 	}
 
 

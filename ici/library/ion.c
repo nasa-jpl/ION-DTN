@@ -302,7 +302,7 @@ static void	writeMemoToIonLog(char *text)
 	static ResourceLock	logFileLock;
 	static char		ionLogFileName[264] = "";
 	static int		ionLogFile = -1;
-	time_t			currentTime = getUTCTime();
+	time_t			currentTime = getCtime();
 	char			timestampBuffer[20];
 	int			textLen;
 	static char		msgbuf[256];
@@ -1069,7 +1069,7 @@ void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 		}
 	}
 
-	fromTime = getUTCTime();	/*	The current time.	*/
+	fromTime = getCtime();		/*	The current time.	*/
 	toTime = fromTime + 14400;	/*	Four hours later.	*/
 	if (rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt,
 			&xaddr) < 0 || xaddr == 0)
@@ -1225,17 +1225,17 @@ int	setDeltaFromUTC(int newDelta)
 	return 0;
 }
 
-time_t	getUTCTime()
+time_t	getCtime()
 {
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
-	time_t	clocktime;
+	time_t	ctime;
 #if defined(FSWCLOCK)
-#include "fswutc.c"
+#include "fswctime.c"
 #else
-	clocktime = time(NULL);
+	ctime = time(NULL);
 #endif
-	return clocktime - delta;
+	return ctime - delta;
 }
 
 static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
@@ -1276,7 +1276,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 
 	ts.tm_year -= 1900;
 	ts.tm_mon -= 1;
-	ts.tm_isdst = 0;		/*	Default is UTC.		*/
+	ts.tm_isdst = 0;	/*	Default is UTC.			*/
 #ifndef VXWORKS
 #ifdef mingw
 	_tzset();	/*	Need to orient mktime properly.		*/
@@ -1285,7 +1285,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 #endif
 	if (timestampIsUTC)
 	{
-		/*	Must convert UTC time to local time for mktime.	*/
+		/*	Must convert UTC to local time for mktime.	*/
 
 #if defined (freebsd)
 		ts.tm_sec -= ts.tm_gmtoff;

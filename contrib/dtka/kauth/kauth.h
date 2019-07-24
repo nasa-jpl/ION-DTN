@@ -42,8 +42,8 @@ typedef struct
 
 typedef struct
 {
-	time_t		currentCompilationTime;	/*	UTC		*/
-	time_t		nextCompilationTime;	/*	UTC		*/
+	time_t		currentCompilationTime;	/*	ctime		*/
+	time_t		nextCompilationTime;	/*	ctime		*/
 	unsigned int	compilationInterval;	/*	Default 3600	*/
 	unsigned int	consensusInterval;	/*	60 sec or more	*/
 	int		hijacked;		/*	Boolean		*/

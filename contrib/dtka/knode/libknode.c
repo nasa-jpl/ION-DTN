@@ -177,7 +177,7 @@ int	knodeInit()
 
 		/*	Default values.					*/
 
-		knodedbBuf.nextKeyGenTime = getUTCTime() + 4;
+		knodedbBuf.nextKeyGenTime = getCtime() + 4;
 		knodedbBuf.keyGenInterval = 604800;	/*	Weekly	*/
 		knodedbBuf.effectiveLeadTime = 345600;	/*	4 days	*/
 		for (i = 0, auth = knodedbBuf.authorities; i < DTKA_NUM_AUTHS;
