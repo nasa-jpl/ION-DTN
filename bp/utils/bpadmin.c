@@ -114,6 +114,7 @@ payload length");
 	PUTS("\t   g plan <endpoint name> <via endpoint name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
+	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -1398,6 +1399,30 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxcount(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	unsigned int	maxcount;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	maxcount = strtoul(tokens[2], NULL, 0);
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.maxBundleCount = maxcount;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxBundleCount.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1409,6 +1434,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "heapmax") == 0)
 	{
 		manageHeapmax(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxcount") == 0)
+	{
+		manageMaxcount(tokenCount, tokens);
 		return;
 	}
 

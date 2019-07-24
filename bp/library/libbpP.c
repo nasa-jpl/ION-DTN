@@ -1649,6 +1649,7 @@ int	bpInit()
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(bpSdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
+		bpdbBuf.maxBundleCount = (unsigned int) -1;
 		bpdbBuf.sourceStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.discardStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
@@ -6547,6 +6548,11 @@ when asking for custody transfer and/or status reports.");
 		bundle.id.creationTime.seconds = 0;
 		sdr_stage(bpSdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 		bpdb.bundleCounter++;
+		if (bpdb.bundleCounter > bpdb.maxBundleCount)
+		{
+			bpdb.bundleCounter = 0;
+		}
+
 		bundle.id.creationTime.count = bpdb.bundleCounter;
 		sdr_write(bpSdr, bpDbObject, (char *) &bpdb, sizeof(BpDB));
 	}
