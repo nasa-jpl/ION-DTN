@@ -96,7 +96,7 @@ typedef struct
 	CfdpTransactionId	transactionId;
 	CfdpNumber		destinationEntityNbr;
 	CfdpCksumType		ckType;
-	unsigned char		utParms[sizeof(BpUtParms)];
+	unsigned char		utParms[128];
 	int			utParmsLength;
 	int			reqNbr;		/*	Creation req.	*/
 	CfdpTransactionId	originatingTransactionId;
@@ -119,7 +119,6 @@ typedef struct
 	Object			fileDataPdus;	/*	sdrlist		*/
 	Object			eofPdu;		/*	bytes		*/
 	unsigned int		epduLength;	/*	in bytes	*/
-	Object			extantPdus;	/*	sdrlist		*/
 	Object			closureElt;	/*	in sdrlist	*/
 } OutFdu;
 
@@ -270,7 +269,6 @@ typedef struct
 
 typedef struct
 {
-	BpSAP		bpSap;
 	int		utaPid;		/*	For stopping the UTA.	*/
 	int		clockPid;	/*	For stopping cfdpclock.	*/
 	int		watching;	/*	Activity watch.		*/
@@ -331,8 +329,6 @@ extern int		cfdpAttach();
 extern void		cfdpDetach();
 
 extern void		cfdpScrub();
-
-extern BpSAP		cfdpGetBpSap();
 
 extern Object		getCfdpDbObject();
 extern CfdpDB		*getCfdpConstants();

@@ -8,6 +8,7 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
 #include "cfdp.h"
+#include "bputa.h"
 
 typedef struct
 {

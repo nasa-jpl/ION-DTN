@@ -1564,20 +1564,6 @@ void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 		sdr_free(sdr, fdu->eofPdu);
 	}
 
-	while (fdu->extantPdus)
-	{
-		elt = sdr_list_first(sdr, fdu->extantPdus);
-		if (elt == 0)
-		{
-			sdr_list_destroy(sdr, fdu->extantPdus, NULL, NULL);
-			break;
-		}
-
-		obj = sdr_list_data(sdr, elt);
-		zco_destroy(sdr, obj);
-		sdr_list_delete(sdr, elt, NULL, NULL);
-	}
-
 	if (fdu->closureElt)
 	{
 		sdr_free(sdr,  sdr_list_data(sdr, fdu->closureElt));
