@@ -154,7 +154,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeChange(int tokenCount, char **tokens)
 {
-	unsigned int	nominalRate;
+	unsigned int	nominalRate = 0;
 	int		rateChanged = 0;
 	char		*spec = NULL;
 

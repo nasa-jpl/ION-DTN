@@ -197,11 +197,8 @@ if test "$IS_NASA_B" = "1"; then
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
 	if test x$crypto = xtrue; then
-		AC_CHECK_HEADER(
-		[/usr/local/include/mbedtls/platform.h],
-		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
-		[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
-		)
+		echo ""
+		#DoStuff
 	else
 		AC_SUBST( [CRYPTO_LIBS], [""] )
 	fi

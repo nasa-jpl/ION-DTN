@@ -915,6 +915,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	IonCXref	*contact;
 	CgrContactNote	*work;
 	PsmAddress	routeElt;
+	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
 	PsmAddress	rootPathContactElt;
@@ -964,11 +965,22 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 
 //printf("*** rootOfSpurAddr is " UVAST_FIELDSPEC ". ***\n", rootOfSpurAddr);
 	for (routeElt = sm_list_first(ionwm, routingObj->selectedRoutes);
-			routeElt; routeElt = sm_list_next(ionwm, routeElt))
+			routeElt; routeElt = nextRouteElt)
 	{
+		nextRouteElt = sm_list_next(ionwm, routeElt);
 //puts("*** Looking for edges to exclude on a selected route. ***");
 		routeAddr = sm_list_data(ionwm, routeElt);
 		route = (CgrRoute *) psp(ionwm, routeAddr);
+		if (route->toTime <= currentTime)
+		{
+			/*	This route includes a contact that
+			 *	has ended; can't use it in any way.	*/
+
+			TRACE(CgrExpiredRoute);
+			removeRoute(ionwm, routeElt);
+			continue;
+		}
+
 		nextContactElt = sm_list_first(ionwm, route->hops);
 		nextRootPathContactElt = sm_list_first(ionwm,
 				lastSelectedRoute->hops);
@@ -1108,6 +1120,7 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	PsmAddress	rootOfNextSpur;	/*	An SmListElt in hops.	*/
 	CgrRtgObject	*routingObj;
 	PsmAddress	elt2;
+	PsmAddress	nextElt;
 	PsmAddress	knownRouteAddr;
 	CgrRoute	*knownRoute;
 	int		knownRouteHopCount;
@@ -1177,8 +1190,10 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 
 	bestKnownRouteElt = 0;
 	for (elt2 = sm_list_first(ionwm, routingObj->knownRoutes); elt2;
-			elt2 = sm_list_next(ionwm, elt2))
+			elt2 = nextElt)
 	{
+		nextElt = sm_list_next(ionwm, elt2);
+
 		/*	Determine whether or not this route is the
 		 *	best route in the B list. Preference is by
 		 *	ascending arrival time, ascending hop count,
@@ -1188,6 +1203,16 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 //puts("*** Considering a B-list node for migration to A-list. ***");
 		knownRouteAddr = sm_list_data(ionwm, elt2);
 		knownRoute = (CgrRoute *) psp(ionwm, knownRouteAddr);
+		if (knownRoute->toTime <= currentTime)
+		{
+			/*	This route includes a contact that
+			 *	has ended; can't use it.		*/
+
+			TRACE(CgrExpiredRoute);
+			removeRoute(ionwm, elt2);
+			continue;
+		}
+
 		knownRouteHopCount = sm_list_length(ionwm, knownRoute->hops);
 		if (bestKnownRouteElt == 0)
 		{

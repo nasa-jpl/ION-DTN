@@ -980,7 +980,12 @@ static int	sendOneBundle(SenderThreadParms *stp)
 			return 0;
 		}
 
-		/*	Send that bundle.				*/
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
+		/*	Send this bundle.				*/
 
 		return sendBundleByTcpcl(stp, bundleZco);
 	}
@@ -1076,6 +1081,7 @@ static void	*sendSignals(void *parm)
 	Sdnv			ackLengthSdnv;
 	int			len;
 
+	session->hasAdmin = 1;
 	if (neighbor->vplan)
 	{
 		tag = neighbor->vplan->neighborEid;

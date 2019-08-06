@@ -8,8 +8,7 @@
  *
  *	Author: Scott Burleigh, JPL
  */
-
-#include "bp.h"
+#include "ion.h"
 
 #ifndef _CFDP_H_
 #define _CFDP_H_
@@ -204,21 +203,9 @@ typedef enum
 
 typedef struct
 {
-	uvast		offset;
-	unsigned int	length;
+	uvast	offset;
+	uvast	length;
 } CfdpExtent;
-
-typedef struct
-{
-	uvast		reportToNodeNbr;
-	int		lifespan;
-	int		classOfService;
-	BpCustodySwitch	custodySwitch;
-	unsigned int	ctInterval;
-	unsigned char	srrFlags;
-	int		ackRequested;
-	BpAncillaryData	ancillaryData;
-} BpUtParms;
 
 /*	*	*	CFDP initialization	*	*	*	*/
 

@@ -148,7 +148,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   # <comment text>");
 }
 
-static void	initializeNode(int tokenCount, char **tokens)
+static int	initializeNode(int tokenCount, char **tokens)
 {
 	char		*ownNodeNbrString = tokens[1];
 	char		*configFileName = tokens[2];
@@ -157,19 +157,22 @@ static void	initializeNode(int tokenCount, char **tokens)
 	if (tokenCount < 2 || *ownNodeNbrString == '\0')
 	{
 		writeMemo("[?] No node number, can't initialize node.");
-		return;
+		return 1;
 	}
 
 	if (readIonParms(configFileName, &parms) < 0)
 	{
 		putErrmsg("ionadmin can't get SDR parms.", NULL);
-		return;
+		return 1;
 	}
 
 	if (ionInitialize(&parms, strtouvast(ownNodeNbrString)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
+		return 1;
 	}
+
+	return 0;
 }
 
 void	executeAdd(int tokenCount, char **tokens)
@@ -1060,8 +1063,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 			return 0;
 
 		case '1':
-			initializeNode(tokenCount, tokens);
-			return 0;
+			return initializeNode(tokenCount, tokens);
 
 		case 's':
 			if (ionAttach() == 0)

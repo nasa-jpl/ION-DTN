@@ -89,6 +89,11 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
+		if (bundleZco == 1)		/*	Corrupt bundle.	*/
+		{
+			continue;		/*	Get next one.	*/
+		}
+
 		CHKNULL(sdr_begin_xn(sdr));
 		if (parms->hostNbr == 0)	/*	Can't send it.	*/
 		{

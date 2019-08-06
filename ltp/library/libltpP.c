@@ -7119,7 +7119,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
-putErrsmg("Discarding stray segment.", itoa(sessionNbr));
+putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 #endif
 		/*	Segment is from an engine that is not supposed
 		 *	to be sending at this time, so we treat it as

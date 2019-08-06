@@ -449,6 +449,11 @@ number>");
 			continue;
 		}
 
+		if (bundleZco == 1)		/*	Corrupt bundle.	*/
+		{
+			continue;		/*	Get next one.	*/
+		}
+
 		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);

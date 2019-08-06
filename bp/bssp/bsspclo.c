@@ -266,6 +266,11 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
 		if (decodeBundle(sdr, bundleZco, buffer, &bundleImage,
 				&dictionary, &bundleLength) < 0)
 		{

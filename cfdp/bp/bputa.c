@@ -7,6 +7,7 @@
 /*									*/
 
 #include <cfdpP.h>
+#include <bputa.h>
 
 #define	CFDP_SEND_SVC_NBR	(64)
 #define	CFDP_RECV_SVC_NBR	(65)
@@ -152,7 +153,6 @@ int	main(int argc, char **argv)
 	char		reportToEidBuf[64];
 	char		*reportToEid;
 	Object		newBundle;
-	Object		pduElt;
 
 	if (bp_attach() < 0)
 	{
@@ -289,18 +289,6 @@ terminating.");
 			sdr_cancel_xn(sdr);
 			parms.running = 0;
 			continue;
-		}
-
-		if (direction == 0)	/*	Toward file receiver.	*/
-		{
-			/*	Enable cancellation of this PDU.	*/
-
-			pduElt = sdr_list_insert_last(sdr, fduBuffer.extantPdus,
-					newBundle);
-			if (pduElt)
-			{
-				bp_track(newBundle, pduElt);
-			}
 		}
 
 		if (utParms.custodySwitch == SourceCustodyRequired

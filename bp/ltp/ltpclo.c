@@ -128,6 +128,11 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
 		if (ancillaryData.flags & BP_BEST_EFFORT)
 		{
 			redPartLength = 0;

@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# May 4, 2019
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./global.ionrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality configFlags value 2, running with
+	the SDR heap only in files (no copy in RAM).  We simply configure
+	two nodes with configFlags set to 2, send 30 bundles from one node
+	to the other, and verify that bundles arrive and are delivered.
+	We detect the delivery of these bundles by looking for 'z' watch
+	characters in stdout at the receiver."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+
+echo "Starting bpcounter on node 3..."
+sleep 1
+bpcounter ipn:3.1 30 &
+BPCOUNTER_PID=$!
+
+cd ../2.ipn.ltp
+echo "Sending bundles to ipn:3.1, should be delivered..."
+bpdriver 30 ipn:2.1 ipn:3.1 -64000 t1000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "done running"
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 600 ]
+	then
+		#infinite loop protection
+		echo "10 minutes passed; giving up."
+		RUNNING=0
+	fi
+done
+
+echo "Transmission finished.  Verifying results..."
+
+# Verify segments were delivered.
+cd ../3.ipn.ltp
+RETVAL=0
+
+COUNT=`grep "z" node3.stdout | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "No delivery of bundles detected."
+	RETVAL=1
+else
+	echo "Bundle(s) delivered; configFlags=2 is okay."
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "sdr-no-dram test completed."
+exit $RETVAL

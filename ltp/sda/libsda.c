@@ -222,7 +222,7 @@ int	sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler)
 				&reasonCode, &endOfBlock, &dataOffset,
 				&dataLength, &data) < 0)
 		{
-			putErrmsg("Can't get LTP notice.", NULL);
+			writeMemo("[?] SDA failed getting LTP notice.");
 			oK((_running(&state)));
 			continue;
 		}

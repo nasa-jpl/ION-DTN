@@ -66,7 +66,7 @@ Verbose information like the state of the pending ACS tree is logged.
 
 The optional I<heapWords> argument informs ACS to allocate that many heap words
 in its own DRAM SDR for constructing pending ACS.  If not supplied, the 
-default ACS_SDR_DEFAULT_HEAPWORDS is used.  Once all ACS SDR is allocated,
+default value 10000 is used.  Once all ACS SDR is allocated,
 any incoming custodial bundles that would trigger an ACS will trigger a normal,
 non-aggregate custody signal instead, until ACS SDR is freed.  If your node
 intermittently emits non-aggregate custody signals when it should emit ACS,
@@ -111,7 +111,7 @@ exceed I<acsSize> and be sent anyways; setting I<acsSize> to 0 causes
 
 I<acsDelay>
 is the maximum amount of time to delay an ACS destined for this custodian
-before sending it, in seconds; if not specified, DEFAULT_ACS_DELAY will be
+before sending it, in seconds; if not specified, the default value 15 will be
 used.
 
 =back
