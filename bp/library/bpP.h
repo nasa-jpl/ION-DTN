@@ -624,7 +624,7 @@ typedef struct
 
 typedef struct
 {
-	Object		planElt;	/*	Assigned BpPlan.	*/
+	Object		planDuctListElt;/*	Assigned BpPlan.	*/
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cloCmd;		/*	For starting the CLO.	*/
 
@@ -1413,7 +1413,7 @@ extern int		bpUnblockPlan(char *eid);
 
 extern int		setPlanViaEid(char *eid, char *viaEid);
 extern int		attachPlanDuct(char *eid, Object outductElt);
-extern int		detachPlanDuct(char *eid, Object outductElt);
+extern int		detachPlanDuct(Object outductElt);
 extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void		releaseCustody(Object bundleObj, Bundle *bundle);

@@ -27,9 +27,9 @@ extern void		dtn2_findPlan(char *eid, Object *planAddr, Object *elt);
 
 extern int		dtn2_addPlan(char *eid, unsigned int nominalRate);
 extern int		dtn2_addPlanDuct(char *eid, char *ductExpression);
-extern int		dtn2_updatePlan(char *eid, unsigned int nominalRate);
 extern int		dtn2_setPlanViaEid(char *eid, char *viaEid);
-extern int		dtn2_removePlanDuct(char *eid, char *ductExpression);
+extern int		dtn2_updatePlan(char *eid, unsigned int nominalRate);
+extern int		dtn2_removePlanDuct(char *eid);
 extern int		dtn2_removePlan(char *eid);
 
 #ifdef __cplusplus

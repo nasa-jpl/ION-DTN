@@ -65,7 +65,7 @@ extern void		ipn_findPlan(uvast nodeNbr, Object *planAddr,
 extern int		ipn_addPlan(uvast nodeNbr, unsigned int nominalRate);
 extern int		ipn_addPlanDuct(uvast nodeNbr, char *ductExpression);
 extern int		ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate);
-extern int		ipn_removePlanDuct(uvast nodeNbr, char *ductExpression);
+extern int		ipn_removePlanDuct(uvast nodeNbr);
 extern int		ipn_removePlan(uvast nodeNbr);
 
 extern void		ipn_findExit(uvast firstNodeNbr,

@@ -207,34 +207,29 @@ int	ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate)
 	return updatePlan(eid, nominalRate);
 }
 
-int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
+int	ipn_removePlanDuct(uvast nodeNbr)
 {
+	Sdr		sdr = getIonsdr();
 	char		eid[MAX_EID_LEN + 1];
-	char		*cursor;
-	VOutduct	*vduct;
-	PsmAddress	vductElt;
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
+			OBJ_POINTER(BpPlan, plan);
+	Object		elt;
+	Object		outductElt;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-	cursor = strchr(ductExpression, '/');
-	if (cursor == NULL)
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)
 	{
-		writeMemoNote("[?] Duct expression lacks duct name",
-				ductExpression);
-		writeMemoNote("[?] (Detaching duct from plan", eid);
+		writeMemoNote("[?] No such plan", eid);
 		return -1;
 	}
 
-	*cursor = '\0';
-	findOutduct(ductExpression, cursor + 1, &vduct, &vductElt);
-	*cursor = '/';
-	if (vductElt == 0)
-	{
-		writeMemoNote("[?] Unknown duct", ductExpression);
-		writeMemoNote("[?] (Detaching duct from plan", eid);
-		return -1;
-	}
-
-	return detachPlanDuct(eid, vduct->outductElt);
+	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
+	CHKERR(plan);
+	elt = sdr_list_first(sdr, plan->ducts);
+	outductElt = sdr_list_data(sdr, elt);
+	return detachPlanDuct(outductElt);
 }
 
 int	ipn_removePlan(uvast nodeNbr)

@@ -205,7 +205,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (spec)
 		{
-			ipn_removePlanDuct(strtouvast(tokens[2]), NULL);
+			ipn_removePlanDuct(strtouvast(tokens[2]));
 			ipn_addPlanDuct(strtouvast(tokens[2]), spec);
 		}
 
