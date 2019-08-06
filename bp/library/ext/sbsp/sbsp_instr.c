@@ -77,7 +77,8 @@ static int getBpInstrDb(SbspInstrDB *result, Object *addr)
     		result->src = sdr_list_create(sdr);
     		result->misc = sdr_malloc(sdr, sizeof(sbsp_instr_misc_t));
     		memset(&misc, 0, sizeof(sbsp_instr_misc_t));
-    		sdr_write(sdr, result->misc, (char *) &misc, sizeof(sbsp_instr_misc_t));
+    		sdr_write(sdr, result->misc, (char *) &misc,
+				sizeof(sbsp_instr_misc_t));
     		sdr_write(sdr, dbObj, (char *) result, sizeof(SbspInstrDB));
     		sdr_catlg(sdr, SBSP_INSTR_SDR_NAME, 0, dbObj);
     		break;
@@ -125,7 +126,8 @@ static int getBpInstrDb(SbspInstrDB *result, Object *addr)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-static int sbsp_instr_get_src(char *eid, sbsp_src_instr_t *result, Object *sdrElt, Object *sdrData)
+static int	sbsp_instr_get_src(char *eid, sbsp_src_instr_t *result,
+			Object *sdrElt, Object *sdrData)
 {
 	Sdr sdr = getIonsdr();
 	SbspInstrDB instr_db;
@@ -146,7 +148,8 @@ static int sbsp_instr_get_src(char *eid, sbsp_src_instr_t *result, Object *sdrEl
 	if(eid == NULL)
 	{
 		sbsp_instr_misc_t tmp;
-		sdr_read(sdr, (char *) &tmp, instr_db.misc, sizeof(sbsp_instr_misc_t));
+		sdr_read(sdr, (char *) &tmp, instr_db.misc,
+				sizeof(sbsp_instr_misc_t));
 		*result = tmp.anon;
 		*sdrData = instr_db.misc;
 		*sdrElt = 0;
@@ -157,7 +160,8 @@ static int sbsp_instr_get_src(char *eid, sbsp_src_instr_t *result, Object *sdrEl
 
 	elt = sdr_list_first(sdr, instr_db.src);
 
-	for (elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_next(sdr, elt))
+	for (elt = sdr_list_first(sdr, instr_db.src); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
 
 		data = sdr_list_data(sdr, elt);
@@ -203,7 +207,8 @@ static int sbsp_instr_get_src(char *eid, sbsp_src_instr_t *result, Object *sdrEl
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
+ *  04/20/16  E. Birrane     Initial implementation.
+			     (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
 void sbsp_instr_update(char *src, uvast blk, uvast bytes, sbsp_instr_type_e type)
@@ -231,9 +236,11 @@ void sbsp_instr_update(char *src, uvast blk, uvast bytes, sbsp_instr_type_e type
 		memset(&instr, 0, sizeof(sbsp_src_instr_t));
 		istrcpy(instr.eid, src, MAX_EID_LEN);
 
-		if((sdrData = sdr_insert(sdr, (char *) &instr, sizeof(sbsp_src_instr_t))) == 0)
+		if ((sdrData = sdr_insert(sdr, (char *) &instr,
+				sizeof(sbsp_src_instr_t))) == 0)
 		{
-			SBSP_DEBUG_ERR("Can't allocate %d bytes to SDR.", sizeof(sbsp_src_instr_t));
+			SBSP_DEBUG_ERR("Can't allocate %d bytes to SDR.",
+					sizeof(sbsp_src_instr_t));
 			sdr_cancel_xn(sdr);
 			return;
 		}
@@ -293,7 +300,7 @@ void sbsp_instr_update(char *src, uvast blk, uvast bytes, sbsp_instr_type_e type
 		instr.bib_byte_fwd += bytes;
 		break;
 	}
-	instr.last_update = getUTCTime();
+	instr.last_update = getCtime();
 
 
 	sdr_write(sdr, sdrData, (char *) &instr, sizeof(sbsp_src_instr_t));
@@ -404,7 +411,8 @@ int sbsp_instr_get_misc(sbsp_instr_misc_t *result)
 	memset(result, 0, sizeof(sbsp_instr_misc_t));
 
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) result, instr_db.misc, sizeof(sbsp_instr_misc_t));
+	sdr_read(sdr, (char *) result, instr_db.misc,
+			sizeof(sbsp_instr_misc_t));
 	sdr_end_xn(sdr);
 
 	return 1;
@@ -450,7 +458,8 @@ int sbsp_instr_clear()
 	sdr_write(sdr, result.misc, (char *) &tmp, sizeof(sbsp_instr_misc_t));
 
 	/* Clear each source. */
-	for(sdrElt = sdr_list_first(sdr, result.src); sdrElt; sdrElt = sdr_list_first(sdr, sdrElt))
+	for(sdrElt = sdr_list_first(sdr, result.src); sdrElt;
+			sdrElt = sdr_list_first(sdr, sdrElt))
 	{
 		sbsp_instr_clear_src(sdrElt);
 	}
@@ -492,8 +501,10 @@ int  sbsp_instr_get_src_blk(char *src_id, sbsp_instr_type_e type, uvast *result)
 
 	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
-		/* Not necessarily an error, if query a source that does not exist. */
-		SBSP_DEBUG_INFO("sbsp_instr_get_src_blk","Can't get id for src %s", src_id);
+		/*	Not necessarily an error, if query a source
+			that does not exist.				*/
+		SBSP_DEBUG_INFO("sbsp_instr_get_src_blk",
+				"Can't get id for src %s", src_id);
 		return ERROR;
 	}
 
@@ -512,7 +523,8 @@ int  sbsp_instr_get_src_blk(char *src_id, sbsp_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result = src.bib_blk_rx_miss; break;
 	case BIB_FWD:     *result = src.bib_blk_fwd; break;
 	default:
-		SBSP_DEBUG_ERR("sbsp_instr_get_src_blk","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_src_blk","Unknown type %d",
+				type);
 		return ERROR;
 	}
 
@@ -551,8 +563,10 @@ int  sbsp_instr_get_src_bytes(char *src_id, sbsp_instr_type_e type, uvast *resul
 
 	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
-		/* Not necessarily an error, if query a source that does not exist. */
-		SBSP_DEBUG_INFO("sbsp_instr_get_src_bytes","Can't get id for src %c", src_id);
+		/*	Not necessarily an error, if query a source
+			that does not exist.				*/
+		SBSP_DEBUG_INFO("sbsp_instr_get_src_bytes",
+				"Can't get id for src %c", src_id);
 		return ERROR;
 	}
 
@@ -571,7 +585,8 @@ int  sbsp_instr_get_src_bytes(char *src_id, sbsp_instr_type_e type, uvast *resul
 	case BIB_RX_MISS: *result = src.bib_byte_rx_miss; break;
 	case BIB_FWD:     *result = src.bib_byte_fwd; break;
 	default:
-		SBSP_DEBUG_ERR("sbsp_instr_get_src_bytes","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_src_bytes","Unknown type %d",
+				type);
 		return ERROR;
 	}
 
@@ -610,7 +625,8 @@ int sbsp_instr_get_src_update(char *src_id, time_t *result)
 
 	if(sbsp_instr_get_src(src_id, &src, &sdrElt, &sdrData) == ERROR)
 	{
-		SBSP_DEBUG_ERR("sbsp_instr_get_src_bytes","Can't get id for src %c", src_id);
+		SBSP_DEBUG_ERR("sbsp_instr_get_src_bytes",
+				"Can't get id for src %c", src_id);
 		return ERROR;
 	}
 
@@ -680,14 +696,16 @@ int sbsp_instr_get_total_blk(sbsp_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result += misc.anon.bib_blk_rx_miss; break;
 	case BIB_FWD:     *result += misc.anon.bib_blk_fwd; break;
 	default:
-		SBSP_DEBUG_ERR("sbsp_instr_get_total_blk","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_total_blk","Unknown type %d",
+				type);
 		sdr_cancel_xn(sdr);
 
 		return ERROR;
 	}
 
 	/* Clear each source. */
-	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
+	for(elt = sdr_list_first(sdr, instr_db.src); elt;
+			elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &src, addr, sizeof(sbsp_src_instr_t));
@@ -707,7 +725,8 @@ int sbsp_instr_get_total_blk(sbsp_instr_type_e type, uvast *result)
 		case BIB_RX_MISS: *result += src.bib_blk_rx_miss; break;
 		case BIB_FWD:     *result += src.bib_blk_fwd; break;
 		default:
-			SBSP_DEBUG_ERR("sbsp_instr_get_total_blk","Unknown type %d", type);
+			SBSP_DEBUG_ERR("sbsp_instr_get_total_blk",
+					"Unknown type %d", type);
 			sdr_cancel_xn(sdr);
 
 			return ERROR;
@@ -763,7 +782,8 @@ int sbsp_instr_get_total_bytes(sbsp_instr_type_e type, uvast *result)
 
 	CHKERR(sdr_begin_xn(sdr));
 
-	oK(sdr_read(sdr, (char *) &misc, instr_db.misc, sizeof(sbsp_instr_misc_t)));
+	oK(sdr_read(sdr, (char *) &misc, instr_db.misc,
+			sizeof(sbsp_instr_misc_t)));
 
 	switch(type)
 	{
@@ -780,13 +800,15 @@ int sbsp_instr_get_total_bytes(sbsp_instr_type_e type, uvast *result)
 	case BIB_RX_MISS: *result += misc.anon.bib_byte_rx_miss; break;
 	case BIB_FWD:     *result += misc.anon.bib_byte_fwd; break;
 	default:
-		SBSP_DEBUG_ERR("sbsp_instr_get_total_byte","Unknown type %d", type);
+		SBSP_DEBUG_ERR("sbsp_instr_get_total_byte","Unknown type %d",
+				type);
 		sdr_cancel_xn(sdr);
 
 		return ERROR;
 	}
 
-	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
+	for(elt = sdr_list_first(sdr, instr_db.src); elt;
+			elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &src, addr, sizeof(sbsp_src_instr_t));
@@ -806,7 +828,8 @@ int sbsp_instr_get_total_bytes(sbsp_instr_type_e type, uvast *result)
 		case BIB_RX_MISS: *result += src.bib_byte_rx_miss; break;
 		case BIB_FWD:     *result += src.bib_byte_fwd; break;
 		default:
-			SBSP_DEBUG_ERR("sbsp_instr_get_total_byte","Unknown type %d", type);
+			SBSP_DEBUG_ERR("sbsp_instr_get_total_byte",
+					"Unknown type %d", type);
 			sdr_cancel_xn(sdr);
 
 			return ERROR;
@@ -859,7 +882,8 @@ int  sbsp_instr_get_tot_update(time_t *result)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	for(elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_first(sdr, elt))
+	for (elt = sdr_list_first(sdr, instr_db.src); elt;
+			elt = sdr_list_first(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &src, addr, sizeof(sbsp_src_instr_t));
@@ -932,7 +956,8 @@ char *sbsp_instr_get_keynames()
 	total_size = (num_keys * size) + num_keys + 1;
 	if((result = MTAKE(total_size)) == NULL)
 	{
-		SBSP_DEBUG_ERR("x sbsp_instr_get_keynames: Can't allocate %d bytes", total_size);
+		SBSP_DEBUG_ERR("x sbsp_instr_get_keynames: Can't allocate %d \
+bytes", total_size);
 		return NULL;
 	}
 
@@ -975,7 +1000,8 @@ char * sbsp_instr_get_csnames()
 	total_size = (num * size) + num + 1;
 	if((result = MTAKE(total_size)) == NULL)
 	{
-		SBSP_DEBUG_ERR("x sbsp_instr_get_csnames: Can't allocate %d bytes", total_size);
+		SBSP_DEBUG_ERR("x sbsp_instr_get_csnames: Can't allocate %d \
+bytes", total_size);
 		return NULL;
 	}
 
@@ -1038,7 +1064,8 @@ char * sbsp_instr_get_srcnames()
 	total_size = (num * MAX_EID_LEN) + num + 1;
 	if((names = MTAKE(total_size)) == NULL)
 	{
-		SBSP_DEBUG_ERR("x sbsp_instr_get_srcnames: Can't allocate %d bytes", total_size);
+		SBSP_DEBUG_ERR("x sbsp_instr_get_srcnames: Can't allocate %d \
+bytes", total_size);
 		sdr_cancel_xn(sdr);
 		return NULL;
 	}
@@ -1046,7 +1073,8 @@ char * sbsp_instr_get_srcnames()
 	/* Collect the names. */
 	memset(names,0,total_size);
 	cursor = names;
-	for(sdrElt = sdr_list_first(sdr, result.src); sdrElt; sdrElt = sdr_list_first(sdr, sdrElt))
+	for(sdrElt = sdr_list_first(sdr, result.src); sdrElt;
+			sdrElt = sdr_list_first(sdr, sdrElt))
 	{
 		data = sdr_list_data(sdr, sdrElt);
 
@@ -1198,12 +1226,13 @@ static SbspInstrVdb *getBpInstrVDb()
 		else
 		{
 			sdr = getIonsdr();
-			CHKNULL(sdr_begin_xn(sdr));	/ *	To lock memory.	* /
+			CHKNULL(sdr_begin_xn(sdr));/ *	To lock memory.	* /
 			vdbAddress = psm_zalloc(wm, sizeof(SbspInstrVdb));
 			if (vdbAddress == 0)
 			{
 				sdr_cancel_xn(sdr);
-				putErrmsg("No space for sbsp dynamic database.", NULL);
+				putErrmsg("No space for sbsp dynamic database.",
+						NULL);
 				return NULL;
 			}
 
@@ -1211,20 +1240,21 @@ static SbspInstrVdb *getBpInstrVDb()
 
 			memset((char *) vdb, 0, sizeof(SbspInstrVdb));
 
-			/ *	Volatile database doesn't exist yet.		* /
+			/ *	Volatile database doesn't exist yet.	* /
 			if(((vdb->src = sm_list_create(wm)) == 0) ||
 			  (psm_catlg(wm, name, vdbAddress) < 0))
 			{
 				sdr_cancel_xn(sdr);
-				putErrmsg("Can't initialize sbsp volatile database.", NULL);
+				putErrmsg("Can't initialize sbsp volatile \
+database.", NULL);
 				return NULL;
 			}
 
-			vdb->misc.last_reset = getUTCTime();
+			vdb->misc.last_reset = getCtime();
 			vdb->mutex = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 
 			/ * Read in data from SDR. * /
-			sdr_end_xn(sdr);	/ *	Unlock memory.		* /
+			sdr_end_xn(sdr);	/ *	Unlock memory.	* /
 		}
 	}
 
@@ -1245,7 +1275,8 @@ static sbsp_src_instr_t *sbsp_instr_get_src(char *eid, Object *addr)
 		return &(instr_vdb->misc.anon);
 	}
 
-	for(elt = sm_list_first(bpwm, instr_vdb->src); elt; elt = sm_list_next(bpwm, elt))
+	for (elt = sm_list_first(bpwm, instr_vdb->src); elt;
+			elt = sm_list_next(bpwm, elt))
 	{
 		PsmAddress addr = sm_list_data(bpwm, elt);
 		sbsp_src_instr_t *instr = (sbsp_src_instr_t*) psp(bpwm, addr);
@@ -1327,22 +1358,30 @@ int sbsp_instr_init()
 		case 0: / / Not found; Must create new DB. * /
 			dbObj = sdr_malloc(sdr, sizeof(SbspInstrDB));
 			instr_db.src = sdr_list_create(sdr);
-			instr_db.misc = sdr_malloc(sdr, sizeof(sbsp_instr_misc_t));
+			instr_db.misc = sdr_malloc(sdr,
+					sizeof(sbsp_instr_misc_t));
 
-			sdr_write(sdr, dbObj, (char *) &instr_db, sizeof(SbspInstrDB));
+			sdr_write(sdr, dbObj, (char *) &instr_db,
+					sizeof(SbspInstrDB));
 			sdr_catlg(sdr, "sbsp_instr", 0, dbObj);
 			break;
 
 		default:  / * Found DB in the SDR * /
 			/ * Read in the Database. * /
-			sdr_read(sdr, (char *) &instr_db, dbObj, sizeof(SbspInstrDB));
-			sdr_read(sdr, (char *) &(instr_vdb->misc), instr_db.misc, sizeof(sbsp_instr_misc_t));
+			sdr_read(sdr, (char *) &instr_db, dbObj,
+					sizeof(SbspInstrDB));
+			sdr_read(sdr, (char *) &(instr_vdb->misc),
+					instr_db.misc,
+					sizeof(sbsp_instr_misc_t));
 
-			for (elt = sdr_list_first(sdr, instr_db.src); elt; elt = sdr_list_next(sdr, elt))
+			for (elt = sdr_list_first(sdr, instr_db.src); elt;
+					elt = sdr_list_next(sdr, elt))
 			{
 
-				/ * Create space for source item being read in from DB. * /
-				if((addr = psm_malloc(bpwm, sizeof(sbsp_src_instr_t))) == 0)
+				/ *	Create space for source item
+					being read in from DB.		* /
+				if((addr = psm_malloc(bpwm,
+						sizeof(sbsp_src_instr_t))) == 0)
 				{
 					sdr_cancel_xn(sdr);
 					return ERROR;
@@ -1350,14 +1389,19 @@ int sbsp_instr_init()
 				cur_src = (sbsp_src_instr_t *) psp(bpwm, addr);
 
 				/ * Read in source item. * /
-				sdr_read(sdr, (char *) cur_src, sdr_list_data(sdr, elt),
-			                    sizeof(sbsp_src_instr_t));
+				sdr_read(sdr, (char *) cur_src,
+						sdr_list_data(sdr, elt),
+						sizeof(sbsp_src_instr_t));
 
-				/ * See if VDB already has this item. If so, DB overwrites DB.
-				 * if not, just add the read-in item to the list. * /
-				if((tmp_src = sbsp_instr_get_src(cur_src->eid)) == NULL)
+				/ *	See if VDB already has this
+					item.  If so, DB overwrites DB.
+					If not, just add the read-in
+					item to the list.		* /
+				if ((tmp_src = sbsp_instr_get_src(cur_src->eid))
+						== NULL)
 				{
-					if((sm_list_insert_last(bpwm, instr_vdb->src, addr)) == 0)
+					if ((sm_list_insert_last(bpwm,
+						instr_vdb->src, addr)) == 0)
 					{
 						psm_free(bpwm, addr);
 					}
@@ -1394,13 +1438,14 @@ void sbsp_instr_reset()
 	sbsp_instr_clear_src(&(instr_vdb->misc.anon));
 
 
-	for(elt = sm_list_first(bpwm, instr_vdb->src); elt; elt = sm_list_next(bpwm, elt))
+	for(elt = sm_list_first(bpwm, instr_vdb->src); elt;
+			elt = sm_list_next(bpwm, elt))
 	{
 		PsmAddress addr = sm_list_data(bpwm, elt);
 		instr = (sbsp_src_instr_t *) psp(bpwm, addr);
 		sbsp_instr_clear_src(instr);
 	}
-	instr_vdb->misc.last_reset = getUTCTime();
+	instr_vdb->misc.last_reset = getCtime();
 
 	sm_SemGive(instr_vdb->mutex);
 }

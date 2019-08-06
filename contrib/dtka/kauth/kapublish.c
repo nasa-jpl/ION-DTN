@@ -667,7 +667,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] kapublish is running.");
 	while (state.running)
 	{
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		interval = (db.currentCompilationTime + db.consensusInterval)
 				- currentTime;
 		if (interval <= 0)

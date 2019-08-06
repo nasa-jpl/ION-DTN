@@ -116,7 +116,7 @@ tnv_t *ldc_collect_rpt(ari_t *id, tnvc_t *parms)
 
 	/* Build a report for this template. */
 	new_id = ari_copy_ptr(new_tpl->id);
-	if((rpt = rpt_create(new_id, getUTCTime(), NULL)) == NULL)
+	if((rpt = rpt_create(new_id, getCtime(), NULL)) == NULL)
 	{
 		rpttpl_release(new_tpl, 1);
 		ari_release(new_id, 1);

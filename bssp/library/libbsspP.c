@@ -1840,7 +1840,7 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 
 		/*	Post timeout event.				*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 
 //	Temporary patch to prevent premature retransmission.
 currentTime += 5;	/*	s/b += RTT from contact plan.	*/

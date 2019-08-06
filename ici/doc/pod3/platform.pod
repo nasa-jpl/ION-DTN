@@ -128,7 +128,8 @@ the indicated number of microseconds.
 
 =item void getCurrentTime(struct timeval *time)
 
-Returns the current local time in a timeval structure (see gettimeofday(3C)).
+Returns the current local time (ctime, i.e., Unix epoch time) in a timeval
+structure (see gettimeofday(3C)).
 
 =item void isprintf(char *buffer, int bufSize, char *format, ...)
 

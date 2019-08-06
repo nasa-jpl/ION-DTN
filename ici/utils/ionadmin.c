@@ -123,7 +123,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   l contact");
 	PUTS("\t   l range");
 	PUTS("\tm\tManage ION database: clock, space occupancy");
-	PUTS("\t   m utcdelta <local clock time minus UTC, in seconds>");
+	PUTS("\t   m utcdelta <local time minus correct UTC, in seconds>");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
 	PUTS("\t   m clocksync [ { 0 | 1 } ]");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
@@ -1114,7 +1114,7 @@ no time.");
 					/*	Set reference time to
 					 *	the current time.	*/
 
-					currentTime = getUTCTime();
+					currentTime = getCtime();
 					oK(_referenceTime(&currentTime));
 				}
 				else
@@ -1250,7 +1250,7 @@ static int	runIonadmin(char *cmdFileName)
 	char	line[256];
 	int	len;
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	oK(_referenceTime(&currentTime));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{

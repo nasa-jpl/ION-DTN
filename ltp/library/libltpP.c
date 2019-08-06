@@ -176,7 +176,7 @@ static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
 			unsigned int sessionNbr)
 {
 	Sdr		sdr = getIonsdr();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	ClosedExport	closedExportBuf;
 	Object 		closedExportObj;
 	Object		elt;
@@ -2683,7 +2683,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 
 	memset((char *) &event, 0, sizeof(LtpEvent));
 	event.parm = elt2;
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	findSpan(span->engineId, &vspan, &vspanElt);
 	event.scheduledTime = currentTime + 10 +
 			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
@@ -3407,7 +3407,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	/*	Post timeout event as necessary.			*/
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	event.parm = 0;
 	switch (segment.pdu.segTypeCode)
 	{

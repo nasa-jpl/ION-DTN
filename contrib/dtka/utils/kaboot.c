@@ -37,7 +37,7 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	currentTime += delay;
 	writeTimestampUTC(currentTime, timestamp);
 	len = _isprintf(line, sizeof line, "m compiletime %s\n", timestamp);

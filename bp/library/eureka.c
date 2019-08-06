@@ -45,7 +45,7 @@ static int	addNdpNeighbor(char *eid)
 
 	neighbor = (NdpNeighbor *) psp(wm, neighborAddr);
 	istrcpy(neighbor->eid, eid, sizeof neighbor->eid);
-	neighbor->lastContactTime = getUTCTime();
+	neighbor->lastContactTime = getCtime();
 	if (sm_list_insert(wm, vdb->neighbors, neighborAddr, compareNeighbors,
 			eid) == 0)
 	{
@@ -201,7 +201,7 @@ static int	discoverContactAcquired(char *socketSpec, char *neighborEid,
 
 	if (cbhe)
 	{
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (rfx_insert_contact(currentTime, 0, ownNodeNbr,
 				neighborNodeNbr, xmitRate, 1.0, &xaddr) < 0
 		|| xaddr == 0)

@@ -456,7 +456,7 @@ int	main(int argc, char *argv[])
 	while (_running(NULL))
 	{
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 
 		/*	Update check counts for inbound FDUs.		*/
 

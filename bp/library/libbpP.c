@@ -1691,7 +1691,7 @@ int	bpInit()
 					sizeof(BpDbStats));
 		}
 
-		bpdbBuf.startTime = getUTCTime();
+		bpdbBuf.startTime = getCtime();
 		bpdbBuf.updateStats = 1;	/*	Default.	*/
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(bpSdr, _bpdbName(), 0, bpdbObject);
@@ -1705,7 +1705,7 @@ int	bpInit()
 
 	default:		/*	Found DB in the SDR.		*/
 		sdr_stage(bpSdr, (char *) &bpdbBuf, bpdbObject, sizeof(BpDB));
-		bpdbBuf.startTime = getUTCTime();
+		bpdbBuf.startTime = getCtime();
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		if (sdr_end_xn(bpSdr))
 		{
@@ -2150,7 +2150,7 @@ void	getCurrentDtnTime(DtnTime *dt)
 	time_t	currentTime;
 
 	CHKVOID(dt);
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	dt->seconds = currentTime - EPOCH_2000_SEC;	/*	30 yrs	*/
 	dt->nanosec = 0;
 }
@@ -2656,7 +2656,7 @@ void	reportAllStateStats()
 	BpCosStats	xmitStats;
 	BpDbStats	dbStats;
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	writeTimestampLocal(currentTime, toTimestamp);
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
@@ -3965,7 +3965,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	{
 		elt = sdr_list_insert_last(bpSdr, bpConstants->plans, addr);
 		sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
-		sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
+		sdr_list_user_data_set(bpSdr, bpConstants->plans, getCtime());
 
 		/*	Record plan's address in the "user data" of
 		 *	each queue so that we can easily navigate
@@ -4026,7 +4026,7 @@ int	updatePlan(char *eidIn, unsigned int nominalRate)
 	sdr_stage(bpSdr, (char *) &planBuf, addr, sizeof(BpPlan));
 	planBuf.nominalRate = nominalRate;
 	sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
-	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
+	sdr_list_user_data_set(bpSdr, bpConstants->plans, getCtime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't update egress plan.", eid);
@@ -4109,7 +4109,7 @@ int	removePlan(char *eidIn)
 	}
 
 	sdr_free(bpSdr, addr);
-	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
+	sdr_list_user_data_set(bpSdr, bpConstants->plans, getCtime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't remove egress plan.", NULL);
@@ -5474,21 +5474,37 @@ static void	computeExpirationTime(Bundle *bundle)
 	unsigned int	usecConsumed;
 	struct timeval	timeRemaining;
 	struct timeval	expirationTime;
-	struct timeval	currentTime;
+
+	/*	Note: bundle creation time and expiration time are
+		DTN times, which are ctimes less EPOCH_2000_SEC.
+
+		Bundle arrival time is simply a ctime (Unix epoch time).
+
+		The events in the BP timeline are tagged by ctime.	*/
 
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
 		bundle->expirationTime = bundle->id.creationTime.seconds
 				+ bundle->timeToLive;
 	}
-	else	/*	Round remaining time to nearest second.		*/
+	else
 	{
-		/*	Default is current time (in EPOCH_2000,
-		 *	like bundle creation time).			*/
+		/*	Expiration time must be computed as the
+			current time plus the difference between
+			the bundle's time to live and the bundle's
+			current age.
 
-		bundle->expirationTime = getUTCTime() - EPOCH_2000_SEC;
+			(If the bundle's current age exceeds its time
+			to live then the bundle's expiration time has
+			already been reached: it is the current time.)
 
-		/*	Compute remaining lifetime for bundle.		*/
+			So initialize expiration time to the current
+			DTN time (ctime less the Epoch 2000 offset).	*/
+
+		bundle->expirationTime = getCtime() - EPOCH_2000_SEC;
+
+		/*	Compute remaining lifetime for bundle, by
+			subtracting bundle age from the bundle's TTL.	*/
 
 		timeRemaining.tv_sec = bundle->timeToLive;
 		timeRemaining.tv_usec = 0;
@@ -5513,8 +5529,10 @@ static void	computeExpirationTime(Bundle *bundle)
 
 		timeRemaining.tv_usec -= usecConsumed;
 
-		/*	Add remaining lifetime to arrival time,
-		 *	to get expiration time in local time scale.	*/
+		/*	Add remaining lifetime to bundle's arrival
+		 *	time (in ctime) to get expiration time in
+		 *	ctime, then subtract EPOCH_2000_SEC to convert 
+		 *	to DTN time.				.	*/
 
 		expirationTime.tv_sec = bundle->arrivalTime.tv_sec
 				+ timeRemaining.tv_sec;
@@ -5526,32 +5544,14 @@ static void	computeExpirationTime(Bundle *bundle)
 			expirationTime.tv_usec -= 1000000;
 		}
 
-		/*	Convert from local expiration time to UTC,
-		 *	by subtracting current time from local
-		 *	expiration time, rounding to the nearest
-		 *	second, and adding the rounded difference
-		 *	to the current UTC time.			*/
+		/*	Round expiration time to the nearest second.	*/
 
-		getCurrentTime(&currentTime);
-		if (expirationTime.tv_usec < currentTime.tv_usec)
-		{
-			if (expirationTime.tv_sec == 0)
-			{
-				return;
-			}
-
-			expirationTime.tv_usec += 1000000;
-			expirationTime.tv_sec -= 1;
-		}
-
-		expirationTime.tv_sec -= currentTime.tv_sec;
-		expirationTime.tv_usec -= currentTime.tv_usec;
 		if (expirationTime.tv_usec >= 500000)
 		{
 			expirationTime.tv_sec += 1;
 		}
 
-		bundle->expirationTime += expirationTime.tv_sec; 
+		bundle->expirationTime = expirationTime.tv_sec - EPOCH_2000_SEC;
 	}
 }
 
@@ -6283,7 +6283,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	{
 		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
 				neighborElt));
-		neighbor->lastContactTime = getUTCTime();
+		neighbor->lastContactTime = getCtime();
 	}
 
 	/*	Set bundle processing flags.				*/
@@ -7985,7 +7985,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	{
 		/*	Default bundle age, pending override by BAE.	*/
 
-		bundle->age = getUTCTime() - bundle->id.creationTime.seconds;
+		bundle->age = getCtime() - bundle->id.creationTime.seconds;
 	}
 	else
 	{
@@ -10441,7 +10441,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	backlogIncrement = computeECCC(guessBundleSize(bundle));
 	if (bundle->enqueueTime == 0)
 	{
-		bundle->enqueueTime = enqueueTime = getUTCTime();
+		bundle->enqueueTime = enqueueTime = getCtime();
 	}
 	else
 	{
@@ -10979,7 +10979,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
 	bundle.ductXmitElt = 0;
-	vduct->timeOfLastXmit = getUTCTime();
+	vduct->timeOfLastXmit = getCtime();
 	if (bundle.proxNodeEid)
 	{
 		sdr_string_read(bpSdr, proxNodeEid, bundle.proxNodeEid);
@@ -11588,7 +11588,7 @@ int	bpMemo(Object bundleObj, unsigned int interval)
 	CHKERR(bundleObj);
 	CHKERR(interval > 0);
 	event.type = ctDue;
-	event.time = getUTCTime() + interval;
+	event.time = getCtime() + interval;
 	event.ref = bundleObj;
 	CHKERR(sdr_begin_xn(bpSdr));
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));

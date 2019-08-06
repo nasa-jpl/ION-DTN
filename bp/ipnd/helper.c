@@ -136,7 +136,7 @@ int	hasAnActiveConnection(char *eid, int period)
 	{
 		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
 				neighborElt));
-		if (neighbor->lastContactTime + period > getUTCTime())
+		if (neighbor->lastContactTime + period > getCtime())
 		{
 			return 1;
 		}

@@ -483,7 +483,7 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 
 	probe = (IonProbe *) psp(ionwm, addr);
 	CHKZERO(probe);
-	probe->time = getUTCTime();
+	probe->time = getCtime();
 	probe->destNodeNbr = node->nodeNbr;
 	probe->neighborNodeNbr = embargo->nodeNbr;
 
@@ -532,7 +532,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	PsmAddress	cxelt;
 	PsmAddress	addr;
 	IonEvent	*event;
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 
 	/*	Load the affected nodes.				*/
 
@@ -1019,7 +1019,7 @@ int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	IonCXref	arg;
 	PsmAddress	cxelt;
 	PsmAddress	nextElt;
@@ -1106,7 +1106,7 @@ static void	deleteContact(PsmAddress cxaddr)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	IonCXref	*cxref;
 	int		predictionsNeeded = 0;
@@ -1424,7 +1424,7 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	IonCXref	arg;
 	PsmAddress	elt;
 	IonCXref	*contact;
@@ -1873,7 +1873,7 @@ printf("Net confidence %f.\n", netConfidence);
 
 int	rfx_predict_contacts(uvast fromNode, uvast toNode)
 {
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	Lyst		predictionBase;
 	PastContact	logEntry;
 	int		result = 0;
@@ -1951,7 +1951,7 @@ int	rfx_predict_contacts(uvast fromNode, uvast toNode)
 
 int	rfx_predict_all_contacts()
 {
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	Lyst		predictionBase;
 	LystElt		elt;
 	PbContact	*contact;
@@ -2036,7 +2036,7 @@ static int	insertRXref(IonRXref *rxref)
 	IonEvent	*event;
 	PsmAddress	rxaddr2;
 	IonRXref	*rxref2;
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 
 	/*	Load the affected nodes.				*/
 
@@ -2411,7 +2411,7 @@ static void	deleteRange(PsmAddress rxaddr, int retainIfAsserted)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	IonRXref	*rxref;
 	Object		obj;
 	IonEvent	event;
@@ -2634,7 +2634,7 @@ extern PsmAddress	rfx_insert_alarm(unsigned int term,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	PsmAddress	alarmAddr;
 	IonAlarm	*alarm;
 	PsmAddress	eventAddr;

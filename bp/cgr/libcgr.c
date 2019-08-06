@@ -2873,7 +2873,7 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 int	cgr_forward(Bundle *bundle, Object bundleObj, uvast terminusNodeNbr,
 		CgrTrace *trace)
 {
-	if (cgrForward(bundle, bundleObj, terminusNodeNbr, getUTCTime(), trace,
+	if (cgrForward(bundle, bundleObj, terminusNodeNbr, getCtime(), trace,
 			0) < 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
@@ -2887,7 +2887,7 @@ float	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 {
 	PsmPartition	wm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	IonNode		*terminusNode;
 	PsmAddress	nextNode;
 	PsmAddress	routingObjectAddress;

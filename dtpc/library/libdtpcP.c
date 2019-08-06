@@ -592,7 +592,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 
 	if (outAdu.ageOfAdu < 0)
 	{
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		outAdu.ageOfAdu = 0;
 		outAdu.expirationTime = currentTime + lifespan;
 	}
@@ -1197,7 +1197,7 @@ int	sendAdu(BpSAP sap)
 	/*	Create retransmission event only if there is time
 	 *	for one.						*/
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	if (outAdu.rtxCount < (int) profile->maxRtx
 	&& (currentTime + nominalRtt) < outAdu.expirationTime)
 	{
@@ -1858,7 +1858,7 @@ static time_t	getPlaceholderDeletionTime(BpDelivery *dlv)
 	time_t	currentTime;
 	time_t	deletionTime;
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	deletionTime = (dlv->bundleCreationTime.seconds + EPOCH_2000_SEC
 			+ dlv->timeToLive) - 1;
 	if (deletionTime < currentTime)
@@ -2907,7 +2907,7 @@ send ACK.");
 	{
 		/*	No profile found - Estimate lifetime.		*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		lifetime = currentTime - (dlv->bundleCreationTime.seconds +
 			 	EPOCH_2000_SEC) + 10; 	/* Add 10 seconds
 							 * for safety.	*/							

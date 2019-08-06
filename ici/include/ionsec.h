@@ -150,7 +150,7 @@ typedef struct
 	Object	publicKeys;		/*	SdrList PublicKey	*/
 	Object	ownPublicKeys;		/*	SdrList OwnPublicKey	*/
 	Object	privateKeys;		/*	SdrList PrivateKey	*/
-	time_t	nextRekeyTime;		/*	UTC			*/
+	time_t	nextRekeyTime;		/*	1970 epoch time.	*/
 	Object	keys;			/*	SdrList of SecKey	*/
 	Object	bspBabRules;		/*	SdrList of BspBabRule	*/
 #ifdef ORIGINAL_BSP

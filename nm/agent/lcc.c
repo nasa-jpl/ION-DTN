@@ -221,7 +221,7 @@ void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 	ari_t *ctrl_ari = ctrl_get_id(ctrl);
 	ari = ari_copy_ptr(ctrl_ari);
 	ari_replace_parms(ari, parms);
-	report = rpt_create(ari, getUTCTime(), NULL);
+	report = rpt_create(ari, getCtime(), NULL);
 	CHKVOID(report);
 
 	/* Add the single entry to this report. */
