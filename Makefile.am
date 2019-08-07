@@ -13,7 +13,7 @@ endif
 DIST_SUBDIRS= . contrib
 
 AM_CFLAGS += \
-	-Wall -Werror -g -fPIC \
+	-g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
@@ -25,6 +25,18 @@ AM_CFLAGS += \
 	-DSBSP \
 	-I$(srcdir)/ams/include \
 	-I$(srcdir)/cfdp/include
+
+if SOLARIS_STUDIO_CC
+AM_CFLAGS += \
+	-errtags \
+	-Kpic
+NO_UNUSED_VARIABLE = 
+else
+AM_CFLAGS += \ 
+	-Wall -Werror\
+	-fPIC
+NO_UNUSED_VARIABLE = -Wno-unused-variable
+endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -1994,7 +2006,7 @@ nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   -DAGENT_ROLE
 
 
@@ -2021,7 +2033,7 @@ nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE)
 
 
 ##########################

@@ -93,7 +93,17 @@ case $host_os in
 		;;
 	solaris*)
 		PLATFORM="solaris"
-		if test $host_cpu = "sparc" ; then
+		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
+			if test "$CC" = "gcc"; then
+				echo "You must build with solaris studio cc"
+			fi
+			NO_WALL_WERROR_WALL=1
+			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
+			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
+
+			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
+			echo "Build 32-bit ION on 64-bit solaris"
+		elif test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
@@ -108,7 +118,10 @@ case $host_os in
 		AS_IF([test "x$ISAINFO" != "xno"],
       		[isainfo_b=`isainfo -b`],
       		[isainfo_b="x"])
-      	if test "$isainfo_b" = "64"; then
+      	if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
+		 	AM_CFLAGS="$AM_CFLAGS -m32"
+			echo "Build 32-bit code on 64-bit machine"
+      	elif test "$isainfo_b" = "64"; then
       		AM_CFLAGS="$AM_CFLAGS -m64"
       		echo "Build 64-bit code"
       	else
@@ -462,6 +475,7 @@ AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
+AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])
