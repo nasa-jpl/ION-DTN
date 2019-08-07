@@ -2316,6 +2316,43 @@ int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
 	return result;
 }
 
+int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
+		void *(*function)(void *), void *arg, const char *name)
+{
+	int		result;
+
+	result = sm_BeginPthread(threadId,attr,function,arg);
+	pthread_setname_np(*threadId,name);
+
+	return result;
+}
+
+#else
+
+int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
+		void *(*start_routine) (void *), void *arg, const char *name)
+{
+	int result;
+
+	/*	VxWorks uses a different method of naming threads. */
+#ifdef vxworks
+	if(attr){
+		pthread_attr_setname(attr,name);
+	}else{
+	//TODO: Log error that name cannot be set because attr is NULL
+	}
+	result = pthread_begin(thread,attr,start_routine,arg);
+	/*	Supported platforms for naming threads */
+#elif linux || freebsd || darwin || mingw
+	result = pthread_begin(thread,attr,start_routine,arg);
+	pthread_setname_np(*thread,name);
+#else
+	result = pthread_begin(thread,attr,start_routine,arg);
+#endif
+
+	return result;
+}
+
 #endif	/*	End of #if defined bionic || uClibc			*/
 
 #ifdef POSIX_TASKS

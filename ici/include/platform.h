@@ -494,6 +494,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define MINGW_TASKS
 
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 #include <stdint.h>
 
 #ifndef gmtime_r
@@ -568,9 +569,11 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 */
 #include <synch.h>
 #include <pthread.h>
+
 /*
 ** End of SVR4 Headers
 */
+int pthread_setname_np(pthread_t thread, const char *name);
 
 extern int			strcasecmp(const char*, const char*);
 extern int			strncasecmp(const char*, const char*, size_t);
@@ -596,6 +599,7 @@ extern int getpriority(int, id_t);
 #include <malloc.h>
 
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 
 #ifdef bionic			/****	Bionic subset of Linux      ****/
 
@@ -637,6 +641,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 
 #define	_MULTITHREADED
 
@@ -650,6 +655,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 
 #include <sys/msg.h>
 #define	msgbuf		mymsg	/****	Mac OS X has no msgbuf,	but  ****/
