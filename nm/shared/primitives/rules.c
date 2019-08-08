@@ -95,6 +95,7 @@ rule_t*   rule_copy_ptr(rule_t *src)
 	result->flags = src->flags;
 	result->num_eval = src->num_eval;
 	result->num_fire = src->num_fire;
+	result->start = src->start;
 
 	return result;
 }
