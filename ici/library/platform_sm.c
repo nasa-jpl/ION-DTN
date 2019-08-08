@@ -2321,8 +2321,8 @@ int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
 {
 	int		result;
 
-	result = sm_BeginPthread(threadId,attr,function,arg);
-	pthread_setname_np(*threadId,name);
+	result = sm_BeginPthread(threadId, attr, function, arg);
+	pthread_setname_np(*threadId, name);
 
 	return result;
 }
@@ -2337,17 +2337,22 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 	/*	VxWorks uses a different method of naming threads. */
 #ifdef vxworks
 	if(attr){
-		pthread_attr_setname(attr,name);
+		pthread_attr_setname(attr, name);
 	}else{
 	//TODO: Log error that name cannot be set because attr is NULL
 	}
-	result = pthread_begin(thread,attr,start_routine,arg);
+	result = pthread_begin(thread, attr, start_routine, arg);
 	/*	Supported platforms for naming threads */
-#elif linux || freebsd || darwin || mingw
-	result = pthread_begin(thread,attr,start_routine,arg);
-	pthread_setname_np(*thread,name);
 #else
-	result = pthread_begin(thread,attr,start_routine,arg);
+	result = pthread_begin(thread, attr, start_routine, arg);
+#endif
+
+/*	Platforms have slightly different setname functions
+ *	Mac OS X is not supported as name must be set within the thread */
+#if linux || mingw
+	pthread_setname_np(*thread, name);
+#elif freebsd
+	pthread_set_name_np(*thread,name);
 #endif
 
 	return result;
