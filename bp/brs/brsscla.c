@@ -233,7 +233,8 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 		return -1;
 	}
 
-	if (pthread_begin(&(rtp->senderThread), NULL, sendBundles, rtp))
+	if (pthread_begin(&(rtp->senderThread), NULL, sendBundles,
+		rtp, "brsscla_receiver"))
 	{
 		putSysErrmsg("brsscla can't create sender thread", NULL);
 		return -1;
@@ -584,7 +585,7 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->nodeNbr = (unsigned int) -1;
 		receiverParms->running = &(atp->running);
 		if (pthread_begin(&(receiverParms->receiverThread), NULL,
-				receiveBundles, receiverParms))
+				receiveBundles, receiverParms, "brsscla_receiver"))
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
@@ -745,7 +746,8 @@ port 80)", NULL);
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers,
+		&atp, "brsscla_access"))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create access thread", NULL);

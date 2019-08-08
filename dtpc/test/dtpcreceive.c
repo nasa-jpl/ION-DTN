@@ -136,7 +136,8 @@ int	main(int argc, char **argv)
 
 	oK(_dtpcsap(&sap));
 	alarm = rfx_insert_alarm(5, 0);
-	if (pthread_begin(&printThread, NULL, printCounts, (void *) alarm))
+	if (pthread_begin(&printThread, NULL, printCounts,
+		(void *) alarm, "dtpcreceive_print"))
 	{
 		putErrmsg("Can't start print thread.", NULL);
 		rfx_remove_alarm(alarm);

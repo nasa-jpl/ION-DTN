@@ -248,7 +248,7 @@ static void	*Listen_for_connections(void *parm)
 		rp->running = 1;
 		rp->elk = &elk;
 		rp->list = &list;
-		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp))
+		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp, "dccplsi_receiver"))
 		{
 			putSysErrmsg("DCCPLSI can't create receiver thread.", NULL);
 			close(consock);
@@ -391,7 +391,8 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
 	rtp.mainThread = pthread_self();
-	if (pthread_begin(&listenerThread, NULL, Listen_for_connections, &rtp))
+	if (pthread_begin(&listenerThread, NULL, Listen_for_connections,
+		&rtp, "dccplsi_listener"))
 	{
 		close(rtp.linkSocket);
 		putSysErrmsg("DCCPLSI can't create listener thread.", NULL);

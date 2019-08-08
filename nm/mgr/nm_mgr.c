@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
 
     /* Spawn threads for receiving msgs, user interface, and db connection. */
-    if(pthread_begin(&rx_thr, NULL, (void *)mgr_rx_thread, (void *)&gRunning))
+    if(pthread_begin(&rx_thr, NULL, (void *)mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
     {
         AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
         		        rx_thr_name, strerror(errno));
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     }
 
 
-    if(pthread_begin(&ui_thr, NULL, (void *)ui_thread, (void *)&gRunning))
+    if(pthread_begin(&ui_thr, NULL, (void *)ui_thread, (void *)&gRunning, "nm_mgr_ui"))
     {
         AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
         		        ui_thr_name, strerror(errno));
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 
 #ifdef HAVE_MYSQL
 
-    if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning))
+    if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning ,"nm_mgr_db"))
     {
     	AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
     			db_thr_name, strerror(errno));

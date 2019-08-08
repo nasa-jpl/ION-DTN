@@ -442,7 +442,7 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 	session->hasPlMutex = 1;
 	pthread_mutex_init(&(session->sigMutex), NULL);
 	session->hasSigMutex = 1;
-	if (pthread_begin(&(session->receiver), NULL, handleContacts, rtp))
+	if (pthread_begin(&(session->receiver), NULL, handleContacts, rtp, "tcpcli-receiver"))
 	{
 		MRELEASE(rtp);
 		pthread_mutex_unlock(&(session->sigMutex));
@@ -1514,7 +1514,7 @@ plan for neighbor.", eidbuf);
 	}
 
 	stp->session = session;
-	if (pthread_begin(&(session->sender), NULL, sendBundles, stp))
+	if (pthread_begin(&(session->sender), NULL, sendBundles, stp, "tcpcli-session-sender"))
 	{
 		MRELEASE(stp);
 		putSysErrmsg("tcpcli can't create new sender thread", 
@@ -1522,7 +1522,7 @@ plan for neighbor.", eidbuf);
 		return -1;
 	}
 
-	if (pthread_begin(&(session->admin), NULL, sendSignals, stp))
+	if (pthread_begin(&(session->admin), NULL, sendSignals, stp, "tcpcli-session-admin"))
 	{
 		stopSenderThread(session);
 		putSysErrmsg("tcpcli can't create new admin thread", 
@@ -2925,7 +2925,7 @@ int	main(int argc, char *argv[])
 	ctp.neighbors = neighbors;
 	ctp.backlog = backlog;
 	ctp.backlogMutex = &backlogMutex;
-	if (pthread_begin(&clockThread, NULL, handleEvents, &ctp))
+	if (pthread_begin(&clockThread, NULL, handleEvents, &ctp, "tcpcli-clock"))
 	{
 		closesocket(stp.serverSocket);
 		lyst_destroy(backlog);
@@ -2940,7 +2940,7 @@ int	main(int argc, char *argv[])
 	stp.running = 1;
 	stp.backlog = backlog;
 	stp.backlogMutex = &backlogMutex;
-	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp))
+	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp, "tcpcli-server"))
 	{
 		shutDownNeighbors(neighbors);
 		snooze(2);	/*	Let clock thread clean up.	*/

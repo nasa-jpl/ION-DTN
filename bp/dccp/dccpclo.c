@@ -445,7 +445,7 @@ int	main(int argc, char *argv[])
 	itp.done = 0;
 	itp.ductname = ductName;
 	pthread_mutex_init(&itp.mutex, NULL);
-	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp))
+	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp, "dccpclo_keepalive"))
 	{
 		putSysErrmsg("dccpclo can't create thread.", NULL);
 		pthread_mutex_destroy(&itp.mutex);

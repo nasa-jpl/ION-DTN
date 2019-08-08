@@ -148,7 +148,8 @@ static int	run_sdatest(uvast destEngineId)
 		}
 
 		parms.running = 1;
-		if (pthread_begin(&senderThread, NULL, sendItems, &parms))
+		if (pthread_begin(&senderThread, NULL, sendItems,
+			&parms, "sdatest_sender"))
 		{
 			putSysErrmsg("sdatest can't create send thread", NULL);
 			ionStopAttendant(&parms.attendant);
