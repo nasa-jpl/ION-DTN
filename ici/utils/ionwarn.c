@@ -122,8 +122,8 @@ int	checkForCongestion()
 	int		ionMemIdx;
 	Lyst		neighbors;
 	Lyst		changes;
-	vast		fileOccupancy;
-	vast		heapOccupancy;
+	double		fileOccupancy;
+	double		heapOccupancy;
 	double		currentOccupancy;
 	double		maxOccupancy;
 	double		forecastOccupancy;

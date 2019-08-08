@@ -90,7 +90,7 @@ typedef struct
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	int		discovered;	/*	Boolean.		*/
-	vast		mtv[3];		/*	Residual xmit volumes.	*/
+	Scalar		mtv[3];		/*	Residual xmit volumes.	*/
 } IonContact;
 
 typedef struct

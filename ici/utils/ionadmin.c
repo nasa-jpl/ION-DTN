@@ -621,9 +621,9 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 	IonDB	iondb;
 	vast	newFileLimit = -1;	/*	-1 = "unchanged"	*/
 	vast	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
-	vast	fileLimit;
-	vast	maxHeapLimit;
-	vast	heapLimit;
+	double	fileLimit;
+	double	maxHeapLimit;
+	double	heapLimit;
 
 	switch (tokenCount)
 	{
@@ -656,10 +656,11 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 	CHKVOID(sdr_begin_xn(sdr));
 	if (newFileLimit != -1)	/*	Overriding current value.	*/
 	{
-		fileLimit = newFileLimit * 1000000;
+		fileLimit = newFileLimit;
 
 		/*	Convert from MB to bytes.			*/
 
+		fileLimit *= 1000000.0;
 		zco_set_max_file_occupancy(sdr, fileLimit, acct);
 		writeMemo("[i] ZCO max file space changed.");
 	}
@@ -674,10 +675,11 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 		}
 		else
 		{
-			heapLimit = newHeapLimit * 1000000;
+			heapLimit = newHeapLimit;
 
 			/*	Convert from MB to bytes.		*/
 
+			heapLimit *= 1000000.0;
 			zco_set_max_heap_occupancy(sdr, heapLimit, acct);
 			writeMemo("[i] ZCO max heap changed.");
 		}
@@ -806,13 +808,13 @@ static void	manageUsage(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[256];
-	vast	heapOccupancyInbound;
+	double	heapOccupancyInbound;
 	double	heapSpaceMBInUseInbound;
-	vast	fileOccupancyInbound;
+	double	fileOccupancyInbound;
 	double	fileSpaceMBInUseInbound;
-	vast	heapOccupancyOutbound;
+	double	heapOccupancyOutbound;
 	double	heapSpaceMBInUseOutbound;
-	vast	fileOccupancyOutbound;
+	double	fileOccupancyOutbound;
 	double	fileSpaceMBInUseOutbound;
 	double	occupancyCeiling;	/*	In MBytes.		*/
 	double	maxForecastOccupancy;	/*	In MBytes.		*/

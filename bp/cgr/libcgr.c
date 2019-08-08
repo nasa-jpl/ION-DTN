@@ -1580,7 +1580,7 @@ static time_t	computeBundleArrivalTime(CgrRoute *route, Bundle *bundle,
 		contactObj = sdr_list_data(sdr, contact->contactElt);
 		sdr_read(sdr, (char *) &contactBuf, contactObj,
 				sizeof(IonContact));
-		if (contactBuf.mtv[priority] < 0)
+		if (!(scalarIsValid(&(contactBuf.mtv[priority]))))
 		{
 			return 0;	/*	Unconditional depletion.*/
 		}
@@ -2359,7 +2359,7 @@ static int	enqueueToNeighbor(CgrRoute *route, Bundle *bundle,
 				sizeof(IonContact));
 		for (i = priority; i >= 0; i--)
 		{
-			contactBuf.mtv[i] -= eccc;
+			reduceScalar(&(contactBuf.mtv[i]), eccc);
 		}
 
 		sdr_write(sdr, contactObj, (char *) &contactBuf,

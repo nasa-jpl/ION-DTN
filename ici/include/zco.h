@@ -212,20 +212,20 @@ extern void	zco_status(Sdr sdr);
 			/*	Writes a report of the current contents
  			 *	of the ZCO database to ion.log.		*/
 
-extern vast	zco_get_file_occupancy(Sdr sdr,
+extern double	zco_get_file_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the total number of file
 			 *	system space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_file_occupancy(Sdr sdr,
-				vast occupancy,
+				double occupancy,
 				ZcoAcct acct);
 			/*	Sets the maximum number of file
 			 *	system space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_file_occupancy(Sdr sdr,
+extern double	zco_get_max_file_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the maximum number of file
 			 *	system space bytes that may be
@@ -238,20 +238,20 @@ extern int	zco_enough_file_space(Sdr sdr,
 			 *	system space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
-extern vast	zco_get_bulk_occupancy(Sdr sdr,
+extern double	zco_get_bulk_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the total number of bulk
 			 *	storage space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_bulk_occupancy(Sdr sdr,
-				vast occupancy,
+				double occupancy,
 				ZcoAcct acct);
 			/*	Sets the maximum number of bulk
 			 *	storage space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_bulk_occupancy(Sdr sdr,
+extern double	zco_get_max_bulk_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the maximum number of bulk
 			 *	storage space bytes that may be
@@ -264,20 +264,20 @@ extern int	zco_enough_bulk_space(Sdr sdr,
 			 *	storage space available for ZCOs is
 			 *	greater than length, 0 otherwise.	*/
 
-extern vast	zco_get_heap_occupancy(Sdr sdr,
+extern double	zco_get_heap_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the total number of SDR
 			 *	heap space bytes occupied by ZCOs
 			 *	in this SDR.				*/
 
 extern void	zco_set_max_heap_occupancy(Sdr sdr,
-				vast occupancy,
+				double occupancy,
 				ZcoAcct acct);
 			/*	Sets the maximum number of SDR
 			 *	heap space bytes that may be
 			 *	occupied by ZCOs in this SDR.		*/
 
-extern vast	zco_get_max_heap_occupancy(Sdr sdr,
+extern double	zco_get_max_heap_occupancy(Sdr sdr,
 				ZcoAcct acct);
 			/*	Returns the maximum number of SDR
 			 *	heap space bytes that may be
