@@ -1,0 +1,135 @@
+=head1 NAME
+
+ltpsecrc - LTP security policy management commands file
+
+=head1 DESCRIPTION
+
+LTP security policy management commands are passed to B<ltpsecadmin> either
+in a file of text lines or interactively at B<ltpsecadmin>'s command prompt
+(:).  Commands are interpreted line-by line, with exactly one command per
+line.  The formats and effects of the LTP security policy management commands
+are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by ltpsecadmin to
+be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<a ltprecvauthrule> I<ltp_engine_id> I<ciphersuite_nbr> I<[key_name]>
+
+The B<add ltprecvauthrule> command.  This command adds a rule specifying the
+manner in which LTP segment authentication will be applied to LTP segments
+received from the indicated LTP engine.
+
+A segment from the indicated LTP engine will only be deemed authentic if it
+contains an authentication extension computed via the ciphersuite identified
+by I<ciphersuite_nbr> using the applicable key value.  If I<ciphersuite_nbr>
+is 255 then the applicable key value is a hard-coded constant and I<key_name>
+must be omitted; otherwise I<key_name> is required and the applicable key
+value is the current value of the key named I<key_name> in the local security
+policy database.
+
+Valid values of I<ciphersuite_nbr> are:
+
+=over 4
+
+0: HMAC-SHA1-80
+1: RSA-SHA256
+255: NULL
+
+=back
+
+=item B<c ltprecvauthrule> I<ltp_engine_id> I<ciphersuite_nbr> I<[key_name]>
+
+The B<change ltprecvauthrule> command.  This command changes the parameters
+of the LTP segment authentication rule for the indicated LTP engine. 
+
+=item B<d ltprecvauthrule> I<ltp_engine_id>
+
+The B<delete ltprecvauthrule> command.  This command deletes the LTP segment
+authentication rule for the indicated LTP engine.
+
+=item B<i ltprecvauthrule> I<ltp_engine_id>
+
+This command will print information (the LTP engine id, ciphersuite
+number, and key name) about the LTP segment authentication rule for the
+indicated LTP engine.
+
+=item B<l ltprecvauthrule>
+
+This command lists all LTP segment authentication rules in the security policy
+database.
+
+=item B<a ltpxmitauthrule> I<ltp_engine_id> I<ciphersuite_nbr> I<[key_name]>
+
+The B<add ltpxmitauthrule> command.  This command adds a rule specifying the
+manner in which LTP segments transmitted to the indicated LTP engine must be
+signed.
+
+Signing a segment destined for the indicated LTP engine entails computing an
+authentication extension via the ciphersuite identified by I<ciphersuite_nbr>
+using the applicable key value.  If I<ciphersuite_nbr> is 255 then the
+applicable key value is a hard-coded constant and I<key_name> must be
+omitted; otherwise I<key_name> is required and the applicable key
+value is the current value of the key named I<key_name> in the local security
+policy database.
+
+Valid values of I<ciphersuite_nbr> are:
+
+=over 4
+
+0: HMAC_SHA1-80
+1: RSA_SHA256
+255: NULL
+
+=back
+
+=item B<c ltpxmitauthrule> I<ltp_engine_id> I<ciphersuite_nbr> I<[key_name]>
+
+The B<change ltpxmitauthrule> command.  This command changes the parameters
+of the LTP segment signing rule for the indicated LTP engine. 
+
+=item B<d ltpxmitauthrule> I<ltp_engine_id>
+
+The B<delete ltpxmitauthrule> command.  This command deletes the LTP segment
+signing rule for the indicated LTP engine.
+
+=item B<i ltpxmitauthrule> I<ltp_engine_id>
+
+This command will print information (the LTP engine id, ciphersuite
+number, and key name) about the LTP segment signing rule for the indicated
+LTP engine.
+
+=item B<l ltpxmitauthrule>
+
+This command lists all LTP segment signing rules in the security policy
+database.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 SEE ALSO
+
+ltpsecadmin(1)

@@ -55,7 +55,7 @@
 
 #include "bpP.h"
 #include "bei.h"
-#include "ionsec.h"
+#include "bpsec.h"
 #include "csi.h"
 
 /*****************************************************************************

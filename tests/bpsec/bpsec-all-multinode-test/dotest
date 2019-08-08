@@ -108,21 +108,26 @@ fi
 echo -e "\n\n\n\n\n*****TEST 2*****"
 echo -e "Sending bundle with all security blocks to ipn:3.1, s/b delivered..."
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk 
+ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
 a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk
+ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
 a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
@@ -156,20 +161,23 @@ echo -e "BIBs are the same regardless of the key that is used; testing"
 echo -e "the signature function is impossible.  So we skip this test."
 
 #sleep ${TIMETODISPLAYTEXT}
+
 #cd 2.ipn.ltp
 #ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#x
 #a key key2 key2.hmk 
+#ENDOFIONSECADMINCOMMANDS
+#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+#x
 #a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
 #a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key2
-#ENDOFIONSECADMINCOMMANDS
+#ENDOFBPSECADMINCOMMANDS
 
 #cd ../3.ipn.ltp
-#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 #x
 #a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 #a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-#ENDOFIONSECADMINCOMMANDS
+#ENDOFBPSECADMINCOMMANDS
 
 #cd ../2.ipn.ltp
 #bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
@@ -199,14 +207,14 @@ echo -e "\n\n\n\n\n*****TEST 4*****"
 echo -e "Clear security rules, send bundle without security blocks again (should deliver)."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test4_trace" rcv,ct,fwd,dlv,del
@@ -238,17 +246,18 @@ fi
 echo -e "\n\n\n\n\n*****TEST 5*****"
 echo -e "Restore consistent rules, send BIG bundle with all security blocks (should deliver)."
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 bprecvfile ipn:3.2 &
 
@@ -322,24 +331,26 @@ echo -e "\n\n\n*****TEST 6*****"
 echo -e "Sending Bundle with BCB and BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib or bcb key...it should still be forwarded.\nThis should deliver."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
 a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk
+ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
 a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "test_trace6" rcv,ct,fwd,dlv,del
@@ -373,23 +384,23 @@ echo -e "\n\n\n*****TEST 7*****"
 echo "Sending Bundle with all blocks from ANONYMOUS bpsource on node 2 to ipn:4.1 via node 3. BIB and BCB should be authenticated at the destination. The bundle should be delivered."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSEADMINCOMMANDS
 x
 a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSEADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSEADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSEADMINCOMMANDS
 
 cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSEADMINCOMMANDS
 x
 a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSEADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bpsource ipn:4.1 "test_trace7"

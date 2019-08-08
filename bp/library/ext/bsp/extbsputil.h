@@ -68,7 +68,7 @@
  */
 #include "bpP.h"
 #include "bei.h"
-#include "ionsec.h"
+#include "bpsec.h"
 
 int extensionBlockTypeToInt(char *blockType);
 int extensionBlockTypeToString(unsigned char blockType, char *retVal,

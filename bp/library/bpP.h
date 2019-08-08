@@ -18,7 +18,7 @@
 #define _BPP_H_
 
 #include "rfx.h"
-#include "ionsec.h"
+#include "bpsec.h"
 #include "bp.h"
 
 #ifdef __cplusplus

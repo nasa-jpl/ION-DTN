@@ -110,17 +110,22 @@ fi
 echo -e "\n\n\n\n\n*****TEST 2*****"
 echo -e "Deliver payload with BIB (should receive)"
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk 
-a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk
-a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test2_trace" rcv,ct,fwd,dlv,del
@@ -154,19 +159,24 @@ echo -e "computed signatures for the two BIBs are the same regardless of"
 echo -e "the key that is used.  So we skip this test."
 
 #sleep ${TIMETODISPLAYTEXT}
+#
 #cd 2.ipn.ltp
 #ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#x
 #a key key2 key2.hmk 
-#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
 #ENDOFIONSECADMINCOMMANDS
+#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+#x
+#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
+#ENDOFBPSECADMINCOMMANDS
 #
 #cd ../3.ipn.ltp
 #ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#x
 #a key key1 key1.hmk
-#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
 #ENDOFIONSECADMINCOMMANDS
+#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+#x
+#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+#ENDOFBPSECADMINCOMMANDS
 #
 #cd ../2.ipn.ltp
 #bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test3_trace" rcv,ct,fwd,dlv,del
@@ -197,15 +207,16 @@ echo -e "the key that is used.  So we skip this test."
 echo -e "\n\n\n\n\n*****TEST 4*****"
 echo -e "Clear security rules, deliver payload without BIB again (should deliver)"
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test4_trace" rcv,ct,fwd,dlv,del
@@ -238,15 +249,16 @@ fi
 echo -e "\n\n\n\n\n*****TEST 5*****"
 echo -e "Add same key, deliver BIG payload with BIB (should deliver)"
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 bprecvfile ipn:3.2 &
 
@@ -318,24 +330,29 @@ sleep 1
 echo -e "\n\n\n*****TEST 6*****"
 echo "Sending Bundle with BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib key.\nIt should still be forwarded and delivered..."
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk 
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
-ENDOFIONSECADMINCOMMANDS
+ENDOFBPSECADMINCOMMANDS
 
 cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:4.1 ipn:2.0 3600 1.1 "test_trace6" rcv,ct,fwd,dlv,del
@@ -368,25 +385,32 @@ fi
 echo -e "\n\n\n*****TEST 7*****"
 echo -e "Sending ANONYMOUS Bundle with BIBs from ipn:2.1 through ipn:3.1 to ipn:4.1.\nIt should be authenticated at node 4."
 sleep ${TIMETODISPLAYTEXT}
+
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk 
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk 
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
+ENDOFBPSECADMINCOMMANDS
 
 cd ../4.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-x
 a key key1 key1.hmk
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
 ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+x
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
 bpsource ipn:4.1 "test_trace7"
