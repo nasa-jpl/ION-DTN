@@ -1754,6 +1754,24 @@ void	printStackTrace()
 #endif
 }
 
+void	debugPrint(const char *format, ...)
+{
+#if DEBUG_PRINT
+	va_list		args;
+
+	va_start(args, format);
+#if DEBUG_PRINT_LOG
+	char		buffer[256];
+
+	vsnprintf(buffer, sizeof buffer, format, args);
+	writeMemo(buffer);
+#endif
+	vprintf(format, args);
+	putchar('\n');
+	va_end(args);
+#endif
+}
+
 void	encodeSdnv(Sdnv *sdnv, uvast val)
 {
 	static uvast	sdnvMask = ((uvast) -1) / 128;

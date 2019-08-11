@@ -1439,7 +1439,7 @@ unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 		&& profile->custodySwitch == custodySwitch
 		&& profile->srrFlags == srrFlags
 		&& strcmp(repToEid, reportToEid) == 0
-		&& profile->ancillaryData.flowLabel == ancillaryData->flowLabel
+		&& profile->ancillaryData.dataLabel == ancillaryData->dataLabel
 		&& profile->ancillaryData.flags == ancillaryData->flags
 		&& profile->ancillaryData.ordinal == ancillaryData->ordinal)
 		{
@@ -1551,7 +1551,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
-	if (!bp_parse_class_of_service(svcClass, &ancillaryData, 
+	if (!bp_parse_quality_of_service(svcClass, &ancillaryData, 
 			&custodySwitch, &priority))
         {
                 sdr_exit_xn(sdr);

@@ -30,7 +30,6 @@
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
-#define	TYPICAL_STACK_OVERHEAD	36
 
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
 
@@ -1515,7 +1514,7 @@ static BpVdb	*_bpvdb(char **name)
 		|| (vdb->plans = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
-		|| (vdb->neighbors = sm_list_create(wm)) == 0
+		|| (vdb->discoveries = sm_list_create(wm)) == 0
 		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
@@ -1638,6 +1637,8 @@ int	bpInit()
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
 		bpdbBuf.inducts = sdr_list_create(bpSdr);
 		bpdbBuf.outducts = sdr_list_create(bpSdr);
+		bpdbBuf.saga[0] = sdr_list_create(bpSdr);
+		bpdbBuf.saga[1] = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
 		bpdbBuf.bundles = sdr_hash_create(bpSdr,
 				BUNDLES_HASH_KEY_LEN,
@@ -1779,7 +1780,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 
 	sm_list_destroy(wm, vdb->outducts, NULL, NULL);
-	sm_list_destroy(wm, vdb->neighbors, NULL, NULL);
+	sm_list_destroy(wm, vdb->discoveries, NULL, NULL);
 	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
 }
 
@@ -2185,7 +2186,7 @@ Throttle	*applicableThrottle(VPlan *vplan)
 void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 		Scalar *totalBacklog)
 {
-	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority = bundle->priority;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Throttle	*throttle;
@@ -2287,7 +2288,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	/*	Priority is 2, i.e., urgent (expedited).		*/
 
-	if ((i = bundle->ancillaryData.ordinal) == 0)
+	if ((i = bundle->ordinal) == 0)
 	{
 		addToScalar(priorClaims, &(plan->urgentBacklog));
 		return;
@@ -2469,7 +2470,7 @@ static int	printCbheEid(char *schemeName, CbheEid *eid, char **result)
 	 * 	where xxx is either "ipn" or "imc" (multicast).
 	 *	So max EID string length is 3 for "xxx" plus 1 for
 	 *	':' plus max length of nodeNbr (which is a 64-bit
-	 *	number, so 20 digits) plus 1 for '.' plus max lengthx
+	 *	number, so 20 digits) plus 1 for '.' plus max length
 	 *	of serviceNbr (which is a 64-bit number, so 20 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
@@ -2801,7 +2802,7 @@ void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 
 	CHKVOID(bundle && plan);
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
-	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
+	switch (bundle->priority)
 	{
 	case 0:				/*	Bulk priority.		*/
 		reduceScalar(&(plan->bulkBacklog), backlogDecrement);
@@ -2812,7 +2813,7 @@ void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 		break;
 
 	default:			/*	Urgent priority.	*/
-		ord = &(plan->ordinals[bundle->ancillaryData.ordinal]);
+		ord = &(plan->ordinals[bundle->ordinal]);
 		reduceScalar(&(ord->backlog), backlogDecrement);
 		if (ord->lastForOrdinal == bundle->planXmitElt)
 		{
@@ -3122,8 +3123,7 @@ incomplete bundle.", NULL);
 	}
 
 	sdr_free(bpSdr, bundleObj);
-	bpDiscardTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
-			bundle.payload.length);
+	bpDiscardTally(bundle.priority, bundle.payload.length);
 	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
 	return 0;
@@ -6198,8 +6198,8 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	Object		bpDbObject = getBpDbObject();
 	PsmPartition	bpwm = getIonwm();
 	BpDB		bpdb;
-	PsmAddress	neighborElt;
-	NdpNeighbor	*neighbor;
+	PsmAddress	discoveryElt;
+	Discovery	*discovery;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
@@ -6241,7 +6241,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
-	neighborElt = bp_discover_find_neighbor(destEidString);
+	discoveryElt = bp_find_discovery(destEidString);
 	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
@@ -6265,11 +6265,11 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 
 	/*	Prevent unnecessary NDP beaconing.			*/
 
-	if (neighborElt)
+	if (discoveryElt)
 	{
-		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
-				neighborElt));
-		neighbor->lastContactTime = getCtime();
+		discovery = (Discovery *) psp(bpwm, sm_list_data(bpwm,
+				discoveryElt));
+		discovery->lastContactTime = getCtime();
 	}
 
 	/*	Set bundle processing flags.				*/
@@ -6442,6 +6442,7 @@ when asking for custody transfer and/or status reports.");
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle.acct = ZcoOutbound;
+	bundle.priority = classOfService;	/*	Default.	*/
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
@@ -6595,13 +6596,17 @@ when asking for custody transfer and/or status reports.");
 
 	if (ancillaryData)
 	{
-		bundle.ancillaryData.flowLabel = ancillaryData->flowLabel;
+		bundle.ancillaryData.dataLabel = ancillaryData->dataLabel;
 		bundle.ancillaryData.flags = ancillaryData->flags;
 		bundle.ancillaryData.ordinal = ancillaryData->ordinal;
 		bundle.ancillaryData.metadataType = ancillaryData->metadataType;
 		bundle.ancillaryData.metadataLen = ancillaryData->metadataLen;
 		memcpy(bundle.ancillaryData.metadata, ancillaryData->metadata,
 				sizeof bundle.ancillaryData.metadata);
+
+		/*	Default value of bundle's ordinal.		*/
+
+		bundle.ordinal = ancillaryData->ordinal;
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6671,7 +6676,7 @@ when asking for custody transfer and/or status reports.");
 				bundle.payload.length);
 	}
 
-	bpSourceTally(classOfService, bundle.payload.length);
+	bpSourceTally(bundle.priority, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
 		iwatch('a');
@@ -7841,6 +7846,9 @@ unsigned int	guessBundleSize(Bundle *bundle)
 
 unsigned int	computeECCC(unsigned int bundleSize)
 {
+//#ifdef CGR_IOT
+//	return bundleSize * 1.03;
+//#else
 	unsigned int	stackOverhead;
 
 	/*	Assume 6.25% convergence-layer overhead.		*/
@@ -7852,6 +7860,7 @@ unsigned int	computeECCC(unsigned int bundleSize)
 	}
 
 	return bundleSize + stackOverhead;
+//#endif
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -8906,7 +8915,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
-	bpRecvTally(COS_FLAGS(bundle->bundleProcFlags) & 0x03,
+	bpRecvTally(bundle->priority,
 			bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
@@ -9641,6 +9650,150 @@ static void	bpEraseStatusRpt(BpStatusRpt *rpt)
 	MRELEASE(rpt->sourceEid);
 }
 
+static void	deleteEncounter(LystElt elt, void *userdata)
+{
+	MRELEASE(lyst_data(elt));
+}
+
+static int	extractSagaSdnv(uvast *into, unsigned char **from, int *remnant)
+{
+	int	sdnvLength;
+
+	if (*remnant < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(into, *from);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	(*from) += sdnvLength;
+	(*remnant) -= sdnvLength;
+	return sdnvLength;
+}
+
+static int	parseSagaMessage(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes)
+{
+	Lyst		encounters;
+	Encounter	*encounter;
+	uvast		value;
+
+	if (adminRecordType != BP_SAGA_MESSAGE)
+	{
+		return -2;
+	}
+
+	encounters = lyst_create_using(getIonMemoryMgr());
+	if (encounters == NULL)
+	{
+		putErrmsg("Can't create encounters lyst.", NULL);
+		return -1;
+	}
+
+	lyst_delete_set(encounters, deleteEncounter, NULL);
+	*otherPtr = (void *) encounters;
+
+	/*	First value in message is region number.		*/
+
+	if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+	{
+		putErrmsg("No region number in Saga message.", NULL);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	encounter = (Encounter *) MTAKE(sizeof(Encounter));
+	if (encounter == NULL)
+	{
+		putErrmsg("Can't create bogus encounter.", NULL);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	memset((char *) &encounter, 0, sizeof(Encounter));
+	encounter->fromNode = value;
+	if (lyst_insert_last(encounters, encounter) == NULL)
+	{
+		putErrmsg("Can't post bogus encounter.", NULL);
+		MRELEASE(encounter);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	/*	Now extract all encounters.				*/
+
+	while (unparsedBytes > 0)
+	{
+		encounter = (Encounter *) MTAKE(sizeof(Encounter));
+		if (encounter == NULL)
+		{
+			putErrmsg("Can't create encounter.", NULL);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		memset((char *) &encounter, 0, sizeof(Encounter));
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->fromNode = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->toNode = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->fromTime = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->toTime = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->xmitRate = value;
+		if (lyst_insert_last(encounters, encounter) == NULL)
+		{
+			putErrmsg("Can't post encounter.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
 static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 			BpCtSignal *csig, void **otherPtr, Object payload)
 {
@@ -9716,6 +9869,13 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 		}
 
 		result = parseImcPetition(*adminRecordType, otherPtr,
+				(unsigned char *) cursor, unparsedBytes);
+		if (result != -2)	/*	Parsed the record.	*/
+		{
+			break;
+		}
+
+		result = parseSagaMessage(*adminRecordType, otherPtr,
 				(unsigned char *) cursor, unparsedBytes);
 		if (result != -2)	/*	Parsed the record.	*/
 		{
@@ -10239,6 +10399,79 @@ int	bpAccept(Object bundleObj, Bundle *bundle)
 	return 0;
 }
 
+static void	noteFragmentation(Bundle *bundle)
+{
+	Sdr	sdr = getIonsdr();
+	Object	dbObject;
+	BpDB	db;
+
+	dbObject = getBpDbObject();
+	sdr_stage(sdr, (char *) &db, dbObject, sizeof(BpDB));
+	db.currentFragmentsProduced++;
+	db.totalFragmentsProduced++;
+	if (!(bundle->fragmented))
+	{
+		bundle->fragmented = 1;
+		db.currentBundlesFragmented++;
+		db.totalBundlesFragmented++;
+	}
+
+	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
+}
+
+int	bpFragment(Bundle *bundle, Object bundleObj,
+		Object *queueElt, size_t fragmentLength,
+		Bundle *firstBundle, Object *firstBundleObj,
+		Bundle *secondBundle, Object *secondBundleObj)
+{
+	Sdr	sdr = getIonsdr();
+
+	CHKERR(ionLocked());
+
+	/*	Create two clones of the original bundle with
+	 *	fragmentary payloads.					*/
+
+	if (bpClone(bundle, firstBundle, firstBundleObj, 0, fragmentLength) < 0
+	|| bpClone(bundle, secondBundle, secondBundleObj, fragmentLength,
+			bundle->payload.length - fragmentLength) < 0)
+	{
+		return -1;
+	}
+
+	/*	Lose the original bundle, inserting the two fragments
+	 *	in its place.  No significant change to resource
+	 *	occupancy.						*/
+
+	if (queueElt)
+	{
+		sdr_list_delete(sdr, *queueElt, NULL, NULL);
+		*queueElt = 0;
+	}
+
+	if (bundle->custodyTaken)
+	{
+		/*	Means that custody of the two clones is
+		 *	taken instead.					*/
+
+		releaseCustody(bundleObj, bundle);
+		bpCtTally(BP_CT_CUSTODY_ACCEPTED, firstBundle->payload.length);
+		bpCtTally(BP_CT_CUSTODY_ACCEPTED, secondBundle->payload.length);
+	}
+
+	/*	Destroy the original bundle.				*/
+
+	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	if (bpDestroyBundle(bundleObj, 0) < 0)
+	{
+		return -1;
+	}
+
+	/*	Note bundle has been fragmented, and return.		*/
+
+	noteFragmentation(secondBundle);
+	return 0;
+}
+
 static Object	insertBundleIntoQueue(Object queue, Object firstElt,
 			Object lastElt, Object bundleAddr, int priority,
 			unsigned char ordinal, time_t enqueueTime)
@@ -10294,7 +10527,7 @@ static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned char	ordinal = bundle->ancillaryData.ordinal;
+	unsigned char	ordinal = bundle->ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
 	Object		lastElt = 0;
 	Object		lastForPriorOrdinal = 0;
@@ -10442,7 +10675,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	/*	Insert bundle into the appropriate transmission queue
 	 *	of the selected egress plan.				*/
 
-	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	priority = bundle->priority;
 	switch (priority)
 	{
 	case 0:
@@ -11745,6 +11978,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 
 int	bpHandleXmitFailure(Object bundleZco)
 {
+//#ifndef CGR_IOT
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
@@ -11794,6 +12028,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		putErrmsg("Can't handle transmission failure.", NULL);
 		return -1;
 	}
+//#endif
 
 	return 1;
 }
@@ -12208,6 +12443,98 @@ static int	handleEncapsulatedBundle(BpDelivery *dlv)
 	return 0;
 }
 
+static int	handleSagaMessage(Lyst encounters)
+{
+	Sdr		sdr = getIonsdr();
+	vast		regionNbr;
+	int		regionIdx;
+	LystElt		elt;
+	Encounter	*encounter;
+	BpDB		*bpConstants = getBpConstants();
+	Object		bundleElt;
+	Object		nextBundleElt;
+
+	/*	parseSagaMessage has created a Lyst of Encounter
+	 *	objects and stored the applicable region number in
+	 *	the fromNode field of a bogus Encounter object that
+	 *	is inserted at the front of the encounters Lyst.
+	 *
+	 *	Extract all encounters from the Lyst, insert them
+	 *	into the applicable local saga (discarding any
+	 *	duplicates), and destroy the Lyst.			*/
+
+	elt = lyst_first(encounters);
+	CHKERR(elt);
+	encounter = (Encounter *) lyst_data(elt);
+	regionNbr = encounter->fromNode;
+	regionIdx = ionPickRegion(regionNbr);
+	if (regionIdx < 0 || regionIdx > 1)
+	{
+		/*	This message is for a region of which the
+		 *	local node is not a member, so the message
+		 *	is not usable.					*/
+
+		lyst_destroy(encounters);
+		return 0;
+	}
+
+	elt = lyst_next(elt);
+	while (elt)
+	{
+		encounter = (Encounter *) lyst_data(elt);
+		saga_insert(encounter->fromTime, encounter->toTime,
+				encounter->fromNode, encounter->toNode,
+				encounter->xmitRate, regionIdx);
+		elt = lyst_next(elt);
+	}
+
+	lyst_destroy(encounters);
+
+	/*	Now call saga_receive to erase all existing predicted
+	 *	contacts and compute new (hopefully better and/or
+	 *	additional) ones.					*/
+
+	if (saga_receive(regionIdx) < 0)
+	{
+		putErrmsg("Can't process contact discovery msg from neighbor.",
+				NULL);
+		return -1;
+	}
+
+	/*	Finally, release all bundles from limbo, to take
+	 *	advantage of the new predicted contacts.		*/
+
+	for (bundleElt = sdr_list_first(sdr, bpConstants->limboQueue);
+			bundleElt; bundleElt = nextBundleElt)
+	{
+		nextBundleElt = sdr_list_next(sdr, bundleElt);
+		if (releaseFromLimbo(bundleElt, 0) < 0)
+		{
+			putErrmsg("Failed releasing bundle from limbo.", NULL);
+			return-1;
+		}
+	}
+
+	return 0;
+}
+
+static int	applySagaMessage(int adminRecType, void *other, BpDelivery *dlv)
+{
+	if (adminRecType != BP_SAGA_MESSAGE)
+	{
+		return -2;
+	}
+
+	/*	parseSagaMessage (called from parseAdminRecord)
+	 *	has created a Lyst of Encounter objects, stored
+	 *	the applicable regionIdx in the fromNode field of
+	 *	a bogus Encounter object that is inserted at the
+	 *	front of the Lyst, and placed the address of the
+	 *	Lyst in "other".					*/
+
+	return handleSagaMessage((Lyst) other);
+}
+
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		CtSignalCB handleCtSignal)
 {
@@ -12269,7 +12596,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		}
 
 		switch (parseAdminRecord(&adminRecType, &rpt, &cts, &other,
-				dlv.adu))
+					dlv.adu))
 		{
 		case 1: 			/*	No problem.	*/
 			break;
@@ -12357,6 +12684,17 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			}
 
 			result = applyImcPetition(adminRecType, other, &dlv);
+			if (result != -2)	/*	Applied record.	*/
+			{
+				if (result < 0)
+				{
+					running = 0;
+				}
+
+				break;		/*	Out of switch.	*/
+			}
+
+			result = applySagaMessage(adminRecType, other, &dlv);
 			if (result != -2)	/*	Applied record.	*/
 			{
 				if (result < 0)

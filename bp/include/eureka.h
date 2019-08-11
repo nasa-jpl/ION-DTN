@@ -23,7 +23,7 @@ extern "C" {
 /**
  * Notes initiation of newly discovered
 	communication contact with node
-	identified by neighboringNodeEid
+	identified by discoveryEid
 	and reachable by socket connected
 	to socketSpec. The new neighboring
 	node is known to be able to receive
@@ -36,15 +36,15 @@ extern "C" {
 	protocol is tcp, the socketSpec will have
 	the form ipaddress:port or hostname:port.
  * @param  socketSpec      socketSpec for the required CLA.
- * @param  neighborEid     Node identification. 
+ * @param  discoveryEid    Node identification. 
  * @param  claProtocol     Target CLA.
- * @param  xmitRate        Neighbor's rate of receiving data.
- * @param  recvRate        Neighbor's rate of sending data.
+ * @param  xmitRate        Discovered node's rate of receiving data.
+ * @param  recvRate        Discovered node's rate of sending data.
  * @return                 0 on success. -1 on error.
  */
-extern int	bp_discover_contact_acquired(
+extern int	bp_discovery_acquired(
 				char *socketSpec,
-				char *neighborEid,
+				char *discoveryEid,
 				char *claProtocol,
 				unsigned int xmitRate,
 				unsigned int recvRate);
@@ -54,23 +54,23 @@ extern int	bp_discover_contact_acquired(
 	communication contact previously noted
 	by bp_discover_contact_acquired().
  * @param  socketSpec      socketSpec of the terminated contact.
- * @param  neighborEid     Node identification. 
+ * @param  discoveryEid    Node identification. 
  * @param  claProtocol	   Target CLA.
  * @return                 0 on success, -1 on error.
  */
-extern int	bp_discover_contact_lost(
+extern int	bp_discovery_lost(
 				char *socketSpec,
-				char *neighborEid,
+				char *discoveryEid,
 				char *claProtocol);
 
 /**
- * Locates a neighbor previously noted
+ * Locates a discovery previously noted
 	by bp_discover_contact_acquired().
- * @param  neighborEid     Node identification. 
- * @return                 SmList elt on success, 0 if neighbor not found.
+ * @param  discoveryEid    Node identification. 
+ * @return                 SmList elt on success, 0 if discovery not found.
  */
-extern PsmAddress	bp_discover_find_neighbor(
-				char *neighborEid);
+extern PsmAddress	bp_find_discovery(
+				char *discoveryEid);
 
 #ifdef __cplusplus
 }

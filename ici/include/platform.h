@@ -57,7 +57,7 @@ extern "C" {
 #endif
 #endif
 
-#define	MAX_POSIX_TIME	2147483644
+#define	MAX_POSIX_TIME	2147483647
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
 
@@ -802,6 +802,14 @@ extern int			_coreFileNeeded(int *);
 #define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
 
 extern void			printStackTrace();
+
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT		(0)
+#endif
+#ifndef DEBUG_PRINT_LOG
+#define DEBUG_PRINT_LOG		(0)
+#endif
+extern void			debugPrint(const char *format, ...);
 
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)

@@ -172,7 +172,7 @@ int	main(int argc, char *argv[])
 
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-		priority = COS_FLAGS(bundle.bundleProcFlags) & 0x03;
+		priority = bundle.priority;
 		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
 				bundle.payload.length, &fileSpaceNeeded,
 				&bulkSpaceNeeded, &heapSpaceNeeded);
@@ -188,8 +188,7 @@ int	main(int argc, char *argv[])
 
 		if (ionRequestZcoSpace(ZcoOutbound, fileSpaceNeeded,
 				bulkSpaceNeeded, heapSpaceNeeded, priority,
-				bundle.ancillaryData.ordinal, &attendant,
-				&ticket) < 0)
+				bundle.ordinal, &attendant, &ticket) < 0)
 		{
 			putErrmsg("Failed trying to reserve ZCO space.", NULL);
 			mtp.running = 0;

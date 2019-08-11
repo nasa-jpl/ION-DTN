@@ -143,6 +143,11 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 	int		len;
 
 	buflen = bundle->payload.length;
+	if (buflen > 100)
+	{
+		buflen = 100;
+	}
+
 	buf = MTAKE(buflen);
 	if (buf == NULL)
 	{
@@ -151,7 +156,7 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 	}
 
 	zco_start_receiving(bundle->payload.content, &reader);
-	len = zco_receive_source(sdr, &reader, bundle->payload.length, buf);
+	len = zco_receive_source(sdr, &reader, buflen, buf);
 	if (len < 0)
 	{
 		putErrmsg("bplist can't read ZCO source.", NULL);
@@ -159,22 +164,104 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 	}
 
 	PUTS("****** Payload");
-	printBytes(buf, bundle->payload.length);
+	printBytes(buf, buflen);
 	MRELEASE(buf);
 }
 
-static void	printBundle(Sdr sdr, Bundle *bundle)
+static void	printQueueState(Sdr sdr, Bundle *bundle)
 {
-	char	*eid;
-	char	*dictionary;
+	Object	queue;
+	Object	planAddr;
+	BpPlan	planBuf;
 	char	buf[300];
 
+	if (bundle->dlvQueueElt)
+	{
+		PUTS("****** Queued for delivery.");
+		return;
+	}
+
+	if (bundle->fwdQueueElt)
+	{
+		PUTS("****** Queued for proximate destination selection.");
+		return;
+	}
+
+	if (bundle->planXmitElt)
+	{
+		queue = sdr_list_list(sdr, bundle->planXmitElt);
+		planAddr = sdr_list_user_data(sdr, queue);
+		if (planAddr == 0)
+		{
+			PUTS("****** In limbo.");
+			return;
+		}
+
+		sdr_read(sdr, (char *) &planBuf, planAddr, sizeof(BpPlan));
+		isprintf(buf, sizeof buf, "Queued for forwarding to '%s'.",
+				planBuf.neighborEid);
+		PUTS(buf);
+		return;
+	}
+
+	if (bundle->ductXmitElt)
+	{
+		PUTS("****** Queued for transmission at convergence layer.");
+		return;
+	}
+
+	/*	Not queued anywhere.					*/
+
+	PUTS("****** Awaiting completion of convergence-layer transmission.");
+	return;
+}
+
+static void	printBundle(Object bundleObj)
+{
+	Sdr	sdr = bp_get_sdr();
+		OBJ_POINTER(Bundle, bundle);
+	char	*dictionary;
+	char	*eid;
+	char	buf[300];
+	int	priority;
+
+	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 	dictionary = retrieveDictionary(bundle);
+
 	PUTS("\n**** Bundle");
+
 	oK(printEid(&(bundle->id.source), dictionary, &eid));
-	isprintf(buf, sizeof buf, "Source EID      '%s'", eid);
-	PUTS(buf);
-	MRELEASE(eid);
+	if (eid)
+	{
+		isprintf(buf, sizeof buf, "Source EID      '%s'", eid);
+		PUTS(buf);
+		MRELEASE(eid);
+	}
+
+	oK(printEid(&(bundle->destination), dictionary, &eid));
+	if (eid)
+	{
+		isprintf(buf, sizeof buf, "Destination EID '%s'", eid);
+		PUTS(buf);
+		MRELEASE(eid);
+	}
+
+	oK(printEid(&(bundle->reportTo), dictionary, &eid));
+	if (eid)
+	{
+		isprintf(buf, sizeof buf, "Report-to EID   '%s'", eid);
+		PUTS(buf);
+		MRELEASE(eid);
+	}
+
+	oK(printEid(&(bundle->custodian), dictionary, &eid));
+	if (eid)
+	{
+		isprintf(buf, sizeof buf, "Custodian EID   '%s'", eid);
+		PUTS(buf);
+		MRELEASE(eid);
+	}
+
 	isprintf(buf, sizeof buf,
 		"Creation sec   %10lu   count %10lu   frag offset %10lu",
 			bundle->id.creationTime.seconds,
@@ -205,13 +292,15 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 			"- app ack requested:    %d", bundle->bundleProcFlags
 			& BDL_APP_ACK_REQUEST ? 1 : 0);
 	PUTS(buf);
+
+	priority = bundle->priority;
 	isprintf(buf, sizeof buf,
-			"Priority                %lu",
-			COS_FLAGS(bundle->bundleProcFlags) & 0x03);
+			"Priority                %lu", priority);
 	PUTS(buf);
+
 	isprintf(buf, sizeof buf,
 			"Ordinal                 %d",
-		       	bundle->ancillaryData.ordinal);
+		       	bundle->ordinal);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"Unreliable:             %d",
@@ -222,18 +311,6 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 			bundle->ancillaryData.flags
 			& BP_MINIMUM_LATENCY ? 1 : 0);
 	PUTS(buf);
-	oK(printEid(&(bundle->destination), dictionary, &eid));
-	isprintf(buf, sizeof buf, "Destination EID '%s'", eid);
-	PUTS(buf);
-	MRELEASE(eid);
-	oK(printEid(&(bundle->reportTo), dictionary, &eid));
-	isprintf(buf, sizeof buf, "Report-to EID   '%s'", eid);
-	PUTS(buf);
-	MRELEASE(eid);
-	oK(printEid(&(bundle->custodian), dictionary, &eid));
-	isprintf(buf, sizeof buf, "Custodian EID   '%s'", eid);
-	PUTS(buf);
-	MRELEASE(eid);
 	isprintf(buf, sizeof buf,
 			"Expiration sec %10lu", bundle->expirationTime);
 	PUTS(buf);
@@ -244,46 +321,148 @@ static void	printBundle(Sdr sdr, Bundle *bundle)
 			"Dictionary len %10lu", bundle->dictionaryLength);
 	PUTS(buf);
 	printDictionary(dictionary, bundle->dictionaryLength);
-	releaseDictionary(dictionary);
 	printExtensions(sdr, bundle->extensions[0]);
+	isprintf(buf, sizeof buf,
+			"Payload len %10lu", bundle->payload.length);
+	PUTS(buf);
 	printPayload(sdr, bundle);
 	printExtensions(sdr, bundle->extensions[1]);
+	printQueueState(sdr, bundle);
 	PUTS("**** End of bundle");
+	releaseDictionary(dictionary);
+}
+
+static int	printQueue(int detail, Object queue, char *name)
+{
+	Sdr	sdr = bp_get_sdr();
+	int	bundlesCount = 0;
+	char	msgbuf[256];
+	Object	elt;
+
+	isprintf(msgbuf, sizeof msgbuf, "\n**   %s queue", name);
+	PUTS(msgbuf);
+	for (elt = sdr_list_first(sdr, queue); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		bundlesCount++;
+		if (!detail)
+		{
+			continue;
+		}
+
+		/*	Need to print detail of bundle.			*/
+
+		printBundle(sdr_list_data(sdr, elt));
+	}
+
+	isprintf(msgbuf, sizeof msgbuf, "Queue count is %ld.", bundlesCount);
+	PUTS(msgbuf);
+	return bundlesCount;
+}
+
+static int	printPlan(int detail, char *eid, int priority)
+{
+	Sdr	sdr = bp_get_sdr();
+	int	bundlesCount = 0;
+	VPlan	*vplan;
+	char	msgbuf[256];
+	Object	planObj;
+	BpPlan	plan;
+	int	partialCount;
+
+	lookupPlan(eid, &vplan);
+	if (vplan == NULL)
+	{
+		isprintf(msgbuf, sizeof msgbuf, "No egress plan for endpoint \
+'%s'.", eid);
+		PUTS(msgbuf);
+		return 0;
+	}
+
+	planObj = sdr_list_data(sdr, vplan->planElt);
+	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+	switch (priority)
+	{
+	case 0:
+		return printQueue(detail, plan.bulkQueue, "Bulk");
+
+	case 1:
+		return printQueue(detail, plan.stdQueue, "Std");
+
+	case 2:
+		return printQueue(detail, plan.urgentQueue, "Urgent");
+
+	default:
+		partialCount = printQueue(detail, plan.bulkQueue, "Bulk");
+		bundlesCount += partialCount;
+		partialCount = printQueue(detail, plan.stdQueue, "Std");
+		bundlesCount += partialCount;
+		partialCount = printQueue(detail, plan.urgentQueue, "Urgent");
+		bundlesCount += partialCount;
+		return bundlesCount;
+	}
+}
+
+static int	printAll(int detail)
+{
+	Sdr	sdr = bp_get_sdr();
+	int	bundlesCount = 0;
+	BpDB	*bpConstants;
+	Object	elt;
+	Object	addr;
+		OBJ_POINTER(BpEvent, event);
+
+	bpConstants = getBpConstants();
+	for (elt = sdr_list_first(sdr, bpConstants->timeline); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		addr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, BpEvent, event, addr);
+		if (event->type != expiredTTL)
+		{
+			continue;	/*	Not bundle ref.		*/
+		}
+
+		/*	Event is a reference to a bundle.		*/
+
+		bundlesCount++;
+		if (!detail)
+		{
+			continue;
+		}
+
+		/*	Need to print detail of bundle.			*/
+
+		printBundle(event->ref);
+	}
+
+	return bundlesCount;
 }
 
 static void	printUsage()
 {
-	PUTS("Usage: bplist [{count | detail} [<node ID (EID)>/<priority>]]");
+	PUTS("Usage: bplist [{count | detail} [<node ID (EID)>[/<priority>]]]");
 }
 
 #if defined (ION_LWT)
 int	bplist(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char		*rpt = (char *) a1;
-	char		*queue = (char *) a2;
+	char		*rptType = (char *) a1;
+	char		*filter = (char *) a2;
 #else
 int	main(int argc, char **argv)
 {
-	char		*rpt = argc > 1 ? argv[1] : NULL;
-	char		*queue = argc > 2 ? argv[2] : NULL;
+	char		*rptType = argc > 1 ? argv[1] : NULL;
+	char		*filter = argc > 2 ? argv[2] : NULL;
 #endif
-	int		count = 0;
-	char		*cursor;
-	char		*eid = NULL;
-	int		priority = 0;
-	char		msgbuf[256];
 	Sdr		sdr;
-	BpDB		*bpConstants;
-	Object		list;
-	VPlan		*vplan;
-	PsmAddress	vplanElt;
-	Object		elt;
-	Object		addr;
-			OBJ_POINTER(BpEvent, event);
-			OBJ_POINTER(Bundle, bundle);
-	int		bundlesCount = 0;
-			OBJ_POINTER(BpPlan, plan);
+	int		detail;		/*	Boolean.		*/
+	char		*cursor;
+	char		*destination = NULL;
+	int		priority = -1;
+	char		msgbuf[256];
+	int		bundlesCount;
 
 	if (bp_attach() < 0)
 	{
@@ -291,128 +470,75 @@ int	main(int argc, char **argv)
 		return 1;
 	}
 
-	if (rpt)
-	{
-		if (strcmp(rpt, "count") == 0)
-		{
-			count = 1;
-		}
-		else if (strcmp(rpt, "detail") != 0)
-		{
-			printUsage();
-			return 0;
-		}
-
-		if (queue)
-		{
-			eid = queue;
-			cursor = strchr(eid, '/');
-			if (cursor == NULL)
-			{
-				printUsage();
-				return 0;
-			}
-
-			*cursor = '\0';
-			priority = atoi(cursor + 1);
-			if (priority < 0 || priority > 2)
-			{
-				printUsage();
-				return 0;
-			}
-
-			isprintf(msgbuf, sizeof msgbuf, "reporting on bundles \
-queued for node '%.255s', priority %d.", eid, priority);
-			writeMemo(msgbuf);
-		}
-	}
-
 	sdr = bp_get_sdr();
-	CHKZERO(sdr_begin_xn(sdr));	/*	Lock db for duration.	*/
-	isignal(SIGINT, handleQuit);
-	if (eid == NULL)		/*	All bundles.		*/
+	if (rptType == NULL)	/*	No command-line arguments.	*/
 	{
-		bpConstants = getBpConstants();
-		list = bpConstants->timeline;
-		for (elt = sdr_list_first(sdr, bpConstants->timeline); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			addr = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, BpEvent, event, addr);
-			if (event->type != expiredTTL)
-			{
-				continue;	/*	Not bundle ref.	*/
-			}
-
-			GET_OBJ_POINTER(sdr, Bundle, bundle, event->ref);
-			if (count)
-			{
-				bundlesCount++;
-			}
-			else
-			{
-				printBundle(sdr, bundle);
-			}
-		}
-
-		if (count)
-		{
-			isprintf(msgbuf, sizeof msgbuf, "Count is %ld.",
-					bundlesCount);
-			writeMemo(msgbuf);
-		}
+		rptType = "detail";	/*	Default.		*/
+		PUTS("Reporting detail of all bundles.");
+		detail = 1;
 	}
-	else				/*	Bundles in one queue.	*/
+	else
 	{
-		findPlan(eid, &vplan, &vplanElt);
-		if (vplanElt == 0)
+		if (strcmp(rptType, "count") == 0)
 		{
-			writeMemo("No such egress plan.");
+			detail = 0;
 		}
 		else
 		{
-			addr = sdr_list_data(sdr, vplan->planElt);
-			GET_OBJ_POINTER(sdr, BpPlan, plan, addr);
-			CHKZERO(plan);
-			switch (priority)
+			if (strcmp(rptType, "detail") == 0)
 			{
-			case 2:
-				list = plan->urgentQueue;
-				break;
-		
-			case 1:
-				list = plan->stdQueue;
-				break;
-		
-			default:
-				list = plan->bulkQueue;
-			}
-
-			if (count)
-			{
-				isprintf(msgbuf, sizeof msgbuf, "Count is %ld.",
-						sdr_list_length(sdr, list));
-				writeMemo(msgbuf);
+				detail = 1;
 			}
 			else
 			{
-				for (elt = sdr_list_first(sdr, list); elt;
-						elt = sdr_list_next(sdr, elt))
-				{
-					addr = sdr_list_data(sdr, elt);
-					GET_OBJ_POINTER(sdr, Bundle, bundle,
-							addr);
-					printBundle(sdr, bundle);
-				}
+				/*	Report type not specified.	*/
+
+				printUsage();
+				return 0;
 			}
 		}
+
+		if (filter)
+		{
+			destination = filter;
+			cursor = strchr(destination, '/');
+			if (cursor)
+			{
+				*cursor = '\0';
+				priority = atoi(cursor + 1);
+				if (priority < 0 || priority > 2)
+				{
+					printUsage();
+					return 0;
+				}
+			}
+
+			isprintf(msgbuf, sizeof msgbuf, "Reporting %s of all \
+bundles destined for '%.255s', priority %d.", rptType, destination, priority);
+		}
+		else
+		{
+			isprintf(msgbuf, sizeof msgbuf, "Reporting %s of \
+all bundles.", rptType);
+		}
+
+		PUTS(msgbuf);
 	}
 
-	if (sdr_end_xn(sdr))
+	CHKZERO(sdr_begin_xn(sdr));	/*	Lock db for duration.	*/
+	isignal(SIGINT, handleQuit);
+	if (destination)
 	{
-		putErrmsg("Failed listing bundles.", NULL);
+		bundlesCount = printPlan(detail, destination, priority);
+	}
+	else
+	{
+		bundlesCount = printAll(detail);
 	}
 
+	sdr_exit_xn(sdr);
+	isprintf(msgbuf, sizeof msgbuf, "\nReport count is %ld.", bundlesCount);
+	PUTS(msgbuf);
 	writeErrmsgMemos();
 	bp_detach();
 	return 0;

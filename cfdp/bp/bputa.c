@@ -224,7 +224,7 @@ terminating.");
 			utParms.ctInterval = 0;
 			utParms.srrFlags = 0;
 			utParms.ackRequested = 0;
-			utParms.ancillaryData.flowLabel = 0;
+			utParms.ancillaryData.dataLabel = 0;
 			utParms.ancillaryData.flags = 0;
 			utParms.ancillaryData.ordinal = 0;
 		}
