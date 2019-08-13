@@ -304,7 +304,7 @@ IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr)
 	return neighbor;
 }
 
-IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
+IonNeighbor	*getNeighbor(IonVdb *vdb, uvast nodeNbr)
 {
 	IonNeighbor	*neighbor;
 	PsmAddress	next;
