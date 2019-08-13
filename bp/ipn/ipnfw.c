@@ -223,7 +223,7 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 
 				if (sdr_list_insert_last(sdr,
 						routingObj->viaPassageways,
-						member->nodeNbr) < 0)
+						member->nodeNbr))
 				{
 					putErrmsg("Can't note passageway.",
 							NULL);
