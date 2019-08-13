@@ -575,12 +575,10 @@ ltpbin = \
 	ltpdeliv \
 	udplsi \
 	udplso \
-	aoslsi \
-	aoslso \
 	ltpdriver \
 	ltpcounter \
 	sdatest \
-	dccplsi	 \
+	dccplsi \
 	dccplso
 
 ltplib = \
@@ -593,7 +591,6 @@ ltpinclude = \
 ltpnoinst = \
 	ltp/library/ltpP.h \
 	ltp/udp/udplsa.h \
-	ltp/aos/aoslsa.h \
 	ltp/dccp/dccplsa.h
 
 ltpextra = \
@@ -694,13 +691,13 @@ udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
-aoslsi_SOURCES = ltp/aos/aoslsi.c
-aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
-aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#aoslsi_SOURCES = ltp/aos/aoslsi.c
+#aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+#aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
-aoslso_SOURCES = ltp/aos/aoslso.c
-aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
-aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#aoslso_SOURCES = ltp/aos/aoslso.c
+#aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
+#aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
@@ -1462,6 +1459,7 @@ amsmans = \
 	$(top_builddir)/ams/doc/amslog.1 \
 	$(top_builddir)/ams/doc/amsrc.5 \
 	$(top_builddir)/ams/doc/amsxml.5 \
+	$(top_builddir)/ams/doc/petition_log.5 \
 	$(top_builddir)/ams/doc/ams.3
 
 amsclean-local:
