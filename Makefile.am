@@ -570,6 +570,7 @@ ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
 	ltpadmin \
+	ltpsecadmin \
 	ltpclock \
 	ltpmeter \
 	ltpdeliv \
@@ -590,6 +591,7 @@ ltpinclude = \
 
 ltpnoinst = \
 	ltp/library/ltpP.h \
+	ltp/library/ltpsec.h \
 	ltp/udp/udplsa.h \
 	ltp/dccp/dccplsa.h
 
@@ -600,6 +602,7 @@ ltpextra = \
 	ltp/doc/pod1/ltpcounter.pod \
 	ltp/doc/pod1/ltpdriver.pod \
 	ltp/doc/pod1/ltpmeter.pod \
+	ltp/doc/pod1/ltpsecadmin.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
 	ltp/doc/pod1/dccplsi.pod \
@@ -613,6 +616,7 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/ltpcounter.1 \
 	$(top_builddir)/ltp/doc/ltpdriver.1 \
 	$(top_builddir)/ltp/doc/ltpmeter.1 \
+	$(top_builddir)/ltp/doc/ltpsecadmin.1 \
 	$(top_builddir)/ltp/doc/udplsi.1 \
 	$(top_builddir)/ltp/doc/udplso.1 \
 	$(top_builddir)/ltp/doc/dccplsi.1 \
@@ -640,6 +644,7 @@ libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
+	ltp/library/ltpsec.c \
 	ltp/sda/libsda.c \
 	ltp/library/libltpnm.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
@@ -650,6 +655,10 @@ libltp_la_LIBADD = libici.la -lm
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
 ltpadmin_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpsecadmin_SOURCES = ltp/utils/ltpsecadmin.c
+ltpsecadmin_LDADD = libltp.la libici.la $(LIBOBJS)
+ltpsecadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -903,6 +912,7 @@ bpextra = \
 	bp/doc/pod1/bplist.pod \
 	bp/doc/pod1/bpdriver.pod \
 	bp/doc/pod1/bpecho.pod \
+	bp/doc/pod1/bpsecadmin.pod \
 	bp/doc/pod1/bpsendfile.pod \
 	bp/doc/pod1/bprecvfile.pod \
 	bp/doc/pod1/bpsink.pod \
@@ -987,6 +997,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/bplist.1 \
 	$(top_builddir)/bp/doc/bpdriver.1 \
 	$(top_builddir)/bp/doc/bpecho.1 \
+	$(top_builddir)/bp/doc/bpsecadmin.1 \
 	$(top_builddir)/bp/doc/bpsendfile.1 \
 	$(top_builddir)/bp/doc/bprecvfile.1 \
 	$(top_builddir)/bp/doc/bpsink.1 \
