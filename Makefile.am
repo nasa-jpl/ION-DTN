@@ -2137,8 +2137,7 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
 	tests/issue-279-bpMemo-timeline/driver \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
-	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-334-cfdp-transaction-id/dotest
+	tests/issue-330-cfdpclock-FDU-removal/cfdplisten
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -2179,9 +2178,9 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpc
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
-tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
-tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+#tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
+#tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
+#tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 
 ##########################
