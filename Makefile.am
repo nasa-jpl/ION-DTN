@@ -309,6 +309,7 @@ icibin = \
 	psmwatch \
 	ionadmin \
 	ionexit \
+	ionlog \
 	ionsecadmin \
 	ionwarn \
 	ionunlock \
@@ -503,6 +504,10 @@ ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionunlock_SOURCES = ici/utils/ionunlock.c
 ionunlock_LDADD = libici.la $(LIBOBJS) -lm
 ionunlock_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionlog_SOURCES = ici/utils/ionlog.c
+ionlog_LDADD = libici.la $(LIBOBJS) -lm
+ionlog_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -797,10 +802,11 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/bsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library/ext/sbsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/snw -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
+	bpsecadmin \
 	bpsink \
 	bpdriver \
 	bpsource \
@@ -878,6 +884,8 @@ bpinclude = \
 #bp/library/ecos.h
 bpnoinst = \
 	bp/library/bpP.h \
+	bp/library/bpsec.h \
+	bp/library/saga.h \
 	bp/ipn/ipnfw.h \
 	bp/ipnd/ipndP.h \
 	bp/dtn2/dtn2fw.h \
@@ -947,6 +955,10 @@ bpextra = \
 	bp/library/ext/meb/meb.h \
 	bp/library/ext/meb/meb.c \
 	bp/library/bei.c \
+	bp/library/bpsec.h \
+	bp/library/bpsec.c \
+	bp/library/saga.h \
+	bp/library/saga.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
 	bp/library/ext/sbsp/sbsp_instr.h \
@@ -1071,6 +1083,10 @@ libbp_la_SOURCES = \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/bpsec.h \
+	bp/library/bpsec.c \
+	bp/library/saga.h \
+	bp/library/saga.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
 	bp/library/ext/sbsp/sbsp_instr.h \
@@ -1084,6 +1100,8 @@ libbp_la_SOURCES = \
 	bp/library/ext/sbsp/profiles.h \
 	bp/library/ext/sbsp/profiles.c \
 	bp/library/ext/snid/snid.c \
+	bp/library/ext/snw/snw.h \
+	bp/library/ext/snw/snw.c \
 	bp/ipn/libipnfw.h \
 	bp/ipn/libipnfw.c \
 	bp/ipnd/ipnd.c \
@@ -1134,6 +1152,10 @@ libcgr_la_LIBADD = libbp.la libici.la
 bpadmin_SOURCES = bp/utils/bpadmin.c
 bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpsecadmin_SOURCES = bp/utils/bpsecadmin.c
+bpsecadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
 ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -1558,6 +1580,7 @@ cfdpinclude = \
 	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
+	cfdp/library/bputa.h \
 	cfdp/library/cfdpP.h \
 	cfdp/utils/bpcp.h
 

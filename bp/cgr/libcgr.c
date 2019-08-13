@@ -1736,7 +1736,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	nextElt;
 	CgrRtgObject	*routingObj;
-	PsmAddress	elt2;
+	PsmAddress	elt2 = 0;
 	PsmAddress	prevElt2;
 	PsmAddress	addr;
 	CgrRoute	*route;

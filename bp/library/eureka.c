@@ -78,7 +78,7 @@ static void	toggleScheduledContacts(uvast fromNode, uvast toNode,
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	time_t		currentTime = getCtime();
-	uvast		neighborNodeNbr;
+	uvast		neighborNodeNbr = 0;
 	IonNeighbor	*neighbor = NULL;
 	IonCXref	arg;
 	PsmAddress	elt;
