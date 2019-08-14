@@ -93,7 +93,7 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 				 *	at this route's citation of
 				 *	that contact?  If so, delete.	*/
 
-				if (sm_list_data(ionwm, citationElt) == citation);
+				if (sm_list_data(ionwm, citationElt) == citation)
 				{
 					sm_list_delete(ionwm, citationElt,
 							NULL, NULL);
