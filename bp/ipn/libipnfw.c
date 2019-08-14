@@ -374,7 +374,7 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 		ovrd.neighbor = neighbor;
 	}
 
-	if (priority != (uvast) -2)
+	if (priority != (unsigned char) -2)
 	{
 		ovrd.priority = priority;
 		ovrd.ordinal = ordinal;
