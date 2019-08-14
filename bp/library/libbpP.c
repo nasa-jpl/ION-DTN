@@ -9714,7 +9714,7 @@ static int	parseSagaMessage(int adminRecordType, void **otherPtr,
 		return -1;
 	}
 
-	memset((char *) &encounter, 0, sizeof(Encounter));
+	memset((char *) encounter, 0, sizeof(Encounter));
 	encounter->fromNode = value;
 	if (lyst_insert_last(encounters, encounter) == NULL)
 	{
@@ -9736,7 +9736,7 @@ static int	parseSagaMessage(int adminRecordType, void **otherPtr,
 			return -1;
 		}
 
-		memset((char *) &encounter, 0, sizeof(Encounter));
+		memset((char *) encounter, 0, sizeof(Encounter));
 		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
 		{
 			putErrmsg("Incomplete encounter in Saga msg.", NULL);

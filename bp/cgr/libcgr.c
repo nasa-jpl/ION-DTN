@@ -669,6 +669,13 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	backtracking to root, and compute the time
 		 *	at which the route will become unusable.	*/
 
+		route->hops = sm_list_create(ionwm);
+		if (route->hops == 0)
+		{
+			putErrmsg("Can't create CGR route hops list.", NULL);
+			return -1;
+		}
+
 		earliestEndTime = MAX_TIME;
 		contact = finalContact;
 		while (contact)
@@ -775,14 +782,6 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 
 	route = (CgrRoute *) psp(ionwm, addr);
 	memset((char *) route, 0, sizeof(CgrRoute));
-	route->hops = sm_list_create(ionwm);
-	if (route->hops == 0)
-	{
-		psm_free(ionwm, addr);
-		putErrmsg("Can't create CGR route hops list.", NULL);
-		return -1;
-	}
-
 	route->rootOfSpur = rootOfSpur;
 
 	/*	Run Dijkstra search.					*/
@@ -790,6 +789,12 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	if (computeDistanceToTerminus(rootContact, rootWork, terminusNode,
 			currentTime, excludedEdges, route, trace) < 0)
 	{
+		if (route->hops)
+		{
+			sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		}
+
+		psm_free(ionwm, addr);
 		putErrmsg("Can't finish Dijstra search.", NULL);
 		return -1;
 	}
