@@ -712,7 +712,11 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
 		iondbBuf.regions[0].regionNbr = -1;
+		iondbBuf.regions[0].members = sdr_list_create(ionsdr);
+		iondbBuf.regions[0].contacts = sdr_list_create(ionsdr);
 		iondbBuf.regions[1].regionNbr = -1;
+		iondbBuf.regions[1].members = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/

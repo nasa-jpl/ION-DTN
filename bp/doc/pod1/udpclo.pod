@@ -4,7 +4,7 @@ udpclo - UDP-based BP convergence layer output task
 
 =head1 SYNOPSIS
 
-B<udpclo> I<remote_hostname>[:I<remote_port_nbr>] [I<round_trip_time>]
+B<udpclo> I<round_trip_time> I<remote_hostname>[:I<remote_port_nbr>]
 
 =head1 DESCRIPTION
 
@@ -23,9 +23,9 @@ signal citing the transmitted bundle has been received before the end of this
 interval it can be assumed that either the bundle or the custody signal was
 lost in transmission and therefore the bundle should be retransmitted.  The
 value of the custodial retransmission timer interval (the expected round-trip
-time between the sending node and the anticipated next custodian) may be
-provided as a run-time argument to B<udpclo>.  If this parameter is omitted
-the default value is zero, which disables custodial retransmission.
+time between the sending node and the anticipated next custodian) must be
+provided as a run-time argument to B<udpclo>.  If the value of this parameter
+is zero, custodial retransmission is disabled.
 
 B<udpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
 command that starts operation of the Bundle Protocol, and it is terminated by
