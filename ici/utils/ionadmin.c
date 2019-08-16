@@ -26,16 +26,16 @@ static time_t	_referenceTime(time_t *newValue)
 	return refTime;
 }
 
-static vast	_regionNbr(vast *newValue)
+static vast	_regionIdx(int *newValue)
 {
-	static vast	regionNbr = -1;
+	static int	regionIdx = -1;
 
 	if (newValue)
 	{
-		regionNbr = *newValue;
+		regionIdx = *newValue;
 	}
 
-	return regionNbr;
+	return regionIdx;
 }
 
 static int	_forecastNeeded(int parm)
@@ -195,6 +195,14 @@ static int	initializeNode(int tokenCount, char **tokens)
 		return 1;
 	}
 
+	/*	Default home region is 0.				*/
+
+	if (ionManageRegion(0, 0) < 0)
+	{
+		putErrmsg("ionadmin can't initialize home region.", NULL);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -323,7 +331,7 @@ than start time and earlier than 19 January 2038.");
 			xmitRate = strtol(tokens[6], NULL, 0);
 		}
 
-		oK(rfx_insert_contact(ionPickRegion(_regionNbr(NULL)),
+		oK(rfx_insert_contact(ionPickRegion(_regionIdx(NULL)),
 				fromTime, toTime, fromNodeNbr, toNodeNbr,
 				xmitRate, confidence, &xaddr));
 		oK(_forecastNeeded(1));
@@ -1212,6 +1220,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 	struct timeval	done_time;
 	struct timeval	cur_time;
 	vast		regionNbr;
+	int		regionIdx;
 	int		max = 0;
 	int		count = 0;
 
@@ -1365,14 +1374,15 @@ no time.");
 				else
 				{
 					regionNbr = strtovast(tokens[1]);
-					if (ionPickRegion(regionNbr) > 1)
+					regionIdx = ionPickRegion(regionNbr);
+					if (regionIdx > 1)
 					{
 						printText("Node does not \
 reside in this region.");
 					}
 					else
 					{
-						oK(_regionNbr(&regionNbr));
+						oK(_regionIdx(&regionIdx));
 					}
 				}
 			}
@@ -1485,12 +1495,15 @@ static int	runIonadmin(char *cmdFileName)
 {
 	int	rc = 0;
 	time_t	currentTime;
+	int	regionIdx = 0;			/*	Home region.	*/
 	int	cmdFile;
 	char	line[256];
 	int	len;
 
 	currentTime = getCtime();
+	
 	oK(_referenceTime(&currentTime));
+	oK(_regionIdx(&regionIdx));		/*	Home region.	*/
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER

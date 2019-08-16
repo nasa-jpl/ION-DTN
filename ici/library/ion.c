@@ -711,10 +711,10 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.regions[0].regionNbr = -1;
+		iondbBuf.regions[0].regionNbr = -1;	/*	None.	*/
 		iondbBuf.regions[0].members = sdr_list_create(ionsdr);
 		iondbBuf.regions[0].contacts = sdr_list_create(ionsdr);
-		iondbBuf.regions[1].regionNbr = -1;
+		iondbBuf.regions[1].regionNbr = -1;	/*	None.	*/
 		iondbBuf.regions[1].members = sdr_list_create(ionsdr);
 		iondbBuf.regions[1].contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
@@ -754,6 +754,8 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 			putErrmsg("Can't create ION database.", NULL);
 			return -1;
 		}
+
+		/*	Set initial home region.			*/
 
 		break;
 
@@ -1206,46 +1208,12 @@ int	ionRegionOf(uvast nodeA, uvast nodeB)
 	return i;	/*	May be -1 meaning "No common region".	*/
 }
 
-static int	ionJoinRegion(int i, vast regionNbr)
+static void	leaveRegion(IonRegion *region)
 {
 	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
-	IonDB		iondb;
-	IonRegion	*region;
-
-	CHKERR(i == 0 || i == 1);
-	CHKERR(regionNbr >= 0);
-	CHKERR(ionLocked());
-	iondbObj = getIonDbObject();
-	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	region = &(iondb.regions[i]);
-	region->regionNbr = regionNbr;
-	region->contacts = sdr_list_create(sdr);
-	region->members = sdr_list_create(sdr);
-	if (region->contacts == 0 || region->members == 0)
-	{
-		return -1;
-	}
-
-	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-	return 0;
-}
-
-static void	ionLeaveRegion(int i)
-{
-	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
-	IonDB		iondb;
-	IonRegion	*region;
 	Object		elt;
 	Object		obj;
 	IonContact	contact;
-
-	CHKVOID(i == 0 || i == 1);
-	CHKVOID(ionLocked());
-	iondbObj = getIonDbObject();
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	region = &(iondb.regions[i]);
 
 	/*	Forget the node membership of the region.		*/
 
@@ -1284,7 +1252,6 @@ static void	ionLeaveRegion(int i)
 	/*	Reinitialize.						*/
 
 	region->regionNbr = -1;
-	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 }
 
 static void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
@@ -1379,6 +1346,7 @@ int	ionManageRegion(int idx, vast regionNbr)
 	IonDB		iondb;
 	IonRegion	*region; 
 
+	CHKERR(idx == 0 || idx == 1);
 	iondbObj = getIonDbObject();
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
@@ -1395,7 +1363,8 @@ int	ionManageRegion(int idx, vast regionNbr)
 		/*	Node is ceasing to be a passageway to its
 		 *	outer region.					*/
 
-		ionLeaveRegion(1);
+		leaveRegion(region);
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 		return sdr_end_xn(sdr);
 	}
 
@@ -1410,19 +1379,16 @@ int	ionManageRegion(int idx, vast regionNbr)
 		return 0;
 	}
 
-	if (region->regionNbr != -1)
+	if (region->regionNbr != -1)	/*	Region already defined.	*/
 	{
 		/*	Must leave old region first.			*/
 
-		ionLeaveRegion(idx);
+		leaveRegion(region);
 	}
 
-	if (ionJoinRegion(idx, regionNbr) < 0)
-	{
-		sdr_cancel_xn(sdr);
-		return -1;
-	}
-
+	region->regionNbr = regionNbr;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	oK(sdr_list_insert_first(sdr, region->members, getOwnNodeNbr()));
 	return sdr_end_xn(sdr);
 }
 

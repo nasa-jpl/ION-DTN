@@ -1859,7 +1859,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	/*	Check this Selected route.				*/
 
-	if (disabledRoute(ionwm, elt2, &addr, &route))
+	if (disabledRoute(ionwm, *elt, &addr, &route))
 	{
 		TRACE(CgrExpiredRoute);
 		*elt = nextElt;
