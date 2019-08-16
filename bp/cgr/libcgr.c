@@ -93,7 +93,8 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 				 *	at this route's citation of
 				 *	that contact?  If so, delete.	*/
 
-				if (sm_list_data(ionwm, citationElt) == citation)
+				if (sm_list_data(ionwm, citationElt)
+						== citation)
 				{
 					sm_list_delete(ionwm, citationElt,
 							NULL, NULL);
@@ -804,7 +805,11 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 
 		/*	No more routes in graph.			*/
 
-		sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		if (route->hops)
+		{
+			sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		}
+
 		psm_free(ionwm, addr);
 		*routeAddr = 0;
 	}
