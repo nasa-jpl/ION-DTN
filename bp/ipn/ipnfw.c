@@ -1190,6 +1190,7 @@ static int	initializeRoutingObject(IonNode *node)
 
 	node->routingObject = routingObjectAddr;
 	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
+	memset((char *) routingObject, 0, sizeof(CgrRtgObject));
 	routingObject->nodeAddr = psa(ionwm, node);
 	return 0;
 }
