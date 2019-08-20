@@ -128,8 +128,8 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 		 /* Table is: (TV)Start, (TV)Stop, (UINT)Src Node, (UINT)Dest Node, (UVAST)Xmit, (UVAST)Confidence */
 		if((cur_row = tnvc_create(6)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(contact->fromTime));
-			tnvc_insert(cur_row, tnv_from_uvast(contact->toTime));
+			tnvc_insert(cur_row, tnv_from_tv((uvast)(contact->fromTime)));
+ 			tnvc_insert(cur_row, tnv_from_tv((uvast)(contact->toTime)));
 			tnvc_insert(cur_row, tnv_from_uint(contact->fromNode));
 			tnvc_insert(cur_row, tnv_from_uint(contact->toNode));
 			tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));

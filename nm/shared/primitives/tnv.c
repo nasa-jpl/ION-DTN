@@ -105,7 +105,7 @@ tnv_t* tnv_cast(tnv_t *tnv, amp_type_e type)
 		case AMP_TYPE_INT:   result = tnv_from_int(tnv_to_int(*tnv, &success)); break;
 		case AMP_TYPE_UINT:  result = tnv_from_uint(tnv_to_uint(*tnv, &success)); break;
 		case AMP_TYPE_VAST:  result = tnv_from_vast(tnv_to_vast(*tnv, &success)); break;
-		case AMP_TYPE_TV:
+		case AMP_TYPE_TV:    result = tnv_from_tv(tnv_to_uvast(*tnv, &success)); break;
 		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result = tnv_from_uvast(tnv_to_uvast(*tnv, &success)); break;
 		case AMP_TYPE_REAL32:  result = tnv_from_real32(tnv_to_real32(*tnv, &success)); break;
@@ -829,6 +829,28 @@ tnv_t*  tnv_from_uvast(uvast val)
 	tnv_t *result = tnv_create();
 	CHKNULL(result);
 	tnv_init(result, AMP_TYPE_UVAST);
+	result->value.as_uvast = val;
+	return result;
+}
+
+
+
+/******************************************************************************
+ * Create new TNV from time_t value.
+ *
+ * \returns New TNV, or NULL
+ *
+ * \param[in]  str  The value for the new TNV.
+ *
+ * \note
+ *   1. Result must be freed with tnv_release(<item>, 1);
+ *****************************************************************************/
+
+tnv_t*  tnv_from_tv(time_t val)
+{
+	tnv_t *result = tnv_create();
+	CHKNULL(result);
+	tnv_init(result, AMP_TYPE_TV);
 	result->value.as_uvast = val;
 	return result;
 }
