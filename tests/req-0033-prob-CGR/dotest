@@ -197,7 +197,7 @@ sleep 2
 echo "Sending file x (915 bytes) from node 2 destined for node 6..."
 bpsendfile ipn:2.2 ipn:6.1 testfilex
 sleep 1
-echo "File should have been forwarded from 2 to 3 with copy saved in limbo."
+echo "File should have been forwarded from 2 to 3 and deleted locally."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
@@ -222,7 +222,7 @@ sleep 2
 echo "Sending file y (1070 bytes) from node 2 destined for node 7..."
 bpsendfile ipn:2.2 ipn:7.1 testfiley
 sleep 1
-echo "File should have been forwarded from 2 to 5, no copy in limbo."
+echo "File should have been forwarded from 2 to 5 with a copy saved in limbo."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5

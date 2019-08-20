@@ -474,6 +474,7 @@ socket.", NULL);
 			continue;
 		}
 
+		oK(reUseAddress(listenSocket));
 		if (getIpv4AddressType(listenAddr->ip) == UNICAST)
 		{
 			/* Join multicast groups */
