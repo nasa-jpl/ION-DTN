@@ -17,11 +17,7 @@
 #endif
 
 #ifndef	MANAGE_OVERBOOKING
-//#ifdef	CGR_IOT
-//#define	MANAGE_OVERBOOKING	0
-//#else
 #define	MANAGE_OVERBOOKING	1
-//#endif
 #endif
 
 #ifndef	MIN_PROSPECT
@@ -29,11 +25,7 @@
 #endif
 
 #ifndef CGR_DEBUG
-//#ifdef	CGR_IOT
-//#define CGR_DEBUG	1
-//#else
 #define CGR_DEBUG	0
-//#endif
 #endif
 
 #if CGR_DEBUG == 1
@@ -88,6 +80,27 @@ static void	shutDown()	/*	Commands forwarder termination.	*/
 {
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_ipnfwSemaphore(NULL));
+}
+
+static int	initializeRoutingObject(IonNode *node)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	routingObjectAddr;
+	CgrRtgObject	*routingObject;
+
+	CHKZERO(ionwm);
+	routingObjectAddr = psm_zalloc(ionwm, sizeof(CgrRtgObject));
+	if (routingObjectAddr == 0)
+	{
+		putErrmsg("Can't create CGR routing object.", NULL);
+		return -1;
+	}
+
+	node->routingObject = routingObjectAddr;
+	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
+	memset((char *) routingObject, 0, sizeof(CgrRtgObject));
+	routingObject->nodeAddr = psa(ionwm, node);
+	return 0;
 }
 
 /*		CGR override functions.					*/
@@ -205,7 +218,7 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 	 *	to the viaPassageways list for this remote node one
 	 *	entry for every passageway residing in that region.	*/
 
-	for (i = 0; i< 2; i++)
+	for (i = 0; i < 2; i++)
 	{
 		for (elt = sdr_list_first(sdr, iondb.regions[i].members); elt;
 					elt = sdr_list_next(sdr, elt))
@@ -217,7 +230,7 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 				continue;	/*	Safety check.	*/
 			}
 
-			if (member->outerRegionNbr != 0)
+			if (member->outerRegionNbr != -1)
 			{
 				/*	Node is a passageway.		*/
 
@@ -242,8 +255,16 @@ static int 	tryHIRR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	PsmPartition	ionwm = getIonwm();
 	CgrRtgObject	*routingObj;
 
+	if (terminusNode->routingObject == 0)
+	{
+		if (initializeRoutingObject(terminusNode) < 0)
+		{
+			putErrmsg("Can't initialize routing object.", NULL);
+			return -1;
+		}
+	}
+
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
-	CHKERR(routingObj);
 	if (routingObj->viaPassageways == 0)
 	{
 		if (initializeHIRR(routingObj) < 0)
@@ -507,12 +528,6 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 			route->toNodeNbr);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
-#if 0
-#ifdef CGR_IOT
-printf("Enqueuing bundle: to node " UVAST_FIELDSPEC ", eccc %lu, eto %lu, \
-pbat %lu.\n", route->toNodeNbr, route->bundleECCC, route->eto, route->pbat);
-#endif
-#endif
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
@@ -745,10 +760,8 @@ static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
 static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			IonNode *terminusNode, Lyst bestRoutes, int preview)
 {
-#if 0
 	PsmPartition	ionwm = getIonwm();
 	CgrRtgObject	*routingObject;
-#endif
 	LystElt		elt;
 	LystElt		nextElt;
 	CgrRoute	*route;
@@ -799,8 +812,6 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	}
 
 	lyst_destroy(bestRoutes);
-#if 0
-//#ifndef	CGR_IOT
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
 	{
@@ -837,8 +848,6 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 		putErrmsg("Can't put bundle in limbo.", NULL);
 		return -1;
 	}
-//#endif
-#endif
 
 	return 0;
 }
@@ -912,14 +921,10 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	Embargo		*embargo;
 	LystElt		elt;
 	CgrRoute	*route;
-#if 0
-//#ifndef CGR_IOT
 	PsmAddress	routingObjectAddr;
 	CgrRtgObject	*routingObject;
 	Bundle		newBundle;
 	Object		newBundleObj;
-//#endif
-#endif
 
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
@@ -941,7 +946,6 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	 *	station.			 			*/
 
 	CHKERR(bundle && bundleObj && terminusNode);
-
 	TRACE(CgrBuildRoutes, terminusNode->nodeNbr, bundle->payload.length,
 			(unsigned int)(atTime));
 
@@ -1011,23 +1015,17 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		}
 	}
 
-//#ifdef CGR_IOT
-if (bundle->ancillaryData.dataLabel == 86)
-{
-	if (excludeNode(excludedNodes, 524306))
-	{
-		putErrmsg("Can't exclude node 524306.", NULL);
-		lyst_destroy(excludedNodes);
-		lyst_destroy(bestRoutes);
-		return -1;
-	}
-
-	writeMemo("[i] Node 524306 has been added to the ExcludedNodes list.");
-}
-//#endif
-
 	/*	Consult the contact graph to identify the neighboring
 	 *	node(s) to forward the bundle to.			*/
+
+	if (terminusNode->routingObject == 0)
+	{
+		if (initializeRoutingObject(terminusNode) < 0)
+		{
+			putErrmsg("Can't initialize routing object.", NULL);
+			return -1;
+		}
+	}
 
 	if (cgr_identify_best_routes(terminusNode, bundle, bundleObj,
 			excludedNodes, trace, bestRoutes, atTime) < 0)
@@ -1084,8 +1082,6 @@ if (bundle->ancillaryData.dataLabel == 86)
 	}
 
 	lyst_destroy(bestRoutes);
-#if 0
-//#ifndef CGR_IOT
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.c.nodeNbr == bundle->destination.c.nodeNbr)
 	{
@@ -1125,14 +1121,12 @@ if (bundle->ancillaryData.dataLabel == 86)
 		putErrmsg("Can't put bundle in limbo.", NULL);
 		return -1;
 	}
-//#endif
-#endif
+
 	return 0;
 }
 
 /*		Contingency functions for when CGR and HIRR don't work.	*/
 
-//#ifndef CGR_IOT
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
@@ -1170,30 +1164,8 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 	return 0;
 }
-//#endif
 
 /*		Top-level ipnfw functions				*/
-
-static int	initializeRoutingObject(IonNode *node)
-{
-	PsmPartition	ionwm = getIonwm();
-	PsmAddress	routingObjectAddr;
-	CgrRtgObject	*routingObject;
-
-	CHKZERO(ionwm);
-	routingObjectAddr = psm_zalloc(ionwm, sizeof(CgrRtgObject));
-	if (routingObjectAddr == 0)
-	{
-		putErrmsg("Can't create CGR routing object.", NULL);
-		return -1;
-	}
-
-	node->routingObject = routingObjectAddr;
-	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
-	memset((char *) routingObject, 0, sizeof(CgrRtgObject));
-	routingObject->nodeAddr = psa(ionwm, node);
-	return 0;
-}
 
 static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 {
@@ -1268,15 +1240,6 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		}
 	}
 
-	if (node->routingObject == 0)
-	{
-		if (initializeRoutingObject(node) < 0)
-		{
-			putErrmsg("Can't initialize node.", NULL);
-			return -1;
-		}
-	}
-
 	if (ionRegionOf(nodeNbr, 0) < 0)
 	{
 		/*	Destination node is not in any region that
@@ -1303,7 +1266,6 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	/*	If dynamic routing succeeded in enqueuing the bundle
 	 *	to a neighbor, accept the bundle and return.		*/
 
-//#ifndef CGR_IOT
 	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
@@ -1356,7 +1318,6 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 			return -1;
 		}
 	}
-//#endif
 
 	if (bundle->planXmitElt)
 	{

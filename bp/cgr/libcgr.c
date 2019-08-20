@@ -39,11 +39,13 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 {
 	PsmAddress	routeAddr;
 	CgrRoute	*route;
+#if 0
 	PsmAddress	citation;
 	PsmAddress	nextCitation;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	PsmAddress	citationElt;
+#endif
 
 	routeAddr = sm_list_data(ionwm, routeElt);
 	route = (CgrRoute *) psp(ionwm, routeAddr);
@@ -79,6 +81,7 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 
 	if (route->hops)
 	{
+#if 0
 		for (citation = sm_list_first(ionwm, route->hops); citation;
 				citation = nextCitation)
 		{
@@ -104,7 +107,7 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 
 			sm_list_delete(ionwm, citation, NULL, NULL);
 		}
-
+#endif
 		sm_list_destroy(ionwm, route->hops, NULL, NULL);
 	}
 
@@ -2319,6 +2322,11 @@ int	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 	}
 
 	routingObject = (CgrRtgObject *) psp(wm, routingObjectAddress);
+	if (routingObject->selectedRoutes == 0)
+	{
+		return 0;		/*	No routes, no chance.	*/
+	}
+
 	for (elt = sm_list_first(wm, routingObject->selectedRoutes); elt;
 			elt = nextElt)
 	{

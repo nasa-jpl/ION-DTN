@@ -1344,7 +1344,9 @@ int	ionManageRegion(int idx, vast regionNbr)
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	IonRegion	*region; 
+	IonRegion	*region;
+	RegionMember	member;
+	Object		memberObj;
 
 	CHKERR(idx == 0 || idx == 1);
 	iondbObj = getIonDbObject();
@@ -1388,7 +1390,20 @@ int	ionManageRegion(int idx, vast regionNbr)
 
 	region->regionNbr = regionNbr;
 	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-	oK(sdr_list_insert_first(sdr, region->members, getOwnNodeNbr()));
+
+	/*	Node must be inserted into region's membership.		*/
+
+	member.nodeNbr = getOwnNodeNbr();
+	member.homeRegionNbr = iondb.regions[0].regionNbr;
+	member.outerRegionNbr = iondb.regions[1].regionNbr;
+	memberObj = sdr_malloc(sdr, sizeof(RegionMember));
+	if (memberObj)
+	{
+		sdr_write(sdr, memberObj, (char *) &member,
+				sizeof(RegionMember));
+		oK(sdr_list_insert_last(sdr, region->members, memberObj));
+	}
+
 	return sdr_end_xn(sdr);
 }
 

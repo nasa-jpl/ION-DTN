@@ -51,13 +51,16 @@ void	bp_detach()
 }
 
 static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
-			VEndpoint **vpoint)
+			VEndpoint **vpointRef)
 {
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Sap		sap;
+	VEndpoint	*vpoint;
 	PsmAddress	vpointElt;
+
+	memset((char *) &sap, 0, sizeof(Sap));
 
 	/*	First validate the endpoint ID.				*/
 
@@ -74,7 +77,7 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		return -1;
 	}
 
-	findEndpoint(NULL, metaEid.nss, vscheme, vpoint, &vpointElt);
+	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &vpointElt);
 	if (vpointElt == 0)
 	{
 		putErrmsg("Endpoint not known.", metaEid.nss);
@@ -82,34 +85,39 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		return -1;
 	}
 
-	/*	Endpoint exists; make sure it's not already opened
-	 *	by some application.					*/
+	/*	Endpoint exists; if SAP will be used for bundle
+	 *	reception, make sure endpoint is not already opened
+	 *	by some other application.				*/
 
-	if ((*vpoint)->appPid != ERROR)	/*	Endpoint not closed.	*/
+
+	if (vpointRef)	/*	SAP will be used for bundle reception.	*/
 	{
-		if (sm_TaskExists((*vpoint)->appPid))
+		if (vpoint->appPid != ERROR)	/*	Not closed.	*/
 		{
-			restoreEidString(&metaEid);
-			if ((*vpoint)->appPid == sm_TaskIdSelf())
+			if (sm_TaskExists(vpoint->appPid))
 			{
-				return 0;
+				restoreEidString(&metaEid);
+				if (vpoint->appPid == sm_TaskIdSelf())
+				{
+					return 0;
+				}
+
+				putErrmsg("Endpoint is already open.",
+						itoa(vpoint->appPid));
+				return -1;
 			}
 
-			putErrmsg("Endpoint is already open.",
-					itoa((*vpoint)->appPid));
-			return -1;
+			/*	Application terminated without closing
+			 *	the endpoint, so simply close it now.	*/
+
+			vpoint->appPid = ERROR;
 		}
 
-		/*	Application terminated without closing the
-		 *	endpoint, so simply close it now.		*/
-
-		(*vpoint)->appPid = ERROR;
+		*vpointRef = sap.vpoint = vpoint;
 	}
 
 	/*	Construct the service access point.			*/
 
-	memset((char *) &sap, 0, sizeof(Sap));
-	sap.vpoint = (*vpoint);
 	memcpy(&sap.endpointMetaEid, &metaEid, sizeof(MetaEid));
 	sap.endpointMetaEid.colon = NULL;
 	sap.endpointMetaEid.schemeName = MTAKE(metaEid.schemeNameLength + 1);
@@ -177,14 +185,13 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 int	bp_open_source(char *eidString, BpSAP *bpsapPtr, int detain)
 {
 	Sdr		sdr;
-	VEndpoint	*vpoint;	/*	createBpSAP work area.	*/
 	int		result;
 
 	CHKERR(eidString && *eidString && bpsapPtr);
 	*bpsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	result = createBpSAP(sdr, eidString, bpsapPtr, &vpoint);
+	result = createBpSAP(sdr, eidString, bpsapPtr, NULL);
 	if (*bpsapPtr)
 	{
 		(*bpsapPtr)->recvSemaphore = SM_SEM_NONE;
@@ -197,17 +204,19 @@ int	bp_open_source(char *eidString, BpSAP *bpsapPtr, int detain)
 
 void	bp_close(BpSAP sap)
 {
-	VEndpoint	*vpoint;
-
 	if (sap == NULL)
 	{
 		return;
 	}
 
-	vpoint = sap->vpoint;
-	if (vpoint->appPid == sm_TaskIdSelf())
+	if (sap->vpoint)	/*	SAP is configured for reception.*/
 	{
-		vpoint->appPid = ERROR;
+		if (sap->vpoint->appPid == sm_TaskIdSelf())
+		{
+			/*	Must detach the endpoint.		*/
+
+			sap->vpoint->appPid = ERROR;
+		}
 	}
 
 	MRELEASE(sap->endpointMetaEid.nss);

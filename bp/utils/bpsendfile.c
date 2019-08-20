@@ -53,7 +53,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		}
 	}
 
-	writeMemo("bpsendfile is running.");
+	writeMemo("[i] bpsendfile is running.");
 	if (stat(fileName, &statbuf) < 0)
 	{
 		if (sap)
@@ -120,6 +120,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		bp_close(sap);
 	}
 
+	writeMemo("[i] bpsendfile has stopped.");
 	writeErrmsgMemos();
 	PUTS("Stopping bpsendfile.");
 	CHKZERO(sdr_begin_xn(sdr));

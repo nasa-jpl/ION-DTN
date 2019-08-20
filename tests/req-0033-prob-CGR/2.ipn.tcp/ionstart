@@ -2,5 +2,5 @@
 #!/bin/bash
 ionadmin	node.ionrc
 ionsecadmin	node.ionsecrc
-ionadmin	../global.ionrc
+ionadmin	contacts.ionrc
 bpadmin		node.bprc &

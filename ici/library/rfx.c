@@ -784,9 +784,9 @@ static void	insertContact(int regionIdx, time_t fromTime, time_t toTime,
 	 *	be corrected administratively via ionadmin.		*/
 
 	ionNoteMember(regionIdx, fromNode,
-			iondb.regions[regionIdx].regionNbr, 0);
+			iondb.regions[regionIdx].regionNbr, -1);
 	ionNoteMember(regionIdx, toNode,
-			iondb.regions[regionIdx].regionNbr, 0);
+			iondb.regions[regionIdx].regionNbr, -1);
 }
 
 int	rfx_insert_contact(int regionIdx, time_t fromTime, time_t toTime,
