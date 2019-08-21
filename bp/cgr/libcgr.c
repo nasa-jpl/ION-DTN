@@ -95,20 +95,26 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 			}
 
 			contact = (IonCXref *) psp(ionwm, contactAddr);
-			for (citationElt = sm_list_first(ionwm,
-				contact->citations); citationElt;
-				citationElt = sm_list_next(ionwm, citationElt))
+			if (contact->citations)
 			{
-				/*	Does this list element point 
-				 *	at this route's citation of
-				 *	that contact?  If so, delete.	*/
-
-				if (sm_list_data(ionwm, citationElt)
-						== citation)
+				for (citationElt = sm_list_first(ionwm,
+					contact->citations); citationElt;
+					citationElt = sm_list_next(ionwm,
+					citationElt))
 				{
-					sm_list_delete(ionwm, citationElt,
-							NULL, NULL);
-					break;
+					/*	Does this list element
+					 *	point at this route's
+					 *	citation of the contact?
+					 *	If so, delete it.	*/
+
+					if (sm_list_data(ionwm, citationElt)
+							== citation)
+					{
+						sm_list_delete(ionwm,
+							citationElt, NULL,
+							NULL);
+						break;
+					}
 				}
 			}
 
@@ -712,8 +718,25 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			 *	citations list is the address of this
 			 *	list element.				*/
 
-			if (citation == 0
-			|| sm_list_insert_last(ionwm, contact->citations,
+			if (citation == 0)
+			{
+				putErrmsg("Can't insert contact into route.",
+						NULL);
+				return -1;
+			}
+
+			if (contact->citations == 0)
+			{
+				contact->citations = sm_list_create(ionwm);
+				if (contact->citations == 0)
+				{
+					putErrmsg("Can't create citation list.",
+							NULL);
+					return -1;
+				}
+			}
+
+			if (sm_list_insert_last(ionwm, contact->citations,
 					citation) == 0)
 			{
 				putErrmsg("Can't insert contact into route.",

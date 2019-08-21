@@ -765,7 +765,6 @@ static void	insertContact(int regionIdx, time_t fromTime, time_t toTime,
 			newCx.type = contactType;
 			newCx.contactElt = elt;
 			newCx.routingObject = 0;
-			newCx.citations = sm_list_create(getIonwm());
 			*cxaddr = insertCXref(&newCx);
 		}
 	}
