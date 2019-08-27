@@ -1351,7 +1351,7 @@ int	ionManageRegion(int idx, vast regionNbr)
 	CHKERR(idx == 0 || idx == 1);
 	iondbObj = getIonDbObject();
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	region = &(iondb.regions[idx]);
 	if (regionNbr < 0)		/*	Removal from region.	*/
 	{

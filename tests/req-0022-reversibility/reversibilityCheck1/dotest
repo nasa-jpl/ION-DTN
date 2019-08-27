@@ -60,6 +60,7 @@ echo "########################################"
 ./cleanup
 RETVAL=0
 
+export ION_NODE_LIST_DIR=$PWD
 
 #Start ION
 echo ""
