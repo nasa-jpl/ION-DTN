@@ -13,7 +13,6 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionrc \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
-./global.ionrc \
 ./3.ipn.ltp/amroc.ltprc \
 ./3.ipn.ltp/amroc.bprc \
 ./3.ipn.ltp/amroc.ionconfig \
@@ -29,14 +28,14 @@ pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing the functionality of issue 199.
 	Tests LTP block reassembly with out-of-order segment arrival caused
-	by segment retransmission.  By transmitting a large volume of data
-	at high speeds we swamp the receiving node's UDP buffer; the buffer
-	congestion results in the loss of some subset of the data segments
+	by segment retransmission.  By misaligning the contact plans
+	we swamp the receiving node's UDP buffer; the buffer congestion
+	results in the loss of some subset of the data segments
 	that were transmitted, causing LTP at the sender to send a selective
 	NAK report back to the sender requesting retransmission of specific
 	portions of one or more transmitted blocks.  We detect these
 	retransmissions by looking for '@' watch characters in stdout at
-	the sender. "
+	the sender."
 
 echo
 echo "CONFIG: 2 node custom:"
