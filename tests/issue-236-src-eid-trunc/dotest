@@ -8,7 +8,6 @@ CONFIGFILES=" \
 ./config/loopback.ionsecrc \
 ./config/loopback.dtn2rc \
 ./config/loopback.ionrc \
-./config/loopback.ipnrc \
 "
 
 echo "########################################"
@@ -47,7 +46,6 @@ ionstart                           \
     -i ${CONFIGDIR}/loopback.ionrc \
     -b ${CONFIGDIR}/loopback.bprc  \
     -s ${CONFIGDIR}/loopback.ionsecrc \
-    -p ${CONFIGDIR}/loopback.ipnrc \
     -d ${CONFIGDIR}/loopback.dtn2rc 
 
 # starting bpecho on dtn://host1.dtn/b
