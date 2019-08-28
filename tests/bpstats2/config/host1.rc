@@ -1,4 +1,3 @@
-
 ## begin ionadmin 
 
 # Initialization command (command 1). 
@@ -59,13 +58,13 @@ a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
 # Add a protocol. 
-a protocol udp 1400 100
+a protocol stcp 1400 100
 
 # Add an induct. (listen)
-a induct udp 127.0.0.1:4556 udpcli
+a induct stcp 127.0.0.1:4556 stcpcli
 
 # Add an outduct. 
-a outduct udp 127.0.0.1:4556 'udpclo 2'
+a outduct stcp 127.0.0.1:4556 stcpclo
 
 s
 ## end bpadmin 
@@ -75,9 +74,9 @@ s
 # Add an egress plan.
 #	Bundles to be transmitted to element number 1 (that is, yourself).
 #	This element is named 'node1.'
-#	The plan is to queue for transmission (x) on protocol 'udp' using
+#	The plan is to queue for transmission (x) on protocol 'stcp' using
 #	the outduct identified as '127.0.0.1:4556'.
-a plan 1 udp/127.0.0.1:4556
+a plan 1 stcp/127.0.0.1:4556
 ## end ipnadmin 
 
 ## begin ionsecadmin
