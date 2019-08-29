@@ -7948,6 +7948,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	extractSmallSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
+	bundle->priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 
 	/*	Note status report information as necessary.		*/
 
@@ -8911,8 +8912,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
-	bpRecvTally(bundle->priority,
-			bundle->payload.length);
+	bpRecvTally(bundle->priority, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
 		iwatch('y');
@@ -11497,6 +11497,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	sdnvLength = decodeSdnv(&longNumber, cursor);
 	image->bundleProcFlags = longNumber;
+	image->priority = COS_FLAGS(image->bundleProcFlags) & 0x03;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
