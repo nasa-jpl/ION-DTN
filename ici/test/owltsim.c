@@ -325,6 +325,7 @@ lyst_destroy(stp->transmission);
 
 int	main(int argc, char *argv[])
 {
+	int			verbose = 0;
 	char			*fileName = NULL;
 	FILE			*configFile;
 	int			reading = 1;
@@ -345,13 +346,12 @@ int	main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-	stpBuf.verbose = 0;
 	switch (argc)
 	{
 	case 3:
 		if (strcmp(argv[2], "-v") == 0)
 		{
-			stpBuf.verbose = 1;
+			verbose = 1;
 		}
 
 		/*	Intentional fall-through to next case.		*/
@@ -388,6 +388,7 @@ int	main(int argc, char *argv[])
 	{
 		lineNbr++;
 		memset((char *) &stpBuf, 0, sizeof(SimThreadParms));
+		stp->verbose = verbose;
 		switch (fscanf(configFile, "%32s %32s %hu %255s %hu %hu %hu",
 				stpBuf.toNode, stpBuf.fromNode,
 				&stpBuf.myPortNbr, stpBuf.destHostName,

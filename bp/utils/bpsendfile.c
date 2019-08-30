@@ -21,6 +21,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	struct stat	statbuf;
 	int		aduLength;
 	Object		bundleZco;
+	char		progressText[300];
 	Object		newBundle;
 
 	if (svcClass == NULL)
@@ -107,22 +108,24 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
+		isprintf(progressText, sizeof progressText, "[i] bpsendfile \
+is sending '%s', size %d.", fileName, aduLength);
+		writeMemo(progressText);
 		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
 			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));
 		}
+		else
+		{
+			isprintf(progressText, sizeof progressText,
+					"[i] bpsendfile sent '%s', size %d.",
+					fileName, aduLength);
+			writeMemo(progressText);
+		}
 	}
 
-	if (sap)
-	{
-		bp_close(sap);
-	}
-
-	writeMemo("[i] bpsendfile has stopped.");
-	writeErrmsgMemos();
-	PUTS("Stopping bpsendfile.");
 	CHKZERO(sdr_begin_xn(sdr));
 	zco_destroy_file_ref(sdr, fileRef);
 	if (sdr_end_xn(sdr) < 0)
@@ -130,6 +133,14 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		putErrmsg("bpsendfile can't destroy file reference.", NULL);
 	}
 
+	if (sap)
+	{
+		bp_close(sap);
+	}
+
+	PUTS("Stopping bpsendfile.");
+	writeMemo("[i] bpsendfile has stopped.");
+	writeErrmsgMemos();
 	bp_detach();
 	return 0;
 }
