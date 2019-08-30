@@ -38,6 +38,7 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 ./cleanup
+export ION_NODE_LIST_DIR=$PWD
 RETVAL=1
 
 
@@ -63,8 +64,11 @@ sleep 20
 log=`grep "Transaction aborted" ion.log | wc -l`
 bundles=`bplist | wc -l`
 echo $bundles
-if [ $log -eq 1 ] || [ $bundles -ne 0 ];then
-	echo "SDR transaction aborted! bpclock crashed! FAILURE!"
+if [ $log -eq 1 ];then
+	echo "SDR transaction aborted! FAILURE!"
+	RETVAL=1
+elif [ $bundles -ne 3 ];then
+	echo "Bundles still exist! FAILURE!"
 	RETVAL=1
 else
 	echo "ION successfully expired the bundles! SUCCESS!"

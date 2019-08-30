@@ -212,8 +212,8 @@ typedef struct
 typedef struct
 {
 	uvast		nodeNbr;
-	uvast		homeRegionNbr;
-	uvast		outerRegionNbr;
+	vast		homeRegionNbr;
+	vast		outerRegionNbr;
 } RegionMember;
 
 typedef struct

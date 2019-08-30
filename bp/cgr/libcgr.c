@@ -84,21 +84,37 @@ static void	removeRoute(PsmPartition ionwm, PsmAddress routeElt)
 		{
 			nextCitation = sm_list_next(ionwm, citation);
 			contactAddr = sm_list_data(ionwm, citation);
-			contact = (IonCXref *) psp(ionwm, contactAddr);
-			for (citationElt = sm_list_first(ionwm,
-				contact->citations); citationElt;
-				citationElt = sm_list_next(ionwm, citationElt))
+			if (contactAddr == 0)
 			{
-				/*	Does this list element point 
-				 *	at this route's citation of
-				 *	that contact?  If so, delete.	*/
+				/*	This contact has been deleted;
+				 *	all references to it have been
+				 *	zeroed out.			*/
 
-				if (sm_list_data(ionwm, citationElt)
-						== citation)
+				sm_list_delete(ionwm, citation, NULL, NULL);
+				continue;
+			}
+
+			contact = (IonCXref *) psp(ionwm, contactAddr);
+			if (contact->citations)
+			{
+				for (citationElt = sm_list_first(ionwm,
+					contact->citations); citationElt;
+					citationElt = sm_list_next(ionwm,
+					citationElt))
 				{
-					sm_list_delete(ionwm, citationElt,
-							NULL, NULL);
-					break;
+					/*	Does this list element
+					 *	point at this route's
+					 *	citation of the contact?
+					 *	If so, delete it.	*/
+
+					if (sm_list_data(ionwm, citationElt)
+							== citation)
+					{
+						sm_list_delete(ionwm,
+							citationElt, NULL,
+							NULL);
+						break;
+					}
 				}
 			}
 
@@ -423,6 +439,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		earliestEndTime;
 	PsmAddress	addr;
 	PsmAddress	citation;
+	IonCXref	*firstContact;
 
 	/*	This is an implementation of Dijkstra's Algorithm.	*/
 
@@ -701,8 +718,25 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 			 *	citations list is the address of this
 			 *	list element.				*/
 
-			if (citation == 0
-			|| sm_list_insert_last(ionwm, contact->citations,
+			if (citation == 0)
+			{
+				putErrmsg("Can't insert contact into route.",
+						NULL);
+				return -1;
+			}
+
+			if (contact->citations == 0)
+			{
+				contact->citations = sm_list_create(ionwm);
+				if (contact->citations == 0)
+				{
+					putErrmsg("Can't create citation list.",
+							NULL);
+					return -1;
+				}
+			}
+
+			if (sm_list_insert_last(ionwm, contact->citations,
 					citation) == 0)
 			{
 				putErrmsg("Can't insert contact into route.",
@@ -710,6 +744,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				return -1;
 			}
 
+			firstContact = contact;
 			contact = work->predecessor;
 			if (contact == rootContact)
 			{
@@ -720,10 +755,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		/*	Now use the first contact in the route to
 		 *	characterize the route.				*/
 
-		addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
-		contact = (IonCXref *) psp(ionwm, addr);
-		route->toNodeNbr = contact->toNode;
-		route->fromTime = contact->fromTime;
+		route->toNodeNbr = firstContact->toNode;
+		route->fromTime = firstContact->fromTime;
 		route->toTime = earliestEndTime;
 	}
 
@@ -973,20 +1006,23 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 				{
 					contactAddr = sm_list_data(ionwm,
 					       		nextContactElt);
-					if (sm_list_insert_last(ionwm,
+					if (contactAddr)
+					{
+						if (sm_list_insert_last(ionwm,
 							excludedEdges,
 							contactAddr) == 0)
-					{
-						putErrmsg("Can't add \
+						{
+							putErrmsg("Can't add \
 excluded edge.", NULL);
-						sm_list_destroy(ionwm,
-							excludedEdges,
-							NULL, NULL);
-						return -1;
-					}
+							sm_list_destroy(ionwm,
+								excludedEdges,
+								NULL, NULL);
+							return -1;
+						}
 
 //contact = (IonCXref *) psp(ionwm, contactAddr);
 //printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toNode);
+					}
 				}
 
 				break;
@@ -1008,10 +1044,20 @@ excluded edge.", NULL);
 //puts("*** Preparing to check next root path contact. ***");
 			contactElt = nextContactElt;
 			contactAddr = sm_list_data(ionwm, contactElt);
+			if (contactAddr == 0)
+			{
+				break;
+			}
+
 			nextContactElt = sm_list_next(ionwm, contactElt);
 			rootPathContactElt = nextRootPathContactElt;
 			rootPathContactAddr = sm_list_data(ionwm,
 					rootPathContactElt);
+			if (rootPathContactAddr == 0)
+			{
+				break;
+			}
+
 			nextRootPathContactElt = sm_list_next(ionwm,
 					rootPathContactElt);
 		}
@@ -1228,6 +1274,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	Scalar		totalBacklog;
 	IonCXref	arg;
 	PsmAddress	elt;
+	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	Scalar		volume;
 	Scalar		allotment;
@@ -1391,7 +1438,15 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	/*	Now consider the initial contact on the route.		*/
 
 	elt = sm_list_first(ionwm, route->hops);
-	contact = (IonCXref *) psp(ionwm, sm_list_data(ionwm, elt));
+	contactAddr = sm_list_data(ionwm, elt);
+	if (contactAddr == 0)
+	{
+		/*	First contact deleted, route is not usable.	*/
+
+		return 0;
+	}
+
+	contact = (IonCXref *) psp(ionwm, contactAddr);
 	CHKERR(contact->xmitRate > 0);
 
 	/*	Compute the expected initial transmit time 
@@ -1894,6 +1949,16 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	}
 
 	addr = sm_list_data(ionwm, sm_list_first(ionwm, route->hops));
+	if (addr == 0)
+	{
+		/*	First contact deleted, route is not usable.	*/
+
+		TRACE(CgrExpiredRoute);
+		removeRoute(ionwm, *elt);
+		*elt = nextElt;
+		return 1;
+	}
+
 	contact = (IonCXref *) psp(ionwm, addr);
 	if (contact->confidence != 1.0)
 	{
@@ -2319,6 +2384,11 @@ int	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
 	}
 
 	routingObject = (CgrRtgObject *) psp(wm, routingObjectAddress);
+	if (routingObject->selectedRoutes == 0)
+	{
+		return 0;		/*	No routes, no chance.	*/
+	}
+
 	for (elt = sm_list_first(wm, routingObject->selectedRoutes); elt;
 			elt = nextElt)
 	{

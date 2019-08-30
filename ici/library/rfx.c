@@ -765,7 +765,6 @@ static void	insertContact(int regionIdx, time_t fromTime, time_t toTime,
 			newCx.type = contactType;
 			newCx.contactElt = elt;
 			newCx.routingObject = 0;
-			newCx.citations = sm_list_create(getIonwm());
 			*cxaddr = insertCXref(&newCx);
 		}
 	}
@@ -784,9 +783,9 @@ static void	insertContact(int regionIdx, time_t fromTime, time_t toTime,
 	 *	be corrected administratively via ionadmin.		*/
 
 	ionNoteMember(regionIdx, fromNode,
-			iondb.regions[regionIdx].regionNbr, 0);
+			iondb.regions[regionIdx].regionNbr, -1);
 	ionNoteMember(regionIdx, toNode,
-			iondb.regions[regionIdx].regionNbr, 0);
+			iondb.regions[regionIdx].regionNbr, -1);
 }
 
 int	rfx_insert_contact(int regionIdx, time_t fromTime, time_t toTime,

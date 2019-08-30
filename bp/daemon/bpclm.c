@@ -528,9 +528,6 @@ int	main(int argc, char *argv[])
 		 *	rate control (if applicable) is satisfied.	*/
 
 		if (sdr_list_length(sdr, plan.ducts) == 0
-//#ifdef CGR_IOT
-//		|| (throttle->nominalRate == 0 && throttle->capacity == 0)
-//#endif
 		|| maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0
 		|| (throttle->nominalRate == 0 && maxPayloadLength > 0)
 		|| (throttle->nominalRate > 0 && throttle->capacity <= 0))

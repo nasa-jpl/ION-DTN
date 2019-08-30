@@ -31,8 +31,8 @@ do
 done
 echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure 
 	that the CGR engine can make correct decisions with asymmetric ranges.
-	The terminal should also contain a variety of 'watch' characters for
-	further debugging."
+	The terminal output should also contain a variety of 'watch' characters
+	for further debugging."
 echo
 echo "########################################"
 
@@ -61,7 +61,8 @@ echo "Sending bundle with 25-second lifetime from ipn:9.1 to ipn:6.1."
 echo "Should be forwarded and transmitted but never acknowledged."
 echo "Should expire before reaching retransmission limit, so not reforwarded."
 bptrace ipn:9.1 ipn:6.1 ipn:9.0 25 0.1 "Hi"
-sleep 1
+# Wait 3 seconds for LTP block aggregation to time out, generating 'efg' chars."
+sleep 3
 echo ""
 echo "Watch characters should be 'abcdefg'."
 
@@ -102,13 +103,13 @@ else
 	RETVAL=1
 fi
 
-echo "Checking ion.log for 'fwd' message '(+) 2 6'..."
-COUNT=`grep fwd ion.log | grep "(+) 2 6" | wc -l`
+echo "Checking ion.log for 'fwd' message '(+) 3 9'..."
+COUNT=`grep fwd ion.log | grep "(+) 3 9" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Two bundle forwarding attempts."
+	echo "OK: Three bundle forwarding attempts including reforward."
 else
-	echo "ERROR: Bundles not forwarded."
+	echo "ERROR: Bundle forwarding is incomplete."
 	RETVAL=1
 fi
 

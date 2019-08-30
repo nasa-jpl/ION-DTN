@@ -690,7 +690,7 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 		sdnv = (Sdnv *) lyst_data(elt);
 		sdr_write(sdr, cursor, (char *) (sdnv->text), sdnv->length);
 		cursor += sdnv->length;
-		CHKERR(cursor <= aduLength);
+		CHKERR(cursor <= aduObj + aduLength);
 	}
 
 	lyst_destroy(sdnvs);

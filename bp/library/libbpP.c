@@ -7846,9 +7846,6 @@ unsigned int	guessBundleSize(Bundle *bundle)
 
 unsigned int	computeECCC(unsigned int bundleSize)
 {
-//#ifdef CGR_IOT
-//	return bundleSize * 1.03;
-//#else
 	unsigned int	stackOverhead;
 
 	/*	Assume 6.25% convergence-layer overhead.		*/
@@ -7860,7 +7857,6 @@ unsigned int	computeECCC(unsigned int bundleSize)
 	}
 
 	return bundleSize + stackOverhead;
-//#endif
 }
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
@@ -7952,6 +7948,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	extractSmallSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
+	bundle->priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 
 	/*	Note status report information as necessary.		*/
 
@@ -8915,8 +8912,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
-	bpRecvTally(bundle->priority,
-			bundle->payload.length);
+	bpRecvTally(bundle->priority, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
 		iwatch('y');
@@ -11501,6 +11497,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	sdnvLength = decodeSdnv(&longNumber, cursor);
 	image->bundleProcFlags = longNumber;
+	image->priority = COS_FLAGS(image->bundleProcFlags) & 0x03;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -11978,7 +11975,6 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 
 int	bpHandleXmitFailure(Object bundleZco)
 {
-//#ifndef CGR_IOT
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
@@ -12028,7 +12024,6 @@ int	bpHandleXmitFailure(Object bundleZco)
 		putErrmsg("Can't handle transmission failure.", NULL);
 		return -1;
 	}
-//#endif
 
 	return 1;
 }
