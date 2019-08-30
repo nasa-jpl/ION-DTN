@@ -280,6 +280,9 @@ char	*getNameOfUser(char *buffer)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -291,6 +294,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 
 int	watchSocket(int fd)
@@ -710,6 +714,9 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -727,6 +734,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 
 int	watchSocket(int fd)
@@ -803,6 +811,9 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -818,6 +829,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 
 int	watchSocket(int fd)
@@ -974,6 +986,9 @@ int	getNameOfHost(char *buffer, int bufferLength)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -991,6 +1006,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
  
 int	makeIoNonBlocking(int fd)
@@ -1137,6 +1153,9 @@ int	getNameOfHost(char *buffer, int bufferLength)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -1154,6 +1173,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 #endif	/*	ION_NO_DNS						*/
  
