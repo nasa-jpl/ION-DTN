@@ -1,0 +1,60 @@
+=head1 NAME
+
+ionxnowner - report on which threads are initiating SDR transactions
+
+=head1 SYNOPSIS
+
+B<ionxnowner> [I<interval> [I<count> [I<echo>]]]
+
+=head1 DESCRIPTION
+
+For I<count> interations (defaulting to 1), B<ionxnowner> prints the
+process ID and thread ID of the thread that currently "owns" the 
+local node's SDR data store (i.e., started the current transaction), then
+sleeps I<interval> seconds (minimum 1).  If the optional I<echo> parameter
+is set to 1, then the transaction owner message is logged as well as
+printed to the console.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ionxnowner> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to ION.
+
+ION system error.  See earlier diagnostic messages posted to ion.log
+for details.
+
+=item Can't access SDR.
+
+ION system error.  See earlier diagnostic messages posted to ion.log
+for details.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ionunlock(1), sdr(3), psmwatch(1)
