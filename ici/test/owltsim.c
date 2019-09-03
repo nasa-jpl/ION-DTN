@@ -388,7 +388,7 @@ int	main(int argc, char *argv[])
 	{
 		lineNbr++;
 		memset((char *) &stpBuf, 0, sizeof(SimThreadParms));
-		stp->verbose = verbose;
+		stpBuf.verbose = verbose;
 		switch (fscanf(configFile, "%32s %32s %hu %255s %hu %hu %hu",
 				stpBuf.toNode, stpBuf.fromNode,
 				&stpBuf.myPortNbr, stpBuf.destHostName,
