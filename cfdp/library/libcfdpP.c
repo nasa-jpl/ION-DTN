@@ -4622,8 +4622,9 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	int		sizeFieldLength;
 	int		minPduSize;
 	CfdpDB		cfdpdb;
-	int		i;
+	int		ckTypeMismatch = 0;
 	unsigned int	fileSize;
+	int		i;
 	char		stringBuf[256];
 	char		qualifiedFileName[MAXPATHLEN + 1];
 	Sdr		sdr = getIonsdr();
@@ -4655,6 +4656,25 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->closureRequested = ((*cursor) >> 6) & 0x01;
+
+	/*	Get checksum type from low-order 4 bits of first byte
+	 *	of Metadata PDU parameter field contents, except that
+	 *	if some file data segments of this file have already
+	 *	been received there is no point in switching to a
+	 *	different checksum type.				*/
+
+	if (fdu->progress == 0)
+	{
+		fdu->ckType = (*cursor) & 0x0f;
+	}
+	else
+	{
+		if (fdu->ckType != ((*cursor) & 0x0f))
+		{
+			ckTypeMismatch = 1;
+		}
+	}
+
 	cursor++;
 	bytesRemaining--;
 
@@ -4738,6 +4758,12 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 				return -1;
 			}
 		}
+	}
+
+	if (ckTypeMismatch)
+	{
+		writeMemoNote("[?] Late arrival of Metadata, so checksums \
+will not match", stringBuf);
 	}
 
 	/*	Parse TLVs.  If at any point a TLV is found to be

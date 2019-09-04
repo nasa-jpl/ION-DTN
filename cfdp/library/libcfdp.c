@@ -735,9 +735,10 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	cursor++;
 	mpduLength++;
 
-	/*	Note closure request.					*/
+	/*	Note closure request and checksum type.			*/
 
 	*cursor = (fdu->closureLatency > 0) << 6;
+	*cursor += (fdu->ckType & 0x0f);
 	cursor++;
 	mpduLength++;
 
