@@ -1973,7 +1973,8 @@ nm_shared_src    =  	nm/shared/adm/adm.c			\
 			nm/shared/utils/utils.c        		\
 			nm/shared/utils/vector.c 		\
 			nm/contrib/tinycbor/src/cborparser.c 	\
-			nm/contrib/tinycbor/src/cborencoder.c 
+			nm/contrib/tinycbor/src/cborencoder.c 	\
+			nm/contrib/tinycbor/src/cborparser_dup_string.c
 
 nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/ingest.c  		\

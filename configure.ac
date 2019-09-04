@@ -95,7 +95,7 @@ case $host_os in
 		PLATFORM="solaris"
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
-				echo "You must build with solaris studio cc"
+				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
 			fi
 			NO_WALL_WERROR_WALL=1
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
