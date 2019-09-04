@@ -1,0 +1,105 @@
+=head1 NAME
+
+bibeclo - BP convergence layer output task using bundle-in-bundle encapsulation
+
+=head1 SYNOPSIS
+
+B<bibeclo> I<remote_node_ID>
+
+=head1 DESCRIPTION
+
+B<bibeclo> is a background "daemon" task that extracts bundles from the
+queues of bundles ready for transmission via bundle-in-bundle encapsulation
+(BIBE) to remote bundle protocol agents, encapsulates them in BP administrative
+records of (non-standard) record type 7 (BP_ENCAPSULATED_BUNDLE), and sends
+those administrative records to the DTN node identified by I<remote_node_ID>, a
+BP endpoint ID.  The receiving node sexpected to process these received
+administrative records by simply dispatching the encapsulated bundles as if
+they had been received from neighboring nodes in the normal course of
+operations.
+
+B<bibeclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<bibeclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the BIBE convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bibeclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<bibeclo>.
+
+=item "1"
+
+B<bibeclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<bibeclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bibeclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such bibe duct.
+
+No BIBE outduct with duct name I<remote_node_ID> has been added to the BP
+database.  Use B<bpadmin> to stop the BIBE convergence-layer protocol, add
+the outduct, and then restart the BIBE protocol.
+
+=item CLO task is already started for this duct.
+
+Redundant initiation of B<bibeclo>.
+
+=item Can't create bundle for CLO; stopping.
+
+Insufficient memory for buffer used to decode the primary blocks of
+outbound bundles, so that time-to-live and class of service can be
+determined.  This is a system error.  Check ION log, correct problem, and
+restart BIBE.
+
+=item Can't decode bundle; CLO stopping.
+
+This is a system error.  Check ION log, correct problem, and restart BIBE.
+
+=item Can't prepend header; CLO stopping.
+
+This is a system error.  Check ION log, correct problem, and restart BIBE.
+
+=item Can't send encapsulated bundle; CLO stopping.
+
+This is a system error.  Check ION log, correct problem, and restart BIBE.
+
+=item [!] Encapsulated bundle not sent.
+
+Malformed bundle issuance request, which might be a software error.  Contact
+technical support.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bp(3)
