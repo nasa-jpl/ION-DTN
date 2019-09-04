@@ -655,6 +655,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_setname_np(const char *name);
 
 #include <sys/msg.h>
 #define	msgbuf		mymsg	/****	Mac OS X has no msgbuf,	but  ****/

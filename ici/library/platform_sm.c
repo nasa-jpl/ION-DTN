@@ -2329,6 +2329,33 @@ int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
 
 #else
 
+#ifdef darwin
+/* struct used to wrap start_routine with naming_start_routine */
+typedef struct
+{
+	char name[100];
+	void *arg;
+	void *(*start_routine) (void *);
+} NamingParms;
+/* protect multiple threads from accessing NamingParms in darwin */
+static pthread_mutex_t NamingParmsSem = PTHREAD_MUTEX_INITIALIZER;
+
+
+static void *naming_start_routine(void *parm){
+	NamingParms	*nmp = (NamingParms *) parm;
+	const char *name = nmp->name;
+	void *arg = nmp->arg; 
+	void *(*start_routine) (void *) = nmp->start_routine;
+	void* ret;
+	pthread_setname_np(name);
+	/* release the mutex protecting the shared naming structure */
+	pthread_mutex_unlock(&NamingParmsSem);
+	
+	ret = (*start_routine)(arg);
+	return ret;
+}
+#endif
+
 int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 		void *(*start_routine) (void *), void *arg, const char *name)
 {
@@ -2338,21 +2365,36 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 #ifdef vxworks
 	if(attr){
 		pthread_attr_setname(attr, name);
+		result = pthread_begin(thread, attr, start_routine, arg);
 	}else{
-	//TODO: Log error that name cannot be set because attr is NULL
+		pthread_attr_t tattr;
+		pthread_attr_init(&tattr);
+		pthread_attr_setname(tattr, name);
+		result = pthread_begin(thread, &tattr, start_routine, arg);
 	}
-	result = pthread_begin(thread, attr, start_routine, arg);
+	
 	/*	Supported platforms for naming threads */
+#elif darwin
+	static NamingParms nmp;
+	/*	In OSX, pthread_setname_np must be called withing the 
+	 *	the thread you wish to name. Achieved by wrapping 
+	 *  the start_routine of pthread_begin */
+
+	/* protect the global naming structure from concurrent access */
+	pthread_mutex_lock(&NamingParmsSem);
+
+	nmp.start_routine = start_routine;
+	nmp.arg = arg;
+	strncpy(nmp.name, name, sizeof(nmp.name)-1);
+	result = pthread_begin(thread, attr, naming_start_routine, &nmp);
 #else
 	result = pthread_begin(thread, attr, start_routine, arg);
-#endif
-
-/*	Platforms have slightly different setname functions
- *	Mac OS X is not supported as name must be set within the thread */
 #if linux || mingw
 	pthread_setname_np(*thread, name);
 #elif freebsd
 	pthread_set_name_np(*thread,name);
+#endif
+
 #endif
 
 	return result;
