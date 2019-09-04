@@ -1,0 +1,145 @@
+=head1 NAME
+
+dtn2rc - "dtn" scheme configuration commands file
+
+=head1 DESCRIPTION
+
+"dtn" scheme configuration commands are passed to B<dtn2admin> either in a
+file of text lines or interactively at B<dtn2admin>'s command prompt (:).
+Commands are interpreted line-by line, with exactly one command per line.
+
+"dtn" scheme configuration commands establish static routing rules
+for forwarding bundles to "dtn"-scheme destination endpoints, identified by
+node ID.  (Each node ID is simply a BP endpoint ID.)
+
+Static routes are expressed as B<plan>s in the "dtn"-scheme routing database.
+A plan that is established for a given node name associates a routing
+B<directive> with the named node.  Each directive is a string of one of
+two possible forms:
+
+=over 4
+
+f I<endpoint_ID>
+
+=back
+
+...or...
+
+=over 4
+
+x I<protocol_name>/I<outduct_name>
+
+=back
+
+The former form signifies that the bundle is to be forwarded to the indicated
+endpoint, requiring that it be re-queued for processing by the forwarder
+for that endpoint (which might, but need not, be identified by another
+"dtn"-scheme endpoint ID).  The latter form signifies that the bundle is
+to be queued for transmission via the indicated convergence layer protocol
+outduct.
+
+The node IDs cited in dtn2rc plans may be "wild-carded".  That is, when
+the last character of a node ID is either '*' or '~' (these two wild-card
+characters are equivalent for this purpose), the plan applies to all nodes
+whose IDs are identical to the wild-carded node name up to the wild-card
+character.  For example, a bundle whose destination EID name is "dtn://foghorn"
+would be routed by plans citing the following node IDs: "dtn://foghorn",
+"dtn://fogh*", "dtn://fog~", "//*".  When multiple plans are all applicable
+to the same destination EID, the one citing the longest (i.e., most narrowly
+targeted) node ID will be applied.
+
+The formats and effects of the DTN scheme configuration commands are
+described below.
+
+=head1 GENERAL COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by dtn2admin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 PLAN COMMANDS
+
+=over 4
+
+=item B<a plan> I<node_ID> I<directive> [I<nominal_xmit_rate>]
+
+The B<add plan> command.  This command establishes a static route for
+the bundles destined for the node(s) identified by I<node_ID>.  The
+I<nominal_xmit_rate> is the assumed rate of transmission to this node
+in the absence of contact plan information.  A I<nominal_data_rate> of
+zero (the default) in the absence of contact plan information completely
+disables rate control.
+
+B<Note that the plan commands consumed by dtn2admin are a simplified
+shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
+The syntax of these commands is DIFFERENT from that of the more general
+and more powerful bpadmin commands.>
+
+=item B<c plan> I<node_ID> [I<directive>] [I<nominal_xmit_rate>]
+
+The B<change plan> command.  This command revises the I<directive> and/or
+I<nominal_data_rate> of the static route for the node(s) identified by
+I<node_ID>.
+
+=item B<d plan> I<node_ID>
+
+The B<delete plan> command.  This command deletes the static route for
+the node(s) identified by I<node_ID>.
+
+=item B<i plan> I<node_ID>
+
+This command will print information about the static route for the node(s)
+identified by I<node_ID>.
+
+=item B<l plan>
+
+This command lists all static routes established in the DTN database for
+the local node.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a plan dtn://bbn2 f ipn:8.41
+
+Declares a static route from the local node to node "//bbn2".  Any bundle
+destined for any endpoint whose node name is "//bbn2" will be forwarded
+to endpoint "ipn:8.41".
+
+=item a plan dtn://mitre1* x ltp/6
+
+Declares a static route from the local node to node "//mitre1".  Any bundle
+destined for any endpoint whose node ID begins with "mitre1" will
+be queued for transmission on LTP outduct 6.
+
+=back
+
+=head1 SEE ALSO
+
+dtn2admin(1)

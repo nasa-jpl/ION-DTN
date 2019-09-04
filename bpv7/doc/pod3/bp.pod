@@ -1,0 +1,270 @@
+=head1 NAME
+
+bp - Bundle Protocol communications library
+
+=head1 SYNOPSIS
+
+    #include "bp.h"
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+The bp library provides functions enabling application software to use
+Bundle Protocol to send and receive information over a delay-tolerant
+network.  It conforms to the Bundle Protocol specification as documented
+in Internet RFC 5050.
+
+=over 4
+
+=item int bp_attach( )
+
+Attaches the application to BP functionality on the local computer.  Returns
+0 on success, -1 on any error.
+
+Note that all ION libraries and applications draw memory dynamically, as
+needed, from a shared pool of ION working memory.  The size of the pool is
+established when ION node functionality is initialized by ionadmin(1).  This
+is a precondition for initializing BP functionality by running bpadmin(1),
+which in turn is required in order for bp_attach() to succeed.
+
+=item Sdr bp_get_sdr( )
+
+Returns handle for the SDR data store used for BP, to enable creation and
+interrogation of bundle payloads (application data units).
+
+=item void bp_detach( )
+
+Terminates all access to BP functionality on the local computer.
+
+=item int bp_open(char *eid, BpSAP *ionsapPtr)
+
+Opens the application's access to the BP endpoint identified by I<eid>,
+so that the application can take delivery of bundles destined for the
+indicated endpoint.  This SAP can also be used for sending bundles whose
+source is the indicated endpoint; all bundles sent via this SAP will be
+subject to immediate destruction upon transmission, i.e., no bundle
+addresses will be returned by bp_send() for use in tracking,
+suspending/resuming, or cancelling transmission of these bundles.  On
+success, places a value in I<*ionsapPtr> that can be supplied to future
+bp function invocations and returns 0.  Returns -1 on any error.
+
+=item int bp_open_source(char *eid, BpSAP *ionsapPtr, detain)
+
+Opens the application's access to the BP endpoint identified by I<eid>,
+so that the application can send bundles whose source is the indicated
+endpoint.  If and only if the value of I<detain> is non-zero, citing this
+SAP in an invocation of bp_send() will cause the address of the newly
+issued bundle to be returned for use in tracking, suspending/resuming, or
+cancelling transmission of this bundle.  B<USE THIS FEATURE WITH GREAT CARE:>
+such a bundle will continue to occupy storage resources until it is
+explicitly released by an invocation of bp_release() or until its time to
+live expires, so bundle detention increases the risk of resource exhaustion.
+(If the value of I<detain> is zero, all bundles sent via this SAP will be
+subject to immediate destruction upon transmission.)  On success, places a
+value in I<*ionsapPtr> that can be supplied to future bp function invocations
+and returns 0.  Returns -1 on any error.
+
+=item int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
+
+Sends a bundle to the endpoint identified by I<destEid>, from the
+source endpoint as provided to the bp_open() call that returned I<sap>.
+When I<sap> is NULL, the transmitted bundle is anonymous, i.e., the source
+of the bundle is not identified.  This is legal, but anonymous bundles cannot
+be uniquely identified; custody transfer and status reporting therefore cannot
+be requested for an anonymous bundle.
+
+I<reportToEid> identifies the endpoint to which any status reports
+pertaining to this bundle will be sent; if NULL, defaults to the
+source endpoint.
+
+I<lifespan> is the maximum number of seconds that the bundle can remain
+in-transit (undelivered) in the network prior to automatic deletion.
+
+I<classOfService> is simply priority for now: BP_BULK_PRIORITY,
+BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY.  If class-of-service flags
+are defined in a future version of Bundle Protocol, those flags would be
+OR'd with priority.
+
+I<custodySwitch> indicates whether or not custody transfer is requested for
+this bundle and, if so, whether or not the source node itself is required
+to be the initial custodian.  The valid values are SourceCustodyRequired,
+SourceCustodyOptional, NoCustodyRequired.  Note that custody transfer is
+possible only for bundles that are uniquely identified, so it cannot be
+requested for bundles for which BP_MINIMUM_LATENCY is requested, since
+BP_MINIMUM_LATENCY may result in the production of multiple identical
+copies of the same bundle.  Similarly, custody transfer should never be
+requested for a "loopback" bundle, i.e., one whose destination node is
+the same as the source node: the received bundle will be identical to the
+source bundle, both residing in the same node, so no custody acceptance
+signal can be applied to the source bundle and the source bundle will
+remain in storage until its TTL expires.
+
+I<srrFlags>, if non-zero, is the logical OR of the status reporting behaviors
+requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT,
+BP_DELIVERED_RPT, BP_DELETED_RPT.
+
+I<ackRequested> is a Boolean parameter indicating whether or not the recipient
+application should be notified that the source application requests some sort
+of application-specific end-to-end acknowledgment upon receipt of the bundle.
+
+I<ancillaryData>, if not NULL, is used to populate the Extended Class Of
+Service block for this bundle.  The block's I<ordinal> value is used to
+provide fine-grained ordering within "expedited" traffic: ordinal values
+from 0 (the default) to 254 (used to designate the most urgent traffic)
+are valid, with 255 reserved for custody signals.  The value of the block's
+I<flags> is the logical OR of the applicable extended class-of-service flags:
+
+=over 4
+
+BP_MINIMUM_LATENCY designates the bundle as "critical" for the
+purposes of Contact Graph Routing.
+
+BP_BEST_EFFORT signifies that non-reliable convergence-layer protocols, as
+available, may be used to transmit the bundle.  Notably, the bundle may be
+sent as "green" data rather than "red" data when issued via LTP.
+
+BP_DATA_LABEL_PRESENT signifies whether or not the value of I<dataLabel>
+in I<ancillaryData> must be encoded into the ECOS block when the bundle is
+transmitted.
+
+=back
+
+I<adu> is the "application data unit" that will be conveyed as the payload
+of the new bundle.  I<adu> must be a "zero-copy object" (ZCO).  To ensure
+orderly access to transmission buffer space for all applications, I<adu>
+must be created by invoking ionCreateZco(), which may be configured either
+to block so long as insufficient ZCO storage space is available for creation
+of the requested ZCO or to fail immediately if insufficient ZCO storage space
+is available.
+
+The function returns 1 on success, 0 on user error, -1 on any system
+error.  If 0 is returned, then an invalid argument value was passed to
+bp_send(); a message to this effect will have been written to the log file.
+If 1 is returned, then either the destination of the bundle was
+"dtn:none" (the bit bucket) or the ADU has been accepted and queued for
+transmission in a bundle.  In the latter case, if and only if I<sap> was
+a reference to a BpSAP returned by an invocation of bp_open_source() that
+had a non-zero value in the I<detain> parameter, then I<newBundle> must be
+non-NULL and the address of the newly created bundle within the ION database
+is placed in I<newBundle>.  This address can be used to track, suspend/resume,
+or cancel transmission of the bundle.
+
+=item int bp_track(Object bundle, Object trackingElt)
+
+Adds I<trackingElt> to the list of "tracking" references in I<bundle>.
+I<trackingElt> must be the address of an SDR list element -- whose data is
+the address of this same bundle -- within some list of bundles that is
+privately managed by the application.  Upon destruction of the bundle this
+list element will automatically be deleted, thus removing the bundle from
+the application's privately managed list of bundles.  This enables the
+application to keep track of bundles that it is operating on without risk
+of inadvertently de-referencing the address of a nonexistent bundle. 
+
+=item void bp_untrack(Object bundle, Object trackingElt)
+
+Removes I<trackingElt> from the list of "tracking" references in I<bundle>,
+if it is in that list.  Does not delete I<trackingElt> itself.
+
+=item int bp_memo(Object bundle, unsigned int interval)
+
+Implements custodial retransmission.  This function inserts a
+"custody-acceptance due" event into the timeline.  The event causes the
+indicated bundle to be re-forwarded if it is still in the database (i.e.,
+it has not yet been accepted by another custodian) as of the time computed
+by adding the indicated interval to the current time.
+
+=item int bp_suspend(Object bundle)
+
+Suspends transmission of I<bundle>.  Has no effect if bundle is "critical"
+(i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or
+if the bundle is already suspended.  Otherwise, reverses the enqueuing of
+the bundle to its selected transmission outduct and places it in the
+"limbo" queue until the suspension is lifted by calling bp_resume.  Returns
+0 on success, -1 on any error.
+
+=item int bp_resume(Object bundle)
+
+Terminates suspension of transmission of I<bundle>.  Has no effect if
+bundle is "critical" (i.e., has got extended class of service
+BP_MINIMUM_LATENCY flag set) or is not suspended.  Otherwise, removes
+the bundle from the "limbo" queue and queues it for route re-computation
+and re-queuing.  Returns 0 on success, -1 on any error.
+
+=item int bp_cancel(Object bundle)
+
+Cancels transmission of I<bundle>.  If the indicated bundle is currently
+queued for forwarding, transmission, or retransmission, it is removed
+from the relevant queue and destroyed exactly as if its Time To Live had
+expired.  Returns 0 on success, -1 on any error.
+
+=item int bp_release(Object bundle)
+
+Releases a detained bundle for destruction when all retention constraints
+have been removed.  After a detained bundle has been released, the application
+can no longer track, suspend/resume, or cancel its transmission.  Returns 0
+on success, -1 on any error.
+
+=item int bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
+
+Receives a bundle, or reports on some failure of bundle reception activity.
+
+The "result" field of the dlvBuffer structure will be used to indicate the
+outcome of the data reception activity.
+
+If at least one bundle destined for the endpoint for which this SAP is
+opened has not yet been delivered to the SAP, then the payload of the
+oldest such bundle will be returned in I<dlvBuffer>->I<adu> and
+I<dlvBuffer>->I<result> will be set to BpPayloadPresent.  If there is
+no such bundle, bp_receive() blocks for up to I<timeoutSeconds> while
+waiting for one to arrive.
+
+If I<timeoutSeconds> is BP_POLL (i.e., zero) and no bundle is awaiting
+delivery, or if I<timeoutSeconds> is greater than zero but no bundle
+arrives before I<timeoutSeconds> have elapsed, then I<dlvBuffer>->I<result>
+will be set to BpReceptionTimedOut.  If I<timeoutSeconds> is BP_BLOCKING
+(i.e., -1) then bp_receive() blocks until either a bundle arrives or the
+function is interrupted by an invocation of bp_interrupt().
+
+I<dlvBuffer>->I<result> will be set to BpReceptionInterrupted in the event
+that the calling process received and handled some signal other than SIGALRM
+while waiting for a bundle.
+
+I<dlvBuffer>->I<result> will be set to BpEndpointStopped in the event
+that the operation of the indicated endpoint has been terminated.
+
+The application data unit delivered in the data delivery structure, if
+any, will be a "zero-copy object" reference.  Use zco reception functions
+(see zco(3)) to read the content of the application data unit.
+
+Be sure to call bp_release_delivery() after every successful invocation of
+bp_receive().
+
+The function returns 0 on success, -1 on any error.
+
+=item void bp_interrupt(BpSAP sap)
+
+Interrupts a bp_receive() invocation that is currently blocked.  This
+function is designed to be called from a signal handler; for this purpose,
+I<sap> may need to be obtained from a static variable.
+
+=item void bp_release_delivery(BpDelivery *dlvBuffer, int releaseAdu)
+
+Releases resources allocated to the indicated delivery.  I<releaseAdu> is a
+Boolean parameter: if non-zero, the ADU ZCO reference in I<dlvBuffer> (if
+any) is destroyed, causing the ZCO itself to be destroyed if no other
+references to it remain.
+
+=item void bp_close(BpSAP sap)
+
+Terminates the application's access to the BP endpoint identified by
+the I<eid> cited by the indicated service access point.  The application
+relinquishes its ability to take delivery of bundles destined for the
+indicated endpoint and to send bundles whose source is the indicated
+endpoint.
+
+=back
+
+=head1 SEE ALSO
+
+bpadmin(1), lgsend(1), lgagent(1), bpextensions(3), bprc(5), lgfile(5)
