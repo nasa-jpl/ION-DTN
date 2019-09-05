@@ -858,7 +858,11 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 			nextElt = sm_list_next(wm, elt);
 			addr = sm_list_data(wm, elt);
 			req = (Requisition *) psp(wm, addr);
-			sm_SemEnd(req->semaphore);
+			if (req->semaphore != SM_SEM_NONE)
+			{
+				sm_SemEnd(req->semaphore);
+			}
+
 			psm_free(wm, addr);
 			sm_list_delete(wm, elt, NULL, NULL);
 		}

@@ -2378,7 +2378,11 @@ void	rfx_stop()
 			nextElt = sm_list_next(ionwm, elt);
 			addr = sm_list_data(ionwm, elt);
 			req = (Requisition *) psp(ionwm, addr);
-			sm_SemEnd(req->semaphore);
+			if (req->semaphore != SM_SEM_NONE)
+			{
+				sm_SemEnd(req->semaphore);
+			}
+
 			psm_free(ionwm, addr);
 			sm_list_delete(ionwm, elt, NULL, NULL);
 		}
