@@ -3125,7 +3125,12 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		char *arg9, char *arg10, int priority, int stackSize)
 {
 	int	pid;
-
+#ifdef VALGRIND_PROFILING
+	char	targ1[32];
+	char	targ2[32];
+	char	targ3[32];
+	char	targ4[32];
+#endif
 	CHKERR(name);
 
 	/*	Ignoring SIGCHLD signals causes the parent process
@@ -3143,9 +3148,38 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 
 	case 0:			/*	This is the child process.	*/
 		closeAllFileDescriptors();
+#ifdef VALGRIND_PROFILING
+		if (arg1)
+		{
+			istrcpy(targ1, arg1, sizeof targ1);
+			arg1 = targ1;
+		}
+
+		if (arg2)
+		{
+			istrcpy(targ2, arg2, sizeof targ2);
+			arg2 = targ2;
+		}
+
+		if (arg3)
+		{
+			istrcpy(targ3, arg3, sizeof targ3);
+			arg3 = targ3;
+		}
+
+		if (arg4)
+		{
+			istrcpy(targ4, arg4, sizeof targ4);
+			arg4 = targ4;
+		}
+
+		execlp("valgrind", "valgrind", "-tool=callgrind", name,
+				arg1, arg2, arg3, arg4,
+				arg7, arg8, arg9, arg10, NULL);
+#else
 		execlp(name, name, arg1, arg2, arg3, arg4, arg5, arg6,
 				arg7, arg8, arg9, arg10, NULL);
-
+#endif
 		/*	Can only get to this code if execlp fails.	*/
 
 		putSysErrmsg("Can't execute new process, exiting...", name);
