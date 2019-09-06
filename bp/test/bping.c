@@ -543,7 +543,7 @@ int main(int argc, char **argv)
 
 
 	if(pthread_begin(&receiveResponsesThread, NULL, receiveResponses, 
-				NULL) < 0) {
+				NULL, "bping_receiver") < 0) {
 		putErrmsg("Can't make recvResponsesThread.", NULL);
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
 		bp_close(xmitsap);
@@ -552,7 +552,7 @@ int main(int argc, char **argv)
 		exit(BPING_EXIT_ERROR);
 	}
 
-	if(pthread_begin(&sendRequestsThread, NULL, sendRequests, NULL) < 0) {
+	if(pthread_begin(&sendRequestsThread, NULL, sendRequests, NULL, "bping_sender") < 0) {
 		putErrmsg("Can't make sendRequestsThread.", NULL);
 		fprintf(stderr, "Can't make sendRequestsThread.\n");
 		shutdownnow = 1;

@@ -176,7 +176,8 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams,
+		&rtp, "udplsi_receiver"))
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("udplsi can't create receiver thread", NULL);

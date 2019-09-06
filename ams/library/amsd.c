@@ -649,7 +649,7 @@ CS endpoint.", csState->csEndpointSpec);
 	/*	Start the MAMS transport service receiver thread.	*/
 
 	if (pthread_begin(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
-				tsif))
+				tsif, "amsd_cs_tsif"))
 	{
 		putSysErrmsg("Can't spawn CS tsif thread", NULL);
 		return -1;
@@ -663,7 +663,7 @@ CS endpoint.", csState->csEndpointSpec);
 	/*	Start the configuration server heartbeat thread.	*/
 
 	if (pthread_begin(&csState->csHeartbeatThread, NULL, csHeartbeat,
-				csState))
+				csState, "amsd_cs_heartbeat"))
 	{
 		putSysErrmsg("Can't spawn CS heartbeat thread", NULL);
 		return -1;
@@ -671,7 +671,8 @@ CS endpoint.", csState->csEndpointSpec);
 
 	/*	Start the configuration server main thread.		*/
 
-	if (pthread_begin(&(csState->csThread), NULL, csMain, csState))
+	if (pthread_begin(&(csState->csThread), NULL, csMain,
+		csState, "amsd_cs"))
 	{
 		putSysErrmsg("Can't spawn configuration server thread", NULL);
 		return -1;
@@ -1845,7 +1846,7 @@ static int	startRegistrar(RsState *rsState)
 	/*	Start the MAMS transport service receiver thread.	*/
 
 	if (pthread_begin(&(tsif->receiver), NULL, mib->pts->mamsReceiverFn,
-				tsif))
+				tsif, "amsd_rs_tsif"))
 	{
 		putSysErrmsg("amsd can't spawn RS tsif thread", NULL);
 		return -1;
@@ -1854,7 +1855,7 @@ static int	startRegistrar(RsState *rsState)
 	/*	Start the registrar heartbeat thread.			*/
 
 	if (pthread_begin(&rsState->rsHeartbeatThread, NULL, rsHeartbeat,
-				rsState))
+				rsState, "amsd_rs_heartbeat"))
 	{
 		putSysErrmsg("Can't spawn RS heartbeat thread", NULL);
 		return -1;
@@ -1862,7 +1863,8 @@ static int	startRegistrar(RsState *rsState)
 
 	/*	Start the registrar main thread.			*/
 
-	if (pthread_begin(&(rsState->rsThread), NULL, rsMain, rsState))
+	if (pthread_begin(&(rsState->rsThread), NULL, rsMain,
+		rsState, "amsd_rs"))
 	{
 		putSysErrmsg("Can't spawn registrar thread", NULL);
 		return -1;
@@ -2007,7 +2009,8 @@ static int	startModule(DmState *dmState)
 
 	/*	Start the AAMS module main thread.			*/
 
-	if (pthread_begin(&(dmState->dmThread), NULL, dmMain, dmState))
+	if (pthread_begin(&(dmState->dmThread), NULL, dmMain,
+		dmState, "amsd_aams_module"))
 	{
 		putSysErrmsg("Can't spawn AAMS module thread", NULL);
 		return -1;

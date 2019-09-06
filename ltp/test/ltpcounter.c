@@ -156,7 +156,8 @@ int	main(int argc, char **argv)
 	}
 
 	alarm = rfx_insert_alarm(5, 0);
-	if (pthread_begin(&progressThread, NULL, showProgress, (void *) alarm))
+	if (pthread_begin(&progressThread, NULL, showProgress,
+		(void *) alarm, "ltpcounter_progress"))
 	{
 		putErrmsg("Can't start progress thread.", NULL);
 		rfx_remove_alarm(alarm);

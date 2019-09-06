@@ -405,7 +405,7 @@ number>");
 	receiverParms.ductSocket = &ductSocket;
 	receiverParms.running = &running;
         if (pthread_begin(&receiverThread, NULL, receiveBundles,
-			&receiverParms))
+			&receiverParms, "brsccla_receiver"))
 	{
 		putSysErrmsg("brsccla can't create receiver thread", NULL);
 		MRELEASE(buffer);
@@ -423,7 +423,8 @@ number>");
 	istrcpy(ktparms.ductName, ductName, MAX_CL_DUCT_NAME_LEN);
 	ktparms.ductSocket = &ductSocket;
 	ktparms.running = &running;
-	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &ktparms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives,
+		&ktparms, "brsccla_keepalive"))
 	{
 		putSysErrmsg("brsccla can't create keepalive thread", NULL);
 		MRELEASE(buffer);

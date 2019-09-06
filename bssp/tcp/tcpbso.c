@@ -193,7 +193,7 @@ engine number>");
 	parms.mutex = &mutex;
 	parms.socketName = &socketName;
 	parms.flowSocket = &flowSocket;
-	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms, "tcpbso_keepalive"))
 	{
 		putSysErrmsg("tcpbso can't create keepalive thread", NULL);
 		pthread_mutex_destroy(&mutex);

@@ -183,7 +183,7 @@ int	main(int argc, char **argv)
 
 	parms.mainThread = pthread_self();
 	parms.running = 1;
-	if (pthread_begin(&rxThread, NULL, receivePdus, &parms))
+	if (pthread_begin(&rxThread, NULL, receivePdus, &parms, "bputa_receiver"))
 	{
 		bp_close(txSap);
 		putSysErrmsg("bputa can't create receiver thread", NULL);
