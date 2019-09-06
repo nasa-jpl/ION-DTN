@@ -7,8 +7,8 @@ all:
 	gmake -C dgr install
 	gmake -C bssp $@
 	gmake -C bssp install
-	gmake -C bp $@
-	gmake -C bp install
+	gmake -C bpv7 $@
+	gmake -C bpv7 install
 	gmake -C nm $@
 	gmake -C nm install
 	gmake -C ams $@
@@ -27,7 +27,7 @@ clean:
 	gmake -C ltp $@
 	gmake -C dgr $@
 	gmake -C bssp $@
-	gmake -C bp $@
+	gmake -C bpv7 $@
 	gmake -C nm $@
 	gmake -C ams $@
 	gmake -C cfdp $@

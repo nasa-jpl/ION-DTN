@@ -60,7 +60,7 @@
 #ifndef BCB_H_
 #define BCB_H_
 
-#include "util.h"
+#include "bpsec_util.h"
 #include "profiles.h"
 #include "csi.h"
 
@@ -166,7 +166,7 @@ extern int		bcbDecrypt(AcqExtBlock *blk,
 
 extern int		bcbDefaultConstruct(uint32_t suite,
 						ExtensionBlock *blk,
-						SbspOutboundBlock *asb);
+						BpsecOutboundBlock *asb);
 
 extern int		bcbDefaultDecrypt(uint32_t suite,
 	       					AcqWorkArea *wk,
@@ -176,7 +176,7 @@ extern int		bcbDefaultDecrypt(uint32_t suite,
 extern uint32_t		bcbDefaultEncrypt(uint32_t suite,
 						Bundle *bundle,
 						ExtensionBlock *blk,
-						SbspOutboundBlock *asb,
+						BpsecOutboundBlock *asb,
 						size_t xmitRate,
 						uvast *bytes);
 

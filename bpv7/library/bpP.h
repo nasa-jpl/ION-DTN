@@ -132,19 +132,35 @@ extern "C" {
 
 typedef struct
 {
-	Object		text;		/*	Not NULL-terminated.	*/
-	unsigned int	textLength;
-} BpString;
-
-typedef struct
-{
 	uvast		nbr;
 } NodeId;				//	Still needed?
 
+typedef enum
+{
+	unknown = 0,
+	dtn = 1,
+	ipn = 2,
+	imc = 3
+} SchemeCodeNbr;
+
+typedef enum
+{
+	EidNV = 0,			/*	Non-volatile.		*/
+	EidV,				/*	Volatile.		*/
+	EidS				/*	Null-terminated string.	*/
+} EidMode;
+
+typedef union
+{
+	Object		nv;		/*	Recorded in SDR heap.	*/
+	PsmAddress	v;		/*	Recorded in wm.		*/
+	char		*s;		/*	Temporary string in RAM.*/
+} EndpointName;
+
 typedef struct
 {
-	unsigned int	nssLength;
-	Object		endpointName;
+	EndpointName	endpointName;
+	int		nssLength;	/*	+ for nv, - for v.	*/
 } DtnSSP;
 
 typedef struct
@@ -156,7 +172,7 @@ typedef struct
 typedef struct
 {
 	uvast		groupNbr;
-	vast		serviceNbr;
+	unsigned int	serviceNbr;
 } ImcSSP;
 
 typedef union
@@ -168,7 +184,7 @@ typedef union
 
 typedef struct
 {
-	int		schemeCodeNbr;
+	SchemeCodeNbr	schemeCodeNbr;
 	SSP		ssp;
 } EndpointId;
 
@@ -176,7 +192,7 @@ typedef struct
 {
 	char		*schemeName;
 	int		schemeNameLength;
-	int		schemeCodeNbr;
+	SchemeCodeNbr	schemeCodeNbr;
 	char		*colon;
 	char		*nss;
 	int		nssLength;
@@ -262,8 +278,8 @@ typedef struct
 typedef struct
 {
 	int		authentic;	/*	Boolean.		*/
-	BpString	senderEid;
-	uvast		senderNodeNbr;	/*	If CBHE.		*/
+	EndpointId	senderEid;
+	uvast		senderNodeNbr;	/*	If ipn endpoint.	*/
 } ClDossier;
 
 /*	Bundle processing flags						*/
@@ -302,6 +318,7 @@ typedef struct
 	/*	Stuff in QOS (nee ECOS) & Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
+	unsigned char	classOfService;
 	unsigned char	priority;	/*	Possibly an override.	*/
 	unsigned char	ordinal;	/*	Possibly an override.	*/
 
@@ -460,7 +477,7 @@ typedef struct
 {
 	char		name[MAX_SCHEME_NAME_LEN + 1];
 	int		nameLength;
-	int		codeNumber;
+	SchemeCodeNbr	codeNumber;
 	Object		fwdCmd; 	/*	For starting forwarder.	*/
 	Object		admAppCmd; 	/*	For starting admin app.	*/
 	Object		forwardQueue;	/*	SDR list of Bundles	*/
@@ -475,7 +492,7 @@ typedef struct
 
 	char		name[MAX_SCHEME_NAME_LEN + 1];
 	int		nameLength;
-	int		codeNumber;
+	SchemeCodeNbr	codeNumber;
 
 	/*	Volatile administrative stuff.				*/
 
@@ -856,7 +873,7 @@ typedef struct
 	/*	Per-acquisition state variables.			*/
 
 	int		allAuthentic;	/*	Boolean.		*/
-	char		*senderEid;
+	EndpointId	senderEid;
 	Object		acqFileRef;
 	Object		zco;		/*	Concatenated bundles.	*/
 	Object		zcoElt;		/*	Retention in BpDB.	*/
@@ -1327,13 +1344,17 @@ extern unsigned int	computeECCC(unsigned int bundleSize);
 extern void		computePriorClaims(BpPlan *plan, Bundle *bundle,
 				Scalar *priorClaims, Scalar *backlog);
 
-extern int		putBpString(BpString *bpString, char *string);
-extern char		*getBpString(BpString *bpString);
-
 extern int		parseEidString(char *eidString, MetaEid *metaEid,
 				VScheme **scheme, PsmAddress *schemeElt);
 extern void		restoreEidString(MetaEid *metaEid);
-extern int		printEid(EndpointId *eid, char **str);
+extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
+
+#define writeEid(eid, meid)	recordEid(eid, meid, EidNV)
+#define noteEid(eid, meid)	recordEid(eid, meid, EidV)
+#define jotEid(eid, meid)	recordEid(eid, meid, EidS)
+
+extern void		eraseEid(EndpointId *eid);
+extern int		readEid(EndpointId *eid, char **str);
 
 extern int		startBpTask(Object cmd, Object cmdparms, int *pid);
 

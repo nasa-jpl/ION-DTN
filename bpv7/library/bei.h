@@ -63,7 +63,7 @@
  *  \struct ExtensionBlock
  *  \brief Definition of an outbound Bundle Extension Block.
  *
- * This structure holds any RFC5050-compliant extension block that is being
+ * This structure holds any BPv7-compliant extension block that is being
  * constructed for transmission from the BPA.  This structure is stored in the
  * notionally non-volatile SDR heap until the block is ready to be sent and/
  * or the containing bundle may be destroyed.
@@ -92,7 +92,7 @@ typedef struct
  *  \struct AcqExtBlock
  *  \brief Definition of an inbound Bundle Extension Block.
  *
- * This structure holds any RFC5050-compliant extension block that is being
+ * This structure holds any BPv7-compliant extension block that is being
  * acquired from an underlying convergence layer.  Since the bundle
  * containing the block has not yet been committed to SDR heap storage
  * but exists only in the transient bundle acquisition work area stored in
@@ -164,12 +164,7 @@ typedef struct
  *
  * ExtensionSpec provides the specification for producing an outbound
  * extension block: block definition (identified by block type number),
- * three discriminator tags whose semantics are block-type-specific,
- * and list index, indicating whether the extension block is to be
- * inserted before or after the Payload block.
- *
- * listIdx is obsolete in sbsp, as *NO* blocks are ever inserted after
- * the Payload block.
+ * and three discriminator tags whose semantics are block-type-specific.
  */
 typedef struct
 {

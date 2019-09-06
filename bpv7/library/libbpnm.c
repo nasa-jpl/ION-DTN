@@ -184,7 +184,7 @@ void	bpnm_endpoint_get (char * targetName, NmbpEndpoint * results,
 			vpoint->endpointElt), sizeof(Endpoint));
 	results->abandonOnDelivFailure = (endpoint.recvRule == DiscardBundle);
         sdr_read(sdr, (char *) & scheme, endpoint.scheme, sizeof(Scheme));
-	results->singleton = scheme.unicast;
+	results->singleton = (scheme.codeNumber == 2);	/*	ipn	*/
         sdr_exit_xn(sdr);
     }
 }   /* end of bpnm_endpoint_get */
@@ -274,7 +274,6 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     Endpoint        endpoint;
     BpPlan          plan;
     BpDelStats      delStats;
-    BpCtStats       ctStats;
     BpDbStats       dbStats;
 
     CHKVOID(results);
@@ -295,12 +294,6 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     }
 
     results->currentDispatchPending = 0;
-    sdr_read(sdr, (char *) &ctStats, bpdb.ctStats, sizeof(BpCtStats));
-    results->currentInCustody
-	    = ctStats.tallies[BP_CT_CUSTODY_ACCEPTED].totalCount
-	    - (ctStats.tallies[BP_CT_CUSTODY_RELEASED].totalCount
-	    +  ctStats.tallies[BP_CT_CUSTODY_EXPIRED].totalCount);
-
     results->currentReassemblyPending = 0;
     for (elt = sdr_list_first(sdr, bpdb.schemes); elt;
             elt = sdr_list_next(sdr, elt))
@@ -378,34 +371,6 @@ void    bpnm_disposition_get(NmbpDisposition * results)
 	    = delStats.currentDelByReason[BP_REASON_BLK_MALFORMED];
 
     /*		Bundle processing errors				*/
-
-    sdr_read(sdr, (char *) &ctStats, bpdb.ctStats, sizeof(BpCtStats));
-    results->custodyRefusedCount = 0;
-    results->custodyRefusedBytes = 0;
-    results->custodyRefusedCount
-	    += ctStats.tallies[BP_CT_REDUNDANT].currentCount;
-    results->custodyRefusedBytes
-	    += ctStats.tallies[BP_CT_REDUNDANT].currentBytes;
-    results->custodyRefusedCount
-	    += ctStats.tallies[BP_CT_DEPLETION].currentCount;
-    results->custodyRefusedBytes
-	    += ctStats.tallies[BP_CT_DEPLETION].currentBytes;
-    results->custodyRefusedCount
-	    += ctStats.tallies[BP_CT_EID_MALFORMED].currentCount;
-    results->custodyRefusedBytes
-	    += ctStats.tallies[BP_CT_EID_MALFORMED].currentBytes;
-    results->custodyRefusedCount
-	    += ctStats.tallies[BP_CT_NO_ROUTE].currentCount;
-    results->custodyRefusedBytes
-	    += ctStats.tallies[BP_CT_NO_ROUTE].currentBytes;
-    results->custodyRefusedCount
-	    += ctStats.tallies[BP_CT_NO_CONTACT].currentCount;
-    results->custodyRefusedBytes
-	    += ctStats.tallies[BP_CT_NO_CONTACT].currentBytes;
-    results->custodyRefusedCount
-	    += ctStats.tallies[BP_CT_BLK_MALFORMED].currentCount;
-    results->custodyRefusedBytes
-	    += ctStats.tallies[BP_CT_BLK_MALFORMED].currentBytes;
 
     sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
     results->bundleFwdFailedCount
@@ -521,25 +486,6 @@ static void    resetDelStats(BpDB *db)
 }   /* end of resetDelStats */
 
 /*****************************************************************************/
-static void    resetCtStats(BpDB *db)
-{
-    Sdr             sdr = getIonsdr();
-    BpCtStats       stats;
-    int             i;
-    Tally         * tally;
-
-    sdr_stage(sdr, (char *) &stats, db->ctStats, sizeof(BpCtStats));
-    for (i = 0, tally = stats.tallies; i < BP_CT_STATS; i++, tally++)
-    {
-        tally->currentCount = 0;
-        tally->currentBytes = 0;
-    }
-
-    sdr_write(sdr, db->ctStats, (char *) &stats, sizeof(BpCtStats));
-
-}   /* end of resetCtStats */
-
-/*****************************************************************************/
 static void    resetDbStats(BpDB *db)
 {
     Sdr             sdr = getIonsdr();
@@ -574,7 +520,6 @@ void    bpnm_disposition_reset()
     resetDiscardStats(&db);
     resetXmitStats(&db);
     resetDelStats(&db);
-    resetCtStats(&db);
     resetDbStats(&db);
     db.currentBundlesFragmented = 0;
     db.currentFragmentsProduced = 0;

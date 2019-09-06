@@ -48,8 +48,8 @@ static int	deliverAtSource(Object bundleObj, Bundle *bundle)
 	Object		newBundleObj;
 
 	isprintf(nss, sizeof nss, UVAST_FIELDSPEC ".%d",
-			bundle->destination.c.nodeNbr,
-			bundle->destination.c.serviceNbr);
+			bundle->destination.ssp.imc.groupNbr,
+			bundle->destination.ssp.imc.serviceNbr);
 	findEndpoint("imc", nss, NULL, &vpoint, &vpointElt);
 	if (vpoint == NULL)
 	{
@@ -232,7 +232,8 @@ int	main(int argc, char *argv[])
 
 		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 		copiesForwarded = 0;
-		imcFindGroup(bundle.destination.c.nodeNbr, &groupAddr, &elt2);
+		imcFindGroup(bundle.destination.ssp.imc.groupNbr, &groupAddr,
+				&elt2);
 		if (elt2 == 0)
 		{
 			/*	Nobody subscribes to bundles destined
@@ -243,7 +244,7 @@ int	main(int argc, char *argv[])
 		else
 		{
 			if (bundle.clDossier.senderNodeNbr == 0
-			&& bundle.id.source.c.nodeNbr != ownNodeNbr)
+			&& bundle.id.source.ssp.ipn.nodeNbr != ownNodeNbr)
 			{
 				/*	Received from unknown node,
 				 *	can't safely forward bundle.	*/
@@ -257,7 +258,8 @@ int	main(int argc, char *argv[])
 						sizeof(ImcGroup));
 				if (group.isMember
 				&& bundle.clDossier.senderNodeNbr == 0
-				&& bundle.id.source.c.nodeNbr == ownNodeNbr)
+				&& bundle.id.source.ssp.ipn.nodeNbr
+						== ownNodeNbr)
 				{
 					/*	Must deliver locally.	*/
 					if (deliverAtSource(bundleAddr,

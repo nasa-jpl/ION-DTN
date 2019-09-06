@@ -51,7 +51,6 @@ static void	shutDown()	/*	Commands bptransit termination.	*/
 static int	initiateBundleForwarding(Sdr sdr, Bundle *bundle,
 			Object bundleAddr, Object newPayload)
 {
-	char	*dictionary;
 	char	*eidString;
 	int	result;
 
@@ -70,13 +69,7 @@ static int	initiateBundleForwarding(Sdr sdr, Bundle *bundle,
 
 	/*	Bundle is now ready to be forwarded.			*/
 
-	if ((dictionary = retrieveDictionary(bundle)) == (char *) bundle)
-	{
-		putErrmsg("Can't retrieve dictionary.", NULL);
-		return -1;
-	}
-
-	if (printEid(&(bundle->destination), dictionary, &eidString) < 0)
+	if (readEid(&(bundle->destination), &eidString) < 0)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
 		return -1;
@@ -84,7 +77,6 @@ static int	initiateBundleForwarding(Sdr sdr, Bundle *bundle,
 
 	result = forwardBundle(bundleAddr, bundle, eidString);
 	MRELEASE(eidString);
-	releaseDictionary(dictionary);
 	if (result < 0)
 	{
 		putErrmsg("Can't enqueue bundle for forwarding.", NULL);

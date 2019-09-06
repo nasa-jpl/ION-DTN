@@ -107,10 +107,13 @@ int	phn_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 int	phn_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int	blkHeaderLen;
-	char	*phnData;
-	char	*lastByte;
-	size_t	schemeNameLen;
+	int		blkHeaderLen;
+	char		*phnData;
+	char		*lastByte;
+	size_t		schemeNameLen;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 
 	/*	Data parsed out of the phn byte array go directly into
 	 *	the work area structure, not into a block-specific
@@ -118,9 +121,12 @@ int	phn_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	blk->size = 0;
 	blk->object = NULL;
-	if (wk->senderEid)		/*	Provided another way.	*/
+	if (wk->senderEid.schemeCodeNbr != unknown)
 	{
-		return 1;		/*	Ignore PHN block.	*/
+		/*	Sender EID was provided another way,
+		 *	so ignore the PHN block.			*/
+
+		return 1;
 	}
 
 	blkHeaderLen = blk->length - blk->dataLength;
@@ -146,14 +152,17 @@ int	phn_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 
 	*(phnData + schemeNameLen) = ':';
-	wk->senderEid = MTAKE(blk->dataLength);
-	if (wk->senderEid == NULL)
+	if (parseEidString(phnData, &metaEid, &vscheme, &vschemeElt) != 1)
+	{
+		return 0;		/*	Malformed.		*/
+	}
+
+	if (jotEid(&(wk->senderEid), &metaEid) < 0)
 	{
 		putErrmsg("No space for sender EID.", NULL);
 		return -1;
 	}
 
-	memcpy(wk->senderEid, phnData, blk->dataLength);
 	return 1;
 }
 

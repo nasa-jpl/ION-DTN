@@ -2009,8 +2009,8 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	if (route->toNodeNbr == getOwnNodeNbr())
 	{
-		if (!(bundle->destination.cbhe
-		&& bundle->destination.c.nodeNbr == route->toNodeNbr))
+		if (!(bundle->destination.schemeCodeNbr == 2
+		&& bundle->destination.ssp.ipn.nodeNbr == route->toNodeNbr))
 		{
 			/*	Never route via self -- a loop.		*/
 

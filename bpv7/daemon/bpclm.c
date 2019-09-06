@@ -303,12 +303,12 @@ static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		return 0;		/*	No applicable embargo.	*/
 	}
 
-	if (!(bundle->destination.cbhe && bundle->destination.unicast))
+	if (!(bundle->destination.schemeCodeNbr == 2))
 	{
 		return 0;		/*	No applicable embargo.	*/
 	}
 
-	destNode = findNode(getIonVdb(), bundle->destination.c.nodeNbr,
+	destNode = findNode(getIonVdb(), bundle->destination.ssp.ipn.nodeNbr,
 			&nextNode);
 	if (destNode == NULL)
 	{

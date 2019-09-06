@@ -649,7 +649,7 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 	MRELEASE(petition);
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
 			&vschemeElt) < 0
-	|| vscheme->cbhe == 0 || vscheme->unicast == 0)
+	|| vscheme->codeNumber != 2)	/*	ipn			*/
 	{
 		/*	Can't determine sending node number.		*/
 
@@ -664,11 +664,11 @@ node " UVAST_FIELDSPEC ".\n", isMember, metaEid.nodeNbr, getOwnNodeNbr());
 fflush(stdout);
 #endif
 	CHKERR(sdr_begin_xn(sdr));
-	if (locateRelative(metaEid.nodeNbr, &nextRelative) == 0)
+	if (locateRelative(metaEid.elementNbr, &nextRelative) == 0)
 	{
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Ignoring petition from non-kin",
-				utoa(metaEid.nodeNbr));
+				utoa(metaEid.elementNbr));
 		return 0;
 	}
 
@@ -714,12 +714,12 @@ fflush(stdout);
 		{
 			GET_OBJ_POINTER(sdr, NodeId, node,
 					sdr_list_data(sdr, elt));
-			if (node->nbr < metaEid.nodeNbr)
+			if (node->nbr < metaEid.elementNbr)
 			{
 				continue;
 			}
 
-			if (node->nbr == metaEid.nodeNbr)
+			if (node->nbr == metaEid.elementNbr)
 			{
 #if IMCDEBUG
 puts("Ignoring assertion.");
@@ -738,7 +738,7 @@ fflush(stdout);
 printf("Adding member " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr, groupNbr);
 fflush(stdout);
 #endif
-		addr = createNodeId(sdr, metaEid.nodeNbr);
+		addr = createNodeId(sdr, metaEid.elementNbr);
 		if (elt)
 		{
 			oK(sdr_list_insert_before(sdr, elt, addr));
@@ -751,7 +751,7 @@ fflush(stdout);
 		/*	Assert interest (perhaps redundant) to every
 		 *	relative other than the new member itself.	*/
 
-		if (forwardPetition(group, 1, metaEid.nodeNbr) < 0)
+		if (forwardPetition(group, 1, metaEid.elementNbr) < 0)
 		{
 			sdr_cancel_xn(sdr);
 		}
@@ -771,7 +771,7 @@ fflush(stdout);
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, NodeId, node, sdr_list_data(sdr, elt));
-		if (node->nbr < metaEid.nodeNbr)
+		if (node->nbr < metaEid.elementNbr)
 		{
 			continue;
 		}

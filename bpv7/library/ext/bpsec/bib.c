@@ -159,7 +159,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 	 *		be forwarded.
 	 */
 
-	prof = bibGetProfile(fromEid, toEid, bibAsb->targetBlockType,
+	prof = bibGetProfile(fromEid, toEid, bibAsb->targetBlockNumber,
 			&bibRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
@@ -193,7 +193,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 
 	/* Step 2.1 - Grab the key name for this operation. */
 
-	memcpy(bibAsb->keyName, bibRule.keyName, KEY_NAME_LEN);
+	memcpy(bibAsb->keyName, bibRule.keyName, BPSEC_KEY_NAME_LEN);
 
 	/* Step 2.2 - Initialize the BIB ASB. */
 
@@ -236,7 +236,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 
 	/* Step 3.1 - Create a serialized version of the BIB ASB. */
 
-	if ((serializedAsb = serializeASB((uint32_t *)
+	if ((serializedAsb = bpsec_serializeASB((uint32_t *)
 			&(bibBlk->dataLength), bibAsb)) == NULL)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
@@ -308,7 +308,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		return -1;
 	}
 
-	/*	For BIBs, the security destination is always the final
+	/*	The security destination is always the final
 	 *	destination of the bundle.  The security source is
 	 *	normally the original source of the bundle, but a BIB
 	 *	can alternatively be inserted at any point in the
@@ -316,9 +316,9 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	bundle = &(wk->bundle);
 	asb = (BpsecInboundBlock *) (blk->object);
-	if (asb->securitySource.unicast)	/*	Waypoint source.*/
+	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
-		if (printEid(&(asb->securitySource), &fromEid) < 0)
+		if (readEid(&(asb->securitySource), &fromEid) < 0)
 		{
 			ADD_BIB_RX_FAIL(NULL, 1, 0);
 			return -1;
@@ -326,14 +326,14 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (printEid(&(bundle->id.source), &fromEid) < 0)
+		if (readEid(&(bundle->id.source), &fromEid) < 0)
 		{
 			ADD_BIB_RX_FAIL(NULL, 1, 0);
 			return -1;
 		}
 	}
 
-	if (printEid(&(bundle->destination), &toEid) < 0)
+	if (readEid(&(bundle->destination), &toEid) < 0)
 	{
 		ADD_BIB_RX_FAIL(fromEid, 1, 0);
 		MRELEASE(fromEid);
@@ -342,8 +342,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BIB rule.	*/
 
-	prof = bibGetProfile(fromEid, toEid, asb->targetBlockType,
-			&bibRule);
+	prof = bibGetProfile(fromEid, toEid, asb->targetBlockNumber, &bibRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
@@ -362,7 +361,6 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 			BIB_DEBUG_INFO("- bibCheck - No rule.", NULL);
 			BIB_DEBUG_PROC("- bibCheck", NULL);
-			blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
 			return 1;		/*	No information.	*/
 		}
 
@@ -381,7 +379,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Fill in missing information in the scratchpad area.	*/
 
-	memcpy(asb->keyName, bibRule.keyName, KEY_NAME_LEN);
+	memcpy(asb->keyName, bibRule.keyName, BPSEC_KEY_NAME_LEN);
 
 	/*	Invoke ciphersuite-specific check procedure.		*/
 
@@ -410,7 +408,6 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	else
 	{
 		ADD_BIB_FWD(fromEid, 1, bytes);
-		blk->blkProcFlags |= BLK_FORWARDED_OPAQUE;
 	}
 
 	MRELEASE(fromEid);
@@ -756,7 +753,7 @@ int bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
 	CHKERR(asb);
 
 	/* Step 1: Populate block-instance-agnostic parts of the ASB. */
-	asb->ciphersuiteType = suite;
+	asb->ciphersuiteId = suite;
 	asb->parmsLen = 0;
 	asb->parmsData = 0;
 	asb->resultsData = 0;
@@ -766,7 +763,7 @@ int bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
 	asb->ciphersuiteFlags = ASB_RES;
 #endif
 	asb->ciphersuiteFlags = 0;
-	asb->resultsLen = bibDefaultResultLen(asb->ciphersuiteType, 1);
+	asb->resultsLen = bibDefaultResultLen(asb->ciphersuiteId, 1);
 
 	return 0;
 }
@@ -909,19 +906,25 @@ int bibDefaultSign(uint32_t suite,
 
 	switch (asb->targetBlockType)
 	{
+		case BLOCK_TYPE_PRIMARY:
+#if 0	//	This code is yet to be developed.
+			*bytes = bundle->payload.length;
+			retval = bibDefaultCompute(bundle->payload.content,
+					csi_blocksize(suite), suite, context,
+					CSI_SVC_SIGN);
+#endif
+			break;
+
 		case BLOCK_TYPE_PAYLOAD:
 			*bytes = bundle->payload.length;
 			retval = bibDefaultCompute(bundle->payload.content,
-									  csi_blocksize(suite),
-									  suite,
-									  context,
-									  CSI_SVC_SIGN);
-		break;
+					csi_blocksize(suite), suite, context,
+					CSI_SVC_SIGN);
+			break;
 
-		case BLOCK_TYPE_PRIMARY:
 		default:
-			BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not supported.",
-					      asb->targetBlockType);
+			BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not \
+supported.", asb->targetBlockType);
 			MRELEASE(key.contents);
 			csi_ctx_free(suite, context);
 			BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
@@ -965,7 +968,7 @@ int bibDefaultSign(uint32_t suite,
 	}
 
 	/* Step 2.3 Populate the result TLV. */
-	*temp = CSPARM_INT_SIG;
+	*temp = BPSEC_CSPARM_INT_SIG;
 	memcpy(temp + 1, digestSdnv.text, digestSdnv.length);
 	memcpy(temp + 1 + digestSdnv.length, digest.contents, digest.len);
 	MRELEASE(digest.contents);
@@ -1048,7 +1051,7 @@ int bibDefaultVerify(uint32_t suite,
 #endif
 
 	/* Step 1 - Compute the security result for the target block. */
-	key = retrieveKey(asb->keyName);
+	key = bpsec_retrieveKey(asb->keyName);
 
 	/* Step 2 - Grab and initialize a crypto context. */
 	if ((context = csi_ctx_init(suite, key, CSI_SVC_VERIFY)) == NULL)
@@ -1069,20 +1072,25 @@ int bibDefaultVerify(uint32_t suite,
 
 	switch (asb->targetBlockType)
 	{
+		case BLOCK_TYPE_PRIMARY:
+#if 0	//	This code is yet to be developed.
+			*bytes = wk->bundle.payload.length;
+			retval = bibDefaultCompute(wk->bundle.payload.content,
+					csi_blocksize(suite), suite, context,
+					CSI_SVC_VERIFY);
+#endif
+			break;
+
 		case BLOCK_TYPE_PAYLOAD:
 			*bytes = wk->bundle.payload.length;
-
 			retval = bibDefaultCompute(wk->bundle.payload.content,
-									  csi_blocksize(suite),
-									  suite,
-									  context,
-  									  CSI_SVC_VERIFY);
-		break;
+					csi_blocksize(suite), suite, context,
+					CSI_SVC_VERIFY);
+			break;
 
-		case BLOCK_TYPE_PRIMARY:
 		default:
-			BIB_DEBUG_ERR("x bibDefaultVerify: Block type %d not supported.",
-					      asb->targetBlockType);
+			BIB_DEBUG_ERR("x bibDefaultVerify: Block type %d \
+not supported.", asb->targetBlockType);
 			csi_ctx_free(suite, context);
 			MRELEASE(key.contents);
 			BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
@@ -1203,18 +1211,21 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
  * \par Function Name: bibOffer
  *
  * \par Purpose: This callback aims to ensure that the bundle contains
- * 		         a BIB for the block identified by tag1 of the proposed
- * 		         BIB contents.  If the bundle already contains such a
- * 		         BIB (inserted by an upstream node) then the function
- * 		         simply returns 0.  Otherwise the function creates a
- * 		         BIB for the target block identified by blk->tag1.  If
- * 		         the target block is the payload block, then the BIB is
- * 		         fully constructed at this time (because the final
- * 		         content of the payload block is complete).  Otherwise,
- * 		         only a placeholder BIB is constructed; in effect, the
- * 		         placeholder BIB signals to later processing that such
- * 		         a BIB may or may not need to be attached to the bundle,
- * 		         depending on the final contents of other bundle blocks.
+ * 		         a BIB for the block identified by the tag1
+ * 		         value (here, block type) loaded into the
+ * 		         proposed-block structure.  If the bundle
+ * 		         already contains such a BIB (inserted by an
+ * 		         upstream node) then the function simply
+ * 		         returns 0.  Otherwise the function creates a
+ * 		         BIB for the block identified by tag1.
+ * 		         If the target block is the payload block, then the
+ * 		         BIB is fully constructed at this time (because the
+ * 		         final content of the payload block is complete).
+ * 		         Otherwise, only a placeholder BIB is constructed;
+ * 		         in effect, the placeholder BIB signals to later
+ * 		         processing that such a BIB may or may not need
+ * 		         to be attached to the bundle, depending on the
+ * 		         final contents of other bundle blocks.
  *
  * \retval int 0 - The BIB was successfully created, or not needed.
  *            -1 - There was a system error.
@@ -1225,8 +1236,8 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
  * \todo Update to be used with any block, not just payload.
  *
  * \par Assumptions:
- *      1. The blk has been pre-initialized such that the tag1 value
- *         is initialized with the target block type.
+ *      1. The blk has been pre-initialized with correct block type (BIB)
+ *         and a tag1 value that identifies the target of the proposed BIB.
  *
  * \par Notes:
  *      1. All block memory is allocated using sdr_malloc.
@@ -1268,12 +1279,12 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	blk->bytes = 0;		/*	Default.			*/
 
 
-	/* Step 1.2 - Make sure that we are not trying an invalid security OP. */
-	if (blk->tag1 == BLOCK_TYPE_BIB ||
-	    blk->tag1 == BLOCK_TYPE_BCB)
+	/* Step 1.2 - Make sure that the security OP is valid. */
+	if (blk->tag1 == BLOCK_TYPE_BIB || blk->tag1 == BLOCK_TYPE_BCB)
 	{
 		/*	Can't have a BIB for these types of block.	*/
-		BIB_DEBUG_ERR("x bibOffer - BIB can't target type %d", blk->tag1);
+		BIB_DEBUG_ERR("x bibOffer - BIB can't target type %d",
+				blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
@@ -1282,10 +1293,11 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	}
 
     /* Step 1.3 - Make sure OP(integrity, target) isn't already there. */
-	if (bpsec_findBlock(bundle, BLOCK_TYPE_BIB, blk->tag1, 0, 0))
+	if (bpsec_findBlock(bundle, BLOCK_TYPE_BIB, blk->tag1, 0))
 	{
 		/*	Don't create a placeholder BIB for this block.	*/
-		BIB_DEBUG_ERR("x bibOffer - BIB already exists for tgt %d", blk->tag1);
+		BIB_DEBUG_ERR("x bibOffer - BIB already exists for tgt %d",
+				blk->tag1);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
@@ -1326,6 +1338,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	 * Step 4.1 - If the target is not the payload, we have
 	 *            to defer integrity until a later date.
 	 */
+
 	if (asb.targetBlockType != BLOCK_TYPE_PAYLOAD)
 	{
 		/*	We can't construct the block at this time
@@ -1338,9 +1351,12 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		 *	the block's scratchpad area, resulting in
 		 *	insertion of a placeholder BIB for the target
 		 *	block.						*/
-		result = 0;
 
-		BIB_DEBUG_WARN("i bibOffer: Integrity for type %d not supported.", asb.targetBlockType);
+		result = 0;
+#if 0
+		BIB_DEBUG_WARN("i bibOffer: Integrity for type %d not \
+supported.", asb.targetBlockType);
+#endif
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
 	}
@@ -1359,7 +1375,6 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		blk->object = 0;
 		blk->size = 0;
 	}
-
 
 	BIB_DEBUG_PROC("- bibOffer -> %d", result);
 	return result;
@@ -1541,21 +1556,8 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 		return -1;
 	}
 
-	/* Step 1.2 - Make sure we do not process someone else's BIB. */
-	if (blk->blkProcFlags & BLK_FORWARDED_OPAQUE)
-	{
-		/*	Do nothing; the block's bytes are correct
-		 *	and ready for transmission.  The block was
-		 *	received when the bundle was received; it
-		 *	was serialized in the recordExtensionBlocks()
-		 *	function.					*/
-
-		BIB_DEBUG_PROC("- bibProcessOnDequeue(%d)", result);
-		return 0;
-	} 
-
 	/*
-	 * Step 1.3 - If the target is the payload, the BIB was already
+	 * Step 1.2 - If the target is the payload, the BIB was already
 	 *            handled in bibOffer. Nothing left to do.
 	 */
 	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);

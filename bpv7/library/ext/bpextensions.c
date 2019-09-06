@@ -164,7 +164,7 @@ static ExtensionSpec	extensionSpecs[] =
 				{ EXTENSION_TYPE_BAE, 0, 0, 0 },
 				{ EXTENSION_TYPE_SNW, 0, 0, 0 },
 #if defined(BPSEC)
-				{ BLOCK_TYPE_BIB, 1, 0, 0 },
+				{ BLOCK_TYPE_BIB, 0, 0, 0 },
 				{ BLOCK_TYPE_BCB, 1, 0, 0 },
 #endif
 				{ 0,0,0,0 }

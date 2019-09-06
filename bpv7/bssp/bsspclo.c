@@ -48,8 +48,8 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 
 typedef struct
 {
-	CbheEid		source;
-	CbheEid		dest;
+	EndpointId	source;
+	EndpointId	dest;
 	BpTimestamp	lastBundle;
 } BundleStream;
 
@@ -61,42 +61,42 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 	for (elt = lyst_first(streams); elt; elt = lyst_next(elt))
 	{
 		stream = lyst_data(elt);
-		if (stream->source.nodeNbr < bundle->id.source.c.nodeNbr)
+		if (stream->source.ssp.ipn.nodeNbr < bundle->id.source.ssp.ipn.nodeNbr)
 		{
 			continue;
 		}
 
-		if (stream->source.nodeNbr > bundle->id.source.c.nodeNbr)
+		if (stream->source.ssp.ipn.nodeNbr > bundle->id.source.ssp.ipn.nodeNbr)
 		{
 			break;
 		}
 
-		if (stream->source.serviceNbr < bundle->id.source.c.serviceNbr)
+		if (stream->source.ssp.ipn.serviceNbr < bundle->id.source.ssp.ipn.serviceNbr)
 		{
 			continue;
 		}
 
-		if (stream->source.serviceNbr > bundle->id.source.c.serviceNbr)
+		if (stream->source.ssp.ipn.serviceNbr > bundle->id.source.ssp.ipn.serviceNbr)
 		{
 			break;
 		}
 
-		if (stream->dest.nodeNbr < bundle->destination.c.nodeNbr)
+		if (stream->dest.ssp.ipn.nodeNbr < bundle->destination.ssp.ipn.nodeNbr)
 		{
 			continue;
 		}
 
-		if (stream->dest.nodeNbr > bundle->destination.c.nodeNbr)
+		if (stream->dest.ssp.ipn.nodeNbr > bundle->destination.ssp.ipn.nodeNbr)
 		{
 			break;
 		}
 
-		if (stream->dest.serviceNbr < bundle->destination.c.serviceNbr)
+		if (stream->dest.ssp.ipn.serviceNbr < bundle->destination.ssp.ipn.serviceNbr)
 		{
 			continue;
 		}
 
-		if (stream->dest.serviceNbr > bundle->destination.c.serviceNbr)
+		if (stream->dest.ssp.ipn.serviceNbr > bundle->destination.ssp.ipn.serviceNbr)
 		{
 			break;
 		}
@@ -141,10 +141,12 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 		return 0;
 	}
 
-	stream->source.nodeNbr = bundle->id.source.c.nodeNbr;
-	stream->source.serviceNbr = bundle->id.source.c.serviceNbr;
-	stream->dest.nodeNbr = bundle->destination.c.nodeNbr;
-	stream->dest.serviceNbr = bundle->destination.c.serviceNbr;
+	stream->source.ssp.ipn.nodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
+	stream->source.ssp.ipn.serviceNbr
+			= bundle->id.source.ssp.ipn.serviceNbr;
+	stream->dest.ssp.ipn.nodeNbr = bundle->destination.ssp.ipn.nodeNbr;
+	stream->dest.ssp.ipn.serviceNbr
+			= bundle->destination.ssp.ipn.serviceNbr;
 	stream->lastBundle.seconds = bundle->id.creationTime.seconds;
 	stream->lastBundle.count = bundle->id.creationTime.count;
 	return 1;
@@ -180,7 +182,6 @@ int	main(int argc, char *argv[])
 	unsigned char	*buffer;
 	Lyst		streams;
 	Bundle		bundleImage;
-	char		*dictionary = 0;
 	unsigned int	bundleLength;
 
 	if (ductName == NULL)
@@ -272,7 +273,7 @@ int	main(int argc, char *argv[])
 		}
 
 		if (decodeBundle(sdr, bundleZco, buffer, &bundleImage,
-				&dictionary, &bundleLength) < 0)
+				&bundleLength) < 0)
 		{
 			putErrmsg("Can't decode bundle ZCO.", NULL);
 			CHKERR(sdr_begin_xn(sdr));

@@ -32,7 +32,7 @@ extern "C" {
 #define	BP_NONBLOCKING		(0)	/*	Return immediately.	*/
 #define BP_BLOCKING		(-1)	/*	Wait forever.		*/
 
-/*	bp_send priority values						*/
+/*	bp_send class-of-service values					*/
 #define	BP_BULK_PRIORITY	(0)	/*	Slower.			*/
 #define	BP_STD_PRIORITY		(1)	/*	Faster.			*/
 #define	BP_EXPEDITED_PRIORITY	(2)	/*	Precedes others.	*/
@@ -72,8 +72,9 @@ typedef struct
 
 	/*	Note that priority is likewise now carried in the QOS
 	 *	block.  However, the ION application protocol interface
-	 *	preserves separate specification of priority rather
-	 *	than including it in the BpAncillaryData structure.	*/
+	 *	preserves separate specification of priority (termed
+	 *	"class of service") rather than including it in the
+	 *	BpAncillaryData structure.				*/
 
 	/*	From Metadata block.					*/
 
@@ -191,7 +192,7 @@ extern int		bp_open_source(	char *eid,
 extern int		bp_parse_quality_of_service(	const char *token,
 					BpAncillaryData *ancillaryData,
 					BpCustodySwitch *custodySwitch,
-					int *priority);
+					int *classOfService);
 			/*  Parses the token string specifying service
 			 *  parameters into appropriate service-related 
 			 *  arguments that may be passed to bp_send(),
@@ -210,7 +211,7 @@ extern int		bp_send(	BpSAP sap,
 					char *destEid,
 					char *reportToEid,
 					int lifespan,
-					int priority,
+					int classOfService,
 					BpCustodySwitch custodySwitch,
 					unsigned char srrFlags,
 					int ackRequested,

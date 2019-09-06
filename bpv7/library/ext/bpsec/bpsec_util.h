@@ -195,10 +195,10 @@
 typedef struct
 {
 	EndpointId securitySource;
+	uint8_t	   targetBlockNumber;
 	uint8_t	   targetBlockType;
-	uint8_t	   targetBlockOccurrence;
-	uint8_t    instance;	    /*  0: 1st, lone.  1: last.		*/
-	uint8_t	   ciphersuiteType;
+	uint8_t	   metatargetBlockType;
+	uint8_t	   ciphersuiteId;
 	char	   keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   ciphersuiteFlags;
 	uint32_t   parmsLen;	    /*  IFF flags & bpsec_ASB_PARM	*/
@@ -219,11 +219,11 @@ typedef struct
 typedef struct
 {
 	EndpointId securitySource;
+	uint8_t	   targetBlockNumber;
 	uint8_t	   targetBlockType;
-	uint8_t	   targetBlockOccurrence;
-	uint8_t	   instance;	/*  0: 1st, lone.  1: last.		*/
+	uint8_t	   metatargetBlockType;
 	uint8_t	   encryptInPlace;	/*  Boolean			*/
-	uint8_t	   ciphersuiteType;
+	uint8_t	   ciphersuiteId;
 	char       keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   ciphersuiteFlags;
 	uint32_t   parmsLen;	/** IFF flags & bpsec_ASB_PARM		*/
@@ -253,13 +253,11 @@ extern int		bpsec_destinationIsLocal(Bundle *bundle);
 
 extern LystElt		bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
 				uint8_t targetBlockType,
-				uint8_t targetBlockOccurrence,
-				uint8_t instance);
+				uint8_t metatargetBlockOccurrence);
 
 extern Object		bpsec_findBlock(Bundle *bundle, uint8_t type,
 				uint8_t targetBlockType,
-				uint8_t targetBlockOccurrence,
-				uint8_t instance);
+				uint8_t metatargetBlockType);
 
 extern void		bpsec_getInboundItem(int itemNeeded, unsigned char *buf,
 				unsigned int bufLen, unsigned char **val,

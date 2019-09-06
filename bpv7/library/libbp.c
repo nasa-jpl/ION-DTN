@@ -759,7 +759,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	/*	Now fill in the data indication structure.		*/
 
 	dlvBuffer->result = BpPayloadPresent;
-	if (printEid(&bundle.id.source, &dlvBuffer->bundleSourceEid) < 0)
+	if (readEid(&bundle.id.source, &dlvBuffer->bundleSourceEid) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't print source EID.", NULL);

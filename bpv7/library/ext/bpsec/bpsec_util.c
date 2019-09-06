@@ -342,27 +342,22 @@ ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 	/* Extract block specifics, using ciphersuiteFlags as necessary. */
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.targetBlockType = itemp;
-
-	/*	The "subscript" portion of the compound security-
-	 *	target field of the inbound bpsec block is the
-	 *	occurrence number of the target block.			*/
-
-	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.targetBlockOccurrence = itemp;
+	asb.targetBlockNumber = itemp;
 
 	/*	For now, ION does not recognize any multi-block
 	 *	security operations.
 	 */
-	asb.instance = 0;
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.ciphersuiteType = itemp;
+	asb.ciphersuiteId = itemp;
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 	asb.ciphersuiteFlags = itemp;
 
 	BPSEC_DEBUG_INFO("i bpsec_deserializeASB: cipher %ld, flags %ld, \
-length %d", asb.ciphersuiteType, asb.ciphersuiteFlags, blk->dataLength);
+length %d", asb.ciphersuiteId, asb.ciphersuiteFlags, blk->dataLength);
+
+	/*	For now, ION does not support security sources in
+	 *	security blocks, so we start on parameters right away.	*/
 
 	if (asb.ciphersuiteFlags & BPSEC_ASB_PARM)
 	{
@@ -502,16 +497,15 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
  *
  * \par Purpose: This function searches the lists of extension blocks in
  * 		 an acquisition work area looking for a bpsec block of the
- * 		 indicated type and ordinality whose target is the block
- * 		 of indicated type and ordinality.
+ * 		 indicated type whose target is the block of indicated type
+ * 		 and (as relevant) target type.
  *
  * \retval Object
  *
  * \param[in]  bundle      		The bundle within which to search.
  * \param[in]  type        		The type of bpsec block to look for.
  * \param[in]  targetBlockType		Identifies target of the bpsec block.
- * \param[in]  targetBlockOccurrence	Identifies target of the bpsec block.
- * \param[in]  instance			The bpsec block instance to look for.
+ * \param[in]  metatargetBlockType	Identifies target of the target block.
  *
  * \par Notes:
  *****************************************************************************/
@@ -519,8 +513,7 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
 LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
 		                   uint8_t type,
 				   uint8_t targetBlockType,
-				   uint8_t targetBlockOccurrence,
-				   uint8_t instance)
+				   uint8_t metatargetBlockType)
 {
 	LystElt			elt;
 	AcqExtBlock		*blk;
@@ -537,8 +530,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
 
 		asb = (BpsecInboundBlock *) (blk->object);
 		if (asb->targetBlockType == targetBlockType
-		&& asb->targetBlockOccurrence == targetBlockOccurrence
-		&& asb->instance == instance)
+		&& asb->metatargetBlockType == metatargetBlockType)
 		{
 			return elt;
 		}
@@ -562,8 +554,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
  * \param[in]  bundle      		The bundle within which to search.
  * \param[in]  type        		The type of bpsec block to look for.
  * \param[in]  targetBlockType		Identifies target of the bpsec block.
- * \param[in]  targetBlockOccurrence	Identifies target of the bpsec block.
- * \param[in]  instance			The bpsec block instance to look for.
+ * \param[in]  metatargetBlockType	Identifies target of the target block.
  *
  * \par Notes:
  *
@@ -576,10 +567,9 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
  *****************************************************************************/
 
 Object	bpsec_findBlock(Bundle *bundle,
-						uint8_t type,
-				        uint8_t targetBlockType,
-						uint8_t targetBlockOccurrence,
-						uint8_t instance)
+				uint8_t type,
+			        uint8_t targetBlockType,
+				uint8_t metatargetBlockType)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -600,8 +590,7 @@ Object	bpsec_findBlock(Bundle *bundle,
 
 		GET_OBJ_POINTER(sdr, BpsecOutboundBlock, asb, blk->object);
 		if (asb->targetBlockType == targetBlockType
-		&& asb->targetBlockOccurrence == targetBlockOccurrence
-		&& asb->instance == instance)
+		&& asb->metatargetBlockType == metatargetBlockType)
 		{
 			return elt;
 		}
@@ -655,13 +644,13 @@ int	bpsec_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 	*fromEid = NULL;	/*	Default.			*/
 	*toEid = NULL;		/*	Default.			*/
 
-	if (printEid(&(bundle->destination), toEid) < 0)
+	if (readEid(&(bundle->destination), toEid) < 0)
 	{
 		return -1;
 	}
 
 	result = 0;
-	if (printEid(&bundle->id.source, fromEid) < 0)
+	if (readEid(&bundle->id.source, fromEid) < 0)
 	{
 		result = -1;
 	}
@@ -869,13 +858,13 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 	*fromEid = NULL;	/*	Default.			*/
 	*toEid = NULL;		/*	Default.			*/
 
-	if (printEid(&(bundle->destination), toEid) < 0)
+	if (readEid(&(bundle->destination), toEid) < 0)
 	{
 		return -1;
 	}
 
 	result = 0;
-	if (printEid(&bundle->id.source, fromEid) < 0)
+	if (readEid(&bundle->id.source, fromEid) < 0)
 	{
 		result = -1;
 	}
@@ -885,6 +874,32 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 	}
 
 	return result;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: bpsec_insertSecuritySource
+ *
+ * \par Purpose: Inserts security source into the Abstract Security Block.
+ *
+ * \par Date Written:  TBD
+ *
+ * \retval	None
+ *
+ * \param[in]   bundle  The outbound bundle.
+ * \param[in]   asb	The outbound Abstract Security Block.
+ *
+ * \par Notes:
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        DESCRIPTION
+ *  --------  ------------  ----------------------------------------
+ *****************************************************************************/
+
+void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
+{
+	return;
 }
 
 /******************************************************************************
@@ -1154,7 +1169,7 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, uint8_t bpsecBlockType,
 		/*	No security source in block, so source of BIB
 		 *	is the source of the bundle.			*/
 
-		if (printEid(&bundle->id.source, &fromEid) < 0)
+		if (readEid(&bundle->id.source, &fromEid) < 0)
 		{
 			result = -1;
 		}
@@ -1223,9 +1238,8 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, uint8_t bpsecBlockType,
 unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 {
 	Sdr		sdr = getIonsdr();
-	Sdnv		targetBlockType;
-	Sdnv		targetBlockOccurrence;
-	Sdnv		ciphersuiteType;
+	Sdnv		targetBlockNumber;
+	Sdnv		ciphersuiteId;
 	Sdnv		ciphersuiteFlags;
 	Sdnv		parmsLen;
 	Sdnv		resultsLen;
@@ -1247,12 +1261,10 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	 *	separate function to calculate this length as it would
 	 *	result in generating multiple SDNV values needlessly.	*/
 
-	encodeSdnv(&targetBlockType, asb->targetBlockType);
-	*length = targetBlockType.length;
-	encodeSdnv(&targetBlockOccurrence, asb->targetBlockOccurrence);
-	*length += targetBlockOccurrence.length;
-	encodeSdnv(&ciphersuiteType, asb->ciphersuiteType);
-	*length += ciphersuiteType.length;
+	encodeSdnv(&targetBlockNumber, asb->targetBlockNumber);
+	*length = targetBlockNumber.length;
+	encodeSdnv(&ciphersuiteId, asb->ciphersuiteId);
+	*length += ciphersuiteId.length;
 	encodeSdnv(&ciphersuiteFlags, asb->ciphersuiteFlags);
 	*length += ciphersuiteFlags.length;
 	if (asb->ciphersuiteFlags & BPSEC_ASB_PARM)
@@ -1294,9 +1306,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	}
 
 	cursor = serializedAsb;
-	cursor = bpsec_addSdnvToStream(cursor, &targetBlockType);
-	cursor = bpsec_addSdnvToStream(cursor, &targetBlockOccurrence);
-	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteType);
+	cursor = bpsec_addSdnvToStream(cursor, &targetBlockNumber);
+	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteId);
 	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteFlags);
 
 	if (asb->ciphersuiteFlags & BPSEC_ASB_PARM)
