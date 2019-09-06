@@ -824,6 +824,7 @@ bpbin = \
 	bprecvfile \
 	bpclm \
 	bpclock \
+	bpcrash \
 	bptransit \
 	ipnadmin \
 	ipnfw \
@@ -1382,6 +1383,10 @@ bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpnmtest_SOURCES = bp/test/bpnmtest.c
 bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpcrash_SOURCES = bp/test/bpcrash.c
+bpcrash_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
