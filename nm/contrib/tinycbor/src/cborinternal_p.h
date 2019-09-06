@@ -22,6 +22,15 @@
 **
 ****************************************************************************/
 
+#ifdef solaris      /****   Solaris (SunOS 5+)       ****/
+#ifndef INFINITY
+#define INFINITY HUGE_VAL
+#endif
+#ifndef NAN
+#define NAN (0.0/0.0)
+#endif
+#endif              /****   End of #ifdef (solaris)      ****/
+
 #ifndef CBORINTERNAL_P_H
 #define CBORINTERNAL_P_H
 
