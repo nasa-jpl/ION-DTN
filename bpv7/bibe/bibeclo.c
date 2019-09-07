@@ -50,7 +50,6 @@ int	main(int argc, char *argv[])
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
 	Bundle			image;
-	char			*dictionary = 0;
 	unsigned int		bundleLength;
 	time_t			currentTime;
 	unsigned int		bundleAge;
@@ -92,7 +91,7 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	adminHeader[0] = BP_ENCAPSULATED_BUNDLE << 4;
+	adminHeader[0] = BP_BIBE_PDU << 4;
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
@@ -130,8 +129,8 @@ int	main(int argc, char *argv[])
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
-		if (decodeBundle(sdr, bundleZco, buffer, &image, &dictionary,
-				&bundleLength) < 0)
+		if (decodeBundle(sdr, bundleZco, buffer, &image, &bundleLength)
+				< 0)
 		{
 			putErrmsg("Can't decode bundle; CLO stopping.", NULL);
 			shutDownClo();
@@ -153,9 +152,9 @@ int	main(int argc, char *argv[])
 			(image.id.creationTime.seconds + EPOCH_2000_SEC);
 		ttl = image.timeToLive - bundleAge;
 		switch (bpSend(NULL, endpointSpec, NULL, ttl,
-				COS_FLAGS(image.bundleProcFlags),
+				1,	/*	Std priority for now.	*/
 				NoCustodyRequested, 0, 0, &ancillaryData,
-				bundleZco, &newBundle, BP_ENCAPSULATED_BUNDLE))
+				bundleZco, &newBundle, BP_BIBE_PDU))
 		{
 		case -1:	/*	System error.			*/
 			putErrmsg("Can't send encapsulated bundle.", NULL);

@@ -41,7 +41,8 @@
 
 #include "adm_amp_agent.h"
 #include "adm_bp_agent.h"
-#include "adm_sbsp.h"
+//#include "adm_sbsp.h"
+#include "adm_bpsec.h"
 #include "adm_ion_admin.h"
 #include "adm_ion_bp_admin.h"
 #include "adm_ion_ipn_admin.h"
@@ -657,7 +658,8 @@ void adm_init()
 
 	amp_agent_init();
 	dtn_bp_agent_init();
-	dtn_sbsp_init();
+//	dtn_sbsp_init();
+	dtn_bpsec_init();
 	dtn_ion_ionadmin_init();
 	dtn_ion_bpadmin_init();
 	dtn_ion_ipnadmin_init();

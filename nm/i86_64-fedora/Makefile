@@ -51,9 +51,9 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_amp_agent_impl.c   \
 	$(AGENT)/adm_amp_agent_agent.c	\
 	$(AGENT)/adm_bp_agent_impl.c	\
-	$(AGENT)/adm_bp_agent_agent.c \
-	$(AGENT)/adm_sbsp_impl.c	\
-	$(AGENT)/adm_sbsp_agent.c	\
+	$(AGENT)/adm_bp_agent_agent.c   \
+	$(AGENT)/adm_bpsec_impl.c	\
+	$(AGENT)/adm_bpsec_agent.c	\
 	$(AGENT)/adm_ion_admin_agent.c 	\
 	$(AGENT)/adm_ion_admin_impl.c	\
 	$(AGENT)/adm_ion_bp_admin_impl.c	\
@@ -66,6 +66,8 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_ion_ltp_admin_agent.c	\
 	$(AGENT)/adm_ltp_agent_impl.c	\
 	$(AGENT)/adm_ltp_agent_agent.c 
+#	$(AGENT)/adm_sbsp_impl.c	
+#	$(AGENT)/adm_sbsp_agent.c	
 
 
 MGR_SOURCES = \
@@ -79,13 +81,14 @@ MGR_SOURCES = \
 	$(MGR)/ui_input.c 		\
 	$(MGR)/adm_amp_agent_mgr.c      \
 	$(MGR)/adm_bp_agent_mgr.c	\
-	$(MGR)/adm_sbsp_mgr.c	\
-	$(MGR)/adm_ion_admin_mgr.c \
+	$(MGR)/adm_bpsec_mgr.c		\
+	$(MGR)/adm_ion_admin_mgr.c 	\
 	$(MGR)/adm_ion_bp_admin_mgr.c	\
 	$(MGR)/adm_ionsec_admin_mgr.c	\
 	$(MGR)/adm_ion_ipn_admin_mgr.c	\
 	$(MGR)/adm_ion_ltp_admin_mgr.c	\
 	$(MGR)/adm_ltp_agent_mgr.c
+#	$(MGR)/adm_sbsp_mgr.c
 
 
 
@@ -102,7 +105,8 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I../../bp/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
+#INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I../../bp/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bpv7/library -I../../bpv7/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
 
 CC = gcc $(OPT) $(INCLDIRS)
 

@@ -584,8 +584,7 @@ static void run_cgrfetch(void)
 			.senderNodeNbr = localNode,
 		},
 		.expirationTime = expirationTime,
-		.dictionaryLength = 0,
-		.extensionsLength = {0, 0},
+		.extensionsLength = 0,
 	};
 
 	routes = lyst_create();
