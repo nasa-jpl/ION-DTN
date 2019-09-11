@@ -3130,6 +3130,12 @@ static inline QCBORError QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx)
 
  =========================================================================== */
 
+/** The following are formerly inline static functions made public for non-standard BYTE support
+ *    TODO: Consider Moving logic for handling BYTE into QCBOR library such that these can be returned to inline static
+ */
+void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting);
+QCBORError Nesting_Increment(QCBORTrackNesting *pNesting);
+
 #ifdef __cplusplus
 }
 #endif

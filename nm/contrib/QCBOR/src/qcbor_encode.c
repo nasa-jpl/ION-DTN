@@ -116,7 +116,7 @@ inline static void Nesting_Decrease(QCBORTrackNesting *pNesting)
    pNesting->pCurrentNesting--;
 }
 
-inline static QCBORError Nesting_Increment(QCBORTrackNesting *pNesting)
+/*inline static*/ QCBORError Nesting_Increment(QCBORTrackNesting *pNesting)
 {
    if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
       return QCBOR_ERR_ARRAY_TOO_LONG;

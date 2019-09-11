@@ -112,8 +112,15 @@ int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t byte)
                            1,
                            UsefulOutBuf_GetEndPosition(&(encoder->OutBuf))
       );
-   encoder->nesting.pCurrentNesting->uCount += 1;
-   return AMP_OK;
+   encoder->uError = Nesting_Increment(&(encoder->nesting));
+   if (encoder->uError != QCBOR_SUCCESS)
+   {
+      return AMP_FAIL;
+   }
+   else
+   {
+      return AMP_OK;
+   }
 }
 
 /** Encode a UVAST into CBOR-encoding and return as a blob
@@ -176,6 +183,9 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 
 		// Retrieve a byte & advance it
 		*((uint8_t*)val) = UsefulInputBuf_GetByte(buf);
+
+        // Decrement the nesting level
+        DecodeNesting_DecrementCount(&(it->nesting));
 
 		// And check for errors
 		if (UsefulInputBuf_GetError(buf) == 0) {

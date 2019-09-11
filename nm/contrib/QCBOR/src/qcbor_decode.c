@@ -127,7 +127,7 @@ inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 }
 
 // Called on every single item except breaks including the opening of a map/array
-inline static void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
+/*inline static*/ void DecodeNesting_DecrementCount(QCBORDecodeNesting *pNesting)
 {
    if(!DecodeNesting_IsNested(pNesting)) {
       // at top level where there is no tracking
