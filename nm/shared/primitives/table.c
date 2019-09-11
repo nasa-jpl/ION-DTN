@@ -134,48 +134,43 @@ tbl_t*   tbl_create(ari_t *id)
 }
 
 
-tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
+tbl_t* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	tbl_t *result = NULL;
 	size_t i;
 	size_t len;
 	ari_t *tpl_id;
 	tnvc_t entries;
-	CborError err;
-	CborValue array_it;
+	QCBORError err;
+	QCBORItem item;
 
 	AMP_DEBUG_ENTRY("tbl_deserialize_ptr",
-			        "("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+					"("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 					(uaddr)it, (uaddr)success);
 
 	/* Sanity Checks. */
 	CHKNULL(success);
 	*success = AMP_FAIL;
 	CHKNULL(it);
-	CHKNULL(cbor_value_is_array(it));
 
 	/*
 	 * Step 1: Determine how many elements are in the array.
 	 * First element is an ARI. Rest are rows.
 	 */
-	if(cbor_value_get_array_length(it, &len) != CborNoError)
+	err = QCBORDecode_GetNext(it, &item);
+	if ( err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
 		return NULL;
 	}
-
-	if(cbor_value_enter_container(it, &array_it) != CborNoError)
-	{
-		return NULL;
-	}
+	len = item.val.uCount;
 
 	/* Step 2: grab the Id. */
-	blob_t *blob = blob_deserialize_ptr(&array_it, success);
+	blob_t *blob = blob_deserialize_ptr(it, success);
 	tpl_id = ari_deserialize_raw(blob, success);
 	blob_release(blob, 1);
 
 	if((tpl_id == NULL) || (*success != AMP_OK))
 	{
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
@@ -186,7 +181,6 @@ tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
 
 	if(result == NULL)
 	{
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
@@ -196,7 +190,7 @@ tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
 	 */
 	for(i = 1; i < len; i++)
 	{
-		blob_t bytestr = blob_deserialize(&array_it, success);
+		blob_t bytestr = blob_deserialize(it, success);
 		tnvc_t *cur_row = NULL;
 
 		if(*success != AMP_OK)
@@ -235,19 +229,22 @@ tbl_t* tbl_deserialize_ptr(CborValue *it, int *success)
 
 tbl_t* tbl_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
 	CHKNULL(success);
 	*success = AMP_FAIL;
 	CHKNULL(data);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
-	return tbl_deserialize_ptr(&it, success);
+	tbl_t *rtv = tbl_deserialize_ptr(&it, success);
+
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return rtv;
 }
 
 
@@ -279,38 +276,31 @@ int tbl_num_rows(tbl_t *tbl)
 	return vec_num_entries(tbl->rows);
 }
 
-CborError tbl_serialize(CborEncoder *encoder, void *item)
+int tbl_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-	CborEncoder array_enc;
 	blob_t *result;
+	int err = AMP_OK;
 	int success;
 	size_t num;
 	size_t i;
 	tbl_t *tbl = (tbl_t *) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(tbl, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(tbl, AMP_FAIL);
 
 	num = tbl_num_rows(tbl) + 1;
 
 	/* Start a container. */
-	err = cbor_encoder_create_array(encoder, &array_enc, num);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("tbl_serialize","CBOR Error: %d", err);
-		return err;
-	}
+	QCBOREncode_OpenArray(encoder);
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(tbl->id);
-	err = blob_serialize(&array_enc, result);
+	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
-		cbor_encoder_close_container(encoder, &array_enc);
+		QCBOREncode_CloseArray(encoder);
 		return err;
 	}
 
@@ -325,23 +315,23 @@ CborError tbl_serialize(CborEncoder *encoder, void *item)
 	{
 		tnvc_t *cur_row = tbl_get_row(tbl, i-1);
 		result = tnvc_serialize_wrapper(cur_row);
-		err = blob_serialize(&array_enc, result);
+		err = blob_serialize(encoder, result);
 		blob_release(result, 1);
 
-		if((err != CborNoError) && (err != CborErrorOutOfMemory))
+		if(err != AMP_OK)
 		{
-			cbor_encoder_close_container(encoder, &array_enc);
+			QCBOREncode_CloseArray(encoder);
 			return err;
 		}
 	}
 
-	cbor_encoder_close_container(encoder, &array_enc);
+	QCBOREncode_CloseArray(encoder);
 	return err;
 }
 
 blob_t*   tbl_serialize_wrapper(tbl_t *tbl)
 {
-	return cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE, tbl, tbl_serialize);
+	return cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE, tbl, (cut_enc_fn)tbl_serialize);
 }
 
 

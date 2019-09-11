@@ -31,11 +31,10 @@
 #include "../adm/adm.h"
 #include "../msg/msg.h"
 #include "../utils/utils.h"
+#include "../utils/cbor_utils.h"
 #include "../utils/vector.h"
 
-
-
-msg_hdr_t msg_hdr_deserialize(CborValue *it, int *success)
+msg_hdr_t msg_hdr_deserialize(QCBORDecodeContext *it, int *success)
 {
 	msg_hdr_t hdr;
 
@@ -44,12 +43,10 @@ msg_hdr_t msg_hdr_deserialize(CborValue *it, int *success)
 	return hdr;
 }
 
-CborError msg_hdr_serialize(CborEncoder *encoder, msg_hdr_t hdr)
+int msg_hdr_serialize(QCBOREncodeContext *encoder, msg_hdr_t hdr)
 {
 	return cut_enc_byte(encoder, hdr.flags);
 }
-
-
 
 msg_agent_t* msg_agent_create()
 {
@@ -65,41 +62,54 @@ msg_agent_t* msg_agent_create()
 msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 {
 	msg_agent_t *result = msg_agent_create();
-	CborError err;
-	size_t len;
-	CborParser parser;
-	CborValue it;
+	QCBORError err;
+	QCBORDecodeContext decoder;
+	QCBORItem item;
 	eid_t tmp;
+	int len;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
 	CHKNULL(result);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
-
+	QCBORDecode_Init(&decoder,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+	
 	/* Step 1: Grab the header. */
-	result->hdr = msg_hdr_deserialize(&it, success);
+	result->hdr = msg_hdr_deserialize(&decoder, success);
 	if(*success != AMP_OK)
 	{
 		msg_agent_release(result, 1);
 		return NULL;
 	}
 
-	len = AMP_MAX_EID_LEN;
-	err = cbor_value_copy_text_string(&it, tmp.name, &len, &it);
-	msg_agent_set_agent(result, tmp);
+	//len = AMP_MAX_EID_LEN;
 
-	if(err != CborNoError)
+	err = QCBORDecode_GetNext(&decoder, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_TEXT_STRING)
 	{
-		AMP_DEBUG_ERR("msg_agent_deserialize", "can't copy text string: %d", err);
+		AMP_DEBUG_ERR("msg_agent_deserialize", "can't retrieve string: err %d, type %d", err, item.uDataType);
 		*success = AMP_FAIL;
 		msg_agent_release(result, 1);
 		return NULL;
 	}
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&decoder);
 
+	// Copy String and ensure it is NULL-terminated
+	len = item.val.string.len;
+	if (len > AMP_MAX_EID_LEN)
+	{
+	   AMP_DEBUG_WARN("msg_agent_deserialize", "String length (%d) greater than AMP_MAX_EID_LEN, truncating", len);
+	   len = AMP_MAX_EID_LEN - 1;
+	}
+	strncpy(tmp.name, item.val.string.ptr, item.val.string.len);
+	tmp.name[AMP_MAX_EID_LEN-1] = 0; // Ensure it's NULL-terminated
+	
+	msg_agent_set_agent(result, tmp);	 
+	
 	return result;
 }
 
@@ -117,27 +127,25 @@ void msg_agent_release(msg_agent_t *msg, int destroy)
 
 
 
-CborError msg_agent_serialize(CborEncoder *encoder, void *item)
+int msg_agent_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
 	msg_agent_t *msg = (msg_agent_t *) item;
 
-	err = msg_hdr_serialize(encoder, msg->hdr);
-	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	if( msg_hdr_serialize(encoder, msg->hdr) != AMP_OK)
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
-	err = cbor_encode_text_stringz(encoder, msg->agent_id.name);
+	QCBOREncode_AddSZString(encoder, msg->agent_id.name);
 
-	return err;
+	return AMP_OK;
 }
 
 
 
 blob_t*   msg_agent_serialize_wrapper(msg_agent_t *msg)
 {
-	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, msg_agent_serialize);
+	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, (cut_enc_fn)msg_agent_serialize);
 }
 
 
@@ -182,20 +190,19 @@ msg_ctrl_t* msg_ctrl_create_ari(ari_t *id)
 msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 {
 	msg_ctrl_t *result = msg_ctrl_create();
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext decoder;
+	QCBORItem it;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
 	CHKNULL(result);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	QCBORDecode_Init(&decoder,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Grab the header. */
-	result->hdr = msg_hdr_deserialize(&it, success);
+	result->hdr = msg_hdr_deserialize(&decoder, success);
 	if(*success != AMP_OK)
 	{
 		msg_ctrl_release(result, 1);
@@ -203,7 +210,7 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 	}
 
 	/* Step 2: Grab the start time. */
-	*success = cut_get_cbor_numeric(&it, AMP_TYPE_UVAST, &(result->start));
+	*success = cut_get_cbor_numeric(&decoder, AMP_TYPE_UVAST, &(result->start));
 	if(*success != AMP_OK)
 	{
 		msg_ctrl_release(result, 1);
@@ -211,14 +218,15 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 	}
 
 	/* Step 3: Grab the macro. */
-	cut_enc_refresh(&it);
-
-	result->ac = ac_deserialize_ptr(&it, success);
+	result->ac = ac_deserialize_ptr(&decoder, success);
 	if(*success != AMP_OK)
 	{
 		msg_ctrl_release(result, 1);
 		return NULL;
 	}
+
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&decoder);
 
 	return result;
 }
@@ -236,35 +244,26 @@ void msg_ctrl_release(msg_ctrl_t *msg, int destroy)
 }
 
 
-CborError msg_ctrl_serialize(CborEncoder *encoder, void *item)
+int msg_ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
 	msg_ctrl_t *msg = (msg_ctrl_t*) item;
 
-	err = msg_hdr_serialize(encoder, msg->hdr);
-	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+ 	if( msg_hdr_serialize(encoder, msg->hdr) != AMP_OK)
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
 
-	err = cbor_encode_uint(encoder, msg->start);
-	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
-	{
-		return err;
-	}
+	QCBOREncode_AddUInt64(encoder, msg->start);
 
-
-	err = ac_serialize(encoder, msg->ac);
-
-	return err;
+	return ac_serialize(encoder, msg->ac);
 }
 
 
 
 blob_t* msg_ctrl_serialize_wrapper(msg_ctrl_t *msg)
 {
-	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, msg_ctrl_serialize);
+	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, (cut_enc_fn)msg_ctrl_serialize);
 }
 
 
@@ -339,9 +338,8 @@ msg_rpt_t* msg_rpt_create(char *rx_name)
 msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 {
 	msg_rpt_t *result;
-	CborError err;
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
+	QCBORItem item;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
@@ -349,10 +347,9 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 	result = msg_rpt_create(NULL);
 	CHKNULL(result);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Grab the header. */
 	result->hdr = msg_hdr_deserialize(&it, success);
@@ -361,26 +358,26 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 		msg_rpt_release(result, 1);
 		return NULL;
 	}
-	cut_enc_expect_more(&it, 1);
 
 	/* Step 2: Grab the array of recipients. */
-	if((err = cut_deserialize_vector(&(result->rx), &it, cut_char_deserialize)) != CborNoError)
+	if((cut_deserialize_vector(&(result->rx), &it, cut_char_deserialize)) != AMP_OK)
 	{
 		*success = AMP_FAIL;
 		msg_rpt_release(result, 1);
 		return NULL;
 	}
-
-	cut_enc_expect_more(&it, 1);
 
 	/* Step 3: Grab the array of report entries. */
-	if((err = cut_deserialize_vector(&(result->rpts), &it, rpt_deserialize_ptr)) != CborNoError)
+	if((cut_deserialize_vector(&(result->rpts), &it, rpt_deserialize_ptr)) != AMP_OK)
 	{
 		*success = AMP_FAIL;
 		msg_rpt_release(result, 1);
 		return NULL;
 	}
 
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+	
 	return result;
 }
 
@@ -403,35 +400,30 @@ void msg_rpt_release(msg_rpt_t *msg, int destroy)
  * Third item:Vector of reports.
  *
  */
-CborError msg_rpt_serialize(CborEncoder *encoder, void *item)
+int msg_rpt_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-
 	msg_rpt_t *msg = (msg_rpt_t *)item;
 
-	err = msg_hdr_serialize(encoder, msg->hdr);
-	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	if (msg_hdr_serialize(encoder, msg->hdr) != AMP_OK)
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
 
-	err = cut_serialize_vector(encoder, &(msg->rx), cut_char_serialize);
-	if(((err != CborNoError) && (err != CborErrorOutOfMemory)))
+	if (cut_serialize_vector(encoder, &(msg->rx), (cut_enc_fn)cut_char_serialize) != AMP_OK)
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
 
-	err = cut_serialize_vector(encoder, &(msg->rpts), rpt_serialize);
+	return cut_serialize_vector(encoder, &(msg->rpts), (cut_enc_fn)rpt_serialize);
 
-	return err;
 }
 
 
 blob_t* msg_rpt_serialize_wrapper(msg_rpt_t *msg)
 {
-	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, msg_rpt_serialize);
+	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, (cut_enc_fn)msg_rpt_serialize);
 }
 
 
@@ -525,10 +517,9 @@ msg_grp_t  *msg_grp_create(uint8_t length)
 
 msg_grp_t* msg_grp_deserialize(blob_t *data, int *success)
 {
-	CborError err = CborNoError;
-	CborParser parser;
-	CborValue it;
-	CborValue array_it;
+	QCBORDecodeContext decoder;
+	QCBORItem item;
+	QCBORError err;
 	size_t length;
 	size_t i;
 	msg_grp_t *result = NULL;
@@ -536,32 +527,35 @@ msg_grp_t* msg_grp_deserialize(blob_t *data, int *success)
 	*success = AMP_FAIL;
 	CHKNULL(data);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	QCBORDecode_Init(&decoder,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+
+	/* Step 1: are we at an array? */
+	err = QCBORDecode_GetNext(&decoder, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY || item.val.uCount == 0)
 	{
+	   AMP_DEBUG_ERR("msg_grp_deserialize",
+					 "First item not a valid array: err %d type %d cnt %d",
+					 err, item.uDataType, item.val.uCount);
 		return NULL;
 	}
 
-	/* Step 1: are we at an array? */
-	if((!cbor_value_is_container(&it)) ||
-	   ((err = cbor_value_get_array_length(&it, &length)) != CborNoError) ||
-	   ((err = cbor_value_enter_container(&it, &array_it)) != CborNoError))
-	{
-		return NULL;
-	}
+	length = item.val.uCount;
+	   
 	// first element of the array is the timestamp.
 	result = msg_grp_create(length-1);
 	CHKNULL(result);
 
-	if((*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_TS, &(result->time))) != AMP_OK)
+	if((*success = cut_get_cbor_numeric(&decoder, AMP_TYPE_TS, &(result->time))) != AMP_OK)
 	{
 		msg_grp_release(result, 1);
-		cbor_value_leave_container(&it, &array_it);
 		return NULL;
 	}
 
 	for(i = 1; i < length; i++)
 	{
-		blob_t *cur_item = blob_deserialize_ptr(&array_it, success);
+		blob_t *cur_item = blob_deserialize_ptr(&decoder, success);
 		int msg_type;
 
 		/* Get the type of the message.*/
@@ -571,12 +565,12 @@ msg_grp_t* msg_grp_deserialize(blob_t *data, int *success)
 		{
 			blob_release(cur_item, 1);
 			msg_grp_release(result, 1);
-			cbor_value_leave_container(&it, &array_it);
 			return NULL;
 		}
 	}
 
-	cbor_value_leave_container(&it, &array_it);
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&decoder);
 
 	return result;
 }
@@ -601,31 +595,22 @@ void msg_grp_release(msg_grp_t *group, int destroy)
 	}
 }
 
-CborError msg_grp_serialize(CborEncoder *encoder, void *item)
+int msg_grp_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-	CborEncoder array_enc;
 	vec_idx_t i;
 	vec_idx_t max;
 	msg_grp_t *msg_grp = (msg_grp_t*) item;
 
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(msg_grp, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(item, AMP_FAIL);
+
+	// Open Array
+	QCBOREncode_OpenArray(encoder);
 
 	max = vec_num_entries(msg_grp->msgs);
-	err = cbor_encoder_create_array(encoder, &array_enc, max+1);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		return err;
-	}
 
-	err = cbor_encode_uint(&array_enc, msg_grp->time);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		cbor_encoder_close_container(encoder, &array_enc);
-		return err;
-	}
+	QCBOREncode_AddUInt64(encoder, msg_grp->time);
 
 	for(i = 0; i < max; i++)
 	{
@@ -633,27 +618,24 @@ CborError msg_grp_serialize(CborEncoder *encoder, void *item)
 
 		if(tmp == NULL)
 		{
-			err = CborErrorIO;
+			QCBOREncode_CloseArray(encoder); // Not necessary if encoding is fully aborted.
+			return AMP_FAIL;
 		}
 		else
 		{
-			err = cbor_encode_byte_string(&array_enc, tmp->value, tmp->length);
+			QCBOREncode_AddBytes(encoder, (UsefulBufC){tmp->value,tmp->length} );
 		}
 
-		if((err != CborNoError) && (err != CborErrorOutOfMemory))
-		{
-			cbor_encoder_close_container(encoder, &array_enc);
-			return err;
-		}
 	}
 
-	return cbor_encoder_close_container(encoder, &array_enc);
+	QCBOREncode_CloseArray(encoder);
+	return AMP_OK;
 }
 
 
 blob_t *msg_grp_serialize_wrapper(msg_grp_t *msg_grp)
 {
-	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg_grp, msg_grp_serialize);
+	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg_grp, (cut_enc_fn)msg_grp_serialize);
 }
 
 

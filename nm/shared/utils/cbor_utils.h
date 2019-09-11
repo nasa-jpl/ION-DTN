@@ -28,39 +28,39 @@
 
 #include "nm_types.h"
 #include "vector.h"
-
-#include "contrib/tinycbor/src/cbor.h"
+#include "qcbor.h"
 
 
 #define CUT_ENC_BUFSIZE 4096
 
-typedef CborError (*cut_enc_fn)(CborEncoder *encoder, void *item);
-typedef void* (*vec_des_fn)(CborValue *it, int *success);
+/** Callback function prototype for cut_serialize_vector() and cut_serialize_wrapper() */
+typedef QCBORError (*cut_enc_fn)(QCBOREncodeContext *encoder, void *item);
 
-int       cut_advance_it(CborValue *value);
+/** Callback function prototype for cut_deserialize_vector() */
+typedef void* (*vec_des_fn)(QCBORDecodeContext *decoder, int *success);
 
-CborError cut_enc_byte(CborEncoder *encoder, uint8_t byte);
+int       cut_advance_it(QCBORItem *value);
+
+int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t byte);
 int cut_enc_uvast(uvast num, blob_t *result);
 
-
-CborError cut_enc_refresh(CborValue *it);
-void cut_enc_expect_more(CborValue*it, int num);
-
-int cut_enter_array(CborValue *it, size_t min, size_t max, size_t *num, CborValue *array_it);
-
-int       cut_get_array_len(CborValue *it, size_t *result);
-int       cut_get_cbor_numeric(CborValue *value, amp_type_e type, void *val);
-char *    cut_get_cbor_str(CborValue *value, int *success);
-
-void      cut_init_enc(CborEncoder *encoder, uint8_t *val, uint32_t size);
-
+int       cut_get_cbor_numeric(QCBORDecodeContext *value, amp_type_e type, void *val);
+char *    cut_get_cbor_str(QCBORDecodeContext *value, int *success);
 
 blob_t*   cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode);
 
 
-CborError cut_deserialize_vector(vector_t *vec, CborValue *it, vec_des_fn des_fn);
-CborError cut_serialize_vector(CborEncoder *encoder, vector_t *vec, cut_enc_fn enc_fn);
+int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des_fn);
+int cut_serialize_vector(QCBOREncodeContext *encoder, vector_t *vec, cut_enc_fn enc_fn);
 
-void *cut_char_deserialize(CborValue *it, int *success);
-CborError cut_char_serialize(CborEncoder *encoder, void *item);
+void *cut_char_deserialize(QCBORDecodeContext *it, int *success);
+int cut_char_serialize(QCBOREncodeContext *encoder, void *item);
 
+int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length);
+
+/** Macro to check and report if decoding exited with any errors. These are logged as warnings, but no action is otherwise taken. */
+#define cut_decode_finish(qcbor) \
+   QCBORError tmperr = QCBORDecode_Finish(qcbor); \
+   if (tmperr != QCBOR_SUCCESS) { \
+     AMP_DEBUG_WARN(__func__, "Warning: CBOR Decoding finished with err %d", tmperr); \
+   }

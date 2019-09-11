@@ -50,15 +50,11 @@
  *   1. Assumes that parameter checking is performed by the caller.
  *****************************************************************************/
 
-static ari_t p_ari_deserialize_lit(CborValue *it, int *success)
+static ari_t p_ari_deserialize_lit(QCBORDecodeContext *it, uint8_t byte, int *success)
 {
 	ari_t result;
-	uint8_t byte;
 
 	ari_init(&result);
-
-	/* We got here through a peek, so we know this next byte is good. */
-	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &byte);
 
 	result.type = byte & 0xF;
 	result.as_lit.type = ((byte >> 4) & 0xF) + AMP_TYPE_BOOL;
@@ -88,27 +84,21 @@ static ari_t p_ari_deserialize_lit(CborValue *it, int *success)
  *   1. Assumes that parameter checking is performed by the caller.
  *****************************************************************************/
 
-static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
+static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *success)
 {
 	ari_t result;
-	uint8_t flags;
 	uvast temp;
 
 	ari_init(&result);
-
-	/* We got here through a peek, so we know this next byte is good. */
-	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &flags);
-	cut_enc_expect_more(it, 1);
 
 	result.type = ARI_GET_FLAG_TYPE(flags);
 	result.as_reg.flags = flags;
 
 	/* Get the nickname, if one exists. */
-	if((*success == AMP_OK) && ARI_GET_FLAG_NN(flags))
+	if( ARI_GET_FLAG_NN(flags) )
 	{
 		/* Get the UVAST nickname. */
 		*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
-		cut_enc_expect_more(it, 1);
 
 		VDB_ADD_NN(temp, &(result.as_reg.nn_idx));
 	}
@@ -117,15 +107,12 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 	if(*success == AMP_OK)
 	{
 		result.as_reg.name = blob_deserialize(it, success);
-		cut_enc_expect_more(it, 1);
 	}
 
 	if((*success == AMP_OK) && ARI_GET_FLAG_PARM(flags))
 	{
 		blob_t blob;
 		tnvc_t tmp;
-
-		cut_enc_refresh(it);
 
 		blob = blob_deserialize(it, success);
 		tmp = tnvc_deserialize_raw(&blob, success);
@@ -139,7 +126,6 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 		else
 		{
 			result.as_reg.parms = tmp;
-			cut_enc_expect_more(it, 1);
 		}
 	}
 
@@ -147,7 +133,6 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 	{
 		/* Get the UVAST nickname. */
 		cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
-		cut_enc_expect_more(it, 1);
 
 		VDB_ADD_ISS(temp, &(result.as_reg.iss_idx));
 	}
@@ -155,7 +140,6 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
 	if((*success == AMP_OK) && ARI_GET_FLAG_TAG(flags))
 	{
 		blob_t tag = blob_deserialize(it, success);
-		cut_enc_expect_more(it, 1);
 
 		if(*success == AMP_OK)
 		{
@@ -188,28 +172,25 @@ static ari_t p_ari_deserialize_reg(CborValue *it, int *success)
  *      of memory errors will be caught at a higher layer.
  *****************************************************************************/
 
-static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
+static int p_ari_serialize_lit(QCBOREncodeContext *encoder, ari_t *ari)
 {
-	CborError err = CborErrorIO;
 	uint8_t byte;
 	blob_t *result;
 
 	if((encoder == NULL) || (ari == NULL))
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
 	/* Serialize the AMM Object type in accordance with spec. */
 	byte = ((ari->as_lit.type & 0xF) << 4) | (AMP_TYPE_LIT % 0xF);
 
-	err = cut_enc_byte(encoder, byte);
-	if((err != CborErrorOutOfMemory) && (err != CborNoError))
+	if ( cut_enc_byte(encoder, byte) != AMP_OK)
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
-	err = tnv_serialize_value(encoder, &(ari->as_lit));
-	return err;
+	return tnv_serialize_value(encoder, &(ari->as_lit));
 }
 
 
@@ -227,78 +208,63 @@ static CborError p_ari_serialize_lit(CborEncoder *encoder, ari_t *ari)
  *      of memory errors will be caught at a higher layer.
  *****************************************************************************/
 
-static CborError p_ari_serialize_reg(CborEncoder *encoder, ari_t *ari)
+static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 {
-	CborError err = CborErrorIO;
 	blob_t *result;
 	int success;
 
 	if((encoder == NULL) || (ari == NULL))
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
-	err = cut_enc_byte(encoder, ari->as_reg.flags);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if ( cut_enc_byte(encoder, ari->as_reg.flags) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
-		return err;
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
+		return AMP_FAIL;
 	}
 
 	if(ARI_GET_FLAG_NN(ari->as_reg.flags))
 	{
 		uvast *nn = (uvast *) VDB_FINDIDX_NN(ari->as_reg.nn_idx);
-		err = (nn != NULL) ? cbor_encode_uint(encoder, *nn) : CborErrorIO;
+
+		if (nn != NULL)
+		{
+		   QCBOREncode_AddUInt64(encoder, *nn);
+		}
 	}
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if ( blob_serialize(encoder, &(ari->as_reg.name)) != AMP_OK )
 	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
-		return err;
-	}
-
-	err = blob_serialize(encoder, &(ari->as_reg.name));
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
-		return err;
+		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
+		return AMP_FAIL;
 	}
 
 	if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
 	{
 		blob_t *result = tnvc_serialize_wrapper(&(ari->as_reg.parms));
-		err = blob_serialize(encoder, result);
+		blob_serialize(encoder, result);
 		blob_release(result, 1);
-	}
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
-		return err;
 	}
 
 	if(ARI_GET_FLAG_ISS(ari->as_reg.flags))
 	{
 		uvast *iss = (uvast *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
-		err = (iss != NULL) ? cbor_encode_uint(encoder, *iss) : CborErrorIO;
-	}
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error: %d", err);
-		return err;
+		if (iss != NULL)
+		{
+		   QCBOREncode_AddUInt64(encoder, *iss);
+		}
 	}
 
 	if(ARI_GET_FLAG_TAG(ari->as_reg.flags))
 	{
 		result = (blob_t *)VDB_FINDIDX_TAG(ari->as_reg.tag_idx);
-		err = blob_serialize(encoder, result);
+		blob_serialize(encoder, result);
 		blob_release(result, 1);
 	}
 
-	return err;
+	return AMP_OK;
 }
 
 
@@ -686,9 +652,9 @@ ari_t* ari_create(amp_type_e type)
  *  06/25/13  E. Birrane     Removed references to priority field.
  *  09/18/18  E. Birrane     Move to ARI from MID
  *****************************************************************************/
-ari_t ari_deserialize(CborValue *it, int *success)
+ari_t ari_deserialize(QCBORDecodeContext *it, int *success)
 {
-	uint8_t *flag;
+	uint8_t flag;
 
     AMP_DEBUG_ENTRY("ari_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
@@ -696,23 +662,23 @@ ari_t ari_deserialize(CborValue *it, int *success)
     CHKUSR(success, ari_null());
 
     /* Grab the first byte to see what we've got. */
-
-    if((flag = (uint8_t*) cbor_value_get_next_byte(it)) == NULL)
+    *success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &flag);
+    if (*success != AMP_OK)
     {
-    	AMP_DEBUG_ERR("ari_deserialize", "Can't peek at first byte.", NULL);
+    	AMP_DEBUG_ERR("ari_deserialize", "Can't get first byte: %d", success);
     	return ari_null();
     }
 
-    if(ARI_GET_FLAG_TYPE(*flag) == AMP_TYPE_LIT)
+    if(ARI_GET_FLAG_TYPE(flag) == AMP_TYPE_LIT)
     {
-    	return p_ari_deserialize_lit(it, success);
+       return p_ari_deserialize_lit(it, flag, success);
     }
 
-    return p_ari_deserialize_reg(it, success);
+    return p_ari_deserialize_reg(it, flag, success);
 }
 
 
-ari_t *ari_deserialize_ptr(CborValue *it, int *success)
+ari_t *ari_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	ari_t tmp;
 	ari_t *result = NULL;
@@ -732,8 +698,7 @@ ari_t *ari_deserialize_ptr(CborValue *it, int *success)
 
 ari_t* ari_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext parser;
 
 	*success = AMP_FAIL;
 
@@ -742,13 +707,16 @@ ari_t* ari_deserialize_raw(blob_t *data, int *success)
 		return NULL;
 	}
 
+	QCBORDecode_Init(&parser,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	ari_t *tmp = ari_deserialize_ptr(&parser, success);
 
-	return ari_deserialize_ptr(&it, success);
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&parser);
+
+	return tmp;
 }
 
 
@@ -764,14 +732,13 @@ ari_t* ari_deserialize_raw(blob_t *data, int *success)
 
 ari_t*   ari_from_uvast(uvast val)
 {
-	CborParser parser;
-	CborValue it;
-	CborError err;
+	QCBORDecodeContext it;
 	int success = AMP_FAIL;
 	ari_t *result = NULL;
-
-	err = cbor_parser_init((uint8_t *)&val, sizeof(uvast), 0, &parser, &it);
-	CHKNULL(err == CborNoError);
+    
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){&val,sizeof(uvast)},
+					 QCBOR_DECODE_MODE_NORMAL);
 
 	result = ari_deserialize_ptr(&it, &success);
 
@@ -780,6 +747,9 @@ ari_t*   ari_from_uvast(uvast val)
 		ari_release(result, 1);
 		result = NULL;
 	}
+
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
 
 	return result;
 }
@@ -943,10 +913,10 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 	return result;
 }
 
-CborError ari_serialize(CborEncoder *encoder, void *item)
+int ari_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	ari_t *ari = (ari_t *) item;
-	CHKUSR(ari, CborErrorIO);
+	CHKUSR(item, AMP_FAIL);
 
 	if(ari->type == AMP_TYPE_LIT)
 	{
@@ -958,7 +928,7 @@ CborError ari_serialize(CborEncoder *encoder, void *item)
 
 blob_t* ari_serialize_wrapper(ari_t *ari)
 {
-	return cut_serialize_wrapper(ARI_DEFAULT_ENC_SIZE, ari, ari_serialize);
+	return cut_serialize_wrapper(ARI_DEFAULT_ENC_SIZE, ari, (cut_enc_fn)ari_serialize);
 }
 
 
@@ -1087,10 +1057,10 @@ int ac_compare(ac_t *a1, ac_t *a2)
  * If bad success, result is undefined.
  */
 
-ac_t ac_deserialize(CborValue *it, int *success)
+ac_t ac_deserialize(QCBORDecodeContext *it, int *success)
 {
-	CborError err = CborNoError;
-	CborValue array_it;
+	QCBORItem item;
+	QCBORError err;
 	uint8_t *flag;
 	ac_t result;
 	size_t length;
@@ -1105,24 +1075,21 @@ ac_t ac_deserialize(CborValue *it, int *success)
 
 	*success = AMP_FAIL;
 
-	if((!cbor_value_is_container(it)) ||
-	   ((err = cbor_value_enter_container(it, &array_it)) != CborNoError))
+	// Get Next Item (Array Container)
+	err = QCBORDecode_GetNext(it, &item);
+	if ( err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
 		AMP_DEBUG_ERR("ac_deserialize","AC not a container. Error is %d", err);
 		return result;
 	}
 
-	if((err = cbor_value_get_array_length(it, &length)) != CborNoError)
-	{
-		AMP_DEBUG_ERR("ac_deserialize","Can't get array length. Err is %d", err);
-		return result;
-	}
+	length = item.val.uCount;
 
 	result.values = vec_create(length, ari_cb_del_fn, ari_cb_comp_fn, ari_cb_copy_fn, VEC_FLAG_AS_STACK, success);
 
 	for(i = 0; i < length; i++)
 	{
-		blob_t *blob = blob_deserialize_ptr(&array_it, success);
+		blob_t *blob = blob_deserialize_ptr(it, success);
 		ari_t *cur_ari = ari_deserialize_raw(blob, success);
 		blob_release(blob, 1);
 
@@ -1134,20 +1101,18 @@ ac_t ac_deserialize(CborValue *it, int *success)
 		}
 	}
 
-	if((err = cbor_value_leave_container(it, &array_it)) != CborNoError)
-	{
-		AMP_DEBUG_ERR("ac_deserialize","Can't leave container. Err is %d.", err);
-		ac_release(&result, 0);
-		return result;
-	}
-
+	/* NOTE: We are not checking if we successfully completed array traversal here. 
+	 *	To do so with provided APIs requires access to last retrieved sub-item, not available with current API
+	 *	Caller should use QCBORDecode_Finish() to check state on completion to catch errors.
+	 */
+    
 	*success = AMP_OK;
 	return result;
 }
 
 
 
-ac_t* ac_deserialize_ptr(CborValue *it, int *success)
+ac_t* ac_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	ac_t *result = ac_create();
 
@@ -1167,19 +1132,26 @@ ac_t* ac_deserialize_ptr(CborValue *it, int *success)
 
 ac_t ac_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext parser;
 
 	*success = AMP_FAIL;
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	if(data == NULL)
 	{
 		ac_t tmp;
 		memset(&tmp, 0, sizeof(ac_t));
 		return tmp;
 	}
 
-	return ac_deserialize(&it, success);
+	QCBORDecode_Init(&parser,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+	
+	ac_t tmp = ac_deserialize(&parser, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&parser);
 
+	return tmp;
 }
 
 /*
@@ -1226,50 +1198,42 @@ void ac_release(ac_t *ac, int destroy)
 }
 
 
-CborError ac_serialize(CborEncoder *encoder, void *item)
+int ac_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-	CborEncoder array_enc;
 	vec_idx_t i;
 	vec_idx_t max;
 	int success;
 	ac_t *ac = (ac_t*) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(ac, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(ac, AMP_FAIL);
 
 	max = vec_num_entries(ac->values);
-	err = cbor_encoder_create_array(encoder, &array_enc, max);
+	QCBOREncode_OpenArray(encoder);
 
 	for(i = 0; i < max; i++)
 	{
-       blob_t *result = ari_serialize_wrapper((ari_t*) vec_at(&(ac->values), i));
+		blob_t *result = ari_serialize_wrapper((ari_t*) vec_at(&(ac->values), i));
 
-		err = CborErrorIO;
 		if(result != NULL)
 		{
-			err = cbor_encode_byte_string(&array_enc, result->value, result->length);
+			QCBOREncode_AddBytes(encoder, (UsefulBufC){result->value,result->length} );
 			blob_release(result, 1);
 		}
-
-		if((err != CborNoError) && (err != CborErrorOutOfMemory))
-		{
-			AMP_DEBUG_ERR("ac_serialize","Can't serialize ari #%d. Err is %d.",i, err);
-			cbor_encoder_close_container(encoder, &array_enc);
-			return err;
-		}
+        
 	}
 
-	err = cbor_encoder_close_container(encoder, &array_enc);
-	return err;
+	QCBOREncode_CloseArray(encoder);
+
+	return AMP_OK;
 }
 
 
-blob_t*  ac_serialize_wrapper(ac_t *ac)
+blob_t*	 ac_serialize_wrapper(ac_t *ac)
 {
 	CHKNULL(ac);
 
-	return cut_serialize_wrapper(vec_num_entries(ac->values) * ARI_DEFAULT_ENC_SIZE, ac, ac_serialize);
+	return cut_serialize_wrapper(vec_num_entries(ac->values) * ARI_DEFAULT_ENC_SIZE, ac, (cut_enc_fn)ac_serialize);
 }
 
 

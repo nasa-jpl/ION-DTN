@@ -216,15 +216,15 @@ rpt_t* rpt_create(ari_t *id, time_t timestamp, tnvc_t *entries)
  *****************************************************************************/
 
 
-void* rpt_deserialize_ptr(CborValue *it, int *success)
+void* rpt_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	rpt_t *result = NULL;
 	size_t len;
 	time_t timestamp;
 	ari_t *id;
 	tnvc_t *entries;
-	CborError err;
-	CborValue array_it;
+	QCBORError err;
+	QCBORItem item;
 
 	AMP_DEBUG_ENTRY("rpt_deserialize_ptr",
 			        "("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
@@ -235,39 +235,29 @@ void* rpt_deserialize_ptr(CborValue *it, int *success)
 	*success = AMP_FAIL;
 	CHKNULL(it);
 
-	if(!cbor_value_is_array(it))
+	/* Step 1: Get Array & Determine how many elements are in the array */
+	err = QCBORDecode_GetNext(it, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
 		return NULL;
 	}
-
-	/* Step 1: Determine how many elements are in the array */
-	if(cbor_value_get_array_length(it, &len) != CborNoError)
-	{
-		return NULL;
-	}
-
-	if(cbor_value_enter_container(it, &array_it) != CborNoError)
-	{
-		return NULL;
-	}
+	len = item.val.uCount;
 
 	/* Step 2: grab the Id. */
-	blob_t *blob = blob_deserialize_ptr(&array_it, success);
+	blob_t *blob = blob_deserialize_ptr(it, success);
 	id = ari_deserialize_raw(blob, success);
 	blob_release(blob, 1);
 
 	if((id == NULL) || (*success != AMP_OK))
 	{
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
-	/* Step 3: Get timestamp, if it was included. 	*/
+	/* Step 3: Get timestamp, if it was included.	*/
 	if(len == 3)
 	{
-		if(cut_get_cbor_numeric(&array_it, AMP_TYPE_TS, &timestamp) != AMP_OK)
+		if(cut_get_cbor_numeric(it, AMP_TYPE_TS, &timestamp) != AMP_OK)
 		{
-			cbor_value_leave_container(it, &array_it);
 			ari_release(id, 1);
 			return NULL;
 		}
@@ -278,12 +268,9 @@ void* rpt_deserialize_ptr(CborValue *it, int *success)
 	}
 
 
-	blob = blob_deserialize_ptr(&array_it, success);
+	blob = blob_deserialize_ptr(it, success);
 	entries = tnvc_deserialize_ptr_raw(blob, success);
 	blob_release(blob, 1);
-
-	cbor_value_leave_container(it, &array_it);
-
 
 	if(*success != AMP_OK)
 	{
@@ -305,19 +292,24 @@ void* rpt_deserialize_ptr(CborValue *it, int *success)
 
 rpt_t*   rpt_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
-	CHKNULL(success);
-	*success = AMP_FAIL;
-	CHKNULL(data);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	if((data == NULL) || (success == NULL))
 	{
 		return NULL;
 	}
+	*success = AMP_FAIL;
 
-	return rpt_deserialize_ptr(&it, success);
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+	
+	rpt_t *tmp = rpt_deserialize_ptr(&it, success);
+
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return tmp;
 }
 
 
@@ -358,55 +350,42 @@ void rpt_release(rpt_t *rpt, int destroy)
 }
 
 
-CborError rpt_serialize(CborEncoder *encoder, void *item)
+int rpt_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-	CborEncoder array_enc;
 	blob_t *result;
-	int success;
+	int success, err;
 	size_t num;
 	rpt_t *rpt = (rpt_t *) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(rpt, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(rpt, AMP_FAIL);
 
 	num = (rpt->time == 0) ? 2 : 3;
 
 	/* Start a container. */
-	err = cbor_encoder_create_array(encoder, &array_enc, num);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("rpt_serialize","CBOR Error: %d", err);
-		return err;
-	}
+	QCBOREncode_OpenArray(encoder);
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(rpt->id);
-	err = blob_serialize(&array_enc, result);
+	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
-		cbor_encoder_close_container(encoder, &array_enc);
 		return err;
 	}
 
 	if(num == 3)
 	{
-		err = cbor_encode_uint(&array_enc, rpt->time);
-		if((err != CborNoError) && (err != CborErrorOutOfMemory))
-		{
-			cbor_encoder_close_container(encoder, &array_enc);
-			return err;
-		}
+	   QCBOREncode_AddUInt64(encoder, rpt->time);
 	}
 
 	/* Step 3: Encode the entries. */
 	result = tnvc_serialize_wrapper(rpt->entries);
-	err = blob_serialize(&array_enc, result);
+	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	cbor_encoder_close_container(encoder, &array_enc);
+	QCBOREncode_CloseArray(encoder);
 	return err;
 }
 
@@ -414,7 +393,7 @@ CborError rpt_serialize(CborEncoder *encoder, void *item)
 
 blob_t*   rpt_serialize_wrapper(rpt_t *rpt)
 {
-	return cut_serialize_wrapper(RPT_DEFAULT_ENC_SIZE, rpt, rpt_serialize);
+	return cut_serialize_wrapper(RPT_DEFAULT_ENC_SIZE, rpt, (cut_enc_fn)rpt_serialize);
 }
 
 
@@ -554,7 +533,7 @@ rpttpl_t* rpttpl_create_id(ari_t *id)
 }
 
 
-rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success)
+rpttpl_t* rpttpl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	rpttpl_t *result = NULL;
 	ari_t *ari = NULL;
@@ -573,8 +552,6 @@ rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success)
 	{
 		return NULL;
 	}
-
-    cut_enc_refresh(it);
 
 	tmp = blob_deserialize_ptr(it, success);
 	new_ac = ac_deserialize_raw(tmp, success);
@@ -599,19 +576,24 @@ rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success)
 
 rpttpl_t* rpttpl_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
-	CHKNULL(success);
-	*success = AMP_FAIL;
-	CHKNULL(data);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	if((data == NULL) || (success == NULL))
 	{
 		return NULL;
 	}
+	*success = AMP_FAIL;
 
-	return rpttpl_deserialize_ptr(&it, success);
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+
+	rpttpl_t *tmp = rpttpl_deserialize_ptr(&it, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return tmp;
 }
 
 
@@ -648,22 +630,22 @@ void rpttpl_release(rpttpl_t *rpttpl, int destroy)
 
 
 
-CborError rpttpl_serialize(CborEncoder *encoder, void *item)
+int rpttpl_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
+	int err;;
 	blob_t *result;
 	int success;
 	rpttpl_t *rpttpl = (rpttpl_t *)item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(rpttpl, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(rpttpl, AMP_FAIL);
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(rpttpl->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("rpttpl_serialize","CBOR Error: %d", err);
 		return err;
@@ -681,6 +663,6 @@ CborError rpttpl_serialize(CborEncoder *encoder, void *item)
 
 blob_t*   rpttpl_serialize_wrapper(rpttpl_t *rpttpl)
 {
-	return cut_serialize_wrapper(RPTTPL_DEFAULT_ENC_SIZE, rpttpl, rpttpl_serialize);
+	return cut_serialize_wrapper(RPTTPL_DEFAULT_ENC_SIZE, rpttpl, (cut_enc_fn)rpttpl_serialize);
 }
 

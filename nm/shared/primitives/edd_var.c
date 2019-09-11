@@ -309,7 +309,7 @@ var_t* var_create_from_tnv(ari_t *id, tnv_t val)
  *  09/25/18  E. Birrane     Updated to CBOR and AMp v5. (JHU/APL)
  *****************************************************************************/
 
-var_t *var_deserialize_ptr(CborValue *it, int *success)
+var_t *var_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	var_t *result = NULL;
 
@@ -334,8 +334,6 @@ var_t *var_deserialize_ptr(CborValue *it, int *success)
     	return NULL;
     }
 
-    cut_enc_refresh(it);
-
     /* Grab the TNV. */
     tmp = blob_deserialize_ptr(it, success);
     result->value = tnv_deserialize_raw(tmp, success);
@@ -353,19 +351,24 @@ var_t *var_deserialize_ptr(CborValue *it, int *success)
 
 var_t* var_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
-	CHKNULL(success);
-	*success = AMP_FAIL;
-	CHKNULL(data);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	if((data == NULL) || (success == NULL))
 	{
 		return NULL;
 	}
+	*success = AMP_FAIL;
 
-	return var_deserialize_ptr(&it, success);
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+
+	var_t *tmp = var_deserialize_ptr(&it, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return tmp;
 }
 
 /******************************************************************************
@@ -425,22 +428,22 @@ void var_release(var_t *var, int destroy)
  *  09/25/18  E. Birrane     Updated to CBOR and AMp v5. (JHU/APL)
  *****************************************************************************/
 
-CborError var_serialize(CborEncoder *encoder, void *item)
+int var_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
+	int err;
 	blob_t *result;
 	int success;
 	var_t *var = (var_t*) item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(var, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(var, AMP_FAIL);
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(var->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("var_serialize","CBOR Error: %d", err);
 		return err;
@@ -456,12 +459,12 @@ CborError var_serialize(CborEncoder *encoder, void *item)
 
 blob_t*   var_serialize_wrapper(var_t *var)
 {
-	return cut_serialize_wrapper(VAR_DEFAULT_ENC_SIZE, var, var_serialize);
+	return cut_serialize_wrapper(VAR_DEFAULT_ENC_SIZE, var, (cut_enc_fn)var_serialize);
 }
 
 
 
-var_def_t  vardef_deserialize(CborValue *it, int *success)
+var_def_t  vardef_deserialize(QCBORDecodeContext *it, int *success)
 {
 	var_def_t result;
 	uint8_t *byte;
@@ -479,18 +482,6 @@ var_def_t  vardef_deserialize(CborValue *it, int *success)
     result.id = ari_deserialize_ptr(it, success);
     if((result.id == NULL) || (*success != AMP_OK))
     {
-    	return result;
-    }
-
-    /* Grab the data type. */
-    byte = (uint8_t *) cbor_value_get_next_byte(it);
-    CHKUSR(byte, result);
-
-    result.type = *byte;
-    if(type_is_known(result.type) == 0)
-    {
-    	*success = AMP_FAIL;
-    	ari_release(result.id, 1);
     	return result;
     }
 
@@ -525,22 +516,21 @@ void vardef_release(var_def_t *def, int destroy)
 
 
 
-CborError  vardef_serialize(CborEncoder *encoder, void *item)
+int  vardef_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
 	blob_t *result;
-	int success;
+	int success, err;;
 	var_def_t *def = (var_def_t*)item;
 
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(def, CborErrorIO);
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(def, AMP_FAIL);
 
 	/* Step 1: Encode the ARI. */
 	result = ari_serialize_wrapper(def->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("vardef_serialize","CBOR Error: %d", err);
 		return err;
@@ -548,7 +538,7 @@ CborError  vardef_serialize(CborEncoder *encoder, void *item)
 
 	/* Step 2: Encode the type. */
 	err = cut_enc_byte(encoder, def->type);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("vardef_serialize","CBOR Error: %d", err);
 		return err;
@@ -565,6 +555,6 @@ CborError  vardef_serialize(CborEncoder *encoder, void *item)
 
 blob_t*    vardef_serialize_wrapper(var_def_t *def)
 {
-	return cut_serialize_wrapper(VARDEF_DEFAULT_ENC_SIZE, def, vardef_serialize);
+	return cut_serialize_wrapper(VARDEF_DEFAULT_ENC_SIZE, def, (cut_enc_fn)vardef_serialize);
 }
 
