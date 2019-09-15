@@ -1949,7 +1949,7 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-CBOR_CFLAGS = -I nm/contrib/QCBOR/inc
+CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc
 
 nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/msg/msg.c				\
