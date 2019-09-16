@@ -31,6 +31,7 @@
 #include "platform.h"
 
 // Application headers.
+#include "../shared/nm.h"
 #include "../shared/adm/adm.h"
 #include "../shared/utils/db.h"
 
@@ -144,6 +145,7 @@ int	main(int argc, char *argv[])
     if(argc != 3)
     {
         AMP_DEBUG_ALWAYS("main","Usage: nmagent <agent eid> <manager eid>\n", NULL);
+        AMP_DEBUG_ALWAYS("AMP Protocol Version %d - %s/%02d, built on %s %s\n", AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION, __DATE__, __TIME__);
         return 1;
     }
     
