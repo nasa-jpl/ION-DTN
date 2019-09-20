@@ -1,0 +1,50 @@
+General remarks on the ECLSA v2 package (a plug-in for ION)
+
+Project supervisor: Carlo Caini (carlo.caini@unibo.it)
+Main Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+Author of the OpenFEC Adapter: Marco Raminella (marco.raminella@studio.unibo.it)
+Author of the Memory manager: Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
+
+The software contained in this directory consists of the components necessary
+to build a fully functional ECLSA (Error Correcting Lin Service Adapter, a
+link server adapter mainly intended to be used under the Licklider Transmission
+Protocol (LTP), in ION (Interplanetary Overlay Network), the DTN package
+written by NASA-JPL.  https://sourceforge.net/projects/ion-dtn/
+
+ECLSAv2 is inspired by (if is not a compliant implementation of) what is
+described in the informative document CCSDS 131.5-O-1 Orange Book, Sept. 2014
+ERASURE CORRECTING CODES FOR USE IN NEAR-EARTH AND DEEP-SPACE COMMUNICATIONS.
+
+Comprehensive description of ECLSAv2 can be found in:
+N. Alessi, C. Caini, T. de Cola, M. Raminella, "Packet Layer Erasure
+Coding in Interplanetary Links: the LTP Erasure Coding Link Service
+Adapter," in IEEE Transactions on Aerospace and Electronic Systems,
+early access 2019 <https://doi.org/10.1109/TAES.2019.2916271>
+doi:10.1109/TAES.2019.2916271
+
+Note that the components have been written by different entities, and released
+under different licenses.  In particular:
+
+1.	contrib/eclsa/eclsa
+
+The software included in this directory is the core of ECLSAv2 (ECLSA version
+2), the copyright is of the University of Bologna 2016, and it is released as
+free software under GPL v2 and later versions. ECLSAv2 core can be interfaced
+with different codecs, using different FECs, developed by other entities (see
+below).
+
+2.	contrib/eclsa/libec
+
+The software included in this directory contains the FEC codec developed by
+DLR (German Aerospace Center). The copyright is of DLR and it is NOT released
+as free software. See details in the libec directory.
+
+3.	contrib/eclsa/openFEC
+
+The software included in this directory contains the FEC codec developed by
+the OpenFEC project (core contributors from the French institutions INRIA and
+ISAE. It is free software consisting of different parts governed by several
+licenses. See http://openfec.org/accueil.html
+
+For further information and license details, see documentation inside the
+cited directories.
