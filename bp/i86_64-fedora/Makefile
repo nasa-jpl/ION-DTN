@@ -285,35 +285,35 @@ ipnd:		$(IPNDOBJS) $(BPLIBS)
 
 #	-	-	Test executables	-	-	-	-
 
-bpsource:	bpsource.o libbp.so $(BPLIBS)
+bpsource:	bpsource.o $(BPLIBS)
 		$(CC) -o bpsource bpsource.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsource ./bin
 
-bpsink:		bpsink.o libbp.so $(BPLIBS)
+bpsink:		bpsink.o $(BPLIBS)
 		$(CC) -o bpsink bpsink.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsink ./bin
 
-bpdriver:	bpdriver.o libbp.so $(BPLIBS)
+bpdriver:	bpdriver.o $(BPLIBS)
 		$(CC) -o bpdriver bpdriver.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpdriver ./bin
 
-bpecho:		bpecho.o libbp.so $(BPLIBS)
+bpecho:		bpecho.o $(BPLIBS)
 		$(CC) -o bpecho bpecho.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpecho ./bin
 
-bpcounter:	bpcounter.o libbp.so $(BPLIBS)
+bpcounter:	bpcounter.o $(BPLIBS)
 		$(CC) -o bpcounter bpcounter.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpcounter ./bin
 
-bpsendfile:	bpsendfile.o libbp.so $(BPLIBS)
+bpsendfile:	bpsendfile.o $(BPLIBS)
 		$(CC) -o bpsendfile bpsendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsendfile ./bin
 
-bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
+bprecvfile:	bprecvfile.o $(BPLIBS)
 		$(CC) -o bprecvfile bprecvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bprecvfile ./bin
 
-bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
+bpnmtest:	bpnmtest.o $(BPLIBS)
 		$(CC) -o bpnmtest bpnmtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpnmtest ./bin
 

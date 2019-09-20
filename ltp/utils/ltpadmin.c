@@ -883,6 +883,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 				{
 					printText("Can't start LTP: no LSI \
 command.");
+					return 0;
 				}
 				else
 				{
@@ -890,6 +891,7 @@ command.");
 					{
 						putErrmsg("Can't start LTP.",
 								NULL);
+						return 0;
 					}
 				}
 

@@ -25,15 +25,15 @@ distribution; this is the project directory for the ION DTN Android project.
 named "libiondtn.so" in arch-android/iondtn/libs/armeabi.
 
 JNI development has come a long way since the original bionic port, however.
-We now have a full-fledged ION Android development kit.  It is brand-new and
-likely still has some bugs, so we would welcome your help in evaluating and
-debugging it.  To try it out:
+We now have a full-fledged ION Android development kit.  It has been
+available for a while now but likely still has some bugs, so we would
+welcome your help in evaluating and debugging it.  To try it out:
 
 1.	Download the ION gzipped tarfile as usual and extract its contents,
 creating a directory tree whose root is ion-open-source.
 
 2.	From the Files list on the ion-dtn SourceForge page, download the file
-named ion-android-3.6.1.tar.gz into the ion-open-source/arch-android directory.
+named ion-android-3.7.0.tar.gz into the ion-open-source/arch-android directory.
 
 3.	Download and install Android studio as described in the Android
 development kit documentation.  (See the "README" file in the same direcory
