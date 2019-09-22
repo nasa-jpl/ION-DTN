@@ -94,7 +94,7 @@ int test_simple_ari(char *desc, char* cbor, amp_type_e type)
       rtv = 1;
    }
    
-   ari_release(ari, 0);
+   ari_release(ari, 1);
 
    return rtv;
 }
@@ -125,7 +125,7 @@ int test_msg_grp_deserialize() {
    // TODO: Verify remaining fields
    
    // And cleanup
-   ari_release(ari, 0);
+   ari_release(ari, 1);
    
 #if 0 // Requires a fully constructed message, not just the debug part
    // Attempt to Deserialize
@@ -174,7 +174,7 @@ int test_msg_grp(char *desc, char* cbor) {
       check(rpt_msg != NULL);
       // TOOD: VERIFY
 
-      // msg_rpt_release(rpt_msg, 1); // FIXME: This segfaults; are we using this incorrectly?
+      msg_rpt_release(rpt_msg, 1);
       
    }
 
