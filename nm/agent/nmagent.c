@@ -111,7 +111,7 @@ void agent_register()
  **  10/04/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#if defined (ION_LWT)
+#if defined (ION_LWT) || defined(TEST_MAIN)
 int	nmagent(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {

@@ -96,7 +96,7 @@ tbl_t*   tbl_copy_ptr(tbl_t *tbl);
 
 tbl_t*   tbl_create(ari_t *id);
 
-tbl_t*   tbl_deserialize_ptr(CborValue *it, int *success);
+tbl_t*   tbl_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 tbl_t*   tbl_deserialize_raw(blob_t *data, int *success);
 
@@ -106,7 +106,7 @@ void     tbl_release(tbl_t *tbl, int destroy);
 
 int      tbl_num_rows(tbl_t *tbl);
 
-CborError tbl_serialize(CborEncoder *encoder, void *item);
+int      tbl_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*   tbl_serialize_wrapper(tbl_t *tbl);
 

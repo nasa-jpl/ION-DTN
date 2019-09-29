@@ -124,12 +124,12 @@ ctrl_t *ctrl_create(ari_t *ari);
 ctrl_t *ctrl_db_deserialize(blob_t *data);
 blob_t *ctrl_db_serialize(ctrl_t *ctrl);
 
-void*   ctrl_deserialize_ptr(CborValue *it, int *success);
+void*   ctrl_deserialize_ptr(QCBORDecodeContext *it, int *success);
 ctrl_t* ctrl_deserialize_raw(blob_t *data, int *success);
 ari_t*  ctrl_get_id(ctrl_t *ctrl);
 
 void    ctrl_release(ctrl_t *ctrl, int destroy);
-CborError ctrl_serialize(CborEncoder *encoder, void *item);
+int     ctrl_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t* ctrl_serialize_wrapper(ctrl_t *ctrl);
 void    ctrl_set_exec(ctrl_t *ctrl, time_t start, eid_t caller);
 
@@ -154,8 +154,8 @@ macdef_t*  macdef_copy_ptr(macdef_t *src);
 
 macdef_t*  macdef_create(size_t num, ari_t *ari);
 
-macdef_t   macdef_deserialize(CborValue *it, int *success);
-macdef_t*  macdef_deserialize_ptr(CborValue *it, int *success);
+macdef_t   macdef_deserialize(QCBORDecodeContext *it, int *success);
+macdef_t*  macdef_deserialize_ptr(QCBORDecodeContext *it, int *success);
 macdef_t   macdef_deserialize_raw(blob_t *data, int *success);
 
 ctrl_t* macdef_get(macdef_t* mac, uint8_t index);
@@ -164,7 +164,7 @@ uint8_t macdef_get_count(macdef_t* mac);
 int     macdef_init(macdef_t *mac, size_t num, ari_t *ari);
 void    macdef_release(macdef_t *mac, int destroy);
 
-CborError macdef_serialize(CborEncoder *encoder, void *item);
+int       macdef_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*   macdef_serialize_wrapper(macdef_t *mac);
 
 

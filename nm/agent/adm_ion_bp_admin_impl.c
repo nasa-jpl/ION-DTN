@@ -601,7 +601,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_add(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 	char *id = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
     uint32_t type = adm_get_parm_uint(parms, 1, &success);
-    char *rcv = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
+    char *rcv = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
 
     rule = (type == 'q') ? EnqueueBundle : DiscardBundle;
 
@@ -638,7 +638,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_change(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	char *id = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
     uint32_t type = adm_get_parm_uint(parms, 1, &success);
-    char *rcv = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
+    char *rcv = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
 
     rule = (type == 'q') ? EnqueueBundle : DiscardBundle;
 
@@ -908,9 +908,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_add(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 	 */
 	int success;
 	char *p_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *d_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *clo_cmd = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	unsigned int max_len = adm_get_parm_uint(parms, 0, &success);
+	char *d_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
+	char *clo_cmd = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
+	unsigned int max_len = adm_get_parm_uint(parms, 3, &success);
 
 	if(addOutduct(p_name, d_name, clo_cmd, max_len) > 0)
 	{
@@ -942,9 +942,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_change(eid_t *def_mgr, tnvc_t *parms, int8_t
 
 	int success;
 	char *p_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *d_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *clo_cmd = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	unsigned int max_len = adm_get_parm_uint(parms, 0, &success);
+	char *d_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
+	char *clo_cmd = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
+	unsigned int max_len = adm_get_parm_uint(parms, 3, &success);
 
 	if(updateOutduct(p_name, d_name, clo_cmd, max_len) > 0)
 	{
@@ -975,7 +975,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_del(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 	 */
 
 	char *p_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *d_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
+	char *d_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 
 	if(removeOutduct(p_name, d_name) > 0)
 	{
@@ -1005,7 +1005,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_start(eid_t *def_mgr, tnvc_t *parms, int8_t 
 	 */
 
 	char *p_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *d_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
+	char *d_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 
 	if(bpStartOutduct(p_name, d_name) > 0)
 	{
@@ -1096,7 +1096,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	 */
 
 	char *p_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	char *d_name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
+	char *d_name = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 
 	bpStopOutduct(p_name, d_name);
 	*status = CTRL_SUCCESS;

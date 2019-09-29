@@ -31,8 +31,7 @@
 #define BLOB_H_
 
 #include "stdint.h"
-#include "contrib/tinycbor/src/cbor.h"
-
+#include "qcbor.h"
 
 
 /*
@@ -78,12 +77,15 @@ blob_t*   blob_create(uint8_t *value, size_t length, size_t alloc);
 int       blob_compare(blob_t* v1, blob_t *v2);
 int       blob_copy(blob_t src, blob_t *dest);
 blob_t*   blob_copy_ptr(blob_t *src);
-blob_t    blob_deserialize(CborValue *it, int *success);
-blob_t*   blob_deserialize_ptr(CborValue *it, int *success);
+
+blob_t    blob_deserialize(QCBORDecodeContext *it, int *success);
+blob_t*   blob_deserialize_ptr(QCBORDecodeContext *it, int *success);
+int       blob_serialize(QCBOREncodeContext *encoder, blob_t *item);
+
 int       blob_grow(blob_t *blob, uint32_t length);
 int       blob_init(blob_t *blob, uint8_t *value, size_t length, size_t alloc);
 void      blob_release(blob_t *blob, int destroy);
-CborError blob_serialize(CborEncoder *encoder, void *item);
+
 blob_t*   blob_serialize_wrapper(blob_t *blob);
 int8_t    blob_trim(blob_t *blob, uint32_t length);
 

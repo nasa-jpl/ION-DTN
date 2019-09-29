@@ -158,10 +158,10 @@ void*     tnv_cb_copy(void *item);
 tnv_t     tnv_copy(tnv_t val, int *success);
 tnv_t*    tnv_copy_ptr(tnv_t *val);
 tnv_t*    tnv_create();
-tnv_t     tnv_deserialize(CborValue *it, int *success);
-tnv_t*    tnv_deserialize_ptr(CborValue *it, int *success);
+tnv_t     tnv_deserialize(QCBORDecodeContext *it, int *success);
+tnv_t*    tnv_deserialize_ptr(QCBORDecodeContext *it, int *success);
 tnv_t*    tnv_deserialize_raw(blob_t *data, int *success);
-int       tnv_deserialize_val_by_type(CborValue *it, tnv_t *result);
+int       tnv_deserialize_val_by_type(QCBORDecodeContext *it, tnv_t *result);
 int       tnv_deserialize_val_raw(blob_t *data, tnv_t *result);
 tnv_t*    tnv_from_bool(uint8_t val);
 tnv_t*    tnv_from_blob(blob_t *val);
@@ -174,10 +174,11 @@ tnv_t*    tnv_from_real64(double val);
 tnv_t*    tnv_from_str(char *str);
 tnv_t*    tnv_from_uint(uint32_t val);
 tnv_t*    tnv_from_uvast(uvast val);
+tnv_t*    tnv_from_tv(time_t val);
 tnv_t*    tnv_from_vast(vast val);
 void      tnv_init(tnv_t *val, amp_type_e type);
-CborError tnv_serialize(CborEncoder *encoder, void *item);
-CborError tnv_serialize_value(CborEncoder *encoder, void *item);
+int       tnv_serialize(QCBOREncodeContext *encoder, void *item);
+int       tnv_serialize_value(QCBOREncodeContext *encoder, void *item);
 blob_t*   tnv_serialize_value_wrapper(tnv_t *tnv);
 blob_t*   tnv_serialize_wrapper(tnv_t *tnv);
 int       tnv_set_map(tnv_t *tnv, uint32_t map);
@@ -206,8 +207,8 @@ int      tnvc_compare(tnvc_t *t1, tnvc_t *t2);
 tnvc_t*  tnvc_create(uint8_t num);
 tnvc_t*  tnvc_copy(tnvc_t *src);
 
-tnvc_t   tnvc_deserialize(CborValue *it, int *success);
-tnvc_t*  tnvc_deserialize_ptr(CborValue *it, int *success);
+tnvc_t   tnvc_deserialize(QCBORDecodeContext *it, int *success);
+tnvc_t*  tnvc_deserialize_ptr(QCBORDecodeContext *it, int *success);
 tnvc_t*  tnvc_deserialize_ptr_raw(blob_t *data, int *success);
 tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success);
 
@@ -221,7 +222,7 @@ int      tnvc_init(tnvc_t *tnvc, size_t num);
 int      tnvc_insert(tnvc_t* tnvc, tnv_t *tnv);
 void     tnvc_release(tnvc_t *tnvc, int destroy);
 
-CborError tnvc_serialize(CborEncoder *encoder, void *item);
+int      tnvc_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*  tnvc_serialize_wrapper(tnvc_t *tnvc);
 
 int      tnvc_size(tnvc_t *tnvc);

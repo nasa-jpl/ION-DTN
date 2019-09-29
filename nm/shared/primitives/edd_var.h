@@ -131,23 +131,23 @@ var_t*    var_create_from_def(var_def_t def);
 
 var_t*    var_create_from_tnv(ari_t *id, tnv_t val);
 
-var_t*    var_deserialize_ptr(CborValue *it, int *success);
+var_t*    var_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 var_t*    var_deserialize_raw(blob_t *data, int *success);
 
 void      var_release(var_t *var, int destroy);
 
-CborError var_serialize(CborEncoder *encoder, void *item);
+int       var_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*   var_serialize_wrapper(var_t *var);
 
 
 
-var_def_t  vardef_deserialize(CborValue *it, int *success);
+var_def_t  vardef_deserialize(QCBORDecodeContext *it, int *success);
 
 void       vardef_release(var_def_t *def, int destroy);
 
-CborError  vardef_serialize(CborEncoder *encoder, void *item);
+int        vardef_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*    vardef_serialize_wrapper(var_def_t *def);
 
 
