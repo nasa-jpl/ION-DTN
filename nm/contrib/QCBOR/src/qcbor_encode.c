@@ -331,9 +331,10 @@ static void InsertEncodedTypeAndNumber(QCBOREncodeContext *me,
        */
       static const uint8_t aIterate[] = {1,1,2,4};
       uint8_t i;
+      int j;
       for(i = 0; uNumber || nMinLen > 0; i++) {
          const uint8_t uIterations = aIterate[i];
-         for(int j = 0; j < uIterations; j++) {
+         for(j = 0; j < uIterations; j++) {
             *--pByte = uNumber & 0xff;
             uNumber = uNumber >> 8;
          }

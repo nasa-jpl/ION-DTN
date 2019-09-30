@@ -102,7 +102,8 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue)
    }
 
    const uint8_t * const pEnd = (uint8_t *)UB.ptr + UB.len;
-   for(const uint8_t *p = UB.ptr; p < pEnd; p++) {
+   const uint8_t *p = UB.ptr;
+   for(; p < pEnd; p++) {
       if(*p != uValue) {
          /* Byte didn't match */
          return p - (uint8_t *)UB.ptr;
@@ -123,7 +124,8 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
       return SIZE_MAX;
    }
 
-   for(size_t uPos = 0; uPos <= BytesToSearch.len - BytesToFind.len; uPos++) {
+   size_t uPos;
+   for(uPos = 0; uPos <= BytesToSearch.len - BytesToFind.len; uPos++) {
       if(!UsefulBuf_Compare((UsefulBufC){((uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
          return uPos;
       }
