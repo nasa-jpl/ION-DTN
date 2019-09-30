@@ -261,7 +261,8 @@ static inline int TagMapper_LookupBuiltIn(uint64_t uTag)
       return -1;
    }
 
-   for(int nTagBitIndex = 0; nTagBitIndex < (int)(sizeof(spBuiltInTagMap)/sizeof(uint16_t)); nTagBitIndex++) {
+   int nTagBitIndex;
+   for(nTagBitIndex = 0; nTagBitIndex < (int)(sizeof(spBuiltInTagMap)/sizeof(uint16_t)); nTagBitIndex++) {
       if(spBuiltInTagMap[nTagBitIndex] == uTag) {
          return nTagBitIndex;
       }
@@ -271,7 +272,8 @@ static inline int TagMapper_LookupBuiltIn(uint64_t uTag)
 
 static inline int TagMapper_LookupCallerConfigured(const QCBORTagListIn *pCallerConfiguredTagMap, uint64_t uTag)
 {
-   for(int nTagBitIndex = 0; nTagBitIndex < pCallerConfiguredTagMap->uNumTags; nTagBitIndex++) {
+   int nTagBitIndex;
+   for(nTagBitIndex = 0; nTagBitIndex < pCallerConfiguredTagMap->uNumTags; nTagBitIndex++) {
       if(pCallerConfiguredTagMap->puTags[nTagBitIndex] == uTag) {
          return nTagBitIndex + TAG_MAPPER_CUSTOM_TAGS_BASE_INDEX;
       }
@@ -423,7 +425,8 @@ inline static QCBORError DecodeTypeAndNumber(UsefulInputBuf *pUInBuf,
 
       // Loop getting all the bytes in the argument
       uArgument = 0;
-      for(int i = aIterate[uAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
+      int i;
+      for(i = aIterate[uAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
          // This shift and add gives the endian conversion
          uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
       }
