@@ -898,7 +898,8 @@ static inline QCBORError GetNext_FullItem(QCBORDecodeContext *me, QCBORItem *pDe
    }
 
 Done:
-   if(nReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)) {
+   if(nReturn != QCBOR_SUCCESS && !UsefulBuf_IsNULLC(FullString)
+		   && pAllocator) {
       // Getting the item failed, clean up the allocated memory
       StringAllocator_Free(pAllocator, UNCONST_POINTER(FullString.ptr));
    }
