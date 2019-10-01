@@ -21,7 +21,7 @@ LTPINCLS = \
 	$(API)/ltpP.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpsecadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
 # dccplsi dccplso - excluded on platforms other than Linux in config.h
 
 ALL = check libltp.dll $(RUNTIMES)
@@ -63,6 +63,10 @@ ltpdeliv:	ltpdeliv.o libltp.dll
 ltpadmin:	ltpadmin.o libltp.dll
 		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpadmin ./bin
+
+ltpadmin:	ltpsecadmin.o libltp.dll
+		$(CC) -o ltpsecadmin ltpsecadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpsecadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
