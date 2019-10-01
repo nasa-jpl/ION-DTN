@@ -36,6 +36,8 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
+	$(API)/bpsec.h \
+	$(API)/saga.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
 	$(IMC)/imcP.h \
@@ -46,14 +48,14 @@ BPINCLS = \
 	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(API)/acs/acs.h \
-	$(API)/snw/snw.h \
+	$(API)/ext/snw/snw.h \
 	$(DGR_MAIN)/include/dgr.h \
 	$(DCCP)/dccpcla.h
 
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
 # snid.o
 BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
@@ -447,3 +449,4 @@ libudpcla.dll:	libudpcla.o
 
 %.o:		$(IPND)/%.c
 		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
+
