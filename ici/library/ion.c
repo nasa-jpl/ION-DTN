@@ -1708,16 +1708,12 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 
 void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
-#if defined (mingw)
-	struct tm	*ts;
-#else
 	struct tm	tsbuf;
 	struct tm	*ts = &tsbuf;
-#endif
 
 	CHKVOID(timestampBuffer);
 #if defined (mingw)
-	ts = gmtime(&timestamp);
+	oK(gmtime_s(&tsbuf, &timestamp));
 #else
 	oK(gmtime_r(&timestamp, &tsbuf));
 #endif
