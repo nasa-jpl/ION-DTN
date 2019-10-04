@@ -6,10 +6,11 @@ DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
+CBOR = ../cbor/src
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DHEAP_PTRS=$(PTRS)
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../cbor/inc
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
@@ -28,6 +29,10 @@ LIBICIOBJS = \
 	ionsec.o \
 	crypto.o \
 	csi.o \
+	crc.o \
+	cbor_encode.o \
+	cbor_decode.o \
+	cbor_parse.o \
 	bulk.o \
 	zco.o \
 	sdrxn.o \
@@ -53,6 +58,8 @@ PUBINCLS = \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
 	$(INCL)/csi.h \
+	$(INCL)/crc.h \
+	$(INCL)/cbor.h \
 	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \
@@ -67,7 +74,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ionxnowner ionlog
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
@@ -103,6 +110,14 @@ sdrmend:	sdrmend.o libici.so
 ionunlock:	ionunlock.o libici.so
 		$(CC) -o ionunlock ionunlock.o -L./lib -lici -lpthread -lm
 		cp ionunlock ./bin
+
+ionxnowner:	ionxnowner.o libici.so
+		$(CC) -o ionxnowner ionxnowner.o -L./lib -lici -lpthread -lm
+		cp ionxnowner ./bin
+
+ionlog:		ionlog.o libici.so
+		$(CC) -o ionlog ionlog.o -L./lib -lici -lpthread -lm
+		cp ionlog ./bin
 
 psmwatch:	psmwatch.o libici.so
 		$(CC) -o psmwatch psmwatch.o -L./lib -lici -lpthread -lm
@@ -183,6 +198,9 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(CC) -c $<
 
 %.o:		$(CRYPTO)/%.c
+		$(CC) -c $<
+
+%.o:		$(CBOR)/%.c
 		$(CC) -c $<
 
 %.o:		$(BULK)/%.c
