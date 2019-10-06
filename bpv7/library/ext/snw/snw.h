@@ -12,8 +12,6 @@
 
 #include "bei.h" 
 
-#define	EXTENSION_TYPE_SNW	21
-
 extern int	snw_offer(ExtensionBlock *, Bundle *);
 extern void	snw_release(ExtensionBlock *);
 extern int	snw_record(ExtensionBlock *, AcqExtBlock *);

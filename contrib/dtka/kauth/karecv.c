@@ -47,7 +47,7 @@ static void	shutDown()	/*	Commands karecv termination.	*/
 }
 
 static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
-				BpTimestamp *effectiveTime, Object *recordElt,
+				time_t effectiveTime, Object *recordElt,
 				Object *nextRecordElt)
 {
 	Sdr		sdr = getIonsdr();
@@ -179,7 +179,7 @@ fflush(stdout);
 
 	restoreEidString(&metaEid);
 	if (fetchRecord(db->pendingRecords, record.nodeNbr,
-			&record.effectiveTime, &recordElt, &nextRecordElt))
+			record.effectiveTime, &recordElt, &nextRecordElt))
 	{
 #if DTKA_DEBUG
 puts("Record already pending; ignored.");
@@ -192,7 +192,7 @@ fflush(stdout);
 	 *	it submitted in an earlier cycle?			*/
 
 	if (fetchRecord(db->currentRecords, record.nodeNbr,
-			&record.effectiveTime, &recordElt, NULL))
+			record.effectiveTime, &recordElt, NULL))
 	{
 		return 0;	/*	Record already posted; ignore.	*/
 	}

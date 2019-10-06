@@ -11,7 +11,7 @@
 #include "dtka.h"
 
 int	dtka_serialize(unsigned char *buffer, unsigned int buflen,
-		uvast nodeNbr, BpTimestamp *effectiveTime,
+		uvast nodeNbr, time_t effectiveTime,
 		time_t assertionTime, unsigned short datLength,
 		unsigned char *datValue)
 {
@@ -24,19 +24,13 @@ int	dtka_serialize(unsigned char *buffer, unsigned int buflen,
 	CHKZERO(buffer);
 	CHKZERO(buflen);
 	CHKZERO(nodeNbr);
-	CHKZERO(effectiveTime);
 	cursor = buffer;
 	encodeSdnv(&nodeNbrSdnv, nodeNbr);
 	CHKZERO(buflen > nodeNbrSdnv.length + 14 + datLength);
 	memcpy(cursor, nodeNbrSdnv.text, nodeNbrSdnv.length);
 	cursor += nodeNbrSdnv.length;
 	length += nodeNbrSdnv.length;
-	u4 = effectiveTime->seconds;
-	u4 = htonl(u4);
-	memcpy(cursor, (char *) &u4, 4);
-	cursor += 4;
-	length += 4;
-	u4 = effectiveTime->count;
+	u4 = effectiveTime;
 	u4 = htonl(u4);
 	memcpy(cursor, (char *) &u4, 4);
 	cursor += 4;
@@ -63,7 +57,7 @@ int	dtka_serialize(unsigned char *buffer, unsigned int buflen,
 
 int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
 		unsigned short maxDatLength, uvast *nodeNbr,
-		BpTimestamp *effectiveTime, time_t *assertionTime,
+		time_t *effectiveTime, time_t *assertionTime,
 		unsigned short *datLength, unsigned char *datValue) 
 {
 	int	originalBytesRemaining;
@@ -77,20 +71,16 @@ int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
 	CHKERR(datLength);
 	CHKERR(datValue);
 	extractSdnv(nodeNbr, cursor, bytesRemaining);
-	if (*bytesRemaining < 14)	/*	Times and key lengths.	*/
+	if (*bytesRemaining < 10)	/*	Times and key length.	*/
 	{
 		writeMemo("Malformed DTKA record: too short.");
 		return 0;
 	}
 
-	memcpy((char *) &(effectiveTime->seconds), *cursor, 4);
+	memcpy((char *) effectiveTime, *cursor, 4);
 	*cursor += 4;
 	*bytesRemaining -= 4;
-	effectiveTime->seconds = ntohl(effectiveTime->seconds);
-	memcpy((char *) &(effectiveTime->count), *cursor, 4);
-	*cursor += 4;
-	*bytesRemaining -= 4;
-	effectiveTime->count = ntohl(effectiveTime->count);
+	*effectiveTime = ntohl(*effectiveTime);
 	memcpy((char *) assertionTime, *cursor, 4);
 	*cursor += 4;
 	*bytesRemaining -= 4;

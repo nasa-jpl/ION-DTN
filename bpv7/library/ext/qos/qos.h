@@ -11,8 +11,6 @@
 
 #include "bei.h" 
 
-#define	EXTENSION_TYPE_QOS	19
-
 extern int	qos_offer(ExtensionBlock *, Bundle *);
 extern void	qos_release(ExtensionBlock *);
 extern int	qos_record(ExtensionBlock *, AcqExtBlock *);

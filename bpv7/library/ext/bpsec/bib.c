@@ -113,7 +113,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 	char		*fromEid;
 	char		*toEid;
 	char		eidBuf[32];
-	BspBibRule	bibRule;
+	BPsecBibRule	bibRule;
 	BibProfile	*prof;
 	uint8_t		*serializedAsb;
 	uvast		bytes = 0;
@@ -292,7 +292,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	BpsecInboundBlock	*asb = NULL;
 	char			*fromEid;
 	char			*toEid;
-	BspBibRule		bibRule;
+	BPsecBibRule		bibRule;
 	BibProfile		*prof;
 	int8_t			result;
 	uvast			bytes = 0;
@@ -906,7 +906,7 @@ int bibDefaultSign(uint32_t suite,
 
 	switch (asb->targetBlockType)
 	{
-		case BLOCK_TYPE_PRIMARY:
+		case PrimaryBlk:
 #if 0	//	This code is yet to be developed.
 			*bytes = bundle->payload.length;
 			retval = bibDefaultCompute(bundle->payload.content,
@@ -915,7 +915,7 @@ int bibDefaultSign(uint32_t suite,
 #endif
 			break;
 
-		case BLOCK_TYPE_PAYLOAD:
+		case PayloadBlk:
 			*bytes = bundle->payload.length;
 			retval = bibDefaultCompute(bundle->payload.content,
 					csi_blocksize(suite), suite, context,
@@ -1072,7 +1072,7 @@ int bibDefaultVerify(uint32_t suite,
 
 	switch (asb->targetBlockType)
 	{
-		case BLOCK_TYPE_PRIMARY:
+		case PrimaryBlk:
 #if 0	//	This code is yet to be developed.
 			*bytes = wk->bundle.payload.length;
 			retval = bibDefaultCompute(wk->bundle.payload.content,
@@ -1081,7 +1081,7 @@ int bibDefaultVerify(uint32_t suite,
 #endif
 			break;
 
-		case BLOCK_TYPE_PAYLOAD:
+		case PayloadBlk:
 			*bytes = wk->bundle.payload.length;
 			retval = bibDefaultCompute(wk->bundle.payload.content,
 					csi_blocksize(suite), suite, context,
@@ -1163,7 +1163,7 @@ not supported.", asb->targetBlockType);
  *****************************************************************************/
 
 BibProfile	*bibGetProfile(char *securitySource, char *securityDest,
-			int8_t targetBlkType, BspBibRule *bibRule)
+			BpBlockType targetBlkType, BPsecBibRule *bibRule)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		ruleAddr;
@@ -1179,12 +1179,12 @@ BibProfile	*bibGetProfile(char *securitySource, char *securityDest,
 	CHKNULL(bibRule);
 
 	/* Step 2 - Find the BIB Rule capturing policy */
-	sec_get_bspBibRule(securitySource, securityDest, targetBlkType,
+	sec_get_bpsecBibRule(securitySource, securityDest, &targetBlkType,
 			&ruleAddr, &ruleElt);
 
 	if (ruleElt == 0)	/*	No matching rule.		*/
 	{
-		memset((char *) bibRule, 0, sizeof(BspBibRule));
+		memset((char *) bibRule, 0, sizeof(BPsecBibRule));
 		BIB_DEBUG_INFO("i bibGetProfile: No rule found for BIBs. \
 No BIB processing for this bundle.", NULL);
 		return NULL;
@@ -1192,7 +1192,7 @@ No BIB processing for this bundle.", NULL);
 
 	/*	Given applicable BIB rule, get the ciphersuite profile.	*/
 
-	sdr_read(bpSdr, (char *) bibRule, ruleAddr, sizeof(BspBibRule));
+	sdr_read(bpSdr, (char *) bibRule, ruleAddr, sizeof(BPsecBibRule));
 	prof = get_bib_prof_by_name(bibRule->ciphersuiteName);
 	if (prof == NULL)
 	{
@@ -1264,6 +1264,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	BpsecOutboundBlock	asb;
 	int8_t			    result = 0;
 
+//<<-- Must attach block, even if only as placeholder.
 
 	BIB_DEBUG_PROC("+ bibOffer(0x%x, 0x%x)",
                   (unsigned long) blk, (unsigned long) bundle);
@@ -1280,7 +1281,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 
 	/* Step 1.2 - Make sure that the security OP is valid. */
-	if (blk->tag1 == BLOCK_TYPE_BIB || blk->tag1 == BLOCK_TYPE_BCB)
+	if (blk->tag1 == BlockIntegrityBlk
+	|| blk->tag1 == BlockConfidentialityBlk)
 	{
 		/*	Can't have a BIB for these types of block.	*/
 		BIB_DEBUG_ERR("x bibOffer - BIB can't target type %d",
@@ -1293,7 +1295,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	}
 
     /* Step 1.3 - Make sure OP(integrity, target) isn't already there. */
-	if (bpsec_findBlock(bundle, BLOCK_TYPE_BIB, blk->tag1, 0))
+	if (bpsec_findBlock(bundle, BlockIntegrityBlk, blk->tag1, 0))
 	{
 		/*	Don't create a placeholder BIB for this block.	*/
 		BIB_DEBUG_ERR("x bibOffer - BIB already exists for tgt %d",
@@ -1339,7 +1341,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	 *            to defer integrity until a later date.
 	 */
 
-	if (asb.targetBlockType != BLOCK_TYPE_PAYLOAD)
+	if (asb.targetBlockType != PayloadBlk)
 	{
 		/*	We can't construct the block at this time
 		 *	because we can't assume that the target block
@@ -1406,7 +1408,7 @@ int	bibReview(AcqWorkArea *wk)
 	Object	rules;
 	Object	elt;
 	Object	ruleAddr;
-		OBJ_POINTER(BspBibRule, rule);
+		OBJ_POINTER(BPsecBibRule, rule);
 	char	eidBuffer[SDRSTRING_BUFSZ];
 	int	result = 1;	/*	Default: no problem.		*/
 
@@ -1416,7 +1418,7 @@ int	bibReview(AcqWorkArea *wk)
 
 	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
-	rules = sec_get_bspBibRuleList();
+	rules = sec_get_bpsecBibRuleList();
 	if (rules == 0)
 	{
 		BIB_DEBUG_PROC("- bibReview -> no security database");
@@ -1428,7 +1430,7 @@ int	bibReview(AcqWorkArea *wk)
 			elt = sdr_list_next(sdr, elt))
 	{
 		ruleAddr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleAddr);
+		GET_OBJ_POINTER(sdr, BPsecBibRule, rule, ruleAddr);
 		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
 		if (strcmp(eidBuffer, secDestEid) != 0)
 		{
@@ -1440,8 +1442,8 @@ int	bibReview(AcqWorkArea *wk)
 		/*	A block satisfying this rule is required.	*/
 
 		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
-		result = bpsec_requiredBlockExists(wk, BLOCK_TYPE_BIB,
-				rule->blockTypeNbr, eidBuffer);
+		result = bpsec_requiredBlockExists(wk, BlockIntegrityBlk,
+				rule->blockType, eidBuffer);
 		if (result != 1)
 		{
 			break;
@@ -1561,7 +1563,7 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 	 *            handled in bibOffer. Nothing left to do.
 	 */
 	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
-	if (asb.targetBlockType == BLOCK_TYPE_PAYLOAD)
+	if (asb.targetBlockType == PayloadBlk)
 	{
 		/*	Do nothing; the block's bytes are correct
 		 *	and ready for transmission.  The block was

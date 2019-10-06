@@ -20,158 +20,81 @@
 #define _BPSEC_H_
 
 #include "ionsec.h"
+#include "bp.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef ORIGINAL_BSP
-#define	bspBabRules	rules[0]
-#define bspPibRules	rules[1]
-#define bspPcbRules	rules[2]
-#else
-#define bspBibRules	rules[1]
-#define bspBcbRules	rules[2]
-#endif
-
-#ifdef ORIGINAL_BSP
-typedef struct
-{
-	Object  securitySrcEid;		/* 	An sdrstring.	        */
-	Object	securityDestEid;	/*	An sdrstring.		*/
-	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
-	char	keyName[32];		/*	NULL-terminated.	*/
-} BspBabRule;
+#define bpsecBibRules	rules[1]
+#define bpsecBcbRules	rules[2]
 
 typedef struct
 {
-	Object  securitySrcEid;		/* 	An sdrstring.	        */
-	Object	securityDestEid;	/*	An sdrstring.		*/
-	int	blockTypeNbr;	
-	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
-	char	keyName[32];		/*	NULL-terminated.	*/
-} BspPibRule;
+	Object 	 	securitySrcEid;	/* 	An sdrstring.	        */
+	Object		destEid;	/*	An sdrstring.		*/
+	BpBlockType	blockType;	
+	char		ciphersuiteName[32];/*	NULL-terminated.	*/
+	char		keyName[32];	/*	NULL-terminated.	*/
+} BPsecBibRule;
 
 typedef struct
 {
-	Object  securitySrcEid;		/* 	An sdrstring.	        */
-	Object	securityDestEid;	/*	An sdrstring.		*/
-	int	blockTypeNbr;	
-	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
-	char	keyName[32];		/*	NULL-terminated.	*/
-} BspPcbRule;
-#else
-typedef struct
-{
-	Object  securitySrcEid;		/* 	An sdrstring.	        */
-	Object	destEid;		/*	An sdrstring.		*/
-	int	blockTypeNbr;	
-	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
-	char	keyName[32];		/*	NULL-terminated.	*/
-} BspBibRule;
+	Object 	 	securitySrcEid;	/* 	An sdrstring.	        */
+	Object		destEid;	/*	An sdrstring.		*/
+	BpBlockType	blockType;	
+	char		ciphersuiteName[32];/*	NULL-terminated.	*/
+	char		keyName[32];	/*	NULL-terminated.	*/
+} BPsecBcbRule;
 
-typedef struct
-{
-	Object  securitySrcEid;		/* 	An sdrstring.	        */
-	Object	destEid;		/*	An sdrstring.		*/
-	int	blockTypeNbr;	
-	char	ciphersuiteName[32];	/*	NULL-terminated.	*/
-	char	keyName[32];		/*	NULL-terminated.	*/
-} BspBcbRule;
-#endif
-
-extern void	sec_clearBspRules(char *fromNode, char *toNode, char *blkType);
+extern void	sec_clearBPsecRules(char *fromNode, char *toNode,
+			BpBlockType *blkType);
 
 /*	*	Functions for managing security information.		*/
 
-#ifdef ORIGINAL_BSP
-/*	Bundle Security Protocol Bundle Authentication Blocks		*/
-extern int	sec_findBspBabRule(char *senderEid, char *destEid,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_addBspBabRule(char *senderEid, char *destEid,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_updateBspBabRule(char *senderEid, char *destEid,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_removeBspBabRule(char *senderEid, char *destEid);
-
-/*	Bundle Security Protocol Payload Integrity Blocks		*/
-extern int	sec_findBspPibRule(char *srcEid, char *destEid, int type,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_addBspPibRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_updateBspPibRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_removeBspPibRule(char *srcEid, char *destEid, int type);
-
-/*	Bundle Security Protocol Payload Confidentiality Blocks		*/
-extern int	sec_findBspPcbRule(char *srcEid, char *destEid, int type,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_addBspPcbRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_updateBspPcbRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_removeBspPcbRule(char *srcEid, char *destEid, int type);
-#else
 /*	Bundle Security Protocol Block Integrity Blocks			*/
-extern int	sec_findBspBibRule(char *srcEid, char *destEid, int type,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_addBspBibRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_updateBspBibRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_removeBspBibRule(char *srcEid, char *destEid, int type);
+extern int	sec_findBPsecBibRule(char *srcEid, char *destEid,
+			BpBlockType type, Object *ruleAddr, Object *eltp);
+extern int	sec_addBPsecBibRule(char *srcEid, char *destEid,
+			BpBlockType type, char *ciphersuiteName, char *keyName);
+extern int	sec_updateBPsecBibRule(char *srcEid, char *destEid,
+			BpBlockType type, char *ciphersuiteName, char *keyName);
+extern int	sec_removeBPsecBibRule(char *srcEid, char *destEid,
+			BpBlockType type);
 
 /*	Bundle Security Protocol Block Confidentiality Blocks		*/
-extern int	sec_findBspBcbRule(char *srcEid, char *destEid, int type,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_addBspBcbRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_updateBspBcbRule(char *srcEid, char *destEid, int type,
-			char *ciphersuiteName, char *keyName);
-extern int	sec_removeBspBcbRule(char *srcEid, char *destEid, int type);
-#endif
+extern int	sec_findBPsecBcbRule(char *srcEid, char *destEid,
+			BpBlockType type, Object *ruleAddr, Object *eltp);
+extern int	sec_addBPsecBcbRule(char *srcEid, char *destEid,
+			BpBlockType type, char *ciphersuiteName, char *keyName);
+extern int	sec_updateBPsecBcbRule(char *srcEid, char *destEid,
+			BpBlockType type, char *ciphersuiteName, char *keyName);
+extern int	sec_removeBPsecBcbRule(char *srcEid, char *destEid,
+			BpBlockType type);
 
 /*	*	Functions for retrieving security information.		*/
 
-#ifdef ORIGINAL_BSP
-extern void	sec_get_bspBabRule(char *senderEid, char *receiverEid,
-			Object *ruleAddr, Object *eltp);
-		/*	Finds the BAB rule that most narrowly applies
-		 *	to the nodes identified by senderEid and
-		 *	receiverEid.  If an applicable rule is found,
-		 *	populates ruleAddr and eltp; otherwise, sets
-		 *	*eltp to 0.					*/
-
-extern int	sec_get_bspPibTxRule(char *destEid, int blockTypeNbr,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspPibRxRule(char *srcEid,  int blockTypeNbr,
-			Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspPibRule(char *srcEid, char *destEid,
-			int blockTypeNbr, Object *ruleAddr, Object *eltp);
-extern int	sec_get_bspPcbRule(char *srcEid, char *destEid,
-			int blockTypeNbr, Object *ruleAddr, Object *eltp);
-#else
-extern void	sec_get_bspBibRule(char *srcEid, char *destEid,
-			int type, Object *ruleAddr, Object *eltp);
+extern void	sec_get_bpsecBibRule(char *srcEid, char *destEid,
+			BpBlockType *blkType, Object *ruleAddr, Object *eltp);
 		/*	Finds the BIB rule that most narrowly applies
 		 *	to the nodes identified by srcEid and destEid,
-		 *	for blocks of the indicated type.  (Type zero
-		 *	indicates "all block types".)  If applicable
+		 *	for blocks of the indicated type.  (NULL blkType
+		 *	indicates "any block type".)  If applicable
 		 *	rule is found, populates ruleAddr and eltp;
 		 *	otherwise, sets *eltp to 0.			*/
 
-extern Object	sec_get_bspBibRuleList();
+extern Object	sec_get_bpsecBibRuleList();
 
-extern void	sec_get_bspBcbRule(char *srcEid, char *destEid,
-			int type, Object *ruleAddr, Object *eltp);
+extern void	sec_get_bpsecBcbRule(char *srcEid, char *destEid,
+			BpBlockType *blkType, Object *ruleAddr, Object *eltp);
 		/*	Finds the BCB rule that most narrowly applies
 		 *	to the nodes identified by srcEid and destEid,
-		 *	for blocks of the indicated type.  (Type zero
-		 *	indicates "all block types".)  If applicable
+		 *	for blocks of the indicated type.  (NULL blkType
+		 *	indicates "any block type".)  If applicable
 		 *	rule is found, populates ruleAddr and eltp;
 		 *	otherwise, sets *eltp to 0.			*/
 
-extern Object	sec_get_bspBcbRuleList();
+extern Object	sec_get_bpsecBcbRuleList();
 
 extern int	sec_get_bpsecNumKeys(int *size);
 		/* Retrieves number of keys and maximum size
@@ -205,7 +128,6 @@ extern void	sec_get_bpsecSrcEIDs(char *buffer, int length);
 		 * with bpsec rule src EID names. Src names are
 		 * comma-separated as "K1,K2,CS3".
 		 */
-#endif
 
 #ifdef __cplusplus
 }

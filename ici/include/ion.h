@@ -427,12 +427,6 @@ typedef struct
 	uvast		currentBytes;
 } Tally;
 
-typedef struct
-{
-	unsigned int	seconds;
-	unsigned int	count;
-} BpTimestamp;
-
 #ifndef MTAKE
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)

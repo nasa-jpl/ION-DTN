@@ -15,6 +15,7 @@
  *	01-09-06  SCB	Revision per version 4 of Bundle Protocol spec.
  *	12-29-06  SCB	Revision per version 5 of Bundle Protocol spec.
  *	07-31-07  SCB	Revision per version 6 of Bundle Protocol spec.
+ *	09-04-19  SCB	Revision per version 7 of Bundle Protocol spec.
  */
 
 #include "bpP.h"
@@ -5987,6 +5988,48 @@ static int	loadEids(Bundle *bundle, MetaEid *destMetaEid,
 	return 0;
 }
 
+static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
+			int extensionsCt)
+{
+	int		i;
+	ExtensionSpec	*spec;
+	ExtensionDef	*def;
+	ExtensionBlock	blk;
+
+	for (i = 0, spec = extensions; i < extensionsCt; i++, spec++)
+	{
+		def = findExtensionDef(spec->type);
+		if (def != NULL && def->offer != NULL)
+		{
+			memset((char *) &blk, 0, sizeof(ExtensionBlock));
+			blk.type = spec->type;
+			blk.tag1 = spec->tag1;
+			blk.tag2 = spec->tag2;
+			blk.tag3 = spec->tag3;
+			if (def->offer(&blk, bundle) < 0)
+			{
+				putErrmsg("Failed offering extension block.",
+						NULL);
+				return -1;
+			}
+
+			if (blk.length == 0 && blk.size == 0)
+			{
+				continue;
+			}
+
+			if (attachExtensionBlock(spec, &blk, bundle) < 0)
+			{
+				putErrmsg("Failed attaching extension block.",
+						NULL);
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
 int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		char *reportToEidString, int lifespan, int classOfService,
 		BpCustodySwitch custodySwitch, unsigned char srrFlagsByte,
@@ -6017,12 +6060,10 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	MetaEid		*reportToMetaEid;
 	DtnTime		currentDtnTime;
 	Object		bundleAddr;
-	int		i;
+	ExtensionSpec	*userExtensions = NULL;
+	int		userExtensionsCt = 0;
 	ExtensionSpec	*extensions;
 	int		extensionsCt;
-	ExtensionSpec	*spec;
-	ExtensionDef	*def;
-	ExtensionBlock	blk;
 
 	if (lifespan <= 0)
 	{
@@ -6330,41 +6371,35 @@ when asking for status reports.");
 		/*	Default value of bundle's ordinal.		*/
 
 		bundle.ordinal = ancillaryData->ordinal;
+
+		/*	Any bundle-specific extension blocks?		*/
+
+		if (ancillaryData->extensions
+		&& ancillaryData->extensionsCt > 0)
+		{
+			userExtensions = ancillaryData->extensions;
+			userExtensionsCt = ancillaryData->extensionsCt;
+		}
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
 
 	getExtensionSpecs(&extensions, &extensionsCt);
-	for (i = 0, spec = extensions; i < extensionsCt; i++, spec++)
+	if (insertExtensions(&bundle, extensions, extensionsCt) < 0)
 	{
-		def = findExtensionDef(spec->type);
-		if (def != NULL && def->offer != NULL)
+		putErrmsg("Failed inserting baseline extension blocks.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (userExtensions)
+	{
+		if (insertExtensions(&bundle, userExtensions, userExtensionsCt)
+				< 0)
 		{
-			memset((char *) &blk, 0, sizeof(ExtensionBlock));
-			blk.type = spec->type;
-			blk.tag1 = spec->tag1;
-			blk.tag2 = spec->tag2;
-			blk.tag3 = spec->tag3;
-			if (def->offer(&blk, &bundle) < 0)
-			{
-				putErrmsg("Failed offering extension block.",
-						NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
-
-			if (blk.length == 0 && blk.size == 0)
-			{
-				continue;
-			}
-
-			if (attachExtensionBlock(spec, &blk, &bundle) < 0)
-			{
-				putErrmsg("Failed attaching extension block.",
-						NULL);
-				sdr_cancel_xn(sdr);
-				return -1;
-			}
+			putErrmsg("Failed inserting extension blocks.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
 		}
 	}
 
@@ -7448,6 +7483,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		unparsedBytes;
 	unsigned char	*cursor;
 	int		version;
+	uvast		uvtemp;
 	unsigned int	residualBlockLength;
 	int		i;
 	uvast		eidSdnvValues[8];
@@ -7504,12 +7540,10 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Get creation timestamp, lifetime.			*/
 
-	extractSmallSdnv(&(bundle->id.creationTime.seconds), &cursor,
-			&unparsedBytes);
-
+	extractSdnv(&uvtemp, &cursor, &unparsedBytes);
+	bundle->id.creationTime.seconds = uvtemp;
 	extractSmallSdnv(&(bundle->id.creationTime.count), &cursor,
 			&unparsedBytes);
-
 	extractSmallSdnv(&(bundle->timeToLive), &cursor, &unparsedBytes);
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
@@ -8541,6 +8575,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	       		int unparsedBytes, int isFragment)
 {
+	uvast		uvtemp;
 	unsigned int	eidLength;
 
 	memset((char *) rpt, 0, sizeof(BpStatusRpt));
@@ -8598,7 +8633,8 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 				&unparsedBytes);
 	}
 
-	extractSmallSdnv(&(rpt->creationTime.seconds), &cursor, &unparsedBytes);
+	extractSdnv(&uvtemp, &cursor, &unparsedBytes);
+	rpt->creationTime.seconds = uvtemp;
 	extractSmallSdnv(&(rpt->creationTime.count), &cursor, &unparsedBytes);
 	extractSmallSdnv(&eidLength, &cursor, &unparsedBytes);
 	if (unparsedBytes != eidLength)
@@ -10189,63 +10225,6 @@ int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
 	return sdr_end_xn(sdr);
 }
 
-int	bpIdentify(Object bundleZco, Object *bundleObj)
-{
-	Sdr		sdr = getIonsdr();
-	unsigned char	*buffer;
-	Bundle		image;
-	unsigned int	bundleLength;
-	int		result;
-	char		*sourceEid;
-
-	CHKERR(bundleZco && bundleObj);
-	*bundleObj = 0;			/*	Default: not located.	*/
-	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't create buffer for reading bundle ID.", NULL);
-		return -1;
-	}
-
-	if (decodeBundle(sdr, bundleZco, buffer, &image, &bundleLength) < 0)
-	{
-		MRELEASE(buffer);
-		putErrmsg("Can't extract bundle ID.", NULL);
-		return -1;
-	}
-
-	if (bundleLength == 0)		/*	Can't get bundle ID.	*/
-	{
-		return 0;
-	}
-
-	/*	Recreate the source EID.				*/
-
-	result = readEid(&image.id.source, &sourceEid);
-	MRELEASE(buffer);
-	if (result < 0)
-	{
-		putErrmsg("Can't recover source EID string.", NULL);
-		return -1;
-	}
-
-	/*	Now use this bundle ID to find the bundle.		*/
-
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	result = findBundle(sourceEid, &image.id.creationTime,
-			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
-			: image.payload.length, bundleObj);
-	sdr_exit_xn(sdr);
-	MRELEASE(sourceEid);
-	if (result < 0)
-	{
-		putErrmsg("Failed seeking bundle.", NULL);
-		return -1;
-	}
-
-	return 0;
-}
-
 int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 {
 	Sdr		sdr = getIonsdr();
@@ -10297,7 +10276,7 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 	return (result < 0 ? result : 0);
 }
 
-int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
+int	bpHandleXmitSuccess(Object bundleZco)
 {
 	Sdr	sdr = getIonsdr();
 	Object	bundleAddr;
@@ -10394,11 +10373,11 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
-	/*	Note that the "timeout" statistics count failures of
+	/*	Note that the "clfail" statistics count failures of
 	 *	convergence-layer transmission of bundles for which
 	 *	stewardship was accepted.				*/
 
-	if ((_bpvdb(NULL))->watching & WATCH_timeout)
+	if ((_bpvdb(NULL))->watching & WATCH_clfail)
 	{
 		iwatch('#');
 	}

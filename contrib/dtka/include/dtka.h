@@ -55,13 +55,13 @@ extern "C" {
 #define DTKA_BACKUP	(1)
 
 extern int	dtka_serialize(unsigned char *buffer, unsigned int buflen,
-			uvast nodeNbr, BpTimestamp *effectiveTime,
+			uvast nodeNbr, time_t effectiveTime,
 			time_t assertionTime, unsigned short datLength,
 			unsigned char *datValue);
 
 extern int	dtka_deserialize(unsigned char **buffer, int *buflen,
 			unsigned short maxDatLength, uvast *nodeNbr,
-			BpTimestamp *effectiveTime, time_t *assertionTime,
+			time_t *effectiveTime, time_t *assertionTime,
 			unsigned short *datLength, unsigned char *datValue);
 
 #ifdef __cplusplus

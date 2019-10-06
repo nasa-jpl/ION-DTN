@@ -11,8 +11,6 @@
 
 #include "bei.h" 
 
-#define	EXTENSION_TYPE_MEB	8
-
 extern int	meb_offer(ExtensionBlock *, Bundle *);
 extern void	meb_release(ExtensionBlock *);
 extern int	meb_record(ExtensionBlock *, AcqExtBlock *);

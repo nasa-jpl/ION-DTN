@@ -183,7 +183,7 @@ extern uint32_t		bcbDefaultEncrypt(uint32_t suite,
 extern BcbProfile	*bcbGetProfile(char *secSrc,
 						char *secDest,
 						int secTgtType,
-						BspBcbRule *secBcbRule);
+						BPsecBcbRule *secBcbRule);
 
 extern  int		bcbHelper(Object *dataObj,
 						uint32_t chunkSize,

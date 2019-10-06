@@ -27,6 +27,19 @@
 extern "C" {
 #endif
 
+typedef struct
+{
+	time_t			seconds;	/*	Epoch 2000.	*/
+	unsigned int		count;
+} BpTimestamp;
+
+typedef enum
+{
+	crcNone = 0,
+	crc16 = 1,
+	crc32 = 2
+} BpCrcType;
+
 /*	bp_receive timeout values					*/
 #define	BP_POLL			(0)	/*	Return immediately.	*/
 #define	BP_NONBLOCKING		(0)	/*	Return immediately.	*/
@@ -44,9 +57,9 @@ typedef enum
 	SourceCustodyRequired
 } BpCustodySwitch;
 
-/*	Note: non-zero custody switch indicates request to use enable
- *	custody transfer in the event that BIBE is used for
- *	convergence-layer transmission of the bundle.			*/
+/*	Note: non-zero custody switch indicates request to use
+ *	enable custody transfer in the event that BIBE is used
+ *	for convergence-layer transmission of the bundle.		*/
 
 /*	Status report request flag values				*/
 #define BP_RECEIVED_RPT		(1)	/*	00000001		*/
@@ -60,6 +73,37 @@ typedef enum
 #ifndef BP_MAX_METADATA_LEN
 #define	BP_MAX_METADATA_LEN	(30)
 #endif
+
+typedef enum
+{
+	UnknownBlk = -1,
+	PrimaryBlk = 0,
+	PayloadBlk = 1,
+	BlockIntegrityBlk = 2,
+	BlockConfidentialityBlk = 3,
+	ManifestBlk = 4,
+	MetadataBlk = 5,
+	DataLabelBlk = 6,
+	PreviousNodeBlk = 7,
+	BundleAgeBlk = 8,
+	HopCountBlk = 9,
+	QualityOfServiceBlk = 19,
+	SnwPermitsBlk = 21
+} BpBlockType;
+
+/*	ExtensionSpec provides the specification for producing an
+ *	outbound extension block: block definition (identified by
+ *	block type number), three discriminator tags whose semantics
+ *	are block-type-specific, and applicable CRC type.		*/
+
+typedef struct
+{
+	BpBlockType		type;	/*	Block type		*/
+	unsigned char		tag1;	/*	Extension-specific	*/
+	unsigned char		tag2;	/*	Extension-specific	*/
+	unsigned char		tag3;	/*	Extension-specific	*/
+	BpCrcType		crcType;/*	Type of CRC on block	*/
+} ExtensionSpec;
 
 typedef struct
 {
@@ -81,6 +125,21 @@ typedef struct
 	unsigned char	metadataType;	/*	See RFC 6258.		*/
 	unsigned char	metadataLen;
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
+
+	/*	Optional array of additional extension blocks (beyond
+	 *	the baseline, which is established at compile time)
+	 *	that are to be inserted into this bundle.
+	 *
+	 *	Provided only at the time the bundle is originally
+	 *	sourced.  This array affects the construction of
+	 *	the bundle; the array is not carried in the bundle
+	 *	itself.  We are just using the AncillaryData structure
+	 *	as a convenient way to add this feature to the API
+	 *	without requiring modification of applications built
+	 *	for earlier versions of ION.				*/
+
+	ExtensionSpec	*extensions;	/*	Add'l ext. blocks req'd.*/
+	int		extensionsCt;	/*	Count of extensions.	*/
 } BpAncillaryData;
 
 /*	Quality-of-service flags.					*/

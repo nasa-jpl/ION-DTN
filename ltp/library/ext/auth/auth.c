@@ -46,11 +46,11 @@ static void	getSymmetricKeyForRule(char *keyName, int *keyLength,
 static void	getPublicKeyForNode(uvast nodeNbr, int *keyLength,
 			char **keyValue)
 {
-	BpTimestamp	epoch = { 0, 0 };
+	time_t	epoch = 0;
 
 	*keyLength = 0;
 	*keyValue = MTAKE(1);
-	sec_get_public_key(nodeNbr, &epoch, keyLength,
+	sec_get_public_key(nodeNbr, epoch, keyLength,
 			(unsigned char *) *keyValue);
 	MRELEASE(keyValue);
 	if (*keyLength <= 0)
@@ -63,17 +63,17 @@ static void	getPublicKeyForNode(uvast nodeNbr, int *keyLength,
 	}
 
 	*keyValue = MTAKE(*keyLength);
-	sec_get_public_key(nodeNbr, &epoch, keyLength,
+	sec_get_public_key(nodeNbr, epoch, keyLength,
 			(unsigned char *) *keyValue);
 }
 
 static void	getPrivateKey(int *keyLength, char **keyValue)
 {
-	BpTimestamp	epoch = { 0, 0 };
+	time_t	epoch = 0;
 
 	*keyLength = 0;
 	*keyValue = MTAKE(1);
-	sec_get_private_key(&epoch, keyLength, (unsigned char *) *keyValue);
+	sec_get_private_key(epoch, keyLength, (unsigned char *) *keyValue);
 	MRELEASE(keyValue);
 	if (*keyLength <= 0)
 	{
@@ -85,7 +85,7 @@ static void	getPrivateKey(int *keyLength, char **keyValue)
 	}
 
 	*keyValue = MTAKE(*keyLength);
-	sec_get_private_key(&epoch, keyLength, (unsigned char *) *keyValue);
+	sec_get_private_key(epoch, keyLength, (unsigned char *) *keyValue);
 }
 
 static int	verify_sha1(LtpExtensionInbound *trailerExt,

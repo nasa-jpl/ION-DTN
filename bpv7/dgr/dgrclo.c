@@ -267,8 +267,7 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					result = bpHandleXmitSuccess(bundleZco,
-							0);
+					result = bpHandleXmitSuccess(bundleZco);
 					if (result < 0)
 					{
 						threadRunning = 0;

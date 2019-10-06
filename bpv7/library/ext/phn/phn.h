@@ -11,8 +11,6 @@
 
 #include "bei.h"
 
-#define	EXTENSION_TYPE_PHN	5
-
 extern int	phn_offer(ExtensionBlock *, Bundle *);
 extern void	phn_release(ExtensionBlock *);
 extern int	phn_record(ExtensionBlock *, AcqExtBlock *);

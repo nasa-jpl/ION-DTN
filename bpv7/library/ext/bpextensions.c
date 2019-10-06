@@ -25,7 +25,7 @@
 
 static ExtensionDef	extensionDefs[] =
 			{
-		{ "phn", EXTENSION_TYPE_PHN,
+		{ "phn", PreviousNodeBlk,
 				phn_offer,
 				{phn_processOnFwd,
 				phn_processOnAccept,
@@ -43,7 +43,7 @@ static ExtensionDef	extensionDefs[] =
 				phn_clear
 		},
 #if defined(BPSEC)
-		{ "bcb", BLOCK_TYPE_BCB,
+		{ "bcb", BlockConfidentialityBlk,
 				bcbOffer,
 				{0,
 				0,
@@ -60,7 +60,7 @@ static ExtensionDef	extensionDefs[] =
                                 0,
 				bcbClear
 		},
-		{ "bib", BLOCK_TYPE_BIB,
+		{ "bib", BlockIntegrityBlk,
 				bibOffer,
 				{0,
 				0,
@@ -78,7 +78,7 @@ static ExtensionDef	extensionDefs[] =
 				bibClear
 		},
 #endif
-		{ "qos", EXTENSION_TYPE_QOS,
+		{ "qos", QualityOfServiceBlk,
 				qos_offer,
 				{qos_processOnFwd,
 				qos_processOnAccept,
@@ -95,7 +95,7 @@ static ExtensionDef	extensionDefs[] =
 				qos_record,
 				qos_clear
 		},
-		{ "meb", EXTENSION_TYPE_MEB,
+		{ "meb", MetadataBlk,
 				meb_offer,
 				{meb_processOnFwd,
 				meb_processOnAccept,
@@ -112,7 +112,7 @@ static ExtensionDef	extensionDefs[] =
 				meb_record,
 				meb_clear
 		},
-		{ "bae", EXTENSION_TYPE_BAE,
+		{ "bae", BundleAgeBlk,
 				bae_offer,
 				{bae_processOnFwd,
 				bae_processOnAccept,
@@ -129,7 +129,7 @@ static ExtensionDef	extensionDefs[] =
 				bae_record,
 				bae_clear
 		},
-		{ "snw", EXTENSION_TYPE_SNW,
+		{ "snw", SnwPermitsBlk,
 				snw_offer,
 				{snw_processOnFwd,
 				snw_processOnAccept,
@@ -146,26 +146,19 @@ static ExtensionDef	extensionDefs[] =
 				snw_record,
 				snw_clear
 		},
-				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
+				{ "unknown",-1,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
 /*	NOTE: the order of appearance of extension definitions in the
- *	extensionSpecs array determines the order in which pre-payload
- *	extension blocks will be inserted into locally sourced bundles
- *	prior to the payload block and the order in which post-payload
- *	extension blocks will be inserted into locally sourced bundles
- *	after the payload block.					*/
+ *	baseline extensionSpecs array determines the order in which
+ *	these extension blocks will be inserted into locally sourced
+ *	bundles between the primary block and the payload block.	*/
 
 static ExtensionSpec	extensionSpecs[] =
 			{
-				{ EXTENSION_TYPE_PHN, 0, 0, 0 },
-				{ EXTENSION_TYPE_QOS, 0, 0, 0 },
-				{ EXTENSION_TYPE_MEB, 0, 0, 0 },
-				{ EXTENSION_TYPE_BAE, 0, 0, 0 },
-				{ EXTENSION_TYPE_SNW, 0, 0, 0 },
-#if defined(BPSEC)
-				{ BLOCK_TYPE_BIB, 0, 0, 0 },
-				{ BLOCK_TYPE_BCB, 1, 0, 0 },
-#endif
-				{ 0,0,0,0 }
+				{ PreviousNodeBlk, 0, 0, 0, 0 },
+				{ QualityOfServiceBlk, 0, 0, 0, 0 },
+				{ BundleAgeBlk, 0, 0, 0, 0 },
+				{ SnwPermitsBlk, 0, 0, 0, 0 },
+				{ UnknownBlk, 0, 0, 0, 0 }
 			};

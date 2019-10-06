@@ -1,3 +1,5 @@
+BP = bpv7
+
 all:
 	gmake -C ici $@
 	gmake -C ici install
@@ -7,8 +9,8 @@ all:
 	gmake -C dgr install
 	gmake -C bssp $@
 	gmake -C bssp install
-	gmake -C bpv7 $@
-	gmake -C bpv7 install
+	gmake -C $(BP) $@
+	gmake -C $(BP) install
 	gmake -C nm $@
 	gmake -C nm install
 	gmake -C ams $@
@@ -19,21 +21,21 @@ all:
 	gmake -C bss install
 	gmake -C dtpc $@
 	gmake -C dtpc install
-	gmake -C restart $@
-	gmake -C restart install
+	gmake -C restart $@ BP=$(BP)
+	gmake -C restart install BP=$(BP)
 
 clean:
 	gmake -C ici $@
 	gmake -C ltp $@
 	gmake -C dgr $@
 	gmake -C bssp $@
-	gmake -C bpv7 $@
+	gmake -C $(BP) $@
 	gmake -C nm $@
 	gmake -C ams $@
 	gmake -C cfdp $@
 	gmake -C bss $@
 	gmake -C dtpc $@
-	gmake -C restart $@
+	gmake -C restart $@ BP=$(BP)
 
 test:
 	cd tests && ./runtestset normaltests

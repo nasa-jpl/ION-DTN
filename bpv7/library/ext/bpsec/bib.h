@@ -172,7 +172,7 @@ extern int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk,
 			AcqExtBlock *blk, uvast *bytes);
 
 extern BibProfile *bibGetProfile(char *securitySource, char *securityDest,
-			int8_t targetBlkType, BspBibRule *bibRule);
+			BpBlockType targetBlkType, BPsecBibRule *bibRule);
 
 extern int	bibOffer(ExtensionBlock *blk, Bundle *bundle);
 

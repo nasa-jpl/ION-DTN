@@ -320,7 +320,7 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	BpsecInboundBlock	*asb = NULL;
 	char		*fromEid;
 	char		*toEid;
-	BspBcbRule	bcbRule;
+	BPsecBcbRule	bpsecRule;
 	BcbProfile	*prof = NULL;
 	int		result;
 	uvast bytes = 0;
@@ -376,14 +376,14 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	/*	Given sender & receiver EIDs, get applicable BCB rule.	*/
 
 	prof = bcbGetProfile(fromEid, toEid, asb->targetBlockType,
-			&bcbRule);
+			&bpsecRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
 	{
 		/*	We can't decrypt this block.			*/
 
-		if (bcbRule.destEid == 0)	/*	No rule.	*/
+		if (bpsecRule.destEid == 0)	/*	No rule.	*/
 		{
 			/*	We don't care about decrypting the
 			 *	target block for this BCB, but we
@@ -415,7 +415,7 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 
 	/*	Fill in missing information in the scratchpad area.	*/
-	memcpy(asb->keyName, bcbRule.keyName, BPSEC_KEY_NAME_LEN);
+	memcpy(asb->keyName, bpsecRule.keyName, BPSEC_KEY_NAME_LEN);
 
 	/*	Invoke ciphersuite-specific check procedure.		*/
 	result = (prof->decrypt == NULL) ?
@@ -591,7 +591,7 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 
 	switch (asb->targetBlockType)
 	{
-		case BLOCK_TYPE_PAYLOAD:
+		case PayloadBlk:
 			*bytes = wk->bundle.payload.length;
 
 			if (bcbHelper(&(wk->bundle.payload.content),
@@ -716,7 +716,7 @@ session key.", NULL);
 	/* Step 5 - Encrypt the target block. */
 	switch (asb->targetBlockType)
 	{
-	case BLOCK_TYPE_PAYLOAD:
+	case PayloadBlk:
 
 		*bytes = bundle->payload.length;
 
@@ -825,8 +825,8 @@ parameters.", NULL);
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-BcbProfile	*bcbGetProfile(char *secSrc, char *secDest, int secTgtType,
-			BspBcbRule *bcbRule)
+BcbProfile	*bcbGetProfile(char *secSrc, char *secDest,
+			BpBlockType secTgtType, BPsecBcbRule *bpsecRule)
 {
 	Sdr		bpSdr = getIonsdr();
 	Object		ruleAddr;
@@ -836,13 +836,13 @@ BcbProfile	*bcbGetProfile(char *secSrc, char *secDest, int secTgtType,
 	BCB_DEBUG_PROC("+ bcbGetProfile(%s, %s, %d, 0x%x)",
 				   (secSrc == NULL) ? "NULL" : secSrc,
 				   (secDest == NULL) ? "NULL" : secDest,
-				   secTgtType, (unsigned long) bcbRule);
+				   secTgtType, (unsigned long) bpsecRule);
 
 	/* Step 0 - Sanity Checks. */
-	CHKNULL(bcbRule);
+	CHKNULL(bpsecRule);
 
 	/* Step 1 - Find the BCB Rule capturing policy */
-	sec_get_bspBcbRule(secSrc, secDest, secTgtType,	&ruleAddr, &ruleElt);
+	sec_get_bpsecBcbRule(secSrc, secDest, &secTgtType, &ruleAddr, &ruleElt);
 
 	/*
 	 * Step 1.1 - If there is no matching rule, there is no policy
@@ -851,7 +851,7 @@ BcbProfile	*bcbGetProfile(char *secSrc, char *secDest, int secTgtType,
 
 	if (ruleElt == 0)
 	{
-		memset((char *) bcbRule, 0, sizeof(BspBcbRule));
+		memset((char *) bpsecRule, 0, sizeof(BPsecBcbRule));
 		BCB_DEBUG_INFO("i bcbGetProfile: No rule found \
 for BCBs. No BCB processing for this bundle.", NULL);
 		return NULL;
@@ -859,11 +859,11 @@ for BCBs. No BCB processing for this bundle.", NULL);
 
 	/* Step 2 - Retrieve the Profile associated with this policy. */
 
-	sdr_read(bpSdr, (char *) bcbRule, ruleAddr, sizeof(BspBcbRule));
-	if( (prof = get_bcb_prof_by_name(bcbRule->ciphersuiteName)) == NULL)
+	sdr_read(bpSdr, (char *) bpsecRule, ruleAddr, sizeof(BPsecBcbRule));
+	if( (prof = get_bcb_prof_by_name(bpsecRule->ciphersuiteName)) == NULL)
 	{
 		BCB_DEBUG_INFO("i bcbGetProfile: Profile of BCB rule is \
-unknown '%s'.  No BCB processing for this bundle.", bcbRule->ciphersuiteName);
+unknown '%s'.  No BCB processing for this bundle.", bpsecRule->ciphersuiteName);
 	}
 
 	BCB_DEBUG_PROC("- bcbGetProfile -> 0x%x", (unsigned long) prof);
@@ -921,7 +921,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	char		*fromEid = NULL;
 	char		*toEid = NULL;
 	char		eidBuf[32];
-	BspBcbRule	bcbRule;
+	BPsecBcbRule	bpsecRule;
 	BcbProfile	*prof = NULL;
 	unsigned char	*serializedAsb = NULL;
 	uvast		bytes = 0;
@@ -970,11 +970,11 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	 */
 
 	prof = bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType,
-			&bcbRule);
+			&bpsecRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
 	{
-		if (bcbRule.destEid == 0)	/*	No rule.	*/
+		if (bpsecRule.destEid == 0)	/*	No rule.	*/
 		{
 			BCB_DEBUG(2,"NOT adding BCB; no rule.", NULL);
 
@@ -1003,7 +1003,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 
 	/* Step 2.1 - Grab the key name for this operation. */
 
-	memcpy(bcbAsb->keyName, bcbRule.keyName, BPSEC_KEY_NAME_LEN);
+	memcpy(bcbAsb->keyName, bpsecRule.keyName, BPSEC_KEY_NAME_LEN);
 
 	/* Step 2.2 - Initialize the BCB ASB. */
 
@@ -1131,6 +1131,8 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	BpsecOutboundBlock	asb;
 	int			result = 0;
 
+//<<--	Must attach block, even if only as placeholder.
+
 	BCB_DEBUG_PROC("+ bcbOffer(%x, %x)",
                   (unsigned long) blk, (unsigned long) bundle);
 
@@ -1143,10 +1145,11 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	blk->length = 0;	/*	Default.			*/
 	blk->bytes = 0;		/*	Default.			*/
 
-	/* Step 1.2 - Make sure that we are not trying an invalid security OP. */
+	/*	Step 1.2 - 	Make sure that we are not trying an
+	 *			invalid security OP.			*/
 
-	if ((blk->tag1 == BLOCK_TYPE_PRIMARY)||
-		(blk->tag1 == BLOCK_TYPE_BCB))
+	if ((blk->tag1 == PrimaryBlk)||
+		(blk->tag1 == BlockConfidentialityBlk))
 	{
 		/*	Can't have a BCB for these types of block.	*/
 		BCB_DEBUG_ERR("x bcbOffer - BCB can't target type %d",
@@ -1159,7 +1162,8 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	}
 
     /* Step 1.3 - Make sure OP(confidentiality, target) isn't already there. */
-	if (bpsec_findBlock(bundle, BLOCK_TYPE_BCB, blk->tag1, blk->tag2))
+	if (bpsec_findBlock(bundle, BlockConfidentialityBlk, blk->tag1,
+				blk->tag2))
 	{
 		/*	Don't create a placeholder BCB for this block.	*/
 		BCB_DEBUG_ERR("x bcbOffer - BCB already exists for tgt %d, %d",
@@ -2164,7 +2168,7 @@ int	bcbReview(AcqWorkArea *wk)
 	Object	rules;
 	Object	elt;
 	Object	ruleAddr;
-		OBJ_POINTER(BspBcbRule, rule);
+		OBJ_POINTER(BPsecBcbRule, rule);
 	char	eidBuffer[SDRSTRING_BUFSZ];
 	int	result = 1;	/*	Default: no problem.		*/
 
@@ -2174,7 +2178,7 @@ int	bcbReview(AcqWorkArea *wk)
 
 	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
-	rules = sec_get_bspBcbRuleList();
+	rules = sec_get_bpsecBcbRuleList();
 	if (rules == 0)
 	{
 		BCB_DEBUG_PROC("- bcbReview -> no security database");
@@ -2186,7 +2190,7 @@ int	bcbReview(AcqWorkArea *wk)
 			elt = sdr_list_next(sdr, elt))
 	{
 		ruleAddr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, BspBcbRule, rule, ruleAddr);
+		GET_OBJ_POINTER(sdr, BPsecBcbRule, rule, ruleAddr);
 		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
 		if (strcmp(eidBuffer, secDestEid) != 0)
 		{
@@ -2198,8 +2202,8 @@ int	bcbReview(AcqWorkArea *wk)
 		/*	A block satisfying this rule is required.	*/
 
 		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
-		result = bpsec_requiredBlockExists(wk, BLOCK_TYPE_BCB,
-				rule->blockTypeNbr, eidBuffer);
+		result = bpsec_requiredBlockExists(wk, BlockConfidentialityBlk,
+				rule->blockType, eidBuffer);
 		if (result != 1)
 		{
 			break;

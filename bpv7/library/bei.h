@@ -70,7 +70,7 @@
  */
 typedef struct
 {
-	unsigned char	type;		/**	Per definitions array.	*/
+	BpBlockType	type;		/**	Per definitions array.	*/
 	unsigned char	number;		//	To be developed.
 	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
@@ -101,7 +101,7 @@ typedef struct
  */
 typedef struct
 {
-	unsigned char	type;		/**	Per definitions array.	*/
+	BpBlockType	type;		/**	Per definitions array.	*/
 	unsigned char	number;		//	To be developed.
 	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
@@ -132,13 +132,12 @@ typedef void		(*BpAcqExtBlkClearFn)(AcqExtBlock *);
  *
  * ExtensionDef defines the callbacks for production and acquisition
  * of a single type of extension block, identified by block type name
- * and number and occurrence number (0 for First or Only occurrence,
- * 1 for Last occurrence).
+ * and number.
  */
 typedef struct
 {
 	char			name[32];	/** Name of extension	*/
-	unsigned char		type;		/** Block type		*/
+	BpBlockType		type;		/** Block type		*/
 
 	/*	Production callbacks.					*/
 
@@ -157,22 +156,6 @@ typedef struct
 	BpExtBlkRecordFn	record;		/** Record 		*/
 	BpAcqExtBlkClearFn	clear;		/** Clear 		*/
 } ExtensionDef;
-
-/**
- *  \struct ExtensionSpec
- *  \brief Defines the canonical extension block production order.
- *
- * ExtensionSpec provides the specification for producing an outbound
- * extension block: block definition (identified by block type number),
- * and three discriminator tags whose semantics are block-type-specific.
- */
-typedef struct
-{
-	unsigned char		type;		/** Block type		*/
-	unsigned char		tag1;		/** Extension-specific	*/
-	unsigned char		tag2;		/** Extension-specific	*/
-	unsigned char		tag3;		/** Extension-specific	*/
-} ExtensionSpec;
 
 /*****************************************************************************
  *                             FUNCTION PROTOTYPES                           *
@@ -214,7 +197,7 @@ void		destroyExtensionBlocks(Bundle *bundle);
  *  --------  ------------  ------ ----------------------------------------
  *            S. Burleigh		   Initial Implementation
  */
-extern Object	findExtensionBlock(Bundle *bundle, unsigned int type,
+extern Object	findExtensionBlock(Bundle *bundle, BpBlockType type,
 			unsigned char tag1, unsigned char tag2,
 			unsigned char tag3);
 
@@ -279,7 +262,7 @@ extern void	suppressExtensionBlock(ExtensionBlock *blk);
 
 extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned int blockLength,
-			unsigned char blkType, unsigned int blkProcFlags,
+			BpBlockType blkType, unsigned int blkProcFlags,
 			unsigned int dataLength);
 extern int	reviewExtensionBlocks(AcqWorkArea *wk);
 extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);
@@ -299,20 +282,20 @@ extern void	deleteAcqExtBlock(LystElt elt);
  *            S. Burleigh		   Initial Implementation
  */
 extern void	discardExtensionBlock(AcqExtBlock *blk);
-extern LystElt	findAcqExtensionBlock(AcqWorkArea *wk, unsigned int type);
+extern LystElt	findAcqExtensionBlock(AcqWorkArea *wk, BpBlockType type);
 extern int	recordExtensionBlocks(AcqWorkArea *wk);
 
 /*	Functions that operate on extension block definitions		*/
 
 extern void	getExtensionDefs(ExtensionDef **array, int *count);
 extern
-ExtensionDef	*findExtensionDef(unsigned char type);
+ExtensionDef	*findExtensionDef(BpBlockType type);
 
 /*	Functions that operate on extension block specifications	*/
 
 extern void	getExtensionSpecs(ExtensionSpec **array, int *count);
 extern
-ExtensionSpec	*findExtensionSpec(unsigned char type, unsigned char tag1,
+ExtensionSpec	*findExtensionSpec(BpBlockType type, unsigned char tag1,
 			unsigned char tag2, unsigned char tag3);
 
 #endif /* _BEI_H_ */

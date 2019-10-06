@@ -76,7 +76,7 @@ void	getExtensionDefs(ExtensionDef **array, int *count)
 	getExtInfo(array, count, &specs, &specCount);
 }
 
-ExtensionDef	*findExtensionDef(unsigned char type)
+ExtensionDef	*findExtensionDef(BpBlockType type)
 {
 	ExtensionDef	*extensions;
 	int		extensionsCt;
@@ -104,7 +104,7 @@ void	getExtensionSpecs(ExtensionSpec **array, int *count)
 	getExtInfo(&definitions, &definitionCount, array, count);
 }
 
-ExtensionSpec	*findExtensionSpec(unsigned char type, unsigned char tag1,
+ExtensionSpec	*findExtensionSpec(BpBlockType type, unsigned char tag1,
 			unsigned char tag2, unsigned char tag3)
 {
 	ExtensionSpec	*extensions;
@@ -369,7 +369,7 @@ void	destroyExtensionBlocks(Bundle *bundle)
 	sdr_list_destroy(bpSdr, bundle->extensions, NULL, NULL);
 }
 
-Object	findExtensionBlock(Bundle *bundle, unsigned int type, 
+Object	findExtensionBlock(Bundle *bundle, BpBlockType type, 
 		unsigned char tag1, unsigned char tag2, unsigned char tag3)
 {
 	Sdr	bpSdr = getIonsdr();
@@ -636,7 +636,7 @@ void	suppressExtensionBlock(ExtensionBlock *blk)
 
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		unsigned char *startOfBlock, unsigned int blockLength,
-		unsigned char blkType, unsigned int blkProcFlags,
+		BpBlockType blkType, unsigned int blkProcFlags,
 		unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
@@ -961,7 +961,7 @@ void	discardExtensionBlock(AcqExtBlock *blk)
 	blk->length = 0;
 }
 
-LystElt	findAcqExtensionBlock(AcqWorkArea *work, unsigned int type)
+LystElt	findAcqExtensionBlock(AcqWorkArea *work, BpBlockType type)
 {
 	LystElt		elt;
 	AcqExtBlock	*blk;

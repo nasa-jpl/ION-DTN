@@ -314,7 +314,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		unsigned char srrFlags, int ackRequested,
 		BpAncillaryData *ancillaryData, Object adu, Object *bundleObj)
 {
-	BpAncillaryData	defaultAncillaryData = { 0, 0, 0 };
+	BpAncillaryData	defaultAncillaryData = { 0, 0, 0, 0, 0, "\0" };
 	MetaEid		*sourceMetaEid;
 
 	if (adu == 0)

@@ -35,18 +35,13 @@ extern "C" {
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)
 #define	WATCH_c				(4)
-#define	WATCH_m				(8)
-#define	WATCH_w				(16)
-#define	WATCH_x				(32)
 #define	WATCH_y				(64)
 #define	WATCH_z				(128)
 #define	WATCH_abandon			(256)
 #define	WATCH_expire			(512)
-#define	WATCH_refusal			(1024)
-#define	WATCH_timeout			(2048)
+#define	WATCH_clfail			(2048)
 #define	WATCH_limbo			(4096)
 #define	WATCH_delimbo			(8192)
-#define	WATCH_retransmit		(16384)
 
 #define SDR_LIST_ELT_OVERHEAD		(WORD_SIZE * 4)
 
@@ -220,8 +215,8 @@ typedef struct
 typedef struct
 {
 	EndpointId	source;		/*	Original sender.	*/
-	BpTimestamp	creationTime;
-	unsigned int	fragmentOffset;
+	BpTimestamp	creationTime;	/*	Time and count.		*/
+	unsigned int	fragmentOffset;	/*	0 if not a fragment.	*/
 } BundleId;
 
 typedef struct
@@ -252,7 +247,7 @@ typedef enum
 
 typedef struct
 {
-	unsigned int	seconds;
+	unsigned int	seconds;	/*	Epoch 2000.		*/
 	unsigned int	nanosec;
 } DtnTime;
 
@@ -305,9 +300,9 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned int	bundleProcFlags;/*	Incl. CoS, SRRs.	*/
+	unsigned int	bundleProcFlags;/*	Incl. SR requests.	*/
 	unsigned int	timeToLive;	/*	In seconds.		*/
-	EndpointId	destination;	/*	...of bundle's ADU	*/
+	EndpointId	destination;	/*	...of bundle's ADU.	*/
 		/*	source of bundle's ADU is in the id field.	*/
 	EndpointId	reportTo;
 	unsigned int	expirationTime;	/*	Time tag in seconds.	*/
@@ -318,7 +313,7 @@ typedef struct
 	/*	Stuff in QOS (nee ECOS) & Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
-	unsigned char	classOfService;
+	unsigned char	classOfService;	/*	From QoS block if any.	*/
 	unsigned char	priority;	/*	Possibly an override.	*/
 	unsigned char	ordinal;	/*	Possibly an override.	*/
 
@@ -471,7 +466,7 @@ typedef struct
 /*	*	*	Scheme structures	*	*	*	*/
 
 /*	Scheme objects are used to encapsulate knowledge about how to
- *	forward bundles.  CBHE-conformant schemes are so noted.		*/
+ *	forward bundles.  						*/
 
 typedef struct
 {
@@ -721,7 +716,7 @@ typedef struct
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
-	Object		saga[2];	/*	SDR list of Encounters	*/
+	Object		saga[2];	/*	SDR lists of Encounters	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
@@ -730,7 +725,7 @@ typedef struct
 	 *	Bundles that are awaiting presentation to forwarder
 	 *	daemons, so that they can be enqueued for transmission.	*/
 
-	Object		transit;
+	Object		transit;	/*	SDR list of Bundles	*/
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting bpclock.	*/
 	Object		transitCmd; 	/*	For starting bptransit.	*/
@@ -908,8 +903,9 @@ extern int		bpSend(		MetaEid *sourceMetaEid,
 			 *	adu must be a zero-copy object
 			 *	reference as returned by zco_create().
 			 *	bundleIsAdmin is Boolean, must be
-			 *	1 for status reports and custody
-			 *	signals but zero otherwise.
+			 *	1 for status reports and other
+			 *	BP administrative records but zero
+			 *	otherwise.
 			 *
 			 *	Returns 1 on success, in which case
 			 *	(and only in this case) the address
@@ -970,12 +966,10 @@ extern int		bpAccept(	Object bundleObj,
 			 *	was received from some other node.
 			 *	It updates statistics that are used
 			 *	to make future bundle acquisition
-			 *	decisions; if custody transfer is
-			 *	requested, it takes custody of the
-			 *	bundle; and it sends any applicable
+			 *	decisions and it sends any applicable
 			 *	status reports.
 			 *
-			 *	This function may be called multiple
+			 *	This function might be called multiple
 			 *	times per bundle but will take effect
 			 *	only once.  Returns 0 on success, -1
 			 *	on any failure.				*/
@@ -1011,7 +1005,7 @@ extern int		bpEnqueue(	VPlan *vplan,
 extern int		bpDequeue(	VOutduct *vduct,
 					Object *outboundZco,
 					BpAncillaryData *ancillaryData,
-					int timeoutInterval);
+					int stewardship);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter
 			 *	(outduct) daemon to get a bundle that
@@ -1041,8 +1035,9 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	bpDequeue again.
 			 *
 			 *	bpDequeue then catenates (serializes)
-			 *	the BP header information in the
-			 *	bundle and prepends that serialized
+			 *	the BP header information (primary
+			 *	block and all extension blocks) in
+			 *	the bundle and prepends that serialized
 			 *	header to the source data of the
 			 *	bundle's payload ZCO.  Then it
 			 *	returns the address of that ZCO in
@@ -1055,78 +1050,48 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	bundle is provided in *ancillaryData
 			 *	so that the requested QOS can be
 			 *	mapped to the QOS features of the
-			 *	convergence-layer protocol.
+			 *	convergence-layer protocol.  For
+			 *	example, this is where a request for
+			 *	custody transfer is communicated
+			 *	to BIBE when the outduct daemon is
+			 *	one that does BIBE transmission.
 			 *
-			 *	The timeoutInterval argument indicates
-			 *	the length of time following return of
-			 *	a bundle after which failure of custody
-			 *	transfer should be inferred if no
-			 *	custody acceptance signal for this
-			 *	bundle has been received.  Any negative
-			 *	value signifies that the calling
-			 *	function accepts "stewardship" of the
-			 *	bundle, i.e., commits to dispositioning
-			 *	the returned bundle as soon as results
-			 *	of convergence-layer transmission are
-			 *	known, by calling one of two functions:
+			 *	The stewardship argument controls
+			 *	the disposition of the bundle
+			 *	following transmission.  Any value
+			 *	other than zero indicates that the
+			 *	outduct daemon is one that performs
+			 *	"stewardship" procedures.  An outduct
+			 *	daemon that performs stewardship
+			 *	procedures will disposition the bundle
+			 *	as soon as the results of transmission
+			 *	at the convergence layer are known,
+			 *	by calling one of two functions:
 			 *	either bpHandleXmitSuccess or else
-			 *	bpHandleXmitFailure.  A value of zero
-			 *	signifies that the calling function
-			 *	does not accept stewardship but also
-			 *	does not want to set a custody transfer
-			 *	timer.
+			 *	bpHandleXmitFailure.  A value of
+			 *	zero indicates that the outduct
+			 *	daemon does not perform stewardship
+			 *	procedures and will not disposition
+			 *	the bundle following transmission;
+			 *	instead, the bpDequeue function itself
+			 *	will assume that transmission at the
+			 *	convergence layer will be successful
+			 *	and will disposition the bundle on
+			 *	that basis.
 			 *
 			 *	Returns 0 on success, -1 on failure.	*/
 
-extern int		bpIdentify(Object bundleZco, Object *bundleObj);
-			/*	This function parses out the ID fields
-			 *	of the catenated outbound bundle in
-			 *	bundleZco, locates the bundle that
-			 *	is identified by that bundle ID, and
-			 *	passes that bundle's address back in
-			 *	bundleObj, e.g., to enable insertion
-			 *	of a custody timeout event via bpMemo.
-			 *
-			 *	bpIdentify allocates a temporary
-			 *	buffer of size BP_MAX_BLOCK_SIZE
-			 *	into which the initial block(s) of
-			 *	the catenated bundle identified
-			 *	by bundleZco are read for parsing.
-			 *	If that buffer is not long enough
-			 *	to contain the entire primary block
-			 *	of the bundle, bundle ID field
-			 *	extraction will be incomplete and
-			 *	the bundle will not be located.
-			 *
-			 *	If the bundle is not located, the
-			 *	address returned in *bundleObj will
-			 *	be zero.
-			 *
-			 *	Returns 0 on success (whether bundle
-			 *	was located or not), -1 on system
-			 *	failure.				*/
-
-extern int		bpHandleXmitSuccess(Object zco, unsigned int interval);
+extern int		bpHandleXmitSuccess(Object zco);
 			/*	This function is invoked by a
 			 *	convergence-layer output adapter (an
 			 *	outduct) on detection of convergence-
 			 *	layer protocol transmission success.
 			 *	It causes the serialized (catenated)
 			 *	outbound bundle in zco to be destroyed,
-			 *	unless some constraint (such as
-			 *	acceptance of custody) requires that
-			 *	bundle destruction be deferred.
-			 *
-			 *	In the event that custody of the
-			 *	bundle has indeed been accepted, the
-			 *	calling function can request a further
-			 *	increment of reliability: when the
-			 *	value of "interval" is greater than
-			 *	zero, it indicates the length of time
-			 *	after which failure of custody transfer
-			 *	should be inferred if no custody
-			 *	acceptance signal for this bundle has
-			 *	been received.
+			 *	unless some constraint (such as local
+			 *	delivery of a copy of the bundle)
+			 *	requires that bundle destruction
+			 *	be deferred.
 			 *
 			 *	Returns 1 if bundle success was
 			 *	handled, 0 if bundle had already
@@ -1399,8 +1364,6 @@ extern int		setPlanViaEid(char *eid, char *viaEid);
 extern int		attachPlanDuct(char *eid, Object outductElt);
 extern int		detachPlanDuct(Object outductElt);
 extern void		lookupPlan(char *eid, VPlan **vplan);
-
-extern void		releaseCustody(Object bundleObj, Bundle *bundle);
 
 extern void	        removeBundleFromQueue(Bundle *bundle, BpPlan *plan);
 

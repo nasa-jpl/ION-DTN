@@ -162,7 +162,7 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitSuccess(data, 0);
+			result = bpHandleXmitSuccess(data);
 			if (result < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);

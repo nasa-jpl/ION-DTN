@@ -25,7 +25,7 @@ extern "C" {
 typedef struct
 {
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	char		acknowledged[DTKA_NUM_AUTHS];
 	time_t		assertionTime;
 	unsigned short	datLength;
