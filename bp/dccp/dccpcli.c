@@ -202,8 +202,8 @@ static void *Recieve_DCCP(void *param)
 
 		pthread_mutex_lock(rtp->elk);
 		if (bpBeginAcq(work, 0, NULL) < 0 
-				|| bpContinueAcq(work, buffer, bundleLength, 0) < 0
-				|| bpEndAcq(work) < 0)
+		|| bpContinueAcq(work, buffer, bundleLength, 0, 0) < 0
+		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
 			pthread_mutex_unlock(rtp->elk);
@@ -301,7 +301,7 @@ static void	*Listen_for_connections(void *parm)
 		rp->elk = &elk;
 		rp->list = &list;
 		rp->vduct = rtp->vduct;
-		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp))
+		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp, "dccpcli_receiver"))
 		{
 			putSysErrmsg("dccpcli can't create new thread.", NULL);
 			close(consock);
@@ -336,8 +336,8 @@ static void	*Listen_for_connections(void *parm)
 
 /*	*	*	Main thread functions	*	*	*	*/
 #if defined (ION_LWT)
-int	dccpcli(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	dccpcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else
@@ -429,7 +429,7 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
 	rtp.mainThread = pthread_self();
-	if (pthread_begin(&listenerThread, NULL, Listen_for_connections, &rtp))
+	if (pthread_begin(&listenerThread, NULL, Listen_for_connections, &rtp, "dccpcli_listener"))
 	{
 		close(rtp.linkSocket);
 		putSysErrmsg("dccpcli can't create new thread.", NULL);

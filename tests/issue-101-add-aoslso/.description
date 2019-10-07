@@ -1,0 +1,2 @@
+Test the functionality of an AOS link service adapter for ltp.
+Disabled for ION 3.7.0 because aoslso and aoslsi are deprecated.

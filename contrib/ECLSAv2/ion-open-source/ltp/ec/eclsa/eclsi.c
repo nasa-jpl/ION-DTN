@@ -2,6 +2,8 @@
 eclsi.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
+ Co-author of HSLTP extensions: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -13,11 +15,25 @@ Service Induct daemon.
  * */
 
 #include "eclsi.h"
+
 #include <stdlib.h>		// exit, ..
 #include <unistd.h> 	// usleep
 #include <pthread.h>	// POSIX threads
 #include <string.h>		// memset
 #include <stdint.h> //uint_16t, uint_8...
+
+#include "adapters/protocol/eclsaProtocolAdapters.h"
+#include "adapters/codec/eclsaCodecAdapter.h"
+#include "elements/matrix/eclsaMatrixPool.h"
+#include "elements/packet/eclsaBlacklist.h"
+#include "elements/packet/eclsaPacket.h"
+#include "elements/packet/eclsaFeedback.h"
+#include "elements/sys/eclsaLogger.h"
+#include "elements/sys/eclsaMemoryManager.h"
+#include "extensions/HSLTP/HSLTP.h"
+//#include "elements/sys/eclsaTimer.h"
+//#include "elements/fec/eclsaFecManager.h"
+//#include "elements/matrix/eclsaCodecMatrix.h"
 
 
 #define PARSE_PARAMETER(PAR_NO) 	(argc > (PAR_NO) ? (int) strtoll(argv[PAR_NO], NULL, 10) : -1)
@@ -29,18 +45,20 @@ int	main(int argc, char *argv[])
 	pthread_t			decodeMatrixThread;
 	pthread_t			sendMatrixThread;
 
+	initMemoryManager(ECLSI_MAX_MEMORY_SIZE, ECLSI_MAX_MEMORY_TYPE);
+
 	loggerInit(2);
 	loggerStartLog(0,"outputECLSI.log",true,true); //can be used debugPrint() shortcut instead of loggerPrint()
 	loggerStartLog(1,"eclsiReceivedPackets.log",true,true); //can be used packetLogger() shortcut instead of loggerPrint()
 
 	parseCommandLineArgument(argc,argv,&eclsiEnv);
 
-	initEclsiUpperLevel(argc,argv,&eclsiEnv.portNbr,&eclsiEnv.ipAddress);
-	initEclsiLowerLevel(argc,argv,eclsiEnv.portNbr,eclsiEnv.ipAddress);
+	initEclsiUpperLevel(argc,argv,&eclsiEnv);
+	initEclsiLowerLevel(argc,argv,&eclsiEnv);
 
 	fecManagerInit(true,false,isContinuousModeAvailable(),eclsiEnv.maxK,eclsiEnv.maxN,eclsiEnv.maxT);
 
-	matrixBufferInit(FEC_ECLSI_MATRIX_BUFFER);
+	matrixPoolInit(FEC_ECLSI_MATRIX_BUFFER, ECLSI_MAX_DYNAMIC_MATRIX);
 	blacklistInit();
 	timerInit(timerHandler,&thread);
 
@@ -79,10 +97,11 @@ int	main(int argc, char *argv[])
 	sem_destroy(&(thread.notifyT3));
 
 	blacklistDestroy();
-	matrixBufferDestroy();
+	matrixPoolDestroy();
 	fecManagerDestroy();
 	timerDestroy();
 	debugPrint("T1: memory cleared");
+	destroyMemoryManager(ECLSI_DESTROY_MEMORY_LEAK);
 	loggerDestroy();
 
 	return 0;
@@ -127,17 +146,21 @@ static void *fill_matrix_thread(void *parm) // thread T1
 
 		//todo remove comments only for debug purposes.
 		//todo decommentando alcune di queste righe verranno scartati i pacchetti indicati. questo
-		//può servire per fare dei test con un certo numero di perdite in modo deterministico
+		//pu� servire per fare dei test con un certo numero di perdite in modo deterministico
 		//if(header.symbolID %2 == 0 || header.symbolID == 575 || header.symbolID==18431) continue;
-	    // if(header.symbolID %2 == 0 ) continue;
+	    //if(header.symbolID %2 == 0 ) continue;
 		//if(header.symbolID  == 0 ) continue;
 		//if(header.symbolID  <15) continue;
 
 		if(isUncodedEclsaPacket(&header))
 			{
+			if((header.flags & HSLTP_MODE_MASK) != 0)
+				sendSegmentToUpperProtocol_HSLTP_MODE(upperLevelBuffer,&upperLevelBufferLength,STATUS_CODEC_NOT_DECODED,false);
+			else
 				sendSegmentToUpperProtocol(upperLevelBuffer,&upperLevelBufferLength);
-				debugPrint("Uncoded Eclsa Packet received: payload sent to the upper level protocol.");
-				continue;
+			
+			debugPrint("Uncoded Eclsa Packet received: payload sent to the upper level protocol.");
+			continue;
 			}
 
 		if(isBlacklisted(header.engineID,header.matrixID))
@@ -146,19 +169,19 @@ static void *fill_matrix_thread(void *parm) // thread T1
 			}
 
 
-		while( (matrix=getMatrixToFill(header.matrixID,header.engineID)) == NULL )
+		while( (matrix=getMatrixToFill(header.matrixID,header.engineID, header.N, header.T)) == NULL )
 			{
 				debugPrint("T1: matrix buffer full");
 				sem_wait(&(thread->notifyT1));
 			}
 
-		sem_wait(&(matrix->lock));
+		pthread_mutex_lock(&(matrix->lock));
 
 		//This is the same check as before; it must be repeated because a long time may elapse
 		//waiting for a free matrix in the previous while.
 		if(isBlacklisted(header.engineID,header.matrixID))
 			{
-			sem_post(&(matrix->lock));
+			pthread_mutex_unlock(&(matrix->lock));
 			continue;
 			}
 
@@ -173,8 +196,9 @@ static void *fill_matrix_thread(void *parm) // thread T1
 				matrix->maxInfoSize = 	header.segmentsAdded;
 				matrix->globalID= 		eclsiEnv->globalMatrixID;
 				matrix->feedbackEnabled=(header.flags & FEEDBACK_REQUEST_MASK) != 0;
+				matrix->HSLTPModeEnabled = (header.flags & HSLTP_MODE_MASK) != 0;
 
-				matrix->lowerProtocolData= malloc(lowerProtocolDataLenght);
+				matrix->lowerProtocolData = allocateElement(lowerProtocolDataLenght);
 				memcpy(matrix->lowerProtocolData,lowerProtocolData,lowerProtocolDataLenght);
 
 				eclsiEnv->globalMatrixID++;
@@ -203,8 +227,7 @@ static void *fill_matrix_thread(void *parm) // thread T1
 				timerStop(&(matrix->timer));
 				addToBlacklist(matrix->engineID,matrix->ID);
 				debugPrint("T1: added (MID=%d,EID=%d) to blacklist",matrix->ID,matrix->engineID);
-				flushEclsaMatrix(matrix);
-				sem_post(&(matrix->lock));
+				flushMatrixFromPool(&matrix);
 				continue;
 			}
 
@@ -238,7 +261,7 @@ static void *fill_matrix_thread(void *parm) // thread T1
 			sem_notify(&(thread->notifyT2));
 			}
 
-		sem_post(&(matrix->lock));
+		pthread_mutex_unlock(&(matrix->lock));
 		}
 
 	return NULL;
@@ -259,14 +282,14 @@ static void	*decode_matrix_thread(void *parm) 	// thread T2
 	while( (matrix=getMatrixToCode()) != NULL)
 		{
 		debugPrint("T2: iteration...");
-		sem_wait(&(matrix->lock));
+		pthread_mutex_lock(&(matrix->lock));
 
 		if (!isMatrixInfoPartFull(matrix))
 			decodeEclsaMatrix(matrix);
 
 		matrix->clearedToSend=true;
 		sem_notify(&(thread->notifyT3));
-		sem_post(&(matrix->lock));
+		pthread_mutex_unlock(&(matrix->lock));
 		}
 	}
 
@@ -289,16 +312,20 @@ static void	*pass_matrix_thread(void *parm) 	//thread T3
 	while( (matrix=getMatrixToSend()) != NULL)
 		{
 		debugPrint("T3: iteration");
-		sem_wait(&(matrix->lock));
+		pthread_mutex_lock(&(matrix->lock));
 		debugPrint("T3: passing MID=%d EID=%d GID=%d to upper protocol", matrix->ID,matrix->engineID,matrix->globalID);
 		addToBlacklist(matrix->engineID,matrix->ID);
 		debugPrint("T3: Added (MID=%d,EID=%d) to blacklist",matrix->ID,matrix->engineID);
-		passEclsaMatrix(matrix,eclsiEnv);
+
+		if(matrix->HSLTPModeEnabled)
+			passEclsaMatrix_HSLTP_MODE(matrix,eclsiEnv);
+		else
+			passEclsaMatrix(matrix,eclsiEnv);
+
 		if(matrix->feedbackEnabled)
 			sendFeedback(matrix,eclsiEnv);
-		flushEclsaMatrix(matrix);
+		flushMatrixFromPool(&matrix);
 		sem_notify(&(thread->notifyT1));
-		sem_post(&(matrix->lock));
 		}
 	}
 	return NULL;
@@ -334,7 +361,7 @@ static void parseCommandLineArgument(int argc, char *argv[], EclsiEnvironment *e
 /*Single eclsa matrix functions*/
 void decodeEclsaMatrix(EclsaMatrix *matrix)
 {
-	void *codecMatrix= matrix->universalCodecMatrix;
+	void *codecMatrix= matrix->abstractCodecMatrix;
 	FecElement 	*code= matrix->encodingCode;
 	code->T=matrix->workingT;
 
@@ -358,20 +385,18 @@ FecElement 	*code= 		  matrix->encodingCode;
 char *segment;
 uint16_t tmpSegLen;
 int segmentLength;
+debugPrint("T3: LTP standard");
 
 for(i=0;i < code->K;i++)
 	{
-	segment= getSymbolFromCodecMatrix(matrix->universalCodecMatrix,i);
+	segment= getSymbolFromCodecMatrix(matrix->abstractCodecMatrix,i);
 	memcpy(&tmpSegLen,segment, sizeof(uint16_t));
 	//Only the matrix segments that have a length > 0 (no padding) and have been flagged as valid
 	//by the decoder, must be sent to LTP (or to another upper protocol).
-	if(tmpSegLen > 0 && isValidSymbol(matrix->universalCodecMatrix,i) )
+	if(tmpSegLen > 0 && isValidSymbol(matrix->abstractCodecMatrix,i) )
 		{
 			segmentLength=(int)tmpSegLen;
 			sendSegmentToUpperProtocol((char *)(segment+ sizeof(uint16_t)),&segmentLength);
-			//todo wait 0.5ms. this is a fix to avoid segments dropping in the interface with the
-			//upper protocol. The origin of the dropping has not been thoroughly investigated yet.
-			usleep(500);
 		}
 	}
 }
@@ -409,14 +434,14 @@ debugPrint("timer handler");
 EclsiThreadParms *thread=(EclsiThreadParms *) userData;
 EclsaMatrix *matrix=(EclsaMatrix *) matrixData;
 
-sem_wait(&(matrix->lock));
+pthread_mutex_lock(&(matrix->lock));
 if(!matrix->clearedToCodec && matrix->timer.ID == timerID)
 	{
 	debugPrint("T1: matrix received.Status:\"Timeout\" MID=%d EID=%d GID=%d N=%d K=%d I=%d/%d R=%d/%d",matrix->ID,matrix->engineID,matrix->globalID,matrix->encodingCode->N,matrix->encodingCode->K,matrix->infoSegmentAddedCount,matrix->maxInfoSize,matrix->redundancySegmentAddedCount,matrix->encodingCode->N-matrix->encodingCode->K);
 	matrix->clearedToCodec=true;
 	sem_notify(&(thread->notifyT2));
 	}
-sem_post(&(matrix->lock));
+pthread_mutex_unlock(&(matrix->lock));
 }
 
 

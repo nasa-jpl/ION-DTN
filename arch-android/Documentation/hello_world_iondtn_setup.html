@@ -1,0 +1,229 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>IonDTN Setup - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html" class="active"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./hello_world_iondtn_setup.html#iondtn-setup" id="iondtn-setup"><h1>IonDTN Setup</h1></a>
+<p>Besides creating an own application, we also need to have the <em>IonDTN</em> provider application installed and set up on the Android device.</p>
+<a class="header" href="./hello_world_iondtn_setup.html#iondtn-installation" id="iondtn-installation"><h2>IonDTN installation</h2></a>
+<p>If you have the IonDTN application already installed on your device, just make sure that the app version is compatible to this documentation. Otherwise you might use the provided interface in a wrong way.</p>
+<p>If you haven't installed the <em>IonDTN</em> application yet, you probably want to build and deploy it yourself. In order to do so, just open the <code>IonDTN</code> project located in <code>arch_android</code> directory of the ION-DTN archive in Android Studio. Due to Android Studio's feature detection, it will ask you for permission to install all required SDKs and NDKs. Please install all these packages, connect your Android device and then proceed by pressing the <code>Run 'app'</code> icon in the toolbar:</p>
+<p><img src="./resources/run_app.png" alt="run app" /></p>
+<p>Android Studio will build the app, install it on your device and open it.</p>
+<p>You should be greeted by the following screen of the application setup:</p>
+<p><img src="./resources/ion_dtn_setup_welcome.png" alt="iondtn setup welcome" /></p>
+
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    If you encounter error like <code>No toolchains found in the NDK toolchains folder</code> after installing all required SDKs and NDKs as detected by Android Studio's feature detection, the appropriate version of NDK has to be installed on the development machine to build the provider app. The error may look like this:
+    <p><img src="./resources/error_no_toolchains_found.png"/></p>
+    In order to install the appropriate version of NDK, download the working older version of NDK from <a href="https://developer.android.com/ndk/downloads/older_releases"> here </a> (Android NDK, Revision 17c (June 2018) has been working fine.) Find your own local Android SDK location; you can check the location of the SDK directory itself via <p><code>Android Studio -> Preferences... -> Appearance & Behavior -> System Settings -> Android SDK -> Android SDK Location field near the top of the panel.</code></p> Go to that location and there will be a folder called "ndk-bundle". Replace the contents of this folder with the extracted content of the older version of NDK which you just downloaded.
+</i></b></p>
+
+<a class="header" href="./hello_world_iondtn_setup.html#iondtn-setup-1" id="iondtn-setup-1"><h2>IonDTN setup</h2></a>
+<p>Now we have to configure the app and the underlying <em>ION-DTN</em> instance.</p>
+<a class="header" href="./hello_world_iondtn_setup.html#node-number" id="node-number"><h3>Node Number</h3></a>
+<p>First, we have to select a node number:</p>
+<p><img src="./resources/ion_dtn_setup_node_number.png" alt="iondtn setup select node number" /></p>
+<p>Just choose <em>&quot;1&quot;</em> in order to ensure compatibility with the configuration file used in all subsequent steps.</p>
+<a class="header" href="./hello_world_iondtn_setup.html#setup-type" id="setup-type"><h3>Setup Type</h3></a>
+<p>After pressing the arrow button, you have to select one of the two setup options:</p>
+<p><img src="./resources/ion_dtn_setup_init_selection.png" alt="iondtn setup select node number" /></p>
+<p>The options are characterized as follows:</p>
+<ul>
+<li><strong>Empty Configuration</strong>: The all necessary daemons and services are started, but initially no <em>contacts</em>, <em>ranges</em>, etc. are created. The user has to use the <em>IonDTN's</em> GUI to set these up.</li>
+<li><strong>Configuration based on <code>.rc</code> file:</strong> The user can select an <code>.rc</code> file during the setup process and the configuration of that file is copied into the app configuration. Only the node number is overwritten. This overwriting allows the usage of the same configuration file for multiple devices.</li>
+</ul>
+<p>For our <em>&quot;Hello World&quot;</em> project, please choose <code>&quot;Setup configuration based on file&quot;</code> and proceed by taping on the arrow button.</p>
+<a class="header" href="./hello_world_iondtn_setup.html#permission" id="permission"><h3>Permission</h3></a>
+<p>Depending on the Android version of your device and your security settings, you might be asked to give <em>IonDTN</em> the permission to access the devices external memory (which is the the memory that is accessible by the user and all other applications). Grant the permission and tap the arrow button to proceed.</p>
+<a class="header" href="./hello_world_iondtn_setup.html#select-setup-file" id="select-setup-file"><h3>Select Setup File</h3></a>
+<p><img src="./resources/ion_dtn_setup_select_path.png" alt="iondtn setup select path" /></p>
+<p>In the upcoming dialog you have to select an appropriate configuration file. For the purpose of the <em>&quot;Hello World&quot;</em> project, please modify the linked configuration file <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a>, copy it to your device and select it in the file selection dialog.</p>
+<p>The following modifications are necessary:</p>
+<ul>
+<li>Assign a static IP address to your device (or use the already via DHCP assigned one, however, this might cause malfunction when a new IP address is assigned). <b><i><a href = "https://service.uoregon.edu/TDClient/KB/ArticleDet?ID=33742">Here</a> is the way to assign static ip for your android device. </i></b></li>
+<li>Update both the in-/outducts and the plan details to correspond to the topology and your IP addresses.</li>
+</ul>
+<p>The topology for our test is as follows:</p>
+<p><img src="./resources/topology_hello_world.png" alt="iondtn setup topology" /></p>
+<p>You can use the linked <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> file to setup an <em>ION-DTN</em> file on your development machine or another computer.</p>
+<p>Please refer to the <em>ION-DTN</em> configuration for details on how to configure an ION node.</p>
+<p>Again, tap the arrow button in the <em>IonDTN</em> application and the app perform the setup of the node.</p>
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    If you are using the linked configuration files: <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a> (Node 1) & <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> (Node 2), make sure to change the ip addresses in the configuration files to the ip addresses of your devices. The following changes are required in android_node.rc and pc_node.rc respectively. 
+</i></b></p>
+<p>
+<pre><code>
+    # FIXME the IP address has to be changed to your network structure
+    a induct tcp <strong>&lt;android_node_ip&gt;</strong>:4556 tcpcli
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;android_node_ip&gt;</strong>:4556 tcpclo
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;pc_node_ip&gt;</strong>:4556 tcpclo
+
+    s
+    ## end bpadmin
+
+    ## begin ipnadmin
+    # FIXME the IP address has to be changed to your network structure
+    a plan 1 tcp/<strong>&lt;android_node_ip&gt;</strong>:4556
+    # FIXME the IP address has to be changed to your network structure
+    a plan 2 tcp/<strong>&lt;pc_node_ip&gt;</strong>:4556
+    ## end ipnadmin
+</code></pre>
+
+<pre><code>
+    # FIXME the IP address has to be changed to your network structure
+    a induct tcp <strong>&lt;pc_node_ip&gt;</strong>:4556 tcpcli
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;pc_node_ip&gt;</strong>:4556 tcpclo
+
+    # FIXME the IP address has to be changed to your network structure
+    a outduct tcp <strong>&lt;android_node_ip&gt;</strong>:4556 tcpclo
+
+    s
+    ## end bpadmin
+
+    ## begin ipnadmin
+    # FIXME the IP address has to be changed to your network structure
+    a plan 1 tcp/<strong>&lt;android_node_ip&gt;</strong>:4556
+    # FIXME the IP address has to be changed to your network structure
+    a plan 2 tcp/<strong>&lt;pc_node_ip&gt;</strong>:4556
+</code></pre>
+<i><b>Here, &lt;android_node_ip&gt; and &lt;pc_node_ip&gt; is the ip addresses of your android device and PC respectively. </b></i>
+</p>
+
+<a class="header" href="./hello_world_iondtn_setup.html#finish-setup" id="finish-setup"><h3>Finish setup</h3></a>
+<p>If the setup succeeded (i.e. the configuration file was consistent), you will see the following screen:</p>
+<p><img src="./resources/ion_dtn_setup_complete.png" alt="iondtn setup complete" /></p>
+<p>Congratulations, IonDTN Setup is now complete. Click on the button to leave setup and you will be redirected to the main status screen of the application.</p>
+<a class="header" href="./hello_world_iondtn_setup.html#startstop-ion-dtn" id="startstop-ion-dtn"><h2>Start/Stop ION-DTN</h2></a>
+<p><img src="./resources/ion_dtn_status_fragment.png" alt="iondtn status fragment" /></p>
+<p>On the main status screen you can start and stop the underlying <em>ION-DTN</em> instance. Just press the switch in the top right corner and <em>ION-DTN</em> will start. The startup process will take some time, but you will get notified when the instance is started and ready to use. You can also follow the log messages that appear in the log output view whenever functions and deamons are invoked. Besides the in-app status information there is also a persistent notification.</p>
+<p>The persistent notification serves two purposes:</p>
+<ol>
+<li>It ensures that the user is aware that <em>ION-DTN</em> is running in the background and that takes some resources.</li>
+<li>It prevents the service and the <em>ION-DTN</em> instance to get killed by the Android operating system. Android has a  rigorous resource management and stops applications that are running in the background and still claiming memory and cpu cycles. However, in the case of the <em>IonDTN</em> provider application the app has to run continuously to ensure that bundles can be received at any time. By displaying the notification to the user (i.e. <em>&quot;starting the service of the application in the foreground&quot;</em> in Android's terms) the likelihood of the Android OS killing <em>IonDTN</em> is negligible.</li>
+</ol>
+<p><strong>Please start the ION instance before continuing in order to use it with <em>DtnHelloWorld</em>.</strong></p>
+<a class="header" href="./hello_world_iondtn_setup.html#in-app-configuration" id="in-app-configuration"><h2>In-App configuration</h2></a>
+<p>After starting the <em>ION-DTN</em> instance, you can swipe right from the left side of the screen to open up the main navigation drawer. In this drawer you can select the various configuration elements to review and change the configuration of the node.</p>
+<p><img src="./resources/ion_dtn_nav_drawer.png" alt="iondtn navigation drawer" /></p>
+<p>Although not necessary for our project, you can have a look what options are available there. Furthermore, in the <em>&quot;Settings&quot;</em> menu you can change some default values and reset the application if necessary (i.e. to load a different initalization <code>.rc</code> file).</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./hello_world_application_setup.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./hello_world_binding_iondtn.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./hello_world_application_setup.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./hello_world_binding_iondtn.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

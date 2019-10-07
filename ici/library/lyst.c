@@ -233,7 +233,7 @@ lyst_insert_get(Lyst list, LystCallback *fn, void **arg)
   }
 }
 
-unsigned long
+size_t
 lyst_length(Lyst list)
 {
   return (list == NULL) ? 0 : list->length;

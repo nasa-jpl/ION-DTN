@@ -11,10 +11,6 @@
 									*/
 #include "bpP.h"
 
-#ifndef	MAX_CLO_INACTIVITY
-#define	MAX_CLO_INACTIVITY	(3)
-#endif
-
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;
@@ -43,11 +39,10 @@ static void	shutDown()	/*	Commands bpclm termination.	*/
 	sm_SemEnd(_bpclmSemaphore(NULL));
 }
 
-static int	maxPayloadLengthKnown(VPlan *vplan,
-			unsigned int *maxPayloadLength)
+static size_t	maxPayloadLengthKnown(VPlan *vplan, size_t *maxPayloadLength)
 {
-	unsigned int	secRemaining;
-	unsigned int	xmitRate;
+	size_t	secRemaining;
+	size_t	xmitRate;
 
 	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
 	if (vplan->neighborNodeNbr)	/*	Known neighbor node.	*/
@@ -430,80 +425,9 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	}
 }
 
-static void	noteFragmentation(Bundle *bundle)
-{
-	Sdr	sdr = getIonsdr();
-	Object	dbObject;
-	BpDB	db;
-
-	dbObject = getBpDbObject();
-	sdr_stage(sdr, (char *) &db, dbObject, sizeof(BpDB));
-	db.currentFragmentsProduced++;
-	db.totalFragmentsProduced++;
-	if (!(bundle->fragmented))
-	{
-		bundle->fragmented = 1;
-		db.currentBundlesFragmented++;
-		db.totalBundlesFragmented++;
-	}
-
-	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
-}
-
-static int	flushOutduct(Outduct *outduct)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	nextElt;
-	Object	bundleObj;
-	Bundle	bundle;
-
-	/*	Any bundle previously enqueued for transmission via
-	 *	this outduct that has not yet been transmitted is
-	 *	assumed to be waiting on to a stuck CLO, and is
-	 *	therefore placed in the limbo list for eventual
-	 *	reforwarding.  We don't reforward immediately because
-	 *	the presumably stuck outduct is not detached from
-	 *	the plan, so upon presentation to the CLM daemon the
-	 *	bundle would simply be allocated to the same stuck
-	 *	outduct again.						*/
-
-	for (elt = sdr_list_first(sdr, outduct->xmitBuffer); elt; elt = nextElt)
-	{
-		nextElt = sdr_list_next(sdr, elt);
-		bundleObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
-		if (bundle.ductXmitElt)
-		{
-			sdr_list_delete(sdr, bundle.ductXmitElt, NULL, NULL);
-			bundle.ductXmitElt = 0;
-		}
-
-		if (bundle.overdueElt)
-		{
-			destroyBpTimelineEvent(bundle.overdueElt);
-			bundle.overdueElt = 0;
-		}
-
-		if (bundle.ctDueElt)
-		{
-			destroyBpTimelineEvent(bundle.ctDueElt);
-			bundle.ctDueElt = 0;
-		}
-
-		if (enqueueToLimbo(&bundle, bundleObj) < 0)
-		{
-			putErrmsg("Failed enqueuing to limbo list.", NULL);
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
 #if defined (ION_LWT)
-int	bpclm(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bpclm(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*nodeName = (char *) a1;
 #else
@@ -520,7 +444,7 @@ int	main(int argc, char *argv[])
 	Outflow		outflows[3];
 	int		i;
 	int		running = 1;
-	unsigned int	maxPayloadLength;
+	size_t		maxPayloadLength;
 	Object		bundleElt;
 	Object		bundleObj;
 	Bundle		bundle;
@@ -531,8 +455,6 @@ int	main(int argc, char *argv[])
 	Bundle		secondBundle;
 	Object		secondBundleObj;
 	Object		queue;
-	int		bufferLength;
-	time_t		currentTime;
 
 	if (!nodeName)
 	{
@@ -568,13 +490,6 @@ int	main(int argc, char *argv[])
 
 	planObj = sdr_list_data(sdr, vplan->planElt);
 	sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
-	throttle = applicableThrottle(vplan);
-	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
-
-	/*	NOTE: plan deletion doesn't remove a Plan until its
-	 *	clm pid is -1, so we don't need to re-find the Plan
-	 *	after transaction exit.					*/
-
 	memset((char *) outflows, 0, sizeof outflows);
 	outflows[0].outboundBundles = plan.bulkQueue;
 	outflows[1].outboundBundles = plan.stdQueue;
@@ -583,6 +498,8 @@ int	main(int argc, char *argv[])
 	{
 		outflows[i].svcFactor = 1 << i;
 	}
+
+	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
 
 	/*	Set up signal handling.					*/
 
@@ -603,6 +520,8 @@ int	main(int argc, char *argv[])
 	while (running)
 	{
 		CHKZERO(sdr_begin_xn(sdr));
+		throttle = applicableThrottle(vplan);
+		CHKZERO(throttle);
 
 		/*	Wait until (a) there is at least one outduct,
 		 *	(b) maximum payload length is known, and (c)
@@ -610,6 +529,7 @@ int	main(int argc, char *argv[])
 
 		if (sdr_list_length(sdr, plan.ducts) == 0
 		|| maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0
+		|| (throttle->nominalRate == 0 && maxPayloadLength > 0)
 		|| (throttle->nominalRate > 0 && throttle->capacity <= 0))
 		{
 			sdr_exit_xn(sdr);
@@ -663,8 +583,11 @@ int	main(int argc, char *argv[])
 		getOutduct(vplan, &bundle, &vduct);
 		if (vduct == NULL)		/*	No usable duct.	*/
 		{
-			removeBundleFromQueue(&bundle, bundleObj, planObj,
-					&plan);
+			sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+			removeBundleFromQueue(&bundle, &plan);
+			sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+			sdr_write(sdr, bundleObj, (char *) &bundle,
+					sizeof(Bundle));
 			oK(enqueueToLimbo(&bundle, bundleObj));
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -698,8 +621,13 @@ int	main(int argc, char *argv[])
 				 *	neighboring node.  Reforward
 				 *	it and get another bundle.	*/
 
-				removeBundleFromQueue(&bundle, bundleObj,
-						planObj, &plan);
+				sdr_stage(sdr, (char *) &plan, planObj,
+						sizeof(BpPlan));
+				removeBundleFromQueue(&bundle, &plan);
+				sdr_write(sdr, planObj, (char *) &plan,
+						sizeof(BpPlan));
+				sdr_write(sdr, bundleObj, (char *) &bundle,
+						sizeof(Bundle));
 				if (bpReforwardBundle(bundleObj) < 0)
 				{
 					sdr_cancel_xn(sdr);
@@ -723,11 +651,11 @@ int	main(int argc, char *argv[])
 
 			/*	Okay to fragment.			*/
 
-			if (bpClone(&bundle, &firstBundle, &firstBundleObj, 0,
-					maxPayloadLength) < 0
-			|| bpClone(&bundle, &secondBundle, &secondBundleObj,
-					maxPayloadLength, bundle.payload.length
-					- maxPayloadLength) < 0)
+			queue = sdr_list_list(sdr, bundle.planXmitElt);
+			if (bpFragment(&bundle, bundleObj,
+					&(bundle.planXmitElt), maxPayloadLength,
+					&firstBundle, &firstBundleObj,
+					&secondBundle, &secondBundleObj) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				putErrmsg("CLO can't fragment bundle.",
@@ -736,43 +664,11 @@ int	main(int argc, char *argv[])
 				continue;
 			}
 
-			/*	Lose the original bundle, inserting
-			 *	the two fragments in its place.  No
-			 *	significant change to backlog, so we
-			 *	don't call purgeDuctXmitElt which calls
-			 *	removeBundleFromQueue.			*/
+			/*	Insert the two fragments back into the
+			 *	plan queue, with the segment that is
+			 *	immediately transmittable at the front
+			 *	of the queue.				*/
 
-			queue = sdr_list_list(sdr, bundle.planXmitElt);
-			sdr_list_delete(sdr, bundle.planXmitElt, NULL, NULL);
-			bundle.planXmitElt = 0;
-			if (bundle.custodyTaken)
-			{
-				/*	Means that custody of the
-				 *	two clones is taken instead.	*/
-
-				releaseCustody(bundleObj, &bundle);
-				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
-						firstBundle.payload.length);
-				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
-						secondBundle.payload.length);
-			}
-
-			/*	Lose the original bundle.		*/
-
-			sdr_write(sdr, bundleObj, (char *) &bundle,
-					sizeof(Bundle));
-			if (bpDestroyBundle(bundleObj, 0) < 0)
-			{
-				sdr_cancel_xn(sdr);
-				putErrmsg("CLO can't destroy original bundle.",
-						nodeName);
-				running = 0;
-				continue;
-			}
-
-			/*	Insert two new fragments.		*/
-
-			noteFragmentation(&secondBundle);
 			secondBundle.planXmitElt = sdr_list_insert_first(sdr,
 					queue, secondBundleObj);
 			sdr_write(sdr, secondBundleObj, (char *)
@@ -790,49 +686,9 @@ int	main(int argc, char *argv[])
 		/*	Pop the outbound bundle out of its issuance
 		 *	queue.						*/
 
-		removeBundleFromQueue(&bundle, bundleObj, planObj, &plan);
-
-		/*	Manage outduct's transmission buffer.		*/
-
-		bufferLength = sdr_list_length(sdr, outduct->xmitBuffer);
-		currentTime = getUTCTime();
-		if (bufferLength < vduct->prevBufferLength)
-		{
-			vduct->timeOfLastXmit = currentTime;
-		}
-
-		if (bufferLength > 0)
-		{
-			if ((currentTime - vduct->timeOfLastXmit)
-					> MAX_CLO_INACTIVITY)
-			{
-				/*	Assume outduct is blocked.
-				 *	Flush bundles in buffer to
-				 *	the Limbo list.			*/
-
-				if (flushOutduct(outduct) < 0)
-				{
-					sdr_cancel_xn(sdr);
-					running = 0;
-					continue;
-				}
-
-				bufferLength = 0;
-
-				/*	Note that the current
-				 *	bundle will be appended
-				 *	to the outduct's buffer
-				 *	even if we have assumed
-				 *	that the outduct is blocked.
-				 *	This enables us to keep
-				 *	checking for CLO resumption
-				 *	but keep on placing bundles
-				 *	in limbo until the CLO
-				 *	resumes operation.		*/
-			}
-		}
-
-		vduct->prevBufferLength = bufferLength + 1;
+		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		removeBundleFromQueue(&bundle, &plan);
+		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
 
 		/*	Pass the bundle to the outduct.			*/
 
@@ -844,8 +700,7 @@ int	main(int argc, char *argv[])
 		/*	Track this transmission event.			*/
 
 		bpPlanTally(vplan, BP_PLAN_DEQUEUED, bundle.payload.length);
-		bpXmitTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
-				bundle.payload.length);
+		bpXmitTally(bundle.priority, bundle.payload.length);
 		if ((getBpVdb())->watching & WATCH_c)
 		{
 			iwatch('c');

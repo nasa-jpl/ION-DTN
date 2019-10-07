@@ -100,7 +100,7 @@ static void	*receiveBundles(void *parm)
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound, 0);
+						ZcoOutbound);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -152,7 +152,7 @@ destroying bundle ZCO.", NULL);
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound, 0);
+						ZcoOutbound);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -234,7 +234,7 @@ destroying bundle ZCO.", NULL);
 
 		printDottedString(fromHostNbr, hostName);
 		if (bpBeginAcq(work, 0, NULL) < 0
-		|| bpContinueAcq(work, buffer, length, 0) < 0
+		|| bpContinueAcq(work, buffer, length, 0, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
@@ -262,8 +262,8 @@ destroying bundle ZCO.", NULL);
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
-int	dgrcli(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	dgrcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else
@@ -347,7 +347,7 @@ int	main(int argc, char *argv[])
 	rtp.vduct = vinduct;
 	rtp.running = &running;
 	rtp.dgrSap = dgrSap;
-	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp))
+	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp, "dgrcli_receiver"))
 	{
 		dgr_close(dgrSap);
 		putSysErrmsg("dgrcli can't create receiver thread", NULL);

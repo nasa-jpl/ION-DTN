@@ -340,8 +340,8 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
 }
 
 #if defined (ION_LWT)
-int	dccpclo(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	dccpclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else
@@ -445,7 +445,7 @@ int	main(int argc, char *argv[])
 	itp.done = 0;
 	itp.ductname = ductName;
 	pthread_mutex_init(&itp.mutex, NULL);
-	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp))
+	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp, "dccpclo_keepalive"))
 	{
 		putSysErrmsg("dccpclo can't create thread.", NULL);
 		pthread_mutex_destroy(&itp.mutex);
@@ -468,6 +468,11 @@ int	main(int argc, char *argv[])
 			writeMemo("[i] dccpclo outduct closed.");
 			sm_SemEnd(dccpcloSemaphore(NULL));
 			continue;
+		}
+
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get the next one.	*/
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));

@@ -2,6 +2,7 @@
  eclsaCodecAdapter_OpenFEC.c
 
  Author: Marco Raminella (marco.raminella@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisors: Carlo Caini (carlo.caini@unibo.it)
  	 	 	 	 	  Nicola Alessi (nicola.alessi@studio.unibo.it)
 
@@ -12,6 +13,8 @@ todo: fare initSession e destroySession
 
  * */
 #include "eclsaCodecAdapter.h"
+#include "../../elements/sys/eclsaLogger.h"
+#include "../../elements/sys/eclsaMemoryManager.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -46,8 +49,8 @@ static void initSession(FecElement * fecElement, enum CODEC type)
 		case DECODER: codec_type = OF_DECODER; break;
 		}
 		if(fecElement->codecVars == NULL){
-			openFECVars = malloc(sizeof(OpenFECVars));
-			openFECVars->of_parameters = malloc(sizeof(of_ldpc_parameters_t));
+			openFECVars = allocateElement(sizeof(OpenFECVars));
+			openFECVars->of_parameters = allocateElement(sizeof(of_ldpc_parameters_t));
 			openFECVars->of_parameters->encoding_symbol_length = fecElement->T * sizeof(uint8_t) ; // The number of bytes per symbol
 			openFECVars->of_parameters->nb_source_symbols = fecElement->K;
 			openFECVars->of_parameters->nb_repair_symbols = fecElement->N - fecElement->K;
@@ -116,8 +119,8 @@ void destroyCodecVars(FecElement *fec)
 		of_status = of_release_codec_instance(openFECVars->of_session[ENCODER]);
 	if(openFECVars->of_session[DECODER] != NULL)
 		of_status = of_release_codec_instance(openFECVars->of_session[DECODER]); */
-	free(openFECVars->of_parameters);
-	free(openFECVars);
+	deallocateElement(&(openFECVars->of_parameters));
+	deallocateElement(&(openFECVars));
 	openFECVars=NULL;
 }
 /*codec Matrix
@@ -161,7 +164,7 @@ int  decodeCodecMatrix(CodecMatrix *codecMatrix,FecElement *encodingCode,int pad
 	OpenFECVars * openFECVars;
 	int i, status = 0;
 	uint8_t ** in_data_vector;
-	in_data_vector =	(uint8_t **)calloc(encodingCode->N,sizeof(uint8_t *));
+	in_data_vector = allocateVector(sizeof(uint8_t*), encodingCode->N);
 
 	initSession(encodingCode,DECODER);
 	openFECVars = (OpenFECVars *) encodingCode->codecVars;
@@ -173,7 +176,7 @@ int  decodeCodecMatrix(CodecMatrix *codecMatrix,FecElement *encodingCode,int pad
 
 	for(i=0; i < encodingCode-> N; i++){
 		if(isValidSymbol(codecMatrix,i)){
-			in_data_vector[i] =  calloc(encodingCode->T,sizeof(uint8_t));
+			in_data_vector[i] = allocateVector(sizeof(uint8_t), encodingCode->T);
 			memcpy(in_data_vector[i],codecMatrix->codewordBox[i],encodingCode->T);
 		} else {
 			in_data_vector[i] = NULL;
@@ -213,7 +216,7 @@ int  decodeCodecMatrix(CodecMatrix *codecMatrix,FecElement *encodingCode,int pad
 		if(in_data_vector[i] != NULL){
 			memcpy(codecMatrix->codewordBox[i],in_data_vector[i],sizeof(uint8_t)*encodingCode->T);
 			codecMatrix->symbolStatus[i] = 1;
-			free(in_data_vector[i]);
+			deallocateVector(&(in_data_vector[i]));
 
 		} else {
 			memset(codecMatrix->codewordBox[i],0,sizeof(uint8_t)*encodingCode->T);
@@ -221,13 +224,13 @@ int  decodeCodecMatrix(CodecMatrix *codecMatrix,FecElement *encodingCode,int pad
 		}
 	}
 
-	free(in_data_vector);
+	deallocateVector(&(in_data_vector));
 	destroySession(encodingCode,DECODER);
 	return status;
 }
 
 /**/
-char convertToUniversalCodecStatus(char codecStatus)
+char convertToAbstractCodecStatus(char codecStatus)
 {
 	if(codecStatus == STATUS_CODEC_NOT_DECODED)
 			return STATUS_CODEC_NOT_DECODED;
@@ -265,7 +268,7 @@ char *getCodecStatusString(int codecStatus)
 					return unknown;
 		}
 	}
-unsigned char 	isContinuousModeAvailable()
+bool 	isContinuousModeAvailable()
 {
 return true;
 }

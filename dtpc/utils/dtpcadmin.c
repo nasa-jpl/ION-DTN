@@ -451,7 +451,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -608,39 +611,29 @@ command.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToDtpc() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//dtpc entity is not started
-					printText("DTPC entity is not started");
-					return 1;
-				}
-
-				//attached to dtpc system
-
-				*rc = dtpc_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = dtpc_entity_is_started();
-			if (*rc)
-			{
-				printText("DTPC entity is started");
 			}
 			else
 			{
-				printText("DTPC entity is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToDtpc() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//dtpc entity is not started
+				printText("DTPC entity is not started");
+				return 1;
+			}
+
+			//attached to dtpc system
+
+			*rc = dtpc_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -653,8 +646,8 @@ command.");
 }
 
 #if defined (ION_LWT)
-int	dtpcadmin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	dtpcadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
 #else

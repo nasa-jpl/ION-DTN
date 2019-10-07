@@ -2,6 +2,7 @@
  eclsaSendingSequence.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
  Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -12,19 +13,21 @@ todo
  * */
 
 #include "eclsaSendingSequence.h"
-
+#include "../sys/eclsaLogger.h"
+#include "../sys/eclsaMemoryManager.h"
+#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 
 void sequenceInit(SendingSequence *sendingSequence,int maxSize)
 {
-	sendingSequence->values= (int *) malloc( sizeof(int)* maxSize);
+	sendingSequence->values = (int*) allocateVector(sizeof(int), maxSize);
 	sendingSequence->length=0;
 	srand(time(NULL));
 }
 void sequenceDestroy(SendingSequence *sendingSequence)
 {
-	free(sendingSequence->values);
+	deallocateVector(sendingSequence);
 }
 void sequenceReload(SendingSequence *sendingSequence,FecElement *fec,bool addRedundancy,bool interleavingEnabled, bool puncturingEnabled, unsigned int infoSegmentAddedCount)
 {

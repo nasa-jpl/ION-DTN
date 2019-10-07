@@ -8,7 +8,8 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*      R. Carper: modified for Mac OS X platform (darwin)		*/
-/*      J.Veregge: modified for all platforms to consolidate		*/
+/*      J. Veregge: modified for all platforms to consolidate		*/
+/*      S. Clancy: added STRSOE flag for building with JPL STRS OE	*/
 /*									*/
 #ifndef _PLATFORM_H_
 #define _PLATFORM_H_
@@ -17,7 +18,7 @@
 extern "C" {
 #endif
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS)
+#if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS) || defined (STRSOE)
 #define ION_LWT
 #else
 #undef ION_LWT
@@ -33,6 +34,20 @@ extern "C" {
  *	ment (and only Windows development), whether within Visual
  *	Studio or not.							*/
 
+#ifndef mingw
+#if (defined(__MINGW32__))
+#define mingw
+#endif
+#endif
+
+#if (defined(__MINGW64__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	3
+#elif (defined(__MINGW32__))
+#undef	SPACE_ORDER
+#define	SPACE_ORDER	2
+#endif
+
 #ifdef uClibc
 #ifndef linux
 #define linux
@@ -42,7 +57,7 @@ extern "C" {
 #endif
 #endif
 
-#define	MAX_POSIX_TIME	2147483644
+#define	MAX_POSIX_TIME	2147483647
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
 
@@ -60,7 +75,7 @@ extern "C" {
  *	64-bit numbers regardless of the native machine architecture
  *	(except as noted below).					*/
 
-#if (defined (RTEMS) || defined (uClibc))
+#if (defined (RTEMS) || defined (uClibc)) || defined (STRSOE)
 /*	In the RTEMS 4.9 development environment for Linux (for
  *	target sparc-rtems4.9), defining the first field of a struct
  *	as "long long" apparently doesn't cause the struct (nor that
@@ -83,14 +98,20 @@ extern "C" {
  *	libgcc_s.so.1 should set the -DLONG_LONG_OKAY compiler flag
  *	to 1 when building ION.						*/
 
+#ifndef	SEM_NSEMS_MAX
+#define	SEM_NSEMS_MAX		(256)
+#endif
 #ifndef LONG_LONG_OKAY
 #define	LONG_LONG_OKAY		0	/*	Default value.		*/
 #endif
 
 #else					/*	Not RTEMS or uClibc.	*/
 
-#define	LONG_LONG_OKAY		1
-#endif	/*	RTEMS or uClibc						*/
+#ifndef LONG_LONG_OKAY
+#define	LONG_LONG_OKAY		1	/*	Default value.		*/
+#endif
+
+#endif	/*	RTEMS or uClibc	or STRSOE				*/
 
 #if (!LONG_LONG_OKAY)
 typedef long			vast;
@@ -188,9 +209,11 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define CORE_FILE_NEEDED	(0)
 #endif
 
-#ifdef RTEMS			/****	RTEMS			*********/
+#if defined RTEMS || defined (STRSOE)	/****	RTEMS or STRSOE	     ****/
 typedef unsigned long		n_long;	/*	long as rec'd from net	*/
 extern int			rtems_shell_main_cp(int argc, char *argv[]);
+
+#define	O_LARGEFILE		(0)
 #endif
 
 /*
@@ -273,6 +296,7 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #define irecv(a,b,c,d)		recv(a,b,c,d)
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
+#define	SD_BOTH			SHUT_RDWR
 
 #endif				/*	end of #ifdef ION4WIN		*/
 
@@ -333,7 +357,7 @@ typedef void			(*SignalHandler)(int);
 
 typedef struct
 {
-	uvast			opaque[8];
+	uvast			opaque[12];
 } ResourceLock;
 
 #ifdef TORNADO_2_0_2
@@ -422,7 +446,7 @@ typedef int			socklen_t;
 
 #endif				/****   End of #ifdef VXWORKS	*********/
 
-#ifdef RTEMS			/****	RTEMS			*********/
+#if defined (RTEMS) || defined (STRSOE)	/****	RTEMS or STRSOE	*********/
 
 #undef	SVR4_SHM
 #define RTOS_SHM
@@ -435,10 +459,14 @@ typedef int			socklen_t;
 
 typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
+#ifndef PRIVATE_SYMTAB
 #define PRIVATE_SYMTAB
+#endif
 
+#ifndef STRSOE
 #include <bsp.h>
 #include <rtems.h>
+#endif
 #include <pthread.h>
 #include <pwd.h>
 #include <netdb.h>
@@ -469,6 +497,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define MINGW_TASKS
 
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 #include <stdint.h>
 
 #ifndef gmtime_r
@@ -543,9 +572,11 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 */
 #include <synch.h>
 #include <pthread.h>
+
 /*
 ** End of SVR4 Headers
 */
+int pthread_setname_np(pthread_t thread, const char *name);
 
 extern int			strcasecmp(const char*, const char*);
 extern int			strncasecmp(const char*, const char*, size_t);
@@ -571,6 +602,7 @@ extern int getpriority(int, id_t);
 #include <malloc.h>
 
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 
 #ifdef bionic			/****	Bionic subset of Linux      ****/
 
@@ -583,7 +615,8 @@ extern int getpriority(int, id_t);
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
+			saddr, saddr, saddr);
 
 #include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
 
@@ -611,6 +644,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_set_name_np(pthread_t thread, const char *name);
 
 #define	_MULTITHREADED
 
@@ -624,6 +658,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_setname_np(const char *name);
 
 #include <sys/msg.h>
 #define	msgbuf		mymsg	/****	Mac OS X has no msgbuf,	but  ****/
@@ -774,6 +809,14 @@ extern int			_coreFileNeeded(int *);
 
 extern void			printStackTrace();
 
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT		(0)
+#endif
+#ifndef DEBUG_PRINT_LOG
+#define DEBUG_PRINT_LOG		(0)
+#endif
+extern void			debugPrint(const char *format, ...);
+
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)
 
@@ -814,6 +857,7 @@ extern char			*istrcat(char *, char *, size_t);
 extern char			*igetcwd(char *, size_t);
 extern void			isignal(int, void (*)(int));
 extern void			iblock(int);
+extern int			ifopen(const char *, int, int);
 extern char			*igets(int, char *, int, int *);
 extern int			iputs(int, char *);
 

@@ -39,7 +39,7 @@ typedef unsigned char	SdrStringBuffer[SDRSTRING_BUFSZ];
 
 Object	Sdr_string_create(const char *file, int line, Sdr sdrv, char *from)
 {
-	long		length = 0;
+	size_t		length = 0;
 	Object		string;
 	SdrStringBuffer stringBuf;
 

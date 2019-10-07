@@ -1,0 +1,314 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "ion_admin",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/ION/ionadmin",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.0",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+
+  "Edd": [{
+      "name": "clock_error",
+      "type": "UINT",
+      "description": "This is how accurate the ION Agent's clock is described as number of seconds, an absolute value."
+    },
+    {
+      "name": "clock_sync",
+      "type": "UINT",
+      "description": "This is whether or not the the computer on which the local ION node is running has a synchronized clock."
+    },
+    {
+      "name": "congestion_alarm_control",
+      "type": "UINT",
+      "description": "This is whether or not the node has a control that will set off alarm if it will become congested at some future time."
+    },
+    {
+      "name": "congestion_end_time_forecasts",
+      "type": "UINT",
+      "description": "This is the time horizon beyond which we don't attempt to forecast congestion"
+    },
+    {
+      "name": "consumption_rate",
+      "type": "UINT",
+      "description": "This is the mean rate of continuous data delivery to local BP applications."
+    },
+    {
+      "name": "inbound_file_system_occupancy_limit",
+      "type": "UINT",
+      "description": "This is the maximum number of megabytes of storage space in ION's local file system that can be used for the storage of inbound zero-copy objects. The default heap limit is 1 Terabyte."
+    },
+    {
+      "name": "inbound_heap_occupancy_limit",
+      "type": "UINT",
+      "description": "This is the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be used for the storage of inbound zero-copy objects. The default heap limit is 20% of the SDR data space's total heap size."
+    },
+    {
+      "name": "number",
+      "type": "UINT",
+      "description": "This is a CBHE node number which uniquely identifies the node in the delay-tolerant network."
+    },
+    {
+      "name": "outbound_file_system_occupancy_limit",
+      "type": "UINT",
+      "description": "This is the maximum number of megabytes of storage space in ION's local file system that can be used for the storage of outbound zero-copy objects. The default heap limit is 1 Terabyte."
+    },
+    {
+      "name": "outbound_heap_occupancy_limit",
+      "type": "UINT",
+      "description": "This is the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be used for the storage of outbound zero-copy objects. The default heap limit is 20% of the SDR data space's total heap size."
+    },
+    {
+      "name": "production_rate",
+      "type": "UINT",
+      "description": "This is the rate of local data production."
+    },
+    {
+      "name": "ref_time",
+      "type": "TV",
+      "description": "This is the reference time that will be used for interpreting relative time values from now until the next revision of reference time."
+    },
+    {
+      "name": "time_delta",
+      "type": "UINT",
+      "description": "The time delta is used to compensate for error (drift) in clocks, particularly spacecraft clocks. The hardware clock on a spacecraft might gain or lose a few seconds every month, to the point at which its understanding of the current time - as reported out by the operating system - might differ significantly from the actual value of Unix Epoch time as reported by authoritative clocks on Earth. To compensate for this difference without correcting the clock itself (which can be difficult and dangerous), ION simply adds the time delta to the Epoch time reported by the operating system."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "description": "This is the version of ION that is currently installed."
+    }
+  ],
+
+  "Tblt": [{
+      "name": "contacts",
+      "columns": [{
+        "type": "TV",
+        "name": "start_time"
+      }, {
+        "type": "TV",
+        "name": "stop_time"
+      }, {
+        "type": "UINT",
+        "name": "source_node"
+      }, {
+        "type": "UINT",
+        "name": "dest_node"
+      }, {
+        "type": "UVAST",
+        "name": "xmit_data"
+      }, {
+        "type": "UVAST",
+        "name": "confidence"
+      }],
+      "description": "This table shows all scheduled periods of data transmission."
+    },
+    {
+      "name": "ranges",
+      "columns": [{
+        "type": "TV",
+        "name": "start"
+      }, {
+        "type": "TV",
+        "name": "stop"
+      }, {
+        "type": "UINT",
+        "name": "node"
+      }, {
+        "type": "UINT",
+        "name": "other_node"
+      }, {
+        "type": "UINT",
+        "name": "distance"
+      }],
+      "description": "This table shows all predicted periods of constant distance between nodes."
+    }
+  ],
+
+  "Ctrl": [{
+      "name": "node_init",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "node_nbr"
+      }, {
+        "type": "STR",
+        "name": "config_file"
+      }],
+      "description": "Until this control is executed, the local ION node does not exist and most ionadmin controls will fail. The control configures the local node to be identified by node_number, a CBHE node number which uniquely identifies the node in the delay-tolerant network.  It also configures ION's data space (SDR) and shared working-memory region.  For this purpose it uses a set of default settings if no argument follows node_number or if the argument following node_number is ''; otherwise it uses the configuration settings found in a configuration file.  If configuration file name is provided, then the configuration file's name is implicitly 'hostname.ionconfig'; otherwise, ion_config_filename is taken to be the explicit configuration file name."
+    },
+    {
+      "name": "node_clock_error_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "known_maximum_clock_error"
+      }],
+      "description": "This management control sets ION's understanding of the accuracy of the scheduled start and stop times of planned contacts, in seconds.  The default value is 1."
+    },
+    {
+      "name": "node_clock_sync_set",
+      "parmspec": [{
+        "type": "BOOL",
+        "name": "new_state"
+      }],
+      "description": "This management control reports whether or not the computer on which the local ION node is running has a synchronized clock."
+    },
+    {
+      "name": "node_congestion_alarm_control_set",
+      "parmspec": [{
+        "type": "STR",
+        "name": "congestion_alarm_control"
+      }],
+      "description": "This management control establishes a control which will automatically be executed whenever ionadmin predicts that the node will become congested at some future time."
+    },
+    {
+      "name": "node_congestion_end_time_forecasts_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "end_time_for_congestion_forcasts"
+      }],
+      "description": "This management control sets the end time for computed congestion forecasts. Setting congestion forecast horizon to zero sets the congestion forecast end time to infinite time in the future: if there is any predicted net growth in bundle storage space occupancy at all, following the end of the last scheduled contact, then eventual congestion will be predicted. The default value is zero, i.e., no end time."
+    },
+    {
+      "name": "node_consumption_rate_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "planned_data_consumption_rate"
+      }],
+      "description": "This management control sets ION's expectation of the mean rate of continuous data delivery to local BP applications throughout the period of time over which congestion forecasts are computed. For nodes that function only as routers this variable will normally be zero. A value of -1, which is the default, indicates that the rate of local data consumption is unknown; in that case local data consumption is not considered in the computation of congestion forecasts."
+    },
+    {
+      "name": "node_contact_add",
+      "parmspec": [{
+        "type": "TV",
+        "name": "start"
+      }, {
+        "type": "TV",
+        "name": "stop"
+      }, {
+        "type": "UINT",
+        "name": "from_node_id"
+      }, {
+        "type": "UINT",
+        "name": "to_node_id"
+      }, {
+        "type": "UVAST",
+        "name": "data_rate"
+      }, {
+        "type": "UVAST",
+        "name": "prob"
+      }],
+      "description": "This control schedules a period of data transmission from source_node to dest_node. The period of transmission will begin at start_time and end at stop_time, and the rate of data transmission will be xmit_data_rate bytes/second. Our confidence in the contact defaults to 1.0, indicating that the contact is scheduled - not that non-occurrence of the contact is impossible, just that occurrence of the contact is planned and scheduled rather than merely imputed from past node behavior. In the latter case, confidence indicates our estimation of the likelihood of this potential contact."
+    },
+    {
+      "name": "node_contact_del",
+      "parmspec": [{
+        "type": "TV",
+        "name": "start"
+      }, {
+        "type": "UINT",
+        "name": "node_id"
+      }, {
+        "type": "STR",
+        "name": "dest"
+      }],
+      "description": "This control deletes the scheduled period of data transmission from source_node to dest_node starting at start_time. To delete all contacts between some pair of nodes, use '*' as start_time."
+    },
+    {
+      "name": "node_inbound_heap_occupancy_limit_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "heap_occupancy_limit"
+      }, {
+        "type": "UINT",
+        "name": "file_system_occupancy_limit"
+      }],
+      "description": "This management control sets the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be used for the storage of inbound zero-copy objects. A value of -1 for either limit signifies 'leave unchanged'. The default heap limit is 30% of the SDR data space's total heap size."
+    },
+    {
+      "name": "node_outbound_heap_occupancy_limit_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "heap_occupancy_limit"
+      }, {
+        "type": "UINT",
+        "name": "file_system_occupancy_limit"
+      }],
+      "description": "This management control sets the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be used for the storage of outbound zero-copy objects.  A value of  -1 for either limit signifies 'leave unchanged'. The default heap  limit is 30% of the SDR data space's total heap size."
+    },
+    {
+      "name": "node_production_rate_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "planned_data_production_rate"
+      }],
+      "description": "This management control sets ION's expectation of the mean rate of continuous data origination by local BP applications throughout the period of time over which congestion forecasts are computed. For nodes that function only as routers this variable will normally be zero. A value of -1, which is the default, indicates that the rate of local data production is unknown; in that case local data production is not considered in the computation of congestion forecasts."
+    },
+    {
+      "name": "node_range_add",
+      "parmspec": [{
+        "type": "TV",
+        "name": "start"
+      }, {
+        "type": "TV",
+        "name": "stop"
+      }, {
+        "type": "UINT",
+        "name": "node"
+      }, {
+        "type": "UINT",
+        "name": "other_node"
+      }, {
+        "type": "UINT",
+        "name": "distance"
+      }],
+      "description": "This control predicts a period of time during which the distance from node to other_node will be constant to within one light second. The period will begin at start_time and end at stop_time, and the distance between the nodes during that time will be distance light seconds."
+    },
+    {
+      "name": "node_range_del",
+      "parmspec": [{
+        "type": "TV",
+        "name": "start"
+      }, {
+        "type": "UINT",
+        "name": "node"
+      }, {
+        "type": "UINT",
+        "name": "other_node"
+      }],
+      "description": "This control deletes the predicted period of constant distance between node and other_node starting at start_time. To delete all ranges between some pair of nodes, use '*' as start_time."
+    },
+    {
+      "name": "node_ref_time_set",
+      "parmspec": [{
+        "type": "TV",
+        "name": "time"
+      }],
+      "description": "This is used to set the reference time that will be used for interpreting relative time values from now until the next revision of reference time. Note that the new reference time can be a relative time, i.e., an offset beyond the current reference time."
+    },
+    {
+      "name": "node_time_delta_set",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "local_time_sec_after_epoch"
+      }],
+      "description": "This management control sets ION's understanding of the current difference between correct time and the Unix Epoch time values reported by the clock for the local ION node's computer. This delta is automatically applied to locally obtained time values whenever ION needs to know the current time."
+    }
+  ]
+}

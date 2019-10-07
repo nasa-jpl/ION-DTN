@@ -25,7 +25,13 @@
 # 5 will contact node 7 in 60 seconds.  (In practice, all of
 # these contacts will occur.)
 #
-# Note that IPND was designed for the discovery of bundle
+# Note that the hypothetical contacts provided for each node
+# (which become Discovered contacts upon discovery) are different
+# for all nodes, so all nodes' contact plans are different.  A
+# "global" contact plan can only be used for contacts that have
+# the same significance to all nodes, i.e., scheduled contacts.
+#
+# Note also that IPND was designed for the discovery of bundle
 # protocol agents in nodes residing on different IP hosts, not
 # nodes residing on the same IP host as in ION regression
 # testing; since the ipnd daemon that listens on a given port
@@ -64,7 +70,7 @@
 #		is immediately forwarded to node 5.  Because the
 #		net delivery probability of this bundle is only
 #		.1 at this point, a copy of the bundle remains in
-#		limbo at node 2.  
+#		limbo at node 2.
 #
 #	-	Kill all ipnd tasks.
 #
@@ -191,7 +197,7 @@ sleep 2
 echo "Sending file x (915 bytes) from node 2 destined for node 6..."
 bpsendfile ipn:2.2 ipn:6.1 testfilex
 sleep 1
-echo "File should have been forwarded from 2 to 3 with copy saved in limbo."
+echo "File should have been forwarded from 2 to 3 and deleted locally."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5
@@ -216,7 +222,7 @@ sleep 2
 echo "Sending file y (1070 bytes) from node 2 destined for node 7..."
 bpsendfile ipn:2.2 ipn:7.1 testfiley
 sleep 1
-echo "File should have been forwarded from 2 to 5, no copy in limbo."
+echo "File should have been forwarded from 2 to 5 with a copy saved in limbo."
 
 # After 5 seconds, stop all ipnd tasks.
 sleep 5

@@ -2,6 +2,7 @@
 eclsaProtocolAdapter_UP_ION_LTP.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ Co-author of HSLTP extensions: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -13,7 +14,6 @@ Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
 todo: ifdef LW_UDP
 	  ifdef UL_ION_LTP
 */
-
 #include "eclsaProtocolAdapters.h"
 #include <stdio.h>
 #include <sys/types.h>
@@ -24,7 +24,11 @@ todo: ifdef LW_UDP
 #include <netinet/udp.h>
 #include <stdlib.h>
 #include "ltpP.h"
+#include "../../eclso.h"
+#include "../../elements/sys/eclsaLogger.h"
+
 #define LtpUdpDefaultPortNbr		1113
+#define LTP_VERSION	0;
 
 typedef struct
 {
@@ -33,7 +37,8 @@ typedef struct
 } IonLtpEclsoEnvironment;
 
 IonLtpEclsoEnvironment ltpEclsoEnv;
-void initEclsoUpperLevel(int argc, char *argv[], unsigned int *T, unsigned short *ownEngineId,unsigned short *portNbr,unsigned int *ipAddress)
+
+void initEclsoUpperLevel(int argc, char *argv[], EclsoEnvironment *env)
 {
 	/* ION declarations*/
 		Sdr					sdr;
@@ -81,24 +86,24 @@ void initEclsoUpperLevel(int argc, char *argv[], unsigned int *T, unsigned short
 		ltpDb= getLtpConstants();
 
 
-		*T=ltpEclsoEnv.vspan->maxXmitSegSize+ sizeof(uint16_t); //2B added for segmentLength
-		*ownEngineId=(unsigned short)ltpDb->ownEngineId;
+		env->T=ltpEclsoEnv.vspan->maxXmitSegSize+ sizeof(uint16_t); //2B added for segmentLength
+		env->ownEngineId=(unsigned short)ltpDb->ownEngineId;
 
 		ionNoteMainThread("eclso");
 
 		//Getting info for lower layer
 		getNameOfHost(ownHostName, MAXHOSTNAMELEN);
 
-		*portNbr=0;
-		*ipAddress=0;
-		parseSocketSpec(ltpEclsoEnv.endpointSpec, portNbr, ipAddress);
-		if (*ipAddress == 0)		//	Default to local host.
-				*ipAddress = getInternetAddress(ownHostName);
-		if (*portNbr == 0)
-				*portNbr = LtpUdpDefaultPortNbr;
+		env->portNbr=0;
+		env->ipAddress=0;
+		parseSocketSpec(ltpEclsoEnv.endpointSpec, &(env->portNbr), &(env->ipAddress));
+		if (env->ipAddress == 0)		//	Default to local host.
+				env->ipAddress = getInternetAddress(ownHostName);
+		if (env->portNbr == 0)
+				env->portNbr = LtpUdpDefaultPortNbr;
 
 }
-void initEclsiUpperLevel(int argc, char *argv[], unsigned short *portNbr, unsigned int *ipAddress)
+void initEclsiUpperLevel(int argc, char *argv[], EclsiEnvironment *env)
 {
 	LtpVdb	*vdb;
 
@@ -117,19 +122,20 @@ void initEclsiUpperLevel(int argc, char *argv[], unsigned short *portNbr, unsign
 			exit(1);
 		}
 
-	*portNbr=0;
-	*ipAddress = INADDR_ANY;
-	if (endpointSpec && parseSocketSpec(endpointSpec, portNbr, ipAddress) != 0)
+	env->portNbr=0;
+	env->ipAddress = INADDR_ANY;
+	if (endpointSpec && parseSocketSpec(endpointSpec, &(env->portNbr), &(env->ipAddress)) != 0)
 		{
 			putErrmsg("Can't get IP/port for endpointSpec.",endpointSpec);
 			exit(1);
 		}
 
-	if (*portNbr == 0)
-		*portNbr = LtpUdpDefaultPortNbr;
+	if (env->portNbr == 0)
+		env->portNbr = LtpUdpDefaultPortNbr;
 
 	ionNoteMainThread("eclsi");
 }
+
 void sendSegmentToUpperProtocol		(char *buffer,int *bufferLength)
 {
 if (ltpHandleInboundSegment(buffer, *bufferLength) < 0)
@@ -137,6 +143,9 @@ if (ltpHandleInboundSegment(buffer, *bufferLength) < 0)
 		putErrmsg("Can't handle inbound segment.", NULL);
 		exit(1);
 	}
+	//todo wait 0.5ms. this is a fix to avoid segments dropping in the interface with the
+	//upper protocol. The origin of the dropping has not been thoroughly investigated yet.
+	usleep(500);
 }
 void receiveSegmentFromUpperProtocol	(char *buffer,int *bufferLength)
 {
@@ -148,4 +157,5 @@ if(*bufferLength <= 0)
 	}
 memcpy(buffer,bufPtr,*bufferLength);
 }
+
 

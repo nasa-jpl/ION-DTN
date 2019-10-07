@@ -67,7 +67,7 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node ID> [<directive>] [xmit rate]");
+	PUTS("\t   a plan <node ID> <directive> [xmit rate]");
 	PUTS("\tc\tChange");
 	PUTS("\t   c plan <node ID> [<directive>] [xmit rate]");
 	PUTS("\td\tDelete");
@@ -244,7 +244,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (ductExpression)
 		{
-			dtn2_removePlanDuct(tokens[2], NULL);
+			dtn2_removePlanDuct(tokens[2]);
 			dtn2_addPlanDuct(tokens[2], ductExpression);
 		}
 
@@ -608,8 +608,8 @@ static int	run_dtn2admin(char *cmdFileName)
 }
 
 #if defined (ION_LWT)
-int	dtn2admin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	dtn2admin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
 #else

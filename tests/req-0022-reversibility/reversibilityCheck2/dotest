@@ -85,22 +85,36 @@ cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
 bpdriver 100 ipn:1.1 ipn:2.1 -1000 t30 >& output1
-sleep 10
-
-#Check that bpdriver terminated after aborting an SDR transaction
 cd ../2.ipn.udp/
-firstAbort=`grep "Transaction aborted" ion.log | wc -l`
+
+
+
+sleep 4
+echo ""
+echo "Now crashing ION..."
+bpcrash
+sleep 10
+echo ""
+echo "Crashing ION again after restart..."
+bpcrash
+
+
+
+sleep 20
+
+#Count aborted SDR transactions
+firstAbort=`grep "finished restarting ION" ion.log | wc -l`
 echo ""
 echo -n $firstAbort
-echo " transactions at receiver failed."
+echo " transactions at receiver canceled, ION restarted."
 if ! [ $firstAbort -ge 1 ];then
-	echo "Didn't cause SDR exhaustion... Please update test to send more bundles and try again"
+	echo "Didn't cause transaction crash!"
 	echo ""
 	RETVAL=2
 	cd ..
 	end
 else
-	echo "SDR exhaustion caused a transaction to abort."
+	echo "Transaction crashes occurred."
 fi
 
 #Transaction reversibility should recover without an unrecoverable SDR error
@@ -116,9 +130,9 @@ if ! [ -z "$text" ];then
 fi
 
 if [ $firstAbort -gt 1 ];then
-#Failed twice, so no daemons are running.  Use delivery to clear out some space
-#because bpclock won't time them out.
-	echo "Delivering queued data to bpcounter to free some heap space..."
+#Failed twice, so no daemons are running.  Run bpcounter to clear the
+#delivery queue.
+	echo "Delivering queued data to bpcounter..."
 	bpcounter ipn:2.1 > output2 &
 	BPCOUNTER_PID=$!
 	sleep 5
@@ -133,7 +147,7 @@ if [ $firstAbort -gt 1 ];then
 fi
 
 echo "Waiting for all previously transmitted bundles to expire..."
-sleep 30
+sleep 5
 
 #Try to send more bundles to ensure that transaction reversibility healed the
 #system properly
@@ -149,10 +163,8 @@ bpdriver 10 ipn:1.1 ipn:2.1 -100 t30 >& output2
 #Check if we caused a transaction to abort or an unrecoverable SDR error
 sleep 2
 cd ../2.ipn.udp/
-secondAbort=`grep "Transaction aborted" ion.log | wc -l`
+secondAbort=`grep "finished restarting ION" ion.log | wc -l`
 echo ""
-echo -n $secondAbort
-echo " transactions have failed at receiver in total."
 if [ $secondAbort -gt $firstAbort ];then
 	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"
 	echo ""
@@ -189,6 +201,9 @@ else
 	echo "Bundles not received! FAILURE"
 	RETVAL=1
 fi
+
+bpstats
+
 cd ..
 
-end
+#	end

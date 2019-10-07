@@ -1,0 +1,166 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Requirements - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html" class="active"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./requirements.html#requirements" id="requirements"><h1>Requirements</h1></a>
+
+<blockquote>
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    <p>
+        Apart from the requirements which are discussed in this chapter, it is expected from the developer to have the Interplanetary Overlay Network (ION) software distribution pre-installed in the development machine. If you have not, use this <a href="https://sourceforge.net/projects/ion-dtn/files/">link</a> to download the files.<li>Download "ion-3.6.1.tar.gz" and extract contents to <code>&lt;path&gt;</code></li><li>Download "ion-android-3.6.1.tar.gz" and extract the contents of folder "ion-android-3.6.1" to <code>&lt;path&gt;/ion-3.6.1/arch-android</code></li>
+        <p> 
+            This tutorial assumes you have some preliminary knowledge of deploying ION and configuring ION node. There is an “ION Deployment Guide.pdf" and "tutorial.html" in the top-level directory of the ion-open-source distribution; these are the best documentation on deploying ION and configuring ION node. Not a compulsion but one thing you might do is study the node configurations in some of the benchmark and regression test cases in <code>ion-open-source/demos</code> and <code>ion-open-source/tests</code>.
+            <p>
+                You should at least be comfortable in using <code>ionstart</code> to configure an ION node; <code>ionstop </code> to tear down an ION node; and <code>bpsource</code> and <code>bpsink</code> to test basic connectivity between endpoints. <code>bpsink</code> listens for and then displays messages sent by <code>bpsource</code>. 
+            </p>
+        </p>
+    </p>
+</i></b></p>
+</blockquote>
+
+<p>Requirements depend on whether you have IonDTN already installed on your device, i.e. through</p>
+<ul>
+<li>Google Play,</li>
+<li>A third-party app store or</li>
+<li>By installing an <code>.apk</code>-archive.</li>
+</ul>
+<p>If that is the case, you only need the basic software elements. If you also have to build the IonDTN application, additional components are necessary.</p>
+<blockquote>
+<p><strong>Note:</strong>
+If you are using IonDTN from a third-party platform, please ensure that the app version version is corresponding to this documentation. Otherwise, you might end up with a malfunctioning interface interaction.</p>
+</blockquote>
+
+<a class="header" href="./requirements.html#requirements-for-the-client-applications" id="requirements-for-the-client-applications"><h3>Requirements for the client applications</h3></a>
+<a class="header" href="./requirements.html#android-studio" id="android-studio"><h4>Android Studio</h4></a>
+<p><a href="https://developer.android.com/studio/index.html">Android Studio</a> is the official IDE for Android and although there are also other IDEs for Android development, Android Studio is the way to go. Therefore, this documentation is assuming that you are using Android Studio when describing tasks.</p>
+<p>Android Studio is available for free for Windows, Mac and Linux and can be downloaded at the linked website.</p>
+<a class="header" href="./requirements.html#android-sdk" id="android-sdk"><h4>Android SDK</h4></a>
+<p>The Android Software Development Kit (SDK) contains the actual source code that is used to compile your application into an installable <code>.apk</code> archive. As the source code and the operating system interfaces vary between Android versions, you need to have the appropriate SDK version installed on your development machine. Usually, Android Studio handles the installation itself and just asks you for permission to install the correct version. However, if that is not the case, you can always check and install different versions in Android Studio at <code>Tools -&gt; Android -&gt; SDK Manager</code>.</p>
+<p><img src="./resources/sdk_manager.png" alt="SDK_Manager" /></p>
+<a class="header" href="./requirements.html#requirements-for-the-provider-application" id="requirements-for-the-provider-application"><h3>Requirements for the provider application</h3></a>
+<a class="header" href="./requirements.html#android-ndk" id="android-ndk"><h4>Android NDK</h4></a>
+<p>The Android Native Development Kit (NDK) is required to interact with native code, in this case written in the programming languages C and C++. In order to use existing ION-DTN components, the NDK has to be installed on the development machine to build the provider app.</p>
+<p>You can install the NDK via the Android Studio at <code>Tools -&gt; Android -&gt; SDK Manager (Tab SDK-Tools)</code>.</p>
+<p><img src="./resources/ndk_install.png" alt="ndk_install" /></p>
+<p>Additionally, add the following lines to your <code>build.gradle</code> file. If you do this, Android Studio will ask you about installing the NDK, as needed.</p>
+<pre><code>externalNativeBuild {
+    ndkBuild {
+        path &quot;&lt;Path to your Android.mk file&gt;&quot;
+    }
+}
+</code></pre>
+<p>You can find more details on how to use the NDK in the chapter <a href="iondtn_jni_interaction.html">JNI Interaction</a>.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./introduction.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./hello_world.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./introduction.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./hello_world.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

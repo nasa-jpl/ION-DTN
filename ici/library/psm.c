@@ -70,7 +70,7 @@ struct small_ohd
 
 struct big_ohd1				/*	Leading overhead.	*/
 {
-	u_int		userDataSize;	/*	in bytes, not words	*/
+	size_t		userDataSize;	/*	in bytes, not words	*/
 	PsmAddress	next;
 };
 
@@ -93,6 +93,19 @@ struct big_ohd2				/*	Trailing overhead.	*/
 #define	INITIALIZED	(0x99999999)
 #define	MANAGED		(0xbbbbbbbb)
 
+typedef struct
+{
+	PsmAddress	firstFreeBlock;
+	size_t		freeBlocks;
+} SmallFreeBucket;
+
+typedef struct
+{
+	PsmAddress	firstFreeBlock;
+	size_t		freeBlocks;
+	size_t		freeBytes;
+} LargeFreeBucket;
+
 typedef struct			/*	Global view in shared memory.	*/
 {
 	PsmAddress	directory;
@@ -102,17 +115,17 @@ typedef struct			/*	Global view in shared memory.	*/
 	pthread_t	ownerThread;	/*	Last took the semaphore.*/
 	int		depth;		/*	Count of ungiven takes.	*/
 	int		desperate;
-	u_long		partitionSize;
+	size_t		partitionSize;
 	char		name[32];
 	int		traceKey;	/*	For sptrace.		*/
-	long		traceSize;	/*	0 = trace disabled.	*/
+	size_t		traceSize;	/*	0 = trace disabled.	*/
 	PsmAddress	startOfSmallPool;
 	PsmAddress	endOfSmallPool;
-	PsmAddress	firstSmallFree[SMALL_SIZES];
+	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
 	PsmAddress	startOfLargePool;
 	PsmAddress	endOfLargePool;
-	PsmAddress	firstLargeFree[LARGE_ORDERS];
-	u_long		unassignedSpace;
+	LargeFreeBucket	largePoolFree[LARGE_ORDERS];
+	size_t		unassignedSpace;
 } PartitionMap;
 
 typedef struct
@@ -189,7 +202,7 @@ static void	discard(PsmPartition partition)
 	}
 }
 
-int	psm_manage(char *start, u_long length, char *name, PsmPartition *psmp,
+int	psm_manage(char *start, size_t length, char *name, PsmPartition *psmp,
 		PsmMgtOutcome *outcome)
 {
 	PsmPartition	partition;
@@ -294,12 +307,12 @@ actual name.", map->name);
 		istrcpy(map->name, name, sizeof map->name);
 		map->startOfSmallPool = sizeof(PartitionMap);
 		map->endOfSmallPool = map->startOfSmallPool;
-		memset((char *) (map->firstSmallFree), 0,
-				sizeof map->firstSmallFree);
+		memset((char *) (map->smallPoolFree), 0,
+				sizeof map->smallPoolFree);
 		map->endOfLargePool = length;
 		map->startOfLargePool = map->endOfLargePool;
-		memset((char *) (map->firstLargeFree), 0,
-				sizeof map->firstLargeFree);
+		memset((char *) (map->largePoolFree), 0,
+				sizeof map->largePoolFree);
 		map->unassignedSpace = map->startOfLargePool -
 				map->endOfSmallPool;
 		map->traceKey = sm_GetUniqueKey();
@@ -348,6 +361,8 @@ void	psm_unmanage(PsmPartition partition)
 	/*	Wait for partition to be no longer in use; unmanage.	*/
 
 		sm_SemTake(map->semaphore);
+		sm_SemEnd(map->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(map->semaphore);
 		map->status = INITIALIZED;
 	}
@@ -653,6 +668,8 @@ static void	removeFromBucket(PartitionMap *map, int bucket,
 	struct big_ohd2	*trailerOfNext;
 	struct big_ohd1	*prev;
 
+	map->largePoolFree[bucket].freeBytes -= blk->userDataSize; 
+	map->largePoolFree[bucket].freeBlocks--;
 	if (blk->next != 0)
 	{
 		next = BIG1(blk->next);
@@ -663,7 +680,7 @@ static void	removeFromBucket(PartitionMap *map, int bucket,
 
 	if (trailer->prev == 0)		/*	Removing 1st in bucket.	*/
 	{
-		map->firstLargeFree[bucket] = blk->next;
+		map->largePoolFree[bucket].firstFreeBlock = blk->next;
 	}
 	else
 	{
@@ -675,9 +692,9 @@ static void	removeFromBucket(PartitionMap *map, int bucket,
 	trailer->prev = BLK_IN_USE;
 }
 
-static int	computeBucket(u_int userDataSize)
+static int	computeBucket(size_t userDataSize)
 {
-	u_int	highOrderBits;
+	size_t	highOrderBits;
 	int	bucket;
 
 	highOrderBits = userDataSize >> (LARGE_ORDER1 + 1);
@@ -700,7 +717,9 @@ static void	insertFreeBlock(PartitionMap *map, struct big_ohd1 *blk,
 	struct big_ohd2	*trailer2;
 
 	bucket = computeBucket(blk->userDataSize);
-	firstBlock = map->firstLargeFree[bucket];
+	map->largePoolFree[bucket].freeBytes += blk->userDataSize; 
+	map->largePoolFree[bucket].freeBlocks++;
+	firstBlock = map->largePoolFree[bucket].firstFreeBlock;
 	if (firstBlock == 0)
 	{
 		blk->next = 0;
@@ -715,7 +734,7 @@ static void	insertFreeBlock(PartitionMap *map, struct big_ohd1 *blk,
 	}
 
 	trailer->prev = 0;
-	map->firstLargeFree[bucket] = block;
+	map->largePoolFree[bucket].firstFreeBlock = block;
 }
 
 static void	freeLarge(PartitionMap *map, PsmAddress block)
@@ -844,8 +863,8 @@ void	Psm_free(const char *file, int line, PsmPartition partition,
 	PartitionMap		*map;
 	PsmAddress		block;
 	struct small_ohd	*smallBlk;
-	int			userDataWords;
-	int			i;
+	size_t			userDataWords;	/*	Block size.	*/
+	int			i;		/*	Bucket index #.	*/
 	struct big_ohd1		*largeBlk;
 #ifdef PSM_TRACE
 	char			textbuf[100];
@@ -866,10 +885,11 @@ void	Psm_free(const char *file, int line, PsmPartition partition,
 		smallBlk = SMALL(block);
 		if ((smallBlk->next) > SMALL_IN_USE)
 		{
-			userDataWords = (int) smallBlk->next - SMALL_IN_USE;
+			userDataWords = (size_t) smallBlk->next - SMALL_IN_USE;
 			i = userDataWords - 1;
-			smallBlk->next = map->firstSmallFree[i];
-			map->firstSmallFree[i] = block;
+			map->smallPoolFree[i].freeBlocks++;
+			smallBlk->next = map->smallPoolFree[i].firstFreeBlock;
+			map->smallPoolFree[i].firstFreeBlock = block;
 #ifdef PSM_TRACE
 			traceFree(file, line, partition, address);
 #endif
@@ -916,16 +936,16 @@ this partition", sizeof textbuf);
 	unlockPartition(map);
 }
 
-static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
+static PsmAddress	mallocLarge(PartitionMap *map, register size_t nbytes)
 {
 	int		bucket;
 	int		primeBucket;
 	int		desperationBucket;
 	PsmAddress	block = 0;
 	struct big_ohd1	*blk;
-	u_int		increment;
+	size_t		increment;
 	struct big_ohd2	*trailer;
-	u_int		surplus;
+	size_t		surplus;
 	struct big_ohd2	*newTrailer;
 	PsmAddress	newBlock;
 	struct big_ohd1	*newBlk;
@@ -954,7 +974,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 
 	primeBucket = bucket;		/*	Save in case desperate.	*/
 	while (bucket < LARGE_ORDERS
-	&& (block = map->firstLargeFree[bucket]) == 0)
+	&& (block = map->largePoolFree[bucket].firstFreeBlock) == 0)
 	{
 		bucket++;
 	}
@@ -1012,7 +1032,8 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 
 			bucket = primeBucket;
 			while (bucket < LARGE_ORDERS
-			&& (block = map->firstLargeFree[bucket]) == 0)
+			&& (block = map->largePoolFree[bucket].firstFreeBlock)
+					== 0)
 			{
 				bucket++;
 			}
@@ -1030,7 +1051,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 			might be big enough.				*/
 
 			bucket = desperationBucket;
-			block = map->firstLargeFree[bucket];
+			block = map->largePoolFree[bucket].firstFreeBlock;
 			while (block)
 			{
 				blk = BIG1(block);
@@ -1080,7 +1101,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register u_int nbytes)
 }
 
 PsmAddress	Psm_malloc(const char *file, int line, PsmPartition partition,
-			register u_long nbytes)
+			register size_t nbytes)
 {
 	PartitionMap	*map;
 #ifdef PSM_TRACE
@@ -1116,7 +1137,7 @@ block size %lu", nbytes);
 }
 
 PsmAddress	Psm_zalloc(const char *file, int line, PsmPartition partition,
-			register u_long nbytes)
+			register size_t nbytes)
 {
 	PartitionMap		*map;
 #ifdef PSM_TRACE
@@ -1124,7 +1145,7 @@ PsmAddress	Psm_zalloc(const char *file, int line, PsmPartition partition,
 #endif
 	PsmAddress		block;
 	int			i;
-	int			increment;
+	size_t			increment;
 	struct small_ohd	*blk;
 
 	if (!(partition))
@@ -1159,7 +1180,7 @@ block size %lu", nbytes);
 		nbytes >>= SPACE_ORDER;	/*	Truncate.		*/
 		i = nbytes - 1;		/*	(gives bucket #)	*/
 		nbytes <<= SPACE_ORDER;	/*	Restore size.		*/
-		block = map->firstSmallFree[i];
+		block = map->smallPoolFree[i].firstFreeBlock;
 		if (block == 0)
 		{
 			increment = nbytes + SMALL_BLOCK_OHD;
@@ -1179,8 +1200,9 @@ block size %lu", nbytes);
 		}
 		else	/*	Found a free block.			*/
 		{
+			map->smallPoolFree[i].freeBlocks--;
 			blk = SMALL(block);
-			map->firstSmallFree[i] = blk->next;
+			map->smallPoolFree[i].firstFreeBlock = blk->next;
 			blk->next = SMALL_IN_USE + i + 1;
 			block += SMALL_BLOCK_OHD;
 		}
@@ -1197,11 +1219,8 @@ void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
 {
 	PartitionMap	*map;
 	int		i;
-	u_int		size;
-	PsmAddress	block;
-	PsmAddress	nextBlock;
-	u_int		freeTotal;
-	int		count;
+	size_t		size;
+	size_t		freeTotal;
 
 	CHKVOID(partition);
 	CHKVOID(usage);
@@ -1215,50 +1234,33 @@ void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
 	for (i = 0; i < SMALL_SIZES; i++)
 	{
 		size += WORD_SIZE;
-		count = 0;
-		for (block = map->firstSmallFree[i]; block; block = nextBlock)
-		{
-			count++;
-			nextBlock = (SMALL(block))->next;
-		}
-
-		freeTotal += (count * size);
-		usage->smallPoolFreeBlockCount[i] = count;
+		usage->smallPoolFreeBlockCount[i] =
+				map->smallPoolFree[i].freeBlocks;
+		freeTotal += (map->smallPoolFree[i].freeBlocks * size);
 	}
 
 	usage->smallPoolFree = freeTotal;
 	usage->smallPoolAllocated = usage->smallPoolSize - freeTotal;
 	usage->largePoolSize = map->endOfLargePool - map->startOfLargePool;
 	freeTotal = 0;
-	size = WORD_SIZE;
 	for (i = 0; i < LARGE_ORDERS; i++)
 	{
-		size *= 2;
-		count = 0;
-		for (block = map->firstLargeFree[i]; block; block = nextBlock)
-		{
-			count++;
-			freeTotal += (BIG1(block))->userDataSize;
-			nextBlock = (BIG1(block))->next;
-		}
-
-		usage->largePoolFreeBlockCount[i] = count;
+		usage->largePoolFreeBlockCount[i] = 
+				map->largePoolFree[i].freeBlocks;
+		freeTotal += map->largePoolFree[i].freeBytes;
 	}
 
 	usage->largePoolFree = freeTotal;
 	usage->largePoolAllocated = usage->largePoolSize - freeTotal;
-	usage->unusedSize = usage->partitionSize -
-			(sizeof(PartitionMap) +
-			 usage->smallPoolSize +
-			 usage->largePoolSize);
+	usage->unusedSize = map->unassignedSpace;
 	unlockPartition(map);
 }
 
 void	psm_report(PsmUsageSummary *usage)
 {
 	int	i;
-	u_long	size;
-	int	count;
+	size_t	size;
+	size_t	count;
 	char	textbuf[100];
 
 	CHKVOID(usage);
@@ -1320,7 +1322,7 @@ void	psm_report(PsmUsageSummary *usage)
 	writeMemo(textbuf);
 }
 
-int	psm_start_trace(PsmPartition partition, long shmSize, char *shm)
+int	psm_start_trace(PsmPartition partition, size_t shmSize, char *shm)
 {
 #ifndef PSM_TRACE
 	putErrmsg(_noTraceMsg(), NULL);

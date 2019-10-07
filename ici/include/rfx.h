@@ -37,18 +37,20 @@ extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 
 /*	*	Functions for inserting and removing contact notes.	*/
 
-extern int		rfx_insert_contact(time_t fromTime,
+extern int		rfx_insert_contact(int regionIdx,
+				time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
-				unsigned int xmitRate,
+				size_t xmitRate,
 				float confidence,
 				PsmAddress *cxaddr);
 			/*	Creates a new IonContact object,
 				inserts that object into the contacts
-				list in the ION database, and notes
-				the address of the IonCXref object for
-				that contact.  A toTime value of zero
+				list of the applicable region in the
+				ION database, and notes the address
+				of the IonCXref object for that
+				contact.  A toTime value of zero
 				indicates that this is a "discovered"
 				contact, for which the actual toTime
 				on the database will be MAX_POSIX_TIME.
@@ -64,43 +66,20 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern void		rfx_log_discovered_contact(time_t fromTime,
-				time_t toTime,
+extern int		rfx_revise_contact(time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
-				unsigned int xmitRate,
-				int idx);
-			/*	Notes termination of a discovered
-			 *	contact in the appropriate contact
-			 *	log.  toTime should be the time at
-			 *	which the discovered contact was lost.
-			 *	idx indicates which contact log the
-			 *	contact should be inserted into: it
-			 *	must be SENDER_NODE if the source
-			 *	of the log entry is the contact's
-			 *	fromNode, otherwise RECEIVER_NODE.	*/
+				size_t xmitRate,
+				float confidence);
+			/*	Revises the xmitRate of and possibly
+			 *	our confidence in an existing contact.	*/
 
-extern int		rfx_remove_contact(time_t fromTime,
+extern int		rfx_remove_contact(time_t *fromTime,
 				uvast fromNode,
 				uvast toNode);
 			/*	Removes the indicated IonContact
 				object from the time-ordered contacts
 				list in the ION database.		*/
-
-extern int		rfx_remove_discovered_contacts(uvast peerNode);
-			/*	Removes all discovered contacts
-			 *	involving the indicated node,
-			 *	either as sender or receiver.		*/
-
-extern int		rfx_predict_contacts(uvast fromNode, uvast toNode);
-			/*	Removes all existing predicted contacts
-			 *	for this from/to node pair and computes
-			 *	new predicted contacts.			*/
-
-extern int		rfx_predict_all_contacts();
-			/*	Removes all existing predicted contacts
-			 *	and computes new predicted contacts for
-			 *	all from/to node pairs.			*/
 
 /*	*	Functions for inserting and removing range notes.	*/
 
@@ -127,7 +106,7 @@ extern char		*rfx_print_range(PsmAddress range, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern int		rfx_remove_range(time_t fromTime,
+extern int		rfx_remove_range(time_t *fromTime,
 				uvast fromNode,
 				uvast toNode);
 			/*	Removes the indicated IonRange
@@ -164,14 +143,15 @@ extern void		rfx_stop();
 
 /*	*	Additional database management functions.		*/
 
-extern void		rfx_contact_state(uvast nodeNbr,
-				unsigned int *secRemaining,
-				unsigned int *xmitRate);
+extern void		rfx_contact_state(uvast nodeNbr, size_t *secRemaining,
+				size_t *xmitRate);
 
 extern IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
 				PsmAddress *nextElt);
 
 extern IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr);
+
+extern IonNeighbor	*getNeighbor(IonVdb *ionvdb, uvast nodeNbr);
 
 extern IonNode		*findNode(IonVdb *ionvdb, uvast nodeNbr,
 				PsmAddress *nextElt);

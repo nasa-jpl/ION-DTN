@@ -171,6 +171,14 @@ the local node, subject to the parameters provided by the most recent preceding
 B<f>, B<t>, and B<a> commands, to be sent to the entity identified by the
 most recent preceding B<d> command.
 
+B<NOTE> that 'get' in CFDP is implemented very differently from 'send'.  The
+'send' operation is a native element of the CFDP protocol. The 'get' operation
+is implemented by sending to the responding entity a standardized sequence of
+message-to-user messages in a Metadata PDU - the I<user application> at the
+responding entity receives those messages and initiates a 'send' to accomplish
+transmission of the file.  This means that 'send' can succeed even if no user
+application is running at the remote node, but 'get' cannot.
+
 =item B<^>
 
 The B<cancel> command.  This command cancels the most recently initiated

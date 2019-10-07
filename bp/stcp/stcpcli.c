@@ -202,6 +202,15 @@ static void	*spawnReceivers(void *parm)
 			break;	/*	Main thread has shut down.	*/
 		}
 
+		if (watchSocket(newSocket) < 0)
+		{
+			putErrmsg("stcpcli can't watch socket.", NULL);
+			closesocket(newSocket);
+			ionKillMainThread(procName);
+			atp->running = 0;
+			continue;
+		}
+
 		parms = (ReceiverThreadParms *)
 				MTAKE(sizeof(ReceiverThreadParms));
 		if (parms == NULL)
@@ -231,7 +240,7 @@ static void	*spawnReceivers(void *parm)
 		parms->bundleSocket = newSocket;
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBundles,
-					parms))
+					parms, "stcpcli_receiver"))
 		{
 			putSysErrmsg("stcpcli can't create new thread", NULL);
 			MRELEASE(parms);
@@ -265,11 +274,11 @@ static void	*spawnReceivers(void *parm)
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = parms->thread;
-#ifdef mingw
+//#ifdef mingw
 		shutdown(parms->bundleSocket, SD_BOTH);
-#else
-		pthread_kill(thread, SIGINT);
-#endif
+//#else
+//		pthread_kill(thread, SIGINT);
+//#endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
 	}
@@ -284,8 +293,8 @@ static void	*spawnReceivers(void *parm)
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
-int	stcpcli(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	stcpcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else
@@ -401,7 +410,7 @@ int	main(int argc, char *argv[])
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp, "stcpcli_access"))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("stcpcli can't create access thread", NULL);

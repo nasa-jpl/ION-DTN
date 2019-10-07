@@ -9,6 +9,7 @@ BP = ../bp
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux
 CC = gcc $(OPT) -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
+CCZFEC = gcc -g -Wall -Dlinux -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
 LDFLAGS = -fPIC -shared -rdynamic
 LD = gcc $(LDFLAGS)
 
@@ -17,7 +18,7 @@ DTKAINCLS = \
 	$(KNODE)/knode.h \
 	$(INCL)/dtka.h
 
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp
 
 RUNTIMES = karecv kacompile kaadmin kaboot knadmin kapublish knmgr knclock
 
@@ -43,39 +44,39 @@ install:
 #	-	-	Authority executables	-	-	-	-
 
 karecv:		karecv.o libdtka.so
-		$(CC) -o karecv karecv.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread
+		$(CC) -o karecv karecv.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
 		cp karecv ./bin
 
 kacompile:	kacompile.o libdtka.so
-		$(CC) -o kacompile kacompile.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread
+		$(CC) -o kacompile kacompile.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
 		cp kacompile ./bin
 
 kapublish:	kapublish.o libdtka.so
-		$(CC) -o kapublish kapublish.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread
+		$(CC) -o kapublish kapublish.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
 		cp kapublish ./bin
 
 #	-	-	Node executables	-	-	-	-
 
 knclock:	knclock.o libdtka.so
-		$(CC) -o knclock knclock.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread
+		$(CC) -o knclock knclock.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread -lm
 		cp knclock ./bin
 
 knmgr:		knmgr.o libdtka.so
-		$(CC) -o knmgr knmgr.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread
+		$(CC) -o knmgr knmgr.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread -lm
 		cp knmgr ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
 kaadmin:	kaadmin.o libdtka.so
-		$(CC) -o kaadmin kaadmin.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread
+		$(CC) -o kaadmin kaadmin.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
 		cp kaadmin ./bin
 
 kaboot:		kaboot.o libdtka.so
-		$(CC) -o kaboot kaboot.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread
+		$(CC) -o kaboot kaboot.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
 		cp kaboot ./bin
 
 knadmin:	knadmin.o libdtka.so
-		$(CC) -o knadmin knadmin.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread
+		$(CC) -o knadmin knadmin.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread -lm
 		cp knadmin ./bin
 
 #	-	-	Libraries	-	-	-	-	-
@@ -107,4 +108,4 @@ libknode.so:	libknode.o
 		$(CC) -c $<
 
 fec.o:		$(ZFEC)/fec.c
-		$(CC) -c $(ZFEC)/fec.c
+		$(CCZFEC) -c $(ZFEC)/fec.c

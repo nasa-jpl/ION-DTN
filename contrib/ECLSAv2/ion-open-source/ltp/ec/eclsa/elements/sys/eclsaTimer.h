@@ -2,6 +2,7 @@
 eclsaTimer.h
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -16,7 +17,7 @@ used by eclso and eclsi.
 #define _ECTIMER_H_
 
 #include <pthread.h> //POSIX threads
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -16,8 +16,10 @@ extern int	rfxclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ionsecadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ionwarn(int, int, int, int, int, int, int, int, int, int);
 extern int	ionrestart(int, int, int, int, int, int, int, int, int, int);
+extern int	ionunlock(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclock(int, int, int, int, int, int, int, int, int, int);
+extern int	ltpdeliv(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpmeter(int, int, int, int, int, int, int, int, int, int);
 extern int	pmqlsi(int, int, int, int, int, int, int, int, int, int);
 extern int	pmqlso(int, int, int, int, int, int, int, int, int, int);
@@ -34,6 +36,19 @@ extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
 extern int	lgagent(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsource(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsink(int, int, int, int, int, int, int, int, int, int);
+extern int	bsspclock(int, int, int, int, int, int, int, int, int, int);
+extern int	bsspadmin(int, int, int, int, int, int, int, int, int, int);
+extern int	udpbsi(int, int, int, int, int, int, int, int, int, int);
+extern int	udpbso(int, int, int, int, int, int, int, int, int, int);
+extern int	tcpbsi(int, int, int, int, int, int, int, int, int, int);
+extern int	tcpbso(int, int, int, int, int, int, int, int, int, int);
+extern int	ramsgate(int, int, int, int, int, int, int, int, int, int);
+extern int	amsshell(int, int, int, int, int, int, int, int, int, int);
+extern int	amslog(int, int, int, int, int, int, int, int, int, int);
+extern int	amslogprt(int, int, int, int, int, int, int, int, int, int);
+extern int	amsmib(int, int, int, int, int, int, int, int, int, int);
+extern int	amsstop(int, int, int, int, int, int, int, int, int, int);
+extern int	amsd(int, int, int, int, int, int, int, int, int, int);
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
@@ -63,8 +78,10 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ionsecadmin",(FUNCPTR) ionsecadmin,	ICI_PRIORITY,	32768 },
 		{ "ionwarn",	(FUNCPTR) ionwarn,	ICI_PRIORITY,	32768 },
 		{ "ionrestart",	(FUNCPTR) ionrestart,	ICI_PRIORITY,	32768 },
+		{ "ionunlock",	(FUNCPTR) ionunlock,	ICI_PRIORITY,	32768 },
 		{ "ltpadmin",	(FUNCPTR) ltpadmin,	ICI_PRIORITY,	32768 },
 		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
+		{ "ltpdeliv",	(FUNCPTR) ltpdeliv,	ICI_PRIORITY,	32768 },
 		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
 		{ "pmqlsi",	(FUNCPTR) pmqlsi,	ICI_PRIORITY,	32768 },
 		{ "pmqlso",	(FUNCPTR) pmqlso,	ICI_PRIORITY,	32768 },
@@ -80,16 +97,29 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ipnadminep",	(FUNCPTR) ipnadminep,	ICI_PRIORITY,	24576 },
 		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
 		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
-		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  }
+		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
+		{ "bsspclock",	(FUNCPTR) bsspclock,	ICI_PRIORITY,	25576 },
+		{ "bsspadmin",	(FUNCPTR) bsspadmin,	ICI_PRIORITY,	25576 },
+		{ "udpbsi",	(FUNCPTR) udpbsi,	ICI_PRIORITY,	25576 },
+		{ "udpbso",	(FUNCPTR) udpbso,	ICI_PRIORITY,	25576 },
+		{ "tcpbsi",	(FUNCPTR) tcpbsi,	ICI_PRIORITY,	25576 },
+		{ "tcpbso",	(FUNCPTR) tcpbso,	ICI_PRIORITY,	25576 },
+		{ "ramsgate",	(FUNCPTR) ramsgate,	ICI_PRIORITY,	25576 },
+		{ "amsshell",	(FUNCPTR) amsshell,	ICI_PRIORITY,	25576 },
+		{ "amslog",	(FUNCPTR) amslog,	ICI_PRIORITY,	25576 },
+		{ "amslogprt",	(FUNCPTR) amslogprt,	ICI_PRIORITY,	25576 },
+		{ "amsmib",	(FUNCPTR) amsmib,	ICI_PRIORITY,	25576 },
+		{ "amsstop",	(FUNCPTR) amsstop,	ICI_PRIORITY,	25576 }
+		{ "amsd",	(FUNCPTR) amsd,		ICI_PRIORITY,	25576 }
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-		,{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
+		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
 #endif
 #if 0
-		,{ "imcadmin",	(FUNCPTR) imcadmin,	ICI_PRIORITY,	32768 },
+		{ "imcadmin",	(FUNCPTR) imcadmin,	ICI_PRIORITY,	32768 },
 		{ "imcfw",	(FUNCPTR) imcfw,	ICI_PRIORITY,	65536 }
-		,{ "acsadmin",	(FUNCPTR) acsadmin,	ICI_PRIORITY,	32768 },
+		{ "acsadmin",	(FUNCPTR) acsadmin,	ICI_PRIORITY,	32768 },
 		{ "acslist",	(FUNCPTR) acslist,	ICI_PRIORITY,	32768 }
 #endif
 	};

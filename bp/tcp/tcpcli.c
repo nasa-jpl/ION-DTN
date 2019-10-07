@@ -34,7 +34,9 @@
 #define	MAX_PIPELINE_LENGTH	(100)
 #endif
 
+#ifndef TCPCL_SEGMENT_ACKS
 #define	TCPCL_SEGMENT_ACKS	(1)
+#endif
 #define	TCPCL_REACTIVE		(0)
 #define	TCPCL_REFUSALS		(0)
 #define	TCPCL_LENGTH_MSGS	(0)
@@ -85,8 +87,8 @@ typedef struct
 {
 	int			sock;
 	struct tcpcl_neighbor	*neighbor;	/*	Back reference	*/
-	pthread_mutex_t		mutex;
-	int			hasMutex;	/*	Boolean.	*/
+	pthread_mutex_t		socketMutex;	/*	For socket.	*/
+	int			hasSocketMutex;	/*	Boolean.	*/
 
 	/*	Configuration settings and session state.		*/
 
@@ -99,16 +101,26 @@ typedef struct
 	int			secUntilReconnect;
 	int			secSinceReception;
 	int			timeoutCount;
-	int			segmentAcks;	/*	Boolean		*/
-	int			reactiveFrags;	/*	Boolean		*/
-	int			bundleRefusals;	/*	Boolean		*/
-	int			lengthMessages;	/*	Boolean		*/
+	int			segmentAcks;	/*	Boolean.	*/
+	int			reactiveFrags;	/*	Boolean.	*/
+	int			bundleRefusals;	/*	Boolean.	*/
+	int			lengthMessages;	/*	Boolean.	*/
 
 	/*	Reception function.					*/
 
 	pthread_t		receiver;
 	int			hasReceiver;	/*	Boolean.	*/
 	vast			lengthReceived;	/*	Current in.	*/
+
+	/*	Administration function.				*/
+
+	pthread_t		admin;
+	int			hasAdmin;	/*	Boolean.	*/
+	Lyst			signals;
+	pthread_mutex_t		sigMutex;	/*	For signals.	*/
+	int			hasSigMutex;	/*	Boolean.	*/
+	struct llcv_str		triggerLlcv;
+	Llcv			trigger;	/*	On signals.	*/
 
 	/*	Transmission function.					*/
 
@@ -117,9 +129,10 @@ typedef struct
 	char			*outductName;
 	VOutduct		*vduct;
 	Lyst			pipeline;	/*	All outbound.	*/
+	pthread_mutex_t		plMutex;	/*	For pipeline.	*/
+	int			hasPlMutex;	/*	Boolean.	*/
 	struct llcv_str		throttleLlcv;
 	Llcv			throttle;	/*	On pipeline.	*/
-	int			hasThrottle;	/*	Boolean.	*/
 	uvast			lengthSent;	/*	Oldest out.	*/
 	uvast			lengthAcked;	/*	Oldest out.	*/
 } TcpclSession;
@@ -128,8 +141,9 @@ typedef struct tcpcl_neighbor
 {
 	VPlan			*vplan;		/*	Remote node.	*/
 	VInduct			*induct;	/*	(Common.)	*/
-	int			mustDelete;	/*	Boolean		*/
+	int			mustDelete;	/*	Boolean.	*/
 	TcpclSession		sessions[2];
+	size_t			receptionRate;	/*	Bytes/sec.	*/
 } TcpclNeighbor;
 
 static void	*handleContacts(void *parm);
@@ -278,12 +292,14 @@ static LystElt	addTcpclNeighbor(VPlan *vplan, VInduct *induct, Lyst neighbors)
 	for (i = 0; i < 2; i++)
 	{
 		session = &(neighbor->sessions[i]);
+		memset(session, 0, sizeof(TcpclSession));
 		session->sock = -1;
 		session->neighbor = neighbor;
 		session->secUntilShutdown = -1;
 		session->secUntilKeepalive = -1;
 	}
 
+	neighbor->receptionRate = 0;
 	elt = lyst_insert_last(neighbors, (void *) neighbor);
 	if (elt == NULL)
 	{
@@ -346,6 +362,9 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 
 	session->secUntilReconnect = -1;
 	session->newlyAdded = 1;
+
+	/*	Transmission pipeline.					*/
+
 	session->pipeline = lyst_create_using(getIonMemoryMgr());
 	if (session->pipeline == NULL)
 	{
@@ -356,8 +375,9 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 	}
 
 	lyst_delete_set(session->pipeline, cancelXmit, NULL);
-	session->throttle = &(session->throttleLlcv);
-	if (llcv_open(session->pipeline, session->throttle) == NULL)
+	session->throttle = llcv_open(session->pipeline,
+			&(session->throttleLlcv));
+	if (session->throttle == NULL)
 	{
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
@@ -367,12 +387,45 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 		return -1;
 	}
 
-	session->hasThrottle = 1;
+	/*	Administration signals queue.				*/
+
+	session->signals = lyst_create_using(getIonMemoryMgr());
+	if (session->signals == NULL)
+	{
+		llcv_close(session->throttle);
+		session->throttle = NULL;
+		lyst_destroy(session->pipeline);
+		session->pipeline = NULL;
+		putErrmsg("tcpcli can't create signals list.", NULL);
+		ionKillMainThread(procName());
+		return -1;
+	}
+
+	session->trigger = llcv_open(session->signals, &(session->triggerLlcv));
+	if (session->trigger == NULL)
+	{
+		lyst_destroy(session->signals);
+		session->signals = NULL;
+		llcv_close(session->throttle);
+		session->throttle = NULL;
+		lyst_destroy(session->pipeline);
+		session->pipeline = NULL;
+		putErrmsg("tcpcli can't open signals list.", NULL);
+		ionKillMainThread(procName());
+		return -1;
+	}
+
+	/*	Receiver thread.					*/
+
 	rtp = (ReceiverThreadParms *) MTAKE(sizeof(ReceiverThreadParms));
 	if (rtp == NULL)
 	{
+		llcv_close(session->trigger);
+		session->trigger = NULL;
+		lyst_destroy(session->signals);
+		session->signals = NULL;
 		llcv_close(session->throttle);
-		session->hasThrottle = 0;
+		session->throttle = NULL;
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
 		putErrmsg("tcpcli can't allocate new receiver parms.", NULL);
@@ -383,16 +436,30 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 
 	rtp->neighbors = lyst_lyst(neighborElt);
 	rtp->session = session;
-	pthread_mutex_init(&(session->mutex), NULL);
-	session->hasMutex = 1;
-	if (pthread_begin(&(session->receiver), NULL, handleContacts, rtp))
+	pthread_mutex_init(&(session->socketMutex), NULL);
+	session->hasSocketMutex = 1;
+	pthread_mutex_init(&(session->plMutex), NULL);
+	session->hasPlMutex = 1;
+	pthread_mutex_init(&(session->sigMutex), NULL);
+	session->hasSigMutex = 1;
+	if (pthread_begin(&(session->receiver), NULL, handleContacts, rtp, "tcpcli-receiver"))
 	{
 		MRELEASE(rtp);
-		pthread_mutex_unlock(&(session->mutex));
-		pthread_mutex_destroy(&(session->mutex));
-		session->hasMutex = 0;
+		pthread_mutex_unlock(&(session->sigMutex));
+		pthread_mutex_destroy(&(session->sigMutex));
+		session->hasSigMutex = 0;
+		pthread_mutex_unlock(&(session->plMutex));
+		pthread_mutex_destroy(&(session->plMutex));
+		session->hasPlMutex = 0;
+		pthread_mutex_unlock(&(session->socketMutex));
+		pthread_mutex_destroy(&(session->socketMutex));
+		session->hasSocketMutex = 0;
+		llcv_close(session->trigger);
+		session->trigger = NULL;
+		lyst_destroy(session->signals);
+		session->signals = NULL;
 		llcv_close(session->throttle);
-		session->hasThrottle = 0;
+		session->throttle = NULL;
 		lyst_destroy(session->pipeline);
 		session->pipeline = NULL;
 		putSysErrmsg("tcpcli can't create new receiver thread", NULL);
@@ -438,23 +505,168 @@ static int	reopenSession(TcpclSession *session)
 
 	/*	Reconnection succeeded.					*/
 
+	if (watchSocket(session->sock) < 0)
+	{
+		closesocket(session->sock);
+		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		return -1;
+	}
+
 	session->lengthSent = 0;
 	session->lengthAcked = 0;
 	return 1;		/*	Reconnected.			*/
+}
+
+static int pipeline_not_full(Llcv llcv)
+{
+	CHKZERO(llcv);
+	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
+}
+
+static int	sendSignal(TcpclSession *session, saddr lengthReceived)
+{
+	LystElt	result;
+
+	pthread_mutex_lock(&session->sigMutex);
+	result = lyst_insert_last(session->signals, (void *) lengthReceived);
+	pthread_mutex_unlock(&session->sigMutex);
+       	if (result== NULL)
+	{
+		putErrmsg("tcpcli can't enqueue admin signal", NULL);
+		return -1;
+	}
+
+	llcv_signal(session->trigger, llcv_lyst_not_empty);
+	return 0;
+}
+
+static void	stopAdminThread(TcpclSession *session)
+{
+	/*	Signal thread in case it's not already stopping.	*/
+
+	if (session->sock != -1)
+	{
+		shutdown(session->sock, SD_BOTH);
+		closesocket(session->sock);
+		session->sock = -1;
+	}
+
+	oK(sendSignal(session, -1));		/*	Shutdown.	*/
+	pthread_join(session->admin, NULL);
+	session->hasAdmin = 0;
+}
+
+static void	stopSenderThread(TcpclSession *session)
+{
+	/*	Signal thread in case it's not already stopping.	*/
+
+	if (session->sock != -1)
+	{
+		shutdown(session->sock, SD_BOTH);
+		closesocket(session->sock);
+		session->sock = -1;
+	}
+
+	/*	Enable sendBundleByTcpcl to exit.			*/
+
+	if (session->throttle)
+	{
+		llcv_signal(session->throttle, pipeline_not_full);
+	}
+
+	/*	Enable sendOneBundle to exit, detach from Outduct.	*/
+
+	if (session->vduct)
+	{
+		/*	Here we need to simulate the procedures that
+		 *	libbpP.c performs when stopping an outduct.
+		 *	First, stopOutduct.				*/
+
+		if (session->vduct->semaphore != SM_SEM_NONE)
+		{
+			sm_SemEnd(session->vduct->semaphore);
+		}
+
+		/*	Then waitForOutduct.				*/
+
+		microsnooze(100000);	/*	Maybe thread stops.	*/
+		if (session->vduct->hasThread)
+		{
+			/*	Note: session->vduct->cloThread
+			 *	is the same as session->sender.		*/
+
+			if (pthread_kill(session->vduct->cloThread, SIGCONT)
+					== 0)
+			{
+				pthread_join(session->vduct->cloThread, NULL);
+			}
+
+			session->vduct->hasThread = 0;
+		}
+
+		/*	Then resetOutduct.				*/
+
+		if (session->vduct->semaphore == SM_SEM_NONE)
+		{
+			session->vduct->semaphore = sm_SemCreate(SM_NO_KEY,
+					SM_SEM_FIFO);
+		}
+		else
+		{
+			sm_SemUnend(session->vduct->semaphore);
+			sm_SemGive(session->vduct->semaphore);
+		}
+
+		sm_SemTake(session->vduct->semaphore);	/*	Lock.	*/
+
+		/*	Finally, detach the session from this outduct.	*/
+
+		session->vduct = NULL;
+	}
+	else	/*	Just forget session's sender thread.		*/
+	{
+		if (pthread_kill(session->sender, SIGCONT) == 0)
+		{
+			pthread_join(session->sender, NULL);
+		}
+	}
+
+	session->hasSender = 0;
 }
 
 static void	closeSession(TcpclSession *session)
 {
 	Sdr	sdr = getIonsdr();
 
+	if (session->hasPlMutex == 0)
+	{
+		return;		/*	Session has already been ended.	*/
+	}
+
+	/*	Serialize this function in case clock and receiver
+	 *	threads try to close the session at the same time.	*/
+
+	pthread_mutex_lock(&(session->plMutex));
 	if (session->isOpen == 0)
 	{
+		pthread_mutex_unlock(&(session->plMutex));
 		return;
 	}
 
 	session->secUntilKeepalive = -1;
+	if (session->hasAdmin)
+	{
+		stopAdminThread(session);
+	}
+
+	if (session->hasSender)
+	{
+		stopSenderThread(session);
+	}
+
 	if (session->sock != -1)
 	{
+		shutdown(session->sock, SD_BOTH);
 		closesocket(session->sock);
 		session->sock = -1;
 	}
@@ -462,6 +674,13 @@ static void	closeSession(TcpclSession *session)
 	oK(sdr_begin_xn(sdr));
 	lyst_clear(session->pipeline);
 	oK(sdr_end_xn(sdr));
+	if (session->hasSigMutex)
+	{
+		pthread_mutex_lock(&session->sigMutex);
+		lyst_clear(session->signals);
+		pthread_mutex_unlock(&session->sigMutex);
+	}
+
 	if (session->reconnectInterval == 0)	/*	Never reconnect.*/
 	{
 		session->secUntilReconnect = -1;
@@ -480,13 +699,17 @@ static void	closeSession(TcpclSession *session)
 			 *	socket connection ends.			*/
 
 			oK(removeOutduct("tcp", session->outductName));
+
+			/*	Reconnection is not possible, so lose
+			 *	the automatic outduct name.		*/
+
 			MRELEASE(session->outductName);
 			session->outductName = NULL;
-			session->vduct = NULL;
 		}
 	}
 
 	session->isOpen = 0;
+	pthread_mutex_unlock(&(session->plMutex));
 }
 
 static int	sendShutdown(TcpclSession *session, char reason,
@@ -516,54 +739,10 @@ static int	sendShutdown(TcpclSession *session, char reason,
 		len++;
 	}
 
-	pthread_mutex_lock(&(session->mutex));
-	result = itcp_send(&session->sock, shutdown, len);
-	pthread_mutex_unlock(&(session->mutex));
+	pthread_mutex_lock(&(session->socketMutex));
+	result = itcp_send(&(session->sock), shutdown, len);
+	pthread_mutex_unlock(&(session->socketMutex));
 	return result;
-}
-
-static int pipeline_not_full(Llcv llcv)
-{
-	return (lyst_length(llcv->list) < MAX_PIPELINE_LENGTH ? 1 : 0);
-}
-
-static void	stopSenderThread(TcpclSession *session)
-{
-	if (session->hasSender == 0)
-	{
-		return;
-	}
-
-	/*	Enable sendOneBundle to exit.				*/
-
-	if (session->vduct)
-	{
-		sm_SemEnd(session->vduct->semaphore);
-	}
-
-	/*	Enable sendBundleByTcpcl to exit.			*/
-
-	if (session->hasThrottle)
-	{
-		llcv_signal(session->throttle, pipeline_not_full);
-	}
-
-	/*	Signal thread in case it's not already stopping.	*/
-
-#ifdef mingw
-	shutdown(session->sock, SD_BOTH);
-#else
-	pthread_kill(session->sender, SIGINT);
-#endif
-
-	/*	Forget session's sender.				*/
-
-	if (pthread_kill(session->sender, SIGCONT) == 1)
-	{
-		pthread_join(session->sender, NULL);
-	}
-
-	session->hasSender = 0;
 }
 
 static void	endSession(TcpclSession *session, char reason)
@@ -571,21 +750,51 @@ static void	endSession(TcpclSession *session, char reason)
 	TcpclNeighbor	*neighbor = session->neighbor;
 
 	oK(sendShutdown(session, reason, 0));
-	if (session->hasSender)
+	closeSession(session);
+	if (session->outductName)
 	{
-		stopSenderThread(session);
+		/*	outductName is erased in closeSession() for
+		 *	any automatic outducts created for accepted
+		 *	socket connections. So if not erased yet,
+		 *	must be for a managed outduct; that outduct's
+		 *	name must be erased from the session here to
+		 *	break receiver thread out of contact loop.	*/
+
+		MRELEASE(session->outductName);
+		session->outductName = NULL;
 	}
 
-	closeSession(session);
 	if (session->hasReceiver
-	&& pthread_kill(session->receiver, SIGCONT) == 1)
+	&& pthread_kill(session->receiver, SIGCONT) == 0)
 	{
-#ifdef mingw
-		shutdown(session->sock, SD_BOTH);
-#else
-		pthread_kill(session->receiver, SIGINT);
-#endif
 		pthread_join(session->receiver, NULL);
+	}
+
+	if (session->hasSigMutex)
+	{
+		pthread_mutex_unlock(&(session->sigMutex));
+		microsnooze(100000);
+		pthread_mutex_destroy(&(session->sigMutex));
+	}
+
+	if (session->hasPlMutex)
+	{
+		pthread_mutex_unlock(&(session->plMutex));
+		microsnooze(100000);
+		pthread_mutex_destroy(&(session->plMutex));
+	}
+
+	if (session->hasSocketMutex)
+	{
+		pthread_mutex_unlock(&(session->socketMutex));
+		microsnooze(100000);
+		pthread_mutex_destroy(&(session->socketMutex));
+	}
+
+	if (session->throttle)
+	{
+		llcv_close(session->throttle);
+		session->throttle = NULL;
 	}
 
 	if (session->pipeline)
@@ -593,19 +802,16 @@ static void	endSession(TcpclSession *session, char reason)
 		lyst_destroy(session->pipeline);
 	}
 
-	if (session->hasThrottle)
+	if (session->trigger)
 	{
-		llcv_close(session->throttle);
+		llcv_signal(session->trigger, llcv_lyst_not_empty);
+		llcv_close(session->trigger);
+		session->trigger = NULL;
 	}
 
-	if (session->hasMutex)
+	if (session->signals)
 	{
-		pthread_mutex_destroy(&(session->mutex));
-	}
-
-	if (session->outductName)
-	{
-		MRELEASE(session->outductName);
+		lyst_destroy(session->signals);
 	}
 
 	memset(session, 0, sizeof(TcpclSession));
@@ -640,7 +846,7 @@ static void	shutDownNeighbors(Lyst neighbors)
 		neighbor->mustDelete = 1;
 	}
 
-	oK(sdr_end_xn(sdr));
+	sdr_exit_xn(sdr);
 }
 
 /*	*	*	Sender thread functions		*	*	*/
@@ -676,9 +882,9 @@ failed.", session->outductName);
 			return -1;
 		}
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_insert_last(session->pipeline, (void *) bundleZco);
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		if (elt == NULL)
 		{
 			putErrmsg("Can't append transmitted ZCO to tcpcli \
@@ -718,24 +924,24 @@ pipeline.", session->outductName);
 		encodeSdnv(&segLengthSdnv, bytesToLoad);
 		memcpy(segHeader + 1, segLengthSdnv.text, segLengthSdnv.length);
 		segHeaderLen = 1 + segLengthSdnv.length;
-		pthread_mutex_lock(&(session->mutex));
-		if (itcp_send(&session->sock, segHeader, segHeaderLen) < 1)
+		pthread_mutex_lock(&(session->socketMutex));
+		if (itcp_send(&(session->sock), segHeader, segHeaderLen) < 1)
 		{
-			pthread_mutex_unlock(&(session->mutex));
+			pthread_mutex_unlock(&(session->socketMutex));
 			writeMemoNote("[?] tcpcl session lost (seg header)",
 					neighbor->vplan->neighborEid);
 			return 0;
 		}
 
-		if (itcp_send(&session->sock, stp->buffer, bytesToSend) < 1)
+		if (itcp_send(&(session->sock), stp->buffer, bytesToSend) < 1)
 		{
-			pthread_mutex_unlock(&(session->mutex));
+			pthread_mutex_unlock(&(session->socketMutex));
 			writeMemoNote("[?] tcpcl session lost (seg content)",
 					neighbor->vplan->neighborEid);
 			return 0;
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->socketMutex));
 		flags = 0x00;			/*	No longer 1st.	*/
 		bytesRemaining -= bytesToSend;
 	}
@@ -774,7 +980,12 @@ static int	sendOneBundle(SenderThreadParms *stp)
 			return 0;
 		}
 
-		/*	Send that bundle.				*/
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
+		/*	Send this bundle.				*/
 
 		return sendBundleByTcpcl(stp, bundleZco);
 	}
@@ -788,6 +999,8 @@ static void	*sendBundles(void *parm)
 
 	session->hasSender = 1;
 	session->newlyAdded = 0;
+	writeMemoNote("[i] tcpcli sender thread has started",
+			neighbor->vplan->neighborEid);
 
 	/*	Load other required sender thread parms.		*/
 
@@ -803,6 +1016,8 @@ static void	*sendBundles(void *parm)
 
 	/*	Ready to start sending bundles.				*/
 
+	session->vduct->hasThread = 1;
+	session->vduct->cloThread = pthread_self();
 	while (session->sock != -1)
 	{
 		switch (sendOneBundle(stp))
@@ -815,8 +1030,7 @@ static void	*sendBundles(void *parm)
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:	/*	Protocol failure.			*/
-			closeSession(session);
-			continue;
+			break;		/*	Out of switch.		*/
 
 		case 1:	/*	Successful transmission.		*/
 
@@ -827,7 +1041,14 @@ static void	*sendBundles(void *parm)
 				session->secUntilKeepalive =
 						session->keepaliveInterval;
 			}
+
+			/*	Make sure other tasks get to run.	*/
+
+			sm_TaskYield();
+			continue;
 		}
+
+		break;			/*	Out of loop.		*/
 	}
 
 	writeErrmsgMemos();
@@ -835,6 +1056,118 @@ static void	*sendBundles(void *parm)
 			neighbor->vplan->neighborEid);
 	MRELEASE(stp->buffer);
 	MRELEASE(stp);
+	session->vduct->hasThread = 0;
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
+	return NULL;
+}
+
+/*	*	*	Admin thread functions		*	*	*/
+
+static void	*sendSignals(void *parm)
+{
+	SenderThreadParms	*stp = (SenderThreadParms *) parm;
+	TcpclSession		*session = stp->session;
+	char			*tag = session->outductName;
+	TcpclNeighbor		*neighbor = session->neighbor;
+	int			running = 1;
+	LystElt			elt;
+	saddr			lengthReceived;
+	char			keepalive[1] = { 0x40 };
+	int			result;
+	char			ack[11];
+	Sdnv			ackLengthSdnv;
+	int			len;
+
+	session->hasAdmin = 1;
+	if (neighbor->vplan)
+	{
+		tag = neighbor->vplan->neighborEid;
+	}
+
+	writeMemoNote("[i] tcpcli admin thread has started", tag);
+
+	/*	ready to  start sending signals.			*/
+
+	while (running)
+	{
+		if (llcv_wait(session->trigger, llcv_lyst_not_empty,
+				LLCV_BLOCKING))
+		{
+			putErrmsg("Wait on TCPCL signal trigger condition \
+failed.", tag);
+			ionKillMainThread(procName());
+			return NULL;
+		}
+
+		/*	Grab the socket, then send all queued-up
+			acknowledgments and keepalives.			*/
+
+		if (session->sock == -1)
+		{
+			running = 0;
+			continue;
+		}
+
+		pthread_mutex_lock(&(session->socketMutex));
+		while (lyst_length(session->signals) > 0)
+		{
+			pthread_mutex_lock(&session->sigMutex);
+			elt = lyst_first(session->signals);
+			lengthReceived = (saddr) lyst_data(elt);
+			lyst_delete(elt);
+			pthread_mutex_unlock(&session->sigMutex);
+			if (lengthReceived == -1)/*	Shutdown.	*/
+			{
+				running = 0;
+				break;
+			}
+
+			if (lengthReceived == 0)/*	Keepalive.	*/
+			{
+				result = itcp_send(&(session->sock),
+						keepalive, 1);
+				if (result < 1)
+				{
+					writeMemoNote("[?] tcpcl session \
+lost (keepalive)", tag);
+					ionKillMainThread(procName());
+					running = 0;
+					break;
+				}
+
+				continue;
+			}
+
+			/*	Signal is an acknowledgment.		*/
+
+			ack[0] = 0x20;
+			encodeSdnv(&ackLengthSdnv, lengthReceived);
+			memcpy(ack + 1, ackLengthSdnv.text,
+					ackLengthSdnv.length);
+			len = 1 + ackLengthSdnv.length;
+			result = itcp_send(&(session->sock), ack, len);
+			if (result < 1)
+			{
+				writeMemoNote("[?] tcpcl session lost \
+(ack)", tag);
+				ionKillMainThread(procName());
+				running = 0;
+				break;
+			}
+		}
+
+		pthread_mutex_unlock(&(session->socketMutex));
+	}
+
+	writeErrmsgMemos();
+	writeMemoNote("[i] tcpcli admin thread has ended", tag);
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -875,9 +1208,9 @@ static int	sendContactHeader(TcpclSession *session)
 
 	/*	session->sock is known to be a connected socket.	*/
 
-	pthread_mutex_lock(&(session->mutex));
-	result = itcp_send(&session->sock, contactHeader, len);
-	pthread_mutex_unlock(&(session->mutex));
+	pthread_mutex_lock(&(session->socketMutex));
+	result = itcp_send(&(session->sock), contactHeader, len);
+	pthread_mutex_unlock(&(session->socketMutex));
 	return result;
 }
 
@@ -894,6 +1227,8 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 	char			*eidbuf;
 	LystElt			elt;
 	TcpclNeighbor		*knownNeighbor;
+	pthread_mutex_t		oldPlMutex;
+	TcpclSession		*chanceSession;
 	int			result = 1;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
@@ -968,7 +1303,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 		return 0;
 	}
 
-	eidbuf = MTAKE(eidLength + 1);
+	eidbuf = MTAKE(eidLength + 3);	/*	May need / * at end.	*/
 	if (eidbuf == NULL)
 	{
 		putErrmsg("Not enough memory for EID in TCPCL contact header.",
@@ -1000,8 +1335,16 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 			knownNeighbor = (TcpclNeighbor *) lyst_data(elt);
 			sdr_exit_xn(sdr);	/*	Unlock list.	*/
-			MRELEASE(eidbuf);	/*	Not needed.	*/
-			if (knownNeighbor->sessions[TCPCL_CHANCE].sock != -1)
+			chanceSession = knownNeighbor->sessions + TCPCL_CHANCE;
+
+			/*	Serialize this function: neighbor might
+			 *	be trying to reconnect while session is
+			 *	still being closed, in which case it
+			 *	still has a mutex that can be taken.	*/
+
+			oldPlMutex = chanceSession->plMutex;
+			pthread_mutex_lock(&oldPlMutex);
+			if (chanceSession->sock != -1)
 			{
 				result = 0;	/*	Rejected.	*/
 				oK(sendShutdown(session, 0x02, 0));
@@ -1011,31 +1354,67 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				/*	Copy this session into
 				 *	known neighbor.			*/
 
-				memcpy((char *) &(knownNeighbor->
-						sessions[TCPCL_CHANCE]),
-						(char *) session,
+				memcpy((char *) chanceSession, (char *) session,
 						sizeof(TcpclSession));
-				knownNeighbor->sessions[TCPCL_CHANCE].neighbor
-						= knownNeighbor;
-				rtp->session = &(knownNeighbor->
-						sessions[TCPCL_CHANCE]);
+				chanceSession->neighbor = knownNeighbor;
+				rtp->session = chanceSession;
 
 				/*	Make sure deletion of the
 				 *	tentative neighbor doesn't
 				 *	affect this session.		*/
 
 				session->sock = -1;
-				session->hasMutex = 0;
+				session->hasSocketMutex = 0;
+				session->hasPlMutex = 0;
+				session->hasSigMutex = 0;
 				session->hasReceiver = 0;
 				session->hasSender = 0;
-				session->outductName = NULL;
+				session->vduct = NULL;
+				session->hasAdmin = 0;
 				session->pipeline = NULL;
-				session->hasThrottle = 0;
+				session->signals = NULL;
+				session->outductName = NULL;
 
 				/*	Point to known neighbor session.*/
 
 				session = rtp->session;
+				if (session->trigger)
+				{
+					llcv_close(session->trigger);
+					session->trigger = NULL;
+				}
+
+				session->trigger = llcv_open(session->signals,
+						&(session->triggerLlcv));
+				if (session->throttle)
+				{
+					llcv_close(session->throttle);
+					session->throttle = NULL;
+				}
+
+				session->throttle = llcv_open(session->pipeline,
+						&(session->throttleLlcv));
+
+				/*	An optimization: since this node
+				 *	has just connected to us, we can
+				 *	guess that it will now accept
+				 *	a connection from us (if we know
+				 *	how to connect to it).  So our
+				 *	reconnect interval can now be
+				 *	reset to a small value, enabling
+				 *	rapid reconnection.		*/
+
+				if (knownNeighbor->sessions[TCPCL_PLANNED].
+						outductName)
+				{
+					knownNeighbor->sessions[TCPCL_PLANNED].
+							reconnectInterval = 2;
+					knownNeighbor->sessions[TCPCL_PLANNED].
+							secUntilReconnect = 2;
+				}
 			}
+
+			pthread_mutex_unlock(&oldPlMutex);
 
 			/*	In either case, if this session is
 			 *	part of a neighbor that has no planned
@@ -1050,6 +1429,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 
 			if (result == 0)
 			{
+				MRELEASE(eidbuf);
 				return result;
 			}
 		}
@@ -1062,6 +1442,20 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 			 *	until this contact header was received.	*/
 
 			sdr_exit_xn(sdr);	/*	Unlock list.	*/
+
+			/*	dtn-scheme EID identifying node is
+			 *	useless for routing if it lacks
+			 *	terminating wild-card demux; no
+			 *	bundle destination EIDs will match it.	*/
+
+			if (strncmp(eidbuf, "dtn:", 4) == 0
+			&& *(eidbuf + (eidLength - 1)) != '*')
+			{
+				/*	Make DTN plan name usable.	*/
+
+				istrcat(eidbuf, "/*", eidLength + 3);
+			}
+
 			findPlan(eidbuf, &vplan, &vplanElt);
 			if (vplanElt == 0)
 			{
@@ -1070,6 +1464,7 @@ static int	receiveContactHeader(ReceiverThreadParms *rtp)
 				{
 					writeMemoNote("[?] Can't add egress \
 plan for this TCPCL contact header", eidbuf);
+					MRELEASE(eidbuf);
 					return 0;
 				}
 
@@ -1077,6 +1472,7 @@ plan for this TCPCL contact header", eidbuf);
 				{
 					putErrmsg("Can't add automatic egress \
 plan for neighbor.", eidbuf);
+					MRELEASE(eidbuf);
 					return -1;
 				}
 
@@ -1089,6 +1485,7 @@ plan for neighbor.", eidbuf);
 		if (attachPlanDuct(eidbuf, vduct->outductElt) < 0)
 		{
 			putErrmsg("Can't attach duct to plan.", eidbuf);
+			MRELEASE(eidbuf);
 			return -1;
 		}
 	}
@@ -1123,7 +1520,7 @@ plan for neighbor.", eidbuf);
 	}
 
 	stp->session = session;
-	if (pthread_begin(&(session->sender), NULL, sendBundles, stp))
+	if (pthread_begin(&(session->sender), NULL, sendBundles, stp, "tcpcli-session-sender"))
 	{
 		MRELEASE(stp);
 		putSysErrmsg("tcpcli can't create new sender thread", 
@@ -1131,23 +1528,14 @@ plan for neighbor.", eidbuf);
 		return -1;
 	}
 
-	return result;
-}
+	if (pthread_begin(&(session->admin), NULL, sendSignals, stp, "tcpcli-session-admin"))
+	{
+		stopSenderThread(session);
+		putSysErrmsg("tcpcli can't create new admin thread", 
+				neighbor->vplan->neighborEid);
+		return -1;
+	}
 
-static int	sendAck(TcpclSession *session)
-{
-	char	ack[11];
-	Sdnv	ackLengthSdnv;
-	int	len;
-	int	result;
-
-	ack[0] = 0x20;
-	encodeSdnv(&ackLengthSdnv, session->lengthReceived);
-	memcpy(ack + 1, ackLengthSdnv.text, ackLengthSdnv.length);
-	len = 1 + ackLengthSdnv.length;
-	pthread_mutex_lock(&(session->mutex));
-	result = itcp_send(&session->sock, ack, len);
-	pthread_mutex_unlock(&(session->mutex));
 	return result;
 }
 
@@ -1158,6 +1546,8 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	TcpclNeighbor	*neighbor = session->neighbor;
 	int		result;
 	uvast		dataLength;
+	size_t		receptionRate;
+	float		snoozeInterval;
 	uvast		bytesRemaining;
 	int		bytesToRead;
 	int		extentSize;
@@ -1191,6 +1581,19 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		}
 	}
 
+	/*	Enforce rate control: snooze appropriate interval
+	 *	as dictated by contact plan reception rate.		*/
+
+	receptionRate = rtp->session->neighbor->receptionRate;
+	if (receptionRate > 0)
+	{
+		snoozeInterval = ((float) dataLength / (float) receptionRate)
+		       		* 1000000.0;
+		microsnooze((int) snoozeInterval);
+	}
+
+	/*	Now finish reading the data segment.			*/
+
 	bytesRemaining = dataLength;
 	while (bytesRemaining > 0)
 	{
@@ -1210,21 +1613,25 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		}
 
 		if (bpContinueAcq(rtp->work, rtp->buffer, extentSize,
-				&(rtp->attendant)) < 0)
+				&(rtp->attendant), 0) < 0)
 		{
 			return -1;
 		}
 
 		bytesRemaining -= extentSize;
 		session->lengthReceived += extentSize;
-		if (session->segmentAcks)
+		if (session->segmentAcks)	/*	Send ack.	*/
 		{
-			result = sendAck(session);
-			if (result < 1)
+			result = sendSignal(session, session->lengthReceived);
+			if (result < 0)
 			{
 				return result;
 			}
 		}
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
 	}
 
 	if (msgtypeByte & 0x01)		/*	End of bundle.		*/
@@ -1281,14 +1688,14 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		/*	Must get the oldest bundle, to which this ack
 		 *	pertains.					*/
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
 			bundleZco = (Object) lyst_data(elt);
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		if (bundleZco == 0)
 		{
 			/*	Nothing to acknowledge.			*/
@@ -1309,7 +1716,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		/*	Acknowledgment sequence is violated, so 
 		 *	didn't ack the end of the oldest bundle.	*/
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
@@ -1317,7 +1724,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 			lyst_delete(elt);
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		llcv_signal(session->throttle, pipeline_not_full);
 		if (bundleZco == 0)
 		{
@@ -1343,7 +1750,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 		/*	Entire bundle has been received.		*/
 
-		pthread_mutex_lock(&(session->mutex));
+		pthread_mutex_lock(&(session->plMutex));
 		elt = lyst_first(session->pipeline);
 		if (elt)
 		{
@@ -1351,7 +1758,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 			lyst_delete(elt);
 		}
 
-		pthread_mutex_unlock(&(session->mutex));
+		pthread_mutex_unlock(&(session->plMutex));
 		llcv_signal(session->throttle, pipeline_not_full);
 		if (bundleZco == 0)
 		{
@@ -1616,7 +2023,7 @@ static void	*handleContacts(void *parm)
 		tag = neighbor->vplan->neighborEid;
 	}
 
-	/*	Load other required receiver thread parms.		*/
+	/*	Load other required receiver thread parmss.		*/
 
 	rtp->work = bpGetAcqArea(neighbor->induct);
 	if (rtp->work == NULL)
@@ -1715,14 +2122,12 @@ static void	*handleContacts(void *parm)
 			putErrmsg("Failure receiving contact header", tag);
 			ionKillMainThread(procName());
 			running = 0;
-			stopSenderThread(session);
 			closeSession(session);
 			continue;	/*	Terminate the loop.	*/
 
 		case 0:			/*	Protocol faiure.	*/
 			writeMemoNote("[i] tcpcli got no valid contact header",
 					tag);
-			stopSenderThread(session);
 			closeSession(session);
 			continue;	/*	Try again.		*/
 		}
@@ -1747,7 +2152,17 @@ static void	*handleContacts(void *parm)
 			running = 0;
 		}
 
-		stopSenderThread(session);
+		if (session->lengthReceived > 0)
+		{
+			/*	Must discard partially received
+			 *	bundle; otherwise, next contact will
+			 *	begin out of bundle acquisition sync,
+			 *	resulting in bundle parsing failures.	*/
+
+			bpCancelAcq(rtp->work);
+			session->lengthReceived = 0;
+		}
+
 		closeSession(session);
 	}
 
@@ -1758,6 +2173,10 @@ static void	*handleContacts(void *parm)
 	MRELEASE(rtp->buffer);
 	bpReleaseAcqArea(rtp->work);
 	MRELEASE(rtp);
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -1807,6 +2226,15 @@ static void	*spawnReceivers(void *parm)
 			continue;
 		}
 
+		if (watchSocket(newSocket) < 0)
+		{
+			closesocket(newSocket);
+			putErrmsg("tcpcli can't watch socket.", NULL);
+			ionKillMainThread(procName());
+			stp->running = 0;
+			continue;
+		}
+
 		pthread_mutex_lock(stp->backlogMutex);
 		elt = lyst_insert_last(stp->backlog, (void *) newSocket);
 		pthread_mutex_unlock(stp->backlogMutex);
@@ -1825,6 +2253,10 @@ static void	*spawnReceivers(void *parm)
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpcli server thread has ended.");
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -1918,6 +2350,13 @@ session with this neighbor", eid);
 		return 0;
 	}
 
+	if (watchSocket(sock) < 0)
+	{
+		closesocket(sock);
+		putErrmsg("tcpcli can't watch socket.", session->outductName);
+		return -1;
+	}
+
 	/*	TCP connection succeeded, so establish the TCPCL
 	 *	session.						*/
 
@@ -2000,7 +2439,13 @@ static int	rescanPlans(ClockThreadParms *ctp)
 		}
 	}
 
-	return sdr_end_xn(sdr);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("tcpcli failed rescanning plans.", NULL);
+		return -1;
+	}
+
+	return 0;
 }
 
 static int	noLongerReferenced(char *outductName)
@@ -2088,29 +2533,6 @@ static int	rescan(ClockThreadParms *ctp)
 	return 0;
 }
 
-static int	sendKeepalive(TcpclSession *session)
-{
-	static char	keepalive = 0x40;
-	int		result;
-
-	if (session->sock == -1)
-	{
-		return 0;
-	}
-
-	pthread_mutex_lock(&(session->mutex));
-	result = itcp_send(&session->sock, &keepalive, 1);
-	pthread_mutex_unlock(&(session->mutex));
-	if (result < 1)
-	{
-		writeMemoNote("[?] tcpcl session lost (keepalive)",
-				session->outductName);
-		return 0;
-	}
-
-	return 1;
-}
-
 static int	clearBacklog(ClockThreadParms *ctp)
 {
 	Sdr		sdr = getIonsdr();
@@ -2118,8 +2540,8 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	int		sock;
 	LystElt		neighborElt;
 	char		outductName[32];
+	int		result;
 
-	oK(sdr_begin_xn(sdr));
 	pthread_mutex_lock(ctp->backlogMutex);
 	while ((elt = lyst_first(ctp->backlog)))
 	{
@@ -2129,13 +2551,14 @@ static int	clearBacklog(ClockThreadParms *ctp)
 		 *	header exchange we may be loading this
 		 *	session onto another existing neighbor.		*/
 
+		oK(sdr_begin_xn(sdr));		/*	Lock memory.	*/
 		neighborElt = addTcpclNeighbor(NULL, ctp->induct,
 				ctp->neighbors);
+		sdr_exit_xn(sdr);		/*	Unlock.		*/
 		if (neighborElt == NULL)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
-			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add temporary tcpcl neighbor.",
 					NULL);
 			return -1;
@@ -2148,7 +2571,6 @@ static int	clearBacklog(ClockThreadParms *ctp)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
-			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add automatic outduct.",
 					outductName);
 			return -1;
@@ -2156,12 +2578,14 @@ static int	clearBacklog(ClockThreadParms *ctp)
 
 		/*	Begin session for the new Outduct.		*/
 
-		if (beginSessionForDuct(ctp, neighborElt, NULL, outductName)
-				< 0)
+		oK(sdr_begin_xn(sdr));		/*	Lock memory.	*/
+		result = beginSessionForDuct(ctp, neighborElt, NULL,
+				outductName);
+		sdr_exit_xn(sdr);		/*	Unlock.		*/
+		if (result < 0)
 		{
 			closesocket(sock);
 			pthread_mutex_unlock(ctp->backlogMutex);
-			sdr_cancel_xn(sdr);
 			putErrmsg("tcpcli can't add responsive session.", NULL);
 			return -1;
 		}
@@ -2174,12 +2598,6 @@ static int	clearBacklog(ClockThreadParms *ctp)
 	}
 
 	pthread_mutex_unlock(ctp->backlogMutex);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("tcpcli failed adding responsive sessions.", NULL);
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -2224,9 +2642,8 @@ static void	checkSession(TcpclSession *session)
 
 	if (session->secUntilKeepalive == 0)
 	{
-		if (sendKeepalive(session) == 0)
+		if (sendSignal(session, 0) < 0)	/*	Keepalive.	*/
 		{
-			stopSenderThread(session);
 			closeSession(session);
 		}
 		else
@@ -2258,6 +2675,9 @@ static void	*handleEvents(void *parm)
 	LystElt			elt;
 	LystElt			nextElt;
 	TcpclNeighbor		*neighbor;
+	IonVdb			*ionvdb = getIonVdb();
+	PsmAddress		nextNeighbor;
+	IonNeighbor		*ionNeighbor;
 	int			i;
 
 	while (ctp->running)
@@ -2315,6 +2735,18 @@ static void	*handleEvents(void *parm)
 				continue;
 			}
 
+			if (neighbor->vplan)
+			{
+				ionNeighbor = findNeighbor(ionvdb,
+					neighbor->vplan->neighborNodeNbr,
+					&nextNeighbor);
+				if (ionNeighbor)
+				{
+					neighbor->receptionRate
+						= ionNeighbor->recvRate;
+				}
+			}
+
 			for (i = 0; i < 2; i++)
 			{
 				checkSession(&(neighbor->sessions[i]));
@@ -2326,6 +2758,10 @@ static void	*handleEvents(void *parm)
 
 	writeErrmsgMemos();
 	writeMemo("[i] tcpcli clock thread has ended.");
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -2359,8 +2795,8 @@ static void	wakeUpServerThread(struct sockaddr *socketName)
 }
 
 #if defined (ION_LWT)
-int	tcpcli(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	tcpcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else
@@ -2495,7 +2931,7 @@ int	main(int argc, char *argv[])
 	ctp.neighbors = neighbors;
 	ctp.backlog = backlog;
 	ctp.backlogMutex = &backlogMutex;
-	if (pthread_begin(&clockThread, NULL, handleEvents, &ctp))
+	if (pthread_begin(&clockThread, NULL, handleEvents, &ctp, "tcpcli-clock"))
 	{
 		closesocket(stp.serverSocket);
 		lyst_destroy(backlog);
@@ -2510,12 +2946,12 @@ int	main(int argc, char *argv[])
 	stp.running = 1;
 	stp.backlog = backlog;
 	stp.backlogMutex = &backlogMutex;
-	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp))
+	if (pthread_begin(&serverThread, NULL, spawnReceivers, &stp, "tcpcli-server"))
 	{
 		shutDownNeighbors(neighbors);
 		snooze(2);	/*	Let clock thread clean up.	*/
 		ctp.running = 0;
-		if (pthread_kill(clockThread, SIGCONT) == 1)
+		if (pthread_kill(clockThread, SIGCONT) == 0)
 		{
 			pthread_join(clockThread, NULL);
 		}
@@ -2546,7 +2982,7 @@ int	main(int argc, char *argv[])
 
 	stp.running = 0;
 	wakeUpServerThread(&socketName);
-	if (pthread_kill(serverThread, SIGCONT) == 1)
+	if (pthread_kill(serverThread, SIGCONT) == 0)
 	{
 		pthread_join(serverThread, NULL);
 	}
@@ -2554,7 +2990,7 @@ int	main(int argc, char *argv[])
 	shutDownNeighbors(neighbors);
 	snooze(2);		/*	Let clock thread clean up.	*/
 	ctp.running = 0;
-	if (pthread_kill(clockThread, SIGCONT) == 1)
+	if (pthread_kill(clockThread, SIGCONT) == 0)
 	{
 		pthread_join(clockThread, NULL);
 	}

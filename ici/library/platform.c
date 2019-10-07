@@ -52,6 +52,8 @@ typedef struct rlock_str
 	short	count;
 	short	init;
 } Rlock;		/*	Private-memory semaphore.		*/ 
+/* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
+int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
 int	createFile(const char *filename, int flags)
 {
@@ -278,6 +280,9 @@ char	*getNameOfUser(char *buffer)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -289,6 +294,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 
 int	watchSocket(int fd)
@@ -416,6 +422,8 @@ typedef struct rlock_str
 	unsigned char	init;		/*	Boolean.		*/
 	unsigned char	owned;		/*	Boolean.		*/
 } Rlock;		/*	Private-memory semaphore.		*/ 
+/* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
+int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
 int	initResourceLock(ResourceLock *rl)
 {
@@ -706,14 +714,19 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &i,
 			sizeof i);
 #if (defined (SO_REUSEPORT))
+#if (!defined(bionic))
 	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
 			sizeof i);
+#endif
 #endif
 	if (result < 0)
 	{
@@ -721,6 +734,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 
 int	watchSocket(int fd)
@@ -797,12 +811,17 @@ char	*getInternetHostName(unsigned int hostNbr, char *buffer)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &i, sizeof i);
 #if (defined (SO_REUSEPORT))
+#if (!defined(bionic))
 	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &i, sizeof i);
+#endif
 #endif
 	if (result < 0)
 	{
@@ -810,6 +829,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 
 int	watchSocket(int fd)
@@ -966,6 +986,9 @@ int	getNameOfHost(char *buffer, int bufferLength)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
@@ -983,6 +1006,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
  
 int	makeIoNonBlocking(int fd)
@@ -1129,14 +1153,19 @@ int	getNameOfHost(char *buffer, int bufferLength)
 
 int	reUseAddress(int fd)
 {
+#ifdef REUSEADDR_UNAVBL
+	return 0;
+#else
 	int	result;
 	int	i = 1;
 
 	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
 			sizeof i);
 #if (defined (SO_REUSEPORT))
+#if (!defined(bionic))
 	result += setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char *) &i,
 			sizeof i);
+#endif
 #endif
 	if (result < 0)
 	{
@@ -1144,6 +1173,7 @@ int	reUseAddress(int fd)
 	}
 
 	return result;
+#endif
 }
 #endif	/*	ION_NO_DNS						*/
  
@@ -1419,7 +1449,7 @@ void	writeMemoNote(char *text, char *note)
 
 	if (text)
 	{
-		isprintf(textBuffer, sizeof textBuffer, "%.900s: %.64s",
+		isprintf(textBuffer, sizeof textBuffer, "%.500s: %.500s",
 				text, noteText);
 		(_logOneMessage(NULL))(textBuffer);
 	}
@@ -1744,49 +1774,65 @@ void	printStackTrace()
 #endif
 }
 
+void	debugPrint(const char *format, ...)
+{
+#if DEBUG_PRINT
+	va_list		args;
+
+	va_start(args, format);
+#if DEBUG_PRINT_LOG
+	char		buffer[256];
+
+	vsnprintf(buffer, sizeof buffer, format, args);
+	writeMemo(buffer);
+#endif
+	vprintf(format, args);
+	putchar('\n');
+	va_end(args);
+#endif
+}
+
 void	encodeSdnv(Sdnv *sdnv, uvast val)
 {
 	static uvast	sdnvMask = ((uvast) -1) / 128;
-	uvast		remnant;
-	int		i;
-	unsigned char	flag = 0;
+	uvast		remnant = val;
+	char		result[10];
+	int		length = 1;
 	unsigned char	*text;
 
-	/*	Get length of SDNV text: one byte for each 7 bits of
-	 *	significant numeric value.  On each iteration of the
-	 *	loop, until what's left of the original value is zero,
-	 *	shift the remaining value 7 bits to the right and add
-	 *	1 to the imputed SDNV length.				*/
-
+	/*	Thanks to Cheol Koo of KARI for optimizing this
+	 *	function.  29 August 2019				*/
+	
 	CHKVOID(sdnv);
-	sdnv->length = 0;
-	remnant = val;
-	do
+
+	/*	First extract the value of what will become the low-
+	 *	order byte of the SDNV text; its high-order bit is 0.	*/
+
+	result[0] = remnant & (uvast) 0x7f;
+	remnant = (remnant >> 7) & sdnvMask;
+
+	/*	Now extract the values of all remaining bytes, in
+	 *	increasing order, setting high-order bit to 1 for
+	 *	each one.  The results array will contain the values
+	 *	of the bytes of the SDNV text in reverse order.		*/
+
+	while (remnant)
 	{
+		result[length] = (remnant & (uvast) 0x7f) | 0x80;
 		remnant = (remnant >> 7) & sdnvMask;
-		(sdnv->length)++;
-	} while (remnant > 0);
+		length++;
+	}
 
-	/*	Now fill the SDNV text from the numeric value bits.	*/
+	/*	Now copy the extracted values into the text of the
+	 *	SDNV, starting with the highest-order value.		*/
 
-	text = sdnv->text + sdnv->length;
-	i = sdnv->length;
-	remnant = val;
-	while (i > 0)
+	sdnv->length = length;
+	text = sdnv->text;
+	while (length)
 	{
-		text--;
-
-		/*	Get low-order 7 bits of what's left, OR'ing
-		 *	it with high-order bit flag for this position
-		 *	of the SDNV.					*/
-
-		*text = (remnant & 0x7f) | flag;
-
-		/*	Shift those bits out of the value.		*/
-
-		remnant = (remnant >> 7) & sdnvMask;
-		flag = 0x80;		/*	Flag is now 1.		*/
-		i--;
+		length--;
+		*text = result[length];
+		text++;
 	}
 }
 
@@ -1799,6 +1845,7 @@ int	decodeSdnv(uvast *val, unsigned char *sdnvTxt)
 	CHKZERO(sdnvTxt);
 	*val = 0;
 	cursor = sdnvTxt;
+
 	while (1)
 	{
 		sdnvLength++;
@@ -1813,12 +1860,16 @@ int	decodeSdnv(uvast *val, unsigned char *sdnvTxt)
 
 		*val <<= 7;
 
-		/*	Insert SDNV byte value (with its high-order
-		 *	bit masked off) as low-order 7 bits of the
-		 *	numeric value.					*/
+		/*	Insert SDNV text byte value (with its high-
+		 *	order bit masked off) as low-order 7 bits of
+		 *	the numeric value.				*/
 
 		*val |= (*cursor & 0x7f);
-		if ((*cursor & 0x80) == 0)	/*	Last SDNV byte.	*/
+
+		/*	If this SDNV text byte's high-order bit is
+		 *	1, then it's the last byte of the SDNV text.	*/
+
+		if (((*cursor) & 0x80) == 0)	/*	Last SDNV byte.	*/
 		{
 			return sdnvLength;
 		}
@@ -3216,6 +3267,35 @@ void	iblock(int signbr)
 	oK(pthread_sigmask(SIG_BLOCK, &signals, NULL));
 }
 #endif	/*	end of #ifdef mingw					*/
+
+int	ifopen(const char *fileName, int flags, int pmode)
+{
+	int		fd;
+	struct stat	statbuf;
+
+	fd = iopen(fileName, flags, pmode);
+	if (fd < 0)
+	{
+		putSysErrmsg("Open failed.", fileName);
+		return -1;
+	}
+
+	if (fstat(fd, &statbuf) < 0)
+	{
+		close(fd);
+		putSysErrmsg("Can't stat file.", fileName);
+		return -1;
+	}
+
+	if (S_ISREG(statbuf.st_mode))
+	{
+		return fd;
+	}
+
+	close(fd);
+	putErrmsg("Not a regular file.", fileName);
+	return -1;
+}
 
 char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 {

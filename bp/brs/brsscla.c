@@ -108,6 +108,11 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
+		if (bundleZco == 1)		/*	Corrupt bundle.	*/
+		{
+			continue;		/*	Get next one.	*/
+		}
+
 		CHKNULL(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
@@ -233,7 +238,8 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 		return -1;
 	}
 
-	if (pthread_begin(&(rtp->senderThread), NULL, sendBundles, rtp))
+	if (pthread_begin(&(rtp->senderThread), NULL, sendBundles,
+		rtp, "brsscla_receiver"))
 	{
 		putSysErrmsg("brsscla can't create sender thread", NULL);
 		return -1;
@@ -584,7 +590,7 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->nodeNbr = (unsigned int) -1;
 		receiverParms->running = &(atp->running);
 		if (pthread_begin(&(receiverParms->receiverThread), NULL,
-				receiveBundles, receiverParms))
+				receiveBundles, receiverParms, "brsscla_receiver"))
 		{
 			putSysErrmsg("brsscla can't create new thread", NULL);
 			MRELEASE(receiverParms);
@@ -625,11 +631,11 @@ static void	*spawnReceivers(void *parm)
 
 		receiverParms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = receiverParms->receiverThread;
-#ifdef mingw
+//#ifdef mingw
 		shutdown(receiverParms->bundleSocket, SD_BOTH);
-#else
-		pthread_kill(thread, SIGINT);
-#endif
+//#else
+//		pthread_kill(thread, SIGINT);
+//#endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
 	}
@@ -745,7 +751,8 @@ port 80)", NULL);
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers,
+		&atp, "brsscla_access"))
 	{
 		closesocket(atp.ductSocket);
 		putSysErrmsg("brsscla can't create access thread", NULL);
@@ -791,8 +798,8 @@ port 80)", NULL);
 }
 
 #if defined (ION_LWT)
-int	brsscla(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	brsscla(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else

@@ -2,6 +2,7 @@
 eclsaLogger.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -13,9 +14,11 @@ used by eclso and eclsi.
 
 #include "eclsaLogger.h"
 
+#include "eclsaMemoryManager.h"
+
 #include <string.h>  //memcpy
 #include <semaphore.h> //semaphores
-#include <stdlib.h> //malloc
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -37,7 +40,8 @@ if(!LOGGER_ENABLED) return; //todo non fare niente se il logger è disabilitato
 
 int i;
 logArrayLength=maxLogFiles;
-logArray= malloc(sizeof(LogFile) * maxLogFiles);
+logArray = calloc(maxLogFiles, sizeof(LogFile));
+//logArray = allocateVector(sizeof(LogFile), maxLogFiles);
 for(i=0;i<maxLogFiles;i++)
 	{
 	sem_init(&(logArray[i].lock),0,1);
@@ -55,8 +59,10 @@ for(i=0;i<logArrayLength;i++)
 	sem_destroy(&(logArray[i].lock));
 	if(logArray[i].filename!=NULL)
 		free(logArray[i].filename);
+		//deallocateVector(&(logArray[i].filename));
 	}
 free(logArray);
+//deallocateElement(&(logArray));
 }
 void loggerStartLog(int loggerID,char *filename,bool printTimestamp, bool printNewLine)
 {
@@ -67,7 +73,8 @@ void loggerStartLog(int loggerID,char *filename,bool printTimestamp, bool printN
 		printf("Failed to start log: loggerID=%d filename=%s",loggerID,filename);
 		return;
 		}
-	logArray[loggerID].filename=malloc(strlen(filename)+1);
+	logArray[loggerID].filename = calloc(strlen(filename)+1, sizeof(char));
+	//logArray[loggerID].filename = allocateVector(sizeof(char), strlen(filename)+1);
 	strcpy(logArray[loggerID].filename,filename);
 	logArray[loggerID].init=1;
 	logArray[loggerID].printTimestamp=printTimestamp;
@@ -83,6 +90,7 @@ void loggerStopLog(int loggerID,char *filename)
 		return;
 		}
 	free(logArray[loggerID].filename);
+	//deallocateVector(&(logArray[loggerID].filename));
 	logArray[loggerID].filename=NULL;
 	logArray[loggerID].init=0;
 }

@@ -1,6 +1,6 @@
 =head1 NAME
 
-ionsecadmin - ION security policy administration interface
+ionsecadmin - ION global security database management interface
 
 =head1 SYNOPSIS
 
@@ -8,10 +8,10 @@ B<ionsecadmin> [ I<commands_filename> ]
 
 =head1 DESCRIPTION
 
-B<ionsecadmin> configures and manages the ION security policy database
+B<ionsecadmin> configures and manages the ION security database
 on the local computer.
 
-It configures and manages the ION security policy database on the local
+It configures and manages the ION security database on the local
 computer in response to ION configuration commands found in
 I<commands_filename>, if provided; if not, B<ionsecadmin> prints
 a simple prompt (:) so that the user may type commands directly
@@ -27,7 +27,7 @@ commands are documented in ionsecrc(5).
 
 =item "0"
 
-Successful completion of ION security policy administration.
+Successful completion of ION security database administration.
 
 =back
 

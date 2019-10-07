@@ -128,15 +128,15 @@ void	switchEcho(int tokenCount, char **tokens)
 int	hasAnActiveConnection(char *eid, int period)
 {
 	PsmPartition	bpwm = getIonwm();
-	PsmAddress	neighborElt;
-	NdpNeighbor	*neighbor;
+	PsmAddress	discoveryElt;
+	Discovery	*discovery;
 
-	neighborElt = bp_discover_find_neighbor(eid);
-	if (neighborElt)
+	discoveryElt = bp_find_discovery(eid);
+	if (discoveryElt)
 	{
-		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
-				neighborElt));
-		if (neighbor->lastContactTime + period > getUTCTime())
+		discovery = (Discovery *) psp(bpwm, sm_list_data(bpwm,
+				discoveryElt));
+		if (discovery->lastContactTime + period > getCtime())
 		{
 			return 1;
 		}

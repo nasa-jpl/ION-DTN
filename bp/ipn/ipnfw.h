@@ -50,23 +50,53 @@ typedef struct
 	Object		eid;			/*	Send via.	*/
 } IpnExit;
 
+/*	Overrides linked to data labels as provided in ECOS extension
+ *	blocks may be used to override normal bundle prioritization
+ *	and/or routing.							*/
+
+typedef struct
+{
+	unsigned int	dataLabel;
+
+	/*	destNodeNbr = -1 indicates "all others"			*/
+	uvast		destNodeNbr;
+
+	/*	sourceNodeNbr = -1 indicates "all others"		*/
+	uvast		sourceNodeNbr;
+
+	/*	neighbor = -1 indicates "no routing override"		*/
+	uvast		neighbor;
+
+	/*	priority = -1 indicates "no priority override"		*/
+	unsigned char	priority;		/*	CoS.		*/
+	unsigned char	ordinal;		/*	For priority 2.	*/
+} IpnOverride;
+
 typedef struct
 {
 	Object		exits;			/*	SDR list	*/
+	Object		overrides;		/*	SDR list	*/
 } IpnDB;
 
 extern int		ipnInit();
 extern Object		getIpnDbObject();
 extern IpnDB		*getIpnConstants();
 
-extern void		ipn_findPlan(uvast nodeNbr, Object *planAddr,
-				Object *elt);
+extern int		ipn_setOvrd(unsigned int dataLabel,
+				uvast destNodeNbr,
+				uvast sourceNodeNbr,
+			/*	neighbor = -2 indicates
+			 		"no change from current value"	*/
+				uvast neighbor,
+			/*	priority = -2 indicates
+			 		"no change from current value"	*/
+				unsigned char priority,
+				unsigned char ordinal);
 
-extern int		ipn_addPlan(uvast nodeNbr, unsigned int nominalRate);
-extern int		ipn_addPlanDuct(uvast nodeNbr, char *ductExpression);
-extern int		ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate);
-extern int		ipn_removePlanDuct(uvast nodeNbr, char *ductExpression);
-extern int		ipn_removePlan(uvast nodeNbr);
+extern int		ipn_lookupOvrd(unsigned int dataLabel,
+				uvast destNodeNbr,
+				uvast sourceNodeNbr,
+				Object *ovrdAddr);
 
 extern void		ipn_findExit(uvast firstNodeNbr,
 				uvast lastNodeNbr,
@@ -80,6 +110,19 @@ extern int		ipn_removeExit(uvast firstNodeNbr,
 				uvast lastNodeNbr);
 
 extern int		ipn_lookupExit(uvast nodeNbr, char *eid);
+
+/*	Egress plans are actually non-scheme-specific and are defined
+ *	in BP.  But convenience functions for the ipn scheme are
+ *	provided here.							*/
+
+extern void		ipn_findPlan(uvast nodeNbr, Object *planAddr,
+				Object *elt);
+
+extern int		ipn_addPlan(uvast nodeNbr, unsigned int nominalRate);
+extern int		ipn_addPlanDuct(uvast nodeNbr, char *ductExpression);
+extern int		ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate);
+extern int		ipn_removePlanDuct(uvast nodeNbr, char *ductExpression);
+extern int		ipn_removePlan(uvast nodeNbr);
 #ifdef __cplusplus
 }
 #endif

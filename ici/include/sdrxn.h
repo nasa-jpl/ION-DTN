@@ -41,7 +41,7 @@ typedef struct sdrv_str	*Sdr;	/*	Local view of an SDR.		*/
 
 #define sdr_initialize(wmSize, wmPtr, wmKey, wmName)	Sdr_initialize(wmSize, \
 wmPtr, wmKey, wmName)
-extern int		Sdr_initialize(long wmSize, char *wmPtr, int wmKey,
+extern int		Sdr_initialize(size_t wmSize, char *wmPtr, int wmKey,
 					char *wmName);
 			/*	Initializes the overall sdr system.
 				In particular, attaches to shared
@@ -74,7 +74,7 @@ extern void		sdr_shutdown();
 /*		SDR data space administration functions.		*/
 
 extern int		sdr_load_profile(char *name, int configFlags,
-				long heapWords, int heapKey, int logSize,
+				size_t heapWords, int heapKey, size_t logSize,
 				int logKey, char *pathName, char *restartCmd);
 			/*	Loads the profile for an SDR into the
 				sdrs list.  The profile of an SDR must
@@ -167,7 +167,7 @@ extern int		sdr_load_profile(char *name, int configFlags,
 				transaction reversal.			*/
 
 extern int		sdr_reload_profile(char *name, int configFlags,
-				long heapWords, int heapKey, int logSize,
+				size_t heapWords, int heapKey, size_t logSize,
 				int logKey, char *pathName, char *restartCmd);
 			/*	For use when the state of an SDR is
 			 *	thought to be inconsistent, perhaps
@@ -190,7 +190,7 @@ extern Sdr		Sdr_start_using(char *name);
 extern char		*sdr_name(Sdr sdr);
 			/*	Returns the name of the SDR.		*/
 
-extern long		sdr_heap_size(Sdr sdr);
+extern size_t		sdr_heap_size(Sdr sdr);
 			/*	Returns total size of heap, in bytes.	*/
 
 extern void		sdr_stop_using(Sdr sdr);
@@ -220,7 +220,7 @@ extern int		sdr_end_xn(Sdr sdr);
 
 /*		Low-level SDR I/O functions.				*/
 
-typedef saddr		SdrAddress;
+typedef uaddr		SdrAddress;
 #define	Address		SdrAddress
 
 /*	Both SdrObjects and SdrAddresses are absolute offsets from
@@ -259,7 +259,7 @@ extern Address		sdr_address(Sdr sdr, void *pointer);
 #define sdr_write(sdr, into, from, size) \
 Sdr_write(__FILE__, __LINE__, sdr, into, from, size)
 extern void		Sdr_write(const char *file, int line,
-				Sdr sdr, Address into, char *from, long size);
+				Sdr sdr, Address into, char *from, size_t size);
 
 #define sdr_poke(sdr, address, variable) \
 Sdr_write(__FILE__, __LINE__, sdr, address, \
@@ -269,7 +269,8 @@ Sdr_write(__FILE__, __LINE__, sdr, address, \
 Sdr_write(__FILE__, __LINE__, sdr, sdr_address(sdr, pointer), \
 (char *) &variable, sizeof variable)
 
-extern void		sdr_read(Sdr sdr, char *into, Address from, long size);
+extern void		sdr_read(Sdr sdr, char *into, Address from,
+				size_t size);
 
 #define sdr_peek(sdr, variable, address) \
 sdr_read(sdr, (char *) &variable, address, sizeof variable)

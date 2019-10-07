@@ -124,7 +124,7 @@ BP_BEST_EFFORT signifies that non-reliable convergence-layer protocols, as
 available, may be used to transmit the bundle.  Notably, the bundle may be
 sent as "green" data rather than "red" data when issued via LTP.
 
-BP_FLOW_LABEL_PRESENT signifies whether or not the value of I<flowLabel>
+BP_DATA_LABEL_PRESENT signifies whether or not the value of I<dataLabel>
 in I<ancillaryData> must be encoded into the ECOS block when the bundle is
 transmitted.
 

@@ -2,6 +2,7 @@
  eclsaFecManager.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
  Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -12,7 +13,9 @@ todo
  * */
 
 #include "eclsaFecManager.h"
-
+#include "../sys/eclsaLogger.h"
+#include "../sys/eclsaMemoryManager.h"
+#include "../../adapters/codec/eclsaCodecAdapter.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -94,7 +97,7 @@ void fecManagerInit(bool adaptiveCodingEn, bool feedbackAdaptiveRcEn,bool contin
 	continuousModeEnabled=continuousModeEn;
 	eK=envK;
 	eN=envN;
-	fecArray = calloc(1,sizeof(FecArray));
+	while ( (fecArray = (FecArray*) allocateElement(sizeof(FecArray))) == NULL ) ; //untill it will be allocated
 	FECArrayLoad(envT);
 
 	//todo
@@ -144,8 +147,8 @@ void fecManagerDestroy()
 			destroyCodecVars(&fecArray->array[i]);
 		}
 
-	free(fecArray->array);
-	free(fecArray);
+	deallocateVector(&(fecArray->array));
+	deallocateElement(&(fecArray));
 	fecArray=NULL;
 }
 
@@ -164,11 +167,11 @@ void createNewFecArray(int length)
 	if(fecArray->array != NULL)
 		  {
 		  debugPrint("WARNING: destroying old fecArray->array...");
-		  free(fecArray->array);
+		  deallocateVector(&(fecArray->array));
 		  }
 
 	debugPrint("create array with size %d",length);
-	fecArray->array=malloc(sizeof(FecElement) * length);
+	while ( (fecArray->array = allocateVector(sizeof(FecElement), length)) == NULL ) ; // until it will be allocated
 	fecArray->length=0;
 	maxSize=length;
 }
@@ -199,7 +202,7 @@ FecElement *startMatrixFecElement(FecElement * encodingCode)
 	FecElement *fec;
 	if(encodingCode == &continuousFec)
 	{
-		fec= malloc(sizeof(FecElement));
+		while ( (fec = allocateElement(sizeof(FecElement))) == NULL) ; // until it will be allocated
 		memcpy(fec,encodingCode,sizeof(FecElement));
 	}
 	else
@@ -213,10 +216,10 @@ void flushMatrixFecElement(FecElement * encodingCode)
 	int i;
 	for(i=0;i<fecArray->length;i++)
 	{
-		if(&fecArray->array[i] == encodingCode)
+		if(&(fecArray->array[i]) == encodingCode)
 			return;
 	}
-	free(encodingCode);
+	deallocateElement(&(encodingCode));
 }
 
 /*Adaptive FEC functions */
@@ -257,7 +260,7 @@ FecElement 	*getBestFEC(unsigned int infoSegmentAddedCount, float currentRate) /
 		continuousFec.T=getBiggestFEC()->T;
 		continuousFec.codecVars = NULL;
 
-		fec= malloc(sizeof(FecElement));
+		while ( (fec = allocateElement(sizeof(FecElement))) == NULL ) ; // until it will be allocated
 		memcpy(fec,&continuousFec,sizeof(FecElement));
 
 		return fec;

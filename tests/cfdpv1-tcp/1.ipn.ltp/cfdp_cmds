@@ -1,0 +1,14 @@
+z 2
+d 2
+f sourceFile
+t receivedFile
+a 10
+&
+z 10
+d 2
+f sourceFile
+t receivedFile
+a 10
+|
+z 18
+q

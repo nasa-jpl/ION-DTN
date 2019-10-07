@@ -15,7 +15,7 @@ POSIX threads.
 
 
 #include "eclsaTimer.h"
-
+#include "eclsaLogger.h"
 #include <unistd.h>
 #include <pthread.h> //POSIX threads
 #include <string.h>  //memcpy
@@ -34,7 +34,7 @@ int 			milliseconds;
 unsigned int 	timerID;
 
 EclsaTimer *timer;
-void *matrixData;
+void 		   *matrixData;
 unsigned short *actualEngineID;
 unsigned short *actualMatrixID;
 unsigned short 	engineID;

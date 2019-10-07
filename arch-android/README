@@ -1,0 +1,7 @@
+The ION port to Java comprises the following elements:
+
+	- The ION-DTN Provider Application (IonDTN)
+	- Documentation (Documentation)
+	- Demo applications (DemoApplications)
+
+Please open Documentation/index.html in your browser to get started!

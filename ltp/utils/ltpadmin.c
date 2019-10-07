@@ -10,6 +10,10 @@
 #include "ltpP.h"
 #include "ion.h"
 
+#ifdef STRSOE
+#include <strsoe_ltpadmin.h>
+#endif
+
 static int		_echo(int *newValue)
 {
 	static int	state = 0;
@@ -82,9 +86,10 @@ See man(5) for ltprc.");
 	PUTS("\t   l span");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
-	PUTS("\t   m screening { y | n }");
+	PUTS("\t   m screening {y | on | n | off}");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
+	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s '<LSI command>'");
 	PUTS("\tx\tStop");
@@ -290,7 +295,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "span") == 0)
 	{
-		if (tokenCount != 4)
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
@@ -462,7 +467,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 static void	manageScreening(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	Object	ltpdbObj = getLtpDbObject();
+	Object	ltpdbobj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int	newEnforceSchedule;
 
@@ -474,27 +479,39 @@ static void	manageScreening(int tokenCount, char **tokens)
 
 	switch (*(tokens[2]))
 	{
-	case 'y':
 	case 'Y':
+	case 'y':
 	case '1':
 		newEnforceSchedule = 1;
 		break;
 
-	case 'n':
 	case 'N':
+	case 'n':
 	case '0':
 		newEnforceSchedule = 0;
 		break;
 
 	default:
-		writeMemoNote("Screening must be 'y' or 'n'", tokens[2]);
+		if (strncmp(tokens[2], "on", 2) == 0)
+		{
+			newEnforceSchedule = 1;
+			break;
+		}
+
+		if (strncmp(tokens[2], "off", 3) == 0)
+		{
+			newEnforceSchedule = 0;
+			break;
+		}
+
+		writeMemoNote("Screening must be 'y' or 'n'.", tokens[2]);
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
 	ltpdb.enforceSchedule = newEnforceSchedule;
-	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	sdr_write(sdr, ltpdbobj, (char *) &ltpdb, sizeof(LtpDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change LTP screening control.", NULL);
@@ -572,6 +589,36 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxBacklog(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	LtpDB		ltpdb;
+	unsigned int	maxBacklog;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	maxBacklog = strtoul(tokens[2], NULL, 0);
+	if (maxBacklog < 2)
+	{
+		writeMemoNote("[?] maxbacklog must be at least 2", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.maxBacklog = maxBacklog;
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxBacklog.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -601,6 +648,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "maxber") == 0)
 	{
 		manageMaxBER(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxbacklog") == 0)
+	{
+		manageMaxBacklog(tokenCount, tokens);
 		return;
 	}
 
@@ -772,7 +825,10 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -827,6 +883,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 				{
 					printText("Can't start LTP: no LSI \
 command.");
+					return 0;
 				}
 				else
 				{
@@ -834,6 +891,7 @@ command.");
 					{
 						putErrmsg("Can't start LTP.",
 								NULL);
+						return 0;
 					}
 				}
 
@@ -942,39 +1000,29 @@ up, abandoned.");
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToLtp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//ltp engine is not started
-					printText("LTP engine is not started");
-					return 1;
-				}
-
-				//attached to ltp system
-				
-				*rc = ltp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = ltp_engine_is_started();
-			if (*rc)
-			{
-				printText("LTP engine is started");
 			}
 			else
 			{
-				printText("LTP engine is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToLtp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//ltp engine is not started
+				printText("LTP engine is not started");
+				return 1;
+			}
+
+			//attached to ltp system
+				
+			*rc = ltp_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -987,8 +1035,8 @@ up, abandoned.");
 }
 
 #if defined (ION_LWT)
-int	ltpadmin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	ltpadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
 #else
@@ -1095,3 +1143,16 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	ltpadmin_processLine(char *line, int lineLength, int *checkNeeded,
+		int *rc)
+{
+	return processLine(line, lineLength, checkNeeded, rc);
+}
+
+void	ltpadmin_help(void)
+{
+	printUsage();
+}
+#endif

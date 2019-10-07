@@ -78,7 +78,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	}
 	else
 	{
-		if (!bp_parse_class_of_service(svcClass, &ancillaryData,
+		if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
 			putErrmsg("Invalid class of service for bpsendfile.",
@@ -189,8 +189,8 @@ and size: %d has been sent\n", framePayload, sizeof(framePayload));
 }
 
 #if defined (ION_LWT)
-int	bssStreamingApp(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bssStreamingApp(ssaddr a1, ssaddr a2, ssaddr a3, ssaddr a4, ssaddr a5,
+		ssaddr a6, ssaddr a7, ssaddr a8, ssaddr a9, ssaddr a10)
 {
 	char	*ownEid = (char *) a2;
 	char	*destEid = (char *) a3;

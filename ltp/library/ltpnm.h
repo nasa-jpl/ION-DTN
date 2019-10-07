@@ -38,6 +38,8 @@ typedef struct
     unsigned long       outputNegAckRecvCount;
     unsigned long       outputCancelRecvCount;
     unsigned long       outputCkptReXmitCount;
+    unsigned long       outputSegReXmitCount;
+    unsigned long       outputSegReXmitBytes;
     unsigned long       outputCancelXmitCount;
     unsigned long       outputCompleteCount;
 

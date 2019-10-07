@@ -19,10 +19,11 @@ PUBINCLS = \
 
 LTPINCLS = \
 	$(API)/ltpP.h \
+	$(API)/ltpsec.h \
 	$(UDP)/udplsa.h \
 	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpsecadmin ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
 #dccplsi dccplso
 
 ALL = check libltp.so $(RUNTIMES)
@@ -50,6 +51,10 @@ ltpclock:	ltpclock.o libltp.so
 		$(CC) -o ltpclock ltpclock.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpclock ./bin
 
+ltpdeliv:	ltpdeliv.o libltp.so
+		$(CC) -o ltpdeliv ltpdeliv.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpdeliv ./bin
+
 ltpmeter:	ltpmeter.o libltp.so
 		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpmeter ./bin
@@ -59,6 +64,10 @@ ltpmeter:	ltpmeter.o libltp.so
 ltpadmin:	ltpadmin.o libltp.so
 		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpadmin ./bin
+
+ltpsecadmin:	ltpsecadmin.o libltp.so
+		$(CC) -o ltpsecadmin ltpsecadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpsecadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
@@ -95,8 +104,8 @@ dccpplso:	dccplso.o libltp.so
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltp.so:	libltp.o libltpP.o ltpei.o auth.o libltpnm.o libsda.o
-		$(LD) -o libltp.so libltp.o libltpP.o ltpei.o auth.o libltpnm.o libsda.o
+libltp.so:	libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
+		$(LD) -o libltp.so libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
 		cp libltp.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-

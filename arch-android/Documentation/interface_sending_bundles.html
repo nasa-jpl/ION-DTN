@@ -1,0 +1,218 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Sending Bundles - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html" class="active"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="interface_sending_bundles.html#sending-bundles" id="sending-bundles"><h1>Sending Bundles</h1></a>
+<p>The Service &quot;BundleService&quot; provides a function that can be used to trigger ION to send out a bundle with a given payload:</p>
+<pre><code class="language-java">// Send provided data, the payload is encapsulated in the DtnBundle object or provided as a file references
+boolean sendBundle(in DtnBundle b);
+</code></pre>
+<a class="header" href="interface_sending_bundles.html#sending-a-byte-array" id="sending-a-byte-array"><h3>Sending a byte array</h3></a>
+<pre><code class="language-java">/**
+ * Constructor that allows the instantiation of a DtnBundle with a ByteArray.
+ * @param eid The source EID
+ * @param creation_time The time that the DtnBundle was created. Is ignored
+ *                      when DtnBundle is sent.
+ * @param time_to_live The time-to-live value that the DtnBundle had when
+ *                     being received by ION-DTN
+ * @param priority The priority class of the DtnBundle (Bulk, Standard,
+ *                 Expedited)
+ * @param payload_byte_array The raw payload as byte array.
+ */
+public DtnBundle(String eid,
+                 long creation_time,
+                 int time_to_live,
+                 Priority priority,
+                 byte[] payload_byte_array) {
+...
+</code></pre>
+<p>For small sizes the payload can be handed over to ION as a byte array. The conversion of intrinsic variable types to a byte array is very easy, e.g. for Strings this can be accomplished by the following code snippet.</p>
+<pre><code class="language-java">String s = new String(&quot;This is a string!&quot;);
+ByteArray b;
+
+try {
+    b = s.getBytes(&quot;UTF-8&quot;)
+}
+catch (UnsupportedEncodingException e) {
+    // ... catch error here ...
+}
+</code></pre>
+<p>Besides the payload parameter, the constructor of <code>Bundle</code> also requires the destination identifier (EID) as a string, the Time-to-Live and a quality-of-service parameter as an int.</p>
+<p>The available quality-of-service classes are defined as an enum with the following values:</p>
+<pre><code class="language-java">// The priority class of the (sending) bundle, invalid for received bundles
+public enum Priority {BULK, STANDARD, EXPEDITED, INVALID}
+</code></pre>
+<p>The <code>ByteArray</code> constructor is feasible for small portions of data, however, if the data size increases, the usage of <em>FileDescriptors</em> is recommended. The reason for this is the overall size limitation for IPC data in Android. As of now, Android limits the transaction size to 1 MB in total<sup class="footnote-reference"><a href="interface_sending_bundles.html#1">1</a></sup>. This means that all applications running on an Android device have to share this small amount of memory. The limit might be increased in the future, but considering the back compatibility to older devices and Android versions, using as little memory as possible is recommended.</p>
+<blockquote>
+<p><strong>Note:</strong> Using the IPC memory in an excessive way cannot be prevented from IonDTN as it just gets the information about the size of the payload when the data has already been stored in the reserved memory region. However, if the IPC memory is exhausted, the IPC call will fail before even reaching IonDTN.</p>
+</blockquote>
+<a class="header" href="interface_sending_bundles.html#sending-a-file-descriptor" id="sending-a-file-descriptor"><h3>Sending a file descriptor</h3></a>
+<pre><code class="language-java">/**
+ * Constructor that allows the instantiation of a DtnBundle with a
+ * {@link ParcelFileDescriptor}.
+ * @param eid The EID
+ * @param creation_time The time that the DtnBundle was created. Is ignored
+ *                      when DtnBundle is sent.
+ * @param time_to_live The time-to-live value that the DtnBundle had when
+ *                     being received by ION-DTN.
+ * @param priority The priority class of the DtnBundle (Bulk, Standard,
+ *                 Expedited)
+ * @param payload_fd The {@link ParcelFileDescriptor} pointing to the
+ *                   payload of the DtnBundle.
+ */
+public DtnBundle(String eid,
+                 long creation_time,
+                 int time_to_live,
+                 Priority priority,
+                 ParcelFileDescriptor payload_fd) {
+...
+</code></pre>
+<p>In order to send larger portions of data, the constructor of <code>DtnBundle</code> allows the handover of a file descriptor. This file descriptor is of the type <code>ParcelFileDescriptor</code> because it has to be transparent to the Android OS.</p>
+<p>The procedure for using <code>sendFile</code> is as follows:</p>
+<a class="header" href="interface_sending_bundles.html#create-file" id="create-file"><h4>Create File</h4></a>
+<p>Create a new file or open an existing one in your app. This will give you a <code>FileDescriptor</code> for that file.</p>
+<pre><code class="language-java">  File f = new File(...);
+  FileOutputStream fos = new FileOutputStream(f);
+</code></pre>
+<a class="header" href="interface_sending_bundles.html#optional-write-data-to-file" id="optional-write-data-to-file"><h4><em>(Optional) Write data to file</em></h4></a>
+<p>You can then create a <code>FileOutputStream</code> for that file and use the <code>write</code> method of the <code>FileOutputStream</code> to write your data into the file. If your file already contains the data that you want to send you can skip this step.</p>
+<pre><code class="language-java">  FileOutputStream fos = new FileOutputStream(f);
+  fos.write(&lt;data&gt;);
+  fos.close();
+</code></pre>
+<a class="header" href="interface_sending_bundles.html#open-a-parcelfiledescriptor-for-your-file" id="open-a-parcelfiledescriptor-for-your-file"><h4>Open a ParcelFileDescriptor for your file</h4></a>
+<p>Open a <code>ParcelFileDescriptor</code> based on your file:</p>
+<pre><code class="language-java">  ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+</code></pre>
+<p>The <code>pfd</code> object now holds a reference to your file that can be sent to <em>IonDTN</em> via IPC and that allows it to read the data of the file.</p>
+<a class="header" href="interface_sending_bundles.html#create-dtnbundle-object" id="create-dtnbundle-object"><h4>Create <code>DtnBundle</code> object</h4></a>
+<p>By calling the previously shown constructor, you can then create a Bundle object referencing the source file by holding the ParcelFileDescriptor <code>pdf</code>.</p>
+<pre><code class="language-java">DtnBundle b = new DtnBundle(destEID,
+                            0,
+                            300,
+                            DtnBundle.Priority.EXPEDITED,
+                            pfd);
+</code></pre>
+<a class="header" href="interface_sending_bundles.html#call-iondtn" id="call-iondtn"><h4>Call <em>IonDTN</em></h4></a>
+<p>Now you can hand over the <code>DtnBundle</code> object holding the <code>ParcelFileDescriptor</code> object by calling the <code>sendBundle</code> function. As all <code>AIDL</code> IPC calls are executed synchronously, <em>IonDTN</em> will read the data from the file and when the IPC call returns you can simply close the <code>file</code> and the <code>ParcelFileDescriptor</code>.</p>
+<blockquote>
+<p><strong>Note:</strong> Using a file descriptor rather than a file object itself even allows the transmission of file content that is residing in the clients private application memory and would otherwise be inaccessible to <em>IonDTN</em>.</p>
+</blockquote>
+<a class="header" href="interface_sending_bundles.html#source-eid" id="source-eid"><h2>Source EID</h2></a>
+<p>As introduced in the Chapter <a href="interface_receiving_bundles.html">Receiving Bundles</a>, client applications can open endpoints in ION via the <code>BundleService</code> interface. Whenever an endpoint is opened for a specific client application, all bundles from that client application have the opened EID as source EID. If no endpoint is open (like in our <em>Hello World</em> example) the source EID <code>dtn:none</code> is used. This behaviour corresponds to the behaviour of the ION-DTN shell tool <code>bpsend</code>.</p>
+<hr />
+<p><em>[1] https://stackoverflow.com/questions/38175781/android-ipc-maximum-transaction-size</em></p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./interface.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="interface_receiving_bundles.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./interface.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="interface_receiving_bundles.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

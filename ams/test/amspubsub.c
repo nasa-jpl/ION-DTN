@@ -10,8 +10,8 @@
 
 #include "ams.h"
 
-int	amssub(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	amssub(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*applicationName = (char *) a1;
 	char		*authorityName = (char *) a2;
@@ -78,8 +78,8 @@ name>\", \"<subject name>\"");
 	}
 }
 
-int	amspub(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	amspub(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*applicationName = (char *) a1;
 	char		*authorityName = (char *) a2;

@@ -67,4 +67,4 @@ Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO
 
-sdr(3), ionadmin(1)
+ionunlock(1), sdr(3), ionadmin(1)

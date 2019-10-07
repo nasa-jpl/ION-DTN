@@ -71,7 +71,8 @@ static void	*sendUdp(void *parm)
 	{
 		microsnooze(100000);	/*	Sleep 1/10 second.	*/
 		getCurrentTime(&currentTime);
-		if (sm_SemTake(stp->mutex) < 0)
+		if (sm_SemTake(stp->mutex) < 0
+		|| sm_SemEnded(stp->mutex))
 		{
 			owltsimExit(0);
 		}
@@ -219,7 +220,8 @@ static void	*receiveUdp(void *parm)
 
 	/*	Spawn timer/transmitter thread.				*/
 
-	if (pthread_begin(&(stp->timerThread), NULL, sendUdp, stp))
+	if (pthread_begin(&(stp->timerThread), NULL, sendUdp,
+		stp, "owltsim_timer"))
 	{
 		perror("owltsim can't spawn timer thread");
 		owltsimExit(1);
@@ -269,7 +271,8 @@ a dg of length %d from %s destined for %s.\n", timebuf, datagramLen,
 		dg->xmitTime.tv_usec = currentTime.tv_usec;
 		dg->length = datagramLen;
 		memcpy(dg->content, buffer, datagramLen);
-		if (sm_SemTake(stp->mutex) < 0)
+		if (sm_SemTake(stp->mutex) < 0
+		|| sm_SemEnded(stp->mutex))
 		{
 			owltsimExit(0);
 		}
@@ -295,10 +298,16 @@ destined for %s.\n", timebuf, datagramLen, stp->fromNode, stp->toNode);
 	/*	Free resources.						*/
 
 	free(buffer);
+#if 0
 	pthread_end(stp->timerThread);
 	pthread_join(stp->timerThread, NULL);
 	lyst_destroy(stp->transmission);
+#endif
+	sm_SemEnd(stp->mutex);
+	microsnooze(50000);
 	sm_SemDelete(stp->mutex);
+pthread_join(stp->timerThread, NULL);
+lyst_destroy(stp->transmission);
 	if (stp->insock >= 0)
 	{
 		close(stp->insock);
@@ -317,6 +326,7 @@ destined for %s.\n", timebuf, datagramLen, stp->fromNode, stp->toNode);
 
 int	main(int argc, char *argv[])
 {
+	int			verbose = 0;
 	char			*fileName = NULL;
 	FILE			*configFile;
 	int			reading = 1;
@@ -337,13 +347,12 @@ int	main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-	stpBuf.verbose = 0;
 	switch (argc)
 	{
 	case 3:
 		if (strcmp(argv[2], "-v") == 0)
 		{
-			stpBuf.verbose = 1;
+			verbose = 1;
 		}
 
 		/*	Intentional fall-through to next case.		*/
@@ -380,6 +389,7 @@ int	main(int argc, char *argv[])
 	{
 		lineNbr++;
 		memset((char *) &stpBuf, 0, sizeof(SimThreadParms));
+		stpBuf.verbose = verbose;
 		switch (fscanf(configFile, "%32s %32s %hu %255s %hu %hu %hu",
 				stpBuf.toNode, stpBuf.fromNode,
 				&stpBuf.myPortNbr, stpBuf.destHostName,
@@ -407,7 +417,8 @@ int	main(int argc, char *argv[])
 
 			memcpy((char *) stp, (char *) &stpBuf,
 					sizeof(SimThreadParms));
-			if (pthread_begin(&simThread, NULL, receiveUdp, stp))
+			if (pthread_begin(&simThread, NULL, receiveUdp,
+				stp, "owltsim_receiver"))
 			{
 				perror("owltsim can't spawn receiver thread");
 				owltsimExit(1);

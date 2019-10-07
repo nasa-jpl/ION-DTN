@@ -39,7 +39,7 @@ PUBINCLS = \
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = amsd amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
-# amshello
+# amshello - relies on fork which is not implemented for mingw
 
 ALL = check libams.dll $(RUNTIMES)
 

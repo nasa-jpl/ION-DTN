@@ -2,6 +2,7 @@
 eclso.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -11,10 +12,25 @@ This file implements eclso, the Forward Error Correction Link Service
 Outduct daemon
 
  * */
-#include "eclso.h"
+
 #include <pthread.h>	// POSIX threads
 #include <string.h>		// memset
 #include <stdlib.h> //rand, srand , ..
+
+#include "eclso.h"
+#include "adapters/protocol/eclsaProtocolAdapters.h"
+#include "adapters/codec/eclsaCodecAdapter.h"
+#include "elements/matrix/eclsaMatrixPool.h"
+#include "elements/sys/eclsaLogger.h"
+#include "elements/sys/eclsaMemoryManager.h"
+#include "elements/packet/eclsaFeedback.h"
+#include "elements/packet/eclsaPacket.h"
+#include "extensions/HSLTP/HSLTP.h"
+//#include "elements/packet/eclsaSendingSequence.h"
+//#include "elements/fec/eclsaFecManager.h"
+//#include "elements/sys/eclsaTimer.h"
+//#include "elements/matrix/eclsaCodecMatrix.h"
+//#include "elements/eclsaBoolean.h"
 
 #define PARSE_PARAMETER(PAR_NO) 	(argc > (PAR_NO) ? (int) strtoll(argv[PAR_NO], NULL, 10) : -1)
 
@@ -29,14 +45,20 @@ int	main(int argc, char *argv[])
 	pthread_t			sendMatrixThread;
 	pthread_t			feedbackHandlerThread;
 
+	initMemoryManager(ECLSO_MAX_MEMORY_SIZE, ECLSO_MAX_MEMORY_TYPE);
+
 	/*Logger*/
 	loggerInit(1);
 	loggerStartLog(0,"outputECLSO.log",true,true); //can be used debugPrint() shortcut instead of loggerPrint()
 
 	parseCommandLineArgument(argc,argv,&eclsoEnv);
 
-	initEclsoUpperLevel(argc,argv,&eclsoEnv.T,&eclsoEnv.ownEngineId,&eclsoEnv.portNbr,&eclsoEnv.ipAddress);
-	initEclsoLowerLevel(argc,argv,eclsoEnv.portNbr,eclsoEnv.ipAddress,eclsoEnv.txbps);
+	if(eclsoEnv.HSLTPModeEnabled)
+		initEclsoUpperLevel_HSLTP_MODE(argc,argv,&eclsoEnv);
+	else
+		initEclsoUpperLevel			  (argc,argv,&eclsoEnv);
+
+	initEclsoLowerLevel(argc,argv,&eclsoEnv);
 
 	/* randomizing matrix id */
 	if(!eclsoEnv.staticMidEnabled)
@@ -46,16 +68,19 @@ int	main(int argc, char *argv[])
 		debugPrint("randomized last matrix id %d", eclsoEnv.globalMatrixID);
 	}
 
-	debugPrint("N: %d K: %d T: %d maxAggregationTime: %d seconds txbps:  %d codingThreshold: %d \nadaptiveCoding: %s feedbackRequest: %s feedbackAdaptive: %s interleaving: %s puncturing: %s randomizeMid: %s continuousMode: %s \nengineID %u",
+
+	debugPrint("N: %d K: %d T: %d maxAggregationTime: %d seconds txbps:  %d codingThreshold: %d \nadaptiveCoding: %s continuousMode: %s feedbackRequest: %s feedbackAdaptive: %s interleaving: %s staticMID: %s hsltpMode: %s hsltpProactiveFragmentation: %s puncturing: %s \nengineID %u",
 			eclsoEnv.N,eclsoEnv.K,eclsoEnv.T,eclsoEnv.maxAggregationTime,eclsoEnv.txbps,
 			eclsoEnv.codingThreshold,
 			eclsoEnv.adaptiveModeEnabled ? "Enabled" : "Disabled",
+			eclsoEnv.continuousModeEnabled ? "Enabled" : "Disabled",
 			eclsoEnv.feedbackRequestEnabled ? "Enabled" : "Disabled",
 			eclsoEnv.feedbackAdaptiveRcEnabled ? "Enabled" : "Disabled",
 			eclsoEnv.interleavingEnabled ? "Enabled" : "Disabled",
-			eclsoEnv.puncturingEnabled ? "Enabled" : "Disabled",
 			eclsoEnv.staticMidEnabled ? "Enabled" : "Disabled",
-			eclsoEnv.continuousModeEnabled ? "Enabled" : "Disabled",
+			eclsoEnv.HSLTPModeEnabled ? "Enabled" : "Disabled",
+			eclsoEnv.HSLTPProactiveFragmentationEnabled ? "Enabled" : "Disabled",
+			eclsoEnv.puncturingEnabled ? "Enabled" : "Disabled",
 			eclsoEnv.ownEngineId);
 
 
@@ -63,7 +88,7 @@ int	main(int argc, char *argv[])
 
 	/*FEC*/
 	fecManagerInit(eclsoEnv.adaptiveModeEnabled,eclsoEnv.feedbackAdaptiveRcEnabled,eclsoEnv.continuousModeEnabled,eclsoEnv.K,eclsoEnv.N,eclsoEnv.T);
-	matrixBufferInit(FEC_ECLSO_MATRIX_BUFFER);
+	matrixPoolInit(FEC_ECLSO_MATRIX_BUFFER, ECLSO_MAX_DYNAMIC_MATRIX);
 	timerInit(timerHandler,&thread);
 
 	/* threads init */
@@ -92,10 +117,16 @@ int	main(int argc, char *argv[])
 		debugPrint("ERROR: eclso can't create the feedback handler thread");
 		exit(1);
 	}
+
+
 	/* initializations ended */
 
 	//Once entered the following function, the program should never return until active.
-	fill_matrix_thread(&thread);
+	if(eclsoEnv.HSLTPModeEnabled)
+		fill_matrix_thread_HSLTP_MODE(&thread);
+	else
+	 	fill_matrix_thread(&thread);
+
 
 	//We can be here only if an error has occurred in fill_matrix_thread;
 	//hence, we must wait for the termination of the other threads (join),
@@ -115,10 +146,11 @@ int	main(int argc, char *argv[])
 	sem_destroy(&(thread.notifyT2));
 	sem_destroy(&(thread.notifyT3));
 
-	matrixBufferDestroy();
+	matrixPoolDestroy();
 	fecManagerDestroy();
 	timerDestroy();
 	debugPrint("T1: memory cleared");
+	destroyMemoryManager(ECLSO_DESTROY_MEMORY_LEAK);
 	loggerDestroy();
 
 	return 0;
@@ -136,7 +168,7 @@ static void *fill_matrix_thread(void *parm) // thread T1
 
 	int 			segmentLength;
 	char			*segment;
-	segment= (char *) calloc( eclsoEnv->T -2 , sizeof(char)  );
+	segment = (char*) allocateVector(sizeof(char), eclsoEnv->T -2);
 	eclsoEnv->maxInfoSize=getBiggestFEC()->K;
 
 	debugPrint("log: thread T1 running (fill_matrix_thread)");
@@ -145,13 +177,13 @@ static void *fill_matrix_thread(void *parm) // thread T1
 		{
 		receiveSegmentFromUpperProtocol(segment,&segmentLength);
 
-		while ( (matrix=getMatrixToFill(eclsoEnv->globalMatrixID,eclsoEnv->ownEngineId))==NULL)
+		while ( (matrix=getMatrixToFill(eclsoEnv->globalMatrixID,eclsoEnv->ownEngineId, getBiggestFEC()->N, getBiggestFEC()->T))==NULL)
 			{
 			debugPrint("T1: sleeping... all matrix full");
 			sem_wait(&(thread->notifyT1));
 			}
 
-		sem_wait(&(matrix->lock));
+		pthread_mutex_lock(&(matrix->lock));
 
 		if( isMatrixEmpty(matrix) )
 			{
@@ -160,6 +192,7 @@ static void *fill_matrix_thread(void *parm) // thread T1
 			matrix->engineID=		 eclsoEnv->ownEngineId;
 			matrix->maxInfoSize=	 eclsoEnv->maxInfoSize;
 			matrix->feedbackEnabled= eclsoEnv->feedbackRequestEnabled;
+			matrix->HSLTPModeEnabled = eclsoEnv->HSLTPModeEnabled;
 
 			timerStart(&(matrix->timer),
 					eclsoEnv->maxAggregationTime,
@@ -180,12 +213,13 @@ static void *fill_matrix_thread(void *parm) // thread T1
 			debugPrint("T1: MID=%d full, stop timer, wake up T2!", matrix->ID);
 			}
 
-		sem_post(&(matrix->lock));
+		pthread_mutex_unlock(&(matrix->lock));
 		}
 
-free(segment);
+deallocateVector(&(segment));
 return NULL;
 }
+
 static void	*encode_matrix_thread(void *parm) 	// thread T2
 {
 	//This thread is in charge of matrix encoding
@@ -204,11 +238,11 @@ static void	*encode_matrix_thread(void *parm) 	// thread T2
 		while ( (matrix=getMatrixToCode())!=NULL )
 			{
 			debugPrint("T2: iteration");
-			sem_wait(&(matrix->lock));
+			pthread_mutex_lock(&(matrix->lock));
 			encodeEclsaMatrix(eclsoEnv,matrix);
 			matrix->clearedToSend=true;
 			sem_notify(&(thread->notifyT3));
-			sem_post(&(matrix->lock));
+			pthread_mutex_unlock(&(matrix->lock));
 			}
 	}
 	return NULL;
@@ -229,11 +263,10 @@ static void	*pass_matrix_thread(void *parm) 	//thread T3
 		while ( (matrix=getMatrixToSend())!=NULL )
 			{
 			debugPrint("T3: iteration!");
-			sem_wait(&(matrix->lock));
+			pthread_mutex_lock(&(matrix->lock));
 			passEclsaMatrix(eclsoEnv,matrix);
-			flushEclsaMatrix(matrix);
+			flushMatrixFromPool(&matrix);
 			sem_notify(&(thread->notifyT1));
-			sem_post(&(matrix->lock));
 			}
 		}
 	return NULL;
@@ -277,7 +310,7 @@ static void *feedback_handler_thread(void *parm)
 		matrixSuccessRate=(float)feedback.receivedSegments/feedback.totalSegments;
 		//oldEstimatedSuccessRate=eclsoEnv->estimatedSuccessRate;
 
-		status= convertToUniversalCodecStatus(feedback.codecStatus);
+		status= convertToAbstractCodecStatus(feedback.codecStatus);
 		if(status == STATUS_CODEC_SUCCESS || status == STATUS_CODEC_NOT_DECODED)
 			{
 			//Successful decoding: set the weight of new data in the average processing
@@ -314,13 +347,13 @@ static void *feedback_handler_thread(void *parm)
 /*Common functions*/
 static void parseCommandLineArgument(int argc, char *argv[], EclsoEnvironment *eclsoEnv)
 {
-	unsigned int		flags;
 	const int parameters=9;
 	if( argc < parameters )
 		{
 		debugPrint("wrong usage. missing some parameters.. argc=%d",argc);
 		exit(1);
 		}
+
 	if( argc > parameters )
 		{
 		debugPrint("wrong usage.too much parameters.. argc=%d",argc);
@@ -337,16 +370,57 @@ static void parseCommandLineArgument(int argc, char *argv[], EclsoEnvironment *e
 		exit(1);
 		}
 	eclsoEnv->maxAggregationTime=PARSE_PARAMETER(4);
-	eclsoEnv->codingThreshold=PARSE_PARAMETER(5);
-	//parsing flags
-	flags=PARSE_PARAMETER(6);
-	eclsoEnv->adaptiveModeEnabled = (flags & MASK_ADAPTIVE_MODE) != 0;
-	eclsoEnv->feedbackRequestEnabled = (flags & MASK_FEEDBACK_REQUEST) != 0;
-	eclsoEnv->feedbackAdaptiveRcEnabled = (flags & MASK_FEEDBACK_ADAPTIVE_RC) != 0;
-	eclsoEnv->interleavingEnabled = (flags & MASK_INTERLEAVING) !=0;
-	eclsoEnv->puncturingEnabled = (flags & MASK_PUNCTURING) !=0;
-	eclsoEnv->staticMidEnabled = (flags & MASK_STATIC_MID) != 0;
-	eclsoEnv->continuousModeEnabled = (flags & MASK_CONTINUOUS_MODE) != 0;
+	eclsoEnv->codingThreshold =PARSE_PARAMETER(5);
+
+
+	//# A ---> enable adaptive mode
+	//# C ---> enable continuous mode (turns off A)
+	//# f ---> enable feedback request
+	//# F ---> enable feedback adaptive (implies f)
+	//# I ---> enable interleaving
+	//# S ---> MID initial value = 0
+	//# H ---> enable HSLTP mode (implies C)
+	//# P ---> enable HSLTP Proactive Fragmentation (requires H)
+
+	char *flag;
+	char *flagString=argv[6];
+	//iterate over all character of the FLAG string parameter
+	for(flag=flagString; *flag != '\0'; flag++)
+		{
+		switch(*flag)
+			{
+			case '0':
+				break;
+			case 'A':
+				eclsoEnv->adaptiveModeEnabled=true;
+				break;
+			case 'C':
+				eclsoEnv->continuousModeEnabled=true;
+				break;
+			case 'f':
+				eclsoEnv->feedbackRequestEnabled=true;
+				break;
+			case 'F':
+				eclsoEnv->feedbackAdaptiveRcEnabled=true;
+				break;
+			case 'I':
+				eclsoEnv->interleavingEnabled=true;
+				break;
+			case 'S':
+				eclsoEnv->staticMidEnabled=true;
+				break;
+			case 'H':
+				eclsoEnv->HSLTPModeEnabled=true;
+				break;
+			case 'P':
+				eclsoEnv->HSLTPProactiveFragmentationEnabled=true;
+				break;
+			default:
+				debugPrint("WARNING: unknown FLAG symbol %c", *flag);
+				break;
+			}
+		}
+
 
 	eclsoEnv->txbps = PARSE_PARAMETER(7);
 	eclsoEnv->estimatedSuccessRate= (float) eclsoEnv->K / eclsoEnv->N;
@@ -362,6 +436,12 @@ static void parseCommandLineArgument(int argc, char *argv[], EclsoEnvironment *e
 		eclsoEnv->puncturingEnabled=false;
 		}
 
+	if( eclsoEnv->HSLTPModeEnabled && !eclsoEnv->continuousModeEnabled)
+		{
+		debugPrint("WARNING: HSLTP mode requires continuous mode. enabling continuous mode... (it may fail if decoded does not support it)");
+		eclsoEnv->continuousModeEnabled=true;
+		}
+
 	if(eclsoEnv->continuousModeEnabled && !isContinuousModeAvailable())
 		{
 		debugPrint("WARNING: Continuous mode feature is not supported by this Codec. disabling continuous mode...");
@@ -373,18 +453,27 @@ static void parseCommandLineArgument(int argc, char *argv[], EclsoEnvironment *e
 		debugPrint("WARNING: adaptiveCoding Enabled and continuousMode Enabled. disabling adaptiveCoding...");
 		eclsoEnv->adaptiveModeEnabled=false;
 		}
+
+	if(eclsoEnv->HSLTPProactiveFragmentationEnabled && !eclsoEnv->HSLTPModeEnabled)
+		{
+		debugPrint("WARNING: HSLTPProactiveFragmentation Enabled and HSLTPMode Disable. disabling HSLTPProactiveFragmentation...");
+		eclsoEnv->HSLTPProactiveFragmentationEnabled=false;
+		}
+
+
+
 }
 
 /*Single eclsa matrix functions*/
 void encodeEclsaMatrix(EclsoEnvironment *eclsoEnv, EclsaMatrix *matrix)
 	{
 	matrix->encodingCode=getBestFEC(matrix->infoSegmentAddedCount,eclsoEnv->estimatedSuccessRate);
-	void *codecMatrix= matrix->universalCodecMatrix;
+	void *codecMatrix= matrix->abstractCodecMatrix;
 	FecElement 	*code= 		  matrix->encodingCode;
 	int universalCodecStatus;
 
 	matrix->codecStatus = encodeCodecMatrix(codecMatrix,code);
-	universalCodecStatus=convertToUniversalCodecStatus(matrix->codecStatus);
+	universalCodecStatus=convertToAbstractCodecStatus(matrix->codecStatus);
 
 	//As the encoding should never fail, the codecStatus should always be >0
 	//the following check is for safety only.
@@ -409,12 +498,12 @@ void passEclsaMatrix(EclsoEnvironment *eclsoEnv, EclsaMatrix *matrix)
 	{
 	// Send one matrix to eclsi on the pair node (logical link);
 	//pass matrix rows to eclsa and then the eclsa packet to the
-	//LTP (or to another lower layer protocol).
+	//UDP (or to another lower layer protocol).
 	static 	EclsaHeader header;
 	static char buffer[FEC_LOWERLEVEL_MAX_PACKET_SIZE];
 	int bufferLength, segmentID;
 	unsigned int i;
-	bool addRedundancy= (convertToUniversalCodecStatus(matrix->codecStatus)== STATUS_CODEC_SUCCESS);
+	bool addRedundancy= (convertToAbstractCodecStatus(matrix->codecStatus)== STATUS_CODEC_SUCCESS);
 
 	createEclsaHeader(matrix,&header);
 	//The sequence contains the segmentIDs of the segments that must be transmitted
@@ -429,7 +518,7 @@ void passEclsaMatrix(EclsoEnvironment *eclsoEnv, EclsaMatrix *matrix)
 		//Send an eclsa packet to the lower layer
 		sendPacketToLowerProtocol(buffer,&bufferLength,NULL);
 		}
-	debugPrint("T3: all segments of MID= %d sent to lower protocol", matrix->ID);
+	debugPrint("T3: all segments of MID=%d sent to lower protocol", matrix->ID);
 	}
 
 /*Timer functions */
@@ -449,7 +538,8 @@ EclsoThreadParms *thread=(EclsoThreadParms *) userData;
 EclsoEnvironment *eclsoEnv= thread->eclsoEnv;
 EclsaMatrix *matrix= (EclsaMatrix *) matrixData;
 
-sem_wait(&(matrix->lock));
+pthread_mutex_lock(&(matrix->lock));
+
 if(!matrix->clearedToCodec && !matrix->clearedToSend && matrix->timer.ID == timerID)
 	{
 	debugPrint("T1: matrix filled. Status:\"Timeout\" MID=%d GID=%d",matrix->ID,matrix->globalID);
@@ -469,7 +559,7 @@ if(!matrix->clearedToCodec && !matrix->clearedToSend && matrix->timer.ID == time
 
 	}
 
-sem_post(&(matrix->lock));
+pthread_mutex_unlock(&(matrix->lock));
 }
 
 /*Synchronization */

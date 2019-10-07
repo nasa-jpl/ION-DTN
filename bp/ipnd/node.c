@@ -12,6 +12,7 @@
  *	Version 2.0 DTN Neighbor Discovery 
  *		- ION IPND Implementation Assembly Part2
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
+ *	Version 2.2 Shared context ctx passed explicitely to threads to avoid shared library security change implications
  */
 
 #include "platform.h"
@@ -153,10 +154,10 @@ void	*sendBeacons(void *attr)
 #if IPND_DEBUG
 	char		buffer[200];
 #endif
-	IPNDCtx		*ctx = getIPNDCtx();
+	IPNDCtx		*ctx = (IPNDCtx *)attr;
 	int		sendSocket;
 	int		result;
-	Lyst		destinations = ctx->destinations;
+	Lyst		destinations;
 	LystElt		nDestinationElt = NULL;
 	Destination	*nDestination = NULL;
 	int		waitNextDestination = 0;
@@ -165,6 +166,10 @@ void	*sendBeacons(void *attr)
 	int		beaconHasChanged;
 
 	CHKNULL(ctx);
+
+	setIPNDCtx(ctx);
+
+	destinations = ctx->destinations;
 
 	printText("[i] send-thread: Send beacons thread started.");
 
@@ -469,6 +474,7 @@ socket.", NULL);
 			continue;
 		}
 
+		oK(reUseAddress(listenSocket));
 		if (getIpv4AddressType(listenAddr->ip) == UNICAST)
 		{
 			/* Join multicast groups */
@@ -598,7 +604,7 @@ static void	bp_discover_contact(char acquired, IPNDCtx *ctx, char *eid)
 					"[i] receive-thread: \
 bp_discover_contact_acquired(%s, %s, %s, %d, %d)", socketSpec, eid, claProtocol,
 					xmitRate, recvRate);
-				bp_discover_contact_acquired(socketSpec, eid,
+				bp_discovery_acquired(socketSpec, eid,
 					claProtocol, xmitRate, recvRate);
 			}
 			else
@@ -606,7 +612,7 @@ bp_discover_contact_acquired(%s, %s, %s, %d, %d)", socketSpec, eid, claProtocol,
 				isprintf(buffer, sizeof buffer,
 					"[i] receive-thread: \
 bp_discover_contact_lost(%s, %s, %s)", socketSpec, eid, claProtocol);
-				bp_discover_contact_lost(socketSpec, eid,
+				bp_discovery_lost(socketSpec, eid,
 					claProtocol);
 			}
 
@@ -629,10 +635,10 @@ bp_discover_contact_lost(%s, %s, %s)", socketSpec, eid, claProtocol);
 void	*receiveBeacons(void *attr)
 {
 	char			buffer[1024];
-	IPNDCtx			*ctx = getIPNDCtx();
+	IPNDCtx			*ctx = (IPNDCtx *)attr;
 	int			i, j;
-	int			numListenSockets;
-	int			*listenSockets;
+	static int		numListenSockets;
+	static int		*listenSockets;
 	int			recevingSocket;
 	fd_set			activeListenSocketsSet;
 	fd_set			readListenSocketsSet;
@@ -656,6 +662,8 @@ void	*receiveBeacons(void *attr)
 
 	CHKNULL(ctx);
 
+	setIPNDCtx(ctx);
+
 	printText("[i] receive-thread: Receive beacons thread started.");
 #if 0
 	iblock(SIGUSR1);	/*	Why is this necessary?		*/
@@ -665,6 +673,8 @@ void	*receiveBeacons(void *attr)
 	listenSockets = setUpListenSockets(ctx->listenAddresses,
 			ctx->enabledBroadcastReceiving, &numListenSockets);
 	unlockResource(&ctx->configurationLock);
+	ctx->listenSockets = listenSockets;
+	ctx->numListenSockets = numListenSockets;
 
 	if (numListenSockets == 0 || listenSockets == NULL)
 	{
@@ -1028,13 +1038,15 @@ receive-thread: CLA notified that link %s:%d is down.", srcAddrStr,
 void	*expireNeighbors(void *attr)
 {
 	char		buffer[120];
-	IPNDCtx		*ctx = getIPNDCtx();
+	IPNDCtx		*ctx = (IPNDCtx *)attr;
 	int		i;
 	LystElt		nbOld, nbElt, destinationElt;
 	Destination	*dest;
 	IpndNeighbor	*nb;
 
 	CHKNULL(ctx);
+
+	setIPNDCtx(ctx);
 
 	printText("[i] expire-thread: Expire neighbors thread started.");
 #if 0

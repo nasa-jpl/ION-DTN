@@ -49,11 +49,11 @@
  * Removing codecs known to be useless can be important for highly
  * specialized usage of OpenFEC, like embedded systems.
  */
- #include "../lib_stable/reed-solomon_gf_2_8/of_codec_profile.h"
- #include "../lib_stable/reed-solomon_gf_2_m/of_codec_profile.h"
+#include "../lib_stable/reed-solomon_gf_2_8/of_codec_profile.h"
+#include "../lib_stable/reed-solomon_gf_2_m/of_codec_profile.h"
 #include "../lib_stable/ldpc_staircase/of_codec_profile.h"
-// #include "../lib_stable/2d_parity_matrix/of_codec_profile.h"
-// #include "../lib_advanced/ldpc_from_file/of_codec_profile.h"
+#include "../lib_stable/2d_parity_matrix/of_codec_profile.h"
+//#include "../lib_advanced/ldpc_from_file/of_codec_profile.h"
 
 /*
  * Edit as needed to define which core solving system to use.

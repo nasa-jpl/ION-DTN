@@ -735,9 +735,10 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	cursor++;
 	mpduLength++;
 
-	/*	Note closure request.					*/
+	/*	Note closure request and checksum type.			*/
 
 	*cursor = (fdu->closureLatency > 0) << 6;
+	*cursor += (fdu->ckType & 0x0f);
 	cursor++;
 	mpduLength++;
 
@@ -1141,7 +1142,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CHKZERO(destinationEntityNbr
 	&& destinationEntityNbr->length > 0
 	&& destinationEntityNbr->length < 9);
-	CHKZERO(utParmsLength <= sizeof(BpUtParms));
 	if (utParmsLength == 0)
 	{
 		CHKZERO(utParms == NULL);
@@ -1149,7 +1149,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	else
 	{
 		CHKZERO(utParms);
-		CHKZERO(utParmsLength <= sizeof(BpUtParms));
+		CHKZERO(utParmsLength <= sizeof fdu.utParms);
 	}
 
 	CHKZERO(flowLabelLength >= 0 && flowLabelLength < 256);
@@ -1267,13 +1267,13 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			fdu.recordBoundsRespected = 1;
 		}
 
-		sourceFile = iopen(sourceFileName, O_RDONLY, 0);
+		sourceFile = ifopen(sourceFileName, O_RDONLY, 0);
 		if (sourceFile < 0)
 		{
 			sdr_exit_xn(sdr);
 			putSysErrmsg("CFDP can't open source file",
 					sourceFileName);
-			return -1;
+			return 0;
 		}
 
 		fileSize = ilseek(sourceFile, 0, SEEK_END);
@@ -1498,14 +1498,6 @@ too long.", sourceFileName);
 		memcpy((char *) &fdu.originatingTransactionId,
 				(char *) originatingTransactionId,
 				sizeof(CfdpTransactionId));
-	}
-
-	fdu.extantPdus = sdr_list_create(sdr);
-	if (fdu.extantPdus == 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("CFDP can't create list of extant PDUs.", NULL);
-		return -1;
 	}
 
 	/*	Construct the Metadata PDU.				*/
@@ -2214,11 +2206,11 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 
 	sdr_string_read(sdr, fileName, fduBuf.workingFileName);
 	sdr_exit_xn(sdr);
-	fd = iopen(fileName, O_RDONLY, 0);
+	fd = ifopen(fileName, O_RDONLY, 0);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open working file", fileName);
-		return -1;
+		return 0;
 	}
 
 	if (ilseek(fd, offset, SEEK_SET) < 0)

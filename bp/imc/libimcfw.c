@@ -122,7 +122,7 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 	 *	space can never be denied or delayed.			*/
 
 	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - length,
-			ZcoOutbound, 0);
+			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || payloadZco == (Object) ERROR
 	|| payloadZco == 0)
 	{

@@ -65,8 +65,8 @@ pthread_t rcv_thread;		/*Pthread variable*/
 
 /*Start Here*/
 #if defined (ION_LWT)
-int	bpcp(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bpcp(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	int	t;
 	char*	argv[5];
@@ -304,6 +304,8 @@ of Service\n");
 				(void*) &recv_running))
 	{
 		dbgprintf(0, "Error: Can't start message thread\n");
+		sm_SemEnd(events_sem);
+		microsnooze(50000);
 		sm_SemDelete(events_sem);
 		exit(1);
 	}
@@ -645,10 +647,10 @@ void toremote(char *targ, int argc, char **argv)
 
 			/*Do copy*/
 			t.type=Remote_Remote;
-			snprintf(t.sfile, 255, "%.255s", src);
-			snprintf(t.shost, 255, "%.255s", host);
-			snprintf(t.dfile, 255, "%.255s", targ);
-			snprintf(t.dhost, 255, "%.255s", thost);
+			snprintf(t.sfile, 255, "%.254s", src);
+			snprintf(t.shost, 255, "%.254s", host);
+			snprintf(t.dfile, 255, "%.254s", targ);
+			snprintf(t.dhost, 255, "%.254s", thost);
 			manage_src(&t);
 
 		}
@@ -659,10 +661,10 @@ void toremote(char *targ, int argc, char **argv)
 			/*Do copy*/
 			src=argv[i];
 			t.type=Local_Remote;
-			snprintf(t.sfile, 255, "%.255s", src);
-			memset(t.shost, 0,255);
-			snprintf(t.dfile, 255, "%.255s", targ);
-			snprintf(t.dhost, 255, "%.255s", thost);
+			snprintf(t.sfile, 255, "%.254s", src);
+			memset(t.shost, 0, 256);
+			snprintf(t.dfile, 255, "%.254s", targ);
+			snprintf(t.dhost, 255, "%.254s", thost);
 			manage_src(&t);
 		}
 	}
@@ -683,9 +685,9 @@ void tolocal(int argc, char **argv)
 			/*If first path is not a remote path, this is a
 			 * local to local copy. Just call cp.*/
 			t.type=Local_Local;
-			snprintf(t.sfile, 255, "%.255s", argv[i]);
-			memset(t.shost, 0,256);
-			snprintf(t.dfile, 255, "%.255s", argv[argc-1]);
+			snprintf(t.sfile, 255, "%.254s", argv[i]);
+			memset(t.shost, 0, 256);
+			snprintf(t.dfile, 255, "%.254s", argv[argc-1]);
 			memset(t.dhost, 0,256);
 
 			/*Do Copy*/
@@ -716,9 +718,9 @@ void tolocal(int argc, char **argv)
 			/*Do Copy*/
 
 			t.type=Remote_Local;
-			snprintf(t.sfile, 255, "%.255s", src);
-			snprintf(t.shost, 255, "%.255s", host);
-			snprintf(t.dfile, 255, "%.255s", targ);
+			snprintf(t.sfile, 255, "%.254s", src);
+			snprintf(t.shost, 255, "%.254s", host);
+			snprintf(t.dfile, 255, "%.254s", targ);
 			memset(t.dhost, 0,256);
 			manage_src(&t);
 		}
@@ -770,8 +772,8 @@ int ion_cfdp_put(struct transfer* t)
 	entityId=strtoul(t->dhost, NULL, 0);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
-	snprintf(parms.destFileNameBuf, 255, "%.255s",t->dfile);
+	snprintf(parms.sourceFileNameBuf, 255, "%.254s", t->sfile);
+	snprintf(parms.destFileNameBuf, 255, "%.254s",t->dfile);
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	parms.destFileName=parms.destFileNameBuf;
 
@@ -859,8 +861,8 @@ int ion_cfdp_get(struct transfer* t)
 	entityId=strtouvast(t->shost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
-	snprintf(parms.destFileNameBuf, 255, "%.255s",t->dfile);
+	snprintf(parms.sourceFileNameBuf, 255, "%.254s", t->sfile);
+	snprintf(parms.destFileNameBuf, 255, "%.254s",t->dfile);
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	parms.destFileName=parms.destFileNameBuf;
 
@@ -959,8 +961,8 @@ int ion_cfdp_rput(struct transfer* t)
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	entityId=strtol(t->shost, NULL, 0);
 	cfdp_compress_number(&src, entityId);
-	snprintf(parms.sourceFileNameBuf, 255, "%.255s", t->sfile);
-	snprintf(parms.destFileNameBuf, 255, "%.255s",t->dfile);
+	snprintf(parms.sourceFileNameBuf, 255, "%.254s", t->sfile);
+	snprintf(parms.destFileNameBuf, 255, "%.254s",t->dfile);
 	parms.sourceFileName=parms.sourceFileNameBuf;
 	parms.destFileName=parms.destFileNameBuf;
 
@@ -1029,6 +1031,7 @@ int ion_cfdp_rput(struct transfer* t)
  * Returns -1 on error.*/
 int local_cp(struct transfer* t)
 {
+	char work[1024];
 	char cmd[256];
 	char *r;
 
@@ -1047,8 +1050,9 @@ int local_cp(struct transfer* t)
 	}else{
 		r="";
 	}
-	memset(cmd,0,256);
-	snprintf(cmd,255,"%s %s%s %s", "cp", r, t->sfile, t->dfile);
+	memset(work,0,sizeof work);
+	snprintf(work,sizeof work,"%s %s%s %s", "cp", r, t->sfile, t->dfile);
+	istrcpy(cmd, work, sizeof cmd);
 
 	/*Run CP*/
 	if (do_local_cmd(cmd)<0)
@@ -1122,6 +1126,7 @@ void manage_src(struct transfer *t)
 	DIR *dirp;
 	struct dirent *dp;
 	struct transfer tt;
+	char work[1024];
 	struct stat statbuf;
 	int dir;
 	char buff[256];
@@ -1189,10 +1194,14 @@ void manage_src(struct transfer *t)
 					}
 
 					/*Update both source and destination so that recursive copy works*/
-					snprintf(tt.sfile, 255, "%s/%s", t->sfile, dp->d_name);
-					snprintf(tt.shost, 255, "%s", t->shost);
-					snprintf(tt.dfile, 255, "%s/%s", t->dfile, dp->d_name);
-					snprintf(tt.dhost, 255, "%s", t->dhost);
+					memset(work, 0, sizeof work);
+					snprintf(work, sizeof work, "%s/%s", t->sfile, dp->d_name);
+					istrcpy(tt.sfile, work, 255);
+					snprintf(tt.shost, 255, "%.254s", t->shost);
+					memset(work, 0, sizeof work);
+					snprintf(work, sizeof work, "%s/%s", t->dfile, dp->d_name);
+					istrcpy(tt.dfile, work, 255);
+					snprintf(tt.dhost, 255, "%.254s", t->dhost);
 					tt.type=t->type;
 
 					manage_src(&tt);
@@ -1239,10 +1248,14 @@ void manage_src(struct transfer *t)
 					}
 
 					/*Update both source and destination so that recursive copy works*/
-					snprintf(tt.sfile, 255, "%s/%s", t->sfile, buff);
-					snprintf(tt.shost, 255, "%s", t->shost);
-					snprintf(tt.dfile, 255, "%s/%s", t->dfile, buff);
-					snprintf(tt.dhost, 255, "%s", t->dhost);
+					memset(work, 0, sizeof work);
+					snprintf(work, sizeof work, "%s/%s", t->sfile, buff);
+					istrcpy(tt.sfile, work, 255);
+					snprintf(tt.shost, 255, "%.254s", t->shost);
+					memset(work, 0, sizeof work);
+					snprintf(work, sizeof work, "%s/%s", t->dfile, buff);
+					istrcpy(tt.dfile, work, 255);
+					snprintf(tt.dhost, 255, "%.254s", t->dhost);
 					tt.type=t->type;
 
 					manage_src(&tt);
@@ -1277,6 +1290,7 @@ void manage_src(struct transfer *t)
 void manage_dest(struct transfer* t)
 {
 	struct transfer tt;
+	char work[1024];
 	char cwd[256];
 
 	if (t==NULL)
@@ -1315,7 +1329,9 @@ void manage_dest(struct transfer* t)
 					dbgprintf(0,"bpcp: %s/%s: name too long\n",cwd,t->dfile);
 					return;
 			}
-			snprintf(tt.dfile, 255, "%s/%s", cwd,t->dfile);
+			memset(work, 0, sizeof work);
+			snprintf(work, sizeof work, "%s/%s", cwd,t->dfile);
+			istrcpy(tt.dfile, work, 255);
 
 			transfer(&tt);
 		}
@@ -1673,6 +1689,8 @@ void exit_nicely(int val)
 	}
 
 	/*Delete remote directory listing semaphore*/
+	sm_SemEnd(events_sem);
+	microsnooze(50000);
 	sm_SemDelete(events_sem);
 
 	/*End receiver thread*/

@@ -73,11 +73,11 @@ typedef struct sdr_str
 	char		name[32];
 	PsmAddress	sdrsElt;		/*	In sch->sdrs.	*/
 	int		configFlags;
-	unsigned long	initHeapWords;		/*	In FULL WORDS.	*/
-	long		heapSize;		/*	dsSize - map	*/
-	long		dsSize;			/*	heap + map	*/
+	size_t		initHeapWords;		/*	In FULL WORDS.	*/
+	size_t		heapSize;		/*	dsSize - map	*/
+	size_t		dsSize;			/*	heap + map	*/
 	int		dsKey;			/*	RAM DS shmKey	*/
-	long		logSize;		/*	(if in memory)	*/
+	size_t		logSize;		/*	(if in memory)	*/
 	int		logKey;			/*	RAM log shmKey	*/
 
 		/*	Parameters of current transaction.	*/
@@ -88,12 +88,13 @@ typedef struct sdr_str
 	int		xnDepth;
 	int		xnCanceled;		/*	Boolean.	*/
 	int		logLength;		/*	All entries.	*/
+	int		maxLogLength;		/*	Max Log Length  */
 	PsmAddress	logEntries;		/*	Offsets in log.	*/
 
 		/*	SDR trace data access.			*/
 
 	int		traceKey;		/*	trace shmKey	*/
-	long		traceSize;		/*	0 = disabled	*/
+	size_t		traceSize;		/*	0 = disabled	*/
 
 		/*	Path to directory for files (log, ds).	*/
 
@@ -105,6 +106,19 @@ typedef struct sdr_str
 	char		restartCmd[32];
 	time_t		restartTime;
 } SdrState;
+
+typedef struct
+{
+	Address		firstFreeBlock;
+	size_t		freeBlocks;
+} SmallFreeBucket;
+
+typedef struct
+{
+	Address		firstFreeBlock;
+	size_t		freeBlocks;
+	size_t		freeBytes;
+} LargeFreeBucket;
 
 /*	SdrMap is an object that encapsulates the potentially non-
  *	volatile space management state of a single SDR.  It resides
@@ -121,19 +135,20 @@ typedef struct sdr_str
 typedef struct	/*	Non-volatile state at front of SDR.		*/
 {
 	Object		catalogue;		/*	partition root	*/
-	unsigned long	status;			/*	INITIALIZED?	*/
-	long		dsSize;			/*	Map + heap.	*/
-	long		heapSize;
+	u_int		status;			/*	INITIALIZED?	*/
+	size_t		dsSize;			/*	Map + heap.	*/
+	size_t		heapSize;
 
 		/*	For dynamic management of heap space.	*/
 
 	Address		startOfSmallPool;
 	Address		endOfSmallPool;
-	Address		firstSmallFree[SMALL_SIZES];
+	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
 	Address		startOfLargePool;
 	Address		endOfLargePool;
-	Address		firstLargeFree[LARGE_ORDERS];
-	long		unassignedSpace;
+	LargeFreeBucket	largePoolFree[LARGE_ORDERS];
+	unsigned int	largePoolSearchLimit;
+	size_t		unassignedSpace;
 } SdrMap;
 
 /*	SdrView is an object that encapsulates a single process's
@@ -183,7 +198,7 @@ extern char		*_violationMsg();
 
 #define ADDRESS_OF(X)	(((char *) &(map->X)) - ((char *) map))
 
-extern void		_sdrput(const char*, int, Sdr, Address, char*, long,
+extern void		_sdrput(const char*, int, Sdr, Address, char*, size_t,
 				PutSrc);
 #define	sdrPatch(A,V)	_sdrput(__FILE__, __LINE__, sdrv, (A), (char *) &(V), \
 sizeof (V), SystemPut)
@@ -192,15 +207,15 @@ sizeof (V), SystemPut)
 #define	sdrPut(A,V)	_sdrput(file, line, sdrv, (A), (char *) &(V), \
 sizeof (V), SystemPut)
 
-extern void		_sdrfetch(Sdr, char *, Address, long);
+extern void		_sdrfetch(Sdr, char *, Address, size_t);
 #define sdrFetch(V,A)	_sdrfetch(sdrv, (char *) &(V), (A), sizeof (V))
 
-extern Object		_sdrzalloc(Sdr, unsigned long);
-extern Object		_sdrmalloc(Sdr, unsigned long);
+extern Object		_sdrzalloc(Sdr, size_t);
+extern Object		_sdrmalloc(Sdr, size_t);
 extern void		_sdrfree(Sdr, Object, PutSrc);
 #define sdrFree(Obj)	_sdrfree(sdrv, Obj, SystemPut)
 
-extern int		sdrBoundaryViolated(Sdr, Address, long);
+extern int		sdrBoundaryViolated(Sdr, Address, size_t);
 extern int		sdrFetchSafe(Sdr);
 
 extern void		crashXn(Sdr);

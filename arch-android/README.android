@@ -1,0 +1,43 @@
+Porting ION to the Android operating system has been a two-stage process:
+
+1.	First, the ION source code had to be ported to compile successfully
+in the "bionic" environment that is provided to Java native code that runs
+in Android.  Bionic is a restricted libc that provides all of the functionality
+that ION needs, though not always in exactly the same ways that these
+capabilities are provided in Solaris or in a more full-featured Linux.
+
+2.	Compilation in bionic enabled Java native method interface classes
+to be written that invoke the native C functions of ION to operate a complete,
+fully functional standard ION node on an Android device.
+
+This was the *original* procedure for building ION in bionic:
+
+1.	Download and install the Android software development kit.  For
+details, see http://developer.android.com/sdk/index.html.
+
+2.	Download and install the Android NDK (native development kit).  For
+details, see http://developer.android.com/sdk/ndk/index.html.
+
+3.	Navigate to the arch-android/iondtn subdirectory of the ION
+distribution; this is the project directory for the ION DTN Android project.
+
+4.	Run "ndk-build".  This would build ION for bionic, placing a file
+named "libiondtn.so" in arch-android/iondtn/libs/armeabi.
+
+JNI development has come a long way since the original bionic port, however.
+We now have a full-fledged ION Android development kit.  It has been
+available for a while now but likely still has some bugs, so we would
+welcome your help in evaluating and debugging it.  To try it out:
+
+1.	Download the ION gzipped tarfile as usual and extract its contents,
+creating a directory tree whose root is ion-open-source.
+
+2.	From the Files list on the ion-dtn SourceForge page, download the file
+named ion-android-3.7.0.tar.gz into the ion-open-source/arch-android directory.
+
+3.	Download and install Android studio as described in the Android
+development kit documentation.  (See the "README" file in the same direcory
+as this "README.android" file.)
+
+4.	Run Android Studio and open the IonDTN (provider application) project
+from ion-open-source/arch-android/IonDTN.

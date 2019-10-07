@@ -10,6 +10,7 @@
  *	Version 2.0 DTN Neighbor Discovery
  *		- ION IPND Implementation Assembly Part2
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
+ *	Version 2.2 Shared context ctx passed explicitely to threads to avoid shared library security change implications
  */
 
 #ifndef _IPND_H_
@@ -104,6 +105,8 @@ typedef struct
 	/* NetAddress lyst, unsorted. */
 	Lyst		listenAddresses;
 	ResourceLock	configurationLock;
+	int		numListenSockets;
+	int		*listenSockets;
 
 	/* Defined tags */
 	IpndTag		tags[256];
@@ -130,6 +133,7 @@ typedef struct
 extern void	updateCtxNbf(char *eid, int len);
 
 extern IPNDCtx	*getIPNDCtx();
+extern void	setIPNDCtx(IPNDCtx *);
 
 #ifdef __cplusplus
 }

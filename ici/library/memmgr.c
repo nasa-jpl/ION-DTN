@@ -292,7 +292,7 @@ MemPtoAConverter memmgr_PtoA(int mgrId)
 	return mgr->PtoA;
 }
 
-int	memmgr_open(int memKey, long memSize, char **memPtr, uaddr *smId,
+int	memmgr_open(int memKey, size_t memSize, char **memPtr, uaddr *smId,
 		char *partitionName, PsmPartition *partition,
 		int *memMgr, MemAllocator afn, MemDeallocator ffn,
 		MemAtoPConverter apfn, MemPtoAConverter pafn)

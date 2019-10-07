@@ -16,13 +16,14 @@ PUBINCLS = \
 	$(INCL)/cfdp.h
 
 CFDPINCLS = \
-	$(API)/cfdpP.h
+	$(API)/cfdpP.h \
+	$(API)/bputa.h
 #	$(UTILS)/bpcp.h \
 
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = cfdpadmin cfdpclock bputa tcputa cfdptest
-# bpcp bpcpd
+# bpcp bpcpd - rely on system calls not implemented in mingw
 
 ALL = check libcfdp.dll $(RUNTIMES)
 
@@ -110,3 +111,4 @@ libcfdp.dll:	libcfdpP.o libcfdp.o libcfdpops.o
 
 %.o:		$(TCP)/%.c
 		$(CC) -c $<
+

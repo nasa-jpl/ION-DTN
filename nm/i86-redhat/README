@@ -1,0 +1,12 @@
+Note: If using GCC 7+, you may need to uncomment the indicated line at the top of the Makefile to disable select warnings.
+
+To build manager and agent, run "make"
+To build only the manager, run "make nm_mgr"
+To build only the agent, run "make nm_agent"
+
+To build the manager with MySQL support, specify -DMYSQL
+To build the manager with NCURSES TUI support, specify -DNCURSES
+
+For example, to build both applications with all optional features enabled:
+   make NCURSES=1 MYSQL=1
+

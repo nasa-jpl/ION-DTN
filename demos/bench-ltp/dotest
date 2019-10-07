@@ -169,7 +169,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.ltp
-bpdriver 1000 ipn:2.1 ipn:3.3 -100000 &
+bpdriver 1000 ipn:2.1 ipn:3.3 -63800 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."

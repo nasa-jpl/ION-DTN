@@ -18,7 +18,7 @@ todo
 extern "C" {
 #endif
 
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 
 
 #define FEC_MAX_K 16384

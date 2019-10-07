@@ -61,7 +61,7 @@ sleep 1
 cd ../2.ipn.tcp
 echo "Sending first file from node 2 to node 3..."
 bpsendfile ipn:2.1 ipn:3.1 testfilex
-sleep 2
+sleep 5
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
@@ -88,7 +88,7 @@ sleep 30
 cd ../2.ipn.tcp
 echo "Sending second file from node 2 to node 3 (should go into limbo -- j)..."
 bpsendfile ipn:2.1 ipn:3.1 testfiley
-sleep 2
+sleep 5
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
@@ -108,7 +108,6 @@ echo ""
 echo "Restoring TCP connectivity to node 3 to test automatic release."
 cd ../3.ipn.tcp
 ./ionstart
-sleep 1
 rm testfile*
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
@@ -116,7 +115,6 @@ echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
 sleep 30
 echo ""
 echo "Bundle for 2nd file should have been released from limbo -- k."
-
 # Verify that the fourth file arrived.
 COUNT=`ls -l testfile1 | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
@@ -134,7 +132,7 @@ echo ""
 cd ../2.ipn.tcp
 echo "Sending third file from node 2 to node 3 to test restored connectivity..."
 bpsendfile ipn:2.1 ipn:3.1 testfilez
-sleep 2
+sleep 5
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
@@ -158,7 +156,7 @@ cd ../3.ipn.tcp
 ./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+sleep 10
 killm
 echo "TCPCL Keepalive test completed."
 exit $RETVAL

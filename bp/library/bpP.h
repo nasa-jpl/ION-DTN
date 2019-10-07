@@ -18,8 +18,9 @@
 #define _BPP_H_
 
 #include "rfx.h"
-#include "ionsec.h"
+#include "bpsec.h"
 #include "bp.h"
+#include "saga.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,6 +99,8 @@ extern "C" {
 #define	ION_DEFAULT_XMIT_RATE		(125000000)
 #endif
 
+#define	TYPICAL_STACK_OVERHEAD		(36)
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.
@@ -171,6 +174,7 @@ typedef struct
 {
 	char		*protocolName;
 	char		*proxNodeEid;
+	size_t		xmitRate;
 } DequeueContext;
 
 /*	*	*	Bundle structures	*	*	*	*/
@@ -199,6 +203,7 @@ typedef struct
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
 #define	BP_ENCAPSULATED_BUNDLE	(7)
+#define	BP_SAGA_MESSAGE		(42)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -297,7 +302,7 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned int	bundleProcFlags;/*	Incl. CoS, SRR.		*/
+	unsigned int	bundleProcFlags;/*	Incl. CoS, SRRs.	*/
 	unsigned int	timeToLive;	/*	In seconds.		*/
 	EndpointId	destination;	/*	...of bundle's ADU	*/
 		/*	source of bundle's ADU is in the id field.	*/
@@ -310,14 +315,20 @@ typedef struct
 		/*	fragment offset is in the id field.		*/
 	unsigned int	totalAduLength;
 
-	/*	Stuff in Extended COS and Metadata extension blocks.			*/
+	/*	Stuff in Extended COS and Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
+	unsigned char	priority;	/*	Possibly an override.	*/
+	unsigned char	ordinal;	/*	Possibly an override.	*/
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
 	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
+
+	/*	Stuff in Spray and Wait extension block.		*/
+
+	unsigned char	permits;	/*	# SnW fwd permits left.	*/
 
 	/*	Stuff in Payload block.					*/
 
@@ -332,7 +343,7 @@ typedef struct
 
 	Object		extensions[2];
 	int		extensionsLength[2];	/*	Concatenated.	*/
-	Object		collabBlocks;	/*	SDR list of C. blocks.	*/
+	Object		collabBlocks;	/*	SDR list of c-blocks.	*/
 
 	/*	Internal housekeeping stuff.				*/
 
@@ -346,9 +357,10 @@ typedef struct
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
+	char		ovrdPending;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
-	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
+	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
@@ -623,7 +635,7 @@ typedef struct
 
 typedef struct
 {
-	Object		planElt;	/*	Assigned BpPlan.	*/
+	Object		planDuctListElt;/*	Assigned BpPlan.	*/
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cloCmd;		/*	For starting the CLO.	*/
 
@@ -650,9 +662,10 @@ typedef struct
 	Object		outductElt;	/*	Reference to Outduct.	*/
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
+	int		hasThread;	/*	Boolean.		*/
+	pthread_t	cloThread;	/*	For stopping the CLO.	*/
 	int		cloPid;		/*	For stopping the CLO.	*/
 	sm_SemId	semaphore;	/*	Buffer non-empty.	*/
-	int		prevBufferLength;
 	time_t		timeOfLastXmit;
 } VOutduct;
 
@@ -675,6 +688,17 @@ typedef struct
 /*	*	*	BP Database structures	*	*	*	*/
 
 #define	EPOCH_2000_SEC	946684800
+
+/*	Encounter is a record of a past discovered contact.		*/
+
+typedef struct
+{
+	uvast		fromNode;	/*	CBHE node number	*/
+	uvast		toNode;		/*	CBHE node number	*/
+	time_t		fromTime;	/*	As from getUTCTime()	*/
+	time_t		toTime;		/*	As from getUTCTime()	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
+} Encounter;
 
 typedef enum
 {
@@ -704,20 +728,21 @@ typedef struct
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
+	Object		saga[2];	/*	SDR list of Encounters	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
 
-	/*	The Transit queues are lists of received in-transit
+	/*	The Transit queue is a list of received in-transit
 	 *	Bundles that are awaiting presentation to forwarder
 	 *	daemons, so that they can be enqueued for transmission.	*/
 
-	Object		confirmedTransit;
-	Object		provisionalTransit;
+	Object		transit;
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting bpclock.	*/
 	Object		transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;
+	unsigned int	maxBundleCount;	/*	For non-synced clock.	*/
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
 
@@ -808,7 +833,7 @@ typedef struct
 	Tally		tallies[BP_DB_STATS];
 } BpDbStats;
 
-/*	Neighbors discovered by IPND, the neighbor discovery protocol.
+/*	Discoveries posted by IPND, the neighbor discovery protocol.
  *	These objects are used to remember the time of last contact
  *	with each discovered neighbor, to prevent unnecessary beacon
  *	transmission.							*/
@@ -816,8 +841,9 @@ typedef struct
 typedef struct
 {
 	char		eid[MAX_EID_LEN];
+	time_t		startOfContact;
 	time_t		lastContactTime;
-} NdpNeighbor;
+} Discovery;
 
 /*	Volatile database encapsulates the volatile state of the
  *	database.							*/
@@ -836,8 +862,7 @@ typedef struct
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
 	int		transitPid;	/*	For stopping bptransit.	*/
-	sm_SemId	confirmedTransitSemaphore;
-	sm_SemId	provisionalTransitSemaphore;
+	sm_SemId	transitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
 
 	/*	For finding structures in database.			*/
@@ -846,7 +871,7 @@ typedef struct
 	PsmAddress	plans;		/*	SM list: VPlan.		*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
-	PsmAddress	neighbors;	/*	SM list: NdpNeighbor.	*/
+	PsmAddress	discoveries;	/*	SM list: Discovery.	*/
 	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
 } BpVdb;
 
@@ -947,25 +972,6 @@ extern int		bpAbandon(	Object bundleObj,
 			 *	bundle.	 Returns 0 on success, -1 on
 			 *	any failure.				*/
 
-extern int		bpAccept(	Object bundleObj,
-					Bundle *bundle);
-			/*	This is the common processing for any
-			 *	bundle that a forwarder decides it
-			 *	can accept for forwarding, whether
-			 *	the bundle was sourced locally or
-			 *	was received from some other node.
-			 *	It updates statistics that are used
-			 *	to make future bundle acquisition
-			 *	decisions; if custody transfer is
-			 *	requested, it takes custody of the
-			 *	bundle; and it sends any applicable
-			 *	status reports.
-			 *
-			 *	This function may be called multiple
-			 *	times per bundle but will take effect
-			 *	only once.  Returns 0 on success, -1
-			 *	on any failure.				*/
-
 extern int		bpClone(	Bundle *originalBundle,
 					Bundle *newBundleBuffer,
 					Object *newBundleObj,
@@ -988,7 +994,35 @@ extern int		bpClone(	Bundle *originalBundle,
 			 *	new bundle's payload will be the
 			 *	indicated subset of the original
 			 *	payload.  Returns 0 on success,
-			 *	-1 on any error.			*/
+			 *	-1 on any failure.			*/
+
+extern int		bpAccept(	Object bundleObj,
+					Bundle *bundle);
+			/*	This is the common processing for any
+			 *	bundle that a forwarder decides it
+			 *	can accept for forwarding, whether
+			 *	the bundle was sourced locally or
+			 *	was received from some other node.
+			 *	It updates statistics that are used
+			 *	to make future bundle acquisition
+			 *	decisions; if custody transfer is
+			 *	requested, it takes custody of the
+			 *	bundle; and it sends any applicable
+			 *	status reports.
+			 *
+			 *	This function may be called multiple
+			 *	times per bundle but will take effect
+			 *	only once.  Returns 0 on success, -1
+			 *	on any failure.				*/
+
+extern int		bpFragment(	Bundle *bundle, Object bundleObj,
+					Object *queueElt, size_t fragmentLength,
+					Bundle *bundle1, Object *bundle1Obj,
+					Bundle *bundle2, Object *bundle2Obj);
+			/*	This function creates two fragmentary
+			 *	bundles from one original bundle and
+			 *	destroys the original bundle.  Returns
+			 *	0 on success, -1 on any failure.	*/
 
 extern int		bpEnqueue(	VPlan *vplan,
 					Bundle *bundle,
@@ -1031,11 +1065,22 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	outbound bundle ZCO].
 			 *
 			 *	On obtaining a bundle, bpDequeue
-			 *	catenates (serializes) the BP header
-			 *	information in the bundle and prepends
-			 *	that serialized header to the source
-			 *	data of the bundle's payload ZCO.  Then
-			 *	it returns the address of that ZCO in
+			 *	does DEQUEUE processing on the bundle's
+			 *	extension blocks; if this processing
+			 *	determines that the bundle is corrupt,
+			 *	the function returns zero while
+			 *	providing 1 (a nonsense address) in
+			 *	*bundleZco as the address of the
+			 *	outbound bundle ZCO.  The CLO should
+			 *	handle this result by simply calling
+			 *	bpDequeue again.
+			 *
+			 *	bpDequeue then catenates (serializes)
+			 *	the BP header information in the
+			 *	bundle and prepends that serialized
+			 *	header to the source data of the
+			 *	bundle's payload ZCO.  Then it
+			 *	returns the address of that ZCO in
 			 *	*bundleZco for transmission at the
 			 *	convergence layer (possibly entailing
 			 *	segmentation that would be invisible
@@ -1217,7 +1262,8 @@ extern int		bpLoadAcq(	AcqWorkArea *workArea,
 extern int		bpContinueAcq(	AcqWorkArea *workArea,
 					char *bytes,
 					int length,
-					ReqAttendant *attendant);
+					ReqAttendant *attendant,
+					unsigned char priority);
 			/*	This function continues acquisition
 			 *	of a bundle as initiated by an
 			 *	invocation of bpBeginAcq().  To
@@ -1256,6 +1302,14 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	is available or the attendant is
 			 *	paused or the function fails,
 			 *	whichever occurs first.
+			 *
+			 *	"priority" is normally zero, but for
+			 *	the TCPCL convergence-layer receiver
+			 *	threads it is very high (255) because
+			 *	any delay in allocating space to an
+			 *	extent of TCPCL data delays the
+			 *	processing of TCPCL control messages,
+			 *	potentially killing TCPCL performance.
 			 *	
 			 *	Returns 0 on success (even if
 			 *	"attendant" was paused or the
@@ -1392,13 +1446,12 @@ extern int		bpUnblockPlan(char *eid);
 
 extern int		setPlanViaEid(char *eid, char *viaEid);
 extern int		attachPlanDuct(char *eid, Object outductElt);
-extern int		detachPlanDuct(char *eid, Object outductElt);
+extern int		detachPlanDuct(Object outductElt);
 extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void		releaseCustody(Object bundleObj, Bundle *bundle);
 
-extern void	        removeBundleFromQueue(Bundle *bundle, Object bundleObj,
-			        Object planObj, BpPlan *plan);
+extern void	        removeBundleFromQueue(Bundle *bundle, BpPlan *plan);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
 extern int		addProtocol(char *name, int payloadBytesPerFrame,
@@ -1445,8 +1498,8 @@ extern int		deliverBundle(Object bundleObj, Bundle *bundle,
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
-extern int		reverseEnqueue(Object xmitElt, Object planObj,
-				BpPlan *plan, int sendToLimbo);
+extern int		reverseEnqueue(Object xmitElt, BpPlan *plan,
+				int sendToLimbo);
 
 extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);

@@ -4,11 +4,9 @@
  *	All rights reserved.
  *	Author: Samuel Jero <sj323707@ohio.edu>, Ohio University
  */
-#include "platform.h"
 #include "cfdp.h"
-#include "ion.h"
 #include "cfdpops.h"
-#include <pthread.h>
+#include "bputa.h"
 
 #define BPCP_VERSION_STRING "bpcp version 1.0\nApril 2012\nAuthor: Samuel Jero <sj323707@ohio.edu>\n"
 

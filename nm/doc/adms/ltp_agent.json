@@ -1,0 +1,738 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "ltp_agent",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/ltp_agent",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.0",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+  "Edd": [{
+      "name": "span_remote_engine_nbr",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The remote engine number of this span."
+    },
+    {
+      "name": "span_cur_expt_sess",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "Expected sessions on this span."
+    },
+    {
+      "name": "span_cur_out_seg",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The current number of outbound segments for this span."
+    },
+    {
+      "name": "span_cur_imp_sess",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The current number of import segments for this span."
+    },
+    {
+      "name": "span_cur_in_seg",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The current number of inbound segments for this span."
+    },
+    {
+      "name": "span_reset_time",
+      "type": "UVAST",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The last time the span counters were reset."
+    },
+    {
+      "name": "span_out_seg_q_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output segment queued count for the span."
+    },
+    {
+      "name": "span_out_seg_q_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output segment queued bytes for the span."
+    },
+    {
+      "name": "span_out_seg_pop_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output segment popped count for the span."
+    },
+    {
+      "name": "span_out_seg_pop_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output segment popped bytes for the span."
+    },
+    {
+      "name": "span_out_ckpt_xmit_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output checkpoint transmit count for the span."
+    },
+    {
+      "name": "span_out_pos_ack_rx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output positive acknowledgement received count for the span."
+    },
+    {
+      "name": "span_out_neg_ack_rx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output negative acknowledgement received count for the span."
+    },
+    {
+      "name": "span_out_cancel_rx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output cancelled received count for the span."
+    },
+    {
+      "name": "span_out_ckpt_rexmit_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output checkpoint retransmit count for the span."
+    },
+    {
+      "name": "span_out_cancel_xmit_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output cancel retransmit count for the span."
+    },
+    {
+      "name": "span_out_complete_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The output completed count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_red_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment received red count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_red_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment received red bytes for the span."
+    },
+    {
+      "name": "span_in_seg_rx_green_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment received green count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_green_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment received green bytes for the span."
+    },
+    {
+      "name": "span_in_seg_rx_redundant_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment received redundant count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_redundant_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment received redundant bytes for the span."
+    },
+    {
+      "name": "span_in_seg_rx_mal_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment malformed count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_mal_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment malformed bytes for the span."
+    },
+    {
+      "name": "span_in_seg_rx_unk_sender_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment unknown sender count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_unk_sender_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment unknown sender bytes for the span."
+    },
+    {
+      "name": "span_in_seg_rx_unk_client_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment unknown client count for the span."
+    },
+    {
+      "name": "span_in_seg_rx_unk_client_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment unknown client bytes for the span."
+    },
+    {
+      "name": "span_in_seg_stray_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment stray count for the span."
+    },
+    {
+      "name": "span_in_seg_stray_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment stray bytes for the span."
+    },
+    {
+      "name": "span_in_seg_miscolor_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment miscolored count for the span."
+    },
+    {
+      "name": "span_in_seg_miscolor_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment miscolored bytes for the span."
+    },
+    {
+      "name": "span_in_seg_closed_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment closed count for the span."
+    },
+    {
+      "name": "span_in_seg_closed_bytes",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input segment closed bytes for the span."
+    },
+    {
+      "name": "span_in_ckpt_rx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input checkpoint receive count for the span."
+    },
+    {
+      "name": "span_in_pos_ack_tx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input positive acknolwedgement transmitted count for the span."
+    },
+    {
+      "name": "span_in_neg_ack_tx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input negative acknolwedgement transmitted count for the span."
+    },
+    {
+      "name": "span_in_cancel_tx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input cancel transmitted count for the span."
+    },
+    {
+      "name": "span_in_ack_retx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input acknolwedgement retransmit count for the span."
+    },
+    {
+      "name": "span_in_cancel_rx_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input cancel receive count for the span."
+    },
+    {
+      "name": "span_in_complete_cnt",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "The input completed count for the span."
+    }
+  ],
+  "Tblt": [{
+    "name": "engines",
+    "columns": [{
+      "type": "UVAST",
+      "name": "peer_engine_nbr"
+    }],
+    "description": "This table lists all known remote engine ids."
+  }],
+  "Rptt": [{
+    "name": "endpointReport",
+    "parmspec": [{
+      "type": "UINT",
+      "name": "ltp_span"
+    }],
+      "definition": [
+	  {"ns": "DTN/ltp_agent",
+	   "nm":"edd.span_remote_engine_nbr",
+	   "ap": [{
+	       "type": "ParmName",
+	       "value": "ltp_span"
+	   }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_cur_expt_sess",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_cur_out_seg",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_cur_imp_sess",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_cur_in_seg",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_reset_time",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_seg_q_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_seg_q_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_seg_pop_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_seg_pop_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },
+	  {
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_ckpt_xmit_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_pos_ack_rx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_neg_ack_rx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_cancel_rx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_ckpt_rexmit_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_cancel_xmit_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_out_complete_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_red_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_red_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_green_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_green_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_redundant_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_redundant_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_mal_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_mal_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_unk_sender_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_unk_sender_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_unk_client_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_rx_unk_client_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_stray_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_stray_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_miscolor_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_miscolor_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_closed_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_seg_closed_bytes",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_ckpt_rx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_pos_ack_tx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_neg_ack_tx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_cancel_tx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_ack_retx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_cancel_rx_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  },{
+	      "ns":"DTN/ltp_agent",
+	      "nm":"edd.span_in_complete_cnt",
+	      "ap": [{
+		  "type": "ParmName",
+		  "value": "ltp_span"
+	      }]
+	  }
+    ],
+    "description": "This is all known endpoint information"
+  }],
+
+  "Ctrl": [{
+      "name": "reset",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "ltp_span"
+      }],
+      "description": "Resets the counters associated with the engine and updates the last reset time for the span to be the time when this control was run."
+    }
+  ]
+}

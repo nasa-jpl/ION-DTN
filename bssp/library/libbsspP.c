@@ -154,7 +154,7 @@ static int	raiseSpan(Object spanElt, BsspVdb *bsspvdb)
 
 	spanObj = sdr_list_data(bsspSdr, spanElt);
 	sdr_read(bsspSdr, (char *) &span, spanObj, sizeof(BsspSpan));
-	findSpan(span.engineId, &vspan, &vspanElt);
+	findBsspSpan(span.engineId, &vspan, &vspanElt);
 	if (vspanElt)	/*	Span is already raised.			*/
 	{
 		return 0;
@@ -208,16 +208,22 @@ static void	dropSpan(BsspVspan *vspan, PsmAddress vspanElt)
 	vspanAddr = sm_list_data(bsspwm, vspanElt);
 	if (vspan->bufOpenSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->bufOpenSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->bufOpenSemaphore);
 	}
 
 	if (vspan->beSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->beSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->beSemaphore);
 	}
 
 	if (vspan->rlSemaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vspan->rlSemaphore);
+		microsnooze(50000);
 		sm_SemDelete(vspan->rlSemaphore);
 	}
 
@@ -232,7 +238,7 @@ Object	getBsspDbObject()
 	return _bsspdbObject(NULL);
 }
 
-int	startExportSession(Sdr sdr, Object spanObj, BsspVspan *vspan)
+int	startBsspExportSession(Sdr sdr, Object spanObj, BsspVspan *vspan)
 {
 	Object		dbobj;
 	BsspSpan	span;
@@ -325,7 +331,7 @@ static void	startSpan(BsspVspan *vspan)
 	{
 		/*	Must start span's initial session.	*/
 		sdr_exit_xn(bsspSdr);
-		if (startExportSession(bsspSdr, spanObj, vspan) < 0)
+		if (startBsspExportSession(bsspSdr, spanObj, vspan) < 0)
 		{
 			putErrmsg("Failed to initialize export session object.",
 					NULL);
@@ -610,6 +616,8 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	{
 		if (client->semaphore != SM_SEM_NONE)
 		{
+			sm_SemEnd(client->semaphore);
+			microsnooze(50000);
 			sm_SemDelete(client->semaphore);
 		}
 	}
@@ -884,7 +892,7 @@ void	bsspDetach()
 
 /*	*	*	BSSP span mgt and access functions	*	*/
 
-void	findSpan(uvast engineId, BsspVspan **vspan, PsmAddress *vspanElt)
+void	findBsspSpan(uvast engineId, BsspVspan **vspan, PsmAddress *vspanElt)
 {
 	PsmPartition	bsspwm = getIonwm();
 	PsmAddress	elt;
@@ -904,7 +912,7 @@ void	findSpan(uvast engineId, BsspVspan **vspan, PsmAddress *vspanElt)
 
 	*vspanElt = elt;	/*	(Zero if vspan was not found.)	*/
 }
-
+#if 0
 void	checkReservationLimit()
 {
 	Sdr	bsspSdr = getIonsdr();
@@ -938,8 +946,8 @@ estimate.");
 
 	sdr_exit_xn(bsspSdr);
 }
-
-int	addSpan(uvast engineId, unsigned int maxExportSessions,
+#endif
+int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
 		unsigned int maxBlockSize, char *bsoBECmd, char *bsoRLCmd, 
 		unsigned int qTime, int purge)
 {
@@ -993,7 +1001,7 @@ int	addSpan(uvast engineId, unsigned int maxExportSessions,
 	}
 
 	CHKERR(sdr_begin_xn(bsspSdr));
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt)		/*	This is a known span.		*/
 	{
 		sdr_exit_xn(bsspSdr);
@@ -1042,7 +1050,7 @@ int	addSpan(uvast engineId, unsigned int maxExportSessions,
 	return 1;
 }
 
-int	updateSpan(uvast engineId, unsigned int maxExportSessions,
+int	updateBsspSpan(uvast engineId, unsigned int maxExportSessions,
 		unsigned int maxBlockSize, char *bsoBECmd, char *bsoRLCmd, 
 		unsigned int qTime, int purge)
 {
@@ -1100,7 +1108,7 @@ string too long.", bsoRLCmd);
 	}
 
 	CHKERR(sdr_begin_xn(bsspSdr));
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
 		sdr_exit_xn(bsspSdr);
@@ -1156,7 +1164,7 @@ string too long.", bsoRLCmd);
 	return 1;
 }
 
-int	removeSpan(uvast engineId)
+int	removeBsspSpan(uvast engineId)
 {
 	Sdr		bsspSdr = getIonsdr();
 	BsspVspan	*vspan;
@@ -1168,7 +1176,7 @@ int	removeSpan(uvast engineId)
 	/*	Must stop the span before trying to remove it.		*/
 
 	CHKERR(sdr_begin_xn(bsspSdr));	/*	Lock memory.		*/
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
 		sdr_exit_xn(bsspSdr);
@@ -1244,7 +1252,7 @@ int	bsspStartSpan(uvast engineId)
 	PsmAddress	vspanElt;
 
 	CHKERR(sdr_begin_xn(bsspSdr));	/*	Just to lock memory.	*/
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 		sdr_exit_xn(bsspSdr);	/*	Unlock memory.		*/
@@ -1264,7 +1272,7 @@ void	bsspStopSpan(uvast engineId)
 	PsmAddress	vspanElt;
 
 	CHKVOID(sdr_begin_xn(bsspSdr));	/*	Just to lock memory.	*/
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)	/*	This is an unknown span.	*/
 	{
 		sdr_exit_xn(bsspSdr);	/*	Unlock memory.		*/
@@ -1406,7 +1414,7 @@ void	bsspDetachClient(unsigned int clientSvcId)
 
 /*	*	*	Service interface functions	*	*	*/
 
-int	enqueueNotice(BsspVclient *client, uvast sourceEngineId,
+int	enqueueBsspNotice(BsspVclient *client, uvast sourceEngineId,
 		unsigned int sessionNbr, unsigned int dataLength, 
 		BsspNoticeType type, unsigned char reasonCode,
 		Object data)
@@ -1510,7 +1518,7 @@ static void	closeExportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(bsspSdr, ExportSession, session, sessionObj);
 	GET_OBJ_POINTER(bsspSdr, BsspSpan, span, session->span);
-	findSpan(span->engineId, &vspan, &vspanElt);
+	findBsspSpan(span->engineId, &vspan, &vspanElt);
 	sdr_stage(bsspSdr, (char *) &db, dbobj, sizeof(BsspDB));
 
 	/*	Note that cancellation of an export session causes
@@ -1523,7 +1531,7 @@ static void	closeExportSession(Object sessionObj)
 
 	if (session->svcDataObject)
 	{
-		if (enqueueNotice(bsspvdb->clients
+		if (enqueueBsspNotice(bsspvdb->clients
 				+ session->clientSvcId, db.ownEngineId,
 				session->sessionNbr, 0, 
 				BsspXmitSuccess, 0, session->svcDataObject)
@@ -1832,7 +1840,7 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 
 		/*	Post timeout event.				*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 
 //	Temporary patch to prevent premature retransmission.
 currentTime += 5;	/*	s/b += RTT from contact plan.	*/
@@ -2000,7 +2008,7 @@ static void	signalBeBso(unsigned int engineId)
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
 
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspan != NULL && vspan->localXmitRate > 0)
 	{
 		/*	Tell Best-Effort BSO that output is waiting.	*/
@@ -2014,7 +2022,7 @@ static void	signalRlBso(unsigned int engineId)
 	BsspVspan	*vspan;
 	PsmAddress	vspanElt;
 
-	findSpan(engineId, &vspan, &vspanElt);
+	findBsspSpan(engineId, &vspan, &vspanElt);
 	if (vspan != NULL && vspan->localXmitRate > 0)
 	{
 		/*	Tell Reliable BSO that output is waiting.	*/
@@ -2039,7 +2047,7 @@ static int	cancelSessionBySender(ExportSession *session,
 	CHKERR(ionLocked());
 	session->reasonCode = reasonCode;	/*	(For CS resend.)*/
 	sdr_stage(bsspSdr, (char *) &span, spanObj, sizeof(BsspSpan));
-	findSpan(span.engineId, &vspan, &vspanElt);
+	findBsspSpan(span.engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 		putErrmsg("Can't find vspan for engine.", utoa(span.engineId));
@@ -2064,7 +2072,7 @@ static int	cancelSessionBySender(ExportSession *session,
 	sdr_stage(bsspSdr, (char *) &db, dbobj, sizeof(BsspDB));
 	stopExportSession(session);
 
-	if (enqueueNotice(bsspvdb->clients + session->clientSvcId,
+	if (enqueueBsspNotice(bsspvdb->clients + session->clientSvcId,
 		db.ownEngineId, session->sessionNbr, 0,
 		BsspXmitFailure, reasonCode, session->svcDataObject) < 0)
 	{
@@ -2098,7 +2106,7 @@ static int	cancelSessionBySender(ExportSession *session,
 
 		/*	Re-start the current export session.		*/
 
-		if (startExportSession(bsspSdr, spanObj, vspan) < 0)
+		if (startBsspExportSession(bsspSdr, spanObj, vspan) < 0)
 		{
 			putErrmsg("Can't re-start the current session.",
 					utoa(span.engineId));
@@ -2247,7 +2255,7 @@ static int	handleDataBlock(uvast sourceEngineId, BsspDB *bsspdb,
 	 *	client service data.					*/
 
 	CHKERR(sdr_begin_xn(bsspSdr));
-	findSpan(sourceEngineId, &vspan, &vspanElt);
+	findBsspSpan(sourceEngineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
 #if BSSPDEBUG
@@ -2300,9 +2308,11 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 		return -1;
 	}
 
-	if (ticket)	/*	Couldn't service request immediately.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
-		ionShred(ticket);
+		/*	Couldn't service request immediately.	*/
+
+		ionShred(ticket);		/*	Cancel request.	*/
 #if BSSPDEBUG
 putErrmsg("Can't handle data block, would exceed available ZCO space.",
 utoa(pdu->length));
@@ -2310,11 +2320,14 @@ utoa(pdu->length));
 		return sdr_end_xn(bsspSdr);
 	}
 
+	/*	ZCO space has been awarded.				*/
+
 	pduObj = sdr_insert(bsspSdr, *cursor, pdu->length);
 	if (pduObj == 0)
 	{
 		putErrmsg("Can't record data block.", NULL);
 		sdr_cancel_xn(bsspSdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
@@ -2323,12 +2336,13 @@ utoa(pdu->length));
 
 	pduLength -= pdu->length;
 	clientSvcData = zco_create(bsspSdr, ZcoSdrSource, pduObj, 0, pduLength,
-			ZcoInbound, 0);
+			ZcoInbound);
 	switch (clientSvcData)
 	{
 	case (Object) ERROR:
 		putErrmsg("Can't record data block.", NULL);
 		sdr_cancel_xn(bsspSdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 
 	case 0:	/*	No ZCO space.  Silently discard block.	*/
@@ -2336,13 +2350,15 @@ utoa(pdu->length));
 putErrmsg("Can't handle data block, would exceed available ZCO space.",
 utoa(pdu->length));
 #endif
+		ionShred(ticket);		/*	Cancel request.	*/
 		return sdr_end_xn(bsspSdr);
 	}
 
-	if (enqueueNotice(client, sourceEngineId, sessionNbr, pdu->length,
+	if (enqueueBsspNotice(client, sourceEngineId, sessionNbr, pdu->length,
 			BsspRecvSuccess, 0, clientSvcData) < 0)
 	{
 		putErrmsg("Can't enqueue notice to bssp client.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return sdr_end_xn(bsspSdr);
 	}
 
@@ -2350,15 +2366,18 @@ utoa(pdu->length));
 	{
 		putErrmsg("Can't send reception acknowledgement.", NULL);
 		sdr_cancel_xn(bsspSdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
 	if (sdr_end_xn(bsspSdr) < 0)
 	{
 		putErrmsg("Can't handle data block.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);		/*	Dismiss reservation.	*/
 	return 0;	/*	 Data block handled okay.		*/
 }
 
@@ -2516,7 +2535,7 @@ static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
 	}
 
 	sdr_read(bsspSdr, (char *) spanBuf, *spanObj, sizeof(BsspSpan));
-	findSpan(spanBuf->engineId, vspan, vspanElt);
+	findBsspSpan(spanBuf->engineId, vspan, vspanElt);
 	if (*vspanElt == 0)
 	{
 #if BSSPDEBUG

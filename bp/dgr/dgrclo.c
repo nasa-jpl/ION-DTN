@@ -89,6 +89,11 @@ static void	*sendBundles(void *parm)
 			continue;
 		}
 
+		if (bundleZco == 1)		/*	Corrupt bundle.	*/
+		{
+			continue;		/*	Get next one.	*/
+		}
+
 		CHKNULL(sdr_begin_xn(sdr));
 		if (parms->hostNbr == 0)	/*	Can't send it.	*/
 		{
@@ -242,7 +247,7 @@ static void	*receiveSegments(void *parm)
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound, 0);
+						ZcoOutbound);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -296,7 +301,7 @@ destroying bundle ZCO.", NULL);
 					bundleZco = zco_create(sdr,
 						ZcoSdrSource, sdr_insert(sdr,
 						buffer, length), 0, 0 - length,
-						ZcoOutbound, 0);
+						ZcoOutbound);
 					if (sdr_end_xn(sdr) < 0
 					|| bundleZco == (Object) ERROR)
 					{
@@ -390,8 +395,8 @@ destroying bundle ZCO.", NULL);
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
-int	dgrclo(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	dgrclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ductName = (char *) a1;
 #else
@@ -460,7 +465,7 @@ int	main(int argc, char *argv[])
 	senderParms.vduct = voutduct;
 	senderParms.running = &running;
 	senderParms.dgrSap = dgrSap;
-	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms))
+	if (pthread_begin(&senderThread, NULL, sendBundles, &senderParms, "dgrclo_sender"))
 	{
 		dgr_close(dgrSap);
 		putSysErrmsg("dgrclo can't create sender thread", NULL);
@@ -471,7 +476,7 @@ int	main(int argc, char *argv[])
 
 	rtp.running = &running;
 	rtp.dgrSap = dgrSap;
-	if (pthread_begin(&receiverThread, NULL, receiveSegments, &rtp))
+	if (pthread_begin(&receiverThread, NULL, receiveSegments, &rtp, "dgrclo_receiver"))
 	{
 		sm_SemEnd(voutduct->semaphore);
 		pthread_join(senderThread, NULL);

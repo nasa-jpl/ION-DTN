@@ -23,17 +23,17 @@ extern "C" {
 
 typedef struct
 {
-	char		partitionName[32];
-	unsigned long	partitionSize;
-	unsigned long	smallPoolSize;
-	unsigned long	smallPoolFreeBlockCount[SMALL_SIZES];
-	unsigned long	smallPoolFree;
-	unsigned long	smallPoolAllocated;
-	unsigned long	largePoolSize;
-	unsigned long	largePoolFreeBlockCount[LARGE_ORDERS];
-	unsigned long	largePoolFree;
-	unsigned long	largePoolAllocated;
-	unsigned long	unusedSize;
+	char	partitionName[32];
+	size_t	partitionSize;
+	size_t	smallPoolSize;
+	size_t	smallPoolFreeBlockCount[SMALL_SIZES];
+	size_t	smallPoolFree;
+	size_t	smallPoolAllocated;
+	size_t	largePoolSize;
+	size_t	largePoolFreeBlockCount[LARGE_ORDERS];
+	size_t 	largePoolFree;
+	size_t	largePoolAllocated;
+	size_t	unusedSize;
 } PsmUsageSummary;
 
 typedef struct psm_str		/*	Local view of managed memory.	*/
@@ -47,8 +47,7 @@ typedef struct psm_str		/*	Local view of managed memory.	*/
 typedef enum { Okay, Redundant, Refused } PsmMgtOutcome;
 typedef uaddr		PsmAddress;
 
-extern int		psm_manage(char *, unsigned long, char *,
-					PsmPartition *psmp,
+extern int		psm_manage(char *, size_t, char *, PsmPartition *psmp,
 					PsmMgtOutcome *outcome);
 			/*	Arguments are:
 					pointer to start of the
@@ -112,8 +111,7 @@ extern void		psm_relax(PsmPartition);
 #define psm_malloc(partition, size) \
 Psm_malloc(__FILE__, __LINE__, partition, size)
 
-extern PsmAddress	Psm_malloc(const char *, int, PsmPartition,
-					unsigned long);
+extern PsmAddress	Psm_malloc(const char *, int, PsmPartition, size_t);
 			/*	Argument is size of block to allocate;
 				maximum size is 1/2 of the total
 				address space (i.e., 2G for a 32-bit
@@ -124,8 +122,7 @@ extern PsmAddress	Psm_malloc(const char *, int, PsmPartition,
 #define psm_zalloc(partition, size) \
 Psm_zalloc(__FILE__, __LINE__, partition, size)
 
-extern PsmAddress	Psm_zalloc(const char *, int, PsmPartition,
-					unsigned long);
+extern PsmAddress	Psm_zalloc(const char *, int, PsmPartition, size_t);
 			/*	Argument is size of block to allocate;
 				maximum size is 64 words (i.e., 256 for
 				a 32-bit machine).  Allocation is
@@ -223,9 +220,9 @@ extern void		psm_report(PsmUsageSummary *);
 			/*	Sends to stdout a snapshot of the
 				partition's usage status.		*/
 
-extern int		psm_start_trace(PsmPartition, long, char *);
+extern int		psm_start_trace(PsmPartition, size_t, char *);
                         /*	Begins an episode of psm space usage
-				tracing.  The int argument specifies
+				tracing.  The size_t argument specifies
 				the amount of shared memory to use
 				for the trace operations; this memory
 				will be dynamically allocated unless

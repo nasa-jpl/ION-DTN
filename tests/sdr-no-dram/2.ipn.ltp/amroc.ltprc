@@ -1,0 +1,5 @@
+1 300 1000000
+m maxber .00000001
+a span 3 20 1000000 200 100100 1200 100100 1 'udplso localhost:3113 800000'
+w 1
+s 'udplsi localhost:2113'

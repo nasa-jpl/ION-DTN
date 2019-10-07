@@ -1,0 +1,210 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>&quot;Hello World&quot; - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html" class="active"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./hello_world_hello_world.html#hello-world" id="hello-world"><h1>&quot;Hello World&quot;</h1></a>
+<blockquote>
+<p><strong>Note:</strong> The entire <em>DtnHelloWorld</em> project can be found at <code>arch_android/Demo_Applications/IonHelloWorld</code>. Instead of extracting all the code snippets from this tutorial you can simply open/copy it and then continue reading.</p>
+</blockquote>
+<a class="header" href="./hello_world_hello_world.html#sending" id="sending"><h2>Sending</h2></a>
+<p>Now that DtnHelloWorld successfully binds and unbinds from the <code>BundleService</code> we can implement the actual transmission of our bundle to the destination EID.</p>
+<p>Therefore we have to implement the <code>OnClickListener</code> of our button:</p>
+<pre><code class="language-java">...
+      // Define 'click' behavior for button
+      button.setOnClickListener(new View.OnClickListener() {
+          @Override
+          public void onClick(View view) {
+              String payload = &quot;Hello World&quot;;
+
+              // (1) Check if editText for the destination EID is empty, abort
+              // in that case
+              if (editDestEID.getText().toString().isEmpty()) {
+                  Toast.makeText(getApplicationContext(), &quot;Destination &quot; +
+                          &quot;EID &quot; +
+                          &quot;cannot be empty!&quot;, Toast
+                          .LENGTH_SHORT).show();
+                  return;
+              }
+
+              // (2) Ensure that the service is actually available
+              if (mService == null) {
+                  Toast.makeText(getApplicationContext(), &quot;Service not &quot; +
+                          &quot;available!&quot;, Toast.LENGTH_LONG).show();
+                  return;
+              }
+
+              try {
+                  // (3) Create a Bundle object that holds all required
+                  // metadata and the payload
+                  DtnBundle b = new DtnBundle(editDestEID.getText()
+                          .toString(),
+                          0,
+                          300,
+                          DtnBundle.Priority.EXPEDITED,
+                          payload.getBytes(&quot;UTF-8&quot;));
+
+                  // (4) Trigger sending of bundle by handing the bundle
+                  // over to the BundleService
+                  mService.sendBundle(b);
+              }
+              // (5) Catch error linked to BundleService (i.e. connection
+              // broke)
+              catch (RemoteException e) {
+                      Toast.makeText(getApplicationContext(), &quot;Failed to &quot; +
+                              &quot;open endpoint!&quot;, Toast
+                              .LENGTH_SHORT).show();
+              }
+              // (6) Catch error, when the payload cannot be encoded into
+              // UTF-8
+              catch (UnsupportedEncodingException e) {
+                  Log.e(TAG, &quot;onClick: UTF-8 encoding seems not to be &quot; +
+                          &quot;available on this platform&quot;);
+                  Toast.makeText(getApplicationContext(), &quot;Failed to send bundle!&quot;, Toast
+                          .LENGTH_SHORT).show();
+              }
+          }
+      });
+...
+</code></pre>
+<p>In the following, all steps of that listener are explained in detail:</p>
+<ol>
+<li>Within our click handling routine, we first check if the user has entered a destination EID. We could do a sanity check on the entered EID here (i.e. check if a certain format is met), but to keep our application simple we just assume that the user enters a sound EID.</li>
+<li>If we discover that the service is not available, we have to abort.</li>
+<li>The payload that is provided as a string literal is encoded as UTF-8 and is then put into a new <code>Bundle</code> object , together with the EID and a Quality-of-Service indicator.</li>
+<li>The <code>Bundle</code> object ist then handed over to the Bundle service by calling the interface function <code>sendBundle(Bundle b)</code>.</li>
+<li>We also abort if the connection to the service was interrupted or the remote function call failed.</li>
+<li>In case that the UTF-8 encoding scheme is not available on the device we abort.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> We use the easier direct <code>ByteArray</code> encapsulation of the payload in the <code>Bundle</code> object. There is also another handover method available that allows the transmission of larger chunks of data by employing an file descriptor that is shared between app and service. You can find more details in the chapter <a href="interface_sending_bundles.md">&quot;Sending Bundles&quot;</a>.</p>
+</blockquote>
+<a class="header" href="./hello_world_hello_world.html#testing" id="testing"><h2>Testing</h2></a>
+<p>To check that the application is doing what it is supposed to do you can run the app on your Android device (along with the started IonDTN app) and use the testing topology as described in the chapter <a href="hello_world_iondtn_setup.html#select-setup-file">&quot;IonDTN Setup&quot;</a>.Also start <em>ION-DTN</em> on your PC and launch <code>bpsink &lt;sink-eid&gt;</code> with the correct sink EID to receive the bundles from our <em>DtnHelloWorld</em> app.</p>
+
+<p><b><i>
+    <strong><u>Note:</u></strong>
+    If you have used the linked configuration files: <a href="./resources/code/android_node.rc"><code>android_node.rc</code></a> (Node 1) & <a href="./resources/code/pc_node.rc"><code>pc_node.rc</code></a> (Node 2), the available endpoints to test on node 2 are 2.1 and 2.2 (2.0 can not be used because it is for administrative traffic).
+    Therefore, correct sink id should be ipn:2.1 or ipn:2.2.
+    <p>For eg. Doing <code>bpsink ipn:2.2</code> on your PC will begin listening on the sink-EID with the endpoint_number 2 on service_number 2. The sink-EID needs to be same on both PC and android device for sucessfull data transmission. Below is the display screens of both nodes.
+      <p> <img src="./resources/hello_world_android_input.png"/> <img src="./resources/hello_world_terminal_output.png"></p>
+    </p>
+
+
+
+</i></b></p>
+
+<a class="header" href="./hello_world_hello_world.html#congratulations" id="congratulations"><h2>Congratulations!</h2></a>
+<p>The simple <em>DtnHelloWorld</em> app is complete and the messages directed to the EID of your computer should appear in your command shell.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./hello_world_binding_iondtn.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./interface.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./hello_world_binding_iondtn.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./interface.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

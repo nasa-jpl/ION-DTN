@@ -386,7 +386,7 @@ static int	handleBulletin(unsigned char *buffer, int bufSize)
 	{
 		if (dtka_deserialize(&cursor, &bytesRemaining, DTKA_MAX_DATLEN,
 				&nodeNbr, &effectiveTime, &assertionTime,
-				&datLength, datValue) < 0)
+				&datLength, datValue) < 1)
 		{
 			writeMemo("[?] DTKA bulletin malformed, discarded.");
 			break;
@@ -732,8 +732,9 @@ fflush(stdout);
 	sdr_write(sdr, bulletinObj, (char *) &bulletin, sizeof(DtkaBulletin));
 	if (bulletin.sharesAnnounced < DTKA_FEC_K)
 	{
-#if DTKA_DEBUG
-puts("Bulletin can't be complete yet.");
+#if dTKA_DEBUG
+printf("Bulletin can't be complete yet, sharesAnnounced = %u.\n",
+bulletin.sharesAnnounced);
 fflush(stdout);
 #endif
 		return 0;	/*	Bulletin can't be complete.	*/

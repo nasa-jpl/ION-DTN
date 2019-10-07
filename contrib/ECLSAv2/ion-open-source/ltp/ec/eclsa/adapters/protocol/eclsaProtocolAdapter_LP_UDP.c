@@ -15,6 +15,9 @@ todo: ifdef LW_UDP
 */
 
 #include "eclsaProtocolAdapters.h"
+#include "../../elements/sys/eclsaLogger.h"
+#include "platform.h"
+#include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -24,6 +27,9 @@ todo: ifdef LW_UDP
 #include <netinet/udp.h>
 #include <stdlib.h>
 
+static unsigned long getTimestamp();
+
+static unsigned long startTimestamp = 0;
 
 /* UDP */
 typedef struct
@@ -35,12 +41,12 @@ float 				sleepSecPerBit; //eclso only
 } UdpEnvironment;
 
 UdpEnvironment udpEnv;
-void initEclsoLowerLevel(int argc, char *argv[], unsigned short portNbr, unsigned int ipAddress, int txbps)
+void initEclsoLowerLevel(int argc, char *argv[], EclsoEnvironment *env)
 {
 	//this function initialize UDP for eclso
-	udpEnv.sleepSecPerBit = 1.0 / txbps;
-	portNbr = htons(portNbr);
-	ipAddress = htonl(ipAddress);
+	udpEnv.sleepSecPerBit = 1.0 / env->txbps;
+	unsigned short portNbr = htons(env->portNbr);
+	unsigned int ipAddress = htonl(env->ipAddress);
 	memset((char *) &udpEnv.socketName, 0, sizeof udpEnv.socketName);
 	udpEnv.inetName = (struct sockaddr_in *) &udpEnv.socketName;
 	udpEnv.inetName->sin_family = AF_INET;
@@ -55,12 +61,12 @@ void initEclsoLowerLevel(int argc, char *argv[], unsigned short portNbr, unsigne
 		exit(1);
 	}
 }
-void initEclsiLowerLevel(int argc, char *argv[], unsigned short portNbr, unsigned int ipAddress)
+void initEclsiLowerLevel(int argc, char *argv[], EclsiEnvironment *env)
 {
 	//this function initialize UDP for eclsi
 	socklen_t			nameLength;
-	portNbr = htons(portNbr);
-	ipAddress = htonl(ipAddress);
+	unsigned short portNbr = htons(env->portNbr);
+	unsigned int ipAddress = htonl(env->ipAddress);
 	memset((char *) &udpEnv.socketName, 0, sizeof(udpEnv.socketName));
 	udpEnv.inetName = (struct sockaddr_in *) &udpEnv.socketName;
 	udpEnv.inetName->sin_family = AF_INET;
@@ -112,11 +118,24 @@ void sendPacketToLowerProtocol	(char *buffer, int *bufferLength, void *udpProtoc
 		}
 
 	sleep_secs = udpEnv.sleepSecPerBit * (((sizeof(struct iphdr) + sizeof(struct udphdr)) + *bufferLength) * 8);
+
+	// improve accuracy (comutationTime subtracted)
+	if (startTimestamp == 0)
+		startTimestamp = getTimestamp();
+	unsigned long endTimestamp = getTimestamp();
+	unsigned int cycleTime = endTimestamp - startTimestamp;
+	unsigned int computationTime = cycleTime-usecs;
+	startTimestamp = getTimestamp();
+
 	usecs = sleep_secs * 1000000.0;
+
+	if(usecs>computationTime)
+		usecs -= computationTime;
+
 	if (usecs == 0)
-		{
+	{
 		usecs = 1;
-		}
+	}
 
 	usleep(usecs);
 	}
@@ -135,5 +154,24 @@ void receivePacketFromLowerProtocol	(char *buffer,int *bufferLength, void **udpP
 		debugPrint("Can't acquire segment from UDP");
 		exit(1);
 		}
+}
+
+static unsigned long getTimestamp()
+{
+	struct timespec tms;
+	unsigned long microseconds;
+	if (clock_gettime(CLOCK_REALTIME,&tms))
+		{
+		return 0;
+		}
+	/* seconds, multiplied with 1 million */
+	microseconds = tms.tv_sec * 1000000;
+	/* Add full microseconds */
+	microseconds += tms.tv_nsec/1000;
+	/* round */
+	if (tms.tv_nsec % 1000 >= 500)
+	   microseconds++;
+
+	return microseconds;
 }
 

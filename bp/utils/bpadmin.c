@@ -13,6 +13,10 @@
 #include "crypto.h"
 #include "csi.h"
 
+#ifdef STRSOE
+#include <strsoe_bpadmin.h>
+#endif
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -71,7 +75,7 @@ static void	printUsage()
 	PUTS("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
 	PUTS("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
 	PUTS("\t   a protocol <protocol name> <payload bytes per frame> \
-<overhead bytes per frame> [<nominal data rate, in bytes/sec>]");
+<overhead bytes per frame> [<protocol class>]");
 	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
 	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>' [max \
 payload length]");
@@ -93,8 +97,8 @@ payload length");
 	PUTS("\t   {d|i} induct <protocol name> <duct name>");
 	PUTS("\t   {d|i} outduct <protocol name> <duct name>");
 	PUTS("\t   {d|i} plan <endpoint name>");
-	PUTS("\td\tDetach an outduct from an egress plan");
-	PUTS("\t   d planduct <endpoint name> <protocol name> <duct name>");
+	PUTS("\td\tDetach an outduct from the egress plan that cites it");
+	PUTS("\t   d planduct <protocol name> <duct name>");
 	PUTS("\tl\tList");
 	PUTS("\t   l scheme");
 	PUTS("\t   l endpoint");
@@ -110,6 +114,7 @@ payload length");
 	PUTS("\t   g plan <endpoint name> <via endpoint name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
+	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -631,20 +636,20 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "planduct") == 0)
 	{
-		if (tokenCount != 5)
+		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		findOutduct(tokens[3], tokens[4], &vduct, &vductElt);
+		findOutduct(tokens[2], tokens[3], &vduct, &vductElt);
 		if (vductElt == 0)
 		{
 			printText("Unknown outduct.");
 			return;
 		}
 
-		detachPlanDuct(tokens[2], vduct->outductElt);
+		detachPlanDuct(vduct->outductElt);
 		return;
 	}
 
@@ -756,17 +761,29 @@ static void	printEndpoint(VEndpoint *vpoint)
 static void	infoEndpoint(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
+	char		*delimiter;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
-	if (tokenCount != 4)
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	delimiter = strchr(tokens[2], ':');
+	if (delimiter)
+	{
+		*delimiter = '\0';
+	}
+	else
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	findEndpoint(tokens[2], tokens[3], NULL, &vpoint, &elt);
+	findEndpoint(tokens[2], delimiter + 1, NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown endpoint.");
@@ -776,6 +793,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		printEndpoint(vpoint);
 	}
 
+	*delimiter  = ':';
 	sdr_exit_xn(sdr);
 }
 
@@ -1381,6 +1399,30 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxcount(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	unsigned int	maxcount;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	maxcount = strtoul(tokens[2], NULL, 0);
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.maxBundleCount = maxcount;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxBundleCount.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1392,6 +1434,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "heapmax") == 0)
 	{
 		manageHeapmax(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxcount") == 0)
+	{
+		manageMaxcount(tokenCount, tokens);
 		return;
 	}
 
@@ -1598,7 +1646,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 		else
 		{
 			findToken(&cursor, &(tokens[i]));
-			tokenCount++;
+			if (tokens[i])
+			{
+				tokenCount++;
+			}
 		}
 	}
 
@@ -1800,39 +1851,29 @@ static int	processLine(char *line, int lineLength, int *rc)
 				{
 					max = atoi(tokens[2]) * 4;
 				}
-
-				count = 1;
-				while (count <= max && attachToBp() == -1)
-				{
-					microsnooze(250000);
-					count++;
-				}
-
-				if (count > max)
-				{
-					//bp agent is not started
-					printText("BP agent is not started");
-					return 1;
-				}
-
-				//attached to bp system
-
-				*rc = bp_is_up(count, max);
-				return 1;
-			}
-
-			//check once
-
-			*rc = bp_agent_is_started();
-			if (*rc)
-			{
-				printText("BP agent is started");
 			}
 			else
 			{
-				printText("BP agent is not started");
+				max = 1;
 			}
 
+			count = 1;
+			while (count <= max && attachToBp() == -1)
+			{
+				microsnooze(250000);
+				count++;
+			}
+
+			if (count > max)
+			{
+				//bp agent is not started
+				printText("BP agent is not started");
+				return 1;
+			}
+
+			//attached to bp system
+
+			*rc = bp_is_up(count, max);
 			return 1;
 
 		case 'q':
@@ -1845,8 +1886,8 @@ static int	processLine(char *line, int lineLength, int *rc)
 }
 
 #if defined (ION_LWT)
-int	bpadmin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bpadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
 #else
@@ -1944,3 +1985,15 @@ int	main(int argc, char **argv)
 	ionDetach();
 	return rc;
 }
+
+#ifdef STRSOE
+int	bpadmin_processLine(char *line, int lineLength, int *rc)
+{
+	return processLine(line, lineLength, rc);
+}
+
+void	bpadmin_help(void)
+{
+	printUsage();
+}
+#endif

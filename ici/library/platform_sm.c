@@ -45,7 +45,7 @@ static SmShm	*_shmTbl()
 }
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
+sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
 	int	i;
 	SmShm	*shm;
@@ -295,10 +295,10 @@ static void	_smSegment(char *shmPtr, int *key)
 }
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
+sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
 	char	memName[32];
-	int	minSegSize = 16;
+	size_t	minSegSize = 16;
 	HANDLE	mappingObj;
 	void	*mem;
 	int	newSegment = 0;
@@ -397,9 +397,9 @@ sm_ShmDestroy(uaddr id)
 	/* ---- Shared Memory services (Unix) ------------------------- */
 
 int
-sm_ShmAttach(int key, int size, char **shmPtr, uaddr *id)
+sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
-	int		minSegSize = 16;
+	size_t		minSegSize = 16;
 	int		result;
 	char		*mem;
 	struct shmid_ds	stat;
@@ -482,7 +482,7 @@ sm_ShmDestroy(uaddr id)
 #ifdef ION_LWT
 
 #define	ARG_BUFFER_CT	256
-#define	MAX_ARG_LENGTH	63
+#define	MAX_ARG_LENGTH	127
 
 typedef struct
 {
@@ -2232,6 +2232,10 @@ typedef struct
 
 static void	posixTaskExit(int sig)
 {
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	pthread_exit(0);
 }
 
@@ -2260,22 +2264,140 @@ void	sm_EndPthread(pthread_t threadId)
 	oK(pthread_kill(threadId, SIGUSR2));
 }
 
-static void	*posixTaskEntrance(void *arg)
+static void	*posixTaskEntrance(void *taskArg)
 {
-	IonPthreadParm	*parm = (IonPthreadParm *) arg;
+	IonPthreadParm	*parm = (IonPthreadParm *) taskArg;
+	void 		*(*function)(void *);
+	void		*arg;
+
+	/*	Copy the information in parm into local stack
+	 *	variables, then free space allocated to parm.		*/
+
+	CHKNULL(parm);
+	function = parm->function;
+	arg = parm->arg;
+	free(parm);
+
+	/*	Now initiate processing in the new task.		*/
 
 	sm_ArmPthread();
-	return (parm->function)(parm->arg);
+	return (function)(arg);
 }
 
 int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
 		void *(*function)(void *), void *arg)
 {
-	IonPthreadParm	parm;
+	IonPthreadParm	*parm;
+	int		result;
 
-	parm.function = function;
-	parm.arg = arg;
-	return pthread_create(threadId, attr, posixTaskEntrance, &parm);
+	/*	Store thread parameters in space allocated from
+	 *	main memory, in case caller exits.			*/
+
+	parm = (IonPthreadParm *) malloc(sizeof(IonPthreadParm));
+	if (parm == NULL)
+	{
+		putErrmsg("Can't allocate space for thread parameters.", NULL);
+		return -1;
+	}
+
+	parm->function = function;
+	parm->arg = arg;
+	result = pthread_create(threadId, attr, posixTaskEntrance, parm);
+
+	/*	Free the memory allocated for parm if the creation
+	 *	of the new thread has failed.  Need to do this to
+	 *	prevent memory leak.					*/
+
+	if (result != 0)
+	{
+		free(parm);
+	}
+
+	return result;
+}
+
+int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
+		void *(*function)(void *), void *arg, const char *name)
+{
+	int		result;
+
+	result = sm_BeginPthread(threadId, attr, function, arg);
+	pthread_setname_np(*threadId, name);
+
+	return result;
+}
+
+#else
+
+#ifdef darwin
+/* struct used to wrap start_routine with naming_start_routine */
+typedef struct
+{
+	char name[100];
+	void *arg;
+	void *(*start_routine) (void *);
+} NamingParms;
+/* protect multiple threads from accessing NamingParms in darwin */
+static pthread_mutex_t NamingParmsSem = PTHREAD_MUTEX_INITIALIZER;
+
+
+static void *naming_start_routine(void *parm){
+	NamingParms	*nmp = (NamingParms *) parm;
+	const char *name = nmp->name;
+	void *arg = nmp->arg; 
+	void *(*start_routine) (void *) = nmp->start_routine;
+	void* ret;
+	pthread_setname_np(name);
+	/* release the mutex protecting the shared naming structure */
+	pthread_mutex_unlock(&NamingParmsSem);
+	
+	ret = (*start_routine)(arg);
+	return ret;
+}
+#endif
+
+int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
+		void *(*start_routine) (void *), void *arg, const char *name)
+{
+	int result;
+
+	/*	VxWorks uses a different method of naming threads. */
+#ifdef vxworks
+	if(attr){
+		pthread_attr_setname(attr, name);
+		result = pthread_begin(thread, attr, start_routine, arg);
+	}else{
+		pthread_attr_t tattr;
+		pthread_attr_init(&tattr);
+		pthread_attr_setname(tattr, name);
+		result = pthread_begin(thread, &tattr, start_routine, arg);
+	}
+	
+	/*	Supported platforms for naming threads */
+#elif darwin
+	static NamingParms nmp;
+	/*	In OSX, pthread_setname_np must be called withing the 
+	 *	the thread you wish to name. Achieved by wrapping 
+	 *  the start_routine of pthread_begin */
+
+	/* protect the global naming structure from concurrent access */
+	pthread_mutex_lock(&NamingParmsSem);
+
+	nmp.start_routine = start_routine;
+	nmp.arg = arg;
+	strncpy(nmp.name, name, sizeof(nmp.name)-1);
+	result = pthread_begin(thread, attr, naming_start_routine, &nmp);
+#else
+	result = pthread_begin(thread, attr, start_routine, arg);
+#if linux || mingw
+	pthread_setname_np(*thread, name);
+#elif freebsd
+	pthread_set_name_np(*thread,name);
+#endif
+
+#endif
+
+	return result;
 }
 
 #endif	/*	End of #if defined bionic || uClibc			*/
@@ -2332,11 +2454,45 @@ static void	*_posixTasks(int *taskId, pthread_t *threadId, void **arg)
 		initialized = 1;
 	}
 
-	lockResource(&tasksLock);
+#if defined(bionic)
+
+	/*	Special case for bionic: need to clear the task
+	 *	table at ION shutdown, signaled by NULL taskId.		*/
+
+	if (taskId == NULL && threadId == NULL)
+	{
+		lockResource(&tasksLock);
+
+		/*	Let threads shut down properly.			*/
+
+		microsnooze(2500);
+
+		/*	Stop all tasks.					*/
+
+		for (i = 0, task = tasks; i < MAX_POSIX_TASKS; i++, task++)
+		{
+			if (task->inUse
+			&& task->threadId != 0
+			&& task->threadId != pthread_self())
+			{
+				writeMemo("[?] Task still running, sending \
+SIGTERM.");
+				pthread_kill(task->threadId, SIGTERM);
+			}
+		}
+
+		/*	Now reinitialize the task table.		*/
+
+		memset((char *) tasks, 0, sizeof tasks);
+		unlockResource(&tasksLock);
+		return NULL;
+	}
+#endif
 
 	/*	taskId must never be NULL; it is always needed.		*/
 
 	CHKNULL(taskId);
+	lockResource(&tasksLock);
 
 	/*	When *taskId is 0, processing depends on the value
 	 *	of threadID.  If threadId is NULL, then the task ID
@@ -2511,6 +2667,10 @@ int	sm_TaskExists(int taskId)
 		return 0;		/*	No such task.		*/
 	}
 
+#if defined(bionic)
+	return 1;			/*	Assume thread running.	*/
+#endif
+
 	/*	(Signal 0 in pthread_kill is rejected by RTEMS 4.9.)	*/
 
 	if (pthread_kill(threadId, SIGCONT) == 0)
@@ -2549,22 +2709,26 @@ void	sm_TaskYield()
 }
 
 #ifndef MAX_SPAWNS
+#if defined(bionic)
+#define	MAX_SPAWNS	16
+#else
 #define	MAX_SPAWNS	8
+#endif
 #endif
 
 typedef struct
 {
 	FUNCPTR	threadMainFunction;
-	int	arg1;
-	int	arg2;
-	int	arg3;
-	int	arg4;
-	int	arg5;
-	int	arg6;
-	int	arg7;
-	int	arg8;
-	int	arg9;
-	int	arg10;
+	saddr	arg1;
+	saddr	arg2;
+	saddr	arg3;
+	saddr	arg4;
+	saddr	arg5;
+	saddr	arg6;
+	saddr	arg7;
+	saddr	arg8;
+	saddr	arg9;
+	saddr	arg10;
 } SpawnParms;
 
 static void	*posixDriverThread(void *parm)
@@ -2589,6 +2753,10 @@ static void	*posixDriverThread(void *parm)
 	parms.threadMainFunction(parms.arg1, parms.arg2, parms.arg3,
 			parms.arg4, parms.arg5, parms.arg6,
 			parms.arg7, parms.arg8, parms.arg9, parms.arg10);
+#if defined(bionic)
+	int task_id = sm_TaskIdSelf();
+	sm_TaskForget(task_id);
+#endif
 	return NULL;
 }
 
@@ -2708,6 +2876,11 @@ void	sm_TaskDelete(int taskId)
 	}
 
 	oK(_posixTasks(&taskId, NULL, NULL));
+}
+
+void	sm_TasksClear()
+{
+	_posixTasks(NULL, NULL, NULL);
 }
 
 void	sm_Abort()
@@ -3036,7 +3209,12 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		char *arg9, char *arg10, int priority, int stackSize)
 {
 	int	pid;
-
+#ifdef VALGRIND_PROFILING
+	char	targ1[32];
+	char	targ2[32];
+	char	targ3[32];
+	char	targ4[32];
+#endif
 	CHKERR(name);
 
 	/*	Ignoring SIGCHLD signals causes the parent process
@@ -3054,9 +3232,38 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 
 	case 0:			/*	This is the child process.	*/
 		closeAllFileDescriptors();
+#ifdef VALGRIND_PROFILING
+		if (arg1)
+		{
+			istrcpy(targ1, arg1, sizeof targ1);
+			arg1 = targ1;
+		}
+
+		if (arg2)
+		{
+			istrcpy(targ2, arg2, sizeof targ2);
+			arg2 = targ2;
+		}
+
+		if (arg3)
+		{
+			istrcpy(targ3, arg3, sizeof targ3);
+			arg3 = targ3;
+		}
+
+		if (arg4)
+		{
+			istrcpy(targ4, arg4, sizeof targ4);
+			arg4 = targ4;
+		}
+
+		execlp("valgrind", "valgrind", "-tool=callgrind", name,
+				arg1, arg2, arg3, arg4,
+				arg7, arg8, arg9, arg10, NULL);
+#else
 		execlp(name, name, arg1, arg2, arg3, arg4, arg5, arg6,
 				arg7, arg8, arg9, arg10, NULL);
-
+#endif
 		/*	Can only get to this code if execlp fails.	*/
 
 		putSysErrmsg("Can't execute new process, exiting...", name);
@@ -3151,13 +3358,17 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 void	sm_ConfigurePthread(pthread_attr_t *attr, size_t stackSize)
 {
+#if (!defined(bionic))
 	struct sched_param	parms;
+#endif
 
 	CHKVOID(attr);
 	oK(pthread_attr_init(attr));
+#if (!defined(bionic))
 	oK(pthread_attr_setschedpolicy(attr, SCHED_FIFO));
 	parms.sched_priority = sched_get_priority_min(SCHED_FIFO);
 	oK(pthread_attr_setschedparam(attr, &parms));
+#endif
 	oK(pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE));
 	if (stackSize > 0)
 	{

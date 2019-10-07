@@ -23,14 +23,13 @@
 #include "sdrhash.h"
 #include "smrbt.h"
 
-#ifdef BPSEC
-#include "ext/bpsec/bpsec_instr.h"
+#ifdef SBSP
+#include "ext/sbsp/sbsp_instr.h"
 #endif
 
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
-#define	TYPICAL_STACK_OVERHEAD	36
 
 #define	BASE_BUNDLE_OVERHEAD	(sizeof(Bundle))
 
@@ -50,10 +49,10 @@
 
 #if defined(ORIGINAL_BSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 extern int	bsp_securityPolicyViolated(AcqWorkArea *wk);
-#elif defined(BPSEC)
-extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
+#elif defined(SBSP)
+extern int	sbsp_securityPolicyViolated(AcqWorkArea *wk);
 #endif
 
 /*	We hitchhike on the ZCO heap space management system to 
@@ -692,6 +691,8 @@ static void	dropEndpoint(VEndpoint *vpoint, PsmAddress vpointElt)
 	vpointAddr = sm_list_data(bpwm, vpointElt);
 	if (vpoint->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vpoint->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vpoint->semaphore);
 	}
 
@@ -806,6 +807,8 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 	vschemeAddr = sm_list_data(bpwm, vschemeElt);
 	if (vscheme->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vscheme->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vscheme->semaphore);
 	}
 
@@ -955,7 +958,7 @@ static void	waitForScheme(VScheme *vscheme)
 	{
 		while (sm_TaskExists(vscheme->fwdPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 
@@ -963,7 +966,7 @@ static void	waitForScheme(VScheme *vscheme)
 	{
 		while (sm_TaskExists(vscheme->admAppPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1058,6 +1061,8 @@ static void	dropPlan(VPlan *vplan, PsmAddress vplanElt)
 	vplanAddr = sm_list_data(bpwm, vplanElt);
 	if (vplan->semaphore != SM_SEM_NONE)
 	{
+		sm_SemEnd(vplan->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vplan->semaphore);
 	}
 
@@ -1094,7 +1099,7 @@ static void	waitForPlan(VPlan *vplan)
 	{
 		while (sm_TaskExists(vplan->clmPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1193,7 +1198,7 @@ static void	waitForInduct(VInduct *vduct)
 	{
 		while (sm_TaskExists(vduct->cliPid))
 		{
-			microsnooze(1000000);
+			microsnooze(100000);
 		}
 	}
 }
@@ -1211,7 +1216,6 @@ static void	resetOutduct(VOutduct *vduct)
 	}
 
 	sm_SemTake(vduct->semaphore);			/*	Lock.	*/
-	vduct->cloPid = ERROR;
 }
 
 static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
@@ -1249,6 +1253,7 @@ static int	raiseOutduct(Object outductElt, BpVdb *bpvdb)
 
 	vduct = (VOutduct *) psp(bpwm, addr);
 	memset((char *) vduct, 0, sizeof(VOutduct));
+	vduct->cloPid = ERROR;
 	vduct->outductElt = outductElt;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
@@ -1266,6 +1271,7 @@ static void	dropOutduct(VOutduct *vduct, PsmAddress vductElt)
 	if (vduct->semaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vduct->semaphore);
+		microsnooze(50000);
 		sm_SemDelete(vduct->semaphore);
 	}
 
@@ -1307,13 +1313,33 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
-	if (vduct->cloPid != ERROR)
+	microsnooze(100000);	/*	Maybe thread stops.		*/
+	if (vduct->hasThread)
 	{
-		while (sm_TaskExists(vduct->cloPid))
+		/*	Duct is drained by a thread rather than a
+		 *	process.  Wait until it stops.			*/
+
+		if (pthread_kill(vduct->cloThread, SIGCONT) == 0)
 		{
-			microsnooze(1000000);
+			pthread_join(vduct->cloThread, NULL);
 		}
+
+		vduct->hasThread = 0;
 	}
+
+	if (vduct->cloPid == ERROR)
+	{
+		return;
+	}
+
+	/*	Duct is being drained by a process.			*/
+
+	while (sm_TaskExists(vduct->cloPid))
+	{
+		microsnooze(100000);
+	}
+
+	vduct->cloPid = ERROR;
 }
 
 static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
@@ -1481,15 +1507,14 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
-		vdb->confirmedTransitSemaphore = SM_SEM_NONE;
-		vdb->provisionalTransitSemaphore = SM_SEM_NONE;
+		vdb->transitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
 		if ((vdb->schemes = sm_list_create(wm)) == 0
 		|| (vdb->plans = sm_list_create(wm)) == 0
 		|| (vdb->inducts = sm_list_create(wm)) == 0
 		|| (vdb->outducts = sm_list_create(wm)) == 0
-		|| (vdb->neighbors = sm_list_create(wm)) == 0
+		|| (vdb->discoveries = sm_list_create(wm)) == 0
 		|| (vdb->timeline = sm_rbt_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
@@ -1612,6 +1637,8 @@ int	bpInit()
 		bpdbBuf.protocols = sdr_list_create(bpSdr);
 		bpdbBuf.inducts = sdr_list_create(bpSdr);
 		bpdbBuf.outducts = sdr_list_create(bpSdr);
+		bpdbBuf.saga[0] = sdr_list_create(bpSdr);
+		bpdbBuf.saga[1] = sdr_list_create(bpSdr);
 		bpdbBuf.timeline = sdr_list_create(bpSdr);
 		bpdbBuf.bundles = sdr_hash_create(bpSdr,
 				BUNDLES_HASH_KEY_LEN,
@@ -1619,11 +1646,11 @@ int	bpInit()
 				BUNDLES_HASH_SEARCH_LEN);
 		bpdbBuf.inboundBundles = sdr_list_create(bpSdr);
 		bpdbBuf.limboQueue = sdr_list_create(bpSdr);
-		bpdbBuf.confirmedTransit = sdr_list_create(bpSdr);
-		bpdbBuf.provisionalTransit = sdr_list_create(bpSdr);
+		bpdbBuf.transit = sdr_list_create(bpSdr);
 		bpdbBuf.clockCmd = sdr_string_create(bpSdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(bpSdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
+		bpdbBuf.maxBundleCount = (unsigned int) -1;
 		bpdbBuf.sourceStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
 		bpdbBuf.discardStats = sdr_malloc(bpSdr, sizeof(BpCosStats));
@@ -1666,7 +1693,7 @@ int	bpInit()
 					sizeof(BpDbStats));
 		}
 
-		bpdbBuf.startTime = getUTCTime();
+		bpdbBuf.startTime = getCtime();
 		bpdbBuf.updateStats = 1;	/*	Default.	*/
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		sdr_catlg(bpSdr, _bpdbName(), 0, bpdbObject);
@@ -1680,7 +1707,7 @@ int	bpInit()
 
 	default:		/*	Found DB in the SDR.		*/
 		sdr_stage(bpSdr, (char *) &bpdbBuf, bpdbObject, sizeof(BpDB));
-		bpdbBuf.startTime = getUTCTime();
+		bpdbBuf.startTime = getCtime();
 		sdr_write(bpSdr, bpdbObject, (char *) &bpdbBuf, sizeof(BpDB));
 		if (sdr_end_xn(bpSdr))
 		{
@@ -1706,8 +1733,8 @@ int	bpInit()
 	}
 	else
 	{
-#ifdef BPSEC
-		bpsec_instr_init();
+#ifdef SBSP
+		sbsp_instr_init();
 #endif
 		writeMemo("[i] Bundle security is enabled.");
 	}
@@ -1753,7 +1780,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 
 	sm_list_destroy(wm, vdb->outducts, NULL, NULL);
-	sm_list_destroy(wm, vdb->neighbors, NULL, NULL);
+	sm_list_destroy(wm, vdb->discoveries, NULL, NULL);
 	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
 }
 
@@ -1833,15 +1860,12 @@ int	bpStart()
 	{
 		sdr_string_read(bpSdr, cmdString, (_bpConstants())->transitCmd);
 		bpvdb->transitPid = pseudoshell(cmdString);
-		bpvdb->confirmedTransitSemaphore = sm_SemCreate(SM_NO_KEY,
-				SM_SEM_FIFO);
-		bpvdb->provisionalTransitSemaphore = sm_SemCreate(SM_NO_KEY,
+		bpvdb->transitSemaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 
-		/*	Lock both transit semaphores.			*/
+		/*	Lock transit semaphore.			*/
 
-		sm_SemTake(bpvdb->confirmedTransitSemaphore);
-		sm_SemTake(bpvdb->provisionalTransitSemaphore);
+		sm_SemTake(bpvdb->transitSemaphore);
 	}
 
 	/*	Start forwarders and admin endpoints for all schemes.	*/
@@ -1892,8 +1916,8 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		nextElt;
 	Object		zco;
 
-#ifdef BPSEC
-	bpsec_instr_cleanup();
+#ifdef SBSP
+	sbsp_instr_cleanup();
 #endif
 
 	/*	Tell all BP processes to stop.				*/
@@ -1924,7 +1948,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		stopOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			stopOutduct(voutduct);
+		}
 	}
 
 	if (bpvdb->clockPid != ERROR)
@@ -1932,8 +1959,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
-	sm_SemEnd(bpvdb->confirmedTransitSemaphore);
-	sm_SemEnd(bpvdb->provisionalTransitSemaphore);
+	sm_SemEnd(bpvdb->transitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->transitPid, SIGTERM);
@@ -1968,7 +1994,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		waitForOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			waitForOutduct(voutduct);
+		}
 	}
 
 	if (bpvdb->clockPid != ERROR)
@@ -2017,7 +2046,10 @@ void	bpStop()		/*	Reverses bpStart.		*/
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		resetOutduct(voutduct);
+		if (!(voutduct->hasThread))
+		{
+			resetOutduct(voutduct);
+		}
 	}
 
 	/*	Clear out any partially received bundles, then exit.	*/
@@ -2120,7 +2152,7 @@ void	getCurrentDtnTime(DtnTime *dt)
 	time_t	currentTime;
 
 	CHKVOID(dt);
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	dt->seconds = currentTime - EPOCH_2000_SEC;	/*	30 yrs	*/
 	dt->nanosec = 0;
 }
@@ -2154,7 +2186,7 @@ Throttle	*applicableThrottle(VPlan *vplan)
 void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 		Scalar *totalBacklog)
 {
-	int		priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	int		priority = bundle->priority;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Throttle	*throttle;
@@ -2169,6 +2201,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 	findPlan(plan->neighborEid, &vplan, &vplanElt);
 	CHKVOID(vplanElt);
 	throttle = applicableThrottle(vplan);
+	CHKVOID(throttle);
 
 	/*	Prior claims on the first contact along this route
 	 *	must include however much transmission the plan
@@ -2255,7 +2288,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	/*	Priority is 2, i.e., urgent (expedited).		*/
 
-	if ((i = bundle->ancillaryData.ordinal) == 0)
+	if ((i = bundle->ordinal) == 0)
 	{
 		addToScalar(priorClaims, &(plan->urgentBacklog));
 		return;
@@ -2437,7 +2470,7 @@ static int	printCbheEid(char *schemeName, CbheEid *eid, char **result)
 	 * 	where xxx is either "ipn" or "imc" (multicast).
 	 *	So max EID string length is 3 for "xxx" plus 1 for
 	 *	':' plus max length of nodeNbr (which is a 64-bit
-	 *	number, so 20 digits) plus 1 for '.' plus max lengthx
+	 *	number, so 20 digits) plus 1 for '.' plus max length
 	 *	of serviceNbr (which is a 64-bit number, so 20 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
@@ -2625,7 +2658,7 @@ void	reportAllStateStats()
 	BpCosStats	xmitStats;
 	BpDbStats	dbStats;
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	writeTimestampLocal(currentTime, toTimestamp);
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
@@ -2759,8 +2792,7 @@ static int	destroyIncomplete(IncompleteBundle *incomplete, Object incElt)
 	return 0;
 }
 
-void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
-		BpPlan *plan)
+void	removeBundleFromQueue(Bundle *bundle, BpPlan *plan)
 {
 	Sdr		bpSdr = getIonsdr();
 	unsigned int	backlogDecrement;
@@ -2768,9 +2800,9 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 
 	/*	Removal from queue reduces plan's backlog.		*/
 
-	CHKVOID(bundle && bundleObj && planObj && plan);
+	CHKVOID(bundle && plan);
 	backlogDecrement = computeECCC(guessBundleSize(bundle));
-	switch (COS_FLAGS(bundle->bundleProcFlags) & 0x03)
+	switch (bundle->priority)
 	{
 	case 0:				/*	Bulk priority.		*/
 		reduceScalar(&(plan->bulkBacklog), backlogDecrement);
@@ -2781,7 +2813,7 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 		break;
 
 	default:			/*	Urgent priority.	*/
-		ord = &(plan->ordinals[bundle->ancillaryData.ordinal]);
+		ord = &(plan->ordinals[bundle->ordinal]);
 		reduceScalar(&(ord->backlog), backlogDecrement);
 		if (ord->lastForOrdinal == bundle->planXmitElt)
 		{
@@ -2791,13 +2823,13 @@ void	removeBundleFromQueue(Bundle *bundle, Object bundleObj, Object planObj,
 		reduceScalar(&(plan->urgentBacklog), backlogDecrement);
 	}
 
-	sdr_write(bpSdr, planObj, (char *) plan, sizeof(BpPlan));
+	/*	Removal from queue detaches queue from bundle.		*/
+
 	sdr_list_delete(bpSdr, bundle->planXmitElt, NULL, NULL);
 	bundle->planXmitElt = 0;
-	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 }
 
-static void	purgePlanXmitElt(Bundle *bundle, Object bundleObj)
+static void	purgePlanXmitElt(Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	queue;
@@ -2814,7 +2846,8 @@ static void	purgePlanXmitElt(Bundle *bundle, Object bundleObj)
 	}
 
 	sdr_stage(bpSdr, (char *) &plan, planObj, sizeof(BpPlan));
-	removeBundleFromQueue(bundle, bundleObj, planObj, &plan);
+	removeBundleFromQueue(bundle, &plan);
+	sdr_write(bpSdr, planObj, (char *) &plan, sizeof(BpPlan));
 }
 
 void	destroyBpTimelineEvent(Object timelineElt)
@@ -2924,7 +2957,7 @@ incomplete bundle.", NULL);
 
 		if (bundle.planXmitElt)
 		{
-			purgePlanXmitElt(&bundle, bundleObj);
+			purgePlanXmitElt(&bundle);
 		}
 
 		if (bundle.ductXmitElt)
@@ -2973,6 +3006,7 @@ incomplete bundle.", NULL);
 		bundle.custodyTaken = 0;
 		bundle.detained = 0;
 		bpDelTally(SrLifetimeExpired);
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 
 	/*	Check for any remaining constraints on deletion.	*/
@@ -3089,8 +3123,7 @@ incomplete bundle.", NULL);
 	}
 
 	sdr_free(bpSdr, bundleObj);
-	bpDiscardTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
-			bundle.payload.length);
+	bpDiscardTally(bundle.priority, bundle.payload.length);
 	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
 	return 0;
@@ -3413,6 +3446,13 @@ int	removeScheme(char *schemeName)
 	sdr_exit_xn(bpSdr);
 	waitForScheme(vscheme);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetScheme(vscheme);
 	schemeElt = vscheme->schemeElt;
 	addr = sdr_list_data(bpSdr, schemeElt);
@@ -3503,6 +3543,13 @@ void	bpStopScheme(char *name)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForScheme(vscheme);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findScheme(name, &vscheme, &vschemeElt);
+	if (vschemeElt == 0)
+	{
+		sdr_exit_xn(bpSdr);
+		return;
+	}
+
 	resetScheme(vscheme);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -3919,7 +3966,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	{
 		elt = sdr_list_insert_last(bpSdr, bpConstants->plans, addr);
 		sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
-		sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
+		sdr_list_user_data_set(bpSdr, bpConstants->plans, getCtime());
 
 		/*	Record plan's address in the "user data" of
 		 *	each queue so that we can easily navigate
@@ -3929,6 +3976,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 		sdr_list_user_data_set(bpSdr, planBuf.bulkQueue, addr);
 		sdr_list_user_data_set(bpSdr, planBuf.stdQueue, addr);
 		sdr_list_user_data_set(bpSdr, planBuf.urgentQueue, addr);
+		sdr_list_user_data_set(bpSdr, planBuf.ducts, addr);
 	}
 
 	if (sdr_end_xn(bpSdr) < 0 || elt == 0)
@@ -3980,7 +4028,7 @@ int	updatePlan(char *eidIn, unsigned int nominalRate)
 	sdr_stage(bpSdr, (char *) &planBuf, addr, sizeof(BpPlan));
 	planBuf.nominalRate = nominalRate;
 	sdr_write(bpSdr, addr, (char *) &planBuf, sizeof(BpPlan));
-	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
+	sdr_list_user_data_set(bpSdr, bpConstants->plans, getCtime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't update egress plan.", eid);
@@ -4000,6 +4048,7 @@ int	removePlan(char *eidIn)
 	Object		planElt;
 	Object		addr;
 	BpPlan		planBuf;
+	Object		elt;
 
 	CHKERR(eidIn);
 	if (filterEid(eid, eidIn) < 0)
@@ -4024,6 +4073,13 @@ int	removePlan(char *eidIn)
 	sdr_exit_xn(bpSdr);
 	waitForPlan(vplan);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetPlan(vplan);
 	planElt = vplan->planElt;
 	addr = sdr_list_data(bpSdr, planElt);
@@ -4046,17 +4102,33 @@ int	removePlan(char *eidIn)
 	/*	Then remove the plan's non-volatile state.		*/
 
 	sdr_list_delete(bpSdr, planElt, NULL, NULL);
+	while (1)
+	{
+		elt = sdr_list_first(bpSdr, planBuf.ducts);
+		if (elt == 0)
+		{
+			break;
+		}
+
+		/*	Each member of planBuf.ducts points to an
+		 *	outducts list element referencing an outduct.
+		 *	Detaching that outduct from this plan's list
+		 *	of outducts removes it from planBuf.ducts.	*/ 
+
+		oK(detachPlanDuct(sdr_list_data(bpSdr, elt)));
+	}
+
+	sdr_list_destroy(bpSdr, planBuf.ducts, NULL,NULL);
 	sdr_list_destroy(bpSdr, planBuf.bulkQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.stdQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, planBuf.urgentQueue, NULL,NULL);
-	sdr_list_destroy(bpSdr, planBuf.ducts, NULL,NULL);
 	if (planBuf.context)
 	{
 		sdr_free(bpSdr, planBuf.context);
 	}
 
 	sdr_free(bpSdr, addr);
-	sdr_list_user_data_set(bpSdr, bpConstants->plans, getUTCTime());
+	sdr_list_user_data_set(bpSdr, bpConstants->plans, getCtime());
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't remove egress plan.", NULL);
@@ -4108,6 +4180,13 @@ void	bpStopPlan(char *eid)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForPlan(vplan);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findPlan(eid, &vplan, &vplanElt);
+	if (vplanElt == 0)	/*	This is an unknown egress plan.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetPlan(vplan);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -4168,9 +4247,8 @@ int	setPlanViaEid(char *eid, char *viaEid)
 int	attachPlanDuct(char *eid, Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	char		ownEid[MAX_EID_LEN];
-			OBJ_POINTER(Outduct, outduct);
-			OBJ_POINTER(ClProtocol, protocol);
+	Object		outductObj;
+	Outduct		outduct;
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 			OBJ_POINTER(BpPlan, plan);
@@ -4178,6 +4256,16 @@ int	attachPlanDuct(char *eid, Object outductElt)
 	CHKERR(eid);
 	CHKERR(outductElt);
 	CHKERR(sdr_begin_xn(sdr));
+	outductObj = sdr_list_data(sdr, outductElt);
+	sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	if (outduct.planDuctListElt != 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Duct is already attached to a plan",
+				outduct.name);
+		return 0;
+	}
+
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -4186,81 +4274,45 @@ int	attachPlanDuct(char *eid, Object outductElt)
 		return 0;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
-	if (strncmp(vplan->neighborEid, ownEid, sizeof ownEid) == 0)
-	{
-		GET_OBJ_POINTER(sdr, Outduct, outduct, sdr_list_data(sdr,
-					outductElt));
-		GET_OBJ_POINTER(sdr, ClProtocol, protocol, outduct->protocol);
-		if (strcmp(protocol->name, "tcp") == 0)
-		{
-			sdr_exit_xn(sdr);
-			writeMemoNote("[?] No support for loopback TCPCL \
-at this time.  Maybe some day", outduct->name);
-			return 0;
-		}
-	}
-
 	GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, vplan->planElt));
-	sdr_list_insert_last(sdr, plan->ducts, outductElt);
+	outduct.planDuctListElt = sdr_list_insert_last(sdr, plan->ducts,
+			outductElt);
+	sdr_write(sdr, outductObj, (char *) &outduct, sizeof(Outduct));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't attach duct to plan.", eid);
+		putErrmsg("Can't attach duct to this plan.", eid);
 		return -1;
 	}
 
 	return 1;
 }
 
-int	detachPlanDuct(char *eid, Object outductElt)
+int	detachPlanDuct(Object outductElt)
 {
 	Sdr		sdr = getIonsdr();
-	VPlan		*vplan;
-	PsmAddress	vplanElt;
-	BpPlan		plan;
-	Object		elt;
+	Object		outductObj;
+	Outduct		outduct;
 
-	CHKERR(eid);
 	CHKERR(sdr_begin_xn(sdr));
-	findPlan(eid, &vplan, &vplanElt);
-	if (vplanElt == 0)
+	outductObj = sdr_list_data(sdr, outductElt);
+	sdr_stage(sdr, (char *) &outduct, outductObj, sizeof(Outduct));
+	if (outduct.planDuctListElt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown plan, can't detach duct", eid);
+		writeMemoNote("[?] Duct is not attached to any plan",
+				outduct.name);
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
-			sizeof(BpPlan));
-	if (outductElt == 0)
-	{
-		/*	Hack, pending support for multiple ducts.	*/
+	/*	Remove this duct from the duct list of the plan
+	 *	that the duct is attached to.				*/
 
-		elt = sdr_list_first(sdr, plan.ducts);
-	}
-	else
-	{
-		for (elt = sdr_list_first(sdr, plan.ducts); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			if (sdr_list_data(sdr, elt) == outductElt)
-			{
-				break;
-			}
-		}
-	}
-
-	if (elt == 0)	/*	No such duct was found.		*/
-	{
-		sdr_exit_xn(sdr);
-		return 0;
-	}
-
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	sdr_list_delete(sdr, outduct.planDuctListElt, NULL, NULL);
+	outduct.planDuctListElt = 0;
+	sdr_write(sdr, outductObj, (char *) &outduct, sizeof(Outduct));
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't detach duct from plan.", eid);
+		putErrmsg("Can't detach duct from its plan.", outduct.name);
 		return -1;
 	}
 
@@ -4517,11 +4569,14 @@ void	bpStopProtocol(char *name)
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		if (strcmp(voutduct->protocolName, name) == 0)
 		{
-			stopOutduct(voutduct);
-			sdr_exit_xn(bpSdr);
-			waitForOutduct(voutduct);
-			CHKVOID(sdr_begin_xn(bpSdr));
-			resetOutduct(voutduct);
+			if (!(voutduct->hasThread))
+			{
+				stopOutduct(voutduct);
+				sdr_exit_xn(bpSdr);
+				waitForOutduct(voutduct);
+				CHKVOID(sdr_begin_xn(bpSdr));
+				resetOutduct(voutduct);
+			}
 		}
 	}
 
@@ -4748,6 +4803,13 @@ int	removeInduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);
 	waitForInduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetInduct(vduct);
 	ductElt = vduct->inductElt;
 	addr = sdr_list_data(bpSdr, ductElt);
@@ -4816,6 +4878,13 @@ void	bpStopInduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForInduct(vduct);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findInduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetInduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -5088,35 +5157,6 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	return 1;
 }
 
-static void	detachFromAllPlans(Object outductElt)
-{
-	Sdr	sdr = getIonsdr();
-	Object	planElt;
-	Object	planObj;
-		OBJ_POINTER(BpPlan, plan);
-	Object	ductElt;
-	Object	attachedOutductElt;
-	Object	nextElt;
-
-	CHKVOID(ionLocked());
-	for (planElt = sdr_list_first(sdr, getBpConstants()->plans); planElt;
-			planElt = sdr_list_next(sdr, planElt))
-	{
-		planObj = sdr_list_data(sdr, planElt);
-		GET_OBJ_POINTER(sdr, BpPlan, plan, planObj);
-		for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
-				ductElt = nextElt)
-		{
-			nextElt = sdr_list_next(sdr, ductElt);
-			attachedOutductElt = sdr_list_data(sdr, ductElt);
-			if (attachedOutductElt == outductElt)
-			{
-				sdr_list_delete(sdr, ductElt, NULL, NULL);
-			}
-		}
-	}
-}
-
 int	removeOutduct(char *protocolName, char *ductName)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -5150,6 +5190,13 @@ int	removeOutduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);
 	waitForOutduct(vduct);
 	CHKERR(sdr_begin_xn(bpSdr));
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)		/*	Not found.		*/
+	{
+		sdr_exit_xn(bpSdr);
+		return 0;
+	}
+
 	resetOutduct(vduct);
 	outductElt = vduct->outductElt;
 	outductObj = sdr_list_data(bpSdr, outductElt);
@@ -5165,10 +5212,14 @@ int	removeOutduct(char *protocolName, char *ductName)
 		return -1;
 	}
 
-	/*	Then detach the outduct from every egress plan that 
-	 *	cites it.						*/
+	/*	Then detach the outduct from the egress plan that 
+	 *	cites it, if any.					*/
 
-	detachFromAllPlans(outductElt);
+	if (outduct.planDuctListElt)
+	{
+		sdr_list_delete(bpSdr, outduct.planDuctListElt, NULL, NULL);
+		outduct.planDuctListElt = 0;
+	}
 
 	/*	Can then remove the duct's volatile state.		*/
 
@@ -5242,6 +5293,13 @@ void	bpStopOutduct(char *protocolName, char *ductName)
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 	waitForOutduct(vduct);
 	CHKVOID(sdr_begin_xn(bpSdr));	/*	Just to lock memory.	*/
+	findOutduct(protocolName, ductName, &vduct, &vductElt);
+	if (vductElt == 0)	/*	This is an unknown duct.	*/
+	{
+		sdr_exit_xn(bpSdr);	/*	Unlock memory.		*/
+		return;
+	}
+
 	resetOutduct(vduct);
 	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
 }
@@ -5402,21 +5460,37 @@ static void	computeExpirationTime(Bundle *bundle)
 	unsigned int	usecConsumed;
 	struct timeval	timeRemaining;
 	struct timeval	expirationTime;
-	struct timeval	currentTime;
+
+	/*	Note: bundle creation time and expiration time are
+		DTN times, which are ctimes less EPOCH_2000_SEC.
+
+		Bundle arrival time is simply a ctime (Unix epoch time).
+
+		The events in the BP timeline are tagged by ctime.	*/
 
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
 		bundle->expirationTime = bundle->id.creationTime.seconds
 				+ bundle->timeToLive;
 	}
-	else	/*	Round remaining time to nearest second.		*/
+	else
 	{
-		/*	Default is current time (in EPOCH_2000,
-		 *	like bundle creation time).			*/
+		/*	Expiration time must be computed as the
+			current time plus the difference between
+			the bundle's time to live and the bundle's
+			current age.
 
-		bundle->expirationTime = getUTCTime() - EPOCH_2000_SEC;
+			(If the bundle's current age exceeds its time
+			to live then the bundle's expiration time has
+			already been reached: it is the current time.)
 
-		/*	Compute remaining lifetime for bundle.		*/
+			So initialize expiration time to the current
+			DTN time (ctime less the Epoch 2000 offset).	*/
+
+		bundle->expirationTime = getCtime() - EPOCH_2000_SEC;
+
+		/*	Compute remaining lifetime for bundle, by
+			subtracting bundle age from the bundle's TTL.	*/
 
 		timeRemaining.tv_sec = bundle->timeToLive;
 		timeRemaining.tv_usec = 0;
@@ -5441,8 +5515,10 @@ static void	computeExpirationTime(Bundle *bundle)
 
 		timeRemaining.tv_usec -= usecConsumed;
 
-		/*	Add remaining lifetime to arrival time,
-		 *	to get expiration time in local time scale.	*/
+		/*	Add remaining lifetime to bundle's arrival
+		 *	time (in ctime) to get expiration time in
+		 *	ctime, then subtract EPOCH_2000_SEC to convert 
+		 *	to DTN time.				.	*/
 
 		expirationTime.tv_sec = bundle->arrivalTime.tv_sec
 				+ timeRemaining.tv_sec;
@@ -5454,32 +5530,14 @@ static void	computeExpirationTime(Bundle *bundle)
 			expirationTime.tv_usec -= 1000000;
 		}
 
-		/*	Convert from local expiration time to UTC,
-		 *	by subtracting current time from local
-		 *	expiration time, rounding to the nearest
-		 *	second, and adding the rounded difference
-		 *	to the current UTC time.			*/
+		/*	Round expiration time to the nearest second.	*/
 
-		getCurrentTime(&currentTime);
-		if (expirationTime.tv_usec < currentTime.tv_usec)
-		{
-			if (expirationTime.tv_sec == 0)
-			{
-				return;
-			}
-
-			expirationTime.tv_usec += 1000000;
-			expirationTime.tv_sec -= 1;
-		}
-
-		expirationTime.tv_sec -= currentTime.tv_sec;
-		expirationTime.tv_usec -= currentTime.tv_usec;
 		if (expirationTime.tv_usec >= 500000)
 		{
 			expirationTime.tv_sec += 1;
 		}
 
-		bundle->expirationTime += expirationTime.tv_sec; 
+		bundle->expirationTime = expirationTime.tv_sec - EPOCH_2000_SEC;
 	}
 }
 
@@ -5566,10 +5624,6 @@ cannot be retrieved by key", bundleKey);
 		bset.count++;
 		sdr_write(sdr, bsetObj, (char *) &bset, sizeof(BundleSet));
 		bundle->hashEntry = hashElt;
-#if 0
-		writeMemoNote("[?] Bundle hash key is not unique; bundles \
-cannot be retrieved by key", bundleKey);
-#endif
 		break;
 
 	default:	/*	No such pre-existing entry.		*/
@@ -5794,7 +5848,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
 
-	if(bundle->corrupt == 1)
+	if (bundle->corrupt)
 	{
 		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
 	}
@@ -6144,8 +6198,8 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	Object		bpDbObject = getBpDbObject();
 	PsmPartition	bpwm = getIonwm();
 	BpDB		bpdb;
-	PsmAddress	neighborElt;
-	NdpNeighbor	*neighbor;
+	PsmAddress	discoveryElt;
+	Discovery	*discovery;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
@@ -6187,7 +6241,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
-	neighborElt = bp_discover_find_neighbor(destEidString);
+	discoveryElt = bp_find_discovery(destEidString);
 	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
@@ -6211,11 +6265,11 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 
 	/*	Prevent unnecessary NDP beaconing.			*/
 
-	if (neighborElt)
+	if (discoveryElt)
 	{
-		neighbor = (NdpNeighbor *) psp(bpwm, sm_list_data(bpwm,
-				neighborElt));
-		neighbor->lastContactTime = getUTCTime();
+		discovery = (Discovery *) psp(bpwm, sm_list_data(bpwm,
+				discoveryElt));
+		discovery->lastContactTime = getCtime();
 	}
 
 	/*	Set bundle processing flags.				*/
@@ -6388,6 +6442,7 @@ when asking for custody transfer and/or status reports.");
 
 	bundle.dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle.acct = ZcoOutbound;
+	bundle.priority = classOfService;	/*	Default.	*/
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
@@ -6479,6 +6534,11 @@ when asking for custody transfer and/or status reports.");
 		bundle.id.creationTime.seconds = 0;
 		sdr_stage(bpSdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 		bpdb.bundleCounter++;
+		if (bpdb.bundleCounter > bpdb.maxBundleCount)
+		{
+			bpdb.bundleCounter = 0;
+		}
+
 		bundle.id.creationTime.count = bpdb.bundleCounter;
 		sdr_write(bpSdr, bpDbObject, (char *) &bpdb, sizeof(BpDB));
 	}
@@ -6536,13 +6596,17 @@ when asking for custody transfer and/or status reports.");
 
 	if (ancillaryData)
 	{
-		bundle.ancillaryData.flowLabel = ancillaryData->flowLabel;
+		bundle.ancillaryData.dataLabel = ancillaryData->dataLabel;
 		bundle.ancillaryData.flags = ancillaryData->flags;
 		bundle.ancillaryData.ordinal = ancillaryData->ordinal;
 		bundle.ancillaryData.metadataType = ancillaryData->metadataType;
 		bundle.ancillaryData.metadataLen = ancillaryData->metadataLen;
 		memcpy(bundle.ancillaryData.metadata, ancillaryData->metadata,
 				sizeof bundle.ancillaryData.metadata);
+
+		/*	Default value of bundle's ordinal.		*/
+
+		bundle.ordinal = ancillaryData->ordinal;
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6612,7 +6676,7 @@ when asking for custody transfer and/or status reports.");
 				bundle.payload.length);
 	}
 
-	bpSourceTally(classOfService, bundle.payload.length);
+	bpSourceTally(bundle.priority, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
 		iwatch('a');
@@ -7280,19 +7344,9 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	/*	Queue the bundle for insertion into Outbound ZCO
 	 *	space.							*/
 
-	if (zco_is_provisional(bpSdr, bundle->payload.content))
-	{
-		bundle->transitElt = sdr_list_insert_last(bpSdr,
-				db->provisionalTransit, bundleObj);
-		sm_SemGive(vdb->provisionalTransitSemaphore);
-	}
-	else
-	{
-		bundle->transitElt = sdr_list_insert_last(bpSdr,
-				db->confirmedTransit, bundleObj);
-		sm_SemGive(vdb->confirmedTransitSemaphore);
-	}
-
+	bundle->transitElt = sdr_list_insert_last(bpSdr, db->transit,
+			bundleObj);
+	sm_SemGive(vdb->transitSemaphore);
 	sdr_write(bpSdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	releaseDictionary(dictionary);
 	return 0;
@@ -7500,7 +7554,7 @@ int	bpLoadAcq(AcqWorkArea *work, Object zco)
 }
 
 int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
-		ReqAttendant *attendant)
+		ReqAttendant *attendant, unsigned char priority)
 {
 	static unsigned int	acqCount = 0;
 	Sdr			sdr = getIonsdr();
@@ -7547,23 +7601,34 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	{
 		source = ZcoFileSource;
 		fileSpaceNeeded = length;
+
+		/*	We don't really need any heap space for the
+		 *	ZCO, but we do claim a need for 1 byte of heap
+		 *	space.  This is just to prevent the file space
+		 *	request from succeeding so long as heap space
+		 *	is fully occupied (i.e., available heap space
+		 *	is zero which is less than 1).			*/
+
+		heapSpaceNeeded = 1;
 	}
 
 	/*	Reserve space for new ZCO extent.			*/
 
 	if (ionRequestZcoSpace(ZcoInbound, fileSpaceNeeded, 0, heapSpaceNeeded,
-			0, 0, attendant, &ticket) < 0)
+			priority, 0, attendant, &ticket) < 0)
 	{
 		putErrmsg("Failed trying to reserve ZCO space.", NULL);
 		return -1;
 	}
 
-	if (ticket)		/*	Space not currently available.	*/
+	if (!(ionSpaceAwarded(ticket)))
 	{
+		/*	Space not currently available.			*/
+
 		if (attendant == NULL)	/*	Non-blocking.		*/
 		{
 			work->congestive = 1;
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;	/*	Out of ZCO space.	*/
 		}
 
@@ -7573,20 +7638,18 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sm_SemTake(attendant->semaphore) < 0)
 		{
 			putErrmsg("Failed taking attendant semaphore.", NULL);
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
-			ionShred(ticket);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return 0;
 		}
 
 		/*	ZCO space has now been reserved.		*/
-
-		ionShred(ticket);
 	}
 
 	/*	At this point, ZCO space is known to be available.	*/
@@ -7594,12 +7657,12 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	CHKERR(sdr_begin_xn(sdr));
 	if (work->zco == 0)	/*	First extent of acquisition.	*/
 	{
-		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound,
-				0);
+		work->zco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, ZcoInbound);
 		if (work->zco == (Object) ERROR)
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7609,6 +7672,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't start inbound bundle ZCO.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7642,6 +7706,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			case 0:
 				putErrmsg("Can't append heap extent.", NULL);
 				sdr_cancel_xn(sdr);
+				ionShred(ticket);	/*	Cancel.	*/
 				return -1;
 
 			default:
@@ -7652,9 +7717,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't acquire extent into heap.", NULL);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
+		ionShred(ticket);	/*	Dismiss reservation.	*/
 		return 0;
 	}
 
@@ -7667,17 +7734,19 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putErrmsg("Can't get CWD for acq file name.", NULL);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
 		acqCount++;
-		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u", cwd,
-				ION_PATH_DELIMITER, acqCount);
+		isprintf(fileName, sizeof fileName, "%s%cbpacq.%u.%u", cwd,
+				ION_PATH_DELIMITER, sm_TaskIdSelf(), acqCount);
 		fd = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 		if (fd < 0)
 		{
 			putSysErrmsg("Can't create acq file", fileName);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7689,6 +7758,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			putErrmsg("Can't create file ref.", NULL);
 			sdr_cancel_xn(sdr);
 			close(fd);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7701,6 +7771,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		{
 			putSysErrmsg("Can't reopen acq file", fileName);
 			sdr_cancel_xn(sdr);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 
@@ -7709,6 +7780,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 			putSysErrmsg("Can't get acq file length", fileName);
 			sdr_cancel_xn(sdr);
 			close(fd);
+			ionShred(ticket);	/*	Cancel request.	*/
 			return -1;
 		}
 	}
@@ -7718,6 +7790,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		putSysErrmsg("Can't append to acq file", fileName);
 		sdr_cancel_xn(sdr);
 		close(fd);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
@@ -7733,6 +7806,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	case 0:
 		putErrmsg("Can't append file extent.", NULL);
 		sdr_cancel_xn(sdr);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 
 	default:
@@ -7746,9 +7820,11 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't acquire extent into file.", NULL);
+		ionShred(ticket);		/*	Cancel request.	*/
 		return -1;
 	}
 
+	ionShred(ticket);	/*	Dismiss reservation.		*/
 	return 0;
 }
 
@@ -7872,6 +7948,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	extractSmallSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
+	bundle->priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
 
 	/*	Note status report information as necessary.		*/
 
@@ -7905,7 +7982,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	{
 		/*	Default bundle age, pending override by BAE.	*/
 
-		bundle->age = getUTCTime() - bundle->id.creationTime.seconds;
+		bundle->age = getCtime() - bundle->id.creationTime.seconds;
 	}
 	else
 	{
@@ -8455,8 +8532,9 @@ static char	*getCustodialSchemeName(Bundle *bundle)
 
 static void	initAuthenticity(AcqWorkArea *work)
 {
-	Sdr		bpSdr = getIonsdr();
 	Object		secdbObj;
+#ifdef ORIGINAL_BSP
+	Sdr		bpSdr = getIonsdr();
 			OBJ_POINTER(SecDB, secdb);
 	char		*custodialSchemeName;
 	VScheme		*vscheme;
@@ -8464,6 +8542,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 	Object		ruleAddr;
 	Object		elt;
 			OBJ_POINTER(BspBabRule, rule);
+#endif
 
 	work->authentic = work->allAuthentic;
 	if (work->authentic)		/*	Asserted by CL.		*/
@@ -8480,6 +8559,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 		return;
 	}
 
+#ifdef ORIGINAL_BSP
 	GET_OBJ_POINTER(bpSdr, SecDB, secdb, secdbObj);
 	if (sdr_list_length(bpSdr, secdb->bspBabRules) == 0)
 	{
@@ -8516,6 +8596,10 @@ static void	initAuthenticity(AcqWorkArea *work)
 			work->authentic = 1;	/*	Trusted node.	*/
 		}
 	}
+#else
+	work->authentic = 1;	/*	No BABs, check BIBs instead.	*/
+	return;
+#endif
 }
 
 static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
@@ -8566,6 +8650,22 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
 			work->headerLength, bundle->payload.length);
+
+	/*	Make sure all required security blocks are present.	*/
+
+	switch (reviewExtensionBlocks(work))
+	{
+	case -1:
+		putErrmsg("Failed reviewing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+
+	case 0:
+		writeMemo("[?] Malformed bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
@@ -8642,10 +8742,10 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 #if defined(ORIGINAL_BSP)
 	if (bsp_securityPolicyViolated(work))
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 	if (bsp_securityPolicyViolated(work))
-#elif defined(BPSEC)
-	if (bpsec_securityPolicyViolated(work))
+#elif defined(SBSP)
+	if (sbsp_securityPolicyViolated(work))
 #else
 	if(0)
 #endif
@@ -8812,8 +8912,7 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
-	bpRecvTally(COS_FLAGS(bundle->bundleProcFlags) & 0x03,
-			bundle->payload.length);
+	bpRecvTally(bundle->priority, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
 		iwatch('y');
@@ -9161,7 +9260,7 @@ static int	constructCtSignal(BpCtSignal *csig, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0,
-			0 - ctSignalLength, ZcoOutbound, 0);
+			0 - ctSignalLength, ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create CT signal.", NULL);
@@ -9442,7 +9541,7 @@ static int	constructStatusRpt(BpStatusRpt *rpt, Object *zco)
 	 *	ZCO space can never be denied or delayed.		*/
 
 	*zco = zco_create(bpSdr, ZcoSdrSource, sourceData, 0, 0 - rptLength,
-			ZcoOutbound, 0);
+			ZcoOutbound);
 	if (sdr_end_xn(bpSdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
 		putErrmsg("Can't create status report.", NULL);
@@ -9547,6 +9646,150 @@ static void	bpEraseStatusRpt(BpStatusRpt *rpt)
 	MRELEASE(rpt->sourceEid);
 }
 
+static void	deleteEncounter(LystElt elt, void *userdata)
+{
+	MRELEASE(lyst_data(elt));
+}
+
+static int	extractSagaSdnv(uvast *into, unsigned char **from, int *remnant)
+{
+	int	sdnvLength;
+
+	if (*remnant < 1)
+	{
+		return 0;
+	}
+
+	sdnvLength = decodeSdnv(into, *from);
+	if (sdnvLength < 1)
+	{
+		return 0;
+	}
+
+	(*from) += sdnvLength;
+	(*remnant) -= sdnvLength;
+	return sdnvLength;
+}
+
+static int	parseSagaMessage(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes)
+{
+	Lyst		encounters;
+	Encounter	*encounter;
+	uvast		value;
+
+	if (adminRecordType != BP_SAGA_MESSAGE)
+	{
+		return -2;
+	}
+
+	encounters = lyst_create_using(getIonMemoryMgr());
+	if (encounters == NULL)
+	{
+		putErrmsg("Can't create encounters lyst.", NULL);
+		return -1;
+	}
+
+	lyst_delete_set(encounters, deleteEncounter, NULL);
+	*otherPtr = (void *) encounters;
+
+	/*	First value in message is region number.		*/
+
+	if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+	{
+		putErrmsg("No region number in Saga message.", NULL);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	encounter = (Encounter *) MTAKE(sizeof(Encounter));
+	if (encounter == NULL)
+	{
+		putErrmsg("Can't create bogus encounter.", NULL);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	memset((char *) encounter, 0, sizeof(Encounter));
+	encounter->fromNode = value;
+	if (lyst_insert_last(encounters, encounter) == NULL)
+	{
+		putErrmsg("Can't post bogus encounter.", NULL);
+		MRELEASE(encounter);
+		lyst_destroy(encounters);
+		return -1;
+	}
+
+	/*	Now extract all encounters.				*/
+
+	while (unparsedBytes > 0)
+	{
+		encounter = (Encounter *) MTAKE(sizeof(Encounter));
+		if (encounter == NULL)
+		{
+			putErrmsg("Can't create encounter.", NULL);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		memset((char *) encounter, 0, sizeof(Encounter));
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->fromNode = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->toNode = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->fromTime = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->toTime = value;
+		if (extractSagaSdnv(&value, &cursor, &unparsedBytes) == 0)
+		{
+			putErrmsg("Incomplete encounter in Saga msg.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+
+		encounter->xmitRate = value;
+		if (lyst_insert_last(encounters, encounter) == NULL)
+		{
+			putErrmsg("Can't post encounter.", NULL);
+			MRELEASE(encounter);
+			lyst_destroy(encounters);
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
 static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 			BpCtSignal *csig, void **otherPtr, Object payload)
 {
@@ -9622,6 +9865,13 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 		}
 
 		result = parseImcPetition(*adminRecordType, otherPtr,
+				(unsigned char *) cursor, unparsedBytes);
+		if (result != -2)	/*	Parsed the record.	*/
+		{
+			break;
+		}
+
+		result = parseSagaMessage(*adminRecordType, otherPtr,
 				(unsigned char *) cursor, unparsedBytes);
 		if (result != -2)	/*	Parsed the record.	*/
 		{
@@ -10145,12 +10395,86 @@ int	bpAccept(Object bundleObj, Bundle *bundle)
 	return 0;
 }
 
-static Object	insertBundleIntoQueue(Object queue, Object lastElt,
-			Object bundleAddr, int priority,
+static void	noteFragmentation(Bundle *bundle)
+{
+	Sdr	sdr = getIonsdr();
+	Object	dbObject;
+	BpDB	db;
+
+	dbObject = getBpDbObject();
+	sdr_stage(sdr, (char *) &db, dbObject, sizeof(BpDB));
+	db.currentFragmentsProduced++;
+	db.totalFragmentsProduced++;
+	if (!(bundle->fragmented))
+	{
+		bundle->fragmented = 1;
+		db.currentBundlesFragmented++;
+		db.totalBundlesFragmented++;
+	}
+
+	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
+}
+
+int	bpFragment(Bundle *bundle, Object bundleObj,
+		Object *queueElt, size_t fragmentLength,
+		Bundle *firstBundle, Object *firstBundleObj,
+		Bundle *secondBundle, Object *secondBundleObj)
+{
+	Sdr	sdr = getIonsdr();
+
+	CHKERR(ionLocked());
+
+	/*	Create two clones of the original bundle with
+	 *	fragmentary payloads.					*/
+
+	if (bpClone(bundle, firstBundle, firstBundleObj, 0, fragmentLength) < 0
+	|| bpClone(bundle, secondBundle, secondBundleObj, fragmentLength,
+			bundle->payload.length - fragmentLength) < 0)
+	{
+		return -1;
+	}
+
+	/*	Lose the original bundle, inserting the two fragments
+	 *	in its place.  No significant change to resource
+	 *	occupancy.						*/
+
+	if (queueElt)
+	{
+		sdr_list_delete(sdr, *queueElt, NULL, NULL);
+		*queueElt = 0;
+	}
+
+	if (bundle->custodyTaken)
+	{
+		/*	Means that custody of the two clones is
+		 *	taken instead.					*/
+
+		releaseCustody(bundleObj, bundle);
+		bpCtTally(BP_CT_CUSTODY_ACCEPTED, firstBundle->payload.length);
+		bpCtTally(BP_CT_CUSTODY_ACCEPTED, secondBundle->payload.length);
+	}
+
+	/*	Destroy the original bundle.				*/
+
+	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	if (bpDestroyBundle(bundleObj, 0) < 0)
+	{
+		return -1;
+	}
+
+	/*	Note bundle has been fragmented, and return.		*/
+
+	noteFragmentation(secondBundle);
+	return 0;
+}
+
+static Object	insertBundleIntoQueue(Object queue, Object firstElt,
+			Object lastElt, Object bundleAddr, int priority,
 			unsigned char ordinal, time_t enqueueTime)
 {
 	Sdr	bpSdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
+	Object	nextElt;
 
 	/*	Bundles have transmission seniority which must be
 	 *	honored.  A bundle that was enqueued for transmission
@@ -10159,41 +10483,51 @@ static Object	insertBundleIntoQueue(Object queue, Object lastElt,
 	 *	were enqueued more recently.				*/
 
 	GET_OBJ_POINTER(bpSdr, Bundle, bundle, sdr_list_data(bpSdr, lastElt));
-	while (enqueueTime < bundle->enqueueTime)
+	if (enqueueTime < bundle->enqueueTime)
 	{
-		lastElt = sdr_list_prev(bpSdr, lastElt);
-		if (lastElt == 0)
-		{
-			break;		/*	Reached head of queue.	*/
-		}
+		/*	Must be re-enqueuing a previously queued
+		 *	bundle.						*/
 
-		GET_OBJ_POINTER(bpSdr, Bundle, bundle,
-				sdr_list_data(bpSdr, lastElt));
-		if (priority < 2)
+		nextElt = firstElt;
+		while (1)
 		{
-			continue;	/*	Don't check ordinal.	*/
-		}
+			if (nextElt == lastElt)
+			{
+				/*	Insert just before last elt.	*/
 
-		if (bundle->ancillaryData.ordinal > ordinal)
-		{
-			break;		/*	At head of subqueue.	*/
+				return sdr_list_insert_before(bpSdr, nextElt,
+						bundleAddr);
+			}
+
+			GET_OBJ_POINTER(bpSdr, Bundle, bundle,
+					sdr_list_data(bpSdr, nextElt));
+			if (enqueueTime < bundle->enqueueTime)
+			{
+				/*	Insert before this one.		*/
+
+				return sdr_list_insert_before(bpSdr, nextElt,
+						bundleAddr);
+			}
+
+			nextElt = sdr_list_next(bpSdr, nextElt);
 		}
 	}
 
-	if (lastElt)
-	{
-		return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
-	}
+	/*	Enqueue time >= last elt's enqueue time, so insert
+	 *	after the last elt.					*/
 
-	return sdr_list_insert_first(bpSdr, queue, bundleAddr);
+	return sdr_list_insert_after(bpSdr, lastElt, bundleAddr);
 }
 
 static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 			Object bundleObj, int backlogIncrement)
 {
-	unsigned char	ordinal = bundle->ancillaryData.ordinal;
+	Sdr		sdr = getIonsdr();
+	unsigned char	ordinal = bundle->ordinal;
 	OrdinalState	*ord = &(plan->ordinals[ordinal]);
-	Object		lastElt = 0;	// initialized to avoid warning
+	Object		lastElt = 0;
+	Object		lastForPriorOrdinal = 0;
+	Object		firstElt = 0;
 	int		i;
 	Object		xmitElt;
 
@@ -10201,24 +10535,48 @@ static Object	enqueueUrgentBundle(BpPlan *plan, Bundle *bundle,
 	 *	currently enqueued bundle whose ordinal is equal to
 	 *	or greater than that of the new bundle.			*/
 
-	for (i = ordinal; i < 256; i++)
+	for (i = 0; i < 256; i++)
 	{
 		lastElt = plan->ordinals[i].lastForOrdinal;
-		if (lastElt)
+		if (lastElt == 0)
 		{
-			break;
+			continue;
 		}
+
+		if (i < ordinal)
+		{
+			lastForPriorOrdinal = lastElt;
+			continue;
+		}
+
+		/*	i >= ordinal, so we have found the end of
+		 *	the applicable sub-list.  The first bundle
+		 *	after the last bundle of the last preceding
+		 *	non-empty sub-list (if any) must be the first
+		 *	bundle of the applicable sub-list.  (Possibly
+		 *	also the last.)					*/
+
+		if (lastForPriorOrdinal)
+		{
+			firstElt = sdr_list_next(sdr, lastForPriorOrdinal);
+		}
+		else
+		{
+			firstElt = lastElt;
+		}
+
+		break;
 	}
 
 	if (i == 256)	/*	No more urgent bundle to enqueue after.	*/
 	{
-		xmitElt = sdr_list_insert_first(getIonsdr(), plan->urgentQueue,
-				bundleObj);
+		xmitElt = sdr_list_insert_first(sdr, plan->urgentQueue,
+			bundleObj);
 	}
 	else		/*	Enqueue after this one.			*/
 	{
-		xmitElt = insertBundleIntoQueue(plan->urgentQueue, lastElt,
-				bundleObj, 2, ordinal, bundle->enqueueTime);
+		xmitElt = insertBundleIntoQueue(plan->urgentQueue, firstElt,
+			lastElt, bundleObj, 2, ordinal, bundle->enqueueTime);
 	}
 
 	if (xmitElt)
@@ -10303,7 +10661,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	backlogIncrement = computeECCC(guessBundleSize(bundle));
 	if (bundle->enqueueTime == 0)
 	{
-		bundle->enqueueTime = enqueueTime = getUTCTime();
+		bundle->enqueueTime = enqueueTime = getCtime();
 	}
 	else
 	{
@@ -10313,7 +10671,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	/*	Insert bundle into the appropriate transmission queue
 	 *	of the selected egress plan.				*/
 
-	priority = COS_FLAGS(bundle->bundleProcFlags) & 0x03;
+	priority = bundle->priority;
 	switch (priority)
 	{
 	case 0:
@@ -10327,6 +10685,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		{
 			bundle->planXmitElt =
 				insertBundleIntoQueue(plan.bulkQueue,
+				sdr_list_first(bpSdr, plan.bulkQueue),
 				lastElt, bundleObj, 0, 0, enqueueTime);
 		}
 
@@ -10344,6 +10703,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		{
 			bundle->planXmitElt =
 			       	insertBundleIntoQueue(plan.stdQueue,
+				sdr_list_first(bpSdr, plan.stdQueue),
 				lastElt, bundleObj, 1, 0, enqueueTime);
 		}
 
@@ -10414,17 +10774,16 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	return 0;
 }
 
-int	reverseEnqueue(Object xmitElt, Object planObj, BpPlan *plan,
-		int sendToLimbo)
+int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	bundleAddr;
 	Bundle	bundle;
 
-	CHKERR(xmitElt && planObj && plan);
+	CHKERR(xmitElt && plan);
 	bundleAddr = sdr_list_data(bpSdr, xmitElt);
 	sdr_stage(bpSdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
-	removeBundleFromQueue(&bundle, bundleAddr, planObj, plan);
+	removeBundleFromQueue(&bundle, plan);
 	if (bundle.proxNodeEid)
 	{
 		sdr_free(bpSdr, bundle.proxNodeEid);
@@ -10505,7 +10864,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue urgent bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10517,7 +10876,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue std bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10529,7 +10888,7 @@ int	bpBlockPlan(char *eid)
 			xmitElt = nextElt)
 	{
 		nextElt = sdr_list_next(bpSdr, xmitElt);
-		if (reverseEnqueue(xmitElt, planObj, &plan, 0))
+		if (reverseEnqueue(xmitElt, &plan, 0))
 		{
 			putErrmsg("Can't requeue bulk bundle.", NULL);
 			sdr_cancel_xn(bpSdr);
@@ -10592,7 +10951,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 		return -1;
 	}
 
-	return 0;
+	return 1;
 }
 
 int	bpUnblockPlan(char *eid)
@@ -10781,6 +11140,8 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	Bundle		bundle;
 	BundleSet	bset;
 	char		proxNodeEid[SDRSTRING_BUFSZ];
+	VPlan		*vplan;
+	PsmAddress	vplanElt;
 	DequeueContext	context;
 	char		*dictionary;
 
@@ -10812,7 +11173,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		sdr_exit_xn(bpSdr);
 		if (sm_SemTake(vduct->semaphore) < 0)
 		{
-			putErrmsg("CLO can't take duct semaphore.",
+			putErrmsg("CLO failed taking duct semaphore.",
 					vduct->ductName);
 			return -1;
 		}
@@ -10838,6 +11199,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	sdr_list_delete(bpSdr, bundle.ductXmitElt, NULL, NULL);
 	bundle.ductXmitElt = 0;
+	vduct->timeOfLastXmit = getCtime();
 	if (bundle.proxNodeEid)
 	{
 		sdr_string_read(bpSdr, proxNodeEid, bundle.proxNodeEid);
@@ -10849,11 +11211,35 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	context.protocolName = protocol->name;
 	context.proxNodeEid = proxNodeEid;
+	findPlan(proxNodeEid, &vplan, &vplanElt);
+	if (vplanElt)
+	{
+		context.xmitRate = vplan->xmitThrottle.nominalRate;
+	}
+	else
+	{
+		context.xmitRate = 0;
+	}
+
 	if (processExtensionBlocks(&bundle, PROCESS_ON_DEQUEUE, &context) < 0)
 	{
 		putErrmsg("Can't process extensions.", "dequeue");
 		sdr_cancel_xn(bpSdr);
 		return -1;
+	}
+
+	if (bundle.corrupt)
+	{
+		*bundleZco = 1;		/*	Client need not stop.	*/
+		sdr_write(bpSdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 1) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(bpSdr);
+			return -1;
+		}
+
+		return sdr_end_xn(bpSdr);
 	}
 
 	if (bundle.overdueElt)
@@ -10956,12 +11342,12 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		}
 	}
 
-	/*	Finally, if the bundle is anonymous then its key can
-	 *	never be guaranteed to be unique (because the sending
-	 *	EID that qualifies the creation time and sequence
-	 *	number is omitted), so the bundle can't reliably be
-	 *	retrieved via the hash table.  So again stewardship
-	 *	cannot be successfully accepted.			*/
+	/*	Last check: if the bundle is anonymous then its key
+	 *	can never be guaranteed to be unique (because the
+	 *	sending EID that qualifies the creation time and
+	 *	sequence number is omitted), so the bundle can't
+	 *	reliably be retrieved via the hash table.  So again
+	 *	stewardship cannot be successfully accepted.		*/
 
 	if (bundle.anonymous)
 	{
@@ -11046,7 +11432,7 @@ static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Shift buffer left by length of prior buffer.		*/
 
 	*bytesBuffered -= bytesParsed;
-	memcpy(buffer, buffer + bytesParsed, *bytesBuffered);
+	memmove(buffer, buffer + bytesParsed, *bytesBuffered);
 
 	/*	Now read from ZCO to fill the buffer space that was
 	 *	vacated.						*/
@@ -11111,6 +11497,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	sdnvLength = decodeSdnv(&longNumber, cursor);
 	image->bundleProcFlags = longNumber;
+	image->priority = COS_FLAGS(image->bundleProcFlags) & 0x03;
 	if (bufAdvance(sdnvLength, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -11423,7 +11810,7 @@ int	bpMemo(Object bundleObj, unsigned int interval)
 	CHKERR(bundleObj);
 	CHKERR(interval > 0);
 	event.type = ctDue;
-	event.time = getUTCTime() + interval;
+	event.time = getCtime() + interval;
 	event.ref = bundleObj;
 	CHKERR(sdr_begin_xn(bpSdr));
 	sdr_stage(bpSdr, (char *) &bundle, bundleObj, sizeof(Bundle));
@@ -11699,7 +12086,7 @@ int	bpReforwardBundle(Object bundleAddr)
 	purgeStationsStack(&bundle);
 	if (bundle.planXmitElt)
 	{
-		purgePlanXmitElt(&bundle, bundleAddr);
+		purgePlanXmitElt(&bundle);
 	}
 
 	if (bundle.ductXmitElt)
@@ -12051,6 +12438,98 @@ static int	handleEncapsulatedBundle(BpDelivery *dlv)
 	return 0;
 }
 
+static int	handleSagaMessage(Lyst encounters)
+{
+	Sdr		sdr = getIonsdr();
+	vast		regionNbr;
+	int		regionIdx;
+	LystElt		elt;
+	Encounter	*encounter;
+	BpDB		*bpConstants = getBpConstants();
+	Object		bundleElt;
+	Object		nextBundleElt;
+
+	/*	parseSagaMessage has created a Lyst of Encounter
+	 *	objects and stored the applicable region number in
+	 *	the fromNode field of a bogus Encounter object that
+	 *	is inserted at the front of the encounters Lyst.
+	 *
+	 *	Extract all encounters from the Lyst, insert them
+	 *	into the applicable local saga (discarding any
+	 *	duplicates), and destroy the Lyst.			*/
+
+	elt = lyst_first(encounters);
+	CHKERR(elt);
+	encounter = (Encounter *) lyst_data(elt);
+	regionNbr = encounter->fromNode;
+	regionIdx = ionPickRegion(regionNbr);
+	if (regionIdx < 0 || regionIdx > 1)
+	{
+		/*	This message is for a region of which the
+		 *	local node is not a member, so the message
+		 *	is not usable.					*/
+
+		lyst_destroy(encounters);
+		return 0;
+	}
+
+	elt = lyst_next(elt);
+	while (elt)
+	{
+		encounter = (Encounter *) lyst_data(elt);
+		saga_insert(encounter->fromTime, encounter->toTime,
+				encounter->fromNode, encounter->toNode,
+				encounter->xmitRate, regionIdx);
+		elt = lyst_next(elt);
+	}
+
+	lyst_destroy(encounters);
+
+	/*	Now call saga_receive to erase all existing predicted
+	 *	contacts and compute new (hopefully better and/or
+	 *	additional) ones.					*/
+
+	if (saga_receive(regionIdx) < 0)
+	{
+		putErrmsg("Can't process contact discovery msg from neighbor.",
+				NULL);
+		return -1;
+	}
+
+	/*	Finally, release all bundles from limbo, to take
+	 *	advantage of the new predicted contacts.		*/
+
+	for (bundleElt = sdr_list_first(sdr, bpConstants->limboQueue);
+			bundleElt; bundleElt = nextBundleElt)
+	{
+		nextBundleElt = sdr_list_next(sdr, bundleElt);
+		if (releaseFromLimbo(bundleElt, 0) < 0)
+		{
+			putErrmsg("Failed releasing bundle from limbo.", NULL);
+			return-1;
+		}
+	}
+
+	return 0;
+}
+
+static int	applySagaMessage(int adminRecType, void *other, BpDelivery *dlv)
+{
+	if (adminRecType != BP_SAGA_MESSAGE)
+	{
+		return -2;
+	}
+
+	/*	parseSagaMessage (called from parseAdminRecord)
+	 *	has created a Lyst of Encounter objects, stored
+	 *	the applicable regionIdx in the fromNode field of
+	 *	a bogus Encounter object that is inserted at the
+	 *	front of the Lyst, and placed the address of the
+	 *	Lyst in "other".					*/
+
+	return handleSagaMessage((Lyst) other);
+}
+
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		CtSignalCB handleCtSignal)
 {
@@ -12112,7 +12591,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 		}
 
 		switch (parseAdminRecord(&adminRecType, &rpt, &cts, &other,
-				dlv.adu))
+					dlv.adu))
 		{
 		case 1: 			/*	No problem.	*/
 			break;
@@ -12200,6 +12679,17 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt,
 			}
 
 			result = applyImcPetition(adminRecType, other, &dlv);
+			if (result != -2)	/*	Applied record.	*/
+			{
+				if (result < 0)
+				{
+					running = 0;
+				}
+
+				break;		/*	Out of switch.	*/
+			}
+
+			result = applySagaMessage(adminRecType, other, &dlv);
 			if (result != -2)	/*	Applied record.	*/
 			{
 				if (result < 0)

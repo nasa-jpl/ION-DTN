@@ -14,7 +14,7 @@ todo
 #ifndef _ECLSAFEEDBACK_H_
 #define _ECLSAFEEDBACK_H_
 
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 #include "../matrix/eclsaMatrix.h"
 
 /*Feedback */

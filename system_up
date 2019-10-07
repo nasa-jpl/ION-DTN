@@ -20,22 +20,25 @@ else
 	echo    ""
 fi
 	echo
-	echo "	-A			Run all checks without polling"
-	echo "	-W [time]		Run all checks with polling. Optional timeout time." 
+	echo "	-A				Run all checks without polling"
+	echo "	-W [time]			Run all checks with polling. Optional timeout time." 
 	echo
-	echo "	-i {p|w} [ion]		Determine if ion subsystem is running. Optional timeout ion."
-	echo "	-b {p|w} [bp]		Determine if bp subsystem is running. Optional timeout bp."
-	echo "	-l {p|w} [ltp]		Determine if ltp subsystem is running. Optional timeout ltp."
-	echo "	-D {p|w} [dtpc]		Determine if dtpc subsystem is running. Optional timeout dtpc."
+	echo "	-i \"{p|w} [ion]\"		Determine if ion subsystem is running. Optional timeout ion."
+	echo "	-b \"{p|w} [bp]\"		Determine if bp subsystem is running. Optional timeout bp."
+	echo "	-l \"{p|w} [ltp]\"		Determine if ltp subsystem is running. Optional timeout ltp."
+	echo "	-D \"{p|w} [dtpc]\"		Determine if dtpc subsystem is running. Optional timeout dtpc."
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
-	echo "	-c {p|w} [cfdp]		Determine if cfdp subsystem is running. Optional timeout cfdp"
+	echo "	-c \"{p|w} [cfdp]\"		Determine if cfdp subsystem is running. Optional timeout cfdp"
 fi
-#       echo "	-a {p|w} [acs]      	Determine if acs subsystem is running. Optional timeout acs."
-#	echo "	-m {p|w} [imc]		Determine if imc subsystem is running. Optional timeout imc."
-#	echo "	-p {p|w} [ipn]		Determine if ipn subsystem is running. Optional timeout ipn."
-#	echo "	-B {p|w} [bss]		Determine if bss subsystem is running. Optional timeout bss."
-#	echo "	-d {p|w} [dtn2]		Determine if dtn2 subsystem is running. Optional timeout dtn2."
-#	echo "	-s {p|w} [ionsec]	Determine if ionsec subsystem is running. Optional timeout ionsec."
+}
+
+function CHECK_ARGS {
+OPTARG_NUM=`echo "$1" | wc -w`
+if [ "$OPTARG_NUM" -gt 2 ]; then
+	echo "Illegal number of parameters = $OPTARG_NUM"
+	echo "See \"system_up -h\" for help"
+	exit 0
+fi
 }
 
 # check for all the options
@@ -78,35 +81,28 @@ while getopts ":AW:i:b:l:D:c:h" options; do
 				ret_val=$((ret_val+=$?))
 			fi;;
 		i ) 	echo "Now checking ion"
+			CHECK_ARGS $OPTARG
 			echo "t ${OPTARG}" | ionadmin
 			ret_val=$((ret_val+=$?));;
 		b ) 	echo "Now checking bp"
+			CHECK_ARGS $OPTARG
 			echo "t ${OPTARG}" | bpadmin
 			ret_val=$((ret_val+=$?));;
 		l ) 	echo "Now checking ltp"
+			CHECK_ARGS $OPTARG
 			echo "t ${OPTARG}" | ltpadmin
 			ret_val=$((ret_val+=$?));;
 		D ) 	echo "Now checking dtpc"
+			CHECK_ARGS $OPTARG
 			echo "t ${OPTARG}" | dtpcadmin
 			ret_val=$((ret_val+=$?));;
 		c )	if [ "$ION_OPEN_SOURCE" == "1" ]; then
 				echo "Now checking cfdp"
+				CHECK_ARGS $OPTARG
 				echo "t ${OPTARG}" | cfdpadmin
 				ret_val=$((ret_val+=$?))
 			fi
 			;;
-#		a )     echo "Now checking acs"
-#        		echo "t ${ACS}" | acsadmin;;
-#		m ) 	echo "Now checking imc"
-#        		echo "t ${IMC}" | imcadmin";;
-#		p ) 	echo "Now checking ipn"
-#			echo "t ${IPN}" | ipnadmin;;
-#		B ) 	echo "Now checking bss"
-#        		echo "t ${BSS}" | bssadmin;;
-#		d ) 	echo "Now checking dtn2"
-#			echo "t ${DTN2}" | dtn2admin ${DTN2NODE};;
-#		s ) 	echo "Now checking ionsec"
-#			echo "t ${IONSEC}" | ionsecadmin;;
 		h ) USAGE
 			exit 1;;
 		\? ) USAGE

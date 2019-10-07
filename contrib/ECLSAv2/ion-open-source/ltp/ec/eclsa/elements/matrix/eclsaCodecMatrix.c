@@ -2,6 +2,7 @@
  eclsaCodecMatrix.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+  	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
  Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -11,6 +12,8 @@ todo
 
  * */
 #include "eclsaCodecMatrix.h"
+#include "../sys/eclsaLogger.h"
+#include "../sys/eclsaMemoryManager.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -19,33 +22,49 @@ void codecMatrixInit(CodecMatrix **codecMatrix,int N,int T)
 {
 	CodecMatrix *res;
 	int j;
+
+	if ( codecMatrix == NULL )
+		{
+		debugPrint("Error on creating codewordBox[ %d x %d ]: pointer is NULL");
+		return;
+		}
+
 	debugPrint("creating codewordBox[ %d x %d ]",N,T);
-	res = malloc(sizeof(CodecMatrix));
-	res->codewordBox=(uint8_t **)calloc(N,sizeof(uint8_t *));
-	for(j=0;j<N;j++)
-		res->codewordBox[j]=(uint8_t *)calloc(T,sizeof(uint8_t));
-	res->symbolStatus=(uint8_t *)calloc(N,sizeof(uint8_t));
+	res = (CodecMatrix*) allocateElement(sizeof(CodecMatrix));
+	if ( res != NULL )
+		{
+		res->rows=N;
+		res->cols=T;
+		res->codewordBox = (uint8_t**) allocateMatrix(sizeof(uint8_t), res->rows, res->cols);
+		res->symbolStatus = (uint8_t*) allocateVector(sizeof(uint8_t), res->rows);
+		if ( res->codewordBox == NULL || res->symbolStatus == NULL ) 	// one alloc went wrong
+			{
+			deallocateMatrix(&(res->codewordBox), res->rows); 	// free the matrix (could be allocated)
+			deallocateVector(&(res->symbolStatus));			// free the vector (could be allocated)
+			deallocateElement(&(res));						// free the res
+			res = NULL;
+			}
+		}
 	*codecMatrix=res;
 }
-void codecMatrixDestroy(CodecMatrix *codecMatrix,int N)
+void codecMatrixDestroy(CodecMatrix *codecMatrix)
 {
 	int j;
-	for(j=0;j<N;j++)
-		free(codecMatrix->codewordBox[j]);
 
-	free(codecMatrix->codewordBox);
-	free(codecMatrix->symbolStatus);
-	free(codecMatrix);
+	if ( codecMatrix == NULL )
+		return;
+
+	deallocateMatrix(&(codecMatrix->codewordBox), codecMatrix->rows);
+	deallocateVector(&(codecMatrix->symbolStatus));
+	deallocateElement(&(codecMatrix));
 }
-bool addSymbolToCodecMatrix(CodecMatrix *codecMatrix,int symbolID, char *buffer,int bufferLength,unsigned char copyLenght)
+bool addSymbolToCodecMatrix(CodecMatrix *codecMatrix,int symbolID, char *buffer,int bufferLength,bool copyLenght)
 {
 	// Each segment is a symbol
 	uint16_t segmentLength; //2Byte
 
 	if(codecMatrix->symbolStatus[symbolID]==1) //segment already in matrix
-		{
 		return false;
-		}
 
 	if(copyLenght)
 		{
@@ -68,13 +87,17 @@ char *getSymbolFromCodecMatrix(CodecMatrix *codecMatrix,unsigned int symbolID)
 {
 	return (char *)codecMatrix->codewordBox[symbolID];
 }
-void flushCodecMatrix(CodecMatrix *codecMatrix,int N,int T)
+void flushCodecMatrix(CodecMatrix *codecMatrix)
 {
 	int i;
+
+	if ( codecMatrix == NULL )
+		return;
+
 	// flushing codecMatrix
-	memset(codecMatrix->symbolStatus	, 0, sizeof(uint8_t)*N);
-	for(i=0;i<N;i++)
-		memset(codecMatrix->codewordBox[i], 0, sizeof(uint8_t)*T);
+	memset(codecMatrix->symbolStatus	, 0, sizeof(uint8_t)*codecMatrix->rows);
+	for(i=0;i<codecMatrix->rows;i++)
+		memset(codecMatrix->codewordBox[i], 0, sizeof(uint8_t)*codecMatrix->cols);
 	// end of flushing codecMatrix
 }
 bool isValidSymbol(CodecMatrix *codecMatrix, int symbolID)

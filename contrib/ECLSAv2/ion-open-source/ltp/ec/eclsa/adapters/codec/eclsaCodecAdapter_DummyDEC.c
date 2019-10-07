@@ -91,7 +91,7 @@ int  decodeCodecMatrix(CodecMatrix *codecMatrix,FecElement *encodingCode,int pad
 	}
 
 /**/
-char convertToUniversalCodecStatus(char codecStatus)
+char convertToAbstractCodecStatus(char codecStatus)
 {
 return  codecStatus;
 }

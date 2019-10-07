@@ -29,7 +29,7 @@ typedef struct
 	Address		userData;
 	Object		first;	/*	first element in the list	*/
 	Object		last;	/*	last element in the list	*/
-	unsigned long   length;	/*	number of elements in the list	*/
+	size_t		length;	/*	number of elements in the list	*/
 } SdrList;
 
 typedef struct
@@ -157,7 +157,7 @@ void	Sdr_list_user_data_set(const char *file, int line, Sdr sdrv,
 	sdrPut((Address) list, listBuffer);
 }
 
-long	sdr_list_length(Sdr sdrv, Object list)
+size_t	sdr_list_length(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 

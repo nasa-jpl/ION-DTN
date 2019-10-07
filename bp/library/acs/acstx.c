@@ -561,9 +561,9 @@ int trySendAcs(SdrAcsPendingCust *custodian,
 	{
 		timelineEvent.type = csDue;
 		if(custodian->acsDelay == 0) {
-			timelineEvent.time = getUTCTime() + DEFAULT_ACS_DELAY;
+			timelineEvent.time = getCtime() + DEFAULT_ACS_DELAY;
 		} else {
-			timelineEvent.time = getUTCTime() + custodian->acsDelay;
+			timelineEvent.time = getCtime() + custodian->acsDelay;
 		}
 		timelineEvent.ref  = signalLElt;
 		signal.acsDue = insertBpTimelineEvent(&timelineEvent);

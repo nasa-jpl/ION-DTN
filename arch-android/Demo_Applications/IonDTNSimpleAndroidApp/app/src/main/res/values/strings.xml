@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">IonDTNSimpleAndroidApp</string>
+    <string name="textSendButton">Send</string>
+    <string name="button_label_sendingto">Sending to</string>
+    <string name="button_label_destination_eid">Destination EID (for eg. ipn:2.2)</string>
+    <string name="button_label_send">Send</string>
+    <string name="editText_label_sink_identifier">Sink Identifier (for eg. ipn:1.2)</string>
+    <string name="received_field_initial_value">Received:</string>
+    <string name="button_label_receivingat">Receiving at</string>
+    <string name="button_label_open">Open Endpoint</string>
+    <string name="button_label_close">Close Endpoint</string>
+</resources>
+

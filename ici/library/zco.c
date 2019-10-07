@@ -33,12 +33,12 @@ static const char	*bookNames[] = { "inbound", "outbound" };
 
 typedef struct
 {
-	vast		fileOccupancy;
-	vast		maxFileOccupancy;
-	vast		bulkOccupancy;
-	vast		maxBulkOccupancy;
-	vast		heapOccupancy;
-	vast		maxHeapOccupancy;
+	double		fileOccupancy;
+	double		maxFileOccupancy;
+	double		bulkOccupancy;
+	double		maxBulkOccupancy;
+	double		heapOccupancy;
+	double		maxHeapOccupancy;
 } ZcoBook;
 
 typedef struct
@@ -146,14 +146,6 @@ typedef struct
 	vast		totalLength;		/*	incl. capsules	*/
 
 	ZcoAcct		acct;
-
-	/*	A ZCO is flagged "provisional" if it occupies non-
-	 *	Restricted Inbound ZCO space.  This space is a critical
-	 *	resource, so the ZCO is subject to destruction if it
-	 *	cannot be immediately relocated to the Outbound space
-	 *	pool.							*/
-
-	unsigned char	provisional;		/*	Boolean		*/
 } Zco;
 
 static char	*_badArgsMemo()
@@ -177,17 +169,17 @@ static Object	getZcoDB(Sdr sdr)
 			if (obj)	/*	Must initialize.	*/
 			{
 				db.books[0].fileOccupancy = 0;
-				db.books[0].maxFileOccupancy = LONG_MAX;
+				db.books[0].maxFileOccupancy = 1.0e12;
 				db.books[0].bulkOccupancy = 0;
-				db.books[0].maxBulkOccupancy = LONG_MAX;
+				db.books[0].maxBulkOccupancy = 1.0e12;
 				db.books[0].heapOccupancy = 0;
-				db.books[0].maxHeapOccupancy = LONG_MAX;
+				db.books[0].maxHeapOccupancy = 1.0e12;
 				db.books[1].fileOccupancy = 0;
-				db.books[1].maxFileOccupancy = LONG_MAX;
+				db.books[1].maxFileOccupancy = 1.0e12;
 				db.books[1].bulkOccupancy = 0;
-				db.books[1].maxBulkOccupancy = LONG_MAX;
+				db.books[1].maxBulkOccupancy = 1.0e12;
 				db.books[1].heapOccupancy = 0;
-				db.books[1].maxHeapOccupancy = LONG_MAX;
+				db.books[1].maxHeapOccupancy = 1.0e12;
 				sdr_write(sdr, obj, (char*) &db, sizeof(ZcoDB));
 				sdr_catlg(sdr, dbName, 0, obj);
 			}
@@ -216,17 +208,17 @@ void	zco_status(Sdr sdr)
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	for (i = 0, book = db->books; i < 2; i++, book++)
 	{
-		isprintf(buffer, sizeof buffer, "[i] %s file  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->fileOccupancy,
-				book->maxFileOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s file  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxFileOccupancy, book->fileOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s bulk  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->bulkOccupancy,
-				book->maxBulkOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s bulk  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxBulkOccupancy, book->bulkOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s heap  current: "
-VAST_FIELDSPEC "  max: " VAST_FIELDSPEC, bookNames[i], book->heapOccupancy,
-				book->maxHeapOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s heap  max: "
+VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
+				book->maxHeapOccupancy, book->heapOccupancy);
 		writeMemo(buffer);
 	}
 }
@@ -304,7 +296,7 @@ writeMemo(buf);
 	}
 }
 
-vast	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -324,7 +316,7 @@ vast	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 	}
 }
 
-void	zco_set_max_file_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+void	zco_set_max_file_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 {
 	Object	obj;
 	ZcoDB	db;
@@ -342,7 +334,7 @@ void	zco_set_max_file_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
 	}
 }
 
-vast	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -432,7 +424,7 @@ writeMemo(buf);
 	}
 }
 
-vast	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -452,7 +444,7 @@ vast	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 	}
 }
 
-void	zco_set_max_bulk_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+void	zco_set_max_bulk_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 {
 	Object	obj;
 	ZcoDB	db;
@@ -470,7 +462,7 @@ void	zco_set_max_bulk_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
 	}
 }
 
-vast	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -564,7 +556,7 @@ writeMemo(buf);
 	}
 }
 
-vast	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -584,7 +576,7 @@ vast	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 	}
 }
 
-void	zco_set_max_heap_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+void	zco_set_max_heap_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 {
 	Object	obj;
 	ZcoDB	db;
@@ -602,7 +594,7 @@ void	zco_set_max_heap_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
 	}
 }
 
-vast	zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -980,9 +972,9 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
-	vast	fileSpaceAvbl;
-	vast	bulkSpaceAvbl;
-	vast	heapSpaceAvbl;
+	double	fileSpaceAvbl;
+	double	bulkSpaceAvbl;
+	double	heapSpaceAvbl;
 
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -1154,9 +1146,9 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 	Object		obj;
 			OBJ_POINTER(ZcoDB, db);
 	ZcoBook		*book;
-	vast		fileSpaceAvbl;
-	vast		bulkSpaceAvbl;
-	vast		heapSpaceAvbl;
+	double		fileSpaceAvbl;
+	double		bulkSpaceAvbl;
+	double		heapSpaceAvbl;
 
 	zco_get_aggregate_length(sdr, location, offset, length, 
 			&fileSpaceNeeded, &bulkSpaceNeeded, &heapSpaceNeeded);
@@ -1620,7 +1612,7 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 
 Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 		Object firstExtentLocation, vast firstExtentOffset,
-		vast firstExtentLength, ZcoAcct acct, unsigned char provisional)
+		vast firstExtentLength, ZcoAcct acct)
 {
 	Object	zcoObj;
 	Zco	zco;
@@ -1728,7 +1720,6 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 	zco_increase_heap_occupancy(sdr, sizeof(Zco), acct);
 	memset((char *) &zco, 0, sizeof(Zco));
 	zco.acct = acct;
-	zco.provisional = provisional;
 	sdr_write(sdr, zcoObj, (char *) &zco, sizeof(Zco));
 	if (firstExtentLocation)
 	{
@@ -2471,8 +2462,7 @@ Object	zco_clone(Sdr sdr, Object fromZcoObj, vast offset, vast length)
 	CHKZERO(offset >= 0);
 	CHKZERO(length > 0);
 	sdr_read(sdr, (char *) &fromZco, fromZcoObj, sizeof(Zco));
-	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct,
-			fromZco.provisional);
+	toZcoObj = zco_create(sdr, 0, 0, 0, 0, fromZco.acct);
 	if (toZcoObj == (Object) ERROR)
 	{
 		putErrmsg("Can't create clone ZCO.", NULL);
@@ -2854,16 +2844,6 @@ ZcoAcct	zco_acct(Sdr sdr, Object zcoObj)
 	CHKZERO(zcoObj);
 	GET_OBJ_POINTER(sdr, Zco, zco, zcoObj);
 	return zco->acct;
-}
-
-int	zco_is_provisional(Sdr sdr, Object zcoObj)
-{
-		OBJ_POINTER(Zco, zco);
-
-	CHKZERO(sdr);
-	CHKZERO(zcoObj);
-	GET_OBJ_POINTER(sdr, Zco, zco, zcoObj);
-	return zco->provisional;
 }
 
 static int	copyFromSource(Sdr sdr, char *buffer, SourceExtent *extent,

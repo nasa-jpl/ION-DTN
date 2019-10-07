@@ -73,7 +73,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	startTime = bpdb.resetTime;
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	switch (stateIdx)
 	{
 	case 0:

@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 #ifndef CLOSED_EXPORTS_ENABLED
-#define	CLOSED_EXPORTS_ENABLED	1
+#define	CLOSED_EXPORTS_ENABLED	0
 #endif
 
 #ifndef BURST_SIGNALS_ENABLED
@@ -244,12 +244,14 @@ typedef struct
 	int		redPartLength;
 	int		redPartReceived;
 	unsigned char	endOfBlockRecd;	/*	Boolean.		*/
+	unsigned char	delivered;	/*	Boolean.		*/
+	unsigned char	finalRptAcked;	/*	Boolean.		*/
 	LtpTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		redSegments;	/*	SDR list of LtpRecvSegs	*/
 	Object		rsSegments;	/*	SDR list of LtpXmitSegs	*/
 	unsigned int	nextRptSerialNbr;
-	unsigned int	lastRptSerialNbr;
+	unsigned int	finalRptSerialNbr;
 	int		maxReports;	/*	Limits # of reports.	*/
 	int		reportsCount;
 
@@ -257,8 +259,7 @@ typedef struct
 
 	uvast		heapBufferSize;
 	Object		heapBufferObj;
-	Object		blockObjRef;
-	uvast		blockObjSize;
+	uvast		heapBufferBytes;
 	char		fileBufferPath[256];
 	Object		blockFileRef;
 	uvast		blockFileSize;
@@ -281,6 +282,18 @@ typedef struct
 	Object		sessionElt;	/*	Ref. to ImportSession.	*/
 	PsmAddress	redSegmentsIdx;	/*	RBT of LtpSegmentRefs	*/
 } VImportSession;
+
+/*	A Deliverable is a work item for ltpinput.  It identifies an
+ *	input session that is now complete and ready to be delivered
+ *	to the client system (normally ltpcli, in Bundle Protoco),
+ *	i.e., a requirement to acquire inbound ZCO space.		*/
+
+typedef struct
+{
+	unsigned int	clientSvcId;
+	uvast		sourceEngineId;	/*	ID of remote engine.	*/
+	unsigned int	sessionNbr;
+} Deliverable;
 
 /*	An LtpCkpt is a reference to an export session redSegment that
  *	is a transmission checkpoint.  The list of LtpCheckpoints
@@ -316,7 +329,7 @@ typedef struct
 	int		maxCheckpoints;	/*	Limits # of ckpoints.	*/
 	Object		checkpoints;	/*	SDR list of LtpCkpts	*/
 	Object		rsSerialNbrs;	/*	SDR list of serial nbrs	*/
-	unsigned int	lastCkptSerialNbr;
+	unsigned int	prevCkptSerialNbr;
 
 	/*	Segments are retained in these lists only up to the
 	 *	time of initial transmission, and only to support
@@ -340,6 +353,7 @@ typedef struct
 	Object		span;		/*	sending span address	*/
 	unsigned int	sessionNbr;	/*	identifies session	*/
 	int		responseLimit;	/*	Defense against DOS.	*/
+	Object		timeout;	/*	timeline event list elt	*/
 } ClosedExport;
 #endif
 
@@ -367,6 +381,12 @@ typedef struct
 	LtpEventType	type;
 } LtpEvent;
 
+typedef struct
+{
+	Object		segAddr;
+	unsigned int	sessionNbr;
+} XmitSegRef;
+
 /* Span structure characterizing the communication span between the
  * local engine and some remote engine.  Note that a single LTP span
  * might be serviced by multiple communication links, e.g., simultaneous
@@ -381,6 +401,7 @@ typedef struct
 	Object		lsoCmd;		/*	For starting the LSO.	*/
 	unsigned int	maxExportSessions;
 	unsigned int	maxImportSessions;
+	unsigned int	importBufferCount;
 	unsigned int	aggrSizeLimit;	/*	Bytes.			*/
 	unsigned int	aggrTimeLimit;	/*	Seconds.		*/
 	unsigned int	maxSegmentSize;	/*	MTU size, in bytes.	*/
@@ -394,8 +415,19 @@ typedef struct
 	unsigned int	clientSvcIdOfBufferedBlock;
 
 	Object		exportSessions;	/*	SDR list: ExportSession	*/
-	Object		segments;	/*	SDR list: LtpXmitSeg	*/
+
+	/*	Note: any given export session may be in the
+	 *	exportSessions list (and the LtpDB.exportSessionsHash)
+	 *	or in the LtpDB.deadExports list, but not both.		*/
+
+	Object		segments;	/*	SDR list: XmitSegRef	*/
+	Object		importBuffers;	/*	SDR list: Object	*/
 	Object		importSessions;	/*	SDR list: ImportSession	*/
+
+	/*	Note: any given import session may be in the
+	 *	importSessions list (and hash) or in the deadImports
+	 *	list, but not both.					*/
+
 	Object		importSessionsHash;
 	Object		closedImports;	/*	SDR list: session nbr	*/
 	Object		deadImports;	/*	SDR list: ImportSession	*/
@@ -410,25 +442,27 @@ typedef struct
 #define	NEG_RPT_RECV		4
 #define	EXPORT_CANCEL_RECV	5
 #define	CKPT_RE_XMIT		6
-#define	EXPORT_CANCEL_XMIT	7
-#define	EXPORT_COMPLETE		8
-#define	CKPT_RECV		9
-#define	POS_RPT_XMIT		10
-#define	NEG_RPT_XMIT		11
-#define	IMPORT_CANCEL_RECV	12
-#define	RPT_RE_XMIT		13
-#define	IMPORT_CANCEL_XMIT	14
-#define	IMPORT_COMPLETE		15
-#define	IN_SEG_RECV_RED		16
-#define	IN_SEG_RECV_GREEN	17
-#define	IN_SEG_REDUNDANT	18
-#define	IN_SEG_MALFORMED	19
-#define	IN_SEG_UNK_SENDER	20
-#define	IN_SEG_UNK_CLIENT	21
-#define	IN_SEG_SCREENED		22
-#define	IN_SEG_MISCOLORED	23
-#define	IN_SEG_SES_CLOSED	24
-#define	LTP_SPAN_STATS		25
+#define	SEG_RE_XMIT		7
+#define	EXPORT_CANCEL_XMIT	8
+#define	EXPORT_COMPLETE		9
+#define	CKPT_RECV		10
+#define	POS_RPT_XMIT		11
+#define	NEG_RPT_XMIT		12
+#define	IMPORT_CANCEL_RECV	13
+#define	RPT_RE_XMIT		14
+#define	IMPORT_CANCEL_XMIT	15
+#define	IMPORT_COMPLETE		16
+#define	IN_SEG_RECV_RED		17
+#define	IN_SEG_RECV_GREEN	18
+#define	IN_SEG_REDUNDANT	19
+#define	IN_SEG_MALFORMED	20
+#define	IN_SEG_UNK_SENDER	21
+#define	IN_SEG_UNK_CLIENT	22
+#define	IN_SEG_SCREENED		23
+#define	IN_SEG_MISCOLORED	24
+#define	IN_SEG_SES_CLOSED	25
+#define	IN_SEG_TOO_FAST		26
+#define	LTP_SPAN_STATS		27
 
 typedef struct
 {
@@ -557,6 +591,9 @@ typedef struct
 {
 	uvast		ownEngineId;
 	Sdnv		ownEngineIdSdnv;
+	unsigned int	maxBacklog;
+	char		lsiCmd[256];
+	Object		deliverables;	/*	SDR list: Deliverable	*/
 
 	/*	estMaxExportSessions is used to compute the number
 	 *	of rows in the export sessions hash table in the LTP
@@ -608,7 +645,9 @@ typedef struct
 	uvast		ownEngineId;
 	int		lsiPid;		/*	For stopping the LSI.	*/
 	int		clockPid;	/*	For stopping ltpclock.	*/
+	int		delivPid;	/*	For stopping ltpdeliv.	*/
 	int		watching;	/*	Boolean activity watch.	*/
+	sm_SemId	deliverySemaphore;
 	PsmAddress	spans;		/*	SM list: LtpVspan*	*/
 	LtpVclient	clients[LTP_MAX_NBR_OF_CLIENTS];
 } LtpVdb;
@@ -653,6 +692,15 @@ extern int		issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
 				ExportSession *session, Object sessionObj,
 				Lyst extents, unsigned int reportSerialNbr,
 				unsigned int checkpointSerialNbr);
+
+extern void		getImportSession(LtpVspan *vspan,
+				unsigned int sessionNbr,
+				VImportSession **vsessionPtr,
+				Object *sessionObj);
+extern void		clearImportSession(ImportSession *session);
+extern void		stopImportSession(ImportSession *session);
+extern void		removeImportSession(Object sessionObj);
+extern void		closeImportSession(Object sessionObj);
 
 extern int		ltpAttachClient(unsigned int clientSvcId);
 extern void		ltpDetachClient(unsigned int clientSvcId);
@@ -702,12 +750,6 @@ extern int		addClosedExport(LtpDB *ltpdb, LtpVspan *vspan,
 				unsigned int segmentLength);
 extern int 		ackFromClosedExport(unsigned int sessionNbr,
 				unsigned int rptSerialNbr);
-#endif
-#if BURST_SIGNALS_ENABLED
-extern int		enqueueBurst(LtpXmitSeg *segment, LtpSpan *span,
-				Object where, int burstType);
-extern int 		enqueueAckBurst(LtpXmitSeg *segment, Object spanObj,
-				int burstType);
 #endif
 #ifdef __cplusplus
 }

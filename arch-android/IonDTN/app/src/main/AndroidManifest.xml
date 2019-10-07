@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="gov.nasa.jpl.iondtn">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.READ_LOGS"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".gui.MainActivity"
+            android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".gui.AboutActivity"
+            android:parentActivityName=".gui.MainActivity">
+
+            <!-- Parent activity meta-data to support 4.0 and lower -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".gui.MainActivity"/>
+        </activity>
+
+        <activity android:name=".gui.Setup.StartupActivity"
+                  android:windowSoftInputMode="adjustResize">
+        </activity>
+
+        <activity
+            android:name=".gui.SettingsActivity"
+            android:label="@string/title_activity_settings"/>
+
+        <service
+            android:name=".services.NodeAdministrationService"
+            android:exported="false"/>
+
+        <service
+            android:name=".services.BundleService"
+            android:exported="true"
+            android:label="@string/app_name"/>
+    </application>
+
+</manifest>

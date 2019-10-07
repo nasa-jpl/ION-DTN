@@ -4,14 +4,25 @@ bplist - Bundle Protocol (BP) utility for listing queued bundles
 
 =head1 SYNOPSIS
 
-B<bplist>
+B<bplist> [{count | detail} [I<destination_EID>[/I<priority>]]]
 
 =head1 DESCRIPTION
 
-B<bplist> is a utility program that lists all bundles currently in the
-local bundle agent's "timeline" list, in expiration-time sequence.  Identifying
-primary block information is printed, together with hex and ASCII dumps of
-the payload and all extension blocks.
+B<bplist> is a utility program that reports on bundles that currently
+reside in the local node, as identified by entries in the local bundle
+agent's "timeline" list.
+
+Either a count of bundles or a detailed list of bundles (noting primary block
+information together with hex and ASCII dumps of the payload and all
+extension blocks, in expiration-time sequence) may be requested.
+
+Either all bundles or just a subset of bundles - restricted to bundles
+for a single destination endpoint, or to bundles of a given level of priority
+that are all destined for some specified endpoint - may be included in the
+report.
+
+By default, B<bplist> prints a detailed list of all bundles residing in
+the local node.
 
 =head1 EXIT STATUS
 

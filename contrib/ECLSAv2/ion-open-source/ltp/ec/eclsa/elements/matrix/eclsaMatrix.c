@@ -2,6 +2,7 @@
  eclsaMatrix.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
  Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -11,8 +12,11 @@ todo
 
  * */
 #include "eclsaMatrix.h"
+#include "../sys/eclsaLogger.h"
+#include "../sys/eclsaMemoryManager.h"
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 /*Single eclsa matrix functions*/
 bool isMatrixInfoPartFull(EclsaMatrix *matrix)
@@ -27,29 +31,28 @@ bool isInfoSymbol(EclsaMatrix *matrix, int symbolID)
 	{
 	return symbolID < matrix->encodingCode->K;
 	}
-void eclsaMatrixInit(EclsaMatrix *matrix)
+void eclsaMatrixInit(EclsaMatrix *matrix, unsigned int N, unsigned int T)
 {
-	FecElement *biggestFec=getBiggestFEC();
-	int N = biggestFec->N;
-	int T = biggestFec->T;
-
+	pthread_mutexattr_t recursiveAttribute;
+	pthread_mutexattr_init(&recursiveAttribute);
+	pthread_mutexattr_settype(&recursiveAttribute, PTHREAD_MUTEX_RECURSIVE);
 	memset(matrix,0,sizeof(EclsaMatrix));
-	matrix->codecStatus= STATUS_CODEC_NOT_DECODED;
-	sem_init(&(matrix->lock),0,1);
 
-	codecMatrixInit(&(matrix->universalCodecMatrix),N,T);
+	matrix->codecStatus= STATUS_CODEC_NOT_DECODED;
+	pthread_mutex_init(&(matrix->lock), &recursiveAttribute);
+
+	codecMatrixInit(&(matrix->abstractCodecMatrix),N,T);
 }
 void eclsaMatrixDestroy(EclsaMatrix *matrix)
 {
-	FecElement *biggestFec=getBiggestFEC();
-	int N = biggestFec->N;
-
-	sem_destroy(&(matrix->lock));
-	codecMatrixDestroy(matrix->universalCodecMatrix,N);
+	if ( matrix == NULL )
+		return;
+	pthread_mutex_destroy(&(matrix->lock));
+	codecMatrixDestroy(matrix->abstractCodecMatrix);
 }
 void addSegmentToEclsaMatrix(EclsaMatrix *matrix, char *buffer, int bufferLength, int symbolID,bool copyLength)
 {
-	if(!addSymbolToCodecMatrix(matrix->universalCodecMatrix,symbolID,buffer,bufferLength,copyLength))
+	if(!addSymbolToCodecMatrix(matrix->abstractCodecMatrix,symbolID,buffer,bufferLength,copyLength))
 		{
 		debugPrint("WARNING:Received redundant segment.");
 		return;
@@ -65,12 +68,15 @@ void addSegmentToEclsaMatrix(EclsaMatrix *matrix, char *buffer, int bufferLength
 }
 void flushEclsaMatrix(EclsaMatrix *matrix)
 	{
+	int matrixID;
+	int engineID;
+
+	if ( matrix == NULL )
+		return;
+
 	/*flushing ADT data*/
-	FecElement *biggestFec=getBiggestFEC();
-	int N = biggestFec->N;
-	int T = biggestFec->T;
-	int matrixID=matrix->ID;
-	int engineID=matrix->engineID;
+	matrixID=matrix->ID;
+	engineID=matrix->engineID;
 
 	matrix->engineID=0;
 	matrix->ID=0;
@@ -87,6 +93,7 @@ void flushEclsaMatrix(EclsaMatrix *matrix)
 	matrix->clearedToSend=false;
 	matrix->feedbackEnabled=false;
 	matrix->workingT=0;
+	matrix->HSLTPMatrixType=ONLY_DATA;
 
 	sequenceFlush(&matrix->sequence);
 
@@ -94,10 +101,11 @@ void flushEclsaMatrix(EclsaMatrix *matrix)
 
 	if(matrix->lowerProtocolData != NULL)
 		{
-		free(matrix->lowerProtocolData);
+		deallocateElement((Pointer*)&(matrix->lowerProtocolData));
 		matrix->lowerProtocolData=NULL;
 		}
 
-	flushCodecMatrix(matrix->universalCodecMatrix,N,T);
+	flushCodecMatrix(matrix->abstractCodecMatrix);
+	pthread_mutex_unlock(&(matrix->lock));
 	debugPrint("T3: Matrix flushed MID=%d EID=%d", matrixID, engineID);
 	}

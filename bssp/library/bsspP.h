@@ -296,24 +296,24 @@ extern Object		getBsspDbObject();
 extern BsspDB		*getBsspConstants();
 extern BsspVdb		*getBsspVdb();
 
-extern void		findSpan(uvast engineId, BsspVspan **vspan,
+extern void		findBsspSpan(uvast engineId, BsspVspan **vspan,
 				PsmAddress *vspanElt);
-extern int		addSpan(uvast engineId, 
+extern int		addBsspSpan(uvast engineId, 
 				unsigned int maxExportSessions,
 				unsigned int maxBlockSize,
 				char *bsoBECmd, char *bsoRLCmd, 
 				unsigned int qTime, int purge);
-extern int		updateSpan(uvast engineId, 
+extern int		updateBsspSpan(uvast engineId, 
 				unsigned int maxExportSessions,
 				unsigned int maxBlockSize,
 				char *bsoBECmd, char *bsoRLCmd, 
 				unsigned int qTime, int purge);
-extern int		removeSpan(uvast engineId);
+extern int		removeBsspSpan(uvast engineId);
 
 extern int		bsspStartSpan(uvast engineId);
 extern void		bsspStopSpan(uvast engineId);
 
-extern int		startExportSession(Sdr sdr, Object spanObj,
+extern int		startBsspExportSession(Sdr sdr, Object spanObj,
 				BsspVspan *vspan);
 
 extern int		issueXmitBlock(Sdr sdr, BsspSpan *span,
@@ -323,7 +323,7 @@ extern int		issueXmitBlock(Sdr sdr, BsspSpan *span,
 extern int		bsspAttachClient(unsigned int clientSvcId);
 extern void		bsspDetachClient(unsigned int clientSvcId);
 
-extern int		enqueueNotice(BsspVclient *client,
+extern int		enqueueBsspNotice(BsspVclient *client,
 				uvast sourceEngineId,
 				unsigned int sessionNbr,
 				unsigned int dataLength,

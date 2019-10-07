@@ -13,7 +13,7 @@ endif
 DIST_SUBDIRS= . contrib
 
 AM_CFLAGS += \
-	-Wall -Werror -g \
+	-g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
@@ -22,12 +22,20 @@ AM_CFLAGS += \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
-	-DBPSEC
-
-if !ION_NASA_B
-AM_CFLAGS+= \
+	-DSBSP \
 	-I$(srcdir)/ams/include \
 	-I$(srcdir)/cfdp/include
+
+if SOLARIS_STUDIO_CC
+AM_CFLAGS += \
+	-errtags \
+	-Kpic
+NO_UNUSED_VARIABLE = 
+else
+AM_CFLAGS += \ 
+	-Wall -Werror\
+	-fPIC
+NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif
 
 # This will add CFLAGS to make the valgrind macros compile without
@@ -52,7 +60,6 @@ EXTRA_DIST = 	\
 	$(loopbackstcp_DATA) \
 	$(iondtn2_DATA) \
 	$(otherstuff_DATA) \
-	$(tutorial_DATA) \
 	$(node5_DATA) \
 	$(node7_DATA) \
 	$(node10_DATA) \
@@ -62,15 +69,11 @@ EXTRA_DIST = 	\
 	$(bpextra) \
 	$(bssextra) \
 	$(dtpcextra) \
-	$(bsspextra)
-#	$(twonodestcp_DATA) \
-#	$(threenodestcpltp_DATA)
-
-if !ION_NASA_B
-EXTRA_DIST+= \
+	$(bsspextra) \
 	$(amsextra) \
 	$(cfdpextra)
-endif
+#	$(twonodestcp_DATA) \
+#	$(threenodestcpltp_DATA)
 
 install-exec-hook:
 	@echo
@@ -116,11 +119,7 @@ endif
 
 
 # clean-local refers to existing documents.
-if !ION_NASA_B
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
-else
-clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local
-endif
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
@@ -130,10 +129,8 @@ build-man-directories:
 	mkdir -p $(top_builddir)/bss/doc
 	mkdir -p $(top_builddir)/dtpc/doc
 	mkdir -p $(top_builddir)/bssp/doc
-if !ION_NASA_B
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
-endif
 
 
 bin_PROGRAMS = \
@@ -145,13 +142,9 @@ bin_PROGRAMS = \
 	$(dtpcbin) \
 	$(bsspbin) \
 	$(restartbin) \
-	$(nmbin)
-
-if !ION_NASA_B
-bin_PROGRAMS+= \
+	$(nmbin) \
 	$(amsbin) \
 	$(cfdpbin)
-endif
 
 
 lib_LTLIBRARIES = \
@@ -161,13 +154,9 @@ lib_LTLIBRARIES = \
 	$(bplib) \
 	$(bsslib) \
 	$(dtpclib) \
-	$(bssplib)
-
-if !ION_NASA_B
-lib_LTLIBRARIES+= \
+	$(bssplib) \
 	$(amslib) \
 	$(cfdplib)
-endif
 
 include_HEADERS = \
 	$(iciinclude) \
@@ -176,12 +165,9 @@ include_HEADERS = \
 	$(bpinclude) \
 	$(bssinclude) \
 	$(dtpcinclude) \
-	$(bsspinclude)
-if !ION_NASA_B
-include_HEADERS+= \
+	$(bsspinclude) \
 	$(amsinclude) \
 	$(cfdpinclude)
-endif
 
 noinst_HEADERS = \
 	$(icinoinst) \
@@ -190,13 +176,9 @@ noinst_HEADERS = \
 	$(bpnoinst) \
 	$(bssnoinst) \
 	$(dtpcnoinst) \
-	$(bsspnoinst)
-
-if !ION_NASA_B
-noinst_HEADERS+= \
+	$(bsspnoinst) \
 	$(amsnoinst) \
 	$(cfdpnoinst)
-endif
 
 if ENABLE_MANPAGES
 man_MANS = \
@@ -207,13 +189,9 @@ man_MANS = \
 	$(bpmans) \
 	$(bssmans) \
 	$(dtpcmans) \
-	$(bsspmans)
-
-if !ION_NASA_B
-man_MANS += \
+	$(bsspmans) \
 	$(amsmans) \
 	$(cfdpmans)
-endif
 endif
 
 #################
@@ -233,18 +211,9 @@ stuff_SCRIPTS =	$(srcdir)/killm \
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
 	$(srcdir)/ionstart.awk \
-	$(srcdir)/tutorial.html \
 	$(srcdir)/ION.pdf \
 	$(srcdir)/ION-LTP-configuration.pdf \
 	$(srcdir)/ION-LTP-configuration.xls
-
-tutorialdir = $(pkgdatadir)/tutorial_files
-tutorial_DATA = \
-	$(srcdir)/tutorial_files/2node.png \
-	$(srcdir)/tutorial_files/3node.png \
-	$(srcdir)/tutorial_files/loopback.png \
-	$(srcdir)/tutorial_files/print.html
-
 
 #################
 #
@@ -352,8 +321,10 @@ icibin = \
 	psmwatch \
 	ionadmin \
 	ionexit \
+	ionlog \
 	ionsecadmin \
 	ionwarn \
+	ionunlock \
 	sdrmend \
 	file2sm \
 	sm2file \
@@ -371,6 +342,7 @@ icilib = \
 #	librfx.la
 
 iciinclude = \
+	ici/include/crypto.h \
 	ici/include/llcv.h \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
@@ -403,6 +375,7 @@ iciextra = \
 	ici/library/symtab.c \
 	ici/doc/pod1/ionadmin.pod \
 	ici/doc/pod1/ionsecadmin.pod \
+	ici/doc/pod1/ionunlock.pod \
 	ici/doc/pod1/rfxclock.pod \
 	ici/doc/pod1/psmwatch.pod \
 	ici/doc/pod1/sdrwatch.pod \
@@ -436,6 +409,7 @@ iciextra = \
 icimans = \
 	$(top_builddir)/ici/doc/ionadmin.1 \
 	$(top_builddir)/ici/doc/ionsecadmin.1 \
+	$(top_builddir)/ici/doc/ionunlock.1 \
 	$(top_builddir)/ici/doc/rfxclock.1 \
 	$(top_builddir)/ici/doc/psmwatch.1 \
 	$(top_builddir)/ici/doc/sdrwatch.1 \
@@ -539,6 +513,14 @@ ionwarn_SOURCES = ici/utils/ionwarn.c
 ionwarn_LDADD = libici.la $(LIBOBJS) -lm
 ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+ionunlock_SOURCES = ici/utils/ionunlock.c
+ionunlock_LDADD = libici.la $(LIBOBJS) -lm
+ionunlock_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionlog_SOURCES = ici/utils/ionlog.c
+ionlog_LDADD = libici.la $(LIBOBJS) -lm
+ionlog_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
 # --- Test Executables --- #
 
 psmshell_SOURCES = ici/test/psmshell.c
@@ -600,16 +582,16 @@ ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
 	ltpadmin \
+	ltpsecadmin \
 	ltpclock \
 	ltpmeter \
+	ltpdeliv \
 	udplsi \
 	udplso \
-	aoslsi \
-	aoslso \
 	ltpdriver \
 	ltpcounter \
 	sdatest \
-	dccplsi	 \
+	dccplsi \
 	dccplso
 
 ltplib = \
@@ -621,8 +603,8 @@ ltpinclude = \
 
 ltpnoinst = \
 	ltp/library/ltpP.h \
+	ltp/library/ltpsec.h \
 	ltp/udp/udplsa.h \
-	ltp/aos/aoslsa.h \
 	ltp/dccp/dccplsa.h
 
 ltpextra = \
@@ -632,6 +614,7 @@ ltpextra = \
 	ltp/doc/pod1/ltpcounter.pod \
 	ltp/doc/pod1/ltpdriver.pod \
 	ltp/doc/pod1/ltpmeter.pod \
+	ltp/doc/pod1/ltpsecadmin.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
 	ltp/doc/pod1/dccplsi.pod \
@@ -645,6 +628,7 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/ltpcounter.1 \
 	$(top_builddir)/ltp/doc/ltpdriver.1 \
 	$(top_builddir)/ltp/doc/ltpmeter.1 \
+	$(top_builddir)/ltp/doc/ltpsecadmin.1 \
 	$(top_builddir)/ltp/doc/udplsi.1 \
 	$(top_builddir)/ltp/doc/udplso.1 \
 	$(top_builddir)/ltp/doc/dccplsi.1 \
@@ -672,6 +656,7 @@ libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
+	ltp/library/ltpsec.c \
 	ltp/sda/libsda.c \
 	ltp/library/libltpnm.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
@@ -682,6 +667,10 @@ libltp_la_LIBADD = libici.la -lm
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
 ltpadmin_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpsecadmin_SOURCES = ltp/utils/ltpsecadmin.c
+ltpsecadmin_LDADD = libltp.la libici.la $(LIBOBJS)
+ltpsecadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -707,6 +696,10 @@ ltpmeter_SOURCES = ltp/daemon/ltpmeter.c
 ltpmeter_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpmeter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
+ltpdeliv_SOURCES = ltp/daemon/ltpdeliv.c
+ltpdeliv_LDADD = libltp.la libici.la $(LIBOBJS)
+ltpdeliv_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
 # --- UDP Executables --- #
 
 udplsi_SOURCES = ltp/udp/udplsi.c
@@ -719,13 +712,13 @@ udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
-aoslsi_SOURCES = ltp/aos/aoslsi.c
-aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
-aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#aoslsi_SOURCES = ltp/aos/aoslsi.c
+#aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+#aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
-aoslso_SOURCES = ltp/aos/aoslso.c
-aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
-aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#aoslso_SOURCES = ltp/aos/aoslso.c
+#aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
+#aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
@@ -827,10 +820,11 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/bsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library/ext/sbsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/snw -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
+	bpsecadmin \
 	bpsink \
 	bpdriver \
 	bpsource \
@@ -842,6 +836,7 @@ bpbin = \
 	bprecvfile \
 	bpclm \
 	bpclock \
+	bpcrash \
 	bptransit \
 	ipnadmin \
 	ipnfw \
@@ -908,6 +903,8 @@ bpinclude = \
 #bp/library/ecos.h
 bpnoinst = \
 	bp/library/bpP.h \
+	bp/library/bpsec.h \
+	bp/library/saga.h \
 	bp/ipn/ipnfw.h \
 	bp/ipnd/ipndP.h \
 	bp/dtn2/dtn2fw.h \
@@ -928,6 +925,7 @@ bpextra = \
 	bp/doc/pod1/bplist.pod \
 	bp/doc/pod1/bpdriver.pod \
 	bp/doc/pod1/bpecho.pod \
+	bp/doc/pod1/bpsecadmin.pod \
 	bp/doc/pod1/bpsendfile.pod \
 	bp/doc/pod1/bprecvfile.pod \
 	bp/doc/pod1/bpsink.pod \
@@ -964,7 +962,6 @@ bpextra = \
 	bp/doc/pod1/hmackeys.pod \
 	bp/doc/pod5/bprc.pod \
 	bp/doc/pod5/ipnrc.pod \
-	bp/doc/pod5/bssrc.pod \
 	bp/doc/pod5/dtn2rc.pod \
 	bp/doc/pod5/lgfile.pod \
 	bp/doc/pod3/bp.pod \
@@ -978,18 +975,22 @@ bpextra = \
 	bp/library/ext/meb/meb.h \
 	bp/library/ext/meb/meb.c \
 	bp/library/bei.c \
+	bp/library/bpsec.h \
+	bp/library/bpsec.c \
+	bp/library/saga.h \
+	bp/library/saga.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bpsec/bpsec_instr.h \
-	bp/library/ext/bpsec/bpsec_instr.c \
-	bp/library/ext/bpsec/bpsec_bcb.h \
-	bp/library/ext/bpsec/bpsec_bcb.c \
-	bp/library/ext/bpsec/bpsec_bib.h \
-	bp/library/ext/bpsec/bpsec_bib.c \
-	bp/library/ext/bpsec/bpsec_util.h \
-	bp/library/ext/bpsec/bpsec_util.c \
-	bp/library/ext/bpsec/profiles.h \
-	bp/library/ext/bpsec/profiles.c \
+	bp/library/ext/sbsp/sbsp_instr.h \
+	bp/library/ext/sbsp/sbsp_instr.c \
+	bp/library/ext/sbsp/sbsp_bcb.h \
+	bp/library/ext/sbsp/sbsp_bcb.c \
+	bp/library/ext/sbsp/sbsp_bib.h \
+	bp/library/ext/sbsp/sbsp_bib.c \
+	bp/library/ext/sbsp/sbsp_util.h \
+	bp/library/ext/sbsp/sbsp_util.c \
+	bp/library/ext/sbsp/profiles.h \
+	bp/library/ext/sbsp/profiles.c \
 	ici/include/crypto.h \
 	ici/include/csi.h 
 
@@ -1005,9 +1006,11 @@ bpmans = \
 	$(top_builddir)/bp/doc/bptransit.1 \
 	$(top_builddir)/bp/doc/bpcounter.1 \
 	$(top_builddir)/bp/doc/bpcancel.1 \
+	$(top_builddir)/bp/doc/bpclm.1 \
 	$(top_builddir)/bp/doc/bplist.1 \
 	$(top_builddir)/bp/doc/bpdriver.1 \
 	$(top_builddir)/bp/doc/bpecho.1 \
+	$(top_builddir)/bp/doc/bpsecadmin.1 \
 	$(top_builddir)/bp/doc/bpsendfile.1 \
 	$(top_builddir)/bp/doc/bprecvfile.1 \
 	$(top_builddir)/bp/doc/bpsink.1 \
@@ -1045,7 +1048,6 @@ bpmans = \
 	$(top_builddir)/bp/doc/hmackeys.1 \
 	$(top_builddir)/bp/doc/bprc.5 \
 	$(top_builddir)/bp/doc/ipnrc.5 \
-	$(top_builddir)/bp/doc/bssrc.5 \
 	$(top_builddir)/bp/doc/dtn2rc.5 \
 	$(top_builddir)/bp/doc/lgfile.5 \
 	$(top_builddir)/bp/doc/bp.3 \
@@ -1102,19 +1104,25 @@ libbp_la_SOURCES = \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/bpsec.h \
+	bp/library/bpsec.c \
+	bp/library/saga.h \
+	bp/library/saga.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
-	bp/library/ext/bpsec/bpsec_instr.h \
-	bp/library/ext/bpsec/bpsec_instr.c \
-	bp/library/ext/bpsec/bpsec_bcb.h \
-	bp/library/ext/bpsec/bpsec_bcb.c \
-	bp/library/ext/bpsec/bpsec_bib.h \
-	bp/library/ext/bpsec/bpsec_bib.c \
-	bp/library/ext/bpsec/bpsec_util.h \
-	bp/library/ext/bpsec/bpsec_util.c \
-	bp/library/ext/bpsec/profiles.h \
-	bp/library/ext/bpsec/profiles.c \
+	bp/library/ext/sbsp/sbsp_instr.h \
+	bp/library/ext/sbsp/sbsp_instr.c \
+	bp/library/ext/sbsp/sbsp_bcb.h \
+	bp/library/ext/sbsp/sbsp_bcb.c \
+	bp/library/ext/sbsp/sbsp_bib.h \
+	bp/library/ext/sbsp/sbsp_bib.c \
+	bp/library/ext/sbsp/sbsp_util.h \
+	bp/library/ext/sbsp/sbsp_util.c \
+	bp/library/ext/sbsp/profiles.h \
+	bp/library/ext/sbsp/profiles.c \
 	bp/library/ext/snid/snid.c \
+	bp/library/ext/snw/snw.h \
+	bp/library/ext/snw/snw.c \
 	bp/ipn/libipnfw.h \
 	bp/ipn/libipnfw.c \
 	bp/ipnd/ipnd.c \
@@ -1135,7 +1143,7 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
 endif
-libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/bpsec
+libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/sbsp
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
 #libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
@@ -1165,6 +1173,10 @@ libcgr_la_LIBADD = libbp.la libici.la
 bpadmin_SOURCES = bp/utils/bpadmin.c
 bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpsecadmin_SOURCES = bp/utils/bpsecadmin.c
+bpsecadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
 ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -1384,6 +1396,10 @@ bpnmtest_SOURCES = bp/test/bpnmtest.c
 bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+bpcrash_SOURCES = bp/test/bpcrash.c
+bpcrash_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1416,8 +1432,6 @@ bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #
 ##########################
 
-if !ION_NASA_B
-
 # Define pod2man stuff
 amsPODM1 = pod2man -s 1 -c "AMS executables"
 amsPODM3 = pod2man -s 3 -c "AMS library functions"
@@ -1432,6 +1446,7 @@ amsbin = \
 	amsshell \
 	amslog \
 	amslogprt \
+	amsmib \
 	amsbenchs \
 	amsbenchr \
 	amsstop \
@@ -1472,6 +1487,7 @@ amsmans = \
 	$(top_builddir)/ams/doc/amslog.1 \
 	$(top_builddir)/ams/doc/amsrc.5 \
 	$(top_builddir)/ams/doc/amsxml.5 \
+	$(top_builddir)/ams/doc/petition_log.5 \
 	$(top_builddir)/ams/doc/ams.3
 
 amsclean-local:
@@ -1516,6 +1532,10 @@ amslogprt_SOURCES = ams/test/amslogprt.c
 amslogprt_LDADD = libams.la libdgr.la libici.la $(LIBOBJS)
 amslogprt_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
+amsmib_SOURCES = ams/utils/amsmib.c
+amsmib_LDADD = libams.la libdgr.la libici.la -lm $(LIBOBJS)
+amsmib_CFLAGS = $(amscflags) $(AM_CFLAGS)
+
 # --- Test Executables --- #
 
 amshello_SOURCES = ams/test/amshello.c
@@ -1556,15 +1576,11 @@ ramsgate_SOURCES = \
 ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
-endif
-
 ##############
 #
 # CFDP SECTION
 #
 ##############
-
-if !ION_NASA_B
 
 # Define pod2man stuff
 cfdpPODM1 = pod2man -s 1 -c "CFDP executables"
@@ -1579,7 +1595,8 @@ cfdpbin = \
 	bputa \
 	cfdptest \
 	bpcp \
-	bpcpd
+	bpcpd \
+	tcputa
 
 cfdplib = \
 	libcfdp.la
@@ -1589,6 +1606,7 @@ cfdpinclude = \
 	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
+	cfdp/library/bputa.h \
 	cfdp/library/cfdpP.h \
 	cfdp/utils/bpcp.h
 
@@ -1668,8 +1686,11 @@ cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
 cfdpclock_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
-endif
+# --- TCP Executables --- #
 
+tcputa_SOURCES = cfdp/tcp/tcputa.c
+tcputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS)
+tcputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 ##############
 #
@@ -1871,66 +1892,6 @@ dtpcPODM5 = pod2man -s 5 -c "DTPC configuration files"
 
 dtpccflags = -I$(srcdir)/dtpc/library -I$(srcdir)/dtpc/include
 
-
-##########################
-#
-# NETWORK MANAGEMENT SECTION
-#
-##########################
-
-nmbin= nm_agent nm_mgr
-
-nm_agent_SOURCES =  nm/agent/ingest.c            nm/agent/lcc.c                 nm/agent/ldc.c \
-                    nm/agent/nmagent.c           nm/agent/rda.c                 nm/shared/primitives/expr.c \
-                    nm/agent/agent_db.c          nm/agent/adm_ion_priv.c        nm/agent/adm_ltp_priv.c \ 
-                    nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         nm/shared/adm/adm_ion.c \
-					nm/shared/adm/adm_ltp.c 	 nm/agent/adm_agent_impl.c nm/agent/adm_bp_impl.c \
-					nm/shared/adm/adm_agent.c nm/shared/adm/adm_bpsec.c	nm/agent/adm_bpsec_impl.c \
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c 	 nm/shared/primitives/blob.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	 nm/agent/instr.c   nm/shared/primitives/tdc.c\ 
-					nm/shared/primitives/ctrl.c 	nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
-				
-					
-nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-nm_agent_LDFLAGS = -lm -lpthread
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable \
-                  -DAGENT_ROLE
-					
-					
-nm_mgr_SOURCES =    nm/mgr/nm_mgr.c              nm/mgr/nm_mgr_rx.c             nm/mgr/nm_mgr_ui.c \
-					nm/mgr/nm_mgr_names.c        nm/mgr/nm_mgr_sql.c             nm/mgr/ui_input.c \ 
-					nm/mgr/nm_mgr_print.c 		 nm/mgr/mgr_db.c \
-					nm/shared/adm/adm.c          nm/shared/adm/adm_bp.c         \
-					nm/shared/adm/adm_ltp.c  	 nm/shared/adm/adm_ion.c        nm/shared/adm/adm_agent.c \
-					nm/shared/adm/adm_bpsec.c	\
-					nm/shared/msg/msg_admin.c    nm/shared/msg/msg_ctrl.c       nm/shared/msg/pdu.c \
-					nm/shared/primitives/var.c    nm/shared/primitives/expr.c \
-					nm/shared/primitives/admin.c nm/shared/primitives/def.c     nm/shared/primitives/mid.c \
-					nm/shared/primitives/oid.c   nm/shared/primitives/report.c  nm/shared/primitives/rules.c \
-					nm/shared/primitives/dc.c  	 nm/shared/primitives/value.c   nm/shared/primitives/lit.c \
-					nm/shared/primitives/nn.c 	  nm/shared/primitives/tdc.c\ 
-					nm/shared/primitives/ctrl.c  nm/shared/primitives/blob.c nm/shared/primitives/table.c \
-					nm/shared/utils/ion_if.c     nm/shared/utils/utils.c        nm/shared/utils/db.c \
-					nm/shared/utils/nm_types.c
-					
-nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
-
-# Use this to build the DTNMP Manager WITHOUT DB Support. 
-nm_mgr_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I$(srcdir)/bp/library/ext/bpsec $(AM_CFLAGS) -Wno-unused-variable 
-
-# Use this to build the DTNMP Manager WITH DB Support.
-#nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lmysqlclient -lpthread
-#nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable -DHAVE_MYSQL
-
-
-
 dtpcbin = \
 	dtpcreceive \
 	dtpcsend \
@@ -2016,6 +1977,105 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 ##########################
 #
+# NETWORK MANAGEMENT SECTION
+#
+#                                        
+##########################
+
+nmbin= nm_agent nm_mgr
+
+# CBOR Library Sources
+nm_cbor_src = \
+	nm/contrib/QCBOR/src/UsefulBuf.c \
+	nm/contrib/QCBOR/src/qcbor_encode.c \
+	nm/contrib/QCBOR/src/qcbor_decode.c \
+	nm/contrib/QCBOR/src/ieee754.c
+
+CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc
+
+nm_shared_src	 =		nm/shared/adm/adm.c	\
+			nm/shared/msg/msg.c				\
+			nm/shared/msg/ion_if.c			\
+			nm/shared/primitives/ari.c		\
+			nm/shared/primitives/blob.c		\
+			nm/shared/primitives/ctrl.c		\
+			nm/shared/primitives/edd_var.c	\
+			nm/shared/primitives/expr.c		\
+			nm/shared/primitives/report.c	\
+			nm/shared/primitives/rules.c	\
+			nm/shared/primitives/table.c	\
+			nm/shared/primitives/tnv.c		\
+			nm/shared/utils/cbor_utils.c	\
+			nm/shared/utils/db.c			\
+			nm/shared/utils/nm_types.c		\
+			nm/shared/utils/rhht.c			\
+			nm/shared/utils/utils.c			\
+			nm/shared/utils/vector.c		\
+			$(nm_cbor_src)
+
+nm_agent_SOURCES =  	$(nm_shared_src)		\
+			nm/agent/ingest.c  		\
+			nm/agent/instr.c		\
+			nm/agent/lcc.c     		\
+			nm/agent/nmagent.c 		\
+			nm/agent/ldc.c 			\
+			nm/agent/rda.c 			\
+			nm/agent/adm_amp_agent_impl.c   \
+			nm/agent/adm_amp_agent_agent.c	\
+			nm/agent/adm_bp_agent_impl.c	\
+			nm/agent/adm_bp_agent_agent.c	\
+			nm/agent/adm_sbsp_impl.c	\
+			nm/agent/adm_sbsp_agent.c	\
+			nm/agent/adm_ion_admin_agent.c 	\
+			nm/agent/adm_ion_admin_impl.c	\
+			nm/agent/adm_ion_bp_admin_impl.c	\
+			nm/agent/adm_ion_bp_admin_agent.c	\
+			nm/agent/adm_ionsec_admin_impl.c	\
+			nm/agent/adm_ionsec_admin_agent.c	\
+			nm/agent/adm_ion_ipn_admin_impl.c	\
+			nm/agent/adm_ion_ipn_admin_agent.c	\
+			nm/agent/adm_ion_ltp_admin_impl.c	\
+			nm/agent/adm_ion_ltp_admin_agent.c	\
+			nm/agent/adm_ltp_agent_impl.c	\
+			nm/agent/adm_ltp_agent_agent.c 
+
+
+nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
+
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  -DAGENT_ROLE $(CBOR_CFLAGS)
+
+
+nm_mgr_SOURCES =	$(nm_shared_src)		\
+			nm/mgr/agents.c 		\
+			nm/mgr/metadata.c		\
+			nm/mgr/nm_mgr_print.c 	 	\
+			nm/mgr/nm_mgr_rx.c             	\
+			nm/mgr/nm_mgr_sql.c             \
+			nm/mgr/nm_mgr_ui.c 		\
+			nm/mgr/nm_mgr.c			\
+			nm/mgr/ui_input.c 		\
+			nm/mgr/adm_amp_agent_mgr.c   	\
+			nm/mgr/adm_bp_agent_mgr.c	\
+			nm/mgr/adm_sbsp_mgr.c		\
+			nm/mgr/adm_ion_admin_mgr.c	\
+			nm/mgr/adm_ion_bp_admin_mgr.c	\
+			nm/mgr/adm_ionsec_admin_mgr.c	\
+			nm/mgr/adm_ion_ipn_admin_mgr.c	\
+			nm/mgr/adm_ion_ltp_admin_mgr.c	\
+			nm/mgr/adm_ltp_agent_mgr.c
+
+nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+
+# Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
+nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(CBOR_CFLAGS)
+
+
+##########################
+#
 # RESTART SECTION
 #
 ##########################
@@ -2023,15 +2083,9 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 restartbin = ionrestart
 
 # --- Utility Programs --- #
-if ION_NASA_B
-ionrestart_SOURCES = restart/utils/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library $(AM_CFLAGS)
-else
 ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
-endif
 
 
 ##########################
@@ -2105,16 +2159,17 @@ tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
-	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
 	tests/issue-279-bpMemo-timeline/driver \
-	tests/bug-0015-tcpclo-bpcp-sig-handling/test
-
-if !ION_NASA_B
-check_PROGRAMS+= \
+	tests/issue-188-common-cos-syntax/dotest \
+	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-334-cfdp-transaction-id/dotest
-endif
+	tests/issue-334-cfdp-transaction-id/dotest \
+	tests/nm-unit/dotest
+
+tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
+tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
+tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN -DUSE_MALLOC
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -2134,6 +2189,7 @@ tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
 tests_1500_loopback_brs_dotest_LDADD =  libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
+#Disabled this test in ION 3.7.0 due to routing changes
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
 tests_issue_188_common_cos_syntax_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
@@ -2150,17 +2206,13 @@ tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libici.la -lm libbp.la $(LIBOBJS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
 
-if !ION_NASA_B
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
-endif
 
-if !ION_NASA_B
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
-endif
+tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 
 ##########################
@@ -2173,7 +2225,7 @@ if ENABLE_AUTODOC
 
 ION.pdf: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
-	$(PDFJOIN) doc/ION-beginning.pdf ION-manpages.pdf --outfile ION.pdf
+	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
 
 # The targets in man_MANS that are actually manpages (and not phony targets
 # for making directories, etc.)
@@ -2187,13 +2239,13 @@ mans_as_ps_sorted := $(mans_1_as_ps) $(mans_3_as_ps) $(mans_5_as_ps)
 
 
 %.1.ps: %.1
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 %.3.ps: %.3
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 %.5.ps: %.5
-	man -l -Tps $^ > $@
+	groff -mandoc $^ > $@
 
 doc/appendix-a-contents.txt: $(mans_as_ps)
 	@rm -f $@
@@ -2236,7 +2288,40 @@ doc/ION-beginning.ps: doc/ION-beginning.pdf
 else
 
 ION.pdf: doc/ION-beginning.pdf
+#	@echo "ION.pdf will remain unchanged."
 	@echo "ION.pdf will not have appendix."
 	cp $^ $@
 
 endif #ENABLE_AUTODOC
+
+##########################
+#
+# DISTRIBUTION SECTION
+#
+##########################
+
+DOC_VERSION_NUMBER := $(shell cat version.txt)
+DOC_VERSION_MAJOR := $(shell cat version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat version.txt | sed 's/[0-9]*\.//')
+DOC_DATE := $(shell date -I)
+
+distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
+	@echo ""
+	@echo "UPDATING VERSION NUMBER IN:"
+	@echo "configure.ac"
+	sed -r -i.bak 's/ion, open source [0-9]+\.[0-9]+\.[0-9]+[a-Z]*/ion, open source $(DOC_VERSION_NUMBER)/' configure.ac
+	@echo "ici/include/ion.h"
+	sed -r -i.bak 's/[0-9]+\-[0-9]+\-[0-9]+/$(DOC_DATE)/' ./ici/include/ion.h
+	sed -r -i.bak 's/[0-9]+\.[0-9]+\.[0-9]+[a-Z]*/$(DOC_VERSION_NUMBER)/' ./ici/include/ion.h
+	@echo "arch-uClib/ion.package/ion.mk"
+	sed -r -i.bak 's/ION_VERSION_MAJOR=[0-9]+/ION_VERSION_MAJOR=$(DOC_VERSION_MAJOR)/' ./arch-uClibc/ion.package/ion.mk
+	sed -r -i.bak 's/ION_VERSION_MINOR=[0-9]+\.[0-9]+[a-Z]*+/ION_VERSION_MINOR=$(DOC_VERSION_MINOR)/' ./arch-uClibc/ion.package/ion.mk
+	@echo ""
+	@echo "Archiving the directory to ~/releases/ion-$(DOC_VERSION_NUMBER)."
+	@echo ""
+	hg archive ~/releases/ion-$(DOC_VERSION_NUMBER)
+	@echo "Now creating ION.pdf"
+	$(PS2PDF) doc/ION-manpages.ps
+	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
+	rm ION-manpages.pdf
+

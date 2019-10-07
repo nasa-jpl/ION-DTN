@@ -18,7 +18,7 @@ extern "C" {
 typedef struct
 {
 	int		wmKey;
-	long		wmSize;
+	size_t		wmSize;
 	char		*wmAddress;
 	char		*wmName;
 } sm_WmParms;
@@ -35,15 +35,26 @@ typedef int		sm_SemId;
 
 #ifndef ION4WIN		/*	No pthreads in Visual Studio.		*/
 
+/*      Required in order to overload pthread_begin macro */
+#define GET_MACRO(_1,_2,_3,_4,_5,NAME,...) NAME
+#define pthread_begin(...) GET_MACRO(__VA_ARGS__, pthread_begin5, pthread_begin4)(__VA_ARGS__)
+
 #if defined (bionic) || defined (uClibc)
 extern int		sm_BeginPthread(pthread_t *threadId,
 				const pthread_attr_t *attr,
 				void *(*function)(void *), void *arg);
-#define pthread_begin(w,x,y,z) sm_BeginPthread(w, x, y, z)
+extern int		sm_BeginPthread_named(pthread_t *threadId,
+				const pthread_attr_t *attr,
+				void *(*function)(void *), void *arg, const char *name);
+#define pthread_begin4(w,x,y,z) sm_BeginPthread(w, x, y, z)
+#define pthread_begin5(w,x,y,z,u) sm_BeginPthread_named(w, x, y, z,u)
 extern void		sm_EndPthread(pthread_t threadId);
 #define pthread_end(x)	sm_EndPthread(x)
 #else			/*	Standard pthread functions available.	*/
-#define pthread_begin(w,x,y,z)	pthread_create(w, x, y, z)
+#define pthread_begin4(w,x,y,z) pthread_create(w, x, y, z)
+extern int		pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
+				void *(*start_routine) (void *), void *arg, const char *name);
+#define pthread_begin5(w,x,y,z,u) pthread_begin_named(w,x,y,z,u)
 #define pthread_end(x)		pthread_cancel(x)
 #endif			/*	end of #ifdef bionic || uClibc		*/
 
@@ -68,7 +79,7 @@ extern sm_SemId		sm_GetTaskSemaphore(int taskId);
 
 /*	Portable shared-memory region access routines.			*/
 
-extern int		sm_ShmAttach(int key, int size, char **shmPtr,
+extern int		sm_ShmAttach(int key, size_t size, char **shmPtr,
 					uaddr *id);
 extern void		sm_ShmDetach(char *shmPtr);
 extern void		sm_ShmDestroy(uaddr id);
@@ -85,11 +96,10 @@ extern int		sm_TaskSpawn(char *name, char *arg1, char *arg2,
 				char *arg3, char *arg4, char *arg5, char *arg6,
 				char *arg7, char *arg8, char *arg9, char *arg10,
 				int priority, int stackSize);
-#ifdef RTEMS
-extern void		sm_TaskForget();
-#endif
+extern void		sm_TaskForget(int taskId);
 extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
+extern void		sm_TasksClear();
 extern void		sm_Abort();
 #if (defined(mingw) || defined(ION4WIN))
 extern void		sm_WaitForWakeup(int seconds);

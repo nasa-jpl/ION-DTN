@@ -2,6 +2,7 @@
  eclsaCodecMatrix.h
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ 	 	 Andrea Bisacchi (andrea.bisacchi5@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
  Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -15,7 +16,7 @@ todo
 #define _ECLSADEC_H_
 
 #include <stdint.h>
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +27,8 @@ typedef struct
 {
 	uint8_t *symbolStatus;
 	uint8_t **codewordBox;
+	unsigned int rows;
+	unsigned int cols;
 } CodecMatrix;
 typedef enum
 {
@@ -36,10 +39,10 @@ typedef enum
 
 /*Codec Matrix*/
 void 	codecMatrixInit(CodecMatrix **codecMatrix,int N,int T);
-void 	codecMatrixDestroy(CodecMatrix *codecMatrix,int N);
+void 	codecMatrixDestroy(CodecMatrix *codecMatrix);
 bool 	addSymbolToCodecMatrix(CodecMatrix *codecMatrix,int symbolID, char *buffer,int bufferLength,bool copyLenght);
 char  	*getSymbolFromCodecMatrix(CodecMatrix *codecMatrix,unsigned int symbolID);
-void 	flushCodecMatrix(CodecMatrix *codecMatrix,int N,int T);
+void 	flushCodecMatrix(CodecMatrix *codecMatrix);
 bool 	isValidSymbol(CodecMatrix *codecMatrix, int symbolID);
 
 

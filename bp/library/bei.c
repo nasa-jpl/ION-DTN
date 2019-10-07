@@ -220,7 +220,7 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	blk->type = spec->type;
 #ifdef ORIGINAL_BSP
 	if (blk->type == BSP_BAB_TYPE)
-#elif SBSP
+#elif ORIGINAL_SBSP
 	if (blk->type == EXTENSION_TYPE_BAB)
 #else
 	if(0)
@@ -867,7 +867,7 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	blk->type = blkType;
 #ifdef ORIGINAL_BSP
 	if (blkType == BSP_BAB_TYPE)
-#elif SBSP
+#elif ORIGINAL_SBSP
 	if (blkType == EXTENSION_TYPE_BAB)
 #else
 	if(0)
@@ -940,6 +940,32 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 			+ blk->length + blk->size;
 	bundle->dbOverhead += additionalOverhead;
 	return 0;
+}
+
+int	reviewExtensionBlocks(AcqWorkArea *work)
+{
+	ExtensionDef	*extensions;
+	int		extensionsCt;
+	int		i;
+	ExtensionDef	*def;
+
+	CHKZERO(work);
+	getExtensionDefs(&extensions, &extensionsCt);
+	for (i = 0, def = extensions; i < extensionsCt; i++, def++)
+	{
+		if (def->review)
+		{
+			if (def->review(work) == 0)
+			{
+				/*	A required extension block
+					is missing.			*/
+
+				return 0;
+			}
+		}
+	}
+
+	return 1;
 }
 
 int	decryptPerExtensionBlocks(AcqWorkArea *work)

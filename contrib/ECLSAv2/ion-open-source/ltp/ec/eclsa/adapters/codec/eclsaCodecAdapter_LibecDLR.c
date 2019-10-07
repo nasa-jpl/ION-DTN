@@ -498,7 +498,7 @@ int  decodeCodecMatrix(CodecMatrix *codecMatrix,FecElement *encodingCode,int pad
 	}
 
 /**/
-char convertToUniversalCodecStatus(char codecStatus)
+char convertToAbstractCodecStatus(char codecStatus)
 {
 	if(codecStatus == STATUS_CODEC_NOT_DECODED)
 		return STATUS_CODEC_NOT_DECODED;

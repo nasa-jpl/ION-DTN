@@ -1,0 +1,149 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "ion_ipn_admin",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/ION/ipnadmin",
+      "description": "The namespace of the ADM"
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.0",
+      "description": "The version of the ADM"
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM"
+    }
+  ],
+  "Edd": [{
+    "name": "ion_version",
+    "type": "STR",
+    "description": "This is the version of ion is that currently installed."
+  }],
+  "Tblt": [{
+      "name": "exits",
+      "columns": [{
+          "type": "UVAST",
+          "name": "first_node_nbr"
+        },
+        {
+          "type": "UVAST",
+          "name": "last_node_nbr"
+        },
+        {
+          "type": "STR",
+          "name": "gateway_endpoint_id"
+        }
+      ],
+      "description": "This table lists all of the exits that are defined in the IPN database for the local node."
+    },
+    {
+      "name": "plans",
+      "columns": [{
+          "type": "UVAST",
+          "name": "node_nbr"
+        },
+        {
+          "type": "STR",
+          "name": "action"
+        },
+        {
+          "type": "STR",
+          "name": "spec"
+        }
+      ],
+      "description": "This table lists all of the egress plans that are established in the IPN database for the local node."
+    }
+  ],
+  "Ctrl": [{
+      "name": "exit_add",
+      "parmspec": [{
+          "type": "UINT",
+          "name": "first_node_nbr"
+        },
+        {
+          "type": "UINT",
+          "name": "last_node_nbr"
+        },
+        {
+          "type": "STR",
+          "name": "gateway_endpoint_id"
+        }
+      ],
+      "description": "This control establishes an exit for static default routing."
+    },
+    {
+      "name": "exit_change",
+      "parmspec": [{
+          "type": "UINT",
+          "name": "first_node_nbr"
+        },
+        {
+          "type": "UINT",
+          "name": "last_node_nbr"
+        },
+        {
+          "type": "STR",
+          "name": "gatewayEndpointId"
+        }
+      ],
+      "description": "This control changes the gateway node number for the exit identified by firstNodeNbr and lastNodeNbr."
+    },
+    {
+      "name": "exit_del",
+      "parmspec": [{
+          "type": "UINT",
+          "name": "first_node_nbr"
+        },
+        {
+          "type": "UINT",
+          "name": "last_node_nbr"
+        }
+      ],
+      "description": "This control deletes the exit identified by firstNodeNbr and lastNodeNbr."
+    },
+    {
+      "name": "plan_add",
+      "parmspec": [{
+          "type": "UVAST",
+          "name": "node_nbr"
+        },
+        {
+          "type": "UINT",
+          "name": "xmit_rate"
+        }
+      ],
+      "description": "This control establishes an egress plan for the bundles that must be transmitted to the neighboring node that is identified by it's nodeNbr."
+    },
+    {
+      "name": "plan_change",
+      "parmspec": [{
+          "type": "UINT",
+          "name": "node_nbr"
+        },
+        {
+          "type": "STR",
+          "name": "default_duct_expression"
+        }
+      ],
+      "description": "This control changes the duct expression for the indicated plan."
+    },
+    {
+      "name": "plan_del",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "node_nbr"
+      }],
+      "description": "This control deletes the egress plan for the node that is identified by it's nodeNbr."
+    }
+  ]
+}

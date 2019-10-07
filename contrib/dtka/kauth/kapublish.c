@@ -184,8 +184,9 @@ incorrect: '%s'.", timestamp);
 		recordLength = dtka_deserialize(&cursor, &len, DTKA_MAX_DATLEN, 
 				&nodeNbr, &effectiveTime, &assertionTime,
 				&datLength, datValue);
-		if (recordLength < 0)
+		if (recordLength < 1)
 		{
+			PUTS("Malformed proposed bulletin.");
 			return 0;
 		}
 
@@ -666,7 +667,7 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] kapublish is running.");
 	while (state.running)
 	{
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		interval = (db.currentCompilationTime + db.consensusInterval)
 				- currentTime;
 		if (interval <= 0)

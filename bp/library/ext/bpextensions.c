@@ -18,17 +18,18 @@
 #include "ecos.h"
 #include "meb.h"
 #include "bae.h"
+#include "snw.h"
 #if defined(ORIGINAL_BSP)
 #include "extbspbab.h"
 #include "extbsppcb.h"
 #include "extbsppib.h"
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 #include "bspbab.h"
 #include "bspbib.h"
 #include "bspbcb.h"
-#elif defined(BPSEC)
-#include "bpsec_bib.h"
-#include "bpsec_bcb.h"
+#elif defined(SBSP)
+#include "sbsp_bib.h"
+#include "sbsp_bcb.h"
 #endif /* ORIGINAL_BSP */
 
 #ifdef ENABLE_BPACS
@@ -50,6 +51,7 @@ static ExtensionDef	extensionDefs[] =
 				phn_copy,
 				0,
 				0,
+				0,
 				phn_parse,
 				phn_check,
 				phn_record,
@@ -66,6 +68,7 @@ static ExtensionDef	extensionDefs[] =
 				snid_release,
 				snid_copy,
 				snid_acquire,
+				0,
 				0,
 				0
 				snid_check,
@@ -86,6 +89,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_babAcquire,
 				0,
 				0,
+				0,
 				bsp_babCheck,
 				0,
 				bsp_babClear
@@ -100,6 +104,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_pibRelease,
 				bsp_pibCopy,
 				bsp_pibAcquire,
+				0,
 				0,
 				0,
 				bsp_pibCheck,
@@ -118,11 +123,12 @@ static ExtensionDef	extensionDefs[] =
 				bsp_pcbAcquire,
 				0,
 				0,
+				0,
 				bsp_pcbCheck,
                                 0,
 				bsp_pcbClear
 		},
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 		{ "bab", EXTENSION_TYPE_BAB,
 				bsp_babOffer,
 				{0,
@@ -133,6 +139,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_babRelease,
 				0,
 				bsp_babAcquire,
+				0,
 				0,
 				0,
 				bsp_babCheck,
@@ -149,6 +156,7 @@ static ExtensionDef	extensionDefs[] =
 				bsp_bcbRelease,
 				bsp_bcbCopy,
 				bsp_bcbAcquire,
+				0,
 				bsp_bcbDecrypt,
 				0,
 				0,
@@ -166,43 +174,46 @@ static ExtensionDef	extensionDefs[] =
 				bsp_bibCopy,
 				0,
 				0,
+				0,
 				bsp_bibParse,
 				bsp_bibCheck,
 				0,
 				bsp_bibClear
 		},
-#elif defined(BPSEC)
+#elif defined(SBSP)
 		{ "bcb", BLOCK_TYPE_BCB,
-				bpsec_bcbOffer,
+				sbsp_bcbOffer,
 				{0,
 				0,
 				0,
-				bpsec_bcbProcessOnDequeue,
+				sbsp_bcbProcessOnDequeue,
 				0},
-				bpsec_bcbRelease,
-				bpsec_bcbCopy,
-				bpsec_bcbAcquire,
-				bpsec_bcbDecrypt,
+				sbsp_bcbRelease,
+				sbsp_bcbCopy,
+				sbsp_bcbAcquire,
+				sbsp_bcbReview,
+				sbsp_bcbDecrypt,
 				0,
 				0,
                                 0,
-				bpsec_bcbClear
+				sbsp_bcbClear
 		},
 		{ "bib", BLOCK_TYPE_BIB,
-				bpsec_bibOffer,
+				sbsp_bibOffer,
 				{0,
 				0,
 				0,
 				0,
 				0},
-				bpsec_bibRelease,
-				bpsec_bibCopy,
+				sbsp_bibRelease,
+				sbsp_bibCopy,
 				0,
+				sbsp_bibReview,
 				0,
-				bpsec_bibParse,
-				bpsec_bibCheck,
+				sbsp_bibParse,
+				sbsp_bibCheck,
 				0,
-				bpsec_bibClear
+				sbsp_bibClear
 		},
 #endif /* ORIGINAL_BSP */
 		{ "ecos", EXTENSION_TYPE_ECOS,
@@ -214,6 +225,7 @@ static ExtensionDef	extensionDefs[] =
 				0},
 				ecos_release,
 				ecos_copy,
+				0,
 				0,
 				0,
 				ecos_parse,
@@ -233,6 +245,7 @@ static ExtensionDef	extensionDefs[] =
 				meb_acquire,
 				0,
 				0,
+				0,
 				meb_check,
 				meb_record,
 				meb_clear
@@ -248,10 +261,28 @@ static ExtensionDef	extensionDefs[] =
 				bae_copy,
 				0,
 				0,
+				0,
 				bae_parse,
 				bae_check,
 				bae_record,
 				bae_clear
+		},
+		{ "snw", EXTENSION_TYPE_SNW,
+				snw_offer,
+				{snw_processOnFwd,
+				snw_processOnAccept,
+				snw_processOnEnqueue,
+				snw_processOnDequeue,
+				0},
+				snw_release,
+				snw_copy,
+				0,
+				0,
+				0,
+				snw_parse,
+				snw_check,
+				snw_record,
+				snw_clear
 		},
 #ifdef ENABLE_BPACS
         	{ "cteb", EXTENSION_TYPE_CTEB,
@@ -265,13 +296,14 @@ static ExtensionDef	extensionDefs[] =
 				cteb_copy,
 				0,
 				0,
+				0,
 				cteb_parse,
 				0,
 				cteb_record,
 				cteb_clear
        		},
 #endif /* ENABLE_BPACS */
-				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0 }
+				{ "unknown",0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
 /*	NOTE: the order of appearance of extension definitions in the
@@ -285,7 +317,7 @@ static ExtensionSpec	extensionSpecs[] =
 			{
 #if defined(ORIGINAL_BSP)
 				{ BSP_BAB_TYPE, 0, 0, 0, 0 },
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 				{ EXTENSION_TYPE_BAB, 0, 0, 0, 0 },
 
 #endif /* ORIGINAL_BSP */
@@ -293,6 +325,7 @@ static ExtensionSpec	extensionSpecs[] =
 				{ EXTENSION_TYPE_ECOS, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_MEB, 0, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAE, 0, 0, 0, 0 },
+				{ EXTENSION_TYPE_SNW, 0, 0, 0, 0 },
 #ifdef ENABLE_BPACS
         			{ EXTENSION_TYPE_CTEB, 0, 0, 0, 0 },
 #endif /* ENABLE_BPACS */
@@ -300,11 +333,11 @@ static ExtensionSpec	extensionSpecs[] =
 				{ BSP_PIB_TYPE, 0, 0, 0, 0 },
 				{ BSP_PCB_TYPE, 0, 0, 0, 0 },
 				{ BSP_BAB_TYPE, 0, 0, 1, 1 },
-#elif defined(SBSP)
+#elif defined(ORIGINAL_SBSP)
 				{ EXTENSION_TYPE_BIB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BCB, 1, 0, 0, 0 },
 				{ EXTENSION_TYPE_BAB, 0, 0, 1, 1 },
-#elif defined(BPSEC)
+#elif defined(SBSP)
 				{ BLOCK_TYPE_BIB, 1, 0, 0, 0 },
 				{ BLOCK_TYPE_BCB, 1, 0, 0, 0 },
 #endif /* ORIGINAL_BSP */

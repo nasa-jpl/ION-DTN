@@ -2,6 +2,7 @@
  eclsaMatrix.h
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ Co-author of HSLTP extensions: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
  Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -16,11 +17,14 @@ todo
 #define LTP_EC_ECLSA_TOOLS_ECLSAMATRIX_H_
 
 #include "eclsaCodecMatrix.h"
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 #include "../fec/eclsaFecManager.h"
 #include "../packet/eclsaSendingSequence.h"
 #include "../sys/eclsaTimer.h"
+#include "../../extensions/HSLTP/HSLTP_def.h"
 #include <semaphore.h>
+#include <pthread.h>
+
 
 typedef struct
 {
@@ -32,11 +36,11 @@ typedef struct
 	unsigned int	infoSegmentAddedCount; // <= maxInfoSize
 	unsigned int	redundancySegmentAddedCount; // <= N-K
 	FecElement 		*encodingCode; //code used for encoding
-	CodecMatrix 	*universalCodecMatrix;
+	CodecMatrix 	*abstractCodecMatrix; //ex universalCodecMatrix
 	EclsaTimer 		timer;
 	bool			clearedToCodec;
 	bool			clearedToSend;
-	sem_t			lock;
+	pthread_mutex_t	lock;
 	bool			feedbackEnabled;
 	char 			codecStatus;
 
@@ -46,16 +50,22 @@ typedef struct
 
     /*ONLY FOR ECLSO*/
     SendingSequence sequence;
+
+	/* HSLTP adds */
+    HSLTPMatrixType HSLTPMatrixType;
+    bool HSLTPModeEnabled;
+
 } EclsaMatrix;
+
 
 
 /*Single eclsa matrix functions*/
 bool isMatrixInfoPartFull(EclsaMatrix *matrix);
 bool isMatrixEmpty(EclsaMatrix *matrix);
 bool isInfoSymbol(EclsaMatrix *matrix, int symbolID);
-void eclsaMatrixInit(EclsaMatrix *matrix);
+void eclsaMatrixInit(EclsaMatrix *matrix, unsigned int N, unsigned int T);
 void eclsaMatrixDestroy(EclsaMatrix *matrix);
 void addSegmentToEclsaMatrix(EclsaMatrix *matrix, char *buffer, int bufferLength, int symbolID,bool copyLength);
 void flushEclsaMatrix(EclsaMatrix *matrix);
 
-#endif /* LTP_EC_ECLSA_TOOLS_ECLSAMATRIX_H_ */
+#endif

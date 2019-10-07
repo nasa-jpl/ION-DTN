@@ -59,8 +59,9 @@ static int	handleItem(uvast sourceEngineId, unsigned int clientId,
 
 typedef struct
 {
-	uvast	destEngineId;
-	int	running;
+	uvast		destEngineId;
+	ReqAttendant	attendant;
+	int		running;
 } SenderThreadParms;
 
 static void	*sendItems(void *parm)
@@ -89,15 +90,19 @@ static void	*sendItems(void *parm)
 
 		CHKNULL(sdr_begin_xn(sdr));
 		extent = sdr_insert(sdr, buffer, length);
-		if (extent)
-		{
-			item = ionCreateZco(ZcoSdrSource, extent, 0, length,
-					0, 0, ZcoOutbound, NULL);
-		}
-
-		if (sdr_end_xn(sdr) < 0 || item == 0 || item == (Object) ERROR)
+		if (sdr_end_xn(sdr) < 0 || extent == 0)
 		{
 			putErrmsg("Service data item insertion failed.", NULL);
+			sda_interrupt();
+			stp->running = 0;
+			continue;
+		}
+
+		item = ionCreateZco(ZcoSdrSource, extent, 0, length, 0, 0,
+				ZcoOutbound, &(stp->attendant));
+		if (item == 0 || item == (Object) ERROR)
+		{
+			putErrmsg("Service data item zco create failed.", NULL);
 			sda_interrupt();
 			stp->running = 0;
 			continue;
@@ -140,10 +145,18 @@ static int	run_sdatest(uvast destEngineId)
 		/*	Must start sender thread.			*/
 
 		parms.destEngineId = destEngineId;
+		if (ionStartAttendant(&parms.attendant) < 0)
+		{
+			putErrmsg("sdatest can't start attendant.", NULL);
+			return 1;
+		}
+
 		parms.running = 1;
-		if (pthread_begin(&senderThread, NULL, sendItems, &parms))
+		if (pthread_begin(&senderThread, NULL, sendItems,
+			&parms, "sdatest_sender"))
 		{
 			putSysErrmsg("sdatest can't create send thread", NULL);
+			ionStopAttendant(&parms.attendant);
 			return 1;
 		}
 	}
@@ -156,7 +169,9 @@ static int	run_sdatest(uvast destEngineId)
 	if (destEngineId)
 	{
 		parms.running = 0;
+		ionPauseAttendant(&parms.attendant);
 		pthread_join(senderThread, NULL);
+		ionStopAttendant(&parms.attendant);
 	}
 
 	writeErrmsgMemos();
@@ -166,8 +181,8 @@ static int	run_sdatest(uvast destEngineId)
 }
 
 #if defined (ION_LWT)
-int	sdatest(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	sdatest(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	uvast	destEngineId = (uvast) a1;
 #else

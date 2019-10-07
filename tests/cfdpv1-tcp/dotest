@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 4, 2014
+#
+# Tests some of the revisions to CCSDS file delivery protocol.
+# CFDP is started at both nodes, and a background cfdptest task, which
+# only receives and document service indications, is started at both
+# nodes.  A cfdptest task is started at node 1, sending a file to node 2.
+# Then another cfdptest is started at node 2 which issues a proxy put
+# to "get" file from node 2.  Both operations are performed in unacknowledged
+# mode with closure requested by the file sender in each direction.
+# Communication between the two nodes is subject to 3 seconds of OWLT,
+# so the "get" operation should finish before the put operation (which must
+# wait for a Finished PDU from node 2).
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 1.ipn.ltp
+./ionstart &
+sleep 1
+cd ../2.ipn.ltp
+./ionstart &
+
+sleep 10
+echo "Starting cfdptest on each node..."
+cd ../1.ipn.ltp
+cfdptest < cfdp_cmds >& node1.stdout &
+cd ../2.ipn.ltp
+cfdptest < cfdp_cmds >& node2.stdout &
+
+sleep 35
+echo ""
+echo "Checking for file arrivals...."
+RETVAL=0
+
+cd ../1.ipn.ltp
+
+COUNT=`ls -al receivedFile | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo ""
+	echo "Error: node 1 did not receive file from node 2."
+	RETVAL=1
+else
+	echo ""
+	echo "Okay: node 1 received file from node 2."
+fi
+
+cd ../2.ipn.ltp
+
+COUNT=`ls -al receivedFile | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo ""
+	echo "Error: node 2 did not receive file from node 1."
+	RETVAL=1
+else
+	echo ""
+	echo "Okay: node 2 received file from node 1."
+fi
+
+echo ""
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+
+sleep 15
+killm
+echo ""
+echo "CFDPv1 test completed."
+exit $RETVAL

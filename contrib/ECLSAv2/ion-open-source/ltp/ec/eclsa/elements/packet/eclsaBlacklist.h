@@ -14,7 +14,7 @@ todo
 #ifndef _ECLSABLACKLIST_H_
 #define _ECLSABLACKLIST_H_
 
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

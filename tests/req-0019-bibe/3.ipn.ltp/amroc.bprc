@@ -11,7 +11,7 @@ a outduct ltp 2 ltpclo
 a outduct ltp 4 ltpclo
 a protocol udp 1400 100 -1
 a induct udp 127.0.0.1:7777 udpcli
-a outduct udp 127.0.0.1:8888 udpclo
+a outduct udp 127.0.0.1:8888 'udpclo 2'
 a protocol bibe 1400 100
 a induct bibe * ''
 r 'ipnadmin amroc.ipnrc'

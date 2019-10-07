@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.6.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.7.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -93,7 +93,17 @@ case $host_os in
 		;;
 	solaris*)
 		PLATFORM="solaris"
-		if test $host_cpu = "sparc" ; then
+		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
+			if test "$CC" = "gcc"; then
+				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
+			fi
+			NO_WALL_WERROR_WALL=1
+			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
+			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
+
+			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
+			echo "Build 32-bit ION on 64-bit solaris"
+		elif test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
@@ -108,7 +118,10 @@ case $host_os in
 		AS_IF([test "x$ISAINFO" != "xno"],
       		[isainfo_b=`isainfo -b`],
       		[isainfo_b="x"])
-      	if test "$isainfo_b" = "64"; then
+      	if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
+		 	AM_CFLAGS="$AM_CFLAGS -m32"
+			echo "Build 32-bit code on 64-bit machine"
+      	elif test "$isainfo_b" = "64"; then
       		AM_CFLAGS="$AM_CFLAGS -m64"
       		echo "Build 64-bit code"
       	else
@@ -212,11 +225,9 @@ fi
 #
 # Control whether AMS debugging info is printed.
 #
-if test "$IS_NASA_B" = "0"; then
 	AC_ARG_ENABLE([ams-debug],
 		[  --enable-ams-debug    Enable AMS debugging info],
 		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
-fi
 
 #
 # Dynamically choose whether or not to instrument code for gcov code coverage
@@ -301,11 +312,37 @@ if test "x$enable_sysctl_check" = xyes; then
     echo "checking sysctl configuration..."
     echo
 
-    if ! ./sysctl_script.sh; then
+    if ! ${ac_confdir}/sysctl_script.sh; then
         echo "Reconfigure with --disable-sysctl-check to bypass this check."
         exit 1
     fi
 fi
+
+AC_ARG_WITH([mysql],
+[AS_HELP_STRING([--with-mysql], [Enable MYSQL support for NM MGR])],
+[mysql=yes;],
+[])
+if test "x$mysql" = "xyes" ; then
+	echo "Build against libmysql... yes"
+	CFLAGS="$CFLAGS -DHAVE_MYSQL"
+else
+	echo "Build against libmysql... no"
+fi
+AM_CONDITIONAL([ENABLE_MYSQL], [test "x$mysql" = "xyes"])
+
+
+AC_ARG_WITH([ncurses],
+[AS_HELP_STRING([--with-ncurses], [Enable NCURSES support for NM MGR])],
+[ncurses=yes;],
+[])
+if test "x$ncurses" = "xyes" ; then
+	echo "Build against libncurses... yes"
+	CFLAGS="$CFLAGS -DUSE_NCURSES"
+else
+	echo "Build against libncurses... no"
+fi
+AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
+
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -325,6 +362,19 @@ AC_CHECK_LIB(
 )
 CFLAGS="$ORIGCFLAGS"
 
+AC_CHECK_LIB(
+	[mysqlclient],
+	[mysql_real_connect],
+	[ AC_SUBST( [MYSQL_LIBS], ["-lmysqlclient"] ) ],
+    [ AM_COND_IF([ENABLE_MYSQL], AC_MSG_ERROR([You need to install the mysqlclient library to build with MySQL.  Run configure with --with-mysql to turn on this feature.]), AC_MSG_WARN([If you wish to use MySQL for NM you will need to install the libmysqlclient.]) )]
+)
+
+AC_CHECK_LIB(
+	[ncurses],
+	[initscr],
+	[ AC_SUBST( [NCURSES_LIBS], ["-lncurses -lform -lmenu -lpanel"] ) ],
+	[ AM_COND_IF([ENABLE_NCURSES], AC_MSG_ERROR([You need to install the NCURSES library to build with NCURSES TUI support.  Run configure with --with-ncurses to turn on this feature.]), AC_MSG_WARN([If you wish to use the NCURSES TUI for NM you will need to install the NCURSES library.]) )]
+)
 
 # Check for programs to build documentation
 AC_CHECK_PROGS([POD_DOCUMENTATION], [pod2man pod2html], [1] )
@@ -378,6 +428,8 @@ AC_SUBST([MANOPTS], $MANOPTS)
 
 AC_MSG_CHECKING([for tools to build autodoc])
 if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
+#    AC_MSG_RESULT([(skipping autodoc)])
+# Comment out line above and uncomment the two below to enable automatic generation of ION.pdf
     AC_MSG_RESULT([found])
     buildautodoc="yes"
 else
@@ -420,6 +472,7 @@ AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
+AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])

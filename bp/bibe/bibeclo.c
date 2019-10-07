@@ -31,8 +31,8 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-int	bibeclo(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+int	bibeclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char			*endpointSpec = (char *) a1;
 #else
@@ -117,11 +117,16 @@ int	main(int argc, char *argv[])
 			break;
 		}
 
-		if (bundleZco == 0)	/*	Outduct closed.		*/
+		if (bundleZco == 0)	 /*	Outduct closed.		*/
 		{
 			writeMemo("[i] bibeclo outduct closed.");
 			sm_SemEnd(bibecloSemaphore(NULL));/*	Stop.	*/
 			continue;
+		}
+
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
@@ -143,7 +148,7 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		bundleAge = currentTime -
 			(image.id.creationTime.seconds + EPOCH_2000_SEC);
 		ttl = image.timeToLive - bundleAge;

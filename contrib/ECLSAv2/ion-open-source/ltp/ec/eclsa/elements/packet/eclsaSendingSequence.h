@@ -14,7 +14,7 @@ todo
 #ifndef _ECLSASEQUENCE_H_
 #define _ECLSASEQUENCE_H_
 
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 #include "../fec/eclsaFecManager.h"
 
 #ifdef __cplusplus

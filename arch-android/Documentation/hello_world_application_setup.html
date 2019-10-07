@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Application Setup - IonDTN Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="A practical introduction and documentation of the IonDTN Android application">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="./introduction.html"><strong>1.</strong> Introduction</a></li><li><a href="./requirements.html"><strong>2.</strong> Requirements</a></li><li><a href="./hello_world.html"><strong>3.</strong> Getting Started: &quot;Hello World&quot;</a></li><li><ul class="section"><li><a href="./hello_world_application_setup.html" class="active"><strong>3.1.</strong> Application Setup</a></li><li><a href="./hello_world_iondtn_setup.html"><strong>3.2.</strong> IonDTN Setup</a></li><li><a href="./hello_world_binding_iondtn.html"><strong>3.3.</strong> Binding to IonDTN</a></li><li><a href="./hello_world_hello_world.html"><strong>3.4.</strong> &quot;Hello World&quot;</a></li></ul></li><li><a href="./interface.html"><strong>4.</strong> Interface</a></li><li><ul class="section"><li><a href="interface_sending_bundles.html"><strong>4.1.</strong> Sending Bundles</a></li><li><a href="interface_receiving_bundles.html"><strong>4.2.</strong> Receiving Bundles</a></li></ul></li><li><a href="sample_application.html"><strong>5.</strong> Sample Application</a></li><li><ul class="section"><li><a href="sample_application.html"><strong>5.1.</strong> MinimalTextApplication</a></li><li><a href="sample_application.html"><strong>5.2.</strong> CameraShare</a></li></ul></li><li><a href="iondtn.html"><strong>6.</strong> IonDTN Provider Application</a></li><li><ul class="section"><li><a href="iondtn_overview.html"><strong>6.1.</strong> Overview</a></li><li><a href="iondtn_jni_interaction.html"><strong>6.2.</strong> ION Interaction - JNI</a></li><li><a href="iondtn_services.html"><strong>6.3.</strong> Services</a></li><li><ul class="section"><li><a href="iondtn_services_lifecycle_management.html"><strong>6.3.1.</strong> Lifecycle Management</a></li><li><a href="iondtn_services_bundle_service.html"><strong>6.3.2.</strong> BundleService</a></li><li><a href="iondtn_services_node_administration_service.html"><strong>6.3.3.</strong> NodeAdministrationService</a></li></ul></li><li><a href="iondtn_gui.html"><strong>6.4.</strong> GUI</a></li><li><a href="iondtn_backend.html"><strong>6.5.</strong> Backend</a></li><li><a href="iondtn_types.html"><strong>6.6.</strong> Types</a></li><li class="spacer"></li></ul></li><li><a href="./resources/javadoc/index.html">JavaDoc Documentation</a></li><li class="affix"><a href="./appendix/license.html">License</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">IonDTN Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./hello_world_application_setup.html#application-setup" id="application-setup"><h1>Application Setup</h1></a>
+<p>First, we have to create a new application, design an graphical user interface (GUI) and grant the application some necessary system permissions.</p>
+<blockquote>
+<p><strong>Note:</strong> The entire <em>DtnHelloWorld</em> project can be found at <code>arch_android/Demo_Applications/IonHelloWorld</code>. Instead of extracting all the code snippets from this tutorial you can simply open/copy it and then continue reading.</p>
+</blockquote>
+<a class="header" href="./hello_world_application_setup.html#create-a-new-project" id="create-a-new-project"><h2>Create a new project</h2></a>
+<p>Assuming that you have already installed Android Studio as described in the chapter <a href="./requirements.html">&quot;Requirements&quot;</a>, please open Android Studio and select <code>File -&gt; New -&gt; New Project</code>. A new dialog pops up where you can setup the new project:</p>
+<p><img src="./resources/new_project_name.png" alt="new project name" /></p>
+<p>We are calling the application &quot;IonHelloWorld&quot; and after clicking <code>Next</code> we can select the &quot;Minimum SDK&quot;.</p>
+<p><img src="./resources/new_project_target_sdk.png" alt="new project target sdk" /></p>
+<p>Just use the standard settings and click <code>Next</code>.</p>
+<p><img src="./resources/new_project_activity.png" alt="new project activity" /></p>
+<p>In the following dialog we can pick a start activity. We're also going with the default selection here which is an &quot;Empty Activity&quot;. Click <code>Next</code>.</p>
+<p><img src="./resources/new_project_activity_name.png" alt="new project activity name" /></p>
+<p>Finally, we have to pick a name for your activity. Accept the default and click <code>Finish</code> to create the project. Android Studio will now create all required files and change it's layout. After the creation process has finished, you can find all project files in the top left corner of the window.</p>
+<p><img src="./resources/new_project_file_explorer.png" alt="new project file explorer" /></p>
+<a class="header" href="./hello_world_application_setup.html#create-the-gui" id="create-the-gui"><h2>Create the GUI</h2></a>
+<p>As next step we have to create a GUI that allows the user to enter a destination EID and trigger the sending process. For entering the destination EID we are going to use an <code>editText</code> object and for triggering the event a basic <code>button</code> object:</p>
+<p><img src="./resources/hello_world_layout.png" alt="hello world layout" /></p>
+<p>The code for this layout has to be put into <code>app/src/main/res/layout/activity_main.xml</code>:</p>
+<pre><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;android.support.constraint.ConstraintLayout
+    xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+    xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+    xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+    android:layout_width=&quot;match_parent&quot;
+    android:layout_height=&quot;match_parent&quot;
+    tools:context=&quot;gov.nasa.jpl.ionhelloworld.MainActivity&quot;&gt;
+
+    &lt;LinearLayout
+        android:layout_width=&quot;368dp&quot;
+        android:layout_height=&quot;wrap_content&quot;
+        android:orientation=&quot;vertical&quot;
+        tools:layout_editor_absoluteX=&quot;8dp&quot;
+        tools:layout_editor_absoluteY=&quot;8dp&quot;&gt;
+
+        &lt;TextView
+            android:id=&quot;@+id/textView&quot;
+            android:layout_width=&quot;match_parent&quot;
+            android:layout_height=&quot;wrap_content&quot;
+            android:layout_weight=&quot;1&quot;
+            android:text=&quot;EID:&quot;/&gt;
+
+        &lt;EditText
+            android:id=&quot;@+id/editText&quot;
+            android:layout_width=&quot;wrap_content&quot;
+            android:layout_height=&quot;wrap_content&quot;
+            android:layout_weight=&quot;1&quot;
+            android:ems=&quot;10&quot;
+            android:inputType=&quot;textPersonName&quot;
+            tools:layout_editor_absoluteX=&quot;82dp&quot;
+            tools:layout_editor_absoluteY=&quot;48dp&quot;/&gt;
+
+        &lt;Button
+            android:id=&quot;@+id/button&quot;
+            android:layout_width=&quot;wrap_content&quot;
+            android:layout_height=&quot;wrap_content&quot;
+            android:layout_weight=&quot;1&quot;
+            android:text=&quot;Send&quot;
+            tools:layout_editor_absoluteX=&quot;145dp&quot;
+            tools:layout_editor_absoluteY=&quot;122dp&quot;/&gt;
+    &lt;/LinearLayout&gt;
+
+&lt;/android.support.constraint.ConstraintLayout&gt;
+</code></pre>
+<p>For details on how to create a (more sophisticated) activity layout, please refer to the <a href="https://developer.android.com">Android documentation</a>.</p>
+<p>We now have an application that has a layout and that can be executed on any Android device.
+You can test this by connecting an Android device to your development machine, enabling debugging in the device's settings and pressing the <code>Run 'app'</code> icon in the toolbar:</p>
+<p><img src="./resources/run_app.png" alt="run app" /></p>
+<a class="header" href="./hello_world_application_setup.html#disable-gui-elements" id="disable-gui-elements"><h2>Disable GUI elements</h2></a>
+<p>As the last step of this chapter, we want to disable the GUI elements for user interaction, in particular the button and the editText elements. These elements should only be selectable when the <code>BundleService</code> is connected.</p>
+<pre><code class="language-java">@Override
+    protected void onCreate(Bundle savedInstanceState) {
+        // Initialize parent class
+        super.onCreate(savedInstanceState);
+
+        // Inflate layout of activity
+        setContentView(R.layout.activity_main);
+
+        // Bind layout elements to Java objects
+        button = (Button)findViewById(R.id.button);
+        editText = (EditText)findViewById(R.id.editText);
+
+        // Disable elements (until service is available)
+        button.setEnabled(false);
+        editText.setEnabled(false);
+
+        // Define 'click' behavior for button
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ...
+            }
+        });
+    }
+</code></pre>
+<p>After initializing the parent class and inflating the layout, the layout elements have to be bound to Java object that can be used in the class. The two object should be available in other methods of this class, therefore they are defined class-wide and are just bound in the <code>onCreate()</code> function:</p>
+<pre><code class="language-java">public class MainActivity extends AppCompatActivity {
+    Button button;
+    EditText editText;
+...
+</code></pre>
+<p>Besides disabling the elements we are also assigning an <code>OnClickListener</code> to the button object. The content of this listener is defined in the chapter <a href="hello_world_hello_world.html">'Hello World'</a>.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./hello_world.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./hello_world_iondtn_setup.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./hello_world.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./hello_world_iondtn_setup.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

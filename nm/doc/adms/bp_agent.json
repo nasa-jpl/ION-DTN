@@ -1,0 +1,424 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "bp_agent",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/bp_agent",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.1",
+      "description": "The version of the ADM"
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+
+  "Edd": [{
+      "name": "bp_node_id",
+      "type": "STR",
+      "description": "The node administration endpoint"
+    },
+    {
+      "name": "bp_node_version",
+      "type": "STR",
+      "description": "The latest version of the BP supported by this node"
+    },
+    {
+      "name": "available_storage",
+      "type": "UVAST",
+      "description": "Bytes available for bundle storage"
+    },
+    {
+      "name": "last_reset_time",
+      "type": "UVAST",
+      "description": "The last time that BP counters were reset, either due to execution of a reset control or a restart of the node itself"
+    },
+    {
+      "name": "num_registrations",
+      "type": "UINT",
+      "description": "number of registrations"
+    },
+    {
+      "name": "num_pend_fwd",
+      "type": "UINT",
+      "description": "number of bundles pending forwarding"
+    },
+    {
+      "name": "num_pend_dis",
+      "type": "UINT",
+      "description": "number of bundles awaiting dispatch"
+    },
+    {
+      "name": "num_in_cust",
+      "type": "UINT",
+      "description": "number of bundles"
+    },
+    {
+      "name": "num_pend_reassembly",
+      "type": "UINT",
+      "description": "number of bundles pending reassembly"
+    },
+    {
+      "name": "bundles_by_priority",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "mask"
+      }],
+      "description": "number of bundles for the given priority. Priority is given as a priority mask where Bulk=0x1, normal=0x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned count"
+    },
+    {
+      "name": "bytes_by_priority",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "mask"
+      }],
+      "description": "number of bytes of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned count."
+    },
+    {
+      "name": "src_bundles_by_priority",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "mask"
+      }],
+      "description": "number of bundles sourced by this node of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles sourced by this node and matching any of the masked priorities will be included in the returned count."
+    },
+    {
+      "name": "src_bytes_by_priority",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "mask"
+      }],
+      "description": "number of bytes sourced by this node of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles sourced by this node and matching any of the masked priorities will be included in the returned count"
+    },
+    {
+      "name": "num_fragmented_bundles",
+      "type": "UINT",
+      "description": "number of fragmented bundles"
+    },
+    {
+      "name": "num_fragments_produced",
+      "type": "UINT",
+      "description": "number of bundles with fragmentary payloads produced by this node"
+    },
+    {
+      "name": "num_failed_by_reason",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "UINT",
+        "name": "mask"
+      }],
+      "description": "number of bundles failed for any of the given reasons. (noInfo=0x1, Expired=0x2, UniFwd=0x4, Cancelled=0x8, NoStorage=0x10, BadEID=0x20, NoRoute=0x40, NoContact=0x80, BadBlock=0x100)"
+    },
+    {
+      "name": "num_bundles_deleted",
+      "type": "UINT",
+      "description": "number of bundles deleted by this node"
+    },
+    {
+      "name": "failed_custody_bundles",
+      "type": "UINT",
+      "description": "number of bundle fails at this node"
+    },
+    {
+      "name": "failed_custody_bytes",
+      "type": "UINT",
+      "description": "number bytes of fails at this node"
+    },
+    {
+      "name": "failed_forward_bundles",
+      "type": "UINT",
+      "description": "number bundles not forwarded by this node"
+    },
+    {
+      "name": "failed_forward_bytes",
+      "type": "UINT",
+      "description": "number of bytes not forwaded by this node"
+    },
+    {
+      "name": "abandoned_bundles",
+      "type": "UINT",
+      "description": "number of bundles abandoned by this node"
+    },
+    {
+      "name": "abandoned_bytes",
+      "type": "UINT",
+      "description": "number of bytes abandoned by this node"
+    },
+    {
+      "name": "discarded_bundles",
+      "type": "UINT",
+      "description": "number of bundles discarded by this node"
+    },
+    {
+      "name": "discarded_bytes",
+      "type": "UINT",
+      "description": "number of bytes discarded by this node"
+    },
+    {
+      "name": "endpoint_names",
+      "type": "STR",
+      "description": "CSV list of endpoint names for this node"
+    },
+    {
+      "name": "endpoint_active",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_name"
+      }],
+      "description": "is the given endpoint active? (0=no)"
+    },
+    {
+      "name": "endpoint_singleton",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_name"
+      }],
+      "description": "is the given endpoint singleton? (0=no)"
+    },
+    {
+      "name": "endpoint_policy",
+      "type": "UINT",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_name"
+      }],
+      "description": "Does the endpoint abandon on fail (0=no)"
+    }
+  ],
+
+  "Rptt": [{
+      "name": "full_report",
+      "definition": [
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Mdat.name"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Mdat.version"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bp_node_id"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bp_node_version"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.available_storage"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.last_reset_time"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_registrations"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_pend_fwd"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_pend_dis"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_in_cust"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_pend_reassembly"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bundles_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bundles_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bundles_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bytes_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bytes_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.bytes_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bundles_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bundles_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bundles_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bytes_by_priority(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bytes_by_priority(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.src_bytes_by_priority(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_fragmented_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_fragments_produced"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(1)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(2)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(4)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(8)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(16)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(32)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(64)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(128)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_failed_by_reason(256)"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.num_bundles_deleted"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_custody_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_custody_bytes"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_forward_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.failed_forward_bytes"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.abandoned_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.discarded_bundles"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.discarded_bytes"
+	},
+        {
+		"ns": "DTN/bp_agent",
+		"nm": "Edd.endpoint_names"
+	}
+      ],
+      "description": "This is all known meta-data, EDD, and VAR values known by the agent."
+    },
+    {
+      "name": "endpoint_report",
+      "parmspec": [{
+        "type": "STR",
+        "name": "endpoint_id"
+      }],
+      "definition": [{
+          "ns": "DTN/bp_agent",
+          "nm": "edd.endpoint_active",
+          "ap": [{
+            "type": "ParmName",
+            "value": "endpoint_id"
+          }]
+        },
+        {
+          "ns": "DTN/bp_agent",
+          "nm": "edd.endpoint_singleton",
+          "ap": [{
+            "type": "ParmName",
+            "value": "endpoint_id"
+          }]
+        },
+        {
+          "ns": "DTN/bp_agent",
+          "nm": "edd.endpoint_policy",
+          "ap": [{
+            "type": "ParmName",
+            "value": "endpoint_id"
+          }]
+        }
+      ],
+      "description": "This is all known endpoint information"
+    }
+  ],
+
+  "Ctrl": [{
+    "name": "reset_all_counts",
+    "description": "This control causes the Agent to reset all counts associated with bundle or byte statistics and to set the last reset time of the BP primitive data to the time when the control was run"
+  }]
+}

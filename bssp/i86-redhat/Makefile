@@ -43,7 +43,7 @@ install:
 #	-	-	Daemon executables	-	-	-	-
 
 bsspclock:	bsspclock.o libbsspP.so
-		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm -lm
+		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
 		cp bsspclock ./bin
 
 #	-	-	Utility executables	-	-	-	-

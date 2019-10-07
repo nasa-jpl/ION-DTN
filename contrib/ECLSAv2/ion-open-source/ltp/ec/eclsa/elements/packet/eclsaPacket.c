@@ -2,6 +2,7 @@
 eclsaPacketManager.c
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ Co-author of HSLTP extensions: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -9,6 +10,8 @@ Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
 
  * */
 #include "eclsaPacket.h"
+#include "../sys/eclsaLogger.h"
+#include "../../adapters/codec/eclsaCodecAdapter.h"
 
 #include <string.h>
 
@@ -31,6 +34,9 @@ void createEclsaHeader(EclsaMatrix *matrix,EclsaHeader *header)
 		if(matrix->encodingCode->continuous)
 			header->flags=	header->flags | CONTINUOUS_MODE_MASK;
 		}
+    if(matrix->HSLTPModeEnabled)
+    	header->flags = header->flags | HSLTP_MODE_MASK;
+
 	header->segmentsAdded= matrix->infoSegmentAddedCount;
 
 	if(matrix->feedbackEnabled)
@@ -43,8 +49,8 @@ void createEclsaPacket(EclsaMatrix *matrix, EclsaHeader *header, int symbolID, c
 	int i;
 	int T;
 	uint16_t segmentLength; //2Byte
-	char *matrixSegment=getSymbolFromCodecMatrix(matrix->universalCodecMatrix,symbolID);
-	int universalCodecStatus = convertToUniversalCodecStatus(matrix->codecStatus);
+	char *matrixSegment=getSymbolFromCodecMatrix(matrix->abstractCodecMatrix,symbolID);
+	int universalCodecStatus = convertToAbstractCodecStatus(matrix->codecStatus);
 
 	//The eclsa header has been created once with packetID=0 by createEclsaHeader();
 	header->symbolID = symbolID; // set the symbolID to the actual value
@@ -59,6 +65,18 @@ void createEclsaPacket(EclsaMatrix *matrix, EclsaHeader *header, int symbolID, c
 		//add the eclsa payload to the buffer
 		memcpy(buffer+sizeof(EclsaHeader),matrixSegment,sizeof(uint8_t) * T);
 		*bufferLength= sizeof(EclsaHeader) + sizeof(uint8_t) * T ;
+
+		//Optimization: eclsa packets often end with a long run of zeroes.
+		//This often happens when the encoding matrix is not full (I<<K).
+		//These zeroes can be safely erased to save bandwidth.
+
+		for (i = *bufferLength - 1; i >= 0; i--)
+			if (buffer[i] != '\0')
+				{
+				*bufferLength = i + 1;
+				break;
+				}
+
 		}
 	else
 		{
@@ -72,16 +90,7 @@ void createEclsaPacket(EclsaMatrix *matrix, EclsaHeader *header, int symbolID, c
 		*bufferLength=(int)segmentLength+sizeof(EclsaHeader) + sizeof(uint16_t);
 		}
 
-	//Optimization: eclsa packets often end with a long run of zeroes.
-	//This often happens when the encoding matrix is not full (I<<K).
-	//These zeroes can be safely erased to save bandwidth.
 
-	for(i= *bufferLength-1; i>=0; i--)
-		if(buffer[i] != '\0')
-			{
-			*bufferLength=i+1;
-			break;
-			}
 }
 bool parseEclsaIncomingPacket(EclsaHeader *outHeader, FecElement **outEncodingCode, char *inBuffer, int inBufferLength, char **outBuffer, int *outBufferLength, int maxT)
 {

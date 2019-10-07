@@ -2,6 +2,7 @@
 eclsaPacketManager.h
 
  Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+ Co-author of HSLTP extensions: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
  Project Supervisor: Carlo Caini (carlo.caini@unibo.it)
 
 Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
@@ -12,7 +13,7 @@ Copyright (c) 2016, Alma Mater Studiorum, University of Bologna
 #ifndef _ECPACKETMANAGER_H_
 #define _ECPACKETMANAGER_H_
 #include "../matrix/eclsaMatrix.h"
-#include "../eclsaBoolean.h"
+#include <stdbool.h>
 
 
 /*Header */
@@ -33,7 +34,8 @@ typedef struct
 typedef enum
 {
 	FEEDBACK_REQUEST_MASK 	= 1,
-	CONTINUOUS_MODE_MASK 	= 2
+	CONTINUOUS_MODE_MASK 	= 2,
+	HSLTP_MODE_MASK 		= 4
 } HeaderFlags; //2^n , n= 0,1,2, ...
 
 

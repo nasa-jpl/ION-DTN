@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">MinimalTextApplication</string>
+    <string name="textSendButton">Send</string>
+    <string name="inputTextText">Enter Payload here!</string>
+    <string name="receiveTextViewText">Received:</string>
+    <string name="button_label_unsubscribe">Unsubscribe</string>
+    <string name="button_label_subscribe">Subscribe</string>
+    <string name="button_label_sending">Sending</string>
+    <string name="button_label_destination_eid">Destination EID</string>
+    <string name="editText_label_payload">Payload</string>
+    <string name="button_label_send">Send</string>
+    <string name="button_label_receiving">Receiving</string>
+    <string name="editText_label_sink_identifier">Sink Identifier</string>
+    <string name="received_field_initial_value">Received:</string>
+    <string name="button_label_administration">Administration</string>
+    <string name="button_label_open">Open Endpoint</string>
+    <string name="button_label_close">Close Endpoint</string>
+</resources>

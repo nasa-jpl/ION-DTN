@@ -1,0 +1,49 @@
+## begin ionadmin
+1 2 ''
+s
+
+a contact +1 +3600 2 2 100000
+a contact +1 +3600 1 1 100000
+
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+
+a range +1 +3600 1 1 1
+a range +1 +3600 2 2 1
+
+a range +1 +3600 1 2 1
+a range +1 +3600 2 1 1
+
+m production 1000000
+m consumption 1000000
+## end ionadmin
+
+## begin bpadmin
+1
+
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 q
+a endpoint ipn:2.2 q
+
+a protocol tcp 1400 100
+
+# FIXME the IP address has to be changed to your network structure
+a induct tcp 192.168.1.2:4556 tcpcli
+
+# FIXME the IP address has to be changed to your network structure
+a outduct tcp 192.168.1.2:4556 tcpclo
+
+# FIXME the IP address has to be changed to your network structure
+a outduct tcp 192.168.1.26:4556 tcpclo
+
+s
+## end bpadmin
+
+## begin ipnadmin
+# FIXME the IP address has to be changed to your network structure
+a plan 1 tcp/192.168.1.26:4556
+# FIXME the IP address has to be changed to your network structure
+a plan 2 tcp/192.168.1.2:4556
+## end ipnadmin
