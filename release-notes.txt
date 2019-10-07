@@ -1,6 +1,6 @@
 = Release Notes for ION 3.7.0 =
 
-October 3, 2019
+October 7, 2019
 
 %%%%%%%%%%%
 = GENERAL =
@@ -95,10 +95,12 @@ sometime next summer.  Meanwhile, here's what is in the 3.7.0 release:
      of network management messages.
 
 - Updated implementations of DTNperf and the Erasure Coding link service
-     adapter have been added.
+     adapter, from University of Bologna, have been added.
 
 - Individual threads can now be named, for easier management in embedded
-     deployments.
+     deployments.  NOTE: this feature won't be available for the uClibc
+     platform in 3.7.0, as the version of uClibc we're working with
+     does not include an implementation of pthread_setname_np.
 
 - CFDP has been updated to conform to the latest CFDP Red Book.
 
@@ -147,6 +149,18 @@ sometime next summer.  Meanwhile, here's what is in the 3.7.0 release:
 
 - SourceForge Feature Request #74: all remaining reliance on BP libraries
      has been removed from CFDP (except bputa).
+
+One more note: support for explicitly detaching an Outduct from the Egress
+     Plan to which it is currently attached has been added.  Unfortunately,
+     this feature requires that each Outduct be attached only to a single
+     Egress Plan.  That has been the intent of the architecture all along,
+     but making it explicit has uncovered a problem in the regression tests
+     for Aggregate Custody Signaling: those tests rely on the use of a single
+     Outduct for transmission to two different nodes.  Consequently those
+     tests now fail and will continue to fail until they are rewritten.
+     ACS itself is unaffected by the new feature, and when we temporarily
+     disable that restriction on Outduct attachment the ACS regression
+     tests all pass.  ACS still works just as well as ever.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.6.2 =
