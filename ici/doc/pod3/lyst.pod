@@ -117,7 +117,7 @@ Create a new element and insert it before/after the
 specified element.  If these functions are used when inserting
 elements into a Lyst with a defined comparison function,
 then the Lyst may get out
-of order and future calls to L<lyst_insert> can put new
+of order and future calls to lyst_insert() can put new
 elements in unpredictable locations.  Returns a pointer
 to the newly created element, or NULL on any failure.
 

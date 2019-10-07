@@ -62,6 +62,14 @@ is the minimum allowed value (560 bytes), which is the approximate size of a
 ZCO file reference object; this is the minimum SDR heap space occupancy in the
 event that all acquisition is into a file.
 
+=item B<m maxcount> I<max_value_of_bundle_ID_sequence_nbr>
+
+The B<manage maximum bundle ID sequence number> command.  This command sets
+the maximum value that will be assigned as the sequence number in a bundle ID
+for any bundle sourced at a node that lacks a synchronized clock (such that
+the creation time in the ID of every locally sourced bundle is always zero).
+The default value is -1, i.e., unlimited.
+
 =item B<x>
 
 The B<stop> command.  This command stops all schemes and all protocols
@@ -460,11 +468,11 @@ The B<attach outduct> command.  This command declares that the indicated
 convergence-layer protocol outduct is now a viable device for transmitting
 bundles to the node[s] identified by I<endpoint_name>.
 
-=item B<d planduct> I<endpoint_name> I<protocol_name> I<duct_name>
+=item B<d planduct> I<protocol_name> I<duct_name>
 
 The B<detach outduct> command.  This command declares that the indicated
 convergence-layer protocol outduct is no longer a viable device for
-transmitting bundles to the node[s] identified by I<endpoint_name>.
+transmitting bundles to the node[s] to which it is currently assigned.
 
 =back
 

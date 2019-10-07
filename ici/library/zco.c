@@ -33,12 +33,12 @@ static const char	*bookNames[] = { "inbound", "outbound" };
 
 typedef struct
 {
-	vast		fileOccupancy;
-	vast		maxFileOccupancy;
-	vast		bulkOccupancy;
-	vast		maxBulkOccupancy;
-	vast		heapOccupancy;
-	vast		maxHeapOccupancy;
+	double		fileOccupancy;
+	double		maxFileOccupancy;
+	double		bulkOccupancy;
+	double		maxBulkOccupancy;
+	double		heapOccupancy;
+	double		maxHeapOccupancy;
 } ZcoBook;
 
 typedef struct
@@ -169,17 +169,17 @@ static Object	getZcoDB(Sdr sdr)
 			if (obj)	/*	Must initialize.	*/
 			{
 				db.books[0].fileOccupancy = 0;
-				db.books[0].maxFileOccupancy = LONG_MAX;
+				db.books[0].maxFileOccupancy = 1.0e12;
 				db.books[0].bulkOccupancy = 0;
-				db.books[0].maxBulkOccupancy = LONG_MAX;
+				db.books[0].maxBulkOccupancy = 1.0e12;
 				db.books[0].heapOccupancy = 0;
-				db.books[0].maxHeapOccupancy = LONG_MAX;
+				db.books[0].maxHeapOccupancy = 1.0e12;
 				db.books[1].fileOccupancy = 0;
-				db.books[1].maxFileOccupancy = LONG_MAX;
+				db.books[1].maxFileOccupancy = 1.0e12;
 				db.books[1].bulkOccupancy = 0;
-				db.books[1].maxBulkOccupancy = LONG_MAX;
+				db.books[1].maxBulkOccupancy = 1.0e12;
 				db.books[1].heapOccupancy = 0;
-				db.books[1].maxHeapOccupancy = LONG_MAX;
+				db.books[1].maxHeapOccupancy = 1.0e12;
 				sdr_write(sdr, obj, (char*) &db, sizeof(ZcoDB));
 				sdr_catlg(sdr, dbName, 0, obj);
 			}
@@ -296,7 +296,7 @@ writeMemo(buf);
 	}
 }
 
-vast	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -316,7 +316,7 @@ vast	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 	}
 }
 
-void	zco_set_max_file_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+void	zco_set_max_file_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 {
 	Object	obj;
 	ZcoDB	db;
@@ -334,7 +334,7 @@ void	zco_set_max_file_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
 	}
 }
 
-vast	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -424,7 +424,7 @@ writeMemo(buf);
 	}
 }
 
-vast	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -444,7 +444,7 @@ vast	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 	}
 }
 
-void	zco_set_max_bulk_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+void	zco_set_max_bulk_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 {
 	Object	obj;
 	ZcoDB	db;
@@ -462,7 +462,7 @@ void	zco_set_max_bulk_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
 	}
 }
 
-vast	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -556,7 +556,7 @@ writeMemo(buf);
 	}
 }
 
-vast	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -576,7 +576,7 @@ vast	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 	}
 }
 
-void	zco_set_max_heap_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
+void	zco_set_max_heap_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 {
 	Object	obj;
 	ZcoDB	db;
@@ -594,7 +594,7 @@ void	zco_set_max_heap_occupancy(Sdr sdr, vast limit, ZcoAcct acct)
 	}
 }
 
-vast	zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
+double	zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
@@ -972,9 +972,9 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 	Object	obj;
 		OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
-	vast	fileSpaceAvbl;
-	vast	bulkSpaceAvbl;
-	vast	heapSpaceAvbl;
+	double	fileSpaceAvbl;
+	double	bulkSpaceAvbl;
+	double	heapSpaceAvbl;
 
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -1146,9 +1146,9 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 	Object		obj;
 			OBJ_POINTER(ZcoDB, db);
 	ZcoBook		*book;
-	vast		fileSpaceAvbl;
-	vast		bulkSpaceAvbl;
-	vast		heapSpaceAvbl;
+	double		fileSpaceAvbl;
+	double		bulkSpaceAvbl;
+	double		heapSpaceAvbl;
 
 	zco_get_aggregate_length(sdr, location, offset, length, 
 			&fileSpaceNeeded, &bulkSpaceNeeded, &heapSpaceNeeded);

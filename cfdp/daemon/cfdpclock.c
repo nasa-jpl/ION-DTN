@@ -254,17 +254,6 @@ static int	noteFinishPending(Sdr sdr, OutFdu *fdu, Object fduObj,
 static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 {
 	CfdpEvent	event;
-	BpUtParms	*bpUtParms;
-	int		bestEfforts = 0;
-
-	if (fdu->utParmsLength == sizeof(BpUtParms))
-	{
-		bpUtParms = (BpUtParms *) &(fdu->utParms);
-		if (bpUtParms->ancillaryData.flags & BP_BEST_EFFORT)
-		{
-			bestEfforts = 1;
-		}
-	}
 
 	/*	Post EOF-sent.ind event.				*/
 
@@ -294,8 +283,7 @@ static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpTransactionFinishedInd;
 	event.condition = CfdpNoError;
-	event.deliveryCode = bestEfforts ? CfdpDataComplete
-			: CfdpDataIncomplete;
+	event.deliveryCode = CfdpDataIncomplete;
 	event.fileStatus = CfdpFileStatusUnreported;
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
@@ -317,7 +305,6 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 	Object	nextElt;
 	Object	fduObj;
 	OutFdu	fdu;
-	Object	elt2;
 
 	cfdpConstants = getCfdpConstants();
 	CHKERR(sdr_begin_xn(sdr));
@@ -329,29 +316,6 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		sdr_stage(sdr, (char *) &fdu, fduObj, sizeof(OutFdu));
 		if (fdu.state == FduCanceled)
 		{
-			while (1)
-			{
-				elt2 = sdr_list_first(sdr, fdu.extantPdus);
-				if (elt2 == 0)
-				{
-					break;
-				}
-
-				if (bp_cancel(sdr_list_data(sdr, elt2)) < 0)
-				{
-					sdr_cancel_xn(sdr);
-					putErrmsg("Can't cancel bundle.", NULL);
-					return -1;
-				}
-
-				/*	Note: bp_cancel destroys the
-				 *	referenced bundle, in the course
-				 *	of which all tracking elts are
-				 *	destroyed -- including the one
-				 *	that we used to navigate to the
-				 *	bundle.  elt2 is now gone.	*/
-			}
-
 			/*	Simulate completion of transmission.	*/
 
 			fdu.progress = fdu.fileSize;
@@ -412,8 +376,7 @@ static int	scanOutFdus(Sdr sdr, time_t currentTime)
 		 *	to expiration of bundle TTL), destroy the FDU.	*/
 
 		if (fdu.transmitted == 1
-		&& (fdu.closureLatency == 0 || fdu.finishReceived)
-		&& sdr_list_length(sdr, fdu.extantPdus) == 0)
+		&& (fdu.closureLatency == 0 || fdu.finishReceived))
 		{
 			destroyOutFdu(&fdu, fduObj, elt);
 		}
@@ -440,7 +403,7 @@ int	main(int argc, char *argv[])
 	uaddr	state = 1;
 	time_t	currentTime;
 
-	if (cfdpInit() < 0 || bp_attach() < 0)
+	if (cfdpInit() < 0)
 	{
 		putErrmsg("cfdpclock can't initialize CFDP.", NULL);
 		return -1;
@@ -456,7 +419,7 @@ int	main(int argc, char *argv[])
 	while (_running(NULL))
 	{
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 
 		/*	Update check counts for inbound FDUs.		*/
 

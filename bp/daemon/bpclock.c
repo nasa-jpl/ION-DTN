@@ -467,11 +467,18 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 	 *	times, because reforwarding may put one or more
 	 *	bundles back in limbo.  So we defer flushing until
 	 *	the total elapsed time since the previous flush is
-	 *	enough to justify flushing all bundles currently in
-	 *	limbo.							*/
+	 *	enough to justify flushing ALL bundles currently in
+	 *	limbo (at 64 flushes per second of elapsed time).	*/
 
 	bundlesToFlush = sdr_list_length(sdr, limboList);
 	batchesNeeded = (bundlesToFlush >> 8) & 0x00ffffff;
+	if ((batchesNeeded << 8) < bundlesToFlush)
+	{
+		/*	Pick up fractional batch needing release.	*/
+
+		batchesNeeded++;
+	}
+
 	if (*previousFlush == 0)
 	{
 		*previousFlush = currentTime;	/*	Initialize.	*/
@@ -479,15 +486,15 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 
 	elapsed = currentTime - *previousFlush;
 	batchesAvbl = (elapsed >> 2) & 0x3fffffff;
-	if (batchesAvbl > 0 && batchesAvbl >= batchesNeeded)
+	if (batchesNeeded > 0 && batchesAvbl >= batchesNeeded)
 	{
-		/*	Flush the limbo list.  Flush 1000 bundles at
+		/*	Flush the limbo list.  Flush one batch at
 		 *	a time, to keep log file lengths reasonable.	*/
 
 		bundlesFlushed = 0;
 		while (bundlesFlushed < bundlesToFlush)
 		{
-			/*	Flush first 1000 bundles.		*/
+			/*	Flush 256 bundles at front of list.	*/
 
 			CHKERR(sdr_begin_xn(sdr));
 			flushCount = 0;
@@ -508,11 +515,11 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 				default:
 					putErrmsg("Failed releasing bundle \
 from limbo.", NULL);
-					flushCount = 1000;
+					flushCount = 256;
 					bundlesFlushed = bundlesToFlush;
 				}
 
-				if (flushCount > 999)
+				if (flushCount > 255)
 				{
 					break;
 				}
@@ -575,7 +582,7 @@ int	main(int argc, char *argv[])
 		 *	whose executions times have now been reached.	*/
 
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (dispatchEvents(sdr, bpConstants->timeline, currentTime) < 0)
 		{
 			putErrmsg("Can't dispatch events.", NULL);

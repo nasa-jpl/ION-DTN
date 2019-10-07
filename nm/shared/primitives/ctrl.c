@@ -195,8 +195,7 @@ ctrl_t *ctrl_create(ari_t *ari)
 
 ctrl_t *ctrl_db_deserialize(blob_t *data)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 	ctrl_t *result;
 	uvast start;
 	eid_t caller;
@@ -204,19 +203,16 @@ ctrl_t *ctrl_db_deserialize(blob_t *data)
 	int success;
 
 	CHKNULL(data);
-    memset(&caller, 0, sizeof(caller));
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	memset(&caller, 0, sizeof(caller));
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Deserialize the main control. */
 	if((result = ctrl_deserialize_ptr(&it, &success)) == NULL)
 	{
 		return NULL;
 	}
-
-	cut_enc_refresh(&it);
 
 	if (cut_get_cbor_numeric(&it, AMP_TYPE_TV, &start) != AMP_OK)
 	{
@@ -225,6 +221,9 @@ ctrl_t *ctrl_db_deserialize(blob_t *data)
 	}
 
 	ctrl_set_exec(result, start, caller);
+
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
 
 	return result;
 }
@@ -245,34 +244,30 @@ ari_t *ctrl_get_id(ctrl_t *ctrl)
 blob_t *ctrl_db_serialize(ctrl_t *ctrl)
 {
 	blob_t *result = NULL;
-	CborEncoder encoder;
-	CborError err;
+	QCBOREncodeContext encoder;
+	QCBORError err;
 	uint8_t data[25 + AMP_MAX_EID_LEN];
 	size_t length = 25 + AMP_MAX_EID_LEN;
-	size_t final;
+	UsefulBufC Encoded;
 
 	result = ctrl_serialize_wrapper(ctrl);
 	CHKNULL(result);
 
-	cbor_encoder_init(&encoder, data, length, 0);
-	if((err = cbor_encode_uint(&encoder, ctrl->start)) != CborNoError)
+	QCBOREncode_Init(&encoder, (UsefulBuf){data,length});
+	QCBOREncode_AddUInt64(&encoder, ctrl->start);
+	QCBOREncode_AddSZString(&encoder, ctrl->caller.name);
+
+	err = QCBOREncode_Finish(&encoder, &Encoded);
+	if (err != QCBOR_SUCCESS)
 	{
-		AMP_DEBUG_ERR("ctrl_db_serialize","Can't encode start time. Err: %d", err);
-		blob_release(result, 1);
-		return NULL;
-	}
-	if((err = cbor_encode_text_stringz(&encoder, ctrl->caller.name)) != CborNoError)
-	{
-		AMP_DEBUG_ERR("ctrl_db_serialize","Can't encode Caller. Err: %d", err);
-		blob_release(result, 1);
-		return NULL;
+	   AMP_DEBUG_ERR("ctrl_db_serialize","CBOR Encoding Err %d", err);
+	   blob_release(result,1);
+	   return NULL;
 	}
 
-	final = cbor_encoder_get_buffer_size(&encoder, data);
-
-	if(blob_append(result, data, final) != AMP_OK)
+	if(blob_append(result, data, Encoded.len) != AMP_OK)
 	{
-		AMP_DEBUG_ERR("ctrl_db_serialize","Can't append data of length %ld", final);
+		AMP_DEBUG_ERR("ctrl_db_serialize","Can't append data of length %ld", Encoded.len);
 		blob_release(result, 1);
 		return NULL;
 	}
@@ -282,7 +277,7 @@ blob_t *ctrl_db_serialize(ctrl_t *ctrl)
 
 
 
-void*    ctrl_deserialize_ptr(CborValue *it, int *success)
+void*    ctrl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	ctrl_t *result = NULL;
 
@@ -303,19 +298,22 @@ void*    ctrl_deserialize_ptr(CborValue *it, int *success)
 
 ctrl_t* ctrl_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
 	CHKNULL(success);
 	*success = AMP_FAIL;
 	CHKNULL(data);
+	
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	ctrl_t *tmp = ctrl_deserialize_ptr(&it, success);
 
-	return ctrl_deserialize_ptr(&it, success);
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return tmp;
 }
 
 /*
@@ -333,22 +331,22 @@ void ctrl_release(ctrl_t *ctrl, int destroy)
 	}
 }
 
-CborError ctrl_serialize(CborEncoder *encoder, void *item)
+int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	ctrl_t *ctrl = (ctrl_t *) item;
-	CborError err = CborErrorIO;
 	ari_t *ctrl_id = NULL;
 	tnvc_t parms;
+	int err = AMP_FAIL;
 
 	if((encoder == NULL) || (ctrl == NULL))
 	{
 		AMP_DEBUG_ERR("ctrl_serialize","Bad Parms", NULL);
-		return err;
+		return AMP_FAIL;
 	}
 
 	if((ctrl_id = ctrl_get_id(ctrl)) == NULL)
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
 	/* If the control has parms, swap them in */
@@ -446,7 +444,7 @@ void ctrl_set_exec(ctrl_t *ctrl, time_t start, eid_t caller)
 
 	if(start < AMP_RELATIVE_TIME_EPOCH)
 	{
-		ctrl->start = getUTCTime() + start;
+		ctrl->start = getCtime() + start;
 	}
 	else
 	{
@@ -630,13 +628,13 @@ int macdef_init(macdef_t *mac, size_t num, ari_t *ari)
 }
 
 
-macdef_t  macdef_deserialize(CborValue *it, int *success)
+macdef_t  macdef_deserialize(QCBORDecodeContext *it, int *success)
 {
 	macdef_t result;
 	ari_t *new_ari = NULL;
-	CborError err = CborNoError;
+	int err;
 
-    memset(&result,0,sizeof(result));
+	memset(&result,0,sizeof(result));
 	*success = AMP_FAIL;
 
 	blob_t *tmp = blob_deserialize_ptr(it, success);
@@ -648,26 +646,24 @@ macdef_t  macdef_deserialize(CborValue *it, int *success)
 		return result;
 	}
 
-    cut_enc_refresh(it);
-
 	result.ari = new_ari;
 	result.ctrls = vec_create(0, ctrl_cb_del_fn, ctrl_cb_comp_fn, ctrl_cb_copy_fn, VEC_FLAG_AS_STACK, success);
 
-    err = cut_deserialize_vector(&(result.ctrls), it, ctrl_deserialize_ptr);
-    if(err != CborNoError)
-    {
-    	AMP_DEBUG_ERR("macdef_deserialize", "Error deserializing ctrls: %d", err);
-    	macdef_release(&result, 0);
-    }
-    else
-    {
-    	*success = AMP_OK;
-    }
+	err = cut_deserialize_vector(&(result.ctrls), it, ctrl_deserialize_ptr);
+	if(err != AMP_OK)
+	{
+		AMP_DEBUG_ERR("macdef_deserialize", "Error deserializing ctrls: %d", err);
+		macdef_release(&result, 0);
+	}
+	else
+	{
+		*success = AMP_OK;
+	}
 
-    return result;
+	return result;
 }
 
-macdef_t*  macdef_deserialize_ptr(CborValue *it, int *success)
+macdef_t*  macdef_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	macdef_t *result = (macdef_t *) STAKE(sizeof(macdef_t));
 	CHKNULL(result);
@@ -683,20 +679,22 @@ macdef_t*  macdef_deserialize_ptr(CborValue *it, int *success)
 
 macdef_t macdef_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 	macdef_t result;
 
 	*success = AMP_FAIL;
 	memset(&result, 0, sizeof(macdef_t));
 	CHKUSR(data, result);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return result;
-	}
+    
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
 	result = macdef_deserialize(&it, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
 	return result;
 }
 
@@ -729,15 +727,15 @@ void    macdef_release(macdef_t *mac, int destroy)
 }
 
 
-CborError macdef_serialize(CborEncoder *encoder, void *item)
+int macdef_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
 	blob_t *result;
 	macdef_t *mac = (macdef_t*) item;
+	int err;
 
 	if((encoder == NULL) || (mac == NULL))
 	{
-		return CborErrorIO;
+		return AMP_FAIL;
 	}
 
 	/* Step 1: Encode the ARI. */
@@ -745,15 +743,15 @@ CborError macdef_serialize(CborEncoder *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("macdef_serialize","CBOR Error: %d", err);
 		return err;
 	}
 
 	/* Step 2: Encode the contents. */
-	err = cut_serialize_vector(encoder, &(mac->ctrls), ctrl_serialize);
-	return err;
+	err = cut_serialize_vector(encoder, &(mac->ctrls), (cut_enc_fn)ctrl_serialize);
+	return AMP_OK;
 }
 
 
@@ -761,5 +759,5 @@ blob_t*  macdef_serialize_wrapper(macdef_t *mac)
 {
 	CHKNULL(mac);
 
-	return cut_serialize_wrapper((vec_num_entries(mac->ctrls) + 1) * ARI_DEFAULT_ENC_SIZE, mac, macdef_serialize);
+	return cut_serialize_wrapper((vec_num_entries(mac->ctrls) + 1) * ARI_DEFAULT_ENC_SIZE, mac, (cut_enc_fn)macdef_serialize);
 }

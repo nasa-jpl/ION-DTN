@@ -23,7 +23,7 @@ ICI = ../../ici
 OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP -DENABLE_BPACS
 # -Werror
 # -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/snw -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
 #acsadmin on mingw
 CC += -I$(API)/acs -I$(ICI)/include -I$(API)/ext/cteb
@@ -36,6 +36,8 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
+	$(API)/bpsec.h \
+	$(API)/saga.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
 	$(IMC)/imcP.h \
@@ -46,20 +48,21 @@ BPINCLS = \
 	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
 	$(API)/acs/acs.h \
+	$(API)/ext/snw/snw.h \
 	$(DGR_MAIN)/include/dgr.h \
 	$(DCCP)/dccpcla.h
 
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
 # snid.o
 BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpcancel bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpsecadmin bpcancel bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the test does not work
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -105,6 +108,10 @@ bpclm:		bpclm.o $(BPLIBS)
 bpadmin:	bpadmin.o $(BPLIBS)
 		$(CC) -o bpadmin bpadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpadmin ./bin
+
+bpsecadmin:	bpsecadmin.o $(BPLIBS)
+		$(CC) -o bpsecadmin bpsecadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpsecadmin ./bin
 
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.dll
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread -lm
@@ -383,6 +390,9 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/ext/phn/%.c
 		$(CC) -c $<
 
+%.o:		$(API)/ext/snw/%.c
+		$(CC) -c $<
+
 %.o:		$(TEST)/%.c
 		$(CC) -c $<
 
@@ -439,3 +449,4 @@ libudpcla.dll:	libudpcla.o
 
 %.o:		$(IPND)/%.c
 		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
+

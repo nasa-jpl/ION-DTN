@@ -247,7 +247,7 @@ void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
         if (engineIdWanted == span.engineId)
         {
             sdr_stage(sdr, (char *) & stats, span.stats, sizeof(LtpSpanStats));
-            stats.resetTime = getUTCTime();
+            stats.resetTime = getCtime();
             for (tallyLoop = 0; tallyLoop < LTP_SPAN_STATS; tallyLoop++)
             {
                 tally = stats.tallies + tallyLoop;

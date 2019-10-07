@@ -31,19 +31,27 @@ static void	shutDownClo()	/*	Commands CLO termination.	*/
 
 /*	*	*	Main thread functions	*	*	*	*/
 
+static unsigned long	getUsecTimestamp()
+{
+	struct timeval	tv;
+
+	getCurrentTime(&tv);
+	return ((tv.tv_sec * 1000000) + tv.tv_usec);
+}
+
 #if defined (ION_LWT)
 int	udpclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char			*endpointSpec = (char *) a1;
-	unsigned int		rtt = (a2 != 0 ? strtoul((char *) a2, NULL, 0)
+	unsigned int		rtt = (a1 != 0 ? strtoul((char *) a1, NULL, 0)
 		       				: 0);
+	char			*endpointSpec = (char *) a2;
 #else
 int	main(int argc, char *argv[])
 {
-	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
-	unsigned int		rtt = (argc > 2 ? strtoul(argv[2], NULL, 0)
+	unsigned int		rtt = (argc > 1 ? strtoul(argv[1], NULL, 0)
 						: 0);
+	char			*endpointSpec = argc > 2 ? argv[2] : NULL;
 #endif
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
@@ -55,12 +63,28 @@ int	main(int argc, char *argv[])
 	PsmAddress		vductElt;
 	Sdr			sdr;
 	Outduct			outduct;
-	ClProtocol		protocol;
+	Object			planDuctList;
+	Object			planObj;
+	BpPlan			plan;
+	IonNeighbor		*neighbor;
+	PsmAddress		nextElt;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			ductSocket = -1;
 	int			bytesSent;
+
+	/*	Rate control calculation is based on treating elapsed
+	 *	time as a currency.					*/
+
+	float			timeCostPerByte;/*	In seconds.	*/
+	unsigned long		startTimestamp;	/*	Billing cycle.	*/
+	unsigned int		totalPaid;	/*	Since last send.*/
+	unsigned int		currentPaid;	/*	Sending seg.	*/
+	float			totalCostSecs;	/*	For this seg.	*/
+	unsigned int		totalCost;	/*	Microseconds.	*/
+	unsigned int		balanceDue;	/*	Until next seg.	*/
+	unsigned int		prevPaid = 0;	/*	Prior snooze.	*/
 
 	if (endpointSpec == NULL)
 	{
@@ -119,11 +143,26 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	neighbor = NULL;
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
-	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
+	if (outduct.planDuctListElt)
+	{
+		planDuctList = sdr_list_list(sdr, outduct.planDuctListElt);
+		planObj = sdr_list_user_data(sdr, planDuctList);
+		if (planObj)
+		{
+			sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+			if (plan.neighborNodeNbr)
+			{
+				neighbor = findNeighbor(getIonVdb(),
+						plan.neighborNodeNbr, &nextElt);
+			}
+		}
+	}
+
 	sdr_exit_xn(sdr);
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
@@ -133,7 +172,16 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	writeMemo("[i] udpclo is running.");
+	{
+		char	memoBuf[1024];
+
+		isprintf(memoBuf, sizeof(memoBuf),
+				"[i] udpclo is running, spec = '%s', rtt = %d",
+				endpointSpec, rtt);
+		writeMemo(memoBuf);
+	}
+
+	startTimestamp = getUsecTimestamp();
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, &bundleZco, &ancillaryData, rtt) < 0)
@@ -149,6 +197,11 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
 		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
@@ -159,6 +212,58 @@ int	main(int argc, char *argv[])
 			sm_SemEnd(udpcloSemaphore(NULL));/*	Stop.	*/
 			continue;
 		}
+
+		/*	Rate control calculation is based on treating
+		 *	elapsed time as a currency, the price you
+		 *	pay (by microsnooze) for sending a segment
+		 *	of a given size.  All cost figures are
+		 *	expressed in microseconds except the computed
+		 *	totalCostSecs of the segment.			*/
+
+		totalPaid = getUsecTimestamp() - startTimestamp;
+
+		/*	Start clock for next bill.			*/
+
+		startTimestamp = getUsecTimestamp();
+
+		/*	Compute time balance due.			*/
+
+		if (totalPaid >= prevPaid)
+		{
+		/*	This should always be true provided that
+		 *	clock_gettime() is supported by the O/S.	*/
+
+			currentPaid = totalPaid - prevPaid;
+		}
+		else
+		{
+			currentPaid = 0;
+		}
+
+		/*	Get current time cost, in seconds, per byte.	*/
+
+		if (neighbor && neighbor->xmitRate > 0)
+		{
+			timeCostPerByte = 1.0 / (neighbor->xmitRate);
+		}
+		else	/*	No link service rate control.		*/ 
+		{
+			timeCostPerByte = 0.0;
+		}
+
+		totalCostSecs = timeCostPerByte * computeECCC(bundleLength);
+		totalCost = totalCostSecs * 1000000.0;	/*	usec.	*/
+		if (totalCost > currentPaid)
+		{
+			balanceDue = totalCost - currentPaid;
+		}
+		else
+		{
+			balanceDue = 1;
+		}
+
+		microsnooze(balanceDue);
+		prevPaid = balanceDue;
 
 		/*	Make sure other tasks have a chance to run.	*/
 

@@ -128,8 +128,8 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 		 /* Table is: (TV)Start, (TV)Stop, (UINT)Src Node, (UINT)Dest Node, (UVAST)Xmit, (UVAST)Confidence */
 		if((cur_row = tnvc_create(6)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(contact->fromTime));
-			tnvc_insert(cur_row, tnv_from_uvast(contact->toTime));
+			tnvc_insert(cur_row, tnv_from_tv((uvast)(contact->fromTime)));
+ 			tnvc_insert(cur_row, tnv_from_tv((uvast)(contact->toTime)));
 			tnvc_insert(cur_row, tnv_from_uint(contact->fromNode));
 			tnvc_insert(cur_row, tnv_from_uint(contact->toNode));
 			tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
@@ -944,6 +944,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	time_t      toTime = 0;
 	uvast       fromNodeNbr = 0;
 	uvast       toNodeNbr = 0;
+	int         regionIdx;
 	PsmAddress  xaddr;
 	uvast    	xmitRate;
 	uvast       confidence;
@@ -971,6 +972,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 		toNodeNbr = adm_get_parm_uvast(parms, 3, &success);
 	}
 
+	regionIdx = ionRegionOf(fromNodeNbr, toNodeNbr);
 	if(success)
 	{
 		xmitRate = adm_get_parm_uvast(parms, 4, &success);
@@ -983,7 +985,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		if(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
+		if(rfx_insert_contact(regionIdx, fromTime, toTime, fromNodeNbr,
 				toNodeNbr, xmitRate, confidence, &xaddr) == 0)
 		{
 			*status = CTRL_SUCCESS;
@@ -1040,7 +1042,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 		{
 			return NULL;
 		}
-		if(rfx_remove_contact(timestamp, fromNodeNbr, toNodeNbr) == 0)
+		if(rfx_remove_contact(&timestamp, fromNodeNbr, toNodeNbr) == 0)
 		{
 			// TODO _forecastNeeded(1);
 			*status = CTRL_SUCCESS;
@@ -1233,7 +1235,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	if(success)
 	{
-	  if(rfx_remove_range(start, from_node, to_node) >= 0)
+	  if(rfx_remove_range(&start, from_node, to_node) >= 0)
 	  {
 	    *status = CTRL_SUCCESS;
 	  }

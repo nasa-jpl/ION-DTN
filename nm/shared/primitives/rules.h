@@ -132,38 +132,38 @@ rule_t*   rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action);
 
 rule_t*   rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action);
 
-rule_t*   rule_deserialize_helper(CborValue *it, int *success);
+rule_t*   rule_deserialize_helper(QCBORDecodeContext *it, int *success);
 
-rule_t*   rule_deserialize_ptr(CborValue *it, int *success);
+rule_t*   rule_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 rule_t*   rule_deserialize_raw(blob_t *data, int *success);
 
-rule_t*   rule_db_deserialize_ptr(CborValue *it, int *success);
+rule_t*   rule_db_deserialize_ptr(QCBORDecodeContext *it, int *success);
 rule_t*   rule_db_deserialize_raw(blob_t *data, int *success);
 
-CborError rule_db_serialize(CborEncoder *encoder, void *item);
+int rule_db_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*   rule_db_serialize_wrapper(rule_t *rule);
 
 
 void      rule_release(rule_t *rule, int destroy);
 
 
-CborError rule_serialize(CborEncoder *encoder, void *item);
+int rule_serialize(QCBOREncodeContext *encoder, void *item);
 
-CborError rule_serialize_helper(CborEncoder *encoder, rule_t *rule);
+int rule_serialize_helper(QCBOREncodeContext *encoder, rule_t *rule);
 
 blob_t*   rule_serialize_wrapper(rule_t *rule);
 
 int	      sbr_should_fire(rule_t *rule);
 
-sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success);
+sbr_def_t sbrdef_deserialize(QCBORDecodeContext *array_it, int *success);
 
-CborError sbrdef_serialize(CborEncoder *encoder, sbr_def_t *def);
+int sbrdef_serialize(QCBOREncodeContext *encoder, sbr_def_t *def);
 
 
-tbr_def_t tbrdef_deserialize(CborValue *it, int *success);
+tbr_def_t tbrdef_deserialize(QCBORDecodeContext *it, int *success);
 
-CborError tbrdef_serialize(CborEncoder *encoder, tbr_def_t *def);
+int tbrdef_serialize(QCBOREncodeContext *encoder, tbr_def_t *def);
 
 
 #endif // _RULES_H_

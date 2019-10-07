@@ -347,7 +347,7 @@ int	main(int argc, char *argv[])
 	rtp.vduct = vinduct;
 	rtp.running = &running;
 	rtp.dgrSap = dgrSap;
-	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp))
+	if (pthread_begin(&receiverThread, NULL, receiveBundles, &rtp, "dgrcli_receiver"))
 	{
 		dgr_close(dgrSap);
 		putSysErrmsg("dgrcli can't create receiver thread", NULL);

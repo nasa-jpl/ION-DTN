@@ -86,6 +86,19 @@ used for interpreting relative time values from now until the next revision
 of reference time.  Note that the new reference time can be a relative time,
 i.e., an offset beyond the current reference time.
 
+=item B<^> I<region_number>
+
+The B<region> command.  This is used to identify the region to which
+all ensuing "add contact" operations (until this execution of ionadmin
+terminates, or until the next B<region> command is processed) pertain.
+A B<region> is an arbitarily managed set of nodes that customarily are able
+to use contact graph routing to compute forwarding routes among themselves,
+and which consequently share a common contact plan.  As such, there is a
+one-to-one correspondence between regions and contact plans, so in
+effect the B<region> command is used to switch between contact plans.
+Regions are notionally quite small sets (on the order of 16-32 nodes)
+because contact graph routing is computationally intensive.
+
 =item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
 
 The B<add contact> command.  This command schedules a period of data
@@ -98,6 +111,51 @@ that occurrence of the contact is planned and scheduled rather than merely
 imputed from past node behavior.  In the latter case, I<confidence>
 indicates our estimation of the likelihood of this potential contact.
 
+The period of time between the start and stop times of a contact is termed
+the contact's "interval".  The intervals of scheduled contacts are not
+allowed to overlap.
+
+Three different types of contact can be intermixed within an .ionrc file that
+defines a contact plan.
+
+=over 4
+
+=item 1  Registration
+
+When I<start_time> is "-1", the contact signifies the "registration" of a
+node in the region corresponding to the contact plan of which this contact is
+a part.  In this case, I<source_node> and I<dest_node> must be identical and
+non-zero.  A registration contact simply affirms the source node's permanent
+membership in this region, persisting even during periods when the node
+is able neither to send nor to receive data.  When inserted into the
+contact plan, the contact's start and stop times are both automatically
+set to the maximum POSIX time, its data rate is set to zero, and its
+confidence value is set to 1.0.
+
+=item 2  Hypothetical
+
+When I<stop_time> is "0", the contact is "hypothetical".  A hypothetical
+contact is an anticipated opportunity for the local node to transmit data,
+or received data from, some potentially neighboring node in the same
+region.  The nature of that contact is completely unknown; if and when
+the contact occurs, the hypothetical contact will be transformed into
+a "discovered" contact for the duration of the opportunity, after which
+it will revert to being hypothetical.  I<source_node> and I<dest_node> must
+B<NOT> be identical, and one or the other must identify the local node.  When
+inserted into the contact plan, the contact's start time is automatically
+set to zero, its stop time is set to the maximum POSIX time, its data rate
+is set to zero, and its confidence value is set to 0.0.
+
+=item 3  Scheduled
+
+Otherwise, the contact is "scheduled".  A scheduled contact is a managed
+opportunity to transmit data between nodes, as inferred (for example)
+from a spacecraft or ground station operating plan.  I<start_time> must
+be less than I<stop_time> and I<data_rate> and I<confidence> must both
+be greater than zero.
+
+=back
+
 =item B<c contact> I<start_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
 
 The B<change contact> command.  This command changes the data transmission
@@ -109,11 +167,12 @@ transmission from I<source_node> to I<dest_node> starting at I<start_time>.
 The B<delete contact> command.  This command deletes the scheduled
 period of data transmission from I<source_node> to I<dest_node> starting
 at I<start_time>.  To delete all contacts between some pair of nodes,
-use '*' as I<start_time>.
+use '*' as I<start_time>.  To delete a registration contact, use "-1"
+as I<start_time>.  To delete a hypothetical contact, use "0" as I<start_time>.
 
 =item B<i contact> I<start_time> I<source_node> I<dest_node>
 
-This command will print information (the stop time and data rate) about
+This command will print information (stop time, data rate, confidence) about
 the scheduled period of transmission from I<source_node> to I<dest_node>
 that starts at I<start_time>.
 
@@ -167,22 +226,23 @@ This command lists all predicted periods of constant distance.
 =item B<m utcdelta> I<local_time_sec_after_UTC>
 
 This management command sets ION's understanding of the current difference
-between correct UTC time and the time values reported by the clock for the
-local ION node's computer.  This delta is automatically applied to locally
+between correct UTC time and the localtime equivalent of the current calendar
+(i.e., Unix epoch) time as reported by the clock for the local ION node's
+computer.  This delta is automatically applied to locally
 obtained time values whenever ION needs to know the current time.  For
-machines that use UTC natively and are synchronized by NTP, the value
-of this delta should be 0, the default.
+machines that are synchronized by NTP, the value of this delta should be 0,
+the default.
 
 Note that the purpose of the UTC delta is not to correct for time zone
 differences (which operating systems often do natively) but rather to
 compensate for error (drift) in clocks, particularly spacecraft clocks.
 The hardware clock on a spacecraft might gain or lose a few seconds every
 month, to the point at which its understanding of the current time - as
-reported out by the operating system - might differ significantly from the
-actual value of UTC as reported by authoritative clocks on Earth.  To
-compensate for this difference without correcting the clock itself (which
-can be difficult and dangerous), ION simply adds the UTC delta to the
-UTC reported by the operating system.
+reported out by the operating system and converted to UTC - might
+differ significantly from the actual value of UTC as reported by authoritative
+clocks on Earth.  To compensate for this difference without correcting the
+clock itself (which can be difficult and dangerous), ION simply adds the UTC
+delta to the calendar time reported by the operating system.
 
 Note that this means that setting the UTC delta is not a one-time node
 configuration activity but rather an ongoing node administration chore,
@@ -212,21 +272,21 @@ the asserted value.  The default value is 1.
 
 This management command sets ION's expectation of the mean rate of continuous
 data origination by local BP applications throughout the period of time
-over which congestion forecasts are computed.  For nodes that function only
-as routers this variable will normally be zero.  A value of -1, which is the
-default, indicates that the rate of local data production is unknown; in that
-case local data production is not considered in the computation of congestion
-forecasts.
+over which congestion forecasts are computed, in bytes per second.  For
+nodes that function only as routers this variable will normally be zero.  A
+value of -1, which is the default, indicates that the rate of local data
+production is unknown; in that case local data production is not considered
+in the computation of congestion forecasts.
 
 =item B<m consumption> I<planned_data_consumption_rate>
 
 This management command sets ION's expectation of the mean rate of continuous
 data delivery to local BP applications throughout the period of time
-over which congestion forecasts are computed.  For nodes that function only
-as routers this variable will normally be zero.  A value of -1, which is the
-default, indicates that the rate of local data consumption is unknown; in
-that case local data consumption is not considered in the computation of
-congestion forecasts.
+over which congestion forecasts are computed, in bytes per second.  For
+nodes that function only as routers this variable will normally be zero.  A
+value of -1, which is the default, indicates that the rate of local data
+consumption is unknown; in that case local data consumption is not considered
+in the computation of congestion forecasts.
 
 =item B<m inbound> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
 
@@ -279,6 +339,32 @@ that are occupied by inbound and outbound zero-copy objects), the total
 zero-copy-object space occupancy ceiling, and the maximum level
 of occupancy predicted by the most recent I<ionadmin> congestion forecast
 computation.
+
+=item B<m home> I<home_region_number>
+
+This management command asserts that the node's home region is the region
+that is identified by I<home_region_number>.  If no home region is asserted,
+home region number defaults to zero, the "root region".
+
+=item B<m outer> I<outer_region_number>
+
+This management command asserts that the node's outer region is the region
+that is identified by I<outer_region_number>.  Outer region number defaults
+to -1, "no region", indicating that the node is a "terminal node".  When a
+node's outer region number is not -1, the node is able to function as a
+"passageway" by which bundles are conveyed between nodes in the home
+region and nodes in the outer region.
+
+=item B<m passageway> I<node_number> I<home_region_number> I<outer_region_number>
+
+This management command declares the home and outer region numbers for the
+indicated passageway node.  If the outer region number is -1, then the
+node ceases to be a passageway; if the home region number is -1, then
+the passageway is simply removed.  If neither region number is -1 but
+neither region is one of the regions of which the local node is a member,
+the command has no effect.  Otherwise, the home and outer region numbers
+of the indicated node are recorded.  (This information is needed in order
+to accomplish inter-region routing.)
 
 =item B<r> 'I<command_text>'
 

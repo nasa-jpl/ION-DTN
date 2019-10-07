@@ -57,7 +57,7 @@ extern "C" {
 #endif
 #endif
 
-#define	MAX_POSIX_TIME	2147483644
+#define	MAX_POSIX_TIME	2147483647
 
 /*	SPACE_ORDER is log2 of the number of bytes in an address, i.e.:
 
@@ -107,7 +107,10 @@ extern "C" {
 
 #else					/*	Not RTEMS or uClibc.	*/
 
-#define	LONG_LONG_OKAY		1
+#ifndef LONG_LONG_OKAY
+#define	LONG_LONG_OKAY		1	/*	Default value.		*/
+#endif
+
 #endif	/*	RTEMS or uClibc	or STRSOE				*/
 
 #if (!LONG_LONG_OKAY)
@@ -494,6 +497,7 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 #define MINGW_TASKS
 
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 #include <stdint.h>
 
 #ifndef gmtime_r
@@ -568,9 +572,11 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 */
 #include <synch.h>
 #include <pthread.h>
+
 /*
 ** End of SVR4 Headers
 */
+int pthread_setname_np(pthread_t thread, const char *name);
 
 extern int			strcasecmp(const char*, const char*);
 extern int			strncasecmp(const char*, const char*, size_t);
@@ -596,6 +602,7 @@ extern int getpriority(int, id_t);
 #include <malloc.h>
 
 #include <pthread.h>
+int pthread_setname_np(pthread_t thread, const char *name);
 
 #ifdef bionic			/****	Bionic subset of Linux      ****/
 
@@ -637,6 +644,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_set_name_np(pthread_t thread, const char *name);
 
 #define	_MULTITHREADED
 
@@ -650,6 +658,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+int pthread_setname_np(const char *name);
 
 #include <sys/msg.h>
 #define	msgbuf		mymsg	/****	Mac OS X has no msgbuf,	but  ****/
@@ -799,6 +808,14 @@ extern int			_coreFileNeeded(int *);
 #define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
 
 extern void			printStackTrace();
+
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT		(0)
+#endif
+#ifndef DEBUG_PRINT_LOG
+#define DEBUG_PRINT_LOG		(0)
+#endif
+extern void			debugPrint(const char *format, ...);
 
 /*	The following macro deals with irrelevant return codes.		*/
 #define oK(x)			(void)(x)

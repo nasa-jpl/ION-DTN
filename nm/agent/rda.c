@@ -176,7 +176,7 @@ int rda_process_ctrls()
 {
 	vec_idx_t i;
 	ctrl_t *ctrl;
-	time_t curtime = getUTCTime();
+	time_t curtime = getCtime();
 
 	vec_lock(&(gVDB.ctrls));
 	for(i = 0; i < vec_num_entries(gVDB.ctrls); i++)
@@ -334,7 +334,7 @@ int rda_process_rules()
 		rule->num_eval++;
 		rule->num_fire++;
 
-		if(rule->num_fire >= rule->def.as_tbr.max_fire)
+		if(rule->num_fire >= rule->def.as_tbr.max_fire && rule->def.as_tbr.max_fire != 0)
 		{
 			/* Remove the rule. */
 			db_forget(&(rule->desc), gDB.rules);
@@ -367,8 +367,8 @@ int rda_process_rules()
         	rule->num_fire++;
     	}
 
-    	if((rule->num_eval >= rule->def.as_sbr.max_eval) ||
-    	   (rule->num_fire >= rule->def.as_sbr.max_fire))
+    	if((rule->num_eval >= rule->def.as_sbr.max_eval && rule->def.as_sbr.max_eval != 0) ||
+    	   (rule->num_fire >= rule->def.as_sbr.max_fire && rule->def.as_sbr.max_fire != 0))
     	{
     		/* Remove the rule. */
     		db_forget(&(rule->desc), gDB.rules);

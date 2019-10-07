@@ -38,8 +38,10 @@ SHARED_SOURCES = \
 	$(SHARED)/utils/rhht.c	 		\
 	$(SHARED)/utils/utils.c        		\
 	$(SHARED)/utils/vector.c 		\
-	$(CONTRIB)/tinycbor/src/cborparser.c 	\
-	$(CONTRIB)/tinycbor/src/cborencoder.c 
+	$(CONTRIB)/QCBOR/src/UsefulBuf.c \
+	$(CONTRIB)/QCBOR/src/qcbor_encode.c \
+	$(CONTRIB)/QCBOR/src/qcbor_decode.c \
+	$(CONTRIB)/QCBOR/src/ieee754.c
 
 AGENT_SOURCES = \
 	$(AGENT)/ingest.c  		\
@@ -102,13 +104,13 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I../../bp/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I../../bp/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
 
 CC = gcc $(OPT) $(INCLDIRS)
 
 LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib
 
-LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
+LIBS = -lcfdp -lbp -lipnfw -ldtn2fw -limcfw -lltp -lici -lpthread -lm
 
 LD = gcc $(OPT) $(LIBDIRS)
 

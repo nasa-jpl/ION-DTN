@@ -138,7 +138,7 @@ cat response.bpseg >> response.cap
 # Now we analyze the TTL value from the BP header of the bundle. We measure
 # from the end of the bundle to avoid the SDNV timestamp field which will have
 # a constantly changing length.
-RESULTS=`cat response.cap | tail  -c121 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+RESULTS=`cat response.cap | tail  -c123 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
 echo "Expected value: 822c"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "822c" ]; then

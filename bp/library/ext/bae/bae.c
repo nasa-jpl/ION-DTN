@@ -66,7 +66,7 @@ int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
-		bundle->age = 1000000 * ((getUTCTime() - EPOCH_2000_SEC)
+		bundle->age = 1000000 * ((getCtime() - EPOCH_2000_SEC)
 				- bundle->id.creationTime.seconds);
 	}
 	else

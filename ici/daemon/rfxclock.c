@@ -78,25 +78,6 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 	return 0;	/*	Embargo no longer exists; no problem.	*/
 }
 
-static IonNeighbor	*getNeighbor(IonVdb *vdb, unsigned long nodeNbr)
-{
-	IonNeighbor	*neighbor;
-	PsmAddress	next;
-
-	neighbor = findNeighbor(vdb, nodeNbr, &next);
-	if (neighbor == NULL)
-	{
-		neighbor = addNeighbor(vdb, nodeNbr);
-	}
-
-	return neighbor;
-}
-
-static void	addContactToHistory(IonCXref *cxref)
-{
-	return;		/*	Develop this in next phase.		*/
-}
-
 static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -122,19 +103,18 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_range(rxref->fromTime,
+		return rfx_remove_range(&(rxref->fromTime),
 				rxref->fromNode, rxref->toNode);
 
 	case IonStopXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->fromNode == getOwnNodeNbr())
+		if (cxref->fromNode == getOwnNodeNbr()
+		&& cxref->type != CtSuppressed)
 		{
 			neighbor = getNeighbor(vdb, cxref->toNode);
-			if (neighbor)
-			{
-				neighbor->xmitRate = 0;
-				*forecastNeeded = 1;
-			}
+			CHKERR(neighbor);
+			neighbor->xmitRate = 0;
+			*forecastNeeded = 1;
 		}
 
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -143,13 +123,12 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopFire:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr())
+		if (cxref->toNode == getOwnNodeNbr()
+		&& cxref->type != CtSuppressed)
 		{
 			neighbor = getNeighbor(vdb, cxref->fromNode);
-			if (neighbor)
-			{
-				neighbor->fireRate = 0;
-			}
+			CHKERR(neighbor);
+			neighbor->fireRate = 0;
 		}
 
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -158,14 +137,13 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopRecv:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr())
+		if (cxref->toNode == getOwnNodeNbr()
+		&& cxref->type != CtSuppressed)
 		{
 			neighbor = getNeighbor(vdb, cxref->fromNode);
-			if (neighbor)
-			{
-				neighbor->recvRate = 0;
-				*forecastNeeded = 1;
-			}
+			CHKERR(neighbor);
+			neighbor->recvRate = 0;
+			*forecastNeeded = 1;
 		}
 
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -199,14 +177,13 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->fromNode == getOwnNodeNbr())
+		if (cxref->fromNode == getOwnNodeNbr()
+		&& cxref->type != CtSuppressed)
 		{
 			neighbor = getNeighbor(vdb, cxref->toNode);
-			if (neighbor)
-			{
-				neighbor->xmitRate = cxref->xmitRate;
-				*forecastNeeded = 1;
-			}
+			CHKERR(neighbor);
+			neighbor->xmitRate = cxref->xmitRate;
+			*forecastNeeded = 1;
 		}
 
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -218,87 +195,88 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		if (cxref->toNode == getOwnNodeNbr())
 		{
 			neighbor = getNeighbor(vdb, cxref->fromNode);
-			if (neighbor)
+			CHKERR(neighbor);
+			if (cxref->type != CtSuppressed)
 			{
 				neighbor->fireRate = cxref->xmitRate;
+			}
 
-				/*	Only now can we post the
-				 *	events for start/stop of
-				 *	reception and purging of
-				 *	contact: we need to know the
-				 *	range (one-way light time)
-				 *	from this neighbor.		*/
+			/*	Only now can we post the
+			 *	events for start/stop of
+			 *	reception and purging of
+			 *	contact: we need to know the
+			 *	range (one-way light time)
+			 *	from this neighbor.		*/
 
-				ref = event->ref;
-				iondbObj = getIonDbObject();
-				sdr_read(getIonsdr(), (char *) &iondb, iondbObj,
-						sizeof(IonDB));
+			ref = event->ref;
+			iondbObj = getIonDbObject();
+			sdr_read(getIonsdr(), (char *) &iondb, iondbObj,
+					sizeof(IonDB));
 
-				/*	Be a little quick to start
-				 *	accepting segments, and a
-				 *	little slow to stop, to
-				 *	minimize the chance of
-				 *	discarding legitimate input.	*/
+			/*	Be a little quick to start
+			 *	accepting segments, and a
+			 *	little slow to stop, to
+			 *	minimize the chance of
+			 *	discarding legitimate input.	*/
 
-				addr = psm_zalloc(ionwm, sizeof(IonEvent));
-				if (addr == 0)
-				{
-					return -1;
-				}
+			addr = psm_zalloc(ionwm, sizeof(IonEvent));
+			if (addr == 0)
+			{
+				return -1;
+			}
 
-				newEvent = (IonEvent *) psp(ionwm, addr);
-				cxref->startRecv = newEvent->time =
-					(cxref->fromTime - iondb.maxClockError)
-						+ neighbor->owltInbound;
-				newEvent->type = IonStartRecv;
-				newEvent->ref = ref;
-				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
+			newEvent = (IonEvent *) psp(ionwm, addr);
+			cxref->startRecv = newEvent->time =
+				(cxref->fromTime - iondb.maxClockError)
+					+ neighbor->owltInbound;
+			newEvent->type = IonStartRecv;
+			newEvent->ref = ref;
+			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
 					rfx_order_events, newEvent) == 0)
-				{
-					psm_free(ionwm, addr);
-					return -1;
-				}
+			{
+				psm_free(ionwm, addr);
+				return -1;
+			}
 
-				addr = psm_zalloc(ionwm, sizeof(IonEvent));
-				if (addr == 0)
-				{
-					return -1;
-				}
+			addr = psm_zalloc(ionwm, sizeof(IonEvent));
+			if (addr == 0)
+			{
+				return -1;
+			}
 
-				newEvent = (IonEvent *) psp(ionwm, addr);
-				cxref->stopRecv = newEvent->time =
-					(cxref->toTime + iondb.maxClockError)
-						+ neighbor->owltInbound;
-				newEvent->type = IonStopRecv;
-				newEvent->ref = ref;
-				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
+			newEvent = (IonEvent *) psp(ionwm, addr);
+			cxref->stopRecv = newEvent->time =
+				(cxref->toTime + iondb.maxClockError)
+					+ neighbor->owltInbound;
+			newEvent->type = IonStopRecv;
+			newEvent->ref = ref;
+			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
 					rfx_order_events, newEvent) == 0)
-				{
-					psm_free(ionwm, addr);
-					return -1;
-				}
+			{
+				psm_free(ionwm, addr);
+				return -1;
+			}
 
-				/*	Purge contact when reception
-				 *	is expected to stop.		*/
+			/*	Purge contact when reception
+			 *	is expected to stop.		*/
 
-				addr = psm_zalloc(ionwm, sizeof(IonEvent));
-				if (addr == 0)
-				{
-					return -1;
-				}
+			addr = psm_zalloc(ionwm, sizeof(IonEvent));
+			if (addr == 0)
+			{
+				return -1;
+			}
 
-				newEvent = (IonEvent *) psp(ionwm, addr);
-				cxref->purgeTime = newEvent->time =
-					(cxref->toTime + iondb.maxClockError)
-						+ neighbor->owltInbound;
-				newEvent->type = IonPurgeContact;
-				newEvent->ref = ref;
-				if (sm_rbt_insert(ionwm, vdb->timeline, addr,
+			newEvent = (IonEvent *) psp(ionwm, addr);
+			cxref->purgeTime = newEvent->time =
+				(cxref->toTime + iondb.maxClockError)
+					+ neighbor->owltInbound;
+			newEvent->type = IonPurgeContact;
+			newEvent->ref = ref;
+			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
 					rfx_order_events, newEvent) == 0)
-				{
-					psm_free(ionwm, addr);
-					return -1;
-				}
+			{
+				psm_free(ionwm, addr);
+				return -1;
 			}
 		}
 
@@ -308,14 +286,13 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartRecv:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr())
+		if (cxref->toNode == getOwnNodeNbr()
+		&& cxref->type != CtSuppressed)
 		{
 			neighbor = getNeighbor(vdb, cxref->fromNode);
-			if (neighbor)
-			{
-				neighbor->recvRate = cxref->xmitRate;
-				*forecastNeeded = 1;
-			}
+			CHKERR(neighbor);
+			neighbor->recvRate = cxref->xmitRate;
+			*forecastNeeded = 1;
 		}
 
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
@@ -324,16 +301,12 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonPurgeContact:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->fromNode == getOwnNodeNbr())
-		{
-			addContactToHistory(cxref);
-		}
 
 		/*	rfx_remove_contact deletes all contact events
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_contact(cxref->fromTime,
+		return rfx_remove_contact(&(cxref->fromTime),
 				cxref->fromNode, cxref->toNode);
 
 	case IonAlarmTimeout:
@@ -383,7 +356,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		
 		/*	Now post next event for this alarm.		*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (alarm->term == 0)	/*	Cleaning up.		*/
 		{
 			alarm->nextTimeout = currentTime + 1;
@@ -476,7 +449,7 @@ int	main(int argc, char *argv[])
 		 *	whose execution times have now been reached.	*/
 
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		if (!sdr_begin_xn(sdr))
 		{
 			putErrmsg("rfxclock failed to begin new transaction.",

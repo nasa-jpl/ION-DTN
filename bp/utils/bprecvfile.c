@@ -57,11 +57,14 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	int		testFile = -1;
 	ZcoReader	reader;
 	int		recvLength;
-	char		completionText[80];
+	char		progressText[80];
 
 	fileCount++;
 	isprintf(fileName, sizeof fileName, "testfile%d", fileCount);
 	contentLength = zco_source_data_length(sdr, dlv->adu);
+	isprintf(progressText, sizeof progressText, "[i] bprecvfile is \
+creating '%s', size %d.", fileName, contentLength);
+	writeMemo(progressText);
 	testFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 	if (testFile < 0)
 	{
@@ -101,9 +104,9 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 		remainingLength -= recvLength;
 	}
 
-	isprintf(completionText, sizeof completionText, "[i] bprecvfile has \
+	isprintf(progressText, sizeof progressText, "[i] bprecvfile has \
 created '%s', size %d.", fileName, contentLength);
-	writeMemo(completionText);
+	writeMemo(progressText);
 	close(testFile);
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -194,8 +197,9 @@ int	main(int argc, char **argv)
 	}
 
 	bp_close(state.sap);
-	writeErrmsgMemos();
+	PUTS("Stopping bprecvfile.");
 	writeMemo("[i] Stopping bprecvfile.");
+	writeErrmsgMemos();
 	bp_detach();
 	return 0;
 }

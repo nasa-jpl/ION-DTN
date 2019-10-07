@@ -188,7 +188,7 @@ int	main(int argc, char *argv[])
 	istrcpy(parms.protocolName, protocol.name, MAX_CL_PROTOCOL_NAME_LEN);
 	istrcpy(parms.ductName, ductName, MAX_CL_DUCT_NAME_LEN);
 	parms.ductSocket = &ductSocket;
-	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms))
+	if (pthread_begin(&keepaliveThread, NULL, sendKeepalives, &parms, "stcpclo_keepalive"))
 	{
 		putSysErrmsg("stcpclo can't create keepalive thread", NULL);
 		MRELEASE(buffer);
@@ -212,6 +212,11 @@ int	main(int argc, char *argv[])
 			writeMemo("[i] stcpclo outduct closed.");
 			sm_SemEnd(stcpcloSemaphore(NULL));
 			continue;
+		}
+
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));

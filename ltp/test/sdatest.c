@@ -90,15 +90,19 @@ static void	*sendItems(void *parm)
 
 		CHKNULL(sdr_begin_xn(sdr));
 		extent = sdr_insert(sdr, buffer, length);
-		if (extent)
-		{
-			item = ionCreateZco(ZcoSdrSource, extent, 0, length,
-					0, 0, ZcoOutbound, &(stp->attendant));
-		}
-
-		if (sdr_end_xn(sdr) < 0 || item == 0 || item == (Object) ERROR)
+		if (sdr_end_xn(sdr) < 0 || extent == 0)
 		{
 			putErrmsg("Service data item insertion failed.", NULL);
+			sda_interrupt();
+			stp->running = 0;
+			continue;
+		}
+
+		item = ionCreateZco(ZcoSdrSource, extent, 0, length, 0, 0,
+				ZcoOutbound, &(stp->attendant));
+		if (item == 0 || item == (Object) ERROR)
+		{
+			putErrmsg("Service data item zco create failed.", NULL);
 			sda_interrupt();
 			stp->running = 0;
 			continue;
@@ -148,7 +152,8 @@ static int	run_sdatest(uvast destEngineId)
 		}
 
 		parms.running = 1;
-		if (pthread_begin(&senderThread, NULL, sendItems, &parms))
+		if (pthread_begin(&senderThread, NULL, sendItems,
+			&parms, "sdatest_sender"))
 		{
 			putSysErrmsg("sdatest can't create send thread", NULL);
 			ionStopAttendant(&parms.attendant);

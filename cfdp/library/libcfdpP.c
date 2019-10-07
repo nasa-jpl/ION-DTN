@@ -152,7 +152,8 @@ int	checkFile(char *fileName)
 	/*	Spawn a separate thread that hangs on opening the file
 	 *	if there's an error in the file system.			*/
 
-	if (pthread_begin(&statThread, &attr, checkFileExists, &parms))
+	if (pthread_begin(&statThread, &attr, checkFileExists,
+		&parms, "libcfdpP_stat"))
 	{
 		oK(pthread_mutex_destroy(&mutex));
 		oK(pthread_cond_destroy(&cv));
@@ -1360,7 +1361,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdubuf->inactivityDeadline = getUTCTime()
+	fdubuf->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 	sdr_write(sdr, fduObj, (char *) fdubuf, sizeof(InFdu));
 	return fduObj;
@@ -1562,20 +1563,6 @@ void	destroyOutFdu(OutFdu *fdu, Object fduObj, Object fduElt)
 	if (fdu->eofPdu)
 	{
 		sdr_free(sdr, fdu->eofPdu);
-	}
-
-	while (fdu->extantPdus)
-	{
-		elt = sdr_list_first(sdr, fdu->extantPdus);
-		if (elt == 0)
-		{
-			sdr_list_destroy(sdr, fdu->extantPdus, NULL, NULL);
-			break;
-		}
-
-		obj = sdr_list_data(sdr, elt);
-		zco_destroy(sdr, obj);
-		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
 	if (fdu->closureElt)
@@ -3887,7 +3874,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline = getUTCTime()
+	fdu->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 
 	event.offset = segmentOffset;
@@ -4548,7 +4535,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline = getUTCTime()
+	fdu->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->eofReceived = 1;
 	fdu->eofCondition = ((*cursor) >> 4) & 0x0f;
@@ -4624,7 +4611,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 		return -1;
 	}
 
-	fdu->checkTime = getUTCTime();
+	fdu->checkTime = getCtime();
 	fdu->checkTime += cfdpdb.checkTimerPeriod;
 	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
@@ -4636,8 +4623,9 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	int		sizeFieldLength;
 	int		minPduSize;
 	CfdpDB		cfdpdb;
-	int		i;
+	int		ckTypeMismatch = 0;
 	unsigned int	fileSize;
+	int		i;
 	char		stringBuf[256];
 	char		qualifiedFileName[MAXPATHLEN + 1];
 	Sdr		sdr = getIonsdr();
@@ -4665,10 +4653,29 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 	}
 
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
-	fdu->inactivityDeadline = getUTCTime()
+	fdu->inactivityDeadline = getCtime()
 			+ cfdpdb.transactionInactivityLimit;
 	fdu->metadataReceived = 1;
 	fdu->closureRequested = ((*cursor) >> 6) & 0x01;
+
+	/*	Get checksum type from low-order 4 bits of first byte
+	 *	of Metadata PDU parameter field contents, except that
+	 *	if some file data segments of this file have already
+	 *	been received there is no point in switching to a
+	 *	different checksum type.				*/
+
+	if (fdu->progress == 0)
+	{
+		fdu->ckType = (*cursor) & 0x0f;
+	}
+	else
+	{
+		if (fdu->ckType != ((*cursor) & 0x0f))
+		{
+			ckTypeMismatch = 1;
+		}
+	}
+
 	cursor++;
 	bytesRemaining--;
 
@@ -4752,6 +4759,12 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 				return -1;
 			}
 		}
+	}
+
+	if (ckTypeMismatch)
+	{
+		writeMemoNote("[?] Late arrival of Metadata, so checksums \
+will not match", stringBuf);
 	}
 
 	/*	Parse TLVs.  If at any point a TLV is found to be

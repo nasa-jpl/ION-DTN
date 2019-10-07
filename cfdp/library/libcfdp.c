@@ -735,9 +735,10 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	cursor++;
 	mpduLength++;
 
-	/*	Note closure request.					*/
+	/*	Note closure request and checksum type.			*/
 
 	*cursor = (fdu->closureLatency > 0) << 6;
+	*cursor += (fdu->ckType & 0x0f);
 	cursor++;
 	mpduLength++;
 
@@ -1141,7 +1142,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CHKZERO(destinationEntityNbr
 	&& destinationEntityNbr->length > 0
 	&& destinationEntityNbr->length < 9);
-	CHKZERO(utParmsLength <= sizeof(BpUtParms));
 	if (utParmsLength == 0)
 	{
 		CHKZERO(utParms == NULL);
@@ -1149,7 +1149,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	else
 	{
 		CHKZERO(utParms);
-		CHKZERO(utParmsLength <= sizeof(BpUtParms));
+		CHKZERO(utParmsLength <= sizeof fdu.utParms);
 	}
 
 	CHKZERO(flowLabelLength >= 0 && flowLabelLength < 256);
@@ -1498,14 +1498,6 @@ too long.", sourceFileName);
 		memcpy((char *) &fdu.originatingTransactionId,
 				(char *) originatingTransactionId,
 				sizeof(CfdpTransactionId));
-	}
-
-	fdu.extantPdus = sdr_list_create(sdr);
-	if (fdu.extantPdus == 0)
-	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("CFDP can't create list of extant PDUs.", NULL);
-		return -1;
 	}
 
 	/*	Construct the Metadata PDU.				*/

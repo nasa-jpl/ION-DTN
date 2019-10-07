@@ -67,16 +67,27 @@ static void	printUsage()
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node nbr> [<duct expression>] [<xmit rate>]");
 	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   a rtovrd <data label> <dest node> <source node> <neighbor>");
+	PUTS("\t\tRouting override: <neighbor> is a node number.");
+	PUTS("\t\tFor all destinations or all sources use node number 0.");
+	PUTS("\t   a cosovrd <data label> <dest node> <source node> <p#> <o#>");
+	PUTS("\t\tClass of service override: <p#> is overriding CoS");
+	PUTS("\t\t\tand <o#> is overriding ordinal");
+	PUTS("\t\tFor all destinations or all sources use node number 0.");
 	PUTS("\tc\tChange");
-	PUTS("\t   c plan <node nbr> [<duct expression>] [<xmit rate>]");
+	PUTS("\t   c plan <node nbr> <xmit rate>");
 	PUTS("\t   c exit <first node nbr> <last node nbr> <endpoint ID>");
+	PUTS("\t   c rtovrd <data label> <dest node> <source node> <neighbor>");
+	PUTS("\t   c cosovrd <data label> <dest node> <source node> <p#> <o#>");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} plan <node nbr>");
 	PUTS("\t   {d|i} exit <first node nbr> <last node nbr>");
+	PUTS("\t   {d|i} ovrd <data label> <dest node> <source node>");
 	PUTS("\tl\tList");
 	PUTS("\t   l exit");
 	PUTS("\t   l plan");
+	PUTS("\t   l ovrd");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
@@ -87,6 +98,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	unsigned int	nominalRate = 0;
 	char		*spec = NULL;
+	uvast		destNodeNbr;
+	uvast		sourceNodeNbr;
+	uvast		neighbor;
+	unsigned char	priority;
+	unsigned char	ordinal;
 
 	if (tokenCount < 2)
 	{
@@ -149,14 +165,70 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "rtovrd") == 0)
+	{
+		if (tokenCount != 6)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		destNodeNbr = strtouvast(tokens[3]);
+		if (destNodeNbr == 0)
+		{
+			destNodeNbr = (uvast) -1;
+		}
+
+		sourceNodeNbr = strtouvast(tokens[4]);
+		if (sourceNodeNbr == 0)
+		{
+			sourceNodeNbr = (uvast) -1;
+		}
+
+		neighbor = strtouvast(tokens[5]);
+		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
+				neighbor, (unsigned char) -2, 0);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cosovrd") == 0)
+	{
+		if (tokenCount != 7)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		destNodeNbr = strtouvast(tokens[3]);
+		if (destNodeNbr == 0)
+		{
+			destNodeNbr = (uvast) -1;
+		}
+
+		sourceNodeNbr = strtouvast(tokens[4]);
+		if (sourceNodeNbr == 0)
+		{
+			sourceNodeNbr = (uvast) -1;
+		}
+
+		priority = atoi(tokens[5]);
+		ordinal = atoi(tokens[6]);
+		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
+				(unsigned char) -2, priority, ordinal);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
 static void	executeChange(int tokenCount, char **tokens)
 {
-	unsigned int	nominalRate;
-	int		rateChanged = 0;
-	char		*spec = NULL;
+	unsigned int	nominalRate = 0;
+	uvast		destNodeNbr;
+	uvast		sourceNodeNbr;
+	uvast		neighbor;
+	unsigned char	priority;
+	unsigned char	ordinal;
 
 	if (tokenCount < 2)
 	{
@@ -166,49 +238,14 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "plan") == 0)
 	{
-		if (tokenCount < 4 || tokenCount > 5)
+		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		if (tokenCount == 5)
-		{
-			if (isdigit((int) tokens[4][0]))
-			{
-				nominalRate = atoi(tokens[4]);
-				rateChanged = 1;
-			}
-			else
-			{
-				spec = tokens[4];
-			}
-		}
-
-		if (tokenCount == 4)
-		{
-			if (isdigit((int) tokens[3][0]))
-			{
-				nominalRate = atoi(tokens[3]);
-				rateChanged = 1;
-			}
-			else
-			{
-				spec = tokens[3];
-			}
-		}
-
-		if (rateChanged)
-		{
-			ipn_updatePlan(strtouvast(tokens[2]), nominalRate);
-		}
-
-		if (spec)
-		{
-			ipn_removePlanDuct(strtouvast(tokens[2]), NULL);
-			ipn_addPlanDuct(strtouvast(tokens[2]), spec);
-		}
-
+		nominalRate = atoi(tokens[3]);
+		ipn_updatePlan(strtouvast(tokens[2]), nominalRate);
 		return;
 	}
 
@@ -226,11 +263,69 @@ static void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "rtovrd") == 0)
+	{
+		if (tokenCount != 6)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		destNodeNbr = strtouvast(tokens[3]);
+		if (destNodeNbr == 0)
+		{
+			destNodeNbr = (uvast) -1;
+		}
+
+		sourceNodeNbr = strtouvast(tokens[4]);
+		if (sourceNodeNbr == 0)
+		{
+			sourceNodeNbr = (uvast) -1;
+		}
+
+		neighbor = strtouvast(tokens[5]);
+		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
+				neighbor, (unsigned char) -2, 0);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cosovrd") == 0)
+	{
+		if (tokenCount != 7)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		destNodeNbr = strtouvast(tokens[3]);
+		if (destNodeNbr == 0)
+		{
+			destNodeNbr = (uvast) -1;
+		}
+
+		sourceNodeNbr = strtouvast(tokens[4]);
+		if (sourceNodeNbr == 0)
+		{
+			sourceNodeNbr = (uvast) -1;
+		}
+
+		priority = atoi(tokens[5]);
+		ordinal = atoi(tokens[6]);
+		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
+				(unsigned char) -2, priority, ordinal);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	uvast		destNodeNbr;
+	uvast		sourceNodeNbr;
+	uvast		neighbor = (uvast) -1;;
+	unsigned char	priority = (unsigned char) -1;
+
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
@@ -259,6 +354,31 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		ipn_removeExit(strtouvast(tokens[2]), strtouvast(tokens[3]));
+		return;
+	}
+
+	if (strcmp(tokens[1], "ovrd") == 0)
+	{
+		if (tokenCount != 5)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		destNodeNbr = strtouvast(tokens[3]);
+		if (destNodeNbr == 0)
+		{
+			destNodeNbr = (uvast) -1;
+		}
+
+		sourceNodeNbr = strtouvast(tokens[4]);
+		if (sourceNodeNbr == 0)
+		{
+			sourceNodeNbr = (uvast) -1;
+		}
+
+		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
+				neighbor, priority, 0);
 		return;
 	}
 
@@ -385,6 +505,114 @@ static void	infoExit(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
+static void	printOverride(IpnOverride *ovrd)
+{
+	char	buffer[384];
+	uvast	destNodeNbr;
+	uvast	sourceNodeNbr;
+	char	neighbor[32];
+	char	priority[8];
+	char	ordinal[8];
+
+	if (ovrd->destNodeNbr == (uvast) -1)
+	{
+		destNodeNbr = 0;
+	}
+	else
+	{
+		destNodeNbr = ovrd->destNodeNbr;
+	}
+
+	if (ovrd->sourceNodeNbr == (uvast) -1)
+	{
+		sourceNodeNbr = 0;
+	}
+	else
+	{
+		sourceNodeNbr = ovrd->sourceNodeNbr;
+	}
+
+	if (ovrd->neighbor == (uvast) -1)
+	{
+		istrcpy(neighbor, "<none>", sizeof neighbor);
+	}
+	else
+	{
+		isprintf(neighbor, sizeof neighbor, UVAST_FIELDSPEC,
+				ovrd->neighbor);
+	}
+
+	if (ovrd->priority == (unsigned char) -1)
+	{
+		istrcpy(priority, "<none>", sizeof(priority));
+		istrcpy(ordinal, "<none>", sizeof(ordinal));
+	}
+	else
+	{
+		isprintf(priority, sizeof priority, "%u",
+				(unsigned int) (ovrd->priority));
+		isprintf(ordinal, sizeof ordinal, "%u",
+				(unsigned int) (ovrd->ordinal));
+	}
+
+	isprintf(buffer, sizeof buffer, "For data label %u, destination node "
+UVAST_FIELDSPEC ", source node " UVAST_FIELDSPEC ", overrides are: neighbor \
+%s, priority %s, ordinal %s.", ovrd->dataLabel, destNodeNbr, sourceNodeNbr,
+			neighbor, priority, ordinal);
+	printText(buffer);
+}
+
+static void	infoOverride(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	dataLabel;
+	uvast		destNodeNbr;
+	uvast		sourceNodeNbr;
+	Object		elt;
+			OBJ_POINTER(IpnOverride, ovrd);
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	dataLabel = strtouvast(tokens[2]);
+	destNodeNbr = strtouvast(tokens[3]);
+	if (destNodeNbr == 0)
+	{
+		destNodeNbr = (uvast) -1;
+	}
+
+	sourceNodeNbr = strtouvast(tokens[4]);
+	if (sourceNodeNbr == 0)
+	{
+		sourceNodeNbr = (uvast) -1;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->overrides); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnOverride, ovrd,
+				sdr_list_data(sdr, elt));
+		if (ovrd->dataLabel == dataLabel
+		&& ovrd->destNodeNbr == destNodeNbr
+		&& ovrd->sourceNodeNbr == sourceNodeNbr)
+		{
+			printOverride(ovrd);
+			break;
+		}
+	}
+
+	if (elt == 0)
+	{
+		printText("Unknown override.");
+	}
+
+	sdr_exit_xn(sdr);
+}
+
 static void	executeInfo(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -403,6 +631,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 	|| strcmp(tokens[1], "group") == 0)
 	{
 		infoExit(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ovrd") == 0)
+	{
+		infoOverride(tokenCount, tokens);
 		return;
 	}
 
@@ -448,6 +682,24 @@ static void	listExits()
 	sdr_exit_xn(sdr);
 }
 
+static void	listOverrides()
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnOverride, ovrd);
+
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sdr_list_first(sdr, (getIpnConstants())->overrides); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnOverride, ovrd,
+				sdr_list_data(sdr, elt));
+		printOverride(ovrd);
+	}
+
+	sdr_exit_xn(sdr);
+}
+
 static void	executeList(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -466,6 +718,12 @@ static void	executeList(int tokenCount, char **tokens)
 	|| strcmp(tokens[1], "group") == 0)
 	{
 		listExits();
+		return;
+	}
+
+	if (strcmp(tokens[1], "ovrd") == 0)
+	{
+		listOverrides();
 		return;
 	}
 

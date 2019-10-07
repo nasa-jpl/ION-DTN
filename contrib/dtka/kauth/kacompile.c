@@ -205,7 +205,7 @@ int	main(int argc, char *argv[])
 		/*	Sleep until 5 seconds before the next bulletin
 		 *	compilation opportunity.			*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		interval = db.nextCompilationTime - currentTime;
 		if (interval > 5)
 		{
@@ -248,7 +248,7 @@ int	main(int argc, char *argv[])
 		 *	another 5 seconds.  At minimum, give kapublish
 		 *	time to get started.				*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		interval = db.currentCompilationTime - currentTime;
 		if (interval < 2)
 		{

@@ -236,7 +236,8 @@ int	main(int argc, char **argv)
 	parms.mainThread = pthread_self();
 	parms.running = 1;
 	parms.txSap = txSap;
-	if (pthread_begin(&rxThread, NULL, getBundles, &parms))
+	if (pthread_begin(&rxThread, NULL, getBundles,
+		&parms,"dtpcd_receiver"))
 	{
 		bp_close(txSap);
 		putSysErrmsg("dtpcd can't create receiver thread", NULL);

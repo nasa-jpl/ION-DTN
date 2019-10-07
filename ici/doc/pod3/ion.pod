@@ -240,22 +240,23 @@ is essential to the avoidance of race conditions.
 Returns the Bundle Protocol node number identifying this node, as
 declared when ION was initialized by I<ionadmin>.
 
-=item time_t getUTCTime()
+=item time_t getCtime()
 
-Returns the current UTC time, as computed from local clock time and the
-computer's current offset from UTC (due to clock drift, B<not> due
-to time zone difference; the B<utcdelta>) as managed from I<ionadmin>.
+Returns the current calendar (i.e., Unix epoch) time, as computed from local
+clock time and the computer's current offset from UTC (due to clock drift,
+B<not> due to time zone difference; the B<utcdelta>) as managed from
+I<ionadmin>.
 
 =item int ionClockIsSynchronized()
 
 Returns 1 if the computer on which the local ION node is running has a
-synchronized clock , i.e., a clock that reports the current UTC time as a
-value that differs from the correct time by an interval approximately equal
-to the currently asserted offset from UTC due to clock drift; returns zero
-otherwise.
+synchronized clock , i.e., a clock that reports the current calendar (i.e.,
+Unix epoch) time as a value that differs from the correct calendar time by
+an interval approximately equal to the currently asserted offset from UTC
+due to clock drift; returns zero otherwise.
 
 If the machine's clock is synchronized then its reported values (as returned
-by getUTCTime()) can safely be used as the creation times of new bundles and
+by getCtime()) can safely be used as the creation times of new bundles and
 the expiration time of such a bundle can accurately be computed as the sum
 of the bundle's creation time and time to live.  If not, then the creation
 timestamp time of new bundles sourced at the local ION node must be zero
@@ -275,13 +276,14 @@ ION-standard format, as noted above, in I<timestampBuffer>.
 =item time_t readTimestampLocal(char *timestampBuffer, time_t referenceTime)
 
 Parses the local timestamp string in I<timestampBuffer> and returns the
-corresponding time value (as would be returned by time(2)), or zero if the
-timestamp string cannot be parsed successfully.  The timestamp string is
-normally expected to be an absolute expression of local time in ION-standard
-format as noted above.  However, a relative time expression variant is also
-supported: if the first character of I<timestampBuffer> is '+' then the
-remainder of the string is interpreted as a count of seconds; the sum of
-this value and the time value in I<referenceTime> is returned.
+corresponding calendar (i.e., Unix epoch) time value (as would be returned by
+time(2)), or zero if the timestamp string cannot be parsed successfully.  The
+timestamp string is normally expected to be an absolute expression of local
+time in ION-standard format as noted above.  However, a relative time
+expression variant is also supported: if the first character of
+I<timestampBuffer> is '+' then the remainder of the string is interpreted
+as a count of seconds; the sum of this value and the time value in
+I<referenceTime> is returned.
 
 =item time_t readTimestampUTC(char *timestampBuffer, time_t referenceTime)
 

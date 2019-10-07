@@ -86,7 +86,7 @@ See man(5) for ltprc.");
 	PUTS("\t   l span");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
-	PUTS("\t   m screening {y | n}");
+	PUTS("\t   m screening {y | on | n | off}");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
@@ -492,6 +492,18 @@ static void	manageScreening(int tokenCount, char **tokens)
 		break;
 
 	default:
+		if (strncmp(tokens[2], "on", 2) == 0)
+		{
+			newEnforceSchedule = 1;
+			break;
+		}
+
+		if (strncmp(tokens[2], "off", 3) == 0)
+		{
+			newEnforceSchedule = 0;
+			break;
+		}
+
 		writeMemoNote("Screening must be 'y' or 'n'.", tokens[2]);
 		return;
 	}
@@ -871,6 +883,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 				{
 					printText("Can't start LTP: no LSI \
 command.");
+					return 0;
 				}
 				else
 				{
@@ -878,6 +891,7 @@ command.");
 					{
 						putErrmsg("Can't start LTP.",
 								NULL);
+						return 0;
 					}
 				}
 

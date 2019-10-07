@@ -6,14 +6,10 @@ DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
-#  BPINCL = ../../bp/include
-#  BPLIB = ../../bp/library
-#  SBSP = $(BPLIB)/ext/sbsp
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
-# -I$(BPINCL) -I$(BPLIB) -I$(SBSP)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -43,7 +39,6 @@ LIBICIOBJS = \
 	sdrcatlg.o
 
 PUBINCLS = \
-#	$(SBSP)/profiles.h \
 	$(INCL)/llcv.h \
 	$(INCL)/platform.h \
 	$(INCL)/platform_sm.h \
@@ -72,7 +67,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ionxnowner ionlog
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
@@ -108,6 +103,14 @@ sdrmend:	sdrmend.o libici.so
 ionunlock:	ionunlock.o libici.so
 		$(CC) -o ionunlock ionunlock.o -L./lib -lici -lpthread -lm
 		cp ionunlock ./bin
+
+ionxnowner:	ionxnowner.o libici.so
+		$(CC) -o ionxnowner ionxnowner.o -L./lib -lici -lpthread -lm
+		cp ionxnowner ./bin
+
+ionlog:		ionlog.o libici.so
+		$(CC) -o ionlog ionlog.o -L./lib -lici -lpthread -lm
+		cp ionlog ./bin
 
 psmwatch:	psmwatch.o libici.so
 		$(CC) -o psmwatch psmwatch.o -L./lib -lici -lpthread -lm

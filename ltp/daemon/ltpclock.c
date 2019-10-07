@@ -255,7 +255,7 @@ int	main(int argc, char *argv[])
 		 *	whose executions times have now been reached.	*/
 
 		snooze(1);
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 
 		/*	Infer link state changes from rate changes
 		 *	noted in the shared ION database.		*/

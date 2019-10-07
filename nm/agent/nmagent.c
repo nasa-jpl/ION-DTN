@@ -111,7 +111,7 @@ void agent_register()
  **  10/04/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#if defined (ION_LWT)
+#if defined (ION_LWT) || defined(TEST_MAIN)
 int	nmagent(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
@@ -210,7 +210,7 @@ int	main(int argc, char *argv[])
     /*! use pthread_begin() so thread can be named and have its stacksize adjusted on some OS's */
     /*! and provide threads with a pointer to gRunning, so threads will shutdown */
     //rc = pthread_create(&ingest_thr, NULL, (void *)rx_thread, (void *)ingest_thr_name);
-    rc = pthread_begin(&ingest_thr, NULL, (void *)rx_thread, (void *)&gRunning);
+    rc = pthread_begin(&ingest_thr, NULL, (void *)rx_thread, (void *)&gRunning, "nmagent_ingest");
 
     if (rc)
     {
@@ -224,7 +224,7 @@ int	main(int argc, char *argv[])
     }
    
     //rc = pthread_create(&rda_thr, NULL, (void *)rda_thread, (void *)rda_thr_name);
-    rc = pthread_begin(&rda_thr, NULL, (void *)rda_thread, (void *)&gRunning);
+    rc = pthread_begin(&rda_thr, NULL, (void *)rda_thread, (void *)&gRunning, "nmagent_rda");
 
     if (rc)
     {

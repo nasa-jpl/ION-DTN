@@ -111,14 +111,14 @@ rpt_t*   rpt_copy_ptr(rpt_t *src);
 
 rpt_t*   rpt_create(ari_t *id, time_t time, tnvc_t *entries);
 
-void*    rpt_deserialize_ptr(CborValue *it, int *success);
+void*    rpt_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 rpt_t*   rpt_deserialize_raw(blob_t *data, int *success);
 
 void     rpt_release(rpt_t *rpt, int destroy);
 
 
-CborError rpt_serialize(CborEncoder *encoder, void *item);
+int      rpt_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*   rpt_serialize_wrapper(rpt_t *rpt);
 
@@ -136,13 +136,13 @@ rpttpl_t* rpttpl_create(ari_t *id, ac_t items);
 
 rpttpl_t* rpttpl_create_id(ari_t *id);
 
-rpttpl_t* rpttpl_deserialize_ptr(CborValue *it, int *success);
+rpttpl_t* rpttpl_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 rpttpl_t* rpttpl_deserialize_raw(blob_t *data, int *success);
 
 void      rpttpl_release(rpttpl_t *rpttpl, int destroy);
 
-CborError rpttpl_serialize(CborEncoder *encoder, void *item);
+int       rpttpl_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*   rpttpl_serialize_wrapper(rpttpl_t *rpttpl);
 

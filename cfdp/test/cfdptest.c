@@ -8,6 +8,7 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
 #include "cfdp.h"
+#include "bputa.h"
 
 typedef struct
 {
@@ -28,7 +29,7 @@ typedef struct
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
 			unsigned int length, int sourceFileFd, char *buffer)
 {
-	writeTimestampLocal(getUTCTime(), buffer);
+	writeTimestampLocal(getCtime(), buffer);
 	return strlen(buffer) + 1;
 }
 
@@ -816,7 +817,8 @@ static int	runCfdptestInteractive()
 
 	/*	Start the receiver thread.				*/
 
-	if (pthread_begin(&receiverThread, NULL, handleEvents, &running))
+	if (pthread_begin(&receiverThread, NULL, handleEvents,
+		&running, "cfdptest_receiver"))
 	{
 		putSysErrmsg("cfdptest can't create receiver thread", NULL);
 		return 1;

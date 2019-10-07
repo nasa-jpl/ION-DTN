@@ -117,11 +117,16 @@ int	main(int argc, char *argv[])
 			break;
 		}
 
-		if (bundleZco == 0)	/*	Outduct closed.		*/
+		if (bundleZco == 0)	 /*	Outduct closed.		*/
 		{
 			writeMemo("[i] bibeclo outduct closed.");
 			sm_SemEnd(bibecloSemaphore(NULL));/*	Stop.	*/
 			continue;
+		}
+
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
@@ -143,7 +148,7 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		bundleAge = currentTime -
 			(image.id.creationTime.seconds + EPOCH_2000_SEC);
 		ttl = image.timeToLive - bundleAge;

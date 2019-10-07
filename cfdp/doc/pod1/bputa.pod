@@ -14,7 +14,7 @@ encapsulated in DTN bundles.
 The task is spawned automatically by B<cfdpadmin> in response to the 's'
 command that starts operation of the CFDP protocol; the text of the
 command that is used to spawn the task must be provided
-as a parameter to the 's' command.  The link service input task is
+as a parameter to the 's' command.  The UT-layer daemon is
 terminated by B<cfdpadmin> in response to an 'x' (STOP) command.
 
 =head1 EXIT STATUS

@@ -17,11 +17,11 @@ static void run_cos_case(const char *token, BpAncillaryData desiredAncillaryData
 	BpCustodySwitch	custodySwitch;
 	int				priority;
 
-	fail_unless(bp_parse_class_of_service(token, &ancillaryData, &custodySwitch,
+	fail_unless(bp_parse_quality_of_service(token, &ancillaryData, &custodySwitch,
 											&priority) == 1);
 
 
-	fail_unless(ancillaryData.flowLabel == desiredAncillaryData.flowLabel); 
+	fail_unless(ancillaryData.dataLabel == desiredAncillaryData.dataLabel); 
 	fail_unless(ancillaryData.flags == desiredAncillaryData.flags); 
 	fail_unless(ancillaryData.ordinal == desiredAncillaryData.ordinal); 
 	fail_unless(custodySwitch == desiredCustodySwitch);
@@ -35,7 +35,7 @@ BpAncillaryData	ancillaryData = { 0, 0, 0 };
 	BpCustodySwitch	custodySwitch;
 	int				priority;
 
-	fail_unless(bp_parse_class_of_service(token, &ancillaryData, &custodySwitch,
+	fail_unless(bp_parse_quality_of_service(token, &ancillaryData, &custodySwitch,
 											&priority) == 0);
 }
 
@@ -127,30 +127,30 @@ int main(int argc, char **argv)
 
     /* Six args: custody.priority.ordinal.unreliable.critical.flow-label */
     desiredAncillaryData.ordinal = 0;
-    desiredAncillaryData.flags = BP_FLOW_LABEL_PRESENT;
-    desiredAncillaryData.flowLabel = 0;
+    desiredAncillaryData.flags = BP_DATA_LABEL_PRESENT;
+    desiredAncillaryData.dataLabel = 0;
     run_cos_case("0.0.0.0.0.0", desiredAncillaryData, NoCustodyRequested, 0);
     run_cos_case("1.0.0.0.0.0", desiredAncillaryData, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.0.0.0", desiredAncillaryData, SourceCustodyRequired, 1);
-    desiredAncillaryData.flags = BP_FLOW_LABEL_PRESENT | BP_BEST_EFFORT;
+    desiredAncillaryData.flags = BP_DATA_LABEL_PRESENT | BP_BEST_EFFORT;
     run_cos_case("0.0.0.1.0.0", desiredAncillaryData, NoCustodyRequested, 0);
     run_cos_case("1.0.0.1.0.0", desiredAncillaryData, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.1.0.0", desiredAncillaryData, SourceCustodyRequired, 1);
-    desiredAncillaryData.flags = BP_FLOW_LABEL_PRESENT;
-    desiredAncillaryData.flowLabel = 42;
+    desiredAncillaryData.flags = BP_DATA_LABEL_PRESENT;
+    desiredAncillaryData.dataLabel = 42;
     run_cos_case("0.0.0.0.0.42", desiredAncillaryData, NoCustodyRequested, 0);
     run_cos_case("1.0.0.0.0.42", desiredAncillaryData, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.0.0.42", desiredAncillaryData, SourceCustodyRequired, 1);
-    desiredAncillaryData.flags = BP_FLOW_LABEL_PRESENT | BP_BEST_EFFORT;
+    desiredAncillaryData.flags = BP_DATA_LABEL_PRESENT | BP_BEST_EFFORT;
     run_cos_case("0.0.0.1.0.42", desiredAncillaryData, NoCustodyRequested, 0);
     run_cos_case("1.0.0.1.0.42", desiredAncillaryData, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.1.0.42", desiredAncillaryData, SourceCustodyRequired, 1);
-    desiredAncillaryData.flags = BP_FLOW_LABEL_PRESENT;
-    desiredAncillaryData.flowLabel = 65535;
+    desiredAncillaryData.flags = BP_DATA_LABEL_PRESENT;
+    desiredAncillaryData.dataLabel = 65535;
     run_cos_case("0.0.0.0.0.65535", desiredAncillaryData, NoCustodyRequested, 0);
     run_cos_case("1.0.0.0.0.65535", desiredAncillaryData, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.0.0.65535", desiredAncillaryData, SourceCustodyRequired, 1);
-    desiredAncillaryData.flags = BP_FLOW_LABEL_PRESENT | BP_BEST_EFFORT;
+    desiredAncillaryData.flags = BP_DATA_LABEL_PRESENT | BP_BEST_EFFORT;
     run_cos_case("0.0.0.1.0.65535", desiredAncillaryData, NoCustodyRequested, 0);
     run_cos_case("1.0.0.1.0.65535", desiredAncillaryData, SourceCustodyRequired, 0);
     run_cos_case("1.1.0.1.0.65535", desiredAncillaryData, SourceCustodyRequired, 1);

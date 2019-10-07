@@ -122,8 +122,8 @@ int	checkForCongestion()
 	int		ionMemIdx;
 	Lyst		neighbors;
 	Lyst		changes;
-	vast		fileOccupancy;
-	vast		heapOccupancy;
+	double		fileOccupancy;
+	double		heapOccupancy;
 	double		currentOccupancy;
 	double		maxOccupancy;
 	double		forecastOccupancy;
@@ -152,7 +152,7 @@ int	checkForCongestion()
 	char		alarmBuffer[40 + TIMESTAMPBUFSZ];
 	int		result;
 
-	forecastTime = getUTCTime();
+	forecastTime = getCtime();
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	iondbObj = getIonDbObject();

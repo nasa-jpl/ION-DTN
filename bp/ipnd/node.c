@@ -474,6 +474,7 @@ socket.", NULL);
 			continue;
 		}
 
+		oK(reUseAddress(listenSocket));
 		if (getIpv4AddressType(listenAddr->ip) == UNICAST)
 		{
 			/* Join multicast groups */
@@ -603,7 +604,7 @@ static void	bp_discover_contact(char acquired, IPNDCtx *ctx, char *eid)
 					"[i] receive-thread: \
 bp_discover_contact_acquired(%s, %s, %s, %d, %d)", socketSpec, eid, claProtocol,
 					xmitRate, recvRate);
-				bp_discover_contact_acquired(socketSpec, eid,
+				bp_discovery_acquired(socketSpec, eid,
 					claProtocol, xmitRate, recvRate);
 			}
 			else
@@ -611,7 +612,7 @@ bp_discover_contact_acquired(%s, %s, %s, %d, %d)", socketSpec, eid, claProtocol,
 				isprintf(buffer, sizeof buffer,
 					"[i] receive-thread: \
 bp_discover_contact_lost(%s, %s, %s)", socketSpec, eid, claProtocol);
-				bp_discover_contact_lost(socketSpec, eid,
+				bp_discovery_lost(socketSpec, eid,
 					claProtocol);
 			}
 

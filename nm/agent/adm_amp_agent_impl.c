@@ -1492,7 +1492,7 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
 		{
 			ari_t *cur_id = vecit_data(ac_it);
-			rpt_t *rpt = rpt_create(ari_copy_ptr(cur_id), getUTCTime(), NULL);
+			rpt_t *rpt = rpt_create(ari_copy_ptr(cur_id), getCtime(), NULL);
 
 			if(cur_id->type == AMP_TYPE_RPTTPL)
 			{
@@ -1582,7 +1582,7 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			tnv_t *val = NULL;
 
 			if( (def == NULL) ||
-				((rpt = rpt_create(ari_copy_ptr(cur_id), getUTCTime(), NULL)) == NULL) ||
+				((rpt = rpt_create(ari_copy_ptr(cur_id), getCtime(), NULL)) == NULL) ||
 				((tbl = def->build(cur_id)) == NULL) ||
 				((val = tnv_from_obj(AMP_TYPE_TBL, tbl)) == NULL) ||
 				(rpt_add_entry(rpt, val) != AMP_OK))

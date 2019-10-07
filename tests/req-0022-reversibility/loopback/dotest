@@ -42,7 +42,6 @@ echo "########################################"
 echo "Starting ION..."
 cd ./configs
 ./ionstart
-cd ..
 sleep 10
 
 # create the test message in a sent file
@@ -92,7 +91,6 @@ fi
 # shut down ion processes
 echo
 echo "Stopping ion..."
-cd ./configs
 ./ionstop
 cd ..
 

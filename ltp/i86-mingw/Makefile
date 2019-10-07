@@ -19,9 +19,11 @@ PUBINCLS = \
 
 LTPINCLS = \
 	$(API)/ltpP.h \
+	$(API)/ltpsec.h \
 	$(UDP)/udplsa.h
 
-RUNTIMES = ltpadmin ltpclock ltpmeter ltpdeliv udplsi udplso aoslsi aoslso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpsecadmin ltpclock ltpmeter ltpdeliv udplsi udplso ltpdriver ltpcounter sdatest
+# aoslsi aoslso - deprecated in ION 3.7.0
 # dccplsi dccplso - excluded on platforms other than Linux in config.h
 
 ALL = check libltp.dll $(RUNTIMES)
@@ -63,6 +65,10 @@ ltpdeliv:	ltpdeliv.o libltp.dll
 ltpadmin:	ltpadmin.o libltp.dll
 		$(CC) -o ltpadmin ltpadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpadmin ./bin
+
+ltpsecadmin:	ltpsecadmin.o libltp.dll
+		$(CC) -o ltpsecadmin ltpsecadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpsecadmin ./bin
 
 #	-	-	Test executables	-	-	-	-
 
@@ -110,8 +116,8 @@ dccplso:	dccplso.o libltp.dll
 
 #	-	-	Libraries	-	-	-	-	-
 
-libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
-		$(LD) -o libltp.dll libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o -Wl,--output-def,libltp.def -L$(ROOT)/lib -lici -lpthread
+libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o ltpsec.o
+		$(LD) -o libltp.dll libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o ltpsec.o -Wl,--output-def,libltp.def -L$(ROOT)/lib -lici -lpthread
 		cp libltp.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
@@ -142,3 +148,4 @@ libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o
 
 %.o:		$(SDA)/%.c
 		$(CC) -c $<
+

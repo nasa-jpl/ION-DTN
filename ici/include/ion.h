@@ -23,8 +23,8 @@ extern "C" {
 
 /* Allow the compile option -D to override this in the future */
 #ifndef IONVERSIONNUMBER
-/* As of 2018-01-31 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.6.2"
+/* As of 2019-10-03 the sourceforge version number is this: */
+#define IONVERSIONNUMBER "ION OPEN SOURCE 3.7.0"
 #endif
 
 /* Allow the compile option -D to override this in the future */
@@ -39,6 +39,9 @@ extern "C" {
 
 #define	SENDER_NODE	(0)
 #define	RECEIVER_NODE	(1)
+
+#define	HOME_REGION	(0)
+#define	OUTER_REGION	(1)
 
 #ifndef ION_SDR_MARGIN
 #define	ION_SDR_MARGIN	(20)		/*	Percent.		*/
@@ -79,7 +82,111 @@ typedef struct
  *	Additionally, IonContacts for which either the fromNode or the
  *	toNode is the local node's own node number are used in
  *	congestion forecasting, by computation of maximum scheduled
- *	bundle space occupancy.						*/
+ *	bundle space occupancy.	
+ *
+ *	Six different types of contact may be intermixed within a
+ *	contact plan.
+ *
+ *	(1)  A "registration" contact constitutes the registration
+ *	of the indicated node (noted as both From and To) in the
+ *	region corresponding to the contact plan of which this
+ *	contact is a part.  A registration contact simply affirms
+ *	the source node's permanent membership in this region,
+ *	persisting even during periods when no other contact in
+ *	the contact plan cites that node.  The start and stop
+ *	times of a registration contact are both set to the
+ *	maximum POSIX time, data rate is always zero, confidence
+ *	is 1.0.  Registration contacts are always posted via
+ *	ionadmin or equivalent.
+ *
+ *	(2)  A "scheduled" contact is an asserted opportunity to
+ *	transmit data between nodes, as inferred (for example)
+ *	from a spacecraft or ground station operating plan.  The
+ *	confidence value of a scheduled contact is normally 1.0
+ *	but may be less if there is uncertainty in the inferred
+ *	opportunity.  Scheduled contacts must never overlap in
+ *	time.  They are always posted via ionadmin or equivalent.
+ *
+ *	(3)  A "suppressed" contact is a scheduled contact
+ *	BETWEEN THE LOCAL NODE AND SOME NEIGHBORING NODE for
+ *	which there is now a discovered contact.  All scheduled
+ *	contacts with the indicated neighbor are automatically
+ *	suppressed by the ipnd neighbor discovery daemon (or
+ *	equivalent), which simply changes the contact type of
+ *	each such contact.  So long as a scheduled contact
+ *	remains suppressed, its asserted data rates between
+ *	the local node and the indicated neighbor node are
+ *	operationally ignored.  But suppression of a contact
+ *	has no effect on the contact's inclusion in computed
+ *	routes nor on the possible selection of such routes
+ *	for the forwarding of data.  New suppressed contacts
+ *	are never posted in any way.
+ *
+ *	(4)  A "predicted" contact is a statistically likely
+ *	transmission opportunity BETWEEN ANY TWO NODES OTHER
+ *	THAN THE LOCAL NODE as inferred from the network's
+ *	history of contact discoveries.  Predicted contacts
+ *	are used ONLY in route computation.  The confidence
+ *	value of a predicted contact is always less than 1.0.
+ *	The data rate and confidence of a predicted contact
+ *	are computed as a function of the contact history
+ *	between the two nodes.  The (sole) predicted contact
+ *	for a given pair of nodes is automatically re-computed
+ *	by ipnd, in the course of neighbor discovery, whenever
+ *	one or more new contact history records for that pair
+ *	of nodes are received; new predicted contacts are never
+ *	posted in any other way.  
+ *
+ *	(5)  A "hypothetical" contact is an opportunity to
+ *	transmit data BETWEEN THE LOCAL NODE AND SOME OTHER
+ *	(POTENTIAL NEIGHBOR) NODE whose occurrence is thought
+ *	to be possible at some time in the future, under
+ *	unknown conditions.  If the indicated communication
+ *	opportunity subsequently does occur, the hypothetical
+ *	contact is automatically transformed into a discovered
+ *	contact as discussed below and all scheduled contacts
+ *	between this pair of nodes are automatically transformed
+ *	into suppressed contacts as discussed above.  The start
+ *	time of a hypothetical contact is zero, the stop time
+ *	is the maximum POSIX time, and the data rate and
+ *	confidence are both zero.  Hypothetical contacts are
+ *	included in the computation of routes to destination
+ *	nodes, but a route that commences with a hypothetical
+ *	(rather than discovered) contact cannot be selected
+ *	for the forwarding of data, as its confidence value
+ *	is zero.  Hypothetical contacts are always posted
+ *	either automatically by ipnd or equivalent, as
+ *	discussed below, or via ionadmin or equivalent.
+ *
+ *	(6)  A "discovered" contact is an opportunity to transmit
+ *	data BETWEEN THE LOCAL NODE AND SOME OTHER NODE (THAT
+ *	IS NOW KNOWN TO BE A NEIGHBOR) that has spontaneously
+ *	occurred in real time.  Discovery of a contact is
+ *	asserted by the ipnd neighbor discovery daemon (or
+ *	equivalent), which simply causes the corresponding
+ *	hypothetical contact (which is automatically created
+ *	if not pre-existing) to be updated with confidence
+ *	set to 1.0 and data rate set to the discovered data rate
+ *	and (as noted above) temporarily suppresses from routing
+ *	consideration all scheduled contacts for the same From
+ *	and To nodes.  When the discovered contact ends, any
+ *	suppressed scheduled contacts are restored to consideration
+ *	(i.e., their types are changed back to Scheduled) and the
+ *	discovered contact reverts: its contact type is changed
+ *	back to Hypoothencial and its data rate and confidence
+ *	are reset to zero.  New discovered contacts are never
+ *	posted in any other way.					*/
+
+
+typedef enum
+{
+	CtRegistration = 1,
+	CtScheduled,
+	CtPredicted,
+	CtHypothetical,
+	CtDiscovered,
+	CtSuppressed
+} ContactType;
 
 typedef struct
 {
@@ -89,18 +196,9 @@ typedef struct
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
-	int		discovered;	/*	Boolean.		*/
-	vast		mtv[3];		/*	Residual xmit volumes.	*/
+	ContactType	type;		/*	For disambiguation.	*/
+	double		mtv[3];		/*	Residual xmit volumes.	*/
 } IonContact;
-
-typedef struct
-{
-	time_t		fromTime;	/*	As from time(2).	*/
-	time_t		toTime;		/*	As from time(2).	*/
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
-	size_t		xmitRate;	/*	In bytes per second.	*/
-} PastContact;
 
 typedef struct
 {
@@ -111,14 +209,27 @@ typedef struct
 	unsigned int	owlt;		/*	In seconds.		*/
 } IonRange;
 
+typedef struct
+{
+	uvast		nodeNbr;
+	vast		homeRegionNbr;
+	vast		outerRegionNbr;
+} RegionMember;
+
+typedef struct
+{
+	vast		regionNbr;
+	Object		members;	/*	SDR list: RegionMember	*/
+	Object		contacts;	/*	SDR list: IonContact	*/
+} IonRegion;
+
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
 typedef struct
 {
-	Object		contacts;	/*	SDR list: IonContact	*/
-	Object		ranges;		/*	SDR list: IonRange	*/
-	Object		contactLog[2];	/*	SDR list: PastContact	*/
 	uvast		ownNodeNbr;
+	IonRegion	regions[2];	/*	Home, outer.		*/
+	Object		ranges;		/*	SDR list: IonRange	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
 	double		occupancyCeiling;
@@ -135,11 +246,12 @@ typedef struct
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
- *	contains objects representing all nodes in the network other
- *	than the local node.  Each IonNode has a list of "embargoes"
- *	(described below), plus a "routing object" that points to
- *	data that has structure and function specific to the routing
- *	system established for the bundle protocol agent.
+ *	contains objects representing all identified potential
+ *	destination nodes in the network other than the local node.
+ *	Each IonNode has a list of "embargoes" (described below),
+ *	plus a "routing object" that points to data that has
+ *	structure and function specific to the routing system
+ *	established for the bundle protocol agent.
  *
  *	The IonVdb also contains red-black trees that (a) index all
  *	contacts in the non-volatile database, by "from" node, "to"
@@ -160,7 +272,7 @@ typedef struct
  *	able to compute a route to that destination node.  The
  *	existence of the embargo generally prevents consideration
  *	of this neighbor as proximate destination when routing to
- *	the affected destination node.  However, once each RTLT
+ *	the affected destination node.  However, once per RTLT
  *	(between the local node and the embargoed neighbor), one
  *	custodial bundle may be routed to the embargoed neighbor as
  *	a "probe", to determine whether or not the neighbor is still
@@ -232,7 +344,7 @@ typedef struct
 	time_t		toTime;		/*	As from time(2).	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
-	int		discovered;	/*	Boolean.		*/
+	ContactType	type;		/*	For disambiguation.	*/
 	time_t		startXmit;	/*	Computed when inserted.	*/
 	time_t		stopXmit;	/*	Computed when inserted.	*/
 	time_t		startFire;	/*	Computed when inserted.	*/
@@ -242,6 +354,7 @@ typedef struct
 	time_t		purgeTime;	/*	Computed when inserted.	*/
 	Object		contactElt;	/*	In iondb->contacts.	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
+	PsmAddress	citations;	/*	SM list of SmList elts.	*/
 } IonCXref;
 
 typedef enum
@@ -295,6 +408,7 @@ typedef struct
 {
 	int		clockPid;	/*	For stopping rfxclock.	*/
 	int		deltaFromUTC;	/*	In seconds.		*/
+	time_t		refTime;	/*	As set by ionadmin.	*/
 	struct timeval	lastEditTime;	/*	Add/del contacts/ranges	*/
 	PsmAddress	nodes;		/*	SM RB tree: IonNode	*/
 	PsmAddress	neighbors;	/*	SM RB tree: IonNeighbor	*/
@@ -338,6 +452,19 @@ extern void		ionProd(	uvast fromNode,
 					size_t xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate();
+
+extern int		ionPickRegion(vast regionNbr);
+extern int		ionRegionOf(uvast nodeA,
+					uvast nodeB);
+extern void		ionNoteMember(int regionIdx,
+					uvast nodeNbr,
+					vast homeRegionNbr,
+					vast outerRegionNbr);
+extern int		ionManageRegion(int i,
+					vast regionNbr);
+extern int		ionManagePassageway(uvast nodeNbr,
+					vast homeRegionNbr,
+					vast outerRegionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);
@@ -385,10 +512,15 @@ extern void		printIonMemTrace(int verbose);
 extern void		clearIonMemTrace();
 extern void		stopIonMemTrace();
 
+/*	The term "ctime" is used in ION to signify "calendar time"
+	(as used in the Linux ctime(3) man page), i.e., Unix epoch
+	time, the number of seconds elapsed since 00:00 1 January
+	1970 UTC.							*/
+
 #define	TIMESTAMPBUFSZ	20
 
 extern int		setDeltaFromUTC(int newDelta);
-extern time_t		getUTCTime();	/*	UTC scale, 1970 epoch.	*/
+extern time_t		getCtime();	/*	Unix 1970 epoch time.	*/
 extern int		ionClockIsSynchronized();
 
 extern time_t		readTimestampLocal(char *timestampBuffer,
@@ -399,6 +531,7 @@ extern void		writeTimestampLocal(time_t timestamp,
 					char *timestampBuffer);
 extern void		writeTimestampUTC(time_t timestamp,
 					char *timestampBuffer);
+extern time_t		ionReferenceTime(time_t *newValue);
 
 #define extractSdnv(into, from, remnant) \
 if (_extractSdnv(into, (unsigned char **) from, remnant, __LINE__) < 1) \

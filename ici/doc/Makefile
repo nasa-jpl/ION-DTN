@@ -11,6 +11,8 @@ MANFILES = \
 	./man/man1/sdrwatch.1 \
 	./man/man1/sdrmend.1 \
 	./man/man1/ionunlock.1 \
+	./man/man1/ionxnowner.1 \
+	./man/man1/ionlog.1 \
 	./man/man1/file2sdr.1 \
 	./man/man1/file2sm.1 \
 	./man/man1/psmshell.1 \
@@ -46,6 +48,8 @@ HTMLFILES = \
 	./html/man1/sdrwatch.html \
 	./html/man1/sdrmend.html \
 	./html/man1/ionunlock.html \
+	./html/man1/ionxnowner.html \
+	./html/man1/ionlog.html \
 	./html/man1/file2sdr.html \
 	./html/man1/file2sm.html \
 	./html/man1/psmshell.html \

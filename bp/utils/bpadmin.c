@@ -97,8 +97,8 @@ payload length");
 	PUTS("\t   {d|i} induct <protocol name> <duct name>");
 	PUTS("\t   {d|i} outduct <protocol name> <duct name>");
 	PUTS("\t   {d|i} plan <endpoint name>");
-	PUTS("\td\tDetach an outduct from an egress plan");
-	PUTS("\t   d planduct <endpoint name> <protocol name> <duct name>");
+	PUTS("\td\tDetach an outduct from the egress plan that cites it");
+	PUTS("\t   d planduct <protocol name> <duct name>");
 	PUTS("\tl\tList");
 	PUTS("\t   l scheme");
 	PUTS("\t   l endpoint");
@@ -114,6 +114,7 @@ payload length");
 	PUTS("\t   g plan <endpoint name> <via endpoint name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
+	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -635,20 +636,20 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "planduct") == 0)
 	{
-		if (tokenCount != 5)
+		if (tokenCount != 4)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		findOutduct(tokens[3], tokens[4], &vduct, &vductElt);
+		findOutduct(tokens[2], tokens[3], &vduct, &vductElt);
 		if (vductElt == 0)
 		{
 			printText("Unknown outduct.");
 			return;
 		}
 
-		detachPlanDuct(tokens[2], vduct->outductElt);
+		detachPlanDuct(vduct->outductElt);
 		return;
 	}
 
@@ -1398,6 +1399,30 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageMaxcount(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	unsigned int	maxcount;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	maxcount = strtoul(tokens[2], NULL, 0);
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.maxBundleCount = maxcount;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change maxBundleCount.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1409,6 +1434,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "heapmax") == 0)
 	{
 		manageHeapmax(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxcount") == 0)
+	{
+		manageMaxcount(tokenCount, tokens);
 		return;
 	}
 

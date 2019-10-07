@@ -142,3 +142,7 @@ tests/issue-260-teach-valgrind-mtake/domtake
 
 .git/*
 build*/*
+
+# Coverage Files
+\.gcno
+\.gcda

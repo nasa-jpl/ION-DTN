@@ -176,7 +176,7 @@ static int	noteClosedExport(LtpDB *ltpdb, LtpVspan *vspan, Object spanObj,
 			unsigned int sessionNbr)
 {
 	Sdr		sdr = getIonsdr();
-	time_t		currentTime = getUTCTime();
+	time_t		currentTime = getCtime();
 	ClosedExport	closedExportBuf;
 	Object 		closedExportObj;
 	Object		elt;
@@ -2683,7 +2683,7 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span, ImportSession *session)
 
 	memset((char *) &event, 0, sizeof(LtpEvent));
 	event.parm = elt2;
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	findSpan(span->engineId, &vspan, &vspanElt);
 	event.scheduledTime = currentTime + 10 +
 			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
@@ -3407,7 +3407,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	/*	Post timeout event as necessary.			*/
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	event.parm = 0;
 	switch (segment.pdu.segTypeCode)
 	{
@@ -5267,7 +5267,6 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 	unsigned int	rptSerialNbr;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
-	float		snoozeInterval;
 	VImportSession	*vsession;
 	Object		sessionObj = 0;
 	ImportSession	sessionBuf;
@@ -5310,11 +5309,6 @@ putErrmsg("Discarded mystery data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	/*	Note that we now enforce the contact plan reception
-	 *	schedule by default, i.e., screening is normally on.
-	 *	This is because we need a non-zero reception rate
-	 *	to enable rate control.					*/
-
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
@@ -5340,18 +5334,7 @@ putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	/*	Enforce reception rate control if possible.		*/
-
 	pdu->contentLength = (*cursor - endOfHeader) + pdu->length;
-	if (vspan->receptionRate > 0)
-	{
-		snoozeInterval = ((float) (pdu->contentLength) /
-				(float) (vspan->receptionRate)) * 1000000.0;
-#if 0
-printf("rate control: length %u converted to %f, rate %u converted to %f, interval %f converted to %d.\n", (pdu->contentLength), (float) (pdu->contentLength), (vspan->receptionRate), (float) (vspan->receptionRate), snoozeInterval, (int) snoozeInterval);
-#endif
-		microsnooze((int) snoozeInterval);
-	}
 
 	/*	At this point, the remaining bytes should all be
 	 *	client service data and trailer extensions.  So
@@ -6035,8 +6018,8 @@ static int	constructDataSegment(Sdr sdr, ExportSession *session,
 char	buf[256];
 if (segment.pdu.segTypeCode > 0)
 {
-sprintf(buf, "Sending checkpoint: ckpt %u rpt %u.", segment.pdu.ckptSerialNbr,
-segment.pdu.rptSerialNbr);
+sprintf(buf, "Sending checkpoint: ckpt %u rpt %u to node " UVAST_FIELDSPEC ".",
+segment.pdu.ckptSerialNbr, segment.pdu.rptSerialNbr, segment.remoteEngineId);
 putErrmsg(buf, itoa(session->sessionNbr));
 }
 #endif
@@ -7119,7 +7102,7 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
 	{
 #if LTPDEBUG
-putErrsmg("Discarding stray segment.", itoa(sessionNbr));
+putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 #endif
 		/*	Segment is from an engine that is not supposed
 		 *	to be sending at this time, so we treat it as

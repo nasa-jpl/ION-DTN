@@ -592,7 +592,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 
 	if (outAdu.ageOfAdu < 0)
 	{
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		outAdu.ageOfAdu = 0;
 		outAdu.expirationTime = currentTime + lifespan;
 	}
@@ -1197,7 +1197,7 @@ int	sendAdu(BpSAP sap)
 	/*	Create retransmission event only if there is time
 	 *	for one.						*/
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	if (outAdu.rtxCount < (int) profile->maxRtx
 	&& (currentTime + nominalRtt) < outAdu.expirationTime)
 	{
@@ -1439,7 +1439,7 @@ unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 		&& profile->custodySwitch == custodySwitch
 		&& profile->srrFlags == srrFlags
 		&& strcmp(repToEid, reportToEid) == 0
-		&& profile->ancillaryData.flowLabel == ancillaryData->flowLabel
+		&& profile->ancillaryData.dataLabel == ancillaryData->dataLabel
 		&& profile->ancillaryData.flags == ancillaryData->flags
 		&& profile->ancillaryData.ordinal == ancillaryData->ordinal)
 		{
@@ -1551,7 +1551,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
-	if (!bp_parse_class_of_service(svcClass, &ancillaryData, 
+	if (!bp_parse_quality_of_service(svcClass, &ancillaryData, 
 			&custodySwitch, &priority))
         {
                 sdr_exit_xn(sdr);
@@ -1858,7 +1858,7 @@ static time_t	getPlaceholderDeletionTime(BpDelivery *dlv)
 	time_t	currentTime;
 	time_t	deletionTime;
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
 	deletionTime = (dlv->bundleCreationTime.seconds + EPOCH_2000_SEC
 			+ dlv->timeToLive) - 1;
 	if (deletionTime < currentTime)
@@ -2907,7 +2907,7 @@ send ACK.");
 	{
 		/*	No profile found - Estimate lifetime.		*/
 
-		currentTime = getUTCTime();
+		currentTime = getCtime();
 		lifetime = currentTime - (dlv->bundleCreationTime.seconds +
 			 	EPOCH_2000_SEC) + 10; 	/* Add 10 seconds
 							 * for safety.	*/							

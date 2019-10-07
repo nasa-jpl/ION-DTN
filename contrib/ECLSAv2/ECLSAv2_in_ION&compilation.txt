@@ -1,0 +1,45 @@
+﻿“ECLSAv2” aim
+
+ECLSAv2 is an experimental link service adapter for LTP jointly studied by DLR (Tomaso de Cola) and Unibo (Carlo Caini) and developed by Unibo (author, Nicola Alessi). 
+It is based on the use of packet layer FEC to recover LTP segment losses from redundancy packets, whenever possible. The use of FEC instead of ARQ to recover losses is particularly advantageous whenever the loss probability is high and the RTT is long, such as on interplanetary links (see CCSDS 131.5-O-1, “Erasure Correcting Codes for use in near-earth and deep-space communications”, Orange book, Nov.2014). Much more information on ECLSA is provided in the attached excerpt of Marco Raminella’s thesis.
+While ECLSA has been designed to be transparent to LTP (but timer settings), the ECLSA package contains also an experimental mode that when selected actually implements a new variant of LTP, HSLTP (High Speed LTP), designed and developed at Unibo (code authors Nicola Alessi and Azzurra Ciliberti), which significantly modifies standard LTP behavior.
+
+Comprehensive description of ECLSAv2 can be found in:
+N. Alessi, C. Caini, T. de Cola, M. Raminella, "Packet Layer Erasure
+Coding in Interplanetary Links: the LTP Erasure Coding Link Service
+Adapter," in IEEE Transactions on Aerospace and Electronic Systems,
+early access 2019 <https://doi.org/10.1109/TAES.2019.2916271>
+doi:10.1109/TAES.2019.2916271
+
+“ECLSAv2” in ION
+
+In /contrib there is a new directory called ECLSAv2, where all the ECLSAv2 files are contained. In particular, the ECLSA files are in /contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa; while the OpenFEC codecs used by eclsa are in /contrib/ECLSAv2/ion-open-source/ltp/ec/openfec. In /conrib/ECLSAv2 there are ancillary files, including ECLSA documentation (see the except of Raminella’s Thesis)
+The file /contrib/ECLSAv2/ion-open-source/bp/ltp/ltpcli.c has been modified to discard green ltp blocks with gaps, instead of filling gaps with zeros. The modification is necessary to safely run dtnperf - - server, which is not able to cope with random gaps in bundle payloads. The user planning to use LTP green with DTNperf server, with or without ECLSA, is suggested to replace the original file with this version.
+The files configure.ac and Makefile.am in /contrib/ECLSAv2/ion-open-source have been modified to compile ECLSA. They should replace the original ones (keep a backup copy) in the root directory of ION.
+
+
+Compiling ECLSAv2
+
+To compile ECLSAv2 with OpenFEC codec library
+  1. Compile ION the usual way, unless not already done (at present this is necessary to avoid errors with ECLSA Makefile).
+  2. Install the following packets, if not present: cmake, autotools-dev and automake
+  3. Run install.sh (in this folder)
+  4. The first time, you need to build the configure and Makefile; to this end run the configure_eclsa.sh file (created by install.sh) in the main ION directory;
+  5. then you can compile and install as usual:
+     make; sudo make install; sudo ldconfig
+Should you modify the code, or just re-install it, you do not need to build configure and Makefile again.
+
+
+Running and stopping ECLSAv2
+
+See the .rc example configuration files in /contrib/ECLSAv2/ioneclsa_conf_files.tar.gz
+To stop ECLSA when running, killm is not enough (killm alone does not stop all elements of ECLSA and you will receive a long series of errors on the screen if you do that). Run the kill_eclsa.sh script that is provided in the ioneclsa_conf_files.tar.gz
+otherwise enter:
+ps a | grep ecls | grep -v grep | sed 's/^ *//g'| cut -f1 -d' '| while read line; do kill -9 $line; done; killm;
+ 
+
+
+Known issues
+
+Because eclsi and udplsi use the same port number as default they can not be launched concurrently. Override the default port if you want to use them at the same time.
+

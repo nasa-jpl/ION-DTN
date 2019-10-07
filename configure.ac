@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.6.2, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_INIT(ion, open source 3.7.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -93,7 +93,17 @@ case $host_os in
 		;;
 	solaris*)
 		PLATFORM="solaris"
-		if test $host_cpu = "sparc" ; then
+		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
+			if test "$CC" = "gcc"; then
+				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
+			fi
+			NO_WALL_WERROR_WALL=1
+			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
+			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
+
+			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
+			echo "Build 32-bit ION on 64-bit solaris"
+		elif test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
@@ -108,7 +118,10 @@ case $host_os in
 		AS_IF([test "x$ISAINFO" != "xno"],
       		[isainfo_b=`isainfo -b`],
       		[isainfo_b="x"])
-      	if test "$isainfo_b" = "64"; then
+      	if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
+		 	AM_CFLAGS="$AM_CFLAGS -m32"
+			echo "Build 32-bit code on 64-bit machine"
+      	elif test "$isainfo_b" = "64"; then
       		AM_CFLAGS="$AM_CFLAGS -m64"
       		echo "Build 64-bit code"
       	else
@@ -197,11 +210,8 @@ if test "$IS_NASA_B" = "1"; then
 	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
 
 	if test x$crypto = xtrue; then
-		AC_CHECK_HEADER(
-		[/usr/local/include/mbedtls/platform.h],
-		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
-		[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
-		)
+		echo ""
+		#DoStuff
 	else
 		AC_SUBST( [CRYPTO_LIBS], [""] )
 	fi
@@ -462,6 +472,7 @@ AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
+AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])

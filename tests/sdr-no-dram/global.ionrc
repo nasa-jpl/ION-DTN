@@ -1,0 +1,4 @@
+m horizon  +0
+a range    +0 +6000		2 3   0
+a contact  +0 +6000		2 3   100000
+a contact  +0 +6000		3 2   100000

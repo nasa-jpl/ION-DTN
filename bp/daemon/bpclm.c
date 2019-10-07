@@ -425,26 +425,6 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	}
 }
 
-static void	noteFragmentation(Bundle *bundle)
-{
-	Sdr	sdr = getIonsdr();
-	Object	dbObject;
-	BpDB	db;
-
-	dbObject = getBpDbObject();
-	sdr_stage(sdr, (char *) &db, dbObject, sizeof(BpDB));
-	db.currentFragmentsProduced++;
-	db.totalFragmentsProduced++;
-	if (!(bundle->fragmented))
-	{
-		bundle->fragmented = 1;
-		db.currentBundlesFragmented++;
-		db.totalBundlesFragmented++;
-	}
-
-	sdr_write(sdr, dbObject, (char *) &db, sizeof(BpDB));
-}
-
 #if defined (ION_LWT)
 int	bpclm(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -671,11 +651,11 @@ int	main(int argc, char *argv[])
 
 			/*	Okay to fragment.			*/
 
-			if (bpClone(&bundle, &firstBundle, &firstBundleObj, 0,
-					maxPayloadLength) < 0
-			|| bpClone(&bundle, &secondBundle, &secondBundleObj,
-					maxPayloadLength, bundle.payload.length
-					- maxPayloadLength) < 0)
+			queue = sdr_list_list(sdr, bundle.planXmitElt);
+			if (bpFragment(&bundle, bundleObj,
+					&(bundle.planXmitElt), maxPayloadLength,
+					&firstBundle, &firstBundleObj,
+					&secondBundle, &secondBundleObj) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				putErrmsg("CLO can't fragment bundle.",
@@ -684,43 +664,11 @@ int	main(int argc, char *argv[])
 				continue;
 			}
 
-			/*	Lose the original bundle, inserting
-			 *	the two fragments in its place.  No
-			 *	significant change to backlog, so we
-			 *	don't call purgeDuctXmitElt which calls
-			 *	removeBundleFromQueue.			*/
+			/*	Insert the two fragments back into the
+			 *	plan queue, with the segment that is
+			 *	immediately transmittable at the front
+			 *	of the queue.				*/
 
-			queue = sdr_list_list(sdr, bundle.planXmitElt);
-			sdr_list_delete(sdr, bundle.planXmitElt, NULL, NULL);
-			bundle.planXmitElt = 0;
-			if (bundle.custodyTaken)
-			{
-				/*	Means that custody of the
-				 *	two clones is taken instead.	*/
-
-				releaseCustody(bundleObj, &bundle);
-				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
-						firstBundle.payload.length);
-				bpCtTally(BP_CT_CUSTODY_ACCEPTED,
-						secondBundle.payload.length);
-			}
-
-			/*	Lose the original bundle.		*/
-
-			sdr_write(sdr, bundleObj, (char *) &bundle,
-					sizeof(Bundle));
-			if (bpDestroyBundle(bundleObj, 0) < 0)
-			{
-				sdr_cancel_xn(sdr);
-				putErrmsg("CLO can't destroy original bundle.",
-						nodeName);
-				running = 0;
-				continue;
-			}
-
-			/*	Insert two new fragments.		*/
-
-			noteFragmentation(&secondBundle);
 			secondBundle.planXmitElt = sdr_list_insert_first(sdr,
 					queue, secondBundleObj);
 			sdr_write(sdr, secondBundleObj, (char *)
@@ -752,8 +700,7 @@ int	main(int argc, char *argv[])
 		/*	Track this transmission event.			*/
 
 		bpPlanTally(vplan, BP_PLAN_DEQUEUED, bundle.payload.length);
-		bpXmitTally(COS_FLAGS(bundle.bundleProcFlags) & 0x03,
-				bundle.payload.length);
+		bpXmitTally(bundle.priority, bundle.payload.length);
 		if ((getBpVdb())->watching & WATCH_c)
 		{
 			iwatch('c');

@@ -220,7 +220,8 @@ static void	*receiveUdp(void *parm)
 
 	/*	Spawn timer/transmitter thread.				*/
 
-	if (pthread_begin(&(stp->timerThread), NULL, sendUdp, stp))
+	if (pthread_begin(&(stp->timerThread), NULL, sendUdp,
+		stp, "owltsim_timer"))
 	{
 		perror("owltsim can't spawn timer thread");
 		owltsimExit(1);
@@ -325,6 +326,7 @@ lyst_destroy(stp->transmission);
 
 int	main(int argc, char *argv[])
 {
+	int			verbose = 0;
 	char			*fileName = NULL;
 	FILE			*configFile;
 	int			reading = 1;
@@ -345,13 +347,12 @@ int	main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-	stpBuf.verbose = 0;
 	switch (argc)
 	{
 	case 3:
 		if (strcmp(argv[2], "-v") == 0)
 		{
-			stpBuf.verbose = 1;
+			verbose = 1;
 		}
 
 		/*	Intentional fall-through to next case.		*/
@@ -388,6 +389,7 @@ int	main(int argc, char *argv[])
 	{
 		lineNbr++;
 		memset((char *) &stpBuf, 0, sizeof(SimThreadParms));
+		stpBuf.verbose = verbose;
 		switch (fscanf(configFile, "%32s %32s %hu %255s %hu %hu %hu",
 				stpBuf.toNode, stpBuf.fromNode,
 				&stpBuf.myPortNbr, stpBuf.destHostName,
@@ -415,7 +417,8 @@ int	main(int argc, char *argv[])
 
 			memcpy((char *) stp, (char *) &stpBuf,
 					sizeof(SimThreadParms));
-			if (pthread_begin(&simThread, NULL, receiveUdp, stp))
+			if (pthread_begin(&simThread, NULL, receiveUdp,
+				stp, "owltsim_receiver"))
 			{
 				perror("owltsim can't spawn receiver thread");
 				owltsimExit(1);

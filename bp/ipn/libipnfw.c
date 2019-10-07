@@ -96,6 +96,7 @@ int	ipnInit()
 
 		memset((char *) &ipndbBuf, 0, sizeof(IpnDB));
 		ipndbBuf.exits = sdr_list_create(sdr);
+		ipndbBuf.overrides = sdr_list_create(sdr);
 		sdr_write(sdr, ipndbObject, (char *) &ipndbBuf, sizeof(IpnDB));
 		sdr_catlg(sdr, IPN_DBNAME, 0, ipndbObject);
 		if (sdr_end_xn(sdr))
@@ -234,7 +235,7 @@ int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
 		return -1;
 	}
 
-	return detachPlanDuct(eid, vduct->outductElt);
+	return detachPlanDuct(vduct->outductElt);
 }
 
 int	ipn_removePlan(uvast nodeNbr)
@@ -243,6 +244,238 @@ int	ipn_removePlan(uvast nodeNbr)
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	return removePlan(eid);
+}
+
+static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
+			uvast sourceNodeNbr, Object *nextOvrd)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnOverride, ovrd);
+
+	/*	This function locates the IpnOverride for the
+	 *	specified data label, destination node number, and
+	 *	source node number, if any; if none, notes the
+	 *	location within the overrides list at which such an
+	 *	override should be inserted.				*/
+
+	if (nextOvrd) *nextOvrd = 0;	/*	Default.		*/
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->overrides); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, IpnOverride, ovrd,
+				sdr_list_data(sdr, elt));
+		if (ovrd->dataLabel < dataLabel)
+		{
+			continue;
+		}
+
+		if (ovrd->dataLabel > dataLabel)
+		{
+			if (nextOvrd) *nextOvrd = elt;
+			break;		/*	Same as end of list.	*/
+		}
+		if (ovrd->destNodeNbr < destNodeNbr)
+		{
+			continue;
+		}
+
+		if (ovrd->destNodeNbr > destNodeNbr)
+		{
+			if (nextOvrd) *nextOvrd = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		if (ovrd->sourceNodeNbr < sourceNodeNbr)
+		{
+			continue;
+		}
+
+		if (ovrd->sourceNodeNbr > sourceNodeNbr)
+		{
+			if (nextOvrd) *nextOvrd = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		/*	Matched all parameters of override.		*/
+
+		return elt;
+	}
+
+	return 0;
+}
+
+int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
+		uvast sourceNodeNbr, uvast neighbor, unsigned char priority,
+		unsigned char ordinal)
+{
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	IpnOverride	ovrd;
+	Object		addr;
+
+	if (dataLabel == 0)
+	{
+		writeMemo("[?] Data label for override is 0.");
+		return 0;
+	}
+
+	if (destNodeNbr == 0)
+	{
+		writeMemo("[?] Destination node number for override is 0.");
+		return 0;
+	}
+
+	if (sourceNodeNbr == 0)
+	{
+		writeMemo("[?] Source node number for override is 0.");
+		return 0;
+	}
+
+	if (priority < (unsigned char) -2 && priority > 2)
+	{
+		writeMemoNote("[?] Invalid override priority", utoa(priority));
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	if (locateOvrd(dataLabel, destNodeNbr, sourceNodeNbr, &elt) == 0)
+	{
+		/*	Override doesn't exist, so add it.		*/
+
+		memset((char *) &ovrd, 0, sizeof(IpnOverride));
+		ovrd.dataLabel = dataLabel;
+		ovrd.destNodeNbr = destNodeNbr;
+		ovrd.sourceNodeNbr = sourceNodeNbr;
+		ovrd.neighbor = (uvast) -1;
+		ovrd.priority = (unsigned char) -1;
+		addr = sdr_malloc(sdr, sizeof(IpnOverride));
+		if (addr)
+		{
+			if (elt)
+			{
+				elt = sdr_list_insert_before(sdr, elt, addr);
+			}
+			else
+			{
+				elt = sdr_list_insert_last(sdr,
+					(_ipnConstants())->overrides, addr);
+			}
+		}
+	}
+	else
+	{
+		addr = (Object) sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &ovrd, addr, sizeof(IpnOverride));
+	}
+
+	if (neighbor != (uvast) -2)
+	{
+		ovrd.neighbor = neighbor;
+	}
+
+	if (priority != (unsigned char) -2)
+	{
+		ovrd.priority = priority;
+		ovrd.ordinal = ordinal;
+	}
+
+	if (addr && elt)
+	{
+		if (ovrd.neighbor == (uvast) -1
+		&& ovrd.priority == (unsigned char) -1)
+		{
+			/*	Override is moot, so delete it.		*/
+
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			sdr_free(sdr, addr);
+		}
+		else
+		{
+			sdr_write(sdr, addr, (char *) &ovrd,
+					sizeof(IpnOverride));
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set override.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
+		uvast sourceNodeNbr, Object *addr)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+		OBJ_POINTER(IpnOverride, ovrd);
+
+	/*	This function determines the applicable egress plan
+	 *	for the specified eid, if any.				*/
+
+	CHKERR(ionLocked());
+
+	/*	Find best matching override.  Overrides are sorted by
+	 *	source node number within destination node number
+	 *	within data label, all ascending; node number -1
+	 *	sorts last and indicates "all others".			*/
+
+	for (elt = sdr_list_first(sdr, (_ipnConstants())->overrides); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		*addr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, IpnOverride, ovrd, *addr);
+		if (ovrd->dataLabel < dataLabel)
+		{
+			continue;
+		}
+
+		if (ovrd->dataLabel > dataLabel)
+		{
+			return 0;	/*	No matching override.	*/
+		}
+
+		/*	Data label matches.				*/
+
+		if (ovrd->destNodeNbr < destNodeNbr)
+		{
+			continue;
+		}
+
+		if (ovrd->destNodeNbr != destNodeNbr
+		&& ovrd->destNodeNbr != (uvast) -1)
+		{
+
+			continue;
+		}
+
+		/*	Destination node number matches.		*/
+
+		if (ovrd->sourceNodeNbr < sourceNodeNbr)
+		{
+			continue;
+		}
+
+		if (ovrd->sourceNodeNbr != sourceNodeNbr
+		&& ovrd->sourceNodeNbr != (uvast) -1)
+		{
+			continue;
+		}
+
+		/*	Source node number matches.			*/
+
+		break;
+	}
+
+	if (elt == 0)
+	{
+		return 0;		/*	No matching override.	*/
+	}
+
+	return 1;
 }
 
 static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
@@ -404,18 +637,6 @@ int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	IpnExit	exit;
 
 	CHKERR(viaEid);
-	if (firstNodeNbr == 0)
-	{
-		writeMemo("[?] First node number for exit is 0.");
-		return 0;
-	}
-
-	if (firstNodeNbr > lastNodeNbr)
-	{
-		writeMemo("[?] First node number for exit greater than last.");
-		return 0;
-	}
-
 	if (strlen(viaEid) > MAX_SDRSTRING)
 	{
 		writeMemoNote("[?] Exit's gateway EID is too long",
@@ -454,18 +675,6 @@ int	ipn_removeExit(uvast firstNodeNbr, uvast lastNodeNbr)
 	Object	elt;
 	Object	addr;
 		OBJ_POINTER(IpnExit, exit);
-
-	if (firstNodeNbr == 0)
-	{
-		writeMemo("[?] First node number for exit is 0.");
-		return 0;
-	}
-
-	if (firstNodeNbr > lastNodeNbr)
-	{
-		writeMemo("[?] First node number for exit greater than last.");
-		return 0;
-	}
 
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);

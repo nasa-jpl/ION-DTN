@@ -66,9 +66,9 @@ a protocol udp 1400 100
 a induct udp 127.0.0.1:4556 udpcli
 
 # Add an outduct.
-a outduct udp 127.0.0.1:4556 udpclo
-a outduct udp 127.0.0.1:4557 udpclo
-a outduct udp 127.0.0.1:4557 udpclo
+a outduct udp 127.0.0.1:4556 'udpclo 5'
+a outduct udp 127.0.0.1:4557 'udpclo 5'
+a outduct udp 127.0.0.1:4557 'udpclo 5'
 
 s
 ## end bpadmin 

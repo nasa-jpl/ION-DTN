@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 #ifndef CLOSED_EXPORTS_ENABLED
-#define	CLOSED_EXPORTS_ENABLED	1
+#define	CLOSED_EXPORTS_ENABLED	0
 #endif
 
 #ifndef BURST_SIGNALS_ENABLED

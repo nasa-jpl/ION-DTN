@@ -95,6 +95,7 @@ rule_t*   rule_copy_ptr(rule_t *src)
 	result->flags = src->flags;
 	result->num_eval = src->num_eval;
 	result->num_fire = src->num_fire;
+	result->start = src->start;
 
 	return result;
 }
@@ -128,7 +129,7 @@ rule_t*  rule_create_sbr(ari_t id, uvast start, sbr_def_t def, ac_t action)
 	}
 	else
 	{
-		result->ticks_left = (start - getUTCTime());
+		result->ticks_left = (start - getCtime());
 	}
 
 
@@ -172,7 +173,7 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 	}
 	else
 	{
-		result->ticks_left = (start - getUTCTime()) + def.period;
+		result->ticks_left = (start - getCtime()) + def.period;
 	}
 
 
@@ -183,7 +184,7 @@ rule_t*  rule_create_tbr(ari_t id, uvast start, tbr_def_t def, ac_t action)
 
 
 
-rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
+rule_t*  rule_deserialize_helper(QCBORDecodeContext *array_it, int *success)
 {
 	rule_t *result = NULL;
 	ari_t *id;
@@ -199,14 +200,12 @@ rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 	{
 		return result;
 	}
-	cut_enc_refresh(array_it);
 
 	if((*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &start)) != AMP_OK)
 	{
 		ari_release(id, 1);
 		return result;
 	}
-	cut_enc_refresh(array_it);
 
 	if(id->type == AMP_TYPE_SBR)
 	{
@@ -216,7 +215,6 @@ rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 	{
 		as_tbr = tbrdef_deserialize(array_it, success);
 	}
-	cut_enc_refresh(array_it);
 
 	tmp = blob_deserialize_ptr(array_it, success);
 	action = ac_deserialize_raw(tmp, success);
@@ -227,7 +225,6 @@ rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 		ari_release(id, 1);
 		return result;
 	}
-	cut_enc_refresh(array_it);
 
 	if(id->type == AMP_TYPE_SBR)
 	{
@@ -262,16 +259,15 @@ rule_t*  rule_deserialize_helper(CborValue *array_it, int *success)
 }
 
 
-rule_t*  rule_deserialize_ptr(CborValue *it, int *success)
+rule_t*  rule_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
-	CborError err = CborNoError;
-	CborValue array_it;
+	QCBORItem item;
 	size_t length = 0;
 	rule_t *result = NULL;
-
+	QCBORError err;
 
 	AMP_DEBUG_ENTRY("rule_deserialize_ptr","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-				        (uaddr)it, (uaddr)success);
+						(uaddr)it, (uaddr)success);
 
 	CHKNULL(success);
 	*success = AMP_FAIL;
@@ -281,29 +277,24 @@ rule_t*  rule_deserialize_ptr(CborValue *it, int *success)
 	 * Make sure we are in a container. All rules are captured as
 	 * arrays.
 	 */
-	if((!cbor_value_is_container(it)) ||
-	   ((err = cbor_value_enter_container(it, &array_it)) != CborNoError))
+	err = QCBORDecode_GetNext(it, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
-		AMP_DEBUG_ERR("rule_deserialize_ptr","Not a container. Error is %d", err);
+		return NULL;
+	}
+	else if (item.val.uCount < 5 || item.val.uCount > 6)
+	{
+		/*
+		 * See how many items are in the container. Should be 5 for a TBR
+		 * and 6 for an SBR.
+		 */
+		AMP_DEBUG_ERR("rule_deserialize_ptr","Bad array length. Len %d",
+						   item.val.uCount);
 		return NULL;
 	}
 
-	/*
-	 * See how many items are in the container. Should be 5 for a TBR
-	 * and 6 for an SBR.
-	 */
+	result = rule_deserialize_helper(it, success);
 
-	err = cbor_value_get_array_length(it, &length);
-	if((err != CborNoError) || (length < 5) || (length > 6))
-	{
-		AMP_DEBUG_ERR("rule_deserialize_ptr","Bad array length. Err: %d. Len %d",
-					       err, length);
-		cbor_value_leave_container(it, &array_it);
-		return NULL;
-	}
-
-	result = rule_deserialize_helper(&array_it, success);
-	cbor_value_leave_container(it, &array_it);
 	return result;
 }
 
@@ -311,34 +302,38 @@ rule_t*  rule_deserialize_ptr(CborValue *it, int *success)
 
 rule_t* rule_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
-	CHKNULL(success);
-	*success = AMP_FAIL;
-	CHKNULL(data);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	if((data == NULL) || (success == NULL))
 	{
 		return NULL;
 	}
+	*success = AMP_FAIL;
 
-	return rule_deserialize_ptr(&it, success);
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+
+	rule_t *tmp = rule_deserialize_ptr(&it, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return tmp;
 }
 
 
 
 
-rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
+rule_t*  rule_db_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
-	CborError err = CborNoError;
-	CborValue array_it;
+	QCBORItem item;
 	size_t length = 0;
 	rule_t *result = NULL;
-
+	QCBORError err;
 
 	AMP_DEBUG_ENTRY("rule_db_deserialize_ptr","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			        (uaddr)it, (uaddr)success);
+					(uaddr)it, (uaddr)success);
 
 	CHKNULL(success);
 	*success = AMP_FAIL;
@@ -348,67 +343,55 @@ rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
 	 * Make sure we are in a container. All rules are captured as
 	 * arrays.
 	 */
-	if((!cbor_value_is_container(it)) ||
-		((err = cbor_value_enter_container(it, &array_it)) != CborNoError))
+	err = QCBORDecode_GetNext(it, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
-		AMP_DEBUG_ERR("rule_db_deserialize_ptr","Not a container. Error is %d", err);
+	   return NULL;
+	}
+	else if (item.val.uCount < 7 || item.val.uCount > 8)
+	{
+		/*
+		 * See how many items are in the container. Should be 7 for a TBR
+		 * and 8 for an SBR.
+		 */
+		AMP_DEBUG_ERR("rule_db_deserialize_ptr","Bad array length. Len %d",
+						   item.val.uCount);
 		return NULL;
 	}
 
-	/*
-	 * See how many items are in the container. Should be 7 for a TBR
-	 * and 8 for an SBR to the database.
-	 */
 
-	err = cbor_value_get_array_length(it, &length);
-	if((err != CborNoError) || (length < 7) || (length > 8))
-	{
-		AMP_DEBUG_ERR("rule_db_deserialize_ptr","Bad array length. Err: %d. Len %d",
-				       err, length);
-		cbor_value_leave_container(it, &array_it);
-		return NULL;
-	}
-
-	result = rule_deserialize_helper(&array_it, success);
+	result = rule_deserialize_helper(it, success);
 
 	if((*success != AMP_OK) || (result == NULL))
 	{
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
-	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UINT, &(result->ticks_left));
+	*success = cut_get_cbor_numeric(it, AMP_TYPE_UINT, &(result->ticks_left));
 	if(*success != AMP_OK)
 	{
 		rule_release(result, 1);
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
-	cut_enc_refresh(&array_it);
-	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UVAST, &(result->num_eval));
+	*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &(result->num_eval));
 	if(*success != AMP_OK)
 	{
 		rule_release(result, 1);
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
-	cut_enc_refresh(&array_it);
-	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_UVAST, &(result->num_fire));
+	*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &(result->num_fire));
 	if(*success != AMP_OK)
 	{
 		rule_release(result, 1);
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
-	cut_enc_refresh(&array_it);
-	*success = cut_get_cbor_numeric(&array_it, AMP_TYPE_BYTE, &(result->flags));
+	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &(result->flags));
 	if(*success != AMP_OK)
 	{
 		rule_release(result, 1);
-		cbor_value_leave_container(it, &array_it);
 		return NULL;
 	}
 
@@ -417,78 +400,58 @@ rule_t*  rule_db_deserialize_ptr(CborValue *it, int *success)
 
 rule_t*  rule_db_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
-	CHKNULL(success);
-	*success = AMP_FAIL;
-	CHKNULL(data);
-
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
+	if((data == NULL) || (success == NULL))
 	{
 		return NULL;
 	}
+	*success = AMP_FAIL;
 
-	return rule_db_deserialize_ptr(&it, success);
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+
+	rule_t *tmp = rule_db_deserialize_ptr(&it, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+
+	return tmp;
 }
 
 
-CborError rule_db_serialize(CborEncoder *encoder, void *item)
+int rule_db_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-	CborEncoder array_enc;
-	size_t length;
+	int err;
 	rule_t *rule = (rule_t *) item;
 
 	if((encoder == NULL) || (item == NULL))
 	{
-		return CborErrorIO;
+		return AMP_FAIL;
 	}
 
 	/* Start a container. */
-	length = (rule->id.type == AMP_TYPE_SBR) ? 8 : 7;
-	err = cbor_encoder_create_array(encoder, &array_enc, length);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("rule_db_serialize","CBOR Error: %d", err);
-		return err;
-	}
+	//length = (rule->id.type == AMP_TYPE_SBR) ? 8 : 7;
+	QCBOREncode_OpenArray(encoder);
 
 	/* Step 1: Encode the rule definition. */
-	err = rule_serialize_helper(&array_enc, rule);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	err = rule_serialize_helper(encoder, rule);
+	if(err != AMP_OK)
 	{
-		cbor_encoder_close_container(encoder, &array_enc);
-		return err;
+	   QCBOREncode_CloseArray(encoder);
+	   return err;
 	}
 
 	/* Step 2: Encode the ticks left. */
-	err = cbor_encode_uint(&array_enc, rule->ticks_left);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		cbor_encoder_close_container(encoder, &array_enc);
-		return err;
-	}
-
-	err = cbor_encode_uint(&array_enc, rule->num_eval);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		cbor_encoder_close_container(encoder, &array_enc);
-		return err;
-	}
-
-	err = cbor_encode_uint(&array_enc, rule->num_fire);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		cbor_encoder_close_container(encoder, &array_enc);
-		return err;
-	}
+	QCBOREncode_AddUInt64(encoder, rule->ticks_left);
+	QCBOREncode_AddUInt64(encoder, rule->num_eval);
+	QCBOREncode_AddUInt64(encoder, rule->num_fire);
 
 	/* Step 3:Encode the flag byte. */
-	err = cut_enc_byte(&array_enc, rule->flags);
+	err = cut_enc_byte(encoder, rule->flags);
 
-	cbor_encoder_close_container(encoder, &array_enc);
+	QCBOREncode_CloseArray(encoder);
 	return err;
 }
 
@@ -496,7 +459,7 @@ CborError rule_db_serialize(CborEncoder *encoder, void *item)
 
 blob_t*   rule_db_serialize_wrapper(rule_t *rule)
 {
-	return cut_serialize_wrapper(RULE_DEFAULT_ENC_SIZE, rule, rule_db_serialize);
+	return cut_serialize_wrapper(RULE_DEFAULT_ENC_SIZE, rule, (cut_enc_fn)rule_db_serialize);
 }
 
 
@@ -518,35 +481,28 @@ void rule_release(rule_t *rule, int destroy)
 	}
 }
 
-CborError rule_serialize(CborEncoder *encoder, void *item)
+int rule_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err;
-	CborEncoder array_enc;
-	size_t length;
 	rule_t *rule = (rule_t *) item;
-
-	CHKUSR(encoder, CborErrorIO);
-	CHKUSR(rule, CborErrorIO);
+	int err;
+	
+	CHKUSR(encoder, AMP_FAIL);
+	CHKUSR(rule, AMP_FAIL);
 
 
 	/* Start a container. */
-	length = (rule->id.type == AMP_TYPE_SBR) ? 6 : 5;
-	err = cbor_encoder_create_array(encoder, &array_enc, length);
+	//length = (rule->id.type == AMP_TYPE_SBR) ? 6 : 5;
+	QCBOREncode_OpenArray(encoder);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("rule_serialize","CBOR Error: %d", err);
-	}
+	err = rule_serialize_helper(encoder, rule);
 
-	err = rule_serialize_helper(&array_enc, rule);
-
-	cbor_encoder_close_container(encoder, &array_enc);
+	QCBOREncode_CloseArray(encoder);
 	return err;
 }
 
-CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
+int rule_serialize_helper(QCBOREncodeContext *array_enc, rule_t *rule)
 {
-	CborError err;
+	int err;
 	blob_t *result;
 
 	/* Step 1: Encode the ARI. */
@@ -554,20 +510,14 @@ CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
 		return err;
 	}
 
 	/* Step 2: the start time. */
-	err = cbor_encode_uint(array_enc, rule->start);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
-		return err;
-	}
+	QCBOREncode_AddUInt64(array_enc, rule->start);
 
 	/* Step 3: Encode def. */
 	if(rule->id.type == AMP_TYPE_SBR)
@@ -579,7 +529,7 @@ CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
 		err = tbrdef_serialize(array_enc, &(rule->def.as_tbr));
 	}
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
 		return err;
@@ -595,7 +545,7 @@ CborError rule_serialize_helper(CborEncoder *array_enc, rule_t *rule)
 
 blob_t* rule_serialize_wrapper(rule_t *rule)
 {
-	return cut_serialize_wrapper(RULE_DEFAULT_ENC_SIZE, rule, rule_serialize);
+	return cut_serialize_wrapper(RULE_DEFAULT_ENC_SIZE, rule, (cut_enc_fn)rule_serialize);
 }
 
 // 0 means no. 1 means yes.
@@ -622,7 +572,7 @@ int sbr_should_fire(rule_t *rule)
    	return result;
 }
 
-sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success)
+sbr_def_t sbrdef_deserialize(QCBORDecodeContext *array_it, int *success)
 {
 	sbr_def_t result;
 
@@ -638,7 +588,6 @@ sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success)
 		return result;
 	}
 
-	cut_enc_refresh(array_it);
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_eval));
 	if(*success != AMP_OK)
 	{
@@ -646,7 +595,6 @@ sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success)
 		return result;
 	}
 
-	cut_enc_refresh(array_it);
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
 	if(*success != AMP_OK)
 	{
@@ -656,9 +604,9 @@ sbr_def_t sbrdef_deserialize(CborValue *array_it, int *success)
 	return result;
 }
 
-CborError sbrdef_serialize(CborEncoder *array_enc, sbr_def_t *def)
+int sbrdef_serialize(QCBOREncodeContext *array_enc, sbr_def_t *def)
 {
-	CborError err;
+	int err;
 	blob_t *result;
 
 	/* Step 1: Encode the Expr. */
@@ -666,29 +614,24 @@ CborError sbrdef_serialize(CborEncoder *array_enc, sbr_def_t *def)
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
 
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
+	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);
 		return err;
 	}
 
 	/* Step 2: Encode max num evals. */
-	err = cbor_encode_uint(array_enc, def->max_eval);
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);
-		return err;
-	}
+	QCBOREncode_AddUInt64(array_enc, def->max_eval);
 
 	/* Step 3: Encode max num fires. */
-	err = cbor_encode_uint(array_enc, def->max_fire);
+	QCBOREncode_AddUInt64(array_enc, def->max_fire);
 
-	return err;
+	return AMP_OK;
 }
 
 
 
-tbr_def_t tbrdef_deserialize(CborValue *array_it, int *success)
+tbr_def_t tbrdef_deserialize(QCBORDecodeContext *array_it, int *success)
 {
 	tbr_def_t result;
 	memset(&result, 0, sizeof(tbr_def_t));
@@ -699,29 +642,19 @@ tbr_def_t tbrdef_deserialize(CborValue *array_it, int *success)
 		return result;
 	}
 
-	cut_enc_refresh(array_it);
-
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_fire));
 
 	return result;
 }
 
 
-CborError tbrdef_serialize(CborEncoder *array_enc, tbr_def_t *def)
+int tbrdef_serialize(QCBOREncodeContext *array_enc, tbr_def_t *def)
 {
-	CborError err;
-
 	/* Step 1: Encode period. */
-	err = cbor_encode_uint(array_enc, def->period);
-
-	if((err != CborNoError) && (err != CborErrorOutOfMemory))
-	{
-		AMP_DEBUG_ERR("tbrdef_serialize","CBOR Error: %d", err);
-		return err;
-	}
+	QCBOREncode_AddUInt64(array_enc, def->period);
 
 	/* Step 2: Encode max num fires. */
-	err = cbor_encode_uint(array_enc, def->max_fire);
+	QCBOREncode_AddUInt64(array_enc, def->max_fire);
 
-	return err;
+	return AMP_OK;
 }

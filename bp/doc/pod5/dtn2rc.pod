@@ -99,6 +99,12 @@ shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
 The syntax of these commands is DIFFERENT from that of the more general
 and more powerful bpadmin commands.>
 
+=item B<c plan> I<node_ID> [I<directive>] [I<nominal_xmit_rate>]
+
+The B<change plan> command.  This command revises the I<directive> and/or
+I<nominal_data_rate> of the static route for the node(s) identified by
+I<node_ID>.
+
 =item B<d plan> I<node_ID>
 
 The B<delete plan> command.  This command deletes the static route for

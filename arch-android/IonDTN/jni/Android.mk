@@ -50,7 +50,9 @@ MY_ICISOURCES := \
 	$(MY_ICI)/utils/sdrmend.c       \
 	$(MY_ICI)/utils/ionsecadmin.c 	\
 	$(MY_ICI)/utils/ionwarn.c	\
-	$(MY_ICI)/utils/ionunlock.c
+	$(MY_ICI)/utils/ionunlock.c	\
+	$(MY_ICI)/utils/ionxnowner.c	\
+	$(MY_ICI)/utils/ionlog.c
 
 #	$(MY_ICI)/utils/ionexit.c      \
 
@@ -96,10 +98,13 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/library/libbp.c      \
 	$(MY_BP)/library/libbpP.c     \
 	$(MY_BP)/library/libbpnm.c    \
+	$(MY_BP)/library/bpsec.c      \
+	$(MY_BP)/library/saga.c       \
 	$(MY_BP)/daemon/bpclock.c     \
 	$(MY_BP)/daemon/bptransit.c   \
 	$(MY_BP)/daemon/bpclm.c       \
 	$(MY_BP)/utils/bpadmin.c      \
+	$(MY_BP)/utils/bpsecadmin.c   \
 	$(MY_BP)/utils/bpstats.c      \
 	$(MY_BP)/utils/bptrace.c      \
 	$(MY_BP)/utils/bplist.c       \
@@ -133,6 +138,7 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/dgr/dgrclo.c         \
 	$(MY_BP)/library/eureka.c     \
 	$(MY_BP)/library/bei.c        \
+	$(MY_BP)/library/ext/phn/snw.c \
 	$(MY_BP)/library/ext/phn/phn.c \
 	$(MY_BP)/library/ext/ecos/ecos.c \
 	$(MY_BP)/library/ext/meb/meb.c \

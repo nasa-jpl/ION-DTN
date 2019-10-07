@@ -16,14 +16,26 @@
 
 static time_t	_referenceTime(time_t *newValue)
 {
-	static time_t	reftime = 0;
-	
+	static time_t	refTime = 0;
+
 	if (newValue)
 	{
-		reftime = *newValue;
+		refTime = *newValue;
 	}
 
-	return reftime;
+	return refTime;
+}
+
+static vast	_regionIdx(int *newValue)
+{
+	static int	regionIdx = -1;
+
+	if (newValue)
+	{
+		regionIdx = *newValue;
+	}
+
+	return regionIdx;
 }
 
 static int	_forecastNeeded(int parm)
@@ -104,15 +116,21 @@ static void	printUsage()
 	PUTS("\t\tor to set reference time to the current time use '@ 0'.");
 	PUTS("\t\tThe @ command sets the reference time from which subsequent \
 relative times (+ss) are computed.");
+	PUTS("\t   ^ <region number>");
+	PUTS("\t\tThe ^ command identifies the region to which subsequent \
+'add contact' operations pertain.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
 	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
 <OWLT, i.e., range in light seconds>");
-	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss.");
+	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss,");
+	PUTS("\t\texcept time '0' indicates a hypothetical contact");
+	PUTS("\t\tand time '-1' indicates a 'registration' contact.");
 	PUTS("\tc\tChange");
 	PUTS("\t   c contact <from time> <from node#> <to node#> <xmit rate \
 in bytes per second> [confidence in occurrence]");
+	PUTS("\t\tNot applicable for hypothetical and registration contacts.");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} contact <from time> <from node#> <to node#>");
@@ -123,7 +141,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   l contact");
 	PUTS("\t   l range");
 	PUTS("\tm\tManage ION database: clock, space occupancy");
-	PUTS("\t   m utcdelta <local clock time minus UTC, in seconds>");
+	PUTS("\t   m utcdelta <local time minus correct UTC, in seconds>");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
 	PUTS("\t   m clocksync [ { 0 | 1 } ]");
 	PUTS("\t   m production <new planned production rate, in bytes/sec>");
@@ -136,6 +154,11 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
+	PUTS("\t   m home <home region nbr>");
+	PUTS("\t   m outer <outer region nbr>");
+	PUTS("\t   m passageway <node number> <home region nbr> <outer region nbr>");
+	PUTS("\t\tSetting outer region nbr to -1 makes node a non-passageway.");
+	PUTS("\t\tSetting home region nbr to -1 removes the passageway.");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
@@ -148,7 +171,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   # <comment text>");
 }
 
-static void	initializeNode(int tokenCount, char **tokens)
+static int	initializeNode(int tokenCount, char **tokens)
 {
 	char		*ownNodeNbrString = tokens[1];
 	char		*configFileName = tokens[2];
@@ -157,23 +180,35 @@ static void	initializeNode(int tokenCount, char **tokens)
 	if (tokenCount < 2 || *ownNodeNbrString == '\0')
 	{
 		writeMemo("[?] No node number, can't initialize node.");
-		return;
+		return 1;
 	}
 
 	if (readIonParms(configFileName, &parms) < 0)
 	{
 		putErrmsg("ionadmin can't get SDR parms.", NULL);
-		return;
+		return 1;
 	}
 
 	if (ionInitialize(&parms, strtouvast(ownNodeNbrString)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
+		return 1;
 	}
+
+	/*	Default home region is 0.				*/
+
+	if (ionManageRegion(0, 0) < 0)
+	{
+		putErrmsg("ionadmin can't initialize home region.", NULL);
+		return 1;
+	}
+
+	return 0;
 }
 
 void	executeAdd(int tokenCount, char **tokens)
 {
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	time_t		refTime;
 	time_t		fromTime;
 	time_t		toTime;
@@ -197,7 +232,7 @@ void	executeAdd(int tokenCount, char **tokens)
 		break;
 
 	case 7:
-		confidence = 1.0;
+		confidence = 1.0;	/*	Default value.		*/
 		break;
 
 	default:
@@ -206,28 +241,114 @@ void	executeAdd(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	fromTime = readTimestampUTC(tokens[2], refTime);
-	toTime = readTimestampUTC(tokens[3], refTime);
-	if (toTime <= fromTime)
+	fromNodeNbr = strtouvast(tokens[4]);
+	toNodeNbr = strtouvast(tokens[5]);
+	if (fromNodeNbr <= 0)
 	{
-		printText("Interval end time must be later than start time \
-and earlier than 19 January 2038.");
+		printText("'From' node number must be greater than zero.");
 		return;
 	}
 
-	fromNodeNbr = strtouvast(tokens[4]);
-	toNodeNbr = strtouvast(tokens[5]);
+	if (toNodeNbr <= 0)
+	{
+		printText("'To' node number must be greater than zero.");
+		return;
+	}
+
+	if (confidence < 0.0 || confidence > 1.0)
+	{
+		printText("Confidence must be in the range 0.0 to 1.0.");
+		return;
+	}
+
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		xmitRate = strtol(tokens[6], NULL, 0);
-		oK(rfx_insert_contact(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, xmitRate, confidence, &xaddr));
+		if (strncmp(tokens[2], "0", 1) == 0)
+		{
+			fromTime = 0;
+		}
+		else if (strncmp(tokens[2], "-1", 1) == 0)
+		{
+			fromTime = (time_t) -1;
+		}
+		else
+		{
+			fromTime = readTimestampUTC(tokens[2], refTime);
+		}
+
+		if (strncmp(tokens[3], "0", 1) == 0)
+		{
+			toTime = 0;
+		}
+		else if (strncmp(tokens[3], "-1", 1) == 0)
+		{
+			toTime = (time_t) -1;
+		}
+		else
+		{
+			toTime = readTimestampUTC(tokens[3], refTime);
+		}
+
+		if (fromTime == (time_t) -1)
+		{
+			/*	Must be a registration contact.		*/
+
+			if (fromNodeNbr != toNodeNbr)
+			{
+				printText("For registration contact, from \
+and to nodes must be identical.");
+				return;
+			}
+
+			xmitRate = 0;
+			confidence = 1.0;
+		}
+		else if (fromTime == 0)
+		{
+			/*	Must be a hypothetical contact.		*/
+
+			if (fromNodeNbr == toNodeNbr
+			|| (fromNodeNbr != ownNodeNbr
+				&& toNodeNbr != ownNodeNbr))
+			{
+				printText("For hypothetical contact, either \
+from or to node must be the local node and the other must not.");
+				return;
+			}
+
+			xmitRate = 0;
+			confidence = 0.0;
+		}
+		else	/*	Scheduled contact.			*/
+		{
+			if (toTime <= fromTime)
+			{
+				printText("Interval end time must be later \
+than start time and earlier than 19 January 2038.");
+				return;
+			}
+
+			xmitRate = strtol(tokens[6], NULL, 0);
+		}
+
+		oK(rfx_insert_contact(ionPickRegion(_regionIdx(NULL)),
+				fromTime, toTime, fromNodeNbr, toNodeNbr,
+				xmitRate, confidence, &xaddr));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
+		fromTime = readTimestampUTC(tokens[2], refTime);
+		toTime = readTimestampUTC(tokens[3], refTime);
+		if (toTime <= fromTime)
+		{
+			printText("Interval end time must be later than start \
+time and earlier than 19 January 2038.");
+			return;
+		}
+
 		owlt = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_range(fromTime, toTime, fromNodeNbr,
 				toNodeNbr, owlt, &xaddr));
@@ -292,6 +413,7 @@ void	executeDelete(int tokenCount, char **tokens)
 {
 	time_t	refTime;
 	time_t	fromTime;
+	time_t	*scope = &fromTime;
 	uvast	fromNodeNbr;
 	uvast	toNodeNbr;
 
@@ -307,11 +429,19 @@ void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (tokens[2][0] == '*')
+	if (tokens[2][0] == '*')		/*	All.		*/
+	{
+		scope = NULL;
+	}
+	else if (strcmp(tokens[2], "0") == 0)	/*	Hypothetical.	*/
 	{
 		fromTime = 0;
 	}
-	else
+	else if (strcmp(tokens[2], "-1") == 0)	/*	Registration.	*/
+	{
+		fromTime = (time_t) -1;
+	}
+	else				/*	Predicted or Scheduled.	*/
 	{
 		refTime = _referenceTime(NULL);
 		fromTime = readTimestampUTC(tokens[2], refTime);
@@ -326,14 +456,14 @@ void	executeDelete(int tokenCount, char **tokens)
 	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(fromTime, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_contact(scope, fromNodeNbr, toNodeNbr));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		oK(rfx_remove_range(fromTime, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_range(scope, fromNodeNbr, toNodeNbr));
 		return;
 	}
 
@@ -346,7 +476,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
-	time_t		timestamp;
+	time_t		fromTime;
 	uvast		fromNode;
 	uvast		toNode;
 	IonCXref	arg1;
@@ -369,7 +499,19 @@ static void	executeInfo(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	timestamp = readTimestampUTC(tokens[2], refTime);
+	if (strcmp(tokens[2], "0") == 0)	/*	Hypothetical.	*/
+	{
+		fromTime = 0;
+	}
+	else if (strcmp(tokens[2], "-1") == 0)	/*	Registration.	*/
+	{
+		fromTime = (time_t) -1;
+	}
+	else				/*	Predicted or Scheduled.	*/
+	{
+		fromTime = readTimestampUTC(tokens[2], refTime);
+	}
+
 	fromNode = strtouvast(tokens[3]);
 	toNode = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
@@ -377,7 +519,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		memset((char *) &arg1, 0, sizeof(IonCXref));
 		arg1.fromNode = fromNode;
 		arg1.toNode = toNode;
-		arg1.fromTime = timestamp;
+		arg1.fromTime = fromTime;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg1, &nextElt);
@@ -401,7 +543,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		memset((char *) &arg2, 0, sizeof(IonRXref));
 		arg2.fromNode = fromNode;
 		arg2.toNode = toNode;
-		arg2.fromTime = timestamp;
+		arg2.fromTime = fromTime;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->rangeIndex,
 				rfx_order_ranges, &arg2, &nextElt);
@@ -618,9 +760,9 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 	IonDB	iondb;
 	vast	newFileLimit = -1;	/*	-1 = "unchanged"	*/
 	vast	newHeapLimit = -1;	/*	-1 = "unchanged"	*/
-	vast	fileLimit;
-	vast	maxHeapLimit;
-	vast	heapLimit;
+	double	fileLimit;
+	double	maxHeapLimit;
+	double	heapLimit;
 
 	switch (tokenCount)
 	{
@@ -653,10 +795,11 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 	CHKVOID(sdr_begin_xn(sdr));
 	if (newFileLimit != -1)	/*	Overriding current value.	*/
 	{
-		fileLimit = newFileLimit * 1000000;
+		fileLimit = newFileLimit;
 
 		/*	Convert from MB to bytes.			*/
 
+		fileLimit *= 1000000.0;
 		zco_set_max_file_occupancy(sdr, fileLimit, acct);
 		writeMemo("[i] ZCO max file space changed.");
 	}
@@ -671,10 +814,11 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 		}
 		else
 		{
-			heapLimit = newHeapLimit * 1000000;
+			heapLimit = newHeapLimit;
 
 			/*	Convert from MB to bytes.		*/
 
+			heapLimit *= 1000000.0;
 			zco_set_max_heap_occupancy(sdr, heapLimit, acct);
 			writeMemo("[i] ZCO max heap changed.");
 		}
@@ -803,13 +947,13 @@ static void	manageUsage(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(IonDB, iondb);
 	char	buffer[256];
-	vast	heapOccupancyInbound;
+	double	heapOccupancyInbound;
 	double	heapSpaceMBInUseInbound;
-	vast	fileOccupancyInbound;
+	double	fileOccupancyInbound;
 	double	fileSpaceMBInUseInbound;
-	vast	heapOccupancyOutbound;
+	double	heapOccupancyOutbound;
 	double	heapSpaceMBInUseOutbound;
-	vast	fileOccupancyOutbound;
+	double	fileOccupancyOutbound;
 	double	fileSpaceMBInUseOutbound;
 	double	occupancyCeiling;	/*	In MBytes.		*/
 	double	maxForecastOccupancy;	/*	In MBytes.		*/
@@ -840,6 +984,63 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 			heapSpaceMBInUseOutbound, fileSpaceMBInUseOutbound,
 			occupancyCeiling, maxForecastOccupancy);
 	printText(buffer);
+}
+
+static void	manageRegion(int tokenCount, char **tokens, int i)
+{
+	Sdr	sdr;
+	Object	iondbObj;
+	IonDB	iondb;
+	char	buffer[128];
+	vast	regionNbr;
+
+	if (tokenCount == 2)
+	{
+		sdr = getIonsdr();
+		iondbObj = getIonDbObject();
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		isprintf(buffer, sizeof buffer, "home region is "
+VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
+				iondb.regions[0].regionNbr,
+				iondb.regions[1].regionNbr);
+		printText(buffer);
+		return;
+	}
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	/*	Manage node's own region membership.			*/
+
+	regionNbr = strtovast(tokens[2]);
+	if (regionNbr < -1)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	oK(ionManageRegion(i, regionNbr));
+}
+
+static void	managePassageway(int tokenCount, char **tokens)
+{
+	uvast	nodeNbr;
+	vast	homeRegionNbr;
+	vast	outerRegionNbr;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	nodeNbr	 = strtouvast(tokens[2]);
+	homeRegionNbr = strtovast(tokens[3]);
+	outerRegionNbr = strtovast(tokens[4]);
+	oK(ionManagePassageway(nodeNbr, homeRegionNbr, outerRegionNbr));
 }
 
 static void	executeManage(int tokenCount, char **tokens)
@@ -917,6 +1118,24 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "usage") == 0)
 	{
 		manageUsage(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "home") == 0)
+	{
+		manageRegion(tokenCount, tokens, 0);
+		return;
+	}
+
+	if (strcmp(tokens[1], "outer") == 0)
+	{
+		manageRegion(tokenCount, tokens, 1);
+		return;
+	}
+
+	if (strcmp(tokens[1], "passageway") == 0)
+	{
+		managePassageway(tokenCount, tokens);
 		return;
 	}
 
@@ -1000,6 +1219,8 @@ static int	processLine(char *line, int lineLength, int *rc)
 	time_t		currentTime;
 	struct timeval	done_time;
 	struct timeval	cur_time;
+	vast		regionNbr;
+	int		regionIdx;
 	int		max = 0;
 	int		count = 0;
 
@@ -1060,8 +1281,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 			return 0;
 
 		case '1':
-			initializeNode(tokenCount, tokens);
-			return 0;
+			return initializeNode(tokenCount, tokens);
 
 		case 's':
 			if (ionAttach() == 0)
@@ -1089,6 +1309,10 @@ up, abandoned.");
 					}
 				}
 
+				/*	Advertise the reference time.	*/
+
+				refTime = _referenceTime(NULL);
+				ionReferenceTime(&refTime);
 			}
 
 			return 0;
@@ -1114,7 +1338,7 @@ no time.");
 					/*	Set reference time to
 					 *	the current time.	*/
 
-					currentTime = getUTCTime();
+					currentTime = getCtime();
 					oK(_referenceTime(&currentTime));
 				}
 				else
@@ -1135,6 +1359,31 @@ no time.");
 					 *	command lines.		*/
 
 					oK(_referenceTime(&refTime));
+				}
+			}
+
+			return 0;
+
+		case '^':
+			if (ionAttach() == 0)
+			{
+				if (tokenCount != 2)
+				{
+					SYNTAX_ERROR;
+				}
+				else
+				{
+					regionNbr = strtovast(tokens[1]);
+					regionIdx = ionPickRegion(regionNbr);
+					if (regionIdx > 1)
+					{
+						printText("Node does not \
+reside in this region.");
+					}
+					else
+					{
+						oK(_regionIdx(&regionIdx));
+					}
 				}
 			}
 
@@ -1246,12 +1495,15 @@ static int	runIonadmin(char *cmdFileName)
 {
 	int	rc = 0;
 	time_t	currentTime;
+	int	regionIdx = 0;			/*	Home region.	*/
 	int	cmdFile;
 	char	line[256];
 	int	len;
 
-	currentTime = getUTCTime();
+	currentTime = getCtime();
+	
 	oK(_referenceTime(&currentTime));
+	oK(_regionIdx(&regionIdx));		/*	Home region.	*/
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER

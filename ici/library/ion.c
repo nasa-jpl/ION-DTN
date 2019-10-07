@@ -302,7 +302,7 @@ static void	writeMemoToIonLog(char *text)
 	static ResourceLock	logFileLock;
 	static char		ionLogFileName[264] = "";
 	static int		ionLogFile = -1;
-	time_t			currentTime = getUTCTime();
+	time_t			currentTime = getCtime();
 	char			timestampBuffer[20];
 	int			textLen;
 	static char		msgbuf[256];
@@ -636,7 +636,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 	Sdr		ionsdr;
 	Object		iondbObject;
 	IonDB		iondbBuf;
-	vast		limit;
+	double		limit;
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
 	ZcoCallback	notify = ionProvideZcoSpace;
@@ -711,6 +711,13 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
+		iondbBuf.regions[0].regionNbr = -1;	/*	None.	*/
+		iondbBuf.regions[0].members = sdr_list_create(ionsdr);
+		iondbBuf.regions[0].contacts = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].regionNbr = -1;	/*	None.	*/
+		iondbBuf.regions[1].members = sdr_list_create(ionsdr);
+		iondbBuf.regions[1].contacts = sdr_list_create(ionsdr);
+		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
 		limit = (sdr_heap_size(ionsdr) / 100) * (100 - ION_SEQUESTERED);
@@ -728,11 +735,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		iondbBuf.occupancyCeiling = zco_get_max_file_occupancy(ionsdr,
 				ZcoOutbound);
 		iondbBuf.occupancyCeiling += (limit/4);
-		iondbBuf.contacts = sdr_list_create(ionsdr);
-		iondbBuf.ranges = sdr_list_create(ionsdr);
-		iondbBuf.contactLog[0] = sdr_list_create(ionsdr);
-		iondbBuf.contactLog[1] = sdr_list_create(ionsdr);
-		iondbBuf.maxClockError = 0;
+		iondbBuf.maxClockError = 1;
 		iondbBuf.clockIsSynchronized = 1;
                 memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
@@ -752,10 +755,14 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 			return -1;
 		}
 
+		/*	Set initial home region.			*/
+
 		break;
 
 	default:		/*	Found DB in the SDR.		*/
 		sdr_exit_xn(ionsdr);
+		writeMemo("[?] Attempting duplicate node initialization.");
+		return -1;
 	}
 
 	oK(_iondbObject(&iondbObject));
@@ -851,7 +858,11 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 			nextElt = sm_list_next(wm, elt);
 			addr = sm_list_data(wm, elt);
 			req = (Requisition *) psp(wm, addr);
-			sm_SemEnd(req->semaphore);
+			if (req->semaphore != SM_SEM_NONE)
+			{
+				sm_SemEnd(req->semaphore);
+			}
+
 			psm_free(wm, addr);
 			sm_list_delete(wm, elt, NULL, NULL);
 		}
@@ -1069,7 +1080,7 @@ void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 		}
 	}
 
-	fromTime = getUTCTime();	/*	The current time.	*/
+	fromTime = getCtime();		/*	The current time.	*/
 	toTime = fromTime + 14400;	/*	Four hours later.	*/
 	if (rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt,
 			&xaddr) < 0 || xaddr == 0)
@@ -1081,7 +1092,7 @@ void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 
 	writeMemo("ionProd: range inserted.");
 	writeMemo(rfx_print_range(xaddr, textbuf));
-	if (rfx_insert_contact(fromTime, toTime, fromNode, toNode, xmitRate,
+	if (rfx_insert_contact(0, fromTime, toTime, fromNode, toNode, xmitRate,
 			1.0, &xaddr) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: contact insertion failed.",
@@ -1120,6 +1131,358 @@ void	ionTerminate()
 	oK(_ionwm(&ionwmParms));
 	oK(_ionvdb(&ionvdbName));
 }
+
+/*	Functions for managing region membership.			*/
+
+int	ionPickRegion(vast regionNbr)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj;
+	IonDB	iondb;
+	int	i;
+
+	if (regionNbr < 0)
+	{
+		return 2;	/*	Null region membership.		*/
+	}
+
+	iondbObj = getIonDbObject();
+	CHKERR(iondbObj);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (i = 0; i < 2; i++)
+	{
+		if (iondb.regions[i].regionNbr == regionNbr)
+		{
+			break;
+		}
+	}
+
+	return i;
+}
+
+int	ionRegionOf(uvast nodeA, uvast nodeB)
+{
+	/*	This function determines the region in which nodeA
+	 *	and nodeB both reside; if nodeB is zero, it just
+	 *	determines the region in which nodeA resides.  If
+	 *	we find the node(s) in both regions, the home region
+	 *	is preferred.						*/
+
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj;
+	IonDB	iondb;
+	int	regionMaskA = 0;
+	int	regionMaskB = (nodeB == 0 ? 3 : 0);
+	int	i;
+	Object	elt;
+	Object	addr;
+		OBJ_POINTER(RegionMember, member);
+
+	CHKERR(nodeA > 0);
+	iondbObj = getIonDbObject();
+	CHKERR(iondbObj);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (i = 0; i < 2; i++)
+	{
+		for (elt = sdr_list_first(sdr, iondb.regions[i].members); elt;
+			       elt = sdr_list_next(sdr, elt))
+		{
+			addr = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(sdr, RegionMember, member, addr);
+			if (member->nodeNbr == nodeA)
+			{
+				regionMaskA |= (i + 1);
+			}
+
+			if (member->nodeNbr == nodeB)
+			{
+				regionMaskB |= (i + 1);
+			}
+		}
+	}
+
+	/*	Identify the common region.				*/
+
+	i = (regionMaskA & regionMaskB) - 1;
+	if (i == 2)	/*	Both; shouldn't happen.			*/
+	{
+		i = 0;	/*	Choose the home region.			*/
+	}
+
+	return i;	/*	May be -1 meaning "No common region".	*/
+}
+
+static void	leaveRegion(IonRegion *region)
+{
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	Object		obj;
+	IonContact	contact;
+
+	/*	Forget the node membership of the region.		*/
+
+	while (1)
+	{
+		elt = sdr_list_first(sdr, region->members);
+		if (elt == 0)
+		{
+			break;
+		}
+
+		sdr_free(sdr, sdr_list_data(sdr, elt));
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
+
+	/*	Forget the contact plan for the region.			*/
+
+	while (1)
+	{
+		elt = sdr_list_first(sdr, region->contacts);
+		if (elt == 0)
+		{
+			break;
+		}
+
+		obj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
+		oK(rfx_remove_contact(&contact.fromTime, contact.fromNode,
+				contact.toNode));
+
+		/*	rfx_remove_contact deletes the contact from
+		 *	both the volatile and non-volatile databases.
+		 *	No need to do further deletion here.		*/
+	}
+
+	/*	Reinitialize.						*/
+
+	region->regionNbr = -1;
+}
+
+static void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
+	Object		elt;
+	Object		memberObj;
+	RegionMember	member;
+
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].members); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		memberObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &member, memberObj,
+				sizeof(RegionMember));
+		if (member.nodeNbr == nodeNbr)
+		{
+			sdr_free(sdr, memberObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			return;
+		}
+	}
+}
+
+void	ionNoteMember(int regionIdx, uvast nodeNbr, vast homeRegionNbr,
+		vast outerRegionNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
+	Object		elt;
+	Object		memberObj;
+	RegionMember	member;
+	uvast		otherRegionNbr;
+
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].members); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		memberObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &member, memberObj,
+				sizeof(RegionMember));
+		if (member.nodeNbr == nodeNbr)
+		{
+			break;
+		}
+	}
+
+	if (elt == 0)	/*	Not in membership list.			*/
+	{
+		member.nodeNbr = nodeNbr;
+		member.homeRegionNbr = homeRegionNbr;
+		member.outerRegionNbr = outerRegionNbr;
+		memberObj = sdr_malloc(sdr, sizeof(RegionMember));
+		if (memberObj)
+		{
+			sdr_write(sdr, memberObj, (char *) &member,
+					sizeof(RegionMember));
+			sdr_list_insert_last(sdr,
+					iondb.regions[regionIdx].members,
+					memberObj);
+		}
+	}
+	else		/*	A known member of this region.		*/
+	{
+		if (member.homeRegionNbr != homeRegionNbr
+		|| member.outerRegionNbr != outerRegionNbr)
+		{
+			member.homeRegionNbr = homeRegionNbr;
+			member.outerRegionNbr = outerRegionNbr;
+			sdr_write(sdr, memberObj, (char *) &member,
+					sizeof(RegionMember));
+		}
+	}
+
+	/*	Remove from other region if necessary.			*/
+
+	otherRegionNbr = iondb.regions[1 - regionIdx].regionNbr;
+	if (homeRegionNbr != otherRegionNbr && outerRegionNbr != otherRegionNbr)
+	{
+		ionNoteNonMember(1 - regionIdx, nodeNbr);
+	}
+}
+
+int	ionManageRegion(int idx, vast regionNbr)
+{
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj;
+	IonDB		iondb;
+	IonRegion	*region;
+	RegionMember	member;
+	Object		memberObj;
+
+	CHKERR(idx == 0 || idx == 1);
+	iondbObj = getIonDbObject();
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	region = &(iondb.regions[idx]);
+	if (regionNbr < 0)		/*	Removal from region.	*/
+	{
+		if (idx == 0)	/*	Trying to leave home region.	*/
+		{
+			sdr_exit_xn(sdr);
+			writeMemo("[?] Tried to leave network, not supported.");
+			return 0;
+		}
+
+		/*	Node is ceasing to be a passageway to its
+		 *	outer region.					*/
+
+		leaveRegion(region);
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		return sdr_end_xn(sdr);
+	}
+
+	/*	Node is joining a new region.				*/
+
+	if (ionPickRegion(regionNbr) < 2)
+	{
+		/*	Node already resides in the indicated region.	*/
+
+		sdr_exit_xn(sdr);
+		writeMemo("[?] Tried to join a region the node is already in.");
+		return 0;
+	}
+
+	if (region->regionNbr != -1)	/*	Region already defined.	*/
+	{
+		/*	Must leave old region first.			*/
+
+		leaveRegion(region);
+	}
+
+	region->regionNbr = regionNbr;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+
+	/*	Node must be inserted into region's membership.		*/
+
+	member.nodeNbr = getOwnNodeNbr();
+	member.homeRegionNbr = iondb.regions[0].regionNbr;
+	member.outerRegionNbr = iondb.regions[1].regionNbr;
+	memberObj = sdr_malloc(sdr, sizeof(RegionMember));
+	if (memberObj)
+	{
+		sdr_write(sdr, memberObj, (char *) &member,
+				sizeof(RegionMember));
+		oK(sdr_list_insert_last(sdr, region->members, memberObj));
+	}
+
+	return sdr_end_xn(sdr);
+}
+
+int	ionManagePassageway(uvast nodeNbr, vast homeRegionNbr,
+		vast outerRegionNbr)
+{
+	Sdr	sdr = getIonsdr();
+	int	regionIdx;
+
+	if (homeRegionNbr == -1)	/*	Forget this node.	*/
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		ionNoteNonMember(0, nodeNbr);
+		ionNoteNonMember(1, nodeNbr);
+		return sdr_end_xn(sdr);
+	}
+
+	if (outerRegionNbr == -1)	/*	No longer a passageway.	*/
+	{
+		regionIdx = ionPickRegion(outerRegionNbr);
+		if (regionIdx >= 0 && regionIdx <= 1)
+		{
+			/*	Node's former outer region is the
+			 *	indicated region (idx = home or outer)
+			 *	of the local node.			*/
+
+			CHKERR(sdr_begin_xn(sdr));
+			ionNoteNonMember(regionIdx, nodeNbr);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't update passageway.", NULL);
+			}
+		}
+	}
+
+	/*	Insert node into the correct region(s) according
+	 *	to its stated new home and outer region numbers,
+	 *	removing it from other regions as necessary.		*/
+
+	regionIdx = ionPickRegion(homeRegionNbr);
+	if (regionIdx >= 0 && regionIdx <= 1)
+	{
+		/*	Passageway's home region is the
+		 *	indicated region (idx = home or outer)
+		 *	of the local node.			*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
+				outerRegionNbr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't update passageway.", NULL);
+		}
+	}
+
+	regionIdx = ionPickRegion(outerRegionNbr);
+	if (regionIdx >= 0 && regionIdx <= 1)
+	{
+		/*	Passageway's outer region is the
+		 *	indicated region (idx = home or outer)
+		 *	of the local node.			*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
+				outerRegionNbr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't update passageway.", NULL);
+		}
+	}
+
+	return 0;
+}
+
+/*	Utility functions.						*/
 
 Sdr	getIonsdr()
 {
@@ -1225,17 +1588,17 @@ int	setDeltaFromUTC(int newDelta)
 	return 0;
 }
 
-time_t	getUTCTime()
+time_t	getCtime()
 {
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
-	time_t	clocktime;
+	time_t	ctime;
 #if defined(FSWCLOCK)
-#include "fswutc.c"
+#include "fswctime.c"
 #else
-	clocktime = time(NULL);
+	ctime = time(NULL);
 #endif
-	return clocktime - delta;
+	return ctime - delta;
 }
 
 static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
@@ -1276,7 +1639,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 
 	ts.tm_year -= 1900;
 	ts.tm_mon -= 1;
-	ts.tm_isdst = 0;		/*	Default is UTC.		*/
+	ts.tm_isdst = 0;	/*	Default is UTC.			*/
 #ifndef VXWORKS
 #ifdef mingw
 	_tzset();	/*	Need to orient mktime properly.		*/
@@ -1285,7 +1648,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 #endif
 	if (timestampIsUTC)
 	{
-		/*	Must convert UTC time to local time for mktime.	*/
+		/*	Must convert UTC to local time for mktime.	*/
 
 #if defined (freebsd)
 		ts.tm_sec -= ts.tm_gmtoff;
@@ -1345,22 +1708,31 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 
 void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
-#if defined (mingw)
-	struct tm	*ts;
-#else
 	struct tm	tsbuf;
 	struct tm	*ts = &tsbuf;
-#endif
 
 	CHKVOID(timestampBuffer);
 #if defined (mingw)
-	ts = gmtime(&timestamp);
+	oK(gmtime_s(&tsbuf, &timestamp));
 #else
 	oK(gmtime_r(&timestamp, &tsbuf));
 #endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
+}
+
+time_t	ionReferenceTime(time_t *newValue)
+{
+	IonVdb	*vdb = getIonVdb();
+
+	CHKZERO(vdb);
+	if (newValue)
+	{
+		vdb->refTime = *newValue;
+	}
+
+	return vdb->refTime;
 }
 
 /*	*	*	Parsing 	*	*	*	*	*/
@@ -2015,18 +2387,18 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	vast		maxFileOccupancy;
-	vast		maxBulkOccupancy;
-	vast		maxHeapOccupancy;
-	vast		currentFileOccupancy;
-	vast		currentBulkOccupancy;
-	vast		currentHeapOccupancy;
-	vast		totalFileSpaceAvbl;
-	vast		totalBulkSpaceAvbl;
-	vast		totalHeapSpaceAvbl;
-	vast		fileSpaceAvbl;
-	vast		bulkSpaceAvbl;
-	vast		heapSpaceAvbl;
+	double		maxFileOccupancy;
+	double		maxBulkOccupancy;
+	double		maxHeapOccupancy;
+	double		currentFileOccupancy;
+	double		currentBulkOccupancy;
+	double		currentHeapOccupancy;
+	double		totalFileSpaceAvbl;
+	double		totalBulkSpaceAvbl;
+	double		totalHeapSpaceAvbl;
+	double		fileSpaceAvbl;
+	double		bulkSpaceAvbl;
+	double		heapSpaceAvbl;
 	PsmAddress	elt;
 	PsmAddress	reqAddr;
 	Requisition	*req;

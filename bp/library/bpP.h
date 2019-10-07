@@ -18,8 +18,9 @@
 #define _BPP_H_
 
 #include "rfx.h"
-#include "ionsec.h"
+#include "bpsec.h"
 #include "bp.h"
+#include "saga.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +98,8 @@ extern "C" {
 #ifndef	ION_DEFAULT_XMIT_RATE
 #define	ION_DEFAULT_XMIT_RATE		(125000000)
 #endif
+
+#define	TYPICAL_STACK_OVERHEAD		(36)
 
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
@@ -200,6 +203,7 @@ typedef struct
 #define	BP_STATUS_REPORT	(1)
 #define	BP_CUSTODY_SIGNAL	(2)
 #define	BP_ENCAPSULATED_BUNDLE	(7)
+#define	BP_SAGA_MESSAGE		(42)
 
 /*	Administrative record flags	*/
 #define BP_BDL_IS_A_FRAGMENT	(1)	/*	00000001		*/
@@ -298,7 +302,7 @@ typedef struct
 
 	/*	Stuff in Primary block.					*/
 
-	unsigned int	bundleProcFlags;/*	Incl. CoS, SRR.		*/
+	unsigned int	bundleProcFlags;/*	Incl. CoS, SRRs.	*/
 	unsigned int	timeToLive;	/*	In seconds.		*/
 	EndpointId	destination;	/*	...of bundle's ADU	*/
 		/*	source of bundle's ADU is in the id field.	*/
@@ -314,11 +318,17 @@ typedef struct
 	/*	Stuff in Extended COS and Metadata extension blocks.	*/
 
 	BpAncillaryData	ancillaryData;
+	unsigned char	priority;	/*	Possibly an override.	*/
+	unsigned char	ordinal;	/*	Possibly an override.	*/
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
 	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
+
+	/*	Stuff in Spray and Wait extension block.		*/
+
+	unsigned char	permits;	/*	# SnW fwd permits left.	*/
 
 	/*	Stuff in Payload block.					*/
 
@@ -333,7 +343,7 @@ typedef struct
 
 	Object		extensions[2];
 	int		extensionsLength[2];	/*	Concatenated.	*/
-	Object		collabBlocks;	/*	SDR list of C. blocks.	*/
+	Object		collabBlocks;	/*	SDR list of c-blocks.	*/
 
 	/*	Internal housekeeping stuff.				*/
 
@@ -347,9 +357,10 @@ typedef struct
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
+	char		ovrdPending;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
-	BpStatusRpt	statusRpt;	/*	For response per CoS.	*/
+	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	BpCtSignal	ctSignal;	/*	For acknowledgement.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
@@ -624,7 +635,7 @@ typedef struct
 
 typedef struct
 {
-	Object		planElt;	/*	Assigned BpPlan.	*/
+	Object		planDuctListElt;/*	Assigned BpPlan.	*/
 	char		name[MAX_CL_DUCT_NAME_LEN + 1];
 	Object		cloCmd;		/*	For starting the CLO.	*/
 
@@ -678,6 +689,17 @@ typedef struct
 
 #define	EPOCH_2000_SEC	946684800
 
+/*	Encounter is a record of a past discovered contact.		*/
+
+typedef struct
+{
+	uvast		fromNode;	/*	CBHE node number	*/
+	uvast		toNode;		/*	CBHE node number	*/
+	time_t		fromTime;	/*	As from getUTCTime()	*/
+	time_t		toTime;		/*	As from getUTCTime()	*/
+	size_t		xmitRate;	/*	In bytes per second.	*/
+} Encounter;
+
 typedef enum
 {
 	expiredTTL = 1,
@@ -706,6 +728,7 @@ typedef struct
 	Object		protocols;	/*	SDR list of ClProtocols	*/
 	Object		inducts;	/*	SDR list of Inducts	*/
 	Object		outducts;	/*	SDR list of Outducts	*/
+	Object		saga[2];	/*	SDR list of Encounters	*/
 	Object		timeline;	/*	SDR list of BpEvents	*/
 	Object		bundles;	/*	SDR hash of BundleSets	*/
 	Object		inboundBundles;	/*	SDR list of ZCOs	*/
@@ -719,6 +742,7 @@ typedef struct
 	Object		clockCmd; 	/*	For starting bpclock.	*/
 	Object		transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;
+	unsigned int	maxBundleCount;	/*	For non-synced clock.	*/
 	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
 	int		watching;	/*	Activity watch switch.	*/
 
@@ -809,7 +833,7 @@ typedef struct
 	Tally		tallies[BP_DB_STATS];
 } BpDbStats;
 
-/*	Neighbors discovered by IPND, the neighbor discovery protocol.
+/*	Discoveries posted by IPND, the neighbor discovery protocol.
  *	These objects are used to remember the time of last contact
  *	with each discovered neighbor, to prevent unnecessary beacon
  *	transmission.							*/
@@ -817,8 +841,9 @@ typedef struct
 typedef struct
 {
 	char		eid[MAX_EID_LEN];
+	time_t		startOfContact;
 	time_t		lastContactTime;
-} NdpNeighbor;
+} Discovery;
 
 /*	Volatile database encapsulates the volatile state of the
  *	database.							*/
@@ -846,7 +871,7 @@ typedef struct
 	PsmAddress	plans;		/*	SM list: VPlan.		*/
 	PsmAddress	inducts;	/*	SM list: VInduct.	*/
 	PsmAddress	outducts;	/*	SM list: VOutduct.	*/
-	PsmAddress	neighbors;	/*	SM list: NdpNeighbor.	*/
+	PsmAddress	discoveries;	/*	SM list: Discovery.	*/
 	PsmAddress	timeline;	/*	SM RB tree: list xref.	*/
 } BpVdb;
 
@@ -947,25 +972,6 @@ extern int		bpAbandon(	Object bundleObj,
 			 *	bundle.	 Returns 0 on success, -1 on
 			 *	any failure.				*/
 
-extern int		bpAccept(	Object bundleObj,
-					Bundle *bundle);
-			/*	This is the common processing for any
-			 *	bundle that a forwarder decides it
-			 *	can accept for forwarding, whether
-			 *	the bundle was sourced locally or
-			 *	was received from some other node.
-			 *	It updates statistics that are used
-			 *	to make future bundle acquisition
-			 *	decisions; if custody transfer is
-			 *	requested, it takes custody of the
-			 *	bundle; and it sends any applicable
-			 *	status reports.
-			 *
-			 *	This function may be called multiple
-			 *	times per bundle but will take effect
-			 *	only once.  Returns 0 on success, -1
-			 *	on any failure.				*/
-
 extern int		bpClone(	Bundle *originalBundle,
 					Bundle *newBundleBuffer,
 					Object *newBundleObj,
@@ -988,7 +994,35 @@ extern int		bpClone(	Bundle *originalBundle,
 			 *	new bundle's payload will be the
 			 *	indicated subset of the original
 			 *	payload.  Returns 0 on success,
-			 *	-1 on any error.			*/
+			 *	-1 on any failure.			*/
+
+extern int		bpAccept(	Object bundleObj,
+					Bundle *bundle);
+			/*	This is the common processing for any
+			 *	bundle that a forwarder decides it
+			 *	can accept for forwarding, whether
+			 *	the bundle was sourced locally or
+			 *	was received from some other node.
+			 *	It updates statistics that are used
+			 *	to make future bundle acquisition
+			 *	decisions; if custody transfer is
+			 *	requested, it takes custody of the
+			 *	bundle; and it sends any applicable
+			 *	status reports.
+			 *
+			 *	This function may be called multiple
+			 *	times per bundle but will take effect
+			 *	only once.  Returns 0 on success, -1
+			 *	on any failure.				*/
+
+extern int		bpFragment(	Bundle *bundle, Object bundleObj,
+					Object *queueElt, size_t fragmentLength,
+					Bundle *bundle1, Object *bundle1Obj,
+					Bundle *bundle2, Object *bundle2Obj);
+			/*	This function creates two fragmentary
+			 *	bundles from one original bundle and
+			 *	destroys the original bundle.  Returns
+			 *	0 on success, -1 on any failure.	*/
 
 extern int		bpEnqueue(	VPlan *vplan,
 					Bundle *bundle,
@@ -1031,11 +1065,22 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	outbound bundle ZCO].
 			 *
 			 *	On obtaining a bundle, bpDequeue
-			 *	catenates (serializes) the BP header
-			 *	information in the bundle and prepends
-			 *	that serialized header to the source
-			 *	data of the bundle's payload ZCO.  Then
-			 *	it returns the address of that ZCO in
+			 *	does DEQUEUE processing on the bundle's
+			 *	extension blocks; if this processing
+			 *	determines that the bundle is corrupt,
+			 *	the function returns zero while
+			 *	providing 1 (a nonsense address) in
+			 *	*bundleZco as the address of the
+			 *	outbound bundle ZCO.  The CLO should
+			 *	handle this result by simply calling
+			 *	bpDequeue again.
+			 *
+			 *	bpDequeue then catenates (serializes)
+			 *	the BP header information in the
+			 *	bundle and prepends that serialized
+			 *	header to the source data of the
+			 *	bundle's payload ZCO.  Then it
+			 *	returns the address of that ZCO in
 			 *	*bundleZco for transmission at the
 			 *	convergence layer (possibly entailing
 			 *	segmentation that would be invisible
@@ -1401,7 +1446,7 @@ extern int		bpUnblockPlan(char *eid);
 
 extern int		setPlanViaEid(char *eid, char *viaEid);
 extern int		attachPlanDuct(char *eid, Object outductElt);
-extern int		detachPlanDuct(char *eid, Object outductElt);
+extern int		detachPlanDuct(Object outductElt);
 extern void		lookupPlan(char *eid, VPlan **vplan);
 
 extern void		releaseCustody(Object bundleObj, Bundle *bundle);

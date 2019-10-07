@@ -245,7 +245,7 @@ static void	*spawnReceivers(void *parm)
 		parms->blockSocket = newSocket;
 		parms->running = &(atp->running);
 		if (pthread_begin(&(parms->thread), NULL, receiveBlocks,
-					parms))
+					parms, "tcpbsi_receiver"))
 		{
 			putSysErrmsg("tcpbsi can't create new thread", NULL);
 			MRELEASE(parms);
@@ -403,7 +403,7 @@ int	main(int argc, char *argv[])
 	/*	Start the access thread.				*/
 
 	atp.running = 1;
-	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp))
+	if (pthread_begin(&accessThread, NULL, spawnReceivers, &atp, "tcpbsi_access"))
 	{
 		closesocket(atp.bsiSocket);
 		putSysErrmsg("tcpbsi can't create access thread", NULL);

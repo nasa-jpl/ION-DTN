@@ -7,6 +7,7 @@
  * Date: December 2011			*/
 
 #include <cfdp.h>
+#include <bputa.h>
 #include <stdlib.h>
 #include "check.h"
 #include "testutil.h"

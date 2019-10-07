@@ -13,7 +13,7 @@ endif
 DIST_SUBDIRS= . contrib
 
 AM_CFLAGS += \
-	-Wall -Werror -g -fPIC \
+	-g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
@@ -25,6 +25,18 @@ AM_CFLAGS += \
 	-DSBSP \
 	-I$(srcdir)/ams/include \
 	-I$(srcdir)/cfdp/include
+
+if SOLARIS_STUDIO_CC
+AM_CFLAGS += \
+	-errtags \
+	-Kpic
+NO_UNUSED_VARIABLE = 
+else
+AM_CFLAGS += \ 
+	-Wall -Werror\
+	-fPIC
+NO_UNUSED_VARIABLE = -Wno-unused-variable
+endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -309,6 +321,7 @@ icibin = \
 	psmwatch \
 	ionadmin \
 	ionexit \
+	ionlog \
 	ionsecadmin \
 	ionwarn \
 	ionunlock \
@@ -468,7 +481,7 @@ libici_la_SOURCES =	ici/library/llcv.c \
 
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LIBADD = $(CRYPTO_LIBS) -lm
+libici_la_LIBADD = -lm
 
 # --- Utility Programs --- #
 
@@ -503,6 +516,10 @@ ionwarn_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionunlock_SOURCES = ici/utils/ionunlock.c
 ionunlock_LDADD = libici.la $(LIBOBJS) -lm
 ionunlock_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionlog_SOURCES = ici/utils/ionlog.c
+ionlog_LDADD = libici.la $(LIBOBJS) -lm
+ionlog_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -565,17 +582,16 @@ ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
 	ltpadmin \
+	ltpsecadmin \
 	ltpclock \
 	ltpmeter \
 	ltpdeliv \
 	udplsi \
 	udplso \
-	aoslsi \
-	aoslso \
 	ltpdriver \
 	ltpcounter \
 	sdatest \
-	dccplsi	 \
+	dccplsi \
 	dccplso
 
 ltplib = \
@@ -587,8 +603,8 @@ ltpinclude = \
 
 ltpnoinst = \
 	ltp/library/ltpP.h \
+	ltp/library/ltpsec.h \
 	ltp/udp/udplsa.h \
-	ltp/aos/aoslsa.h \
 	ltp/dccp/dccplsa.h
 
 ltpextra = \
@@ -598,6 +614,7 @@ ltpextra = \
 	ltp/doc/pod1/ltpcounter.pod \
 	ltp/doc/pod1/ltpdriver.pod \
 	ltp/doc/pod1/ltpmeter.pod \
+	ltp/doc/pod1/ltpsecadmin.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
 	ltp/doc/pod1/dccplsi.pod \
@@ -611,6 +628,7 @@ ltpmans = \
 	$(top_builddir)/ltp/doc/ltpcounter.1 \
 	$(top_builddir)/ltp/doc/ltpdriver.1 \
 	$(top_builddir)/ltp/doc/ltpmeter.1 \
+	$(top_builddir)/ltp/doc/ltpsecadmin.1 \
 	$(top_builddir)/ltp/doc/udplsi.1 \
 	$(top_builddir)/ltp/doc/udplso.1 \
 	$(top_builddir)/ltp/doc/dccplsi.1 \
@@ -638,6 +656,7 @@ libltp_la_SOURCES = \
 	ltp/library/libltp.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
+	ltp/library/ltpsec.c \
 	ltp/sda/libsda.c \
 	ltp/library/libltpnm.c
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
@@ -648,6 +667,10 @@ libltp_la_LIBADD = libici.la -lm
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
 ltpadmin_LDADD = libltp.la libici.la $(LIBOBJS)
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpsecadmin_SOURCES = ltp/utils/ltpsecadmin.c
+ltpsecadmin_LDADD = libltp.la libici.la $(LIBOBJS)
+ltpsecadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
@@ -689,13 +712,13 @@ udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
-aoslsi_SOURCES = ltp/aos/aoslsi.c
-aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
-aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#aoslsi_SOURCES = ltp/aos/aoslsi.c
+#aoslsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+#aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
-aoslso_SOURCES = ltp/aos/aoslso.c
-aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
-aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+#aoslso_SOURCES = ltp/aos/aoslso.c
+#aoslso_LDADD = libltp.la libici.la $(LIBOBJS)
+#aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
@@ -797,10 +820,11 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/library/ext/bsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/bsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library/ext/sbsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/snw -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
+	bpsecadmin \
 	bpsink \
 	bpdriver \
 	bpsource \
@@ -812,6 +836,7 @@ bpbin = \
 	bprecvfile \
 	bpclm \
 	bpclock \
+	bpcrash \
 	bptransit \
 	ipnadmin \
 	ipnfw \
@@ -878,6 +903,8 @@ bpinclude = \
 #bp/library/ecos.h
 bpnoinst = \
 	bp/library/bpP.h \
+	bp/library/bpsec.h \
+	bp/library/saga.h \
 	bp/ipn/ipnfw.h \
 	bp/ipnd/ipndP.h \
 	bp/dtn2/dtn2fw.h \
@@ -898,6 +925,7 @@ bpextra = \
 	bp/doc/pod1/bplist.pod \
 	bp/doc/pod1/bpdriver.pod \
 	bp/doc/pod1/bpecho.pod \
+	bp/doc/pod1/bpsecadmin.pod \
 	bp/doc/pod1/bpsendfile.pod \
 	bp/doc/pod1/bprecvfile.pod \
 	bp/doc/pod1/bpsink.pod \
@@ -947,6 +975,10 @@ bpextra = \
 	bp/library/ext/meb/meb.h \
 	bp/library/ext/meb/meb.c \
 	bp/library/bei.c \
+	bp/library/bpsec.h \
+	bp/library/bpsec.c \
+	bp/library/saga.h \
+	bp/library/saga.c \
 	bp/library/ext/bae/bae.h \
 	bp/library/ext/bae/bae.c \
 	bp/library/ext/sbsp/sbsp_instr.h \
@@ -978,6 +1010,7 @@ bpmans = \
 	$(top_builddir)/bp/doc/bplist.1 \
 	$(top_builddir)/bp/doc/bpdriver.1 \
 	$(top_builddir)/bp/doc/bpecho.1 \
+	$(top_builddir)/bp/doc/bpsecadmin.1 \
 	$(top_builddir)/bp/doc/bpsendfile.1 \
 	$(top_builddir)/bp/doc/bprecvfile.1 \
 	$(top_builddir)/bp/doc/bpsink.1 \
@@ -1071,6 +1104,10 @@ libbp_la_SOURCES = \
 	bp/library/ext/phn/phn.c \
 	bp/library/ext/ecos/ecos.c \
 	bp/library/bei.c \
+	bp/library/bpsec.h \
+	bp/library/bpsec.c \
+	bp/library/saga.h \
+	bp/library/saga.c \
 	bp/library/ext/meb/meb.c \
 	bp/library/ext/bae/bae.c \
 	bp/library/ext/sbsp/sbsp_instr.h \
@@ -1084,6 +1121,8 @@ libbp_la_SOURCES = \
 	bp/library/ext/sbsp/profiles.h \
 	bp/library/ext/sbsp/profiles.c \
 	bp/library/ext/snid/snid.c \
+	bp/library/ext/snw/snw.h \
+	bp/library/ext/snw/snw.c \
 	bp/ipn/libipnfw.h \
 	bp/ipn/libipnfw.c \
 	bp/ipnd/ipnd.c \
@@ -1096,16 +1135,9 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/murmur2/MurmurHash2.c
 
 if CRYPTO
-AM_CFLAGS+= \
-	-I$(srcdir)/ici/crypto/MBEDTLS_SUITES \
-	-I$(srcdir)/ici/crypto
-
 libici_la_SOURCES+= \
-	ici/crypto/MBEDTLS_SUITES/crypto.c \
-	ici/crypto/MBEDTLS_SUITES/csi.c \
-	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
-	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
+	ici/crypto/NULL_SUITES/crypto.c\
+	ici/crypto/NULL_SUITES/csi.c
 else
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
@@ -1141,6 +1173,10 @@ libcgr_la_LIBADD = libbp.la libici.la
 bpadmin_SOURCES = bp/utils/bpadmin.c
 bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpsecadmin_SOURCES = bp/utils/bpsecadmin.c
+bpsecadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnadmin_SOURCES = bp/ipn/ipnadmin.c
 ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -1360,6 +1396,10 @@ bpnmtest_SOURCES = bp/test/bpnmtest.c
 bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+bpcrash_SOURCES = bp/test/bpcrash.c
+bpcrash_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1447,6 +1487,7 @@ amsmans = \
 	$(top_builddir)/ams/doc/amslog.1 \
 	$(top_builddir)/ams/doc/amsrc.5 \
 	$(top_builddir)/ams/doc/amsxml.5 \
+	$(top_builddir)/ams/doc/petition_log.5 \
 	$(top_builddir)/ams/doc/ams.3
 
 amsclean-local:
@@ -1565,6 +1606,7 @@ cfdpinclude = \
 	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
+	cfdp/library/bputa.h \
 	cfdp/library/cfdpP.h \
 	cfdp/utils/bpcp.h
 
@@ -1942,26 +1984,34 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 nmbin= nm_agent nm_mgr
 
-nm_shared_src    =  	nm/shared/adm/adm.c			\
-			nm/shared/msg/msg.c			\
+# CBOR Library Sources
+nm_cbor_src = \
+	nm/contrib/QCBOR/src/UsefulBuf.c \
+	nm/contrib/QCBOR/src/qcbor_encode.c \
+	nm/contrib/QCBOR/src/qcbor_decode.c \
+	nm/contrib/QCBOR/src/ieee754.c
+
+CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc
+
+nm_shared_src	 =		nm/shared/adm/adm.c	\
+			nm/shared/msg/msg.c				\
 			nm/shared/msg/ion_if.c			\
 			nm/shared/primitives/ari.c		\
 			nm/shared/primitives/blob.c		\
 			nm/shared/primitives/ctrl.c		\
-			nm/shared/primitives/edd_var.c		\
+			nm/shared/primitives/edd_var.c	\
 			nm/shared/primitives/expr.c		\
-			nm/shared/primitives/report.c 		\
-			nm/shared/primitives/rules.c 		\
-		 	nm/shared/primitives/table.c 		\
-	    	nm/shared/primitives/tnv.c		\
-	    	nm/shared/utils/cbor_utils.c	\
+			nm/shared/primitives/report.c	\
+			nm/shared/primitives/rules.c	\
+			nm/shared/primitives/table.c	\
+			nm/shared/primitives/tnv.c		\
+			nm/shared/utils/cbor_utils.c	\
 			nm/shared/utils/db.c			\
-			nm/shared/utils/nm_types.c 		\
-			nm/shared/utils/rhht.c	 		\
-			nm/shared/utils/utils.c        		\
-			nm/shared/utils/vector.c 		\
-			nm/contrib/tinycbor/src/cborparser.c 	\
-			nm/contrib/tinycbor/src/cborencoder.c 
+			nm/shared/utils/nm_types.c		\
+			nm/shared/utils/rhht.c			\
+			nm/shared/utils/utils.c			\
+			nm/shared/utils/vector.c		\
+			$(nm_cbor_src)
 
 nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/ingest.c  		\
@@ -1994,8 +2044,8 @@ nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
-                  -DAGENT_ROLE
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  -DAGENT_ROLE $(CBOR_CFLAGS)
 
 
 nm_mgr_SOURCES =	$(nm_shared_src)		\
@@ -2021,7 +2071,7 @@ nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(CBOR_CFLAGS)
 
 
 ##########################
@@ -2109,12 +2159,17 @@ tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #    and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
-	tests/issue-188-common-cos-syntax/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
 	tests/issue-279-bpMemo-timeline/driver \
+	tests/issue-188-common-cos-syntax/dotest \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
-	tests/issue-334-cfdp-transaction-id/dotest
+	tests/issue-334-cfdp-transaction-id/dotest \
+	tests/nm-unit/dotest
+
+tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
+tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
+tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN -DUSE_MALLOC
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -2134,6 +2189,7 @@ tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
 tests_1500_loopback_brs_dotest_LDADD =  libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
+#Disabled this test in ION 3.7.0 due to routing changes
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
 tests_issue_188_common_cos_syntax_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
@@ -2156,7 +2212,7 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFL
 
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 
 ##########################
