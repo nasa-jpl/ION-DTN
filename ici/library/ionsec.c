@@ -1076,8 +1076,8 @@ void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 
-	/*	This function finds the SecKey for the specified
-	 *	node, if any.						*/
+	/*	This function finds the SecKey identified by the
+	 *	specified name, if any.					*/
 
 	CHKVOID(keyName);
 	CHKVOID(keyAddr);

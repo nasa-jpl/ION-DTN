@@ -49,9 +49,7 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
-#ifdef SBSP
-extern int	sbsp_securityPolicyViolated(AcqWorkArea *wk);
-#endif
+extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
 
 /*	We hitchhike on the ZCO heap space management system to 
  *	manage the space occupied by Bundle objects.  In effect,
@@ -251,36 +249,6 @@ static BpDB	*_bpConstants()
 static char	*_nullEid()
 {
 	return "dtn:none";
-}
-
-static int	isCbhe(char *schemeName)
-{
-	if (strcmp(schemeName, "ipn") == 0)
-	{
-		return 1;
-	}
-
-	if (strcmp(schemeName, "imc") == 0)
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-static int	isUnicast(char *schemeName)
-{
-	if (strcmp(schemeName, "ipn") == 0)
-	{
-		return 1;
-	}
-
-	if (strcmp(schemeName, "dtn") == 0)
-	{
-		return 1;
-	}
-
-	return 0;
 }
 
 /*	*	*	Instrumentation functions	*	*	*/
@@ -736,15 +704,15 @@ static void	startScheme(VScheme *vscheme)
 
 	/*	Compute admin EID for this scheme.			*/
 
-	if (isUnicast(vscheme->name))
+	if (vscheme->codeNumber != imc)
 	{
-		if (isCbhe(vscheme->name))
+		if (vscheme->codeNumber == ipn)
 		{
 			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
 				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
 				getOwnNodeNbr());
 		}
-		else	/*	Assume it's "dtn".			*/
+		else	/*	Assume it's dtn.			*/
 		{
 #ifdef ION_NO_DNS
 			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
@@ -1621,9 +1589,7 @@ int	bpInit()
 	}
 	else
 	{
-#ifdef SBSP
-		sbsp_instr_init();
-#endif
+		bpsec_instr_init();
 		writeMemo("[i] Bundle security is enabled.");
 	}
 
@@ -1804,9 +1770,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	Object		nextElt;
 	Object		zco;
 
-#ifdef SBSP
-	sbsp_instr_cleanup();
-#endif
+	bpsec_instr_cleanup();
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -2652,7 +2616,7 @@ static void	reportStateStats(int i, char *fromTimestamp, char *toTimestamp,
 {
 	char		buffer[256];
 	static char	*classnames[] =
-		{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
+		{ "src", "fwd", "xmt", "rcv", "dlv", "rfw", "exp" };
 
 	isprintf(buffer, sizeof buffer, "[x] %s from %s to %s: (0) \
 %u " UVAST_FIELDSPEC " (1) %u " UVAST_FIELDSPEC " (2) \
@@ -2747,19 +2711,15 @@ void	reportAllStateStats()
 
 	reportStateStats(4, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0, 0, 0);
 
-	/*	Custody refused.  Obsolete.  Remove later.		*/
-
-	reportStateStats(5, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0, 0, 0);
-
 	/*	Reforwarded.						*/
 
-	reportStateStats(6, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
+	reportStateStats(5, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
 			dbStats.tallies[BP_DB_REQUEUED_FOR_FWD].currentCount,
 			dbStats.tallies[BP_DB_REQUEUED_FOR_FWD].currentBytes);
 
 	/*	Expired.						*/
 
-	reportStateStats(7, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
+	reportStateStats(6, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0,
 			dbStats.tallies[BP_DB_EXPIRED].currentCount,
 			dbStats.tallies[BP_DB_EXPIRED].currentBytes);
 	sdr_exit_xn(sdr);
