@@ -291,7 +291,8 @@ static tara_errors_t encode_object_keyed(
             size_t num_sub_elements;
 
             void * data;
-            for (size_t index = 0;
+	    size_t index;
+            for (index = 0;
                  NULL != (data = encoder->sequence_handler(object, schema, index));
                  ++index)
             {

@@ -191,8 +191,9 @@ static inline uint32_t tara_bit_scan_fwd64(uint64_t value)
  */
 static inline uint32_t tara_bit_scan_rev8(uint8_t value)
 {
+    uint8_t bit;
     uint32_t count = 0;
-    for (uint8_t bit = 0x80; 0 != bit && 0 == (value & bit); bit >>= 1, ++count);
+    for (bit = 0x80; 0 != bit && 0 == (value & bit); bit >>= 1, ++count);
     return count;
 }
 
@@ -203,8 +204,9 @@ static inline uint32_t tara_bit_scan_rev8(uint8_t value)
  */
 static inline uint32_t tara_bit_scan_rev16(uint16_t value)
 {
+    uint16_t bit;
     uint32_t count = 0;
-    for (uint16_t bit = 0x8000; 0 != bit && 0 == (value & bit); bit >>= 1, ++count);
+    for (bit = 0x8000; 0 != bit && 0 == (value & bit); bit >>= 1, ++count);
     return count;
 }
 
