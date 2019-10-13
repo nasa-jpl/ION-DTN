@@ -21,6 +21,8 @@
 #include "bpsec.h"
 #include "bp.h"
 #include "saga.h"
+#include "cbor.h"
+#include "crc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -661,11 +663,7 @@ typedef struct
 
 /*	*	*	Protocol structures	*	*	*	*/
 
-/*	Protocol Classes		*/
-#define	BP_PROTOCOL_STREAMING		1
-#define	BP_PROTOCOL_UNRELIABLE		2
-#define	BP_PROTOCOL_RELIABLE		8
-#define	BP_PROTOCOL_BOTH		10
+#define	BP_PROTOCOL_ANY	(BP_BEST_EFFORT | BP_RELIABLE | BP_RELIABLE_STREAMING)
 
 typedef struct
 {
@@ -679,7 +677,7 @@ typedef struct
 
 #define	EPOCH_2000_SEC	946684800
 
-/*	Encounter is a record of a past discovered contact.		*/
+/*	An Encounter is a record of a past discovered contact.		*/
 
 typedef struct
 {
@@ -729,10 +727,14 @@ typedef struct
 	Object		limboQueue;	/*	SDR list of Bundles	*/
 	Object		clockCmd; 	/*	For starting bpclock.	*/
 	Object		transitCmd; 	/*	For starting bptransit.	*/
-	unsigned int	maxAcqInHeap;
-	unsigned int	maxBundleCount;	/*	For non-synced clock.	*/
-	unsigned int	bundleCounter;	/*	For non-synced clock.	*/
+	unsigned int	maxAcqInHeap;	/*	Bytes of ZCO.		*/
 	int		watching;	/*	Activity watch switch.	*/
+
+	/*	For computation of BpTimestamp values.			*/
+
+	time_t		creationTimeSec;/*	Epoch 2000.		*/
+	unsigned int	bundleCounter;	/*	For value of count.	*/
+	unsigned int	maxBundleCount;	/*	Limits value of count.	*/
 
 	/*	Network management instrumentation			*/
 
@@ -822,7 +824,6 @@ typedef struct
 	Object		delStats;	/*	BpDelStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
-	unsigned int	creationTimeSec;
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
 	int		transitPid;	/*	For stopping bptransit.	*/

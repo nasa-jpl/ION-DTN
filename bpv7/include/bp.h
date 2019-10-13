@@ -144,10 +144,10 @@ typedef struct
 
 /*	Quality-of-service flags.					*/
 #define	BP_MINIMUM_LATENCY	(1)	/*	Forward on all routes.	*/
-#define	BP_BEST_EFFORT		(2)	/*	Unreliable CL needed.	*/
+#define	BP_BEST_EFFORT		(2)	/*	Unreliable CL okay.	*/
 #define	BP_DATA_LABEL_PRESENT	(4)	/*	Ignore data label if 0.	*/
-#define	BP_RELIABLE		(8)	/*	Reliable CL needed.	*/
-#define	BP_RELIABLE_STREAMING	(BP_BEST_EFFORT | BP_RELIABLE)
+#define	BP_RELIABLE		(8)	/*	Reliable CL okay.	*/
+#define	BP_RELIABLE_STREAMING	(16)	/*	BSSP mandatory.		*/
 
 typedef struct bpsap_st		*BpSAP;
 

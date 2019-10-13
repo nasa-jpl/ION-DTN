@@ -406,14 +406,19 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	PsmAddress	vductElt;
 
 	*vduct = NULL;			/*	Default.		*/
-	protClassReqd = bundle->ancillaryData.flags & BP_PROTOCOL_BOTH;
+	protClassReqd = bundle->ancillaryData.flags & BP_PROTOCOL_ANY;
+	if (protClassReqd & BP_RELIABLE_STREAMING)
+	{
+		/*	BSSP is required, no other protocol will do.
+		 *	Exclude BP_BEST_EFFORT and BP_RELIABLE even if
+		 *	(erroneously) asserted in ancillaryData flags.	*/
+
+		protClassReqd = BP_RELIABLE_STREAMING;
+	}
+
 	if (protClassReqd == 0)		/*	Don't care.		*/
 	{
-		protClassReqd = -1;	/*	Matches any.		*/
-	}
-	else if (protClassReqd == 10)	/*	Need BSS.		*/
-	{
-		protClassReqd = BP_PROTOCOL_STREAMING;
+		protClassReqd = BP_PROTOCOL_ANY;
 	}
 
 	planObj = sdr_list_data(sdr, vplan->planElt);

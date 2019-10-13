@@ -4359,21 +4359,23 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
 	clpbuf.payloadBytesPerFrame = payloadPerFrame;
 	clpbuf.overheadPerFrame = ohdPerFrame;
-	if (protocolClass == 1 || strcmp(protocolName, "bssp") == 0)
+	if (protocolClass == 26 || strcmp(protocolName, "bssp") == 0)
 	{
-		clpbuf.protocolClass = BP_PROTOCOL_STREAMING;
+		clpbuf.protocolClass = BP_PROTOCOL_ANY;
 	}
 	else if (protocolClass == 2 || strcmp(protocolName, "udp") == 0)
 	{
-		clpbuf.protocolClass = BP_PROTOCOL_UNRELIABLE;
+		clpbuf.protocolClass = BP_BEST_EFFORT;
 	}
-	else if (protocolClass == 10 || strcmp(protocolName, "ltp") == 0)
+	else if (protocolClass == 10
+	|| strcmp(protocolName, "ltp") == 0
+	|| strcmp(protocolName, "bibe") == 0)
 	{
-		clpbuf.protocolClass = BP_PROTOCOL_BOTH;
+		clpbuf.protocolClass = BP_BEST_EFFORT | BP_RELIABLE;
 	}
 	else	/*	Default: most CL protocols do retransmission.	*/
 	{
-		clpbuf.protocolClass = BP_PROTOCOL_RELIABLE;
+		clpbuf.protocolClass = BP_RELIABLE;
 	}
 
 	addr = sdr_malloc(sdr, sizeof(ClProtocol));
@@ -4841,6 +4843,8 @@ static int	flushOutduct(Outduct *outduct)
 	Object		nextElt;
 	Object		bundleObj;
 	Bundle		bundle;
+	int		protocolClassReqd;
+	int		protocolClassApplied;
 
 	/*	Any bundle previously enqueued for transmission via
 	 *	this outduct that has not yet been transmitted is
@@ -4856,7 +4860,12 @@ static int	flushOutduct(Outduct *outduct)
 		nextElt = sdr_list_next(sdr, elt);
 		bundleObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
-		if (protocol.protocolClass & BP_PROTOCOL_RELIABLE)
+		protocolClassReqd = bundle.ancillaryData.flags
+				& BP_PROTOCOL_ANY;
+		protocolClassApplied = protocolClassReqd
+				& protocol.protocolClass;
+		if (protocolClassApplied & BP_RELIABLE
+		|| protocolClassApplied & BP_RELIABLE_STREAMING)
 		{
 			if (bpReforwardBundle(bundleObj) < 0)
 			{
@@ -5784,9 +5793,10 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	CHKERR(bundleObj && bundle && eid);
 
 	/*	Error if this bundle is already in the process of
-	 *	being delivered locally.  A bundle that is being
-	 *	delivered and must also be forwarded must be cloned,
-	 *	and only the clone may be passed to this function.	*/
+	 *	being delivered (or reassembled for delivery) locally.
+	 *	A bundle that is being delivered and must also be
+	 *	forwarded must be cloned, and only the clone may be
+	 *	passed to this function.				*/
 
 	CHKERR(bundle->dlvQueueElt == 0);
 	CHKERR(bundle->fragmentElt == 0);
@@ -5966,6 +5976,7 @@ static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
 			blk.tag1 = spec->tag1;
 			blk.tag2 = spec->tag2;
 			blk.tag3 = spec->tag3;
+			blk.crcType = spec->crcType;
 			if (def->offer(&blk, bundle) < 0)
 			{
 				putErrmsg("Failed offering extension block.",
@@ -6071,15 +6082,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		discovery->lastContactTime = getCtime();
 	}
 
-	/*	The bundle protocol specification authorizes the
-	 *	implementation to issue bundles whose source endpoint
-	 *	ID is "dtn:none".  Since this could result in the
-	 *	presence in the network of bundles lacking unique IDs,
-	 *	making meaningful status reporting impossible, this
-	 *	option is supported only when status reporting is
-	 *	not requested.
-	 *
-	 *	To simplify processing, reduce all representations of
+	/*	To simplify processing, reduce all representations of
 	 *	null source endpoint to a sourceMetaEid value of NULL.	*/
 
 	if (sourceMetaEid)
@@ -6089,6 +6092,14 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 			sourceMetaEid = NULL;
 		}
 	}
+
+	/*	The bundle protocol specification authorizes the
+	 *	implementation to issue bundles whose source endpoint
+	 *	ID is "dtn:none".  Since this could result in the
+	 *	presence in the network of bundles lacking unique IDs,
+	 *	making meaningful status reporting impossible, this
+	 *	option is supported only when status reporting is
+	 *	not requested.						*/
 
 	if (srrFlags != 0)
 	{
@@ -6100,6 +6111,9 @@ for status reports.");
 			return 0;
 		}
 
+		/*	Also can't get status reports for
+		 *	administrative records.				*/
+
 		if (adminRecordType != 0)
 		{
 			restoreEidString(&destMetaEid);
@@ -6107,6 +6121,9 @@ for status reports.");
 records.");
 			return 0;
 		}
+
+		/*	Also can't get status reports for bundles
+		 *	sent as "critical" (multiple copies).		*/
 
 		if (ancillaryData)
 		{
@@ -6170,7 +6187,7 @@ when asking for status reports.");
 	{
 		/*	Submitted by application on open endpoint.
 		 *
-		 *	For network management....			*/
+		 *	For network management statistics....		*/
 
 		findEndpoint(sourceMetaEid->schemeName, sourceMetaEid->nss,
 				NULL, &vpoint, &vpointElt);
@@ -6208,8 +6225,9 @@ when asking for status reports.");
 
 	/*	The bundle protocol specification authorizes the
 	 *	implementation to fragment an ADU.  In the ION
-	 *	implementation we fragment only when necessary, at
-	 *	the moment a bundle is dequeued for transmission.	*/
+	 *	implementation we fragment only when necessary, in
+	 *	CGR (anticipatory fragmentation) or at the moment
+	 *	a bundle is dequeued for transmission.			*/
 
 	CHKERR(sdr_begin_xn(sdr));
 	aduLength = zco_length(sdr, adu);
@@ -6256,35 +6274,57 @@ when asking for status reports.");
 
 	/*	Set creationTime of bundle.				*/
 
+	sdr_stage(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
-		if (currentDtnTime.seconds != bpvdb->creationTimeSec)
+		if (bpdb.creationTimeSec == 0)	/*	First bundle.	*/
 		{
-			bpvdb->creationTimeSec = currentDtnTime.seconds;
-			bpvdb->bundleCounter = 0;
+			bpdb.creationTimeSec = currentDtnTime.seconds;
 		}
-
-		bundle.id.creationTime.seconds = bpvdb->creationTimeSec;
-		bundle.id.creationTime.count = ++(bpvdb->bundleCounter);
 	}
 	else
 	{
 		/*	If no synchronized clock, then creationTime
-		 *	seconds is always zero and a non-volatile
-		 *	bundle counter increments monotonically.	*/
+		 *	seconds is always zero.				*/
+	       
+		currentDtnTime.seconds = 0;
+	}
 
-		bundle.id.creationTime.seconds = 0;
-		sdr_stage(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
-		bpdb.bundleCounter++;
-		if (bpdb.bundleCounter > bpdb.maxBundleCount)
+	bundle.id.creationTime.seconds = currentDtnTime.seconds;
+
+	/*	In either case, a non-volatile bundle counter is
+	 *	incremented monotonically, resetting to zero only
+	 *	when a managed limit is reached -- except that the
+	 *	counter is NOT reset to zero if that would result
+	 *	in multiple bundles having the same creationTime.	*/
+
+	bundle.id.creationTime.count = bpdb.bundleCounter;
+	bpdb.bundleCounter++;
+	if (bpdb.bundleCounter > bpdb.maxBundleCount)
+	{
+		if (ionClockIsSynchronized())
 		{
+			if (currentDtnTime.seconds > bpdb.creationTimeSec)
+			{
+				/*	Safe to roll the counter over.	*/
+
+				bpdb.bundleCounter = 0;
+				bpdb.creationTimeSec = currentDtnTime.seconds;
+			}
+		}
+		else	/*	No synchronized clock, just counter.	*/
+		{
+			/*	Counter and limit are managed; assume
+			 *	always safe.				*/
+
 			bpdb.bundleCounter = 0;
 		}
-
-		bundle.id.creationTime.count = bpdb.bundleCounter;
-		sdr_write(sdr, bpDbObject, (char *) &bpdb, sizeof(BpDB));
 	}
+
+	sdr_write(sdr, bpDbObject, (char *) &bpdb, sizeof(BpDB));
+
+	/*	Load other bundle properties.				*/
 
 	getCurrentTime(&bundle.arrivalTime);
 	bundle.timeToLive = lifespan;
@@ -6340,6 +6380,11 @@ when asking for status reports.");
 			userExtensions = ancillaryData->extensions;
 			userExtensionsCt = ancillaryData->extensionsCt;
 		}
+	}
+
+	if (custodySwitch != NoCustodyRequested)
+	{
+		bundle.ancillaryData.flags |= BP_RELIABLE;
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6412,7 +6457,7 @@ int	sendStatusRpt(Bundle *bundle)
 	int		priority = bundle->priority;
 	unsigned int	ttl;	/*	Original bundle's TTL.		*/
 	BpAncillaryData	ecos = { 0, 0, bundle->ancillaryData.ordinal };
-	Object		payloadZco=0;
+	Object		payloadZco = 0;
 	char		*reportToEid;
 	int		result;
 
@@ -6502,21 +6547,21 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 	switch (eid->schemeCodeNbr)
 	{
 	case dtn:
-		if (eid->ssp.dtn.nssLength > 0)
+		if (eid->ssp.dtn.nssLength > 0)		/*	NV.	*/
 		{
 			nssLength = eid->ssp.dtn.nssLength;
 			sdr_read(getIonsdr(), nssBuf,
 				eid->ssp.dtn.endpointName.nv, nssLength);
 			nssBuf[nssLength] = '\0';
 		}
-		else if (eid->ssp.dtn.nssLength < 0)
+		else if (eid->ssp.dtn.nssLength < 0)	/*	V.	*/
 		{
 			nssLength = 0 - eid->ssp.dtn.nssLength;
 			memcpy(nssBuf, psp(wm, eid->ssp.dtn.endpointName.v),
 				nssLength);
 			nssBuf[nssLength] = '\0';
 		}
-		else
+		else					/*	String	*/
 		{
 			istrcpy(nssBuf, eid->ssp.dtn.endpointName.s,
 				MAX_NSS_LEN);
@@ -6769,7 +6814,16 @@ int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 	/*	Check to see if we've already got one or more
 	 *	fragments of this bundle; if so, invoke reassembly
 	 *	(which may or may not result in delivery of a new
-	 *	reconstructed original bundle to the application).	*/
+	 *	reconstructed original bundle to the application).
+	 *
+	 *	Note: if this bundle were the final missing fragment
+	 *	of some other bundle, that fact would have been
+	 *	determined during bundle acquisition (in the
+	 *	checkIncompleteBundle function); the original
+	 *	bundle would have been reassembled and the fragment
+	 *	would have been discarded.  Since the bundle is
+	 *	instead being delivered, it can't be the final
+	 *	missing fragment of some other bundle.			*/
 
 	if (findIncomplete(bundle, vpoint, &incompleteAddr, &elt) < 0)
 	{
@@ -7218,10 +7272,10 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 	 *	extent reordering mechanism similar to the one that
 	 *	is implemented in LTP.  This is not a problem in BP
 	 *	because, for all convergence-layer protocols, either
-	 *	the CL delivers a complete bundle (as in LTP and UDP)
-	 *	or else the bundle increments are acquired in order
-	 *	of increasing offset because the CL itself enforces
-	 *	data ordering (as in TCP).				*/
+	 *	the CL delivers a complete bundle (as in LTP, UDP,
+	 *	and BIBE) or else the bundle increments are acquired
+	 *	in order of increasing offset because the CL itself
+	 *	enforces data ordering (as in TCP).			*/
 
 	if (source == ZcoSdrSource)
 	{
@@ -7378,7 +7432,7 @@ unsigned int	computeECCC(unsigned int bundleSize)
 {
 	unsigned int	stackOverhead;
 
-	/*	Assume 6.25% convergence-layer overhead.		*/
+	/*	Assume 6.25% convergence-layer stack overhead.		*/
 
 	stackOverhead = (bundleSize >> 4) & 0x0fffffff;
 	if (stackOverhead < TYPICAL_STACK_OVERHEAD)
