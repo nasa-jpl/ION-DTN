@@ -7504,33 +7504,56 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		nullEidLen;
 	int		bytesParsed;
 
-	/*	Create the inbound bundle.				*/
-
 	bundle = &(work->bundle);
-	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
-	bundle->detained = 0;
 	bytesToParse = work->bytesBuffered;
 	unparsedBytes = bytesToParse;
 	cursor = (unsigned char *) (work->buffer);
 
 	/*	Start parsing the primary block.			*/
 
-	if (unparsedBytes < MIN_PRIMARY_BLK_LENGTH)
+	if (cbor_decode_array_open(7, &cursor) == 1)
 	{
-		writeMemoNote("[?] Not enough bytes for primary block",
-				itoa(unparsedBytes));
+		isSegment = 0;
+	}
+	else
+	{
+		cursor = (unsigned char *) (work->buffer);
+		if (cbor_decode_array_open(9, &cursor) == 1)
+		{
+			isSegment = 1;
+		}
+		else
+		{
+			writeMemo("[?] Invalid # items in primary block.");
+			return 0;
+		}
+	}
+
+	unparsedBytes -= 1;
+	if (cbor_decode_integer(&uvtemp, 0, &cursor) != 1)
+	{
+		writeMemo("[?] Missing version number in primary block.");
 		return 0;
 	}
 
-	version = *cursor;
-	cursor++; unparsedBytes--;
+	version = uvtemp;
 	if (version != BP_VERSION)
 	{
 		writeMemoNote(_versionMemo(), itoa(version));
 		return 0;
 	}
 
-	extractSmallSdnv(&(bundle->bundleProcFlags), &cursor, &unparsedBytes);
+	unparsedBytes -= 1;
+	if (cbor_decode_integer(&uvtemp, 2, &cursor) != 3)
+	{
+		writeMemo("[?] Missing bundle flags in primary block.");
+		return 0;
+	}
+
+	bundle->bundleProcFlags = uvtemp;
+	unparsedBytes -= 3;
+
+	//	<<-- continue here
 
 	/*	Note status report information as necessary.		*/
 
@@ -7738,10 +7761,30 @@ static int	acquireBlock(AcqWorkArea *work)
 
 static int	acqFromWork(AcqWorkArea *work)
 {
-	Sdr	sdr = getIonsdr();
-	int	bytesParsed;
-	int	unreceivedPayload;
-	int	bytesRecd;
+	Sdr		sdr = getIonsdr();
+	unsigned char	*cursor;
+	int		bytesParsed;
+	Bundle		*bundle;
+	int		unreceivedPayload;
+	int		bytesRecd;
+
+	/*	First acquire CBOR indefinite-length array token.	*/
+
+	cursor = (unsigned char *) (work->buffer);
+	bytesParsed = cbor_decode_array_open(0, &cursor);
+	if (bytesParsed != 1)
+	{
+		return -1;
+	}
+
+	work->bundleLength += bytesParsed;
+	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
+
+	/*	Bundle structure initialization.			*/
+
+	bundle = &(work->bundle);
+	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
+	bundle->detained = 0;
 
 	/*	Acquire primary block.					*/
 
@@ -7798,7 +7841,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	{
 		/*	Bundle without any payload.			*/
 
-		return 0;		/*	Nothing more to do.	*/
+		return -1;		/*	Payload block missing.	*/
 	}
 
 	/*	Now acquire all payload bytes.  All payload bytes that
@@ -7841,6 +7884,17 @@ static int	acqFromWork(AcqWorkArea *work)
 		CHKERR(advanceWorkBuffer(work, 0) == 0);
 	}
 
+	/*	Finally, acquire CBOR break character.			*/
+
+	cursor = (unsigned char *) (work->buffer);
+	bytesParsed = cbor_decode_break(0, &cursor);
+	if (bytesParsed != 1)
+	{
+		return -1;	/*	Array is not terminated.	*/
+	}
+
+	work->bundleLength += bytesParsed;
+	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
 	return 0;
 }
 
