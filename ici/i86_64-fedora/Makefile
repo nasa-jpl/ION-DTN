@@ -6,11 +6,10 @@ DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
-CBOR = ../cbor/src
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../cbor/inc
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -30,9 +29,7 @@ LIBICIOBJS = \
 	crypto.o \
 	csi.o \
 	crc.o \
-	cbor_encode.o \
-	cbor_decode.o \
-	cbor_parse.o \
+	cbor.o \
 	bulk.o \
 	zco.o \
 	sdrxn.o \
@@ -198,9 +195,6 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(CC) -c $<
 
 %.o:		$(CRYPTO)/%.c
-		$(CC) -c $<
-
-%.o:		$(CBOR)/%.c
 		$(CC) -c $<
 
 %.o:		$(BULK)/%.c

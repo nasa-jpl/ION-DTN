@@ -85,6 +85,7 @@ typedef struct
 	unsigned char	tag2;		/**	Extension-specific.	*/
 	unsigned char	tag3;		/**	Extension-specific.	*/
 	unsigned short	rank;		/**	Order within spec array.*/
+	BpCrcType	crcType;
 	int		suppressed;	/**	If suppressed.          */
 } ExtensionBlock;
 

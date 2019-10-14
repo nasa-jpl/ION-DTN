@@ -1367,7 +1367,6 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->delStats = db->delStats;
 		vdb->dbStats = db->dbStats;
 		vdb->updateStats = db->updateStats;
-		vdb->creationTimeSec = 0;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
 		vdb->transitSemaphore = SM_SEM_NONE;
