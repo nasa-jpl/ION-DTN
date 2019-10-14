@@ -191,8 +191,8 @@ int       ari_compare(ari_t *ari1, ari_t *ari2, int parms);
 ari_t     ari_copy(ari_t val, int *success);
 ari_t*    ari_copy_ptr(ari_t *ari);
 ari_t*    ari_create(amp_type_e type);
-ari_t     ari_deserialize(CborValue *it, int *success);
-ari_t*    ari_deserialize_ptr(CborValue *it, int *success);
+ari_t     ari_deserialize(QCBORDecodeContext *it, int *success);
+ari_t*    ari_deserialize_ptr(QCBORDecodeContext *it, int *success);
 ari_t*    ari_deserialize_raw(blob_t *data, int *success);
 ari_t*    ari_from_uvast(uvast val);
 ari_t*    ari_from_parm_reg(uint8_t flags, uvast nn, uvast iss, blob_t *tag, blob_t *name, tnvc_t *parms);
@@ -203,7 +203,7 @@ ari_t     ari_null();
 void      ari_release(ari_t *ari, int destroy);
 int       ari_replace_parms(ari_t *ari, tnvc_t *new_parms);
 tnvc_t*   ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms);
-CborError ari_serialize(CborEncoder *encoder, void *item);
+int       ari_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*   ari_serialize_wrapper(ari_t *ari);
 
 
@@ -214,15 +214,15 @@ ac_t*     ac_create();
 //int       ac_compare(ac_t *a1, ac_t *a2);
 ac_t      ac_copy(ac_t *src);
 ac_t*     ac_copy_ptr(ac_t *src);
-ac_t      ac_deserialize(CborValue *it, int *success);
-ac_t*     ac_deserialize_ptr(CborValue *it, int *success);
+ac_t      ac_deserialize(QCBORDecodeContext *it, int *success);
+ac_t*     ac_deserialize_ptr(QCBORDecodeContext *it, int *success);
 ac_t      ac_deserialize_raw(blob_t *data, int *success);
 ari_t*    ac_get(ac_t* ac, uint8_t index);
 uint8_t   ac_get_count(ac_t* ac);
 int       ac_init(ac_t *ac);
 int       ac_insert(ac_t* ac, ari_t *ari);
 void      ac_release(ac_t *ac, int destroy);
-CborError ac_serialize(CborEncoder *encoder, void *item);
+int        ac_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*   ac_serialize_wrapper(ac_t *ac);
 
 #endif

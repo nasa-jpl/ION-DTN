@@ -39,6 +39,8 @@ ICISOURCES =     \
    ionadmin.c    \
    sdrmend.c     \
    ionunlock.c   \
+   ionxnowner.c  \
+   ionlog.c      \
    ionsec.c      \
    ionsecadmin.c \
    crypto.c      \
@@ -55,30 +57,36 @@ LTPSOURCES =     \
 	libltp.c     \
 	libltpP.c    \
 	libltpnm.c   \
+	ltpsec.c     \
 	ltpei.c      \
 	ltpclock.c   \
 	ltpdeliv.c   \
 	ltpmeter.c   \
 	pmqlsi.c     \
 	pmqlso.c     \
-	ltpadmin.c
+	ltpadmin.c   \
+	ltpsecadmin.c
 
 BPSOURCES =      \
 	libbp.c      \
 	libbpP.c     \
 	libbpnm.c    \
+	bpsec.c      \
 	bpclock.c    \
 	bptransit.c  \
 	bpclm.c      \
 	bpadmin.c    \
+	bpsecadmin.c \
 	bpstats.c    \
 	bptrace.c    \
 	bplist.c     \
+	bpcrash.c    \
 	lgagent.c    \
 	ipnadmin.c   \
 	ipnfw.c      \
 	libcgr.c     \
 	eureka.c     \
+	saga.c 	     \
 	ipnadminep.c \
 	libipnfw.c   \
 	libdtn2fw.c  \
@@ -86,6 +94,7 @@ BPSOURCES =      \
 	ltpclo.c     \
 	bibeclo.c    \
 	bei.c        \
+	snw.c        \
 	phn.c        \
 	ecos.c       \
 	meb.c        \

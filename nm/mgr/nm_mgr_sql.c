@@ -623,66 +623,63 @@ int  db_mgr_sql_persist()
 
 void db_mgr_sql_info_deserialize(blob_t *data)
 {
-	CborError err = CborNoError;
-	CborValue array_it;
-	CborValue it;
-	CborParser parser;
+	QCBORError err;
+	QCBORItem item;
+	QCBORDecodeContext it;
 	size_t length;
 
-	cbor_parser_init(data->value, data->length, 0, &parser, &it);
+	QCBORDecode_Init(&it,
+					 (UsefulBuf){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
-	if((!cbor_value_is_container(&it)) ||
-	   ((err = cbor_value_enter_container(&it, &array_it)) != CborNoError))
+	err = QCBORDecode_GetNext(it, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
-		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Not a container. Error is %d", err);
+		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Not a container. Error is %d Type %d", err, item.uDataType);
+		return NULL;
+	}
+	else if (item.val.uCount != 4)
+	{
+		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Bad length. %d not 4", item.val.uCount);
 		return;
 	}
 
-	if((err = cbor_value_get_array_length(&it, &length)) != CborNoError)
-	{
-		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Can't get array length. Err is %d", err);
-		return;
-	}
+	cut_get_cbor_str_ptr(&it, gMgrDB.sql_info.server, UI_SQL_SERVERLEN);
+	cut_get_cbor_str_ptr(&it, gMgrDB.sql_info.username, UI_SQL_ACCTLEN);
+	cut_get_cbor_str_ptr(&it, gMgrDB.sql_info.password, UI_SQL_ACCTLEN);
+	cut_get_cbor_str_ptr(&it, gMgrDB.sql_info.database, UI_SQL_DBLEN);
 
-	if(length != 4)
-	{
-		AMP_DEBUG_ERR("mgr_sql_info_deserialize","Bad length. %d not 4", length);
-		return;
-	}
-
-	length = UI_SQL_SERVERLEN;
-	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.server, &length, &array_it);
-
-	length = UI_SQL_ACCTLEN;
-	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.username, &length, &array_it);
-
-	length = UI_SQL_ACCTLEN;
-	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.password, &length, &array_it);
-
-	length = UI_SQL_DBLEN;
-	cbor_value_copy_text_string(&array_it, gMgrDB.sql_info.database, &length, &array_it);
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
 
 	return;
 }
 
-blob_t*   db_mgr_sql_info_serialize(sql_db_t *item)
+blob_t*	  db_mgr_sql_info_serialize(sql_db_t *item)
 {
-	CborEncoder encoder;
-	CborEncoder array_enc;
+	QCBOREncodeContext encoder;
+	QCBORItem item;
 
 	blob_t *result = blob_create(NULL, 0, 2 * sizeof(sql_db_t));
 
-	cbor_encoder_init(&encoder, result->value,  result->alloc, 0);
+	QCBOREncode_Init(&encoder, (UsefulBuf){result->value, result->alloc});
+	QCBOREncode_OpenArray(&encoder);
 
-	cbor_encoder_create_array(&encoder, &array_enc, 4);
+	QCBOREncode_AddSZString(&encoder, item->server);
+	QCBOREncode_AddSZString(&encoder, item->username);
+	QCBOREncode_AddSZString(&encoder, item->password);
+	QCBOREncode_AddSZString(&encoder, item->database);
 
-	cbor_encode_text_stringz(&array_enc, item->server);
-	cbor_encode_text_stringz(&array_enc, item->username);
-	cbor_encode_text_stringz(&array_enc, item->password);
-	cbor_encode_text_stringz(&array_enc, item->database);
+	QCBOREncode_CloseArray(&encoder);
 
-	cbor_encoder_close_container(&encoder, &array_enc);
-	result->length = cbor_encoder_get_buffer_size(&encoder, result->value);
+	UsefulBufC Encoded;
+	if(QCBOREncode_Finish(&EC, &Encoded)) {
+		AMP_DEBUG_ERR("db_mgr_sql_info_serialize", "Encoding failed", NULL);
+		blob_release(result,1);
+		return NULL;
+	}
+	
+	result->length = Encoded.len;
 	return result;
 }
 

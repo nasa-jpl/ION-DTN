@@ -1,0 +1,142 @@
+--- Makefile_ION.am	2017-08-16 16:37:20.000000000 +0200
++++ Makefile_ECLSA.am	2018-09-11 11:59:11.255428000 +0200
+@@ -3,14 +3,30 @@
+ # June 14, 2013
+ # Adapted from work by David Young
+ 
++############
++##eclsa
++###########
++SUBDIRS= 
++DIST_SUBDIRS=
++
++if ECLSA_CODEC_OPENFEC
++SUBDIRS+= contrib/ECLSAv2/ion-open-source/ltp/ec/openfec
++DIST_SUBDIRS+= contrib/ECLSAv2/ion-open-source/ltp/ec/openfec
++endif
++
++SUBDIRS+= .
++
+ #Control building of Contrib as determined by ./configure flags
+ if BUILD_CONTRIB
+-SUBDIRS= . contrib
+-else
+-SUBDIRS= .
++SUBDIRS+= contrib 
+ endif
+ 
+-DIST_SUBDIRS= . contrib
++DIST_SUBDIRS+= . contrib 
++
++############
++##end eclsa
++###########
++
+ 
+ AM_CFLAGS += \
+ 	-Wall -Werror -g \
+@@ -675,6 +691,26 @@
+ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
+ 	$(ltpPODM5) $< $@
+ 
++
++
++# -- ECLSA -- #
++
++if BUILD_ECLSA
++
++ltpbin += eclso \
++	  eclsi
++
++ltplib += libeclsa.la
++
++
++ltpextra += ltp/doc/pod1/eclso.pod \
++	    ltp/doc/pod1/eclsi.pod
++
++endif
++
++
++
++
+ # -- Libraries --- #
+ 
+ libltp_la_SOURCES = \
+@@ -730,6 +766,76 @@
+ udplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+ udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+ 
++
++
++if BUILD_ECLSA
++# --- ECLSA Executables and Library --- #
++
++libeclsa_la_SOURCES =   contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/sys/eclsaTimer.c \
++	                    contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/sys/eclsaLogger.c \
++	                    contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/sys/eclsaMemoryManager.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/matrix/eclsaCodecMatrix.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/matrix/eclsaMatrix.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/matrix/eclsaMatrixPool.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/fec/eclsaFecManager.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/packet/eclsaSendingSequence.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/packet/eclsaBlacklist.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/packet/eclsaPacket.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/elements/packet/eclsaFeedback.c \
++		                contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/extensions/HSLTP/eclso_ext.c \
++                        contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/extensions/HSLTP/eclsi_ext.c 
++
++libeclsa_la_CFLAGS =    -I$(srcdir)/ici/include \
++		                -I$(srcdir)/ltp/library \
++		                -I$(srcdir)/bp/library 
++
++eclsX_LDADD = libeclsa.la 
++
++eclso_SOURCES = contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/eclso.c 
++eclso_LDADD = $(eclsX_LDADD) libltp.la libici.la libbp.la $(LIBOBJS) -lrt -L$(srcdir)/contrib/ECLSAv2/ion-open-source/ltp/ec/openfec/bin/Debug
++eclso_CFLAGS = $(eclsX_CFLAGS) $(ltpcflags) $(AM_CFLAGS) 
++
++eclsi_SOURCES = contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/eclsi.c 
++eclsi_LDADD = $(eclsX_LDADD) libltp.la libici.la libbp.la $(LIBOBJS) -lrt -L$(srcdir)/contrib/ECLSAv2/ion-open-source/ltp/ec/openfec/bin/Debug
++eclsi_CFLAGS = $(eclsX_CFLAGS) $(ltpcflags) $(AM_CFLAGS)
++
++
++if ECLSA_CODEC_DUMMYDEC
++libeclsa_la_SOURCES +=	contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/adapters/codec/eclsaCodecAdapter_DummyDEC.c		
++endif
++
++if ECLSA_CODEC_OPENFEC
++libeclsa_la_SOURCES +=  contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/adapters/codec/eclsaCodecAdapter_OpenFEC.c
++libeclsa_la_CFLAGS += -I$(srcdir)/contrib/ECLSAv2/ion-open-source/ltp/ec/openfec/src/lib_common
++eclso_LDADD += -lopenfec
++eclsi_LDADD += -lopenfec
++endif
++
++if ECLSA_CODEC_LIBECDLR
++libeclsa_la_SOURCES +=	contrib/ECLSAv2/ion-open-source/ltp/ec/libec/decoder.c \
++			            contrib/ECLSAv2/ion-open-source/ltp/ec/libec/encoder.c \
++			            contrib/ECLSAv2/ion-open-source/ltp/ec/libec/ec_graph.c \
++			            contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/adapters/codec/eclsaCodecAdapter_LibecDLR.c
++
++libeclsa_la_CFLAGS += -I$(srcdir)/contrib/ECLSAv2/ion-open-source/ltp/ec/libec 
++endif
++
++if ECLSA_LP_UDP
++libeclsa_la_SOURCES +=	contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/adapters/protocol/eclsaProtocolAdapter_LP_UDP.c 
++endif
++
++if ECLSA_UP_LTP
++libeclsa_la_SOURCES +=	contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/adapters/protocol/eclsaProtocolAdapter_UP_ION_LTP.c \
++                        contrib/ECLSAv2/ion-open-source/ltp/ec/eclsa/extensions/HSLTP/hsltpProtocolAdapter_UP_ION_LTP.c
++
++endif
++
++
++endif
++
++
++
++
+ # --- AOS Executables --- #
+ 
+ aoslsi_SOURCES = ltp/aos/aoslsi.c
+ 

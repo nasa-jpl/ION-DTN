@@ -1,6 +1,6 @@
-= Release Notes for ION 3.6.2 =
+= Release Notes for ION 3.7.0 =
 
-November 28, 2018
+October 7, 2019
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,103 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 3.7.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+For ION 3.7.0 we focused mainly on upgrading the routing and forwarding
+modules.  We made significant progress, but the final step will be to
+enable forwarding - both unicast and multicast - across multiple "regions"
+of a potentially very large network; we're not there yet.  The groundwork
+has been laid, though, and inter-regional routing should be supported by
+sometime next summer.  Meanwhile, here's what is in the 3.7.0 release:
+
+- Management functions for declaring "region" membership and managing
+     "passageways" between regions have been implemented.
+
+- Discovered contacts are now logged, to serve as the basis for computing
+     predicted contacts.
+
+- A new protocol (implemented using BP administrative messages) has been
+     developed for exchanging logs of discovered contacts, to improve
+     all nodes' understanding of unplanned contact patterns.
+
+- Opportunistic CGR has been augmented with contact prediction based on
+     logs of discovered contacts, and an overhead-limiting mechanism
+     inspired by Spray and Wait routing has been added.
+
+- Network management has been overhauled.  In particular, QCBOR has
+     replaced TinyCBOR as the mechanism for CBOR encoding and decoding
+     of network management messages.
+
+- Updated implementations of DTNperf and the Erasure Coding link service
+     adapter, from University of Bologna, have been added.
+
+- Individual threads can now be named, for easier management in embedded
+     deployments.  NOTE: this feature won't be available for the uClibc
+     platform in 3.7.0, as the version of uClibc we're working with
+     does not include an implementation of pthread_setname_np.
+
+- CFDP has been updated to conform to the latest CFDP Red Book.
+
+- ionxnowner, a utility that identifies the owner of the current SDR
+     transaction, has been added.
+
+- SDNV encoding has been optimized, thanks to Cheol Koo of KARI.
+
+- A bug in handling the "verbose" flag in owltsim has been fixed, courtesy of
+     Pete Gonzalez, Johnson Space Center.
+
+- Errors in the accumulation of reception statistics have been corrected.
+
+- CGR has been updated to conform to the new CCSDS Schedule-Aware Bundle
+     Routing specification, including anticipatory fragmentation.
+
+- LTP has been simplified for higher performance.  "Screening" control
+     has been reinstated, reception rate control has been removed,
+     tracking of closed export sessions has been made optional.
+
+- SourceForge Bugs #69 and #138: the UDP rate control algorithms in udpclo
+     and udplso have been made more stable and more accurate, and rate
+     control limits are now automatically obtained from the contact plan.
+
+- SourceForge Bug #134: the time values that ION operates on are now
+     explicitly recognized as being "ctime" values (Unix epoch time)
+     rather than UTC time values.  Conversion from ION time values to
+     UTC is still supported by O/S services, e.g., gmtime.
+
+- SourceForge Bug #135: to prevent circular references at build time,
+     the administrative functions for managing BP and LTP security rules
+     have been relocated from ionsecadmin to new bpsecadmin and ltpsecadmin
+     utilities.  This enables validation of ciphersuite specifications
+     when SBSP rules are added.
+
+- SourceForge Bug #144: a fix has been made to prevent ipnfw from crashing
+     when CGR attempts to compute a new route through a contact just as the
+     contact is ending.
+
+- SourceForge Feature Request #53: network administrator can now specify
+     a routing override that supersedes the routes computed by CGR.
+
+- SourceForge Feature Request #61: network administrator can now specify
+     a bundle priority that overrides the priority declared by the
+     application that sourced the bundle.
+
+- SourceForge Feature Request #74: all remaining reliance on BP libraries
+     has been removed from CFDP (except bputa).
+
+One more note: support for explicitly detaching an Outduct from the Egress
+     Plan to which it is currently attached has been added.  Unfortunately,
+     this feature requires that each Outduct be attached only to a single
+     Egress Plan.  That has been the intent of the architecture all along,
+     but making it explicit has uncovered a problem in the regression tests
+     for Aggregate Custody Signaling: those tests rely on the use of a single
+     Outduct for transmission to two different nodes.  Consequently those
+     tests now fail and will continue to fail until they are rewritten.
+     ACS itself is unaffected by the new feature, and when we temporarily
+     disable that restriction on Outduct attachment the ACS regression
+     tests all pass.  ACS still works just as well as ever.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.6.2 =

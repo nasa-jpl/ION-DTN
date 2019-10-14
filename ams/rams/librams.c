@@ -749,7 +749,8 @@ printf("bp_open succeeds.\n");
 		CHKERR(gWay->udpRpdus);
 		lyst_compare_set(gWay->udpRpdus, compareCheckTimes);
 		lyst_delete_set(gWay->udpRpdus, deleteDeclaration, NULL);
-		if (pthread_begin(&checkThread, NULL, CheckUdpRpdus, NULL))
+		if (pthread_begin(&checkThread, NULL, CheckUdpRpdus,
+			NULL, "librams_check"))
 		{
 			putSysErrmsg("Can't create check thread", NULL);
 			return -1;

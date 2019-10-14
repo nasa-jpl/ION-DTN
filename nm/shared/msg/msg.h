@@ -111,9 +111,9 @@ typedef struct
 	eid_t recipientEid;
 } msg_metadata_t;
 
-msg_hdr_t    msg_hdr_deserialize(CborValue *it, int *success);
+msg_hdr_t msg_hdr_deserialize(QCBORDecodeContext *it, int *success);
 
-CborError    msg_hdr_serialize(CborEncoder *encoder, msg_hdr_t hdr);
+int msg_hdr_serialize(QCBOREncodeContext *encoder, msg_hdr_t hdr);
 
 
 msg_agent_t* msg_agent_create();
@@ -122,7 +122,7 @@ msg_agent_t* msg_agent_deserialize(blob_t *data, int *success);
 
 void         msg_agent_release(msg_agent_t *pdu, int destroy);
 
-CborError    msg_agent_serialize(CborEncoder *encoder, void *item);
+int msg_agent_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*      msg_agent_serialize_wrapper(msg_agent_t *msg);
 
@@ -136,7 +136,7 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success);
 
 void        msg_ctrl_release(msg_ctrl_t *msg, int destroy);
 
-CborError   msg_ctrl_serialize(CborEncoder *encoder, void *item);
+int msg_ctrl_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*     msg_ctrl_serialize_wrapper(msg_ctrl_t *msg);
 
@@ -152,7 +152,7 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success);
 
 void       msg_rpt_release(msg_rpt_t *pdu, int destroy);
 
-CborError  msg_rpt_serialize(CborEncoder *encoder, void *item);
+int msg_rpt_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*    msg_rpt_serialize_wrapper(msg_rpt_t *msg);
 
@@ -172,7 +172,7 @@ int        msg_grp_get_type(msg_grp_t *grp, int idx);
 
 void       msg_grp_release(msg_grp_t *group, int destroy);
 
-CborError  msg_grp_serialize(CborEncoder *encoder, void *item);
+int msg_grp_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*    msg_grp_serialize_wrapper(msg_grp_t *msg_grp);
 

@@ -223,26 +223,32 @@ blob_t* blob_copy_ptr(blob_t *src)
  *  08/31/18  E. Birrane     Update to CBOR. (JHU/APL)
  *****************************************************************************/
 
-blob_t blob_deserialize(CborValue *it, int *success)
+blob_t blob_deserialize(QCBORDecodeContext *it, int *success)
 {
 	blob_t result;
-	CborError err;
 	size_t len = 0;
+	QCBORItem item;
+	int status;
 
 	AMP_DEBUG_ENTRY("blob_deserialize","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) it, (uaddr) success);
 
 	memset(&result, 0, sizeof(blob_t));
 	*success = AMP_FAIL;
 
-	if(!cbor_value_is_byte_string(it))
+	if( (status = QCBORDecode_GetNext(it, &item)) != QCBOR_SUCCESS) {
+	   AMP_DEBUG_ERR("blob_deserialize", "QCBOR Error", status);
+	   return result;
+	}
+
+	if(item.uDataType != QCBOR_TYPE_BYTE_STRING)
 	{
 		AMP_DEBUG_ERR("blob_deserialize", "Bad CBOR encoding.", NULL);
 		return result;
 	}
 
-	if((err = cbor_value_get_string_length(it, &len)) != CborNoError)
+	if((len = item.val.string.len) == 0)
 	{
-		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
+		AMP_DEBUG_ERR("blob_deserialize", "Empty CBOR bytestring", NULL);
 		return result;
 	}
 
@@ -256,20 +262,13 @@ blob_t blob_deserialize(CborValue *it, int *success)
 	}
 
 	/* Copy bytestring value into the BLOB */
-	err = cbor_value_copy_byte_string(it, result.value, &(result.length), it);
-	if((err != CborNoError) && (err != CborErrorUnexpectedEOF))
-	{
-		AMP_DEBUG_ERR("blob_deserialize", "Cbor Error %d.", err);
-		blob_release(&result, 0);
-		memset(&result, 0, sizeof(blob_t));
-		return result;
-	}
+	memcpy(result.value, item.val.string.ptr, len);
 
 	*success = AMP_OK;
 	return result;
 }
 
-blob_t *blob_deserialize_ptr(CborValue *it, int *success)
+blob_t *blob_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	blob_t *result = NULL;
 
@@ -288,7 +287,6 @@ blob_t *blob_deserialize_ptr(CborValue *it, int *success)
 
 	return result;
 }
-
 
 
 int blob_grow(blob_t *blob, uint32_t length)
@@ -425,11 +423,11 @@ void blob_release(blob_t *blob, int destroy)
  * \par Purpose: Generate full, serialized version of a BLOB as a CBOR
  *               bytestring.
  *
- * \retval NULL - Failure serializing
- * 		   !NULL - Serialized blob.
+ * \retval Length of blob on success, 0 on failure
  *
+ * \param[in]  it      CBOR Encoder context
  * \param[in]  blob    The BLOB to be serialized.
- * \param[out] size    The size of the serialized BLOB.
+ * \returns AMP_OK if successful, AMP_FAIL otherwise
  *
  * \par Notes:
  *		1. The result is allocated on the memory pool and must be released when
@@ -444,21 +442,19 @@ void blob_release(blob_t *blob, int destroy)
 
 blob_t* blob_serialize_wrapper(blob_t *blob)
 {
-	return cut_serialize_wrapper(BLOB_DEFAULT_ENC_SIZE, blob, blob_serialize);
+	return cut_serialize_wrapper(BLOB_DEFAULT_ENC_SIZE, blob, (cut_enc_fn)blob_serialize);
 }
 
-
-CborError blob_serialize(CborEncoder *encoder, void *item)
+int blob_serialize(QCBOREncodeContext *it, blob_t *blob)
 {
-	CborError err;
-	blob_t *blob = (blob_t *) item;
-
-	if(blob == NULL)
+	if(blob == NULL || it == NULL)
 	{
-		return CborErrorIO;
+		return AMP_FAIL;
 	}
 
-	return cbor_encode_byte_string(encoder, blob->value, blob->length);
+	QCBOREncode_AddBytes(it, ((UsefulBufC) {blob->value, blob->length}));
+
+	return AMP_OK;
 }
 
 /*

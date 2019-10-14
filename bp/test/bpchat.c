@@ -183,13 +183,13 @@ int main(int argc, char **argv)
 	signal(SIGINT, handleQuit);
 
 	/* Start receiver thread and sender thread. */
-	if(pthread_begin(&sendLinesThread, NULL, sendLines, NULL) < 0) {
+	if(pthread_begin(&sendLinesThread, NULL, sendLines, NULL, "bpchat_sender") < 0) {
 		putErrmsg("Can't make sendLines thread.", NULL);
 		bp_interrupt(sap);
 		exit(1);
 	}
 
-	if(pthread_begin(&recvBundlesThread, NULL, recvBundles, NULL) < 0) {
+	if(pthread_begin(&recvBundlesThread, NULL, recvBundles, NULL, "bpchat_receiver") < 0) {
 		putErrmsg("Can't make recvBundles thread.", NULL);
 		bp_interrupt(sap);
 		exit(1);

@@ -109,7 +109,7 @@ If you are using IonDTN from a third-party platform, please ensure that the app 
 <p>The Android Native Development Kit (NDK) is required to interact with native code, in this case written in the programming languages C and C++. In order to use existing ION-DTN components, the NDK has to be installed on the development machine to build the provider app.</p>
 <p>You can install the NDK via the Android Studio at <code>Tools -&gt; Android -&gt; SDK Manager (Tab SDK-Tools)</code>.</p>
 <p><img src="./resources/ndk_install.png" alt="ndk_install" /></p>
-<p>Additionally, if you integrate the NDK by adding the following lines to your <code>build.gradle</code> file, Android Studio will ask you about installing the NDK:</p>
+<p>Additionally, add the following lines to your <code>build.gradle</code> file. If you do this, Android Studio will ask you about installing the NDK, as needed.</p>
 <pre><code>externalNativeBuild {
     ndkBuild {
         path &quot;&lt;Path to your Android.mk file&gt;&quot;

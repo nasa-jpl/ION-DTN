@@ -2316,6 +2316,90 @@ int	sm_BeginPthread(pthread_t *threadId, const pthread_attr_t *attr,
 	return result;
 }
 
+int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
+		void *(*function)(void *), void *arg, const char *name)
+{
+	int		result;
+
+	result = sm_BeginPthread(threadId, attr, function, arg);
+	pthread_setname_np(*threadId, name);
+
+	return result;
+}
+
+#else
+
+#ifdef darwin
+/* struct used to wrap start_routine with naming_start_routine */
+typedef struct
+{
+	char name[100];
+	void *arg;
+	void *(*start_routine) (void *);
+} NamingParms;
+/* protect multiple threads from accessing NamingParms in darwin */
+static pthread_mutex_t NamingParmsSem = PTHREAD_MUTEX_INITIALIZER;
+
+
+static void *naming_start_routine(void *parm){
+	NamingParms	*nmp = (NamingParms *) parm;
+	const char *name = nmp->name;
+	void *arg = nmp->arg; 
+	void *(*start_routine) (void *) = nmp->start_routine;
+	void* ret;
+	pthread_setname_np(name);
+	/* release the mutex protecting the shared naming structure */
+	pthread_mutex_unlock(&NamingParmsSem);
+	
+	ret = (*start_routine)(arg);
+	return ret;
+}
+#endif
+
+int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
+		void *(*start_routine) (void *), void *arg, const char *name)
+{
+	int result;
+
+	/*	VxWorks uses a different method of naming threads. */
+#ifdef vxworks
+	if(attr){
+		pthread_attr_setname(attr, name);
+		result = pthread_begin(thread, attr, start_routine, arg);
+	}else{
+		pthread_attr_t tattr;
+		pthread_attr_init(&tattr);
+		pthread_attr_setname(tattr, name);
+		result = pthread_begin(thread, &tattr, start_routine, arg);
+	}
+	
+	/*	Supported platforms for naming threads */
+#elif darwin
+	static NamingParms nmp;
+	/*	In OSX, pthread_setname_np must be called withing the 
+	 *	the thread you wish to name. Achieved by wrapping 
+	 *  the start_routine of pthread_begin */
+
+	/* protect the global naming structure from concurrent access */
+	pthread_mutex_lock(&NamingParmsSem);
+
+	nmp.start_routine = start_routine;
+	nmp.arg = arg;
+	strncpy(nmp.name, name, sizeof(nmp.name)-1);
+	result = pthread_begin(thread, attr, naming_start_routine, &nmp);
+#else
+	result = pthread_begin(thread, attr, start_routine, arg);
+#if linux || mingw
+	pthread_setname_np(*thread, name);
+#elif freebsd
+	pthread_set_name_np(*thread,name);
+#endif
+
+#endif
+
+	return result;
+}
+
 #endif	/*	End of #if defined bionic || uClibc			*/
 
 #ifdef POSIX_TASKS
@@ -3125,7 +3209,12 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 		char *arg9, char *arg10, int priority, int stackSize)
 {
 	int	pid;
-
+#ifdef VALGRIND_PROFILING
+	char	targ1[32];
+	char	targ2[32];
+	char	targ3[32];
+	char	targ4[32];
+#endif
 	CHKERR(name);
 
 	/*	Ignoring SIGCHLD signals causes the parent process
@@ -3143,9 +3232,38 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 
 	case 0:			/*	This is the child process.	*/
 		closeAllFileDescriptors();
+#ifdef VALGRIND_PROFILING
+		if (arg1)
+		{
+			istrcpy(targ1, arg1, sizeof targ1);
+			arg1 = targ1;
+		}
+
+		if (arg2)
+		{
+			istrcpy(targ2, arg2, sizeof targ2);
+			arg2 = targ2;
+		}
+
+		if (arg3)
+		{
+			istrcpy(targ3, arg3, sizeof targ3);
+			arg3 = targ3;
+		}
+
+		if (arg4)
+		{
+			istrcpy(targ4, arg4, sizeof targ4);
+			arg4 = targ4;
+		}
+
+		execlp("valgrind", "valgrind", "-tool=callgrind", name,
+				arg1, arg2, arg3, arg4,
+				arg7, arg8, arg9, arg10, NULL);
+#else
 		execlp(name, name, arg1, arg2, arg3, arg4, arg5, arg6,
 				arg7, arg8, arg9, arg10, NULL);
-
+#endif
 		/*	Can only get to this code if execlp fails.	*/
 
 		putSysErrmsg("Can't execute new process, exiting...", name);

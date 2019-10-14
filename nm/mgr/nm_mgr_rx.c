@@ -96,8 +96,18 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 		for(it = vecit_first(&(msg->rpts)); vecit_valid(it); it = vecit_next(it))
 		{
 			rpt_t *rpt = vecit_data(it);
-			vec_push(&(agent->rpts), rpt);
-			gMgrDB.tot_rpts++;
+            int status = vec_push(&(agent->rpts), rpt);
+
+            if (status == VEC_OK)
+            {
+                gMgrDB.tot_rpts++;
+            }
+            else // Vector may be full.  Discard (and release) report
+            {
+                // TODO: Consider retrying after a vec_pop() to replace oldest report
+                AMP_DEBUG_WARN("rx_data_rpt", "Failed to push rpt, discarding", NULL);
+                rpt_release(rpt, 1);
+            }
 		}
 	}
 

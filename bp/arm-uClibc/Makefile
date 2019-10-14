@@ -20,7 +20,7 @@ BIBE = ../bibe
 
 # OPT = -O -DuClibc
 OPT = -g -fPIC -Wall -Werror -DuClibc -DENABLE_BPACS -DENABLE_IMC -DSBSP
-CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/cteb -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = $(TCC) $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/cteb -IS(API)/ext/snw -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
@@ -29,6 +29,8 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
+	$(API)/bpsec.h \
+	$(API)/saga.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
 	$(IMC)/imcP.h \
@@ -44,13 +46,13 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
+BPPOBJS = libbpP.o bpsec.o eureka.o saga.o bei.o phn.o ecos.o meb.o bae.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o snw.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
 # snid.o
 
 #IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest cgrfetch
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpcrash bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest cgrfetch
 # dccpcli dccpclo ipnd
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
@@ -93,6 +95,10 @@ bpclm:		bpclm.o $(BPLIBS)
 bpadmin:	bpadmin.o $(BPLIBS)
 		$(CC) -o bpadmin bpadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpadmin ./bin
+
+bpsecadmin:	bpsecadmin.o $(BPLIBS)
+		$(CC) -o bpsecadmin bpsecadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpsecadmin ./bin
 
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
@@ -156,7 +162,7 @@ acslist:	acslist.o $(BPLIBS)
 
 cgrfetch:	cgrfetch.o $(BPLIBS)
 		$(CC) -o cgrfetch cgrfetch.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
-		cp acslist ./bin
+		cp cgrfetch ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 
@@ -187,11 +193,11 @@ dtn2adminep:	dtn2adminep.o $(BPLIBS) libdtn2fw.so
 #	-	-	LTP executables	-	-	-	-	-
 
 ltpcli:		ltpcli.o $(BPLIBS)
-		$(CC) -o ltpcli ltpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lltpP -lici -lpthread -lm
+		$(CC) -o ltpcli ltpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lici -lpthread -lm
 		cp ltpcli ./bin
 
 ltpclo:		ltpclo.o $(BPLIBS)
-		$(CC) -o ltpclo ltpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lltpP -lici -lpthread -lm
+		$(CC) -o ltpclo ltpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lltp -lici -lpthread -lm
 		cp ltpclo ./bin
 
 #	-	-	TCP executables	-	-	-	-	-
@@ -278,37 +284,41 @@ bibeclo:	bibeclo.o $(BPLIBS)
 
 #	-	-	Test executables	-	-	-	-
 
-bpsource:	bpsource.o libbp.so $(BPLIBS)
+bpsource:	bpsource.o $(BPLIBS)
 		$(CC) -o bpsource bpsource.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsource ./bin
 
-bpsink:		bpsink.o libbp.so $(BPLIBS)
+bpsink:		bpsink.o $(BPLIBS)
 		$(CC) -o bpsink bpsink.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsink ./bin
 
-bpdriver:	bpdriver.o libbp.so $(BPLIBS)
+bpdriver:	bpdriver.o $(BPLIBS)
 		$(CC) -o bpdriver bpdriver.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpdriver ./bin
 
-bpecho:		bpecho.o libbp.so $(BPLIBS)
+bpecho:		bpecho.o $(BPLIBS)
 		$(CC) -o bpecho bpecho.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpecho ./bin
 
-bpcounter:	bpcounter.o libbp.so $(BPLIBS)
+bpcounter:	bpcounter.o $(BPLIBS)
 		$(CC) -o bpcounter bpcounter.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpcounter ./bin
 
-bpsendfile:	bpsendfile.o libbp.so $(BPLIBS)
+bpsendfile:	bpsendfile.o $(BPLIBS)
 		$(CC) -o bpsendfile bpsendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsendfile ./bin
 
-bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
+bprecvfile:	bprecvfile.o $(BPLIBS)
 		$(CC) -o bprecvfile bprecvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bprecvfile ./bin
 
-bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
+bpnmtest:	bpnmtest.o $(BPLIBS)
 		$(CC) -o bpnmtest bpnmtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpnmtest ./bin
+
+bpcrash:	bpcrash.o $(BPLIBS)
+		$(CC) -o bpcrash bpcrash.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpcrash ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
@@ -415,6 +425,9 @@ libudpcla.so:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(API)/ext/cteb/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/snw/%.c
 		$(CC) -c $<
 
 #%.o:		$(IPND)/%.c

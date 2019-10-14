@@ -858,7 +858,11 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 			nextElt = sm_list_next(wm, elt);
 			addr = sm_list_data(wm, elt);
 			req = (Requisition *) psp(wm, addr);
-			sm_SemEnd(req->semaphore);
+			if (req->semaphore != SM_SEM_NONE)
+			{
+				sm_SemEnd(req->semaphore);
+			}
+
 			psm_free(wm, addr);
 			sm_list_delete(wm, elt, NULL, NULL);
 		}
@@ -1704,16 +1708,12 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 
 void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
-#if defined (mingw)
-	struct tm	*ts;
-#else
 	struct tm	tsbuf;
 	struct tm	*ts = &tsbuf;
-#endif
 
 	CHKVOID(timestampBuffer);
 #if defined (mingw)
-	ts = gmtime(&timestamp);
+	oK(gmtime_s(&tsbuf, &timestamp));
 #else
 	oK(gmtime_r(&timestamp, &tsbuf));
 #endif

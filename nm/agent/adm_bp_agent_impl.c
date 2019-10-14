@@ -631,7 +631,7 @@ tnv_t *dtn_bp_agent_get_num_bundles_deleted(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.bytesDeletedToDate);
+	result = tnv_from_uvast(state.delNoneCount + state.delExpiredCount + state.delFwdUnidirCount + state.delCanceledCount + state.delDepletionCount + state.delEidMalformedCount + state.delNoRouteCount + state.delNoContactCount + state.delBlkMalformedCount);
 
 	/*
 	 * +-------------------------------------------------------------------------+

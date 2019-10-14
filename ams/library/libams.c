@@ -3857,7 +3857,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	}
 
 	if (pthread_begin(&(mtsif->receiver), NULL,
-			mib->pts->mamsReceiverFn, mtsif))
+			mib->pts->mamsReceiverFn, mtsif,
+			"libams_mams_tsif_receiver"))
 	{
 		putSysErrmsg("Can't spawn MAMS tsif thread", NULL);
 		return -1;
@@ -3908,7 +3909,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		}
 
 		if (pthread_begin(&(tsif->receiver), NULL,
-				tsif->ts->amsReceiverFn, tsif))
+				tsif->ts->amsReceiverFn, tsif, "libams_tsif_receiver"))
 		{
 			putSysErrmsg("Can't spawn tsif thread", NULL);
 			return -1;
@@ -3984,14 +3985,16 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	/*	Create the auxiliary module threads: heartbeat, MAMS.	*/
 
-	if (pthread_begin(&(sap->heartbeatThread), NULL, heartbeatMain, sap))
+	if (pthread_begin(&(sap->heartbeatThread), NULL, heartbeatMain,
+		sap, "libams_sap_heartbeat"))
 	{
 		putSysErrmsg("Can't spawn sap heartbeat thread", NULL);
 		return -1;
 	}
 
 	sap->haveHeartbeatThread = 1;
-	if (pthread_begin(&(sap->mamsThread), NULL, mamsMain, sap))
+	if (pthread_begin(&(sap->mamsThread), NULL, mamsMain,
+		sap, "libams_sap_mams"))
 	{
 		putSysErrmsg("Can't spawn sap MAMS thread", NULL);
 		return -1;
@@ -5710,7 +5713,8 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 
 	if (eventMgrNeeded)
 	{
-		if (pthread_begin(&mgrThread, NULL, eventMgrMain, sap) < 0)
+		if (pthread_begin(&mgrThread, NULL, eventMgrMain,
+			sap, "libams_event_mgr") < 0)
 		{
 			sap->authorizedEventMgr = sap->primeThread;
 			sap->eventMgr = sap->primeThread;
@@ -6434,7 +6438,8 @@ static int	ams_set_event_mgr2(AmsSAP *sap, AmsEventMgt *rules)
 	}
 
 	memcpy((char *) &(sap->eventMgtRules), rules, sizeof(AmsEventMgt));
-	if (pthread_begin(&mgrThread, NULL, eventMgrMain, sap))
+	if (pthread_begin(&mgrThread, NULL, eventMgrMain,
+		sap, "libams_event_mgr"))
 	{
 		sap->authorizedEventMgr = sap->primeThread;
 		sap->eventMgr = sap->primeThread;

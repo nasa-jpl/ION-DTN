@@ -62,6 +62,7 @@
  * |							  	MACROS  								  +
  * +--------------------------------------------------------------------------+
  */
+//#define USE_MALLOC  // If set, utils_safe_* will use MALLOC instead of ION MTAKE/MRELEASE
 
 #define STAKE(size) utils_safe_take(size)
 #define SRELEASE(ptr) utils_safe_release(ptr)

@@ -817,7 +817,8 @@ static int	runCfdptestInteractive()
 
 	/*	Start the receiver thread.				*/
 
-	if (pthread_begin(&receiverThread, NULL, handleEvents, &running))
+	if (pthread_begin(&receiverThread, NULL, handleEvents,
+		&running, "cfdptest_receiver"))
 	{
 		putSysErrmsg("cfdptest can't create receiver thread", NULL);
 		return 1;

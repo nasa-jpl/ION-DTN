@@ -301,7 +301,7 @@ static void	*Listen_for_connections(void *parm)
 		rp->elk = &elk;
 		rp->list = &list;
 		rp->vduct = rtp->vduct;
-		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp))
+		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp, "dccpcli_receiver"))
 		{
 			putSysErrmsg("dccpcli can't create new thread.", NULL);
 			close(consock);
@@ -429,7 +429,7 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
 	rtp.mainThread = pthread_self();
-	if (pthread_begin(&listenerThread, NULL, Listen_for_connections, &rtp))
+	if (pthread_begin(&listenerThread, NULL, Listen_for_connections, &rtp, "dccpcli_listener"))
 	{
 		close(rtp.linkSocket);
 		putSysErrmsg("dccpcli can't create new thread.", NULL);

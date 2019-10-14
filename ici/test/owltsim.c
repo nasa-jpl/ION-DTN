@@ -220,7 +220,8 @@ static void	*receiveUdp(void *parm)
 
 	/*	Spawn timer/transmitter thread.				*/
 
-	if (pthread_begin(&(stp->timerThread), NULL, sendUdp, stp))
+	if (pthread_begin(&(stp->timerThread), NULL, sendUdp,
+		stp, "owltsim_timer"))
 	{
 		perror("owltsim can't spawn timer thread");
 		owltsimExit(1);
@@ -416,7 +417,8 @@ int	main(int argc, char *argv[])
 
 			memcpy((char *) stp, (char *) &stpBuf,
 					sizeof(SimThreadParms));
-			if (pthread_begin(&simThread, NULL, receiveUdp, stp))
+			if (pthread_begin(&simThread, NULL, receiveUdp,
+				stp, "owltsim_receiver"))
 			{
 				perror("owltsim can't spawn receiver thread");
 				owltsimExit(1);

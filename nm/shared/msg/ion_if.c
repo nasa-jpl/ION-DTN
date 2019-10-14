@@ -244,6 +244,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 
     	AMP_DEBUG_ERR("iif_receive","Can't alloc %d of msg.", content_len);
     	AMP_DEBUG_ERR("iif_receive","Timeout is %d.", timeout);
+        bp_release_delivery(&dlv, 1);
     	return NULL;
     }
 
@@ -254,6 +255,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 
     	blob_release(result, 1);
     	AMP_DEBUG_ERR("iif_receive","Can't start transaction.", NULL);
+        bp_release_delivery(&dlv, 1);
         return NULL;
     }
 
@@ -266,6 +268,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
 
         AMP_DEBUG_ERR("iif_receive", "Unable to process received bundle.", NULL);
         blob_release(result, 1);
+        bp_release_delivery(&dlv, 1);
         return NULL;
     }
 
@@ -278,9 +281,8 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
     istrcpy(meta->recipientEid.name, iif->local_eid.name,
 		    sizeof meta->recipientEid.name);
 
-    // Needs to be MRELEASE, not SRELEASE.
-    MRELEASE(dlv.bundleSourceEid);
-
+    bp_release_delivery(&dlv, 1);
+    
     AMP_DEBUG_EXIT("iif_receive", "->"ADDR_FIELDSPEC, (uaddr) result);
     return result;
 }

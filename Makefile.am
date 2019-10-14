@@ -13,7 +13,7 @@ endif
 DIST_SUBDIRS= . contrib
 
 AM_CFLAGS += \
-	-Wall -Werror -g -fPIC \
+	-g \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
@@ -25,6 +25,18 @@ AM_CFLAGS += \
 	-DSBSP \
 	-I$(srcdir)/ams/include \
 	-I$(srcdir)/cfdp/include
+
+if SOLARIS_STUDIO_CC
+AM_CFLAGS += \
+	-errtags \
+	-Kpic
+NO_UNUSED_VARIABLE = 
+else
+AM_CFLAGS += \ 
+	-Wall -Werror\
+	-fPIC
+NO_UNUSED_VARIABLE = -Wno-unused-variable
+endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -824,6 +836,7 @@ bpbin = \
 	bprecvfile \
 	bpclm \
 	bpclock \
+	bpcrash \
 	bptransit \
 	ipnadmin \
 	ipnfw \
@@ -1382,6 +1395,10 @@ bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpnmtest_SOURCES = bp/test/bpnmtest.c
 bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpcrash_SOURCES = bp/test/bpcrash.c
+bpcrash_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bp/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -1967,26 +1984,34 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 nmbin= nm_agent nm_mgr
 
-nm_shared_src    =  	nm/shared/adm/adm.c			\
-			nm/shared/msg/msg.c			\
+# CBOR Library Sources
+nm_cbor_src = \
+	nm/contrib/QCBOR/src/UsefulBuf.c \
+	nm/contrib/QCBOR/src/qcbor_encode.c \
+	nm/contrib/QCBOR/src/qcbor_decode.c \
+	nm/contrib/QCBOR/src/ieee754.c
+
+CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc
+
+nm_shared_src	 =		nm/shared/adm/adm.c	\
+			nm/shared/msg/msg.c				\
 			nm/shared/msg/ion_if.c			\
 			nm/shared/primitives/ari.c		\
 			nm/shared/primitives/blob.c		\
 			nm/shared/primitives/ctrl.c		\
-			nm/shared/primitives/edd_var.c		\
+			nm/shared/primitives/edd_var.c	\
 			nm/shared/primitives/expr.c		\
-			nm/shared/primitives/report.c 		\
-			nm/shared/primitives/rules.c 		\
-		 	nm/shared/primitives/table.c 		\
-	    	nm/shared/primitives/tnv.c		\
-	    	nm/shared/utils/cbor_utils.c	\
+			nm/shared/primitives/report.c	\
+			nm/shared/primitives/rules.c	\
+			nm/shared/primitives/table.c	\
+			nm/shared/primitives/tnv.c		\
+			nm/shared/utils/cbor_utils.c	\
 			nm/shared/utils/db.c			\
-			nm/shared/utils/nm_types.c 		\
-			nm/shared/utils/rhht.c	 		\
-			nm/shared/utils/utils.c        		\
-			nm/shared/utils/vector.c 		\
-			nm/contrib/tinycbor/src/cborparser.c 	\
-			nm/contrib/tinycbor/src/cborencoder.c 
+			nm/shared/utils/nm_types.c		\
+			nm/shared/utils/rhht.c			\
+			nm/shared/utils/utils.c			\
+			nm/shared/utils/vector.c		\
+			$(nm_cbor_src)
 
 nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/ingest.c  		\
@@ -2019,8 +2044,8 @@ nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) -Wno-unused-variable \
-                  -DAGENT_ROLE
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  -DAGENT_ROLE $(CBOR_CFLAGS)
 
 
 nm_mgr_SOURCES =	$(nm_shared_src)		\
@@ -2046,7 +2071,7 @@ nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) -Wno-unused-variable
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(CBOR_CFLAGS)
 
 
 ##########################
@@ -2138,8 +2163,13 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/issue-279-bpMemo-timeline/driver \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
+	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
 	tests/issue-334-cfdp-transaction-id/dotest \
-	tests/issue-330-cfdpclock-FDU-removal/cfdplisten
+	tests/nm-unit/dotest
+
+tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
+tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
+tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN -DUSE_MALLOC
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)

@@ -171,7 +171,7 @@ expr_t *expr_copy_ptr(expr_t *expr)
 }
 
 
-expr_t expr_deserialize(CborValue *it, int *success)
+expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 {
 	expr_t result;
 	blob_t *data = NULL;
@@ -218,7 +218,7 @@ expr_t expr_deserialize(CborValue *it, int *success)
     return result;
 }
 
-expr_t* expr_deserialize_ptr(CborValue *it, int *success)
+expr_t* expr_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	expr_t *result = NULL;
 
@@ -240,23 +240,24 @@ expr_t* expr_deserialize_ptr(CborValue *it, int *success)
 
 expr_t* expr_deserialize_raw(blob_t *data, int *success)
 {
-	CborParser parser;
-	CborValue it;
+	QCBORDecodeContext it;
 
-	CHKNULL(success);
+	if((data == NULL) || (success == NULL))
+	{
+		return NULL;
+	}
 	*success = AMP_FAIL;
 
-	if(data == NULL)
-	{
-		return NULL;
-	}
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
 
-	if(cbor_parser_init(data->value, data->length, 0, &parser, &it) != CborNoError)
-	{
-		return NULL;
-	}
+	expr_t *tmp = expr_deserialize_ptr(&it, success);
+	
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
 
-	return expr_deserialize_ptr(&it, success);
+	return tmp;
 }
 
 
@@ -511,16 +512,16 @@ void expr_release(expr_t *expr, int destroy)
 }
 
 
-CborError expr_serialize(CborEncoder *encoder, void *item)
+int expr_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	CborError err = CborErrorIO;
 	blob_t *result = NULL;
 	blob_t *ac_data = NULL;
 	expr_t *expr = (expr_t*) item;
+	int err;
 
 	if((encoder == NULL) || (item == NULL))
 	{
-		return err;
+		return AMP_FAIL;
 	}
 
 	result = blob_create((uint8_t*)&(expr->type), 1, 1);
@@ -529,7 +530,7 @@ CborError expr_serialize(CborEncoder *encoder, void *item)
 	{
 		AMP_DEBUG_ERR("expr_serialize","Can't serialize AC.", NULL);
 		blob_release(result, 1);
-		return err;
+		return AMP_FAIL;
 	}
 
 	blob_append(result, ac_data->value, ac_data->length);
@@ -544,7 +545,7 @@ CborError expr_serialize(CborEncoder *encoder, void *item)
 
 blob_t*   expr_serialize_wrapper(expr_t *expr)
 {
-	return cut_serialize_wrapper(EXPR_DEFAULT_ENC_SIZE, expr, expr_serialize);
+	return cut_serialize_wrapper(EXPR_DEFAULT_ENC_SIZE, expr, (cut_enc_fn)expr_serialize);
 }
 
 

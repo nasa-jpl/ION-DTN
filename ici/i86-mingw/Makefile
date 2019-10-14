@@ -66,7 +66,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionexit ionunlock
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionexit ionlog ionunlock
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim
 # owlttb - requires SIGPIPE which is not supported by Windows
@@ -129,6 +129,10 @@ ionexit:	ionexit.o libici.dll
 ionunlock:	ionunlock.o libici.dll
 		$(CC) -o ionunlock ionunlock.o -L./lib -lici -lpthread -lm
 		cp ionunlock ./bin
+		
+ionlog:	ionlog.o libici.dll
+		$(CC) -o ionlog ionlog.o -L./lib -lici -lpthread -lm
+		cp ionlog ./bin
 
 #	-	-	Test executables	-	-	-	-
 
@@ -206,3 +210,4 @@ libici.dll:	$(LIBICIOBJS) libicinm.o
 
 %.o:		$(TEST)/%.c
 		$(CC) -c $<
+

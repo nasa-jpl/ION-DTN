@@ -746,29 +746,32 @@ static void	insertContact(int regionIdx, time_t fromTime, time_t toTime,
 	contact.mtv[1] = volume;		/*	Standard.	*/
 	contact.mtv[2] = volume;		/*	Expedited.	*/
 	obj = sdr_malloc(sdr, sizeof(IonContact));
-	if (obj)
+	if (obj == 0)
 	{
-		sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
-		iondbObj = getIonDbObject();
-		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		elt = sdr_list_insert_last(sdr,
-				iondb.regions[regionIdx].contacts, obj);
-		if (elt)
-		{
-			memset((char *) &newCx, 0, sizeof(IonCXref));
-			newCx.fromTime = fromTime;
-			newCx.toTime = toTime;
-			newCx.fromNode = fromNode;
-			newCx.toNode = toNode;
-			newCx.xmitRate = xmitRate;
-			newCx.confidence = confidence;
-			newCx.type = contactType;
-			newCx.contactElt = elt;
-			newCx.routingObject = 0;
-			*cxaddr = insertCXref(&newCx);
-		}
+		return;
 	}
 
+	sdr_write(sdr, obj, (char *) &contact, sizeof(IonContact));
+	iondbObj = getIonDbObject();
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	elt = sdr_list_insert_last(sdr,
+			iondb.regions[regionIdx].contacts, obj);
+	if (elt == 0)
+	{
+		return;
+	}
+
+	memset((char *) &newCx, 0, sizeof(IonCXref));
+	newCx.fromTime = fromTime;
+	newCx.toTime = toTime;
+	newCx.fromNode = fromNode;
+	newCx.toNode = toNode;
+	newCx.xmitRate = xmitRate;
+	newCx.confidence = confidence;
+	newCx.type = contactType;
+	newCx.contactElt = elt;
+	newCx.routingObject = 0;
+	*cxaddr = insertCXref(&newCx);
 	if (contactType == CtPredicted)
 	{
 		return;
@@ -2378,7 +2381,11 @@ void	rfx_stop()
 			nextElt = sm_list_next(ionwm, elt);
 			addr = sm_list_data(ionwm, elt);
 			req = (Requisition *) psp(ionwm, addr);
-			sm_SemEnd(req->semaphore);
+			if (req->semaphore != SM_SEM_NONE)
+			{
+				sm_SemEnd(req->semaphore);
+			}
+
 			psm_free(ionwm, addr);
 			sm_list_delete(ionwm, elt, NULL, NULL);
 		}

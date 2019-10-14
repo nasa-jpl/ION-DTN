@@ -336,7 +336,7 @@ compatibility, but it is ignored.");
 	/*	Start the echo handler thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp, "udpbso_receiver"))
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("udpbsi can't create receiver thread", NULL);

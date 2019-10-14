@@ -336,10 +336,11 @@ compatibility, but it is ignored.");
 	/*	Start the echo handler thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams,
+		&rtp, "udplso_receiver"))
 	{
 		closesocket(rtp.linkSocket);
-		putSysErrmsg("udplsi can't create receiver thread", NULL);
+		putSysErrmsg("udplso can't create receiver thread", NULL);
 		return 1;
 	}
 
