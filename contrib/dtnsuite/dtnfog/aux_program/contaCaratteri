@@ -1,3 +1,0 @@
-#!/bin/bash
-
-echo "In $1 ci sono $(cat $1 | wc -c) caratteri"
