@@ -1,0 +1,50 @@
+#!/bin/bash
+
+>/tmp/frq
+>/tmp/occ
+
+
+tot=0
+echo "--------------------------------------------------"
+echo "|                 Report caratteri               |"
+echo "--------------------------------------------------"
+echo "                 Occorenze Caratteri             |"
+echo "-------------------------------------------------"
+for i in $(echo {a..z})
+do
+	echo $i = $(grep -c "$i" "$1") >> /tmp/occ
+	tot=$(($tot+$(grep -c "$i" "$1")))
+done
+column /tmp/occ -c 51
+echo "--------------------------------------------------"
+echo "                Frequenza caratteri              |"
+echo "--------------------------------------------------"
+#echo "Totale: $tot"
+for i in $(echo {a..z})
+do
+	occ=$(grep -c "$i" "$1")
+#        echo "Totale: $tot Occorenze: $occ"
+	freq=$(awk -v var1=$occ -v var2=$tot 'BEGIN { print  ( var1 / var2 ) }')
+	echo "$i = $freq" >> /tmp/frq
+done
+column /tmp/frq -c 51
+echo "-------------------------------------------------"
+entropia=0
+for i in $(echo {a..z})
+do
+        occ=$(grep -c "$i" "$1")
+        if (( $(echo "$occ > 0" |bc -l) ))
+	then
+		freq=$(awk -v var1=$occ -v var2=$tot 'BEGIN { print  ( var1 / var2 ) }')
+		nfreq=$(awk -v var1=$freq 'BEGIN { print  ( 1 / var1 ) }')
+		Ii=$(awk -v var1=$nfreq 'BEGIN { print  ( log(var1) / log(2)) }')
+		Hi=$(awk -v var1=$freq -v var2=$Ii 'BEGIN { print  ( var1 * var2 ) }')
+#		echo "$i = $Hi"
+		entropia=$(awk -v var1=$entropia -v var2=$Hi 'BEGIN { print  ( var1 + var2 ) }')
+	fi
+done
+echo "             Entropia Alfabeto = $entropia        |"
+echo "-------------------------------------------------"
+
+rm /tmp/frq
+rm /tmp/occ
