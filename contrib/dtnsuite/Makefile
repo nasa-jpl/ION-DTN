@@ -8,6 +8,9 @@ all:
 	make -C al_bp $@
 	make -C dtnperf $@ AL_BP_DIR=../al_bp
 	make -C dtnproxy $@ AL_BP_DIR=../al_bp
+# The compilation of DTNbox requires the SQLite package installed. 
+# (“sudo apt-get update, sudo apt-get install libsqlite3-dev”, in Ubuntu). 
+# Otherwise, comment the next line to skip DTNbox compilation
 	make -C dtnbox $@ AL_BP_DIR=../al_bp
 	make -C dtnfog $@ AL_BP_DIR=../al_bp
 endif
