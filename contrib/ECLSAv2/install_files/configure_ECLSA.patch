@@ -1,0 +1,63 @@
+--- configureION.ac	2017-08-16 16:37:22.000000000 +0200
++++ configureECLSA.ac	2017-11-01 11:46:09.574484830 +0100
+@@ -235,6 +235,59 @@
+ fi
+ AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
+ 
++######################
++# erasure coding
++######################
++
++AC_ARG_ENABLE([eclsa],
++[   --enable-eclsa Turn on Erasure Codes],
++[
++    ec=true 
++],[ec=false])
++AM_CONDITIONAL([BUILD_ECLSA], [test x$ec = xtrue])
++
++
++AC_ARG_WITH([lowerProtUDP],
++[   --with-lowerProtUDP Use UDP as lower protocol in eclsa],
++[
++    lpudp=true 
++],[lpudp=false])
++AM_CONDITIONAL([ECLSA_LP_UDP], [test x$lpudp = xtrue])
++
++AC_ARG_WITH([upperProtLTP],
++[   --with-upperProtLTP Use LTP as upper protocol in eclsa],
++[
++    upltp=true 
++],[upltp=false])
++AM_CONDITIONAL([ECLSA_UP_LTP], [test x$upltp = xtrue])
++
++
++AC_ARG_WITH([codecDummyDEC],
++[   --with-codecDummyDEC Use DummyDEC as codec in eclsa],
++[
++    coddummydec=true 
++],[coddummydec=false])
++AM_CONDITIONAL([ECLSA_CODEC_DUMMYDEC], [test x$coddummydec = xtrue])
++
++
++AC_ARG_WITH([codecOpenFEC],
++[   --with-codecOpenFEC Use OpenFEC as codec in eclsa],
++[
++    codopenfec=true 
++],[codopenfec=false])
++AM_CONDITIONAL([ECLSA_CODEC_OPENFEC], [test x$codopenfec = xtrue])
++
++AC_ARG_WITH([codecLibecDLR],
++[   --with-codecLibecDLR Use LibecDLR as codec in eclsa],
++[
++    codlibecdlr=true 
++],[codlibecdlr=false])
++AM_CONDITIONAL([ECLSA_CODEC_LIBECDLR], [test x$codlibecdlr = xtrue])
++
++######################
++# end of erasure coding
++######################
++
+ #
+ # Dynamically choose whether or not to build against expat libraries.
+ # Expat is needed by AMS if XML configuration files are used.
+ 
