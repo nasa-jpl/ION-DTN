@@ -10,8 +10,8 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _RFX_H_
-#define _RFX_H_
+#ifndef _CBOR_H_
+#define _CBOR_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,10 +60,10 @@ extern int	cbor_encode_text_string(char *value,
 
 extern int	cbor_encode_array_open(	uvast size,
 					unsigned char **cursor);
-			/*	If size is 0, the array is of
-			 *	indefinite size; otherwise size
-			 *	indicates the number of items in
-			 *	the array.  Cursor is automatically
+			/*	If size is ((uvast) -1), the array
+			 *	is of indefinite size; otherwise
+			 *	size indicates the number of items
+			 *	in the array.  Cursor is automatically
 			 *	advanced.  Returns number of bytes
 			 *	written, or -1 on any error.		*/
 
@@ -111,11 +111,17 @@ extern int	cbor_decode_text_string(char *value,
 			 *	advanced.  Returns number of bytes
 			 *	read, or -1 on any error.		*/
 
-extern int	cbor_decode_array_open(	uvast size,
+extern int	cbor_decode_array_open(	uvast *size,
 					unsigned char **cursor);
-			/*	If size is 0, only an array of
-			 *	indefinite length is accepted;
-			 *	otherwise size indicates the
+			/*	If size is zero, any array
+			 *	is accepted and the actual size
+			 *	of the decoded array is returned
+			 *	in size; ((uvast) -1) is returned
+			 *	in size if the array is of
+			 *	indefinite size.  If size is
+			 *	((uvast) -1), only an array of
+			 *	indefinite length is accepted.
+			 *	Otherwise, size indicates the
 			 *	required number of items in the
 			 *	array.  Cursor is automatically
 			 *	advanced.  Returns number of
@@ -132,4 +138,4 @@ extern int	cbor_decode_break(	unsigned char **cursor);
 }
 #endif
 
-#endif  /* _RFX_H_ */
+#endif  /* _CBOR_H_ */

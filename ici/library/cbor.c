@@ -319,7 +319,7 @@ int	cbor_encode_array_open(uvast size, unsigned char **cursor)
 	int		additionalInfo;
 	int		length;
 
-	if (size == 0)
+	if (size == ((uvast) -1))
 	{
 		additionalInfo = 31;	/*	Indefinite-size array.	*/
 	}
@@ -361,27 +361,27 @@ static void	decodeFirstByte(unsigned char **cursor, int *majorType,
 	*cursor += 1;
 }
 
-static int	decodeInteger(uvast *value, int size, int additionalInfo, 
+static int	decodeInteger(uvast *value, int class, int additionalInfo, 
 			unsigned char **cursor)
 {
 	uvast	sum;
 
 	if (additionalInfo < 24)
 	{
-		if (size == 0 || size == 1)
+		if (class == CborAny || class == CborTiny)
 		{
 			*value = additionalInfo;
 			return 0;
 		}
 
-		writeMemo("[?] CBOR error: got char.");
+		writeMemo("[?] CBOR error: got tiny value.");
 		return -1;
 	}
 
 	switch (additionalInfo)
 	{
 	case 24:
-		if (size == 0 || size == 1)
+		if (class == CborAny || class == CborChar)
 		{
 			*value = **cursor;
 			*cursor += 1;
@@ -392,7 +392,7 @@ static int	decodeInteger(uvast *value, int size, int additionalInfo,
 		return -1;
 
 	case 25:
-		if (size == 0 || size == 2)
+		if (class == CborAny || class == CborShort)
 		{
 			sum = **cursor;
 			*cursor += 1;
@@ -406,7 +406,7 @@ static int	decodeInteger(uvast *value, int size, int additionalInfo,
 		return -1;
 
 	case 26:
-		if (size == 0 || size == 4)
+		if (class == CborAny || class == CborInt)
 		{
 			sum = **cursor;
 			*cursor += 1;
@@ -426,7 +426,7 @@ static int	decodeInteger(uvast *value, int size, int additionalInfo,
 		return -1;
 
 	case 27:
-		if (size == 0 || size == 8)
+		if (class == CborAny || class == CborVast)
 		{
 			sum = **cursor;
 			*cursor += 1;
@@ -464,7 +464,7 @@ static int	decodeInteger(uvast *value, int size, int additionalInfo,
 	}
 }
 
-int	cbor_decode_integer(uvast *value, int size, unsigned char **cursor)
+int	cbor_decode_integer(uvast *value, int class, unsigned char **cursor)
 {
 	int	majorType;
 	int	additionalInfo;
@@ -478,7 +478,7 @@ int	cbor_decode_integer(uvast *value, int size, unsigned char **cursor)
 		return -1;
 	}
 
-	length = decodeInteger(value, size, additionalInfo, cursor);
+	length = decodeInteger(value, class, additionalInfo, cursor);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR integer decode failed.");
@@ -560,7 +560,7 @@ int	cbor_decode_text_string(char *value, uvast *size,
 	return 1 + (length + stringLength);
 }
 
-int	cbor_decode_array_open(uvast size, unsigned char **cursor)
+int	cbor_decode_array_open(uvast *size, unsigned char **cursor)
 {
 	int	majorType;
 	int	additionalInfo;
@@ -575,25 +575,6 @@ int	cbor_decode_array_open(uvast size, unsigned char **cursor)
 		return -1;
 	}
 
-	if (additionalInfo == 31)	/*	Indefinite-length.	*/
-	{
-		if (size != 0)
-		{
-			writeMemo("[?] CBOR array size is indefinite.");
-			return -1;
-		}
-
-		return 1;		/*	Only initial byte.	*/
-	}
-
-	/*	Length of array is definite.				*/
-
-	if (size == 0)			/*	Expecting indefinite.	*/
-	{
-		writeMemo("[?] CBOR array is not of indefinite size.");
-		return -1;
-	}
-
 	length = decodeInteger(&arrayLength, 0, additionalInfo, cursor);
 	if (length < 0)
 	{
@@ -601,14 +582,41 @@ int	cbor_decode_array_open(uvast size, unsigned char **cursor)
 		return -1;
 	}
 
-	if (arrayLength != size)
+	if (*size == 0)			/*	Any size is okay.	*/
 	{
-		writeMemoNote("[?] CBOR array size is wrong",
-				itoa(arrayLength));
+		if (additionalInfo == 31)
+		{
+			*size = ((uvast) -1);
+		}
+		else
+		{
+			*size = arrayLength;
+		}
+
+		return length + 1;
+	}
+
+
+	if (*size == ((uvast) -1))	/*	Req. indefinite-length.	*/
+	{
+		if (additionalInfo == 31)
+		{
+			return 1;
+		}
+
+		writeMemo("[?] CBOR array size is not indefinite.");
 		return -1;
 	}
 
-	return 1 + length;
+	/*	Definite-length array is required.			*/
+
+	if (arrayLength == *size)
+	{
+		return 1 + length;
+	}
+
+	writeMemoNote("[?] CBOR array size is wrong", itoa(arrayLength));
+	return -1;
 }
 
 int	cbor_decode_break(unsigned char **cursor)

@@ -23,6 +23,7 @@
 #include "eureka.h"
 #include "sdrhash.h"
 #include "smrbt.h"
+#include "cbor.h"
 
 #ifdef BPSEC
 #include "ext/bpsec/bpsec_instr.h"
@@ -7495,9 +7496,11 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		bytesToParse;
 	int		unparsedBytes;
 	unsigned char	*cursor;
+	uvast		arrayLength;
 	int		version;
 	uvast		uvtemp;
-	unsigned int	residualBlockLength;
+	BpCrcType	crcType;
+	int		isSegment;
 	int		i;
 	uvast		eidSdnvValues[8];
 	char		*eidString;
@@ -7511,26 +7514,31 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Start parsing the primary block.			*/
 
-	if (cbor_decode_array_open(7, &cursor) == 1)
+	arrayLength = 0;	/*	Decode any array.		*/
+	if (cbor_decode_array_open(&arrayLength, &cursor) < 0)
 	{
-		isSegment = 0;
+		writeMemo("[?] Can't decode bundle array.");
+		return 0;
 	}
-	else
+
+	switch (arrayLength)
 	{
-		cursor = (unsigned char *) (work->buffer);
-		if (cbor_decode_array_open(9, &cursor) == 1)
-		{
-			isSegment = 1;
-		}
-		else
-		{
-			writeMemo("[?] Invalid # items in primary block.");
-			return 0;
-		}
+	case 7:
+		isSegment = 0;
+		break;
+
+	case 9:
+		isSegment = 1;
+		break;
+
+	default:
+		writeMemoNote("[?] Invalid size of bundle array",
+				itoa(arrayLength));
+		return 0;
 	}
 
 	unparsedBytes -= 1;
-	if (cbor_decode_integer(&uvtemp, 0, &cursor) != 1)
+	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
 	{
 		writeMemo("[?] Missing version number in primary block.");
 		return 0;
@@ -7544,16 +7552,13 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= 1;
-	if (cbor_decode_integer(&uvtemp, 2, &cursor) != 3)
+	if (cbor_decode_integer(&uvtemp, CborShort, &cursor) != 3)
 	{
 		writeMemo("[?] Missing bundle flags in primary block.");
 		return 0;
 	}
 
 	bundle->bundleProcFlags = uvtemp;
-	unparsedBytes -= 3;
-
-	//	<<-- continue here
 
 	/*	Note status report information as necessary.		*/
 
@@ -7563,11 +7568,26 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		getCurrentDtnTime(&(bundle->statusRpt.receiptTime));
 	}
 
-	/*	Get length of rest of primary block.			*/
+	unparsedBytes -= 3;
+	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
+	{
+		writeMemo("[?] Missing CRC type in primary block.");
+		return 0;
+	}
 
-	extractSmallSdnv(&residualBlockLength, &cursor, &unparsedBytes);
+	if (uvtemp > 2)
+	{
+		writeMemo("[?] Invalid CRC type in primary block.");
+		return 0;
+	}
 
-	/*	Get all EID SDNV values.				*/
+	crcType = uvtemp;
+
+	/*	Get destination EID.					*/
+
+	/*	Get source EID.  					*/
+
+	/*	Get report-to EID.					*/
 
 	for (i = 0; i < 8; i++)
 	{
@@ -7887,7 +7907,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	/*	Finally, acquire CBOR break character.			*/
 
 	cursor = (unsigned char *) (work->buffer);
-	bytesParsed = cbor_decode_break(0, &cursor);
+	bytesParsed = cbor_decode_break(&cursor);
 	if (bytesParsed != 1)
 	{
 		return -1;	/*	Array is not terminated.	*/
