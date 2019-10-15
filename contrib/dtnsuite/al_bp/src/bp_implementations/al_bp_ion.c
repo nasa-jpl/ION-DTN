@@ -281,7 +281,7 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 		}
 	}
 
-	result = bp_parse_class_of_service(tokenClassOfService,&extendedCOS,&custodySwitch,&tmpPriority);
+	result = bp_parse_quality_of_service(tokenClassOfService,&extendedCOS,&custodySwitch,&tmpPriority);
 	if(result == 0) {
 		free(destEid);
 		free(reportEid);

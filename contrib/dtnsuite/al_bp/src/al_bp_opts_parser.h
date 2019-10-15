@@ -8,8 +8,8 @@
  **  All rights reserved.
  ********************************************************/
 
-#ifndef AL_BP_CHECKER_H_
-#define AL_BP_CHECKER_H_
+#ifndef AL_BP_PARSER_H_
+#define AL_BP_PARSER_H_
 
 #include "includes.h"
 #include "types.h"
