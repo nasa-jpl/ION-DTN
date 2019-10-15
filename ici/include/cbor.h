@@ -74,6 +74,13 @@ extern int	cbor_encode_break(	unsigned char **cursor);
 			 *	number of bytes written, or -1
 			 *	on any error.				*/
 
+extern void	cbor_decode_initial_byte(unsigned char *cursor,
+					int *majorType,
+					int *additionalInfo);
+			/*	This function just extracts major
+			 *	type and additional info from the
+			 *	byte identified by cursor.		*/
+
 extern int	cbor_decode_integer(	uvast *value,
 					int class,
 					unsigned char **cursor);

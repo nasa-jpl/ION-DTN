@@ -7490,6 +7490,165 @@ static char	*_versionMemo()
 	return memo;
 }
 
+static int	acquireEid(EndpointId *eid, unsigned char **cursor)
+{
+	uvast		uvtemp;
+	int		totalLength = 0;
+	int		length;
+	int		majorType;
+	int		additionalInfo;
+	char		eidString[300];
+	uvast		sspLen;
+	uvast		nodeNbr;
+	unsigned int	serviceNbr;
+	uvast		groupNbr;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	elt;
+
+	length = cbor_decode_array_open(&uvtemp, cursor);
+       	if (length < 0)
+	{
+		writeMemo("[?] Can't decode endpoint ID.");
+		return -1;
+	}
+
+	if (uvtemp != 2)
+	{
+		writeMemo("[?] Invalid size of endpoint ID array.");
+		return -1;
+	}
+
+	totalLength += length;
+	length = cbor_decode_integer(&uvtemp, CborAny, cursor);
+       	if (length < 0)
+	{
+		writeMemo("[?] Can't decode EID scheme.");
+		return -1;
+	}
+
+	eid->schemeCodeNbr = uvtemp;
+	totalLength += length;
+	switch (eid->schemeCodeNbr)
+	{
+	case dtn:
+		istrcpy(eidString, "dtn:", sizeof eidString);
+		cbor_decode_initial_byte(*cursor, &majorType, &additionalInfo);
+		if (majorType == 0)	/*	Unsigned integer.	*/
+		{
+			length = cbor_decode_integer(&uvtemp, CborAny, cursor);
+			if (length < 0)
+			{
+				writeMemo("[?] Can't decode dtn numeric SSP.");
+				return -1;
+			}
+
+			if (uvtemp != 0)
+			{
+				writeMemoNote("[?] Invalid dtn SSP",
+					itoa(uvtemp));
+				return -1;
+			}
+
+			istrcpy(eidString + 4, "none", sizeof eidString - 4);
+		}
+		else
+		{
+			if (majorType != 3)	/*	Text array.	*/
+			{
+				writeMemoNote("[?] Invalid dtn SSP type",
+					itoa(majorType));
+				return -1;
+			}
+
+			sspLen = 255;
+			length = cbor_decode_text_string(eidString + 4,
+					&sspLen, cursor);
+			if (length < 0)
+			{
+				writeMemo("[?] Can't decode dtn string SSP.");
+				return -1;
+			}
+		}
+
+		totalLength += length;
+		break;
+
+	case ipn:
+		istrcpy(eidString, "ipn:", sizeof eidString);
+		length = cbor_decode_integer(&nodeNbr, CborAny, cursor);
+		if (length < 0)
+		{
+			writeMemo("[?] Can't decode node number.");
+			return -1;
+		}
+
+		totalLength += length;
+		length = cbor_decode_integer(&uvtemp, CborAny, cursor);
+		if (length < 0)
+		{
+			writeMemo("[?] Can't decode service number.");
+			return -1;
+		}
+
+		totalLength += length;
+		if (uvtemp > 4294967295)
+		{
+			writeMemo("[?] Service number too large.");
+			return -1;
+
+		}
+
+		serviceNbr = uvtemp;
+		isprintf(eidString + 4, sizeof eidString - 4,
+				UVAST_FIELDSPEC ".%lu", nodeNbr, serviceNbr);
+		break;
+
+	case imc:
+		istrcpy(eidString, "imc:", sizeof eidString);
+		length = cbor_decode_integer(&groupNbr, CborAny, cursor);
+		if (length < 0)
+		{
+			writeMemo("[?] Can't decode group number.");
+			return -1;
+		}
+
+		totalLength += length;
+		length = cbor_decode_integer(&uvtemp, CborAny, cursor);
+		if (length < 0)
+		{
+			writeMemo("[?] Can't decode service number.");
+			return -1;
+		}
+
+		totalLength += length;
+		if (uvtemp > 4294967295)
+		{
+			writeMemo("[?] Service number too large.");
+			return -1;
+
+		}
+
+		serviceNbr = uvtemp;
+		isprintf(eidString + 4, sizeof eidString - 4,
+				UVAST_FIELDSPEC ".%lu", groupNbr, serviceNbr);
+		break;
+
+	default:
+		writeMemo("[?] Can't decode endpoint ID.");
+		return -1;
+	}
+
+	oK(parseEidString(eidString, &metaEid, &vscheme,&elt));
+	if (jotEid(eid, &metaEid) < 0)
+	{
+		putErrmsg("Can't jot eid.", NULL);
+		return -1;
+	}
+
+	return totalLength;
+}
+
 static int	acquirePrimaryBlock(AcqWorkArea *work)
 {
 	Bundle		*bundle;
@@ -7500,9 +7659,8 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		version;
 	uvast		uvtemp;
 	BpCrcType	crcType;
-	int		isSegment;
-	int		i;
-	uvast		eidSdnvValues[8];
+	int		fragmentary;
+	int		length;
 	char		*eidString;
 	int		nullEidLen;
 	int		bytesParsed;
@@ -7524,20 +7682,23 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	switch (arrayLength)
 	{
 	case 7:
-		isSegment = 0;
+		fragmentary = 0;
 		break;
 
 	case 9:
-		isSegment = 1;
+		fragmentary = 1;
 		break;
 
 	default:
-		writeMemoNote("[?] Invalid size of bundle array",
+		writeMemoNote("[?] Invalid size of primary block array",
 				itoa(arrayLength));
 		return 0;
 	}
 
 	unparsedBytes -= 1;
+
+	/*	Acquire version number.					*/
+
 	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
 	{
 		writeMemo("[?] Missing version number in primary block.");
@@ -7552,6 +7713,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= 1;
+
+	/*	Acquire bundle processing flags.			*/
+
 	if (cbor_decode_integer(&uvtemp, CborShort, &cursor) != 3)
 	{
 		writeMemo("[?] Missing bundle flags in primary block.");
@@ -7569,6 +7733,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= 3;
+
+	/*	Acquire CRC type.					*/
+
 	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
 	{
 		writeMemo("[?] Missing CRC type in primary block.");
@@ -7582,17 +7749,40 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	crcType = uvtemp;
+	unparsedBytes -= 1;
 
 	/*	Get destination EID.					*/
 
+	length = acquireEid(&(bundle->destination), &cursor);
+	if (length < 0)
+	{
+		writeMemo("[?] Can't acquire destination EID.");
+		return 0;
+	}
+
+	unparsedBytes -= length;
+
 	/*	Get source EID.  					*/
+
+	length = acquireEid(&(bundle->id.source), &cursor);
+	if (length < 0)
+	{
+		writeMemo("[?] Can't acquire destination EID.");
+		return 0;
+	}
+
+	unparsedBytes -= length;
 
 	/*	Get report-to EID.					*/
 
-	for (i = 0; i < 8; i++)
+	length = acquireEid(&(bundle->reportTo), &cursor);
+	if (length < 0)
 	{
-		extractSdnv(&(eidSdnvValues[i]), &cursor, &unparsedBytes);
+		writeMemo("[?] Can't acquire destination EID.");
+		return 0;
 	}
+
+	unparsedBytes -= length;
 
 	/*	Get creation timestamp, lifetime.			*/
 

@@ -350,14 +350,20 @@ int	cbor_encode_break(unsigned char **cursor)
 	return 1;
 }
 
-static void	decodeFirstByte(unsigned char **cursor, int *majorType,
+void	cbor_decode_initial_byte(unsigned char *cursor, int *majorType,
 			int *additionalInfo)
 {
 	unsigned char	byte;
 
-	byte = **cursor;
+	byte = *cursor;
 	*majorType = byte >> 5 & 0x07;
 	*additionalInfo = byte & 0x1f;
+}
+
+static void	decodeFirstByte(unsigned char **cursor, int *majorType,
+			int *additionalInfo)
+{
+	cbor_decode_initial_byte(*cursor, majorType, additionalInfo);
 	*cursor += 1;
 }
 
