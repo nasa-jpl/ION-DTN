@@ -7492,6 +7492,7 @@ static char	*_versionMemo()
 
 static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 {
+	uvast		arrayLength;
 	uvast		uvtemp;
 	int		totalLength = 0;
 	int		length;
@@ -7506,20 +7507,20 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 	VScheme		*vscheme;
 	PsmAddress	elt;
 
-	length = cbor_decode_array_open(&uvtemp, cursor);
+	/*	Start parsing the endpoint ID.				*/
+
+	arrayLength = 2;	/*	Decode array of size 2.		*/
+	length = cbor_decode_array_open(&arrayLength, cursor);
        	if (length < 0)
 	{
 		writeMemo("[?] Can't decode endpoint ID.");
 		return -1;
 	}
 
-	if (uvtemp != 2)
-	{
-		writeMemo("[?] Invalid size of endpoint ID array.");
-		return -1;
-	}
-
 	totalLength += length;
+
+	/*	Acquire the EID scheme ID number.			*/
+
 	length = cbor_decode_integer(&uvtemp, CborAny, cursor);
        	if (length < 0)
 	{
@@ -7529,6 +7530,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 
 	eid->schemeCodeNbr = uvtemp;
 	totalLength += length;
+
+	/*	Based on scheme number, acquire scheme-specific part.	*/
+
 	switch (eid->schemeCodeNbr)
 	{
 	case dtn:
@@ -7536,6 +7540,8 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		cbor_decode_initial_byte(*cursor, &majorType, &additionalInfo);
 		if (majorType == 0)	/*	Unsigned integer.	*/
 		{
+			/*	Only 0 (for "none") is valid.		*/
+
 			length = cbor_decode_integer(&uvtemp, CborAny, cursor);
 			if (length < 0)
 			{
@@ -7552,7 +7558,7 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 
 			istrcpy(eidString + 4, "none", sizeof eidString - 4);
 		}
-		else
+		else			/*	Must be text array.	*/
 		{
 			if (majorType != 3)	/*	Text array.	*/
 			{
@@ -7576,6 +7582,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 
 	case ipn:
 		istrcpy(eidString, "ipn:", sizeof eidString);
+
+		/*	Acquire the node number.			*/
+
 		length = cbor_decode_integer(&nodeNbr, CborAny, cursor);
 		if (length < 0)
 		{
@@ -7584,6 +7593,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		}
 
 		totalLength += length;
+
+		/*	Acquire the service number.			*/
+
 		length = cbor_decode_integer(&uvtemp, CborAny, cursor);
 		if (length < 0)
 		{
@@ -7592,6 +7604,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		}
 
 		totalLength += length;
+
+		/*	Validate service number, compose EID string.	*/
+
 		if (uvtemp > 4294967295)
 		{
 			writeMemo("[?] Service number too large.");
@@ -7606,6 +7621,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 
 	case imc:
 		istrcpy(eidString, "imc:", sizeof eidString);
+
+		/*	Acquire the group number.			*/
+
 		length = cbor_decode_integer(&groupNbr, CborAny, cursor);
 		if (length < 0)
 		{
@@ -7614,6 +7632,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		}
 
 		totalLength += length;
+
+		/*	Acquire the service number.			*/
+
 		length = cbor_decode_integer(&uvtemp, CborAny, cursor);
 		if (length < 0)
 		{
@@ -7622,6 +7643,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		}
 
 		totalLength += length;
+
+		/*	Validate service number, compose EID string.	*/
+
 		if (uvtemp > 4294967295)
 		{
 			writeMemo("[?] Service number too large.");
@@ -7639,6 +7663,8 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		return -1;
 	}
 
+	/*	Store the EID and return length parsed.			*/
+
 	oK(parseEidString(eidString, &metaEid, &vscheme,&elt));
 	if (jotEid(eid, &metaEid) < 0)
 	{
@@ -7649,17 +7675,85 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 	return totalLength;
 }
 
+static int	checkCrc(BpCrcType crcType, unsigned char **cursor,
+			char *startOfBlock)
+{
+	unsigned char	*endOfBlock;
+	int		length;
+	uvast		crcReceived;
+	char		*endOfCrc;
+	uint16_t	crc16Received;
+	uint16_t	crc16Computed;
+	uint32_t	crc32Received;
+	uint32_t	crc32Computed;
+
+	endOfBlock = *cursor;
+	length = cbor_decode_integer(&crcReceived, CborAny, cursor);
+       	if (length < 0)
+	{
+		writeMemo("[?] Can't acquire received CRC.");
+		return 0;
+	}
+
+	endOfCrc = (char *) *cursor;
+	if (crcType == crc16)
+	{
+		if (length != 3)
+		{
+			writeMemo("[?] CRC16 not 2 bytes long.");
+			return -1;
+		}
+
+		crc16Received = crcReceived;
+		memset(endOfBlock, 0, length);
+		crc16Computed = ion_CRC16_1021_X25(startOfBlock,
+				endOfCrc - startOfBlock, 0);
+		if (crc16Computed != crc16Received)
+		{
+			writeMemo("[?] CRC16 check failed.");
+			return -1;
+		}
+
+		return 0;
+	}
+
+	if (crcType == crc32)
+	{
+		if (length != 5)
+		{
+			writeMemo("[?] CRC32 not 4 bytes long.");
+			return -1;
+		}
+
+		crc32Received = crcReceived;
+		memset(endOfBlock, 0, length);
+		crc32Computed = ion_CRC32_1EDC6F41_C(startOfBlock,
+				endOfCrc - startOfBlock, 0);
+		if (crc32Computed != crc32Received)
+		{
+			writeMemo("[?] CRC32 check failed.");
+			return -1;
+		}
+
+		return 0;
+	}
+
+	writeMemoNote("[?] Unknown CRC type", itoa(crcType));
+	return -1;
+}
+
 static int	acquirePrimaryBlock(AcqWorkArea *work)
 {
 	Bundle		*bundle;
 	int		bytesToParse;
 	int		unparsedBytes;
 	unsigned char	*cursor;
+	char		*startOfBlock;
 	uvast		arrayLength;
+	uvast		itemsRemaining;;
 	int		version;
 	uvast		uvtemp;
 	BpCrcType	crcType;
-	int		fragmentary;
 	int		length;
 	char		*eidString;
 	int		nullEidLen;
@@ -7672,30 +7766,16 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Start parsing the primary block.			*/
 
-	arrayLength = 0;	/*	Decode any array.		*/
+	arrayLength = 0;	/*	Decode array of any size.	*/
 	if (cbor_decode_array_open(&arrayLength, &cursor) < 0)
 	{
-		writeMemo("[?] Can't decode bundle array.");
+		writeMemo("[?] Can't decode primary block array.");
 		return 0;
 	}
 
-	switch (arrayLength)
-	{
-	case 7:
-		fragmentary = 0;
-		break;
-
-	case 9:
-		fragmentary = 1;
-		break;
-
-	default:
-		writeMemoNote("[?] Invalid size of primary block array",
-				itoa(arrayLength));
-		return 0;
-	}
-
+	startOfBlock = (char *) cursor;
 	unparsedBytes -= 1;
+	itemsRemaining = arrayLength;
 
 	/*	Acquire version number.					*/
 
@@ -7713,6 +7793,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= 1;
+	itemsRemaining -= 1;
 
 	/*	Acquire bundle processing flags.			*/
 
@@ -7733,6 +7814,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= 3;
+	itemsRemaining -= 1;
 
 	/*	Acquire CRC type.					*/
 
@@ -7750,8 +7832,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	crcType = uvtemp;
 	unparsedBytes -= 1;
+	itemsRemaining -= 1;
 
-	/*	Get destination EID.					*/
+	/*	Acquire destination EID.				*/
 
 	length = acquireEid(&(bundle->destination), &cursor);
 	if (length < 0)
@@ -7761,8 +7844,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= length;
+	itemsRemaining -= 1;
 
-	/*	Get source EID.  					*/
+	/*	Acquire source EID.  					*/
 
 	length = acquireEid(&(bundle->id.source), &cursor);
 	if (length < 0)
@@ -7772,8 +7856,9 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= length;
+	itemsRemaining -= 1;
 
-	/*	Get report-to EID.					*/
+	/*	Acquire report-to EID.					*/
 
 	length = acquireEid(&(bundle->reportTo), &cursor);
 	if (length < 0)
@@ -7783,14 +7868,49 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	unparsedBytes -= length;
+	itemsRemaining -= 1;
 
-	/*	Get creation timestamp, lifetime.			*/
+	/*	Acquire creation timestamp seconds.			*/
 
-	extractSdnv(&uvtemp, &cursor, &unparsedBytes);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 0)
+	{
+		writeMemo("[?] Can't acquire bundle creation time.");
+		return 0;
+	}
+
 	bundle->id.creationTime.seconds = uvtemp;
-	extractSmallSdnv(&(bundle->id.creationTime.count), &cursor,
-			&unparsedBytes);
-	extractSmallSdnv(&(bundle->timeToLive), &cursor, &unparsedBytes);
+	unparsedBytes -= 1;
+	itemsRemaining -= 1;
+
+	/*	Acquire creation timestamp count.			*/
+
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 0)
+	{
+		writeMemo("[?] Can't acquire bundle creation count.");
+		return 0;
+	}
+
+	bundle->id.creationTime.count = uvtemp;
+	unparsedBytes -= 1;
+	itemsRemaining -= 1;
+
+	/*	Acquire time-to-live (lifetime).			*/
+
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 0)
+	{
+		writeMemo("[?] Can't acquire bundle lifetime.");
+		return 0;
+	}
+
+	bundle->timeToLive = uvtemp;
+	unparsedBytes -= 1;
+	itemsRemaining -= 1;
+
+	/*	Initialize bundle age.					*/
+
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
 		/*	Default bundle age, pending override by BAE.	*/
@@ -7802,7 +7922,8 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		bundle->age = 0;
 	}
 
-//	<<-- acquire EIDs here
+	/*	Determine whether or not the bundle is anonymous.
+	 *	There must be a more efficient way to do this.		*/
 
 	if (readEid(&(bundle->id.source), &eidString) < 0)
 	{
@@ -7818,17 +7939,72 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	MRELEASE(eidString);
+
+	/*	Handle bundle fragment status.				*/
+
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
-		extractSmallSdnv(&(bundle->id.fragmentOffset), &cursor,
-				&unparsedBytes);
-		extractSmallSdnv(&(bundle->totalAduLength), &cursor,
-				&unparsedBytes);
+		if (itemsRemaining < 2)
+		{
+			writeMemo("[?] Can't acquire bundle fragment ID.");
+			return 0;
+		}
+
+		/*	Acquire fragment offset.			*/
+
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       		if (length < 0)
+		{
+			writeMemo("[?] Can't acquire fragment offset.");
+			return 0;
+		}
+
+		bundle->id.fragmentOffset = uvtemp;
+		unparsedBytes -= length;
+		itemsRemaining -= 1;
+
+		/*	Acquire fragment offset.			*/
+
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       		if (length < 0)
+		{
+			writeMemo("[?] Can't acquire total ADU length.");
+			return 0;
+		}
+
+		bundle->totalAduLength = uvtemp;
+		unparsedBytes -= length;
+		itemsRemaining -= 1;
 	}
 	else
 	{
 		bundle->id.fragmentOffset = 0;
 		bundle->totalAduLength = 0;
+	}
+
+	/*	Compute and check the CRC, if present.			*/
+
+	if (crcType == crcNone)
+	{
+		if (itemsRemaining != 0)
+		{
+			writeMemo("[?] Primary block has too many items.");
+			return -1;
+		}
+	}
+	else
+	{
+		if (itemsRemaining != 1)
+		{
+			writeMemo("[?] Primary block has too few items.");
+			return -1;
+		}
+
+		if (checkCrc(crcType, &cursor, startOfBlock) < 0)
+		{
+			writeMemo("[?] CRC check failed for primary block.");
+			return -1;
+		}
 	}
 
 	/*	Have got primary block; include its length in the
