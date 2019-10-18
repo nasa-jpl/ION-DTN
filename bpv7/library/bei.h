@@ -72,7 +72,7 @@ typedef struct
 {
 	BpBlockType	type;		/**	Per definitions array.	*/
 	unsigned char	number;		//	To be developed.
-	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
+	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
 	unsigned int	size;		/**	Size of scratchpad obj.	*/
@@ -104,7 +104,7 @@ typedef struct
 {
 	BpBlockType	type;		/**	Per definitions array.	*/
 	unsigned char	number;		//	To be developed.
-	unsigned short	blkProcFlags;	/**	Per BP spec.		*/
+	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
 	unsigned int	size;		/**	Size of scratchpad obj.	*/

@@ -578,26 +578,94 @@ void	scratchExtensionBlock(ExtensionBlock *blk)
 int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 {
 	Sdr		bpSdr = getIonsdr();
-	unsigned int	blkProcFlags;
-	Sdnv		blkProcFlagsSdnv;
-	unsigned int	dataLength;
-	Sdnv		dataLengthSdnv;
-	char		*blkBuffer;
-	char		*cursor;
+	int		crcSize;
+	unsigned int	buflen;
+	unsigned char	*blkBuffer;
+	unsigned char	*cursor;
+	uvast		uvtemp;
 
 	CHKERR(blk);
-	blkProcFlags = blk->blkProcFlags;
-	dataLength = blk->dataLength;
+	switch(blk->crcType)
+	{
+	case NoCRC:
+		crcSize = 0;
+		break;
+
+	case X25CRC16:
+		crcSize = 3;
+		break;
+
+	case CRC32C:
+		crcSize = 5;
+		break;
+
+	default:
+		putErrmsg("Invalid crcType.", itoa(blk->crcType));
+		return -1;
+	}
+
+	/*	First serialize the block into a temporary buffer
+	 *	in working memory.  The size of the buffer is
+	 *	computed as:
+	 *		1 for size of CBOR array open
+	 *		9 for size of CBOR integer (block type)
+	 *		9 for size of CBOR integer (block number)
+	 *		2 for size of CBOR integer (block proc flags)
+	 *		1 for size of CBOR integer (CRC type)
+	 * 9 + dataLength for size of CBOR byte string (block-specific data)
+	 *        crcSize for size of CBOR integer (CRC)		*/
+
+	buflen = blk->dataLength + crcSize + 31;
+	blkBuffer = MTAKE(buflen);
+	if (blkBuffer == NULL)
+	{
+		putErrmsg("No space for block buffer.", itoa(buflen));
+		return -1;
+	}
+
+	cursor = blkBuffer;
+	uvtemp = (crcSize == 0 ? 5 : 6);
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+	uvtemp = blk->type;
+	oK(cbor_encode_integer(uvtemp, CborAny, &cursor));
+	uvtemp = blk->number;
+	oK(cbor_encode_integer(uvtemp, CborAny, &cursor));
+	uvtemp = blk->blkProcFlags;
+	oK(cbor_encode_integer(uvtemp, CborChar, &cursor));
+	uvtemp = blk->crcType;
+	oK(cbor_encode_integer(uvtemp, CborTiny, &cursor));
+	uvtemp = blk->dataLength;
+	oK(cbor_encode_byte_string((unsigned char *) blockData, uvtemp,
+			&cursor));
+
+	/*	Compute and encode CRC as required.			*/
+
+	if (blk->crcType != NoCRC)
+	{
+		uvtemp = 0;
+		if (blk->crcType == X25CRC16)
+		{
+			oK(cbor_encode_integer(uvtemp, CborShort, &cursor));
+		}
+		else		/*	CRC32C.				*/
+		{
+			oK(cbor_encode_integer(uvtemp, CborInt, &cursor));
+		}
+
+		oK(computeBufferCrc(blk->crcType, blkBuffer, cursor - blkBuffer,
+				1, 0, NULL));
+	}
+
+	/*	Then allocate enough SDR heap space to hold the
+	 *	serialized block.					*/
+
 	if (blk->bytes)
 	{
 		sdr_free(bpSdr, blk->bytes);
 	}
 
 	blk->bytes = 0;
-	encodeSdnv(&blkProcFlagsSdnv, blkProcFlags);
-	encodeSdnv(&dataLengthSdnv, dataLength);
-	blk->length = 1 + blkProcFlagsSdnv.length + dataLengthSdnv.length
-			+ dataLength;
+	blk->length = cursor - blkBuffer;
 	blk->bytes = sdr_malloc(bpSdr, blk->length);
 	if (blk->bytes == 0)
 	{
@@ -605,21 +673,10 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 		return -1;
 	}
 
-	blkBuffer = MTAKE(blk->length);
-	if (blkBuffer == NULL)
-	{
-		putErrmsg("No space for block buffer.", itoa(blk->length));
-		return -1;
-	}
+	/*	Finally, copy the serialized block from the working
+	 *	memory buffer into the SDR heap and free the buffer.	*/
 
-	*blkBuffer = blk->type;
-	cursor = blkBuffer + 1;
-	memcpy(cursor, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
-	cursor += blkProcFlagsSdnv.length;
-	memcpy(cursor, dataLengthSdnv.text, dataLengthSdnv.length);
-	cursor += dataLengthSdnv.length;
-	memcpy(cursor, blockData, dataLength);
-	sdr_write(bpSdr, blk->bytes, blkBuffer, blk->length);
+	sdr_write(bpSdr, blk->bytes, (char *) blkBuffer, blk->length);
 	MRELEASE(blkBuffer);
 	return 0;
 }
@@ -642,13 +699,17 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	Bundle		*bundle = &(work->bundle);
 	int		blkSize;
 	AcqExtBlock	*blk;
-	Sdnv		blkProcFlagsSdnv;
 	LystElt		elt;
 	int		additionalOverhead;
 
 	CHKERR(work);
 	CHKERR(startOfBlock);
 	blkSize = sizeof(AcqExtBlock) + (blockLength - 1);
+
+	/*	(blockLength - 1) because blkSize is inflated by 1
+	 *	due to the inclusion of the placeholding 1-byte
+	 *	character array in "bytes".				*/
+
 	blk = (AcqExtBlock *) MTAKE(blkSize);
 	if (blk == NULL)
 	{
@@ -656,20 +717,17 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		return -1;
 	}
 
-	/*	Populate the extension block structure.			*/
+	/*	Populate the extension block structure.  The entire
+	 *	original block, except for any terminating CRC, is
+	 *	copied into the bytes[] of the AcqExtBlock object.	*/
 
 	memset((char *) blk, 0, sizeof(AcqExtBlock));
 	blk->type = blkType;
-	blk->number = 0;		//	To be developed
+	blk->number = blkNumber;
 	blk->blkProcFlags = blkProcFlags;
 	blk->dataLength = dataLength;
 	blk->length = blockLength;
 	memcpy(blk->bytes, startOfBlock, blockLength);
-
-	/*	Block processing flags may already have been modified.	*/
-
-	encodeSdnv(&blkProcFlagsSdnv, blkProcFlags);
-	memcpy(blk->bytes + 1, blkProcFlagsSdnv.text, blkProcFlagsSdnv.length);
 
 	/*	Store extension block within bundle.			*/
 

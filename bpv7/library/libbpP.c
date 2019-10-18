@@ -7675,9 +7675,9 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 	return totalLength;
 }
 
-static uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
-			int bytesToProcess, int endOfBlock, uvast aggregateCrc,
-			uvast *extractedCrc)
+uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
+		int bytesToProcess, int endOfBlock, uvast aggregateCrc,
+		uvast *extractedCrc)
 {
 	int		bytesToMask = 0;
 	uint16_t	crc16;
@@ -7705,9 +7705,13 @@ static uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 			/*	Extract last 2 bytes, then set them
 			 *	to zero for CRC computation.		*/
 
-			memcpy((char *) &extractedCrc16, buffer +
+			if (extractedCrc)
+			{
+				memcpy((char *) &extractedCrc16, buffer +
 					(bytesToProcess - bytesToMask), 2);
-			*extractedCrc = ntohs(extractedCrc16);
+				*extractedCrc = ntohs(extractedCrc16);
+			}
+
 			memset(buffer + (bytesToProcess - bytesToMask), 0, 2);
 		}
 
@@ -7736,9 +7740,13 @@ static uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 		/*	Extract last 4 bytes, then set them to zero
 		 *	for CRC computation.				*/
 
-		memcpy((char *) &extractedCrc32, buffer +
+		if (extractedCrc)
+		{
+			memcpy((char *) &extractedCrc32, buffer +
 				(bytesToProcess - bytesToMask), 4);
-		*extractedCrc = ntohl(extractedCrc32);
+			*extractedCrc = ntohl(extractedCrc32);
+		}
+
 		memset(buffer + (bytesToProcess - bytesToMask), 0, 4);
 	}
 
@@ -7753,8 +7761,8 @@ static uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 	return crc32;
 }
 
-static int	computeZcoCrc(BpCrcType crcType, ZcoReader *reader,
-			int bytesToProcess, uvast *crc, uvast *extractedCrc)
+int	computeZcoCrc(BpCrcType crcType, ZcoReader *reader, int bytesToProcess,
+		uvast *crc, uvast *extractedCrc)
 {
 	char	buffer[65536];
 	int	reloadLimit;

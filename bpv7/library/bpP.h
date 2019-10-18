@@ -1322,6 +1322,19 @@ extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 extern void		eraseEid(EndpointId *eid);
 extern int		readEid(EndpointId *eid, char **str);
 
+extern uvast		computeBufferCrc(BpCrcType crcType,
+				unsigned char *buffer, 
+				int bytesToProcess,
+				int endOfBlock,
+				uvast aggregateCrc,
+				uvast *extractedCrc);
+
+extern int		computeZcoCrc(BpCrcType crcType,
+				ZcoReader *reader,
+				int bytesToProcess,
+				uvast *computedCrc,
+				uvast *extractedCrc);
+
 extern int		startBpTask(Object cmd, Object cmdparms, int *pid);
 
 extern void		noteStateStats(int stateIdx, Bundle *bundle);
