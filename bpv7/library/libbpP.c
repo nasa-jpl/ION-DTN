@@ -7028,7 +7028,6 @@ static void	clearAcqArea(AcqWorkArea *work)
 	memset((char *) &(work->bundle), 0, sizeof(Bundle));
 	work->authentic = 0;
 	work->decision = AcqTBD;
-	work->lastBlockParsed = 0;
 	work->malformed = 0;
 	work->congestive = 0;
 	work->mustAbort = 0;
@@ -7445,7 +7444,7 @@ unsigned int	computeECCC(unsigned int bundleSize)
 
 static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
 {
-	int	bytesRemaining = work->zcoLength - work->zcoBytesReceived;
+	int	bytesRemaining;
 	int	bytesToReceive;
 	int	bytesReceived;
 
@@ -7458,6 +7457,7 @@ static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
 	 *	vacated.						*/
 
 	bytesToReceive = sizeof work->buffer - work->bytesBuffered;
+	bytesRemaining = work->zcoLength - work->zcoBytesReceived;
 	if (bytesToReceive > bytesRemaining)
 	{
 		bytesToReceive = bytesRemaining;
@@ -7511,10 +7511,10 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 
 	arrayLength = 2;	/*	Decode array of size 2.		*/
 	length = cbor_decode_array_open(&arrayLength, cursor);
-       	if (length < 0)
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't decode endpoint ID.");
-		return -1;
+		return 0;
 	}
 
 	totalLength += length;
@@ -7522,10 +7522,10 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 	/*	Acquire the EID scheme ID number.			*/
 
 	length = cbor_decode_integer(&uvtemp, CborAny, cursor);
-       	if (length < 0)
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't decode EID scheme.");
-		return -1;
+		return 0;
 	}
 
 	eid->schemeCodeNbr = uvtemp;
@@ -7543,17 +7543,17 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 			/*	Only 0 (for "none") is valid.		*/
 
 			length = cbor_decode_integer(&uvtemp, CborAny, cursor);
-			if (length < 0)
+			if (length < 1)
 			{
 				writeMemo("[?] Can't decode dtn numeric SSP.");
-				return -1;
+				return 0;
 			}
 
 			if (uvtemp != 0)
 			{
 				writeMemoNote("[?] Invalid dtn SSP",
 					itoa(uvtemp));
-				return -1;
+				return 0;
 			}
 
 			istrcpy(eidString + 4, "none", sizeof eidString - 4);
@@ -7564,16 +7564,16 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 			{
 				writeMemoNote("[?] Invalid dtn SSP type",
 					itoa(majorType));
-				return -1;
+				return 0;
 			}
 
 			sspLen = 255;
 			length = cbor_decode_text_string(eidString + 4,
 					&sspLen, cursor);
-			if (length < 0)
+			if (length < 1)
 			{
 				writeMemo("[?] Can't decode dtn string SSP.");
-				return -1;
+				return 0;
 			}
 		}
 
@@ -7586,10 +7586,10 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		/*	Acquire the node number.			*/
 
 		length = cbor_decode_integer(&nodeNbr, CborAny, cursor);
-		if (length < 0)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode node number.");
-			return -1;
+			return 0;
 		}
 
 		totalLength += length;
@@ -7597,10 +7597,10 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		/*	Acquire the service number.			*/
 
 		length = cbor_decode_integer(&uvtemp, CborAny, cursor);
-		if (length < 0)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode service number.");
-			return -1;
+			return 0;
 		}
 
 		totalLength += length;
@@ -7610,7 +7610,7 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		if (uvtemp > 4294967295)
 		{
 			writeMemo("[?] Service number too large.");
-			return -1;
+			return 0;
 
 		}
 
@@ -7625,10 +7625,10 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		/*	Acquire the group number.			*/
 
 		length = cbor_decode_integer(&groupNbr, CborAny, cursor);
-		if (length < 0)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode group number.");
-			return -1;
+			return 0;
 		}
 
 		totalLength += length;
@@ -7636,10 +7636,10 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		/*	Acquire the service number.			*/
 
 		length = cbor_decode_integer(&uvtemp, CborAny, cursor);
-		if (length < 0)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode service number.");
-			return -1;
+			return 0;
 		}
 
 		totalLength += length;
@@ -7649,7 +7649,7 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 		if (uvtemp > 4294967295)
 		{
 			writeMemo("[?] Service number too large.");
-			return -1;
+			return 0;
 
 		}
 
@@ -7660,7 +7660,7 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 
 	default:
 		writeMemo("[?] Can't decode endpoint ID.");
-		return -1;
+		return 0;
 	}
 
 	/*	Store the EID and return length parsed.			*/
@@ -7675,71 +7675,142 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor)
 	return totalLength;
 }
 
-static int	checkCrc(BpCrcType crcType, unsigned char **cursor,
-			char *startOfBlock)
+static uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
+			int bytesToProcess, int endOfBlock, uvast aggregateCrc,
+			uvast *extractedCrc)
 {
-	unsigned char	*endOfBlock;
-	int		length;
-	uvast		crcReceived;
-	char		*endOfCrc;
-	uint16_t	crc16Received;
-	uint16_t	crc16Computed;
-	uint32_t	crc32Received;
-	uint32_t	crc32Computed;
+	int		bytesToMask = 0;
+	uint16_t	crc16;
+	uint32_t	crc32;
+	uint16_t	extractedCrc16;
+	uint32_t	extractedCrc32;
+	uint16_t	insertedCrc16;
+	uint32_t	insertedCrc32;
 
-	endOfBlock = *cursor;
-	length = cbor_decode_integer(&crcReceived, CborAny, cursor);
-       	if (length < 0)
+	/*	If end of block, set value of CRC itself (the last 2
+	 *	or 4 bytes of the block) to zero before computing;
+	 *	also, plug the newly computed CRC value into that
+	 *	location when finished.					*/
+
+	if (crcType == X25CRC16)
 	{
-		writeMemo("[?] Can't acquire received CRC.");
-		return 0;
+		crc16 = aggregateCrc;
+		if (endOfBlock)
+		{
+			bytesToMask = 2;
+		}
+		
+		if (bytesToMask > 0)
+		{
+			/*	Extract last 2 bytes, then set them
+			 *	to zero for CRC computation.		*/
+
+			memcpy((char *) &extractedCrc16, buffer +
+					(bytesToProcess - bytesToMask), 2);
+			*extractedCrc = ntohs(extractedCrc16);
+			memset(buffer + (bytesToProcess - bytesToMask), 0, 2);
+		}
+
+		crc16 = ion_CRC16_1021_X25((char *) buffer, bytesToProcess,
+				crc16);
+		if (bytesToMask > 0)
+		{
+			insertedCrc16 = htons(crc16);
+			memcpy(buffer + (bytesToProcess - bytesToMask),
+					(char *) &insertedCrc16, 2);
+		}
+
+		return crc16;
 	}
 
-	endOfCrc = (char *) *cursor;
-	if (crcType == crc16)
+	/*	Must be CRC32C.						*/
+
+	crc32 = aggregateCrc;
+	if (endOfBlock)
 	{
-		if (length != 3)
-		{
-			writeMemo("[?] CRC16 not 2 bytes long.");
-			return -1;
-		}
+		bytesToMask = 4;
+	}
+	
+	if (bytesToMask > 0)
+	{
+		/*	Extract last 4 bytes, then set them to zero
+		 *	for CRC computation.				*/
 
-		crc16Received = crcReceived;
-		memset(endOfBlock, 0, length);
-		crc16Computed = ion_CRC16_1021_X25(startOfBlock,
-				endOfCrc - startOfBlock, 0);
-		if (crc16Computed != crc16Received)
-		{
-			writeMemo("[?] CRC16 check failed.");
-			return -1;
-		}
-
-		return 0;
+		memcpy((char *) &extractedCrc32, buffer +
+				(bytesToProcess - bytesToMask), 4);
+		*extractedCrc = ntohl(extractedCrc32);
+		memset(buffer + (bytesToProcess - bytesToMask), 0, 4);
 	}
 
-	if (crcType == crc32)
+	crc32 = ion_CRC32_1EDC6F41_C((char *) buffer, bytesToProcess, crc32);
+	if (bytesToMask > 0)
 	{
-		if (length != 5)
-		{
-			writeMemo("[?] CRC32 not 4 bytes long.");
-			return -1;
-		}
-
-		crc32Received = crcReceived;
-		memset(endOfBlock, 0, length);
-		crc32Computed = ion_CRC32_1EDC6F41_C(startOfBlock,
-				endOfCrc - startOfBlock, 0);
-		if (crc32Computed != crc32Received)
-		{
-			writeMemo("[?] CRC32 check failed.");
-			return -1;
-		}
-
-		return 0;
+		insertedCrc32 = htonl(crc32);
+		memcpy(buffer + (bytesToProcess - bytesToMask),
+				(char *) &insertedCrc32, 4);
 	}
 
-	writeMemoNote("[?] Unknown CRC type", itoa(crcType));
-	return -1;
+	return crc32;
+}
+
+static int	computeZcoCrc(BpCrcType crcType, ZcoReader *reader,
+			int bytesToProcess, uvast *crc, uvast *extractedCrc)
+{
+	char	buffer[65536];
+	int	reloadLimit;
+	int	crcSize;
+	int	endOfBlock = 0;
+	int	bytesToReceive;
+	int	bytesReceived;
+
+	if (crcType == X25CRC16)
+	{
+		crcSize = 3;		/*	CBOR 16-bit integer.	*/
+	}
+	else
+	{
+		crcSize = 5;		/*	CBOR 32-bit integer.	*/
+	}
+
+	reloadLimit = sizeof buffer - crcSize;
+	while (bytesToProcess > 0)
+	{
+		if (bytesToProcess > reloadLimit)
+		{
+			/*	Can't load all remaining data bytes
+			 *	plus CRC in this buffer, so don't
+			 *	load all remaining data bytes.		*/
+
+			bytesToReceive = reloadLimit;
+		}
+		else
+		{
+			/*	Load all remaining data bytes plus CRC.	*/
+
+			endOfBlock = 1;
+			bytesToProcess += crcSize;
+			bytesToReceive = bytesToProcess;
+		}
+
+		bytesReceived = zco_receive_source(getIonsdr(), reader,
+				bytesToReceive, buffer);
+	       	if (bytesReceived != bytesToReceive)
+		{
+			return -1;
+		}
+
+		*crc = computeBufferCrc(crcType, (unsigned char *) buffer,
+				bytesReceived, endOfBlock, *crc, extractedCrc);
+		bytesToProcess -= bytesReceived;
+	}
+
+	return 0;
+}
+
+static int	blockTooLong()
+{
+	writeMemo("[?] Block length exceeds buffer size.");
+	return 0;
 }
 
 static int	acquirePrimaryBlock(AcqWorkArea *work)
@@ -7748,7 +7819,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		bytesToParse;
 	int		unparsedBytes;
 	unsigned char	*cursor;
-	char		*startOfBlock;
+	unsigned char	*startOfBlock;
 	uvast		arrayLength;
 	uvast		itemsRemaining;;
 	int		version;
@@ -7757,24 +7828,26 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	int		length;
 	char		*eidString;
 	int		nullEidLen;
+	uvast		crcReceived;
+	uvast		crcComputed;
 	int		bytesParsed;
 
 	bundle = &(work->bundle);
 	bytesToParse = work->bytesBuffered;
 	unparsedBytes = bytesToParse;
 	cursor = (unsigned char *) (work->buffer);
+	startOfBlock = cursor;
 
 	/*	Start parsing the primary block.			*/
 
 	arrayLength = 0;	/*	Decode array of any size.	*/
-	if (cbor_decode_array_open(&arrayLength, &cursor) < 0)
+	if (cbor_decode_array_open(&arrayLength, &cursor) < 1)
 	{
 		writeMemo("[?] Can't decode primary block array.");
 		return 0;
 	}
 
-	startOfBlock = (char *) cursor;
-	unparsedBytes -= 1;
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
 	itemsRemaining = arrayLength;
 
 	/*	Acquire version number.					*/
@@ -7792,7 +7865,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		return 0;
 	}
 
-	unparsedBytes -= 1;
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire bundle processing flags.			*/
@@ -7805,6 +7878,20 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	bundle->bundleProcFlags = uvtemp;
 
+	/*	Check for processing flags conflicts.			*/
+
+	if (bundle->bundleProcFlags & BDL_IS_ADMIN)
+	{
+		if (SRR_FLAGS(bundle->bundleProcFlags) != 0)
+		{
+			/*	BPbis 4.1.3				*/
+
+			writeMemo("[?] Status report requests prohibited for \
+bundle containing administrative record.");
+			work->mustAbort = 1;
+		}
+	}
+
 	/*	Note status report information as necessary.		*/
 
 	if (SRR_FLAGS(bundle->bundleProcFlags) & BP_RECEIVED_RPT)
@@ -7813,7 +7900,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		getCurrentDtnTime(&(bundle->statusRpt.receiptTime));
 	}
 
-	unparsedBytes -= 3;
+	if ((unparsedBytes -= 3) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire CRC type.					*/
@@ -7831,82 +7918,115 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	}
 
 	crcType = uvtemp;
-	unparsedBytes -= 1;
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire destination EID.				*/
 
 	length = acquireEid(&(bundle->destination), &cursor);
-	if (length < 0)
+	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire destination EID.");
-		return 0;
+		return length;
 	}
 
-	unparsedBytes -= length;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire source EID.  					*/
 
 	length = acquireEid(&(bundle->id.source), &cursor);
-	if (length < 0)
+	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire destination EID.");
-		return 0;
+		return length;
 	}
 
-	unparsedBytes -= length;
+	/*	Determine whether or not the bundle is anonymous.
+	 *	There must be a more efficient way to do this.		*/
+
+	if (readEid(&(bundle->id.source), &eidString) < 0)
+	{
+		putErrmsg("Can't print source EID string.", NULL);
+		return -1;
+	}
+
+	nullEidLen = strlen(_nullEid());
+	if (istrlen(eidString, nullEidLen + 1) == nullEidLen
+	&& strcmp(eidString, _nullEid()) == 0)
+	{
+		bundle->anonymous = 1;
+	}
+
+	MRELEASE(eidString);
+
+	/*	Check for other processing flags conflicts.		*/
+
+	if (bundle->anonymous)
+	{
+		if ((bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT) == 0
+		|| SRR_FLAGS(bundle->bundleProcFlags) != 0)
+		{
+			/*	BPbis 4.1.3				*/
+
+			writeMemo("[?] Fragmentation and status report \
+requests prohibited for anonymous bundle.");
+			work->mustAbort = 1;
+		}
+	}
+
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire report-to EID.					*/
 
 	length = acquireEid(&(bundle->reportTo), &cursor);
-	if (length < 0)
+	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire destination EID.");
-		return 0;
+		return length;
 	}
 
-	unparsedBytes -= length;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire creation timestamp seconds.			*/
 
 	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
-       	if (length < 0)
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire bundle creation time.");
 		return 0;
 	}
 
 	bundle->id.creationTime.seconds = uvtemp;
-	unparsedBytes -= 1;
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire creation timestamp count.			*/
 
 	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
-       	if (length < 0)
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire bundle creation count.");
 		return 0;
 	}
 
 	bundle->id.creationTime.count = uvtemp;
-	unparsedBytes -= 1;
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire time-to-live (lifetime).			*/
 
 	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
-       	if (length < 0)
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire bundle lifetime.");
 		return 0;
 	}
 
 	bundle->timeToLive = uvtemp;
-	unparsedBytes -= 1;
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Initialize bundle age.					*/
@@ -7922,24 +8042,6 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		bundle->age = 0;
 	}
 
-	/*	Determine whether or not the bundle is anonymous.
-	 *	There must be a more efficient way to do this.		*/
-
-	if (readEid(&(bundle->id.source), &eidString) < 0)
-	{
-		putErrmsg("Can't print source EID string.", NULL);
-		return 0;
-	}
-
-	nullEidLen = strlen(_nullEid());
-	if (istrlen(eidString, nullEidLen + 1) == nullEidLen
-	&& strcmp(eidString, _nullEid()) == 0)
-	{
-		bundle->anonymous = 1;
-	}
-
-	MRELEASE(eidString);
-
 	/*	Handle bundle fragment status.				*/
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
@@ -7953,27 +8055,27 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		/*	Acquire fragment offset.			*/
 
 		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
-       		if (length < 0)
+       		if (length < 1)
 		{
 			writeMemo("[?] Can't acquire fragment offset.");
 			return 0;
 		}
 
 		bundle->id.fragmentOffset = uvtemp;
-		unparsedBytes -= length;
+		if ((unparsedBytes -= length) < 0) return blockTooLong();
 		itemsRemaining -= 1;
 
 		/*	Acquire fragment offset.			*/
 
 		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
-       		if (length < 0)
+       		if (length < 1)
 		{
 			writeMemo("[?] Can't acquire total ADU length.");
 			return 0;
 		}
 
 		bundle->totalAduLength = uvtemp;
-		unparsedBytes -= length;
+		if ((unparsedBytes -= length) < 0) return blockTooLong();
 		itemsRemaining -= 1;
 	}
 	else
@@ -7984,27 +8086,51 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Compute and check the CRC, if present.			*/
 
-	if (crcType == crcNone)
+	if (crcType == NoCRC)
 	{
 		if (itemsRemaining != 0)
 		{
 			writeMemo("[?] Primary block has too many items.");
-			return -1;
+			return 0;
 		}
 	}
-	else
+	else	/*	Must check CRC of primary block.		*/
 	{
 		if (itemsRemaining != 1)
 		{
 			writeMemo("[?] Primary block has too few items.");
-			return -1;
+			return 0;
 		}
 
-		if (checkCrc(crcType, &cursor, startOfBlock) < 0)
+		length = cursor - startOfBlock;
+
+		/*	Must include CRC in block for CRC calculation.	*/
+
+		if (crcType == X25CRC16)
+		{
+			length += 3;	/*	CBOR 16-bit CRC		*/
+		}
+		else
+		{
+			length += 5;	/*	CBOR 32-bit CRC		*/
+		}
+
+		if (length > unparsedBytes)
+		{
+			writeMemo("[?] Primary block truncated.");
+			return 0;
+		}
+
+		crcComputed = computeBufferCrc(crcType, startOfBlock, 
+				length, 1, 0, &crcReceived);
+		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
-			return -1;
+			return 0;
 		}
+
+		if ((unparsedBytes -= length) < 0) return blockTooLong();
+		itemsRemaining -= 1;
 	}
 
 	/*	Have got primary block; include its length in the
@@ -8017,61 +8143,160 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 static int	acquireBlock(AcqWorkArea *work)
 {
-	Bundle		*bundle = &(work->bundle);
-	int		unparsedBytes = work->bytesBuffered;
+	Bundle		*bundle;
+	int		bytesToParse;
+	int		unparsedBytes;
 	unsigned char	*cursor;
 	unsigned char	*startOfBlock;
-	unsigned char	blkType;
+	uvast		arrayLength;
+	uvast		itemsRemaining;
+	uvast		uvtemp;
+	int		length;
+	BpBlockType	blkType;
+	unsigned int	blkNumber;
 	unsigned int	blkProcFlags;
-	unsigned int	dataLength;
-	unsigned int	lengthOfBlock;
+	BpCrcType	crcType;
+	vast		dataLength;
 	ExtensionDef	*def;
+	unsigned int	lengthOfBlock;
+	uvast		crcReceived;
+	uvast		crcComputed;
+	unsigned int	bytesParsed;
 
-	if (work->malformed || work->lastBlockParsed)
+	if (work->malformed)
 	{
-		return 0;
+		return 0;	/*	Don't bother to acquire.	*/
 	}
 
-	if (unparsedBytes < 3)
-	{
-		return 0;	/*	Can't be a complete block.	*/
-	}
-
+	bundle = &(work->bundle);
+	bytesToParse = work->bytesBuffered;
+	unparsedBytes = bytesToParse;
 	cursor = (unsigned char *) (work->buffer);
 	startOfBlock = cursor;
 
-	/*	Get block type.						*/
+	/*	Start parsing this canonical block.			*/
 
-	blkType = *cursor;
-	cursor++; unparsedBytes--;
-
-	/*	Get block processing flags.  If flags indicate that
-	 *	EID references are present, get them.			*/
-
-	extractSmallSdnv(&blkProcFlags, &cursor, &unparsedBytes);
-
-	/*	Get length of block data.				*/
-
-	extractSmallSdnv(&dataLength, &cursor, &unparsedBytes);
-
-	/*	Check first to see if this is the payload block.	*/
-
-	if (blkType == 1)	/*	Payload block.			*/
+	arrayLength = 0;	/*	Decode array of any size.	*/
+	if (cbor_decode_array_open(&arrayLength, &cursor) < 1)
 	{
-		work->lastBlockParsed = 1;
-		if (bundle->payload.length)
-		{
-			writeMemo("[?] Multiple payloads in block.");
-			return 0;
-		}
+		writeMemo("[?] Can't decode canonical block array.");
+		return 0;
+	}
 
+	if ((unparsedBytes -= 1) < 0) return blockTooLong();
+	itemsRemaining = arrayLength;
+
+	/*	Acquire block type.					*/
+
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 1)
+	{
+		writeMemo("[?] Missing block type in canonical block.");
+		return 0;
+	}
+
+	blkType = uvtemp;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
+	itemsRemaining -= 1;
+
+	/*	Acquire block number.					*/
+
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 1)
+	{
+		writeMemo("[?] Missing block number in canonical block.");
+		return 0;
+	}
+
+	blkNumber = uvtemp;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
+	itemsRemaining -= 1;
+
+	/*	Acquire block processing flags.				*/
+
+	if (cbor_decode_integer(&uvtemp, CborChar, &cursor) != 2)
+	{
+		writeMemo("[?] Missing block flags in canonical block.");
+		return 0;
+	}
+
+	blkProcFlags = uvtemp;
+
+	/*	Check for processing flags conflicts.			*/
+
+	if (bundle->anonymous || bundle->bundleProcFlags & BDL_IS_ADMIN)
+	{
+			/*	RFC BPbis 5.6 Step 4	*/
+
+		if (blkProcFlags & BLK_REPORT_IF_NG)
+		{
+			writeMemo("[?] Status report request prohibited for \
+undefined block.");
+			work->mustAbort = 1;
+		}
+	}
+
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
+	itemsRemaining -= 1;
+
+	/*	Acquire CRC type.					*/
+
+	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
+	{
+		writeMemo("[?] Missing CRC type in canonical block.");
+		return 0;
+	}
+
+	if (uvtemp > 2)
+	{
+		writeMemo("[?] Invalid CRC type in canonical block.");
+		return 0;
+	}
+
+	crcType = uvtemp;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
+	itemsRemaining -= 1;
+
+	/*	Acquire size of block-type-specific data.		*/
+
+	uvtemp = (uvast) -1;
+	length = cbor_decode_byte_string(NULL, &uvtemp, &cursor);
+	if (length < 1)
+	{
+		writeMemo("[?] Can't decode block-type-specific data.");
+		return 0;
+	}
+
+	/*	Note: because the decoding destination is NULL, the
+	 *	cursor was advanced only to the end of the size of
+	 *	the block-type-specific data, not to the end of the
+	 *	data itself.  The unparsedBytes counter is reduced
+	 *	only by the length of the SIZE of the block-type-
+	 *	specific data, not by the length of the block-type-
+	 *	specific data itself, but itemsRemaining is reduced
+	 *	by 1 at this time.					*/
+
+	dataLength = uvtemp;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
+	itemsRemaining -= 1;
+
+	/*	Acquire the block-type-specific data if possible.
+	 *	Check first to see if this is the payload block.	*/
+
+	if (blkType == PayloadBlk)
+	{
 		/*	Note: length of payload bytes currently in
 		 *	the buffer is up to unparsedBytes, starting
-		 *	at cursor.					*/
+		 *	at cursor.  CRC, if any, will be checked by
+		 *	the calling function after the payload has
+		 *	been acquired.					*/
 
 		bundle->payloadBlockProcFlags = blkProcFlags;
 		bundle->payload.length = dataLength;
-		return (cursor - startOfBlock);
+		bundle->payload.crcType = crcType;
+		bytesParsed = bytesToParse - unparsedBytes;
+		work->headerLength += bytesParsed;
+		return bytesParsed;
 	}
 
 	/*	This is an extension block.  Cursor is pointing at
@@ -8088,39 +8313,21 @@ static int	acquireBlock(AcqWorkArea *work)
 	if (def)
 	{
 		if (acquireExtensionBlock(work, def, startOfBlock,
-			lengthOfBlock, blkType, blkProcFlags, dataLength) < 0)
+			lengthOfBlock, blkType, blkNumber, blkProcFlags,
+			dataLength) < 0)
 		{
 			return -1;
 		}
 	}
-	else	/*	An unrecognized extension.		*/
+	else	/*	An unrecognized extension.			*/
 	{
 		if (blkProcFlags & BLK_REPORT_IF_NG)
 		{
-			if (bundle->bundleProcFlags & BDL_IS_ADMIN)
-			{
-				/*	RFC 5050 4.3	*/
+			/*	RFC BPbis 5.6 Step 4	*/
 
-				work->mustAbort = 1;
-			}
-			else
-			{
-				bundle->statusRpt.flags |= BP_RECEIVED_RPT;
-				bundle->statusRpt.reasonCode =
-						SrBlockUnintelligible;
-				getCurrentDtnTime(&bundle->
-						statusRpt.receiptTime);
-			}
-		}
-
-		if (bundle->payload.length != 0)
-		{
-			if ((blkProcFlags & BLK_MUST_BE_COPIED) == 0)
-			{
-				/*	RFC 5050 4.3	*/
-
-				work->mustAbort = 1;
-			}
+			bundle->statusRpt.flags |= BP_RECEIVED_RPT;
+			bundle->statusRpt.reasonCode = SrBlockUnintelligible;
+			getCurrentDtnTime(&bundle-> statusRpt.receiptTime);
 		}
 
 		if (blkProcFlags & BLK_ABORT_IF_NG)
@@ -8133,8 +8340,8 @@ static int	acquireBlock(AcqWorkArea *work)
 			{
 				if (acquireExtensionBlock(work, def,
 						startOfBlock, lengthOfBlock,
-						blkType, blkProcFlags,
-						dataLength) < 0)
+						blkType, blkNumber,
+						blkProcFlags, dataLength) < 0)
 				{
 					return -1;
 				}
@@ -8142,7 +8349,108 @@ static int	acquireBlock(AcqWorkArea *work)
 		}
 	}
 
-	return lengthOfBlock;
+	cursor += dataLength;
+	unparsedBytes -= dataLength;
+
+	/*	Compute and check the CRC, if present.			*/
+
+	if (crcType == NoCRC)
+	{
+		if (itemsRemaining != 0)
+		{
+			writeMemo("[?] Extension block has too many items.");
+			return 0;
+		}
+	}
+	else	/*	Must check CRC of extension block.		*/
+	{
+		if (itemsRemaining != 1)
+		{
+			writeMemo("[?] Extension blocks has too few items.");
+			return 0;
+		}
+
+		length = cursor - startOfBlock;
+
+		/*	Must include CRC in block for CRC calculation.	*/
+
+		if (crcType == X25CRC16)
+		{
+			length += 3;	/*	CBOR 16-bit CRC		*/
+		}
+		else
+		{
+			length += 5;	/*	CBOR 32-bit CRC		*/
+		}
+
+		if (length > unparsedBytes)
+		{
+			writeMemo("[?] Extension block truncated.");
+			return 0;
+		}
+
+		crcComputed = computeBufferCrc(crcType, startOfBlock,
+				length, 1, 0, &crcReceived);
+		if (crcComputed != crcReceived)
+		{
+			writeMemo("[?] CRC check failed for extension block.");
+			return 0;
+		}
+
+		if ((unparsedBytes -= length) < 0) return blockTooLong();
+		itemsRemaining -= 1;
+	}
+
+	/*	Have got extension block; include its length in the
+	 *	value of header length;					*/
+
+	bytesParsed = bytesToParse - unparsedBytes;
+	work->headerLength += bytesParsed;
+	return bytesParsed;
+}
+
+static int	checkPayloadCrc(AcqWorkArea *work)
+{
+	ZcoReader	reader;
+	unsigned int	bytesToSkip;
+	unsigned int	bytesSkipped;
+	int		crcSize;
+	uvast		computedCrc;
+	uvast		extractedCrc;
+	
+	zco_start_receiving(work->zco, &reader);
+	bytesToSkip = work->zcoBytesReceived - work->bytesBuffered;
+
+	/*	Skipping this far at this time positions us at the
+	 *	first byte of data for the payload block (which is
+	 *	currently at the very beginning of work->buffer).	*/
+
+	if (bytesToSkip > 0)
+	{
+		bytesSkipped = zco_receive_source(getIonsdr(), &reader,
+				bytesToSkip, NULL);
+		CHKERR(bytesSkipped == bytesToSkip);
+	}
+
+	/*	Now compute the payload block's CRC and, in the
+	 *	process, extract the CRC value attached to the block.	*/
+
+	crcSize = computeZcoCrc(work->bundle.payload.crcType, &reader,
+			work->bundle.payload.length, &computedCrc,
+			&extractedCrc);
+	if (crcSize < 0)
+	{
+		putErrmsg("Failed computing inbound payload CRC.", NULL);
+		return -1;
+	}
+
+	if (computedCrc != extractedCrc)
+	{
+		writeMemo("[?] CRC check failed for payload block.");
+		return 0;
+	}
+
+	return crcSize;
 }
 
 static int	acqFromWork(AcqWorkArea *work)
@@ -8151,6 +8459,8 @@ static int	acqFromWork(AcqWorkArea *work)
 	unsigned char	*cursor;
 	int		bytesParsed;
 	Bundle		*bundle;
+	int		bytesToIgnore;
+	int		crcSize;
 	int		unreceivedPayload;
 	int		bytesRecd;
 
@@ -8160,7 +8470,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	bytesParsed = cbor_decode_array_open(0, &cursor);
 	if (bytesParsed != 1)
 	{
-		return -1;
+		return 0;
 	}
 
 	work->bundleLength += bytesParsed;
@@ -8171,6 +8481,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	bundle = &(work->bundle);
 	bundle->dbOverhead = BASE_BUNDLE_OVERHEAD;
 	bundle->detained = 0;
+	bundle->payload.length = -1;		/*	Not parsed yet.	*/
 
 	/*	Acquire primary block.					*/
 
@@ -8211,47 +8522,85 @@ static int	acqFromWork(AcqWorkArea *work)
 			break;
 		}
 
-		work->headerLength += bytesParsed;
 		work->bundleLength += bytesParsed;
 		CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
-		if (work->bundle.payload.length)
+		if (bundle->payload.length < 0)
 		{
-			/*	Last parsed block was payload block,
-			 *	of which only the header was parsed.	*/
+			/*	No payload block yet.			*/
 
+			continue;
+		}
+
+		/*	Last parsed block was payload block, of which
+		 *	only the header was parsed.			*/
+
+		break;
+	}
+
+	/*	Now acquire all payload bytes and check CRC of payload
+	 *	block (if any).  Note that the actual bytes of payload
+	 *	data are already received into the ZCO we are parsing;
+	 *	all we need to do now is seek past all of the payload
+	 *	data to its end.
+	 *
+	 *	All bytes of the bundle's "header" were cleared by
+	 *	advanceWorkBuffer above; the first byte of payload
+	 *	data is now in the first byte of the buffer.
+	 *
+	 *	If the payload block has a CRC, now is a convenient
+	 *	time to check it.
+	 *
+	 *	After checking the payload block's CRC (as necessary)
+	 *	we need to clear all of the payload (and possibly CRC)
+	 *	bytes out of the buffer; then, if there are more
+	 *	payload bytes in the ZCO beyond those, we must seek
+	 *	past all of them and past the CRC if any.  Then we
+	 *	reload the buffer from the ZCO bytes that immediately
+	 *	follow the payload data bytes and its CRC.		*/
+
+	if (bundle->payload.crcType == NoCRC)
+	{
+		bytesToIgnore = bundle->payload.length;
+	}
+	else
+	{
+		/*	If the payload block has a CRC, check it.
+		 *	To do so, we re-read the payload from the
+		 *	ZCO; the buffer in the AcqWorkArea is
+		 *	unaffected.					*/
+
+		crcSize = checkPayloadCrc(work);
+		switch (crcSize)
+		{
+		case -1:			/*	System failure.	*/
+			return -1;
+
+		case 0:				/*	CRC failed.	*/
+			work->malformed = 1;
+			return 0;
+
+		default:			/*	CRC is okay.	*/
 			break;
 		}
+
+		bytesToIgnore = bundle->payload.length + crcSize;
 	}
 
-	if (work->bundle.payload.length == 0)
+	if (bytesToIgnore <= work->bytesBuffered)
 	{
-		/*	Bundle without any payload.			*/
-
-		return -1;		/*	Payload block missing.	*/
-	}
-
-	/*	Now acquire all payload bytes.  All payload bytes that
-	 *	are currently buffered are cleared; if there are more
-	 *	unreceived payload bytes beyond those, receive them
-	 *	and reload buffer from post-payload bytes.		*/
-
-	if (work->bundle.payload.length <= work->bytesBuffered)
-	{
-		/*	All bytes of payload are currently in the
+		/*	All bytes of payload data are currently in the
 		 *	work area's buffer.				*/
 
-		work->bundleLength += work->bundle.payload.length;
-		CHKERR(advanceWorkBuffer(work, work->bundle.payload.length)
-				== 0);
+		work->bundleLength += bytesToIgnore;
+		CHKERR(advanceWorkBuffer(work, bytesToIgnore) == 0);
 	}
 	else
 	{
 		/*	All bytes in the work area's buffer are
 		 *	payload, and some number of additional bytes
-		 *	not yet received are also in the payload.	*/
+		 *	not yet received are also part of the payload.	*/
 
-		unreceivedPayload = work->bundle.payload.length
-				- work->bytesBuffered;
+		unreceivedPayload = bytesToIgnore - work->bytesBuffered;
 		bytesRecd = zco_receive_source(sdr, &(work->reader),
 				unreceivedPayload, NULL);
 		CHKERR(bytesRecd >= 0);
@@ -8266,7 +8615,7 @@ static int	acqFromWork(AcqWorkArea *work)
 
 		work->zcoBytesReceived += bytesRecd;
 		work->bytesBuffered = 0;
-		work->bundleLength += work->bundle.payload.length;
+		work->bundleLength += bytesToIgnore;
 		CHKERR(advanceWorkBuffer(work, 0) == 0);
 	}
 
@@ -8276,7 +8625,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	bytesParsed = cbor_decode_break(&cursor);
 	if (bytesParsed != 1)
 	{
-		return -1;	/*	Array is not terminated.	*/
+		return 0;	/*	Array is not terminated.	*/
 	}
 
 	work->bundleLength += bytesParsed;
@@ -8450,7 +8799,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	/*	Now that acquisition is complete, check the bundle
 	 *	for problems.						*/
 
-	if (work->malformed || work->lastBlockParsed == 0)
+	if (work->malformed)
 	{
 		writeMemo("[?] Malformed bundle.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,

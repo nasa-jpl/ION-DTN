@@ -35,9 +35,9 @@ typedef struct
 
 typedef enum
 {
-	crcNone = 0,
-	crc16 = 1,
-	crc32 = 2
+	NoCRC = 0,
+	X25CRC16 = 1,
+	CRC32C = 2
 } BpCrcType;
 
 /*	bp_receive timeout values					*/

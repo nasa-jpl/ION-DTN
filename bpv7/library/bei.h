@@ -263,8 +263,8 @@ extern void	suppressExtensionBlock(ExtensionBlock *blk);
 
 extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned int blockLength,
-			BpBlockType blkType, unsigned int blkProcFlags,
-			unsigned int dataLength);
+			BpBlockType blkType, unsigned int blkNumber,
+			unsigned int blkProcFlags, unsigned int dataLength);
 extern int	reviewExtensionBlocks(AcqWorkArea *wk);
 extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);
 extern int	parseExtensionBlocks(AcqWorkArea *wk);

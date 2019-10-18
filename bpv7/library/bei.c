@@ -636,8 +636,8 @@ void	suppressExtensionBlock(ExtensionBlock *blk)
 
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		unsigned char *startOfBlock, unsigned int blockLength,
-		BpBlockType blkType, unsigned int blkProcFlags,
-		unsigned int dataLength)
+		BpBlockType blkType, unsigned int blkNumber,
+		unsigned int blkProcFlags, unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
 	int		blkSize;

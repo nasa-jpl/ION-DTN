@@ -223,8 +223,9 @@ typedef struct
 
 typedef struct
 {
-	unsigned int	length;		/*	initial length of ZCO	*/
+	vast		length;		/*	initial length of ZCO	*/
 	Object		content;	/*	a ZCO reference in SDR	*/
+	BpCrcType	crcType;
 } Payload;
 
 /*	Administrative record types	*/
@@ -861,7 +862,6 @@ typedef struct
 	int		authentic;	/*	Boolean.		*/
 	Lyst		extBlocks;	/*	(AcqExtBlock *)		*/
 	AcqDecision	decision;
-	int		lastBlockParsed;
 	int		malformed;
 	int		congestive;	/*	Not enough ZCO space.	*/
 	int		mustAbort;	/*	Unreadable block(s).	*/

@@ -247,7 +247,7 @@ int	cbor_encode_integer(uvast value, int class, unsigned char **cursor)
 	if (length < 0)
 	{
 		writeMemoNote("[?] CBOR integer encode failed", itoa(value));
-		return -1;
+		return 0;
 	}
 
 	encodeFirstByte(cursor, CborUnsignedInteger, additionalInfo);
@@ -272,7 +272,7 @@ int	cbor_encode_byte_string(unsigned char *value, uvast size,
 	{
 		writeMemoNote("[?] CBOR byte string encode failed",
 				itoa(size));
-		return -1;
+		return 0;
 	}
 
 	encodeFirstByte(cursor, CborByteString, additionalInfo);
@@ -298,7 +298,7 @@ int	cbor_encode_text_string(char *value, uvast size, unsigned char **cursor)
 	{
 		writeMemoNote("[?] CBOR text string encode failed",
 				itoa(size));
-		return -1;
+		return 0;
 	}
 
 	encodeFirstByte(cursor, CborTextString, additionalInfo);
@@ -330,7 +330,7 @@ int	cbor_encode_array_open(uvast size, unsigned char **cursor)
 		{
 			writeMemoNote("[?] CBOR array encode failed",
 					itoa(size));
-			return -1;
+			return 0;
 		}
 	}
 
@@ -353,11 +353,10 @@ int	cbor_encode_break(unsigned char **cursor)
 void	cbor_decode_initial_byte(unsigned char *cursor, int *majorType,
 			int *additionalInfo)
 {
-	unsigned char	byte;
 
-	byte = *cursor;
-	*majorType = byte >> 5 & 0x07;
-	*additionalInfo = byte & 0x1f;
+	CHKVOID(cursor);
+	*majorType = (*cursor) >> 5 & 0x07;
+	*additionalInfo = (*cursor) & 0x1f;
 }
 
 static void	decodeFirstByte(unsigned char **cursor, int *majorType,
@@ -481,14 +480,14 @@ int	cbor_decode_integer(uvast *value, int class, unsigned char **cursor)
 	if (majorType != CborUnsignedInteger)
 	{
 		writeMemo("[?] CBOR error: not integer.");
-		return -1;
+		return 0;
 	}
 
 	length = decodeInteger(value, class, additionalInfo, cursor);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR integer decode failed.");
-		return -1;
+		return 0;
 	}
 
 	return 1 + length;
@@ -502,31 +501,42 @@ int	cbor_decode_byte_string(unsigned char *value, uvast *size,
 	int	length;
 	uvast	stringLength;
 
-	CHKERR(cursor && *cursor && value && size);
+	CHKERR(cursor && *cursor && size);
 	decodeFirstByte(cursor, &majorType, &additionalInfo);
 	if (majorType != CborByteString)
 	{
 		writeMemo("[?] CBOR error: not byte string.");
-		return -1;
+		return 0;
 	}
 
 	length = decodeInteger(&stringLength, 0, additionalInfo, cursor);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR byte string decode failed.");
-		return -1;
+		return 0;
 	}
 
 	if (stringLength > *size)
 	{
 		writeMemoNote("[?] CBOR byte string too long",
 				itoa(stringLength));
-		return -1;
+		return 0;
 	}
 
+	/*	Cursor has been advanced to the beginning of the
+	 *	text string at this point.				*/
+
 	*size = stringLength;
-	memcpy(value, *cursor, stringLength);
-	*cursor += stringLength;
+	if (value)
+	{
+		memcpy(value, *cursor, stringLength);
+		*cursor += stringLength;
+	}
+	else
+	{
+		stringLength = 0;
+	}
+
 	return 1 + (length + stringLength);
 }
 
@@ -538,31 +548,42 @@ int	cbor_decode_text_string(char *value, uvast *size,
 	int	length;
 	uvast	stringLength;
 
-	CHKERR(cursor && *cursor && value && size);
+	CHKERR(cursor && *cursor && size);
 	decodeFirstByte(cursor, &majorType, &additionalInfo);
 	if (majorType != CborTextString)
 	{
 		writeMemo("[?] CBOR error: not text string.");
-		return -1;
+		return 0;
 	}
 
 	length = decodeInteger(&stringLength, 0, additionalInfo, cursor);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR text string decode failed.");
-		return -1;
+		return 0;
 	}
 
 	if (stringLength > *size)
 	{
 		writeMemoNote("[?] CBOR text string too long",
 				itoa(stringLength));
-		return -1;
+		return 0;
 	}
 
+	/*	Cursor has been advanced to the beginning of the
+	 *	text string at this point.				*/
+
 	*size = stringLength;
-	memcpy(value, *cursor, stringLength);
-	*cursor += stringLength;
+	if (value)
+	{
+		memcpy(value, *cursor, stringLength);
+		*cursor += stringLength;
+	}
+	else
+	{
+		stringLength = 0;
+	}
+
 	return 1 + (length + stringLength);
 }
 
@@ -578,14 +599,14 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor)
 	if (majorType != CborTextString)
 	{
 		writeMemo("[?] CBOR error: not array.");
-		return -1;
+		return 0;
 	}
 
 	length = decodeInteger(&arrayLength, 0, additionalInfo, cursor);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR array decode failed.");
-		return -1;
+		return 0;
 	}
 
 	if (*size == 0)			/*	Any size is okay.	*/
@@ -611,7 +632,7 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor)
 		}
 
 		writeMemo("[?] CBOR array size is not indefinite.");
-		return -1;
+		return 0;
 	}
 
 	/*	Definite-length array is required.			*/
@@ -622,7 +643,7 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor)
 	}
 
 	writeMemoNote("[?] CBOR array size is wrong", itoa(arrayLength));
-	return -1;
+	return 0;
 }
 
 int	cbor_decode_break(unsigned char **cursor)
@@ -635,13 +656,13 @@ int	cbor_decode_break(unsigned char **cursor)
 	if (majorType != CborSimpleValue)
 	{
 		writeMemo("[?] CBOR error: not 'simple' value.");
-		return -1;
+		return 0;
 	}
 
 	if (additionalInfo != 31)
 	{
 		writeMemo("[?] CBOR error: not a break code.");
-		return -1;
+		return 0;
 	}
 
 	return 1;			/*	Only initial byte.	*/
