@@ -7829,7 +7829,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	unsigned char	*cursor;
 	unsigned char	*startOfBlock;
 	uvast		arrayLength;
-	uvast		itemsRemaining;;
+	uvast		itemsRemaining;
 	int		version;
 	uvast		uvtemp;
 	BpCrcType	crcType;
@@ -7849,18 +7849,20 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	/*	Start parsing the primary block.			*/
 
 	arrayLength = 0;	/*	Decode array of any size.	*/
-	if (cbor_decode_array_open(&arrayLength, &cursor) < 1)
+	length = cbor_decode_array_open(&arrayLength, &cursor);
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't decode primary block array.");
 		return 0;
 	}
 
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining = arrayLength;
 
 	/*	Acquire version number.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 1)
 	{
 		writeMemo("[?] Missing version number in primary block.");
 		return 0;
@@ -7873,12 +7875,13 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 		return 0;
 	}
 
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire bundle processing flags.			*/
 
-	if (cbor_decode_integer(&uvtemp, CborShort, &cursor) != 3)
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 1)
 	{
 		writeMemo("[?] Missing bundle flags in primary block.");
 		return 0;
@@ -7908,12 +7911,13 @@ bundle containing administrative record.");
 		getCurrentDtnTime(&(bundle->statusRpt.receiptTime));
 	}
 
-	if ((unparsedBytes -= 3) < 0) return blockTooLong();
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire CRC type.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	if (length != 1)
 	{
 		writeMemo("[?] Missing CRC type in primary block.");
 		return 0;
@@ -7926,7 +7930,7 @@ bundle containing administrative record.");
 	}
 
 	crcType = uvtemp;
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Acquire destination EID.				*/
@@ -7998,6 +8002,19 @@ requests prohibited for anonymous bundle.");
 	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
+	/*	Acquire creation timestamp array.			*/
+
+	arrayLength = 2;	/*	Decode array of size 2.		*/
+	length = cbor_decode_array_open(&arrayLength, &cursor);
+       	if (length < 1)
+	{
+		writeMemo("[?] Can't decode creation timestamp.");
+		return 0;
+	}
+
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
+	itemsRemaining -= 1;
+
 	/*	Acquire creation timestamp seconds.			*/
 
 	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
@@ -8008,8 +8025,7 @@ requests prohibited for anonymous bundle.");
 	}
 
 	bundle->id.creationTime.seconds = uvtemp;
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
-	itemsRemaining -= 1;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 
 	/*	Acquire creation timestamp count.			*/
 
@@ -8021,8 +8037,7 @@ requests prohibited for anonymous bundle.");
 	}
 
 	bundle->id.creationTime.count = uvtemp;
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
-	itemsRemaining -= 1;
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 
 	/*	Acquire time-to-live (lifetime).			*/
 
@@ -8034,7 +8049,7 @@ requests prohibited for anonymous bundle.");
 	}
 
 	bundle->timeToLive = uvtemp;
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining -= 1;
 
 	/*	Initialize bundle age.					*/
@@ -8185,13 +8200,14 @@ static int	acquireBlock(AcqWorkArea *work)
 	/*	Start parsing this canonical block.			*/
 
 	arrayLength = 0;	/*	Decode array of any size.	*/
-	if (cbor_decode_array_open(&arrayLength, &cursor) < 1)
+	length = cbor_decode_array_open(&arrayLength, &cursor);
+	if (length < 1)
 	{
 		writeMemo("[?] Can't decode canonical block array.");
 		return 0;
 	}
 
-	if ((unparsedBytes -= 1) < 0) return blockTooLong();
+	if ((unparsedBytes -= length) < 0) return blockTooLong();
 	itemsRemaining = arrayLength;
 
 	/*	Acquire block type.					*/
@@ -8222,7 +8238,8 @@ static int	acquireBlock(AcqWorkArea *work)
 
 	/*	Acquire block processing flags.				*/
 
-	if (cbor_decode_integer(&uvtemp, CborChar, &cursor) != 2)
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+       	if (length < 1)
 	{
 		writeMemo("[?] Missing block flags in canonical block.");
 		return 0;
@@ -8249,7 +8266,7 @@ undefined block.");
 
 	/*	Acquire CRC type.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborTiny, &cursor) != 1)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor) != 1)
 	{
 		writeMemo("[?] Missing CRC type in canonical block.");
 		return 0;
@@ -9397,6 +9414,8 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 		return 0;
 	}
 
+//<<-- change to CBOR parsing
+
 	rpt->flags = *cursor;
 	cursor++;
 	rpt->reasonCode = *cursor;
@@ -9502,6 +9521,8 @@ static int	parseSagaMessage(int adminRecordType, void **otherPtr,
 	Lyst		encounters;
 	Encounter	*encounter;
 	uvast		value;
+
+//<<-- Change to DBOR parsing
 
 	if (adminRecordType != BP_SAGA_MESSAGE)
 	{
@@ -9627,6 +9648,8 @@ static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
 	int		unparsedBytes;
 	int		bundleIsFragment;
 	int		result;
+
+//<<--	Change to CBOR parsing
 
 	CHKERR(adminRecordType && rpt && payload);
 	CHKERR(sdr_begin_xn(sdr));
