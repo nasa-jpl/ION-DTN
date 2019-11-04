@@ -18,11 +18,10 @@
 #define _BPP_H_
 
 #include "rfx.h"
-#include "bpsec.h"
-#include "bp.h"
-#include "saga.h"
 #include "cbor.h"
 #include "crc.h"
+#include "bp.h"
+#include "bpsec.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -230,9 +229,10 @@ typedef struct
 
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
-#define	BP_BIBE_PDU		(3)
-#define	BP_CUSTODY_SIGNAL	(4)	/*	Aggregate, in BIBE.	*/
-#define	BP_SAGA_MESSAGE		(42)
+#define	BP_MULTICAST_PETITION	(5)
+#define	BP_SAGA_MESSAGE		(6)
+#define	BP_BIBE_PDU		(7)
+#define	BP_BIBE_SIGNAL		(8)	/*	Aggregate, in BIBE.	*/
 
 typedef enum
 {
@@ -248,18 +248,14 @@ typedef enum
 	SrTrafficPared
 } BpSrReason;
 
-typedef struct
-{
-	unsigned int	seconds;	/*	Epoch 2000.		*/
-	unsigned int	nanosec;
-} DtnTime;
+typedef time_t		DtnTime;	/*	Epoch 2000.		*/
 
 typedef struct
 {
 	BpTimestamp	creationTime;	/*	From bundle's ID.	*/
 	unsigned int	fragmentOffset;	/*	From bundle's ID.	*/
 	unsigned int	fragmentLength;
-	char		*sourceEid;	/*	From bundle's ID.	*/
+	EndpointId	sourceEid;	/*	From bundle's ID.	*/
 	unsigned char	isFragment;	/*	Boolean.		*/
 	unsigned char	flags;
 	BpSrReason	reasonCode;

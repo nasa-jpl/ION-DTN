@@ -32,16 +32,21 @@ extern "C" {
  *	or decoded.							*/ 
 
 extern int	cbor_encode_integer(	uvast value,
+					unsigned char **cursor);
+			/*	Represent this value in an integer
+			 *	of the smallest possible integer
+			 *	class.  Cursor is automatically
+			 *	advanced.  Returns number of bytes
+			 *	written.				*/
+
+extern int	cbor_encode_fixed_int(	uvast value,
 					int class,
 					unsigned char **cursor);
-			/*	If class is -1, represent in the
-			 *	smallest possible integer class;
-			 *	otherwise represent in integer
+			/*	Represent this value in an integer
 			 *	of the indicated class.  Cursor
 			 *	is automatically advanced.
 			 *	Returns number of bytes written,
-			 *	0 on encoding error, -1 on
-			 *	system error.				*/
+			 *	0 on encoding error.			*/
 
 extern int	cbor_encode_byte_string(unsigned char *value,
 					uvast size,
@@ -49,8 +54,7 @@ extern int	cbor_encode_byte_string(unsigned char *value,
 			/*	Size is the number of bytes to
 			 *	write.  Cursor is automatically
 			 *	advanced.  Returns number of bytes
-			 *	written, 0 on encoding error,
-			 *	-1 on system error.			*/
+			 *	written.				*/
 
 extern int	cbor_encode_text_string(char *value,
 					uvast size,
@@ -58,8 +62,7 @@ extern int	cbor_encode_text_string(char *value,
 			/*	Size is the number of bytes to
 			 *	write.  Cursor is automatically
 			 *	advanced.  Returns number of
-			 *	bytes written, 0 on encoding
-			 *	error, -1 on system error.		*/
+			 *	bytes written.				*/
 
 extern int	cbor_encode_array_open(	uvast size,
 					unsigned char **cursor);
@@ -68,37 +71,41 @@ extern int	cbor_encode_array_open(	uvast size,
 			 *	size indicates the number of items
 			 *	in the array.  Cursor is automatically
 			 *	advanced.  Returns number of bytes
-			 *	written, 0 on encoding error, -1 on
-			 *	system error.				*/
+			 *	written.				*/
 
 extern int	cbor_encode_break(	unsigned char **cursor);
 			/*	Break code is written at the
 			 *	indicated location.  Cursor is
 			 *	automatically advanced.  Returns
-			 *	number of bytes written, 0 on
-			 *	encoding error, -1 on system error.	*/
+			 *	number of bytes written (always 1).	*/
 
-extern void	cbor_decode_initial_byte(unsigned char *cursor,
+extern int	cbor_decode_initial_byte(unsigned char **cursor,
+					unsigned int *bytesBuffered,
 					int *majorType,
 					int *additionalInfo);
 			/*	This function just extracts major
 			 *	type and additional info from the
-			 *	byte identified by cursor.		*/
+			 *	byte identified by cursor.  Cursor
+			 *	is automatically advanced.  Returns
+			 *	number of bytes decoded (always 1)
+			 *	or 0 on decoding error.			*/
 
 extern int	cbor_decode_integer(	uvast *value,
 					int class,
-					unsigned char **cursor);
-			/*	If class is -1, any class of integer
-			 *	data item is accepted; otherwise
-			 *	only an integer data item of the
-			 *	indicated class is accepted.
-			 *	Cursor is automatically advanced.
-			 *	Returns number of bytes read, 0 on
-			 *	decoding error, -1 on system error.	*/
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
+			/*	If class is CborAny, any class of
+			 *	integer data item is accepted;
+			 *	otherwise only an integer data
+			 *	item of the indicated class is
+			 *	accepted.  Cursor is automatically
+			 *	advanced.  Returns number of bytes
+			 *	read, 0 on decoding error.		*/
 
 extern int	cbor_decode_byte_string(unsigned char *value,
 					uvast *size,
-					unsigned char **cursor);
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
 			/*	Initial value of size is the
 			 *	maximum allowable size of the
 			 *	decoded byte string; the actual
@@ -112,12 +119,12 @@ extern int	cbor_decode_byte_string(unsigned char *value,
 			 *	string; otherwise, cursor is advanced
 			 *	only to the beginning of the byte
 			 *	string.  Returns number of bytes
-			 *	read, 0 on decoding error, -1 on
-			 *	system error.				*/
+			 *	read, 0 on decoding error.		*/
 
 extern int	cbor_decode_text_string(char *value,
 					uvast *size,
-					unsigned char **cursor);
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
 			/*	Initial value of size is the
 			 *	maximum allowable size of the
 			 *	decoded text string; the actual
@@ -131,11 +138,11 @@ extern int	cbor_decode_text_string(char *value,
 			 *	string; otherwise, cursor is advanced
 			 *	only to the beginning of the text
 			 *	string.  Returns number of bytes
-			 *	read, 0 on decoding error, -1 on
-			 *	system error.				*/
+			 *	read, 0 on decoding error.		*/
 
 extern int	cbor_decode_array_open(	uvast *size,
-					unsigned char **cursor);
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
 			/*	If size is zero, any array
 			 *	is accepted and the actual size
 			 *	of the decoded array is returned
@@ -148,15 +155,15 @@ extern int	cbor_decode_array_open(	uvast *size,
 			 *	required number of items in the
 			 *	array.  Cursor is automatically
 			 *	advanced.  Returns number of bytes
-			 *	read, 0 on decoding error, -1 on
-			 *	system error.				*/
+			 *	read, 0 on decoding error.		*/
 
-extern int	cbor_decode_break(	unsigned char **cursor);
+extern int	cbor_decode_break(	unsigned char **cursor,
+					unsigned int *bytesBuffered);
 			/*	Break code is read from the
 			 *	indicated location.  Cursor is
 			 *	automatically advanced.  Returns
 			 *	number of bytes read, 0 on decoding
-			 *	error, -1 on system error.		*/
+			 *	error.					*/
 
 #ifdef __cplusplus
 }

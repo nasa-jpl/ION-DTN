@@ -70,6 +70,12 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		return -1;
 	}
 
+	if (metaEid.nullEndpoint)	/*	No SAP is possible.	*/
+	{
+		restoreEidString(&metaEid);
+		return 0;
+	}
+
 	if (vschemeElt == 0)
 	{
 		putErrmsg("Scheme not known.", metaEid.schemeName);
@@ -784,7 +790,10 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	if (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELIVERED_RPT)
 	{
 		bundle.statusRpt.flags |= BP_DELIVERED_RPT;
-		getCurrentDtnTime(&bundle.statusRpt.deliveryTime);
+		if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+		{
+			getCurrentDtnTime(&bundle.statusRpt.deliveryTime);
+		}
 	}
 
 	if (bundle.statusRpt.flags)

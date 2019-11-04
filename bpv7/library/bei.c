@@ -627,13 +627,13 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 	uvtemp = (crcSize == 0 ? 5 : 6);
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 	uvtemp = blk->type;
-	oK(cbor_encode_integer(uvtemp, CborAny, &cursor));
+	oK(cbor_encode_integer(uvtemp, &cursor));
 	uvtemp = blk->number;
-	oK(cbor_encode_integer(uvtemp, CborAny, &cursor));
+	oK(cbor_encode_integer(uvtemp, &cursor));
 	uvtemp = blk->blkProcFlags;
-	oK(cbor_encode_integer(uvtemp, CborChar, &cursor));
+	oK(cbor_encode_integer(uvtemp, &cursor));
 	uvtemp = blk->crcType;
-	oK(cbor_encode_integer(uvtemp, CborTiny, &cursor));
+	oK(cbor_encode_integer(uvtemp, &cursor));
 	uvtemp = blk->dataLength;
 	oK(cbor_encode_byte_string((unsigned char *) blockData, uvtemp,
 			&cursor));
@@ -645,11 +645,11 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 		uvtemp = 0;
 		if (blk->crcType == X25CRC16)
 		{
-			oK(cbor_encode_integer(uvtemp, CborShort, &cursor));
+			oK(cbor_encode_fixed_int(uvtemp, CborShort, &cursor));
 		}
 		else		/*	CRC32C.				*/
 		{
-			oK(cbor_encode_integer(uvtemp, CborInt, &cursor));
+			oK(cbor_encode_fixed_int(uvtemp, CborInt, &cursor));
 		}
 
 		oK(computeBufferCrc(blk->crcType, blkBuffer, cursor - blkBuffer,

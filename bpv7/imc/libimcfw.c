@@ -205,6 +205,8 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 int	imcParsePetition(void **argp, unsigned char *cursor, int unparsedBytes)
 {
 	ImcPetition	*petition;
+	uvast		arrayLength;
+	uvast		uvtemp;
 
 	*argp = NULL;		/*	Default.			*/
 	petition = MTAKE(sizeof(ImcPetition));
@@ -215,14 +217,30 @@ int	imcParsePetition(void **argp, unsigned char *cursor, int unparsedBytes)
 	}
 
 	memset((char *) petition, 0, sizeof(ImcPetition));
-	extractSdnv(&(petition->groupNbr), &cursor, &unparsedBytes);
-	if (unparsedBytes < 1)
+
+	/*	Start parsing of petition.				*/
+
+	arrayLength = 2;
+	if (cbor_decode_array_open(&arrayLenght, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] IMC petition too short to parse.");
+		writeMemo("[?] Can't decode IMC petition array.");
 		return 0;
 	}
 
-	petition->isMember = (*cursor != 0);
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition group number.");
+		return 0;
+	}
+
+	petition->groupNbr = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition membership switch.");
+		return 0;
+	}
+
+	petition->isMember = (uvtemp != 0);
 	*argp = petition;
 	return 1;
 }
@@ -936,4 +954,103 @@ fflush(stdout);
 	}
 
 	return 0;
+}
+
+static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
+{
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->codeNumber != imc || eid == NULL)
+	{
+		return 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in addEndpoint.				*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
+	result = imcJoin(metaEid.elementNbr);
+	restoreEidString(&metaEid);
+	return result;
+}
+
+static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
+{
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->codeNumber != imc || eid == NULL)
+	{
+		return 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in removeEndpoint.			*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
+	result = imcLeave(metaEid.elementNbr);
+	restoreEidString(&metaEid);
+	return result;
+}
+
+static int	parseImcPetition(int adminRecordType, void **otherPtr,
+			unsigned char *cursor, int unparsedBytes)
+{
+	if (adminRecordType != BP_MULTICAST_PETITION)
+	{
+		return -2;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	return imcParsePetition(otherPtr, cursor, unparsedBytes);
+}
+
+static int	applyImcPetition(int adminRecType, void *other, BpDelivery *dlv)
+{
+	if (adminRecType != BP_MULTICAST_PETITION)
+	{
+		return -2;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	return imcHandlePetition(other, dlv);
 }
