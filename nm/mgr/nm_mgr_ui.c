@@ -33,7 +33,7 @@
 #include "ctype.h"
 
 #include "platform.h"
-
+#include "../shared/nm.h"
 #include "../shared/utils/utils.h"
 #include "../shared/adm/adm.h"
 #include "../shared/primitives/ctrl.h"
@@ -426,7 +426,7 @@ void ui_eventLoop(int *running)
          switch(choice)
          {
          case 0:
-            sprintf(msg, "VERSION: Built on %s %s", __DATE__, __TIME__); // TODO: ION/NM/Protocol version?
+            sprintf(msg, "VERSION: Built on %s %s\nAMP Protocol Version %d - %s/%02d", __DATE__, __TIME__, AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION);
             new_msg = 1;            
             break;
          case 1: // Register new Agent

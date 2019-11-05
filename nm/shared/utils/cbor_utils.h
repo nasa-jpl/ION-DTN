@@ -25,6 +25,8 @@
  **  --------  ------------   ---------------------------------------------
  **  08/31/18  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
+#ifndef __CBOR_UTILS__
+#define __CBOR_UTILS__
 
 #include "nm_types.h"
 #include "vector.h"
@@ -41,7 +43,13 @@ typedef void* (*vec_des_fn)(QCBORDecodeContext *decoder, int *success);
 
 int       cut_advance_it(QCBORItem *value);
 
-int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t byte);
+int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len);
+int cut_dec_bytes(QCBORDecodeContext *it, uint8_t *buf, size_t len);
+static inline int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t buf)
+{
+   return cut_enc_bytes(encoder, &buf, sizeof(uint8_t));
+}
+
 int cut_enc_uvast(uvast num, blob_t *result);
 
 int       cut_get_cbor_numeric(QCBORDecodeContext *value, amp_type_e type, void *val);
@@ -64,3 +72,5 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length);
    if (tmperr != QCBOR_SUCCESS) { \
      AMP_DEBUG_WARN(__func__, "Warning: CBOR Decoding finished with err %d", tmperr); \
    }
+
+#endif

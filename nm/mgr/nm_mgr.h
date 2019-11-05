@@ -39,7 +39,7 @@
 #include "sdr.h"
 
 // Application includes
-
+#include "../shared/nm.h"
 #include "../shared/utils/nm_types.h"
 #include "../shared/msg/ion_if.h"
 

@@ -172,7 +172,6 @@ int test_msg_grp(char *desc, char* cbor) {
       msg_rpt_t *rpt_msg = msg_rpt_deserialize(msg_data, &success);
       check(success == AMP_OK);
       check(rpt_msg != NULL);
-      // TOOD: VERIFY
 
       msg_rpt_release(rpt_msg, 1);
       
@@ -218,6 +217,11 @@ int main(int argc, char **argv)
    fail_unless(test_simple_ari("Generate ADM Report and BP Report Concurrently.", "c11541055584054225234d824587181941004587182d41004180", AMP_TYPE_CTRL));
 
    fail_unless(test_msg_grp("ADM Report and BP Report Concurrently (response).", "8200585a01816769706e3a312e3181834587181941001a5d76ac5c5841920550121214141414141414141414141414144a69616d705f6167656e74456476332e314106411641014100410041004100421825410241014100410141014100"));
+
+   // Step 2.1
+   fail_unless(test_simple_ari("2.1: Generated Endpoint report for endpoint", "c1154105581d8405422523558153c7182d41014d83054112486769706e3a312e314180", AMP_TYPE_CTRL));
+   fail_unless(test_msg_grp("2.2: Verify endpoint report received for selected endpoint", "8200582701816769706e3a312e31818353c7182d41014d83054112486769706e3a312e311a5d79808c4180"));
+
    
    CHECK_FINISH;
 }
